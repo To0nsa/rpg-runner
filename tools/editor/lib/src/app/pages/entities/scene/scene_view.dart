@@ -1,7 +1,7 @@
 part of '../entities_editor_page.dart';
 
 extension _SceneView on _EntitiesEditorPageState {
-  static const Size _fixedViewportSize = Size(800, 500);
+  static const Size _defaultViewportSize = Size(800, 500);
   static const double _colliderHandleRadius = 6.0;
   static const double _colliderHandleHitRadius = 14.0;
   static const double _anchorHandleRadius = 4.5;
@@ -46,17 +46,12 @@ extension _SceneView on _EntitiesEditorPageState {
     final referenceFrame = referenceAnimView == null
         ? 0
         : _effectiveReferenceFrame(referenceAnimView, frameIndex: frameIndex);
-    final sceneCanvasSize = _sceneCanvasSize(
-      selectedEntry: selectedEntry,
-      reference: resolvedReference,
-      scale: scale,
-    );
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final viewportWidth = constraints.maxWidth.isFinite
-            ? math.min(_fixedViewportSize.width, constraints.maxWidth)
-            : _fixedViewportSize.width;
+        final panelWidth = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : _defaultViewportSize.width;
         return Card(
           child: Padding(
             padding: const EdgeInsets.all(12),
@@ -64,7 +59,7 @@ extension _SceneView on _EntitiesEditorPageState {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SizedBox(
-                  width: viewportWidth,
+                  width: panelWidth,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -104,18 +99,38 @@ extension _SceneView on _EntitiesEditorPageState {
                   ),
                 ),
                 const SizedBox(height: 8),
-                EditorSceneViewportFrame(
-                  width: viewportWidth,
-                  height: _fixedViewportSize.height,
-                  child: _buildScrollableSceneCanvas(
-                    canvasSize: sceneCanvasSize,
-                    scale: scale,
-                    selectedEntry: selectedEntry,
-                    resolvedReference: resolvedReference,
-                    referenceAnimView: referenceAnimView,
-                    resolvedImage: resolvedImage,
-                    referenceRow: referenceRow,
-                    referenceFrame: referenceFrame,
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, viewportConstraints) {
+                      final viewportSize = Size(
+                        viewportConstraints.maxWidth.isFinite
+                            ? viewportConstraints.maxWidth
+                            : panelWidth,
+                        viewportConstraints.maxHeight.isFinite
+                            ? viewportConstraints.maxHeight
+                            : _defaultViewportSize.height,
+                      );
+                      final sceneCanvasSize = _sceneCanvasSize(
+                        selectedEntry: selectedEntry,
+                        reference: resolvedReference,
+                        scale: scale,
+                        viewportSize: viewportSize,
+                      );
+                      return EditorSceneViewportFrame(
+                        width: viewportSize.width,
+                        height: viewportSize.height,
+                        child: _buildScrollableSceneCanvas(
+                          canvasSize: sceneCanvasSize,
+                          scale: scale,
+                          selectedEntry: selectedEntry,
+                          resolvedReference: resolvedReference,
+                          referenceAnimView: referenceAnimView,
+                          resolvedImage: resolvedImage,
+                          referenceRow: referenceRow,
+                          referenceFrame: referenceFrame,
+                        ),
+                      );
+                    },
                   ),
                 ),
               ],
@@ -261,6 +276,7 @@ extension _SceneView on _EntitiesEditorPageState {
     required EntityEntry selectedEntry,
     required _ResolvedReferenceVisual? reference,
     required double scale,
+    required Size viewportSize,
   }) {
     const panPadding = 280.0;
     var halfSpanX =
@@ -287,14 +303,17 @@ extension _SceneView on _EntitiesEditorPageState {
       }
     }
 
-    final width = math.max(
-      _fixedViewportSize.width,
-      (halfSpanX + panPadding) * 2,
-    );
-    final height = math.max(
-      _fixedViewportSize.height,
-      (halfSpanY + panPadding) * 2,
-    );
+    final minViewportWidth =
+        viewportSize.width.isFinite && viewportSize.width > 0
+        ? viewportSize.width
+        : _defaultViewportSize.width;
+    final minViewportHeight =
+        viewportSize.height.isFinite && viewportSize.height > 0
+        ? viewportSize.height
+        : _defaultViewportSize.height;
+
+    final width = math.max(minViewportWidth, (halfSpanX + panPadding) * 2);
+    final height = math.max(minViewportHeight, (halfSpanY + panPadding) * 2);
     return Size(width.ceilToDouble(), height.ceilToDouble());
   }
 

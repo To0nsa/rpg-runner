@@ -119,8 +119,6 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage> {
           children: [
             _buildControls(),
             const SizedBox(height: 16),
-            _buildStatusRow(),
-            const SizedBox(height: 16),
             Expanded(child: _buildEntitiesPage(entityScene, visibleEntries)),
           ],
         );
@@ -134,13 +132,6 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage> {
       runSpacing: 12,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        Chip(
-          label: Text(
-            widget.controller.workspacePath.trim().isEmpty
-                ? 'Workspace: (empty)'
-                : 'Workspace: ${widget.controller.workspacePath.trim()}',
-          ),
-        ),
         FilledButton.icon(
           onPressed:
               widget.controller.isLoading || widget.controller.isExporting
@@ -271,143 +262,68 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage> {
     return 0;
   }
 
-  Widget _buildStatusRow() {
-    final statusText = widget.controller.isLoading
-        ? 'Loading...'
-        : widget.controller.isExporting
-        ? 'Applying...'
-        : widget.controller.loadError == null
-        ? 'Ready'
-        : 'Load error';
-
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        Chip(label: Text(statusText)),
-        Chip(label: Text('Errors: ${widget.controller.errorCount}')),
-        Chip(label: Text('Warnings: ${widget.controller.warningCount}')),
-        Chip(
-          label: Text('Dirty entries: ${widget.controller.dirtyEntryCount}'),
-        ),
-        Chip(label: Text('Dirty files: ${widget.controller.dirtyFileCount}')),
-        if (widget.controller.exportError != null)
-          const Chip(label: Text('Apply error')),
-        if (widget.controller.pendingChangesError != null)
-          const Chip(label: Text('Diff error')),
-        if (widget.controller.lastExportResult != null)
-          Chip(
-            label: Text(
-              widget.controller.lastExportResult!.applied
-                  ? 'Last apply: wrote files'
-                  : 'Last apply: no changes',
-            ),
-          ),
-      ],
-    );
-  }
-
   Widget _buildEntryListPanel({
     required EntityScene scene,
     required List<EntityEntry> visibleEntries,
   }) {
-    final dirtyVisibleCount = visibleEntries
-        .where((entry) => widget.controller.dirtyEntryIds.contains(entry.id))
-        .length;
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Flexible(
-          fit: FlexFit.loose,
-          child: SingleChildScrollView(
-            child: Card(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        SizedBox(
-                          width: 340,
-                          child: TextField(
-                            controller: _searchController,
-                            decoration: const InputDecoration(
-                              labelText: 'Search Entries',
-                              hintText: 'id, label, source path',
-                              border: OutlineInputBorder(),
-                              isDense: true,
-                            ),
-                            onChanged: (value) {
-                              setState(() {
-                                _searchQuery = value.trim().toLowerCase();
-                              });
-                            },
-                          ),
+                    SizedBox(
+                      width: 340,
+                      child: TextField(
+                        controller: _searchController,
+                        decoration: const InputDecoration(
+                          labelText: 'Search Entries',
+                          hintText: 'id, label, source path',
+                          floatingLabelBehavior: FloatingLabelBehavior.always,
+                          border: OutlineInputBorder(),
+                          isDense: true,
                         ),
-                        Text(
-                          'Visible: ${visibleEntries.length} / ${scene.entries.length}',
-                        ),
-                        Text('Dirty visible: $dirtyVisibleCount'),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: [
-                        _typeFilterChip(label: 'All', type: null),
-                        _typeFilterChip(
-                          label: 'Players',
-                          type: EntityType.player,
-                        ),
-                        _typeFilterChip(
-                          label: 'Enemies',
-                          type: EntityType.enemy,
-                        ),
-                        _typeFilterChip(
-                          label: 'Projectiles',
-                          type: EntityType.projectile,
-                        ),
-                        FilterChip(
-                          selected: _showDirtyOnly,
-                          label: const Text('Dirty only'),
-                          onSelected: (selected) {
-                            setState(() {
-                              _showDirtyOnly = selected;
-                            });
-                          },
-                        ),
-                        OutlinedButton.icon(
-                          onPressed: dirtyVisibleCount == 0
-                              ? null
-                              : () => _selectAdjacentDirty(
-                                  scene,
-                                  visibleEntries,
-                                  reverse: true,
-                                ),
-                          icon: const Icon(Icons.arrow_back),
-                          label: const Text('Prev Dirty'),
-                        ),
-                        OutlinedButton.icon(
-                          onPressed: dirtyVisibleCount == 0
-                              ? null
-                              : () => _selectAdjacentDirty(
-                                  scene,
-                                  visibleEntries,
-                                  reverse: false,
-                                ),
-                          icon: const Icon(Icons.arrow_forward),
-                          label: const Text('Next Dirty'),
-                        ),
-                      ],
+                        onChanged: (value) {
+                          setState(() {
+                            _searchQuery = value.trim().toLowerCase();
+                          });
+                        },
+                      ),
                     ),
                   ],
                 ),
-              ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    _typeFilterChip(label: 'All', type: null),
+                    _typeFilterChip(label: 'Players', type: EntityType.player),
+                    _typeFilterChip(label: 'Enemies', type: EntityType.enemy),
+                    _typeFilterChip(
+                      label: 'Projectiles',
+                      type: EntityType.projectile,
+                    ),
+                    FilterChip(
+                      selected: _showDirtyOnly,
+                      label: const Text('Dirty only'),
+                      onSelected: (selected) {
+                        setState(() {
+                          _showDirtyOnly = selected;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ),
@@ -643,29 +559,6 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage> {
           return haystack.contains(query);
         })
         .toList(growable: false);
-  }
-
-  void _selectAdjacentDirty(
-    EntityScene scene,
-    List<EntityEntry> visibleEntries, {
-    required bool reverse,
-  }) {
-    final dirtyEntries = visibleEntries
-        .where((entry) => widget.controller.dirtyEntryIds.contains(entry.id))
-        .toList(growable: false);
-    if (dirtyEntries.isEmpty) {
-      return;
-    }
-
-    final currentIndex = dirtyEntries.indexWhere(
-      (entry) => entry.id == _selectedEntryId,
-    );
-    final targetEntry = currentIndex == -1
-        ? (reverse ? dirtyEntries.last : dirtyEntries.first)
-        : dirtyEntries[reverse
-              ? (currentIndex - 1 + dirtyEntries.length) % dirtyEntries.length
-              : (currentIndex + 1) % dirtyEntries.length];
-    _selectEntryById(scene, targetEntry.id);
   }
 
   void _selectEntryById(EntityScene scene, String entryId) {
@@ -982,7 +875,8 @@ class _EntityTable extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         child: DataTable(
           showCheckboxColumn: false,
-          columns: const [DataColumn(label: Text('ID'))],
+          headingRowHeight: 0,
+          columns: const [DataColumn(label: SizedBox.shrink())],
           rows: entries
               .map((entry) {
                 final isDirty = dirtyEntryIds.contains(entry.id);

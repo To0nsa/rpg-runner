@@ -18,33 +18,49 @@ extension _EntitiesPage on _EntitiesEditorPageState {
 
     final selectedEntry = _selectedEntry(entityScene);
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
       children: [
         Expanded(
           flex: 4,
-          child: SingleChildScrollView(
-            child: Column(
+          child: ClipRect(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _buildViewportPanel(selectedEntry),
-                const SizedBox(height: 12),
-                _buildInspector(selectedEntry),
-                const SizedBox(height: 12),
-                SizedBox(height: 180, child: _buildValidationPanel()),
-                const SizedBox(height: 12),
-                SizedBox(height: 300, child: _buildPendingDiffPanel()),
-                const SizedBox(height: 12),
-                SizedBox(height: 230, child: _buildApplyResultPanel()),
+                Expanded(
+                  flex: 5,
+                  child: ClipRect(child: _buildViewportPanel(selectedEntry)),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 4,
+                  child: ClipRect(child: _buildInspector(selectedEntry)),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 4,
+                  child: ClipRect(
+                    child: _buildEntryListPanel(
+                      scene: entityScene,
+                      visibleEntries: visibleEntries,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(height: 12),
         Expanded(
-          flex: 5,
-          child: _buildEntryListPanel(
-            scene: entityScene,
-            visibleEntries: visibleEntries,
+          flex: 1,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(child: _buildValidationPanel()),
+              const SizedBox(width: 12),
+              Expanded(flex: 2, child: _buildPendingDiffPanel()),
+              const SizedBox(width: 12),
+              Expanded(flex: 2, child: _buildApplyResultPanel()),
+            ],
           ),
         ),
       ],
