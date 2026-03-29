@@ -1,25 +1,17 @@
 import 'package:flutter/material.dart';
 
+import '../shared/editor_route_intro_card.dart';
+
 class ChunkCreatorPage extends StatelessWidget {
   const ChunkCreatorPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Chunk Creator',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 8),
-            const Text('Coming soon.'),
-          ],
-        ),
-      ),
+    return const EditorRouteIntroCard(
+      title: 'Chunk Creator',
+      description:
+          'Final chunk composition workspace for terrain, prefabs, markers, '
+          'metadata, and validation.',
     );
   }
 }

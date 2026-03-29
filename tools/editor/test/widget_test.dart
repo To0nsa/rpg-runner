@@ -474,7 +474,6 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('RPG Runner Editor'), findsOneWidget);
     expect(find.text('No scene loaded.'), findsNothing);
     expect(find.text('Search Entries'), findsOneWidget);
     expect(find.byType(FilterChip), findsWidgets);

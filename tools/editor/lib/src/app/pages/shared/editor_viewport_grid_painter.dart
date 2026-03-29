@@ -1,10 +1,11 @@
-part of '../../home/editor_home_page.dart';
+import 'package:flutter/material.dart';
 
-class _ViewportPixelGridPainter extends CustomPainter {
-  const _ViewportPixelGridPainter({required this.zoom});
+class EditorViewportGridPainter extends CustomPainter {
+  const EditorViewportGridPainter({required this.zoom});
 
   static const double _minSpacingToPaint = 1.0;
   static const double _axisStrokeWidth = 2.0;
+
   final double zoom;
 
   @override
@@ -43,7 +44,7 @@ class _ViewportPixelGridPainter extends CustomPainter {
     if (spacingPx < _minSpacingToPaint) {
       return;
     }
-    final center = _ViewportGeometry.canvasCenter(size);
+    final center = Offset(size.width * 0.5, size.height * 0.5);
     final paint = Paint()
       ..color = color
       ..strokeWidth = 1;
@@ -86,7 +87,7 @@ class _ViewportPixelGridPainter extends CustomPainter {
   }
 
   void _paintAxes(Canvas canvas, Size size) {
-    final center = _ViewportGeometry.canvasCenter(size);
+    final center = Offset(size.width * 0.5, size.height * 0.5);
     final paint = Paint()
       ..color = const Color(0xCC9FB4C7)
       ..strokeWidth = _axisStrokeWidth;
@@ -98,6 +99,6 @@ class _ViewportPixelGridPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _ViewportPixelGridPainter oldDelegate) =>
+  bool shouldRepaint(covariant EditorViewportGridPainter oldDelegate) =>
       oldDelegate.zoom != zoom;
 }

@@ -1,6 +1,6 @@
-part of '../../home/editor_home_page.dart';
+part of '../entities_editor_page.dart';
 
-extension _SceneView on _EditorHomePageState {
+extension _SceneView on _EntitiesEditorPageState {
   static const Size _fixedViewportSize = Size(800, 500);
   static const double _colliderHandleRadius = 6.0;
   static const double _colliderHandleHitRadius = 14.0;
@@ -104,37 +104,18 @@ extension _SceneView on _EditorHomePageState {
                   ),
                 ),
                 const SizedBox(height: 8),
-                SizedBox(
+                EditorSceneViewportFrame(
                   width: viewportWidth,
                   height: _fixedViewportSize.height,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        _buildScrollableSceneCanvas(
-                          canvasSize: sceneCanvasSize,
-                          scale: scale,
-                          selectedEntry: selectedEntry,
-                          resolvedReference: resolvedReference,
-                          referenceAnimView: referenceAnimView,
-                          resolvedImage: resolvedImage,
-                          referenceRow: referenceRow,
-                          referenceFrame: referenceFrame,
-                        ),
-                        IgnorePointer(
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: const ui.Color.fromARGB(255, 101, 171, 211),
-                                width: 1,
-                              ),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                  child: _buildScrollableSceneCanvas(
+                    canvasSize: sceneCanvasSize,
+                    scale: scale,
+                    selectedEntry: selectedEntry,
+                    resolvedReference: resolvedReference,
+                    referenceAnimView: referenceAnimView,
+                    resolvedImage: resolvedImage,
+                    referenceRow: referenceRow,
+                    referenceFrame: referenceFrame,
                   ),
                 ),
               ],
@@ -240,7 +221,7 @@ extension _SceneView on _EditorHomePageState {
           fit: StackFit.expand,
           children: [
             const Positioned.fill(child: ColoredBox(color: Color(0xFF111A22))),
-            CustomPaint(painter: _ViewportPixelGridPainter(zoom: scale)),
+            CustomPaint(painter: EditorViewportGridPainter(zoom: scale)),
             if (resolvedReference != null &&
                 referenceAnimView != null &&
                 resolvedImage != null)
@@ -328,8 +309,7 @@ extension _SceneView on _EditorHomePageState {
     if (!isPrimaryMouseDown) {
       return;
     }
-    _sceneCtrlPanActive =
-        isPrimaryMouseDown && HardwareKeyboard.instance.isControlPressed;
+    _sceneCtrlPanActive = isPrimaryMouseDown && SceneInputUtils.isCtrlPressed();
     if (_sceneCtrlPanActive) {
       _sceneHandleDrag = null;
       return;
@@ -409,17 +389,14 @@ extension _SceneView on _EditorHomePageState {
     if (event is! PointerScrollEvent) {
       return;
     }
-    if (!HardwareKeyboard.instance.isControlPressed) {
+    if (!SceneInputUtils.isCtrlPressed()) {
       return;
     }
     final deltaY = event.scrollDelta.dy;
-    if (deltaY.abs() <= 0.0) {
+    final steps = SceneInputUtils.zoomStepsFromScrollDeltaY(deltaY);
+    if (steps < 1) {
       return;
     }
-    // Mouse wheels usually emit ~120 px "notches". Trackpads emit smaller
-    // continuous deltas, so normalize to at least one zoom step.
-    final rawSteps = (deltaY.abs() / 120.0).round();
-    final steps = rawSteps < 1 ? 1 : rawSteps;
     for (var i = 0; i < steps; i += 1) {
       if (deltaY < 0) {
         _zoomIn();
@@ -664,22 +641,11 @@ extension _SceneView on _EditorHomePageState {
   }
 
   void _panSceneViewportBy({required Offset delta}) {
-    if (!_sceneHorizontalScrollController.hasClients ||
-        !_sceneVerticalScrollController.hasClients) {
-      return;
-    }
-    final horizontalPosition = _sceneHorizontalScrollController.position;
-    final verticalPosition = _sceneVerticalScrollController.position;
-    final nextX = (_sceneHorizontalScrollController.offset - delta.dx).clamp(
-      0.0,
-      horizontalPosition.maxScrollExtent,
+    SceneInputUtils.panScrollControllers(
+      horizontal: _sceneHorizontalScrollController,
+      vertical: _sceneVerticalScrollController,
+      pointerDelta: delta,
     );
-    final nextY = (_sceneVerticalScrollController.offset - delta.dy).clamp(
-      0.0,
-      verticalPosition.maxScrollExtent,
-    );
-    _sceneHorizontalScrollController.jumpTo(nextX);
-    _sceneVerticalScrollController.jumpTo(nextY);
   }
 
   void _scheduleSceneViewportCentering() {

@@ -1,6 +1,6 @@
-part of '../home/editor_home_page.dart';
+part of 'entities_editor_page.dart';
 
-extension _EntitiesPage on _EditorHomePageState {
+extension _EntitiesPage on _EntitiesEditorPageState {
   Widget _buildEntitiesPage(
     EntityScene? entityScene,
     List<EntityEntry> visibleEntries,

@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "slices": [
+    {
+      "id": "village_crate_01",
+      "sourceImagePath": "assets/images/level/props/TX Village Props.png",
+      "x": 32,
+      "y": 10,
+      "width": 64,
+      "height": 64
+    }
+  ],
+  "prefabs": []
+}

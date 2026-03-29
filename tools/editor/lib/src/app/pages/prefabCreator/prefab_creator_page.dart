@@ -1,0 +1,198 @@
+import 'dart:async';
+import 'dart:io';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+
+import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
+
+import '../../../prefabs/prefab_models.dart';
+import '../../../prefabs/prefab_store.dart';
+import '../../../session/editor_session_controller.dart';
+import '../shared/atlas_selection_painter.dart';
+import '../shared/editor_zoom_controls.dart';
+import 'widgets/prefab_scene_view.dart';
+
+part 'tabs/atlas_slicer_tab.dart';
+part 'tabs/prefabs_tab.dart';
+part 'tabs/platform_modules_tab.dart';
+part 'state/data_io.dart';
+part 'state/selection_logic.dart';
+part 'state/prefab_logic.dart';
+part 'state/module_logic.dart';
+
+class PrefabCreatorPage extends StatefulWidget {
+  const PrefabCreatorPage({super.key, required this.controller});
+
+  final EditorSessionController controller;
+
+  @override
+  State<PrefabCreatorPage> createState() => _PrefabCreatorPageState();
+}
+
+class _PrefabCreatorPageState extends State<PrefabCreatorPage> {
+  static const String _levelAssetsPath = 'assets/images/level';
+  static const double _zoomMin = 0.2;
+  static const double _zoomMax = 24.0;
+  static const double _zoomStep = 0.2;
+
+  final PrefabStore _store = const PrefabStore();
+
+  final TextEditingController _sliceIdController = TextEditingController();
+  final TextEditingController _prefabIdController = TextEditingController();
+  final TextEditingController _anchorXController = TextEditingController(
+    text: '0',
+  );
+  final TextEditingController _anchorYController = TextEditingController(
+    text: '0',
+  );
+  final TextEditingController _colliderOffsetXController =
+      TextEditingController(text: '0');
+  final TextEditingController _colliderOffsetYController =
+      TextEditingController(text: '0');
+  final TextEditingController _colliderWidthController = TextEditingController(
+    text: '16',
+  );
+  final TextEditingController _colliderHeightController = TextEditingController(
+    text: '16',
+  );
+  final TextEditingController _prefabTagsController = TextEditingController();
+
+  final TextEditingController _moduleIdController = TextEditingController();
+  final TextEditingController _moduleTileSizeController = TextEditingController(
+    text: '16',
+  );
+  final TextEditingController _moduleCellGridXController =
+      TextEditingController(text: '0');
+  final TextEditingController _moduleCellGridYController =
+      TextEditingController(text: '0');
+  final TextEditingController _selectionXController = TextEditingController();
+  final TextEditingController _selectionYController = TextEditingController();
+  final TextEditingController _selectionWController = TextEditingController();
+  final TextEditingController _selectionHController = TextEditingController();
+
+  final ScrollController _atlasHorizontalScrollController = ScrollController();
+  final ScrollController _atlasVerticalScrollController = ScrollController();
+
+  PrefabData _data = const PrefabData();
+  List<String> _atlasImagePaths = const <String>[];
+  final Map<String, Size> _atlasImageSizes = <String, Size>{};
+
+  bool _isLoading = false;
+  bool _isSaving = false;
+  String? _statusMessage;
+  String? _errorMessage;
+
+  String? _selectedAtlasPath;
+  AtlasSliceKind _selectedSliceKind = AtlasSliceKind.prefab;
+  String? _selectedPrefabSliceId;
+  String? _selectedTileSliceId;
+  String? _selectedModuleId;
+  double _atlasZoom = 2.0;
+
+  Offset? _selectionStartImagePx;
+  Offset? _selectionCurrentImagePx;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_reloadData());
+    });
+  }
+
+  @override
+  void dispose() {
+    _sliceIdController.dispose();
+    _prefabIdController.dispose();
+    _anchorXController.dispose();
+    _anchorYController.dispose();
+    _colliderOffsetXController.dispose();
+    _colliderOffsetYController.dispose();
+    _colliderWidthController.dispose();
+    _colliderHeightController.dispose();
+    _prefabTagsController.dispose();
+    _moduleIdController.dispose();
+    _moduleTileSizeController.dispose();
+    _moduleCellGridXController.dispose();
+    _moduleCellGridYController.dispose();
+    _selectionXController.dispose();
+    _selectionYController.dispose();
+    _selectionWController.dispose();
+    _selectionHController.dispose();
+    _atlasHorizontalScrollController.dispose();
+    _atlasVerticalScrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: DefaultTabController(
+          length: 3,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  FilledButton.icon(
+                    onPressed: _isLoading ? null : _reloadData,
+                    icon: const Icon(Icons.sync),
+                    label: const Text('Reload'),
+                  ),
+                  FilledButton.icon(
+                    onPressed: _isSaving ? null : _saveData,
+                    icon: const Icon(Icons.save_outlined),
+                    label: const Text('Save Definitions'),
+                  ),
+                ],
+              ),
+              if (_statusMessage != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  _statusMessage!,
+                  style: const TextStyle(color: Color(0xFF8DE28D)),
+                ),
+              ],
+              if (_errorMessage != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  _errorMessage!,
+                  style: const TextStyle(color: Color(0xFFFF7F7F)),
+                ),
+              ],
+              const SizedBox(height: 12),
+              const TabBar(
+                tabs: [
+                  Tab(text: 'Atlas Slicer'),
+                  Tab(text: 'Prefabs'),
+                  Tab(text: 'Platform Modules'),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Expanded(
+                child: TabBarView(
+                  children: [
+                    _buildAtlasSlicerTab(),
+                    _buildPrefabInspectorTab(),
+                    _buildPlatformModulesTab(),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _updateState(VoidCallback callback) {
+    setState(callback);
+  }
+}

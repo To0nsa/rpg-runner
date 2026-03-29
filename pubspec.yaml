@@ -129,6 +129,8 @@ flutter:
     - assets/images/icons/gear-icons/spellbook/
     - assets/images/icons/gear-icons/sword/
     - assets/images/icons/skills-icons/
+    - assets/images/level/props/
+    - assets/images/level/tileset/
     - assets/images/parallax/field/
     - assets/images/parallax/forest/
     - assets/images/ui/weaponsIcon/

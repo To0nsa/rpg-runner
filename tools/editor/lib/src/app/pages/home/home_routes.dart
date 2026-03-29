@@ -13,6 +13,7 @@ class EditorHomeRoute {
 }
 
 const String entitiesRouteId = 'entities';
+const String prefabCreatorRouteId = 'prefab_creator';
 const String chunkCreatorRouteId = 'chunk_creator';
 
 const List<EditorHomeRoute> homeRoutes = <EditorHomeRoute>[
@@ -20,6 +21,10 @@ const List<EditorHomeRoute> homeRoutes = <EditorHomeRoute>[
     id: entitiesRouteId,
     label: 'Entities',
     pluginId: EntityDomainPlugin.pluginId,
+  ),
+  EditorHomeRoute(
+    id: prefabCreatorRouteId,
+    label: 'Prefab Creator',
   ),
   EditorHomeRoute(
     id: chunkCreatorRouteId,

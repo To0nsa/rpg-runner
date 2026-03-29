@@ -1,6 +1,6 @@
-part of '../../../home/editor_home_page.dart';
+part of '../../entities_editor_page.dart';
 
-extension _SceneAnimControls on _EditorHomePageState {
+extension _SceneAnimControls on _EntitiesEditorPageState {
   Widget _buildSceneAnimControls({
     required List<String> animKeys,
     required String? activeAnimKey,
