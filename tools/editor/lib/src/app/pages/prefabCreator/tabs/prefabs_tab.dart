@@ -12,159 +12,14 @@ extension _PrefabCreatorPrefabsTab on _PrefabCreatorPageState {
     final sceneValues = _prefabSceneValuesFromInputs();
     final workspaceRootPath = widget.controller.workspacePath.trim();
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SizedBox(
-          width: 420,
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (prefabSlices.isEmpty)
-                  const Text(
-                    'No prefab slices yet. Create prefab slices in Atlas Slicer first.',
-                  ),
-                if (prefabSlices.isNotEmpty) ...[
-                  TextField(
-                    controller: _prefabIdController,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      labelText: 'Prefab ID',
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(
-                    key: ValueKey<String?>(
-                      'prefab_slice_${selectedSliceId ?? 'none'}',
-                    ),
-                    initialValue: selectedSliceId,
-                    isExpanded: true,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      labelText: 'Slice',
-                    ),
-                    items: [
-                      for (final slice in prefabSlices)
-                        DropdownMenuItem<String>(
-                          value: slice.id,
-                          child: Text(slice.id),
-                        ),
-                    ],
-                    onChanged: (value) {
-                      _updateState(() {
-                        _selectedPrefabSliceId = value;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _anchorXController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            border: OutlineInputBorder(),
-                            labelText: 'Anchor X (px)',
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: TextField(
-                          controller: _anchorYController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            border: OutlineInputBorder(),
-                            labelText: 'Anchor Y (px)',
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Default Collider',
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _colliderOffsetXController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            border: OutlineInputBorder(),
-                            labelText: 'Offset X',
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: TextField(
-                          controller: _colliderOffsetYController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            border: OutlineInputBorder(),
-                            labelText: 'Offset Y',
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _colliderWidthController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            border: OutlineInputBorder(),
-                            labelText: 'Width',
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: TextField(
-                          controller: _colliderHeightController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            border: OutlineInputBorder(),
-                            labelText: 'Height',
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _prefabTagsController,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      labelText: 'Tags (comma separated)',
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  FilledButton.icon(
-                    onPressed: _upsertPrefabFromForm,
-                    icon: const Icon(Icons.add_box_outlined),
-                    label: const Text('Add/Update Prefab'),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                flex: 3,
+                flex: 4,
                 child: _buildPrefabScenePanel(
                   workspaceRootPath: workspaceRootPath,
                   selectedSlice: selectedSlice,
@@ -175,7 +30,7 @@ extension _PrefabCreatorPrefabsTab on _PrefabCreatorPageState {
               Text('Prefabs', style: Theme.of(context).textTheme.titleSmall),
               const SizedBox(height: 8),
               Expanded(
-                flex: 2,
+                flex: 1,
                 child: prefabs.isEmpty
                     ? const Text('No prefabs yet.')
                     : ListView.builder(
@@ -203,7 +58,167 @@ extension _PrefabCreatorPrefabsTab on _PrefabCreatorPageState {
             ],
           ),
         ),
+        const SizedBox(width: 12),
+        SizedBox(
+          width: 420,
+          child: _buildPrefabInspectorPanel(
+            prefabSlices: prefabSlices,
+            selectedSliceId: selectedSliceId,
+          ),
+        ),
       ],
+    );
+  }
+
+  Widget _buildPrefabInspectorPanel({
+    required List<AtlasSliceDef> prefabSlices,
+    required String? selectedSliceId,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (prefabSlices.isEmpty)
+              const Text(
+                'No prefab slices yet. Create prefab slices in Atlas Slicer first.',
+              ),
+            if (prefabSlices.isNotEmpty) ...[
+              TextField(
+                controller: _prefabIdController,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  labelText: 'Prefab ID',
+                  floatingLabelBehavior: FloatingLabelBehavior.always,
+                ),
+              ),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                key: ValueKey<String?>(
+                  'prefab_slice_${selectedSliceId ?? 'none'}',
+                ),
+                initialValue: selectedSliceId,
+                isExpanded: true,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  labelText: 'Slice',
+                ),
+                items: [
+                  for (final slice in prefabSlices)
+                    DropdownMenuItem<String>(
+                      value: slice.id,
+                      child: Text(slice.id),
+                    ),
+                ],
+                onChanged: (value) {
+                  _updateState(() {
+                    _selectedPrefabSliceId = value;
+                  });
+                },
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _anchorXController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        labelText: 'Anchor X (px)',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextField(
+                      controller: _anchorYController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        labelText: 'Anchor Y (px)',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Default Collider',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _colliderOffsetXController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        labelText: 'Offset X',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextField(
+                      controller: _colliderOffsetYController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        labelText: 'Offset Y',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _colliderWidthController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        labelText: 'Width',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextField(
+                      controller: _colliderHeightController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        labelText: 'Height',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _prefabTagsController,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  labelText: 'Tags (comma separated)',
+                  floatingLabelBehavior: FloatingLabelBehavior.always,
+                ),
+              ),
+              const SizedBox(height: 8),
+              FilledButton.icon(
+                onPressed: _upsertPrefabFromForm,
+                icon: const Icon(Icons.add_box_outlined),
+                label: const Text('Add/Update Prefab'),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 

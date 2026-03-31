@@ -69,7 +69,7 @@ class _DragState {
 
 class _PrefabSceneViewState extends State<PrefabSceneView> {
   static const double _maxViewportWidth = 800;
-  static const double _preferredViewportHeight = 500;
+  static const double _preferredViewportHeight = 620;
   static const double _canvasMargin = 128;
   static const double _minZoom = 0.2;
   static const double _maxZoom = 12.0;
