@@ -13,6 +13,7 @@ import '../enemies/enemy_id.dart';
 class ChunkPattern {
   const ChunkPattern({
     required this.name,
+    this.chunkKey,
     this.platforms = const <PlatformRel>[],
     this.obstacles = const <ObstacleRel>[],
     this.groundGaps = const <GapRel>[],
@@ -21,6 +22,9 @@ class ChunkPattern {
 
   /// Human-readable identifier for debugging/logging.
   final String name;
+
+  /// Stable chunk identity key (optional during migration from legacy patterns).
+  final String? chunkKey;
 
   /// One-way platforms the player can jump through.
   final List<PlatformRel> platforms;
@@ -80,16 +84,17 @@ class ObstacleRel {
 
 /// Chunk-relative ground gap (pit hazard).
 class GapRel {
-  const GapRel({
-    required this.x,
-    required this.width,
-  }) : assert(width > 0);
+  const GapRel({required this.x, required this.width, this.gapId})
+    : assert(width > 0);
 
   /// Left edge offset from chunk start.
   final double x;
 
   /// Horizontal extent of the gap.
   final double width;
+
+  /// Stable gap identity key (optional during migration from legacy patterns).
+  final String? gapId;
 }
 
 /// Chunk-relative enemy spawn marker with probabilistic activation.

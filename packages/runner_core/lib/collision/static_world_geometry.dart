@@ -13,7 +13,7 @@ class StaticGroundPlane {
 ///
 /// Use this to create pits or interruptions in the otherwise continuous ground.
 class StaticGroundGap {
-  const StaticGroundGap({required this.minX, required this.maxX})
+  const StaticGroundGap({required this.minX, required this.maxX, this.gapId})
     : assert(maxX >= minX);
 
   /// Start X coordinate of the gap (inclusive start of hole).
@@ -21,6 +21,9 @@ class StaticGroundGap {
 
   /// End X coordinate of the gap (inclusive end of hole).
   final double maxX;
+
+  /// Stable gap identity key (optional while migrating legacy authored data).
+  final String? gapId;
 }
 
 /// A pre-computed walkable 1D segment for faster collision and navigation.

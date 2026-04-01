@@ -1,12 +1,15 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
+import '../chunks/chunk_domain_plugin.dart';
 import '../entities/entity_domain_plugin.dart';
 import '../domain/authoring_plugin_registry.dart';
 import '../session/editor_session_controller.dart';
 import 'pages/home/editor_home_page.dart';
 
 void runEditorApp({required String initialWorkspacePath}) {
-  final registry = AuthoringPluginRegistry(plugins: [EntityDomainPlugin()]);
+  final registry = AuthoringPluginRegistry(
+    plugins: [EntityDomainPlugin(), ChunkDomainPlugin()],
+  );
 
   final controller = EditorSessionController(
     pluginRegistry: registry,
@@ -36,4 +39,3 @@ class RunnerEditorApp extends StatelessWidget {
     );
   }
 }
-

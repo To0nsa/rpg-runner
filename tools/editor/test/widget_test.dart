@@ -247,10 +247,7 @@ void main() {
         ),
       );
 
-      final export = await plugin.exportToRepo(
-        workspace,
-        document: edited,
-      );
+      final export = await plugin.exportToRepo(workspace, document: edited);
 
       expect(export.applied, isTrue);
       expect(
@@ -379,10 +376,7 @@ void main() {
           ),
         );
 
-        final export = await plugin.exportToRepo(
-          workspace,
-          document: edited,
-        );
+        final export = await plugin.exportToRepo(workspace, document: edited);
         final patchArtifact = export.artifacts.firstWhere(
           (artifact) => artifact.title == 'entity_changes.patch',
         );
@@ -443,10 +437,7 @@ void main() {
       ).readAsStringSync().replaceFirst('halfX: 12.0', 'halfX: 99.0');
       File(enemyPath).writeAsStringSync(drifted);
 
-      final export = await plugin.exportToRepo(
-        workspace,
-        document: edited,
-      );
+      final export = await plugin.exportToRepo(workspace, document: edited);
 
       expect(export.applied, isFalse);
       final errorArtifact = export.artifacts.firstWhere(
@@ -466,6 +457,11 @@ void main() {
   testWidgets('editor page renders collider table after load', (
     WidgetTester tester,
   ) async {
+    await tester.binding.setSurfaceSize(const Size(1600, 1200));
+    addTearDown(() async {
+      await tester.binding.setSurfaceSize(null);
+    });
+
     final controller = buildController();
 
     await tester.pumpWidget(

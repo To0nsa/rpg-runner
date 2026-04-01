@@ -9,10 +9,7 @@ import 'chunk_pattern.dart';
 
 /// Result of building ground geometry from a chunk pattern.
 class GroundBuildResult {
-  const GroundBuildResult({
-    required this.segments,
-    required this.gaps,
-  });
+  const GroundBuildResult({required this.segments, required this.gaps});
 
   /// Walkable ground spans (between gaps).
   final List<StaticGroundSegment> segments;
@@ -37,22 +34,61 @@ List<StaticSolid> buildSolids(
   required double chunkWidth,
   required double gridSnap,
 }) {
+  _validateBuildInputs(
+    pattern,
+    chunkIndex: chunkIndex,
+    chunkStartX: chunkStartX,
+    chunkWidth: chunkWidth,
+    gridSnap: gridSnap,
+  );
+
   // Preserve author ordering for determinism.
   final solids = <StaticSolid>[];
   var localSolidIndex = 0;
 
   // ── Platforms (one-way top) ──
-  for (final p in pattern.platforms) {
-    assert(
-      _withinChunk(p.x, p.width, chunkWidth),
-      'Platform out of chunk bounds: ${pattern.name}',
+  for (var i = 0; i < pattern.platforms.length; i += 1) {
+    final p = pattern.platforms[i];
+    _validateSpanValue(
+      p.width,
+      field: 'platform[$i].width',
+      pattern: pattern,
+      chunkIndex: chunkIndex,
+      requirePositive: true,
     );
-    assert(
-      _snapped(p.x, gridSnap) &&
-          _snapped(p.width, gridSnap) &&
-          _snapped(p.aboveGroundTop, gridSnap),
-      'Platform not snapped to grid: ${pattern.name}',
+    _validateSpanValue(
+      p.thickness,
+      field: 'platform[$i].thickness',
+      pattern: pattern,
+      chunkIndex: chunkIndex,
+      requirePositive: true,
     );
+    _validateSpanValue(
+      p.aboveGroundTop,
+      field: 'platform[$i].aboveGroundTop',
+      pattern: pattern,
+      chunkIndex: chunkIndex,
+      requirePositive: true,
+    );
+    if (!_withinChunk(p.x, p.width, chunkWidth)) {
+      _throwChunkValidation(
+        'Platform out of chunk bounds at index $i (x=${p.x}, width=${p.width}, chunkWidth=$chunkWidth)',
+        pattern: pattern,
+        chunkIndex: chunkIndex,
+      );
+    }
+    if (!_snapped(p.x, gridSnap) ||
+        !_snapped(p.width, gridSnap) ||
+        !_snapped(p.aboveGroundTop, gridSnap) ||
+        !_snapped(p.thickness, gridSnap)) {
+      _throwChunkValidation(
+        'Platform not snapped to grid at index $i '
+        '(x=${p.x}, width=${p.width}, aboveGroundTop=${p.aboveGroundTop}, '
+        'thickness=${p.thickness}, gridSnap=$gridSnap)',
+        pattern: pattern,
+        chunkIndex: chunkIndex,
+      );
+    }
     final topY = groundTopY - p.aboveGroundTop;
     solids.add(
       StaticSolid(
@@ -70,17 +106,39 @@ List<StaticSolid> buildSolids(
   }
 
   // ── Obstacles (solid on all sides) ──
-  for (final o in pattern.obstacles) {
-    assert(
-      _withinChunk(o.x, o.width, chunkWidth),
-      'Obstacle out of chunk bounds: ${pattern.name}',
+  for (var i = 0; i < pattern.obstacles.length; i += 1) {
+    final o = pattern.obstacles[i];
+    _validateSpanValue(
+      o.width,
+      field: 'obstacle[$i].width',
+      pattern: pattern,
+      chunkIndex: chunkIndex,
+      requirePositive: true,
     );
-    assert(
-      _snapped(o.x, gridSnap) &&
-          _snapped(o.width, gridSnap) &&
-          _snapped(o.height, gridSnap),
-      'Obstacle not snapped to grid: ${pattern.name}',
+    _validateSpanValue(
+      o.height,
+      field: 'obstacle[$i].height',
+      pattern: pattern,
+      chunkIndex: chunkIndex,
+      requirePositive: true,
     );
+    if (!_withinChunk(o.x, o.width, chunkWidth)) {
+      _throwChunkValidation(
+        'Obstacle out of chunk bounds at index $i (x=${o.x}, width=${o.width}, chunkWidth=$chunkWidth)',
+        pattern: pattern,
+        chunkIndex: chunkIndex,
+      );
+    }
+    if (!_snapped(o.x, gridSnap) ||
+        !_snapped(o.width, gridSnap) ||
+        !_snapped(o.height, gridSnap)) {
+      _throwChunkValidation(
+        'Obstacle not snapped to grid at index $i '
+        '(x=${o.x}, width=${o.width}, height=${o.height}, gridSnap=$gridSnap)',
+        pattern: pattern,
+        chunkIndex: chunkIndex,
+      );
+    }
     solids.add(
       StaticSolid(
         minX: chunkStartX + o.x,
@@ -117,6 +175,14 @@ GroundBuildResult buildGroundSegments(
   required double chunkWidth,
   required double gridSnap,
 }) {
+  _validateBuildInputs(
+    pattern,
+    chunkIndex: chunkIndex,
+    chunkStartX: chunkStartX,
+    chunkWidth: chunkWidth,
+    gridSnap: gridSnap,
+  );
+
   // Sort gaps left-to-right for sequential processing.
   final orderedGaps = List<GapRel>.from(pattern.groundGaps);
   if (orderedGaps.isNotEmpty) {
@@ -129,19 +195,39 @@ GroundBuildResult buildGroundSegments(
   var localSegmentIndex = 0;
   var lastGapEnd = -1.0; // For overlap assertion.
 
-  for (final gap in orderedGaps) {
-    assert(
-      _withinChunk(gap.x, gap.width, chunkWidth),
-      'Ground gap out of chunk bounds: ${pattern.name}',
+  for (var i = 0; i < orderedGaps.length; i += 1) {
+    final gap = orderedGaps[i];
+    _validateSpanValue(
+      gap.width,
+      field: 'groundGap[$i].width',
+      pattern: pattern,
+      chunkIndex: chunkIndex,
+      requirePositive: true,
     );
-    assert(
-      _snapped(gap.x, gridSnap) && _snapped(gap.width, gridSnap),
-      'Ground gap not snapped to grid: ${pattern.name}',
-    );
-    assert(
-      gap.x >= lastGapEnd - 1e-6,
-      'Ground gap overlaps previous: ${pattern.name}',
-    );
+    if (!_withinChunk(gap.x, gap.width, chunkWidth)) {
+      _throwChunkValidation(
+        'Ground gap out of chunk bounds at index $i '
+        '(x=${gap.x}, width=${gap.width}, chunkWidth=$chunkWidth)',
+        pattern: pattern,
+        chunkIndex: chunkIndex,
+      );
+    }
+    if (!_snapped(gap.x, gridSnap) || !_snapped(gap.width, gridSnap)) {
+      _throwChunkValidation(
+        'Ground gap not snapped to grid at index $i '
+        '(x=${gap.x}, width=${gap.width}, gridSnap=$gridSnap)',
+        pattern: pattern,
+        chunkIndex: chunkIndex,
+      );
+    }
+    if (gap.x < lastGapEnd - _gapOverlapTolerance) {
+      _throwChunkValidation(
+        'Ground gap overlaps previous gap at index $i '
+        '(x=${gap.x}, previousEnd=$lastGapEnd)',
+        pattern: pattern,
+        chunkIndex: chunkIndex,
+      );
+    }
 
     final gapStart = gap.x;
     final gapEnd = gap.x + gap.width;
@@ -165,6 +251,7 @@ GroundBuildResult buildGroundSegments(
       StaticGroundGap(
         minX: chunkStartX + gapStart,
         maxX: chunkStartX + gapEnd,
+        gapId: gap.gapId,
       ),
     );
 
@@ -198,4 +285,71 @@ bool _withinChunk(double x, double width, double chunkWidth) {
 bool _snapped(double v, double gridSnap) {
   final snapped = (v / gridSnap).roundToDouble() * gridSnap;
   return (v - snapped).abs() < 1e-9;
+}
+
+const double _validationTolerance = 1e-9;
+const double _gapOverlapTolerance = 1e-6;
+
+void _validateBuildInputs(
+  ChunkPattern pattern, {
+  required int chunkIndex,
+  required double chunkStartX,
+  required double chunkWidth,
+  required double gridSnap,
+}) {
+  _validateSpanValue(
+    chunkStartX,
+    field: 'chunkStartX',
+    pattern: pattern,
+    chunkIndex: chunkIndex,
+  );
+  _validateSpanValue(
+    chunkWidth,
+    field: 'chunkWidth',
+    pattern: pattern,
+    chunkIndex: chunkIndex,
+    requirePositive: true,
+  );
+  _validateSpanValue(
+    gridSnap,
+    field: 'gridSnap',
+    pattern: pattern,
+    chunkIndex: chunkIndex,
+    requirePositive: true,
+  );
+}
+
+void _validateSpanValue(
+  double value, {
+  required String field,
+  required ChunkPattern pattern,
+  required int chunkIndex,
+  bool requirePositive = false,
+}) {
+  if (!value.isFinite) {
+    _throwChunkValidation(
+      'Invalid non-finite value for $field: $value',
+      pattern: pattern,
+      chunkIndex: chunkIndex,
+    );
+  }
+  if (requirePositive && value <= _validationTolerance) {
+    _throwChunkValidation(
+      'Invalid non-positive value for $field: $value',
+      pattern: pattern,
+      chunkIndex: chunkIndex,
+    );
+  }
+}
+
+Never _throwChunkValidation(
+  String message, {
+  required ChunkPattern pattern,
+  required int chunkIndex,
+}) {
+  final key = pattern.chunkKey;
+  final chunkKeyPart = (key == null || key.isEmpty) ? '' : ', chunkKey=$key';
+  throw StateError(
+    '$message (pattern=${pattern.name}$chunkKeyPart, chunkIndex=$chunkIndex)',
+  );
 }

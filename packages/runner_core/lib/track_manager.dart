@@ -47,6 +47,7 @@ import 'snapshots/ground_surface_snapshot.dart';
 import 'snapshots/static_solid_snapshot.dart';
 import 'spawn_service.dart' hide StaticSolid;
 import 'track/chunk_pattern_pool.dart';
+import 'track/chunk_pattern_source.dart';
 import 'track/track_streamer.dart';
 import 'tuning/collectible_tuning.dart';
 import 'tuning/restoration_item_tuning.dart';
@@ -116,7 +117,8 @@ class TrackManager {
   /// - [groundEnemyLocomotionSystem]: Ground locomotion (receives graph updates).
   /// - [spawnService]: Entity spawner (receives surface graph updates).
   /// - [groundTopY]: Y coordinate of the ground surface (for spawning).
-  /// - [patternPool]: Chunk pattern pools for procedural generation.
+  /// - [chunkPatternSource]: Optional deterministic pattern source seam.
+  /// - [patternPool]: Backward-compatible pool fallback when source omitted.
   /// - [earlyPatternChunks]: Number of early chunks using easy patterns.
   /// - [noEnemyChunks]: Number of early chunks that suppress enemy spawns.
   TrackManager({
@@ -131,7 +133,8 @@ class TrackManager {
     required GroundEnemyLocomotionSystem groundEnemyLocomotionSystem,
     required SpawnService spawnService,
     required double groundTopY,
-    required ChunkPatternPool patternPool,
+    ChunkPatternSource? chunkPatternSource,
+    ChunkPatternPool? patternPool,
     int earlyPatternChunks = defaultEarlyPatternChunks,
     int noEnemyChunks = defaultNoEnemyChunks,
   }) : _trackTuning = trackTuning,
@@ -143,7 +146,10 @@ class TrackManager {
        _enemyNavigationSystem = enemyNavigationSystem,
        _groundEnemyLocomotionSystem = groundEnemyLocomotionSystem,
        _spawnService = spawnService,
-       _patternPool = patternPool,
+       _chunkPatternSource = _resolveChunkPatternSource(
+         chunkPatternSource: chunkPatternSource,
+         patternPool: patternPool,
+       ),
        _earlyPatternChunks = earlyPatternChunks,
        _noEnemyChunks = noEnemyChunks {
     // Initialize geometry state from base level.
@@ -158,7 +164,7 @@ class TrackManager {
         seed: seed,
         tuning: _trackTuning,
         groundTopY: groundTopY,
-        patterns: _patternPool,
+        patternSource: _chunkPatternSource,
         earlyPatternChunks: _earlyPatternChunks,
         noEnemyChunks: _noEnemyChunks,
       );
@@ -178,7 +184,7 @@ class TrackManager {
   final EnemyNavigationSystem _enemyNavigationSystem;
   final GroundEnemyLocomotionSystem _groundEnemyLocomotionSystem;
   final SpawnService _spawnService;
-  final ChunkPatternPool _patternPool;
+  final ChunkPatternSource _chunkPatternSource;
   final int _earlyPatternChunks;
   final int _noEnemyChunks;
 
@@ -410,6 +416,21 @@ class TrackManager {
           localSegmentIndex: segment.localSegmentIndex,
         ),
       ),
+    );
+  }
+
+  static ChunkPatternSource _resolveChunkPatternSource({
+    required ChunkPatternSource? chunkPatternSource,
+    required ChunkPatternPool? patternPool,
+  }) {
+    if (chunkPatternSource != null) {
+      return chunkPatternSource;
+    }
+    if (patternPool != null) {
+      return ChunkPatternPoolSource(patternPool);
+    }
+    throw ArgumentError(
+      'TrackManager requires chunkPatternSource or patternPool.',
     );
   }
 }

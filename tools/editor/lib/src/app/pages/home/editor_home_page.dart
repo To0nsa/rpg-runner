@@ -118,14 +118,23 @@ class _EditorHomePageState extends State<EditorHomePage> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(padding: const EdgeInsets.only(top: 8), child: title),
+        Expanded(
+          flex: 2,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: DefaultTextStyle.merge(
+              overflow: TextOverflow.ellipsis,
+              child: title,
+            ),
+          ),
+        ),
         const SizedBox(width: 12),
         Padding(
           padding: const EdgeInsets.only(top: 7),
-          child: SizedBox(width: 180, child: routeSelector),
+          child: SizedBox(width: 160, child: routeSelector),
         ),
-        const SizedBox(width: 16),
-        Expanded(child: workspaceField),
+        const SizedBox(width: 12),
+        Expanded(flex: 5, child: workspaceField),
       ],
     );
   }
@@ -137,7 +146,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
       case prefabCreatorRouteId:
         return PrefabCreatorPage(controller: widget.controller);
       case chunkCreatorRouteId:
-        return const ChunkCreatorPage();
+        return ChunkCreatorPage(controller: widget.controller);
       default:
         return const Center(child: Text('Unknown editor page.'));
     }

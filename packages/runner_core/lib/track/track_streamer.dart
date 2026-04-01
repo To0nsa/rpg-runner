@@ -12,7 +12,7 @@ import '../tuning/track_tuning.dart';
 import '../util/deterministic_rng.dart' show mix32;
 import 'chunk_builder.dart';
 import 'chunk_pattern.dart';
-import 'chunk_pattern_pool.dart';
+import 'chunk_pattern_source.dart';
 
 /// Callback to spawn an enemy at a world X position.
 typedef SpawnEnemy = void Function(SpawnEnemyRequest request);
@@ -36,6 +36,7 @@ class TrackSpawnedChunk {
     required this.index,
     required this.startX,
     required this.patternName,
+    this.chunkKey,
   });
 
   /// Sequential chunk number (0 = first chunk).
@@ -46,6 +47,9 @@ class TrackSpawnedChunk {
 
   /// Pattern identifier used to generate this chunk.
   final String patternName;
+
+  /// Stable authored identity key for this chunk (optional during migration).
+  final String? chunkKey;
 }
 
 /// Result of a single [TrackStreamer.step] call.
@@ -76,7 +80,7 @@ class TrackStreamer {
     required this.seed,
     required this.tuning,
     required this.groundTopY,
-    required this.patterns,
+    required this.patternSource,
     required this.earlyPatternChunks,
     required this.noEnemyChunks,
   }) : _nextChunkIndex = 0,
@@ -91,10 +95,10 @@ class TrackStreamer {
   /// World Y of the ground surface (platforms offset from this).
   final double groundTopY;
 
-  /// Pattern pools for early vs full difficulty.
-  final ChunkPatternPool patterns;
+  /// Pattern source for early vs full difficulty selection.
+  final ChunkPatternSource patternSource;
 
-  /// Number of early chunks that use [patterns.easyPatterns].
+  /// Number of early chunks that should draw from an easier source pool.
   final int earlyPatternChunks;
 
   /// Number of early chunks that suppress enemy spawns.
@@ -145,25 +149,45 @@ class TrackStreamer {
       final endX = startX + tuning.chunkWidth;
 
       // Select pattern deterministically from seed + index.
-      final pattern = _patternFor(seed, chunkIndex);
+      final pattern = patternSource.patternFor(
+        seed: seed,
+        chunkIndex: chunkIndex,
+        isEarlyChunk: chunkIndex < earlyPatternChunks,
+      );
 
-      // Build geometry from pattern.
-      final solids = buildSolids(
-        pattern,
-        chunkStartX: startX,
-        chunkIndex: chunkIndex,
-        groundTopY: groundTopY,
-        chunkWidth: tuning.chunkWidth,
-        gridSnap: tuning.gridSnap,
-      );
-      final ground = buildGroundSegments(
-        pattern,
-        chunkStartX: startX,
-        chunkIndex: chunkIndex,
-        groundTopY: groundTopY,
-        chunkWidth: tuning.chunkWidth,
-        gridSnap: tuning.gridSnap,
-      );
+      late List<StaticSolid> solids;
+      late GroundBuildResult ground;
+      try {
+        // Build geometry from pattern.
+        solids = buildSolids(
+          pattern,
+          chunkStartX: startX,
+          chunkIndex: chunkIndex,
+          groundTopY: groundTopY,
+          chunkWidth: tuning.chunkWidth,
+          gridSnap: tuning.gridSnap,
+        );
+        ground = buildGroundSegments(
+          pattern,
+          chunkStartX: startX,
+          chunkIndex: chunkIndex,
+          groundTopY: groundTopY,
+          chunkWidth: tuning.chunkWidth,
+          gridSnap: tuning.gridSnap,
+        );
+      } on Object catch (error, stackTrace) {
+        final chunkKey = pattern.chunkKey;
+        final chunkKeyPart = (chunkKey == null || chunkKey.isEmpty)
+            ? ''
+            : ', chunkKey=$chunkKey';
+        final wrapped = StateError(
+          'TrackStreamer failed to build chunk '
+          '(index=$chunkIndex, startX=$startX, pattern=${pattern.name}'
+          '$chunkKeyPart): $error',
+        );
+        Error.throwWithStackTrace(wrapped, stackTrace);
+      }
+
       final pendingHashashSpawns = _spawnEnemiesForChunk(
         pattern,
         chunkIndex,
@@ -190,6 +214,7 @@ class TrackStreamer {
           index: chunkIndex,
           startX: startX,
           patternName: pattern.name,
+          chunkKey: pattern.chunkKey,
         ),
       );
 
@@ -285,18 +310,6 @@ class TrackStreamer {
     }
 
     return pendingHashashSpawns;
-  }
-
-  /// Selects a chunk pattern deterministically from [seed] and [chunkIndex].
-  ///
-  /// Early chunks draw from [patterns.easyPatterns]; later chunks use full pool.
-  ChunkPattern _patternFor(int seed, int chunkIndex) {
-    final isEarly = chunkIndex < earlyPatternChunks;
-    final pool = isEarly ? patterns.easyPatterns : patterns.allPatterns;
-    // MurmurHash-style mix for uniform distribution.
-    final h = mix32(seed ^ (chunkIndex * 0x9e3779b9) ^ 0x27d4eb2d);
-    final idx = h % pool.length;
-    return pool[idx];
   }
 
   void _spawnDeferredHashashForVisibleChunk({
@@ -412,7 +425,10 @@ class TrackStreamer {
       final stableId = segment.localSegmentIndex >= 0
           ? 1000000 + segment.localSegmentIndex
           : 1000000 + i;
-      final candidate = _SurfaceCandidate(yTop: segment.topY, stableId: stableId);
+      final candidate = _SurfaceCandidate(
+        yTop: segment.topY,
+        stableId: stableId,
+      );
       if (best == null || candidate.isHigherPriorityThan(best)) {
         best = candidate;
       }

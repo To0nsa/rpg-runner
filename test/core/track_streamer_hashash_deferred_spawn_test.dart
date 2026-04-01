@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_core/enemies/enemy_id.dart';
 import 'package:runner_core/track/chunk_pattern.dart';
 import 'package:runner_core/track/chunk_pattern_pool.dart';
+import 'package:runner_core/track/chunk_pattern_source.dart';
 import 'package:runner_core/track/track_streamer.dart';
 import 'package:runner_core/tuning/track_tuning.dart';
 
@@ -35,20 +36,18 @@ void main() {
       seed: 123,
       tuning: const TrackTuning(),
       groundTopY: 220.0,
-      patterns: pool,
+      patternSource: ChunkPatternPoolSource(pool),
       earlyPatternChunks: 0,
       noEnemyChunks: 0,
     );
 
     final spawns = <({EnemyId enemyId, double x, double surfaceTopY})>[];
     void onSpawn(SpawnEnemyRequest request) {
-      spawns.add(
-        (
-          enemyId: request.enemyId,
-          x: request.x,
-          surfaceTopY: request.surfaceTopY,
-        ),
-      );
+      spawns.add((
+        enemyId: request.enemyId,
+        x: request.x,
+        surfaceTopY: request.surfaceTopY,
+      ));
     }
 
     streamer.step(cameraLeft: 0.0, cameraRight: 650.0, spawnEnemy: onSpawn);
