@@ -1,10 +1,12 @@
 # Chunk Creator Phase 2 - Implementation Checklist
 
 Date: April 1, 2026  
-Status: Step 0 completed on April 1, 2026; Step 1 next  
+Status: Completed on April 1, 2026 (with explicit deferred non-gate follow-ups documented in phase2-closure-summary.md)  
 Source plan: [docs/building/editor/chunkCreator/plan.md](docs/building/editor/chunkCreator/plan.md)
 Step 0 freeze doc:
 [docs/building/editor/chunkCreator/phase2-step0-contract-freeze.md](docs/building/editor/chunkCreator/phase2-step0-contract-freeze.md)
+Runtime seam doc:
+[docs/building/editor/chunkCreator/phase2-runtime-handoff-seams.md](docs/building/editor/chunkCreator/phase2-runtime-handoff-seams.md)
 
 This checklist turns Phase 2 of the chunk creator plan into an execution
 sequence with concrete file targets, future-proof contract decisions, and
@@ -93,28 +95,28 @@ Current baseline gaps that Phase 2 must close to avoid rework:
 
 ## Pre-flight
 
-- [ ] Re-read Phase 2 in
+- [x] Re-read Phase 2 in
       [docs/building/editor/chunkCreator/plan.md](docs/building/editor/chunkCreator/plan.md).
-- [ ] Snapshot current prefab/tile schema examples:
+- [x] Snapshot current prefab/tile schema examples:
   - [assets/authoring/level/prefab_defs.json](assets/authoring/level/prefab_defs.json)
   - [assets/authoring/level/tile_defs.json](assets/authoring/level/tile_defs.json)
-- [ ] Confirm current prefab model/store/validator baseline:
+- [x] Confirm current prefab model/store/validator baseline:
   - [tools/editor/lib/src/prefabs/prefab_models.dart](tools/editor/lib/src/prefabs/prefab_models.dart)
   - [tools/editor/lib/src/prefabs/prefab_store.dart](tools/editor/lib/src/prefabs/prefab_store.dart)
   - [tools/editor/lib/src/prefabs/prefab_validation.dart](tools/editor/lib/src/prefabs/prefab_validation.dart)
-- [ ] Confirm current prefab UI flow baseline:
+- [x] Confirm current prefab UI flow baseline:
   - [tools/editor/lib/src/app/pages/prefabCreator/prefab_creator_page.dart](tools/editor/lib/src/app/pages/prefabCreator/prefab_creator_page.dart)
   - [tools/editor/lib/src/app/pages/prefabCreator/state/prefab_logic.dart](tools/editor/lib/src/app/pages/prefabCreator/state/prefab_logic.dart)
   - [tools/editor/lib/src/app/pages/prefabCreator/tabs/prefabs_tab.dart](tools/editor/lib/src/app/pages/prefabCreator/tabs/prefabs_tab.dart)
   - [tools/editor/lib/src/app/pages/prefabCreator/widgets/prefab_scene_view.dart](tools/editor/lib/src/app/pages/prefabCreator/widgets/prefab_scene_view.dart)
-- [ ] Record baseline green:
-  - [ ] `cd tools/editor && dart analyze`
-  - [ ] `cd tools/editor && flutter test`
+- [x] Record baseline green:
+  - [x] `cd tools/editor && dart analyze`
+  - [x] `cd tools/editor && flutter test`
 
 Done when:
 
-- [ ] assumptions are validated
-- [ ] baseline is green before Phase 2 changes
+- [x] assumptions are validated
+- [x] baseline is green before Phase 2 changes
 
 ## Step 0 - Contract Freeze and Migration Plan
 
@@ -160,29 +162,29 @@ Objective:
 
 Tasks:
 
-- [ ] Update
+- [x] Update
       [tools/editor/lib/src/prefabs/prefab_models.dart](tools/editor/lib/src/prefabs/prefab_models.dart)
       with Phase 2 types:
-  - [ ] `PrefabKind` typed enum/value object
-  - [ ] `PrefabVisualSource` typed union/value object
-  - [ ] identity fields (`prefabKey`, `id`, `revision`)
-  - [ ] explicit status/lifecycle field if deprecate semantics are needed
-- [ ] Preserve/normalize deterministic field ordering and list ordering:
-  - [ ] tags
-  - [ ] colliders
-  - [ ] prefab list ordering
-- [ ] Keep parse tolerant and serialization strict:
-  - [ ] tolerant `fromJson` for legacy/v1 payloads
-  - [ ] strict canonical `toJson` output for v2 shape
-- [ ] Add helper APIs needed by UI and validation:
-  - [ ] kind-aware source helpers
-  - [ ] identity-safe copy/update helpers
+  - [x] `PrefabKind` typed enum/value object
+  - [x] `PrefabVisualSource` typed union/value object
+  - [x] identity fields (`prefabKey`, `id`, `revision`)
+  - [x] explicit status/lifecycle field if deprecate semantics are needed
+- [x] Preserve/normalize deterministic field ordering and list ordering:
+  - [x] tags
+  - [x] colliders
+  - [x] prefab list ordering
+- [x] Keep parse tolerant and serialization strict:
+  - [x] tolerant `fromJson` for legacy/v1 payloads
+  - [x] strict canonical `toJson` output for v2 shape
+- [x] Add helper APIs needed by UI and validation:
+  - [x] kind-aware source helpers
+  - [x] identity-safe copy/update helpers
 
 Done when:
 
-- [ ] schema compiles with explicit typed contracts
-- [ ] v1 payloads parse/migrate into v2 model deterministically
-- [ ] v2 output shape is canonical and stable
+- [x] schema compiles with explicit typed contracts
+- [x] v1 payloads parse/migrate into v2 model deterministically
+- [x] v2 output shape is canonical and stable
 
 ## Step 2 - Store, Migration, and Deterministic Persistence
 
@@ -192,25 +194,25 @@ Objective:
 
 Tasks:
 
-- [ ] Update
+- [x] Update
       [tools/editor/lib/src/prefabs/prefab_store.dart](tools/editor/lib/src/prefabs/prefab_store.dart)
       to:
-  - [ ] load v1/v2 schema and migrate to in-memory v2 model
-  - [ ] persist only canonical v2 output after save
-  - [ ] keep deterministic serialization order and trailing newline policy
-- [ ] Ensure deterministic cross-file consistency:
-  - [ ] prefab source refs validate against tile module/slice registries
-  - [ ] stable ordering across `prefab_defs.json` and `tile_defs.json`
-- [ ] Add write safety expectations:
-  - [ ] explicit failure behavior for malformed JSON
-  - [ ] atomic write strategy for `prefab_defs.json` and `tile_defs.json`
-- [ ] Add migration telemetry/hints for debugging (non-flaky deterministic messaging).
+  - [x] load v1/v2 schema and migrate to in-memory v2 model
+  - [x] persist only canonical v2 output after save
+  - [x] keep deterministic serialization order and trailing newline policy
+- [x] Ensure deterministic cross-file consistency:
+  - [x] prefab source refs validate against tile module/slice registries
+  - [x] stable ordering across `prefab_defs.json` and `tile_defs.json`
+- [x] Add write safety expectations:
+  - [x] explicit failure behavior for malformed JSON
+  - [x] atomic write strategy for `prefab_defs.json` and `tile_defs.json`
+- [x] Add migration telemetry/hints for debugging (non-flaky deterministic messaging).
 
 Done when:
 
-- [ ] repeated load->save->load yields no semantic drift
-- [ ] migrated output is deterministic across runs and machines
-- [ ] write path is safe and failure modes are explicit
+- [x] repeated load->save->load yields no semantic drift
+- [x] migrated output is deterministic across runs and machines
+- [x] write path is safe and failure modes are explicit
 
 ## Step 3 - Validation Rules (Kind-Aware and Future-Proof)
 
@@ -220,30 +222,30 @@ Objective:
 
 Tasks:
 
-- [ ] Expand
+- [x] Expand
       [tools/editor/lib/src/prefabs/prefab_validation.dart](tools/editor/lib/src/prefabs/prefab_validation.dart)
       with Phase 2 checks:
-  - [ ] invalid/missing schema version
-  - [ ] invalid/missing `prefabKey`, duplicate `prefabKey`
-  - [ ] invalid/missing `id`, duplicate `id`
-  - [ ] invalid/missing `revision`
-  - [ ] invalid/missing `kind`
-  - [ ] invalid/missing `visualSource`
-  - [ ] source mismatch (kind/source incompatibility)
-  - [ ] unknown referenced slice/module IDs
-  - [ ] missing/invalid anchor fields
-  - [ ] missing/invalid collider fields
-  - [ ] kind-specific collider contract violations
-  - [ ] non-snapped geometry-affecting values against runtime authority
-  - [ ] malformed tags/payload arrays
-- [ ] Add stable validator issue codes for each blocking category.
-- [ ] Ensure deterministic issue ordering and deterministic messages.
+  - [x] invalid/missing schema version
+  - [x] invalid/missing `prefabKey`, duplicate `prefabKey`
+  - [x] invalid/missing `id`, duplicate `id`
+  - [x] invalid/missing `revision`
+  - [x] invalid/missing `kind`
+  - [x] invalid/missing `visualSource`
+  - [x] source mismatch (kind/source incompatibility)
+  - [x] unknown referenced slice/module IDs
+  - [x] missing/invalid anchor fields
+  - [x] missing/invalid collider fields
+  - [x] kind-specific collider contract violations
+  - [x] non-snapped geometry-affecting values against runtime authority
+  - [x] malformed tags/payload arrays
+- [x] Add stable validator issue codes for each blocking category.
+- [x] Ensure deterministic issue ordering and deterministic messages.
 
 Done when:
 
-- [ ] invalid Phase 2 prefab data is blocked before save/export
-- [ ] validator clearly explains kind/source contract violations
-- [ ] validation output is deterministic and test-covered
+- [x] invalid Phase 2 prefab data is blocked before save/export
+- [x] validator clearly explains kind/source contract violations
+- [x] validation output is deterministic and test-covered
 
 ## Step 4 - Prefab Creator Flow (Kind-Specific Authoring UX)
 
@@ -253,28 +255,28 @@ Objective:
 
 Tasks:
 
-- [ ] Update Prefab Creator UI to support kind-first flow:
-  - [ ] add `kind` selector (`obstacle`, `platform`)
-  - [ ] add source-type-aware picker
-  - [ ] surface only compatible source choices for chosen kind
-- [ ] Update prefab form behavior:
-  - [ ] obstacle flow references prefab atlas slices
-  - [ ] platform flow references composed platform modules
-  - [ ] anchor/collider inputs remain explicit and validated
-- [ ] Improve lifecycle operations for identity safety:
-  - [ ] create/duplicate/rename/deprecate (or equivalent explicit operations)
-  - [ ] preserve `prefabKey` invariants through rename
-  - [ ] deterministic revision policy on edits
-- [ ] Ensure UI actions are validation-gated and deterministic:
-  - [ ] no hidden side effects in widget `build`
-  - [ ] clear status/error messaging
-  - [ ] deterministic ordering in list panels and pickers
+- [x] Update Prefab Creator UI to support kind-first flow:
+  - [x] add `kind` selector (`obstacle`, `platform`)
+  - [x] add source-type-aware picker
+  - [x] surface only compatible source choices for chosen kind
+- [x] Update prefab form behavior:
+  - [x] obstacle flow references prefab atlas slices
+  - [x] platform flow references composed platform modules
+  - [x] anchor/collider inputs remain explicit and validated
+- [x] Improve lifecycle operations for identity safety:
+  - [x] create/duplicate/rename/deprecate (or equivalent explicit operations)
+  - [x] preserve `prefabKey` invariants through rename
+  - [x] deterministic revision policy on edits
+- [x] Ensure UI actions are validation-gated and deterministic:
+  - [x] no hidden side effects in widget `build`
+  - [x] clear status/error messaging
+  - [x] deterministic ordering in list panels and pickers
 
 Done when:
 
-- [ ] designers can author both kinds end-to-end without raw JSON edits
-- [ ] identity/revision behavior is explicit and predictable in UI
-- [ ] kind/source mistakes are blocked with actionable feedback
+- [x] designers can author both kinds end-to-end without raw JSON edits
+- [x] identity/revision behavior is explicit and predictable in UI
+- [x] kind/source mistakes are blocked with actionable feedback
 
 ## Step 5 - Preview Overlays (Anchor/Collider/Snap)
 
@@ -284,22 +286,22 @@ Objective:
 
 Tasks:
 
-- [ ] Update
+- [x] Update
       [tools/editor/lib/src/app/pages/prefabCreator/widgets/prefab_scene_view.dart](tools/editor/lib/src/app/pages/prefabCreator/widgets/prefab_scene_view.dart)
       to render:
-  - [ ] source preview for atlas slice prefabs
-  - [ ] source preview for platform module prefabs
-  - [ ] anchor crosshair/marker overlay
-  - [ ] collider overlay(s) with clear bounds
-  - [ ] grid snap overlay/hints for invalid unsnapped values
-- [ ] Ensure preview is deterministic and frame-stable across interactions.
-- [ ] Keep mobile/desktop usability parity for key interactions.
+  - [x] source preview for atlas slice prefabs
+  - [x] source preview for platform module prefabs
+  - [x] anchor crosshair/marker overlay
+  - [x] collider overlay(s) with clear bounds
+  - [x] grid snap overlay/hints for invalid unsnapped values
+- [x] Ensure preview is deterministic and frame-stable across interactions.
+- [x] Keep mobile/desktop usability parity for key interactions (baseline gate parity complete; higher-fidelity touch ergonomics follow-ups documented in closure summary).
 
 Done when:
 
-- [ ] preview reflects serialized values exactly
-- [ ] designers can verify anchor/collider visually before save
-- [ ] no preview-only state drifts from stored contract values
+- [x] preview reflects serialized values exactly
+- [x] designers can verify anchor/collider visually before save
+- [x] no preview-only state drifts from stored contract values (Phase 2 gate invariant verified; deeper parity assertions listed as deferred follow-up)
 
 ## Step 6 - Phase 3 Handoff Seams (No Runtime Cutover Yet)
 
@@ -309,21 +311,21 @@ Objective:
 
 Tasks:
 
-- [ ] Define runtime-facing DTO mapping inside editor/tooling layer (not runner_core cutover yet):
-  - [ ] kind mapping contract
-  - [ ] collider mapping contract
-  - [ ] anchor/source mapping contract
-- [ ] Ensure generator/tool seam can read finalized Phase 2 prefab schema without lossy transforms.
-- [ ] If needed for reference safety, add optional chunk-side prefab identity passthrough seam now:
-  - [ ] optional `prefabKey` reference support where chunk-prefab refs are modeled
-  - [ ] backwards-compatible fallback for legacy `prefabId` refs
-- [ ] Document explicit adapter-removal criteria for Phase 3 implementation.
+- [x] Define runtime-facing DTO mapping inside editor/tooling layer (not runner_core cutover yet):
+  - [x] kind mapping contract
+  - [x] collider mapping contract
+  - [x] anchor/source mapping contract
+- [x] Ensure generator/tool seam can read finalized Phase 2 prefab schema without lossy transforms.
+- [x] If needed for reference safety, add optional chunk-side prefab identity passthrough seam now:
+  - [x] optional `prefabKey` reference support where chunk-prefab refs are modeled
+  - [x] backwards-compatible fallback for legacy `prefabId` refs
+- [x] Document explicit adapter-removal criteria for Phase 3 implementation.
 
 Done when:
 
-- [ ] Phase 3 can consume Phase 2 schema directly (or via thin deterministic adapter)
-- [ ] no additional schema redesign is needed for runtime replacement
-- [ ] handoff contract is documented and test-covered
+- [x] Phase 3 can consume Phase 2 schema directly (or via thin deterministic adapter)
+- [x] no additional schema redesign is needed for runtime replacement
+- [x] handoff contract is documented and test-covered
 
 ## Step 7 - Tests
 
@@ -333,69 +335,69 @@ Objective:
 
 Tasks:
 
-- [ ] Expand model/store tests:
-  - [ ] v1->v2 migration determinism
-  - [ ] typed kind/source parse/serialize
-  - [ ] deterministic ordering invariants
-  - [ ] identity/revision invariants
-  - [ ] round-trip load/save stability
-- [ ] Expand validation tests:
-  - [ ] kind/source mismatches
-  - [ ] missing/invalid anchor/collider failures
-  - [ ] duplicate identity failures (`prefabKey`, `id`)
-  - [ ] invalid source references (`sliceId`, `moduleId`)
-  - [ ] unsnapped geometry failures
-- [ ] Add widget tests for prefab authoring:
-  - [ ] kind switch flow
-  - [ ] source picker filtering behavior
-  - [ ] obstacle create/edit flow
-  - [ ] platform create/edit flow
-  - [ ] blocking validation surfacing
-- [ ] Add regression tests for legacy Phase 0 data compatibility.
-- [ ] Add seam tests that assert Phase 3 mapping contract stability.
+- [x] Expand model/store tests:
+  - [x] v1->v2 migration determinism
+  - [x] typed kind/source parse/serialize
+  - [x] deterministic ordering invariants
+  - [x] identity/revision invariants
+  - [x] round-trip load/save stability
+- [x] Expand validation tests:
+  - [x] kind/source mismatches
+  - [x] missing/invalid anchor/collider failures
+  - [x] duplicate identity failures (`prefabKey`, `id`)
+  - [x] invalid source references (`sliceId`, `moduleId`)
+  - [x] unsnapped geometry failures
+- [x] Add widget tests for prefab authoring:
+  - [x] kind switch flow
+  - [x] source picker filtering behavior
+  - [x] obstacle create/edit flow
+  - [x] platform create/edit flow
+  - [x] blocking validation surfacing
+- [x] Add regression tests for legacy Phase 0 data compatibility.
+- [x] Add seam tests that assert Phase 3 mapping contract stability.
 
 Done when:
 
-- [ ] all Phase 2 gate behaviors are test-covered
-- [ ] migration and identity-critical paths are covered
-- [ ] Phase 3 handoff seam has explicit regression tests
+- [x] all Phase 2 gate behaviors are test-covered
+- [x] migration and identity-critical paths are covered
+- [x] Phase 3 handoff seam has explicit regression tests
 
 ## Step 8 - Validation Commands
 
-- [ ] `cd tools/editor && dart analyze`
-- [ ] `cd tools/editor && flutter test`
-- [ ] `cd tools/editor && flutter test test/prefab_store_test.dart`
-- [ ] `cd tools/editor && flutter test test/prefab_validation_test.dart`
-- [ ] run new Phase 2 widget tests (once added)
-- [ ] `dart run tool/generate_chunk_runtime_data.dart --dry-run`
-- [ ] run touched root-level regression tests if shared contracts changed
+- [x] `cd tools/editor && dart analyze`
+- [x] `cd tools/editor && flutter test`
+- [x] `cd tools/editor && flutter test test/prefab_store_test.dart`
+- [x] `cd tools/editor && flutter test test/prefab_validation_test.dart`
+- [x] run new Phase 2 widget tests (once added)
+- [x] `dart run tool/generate_chunk_runtime_data.dart --dry-run`
+- [x] run touched root-level regression tests if shared contracts changed (no Phase 2 runtime cutover contract change; full core regression remains part of Phase 3 entry checks)
 
 Done when:
 
-- [ ] analyzer is clean for touched scope
-- [ ] relevant tests pass locally
+- [x] analyzer is clean for touched scope
+- [x] relevant tests pass locally
 
 ## Step 9 - Docs and Handoff
 
-- [ ] Update Phase 2 status in
+- [x] Update Phase 2 status in
       [docs/building/editor/chunkCreator/plan.md](docs/building/editor/chunkCreator/plan.md)
       when complete.
-- [ ] Document finalized Phase 2 prefab contract fields and migration rules.
-- [ ] Document finalized identity policy (`prefabKey` vs `id`) and revision policy.
-- [ ] Document finalized kind/source compatibility matrix.
-- [ ] Document Phase 3 handoff seams and adapter-removal criteria.
-- [ ] Include explicit list of new/changed files and tests in PR summary.
-- [ ] Note deferred work explicitly (no hidden TODO behavior).
+- [x] Document finalized Phase 2 prefab contract fields and migration rules.
+- [x] Document finalized identity policy (`prefabKey` vs `id`) and revision policy.
+- [x] Document finalized kind/source compatibility matrix.
+- [x] Document Phase 3 handoff seams and adapter-removal criteria.
+- [x] Include explicit list of new/changed files and tests in PR summary.
+- [x] Note deferred work explicitly (no hidden TODO behavior).
 
 ## Final Acceptance Checklist
 
-- [ ] Prefab contract is typed and schema-versioned for obstacle/platform intent.
-- [ ] Prefab visual source contract is explicit and deterministic.
-- [ ] Collider/anchor requirements are enforced and test-covered.
-- [ ] Legacy Phase 0 prefab data migrates deterministically to Phase 2 contract.
-- [ ] Prefab authoring UI supports kind-specific obstacle/platform workflows.
-- [ ] Preview overlays accurately reflect source, anchor, and collider data.
-- [ ] Persistence is deterministic, canonical, and safe.
-- [ ] Validation blocks invalid prefab definitions before save/export.
-- [ ] Phase 3 runtime handoff requires no schema redesign.
-- [ ] Analyzer and relevant tests pass.
+- [x] Prefab contract is typed and schema-versioned for obstacle/platform intent.
+- [x] Prefab visual source contract is explicit and deterministic.
+- [x] Collider/anchor requirements are enforced and test-covered.
+- [x] Legacy Phase 0 prefab data migrates deterministically to Phase 2 contract.
+- [x] Prefab authoring UI supports kind-specific obstacle/platform workflows.
+- [x] Preview overlays accurately reflect source, anchor, and collider data.
+- [x] Persistence is deterministic, canonical, and safe.
+- [x] Validation blocks invalid prefab definitions before save/export.
+- [x] Phase 3 runtime handoff requires no schema redesign.
+- [x] Analyzer and relevant tests pass.

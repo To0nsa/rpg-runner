@@ -274,6 +274,37 @@ List<ValidationIssue> validateChunkDocument(ChunkDocument document) {
     }
 
     final gapIdSet = <String>{};
+    final sortedPrefabs = List<PlacedPrefabDef>.from(chunk.prefabs)
+      ..sort(_comparePlacedPrefabsForValidation);
+
+    for (final prefab in sortedPrefabs) {
+      if (prefab.prefabId.isEmpty && prefab.prefabKey.isEmpty) {
+        issues.add(
+          ValidationIssue(
+            severity: ValidationSeverity.error,
+            code: 'missing_prefab_ref',
+            message:
+                'Chunk ${chunk.id} contains prefab placement with no prefabId/prefabKey.',
+            sourcePath: sourcePath,
+          ),
+        );
+      }
+
+      if (!_isSnapped(prefab.x.toDouble(), document.runtimeGridSnap) ||
+          !_isSnapped(prefab.y.toDouble(), document.runtimeGridSnap)) {
+        issues.add(
+          ValidationIssue(
+            severity: ValidationSeverity.error,
+            code: 'prefab_snap_violation',
+            message:
+                'Chunk ${chunk.id} prefab placement '
+                '"${prefab.resolvedPrefabRef}" is not snapped to runtime grid.',
+            sourcePath: sourcePath,
+          ),
+        );
+      }
+    }
+
     final sortedGaps = List<GroundGapDef>.from(chunk.groundGaps)
       ..sort(_compareGapsForValidation);
     var previousGapEnd = -1;
@@ -430,4 +461,20 @@ int _compareGapsForValidation(GroundGapDef a, GroundGapDef b) {
     return widthCompare;
   }
   return a.gapId.compareTo(b.gapId);
+}
+
+int _comparePlacedPrefabsForValidation(PlacedPrefabDef a, PlacedPrefabDef b) {
+  final yCompare = a.y.compareTo(b.y);
+  if (yCompare != 0) {
+    return yCompare;
+  }
+  final xCompare = a.x.compareTo(b.x);
+  if (xCompare != 0) {
+    return xCompare;
+  }
+  final refCompare = a.resolvedPrefabRef.compareTo(b.resolvedPrefabRef);
+  if (refCompare != 0) {
+    return refCompare;
+  }
+  return a.prefabId.compareTo(b.prefabId);
 }

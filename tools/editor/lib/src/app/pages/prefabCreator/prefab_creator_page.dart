@@ -91,7 +91,10 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage> {
 
   String? _selectedAtlasPath;
   AtlasSliceKind _selectedSliceKind = AtlasSliceKind.prefab;
+  PrefabKind _selectedPrefabKind = PrefabKind.obstacle;
   String? _selectedPrefabSliceId;
+  String? _selectedPrefabPlatformModuleId;
+  String? _editingPrefabKey;
   String? _selectedTileSliceId;
   String? _selectedModuleId;
   double _atlasZoom = 2.0;

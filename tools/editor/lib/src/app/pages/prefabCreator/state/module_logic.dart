@@ -25,6 +25,7 @@ extension _PrefabCreatorModuleLogic on _PrefabCreatorPageState {
     _updateState(() {
       _data = _data.copyWith(platformModules: [...nextModules, nextModule]);
       _selectedModuleId = id;
+      _selectedPrefabPlatformModuleId ??= id;
       _statusMessage = 'Upserted platform module "$id".';
       _errorMessage = null;
     });
@@ -87,16 +88,38 @@ extension _PrefabCreatorModuleLogic on _PrefabCreatorPageState {
   }
 
   void _deleteModule(String moduleId) {
+    final removedPrefabKeys = _data.prefabs
+        .where(
+          (prefab) => prefab.usesPlatformModule && prefab.moduleId == moduleId,
+        )
+        .map((prefab) => prefab.prefabKey)
+        .where((key) => key.isNotEmpty)
+        .toSet();
     _updateState(() {
       _data = _data.copyWith(
         platformModules: _data.platformModules
             .where((module) => module.id != moduleId)
+            .toList(growable: false),
+        prefabs: _data.prefabs
+            .where(
+              (prefab) =>
+                  !(prefab.usesPlatformModule && prefab.moduleId == moduleId),
+            )
             .toList(growable: false),
       );
       if (_selectedModuleId == moduleId) {
         _selectedModuleId = _data.platformModules.isEmpty
             ? null
             : _data.platformModules.first.id;
+      }
+      if (_selectedPrefabPlatformModuleId == moduleId) {
+        _selectedPrefabPlatformModuleId = _data.platformModules.isEmpty
+            ? null
+            : _data.platformModules.first.id;
+      }
+      if (_editingPrefabKey != null &&
+          removedPrefabKeys.contains(_editingPrefabKey)) {
+        _editingPrefabKey = null;
       }
       _statusMessage = 'Deleted module "$moduleId".';
       _errorMessage = null;

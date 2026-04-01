@@ -1,7 +1,7 @@
 # Chunk Creator High-Level Plan
 
 Date: March 27, 2026  
-Status: Active (Phase 0 completed on March 31, 2026; Phase 1 completed on April 1, 2026; Phase 2 in progress with Step 0 completed on April 1, 2026)
+Status: Active (Phase 0 completed on March 31, 2026; Phase 1 completed on April 1, 2026; Phase 2 completed on April 1, 2026)
 
 ## 1) Mission
 
@@ -441,14 +441,16 @@ Phase 1 added files/contracts (implementation output list):
 
 ### Phase 2 - Obstacle/Platform Prefab Authoring
 
-Status: Step 0 (contract freeze + migration map) completed on April 1, 2026;
-Phase 2 implementation in progress
+Status: Completed on April 1, 2026
 
 Implementation checklist:
 [docs/building/editor/chunkCreator/phase2-implementation-checklist.md](docs/building/editor/chunkCreator/phase2-implementation-checklist.md)
 
 Step 0 contract freeze:
 [docs/building/editor/chunkCreator/phase2-step0-contract-freeze.md](docs/building/editor/chunkCreator/phase2-step0-contract-freeze.md)
+
+Phase 2 closure summary:
+[docs/building/editor/chunkCreator/phase2-closure-summary.md](docs/building/editor/chunkCreator/phase2-closure-summary.md)
 
 Scope:
 
@@ -652,15 +654,13 @@ Asset sync when new level assets are added:
 
 ## 11) Immediate Next Slice
 
-1. Lock Phase 1 completion with regression verification only (do not reopen
-   completed Phase 1 scope):
+1. Lock Phase 2 completion with regression verification only (do not reopen
+   completed Phase 2 scope):
    - `cd tools/editor && dart analyze`
    - `cd tools/editor && flutter test`
-2. Implement Phase 2 obstacle/platform prefab authoring with required collider
-   and anchor validation.
-3. Start Phase 3 runtime replacement of legacy obstacle/platform definitions
+2. Start Phase 3 runtime replacement of legacy obstacle/platform definitions
    with prefab-backed runtime data.
-4. Start Phase 4 parallax authoring in editor and runtime wiring.
-5. Start Phase 5 ground floor and gap authoring tools with validation overlays
+3. Start Phase 4 parallax authoring in editor and runtime wiring.
+4. Start Phase 5 ground floor and gap authoring tools with validation overlays
    on top of the Phase 1 floor/gap contract.
-6. Start Phase 6 gameplay marker authoring and marker contract registry.
+5. Start Phase 6 gameplay marker authoring and marker contract registry.

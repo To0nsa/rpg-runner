@@ -165,4 +165,37 @@ void main() {
     final codes = validateChunkDocument(document).map((i) => i.code).toSet();
     expect(codes, contains('create_chunk_id_collision'));
   });
+
+  test('reports prefab placement identity and snap violations', () {
+    const chunk = LevelChunkDef(
+      chunkKey: 'chunk_prefab',
+      id: 'chunk_prefab',
+      revision: 1,
+      schemaVersion: 1,
+      levelId: 'field',
+      tileSize: 16,
+      width: 600,
+      height: 160,
+      entrySocket: 'in',
+      exitSocket: 'out',
+      difficulty: chunkDifficultyNormal,
+      prefabs: <PlacedPrefabDef>[
+        PlacedPrefabDef(prefabId: '', prefabKey: '', x: 10, y: 32),
+      ],
+      groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 0),
+    );
+    const document = ChunkDocument(
+      chunks: <LevelChunkDef>[chunk],
+      baselineByChunkKey: <String, ChunkSourceBaseline>{},
+      availableLevelIds: <String>['field'],
+      activeLevelId: 'field',
+      levelOptionSource: 'test',
+      runtimeGridSnap: 16.0,
+      runtimeChunkWidth: 600.0,
+    );
+
+    final codes = validateChunkDocument(document).map((i) => i.code).toSet();
+    expect(codes, contains('missing_prefab_ref'));
+    expect(codes, contains('prefab_snap_violation'));
+  });
 }

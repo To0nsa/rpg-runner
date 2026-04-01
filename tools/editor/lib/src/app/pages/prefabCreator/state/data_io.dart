@@ -21,7 +21,8 @@ extension _PrefabCreatorDataIo on _PrefabCreatorPageState {
 
     try {
       final atlasPaths = _discoverAtlasImages(workspacePath);
-      final loaded = await _store.load(workspacePath);
+      final loadResult = await _store.loadWithReport(workspacePath);
+      final loaded = loadResult.data;
 
       final selectedAtlas = _resolveSelectedAtlas(
         previousSelection: _selectedAtlasPath,
@@ -37,16 +38,24 @@ extension _PrefabCreatorDataIo on _PrefabCreatorPageState {
         _atlasImagePaths = atlasPaths;
         _selectedAtlasPath = selectedAtlas;
         _clearSelection();
+        _selectedPrefabKind = PrefabKind.obstacle;
+        _editingPrefabKey = null;
         _selectedPrefabSliceId = loaded.prefabSlices.isEmpty
             ? null
             : loaded.prefabSlices.first.id;
+        _selectedPrefabPlatformModuleId = loaded.platformModules.isEmpty
+            ? null
+            : loaded.platformModules.first.id;
         _selectedTileSliceId = loaded.tileSlices.isEmpty
             ? null
             : loaded.tileSlices.first.id;
         _selectedModuleId = loaded.platformModules.isEmpty
             ? null
             : loaded.platformModules.first.id;
-        _statusMessage = 'Loaded phase-0 prefab/tile authoring data.';
+        final hints = loadResult.migrationHints;
+        _statusMessage = hints.isEmpty
+            ? 'Loaded prefab/tile authoring data.'
+            : 'Loaded prefab/tile authoring data. ${hints.join(' ')}';
       });
     } catch (error) {
       _updateState(() {
@@ -102,10 +111,13 @@ extension _PrefabCreatorDataIo on _PrefabCreatorPageState {
   }
 
   List<String> _validateDataBeforeSave() {
-    return validatePrefabData(
+    final issues = validatePrefabDataIssues(
       data: _data,
       atlasImageSizes: _atlasImageSizes.snapshot(),
     );
+    return issues
+        .map((issue) => '[${issue.code}] ${issue.message}')
+        .toList(growable: false);
   }
 
   Future<void> _ensureSliceAtlasSizesLoaded(String workspacePath) async {

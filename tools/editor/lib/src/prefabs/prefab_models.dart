@@ -1,6 +1,88 @@
 import 'package:flutter/foundation.dart';
 
+const int prefabSchemaVersionV1 = 1;
+const int prefabSchemaVersionV2 = 2;
+const int currentPrefabSchemaVersion = prefabSchemaVersionV2;
+
 enum AtlasSliceKind { prefab, tile }
+
+enum PrefabKind { obstacle, platform, unknown }
+
+enum PrefabStatus { active, deprecated, unknown }
+
+enum PrefabVisualSourceType { atlasSlice, platformModule, unknown }
+
+PrefabKind parsePrefabKind(String raw) {
+  switch (raw.trim()) {
+    case 'obstacle':
+      return PrefabKind.obstacle;
+    case 'platform':
+      return PrefabKind.platform;
+    default:
+      return PrefabKind.unknown;
+  }
+}
+
+PrefabStatus parsePrefabStatus(String raw) {
+  switch (raw.trim()) {
+    case 'active':
+      return PrefabStatus.active;
+    case 'deprecated':
+      return PrefabStatus.deprecated;
+    default:
+      return PrefabStatus.unknown;
+  }
+}
+
+PrefabVisualSourceType parsePrefabVisualSourceType(String raw) {
+  switch (raw.trim()) {
+    case 'atlas_slice':
+      return PrefabVisualSourceType.atlasSlice;
+    case 'platform_module':
+      return PrefabVisualSourceType.platformModule;
+    default:
+      return PrefabVisualSourceType.unknown;
+  }
+}
+
+extension PrefabKindJson on PrefabKind {
+  String get jsonValue {
+    switch (this) {
+      case PrefabKind.obstacle:
+        return 'obstacle';
+      case PrefabKind.platform:
+        return 'platform';
+      case PrefabKind.unknown:
+        return 'unknown';
+    }
+  }
+}
+
+extension PrefabStatusJson on PrefabStatus {
+  String get jsonValue {
+    switch (this) {
+      case PrefabStatus.active:
+        return 'active';
+      case PrefabStatus.deprecated:
+        return 'deprecated';
+      case PrefabStatus.unknown:
+        return 'unknown';
+    }
+  }
+}
+
+extension PrefabVisualSourceTypeJson on PrefabVisualSourceType {
+  String get jsonValue {
+    switch (this) {
+      case PrefabVisualSourceType.atlasSlice:
+        return 'atlas_slice';
+      case PrefabVisualSourceType.platformModule:
+        return 'platform_module';
+      case PrefabVisualSourceType.unknown:
+        return 'unknown';
+    }
+  }
+}
 
 @immutable
 class AtlasSliceDef {
@@ -51,8 +133,8 @@ class AtlasSliceDef {
 
   static AtlasSliceDef fromJson(Map<String, Object?> json) {
     return AtlasSliceDef(
-      id: (json['id'] as String?)?.trim() ?? '',
-      sourceImagePath: (json['sourceImagePath'] as String?)?.trim() ?? '',
+      id: _normalizedString(json['id']),
+      sourceImagePath: _normalizedString(json['sourceImagePath']),
       x: (json['x'] as num?)?.toInt() ?? 0,
       y: (json['y'] as num?)?.toInt() ?? 0,
       width: (json['width'] as num?)?.toInt() ?? 0,
@@ -75,6 +157,20 @@ class PrefabColliderDef {
   final int width;
   final int height;
 
+  PrefabColliderDef copyWith({
+    int? offsetX,
+    int? offsetY,
+    int? width,
+    int? height,
+  }) {
+    return PrefabColliderDef(
+      offsetX: offsetX ?? this.offsetX,
+      offsetY: offsetY ?? this.offsetY,
+      width: width ?? this.width,
+      height: height ?? this.height,
+    );
+  }
+
   Map<String, Object?> toJson() {
     return <String, Object?>{
       'offsetX': offsetX,
@@ -95,20 +191,124 @@ class PrefabColliderDef {
 }
 
 @immutable
+class PrefabVisualSource {
+  const PrefabVisualSource._({
+    required this.type,
+    this.sliceId = '',
+    this.moduleId = '',
+  });
+
+  const PrefabVisualSource.atlasSlice(String sliceId)
+    : this._(type: PrefabVisualSourceType.atlasSlice, sliceId: sliceId);
+
+  const PrefabVisualSource.platformModule(String moduleId)
+    : this._(type: PrefabVisualSourceType.platformModule, moduleId: moduleId);
+
+  const PrefabVisualSource.unknown({String sliceId = '', String moduleId = ''})
+    : this._(
+        type: PrefabVisualSourceType.unknown,
+        sliceId: sliceId,
+        moduleId: moduleId,
+      );
+
+  final PrefabVisualSourceType type;
+  final String sliceId;
+  final String moduleId;
+
+  bool get isAtlasSlice => type == PrefabVisualSourceType.atlasSlice;
+  bool get isPlatformModule => type == PrefabVisualSourceType.platformModule;
+  bool get isUnknown => type == PrefabVisualSourceType.unknown;
+
+  String get atlasSliceId => isAtlasSlice ? sliceId : '';
+  String get platformModuleId => isPlatformModule ? moduleId : '';
+  String get referenceId => isAtlasSlice ? sliceId : moduleId;
+
+  PrefabVisualSource copyWith({
+    PrefabVisualSourceType? type,
+    String? sliceId,
+    String? moduleId,
+  }) {
+    final nextType = type ?? this.type;
+    return PrefabVisualSource._(
+      type: nextType,
+      sliceId: nextType == PrefabVisualSourceType.atlasSlice
+          ? (sliceId ?? this.sliceId)
+          : '',
+      moduleId: nextType == PrefabVisualSourceType.platformModule
+          ? (moduleId ?? this.moduleId)
+          : '',
+    );
+  }
+
+  Map<String, Object?> toJson() {
+    switch (type) {
+      case PrefabVisualSourceType.atlasSlice:
+        return <String, Object?>{'type': type.jsonValue, 'sliceId': sliceId};
+      case PrefabVisualSourceType.platformModule:
+        return <String, Object?>{'type': type.jsonValue, 'moduleId': moduleId};
+      case PrefabVisualSourceType.unknown:
+        return <String, Object?>{'type': type.jsonValue};
+    }
+  }
+
+  static PrefabVisualSource fromJson(Object? raw, {String legacySliceId = ''}) {
+    final json = _asObjectMap(raw);
+    if (json == null) {
+      if (legacySliceId.isNotEmpty) {
+        return PrefabVisualSource.atlasSlice(legacySliceId);
+      }
+      return const PrefabVisualSource.unknown();
+    }
+
+    final type = parsePrefabVisualSourceType(_normalizedString(json['type']));
+    switch (type) {
+      case PrefabVisualSourceType.atlasSlice:
+        final sliceId = _normalizedString(
+          json['sliceId'],
+          fallback: legacySliceId,
+        );
+        return PrefabVisualSource.atlasSlice(sliceId);
+      case PrefabVisualSourceType.platformModule:
+        return PrefabVisualSource.platformModule(
+          _normalizedString(json['moduleId']),
+        );
+      case PrefabVisualSourceType.unknown:
+        if (legacySliceId.isNotEmpty) {
+          return PrefabVisualSource.atlasSlice(legacySliceId);
+        }
+        return const PrefabVisualSource.unknown();
+    }
+  }
+}
+
+@immutable
 class PrefabDef {
-  const PrefabDef({
+  PrefabDef({
+    this.prefabKey = '',
     required this.id,
-    required this.sliceId,
+    this.revision = 1,
+    this.status = PrefabStatus.active,
+    this.kind = PrefabKind.obstacle,
+    PrefabVisualSource? visualSource,
+    String? sliceId,
     required this.anchorXPx,
     required this.anchorYPx,
     required this.colliders,
     this.tags = const <String>[],
     this.zIndex = 0,
     this.snapToGrid = true,
-  });
+  }) : visualSource =
+           visualSource ??
+           (sliceId == null
+               ? const PrefabVisualSource.unknown()
+               : PrefabVisualSource.atlasSlice(sliceId));
 
+  final String prefabKey;
   final String id;
-  final String sliceId;
+  final int revision;
+  final PrefabStatus status;
+  final PrefabKind kind;
+  final PrefabVisualSource visualSource;
   final int anchorXPx;
   final int anchorYPx;
   final List<PrefabColliderDef> colliders;
@@ -116,8 +316,19 @@ class PrefabDef {
   final int zIndex;
   final bool snapToGrid;
 
+  bool get usesAtlasSlice => visualSource.isAtlasSlice;
+  bool get usesPlatformModule => visualSource.isPlatformModule;
+  String get sliceId => visualSource.atlasSliceId;
+  String get moduleId => visualSource.platformModuleId;
+  String get sourceRefId => visualSource.referenceId;
+
   PrefabDef copyWith({
+    String? prefabKey,
     String? id,
+    int? revision,
+    PrefabStatus? status,
+    PrefabKind? kind,
+    PrefabVisualSource? visualSource,
     String? sliceId,
     int? anchorXPx,
     int? anchorYPx,
@@ -126,9 +337,18 @@ class PrefabDef {
     int? zIndex,
     bool? snapToGrid,
   }) {
+    final nextVisualSource =
+        visualSource ??
+        (sliceId != null
+            ? PrefabVisualSource.atlasSlice(sliceId)
+            : this.visualSource);
     return PrefabDef(
+      prefabKey: prefabKey ?? this.prefabKey,
       id: id ?? this.id,
-      sliceId: sliceId ?? this.sliceId,
+      revision: revision ?? this.revision,
+      status: status ?? this.status,
+      kind: kind ?? this.kind,
+      visualSource: nextVisualSource,
       anchorXPx: anchorXPx ?? this.anchorXPx,
       anchorYPx: anchorYPx ?? this.anchorYPx,
       colliders: colliders ?? this.colliders,
@@ -138,10 +358,18 @@ class PrefabDef {
     );
   }
 
+  PrefabDef renamed(String nextId) {
+    return copyWith(id: nextId);
+  }
+
   Map<String, Object?> toJson() {
     return <String, Object?>{
+      'prefabKey': prefabKey,
       'id': id,
-      'sliceId': sliceId,
+      'revision': revision,
+      'status': status.jsonValue,
+      'kind': kind.jsonValue,
+      'visualSource': visualSource.toJson(),
       'anchorXPx': anchorXPx,
       'anchorYPx': anchorYPx,
       'colliders': colliders.map((c) => c.toJson()).toList(growable: false),
@@ -156,26 +384,40 @@ class PrefabDef {
     final colliders = <PrefabColliderDef>[];
     if (rawColliders is List<Object?>) {
       for (final value in rawColliders) {
-        if (value is Map<String, Object?>) {
-          colliders.add(PrefabColliderDef.fromJson(value));
+        final colliderJson = _asObjectMap(value);
+        if (colliderJson == null) {
+          continue;
         }
+        colliders.add(PrefabColliderDef.fromJson(colliderJson));
       }
     }
+
     final rawTags = json['tags'];
     final tags = <String>[];
     if (rawTags is List<Object?>) {
       for (final value in rawTags) {
-        if (value is String) {
-          final normalized = value.trim();
-          if (normalized.isNotEmpty) {
-            tags.add(normalized);
-          }
+        if (value is! String) {
+          continue;
         }
+        final normalized = value.trim();
+        if (normalized.isEmpty) {
+          continue;
+        }
+        tags.add(normalized);
       }
     }
+
+    final legacySliceId = _normalizedString(json['sliceId']);
     return PrefabDef(
-      id: (json['id'] as String?)?.trim() ?? '',
-      sliceId: (json['sliceId'] as String?)?.trim() ?? '',
+      prefabKey: _normalizedString(json['prefabKey']),
+      id: _normalizedString(json['id']),
+      revision: (json['revision'] as num?)?.toInt() ?? 1,
+      status: parsePrefabStatus(_normalizedString(json['status'])),
+      kind: parsePrefabKind(_normalizedString(json['kind'])),
+      visualSource: PrefabVisualSource.fromJson(
+        json['visualSource'],
+        legacySliceId: legacySliceId,
+      ),
       anchorXPx: (json['anchorXPx'] as num?)?.toInt() ?? 0,
       anchorYPx: (json['anchorYPx'] as num?)?.toInt() ?? 0,
       colliders: colliders,
@@ -208,7 +450,7 @@ class TileModuleCellDef {
 
   static TileModuleCellDef fromJson(Map<String, Object?> json) {
     return TileModuleCellDef(
-      sliceId: (json['sliceId'] as String?)?.trim() ?? '',
+      sliceId: _normalizedString(json['sliceId']),
       gridX: (json['gridX'] as num?)?.toInt() ?? 0,
       gridY: (json['gridY'] as num?)?.toInt() ?? 0,
     );
@@ -252,13 +494,15 @@ class TileModuleDef {
     final cells = <TileModuleCellDef>[];
     if (rawCells is List<Object?>) {
       for (final value in rawCells) {
-        if (value is Map<String, Object?>) {
-          cells.add(TileModuleCellDef.fromJson(value));
+        final cellJson = _asObjectMap(value);
+        if (cellJson == null) {
+          continue;
         }
+        cells.add(TileModuleCellDef.fromJson(cellJson));
       }
     }
     return TileModuleDef(
-      id: (json['id'] as String?)?.trim() ?? '',
+      id: _normalizedString(json['id']),
       tileSize: (json['tileSize'] as num?)?.toInt() ?? 16,
       cells: cells,
     );
@@ -268,7 +512,7 @@ class TileModuleDef {
 @immutable
 class PrefabData {
   const PrefabData({
-    this.schemaVersion = 1,
+    this.schemaVersion = currentPrefabSchemaVersion,
     this.prefabSlices = const <AtlasSliceDef>[],
     this.tileSlices = const <AtlasSliceDef>[],
     this.prefabs = const <PrefabDef>[],
@@ -296,4 +540,26 @@ class PrefabData {
       platformModules: platformModules ?? this.platformModules,
     );
   }
+}
+
+String _normalizedString(Object? raw, {String fallback = ''}) {
+  if (raw is String) {
+    return raw.trim();
+  }
+  return fallback;
+}
+
+Map<String, Object?>? _asObjectMap(Object? raw) {
+  if (raw is! Map<Object?, Object?>) {
+    return null;
+  }
+  final mapped = <String, Object?>{};
+  for (final entry in raw.entries) {
+    final key = entry.key;
+    if (key is! String) {
+      continue;
+    }
+    mapped[key] = entry.value;
+  }
+  return mapped;
 }

@@ -5,7 +5,7 @@ import 'package:runner_editor/src/prefabs/prefab_models.dart';
 import 'package:runner_editor/src/prefabs/prefab_validation.dart';
 
 void main() {
-  test('validatePrefabData accepts valid bounded slices and references', () {
+  test('validatePrefabData accepts valid typed obstacle/platform prefabs', () {
     final data = PrefabData(
       prefabSlices: const [
         AtlasSliceDef(
@@ -27,10 +27,14 @@ void main() {
           height: 16,
         ),
       ],
-      prefabs: const [
+      prefabs: [
         PrefabDef(
+          prefabKey: 'crate_a',
           id: 'crate_a',
-          sliceId: 'prefab_slice_a',
+          revision: 1,
+          status: PrefabStatus.active,
+          kind: PrefabKind.obstacle,
+          visualSource: PrefabVisualSource.atlasSlice('prefab_slice_a'),
           anchorXPx: 8,
           anchorYPx: 28,
           colliders: [
@@ -39,6 +43,19 @@ void main() {
           tags: ['solid'],
           zIndex: 1,
           snapToGrid: true,
+        ),
+        PrefabDef(
+          prefabKey: 'platform_a',
+          id: 'platform_a',
+          revision: 1,
+          status: PrefabStatus.active,
+          kind: PrefabKind.platform,
+          visualSource: PrefabVisualSource.platformModule('module_a'),
+          anchorXPx: 0,
+          anchorYPx: 0,
+          colliders: [
+            PrefabColliderDef(offsetX: 0, offsetY: 0, width: 16, height: 16),
+          ],
         ),
       ],
       platformModules: const [
@@ -110,7 +127,7 @@ void main() {
     );
   });
 
-  test('validatePrefabData still reports duplicate ids and broken refs', () {
+  test('validatePrefabData reports v2 identity and source contract failures', () {
     final data = PrefabData(
       prefabSlices: const [
         AtlasSliceDef(
@@ -130,10 +147,14 @@ void main() {
           height: 8,
         ),
       ],
-      prefabs: const [
+      prefabs: [
         PrefabDef(
+          prefabKey: 'prefab_dup',
           id: 'prefab_a',
-          sliceId: 'missing_slice',
+          revision: 0,
+          status: PrefabStatus.unknown,
+          kind: PrefabKind.platform,
+          visualSource: PrefabVisualSource.atlasSlice('missing_slice'),
           anchorXPx: 0,
           anchorYPx: 0,
           colliders: [
@@ -141,8 +162,12 @@ void main() {
           ],
         ),
         PrefabDef(
+          prefabKey: 'prefab_dup',
           id: 'prefab_a',
-          sliceId: 'missing_slice',
+          revision: 1,
+          status: PrefabStatus.active,
+          kind: PrefabKind.obstacle,
+          visualSource: PrefabVisualSource.platformModule('missing_module'),
           anchorXPx: 0,
           anchorYPx: 0,
           colliders: [
@@ -161,11 +186,150 @@ void main() {
 
     expect(errors, contains('Duplicate prefab slice id: slice_dup'));
     expect(errors, contains('Duplicate prefab id: prefab_a'));
+    expect(errors, contains('Duplicate prefab key: prefab_dup'));
+    expect(errors, contains('Prefab prefab_a has invalid revision 0.'));
+    expect(errors, contains('Prefab prefab_a has unsupported status.'));
+    expect(
+      errors,
+      contains(
+        'Prefab prefab_a has incompatible kind/source (platform + atlas_slice).',
+      ),
+    );
+    expect(
+      errors,
+      contains(
+        'Prefab prefab_a has incompatible kind/source (obstacle + platform_module).',
+      ),
+    );
     expect(
       errors,
       contains(
         'Prefab prefab_a references missing prefab slice missing_slice.',
       ),
     );
+    expect(
+      errors,
+      contains(
+        'Prefab prefab_a references missing platform module missing_module.',
+      ),
+    );
+  });
+
+  test(
+    'validatePrefabData reports anchor, tag, and platform snap violations',
+    () {
+      final data = PrefabData(
+        prefabSlices: const [
+          AtlasSliceDef(
+            id: 'prefab_slice_a',
+            sourceImagePath: 'assets/images/level/props/TX Village Props.png',
+            x: 0,
+            y: 0,
+            width: 32,
+            height: 32,
+          ),
+        ],
+        tileSlices: const [
+          AtlasSliceDef(
+            id: 'tile_slice_a',
+            sourceImagePath:
+                'assets/images/level/tileset/TX Tileset Ground.png',
+            x: 0,
+            y: 0,
+            width: 16,
+            height: 16,
+          ),
+        ],
+        platformModules: const [
+          TileModuleDef(
+            id: 'module_a',
+            tileSize: 16,
+            cells: [
+              TileModuleCellDef(sliceId: 'tile_slice_a', gridX: 0, gridY: 0),
+            ],
+          ),
+        ],
+        prefabs: [
+          PrefabDef(
+            prefabKey: 'platform_bad',
+            id: 'platform_bad',
+            revision: 1,
+            status: PrefabStatus.active,
+            kind: PrefabKind.platform,
+            visualSource: PrefabVisualSource.platformModule('module_a'),
+            anchorXPx: 33,
+            anchorYPx: 3,
+            colliders: [
+              PrefabColliderDef(offsetX: 3, offsetY: 5, width: 10, height: 9),
+            ],
+            tags: ['solid', 'solid'],
+            snapToGrid: true,
+          ),
+        ],
+      );
+
+      final errors = validatePrefabData(
+        data: data,
+        atlasImageSizes: const {
+          'assets/images/level/props/TX Village Props.png': Size(64, 64),
+          'assets/images/level/tileset/TX Tileset Ground.png': Size(64, 64),
+        },
+      );
+
+      expect(
+        errors,
+        contains(
+          'Prefab platform_bad has anchor (33,3) outside source bounds 16x16.',
+        ),
+      );
+      expect(
+        errors,
+        contains(
+          'Prefab platform_bad anchor must be snapped to module tileSize 16.',
+        ),
+      );
+      expect(
+        errors,
+        contains(
+          'Prefab platform_bad collider[0] must be snapped to module tileSize 16.',
+        ),
+      );
+      expect(
+        errors,
+        contains('Prefab platform_bad has duplicate tag "solid".'),
+      );
+    },
+  );
+
+  test('validatePrefabDataIssues exposes stable issue codes', () {
+    final data = PrefabData(
+      prefabs: [
+        PrefabDef(
+          prefabKey: '',
+          id: '',
+          revision: 0,
+          status: PrefabStatus.unknown,
+          kind: PrefabKind.unknown,
+          visualSource: const PrefabVisualSource.unknown(),
+          anchorXPx: 0,
+          anchorYPx: 0,
+          colliders: const [],
+        ),
+      ],
+    );
+
+    final issues = validatePrefabDataIssues(
+      data: data,
+      atlasImageSizes: const {},
+    );
+    final codes = issues.map((issue) => issue.code).toSet();
+
+    expect(codes, contains('prefab_id_missing'));
+    expect(codes, contains('prefab_key_missing'));
+    expect(codes, contains('prefab_revision_invalid'));
+    expect(codes, contains('prefab_status_invalid'));
+    expect(codes, contains('prefab_kind_invalid'));
+    expect(codes, contains('prefab_source_type_invalid'));
+    expect(codes, contains('prefab_collider_missing'));
   });
 }

@@ -117,29 +117,51 @@ class TileLayerDef {
 class PlacedPrefabDef {
   const PlacedPrefabDef({
     required this.prefabId,
+    this.prefabKey = '',
     required this.x,
     required this.y,
   });
 
   final String prefabId;
+  final String prefabKey;
   final int x;
   final int y;
 
-  PlacedPrefabDef copyWith({String? prefabId, int? x, int? y}) {
+  String get resolvedPrefabRef => prefabKey.isNotEmpty ? prefabKey : prefabId;
+
+  PlacedPrefabDef copyWith({
+    String? prefabId,
+    String? prefabKey,
+    int? x,
+    int? y,
+  }) {
     return PlacedPrefabDef(
       prefabId: prefabId ?? this.prefabId,
+      prefabKey: prefabKey ?? this.prefabKey,
       x: x ?? this.x,
       y: y ?? this.y,
     );
   }
 
   Map<String, Object?> toJson() {
-    return <String, Object?>{'prefabId': prefabId, 'x': x, 'y': y};
+    final json = <String, Object?>{
+      'prefabId': prefabId,
+      if (prefabKey.isNotEmpty) 'prefabKey': prefabKey,
+      'x': x,
+      'y': y,
+    };
+    return json;
   }
 
   static PlacedPrefabDef fromJson(Map<String, Object?> json) {
+    final parsedPrefabKey = _normalizedString(json['prefabKey']);
+    final parsedPrefabId = _normalizedString(
+      json['prefabId'],
+      fallback: parsedPrefabKey,
+    );
     return PlacedPrefabDef(
-      prefabId: _normalizedString(json['prefabId']),
+      prefabId: parsedPrefabId,
+      prefabKey: parsedPrefabKey,
       x: _intOrDefault(json['x'], fallback: 0),
       y: _intOrDefault(json['y'], fallback: 0),
     );
@@ -362,6 +384,10 @@ class LevelChunkDef {
         final xCompare = a.x.compareTo(b.x);
         if (xCompare != 0) {
           return xCompare;
+        }
+        final refCompare = a.resolvedPrefabRef.compareTo(b.resolvedPrefabRef);
+        if (refCompare != 0) {
+          return refCompare;
         }
         return a.prefabId.compareTo(b.prefabId);
       });
