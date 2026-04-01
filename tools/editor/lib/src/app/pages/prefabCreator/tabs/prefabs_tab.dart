@@ -43,7 +43,9 @@ extension _PrefabCreatorPrefabsTab on _PrefabCreatorPageState {
                               subtitle: Text(
                                 'slice=${prefab.sliceId} '
                                 'anchor=(${prefab.anchorXPx},${prefab.anchorYPx}) '
-                                'colliders=${prefab.colliders.length}',
+                                'colliders=${prefab.colliders.length} '
+                                'z=${prefab.zIndex} '
+                                'snap=${prefab.snapToGrid}',
                               ),
                               onTap: () => _loadPrefabIntoForm(prefab),
                               trailing: IconButton(
@@ -202,13 +204,37 @@ extension _PrefabCreatorPrefabsTab on _PrefabCreatorPageState {
               ),
               const SizedBox(height: 8),
               TextField(
+                controller: _prefabZIndexController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  labelText: 'Z Index',
+                ),
+              ),
+              const SizedBox(height: 8),
+              CheckboxListTile(
+                value: _prefabSnapToGrid,
+                onChanged: (value) {
+                  if (value == null) {
+                    return;
+                  }
+                  _updateState(() {
+                    _prefabSnapToGrid = value;
+                  });
+                },
+                title: const Text('Snap To Grid'),
+                contentPadding: EdgeInsets.zero,
+                controlAffinity: ListTileControlAffinity.leading,
+              ),
+              const SizedBox(height: 8),
+              TextField(
                 controller: _prefabTagsController,
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
                   labelText: 'Tags (comma separated)',
                   floatingLabelBehavior: FloatingLabelBehavior.always,
                 ),
-              ),
+              ), 
               const SizedBox(height: 8),
               FilledButton.icon(
                 onPressed: _upsertPrefabFromForm,

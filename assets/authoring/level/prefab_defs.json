@@ -10,5 +10,23 @@
       "height": 64
     }
   ],
-  "prefabs": []
+  "prefabs": [
+    {
+      "id": "village_crate_01",
+      "sliceId": "village_crate_01",
+      "anchorXPx": 32,
+      "anchorYPx": 32,
+      "colliders": [
+        {
+          "offsetX": 0,
+          "offsetY": 0,
+          "width": 44,
+          "height": 44
+        }
+      ],
+      "tags": [],
+      "zIndex": 0,
+      "snapToGrid": true
+    }
+  ]
 }

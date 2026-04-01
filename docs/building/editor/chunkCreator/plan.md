@@ -1,7 +1,7 @@
 # Chunk Creator High-Level Plan
 
 Date: March 27, 2026  
-Status: Proposed
+Status: Active (Phase 0 completed on March 31, 2026; Phase 1 next)
 
 ## 1) Mission
 
@@ -278,6 +278,8 @@ Hard rule: phase `N+1` does not start until phase `N` is implemented, tested,
 and accepted.
 
 ### Phase 0 - Atlas/Tileset Slicing + Prefab/Tile Foundation + Asset Pipeline Bootstrap
+
+Status: Completed on March 31, 2026
 
 Scope:
 

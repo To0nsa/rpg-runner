@@ -8,6 +8,8 @@ import 'package:path/path.dart' as p;
 
 import '../../../prefabs/prefab_models.dart';
 import '../../../prefabs/prefab_store.dart';
+import '../../../prefabs/prefab_validation.dart';
+import '../../../prefabs/workspace_scoped_size_cache.dart';
 import '../../../session/editor_session_controller.dart';
 import '../shared/atlas_selection_painter.dart';
 import '../shared/editor_zoom_controls.dart';
@@ -57,6 +59,10 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage> {
     text: '16',
   );
   final TextEditingController _prefabTagsController = TextEditingController();
+  final TextEditingController _prefabZIndexController = TextEditingController(
+    text: '0',
+  );
+  bool _prefabSnapToGrid = true;
 
   final TextEditingController _moduleIdController = TextEditingController();
   final TextEditingController _moduleTileSizeController = TextEditingController(
@@ -76,7 +82,7 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage> {
 
   PrefabData _data = const PrefabData();
   List<String> _atlasImagePaths = const <String>[];
-  final Map<String, Size> _atlasImageSizes = <String, Size>{};
+  final WorkspaceScopedSizeCache _atlasImageSizes = WorkspaceScopedSizeCache();
 
   bool _isLoading = false;
   bool _isSaving = false;
@@ -112,6 +118,7 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage> {
     _colliderWidthController.dispose();
     _colliderHeightController.dispose();
     _prefabTagsController.dispose();
+    _prefabZIndexController.dispose();
     _moduleIdController.dispose();
     _moduleTileSizeController.dispose();
     _moduleCellGridXController.dispose();

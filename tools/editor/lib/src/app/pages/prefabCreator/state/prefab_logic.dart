@@ -81,14 +81,16 @@ extension _PrefabCreatorPrefabLogic on _PrefabCreatorPageState {
     );
     final colliderWidth = int.tryParse(_colliderWidthController.text.trim());
     final colliderHeight = int.tryParse(_colliderHeightController.text.trim());
+    final zIndex = int.tryParse(_prefabZIndexController.text.trim());
 
     if (anchorX == null ||
         anchorY == null ||
         colliderOffsetX == null ||
         colliderOffsetY == null ||
         colliderWidth == null ||
-        colliderHeight == null) {
-      _setError('Anchor/collider fields must be valid integers.');
+        colliderHeight == null ||
+        zIndex == null) {
+      _setError('Anchor/collider/z-index fields must be valid integers.');
       return;
     }
     if (colliderWidth <= 0 || colliderHeight <= 0) {
@@ -115,6 +117,8 @@ extension _PrefabCreatorPrefabLogic on _PrefabCreatorPageState {
         ),
       ],
       tags: tags,
+      zIndex: zIndex,
+      snapToGrid: _prefabSnapToGrid,
     );
     final nextPrefabs = _data.prefabs
         .where((prefab) => prefab.id != id)
@@ -140,6 +144,8 @@ extension _PrefabCreatorPrefabLogic on _PrefabCreatorPageState {
       _colliderWidthController.text = collider.width.toString();
       _colliderHeightController.text = collider.height.toString();
       _prefabTagsController.text = prefab.tags.join(', ');
+      _prefabZIndexController.text = prefab.zIndex.toString();
+      _prefabSnapToGrid = prefab.snapToGrid;
       _errorMessage = null;
     });
   }
