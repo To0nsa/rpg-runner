@@ -267,6 +267,13 @@ extension _PrefabCreatorAtlasSlicerTab on _PrefabCreatorPageState {
           Positioned.fill(
             child: IgnorePointer(
               child: CustomPaint(
+                painter: EditorViewportGridPainter(zoom: _atlasZoom),
+              ),
+            ),
+          ),
+          Positioned.fill(
+            child: IgnorePointer(
+              child: CustomPaint(
                 painter: AtlasSelectionPainter(
                   zoom: _atlasZoom,
                   selectionRectInImagePixels: _selectionRectInImagePixels(),
@@ -275,32 +282,48 @@ extension _PrefabCreatorAtlasSlicerTab on _PrefabCreatorPageState {
             ),
           ),
           Positioned.fill(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onPanStart: (details) {
-                _updateState(() {
-                  final start = _toImagePosition(
-                    details.localPosition,
-                    atlasSize,
-                  );
-                  _setSelectionFromPoints(start, start);
-                });
-              },
-              onPanUpdate: (details) {
-                _updateState(() {
-                  final current = _toImagePosition(
-                    details.localPosition,
-                    atlasSize,
-                  );
-                  final start = _selectionStartImagePx ?? current;
-                  _setSelectionFromPoints(start, current);
-                });
-              },
-              onPanEnd: (_) {
-                _updateState(() {
-                  _selectionCurrentImagePx = _selectionCurrentImagePx;
-                });
-              },
+            child: Listener(
+              onPointerSignal: _onAtlasPointerSignal,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onPanStart: (details) {
+                  if (SceneInputUtils.isCtrlPressed()) {
+                    _atlasCtrlPanActive = true;
+                    return;
+                  }
+                  _updateState(() {
+                    final start = _toImagePosition(
+                      details.localPosition,
+                      atlasSize,
+                    );
+                    _setSelectionFromPoints(start, start);
+                  });
+                },
+                onPanUpdate: (details) {
+                  if (_atlasCtrlPanActive || SceneInputUtils.isCtrlPressed()) {
+                    SceneInputUtils.panScrollControllers(
+                      horizontal: _atlasHorizontalScrollController,
+                      vertical: _atlasVerticalScrollController,
+                      pointerDelta: details.delta,
+                    );
+                    return;
+                  }
+                  _updateState(() {
+                    final current = _toImagePosition(
+                      details.localPosition,
+                      atlasSize,
+                    );
+                    final start = _selectionStartImagePx ?? current;
+                    _setSelectionFromPoints(start, current);
+                  });
+                },
+                onPanEnd: (_) {
+                  _atlasCtrlPanActive = false;
+                  _updateState(() {
+                    _selectionCurrentImagePx = _selectionCurrentImagePx;
+                  });
+                },
+              ),
             ),
           ),
         ],
@@ -323,5 +346,20 @@ extension _PrefabCreatorAtlasSlicerTab on _PrefabCreatorPageState {
         ),
       ),
     );
+  }
+
+  void _onAtlasPointerSignal(PointerSignalEvent event) {
+    final signedSteps = SceneInputUtils.signedZoomStepsFromCtrlScroll(event);
+    if (signedSteps == 0) {
+      return;
+    }
+    final nextZoom =
+        _atlasZoom + (signedSteps * _PrefabCreatorPageState._zoomStep);
+    _updateState(() {
+      _atlasZoom = nextZoom.clamp(
+        _PrefabCreatorPageState._zoomMin,
+        _PrefabCreatorPageState._zoomMax,
+      );
+    });
   }
 }

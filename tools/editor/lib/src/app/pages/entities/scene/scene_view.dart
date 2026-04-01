@@ -324,11 +324,12 @@ extension _SceneView on _EntitiesEditorPageState {
     required Size canvasSize,
     required double scale,
   }) {
-    final isPrimaryMouseDown = (event.buttons & kPrimaryButton) != 0;
-    if (!isPrimaryMouseDown) {
+    if (!SceneInputUtils.isPrimaryButtonPressed(event.buttons)) {
       return;
     }
-    _sceneCtrlPanActive = isPrimaryMouseDown && SceneInputUtils.isCtrlPressed();
+    _sceneCtrlPanActive = SceneInputUtils.shouldPanWithPrimaryDrag(
+      event.buttons,
+    );
     if (_sceneCtrlPanActive) {
       _sceneHandleDrag = null;
       return;
@@ -377,7 +378,7 @@ extension _SceneView on _EntitiesEditorPageState {
   void _onSceneCanvasPointerMove(PointerMoveEvent event) {
     final activeDrag = _sceneHandleDrag;
     if (activeDrag != null && event.pointer == activeDrag.pointer) {
-      if ((event.buttons & kPrimaryButton) == 0) {
+      if (!SceneInputUtils.isPrimaryButtonPressed(event.buttons)) {
         _sceneHandleDrag = null;
         _updateState(() {});
         return;
@@ -388,11 +389,15 @@ extension _SceneView on _EntitiesEditorPageState {
     if (!_sceneCtrlPanActive) {
       return;
     }
-    if ((event.buttons & kPrimaryButton) == 0) {
+    if (!SceneInputUtils.isPrimaryButtonPressed(event.buttons)) {
       _sceneCtrlPanActive = false;
       return;
     }
-    _panSceneViewportBy(delta: event.delta);
+    SceneInputUtils.panScrollControllers(
+      horizontal: _sceneHorizontalScrollController,
+      vertical: _sceneVerticalScrollController,
+      pointerDelta: event.delta,
+    );
   }
 
   void _onSceneCanvasPointerEnd(PointerEvent event) {
@@ -405,19 +410,13 @@ extension _SceneView on _EntitiesEditorPageState {
   }
 
   void _onSceneCanvasPointerSignal(PointerSignalEvent event) {
-    if (event is! PointerScrollEvent) {
+    final signedSteps = SceneInputUtils.signedZoomStepsFromCtrlScroll(event);
+    if (signedSteps == 0) {
       return;
     }
-    if (!SceneInputUtils.isCtrlPressed()) {
-      return;
-    }
-    final deltaY = event.scrollDelta.dy;
-    final steps = SceneInputUtils.zoomStepsFromScrollDeltaY(deltaY);
-    if (steps < 1) {
-      return;
-    }
+    final steps = signedSteps.abs();
     for (var i = 0; i < steps; i += 1) {
-      if (deltaY < 0) {
+      if (signedSteps > 0) {
         _zoomIn();
       } else {
         _zoomOut();
@@ -657,14 +656,6 @@ extension _SceneView on _EntitiesEditorPageState {
   }) {
     return (anchorXPx - baseline.startAnchorXPx).abs() > 0.000001 ||
         (anchorYPx - baseline.startAnchorYPx).abs() > 0.000001;
-  }
-
-  void _panSceneViewportBy({required Offset delta}) {
-    SceneInputUtils.panScrollControllers(
-      horizontal: _sceneHorizontalScrollController,
-      vertical: _sceneVerticalScrollController,
-      pointerDelta: delta,
-    );
   }
 
   void _scheduleSceneViewportCentering() {

@@ -10,6 +10,8 @@ enum PrefabKind { obstacle, platform, unknown }
 
 enum PrefabStatus { active, deprecated, unknown }
 
+enum TileModuleStatus { active, deprecated, unknown }
+
 enum PrefabVisualSourceType { atlasSlice, platformModule, unknown }
 
 PrefabKind parsePrefabKind(String raw) {
@@ -31,6 +33,17 @@ PrefabStatus parsePrefabStatus(String raw) {
       return PrefabStatus.deprecated;
     default:
       return PrefabStatus.unknown;
+  }
+}
+
+TileModuleStatus parseTileModuleStatus(String raw) {
+  switch (raw.trim()) {
+    case 'active':
+      return TileModuleStatus.active;
+    case 'deprecated':
+      return TileModuleStatus.deprecated;
+    default:
+      return TileModuleStatus.unknown;
   }
 }
 
@@ -66,6 +79,19 @@ extension PrefabStatusJson on PrefabStatus {
       case PrefabStatus.deprecated:
         return 'deprecated';
       case PrefabStatus.unknown:
+        return 'unknown';
+    }
+  }
+}
+
+extension TileModuleStatusJson on TileModuleStatus {
+  String get jsonValue {
+    switch (this) {
+      case TileModuleStatus.active:
+        return 'active';
+      case TileModuleStatus.deprecated:
+        return 'deprecated';
+      case TileModuleStatus.unknown:
         return 'unknown';
     }
   }
@@ -461,21 +487,29 @@ class TileModuleCellDef {
 class TileModuleDef {
   const TileModuleDef({
     required this.id,
+    this.revision = 1,
+    this.status = TileModuleStatus.active,
     required this.tileSize,
     required this.cells,
   });
 
   final String id;
+  final int revision;
+  final TileModuleStatus status;
   final int tileSize;
   final List<TileModuleCellDef> cells;
 
   TileModuleDef copyWith({
     String? id,
+    int? revision,
+    TileModuleStatus? status,
     int? tileSize,
     List<TileModuleCellDef>? cells,
   }) {
     return TileModuleDef(
       id: id ?? this.id,
+      revision: revision ?? this.revision,
+      status: status ?? this.status,
       tileSize: tileSize ?? this.tileSize,
       cells: cells ?? this.cells,
     );
@@ -484,6 +518,8 @@ class TileModuleDef {
   Map<String, Object?> toJson() {
     return <String, Object?>{
       'id': id,
+      'revision': revision,
+      'status': status.jsonValue,
       'tileSize': tileSize,
       'cells': cells.map((c) => c.toJson()).toList(growable: false),
     };
@@ -503,6 +539,8 @@ class TileModuleDef {
     }
     return TileModuleDef(
       id: _normalizedString(json['id']),
+      revision: (json['revision'] as num?)?.toInt() ?? 1,
+      status: parseTileModuleStatus(_normalizedString(json['status'])),
       tileSize: (json['tileSize'] as num?)?.toInt() ?? 16,
       cells: cells,
     );

@@ -34,6 +34,14 @@ extension _PrefabCreatorDataIo on _PrefabCreatorPageState {
       }
 
       _updateState(() {
+        String? firstActiveModuleId;
+        for (final module in loaded.platformModules) {
+          if (module.status == TileModuleStatus.deprecated) {
+            continue;
+          }
+          firstActiveModuleId = module.id;
+          break;
+        }
         _data = loaded;
         _atlasImagePaths = atlasPaths;
         _selectedAtlasPath = selectedAtlas;
@@ -45,13 +53,13 @@ extension _PrefabCreatorDataIo on _PrefabCreatorPageState {
             : loaded.prefabSlices.first.id;
         _selectedPrefabPlatformModuleId = loaded.platformModules.isEmpty
             ? null
-            : loaded.platformModules.first.id;
+            : (firstActiveModuleId ?? loaded.platformModules.first.id);
         _selectedTileSliceId = loaded.tileSlices.isEmpty
             ? null
             : loaded.tileSlices.first.id;
         _selectedModuleId = loaded.platformModules.isEmpty
             ? null
-            : loaded.platformModules.first.id;
+            : (firstActiveModuleId ?? loaded.platformModules.first.id);
         final hints = loadResult.migrationHints;
         _statusMessage = hints.isEmpty
             ? 'Loaded prefab/tile authoring data.'

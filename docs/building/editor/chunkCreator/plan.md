@@ -471,7 +471,42 @@ Gate:
   anchor data
 - round-trip load/save remains deterministic
 
-### Phase 3 - Replace Existing Obstacles/Platforms With Prefab-Backed Runtime Data
+### Phase 3 - Platform Module Creator + Scene Composition Authoring
+
+Implementation checklist:
+[docs/building/editor/chunkCreator/phase3-implementation-checklist.md](docs/building/editor/chunkCreator/phase3-implementation-checklist.md)
+
+Scope:
+
+- add a dedicated platform-module authoring workflow with a scene view in
+  `tools/editor`
+- standardize scene-view controls across editor authoring surfaces (for example
+  `Ctrl+drag` pan, wheel/pinch zoom, deterministic tool-modified primary drag)
+  so control meaning is consistent for non-dev users
+- implement scene-view input behavior through shared modularized code in
+  `tools/editor/lib/src/app/pages/shared/**` so new scene views inherit the
+  same controls with minimal custom code
+- compose platform modules from sliced tiles with grid-snapped placement,
+  deterministic tile ordering, and explicit module bounds
+- support full module lifecycle operations needed for non-dev iteration
+  (create, edit, duplicate, rename, deprecate/remove-safe)
+- enforce module validation rules (valid tile-slice refs, in-bounds geometry,
+  collision-safe IDs, deterministic canonical serialization)
+- persist module data in `tile_defs.json` in canonical deterministic form
+- ensure authored platform modules are immediately consumable by prefab authoring
+  (`visualSource.type = platform_module`) without hand-editing JSON
+
+Gate:
+
+- non-dev user can create/edit platform modules entirely in-editor via scene
+  view, without JSON edits
+- scene-view control semantics are consistent across phase-touched views and
+  backed by shared reusable input-control code
+- authored modules round-trip load/save deterministically
+- module validation blocks invalid composition states before save/export
+- platform prefab flow can reference newly authored modules in the same session
+
+### Phase 4 - Replace Existing Obstacles/Platforms With Prefab-Backed Runtime Data
 
 Scope:
 
@@ -489,22 +524,6 @@ Gate:
 - deterministic replay/streaming behavior remains stable in tests
 - legacy obstacle/platform authoring path is removed or marked with explicit
   adapter-removal criteria
-
-### Phase 4 - Parallax Authoring Through Editor
-
-Scope:
-
-- add parallax authoring UI in `tools/editor` for level-scoped parallax sets
-- allow creating/editing ordered parallax layers (asset, z/depth, speed factor)
-- add preview of parallax motion using editor camera pan controls
-- persist parallax definitions in deterministic authoring JSON
-- wire generated parallax data into runtime theme/level consumption path
-
-Gate:
-
-- non-dev user can create and edit a level parallax setup fully in editor
-- authored parallax data is consumed by runtime without manual Dart edits
-- parallax load/save is deterministic and covered by tests
 
 ### Phase 5 - Ground Floor + Gap Authoring Through Editor
 
@@ -583,10 +602,12 @@ Gate:
 
 Scope:
 
-- integrate terrain, prefabs, parallax, gaps, markers, sockets, and metadata
-  into one level-scoped authoring/export path
+- integrate terrain, prefabs, gaps, markers, sockets, and metadata into one
+  level-scoped authoring/export path
 - run end-to-end non-dev workflow from atlas slicing to in-game playtest
 - verify level assembly constraints and chunk contracts across full level data
+- keep parallax intentionally deferred to a dedicated later phase so chunk
+  production and runtime gameplay path ship first
 
 Gate:
 
@@ -595,7 +616,29 @@ Gate:
 - deterministic replay/streaming tests remain green with authored level data
 - non-dev acceptance pass completes on representative production tasks
 
-### Phase 10 - CI Drift Gate + Adapter Removal + Feature Expansion
+### Phase 10 - Parallax Authoring Through Editor (Deferred Visual Layer)
+
+Status: Deferred until core chunk-authoring pipeline (through Phase 9) is
+implemented and accepted
+
+Scope:
+
+- add parallax authoring UI in `tools/editor` for level-scoped parallax sets
+- allow creating/editing ordered parallax layers (asset, z/depth, speed factor)
+- add preview of parallax motion using editor camera pan controls
+- persist parallax definitions in deterministic authoring JSON
+- wire generated parallax data into runtime theme/level consumption path
+- integrate parallax into previously shipped chunk pipeline without regressing
+  deterministic gameplay behavior
+
+Gate:
+
+- non-dev user can create and edit a level parallax setup fully in editor
+- authored parallax data is consumed by runtime without manual Dart edits
+- parallax load/save is deterministic and covered by tests
+- adding parallax does not alter gameplay-critical deterministic chunk outcomes
+
+### Phase 11 - CI Drift Gate + Adapter Removal + Feature Expansion
 
 Scope:
 
@@ -651,6 +694,8 @@ Asset sync when new level assets are added:
 - keep gameplay authority in `packages/runner_core/lib/**`
 - keep Flame/UI as consumers of Core snapshots/events
 - never bypass validation gate for generated runtime data in normal workflow
+- keep scene-view input controls centralized and reusable; avoid per-view
+  bespoke control mappings when shared control semantics are intended
 
 ## 11) Immediate Next Slice
 
@@ -658,9 +703,14 @@ Asset sync when new level assets are added:
    completed Phase 2 scope):
    - `cd tools/editor && dart analyze`
    - `cd tools/editor && flutter test`
-2. Start Phase 3 runtime replacement of legacy obstacle/platform definitions
+2. Start Phase 3 platform-module creator with scene composition authoring.
+3. Start Phase 4 runtime replacement of legacy obstacle/platform definitions
    with prefab-backed runtime data.
-3. Start Phase 4 parallax authoring in editor and runtime wiring.
 4. Start Phase 5 ground floor and gap authoring tools with validation overlays
    on top of the Phase 1 floor/gap contract.
 5. Start Phase 6 gameplay marker authoring and marker contract registry.
+6. Start Phase 7 sockets + level assembly workflow.
+7. Start Phase 8 simulation preview + validation hardening.
+8. Start Phase 9 first playable end-to-end chunk pipeline.
+9. Start Phase 10 deferred parallax authoring after chunk pipeline acceptance.
+10. Start Phase 11 CI drift gate + adapter removal hardening.

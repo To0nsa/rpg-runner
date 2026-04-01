@@ -11,7 +11,7 @@ import 'package:runner_editor/src/session/editor_session_controller.dart';
 import 'package:runner_editor/src/workspace/editor_workspace.dart';
 
 void main() {
-  testWidgets('prefab kind switch flow updates source picker', (tester) async {
+  testWidgets('tabs split obstacle and platform authoring', (tester) async {
     await tester.binding.setSurfaceSize(const Size(1800, 1200));
     addTearDown(() async {
       await tester.binding.setSurfaceSize(null);
@@ -25,18 +25,21 @@ void main() {
     await _pumpPrefabCreatorPage(tester, workspacePath: fixtureRoot.path);
 
     expect(_dropdownByLabel('Atlas Slice'), findsOneWidget);
-    expect(_dropdownByLabel('Platform Module'), findsNothing);
+    expect(find.text('Create/Update Platform Prefab'), findsNothing);
 
-    await _selectPrefabKind(tester, 'Platform');
-    expect(_dropdownByLabel('Platform Module'), findsOneWidget);
+    await tester.tap(find.text('Platform Prefabs').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Create/Update Platform Prefab'), findsOneWidget);
     expect(_dropdownByLabel('Atlas Slice'), findsNothing);
 
-    await _selectPrefabKind(tester, 'Obstacle');
+    await tester.tap(find.text('Obstacle Prefabs').first);
+    await tester.pumpAndSettle();
     expect(_dropdownByLabel('Atlas Slice'), findsOneWidget);
-    expect(_dropdownByLabel('Platform Module'), findsNothing);
+    expect(find.text('Create/Update Platform Prefab'), findsNothing);
   });
 
-  testWidgets('source picker filtering stays kind-specific', (tester) async {
+  testWidgets('obstacle tab stays atlas-slice only', (tester) async {
     await tester.binding.setSurfaceSize(const Size(1800, 1200));
     addTearDown(() async {
       await tester.binding.setSurfaceSize(null);
@@ -52,11 +55,12 @@ void main() {
     expect(_dropdownByLabel('Atlas Slice'), findsOneWidget);
     expect(find.text('crate_slice'), findsOneWidget);
     expect(find.text('ground_module'), findsNothing);
+    expect(find.text('Create/Update Platform Prefab'), findsNothing);
 
-    await _selectPrefabKind(tester, 'Platform');
-    expect(_dropdownByLabel('Platform Module'), findsOneWidget);
-    expect(find.text('ground_module'), findsOneWidget);
-    expect(_dropdownByLabel('Atlas Slice'), findsNothing);
+    await tester.tap(find.text('Platform Prefabs').first);
+    await tester.pumpAndSettle();
+    expect(find.text('ground_module'), findsWidgets);
+    expect(find.text('Create/Update Platform Prefab'), findsOneWidget);
   });
 
   testWidgets('obstacle create/edit flow is revision-safe', (tester) async {
@@ -84,9 +88,12 @@ void main() {
       find.textContaining('Upserted obstacle prefab "obstacle_box"'),
       findsOneWidget,
     );
-    expect(find.textContaining('rev=1'), findsOneWidget);
+    expect(
+      find.textContaining('Upserted obstacle prefab "obstacle_box" (rev=1'),
+      findsOneWidget,
+    );
 
-    await tester.tap(find.text('Prefabs').first);
+    await tester.tap(find.text('Obstacle Prefabs').first);
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Add/Update Prefab'));
     await tester.tap(find.text('Add/Update Prefab'));
@@ -97,7 +104,10 @@ void main() {
       findsOneWidget,
     );
     // No-payload-change update keeps revision stable.
-    expect(find.textContaining('rev=1'), findsOneWidget);
+    expect(
+      find.textContaining('Upserted obstacle prefab "obstacle_box" (rev=1'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('platform create/edit flow is revision-safe', (tester) async {
@@ -113,25 +123,26 @@ void main() {
 
     await _pumpPrefabCreatorPage(tester, workspacePath: fixtureRoot.path);
 
-    await _selectPrefabKind(tester, 'Platform');
+    await tester.tap(find.text('Platform Prefabs').first);
+    await tester.pumpAndSettle();
     await tester.enterText(
-      _textFieldByLabel('Prefab ID').first,
+      _textFieldByLabel('Platform Prefab ID').first,
       'platform_bridge',
     );
-    await tester.ensureVisible(find.text('Add/Update Prefab'));
-    await tester.tap(find.text('Add/Update Prefab'));
+    await tester.ensureVisible(find.text('Create/Update Platform Prefab'));
+    await tester.tap(find.text('Create/Update Platform Prefab'));
     await tester.pumpAndSettle();
 
     expect(
       find.textContaining('Upserted platform prefab "platform_bridge"'),
       findsOneWidget,
     );
-    expect(find.textContaining('rev=1'), findsOneWidget);
+    expect(
+      find.textContaining('Upserted platform prefab "platform_bridge" (rev=1'),
+      findsOneWidget,
+    );
 
-    await tester.tap(find.text('Prefabs').first);
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Add/Update Prefab'));
-    await tester.tap(find.text('Add/Update Prefab'));
+    await tester.tap(find.text('Create/Update Platform Prefab'));
     await tester.pumpAndSettle();
 
     expect(
@@ -139,7 +150,10 @@ void main() {
       findsOneWidget,
     );
     // No-payload-change update keeps revision stable.
-    expect(find.textContaining('rev=1'), findsOneWidget);
+    expect(
+      find.textContaining('Upserted platform prefab "platform_bridge" (rev=1'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('blocking validation surfaces coded errors on save', (
@@ -162,6 +176,144 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.textContaining('[prefab_slice_atlas_missing]'), findsOneWidget);
+  });
+
+  testWidgets(
+    'module rename cascades prefab refs and delete blocks referenced module',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1800, 1200));
+      addTearDown(() async {
+        await tester.binding.setSurfaceSize(null);
+      });
+
+      final fixtureRoot = _createPrefabAuthoringFixture();
+      addTearDown(() {
+        fixtureRoot.deleteSync(recursive: true);
+      });
+
+      await _pumpPrefabCreatorPage(tester, workspacePath: fixtureRoot.path);
+
+      await tester.tap(find.text('Platform Prefabs').first);
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        _textFieldByLabel('Platform Prefab ID').first,
+        'platform_ref',
+      );
+      await tester.ensureVisible(find.text('Create/Update Platform Prefab'));
+      await tester.tap(find.text('Create/Update Platform Prefab'));
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining('source=platform_module:ground_module'),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.text('Platform Prefabs').first);
+      await tester.pumpAndSettle();
+      await _openAdvancedModuleControls(tester);
+      await tester.enterText(
+        _textFieldByLabel('Platform Module ID').first,
+        'ground_module_v2',
+      );
+      await tester.ensureVisible(find.text('Rename'));
+      await tester.tap(find.text('Rename'));
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining(
+          'Renamed module "ground_module" -> "ground_module_v2"',
+        ),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byIcon(Icons.delete_outline).first);
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining('Cannot delete module "ground_module_v2"'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('ground_module_v2'), findsWidgets);
+    },
+  );
+
+  testWidgets('platform module scene supports paint and erase workflows', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1800, 1200));
+    addTearDown(() async {
+      await tester.binding.setSurfaceSize(null);
+    });
+
+    final fixtureRoot = _createPrefabAuthoringFixture();
+    addTearDown(() {
+      fixtureRoot.deleteSync(recursive: true);
+    });
+
+    await _pumpPrefabCreatorPage(tester, workspacePath: fixtureRoot.path);
+
+    await tester.tap(find.text('Platform Prefabs').first);
+    await tester.pumpAndSettle();
+
+    final sceneCanvas = find.byKey(
+      const ValueKey<String>('platform_module_scene_canvas'),
+    );
+    expect(sceneCanvas, findsOneWidget);
+    expect(find.textContaining('cells=1'), findsWidgets);
+
+    final center = tester.getCenter(sceneCanvas);
+
+    await tester.tap(find.byKey(const ValueKey<String>('module_tool_erase')));
+    await tester.pumpAndSettle();
+
+    for (final offset in <Offset>[
+      Offset.zero,
+      const Offset(10, 0),
+      const Offset(-10, 0),
+      const Offset(0, 10),
+      const Offset(0, -10),
+    ]) {
+      await tester.tapAt(center + offset);
+      await tester.pump();
+    }
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('cells=0'), findsWidgets);
+
+    await tester.tap(find.byKey(const ValueKey<String>('module_tool_paint')));
+    await tester.pumpAndSettle();
+
+    await tester.tapAt(center);
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Painted cell ('), findsOneWidget);
+    expect(find.textContaining('cells=1'), findsWidgets);
+  });
+
+  testWidgets('module tab can create a platform prefab for selected module', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1800, 1200));
+    addTearDown(() async {
+      await tester.binding.setSurfaceSize(null);
+    });
+
+    final fixtureRoot = _createPrefabAuthoringFixture();
+    addTearDown(() {
+      fixtureRoot.deleteSync(recursive: true);
+    });
+
+    await _pumpPrefabCreatorPage(tester, workspacePath: fixtureRoot.path);
+
+    await tester.tap(find.text('Platform Prefabs').first);
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text('Create/Update Platform Prefab'));
+    await tester.tap(find.text('Create/Update Platform Prefab'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Upserted platform prefab'), findsOneWidget);
+    expect(
+      find.textContaining('source=platform_module:ground_module'),
+      findsOneWidget,
+    );
   });
 }
 
@@ -189,7 +341,7 @@ Future<void> _pumpPrefabCreatorPage(
     find.textContaining('Loaded prefab/tile authoring data'),
     findsOneWidget,
   );
-  await tester.tap(find.text('Prefabs'));
+  await tester.tap(find.text('Obstacle Prefabs'));
   await tester.pumpAndSettle();
 }
 
@@ -253,10 +405,20 @@ Directory _createPrefabAuthoringFixture() {
   return root;
 }
 
-Future<void> _selectPrefabKind(WidgetTester tester, String kindLabel) async {
-  await tester.tap(_dropdownByLabel('Kind'));
-  await tester.pumpAndSettle();
-  await tester.tap(find.text(kindLabel).last);
+Future<void> _openAdvancedModuleControls(WidgetTester tester) async {
+  if (_textFieldByLabel('Platform Module ID').evaluate().isNotEmpty) {
+    return;
+  }
+  final tileFinder = find.byKey(
+    const ValueKey<String>('platform_module_advanced_controls'),
+  );
+  expect(tileFinder, findsOneWidget);
+  await tester.tap(
+    find.descendant(
+      of: tileFinder,
+      matching: find.text('Advanced Module Controls'),
+    ),
+  );
   await tester.pumpAndSettle();
 }
 

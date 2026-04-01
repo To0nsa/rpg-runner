@@ -325,6 +325,104 @@ void main() {
     },
   );
 
+  test(
+    'load normalizes module lifecycle defaults and save persists canonical lifecycle fields',
+    () async {
+      final root = Directory.systemTemp.createTempSync(
+        'prefab_store_module_lifecycle_',
+      );
+      try {
+        final prefabFile = File(p.join(root.path, PrefabStore.prefabDefsPath));
+        final tileFile = File(p.join(root.path, PrefabStore.tileDefsPath));
+        prefabFile.parent.createSync(recursive: true);
+        tileFile.parent.createSync(recursive: true);
+
+        const encoder = JsonEncoder.withIndent('  ');
+        prefabFile.writeAsStringSync(
+          '${encoder.convert(<String, Object?>{'schemaVersion': 2, 'slices': <Object?>[], 'prefabs': <Object?>[]})}\n',
+        );
+        tileFile.writeAsStringSync(
+          '${encoder.convert(<String, Object?>{
+            'schemaVersion': 2,
+            'tileSlices': <Object?>[],
+            'platformModules': <Object?>[
+              <String, Object?>{
+                'id': 'module_legacy',
+                'tileSize': 16,
+                'cells': <Object?>[
+                  <String, Object?>{
+                    'sliceId': 'tile_a',
+                    'gridX': 0,
+                    'gridY': 0,
+                  },
+                ],
+              },
+              <String, Object?>{
+                'id': 'module_bad',
+                'revision': 0,
+                'status': 'unknown',
+                'tileSize': 16,
+                'cells': <Object?>[
+                  <String, Object?>{
+                    'sliceId': 'tile_a',
+                    'gridX': 1,
+                    'gridY': 0,
+                  },
+                ],
+              },
+              <String, Object?>{
+                'id': 'module_deprecated',
+                'revision': 3,
+                'status': 'deprecated',
+                'tileSize': 16,
+                'cells': <Object?>[
+                  <String, Object?>{
+                    'sliceId': 'tile_a',
+                    'gridX': 2,
+                    'gridY': 0,
+                  },
+                ],
+              },
+            ],
+          })}\n',
+        );
+
+        final loaded = await store.load(root.path);
+        final legacy = loaded.platformModules.firstWhere(
+          (module) => module.id == 'module_legacy',
+        );
+        final bad = loaded.platformModules.firstWhere(
+          (module) => module.id == 'module_bad',
+        );
+        final deprecated = loaded.platformModules.firstWhere(
+          (module) => module.id == 'module_deprecated',
+        );
+
+        expect(legacy.revision, 1);
+        expect(legacy.status, TileModuleStatus.active);
+        expect(bad.revision, 1);
+        expect(bad.status, TileModuleStatus.active);
+        expect(deprecated.revision, 3);
+        expect(deprecated.status, TileModuleStatus.deprecated);
+
+        await store.save(root.path, data: loaded);
+        final persisted =
+            jsonDecode(tileFile.readAsStringSync()) as Map<String, Object?>;
+        final modules =
+            persisted['platformModules'] as List<Object?>? ?? const <Object?>[];
+        expect(modules, isNotEmpty);
+        for (final raw in modules) {
+          final module = raw as Map<Object?, Object?>;
+          expect(module.containsKey('revision'), isTrue);
+          expect(module.containsKey('status'), isTrue);
+          expect(module['status'], isNot('unknown'));
+        }
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    },
+  );
+
   test('load throws a FormatException for malformed JSON', () async {
     final root = Directory.systemTemp.createTempSync('prefab_store_bad_json_');
     try {

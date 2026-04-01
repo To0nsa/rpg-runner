@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 
@@ -12,8 +13,12 @@ import '../../../prefabs/prefab_validation.dart';
 import '../../../prefabs/workspace_scoped_size_cache.dart';
 import '../../../session/editor_session_controller.dart';
 import '../shared/atlas_selection_painter.dart';
+import '../shared/editor_viewport_grid_painter.dart';
 import '../shared/editor_zoom_controls.dart';
+import '../shared/scene_input_utils.dart';
+import 'widgets/platform_module_scene_view.dart';
 import 'widgets/prefab_scene_view.dart';
+import 'widgets/prefab_scene_values.dart';
 
 part 'tabs/atlas_slicer_tab.dart';
 part 'tabs/prefabs_tab.dart';
@@ -68,10 +73,6 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage> {
   final TextEditingController _moduleTileSizeController = TextEditingController(
     text: '16',
   );
-  final TextEditingController _moduleCellGridXController =
-      TextEditingController(text: '0');
-  final TextEditingController _moduleCellGridYController =
-      TextEditingController(text: '0');
   final TextEditingController _selectionXController = TextEditingController();
   final TextEditingController _selectionYController = TextEditingController();
   final TextEditingController _selectionWController = TextEditingController();
@@ -94,10 +95,14 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage> {
   PrefabKind _selectedPrefabKind = PrefabKind.obstacle;
   String? _selectedPrefabSliceId;
   String? _selectedPrefabPlatformModuleId;
+  bool _autoManagePlatformModule = true;
   String? _editingPrefabKey;
   String? _selectedTileSliceId;
   String? _selectedModuleId;
   double _atlasZoom = 2.0;
+  bool _atlasCtrlPanActive = false;
+  PlatformModuleSceneTool _selectedModuleSceneTool =
+      PlatformModuleSceneTool.paint;
 
   Offset? _selectionStartImagePx;
   Offset? _selectionCurrentImagePx;
@@ -124,8 +129,6 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage> {
     _prefabZIndexController.dispose();
     _moduleIdController.dispose();
     _moduleTileSizeController.dispose();
-    _moduleCellGridXController.dispose();
-    _moduleCellGridYController.dispose();
     _selectionXController.dispose();
     _selectionYController.dispose();
     _selectionWController.dispose();
@@ -181,8 +184,8 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage> {
               const TabBar(
                 tabs: [
                   Tab(text: 'Atlas Slicer'),
-                  Tab(text: 'Prefabs'),
-                  Tab(text: 'Platform Modules'),
+                  Tab(text: 'Obstacle Prefabs'),
+                  Tab(text: 'Platform Prefabs'),
                 ],
               ),
               const SizedBox(height: 12),

@@ -71,11 +71,6 @@ extension _PrefabCreatorPrefabLogic on _PrefabCreatorPageState {
       return;
     }
 
-    final visualSource = _selectedVisualSourceForKind();
-    if (visualSource == null) {
-      return;
-    }
-
     final anchorX = int.tryParse(_anchorXController.text.trim());
     final anchorY = int.tryParse(_anchorYController.text.trim());
     final colliderOffsetX = int.tryParse(
@@ -121,6 +116,27 @@ extension _PrefabCreatorPrefabLogic on _PrefabCreatorPageState {
     final prefabKey = existingKey?.isNotEmpty == true
         ? existingKey!
         : _allocatePrefabKeyForId(id);
+    var nextData = _data;
+    String? forcedPlatformModuleId;
+    if (_selectedPrefabKind == PrefabKind.platform &&
+        _autoManagePlatformModule) {
+      final ensuredModule = _ensureAutoManagedPlatformModule(
+        data: nextData,
+        prefabKey: prefabKey,
+      );
+      if (ensuredModule == null) {
+        return;
+      }
+      nextData = ensuredModule.data;
+      forcedPlatformModuleId = ensuredModule.module.id;
+    }
+
+    final visualSource = _selectedVisualSourceForKind(
+      platformModuleIdOverride: forcedPlatformModuleId,
+    );
+    if (visualSource == null) {
+      return;
+    }
 
     var nextPrefab = PrefabDef(
       prefabKey: prefabKey,
@@ -150,14 +166,18 @@ extension _PrefabCreatorPrefabLogic on _PrefabCreatorPageState {
     }
 
     final nextPrefabs = _sortedPrefabsForUi(
-      _data.prefabs
+      nextData.prefabs
           .where((prefab) => prefab.prefabKey != nextPrefab.prefabKey)
           .followedBy([nextPrefab])
           .toList(growable: false),
     );
     _updateState(() {
-      _data = _data.copyWith(prefabs: nextPrefabs);
+      _data = nextData.copyWith(prefabs: nextPrefabs);
       _editingPrefabKey = nextPrefab.prefabKey;
+      if (forcedPlatformModuleId != null) {
+        _selectedPrefabPlatformModuleId = forcedPlatformModuleId;
+        _selectedModuleId = forcedPlatformModuleId;
+      }
       _statusMessage =
           'Upserted ${nextPrefab.kind.jsonValue} prefab "$id" '
           '(rev=${nextPrefab.revision} source='
@@ -166,7 +186,9 @@ extension _PrefabCreatorPrefabLogic on _PrefabCreatorPageState {
     });
   }
 
-  PrefabVisualSource? _selectedVisualSourceForKind() {
+  PrefabVisualSource? _selectedVisualSourceForKind({
+    String? platformModuleIdOverride,
+  }) {
     switch (_selectedPrefabKind) {
       case PrefabKind.obstacle:
         final sliceId = _selectedPrefabSliceId;
@@ -176,9 +198,14 @@ extension _PrefabCreatorPrefabLogic on _PrefabCreatorPageState {
         }
         return PrefabVisualSource.atlasSlice(sliceId);
       case PrefabKind.platform:
-        final moduleId = _selectedPrefabPlatformModuleId;
+        final moduleId =
+            platformModuleIdOverride ?? _selectedPrefabPlatformModuleId;
         if (moduleId == null || moduleId.isEmpty) {
-          _setError('Select a platform module for platform prefab source.');
+          _setError(
+            _autoManagePlatformModule
+                ? 'Initialize backing module before saving platform prefab.'
+                : 'Select a platform module for platform prefab source.',
+          );
           return null;
         }
         return PrefabVisualSource.platformModule(moduleId);
@@ -336,6 +363,88 @@ extension _PrefabCreatorPrefabLogic on _PrefabCreatorPageState {
     return collapsed.replaceAll(RegExp(r'^_+|_+$'), '');
   }
 
+  String _autoManagedModuleIdForPrefabKey(String prefabKey) {
+    return 'vm_$prefabKey';
+  }
+
+  bool _isAutoManagedModuleForPrefab({
+    required String prefabKey,
+    required String moduleId,
+  }) {
+    return moduleId == _autoManagedModuleIdForPrefabKey(prefabKey);
+  }
+
+  int? _platformTileSizeFromForm({bool reportError = true}) {
+    final tileSize = int.tryParse(_moduleTileSizeController.text.trim());
+    if (tileSize != null && tileSize > 0) {
+      return tileSize;
+    }
+    if (reportError) {
+      _setError('Platform tile size must be a positive integer.');
+    }
+    return null;
+  }
+
+  _AutoManagedModuleResult? _ensureAutoManagedPlatformModule({
+    required PrefabData data,
+    required String prefabKey,
+  }) {
+    final tileSize = _platformTileSizeFromForm();
+    if (tileSize == null) {
+      return null;
+    }
+    final moduleId = _autoManagedModuleIdForPrefabKey(prefabKey);
+    final existing = data.platformModules
+        .where((module) => module.id == moduleId)
+        .toList(growable: false);
+    final previous = existing.isEmpty ? null : existing.first;
+    final nextModule = _buildAutoManagedModule(
+      previous: previous,
+      moduleId: moduleId,
+      tileSize: tileSize,
+    );
+    if (previous == null || _didModulePayloadChange(previous, nextModule)) {
+      final nextModules = _sortedModulesForUi(
+        data.platformModules
+            .where((module) => module.id != moduleId)
+            .followedBy([nextModule])
+            .toList(growable: false),
+      );
+      return _AutoManagedModuleResult(
+        data: data.copyWith(platformModules: nextModules),
+        module: nextModule,
+      );
+    }
+    return _AutoManagedModuleResult(data: data, module: previous);
+  }
+
+  TileModuleDef _buildAutoManagedModule({
+    required TileModuleDef? previous,
+    required String moduleId,
+    required int tileSize,
+  }) {
+    if (previous == null) {
+      return TileModuleDef(
+        id: moduleId,
+        revision: 1,
+        status: TileModuleStatus.active,
+        tileSize: tileSize,
+        cells: const <TileModuleCellDef>[],
+      );
+    }
+    var next = previous;
+    if (previous.status != TileModuleStatus.active) {
+      next = next.copyWith(
+        status: TileModuleStatus.active,
+        revision: next.revision + 1,
+      );
+    }
+    if (next.tileSize != tileSize) {
+      next = next.copyWith(tileSize: tileSize, revision: next.revision + 1);
+    }
+    return next;
+  }
+
   void _loadPrefabIntoForm(PrefabDef prefab) {
     final collider = prefab.colliders.isEmpty
         ? const PrefabColliderDef(offsetX: 0, offsetY: 0, width: 16, height: 16)
@@ -346,11 +455,25 @@ extension _PrefabCreatorPrefabLogic on _PrefabCreatorPageState {
       _selectedPrefabKind = prefab.kind == PrefabKind.platform
           ? PrefabKind.platform
           : PrefabKind.obstacle;
+      if (_selectedPrefabKind == PrefabKind.obstacle) {
+        _autoManagePlatformModule = true;
+      }
       if (prefab.usesAtlasSlice) {
         _selectedPrefabSliceId = prefab.sliceId;
       }
       if (prefab.usesPlatformModule) {
         _selectedPrefabPlatformModuleId = prefab.moduleId;
+        _selectedModuleId = prefab.moduleId;
+        _autoManagePlatformModule = _isAutoManagedModuleForPrefab(
+          prefabKey: prefab.prefabKey,
+          moduleId: prefab.moduleId,
+        );
+        final backingModule = _moduleById(prefab.moduleId);
+        if (backingModule != null) {
+          _moduleTileSizeController.text = backingModule.tileSize.toString();
+        }
+      } else if (_selectedPrefabKind == PrefabKind.platform) {
+        _autoManagePlatformModule = true;
       }
       _anchorXController.text = prefab.anchorXPx.toString();
       _anchorYController.text = prefab.anchorYPx.toString();
@@ -465,12 +588,16 @@ extension _PrefabCreatorPrefabLogic on _PrefabCreatorPageState {
       _prefabTagsController.clear();
       _prefabZIndexController.text = '0';
       _prefabSnapToGrid = true;
+      _moduleTileSizeController.text = '16';
+      _autoManagePlatformModule = true;
       _selectedPrefabKind = PrefabKind.obstacle;
       if (_data.prefabSlices.isNotEmpty) {
         _selectedPrefabSliceId = _data.prefabSlices.first.id;
       }
       if (_data.platformModules.isNotEmpty) {
-        _selectedPrefabPlatformModuleId = _data.platformModules.first.id;
+        _selectedPrefabPlatformModuleId = _preferredModuleIdForPicker(
+          _data.platformModules,
+        );
       }
       _statusMessage = 'Cleared prefab form.';
       _errorMessage = null;
@@ -499,4 +626,20 @@ extension _PrefabCreatorPrefabLogic on _PrefabCreatorPageState {
       _errorMessage = null;
     });
   }
+
+  String _preferredModuleIdForPicker(List<TileModuleDef> modules) {
+    for (final module in modules) {
+      if (module.status != TileModuleStatus.deprecated) {
+        return module.id;
+      }
+    }
+    return modules.first.id;
+  }
+}
+
+class _AutoManagedModuleResult {
+  const _AutoManagedModuleResult({required this.data, required this.module});
+
+  final PrefabData data;
+  final TileModuleDef module;
 }

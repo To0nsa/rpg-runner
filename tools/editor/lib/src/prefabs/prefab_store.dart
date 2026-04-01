@@ -385,6 +385,8 @@ class PrefabStore {
   List<TileModuleDef> _sortedModules(List<TileModuleDef> modules) {
     final normalized = modules
         .map((module) {
+          final nextRevision = module.revision <= 0 ? 1 : module.revision;
+          final nextStatus = _normalizedModuleStatus(module.status);
           final sortedCells = List<TileModuleCellDef>.from(module.cells)
             ..sort((a, b) {
               final yCompare = a.gridY.compareTo(b.gridY);
@@ -397,13 +399,49 @@ class PrefabStore {
               }
               return a.sliceId.compareTo(b.sliceId);
             });
-          return module.copyWith(cells: sortedCells);
+          return module.copyWith(
+            revision: nextRevision,
+            status: nextStatus,
+            cells: sortedCells,
+          );
         })
         .toList(growable: false);
 
     final sorted = List<TileModuleDef>.from(normalized)
-      ..sort((a, b) => a.id.compareTo(b.id));
+      ..sort((a, b) {
+        final statusCompare = _compareModuleStatus(a.status, b.status);
+        if (statusCompare != 0) {
+          return statusCompare;
+        }
+        final idCompare = a.id.compareTo(b.id);
+        if (idCompare != 0) {
+          return idCompare;
+        }
+        return a.revision.compareTo(b.revision);
+      });
     return sorted;
+  }
+
+  TileModuleStatus _normalizedModuleStatus(TileModuleStatus status) {
+    if (status == TileModuleStatus.unknown) {
+      return TileModuleStatus.active;
+    }
+    return status;
+  }
+
+  int _compareModuleStatus(TileModuleStatus a, TileModuleStatus b) {
+    int rank(TileModuleStatus status) {
+      switch (status) {
+        case TileModuleStatus.active:
+          return 0;
+        case TileModuleStatus.deprecated:
+          return 1;
+        case TileModuleStatus.unknown:
+          return 2;
+      }
+    }
+
+    return rank(a).compareTo(rank(b));
   }
 
   void _writePrefabAndTileAtomically({

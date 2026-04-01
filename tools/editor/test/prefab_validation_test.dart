@@ -301,6 +301,106 @@ void main() {
     },
   );
 
+  test(
+    'validatePrefabData uses placed slice dimensions for platform module bounds',
+    () {
+      final data = PrefabData(
+        tileSlices: const [
+          AtlasSliceDef(
+            id: 'tile_slice_wide',
+            sourceImagePath:
+                'assets/images/level/tileset/TX Tileset Ground.png',
+            x: 0,
+            y: 0,
+            width: 48,
+            height: 16,
+          ),
+        ],
+        platformModules: const [
+          TileModuleDef(
+            id: 'module_wide',
+            tileSize: 16,
+            cells: [
+              TileModuleCellDef(sliceId: 'tile_slice_wide', gridX: 0, gridY: 0),
+            ],
+          ),
+        ],
+        prefabs: [
+          PrefabDef(
+            prefabKey: 'platform_wide',
+            id: 'platform_wide',
+            revision: 1,
+            status: PrefabStatus.active,
+            kind: PrefabKind.platform,
+            visualSource: PrefabVisualSource.platformModule('module_wide'),
+            anchorXPx: 32,
+            anchorYPx: 8,
+            colliders: [
+              PrefabColliderDef(offsetX: 0, offsetY: 0, width: 16, height: 16),
+            ],
+          ),
+        ],
+      );
+
+      final errors = validatePrefabData(
+        data: data,
+        atlasImageSizes: const {
+          'assets/images/level/tileset/TX Tileset Ground.png': Size(64, 64),
+        },
+      );
+
+      expect(
+        errors.where((error) => error.contains('outside source bounds')),
+        isEmpty,
+      );
+    },
+  );
+
+  test('validatePrefabDataIssues reports module lifecycle violations', () {
+    final data = PrefabData(
+      tileSlices: const [
+        AtlasSliceDef(
+          id: 'tile_slice_a',
+          sourceImagePath: 'assets/images/level/tileset/TX Tileset Ground.png',
+          x: 0,
+          y: 0,
+          width: 16,
+          height: 16,
+        ),
+      ],
+      platformModules: const [
+        TileModuleDef(
+          id: 'module_bad',
+          revision: 0,
+          status: TileModuleStatus.unknown,
+          tileSize: 16,
+          cells: [
+            TileModuleCellDef(sliceId: 'tile_slice_a', gridX: 0, gridY: 0),
+          ],
+        ),
+        TileModuleDef(
+          id: 'module_empty',
+          revision: 1,
+          status: TileModuleStatus.active,
+          tileSize: 16,
+          cells: [],
+        ),
+      ],
+    );
+
+    final issues = validatePrefabDataIssues(
+      data: data,
+      atlasImageSizes: const {
+        'assets/images/level/tileset/TX Tileset Ground.png': Size(64, 64),
+      },
+    );
+    final codes = issues.map((issue) => issue.code).toSet();
+
+    expect(codes, contains('platform_module_revision_invalid'));
+    expect(codes, contains('platform_module_status_invalid'));
+    expect(codes, contains('platform_module_cells_missing'));
+  });
+
   test('validatePrefabDataIssues exposes stable issue codes', () {
     final data = PrefabData(
       prefabs: [

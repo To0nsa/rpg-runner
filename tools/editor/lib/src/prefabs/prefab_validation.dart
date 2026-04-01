@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' show Size;
 
 import 'prefab_models.dart';
@@ -38,6 +39,7 @@ List<PrefabValidationIssue> validatePrefabDataIssues({
   final tileSliceIds = <String>{};
   final allSliceIds = <String>{};
   final prefabSliceById = <String, AtlasSliceDef>{};
+  final tileSliceById = <String, AtlasSliceDef>{};
 
   for (final slice in sortedPrefabSlices) {
     _validateSlice(
@@ -62,6 +64,9 @@ List<PrefabValidationIssue> validatePrefabDataIssues({
       allSliceIds: allSliceIds,
       atlasImageSizes: atlasImageSizes,
     );
+    if (slice.id.isNotEmpty && !tileSliceById.containsKey(slice.id)) {
+      tileSliceById[slice.id] = slice;
+    }
   }
 
   final moduleIds = <String>{};
@@ -85,11 +90,39 @@ List<PrefabValidationIssue> validatePrefabDataIssues({
       moduleById[module.id] = module;
     }
 
+    if (module.revision <= 0) {
+      issues.add(
+        PrefabValidationIssue(
+          code: 'platform_module_revision_invalid',
+          message:
+              'Platform module ${module.id} has invalid revision ${module.revision}.',
+        ),
+      );
+    }
+
+    if (module.status == TileModuleStatus.unknown) {
+      issues.add(
+        PrefabValidationIssue(
+          code: 'platform_module_status_invalid',
+          message: 'Platform module ${module.id} has unsupported status.',
+        ),
+      );
+    }
+
     if (module.tileSize <= 0) {
       issues.add(
         PrefabValidationIssue(
           code: 'platform_module_tile_size_invalid',
           message: 'Platform module ${module.id} has non-positive tileSize.',
+        ),
+      );
+    }
+
+    if (module.status == TileModuleStatus.active && module.cells.isEmpty) {
+      issues.add(
+        PrefabValidationIssue(
+          code: 'platform_module_cells_missing',
+          message: 'Platform module ${module.id} has no cells.',
         ),
       );
     }
@@ -242,7 +275,10 @@ List<PrefabValidationIssue> validatePrefabDataIssues({
             ),
           );
         } else {
-          sourceGeometry = _geometryForModule(moduleById[source.moduleId]!);
+          sourceGeometry = _geometryForModule(
+            moduleById[source.moduleId]!,
+            tileSliceById: tileSliceById,
+          );
         }
         if (prefab.kind == PrefabKind.obstacle) {
           issues.add(
@@ -470,30 +506,47 @@ bool _colliderIntersectsSource({
       colliderBottom > sourceTop;
 }
 
-_SourceGeometry? _geometryForModule(TileModuleDef module) {
+_SourceGeometry? _geometryForModule(
+  TileModuleDef module, {
+  required Map<String, AtlasSliceDef> tileSliceById,
+}) {
   if (module.cells.isEmpty || module.tileSize <= 0) {
     return null;
   }
-  var minX = module.cells.first.gridX;
-  var maxX = module.cells.first.gridX;
-  var minY = module.cells.first.gridY;
-  var maxY = module.cells.first.gridY;
+
+  final tileSize = module.tileSize.toDouble();
+  double? minLeft;
+  double? minTop;
+  double? maxRight;
+  double? maxBottom;
   for (final cell in module.cells) {
-    if (cell.gridX < minX) {
-      minX = cell.gridX;
-    }
-    if (cell.gridX > maxX) {
-      maxX = cell.gridX;
-    }
-    if (cell.gridY < minY) {
-      minY = cell.gridY;
-    }
-    if (cell.gridY > maxY) {
-      maxY = cell.gridY;
-    }
+    final slice = tileSliceById[cell.sliceId];
+    final width = math.max(1, slice?.width ?? module.tileSize).toDouble();
+    final height = math.max(1, slice?.height ?? module.tileSize).toDouble();
+    final left = cell.gridX * tileSize;
+    final top = cell.gridY * tileSize;
+    final right = left + width;
+    final bottom = top + height;
+
+    minLeft = minLeft == null ? left : math.min(minLeft, left);
+    minTop = minTop == null ? top : math.min(minTop, top);
+    maxRight = maxRight == null ? right : math.max(maxRight, right);
+    maxBottom = maxBottom == null ? bottom : math.max(maxBottom, bottom);
   }
-  final widthPx = (maxX - minX + 1) * module.tileSize;
-  final heightPx = (maxY - minY + 1) * module.tileSize;
+
+  if (minLeft == null ||
+      minTop == null ||
+      maxRight == null ||
+      maxBottom == null) {
+    return null;
+  }
+
+  final widthPx = (maxRight - minLeft).round();
+  final heightPx = (maxBottom - minTop).round();
+  if (widthPx <= 0 || heightPx <= 0) {
+    return null;
+  }
+
   return _SourceGeometry(
     widthPx: widthPx,
     heightPx: heightPx,
