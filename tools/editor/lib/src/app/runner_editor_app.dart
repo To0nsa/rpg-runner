@@ -3,12 +3,13 @@ import 'package:flutter/material.dart';
 import '../chunks/chunk_domain_plugin.dart';
 import '../entities/entity_domain_plugin.dart';
 import '../domain/authoring_plugin_registry.dart';
+import '../prefabs/prefab_domain_plugin.dart';
 import '../session/editor_session_controller.dart';
 import 'pages/home/editor_home_page.dart';
 
 void runEditorApp({required String initialWorkspacePath}) {
   final registry = AuthoringPluginRegistry(
-    plugins: [EntityDomainPlugin(), ChunkDomainPlugin()],
+    plugins: [EntityDomainPlugin(), PrefabDomainPlugin(), ChunkDomainPlugin()],
   );
 
   final controller = EditorSessionController(

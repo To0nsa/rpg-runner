@@ -254,28 +254,34 @@ class ChunkStore {
       );
     }
 
-    if (!_isStringArray(raw['tags'])) {
-      add(
-        'malformed_tags_payload_arrays',
-        'tags must be an array of strings in source JSON.',
-      );
-    }
+    _validateStringArray(
+      raw['tags'],
+      fieldName: 'tags',
+      sourcePath: sourcePath,
+      issues: issues,
+    );
 
     _validateObjectArray(
       raw['tileLayers'],
       fieldName: 'tileLayers',
+      arrayCode: 'malformed_tile_layers_array',
+      entryCode: 'malformed_tile_layers_entry',
       sourcePath: sourcePath,
       issues: issues,
     );
     _validateObjectArray(
       raw['prefabs'],
       fieldName: 'prefabs',
+      arrayCode: 'malformed_prefabs_array',
+      entryCode: 'malformed_prefabs_entry',
       sourcePath: sourcePath,
       issues: issues,
     );
     _validateObjectArray(
       raw['markers'],
       fieldName: 'markers',
+      arrayCode: 'malformed_markers_array',
+      entryCode: 'malformed_markers_entry',
       sourcePath: sourcePath,
       issues: issues,
     );
@@ -667,46 +673,75 @@ String _fingerprint(String input) {
   }
   return hash.toRadixString(16).padLeft(8, '0');
 }
-  void _validateObjectArray(
-    Object? raw, {
-    required String fieldName,
-    required String sourcePath,
-    required List<ValidationIssue> issues,
-  }) {
-    if (raw is! List<Object?>) {
-      issues.add(
-        ValidationIssue(
-          severity: ValidationSeverity.error,
-          code: 'malformed_tags_payload_arrays',
-          message: '$fieldName must be an array in source JSON.',
-          sourcePath: sourcePath,
-        ),
-      );
-      return;
-    }
-    for (var i = 0; i < raw.length; i += 1) {
-      if (raw[i] is Map<String, Object?>) {
-        continue;
-      }
-      issues.add(
-        ValidationIssue(
-          severity: ValidationSeverity.error,
-          code: 'malformed_tags_payload_arrays',
-          message: '$fieldName[$i] must be an object in source JSON.',
-          sourcePath: sourcePath,
-        ),
-      );
-    }
+void _validateObjectArray(
+  Object? raw, {
+  required String fieldName,
+  required String arrayCode,
+  required String entryCode,
+  required String sourcePath,
+  required List<ValidationIssue> issues,
+}) {
+  if (raw is! List<Object?>) {
+    issues.add(
+      ValidationIssue(
+        severity: ValidationSeverity.error,
+        code: arrayCode,
+        message: '$fieldName must be an array in source JSON.',
+        sourcePath: sourcePath,
+      ),
+    );
+    return;
   }
+  for (var i = 0; i < raw.length; i += 1) {
+    if (raw[i] is Map<String, Object?>) {
+      continue;
+    }
+    issues.add(
+      ValidationIssue(
+        severity: ValidationSeverity.error,
+        code: entryCode,
+        message: '$fieldName[$i] must be an object in source JSON.',
+        sourcePath: sourcePath,
+      ),
+    );
+  }
+}
 
-  bool _isStringArray(Object? raw) {
-    if (raw is! List<Object?>) {
-      return false;
-    }
-    for (final value in raw) {
-      if (value is! String) {
-        return false;
-      }
-    }
-    return true;
+void _validateStringArray(
+  Object? raw, {
+  required String fieldName,
+  required String sourcePath,
+  required List<ValidationIssue> issues,
+}) {
+  if (raw is! List<Object?>) {
+    issues.add(
+      ValidationIssue(
+        severity: ValidationSeverity.error,
+        code: 'malformed_${_codeKeyForField(fieldName)}_array',
+        message: '$fieldName must be an array of strings in source JSON.',
+        sourcePath: sourcePath,
+      ),
+    );
+    return;
   }
+  for (var i = 0; i < raw.length; i += 1) {
+    if (raw[i] is String) {
+      continue;
+    }
+    issues.add(
+      ValidationIssue(
+        severity: ValidationSeverity.error,
+        code: 'malformed_${_codeKeyForField(fieldName)}_entry',
+        message: '$fieldName[$i] must be a string in source JSON.',
+        sourcePath: sourcePath,
+      ),
+    );
+  }
+}
+
+String _codeKeyForField(String fieldName) {
+  return fieldName.replaceAllMapped(
+    RegExp(r'([a-z])([A-Z])'),
+    (match) => '${match.group(1)}_${match.group(2)!.toLowerCase()}',
+  );
+}

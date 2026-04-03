@@ -1,5 +1,6 @@
 import '../../../chunks/chunk_domain_plugin.dart';
 import '../../../entities/entity_domain_plugin.dart';
+import '../../../prefabs/prefab_domain_plugin.dart';
 
 class EditorHomeRoute {
   const EditorHomeRoute({required this.id, required this.label, this.pluginId});
@@ -19,7 +20,11 @@ const List<EditorHomeRoute> homeRoutes = <EditorHomeRoute>[
     label: 'Entities',
     pluginId: EntityDomainPlugin.pluginId,
   ),
-  EditorHomeRoute(id: prefabCreatorRouteId, label: 'Prefab Creator'),
+  EditorHomeRoute(
+    id: prefabCreatorRouteId,
+    label: 'Prefab Creator',
+    pluginId: PrefabDomainPlugin.pluginId,
+  ),
   EditorHomeRoute(
     id: chunkCreatorRouteId,
     label: 'Chunk Creator',

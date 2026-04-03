@@ -7,6 +7,9 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 
+import '../../../domain/authoring_types.dart';
+import '../../../prefabs/prefab_domain_models.dart';
+import '../../../prefabs/prefab_domain_plugin.dart';
 import '../../../prefabs/prefab_models.dart';
 import '../../../prefabs/prefab_store.dart';
 import '../../../prefabs/prefab_validation.dart';
@@ -16,6 +19,8 @@ import '../shared/atlas_selection_painter.dart';
 import '../shared/editor_viewport_grid_painter.dart';
 import '../shared/editor_zoom_controls.dart';
 import '../shared/scene_input_utils.dart';
+import 'state/prefab_editor_data_reducer.dart';
+import 'state/prefab_form_state.dart';
 import 'widgets/platform_module_scene_view.dart';
 import 'widgets/prefab_scene_view.dart';
 import 'widgets/prefab_scene_values.dart';
@@ -44,31 +49,9 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
   static const double _zoomMax = 24.0;
   static const double _zoomStep = 0.2;
 
-  final PrefabStore _store = const PrefabStore();
-
   final TextEditingController _sliceIdController = TextEditingController();
-  final TextEditingController _prefabIdController = TextEditingController();
-  final TextEditingController _anchorXController = TextEditingController(
-    text: '0',
-  );
-  final TextEditingController _anchorYController = TextEditingController(
-    text: '0',
-  );
-  final TextEditingController _colliderOffsetXController =
-      TextEditingController(text: '0');
-  final TextEditingController _colliderOffsetYController =
-      TextEditingController(text: '0');
-  final TextEditingController _colliderWidthController = TextEditingController(
-    text: '16',
-  );
-  final TextEditingController _colliderHeightController = TextEditingController(
-    text: '16',
-  );
-  final TextEditingController _prefabTagsController = TextEditingController();
-  final TextEditingController _prefabZIndexController = TextEditingController(
-    text: '0',
-  );
-  bool _prefabSnapToGrid = true;
+  final PrefabFormState _obstaclePrefabForm = PrefabFormState.obstacle();
+  final PrefabFormState _platformPrefabForm = PrefabFormState.platform();
 
   final TextEditingController _moduleIdController = TextEditingController();
   final TextEditingController _moduleTileSizeController = TextEditingController(
@@ -85,6 +68,7 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
   PrefabData _data = const PrefabData();
   List<String> _atlasImagePaths = const <String>[];
   final WorkspaceScopedSizeCache _atlasImageSizes = WorkspaceScopedSizeCache();
+  final PrefabEditorDataReducer _dataReducer = const PrefabEditorDataReducer();
 
   bool _isLoading = false;
   bool _isSaving = false;
@@ -93,11 +77,8 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
 
   String? _selectedAtlasPath;
   AtlasSliceKind _selectedSliceKind = AtlasSliceKind.prefab;
-  PrefabKind _selectedPrefabKind = PrefabKind.obstacle;
   String? _selectedPrefabSliceId;
   String? _selectedPrefabPlatformModuleId;
-  bool _autoManagePlatformModule = true;
-  String? _editingPrefabKey;
   String? _selectedTileSliceId;
   String? _selectedModuleId;
   double _atlasZoom = 2.0;
@@ -106,8 +87,49 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
       PlatformModuleSceneTool.paint;
   late final TabController _tabController;
   int _activeTabIndex = 0;
-  _PrefabFormDraft _obstaclePrefabDraft = _PrefabFormDraft.obstacleDefaults();
-  _PrefabFormDraft _platformPrefabDraft = _PrefabFormDraft.platformDefaults();
+
+  PrefabFormState get _activePrefabForm =>
+      _activeTabIndex == 2 ? _platformPrefabForm : _obstaclePrefabForm;
+
+  TextEditingController get _prefabIdController =>
+      _activePrefabForm.prefabIdController;
+  TextEditingController get _anchorXController =>
+      _activePrefabForm.anchorXController;
+  TextEditingController get _anchorYController =>
+      _activePrefabForm.anchorYController;
+  TextEditingController get _colliderOffsetXController =>
+      _activePrefabForm.colliderOffsetXController;
+  TextEditingController get _colliderOffsetYController =>
+      _activePrefabForm.colliderOffsetYController;
+  TextEditingController get _colliderWidthController =>
+      _activePrefabForm.colliderWidthController;
+  TextEditingController get _colliderHeightController =>
+      _activePrefabForm.colliderHeightController;
+  TextEditingController get _prefabTagsController =>
+      _activePrefabForm.tagsController;
+  TextEditingController get _prefabZIndexController =>
+      _activePrefabForm.zIndexController;
+
+  bool get _prefabSnapToGrid => _activePrefabForm.snapToGrid;
+  set _prefabSnapToGrid(bool value) {
+    _activePrefabForm.snapToGrid = value;
+  }
+
+  PrefabKind get _selectedPrefabKind => _activePrefabForm.selectedKind;
+  set _selectedPrefabKind(PrefabKind value) {
+    _activePrefabForm.selectedKind = value;
+  }
+
+  bool get _autoManagePlatformModule =>
+      _activePrefabForm.autoManagePlatformModule;
+  set _autoManagePlatformModule(bool value) {
+    _activePrefabForm.autoManagePlatformModule = value;
+  }
+
+  String? get _editingPrefabKey => _activePrefabForm.editingPrefabKey;
+  set _editingPrefabKey(String? value) {
+    _activePrefabForm.editingPrefabKey = value;
+  }
 
   Offset? _selectionStartImagePx;
   Offset? _selectionCurrentImagePx;
@@ -119,6 +141,7 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
     _activeTabIndex = _tabController.index;
     _tabController.addListener(_handleEditorTabChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _ensurePrefabPluginSelection();
       unawaited(_reloadData());
     });
   }
@@ -128,15 +151,8 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
     _tabController.removeListener(_handleEditorTabChanged);
     _tabController.dispose();
     _sliceIdController.dispose();
-    _prefabIdController.dispose();
-    _anchorXController.dispose();
-    _anchorYController.dispose();
-    _colliderOffsetXController.dispose();
-    _colliderOffsetYController.dispose();
-    _colliderWidthController.dispose();
-    _colliderHeightController.dispose();
-    _prefabTagsController.dispose();
-    _prefabZIndexController.dispose();
+    _obstaclePrefabForm.dispose();
+    _platformPrefabForm.dispose();
     _moduleIdController.dispose();
     _moduleTileSizeController.dispose();
     _selectionXController.dispose();
@@ -239,139 +255,30 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
   }
 
   void _switchToTab(int nextIndex) {
-    _persistPrefabDraftForTab(_activeTabIndex);
     _activeTabIndex = nextIndex;
-    _restorePrefabDraftForTab(nextIndex);
   }
 
-  void _persistPrefabDraftForTab(int tabIndex) {
-    final draft = _captureCurrentPrefabDraft();
-    if (tabIndex == 1) {
-      _obstaclePrefabDraft = draft;
-      return;
-    }
-    if (tabIndex == 2) {
-      _platformPrefabDraft = draft;
-    }
-  }
-
-  void _restorePrefabDraftForTab(int tabIndex) {
-    if (tabIndex == 1) {
-      _applyPrefabDraft(_obstaclePrefabDraft, kind: PrefabKind.obstacle);
-      return;
-    }
-    if (tabIndex == 2) {
-      _applyPrefabDraft(_platformPrefabDraft, kind: PrefabKind.platform);
-    }
-  }
-
-  _PrefabFormDraft _captureCurrentPrefabDraft() {
-    return _PrefabFormDraft(
-      prefabId: _prefabIdController.text,
-      anchorX: _anchorXController.text,
-      anchorY: _anchorYController.text,
-      colliderOffsetX: _colliderOffsetXController.text,
-      colliderOffsetY: _colliderOffsetYController.text,
-      colliderWidth: _colliderWidthController.text,
-      colliderHeight: _colliderHeightController.text,
-      tags: _prefabTagsController.text,
-      zIndex: _prefabZIndexController.text,
-      snapToGrid: _prefabSnapToGrid,
-      editingPrefabKey: _editingPrefabKey,
-    );
-  }
-
-  void _applyPrefabDraft(_PrefabFormDraft draft, {required PrefabKind kind}) {
-    _prefabIdController.text = draft.prefabId;
-    _anchorXController.text = draft.anchorX;
-    _anchorYController.text = draft.anchorY;
-    _colliderOffsetXController.text = draft.colliderOffsetX;
-    _colliderOffsetYController.text = draft.colliderOffsetY;
-    _colliderWidthController.text = draft.colliderWidth;
-    _colliderHeightController.text = draft.colliderHeight;
-    _prefabTagsController.text = draft.tags;
-    _prefabZIndexController.text = draft.zIndex;
-    _prefabSnapToGrid = draft.snapToGrid;
-    _editingPrefabKey = draft.editingPrefabKey;
-    _selectedPrefabKind = kind;
-  }
-
-  void _seedPrefabDraftsForLoadedData({
+  void _resetPrefabFormsForLoadedData({
     required String? defaultPlatformModuleId,
     required int defaultPlatformTileSize,
   }) {
-    _obstaclePrefabDraft = _PrefabFormDraft.obstacleDefaults();
-    _platformPrefabDraft = _PrefabFormDraft.platformDefaults(
+    _obstaclePrefabForm.resetObstacleDefaults();
+    _platformPrefabForm.resetPlatformDefaults(
       tileSize: defaultPlatformTileSize,
     );
-    _selectedPrefabKind = PrefabKind.obstacle;
-    _editingPrefabKey = null;
     _selectedPrefabPlatformModuleId = defaultPlatformModuleId;
   }
 
-  void _restoreDraftForCurrentTab() {
-    _restorePrefabDraftForTab(_tabController.index);
-  }
-}
-
-class _PrefabFormDraft {
-  const _PrefabFormDraft({
-    required this.prefabId,
-    required this.anchorX,
-    required this.anchorY,
-    required this.colliderOffsetX,
-    required this.colliderOffsetY,
-    required this.colliderWidth,
-    required this.colliderHeight,
-    required this.tags,
-    required this.zIndex,
-    required this.snapToGrid,
-    required this.editingPrefabKey,
-  });
-
-  factory _PrefabFormDraft.obstacleDefaults() {
-    return const _PrefabFormDraft(
-      prefabId: '',
-      anchorX: '0',
-      anchorY: '0',
-      colliderOffsetX: '0',
-      colliderOffsetY: '0',
-      colliderWidth: '16',
-      colliderHeight: '16',
-      tags: '',
-      zIndex: '0',
-      snapToGrid: true,
-      editingPrefabKey: null,
+  void _ensurePrefabPluginSelection() {
+    if (widget.controller.selectedPluginId == PrefabDomainPlugin.pluginId) {
+      return;
+    }
+    final hasPrefabPlugin = widget.controller.availablePlugins.any(
+      (plugin) => plugin.id == PrefabDomainPlugin.pluginId,
     );
+    if (!hasPrefabPlugin) {
+      return;
+    }
+    widget.controller.setSelectedPluginId(PrefabDomainPlugin.pluginId);
   }
-
-  factory _PrefabFormDraft.platformDefaults({int tileSize = 16}) {
-    final size = tileSize > 0 ? tileSize : 16;
-    final tileSizeText = size.toString();
-    return _PrefabFormDraft(
-      prefabId: '',
-      anchorX: '0',
-      anchorY: '0',
-      colliderOffsetX: '0',
-      colliderOffsetY: '0',
-      colliderWidth: tileSizeText,
-      colliderHeight: tileSizeText,
-      tags: '',
-      zIndex: '0',
-      snapToGrid: true,
-      editingPrefabKey: null,
-    );
-  }
-
-  final String prefabId;
-  final String anchorX;
-  final String anchorY;
-  final String colliderOffsetX;
-  final String colliderOffsetY;
-  final String colliderWidth;
-  final String colliderHeight;
-  final String tags;
-  final String zIndex;
-  final bool snapToGrid;
-  final String? editingPrefabKey;
 }

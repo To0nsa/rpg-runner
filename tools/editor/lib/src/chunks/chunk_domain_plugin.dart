@@ -660,8 +660,7 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
             return chunk;
           }
           final mapped = mapper(chunk);
-          if (!identical(mapped, chunk) &&
-              mapped.toJson().toString() != chunk.toJson().toString()) {
+          if (!identical(mapped, chunk) && !_chunkEquals(mapped, chunk)) {
             changed = true;
           }
           return mapped;
@@ -902,6 +901,128 @@ LevelChunkDef _bumpRevision(LevelChunkDef chunk) {
 }
 
 bool _chunkEqualsWithoutRevision(LevelChunkDef a, LevelChunkDef b) {
-  return a.copyWith(revision: 0).toJson().toString() ==
-      b.copyWith(revision: 0).toJson().toString();
+  return _chunkEquals(a, b, ignoreRevision: true);
+}
+
+bool _chunkEquals(
+  LevelChunkDef a,
+  LevelChunkDef b, {
+  bool ignoreRevision = false,
+}) {
+  final left = a.normalized();
+  final right = b.normalized();
+  if (left.chunkKey != right.chunkKey ||
+      left.id != right.id ||
+      left.schemaVersion != right.schemaVersion ||
+      left.levelId != right.levelId ||
+      left.tileSize != right.tileSize ||
+      left.width != right.width ||
+      left.height != right.height ||
+      left.entrySocket != right.entrySocket ||
+      left.exitSocket != right.exitSocket ||
+      left.difficulty != right.difficulty ||
+      left.status != right.status) {
+    return false;
+  }
+  if (!ignoreRevision && left.revision != right.revision) {
+    return false;
+  }
+  if (!_stringListEquals(left.tags, right.tags)) {
+    return false;
+  }
+  if (!_tileLayerListEquals(left.tileLayers, right.tileLayers)) {
+    return false;
+  }
+  if (!_placedPrefabListEquals(left.prefabs, right.prefabs)) {
+    return false;
+  }
+  if (!_placedMarkerListEquals(left.markers, right.markers)) {
+    return false;
+  }
+  if (left.groundProfile.kind != right.groundProfile.kind ||
+      left.groundProfile.topY != right.groundProfile.topY) {
+    return false;
+  }
+  if (!_groundGapListEquals(left.groundGaps, right.groundGaps)) {
+    return false;
+  }
+  return true;
+}
+
+bool _stringListEquals(List<String> a, List<String> b) {
+  if (a.length != b.length) {
+    return false;
+  }
+  for (var i = 0; i < a.length; i += 1) {
+    if (a[i] != b[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool _tileLayerListEquals(List<TileLayerDef> a, List<TileLayerDef> b) {
+  if (a.length != b.length) {
+    return false;
+  }
+  for (var i = 0; i < a.length; i += 1) {
+    final left = a[i];
+    final right = b[i];
+    if (left.id != right.id ||
+        left.kind != right.kind ||
+        left.visible != right.visible) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool _placedPrefabListEquals(List<PlacedPrefabDef> a, List<PlacedPrefabDef> b) {
+  if (a.length != b.length) {
+    return false;
+  }
+  for (var i = 0; i < a.length; i += 1) {
+    final left = a[i];
+    final right = b[i];
+    if (left.prefabId != right.prefabId ||
+        left.prefabKey != right.prefabKey ||
+        left.x != right.x ||
+        left.y != right.y) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool _placedMarkerListEquals(List<PlacedMarkerDef> a, List<PlacedMarkerDef> b) {
+  if (a.length != b.length) {
+    return false;
+  }
+  for (var i = 0; i < a.length; i += 1) {
+    final left = a[i];
+    final right = b[i];
+    if (left.markerId != right.markerId ||
+        left.x != right.x ||
+        left.y != right.y) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool _groundGapListEquals(List<GroundGapDef> a, List<GroundGapDef> b) {
+  if (a.length != b.length) {
+    return false;
+  }
+  for (var i = 0; i < a.length; i += 1) {
+    final left = a[i];
+    final right = b[i];
+    if (left.gapId != right.gapId ||
+        left.type != right.type ||
+        left.x != right.x ||
+        left.width != right.width) {
+      return false;
+    }
+  }
+  return true;
 }

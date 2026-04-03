@@ -20,15 +20,34 @@ extension _PrefabCreatorDataIo on _PrefabCreatorPageState {
     });
 
     try {
-      final atlasPaths = _discoverAtlasImages(workspacePath);
-      final loadResult = await _store.loadWithReport(workspacePath);
-      final loaded = loadResult.data;
+      _ensurePrefabPluginSelection();
+      await widget.controller.loadWorkspace();
+      if (!mounted) {
+        return;
+      }
+      final loadError = widget.controller.loadError;
+      if (loadError != null) {
+        throw StateError(loadError);
+      }
+      final scene = widget.controller.scene;
+      if (scene is! PrefabScene) {
+        throw StateError(
+          'Prefab scene is not loaded. Active plugin must be "${PrefabDomainPlugin.pluginId}".',
+        );
+      }
+      final loaded = scene.data;
+      final atlasPaths = scene.atlasImagePaths.isEmpty
+          ? _discoverAtlasImages(workspacePath)
+          : scene.atlasImagePaths;
 
       final selectedAtlas = _resolveSelectedAtlas(
         previousSelection: _selectedAtlasPath,
         available: atlasPaths,
       );
 
+      for (final entry in scene.atlasImageSizes.entries) {
+        _atlasImageSizes[entry.key] = entry.value;
+      }
       for (final atlasPath in atlasPaths) {
         await _ensureAtlasSizeLoaded(workspacePath, atlasPath);
       }
@@ -61,18 +80,17 @@ extension _PrefabCreatorDataIo on _PrefabCreatorPageState {
             }
           }
         }
-        _seedPrefabDraftsForLoadedData(
+        _resetPrefabFormsForLoadedData(
           defaultPlatformModuleId: defaultPlatformModuleId,
           defaultPlatformTileSize: defaultPlatformTileSize,
         );
-        _restoreDraftForCurrentTab();
         _selectedTileSliceId = loaded.tileSlices.isEmpty
             ? null
             : loaded.tileSlices.first.id;
         _selectedModuleId = loaded.platformModules.isEmpty
             ? null
             : (firstActiveModuleId ?? loaded.platformModules.first.id);
-        final hints = loadResult.migrationHints;
+        final hints = scene.migrationHints;
         _statusMessage = hints.isEmpty
             ? 'Loaded prefab/tile authoring data.'
             : 'Loaded prefab/tile authoring data. ${hints.join(' ')}';
@@ -105,6 +123,18 @@ extension _PrefabCreatorDataIo on _PrefabCreatorPageState {
       _statusMessage = null;
     });
     try {
+      _ensurePrefabPluginSelection();
+      if (widget.controller.document == null ||
+          widget.controller.workspace == null) {
+        await widget.controller.loadWorkspace();
+        if (!mounted) {
+          return;
+        }
+      }
+      final loadError = widget.controller.loadError;
+      if (loadError != null) {
+        throw StateError(loadError);
+      }
       await _ensureSliceAtlasSizesLoaded(workspacePath);
       final validationErrors = _validateDataBeforeSave();
       if (validationErrors.isNotEmpty) {
@@ -114,7 +144,20 @@ extension _PrefabCreatorDataIo on _PrefabCreatorPageState {
         });
         return;
       }
-      await _store.save(workspacePath, data: _data);
+      widget.controller.applyCommand(
+        AuthoringCommand(
+          kind: PrefabDomainPlugin.replacePrefabDataCommandKind,
+          payload: <String, Object?>{'data': _data},
+        ),
+      );
+      await widget.controller.exportDirectWrite();
+      if (!mounted) {
+        return;
+      }
+      final exportError = widget.controller.exportError;
+      if (exportError != null) {
+        throw StateError(exportError);
+      }
       _updateState(() {
         _statusMessage =
             'Saved ${PrefabStore.prefabDefsPath} and ${PrefabStore.tileDefsPath}.';

@@ -97,7 +97,7 @@ void main() {
 
       expect(loaded.chunks, hasLength(1));
       final codes = loaded.loadIssues.map((issue) => issue.code).toSet();
-      expect(codes, contains('malformed_tags_payload_arrays'));
+      expect(codes, contains('malformed_tags_array'));
       expect(codes, contains('invalid_ground_profile'));
       expect(codes, contains('malformed_ground_gaps_entries'));
     } finally {

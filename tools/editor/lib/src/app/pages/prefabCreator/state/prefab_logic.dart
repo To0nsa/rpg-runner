@@ -104,7 +104,7 @@ extension _PrefabCreatorPrefabLogic on _PrefabCreatorPageState {
       return;
     }
 
-    final normalizedTags = _normalizedTags(
+    final normalizedTags = _dataReducer.normalizedTags(
       _prefabTagsController.text
           .split(',')
           .map((tag) => tag.trim())
@@ -115,7 +115,7 @@ extension _PrefabCreatorPrefabLogic on _PrefabCreatorPageState {
     final existingKey = existingPrefab?.prefabKey;
     final prefabKey = existingKey?.isNotEmpty == true
         ? existingKey!
-        : _allocatePrefabKeyForId(id);
+        : _dataReducer.allocatePrefabKeyForId(_data, id);
     var nextData = _data;
     String? forcedPlatformModuleId;
     if (_selectedPrefabKind == PrefabKind.platform &&
@@ -161,11 +161,11 @@ extension _PrefabCreatorPrefabLogic on _PrefabCreatorPageState {
     );
 
     if (existingPrefab != null &&
-        _didPrefabPayloadChange(existingPrefab, nextPrefab)) {
+        _dataReducer.didPrefabPayloadChange(existingPrefab, nextPrefab)) {
       nextPrefab = nextPrefab.copyWith(revision: existingPrefab.revision + 1);
     }
 
-    final nextPrefabs = _sortedPrefabsForUi(
+    final nextPrefabs = _dataReducer.sortedPrefabsForUi(
       nextData.prefabs
           .where((prefab) => prefab.prefabKey != nextPrefab.prefabKey)
           .followedBy([nextPrefab])
@@ -251,130 +251,6 @@ extension _PrefabCreatorPrefabLogic on _PrefabCreatorPageState {
     return false;
   }
 
-  bool _didPrefabPayloadChange(PrefabDef previous, PrefabDef next) {
-    if (previous.kind != next.kind) {
-      return true;
-    }
-    if (previous.visualSource.type != next.visualSource.type) {
-      return true;
-    }
-    if (previous.sourceRefId != next.sourceRefId) {
-      return true;
-    }
-    if (previous.anchorXPx != next.anchorXPx ||
-        previous.anchorYPx != next.anchorYPx) {
-      return true;
-    }
-    if (previous.zIndex != next.zIndex ||
-        previous.snapToGrid != next.snapToGrid) {
-      return true;
-    }
-    if (previous.status != next.status) {
-      return true;
-    }
-    if (!_stringListsEqual(previous.tags, next.tags)) {
-      return true;
-    }
-    if (!_collidersEqual(previous.colliders, next.colliders)) {
-      return true;
-    }
-    return false;
-  }
-
-  bool _collidersEqual(List<PrefabColliderDef> a, List<PrefabColliderDef> b) {
-    if (a.length != b.length) {
-      return false;
-    }
-    for (var i = 0; i < a.length; i += 1) {
-      if (a[i].offsetX != b[i].offsetX ||
-          a[i].offsetY != b[i].offsetY ||
-          a[i].width != b[i].width ||
-          a[i].height != b[i].height) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  bool _stringListsEqual(List<String> a, List<String> b) {
-    if (a.length != b.length) {
-      return false;
-    }
-    for (var i = 0; i < a.length; i += 1) {
-      if (a[i] != b[i]) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  List<String> _normalizedTags(List<String> tags) {
-    final normalized =
-        tags
-            .map((tag) => tag.trim())
-            .where((tag) => tag.isNotEmpty)
-            .toSet()
-            .toList(growable: false)
-          ..sort();
-    return normalized;
-  }
-
-  List<PrefabDef> _sortedPrefabsForUi(List<PrefabDef> prefabs) {
-    final sorted = List<PrefabDef>.from(prefabs)
-      ..sort((a, b) {
-        final idCompare = a.id.compareTo(b.id);
-        if (idCompare != 0) {
-          return idCompare;
-        }
-        return a.prefabKey.compareTo(b.prefabKey);
-      });
-    return sorted;
-  }
-
-  String _allocatePrefabKeyForId(String id) {
-    final used = <String>{};
-    for (final prefab in _data.prefabs) {
-      final key = prefab.prefabKey.trim();
-      if (key.isEmpty) {
-        continue;
-      }
-      used.add(key);
-    }
-
-    var base = _slugToPrefabKey(id);
-    if (base.isEmpty) {
-      base = 'prefab';
-    }
-    var candidate = base;
-    var suffix = 2;
-    while (used.contains(candidate)) {
-      candidate = '${base}_$suffix';
-      suffix += 1;
-    }
-    return candidate;
-  }
-
-  String _slugToPrefabKey(String raw) {
-    final lowered = raw.trim().toLowerCase();
-    if (lowered.isEmpty) {
-      return '';
-    }
-    final replaced = lowered.replaceAll(RegExp(r'[^a-z0-9_]'), '_');
-    final collapsed = replaced.replaceAll(RegExp(r'_+'), '_');
-    return collapsed.replaceAll(RegExp(r'^_+|_+$'), '');
-  }
-
-  String _autoManagedModuleIdForPrefabKey(String prefabKey) {
-    return 'vm_$prefabKey';
-  }
-
-  bool _isAutoManagedModuleForPrefab({
-    required String prefabKey,
-    required String moduleId,
-  }) {
-    return moduleId == _autoManagedModuleIdForPrefabKey(prefabKey);
-  }
-
   int? _platformTileSizeFromForm({bool reportError = true}) {
     final tileSize = int.tryParse(_moduleTileSizeController.text.trim());
     if (tileSize != null && tileSize > 0) {
@@ -394,7 +270,7 @@ extension _PrefabCreatorPrefabLogic on _PrefabCreatorPageState {
     if (tileSize == null) {
       return null;
     }
-    final moduleId = _autoManagedModuleIdForPrefabKey(prefabKey);
+    final moduleId = _dataReducer.autoManagedModuleIdForPrefabKey(prefabKey);
     final existing = data.platformModules
         .where((module) => module.id == moduleId)
         .toList(growable: false);
@@ -404,8 +280,9 @@ extension _PrefabCreatorPrefabLogic on _PrefabCreatorPageState {
       moduleId: moduleId,
       tileSize: tileSize,
     );
-    if (previous == null || _didModulePayloadChange(previous, nextModule)) {
-      final nextModules = _sortedModulesForUi(
+    if (previous == null ||
+        _dataReducer.didModulePayloadChange(previous, nextModule)) {
+      final nextModules = _dataReducer.sortedModulesForUi(
         data.platformModules
             .where((module) => module.id != moduleId)
             .followedBy([nextModule])
@@ -465,7 +342,7 @@ extension _PrefabCreatorPrefabLogic on _PrefabCreatorPageState {
       if (prefab.usesPlatformModule) {
         _selectedPrefabPlatformModuleId = prefab.moduleId;
         _selectedModuleId = prefab.moduleId;
-        _autoManagePlatformModule = _isAutoManagedModuleForPrefab(
+        _autoManagePlatformModule = _dataReducer.isAutoManagedModuleForPrefab(
           prefabKey: prefab.prefabKey,
           moduleId: prefab.moduleId,
         );
@@ -526,12 +403,12 @@ extension _PrefabCreatorPrefabLogic on _PrefabCreatorPageState {
     }
 
     final duplicate = source.copyWith(
-      prefabKey: _allocatePrefabKeyForId(requestedId),
+      prefabKey: _dataReducer.allocatePrefabKeyForId(_data, requestedId),
       id: requestedId,
       revision: 1,
       status: PrefabStatus.active,
     );
-    final nextPrefabs = _sortedPrefabsForUi(
+    final nextPrefabs = _dataReducer.sortedPrefabsForUi(
       _data.prefabs.followedBy([duplicate]).toList(growable: false),
     );
     _updateState(() {
@@ -561,7 +438,7 @@ extension _PrefabCreatorPrefabLogic on _PrefabCreatorPageState {
       status: PrefabStatus.deprecated,
       revision: source.revision + 1,
     );
-    final nextPrefabs = _sortedPrefabsForUi(
+    final nextPrefabs = _dataReducer.sortedPrefabsForUi(
       _data.prefabs
           .where((prefab) => prefab.prefabKey != source.prefabKey)
           .followedBy([deprecated])

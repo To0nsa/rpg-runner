@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
+import 'prefab_determinism.dart';
 import 'prefab_models.dart';
 
 class PrefabLoadResult {
@@ -13,6 +14,16 @@ class PrefabLoadResult {
 
   final PrefabData data;
   final List<String> migrationHints;
+}
+
+class PrefabSerializedFiles {
+  const PrefabSerializedFiles({
+    required this.prefabContents,
+    required this.tileContents,
+  });
+
+  final String prefabContents;
+  final String tileContents;
 }
 
 class PrefabStore {
@@ -132,6 +143,16 @@ class PrefabStore {
       tileFile.parent.createSync(recursive: true);
     }
 
+    final serialized = serializeCanonicalFiles(data);
+    _writePrefabAndTileAtomically(
+      prefabFile: prefabFile,
+      prefabContents: serialized.prefabContents,
+      tileFile: tileFile,
+      tileContents: serialized.tileContents,
+    );
+  }
+
+  PrefabSerializedFiles serializeCanonicalFiles(PrefabData data) {
     final sortedPrefabSlices = _sortedSlices(data.prefabSlices);
     final sortedTileSlices = _sortedSlices(data.tileSlices);
     final sortedPrefabs = _sortedPrefabs(
@@ -144,31 +165,26 @@ class PrefabStore {
     final prefabJson = <String, Object?>{
       'schemaVersion': schemaVersion,
       'slices': sortedPrefabSlices
-          .map((s) => s.toJson())
+          .map((slice) => slice.toJson())
           .toList(growable: false),
       'prefabs': sortedPrefabs
           .map((prefab) => prefab.toJson())
           .toList(growable: false),
     };
-
     final tileJson = <String, Object?>{
       'schemaVersion': schemaVersion,
       'tileSlices': sortedTileSlices
-          .map((s) => s.toJson())
+          .map((slice) => slice.toJson())
           .toList(growable: false),
       'platformModules': sortedModules
-          .map((m) => m.toJson())
+          .map((module) => module.toJson())
           .toList(growable: false),
     };
 
     const encoder = JsonEncoder.withIndent('  ');
-    final prefabContents = '${encoder.convert(prefabJson)}\n';
-    final tileContents = '${encoder.convert(tileJson)}\n';
-    _writePrefabAndTileAtomically(
-      prefabFile: prefabFile,
-      prefabContents: prefabContents,
-      tileFile: tileFile,
-      tileContents: tileContents,
+    return PrefabSerializedFiles(
+      prefabContents: '${encoder.convert(prefabJson)}\n',
+      tileContents: '${encoder.convert(tileJson)}\n',
     );
   }
 
@@ -262,7 +278,10 @@ class PrefabStore {
         final existingPrefabKey = next.prefabKey.trim();
         final nextPrefabKey = existingPrefabKey.isNotEmpty
             ? existingPrefabKey
-            : _allocatePrefabKey(next.id, usedPrefabKeys);
+            : PrefabDeterminism.allocatePrefabKey(
+                id: next.id,
+                usedPrefabKeys: usedPrefabKeys,
+              );
         if (existingPrefabKey.isEmpty) {
           migrationStats?.allocatedPrefabKeys += 1;
         }
@@ -300,21 +319,13 @@ class PrefabStore {
       }
 
       next = next.copyWith(
-        tags: _sortedTags(next.tags),
-        colliders: _sortedColliders(next.colliders),
+        tags: PrefabDeterminism.normalizeTags(next.tags),
+        colliders: PrefabDeterminism.sortColliders(next.colliders),
       );
       normalized.add(next);
     }
 
-    final sorted = List<PrefabDef>.from(normalized)
-      ..sort((a, b) {
-        final idCompare = a.id.compareTo(b.id);
-        if (idCompare != 0) {
-          return idCompare;
-        }
-        return a.prefabKey.compareTo(b.prefabKey);
-      });
-    return sorted;
+    return PrefabDeterminism.sortPrefabsByIdThenKey(normalized);
   }
 
   PrefabVisualSource _migrateLegacyVisualSource(PrefabVisualSource source) {
@@ -327,78 +338,16 @@ class PrefabStore {
     return source;
   }
 
-  String _allocatePrefabKey(String id, Set<String> usedPrefabKeys) {
-    var base = _slugToPrefabKey(id);
-    if (base.isEmpty) {
-      base = 'prefab';
-    }
-    var candidate = base;
-    var suffix = 2;
-    while (usedPrefabKeys.contains(candidate)) {
-      candidate = '${base}_$suffix';
-      suffix += 1;
-    }
-    return candidate;
-  }
-
-  String _slugToPrefabKey(String raw) {
-    final lowered = raw.trim().toLowerCase();
-    if (lowered.isEmpty) {
-      return '';
-    }
-    final replaced = lowered.replaceAll(RegExp(r'[^a-z0-9_]'), '_');
-    final collapsed = replaced.replaceAll(RegExp(r'_+'), '_');
-    return collapsed.replaceAll(RegExp(r'^_+|_+$'), '');
-  }
-
-  List<String> _sortedTags(List<String> tags) {
-    final normalized =
-        tags
-            .map((tag) => tag.trim())
-            .where((tag) => tag.isNotEmpty)
-            .toSet()
-            .toList(growable: false)
-          ..sort();
-    return normalized;
-  }
-
-  List<PrefabColliderDef> _sortedColliders(List<PrefabColliderDef> colliders) {
-    final sorted = List<PrefabColliderDef>.from(colliders)
-      ..sort((a, b) {
-        final offsetYCompare = a.offsetY.compareTo(b.offsetY);
-        if (offsetYCompare != 0) {
-          return offsetYCompare;
-        }
-        final offsetXCompare = a.offsetX.compareTo(b.offsetX);
-        if (offsetXCompare != 0) {
-          return offsetXCompare;
-        }
-        final widthCompare = a.width.compareTo(b.width);
-        if (widthCompare != 0) {
-          return widthCompare;
-        }
-        return a.height.compareTo(b.height);
-      });
-    return sorted;
-  }
-
   List<TileModuleDef> _sortedModules(List<TileModuleDef> modules) {
     final normalized = modules
         .map((module) {
           final nextRevision = module.revision <= 0 ? 1 : module.revision;
-          final nextStatus = _normalizedModuleStatus(module.status);
-          final sortedCells = List<TileModuleCellDef>.from(module.cells)
-            ..sort((a, b) {
-              final yCompare = a.gridY.compareTo(b.gridY);
-              if (yCompare != 0) {
-                return yCompare;
-              }
-              final xCompare = a.gridX.compareTo(b.gridX);
-              if (xCompare != 0) {
-                return xCompare;
-              }
-              return a.sliceId.compareTo(b.sliceId);
-            });
+          final nextStatus = PrefabDeterminism.normalizeModuleStatus(
+            module.status,
+          );
+          final sortedCells = PrefabDeterminism.sortModuleCellsByGridThenSlice(
+            module.cells,
+          );
           return module.copyWith(
             revision: nextRevision,
             status: nextStatus,
@@ -407,41 +356,7 @@ class PrefabStore {
         })
         .toList(growable: false);
 
-    final sorted = List<TileModuleDef>.from(normalized)
-      ..sort((a, b) {
-        final statusCompare = _compareModuleStatus(a.status, b.status);
-        if (statusCompare != 0) {
-          return statusCompare;
-        }
-        final idCompare = a.id.compareTo(b.id);
-        if (idCompare != 0) {
-          return idCompare;
-        }
-        return a.revision.compareTo(b.revision);
-      });
-    return sorted;
-  }
-
-  TileModuleStatus _normalizedModuleStatus(TileModuleStatus status) {
-    if (status == TileModuleStatus.unknown) {
-      return TileModuleStatus.active;
-    }
-    return status;
-  }
-
-  int _compareModuleStatus(TileModuleStatus a, TileModuleStatus b) {
-    int rank(TileModuleStatus status) {
-      switch (status) {
-        case TileModuleStatus.active:
-          return 0;
-        case TileModuleStatus.deprecated:
-          return 1;
-        case TileModuleStatus.unknown:
-          return 2;
-      }
-    }
-
-    return rank(a).compareTo(rank(b));
+    return PrefabDeterminism.sortModulesByStatusIdRevision(normalized);
   }
 
   void _writePrefabAndTileAtomically({

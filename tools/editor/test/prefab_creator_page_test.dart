@@ -7,8 +7,8 @@ import 'package:path/path.dart' as p;
 import 'package:runner_editor/src/app/pages/prefabCreator/prefab_creator_page.dart';
 import 'package:runner_editor/src/domain/authoring_plugin_registry.dart';
 import 'package:runner_editor/src/domain/authoring_types.dart';
+import 'package:runner_editor/src/prefabs/prefab_domain_plugin.dart';
 import 'package:runner_editor/src/session/editor_session_controller.dart';
-import 'package:runner_editor/src/workspace/editor_workspace.dart';
 
 void main() {
   testWidgets('tabs split obstacle and platform authoring', (tester) async {
@@ -435,9 +435,9 @@ Future<void> _pumpPrefabCreatorPage(
 }) async {
   final controller = EditorSessionController(
     pluginRegistry: AuthoringPluginRegistry(
-      plugins: const <AuthoringDomainPlugin>[_NoopPlugin()],
+      plugins: const <AuthoringDomainPlugin>[PrefabDomainPlugin()],
     ),
-    initialPluginId: _NoopPlugin.pluginId,
+    initialPluginId: PrefabDomainPlugin.pluginId,
     initialWorkspacePath: workspacePath,
   );
   await tester.pumpWidget(
@@ -551,63 +551,4 @@ Finder _dropdownByLabel(String label) {
         widget is DropdownButtonFormField &&
         widget.decoration.labelText == label,
   );
-}
-
-class _NoopPlugin implements AuthoringDomainPlugin {
-  const _NoopPlugin();
-
-  static const String pluginId = 'noop';
-
-  @override
-  String get id => pluginId;
-
-  @override
-  String get displayName => 'Noop';
-
-  @override
-  Future<AuthoringDocument> loadFromRepo(EditorWorkspace workspace) async {
-    return const _NoopDocument();
-  }
-
-  @override
-  List<ValidationIssue> validate(AuthoringDocument document) {
-    return const <ValidationIssue>[];
-  }
-
-  @override
-  EditableScene buildEditableScene(AuthoringDocument document) {
-    return const _NoopScene();
-  }
-
-  @override
-  AuthoringDocument applyEdit(
-    AuthoringDocument document,
-    AuthoringCommand command,
-  ) {
-    return document;
-  }
-
-  @override
-  Future<ExportResult> exportToRepo(
-    EditorWorkspace workspace, {
-    required AuthoringDocument document,
-  }) async {
-    return const ExportResult(applied: false);
-  }
-
-  @override
-  PendingChanges describePendingChanges(
-    EditorWorkspace workspace, {
-    required AuthoringDocument document,
-  }) {
-    return const PendingChanges();
-  }
-}
-
-class _NoopDocument extends AuthoringDocument {
-  const _NoopDocument();
-}
-
-class _NoopScene extends EditableScene {
-  const _NoopScene();
 }

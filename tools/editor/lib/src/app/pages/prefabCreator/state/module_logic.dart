@@ -26,10 +26,11 @@ extension _PrefabCreatorModuleLogic on _PrefabCreatorPageState {
             cells: const [],
           )
         : previous.copyWith(tileSize: tileSize);
-    if (previous != null && _didModulePayloadChange(previous, nextModule)) {
+    if (previous != null &&
+        _dataReducer.didModulePayloadChange(previous, nextModule)) {
       nextModule = nextModule.copyWith(revision: previous.revision + 1);
     }
-    final nextModules = _sortedModulesForUi(
+    final nextModules = _dataReducer.sortedModulesForUi(
       _data.platformModules
           .where((m) => m.id != id)
           .followedBy([nextModule])
@@ -71,7 +72,7 @@ extension _PrefabCreatorModuleLogic on _PrefabCreatorPageState {
     }
     var nextId = _moduleIdController.text.trim();
     if (nextId.isEmpty || nextId == source.id) {
-      nextId = _allocateModuleIdForDuplicate(source.id);
+      nextId = _dataReducer.allocateModuleIdForDuplicate(_data, source.id);
     }
     if (_data.platformModules.any((module) => module.id == nextId)) {
       _setError('Platform module id "$nextId" already exists.');
@@ -83,7 +84,7 @@ extension _PrefabCreatorModuleLogic on _PrefabCreatorPageState {
       revision: 1,
       status: TileModuleStatus.active,
     );
-    final nextModules = _sortedModulesForUi(
+    final nextModules = _dataReducer.sortedModulesForUi(
       _data.platformModules.followedBy([duplicate]).toList(growable: false),
     );
     _updateState(() {
@@ -120,7 +121,8 @@ extension _PrefabCreatorModuleLogic on _PrefabCreatorPageState {
     }
 
     final renamed = source.copyWith(id: nextId, revision: source.revision + 1);
-    final rewrittenPrefabs = _rewritePrefabsForModuleRename(
+    final rewrittenPrefabs = _dataReducer.rewritePrefabsForModuleRename(
+      prefabs: _data.prefabs,
       fromModuleId: source.id,
       toModuleId: nextId,
     );
@@ -129,7 +131,7 @@ extension _PrefabCreatorModuleLogic on _PrefabCreatorPageState {
           (prefab) => prefab.usesPlatformModule && prefab.moduleId == nextId,
         )
         .length;
-    final nextModules = _sortedModulesForUi(
+    final nextModules = _dataReducer.sortedModulesForUi(
       _data.platformModules
           .where((module) => module.id != source.id)
           .followedBy([renamed])
@@ -168,7 +170,7 @@ extension _PrefabCreatorModuleLogic on _PrefabCreatorPageState {
       status: nextStatus,
       revision: source.revision + 1,
     );
-    final nextModules = _sortedModulesForUi(
+    final nextModules = _dataReducer.sortedModulesForUi(
       _data.platformModules
           .map((module) => module.id == source.id ? updated : module)
           .toList(growable: false),
@@ -235,7 +237,7 @@ extension _PrefabCreatorModuleLogic on _PrefabCreatorPageState {
       revision: current.revision + 1,
       cells: nextCells,
     );
-    final nextModules = _sortedModulesForUi(
+    final nextModules = _dataReducer.sortedModulesForUi(
       _data.platformModules
           .map((m) => m.id == moduleId ? nextModule : m)
           .toList(growable: false),
@@ -307,7 +309,7 @@ extension _PrefabCreatorModuleLogic on _PrefabCreatorPageState {
       revision: module.revision + 1,
       cells: nextCells,
     );
-    final nextModules = _sortedModulesForUi(
+    final nextModules = _dataReducer.sortedModulesForUi(
       _data.platformModules
           .map((m) => m.id == module.id ? nextModule : m)
           .toList(growable: false),
@@ -374,7 +376,7 @@ extension _PrefabCreatorModuleLogic on _PrefabCreatorPageState {
       revision: module.revision + 1,
       cells: nextCells,
     );
-    final nextModules = _sortedModulesForUi(
+    final nextModules = _dataReducer.sortedModulesForUi(
       _data.platformModules
           .map((m) => m.id == module.id ? nextModule : m)
           .toList(growable: false),
@@ -429,7 +431,7 @@ extension _PrefabCreatorModuleLogic on _PrefabCreatorPageState {
       revision: module.revision + 1,
       cells: nextCells,
     );
-    final nextModules = _sortedModulesForUi(
+    final nextModules = _dataReducer.sortedModulesForUi(
       _data.platformModules
           .map((m) => m.id == module.id ? nextModule : m)
           .toList(growable: false),
@@ -450,7 +452,10 @@ extension _PrefabCreatorModuleLogic on _PrefabCreatorPageState {
       _setError('Select a module before loading prefab defaults.');
       return;
     }
-    final existing = _firstPlatformPrefabForModuleId(module.id);
+    final existing = _dataReducer.firstPlatformPrefabForModuleId(
+      _data.prefabs,
+      module.id,
+    );
     if (existing != null) {
       _loadPrefabIntoForm(existing);
       _updateState(() {
@@ -505,7 +510,10 @@ extension _PrefabCreatorModuleLogic on _PrefabCreatorPageState {
       _setError('Select a module before saving a platform prefab.');
       return;
     }
-    final existing = _firstPlatformPrefabForModuleId(module.id);
+    final existing = _dataReducer.firstPlatformPrefabForModuleId(
+      _data.prefabs,
+      module.id,
+    );
     final editing = _editingPrefab();
 
     _updateState(() {
@@ -532,103 +540,5 @@ extension _PrefabCreatorModuleLogic on _PrefabCreatorPageState {
       }
     });
     _upsertPrefabFromForm();
-  }
-
-  PrefabDef? _firstPlatformPrefabForModuleId(String moduleId) {
-    PrefabDef? fallback;
-    for (final prefab in _data.prefabs) {
-      if (prefab.kind != PrefabKind.platform ||
-          !prefab.usesPlatformModule ||
-          prefab.moduleId != moduleId) {
-        continue;
-      }
-      if (prefab.status != PrefabStatus.deprecated) {
-        return prefab;
-      }
-      fallback ??= prefab;
-    }
-    return fallback;
-  }
-
-  List<PrefabDef> _rewritePrefabsForModuleRename({
-    required String fromModuleId,
-    required String toModuleId,
-  }) {
-    final rewritten = _data.prefabs
-        .map((prefab) {
-          if (!prefab.usesPlatformModule || prefab.moduleId != fromModuleId) {
-            return prefab;
-          }
-          return prefab.copyWith(
-            visualSource: PrefabVisualSource.platformModule(toModuleId),
-            revision: prefab.revision + 1,
-          );
-        })
-        .toList(growable: false);
-    return _sortedPrefabsForUi(rewritten);
-  }
-
-  bool _didModulePayloadChange(TileModuleDef previous, TileModuleDef next) {
-    if (previous.tileSize != next.tileSize) {
-      return true;
-    }
-    if (previous.status != next.status) {
-      return true;
-    }
-    if (previous.cells.length != next.cells.length) {
-      return true;
-    }
-    for (var i = 0; i < previous.cells.length; i += 1) {
-      final a = previous.cells[i];
-      final b = next.cells[i];
-      if (a.sliceId != b.sliceId || a.gridX != b.gridX || a.gridY != b.gridY) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  List<TileModuleDef> _sortedModulesForUi(List<TileModuleDef> modules) {
-    final sorted = List<TileModuleDef>.from(modules)
-      ..sort((a, b) {
-        final statusCompare = _moduleStatusRank(
-          a.status,
-        ).compareTo(_moduleStatusRank(b.status));
-        if (statusCompare != 0) {
-          return statusCompare;
-        }
-        final idCompare = a.id.compareTo(b.id);
-        if (idCompare != 0) {
-          return idCompare;
-        }
-        return a.revision.compareTo(b.revision);
-      });
-    return sorted;
-  }
-
-  int _moduleStatusRank(TileModuleStatus status) {
-    switch (status) {
-      case TileModuleStatus.active:
-        return 0;
-      case TileModuleStatus.deprecated:
-        return 1;
-      case TileModuleStatus.unknown:
-        return 2;
-    }
-  }
-
-  String _allocateModuleIdForDuplicate(String sourceId) {
-    final used = _data.platformModules
-        .map((module) => module.id)
-        .where((id) => id.isNotEmpty)
-        .toSet();
-    final base = sourceId.trim().isEmpty ? 'module' : sourceId.trim();
-    var candidate = '${base}_copy';
-    var suffix = 2;
-    while (used.contains(candidate)) {
-      candidate = '${base}_copy_$suffix';
-      suffix += 1;
-    }
-    return candidate;
   }
 }

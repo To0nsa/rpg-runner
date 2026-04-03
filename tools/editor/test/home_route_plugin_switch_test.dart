@@ -7,6 +7,7 @@ import 'package:runner_editor/src/chunks/chunk_domain_plugin.dart';
 import 'package:runner_editor/src/domain/authoring_plugin_registry.dart';
 import 'package:runner_editor/src/domain/authoring_types.dart';
 import 'package:runner_editor/src/entities/entity_domain_plugin.dart';
+import 'package:runner_editor/src/prefabs/prefab_domain_plugin.dart';
 import 'package:runner_editor/src/session/editor_session_controller.dart';
 import 'package:runner_editor/src/workspace/editor_workspace.dart';
 
@@ -23,6 +24,7 @@ void main() {
       pluginRegistry: AuthoringPluginRegistry(
         plugins: <AuthoringDomainPlugin>[
           _FakeEntitiesPlugin(),
+          _FakePrefabPlugin(),
           _FakeChunkPlugin(),
         ],
       ),
@@ -36,6 +38,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(controller.selectedPluginId, EntityDomainPlugin.pluginId);
+
+    await tester.tap(find.byType(DropdownButton<String>).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('PREFAB CREATOR').last);
+    await tester.pumpAndSettle();
+    expect(controller.selectedPluginId, PrefabDomainPlugin.pluginId);
 
     await tester.tap(find.byType(DropdownButton<String>).first);
     await tester.pumpAndSettle();
@@ -152,10 +160,7 @@ class _FakeChunkPlugin implements AuthoringDomainPlugin {
           entrySocket: 'in',
           exitSocket: 'out',
           difficulty: chunkDifficultyNormal,
-          groundProfile: GroundProfileDef(
-            kind: groundProfileKindFlat,
-            topY: 0,
-          ),
+          groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 0),
         ),
       ],
       baselineByChunkKey: <String, ChunkSourceBaseline>{},
@@ -170,6 +175,53 @@ class _FakeChunkPlugin implements AuthoringDomainPlugin {
   @override
   List<ValidationIssue> validate(AuthoringDocument document) {
     return _delegate.validate(document);
+  }
+}
+
+class _FakePrefabPlugin implements AuthoringDomainPlugin {
+  @override
+  String get id => PrefabDomainPlugin.pluginId;
+
+  @override
+  String get displayName => 'Prefabs';
+
+  @override
+  AuthoringDocument applyEdit(
+    AuthoringDocument document,
+    AuthoringCommand command,
+  ) {
+    return document;
+  }
+
+  @override
+  EditableScene buildEditableScene(AuthoringDocument document) {
+    return const _FakeScene();
+  }
+
+  @override
+  PendingChanges describePendingChanges(
+    EditorWorkspace workspace, {
+    required AuthoringDocument document,
+  }) {
+    return const PendingChanges();
+  }
+
+  @override
+  Future<ExportResult> exportToRepo(
+    EditorWorkspace workspace, {
+    required AuthoringDocument document,
+  }) async {
+    return const ExportResult(applied: false);
+  }
+
+  @override
+  Future<AuthoringDocument> loadFromRepo(EditorWorkspace workspace) async {
+    return const _FakeDocument();
+  }
+
+  @override
+  List<ValidationIssue> validate(AuthoringDocument document) {
+    return const <ValidationIssue>[];
   }
 }
 

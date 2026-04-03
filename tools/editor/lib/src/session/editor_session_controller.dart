@@ -79,6 +79,16 @@ class EditorSessionController extends ChangeNotifier {
       return;
     }
     _workspacePath = nextPath;
+    _workspace = null;
+    _document = null;
+    _scene = null;
+    _issues = const <ValidationIssue>[];
+    _pendingChanges = const PendingChanges();
+    _pendingChangesError = null;
+    _loadError = null;
+    _exportError = null;
+    _lastExportResult = null;
+    _clearHistory();
     notifyListeners();
   }
 
@@ -262,5 +272,4 @@ class EditorSessionController extends ChangeNotifier {
     }
   }
 }
-
 
