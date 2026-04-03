@@ -209,9 +209,11 @@ class _PrefabSceneViewState extends State<PrefabSceneView> {
     return ScrollConfiguration(
       behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
       child: SingleChildScrollView(
+        key: const ValueKey<String>('prefab_scene_vertical_scroll'),
         controller: _verticalScrollController,
         scrollDirection: Axis.vertical,
         child: SingleChildScrollView(
+          key: const ValueKey<String>('prefab_scene_horizontal_scroll'),
           controller: _horizontalScrollController,
           scrollDirection: Axis.horizontal,
           child: canvas,
@@ -238,10 +240,9 @@ class _PrefabSceneViewState extends State<PrefabSceneView> {
             Center(
               child: Text('Missing image: ${widget.slice.sourceImagePath}'),
             )
-          else if (image == null)
-            const Center(child: Text('Loading slice image...'))
           else
             Listener(
+              key: const ValueKey<String>('prefab_scene_canvas'),
               onPointerDown: (event) {
                 _onPointerDown(event, canvasSize: canvasSize);
               },
@@ -255,15 +256,17 @@ class _PrefabSceneViewState extends State<PrefabSceneView> {
                 _onPointerEnd(event);
               },
               onPointerSignal: _onPointerSignal,
-              child: CustomPaint(
-                painter: _PrefabScenePainter(
-                  image: image,
-                  slice: widget.slice,
-                  values: widget.values,
-                  zoom: _zoom,
-                  activeHandle: _dragState?.handle,
-                ),
-              ),
+              child: image == null
+                  ? const Center(child: Text('Loading slice image...'))
+                  : CustomPaint(
+                      painter: _PrefabScenePainter(
+                        image: image,
+                        slice: widget.slice,
+                        values: widget.values,
+                        zoom: _zoom,
+                        activeHandle: _dragState?.handle,
+                      ),
+                    ),
             ),
         ],
       ),

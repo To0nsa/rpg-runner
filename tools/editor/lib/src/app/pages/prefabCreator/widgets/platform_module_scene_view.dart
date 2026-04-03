@@ -15,7 +15,7 @@ import '../../shared/scene_input_utils.dart';
 import 'prefab_overlay_interaction.dart';
 import 'prefab_scene_values.dart';
 
-enum PlatformModuleSceneTool { paint, erase }
+enum PlatformModuleSceneTool { paint, erase, move }
 
 extension PlatformModuleSceneToolLabel on PlatformModuleSceneTool {
   String get label {
@@ -24,6 +24,8 @@ extension PlatformModuleSceneToolLabel on PlatformModuleSceneTool {
         return 'Paint';
       case PlatformModuleSceneTool.erase:
         return 'Erase';
+      case PlatformModuleSceneTool.move:
+        return 'Move';
     }
   }
 }
@@ -36,8 +38,10 @@ class PlatformModuleSceneView extends StatefulWidget {
     required this.tileSlices,
     required this.tool,
     required this.selectedTileSliceId,
+    required this.onToolChanged,
     required this.onPaintCell,
     required this.onEraseCell,
+    required this.onMoveCell,
     this.overlayValues,
     this.onOverlayValuesChanged,
   });
@@ -47,8 +51,16 @@ class PlatformModuleSceneView extends StatefulWidget {
   final List<AtlasSliceDef> tileSlices;
   final PlatformModuleSceneTool tool;
   final String? selectedTileSliceId;
+  final ValueChanged<PlatformModuleSceneTool> onToolChanged;
   final void Function(int gridX, int gridY, String sliceId) onPaintCell;
   final void Function(int gridX, int gridY) onEraseCell;
+  final void Function(
+    int sourceGridX,
+    int sourceGridY,
+    int targetGridX,
+    int targetGridY,
+  )
+  onMoveCell;
   final PrefabSceneValues? overlayValues;
   final ValueChanged<PrefabSceneValues>? onOverlayValuesChanged;
 
@@ -75,6 +87,7 @@ class _PlatformModuleSceneViewState extends State<PlatformModuleSceneView> {
   int? _activePointer;
   String? _lastAppliedCellKey;
   PrefabOverlayDragState? _overlayDragState;
+  _ModuleCellDragState? _moduleCellDragState;
 
   @override
   void initState() {
@@ -143,14 +156,41 @@ class _PlatformModuleSceneViewState extends State<PlatformModuleSceneView> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                EditorZoomControls(
-                  value: _zoom,
-                  min: _minZoom,
-                  max: _maxZoom,
-                  step: _zoomStep,
-                  onChanged: _setZoom,
+                Flexible(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: EditorZoomControls(
+                      value: _zoom,
+                      min: _minZoom,
+                      max: _maxZoom,
+                      step: _zoomStep,
+                      onChanged: _setZoom,
+                    ),
+                  ),
                 ),
               ],
+            ),
+            const SizedBox(height: 8),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  for (final tool in PlatformModuleSceneTool.values) ...[
+                    ChoiceChip(
+                      key: ValueKey<String>('module_tool_${tool.name}'),
+                      label: Text(tool.label),
+                      selected: widget.tool == tool,
+                      onSelected: (selected) {
+                        if (!selected) {
+                          return;
+                        }
+                        widget.onToolChanged(tool);
+                      },
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                ],
+              ),
             ),
             const SizedBox(height: 8),
             Expanded(
@@ -193,6 +233,7 @@ class _PlatformModuleSceneViewState extends State<PlatformModuleSceneView> {
             selectedTileSliceId: widget.selectedTileSliceId,
             overlayValues: widget.overlayValues,
             activeOverlayHandle: _overlayDragState?.handle,
+            movePreview: _buildMovePreview(),
           ),
         ),
       ),
@@ -201,9 +242,13 @@ class _PlatformModuleSceneViewState extends State<PlatformModuleSceneView> {
     return ScrollConfiguration(
       behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
       child: SingleChildScrollView(
+        key: const ValueKey<String>('platform_module_scene_vertical_scroll'),
         controller: _verticalScrollController,
         scrollDirection: Axis.vertical,
         child: SingleChildScrollView(
+          key: const ValueKey<String>(
+            'platform_module_scene_horizontal_scroll',
+          ),
           controller: _horizontalScrollController,
           scrollDirection: Axis.horizontal,
           child: canvas,
@@ -223,6 +268,10 @@ class _PlatformModuleSceneViewState extends State<PlatformModuleSceneView> {
       return;
     }
     if (_tryStartOverlayDrag(event, geometry)) {
+      return;
+    }
+    if (widget.tool == PlatformModuleSceneTool.move) {
+      _tryStartModuleCellDrag(event.localPosition, geometry);
       return;
     }
     _applyTool(event.localPosition, geometry);
@@ -261,6 +310,16 @@ class _PlatformModuleSceneViewState extends State<PlatformModuleSceneView> {
       }
       return;
     }
+    final moduleCellDrag = _moduleCellDragState;
+    if (moduleCellDrag != null) {
+      if (!SceneInputUtils.isPrimaryButtonPressed(event.buttons)) {
+        _commitModuleCellDrag();
+        _resetPointerState();
+        return;
+      }
+      _updateModuleCellDragTarget(event.localPosition, geometry);
+      return;
+    }
     if (!SceneInputUtils.isPrimaryButtonPressed(event.buttons)) {
       _resetPointerState();
       return;
@@ -269,16 +328,19 @@ class _PlatformModuleSceneViewState extends State<PlatformModuleSceneView> {
   }
 
   void _onPointerEnd(PointerEvent _) {
+    _commitModuleCellDrag();
     _resetPointerState();
   }
 
   void _resetPointerState() {
     final hadOverlayDrag = _overlayDragState != null;
+    final hadModuleCellDrag = _moduleCellDragState != null;
     _ctrlPanActive = false;
     _activePointer = null;
     _lastAppliedCellKey = null;
     _overlayDragState = null;
-    if (hadOverlayDrag) {
+    _moduleCellDragState = null;
+    if (hadOverlayDrag || hadModuleCellDrag) {
       setState(() {});
     }
   }
@@ -322,7 +384,92 @@ class _PlatformModuleSceneViewState extends State<PlatformModuleSceneView> {
         widget.onPaintCell(cell.gridX, cell.gridY, sliceId);
       case PlatformModuleSceneTool.erase:
         widget.onEraseCell(cell.gridX, cell.gridY);
+      case PlatformModuleSceneTool.move:
+        return;
     }
+  }
+
+  _PlatformModuleSceneMovePreview? _buildMovePreview() {
+    final drag = _moduleCellDragState;
+    if (drag == null) {
+      return null;
+    }
+    return _PlatformModuleSceneMovePreview(
+      sourceGridX: drag.sourceGridX,
+      sourceGridY: drag.sourceGridY,
+      targetGridX: drag.targetGridX,
+      targetGridY: drag.targetGridY,
+      sliceId: drag.sliceId,
+    );
+  }
+
+  void _commitModuleCellDrag() {
+    final drag = _moduleCellDragState;
+    if (drag == null) {
+      return;
+    }
+    if (drag.sourceGridX == drag.targetGridX &&
+        drag.sourceGridY == drag.targetGridY) {
+      return;
+    }
+    widget.onMoveCell(
+      drag.sourceGridX,
+      drag.sourceGridY,
+      drag.targetGridX,
+      drag.targetGridY,
+    );
+  }
+
+  void _tryStartModuleCellDrag(
+    Offset localPosition,
+    _ModuleSceneGeometry geometry,
+  ) {
+    final pointerWorld = geometry.worldFromLocal(localPosition);
+    final hitCell = geometry.moduleCellHitFromLocal(localPosition);
+    if (pointerWorld == null || hitCell == null) {
+      return;
+    }
+    final sourceOriginWorld = Offset(
+      hitCell.gridX * geometry.tilePixels,
+      hitCell.gridY * geometry.tilePixels,
+    );
+    setState(() {
+      _moduleCellDragState = _ModuleCellDragState(
+        sourceGridX: hitCell.gridX,
+        sourceGridY: hitCell.gridY,
+        targetGridX: hitCell.gridX,
+        targetGridY: hitCell.gridY,
+        sliceId: hitCell.sliceId,
+        grabOffsetWorld: pointerWorld - sourceOriginWorld,
+      );
+    });
+  }
+
+  void _updateModuleCellDragTarget(
+    Offset localPosition,
+    _ModuleSceneGeometry geometry,
+  ) {
+    final drag = _moduleCellDragState;
+    if (drag == null) {
+      return;
+    }
+    final pointerWorld = geometry.worldFromLocal(localPosition);
+    if (pointerWorld == null) {
+      return;
+    }
+    final candidateOrigin = pointerWorld - drag.grabOffsetWorld;
+    final tileSize = geometry.tilePixels;
+    final targetGridX = (candidateOrigin.dx / tileSize).floor();
+    final targetGridY = (candidateOrigin.dy / tileSize).floor();
+    if (targetGridX == drag.targetGridX && targetGridY == drag.targetGridY) {
+      return;
+    }
+    setState(() {
+      _moduleCellDragState = drag.copyWith(
+        targetGridX: targetGridX,
+        targetGridY: targetGridY,
+      );
+    });
   }
 
   bool _tryStartOverlayDrag(
@@ -425,6 +572,63 @@ class _GridCell {
   final int gridY;
 }
 
+class _ModuleCellHit {
+  const _ModuleCellHit({
+    required this.sliceId,
+    required this.gridX,
+    required this.gridY,
+  });
+
+  final String sliceId;
+  final int gridX;
+  final int gridY;
+}
+
+class _ModuleCellDragState {
+  const _ModuleCellDragState({
+    required this.sourceGridX,
+    required this.sourceGridY,
+    required this.targetGridX,
+    required this.targetGridY,
+    required this.sliceId,
+    required this.grabOffsetWorld,
+  });
+
+  final int sourceGridX;
+  final int sourceGridY;
+  final int targetGridX;
+  final int targetGridY;
+  final String sliceId;
+  final Offset grabOffsetWorld;
+
+  _ModuleCellDragState copyWith({int? targetGridX, int? targetGridY}) {
+    return _ModuleCellDragState(
+      sourceGridX: sourceGridX,
+      sourceGridY: sourceGridY,
+      targetGridX: targetGridX ?? this.targetGridX,
+      targetGridY: targetGridY ?? this.targetGridY,
+      sliceId: sliceId,
+      grabOffsetWorld: grabOffsetWorld,
+    );
+  }
+}
+
+class _PlatformModuleSceneMovePreview {
+  const _PlatformModuleSceneMovePreview({
+    required this.sourceGridX,
+    required this.sourceGridY,
+    required this.targetGridX,
+    required this.targetGridY,
+    required this.sliceId,
+  });
+
+  final int sourceGridX;
+  final int sourceGridY;
+  final int targetGridX;
+  final int targetGridY;
+  final String sliceId;
+}
+
 class _ModuleSceneGeometry {
   _ModuleSceneGeometry({
     required this.module,
@@ -503,6 +707,25 @@ class _ModuleSceneGeometry {
     );
   }
 
+  _ModuleCellHit? moduleCellHitFromLocal(Offset localPosition) {
+    final world = worldFromLocal(localPosition);
+    if (world == null) {
+      return null;
+    }
+    for (var i = module.cells.length - 1; i >= 0; i -= 1) {
+      final cell = module.cells[i];
+      if (!worldRectForCell(cell).contains(world)) {
+        continue;
+      }
+      return _ModuleCellHit(
+        sliceId: cell.sliceId,
+        gridX: cell.gridX,
+        gridY: cell.gridY,
+      );
+    }
+    return null;
+  }
+
   Offset canvasFromWorld(Offset world) {
     final localX = (world.dx - worldRect.left) * zoom;
     final localY = (world.dy - worldRect.top) * zoom;
@@ -529,16 +752,23 @@ class _ModuleSceneGeometry {
   }
 
   Rect worldRectForCell(TileModuleCellDef cell) {
+    return worldRectForGridCell(
+      gridX: cell.gridX,
+      gridY: cell.gridY,
+      sliceId: cell.sliceId,
+    );
+  }
+
+  Rect worldRectForGridCell({
+    required int gridX,
+    required int gridY,
+    required String sliceId,
+  }) {
     final tileSize = tilePixels;
-    final slice = tileSlicesById[cell.sliceId];
+    final slice = tileSlicesById[sliceId];
     final width = math.max(1, slice?.width ?? tileSize.toInt()).toDouble();
     final height = math.max(1, slice?.height ?? tileSize.toInt()).toDouble();
-    return Rect.fromLTWH(
-      cell.gridX * tileSize,
-      cell.gridY * tileSize,
-      width,
-      height,
-    );
+    return Rect.fromLTWH(gridX * tileSize, gridY * tileSize, width, height);
   }
 
   Rect? _computeModuleBoundsWorld() {
@@ -564,6 +794,7 @@ class _PlatformModuleScenePainter extends CustomPainter {
     required this.selectedTileSliceId,
     required this.overlayValues,
     required this.activeOverlayHandle,
+    required this.movePreview,
   });
 
   final String workspaceRootPath;
@@ -574,6 +805,7 @@ class _PlatformModuleScenePainter extends CustomPainter {
   final String? selectedTileSliceId;
   final PrefabSceneValues? overlayValues;
   final PrefabOverlayHandleType? activeOverlayHandle;
+  final _PlatformModuleSceneMovePreview? movePreview;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -601,6 +833,9 @@ class _PlatformModuleScenePainter extends CustomPainter {
     }
 
     for (final cell in module.cells) {
+      if (_isMovePreviewSourceCell(cell)) {
+        continue;
+      }
       final slice = tileSlicesById[cell.sliceId];
       final worldRect = geometry.worldRectForCell(cell);
       final canvasRect = geometry.canvasRectFromWorld(worldRect);
@@ -648,8 +883,72 @@ class _PlatformModuleScenePainter extends CustomPainter {
         );
       }
     }
+    _paintMovePreviewCell(canvas);
 
     _paintAnchorColliderOverlay(canvas);
+  }
+
+  bool _isMovePreviewSourceCell(TileModuleCellDef cell) {
+    final preview = movePreview;
+    if (preview == null) {
+      return false;
+    }
+    return preview.sourceGridX == cell.gridX &&
+        preview.sourceGridY == cell.gridY;
+  }
+
+  void _paintMovePreviewCell(Canvas canvas) {
+    final preview = movePreview;
+    if (preview == null) {
+      return;
+    }
+    final slice = tileSlicesById[preview.sliceId];
+    final worldRect = geometry.worldRectForGridCell(
+      gridX: preview.targetGridX,
+      gridY: preview.targetGridY,
+      sliceId: preview.sliceId,
+    );
+    final canvasRect = geometry.canvasRectFromWorld(worldRect);
+    final image = slice == null ? null : _resolveSliceImage(slice);
+
+    if (slice != null && image != null) {
+      final srcRect = Rect.fromLTWH(
+        slice.x.toDouble(),
+        slice.y.toDouble(),
+        slice.width.toDouble(),
+        slice.height.toDouble(),
+      );
+      canvas.drawImageRect(
+        image,
+        srcRect,
+        canvasRect,
+        Paint()..filterQuality = FilterQuality.none,
+      );
+    } else {
+      canvas.drawRect(
+        canvasRect,
+        Paint()
+          ..color = slice == null
+              ? const Color(0xFF7A2A2A)
+              : _fallbackColorForSlice(preview.sliceId)
+          ..style = PaintingStyle.fill,
+      );
+    }
+
+    canvas.drawRect(
+      canvasRect,
+      Paint()
+        ..color = const Color(0xFF9CC6E4)
+        ..strokeWidth = 1.0
+        ..style = PaintingStyle.stroke,
+    );
+    canvas.drawRect(
+      canvasRect.inflate(1.2),
+      Paint()
+        ..color = const Color(0xFF56F7A8)
+        ..strokeWidth = 1.6
+        ..style = PaintingStyle.stroke,
+    );
   }
 
   void _paintAnchorColliderOverlay(Canvas canvas) {
@@ -693,6 +992,7 @@ class _PlatformModuleScenePainter extends CustomPainter {
         oldDelegate.selectedTileSliceId != selectedTileSliceId ||
         oldDelegate.overlayValues != overlayValues ||
         oldDelegate.activeOverlayHandle != activeOverlayHandle ||
+        oldDelegate.movePreview != movePreview ||
         oldDelegate.tileSlicesById.length != tileSlicesById.length ||
         oldDelegate.imageByAbsolutePath.length != imageByAbsolutePath.length;
   }

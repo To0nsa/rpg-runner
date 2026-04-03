@@ -80,8 +80,10 @@ void main() {
       _textFieldByLabel('Prefab ID').first,
       'obstacle_box',
     );
-    await tester.ensureVisible(find.text('Add/Update Prefab'));
-    await tester.tap(find.text('Add/Update Prefab'));
+    final obstacleUpsertButton = find.byKey(
+      const ValueKey<String>('obstacle_prefab_upsert_button'),
+    );
+    await tester.tap(obstacleUpsertButton);
     await tester.pumpAndSettle();
 
     expect(
@@ -95,8 +97,7 @@ void main() {
 
     await tester.tap(find.text('Obstacle Prefabs').first);
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Add/Update Prefab'));
-    await tester.tap(find.text('Add/Update Prefab'));
+    await tester.tap(obstacleUpsertButton);
     await tester.pumpAndSettle();
 
     expect(
@@ -155,6 +156,108 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets(
+    'obstacle and platform form drafts preserve independent collider/anchor values',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1800, 1200));
+      addTearDown(() async {
+        await tester.binding.setSurfaceSize(null);
+      });
+
+      final fixtureRoot = _createPrefabAuthoringFixture();
+      addTearDown(() {
+        fixtureRoot.deleteSync(recursive: true);
+      });
+
+      await _pumpPrefabCreatorPage(tester, workspacePath: fixtureRoot.path);
+
+      await tester.enterText(_textFieldByLabel('Anchor X (px)').first, '11');
+      await tester.enterText(_textFieldByLabel('Anchor Y (px)').first, '12');
+      await tester.enterText(_textFieldByLabel('Width').first, '31');
+      await tester.enterText(_textFieldByLabel('Height').first, '32');
+
+      await tester.tap(find.text('Platform Prefabs').first);
+      await tester.pumpAndSettle();
+
+      expect(_textFieldByLabel('Anchor X (px)').first, findsOneWidget);
+      expect(_textFieldByLabel('Collider Width').first, findsOneWidget);
+      expect(_textFieldValueByLabel(tester, 'Anchor X (px)'), isNot('11'));
+      expect(_textFieldValueByLabel(tester, 'Anchor Y (px)'), isNot('12'));
+      expect(_textFieldValueByLabel(tester, 'Collider Width'), isNot('31'));
+      expect(_textFieldValueByLabel(tester, 'Collider Height'), isNot('32'));
+
+      await tester.enterText(_textFieldByLabel('Anchor X (px)').first, '21');
+      await tester.enterText(_textFieldByLabel('Anchor Y (px)').first, '22');
+      await tester.enterText(_textFieldByLabel('Collider Width').first, '41');
+      await tester.enterText(_textFieldByLabel('Collider Height').first, '42');
+
+      await tester.tap(find.text('Obstacle Prefabs').first);
+      await tester.pumpAndSettle();
+
+      expect(_textFieldValueByLabel(tester, 'Anchor X (px)'), '11');
+      expect(_textFieldValueByLabel(tester, 'Anchor Y (px)'), '12');
+      expect(_textFieldValueByLabel(tester, 'Width'), '31');
+      expect(_textFieldValueByLabel(tester, 'Height'), '32');
+
+      await tester.tap(find.text('Platform Prefabs').first);
+      await tester.pumpAndSettle();
+
+      expect(_textFieldValueByLabel(tester, 'Anchor X (px)'), '21');
+      expect(_textFieldValueByLabel(tester, 'Anchor Y (px)'), '22');
+      expect(_textFieldValueByLabel(tester, 'Collider Width'), '41');
+      expect(_textFieldValueByLabel(tester, 'Collider Height'), '42');
+    },
+  );
+
+  testWidgets(
+    'platform upsert does not overwrite a previously loaded obstacle prefab',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1800, 1200));
+      addTearDown(() async {
+        await tester.binding.setSurfaceSize(null);
+      });
+
+      final fixtureRoot = _createPrefabAuthoringFixture();
+      addTearDown(() {
+        fixtureRoot.deleteSync(recursive: true);
+      });
+
+      await _pumpPrefabCreatorPage(tester, workspacePath: fixtureRoot.path);
+
+      await tester.enterText(
+        _textFieldByLabel('Prefab ID').first,
+        'obstacle_a',
+      );
+      final obstacleUpsertButton = find.byKey(
+        const ValueKey<String>('obstacle_prefab_upsert_button'),
+      );
+      await tester.tap(obstacleUpsertButton);
+      await tester.pumpAndSettle();
+
+      expect(find.text('obstacle_a'), findsWidgets);
+
+      await tester.tap(find.text('Platform Prefabs').first);
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        _textFieldByLabel('Platform Prefab ID').first,
+        'platform_a',
+      );
+      await tester.ensureVisible(find.text('Create/Update Platform Prefab'));
+      await tester.tap(find.text('Create/Update Platform Prefab'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining('Upserted platform prefab "platform_a"'),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.text('Obstacle Prefabs').first);
+      await tester.pumpAndSettle();
+      expect(find.text('obstacle_a'), findsWidgets);
+    },
+  );
 
   testWidgets('blocking validation surfaces coded errors on save', (
     tester,
@@ -234,58 +337,67 @@ void main() {
     },
   );
 
-  testWidgets('platform module scene supports paint and erase workflows', (
-    tester,
-  ) async {
-    await tester.binding.setSurfaceSize(const Size(1800, 1200));
-    addTearDown(() async {
-      await tester.binding.setSurfaceSize(null);
-    });
+  testWidgets(
+    'platform module scene supports paint, erase, and move workflows',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1800, 1200));
+      addTearDown(() async {
+        await tester.binding.setSurfaceSize(null);
+      });
 
-    final fixtureRoot = _createPrefabAuthoringFixture();
-    addTearDown(() {
-      fixtureRoot.deleteSync(recursive: true);
-    });
+      final fixtureRoot = _createPrefabAuthoringFixture();
+      addTearDown(() {
+        fixtureRoot.deleteSync(recursive: true);
+      });
 
-    await _pumpPrefabCreatorPage(tester, workspacePath: fixtureRoot.path);
+      await _pumpPrefabCreatorPage(tester, workspacePath: fixtureRoot.path);
 
-    await tester.tap(find.text('Platform Prefabs').first);
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Platform Prefabs').first);
+      await tester.pumpAndSettle();
 
-    final sceneCanvas = find.byKey(
-      const ValueKey<String>('platform_module_scene_canvas'),
-    );
-    expect(sceneCanvas, findsOneWidget);
-    expect(find.textContaining('cells=1'), findsWidgets);
+      final sceneCanvas = find.byKey(
+        const ValueKey<String>('platform_module_scene_canvas'),
+      );
+      expect(sceneCanvas, findsOneWidget);
+      expect(find.textContaining('cells=1'), findsWidgets);
 
-    final center = tester.getCenter(sceneCanvas);
+      final center = tester.getCenter(sceneCanvas);
 
-    await tester.tap(find.byKey(const ValueKey<String>('module_tool_erase')));
-    await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey<String>('module_tool_erase')));
+      await tester.pumpAndSettle();
 
-    for (final offset in <Offset>[
-      Offset.zero,
-      const Offset(10, 0),
-      const Offset(-10, 0),
-      const Offset(0, 10),
-      const Offset(0, -10),
-    ]) {
-      await tester.tapAt(center + offset);
-      await tester.pump();
-    }
-    await tester.pumpAndSettle();
+      for (final offset in <Offset>[
+        Offset.zero,
+        const Offset(10, 0),
+        const Offset(-10, 0),
+        const Offset(0, 10),
+        const Offset(0, -10),
+      ]) {
+        await tester.tapAt(center + offset);
+        await tester.pump();
+      }
+      await tester.pumpAndSettle();
 
-    expect(find.textContaining('cells=0'), findsWidgets);
+      expect(find.textContaining('cells=0'), findsWidgets);
 
-    await tester.tap(find.byKey(const ValueKey<String>('module_tool_paint')));
-    await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey<String>('module_tool_paint')));
+      await tester.pumpAndSettle();
 
-    await tester.tapAt(center);
-    await tester.pumpAndSettle();
+      await tester.tapAt(center);
+      await tester.pumpAndSettle();
 
-    expect(find.textContaining('Painted cell ('), findsOneWidget);
-    expect(find.textContaining('cells=1'), findsWidgets);
-  });
+      expect(find.textContaining('Painted cell ('), findsOneWidget);
+      expect(find.textContaining('cells=1'), findsWidgets);
+
+      await tester.tap(find.byKey(const ValueKey<String>('module_tool_move')));
+      await tester.pumpAndSettle();
+
+      await tester.dragFrom(center, const Offset(48, 0));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Moved cell (0,0) -> (1,0)'), findsOneWidget);
+    },
+  );
 
   testWidgets('module tab can create a platform prefab for selected module', (
     tester,
@@ -426,6 +538,11 @@ Finder _textFieldByLabel(String label) {
   return find.byWidgetPredicate(
     (widget) => widget is TextField && widget.decoration?.labelText == label,
   );
+}
+
+String _textFieldValueByLabel(WidgetTester tester, String label) {
+  final textField = tester.widget<TextField>(_textFieldByLabel(label).first);
+  return textField.controller?.text ?? '';
 }
 
 Finder _dropdownByLabel(String label) {

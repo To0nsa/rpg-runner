@@ -276,6 +276,7 @@ extension _PrefabCreatorPrefabsTab on _PrefabCreatorPageState {
               runSpacing: 8,
               children: [
                 FilledButton.icon(
+                  key: const ValueKey<String>('obstacle_prefab_upsert_button'),
                   onPressed: _upsertObstaclePrefabFromForm,
                   icon: const Icon(Icons.add_box_outlined),
                   label: const Text('Add/Update Prefab'),

@@ -329,6 +329,25 @@ extension _PrefabCreatorModuleLogic on _PrefabCreatorPageState {
     _eraseCellInModuleAt(moduleId: module.id, gridX: gridX, gridY: gridY);
   }
 
+  void _moveCellInSelectedModuleAt({
+    required int sourceGridX,
+    required int sourceGridY,
+    required int targetGridX,
+    required int targetGridY,
+  }) {
+    final module = _selectedModule();
+    if (module == null) {
+      return;
+    }
+    _moveCellInModuleAt(
+      moduleId: module.id,
+      sourceGridX: sourceGridX,
+      sourceGridY: sourceGridY,
+      targetGridX: targetGridX,
+      targetGridY: targetGridY,
+    );
+  }
+
   void _eraseCellInModuleAt({
     required String moduleId,
     required int gridX,
@@ -364,6 +383,62 @@ extension _PrefabCreatorModuleLogic on _PrefabCreatorPageState {
       _data = _data.copyWith(platformModules: nextModules);
       _statusMessage =
           'Erased cell ($gridX,$gridY) from "${module.id}" '
+          '(rev=${nextModule.revision}).';
+      _errorMessage = null;
+    });
+  }
+
+  void _moveCellInModuleAt({
+    required String moduleId,
+    required int sourceGridX,
+    required int sourceGridY,
+    required int targetGridX,
+    required int targetGridY,
+  }) {
+    if (sourceGridX == targetGridX && sourceGridY == targetGridY) {
+      return;
+    }
+    final module = _moduleById(moduleId);
+    if (module == null) {
+      return;
+    }
+    TileModuleCellDef? sourceCell;
+    final nextCells = <TileModuleCellDef>[];
+    for (final cell in module.cells) {
+      if (cell.gridX == sourceGridX && cell.gridY == sourceGridY) {
+        sourceCell ??= cell;
+        continue;
+      }
+      if (cell.gridX == targetGridX && cell.gridY == targetGridY) {
+        continue;
+      }
+      nextCells.add(cell);
+    }
+    if (sourceCell == null) {
+      return;
+    }
+    nextCells.add(
+      TileModuleCellDef(
+        sliceId: sourceCell.sliceId,
+        gridX: targetGridX,
+        gridY: targetGridY,
+      ),
+    );
+
+    final nextModule = module.copyWith(
+      revision: module.revision + 1,
+      cells: nextCells,
+    );
+    final nextModules = _sortedModulesForUi(
+      _data.platformModules
+          .map((m) => m.id == module.id ? nextModule : m)
+          .toList(growable: false),
+    );
+    _updateState(() {
+      _data = _data.copyWith(platformModules: nextModules);
+      _statusMessage =
+          'Moved cell ($sourceGridX,$sourceGridY) -> '
+          '($targetGridX,$targetGridY) in "${module.id}" '
           '(rev=${nextModule.revision}).';
       _errorMessage = null;
     });
@@ -431,11 +506,18 @@ extension _PrefabCreatorModuleLogic on _PrefabCreatorPageState {
       return;
     }
     final existing = _firstPlatformPrefabForModuleId(module.id);
+    final editing = _editingPrefab();
 
     _updateState(() {
       _selectedPrefabKind = PrefabKind.platform;
       _autoManagePlatformModule = false;
       _selectedPrefabPlatformModuleId = module.id;
+      if (existing != null) {
+        _editingPrefabKey = existing.prefabKey;
+      } else if (editing?.kind != PrefabKind.platform) {
+        // Prevent cross-kind upserts from mutating a previously loaded obstacle.
+        _editingPrefabKey = null;
+      }
       _prefabIdController.text = _prefabIdController.text.trim().isEmpty
           ? (existing?.id ?? '${module.id}_platform')
           : _prefabIdController.text.trim();

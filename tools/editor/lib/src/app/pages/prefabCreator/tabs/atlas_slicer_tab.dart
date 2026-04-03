@@ -77,6 +77,7 @@ extension _PrefabCreatorAtlasSlicerTab on _PrefabCreatorPageState {
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
                     labelText: 'Slice ID',
+                    floatingLabelBehavior: FloatingLabelBehavior.always,
                     hintText: 'village_crate_01 or ground_tile_01',
                   ),
                 ),
@@ -283,6 +284,7 @@ extension _PrefabCreatorAtlasSlicerTab on _PrefabCreatorPageState {
           ),
           Positioned.fill(
             child: Listener(
+              key: const ValueKey<String>('atlas_scene_canvas'),
               onPointerSignal: _onAtlasPointerSignal,
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
@@ -337,8 +339,10 @@ extension _PrefabCreatorAtlasSlicerTab on _PrefabCreatorPageState {
       child: ScrollConfiguration(
         behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
         child: SingleChildScrollView(
+          key: const ValueKey<String>('atlas_scene_vertical_scroll'),
           controller: _atlasVerticalScrollController,
           child: SingleChildScrollView(
+            key: const ValueKey<String>('atlas_scene_horizontal_scroll'),
             controller: _atlasHorizontalScrollController,
             scrollDirection: Axis.horizontal,
             child: stack,

@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 2,
+  "slices": [
+    {
+      "id": "village_bench_01",
+      "sourceImagePath": "assets/images/level/props/TX Village Props.png",
+      "x": 448,
+      "y": 80,
+      "width": 96,
+      "height": 48
+    },
+    {
+      "id": "village_foin_01",
+      "sourceImagePath": "assets/images/level/props/TX Village Props.png",
+      "x": 176,
+      "y": 240,
+      "width": 96,
+      "height": 64
+    },
+    {
+      "id": "village_logs_01",
+      "sourceImagePath": "assets/images/level/props/TX Village Props.png",
+      "x": 160,
+      "y": 320,
+      "width": 96,
+      "height": 64
+    },
+    {
+      "id": "village_well_01",
+      "sourceImagePath": "assets/images/level/props/TX Village Props.png",
+      "x": 31,
+      "y": 160,
+      "width": 96,
+      "height": 96
+    }
+  ],
+  "prefabs": [
+    {
+      "prefabKey": "platform_grass_64x32",
+      "id": "platform_grass_32x32",
+      "revision": 2,
+      "status": "active",
+      "kind": "platform",
+      "visualSource": {
+        "type": "platform_module",
+        "moduleId": "platform_grass_32x32"
+      },
+      "anchorXPx": 32,
+      "anchorYPx": 16,
+      "colliders": [
+        {
+          "offsetX": -16,
+          "offsetY": 1,
+          "width": 30,
+          "height": 31
+        }
+      ],
+      "tags": [
+        "dirt",
+        "grass"
+      ],
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabKey": "platform_grass_96x32",
+      "id": "platform_grass_96x32",
+      "revision": 6,
+      "status": "active",
+      "kind": "platform",
+      "visualSource": {
+        "type": "platform_module",
+        "moduleId": "platform_grass_96x32"
+      },
+      "anchorXPx": 49,
+      "anchorYPx": 16,
+      "colliders": [
+        {
+          "offsetX": -1,
+          "offsetY": 0,
+          "width": 96,
+          "height": 30
+        }
+      ],
+      "tags": [],
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabKey": "village_well_01",
+      "id": "village_foin_01",
+      "revision": 8,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "village_foin_01"
+      },
+      "anchorXPx": 47,
+      "anchorYPx": 35,
+      "colliders": [
+        {
+          "offsetX": 0,
+          "offsetY": 0,
+          "width": 35,
+          "height": 24
+        }
+      ],
+      "tags": [
+        "village",
+        "well"
+      ],
+      "zIndex": 0,
+      "snapToGrid": true
+    }
+  ]
+}

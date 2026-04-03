@@ -129,32 +129,6 @@ extension _PrefabCreatorPlatformModulesTab on _PrefabCreatorPageState {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Scene Tool',
-                  style: Theme.of(context).textTheme.titleSmall,
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final tool in PlatformModuleSceneTool.values)
-                      ChoiceChip(
-                        key: ValueKey<String>('module_tool_${tool.name}'),
-                        label: Text(tool.label),
-                        selected: _selectedModuleSceneTool == tool,
-                        onSelected: (selected) {
-                          if (!selected) {
-                            return;
-                          }
-                          _updateState(() {
-                            _selectedModuleSceneTool = tool;
-                          });
-                        },
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
                   'Tile Slice Palette',
                   style: Theme.of(context).textTheme.titleSmall,
                 ),
@@ -179,11 +153,6 @@ extension _PrefabCreatorPlatformModulesTab on _PrefabCreatorPageState {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Module Scene',
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
-              const SizedBox(height: 8),
               Expanded(
                 flex: 3,
                 child: selectedModule == null
@@ -205,6 +174,11 @@ extension _PrefabCreatorPlatformModulesTab on _PrefabCreatorPageState {
                         selectedTileSliceId: _selectedTileSliceId,
                         overlayValues: sceneValues,
                         onOverlayValuesChanged: _onPrefabSceneValuesChanged,
+                        onToolChanged: (tool) {
+                          _updateState(() {
+                            _selectedModuleSceneTool = tool;
+                          });
+                        },
                         onPaintCell: (gridX, gridY, sliceId) {
                           _paintCellInSelectedModuleAt(
                             gridX: gridX,
@@ -218,6 +192,20 @@ extension _PrefabCreatorPlatformModulesTab on _PrefabCreatorPageState {
                             gridY: gridY,
                           );
                         },
+                        onMoveCell:
+                            (
+                              sourceGridX,
+                              sourceGridY,
+                              targetGridX,
+                              targetGridY,
+                            ) {
+                              _moveCellInSelectedModuleAt(
+                                sourceGridX: sourceGridX,
+                                sourceGridY: sourceGridY,
+                                targetGridX: targetGridX,
+                                targetGridY: targetGridY,
+                              );
+                            },
                       ),
               ),
               const SizedBox(height: 12),

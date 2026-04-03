@@ -46,14 +46,26 @@ extension _PrefabCreatorDataIo on _PrefabCreatorPageState {
         _atlasImagePaths = atlasPaths;
         _selectedAtlasPath = selectedAtlas;
         _clearSelection();
-        _selectedPrefabKind = PrefabKind.obstacle;
-        _editingPrefabKey = null;
         _selectedPrefabSliceId = loaded.prefabSlices.isEmpty
             ? null
             : loaded.prefabSlices.first.id;
-        _selectedPrefabPlatformModuleId = loaded.platformModules.isEmpty
+        final defaultPlatformModuleId = loaded.platformModules.isEmpty
             ? null
             : (firstActiveModuleId ?? loaded.platformModules.first.id);
+        var defaultPlatformTileSize = 16;
+        if (defaultPlatformModuleId != null) {
+          for (final module in loaded.platformModules) {
+            if (module.id == defaultPlatformModuleId) {
+              defaultPlatformTileSize = module.tileSize;
+              break;
+            }
+          }
+        }
+        _seedPrefabDraftsForLoadedData(
+          defaultPlatformModuleId: defaultPlatformModuleId,
+          defaultPlatformTileSize: defaultPlatformTileSize,
+        );
+        _restoreDraftForCurrentTab();
         _selectedTileSliceId = loaded.tileSlices.isEmpty
             ? null
             : loaded.tileSlices.first.id;

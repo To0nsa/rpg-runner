@@ -219,7 +219,8 @@ extension _PrefabCreatorPrefabLogic on _PrefabCreatorPageState {
     final editingKey = _editingPrefabKey?.trim();
     if (editingKey != null && editingKey.isNotEmpty) {
       for (final prefab in _data.prefabs) {
-        if (prefab.prefabKey == editingKey) {
+        if (prefab.prefabKey == editingKey &&
+            prefab.kind == _selectedPrefabKind) {
           return prefab;
         }
       }
