@@ -288,7 +288,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage> {
               itemBuilder: (context, index) {
                 final chunk = chunks[index];
                 final isSelected = chunk.chunkKey == _selectedChunkKey;
-                final isDirty = widget.controller.dirtyEntryIds.contains(
+                final isDirty = widget.controller.dirtyItemIds.contains(
                   chunk.chunkKey,
                 );
                 return ListTile(
@@ -778,8 +778,8 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'chunks=${pendingChanges.changedEntryIds.length} '
-                    'files=${pendingChanges.fileDiffs.length}',
+                      'chunks=${pendingChanges.changedItemIds.length} '
+                      'files=${pendingChanges.fileDiffs.length}',
                   ),
                   if (pendingChanges.fileDiffs.length > 1) ...[
                     const SizedBox(height: 8),
@@ -975,7 +975,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage> {
         return AlertDialog(
           title: const Text('Apply Chunk Changes'),
           content: Text(
-            'Write ${pendingChanges.changedEntryIds.length} chunk change(s) '
+            'Write ${pendingChanges.changedItemIds.length} chunk change(s) '
             'across ${pendingChanges.fileDiffs.length} file(s)?',
           ),
           actions: [

@@ -99,23 +99,25 @@ class PendingFileDiff {
 
 /// Plugin-reported pending-change summary for unsaved edits.
 ///
-/// Keep [changedEntryIds] and [fileDiffs] coherent: if there are material
-/// edits, both should generally describe the same change set.
+/// [changedItemIds] contains domain-defined opaque ids for changed authoring
+/// objects when the UI needs per-item dirty state. [fileDiffs] describes the
+/// pending file writes. A domain may populate one or both collections depending
+/// on the workflow it supports.
 @immutable
 class PendingChanges {
   const PendingChanges({
-    this.changedEntryIds = const <String>[],
+    this.changedItemIds = const <String>[],
     this.fileDiffs = const <PendingFileDiff>[],
   });
 
-  final List<String> changedEntryIds;
+  final List<String> changedItemIds;
   final List<PendingFileDiff> fileDiffs;
 
   /// Fast unsaved-changes gate used by session/UI.
   ///
-  /// Checks both entry ids and file diffs so this remains correct even if one
+  /// Checks both item ids and file diffs so this remains correct even if one
   /// side is accidentally left empty by a plugin implementation.
-  bool get hasChanges => changedEntryIds.isNotEmpty || fileDiffs.isNotEmpty;
+  bool get hasChanges => changedItemIds.isNotEmpty || fileDiffs.isNotEmpty;
 }
 
 /// Domain adapter contract between editor session orchestration and a concrete

@@ -322,7 +322,7 @@ class EntityDomainPlugin implements AuthoringDomainPlugin {
         .toList(growable: false);
 
     return PendingChanges(
-      changedEntryIds: changedEntries.map((entry) => entry.id).toList(),
+      changedItemIds: changedEntries.map((entry) => entry.id).toList(),
       fileDiffs: fileDiffs,
     );
   }

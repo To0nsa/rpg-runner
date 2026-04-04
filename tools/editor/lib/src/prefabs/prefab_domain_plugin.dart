@@ -168,10 +168,7 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
         )
         .toList(growable: false);
 
-    return PendingChanges(
-      changedEntryIds: fileDiffs.map((diff) => diff.relativePath).toList(),
-      fileDiffs: fileDiffs,
-    );
+    return PendingChanges(fileDiffs: fileDiffs);
   }
 
   PrefabDocument _asPrefabDocument(AuthoringDocument document) {

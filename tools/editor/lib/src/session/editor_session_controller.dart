@@ -57,9 +57,9 @@ class EditorSessionController extends ChangeNotifier {
   bool get canUndo => _undoStack.isNotEmpty;
   bool get canRedo => _redoStack.isNotEmpty;
   bool get hasUnsavedChanges => _pendingChanges.hasChanges;
-  Set<String> get dirtyEntryIds =>
-      Set<String>.unmodifiable(_pendingChanges.changedEntryIds);
-  int get dirtyEntryCount => _pendingChanges.changedEntryIds.length;
+  Set<String> get dirtyItemIds =>
+      Set<String>.unmodifiable(_pendingChanges.changedItemIds);
+  int get dirtyItemCount => _pendingChanges.changedItemIds.length;
   int get dirtyFileCount => _pendingChanges.fileDiffs.length;
 
   EntityScene? get entityScene =>
@@ -272,4 +272,3 @@ class EditorSessionController extends ChangeNotifier {
     }
   }
 }
-

@@ -149,7 +149,7 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
         .toList(growable: false);
 
     return PendingChanges(
-      changedEntryIds: savePlan.changedChunkKeys,
+      changedItemIds: savePlan.changedChunkKeys,
       fileDiffs: fileDiffs,
     );
   }

@@ -157,8 +157,8 @@ void main() {
     );
 
     final pending = controller.pendingChanges;
-    expect(pending.changedEntryIds, contains(entry.id));
-    expect(pending.changedEntryIds.length, 1);
+    expect(pending.changedItemIds, contains(entry.id));
+    expect(pending.changedItemIds.length, 1);
     expect(pending.fileDiffs, isNotEmpty);
     final combinedDiff = pending.fileDiffs
         .map((fileDiff) => fileDiff.unifiedDiff)
@@ -197,7 +197,7 @@ void main() {
       expect(edited.halfX, originalHalfX + 2.0);
       expect(controller.canUndo, isTrue);
       expect(controller.canRedo, isFalse);
-      expect(controller.dirtyEntryIds, contains(enemy.id));
+      expect(controller.dirtyItemIds, contains(enemy.id));
       expect(controller.pendingChanges.fileDiffs, isNotEmpty);
 
       controller.undo();
@@ -207,7 +207,7 @@ void main() {
       );
       expect(undone.halfX, originalHalfX);
       expect(controller.canRedo, isTrue);
-      expect(controller.dirtyEntryIds, isNot(contains(enemy.id)));
+      expect(controller.dirtyItemIds, isNot(contains(enemy.id)));
 
       controller.redo();
 
@@ -215,7 +215,7 @@ void main() {
         (entry) => entry.id == enemy.id,
       );
       expect(redone.halfX, originalHalfX + 2.0);
-      expect(controller.dirtyEntryIds, contains(enemy.id));
+      expect(controller.dirtyItemIds, contains(enemy.id));
     },
   );
 

@@ -101,7 +101,7 @@ void main() {
           document: edited,
         );
         expect(pending.hasChanges, isTrue);
-        expect(pending.changedEntryIds, contains('chunk_field_001'));
+        expect(pending.changedItemIds, contains('chunk_field_001'));
         expect(pending.fileDiffs.single.relativePath, endsWith('.json'));
 
         final issueCodes = plugin.validate(edited).map((i) => i.code).toList();

@@ -185,7 +185,7 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage> {
       return;
     }
 
-    final changedEntries = pendingChanges.changedEntryIds.length;
+    final changedEntries = pendingChanges.changedItemIds.length;
     final changedFiles = pendingChanges.fileDiffs.length;
     final confirmed = await showDialog<bool>(
       context: context,
@@ -332,7 +332,7 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage> {
           child: _EntityTable(
             entries: visibleEntries,
             selectedId: _selectedEntryId,
-            dirtyEntryIds: widget.controller.dirtyEntryIds,
+            dirtyItemIds: widget.controller.dirtyItemIds,
             onSelect: (id) {
               _selectEntryById(scene, id);
             },
@@ -362,7 +362,7 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage> {
       selectedEntry: selectedEntry,
       isDirty:
           selectedEntry != null &&
-          widget.controller.dirtyEntryIds.contains(selectedEntry.id),
+          widget.controller.dirtyItemIds.contains(selectedEntry.id),
       halfXController: _halfXController,
       halfYController: _halfYController,
       offsetXController: _offsetXController,
@@ -432,7 +432,7 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage> {
             ),
             const SizedBox(height: 8),
             Text(
-              'entries: ${pendingChanges.changedEntryIds.length} '
+              'entries: ${pendingChanges.changedItemIds.length} '
               'files: ${pendingChanges.fileDiffs.length}',
             ),
             if (pendingChanges.fileDiffs.length > 1) ...[
@@ -548,7 +548,7 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage> {
             return false;
           }
           if (_showDirtyOnly &&
-              !widget.controller.dirtyEntryIds.contains(entry.id)) {
+              !widget.controller.dirtyItemIds.contains(entry.id)) {
             return false;
           }
           if (query.isEmpty) {
@@ -859,13 +859,13 @@ class _EntityTable extends StatelessWidget {
   const _EntityTable({
     required this.entries,
     required this.selectedId,
-    required this.dirtyEntryIds,
+    required this.dirtyItemIds,
     required this.onSelect,
   });
 
   final List<EntityEntry> entries;
   final String? selectedId;
-  final Set<String> dirtyEntryIds;
+  final Set<String> dirtyItemIds;
   final ValueChanged<String> onSelect;
 
   @override
@@ -879,7 +879,7 @@ class _EntityTable extends StatelessWidget {
           columns: const [DataColumn(label: SizedBox.shrink())],
           rows: entries
               .map((entry) {
-                final isDirty = dirtyEntryIds.contains(entry.id);
+                final isDirty = dirtyItemIds.contains(entry.id);
                 return DataRow(
                   selected: entry.id == selectedId,
                   onSelectChanged: (_) => onSelect(entry.id),
