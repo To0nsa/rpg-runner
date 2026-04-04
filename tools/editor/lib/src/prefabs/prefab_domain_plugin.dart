@@ -25,9 +25,6 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
   String get id => pluginId;
 
   @override
-  String get displayName => 'Prefabs';
-
-  @override
   Future<AuthoringDocument> loadFromRepo(EditorWorkspace workspace) async {
     final loadResult = await _store.loadWithReport(workspace.rootPath);
     final atlasImagePaths = _discoverAtlasImages(workspace);

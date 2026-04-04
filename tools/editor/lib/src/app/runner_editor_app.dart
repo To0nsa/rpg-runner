@@ -9,7 +9,11 @@ import 'pages/home/editor_home_page.dart';
 
 void runEditorApp({required String initialWorkspacePath}) {
   final registry = AuthoringPluginRegistry(
-    plugins: [EntityDomainPlugin(), PrefabDomainPlugin(), ChunkDomainPlugin()],
+    plugins: [
+      EntityDomainPlugin(),
+      PrefabDomainPlugin(),
+      ChunkDomainPlugin()
+    ],
   );
 
   final controller = EditorSessionController(

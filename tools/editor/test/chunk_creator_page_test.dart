@@ -142,9 +142,6 @@ class _InMemoryChunkPlugin implements AuthoringDomainPlugin {
   String get id => ChunkDomainPlugin.pluginId;
 
   @override
-  String get displayName => 'Chunks';
-
-  @override
   Future<AuthoringDocument> loadFromRepo(EditorWorkspace workspace) async {
     return _initialDocument;
   }

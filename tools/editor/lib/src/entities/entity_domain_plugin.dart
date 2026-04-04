@@ -16,9 +16,6 @@ class EntityDomainPlugin implements AuthoringDomainPlugin {
   String get id => pluginId;
 
   @override
-  String get displayName => 'Entities';
-
-  @override
   Future<AuthoringDocument> loadFromRepo(EditorWorkspace workspace) async {
     final parseResult = EntitySourceParser().parse(workspace);
     final baseline = <String, EntityEntry>{
@@ -283,10 +280,7 @@ class EntityDomainPlugin implements AuthoringDomainPlugin {
           ),
       ];
 
-      return ExportResult(
-        applied: true,
-        artifacts: artifacts,
-      );
+      return ExportResult(applied: true, artifacts: artifacts);
     } catch (error) {
       return ExportResult(
         applied: false,

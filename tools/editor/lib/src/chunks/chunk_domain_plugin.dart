@@ -15,9 +15,6 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
   String get id => pluginId;
 
   @override
-  String get displayName => 'Chunks';
-
-  @override
   Future<AuthoringDocument> loadFromRepo(EditorWorkspace workspace) async {
     final loaded = await _store.load(
       workspace,

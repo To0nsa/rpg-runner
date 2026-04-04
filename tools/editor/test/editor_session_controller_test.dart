@@ -37,10 +37,9 @@ void main() {
       expect(controller.loadError, isNull);
 
       await controller.exportDirectWrite();
-      expect(
-        plugin.exportWorkspaceRoots,
-        <String>[EditorWorkspace(rootPath: workspaceA.path).rootPath],
-      );
+      expect(plugin.exportWorkspaceRoots, <String>[
+        EditorWorkspace(rootPath: workspaceA.path).rootPath,
+      ]);
 
       controller.setWorkspacePath(workspaceB.path);
       expect(controller.workspace, isNull);
@@ -48,21 +47,17 @@ void main() {
       expect(controller.scene, isNull);
 
       await controller.exportDirectWrite();
-      expect(
-        plugin.exportWorkspaceRoots,
-        <String>[EditorWorkspace(rootPath: workspaceA.path).rootPath],
-      );
+      expect(plugin.exportWorkspaceRoots, <String>[
+        EditorWorkspace(rootPath: workspaceA.path).rootPath,
+      ]);
 
       await controller.loadWorkspace();
       expect(controller.loadError, isNull);
       await controller.exportDirectWrite();
-      expect(
-        plugin.exportWorkspaceRoots,
-        <String>[
-          EditorWorkspace(rootPath: workspaceA.path).rootPath,
-          EditorWorkspace(rootPath: workspaceB.path).rootPath,
-        ],
-      );
+      expect(plugin.exportWorkspaceRoots, <String>[
+        EditorWorkspace(rootPath: workspaceA.path).rootPath,
+        EditorWorkspace(rootPath: workspaceB.path).rootPath,
+      ]);
     },
   );
 }
@@ -72,9 +67,6 @@ class _RecordingPlugin implements AuthoringDomainPlugin {
 
   @override
   String get id => 'recording';
-
-  @override
-  String get displayName => 'Recording';
 
   @override
   AuthoringDocument applyEdit(

@@ -64,9 +64,6 @@ class _FakeEntitiesPlugin implements AuthoringDomainPlugin {
   String get id => EntityDomainPlugin.pluginId;
 
   @override
-  String get displayName => 'Entities';
-
-  @override
   AuthoringDocument applyEdit(
     AuthoringDocument document,
     AuthoringCommand command,
@@ -111,9 +108,6 @@ class _FakeChunkPlugin implements AuthoringDomainPlugin {
 
   @override
   String get id => ChunkDomainPlugin.pluginId;
-
-  @override
-  String get displayName => 'Chunks';
 
   @override
   AuthoringDocument applyEdit(
@@ -181,9 +175,6 @@ class _FakeChunkPlugin implements AuthoringDomainPlugin {
 class _FakePrefabPlugin implements AuthoringDomainPlugin {
   @override
   String get id => PrefabDomainPlugin.pluginId;
-
-  @override
-  String get displayName => 'Prefabs';
 
   @override
   AuthoringDocument applyEdit(
