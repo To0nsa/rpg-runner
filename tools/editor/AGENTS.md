@@ -4,15 +4,41 @@ Instructions for AI coding agents working in `tools/editor/`.
 
 ## Editor Responsibility
 
-`tools/editor` is a standalone Flutter authoring app for `rpg_runner` content
-workflows. It owns editor UX, validation, and deterministic persistence for:
+`tools/editor` is a standalone Flutter authoring app for repository-backed
+content workflows in `rpg_runner`.
+
+It currently owns editor UX, validation, and deterministic import/export for:
 
 - entity collider/source-bound edits
-- prefab + tile/module authoring data
+- prefab, tile, and platform-module authoring data
 - chunk authoring data
 
-Gameplay authority remains in `packages/runner_core/lib/**`. Do not move runtime
-rules into the editor.
+The editor may author data consumed by gameplay, but gameplay authority stays
+outside the editor:
+
+- runtime rules and simulation authority remain in `packages/runner_core/lib/**`
+- source-of-truth repository writes remain explicit, deterministic, and
+  reviewable
+- do not turn the editor into a gameplay shell, a generic asset manager, or a
+  backend/admin tool
+
+## Scope And Growth Direction
+
+Keep the editor small, focused, and extensible.
+
+- small: prefer the least abstraction that cleanly serves current authoring
+  workflows
+- focused: this app exists to safely edit repository content that the team
+  actively needs to author
+- extensible: new authoring domains such as animation data or other
+  gameplay-facing data are allowed when there is a concrete current workflow to
+  support
+- future growth should add one bounded authoring domain at a time, with a clear
+  source of truth, deterministic validation/export rules, and tests
+- future-proofing means preserving clean seams so new domains can slot into the
+  existing plugin/session architecture without broad rewrites
+- do not build speculative platform layers, generic tool frameworks, or
+  "someday" abstractions for workflows that do not exist yet
 
 ## Read First
 
@@ -29,13 +55,20 @@ rules into the editor.
 - plugin contract + registry:
   - `tools/editor/lib/src/domain/authoring_types.dart`
   - `tools/editor/lib/src/domain/authoring_plugin_registry.dart`
-- routes:
-  - `Entities` route (plugin-backed)
-  - `Chunk Creator` route (plugin-backed)
-  - `Prefab Creator` route (page/state/store workflow; currently not a domain
-    plugin)
+- plugin-backed routes:
+  - `Entities` route -> `EntityDomainPlugin`
+  - `Prefab Creator` route -> `PrefabDomainPlugin`
+  - `Chunk Creator` route -> `ChunkDomainPlugin`
+- route/plugin mapping and session-coherent route switching:
+  - `tools/editor/lib/src/app/pages/home/home_routes.dart`
+  - `tools/editor/lib/src/app/pages/home/editor_home_page.dart`
 - shared scene/view primitives:
   - `tools/editor/lib/src/app/pages/shared/**`
+
+Page widgets may own transient UI state such as selection, tool mode, tab
+state, viewport state, and form drafts. Repository load/validate/export
+authority belongs in plugins and stores, not in alternate page-level write
+paths.
 
 ## Modularization, Reuse, And Redundancy Bar
 
@@ -43,23 +76,27 @@ Treat editor changes as maintainability work, not just feature delivery.
 
 - reuse-first: before adding new helpers/widgets/state flows, search existing
   code (`rg`) for equivalent behavior and extend what already exists when
-  possible.
+  possible
 - no copy/paste feature logic across routes: if the same behavior appears in
   two places, consolidate into shared code in the same change unless there is a
-  clear blocker.
+  clear blocker
 - shared scene behavior belongs in `tools/editor/lib/src/app/pages/shared/**`;
-  avoid per-page forks for pan/zoom/grid/input semantics.
+  avoid per-page forks for pan/zoom/grid/input semantics
 - domain logic belongs in domain/state/store files, not in widget trees:
   - parsing/migration/serialization in `src/*/store.dart` or parser files
   - validation rules in `src/*/validation.dart`
   - command/state transitions in plugin or page-state logic files
 - keep deterministic rules single-sourced (sorting, slug allocation, identity
   normalization, revision bump policy). Do not duplicate these rules in both UI
-  and store layers.
+  and store layers
+- page-local state is allowed for editing ergonomics, but it must reconcile
+  through one plugin-owned document/export path
 - remove dead or shadowed code paths as part of the change; do not leave
-  parallel legacy paths without explicit removal criteria.
+  parallel legacy paths without explicit removal criteria
 - if temporary duplication is unavoidable, annotate with a tracked TODO and a
-  clear removal trigger, then close it quickly.
+  clear removal trigger, then close it quickly
+- when adding a future authoring domain, compose the existing session/plugin and
+  shared-scene infrastructure before introducing new framework layers
 
 Before finalizing non-trivial edits, do a redundancy pass:
 
@@ -72,47 +109,68 @@ Before finalizing non-trivial edits, do a redundancy pass:
 
 ### Entities Domain
 
-- Owner: `tools/editor/lib/src/entities/**`
-- Plugin: `EntityDomainPlugin`
-- Source parser: `entity_source_parser.dart`
-- Writes are direct source edits against authoritative Dart files using source
-  bindings/range replacement guards.
-- Keep drift safety and backup behavior intact; do not bypass plugin/export
-  guardrails with ad-hoc file writes.
+- owner: `tools/editor/lib/src/entities/**`
+- plugin: `EntityDomainPlugin`
+- source parser: `entity_source_parser.dart`
+- writes are direct source edits against authoritative Dart files using source
+  bindings/range replacement guards
+- keep drift safety and backup behavior intact; do not bypass plugin/export
+  guardrails with ad-hoc file writes
 
 ### Prefab + Tile/Module Domain
 
-- Owner: `tools/editor/lib/src/prefabs/**` and
+- owner: `tools/editor/lib/src/prefabs/**` and
   `tools/editor/lib/src/app/pages/prefabCreator/**`
-- Source-of-truth files:
+- plugin: `PrefabDomainPlugin`
+- source-of-truth files:
   - `assets/authoring/level/prefab_defs.json`
   - `assets/authoring/level/tile_defs.json`
-- Persist through `PrefabStore` so canonical ordering, migration defaults, and
-  atomic paired writes stay consistent.
-- Validation is structural and contract-oriented; keep obstacle/platform
-  contracts typed and deterministic.
+- persist through `PrefabStore` so canonical ordering, migration defaults, and
+  atomic paired writes stay consistent
+- page-local form and scene state may stay in `prefabCreator/**`, but
+  load/validate/export contracts still flow through the prefab plugin/store path
+- validation is structural and contract-oriented; keep obstacle/platform
+  contracts typed and deterministic
 
 ### Chunk Domain
 
-- Owner: `tools/editor/lib/src/chunks/**` and
+- owner: `tools/editor/lib/src/chunks/**` and
   `tools/editor/lib/src/app/pages/chunkCreator/chunk_creator_page.dart`
-- Plugin: `ChunkDomainPlugin`
-- Source-of-truth directory: `assets/authoring/level/chunks/*.json`
-- Keep one-chunk-per-file semantics, stable `chunkKey`, deterministic save-plan
-  output, source-drift checks, and case-insensitive path-collision protection.
+- plugin: `ChunkDomainPlugin`
+- source-of-truth directory: `assets/authoring/level/chunks/*.json`
+- keep one-chunk-per-file semantics, stable `chunkKey`, deterministic save-plan
+  output, source-drift checks, and case-insensitive path-collision protection
+
+### Future Authoring Domains
+
+New authoring domains are allowed when they represent a real current workflow,
+for example animation authoring or additional gameplay-facing data authoring.
+
+Each new domain should define:
+
+- an owning folder under `tools/editor/lib/src/**`
+- authoritative repo files or source bindings
+- a plugin id and route mapping when the workflow is user-facing
+- deterministic validation and export rules
+- focused tests for load/edit/export/session behavior
+
+Do not overload an existing plugin with unrelated concerns just to avoid adding
+a well-bounded new domain.
 
 ## Determinism And Validation Rules
 
-- Preserve canonical ordering and serialization in stores/models.
-- Keep validation/export gating strict: blocking errors must prevent writes.
-- Keep migration behavior explicit, deterministic, and test-backed.
-- Do not silently coerce identity fields (`chunkKey`, `prefabKey`, module IDs)
-  in a way that breaks existing references.
+- preserve canonical ordering and serialization in stores/models
+- keep validation/export gating strict: blocking errors must prevent writes
+- keep migration behavior explicit, deterministic, and test-backed
+- do not silently coerce identity fields (`chunkKey`, `prefabKey`, module IDs)
+  in a way that breaks existing references
+- keep pending-change previews coherent with actual export behavior; UI should
+  not imply writes the plugin will not perform
 
 ## Scene/Input Control Rules
 
-Scene interaction behavior for phase-touched views must stay consistent through
-shared code under `tools/editor/lib/src/app/pages/shared/scene_input_utils.dart`.
+Scene interaction behavior for touched views must stay consistent through shared
+code under `tools/editor/lib/src/app/pages/shared/scene_input_utils.dart`.
 
 - `Ctrl+drag`: pan
 - `Ctrl+scroll`: zoom stepping
@@ -125,16 +183,19 @@ Do not introduce per-view control drift without explicit rationale and tests.
 
 When adding a new plugin-backed authoring domain:
 
-1. Implement `AuthoringDomainPlugin` end to end (`load`, `validate`,
-   `buildEditableScene`, `applyEdit`, `describePendingChanges`, `exportToRepo`).
+1. Implement `AuthoringDomainPlugin` end to end (`loadFromRepo`, `validate`,
+   `buildEditableScene`, `applyEdit`, `describePendingChanges`,
+   `exportToRepo`).
 2. Register the plugin in `runner_editor_app.dart`.
 3. Wire route/plugin mapping in `home_routes.dart`.
 4. Ensure route switching remains session-coherent in `editor_home_page.dart`.
-5. Add/adjust focused tests for load/edit/export and route-switch behavior.
+5. Keep page-local UI state as a projection over plugin-owned document state,
+   not as a second persistence authority.
+6. Add or adjust focused tests for load/edit/export and route/workspace
+   switching behavior.
 
-For page-managed workflows (like current `Prefab Creator`), keep state/I/O
-logic scoped to that page and use shared scene utilities instead of duplicating
-viewport/input infrastructure.
+If a route is widget-heavy, keep that complexity in UI composition and local
+interaction state. Do not let that become a second import/export architecture.
 
 ## Validation Expectations
 
@@ -145,12 +206,20 @@ Minimum checks for editor changes:
 
 Run focused tests for touched slices, for example:
 
-- entities/source editing: `tools/editor/test/widget_test.dart`
+- session/route/plugin coordination:
+  - `tools/editor/test/home_route_plugin_switch_test.dart`
+  - `tools/editor/test/editor_session_controller_test.dart`
+- workspace/path safety:
+  - `tools/editor/test/editor_workspace_test.dart`
+- entities/source editing:
+  - `tools/editor/test/widget_test.dart`
 - prefab/module workflows:
   - `tools/editor/test/prefab_store_test.dart`
   - `tools/editor/test/prefab_validation_test.dart`
   - `tools/editor/test/prefab_creator_page_test.dart`
+  - `tools/editor/test/prefab_overlay_interaction_test.dart`
   - `tools/editor/test/platform_module_scene_view_test.dart`
+  - `tools/editor/test/workspace_scoped_size_cache_test.dart`
   - `tools/editor/test/scene_control_parity_test.dart`
 - chunk workflows:
   - `tools/editor/test/chunk_store_test.dart`
@@ -158,9 +227,13 @@ Run focused tests for touched slices, for example:
   - `tools/editor/test/chunk_domain_plugin_test.dart`
   - `tools/editor/test/chunk_domain_plugin_integration_test.dart`
   - `tools/editor/test/chunk_creator_page_test.dart`
+- runtime authoring adapters when touched:
+  - `tools/editor/test/prefab_runtime_adapter_test.dart`
 
-When authoring-runtime contract seams are touched, also run repo-level generator
-validation (`dart run tool/generate_chunk_runtime_data.dart --dry-run`).
+When authoring-runtime contract seams are touched, also run repo-level
+generator validation:
+
+- `dart run tool/generate_chunk_runtime_data.dart --dry-run`
 
 ## Common Failure Modes To Avoid
 
@@ -170,6 +243,9 @@ validation (`dart run tool/generate_chunk_runtime_data.dart --dry-run`).
 - leaking runtime gameplay rules into editor/UI layers
 - adding custom scene-input behavior in one view instead of reusing shared
   scene-control utilities
+- adding speculative abstractions for future workflows without a concrete
+  current authoring need
+- letting page-local state become a second source of truth for repo writes
 
 ## Documentation Upkeep
 
@@ -179,3 +255,5 @@ When editor contracts or workflows change:
 - update `tools/editor/README.md` for user-visible capability changes
 - update `docs/building/editor/chunkCreator/plan.md` and relevant phase
   checklist/closure docs for chunk/prefab milestone changes
+- for newly added authoring domains, add focused documentation only for the
+  implemented workflow; keep future ideas separate from current behavior

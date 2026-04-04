@@ -34,7 +34,7 @@ void main() {
     final renamed =
         plugin.applyEdit(
               document,
-              const AuthoringCommand(
+              AuthoringCommand(
                 kind: 'rename_chunk',
                 payload: <String, Object?>{
                   'chunkKey': 'chunk_a',
@@ -52,7 +52,7 @@ void main() {
     final deprecated =
         plugin.applyEdit(
               renamed,
-              const AuthoringCommand(
+              AuthoringCommand(
                 kind: 'deprecate_chunk',
                 payload: <String, Object?>{'chunkKey': 'chunk_a'},
               ),
@@ -91,7 +91,7 @@ void main() {
     final duplicated =
         plugin.applyEdit(
               document,
-              const AuthoringCommand(
+              AuthoringCommand(
                 kind: 'duplicate_chunk',
                 payload: <String, Object?>{'chunkKey': 'chunk_a'},
               ),
@@ -107,7 +107,7 @@ void main() {
     final collisionCreate =
         plugin.applyEdit(
               duplicated,
-              const AuthoringCommand(
+              AuthoringCommand(
                 kind: 'create_chunk',
                 payload: <String, Object?>{'id': 'chunk_a'},
               ),
@@ -125,7 +125,7 @@ void main() {
     final created =
         plugin.applyEdit(
               duplicated,
-              const AuthoringCommand(
+              AuthoringCommand(
                 kind: 'create_chunk',
                 payload: <String, Object?>{'id': 'chunk_b'},
               ),
@@ -184,7 +184,7 @@ void main() {
       final next =
           plugin.applyEdit(
                 document,
-                const AuthoringCommand(
+                AuthoringCommand(
                   kind: 'duplicate_chunk',
                   payload: <String, Object?>{
                     'chunkKey': 'chunk_a',
@@ -234,7 +234,7 @@ void main() {
     final afterMetadata =
         plugin.applyEdit(
               document,
-              const AuthoringCommand(
+              AuthoringCommand(
                 kind: 'update_chunk_metadata',
                 payload: <String, Object?>{
                   'chunkKey': 'chunk_a',
@@ -249,7 +249,7 @@ void main() {
     final noOpMetadata =
         plugin.applyEdit(
               afterMetadata,
-              const AuthoringCommand(
+              AuthoringCommand(
                 kind: 'update_chunk_metadata',
                 payload: <String, Object?>{
                   'chunkKey': 'chunk_a',
@@ -263,7 +263,7 @@ void main() {
     final afterGround =
         plugin.applyEdit(
               noOpMetadata,
-              const AuthoringCommand(
+              AuthoringCommand(
                 kind: 'update_ground_profile',
                 payload: <String, Object?>{'chunkKey': 'chunk_a', 'topY': 16},
               ),
@@ -303,7 +303,7 @@ void main() {
 
       final noOpRename = plugin.applyEdit(
         document,
-        const AuthoringCommand(
+        AuthoringCommand(
           kind: 'rename_chunk',
           payload: <String, Object?>{'chunkKey': 'chunk_a', 'id': 'chunk_a'},
         ),
@@ -347,7 +347,7 @@ void main() {
 
     final cleared = plugin.applyEdit(
       document,
-      const AuthoringCommand(
+      AuthoringCommand(
         kind: 'rename_chunk',
         payload: <String, Object?>{'chunkKey': 'chunk_a', 'id': 'chunk_a'},
       ),
@@ -389,7 +389,7 @@ void main() {
     final next =
         plugin.applyEdit(
               document,
-              const AuthoringCommand(
+              AuthoringCommand(
                 kind: 'update_ground_gap',
                 payload: <String, Object?>{
                   'chunkKey': 'chunk_a',

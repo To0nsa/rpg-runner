@@ -26,7 +26,7 @@ class EditorSessionController extends ChangeNotifier {
   AuthoringDocument? _document;
   EditableScene? _scene;
   List<ValidationIssue> _issues = const <ValidationIssue>[];
-  PendingChanges _pendingChanges = const PendingChanges();
+  PendingChanges _pendingChanges = PendingChanges.empty;
   String? _pendingChangesError;
   ExportResult? _lastExportResult;
   final List<AuthoringDocument> _undoStack = <AuthoringDocument>[];
@@ -83,7 +83,7 @@ class EditorSessionController extends ChangeNotifier {
     _document = null;
     _scene = null;
     _issues = const <ValidationIssue>[];
-    _pendingChanges = const PendingChanges();
+    _pendingChanges = PendingChanges.empty;
     _pendingChangesError = null;
     _loadError = null;
     _exportError = null;
@@ -101,7 +101,7 @@ class EditorSessionController extends ChangeNotifier {
     _scene = null;
     _document = null;
     _issues = const <ValidationIssue>[];
-    _pendingChanges = const PendingChanges();
+    _pendingChanges = PendingChanges.empty;
     _pendingChangesError = null;
     _loadError = null;
     _lastExportResult = null;
@@ -246,7 +246,7 @@ class EditorSessionController extends ChangeNotifier {
     final workspace = _workspace;
     final document = _document;
     if (workspace == null || document == null) {
-      _pendingChanges = const PendingChanges();
+      _pendingChanges = PendingChanges.empty;
       _pendingChangesError = null;
       return;
     }
@@ -258,7 +258,7 @@ class EditorSessionController extends ChangeNotifier {
       );
       _pendingChangesError = null;
     } catch (error, stackTrace) {
-      _pendingChanges = const PendingChanges();
+      _pendingChanges = PendingChanges.empty;
       _pendingChangesError = '$error';
       FlutterError.reportError(
         FlutterErrorDetails(

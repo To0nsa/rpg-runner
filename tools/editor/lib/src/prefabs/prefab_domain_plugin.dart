@@ -106,7 +106,7 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
 
     final pending = describePendingChanges(workspace, document: prefabDocument);
     if (!pending.hasChanges) {
-      return const ExportResult(
+      return ExportResult(
         applied: false,
         artifacts: <ExportArtifact>[
           ExportArtifact(
@@ -155,7 +155,7 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
         .where((write) => write.beforeContent != write.afterContent)
         .toList(growable: false);
     if (changed.isEmpty) {
-      return const PendingChanges();
+      return PendingChanges.empty;
     }
 
     final fileDiffs = changed

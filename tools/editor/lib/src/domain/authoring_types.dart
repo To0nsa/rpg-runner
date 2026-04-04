@@ -5,16 +5,37 @@ import '../workspace/editor_workspace.dart';
 /// Immutable command envelope sent from UI/session to a domain plugin.
 ///
 /// [kind] is plugin-defined and should be stable across one editor version.
-/// [payload] carries command arguments as JSON-like scalar/map/list values.
+/// [payload] carries command arguments as JSON-like scalar/map/list values or
+/// immutable typed snapshots owned by the caller.
 @immutable
 class AuthoringCommand {
-  const AuthoringCommand({
+  AuthoringCommand({
     required this.kind,
-    this.payload = const <String, Object?>{},
-  });
+    Map<String, Object?> payload = const <String, Object?>{},
+  }) : payload = Map<String, Object?>.unmodifiable(
+         payload.map(
+           (key, value) =>
+               MapEntry<String, Object?>(key, _freezePayloadValue(value)),
+         ),
+       );
 
   final String kind;
   final Map<String, Object?> payload;
+
+  static Object? _freezePayloadValue(Object? value) {
+    if (value is Map<Object?, Object?>) {
+      return Map<Object?, Object?>.unmodifiable(
+        value.map(
+          (key, nestedValue) =>
+              MapEntry<Object?, Object?>(key, _freezePayloadValue(nestedValue)),
+        ),
+      );
+    }
+    if (value is List<Object?>) {
+      return List<Object?>.unmodifiable(value.map(_freezePayloadValue));
+    }
+    return value;
+  }
 }
 
 /// Plugin-owned immutable source-of-truth snapshot for one authoring domain.
@@ -71,10 +92,10 @@ class ExportArtifact {
 /// Session orchestration uses this to decide whether to reload workspace state.
 @immutable
 class ExportResult {
-  const ExportResult({
+  ExportResult({
     required this.applied,
-    this.artifacts = const <ExportArtifact>[],
-  });
+    List<ExportArtifact> artifacts = const <ExportArtifact>[],
+  }) : artifacts = List<ExportArtifact>.unmodifiable(artifacts);
 
   final bool applied;
   final List<ExportArtifact> artifacts;
@@ -105,10 +126,17 @@ class PendingFileDiff {
 /// on the workflow it supports.
 @immutable
 class PendingChanges {
-  const PendingChanges({
-    this.changedItemIds = const <String>[],
-    this.fileDiffs = const <PendingFileDiff>[],
-  });
+  PendingChanges({
+    List<String> changedItemIds = const <String>[],
+    List<PendingFileDiff> fileDiffs = const <PendingFileDiff>[],
+  }) : changedItemIds = List<String>.unmodifiable(changedItemIds),
+       fileDiffs = List<PendingFileDiff>.unmodifiable(fileDiffs);
+
+  static const PendingChanges empty = PendingChanges._empty();
+
+  const PendingChanges._empty()
+    : changedItemIds = const <String>[],
+      fileDiffs = const <PendingFileDiff>[];
 
   final List<String> changedItemIds;
   final List<PendingFileDiff> fileDiffs;
@@ -152,7 +180,7 @@ abstract class AuthoringDomainPlugin {
     required AuthoringDocument document,
   });
 
-  /// Describes file/entry deltas for [document] against repository baseline.
+  /// Describes file/item deltas for [document] against repository baseline.
   PendingChanges describePendingChanges(
     EditorWorkspace workspace, {
     required AuthoringDocument document,

@@ -302,7 +302,7 @@ class EntityDomainPlugin implements AuthoringDomainPlugin {
     final entityDocument = _asEntityDocument(document);
     final changedEntries = _changedEntries(entityDocument);
     if (changedEntries.isEmpty) {
-      return const PendingChanges();
+      return PendingChanges.empty;
     }
 
     final filePatches = _resolveFilePatches(

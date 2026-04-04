@@ -105,7 +105,7 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
 
     final savePlan = _store.buildSavePlan(workspace, document: scopedDocument);
     if (!savePlan.hasChanges) {
-      return const ExportResult(
+      return ExportResult(
         applied: false,
         artifacts: <ExportArtifact>[
           ExportArtifact(
@@ -136,7 +136,7 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
     final scopedDocument = _scopeDocumentToActiveLevel(chunkDocument);
     final savePlan = _store.buildSavePlan(workspace, document: scopedDocument);
     if (!savePlan.hasChanges) {
-      return const PendingChanges();
+      return PendingChanges.empty;
     }
     final fileDiffs = savePlan.writes
         .map(

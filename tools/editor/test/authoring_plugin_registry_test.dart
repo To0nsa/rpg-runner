@@ -47,7 +47,7 @@ class _FakePlugin implements AuthoringDomainPlugin {
     EditorWorkspace workspace, {
     required AuthoringDocument document,
   }) {
-    return const PendingChanges();
+    return PendingChanges.empty;
   }
 
   @override
@@ -55,7 +55,7 @@ class _FakePlugin implements AuthoringDomainPlugin {
     EditorWorkspace workspace, {
     required AuthoringDocument document,
   }) async {
-    return const ExportResult(applied: false);
+    return ExportResult(applied: false);
   }
 
   @override

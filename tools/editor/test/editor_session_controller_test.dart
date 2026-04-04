@@ -86,7 +86,7 @@ class _RecordingPlugin implements AuthoringDomainPlugin {
     EditorWorkspace workspace, {
     required AuthoringDocument document,
   }) {
-    return const PendingChanges();
+    return PendingChanges.empty;
   }
 
   @override
@@ -95,7 +95,7 @@ class _RecordingPlugin implements AuthoringDomainPlugin {
     required AuthoringDocument document,
   }) async {
     exportWorkspaceRoots.add(workspace.rootPath);
-    return const ExportResult(applied: false);
+    return ExportResult(applied: false);
   }
 
   @override

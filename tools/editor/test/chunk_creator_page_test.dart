@@ -169,7 +169,7 @@ class _InMemoryChunkPlugin implements AuthoringDomainPlugin {
     EditorWorkspace workspace, {
     required AuthoringDocument document,
   }) async {
-    return const ExportResult(applied: false);
+    return ExportResult(applied: false);
   }
 
   @override
@@ -177,6 +177,6 @@ class _InMemoryChunkPlugin implements AuthoringDomainPlugin {
     EditorWorkspace workspace, {
     required AuthoringDocument document,
   }) {
-    return const PendingChanges();
+    return PendingChanges.empty;
   }
 }

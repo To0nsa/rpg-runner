@@ -38,7 +38,7 @@ void main() {
         final switched =
             plugin.applyEdit(
                   loaded,
-                  const AuthoringCommand(
+                  AuthoringCommand(
                     kind: 'set_active_level',
                     payload: <String, Object?>{'levelId': 'forest'},
                   ),
@@ -57,7 +57,7 @@ void main() {
         final rejected =
             plugin.applyEdit(
                   switched,
-                  const AuthoringCommand(
+                  AuthoringCommand(
                     kind: 'set_active_level',
                     payload: <String, Object?>{'levelId': 'unknown'},
                   ),
@@ -87,7 +87,7 @@ void main() {
         final edited =
             plugin.applyEdit(
                   loaded,
-                  const AuthoringCommand(
+                  AuthoringCommand(
                     kind: 'update_chunk_metadata',
                     payload: <String, Object?>{
                       'chunkKey': 'chunk_field_001',
@@ -142,7 +142,7 @@ void main() {
       final edited =
           plugin.applyEdit(
                 loaded,
-                const AuthoringCommand(
+                AuthoringCommand(
                   kind: 'update_chunk_metadata',
                   payload: <String, Object?>{
                     'chunkKey': 'chunk_field_001',
