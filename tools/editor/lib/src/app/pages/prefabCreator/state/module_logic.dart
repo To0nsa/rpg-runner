@@ -458,6 +458,7 @@ extension _PrefabCreatorModuleLogic on _PrefabCreatorPageState {
         _selectedPrefabKind = PrefabKind.platform;
         _autoManagePlatformModule = false;
         _selectedPrefabPlatformModuleId = module.id;
+        _syncFormDraftBaseline();
         _statusMessage =
             'Loaded platform prefab "${existing.id}" for module "${module.id}".';
         _errorMessage = null;
@@ -494,6 +495,7 @@ extension _PrefabCreatorModuleLogic on _PrefabCreatorPageState {
       if (_prefabZIndexController.text.trim().isEmpty) {
         _prefabZIndexController.text = '0';
       }
+      _syncFormDraftBaseline();
       _statusMessage =
           'Initialized platform prefab form for module "${module.id}".';
       _errorMessage = null;

@@ -10,6 +10,7 @@ import '../../../entities/entity_domain_models.dart';
 import '../../../domain/authoring_types.dart';
 import '../../../session/editor_session_controller.dart';
 import 'inspector/entity_inspector_panel.dart';
+import '../shared/editor_page_local_draft_state.dart';
 import '../shared/editor_scene_viewport_frame.dart';
 import '../shared/editor_viewport_grid_painter.dart';
 import '../shared/scene_input_utils.dart';
@@ -29,7 +30,8 @@ class EntitiesEditorPage extends StatefulWidget {
   State<EntitiesEditorPage> createState() => _EntitiesEditorPageState();
 }
 
-class _EntitiesEditorPageState extends State<EntitiesEditorPage> {
+class _EntitiesEditorPageState extends State<EntitiesEditorPage>
+    implements EditorPageLocalDraftState {
   late final TextEditingController _halfXController;
   late final TextEditingController _halfYController;
   late final TextEditingController _offsetXController;
@@ -58,6 +60,39 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage> {
   final Map<String, ui.Image> _referenceImageCache = <String, ui.Image>{};
   final Set<String> _referenceImageLoading = <String>{};
   final Set<String> _referenceImageFailed = <String>{};
+
+  @override
+  bool get hasLocalDraftChanges {
+    final scene = widget.controller.scene;
+    if (scene is! EntityScene) {
+      return false;
+    }
+    final selectedEntry = _selectedEntry(scene);
+    if (selectedEntry == null) {
+      return false;
+    }
+    final reference = selectedEntry.referenceVisual;
+    return _halfXController.text.trim() !=
+            selectedEntry.halfX.toStringAsFixed(2) ||
+        _halfYController.text.trim() !=
+            selectedEntry.halfY.toStringAsFixed(2) ||
+        _offsetXController.text.trim() !=
+            selectedEntry.offsetX.toStringAsFixed(2) ||
+        _offsetYController.text.trim() !=
+            selectedEntry.offsetY.toStringAsFixed(2) ||
+        _renderScaleController.text.trim() !=
+            _formatOptionalDouble(reference?.renderScale) ||
+        _anchorXPxController.text.trim() !=
+            _formatOptionalDouble(reference?.anchorXPx) ||
+        _anchorYPxController.text.trim() !=
+            _formatOptionalDouble(reference?.anchorYPx) ||
+        _frameWidthController.text.trim() !=
+            _formatOptionalDouble(reference?.frameWidth) ||
+        _frameHeightController.text.trim() !=
+            _formatOptionalDouble(reference?.frameHeight) ||
+        _castOriginOffsetController.text.trim() !=
+            _formatOptionalDouble(selectedEntry.castOriginOffset);
+  }
 
   @override
   void initState() {
@@ -831,6 +866,10 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage> {
 
   void _updateState(VoidCallback callback) {
     setState(callback);
+  }
+
+  String _formatOptionalDouble(double? value) {
+    return value?.toStringAsFixed(3) ?? '';
   }
 
   IconData _iconForSeverity(ValidationSeverity severity) {

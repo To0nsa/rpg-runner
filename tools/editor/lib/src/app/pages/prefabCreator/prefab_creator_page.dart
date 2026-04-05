@@ -16,6 +16,7 @@ import '../../../prefabs/prefab_validation.dart';
 import '../../../prefabs/workspace_scoped_size_cache.dart';
 import '../../../session/editor_session_controller.dart';
 import '../shared/atlas_selection_painter.dart';
+import '../shared/editor_page_local_draft_state.dart';
 import '../shared/editor_viewport_grid_painter.dart';
 import '../shared/editor_zoom_controls.dart';
 import '../shared/scene_input_utils.dart';
@@ -43,7 +44,8 @@ class PrefabCreatorPage extends StatefulWidget {
 }
 
 class _PrefabCreatorPageState extends State<PrefabCreatorPage>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin
+    implements EditorPageLocalDraftState {
   static const String _levelAssetsPath = 'assets/images/level';
   static const double _zoomMin = 0.2;
   static const double _zoomMax = 24.0;
@@ -69,6 +71,7 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
   List<String> _atlasImagePaths = const <String>[];
   final WorkspaceScopedSizeCache _atlasImageSizes = WorkspaceScopedSizeCache();
   final PrefabEditorDataReducer _dataReducer = const PrefabEditorDataReducer();
+  final PrefabStore _prefabStore = const PrefabStore();
 
   bool _isLoading = false;
   bool _isSaving = false;
@@ -86,6 +89,7 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
   PlatformModuleSceneTool _selectedModuleSceneTool =
       PlatformModuleSceneTool.paint;
   late final TabController _tabController;
+  late _PrefabCreatorFormDraftSnapshot _formDraftBaseline;
   int _activeTabIndex = 0;
 
   PrefabFormState get _activePrefabForm =>
@@ -135,10 +139,17 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
   Offset? _selectionCurrentImagePx;
 
   @override
+  bool get hasLocalDraftChanges {
+    return _hasLocalDataDraftChanges() ||
+        _captureFormDraftSnapshot() != _formDraftBaseline;
+  }
+
+  @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _activeTabIndex = _tabController.index;
+    _formDraftBaseline = _captureFormDraftSnapshot();
     _tabController.addListener(_handleEditorTabChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _ensurePrefabPluginSelection();
@@ -301,4 +312,165 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
     }
     widget.controller.setSelectedPluginId(PrefabDomainPlugin.pluginId);
   }
+}
+
+class _PrefabCreatorFormDraftSnapshot {
+  const _PrefabCreatorFormDraftSnapshot({
+    required this.sliceId,
+    required this.selectionX,
+    required this.selectionY,
+    required this.selectionW,
+    required this.selectionH,
+    required this.selectedPrefabSliceId,
+    required this.selectedPrefabPlatformModuleId,
+    required this.moduleId,
+    required this.moduleTileSize,
+    required this.obstaclePrefabId,
+    required this.obstacleAnchorX,
+    required this.obstacleAnchorY,
+    required this.obstacleColliderOffsetX,
+    required this.obstacleColliderOffsetY,
+    required this.obstacleColliderWidth,
+    required this.obstacleColliderHeight,
+    required this.obstacleTags,
+    required this.obstacleZIndex,
+    required this.obstacleSnapToGrid,
+    required this.obstacleAutoManagePlatformModule,
+    required this.obstacleSelectedKind,
+    required this.obstacleEditingPrefabKey,
+    required this.platformPrefabId,
+    required this.platformAnchorX,
+    required this.platformAnchorY,
+    required this.platformColliderOffsetX,
+    required this.platformColliderOffsetY,
+    required this.platformColliderWidth,
+    required this.platformColliderHeight,
+    required this.platformTags,
+    required this.platformZIndex,
+    required this.platformSnapToGrid,
+    required this.platformAutoManagePlatformModule,
+    required this.platformSelectedKind,
+    required this.platformEditingPrefabKey,
+  });
+
+  final String sliceId;
+  final String selectionX;
+  final String selectionY;
+  final String selectionW;
+  final String selectionH;
+  final String? selectedPrefabSliceId;
+  final String? selectedPrefabPlatformModuleId;
+  final String moduleId;
+  final String moduleTileSize;
+  final String obstaclePrefabId;
+  final String obstacleAnchorX;
+  final String obstacleAnchorY;
+  final String obstacleColliderOffsetX;
+  final String obstacleColliderOffsetY;
+  final String obstacleColliderWidth;
+  final String obstacleColliderHeight;
+  final String obstacleTags;
+  final String obstacleZIndex;
+  final bool obstacleSnapToGrid;
+  final bool obstacleAutoManagePlatformModule;
+  final PrefabKind obstacleSelectedKind;
+  final String? obstacleEditingPrefabKey;
+  final String platformPrefabId;
+  final String platformAnchorX;
+  final String platformAnchorY;
+  final String platformColliderOffsetX;
+  final String platformColliderOffsetY;
+  final String platformColliderWidth;
+  final String platformColliderHeight;
+  final String platformTags;
+  final String platformZIndex;
+  final bool platformSnapToGrid;
+  final bool platformAutoManagePlatformModule;
+  final PrefabKind platformSelectedKind;
+  final String? platformEditingPrefabKey;
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) {
+      return true;
+    }
+    return other is _PrefabCreatorFormDraftSnapshot &&
+        other.sliceId == sliceId &&
+        other.selectionX == selectionX &&
+        other.selectionY == selectionY &&
+        other.selectionW == selectionW &&
+        other.selectionH == selectionH &&
+        other.selectedPrefabSliceId == selectedPrefabSliceId &&
+        other.selectedPrefabPlatformModuleId ==
+            selectedPrefabPlatformModuleId &&
+        other.moduleId == moduleId &&
+        other.moduleTileSize == moduleTileSize &&
+        other.obstaclePrefabId == obstaclePrefabId &&
+        other.obstacleAnchorX == obstacleAnchorX &&
+        other.obstacleAnchorY == obstacleAnchorY &&
+        other.obstacleColliderOffsetX == obstacleColliderOffsetX &&
+        other.obstacleColliderOffsetY == obstacleColliderOffsetY &&
+        other.obstacleColliderWidth == obstacleColliderWidth &&
+        other.obstacleColliderHeight == obstacleColliderHeight &&
+        other.obstacleTags == obstacleTags &&
+        other.obstacleZIndex == obstacleZIndex &&
+        other.obstacleSnapToGrid == obstacleSnapToGrid &&
+        other.obstacleAutoManagePlatformModule ==
+            obstacleAutoManagePlatformModule &&
+        other.obstacleSelectedKind == obstacleSelectedKind &&
+        other.obstacleEditingPrefabKey == obstacleEditingPrefabKey &&
+        other.platformPrefabId == platformPrefabId &&
+        other.platformAnchorX == platformAnchorX &&
+        other.platformAnchorY == platformAnchorY &&
+        other.platformColliderOffsetX == platformColliderOffsetX &&
+        other.platformColliderOffsetY == platformColliderOffsetY &&
+        other.platformColliderWidth == platformColliderWidth &&
+        other.platformColliderHeight == platformColliderHeight &&
+        other.platformTags == platformTags &&
+        other.platformZIndex == platformZIndex &&
+        other.platformSnapToGrid == platformSnapToGrid &&
+        other.platformAutoManagePlatformModule ==
+            platformAutoManagePlatformModule &&
+        other.platformSelectedKind == platformSelectedKind &&
+        other.platformEditingPrefabKey == platformEditingPrefabKey;
+  }
+
+  @override
+  int get hashCode => Object.hashAll([
+    sliceId,
+    selectionX,
+    selectionY,
+    selectionW,
+    selectionH,
+    selectedPrefabSliceId,
+    selectedPrefabPlatformModuleId,
+    moduleId,
+    moduleTileSize,
+    obstaclePrefabId,
+    obstacleAnchorX,
+    obstacleAnchorY,
+    obstacleColliderOffsetX,
+    obstacleColliderOffsetY,
+    obstacleColliderWidth,
+    obstacleColliderHeight,
+    obstacleTags,
+    obstacleZIndex,
+    obstacleSnapToGrid,
+    obstacleAutoManagePlatformModule,
+    obstacleSelectedKind,
+    obstacleEditingPrefabKey,
+    platformPrefabId,
+    platformAnchorX,
+    platformAnchorY,
+    platformColliderOffsetX,
+    platformColliderOffsetY,
+    platformColliderWidth,
+    platformColliderHeight,
+    platformTags,
+    platformZIndex,
+    platformSnapToGrid,
+    platformAutoManagePlatformModule,
+    platformSelectedKind,
+    platformEditingPrefabKey,
+  ]);
 }

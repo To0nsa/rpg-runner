@@ -7,7 +7,9 @@ import 'package:runner_editor/src/chunks/chunk_domain_plugin.dart';
 import 'package:runner_editor/src/domain/authoring_plugin_registry.dart';
 import 'package:runner_editor/src/domain/authoring_types.dart';
 import 'package:runner_editor/src/entities/entity_domain_plugin.dart';
+import 'package:runner_editor/src/prefabs/prefab_domain_models.dart';
 import 'package:runner_editor/src/prefabs/prefab_domain_plugin.dart';
+import 'package:runner_editor/src/prefabs/prefab_models.dart';
 import 'package:runner_editor/src/session/editor_session_controller.dart';
 import 'package:runner_editor/src/workspace/editor_workspace.dart';
 
@@ -132,6 +134,58 @@ void main() {
     expect(find.text('Discard unsaved changes?'), findsOneWidget);
 
     await tester.tap(find.text('Discard and leave'));
+    await tester.pumpAndSettle();
+
+    expect(controller.selectedPluginId, PrefabDomainPlugin.pluginId);
+    expect(find.text('Discard unsaved changes?'), findsNothing);
+  });
+
+  testWidgets('route switching prompts for page-local prefab drafts', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1800, 1200));
+    addTearDown(() async {
+      await tester.binding.setSurfaceSize(null);
+    });
+
+    final controller = EditorSessionController(
+      pluginRegistry: AuthoringPluginRegistry(
+        plugins: <AuthoringDomainPlugin>[
+          _FakeEntitiesPlugin(),
+          _FakePrefabEditorPlugin(),
+          _FakeChunkPlugin(),
+        ],
+      ),
+      initialPluginId: EntityDomainPlugin.pluginId,
+      initialWorkspacePath: '.',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: EditorHomePage(controller: controller)),
+    );
+    await tester.pumpAndSettle();
+
+    await _selectRoute(tester, 'PREFAB CREATOR');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Obstacle Prefabs').first);
+    await tester.pumpAndSettle();
+
+    expect(controller.pendingChanges.hasChanges, isFalse);
+
+    await tester.enterText(_textFieldByLabel('Prefab ID').first, 'draft_box');
+    await tester.pump();
+
+    await _selectRoute(tester, 'CHUNK CREATOR');
+    await tester.pumpAndSettle();
+
+    expect(find.text('Discard unsaved changes?'), findsOneWidget);
+    expect(
+      find.textContaining('unsaved draft form/input changes'),
+      findsOneWidget,
+    );
+    expect(controller.selectedPluginId, PrefabDomainPlugin.pluginId);
+
+    await tester.tap(find.text('Stay'));
     await tester.pumpAndSettle();
 
     expect(controller.selectedPluginId, PrefabDomainPlugin.pluginId);
@@ -360,6 +414,90 @@ class _FakePrefabPlugin implements AuthoringDomainPlugin {
   }
 }
 
+class _FakePrefabEditorPlugin implements AuthoringDomainPlugin {
+  @override
+  String get id => PrefabDomainPlugin.pluginId;
+
+  @override
+  AuthoringDocument applyEdit(
+    AuthoringDocument document,
+    AuthoringCommand command,
+  ) {
+    return document;
+  }
+
+  @override
+  EditableScene buildEditableScene(AuthoringDocument document) {
+    final prefabDocument = document as PrefabDocument;
+    return PrefabScene(
+      data: prefabDocument.data,
+      atlasImagePaths: prefabDocument.atlasImagePaths,
+      atlasImageSizes: prefabDocument.atlasImageSizes,
+      migrationHints: prefabDocument.migrationHints,
+    );
+  }
+
+  @override
+  PendingChanges describePendingChanges(
+    EditorWorkspace workspace, {
+    required AuthoringDocument document,
+  }) {
+    return PendingChanges.empty;
+  }
+
+  @override
+  Future<ExportResult> exportToRepo(
+    EditorWorkspace workspace, {
+    required AuthoringDocument document,
+  }) async {
+    return ExportResult(applied: false);
+  }
+
+  @override
+  Future<AuthoringDocument> loadFromRepo(EditorWorkspace workspace) async {
+    return const PrefabDocument(
+      data: PrefabData(
+        prefabSlices: <AtlasSliceDef>[
+          AtlasSliceDef(
+            id: 'crate_slice',
+            sourceImagePath: 'assets/images/level/props/crate.png',
+            x: 0,
+            y: 0,
+            width: 32,
+            height: 32,
+          ),
+        ],
+        tileSlices: <AtlasSliceDef>[
+          AtlasSliceDef(
+            id: 'ground_tile',
+            sourceImagePath: 'assets/images/level/tiles/ground.png',
+            x: 0,
+            y: 0,
+            width: 16,
+            height: 16,
+          ),
+        ],
+        platformModules: <TileModuleDef>[
+          TileModuleDef(
+            id: 'ground_module',
+            tileSize: 16,
+            cells: <TileModuleCellDef>[
+              TileModuleCellDef(sliceId: 'ground_tile', gridX: 0, gridY: 0),
+            ],
+          ),
+        ],
+      ),
+      atlasImagePaths: <String>[],
+      atlasImageSizes: <String, Size>{},
+    );
+  }
+
+  @override
+  List<ValidationIssue> validate(AuthoringDocument document) {
+    return const <ValidationIssue>[];
+  }
+}
+
 class _FakeDocument extends AuthoringDocument {
   const _FakeDocument();
 }
@@ -372,4 +510,16 @@ class _FakeDirtyDocument extends AuthoringDocument {
 
 class _FakeScene extends EditableScene {
   const _FakeScene();
+}
+
+Future<void> _selectRoute(WidgetTester tester, String label) async {
+  await tester.tap(find.byType(DropdownButton<String>).first);
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(label).last);
+}
+
+Finder _textFieldByLabel(String label) {
+  return find.byWidgetPredicate(
+    (widget) => widget is TextField && widget.decoration?.labelText == label,
+  );
 }

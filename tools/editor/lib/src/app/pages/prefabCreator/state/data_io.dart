@@ -91,6 +91,7 @@ extension _PrefabCreatorDataIo on _PrefabCreatorPageState {
             ? null
             : (firstActiveModuleId ?? loaded.platformModules.first.id);
         _syncSelectedModuleInputs();
+        _syncFormDraftBaseline();
         final hints = scene.migrationHints;
         _statusMessage = hints.isEmpty
             ? 'Loaded prefab/tile authoring data.'
@@ -379,6 +380,7 @@ extension _PrefabCreatorDataIo on _PrefabCreatorPageState {
     } else {
       _editingPrefabKey = null;
     }
+    _syncFormDraftBaseline();
   }
 
   String? _resolveAtlasSliceSelection({
@@ -415,6 +417,67 @@ extension _PrefabCreatorDataIo on _PrefabCreatorPageState {
     }
     _moduleIdController.text = selectedModule.id;
     _moduleTileSizeController.text = selectedModule.tileSize.toString();
+  }
+
+  bool _hasLocalDataDraftChanges() {
+    final scene = _currentPrefabScene();
+    if (scene == null) {
+      return false;
+    }
+    final current = _prefabStore.serializeCanonicalFiles(_data);
+    final baseline = _prefabStore.serializeCanonicalFiles(scene.data);
+    return current.prefabContents != baseline.prefabContents ||
+        current.tileContents != baseline.tileContents;
+  }
+
+  _PrefabCreatorFormDraftSnapshot _captureFormDraftSnapshot() {
+    return _PrefabCreatorFormDraftSnapshot(
+      sliceId: _sliceIdController.text,
+      selectionX: _selectionXController.text,
+      selectionY: _selectionYController.text,
+      selectionW: _selectionWController.text,
+      selectionH: _selectionHController.text,
+      selectedPrefabSliceId: _selectedPrefabSliceId,
+      selectedPrefabPlatformModuleId: _selectedPrefabPlatformModuleId,
+      moduleId: _moduleIdController.text,
+      moduleTileSize: _moduleTileSizeController.text,
+      obstaclePrefabId: _obstaclePrefabForm.prefabIdController.text,
+      obstacleAnchorX: _obstaclePrefabForm.anchorXController.text,
+      obstacleAnchorY: _obstaclePrefabForm.anchorYController.text,
+      obstacleColliderOffsetX:
+          _obstaclePrefabForm.colliderOffsetXController.text,
+      obstacleColliderOffsetY:
+          _obstaclePrefabForm.colliderOffsetYController.text,
+      obstacleColliderWidth: _obstaclePrefabForm.colliderWidthController.text,
+      obstacleColliderHeight: _obstaclePrefabForm.colliderHeightController.text,
+      obstacleTags: _obstaclePrefabForm.tagsController.text,
+      obstacleZIndex: _obstaclePrefabForm.zIndexController.text,
+      obstacleSnapToGrid: _obstaclePrefabForm.snapToGrid,
+      obstacleAutoManagePlatformModule:
+          _obstaclePrefabForm.autoManagePlatformModule,
+      obstacleSelectedKind: _obstaclePrefabForm.selectedKind,
+      obstacleEditingPrefabKey: _obstaclePrefabForm.editingPrefabKey,
+      platformPrefabId: _platformPrefabForm.prefabIdController.text,
+      platformAnchorX: _platformPrefabForm.anchorXController.text,
+      platformAnchorY: _platformPrefabForm.anchorYController.text,
+      platformColliderOffsetX:
+          _platformPrefabForm.colliderOffsetXController.text,
+      platformColliderOffsetY:
+          _platformPrefabForm.colliderOffsetYController.text,
+      platformColliderWidth: _platformPrefabForm.colliderWidthController.text,
+      platformColliderHeight: _platformPrefabForm.colliderHeightController.text,
+      platformTags: _platformPrefabForm.tagsController.text,
+      platformZIndex: _platformPrefabForm.zIndexController.text,
+      platformSnapToGrid: _platformPrefabForm.snapToGrid,
+      platformAutoManagePlatformModule:
+          _platformPrefabForm.autoManagePlatformModule,
+      platformSelectedKind: _platformPrefabForm.selectedKind,
+      platformEditingPrefabKey: _platformPrefabForm.editingPrefabKey,
+    );
+  }
+
+  void _syncFormDraftBaseline() {
+    _formDraftBaseline = _captureFormDraftSnapshot();
   }
 
   void _setError(String message) {

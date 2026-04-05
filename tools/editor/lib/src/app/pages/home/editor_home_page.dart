@@ -4,6 +4,7 @@ import '../../../session/editor_session_controller.dart';
 import '../chunkCreator/chunk_creator_page.dart';
 import '../entities/entities_editor_page.dart';
 import '../prefabCreator/prefab_creator_page.dart';
+import '../shared/editor_page_local_draft_state.dart';
 import 'home_routes.dart';
 
 class EditorHomePage extends StatefulWidget {
@@ -16,6 +17,9 @@ class EditorHomePage extends StatefulWidget {
 }
 
 class _EditorHomePageState extends State<EditorHomePage> {
+  final GlobalKey _entitiesPageKey = GlobalKey();
+  final GlobalKey _prefabCreatorPageKey = GlobalKey();
+  final GlobalKey _chunkCreatorPageKey = GlobalKey();
   late final TextEditingController _workspaceController;
   String _selectedRouteId = entitiesRouteId;
 
@@ -139,11 +143,20 @@ class _EditorHomePageState extends State<EditorHomePage> {
   Widget _buildSelectedRoutePage() {
     switch (_selectedRouteId) {
       case entitiesRouteId:
-        return EntitiesEditorPage(controller: widget.controller);
+        return EntitiesEditorPage(
+          key: _entitiesPageKey,
+          controller: widget.controller,
+        );
       case prefabCreatorRouteId:
-        return PrefabCreatorPage(controller: widget.controller);
+        return PrefabCreatorPage(
+          key: _prefabCreatorPageKey,
+          controller: widget.controller,
+        );
       case chunkCreatorRouteId:
-        return ChunkCreatorPage(controller: widget.controller);
+        return ChunkCreatorPage(
+          key: _chunkCreatorPageKey,
+          controller: widget.controller,
+        );
       default:
         return const Center(child: Text('Unknown editor page.'));
     }
@@ -181,21 +194,28 @@ class _EditorHomePageState extends State<EditorHomePage> {
 
   Future<bool> _confirmDiscardPendingChanges() async {
     final pendingChanges = widget.controller.pendingChanges;
-    if (!pendingChanges.hasChanges) {
+    final hasLocalDraftChanges = _currentPageHasLocalDraftChanges();
+    if (!pendingChanges.hasChanges && !hasLocalDraftChanges) {
       return true;
     }
 
     final changedItems = pendingChanges.changedItemIds.length;
     final changedFiles = pendingChanges.fileDiffs.length;
+    final contentLines = <String>['Leave this page without saving?', ''];
+    if (pendingChanges.hasChanges) {
+      contentLines.add(
+        'Pending session changes: $changedItems item(s), $changedFiles file(s).',
+      );
+    }
+    if (hasLocalDraftChanges) {
+      contentLines.add('This page also has unsaved draft form/input changes.');
+    }
     final decision = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
           title: const Text('Discard unsaved changes?'),
-          content: Text(
-            'Leave this page without saving?\n\n'
-            'Pending changes: $changedItems item(s), $changedFiles file(s).',
-          ),
+          content: Text(contentLines.join('\n')),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
@@ -210,5 +230,19 @@ class _EditorHomePageState extends State<EditorHomePage> {
       },
     );
     return decision ?? false;
+  }
+
+  bool _currentPageHasLocalDraftChanges() {
+    final pageState = switch (_selectedRouteId) {
+      entitiesRouteId => _entitiesPageKey.currentState,
+      prefabCreatorRouteId => _prefabCreatorPageKey.currentState,
+      chunkCreatorRouteId => _chunkCreatorPageKey.currentState,
+      _ => null,
+    };
+    if (pageState is! EditorPageLocalDraftState) {
+      return false;
+    }
+    final draftAwarePageState = pageState as EditorPageLocalDraftState;
+    return draftAwarePageState.hasLocalDraftChanges;
   }
 }

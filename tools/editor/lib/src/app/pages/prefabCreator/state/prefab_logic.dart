@@ -327,6 +327,7 @@ extension _PrefabCreatorPrefabLogic on _PrefabCreatorPageState {
   void _loadPrefabIntoForm(PrefabDef prefab) {
     _updateState(() {
       _applyPrefabToForm(prefab);
+      _syncFormDraftBaseline();
     });
   }
 
@@ -486,6 +487,7 @@ extension _PrefabCreatorPrefabLogic on _PrefabCreatorPageState {
           _data.platformModules,
         );
       }
+      _syncFormDraftBaseline();
       _statusMessage = 'Cleared prefab form.';
       _errorMessage = null;
     });

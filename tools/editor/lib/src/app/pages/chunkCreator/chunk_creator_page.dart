@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../chunks/chunk_domain_models.dart';
 import '../../../domain/authoring_types.dart';
 import '../../../session/editor_session_controller.dart';
+import '../shared/editor_page_local_draft_state.dart';
 
 class ChunkCreatorPage extends StatefulWidget {
   const ChunkCreatorPage({super.key, required this.controller});
@@ -15,9 +16,14 @@ class ChunkCreatorPage extends StatefulWidget {
   State<ChunkCreatorPage> createState() => _ChunkCreatorPageState();
 }
 
-class _ChunkCreatorPageState extends State<ChunkCreatorPage> {
+class _ChunkCreatorPageState extends State<ChunkCreatorPage>
+    implements EditorPageLocalDraftState {
+  static const String _defaultNewChunkId = 'new_chunk';
+  static const String _defaultNewGapX = '0';
+  static const String _defaultNewGapWidth = '16';
+
   final TextEditingController _newChunkIdController = TextEditingController(
-    text: 'new_chunk',
+    text: _defaultNewChunkId,
   );
   final TextEditingController _renameIdController = TextEditingController();
   final TextEditingController _levelIdController = TextEditingController();
@@ -29,10 +35,10 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage> {
   final TextEditingController _tagsController = TextEditingController();
   final TextEditingController _groundTopYController = TextEditingController();
   final TextEditingController _newGapXController = TextEditingController(
-    text: '0',
+    text: _defaultNewGapX,
   );
   final TextEditingController _newGapWidthController = TextEditingController(
-    text: '16',
+    text: _defaultNewGapWidth,
   );
 
   String? _selectedChunkKey;
@@ -40,6 +46,19 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage> {
   String _difficulty = chunkDifficultyNormal;
   String _status = chunkStatusActive;
   String _groundProfileKind = groundProfileKindFlat;
+
+  @override
+  bool get hasLocalDraftChanges {
+    final scene = widget.controller.scene;
+    final chunkScene = scene is ChunkScene ? scene : null;
+    final selectedChunk = chunkScene == null
+        ? null
+        : _selectedChunk(chunkScene.chunks);
+    return _newChunkIdController.text.trim() != _defaultNewChunkId ||
+        _newGapXController.text.trim() != _defaultNewGapX ||
+        _newGapWidthController.text.trim() != _defaultNewGapWidth ||
+        _metadataDraftDiffersFromSelectedChunk(selectedChunk);
+  }
 
   @override
   void initState() {
@@ -778,8 +797,8 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                      'chunks=${pendingChanges.changedItemIds.length} '
-                      'files=${pendingChanges.fileDiffs.length}',
+                    'chunks=${pendingChanges.changedItemIds.length} '
+                    'files=${pendingChanges.fileDiffs.length}',
                   ),
                   if (pendingChanges.fileDiffs.length > 1) ...[
                     const SizedBox(height: 8),
@@ -931,6 +950,25 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage> {
     _difficulty = chunk.difficulty;
     _status = chunk.status;
     _groundProfileKind = chunk.groundProfile.kind;
+  }
+
+  bool _metadataDraftDiffersFromSelectedChunk(LevelChunkDef? chunk) {
+    if (chunk == null) {
+      return false;
+    }
+    return _renameIdController.text.trim() != chunk.id ||
+        _levelIdController.text.trim() != chunk.levelId ||
+        _tileSizeController.text.trim() != chunk.tileSize.toString() ||
+        _widthController.text.trim() != chunk.width.toString() ||
+        _heightController.text.trim() != chunk.height.toString() ||
+        _entrySocketController.text.trim() != chunk.entrySocket ||
+        _exitSocketController.text.trim() != chunk.exitSocket ||
+        _tagsController.text.trim() != chunk.tags.join(', ') ||
+        _groundTopYController.text.trim() !=
+            chunk.groundProfile.topY.toString() ||
+        _difficulty != chunk.difficulty ||
+        _status != chunk.status ||
+        _groundProfileKind != chunk.groundProfile.kind;
   }
 
   void _applyMetadata(LevelChunkDef chunk) {
