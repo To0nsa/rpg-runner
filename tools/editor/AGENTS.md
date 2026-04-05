@@ -47,6 +47,28 @@ Keep the editor small, focused, and extensible.
 - chunk roadmap/checklists: `docs/building/editor/chunkCreator/**` when changing
   prefab/chunk contracts or milestone status
 
+## Commenting For Onboarding
+
+Comments and docs in `tools/editor` should help a new contributor understand
+the slice quickly, not just satisfy API formality.
+
+- prefer comments that explain intent, ownership, invariants, and why a seam
+  exists
+- be onboarding-friendly around session/plugin/route boundaries: make it easy
+  for a new reader to tell which layer owns load, validation, scene building,
+  pending changes, and export
+- document non-obvious data flow and lifecycle rules, especially where page
+  draft state projects over plugin-owned document state
+- when a file is an entry point or registry, say so explicitly and describe
+  what it is the source of truth for
+- use comments to shorten ramp-up time for new contributors, but do not narrate
+  obvious code or restate names
+- if a newcomer would likely ask "why is this here instead of in the page/plugin/store?",
+  that is a good place for a comment
+
+Good editor comments should let someone new form the right mental model without
+reading five other files first.
+
 ## Current Architecture
 
 - app entry: `tools/editor/lib/main.dart`
