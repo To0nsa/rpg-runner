@@ -39,9 +39,9 @@ void main() {
       await controller.loadWorkspace();
 
       expect(controller.loadError, isNull);
-      expect(controller.entityScene, isNotNull);
+      expect(controller.scene, isA<EntityScene>());
 
-      final entries = controller.entityScene!.entries;
+      final entries = (controller.scene! as EntityScene).entries;
       final ids = entries.map((entry) => entry.id).join(', ');
       final enemyCount = entries
           .where((entry) => entry.entityType == EntityType.enemy)
@@ -108,7 +108,7 @@ void main() {
     final controller = buildController();
     await controller.loadWorkspace();
 
-    final player = controller.entityScene!.entries.firstWhere(
+    final player = (controller.scene! as EntityScene).entries.firstWhere(
       (entry) =>
           entry.id == 'player.eloise' && entry.castOriginOffsetBinding != null,
     );
@@ -142,7 +142,7 @@ void main() {
     final controller = buildController();
     await controller.loadWorkspace();
 
-    final entry = controller.entityScene!.entries.first;
+    final entry = (controller.scene! as EntityScene).entries.first;
     controller.applyCommand(
       AuthoringCommand(
         kind: 'update_entry',
@@ -173,7 +173,7 @@ void main() {
       final controller = buildController();
       await controller.loadWorkspace();
 
-      final enemy = controller.entityScene!.entries.firstWhere(
+      final enemy = (controller.scene! as EntityScene).entries.firstWhere(
         (entry) => entry.id.startsWith('enemy.'),
       );
       final originalHalfX = enemy.halfX;
@@ -191,7 +191,7 @@ void main() {
         ),
       );
 
-      final edited = controller.entityScene!.entries.firstWhere(
+      final edited = (controller.scene! as EntityScene).entries.firstWhere(
         (entry) => entry.id == enemy.id,
       );
       expect(edited.halfX, originalHalfX + 2.0);
@@ -202,7 +202,7 @@ void main() {
 
       controller.undo();
 
-      final undone = controller.entityScene!.entries.firstWhere(
+      final undone = (controller.scene! as EntityScene).entries.firstWhere(
         (entry) => entry.id == enemy.id,
       );
       expect(undone.halfX, originalHalfX);
@@ -211,7 +211,7 @@ void main() {
 
       controller.redo();
 
-      final redone = controller.entityScene!.entries.firstWhere(
+      final redone = (controller.scene! as EntityScene).entries.firstWhere(
         (entry) => entry.id == enemy.id,
       );
       expect(redone.halfX, originalHalfX + 2.0);

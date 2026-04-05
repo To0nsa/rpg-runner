@@ -107,7 +107,8 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage> {
     return AnimatedBuilder(
       animation: widget.controller,
       builder: (context, _) {
-        final entityScene = widget.controller.entityScene;
+        final scene = widget.controller.scene;
+        final entityScene = scene is EntityScene ? scene : null;
         final visibleEntries = entityScene == null
             ? const <EntityEntry>[]
             : _filteredEntries(entityScene.entries);

@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 
-import '../entities/entity_domain_models.dart';
 import '../domain/authoring_plugin_registry.dart';
 import '../domain/authoring_types.dart';
 import '../workspace/editor_workspace.dart';
@@ -61,9 +60,6 @@ class EditorSessionController extends ChangeNotifier {
       Set<String>.unmodifiable(_pendingChanges.changedItemIds);
   int get dirtyItemCount => _pendingChanges.changedItemIds.length;
   int get dirtyFileCount => _pendingChanges.fileDiffs.length;
-
-  EntityScene? get entityScene =>
-      _scene is EntityScene ? _scene as EntityScene : null;
 
   int get errorCount => _issues
       .where((issue) => issue.severity == ValidationSeverity.error)
