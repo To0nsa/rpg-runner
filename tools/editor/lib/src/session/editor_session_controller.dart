@@ -4,6 +4,12 @@ import '../domain/authoring_plugin_registry.dart';
 import '../domain/authoring_types.dart';
 import '../workspace/editor_workspace.dart';
 
+/// Orchestrates the active authoring session for the selected plugin/workspace.
+///
+/// Keeps the loaded document snapshot, derived scene, validation issues,
+/// pending changes, and undo/redo history in sync so routes can treat the
+/// controller as a coherent session boundary. Changing the workspace or plugin
+/// invalidates the loaded snapshot instead of reusing potentially stale state.
 class EditorSessionController extends ChangeNotifier {
   EditorSessionController({
     required AuthoringPluginRegistry pluginRegistry,
@@ -105,6 +111,7 @@ class EditorSessionController extends ChangeNotifier {
         clearHistory: true,
       );
     } catch (error, stackTrace) {
+      // A failed reload must not leave the last successful document editable.
       _clearLoadedSessionState(clearWorkspace: true);
       _loadError = '$error';
       FlutterError.reportError(
@@ -177,6 +184,8 @@ class EditorSessionController extends ChangeNotifier {
       );
       _lastExportResult = result;
       if (result.applied) {
+        // Reload from disk so the session reflects the plugin's persisted
+        // output instead of assuming the in-memory document is authoritative.
         await loadWorkspace();
         _lastExportResult = result;
       }
@@ -209,6 +218,8 @@ class EditorSessionController extends ChangeNotifier {
     if (workspace != null) {
       _workspace = workspace;
     }
+    // Document, issues, scene, and pending changes are a single derived
+    // snapshot; update them together so listeners never observe a mixed state.
     _document = document;
     _setIssues(plugin.validate(document));
     _scene = plugin.buildEditableScene(document);
@@ -253,6 +264,8 @@ class EditorSessionController extends ChangeNotifier {
     }
 
     try {
+      // Pending-change computation is auxiliary UI state; on failure, keep the
+      // loaded document usable and surface the error separately.
       _pendingChanges = plugin.describePendingChanges(
         workspace,
         document: document,
