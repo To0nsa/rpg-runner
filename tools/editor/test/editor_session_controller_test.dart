@@ -113,14 +113,64 @@ void main() {
     expect(controller.canRedo, isFalse);
     expect(controller.lastExportResult, isNull);
   });
+
+  test('plugin switch clears export error and invalidates loaded session', () async {
+    final fixtureRoot = await Directory.systemTemp.createTemp(
+      'editor_session_controller_switch_',
+    );
+    final failingPlugin = _RecordingPlugin(id: 'recording_a')..failExports = true;
+    final nextPlugin = _RecordingPlugin(id: 'recording_b');
+    final controller = EditorSessionController(
+      pluginRegistry: AuthoringPluginRegistry(
+        plugins: <AuthoringDomainPlugin>[failingPlugin, nextPlugin],
+      ),
+      initialPluginId: failingPlugin.id,
+      initialWorkspacePath: fixtureRoot.path,
+    );
+
+    final previousOnError = FlutterError.onError;
+    final reportedErrors = <FlutterErrorDetails>[];
+    addTearDown(() {
+      FlutterError.onError = previousOnError;
+      if (fixtureRoot.existsSync()) {
+        fixtureRoot.deleteSync(recursive: true);
+      }
+    });
+    FlutterError.onError = reportedErrors.add;
+
+    await controller.loadWorkspace();
+    expect(controller.loadError, isNull);
+    expect(controller.document, isNotNull);
+    expect(controller.scene, isNotNull);
+
+    await controller.exportDirectWrite();
+    expect(controller.exportError, contains('forced export failure'));
+    expect(reportedErrors, hasLength(1));
+
+    controller.setSelectedPluginId(nextPlugin.id);
+
+    expect(controller.selectedPluginId, nextPlugin.id);
+    expect(controller.exportError, isNull);
+    expect(controller.loadError, isNull);
+    expect(controller.document, isNull);
+    expect(controller.scene, isNull);
+    expect(controller.issues, isEmpty);
+    expect(controller.pendingChanges.hasChanges, isFalse);
+    expect(controller.pendingChangesError, isNull);
+    expect(controller.canUndo, isFalse);
+    expect(controller.canRedo, isFalse);
+  });
 }
 
 class _RecordingPlugin implements AuthoringDomainPlugin {
   final List<String> exportWorkspaceRoots = <String>[];
+  _RecordingPlugin({this.id = 'recording'});
+
   bool failLoads = false;
+  bool failExports = false;
 
   @override
-  String get id => 'recording';
+  final String id;
 
   @override
   AuthoringDocument applyEdit(
@@ -152,6 +202,9 @@ class _RecordingPlugin implements AuthoringDomainPlugin {
     EditorWorkspace workspace, {
     required AuthoringDocument document,
   }) async {
+    if (failExports) {
+      throw StateError('forced export failure');
+    }
     exportWorkspaceRoots.add(workspace.rootPath);
     return ExportResult(applied: false);
   }

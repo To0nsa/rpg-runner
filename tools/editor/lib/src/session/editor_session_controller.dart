@@ -79,9 +79,7 @@ class EditorSessionController extends ChangeNotifier {
       return;
     }
     _workspacePath = nextPath;
-    _clearLoadedSessionState(clearWorkspace: true);
-    _loadError = null;
-    _exportError = null;
+    _resetForContextChange(clearWorkspace: true);
     notifyListeners();
   }
 
@@ -90,9 +88,7 @@ class EditorSessionController extends ChangeNotifier {
       return;
     }
     _selectedPluginId = pluginId;
-    _clearLoadedSessionState(clearWorkspace: false);
-    _loadError = null;
-    _lastExportResult = null;
+    _resetForContextChange(clearWorkspace: false);
     notifyListeners();
   }
 
@@ -229,6 +225,12 @@ class EditorSessionController extends ChangeNotifier {
   void _clearHistory() {
     _undoStack.clear();
     _redoStack.clear();
+  }
+
+  void _resetForContextChange({required bool clearWorkspace}) {
+    _clearLoadedSessionState(clearWorkspace: clearWorkspace);
+    _loadError = null;
+    _exportError = null;
   }
 
   void _clearLoadedSessionState({required bool clearWorkspace}) {
