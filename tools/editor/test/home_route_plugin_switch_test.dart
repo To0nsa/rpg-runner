@@ -57,6 +57,86 @@ void main() {
     await tester.pumpAndSettle();
     expect(controller.selectedPluginId, EntityDomainPlugin.pluginId);
   });
+
+  testWidgets('route switching with pending changes can be cancelled', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1800, 1200));
+    addTearDown(() async {
+      await tester.binding.setSurfaceSize(null);
+    });
+
+    final controller = EditorSessionController(
+      pluginRegistry: AuthoringPluginRegistry(
+        plugins: <AuthoringDomainPlugin>[
+          _FakeDirtyEntitiesPlugin(),
+          _FakePrefabPlugin(),
+          _FakeChunkPlugin(),
+        ],
+      ),
+      initialPluginId: EntityDomainPlugin.pluginId,
+      initialWorkspacePath: '.',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: EditorHomePage(controller: controller)),
+    );
+    await tester.pumpAndSettle();
+    expect(controller.pendingChanges.hasChanges, isTrue);
+
+    await tester.tap(find.byType(DropdownButton<String>).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('PREFAB CREATOR').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Discard unsaved changes?'), findsOneWidget);
+
+    await tester.tap(find.text('Stay'));
+    await tester.pumpAndSettle();
+
+    expect(controller.selectedPluginId, EntityDomainPlugin.pluginId);
+    expect(find.text('Discard unsaved changes?'), findsNothing);
+  });
+
+  testWidgets('route switching with pending changes can be confirmed', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1800, 1200));
+    addTearDown(() async {
+      await tester.binding.setSurfaceSize(null);
+    });
+
+    final controller = EditorSessionController(
+      pluginRegistry: AuthoringPluginRegistry(
+        plugins: <AuthoringDomainPlugin>[
+          _FakeDirtyEntitiesPlugin(),
+          _FakePrefabPlugin(),
+          _FakeChunkPlugin(),
+        ],
+      ),
+      initialPluginId: EntityDomainPlugin.pluginId,
+      initialWorkspacePath: '.',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: EditorHomePage(controller: controller)),
+    );
+    await tester.pumpAndSettle();
+    expect(controller.pendingChanges.hasChanges, isTrue);
+
+    await tester.tap(find.byType(DropdownButton<String>).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('PREFAB CREATOR').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Discard unsaved changes?'), findsOneWidget);
+
+    await tester.tap(find.text('Discard and leave'));
+    await tester.pumpAndSettle();
+
+    expect(controller.selectedPluginId, PrefabDomainPlugin.pluginId);
+    expect(find.text('Discard unsaved changes?'), findsNothing);
+  });
 }
 
 class _FakeEntitiesPlugin implements AuthoringDomainPlugin {
@@ -95,6 +175,70 @@ class _FakeEntitiesPlugin implements AuthoringDomainPlugin {
   @override
   Future<AuthoringDocument> loadFromRepo(EditorWorkspace workspace) async {
     return const _FakeDocument();
+  }
+
+  @override
+  List<ValidationIssue> validate(AuthoringDocument document) {
+    return const <ValidationIssue>[];
+  }
+}
+
+class _FakeDirtyEntitiesPlugin implements AuthoringDomainPlugin {
+  @override
+  String get id => EntityDomainPlugin.pluginId;
+
+  @override
+  AuthoringDocument applyEdit(
+    AuthoringDocument document,
+    AuthoringCommand command,
+  ) {
+    final dirtyDocument = document as _FakeDirtyDocument;
+    if (command.kind != 'mark_dirty') {
+      return dirtyDocument;
+    }
+    if (dirtyDocument.isDirty) {
+      return dirtyDocument;
+    }
+    return const _FakeDirtyDocument(isDirty: true);
+  }
+
+  @override
+  EditableScene buildEditableScene(AuthoringDocument document) {
+    return const _FakeScene();
+  }
+
+  @override
+  PendingChanges describePendingChanges(
+    EditorWorkspace workspace, {
+    required AuthoringDocument document,
+  }) {
+    final dirtyDocument = document as _FakeDirtyDocument;
+    if (!dirtyDocument.isDirty) {
+      return PendingChanges.empty;
+    }
+    return PendingChanges(
+      changedItemIds: const <String>['entity_1'],
+      fileDiffs: const <PendingFileDiff>[
+        PendingFileDiff(
+          relativePath: 'lib/src/entities.dart',
+          editCount: 1,
+          unifiedDiff: '@@',
+        ),
+      ],
+    );
+  }
+
+  @override
+  Future<ExportResult> exportToRepo(
+    EditorWorkspace workspace, {
+    required AuthoringDocument document,
+  }) async {
+    return ExportResult(applied: false);
+  }
+
+  @override
+  Future<AuthoringDocument> loadFromRepo(EditorWorkspace workspace) async {
+    return const _FakeDirtyDocument(isDirty: true);
   }
 
   @override
@@ -218,6 +362,12 @@ class _FakePrefabPlugin implements AuthoringDomainPlugin {
 
 class _FakeDocument extends AuthoringDocument {
   const _FakeDocument();
+}
+
+class _FakeDirtyDocument extends AuthoringDocument {
+  const _FakeDirtyDocument({required this.isDirty});
+
+  final bool isDirty;
 }
 
 class _FakeScene extends EditableScene {

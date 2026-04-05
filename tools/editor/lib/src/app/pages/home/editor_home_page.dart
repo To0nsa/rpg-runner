@@ -105,10 +105,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
               if (value == null || value == _selectedRouteId) {
                 return;
               }
-              setState(() {
-                _selectedRouteId = value;
-              });
-              _syncPluginForRoute(value);
+              _handleRouteSelectionRequested(value);
             },
           ),
         ),
@@ -169,5 +166,49 @@ class _EditorHomePageState extends State<EditorHomePage> {
       return;
     }
     widget.controller.setSelectedPluginId(requiredPluginId);
+  }
+
+  Future<void> _handleRouteSelectionRequested(String routeId) async {
+    final canLeave = await _confirmDiscardPendingChanges();
+    if (!mounted || !canLeave) {
+      return;
+    }
+    setState(() {
+      _selectedRouteId = routeId;
+    });
+    _syncPluginForRoute(routeId);
+  }
+
+  Future<bool> _confirmDiscardPendingChanges() async {
+    final pendingChanges = widget.controller.pendingChanges;
+    if (!pendingChanges.hasChanges) {
+      return true;
+    }
+
+    final changedItems = pendingChanges.changedItemIds.length;
+    final changedFiles = pendingChanges.fileDiffs.length;
+    final decision = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Discard unsaved changes?'),
+          content: Text(
+            'Leave this page without saving?\n\n'
+            'Pending changes: $changedItems item(s), $changedFiles file(s).',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Stay'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Discard and leave'),
+            ),
+          ],
+        );
+      },
+    );
+    return decision ?? false;
   }
 }
