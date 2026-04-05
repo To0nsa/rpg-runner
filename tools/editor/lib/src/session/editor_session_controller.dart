@@ -79,16 +79,9 @@ class EditorSessionController extends ChangeNotifier {
       return;
     }
     _workspacePath = nextPath;
-    _workspace = null;
-    _document = null;
-    _scene = null;
-    _issues = const <ValidationIssue>[];
-    _pendingChanges = PendingChanges.empty;
-    _pendingChangesError = null;
+    _clearLoadedSessionState(clearWorkspace: true);
     _loadError = null;
     _exportError = null;
-    _lastExportResult = null;
-    _clearHistory();
     notifyListeners();
   }
 
@@ -97,12 +90,7 @@ class EditorSessionController extends ChangeNotifier {
       return;
     }
     _selectedPluginId = pluginId;
-    _clearHistory();
-    _scene = null;
-    _document = null;
-    _issues = const <ValidationIssue>[];
-    _pendingChanges = PendingChanges.empty;
-    _pendingChangesError = null;
+    _clearLoadedSessionState(clearWorkspace: false);
     _loadError = null;
     _lastExportResult = null;
     notifyListeners();
@@ -133,6 +121,7 @@ class EditorSessionController extends ChangeNotifier {
       _clearHistory();
       _refreshPendingChanges(plugin);
     } catch (error, stackTrace) {
+      _clearLoadedSessionState(clearWorkspace: true);
       _loadError = '$error';
       FlutterError.reportError(
         FlutterErrorDetails(
@@ -240,6 +229,19 @@ class EditorSessionController extends ChangeNotifier {
   void _clearHistory() {
     _undoStack.clear();
     _redoStack.clear();
+  }
+
+  void _clearLoadedSessionState({required bool clearWorkspace}) {
+    if (clearWorkspace) {
+      _workspace = null;
+    }
+    _document = null;
+    _scene = null;
+    _issues = const <ValidationIssue>[];
+    _pendingChanges = PendingChanges.empty;
+    _pendingChangesError = null;
+    _lastExportResult = null;
+    _clearHistory();
   }
 
   void _refreshPendingChanges(AuthoringDomainPlugin plugin) {
