@@ -39,7 +39,8 @@ class _EditorHomePageState extends State<EditorHomePage> {
   late final AppLifecycleListener _appLifecycleListener;
   late final TextEditingController _workspaceController;
   // The shell owns stable page keys so it can query the active route for local
-  // draft state and shortcut handling without reintroducing route-id switches.
+  // draft state, shortcut handling, and reload delegation without reintroducing
+  // route-id switches elsewhere in the file.
   late final Map<String, _EditorHomeRouteBinding> _routeBindings;
   late String _lastSyncedWorkspacePath;
   // Route/workspace/app-exit requests can all ask for discard confirmation;
@@ -65,6 +66,9 @@ class _EditorHomePageState extends State<EditorHomePage> {
     // The shell handles cross-route undo/redo shortcuts globally, then routes
     // them back into the active page/session when appropriate.
     HardwareKeyboard.instance.addHandler(_handleGlobalKeyEvent);
+    // Route selection is shell-owned, but plugin selection still lives in the
+    // shared session controller. Sync them once after the first frame so the
+    // initial page and initial plugin contract start coherent.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _syncPluginForRoute(_selectedRouteId);
     });
@@ -175,6 +179,9 @@ class _EditorHomePageState extends State<EditorHomePage> {
         _canReloadCurrentPage;
   }
 
+  // The shell exposes one visible reload/apply surface, but some pages need to
+  // coordinate extra local state during reload. When the active page implements
+  // [EditorPageReloadHandler], its availability becomes the source of truth.
   bool get _canReloadCurrentPage {
     if (_isShowingDiscardDialog) {
       return false;
@@ -210,6 +217,8 @@ class _EditorHomePageState extends State<EditorHomePage> {
     if (!_canReloadCurrentPage) {
       return;
     }
+    // Reload is destructive to any unsaved session/page-local draft state, so
+    // it goes through the same discard guard as route/workspace changes.
     final canLeave = await _confirmDiscardPendingChanges(
       promptLine: 'Reload from disk without saving?',
       confirmLabel: 'Discard and reload',
@@ -242,6 +251,8 @@ class _EditorHomePageState extends State<EditorHomePage> {
       return;
     }
     widget.controller.setWorkspacePath(nextWorkspacePath);
+    // Applying a new workspace should leave the active route ready to use, not
+    // in a "path changed but nothing loaded yet" state.
     await _reloadCurrentRoute();
   }
 
@@ -273,6 +284,9 @@ class _EditorHomePageState extends State<EditorHomePage> {
 
     final changedItems = pendingChanges.changedItemIds.length;
     final changedFiles = pendingChanges.fileDiffs.length;
+    // The dialog summarizes both kinds of unsaved work the shell understands:
+    // committed session changes from the controller and route-local draft state
+    // that has not been promoted into the session yet.
     final contentLines = <String>[promptLine, ''];
     if (pendingChanges.hasChanges) {
       contentLines.add(
@@ -453,6 +467,9 @@ class _EditorHomePageState extends State<EditorHomePage> {
     );
   }
 
+  // Most routes reload by asking the shared session to reread the current
+  // plugin/workspace. Pages with extra local projections, such as prefab
+  // authoring, can override that through [EditorPageReloadHandler].
   Future<void> _reloadCurrentRoute() async {
     final pageReloadHandler = _currentPageReloadHandler();
     if (pageReloadHandler != null) {
@@ -648,6 +665,10 @@ class _EditorHomeShellControls extends StatelessWidget {
         const SizedBox(width: 12),
         Expanded(
           flex: 5,
+          // This row only renders the shell controls. It does not own any of
+          // the destructive behavior behind reload/apply/browse; that stays in
+          // [EditorHomePage] so route/workspace/discard rules remain single-
+          // sourced in one coordinator.
           child: Row(
             children: [
               reloadButton,
