@@ -105,6 +105,30 @@ Before finalizing non-trivial edits, do a redundancy pass:
 3. check for similar widget sections that should be parameterized/composed
 4. verify refactor did not weaken determinism or export/write safety
 
+## Review Expectations
+
+When the user asks for a review, default to a senior-level maintainability and
+correctness review, not just a compile/test pass.
+
+- actively look for redundancy, overlapping abstractions, duplicate logic, and
+  copy/paste behavior
+- look for unused or dead code, stale public surface, shadowed ownership, and
+  legacy paths that should be removed
+- judge changes against best current code practice in this repo: clear ownership,
+  fail-fast configuration, deterministic behavior, explicit failure handling,
+  and small focused APIs
+- push toward DRY when duplication is real and current, but do not invent
+  speculative abstractions just to remove a small amount of repetition
+- call out places where generic contracts are actually domain-specific, where UI
+  and plugin/store responsibilities are mixed, or where a page is becoming a
+  second persistence authority
+- treat "good review" as maintainability work too: surface weak seams, stale
+  docs/contracts, missing focused tests, and accidental complexity early
+
+Review findings should be high-signal and concrete. Prioritize bugs and
+behavioral risk first, then redundancy, unused code, API shape, and longer-term
+maintainability concerns.
+
 ## Domain Ownership And Write Targets
 
 ### Entities Domain
