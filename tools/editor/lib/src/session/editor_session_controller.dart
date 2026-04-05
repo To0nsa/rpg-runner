@@ -98,17 +98,12 @@ class EditorSessionController extends ChangeNotifier {
       final workspace = EditorWorkspace(rootPath: _workspacePath);
       final plugin = _pluginRegistry.requireById(_selectedPluginId);
       final document = await plugin.loadFromRepo(workspace);
-      final issues = plugin.validate(document);
-      final scene = plugin.buildEditableScene(document);
-
-      _workspace = workspace;
-      _document = document;
-      _setIssues(issues);
-      _scene = scene;
-      _lastExportResult = null;
-      _exportError = null;
-      _clearHistory();
-      _refreshPendingChanges(plugin);
+      _applyDocumentState(
+        plugin: plugin,
+        document: document,
+        workspace: workspace,
+        clearHistory: true,
+      );
     } catch (error, stackTrace) {
       _clearLoadedSessionState(clearWorkspace: true);
       _loadError = '$error';
@@ -137,12 +132,7 @@ class EditorSessionController extends ChangeNotifier {
     }
     _undoStack.add(document);
     _redoStack.clear();
-    _document = nextDocument;
-    _setIssues(plugin.validate(nextDocument));
-    _scene = plugin.buildEditableScene(nextDocument);
-    _refreshPendingChanges(plugin);
-    _lastExportResult = null;
-    _exportError = null;
+    _applyDocumentState(plugin: plugin, document: nextDocument);
     notifyListeners();
   }
 
@@ -154,12 +144,7 @@ class EditorSessionController extends ChangeNotifier {
     final plugin = _pluginRegistry.requireById(_selectedPluginId);
     final previous = _undoStack.removeLast();
     _redoStack.add(document);
-    _document = previous;
-    _setIssues(plugin.validate(previous));
-    _scene = plugin.buildEditableScene(previous);
-    _refreshPendingChanges(plugin);
-    _lastExportResult = null;
-    _exportError = null;
+    _applyDocumentState(plugin: plugin, document: previous);
     notifyListeners();
   }
 
@@ -171,12 +156,7 @@ class EditorSessionController extends ChangeNotifier {
     final plugin = _pluginRegistry.requireById(_selectedPluginId);
     final next = _redoStack.removeLast();
     _undoStack.add(document);
-    _document = next;
-    _setIssues(plugin.validate(next));
-    _scene = plugin.buildEditableScene(next);
-    _refreshPendingChanges(plugin);
-    _lastExportResult = null;
-    _exportError = null;
+    _applyDocumentState(plugin: plugin, document: next);
     notifyListeners();
   }
 
@@ -218,6 +198,26 @@ class EditorSessionController extends ChangeNotifier {
   void _clearHistory() {
     _undoStack.clear();
     _redoStack.clear();
+  }
+
+  void _applyDocumentState({
+    required AuthoringDomainPlugin plugin,
+    required AuthoringDocument document,
+    EditorWorkspace? workspace,
+    bool clearHistory = false,
+  }) {
+    if (workspace != null) {
+      _workspace = workspace;
+    }
+    _document = document;
+    _setIssues(plugin.validate(document));
+    _scene = plugin.buildEditableScene(document);
+    if (clearHistory) {
+      _clearHistory();
+    }
+    _refreshPendingChanges(plugin);
+    _lastExportResult = null;
+    _exportError = null;
   }
 
   void _setIssues(List<ValidationIssue> issues) {
