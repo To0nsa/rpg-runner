@@ -2,9 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../session/editor_session_controller.dart';
-import '../chunkCreator/chunk_creator_page.dart';
-import '../entities/entities_editor_page.dart';
-import '../prefabCreator/prefab_creator_page.dart';
 import '../shared/editor_page_local_draft_state.dart';
 import 'home_routes.dart';
 
@@ -18,10 +15,8 @@ class EditorHomePage extends StatefulWidget {
 }
 
 class _EditorHomePageState extends State<EditorHomePage> {
-  final GlobalKey _entitiesPageKey = GlobalKey();
-  final GlobalKey _prefabCreatorPageKey = GlobalKey();
-  final GlobalKey _chunkCreatorPageKey = GlobalKey();
   late final TextEditingController _workspaceController;
+  late final Map<String, _EditorHomeRouteBinding> _routeBindings;
   String _selectedRouteId = entitiesRouteId;
 
   @override
@@ -30,6 +25,13 @@ class _EditorHomePageState extends State<EditorHomePage> {
     _workspaceController = TextEditingController(
       text: widget.controller.workspacePath,
     );
+    _routeBindings = <String, _EditorHomeRouteBinding>{
+      for (final route in homeRoutes)
+        route.id: _EditorHomeRouteBinding(
+          route: route,
+          pageKey: GlobalKey(),
+        ),
+    };
     HardwareKeyboard.instance.addHandler(_handleGlobalKeyEvent);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _syncPluginForRoute(_selectedRouteId);
@@ -149,35 +151,20 @@ class _EditorHomePageState extends State<EditorHomePage> {
   }
 
   Widget _buildSelectedRoutePage() {
-    switch (_selectedRouteId) {
-      case entitiesRouteId:
-        return EntitiesEditorPage(
-          key: _entitiesPageKey,
-          controller: widget.controller,
-        );
-      case prefabCreatorRouteId:
-        return PrefabCreatorPage(
-          key: _prefabCreatorPageKey,
-          controller: widget.controller,
-        );
-      case chunkCreatorRouteId:
-        return ChunkCreatorPage(
-          key: _chunkCreatorPageKey,
-          controller: widget.controller,
-        );
-      default:
-        return const Center(child: Text('Unknown editor page.'));
+    final routeBinding = _selectedRouteBinding;
+    if (routeBinding == null) {
+      return const Center(child: Text('Unknown editor page.'));
     }
+    return routeBinding.buildPage(widget.controller);
   }
 
   void _syncPluginForRoute(String routeId) {
-    final route = findHomeRouteById(routeId);
-    if (route == null) {
+    final routeBinding = _routeBindings[routeId];
+    if (routeBinding == null) {
       return;
     }
-    final requiredPluginId = route.pluginId;
-    if (requiredPluginId == null ||
-        requiredPluginId == widget.controller.selectedPluginId) {
+    final requiredPluginId = routeBinding.route.pluginId;
+    if (requiredPluginId == widget.controller.selectedPluginId) {
       return;
     }
     final hasPlugin = widget.controller.availablePlugins.any(
@@ -241,17 +228,11 @@ class _EditorHomePageState extends State<EditorHomePage> {
   }
 
   bool _currentPageHasLocalDraftChanges() {
-    final pageState = switch (_selectedRouteId) {
-      entitiesRouteId => _entitiesPageKey.currentState,
-      prefabCreatorRouteId => _prefabCreatorPageKey.currentState,
-      chunkCreatorRouteId => _chunkCreatorPageKey.currentState,
-      _ => null,
-    };
+    final pageState = _currentPageState;
     if (pageState is! EditorPageLocalDraftState) {
       return false;
     }
-    final draftAwarePageState = pageState as EditorPageLocalDraftState;
-    return draftAwarePageState.hasLocalDraftChanges;
+    return pageState.hasLocalDraftChanges;
   }
 
   bool _handleUndoShortcut() {
@@ -330,26 +311,21 @@ class _EditorHomePageState extends State<EditorHomePage> {
   }
 
   EditorPageSessionShortcutHandler? _currentPageSessionShortcutHandler() {
-    final pageState = switch (_selectedRouteId) {
-      entitiesRouteId => _entitiesPageKey.currentState,
-      prefabCreatorRouteId => _prefabCreatorPageKey.currentState,
-      chunkCreatorRouteId => _chunkCreatorPageKey.currentState,
-      _ => null,
-    };
+    final pageState = _currentPageState;
     if (pageState is! EditorPageSessionShortcutHandler) {
       return null;
     }
-    return pageState as EditorPageSessionShortcutHandler;
+    return pageState;
   }
 
   BuildContext? _currentPageContext() {
-    return switch (_selectedRouteId) {
-      entitiesRouteId => _entitiesPageKey.currentContext,
-      prefabCreatorRouteId => _prefabCreatorPageKey.currentContext,
-      chunkCreatorRouteId => _chunkCreatorPageKey.currentContext,
-      _ => null,
-    };
+    return _selectedRouteBinding?.currentContext;
   }
+
+  _EditorHomeRouteBinding? get _selectedRouteBinding =>
+      _routeBindings[_selectedRouteId];
+
+  Object? get _currentPageState => _selectedRouteBinding?.currentState;
 
   BuildContext? _focusedEditableTextContext(BuildContext focusContext) {
     if (focusContext.widget is EditableText) {
@@ -382,5 +358,20 @@ class _EditorHomePageState extends State<EditorHomePage> {
       return true;
     });
     return isDescendant;
+  }
+}
+
+class _EditorHomeRouteBinding {
+  const _EditorHomeRouteBinding({required this.route, required this.pageKey});
+
+  final EditorHomeRoute route;
+  final GlobalKey pageKey;
+
+  Object? get currentState => pageKey.currentState;
+
+  BuildContext? get currentContext => pageKey.currentContext;
+
+  Widget buildPage(EditorSessionController controller) {
+    return route.buildPage(key: pageKey, controller: controller);
   }
 }
