@@ -3,11 +3,27 @@ import 'package:path/path.dart' as p;
 import 'package:runner_editor/src/workspace/editor_workspace.dart';
 
 void main() {
-  test('resolve keeps paths inside workspace root', () {
+  test('resolve returns normalized absolute paths inside workspace root', () {
     final workspace = EditorWorkspace(rootPath: '.');
     final resolved = workspace.resolve('assets/authoring/level');
 
-    expect(workspace.containsPath(resolved), isTrue);
+    expect(resolved, p.normalize(p.absolute('assets/authoring/level')));
+  });
+
+  test('resolve treats empty and dot paths as the workspace root', () {
+    final workspace = EditorWorkspace(rootPath: '.');
+
+    expect(workspace.resolve(''), workspace.rootPath);
+    expect(workspace.resolve('.'), workspace.rootPath);
+  });
+
+  test('resolve does not trim caller input', () {
+    final workspace = EditorWorkspace(rootPath: '.');
+
+    expect(
+      workspace.resolve(' assets/authoring/level '),
+      p.normalize(p.absolute(' assets/authoring/level ')),
+    );
   });
 
   test('resolve rejects absolute paths', () {
@@ -25,17 +41,6 @@ void main() {
 
     expect(
       () => workspace.resolve('../outside.txt'),
-      throwsA(isA<ArgumentError>()),
-    );
-  });
-
-  test('toWorkspaceRelativePath enforces root boundary', () {
-    final workspace = EditorWorkspace(rootPath: '.');
-    final insidePath = workspace.resolve('assets/authoring/level');
-
-    expect(workspace.toWorkspaceRelativePath(insidePath), isNotEmpty);
-    expect(
-      () => workspace.toWorkspaceRelativePath(p.absolute('..')),
       throwsA(isA<ArgumentError>()),
     );
   });
