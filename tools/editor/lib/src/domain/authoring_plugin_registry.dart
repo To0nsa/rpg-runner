@@ -34,14 +34,11 @@ class AuthoringPluginRegistry {
   List<AuthoringDomainPlugin> get all =>
       _pluginsById.values.toList(growable: false);
 
-  /// Returns the plugin for [id], or null when no plugin is registered.
-  AuthoringDomainPlugin? findById(String id) => _pluginsById[id];
-
   /// Returns the plugin for [id], or throws when the id is unknown.
   ///
   /// Use this in flows where missing plugins are a configuration/runtime error.
   AuthoringDomainPlugin requireById(String id) {
-    final plugin = findById(id);
+    final plugin = _pluginsById[id];
     if (plugin == null) {
       throw StateError('Unknown authoring plugin id: $id');
     }
