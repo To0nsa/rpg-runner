@@ -1134,7 +1134,6 @@ class _ConstValueResolver {
         continue;
       }
       animViewsByKey[key] = EntityReferenceAnimView(
-        key: key,
         assetPath: assetPath,
         row: rowByAnimKey[key] ?? 0,
         frameStart: frameStartByAnimKey[key] ?? 0,

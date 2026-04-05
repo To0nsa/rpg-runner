@@ -730,9 +730,11 @@ extension _SceneView on _EntitiesEditorPageState {
 
     final animViewsByKey = <String, _ResolvedReferenceAnimView>{};
     if (reference.animViewsByKey.isNotEmpty) {
-      for (final animView in reference.animViewsByKey.values) {
+      for (final entry in reference.animViewsByKey.entries) {
+        final animKey = entry.key;
+        final animView = entry.value;
         final resolvedView = resolveAnimView(
-          key: animView.key,
+          key: animKey,
           assetPath: animView.assetPath,
           row: animView.row,
           frameStart: animView.frameStart,
@@ -740,7 +742,7 @@ extension _SceneView on _EntitiesEditorPageState {
           gridColumns: animView.gridColumns,
         );
         if (resolvedView != null) {
-          animViewsByKey[animView.key] = resolvedView;
+          animViewsByKey[animKey] = resolvedView;
         }
       }
     } else {

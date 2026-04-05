@@ -2,13 +2,29 @@ import 'package:flutter/foundation.dart';
 
 import '../domain/authoring_types.dart';
 
+/// Immutable entity-domain snapshots shared by the parser, plugin, and UI.
+///
+/// The important split in this file is:
+/// - [EntityDocument]: authoritative plugin-owned repo snapshot with baselines
+///   and load issues used for validation/export
+/// - [EntityScene]: UI-facing projection derived from the current document
+/// - [EntitySourceBinding]: exact source ranges that make deterministic write-
+///   back and source-drift detection possible
+
+/// Broad entity bucket used by the editor for grouping and route UI.
 enum EntityType { player, enemy, projectile }
 
+/// Runtime-facing art direction metadata surfaced for editor preview only.
 enum EntityArtFacingDirection { left, right }
 
+/// Optional render/reference metadata associated with an [EntityEntry].
+///
+/// This data is not a second persistence authority. It is parsed from runtime
+/// source so the editor can preview anchors, animation frames, and render
+/// scale while still writing back through source bindings owned by the plugin.
 @immutable
 class EntityReferenceVisual {
-  const EntityReferenceVisual({
+  EntityReferenceVisual({
     required this.assetPath,
     this.frameWidth,
     this.frameHeight,
@@ -22,8 +38,11 @@ class EntityReferenceVisual {
     this.defaultFrameCount,
     this.defaultGridColumns,
     this.defaultAnimKey,
-    this.animViewsByKey = const <String, EntityReferenceAnimView>{},
-  });
+    Map<String, EntityReferenceAnimView> animViewsByKey =
+        const <String, EntityReferenceAnimView>{},
+  }) : animViewsByKey = Map<String, EntityReferenceAnimView>.unmodifiable(
+         animViewsByKey,
+       );
 
   final String assetPath;
   final double? frameWidth;
@@ -38,8 +57,12 @@ class EntityReferenceVisual {
   final int? defaultFrameCount;
   final int? defaultGridColumns;
   final String? defaultAnimKey;
+  // The map key is the authoritative animation id for this view set. The
+  // constructor snapshots the map so a loaded visual stays immutable.
   final Map<String, EntityReferenceAnimView> animViewsByKey;
 
+  /// Returns a new reference visual with the subset of fields the entities
+  /// route currently edits in-session.
   EntityReferenceVisual copyWith({
     double? anchorXPx,
     double? anchorYPx,
@@ -64,10 +87,13 @@ class EntityReferenceVisual {
   }
 }
 
+/// One resolved animation view inside [EntityReferenceVisual.animViewsByKey].
+///
+/// The surrounding map key owns the animation id; this object only carries the
+/// per-view frame/grid metadata needed to resolve preview frames.
 @immutable
 class EntityReferenceAnimView {
   const EntityReferenceAnimView({
-    required this.key,
     required this.assetPath,
     this.row = 0,
     this.frameStart = 0,
@@ -75,7 +101,6 @@ class EntityReferenceAnimView {
     this.gridColumns,
   });
 
-  final String key;
   final String assetPath;
   final int row;
   final int frameStart;
@@ -83,6 +108,11 @@ class EntityReferenceAnimView {
   final int? gridColumns;
 }
 
+/// One authorable entity record in the entities domain.
+///
+/// This combines editable collider data with optional render preview metadata
+/// and the source bindings required to write deterministic source patches back
+/// to the repo.
 @immutable
 class EntityEntry {
   const EntityEntry({
@@ -117,6 +147,8 @@ class EntityEntry {
   final double? castOriginOffset;
   final EntitySourceBinding? castOriginOffsetBinding;
 
+  /// Returns a new entry preserving identity/source ownership while replacing
+  /// the subset of values the editor is allowed to mutate.
   EntityEntry copyWith({
     double? halfX,
     double? halfY,
@@ -148,27 +180,51 @@ class EntityEntry {
   }
 }
 
+/// Authoritative parsed workspace snapshot for the entities plugin.
+///
+/// [entries] is the current editable state. [baselineById] is the original
+/// load snapshot used for pending-diff calculation and export drift checks.
+/// [loadIssues] captures parser/load warnings that should stay attached to the
+/// document even before plugin validation runs.
+@immutable
 class EntityDocument extends AuthoringDocument {
-  const EntityDocument({
-    required this.entries,
-    required this.baselineById,
+  EntityDocument({
+    required List<EntityEntry> entries,
+    required Map<String, EntityEntry> baselineById,
     required this.runtimeGridCellSize,
-    this.loadIssues = const <ValidationIssue>[],
-  });
+    List<ValidationIssue> loadIssues = const <ValidationIssue>[],
+  }) : entries = List<EntityEntry>.unmodifiable(entries),
+       baselineById = Map<String, EntityEntry>.unmodifiable(baselineById),
+       loadIssues = List<ValidationIssue>.unmodifiable(loadIssues);
 
+  // Collections are snapped on construction so the document behaves like a
+  // real immutable repo snapshot once loaded.
   final List<EntityEntry> entries;
   final Map<String, EntityEntry> baselineById;
   final double runtimeGridCellSize;
   final List<ValidationIssue> loadIssues;
 }
 
+/// UI-facing scene projection built from an [EntityDocument].
+///
+/// This keeps only the data the route needs to render and inspect entities; it
+/// intentionally does not carry baseline/export concerns.
+@immutable
 class EntityScene extends EditableScene {
-  const EntityScene({required this.entries, required this.runtimeGridCellSize});
+  EntityScene({
+    required List<EntityEntry> entries,
+    required this.runtimeGridCellSize,
+  }) : entries = List<EntityEntry>.unmodifiable(entries);
 
   final List<EntityEntry> entries;
   final double runtimeGridCellSize;
 }
 
+/// Shape of source range the entity exporter knows how to replace.
+///
+/// These kinds are intentionally concrete because entity export writes back to
+/// a handful of specific runtime source patterns rather than a generic file
+/// format.
 enum EntitySourceBindingKind {
   enemyAabbExpression,
   playerArgs,
@@ -178,6 +234,10 @@ enum EntitySourceBindingKind {
   referenceRenderScaleScalar,
 }
 
+/// Exact source range captured during parsing for deterministic write-back.
+///
+/// The exporter uses this to verify the original snippet is still present
+/// before replacing it, which is how the entities workflow stays drift-safe.
 @immutable
 class EntitySourceBinding {
   const EntitySourceBinding({
