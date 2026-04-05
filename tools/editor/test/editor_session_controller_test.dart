@@ -160,14 +160,71 @@ void main() {
     expect(controller.canUndo, isFalse);
     expect(controller.canRedo, isFalse);
   });
+
+  test('issues are exposed as an immutable snapshot', () async {
+    final fixtureRoot = await Directory.systemTemp.createTemp(
+      'editor_session_controller_issues_',
+    );
+    addTearDown(() {
+      if (fixtureRoot.existsSync()) {
+        fixtureRoot.deleteSync(recursive: true);
+      }
+    });
+
+    final plugin = _RecordingPlugin(
+      validationIssues: <ValidationIssue>[
+        const ValidationIssue(
+          severity: ValidationSeverity.warning,
+          code: 'warning_a',
+          message: 'initial warning',
+        ),
+      ],
+    );
+    final controller = EditorSessionController(
+      pluginRegistry: AuthoringPluginRegistry(
+        plugins: <AuthoringDomainPlugin>[plugin],
+      ),
+      initialPluginId: plugin.id,
+      initialWorkspacePath: fixtureRoot.path,
+    );
+
+    await controller.loadWorkspace();
+
+    expect(controller.issues, hasLength(1));
+    expect(
+      () => controller.issues.add(
+        const ValidationIssue(
+          severity: ValidationSeverity.error,
+          code: 'late_mutation',
+          message: 'should not be allowed',
+        ),
+      ),
+      throwsUnsupportedError,
+    );
+
+    plugin.validationIssues.add(
+      const ValidationIssue(
+        severity: ValidationSeverity.error,
+        code: 'external_mutation',
+        message: 'mutated after load',
+      ),
+    );
+
+    expect(controller.issues, hasLength(1));
+    expect(controller.issues.single.code, 'warning_a');
+  });
 }
 
 class _RecordingPlugin implements AuthoringDomainPlugin {
   final List<String> exportWorkspaceRoots = <String>[];
-  _RecordingPlugin({this.id = 'recording'});
+  _RecordingPlugin({
+    this.id = 'recording',
+    List<ValidationIssue> validationIssues = const <ValidationIssue>[],
+  }) : validationIssues = List<ValidationIssue>.from(validationIssues);
 
   bool failLoads = false;
   bool failExports = false;
+  final List<ValidationIssue> validationIssues;
 
   @override
   final String id;
@@ -219,7 +276,7 @@ class _RecordingPlugin implements AuthoringDomainPlugin {
 
   @override
   List<ValidationIssue> validate(AuthoringDocument document) {
-    return const <ValidationIssue>[];
+    return validationIssues;
   }
 }
 

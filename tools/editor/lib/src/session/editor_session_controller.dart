@@ -103,7 +103,7 @@ class EditorSessionController extends ChangeNotifier {
 
       _workspace = workspace;
       _document = document;
-      _issues = issues;
+      _setIssues(issues);
       _scene = scene;
       _lastExportResult = null;
       _exportError = null;
@@ -138,7 +138,7 @@ class EditorSessionController extends ChangeNotifier {
     _undoStack.add(document);
     _redoStack.clear();
     _document = nextDocument;
-    _issues = plugin.validate(nextDocument);
+    _setIssues(plugin.validate(nextDocument));
     _scene = plugin.buildEditableScene(nextDocument);
     _refreshPendingChanges(plugin);
     _lastExportResult = null;
@@ -155,7 +155,7 @@ class EditorSessionController extends ChangeNotifier {
     final previous = _undoStack.removeLast();
     _redoStack.add(document);
     _document = previous;
-    _issues = plugin.validate(previous);
+    _setIssues(plugin.validate(previous));
     _scene = plugin.buildEditableScene(previous);
     _refreshPendingChanges(plugin);
     _lastExportResult = null;
@@ -172,7 +172,7 @@ class EditorSessionController extends ChangeNotifier {
     final next = _redoStack.removeLast();
     _undoStack.add(document);
     _document = next;
-    _issues = plugin.validate(next);
+    _setIssues(plugin.validate(next));
     _scene = plugin.buildEditableScene(next);
     _refreshPendingChanges(plugin);
     _lastExportResult = null;
@@ -218,6 +218,10 @@ class EditorSessionController extends ChangeNotifier {
   void _clearHistory() {
     _undoStack.clear();
     _redoStack.clear();
+  }
+
+  void _setIssues(List<ValidationIssue> issues) {
+    _issues = List<ValidationIssue>.unmodifiable(issues);
   }
 
   void _resetForContextChange({required bool clearWorkspace}) {
