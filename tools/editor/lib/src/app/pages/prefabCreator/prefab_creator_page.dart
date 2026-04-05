@@ -188,6 +188,26 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
                   icon: const Icon(Icons.save_outlined),
                   label: const Text('Save Definitions'),
                 ),
+                if (_activeTabIndex != 0) ...[
+                  OutlinedButton.icon(
+                    key: const ValueKey<String>('prefab_editor_undo_button'),
+                    onPressed:
+                        _isLoading || _isSaving || !widget.controller.canUndo
+                        ? null
+                        : _undoCommittedEdit,
+                    icon: const Icon(Icons.undo),
+                    label: const Text('Undo'),
+                  ),
+                  OutlinedButton.icon(
+                    key: const ValueKey<String>('prefab_editor_redo_button'),
+                    onPressed:
+                        _isLoading || _isSaving || !widget.controller.canRedo
+                        ? null
+                        : _redoCommittedEdit,
+                    icon: const Icon(Icons.redo),
+                    label: const Text('Redo'),
+                  ),
+                ],
               ],
             ),
             if (_statusMessage != null) ...[

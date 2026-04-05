@@ -7,7 +7,9 @@ import 'package:path/path.dart' as p;
 import 'package:runner_editor/src/app/pages/prefabCreator/prefab_creator_page.dart';
 import 'package:runner_editor/src/domain/authoring_plugin_registry.dart';
 import 'package:runner_editor/src/domain/authoring_types.dart';
+import 'package:runner_editor/src/prefabs/prefab_domain_models.dart';
 import 'package:runner_editor/src/prefabs/prefab_domain_plugin.dart';
+import 'package:runner_editor/src/prefabs/prefab_models.dart';
 import 'package:runner_editor/src/session/editor_session_controller.dart';
 
 void main() {
@@ -111,6 +113,60 @@ void main() {
     );
   });
 
+  testWidgets('obstacle prefab commits support undo and redo', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1800, 1200));
+    addTearDown(() async {
+      await tester.binding.setSurfaceSize(null);
+    });
+
+    final fixtureRoot = _createPrefabAuthoringFixture();
+    addTearDown(() {
+      fixtureRoot.deleteSync(recursive: true);
+    });
+
+    final controller = await _pumpPrefabCreatorPage(
+      tester,
+      workspacePath: fixtureRoot.path,
+    );
+
+    expect(find.text('No obstacle prefabs yet.'), findsOneWidget);
+    expect(_prefabScene(controller).data.prefabs, isEmpty);
+
+    await tester.enterText(
+      _textFieldByLabel('Prefab ID').first,
+      'obstacle_box',
+    );
+    await tester.tap(
+      find.byKey(const ValueKey<String>('obstacle_prefab_upsert_button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('No obstacle prefabs yet.'), findsNothing);
+    expect(
+      _prefabScene(controller).data.prefabs.map((prefab) => prefab.id),
+      contains('obstacle_box'),
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('prefab_editor_undo_button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('No obstacle prefabs yet.'), findsOneWidget);
+    expect(_prefabScene(controller).data.prefabs, isEmpty);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('prefab_editor_redo_button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('No obstacle prefabs yet.'), findsNothing);
+    expect(
+      _prefabScene(controller).data.prefabs.map((prefab) => prefab.id),
+      contains('obstacle_box'),
+    );
+  });
+
   testWidgets('platform create/edit flow is revision-safe', (tester) async {
     await tester.binding.setSurfaceSize(const Size(1800, 1200));
     addTearDown(() async {
@@ -154,6 +210,62 @@ void main() {
     expect(
       find.textContaining('Upserted platform prefab "platform_bridge" (rev=1'),
       findsOneWidget,
+    );
+  });
+
+  testWidgets('platform prefab commits support undo and redo', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1800, 1200));
+    addTearDown(() async {
+      await tester.binding.setSurfaceSize(null);
+    });
+
+    final fixtureRoot = _createPrefabAuthoringFixture();
+    addTearDown(() {
+      fixtureRoot.deleteSync(recursive: true);
+    });
+
+    final controller = await _pumpPrefabCreatorPage(
+      tester,
+      workspacePath: fixtureRoot.path,
+    );
+
+    await tester.tap(find.text('Platform Prefabs').first);
+    await tester.pumpAndSettle();
+
+    expect(_prefabScene(controller).data.prefabs, isEmpty);
+
+    await tester.enterText(
+      _textFieldByLabel('Platform Prefab ID').first,
+      'platform_bridge',
+    );
+    await tester.ensureVisible(find.text('Create/Update Platform Prefab'));
+    await tester.tap(find.text('Create/Update Platform Prefab'));
+    await tester.pumpAndSettle();
+
+    expect(
+      _prefabScene(
+        controller,
+      ).data.prefabs.where((prefab) => prefab.kind == PrefabKind.platform),
+      hasLength(1),
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('prefab_editor_undo_button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(_prefabScene(controller).data.prefabs, isEmpty);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('prefab_editor_redo_button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      _prefabScene(
+        controller,
+      ).data.prefabs.where((prefab) => prefab.kind == PrefabKind.platform),
+      hasLength(1),
     );
   });
 
@@ -427,9 +539,63 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('platform module edits support undo and redo', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1800, 1200));
+    addTearDown(() async {
+      await tester.binding.setSurfaceSize(null);
+    });
+
+    final fixtureRoot = _createPrefabAuthoringFixture();
+    addTearDown(() {
+      fixtureRoot.deleteSync(recursive: true);
+    });
+
+    final controller = await _pumpPrefabCreatorPage(
+      tester,
+      workspacePath: fixtureRoot.path,
+    );
+
+    await tester.tap(find.text('Platform Prefabs').first);
+    await tester.pumpAndSettle();
+
+    final sceneCanvas = find.byKey(
+      const ValueKey<String>('platform_module_scene_canvas'),
+    );
+    final center = tester.getCenter(sceneCanvas);
+
+    expect(
+      _prefabScene(controller).data.platformModules.single.cells,
+      hasLength(1),
+    );
+
+    await tester.tap(find.byKey(const ValueKey<String>('module_tool_erase')));
+    await tester.pumpAndSettle();
+    await tester.tapAt(center);
+    await tester.pumpAndSettle();
+
+    expect(_prefabScene(controller).data.platformModules.single.cells, isEmpty);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('prefab_editor_undo_button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      _prefabScene(controller).data.platformModules.single.cells,
+      hasLength(1),
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('prefab_editor_redo_button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(_prefabScene(controller).data.platformModules.single.cells, isEmpty);
+  });
 }
 
-Future<void> _pumpPrefabCreatorPage(
+Future<EditorSessionController> _pumpPrefabCreatorPage(
   WidgetTester tester, {
   required String workspacePath,
 }) async {
@@ -455,6 +621,8 @@ Future<void> _pumpPrefabCreatorPage(
   );
   await tester.tap(find.text('Obstacle Prefabs'));
   await tester.pumpAndSettle();
+
+  return controller;
 }
 
 Directory _createPrefabAuthoringFixture() {
@@ -551,4 +719,10 @@ Finder _dropdownByLabel(String label) {
         widget is DropdownButtonFormField &&
         widget.decoration.labelText == label,
   );
+}
+
+PrefabScene _prefabScene(EditorSessionController controller) {
+  final scene = controller.scene;
+  expect(scene, isA<PrefabScene>());
+  return scene! as PrefabScene;
 }

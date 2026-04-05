@@ -90,6 +90,7 @@ extension _PrefabCreatorDataIo on _PrefabCreatorPageState {
         _selectedModuleId = loaded.platformModules.isEmpty
             ? null
             : (firstActiveModuleId ?? loaded.platformModules.first.id);
+        _syncSelectedModuleInputs();
         final hints = scene.migrationHints;
         _statusMessage = hints.isEmpty
             ? 'Loaded prefab/tile authoring data.'
@@ -158,6 +159,7 @@ extension _PrefabCreatorDataIo on _PrefabCreatorPageState {
       if (exportError != null) {
         throw StateError(exportError);
       }
+      _syncStateFromControllerScene();
       _updateState(() {
         _statusMessage =
             'Saved ${PrefabStore.prefabDefsPath} and ${PrefabStore.tileDefsPath}.';
@@ -272,6 +274,147 @@ extension _PrefabCreatorDataIo on _PrefabCreatorPageState {
     final completer = Completer<ui.Image>();
     ui.decodeImageFromList(bytes, completer.complete);
     return completer.future;
+  }
+
+  void _commitPrefabDataChange({
+    required PrefabData nextData,
+    required String statusMessage,
+    VoidCallback? beforeSync,
+  }) {
+    if (widget.controller.document == null || _currentPrefabScene() == null) {
+      _setError('Reload prefab data before applying edits.');
+      return;
+    }
+
+    widget.controller.applyCommand(
+      AuthoringCommand(
+        kind: PrefabDomainPlugin.replacePrefabDataCommandKind,
+        payload: <String, Object?>{'data': nextData},
+      ),
+    );
+    final scene = _currentPrefabScene();
+    if (scene == null) {
+      _setError('Prefab scene is not loaded. Reload and try again.');
+      return;
+    }
+
+    _updateState(() {
+      beforeSync?.call();
+      _applySceneSnapshot(scene);
+      _statusMessage = statusMessage;
+      _errorMessage = null;
+    });
+  }
+
+  void _undoCommittedEdit() {
+    if (!widget.controller.canUndo) {
+      return;
+    }
+    widget.controller.undo();
+    _syncStateFromControllerScene(statusMessage: 'Undid prefab/module edit.');
+  }
+
+  void _redoCommittedEdit() {
+    if (!widget.controller.canRedo) {
+      return;
+    }
+    widget.controller.redo();
+    _syncStateFromControllerScene(statusMessage: 'Redid prefab/module edit.');
+  }
+
+  PrefabScene? _currentPrefabScene() {
+    final scene = widget.controller.scene;
+    return scene is PrefabScene ? scene : null;
+  }
+
+  void _syncStateFromControllerScene({String? statusMessage}) {
+    final scene = _currentPrefabScene();
+    if (scene == null) {
+      _setError('Prefab scene is not loaded. Reload and try again.');
+      return;
+    }
+    _updateState(() {
+      _applySceneSnapshot(scene);
+      _statusMessage = statusMessage;
+      _errorMessage = null;
+    });
+  }
+
+  void _applySceneSnapshot(PrefabScene scene) {
+    _data = scene.data;
+    _atlasImagePaths = scene.atlasImagePaths;
+    _selectedAtlasPath = _resolveSelectedAtlas(
+      previousSelection: _selectedAtlasPath,
+      available: _atlasImagePaths,
+    );
+    for (final entry in scene.atlasImageSizes.entries) {
+      _atlasImageSizes[entry.key] = entry.value;
+    }
+
+    _selectedPrefabSliceId = _resolveAtlasSliceSelection(
+      currentSelection: _selectedPrefabSliceId,
+      slices: _data.prefabSlices,
+    );
+    _selectedTileSliceId = _resolveAtlasSliceSelection(
+      currentSelection: _selectedTileSliceId,
+      slices: _data.tileSlices,
+    );
+
+    final preferredModuleId = _data.platformModules.isEmpty
+        ? null
+        : _preferredModuleIdForPicker(_data.platformModules);
+    _selectedModuleId = _resolveModuleSelection(
+      currentSelection: _selectedModuleId,
+      fallbackSelection: preferredModuleId,
+    );
+    _selectedPrefabPlatformModuleId = _resolveModuleSelection(
+      currentSelection: _selectedPrefabPlatformModuleId,
+      fallbackSelection: preferredModuleId,
+    );
+    _syncSelectedModuleInputs();
+
+    final editingPrefab = _editingPrefab();
+    if (editingPrefab != null) {
+      _applyPrefabToForm(editingPrefab, setStatusMessage: false);
+    } else {
+      _editingPrefabKey = null;
+    }
+  }
+
+  String? _resolveAtlasSliceSelection({
+    required String? currentSelection,
+    required List<AtlasSliceDef> slices,
+  }) {
+    if (currentSelection != null &&
+        slices.any((slice) => slice.id == currentSelection)) {
+      return currentSelection;
+    }
+    if (slices.isEmpty) {
+      return null;
+    }
+    return slices.first.id;
+  }
+
+  String? _resolveModuleSelection({
+    required String? currentSelection,
+    required String? fallbackSelection,
+  }) {
+    if (currentSelection != null &&
+        _data.platformModules.any((module) => module.id == currentSelection)) {
+      return currentSelection;
+    }
+    return fallbackSelection;
+  }
+
+  void _syncSelectedModuleInputs() {
+    final selectedModule = _selectedModule();
+    if (selectedModule == null) {
+      _moduleIdController.clear();
+      _moduleTileSizeController.text = '16';
+      return;
+    }
+    _moduleIdController.text = selectedModule.id;
+    _moduleTileSizeController.text = selectedModule.tileSize.toString();
   }
 
   void _setError(String message) {

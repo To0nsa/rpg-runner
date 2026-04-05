@@ -36,15 +36,16 @@ extension _PrefabCreatorModuleLogic on _PrefabCreatorPageState {
           .followedBy([nextModule])
           .toList(growable: false),
     );
-    _updateState(() {
-      _data = _data.copyWith(platformModules: nextModules);
-      _selectedModuleId = id;
-      _selectedPrefabPlatformModuleId ??= id;
-      _statusMessage =
+    _commitPrefabDataChange(
+      nextData: _data.copyWith(platformModules: nextModules),
+      beforeSync: () {
+        _selectedModuleId = id;
+        _selectedPrefabPlatformModuleId ??= id;
+      },
+      statusMessage:
           'Upserted platform module "$id" '
-          '(rev=${nextModule.revision} status=${nextModule.status.jsonValue}).';
-      _errorMessage = null;
-    });
+          '(rev=${nextModule.revision} status=${nextModule.status.jsonValue}).',
+    );
   }
 
   TileModuleDef? _moduleById(String moduleId) {
@@ -87,17 +88,16 @@ extension _PrefabCreatorModuleLogic on _PrefabCreatorPageState {
     final nextModules = _dataReducer.sortedModulesForUi(
       _data.platformModules.followedBy([duplicate]).toList(growable: false),
     );
-    _updateState(() {
-      _data = _data.copyWith(platformModules: nextModules);
-      _selectedModuleId = duplicate.id;
-      _selectedPrefabPlatformModuleId ??= duplicate.id;
-      _moduleIdController.text = duplicate.id;
-      _moduleTileSizeController.text = duplicate.tileSize.toString();
-      _statusMessage =
+    _commitPrefabDataChange(
+      nextData: _data.copyWith(platformModules: nextModules),
+      beforeSync: () {
+        _selectedModuleId = duplicate.id;
+        _selectedPrefabPlatformModuleId ??= duplicate.id;
+      },
+      statusMessage:
           'Duplicated module "${source.id}" -> "${duplicate.id}" '
-          '(rev=${duplicate.revision}).';
-      _errorMessage = null;
-    });
+          '(rev=${duplicate.revision}).',
+    );
   }
 
   void _renameSelectedModuleFromForm() {
@@ -137,21 +137,21 @@ extension _PrefabCreatorModuleLogic on _PrefabCreatorPageState {
           .followedBy([renamed])
           .toList(growable: false),
     );
-    _updateState(() {
-      _data = _data.copyWith(
+    _commitPrefabDataChange(
+      nextData: _data.copyWith(
         platformModules: nextModules,
         prefabs: rewrittenPrefabs,
-      );
-      _selectedModuleId = renamed.id;
-      if (_selectedPrefabPlatformModuleId == source.id) {
-        _selectedPrefabPlatformModuleId = renamed.id;
-      }
-      _moduleIdController.text = renamed.id;
-      _statusMessage =
+      ),
+      beforeSync: () {
+        _selectedModuleId = renamed.id;
+        if (_selectedPrefabPlatformModuleId == source.id) {
+          _selectedPrefabPlatformModuleId = renamed.id;
+        }
+      },
+      statusMessage:
           'Renamed module "${source.id}" -> "${renamed.id}" '
-          '(rev=${renamed.revision}, updatedPrefabs=$rewrittenCount).';
-      _errorMessage = null;
-    });
+          '(rev=${renamed.revision}, updatedPrefabs=$rewrittenCount).',
+    );
   }
 
   void _toggleDeprecateSelectedModule() {
@@ -175,14 +175,15 @@ extension _PrefabCreatorModuleLogic on _PrefabCreatorPageState {
           .map((module) => module.id == source.id ? updated : module)
           .toList(growable: false),
     );
-    _updateState(() {
-      _data = _data.copyWith(platformModules: nextModules);
-      _selectedModuleId = updated.id;
-      _statusMessage =
+    _commitPrefabDataChange(
+      nextData: _data.copyWith(platformModules: nextModules),
+      beforeSync: () {
+        _selectedModuleId = updated.id;
+      },
+      statusMessage:
           '${nextStatus == TileModuleStatus.deprecated ? 'Deprecated' : 'Reactivated'} '
-          'module "${updated.id}" (rev=${updated.revision}).';
-      _errorMessage = null;
-    });
+          'module "${updated.id}" (rev=${updated.revision}).',
+    );
   }
 
   void _deleteModule(String moduleId) {
@@ -199,25 +200,24 @@ extension _PrefabCreatorModuleLogic on _PrefabCreatorPageState {
       return;
     }
 
-    _updateState(() {
-      _data = _data.copyWith(
-        platformModules: _data.platformModules
-            .where((module) => module.id != moduleId)
-            .toList(growable: false),
-      );
-      if (_selectedModuleId == moduleId) {
-        _selectedModuleId = _data.platformModules.isEmpty
-            ? null
-            : _preferredModuleIdForPicker(_data.platformModules);
-      }
-      if (_selectedPrefabPlatformModuleId == moduleId) {
-        _selectedPrefabPlatformModuleId = _data.platformModules.isEmpty
-            ? null
-            : _preferredModuleIdForPicker(_data.platformModules);
-      }
-      _statusMessage = 'Deleted module "$moduleId".';
-      _errorMessage = null;
-    });
+    final nextModules = _data.platformModules
+        .where((module) => module.id != moduleId)
+        .toList(growable: false);
+    final nextPreferredModuleId = nextModules.isEmpty
+        ? null
+        : _preferredModuleIdForPicker(nextModules);
+    _commitPrefabDataChange(
+      nextData: _data.copyWith(platformModules: nextModules),
+      beforeSync: () {
+        if (_selectedModuleId == moduleId) {
+          _selectedModuleId = nextPreferredModuleId;
+        }
+        if (_selectedPrefabPlatformModuleId == moduleId) {
+          _selectedPrefabPlatformModuleId = nextPreferredModuleId;
+        }
+      },
+      statusMessage: 'Deleted module "$moduleId".',
+    );
   }
 
   void _deleteModuleCell({required String moduleId, required int cellIndex}) {
@@ -242,12 +242,11 @@ extension _PrefabCreatorModuleLogic on _PrefabCreatorPageState {
           .map((m) => m.id == moduleId ? nextModule : m)
           .toList(growable: false),
     );
-    _updateState(() {
-      _data = _data.copyWith(platformModules: nextModules);
-      _statusMessage =
-          'Removed cell from module "$moduleId" (rev=${nextModule.revision}).';
-      _errorMessage = null;
-    });
+    _commitPrefabDataChange(
+      nextData: _data.copyWith(platformModules: nextModules),
+      statusMessage:
+          'Removed cell from module "$moduleId" (rev=${nextModule.revision}).',
+    );
   }
 
   void _paintCellInSelectedModuleAt({
@@ -314,13 +313,12 @@ extension _PrefabCreatorModuleLogic on _PrefabCreatorPageState {
           .map((m) => m.id == module.id ? nextModule : m)
           .toList(growable: false),
     );
-    _updateState(() {
-      _data = _data.copyWith(platformModules: nextModules);
-      _statusMessage =
+    _commitPrefabDataChange(
+      nextData: _data.copyWith(platformModules: nextModules),
+      statusMessage:
           'Painted cell ($gridX,$gridY) in "${module.id}" '
-          '(rev=${nextModule.revision}).';
-      _errorMessage = null;
-    });
+          '(rev=${nextModule.revision}).',
+    );
   }
 
   void _eraseCellInSelectedModuleAt({required int gridX, required int gridY}) {
@@ -381,13 +379,12 @@ extension _PrefabCreatorModuleLogic on _PrefabCreatorPageState {
           .map((m) => m.id == module.id ? nextModule : m)
           .toList(growable: false),
     );
-    _updateState(() {
-      _data = _data.copyWith(platformModules: nextModules);
-      _statusMessage =
+    _commitPrefabDataChange(
+      nextData: _data.copyWith(platformModules: nextModules),
+      statusMessage:
           'Erased cell ($gridX,$gridY) from "${module.id}" '
-          '(rev=${nextModule.revision}).';
-      _errorMessage = null;
-    });
+          '(rev=${nextModule.revision}).',
+    );
   }
 
   void _moveCellInModuleAt({
@@ -436,14 +433,13 @@ extension _PrefabCreatorModuleLogic on _PrefabCreatorPageState {
           .map((m) => m.id == module.id ? nextModule : m)
           .toList(growable: false),
     );
-    _updateState(() {
-      _data = _data.copyWith(platformModules: nextModules);
-      _statusMessage =
+    _commitPrefabDataChange(
+      nextData: _data.copyWith(platformModules: nextModules),
+      statusMessage:
           'Moved cell ($sourceGridX,$sourceGridY) -> '
           '($targetGridX,$targetGridY) in "${module.id}" '
-          '(rev=${nextModule.revision}).';
-      _errorMessage = null;
-    });
+          '(rev=${nextModule.revision}).',
+    );
   }
 
   void _loadPlatformPrefabForSelectedModule() {
