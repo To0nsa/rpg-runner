@@ -1,6 +1,204 @@
 part of '../prefab_creator_page.dart';
 
 extension _PrefabCreatorDataIo on _PrefabCreatorPageState {
+  Iterable<TextEditingController> get _localDraftTrackedControllers sync* {
+    yield _sliceIdController;
+    yield _moduleIdController;
+    yield _moduleTileSizeController;
+    yield _selectionXController;
+    yield _selectionYController;
+    yield _selectionWController;
+    yield _selectionHController;
+    yield _obstaclePrefabForm.prefabIdController;
+    yield _obstaclePrefabForm.anchorXController;
+    yield _obstaclePrefabForm.anchorYController;
+    yield _obstaclePrefabForm.colliderOffsetXController;
+    yield _obstaclePrefabForm.colliderOffsetYController;
+    yield _obstaclePrefabForm.colliderWidthController;
+    yield _obstaclePrefabForm.colliderHeightController;
+    yield _obstaclePrefabForm.tagsController;
+    yield _obstaclePrefabForm.zIndexController;
+    yield _platformPrefabForm.prefabIdController;
+    yield _platformPrefabForm.anchorXController;
+    yield _platformPrefabForm.anchorYController;
+    yield _platformPrefabForm.colliderOffsetXController;
+    yield _platformPrefabForm.colliderOffsetYController;
+    yield _platformPrefabForm.colliderWidthController;
+    yield _platformPrefabForm.colliderHeightController;
+    yield _platformPrefabForm.tagsController;
+    yield _platformPrefabForm.zIndexController;
+  }
+
+  bool get _canUndoLocalDraftChanges => _localDraftUndoStack.isNotEmpty;
+
+  bool get _canRedoLocalDraftChanges => _localDraftRedoStack.isNotEmpty;
+
+  void _installLocalDraftHistoryListeners() {
+    for (final controller in _localDraftTrackedControllers) {
+      controller.addListener(_handleLocalDraftControllerChanged);
+    }
+  }
+
+  void _removeLocalDraftHistoryListeners() {
+    for (final controller in _localDraftTrackedControllers) {
+      controller.removeListener(_handleLocalDraftControllerChanged);
+    }
+  }
+
+  void _handleLocalDraftControllerChanged() {
+    if (_suppressLocalDraftHistory) {
+      return;
+    }
+    final nextSnapshot = _captureFormDraftSnapshot();
+    if (nextSnapshot == _lastObservedFormDraftSnapshot) {
+      return;
+    }
+    _localDraftUndoStack.add(_lastObservedFormDraftSnapshot);
+    _localDraftRedoStack.clear();
+    _lastObservedFormDraftSnapshot = nextSnapshot;
+    _scheduleLocalDraftRefresh();
+  }
+
+  void _scheduleLocalDraftRefresh() {
+    if (_localDraftRefreshScheduled || !mounted) {
+      return;
+    }
+    _localDraftRefreshScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _localDraftRefreshScheduled = false;
+      if (!mounted) {
+        return;
+      }
+      _updateState(() {});
+    });
+  }
+
+  void _clearLocalDraftHistory() {
+    _localDraftUndoStack.clear();
+    _localDraftRedoStack.clear();
+  }
+
+  void _runWithoutLocalDraftHistory(VoidCallback callback) {
+    final previous = _suppressLocalDraftHistory;
+    _suppressLocalDraftHistory = true;
+    try {
+      callback();
+    } finally {
+      _suppressLocalDraftHistory = previous;
+    }
+  }
+
+  void _applyLocalDraftMutation(VoidCallback callback) {
+    final previousSnapshot = _captureFormDraftSnapshot();
+    _runWithoutLocalDraftHistory(callback);
+    final nextSnapshot = _captureFormDraftSnapshot();
+    if (nextSnapshot == previousSnapshot) {
+      _lastObservedFormDraftSnapshot = nextSnapshot;
+      return;
+    }
+    _localDraftUndoStack.add(previousSnapshot);
+    _localDraftRedoStack.clear();
+    _lastObservedFormDraftSnapshot = nextSnapshot;
+  }
+
+  bool _undoLocalDraftChange() {
+    if (_localDraftUndoStack.isEmpty) {
+      return false;
+    }
+    FocusScope.of(context).unfocus();
+    final currentSnapshot = _captureFormDraftSnapshot();
+    final previousSnapshot = _localDraftUndoStack.removeLast();
+    _localDraftRedoStack.add(currentSnapshot);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      _updateState(() {
+        _restoreFormDraftSnapshot(previousSnapshot);
+        _lastObservedFormDraftSnapshot = previousSnapshot;
+        _statusMessage = 'Undid prefab draft edit.';
+        _errorMessage = null;
+      });
+    });
+    WidgetsBinding.instance.scheduleFrame();
+    return true;
+  }
+
+  bool _redoLocalDraftChange() {
+    if (_localDraftRedoStack.isEmpty) {
+      return false;
+    }
+    FocusScope.of(context).unfocus();
+    final currentSnapshot = _captureFormDraftSnapshot();
+    final nextSnapshot = _localDraftRedoStack.removeLast();
+    _localDraftUndoStack.add(currentSnapshot);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      _updateState(() {
+        _restoreFormDraftSnapshot(nextSnapshot);
+        _lastObservedFormDraftSnapshot = nextSnapshot;
+        _statusMessage = 'Redid prefab draft edit.';
+        _errorMessage = null;
+      });
+    });
+    WidgetsBinding.instance.scheduleFrame();
+    return true;
+  }
+
+  void _restoreFormDraftSnapshot(_PrefabCreatorFormDraftSnapshot snapshot) {
+    _runWithoutLocalDraftHistory(() {
+      _sliceIdController.text = snapshot.sliceId;
+      _selectionXController.text = snapshot.selectionX;
+      _selectionYController.text = snapshot.selectionY;
+      _selectionWController.text = snapshot.selectionW;
+      _selectionHController.text = snapshot.selectionH;
+      _selectedPrefabSliceId = snapshot.selectedPrefabSliceId;
+      _selectedPrefabPlatformModuleId = snapshot.selectedPrefabPlatformModuleId;
+      _moduleIdController.text = snapshot.moduleId;
+      _moduleTileSizeController.text = snapshot.moduleTileSize;
+
+      _obstaclePrefabForm.prefabIdController.text = snapshot.obstaclePrefabId;
+      _obstaclePrefabForm.anchorXController.text = snapshot.obstacleAnchorX;
+      _obstaclePrefabForm.anchorYController.text = snapshot.obstacleAnchorY;
+      _obstaclePrefabForm.colliderOffsetXController.text =
+          snapshot.obstacleColliderOffsetX;
+      _obstaclePrefabForm.colliderOffsetYController.text =
+          snapshot.obstacleColliderOffsetY;
+      _obstaclePrefabForm.colliderWidthController.text =
+          snapshot.obstacleColliderWidth;
+      _obstaclePrefabForm.colliderHeightController.text =
+          snapshot.obstacleColliderHeight;
+      _obstaclePrefabForm.tagsController.text = snapshot.obstacleTags;
+      _obstaclePrefabForm.zIndexController.text = snapshot.obstacleZIndex;
+      _obstaclePrefabForm.snapToGrid = snapshot.obstacleSnapToGrid;
+      _obstaclePrefabForm.autoManagePlatformModule =
+          snapshot.obstacleAutoManagePlatformModule;
+      _obstaclePrefabForm.selectedKind = snapshot.obstacleSelectedKind;
+      _obstaclePrefabForm.editingPrefabKey = snapshot.obstacleEditingPrefabKey;
+
+      _platformPrefabForm.prefabIdController.text = snapshot.platformPrefabId;
+      _platformPrefabForm.anchorXController.text = snapshot.platformAnchorX;
+      _platformPrefabForm.anchorYController.text = snapshot.platformAnchorY;
+      _platformPrefabForm.colliderOffsetXController.text =
+          snapshot.platformColliderOffsetX;
+      _platformPrefabForm.colliderOffsetYController.text =
+          snapshot.platformColliderOffsetY;
+      _platformPrefabForm.colliderWidthController.text =
+          snapshot.platformColliderWidth;
+      _platformPrefabForm.colliderHeightController.text =
+          snapshot.platformColliderHeight;
+      _platformPrefabForm.tagsController.text = snapshot.platformTags;
+      _platformPrefabForm.zIndexController.text = snapshot.platformZIndex;
+      _platformPrefabForm.snapToGrid = snapshot.platformSnapToGrid;
+      _platformPrefabForm.autoManagePlatformModule =
+          snapshot.platformAutoManagePlatformModule;
+      _platformPrefabForm.selectedKind = snapshot.platformSelectedKind;
+      _platformPrefabForm.editingPrefabKey = snapshot.platformEditingPrefabKey;
+    });
+  }
+
   Future<void> _reloadData() async {
     final workspacePath = widget.controller.workspacePath.trim();
     if (workspacePath.isEmpty) {
@@ -287,6 +485,7 @@ extension _PrefabCreatorDataIo on _PrefabCreatorPageState {
       return;
     }
 
+    FocusScope.of(context).unfocus();
     widget.controller.applyCommand(
       AuthoringCommand(
         kind: PrefabDomainPlugin.replacePrefabDataCommandKind,
@@ -410,13 +609,15 @@ extension _PrefabCreatorDataIo on _PrefabCreatorPageState {
 
   void _syncSelectedModuleInputs() {
     final selectedModule = _selectedModule();
-    if (selectedModule == null) {
-      _moduleIdController.clear();
-      _moduleTileSizeController.text = '16';
-      return;
-    }
-    _moduleIdController.text = selectedModule.id;
-    _moduleTileSizeController.text = selectedModule.tileSize.toString();
+    _runWithoutLocalDraftHistory(() {
+      if (selectedModule == null) {
+        _moduleIdController.clear();
+        _moduleTileSizeController.text = '16';
+        return;
+      }
+      _moduleIdController.text = selectedModule.id;
+      _moduleTileSizeController.text = selectedModule.tileSize.toString();
+    });
   }
 
   bool _hasLocalDataDraftChanges() {
@@ -477,7 +678,10 @@ extension _PrefabCreatorDataIo on _PrefabCreatorPageState {
   }
 
   void _syncFormDraftBaseline() {
-    _formDraftBaseline = _captureFormDraftSnapshot();
+    final snapshot = _captureFormDraftSnapshot();
+    _formDraftBaseline = snapshot;
+    _lastObservedFormDraftSnapshot = snapshot;
+    _clearLocalDraftHistory();
   }
 
   void _setError(String message) {

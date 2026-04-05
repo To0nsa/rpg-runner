@@ -50,12 +50,14 @@ extension _PrefabCreatorPrefabLogic on _PrefabCreatorPageState {
 
   void _onPrefabSceneValuesChanged(PrefabSceneValues values) {
     _updateState(() {
-      _anchorXController.text = values.anchorX.toString();
-      _anchorYController.text = values.anchorY.toString();
-      _colliderOffsetXController.text = values.colliderOffsetX.toString();
-      _colliderOffsetYController.text = values.colliderOffsetY.toString();
-      _colliderWidthController.text = values.colliderWidth.toString();
-      _colliderHeightController.text = values.colliderHeight.toString();
+      _applyLocalDraftMutation(() {
+        _anchorXController.text = values.anchorX.toString();
+        _anchorYController.text = values.anchorY.toString();
+        _colliderOffsetXController.text = values.colliderOffsetX.toString();
+        _colliderOffsetYController.text = values.colliderOffsetY.toString();
+        _colliderWidthController.text = values.colliderWidth.toString();
+        _colliderHeightController.text = values.colliderHeight.toString();
+      });
       _errorMessage = null;
     });
   }
@@ -335,40 +337,42 @@ extension _PrefabCreatorPrefabLogic on _PrefabCreatorPageState {
     final collider = prefab.colliders.isEmpty
         ? const PrefabColliderDef(offsetX: 0, offsetY: 0, width: 16, height: 16)
         : prefab.colliders.first;
-    _editingPrefabKey = prefab.prefabKey;
-    _prefabIdController.text = prefab.id;
-    _selectedPrefabKind = prefab.kind == PrefabKind.platform
-        ? PrefabKind.platform
-        : PrefabKind.obstacle;
-    if (_selectedPrefabKind == PrefabKind.obstacle) {
-      _autoManagePlatformModule = true;
-    }
-    if (prefab.usesAtlasSlice) {
-      _selectedPrefabSliceId = prefab.sliceId;
-    }
-    if (prefab.usesPlatformModule) {
-      _selectedPrefabPlatformModuleId = prefab.moduleId;
-      _selectedModuleId = prefab.moduleId;
-      _autoManagePlatformModule = _dataReducer.isAutoManagedModuleForPrefab(
-        prefabKey: prefab.prefabKey,
-        moduleId: prefab.moduleId,
-      );
-      final backingModule = _moduleById(prefab.moduleId);
-      if (backingModule != null) {
-        _moduleTileSizeController.text = backingModule.tileSize.toString();
+    _runWithoutLocalDraftHistory(() {
+      _editingPrefabKey = prefab.prefabKey;
+      _prefabIdController.text = prefab.id;
+      _selectedPrefabKind = prefab.kind == PrefabKind.platform
+          ? PrefabKind.platform
+          : PrefabKind.obstacle;
+      if (_selectedPrefabKind == PrefabKind.obstacle) {
+        _autoManagePlatformModule = true;
       }
-    } else if (_selectedPrefabKind == PrefabKind.platform) {
-      _autoManagePlatformModule = true;
-    }
-    _anchorXController.text = prefab.anchorXPx.toString();
-    _anchorYController.text = prefab.anchorYPx.toString();
-    _colliderOffsetXController.text = collider.offsetX.toString();
-    _colliderOffsetYController.text = collider.offsetY.toString();
-    _colliderWidthController.text = collider.width.toString();
-    _colliderHeightController.text = collider.height.toString();
-    _prefabTagsController.text = prefab.tags.join(', ');
-    _prefabZIndexController.text = prefab.zIndex.toString();
-    _prefabSnapToGrid = prefab.snapToGrid;
+      if (prefab.usesAtlasSlice) {
+        _selectedPrefabSliceId = prefab.sliceId;
+      }
+      if (prefab.usesPlatformModule) {
+        _selectedPrefabPlatformModuleId = prefab.moduleId;
+        _selectedModuleId = prefab.moduleId;
+        _autoManagePlatformModule = _dataReducer.isAutoManagedModuleForPrefab(
+          prefabKey: prefab.prefabKey,
+          moduleId: prefab.moduleId,
+        );
+        final backingModule = _moduleById(prefab.moduleId);
+        if (backingModule != null) {
+          _moduleTileSizeController.text = backingModule.tileSize.toString();
+        }
+      } else if (_selectedPrefabKind == PrefabKind.platform) {
+        _autoManagePlatformModule = true;
+      }
+      _anchorXController.text = prefab.anchorXPx.toString();
+      _anchorYController.text = prefab.anchorYPx.toString();
+      _colliderOffsetXController.text = collider.offsetX.toString();
+      _colliderOffsetYController.text = collider.offsetY.toString();
+      _colliderWidthController.text = collider.width.toString();
+      _colliderHeightController.text = collider.height.toString();
+      _prefabTagsController.text = prefab.tags.join(', ');
+      _prefabZIndexController.text = prefab.zIndex.toString();
+      _prefabSnapToGrid = prefab.snapToGrid;
+    });
     _errorMessage = null;
     if (setStatusMessage) {
       _statusMessage =
@@ -465,28 +469,30 @@ extension _PrefabCreatorPrefabLogic on _PrefabCreatorPageState {
 
   void _clearPrefabForm() {
     _updateState(() {
-      _editingPrefabKey = null;
-      _prefabIdController.clear();
-      _anchorXController.text = '0';
-      _anchorYController.text = '0';
-      _colliderOffsetXController.text = '0';
-      _colliderOffsetYController.text = '0';
-      _colliderWidthController.text = '16';
-      _colliderHeightController.text = '16';
-      _prefabTagsController.clear();
-      _prefabZIndexController.text = '0';
-      _prefabSnapToGrid = true;
-      _moduleTileSizeController.text = '16';
-      _autoManagePlatformModule = true;
-      _selectedPrefabKind = PrefabKind.obstacle;
-      if (_data.prefabSlices.isNotEmpty) {
-        _selectedPrefabSliceId = _data.prefabSlices.first.id;
-      }
-      if (_data.platformModules.isNotEmpty) {
-        _selectedPrefabPlatformModuleId = _preferredModuleIdForPicker(
-          _data.platformModules,
-        );
-      }
+      _runWithoutLocalDraftHistory(() {
+        _editingPrefabKey = null;
+        _prefabIdController.clear();
+        _anchorXController.text = '0';
+        _anchorYController.text = '0';
+        _colliderOffsetXController.text = '0';
+        _colliderOffsetYController.text = '0';
+        _colliderWidthController.text = '16';
+        _colliderHeightController.text = '16';
+        _prefabTagsController.clear();
+        _prefabZIndexController.text = '0';
+        _prefabSnapToGrid = true;
+        _moduleTileSizeController.text = '16';
+        _autoManagePlatformModule = true;
+        _selectedPrefabKind = PrefabKind.obstacle;
+        if (_data.prefabSlices.isNotEmpty) {
+          _selectedPrefabSliceId = _data.prefabSlices.first.id;
+        }
+        if (_data.platformModules.isNotEmpty) {
+          _selectedPrefabPlatformModuleId = _preferredModuleIdForPicker(
+            _data.platformModules,
+          );
+        }
+      });
       _syncFormDraftBaseline();
       _statusMessage = 'Cleared prefab form.';
       _errorMessage = null;

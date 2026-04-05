@@ -10,7 +10,17 @@ import '../workspace/editor_workspace.dart';
 /// pending changes, and undo/redo history in sync so routes can treat the
 /// controller as a coherent session boundary. Changing the workspace or plugin
 /// invalidates the loaded snapshot instead of reusing potentially stale state.
+///
+/// This controller owns committed authoring state only. Pages may still keep
+/// transient local draft state such as text fields, viewport state, or tool
+/// selection, but anything that should participate in validation, pending file
+/// diffs, undo/redo, or export must flow through this session boundary.
 class EditorSessionController extends ChangeNotifier {
+  /// Creates a session scoped to one plugin registry, active plugin id, and
+  /// workspace root path.
+  ///
+  /// The initial plugin/workspace are treated as context only; no document is
+  /// loaded until [loadWorkspace] succeeds.
   EditorSessionController({
     required AuthoringPluginRegistry pluginRegistry,
     required String initialPluginId,
@@ -37,41 +47,84 @@ class EditorSessionController extends ChangeNotifier {
   final List<AuthoringDocument> _undoStack = <AuthoringDocument>[];
   final List<AuthoringDocument> _redoStack = <AuthoringDocument>[];
 
+  /// All registered domain plugins available for route/session selection.
   List<AuthoringDomainPlugin> get availablePlugins => _pluginRegistry.all;
 
+  /// Active plugin id whose document/scene contract this session currently uses.
   String get selectedPluginId => _selectedPluginId;
 
+  /// Current workspace root path used for the next load/export.
   String get workspacePath => _workspacePath;
 
+  /// True while [loadWorkspace] is resolving the current plugin document.
   bool get isLoading => _isLoading;
+
+  /// True while [exportDirectWrite] is running plugin-owned repository writes.
   bool get isExporting => _isExporting;
 
+  /// Last load failure for the current context, if any.
   String? get loadError => _loadError;
+
+  /// Last export failure for the current loaded document, if any.
   String? get exportError => _exportError;
 
+  /// Loaded workspace handle bound to the current document snapshot.
   EditorWorkspace? get workspace => _workspace;
 
+  /// Plugin-owned authoritative document snapshot currently being edited.
   AuthoringDocument? get document => _document;
 
+  /// UI-facing scene projection derived from [document].
   EditableScene? get scene => _scene;
 
+  /// Deterministic validation issues for the current [document].
+  ///
+  /// Exposed as an immutable snapshot so widgets cannot mutate controller state
+  /// outside the session lifecycle.
   List<ValidationIssue> get issues => _issues;
+
+  /// Pending plugin-reported item/file deltas against repository state.
   PendingChanges get pendingChanges => _pendingChanges;
+
+  /// Error raised while computing [pendingChanges], if any.
+  ///
+  /// Pending-change computation is treated as auxiliary UI state, so a failure
+  /// here does not invalidate the loaded document.
   String? get pendingChangesError => _pendingChangesError;
+
+  /// Last export summary/artifacts produced by [exportDirectWrite].
+  ///
+  /// Cleared on subsequent local document changes so widgets do not show stale
+  /// "last apply" output for a newer unsaved document state.
   ExportResult? get lastExportResult => _lastExportResult;
+
+  /// True when the session can step backward through committed document edits.
   bool get canUndo => _undoStack.isNotEmpty;
+
+  /// True when the session can step forward after an [undo].
   bool get canRedo => _redoStack.isNotEmpty;
+
+  /// Domain-defined dirty item ids for the current [pendingChanges] snapshot.
+  ///
+  /// These ids are opaque to the controller and are intended for route UI such
+  /// as dirty row markers or focused navigation.
   Set<String> get dirtyItemIds =>
       Set<String>.unmodifiable(_pendingChanges.changedItemIds);
 
+  /// Number of validation issues at error severity in [issues].
   int get errorCount => _issues
       .where((issue) => issue.severity == ValidationSeverity.error)
       .length;
 
+  /// Number of validation issues at warning severity in [issues].
   int get warningCount => _issues
       .where((issue) => issue.severity == ValidationSeverity.warning)
       .length;
 
+  /// Changes the workspace root path and invalidates any loaded session state.
+  ///
+  /// This is intentionally destructive to the current document/scene because
+  /// pending diffs, validation, and export targets are all workspace-relative.
   void setWorkspacePath(String workspacePath) {
     final nextPath = workspacePath.trim();
     if (nextPath == _workspacePath) {
@@ -82,6 +135,10 @@ class EditorSessionController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Switches the active plugin contract and invalidates the loaded document.
+  ///
+  /// The workspace path is preserved, but the current document/scene/history are
+  /// dropped because they are only valid for the previously selected plugin.
   void setSelectedPluginId(String pluginId) {
     if (_selectedPluginId == pluginId) {
       return;
@@ -91,6 +148,11 @@ class EditorSessionController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Loads a fresh plugin document from the current workspace path.
+  ///
+  /// Guarantees that a failed load does not leave the last successful document
+  /// editable. A successful load replaces the entire derived session snapshot
+  /// and clears undo/redo history because the repository baseline has changed.
   Future<void> loadWorkspace() async {
     if (_isLoading) {
       return;
@@ -127,6 +189,11 @@ class EditorSessionController extends ChangeNotifier {
     }
   }
 
+  /// Applies one plugin-defined edit command to the current [document].
+  ///
+  /// Commands only affect committed session state. Pages should keep purely
+  /// transient drafts locally until they are ready to become part of the
+  /// authoritative document and participate in undo/redo/export.
   void applyCommand(AuthoringCommand command) {
     final document = _document;
     if (document == null) {
@@ -143,6 +210,7 @@ class EditorSessionController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Restores the previous committed document snapshot, if available.
   void undo() {
     final document = _document;
     if (document == null || _undoStack.isEmpty) {
@@ -155,6 +223,7 @@ class EditorSessionController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Reapplies the next committed document snapshot after an [undo], if any.
   void redo() {
     final document = _document;
     if (document == null || _redoStack.isEmpty) {
@@ -167,6 +236,11 @@ class EditorSessionController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Exports the current [document] through the active plugin.
+  ///
+  /// When the plugin reports that files were written, the controller reloads
+  /// from disk so the session reflects canonical persisted output rather than
+  /// assuming the in-memory document matches post-export repository state.
   Future<void> exportDirectWrite() async {
     final document = _document;
     final workspace = _workspace;
@@ -209,6 +283,11 @@ class EditorSessionController extends ChangeNotifier {
     _redoStack.clear();
   }
 
+  /// Rebuilds the full derived session snapshot from one authoritative document.
+  ///
+  /// Validation issues, scene projection, pending changes, and transient export
+  /// result state are all recomputed from the same document instance so routes
+  /// never observe a mixed "old document / new scene" combination.
   void _applyDocumentState({
     required AuthoringDomainPlugin plugin,
     required AuthoringDocument document,
@@ -235,12 +314,20 @@ class EditorSessionController extends ChangeNotifier {
     _issues = List<ValidationIssue>.unmodifiable(issues);
   }
 
+  /// Clears loaded session state after a workspace/plugin context change.
+  ///
+  /// Both context changes also clear previous load/export errors because those
+  /// messages are only meaningful for the old context.
   void _resetForContextChange({required bool clearWorkspace}) {
     _clearLoadedSessionState(clearWorkspace: clearWorkspace);
     _loadError = null;
     _exportError = null;
   }
 
+  /// Drops the currently loaded document-derived snapshot.
+  ///
+  /// Used for failed reloads and destructive context changes. The workspace can
+  /// optionally be preserved when only the plugin changes.
   void _clearLoadedSessionState({required bool clearWorkspace}) {
     if (clearWorkspace) {
       _workspace = null;
@@ -254,6 +341,10 @@ class EditorSessionController extends ChangeNotifier {
     _clearHistory();
   }
 
+  /// Recomputes pending item/file deltas for the current document.
+  ///
+  /// This is intentionally isolated from the rest of [_applyDocumentState] so a
+  /// pending-diff failure does not tear down an otherwise usable loaded scene.
   void _refreshPendingChanges(AuthoringDomainPlugin plugin) {
     final workspace = _workspace;
     final document = _document;

@@ -455,9 +455,11 @@ extension _PrefabCreatorModuleLogic on _PrefabCreatorPageState {
     if (existing != null) {
       _loadPrefabIntoForm(existing);
       _updateState(() {
-        _selectedPrefabKind = PrefabKind.platform;
-        _autoManagePlatformModule = false;
-        _selectedPrefabPlatformModuleId = module.id;
+        _runWithoutLocalDraftHistory(() {
+          _selectedPrefabKind = PrefabKind.platform;
+          _autoManagePlatformModule = false;
+          _selectedPrefabPlatformModuleId = module.id;
+        });
         _syncFormDraftBaseline();
         _statusMessage =
             'Loaded platform prefab "${existing.id}" for module "${module.id}".';
@@ -467,34 +469,36 @@ extension _PrefabCreatorModuleLogic on _PrefabCreatorPageState {
     }
 
     _updateState(() {
-      _editingPrefabKey = null;
-      _selectedPrefabKind = PrefabKind.platform;
-      _autoManagePlatformModule = false;
-      _selectedPrefabPlatformModuleId = module.id;
-      _prefabIdController.text = _prefabIdController.text.trim().isEmpty
-          ? '${module.id}_platform'
-          : _prefabIdController.text.trim();
-      if (_anchorXController.text.trim().isEmpty) {
-        _anchorXController.text = '0';
-      }
-      if (_anchorYController.text.trim().isEmpty) {
-        _anchorYController.text = '0';
-      }
-      if (_colliderOffsetXController.text.trim().isEmpty) {
-        _colliderOffsetXController.text = '0';
-      }
-      if (_colliderOffsetYController.text.trim().isEmpty) {
-        _colliderOffsetYController.text = '0';
-      }
-      if (_colliderWidthController.text.trim().isEmpty) {
-        _colliderWidthController.text = module.tileSize.toString();
-      }
-      if (_colliderHeightController.text.trim().isEmpty) {
-        _colliderHeightController.text = module.tileSize.toString();
-      }
-      if (_prefabZIndexController.text.trim().isEmpty) {
-        _prefabZIndexController.text = '0';
-      }
+      _runWithoutLocalDraftHistory(() {
+        _editingPrefabKey = null;
+        _selectedPrefabKind = PrefabKind.platform;
+        _autoManagePlatformModule = false;
+        _selectedPrefabPlatformModuleId = module.id;
+        _prefabIdController.text = _prefabIdController.text.trim().isEmpty
+            ? '${module.id}_platform'
+            : _prefabIdController.text.trim();
+        if (_anchorXController.text.trim().isEmpty) {
+          _anchorXController.text = '0';
+        }
+        if (_anchorYController.text.trim().isEmpty) {
+          _anchorYController.text = '0';
+        }
+        if (_colliderOffsetXController.text.trim().isEmpty) {
+          _colliderOffsetXController.text = '0';
+        }
+        if (_colliderOffsetYController.text.trim().isEmpty) {
+          _colliderOffsetYController.text = '0';
+        }
+        if (_colliderWidthController.text.trim().isEmpty) {
+          _colliderWidthController.text = module.tileSize.toString();
+        }
+        if (_colliderHeightController.text.trim().isEmpty) {
+          _colliderHeightController.text = module.tileSize.toString();
+        }
+        if (_prefabZIndexController.text.trim().isEmpty) {
+          _prefabZIndexController.text = '0';
+        }
+      });
       _syncFormDraftBaseline();
       _statusMessage =
           'Initialized platform prefab form for module "${module.id}".';
@@ -515,27 +519,29 @@ extension _PrefabCreatorModuleLogic on _PrefabCreatorPageState {
     final editing = _editingPrefab();
 
     _updateState(() {
-      _selectedPrefabKind = PrefabKind.platform;
-      _autoManagePlatformModule = false;
-      _selectedPrefabPlatformModuleId = module.id;
-      if (existing != null) {
-        _editingPrefabKey = existing.prefabKey;
-      } else if (editing?.kind != PrefabKind.platform) {
-        // Prevent cross-kind upserts from mutating a previously loaded obstacle.
-        _editingPrefabKey = null;
-      }
-      _prefabIdController.text = _prefabIdController.text.trim().isEmpty
-          ? (existing?.id ?? '${module.id}_platform')
-          : _prefabIdController.text.trim();
-      if (_colliderWidthController.text.trim().isEmpty) {
-        _colliderWidthController.text = module.tileSize.toString();
-      }
-      if (_colliderHeightController.text.trim().isEmpty) {
-        _colliderHeightController.text = module.tileSize.toString();
-      }
-      if (_prefabZIndexController.text.trim().isEmpty) {
-        _prefabZIndexController.text = '0';
-      }
+      _runWithoutLocalDraftHistory(() {
+        _selectedPrefabKind = PrefabKind.platform;
+        _autoManagePlatformModule = false;
+        _selectedPrefabPlatformModuleId = module.id;
+        if (existing != null) {
+          _editingPrefabKey = existing.prefabKey;
+        } else if (editing?.kind != PrefabKind.platform) {
+          // Prevent cross-kind upserts from mutating a previously loaded obstacle.
+          _editingPrefabKey = null;
+        }
+        _prefabIdController.text = _prefabIdController.text.trim().isEmpty
+            ? (existing?.id ?? '${module.id}_platform')
+            : _prefabIdController.text.trim();
+        if (_colliderWidthController.text.trim().isEmpty) {
+          _colliderWidthController.text = module.tileSize.toString();
+        }
+        if (_colliderHeightController.text.trim().isEmpty) {
+          _colliderHeightController.text = module.tileSize.toString();
+        }
+        if (_prefabZIndexController.text.trim().isEmpty) {
+          _prefabZIndexController.text = '0';
+        }
+      });
     });
     _upsertPrefabFromForm();
   }

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runner_editor/src/app/pages/home/editor_home_page.dart';
+import 'package:runner_editor/src/app/pages/prefabCreator/widgets/platform_module_scene_view.dart';
+import 'package:runner_editor/src/app/pages/prefabCreator/widgets/prefab_scene_view.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_plugin.dart';
 import 'package:runner_editor/src/domain/authoring_plugin_registry.dart';
@@ -191,6 +194,221 @@ void main() {
     expect(controller.selectedPluginId, PrefabDomainPlugin.pluginId);
     expect(find.text('Discard unsaved changes?'), findsNothing);
   });
+
+  testWidgets('ctrl+z and ctrl+y drive session undo and redo', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1800, 1200));
+    addTearDown(() async {
+      await tester.binding.setSurfaceSize(null);
+    });
+
+    final controller = EditorSessionController(
+      pluginRegistry: AuthoringPluginRegistry(
+        plugins: <AuthoringDomainPlugin>[
+          _FakeDirtyEntitiesPlugin(initialDirty: false),
+          _FakePrefabPlugin(),
+          _FakeChunkPlugin(),
+        ],
+      ),
+      initialPluginId: EntityDomainPlugin.pluginId,
+      initialWorkspacePath: '.',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: EditorHomePage(controller: controller)),
+    );
+    await tester.pumpAndSettle();
+
+    controller.applyCommand(AuthoringCommand(kind: 'mark_dirty'));
+    await tester.pumpAndSettle();
+
+    expect(controller.pendingChanges.hasChanges, isTrue);
+    expect(controller.canUndo, isTrue);
+
+    await _pressCtrlShortcut(tester, LogicalKeyboardKey.keyZ);
+
+    expect(controller.pendingChanges.hasChanges, isFalse);
+    expect(controller.canRedo, isTrue);
+
+    await _pressCtrlShortcut(tester, LogicalKeyboardKey.keyY);
+
+    expect(controller.pendingChanges.hasChanges, isTrue);
+    expect(controller.canUndo, isTrue);
+  });
+
+  testWidgets('ctrl+z and ctrl+y work on prefab obstacle tab committed edits', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1800, 1200));
+    addTearDown(() async {
+      await tester.binding.setSurfaceSize(null);
+    });
+
+    final controller = EditorSessionController(
+      pluginRegistry: AuthoringPluginRegistry(
+        plugins: <AuthoringDomainPlugin>[
+          _FakeEntitiesPlugin(),
+          _FakePrefabEditorPlugin(),
+          _FakeChunkPlugin(),
+        ],
+      ),
+      initialPluginId: EntityDomainPlugin.pluginId,
+      initialWorkspacePath: '.',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: EditorHomePage(controller: controller)),
+    );
+    await tester.pumpAndSettle();
+
+    await _selectRoute(tester, 'PREFAB CREATOR');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Obstacle Prefabs').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('No obstacle prefabs yet.'), findsOneWidget);
+
+    await tester.enterText(_textFieldByLabel('Prefab ID').first, 'crate_box');
+    await tester.tap(
+      find.byKey(const ValueKey<String>('obstacle_prefab_upsert_button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('No obstacle prefabs yet.'), findsNothing);
+    expect(find.text('crate_box'), findsWidgets);
+
+    await _pressCtrlShortcut(tester, LogicalKeyboardKey.keyZ);
+
+    expect(find.text('No obstacle prefabs yet.'), findsOneWidget);
+
+    await _pressCtrlShortcut(tester, LogicalKeyboardKey.keyY);
+
+    expect(find.text('No obstacle prefabs yet.'), findsNothing);
+    expect(find.text('crate_box'), findsWidgets);
+  });
+
+  testWidgets('ctrl+z and ctrl+y undo prefab obstacle anchor draft edits', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1800, 1200));
+    addTearDown(() async {
+      await tester.binding.setSurfaceSize(null);
+    });
+
+    final controller = EditorSessionController(
+      pluginRegistry: AuthoringPluginRegistry(
+        plugins: <AuthoringDomainPlugin>[
+          _FakeEntitiesPlugin(),
+          _FakePrefabEditorPlugin(),
+          _FakeChunkPlugin(),
+        ],
+      ),
+      initialPluginId: EntityDomainPlugin.pluginId,
+      initialWorkspacePath: '.',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: EditorHomePage(controller: controller)),
+    );
+    await tester.pumpAndSettle();
+
+    await _selectRoute(tester, 'PREFAB CREATOR');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Obstacle Prefabs').first);
+    await tester.pumpAndSettle();
+
+    expect(_activePrefabSceneView(tester).values.anchorX, 0);
+
+    await tester.enterText(_textFieldByLabel('Anchor X (px)').first, '11');
+    await tester.pumpAndSettle();
+    expect(_activePrefabSceneView(tester).values.anchorX, 11);
+
+    await _pressCtrlShortcut(tester, LogicalKeyboardKey.keyZ);
+    expect(_activePrefabSceneView(tester).values.anchorX, 0);
+
+    await _pressCtrlShortcut(tester, LogicalKeyboardKey.keyY);
+    expect(_activePrefabSceneView(tester).values.anchorX, 11);
+  });
+
+  testWidgets('ctrl+z and ctrl+y undo prefab platform collider draft edits', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1800, 1200));
+    addTearDown(() async {
+      await tester.binding.setSurfaceSize(null);
+    });
+
+    final controller = EditorSessionController(
+      pluginRegistry: AuthoringPluginRegistry(
+        plugins: <AuthoringDomainPlugin>[
+          _FakeEntitiesPlugin(),
+          _FakePrefabEditorPlugin(),
+          _FakeChunkPlugin(),
+        ],
+      ),
+      initialPluginId: EntityDomainPlugin.pluginId,
+      initialWorkspacePath: '.',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: EditorHomePage(controller: controller)),
+    );
+    await tester.pumpAndSettle();
+
+    await _selectRoute(tester, 'PREFAB CREATOR');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Platform Prefabs').first);
+    await tester.pumpAndSettle();
+
+    expect(_activePlatformModuleSceneView(tester).overlayValues?.colliderWidth, 16);
+
+    await tester.enterText(_textFieldByLabel('Collider Width').first, '24');
+    await tester.pumpAndSettle();
+    expect(_activePlatformModuleSceneView(tester).overlayValues?.colliderWidth, 24);
+
+    await _pressCtrlShortcut(tester, LogicalKeyboardKey.keyZ);
+    expect(_activePlatformModuleSceneView(tester).overlayValues?.colliderWidth, 16);
+
+    await _pressCtrlShortcut(tester, LogicalKeyboardKey.keyY);
+    expect(_activePlatformModuleSceneView(tester).overlayValues?.colliderWidth, 24);
+  });
+
+  testWidgets(
+    'ctrl+z does not trigger session undo while typing in a text field',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1800, 1200));
+      addTearDown(() async {
+        await tester.binding.setSurfaceSize(null);
+      });
+
+      final controller = EditorSessionController(
+        pluginRegistry: AuthoringPluginRegistry(
+          plugins: <AuthoringDomainPlugin>[
+            _FakeDirtyEntitiesPlugin(initialDirty: false),
+            _FakePrefabPlugin(),
+            _FakeChunkPlugin(),
+          ],
+        ),
+        initialPluginId: EntityDomainPlugin.pluginId,
+        initialWorkspacePath: '.',
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(home: EditorHomePage(controller: controller)),
+      );
+      await tester.pumpAndSettle();
+
+      controller.applyCommand(AuthoringCommand(kind: 'mark_dirty'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(_textFieldByLabel('Workspace Path'));
+      await tester.pumpAndSettle();
+
+      await _pressCtrlShortcut(tester, LogicalKeyboardKey.keyZ);
+
+      expect(controller.pendingChanges.hasChanges, isTrue);
+      expect(controller.canUndo, isTrue);
+    },
+  );
 }
 
 class _FakeEntitiesPlugin implements AuthoringDomainPlugin {
@@ -238,6 +456,10 @@ class _FakeEntitiesPlugin implements AuthoringDomainPlugin {
 }
 
 class _FakeDirtyEntitiesPlugin implements AuthoringDomainPlugin {
+  _FakeDirtyEntitiesPlugin({this.initialDirty = true});
+
+  final bool initialDirty;
+
   @override
   String get id => EntityDomainPlugin.pluginId;
 
@@ -292,7 +514,7 @@ class _FakeDirtyEntitiesPlugin implements AuthoringDomainPlugin {
 
   @override
   Future<AuthoringDocument> loadFromRepo(EditorWorkspace workspace) async {
-    return const _FakeDirtyDocument(isDirty: true);
+    return _FakeDirtyDocument(isDirty: initialDirty);
   }
 
   @override
@@ -423,7 +645,20 @@ class _FakePrefabEditorPlugin implements AuthoringDomainPlugin {
     AuthoringDocument document,
     AuthoringCommand command,
   ) {
-    return document;
+    final prefabDocument = document as PrefabDocument;
+    if (command.kind != PrefabDomainPlugin.replacePrefabDataCommandKind) {
+      return prefabDocument;
+    }
+    final nextData = command.payload['data'];
+    if (nextData is! PrefabData) {
+      return prefabDocument;
+    }
+    return PrefabDocument(
+      data: nextData,
+      atlasImagePaths: prefabDocument.atlasImagePaths,
+      atlasImageSizes: prefabDocument.atlasImageSizes,
+      migrationHints: const <String>[],
+    );
   }
 
   @override
@@ -518,8 +753,29 @@ Future<void> _selectRoute(WidgetTester tester, String label) async {
   await tester.tap(find.text(label).last);
 }
 
+Future<void> _pressCtrlShortcut(
+  WidgetTester tester,
+  LogicalKeyboardKey key,
+) async {
+  await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+  await tester.sendKeyDownEvent(key);
+  await tester.sendKeyUpEvent(key);
+  await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+  await tester.pumpAndSettle();
+}
+
 Finder _textFieldByLabel(String label) {
   return find.byWidgetPredicate(
     (widget) => widget is TextField && widget.decoration?.labelText == label,
+  );
+}
+
+PrefabSceneView _activePrefabSceneView(WidgetTester tester) {
+  return tester.widget<PrefabSceneView>(find.byType(PrefabSceneView).first);
+}
+
+PlatformModuleSceneView _activePlatformModuleSceneView(WidgetTester tester) {
+  return tester.widget<PlatformModuleSceneView>(
+    find.byType(PlatformModuleSceneView).first,
   );
 }

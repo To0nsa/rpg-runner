@@ -45,7 +45,7 @@ class PrefabCreatorPage extends StatefulWidget {
 
 class _PrefabCreatorPageState extends State<PrefabCreatorPage>
     with SingleTickerProviderStateMixin
-    implements EditorPageLocalDraftState {
+    implements EditorPageLocalDraftState, EditorPageSessionShortcutHandler {
   static const String _levelAssetsPath = 'assets/images/level';
   static const double _zoomMin = 0.2;
   static const double _zoomMax = 24.0;
@@ -90,6 +90,13 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
       PlatformModuleSceneTool.paint;
   late final TabController _tabController;
   late _PrefabCreatorFormDraftSnapshot _formDraftBaseline;
+  late _PrefabCreatorFormDraftSnapshot _lastObservedFormDraftSnapshot;
+  final List<_PrefabCreatorFormDraftSnapshot> _localDraftUndoStack =
+      <_PrefabCreatorFormDraftSnapshot>[];
+  final List<_PrefabCreatorFormDraftSnapshot> _localDraftRedoStack =
+      <_PrefabCreatorFormDraftSnapshot>[];
+  bool _suppressLocalDraftHistory = false;
+  bool _localDraftRefreshScheduled = false;
   int _activeTabIndex = 0;
 
   PrefabFormState get _activePrefabForm =>
@@ -145,11 +152,45 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
   }
 
   @override
+  bool get canHandleUndoSessionShortcut =>
+      _canUndoLocalDraftChanges || widget.controller.canUndo;
+
+  @override
+  bool get canHandleRedoSessionShortcut =>
+      _canRedoLocalDraftChanges || widget.controller.canRedo;
+
+  @override
+  bool handleUndoSessionShortcut() {
+    if (_undoLocalDraftChange()) {
+      return true;
+    }
+    if (!widget.controller.canUndo) {
+      return false;
+    }
+    _undoCommittedEdit();
+    return true;
+  }
+
+  @override
+  bool handleRedoSessionShortcut() {
+    if (_redoLocalDraftChange()) {
+      return true;
+    }
+    if (!widget.controller.canRedo) {
+      return false;
+    }
+    _redoCommittedEdit();
+    return true;
+  }
+
+  @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _activeTabIndex = _tabController.index;
     _formDraftBaseline = _captureFormDraftSnapshot();
+    _lastObservedFormDraftSnapshot = _formDraftBaseline;
+    _installLocalDraftHistoryListeners();
     _tabController.addListener(_handleEditorTabChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _ensurePrefabPluginSelection();
@@ -159,6 +200,7 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
 
   @override
   void dispose() {
+    _removeLocalDraftHistoryListeners();
     _tabController.removeListener(_handleEditorTabChanged);
     _tabController.dispose();
     _sliceIdController.dispose();
@@ -203,18 +245,22 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
                   OutlinedButton.icon(
                     key: const ValueKey<String>('prefab_editor_undo_button'),
                     onPressed:
-                        _isLoading || _isSaving || !widget.controller.canUndo
+                        _isLoading || _isSaving || !canHandleUndoSessionShortcut
                         ? null
-                        : _undoCommittedEdit,
+                        : () {
+                            handleUndoSessionShortcut();
+                          },
                     icon: const Icon(Icons.undo),
                     label: const Text('Undo'),
                   ),
                   OutlinedButton.icon(
                     key: const ValueKey<String>('prefab_editor_redo_button'),
                     onPressed:
-                        _isLoading || _isSaving || !widget.controller.canRedo
+                        _isLoading || _isSaving || !canHandleRedoSessionShortcut
                         ? null
-                        : _redoCommittedEdit,
+                        : () {
+                            handleRedoSessionShortcut();
+                          },
                     icon: const Icon(Icons.redo),
                     label: const Text('Redo'),
                   ),
@@ -293,11 +339,13 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
     required String? defaultPlatformModuleId,
     required int defaultPlatformTileSize,
   }) {
-    _obstaclePrefabForm.resetObstacleDefaults();
-    _platformPrefabForm.resetPlatformDefaults(
-      tileSize: defaultPlatformTileSize,
-    );
-    _selectedPrefabPlatformModuleId = defaultPlatformModuleId;
+    _runWithoutLocalDraftHistory(() {
+      _obstaclePrefabForm.resetObstacleDefaults();
+      _platformPrefabForm.resetPlatformDefaults(
+        tileSize: defaultPlatformTileSize,
+      );
+      _selectedPrefabPlatformModuleId = defaultPlatformModuleId;
+    });
   }
 
   void _ensurePrefabPluginSelection() {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../session/editor_session_controller.dart';
 import '../chunkCreator/chunk_creator_page.dart';
@@ -29,6 +30,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
     _workspaceController = TextEditingController(
       text: widget.controller.workspacePath,
     );
+    HardwareKeyboard.instance.addHandler(_handleGlobalKeyEvent);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _syncPluginForRoute(_selectedRouteId);
     });
@@ -36,37 +38,43 @@ class _EditorHomePageState extends State<EditorHomePage> {
 
   @override
   void dispose() {
+    HardwareKeyboard.instance.removeHandler(_handleGlobalKeyEvent);
     _workspaceController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: widget.controller,
-      builder: (context, _) {
-        final workspacePath = widget.controller.workspacePath;
-        if (_workspaceController.text != workspacePath) {
-          _workspaceController.value = _workspaceController.value.copyWith(
-            text: workspacePath,
-            selection: TextSelection.collapsed(offset: workspacePath.length),
-            composing: TextRange.empty,
-          );
-        }
-        return Scaffold(
-          body: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildShellControls(),
-                const SizedBox(height: 16),
-                Expanded(child: _buildSelectedRoutePage()),
-              ],
+    return Focus(
+      autofocus: true,
+      child: AnimatedBuilder(
+        animation: widget.controller,
+        builder: (context, _) {
+          final workspacePath = widget.controller.workspacePath;
+          if (_workspaceController.text != workspacePath) {
+            _workspaceController.value = _workspaceController.value.copyWith(
+              text: workspacePath,
+              selection: TextSelection.collapsed(
+                offset: workspacePath.length,
+              ),
+              composing: TextRange.empty,
+            );
+          }
+          return Scaffold(
+            body: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildShellControls(),
+                  const SizedBox(height: 16),
+                  Expanded(child: _buildSelectedRoutePage()),
+                ],
+              ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
@@ -244,5 +252,135 @@ class _EditorHomePageState extends State<EditorHomePage> {
     }
     final draftAwarePageState = pageState as EditorPageLocalDraftState;
     return draftAwarePageState.hasLocalDraftChanges;
+  }
+
+  bool _handleUndoShortcut() {
+    final pageShortcutHandler = _currentPageSessionShortcutHandler();
+    if (_focusedEditableTextConsumesShortcut(
+          currentPageContext: _currentPageContext(),
+          allowCurrentPageShortcutHandler: pageShortcutHandler != null,
+        ) ||
+        widget.controller.isLoading ||
+        widget.controller.isExporting) {
+      return false;
+    }
+    if (pageShortcutHandler?.handleUndoSessionShortcut() == true) {
+      return true;
+    }
+    if (!widget.controller.canUndo) {
+      return false;
+    }
+    widget.controller.undo();
+    return true;
+  }
+
+  bool _handleRedoShortcut() {
+    final pageShortcutHandler = _currentPageSessionShortcutHandler();
+    if (_focusedEditableTextConsumesShortcut(
+          currentPageContext: _currentPageContext(),
+          allowCurrentPageShortcutHandler: pageShortcutHandler != null,
+        ) ||
+        widget.controller.isLoading ||
+        widget.controller.isExporting) {
+      return false;
+    }
+    if (pageShortcutHandler?.handleRedoSessionShortcut() == true) {
+      return true;
+    }
+    if (!widget.controller.canRedo) {
+      return false;
+    }
+    widget.controller.redo();
+    return true;
+  }
+
+  bool _handleGlobalKeyEvent(KeyEvent event) {
+    if (event is! KeyDownEvent ||
+        !HardwareKeyboard.instance.isControlPressed) {
+      return false;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.keyZ) {
+      return _handleUndoShortcut();
+    }
+    if (event.logicalKey == LogicalKeyboardKey.keyY) {
+      return _handleRedoShortcut();
+    }
+    return false;
+  }
+
+  bool _focusedEditableTextConsumesShortcut({
+    required BuildContext? currentPageContext,
+    required bool allowCurrentPageShortcutHandler,
+  }) {
+    final focusContext = FocusManager.instance.primaryFocus?.context;
+    if (focusContext == null) {
+      return false;
+    }
+    final editableContext = _focusedEditableTextContext(focusContext);
+    if (editableContext == null) {
+      return false;
+    }
+    if (!allowCurrentPageShortcutHandler || currentPageContext == null) {
+      return true;
+    }
+    return !_isDescendantContext(
+      descendant: editableContext,
+      ancestor: currentPageContext,
+    );
+  }
+
+  EditorPageSessionShortcutHandler? _currentPageSessionShortcutHandler() {
+    final pageState = switch (_selectedRouteId) {
+      entitiesRouteId => _entitiesPageKey.currentState,
+      prefabCreatorRouteId => _prefabCreatorPageKey.currentState,
+      chunkCreatorRouteId => _chunkCreatorPageKey.currentState,
+      _ => null,
+    };
+    if (pageState is! EditorPageSessionShortcutHandler) {
+      return null;
+    }
+    return pageState as EditorPageSessionShortcutHandler;
+  }
+
+  BuildContext? _currentPageContext() {
+    return switch (_selectedRouteId) {
+      entitiesRouteId => _entitiesPageKey.currentContext,
+      prefabCreatorRouteId => _prefabCreatorPageKey.currentContext,
+      chunkCreatorRouteId => _chunkCreatorPageKey.currentContext,
+      _ => null,
+    };
+  }
+
+  BuildContext? _focusedEditableTextContext(BuildContext focusContext) {
+    if (focusContext.widget is EditableText) {
+      return focusContext;
+    }
+    BuildContext? editableContext;
+    focusContext.visitAncestorElements((element) {
+      if (element.widget is EditableText) {
+        editableContext = element;
+        return false;
+      }
+      return true;
+    });
+    return editableContext;
+  }
+
+  bool _isDescendantContext({
+    required BuildContext descendant,
+    required BuildContext ancestor,
+  }) {
+    if (identical(descendant, ancestor)) {
+      return true;
+    }
+    var isDescendant = false;
+    descendant.visitAncestorElements((element) {
+      if (identical(element, ancestor)) {
+        isDescendant = true;
+        return false;
+      }
+      return true;
+    });
+    return isDescendant;
   }
 }
