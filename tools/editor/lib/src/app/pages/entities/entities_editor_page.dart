@@ -168,14 +168,6 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
       runSpacing: 12,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        FilledButton.icon(
-          onPressed:
-              widget.controller.isLoading || widget.controller.isExporting
-              ? null
-              : widget.controller.loadWorkspace,
-          icon: const Icon(Icons.sync),
-          label: const Text('Load Workspace'),
-        ),
         OutlinedButton.icon(
           onPressed:
               widget.controller.isLoading ||

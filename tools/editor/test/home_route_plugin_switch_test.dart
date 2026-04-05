@@ -226,7 +226,10 @@ void main() {
     expect(controller.pendingChanges.hasChanges, isTrue);
     expect(controller.workspacePath, '.');
 
-    await tester.enterText(_textFieldByLabel('Workspace Path'), 'C:\\temp\\next');
+    await tester.enterText(
+      _textFieldByLabel('Workspace Path'),
+      'C:\\temp\\next',
+    );
     await tester.pumpAndSettle();
 
     expect(controller.workspacePath, '.');
@@ -259,7 +262,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.enterText(_textFieldByLabel('Workspace Path'), 'C:\\temp\\next');
+    await tester.enterText(
+      _textFieldByLabel('Workspace Path'),
+      'C:\\temp\\next',
+    );
     await tester.pumpAndSettle();
     await tester.tap(_workspaceApplyButton());
     await tester.pumpAndSettle();
@@ -282,10 +288,11 @@ void main() {
       await tester.binding.setSurfaceSize(null);
     });
 
+    final entitiesPlugin = _FakeDirtyEntitiesPlugin();
     final controller = EditorSessionController(
       pluginRegistry: AuthoringPluginRegistry(
         plugins: <AuthoringDomainPlugin>[
-          _FakeDirtyEntitiesPlugin(),
+          entitiesPlugin,
           _FakePrefabPlugin(),
           _FakeChunkPlugin(),
         ],
@@ -313,8 +320,50 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(controller.workspacePath, 'C:\\temp\\next');
+    expect(entitiesPlugin.loadCallCount, 2);
     expect(find.text('Discard unsaved changes?'), findsNothing);
     expect(_workspaceTextField(tester).controller?.text, 'C:\\temp\\next');
+  });
+
+  testWidgets('shell reload uses discard guard and reloads current route', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1800, 1200));
+    addTearDown(() async {
+      await tester.binding.setSurfaceSize(null);
+    });
+
+    final entitiesPlugin = _FakeDirtyEntitiesPlugin();
+    final controller = EditorSessionController(
+      pluginRegistry: AuthoringPluginRegistry(
+        plugins: <AuthoringDomainPlugin>[
+          entitiesPlugin,
+          _FakePrefabPlugin(),
+          _FakeChunkPlugin(),
+        ],
+      ),
+      initialPluginId: EntityDomainPlugin.pluginId,
+      initialWorkspacePath: '.',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: EditorHomePage(controller: controller)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(entitiesPlugin.loadCallCount, 1);
+    expect(controller.pendingChanges.hasChanges, isTrue);
+
+    await tester.tap(_workspaceReloadButton());
+    await tester.pumpAndSettle();
+
+    expect(find.text('Discard unsaved changes?'), findsOneWidget);
+
+    await tester.tap(find.text('Discard and reload'));
+    await tester.pumpAndSettle();
+
+    expect(entitiesPlugin.loadCallCount, 2);
+    expect(find.text('Discard unsaved changes?'), findsNothing);
   });
 
   testWidgets('workspace browse uses picker result and guarded apply flow', (
@@ -351,13 +400,57 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Discard unsaved changes?'), findsOneWidget);
-    expect(_workspaceTextField(tester).controller?.text, 'C:\\picked\\workspace');
+    expect(
+      _workspaceTextField(tester).controller?.text,
+      'C:\\picked\\workspace',
+    );
 
     await tester.tap(find.text('Discard and switch'));
     await tester.pumpAndSettle();
 
     expect(controller.workspacePath, 'C:\\picked\\workspace');
     expect(find.text('Discard unsaved changes?'), findsNothing);
+  });
+
+  testWidgets('shell reload delegates through prefab page reload flow', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1800, 1200));
+    addTearDown(() async {
+      await tester.binding.setSurfaceSize(null);
+    });
+
+    final prefabPlugin = _ReloadableFakePrefabEditorPlugin();
+    final controller = EditorSessionController(
+      pluginRegistry: AuthoringPluginRegistry(
+        plugins: <AuthoringDomainPlugin>[
+          _FakeEntitiesPlugin(),
+          prefabPlugin,
+          _FakeChunkPlugin(),
+        ],
+      ),
+      initialPluginId: EntityDomainPlugin.pluginId,
+      initialWorkspacePath: '.',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: EditorHomePage(controller: controller)),
+    );
+    await tester.pumpAndSettle();
+
+    await _selectRoute(tester, 'PREFAB CREATOR');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Obstacle Prefabs').first);
+    await tester.pumpAndSettle();
+
+    expect(prefabPlugin.loadCallCount, 1);
+    expect(find.text('reloaded_prefab'), findsNothing);
+
+    await tester.tap(_workspaceReloadButton());
+    await tester.pumpAndSettle();
+
+    expect(prefabPlugin.loadCallCount, 2);
+    expect(find.text('reloaded_prefab'), findsWidgets);
   });
 
   testWidgets('route selection fails fast when required plugin is missing', (
@@ -385,14 +478,17 @@ void main() {
     await tester.pumpAndSettle();
 
     Object? exception;
-    await runZonedGuarded(() async {
-      await tester.tap(find.byType(DropdownButton<String>).first);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('PREFAB CREATOR').last);
-      await tester.pump();
-    }, (error, _) {
-      exception = error;
-    });
+    await runZonedGuarded(
+      () async {
+        await tester.tap(find.byType(DropdownButton<String>).first);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('PREFAB CREATOR').last);
+        await tester.pump();
+      },
+      (error, _) {
+        exception = error;
+      },
+    );
 
     expect(exception, isA<StateError>());
     expect(
@@ -685,17 +781,29 @@ void main() {
     await tester.tap(find.text('Platform Prefabs').first);
     await tester.pumpAndSettle();
 
-    expect(_activePlatformModuleSceneView(tester).overlayValues?.colliderWidth, 16);
+    expect(
+      _activePlatformModuleSceneView(tester).overlayValues?.colliderWidth,
+      16,
+    );
 
     await tester.enterText(_textFieldByLabel('Collider Width').first, '24');
     await tester.pumpAndSettle();
-    expect(_activePlatformModuleSceneView(tester).overlayValues?.colliderWidth, 24);
+    expect(
+      _activePlatformModuleSceneView(tester).overlayValues?.colliderWidth,
+      24,
+    );
 
     await _pressCtrlShortcut(tester, LogicalKeyboardKey.keyZ);
-    expect(_activePlatformModuleSceneView(tester).overlayValues?.colliderWidth, 16);
+    expect(
+      _activePlatformModuleSceneView(tester).overlayValues?.colliderWidth,
+      16,
+    );
 
     await _pressCtrlShortcut(tester, LogicalKeyboardKey.keyY);
-    expect(_activePlatformModuleSceneView(tester).overlayValues?.colliderWidth, 24);
+    expect(
+      _activePlatformModuleSceneView(tester).overlayValues?.colliderWidth,
+      24,
+    );
   });
 
   testWidgets(
@@ -738,6 +846,8 @@ void main() {
 }
 
 class _FakeEntitiesPlugin implements AuthoringDomainPlugin {
+  int loadCallCount = 0;
+
   @override
   String get id => EntityDomainPlugin.pluginId;
 
@@ -772,6 +882,7 @@ class _FakeEntitiesPlugin implements AuthoringDomainPlugin {
 
   @override
   Future<AuthoringDocument> loadFromRepo(EditorWorkspace workspace) async {
+    loadCallCount += 1;
     return const _FakeDocument();
   }
 
@@ -785,6 +896,7 @@ class _FakeDirtyEntitiesPlugin implements AuthoringDomainPlugin {
   _FakeDirtyEntitiesPlugin({this.initialDirty = true});
 
   final bool initialDirty;
+  int loadCallCount = 0;
 
   @override
   String get id => EntityDomainPlugin.pluginId;
@@ -840,6 +952,7 @@ class _FakeDirtyEntitiesPlugin implements AuthoringDomainPlugin {
 
   @override
   Future<AuthoringDocument> loadFromRepo(EditorWorkspace workspace) async {
+    loadCallCount += 1;
     return _FakeDirtyDocument(isDirty: initialDirty);
   }
 
@@ -963,6 +1076,8 @@ class _FakePrefabPlugin implements AuthoringDomainPlugin {
 }
 
 class _FakePrefabEditorPlugin implements AuthoringDomainPlugin {
+  int loadCallCount = 0;
+
   @override
   String get id => PrefabDomainPlugin.pluginId;
 
@@ -1016,6 +1131,7 @@ class _FakePrefabEditorPlugin implements AuthoringDomainPlugin {
 
   @override
   Future<AuthoringDocument> loadFromRepo(EditorWorkspace workspace) async {
+    loadCallCount += 1;
     return const PrefabDocument(
       data: PrefabData(
         prefabSlices: <AtlasSliceDef>[
@@ -1050,6 +1166,96 @@ class _FakePrefabEditorPlugin implements AuthoringDomainPlugin {
       ),
       atlasImagePaths: <String>[],
       atlasImageSizes: <String, Size>{},
+    );
+  }
+
+  @override
+  List<ValidationIssue> validate(AuthoringDocument document) {
+    return const <ValidationIssue>[];
+  }
+}
+
+class _ReloadableFakePrefabEditorPlugin implements AuthoringDomainPlugin {
+  int loadCallCount = 0;
+
+  @override
+  String get id => PrefabDomainPlugin.pluginId;
+
+  @override
+  AuthoringDocument applyEdit(
+    AuthoringDocument document,
+    AuthoringCommand command,
+  ) {
+    return document;
+  }
+
+  @override
+  EditableScene buildEditableScene(AuthoringDocument document) {
+    final prefabDocument = document as PrefabDocument;
+    return PrefabScene(
+      data: prefabDocument.data,
+      atlasImagePaths: prefabDocument.atlasImagePaths,
+      atlasImageSizes: prefabDocument.atlasImageSizes,
+      migrationHints: prefabDocument.migrationHints,
+    );
+  }
+
+  @override
+  PendingChanges describePendingChanges(
+    EditorWorkspace workspace, {
+    required AuthoringDocument document,
+  }) {
+    return PendingChanges.empty;
+  }
+
+  @override
+  Future<ExportResult> exportToRepo(
+    EditorWorkspace workspace, {
+    required AuthoringDocument document,
+  }) async {
+    return ExportResult(applied: false);
+  }
+
+  @override
+  Future<AuthoringDocument> loadFromRepo(EditorWorkspace workspace) async {
+    loadCallCount += 1;
+    final prefabs = loadCallCount >= 2
+        ? <PrefabDef>[
+            PrefabDef(
+              prefabKey: 'reloaded_prefab',
+              id: 'reloaded_prefab',
+              revision: 1,
+              kind: PrefabKind.obstacle,
+              visualSource: const PrefabVisualSource.atlasSlice('crate_slice'),
+              anchorXPx: 0,
+              anchorYPx: 0,
+              colliders: const <PrefabColliderDef>[
+                PrefabColliderDef(
+                  offsetX: 0,
+                  offsetY: 0,
+                  width: 16,
+                  height: 16,
+                ),
+              ],
+            ),
+          ]
+        : const <PrefabDef>[];
+    return PrefabDocument(
+      data: PrefabData(
+        prefabSlices: const <AtlasSliceDef>[
+          AtlasSliceDef(
+            id: 'crate_slice',
+            sourceImagePath: 'assets/images/level/props/crate.png',
+            x: 0,
+            y: 0,
+            width: 32,
+            height: 32,
+          ),
+        ],
+        prefabs: prefabs,
+      ),
+      atlasImagePaths: const <String>[],
+      atlasImageSizes: const <String, Size>{},
     );
   }
 
@@ -1098,6 +1304,10 @@ Finder _textFieldByLabel(String label) {
 
 Finder _workspaceApplyButton() {
   return find.byKey(const ValueKey<String>('apply_workspace_path_button'));
+}
+
+Finder _workspaceReloadButton() {
+  return find.byKey(const ValueKey<String>('reload_editor_page_button'));
 }
 
 Finder _workspaceBrowseButton() {

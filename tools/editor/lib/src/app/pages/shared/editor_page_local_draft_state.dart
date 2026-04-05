@@ -23,3 +23,17 @@ abstract interface class EditorPageSessionShortcutHandler {
 
   bool handleRedoSessionShortcut();
 }
+
+/// Implemented by route pages that need the home shell to delegate reload
+/// through page-owned coordination instead of directly calling the shared
+/// session controller.
+///
+/// Most routes can reload by calling [EditorSessionController.loadWorkspace].
+/// Pages that project extra local state over the controller, such as prefab
+/// authoring, can implement this so shell-owned reload/apply flows keep page
+/// state and controller state in sync.
+abstract interface class EditorPageReloadHandler {
+  bool get canReloadEditorPage;
+
+  Future<void> reloadEditorPage();
+}

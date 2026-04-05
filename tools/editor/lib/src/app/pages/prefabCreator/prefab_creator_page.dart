@@ -45,7 +45,10 @@ class PrefabCreatorPage extends StatefulWidget {
 
 class _PrefabCreatorPageState extends State<PrefabCreatorPage>
     with SingleTickerProviderStateMixin
-    implements EditorPageLocalDraftState, EditorPageSessionShortcutHandler {
+    implements
+        EditorPageLocalDraftState,
+        EditorPageSessionShortcutHandler,
+        EditorPageReloadHandler {
   static const String _levelAssetsPath = 'assets/images/level';
   static const double _zoomMin = 0.2;
   static const double _zoomMax = 24.0;
@@ -160,6 +163,9 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
       _canRedoLocalDraftChanges || widget.controller.canRedo;
 
   @override
+  bool get canReloadEditorPage => !_isLoading && !_isSaving;
+
+  @override
   bool handleUndoSessionShortcut() {
     if (_undoLocalDraftChange()) {
       return true;
@@ -182,6 +188,9 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
     _redoCommittedEdit();
     return true;
   }
+
+  @override
+  Future<void> reloadEditorPage() => _reloadData();
 
   @override
   void initState() {
@@ -231,11 +240,6 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
               runSpacing: 8,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                FilledButton.icon(
-                  onPressed: _isLoading ? null : _reloadData,
-                  icon: const Icon(Icons.sync),
-                  label: const Text('Reload'),
-                ),
                 FilledButton.icon(
                   onPressed: _isSaving ? null : _saveData,
                   icon: const Icon(Icons.save_outlined),

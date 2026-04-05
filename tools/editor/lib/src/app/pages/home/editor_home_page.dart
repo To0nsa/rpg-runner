@@ -55,10 +55,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
     );
     _routeBindings = <String, _EditorHomeRouteBinding>{
       for (final route in homeRoutes)
-        route.id: _EditorHomeRouteBinding(
-          route: route,
-          pageKey: GlobalKey(),
-        ),
+        route.id: _EditorHomeRouteBinding(route: route, pageKey: GlobalKey()),
     };
     _lastSyncedWorkspacePath = widget.controller.workspacePath;
     _appLifecycleListener = AppLifecycleListener(
@@ -110,8 +107,10 @@ class _EditorHomePageState extends State<EditorHomePage> {
                   _EditorHomeShellControls(
                     selectedRouteId: _selectedRouteId,
                     workspaceController: _workspaceController,
+                    canReloadCurrentPage: _canReloadCurrentPage,
                     canApplyWorkspacePathDraft: _canApplyWorkspacePathDraft,
                     canBrowseWorkspace: _canBrowseWorkspace,
+                    onReloadPressed: _handleReloadRequested,
                     onWorkspaceDraftChanged: () {
                       setState(() {});
                     },
@@ -173,14 +172,22 @@ class _EditorHomePageState extends State<EditorHomePage> {
 
   bool get _canApplyWorkspacePathDraft {
     return _workspaceController.text != widget.controller.workspacePath &&
-        !widget.controller.isLoading &&
-        !widget.controller.isExporting;
+        _canReloadCurrentPage;
+  }
+
+  bool get _canReloadCurrentPage {
+    if (_isShowingDiscardDialog) {
+      return false;
+    }
+    final pageReloadHandler = _currentPageReloadHandler();
+    if (pageReloadHandler != null) {
+      return pageReloadHandler.canReloadEditorPage;
+    }
+    return !widget.controller.isLoading && !widget.controller.isExporting;
   }
 
   bool get _canBrowseWorkspace {
-    return !widget.controller.isLoading &&
-        !widget.controller.isExporting &&
-        !_isShowingDiscardDialog;
+    return _canReloadCurrentPage;
   }
 
   Future<void> _handleBrowseWorkspaceRequested() async {
@@ -197,6 +204,20 @@ class _EditorHomePageState extends State<EditorHomePage> {
       });
     }
     await _handleWorkspacePathApplyRequested();
+  }
+
+  Future<void> _handleReloadRequested() async {
+    if (!_canReloadCurrentPage) {
+      return;
+    }
+    final canLeave = await _confirmDiscardPendingChanges(
+      promptLine: 'Reload from disk without saving?',
+      confirmLabel: 'Discard and reload',
+    );
+    if (!mounted || !canLeave) {
+      return;
+    }
+    await _reloadCurrentRoute();
   }
 
   // Workspace changes invalidate the loaded session snapshot, so typing stays
@@ -221,6 +242,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
       return;
     }
     widget.controller.setWorkspacePath(nextWorkspacePath);
+    await _reloadCurrentRoute();
   }
 
   Future<AppExitResponse> _handleAppExitRequested() async {
@@ -387,6 +409,14 @@ class _EditorHomePageState extends State<EditorHomePage> {
     return pageState;
   }
 
+  EditorPageReloadHandler? _currentPageReloadHandler() {
+    final pageState = _currentPageState;
+    if (pageState is! EditorPageReloadHandler) {
+      return null;
+    }
+    return pageState;
+  }
+
   BuildContext? _currentPageContext() {
     return _selectedRouteBinding.currentContext;
   }
@@ -421,6 +451,15 @@ class _EditorHomePageState extends State<EditorHomePage> {
       selection: TextSelection.collapsed(offset: workspacePath.length),
       composing: TextRange.empty,
     );
+  }
+
+  Future<void> _reloadCurrentRoute() async {
+    final pageReloadHandler = _currentPageReloadHandler();
+    if (pageReloadHandler != null) {
+      await pageReloadHandler.reloadEditorPage();
+      return;
+    }
+    await widget.controller.loadWorkspace();
   }
 
   BuildContext? _focusedEditableTextContext(BuildContext focusContext) {
@@ -485,8 +524,10 @@ class _EditorHomeShellControls extends StatelessWidget {
   const _EditorHomeShellControls({
     required this.selectedRouteId,
     required this.workspaceController,
+    required this.canReloadCurrentPage,
     required this.canApplyWorkspacePathDraft,
     required this.canBrowseWorkspace,
+    required this.onReloadPressed,
     required this.onWorkspaceDraftChanged,
     required this.onWorkspaceSubmitted,
     required this.onApplyWorkspacePressed,
@@ -496,8 +537,10 @@ class _EditorHomeShellControls extends StatelessWidget {
 
   final String selectedRouteId;
   final TextEditingController workspaceController;
+  final bool canReloadCurrentPage;
   final bool canApplyWorkspacePathDraft;
   final bool canBrowseWorkspace;
+  final Future<void> Function() onReloadPressed;
   final VoidCallback onWorkspaceDraftChanged;
   final Future<void> Function() onWorkspaceSubmitted;
   final Future<void> Function() onApplyWorkspacePressed;
@@ -523,6 +566,16 @@ class _EditorHomeShellControls extends StatelessWidget {
       onSubmitted: (_) {
         onWorkspaceSubmitted();
       },
+    );
+    final reloadButton = FilledButton.icon(
+      key: const ValueKey<String>('reload_editor_page_button'),
+      onPressed: canReloadCurrentPage
+          ? () {
+              onReloadPressed();
+            }
+          : null,
+      icon: const Icon(Icons.sync),
+      label: const Text('Reload'),
     );
     final applyWorkspaceButton = FilledButton(
       key: const ValueKey<String>('apply_workspace_path_button'),
@@ -597,6 +650,8 @@ class _EditorHomeShellControls extends StatelessWidget {
           flex: 5,
           child: Row(
             children: [
+              reloadButton,
+              const SizedBox(width: 12),
               Expanded(child: workspaceField),
               const SizedBox(width: 12),
               browseWorkspaceButton,
