@@ -9,7 +9,7 @@ class WorkspaceScopedSizeCache {
   final Map<String, Size> _sizesBySourcePath = <String, Size>{};
 
   void ensureWorkspace(String workspacePath) {
-    final normalizedWorkspacePath = p.normalize(workspacePath);
+    final normalizedWorkspacePath = _normalizePathForCache(workspacePath);
     if (_workspacePath == normalizedWorkspacePath) {
       return;
     }
@@ -17,16 +17,30 @@ class WorkspaceScopedSizeCache {
     _sizesBySourcePath.clear();
   }
 
-  bool containsKey(String sourcePath) =>
-      _sizesBySourcePath.containsKey(sourcePath);
+  bool containsKey(String sourcePath) {
+    final normalizedSourcePath = _normalizePathForCache(sourcePath);
+    return _sizesBySourcePath.containsKey(normalizedSourcePath);
+  }
 
-  Size? operator [](String sourcePath) => _sizesBySourcePath[sourcePath];
+  Size? operator [](String sourcePath) {
+    final normalizedSourcePath = _normalizePathForCache(sourcePath);
+    return _sizesBySourcePath[normalizedSourcePath];
+  }
 
   void operator []=(String sourcePath, Size size) {
-    _sizesBySourcePath[sourcePath] = size;
+    final normalizedSourcePath = _normalizePathForCache(sourcePath);
+    _sizesBySourcePath[normalizedSourcePath] = size;
   }
 
   Map<String, Size> snapshot() {
     return Map<String, Size>.unmodifiable(_sizesBySourcePath);
+  }
+
+  String _normalizePathForCache(String rawPath) {
+    final normalized = p.normalize(rawPath);
+    if (p.context.style == p.Style.windows) {
+      return normalized.toLowerCase();
+    }
+    return normalized;
   }
 }

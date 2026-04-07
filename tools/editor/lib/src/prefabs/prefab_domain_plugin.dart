@@ -27,8 +27,8 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
   @override
   Future<AuthoringDocument> loadFromRepo(EditorWorkspace workspace) async {
     final loadResult = await _store.loadWithReport(workspace.rootPath);
-    final atlasImagePaths = _discoverAtlasImages(workspace);
-    final atlasImageSizes = _readAtlasImageSizes(
+    final atlasImagePaths = await _discoverAtlasImages(workspace);
+    final atlasImageSizes = await _readAtlasImageSizes(
       workspace,
       atlasImagePaths: atlasImagePaths,
     );
@@ -234,14 +234,14 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
     return lines;
   }
 
-  List<String> _discoverAtlasImages(EditorWorkspace workspace) {
+  Future<List<String>> _discoverAtlasImages(EditorWorkspace workspace) async {
     final levelAssets = Directory(workspace.resolve(_levelAssetsPath));
-    if (!levelAssets.existsSync()) {
+    if (!await levelAssets.exists()) {
       return const <String>[];
     }
 
     final pngPaths = <String>[];
-    for (final entity in levelAssets.listSync(
+    await for (final entity in levelAssets.list(
       recursive: true,
       followLinks: false,
     )) {
@@ -261,17 +261,17 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
     return pngPaths;
   }
 
-  Map<String, Size> _readAtlasImageSizes(
+  Future<Map<String, Size>> _readAtlasImageSizes(
     EditorWorkspace workspace, {
     required List<String> atlasImagePaths,
-  }) {
+  }) async {
     final result = <String, Size>{};
     for (final relativePath in atlasImagePaths) {
       final file = File(workspace.resolve(relativePath));
-      if (!file.existsSync()) {
+      if (!await file.exists()) {
         continue;
       }
-      final size = _readPngSize(file);
+      final size = await _readPngSize(file);
       if (size == null) {
         continue;
       }
@@ -280,8 +280,8 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
     return result;
   }
 
-  Size? _readPngSize(File file) {
-    final bytes = file.readAsBytesSync();
+  Future<Size?> _readPngSize(File file) async {
+    final bytes = await file.readAsBytes();
     if (bytes.length < 24) {
       return null;
     }
