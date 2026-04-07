@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 
+/// Reusable grid painter for editor viewports.
+///
+/// Supports two modes:
+/// - centered: infinite-looking grid around viewport center
+/// - world: grid aligned to explicit world rect/origin coordinates
 class EditorViewportGridPainter extends CustomPainter {
   const EditorViewportGridPainter({required this.zoom})
     : _mode = _GridPainterMode.centered,
@@ -166,6 +171,8 @@ class EditorViewportGridPainter extends CustomPainter {
       );
     }
 
+    // Axes are optional in world mode so pages can choose between a cleaner
+    // preview and stronger spatial orientation cues.
     if (!showWorldAxes) {
       return;
     }

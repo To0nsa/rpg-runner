@@ -2,6 +2,10 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
+/// Standard chrome wrapper for scene viewport content.
+///
+/// Provides consistent clipping radius + border overlay while leaving input and
+/// render behavior fully owned by the child scene widget tree.
 class EditorSceneViewportFrame extends StatelessWidget {
   const EditorSceneViewportFrame({
     super.key,
@@ -30,6 +34,8 @@ class EditorSceneViewportFrame extends StatelessWidget {
           children: [
             child,
             IgnorePointer(
+              // Border overlay is decorative only; pointer events must pass
+              // through to scene interaction layers.
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   border: Border.all(color: overlayColor, width: 1),

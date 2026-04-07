@@ -3,6 +3,9 @@ import 'package:flutter/gestures.dart'
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
+/// Shared pointer/keyboard input semantics for editor scene surfaces.
+///
+/// Keeping these mappings centralized prevents control drift between routes.
 final class SceneInputUtils {
   SceneInputUtils._();
 
@@ -17,6 +20,8 @@ final class SceneInputUtils {
   }
 
   static int zoomStepsFromScrollDeltaY(double deltaY) {
+    // 120px wheel delta is treated as one logical zoom step, matching common
+    // desktop wheel increments while still handling high-resolution devices.
     if (deltaY.abs() <= 0) {
       return 0;
     }

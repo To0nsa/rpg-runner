@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 
 import 'editor_scene_view_utils.dart';
 
+/// Shared zoom input widget for editor scene pages.
+///
+/// Exposes zoom as world scale (`1.0 == 100%`) while displaying/accepting
+/// percent values in the text field for authoring ergonomics.
 class EditorZoomControls extends StatefulWidget {
   const EditorZoomControls({
     super.key,
@@ -95,6 +99,8 @@ class _EditorZoomControlsState extends State<EditorZoomControls> {
   }
 
   void _commit() {
+    // Text input is validated + snapped before dispatch so slider and text
+    // paths produce identical zoom states.
     final parsed = _parsePercent(_controller.text);
     if (parsed == null) {
       _syncText();

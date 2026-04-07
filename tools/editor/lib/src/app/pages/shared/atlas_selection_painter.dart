@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 
+/// Draws atlas selection highlight rectangles over zoomed atlas previews.
+///
+/// Input rect is expressed in source image pixels; painter applies current zoom
+/// to map into canvas coordinates.
 class AtlasSelectionPainter extends CustomPainter {
   const AtlasSelectionPainter({
     required this.zoom,

@@ -8,6 +8,7 @@ import 'package:flutter/widgets.dart';
 final class EditorSceneViewUtils {
   EditorSceneViewUtils._();
 
+  /// Floating-point tolerance used when comparing zoom values.
   static const double zoomComparisonEpsilon = 0.000001;
 
   static double snapZoom({
@@ -29,6 +30,7 @@ final class EditorSceneViewUtils {
     required ScrollController horizontal,
     required ScrollController vertical,
   }) {
+    // Deferred to next frame so scroll extents are finalized before jumpTo.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!context.mounted || !horizontal.hasClients || !vertical.hasClients) {
         return;
