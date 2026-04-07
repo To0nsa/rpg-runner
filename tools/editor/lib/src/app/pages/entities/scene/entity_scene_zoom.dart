@@ -1,6 +1,12 @@
 part of '../entities_editor_page.dart';
 
-extension _SceneZoom on _EntitiesEditorPageState {
+/// Zoom controls/state transitions for the entities viewport.
+///
+/// Zoom values are snapped to a fixed step so ctrl-scroll, button controls, and
+/// numeric updates always converge to the same deterministic values.
+extension _EntitySceneZoom on _EntitiesEditorPageState {
+  /// Editor-authoring zoom bounds; keep wide enough for pixel-level collider
+  /// edits while still allowing broad context framing.
   static const double _zoomMin = 0.1;
   static const double _zoomMax = 12.0;
   static const double _zoomStep = 0.1;
@@ -34,6 +40,7 @@ extension _SceneZoom on _EntitiesEditorPageState {
     _updateState(() {
       _sceneZoom = next;
     });
+    // Recenter after zoom so the same world focal area remains visible.
     _scheduleSceneViewportCentering();
   }
 }

@@ -1,6 +1,16 @@
 part of 'entities_editor_page.dart';
 
+/// Composes the entities route shell from already-prepared page/controller
+/// state.
+///
+/// This extension is intentionally layout-only: it does not mutate authoring
+/// data and delegates behavior to scene/state/panel helpers owned by sibling
+/// parts.
 extension _EntitiesPage on _EntitiesEditorPageState {
+  /// Builds the two-band entities workspace.
+  ///
+  /// Top band: viewport + inspector + entry list.
+  /// Bottom band: validation + pending diff + last apply result.
   Widget _buildEntitiesPage(
     EntityScene? entityScene,
     List<EntityEntry> visibleEntries,
@@ -20,6 +30,8 @@ extension _EntitiesPage on _EntitiesEditorPageState {
 
     return Column(
       children: [
+        // Primary authoring surface gets most vertical space so viewport and
+        // inspector remain usable on common laptop resolutions.
         Expanded(
           flex: 4,
           child: ClipRect(
@@ -50,6 +62,8 @@ extension _EntitiesPage on _EntitiesEditorPageState {
           ),
         ),
         const SizedBox(height: 12),
+        // Status/diagnostic band is intentionally compact but always visible
+        // to keep validation and export feedback in-view during editing.
         Expanded(
           flex: 1,
           child: Row(

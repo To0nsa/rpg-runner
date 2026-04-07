@@ -1,5 +1,6 @@
 part of '../../entities_editor_page.dart';
 
+/// Compact animation key + frame step controls for scene preview.
 extension _SceneAnimControls on _EntitiesEditorPageState {
   Widget _buildSceneAnimControls({
     required List<String> animKeys,
@@ -77,6 +78,7 @@ extension _SceneAnimControls on _EntitiesEditorPageState {
       return;
     }
     _updateState(() {
+      // New animation starts at first frame for predictable authoring context.
       _sceneAnimKey = key;
       _sceneAnimFrameIndex = 0;
     });

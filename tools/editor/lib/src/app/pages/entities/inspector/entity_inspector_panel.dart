@@ -2,6 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../../../../entities/entity_domain_models.dart';
 
+/// Inspector surface for the selected entity entry.
+///
+/// This widget intentionally renders from page-owned `TextEditingController`s
+/// so drafts stay local until the page applies a command. Source binding
+/// writability decides editability; read-only fields are still shown with their
+/// resolved value so authors can validate authored/runtime data together.
 class EntityInspectorPanel extends StatelessWidget {
   const EntityInspectorPanel({
     super.key,
@@ -226,6 +232,11 @@ class EntityInspectorPanel extends StatelessWidget {
     );
   }
 
+  /// Resolves a user-facing collider label from the source binding kind.
+  ///
+  /// Only known collider-authoring bindings are labeled as `rectangle`.
+  /// Other binding kinds can appear on the same entry but are not collider
+  /// authorities, so the label intentionally falls back to `unknown`.
   String _resolvedShapeType(EntityEntry entry) {
     switch (entry.sourceBinding.kind) {
       case EntitySourceBindingKind.enemyAabbExpression:
@@ -248,6 +259,8 @@ class _InspectorReadOnlyField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Use `initialValue` + keyed rebuild for read-only display-only values so
+    // this field does not require another controller lifecycle.
     return TextFormField(
       key: ValueKey('$labelText:$value'),
       initialValue: value,
@@ -265,6 +278,8 @@ InputDecoration _inspectorInputDecoration({
   required bool readOnly,
   String? hintText,
 }) {
+  // Lock icon is the shared visual cue that a value is derived or not writable
+  // from this editor surface (binding absent or intentionally read-only).
   return InputDecoration(
     labelText: labelText,
     hintText: hintText,
@@ -286,6 +301,8 @@ class _InspectorLabeledFieldRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Keep a fixed subtitle rail so rows remain scan-aligned while field counts
+    // vary (single value like renderScale vs paired values like X/Y).
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
