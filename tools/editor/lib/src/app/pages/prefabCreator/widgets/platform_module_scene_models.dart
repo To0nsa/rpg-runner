@@ -224,7 +224,8 @@ class _PlatformModuleScenePainter extends CustomPainter {
     required this.workspaceRootPath,
     required this.module,
     required this.tileSlicesById,
-    required this.imageByAbsolutePath,
+    required this.imageCache,
+    required this.loadedImageCount,
     required this.geometry,
     required this.selectedTileSliceId,
     required this.overlayValues,
@@ -235,7 +236,8 @@ class _PlatformModuleScenePainter extends CustomPainter {
   final String workspaceRootPath;
   final TileModuleDef module;
   final Map<String, AtlasSliceDef> tileSlicesById;
-  final Map<String, ui.Image> imageByAbsolutePath;
+  final EditorUiImageCache imageCache;
+  final int loadedImageCount;
   final _ModuleSceneGeometry geometry;
   final String? selectedTileSliceId;
   final PrefabSceneValues? overlayValues;
@@ -408,7 +410,7 @@ class _PlatformModuleScenePainter extends CustomPainter {
     final absolutePath = p.normalize(
       p.join(workspaceRootPath, slice.sourceImagePath),
     );
-    return imageByAbsolutePath[absolutePath];
+    return imageCache.imageFor(absolutePath);
   }
 
   Color _fallbackColorForSlice(String sliceId) {
@@ -429,6 +431,6 @@ class _PlatformModuleScenePainter extends CustomPainter {
         oldDelegate.activeOverlayHandle != activeOverlayHandle ||
         oldDelegate.movePreview != movePreview ||
         oldDelegate.tileSlicesById.length != tileSlicesById.length ||
-        oldDelegate.imageByAbsolutePath.length != imageByAbsolutePath.length;
+        oldDelegate.loadedImageCount != loadedImageCount;
   }
 }

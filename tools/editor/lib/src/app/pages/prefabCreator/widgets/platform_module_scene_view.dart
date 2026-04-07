@@ -1,6 +1,4 @@
-import 'dart:io';
 import 'dart:math' as math;
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/gestures.dart';
@@ -8,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 
 import '../../../../prefabs/prefab_models.dart';
+import '../../shared/editor_scene_view_utils.dart';
 import '../../shared/editor_scene_viewport_frame.dart';
 import '../../shared/editor_viewport_grid_painter.dart';
 import '../../shared/editor_zoom_controls.dart';
@@ -81,8 +80,7 @@ class _PlatformModuleSceneViewState extends State<PlatformModuleSceneView> {
 
   final ScrollController _horizontalScrollController = ScrollController();
   final ScrollController _verticalScrollController = ScrollController();
-  final Map<String, ui.Image> _imageCache = <String, ui.Image>{};
-  final Set<String> _imageLoading = <String>{};
+  final EditorUiImageCache _imageCache = EditorUiImageCache();
 
   double _zoom = 2.0;
   bool _ctrlPanActive = false;
@@ -110,10 +108,7 @@ class _PlatformModuleSceneViewState extends State<PlatformModuleSceneView> {
   void dispose() {
     _horizontalScrollController.dispose();
     _verticalScrollController.dispose();
-    for (final image in _imageCache.values) {
-      image.dispose();
-    }
-    _imageCache.clear();
+    _imageCache.dispose();
     super.dispose();
   }
 
@@ -230,7 +225,8 @@ class _PlatformModuleSceneViewState extends State<PlatformModuleSceneView> {
             workspaceRootPath: widget.workspaceRootPath,
             module: widget.module,
             tileSlicesById: tileSlicesById,
-            imageByAbsolutePath: _imageCache,
+            imageCache: _imageCache,
+            loadedImageCount: _imageCache.loadedImageCount,
             geometry: geometry,
             selectedTileSliceId: widget.selectedTileSliceId,
             overlayValues: widget.overlayValues,
@@ -356,9 +352,13 @@ class _PlatformModuleSceneViewState extends State<PlatformModuleSceneView> {
   }
 
   void _setZoom(double value) {
-    final snapped = (value / _zoomStep).roundToDouble() * _zoomStep;
-    final next = snapped.clamp(_minZoom, _maxZoom).toDouble();
-    if ((next - _zoom).abs() < 0.000001) {
+    final next = EditorSceneViewUtils.snapZoom(
+      value: value,
+      min: _minZoom,
+      max: _maxZoom,
+      step: _zoomStep,
+    );
+    if (EditorSceneViewUtils.zoomValuesEqual(next, _zoom)) {
       return;
     }
     setState(() {
@@ -528,38 +528,13 @@ class _PlatformModuleSceneViewState extends State<PlatformModuleSceneView> {
 
   void _ensureImageLoadedForSource(String sourcePath) {
     final absolutePath = _absoluteImagePath(sourcePath);
-    if (_imageCache.containsKey(absolutePath) ||
-        _imageLoading.contains(absolutePath)) {
-      return;
-    }
-    _imageLoading.add(absolutePath);
     () async {
-      try {
-        final file = File(absolutePath);
-        if (!file.existsSync()) {
-          return;
-        }
-        final bytes = await file.readAsBytes();
-        final image = await _decodeImage(bytes);
-        if (!mounted) {
-          image.dispose();
-          return;
-        }
-        setState(() {
-          _imageCache[absolutePath] = image;
-        });
-      } finally {
-        _imageLoading.remove(absolutePath);
+      final image = await _imageCache.ensureLoaded(absolutePath);
+      if (!mounted || image == null) {
+        return;
       }
+      setState(() {});
     }();
-  }
-
-  Future<ui.Image> _decodeImage(Uint8List bytes) {
-    return ui.instantiateImageCodec(bytes).then((codec) async {
-      final frame = await codec.getNextFrame();
-      codec.dispose();
-      return frame.image;
-    });
   }
 
   String _absoluteImagePath(String sourceImagePath) {

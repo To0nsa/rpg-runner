@@ -12,6 +12,7 @@ import '../../../session/editor_session_controller.dart';
 import 'inspector/entity_inspector_panel.dart';
 import '../shared/editor_page_local_draft_state.dart';
 import '../shared/editor_scene_viewport_frame.dart';
+import '../shared/editor_scene_view_utils.dart';
 import '../shared/editor_viewport_grid_painter.dart';
 import '../shared/scene_input_utils.dart';
 import '../shared/editor_zoom_controls.dart';
@@ -57,9 +58,7 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
   int _sceneAnimFrameIndex = 0;
   bool _sceneCtrlPanActive = false;
   _SceneHandleDrag? _sceneHandleDrag;
-  final Map<String, ui.Image> _referenceImageCache = <String, ui.Image>{};
-  final Set<String> _referenceImageLoading = <String>{};
-  final Set<String> _referenceImageFailed = <String>{};
+  final EditorUiImageCache _referenceImageCache = EditorUiImageCache();
 
   @override
   bool get hasLocalDraftChanges {
@@ -130,10 +129,7 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
     _searchController.dispose();
     _sceneHorizontalScrollController.dispose();
     _sceneVerticalScrollController.dispose();
-    for (final image in _referenceImageCache.values) {
-      image.dispose();
-    }
-    _referenceImageCache.clear();
+    _referenceImageCache.dispose();
     super.dispose();
   }
 
@@ -192,7 +188,8 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
           onPressed:
               widget.controller.scene == null ||
                   widget.controller.isLoading ||
-                  widget.controller.isExporting
+                  widget.controller.isExporting ||
+                  widget.controller.errorCount > 0
               ? null
               : () {
                   unawaited(_confirmAndApplyToFiles());
@@ -205,6 +202,15 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
   }
 
   Future<void> _confirmAndApplyToFiles() async {
+    if (widget.controller.errorCount > 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Resolve validation errors before applying changes.'),
+        ),
+      );
+      return;
+    }
+
     final pendingChanges = widget.controller.pendingChanges;
     if (!pendingChanges.hasChanges) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -781,7 +787,7 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
           return;
         }
       }
-      if (reference.anchorBinding != null) {
+      if (reference.hasWritableAnchorPoint) {
         anchorXPx = double.tryParse(_anchorXPxController.text.trim());
         anchorYPx = double.tryParse(_anchorYPxController.text.trim());
         if (anchorXPx == null || anchorYPx == null) {

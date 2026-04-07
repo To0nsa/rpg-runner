@@ -8,10 +8,101 @@ import 'package:path/path.dart' as p;
 import 'package:runner_editor/src/app/pages/prefabCreator/widgets/platform_module_scene_view.dart';
 import 'package:runner_editor/src/app/pages/prefabCreator/widgets/prefab_scene_values.dart';
 import 'package:runner_editor/src/app/pages/prefabCreator/widgets/prefab_scene_view.dart';
+import 'package:runner_editor/src/app/pages/shared/editor_scene_view_utils.dart';
 import 'package:runner_editor/src/app/pages/shared/scene_input_utils.dart';
 import 'package:runner_editor/src/prefabs/prefab_models.dart';
 
 void main() {
+  test('shared scene zoom helpers snap and compare deterministically', () {
+    expect(
+      EditorSceneViewUtils.snapZoom(
+        value: 1.06,
+        min: 0.1,
+        max: 12.0,
+        step: 0.1,
+      ),
+      1.1,
+    );
+    expect(
+      EditorSceneViewUtils.snapZoom(
+        value: 0.01,
+        min: 0.1,
+        max: 12.0,
+        step: 0.1,
+      ),
+      0.1,
+    );
+    expect(
+      EditorSceneViewUtils.snapZoom(
+        value: 12.6,
+        min: 0.1,
+        max: 12.0,
+        step: 0.1,
+      ),
+      12.0,
+    );
+    expect(EditorSceneViewUtils.zoomValuesEqual(1.0, 1.0 + 0.0000001), isTrue);
+    expect(EditorSceneViewUtils.zoomValuesEqual(1.0, 1.1), isFalse);
+  });
+
+  testWidgets('shared viewport centering helper recenters scroll state', (
+    tester,
+  ) async {
+    final horizontal = ScrollController();
+    final vertical = ScrollController();
+    late StateSetter setViewportState;
+    var shouldCenterViewport = false;
+    addTearDown(() {
+      horizontal.dispose();
+      vertical.dispose();
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: StatefulBuilder(
+            builder: (context, setState) {
+              setViewportState = setState;
+              if (shouldCenterViewport) {
+                EditorSceneViewUtils.scheduleViewportCentering(
+                  context: context,
+                  horizontal: horizontal,
+                  vertical: vertical,
+                );
+              }
+              return SizedBox(
+                width: 220,
+                height: 220,
+                child: SingleChildScrollView(
+                  controller: vertical,
+                  child: SingleChildScrollView(
+                    controller: horizontal,
+                    scrollDirection: Axis.horizontal,
+                    child: const SizedBox(width: 1200, height: 1200),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    horizontal.jumpTo(0);
+    vertical.jumpTo(0);
+    await tester.pump();
+
+    setViewportState(() {
+      shouldCenterViewport = true;
+    });
+    await tester.pump();
+    await tester.pump();
+
+    expect(horizontal.offset, horizontal.position.maxScrollExtent * 0.5);
+    expect(vertical.offset, vertical.position.maxScrollExtent * 0.5);
+  });
+
   testWidgets('prefab scene uses shared Ctrl+drag pan and Ctrl+scroll zoom', (
     tester,
   ) async {

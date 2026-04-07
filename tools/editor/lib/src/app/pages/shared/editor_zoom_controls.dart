@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'editor_scene_view_utils.dart';
+
 class EditorZoomControls extends StatefulWidget {
   const EditorZoomControls({
     super.key,
@@ -27,7 +29,6 @@ class EditorZoomControls extends StatefulWidget {
 }
 
 class _EditorZoomControlsState extends State<EditorZoomControls> {
-  static const double _epsilon = 0.000001;
   late final TextEditingController _controller;
 
   @override
@@ -40,7 +41,7 @@ class _EditorZoomControlsState extends State<EditorZoomControls> {
   @override
   void didUpdateWidget(covariant EditorZoomControls oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if ((oldWidget.value - widget.value).abs() > _epsilon) {
+    if (!EditorSceneViewUtils.zoomValuesEqual(oldWidget.value, widget.value)) {
       _syncText();
     }
   }
@@ -115,8 +116,12 @@ class _EditorZoomControlsState extends State<EditorZoomControls> {
   }
 
   double _snapToStep(double value) {
-    final snapped = (value / widget.step).roundToDouble() * widget.step;
-    return snapped.clamp(widget.min, widget.max).toDouble();
+    return EditorSceneViewUtils.snapZoom(
+      value: value,
+      min: widget.min,
+      max: widget.max,
+      step: widget.step,
+    );
   }
 
   String _formatPercent(double value) {

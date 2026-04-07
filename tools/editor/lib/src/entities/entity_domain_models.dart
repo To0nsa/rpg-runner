@@ -1,3 +1,9 @@
+// Shared immutable data contracts for the entities workflow.
+//
+// Parser, plugin, export, tests, and UI all depend on these types. This file
+// therefore owns the source-of-truth model split between repo-backed document
+// state, scene-facing projection state, and exact source bindings used for
+// deterministic write-back.
 import 'package:flutter/foundation.dart';
 
 import '../domain/authoring_types.dart';
@@ -31,6 +37,8 @@ class EntityReferenceVisual {
     this.anchorXPx,
     this.anchorYPx,
     this.anchorBinding,
+    this.anchorXWriteBinding,
+    this.anchorYWriteBinding,
     this.renderScale,
     this.renderScaleBinding,
     this.defaultRow = 0,
@@ -50,6 +58,8 @@ class EntityReferenceVisual {
   final double? anchorXPx;
   final double? anchorYPx;
   final EntitySourceBinding? anchorBinding;
+  final EntityExpressionRewriteBinding? anchorXWriteBinding;
+  final EntityExpressionRewriteBinding? anchorYWriteBinding;
   final double? renderScale;
   final EntitySourceBinding? renderScaleBinding;
   final int defaultRow;
@@ -60,6 +70,11 @@ class EntityReferenceVisual {
   // The map key is the authoritative animation id for this view set. The
   // constructor snapshots the map so a loaded visual stays immutable.
   final Map<String, EntityReferenceAnimView> animViewsByKey;
+
+  /// True when both anchor axes can be written back without flattening
+  /// expression-backed source into ad-hoc literals.
+  bool get hasWritableAnchorPoint =>
+      anchorXWriteBinding != null && anchorYWriteBinding != null;
 
   /// Returns a new reference visual with the subset of fields the entities
   /// route currently edits in-session.
@@ -75,6 +90,8 @@ class EntityReferenceVisual {
       anchorXPx: anchorXPx ?? this.anchorXPx,
       anchorYPx: anchorYPx ?? this.anchorYPx,
       anchorBinding: anchorBinding,
+      anchorXWriteBinding: anchorXWriteBinding,
+      anchorYWriteBinding: anchorYWriteBinding,
       renderScale: renderScale ?? this.renderScale,
       renderScaleBinding: renderScaleBinding,
       defaultRow: defaultRow,
@@ -85,6 +102,44 @@ class EntityReferenceVisual {
       animViewsByKey: animViewsByKey,
     );
   }
+}
+
+/// How the entity exporter should update one expression-backed numeric field.
+///
+/// The entities workflow prefers preserving the existing source shape when a
+/// numeric value lives inside a simple expression such as `frameWidth * 0.5`.
+/// These bindings let export rewrite the scalar component instead of replacing
+/// the entire expression with a hard-coded literal.
+enum EntityExpressionRewriteMode {
+  replaceExpression,
+  multiplyByScalar,
+  divideByScalar,
+  scalarDividedByValue,
+}
+
+/// Exact write-back metadata for one resolved numeric expression.
+@immutable
+class EntityExpressionRewriteBinding {
+  const EntityExpressionRewriteBinding({
+    required this.mode,
+    required this.expressionBinding,
+    this.scalarBinding,
+    this.basisValue,
+  });
+
+  final EntityExpressionRewriteMode mode;
+  final EntitySourceBinding expressionBinding;
+
+  /// Range for the scalar literal/operator operand the exporter may rewrite.
+  ///
+  /// This is only present for rewrite modes that preserve the original
+  /// expression shape instead of replacing the full expression.
+  final EntitySourceBinding? scalarBinding;
+
+  /// Resolved non-literal side of the expression used to derive a new scalar.
+  ///
+  /// Example: for `frameWidth * 0.5`, the basis is the resolved frame width.
+  final double? basisValue;
 }
 
 /// One resolved animation view inside [EntityReferenceVisual.animViewsByKey].
@@ -201,6 +256,10 @@ class EntityDocument extends AuthoringDocument {
   // real immutable repo snapshot once loaded.
   final List<EntityEntry> entries;
   final Map<String, EntityEntry> baselineById;
+
+  /// Runtime broadphase grid size in world pixels.
+  ///
+  /// The entities scene uses this for consistent grid overlay/debug context.
   final double runtimeGridCellSize;
   final List<ValidationIssue> loadIssues;
 }
@@ -217,6 +276,8 @@ class EntityScene extends EditableScene {
   }) : entries = List<EntityEntry>.unmodifiable(entries);
 
   final List<EntityEntry> entries;
+
+  /// Runtime broadphase grid size in world pixels mirrored from the document.
   final double runtimeGridCellSize;
 }
 
@@ -250,7 +311,13 @@ class EntitySourceBinding {
 
   final EntitySourceBindingKind kind;
   final String sourcePath;
+
+  /// Inclusive start offset in the original file content used during parse.
   final int startOffset;
+
+  /// Exclusive end offset in the original file content used during parse.
   final int endOffset;
+
+  /// Exact source slice captured at load time for drift-safe replacement.
   final String sourceSnippet;
 }

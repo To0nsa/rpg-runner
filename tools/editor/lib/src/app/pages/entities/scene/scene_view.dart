@@ -39,7 +39,7 @@ extension _SceneView on _EntitiesEditorPageState {
     final frameIndex = _effectiveReferenceFrameIndex(frameCount);
     final resolvedImage = referenceAnimView == null
         ? null
-        : _referenceImageCache[referenceAnimView.absolutePath];
+        : _referenceImageCache.imageFor(referenceAnimView.absolutePath);
     final referenceRow = referenceAnimView == null
         ? 0
         : _effectiveReferenceRow(referenceAnimView);
@@ -498,7 +498,7 @@ extension _SceneView on _EntitiesEditorPageState {
 
   bool _canDragReferenceAnchor(EntityEntry entry) {
     final reference = entry.referenceVisual;
-    return reference != null && reference.anchorBinding != null;
+    return reference != null && reference.hasWritableAnchorPoint;
   }
 
   Offset _referenceAnchorHandleCenter({
@@ -659,19 +659,11 @@ extension _SceneView on _EntitiesEditorPageState {
   }
 
   void _scheduleSceneViewportCentering() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted ||
-          !_sceneHorizontalScrollController.hasClients ||
-          !_sceneVerticalScrollController.hasClients) {
-        return;
-      }
-      final horizontalPosition = _sceneHorizontalScrollController.position;
-      final verticalPosition = _sceneVerticalScrollController.position;
-      final targetX = horizontalPosition.maxScrollExtent * 0.5;
-      final targetY = verticalPosition.maxScrollExtent * 0.5;
-      _sceneHorizontalScrollController.jumpTo(targetX);
-      _sceneVerticalScrollController.jumpTo(targetY);
-    });
+    EditorSceneViewUtils.scheduleViewportCentering(
+      context: context,
+      horizontal: _sceneHorizontalScrollController,
+      vertical: _sceneVerticalScrollController,
+    );
   }
 
   _ResolvedReferenceVisual? _resolveReferenceVisual(EntityEntry entry) {
@@ -829,34 +821,11 @@ extension _SceneView on _EntitiesEditorPageState {
   }
 
   Future<void> _ensureReferenceImageLoaded(String absolutePath) async {
-    if (_referenceImageCache.containsKey(absolutePath) ||
-        _referenceImageLoading.contains(absolutePath) ||
-        _referenceImageFailed.contains(absolutePath)) {
+    final image = await _referenceImageCache.ensureLoaded(absolutePath);
+    if (!mounted || image == null) {
       return;
     }
-    _referenceImageLoading.add(absolutePath);
-    try {
-      final bytes = await File(absolutePath).readAsBytes();
-      final codec = await ui.instantiateImageCodec(bytes);
-      final frame = await codec.getNextFrame();
-      codec.dispose();
-      if (!mounted) {
-        frame.image.dispose();
-        return;
-      }
-      _updateState(() {
-        _referenceImageCache[absolutePath] = frame.image;
-        _referenceImageLoading.remove(absolutePath);
-      });
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-      _updateState(() {
-        _referenceImageLoading.remove(absolutePath);
-        _referenceImageFailed.add(absolutePath);
-      });
-    }
+    _updateState(() {});
   }
 
   Rect _referenceRect({

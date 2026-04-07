@@ -4,7 +4,6 @@ extension _SceneZoom on _EntitiesEditorPageState {
   static const double _zoomMin = 0.1;
   static const double _zoomMax = 12.0;
   static const double _zoomStep = 0.1;
-  static const double _zoomEpsilon = 0.000001;
 
   Widget _buildSceneZoomControls() => EditorZoomControls(
     value: _sceneZoom,
@@ -23,9 +22,13 @@ extension _SceneZoom on _EntitiesEditorPageState {
   }
 
   void _setZoom(double value) {
-    final snapped = (value / _zoomStep).roundToDouble() * _zoomStep;
-    final next = snapped.clamp(_zoomMin, _zoomMax).toDouble();
-    if ((next - _sceneZoom).abs() <= _zoomEpsilon) {
+    final next = EditorSceneViewUtils.snapZoom(
+      value: value,
+      min: _zoomMin,
+      max: _zoomMax,
+      step: _zoomStep,
+    );
+    if (EditorSceneViewUtils.zoomValuesEqual(next, _sceneZoom)) {
       return;
     }
     _updateState(() {

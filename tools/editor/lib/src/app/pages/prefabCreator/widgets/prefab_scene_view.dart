@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'dart:math' as math;
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/gestures.dart';
@@ -8,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 
 import '../../../../prefabs/prefab_models.dart';
+import '../../shared/editor_scene_view_utils.dart';
 import '../../shared/editor_zoom_controls.dart';
 import '../../shared/editor_scene_viewport_frame.dart';
 import '../../shared/editor_viewport_grid_painter.dart';
@@ -40,12 +40,10 @@ class _PrefabSceneViewState extends State<PrefabSceneView> {
   static const double _minZoom = 0.2;
   static const double _maxZoom = 12.0;
   static const double _zoomStep = 0.1;
-  static const double _zoomEpsilon = 0.000001;
   static const double _anchorHandleHitRadius = 10;
   static const double _colliderHandleHitRadius = 12;
 
-  final Map<String, ui.Image> _imageCache = <String, ui.Image>{};
-  final Set<String> _imageLoading = <String>{};
+  final EditorUiImageCache _imageCache = EditorUiImageCache();
   PrefabOverlayDragState? _dragState;
   bool _ctrlPanActive = false;
   final ScrollController _horizontalScrollController = ScrollController();
@@ -69,10 +67,7 @@ class _PrefabSceneViewState extends State<PrefabSceneView> {
 
   @override
   void dispose() {
-    for (final image in _imageCache.values) {
-      image.dispose();
-    }
-    _imageCache.clear();
+    _imageCache.dispose();
     _horizontalScrollController.dispose();
     _verticalScrollController.dispose();
     super.dispose();
@@ -81,7 +76,7 @@ class _PrefabSceneViewState extends State<PrefabSceneView> {
   @override
   Widget build(BuildContext context) {
     final absolutePath = _absoluteImagePath();
-    final image = _imageCache[absolutePath];
+    final image = _imageCache.imageFor(absolutePath);
     final imageExists = File(absolutePath).existsSync();
 
     return LayoutBuilder(
@@ -281,37 +276,11 @@ class _PrefabSceneViewState extends State<PrefabSceneView> {
 
   Future<void> _ensureImageLoaded() async {
     final absolutePath = _absoluteImagePath();
-    if (_imageCache.containsKey(absolutePath) ||
-        _imageLoading.contains(absolutePath)) {
+    final image = await _imageCache.ensureLoaded(absolutePath);
+    if (!mounted || image == null) {
       return;
     }
-    _imageLoading.add(absolutePath);
-    try {
-      final file = File(absolutePath);
-      if (!file.existsSync()) {
-        return;
-      }
-      final bytes = await file.readAsBytes();
-      final image = await _decodeImage(bytes);
-      if (!mounted) {
-        image.dispose();
-        return;
-      }
-      setState(() {
-        _imageCache[absolutePath] = image;
-      });
-    } finally {
-      _imageLoading.remove(absolutePath);
-    }
-  }
-
-  Future<ui.Image> _decodeImage(Uint8List bytes) {
-    final codecFuture = ui.instantiateImageCodec(bytes);
-    return codecFuture.then((codec) async {
-      final frame = await codec.getNextFrame();
-      codec.dispose();
-      return frame.image;
-    });
+    setState(() {});
   }
 
   void _onPointerDown(PointerDownEvent event, {required Size canvasSize}) {
@@ -404,9 +373,13 @@ class _PrefabSceneViewState extends State<PrefabSceneView> {
   }
 
   void _setZoom(double value) {
-    final snapped = (value / _zoomStep).roundToDouble() * _zoomStep;
-    final next = snapped.clamp(_minZoom, _maxZoom).toDouble();
-    if ((next - _zoom).abs() <= _zoomEpsilon) {
+    final next = EditorSceneViewUtils.snapZoom(
+      value: value,
+      min: _minZoom,
+      max: _maxZoom,
+      step: _zoomStep,
+    );
+    if (EditorSceneViewUtils.zoomValuesEqual(next, _zoom)) {
       return;
     }
     setState(() {
@@ -416,19 +389,11 @@ class _PrefabSceneViewState extends State<PrefabSceneView> {
   }
 
   void _scheduleViewportCentering() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted ||
-          !_horizontalScrollController.hasClients ||
-          !_verticalScrollController.hasClients) {
-        return;
-      }
-      final horizontalPosition = _horizontalScrollController.position;
-      final verticalPosition = _verticalScrollController.position;
-      final targetX = horizontalPosition.maxScrollExtent * 0.5;
-      final targetY = verticalPosition.maxScrollExtent * 0.5;
-      _horizontalScrollController.jumpTo(targetX);
-      _verticalScrollController.jumpTo(targetY);
-    });
+    EditorSceneViewUtils.scheduleViewportCentering(
+      context: context,
+      horizontal: _horizontalScrollController,
+      vertical: _verticalScrollController,
+    );
   }
 
   PrefabOverlayHandleType? _hitTestHandle(

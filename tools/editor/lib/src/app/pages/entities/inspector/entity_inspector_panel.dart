@@ -48,7 +48,7 @@ class EntityInspectorPanel extends StatelessWidget {
 
     final reference = selected.referenceVisual;
     final canEditRenderScale = reference?.renderScaleBinding != null;
-    final canEditAnchor = reference?.anchorBinding != null;
+    final canEditAnchor = reference?.hasWritableAnchorPoint ?? false;
     final canEditCastOriginOffset = selected.castOriginOffsetBinding != null;
     final shapeType = _resolvedShapeType(selected);
     final artFacingDirection = switch (selected.artFacingDirection) {
