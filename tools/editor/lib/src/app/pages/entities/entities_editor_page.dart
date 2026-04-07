@@ -868,6 +868,41 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
     );
   }
 
+  void _applyEntryValuesCoalesced(
+    String entryId, {
+    required double halfX,
+    required double halfY,
+    required double offsetX,
+    required double offsetY,
+    double? renderScale,
+    double? anchorXPx,
+    double? anchorYPx,
+    double? castOriginOffset,
+  }) {
+    final payload = <String, Object?>{
+      'id': entryId,
+      'halfX': halfX,
+      'halfY': halfY,
+      'offsetX': offsetX,
+      'offsetY': offsetY,
+    };
+    if (renderScale != null) {
+      payload['renderScale'] = renderScale;
+    }
+    if (anchorXPx != null) {
+      payload['anchorXPx'] = anchorXPx;
+    }
+    if (anchorYPx != null) {
+      payload['anchorYPx'] = anchorYPx;
+    }
+    if (castOriginOffset != null) {
+      payload['castOriginOffset'] = castOriginOffset;
+    }
+    widget.controller.applyCoalescedCommand(
+      AuthoringCommand(kind: 'update_entry', payload: payload),
+    );
+  }
+
   void _updateState(VoidCallback callback) {
     setState(callback);
   }

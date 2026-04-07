@@ -380,6 +380,7 @@ extension _SceneView on _EntitiesEditorPageState {
     if (activeDrag != null && event.pointer == activeDrag.pointer) {
       if (!SceneInputUtils.isPrimaryButtonPressed(event.buttons)) {
         _sceneHandleDrag = null;
+        widget.controller.commitCoalescedUndoStep();
         _updateState(() {});
         return;
       }
@@ -404,6 +405,7 @@ extension _SceneView on _EntitiesEditorPageState {
     final activeDrag = _sceneHandleDrag;
     if (activeDrag != null && event.pointer == activeDrag.pointer) {
       _sceneHandleDrag = null;
+      widget.controller.commitCoalescedUndoStep();
       _updateState(() {});
     }
     _sceneCtrlPanActive = false;
@@ -575,7 +577,7 @@ extension _SceneView on _EntitiesEditorPageState {
       offsetX: nextOffsetX,
       offsetY: nextOffsetY,
     );
-    _applyEntryValues(
+    _applyEntryValuesCoalesced(
       drag.entryId,
       halfX: nextHalfX,
       halfY: nextHalfY,
@@ -618,7 +620,7 @@ extension _SceneView on _EntitiesEditorPageState {
 
     _anchorXPxController.text = nextAnchorXPx.toStringAsFixed(3);
     _anchorYPxController.text = nextAnchorYPx.toStringAsFixed(3);
-    _applyEntryValues(
+    _applyEntryValuesCoalesced(
       drag.entryId,
       halfX: drag.startHalfX,
       halfY: drag.startHalfY,

@@ -46,6 +46,7 @@ class EditorSessionController extends ChangeNotifier {
   ExportResult? _lastExportResult;
   final List<AuthoringDocument> _undoStack = <AuthoringDocument>[];
   final List<AuthoringDocument> _redoStack = <AuthoringDocument>[];
+  AuthoringDocument? _coalescedUndoBaseDocument;
 
   /// All registered domain plugins available for route/session selection.
   List<AuthoringDomainPlugin> get availablePlugins => _pluginRegistry.all;
@@ -195,6 +196,19 @@ class EditorSessionController extends ChangeNotifier {
   /// transient drafts locally until they are ready to become part of the
   /// authoritative document and participate in undo/redo/export.
   void applyCommand(AuthoringCommand command) {
+    _applyCommand(command, coalesceUndo: false);
+  }
+
+  /// Applies a command that should be merged into one pending undo step.
+  ///
+  /// Intended for high-frequency interactions (for example pointer drags)
+  /// where each intermediate value should update the document, but undo should
+  /// roll back the whole interaction as one operation.
+  void applyCoalescedCommand(AuthoringCommand command) {
+    _applyCommand(command, coalesceUndo: true);
+  }
+
+  void _applyCommand(AuthoringCommand command, {required bool coalesceUndo}) {
     final document = _document;
     if (document == null) {
       return;
@@ -204,14 +218,34 @@ class EditorSessionController extends ChangeNotifier {
     if (identical(nextDocument, document)) {
       return;
     }
+    if (coalesceUndo) {
+      _coalescedUndoBaseDocument ??= document;
+      _redoStack.clear();
+      _applyDocumentState(plugin: plugin, document: nextDocument);
+      notifyListeners();
+      return;
+    }
+    _commitCoalescedUndoStep();
     _undoStack.add(document);
     _redoStack.clear();
     _applyDocumentState(plugin: plugin, document: nextDocument);
     notifyListeners();
   }
 
+  /// Commits a pending coalesced command batch into one undo step.
+  ///
+  /// Scene routes can use [applyCoalescedCommand] while the
+  /// pointer is moving, then call this method once when the interaction ends.
+  void commitCoalescedUndoStep() {
+    if (!_commitCoalescedUndoStep()) {
+      return;
+    }
+    notifyListeners();
+  }
+
   /// Restores the previous committed document snapshot, if available.
   void undo() {
+    _commitCoalescedUndoStep();
     final document = _document;
     if (document == null || _undoStack.isEmpty) {
       return;
@@ -225,6 +259,7 @@ class EditorSessionController extends ChangeNotifier {
 
   /// Reapplies the next committed document snapshot after an [undo], if any.
   void redo() {
+    _commitCoalescedUndoStep();
     final document = _document;
     if (document == null || _redoStack.isEmpty) {
       return;
@@ -242,6 +277,7 @@ class EditorSessionController extends ChangeNotifier {
   /// from disk so the session reflects canonical persisted output rather than
   /// assuming the in-memory document matches post-export repository state.
   Future<void> exportDirectWrite() async {
+    _commitCoalescedUndoStep();
     final document = _document;
     final workspace = _workspace;
     if (document == null || workspace == null || _isExporting) {
@@ -281,6 +317,17 @@ class EditorSessionController extends ChangeNotifier {
   void _clearHistory() {
     _undoStack.clear();
     _redoStack.clear();
+    _coalescedUndoBaseDocument = null;
+  }
+
+  bool _commitCoalescedUndoStep() {
+    final baseline = _coalescedUndoBaseDocument;
+    if (baseline == null) {
+      return false;
+    }
+    _undoStack.add(baseline);
+    _coalescedUndoBaseDocument = null;
+    return true;
   }
 
   /// Rebuilds the full derived session snapshot from one authoritative document.
