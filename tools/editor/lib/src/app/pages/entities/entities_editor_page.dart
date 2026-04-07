@@ -631,10 +631,16 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
       return;
     }
 
-    final selectedStillValid = visibleEntries.any(
-      (entry) => entry.id == _selectedEntryId,
-    );
+    EntityEntry? selectedEntry;
+    final selectedStillValid = visibleEntries.any((entry) {
+      if (entry.id != _selectedEntryId) {
+        return false;
+      }
+      selectedEntry = entry;
+      return true;
+    });
     if (selectedStillValid) {
+      _syncInspectorFromEntry(selectedEntry);
       return;
     }
 
