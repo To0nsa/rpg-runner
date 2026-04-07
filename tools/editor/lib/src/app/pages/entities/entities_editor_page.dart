@@ -109,13 +109,26 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
     _searchController = TextEditingController();
     _sceneHorizontalScrollController = ScrollController();
     _sceneVerticalScrollController = ScrollController();
+    widget.controller.addListener(_handleControllerChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       widget.controller.loadWorkspace();
     });
   }
 
   @override
+  void didUpdateWidget(covariant EntitiesEditorPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (identical(oldWidget.controller, widget.controller)) {
+      return;
+    }
+    oldWidget.controller.removeListener(_handleControllerChanged);
+    widget.controller.addListener(_handleControllerChanged);
+    _reconcileSelectionsFromCurrentState();
+  }
+
+  @override
   void dispose() {
+    widget.controller.removeListener(_handleControllerChanged);
     _halfXController.dispose();
     _halfYController.dispose();
     _offsetXController.dispose();
@@ -143,9 +156,6 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
         final visibleEntries = entityScene == null
             ? const <EntityEntry>[]
             : _filteredEntries(entityScene.entries);
-        _ensureSelection(entityScene, visibleEntries);
-        _ensureDiffSelection(widget.controller.pendingChanges);
-        _ensureArtifactSelection(widget.controller.lastExportResult);
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -328,6 +338,7 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
                         onChanged: (value) {
                           setState(() {
                             _searchQuery = value.trim().toLowerCase();
+                            _reconcileSelectionsFromCurrentState();
                           });
                         },
                       ),
@@ -352,6 +363,7 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
                       onSelected: (selected) {
                         setState(() {
                           _showDirtyOnly = selected;
+                          _reconcileSelectionsFromCurrentState();
                         });
                       },
                     ),
@@ -386,6 +398,7 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
       onSelected: (_) {
         setState(() {
           _entityTypeFilter = type;
+          _reconcileSelectionsFromCurrentState();
         });
       },
     );
@@ -595,6 +608,32 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
         .toList(growable: false);
   }
 
+  void _handleControllerChanged() {
+    if (!mounted) {
+      return;
+    }
+    if (!_reconcileSelectionsFromCurrentState()) {
+      return;
+    }
+    setState(() {});
+  }
+
+  bool _reconcileSelectionsFromCurrentState() {
+    final scene = widget.controller.scene;
+    final entityScene = scene is EntityScene ? scene : null;
+    final visibleEntries = entityScene == null
+        ? const <EntityEntry>[]
+        : _filteredEntries(entityScene.entries);
+    final selectionChanged = _ensureSelection(entityScene, visibleEntries);
+    final diffSelectionChanged = _ensureDiffSelection(
+      widget.controller.pendingChanges,
+    );
+    final artifactSelectionChanged = _ensureArtifactSelection(
+      widget.controller.lastExportResult,
+    );
+    return selectionChanged || diffSelectionChanged || artifactSelectionChanged;
+  }
+
   void _selectEntryById(EntityScene scene, String entryId) {
     EntityEntry? entry;
     for (final candidate in scene.entries) {
@@ -623,12 +662,15 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
     _scheduleSceneViewportCentering();
   }
 
-  void _ensureSelection(EntityScene? scene, List<EntityEntry> visibleEntries) {
+  bool _ensureSelection(EntityScene? scene, List<EntityEntry> visibleEntries) {
     if (scene == null || visibleEntries.isEmpty) {
-      _resetViewportSelectionState();
+      final hadSelection = _selectedEntryId != null;
+      if (hadSelection) {
+        _resetViewportSelectionState();
+      }
       _selectedEntryId = null;
       _syncInspectorFromEntry(null);
-      return;
+      return hadSelection;
     }
 
     EntityEntry? selectedEntry;
@@ -641,27 +683,30 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
     });
     if (selectedStillValid) {
       _syncInspectorFromEntry(selectedEntry);
-      return;
+      return false;
     }
 
     _resetViewportSelectionState();
     _selectedEntryId = visibleEntries.first.id;
     _syncInspectorFromEntry(visibleEntries.first);
+    return true;
   }
 
-  void _ensureDiffSelection(PendingChanges pendingChanges) {
+  bool _ensureDiffSelection(PendingChanges pendingChanges) {
+    final previousSelection = _selectedDiffPath;
     if (pendingChanges.fileDiffs.isEmpty) {
       _selectedDiffPath = null;
-      return;
+      return previousSelection != _selectedDiffPath;
     }
 
     final selectedStillValid = pendingChanges.fileDiffs.any(
       (diff) => diff.relativePath == _selectedDiffPath,
     );
     if (selectedStillValid) {
-      return;
+      return previousSelection != _selectedDiffPath;
     }
     _selectedDiffPath = pendingChanges.fileDiffs.first.relativePath;
+    return previousSelection != _selectedDiffPath;
   }
 
   PendingFileDiff? _selectedDiff(PendingChanges pendingChanges) {
@@ -681,20 +726,22 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
         : pendingChanges.fileDiffs.first;
   }
 
-  void _ensureArtifactSelection(ExportResult? exportResult) {
+  bool _ensureArtifactSelection(ExportResult? exportResult) {
+    final previousSelection = _selectedArtifactTitle;
     final artifacts = exportResult?.artifacts;
     if (artifacts == null || artifacts.isEmpty) {
       _selectedArtifactTitle = null;
-      return;
+      return previousSelection != _selectedArtifactTitle;
     }
 
     final selectedStillValid = artifacts.any(
       (artifact) => artifact.title == _selectedArtifactTitle,
     );
     if (selectedStillValid) {
-      return;
+      return previousSelection != _selectedArtifactTitle;
     }
     _selectedArtifactTitle = artifacts.first.title;
+    return previousSelection != _selectedArtifactTitle;
   }
 
   ExportArtifact? _selectedArtifact(ExportResult? exportResult) {
