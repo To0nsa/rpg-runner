@@ -586,7 +586,7 @@ void _validateSlice({
     );
   }
 
-  if (!allSliceIds.add(slice.id)) {
+  if (slice.id.isNotEmpty && !allSliceIds.add(slice.id)) {
     issues.add(
       PrefabValidationIssue(
         code: 'slice_id_reused_between_prefab_and_tile',
