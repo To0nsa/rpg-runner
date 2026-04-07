@@ -27,6 +27,14 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
   @override
   Future<AuthoringDocument> loadFromRepo(EditorWorkspace workspace) async {
     final loadResult = await _store.loadWithReport(workspace.rootPath);
+    final prefabRelativePath = p.normalize(PrefabStore.prefabDefsPath);
+    final tileRelativePath = p.normalize(PrefabStore.tileDefsPath);
+    final prefabBaselineContents = await _readIfExistsAsync(
+      workspace.resolve(prefabRelativePath),
+    );
+    final tileBaselineContents = await _readIfExistsAsync(
+      workspace.resolve(tileRelativePath),
+    );
     final atlasImagePaths = await _discoverAtlasImages(workspace);
     final atlasImageSizes = await _readAtlasImageSizes(
       workspace,
@@ -37,6 +45,8 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
       atlasImagePaths: List<String>.unmodifiable(atlasImagePaths),
       atlasImageSizes: Map<String, Size>.unmodifiable(atlasImageSizes),
       migrationHints: List<String>.unmodifiable(loadResult.migrationHints),
+      prefabBaselineContents: prefabBaselineContents,
+      tileBaselineContents: tileBaselineContents,
     );
   }
 
@@ -141,12 +151,12 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
     final writes = <_PrefabFileWrite>[
       _PrefabFileWrite(
         relativePath: prefabRelativePath,
-        beforeContent: _readIfExists(workspace.resolve(prefabRelativePath)),
+        beforeContent: prefabDocument.prefabBaselineContents,
         afterContent: canonical.prefabContents,
       ),
       _PrefabFileWrite(
         relativePath: tileRelativePath,
-        beforeContent: _readIfExists(workspace.resolve(tileRelativePath)),
+        beforeContent: prefabDocument.tileBaselineContents,
         afterContent: canonical.tileContents,
       ),
     ];
@@ -162,7 +172,10 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
         .map(
           (write) => PendingFileDiff(
             relativePath: write.relativePath,
-            editCount: 1,
+            editCount: _estimateEditCount(
+              beforeContent: write.beforeContent,
+              afterContent: write.afterContent,
+            ),
             unifiedDiff: _buildUnifiedDiff(write),
           ),
         )
@@ -188,12 +201,34 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
         encodedA.tileContents == encodedB.tileContents;
   }
 
-  String? _readIfExists(String absolutePath) {
+  Future<String?> _readIfExistsAsync(String absolutePath) async {
     final file = File(absolutePath);
-    if (!file.existsSync()) {
+    if (!await file.exists()) {
       return null;
     }
-    return file.readAsStringSync();
+    return file.readAsString();
+  }
+
+  int _estimateEditCount({
+    required String? beforeContent,
+    required String afterContent,
+  }) {
+    final beforeLines = _splitLines(beforeContent ?? '');
+    final afterLines = _splitLines(afterContent);
+    final sharedLength = beforeLines.length < afterLines.length
+        ? beforeLines.length
+        : afterLines.length;
+
+    var changedAtSharedIndices = 0;
+    for (var i = 0; i < sharedLength; i += 1) {
+      if (beforeLines[i] != afterLines[i]) {
+        changedAtSharedIndices += 1;
+      }
+    }
+
+    final insertedOrRemoved = (beforeLines.length - afterLines.length).abs();
+    final estimated = changedAtSharedIndices + insertedOrRemoved;
+    return estimated <= 0 ? 1 : estimated;
   }
 
   String _buildSummary(List<PendingFileDiff> fileDiffs) {
@@ -281,19 +316,24 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
   }
 
   Future<Size?> _readPngSize(File file) async {
-    final bytes = await file.readAsBytes();
-    if (bytes.length < 24) {
-      return null;
+    final handle = await file.open(mode: FileMode.read);
+    try {
+      final bytes = await handle.read(24);
+      if (bytes.length < 24) {
+        return null;
+      }
+      if (!_hasPngSignature(bytes)) {
+        return null;
+      }
+      final width = _readUint32BigEndian(bytes, 16);
+      final height = _readUint32BigEndian(bytes, 20);
+      if (width <= 0 || height <= 0) {
+        return null;
+      }
+      return Size(width.toDouble(), height.toDouble());
+    } finally {
+      await handle.close();
     }
-    if (!_hasPngSignature(bytes)) {
-      return null;
-    }
-    final width = _readUint32BigEndian(bytes, 16);
-    final height = _readUint32BigEndian(bytes, 20);
-    if (width <= 0 || height <= 0) {
-      return null;
-    }
-    return Size(width.toDouble(), height.toDouble());
   }
 
   bool _hasPngSignature(Uint8List bytes) {

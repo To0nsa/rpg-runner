@@ -17,6 +17,8 @@ class PrefabDocument extends AuthoringDocument {
     required List<String> atlasImagePaths,
     required Map<String, Size> atlasImageSizes,
     List<String> migrationHints = const <String>[],
+    this.prefabBaselineContents,
+    this.tileBaselineContents,
   }) : atlasImagePaths = List<String>.unmodifiable(atlasImagePaths),
        atlasImageSizes = Map<String, Size>.unmodifiable(atlasImageSizes),
        migrationHints = List<String>.unmodifiable(migrationHints);
@@ -33,18 +35,34 @@ class PrefabDocument extends AuthoringDocument {
   /// the next repository reload.
   final List<String> migrationHints;
 
+  /// Baseline prefab_defs.json content loaded from repository, if present.
+  final String? prefabBaselineContents;
+
+  /// Baseline tile_defs.json content loaded from repository, if present.
+  final String? tileBaselineContents;
+
   /// Returns a new immutable snapshot with selected fields replaced.
   PrefabDocument copyWith({
     PrefabData? data,
     List<String>? atlasImagePaths,
     Map<String, Size>? atlasImageSizes,
     List<String>? migrationHints,
+    String? prefabBaselineContents,
+    bool keepPrefabBaselineContents = true,
+    String? tileBaselineContents,
+    bool keepTileBaselineContents = true,
   }) {
     return PrefabDocument(
       data: data ?? this.data,
       atlasImagePaths: atlasImagePaths ?? this.atlasImagePaths,
       atlasImageSizes: atlasImageSizes ?? this.atlasImageSizes,
       migrationHints: migrationHints ?? this.migrationHints,
+      prefabBaselineContents: keepPrefabBaselineContents
+          ? (prefabBaselineContents ?? this.prefabBaselineContents)
+          : null,
+      tileBaselineContents: keepTileBaselineContents
+          ? (tileBaselineContents ?? this.tileBaselineContents)
+          : null,
     );
   }
 }
