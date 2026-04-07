@@ -30,9 +30,6 @@ extension _SceneView on _EntitiesEditorPageState {
             resolvedReference,
             selectedAnimKey: activeAnimKey,
           );
-    if (referenceAnimView != null) {
-      unawaited(_ensureReferenceImageLoaded(referenceAnimView.absolutePath));
-    }
     final frameCount = referenceAnimView == null
         ? 1
         : _effectiveReferenceFrameCount(referenceAnimView);
@@ -828,6 +825,30 @@ extension _SceneView on _EntitiesEditorPageState {
       return;
     }
     _updateState(() {});
+  }
+
+  void _ensureCurrentReferenceImageLoaded() {
+    final scene = widget.controller.scene;
+    if (scene is! EntityScene) {
+      return;
+    }
+    final selected = _selectedEntry(scene);
+    if (selected == null) {
+      return;
+    }
+    final resolvedReference = _resolveReferenceVisual(selected);
+    if (resolvedReference == null) {
+      return;
+    }
+    final activeAnimKey = resolvedReference.resolveAnimKey(_sceneAnimKey);
+    final referenceAnimView = _effectiveReferenceAnimView(
+      resolvedReference,
+      selectedAnimKey: activeAnimKey,
+    );
+    if (referenceAnimView == null) {
+      return;
+    }
+    unawaited(_ensureReferenceImageLoaded(referenceAnimView.absolutePath));
   }
 
   Rect _referenceRect({

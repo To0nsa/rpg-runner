@@ -80,6 +80,7 @@ extension _SceneAnimControls on _EntitiesEditorPageState {
       _sceneAnimKey = key;
       _sceneAnimFrameIndex = 0;
     });
+    _ensureCurrentReferenceImageLoaded();
   }
 
   void _stepSceneFrame({required int frameCount, required int delta}) {

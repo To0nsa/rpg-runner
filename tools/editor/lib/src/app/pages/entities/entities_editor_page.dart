@@ -631,6 +631,7 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
     final artifactSelectionChanged = _ensureArtifactSelection(
       widget.controller.lastExportResult,
     );
+    _ensureCurrentReferenceImageLoaded();
     return selectionChanged || diffSelectionChanged || artifactSelectionChanged;
   }
 
@@ -652,6 +653,7 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
       _selectedEntryId = selectedEntry.id;
       _syncInspectorFromEntry(selectedEntry);
     });
+    _ensureCurrentReferenceImageLoaded();
   }
 
   void _resetViewportSelectionState() {
