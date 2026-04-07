@@ -684,7 +684,10 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
       return true;
     });
     if (selectedStillValid) {
-      _syncInspectorFromEntry(selectedEntry);
+      final resolvedSelectedEntry = selectedEntry;
+      if (resolvedSelectedEntry != null && !hasLocalDraftChanges) {
+        _syncInspectorFromEntry(resolvedSelectedEntry);
+      }
       return false;
     }
 
