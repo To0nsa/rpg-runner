@@ -893,25 +893,17 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
     double? anchorYPx,
     double? castOriginOffset,
   }) {
-    final payload = <String, Object?>{
-      'id': entryId,
-      'halfX': halfX,
-      'halfY': halfY,
-      'offsetX': offsetX,
-      'offsetY': offsetY,
-    };
-    if (renderScale != null) {
-      payload['renderScale'] = renderScale;
-    }
-    if (anchorXPx != null) {
-      payload['anchorXPx'] = anchorXPx;
-    }
-    if (anchorYPx != null) {
-      payload['anchorYPx'] = anchorYPx;
-    }
-    if (castOriginOffset != null) {
-      payload['castOriginOffset'] = castOriginOffset;
-    }
+    final payload = _buildUpdateEntryPayload(
+      entryId: entryId,
+      halfX: halfX,
+      halfY: halfY,
+      offsetX: offsetX,
+      offsetY: offsetY,
+      renderScale: renderScale,
+      anchorXPx: anchorXPx,
+      anchorYPx: anchorYPx,
+      castOriginOffset: castOriginOffset,
+    );
     widget.controller.applyCommand(
       AuthoringCommand(kind: 'update_entry', payload: payload),
     );
@@ -919,6 +911,33 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
 
   void _applyEntryValuesCoalesced(
     String entryId, {
+    required double halfX,
+    required double halfY,
+    required double offsetX,
+    required double offsetY,
+    double? renderScale,
+    double? anchorXPx,
+    double? anchorYPx,
+    double? castOriginOffset,
+  }) {
+    final payload = _buildUpdateEntryPayload(
+      entryId: entryId,
+      halfX: halfX,
+      halfY: halfY,
+      offsetX: offsetX,
+      offsetY: offsetY,
+      renderScale: renderScale,
+      anchorXPx: anchorXPx,
+      anchorYPx: anchorYPx,
+      castOriginOffset: castOriginOffset,
+    );
+    widget.controller.applyCoalescedCommand(
+      AuthoringCommand(kind: 'update_entry', payload: payload),
+    );
+  }
+
+  Map<String, Object?> _buildUpdateEntryPayload({
+    required String entryId,
     required double halfX,
     required double halfY,
     required double offsetX,
@@ -947,9 +966,7 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
     if (castOriginOffset != null) {
       payload['castOriginOffset'] = castOriginOffset;
     }
-    widget.controller.applyCoalescedCommand(
-      AuthoringCommand(kind: 'update_entry', payload: payload),
-    );
+    return payload;
   }
 
   void _updateState(VoidCallback callback) {
