@@ -11,11 +11,17 @@ import 'prefab_models.dart';
 import 'prefab_store.dart';
 import 'prefab_validation.dart';
 
+/// Plugin entry point for prefab/tile authoring workflows.
+///
+/// The plugin owns repo load/validate/export orchestration, while canonical
+/// ordering and migration logic stay in [PrefabStore].
 class PrefabDomainPlugin implements AuthoringDomainPlugin {
   const PrefabDomainPlugin({PrefabStore store = const PrefabStore()})
     : _store = store;
 
   static const String pluginId = 'prefabs';
+
+  /// Command kind accepted by [applyEdit] for replacing full prefab data.
   static const String replacePrefabDataCommandKind = 'replace_prefab_data';
   static const String _levelAssetsPath = 'assets/images/level';
 
@@ -139,6 +145,10 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
   }
 
   @override
+  /// Builds deterministic pending file diffs against load-time baselines.
+  ///
+  /// Baseline content comes from [PrefabDocument] instead of re-reading files,
+  /// so this path avoids synchronous disk I/O during editor interactions.
   PendingChanges describePendingChanges(
     EditorWorkspace workspace, {
     required AuthoringDocument document,
@@ -209,6 +219,9 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
     return file.readAsString();
   }
 
+  /// Lightweight line-based edit estimate for UI summaries.
+  ///
+  /// This is intentionally approximate and not a patch-accurate hunk count.
   int _estimateEditCount({
     required String? beforeContent,
     required String afterContent,
@@ -260,6 +273,8 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
     return lines.join('\n');
   }
 
+  /// Splits content into lines with normalized newlines and no trailing blank
+  /// line artifact from terminal `\n`.
   List<String> _splitLines(String content) {
     final normalized = content.replaceAll('\r\n', '\n');
     final lines = normalized.split('\n');
@@ -269,6 +284,7 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
     return lines;
   }
 
+  /// Discovers all PNG atlas files under the level asset tree.
   Future<List<String>> _discoverAtlasImages(EditorWorkspace workspace) async {
     final levelAssets = Directory(workspace.resolve(_levelAssetsPath));
     if (!await levelAssets.exists()) {
@@ -296,6 +312,7 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
     return pngPaths;
   }
 
+  /// Reads atlas image dimensions keyed by relative image path.
   Future<Map<String, Size>> _readAtlasImageSizes(
     EditorWorkspace workspace, {
     required List<String> atlasImagePaths,
@@ -315,6 +332,10 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
     return result;
   }
 
+  /// Reads PNG dimensions from the header only.
+  ///
+  /// Uses the first 24 bytes (signature + IHDR width/height offsets) to avoid
+  /// loading full files for metadata checks.
   Future<Size?> _readPngSize(File file) async {
     final handle = await file.open(mode: FileMode.read);
     try {
