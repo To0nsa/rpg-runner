@@ -1,4 +1,4 @@
-import '../prefabs/prefab_models.dart';
+import '../prefabs/models/models.dart';
 import 'chunk_domain_models.dart';
 
 class RuntimePrefabCollider {

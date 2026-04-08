@@ -4,12 +4,17 @@ import 'dart:ui' show Size;
 
 import 'package:path/path.dart' as p;
 
-import '../domain/authoring_types.dart';
-import '../workspace/editor_workspace.dart';
+import '../../domain/authoring_types.dart';
+import '../../workspace/editor_workspace.dart';
+import '../models/models.dart';
 import 'prefab_domain_models.dart';
-import 'prefab_models.dart';
-import 'prefab_store.dart';
-import 'prefab_validation.dart';
+import '../store/prefab_store.dart';
+import '../validation/prefab_validation.dart';
+
+/// Prefab-domain `AuthoringDomainPlugin` implementation.
+///
+/// Owns repository load/validate/export orchestration and keeps UI routes free
+/// of direct file I/O concerns.
 
 /// Plugin entry point for prefab/tile authoring workflows.
 ///
@@ -23,7 +28,15 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
 
   /// Command kind accepted by [applyEdit] for replacing full prefab data.
   static const String replacePrefabDataCommandKind = 'replace_prefab_data';
+
+  /// Workspace-relative root scanned for atlas images used by slices.
   static const String _levelAssetsPath = 'assets/images/level';
+
+  /// Widget tests run load under fake async where some async file I/O can
+  /// stall; keep a deterministic sync fallback for that environment only.
+  static final bool _isFlutterTestProcess = Platform.environment.containsKey(
+    'FLUTTER_TEST',
+  );
 
   final PrefabStore _store;
 
@@ -35,17 +48,37 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
     final loadResult = await _store.loadWithReport(workspace.rootPath);
     final prefabRelativePath = p.normalize(PrefabStore.prefabDefsPath);
     final tileRelativePath = p.normalize(PrefabStore.tileDefsPath);
-    final prefabBaselineContents = await _readIfExistsAsync(
-      workspace.resolve(prefabRelativePath),
-    );
-    final tileBaselineContents = await _readIfExistsAsync(
-      workspace.resolve(tileRelativePath),
-    );
-    final atlasImagePaths = await _discoverAtlasImages(workspace);
-    final atlasImageSizes = await _readAtlasImageSizes(
-      workspace,
-      atlasImagePaths: atlasImagePaths,
-    );
+    late final String? prefabBaselineContents;
+    late final String? tileBaselineContents;
+    late final List<String> atlasImagePaths;
+    late final Map<String, Size> atlasImageSizes;
+
+    if (_isFlutterTestProcess) {
+      prefabBaselineContents = _readIfExistsSync(
+        workspace.resolve(prefabRelativePath),
+      );
+      tileBaselineContents = _readIfExistsSync(
+        workspace.resolve(tileRelativePath),
+      );
+      atlasImagePaths = _discoverAtlasImagesSync(workspace);
+      atlasImageSizes = _readAtlasImageSizesSync(
+        workspace,
+        atlasImagePaths: atlasImagePaths,
+      );
+    } else {
+      prefabBaselineContents = await _readIfExistsAsync(
+        workspace.resolve(prefabRelativePath),
+      );
+      tileBaselineContents = await _readIfExistsAsync(
+        workspace.resolve(tileRelativePath),
+      );
+      atlasImagePaths = await _discoverAtlasImagesAsync(workspace);
+      atlasImageSizes = await _readAtlasImageSizesAsync(
+        workspace,
+        atlasImagePaths: atlasImagePaths,
+      );
+    }
+
     return PrefabDocument(
       data: loadResult.data,
       atlasImagePaths: List<String>.unmodifiable(atlasImagePaths),
@@ -204,6 +237,7 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
     return document;
   }
 
+  /// Compares semantic prefab payloads via canonical serialized output.
   bool _canonicalDataEquals(PrefabData a, PrefabData b) {
     final encodedA = _store.serializeCanonicalFiles(a);
     final encodedB = _store.serializeCanonicalFiles(b);
@@ -211,12 +245,22 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
         encodedA.tileContents == encodedB.tileContents;
   }
 
+  /// Reads a file when present and returns null for missing paths.
   Future<String?> _readIfExistsAsync(String absolutePath) async {
     final file = File(absolutePath);
     if (!await file.exists()) {
       return null;
     }
     return file.readAsString();
+  }
+
+  /// Test-only sync variant used when async file I/O stalls under fake async.
+  String? _readIfExistsSync(String absolutePath) {
+    final file = File(absolutePath);
+    if (!file.existsSync()) {
+      return null;
+    }
+    return file.readAsStringSync();
   }
 
   /// Lightweight line-based edit estimate for UI summaries.
@@ -285,7 +329,9 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
   }
 
   /// Discovers all PNG atlas files under the level asset tree.
-  Future<List<String>> _discoverAtlasImages(EditorWorkspace workspace) async {
+  Future<List<String>> _discoverAtlasImagesAsync(
+    EditorWorkspace workspace,
+  ) async {
     final levelAssets = Directory(workspace.resolve(_levelAssetsPath));
     if (!await levelAssets.exists()) {
       return const <String>[];
@@ -312,8 +358,36 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
     return pngPaths;
   }
 
+  /// Test-only sync variant used when async file I/O stalls under fake async.
+  List<String> _discoverAtlasImagesSync(EditorWorkspace workspace) {
+    final levelAssets = Directory(workspace.resolve(_levelAssetsPath));
+    if (!levelAssets.existsSync()) {
+      return const <String>[];
+    }
+
+    final pngPaths = <String>[];
+    for (final entity in levelAssets.listSync(
+      recursive: true,
+      followLinks: false,
+    )) {
+      if (entity is! File) {
+        continue;
+      }
+      final ext = p.extension(entity.path).toLowerCase();
+      if (ext != '.png') {
+        continue;
+      }
+      final relative = p.normalize(
+        p.relative(entity.path, from: workspace.rootPath),
+      );
+      pngPaths.add(relative.replaceAll('\\', '/'));
+    }
+    pngPaths.sort();
+    return pngPaths;
+  }
+
   /// Reads atlas image dimensions keyed by relative image path.
-  Future<Map<String, Size>> _readAtlasImageSizes(
+  Future<Map<String, Size>> _readAtlasImageSizesAsync(
     EditorWorkspace workspace, {
     required List<String> atlasImagePaths,
   }) async {
@@ -323,7 +397,27 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
       if (!await file.exists()) {
         continue;
       }
-      final size = await _readPngSize(file);
+      final size = await _readPngSizeAsync(file);
+      if (size == null) {
+        continue;
+      }
+      result[relativePath] = size;
+    }
+    return result;
+  }
+
+  /// Test-only sync variant used when async file I/O stalls under fake async.
+  Map<String, Size> _readAtlasImageSizesSync(
+    EditorWorkspace workspace, {
+    required List<String> atlasImagePaths,
+  }) {
+    final result = <String, Size>{};
+    for (final relativePath in atlasImagePaths) {
+      final file = File(workspace.resolve(relativePath));
+      if (!file.existsSync()) {
+        continue;
+      }
+      final size = _readPngSizeSync(file);
       if (size == null) {
         continue;
       }
@@ -336,7 +430,7 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
   ///
   /// Uses the first 24 bytes (signature + IHDR width/height offsets) to avoid
   /// loading full files for metadata checks.
-  Future<Size?> _readPngSize(File file) async {
+  Future<Size?> _readPngSizeAsync(File file) async {
     final handle = await file.open(mode: FileMode.read);
     try {
       final bytes = await handle.read(24);
@@ -354,6 +448,28 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
       return Size(width.toDouble(), height.toDouble());
     } finally {
       await handle.close();
+    }
+  }
+
+  /// Test-only sync variant used when async file I/O stalls under fake async.
+  Size? _readPngSizeSync(File file) {
+    final handle = file.openSync(mode: FileMode.read);
+    try {
+      final bytes = handle.readSync(24);
+      if (bytes.length < 24) {
+        return null;
+      }
+      if (!_hasPngSignature(bytes)) {
+        return null;
+      }
+      final width = _readUint32BigEndian(bytes, 16);
+      final height = _readUint32BigEndian(bytes, 20);
+      if (width <= 0 || height <= 0) {
+        return null;
+      }
+      return Size(width.toDouble(), height.toDouble());
+    } finally {
+      handle.closeSync();
     }
   }
 

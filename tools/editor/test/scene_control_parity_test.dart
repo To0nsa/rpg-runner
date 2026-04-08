@@ -10,7 +10,7 @@ import 'package:runner_editor/src/app/pages/prefabCreator/widgets/prefab_scene_v
 import 'package:runner_editor/src/app/pages/prefabCreator/widgets/prefab_scene_view.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_scene_view_utils.dart';
 import 'package:runner_editor/src/app/pages/shared/scene_input_utils.dart';
-import 'package:runner_editor/src/prefabs/prefab_models.dart';
+import 'package:runner_editor/src/prefabs/models/models.dart';
 
 void main() {
   test('shared scene zoom helpers snap and compare deterministically', () {

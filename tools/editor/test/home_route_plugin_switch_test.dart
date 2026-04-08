@@ -13,9 +13,9 @@ import 'package:runner_editor/src/chunks/chunk_domain_plugin.dart';
 import 'package:runner_editor/src/domain/authoring_plugin_registry.dart';
 import 'package:runner_editor/src/domain/authoring_types.dart';
 import 'package:runner_editor/src/entities/entity_domain_plugin.dart';
-import 'package:runner_editor/src/prefabs/prefab_domain_models.dart';
-import 'package:runner_editor/src/prefabs/prefab_domain_plugin.dart';
-import 'package:runner_editor/src/prefabs/prefab_models.dart';
+import 'package:runner_editor/src/prefabs/domain/prefab_domain_models.dart';
+import 'package:runner_editor/src/prefabs/domain/prefab_domain_plugin.dart';
+import 'package:runner_editor/src/prefabs/models/models.dart';
 import 'package:runner_editor/src/session/editor_session_controller.dart';
 import 'package:runner_editor/src/workspace/editor_workspace.dart';
 
@@ -1132,7 +1132,7 @@ class _FakePrefabEditorPlugin implements AuthoringDomainPlugin {
   @override
   Future<AuthoringDocument> loadFromRepo(EditorWorkspace workspace) async {
     loadCallCount += 1;
-    return const PrefabDocument(
+    return PrefabDocument(
       data: PrefabData(
         prefabSlices: <AtlasSliceDef>[
           AtlasSliceDef(

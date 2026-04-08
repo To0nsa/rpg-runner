@@ -2,8 +2,13 @@ import 'dart:ui' show Size;
 
 import 'package:flutter/foundation.dart';
 
-import '../domain/authoring_types.dart';
-import 'prefab_models.dart';
+import '../../domain/authoring_types.dart';
+import '../models/models.dart';
+
+/// Prefab-domain plugin document/scene shapes.
+///
+/// This file is the seam between generic authoring contracts and prefab-specific
+/// data carried through session/plugin/page flows.
 
 /// Plugin-owned immutable snapshot for the prefab authoring domain.
 ///

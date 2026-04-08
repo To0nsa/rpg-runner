@@ -326,11 +326,19 @@ class ChunkStore {
         );
         continue;
       }
-      if (entry['gapId'] is! String || (entry['gapId'] as String).trim().isEmpty) {
-        add('missing_gap_id', 'groundGaps[$i].gapId must be a non-empty string.');
+      if (entry['gapId'] is! String ||
+          (entry['gapId'] as String).trim().isEmpty) {
+        add(
+          'missing_gap_id',
+          'groundGaps[$i].gapId must be a non-empty string.',
+        );
       }
-      if (entry['type'] is! String || (entry['type'] as String).trim().isEmpty) {
-        add('invalid_gap_type', 'groundGaps[$i].type must be a non-empty string.');
+      if (entry['type'] is! String ||
+          (entry['type'] as String).trim().isEmpty) {
+        add(
+          'invalid_gap_type',
+          'groundGaps[$i].type must be a non-empty string.',
+        );
       }
       if (entry['x'] is! int) {
         add('invalid_gap_x', 'groundGaps[$i].x must be an integer.');
@@ -673,6 +681,7 @@ String _fingerprint(String input) {
   }
   return hash.toRadixString(16).padLeft(8, '0');
 }
+
 void _validateObjectArray(
   Object? raw, {
   required String fieldName,

@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
 import 'package:runner_editor/src/chunks/prefab_runtime_adapter.dart';
-import 'package:runner_editor/src/prefabs/prefab_models.dart';
+import 'package:runner_editor/src/prefabs/models/models.dart';
 
 void main() {
   test('buildRuntimePrefabContracts maps and orders valid prefabs', () {

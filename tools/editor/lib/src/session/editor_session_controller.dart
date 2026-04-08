@@ -288,10 +288,7 @@ class EditorSessionController extends ChangeNotifier {
     notifyListeners();
     final plugin = _pluginRegistry.requireById(_selectedPluginId);
     try {
-      final result = await plugin.exportToRepo(
-        workspace,
-        document: document,
-      );
+      final result = await plugin.exportToRepo(workspace, document: document);
       _lastExportResult = result;
       if (result.applied) {
         // Reload from disk so the session reflects the plugin's persisted

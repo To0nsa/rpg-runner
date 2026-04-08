@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../prefabs/prefab_models.dart';
+import '../../../../prefabs/models/models.dart';
 
 class PrefabFormState {
   PrefabFormState.obstacle() {

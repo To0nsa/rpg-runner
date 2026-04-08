@@ -4,8 +4,10 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 
 import 'prefab_determinism.dart';
-import 'prefab_models.dart';
+import '../models/models.dart';
+import '../models/shared/model_json_utils.dart';
 
+/// Result of loading prefab authoring files, including migration notices.
 class PrefabLoadResult {
   const PrefabLoadResult({
     required this.data,
@@ -16,6 +18,7 @@ class PrefabLoadResult {
   final List<String> migrationHints;
 }
 
+/// Canonically serialized prefab and tile authoring file contents.
 class PrefabSerializedFiles {
   const PrefabSerializedFiles({
     required this.prefabContents,
@@ -26,18 +29,30 @@ class PrefabSerializedFiles {
   final String tileContents;
 }
 
+/// Repository file adapter for prefab authoring data.
+///
+/// Owns parsing, schema migration, canonical ordering, and paired writes for:
+/// - `assets/authoring/level/prefab_defs.json`
+/// - `assets/authoring/level/tile_defs.json`
 class PrefabStore {
+  /// Workspace-relative path to prefab slice/prefab definitions.
   static const String prefabDefsPath =
       'assets/authoring/level/prefab_defs.json';
+
+  /// Workspace-relative path to tile slice/platform module definitions.
   static const String tileDefsPath = 'assets/authoring/level/tile_defs.json';
 
   const PrefabStore();
 
+  /// Loads and normalizes prefab authoring data.
+  ///
+  /// Use [loadWithReport] when migration hints need to be surfaced to the UI.
   Future<PrefabData> load(String workspaceRootPath) async {
     final result = await loadWithReport(workspaceRootPath);
     return result.data;
   }
 
+  /// Loads prefab/tile authoring files and returns migration diagnostics.
   Future<PrefabLoadResult> loadWithReport(String workspaceRootPath) async {
     final prefabFile = File(
       p.normalize(p.join(workspaceRootPath, prefabDefsPath)),
@@ -85,7 +100,7 @@ class PrefabStore {
       final rawModules = parsed['platformModules'];
       if (rawModules is List<Object?>) {
         for (final value in rawModules) {
-          final moduleJson = _asObjectMap(value);
+          final moduleJson = PrefabModelJson.asObjectMap(value);
           if (moduleJson == null) {
             continue;
           }
@@ -127,6 +142,10 @@ class PrefabStore {
     );
   }
 
+  /// Persists [data] to prefab/tile files using canonical serialization.
+  ///
+  /// Writes are staged and committed atomically as a pair so the two files do
+  /// not drift on partial failures.
   Future<void> save(
     String workspaceRootPath, {
     required PrefabData data,
@@ -152,6 +171,10 @@ class PrefabStore {
     );
   }
 
+  /// Produces canonical JSON text for prefab and tile authoring files.
+  ///
+  /// Deterministic ordering from this method is used for both file output and
+  /// semantic equality checks in the domain plugin.
   PrefabSerializedFiles serializeCanonicalFiles(PrefabData data) {
     final sortedPrefabSlices = _sortedSlices(data.prefabSlices);
     final sortedTileSlices = _sortedSlices(data.tileSlices);
@@ -191,7 +214,7 @@ class PrefabStore {
   List<PrefabDef> _parsePrefabs(List<Object?> raw) {
     final prefabs = <PrefabDef>[];
     for (final value in raw) {
-      final prefabJson = _asObjectMap(value);
+      final prefabJson = PrefabModelJson.asObjectMap(value);
       if (prefabJson == null) {
         continue;
       }
@@ -203,7 +226,7 @@ class PrefabStore {
   List<AtlasSliceDef> _parseSlices(List<Object?> raw) {
     final slices = <AtlasSliceDef>[];
     for (final value in raw) {
-      final sliceJson = _asObjectMap(value);
+      final sliceJson = PrefabModelJson.asObjectMap(value);
       if (sliceJson == null) {
         continue;
       }
@@ -212,6 +235,7 @@ class PrefabStore {
     return slices;
   }
 
+  /// Parses and validates top-level JSON object shape.
   Map<String, Object?> _parseJsonMap(String raw, {required String sourcePath}) {
     Object? decoded;
     try {
@@ -219,7 +243,7 @@ class PrefabStore {
     } on FormatException catch (error) {
       throw FormatException('Malformed JSON in $sourcePath: ${error.message}');
     }
-    final mapped = _asObjectMap(decoded);
+    final mapped = PrefabModelJson.asObjectMap(decoded);
     if (mapped == null) {
       throw FormatException(
         'Malformed JSON in $sourcePath: top-level JSON value must be an object.',
@@ -235,6 +259,7 @@ class PrefabStore {
     return fallback;
   }
 
+  /// Keeps stored schema at least at the currently writable version.
   int _canonicalSchemaVersion(int rawSchemaVersion) {
     if (rawSchemaVersion < currentPrefabSchemaVersion) {
       return currentPrefabSchemaVersion;
@@ -242,6 +267,7 @@ class PrefabStore {
     return rawSchemaVersion;
   }
 
+  /// Canonical slice ordering for deterministic serialization.
   List<AtlasSliceDef> _sortedSlices(List<AtlasSliceDef> slices) {
     final sorted = List<AtlasSliceDef>.from(slices)
       ..sort((a, b) {
@@ -262,6 +288,7 @@ class PrefabStore {
     return sorted;
   }
 
+  /// Canonical prefab normalization + optional legacy migration defaults.
   List<PrefabDef> _sortedPrefabs(
     List<PrefabDef> prefabs, {
     required bool migrateLegacyDefaults,
@@ -328,6 +355,7 @@ class PrefabStore {
     return PrefabDeterminism.sortPrefabsByIdThenKey(normalized);
   }
 
+  /// Promotes legacy unknown visual source data where a legacy slice id exists.
   PrefabVisualSource _migrateLegacyVisualSource(PrefabVisualSource source) {
     if (source.type != PrefabVisualSourceType.unknown) {
       return source;
@@ -338,6 +366,7 @@ class PrefabStore {
     return source;
   }
 
+  /// Canonical module normalization and ordering.
   List<TileModuleDef> _sortedModules(List<TileModuleDef> modules) {
     final normalized = modules
         .map((module) {
@@ -359,6 +388,10 @@ class PrefabStore {
     return PrefabDeterminism.sortModulesByStatusIdRevision(normalized);
   }
 
+  /// Writes prefab and tile files as one logical transaction.
+  ///
+  /// Uses staged temp files and per-file backups to guarantee rollback when the
+  /// second rename or cleanup fails.
   void _writePrefabAndTileAtomically({
     required File prefabFile,
     required String prefabContents,
@@ -461,6 +494,7 @@ class PrefabStore {
     }
   }
 
+  /// Builds a temp/backup sibling path for [target].
   File _stagedSiblingFile({
     required File target,
     required String stagedId,
@@ -470,23 +504,10 @@ class PrefabStore {
     final stagedName = '.$baseName.$stagedId.$suffix';
     return File(p.join(target.parent.path, stagedName));
   }
-
-  Map<String, Object?>? _asObjectMap(Object? raw) {
-    if (raw is! Map<Object?, Object?>) {
-      return null;
-    }
-    final mapped = <String, Object?>{};
-    for (final entry in raw.entries) {
-      final key = entry.key;
-      if (key is! String) {
-        continue;
-      }
-      mapped[key] = entry.value;
-    }
-    return mapped;
-  }
 }
 
+/// Counters used to build user-facing migration summaries for legacy schema
+/// loads.
 class _PrefabMigrationStats {
   int migratedPrefabs = 0;
   int allocatedPrefabKeys = 0;

@@ -7,9 +7,9 @@ import 'package:path/path.dart' as p;
 import 'package:runner_editor/src/app/pages/prefabCreator/prefab_creator_page.dart';
 import 'package:runner_editor/src/domain/authoring_plugin_registry.dart';
 import 'package:runner_editor/src/domain/authoring_types.dart';
-import 'package:runner_editor/src/prefabs/prefab_domain_models.dart';
-import 'package:runner_editor/src/prefabs/prefab_domain_plugin.dart';
-import 'package:runner_editor/src/prefabs/prefab_models.dart';
+import 'package:runner_editor/src/prefabs/domain/prefab_domain_models.dart';
+import 'package:runner_editor/src/prefabs/domain/prefab_domain_plugin.dart';
+import 'package:runner_editor/src/prefabs/models/models.dart';
 import 'package:runner_editor/src/session/editor_session_controller.dart';
 
 void main() {
@@ -613,7 +613,17 @@ Future<EditorSessionController> _pumpPrefabCreatorPage(
   );
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 50));
+  var settleBudget = 0;
+  while (controller.isLoading && settleBudget < 200) {
+    await tester.pump(const Duration(milliseconds: 20));
+    settleBudget += 1;
+  }
   await tester.pumpAndSettle();
+  expect(
+    controller.isLoading,
+    isFalse,
+    reason: 'Prefab editor should finish async load before assertions.',
+  );
 
   expect(
     find.textContaining('Loaded prefab/tile authoring data'),

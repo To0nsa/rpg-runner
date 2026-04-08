@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../chunks/chunk_domain_plugin.dart';
 import '../../../entities/entity_domain_plugin.dart';
-import '../../../prefabs/prefab_domain_plugin.dart';
+import '../../../prefabs/domain/prefab_domain_plugin.dart';
 import '../../../session/editor_session_controller.dart';
 import '../chunkCreator/chunk_creator_page.dart';
 import '../entities/entities_editor_page.dart';

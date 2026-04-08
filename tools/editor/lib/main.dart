@@ -10,7 +10,7 @@ void main() {
   runEditorApp(initialWorkspacePath: workspacePath);
 }
 
-/// Select rpg_runner root as workspace 
+/// Select rpg_runner root as workspace
 String _defaultWorkspacePath() {
   final cwd = Directory.current.path;
   final normalizedCwd = p.normalize(cwd);

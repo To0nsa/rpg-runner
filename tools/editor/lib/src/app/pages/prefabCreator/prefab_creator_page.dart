@@ -8,12 +8,12 @@ import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 
 import '../../../domain/authoring_types.dart';
-import '../../../prefabs/prefab_domain_models.dart';
-import '../../../prefabs/prefab_domain_plugin.dart';
-import '../../../prefabs/prefab_models.dart';
-import '../../../prefabs/prefab_store.dart';
-import '../../../prefabs/prefab_validation.dart';
-import '../../../prefabs/workspace_scoped_size_cache.dart';
+import '../../../prefabs/domain/prefab_domain_models.dart';
+import '../../../prefabs/domain/prefab_domain_plugin.dart';
+import '../../../prefabs/models/models.dart';
+import '../../../prefabs/store/prefab_store.dart';
+import '../../../prefabs/validation/prefab_validation.dart';
+import '../../../prefabs/atlas/workspace_scoped_size_cache.dart';
 import '../../../session/editor_session_controller.dart';
 import '../shared/atlas_selection_painter.dart';
 import '../shared/editor_page_local_draft_state.dart';

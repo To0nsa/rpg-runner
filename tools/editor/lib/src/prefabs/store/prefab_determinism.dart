@@ -1,4 +1,9 @@
-import 'prefab_models.dart';
+import '../models/models.dart';
+
+/// Prefab-domain determinism helpers shared by store and reducer flows.
+///
+/// This is the single source for canonical ordering/normalization used by file
+/// serialization and in-memory comparisons.
 
 /// Canonical normalization and ordering rules for prefab authoring data.
 ///
@@ -19,6 +24,7 @@ class PrefabDeterminism {
     return normalized;
   }
 
+  /// Returns prefabs sorted with [comparePrefabsByIdThenKey].
   static List<PrefabDef> sortPrefabsByIdThenKey(Iterable<PrefabDef> prefabs) {
     final sorted = List<PrefabDef>.from(prefabs)
       ..sort(comparePrefabsByIdThenKey);
@@ -55,7 +61,10 @@ class PrefabDeterminism {
       return kindCompare;
     }
 
-    final sourceCompare = _comparePrefabVisualSource(a.visualSource, b.visualSource);
+    final sourceCompare = _comparePrefabVisualSource(
+      a.visualSource,
+      b.visualSource,
+    );
     if (sourceCompare != 0) {
       return sourceCompare;
     }
@@ -88,6 +97,7 @@ class PrefabDeterminism {
     return _compareColliderLists(a.colliders, b.colliders);
   }
 
+  /// Returns modules sorted with [compareModulesByStatusIdRevision].
   static List<TileModuleDef> sortModulesByStatusIdRevision(
     Iterable<TileModuleDef> modules,
   ) {

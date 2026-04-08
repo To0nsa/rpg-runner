@@ -1,7 +1,7 @@
 import 'dart:ui' show Size;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:runner_editor/src/prefabs/workspace_scoped_size_cache.dart';
+import 'package:runner_editor/src/prefabs/atlas/workspace_scoped_size_cache.dart';
 
 void main() {
   test('keeps entries when workspace path is unchanged', () {

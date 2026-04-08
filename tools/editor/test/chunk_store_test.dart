@@ -85,25 +85,28 @@ void main() {
     }
   });
 
-  test('load reports malformed payload arrays and malformed ground contracts', () async {
-    final fixtureRoot = await _createMalformedFixtureWorkspace();
-    try {
-      final workspace = EditorWorkspace(rootPath: fixtureRoot.path);
-      const store = ChunkStore();
-      final loaded = await store.load(
-        workspace,
-        preferredActiveLevelId: 'field',
-      );
+  test(
+    'load reports malformed payload arrays and malformed ground contracts',
+    () async {
+      final fixtureRoot = await _createMalformedFixtureWorkspace();
+      try {
+        final workspace = EditorWorkspace(rootPath: fixtureRoot.path);
+        const store = ChunkStore();
+        final loaded = await store.load(
+          workspace,
+          preferredActiveLevelId: 'field',
+        );
 
-      expect(loaded.chunks, hasLength(1));
-      final codes = loaded.loadIssues.map((issue) => issue.code).toSet();
-      expect(codes, contains('malformed_tags_array'));
-      expect(codes, contains('invalid_ground_profile'));
-      expect(codes, contains('malformed_ground_gaps_entries'));
-    } finally {
-      fixtureRoot.deleteSync(recursive: true);
-    }
-  });
+        expect(loaded.chunks, hasLength(1));
+        final codes = loaded.loadIssues.map((issue) => issue.code).toSet();
+        expect(codes, contains('malformed_tags_array'));
+        expect(codes, contains('invalid_ground_profile'));
+        expect(codes, contains('malformed_ground_gaps_entries'));
+      } finally {
+        fixtureRoot.deleteSync(recursive: true);
+      }
+    },
+  );
 
   test('save plan rejects case-insensitive filename collisions', () async {
     final fixtureRoot = await _createFixtureWorkspace();

@@ -1,8 +1,8 @@
 import 'dart:ui' show Size;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:runner_editor/src/prefabs/prefab_models.dart';
-import 'package:runner_editor/src/prefabs/prefab_validation.dart';
+import 'package:runner_editor/src/prefabs/models/models.dart';
+import 'package:runner_editor/src/prefabs/validation/prefab_validation.dart';
 
 void main() {
   test('validatePrefabData accepts valid typed obstacle/platform prefabs', () {

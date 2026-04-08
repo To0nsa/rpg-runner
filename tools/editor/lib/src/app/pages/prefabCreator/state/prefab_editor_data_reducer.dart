@@ -1,5 +1,5 @@
-import '../../../../prefabs/prefab_models.dart';
-import '../../../../prefabs/prefab_determinism.dart';
+import '../../../../prefabs/models/models.dart';
+import '../../../../prefabs/store/prefab_determinism.dart';
 
 class PrefabEditorDataReducer {
   const PrefabEditorDataReducer();

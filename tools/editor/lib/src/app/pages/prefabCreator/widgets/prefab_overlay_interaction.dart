@@ -2,7 +2,12 @@ import 'package:flutter/material.dart';
 
 import 'prefab_scene_values.dart';
 
-enum PrefabOverlayHandleType { anchor, colliderCenter, colliderTop, colliderRight }
+enum PrefabOverlayHandleType {
+  anchor,
+  colliderCenter,
+  colliderTop,
+  colliderRight,
+}
 
 class PrefabOverlayDragState {
   const PrefabOverlayDragState({
@@ -208,13 +213,25 @@ final class PrefabOverlayPainter {
       ..strokeWidth = 1.6;
     const arm = 6.0;
     canvas.drawLine(
-      Offset(geometry.anchorHandleCenter.dx - arm, geometry.anchorHandleCenter.dy),
-      Offset(geometry.anchorHandleCenter.dx + arm, geometry.anchorHandleCenter.dy),
+      Offset(
+        geometry.anchorHandleCenter.dx - arm,
+        geometry.anchorHandleCenter.dy,
+      ),
+      Offset(
+        geometry.anchorHandleCenter.dx + arm,
+        geometry.anchorHandleCenter.dy,
+      ),
       anchorCross,
     );
     canvas.drawLine(
-      Offset(geometry.anchorHandleCenter.dx, geometry.anchorHandleCenter.dy - arm),
-      Offset(geometry.anchorHandleCenter.dx, geometry.anchorHandleCenter.dy + arm),
+      Offset(
+        geometry.anchorHandleCenter.dx,
+        geometry.anchorHandleCenter.dy - arm,
+      ),
+      Offset(
+        geometry.anchorHandleCenter.dx,
+        geometry.anchorHandleCenter.dy + arm,
+      ),
       anchorCross,
     );
 

@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_editor/src/app/pages/prefabCreator/widgets/platform_module_scene_view.dart';
-import 'package:runner_editor/src/prefabs/prefab_models.dart';
+import 'package:runner_editor/src/prefabs/models/models.dart';
 
 void main() {
   testWidgets('dispatches paint, erase, and move callbacks by tool mode', (

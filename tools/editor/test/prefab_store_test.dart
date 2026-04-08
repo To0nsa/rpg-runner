@@ -3,8 +3,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
-import 'package:runner_editor/src/prefabs/prefab_models.dart';
-import 'package:runner_editor/src/prefabs/prefab_store.dart';
+import 'package:runner_editor/src/prefabs/models/models.dart';
+import 'package:runner_editor/src/prefabs/store/prefab_store.dart';
 
 void main() {
   const store = PrefabStore();
@@ -350,11 +350,7 @@ void main() {
                 'id': 'module_legacy',
                 'tileSize': 16,
                 'cells': <Object?>[
-                  <String, Object?>{
-                    'sliceId': 'tile_a',
-                    'gridX': 0,
-                    'gridY': 0,
-                  },
+                  <String, Object?>{'sliceId': 'tile_a', 'gridX': 0, 'gridY': 0},
                 ],
               },
               <String, Object?>{
@@ -363,11 +359,7 @@ void main() {
                 'status': 'unknown',
                 'tileSize': 16,
                 'cells': <Object?>[
-                  <String, Object?>{
-                    'sliceId': 'tile_a',
-                    'gridX': 1,
-                    'gridY': 0,
-                  },
+                  <String, Object?>{'sliceId': 'tile_a', 'gridX': 1, 'gridY': 0},
                 ],
               },
               <String, Object?>{
@@ -376,11 +368,7 @@ void main() {
                 'status': 'deprecated',
                 'tileSize': 16,
                 'cells': <Object?>[
-                  <String, Object?>{
-                    'sliceId': 'tile_a',
-                    'gridX': 2,
-                    'gridY': 0,
-                  },
+                  <String, Object?>{'sliceId': 'tile_a', 'gridX': 2, 'gridY': 0},
                 ],
               },
             ],
