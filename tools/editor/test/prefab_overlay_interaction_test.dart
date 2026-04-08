@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:runner_editor/src/app/pages/prefabCreator/widgets/prefab_overlay_interaction.dart';
-import 'package:runner_editor/src/app/pages/prefabCreator/widgets/prefab_scene_values.dart';
+import 'package:runner_editor/src/app/pages/prefabCreator/shared/prefab_overlay_interaction.dart';
+import 'package:runner_editor/src/app/pages/prefabCreator/shared/prefab_scene_values.dart';
 
 void main() {
   test('anchor drag is clamped to authoring bounds', () {

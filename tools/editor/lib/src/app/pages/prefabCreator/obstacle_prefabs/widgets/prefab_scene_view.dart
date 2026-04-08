@@ -6,14 +6,14 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 
-import '../../../../prefabs/models/models.dart';
-import '../../shared/editor_scene_view_utils.dart';
-import '../../shared/editor_zoom_controls.dart';
-import '../../shared/editor_scene_viewport_frame.dart';
-import '../../shared/editor_viewport_grid_painter.dart';
-import '../../shared/scene_input_utils.dart';
-import 'prefab_overlay_interaction.dart';
-import 'prefab_scene_values.dart';
+import '../../../../../prefabs/models/models.dart';
+import '../../../shared/editor_scene_view_utils.dart';
+import '../../../shared/editor_scene_viewport_frame.dart';
+import '../../../shared/editor_viewport_grid_painter.dart';
+import '../../../shared/editor_zoom_controls.dart';
+import '../../../shared/scene_input_utils.dart';
+import '../../shared/prefab_overlay_interaction.dart';
+import '../../shared/prefab_scene_values.dart';
 
 class PrefabSceneView extends StatefulWidget {
   const PrefabSceneView({

@@ -6,8 +6,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runner_editor/src/app/pages/home/editor_home_page.dart';
-import 'package:runner_editor/src/app/pages/prefabCreator/widgets/platform_module_scene_view.dart';
-import 'package:runner_editor/src/app/pages/prefabCreator/widgets/prefab_scene_view.dart';
+import 'package:runner_editor/src/app/pages/prefabCreator/obstacle_prefabs/widgets/prefab_scene_view.dart';
+import 'package:runner_editor/src/app/pages/prefabCreator/platform_modules/widgets/platform_module_scene_view.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_plugin.dart';
 import 'package:runner_editor/src/domain/authoring_plugin_registry.dart';

@@ -66,6 +66,18 @@ class PrefabEditorDataReducer {
     return PrefabDeterminism.sortModulesByStatusIdRevision(modules);
   }
 
+  String? preferredModuleIdForPicker(List<TileModuleDef> modules) {
+    if (modules.isEmpty) {
+      return null;
+    }
+    for (final module in modules) {
+      if (module.status != TileModuleStatus.deprecated) {
+        return module.id;
+      }
+    }
+    return modules.first.id;
+  }
+
   String allocatePrefabKeyForId(PrefabData data, String id) {
     final used = <String>{};
     for (final prefab in data.prefabs) {

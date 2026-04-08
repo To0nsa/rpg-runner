@@ -1,23 +1,53 @@
-part of '../prefab_creator_page.dart';
+import 'package:flutter/material.dart';
 
-extension _PrefabCreatorPrefabsTab on _PrefabCreatorPageState {
-  Widget _buildPrefabInspectorTab() {
-    final prefabSlices = _data.prefabSlices;
-    final obstaclePrefabs = _data.prefabs
-        .where((prefab) => prefab.kind == PrefabKind.obstacle)
-        .toList(growable: false);
-    final selectedSlice = _findSliceById(
-      slices: prefabSlices,
-      sliceId: _selectedPrefabSliceId,
-    );
-    final sceneValues = _prefabSceneValuesFromInputs();
-    final editingPrefab = _editingPrefab();
-    final editingObstaclePrefab =
-        editingPrefab != null && editingPrefab.kind == PrefabKind.obstacle
-        ? editingPrefab
-        : null;
-    final workspaceRootPath = widget.controller.workspacePath.trim();
+import '../../../../prefabs/models/models.dart';
+import '../shared/prefab_form_state.dart';
+import '../shared/prefab_scene_values.dart';
+import 'widgets/prefab_scene_view.dart';
 
+/// Obstacle-prefab authoring view for atlas-slice-backed prefabs.
+class ObstaclePrefabsTab extends StatelessWidget {
+  const ObstaclePrefabsTab({
+    super.key,
+    required this.form,
+    required this.prefabSlices,
+    required this.obstaclePrefabs,
+    required this.selectedSliceId,
+    required this.selectedSlice,
+    required this.editingObstaclePrefab,
+    required this.sceneValues,
+    required this.workspaceRootPath,
+    required this.onSelectedSliceChanged,
+    required this.onSnapToGridChanged,
+    required this.onSceneValuesChanged,
+    required this.onLoadPrefab,
+    required this.onDeletePrefab,
+    required this.onUpsertPrefab,
+    required this.onDuplicatePrefab,
+    required this.onDeprecatePrefab,
+    required this.onClearForm,
+  });
+
+  final PrefabFormState form;
+  final List<AtlasSliceDef> prefabSlices;
+  final List<PrefabDef> obstaclePrefabs;
+  final String? selectedSliceId;
+  final AtlasSliceDef? selectedSlice;
+  final PrefabDef? editingObstaclePrefab;
+  final PrefabSceneValues? sceneValues;
+  final String workspaceRootPath;
+  final ValueChanged<String?> onSelectedSliceChanged;
+  final ValueChanged<bool> onSnapToGridChanged;
+  final ValueChanged<PrefabSceneValues> onSceneValuesChanged;
+  final ValueChanged<PrefabDef> onLoadPrefab;
+  final ValueChanged<String> onDeletePrefab;
+  final VoidCallback onUpsertPrefab;
+  final VoidCallback onDuplicatePrefab;
+  final VoidCallback onDeprecatePrefab;
+  final VoidCallback onClearForm;
+
+  @override
+  Widget build(BuildContext context) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -27,10 +57,11 @@ extension _PrefabCreatorPrefabsTab on _PrefabCreatorPageState {
             children: [
               Expanded(
                 flex: 4,
-                child: _buildObstaclePrefabScenePanel(
+                child: _ObstaclePrefabScenePanel(
                   workspaceRootPath: workspaceRootPath,
                   selectedSlice: selectedSlice,
                   sceneValues: sceneValues,
+                  onSceneValuesChanged: onSceneValuesChanged,
                 ),
               ),
               const SizedBox(height: 12),
@@ -60,10 +91,10 @@ extension _PrefabCreatorPrefabsTab on _PrefabCreatorPageState {
                                 'z=${prefab.zIndex} '
                                 'snap=${prefab.snapToGrid}',
                               ),
-                              onTap: () => _loadPrefabIntoForm(prefab),
+                              onTap: () => onLoadPrefab(prefab),
                               trailing: IconButton(
                                 icon: const Icon(Icons.delete_outline),
-                                onPressed: () => _deletePrefab(prefab.id),
+                                onPressed: () => onDeletePrefab(prefab.id),
                               ),
                             ),
                           );
@@ -76,21 +107,51 @@ extension _PrefabCreatorPrefabsTab on _PrefabCreatorPageState {
         const SizedBox(width: 12),
         SizedBox(
           width: 420,
-          child: _buildObstaclePrefabInspectorPanel(
+          child: _ObstaclePrefabInspectorPanel(
+            form: form,
             prefabSlices: prefabSlices,
-            selectedSliceId: _selectedPrefabSliceId,
+            selectedSliceId: selectedSliceId,
             editingObstaclePrefab: editingObstaclePrefab,
+            onSelectedSliceChanged: onSelectedSliceChanged,
+            onSnapToGridChanged: onSnapToGridChanged,
+            onUpsertPrefab: onUpsertPrefab,
+            onDuplicatePrefab: onDuplicatePrefab,
+            onDeprecatePrefab: onDeprecatePrefab,
+            onClearForm: onClearForm,
           ),
         ),
       ],
     );
   }
+}
 
-  Widget _buildObstaclePrefabInspectorPanel({
-    required List<AtlasSliceDef> prefabSlices,
-    required String? selectedSliceId,
-    required PrefabDef? editingObstaclePrefab,
-  }) {
+class _ObstaclePrefabInspectorPanel extends StatelessWidget {
+  const _ObstaclePrefabInspectorPanel({
+    required this.form,
+    required this.prefabSlices,
+    required this.selectedSliceId,
+    required this.editingObstaclePrefab,
+    required this.onSelectedSliceChanged,
+    required this.onSnapToGridChanged,
+    required this.onUpsertPrefab,
+    required this.onDuplicatePrefab,
+    required this.onDeprecatePrefab,
+    required this.onClearForm,
+  });
+
+  final PrefabFormState form;
+  final List<AtlasSliceDef> prefabSlices;
+  final String? selectedSliceId;
+  final PrefabDef? editingObstaclePrefab;
+  final ValueChanged<String?> onSelectedSliceChanged;
+  final ValueChanged<bool> onSnapToGridChanged;
+  final VoidCallback onUpsertPrefab;
+  final VoidCallback onDuplicatePrefab;
+  final VoidCallback onDeprecatePrefab;
+  final VoidCallback onClearForm;
+
+  @override
+  Widget build(BuildContext context) {
     final hasObstacleSources = prefabSlices.isNotEmpty;
 
     return Padding(
@@ -110,13 +171,13 @@ extension _PrefabCreatorPrefabsTab on _PrefabCreatorPageState {
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Text(
-                  'Editing key=${editingObstaclePrefab.prefabKey} '
-                  'rev=${editingObstaclePrefab.revision} '
-                  'status=${editingObstaclePrefab.status.jsonValue}',
+                  'Editing key=${editingObstaclePrefab!.prefabKey} '
+                  'rev=${editingObstaclePrefab!.revision} '
+                  'status=${editingObstaclePrefab!.status.jsonValue}',
                 ),
               ),
             TextField(
-              controller: _prefabIdController,
+              controller: form.prefabIdController,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
                 labelText: 'Prefab ID',
@@ -147,11 +208,7 @@ extension _PrefabCreatorPrefabsTab on _PrefabCreatorPageState {
                           child: Text(slice.id),
                         ),
                     ],
-                    onChanged: (value) {
-                      _updateState(() {
-                        _selectedPrefabSliceId = value;
-                      });
-                    },
+                    onChanged: onSelectedSliceChanged,
                   )
                 : const Text('Create prefab atlas slices first.'),
             const SizedBox(height: 8),
@@ -159,7 +216,7 @@ extension _PrefabCreatorPrefabsTab on _PrefabCreatorPageState {
               children: [
                 Expanded(
                   child: TextField(
-                    controller: _anchorXController,
+                    controller: form.anchorXController,
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
@@ -170,7 +227,7 @@ extension _PrefabCreatorPrefabsTab on _PrefabCreatorPageState {
                 const SizedBox(width: 8),
                 Expanded(
                   child: TextField(
-                    controller: _anchorYController,
+                    controller: form.anchorYController,
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
@@ -190,7 +247,7 @@ extension _PrefabCreatorPrefabsTab on _PrefabCreatorPageState {
               children: [
                 Expanded(
                   child: TextField(
-                    controller: _colliderOffsetXController,
+                    controller: form.colliderOffsetXController,
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
@@ -201,7 +258,7 @@ extension _PrefabCreatorPrefabsTab on _PrefabCreatorPageState {
                 const SizedBox(width: 8),
                 Expanded(
                   child: TextField(
-                    controller: _colliderOffsetYController,
+                    controller: form.colliderOffsetYController,
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
@@ -216,7 +273,7 @@ extension _PrefabCreatorPrefabsTab on _PrefabCreatorPageState {
               children: [
                 Expanded(
                   child: TextField(
-                    controller: _colliderWidthController,
+                    controller: form.colliderWidthController,
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
@@ -227,7 +284,7 @@ extension _PrefabCreatorPrefabsTab on _PrefabCreatorPageState {
                 const SizedBox(width: 8),
                 Expanded(
                   child: TextField(
-                    controller: _colliderHeightController,
+                    controller: form.colliderHeightController,
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
@@ -239,7 +296,7 @@ extension _PrefabCreatorPrefabsTab on _PrefabCreatorPageState {
             ),
             const SizedBox(height: 8),
             TextField(
-              controller: _prefabZIndexController,
+              controller: form.zIndexController,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
@@ -248,14 +305,12 @@ extension _PrefabCreatorPrefabsTab on _PrefabCreatorPageState {
             ),
             const SizedBox(height: 8),
             CheckboxListTile(
-              value: _prefabSnapToGrid,
+              value: form.snapToGrid,
               onChanged: (value) {
                 if (value == null) {
                   return;
                 }
-                _updateState(() {
-                  _prefabSnapToGrid = value;
-                });
+                onSnapToGridChanged(value);
               },
               title: const Text('Snap To Grid'),
               contentPadding: EdgeInsets.zero,
@@ -263,7 +318,7 @@ extension _PrefabCreatorPrefabsTab on _PrefabCreatorPageState {
             ),
             const SizedBox(height: 8),
             TextField(
-              controller: _prefabTagsController,
+              controller: form.tagsController,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
                 labelText: 'Tags (comma separated)',
@@ -277,22 +332,22 @@ extension _PrefabCreatorPrefabsTab on _PrefabCreatorPageState {
               children: [
                 FilledButton.icon(
                   key: const ValueKey<String>('obstacle_prefab_upsert_button'),
-                  onPressed: _upsertObstaclePrefabFromForm,
+                  onPressed: onUpsertPrefab,
                   icon: const Icon(Icons.add_box_outlined),
                   label: const Text('Add/Update Prefab'),
                 ),
                 OutlinedButton.icon(
-                  onPressed: _duplicateLoadedObstaclePrefab,
+                  onPressed: onDuplicatePrefab,
                   icon: const Icon(Icons.copy_outlined),
                   label: const Text('Duplicate'),
                 ),
                 OutlinedButton.icon(
-                  onPressed: _deprecateLoadedObstaclePrefab,
+                  onPressed: onDeprecatePrefab,
                   icon: const Icon(Icons.archive_outlined),
                   label: const Text('Deprecate'),
                 ),
                 OutlinedButton.icon(
-                  onPressed: _clearPrefabForm,
+                  onPressed: onClearForm,
                   icon: const Icon(Icons.clear_outlined),
                   label: const Text('Clear Form'),
                 ),
@@ -303,12 +358,23 @@ extension _PrefabCreatorPrefabsTab on _PrefabCreatorPageState {
       ),
     );
   }
+}
 
-  Widget _buildObstaclePrefabScenePanel({
-    required String workspaceRootPath,
-    required AtlasSliceDef? selectedSlice,
-    required PrefabSceneValues? sceneValues,
-  }) {
+class _ObstaclePrefabScenePanel extends StatelessWidget {
+  const _ObstaclePrefabScenePanel({
+    required this.workspaceRootPath,
+    required this.selectedSlice,
+    required this.sceneValues,
+    required this.onSceneValuesChanged,
+  });
+
+  final String workspaceRootPath;
+  final AtlasSliceDef? selectedSlice;
+  final PrefabSceneValues? sceneValues;
+  final ValueChanged<PrefabSceneValues> onSceneValuesChanged;
+
+  @override
+  Widget build(BuildContext context) {
     if (sceneValues == null) {
       return const Card(
         child: SizedBox(
@@ -344,34 +410,9 @@ extension _PrefabCreatorPrefabsTab on _PrefabCreatorPageState {
 
     return PrefabSceneView(
       workspaceRootPath: workspaceRootPath,
-      slice: selectedSlice,
-      values: sceneValues,
-      onChanged: _onPrefabSceneValuesChanged,
+      slice: selectedSlice!,
+      values: sceneValues!,
+      onChanged: onSceneValuesChanged,
     );
-  }
-
-  void _upsertObstaclePrefabFromForm() {
-    _updateState(() {
-      _selectedPrefabKind = PrefabKind.obstacle;
-    });
-    _upsertPrefabFromForm();
-  }
-
-  void _duplicateLoadedObstaclePrefab() {
-    final source = _editingPrefab();
-    if (source == null || source.kind != PrefabKind.obstacle) {
-      _setError('Load an obstacle prefab before duplicating.');
-      return;
-    }
-    _duplicateLoadedPrefab();
-  }
-
-  void _deprecateLoadedObstaclePrefab() {
-    final source = _editingPrefab();
-    if (source == null || source.kind != PrefabKind.obstacle) {
-      _setError('Load an obstacle prefab before deprecating.');
-      return;
-    }
-    _deprecateLoadedPrefab();
   }
 }
