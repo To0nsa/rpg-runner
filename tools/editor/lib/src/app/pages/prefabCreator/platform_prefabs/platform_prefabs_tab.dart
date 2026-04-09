@@ -4,6 +4,17 @@ import '../../../../prefabs/models/models.dart';
 import '../platform_modules/widgets/platform_module_scene_view.dart';
 import '../../shared/editor_scene_view_utils.dart';
 import '../../shared/platform_module_preview_tile.dart';
+import '../shared/prefab_editor_empty_state.dart';
+import '../shared/prefab_editor_delete_button.dart';
+import '../shared/prefab_editor_mode_banner.dart';
+import '../shared/prefab_editor_panel_card.dart';
+import '../shared/prefab_editor_panel_summary.dart';
+import '../shared/prefab_editor_row_metadata.dart';
+import '../shared/prefab_editor_scene_header.dart';
+import '../shared/prefab_editor_selectable_row_card.dart';
+import '../shared/prefab_editor_section_card.dart';
+import '../shared/prefab_editor_three_panel_layout.dart';
+import '../shared/prefab_editor_ui_tokens.dart';
 import '../shared/prefab_form_state.dart';
 import '../shared/prefab_scene_values.dart';
 import 'platform_prefab_output_panel.dart';
@@ -51,56 +62,80 @@ class PlatformPrefabsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Expanded(
-          flex: 1,
-          child: _PlatformPrefabInspectorPanel(
-            form: form,
-            modules: modules,
-            selectedModuleId: selectedModuleId,
-            selectedModule: selectedModule,
-            editingPlatformPrefab: editingPlatformPrefab,
-            sceneValues: sceneValues,
-            onSelectedModuleChanged: onSelectedModuleChanged,
-            onSnapToGridChanged: onSnapToGridChanged,
-            onLoadPrefabForModule: onLoadPrefabForModule,
-            onUpsertPrefabForModule: onUpsertPrefabForModule,
-            onStartNewFromCurrentValues: onStartNewFromCurrentValues,
+    return PrefabEditorThreePanelLayout(
+      inspector: _PlatformPrefabInspectorPanel(
+        form: form,
+        modules: modules,
+        selectedModuleId: selectedModuleId,
+        selectedModule: selectedModule,
+        editingPlatformPrefab: editingPlatformPrefab,
+        sceneValues: sceneValues,
+        onSelectedModuleChanged: onSelectedModuleChanged,
+        onSnapToGridChanged: onSnapToGridChanged,
+        onLoadPrefabForModule: onLoadPrefabForModule,
+        onUpsertPrefabForModule: onUpsertPrefabForModule,
+        onStartNewFromCurrentValues: onStartNewFromCurrentValues,
+      ),
+      scene: _buildSceneCard(
+        workspaceRootPath: workspaceRootPath,
+        selectedModule: selectedModule,
+        tileSlices: tileSlices,
+        sceneValues: sceneValues,
+        onSceneValuesChanged: onSceneValuesChanged,
+      ),
+      display: _PlatformPrefabDisplayPanel(
+        modules: modules,
+        tileSlices: tileSlices,
+        platformPrefabs: platformPrefabs,
+        editingPlatformPrefab: editingPlatformPrefab,
+        workspaceRootPath: workspaceRootPath,
+        onLoadPrefab: onLoadPrefab,
+        onDeletePrefab: onDeletePrefab,
+      ),
+    );
+  }
+
+  Widget _buildSceneCard({
+    required String workspaceRootPath,
+    required TileModuleDef? selectedModule,
+    required List<AtlasSliceDef> tileSlices,
+    required PrefabSceneValues? sceneValues,
+    required ValueChanged<PrefabSceneValues> onSceneValuesChanged,
+  }) {
+    final sceneHeaderTitle = selectedModule == null
+        ? 'No backing module selected'
+        : 'Module: ${selectedModule.id}';
+    final sceneHeaderSubtitle = selectedModule == null
+        ? 'Select a platform module to preview prefab anchor/collider values.'
+        : sceneValues == null
+        ? 'Anchor/collider values are invalid. Fix them to enable overlay editing.'
+        : 'cells=${selectedModule.cells.length} '
+              'tileSize=${selectedModule.tileSize} '
+              'prefab overlay preview';
+
+    return PrefabEditorPanelCard(
+      cardKey: const ValueKey<String>('platform_prefab_scene_card'),
+      title: 'Scene View',
+      expandBody: true,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          PrefabEditorSceneHeader(
+            title: sceneHeaderTitle,
+            subtitle: sceneHeaderSubtitle,
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          flex: 2,
-          child: Card(
-            key: const ValueKey<String>('platform_prefab_scene_card'),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: _PlatformPrefabScenePanel(
-                workspaceRootPath: workspaceRootPath,
-                selectedModule: selectedModule,
-                tileSlices: tileSlices,
-                sceneValues: sceneValues,
-                onSceneValuesChanged: onSceneValuesChanged,
-              ),
+          const SizedBox(height: PrefabEditorUiTokens.sectionGap),
+          Expanded(
+            child: _PlatformPrefabScenePanel(
+              workspaceRootPath: workspaceRootPath,
+              selectedModule: selectedModule,
+              tileSlices: tileSlices,
+              sceneValues: sceneValues,
+              onSceneValuesChanged: onSceneValuesChanged,
             ),
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          flex: 1,
-          child: _PlatformPrefabDisplayPanel(
-            modules: modules,
-            tileSlices: tileSlices,
-            platformPrefabs: platformPrefabs,
-            editingPlatformPrefab: editingPlatformPrefab,
-            workspaceRootPath: workspaceRootPath,
-            onLoadPrefab: onLoadPrefab,
-            onDeletePrefab: onDeletePrefab,
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -136,10 +171,6 @@ class _PlatformPrefabInspectorPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasModules = modules.isNotEmpty;
     final isEditingPlatformPrefab = editingPlatformPrefab != null;
-    final theme = Theme.of(context);
-    final modeBannerColor = isEditingPlatformPrefab
-        ? const Color(0x1429C98E)
-        : const Color(0x143A8DFF);
     final modeBannerTitle = isEditingPlatformPrefab
         ? 'Editing platform prefab "${editingPlatformPrefab!.id}"'
         : 'Creating new platform prefab';
@@ -149,91 +180,81 @@ class _PlatformPrefabInspectorPanel extends StatelessWidget {
               'status=${editingPlatformPrefab!.status.jsonValue}'
         : 'Saving will create a new prefab from the current values.';
 
-    return Card(
-      key: const ValueKey<String>('platform_prefab_inspector_card'),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Selector / Inspector',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 8),
-              Container(
-                key: const ValueKey<String>('platform_prefab_mode_banner'),
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: modeBannerColor,
-                  border: Border.all(color: theme.colorScheme.outlineVariant),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(modeBannerTitle, style: theme.textTheme.titleSmall),
-                    const SizedBox(height: 4),
-                    Text(modeBannerDetails),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-              if (!hasModules)
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 8),
-                  child: Text(
-                    'No platform modules yet. Create one in Platform Modules first.',
-                  ),
-                ),
-              DropdownButtonFormField<String>(
-                key: ValueKey<String?>(
-                  'platform_prefab_module_${selectedModuleId ?? 'none'}',
-                ),
-                initialValue: selectedModuleId,
-                isExpanded: true,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  labelText: 'Backing Module',
-                ),
-                items: [
-                  for (final module in modules)
-                    DropdownMenuItem<String>(
-                      value: module.id,
-                      child: Text(
-                        module.status == TileModuleStatus.deprecated
-                            ? '${module.id} (deprecated)'
-                            : module.id,
-                      ),
-                    ),
-                ],
-                onChanged: hasModules ? onSelectedModuleChanged : null,
-              ),
-              if (selectedModule != null) ...[
-                const SizedBox(height: 8),
-                Text(
-                  'Selected module: ${selectedModule!.id} '
-                  '(tileSize=${selectedModule!.tileSize} '
-                  'cells=${selectedModule!.cells.length} '
-                  'status=${selectedModule!.status.jsonValue})',
-                ),
-              ],
-              const SizedBox(height: 12),
-              PlatformPrefabOutputPanel(
-                form: form,
-                isEnabled: selectedModule != null,
-                isEditingPrefab: isEditingPlatformPrefab,
-                sceneValues: sceneValues,
-                onLoadPrefabForModule: onLoadPrefabForModule,
-                onUpsertPrefabForModule: onUpsertPrefabForModule,
-                onStartNewFromCurrentValues: onStartNewFromCurrentValues,
-                onSnapToGridChanged: onSnapToGridChanged,
-              ),
-            ],
+    return PrefabEditorPanelCard(
+      cardKey: const ValueKey<String>('platform_prefab_inspector_card'),
+      title: 'Inspector',
+      scrollable: true,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          PrefabEditorModeBanner(
+            bannerKey: const ValueKey<String>('platform_prefab_mode_banner'),
+            title: modeBannerTitle,
+            details: modeBannerDetails,
+            tone: isEditingPlatformPrefab
+                ? PrefabEditorModeTone.edit
+                : PrefabEditorModeTone.create,
           ),
-        ),
+          const SizedBox(height: PrefabEditorUiTokens.controlGap),
+          if (!hasModules)
+            const Padding(
+              padding: EdgeInsets.only(bottom: PrefabEditorUiTokens.controlGap),
+              child: Text(
+                'No platform modules yet. Create one in Platform Modules first.',
+              ),
+            ),
+          PrefabEditorSectionCard(
+            title: 'Backing Module',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                DropdownButtonFormField<String>(
+                  key: ValueKey<String?>(
+                    'platform_prefab_module_${selectedModuleId ?? 'none'}',
+                  ),
+                  initialValue: selectedModuleId,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: 'Backing Module',
+                  ),
+                  items: [
+                    for (final module in modules)
+                      DropdownMenuItem<String>(
+                        value: module.id,
+                        child: Text(
+                          module.status == TileModuleStatus.deprecated
+                              ? '${module.id} (deprecated)'
+                              : module.id,
+                        ),
+                      ),
+                  ],
+                  onChanged: hasModules ? onSelectedModuleChanged : null,
+                ),
+                if (selectedModule != null) ...[
+                  const SizedBox(height: PrefabEditorUiTokens.controlGap),
+                  Text(
+                    'Selected module: ${selectedModule!.id} '
+                    '(tileSize=${selectedModule!.tileSize} '
+                    'cells=${selectedModule!.cells.length} '
+                    'status=${selectedModule!.status.jsonValue})',
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: PrefabEditorUiTokens.sectionGap),
+          PlatformPrefabOutputPanel(
+            form: form,
+            isEnabled: selectedModule != null,
+            isEditingPrefab: isEditingPlatformPrefab,
+            sceneValues: sceneValues,
+            onLoadPrefabForModule: onLoadPrefabForModule,
+            onUpsertPrefabForModule: onUpsertPrefabForModule,
+            onStartNewFromCurrentValues: onStartNewFromCurrentValues,
+            onSnapToGridChanged: onSnapToGridChanged,
+          ),
+        ],
       ),
     );
   }
@@ -282,115 +303,70 @@ class _PlatformPrefabDisplayPanelState
       for (final slice in widget.tileSlices) slice.id: slice,
     };
 
-    return Card(
-      key: const ValueKey<String>('platform_prefab_display_card'),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Platform Prefab List',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Editing Prefab: ${widget.editingPlatformPrefab?.id ?? 'none'}',
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-            const SizedBox(height: 12),
-            Expanded(
-              child: widget.platformPrefabs.isEmpty
-                  ? const Center(child: Text('No platform prefabs yet.'))
-                  : ListView.builder(
-                      itemCount: widget.platformPrefabs.length,
-                      itemBuilder: (context, index) {
-                        final prefab = widget.platformPrefabs[index];
-                        final module = modulesById[prefab.moduleId];
-                        final isEditing =
-                            widget.editingPlatformPrefab?.prefabKey ==
-                            prefab.prefabKey;
-                        return Card(
+    return PrefabEditorPanelCard(
+      cardKey: const ValueKey<String>('platform_prefab_display_card'),
+      title: 'Platform Prefabs',
+      expandBody: true,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          PrefabEditorPanelSummary(
+            secondaryText:
+                'Editing Prefab: ${widget.editingPlatformPrefab?.id ?? 'none'}',
+          ),
+          const SizedBox(height: PrefabEditorUiTokens.sectionGap),
+          Expanded(
+            child: widget.platformPrefabs.isEmpty
+                ? const PrefabEditorEmptyState(
+                    message: 'No platform prefabs yet.',
+                  )
+                : ListView.builder(
+                    itemCount: widget.platformPrefabs.length,
+                    itemBuilder: (context, index) {
+                      final prefab = widget.platformPrefabs[index];
+                      final module = modulesById[prefab.moduleId];
+                      final isEditing =
+                          widget.editingPlatformPrefab?.prefabKey ==
+                          prefab.prefabKey;
+                      return PrefabEditorSelectableRowCard(
+                        key: ValueKey<String>(
+                          'platform_prefab_row_${prefab.id}',
+                        ),
+                        isSelected: isEditing,
+                        onTap: () => widget.onLoadPrefab(prefab),
+                        preview: PlatformModulePreviewTile(
                           key: ValueKey<String>(
-                            'platform_prefab_row_${prefab.id}',
+                            'platform_prefab_preview_${prefab.id}',
                           ),
-                          clipBehavior: Clip.antiAlias,
-                          margin: const EdgeInsets.only(bottom: 8),
-                          child: InkWell(
-                            onTap: () => widget.onLoadPrefab(prefab),
-                            child: Ink(
-                              color: isEditing ? const Color(0x1829C98E) : null,
-                              child: Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            prefab.id,
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .titleSmall
-                                                ?.copyWith(
-                                                  fontWeight: isEditing
-                                                      ? FontWeight.w700
-                                                      : FontWeight.w600,
-                                                ),
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            'key=${prefab.prefabKey} '
-                                            'rev=${prefab.revision} '
-                                            'status=${prefab.status.jsonValue}',
-                                          ),
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            'source=platform_module:${prefab.moduleId} '
-                                            'moduleCells=${module?.cells.length ?? 0} '
-                                            'tileSize=${module?.tileSize ?? '-'}',
-                                          ),
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            'anchor=(${prefab.anchorXPx},${prefab.anchorYPx}) '
-                                            'colliders=${prefab.colliders.length} '
-                                            'z=${prefab.zIndex} '
-                                            'snap=${prefab.snapToGrid}',
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    PlatformModulePreviewTile(
-                                      key: ValueKey<String>(
-                                        'platform_prefab_preview_${prefab.id}',
-                                      ),
-                                      imageCache: _previewImageCache,
-                                      workspaceRootPath:
-                                          widget.workspaceRootPath,
-                                      module: module,
-                                      tileSlicesById: tileSlicesById,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    IconButton(
-                                      icon: const Icon(Icons.delete_outline),
-                                      onPressed: () =>
-                                          widget.onDeletePrefab(prefab.id),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-            ),
-          ],
-        ),
+                          imageCache: _previewImageCache,
+                          workspaceRootPath: widget.workspaceRootPath,
+                          module: module,
+                          tileSlicesById: tileSlicesById,
+                        ),
+                        trailing: PrefabEditorDeleteButton(
+                          onPressed: () => widget.onDeletePrefab(prefab.id),
+                        ),
+                        child: PrefabEditorRowMetadata(
+                          title: prefab.id,
+                          isSelected: isEditing,
+                          metadataLines: [
+                            'key=${prefab.prefabKey} '
+                                'rev=${prefab.revision} '
+                                'status=${prefab.status.jsonValue}',
+                            'source=platform_module:${prefab.moduleId} '
+                                'moduleCells=${module?.cells.length ?? 0} '
+                                'tileSize=${module?.tileSize ?? '-'}',
+                            'anchor=(${prefab.anchorXPx},${prefab.anchorYPx}) '
+                                'colliders=${prefab.colliders.length} '
+                                'z=${prefab.zIndex} '
+                                'snap=${prefab.snapToGrid}',
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
       ),
     );
   }
@@ -414,13 +390,9 @@ class _PlatformPrefabScenePanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (selectedModule == null) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(16),
-          child: Text(
+      return const PrefabEditorEmptyState(
+        message:
             'Select a platform module to preview and edit prefab anchor/collider values.',
-          ),
-        ),
       );
     }
 

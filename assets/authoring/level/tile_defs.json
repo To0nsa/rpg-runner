@@ -60,6 +60,32 @@
           "gridY": 0
         }
       ]
+    },
+    {
+      "id": "platform_grass_dirt_96x32_less_square",
+      "revision": 2,
+      "status": "active",
+      "tileSize": 16,
+      "cells": [
+        {
+          "sliceId": "grass_dirt_96x32_less_square",
+          "gridX": 0,
+          "gridY": 0
+        }
+      ]
+    },
+    {
+      "id": "platform_grass_dirt_96x32_square",
+      "revision": 2,
+      "status": "active",
+      "tileSize": 16,
+      "cells": [
+        {
+          "sliceId": "grass_dirt_96x32_square",
+          "gridX": 0,
+          "gridY": 0
+        }
+      ]
     }
   ]
 }

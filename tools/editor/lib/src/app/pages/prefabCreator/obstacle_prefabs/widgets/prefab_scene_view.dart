@@ -12,6 +12,8 @@ import '../../../shared/editor_scene_viewport_frame.dart';
 import '../../../shared/editor_viewport_grid_painter.dart';
 import '../../../shared/editor_zoom_controls.dart';
 import '../../../shared/scene_input_utils.dart';
+import '../../shared/prefab_editor_scene_controls.dart';
+import '../../shared/prefab_editor_ui_tokens.dart';
 import '../../shared/prefab_overlay_interaction.dart';
 import '../../shared/prefab_scene_values.dart';
 
@@ -89,42 +91,21 @@ class _PrefabSceneViewState extends State<PrefabSceneView> {
         final hasBoundedHeight = constraints.maxHeight.isFinite;
 
         final content = Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(PrefabEditorUiTokens.sectionGap),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(
+              PrefabEditorSceneControls(
                 width: viewportWidth,
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Prefab Scene View',
-                        style: Theme.of(context).textTheme.titleSmall,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: EditorZoomControls(
-                          value: _zoom,
-                          min: _minZoom,
-                          max: _maxZoom,
-                          step: _zoomStep,
-                          onChanged: _setZoom,
-                        ),
-                      ),
-                    ),
-                  ],
+                zoomControls: EditorZoomControls(
+                  value: _zoom,
+                  min: _minZoom,
+                  max: _maxZoom,
+                  step: _zoomStep,
+                  onChanged: _setZoom,
                 ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Slice: ${widget.slice.id} '
-                '[${widget.slice.width}x${widget.slice.height}]',
-              ),
-              const SizedBox(height: 8),
+              const SizedBox(height: PrefabEditorUiTokens.controlGap),
               if (hasBoundedHeight)
                 Expanded(
                   child: LayoutBuilder(

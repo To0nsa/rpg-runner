@@ -3,6 +3,19 @@ import 'package:flutter/material.dart';
 import '../../../../prefabs/models/models.dart';
 import '../../shared/atlas_slice_preview_tile.dart';
 import '../../shared/editor_scene_view_utils.dart';
+import '../shared/prefab_editor_action_row.dart';
+import '../shared/prefab_editor_delete_button.dart';
+import '../shared/prefab_editor_empty_state.dart';
+import '../shared/prefab_editor_mode_banner.dart';
+import '../shared/prefab_editor_panel_card.dart';
+import '../shared/prefab_editor_placement_fields.dart';
+import '../shared/prefab_editor_panel_summary.dart';
+import '../shared/prefab_editor_row_metadata.dart';
+import '../shared/prefab_editor_scene_header.dart';
+import '../shared/prefab_editor_section_card.dart';
+import '../shared/prefab_editor_selectable_row_card.dart';
+import '../shared/prefab_editor_three_panel_layout.dart';
+import '../shared/prefab_editor_ui_tokens.dart';
 import '../shared/prefab_form_state.dart';
 import '../shared/prefab_scene_values.dart';
 import 'widgets/prefab_scene_view.dart';
@@ -52,54 +65,75 @@ class ObstaclePrefabsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Expanded(
-          flex: 1,
-          child: _ObstaclePrefabInspectorPanel(
-            form: form,
-            prefabSlices: prefabSlices,
-            selectedSliceId: selectedSliceId,
-            editingObstaclePrefab: editingObstaclePrefab,
-            onSelectedSliceChanged: onSelectedSliceChanged,
-            onSnapToGridChanged: onSnapToGridChanged,
-            onUpsertPrefab: onUpsertPrefab,
-            onDuplicatePrefab: onDuplicatePrefab,
-            onDeprecatePrefab: onDeprecatePrefab,
-            onStartNewFromCurrentValues: onStartNewFromCurrentValues,
-            onClearForm: onClearForm,
+    return PrefabEditorThreePanelLayout(
+      inspector: _ObstaclePrefabInspectorPanel(
+        form: form,
+        prefabSlices: prefabSlices,
+        selectedSliceId: selectedSliceId,
+        editingObstaclePrefab: editingObstaclePrefab,
+        onSelectedSliceChanged: onSelectedSliceChanged,
+        onSnapToGridChanged: onSnapToGridChanged,
+        onUpsertPrefab: onUpsertPrefab,
+        onDuplicatePrefab: onDuplicatePrefab,
+        onDeprecatePrefab: onDeprecatePrefab,
+        onStartNewFromCurrentValues: onStartNewFromCurrentValues,
+        onClearForm: onClearForm,
+      ),
+      scene: _buildSceneCard(
+        workspaceRootPath: workspaceRootPath,
+        selectedSlice: selectedSlice,
+        sceneValues: sceneValues,
+        onSceneValuesChanged: onSceneValuesChanged,
+      ),
+      display: _ObstaclePrefabDisplayPanel(
+        prefabSlices: prefabSlices,
+        obstaclePrefabs: obstaclePrefabs,
+        editingObstaclePrefab: editingObstaclePrefab,
+        workspaceRootPath: workspaceRootPath,
+        onLoadPrefab: onLoadPrefab,
+        onDeletePrefab: onDeletePrefab,
+      ),
+    );
+  }
+
+  Widget _buildSceneCard({
+    required String workspaceRootPath,
+    required AtlasSliceDef? selectedSlice,
+    required PrefabSceneValues? sceneValues,
+    required ValueChanged<PrefabSceneValues> onSceneValuesChanged,
+  }) {
+    final sceneHeaderTitle = selectedSlice == null
+        ? 'No prefab slice selected'
+        : 'Slice: ${selectedSlice.id}';
+    final sceneHeaderSubtitle = selectedSlice == null
+        ? 'Select a prefab slice to edit anchor/collider visually.'
+        : sceneValues == null
+        ? 'Anchor/collider values are invalid. Fix them to enable scene editing.'
+        : '${selectedSlice.width}x${selectedSlice.height} px '
+              'sprite with editable anchor and collider overlays.';
+
+    return PrefabEditorPanelCard(
+      cardKey: const ValueKey<String>('obstacle_prefab_scene_card'),
+      title: 'Scene View',
+      expandBody: true,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          PrefabEditorSceneHeader(
+            title: sceneHeaderTitle,
+            subtitle: sceneHeaderSubtitle,
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          flex: 2,
-          child: Card(
-            key: const ValueKey<String>('obstacle_prefab_scene_card'),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: _ObstaclePrefabScenePanel(
-                workspaceRootPath: workspaceRootPath,
-                selectedSlice: selectedSlice,
-                sceneValues: sceneValues,
-                onSceneValuesChanged: onSceneValuesChanged,
-              ),
+          const SizedBox(height: PrefabEditorUiTokens.sectionGap),
+          Expanded(
+            child: _ObstaclePrefabScenePanel(
+              workspaceRootPath: workspaceRootPath,
+              selectedSlice: selectedSlice,
+              sceneValues: sceneValues,
+              onSceneValuesChanged: onSceneValuesChanged,
             ),
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          flex: 1,
-          child: _ObstaclePrefabDisplayPanel(
-            prefabSlices: prefabSlices,
-            obstaclePrefabs: obstaclePrefabs,
-            editingObstaclePrefab: editingObstaclePrefab,
-            workspaceRootPath: workspaceRootPath,
-            onLoadPrefab: onLoadPrefab,
-            onDeletePrefab: onDeletePrefab,
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -135,10 +169,6 @@ class _ObstaclePrefabInspectorPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasObstacleSources = prefabSlices.isNotEmpty;
     final isEditingObstaclePrefab = editingObstaclePrefab != null;
-    final theme = Theme.of(context);
-    final modeBannerColor = isEditingObstaclePrefab
-        ? const Color(0x1429C98E)
-        : const Color(0x143A8DFF);
     final modeBannerTitle = isEditingObstaclePrefab
         ? 'Editing obstacle prefab "${editingObstaclePrefab!.id}"'
         : 'Creating new obstacle prefab';
@@ -148,257 +178,146 @@ class _ObstaclePrefabInspectorPanel extends StatelessWidget {
               'status=${editingObstaclePrefab!.status.jsonValue}'
         : 'Saving will create a new prefab from the current values.';
 
-    return Card(
-      key: const ValueKey<String>('obstacle_prefab_inspector_card'),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Selector / Inspector',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 8),
-              Container(
-                key: const ValueKey<String>('obstacle_prefab_mode_banner'),
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: modeBannerColor,
-                  border: Border.all(color: theme.colorScheme.outlineVariant),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      modeBannerTitle,
-                      style: theme.textTheme.titleSmall,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(modeBannerDetails),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-              if (!hasObstacleSources)
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 8),
-                  child: Text(
-                    'No prefab slices yet. Obstacle prefabs require atlas slices.',
-                  ),
-                ),
-              if (editingObstaclePrefab != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Text(
-                    'Editing key=${editingObstaclePrefab!.prefabKey} '
-                    'rev=${editingObstaclePrefab!.revision} '
-                    'status=${editingObstaclePrefab!.status.jsonValue}',
-                  ),
-                ),
-              TextField(
-                controller: form.prefabIdController,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  labelText: 'Prefab ID',
-                  floatingLabelBehavior: FloatingLabelBehavior.always,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Visual Source',
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
-              const SizedBox(height: 8),
-              hasObstacleSources
-                  ? DropdownButtonFormField<String>(
-                      key: ValueKey<String?>(
-                        'prefab_slice_${selectedSliceId ?? 'none'}',
-                      ),
-                      initialValue: selectedSliceId,
-                      isExpanded: true,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        labelText: 'Atlas Slice',
-                      ),
-                      items: [
-                        for (final slice in prefabSlices)
-                          DropdownMenuItem<String>(
-                            value: slice.id,
-                            child: Text(slice.id),
-                          ),
-                      ],
-                      onChanged: onSelectedSliceChanged,
-                    )
-                  : const Text('Create prefab atlas slices first.'),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: form.anchorXController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        labelText: 'Anchor X (px)',
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: TextField(
-                      controller: form.anchorYController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        labelText: 'Anchor Y (px)',
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Default Collider',
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: form.colliderOffsetXController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        labelText: 'Offset X',
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: TextField(
-                      controller: form.colliderOffsetYController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        labelText: 'Offset Y',
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: form.colliderWidthController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        labelText: 'Width',
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: TextField(
-                      controller: form.colliderHeightController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        labelText: 'Height',
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: form.zIndexController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  labelText: 'Z Index',
-                ),
-              ),
-              const SizedBox(height: 8),
-              CheckboxListTile(
-                value: form.snapToGrid,
-                onChanged: (value) {
-                  if (value == null) {
-                    return;
-                  }
-                  onSnapToGridChanged(value);
-                },
-                title: const Text('Snap To Grid'),
-                contentPadding: EdgeInsets.zero,
-                controlAffinity: ListTileControlAffinity.leading,
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: form.tagsController,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  labelText: 'Tags (comma separated)',
-                  floatingLabelBehavior: FloatingLabelBehavior.always,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  FilledButton.icon(
-                    key: const ValueKey<String>(
-                      'obstacle_prefab_upsert_button',
-                    ),
-                    onPressed: onUpsertPrefab,
-                    icon: Icon(
-                      isEditingObstaclePrefab
-                          ? Icons.save_outlined
-                          : Icons.add_box_outlined,
-                    ),
-                    label: Text(
-                      isEditingObstaclePrefab
-                          ? 'Update Prefab'
-                          : 'Create Prefab',
-                    ),
-                  ),
-                  OutlinedButton.icon(
-                    key: const ValueKey<String>(
-                      'obstacle_prefab_new_from_current_values_button',
-                    ),
-                    onPressed: isEditingObstaclePrefab
-                        ? onStartNewFromCurrentValues
-                        : null,
-                    icon: const Icon(Icons.post_add_outlined),
-                    label: const Text('New From Current Values'),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: onDuplicatePrefab,
-                    icon: const Icon(Icons.copy_outlined),
-                    label: const Text('Duplicate'),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: onDeprecatePrefab,
-                    icon: const Icon(Icons.archive_outlined),
-                    label: const Text('Deprecate'),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: onClearForm,
-                    icon: const Icon(Icons.clear_outlined),
-                    label: const Text('Clear Form'),
-                  ),
-                ],
-              ),
-            ],
+    return PrefabEditorPanelCard(
+      cardKey: const ValueKey<String>('obstacle_prefab_inspector_card'),
+      title: 'Inspector',
+      scrollable: true,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          PrefabEditorModeBanner(
+            bannerKey: const ValueKey<String>('obstacle_prefab_mode_banner'),
+            title: modeBannerTitle,
+            details: modeBannerDetails,
+            tone: isEditingObstaclePrefab
+                ? PrefabEditorModeTone.edit
+                : PrefabEditorModeTone.create,
           ),
-        ),
+          const SizedBox(height: PrefabEditorUiTokens.controlGap),
+          if (!hasObstacleSources)
+            const Padding(
+              padding: EdgeInsets.only(bottom: PrefabEditorUiTokens.controlGap),
+              child: Text(
+                'No prefab slices yet. Obstacle prefabs require atlas slices.',
+              ),
+            ),
+          if (editingObstaclePrefab != null)
+            Padding(
+              padding: const EdgeInsets.only(
+                bottom: PrefabEditorUiTokens.controlGap,
+              ),
+              child: Text(
+                'Editing key=${editingObstaclePrefab!.prefabKey} '
+                'rev=${editingObstaclePrefab!.revision} '
+                'status=${editingObstaclePrefab!.status.jsonValue}',
+              ),
+            ),
+          PrefabEditorSectionCard(
+            title: 'Actions',
+            child: PrefabEditorActionRow(
+              children: [
+                FilledButton.icon(
+                  key: const ValueKey<String>('obstacle_prefab_upsert_button'),
+                  onPressed: onUpsertPrefab,
+                  icon: Icon(
+                    isEditingObstaclePrefab
+                        ? Icons.save_outlined
+                        : Icons.add_box_outlined,
+                  ),
+                  label: Text(
+                    isEditingObstaclePrefab ? 'Update Prefab' : 'Create Prefab',
+                  ),
+                ),
+                OutlinedButton.icon(
+                  key: const ValueKey<String>(
+                    'obstacle_prefab_new_from_current_values_button',
+                  ),
+                  onPressed: isEditingObstaclePrefab
+                      ? onStartNewFromCurrentValues
+                      : null,
+                  icon: const Icon(Icons.post_add_outlined),
+                  label: const Text('New From Current Values'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: onDuplicatePrefab,
+                  icon: const Icon(Icons.copy_outlined),
+                  label: const Text('Duplicate'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: onDeprecatePrefab,
+                  icon: const Icon(Icons.archive_outlined),
+                  label: const Text('Deprecate'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: onClearForm,
+                  icon: const Icon(Icons.clear_outlined),
+                  label: const Text('Clear Form'),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: PrefabEditorUiTokens.controlGap),
+          PrefabEditorSectionCard(
+            title: 'Prefab Details',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: form.prefabIdController,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: 'Prefab ID',
+                    floatingLabelBehavior: FloatingLabelBehavior.always,
+                  ),
+                ),
+                const SizedBox(height: PrefabEditorUiTokens.controlGap),
+                hasObstacleSources
+                    ? DropdownButtonFormField<String>(
+                        key: ValueKey<String?>(
+                          'prefab_slice_${selectedSliceId ?? 'none'}',
+                        ),
+                        initialValue: selectedSliceId,
+                        isExpanded: true,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          labelText: 'Atlas Slice',
+                        ),
+                        items: [
+                          for (final slice in prefabSlices)
+                            DropdownMenuItem<String>(
+                              value: slice.id,
+                              child: Text(slice.id),
+                            ),
+                        ],
+                        onChanged: onSelectedSliceChanged,
+                      )
+                    : const Text('Create prefab atlas slices first.'),
+                const SizedBox(height: PrefabEditorUiTokens.controlGap),
+                TextField(
+                  controller: form.tagsController,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: 'Tags (comma separated)',
+                    floatingLabelBehavior: FloatingLabelBehavior.always,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: PrefabEditorUiTokens.controlGap),
+          PrefabEditorSectionCard(
+            title: 'Placement & Collider',
+            child: PrefabEditorPlacementFields(
+              form: form,
+              onSnapToGridChanged: onSnapToGridChanged,
+              colliderOffsetXLabel: 'Offset X',
+              colliderOffsetYLabel: 'Offset Y',
+              colliderWidthLabel: 'Width',
+              colliderHeightLabel: 'Height',
+            ),
+          ),
+          const SizedBox(height: PrefabEditorUiTokens.controlGap),
+        ],
       ),
     );
   }
@@ -441,111 +360,67 @@ class _ObstaclePrefabDisplayPanelState
     final slicesById = <String, AtlasSliceDef>{
       for (final slice in widget.prefabSlices) slice.id: slice,
     };
-    return Card(
-      key: const ValueKey<String>('obstacle_prefab_display_card'),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Obstacle Prefab List',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Editing Prefab: ${widget.editingObstaclePrefab?.id ?? 'none'}',
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-            const SizedBox(height: 12),
-            Expanded(
-              child: widget.obstaclePrefabs.isEmpty
-                  ? const Center(child: Text('No obstacle prefabs yet.'))
-                  : ListView.builder(
-                      itemCount: widget.obstaclePrefabs.length,
-                      itemBuilder: (context, index) {
-                        final prefab = widget.obstaclePrefabs[index];
-                        final slice = slicesById[prefab.sliceId];
-                        final isEditing =
-                            widget.editingObstaclePrefab?.prefabKey ==
-                            prefab.prefabKey;
-                        return Card(
+    return PrefabEditorPanelCard(
+      cardKey: const ValueKey<String>('obstacle_prefab_display_card'),
+      title: 'Obstacle Prefabs',
+      expandBody: true,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          PrefabEditorPanelSummary(
+            secondaryText:
+                'Editing Prefab: ${widget.editingObstaclePrefab?.id ?? 'none'}',
+          ),
+          const SizedBox(height: PrefabEditorUiTokens.sectionGap),
+          Expanded(
+            child: widget.obstaclePrefabs.isEmpty
+                ? const PrefabEditorEmptyState(
+                    message: 'No obstacle prefabs yet.',
+                  )
+                : ListView.builder(
+                    itemCount: widget.obstaclePrefabs.length,
+                    itemBuilder: (context, index) {
+                      final prefab = widget.obstaclePrefabs[index];
+                      final slice = slicesById[prefab.sliceId];
+                      final isEditing =
+                          widget.editingObstaclePrefab?.prefabKey ==
+                          prefab.prefabKey;
+                      return PrefabEditorSelectableRowCard(
+                        key: ValueKey<String>(
+                          'obstacle_prefab_row_${prefab.id}',
+                        ),
+                        isSelected: isEditing,
+                        onTap: () => widget.onLoadPrefab(prefab),
+                        preview: AtlasSlicePreviewTile(
                           key: ValueKey<String>(
-                            'obstacle_prefab_row_${prefab.id}',
+                            'obstacle_prefab_preview_${prefab.id}',
                           ),
-                          clipBehavior: Clip.antiAlias,
-                          margin: const EdgeInsets.only(bottom: 8),
-                          child: InkWell(
-                            onTap: () => widget.onLoadPrefab(prefab),
-                            child: Ink(
-                              color: isEditing ? const Color(0x1829C98E) : null,
-                              child: Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            prefab.id,
-                                            style: Theme.of(
-                                              context,
-                                            ).textTheme.titleSmall?.copyWith(
-                                              fontWeight: isEditing
-                                                  ? FontWeight.w700
-                                                  : FontWeight.w600,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            'key=${prefab.prefabKey} '
-                                            'rev=${prefab.revision} '
-                                            'status=${prefab.status.jsonValue}',
-                                          ),
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            'source=atlas_slice:${prefab.sliceId}',
-                                          ),
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            'anchor=(${prefab.anchorXPx},${prefab.anchorYPx}) '
-                                            'colliders=${prefab.colliders.length} '
-                                            'z=${prefab.zIndex} '
-                                            'snap=${prefab.snapToGrid}',
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    AtlasSlicePreviewTile(
-                                      key: ValueKey<String>(
-                                        'obstacle_prefab_preview_${prefab.id}',
-                                      ),
-                                      imageCache: _previewImageCache,
-                                      workspaceRootPath:
-                                          widget.workspaceRootPath,
-                                      slice: slice,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    IconButton(
-                                      icon: const Icon(Icons.delete_outline),
-                                      onPressed: () =>
-                                          widget.onDeletePrefab(prefab.id),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-            ),
-          ],
-        ),
+                          imageCache: _previewImageCache,
+                          workspaceRootPath: widget.workspaceRootPath,
+                          slice: slice,
+                        ),
+                        trailing: PrefabEditorDeleteButton(
+                          onPressed: () => widget.onDeletePrefab(prefab.id),
+                        ),
+                        child: PrefabEditorRowMetadata(
+                          title: prefab.id,
+                          isSelected: isEditing,
+                          metadataLines: [
+                            'key=${prefab.prefabKey} '
+                                'rev=${prefab.revision} '
+                                'status=${prefab.status.jsonValue}',
+                            'source=atlas_slice:${prefab.sliceId}',
+                            'anchor=(${prefab.anchorXPx},${prefab.anchorYPx}) '
+                                'colliders=${prefab.colliders.length} '
+                                'z=${prefab.zIndex} '
+                                'snap=${prefab.snapToGrid}',
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
       ),
     );
   }
@@ -567,25 +442,15 @@ class _ObstaclePrefabScenePanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (sceneValues == null) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(16),
-          child: Text(
-            'Anchor/collider fields contain invalid values. '
-            'Fix them to enable scene editing.',
-          ),
-        ),
+      return const PrefabEditorEmptyState(
+        message:
+            'Anchor/collider fields contain invalid values. Fix them to enable scene editing.',
       );
     }
 
     if (selectedSlice == null) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(16),
-          child: Text(
-            'Select a prefab slice to edit anchor/collider visually.',
-          ),
-        ),
+      return const PrefabEditorEmptyState(
+        message: 'Select a prefab slice to edit anchor/collider visually.',
       );
     }
 

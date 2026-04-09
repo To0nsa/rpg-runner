@@ -68,6 +68,78 @@
       "snapToGrid": false
     },
     {
+      "prefabKey": "grass_dirt_64x32_platform",
+      "id": "grass_dirt_64x32_platform",
+      "revision": 1,
+      "status": "active",
+      "kind": "platform",
+      "visualSource": {
+        "type": "platform_module",
+        "moduleId": "platform_grass_dirt_64x32"
+      },
+      "anchorXPx": 32,
+      "anchorYPx": 17,
+      "colliders": [
+        {
+          "offsetX": -1,
+          "offsetY": 0,
+          "width": 62,
+          "height": 30
+        }
+      ],
+      "tags": [],
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabKey": "grass_dirt_96x32_less_square_platform",
+      "id": "grass_dirt_96x32_less_square_platform",
+      "revision": 1,
+      "status": "active",
+      "kind": "platform",
+      "visualSource": {
+        "type": "platform_module",
+        "moduleId": "platform_grass_dirt_96x32_less_square"
+      },
+      "anchorXPx": 48,
+      "anchorYPx": 17,
+      "colliders": [
+        {
+          "offsetX": 0,
+          "offsetY": 0,
+          "width": 95,
+          "height": 30
+        }
+      ],
+      "tags": [],
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabKey": "grass_dirt_96x32_square_platform",
+      "id": "grass_dirt_96x32_square_platform",
+      "revision": 1,
+      "status": "active",
+      "kind": "platform",
+      "visualSource": {
+        "type": "platform_module",
+        "moduleId": "platform_grass_dirt_96x32_square"
+      },
+      "anchorXPx": 48,
+      "anchorYPx": 17,
+      "colliders": [
+        {
+          "offsetX": 0,
+          "offsetY": 0,
+          "width": 95,
+          "height": 30
+        }
+      ],
+      "tags": [],
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
       "prefabKey": "village_barrel_01",
       "id": "village_barrel_01",
       "revision": 1,

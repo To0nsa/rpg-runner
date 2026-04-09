@@ -11,6 +11,9 @@ import '../../../shared/editor_scene_viewport_frame.dart';
 import '../../../shared/editor_viewport_grid_painter.dart';
 import '../../../shared/editor_zoom_controls.dart';
 import '../../../shared/scene_input_utils.dart';
+import '../../shared/prefab_editor_choice_chip_group.dart';
+import '../../shared/prefab_editor_scene_controls.dart';
+import '../../shared/prefab_editor_ui_tokens.dart';
 import '../../shared/prefab_overlay_interaction.dart';
 import '../../shared/prefab_scene_values.dart';
 
@@ -146,54 +149,30 @@ class _PlatformModuleSceneViewState extends State<PlatformModuleSceneView> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Scene View',
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: EditorZoomControls(
-                      value: _zoom,
-                      min: _minZoom,
-                      max: _maxZoom,
-                      step: _zoomStep,
-                      onChanged: _setZoom,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            if (widget.allowModuleEditing) ...[
-              const SizedBox(height: 8),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    for (final tool in PlatformModuleSceneTool.values) ...[
-                      ChoiceChip(
-                        key: ValueKey<String>('module_tool_${tool.name}'),
-                        label: Text(tool.label),
-                        selected: widget.tool == tool,
-                        onSelected: (selected) {
-                          if (!selected) {
-                            return;
-                          }
-                          widget.onToolChanged(tool);
-                        },
-                      ),
-                      const SizedBox(width: 8),
-                    ],
-                  ],
-                ),
+            PrefabEditorSceneControls(
+              zoomControls: EditorZoomControls(
+                value: _zoom,
+                min: _minZoom,
+                max: _maxZoom,
+                step: _zoomStep,
+                onChanged: _setZoom,
               ),
-            ],
-            const SizedBox(height: 8),
+              bottom: !widget.allowModuleEditing
+                  ? null
+                  : SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child:
+                          PrefabEditorChoiceChipGroup<PlatformModuleSceneTool>(
+                            items: PlatformModuleSceneTool.values,
+                            selectedValue: widget.tool,
+                            chipKeyBuilder: (tool) =>
+                                ValueKey<String>('module_tool_${tool.name}'),
+                            labelBuilder: (tool) => tool.label,
+                            onSelected: widget.onToolChanged,
+                          ),
+                    ),
+            ),
+            const SizedBox(height: PrefabEditorUiTokens.controlGap),
             Expanded(
               child: EditorSceneViewportFrame(
                 width: viewportSize.width,

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'prefab_editor_action_row.dart';
 import 'prefab_editor_shell_state.dart';
+import 'prefab_editor_ui_tokens.dart';
 
 /// Shared shell chrome for the prefab creator page.
 ///
@@ -35,15 +37,12 @@ class PrefabEditorShellChrome extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: PrefabEditorUiTokens.panelInsets,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              crossAxisAlignment: WrapCrossAlignment.center,
+            const SizedBox(height: PrefabEditorUiTokens.sectionGap),
+            PrefabEditorActionRow(
               children: [
                 FilledButton.icon(
                   onPressed: shellState.isSaving ? null : onSave,
@@ -77,20 +76,20 @@ class PrefabEditorShellChrome extends StatelessWidget {
               ],
             ),
             if (shellState.statusMessage != null) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: PrefabEditorUiTokens.controlGap),
               Text(
                 shellState.statusMessage!,
                 style: const TextStyle(color: Color(0xFF8DE28D)),
               ),
             ],
             if (shellState.errorMessage != null) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: PrefabEditorUiTokens.controlGap),
               Text(
                 shellState.errorMessage!,
                 style: const TextStyle(color: Color(0xFFFF7F7F)),
               ),
             ],
-            const SizedBox(height: 12),
+            const SizedBox(height: PrefabEditorUiTokens.sectionGap),
             TabBar(
               controller: tabController,
               onTap: onTabTapped,
@@ -101,7 +100,7 @@ class PrefabEditorShellChrome extends StatelessWidget {
                 Tab(text: 'Platform Prefabs'),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: PrefabEditorUiTokens.sectionGap),
             Expanded(
               child: TabBarView(controller: tabController, children: children),
             ),
