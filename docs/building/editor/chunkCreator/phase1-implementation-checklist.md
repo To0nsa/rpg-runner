@@ -190,7 +190,7 @@ Tasks:
   - [x] `GroundProfileDef` (chunk floor profile contract)
   - [x] `GroundGapDef` (explicit gap contract)
   - [x] `GroundGapType` enum-like value object (extensible type contract)
-  - [x] typed enum/value objects where needed (`difficulty`, socket IDs, status)
+  - [x] typed enum/value objects where needed (`difficulty`, status)
 - [x] Include required fields from plan:
   - [x] `chunkKey`
   - [x] `id`
@@ -200,8 +200,6 @@ Tasks:
   - [x] `tileSize`
   - [x] `width`
   - [x] `height`
-  - [x] `entrySocket`
-  - [x] `exitSocket`
   - [x] `difficulty`
   - [x] `tags`
   - [x] `tileLayers`
@@ -284,7 +282,6 @@ Tasks:
   - [x] non-positive `tileSize`, `width`, `height`
   - [x] non-snapped geometry-affecting values against grid snap authority
   - [x] chunk width not compatible with runtime chunk width contract
-  - [x] missing required sockets (`entrySocket`, `exitSocket`)
   - [x] invalid `revision` (non-integer or <= 0)
   - [x] invalid/missing `groundProfile`
   - [x] invalid `groundProfile.kind` or missing baseline fields

@@ -42,8 +42,6 @@ void main() {
             PrefabColliderDef(offsetX: 0, offsetY: 0, width: 16, height: 16),
           ],
           tags: ['solid'],
-          zIndex: 1,
-          snapToGrid: true,
         ),
         PrefabDef(
           prefabKey: 'platform_a',
@@ -292,7 +290,6 @@ void main() {
               PrefabColliderDef(offsetX: 3, offsetY: 5, width: 10, height: 9),
             ],
             tags: ['solid', 'solid'],
-            snapToGrid: true,
           ),
         ],
       );

@@ -124,7 +124,7 @@ Chunk route is now a functional composition workspace skeleton:
   - gap authoring and constraints
   - prefab placement
   - marker placement
-  - metadata authoring (difficulty, sockets, tags, neighbors, weight)
+  - metadata authoring (difficulty, tags, neighbors, weight)
 - Level assembly workflow:
   - define a level chunk set and assembly rules
   - validate chunk references, order constraints, and socket transitions
@@ -217,8 +217,6 @@ Required chunk-level fields:
 - `tileSize`
 - `width`
 - `height`
-- `entrySocket`
-- `exitSocket`
 - `difficulty`
 - `tags`
 - `tileLayers`
@@ -226,6 +224,13 @@ Required chunk-level fields:
 - `markers`
 - `groundProfile`
 - `groundGaps`
+
+Current simplification:
+
+- `entrySocket` and `exitSocket` were removed from the live chunk contract for
+  now
+- if level assembly ever needs socket transitions later, add them back in the
+  dedicated assembly phase instead of carrying dead metadata early
 
 Floor/gap contract rollout rule:
 

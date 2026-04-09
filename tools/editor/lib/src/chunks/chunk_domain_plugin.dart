@@ -1,14 +1,21 @@
 import '../domain/authoring_types.dart';
+import '../prefabs/models/models.dart';
+import '../prefabs/store/prefab_store.dart';
 import '../workspace/editor_workspace.dart';
 import 'chunk_domain_models.dart';
 import 'chunk_store.dart';
 import 'chunk_validation.dart';
 
 class ChunkDomainPlugin implements AuthoringDomainPlugin {
-  ChunkDomainPlugin({ChunkStore store = const ChunkStore()}) : _store = store;
+  ChunkDomainPlugin({
+    ChunkStore store = const ChunkStore(),
+    PrefabStore prefabStore = const PrefabStore(),
+  }) : _store = store,
+       _prefabStore = prefabStore;
 
   static const String pluginId = 'chunks';
   final ChunkStore _store;
+  final PrefabStore _prefabStore;
   String? _preferredActiveLevelId;
 
   @override
@@ -16,10 +23,29 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
 
   @override
   Future<AuthoringDocument> loadFromRepo(EditorWorkspace workspace) async {
-    final loaded = await _store.load(
+    var loaded = await _store.load(
       workspace,
       preferredActiveLevelId: _preferredActiveLevelId,
     );
+    try {
+      loaded = loaded.copyWith(
+        prefabData: await _prefabStore.load(workspace.rootPath),
+      );
+    } on Object catch (error) {
+      final nextLoadIssues = List<ValidationIssue>.from(loaded.loadIssues)
+        ..add(
+          ValidationIssue(
+            severity: ValidationSeverity.error,
+            code: 'prefab_catalog_load_failed',
+            message: 'Failed to load prefab catalog for chunk editing: $error',
+            sourcePath: PrefabStore.prefabDefsPath,
+          ),
+        );
+      loaded = loaded.copyWith(
+        prefabData: const PrefabData(),
+        loadIssues: List<ValidationIssue>.unmodifiable(nextLoadIssues),
+      );
+    }
     _preferredActiveLevelId = loaded.activeLevelId;
     return loaded;
   }
@@ -51,6 +77,9 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
       ),
       runtimeGridSnap: chunkDocument.runtimeGridSnap,
       runtimeChunkWidth: chunkDocument.runtimeChunkWidth,
+      lockedChunkHeight: chunkDocument.lockedChunkHeight,
+      runtimeGroundTopY: chunkDocument.runtimeGroundTopY,
+      prefabData: chunkDocument.prefabData,
     );
   }
 
@@ -81,6 +110,16 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
         return _updateGroundGap(chunkDocument, command.payload);
       case 'remove_ground_gap':
         return _removeGroundGap(chunkDocument, command.payload);
+      case 'add_prefab_placement':
+        return _addPrefabPlacement(chunkDocument, command.payload);
+      case 'move_prefab_placement':
+        return _movePrefabPlacement(chunkDocument, command.payload);
+      case 'replace_prefab_placement':
+        return _replacePrefabPlacement(chunkDocument, command.payload);
+      case 'update_prefab_placement_settings':
+        return _updatePrefabPlacementSettings(chunkDocument, command.payload);
+      case 'remove_prefab_placement':
+        return _removePrefabPlacement(chunkDocument, command.payload);
       default:
         return _clearOperationIssuesIfNeeded(chunkDocument);
     }
@@ -207,29 +246,32 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
             : document.availableLevelIds.first);
 
     final defaultTileSize = document.runtimeGridSnap.round();
-    final chunk = LevelChunkDef(
-      chunkKey: newChunkKey,
-      id: newId,
-      revision: 1,
-      schemaVersion: chunkSchemaVersion,
-      levelId: activeLevelId,
-      tileSize: defaultTileSize <= 0 ? 16 : defaultTileSize,
-      width: document.runtimeChunkWidth.round(),
-      height: 10 * (defaultTileSize <= 0 ? 16 : defaultTileSize),
-      entrySocket: 'default',
-      exitSocket: 'default',
-      difficulty: chunkDifficultyNormal,
-      groundProfile: const GroundProfileDef(
-        kind: groundProfileKindFlat,
-        topY: 0,
-      ),
-      groundGaps: const <GroundGapDef>[],
-      tileLayers: const <TileLayerDef>[],
-      prefabs: const <PlacedPrefabDef>[],
-      markers: const <PlacedMarkerDef>[],
-      tags: const <String>[],
-      status: chunkStatusActive,
-    ).normalized();
+    final chunk = normalizeChunkToAuthority(
+      LevelChunkDef(
+        chunkKey: newChunkKey,
+        id: newId,
+        revision: 1,
+        schemaVersion: chunkSchemaVersion,
+        levelId: activeLevelId,
+        tileSize: defaultTileSize <= 0 ? 16 : defaultTileSize,
+        width: document.runtimeChunkWidth.round(),
+        height: document.lockedChunkHeight,
+        difficulty: chunkDifficultyNormal,
+        groundProfile: GroundProfileDef(
+          kind: groundProfileKindFlat,
+          topY: document.runtimeGroundTopY,
+        ),
+        groundGaps: const <GroundGapDef>[],
+        tileLayers: const <TileLayerDef>[],
+        prefabs: const <PlacedPrefabDef>[],
+        markers: const <PlacedMarkerDef>[],
+        tags: const <String>[],
+        status: chunkStatusActive,
+      ).normalized(),
+      runtimeChunkWidth: document.runtimeChunkWidth,
+      lockedChunkHeight: document.lockedChunkHeight,
+      runtimeGroundTopY: document.runtimeGroundTopY,
+    );
 
     final nextChunks = List<LevelChunkDef>.from(document.chunks)..add(chunk);
     return document.copyWith(chunks: nextChunks);
@@ -283,9 +325,13 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
           status: chunkStatusActive,
         )
         .normalized();
+    final lockedDuplicate = _normalizeChunkToDocumentAuthority(
+      duplicated,
+      document,
+    );
 
     final nextChunks = List<LevelChunkDef>.from(document.chunks)
-      ..add(duplicated);
+      ..add(lockedDuplicate);
     return document.copyWith(chunks: nextChunks);
   }
 
@@ -411,38 +457,33 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
       mapper: (chunk) {
         final resolvedId = _normalizedString(payload['id'], fallback: chunk.id);
         final resolvedTags = _parseTags(payload['tags'], fallback: chunk.tags);
-        final nextChunk = chunk
-            .copyWith(
-              id: resolvedId,
-              levelId: _normalizedString(
-                payload['levelId'],
-                fallback: chunk.levelId,
-              ),
-              tileSize: _intOrDefault(
-                payload['tileSize'],
-                fallback: chunk.tileSize,
-              ),
-              width: _intOrDefault(payload['width'], fallback: chunk.width),
-              height: _intOrDefault(payload['height'], fallback: chunk.height),
-              entrySocket: _normalizedString(
-                payload['entrySocket'],
-                fallback: chunk.entrySocket,
-              ),
-              exitSocket: _normalizedString(
-                payload['exitSocket'],
-                fallback: chunk.exitSocket,
-              ),
-              difficulty: _normalizedString(
-                payload['difficulty'],
-                fallback: chunk.difficulty,
-              ),
-              tags: resolvedTags,
-              status: _normalizedString(
-                payload['status'],
-                fallback: chunk.status,
-              ),
-            )
-            .normalized();
+        final nextChunk = _normalizeChunkToDocumentAuthority(
+          chunk
+              .copyWith(
+                id: resolvedId,
+                levelId: _normalizedString(
+                  payload['levelId'],
+                  fallback: chunk.levelId,
+                ),
+                tileSize: _intOrDefault(
+                  payload['tileSize'],
+                  fallback: chunk.tileSize,
+                ),
+                width: document.runtimeChunkWidth.round(),
+                height: document.lockedChunkHeight,
+                difficulty: _normalizedString(
+                  payload['difficulty'],
+                  fallback: chunk.difficulty,
+                ),
+                tags: resolvedTags,
+                status: _normalizedString(
+                  payload['status'],
+                  fallback: chunk.status,
+                ),
+              )
+              .normalized(),
+          document,
+        );
         if (_chunkEqualsWithoutRevision(nextChunk, chunk)) {
           return chunk;
         }
@@ -477,22 +518,19 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
       document,
       chunkKey: chunkKey,
       mapper: (chunk) {
-        final nextProfile = chunk.groundProfile.copyWith(
-          kind: _normalizedString(
-            payload['kind'],
-            fallback: chunk.groundProfile.kind,
-          ),
-          topY: _intOrDefault(
-            payload['topY'],
-            fallback: chunk.groundProfile.topY,
-          ),
+        final nextProfile = GroundProfileDef(
+          kind: groundProfileKindFlat,
+          topY: document.runtimeGroundTopY,
         );
         if (nextProfile.kind == chunk.groundProfile.kind &&
             nextProfile.topY == chunk.groundProfile.topY) {
           return chunk;
         }
         return _bumpRevision(
-          chunk.copyWith(groundProfile: nextProfile).normalized(),
+          _normalizeChunkToDocumentAuthority(
+            chunk.copyWith(groundProfile: nextProfile).normalized(),
+            document,
+          ),
         );
       },
     );
@@ -645,6 +683,309 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
     );
   }
 
+  ChunkDocument _addPrefabPlacement(
+    ChunkDocument document,
+    Map<String, Object?> payload,
+  ) {
+    document = _clearOperationIssuesIfNeeded(document);
+    final chunkKey = _normalizedString(payload['chunkKey']);
+    if (chunkKey.isEmpty) {
+      return _withOperationIssue(
+        document,
+        code: 'add_prefab_placement_invalid_payload',
+        message: 'Add prefab placement requires chunkKey.',
+      );
+    }
+    final targetChunk = _findChunkByKey(document, chunkKey);
+    if (targetChunk == null) {
+      return _withOperationIssue(
+        document,
+        code: 'add_prefab_placement_missing_source',
+        message: 'Cannot add prefab placement to unknown chunkKey "$chunkKey".',
+        chunkKey: chunkKey,
+      );
+    }
+
+    final resolvedPrefab = _resolvePlaceablePrefab(
+      document,
+      prefabKey: _normalizedString(payload['prefabKey']),
+      prefabId: _normalizedString(payload['prefabId']),
+    );
+    if (resolvedPrefab == null) {
+      return _withOperationIssue(
+        document,
+        code: 'add_prefab_placement_unknown_prefab',
+        message: 'Add prefab placement requires a known active prefab.',
+        chunkKey: chunkKey,
+      );
+    }
+
+    final nextPlacement = PlacedPrefabDef(
+      prefabId: resolvedPrefab.id,
+      prefabKey: resolvedPrefab.prefabKey,
+      x: _intOrDefault(payload['x'], fallback: 0),
+      y: _intOrDefault(payload['y'], fallback: 0),
+      zIndex: _intOrDefault(payload['zIndex'], fallback: 0),
+      snapToGrid: _boolOrDefault(payload['snapToGrid'], fallback: true),
+    );
+    return _mapChunkByKey(
+      document,
+      chunkKey: chunkKey,
+      mapper: (chunk) {
+        final nextPrefabs = List<PlacedPrefabDef>.from(chunk.prefabs)
+          ..add(nextPlacement);
+        return _bumpRevision(chunk.copyWith(prefabs: nextPrefabs).normalized());
+      },
+    );
+  }
+
+  ChunkDocument _movePrefabPlacement(
+    ChunkDocument document,
+    Map<String, Object?> payload,
+  ) {
+    document = _clearOperationIssuesIfNeeded(document);
+    final chunkKey = _normalizedString(payload['chunkKey']);
+    final selectionKey = _normalizedString(payload['selectionKey']);
+    if (chunkKey.isEmpty || selectionKey.isEmpty) {
+      return _withOperationIssue(
+        document,
+        code: 'move_prefab_placement_invalid_payload',
+        message: 'Move prefab placement requires chunkKey and selectionKey.',
+        chunkKey: chunkKey,
+      );
+    }
+    final chunk = _findChunkByKey(document, chunkKey);
+    if (chunk == null) {
+      return _withOperationIssue(
+        document,
+        code: 'move_prefab_placement_missing_source',
+        message:
+            'Cannot move prefab placement in unknown chunkKey "$chunkKey".',
+        chunkKey: chunkKey,
+      );
+    }
+    final targetIndex = _findPrefabPlacementIndexBySelectionKey(
+      chunk,
+      selectionKey,
+    );
+    if (targetIndex < 0) {
+      return _withOperationIssue(
+        document,
+        code: 'move_prefab_placement_missing_target',
+        message:
+            'Cannot move unknown prefab placement "$selectionKey" in "$chunkKey".',
+        chunkKey: chunkKey,
+      );
+    }
+    final nextX = _intOrDefault(
+      payload['x'],
+      fallback: chunk.prefabs[targetIndex].x,
+    );
+    final nextY = _intOrDefault(
+      payload['y'],
+      fallback: chunk.prefabs[targetIndex].y,
+    );
+    return _mapChunkByKey(
+      document,
+      chunkKey: chunkKey,
+      mapper: (entry) {
+        final current = entry.prefabs[targetIndex];
+        if (current.x == nextX && current.y == nextY) {
+          return entry;
+        }
+        final nextPrefabs = List<PlacedPrefabDef>.from(entry.prefabs);
+        nextPrefabs[targetIndex] = current.copyWith(x: nextX, y: nextY);
+        return _bumpRevision(entry.copyWith(prefabs: nextPrefabs).normalized());
+      },
+    );
+  }
+
+  ChunkDocument _replacePrefabPlacement(
+    ChunkDocument document,
+    Map<String, Object?> payload,
+  ) {
+    document = _clearOperationIssuesIfNeeded(document);
+    final chunkKey = _normalizedString(payload['chunkKey']);
+    final selectionKey = _normalizedString(payload['selectionKey']);
+    if (chunkKey.isEmpty || selectionKey.isEmpty) {
+      return _withOperationIssue(
+        document,
+        code: 'replace_prefab_placement_invalid_payload',
+        message: 'Replace prefab placement requires chunkKey and selectionKey.',
+        chunkKey: chunkKey,
+      );
+    }
+    final chunk = _findChunkByKey(document, chunkKey);
+    if (chunk == null) {
+      return _withOperationIssue(
+        document,
+        code: 'replace_prefab_placement_missing_source',
+        message:
+            'Cannot replace prefab placement in unknown chunkKey "$chunkKey".',
+        chunkKey: chunkKey,
+      );
+    }
+    final targetIndex = _findPrefabPlacementIndexBySelectionKey(
+      chunk,
+      selectionKey,
+    );
+    if (targetIndex < 0) {
+      return _withOperationIssue(
+        document,
+        code: 'replace_prefab_placement_missing_target',
+        message:
+            'Cannot replace unknown prefab placement "$selectionKey" in "$chunkKey".',
+        chunkKey: chunkKey,
+      );
+    }
+    final resolvedPrefab = _resolvePlaceablePrefab(
+      document,
+      prefabKey: _normalizedString(payload['prefabKey']),
+      prefabId: _normalizedString(payload['prefabId']),
+    );
+    if (resolvedPrefab == null) {
+      return _withOperationIssue(
+        document,
+        code: 'replace_prefab_placement_unknown_prefab',
+        message: 'Replace prefab placement requires a known active prefab.',
+        chunkKey: chunkKey,
+      );
+    }
+    return _mapChunkByKey(
+      document,
+      chunkKey: chunkKey,
+      mapper: (entry) {
+        final current = entry.prefabs[targetIndex];
+        if (current.prefabKey == resolvedPrefab.prefabKey &&
+            current.prefabId == resolvedPrefab.id) {
+          return entry;
+        }
+        final nextPrefabs = List<PlacedPrefabDef>.from(entry.prefabs);
+        nextPrefabs[targetIndex] = current.copyWith(
+          prefabKey: resolvedPrefab.prefabKey,
+          prefabId: resolvedPrefab.id,
+        );
+        return _bumpRevision(entry.copyWith(prefabs: nextPrefabs).normalized());
+      },
+    );
+  }
+
+  ChunkDocument _updatePrefabPlacementSettings(
+    ChunkDocument document,
+    Map<String, Object?> payload,
+  ) {
+    document = _clearOperationIssuesIfNeeded(document);
+    final chunkKey = _normalizedString(payload['chunkKey']);
+    final selectionKey = _normalizedString(payload['selectionKey']);
+    if (chunkKey.isEmpty || selectionKey.isEmpty) {
+      return _withOperationIssue(
+        document,
+        code: 'update_prefab_placement_settings_invalid_payload',
+        message:
+            'Update prefab placement settings requires chunkKey and selectionKey.',
+        chunkKey: chunkKey,
+      );
+    }
+    final chunk = _findChunkByKey(document, chunkKey);
+    if (chunk == null) {
+      return _withOperationIssue(
+        document,
+        code: 'update_prefab_placement_settings_missing_source',
+        message:
+            'Cannot update prefab placement settings in unknown chunkKey "$chunkKey".',
+        chunkKey: chunkKey,
+      );
+    }
+    final targetIndex = _findPrefabPlacementIndexBySelectionKey(
+      chunk,
+      selectionKey,
+    );
+    if (targetIndex < 0) {
+      return _withOperationIssue(
+        document,
+        code: 'update_prefab_placement_settings_missing_target',
+        message:
+            'Cannot update unknown prefab placement settings for "$selectionKey" in "$chunkKey".',
+        chunkKey: chunkKey,
+      );
+    }
+    final currentTarget = chunk.prefabs[targetIndex];
+    final nextZIndex = _intOrDefault(
+      payload['zIndex'],
+      fallback: currentTarget.zIndex,
+    );
+    final nextSnapToGrid = _boolOrDefault(
+      payload['snapToGrid'],
+      fallback: currentTarget.snapToGrid,
+    );
+    return _mapChunkByKey(
+      document,
+      chunkKey: chunkKey,
+      mapper: (entry) {
+        final current = entry.prefabs[targetIndex];
+        if (current.snapToGrid == nextSnapToGrid &&
+            current.zIndex == nextZIndex) {
+          return entry;
+        }
+        final nextPrefabs = List<PlacedPrefabDef>.from(entry.prefabs);
+        nextPrefabs[targetIndex] = current.copyWith(
+          zIndex: nextZIndex,
+          snapToGrid: nextSnapToGrid,
+        );
+        return _bumpRevision(entry.copyWith(prefabs: nextPrefabs).normalized());
+      },
+    );
+  }
+
+  ChunkDocument _removePrefabPlacement(
+    ChunkDocument document,
+    Map<String, Object?> payload,
+  ) {
+    document = _clearOperationIssuesIfNeeded(document);
+    final chunkKey = _normalizedString(payload['chunkKey']);
+    final selectionKey = _normalizedString(payload['selectionKey']);
+    if (chunkKey.isEmpty || selectionKey.isEmpty) {
+      return _withOperationIssue(
+        document,
+        code: 'remove_prefab_placement_invalid_payload',
+        message: 'Remove prefab placement requires chunkKey and selectionKey.',
+        chunkKey: chunkKey,
+      );
+    }
+    final chunk = _findChunkByKey(document, chunkKey);
+    if (chunk == null) {
+      return _withOperationIssue(
+        document,
+        code: 'remove_prefab_placement_missing_source',
+        message:
+            'Cannot remove prefab placement from unknown chunkKey "$chunkKey".',
+        chunkKey: chunkKey,
+      );
+    }
+    final targetIndex = _findPrefabPlacementIndexBySelectionKey(
+      chunk,
+      selectionKey,
+    );
+    if (targetIndex < 0) {
+      return _withOperationIssue(
+        document,
+        code: 'remove_prefab_placement_missing_target',
+        message:
+            'Cannot remove unknown prefab placement "$selectionKey" in "$chunkKey".',
+        chunkKey: chunkKey,
+      );
+    }
+    return _mapChunkByKey(
+      document,
+      chunkKey: chunkKey,
+      mapper: (entry) {
+        final nextPrefabs = List<PlacedPrefabDef>.from(entry.prefabs)
+          ..removeAt(targetIndex);
+        return _bumpRevision(entry.copyWith(prefabs: nextPrefabs).normalized());
+      },
+    );
+  }
+
   ChunkDocument _mapChunkByKey(
     ChunkDocument document, {
     required String chunkKey,
@@ -677,6 +1018,42 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
       }
     }
     return null;
+  }
+
+  int _findPrefabPlacementIndexBySelectionKey(
+    LevelChunkDef chunk,
+    String selectionKey,
+  ) {
+    final selections = buildChunkPlacedPrefabSelections(chunk.prefabs);
+    for (var i = 0; i < selections.length; i += 1) {
+      if (selections[i].selectionKey == selectionKey) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  PrefabDef? _resolvePlaceablePrefab(
+    ChunkDocument document, {
+    required String prefabKey,
+    required String prefabId,
+  }) {
+    PrefabDef? matched;
+    for (final prefab in document.prefabData.prefabs) {
+      final matchesKey = prefabKey.isNotEmpty && prefab.prefabKey == prefabKey;
+      final matchesId = prefabId.isNotEmpty && prefab.id == prefabId;
+      if (!matchesKey && !matchesId) {
+        continue;
+      }
+      matched = prefab;
+      if (matchesKey) {
+        break;
+      }
+    }
+    if (matched == null || matched.status != PrefabStatus.active) {
+      return null;
+    }
+    return matched;
   }
 
   String _buildSummary(ChunkSavePlan savePlan) {
@@ -825,6 +1202,13 @@ int _intOrDefault(Object? raw, {required int fallback}) {
   return fallback;
 }
 
+bool _boolOrDefault(Object? raw, {required bool fallback}) {
+  if (raw is bool) {
+    return raw;
+  }
+  return fallback;
+}
+
 List<String> _parseTags(Object? raw, {required List<String> fallback}) {
   if (raw is List<Object?>) {
     final tags = <String>{};
@@ -897,6 +1281,18 @@ LevelChunkDef _bumpRevision(LevelChunkDef chunk) {
   return chunk.copyWith(revision: nextRevision);
 }
 
+LevelChunkDef _normalizeChunkToDocumentAuthority(
+  LevelChunkDef chunk,
+  ChunkDocument document,
+) {
+  return normalizeChunkToAuthority(
+    chunk,
+    runtimeChunkWidth: document.runtimeChunkWidth,
+    lockedChunkHeight: document.lockedChunkHeight,
+    runtimeGroundTopY: document.runtimeGroundTopY,
+  );
+}
+
 bool _chunkEqualsWithoutRevision(LevelChunkDef a, LevelChunkDef b) {
   return _chunkEquals(a, b, ignoreRevision: true);
 }
@@ -915,8 +1311,6 @@ bool _chunkEquals(
       left.tileSize != right.tileSize ||
       left.width != right.width ||
       left.height != right.height ||
-      left.entrySocket != right.entrySocket ||
-      left.exitSocket != right.exitSocket ||
       left.difficulty != right.difficulty ||
       left.status != right.status) {
     return false;
@@ -984,7 +1378,9 @@ bool _placedPrefabListEquals(List<PlacedPrefabDef> a, List<PlacedPrefabDef> b) {
     if (left.prefabId != right.prefabId ||
         left.prefabKey != right.prefabKey ||
         left.x != right.x ||
-        left.y != right.y) {
+        left.y != right.y ||
+        left.zIndex != right.zIndex ||
+        left.snapToGrid != right.snapToGrid) {
       return false;
     }
   }

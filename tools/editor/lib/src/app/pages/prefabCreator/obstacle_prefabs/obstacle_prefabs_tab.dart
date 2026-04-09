@@ -33,7 +33,6 @@ class ObstaclePrefabsTab extends StatelessWidget {
     required this.sceneValues,
     required this.workspaceRootPath,
     required this.onSelectedSliceChanged,
-    required this.onSnapToGridChanged,
     required this.onSceneValuesChanged,
     required this.onLoadPrefab,
     required this.onDeletePrefab,
@@ -53,7 +52,6 @@ class ObstaclePrefabsTab extends StatelessWidget {
   final PrefabSceneValues? sceneValues;
   final String workspaceRootPath;
   final ValueChanged<String?> onSelectedSliceChanged;
-  final ValueChanged<bool> onSnapToGridChanged;
   final ValueChanged<PrefabSceneValues> onSceneValuesChanged;
   final ValueChanged<PrefabDef> onLoadPrefab;
   final ValueChanged<String> onDeletePrefab;
@@ -72,7 +70,6 @@ class ObstaclePrefabsTab extends StatelessWidget {
         selectedSliceId: selectedSliceId,
         editingObstaclePrefab: editingObstaclePrefab,
         onSelectedSliceChanged: onSelectedSliceChanged,
-        onSnapToGridChanged: onSnapToGridChanged,
         onUpsertPrefab: onUpsertPrefab,
         onDuplicatePrefab: onDuplicatePrefab,
         onDeprecatePrefab: onDeprecatePrefab,
@@ -145,7 +142,6 @@ class _ObstaclePrefabInspectorPanel extends StatelessWidget {
     required this.selectedSliceId,
     required this.editingObstaclePrefab,
     required this.onSelectedSliceChanged,
-    required this.onSnapToGridChanged,
     required this.onUpsertPrefab,
     required this.onDuplicatePrefab,
     required this.onDeprecatePrefab,
@@ -158,7 +154,6 @@ class _ObstaclePrefabInspectorPanel extends StatelessWidget {
   final String? selectedSliceId;
   final PrefabDef? editingObstaclePrefab;
   final ValueChanged<String?> onSelectedSliceChanged;
-  final ValueChanged<bool> onSnapToGridChanged;
   final VoidCallback onUpsertPrefab;
   final VoidCallback onDuplicatePrefab;
   final VoidCallback onDeprecatePrefab;
@@ -311,7 +306,6 @@ class _ObstaclePrefabInspectorPanel extends StatelessWidget {
             title: 'Placement & Collider',
             child: PrefabEditorPlacementFields(
               form: form,
-              onSnapToGridChanged: onSnapToGridChanged,
               colliderOffsetXLabel: 'Offset X',
               colliderOffsetYLabel: 'Offset Y',
               colliderWidthLabel: 'Width',
@@ -413,9 +407,7 @@ class _ObstaclePrefabDisplayPanelState
                                 'status=${prefab.status.jsonValue}',
                             'source=atlas_slice:${prefab.sliceId}',
                             'anchor=(${prefab.anchorXPx},${prefab.anchorYPx}) '
-                                'colliders=${prefab.colliders.length} '
-                                'z=${prefab.zIndex} '
-                                'snap=${prefab.snapToGrid}',
+                                'colliders=${prefab.colliders.length}',
                           ],
                         ),
                       );

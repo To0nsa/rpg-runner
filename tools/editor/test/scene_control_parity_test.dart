@@ -5,14 +5,47 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
+import 'package:runner_editor/src/app/pages/chunkCreator/widgets/chunk_scene_view.dart';
 import 'package:runner_editor/src/app/pages/prefabCreator/obstacle_prefabs/widgets/prefab_scene_view.dart';
 import 'package:runner_editor/src/app/pages/prefabCreator/platform_modules/widgets/platform_module_scene_view.dart';
 import 'package:runner_editor/src/app/pages/prefabCreator/shared/prefab_scene_values.dart';
+import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_scene_view_utils.dart';
 import 'package:runner_editor/src/app/pages/shared/scene_input_utils.dart';
 import 'package:runner_editor/src/prefabs/models/models.dart';
 
 void main() {
+  test(
+    'prefab overlay projection preserves center-relative collider offsets',
+    () {
+      final values = prefabSceneValuesFromPrefab(
+        PrefabDef(
+          prefabKey: 'village_barrel_01',
+          id: 'village_barrel_01',
+          revision: 1,
+          status: PrefabStatus.active,
+          kind: PrefabKind.obstacle,
+          visualSource: const PrefabVisualSource.atlasSlice(
+            'village_barrel_01',
+          ),
+          anchorXPx: 16,
+          anchorYPx: 23,
+          colliders: const <PrefabColliderDef>[
+            PrefabColliderDef(offsetX: 0, offsetY: 0, width: 18, height: 34),
+          ],
+        ),
+      );
+
+      expect(values, isNotNull);
+      expect(values!.anchorX, 16);
+      expect(values.anchorY, 23);
+      expect(values.colliderOffsetX, 0);
+      expect(values.colliderOffsetY, 0);
+      expect(values.colliderWidth, 18);
+      expect(values.colliderHeight, 34);
+    },
+  );
+
   test('shared scene zoom helpers snap and compare deterministically', () {
     expect(
       EditorSceneViewUtils.snapZoom(
@@ -324,6 +357,315 @@ void main() {
       expect(moveCalls, hasLength(1));
       expect(moveCalls.single.sourceGridX, 0);
       expect(moveCalls.single.sourceGridY, 0);
+    },
+  );
+
+  testWidgets(
+    'chunk scene shares pan/zoom controls and dispatches place/select',
+    (tester) async {
+      final workspaceRoot = _repoRootPath();
+      final placeCalls = <Offset>[];
+      final selectCalls = <String?>[];
+      var tool = ChunkSceneTool.place;
+      var selectedPlacementKey = '';
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 820,
+              height: 520,
+              child: StatefulBuilder(
+                builder: (context, setState) {
+                  return ChunkSceneView(
+                    workspaceRootPath: workspaceRoot,
+                    chunk: const LevelChunkDef(
+                      chunkKey: 'chunk_scene',
+                      id: 'chunk_scene',
+                      revision: 1,
+                      schemaVersion: 1,
+                      levelId: 'field',
+                      tileSize: 16,
+                      width: 600,
+                      height: 270,
+                      difficulty: chunkDifficultyNormal,
+                      prefabs: <PlacedPrefabDef>[
+                        PlacedPrefabDef(
+                          prefabId: 'village_crate_01',
+                          prefabKey: 'village_crate_01',
+                          x: 304,
+                          y: 128,
+                        ),
+                      ],
+                      groundProfile: GroundProfileDef(
+                        kind: groundProfileKindFlat,
+                        topY: 224,
+                      ),
+                    ),
+                    prefabData: PrefabData(
+                      prefabSlices: const <AtlasSliceDef>[
+                        AtlasSliceDef(
+                          id: 'village_crate_01',
+                          sourceImagePath:
+                              'assets/images/level/props/TX Village Props.png',
+                          x: 32,
+                          y: 16,
+                          width: 64,
+                          height: 52,
+                        ),
+                      ],
+                      prefabs: <PrefabDef>[
+                        PrefabDef(
+                          prefabKey: 'village_crate_01',
+                          id: 'village_crate_01',
+                          revision: 1,
+                          status: PrefabStatus.active,
+                          kind: PrefabKind.obstacle,
+                          visualSource: const PrefabVisualSource.atlasSlice(
+                            'village_crate_01',
+                          ),
+                          anchorXPx: 34,
+                          anchorYPx: 26,
+                          colliders: const <PrefabColliderDef>[
+                            PrefabColliderDef(
+                              offsetX: -1,
+                              offsetY: 0,
+                              width: 45,
+                              height: 45,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    runtimeGridSnap: 16.0,
+                    tool: tool,
+                    placeSnapToGrid: true,
+                    selectedPalettePrefabKey: 'village_crate_01',
+                    selectedPlacementKey: selectedPlacementKey,
+                    onToolChanged: (next) {
+                      setState(() {
+                        tool = next;
+                      });
+                    },
+                    onPlacePrefab: (x, y) {
+                      placeCalls.add(Offset(x.toDouble(), y.toDouble()));
+                    },
+                    onSelectPlacement: (selectionKey) {
+                      selectCalls.add(selectionKey);
+                      setState(() {
+                        selectedPlacementKey = selectionKey ?? '';
+                      });
+                    },
+                    onMovePlacement: (_, _, _) {},
+                    onCommitPlacementMove: () {},
+                    onRemovePlacement: (_) {},
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final canvas = find.byKey(const ValueKey<String>('chunk_scene_canvas'));
+      expect(canvas, findsOneWidget);
+      final horizontal = _scrollControllerByKey(
+        tester,
+        'chunk_scene_horizontal_scroll',
+      );
+      final vertical = _scrollControllerByKey(
+        tester,
+        'chunk_scene_vertical_scroll',
+      );
+      _centerScrollControllers(horizontal: horizontal, vertical: vertical);
+      await tester.pump();
+      final center = tester.getCenter(canvas);
+
+      final panStartX = horizontal.offset;
+      final panStartY = vertical.offset;
+      await _ctrlDragCanvas(tester, canvas, const Offset(-120, -90));
+      expect(
+        horizontal.offset != panStartX || vertical.offset != panStartY,
+        isTrue,
+      );
+
+      final zoomBefore = _zoomFieldValue(tester);
+      await _ctrlScrollAt(tester, canvas, deltaY: -120);
+      final zoomAfter = _zoomFieldValue(tester);
+      expect(zoomAfter, isNot(zoomBefore));
+
+      await tester.tapAt(center);
+      await tester.pumpAndSettle();
+      expect(placeCalls, isNotEmpty);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('chunk_scene_tool_select')),
+      );
+      await tester.pumpAndSettle();
+      _centerScrollControllers(horizontal: horizontal, vertical: vertical);
+      await tester.pump();
+      final selectCenter = tester.getCenter(canvas);
+      final currentZoom = double.parse(_zoomFieldValue(tester)) / 100.0;
+      await tester.tapAt(
+        selectCenter + Offset(4 * currentZoom, 50 * currentZoom),
+      );
+      await tester.pumpAndSettle();
+      expect(selectCalls.whereType<String>(), isNotEmpty);
+    },
+  );
+
+  testWidgets(
+    'chunk scene drag refreshes selection key between move callbacks',
+    (tester) async {
+      final workspaceRoot = _repoRootPath();
+      final moveKeys = <String>[];
+      var tool = ChunkSceneTool.select;
+      var selectedPlacementKey = buildChunkPlacedPrefabSelectionKey(
+        'village_crate_01',
+        x: 304,
+        y: 128,
+        ordinalAtLocation: 0,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 820,
+              height: 520,
+              child: StatefulBuilder(
+                builder: (context, setState) {
+                  return ChunkSceneView(
+                    workspaceRootPath: workspaceRoot,
+                    chunk: const LevelChunkDef(
+                      chunkKey: 'chunk_scene',
+                      id: 'chunk_scene',
+                      revision: 1,
+                      schemaVersion: 1,
+                      levelId: 'field',
+                      tileSize: 16,
+                      width: 600,
+                      height: 270,
+                      difficulty: chunkDifficultyNormal,
+                      prefabs: <PlacedPrefabDef>[
+                        PlacedPrefabDef(
+                          prefabId: 'village_crate_01',
+                          prefabKey: 'village_crate_01',
+                          x: 304,
+                          y: 128,
+                        ),
+                      ],
+                      groundProfile: GroundProfileDef(
+                        kind: groundProfileKindFlat,
+                        topY: 224,
+                      ),
+                    ),
+                    prefabData: PrefabData(
+                      prefabSlices: const <AtlasSliceDef>[
+                        AtlasSliceDef(
+                          id: 'village_crate_01',
+                          sourceImagePath:
+                              'assets/images/level/props/TX Village Props.png',
+                          x: 32,
+                          y: 16,
+                          width: 64,
+                          height: 52,
+                        ),
+                      ],
+                      prefabs: <PrefabDef>[
+                        PrefabDef(
+                          prefabKey: 'village_crate_01',
+                          id: 'village_crate_01',
+                          revision: 1,
+                          status: PrefabStatus.active,
+                          kind: PrefabKind.obstacle,
+                          visualSource: const PrefabVisualSource.atlasSlice(
+                            'village_crate_01',
+                          ),
+                          anchorXPx: 34,
+                          anchorYPx: 26,
+                          colliders: const <PrefabColliderDef>[
+                            PrefabColliderDef(
+                              offsetX: -1,
+                              offsetY: 0,
+                              width: 45,
+                              height: 45,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    runtimeGridSnap: 16.0,
+                    tool: tool,
+                    placeSnapToGrid: true,
+                    selectedPalettePrefabKey: 'village_crate_01',
+                    selectedPlacementKey: selectedPlacementKey,
+                    onToolChanged: (next) {
+                      setState(() {
+                        tool = next;
+                      });
+                    },
+                    onPlacePrefab: (_, _) {},
+                    onSelectPlacement: (selectionKey) {
+                      setState(() {
+                        selectedPlacementKey = selectionKey ?? '';
+                      });
+                    },
+                    onMovePlacement: (selectionKey, x, y) {
+                      moveKeys.add(selectionKey);
+                      setState(() {
+                        selectedPlacementKey =
+                            buildChunkPlacedPrefabSelectionKey(
+                              'village_crate_01',
+                              x: x,
+                              y: y,
+                              ordinalAtLocation: 0,
+                            );
+                      });
+                    },
+                    onCommitPlacementMove: () {},
+                    onRemovePlacement: (_) {},
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final canvas = find.byKey(const ValueKey<String>('chunk_scene_canvas'));
+      expect(canvas, findsOneWidget);
+      final horizontal = _scrollControllerByKey(
+        tester,
+        'chunk_scene_horizontal_scroll',
+      );
+      final vertical = _scrollControllerByKey(
+        tester,
+        'chunk_scene_vertical_scroll',
+      );
+      _centerScrollControllers(horizontal: horizontal, vertical: vertical);
+      await tester.pump();
+
+      final center = tester.getCenter(canvas);
+      final currentZoom = double.parse(_zoomFieldValue(tester)) / 100.0;
+      final placementPoint = center + Offset(4 * currentZoom, 50 * currentZoom);
+      final gesture = await tester.createGesture(
+        kind: PointerDeviceKind.mouse,
+        buttons: kPrimaryMouseButton,
+      );
+      await gesture.down(placementPoint);
+      await gesture.moveBy(Offset(16 * currentZoom, 0));
+      await tester.pump();
+      await gesture.moveBy(Offset(16 * currentZoom, 0));
+      await tester.pump();
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(moveKeys, hasLength(greaterThanOrEqualTo(2)));
+      expect(moveKeys.first, 'village_crate_01|304|128|0');
+      expect(moveKeys[1], 'village_crate_01|320|128|0');
     },
   );
 

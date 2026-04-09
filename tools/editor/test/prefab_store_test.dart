@@ -87,8 +87,6 @@ void main() {
                 ),
               ],
               tags: ['b', 'a'],
-              zIndex: 3,
-              snapToGrid: false,
             ),
             PrefabDef(
               prefabKey: 'prefab_a',
@@ -103,8 +101,6 @@ void main() {
                 PrefabColliderDef(offsetX: 0, offsetY: 0, width: 8, height: 9),
               ],
               tags: ['z'],
-              zIndex: -1,
-              snapToGrid: true,
             ),
           ],
           platformModules: const [
@@ -139,10 +135,6 @@ void main() {
           'module_b',
         ]);
         expect(loaded.prefabs[1].tags, ['a', 'b']);
-        expect(loaded.prefabs[0].zIndex, -1);
-        expect(loaded.prefabs[0].snapToGrid, isTrue);
-        expect(loaded.prefabs[1].zIndex, 3);
-        expect(loaded.prefabs[1].snapToGrid, isFalse);
         expect(
           loaded.prefabs[0].visualSource.type,
           PrefabVisualSourceType.atlasSlice,

@@ -33,7 +33,6 @@ class PlatformPrefabsTab extends StatelessWidget {
     required this.sceneValues,
     required this.workspaceRootPath,
     required this.onSelectedModuleChanged,
-    required this.onSnapToGridChanged,
     required this.onLoadPrefabForModule,
     required this.onUpsertPrefabForModule,
     required this.onStartNewFromCurrentValues,
@@ -52,7 +51,6 @@ class PlatformPrefabsTab extends StatelessWidget {
   final PrefabSceneValues? sceneValues;
   final String workspaceRootPath;
   final ValueChanged<String?> onSelectedModuleChanged;
-  final ValueChanged<bool> onSnapToGridChanged;
   final VoidCallback onLoadPrefabForModule;
   final VoidCallback onUpsertPrefabForModule;
   final VoidCallback onStartNewFromCurrentValues;
@@ -71,7 +69,6 @@ class PlatformPrefabsTab extends StatelessWidget {
         editingPlatformPrefab: editingPlatformPrefab,
         sceneValues: sceneValues,
         onSelectedModuleChanged: onSelectedModuleChanged,
-        onSnapToGridChanged: onSnapToGridChanged,
         onLoadPrefabForModule: onLoadPrefabForModule,
         onUpsertPrefabForModule: onUpsertPrefabForModule,
         onStartNewFromCurrentValues: onStartNewFromCurrentValues,
@@ -149,7 +146,6 @@ class _PlatformPrefabInspectorPanel extends StatelessWidget {
     required this.editingPlatformPrefab,
     required this.sceneValues,
     required this.onSelectedModuleChanged,
-    required this.onSnapToGridChanged,
     required this.onLoadPrefabForModule,
     required this.onUpsertPrefabForModule,
     required this.onStartNewFromCurrentValues,
@@ -162,7 +158,6 @@ class _PlatformPrefabInspectorPanel extends StatelessWidget {
   final PrefabDef? editingPlatformPrefab;
   final PrefabSceneValues? sceneValues;
   final ValueChanged<String?> onSelectedModuleChanged;
-  final ValueChanged<bool> onSnapToGridChanged;
   final VoidCallback onLoadPrefabForModule;
   final VoidCallback onUpsertPrefabForModule;
   final VoidCallback onStartNewFromCurrentValues;
@@ -252,7 +247,6 @@ class _PlatformPrefabInspectorPanel extends StatelessWidget {
             onLoadPrefabForModule: onLoadPrefabForModule,
             onUpsertPrefabForModule: onUpsertPrefabForModule,
             onStartNewFromCurrentValues: onStartNewFromCurrentValues,
-            onSnapToGridChanged: onSnapToGridChanged,
           ),
         ],
       ),
@@ -357,9 +351,7 @@ class _PlatformPrefabDisplayPanelState
                                 'moduleCells=${module?.cells.length ?? 0} '
                                 'tileSize=${module?.tileSize ?? '-'}',
                             'anchor=(${prefab.anchorXPx},${prefab.anchorYPx}) '
-                                'colliders=${prefab.colliders.length} '
-                                'z=${prefab.zIndex} '
-                                'snap=${prefab.snapToGrid}',
+                                'colliders=${prefab.colliders.length}',
                           ],
                         ),
                       );

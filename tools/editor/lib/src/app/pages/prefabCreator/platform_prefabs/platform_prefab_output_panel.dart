@@ -18,7 +18,6 @@ class PlatformPrefabOutputPanel extends StatelessWidget {
     required this.onLoadPrefabForModule,
     required this.onUpsertPrefabForModule,
     required this.onStartNewFromCurrentValues,
-    required this.onSnapToGridChanged,
   });
 
   final PrefabFormState form;
@@ -28,7 +27,6 @@ class PlatformPrefabOutputPanel extends StatelessWidget {
   final VoidCallback onLoadPrefabForModule;
   final VoidCallback onUpsertPrefabForModule;
   final VoidCallback onStartNewFromCurrentValues;
-  final ValueChanged<bool> onSnapToGridChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -85,7 +83,6 @@ class PlatformPrefabOutputPanel extends StatelessWidget {
           PrefabEditorPlacementFields(
             form: form,
             isEnabled: isEnabled,
-            onSnapToGridChanged: onSnapToGridChanged,
             colliderOffsetXLabel: 'Collider Offset X',
             colliderOffsetYLabel: 'Collider Offset Y',
             colliderWidthLabel: 'Collider Width',

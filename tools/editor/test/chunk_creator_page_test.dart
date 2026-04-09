@@ -86,17 +86,20 @@ void main() {
       expect(deprecated.status, chunkStatusDeprecated);
 
       await tester.enterText(
-        find.widgetWithText(TextField, 'width').first,
-        '590',
+        find.widgetWithText(TextField, 'tileSize').first,
+        '15',
       );
-      await tester.tap(find.widgetWithText(FilledButton, 'Apply Metadata'));
+      final applyMetadata = find.text('Apply Metadata', skipOffstage: false);
+      expect(applyMetadata, findsWidgets);
+      await tester.ensureVisible(applyMetadata.last);
+      await tester.pumpAndSettle();
+      await tester.tap(applyMetadata.last);
       await tester.pumpAndSettle();
 
       expect(controller.errorCount, greaterThan(0));
-      expect(
-        find.textContaining('must match runtime chunkWidth'),
-        findsWidgets,
-      );
+      await tester.tap(find.text('Validation'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('tileSize must be snapped'), findsWidgets);
     },
   );
 }
@@ -111,15 +114,13 @@ const ChunkDocument _initialChunkDocument = ChunkDocument(
       levelId: 'field',
       tileSize: 16,
       width: 600,
-      height: 160,
-      entrySocket: 'in',
-      exitSocket: 'out',
+      height: 270,
       difficulty: chunkDifficultyNormal,
       tags: <String>['base'],
       tileLayers: <TileLayerDef>[],
       prefabs: <PlacedPrefabDef>[],
       markers: <PlacedMarkerDef>[],
-      groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 0),
+      groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 224),
       groundGaps: <GroundGapDef>[],
       status: chunkStatusActive,
     ),
@@ -130,6 +131,7 @@ const ChunkDocument _initialChunkDocument = ChunkDocument(
   levelOptionSource: 'test',
   runtimeGridSnap: 16.0,
   runtimeChunkWidth: 600.0,
+  runtimeGroundTopY: 224,
 );
 
 class _InMemoryChunkPlugin implements AuthoringDomainPlugin {

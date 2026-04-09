@@ -1009,11 +1009,12 @@ class _FakeChunkPlugin implements AuthoringDomainPlugin {
           levelId: 'field',
           tileSize: 16,
           width: 600,
-          height: 160,
-          entrySocket: 'in',
-          exitSocket: 'out',
+          height: 270,
           difficulty: chunkDifficultyNormal,
-          groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 0),
+          groundProfile: GroundProfileDef(
+            kind: groundProfileKindFlat,
+            topY: 224,
+          ),
         ),
       ],
       baselineByChunkKey: <String, ChunkSourceBaseline>{},
@@ -1022,6 +1023,7 @@ class _FakeChunkPlugin implements AuthoringDomainPlugin {
       levelOptionSource: 'test',
       runtimeGridSnap: 16.0,
       runtimeChunkWidth: 600.0,
+      runtimeGroundTopY: 224,
     );
   }
 

@@ -77,9 +77,7 @@ This freeze defines:
           "height": 44
         }
       ],
-      "tags": [],
-      "zIndex": 0,
-      "snapToGrid": true
+      "tags": []
     }
   ]
 }
@@ -98,6 +96,8 @@ This freeze defines:
     `tile_defs.platformModules[].id`
 - `anchorXPx`, `anchorYPx`: integer pixel values.
 - `colliders`: non-empty list, each collider has positive width/height.
+- `tags`: normalized prefab metadata only. Placement snap/layer settings now
+  belong to chunk placements, not prefab definitions.
 
 ## Migration Map (v1 -> v2)
 
@@ -109,7 +109,7 @@ Current v1 shape (Phase 0):
   - `sliceId`
   - `anchorXPx`, `anchorYPx`
   - `colliders[]`
-  - `tags`, `zIndex`, `snapToGrid`
+  - `tags`
 
 ### Field mapping table
 
@@ -147,7 +147,7 @@ Current v1 shape (Phase 0):
   - v1: unchanged
   - v2: unchanged
   - rule: preserve.
-- `colliders`, `tags`, `zIndex`, `snapToGrid`
+- `colliders`, `tags`
   - v1: unchanged
   - v2: unchanged
   - rule: preserve and canonicalize ordering where applicable.
@@ -215,4 +215,3 @@ Phase 3 can consume Phase 2 schema without redesign because:
 - identity is stable (`prefabKey`) and rename-safe (`id`)
 - mutation/version safety is explicit (`revision`, `status`)
 - migration from legacy data is deterministic and documented
-

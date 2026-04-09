@@ -37,8 +37,6 @@ class RuntimePrefabContract {
     required this.anchorYPx,
     required this.colliders,
     required this.tags,
-    required this.zIndex,
-    required this.snapToGrid,
   });
 
   final String prefabKey;
@@ -52,8 +50,6 @@ class RuntimePrefabContract {
   final int anchorYPx;
   final List<RuntimePrefabCollider> colliders;
   final List<String> tags;
-  final int zIndex;
-  final bool snapToGrid;
 
   Map<String, Object?> toJson() {
     return <String, Object?>{
@@ -70,8 +66,6 @@ class RuntimePrefabContract {
           .map((collider) => collider.toJson())
           .toList(growable: false),
       'tags': tags,
-      'zIndex': zIndex,
-      'snapToGrid': snapToGrid,
     };
   }
 }
@@ -82,12 +76,16 @@ class RuntimeChunkPrefabRef {
     required this.legacyPrefabId,
     required this.x,
     required this.y,
+    required this.zIndex,
+    required this.snapToGrid,
   });
 
   final String prefabKey;
   final String legacyPrefabId;
   final int x;
   final int y;
+  final int zIndex;
+  final bool snapToGrid;
 
   Map<String, Object?> toJson() {
     return <String, Object?>{
@@ -95,6 +93,8 @@ class RuntimeChunkPrefabRef {
       'prefabId': legacyPrefabId,
       'x': x,
       'y': y,
+      'zIndex': zIndex,
+      'snapToGrid': snapToGrid,
     };
   }
 }
@@ -142,8 +142,6 @@ RuntimePrefabContract? mapPrefabToRuntimeContract(
         )
         .toList(growable: false),
     tags: List<String>.from(prefab.tags),
-    zIndex: prefab.zIndex,
-    snapToGrid: prefab.snapToGrid,
   );
 }
 
@@ -182,5 +180,7 @@ RuntimeChunkPrefabRef mapPlacedPrefabToRuntimeRef(
     legacyPrefabId: placedPrefab.prefabId,
     x: placedPrefab.x,
     y: placedPrefab.y,
+    zIndex: placedPrefab.zIndex,
+    snapToGrid: placedPrefab.snapToGrid,
   );
 }

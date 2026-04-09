@@ -24,7 +24,13 @@ Related docs:
     - `type: atlas_slice` + `sliceId`
     - `type: platform_module` + `moduleId`
   - placement/collision: `anchorXPx`, `anchorYPx`, `colliders[]`
-  - metadata: `tags[]`, `zIndex`, `snapToGrid`
+  - metadata: `tags[]`
+
+Chunk prefab placements own per-instance:
+
+- placement coordinates: `x`, `y`
+- placement mode: `snapToGrid`
+- render order: `zIndex`
 
 `tile_defs.json`:
 
@@ -73,7 +79,7 @@ Validation is blocking before save/export and includes:
 - schema/identity/lifecycle/source integrity
 - anchor/collider correctness
 - kind-specific source/collider constraints
-- snap policy checks (platform/module tile-size alignment when `snapToGrid=true`)
+- platform/module tile-size alignment for platform prefab geometry
 - malformed tags/payload checks
 
 ## PR-Style Summary (Changed Files)

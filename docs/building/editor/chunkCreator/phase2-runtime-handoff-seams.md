@@ -23,13 +23,14 @@ consume Phase 2 prefab authoring contracts without schema redesign.
 - intent: `kind`
 - source: `visualSourceType`, `visualSourceRefId`
 - geometry: `anchorXPx`, `anchorYPx`, `colliders`
-- render/meta: `tags`, `zIndex`, `snapToGrid`
+- metadata: `tags`
 
 `RuntimeChunkPrefabRef` (from `PlacedPrefabDef`) includes:
 
 - `prefabKey` (preferred stable reference)
 - `prefabId` (legacy compatibility field)
 - placement coordinates: `x`, `y`
+- placement presentation/policy: `zIndex`, `snapToGrid`
 
 ## Mapping rules
 
@@ -63,7 +64,8 @@ JSON parse behavior:
 Validation seam:
 
 - chunk validation blocks prefab placements with no `prefabId` and no `prefabKey`
-- chunk validation enforces prefab placement grid snap
+- chunk validation enforces grid snap only when the placement opts into
+  `snapToGrid`
 
 ## Adapter removal criteria for Phase 3
 

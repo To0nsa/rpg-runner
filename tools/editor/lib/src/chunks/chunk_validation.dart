@@ -35,6 +35,14 @@ List<ValidationIssue> validateChunkDocument(ChunkDocument document) {
   final chunkKeySet = <String>{};
   final chunkIdSet = <String>{};
   final filenameLowerSet = <String>{};
+  final knownPrefabKeys = document.prefabData.prefabs
+      .map((prefab) => prefab.prefabKey)
+      .where((key) => key.isNotEmpty)
+      .toSet();
+  final knownPrefabIds = document.prefabData.prefabs
+      .map((prefab) => prefab.id)
+      .where((id) => id.isNotEmpty)
+      .toSet();
   final knownLevelIds = document.availableLevelIds.toSet();
   const tolerance = 1e-9;
 
@@ -198,26 +206,27 @@ List<ValidationIssue> validateChunkDocument(ChunkDocument document) {
       );
     }
 
-    if (!_isSnapped(chunk.height.toDouble(), document.runtimeGridSnap) ||
-        !_isSnapped(chunk.tileSize.toDouble(), document.runtimeGridSnap)) {
+    if (chunk.height != document.lockedChunkHeight) {
       issues.add(
         ValidationIssue(
           severity: ValidationSeverity.error,
-          code: 'chunk_grid_snap_violation',
+          code: 'chunk_height_mismatch',
           message:
-              'Chunk ${chunk.id} dimensions/tileSize must be snapped to runtime grid '
-              '${document.runtimeGridSnap}.',
+              'Chunk ${chunk.id} height ${chunk.height} must match locked chunk '
+              'height ${document.lockedChunkHeight}.',
           sourcePath: sourcePath,
         ),
       );
     }
 
-    if (chunk.entrySocket.isEmpty || chunk.exitSocket.isEmpty) {
+    if (!_isSnapped(chunk.tileSize.toDouble(), document.runtimeGridSnap)) {
       issues.add(
         ValidationIssue(
           severity: ValidationSeverity.error,
-          code: 'missing_socket',
-          message: 'Chunk ${chunk.id} must define entrySocket and exitSocket.',
+          code: 'chunk_grid_snap_violation',
+          message:
+              'Chunk ${chunk.id} tileSize must be snapped to runtime grid '
+              '${document.runtimeGridSnap}.',
           sourcePath: sourcePath,
         ),
       );
@@ -258,16 +267,14 @@ List<ValidationIssue> validateChunkDocument(ChunkDocument document) {
       );
     }
 
-    if (!_isSnapped(
-      chunk.groundProfile.topY.toDouble(),
-      document.runtimeGridSnap,
-    )) {
+    if (chunk.groundProfile.topY != document.runtimeGroundTopY) {
       issues.add(
         ValidationIssue(
           severity: ValidationSeverity.error,
-          code: 'ground_profile_snap_violation',
+          code: 'ground_profile_top_y_mismatch',
           message:
-              'Chunk ${chunk.id} groundProfile.topY must be snapped to runtime grid.',
+              'Chunk ${chunk.id} groundProfile.topY ${chunk.groundProfile.topY} '
+              'must match runtime groundTopY ${document.runtimeGroundTopY}.',
           sourcePath: sourcePath,
         ),
       );
@@ -275,7 +282,7 @@ List<ValidationIssue> validateChunkDocument(ChunkDocument document) {
 
     final gapIdSet = <String>{};
     final sortedPrefabs = List<PlacedPrefabDef>.from(chunk.prefabs)
-      ..sort(_comparePlacedPrefabsForValidation);
+      ..sort(comparePlacedPrefabsDeterministic);
 
     for (final prefab in sortedPrefabs) {
       if (prefab.prefabId.isEmpty && prefab.prefabKey.isEmpty) {
@@ -290,8 +297,27 @@ List<ValidationIssue> validateChunkDocument(ChunkDocument document) {
         );
       }
 
-      if (!_isSnapped(prefab.x.toDouble(), document.runtimeGridSnap) ||
-          !_isSnapped(prefab.y.toDouble(), document.runtimeGridSnap)) {
+      final matchesKnownKey = prefab.prefabKey.isNotEmpty
+          ? knownPrefabKeys.contains(prefab.prefabKey)
+          : false;
+      final matchesKnownId = prefab.prefabId.isNotEmpty
+          ? knownPrefabIds.contains(prefab.prefabId)
+          : false;
+      if (!matchesKnownKey && !matchesKnownId) {
+        issues.add(
+          ValidationIssue(
+            severity: ValidationSeverity.error,
+            code: 'unknown_prefab_ref',
+            message:
+                'Chunk ${chunk.id} references unknown prefab "${prefab.resolvedPrefabRef}".',
+            sourcePath: sourcePath,
+          ),
+        );
+      }
+
+      if (prefab.snapToGrid &&
+          (!_isSnapped(prefab.x.toDouble(), document.runtimeGridSnap) ||
+              !_isSnapped(prefab.y.toDouble(), document.runtimeGridSnap))) {
         issues.add(
           ValidationIssue(
             severity: ValidationSeverity.error,
@@ -461,20 +487,4 @@ int _compareGapsForValidation(GroundGapDef a, GroundGapDef b) {
     return widthCompare;
   }
   return a.gapId.compareTo(b.gapId);
-}
-
-int _comparePlacedPrefabsForValidation(PlacedPrefabDef a, PlacedPrefabDef b) {
-  final yCompare = a.y.compareTo(b.y);
-  if (yCompare != 0) {
-    return yCompare;
-  }
-  final xCompare = a.x.compareTo(b.x);
-  if (xCompare != 0) {
-    return xCompare;
-  }
-  final refCompare = a.resolvedPrefabRef.compareTo(b.resolvedPrefabRef);
-  if (refCompare != 0) {
-    return refCompare;
-  }
-  return a.prefabId.compareTo(b.prefabId);
 }

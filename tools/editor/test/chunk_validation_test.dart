@@ -15,8 +15,6 @@ void main() {
       tileSize: 15,
       width: 590,
       height: 150,
-      entrySocket: 'in',
-      exitSocket: 'out',
       difficulty: 'nightmare',
       groundProfile: GroundProfileDef(kind: 'slope', topY: 3),
       groundGaps: <GroundGapDef>[
@@ -32,6 +30,7 @@ void main() {
       levelOptionSource: 'test',
       runtimeGridSnap: 16.0,
       runtimeChunkWidth: 600.0,
+      runtimeGroundTopY: 224,
     );
 
     final issues = validateChunkDocument(document);
@@ -43,7 +42,8 @@ void main() {
     expect(codes, contains('chunk_grid_snap_violation'));
     expect(codes, contains('invalid_difficulty'));
     expect(codes, contains('invalid_ground_profile_kind'));
-    expect(codes, contains('ground_profile_snap_violation'));
+    expect(codes, contains('chunk_height_mismatch'));
+    expect(codes, contains('ground_profile_top_y_mismatch'));
     expect(codes, contains('duplicate_gap_id'));
     expect(codes, contains('overlapping_gaps'));
   });
@@ -58,10 +58,8 @@ void main() {
       tileSize: 0,
       width: 0,
       height: 0,
-      entrySocket: '',
-      exitSocket: '',
       difficulty: chunkDifficultyNormal,
-      groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 0),
+      groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 224),
     );
     const document = ChunkDocument(
       chunks: <LevelChunkDef>[missingFields],
@@ -71,6 +69,7 @@ void main() {
       levelOptionSource: 'test',
       runtimeGridSnap: 16.0,
       runtimeChunkWidth: 600.0,
+      runtimeGroundTopY: 224,
     );
 
     final codes = validateChunkDocument(document).map((i) => i.code).toSet();
@@ -83,7 +82,6 @@ void main() {
     expect(codes, contains('invalid_revision'));
     expect(codes, contains('invalid_tile_size'));
     expect(codes, contains('invalid_chunk_dimensions'));
-    expect(codes, contains('missing_socket'));
   });
 
   test('reports malformed chunkKey and duplicate chunk ids', () {
@@ -95,11 +93,9 @@ void main() {
       levelId: 'field',
       tileSize: 16,
       width: 600,
-      height: 160,
-      entrySocket: 'in',
-      exitSocket: 'out',
+      height: 270,
       difficulty: chunkDifficultyNormal,
-      groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 0),
+      groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 224),
     );
     const duplicateId = LevelChunkDef(
       chunkKey: 'chunk_2',
@@ -109,11 +105,9 @@ void main() {
       levelId: 'field',
       tileSize: 16,
       width: 600,
-      height: 160,
-      entrySocket: 'in',
-      exitSocket: 'out',
+      height: 270,
       difficulty: chunkDifficultyNormal,
-      groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 0),
+      groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 224),
     );
     const document = ChunkDocument(
       chunks: <LevelChunkDef>[malformed, duplicateId],
@@ -123,6 +117,7 @@ void main() {
       levelOptionSource: 'test',
       runtimeGridSnap: 16.0,
       runtimeChunkWidth: 600.0,
+      runtimeGroundTopY: 224,
     );
 
     final codes = validateChunkDocument(document).map((i) => i.code).toSet();
@@ -139,11 +134,9 @@ void main() {
       levelId: 'field',
       tileSize: 16,
       width: 600,
-      height: 160,
-      entrySocket: 'in',
-      exitSocket: 'out',
+      height: 270,
       difficulty: chunkDifficultyNormal,
-      groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 0),
+      groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 224),
     );
     const document = ChunkDocument(
       chunks: <LevelChunkDef>[chunk],
@@ -153,6 +146,7 @@ void main() {
       levelOptionSource: 'test',
       runtimeGridSnap: 16.0,
       runtimeChunkWidth: 600.0,
+      runtimeGroundTopY: 224,
       operationIssues: <ValidationIssue>[
         ValidationIssue(
           severity: ValidationSeverity.error,
@@ -175,14 +169,12 @@ void main() {
       levelId: 'field',
       tileSize: 16,
       width: 600,
-      height: 160,
-      entrySocket: 'in',
-      exitSocket: 'out',
+      height: 270,
       difficulty: chunkDifficultyNormal,
       prefabs: <PlacedPrefabDef>[
         PlacedPrefabDef(prefabId: '', prefabKey: '', x: 10, y: 32),
       ],
-      groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 0),
+      groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 224),
     );
     const document = ChunkDocument(
       chunks: <LevelChunkDef>[chunk],
@@ -192,10 +184,49 @@ void main() {
       levelOptionSource: 'test',
       runtimeGridSnap: 16.0,
       runtimeChunkWidth: 600.0,
+      runtimeGroundTopY: 224,
     );
 
     final codes = validateChunkDocument(document).map((i) => i.code).toSet();
     expect(codes, contains('missing_prefab_ref'));
+    expect(codes, contains('unknown_prefab_ref'));
     expect(codes, contains('prefab_snap_violation'));
+  });
+
+  test('allows free prefab placements off grid when snap is disabled', () {
+    const chunk = LevelChunkDef(
+      chunkKey: 'chunk_prefab',
+      id: 'chunk_prefab',
+      revision: 1,
+      schemaVersion: 1,
+      levelId: 'field',
+      tileSize: 16,
+      width: 600,
+      height: 270,
+      difficulty: chunkDifficultyNormal,
+      prefabs: <PlacedPrefabDef>[
+        PlacedPrefabDef(
+          prefabId: 'crate_a',
+          prefabKey: 'crate_a',
+          x: 10,
+          y: 33,
+          snapToGrid: false,
+        ),
+      ],
+      groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 224),
+    );
+    const document = ChunkDocument(
+      chunks: <LevelChunkDef>[chunk],
+      baselineByChunkKey: <String, ChunkSourceBaseline>{},
+      availableLevelIds: <String>['field'],
+      activeLevelId: 'field',
+      levelOptionSource: 'test',
+      runtimeGridSnap: 16.0,
+      runtimeChunkWidth: 600.0,
+      runtimeGroundTopY: 224,
+    );
+
+    final codes = validateChunkDocument(document).map((i) => i.code).toSet();
+    expect(codes, isNot(contains('prefab_snap_violation')));
   });
 }

@@ -89,10 +89,9 @@ class PrefabEditorPrefabController {
     required PrefabVisualSource visualSource,
   }) {
     final sceneValues = form.tryParseSceneValues();
-    final zIndex = int.tryParse(form.zIndexController.text.trim());
-    if (sceneValues == null || zIndex == null) {
+    if (sceneValues == null) {
       return const PrefabEditorDecision.error(
-        'Anchor/collider/z-index fields must be valid integers.',
+        'Anchor/collider fields must be valid integers.',
       );
     }
 
@@ -122,8 +121,6 @@ class PrefabEditorPrefabController {
         ),
       ],
       tags: normalizedTags,
-      zIndex: zIndex,
-      snapToGrid: form.snapToGrid,
     );
 
     final existingPrefab = identity.existingPrefab;
@@ -164,8 +161,6 @@ class PrefabEditorPrefabController {
         colliderWidth: collider.width.toString(),
         colliderHeight: collider.height.toString(),
         tags: prefab.tags.join(', '),
-        zIndex: prefab.zIndex.toString(),
-        snapToGrid: prefab.snapToGrid,
         autoManagePlatformModule: autoManagePlatformModule,
         selectedKind: selectedKind,
         editingPrefabKey: prefab.prefabKey,

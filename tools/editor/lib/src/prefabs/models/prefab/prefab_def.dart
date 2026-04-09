@@ -23,8 +23,6 @@ class PrefabDef {
     required this.anchorYPx,
     required this.colliders,
     this.tags = const <String>[],
-    this.zIndex = 0,
-    this.snapToGrid = true,
   }) : visualSource =
            visualSource ??
            (sliceId == null
@@ -41,8 +39,6 @@ class PrefabDef {
   final int anchorYPx;
   final List<PrefabColliderDef> colliders;
   final List<String> tags;
-  final int zIndex;
-  final bool snapToGrid;
 
   bool get usesAtlasSlice => visualSource.isAtlasSlice;
   bool get usesPlatformModule => visualSource.isPlatformModule;
@@ -66,8 +62,6 @@ class PrefabDef {
     int? anchorYPx,
     List<PrefabColliderDef>? colliders,
     List<String>? tags,
-    int? zIndex,
-    bool? snapToGrid,
   }) {
     final nextVisualSource =
         visualSource ??
@@ -85,8 +79,6 @@ class PrefabDef {
       anchorYPx: anchorYPx ?? this.anchorYPx,
       colliders: colliders ?? this.colliders,
       tags: tags ?? this.tags,
-      zIndex: zIndex ?? this.zIndex,
-      snapToGrid: snapToGrid ?? this.snapToGrid,
     );
   }
 
@@ -107,8 +99,6 @@ class PrefabDef {
       'anchorYPx': anchorYPx,
       'colliders': colliders.map((c) => c.toJson()).toList(growable: false),
       'tags': tags,
-      'zIndex': zIndex,
-      'snapToGrid': snapToGrid,
     };
   }
 
@@ -158,8 +148,6 @@ class PrefabDef {
       anchorYPx: (json['anchorYPx'] as num?)?.toInt() ?? 0,
       colliders: colliders,
       tags: tags,
-      zIndex: (json['zIndex'] as num?)?.toInt() ?? 0,
-      snapToGrid: (json['snapToGrid'] as bool?) ?? true,
     );
   }
 }

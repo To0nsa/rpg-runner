@@ -27,6 +27,10 @@ void main() {
       expect(loaded.activeLevelId, 'field');
       expect(loaded.runtimeGridSnap, 16.0);
       expect(loaded.runtimeChunkWidth, 600.0);
+      expect(loaded.runtimeGroundTopY, 224);
+      expect(loaded.lockedChunkHeight, 270);
+      expect(loaded.chunks.single.height, 270);
+      expect(loaded.chunks.single.groundProfile.topY, 224);
 
       final editedChunk = loaded.chunks.single.copyWith(
         tags: const <String>['zzz', 'aaa'],
@@ -45,6 +49,7 @@ void main() {
       expect(savedJson, isA<Map<String, Object?>>());
       final savedMap = savedJson as Map<String, Object?>;
       expect(savedMap['chunkKey'], 'chunk_field_001');
+      expect(savedMap['height'], 270);
       expect(savedMap['tags'], <String>['aaa', 'zzz']);
     } finally {
       fixtureRoot.deleteSync(recursive: true);
@@ -121,12 +126,10 @@ void main() {
         levelId: 'field',
         tileSize: 16,
         width: 600,
-        height: 160,
-        entrySocket: 'in',
-        exitSocket: 'out',
+        height: 270,
         difficulty: chunkDifficultyNormal,
         tags: <String>['a'],
-        groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 0),
+        groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 224),
       );
       const chunkB = LevelChunkDef(
         chunkKey: 'CHUNK_A',
@@ -136,12 +139,10 @@ void main() {
         levelId: 'field',
         tileSize: 16,
         width: 600,
-        height: 160,
-        entrySocket: 'in',
-        exitSocket: 'out',
+        height: 270,
         difficulty: chunkDifficultyNormal,
         tags: <String>['b'],
-        groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 0),
+        groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 224),
       );
       const document = ChunkDocument(
         chunks: <LevelChunkDef>[chunkA, chunkB],
@@ -151,6 +152,7 @@ void main() {
         levelOptionSource: 'test',
         runtimeGridSnap: 16.0,
         runtimeChunkWidth: 600.0,
+        runtimeGroundTopY: 224,
       );
 
       expect(
@@ -181,6 +183,20 @@ class TrackTuning {
 ''');
   _writeFile(
     root.path,
+    'packages/runner_core/lib/contracts/spatial_contract.dart',
+    '''
+const int virtualViewportHeight = 270;
+''',
+  );
+  _writeFile(
+    root.path,
+    'packages/runner_core/lib/levels/level_world_constants.dart',
+    '''
+const int defaultLevelGroundTopYInt = 224;
+''',
+  );
+  _writeFile(
+    root.path,
     'assets/authoring/level/chunks/chunk_field_001.json',
     '''
 {
@@ -193,8 +209,6 @@ class TrackTuning {
   "tileSize": 16,
   "width": 600,
   "height": 160,
-  "entrySocket": "in",
-  "exitSocket": "out",
   "difficulty": "normal",
   "tags": ["base"],
   "tileLayers": [],
@@ -228,6 +242,20 @@ class TrackTuning {
 ''');
   _writeFile(
     root.path,
+    'packages/runner_core/lib/contracts/spatial_contract.dart',
+    '''
+const int virtualViewportHeight = 270;
+''',
+  );
+  _writeFile(
+    root.path,
+    'packages/runner_core/lib/levels/level_world_constants.dart',
+    '''
+const int defaultLevelGroundTopYInt = 224;
+''',
+  );
+  _writeFile(
+    root.path,
     'assets/authoring/level/chunks/chunk_field_bad.json',
     '''
 {
@@ -240,8 +268,6 @@ class TrackTuning {
   "tileSize": 16,
   "width": 600,
   "height": 160,
-  "entrySocket": "in",
-  "exitSocket": "out",
   "difficulty": "normal",
   "tags": "bad",
   "tileLayers": [],

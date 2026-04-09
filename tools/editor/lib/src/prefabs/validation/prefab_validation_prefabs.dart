@@ -239,9 +239,7 @@ void _validatePrefabAnchorAndColliders({
       );
     }
 
-    if (prefab.kind == PrefabKind.platform &&
-        prefab.snapToGrid &&
-        sourceGeometry.snapUnitPx > 1) {
+    if (prefab.kind == PrefabKind.platform && sourceGeometry.snapUnitPx > 1) {
       if (!_isSnappedToUnit(anchorX, sourceGeometry.snapUnitPx) ||
           !_isSnappedToUnit(anchorY, sourceGeometry.snapUnitPx)) {
         issues.add(
@@ -281,7 +279,6 @@ void _validatePrefabAnchorAndColliders({
 
     if (sourceGeometry != null &&
         prefab.kind == PrefabKind.platform &&
-        prefab.snapToGrid &&
         sourceGeometry.snapUnitPx > 1) {
       if (!_isSnappedToUnit(collider.offsetX, sourceGeometry.snapUnitPx) ||
           !_isSnappedToUnit(collider.offsetY, sourceGeometry.snapUnitPx) ||

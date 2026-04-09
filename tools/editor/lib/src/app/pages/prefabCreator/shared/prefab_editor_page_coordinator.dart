@@ -95,11 +95,6 @@ class PrefabEditorPageCoordinator {
           _shellState.selectedPrefabSliceId = value;
         });
       },
-      onSnapToGridChanged: (value) {
-        _updateState(() {
-          _obstaclePrefabForm.snapToGrid = value;
-        });
-      },
       onSceneValuesChanged: onObstaclePrefabSceneValuesChanged,
       onLoadPrefab: loadPrefabIntoForm,
       onDeletePrefab: deletePrefab,
@@ -140,11 +135,6 @@ class PrefabEditorPageCoordinator {
         _updateState(() {
           _shellState.selectedModuleId = value;
           _shellState.selectedPrefabPlatformModuleId = value;
-        });
-      },
-      onSnapToGridChanged: (value) {
-        _updateState(() {
-          _platformPrefabForm.snapToGrid = value;
         });
       },
       onLoadPrefabForModule: loadPlatformPrefabForSelectedModule,
@@ -666,9 +656,6 @@ class PrefabEditorPageCoordinator {
       if (_platformPrefabForm.colliderHeightController.text.trim().isEmpty) {
         _platformPrefabForm.colliderHeightController.text = module.tileSize
             .toString();
-      }
-      if (_platformPrefabForm.zIndexController.text.trim().isEmpty) {
-        _platformPrefabForm.zIndexController.text = '0';
       }
     });
   }

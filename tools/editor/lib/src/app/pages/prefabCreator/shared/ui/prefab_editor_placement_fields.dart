@@ -8,7 +8,6 @@ class PrefabEditorPlacementFields extends StatelessWidget {
   const PrefabEditorPlacementFields({
     super.key,
     required this.form,
-    required this.onSnapToGridChanged,
     this.isEnabled = true,
     this.colliderOffsetXLabel = 'Offset X',
     this.colliderOffsetYLabel = 'Offset Y',
@@ -19,7 +18,6 @@ class PrefabEditorPlacementFields extends StatelessWidget {
 
   final PrefabFormState form;
   final bool isEnabled;
-  final ValueChanged<bool> onSnapToGridChanged;
   final String colliderOffsetXLabel;
   final String colliderOffsetYLabel;
   final String colliderWidthLabel;
@@ -115,30 +113,6 @@ class PrefabEditorPlacementFields extends StatelessWidget {
           ],
         ),
         const SizedBox(height: PrefabEditorUiTokens.controlGap),
-        TextField(
-          controller: form.zIndexController,
-          enabled: isEnabled,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            border: OutlineInputBorder(),
-            labelText: 'Z Index',
-          ),
-        ),
-        const SizedBox(height: PrefabEditorUiTokens.controlGap),
-        CheckboxListTile(
-          value: form.snapToGrid,
-          onChanged: !isEnabled
-              ? null
-              : (value) {
-                  if (value == null) {
-                    return;
-                  }
-                  onSnapToGridChanged(value);
-                },
-          title: const Text('Snap To Grid'),
-          contentPadding: EdgeInsets.zero,
-          controlAffinity: ListTileControlAffinity.leading,
-        ),
         if (invalidValuesMessage != null) ...[
           const SizedBox(height: PrefabEditorUiTokens.controlGap),
           Text(invalidValuesMessage!),

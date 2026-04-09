@@ -20,8 +20,6 @@ void main() {
             PrefabColliderDef(offsetX: 0, offsetY: 0, width: 16, height: 16),
           ],
           tags: const ['z'],
-          zIndex: 1,
-          snapToGrid: true,
         ),
         PrefabDef(
           prefabKey: 'a_key',
@@ -75,6 +73,8 @@ void main() {
         prefabKey: 'stable_key',
         x: 48,
         y: 32,
+        zIndex: 3,
+        snapToGrid: false,
       );
 
       final runtimeRef = mapPlacedPrefabToRuntimeRef(placed);
@@ -82,6 +82,8 @@ void main() {
       expect(runtimeRef.legacyPrefabId, 'legacy_id');
       expect(runtimeRef.x, 48);
       expect(runtimeRef.y, 32);
+      expect(runtimeRef.zIndex, 3);
+      expect(runtimeRef.snapToGrid, isFalse);
     },
   );
 
@@ -95,5 +97,6 @@ void main() {
     expect(placed.prefabKey, 'stable_key');
     expect(placed.prefabId, 'stable_key');
     expect(placed.resolvedPrefabRef, 'stable_key');
+    expect(placed.snapToGrid, isTrue);
   });
 }

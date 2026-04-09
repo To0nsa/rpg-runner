@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../domain/authoring_types.dart';
+import '../prefabs/models/models.dart';
 
 const int chunkSchemaVersion = 1;
 const String chunkStatusActive = 'active';
@@ -10,6 +11,8 @@ const String chunkDifficultyNormal = 'normal';
 const String chunkDifficultyHard = 'hard';
 const String groundProfileKindFlat = 'flat';
 const String groundGapTypePit = 'pit';
+const int defaultLockedChunkHeight = 270;
+const int defaultRuntimeGroundTopY = 224;
 
 enum ChunkDifficulty { easy, normal, hard }
 
@@ -80,6 +83,30 @@ GroundProfileKind parseGroundProfileKind(String raw) {
   }
 }
 
+int lockedChunkHeightForViewportHeight(int runtimeViewportHeight) {
+  return runtimeViewportHeight > 0
+      ? runtimeViewportHeight
+      : defaultLockedChunkHeight;
+}
+
+LevelChunkDef normalizeChunkToAuthority(
+  LevelChunkDef chunk, {
+  required double runtimeChunkWidth,
+  required int lockedChunkHeight,
+  required int runtimeGroundTopY,
+}) {
+  return chunk
+      .copyWith(
+        width: runtimeChunkWidth.round(),
+        height: lockedChunkHeight,
+        groundProfile: chunk.groundProfile.copyWith(
+          kind: groundProfileKindFlat,
+          topY: runtimeGroundTopY,
+        ),
+      )
+      .normalized();
+}
+
 @immutable
 class TileLayerDef {
   const TileLayerDef({
@@ -120,12 +147,16 @@ class PlacedPrefabDef {
     this.prefabKey = '',
     required this.x,
     required this.y,
+    this.zIndex = 0,
+    this.snapToGrid = true,
   });
 
   final String prefabId;
   final String prefabKey;
   final int x;
   final int y;
+  final int zIndex;
+  final bool snapToGrid;
 
   String get resolvedPrefabRef => prefabKey.isNotEmpty ? prefabKey : prefabId;
 
@@ -134,12 +165,16 @@ class PlacedPrefabDef {
     String? prefabKey,
     int? x,
     int? y,
+    int? zIndex,
+    bool? snapToGrid,
   }) {
     return PlacedPrefabDef(
       prefabId: prefabId ?? this.prefabId,
       prefabKey: prefabKey ?? this.prefabKey,
       x: x ?? this.x,
       y: y ?? this.y,
+      zIndex: zIndex ?? this.zIndex,
+      snapToGrid: snapToGrid ?? this.snapToGrid,
     );
   }
 
@@ -149,6 +184,8 @@ class PlacedPrefabDef {
       if (prefabKey.isNotEmpty) 'prefabKey': prefabKey,
       'x': x,
       'y': y,
+      'zIndex': zIndex,
+      'snapToGrid': snapToGrid,
     };
     return json;
   }
@@ -164,8 +201,85 @@ class PlacedPrefabDef {
       prefabKey: parsedPrefabKey,
       x: _intOrDefault(json['x'], fallback: 0),
       y: _intOrDefault(json['y'], fallback: 0),
+      zIndex: _intOrDefault(json['zIndex'], fallback: 0),
+      snapToGrid: _boolOrDefault(json['snapToGrid'], fallback: true),
     );
   }
+}
+
+int comparePlacedPrefabsDeterministic(PlacedPrefabDef a, PlacedPrefabDef b) {
+  final zCompare = a.zIndex.compareTo(b.zIndex);
+  if (zCompare != 0) {
+    return zCompare;
+  }
+  final yCompare = a.y.compareTo(b.y);
+  if (yCompare != 0) {
+    return yCompare;
+  }
+  final xCompare = a.x.compareTo(b.x);
+  if (xCompare != 0) {
+    return xCompare;
+  }
+  final refCompare = a.resolvedPrefabRef.compareTo(b.resolvedPrefabRef);
+  if (refCompare != 0) {
+    return refCompare;
+  }
+  final snapCompare = _compareBool(a.snapToGrid, b.snapToGrid);
+  if (snapCompare != 0) {
+    return snapCompare;
+  }
+  return a.prefabId.compareTo(b.prefabId);
+}
+
+@immutable
+class ChunkPlacedPrefabSelection {
+  const ChunkPlacedPrefabSelection({
+    required this.selectionKey,
+    required this.ordinalAtLocation,
+    required this.prefab,
+  });
+
+  final String selectionKey;
+  final int ordinalAtLocation;
+  final PlacedPrefabDef prefab;
+}
+
+List<ChunkPlacedPrefabSelection> buildChunkPlacedPrefabSelections(
+  Iterable<PlacedPrefabDef> prefabs,
+) {
+  final sortedPrefabs = List<PlacedPrefabDef>.from(prefabs)
+    ..sort(comparePlacedPrefabsDeterministic);
+  final locationOrdinals = <String, int>{};
+  return sortedPrefabs
+      .map((prefab) {
+        final locationKey = _placedPrefabLocationKey(prefab);
+        final ordinal = locationOrdinals[locationKey] ?? 0;
+        locationOrdinals[locationKey] = ordinal + 1;
+        return ChunkPlacedPrefabSelection(
+          selectionKey: buildChunkPlacedPrefabSelectionKey(
+            prefab.resolvedPrefabRef,
+            x: prefab.x,
+            y: prefab.y,
+            ordinalAtLocation: ordinal,
+          ),
+          ordinalAtLocation: ordinal,
+          prefab: prefab,
+        );
+      })
+      .toList(growable: false);
+}
+
+String buildChunkPlacedPrefabSelectionKey(
+  String resolvedPrefabRef, {
+  required int x,
+  required int y,
+  required int ordinalAtLocation,
+}) {
+  return '$resolvedPrefabRef|$x|$y|$ordinalAtLocation';
+}
+
+String _placedPrefabLocationKey(PlacedPrefabDef prefab) {
+  return '${prefab.resolvedPrefabRef}|${prefab.x}|${prefab.y}';
 }
 
 @immutable
@@ -284,8 +398,6 @@ class LevelChunkDef {
     required this.tileSize,
     required this.width,
     required this.height,
-    required this.entrySocket,
-    required this.exitSocket,
     required this.difficulty,
     this.tags = const <String>[],
     this.tileLayers = const <TileLayerDef>[],
@@ -304,8 +416,6 @@ class LevelChunkDef {
   final int tileSize;
   final int width;
   final int height;
-  final String entrySocket;
-  final String exitSocket;
   final String difficulty;
   final List<String> tags;
   final List<TileLayerDef> tileLayers;
@@ -330,8 +440,6 @@ class LevelChunkDef {
     int? tileSize,
     int? width,
     int? height,
-    String? entrySocket,
-    String? exitSocket,
     String? difficulty,
     List<String>? tags,
     List<TileLayerDef>? tileLayers,
@@ -350,8 +458,6 @@ class LevelChunkDef {
       tileSize: tileSize ?? this.tileSize,
       width: width ?? this.width,
       height: height ?? this.height,
-      entrySocket: entrySocket ?? this.entrySocket,
-      exitSocket: exitSocket ?? this.exitSocket,
       difficulty: difficulty ?? this.difficulty,
       tags: tags ?? this.tags,
       tileLayers: tileLayers ?? this.tileLayers,
@@ -376,21 +482,7 @@ class LevelChunkDef {
       ..sort((a, b) => a.id.compareTo(b.id));
 
     final normalizedPrefabs = List<PlacedPrefabDef>.from(prefabs)
-      ..sort((a, b) {
-        final yCompare = a.y.compareTo(b.y);
-        if (yCompare != 0) {
-          return yCompare;
-        }
-        final xCompare = a.x.compareTo(b.x);
-        if (xCompare != 0) {
-          return xCompare;
-        }
-        final refCompare = a.resolvedPrefabRef.compareTo(b.resolvedPrefabRef);
-        if (refCompare != 0) {
-          return refCompare;
-        }
-        return a.prefabId.compareTo(b.prefabId);
-      });
+      ..sort(comparePlacedPrefabsDeterministic);
 
     final normalizedMarkers = List<PlacedMarkerDef>.from(markers)
       ..sort((a, b) {
@@ -422,8 +514,6 @@ class LevelChunkDef {
       chunkKey: chunkKey.trim(),
       id: id.trim(),
       levelId: levelId.trim(),
-      entrySocket: entrySocket.trim(),
-      exitSocket: exitSocket.trim(),
       difficulty: difficulty.trim(),
       status: status.trim(),
       tags: normalizedTags,
@@ -446,8 +536,6 @@ class LevelChunkDef {
       'tileSize': normalizedChunk.tileSize,
       'width': normalizedChunk.width,
       'height': normalizedChunk.height,
-      'entrySocket': normalizedChunk.entrySocket,
-      'exitSocket': normalizedChunk.exitSocket,
       'difficulty': normalizedChunk.difficulty,
       'tags': normalizedChunk.tags,
       'tileLayers': normalizedChunk.tileLayers
@@ -479,9 +567,7 @@ class LevelChunkDef {
       levelId: _normalizedString(json['levelId']),
       tileSize: _intOrDefault(json['tileSize'], fallback: 16),
       width: _intOrDefault(json['width'], fallback: 600),
-      height: _intOrDefault(json['height'], fallback: 160),
-      entrySocket: _normalizedString(json['entrySocket'], fallback: 'default'),
-      exitSocket: _normalizedString(json['exitSocket'], fallback: 'default'),
+      height: _intOrDefault(json['height'], fallback: defaultLockedChunkHeight),
       difficulty: _normalizedString(
         json['difficulty'],
         fallback: chunkDifficultyNormal,
@@ -516,6 +602,9 @@ class ChunkDocument extends AuthoringDocument {
     required this.levelOptionSource,
     required this.runtimeGridSnap,
     required this.runtimeChunkWidth,
+    this.lockedChunkHeight = defaultLockedChunkHeight,
+    this.runtimeGroundTopY = defaultRuntimeGroundTopY,
+    this.prefabData = const PrefabData(),
     this.loadIssues = const <ValidationIssue>[],
     this.operationIssues = const <ValidationIssue>[],
   });
@@ -527,6 +616,9 @@ class ChunkDocument extends AuthoringDocument {
   final String levelOptionSource;
   final double runtimeGridSnap;
   final double runtimeChunkWidth;
+  final int lockedChunkHeight;
+  final int runtimeGroundTopY;
+  final PrefabData prefabData;
   final List<ValidationIssue> loadIssues;
   final List<ValidationIssue> operationIssues;
 
@@ -539,6 +631,9 @@ class ChunkDocument extends AuthoringDocument {
     String? levelOptionSource,
     double? runtimeGridSnap,
     double? runtimeChunkWidth,
+    int? lockedChunkHeight,
+    int? runtimeGroundTopY,
+    PrefabData? prefabData,
     List<ValidationIssue>? loadIssues,
     List<ValidationIssue>? operationIssues,
     bool clearOperationIssues = false,
@@ -553,6 +648,9 @@ class ChunkDocument extends AuthoringDocument {
       levelOptionSource: levelOptionSource ?? this.levelOptionSource,
       runtimeGridSnap: runtimeGridSnap ?? this.runtimeGridSnap,
       runtimeChunkWidth: runtimeChunkWidth ?? this.runtimeChunkWidth,
+      lockedChunkHeight: lockedChunkHeight ?? this.lockedChunkHeight,
+      runtimeGroundTopY: runtimeGroundTopY ?? this.runtimeGroundTopY,
+      prefabData: prefabData ?? this.prefabData,
       loadIssues: loadIssues ?? this.loadIssues,
       operationIssues: clearOperationIssues
           ? const <ValidationIssue>[]
@@ -570,6 +668,9 @@ class ChunkScene extends EditableScene {
     required this.sourcePathByChunkKey,
     required this.runtimeGridSnap,
     required this.runtimeChunkWidth,
+    required this.lockedChunkHeight,
+    required this.runtimeGroundTopY,
+    required this.prefabData,
   });
 
   final List<LevelChunkDef> chunks;
@@ -579,6 +680,9 @@ class ChunkScene extends EditableScene {
   final Map<String, String> sourcePathByChunkKey;
   final double runtimeGridSnap;
   final double runtimeChunkWidth;
+  final int lockedChunkHeight;
+  final int runtimeGroundTopY;
+  final PrefabData prefabData;
 }
 
 String _normalizedString(Object? raw, {String fallback = ''}) {
@@ -603,6 +707,13 @@ bool _boolOrDefault(Object? raw, {required bool fallback}) {
     return raw;
   }
   return fallback;
+}
+
+int _compareBool(bool a, bool b) {
+  if (a == b) {
+    return 0;
+  }
+  return a ? 1 : -1;
 }
 
 List<String> _readStringList(Object? raw) {

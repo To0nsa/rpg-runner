@@ -14,8 +14,6 @@ class PrefabFormDraftSnapshot {
     required this.colliderWidth,
     required this.colliderHeight,
     required this.tags,
-    required this.zIndex,
-    required this.snapToGrid,
     required this.autoManagePlatformModule,
     required this.selectedKind,
     required this.editingPrefabKey,
@@ -29,8 +27,6 @@ class PrefabFormDraftSnapshot {
   final String colliderWidth;
   final String colliderHeight;
   final String tags;
-  final String zIndex;
-  final bool snapToGrid;
   final bool autoManagePlatformModule;
   final PrefabKind selectedKind;
   final String? editingPrefabKey;
@@ -49,8 +45,6 @@ class PrefabFormDraftSnapshot {
         other.colliderWidth == colliderWidth &&
         other.colliderHeight == colliderHeight &&
         other.tags == tags &&
-        other.zIndex == zIndex &&
-        other.snapToGrid == snapToGrid &&
         other.autoManagePlatformModule == autoManagePlatformModule &&
         other.selectedKind == selectedKind &&
         other.editingPrefabKey == editingPrefabKey;
@@ -66,8 +60,6 @@ class PrefabFormDraftSnapshot {
     colliderWidth,
     colliderHeight,
     tags,
-    zIndex,
-    snapToGrid,
     autoManagePlatformModule,
     selectedKind,
     editingPrefabKey,
@@ -94,9 +86,6 @@ class PrefabFormState {
   final TextEditingController colliderHeightController =
       TextEditingController();
   final TextEditingController tagsController = TextEditingController();
-  final TextEditingController zIndexController = TextEditingController();
-
-  bool snapToGrid = true;
   bool autoManagePlatformModule = true;
   PrefabKind selectedKind = PrefabKind.unknown;
   String? editingPrefabKey;
@@ -111,8 +100,6 @@ class PrefabFormState {
       colliderWidth: colliderWidthController.text,
       colliderHeight: colliderHeightController.text,
       tags: tagsController.text,
-      zIndex: zIndexController.text,
-      snapToGrid: snapToGrid,
       autoManagePlatformModule: autoManagePlatformModule,
       selectedKind: selectedKind,
       editingPrefabKey: editingPrefabKey,
@@ -128,8 +115,6 @@ class PrefabFormState {
     colliderWidthController.text = snapshot.colliderWidth;
     colliderHeightController.text = snapshot.colliderHeight;
     tagsController.text = snapshot.tags;
-    zIndexController.text = snapshot.zIndex;
-    snapToGrid = snapshot.snapToGrid;
     autoManagePlatformModule = snapshot.autoManagePlatformModule;
     selectedKind = snapshot.selectedKind;
     editingPrefabKey = snapshot.editingPrefabKey;
@@ -181,8 +166,6 @@ class PrefabFormState {
     colliderWidthController.text = '16';
     colliderHeightController.text = '16';
     tagsController.clear();
-    zIndexController.text = '0';
-    snapToGrid = true;
     autoManagePlatformModule = true;
     selectedKind = PrefabKind.obstacle;
     editingPrefabKey = null;
@@ -199,8 +182,6 @@ class PrefabFormState {
     colliderWidthController.text = tileSizeText;
     colliderHeightController.text = tileSizeText;
     tagsController.clear();
-    zIndexController.text = '0';
-    snapToGrid = true;
     autoManagePlatformModule = true;
     selectedKind = PrefabKind.platform;
     editingPrefabKey = null;
@@ -215,6 +196,5 @@ class PrefabFormState {
     colliderWidthController.dispose();
     colliderHeightController.dispose();
     tagsController.dispose();
-    zIndexController.dispose();
   }
 }

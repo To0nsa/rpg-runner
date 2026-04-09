@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_plugin.dart';
 import 'package:runner_editor/src/domain/authoring_types.dart';
+import 'package:runner_editor/src/prefabs/models/models.dart';
 
 void main() {
   test('rename preserves chunkKey and revision, deprecate bumps revision', () {
@@ -15,11 +16,9 @@ void main() {
       levelId: 'field',
       tileSize: 16,
       width: 600,
-      height: 160,
-      entrySocket: 'in',
-      exitSocket: 'out',
+      height: 270,
       difficulty: chunkDifficultyNormal,
-      groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 0),
+      groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 224),
     );
     const document = ChunkDocument(
       chunks: <LevelChunkDef>[chunk],
@@ -29,6 +28,7 @@ void main() {
       levelOptionSource: 'test',
       runtimeGridSnap: 16.0,
       runtimeChunkWidth: 600.0,
+      runtimeGroundTopY: 224,
     );
 
     final renamed =
@@ -72,11 +72,9 @@ void main() {
       levelId: 'field',
       tileSize: 16,
       width: 600,
-      height: 160,
-      entrySocket: 'in',
-      exitSocket: 'out',
+      height: 270,
       difficulty: chunkDifficultyNormal,
-      groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 0),
+      groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 224),
     );
     const document = ChunkDocument(
       chunks: <LevelChunkDef>[base],
@@ -86,6 +84,7 @@ void main() {
       levelOptionSource: 'test',
       runtimeGridSnap: 16.0,
       runtimeChunkWidth: 600.0,
+      runtimeGroundTopY: 224,
     );
 
     final duplicated =
@@ -137,6 +136,8 @@ void main() {
     );
     expect(createdChunk.chunkKey, isNot('chunk_a'));
     expect(createdChunk.revision, 1);
+    expect(createdChunk.height, 270);
+    expect(createdChunk.groundProfile.topY, 224);
   });
 
   test(
@@ -151,11 +152,9 @@ void main() {
         levelId: 'field',
         tileSize: 16,
         width: 600,
-        height: 160,
-        entrySocket: 'in',
-        exitSocket: 'out',
+        height: 270,
         difficulty: chunkDifficultyNormal,
-        groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 0),
+        groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 224),
       );
       const other = LevelChunkDef(
         chunkKey: 'chunk_b',
@@ -165,11 +164,9 @@ void main() {
         levelId: 'field',
         tileSize: 16,
         width: 600,
-        height: 160,
-        entrySocket: 'in',
-        exitSocket: 'out',
+        height: 270,
         difficulty: chunkDifficultyNormal,
-        groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 0),
+        groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 224),
       );
       const document = ChunkDocument(
         chunks: <LevelChunkDef>[base, other],
@@ -179,6 +176,7 @@ void main() {
         levelOptionSource: 'test',
         runtimeGridSnap: 16.0,
         runtimeChunkWidth: 600.0,
+        runtimeGroundTopY: 224,
       );
 
       final next =
@@ -214,12 +212,10 @@ void main() {
       levelId: 'field',
       tileSize: 16,
       width: 600,
-      height: 160,
-      entrySocket: 'in',
-      exitSocket: 'out',
+      height: 270,
       difficulty: chunkDifficultyNormal,
       tags: <String>['base'],
-      groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 0),
+      groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 224),
     );
     const document = ChunkDocument(
       chunks: <LevelChunkDef>[base],
@@ -229,6 +225,7 @@ void main() {
       levelOptionSource: 'test',
       runtimeGridSnap: 16.0,
       runtimeChunkWidth: 600.0,
+      runtimeGroundTopY: 224,
     );
 
     final afterMetadata =
@@ -269,8 +266,8 @@ void main() {
               ),
             )
             as ChunkDocument;
-    expect(afterGround.chunks.single.revision, 3);
-    expect(afterGround.chunks.single.groundProfile.topY, 16);
+    expect(afterGround.chunks.single.revision, 2);
+    expect(afterGround.chunks.single.groundProfile.topY, 224);
   });
 
   test(
@@ -285,11 +282,9 @@ void main() {
         levelId: 'field',
         tileSize: 16,
         width: 600,
-        height: 160,
-        entrySocket: 'in',
-        exitSocket: 'out',
+        height: 270,
         difficulty: chunkDifficultyNormal,
-        groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 0),
+        groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 224),
       );
       const document = ChunkDocument(
         chunks: <LevelChunkDef>[chunk],
@@ -299,6 +294,7 @@ void main() {
         levelOptionSource: 'test',
         runtimeGridSnap: 16.0,
         runtimeChunkWidth: 600.0,
+        runtimeGroundTopY: 224,
       );
 
       final noOpRename = plugin.applyEdit(
@@ -322,11 +318,9 @@ void main() {
       levelId: 'field',
       tileSize: 16,
       width: 600,
-      height: 160,
-      entrySocket: 'in',
-      exitSocket: 'out',
+      height: 270,
       difficulty: chunkDifficultyNormal,
-      groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 0),
+      groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 224),
     );
     const document = ChunkDocument(
       chunks: <LevelChunkDef>[chunk],
@@ -336,6 +330,7 @@ void main() {
       levelOptionSource: 'test',
       runtimeGridSnap: 16.0,
       runtimeChunkWidth: 600.0,
+      runtimeGroundTopY: 224,
       operationIssues: <ValidationIssue>[
         ValidationIssue(
           severity: ValidationSeverity.error,
@@ -367,11 +362,9 @@ void main() {
       levelId: 'field',
       tileSize: 16,
       width: 600,
-      height: 160,
-      entrySocket: 'in',
-      exitSocket: 'out',
+      height: 270,
       difficulty: chunkDifficultyNormal,
-      groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 0),
+      groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 224),
       groundGaps: <GroundGapDef>[
         GroundGapDef(gapId: 'gap_1', type: groundGapTypePit, x: 16, width: 32),
       ],
@@ -384,6 +377,7 @@ void main() {
       levelOptionSource: 'test',
       runtimeGridSnap: 16.0,
       runtimeChunkWidth: 600.0,
+      runtimeGroundTopY: 224,
     );
 
     final next =
@@ -403,4 +397,177 @@ void main() {
     final codes = plugin.validate(next).map((issue) => issue.code).toSet();
     expect(codes, contains('update_ground_gap_missing_gap'));
   });
+
+  test(
+    'prefab placement commands add move replace and remove deterministically',
+    () {
+      final plugin = ChunkDomainPlugin();
+      const chunk = LevelChunkDef(
+        chunkKey: 'chunk_a',
+        id: 'chunk_a',
+        revision: 1,
+        schemaVersion: 1,
+        levelId: 'field',
+        tileSize: 16,
+        width: 600,
+        height: 270,
+        difficulty: chunkDifficultyNormal,
+        groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 224),
+      );
+      final document = ChunkDocument(
+        chunks: const <LevelChunkDef>[chunk],
+        baselineByChunkKey: const <String, ChunkSourceBaseline>{},
+        availableLevelIds: const <String>['field'],
+        activeLevelId: 'field',
+        levelOptionSource: 'test',
+        runtimeGridSnap: 16.0,
+        runtimeChunkWidth: 600.0,
+        runtimeGroundTopY: 224,
+        prefabData: PrefabData(
+          prefabs: <PrefabDef>[
+            PrefabDef(
+              prefabKey: 'crate_a',
+              id: 'crate_a',
+              revision: 1,
+              status: PrefabStatus.active,
+              kind: PrefabKind.obstacle,
+              visualSource: const PrefabVisualSource.atlasSlice('crate_slice'),
+              anchorXPx: 16,
+              anchorYPx: 16,
+              colliders: const <PrefabColliderDef>[
+                PrefabColliderDef(
+                  offsetX: 0,
+                  offsetY: 0,
+                  width: 16,
+                  height: 16,
+                ),
+              ],
+            ),
+            PrefabDef(
+              prefabKey: 'crate_b',
+              id: 'crate_b',
+              revision: 1,
+              status: PrefabStatus.active,
+              kind: PrefabKind.obstacle,
+              visualSource: const PrefabVisualSource.atlasSlice('crate_slice'),
+              anchorXPx: 16,
+              anchorYPx: 16,
+              colliders: const <PrefabColliderDef>[
+                PrefabColliderDef(
+                  offsetX: 0,
+                  offsetY: 0,
+                  width: 16,
+                  height: 16,
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+
+      final added =
+          plugin.applyEdit(
+                document,
+                AuthoringCommand(
+                  kind: 'add_prefab_placement',
+                  payload: <String, Object?>{
+                    'chunkKey': 'chunk_a',
+                    'prefabKey': 'crate_a',
+                    'x': 32,
+                    'y': 0,
+                    'zIndex': 2,
+                    'snapToGrid': false,
+                  },
+                ),
+              )
+              as ChunkDocument;
+      expect(added.chunks.single.prefabs, hasLength(1));
+      expect(added.chunks.single.prefabs.single.zIndex, 2);
+      expect(added.chunks.single.prefabs.single.snapToGrid, isFalse);
+      expect(added.chunks.single.revision, 2);
+
+      final selectionKey = buildChunkPlacedPrefabSelections(
+        added.chunks.single.prefabs,
+      ).single.selectionKey;
+
+      final moved =
+          plugin.applyEdit(
+                added,
+                AuthoringCommand(
+                  kind: 'move_prefab_placement',
+                  payload: <String, Object?>{
+                    'chunkKey': 'chunk_a',
+                    'selectionKey': selectionKey,
+                    'x': 64,
+                    'y': 16,
+                  },
+                ),
+              )
+              as ChunkDocument;
+      expect(moved.chunks.single.prefabs.single.x, 64);
+      expect(moved.chunks.single.prefabs.single.y, 16);
+      expect(moved.chunks.single.revision, 3);
+
+      final movedSelectionKey = buildChunkPlacedPrefabSelections(
+        moved.chunks.single.prefabs,
+      ).single.selectionKey;
+      final replaced =
+          plugin.applyEdit(
+                moved,
+                AuthoringCommand(
+                  kind: 'replace_prefab_placement',
+                  payload: <String, Object?>{
+                    'chunkKey': 'chunk_a',
+                    'selectionKey': movedSelectionKey,
+                    'prefabKey': 'crate_b',
+                  },
+                ),
+              )
+              as ChunkDocument;
+      expect(replaced.chunks.single.prefabs.single.prefabKey, 'crate_b');
+      expect(replaced.chunks.single.prefabs.single.prefabId, 'crate_b');
+      expect(replaced.chunks.single.prefabs.single.zIndex, 2);
+      expect(replaced.chunks.single.prefabs.single.snapToGrid, isFalse);
+      expect(replaced.chunks.single.revision, 4);
+
+      final updatedSnapSelectionKey = buildChunkPlacedPrefabSelections(
+        replaced.chunks.single.prefabs,
+      ).single.selectionKey;
+      final snapUpdated =
+          plugin.applyEdit(
+                replaced,
+                AuthoringCommand(
+                  kind: 'update_prefab_placement_settings',
+                  payload: <String, Object?>{
+                    'chunkKey': 'chunk_a',
+                    'selectionKey': updatedSnapSelectionKey,
+                    'zIndex': 5,
+                    'snapToGrid': true,
+                  },
+                ),
+              )
+              as ChunkDocument;
+      expect(snapUpdated.chunks.single.prefabs.single.zIndex, 5);
+      expect(snapUpdated.chunks.single.prefabs.single.snapToGrid, isTrue);
+      expect(snapUpdated.chunks.single.revision, 5);
+
+      final replacedSelectionKey = buildChunkPlacedPrefabSelections(
+        snapUpdated.chunks.single.prefabs,
+      ).single.selectionKey;
+      final removed =
+          plugin.applyEdit(
+                snapUpdated,
+                AuthoringCommand(
+                  kind: 'remove_prefab_placement',
+                  payload: <String, Object?>{
+                    'chunkKey': 'chunk_a',
+                    'selectionKey': replacedSelectionKey,
+                  },
+                ),
+              )
+              as ChunkDocument;
+      expect(removed.chunks.single.prefabs, isEmpty);
+      expect(removed.chunks.single.revision, 6);
+    },
+  );
 }

@@ -22,10 +22,6 @@ class PrefabEditorDataReducer {
         previous.anchorYPx != next.anchorYPx) {
       return true;
     }
-    if (previous.zIndex != next.zIndex ||
-        previous.snapToGrid != next.snapToGrid) {
-      return true;
-    }
     if (previous.status != next.status) {
       return true;
     }

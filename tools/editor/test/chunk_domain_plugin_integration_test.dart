@@ -25,6 +25,7 @@ void main() {
         expect(scene.activeLevelId, 'field');
         expect(scene.chunks, hasLength(1));
         expect(scene.chunks.single.id, 'chunk_a');
+        expect(scene.chunks.single.height, 270);
         expect(
           scene.sourcePathByChunkKey['chunk_field_001']?.replaceAll('\\', '/'),
           'assets/authoring/level/chunks/chunk_field_001.json',
@@ -124,6 +125,7 @@ void main() {
         final saved =
             jsonDecode(File(chunkPath).readAsStringSync())
                 as Map<String, Object?>;
+        expect(saved['height'], 270);
         expect(saved['tags'], <String>['aaa', 'zzz']);
         expect(File(chunkPath).readAsStringSync().endsWith('\n'), isTrue);
       } finally {
@@ -199,6 +201,13 @@ class TrackTuning {
 ''');
   _writeFile(
     root.path,
+    'packages/runner_core/lib/contracts/spatial_contract.dart',
+    '''
+const int virtualViewportHeight = 270;
+''',
+  );
+  _writeFile(
+    root.path,
     'assets/authoring/level/chunks/chunk_field_001.json',
     '''
 {
@@ -211,8 +220,6 @@ class TrackTuning {
   "tileSize": 16,
   "width": 600,
   "height": 160,
-  "entrySocket": "in",
-  "exitSocket": "out",
   "difficulty": "normal",
   "tags": ["base"],
   "tileLayers": [],
@@ -237,8 +244,6 @@ class TrackTuning {
   "tileSize": 16,
   "width": 600,
   "height": 160,
-  "entrySocket": "in",
-  "exitSocket": "out",
   "difficulty": "normal",
   "tags": ["forest"],
   "tileLayers": [],

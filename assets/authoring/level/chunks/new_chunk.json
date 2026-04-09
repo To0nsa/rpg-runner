@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "chunkKey": "new_chunk",
+  "id": "new_chunk",
+  "revision": 325,
+  "status": "active",
+  "levelId": "field",
+  "tileSize": 16,
+  "width": 600,
+  "height": 270,
+  "difficulty": "easy",
+  "tags": [],
+  "tileLayers": [],
+  "prefabs": [
+    {
+      "prefabId": "grass_dirt_96x32_square_platform",
+      "prefabKey": "grass_dirt_96x32_square_platform",
+      "x": 288,
+      "y": 80,
+      "zIndex": 0,
+      "snapToGrid": true
+    },
+    {
+      "prefabId": "grass_dirt_64x32_platform",
+      "prefabKey": "grass_dirt_64x32_platform",
+      "x": 128,
+      "y": 96,
+      "zIndex": 0,
+      "snapToGrid": true
+    },
+    {
+      "prefabId": "grass_dirt_96x32_square_platform",
+      "prefabKey": "grass_dirt_96x32_square_platform",
+      "x": 400,
+      "y": 160,
+      "zIndex": 0,
+      "snapToGrid": true
+    },
+    {
+      "prefabId": "village_bench_01",
+      "prefabKey": "village_bench_01",
+      "x": 230,
+      "y": 197,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "village_barrel_01",
+      "prefabKey": "village_barrel_01",
+      "x": 304,
+      "y": 224,
+      "zIndex": 0,
+      "snapToGrid": false
+    }
+  ],
+  "markers": [],
+  "groundProfile": {
+    "kind": "flat",
+    "topY": 224
+  },
+  "groundGaps": [
+    {
+      "gapId": "gap_2",
+      "type": "pit",
+      "x": 320,
+      "width": 160
+    }
+  ]
+}

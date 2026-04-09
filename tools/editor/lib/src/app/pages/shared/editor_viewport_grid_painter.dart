@@ -6,6 +6,11 @@ import 'package:flutter/material.dart';
 /// - centered: infinite-looking grid around viewport center
 /// - world: grid aligned to explicit world rect/origin coordinates
 class EditorViewportGridPainter extends CustomPainter {
+  static const Color minorGridColor = Color(0x0D9FB4C7);
+  static const Color gridColor = Color(0x1E9FB4C7);
+  static const Color majorGridColor = Color(0x389FB4C7);
+  static const Color axisColor = Color(0xCC9FB4C7);
+
   const EditorViewportGridPainter({required this.zoom})
     : _mode = _GridPainterMode.centered,
       worldRect = null,
@@ -23,9 +28,9 @@ class EditorViewportGridPainter extends CustomPainter {
     required this.worldOrigin,
     required this.worldSpacingPx,
     this.majorWorldSpacingPx,
-    this.worldGridColor = const Color(0xFF1F2A36),
-    this.worldMajorGridColor = const Color(0x389FB4C7),
-    this.worldAxisColor = const Color(0xCC9FB4C7),
+    this.worldGridColor = gridColor,
+    this.worldMajorGridColor = majorGridColor,
+    this.worldAxisColor = axisColor,
     this.showWorldAxes = false,
   }) : _mode = _GridPainterMode.world;
 
@@ -54,19 +59,19 @@ class EditorViewportGridPainter extends CustomPainter {
       canvas,
       size,
       worldSpacingPx: 1,
-      color: const Color(0x0D9FB4C7),
+      color: minorGridColor,
     );
     _paintGridLayer(
       canvas,
       size,
       worldSpacingPx: 16,
-      color: const Color(0x1E9FB4C7),
+      color: gridColor,
     );
     _paintGridLayer(
       canvas,
       size,
       worldSpacingPx: 32,
-      color: const Color(0x389FB4C7),
+      color: majorGridColor,
     );
     _paintAxes(canvas, size);
   }
@@ -129,7 +134,7 @@ class EditorViewportGridPainter extends CustomPainter {
   void _paintAxes(Canvas canvas, Size size) {
     final center = Offset(size.width * 0.5, size.height * 0.5);
     final paint = Paint()
-      ..color = const Color(0xCC9FB4C7)
+      ..color = axisColor
       ..strokeWidth = _axisStrokeWidth;
 
     final axisX = center.dx.floorToDouble() + 0.5;
@@ -156,7 +161,7 @@ class EditorViewportGridPainter extends CustomPainter {
       worldRect: worldRect,
       worldOrigin: worldOrigin,
       spacingWorldPx: worldSpacingPx,
-      color: worldGridColor ?? const Color(0xFF1F2A36),
+      color: worldGridColor ?? gridColor,
     );
 
     final majorSpacing = majorWorldSpacingPx;
@@ -167,7 +172,7 @@ class EditorViewportGridPainter extends CustomPainter {
         worldRect: worldRect,
         worldOrigin: worldOrigin,
         spacingWorldPx: majorSpacing,
-        color: worldMajorGridColor ?? const Color(0x389FB4C7),
+        color: worldMajorGridColor ?? majorGridColor,
       );
     }
 
@@ -177,7 +182,7 @@ class EditorViewportGridPainter extends CustomPainter {
       return;
     }
     final axisPaint = Paint()
-      ..color = worldAxisColor ?? const Color(0xCC9FB4C7)
+      ..color = worldAxisColor ?? axisColor
       ..strokeWidth = _axisStrokeWidth;
 
     final axisCanvasX = _worldToCanvasX(

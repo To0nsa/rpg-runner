@@ -79,16 +79,6 @@ class PrefabDeterminism {
       return anchorYCompare;
     }
 
-    final zIndexCompare = a.zIndex.compareTo(b.zIndex);
-    if (zIndexCompare != 0) {
-      return zIndexCompare;
-    }
-
-    final snapToGridCompare = _compareBool(a.snapToGrid, b.snapToGrid);
-    if (snapToGridCompare != 0) {
-      return snapToGridCompare;
-    }
-
     final tagsCompare = _compareStringLists(a.tags, b.tags);
     if (tagsCompare != 0) {
       return tagsCompare;
@@ -267,13 +257,6 @@ class PrefabDeterminism {
       return sliceCompare;
     }
     return a.moduleId.compareTo(b.moduleId);
-  }
-
-  static int _compareBool(bool a, bool b) {
-    if (a == b) {
-      return 0;
-    }
-    return a ? 1 : -1;
   }
 
   static int _compareStringLists(List<String> a, List<String> b) {

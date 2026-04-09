@@ -144,7 +144,7 @@ void main() {
     await tester.tap(find.text('Platform Modules').first);
     await tester.pumpAndSettle();
 
-    expect(find.text('Advanced Module Controls'), findsOneWidget);
+    expect(find.text('Platform Module Controls'), findsOneWidget);
     expect(find.text('Edit Module'), findsNothing);
     expect(
       find.text('Editing platform module "ground_module"'),

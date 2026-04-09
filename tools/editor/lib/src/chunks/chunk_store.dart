@@ -14,6 +14,10 @@ class ChunkStore {
       'packages/runner_core/lib/levels/level_id.dart';
   static const String trackTuningSourcePath =
       'packages/runner_core/lib/tuning/track_tuning.dart';
+  static const String spatialContractSourcePath =
+      'packages/runner_core/lib/contracts/spatial_contract.dart';
+  static const String levelWorldConstantsSourcePath =
+      'packages/runner_core/lib/levels/level_world_constants.dart';
 
   const ChunkStore();
 
@@ -24,6 +28,7 @@ class ChunkStore {
     final loadIssues = <ValidationIssue>[];
     final chunks = <LevelChunkDef>[];
     final baselineByChunkKey = <String, ChunkSourceBaseline>{};
+    final runtimeAuthority = _loadRuntimeAuthority(workspace);
 
     final chunkFiles = _listChunkFiles(workspace);
     final discoveredLevelIds = <String>{};
@@ -67,7 +72,13 @@ class ChunkStore {
           chunkKey: p.basenameWithoutExtension(relativePath).trim(),
         );
       }
-      chunk = chunk.normalized();
+      final normalizedChunk = normalizeChunkToAuthority(
+        chunk.normalized(),
+        runtimeChunkWidth: runtimeAuthority.chunkWidth,
+        lockedChunkHeight: runtimeAuthority.lockedChunkHeight,
+        runtimeGroundTopY: runtimeAuthority.groundTopY,
+      );
+      chunk = normalizedChunk;
       chunks.add(chunk);
       discoveredLevelIds.add(chunk.levelId);
 
@@ -97,8 +108,6 @@ class ChunkStore {
       options: levelOptions.options,
       preferredLevelId: preferredActiveLevelId,
     );
-    final runtimeAuthority = _loadRuntimeAuthority(workspace);
-
     final sortedChunks = List<LevelChunkDef>.from(chunks)
       ..sort(_compareChunksForMemory);
     final sortedLevelIds = List<String>.from(levelOptions.options)..sort();
@@ -113,6 +122,8 @@ class ChunkStore {
       levelOptionSource: levelOptions.source,
       runtimeGridSnap: runtimeAuthority.gridSnap,
       runtimeChunkWidth: runtimeAuthority.chunkWidth,
+      lockedChunkHeight: runtimeAuthority.lockedChunkHeight,
+      runtimeGroundTopY: runtimeAuthority.groundTopY,
       loadIssues: List<ValidationIssue>.unmodifiable(loadIssues),
     );
   }
@@ -458,22 +469,51 @@ class ChunkStore {
   }
 
   _RuntimeTrackAuthority _loadRuntimeAuthority(EditorWorkspace workspace) {
-    final file = File(workspace.resolve(trackTuningSourcePath));
-    if (!file.existsSync()) {
-      return const _RuntimeTrackAuthority(chunkWidth: 600.0, gridSnap: 16.0);
-    }
-    final source = file.readAsStringSync();
+    final tuningFile = File(workspace.resolve(trackTuningSourcePath));
+    final spatialContractFile = File(
+      workspace.resolve(spatialContractSourcePath),
+    );
+    final levelWorldConstantsFile = File(
+      workspace.resolve(levelWorldConstantsSourcePath),
+    );
+    final tuningSource = tuningFile.existsSync()
+        ? tuningFile.readAsStringSync()
+        : '';
+    final spatialContractSource = spatialContractFile.existsSync()
+        ? spatialContractFile.readAsStringSync()
+        : '';
+    final levelWorldSource = levelWorldConstantsFile.existsSync()
+        ? levelWorldConstantsFile.readAsStringSync()
+        : '';
+
     final chunkWidth = _extractDoubleDefault(
-      source,
+      tuningSource,
       pattern: RegExp(r'this\.chunkWidth\s*=\s*([0-9]+(?:\.[0-9]+)?)'),
       fallback: 600.0,
     );
     final gridSnap = _extractDoubleDefault(
-      source,
+      tuningSource,
       pattern: RegExp(r'this\.gridSnap\s*=\s*([0-9]+(?:\.[0-9]+)?)'),
       fallback: 16.0,
     );
-    return _RuntimeTrackAuthority(chunkWidth: chunkWidth, gridSnap: gridSnap);
+    final groundTopY = _extractIntDefault(
+      levelWorldSource,
+      pattern: RegExp(
+        r'const\s+int\s+defaultLevelGroundTopYInt\s*=\s*([0-9]+)',
+      ),
+      fallback: defaultRuntimeGroundTopY,
+    );
+    final viewportHeight = _extractIntDefault(
+      spatialContractSource,
+      pattern: RegExp(r'const\s+int\s+virtualViewportHeight\s*=\s*([0-9]+)'),
+      fallback: defaultLockedChunkHeight,
+    );
+    return _RuntimeTrackAuthority(
+      chunkWidth: chunkWidth,
+      gridSnap: gridSnap,
+      lockedChunkHeight: lockedChunkHeightForViewportHeight(viewportHeight),
+      groundTopY: groundTopY,
+    );
   }
 
   double _extractDoubleDefault(
@@ -490,6 +530,22 @@ class ChunkStore {
       return fallback;
     }
     return double.tryParse(raw) ?? fallback;
+  }
+
+  int _extractIntDefault(
+    String source, {
+    required RegExp pattern,
+    required int fallback,
+  }) {
+    final match = pattern.firstMatch(source);
+    if (match == null) {
+      return fallback;
+    }
+    final raw = match.group(1);
+    if (raw == null) {
+      return fallback;
+    }
+    return int.tryParse(raw) ?? fallback;
   }
 
   /// Deterministic filename policy:
@@ -633,10 +689,14 @@ class _RuntimeTrackAuthority {
   const _RuntimeTrackAuthority({
     required this.chunkWidth,
     required this.gridSnap,
+    required this.lockedChunkHeight,
+    required this.groundTopY,
   });
 
   final double chunkWidth;
   final double gridSnap;
+  final int lockedChunkHeight;
+  final int groundTopY;
 }
 
 int _compareChunksForMemory(LevelChunkDef a, LevelChunkDef b) {
