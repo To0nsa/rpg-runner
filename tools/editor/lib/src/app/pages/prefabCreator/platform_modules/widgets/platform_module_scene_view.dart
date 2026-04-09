@@ -11,9 +11,9 @@ import '../../../shared/editor_scene_viewport_frame.dart';
 import '../../../shared/editor_viewport_grid_painter.dart';
 import '../../../shared/editor_zoom_controls.dart';
 import '../../../shared/scene_input_utils.dart';
-import '../../shared/prefab_editor_choice_chip_group.dart';
-import '../../shared/prefab_editor_scene_controls.dart';
-import '../../shared/prefab_editor_ui_tokens.dart';
+import '../../shared/ui/prefab_editor_choice_chip_group.dart';
+import '../../shared/ui/prefab_editor_scene_controls.dart';
+import '../../shared/ui/prefab_editor_ui_tokens.dart';
 import '../../shared/prefab_overlay_interaction.dart';
 import '../../shared/prefab_scene_values.dart';
 

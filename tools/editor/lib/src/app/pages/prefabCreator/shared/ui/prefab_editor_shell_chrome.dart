@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'prefab_editor_action_row.dart';
-import 'prefab_editor_shell_state.dart';
+import '../prefab_editor_shell_state.dart';
 import 'prefab_editor_ui_tokens.dart';
 
 /// Shared shell chrome for the prefab creator page.

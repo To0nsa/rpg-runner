@@ -19,7 +19,7 @@ import 'shared/prefab_editor_prefab_controller.dart';
 import 'shared/prefab_editor_scene_projection.dart';
 import 'shared/prefab_editor_page_session_coordinator.dart';
 import 'shared/prefab_editor_session_bridge.dart';
-import 'shared/prefab_editor_shell_chrome.dart';
+import 'shared/ui/prefab_editor_shell_chrome.dart';
 import 'shared/prefab_editor_shell_state.dart';
 import 'shared/prefab_form_state.dart';
 import 'shared/prefab_editor_mutations.dart';

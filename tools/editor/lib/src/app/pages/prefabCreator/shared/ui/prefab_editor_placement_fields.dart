@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'prefab_editor_ui_tokens.dart';
-import 'prefab_form_state.dart';
+import '../prefab_form_state.dart';
 
 /// Shared placement/collider fields used by obstacle and platform prefab flows.
 class PrefabEditorPlacementFields extends StatelessWidget {

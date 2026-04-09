@@ -10,17 +10,17 @@ import '../../shared/editor_scene_view_utils.dart';
 import '../../shared/editor_viewport_grid_painter.dart';
 import '../../shared/editor_zoom_controls.dart';
 import '../../shared/scene_input_utils.dart';
-import '../shared/prefab_editor_action_row.dart';
-import '../shared/prefab_editor_delete_button.dart';
-import '../shared/prefab_editor_empty_state.dart';
-import '../shared/prefab_editor_panel_card.dart';
-import '../shared/prefab_editor_panel_summary.dart';
-import '../shared/prefab_editor_row_metadata.dart';
-import '../shared/prefab_editor_scene_header.dart';
-import '../shared/prefab_editor_section_card.dart';
-import '../shared/prefab_editor_selectable_row_card.dart';
-import '../shared/prefab_editor_three_panel_layout.dart';
-import '../shared/prefab_editor_ui_tokens.dart';
+import '../shared/ui/prefab_editor_action_row.dart';
+import '../shared/ui/prefab_editor_delete_button.dart';
+import '../shared/ui/prefab_editor_empty_state.dart';
+import '../shared/ui/prefab_editor_panel_card.dart';
+import '../shared/ui/prefab_editor_panel_summary.dart';
+import '../shared/ui/prefab_editor_row_metadata.dart';
+import '../shared/ui/prefab_editor_scene_header.dart';
+import '../shared/ui/prefab_editor_section_card.dart';
+import '../shared/ui/prefab_editor_selectable_row_card.dart';
+import '../shared/ui/prefab_editor_three_panel_layout.dart';
+import '../shared/ui/prefab_editor_ui_tokens.dart';
 
 /// Atlas slicing view for prefab and tile source rectangles.
 class AtlasSlicerTab extends StatefulWidget {

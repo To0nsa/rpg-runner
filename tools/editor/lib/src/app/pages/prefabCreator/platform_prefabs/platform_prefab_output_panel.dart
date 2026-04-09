@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../shared/prefab_editor_action_row.dart';
-import '../shared/prefab_editor_placement_fields.dart';
+import '../shared/ui/prefab_editor_action_row.dart';
+import '../shared/ui/prefab_editor_placement_fields.dart';
 import '../shared/prefab_form_state.dart';
 import '../shared/prefab_scene_values.dart';
-import '../shared/prefab_editor_section_card.dart';
-import '../shared/prefab_editor_ui_tokens.dart';
+import '../shared/ui/prefab_editor_section_card.dart';
+import '../shared/ui/prefab_editor_ui_tokens.dart';
 
 /// Form panel for exporting a platform prefab from the selected module.
 class PlatformPrefabOutputPanel extends StatelessWidget {
