@@ -60,6 +60,9 @@ void main() {
       await tester.tap(find.text('chunk_new').first);
       await tester.pumpAndSettle();
 
+      await tester.tap(find.textContaining('Inspector:').first);
+      await tester.pumpAndSettle();
+
       await tester.tap(find.text('Duplicate'));
       await tester.pumpAndSettle();
       final sceneAfterDuplicate = controller.scene as ChunkScene;
@@ -88,6 +91,8 @@ void main() {
       final groundBandRaise = find.byKey(
         const ValueKey<String>('ground_band_layer_raise'),
       );
+      await tester.tap(find.text('Ground Profile'));
+      await tester.pumpAndSettle();
       await tester.ensureVisible(groundBandRaise);
       await tester.pumpAndSettle();
       await tester.tap(groundBandRaise);
@@ -98,6 +103,8 @@ void main() {
       );
       expect(raisedGroundBandChunk.groundBandZIndex, 1);
 
+      await tester.tap(find.text('Metadata'));
+      await tester.pumpAndSettle();
       await tester.enterText(
         find.widgetWithText(TextField, 'tileSize').first,
         '15',
@@ -115,6 +122,70 @@ void main() {
       expect(find.textContaining('tileSize must be snapped'), findsWidgets);
     },
   );
+
+  testWidgets('chunk creator updates an existing ground gap from inspector', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1800, 1200));
+    addTearDown(() async {
+      await tester.binding.setSurfaceSize(null);
+    });
+
+    final controller = EditorSessionController(
+      pluginRegistry: AuthoringPluginRegistry(
+        plugins: <AuthoringDomainPlugin>[
+          _InMemoryChunkPlugin(_initialChunkWithGapDocument),
+        ],
+      ),
+      initialPluginId: ChunkDomainPlugin.pluginId,
+      initialWorkspacePath: '.',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: Scaffold(body: ChunkCreatorPage(controller: controller))),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    await tester.tap(find.text('chunk_gap').first);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.textContaining('Inspector:').first);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Ground Gaps'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.edit_outlined).first);
+    await tester.pumpAndSettle();
+
+    final dialog = find.byType(AlertDialog);
+    expect(dialog, findsOneWidget);
+
+    await tester.enterText(
+      find.descendant(
+        of: dialog,
+        matching: find.widgetWithText(TextFormField, 'x'),
+      ),
+      '48',
+    );
+    await tester.enterText(
+      find.descendant(
+        of: dialog,
+        matching: find.widgetWithText(TextFormField, 'width'),
+      ),
+      '64',
+    );
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+    await tester.pumpAndSettle();
+
+    final sceneAfterEdit = controller.scene as ChunkScene;
+    final chunk = sceneAfterEdit.chunks.firstWhere((entry) => entry.id == 'chunk_gap');
+    final gap = chunk.groundGaps.firstWhere((entry) => entry.gapId == 'gap_1');
+    expect(gap.x, 48);
+    expect(gap.width, 64);
+  });
 }
 
 const ChunkDocument _initialChunkDocument = ChunkDocument(
@@ -135,6 +206,43 @@ const ChunkDocument _initialChunkDocument = ChunkDocument(
       markers: <PlacedMarkerDef>[],
       groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 224),
       groundGaps: <GroundGapDef>[],
+      status: chunkStatusActive,
+    ),
+  ],
+  baselineByChunkKey: <String, ChunkSourceBaseline>{},
+  availableLevelIds: <String>['field', 'forest'],
+  activeLevelId: 'field',
+  levelOptionSource: 'test',
+  runtimeGridSnap: 16.0,
+  runtimeChunkWidth: 600.0,
+  runtimeGroundTopY: 224,
+);
+
+const ChunkDocument _initialChunkWithGapDocument = ChunkDocument(
+  chunks: <LevelChunkDef>[
+    LevelChunkDef(
+      chunkKey: 'chunk_field_gap_001',
+      id: 'chunk_gap',
+      revision: 1,
+      schemaVersion: 1,
+      levelId: 'field',
+      tileSize: 16,
+      width: 600,
+      height: 270,
+      difficulty: chunkDifficultyNormal,
+      tags: <String>['base'],
+      tileLayers: <TileLayerDef>[],
+      prefabs: <PlacedPrefabDef>[],
+      markers: <PlacedMarkerDef>[],
+      groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 224),
+      groundGaps: <GroundGapDef>[
+        GroundGapDef(
+          gapId: 'gap_1',
+          type: groundGapTypePit,
+          x: 16,
+          width: 32,
+        ),
+      ],
       status: chunkStatusActive,
     ),
   ],

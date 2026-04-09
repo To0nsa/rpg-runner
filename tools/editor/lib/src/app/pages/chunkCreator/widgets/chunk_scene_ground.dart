@@ -40,6 +40,33 @@ class ChunkGroundMaterialSpec {
   final double fallbackMaterialHeight;
 }
 
+/// Level-driven parallax asset mapping used by chunk-scene preview.
+///
+/// This mirrors the runtime theme asset sets in
+/// `lib/game/themes/parallax_theme_registry.dart` so layer depth checks in the
+/// editor stay visually aligned with game composition.
+@immutable
+class ChunkParallaxPreviewSpec {
+  const ChunkParallaxPreviewSpec({
+    this.backgroundLayers = const <ChunkParallaxLayerPreviewSpec>[],
+    this.foregroundLayers = const <ChunkParallaxLayerPreviewSpec>[],
+  });
+
+  final List<ChunkParallaxLayerPreviewSpec> backgroundLayers;
+  final List<ChunkParallaxLayerPreviewSpec> foregroundLayers;
+}
+
+@immutable
+class ChunkParallaxLayerPreviewSpec {
+  const ChunkParallaxLayerPreviewSpec({
+    required this.assetPath,
+    required this.parallaxFactor,
+  });
+
+  final String assetPath;
+  final double parallaxFactor;
+}
+
 ChunkGroundLayout buildChunkGroundLayout(LevelChunkDef chunk) {
   return buildChunkGroundLayoutWithFillDepth(
     chunk,
@@ -131,6 +158,78 @@ ChunkGroundMaterialSpec resolveChunkGroundMaterialSpec(String levelId) {
     default:
       return const ChunkGroundMaterialSpec(
         sourceImagePath: 'assets/images/parallax/field/Field Layer 09.png',
+      );
+  }
+}
+
+ChunkParallaxPreviewSpec resolveChunkParallaxPreviewSpec(String levelId) {
+  switch (levelId.trim()) {
+    case 'forest':
+      return const ChunkParallaxPreviewSpec(
+        backgroundLayers: <ChunkParallaxLayerPreviewSpec>[
+          ChunkParallaxLayerPreviewSpec(
+            assetPath: 'assets/images/parallax/forest/Forest Layer 01.png',
+            parallaxFactor: 0.10,
+          ),
+          ChunkParallaxLayerPreviewSpec(
+            assetPath: 'assets/images/parallax/forest/Forest Layer 02.png',
+            parallaxFactor: 0.20,
+          ),
+          ChunkParallaxLayerPreviewSpec(
+            assetPath: 'assets/images/parallax/forest/Forest Layer 03.png',
+            parallaxFactor: 0.30,
+          ),
+        ],
+        foregroundLayers: <ChunkParallaxLayerPreviewSpec>[
+          ChunkParallaxLayerPreviewSpec(
+            assetPath: 'assets/images/parallax/forest/Forest Layer 05.png',
+            parallaxFactor: 1.0,
+          ),
+        ],
+      );
+    case 'field':
+    default:
+      return const ChunkParallaxPreviewSpec(
+        backgroundLayers: <ChunkParallaxLayerPreviewSpec>[
+          ChunkParallaxLayerPreviewSpec(
+            assetPath: 'assets/images/parallax/field/Field Layer 01.png',
+            parallaxFactor: 0.10,
+          ),
+          ChunkParallaxLayerPreviewSpec(
+            assetPath: 'assets/images/parallax/field/Field Layer 02.png',
+            parallaxFactor: 0.15,
+          ),
+          ChunkParallaxLayerPreviewSpec(
+            assetPath: 'assets/images/parallax/field/Field Layer 03.png',
+            parallaxFactor: 0.20,
+          ),
+          ChunkParallaxLayerPreviewSpec(
+            assetPath: 'assets/images/parallax/field/Field Layer 04.png',
+            parallaxFactor: 0.30,
+          ),
+          ChunkParallaxLayerPreviewSpec(
+            assetPath: 'assets/images/parallax/field/Field Layer 05.png',
+            parallaxFactor: 0.40,
+          ),
+          ChunkParallaxLayerPreviewSpec(
+            assetPath: 'assets/images/parallax/field/Field Layer 06.png',
+            parallaxFactor: 0.50,
+          ),
+          ChunkParallaxLayerPreviewSpec(
+            assetPath: 'assets/images/parallax/field/Field Layer 07.png',
+            parallaxFactor: 0.60,
+          ),
+          ChunkParallaxLayerPreviewSpec(
+            assetPath: 'assets/images/parallax/field/Field Layer 08.png',
+            parallaxFactor: 0.70,
+          ),
+        ],
+        foregroundLayers: <ChunkParallaxLayerPreviewSpec>[
+          ChunkParallaxLayerPreviewSpec(
+            assetPath: 'assets/images/parallax/field/Field Layer 10.png',
+            parallaxFactor: 1.0,
+          ),
+        ],
       );
   }
 }

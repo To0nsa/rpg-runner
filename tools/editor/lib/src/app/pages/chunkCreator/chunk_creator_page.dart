@@ -51,9 +51,13 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
   ChunkSceneTool _sceneTool = ChunkSceneTool.place;
   bool _newPlacementSnapToGrid = true;
   int _newPlacementZIndex = 0;
-  bool _inspectorExpanded = true;
+  bool _inspectorExpanded = false;
   bool _validationExpanded = false;
   bool _pendingDiffExpanded = false;
+  bool _placedPrefabsExpanded = false;
+  bool _metadataExpanded = false;
+  bool _groundProfileExpanded = false;
+  bool _groundGapsExpanded = false;
 
   @override
   bool get hasLocalDraftChanges {
@@ -557,6 +561,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
                 ],
               ),
             ),
+            const Divider(height: 12),
             if (_inspectorExpanded) ...[
               const SizedBox(height: 8),
               _buildReadOnlyIdentitySection(selectedChunk, scene),
@@ -591,17 +596,10 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
                 children: [
                   _buildPlacedPrefabSection(selectedChunk, scene),
                   const Divider(height: 20),
-                  _buildMetadataFields(selectedChunk, scene),
-                  const SizedBox(height: 8),
-                  FilledButton(
-                    onPressed: () {
-                      _applyMetadata(selectedChunk);
-                    },
-                    child: const Text('Apply Metadata'),
-                  ),
+                  _buildMetadataSection(selectedChunk, scene),
                   const Divider(height: 20),
                   _buildGroundProfileSection(selectedChunk, scene),
-                  const SizedBox(height: 8),
+                  const Divider(height: 20),
                   _buildGroundGapsSection(selectedChunk),
                 ],
               ),
@@ -650,141 +648,183 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Placed Prefabs', style: Theme.of(context).textTheme.titleSmall),
-        const SizedBox(height: 8),
-        if (selectedPlacement != null)
-          Card(
-            color: const Color(0xFF18232C),
-            child: Padding(
-              padding: const EdgeInsets.all(10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    selectedPlacementPrefab?.id ??
-                        selectedPlacement.prefab.resolvedPrefabRef,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'anchor=(${selectedPlacement.prefab.x}, ${selectedPlacement.prefab.y})',
-                  ),
-                  if (selectedPlacementPrefab != null)
+        _buildExpandableSectionHeader(
+          title: 'Placed Prefabs',
+          subtitle: placements.isEmpty
+              ? 'No placements in this chunk.'
+              : '${placements.length} placement${placements.length == 1 ? '' : 's'} in this chunk.',
+          expanded: _placedPrefabsExpanded,
+          onTap: () {
+            setState(() {
+              _placedPrefabsExpanded = !_placedPrefabsExpanded;
+            });
+          },
+        ),
+        if (_placedPrefabsExpanded) ...[
+          const SizedBox(height: 8),
+          if (selectedPlacement != null)
+            Card(
+              color: const Color(0xFF18232C),
+              child: Padding(
+                padding: const EdgeInsets.all(10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Text(
-                      'kind=${selectedPlacementPrefab.kind.jsonValue} '
-                      'source=${selectedPlacementPrefab.visualSource.type.jsonValue}',
+                      selectedPlacementPrefab?.id ??
+                          selectedPlacement.prefab.resolvedPrefabRef,
                     ),
-                  Text(
-                    'placement=${selectedPlacement.prefab.snapToGrid ? 'snap' : 'free'} '
-                    '| z=${selectedPlacement.prefab.zIndex}',
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Placement settings are owned by this chunk instance, not by the prefab definition.',
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      _buildPlacementModeChips(
-                        snapToGrid: selectedPlacement.prefab.snapToGrid,
-                        onChanged: (value) {
-                          _updatePlacementSettings(
-                            selectedChunk,
-                            selectionKey: selectedPlacement.selectionKey,
-                            snapToGrid: value,
-                            zIndex: selectedPlacement.prefab.zIndex,
-                          );
-                        },
+                    const SizedBox(height: 4),
+                    Text(
+                      'anchor=(${selectedPlacement.prefab.x}, ${selectedPlacement.prefab.y})',
+                    ),
+                    if (selectedPlacementPrefab != null)
+                      Text(
+                        'kind=${selectedPlacementPrefab.kind.jsonValue} '
+                        'source=${selectedPlacementPrefab.visualSource.type.jsonValue}',
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  _buildLayerStepper(
-                    label: 'Layer',
-                    zIndex: selectedPlacement.prefab.zIndex,
-                    onChanged: (value) {
-                      _updatePlacementSettings(
-                        selectedChunk,
-                        selectionKey: selectedPlacement.selectionKey,
-                        snapToGrid: selectedPlacement.prefab.snapToGrid,
-                        zIndex: value,
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      FilledButton.tonal(
-                        onPressed: selectedPalettePrefab == null
-                            ? null
-                            : () {
-                                _replacePlacement(
-                                  selectedChunk,
-                                  selectedPlacement.selectionKey,
-                                  selectedPalettePrefab,
-                                );
-                              },
-                        child: const Text('Retarget To Palette'),
+                    Text(
+                      'placement=${selectedPlacement.prefab.snapToGrid ? 'snap' : 'free'} '
+                      '| z=${selectedPlacement.prefab.zIndex}',
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Placement settings are owned by this chunk instance, not by the prefab definition.',
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        _buildPlacementModeChips(
+                          snapToGrid: selectedPlacement.prefab.snapToGrid,
+                          onChanged: (value) {
+                            _updatePlacementSettings(
+                              selectedChunk,
+                              selectionKey: selectedPlacement.selectionKey,
+                              snapToGrid: value,
+                              zIndex: selectedPlacement.prefab.zIndex,
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    _buildLayerStepper(
+                      label: 'Layer',
+                      zIndex: selectedPlacement.prefab.zIndex,
+                      onChanged: (value) {
+                        _updatePlacementSettings(
+                          selectedChunk,
+                          selectionKey: selectedPlacement.selectionKey,
+                          snapToGrid: selectedPlacement.prefab.snapToGrid,
+                          zIndex: value,
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        FilledButton.tonal(
+                          onPressed: selectedPalettePrefab == null
+                              ? null
+                              : () {
+                                  _replacePlacement(
+                                    selectedChunk,
+                                    selectedPlacement.selectionKey,
+                                    selectedPalettePrefab,
+                                  );
+                                },
+                          child: const Text('Retarget To Palette'),
+                        ),
+                        OutlinedButton(
+                          onPressed: () {
+                            _removePlacement(
+                              selectedChunk,
+                              selectedPlacement.selectionKey,
+                            );
+                          },
+                          child: const Text('Delete Placement'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            const Text('No placement selected.'),
+          const SizedBox(height: 8),
+          if (placements.isEmpty)
+            const Text('No prefab placements in this chunk.')
+          else
+            SizedBox(
+              height: 180,
+              child: Card(
+                margin: EdgeInsets.zero,
+                child: ListView.builder(
+                  itemCount: placements.length,
+                  itemBuilder: (context, index) {
+                    final placement = placements[index];
+                    final prefab = _resolvePrefabByPlacement(
+                      scene.prefabData,
+                      placement.prefab,
+                    );
+                    return ListTile(
+                      dense: true,
+                      selected: placement.selectionKey == _selectedPlacementKey,
+                      title: Text(
+                        prefab?.id ?? placement.prefab.resolvedPrefabRef,
                       ),
-                      OutlinedButton(
-                        onPressed: () {
-                          _removePlacement(
-                            selectedChunk,
-                            selectedPlacement.selectionKey,
-                          );
-                        },
-                        child: const Text('Delete Placement'),
+                      subtitle: Text(
+                        'x=${placement.prefab.x}, y=${placement.prefab.y} | '
+                        '${placement.prefab.snapToGrid ? 'snap' : 'free'} | '
+                        'z=${placement.prefab.zIndex}',
                       ),
-                    ],
-                  ),
-                ],
+                      onTap: () {
+                        setState(() {
+                          _selectedPlacementKey = placement.selectionKey;
+                          _sceneTool = ChunkSceneTool.select;
+                        });
+                      },
+                    );
+                  },
+                ),
               ),
             ),
-          )
-        else
-          const Text('No placement selected.'),
-        const SizedBox(height: 8),
-        if (placements.isEmpty)
-          const Text('No prefab placements in this chunk.')
-        else
-          SizedBox(
-            height: 180,
-            child: Card(
-              margin: EdgeInsets.zero,
-              child: ListView.builder(
-                itemCount: placements.length,
-                itemBuilder: (context, index) {
-                  final placement = placements[index];
-                  final prefab = _resolvePrefabByPlacement(
-                    scene.prefabData,
-                    placement.prefab,
-                  );
-                  return ListTile(
-                    dense: true,
-                    selected: placement.selectionKey == _selectedPlacementKey,
-                    title: Text(
-                      prefab?.id ?? placement.prefab.resolvedPrefabRef,
-                    ),
-                    subtitle: Text(
-                      'x=${placement.prefab.x}, y=${placement.prefab.y} | '
-                      '${placement.prefab.snapToGrid ? 'snap' : 'free'} | '
-                      'z=${placement.prefab.zIndex}',
-                    ),
-                    onTap: () {
-                      setState(() {
-                        _selectedPlacementKey = placement.selectionKey;
-                        _sceneTool = ChunkSceneTool.select;
-                      });
-                    },
-                  );
-                },
-              ),
-            ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildMetadataSection(LevelChunkDef selectedChunk, ChunkScene scene) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildExpandableSectionHeader(
+          title: 'Metadata',
+          subtitle: 'Level routing, difficulty, status, and runtime-locked size.',
+          expanded: _metadataExpanded,
+          onTap: () {
+            setState(() {
+              _metadataExpanded = !_metadataExpanded;
+            });
+          },
+        ),
+        if (_metadataExpanded) ...[
+          const SizedBox(height: 8),
+          _buildMetadataFields(selectedChunk, scene),
+          const SizedBox(height: 8),
+          FilledButton(
+            onPressed: () {
+              _applyMetadata(selectedChunk);
+            },
+            child: const Text('Apply Metadata'),
           ),
+        ],
       ],
     );
   }
@@ -942,62 +982,103 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Ground Profile', style: Theme.of(context).textTheme.titleSmall),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: DropdownButtonFormField<String>(
-                key: ValueKey<String>('ground-kind-$_groundProfileKind'),
-                initialValue: _groundProfileKind,
-                isExpanded: true,
-                decoration: const InputDecoration(
-                  labelText: 'kind',
-                  border: OutlineInputBorder(),
-                  isDense: true,
-                ),
-                items: const [
-                  DropdownMenuItem(
-                    value: groundProfileKindFlat,
-                    child: Text(groundProfileKindFlat),
-                  ),
-                ],
-                onChanged: null,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: TextField(
-                controller: _groundTopYController,
-                readOnly: true,
-                enabled: false,
-                decoration: const InputDecoration(
-                  labelText: 'topY',
-                  border: OutlineInputBorder(),
-                  isDense: true,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'Locked to runtime viewport floor baseline ${scene.runtimeGroundTopY}.',
-        ),
-        const SizedBox(height: 8),
-        _buildLayerStepper(
-          label: 'Ground Band Layer',
-          keyPrefix: 'ground_band_layer',
-          zIndex: selectedChunk.groundBandZIndex,
-          onChanged: (value) {
-            _updateGroundBandZIndex(selectedChunk, value);
+        _buildExpandableSectionHeader(
+          title: 'Ground Profile',
+          subtitle:
+              'Runtime floor lock and ground band layer for this chunk.',
+          expanded: _groundProfileExpanded,
+          onTap: () {
+            setState(() {
+              _groundProfileExpanded = !_groundProfileExpanded;
+            });
           },
         ),
-        const SizedBox(height: 4),
-        const Text(
-          'Compared against placed prefab z values in the chunk scene.',
-        ),
+        if (_groundProfileExpanded) ...[
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  key: ValueKey<String>('ground-kind-$_groundProfileKind'),
+                  initialValue: _groundProfileKind,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'kind',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  items: const [
+                    DropdownMenuItem(
+                      value: groundProfileKindFlat,
+                      child: Text(groundProfileKindFlat),
+                    ),
+                  ],
+                  onChanged: null,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: TextField(
+                  controller: _groundTopYController,
+                  readOnly: true,
+                  enabled: false,
+                  decoration: const InputDecoration(
+                    labelText: 'topY',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Locked to runtime viewport floor baseline ${scene.runtimeGroundTopY}.',
+          ),
+          const SizedBox(height: 8),
+          _buildLayerStepper(
+            label: 'Ground Band Layer',
+            keyPrefix: 'ground_band_layer',
+            zIndex: selectedChunk.groundBandZIndex,
+            onChanged: (value) {
+              _updateGroundBandZIndex(selectedChunk, value);
+            },
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Compared against placed prefab z values in the chunk scene.',
+          ),
+        ],
       ],
+    );
+  }
+
+  Widget _buildExpandableSectionHeader({
+    required String title,
+    String? subtitle,
+    required bool expanded,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: Theme.of(context).textTheme.titleSmall),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 2),
+                  Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
+                ],
+              ],
+            ),
+          ),
+          Icon(expanded ? Icons.expand_less : Icons.expand_more),
+        ],
+      ),
     );
   }
 
@@ -1005,80 +1086,105 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Ground Gaps', style: Theme.of(context).textTheme.titleSmall),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _newGapXController,
-                decoration: const InputDecoration(
-                  labelText: 'x',
-                  border: OutlineInputBorder(),
-                  isDense: true,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: TextField(
-                controller: _newGapWidthController,
-                decoration: const InputDecoration(
-                  labelText: 'width',
-                  border: OutlineInputBorder(),
-                  isDense: true,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            FilledButton(
-              onPressed: () {
-                final x = int.tryParse(_newGapXController.text.trim());
-                final width = int.tryParse(_newGapWidthController.text.trim());
-                if (x == null || width == null) {
-                  _showSnackBar('Gap x/width must be integers.');
-                  return;
-                }
-                widget.controller.applyCommand(
-                  AuthoringCommand(
-                    kind: 'add_ground_gap',
-                    payload: <String, Object?>{
-                      'chunkKey': selectedChunk.chunkKey,
-                      'x': x,
-                      'width': width,
-                    },
-                  ),
-                );
-              },
-              child: const Text('Add Gap'),
-            ),
-          ],
+        _buildExpandableSectionHeader(
+          title: 'Ground Gaps',
+          subtitle: selectedChunk.groundGaps.isEmpty
+              ? 'No gaps configured for this chunk.'
+              : '${selectedChunk.groundGaps.length} gap${selectedChunk.groundGaps.length == 1 ? '' : 's'} configured.',
+          expanded: _groundGapsExpanded,
+          onTap: () {
+            setState(() {
+              _groundGapsExpanded = !_groundGapsExpanded;
+            });
+          },
         ),
-        const SizedBox(height: 8),
-        if (selectedChunk.groundGaps.isEmpty)
-          const Text('No gaps.')
-        else
-          ...selectedChunk.groundGaps.map((gap) {
-            return ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: Text('${gap.gapId} (${gap.type})'),
-              subtitle: Text('x=${gap.x}, width=${gap.width}'),
-              trailing: IconButton(
-                icon: const Icon(Icons.delete_outline),
+        if (_groundGapsExpanded) ...[
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _newGapXController,
+                  decoration: const InputDecoration(
+                    labelText: 'x',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: TextField(
+                  controller: _newGapWidthController,
+                  decoration: const InputDecoration(
+                    labelText: 'width',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              FilledButton(
                 onPressed: () {
+                  final x = int.tryParse(_newGapXController.text.trim());
+                  final width = int.tryParse(_newGapWidthController.text.trim());
+                  if (x == null || width == null) {
+                    _showSnackBar('Gap x/width must be integers.');
+                    return;
+                  }
                   widget.controller.applyCommand(
                     AuthoringCommand(
-                      kind: 'remove_ground_gap',
+                      kind: 'add_ground_gap',
                       payload: <String, Object?>{
                         'chunkKey': selectedChunk.chunkKey,
-                        'gapId': gap.gapId,
+                        'x': x,
+                        'width': width,
                       },
                     ),
                   );
                 },
+                child: const Text('Add Gap'),
               ),
-            );
-          }),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (selectedChunk.groundGaps.isEmpty)
+            const Text('No gaps.')
+          else
+            ...selectedChunk.groundGaps.map((gap) {
+              return ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text('${gap.gapId} (${gap.type})'),
+                subtitle: Text('x=${gap.x}, width=${gap.width}'),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit_outlined),
+                      tooltip: 'Edit Gap',
+                      onPressed: () {
+                        unawaited(_editGroundGap(selectedChunk, gap));
+                      },
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline),
+                      onPressed: () {
+                        widget.controller.applyCommand(
+                          AuthoringCommand(
+                            kind: 'remove_ground_gap',
+                            payload: <String, Object?>{
+                              'chunkKey': selectedChunk.chunkKey,
+                              'gapId': gap.gapId,
+                            },
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              );
+            }),
+        ],
       ],
     );
   }
@@ -1717,6 +1823,117 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
         payload: <String, Object?>{
           'chunkKey': chunk.chunkKey,
           'groundBandZIndex': groundBandZIndex,
+        },
+      ),
+    );
+  }
+
+  Future<void> _editGroundGap(LevelChunkDef chunk, GroundGapDef gap) async {
+    var nextXRaw = gap.x.toString();
+    var nextWidthRaw = gap.width.toString();
+    var nextType = gap.type;
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: Text('Edit Gap ${gap.gapId}'),
+              content: SizedBox(
+                width: 320,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    DropdownButtonFormField<String>(
+                      initialValue: nextType,
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        labelText: 'type',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                      items: const [
+                        DropdownMenuItem(
+                          value: groundGapTypePit,
+                          child: Text(groundGapTypePit),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        if (value == null) {
+                          return;
+                        }
+                        setDialogState(() {
+                          nextType = value;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      initialValue: nextXRaw,
+                      decoration: const InputDecoration(
+                        labelText: 'x',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                      onChanged: (value) {
+                        nextXRaw = value;
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      initialValue: nextWidthRaw,
+                      decoration: const InputDecoration(
+                        labelText: 'width',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                      onChanged: (value) {
+                        nextWidthRaw = value;
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop(false);
+                  },
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop(true);
+                  },
+                  child: const Text('Save'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    final x = int.tryParse(nextXRaw.trim());
+    final width = int.tryParse(nextWidthRaw.trim());
+
+    if (saved != true) {
+      return;
+    }
+    if (x == null || width == null) {
+      _showSnackBar('Gap x/width must be integers.');
+      return;
+    }
+
+    widget.controller.applyCommand(
+      AuthoringCommand(
+        kind: 'update_ground_gap',
+        payload: <String, Object?>{
+          'chunkKey': chunk.chunkKey,
+          'gapId': gap.gapId,
+          'type': nextType,
+          'x': x,
+          'width': width,
         },
       ),
     );

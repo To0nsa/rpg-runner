@@ -83,6 +83,7 @@ class _ChunkSceneViewState extends State<ChunkSceneView> {
   final Set<String> _groundMaterialDetectionInFlight = <String>{};
 
   double _zoom = 1.75;
+  bool _showParallaxPreview = true;
   bool _ctrlPanActive = false;
   int? _activePointer;
   _ChunkPlacementDragState? _dragState;
@@ -134,6 +135,7 @@ class _ChunkSceneViewState extends State<ChunkSceneView> {
     final renderPlacements = _buildRenderPlacements();
     final selectedPlacement = _resolveSelectedPlacement(renderPlacements);
     final groundMaterial = resolveChunkGroundMaterialSpec(widget.chunk.levelId);
+    final parallaxPreview = resolveChunkParallaxPreviewSpec(widget.chunk.levelId);
     final groundMaterialAbsolutePath = _absoluteImagePath(
       groundMaterial.sourceImagePath,
     );
@@ -176,6 +178,7 @@ class _ChunkSceneViewState extends State<ChunkSceneView> {
                 height: viewportHeight,
                 child: _buildScrollableCanvas(
                   geometry: geometry,
+                  parallaxPreview: parallaxPreview,
                   groundLayout: groundLayout,
                   groundMaterial: groundMaterial,
                   groundMaterialSrcRect: groundMaterialSrcRect,
@@ -223,12 +226,23 @@ class _ChunkSceneViewState extends State<ChunkSceneView> {
           avatar: Icon(Icons.mouse_outlined, size: 16),
           label: Text('Ctrl+drag pan  Ctrl+scroll zoom'),
         ),
+        FilterChip(
+          key: const ValueKey<String>('chunk_scene_parallax_toggle'),
+          label: const Text('Parallax Preview'),
+          selected: _showParallaxPreview,
+          onSelected: (value) {
+            setState(() {
+              _showParallaxPreview = value;
+            });
+          },
+        ),
       ],
     );
   }
 
   Widget _buildScrollableCanvas({
     required _ChunkSceneGeometry geometry,
+    required ChunkParallaxPreviewSpec parallaxPreview,
     required ChunkGroundLayout groundLayout,
     required ChunkGroundMaterialSpec groundMaterial,
     required ui.Rect? groundMaterialSrcRect,
@@ -267,6 +281,8 @@ class _ChunkSceneViewState extends State<ChunkSceneView> {
                 loadedImageCount: _imageCache.loadedImageCount,
                 geometry: geometry,
                 chunk: widget.chunk,
+                showParallaxPreview: _showParallaxPreview,
+                parallaxPreview: parallaxPreview,
                 groundLayout: groundLayout,
                 groundMaterial: groundMaterial,
                 groundMaterialSrcRect: groundMaterialSrcRect,
@@ -543,7 +559,14 @@ class _ChunkSceneViewState extends State<ChunkSceneView> {
   void _ensureAllSceneImagesLoaded() {
     final uniquePaths = <String>{};
     final groundMaterial = resolveChunkGroundMaterialSpec(widget.chunk.levelId);
+    final parallaxPreview = resolveChunkParallaxPreviewSpec(widget.chunk.levelId);
     uniquePaths.add(groundMaterial.sourceImagePath);
+    uniquePaths.addAll(
+      parallaxPreview.backgroundLayers.map((layer) => layer.assetPath),
+    );
+    uniquePaths.addAll(
+      parallaxPreview.foregroundLayers.map((layer) => layer.assetPath),
+    );
     for (final placement in _buildRenderPlacements()) {
       for (final sprite in placement.sprites) {
         final sourceImagePath = sprite.slice?.sourceImagePath.trim() ?? '';
@@ -924,6 +947,8 @@ class _ChunkScenePainter extends CustomPainter {
     required this.loadedImageCount,
     required this.geometry,
     required this.chunk,
+    required this.showParallaxPreview,
+    required this.parallaxPreview,
     required this.groundLayout,
     required this.groundMaterial,
     required this.groundMaterialSrcRect,
@@ -936,6 +961,8 @@ class _ChunkScenePainter extends CustomPainter {
   final int loadedImageCount;
   final _ChunkSceneGeometry geometry;
   final LevelChunkDef chunk;
+  final bool showParallaxPreview;
+  final ChunkParallaxPreviewSpec parallaxPreview;
   final ChunkGroundLayout groundLayout;
   final ChunkGroundMaterialSpec groundMaterial;
   final ui.Rect? groundMaterialSrcRect;
@@ -952,13 +979,153 @@ class _ChunkScenePainter extends CustomPainter {
       geometry.worldCanvasRect,
       Paint()..color = const Color(0xFF0D131A),
     );
+    if (showParallaxPreview) {
+      _paintParallaxBackground(canvas);
+    }
     _paintChunkBackdrop(canvas);
 
     _paintPixelGrid(canvas, size);
 
     _paintSceneContentLayers(canvas);
+    if (showParallaxPreview) {
+      _paintParallaxForeground(canvas);
+    }
     _paintChunkBounds(canvas);
     _paintSelectedPlacementOverlay(canvas);
+  }
+
+  void _paintParallaxBackground(Canvas canvas) {
+    _paintParallaxLayersOverChunk(
+      canvas,
+      parallaxPreview.backgroundLayers,
+    );
+  }
+
+  void _paintParallaxForeground(Canvas canvas) {
+    _paintParallaxLayersOnGroundBands(
+      canvas,
+      parallaxPreview.foregroundLayers,
+    );
+  }
+
+  void _paintParallaxLayersOverChunk(
+    Canvas canvas,
+    List<ChunkParallaxLayerPreviewSpec> layerSpecs,
+  ) {
+    if (layerSpecs.isEmpty) {
+      return;
+    }
+    final chunkRect = geometry.chunkRect;
+    final chunkWidth = chunkRect.width;
+    if (chunkWidth <= 0) {
+      return;
+    }
+    final anchorWorldY = chunk.groundProfile.topY.toDouble();
+    final chunkCanvasRect = geometry.canvasRectFromWorld(geometry.chunkRect);
+    canvas.save();
+    canvas.clipRect(chunkCanvasRect);
+    for (final layer in layerSpecs) {
+      final image = _resolveParallaxImage(layer.assetPath);
+      if (image == null) {
+        continue;
+      }
+      _paintTiledParallaxBand(
+        canvas,
+        image: image,
+        anchorWorldY: anchorWorldY,
+        minWorldX: chunkRect.left,
+        maxWorldX: chunkRect.right,
+        parallaxFactor: layer.parallaxFactor,
+      );
+    }
+    canvas.restore();
+  }
+
+  void _paintParallaxLayersOnGroundBands(
+    Canvas canvas,
+    List<ChunkParallaxLayerPreviewSpec> layerSpecs,
+  ) {
+    if (layerSpecs.isEmpty || groundLayout.solidWorldRects.isEmpty) {
+      return;
+    }
+    for (final band in groundLayout.solidWorldRects) {
+      final bandCanvasRect = geometry.canvasRectFromWorld(band);
+      if (bandCanvasRect.width <= 0 || bandCanvasRect.height <= 0) {
+        continue;
+      }
+      canvas.save();
+      canvas.clipRect(bandCanvasRect);
+      for (final layer in layerSpecs) {
+        final image = _resolveParallaxImage(layer.assetPath);
+        if (image == null) {
+          continue;
+        }
+        _paintTiledParallaxBand(
+          canvas,
+          image: image,
+          anchorWorldY: band.bottom,
+          minWorldX: band.left,
+          maxWorldX: band.right,
+          parallaxFactor: layer.parallaxFactor,
+        );
+      }
+      canvas.restore();
+    }
+  }
+
+  void _paintTiledParallaxBand(
+    Canvas canvas, {
+    required ui.Image image,
+    required double anchorWorldY,
+    required double minWorldX,
+    required double maxWorldX,
+    required double parallaxFactor,
+  }) {
+    final imageWorldWidth = image.width.toDouble();
+    if (imageWorldWidth <= 0) {
+      return;
+    }
+    final cameraLeftWorldX = geometry.chunkRect.left;
+    final scroll = _positiveModDouble(
+      cameraLeftWorldX * parallaxFactor,
+      imageWorldWidth,
+    );
+    final startOffsetWorldX = _positiveModDouble(-scroll, imageWorldWidth);
+    final startTile =
+        ((minWorldX - (geometry.chunkRect.left + startOffsetWorldX)) /
+                imageWorldWidth)
+            .floor() -
+        1;
+    final endTile =
+        ((maxWorldX - (geometry.chunkRect.left + startOffsetWorldX)) /
+                imageWorldWidth)
+            .ceil() +
+        1;
+
+    final topWorldY = anchorWorldY - image.height.toDouble();
+    for (var tile = startTile; tile <= endTile; tile += 1) {
+      final tileWorldX =
+          geometry.chunkRect.left + startOffsetWorldX + tile * imageWorldWidth;
+      final dstRect = geometry.canvasRectFromWorld(
+        Rect.fromLTWH(
+          tileWorldX,
+          topWorldY,
+          imageWorldWidth,
+          image.height.toDouble(),
+        ),
+      );
+      canvas.drawImageRect(
+        image,
+        Rect.fromLTWH(
+          0,
+          0,
+          image.width.toDouble(),
+          image.height.toDouble(),
+        ),
+        dstRect,
+        Paint()..filterQuality = FilterQuality.none,
+      );
+    }
   }
 
   void _paintChunkBackdrop(Canvas canvas) {
@@ -1261,10 +1428,16 @@ class _ChunkScenePainter extends CustomPainter {
     return imageCache.imageFor(absolutePath);
   }
 
+  ui.Image? _resolveParallaxImage(String sourceImagePath) {
+    final absolutePath = p.normalize(p.join(workspaceRootPath, sourceImagePath));
+    return imageCache.imageFor(absolutePath);
+  }
+
   @override
   bool shouldRepaint(covariant _ChunkScenePainter oldDelegate) {
     return oldDelegate.geometry.zoom != geometry.zoom ||
         oldDelegate.chunk != chunk ||
+        oldDelegate.showParallaxPreview != showParallaxPreview ||
         oldDelegate.groundMaterial.sourceImagePath !=
             groundMaterial.sourceImagePath ||
         oldDelegate.groundMaterialSrcRect != groundMaterialSrcRect ||
@@ -1272,6 +1445,14 @@ class _ChunkScenePainter extends CustomPainter {
         oldDelegate.renderPlacements != renderPlacements ||
         oldDelegate.loadedImageCount != loadedImageCount;
   }
+}
+
+double _positiveModDouble(double value, double modulus) {
+  if (modulus == 0) {
+    return 0;
+  }
+  final result = value % modulus;
+  return result < 0 ? result + modulus : result;
 }
 
 int _compareRenderPlacements(_ChunkRenderPlacement a, _ChunkRenderPlacement b) {
