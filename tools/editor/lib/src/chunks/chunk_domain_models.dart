@@ -11,6 +11,9 @@ const String chunkDifficultyNormal = 'normal';
 const String chunkDifficultyHard = 'hard';
 const String groundProfileKindFlat = 'flat';
 const String groundGapTypePit = 'pit';
+const String markerPlacementGround = 'ground';
+const String markerPlacementHighestSurfaceAtX = 'highestSurfaceAtX';
+const String markerPlacementObstacleTop = 'obstacleTop';
 const int defaultLockedChunkHeight = 270;
 const int defaultRuntimeGroundTopY = 224;
 
@@ -231,6 +234,30 @@ int comparePlacedPrefabsDeterministic(PlacedPrefabDef a, PlacedPrefabDef b) {
   return a.prefabId.compareTo(b.prefabId);
 }
 
+int comparePlacedMarkersDeterministic(PlacedMarkerDef a, PlacedMarkerDef b) {
+  final yCompare = a.y.compareTo(b.y);
+  if (yCompare != 0) {
+    return yCompare;
+  }
+  final xCompare = a.x.compareTo(b.x);
+  if (xCompare != 0) {
+    return xCompare;
+  }
+  final markerIdCompare = a.markerId.compareTo(b.markerId);
+  if (markerIdCompare != 0) {
+    return markerIdCompare;
+  }
+  final placementCompare = a.placement.compareTo(b.placement);
+  if (placementCompare != 0) {
+    return placementCompare;
+  }
+  final chanceCompare = a.chancePercent.compareTo(b.chancePercent);
+  if (chanceCompare != 0) {
+    return chanceCompare;
+  }
+  return a.salt.compareTo(b.salt);
+}
+
 @immutable
 class ChunkPlacedPrefabSelection {
   const ChunkPlacedPrefabSelection({
@@ -283,27 +310,101 @@ String _placedPrefabLocationKey(PlacedPrefabDef prefab) {
 }
 
 @immutable
+class ChunkPlacedMarkerSelection {
+  const ChunkPlacedMarkerSelection({
+    required this.selectionKey,
+    required this.ordinalAtLocation,
+    required this.marker,
+  });
+
+  final String selectionKey;
+  final int ordinalAtLocation;
+  final PlacedMarkerDef marker;
+}
+
+List<ChunkPlacedMarkerSelection> buildChunkPlacedMarkerSelections(
+  Iterable<PlacedMarkerDef> markers,
+) {
+  final sortedMarkers = List<PlacedMarkerDef>.from(markers)
+    ..sort(comparePlacedMarkersDeterministic);
+  final locationOrdinals = <String, int>{};
+  return sortedMarkers
+      .map((marker) {
+        final locationKey = _placedMarkerLocationKey(marker);
+        final ordinal = locationOrdinals[locationKey] ?? 0;
+        locationOrdinals[locationKey] = ordinal + 1;
+        return ChunkPlacedMarkerSelection(
+          selectionKey: buildChunkPlacedMarkerSelectionKey(
+            marker.markerId,
+            x: marker.x,
+            y: marker.y,
+            ordinalAtLocation: ordinal,
+          ),
+          ordinalAtLocation: ordinal,
+          marker: marker,
+        );
+      })
+      .toList(growable: false);
+}
+
+String buildChunkPlacedMarkerSelectionKey(
+  String markerId, {
+  required int x,
+  required int y,
+  required int ordinalAtLocation,
+}) {
+  return '$markerId|$x|$y|$ordinalAtLocation';
+}
+
+String _placedMarkerLocationKey(PlacedMarkerDef marker) {
+  return '${marker.markerId}|${marker.x}|${marker.y}';
+}
+
+@immutable
 class PlacedMarkerDef {
   const PlacedMarkerDef({
     required this.markerId,
     required this.x,
     required this.y,
+    this.chancePercent = 100,
+    this.salt = 0,
+    this.placement = markerPlacementGround,
   });
 
   final String markerId;
   final int x;
   final int y;
+  final int chancePercent;
+  final int salt;
+  final String placement;
 
-  PlacedMarkerDef copyWith({String? markerId, int? x, int? y}) {
+  PlacedMarkerDef copyWith({
+    String? markerId,
+    int? x,
+    int? y,
+    int? chancePercent,
+    int? salt,
+    String? placement,
+  }) {
     return PlacedMarkerDef(
       markerId: markerId ?? this.markerId,
       x: x ?? this.x,
       y: y ?? this.y,
+      chancePercent: chancePercent ?? this.chancePercent,
+      salt: salt ?? this.salt,
+      placement: placement ?? this.placement,
     );
   }
 
   Map<String, Object?> toJson() {
-    return <String, Object?>{'markerId': markerId, 'x': x, 'y': y};
+    return <String, Object?>{
+      'markerId': markerId,
+      'x': x,
+      'y': y,
+      'chancePercent': chancePercent,
+      'salt': salt,
+      'placement': placement,
+    };
   }
 
   static PlacedMarkerDef fromJson(Map<String, Object?> json) {
@@ -311,6 +412,12 @@ class PlacedMarkerDef {
       markerId: _normalizedString(json['markerId']),
       x: _intOrDefault(json['x'], fallback: 0),
       y: _intOrDefault(json['y'], fallback: 0),
+      chancePercent: _intOrDefault(json['chancePercent'], fallback: 100),
+      salt: _intOrDefault(json['salt'], fallback: 0),
+      placement: _normalizedString(
+        json['placement'],
+        fallback: markerPlacementGround,
+      ),
     );
   }
 }
@@ -493,17 +600,7 @@ class LevelChunkDef {
       ..sort(comparePlacedPrefabsDeterministic);
 
     final normalizedMarkers = List<PlacedMarkerDef>.from(markers)
-      ..sort((a, b) {
-        final yCompare = a.y.compareTo(b.y);
-        if (yCompare != 0) {
-          return yCompare;
-        }
-        final xCompare = a.x.compareTo(b.x);
-        if (xCompare != 0) {
-          return xCompare;
-        }
-        return a.markerId.compareTo(b.markerId);
-      });
+      ..sort(comparePlacedMarkersDeterministic);
 
     final normalizedGaps = List<GroundGapDef>.from(groundGaps)
       ..sort((a, b) {

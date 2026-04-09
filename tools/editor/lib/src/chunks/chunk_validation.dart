@@ -45,6 +45,17 @@ List<ValidationIssue> validateChunkDocument(ChunkDocument document) {
       .toSet();
   final knownLevelIds = document.availableLevelIds.toSet();
   const tolerance = 1e-9;
+  const knownEnemyMarkerIds = <String>{
+    'unocoDemon',
+    'grojib',
+    'hashash',
+    'derf',
+  };
+  const knownMarkerPlacements = <String>{
+    markerPlacementGround,
+    markerPlacementHighestSurfaceAtX,
+    markerPlacementObstacleTop,
+  };
 
   for (final chunk in sortedChunks) {
     final sourcePath = document.baselineByChunkKey[chunk.chunkKey]?.sourcePath;
@@ -325,6 +336,105 @@ List<ValidationIssue> validateChunkDocument(ChunkDocument document) {
             message:
                 'Chunk ${chunk.id} prefab placement '
                 '"${prefab.resolvedPrefabRef}" is not snapped to runtime grid.',
+            sourcePath: sourcePath,
+          ),
+        );
+      }
+    }
+
+    final sortedMarkers = List<PlacedMarkerDef>.from(chunk.markers)
+      ..sort(comparePlacedMarkersDeterministic);
+
+    for (final marker in sortedMarkers) {
+      if (marker.markerId.isEmpty) {
+        issues.add(
+          ValidationIssue(
+            severity: ValidationSeverity.error,
+            code: 'missing_marker_id',
+            message: 'Chunk ${chunk.id} has marker with empty markerId.',
+            sourcePath: sourcePath,
+          ),
+        );
+      } else if (!knownEnemyMarkerIds.contains(marker.markerId)) {
+        issues.add(
+          ValidationIssue(
+            severity: ValidationSeverity.error,
+            code: 'unknown_enemy_marker_id',
+            message:
+                'Chunk ${chunk.id} marker references unknown enemy "${marker.markerId}".',
+            sourcePath: sourcePath,
+          ),
+        );
+      }
+
+      if (marker.x < 0 || marker.x > chunk.width) {
+        issues.add(
+          ValidationIssue(
+            severity: ValidationSeverity.error,
+            code: 'marker_x_out_of_bounds',
+            message:
+                'Chunk ${chunk.id} marker ${marker.markerId} x is outside chunk width.',
+            sourcePath: sourcePath,
+          ),
+        );
+      }
+
+      if (marker.y < 0 || marker.y > chunk.height) {
+        issues.add(
+          ValidationIssue(
+            severity: ValidationSeverity.error,
+            code: 'marker_y_out_of_bounds',
+            message:
+                'Chunk ${chunk.id} marker ${marker.markerId} y is outside chunk height.',
+            sourcePath: sourcePath,
+          ),
+        );
+      }
+
+      if (!_isSnapped(marker.x.toDouble(), document.runtimeGridSnap) ||
+          !_isSnapped(marker.y.toDouble(), document.runtimeGridSnap)) {
+        issues.add(
+          ValidationIssue(
+            severity: ValidationSeverity.error,
+            code: 'marker_snap_violation',
+            message:
+                'Chunk ${chunk.id} marker ${marker.markerId} is not snapped to runtime grid.',
+            sourcePath: sourcePath,
+          ),
+        );
+      }
+
+      if (marker.chancePercent < 0 || marker.chancePercent > 100) {
+        issues.add(
+          ValidationIssue(
+            severity: ValidationSeverity.error,
+            code: 'marker_chance_out_of_range',
+            message:
+                'Chunk ${chunk.id} marker ${marker.markerId} chancePercent must be between 0 and 100.',
+            sourcePath: sourcePath,
+          ),
+        );
+      }
+
+      if (marker.salt < 0) {
+        issues.add(
+          ValidationIssue(
+            severity: ValidationSeverity.error,
+            code: 'marker_salt_negative',
+            message:
+                'Chunk ${chunk.id} marker ${marker.markerId} salt must be >= 0.',
+            sourcePath: sourcePath,
+          ),
+        );
+      }
+
+      if (!knownMarkerPlacements.contains(marker.placement)) {
+        issues.add(
+          ValidationIssue(
+            severity: ValidationSeverity.error,
+            code: 'marker_invalid_placement',
+            message:
+                'Chunk ${chunk.id} marker ${marker.markerId} has unsupported placement ${marker.placement}.',
             sourcePath: sourcePath,
           ),
         );

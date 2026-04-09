@@ -439,9 +439,12 @@ void main() {
                     ),
                     runtimeGridSnap: 16.0,
                     tool: tool,
+                    placeMode: ChunkScenePlaceMode.prefab,
                     placeSnapToGrid: true,
                     selectedPalettePrefabKey: 'village_crate_01',
                     selectedPlacementKey: selectedPlacementKey,
+                    selectedEnemyMarkerId: 'grojib',
+                    selectedMarkerKey: null,
                     onToolChanged: (next) {
                       setState(() {
                         tool = next;
@@ -459,6 +462,11 @@ void main() {
                     onMovePlacement: (_, _, _) {},
                     onCommitPlacementMove: () {},
                     onRemovePlacement: (_) {},
+                    onPlaceMarker: (_, _) {},
+                    onSelectMarker: (_) {},
+                    onMoveMarker: (_, _, _) {},
+                    onCommitMarkerMove: () {},
+                    onRemoveMarker: (_) {},
                   );
                 },
               ),
@@ -598,9 +606,12 @@ void main() {
                     ),
                     runtimeGridSnap: 16.0,
                     tool: tool,
+                    placeMode: ChunkScenePlaceMode.prefab,
                     placeSnapToGrid: true,
                     selectedPalettePrefabKey: 'village_crate_01',
                     selectedPlacementKey: selectedPlacementKey,
+                    selectedEnemyMarkerId: 'grojib',
+                    selectedMarkerKey: null,
                     onToolChanged: (next) {
                       setState(() {
                         tool = next;
@@ -626,6 +637,11 @@ void main() {
                     },
                     onCommitPlacementMove: () {},
                     onRemovePlacement: (_) {},
+                    onPlaceMarker: (_, _) {},
+                    onSelectMarker: (_) {},
+                    onMoveMarker: (_, _, _) {},
+                    onCommitMarkerMove: () {},
+                    onRemoveMarker: (_) {},
                   );
                 },
               ),

@@ -18,6 +18,8 @@ import 'chunk_scene_ground.dart';
 
 enum ChunkSceneTool { place, select, erase }
 
+enum ChunkScenePlaceMode { prefab, enemyMarker }
+
 extension ChunkSceneToolLabel on ChunkSceneTool {
   String get label {
     switch (this) {
@@ -39,15 +41,23 @@ class ChunkSceneView extends StatefulWidget {
     required this.prefabData,
     required this.runtimeGridSnap,
     required this.tool,
+    required this.placeMode,
     required this.placeSnapToGrid,
     required this.selectedPalettePrefabKey,
     required this.selectedPlacementKey,
+    required this.selectedEnemyMarkerId,
+    required this.selectedMarkerKey,
     required this.onToolChanged,
     required this.onPlacePrefab,
     required this.onSelectPlacement,
     required this.onMovePlacement,
     required this.onCommitPlacementMove,
     required this.onRemovePlacement,
+    required this.onPlaceMarker,
+    required this.onSelectMarker,
+    required this.onMoveMarker,
+    required this.onCommitMarkerMove,
+    required this.onRemoveMarker,
   });
 
   final String workspaceRootPath;
@@ -55,15 +65,23 @@ class ChunkSceneView extends StatefulWidget {
   final PrefabData prefabData;
   final double runtimeGridSnap;
   final ChunkSceneTool tool;
+  final ChunkScenePlaceMode placeMode;
   final bool placeSnapToGrid;
   final String? selectedPalettePrefabKey;
   final String? selectedPlacementKey;
+  final String selectedEnemyMarkerId;
+  final String? selectedMarkerKey;
   final ValueChanged<ChunkSceneTool> onToolChanged;
   final void Function(int x, int y) onPlacePrefab;
   final ValueChanged<String?> onSelectPlacement;
   final void Function(String selectionKey, int x, int y) onMovePlacement;
   final VoidCallback onCommitPlacementMove;
   final ValueChanged<String> onRemovePlacement;
+  final void Function(int x, int y) onPlaceMarker;
+  final ValueChanged<String?> onSelectMarker;
+  final void Function(String selectionKey, int x, int y) onMoveMarker;
+  final VoidCallback onCommitMarkerMove;
+  final ValueChanged<String> onRemoveMarker;
 
   @override
   State<ChunkSceneView> createState() => _ChunkSceneViewState();
@@ -87,6 +105,7 @@ class _ChunkSceneViewState extends State<ChunkSceneView> {
   bool _ctrlPanActive = false;
   int? _activePointer;
   _ChunkPlacementDragState? _dragState;
+  _ChunkMarkerDragState? _markerDragState;
 
   @override
   void initState() {
@@ -120,6 +139,14 @@ class _ChunkSceneViewState extends State<ChunkSceneView> {
         selectedPlacementKey != dragState.selectionKey) {
       _dragState = dragState.copyWith(selectionKey: selectedPlacementKey);
     }
+    final markerDragState = _markerDragState;
+    final selectedMarkerKey = widget.selectedMarkerKey;
+    if (markerDragState != null &&
+        selectedMarkerKey != null &&
+        selectedMarkerKey.isNotEmpty &&
+        selectedMarkerKey != markerDragState.selectionKey) {
+      _markerDragState = markerDragState.copyWith(selectionKey: selectedMarkerKey);
+    }
   }
 
   @override
@@ -133,7 +160,9 @@ class _ChunkSceneViewState extends State<ChunkSceneView> {
   @override
   Widget build(BuildContext context) {
     final renderPlacements = _buildRenderPlacements();
+    final renderMarkers = _buildRenderMarkers();
     final selectedPlacement = _resolveSelectedPlacement(renderPlacements);
+    final selectedMarker = _resolveSelectedMarker(renderMarkers);
     final groundMaterial = resolveChunkGroundMaterialSpec(widget.chunk.levelId);
     final parallaxPreview = resolveChunkParallaxPreviewSpec(widget.chunk.levelId);
     final groundMaterialAbsolutePath = _absoluteImagePath(
@@ -159,6 +188,7 @@ class _ChunkSceneViewState extends State<ChunkSceneView> {
           chunk: widget.chunk,
           runtimeGridSnap: widget.runtimeGridSnap,
           renderPlacements: renderPlacements,
+          renderMarkers: renderMarkers,
           viewportSize: Size(
             math.max(1.0, viewportWidth),
             math.max(1.0, viewportHeight),
@@ -183,7 +213,9 @@ class _ChunkSceneViewState extends State<ChunkSceneView> {
                   groundMaterial: groundMaterial,
                   groundMaterialSrcRect: groundMaterialSrcRect,
                   renderPlacements: renderPlacements,
+                  renderMarkers: renderMarkers,
                   selectedPlacement: selectedPlacement,
+                  selectedMarker: selectedMarker,
                 ),
               ),
             ),
@@ -194,9 +226,11 @@ class _ChunkSceneViewState extends State<ChunkSceneView> {
   }
 
   Widget _buildControls(BuildContext context) {
-    final paletteLabel = widget.selectedPalettePrefabKey == null
-        ? 'No prefab selected'
-        : 'Palette: ${widget.selectedPalettePrefabKey}';
+    final paletteLabel = widget.placeMode == ChunkScenePlaceMode.prefab
+      ? (widget.selectedPalettePrefabKey == null
+          ? 'No prefab selected'
+          : 'Palette: ${widget.selectedPalettePrefabKey}')
+      : 'Enemy: ${widget.selectedEnemyMarkerId}';
     return Wrap(
       spacing: 12,
       runSpacing: 8,
@@ -247,7 +281,9 @@ class _ChunkSceneViewState extends State<ChunkSceneView> {
     required ChunkGroundMaterialSpec groundMaterial,
     required ui.Rect? groundMaterialSrcRect,
     required List<_ChunkRenderPlacement> renderPlacements,
+    required List<_ChunkRenderMarker> renderMarkers,
     required _ChunkRenderPlacement? selectedPlacement,
+    required _ChunkRenderMarker? selectedMarker,
   }) {
     final canvas = SizedBox(
       width: geometry.canvasSize.width,
@@ -259,13 +295,13 @@ class _ChunkSceneViewState extends State<ChunkSceneView> {
             event,
             geometry: geometry,
             renderPlacements: renderPlacements,
+            renderMarkers: renderMarkers,
           );
         },
         onPointerMove: (event) {
           _onPointerMove(
             event,
             geometry: geometry,
-            renderPlacements: renderPlacements,
           );
         },
         onPointerUp: _onPointerEnd,
@@ -287,7 +323,9 @@ class _ChunkSceneViewState extends State<ChunkSceneView> {
                 groundMaterial: groundMaterial,
                 groundMaterialSrcRect: groundMaterialSrcRect,
                 renderPlacements: renderPlacements,
+                renderMarkers: renderMarkers,
                 selectedPlacement: selectedPlacement,
+                selectedMarker: selectedMarker,
               ),
             ),
             IgnorePointer(
@@ -341,6 +379,7 @@ class _ChunkSceneViewState extends State<ChunkSceneView> {
     PointerDownEvent event, {
     required _ChunkSceneGeometry geometry,
     required List<_ChunkRenderPlacement> renderPlacements,
+    required List<_ChunkRenderMarker> renderMarkers,
   }) {
     if (!SceneInputUtils.isPrimaryButtonPressed(event.buttons)) {
       return;
@@ -355,54 +394,98 @@ class _ChunkSceneViewState extends State<ChunkSceneView> {
       event.localPosition,
       renderPlacements,
     );
+    final markerHit = geometry.hitTestMarker(event.localPosition, renderMarkers);
     switch (widget.tool) {
       case ChunkSceneTool.place:
-        if (widget.selectedPalettePrefabKey == null) {
-          if (hit != null) {
-            widget.onSelectPlacement(hit.selectionKey);
+        if (widget.placeMode == ChunkScenePlaceMode.prefab) {
+          if (widget.selectedPalettePrefabKey == null) {
+            if (hit != null) {
+              widget.onSelectPlacement(hit.selectionKey);
+            }
+            return;
           }
+          final snapped = geometry.snappedWorldPoint(
+            event.localPosition,
+            widget.placeSnapToGrid ? widget.runtimeGridSnap : 0,
+          );
+          if (snapped == null) {
+            return;
+          }
+          widget.onPlacePrefab(snapped.dx.round(), snapped.dy.round());
           return;
         }
         final snapped = geometry.snappedWorldPoint(
           event.localPosition,
-          widget.placeSnapToGrid ? widget.runtimeGridSnap : 0,
+          widget.runtimeGridSnap,
         );
         if (snapped == null) {
           return;
         }
-        widget.onPlacePrefab(snapped.dx.round(), snapped.dy.round());
+        widget.onPlaceMarker(snapped.dx.round(), snapped.dy.round());
         return;
       case ChunkSceneTool.select:
-        if (hit == null) {
-          widget.onSelectPlacement(null);
+        if (widget.placeMode == ChunkScenePlaceMode.prefab) {
+          if (hit == null) {
+            widget.onSelectPlacement(null);
+            return;
+          }
+          widget.onSelectPlacement(hit.selectionKey);
+          final pointerWorld = geometry.worldFromLocal(event.localPosition);
+          if (pointerWorld == null) {
+            return;
+          }
+          setState(() {
+            _dragState = _ChunkPlacementDragState(
+              pointer: event.pointer,
+              selectionKey: hit.selectionKey,
+              resolvedPrefabRef: hit.placement.resolvedPrefabRef,
+              snapToGrid: hit.placement.snapToGrid,
+              grabOffsetWorld:
+                  pointerWorld -
+                  Offset(hit.placement.x.toDouble(), hit.placement.y.toDouble()),
+              lastAppliedX: hit.placement.x,
+              lastAppliedY: hit.placement.y,
+            );
+          });
           return;
         }
-        widget.onSelectPlacement(hit.selectionKey);
+        if (markerHit == null) {
+          widget.onSelectMarker(null);
+          return;
+        }
+        widget.onSelectMarker(markerHit.selectionKey);
         final pointerWorld = geometry.worldFromLocal(event.localPosition);
         if (pointerWorld == null) {
           return;
         }
         setState(() {
-          _dragState = _ChunkPlacementDragState(
+          _markerDragState = _ChunkMarkerDragState(
             pointer: event.pointer,
-            selectionKey: hit.selectionKey,
-            resolvedPrefabRef: hit.placement.resolvedPrefabRef,
-            snapToGrid: hit.placement.snapToGrid,
+            selectionKey: markerHit.selectionKey,
             grabOffsetWorld:
                 pointerWorld -
-                Offset(hit.placement.x.toDouble(), hit.placement.y.toDouble()),
-            lastAppliedX: hit.placement.x,
-            lastAppliedY: hit.placement.y,
+                Offset(markerHit.marker.x.toDouble(), markerHit.marker.y.toDouble()),
+            lastAppliedX: markerHit.marker.x,
+            lastAppliedY: markerHit.marker.y,
           );
         });
         return;
       case ChunkSceneTool.erase:
-        if (hit == null) {
+        if (widget.placeMode == ChunkScenePlaceMode.prefab) {
+          if (hit == null) {
+            widget.onSelectPlacement(null);
+            return;
+          }
+          widget.onRemovePlacement(hit.selectionKey);
           widget.onSelectPlacement(null);
           return;
         }
-        widget.onRemovePlacement(hit.selectionKey);
-        widget.onSelectPlacement(null);
+        if (markerHit == null) {
+          widget.onSelectMarker(null);
+          return;
+        }
+        widget.onRemoveMarker(markerHit.selectionKey);
+        widget.onSelectMarker(null);
         return;
     }
   }
@@ -410,7 +493,6 @@ class _ChunkSceneViewState extends State<ChunkSceneView> {
   void _onPointerMove(
     PointerMoveEvent event, {
     required _ChunkSceneGeometry geometry,
-    required List<_ChunkRenderPlacement> renderPlacements,
   }) {
     if (_activePointer != event.pointer) {
       return;
@@ -427,32 +509,63 @@ class _ChunkSceneViewState extends State<ChunkSceneView> {
       );
       return;
     }
-    final dragState = _dragState;
-    if (dragState == null || widget.tool != ChunkSceneTool.select) {
+    if (widget.tool != ChunkSceneTool.select) {
       return;
     }
     if (!SceneInputUtils.isPrimaryButtonPressed(event.buttons)) {
       _resetPointerState(commitMove: true);
       return;
     }
+
+    if (widget.placeMode == ChunkScenePlaceMode.prefab) {
+      final dragState = _dragState;
+      if (dragState == null) {
+        return;
+      }
+      final pointerWorld = geometry.worldFromLocal(event.localPosition);
+      if (pointerWorld == null) {
+        return;
+      }
+      final candidateAnchor = pointerWorld - dragState.grabOffsetWorld;
+      final snapped = geometry.snapWorldPoint(
+        candidateAnchor,
+        dragState.snapToGrid ? widget.runtimeGridSnap : 0,
+      );
+      final snappedX = snapped.dx.round();
+      final snappedY = snapped.dy.round();
+      if (snappedX == dragState.lastAppliedX &&
+          snappedY == dragState.lastAppliedY) {
+        return;
+      }
+      widget.onMovePlacement(dragState.selectionKey, snappedX, snappedY);
+      setState(() {
+        _dragState = dragState.copyWith(
+          lastAppliedX: snappedX,
+          lastAppliedY: snappedY,
+        );
+      });
+      return;
+    }
+
+    final markerDragState = _markerDragState;
+    if (markerDragState == null) {
+      return;
+    }
     final pointerWorld = geometry.worldFromLocal(event.localPosition);
     if (pointerWorld == null) {
       return;
     }
-    final candidateAnchor = pointerWorld - dragState.grabOffsetWorld;
-    final snapped = geometry.snapWorldPoint(
-      candidateAnchor,
-      dragState.snapToGrid ? widget.runtimeGridSnap : 0,
-    );
+    final candidateAnchor = pointerWorld - markerDragState.grabOffsetWorld;
+    final snapped = geometry.snapWorldPoint(candidateAnchor, widget.runtimeGridSnap);
     final snappedX = snapped.dx.round();
     final snappedY = snapped.dy.round();
-    if (snappedX == dragState.lastAppliedX &&
-        snappedY == dragState.lastAppliedY) {
+    if (snappedX == markerDragState.lastAppliedX &&
+        snappedY == markerDragState.lastAppliedY) {
       return;
     }
-    widget.onMovePlacement(dragState.selectionKey, snappedX, snappedY);
+    widget.onMoveMarker(markerDragState.selectionKey, snappedX, snappedY);
     setState(() {
-      _dragState = dragState.copyWith(
+      _markerDragState = markerDragState.copyWith(
         lastAppliedX: snappedX,
         lastAppliedY: snappedY,
       );
@@ -465,13 +578,18 @@ class _ChunkSceneViewState extends State<ChunkSceneView> {
 
   void _resetPointerState({required bool commitMove}) {
     final hadDrag = _dragState != null;
+    final hadMarkerDrag = _markerDragState != null;
     _ctrlPanActive = false;
     _activePointer = null;
     _dragState = null;
+    _markerDragState = null;
     if (commitMove && hadDrag) {
       widget.onCommitPlacementMove();
     }
-    if (hadDrag) {
+    if (commitMove && hadMarkerDrag) {
+      widget.onCommitMarkerMove();
+    }
+    if (hadDrag || hadMarkerDrag) {
       setState(() {});
     }
   }
@@ -541,6 +659,19 @@ class _ChunkSceneViewState extends State<ChunkSceneView> {
       ..sort(_compareRenderPlacements);
   }
 
+  List<_ChunkRenderMarker> _buildRenderMarkers() {
+    final selections = buildChunkPlacedMarkerSelections(widget.chunk.markers);
+    return selections
+        .map(
+          (selection) => _ChunkRenderMarker(
+            selectionKey: selection.selectionKey,
+            marker: selection.marker,
+          ),
+        )
+        .toList(growable: false)
+      ..sort(_compareRenderMarkers);
+  }
+
   _ChunkRenderPlacement? _resolveSelectedPlacement(
     List<_ChunkRenderPlacement> renderPlacements,
   ) {
@@ -551,6 +682,21 @@ class _ChunkSceneViewState extends State<ChunkSceneView> {
     for (final placement in renderPlacements) {
       if (placement.selectionKey == selectedPlacementKey) {
         return placement;
+      }
+    }
+    return null;
+  }
+
+  _ChunkRenderMarker? _resolveSelectedMarker(
+    List<_ChunkRenderMarker> renderMarkers,
+  ) {
+    final selectedMarkerKey = widget.selectedMarkerKey;
+    if (selectedMarkerKey == null || selectedMarkerKey.isEmpty) {
+      return null;
+    }
+    for (final marker in renderMarkers) {
+      if (marker.selectionKey == selectedMarkerKey) {
+        return marker;
       }
     }
     return null;
@@ -648,6 +794,36 @@ class _ChunkPlacementDragState {
       selectionKey: selectionKey ?? this.selectionKey,
       resolvedPrefabRef: resolvedPrefabRef,
       snapToGrid: snapToGrid,
+      grabOffsetWorld: grabOffsetWorld,
+      lastAppliedX: lastAppliedX ?? this.lastAppliedX,
+      lastAppliedY: lastAppliedY ?? this.lastAppliedY,
+    );
+  }
+}
+
+class _ChunkMarkerDragState {
+  const _ChunkMarkerDragState({
+    required this.pointer,
+    required this.selectionKey,
+    required this.grabOffsetWorld,
+    required this.lastAppliedX,
+    required this.lastAppliedY,
+  });
+
+  final int pointer;
+  final String selectionKey;
+  final Offset grabOffsetWorld;
+  final int lastAppliedX;
+  final int lastAppliedY;
+
+  _ChunkMarkerDragState copyWith({
+    String? selectionKey,
+    int? lastAppliedX,
+    int? lastAppliedY,
+  }) {
+    return _ChunkMarkerDragState(
+      pointer: pointer,
+      selectionKey: selectionKey ?? this.selectionKey,
       grabOffsetWorld: grabOffsetWorld,
       lastAppliedX: lastAppliedX ?? this.lastAppliedX,
       lastAppliedY: lastAppliedY ?? this.lastAppliedY,
@@ -806,6 +982,23 @@ class _ChunkRenderPlacement {
   }
 }
 
+class _ChunkRenderMarker {
+  const _ChunkRenderMarker({required this.selectionKey, required this.marker});
+
+  static const double _markerHitSize = 14.0;
+
+  final String selectionKey;
+  final PlacedMarkerDef marker;
+
+  Rect visualWorldRect() {
+    return Rect.fromCenter(
+      center: Offset(marker.x.toDouble(), marker.y.toDouble()),
+      width: _markerHitSize,
+      height: _markerHitSize,
+    );
+  }
+}
+
 class _ChunkRenderSprite {
   const _ChunkRenderSprite({required this.localRect, required this.slice});
 
@@ -818,6 +1011,7 @@ class _ChunkSceneGeometry {
     required this.chunk,
     required this.runtimeGridSnap,
     required this.renderPlacements,
+    required this.renderMarkers,
     required this.viewportSize,
     required this.zoom,
     required this.canvasMargin,
@@ -840,6 +1034,9 @@ class _ChunkSceneGeometry {
       contentBounds = contentBounds.expandToInclude(
         placement.visualWorldRect(),
       );
+    }
+    for (final marker in renderMarkers) {
+      contentBounds = contentBounds.expandToInclude(marker.visualWorldRect());
     }
 
     worldRect = Rect.fromLTRB(
@@ -870,6 +1067,7 @@ class _ChunkSceneGeometry {
   final LevelChunkDef chunk;
   final double runtimeGridSnap;
   final List<_ChunkRenderPlacement> renderPlacements;
+  final List<_ChunkRenderMarker> renderMarkers;
   final Size viewportSize;
   final double zoom;
   final double canvasMargin;
@@ -938,6 +1136,23 @@ class _ChunkSceneGeometry {
     }
     return null;
   }
+
+  _ChunkRenderMarker? hitTestMarker(
+    Offset localPosition,
+    List<_ChunkRenderMarker> renderMarkers,
+  ) {
+    final world = worldFromLocal(localPosition);
+    if (world == null) {
+      return null;
+    }
+    for (var i = renderMarkers.length - 1; i >= 0; i -= 1) {
+      final marker = renderMarkers[i];
+      if (marker.visualWorldRect().contains(world)) {
+        return marker;
+      }
+    }
+    return null;
+  }
 }
 
 class _ChunkScenePainter extends CustomPainter {
@@ -953,7 +1168,9 @@ class _ChunkScenePainter extends CustomPainter {
     required this.groundMaterial,
     required this.groundMaterialSrcRect,
     required this.renderPlacements,
+    required this.renderMarkers,
     required this.selectedPlacement,
+    required this.selectedMarker,
   });
 
   final String workspaceRootPath;
@@ -967,7 +1184,9 @@ class _ChunkScenePainter extends CustomPainter {
   final ChunkGroundMaterialSpec groundMaterial;
   final ui.Rect? groundMaterialSrcRect;
   final List<_ChunkRenderPlacement> renderPlacements;
+  final List<_ChunkRenderMarker> renderMarkers;
   final _ChunkRenderPlacement? selectedPlacement;
+  final _ChunkRenderMarker? selectedMarker;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -987,11 +1206,13 @@ class _ChunkScenePainter extends CustomPainter {
     _paintPixelGrid(canvas, size);
 
     _paintSceneContentLayers(canvas);
+    _paintMarkers(canvas);
     if (showParallaxPreview) {
       _paintParallaxForeground(canvas);
     }
     _paintChunkBounds(canvas);
     _paintSelectedPlacementOverlay(canvas);
+    _paintSelectedMarkerOverlay(canvas);
   }
 
   void _paintParallaxBackground(Canvas canvas) {
@@ -1414,6 +1635,76 @@ class _ChunkScenePainter extends CustomPainter {
     );
   }
 
+  void _paintMarkers(Canvas canvas) {
+    for (final marker in renderMarkers) {
+      final center = geometry.canvasFromWorld(
+        Offset(marker.marker.x.toDouble(), marker.marker.y.toDouble()),
+      );
+      final radius = math.max(5.0, 4.0 * geometry.zoom);
+      canvas.drawCircle(
+        center,
+        radius,
+        Paint()..color = const Color(0xFFEA5A5A).withValues(alpha: 0.42),
+      );
+      canvas.drawCircle(
+        center,
+        radius,
+        Paint()
+          ..color = const Color(0xFFFFADAD)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.4,
+      );
+      canvas.drawLine(
+        Offset(center.dx - radius, center.dy),
+        Offset(center.dx + radius, center.dy),
+        Paint()
+          ..color = const Color(0xFFFFD3D3)
+          ..strokeWidth = 1.1,
+      );
+      canvas.drawLine(
+        Offset(center.dx, center.dy - radius),
+        Offset(center.dx, center.dy + radius),
+        Paint()
+          ..color = const Color(0xFFFFD3D3)
+          ..strokeWidth = 1.1,
+      );
+
+      final textPainter = TextPainter(
+        text: TextSpan(
+          text: marker.marker.markerId,
+          style: TextStyle(
+            color: const Color(0xFFFFE8E8),
+            fontSize: math.max(9.0, 7.5 * geometry.zoom),
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      textPainter.paint(
+        canvas,
+        Offset(center.dx + radius + 4.0, center.dy - textPainter.height * 0.5),
+      );
+    }
+  }
+
+  void _paintSelectedMarkerOverlay(Canvas canvas) {
+    final marker = selectedMarker;
+    if (marker == null) {
+      return;
+    }
+    final center = geometry.canvasFromWorld(
+      Offset(marker.marker.x.toDouble(), marker.marker.y.toDouble()),
+    );
+    final radius = math.max(7.0, 5.5 * geometry.zoom);
+    canvas.drawCircle(
+      center,
+      radius + 2,
+      Paint()
+        ..color = const Color(0xFFFFD166)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.8,
+    );
+  }
+
   ui.Image? _resolveSliceImage(AtlasSliceDef slice) {
     final absolutePath = p.normalize(
       p.join(workspaceRootPath, slice.sourceImagePath),
@@ -1442,7 +1733,9 @@ class _ChunkScenePainter extends CustomPainter {
             groundMaterial.sourceImagePath ||
         oldDelegate.groundMaterialSrcRect != groundMaterialSrcRect ||
         oldDelegate.selectedPlacement != selectedPlacement ||
+        oldDelegate.selectedMarker != selectedMarker ||
         oldDelegate.renderPlacements != renderPlacements ||
+        oldDelegate.renderMarkers != renderMarkers ||
         oldDelegate.loadedImageCount != loadedImageCount;
   }
 }
@@ -1461,6 +1754,10 @@ int _compareRenderPlacements(_ChunkRenderPlacement a, _ChunkRenderPlacement b) {
     return zCompare;
   }
   return comparePlacedPrefabsDeterministic(a.placement, b.placement);
+}
+
+int _compareRenderMarkers(_ChunkRenderMarker a, _ChunkRenderMarker b) {
+  return comparePlacedMarkersDeterministic(a.marker, b.marker);
 }
 
 class _ChunkSceneContentLayer {

@@ -173,6 +173,100 @@ void main() {
       fixtureRoot.deleteSync(recursive: true);
     }
   });
+
+  test('plugin supports enemy marker command workflow', () async {
+    final fixtureRoot = await _createFixtureWorkspace();
+    try {
+      final workspace = EditorWorkspace(rootPath: fixtureRoot.path);
+      final plugin = ChunkDomainPlugin();
+      final loaded = await plugin.loadFromRepo(workspace) as ChunkDocument;
+
+      final added =
+          plugin.applyEdit(
+                loaded,
+                AuthoringCommand(
+                  kind: 'add_enemy_marker',
+                  payload: <String, Object?>{
+                    'chunkKey': 'chunk_field_001',
+                    'markerId': 'grojib',
+                    'x': 32,
+                    'y': 224,
+                  },
+                ),
+              )
+              as ChunkDocument;
+      final chunkAfterAdd = added.chunks.firstWhere(
+        (chunk) => chunk.chunkKey == 'chunk_field_001',
+      );
+      expect(chunkAfterAdd.markers, hasLength(1));
+      final markerSelection = buildChunkPlacedMarkerSelections(
+        chunkAfterAdd.markers,
+      ).single;
+
+      final moved =
+          plugin.applyEdit(
+                added,
+                AuthoringCommand(
+                  kind: 'move_enemy_marker',
+                  payload: <String, Object?>{
+                    'chunkKey': 'chunk_field_001',
+                    'selectionKey': markerSelection.selectionKey,
+                    'x': 64,
+                    'y': 224,
+                  },
+                ),
+              )
+              as ChunkDocument;
+      final chunkAfterMove = moved.chunks.firstWhere(
+        (chunk) => chunk.chunkKey == 'chunk_field_001',
+      );
+      expect(chunkAfterMove.markers.single.x, 64);
+
+      final movedSelection = buildChunkPlacedMarkerSelections(
+        chunkAfterMove.markers,
+      ).single;
+      final updatedType =
+          plugin.applyEdit(
+                moved,
+                AuthoringCommand(
+                  kind: 'update_enemy_marker_type',
+                  payload: <String, Object?>{
+                    'chunkKey': 'chunk_field_001',
+                    'selectionKey': movedSelection.selectionKey,
+                    'markerId': 'hashash',
+                  },
+                ),
+              )
+              as ChunkDocument;
+      final chunkAfterTypeUpdate = updatedType.chunks.firstWhere(
+        (chunk) => chunk.chunkKey == 'chunk_field_001',
+      );
+      expect(chunkAfterTypeUpdate.markers.single.markerId, 'hashash');
+
+      final typedSelection = buildChunkPlacedMarkerSelections(
+        chunkAfterTypeUpdate.markers,
+      ).single;
+      final removed =
+          plugin.applyEdit(
+                updatedType,
+                AuthoringCommand(
+                  kind: 'remove_enemy_marker',
+                  payload: <String, Object?>{
+                    'chunkKey': 'chunk_field_001',
+                    'selectionKey': typedSelection.selectionKey,
+                  },
+                ),
+              )
+              as ChunkDocument;
+      final chunkAfterRemove = removed.chunks.firstWhere(
+        (chunk) => chunk.chunkKey == 'chunk_field_001',
+      );
+      expect(chunkAfterRemove.markers, isEmpty);
+      expect(plugin.validate(removed), isEmpty);
+    } finally {
+      fixtureRoot.deleteSync(recursive: true);
+    }
+  });
 }
 
 Future<Directory> _createFixtureWorkspace() async {

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "chunkKey": "new_chunk",
   "id": "new_chunk",
-  "revision": 433,
+  "revision": 498,
   "status": "active",
   "levelId": "field",
   "tileSize": 16,
@@ -53,7 +53,40 @@
       "snapToGrid": false
     }
   ],
-  "markers": [],
+  "markers": [
+    {
+      "markerId": "derf",
+      "x": 128,
+      "y": 32,
+      "chancePercent": 100,
+      "salt": 0,
+      "placement": "ground"
+    },
+    {
+      "markerId": "unocoDemon",
+      "x": 448,
+      "y": 32,
+      "chancePercent": 100,
+      "salt": 0,
+      "placement": "ground"
+    },
+    {
+      "markerId": "grojib",
+      "x": 128,
+      "y": 176,
+      "chancePercent": 100,
+      "salt": 0,
+      "placement": "ground"
+    },
+    {
+      "markerId": "hashash",
+      "x": 512,
+      "y": 192,
+      "chancePercent": 100,
+      "salt": 0,
+      "placement": "ground"
+    }
+  ],
   "groundProfile": {
     "kind": "flat",
     "topY": 224

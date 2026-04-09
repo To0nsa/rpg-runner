@@ -112,6 +112,16 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
         return _updateGroundGap(chunkDocument, command.payload);
       case 'remove_ground_gap':
         return _removeGroundGap(chunkDocument, command.payload);
+      case 'add_enemy_marker':
+        return _addEnemyMarker(chunkDocument, command.payload);
+      case 'move_enemy_marker':
+        return _moveEnemyMarker(chunkDocument, command.payload);
+      case 'update_enemy_marker_type':
+        return _updateEnemyMarkerType(chunkDocument, command.payload);
+      case 'update_enemy_marker_settings':
+        return _updateEnemyMarkerSettings(chunkDocument, command.payload);
+      case 'remove_enemy_marker':
+        return _removeEnemyMarker(chunkDocument, command.payload);
       case 'add_prefab_placement':
         return _addPrefabPlacement(chunkDocument, command.payload);
       case 'move_prefab_placement':
@@ -726,6 +736,271 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
     );
   }
 
+  ChunkDocument _addEnemyMarker(
+    ChunkDocument document,
+    Map<String, Object?> payload,
+  ) {
+    document = _clearOperationIssuesIfNeeded(document);
+    final chunkKey = _normalizedString(payload['chunkKey']);
+    if (chunkKey.isEmpty) {
+      return _withOperationIssue(
+        document,
+        code: 'add_enemy_marker_invalid_payload',
+        message: 'Add enemy marker requires chunkKey.',
+      );
+    }
+    if (_findChunkByKey(document, chunkKey) == null) {
+      return _withOperationIssue(
+        document,
+        code: 'add_enemy_marker_missing_source',
+        message: 'Cannot add marker to unknown chunkKey "$chunkKey".',
+        chunkKey: chunkKey,
+      );
+    }
+    final markerId = _normalizedString(payload['markerId']);
+    if (markerId.isEmpty) {
+      return _withOperationIssue(
+        document,
+        code: 'add_enemy_marker_missing_marker_id',
+        message: 'Add enemy marker requires markerId.',
+        chunkKey: chunkKey,
+      );
+    }
+    final marker = PlacedMarkerDef(
+      markerId: markerId,
+      x: _intOrDefault(payload['x'], fallback: 0),
+      y: _intOrDefault(payload['y'], fallback: 0),
+      chancePercent: _intOrDefault(payload['chancePercent'], fallback: 100),
+      salt: _intOrDefault(payload['salt'], fallback: 0),
+      placement: _normalizedString(
+        payload['placement'],
+        fallback: markerPlacementGround,
+      ),
+    );
+    return _mapChunkByKey(
+      document,
+      chunkKey: chunkKey,
+      mapper: (chunk) {
+        final nextMarkers = List<PlacedMarkerDef>.from(chunk.markers)
+          ..add(marker);
+        return _bumpRevision(chunk.copyWith(markers: nextMarkers).normalized());
+      },
+    );
+  }
+
+  ChunkDocument _moveEnemyMarker(
+    ChunkDocument document,
+    Map<String, Object?> payload,
+  ) {
+    document = _clearOperationIssuesIfNeeded(document);
+    final chunkKey = _normalizedString(payload['chunkKey']);
+    final selectionKey = _normalizedString(payload['selectionKey']);
+    if (chunkKey.isEmpty || selectionKey.isEmpty) {
+      return _withOperationIssue(
+        document,
+        code: 'move_enemy_marker_invalid_payload',
+        message: 'Move enemy marker requires chunkKey and selectionKey.',
+        chunkKey: chunkKey,
+      );
+    }
+    final chunk = _findChunkByKey(document, chunkKey);
+    if (chunk == null) {
+      return _withOperationIssue(
+        document,
+        code: 'move_enemy_marker_missing_source',
+        message: 'Cannot move enemy marker in unknown chunkKey "$chunkKey".',
+        chunkKey: chunkKey,
+      );
+    }
+    final targetIndex = _findMarkerIndexBySelectionKey(chunk, selectionKey);
+    if (targetIndex < 0) {
+      return _withOperationIssue(
+        document,
+        code: 'move_enemy_marker_missing_target',
+        message:
+            'Cannot move unknown enemy marker "$selectionKey" in "$chunkKey".',
+        chunkKey: chunkKey,
+      );
+    }
+    final nextX = _intOrDefault(payload['x'], fallback: chunk.markers[targetIndex].x);
+    final nextY = _intOrDefault(payload['y'], fallback: chunk.markers[targetIndex].y);
+    return _mapChunkByKey(
+      document,
+      chunkKey: chunkKey,
+      mapper: (entry) {
+        final current = entry.markers[targetIndex];
+        if (current.x == nextX && current.y == nextY) {
+          return entry;
+        }
+        final nextMarkers = List<PlacedMarkerDef>.from(entry.markers);
+        nextMarkers[targetIndex] = current.copyWith(x: nextX, y: nextY);
+        return _bumpRevision(entry.copyWith(markers: nextMarkers).normalized());
+      },
+    );
+  }
+
+  ChunkDocument _updateEnemyMarkerType(
+    ChunkDocument document,
+    Map<String, Object?> payload,
+  ) {
+    document = _clearOperationIssuesIfNeeded(document);
+    final chunkKey = _normalizedString(payload['chunkKey']);
+    final selectionKey = _normalizedString(payload['selectionKey']);
+    final markerId = _normalizedString(payload['markerId']);
+    if (chunkKey.isEmpty || selectionKey.isEmpty || markerId.isEmpty) {
+      return _withOperationIssue(
+        document,
+        code: 'update_enemy_marker_type_invalid_payload',
+        message:
+            'Update enemy marker type requires chunkKey, selectionKey, and markerId.',
+        chunkKey: chunkKey,
+      );
+    }
+    final chunk = _findChunkByKey(document, chunkKey);
+    if (chunk == null) {
+      return _withOperationIssue(
+        document,
+        code: 'update_enemy_marker_type_missing_source',
+        message:
+            'Cannot update enemy marker type in unknown chunkKey "$chunkKey".',
+        chunkKey: chunkKey,
+      );
+    }
+    final targetIndex = _findMarkerIndexBySelectionKey(chunk, selectionKey);
+    if (targetIndex < 0) {
+      return _withOperationIssue(
+        document,
+        code: 'update_enemy_marker_type_missing_target',
+        message:
+            'Cannot update unknown enemy marker "$selectionKey" in "$chunkKey".',
+        chunkKey: chunkKey,
+      );
+    }
+    return _mapChunkByKey(
+      document,
+      chunkKey: chunkKey,
+      mapper: (entry) {
+        final current = entry.markers[targetIndex];
+        if (current.markerId == markerId) {
+          return entry;
+        }
+        final nextMarkers = List<PlacedMarkerDef>.from(entry.markers);
+        nextMarkers[targetIndex] = current.copyWith(markerId: markerId);
+        return _bumpRevision(entry.copyWith(markers: nextMarkers).normalized());
+      },
+    );
+  }
+
+  ChunkDocument _updateEnemyMarkerSettings(
+    ChunkDocument document,
+    Map<String, Object?> payload,
+  ) {
+    document = _clearOperationIssuesIfNeeded(document);
+    final chunkKey = _normalizedString(payload['chunkKey']);
+    final selectionKey = _normalizedString(payload['selectionKey']);
+    if (chunkKey.isEmpty || selectionKey.isEmpty) {
+      return _withOperationIssue(
+        document,
+        code: 'update_enemy_marker_settings_invalid_payload',
+        message:
+            'Update enemy marker settings requires chunkKey and selectionKey.',
+        chunkKey: chunkKey,
+      );
+    }
+    final chunk = _findChunkByKey(document, chunkKey);
+    if (chunk == null) {
+      return _withOperationIssue(
+        document,
+        code: 'update_enemy_marker_settings_missing_source',
+        message:
+            'Cannot update enemy marker settings in unknown chunkKey "$chunkKey".',
+        chunkKey: chunkKey,
+      );
+    }
+    final targetIndex = _findMarkerIndexBySelectionKey(chunk, selectionKey);
+    if (targetIndex < 0) {
+      return _withOperationIssue(
+        document,
+        code: 'update_enemy_marker_settings_missing_target',
+        message:
+            'Cannot update unknown enemy marker "$selectionKey" in "$chunkKey".',
+        chunkKey: chunkKey,
+      );
+    }
+    return _mapChunkByKey(
+      document,
+      chunkKey: chunkKey,
+      mapper: (entry) {
+        final current = entry.markers[targetIndex];
+        final next = current.copyWith(
+          chancePercent: _intOrDefault(
+            payload['chancePercent'],
+            fallback: current.chancePercent,
+          ),
+          salt: _intOrDefault(payload['salt'], fallback: current.salt),
+          placement: _normalizedString(
+            payload['placement'],
+            fallback: current.placement,
+          ),
+        );
+        if (next.chancePercent == current.chancePercent &&
+            next.salt == current.salt &&
+            next.placement == current.placement) {
+          return entry;
+        }
+        final nextMarkers = List<PlacedMarkerDef>.from(entry.markers);
+        nextMarkers[targetIndex] = next;
+        return _bumpRevision(entry.copyWith(markers: nextMarkers).normalized());
+      },
+    );
+  }
+
+  ChunkDocument _removeEnemyMarker(
+    ChunkDocument document,
+    Map<String, Object?> payload,
+  ) {
+    document = _clearOperationIssuesIfNeeded(document);
+    final chunkKey = _normalizedString(payload['chunkKey']);
+    final selectionKey = _normalizedString(payload['selectionKey']);
+    if (chunkKey.isEmpty || selectionKey.isEmpty) {
+      return _withOperationIssue(
+        document,
+        code: 'remove_enemy_marker_invalid_payload',
+        message: 'Remove enemy marker requires chunkKey and selectionKey.',
+        chunkKey: chunkKey,
+      );
+    }
+    final chunk = _findChunkByKey(document, chunkKey);
+    if (chunk == null) {
+      return _withOperationIssue(
+        document,
+        code: 'remove_enemy_marker_missing_source',
+        message:
+            'Cannot remove enemy marker from unknown chunkKey "$chunkKey".',
+        chunkKey: chunkKey,
+      );
+    }
+    final targetIndex = _findMarkerIndexBySelectionKey(chunk, selectionKey);
+    if (targetIndex < 0) {
+      return _withOperationIssue(
+        document,
+        code: 'remove_enemy_marker_missing_target',
+        message:
+            'Cannot remove unknown enemy marker "$selectionKey" in "$chunkKey".',
+        chunkKey: chunkKey,
+      );
+    }
+    return _mapChunkByKey(
+      document,
+      chunkKey: chunkKey,
+      mapper: (entry) {
+        final nextMarkers = List<PlacedMarkerDef>.from(entry.markers)
+          ..removeAt(targetIndex);
+        return _bumpRevision(entry.copyWith(markers: nextMarkers).normalized());
+      },
+    );
+  }
+
   ChunkDocument _addPrefabPlacement(
     ChunkDocument document,
     Map<String, Object?> payload,
@@ -1068,6 +1343,16 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
     String selectionKey,
   ) {
     final selections = buildChunkPlacedPrefabSelections(chunk.prefabs);
+    for (var i = 0; i < selections.length; i += 1) {
+      if (selections[i].selectionKey == selectionKey) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  int _findMarkerIndexBySelectionKey(LevelChunkDef chunk, String selectionKey) {
+    final selections = buildChunkPlacedMarkerSelections(chunk.markers);
     for (var i = 0; i < selections.length; i += 1) {
       if (selections[i].selectionKey == selectionKey) {
         return i;
@@ -1442,7 +1727,10 @@ bool _placedMarkerListEquals(List<PlacedMarkerDef> a, List<PlacedMarkerDef> b) {
     final right = b[i];
     if (left.markerId != right.markerId ||
         left.x != right.x ||
-        left.y != right.y) {
+        left.y != right.y ||
+        left.chancePercent != right.chancePercent ||
+        left.salt != right.salt ||
+        left.placement != right.placement) {
       return false;
     }
   }
