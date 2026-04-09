@@ -116,7 +116,7 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
 
   Widget _buildInspectorCard(BuildContext context) {
     return PrefabEditorPanelCard(
-      title: 'Inspector',
+      title: 'Atlas Slicer Controls',
       scrollable: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -178,7 +178,7 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
                     border: OutlineInputBorder(),
                     labelText: 'Slice ID',
                     floatingLabelBehavior: FloatingLabelBehavior.always,
-                    hintText: 'village_crate_01 or ground_tile_01',
+                    hintText: 'village_crate_01 or grass_dirt_32x32',
                   ),
                 ),
               ],
@@ -212,6 +212,7 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
                           border: OutlineInputBorder(),
                           labelText: 'Selection X',
                           floatingLabelBehavior: FloatingLabelBehavior.always,
+                          hintText: 'X in px from the left',
                         ),
                         onChanged: (_) => widget.onSelectionInputsChanged(),
                         onSubmitted: (_) => widget.onSelectionInputsChanged(),
@@ -226,6 +227,7 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
                           border: OutlineInputBorder(),
                           labelText: 'Selection Y',
                           floatingLabelBehavior: FloatingLabelBehavior.always,
+                          hintText: 'Y in px from the top',
                         ),
                         onChanged: (_) => widget.onSelectionInputsChanged(),
                         onSubmitted: (_) => widget.onSelectionInputsChanged(),
@@ -244,6 +246,7 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
                           border: OutlineInputBorder(),
                           labelText: 'Selection W',
                           floatingLabelBehavior: FloatingLabelBehavior.always,
+                          hintText: 'Width in px',
                         ),
                         onChanged: (_) => widget.onSelectionInputsChanged(),
                         onSubmitted: (_) => widget.onSelectionInputsChanged(),
@@ -258,6 +261,7 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
                           border: OutlineInputBorder(),
                           labelText: 'Selection H',
                           floatingLabelBehavior: FloatingLabelBehavior.always,
+                          hintText: 'Height in px',
                         ),
                         onChanged: (_) => widget.onSelectionInputsChanged(),
                         onSubmitted: (_) => widget.onSelectionInputsChanged(),
@@ -302,7 +306,7 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
               '(${widget.slices.length} visible).';
 
     return PrefabEditorPanelCard(
-      title: 'Scene View',
+      title: 'Atlas Slicer View',
       expandBody: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

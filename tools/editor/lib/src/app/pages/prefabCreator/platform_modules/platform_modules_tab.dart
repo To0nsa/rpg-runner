@@ -148,7 +148,7 @@ class PlatformModulesTab extends StatelessWidget {
 
     return PrefabEditorPanelCard(
       cardKey: const ValueKey<String>('platform_module_scene_card'),
-      title: 'Scene View',
+      title: 'Platform Module View',
       expandBody: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -225,7 +225,7 @@ class _PlatformModuleInspectorPanel extends StatelessWidget {
 
     return PrefabEditorPanelCard(
       cardKey: const ValueKey<String>('platform_module_inspector_card'),
-      title: 'Inspector',
+      title: 'Platform Module Controls',
       scrollable: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -262,7 +262,7 @@ class _PlatformModuleInspectorPanel extends StatelessWidget {
             sectionKey: const ValueKey<String>(
               'platform_module_advanced_controls',
             ),
-            title: 'Advanced Module Controls',
+            title: 'ID, Tile Size & Actions',
             description:
                 'Create, rename, duplicate, deprecate, and select modules.',
             child: Column(
@@ -464,7 +464,7 @@ class _PlatformModuleDisplayPanelState
 
     return PrefabEditorPanelCard(
       cardKey: const ValueKey<String>('platform_module_display_card'),
-      title: 'Platform Modules',
+      title: 'Platform Modules List',
       expandBody: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

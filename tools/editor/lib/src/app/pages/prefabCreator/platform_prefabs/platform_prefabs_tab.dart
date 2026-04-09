@@ -115,7 +115,7 @@ class PlatformPrefabsTab extends StatelessWidget {
 
     return PrefabEditorPanelCard(
       cardKey: const ValueKey<String>('platform_prefab_scene_card'),
-      title: 'Scene View',
+      title: 'Platform Prefabs View',
       expandBody: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -182,7 +182,7 @@ class _PlatformPrefabInspectorPanel extends StatelessWidget {
 
     return PrefabEditorPanelCard(
       cardKey: const ValueKey<String>('platform_prefab_inspector_card'),
-      title: 'Inspector',
+      title: 'Platform Prefab Controls',
       scrollable: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -204,7 +204,7 @@ class _PlatformPrefabInspectorPanel extends StatelessWidget {
               ),
             ),
           PrefabEditorSectionCard(
-            title: 'Backing Module',
+            title: 'Module Source',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -305,7 +305,7 @@ class _PlatformPrefabDisplayPanelState
 
     return PrefabEditorPanelCard(
       cardKey: const ValueKey<String>('platform_prefab_display_card'),
-      title: 'Platform Prefabs',
+      title: 'Platform Prefabs List',
       expandBody: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

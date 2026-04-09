@@ -33,7 +33,7 @@ class PlatformPrefabOutputPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PrefabEditorSectionCard(
-      title: 'Platform Prefab Output',
+      title: 'Action, ID, Anchor/Collider, and Tags',
       description:
           'Set anchor/collider here and save a platform prefab directly from this module.',
       child: Column(

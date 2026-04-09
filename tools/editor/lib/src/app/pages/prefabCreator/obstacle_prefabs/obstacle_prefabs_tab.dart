@@ -114,7 +114,7 @@ class ObstaclePrefabsTab extends StatelessWidget {
 
     return PrefabEditorPanelCard(
       cardKey: const ValueKey<String>('obstacle_prefab_scene_card'),
-      title: 'Scene View',
+      title: 'Obstacle Prefabs View',
       expandBody: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -180,7 +180,7 @@ class _ObstaclePrefabInspectorPanel extends StatelessWidget {
 
     return PrefabEditorPanelCard(
       cardKey: const ValueKey<String>('obstacle_prefab_inspector_card'),
-      title: 'Inspector',
+      title: 'Obstacle Prefab Controls',
       scrollable: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -258,7 +258,7 @@ class _ObstaclePrefabInspectorPanel extends StatelessWidget {
           ),
           const SizedBox(height: PrefabEditorUiTokens.controlGap),
           PrefabEditorSectionCard(
-            title: 'Prefab Details',
+            title: 'Prefab ID, Source & Tags',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -268,6 +268,7 @@ class _ObstaclePrefabInspectorPanel extends StatelessWidget {
                     border: OutlineInputBorder(),
                     labelText: 'Prefab ID',
                     floatingLabelBehavior: FloatingLabelBehavior.always,
+                    hintText: 'use same name as slice',
                   ),
                 ),
                 const SizedBox(height: PrefabEditorUiTokens.controlGap),
@@ -299,6 +300,7 @@ class _ObstaclePrefabInspectorPanel extends StatelessWidget {
                     border: OutlineInputBorder(),
                     labelText: 'Tags (comma separated)',
                     floatingLabelBehavior: FloatingLabelBehavior.always,
+                    hintText: 'tags from the name and more',
                   ),
                 ),
               ],
