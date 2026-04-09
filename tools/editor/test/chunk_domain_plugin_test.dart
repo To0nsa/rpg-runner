@@ -202,7 +202,7 @@ void main() {
     },
   );
 
-  test('metadata and ground edits bump revision deterministically', () {
+  test('metadata, ground, and ground band edits bump revision deterministically', () {
     final plugin = ChunkDomainPlugin();
     const base = LevelChunkDef(
       chunkKey: 'chunk_a',
@@ -268,6 +268,35 @@ void main() {
             as ChunkDocument;
     expect(afterGround.chunks.single.revision, 2);
     expect(afterGround.chunks.single.groundProfile.topY, 224);
+
+    final afterGroundBand =
+        plugin.applyEdit(
+              afterGround,
+              AuthoringCommand(
+                kind: 'update_ground_band_z_index',
+                payload: <String, Object?>{
+                  'chunkKey': 'chunk_a',
+                  'groundBandZIndex': 1,
+                },
+              ),
+            )
+            as ChunkDocument;
+    expect(afterGroundBand.chunks.single.revision, 3);
+    expect(afterGroundBand.chunks.single.groundBandZIndex, 1);
+
+    final noOpGroundBand =
+        plugin.applyEdit(
+              afterGroundBand,
+              AuthoringCommand(
+                kind: 'update_ground_band_z_index',
+                payload: <String, Object?>{
+                  'chunkKey': 'chunk_a',
+                  'groundBandZIndex': 1,
+                },
+              ),
+            )
+            as ChunkDocument;
+    expect(noOpGroundBand.chunks.single.revision, 3);
   });
 
   test(

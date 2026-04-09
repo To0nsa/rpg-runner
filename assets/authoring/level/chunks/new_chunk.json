@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "chunkKey": "new_chunk",
   "id": "new_chunk",
-  "revision": 325,
+  "revision": 433,
   "status": "active",
   "levelId": "field",
   "tileSize": 16,
@@ -16,7 +16,7 @@
       "prefabId": "grass_dirt_96x32_square_platform",
       "prefabKey": "grass_dirt_96x32_square_platform",
       "x": 288,
-      "y": 80,
+      "y": 64,
       "zIndex": 0,
       "snapToGrid": true
     },
@@ -31,8 +31,8 @@
     {
       "prefabId": "grass_dirt_96x32_square_platform",
       "prefabKey": "grass_dirt_96x32_square_platform",
-      "x": 400,
-      "y": 160,
+      "x": 432,
+      "y": 128,
       "zIndex": 0,
       "snapToGrid": true
     },

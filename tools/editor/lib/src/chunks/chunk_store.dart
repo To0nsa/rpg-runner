@@ -320,6 +320,14 @@ class ChunkStore {
       }
     }
 
+    final groundBandZIndex = raw['groundBandZIndex'];
+    if (groundBandZIndex != null && groundBandZIndex is! int) {
+      add(
+        'invalid_ground_band_z_index',
+        'groundBandZIndex must be an integer when present.',
+      );
+    }
+
     final groundGaps = raw['groundGaps'];
     if (groundGaps is! List<Object?>) {
       add(

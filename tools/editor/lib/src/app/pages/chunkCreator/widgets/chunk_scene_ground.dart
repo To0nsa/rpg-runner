@@ -1,10 +1,9 @@
 import 'dart:math' as math;
-import 'dart:ui';
+import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 
 import '../../../../chunks/chunk_domain_models.dart';
-import '../../../../prefabs/models/models.dart';
 
 /// Read-only ground layout derived from the current chunk floor/gap contract.
 ///
@@ -14,61 +13,55 @@ import '../../../../prefabs/models/models.dart';
 @immutable
 class ChunkGroundLayout {
   const ChunkGroundLayout({
-    this.solidWorldRects = const <Rect>[],
-    this.gapWorldRects = const <Rect>[],
+    this.solidWorldRects = const <ui.Rect>[],
+    this.gapWorldRects = const <ui.Rect>[],
   });
 
-  final List<Rect> solidWorldRects;
-  final List<Rect> gapWorldRects;
+  final List<ui.Rect> solidWorldRects;
+  final List<ui.Rect> gapWorldRects;
 
   bool get hasVisibleGround =>
       solidWorldRects.isNotEmpty || gapWorldRects.isNotEmpty;
 }
 
-/// Heuristic visual theme for chunk floor rendering.
+/// Runtime-derived ground material source for a level theme.
 ///
-/// This keeps the current contract simple: chunk data does not author a ground
-/// material yet, so the scene derives one from the existing tile slice catalog.
+/// This mirrors the current game-side ground renderer source in
+/// `lib/game/themes/parallax_theme_registry.dart`. If that registry changes,
+/// this lookup should change in the same pass or be extracted to a shared seam.
 @immutable
-class ChunkGroundTheme {
-  const ChunkGroundTheme({
-    this.surfaceSlices = const <AtlasSliceDef>[],
-    this.bodySlice,
-    this.capHeightPx = 16,
+class ChunkGroundMaterialSpec {
+  const ChunkGroundMaterialSpec({
+    required this.sourceImagePath,
+    this.fallbackMaterialHeight = 16.0,
   });
 
-  final List<AtlasSliceDef> surfaceSlices;
-  final AtlasSliceDef? bodySlice;
-  final int capHeightPx;
-
-  bool get hasRenderableSlices => surfaceSlices.isNotEmpty && bodySlice != null;
-
-  Iterable<String> sourceImagePaths() sync* {
-    final seen = <String>{};
-    for (final slice in surfaceSlices) {
-      final path = slice.sourceImagePath.trim();
-      if (path.isEmpty || !seen.add(path)) {
-        continue;
-      }
-      yield path;
-    }
-    final bodySlice = this.bodySlice;
-    if (bodySlice == null) {
-      return;
-    }
-    final bodyPath = bodySlice.sourceImagePath.trim();
-    if (bodyPath.isEmpty || !seen.add(bodyPath)) {
-      return;
-    }
-    yield bodyPath;
-  }
+  final String sourceImagePath;
+  final double fallbackMaterialHeight;
 }
 
 ChunkGroundLayout buildChunkGroundLayout(LevelChunkDef chunk) {
+  return buildChunkGroundLayoutWithFillDepth(
+    chunk,
+    fillDepth: 16.0,
+  );
+}
+
+/// Builds the same finite ground bands the runtime renderer uses: solid spans
+/// between gaps, starting at `topY`, with a render depth driven by the ground
+/// material band height rather than the full remaining viewport height.
+ChunkGroundLayout buildChunkGroundLayoutWithFillDepth(
+  LevelChunkDef chunk, {
+  required double fillDepth,
+}) {
   final chunkWidth = math.max(0, chunk.width).toDouble();
   final chunkHeight = math.max(0, chunk.height).toDouble();
   final groundTopY = chunk.groundProfile.topY.toDouble();
-  final groundDepth = chunkHeight - groundTopY;
+  final maxVisibleDepth = chunkHeight - groundTopY;
+  final groundDepth = math.min(
+    maxVisibleDepth,
+    math.max(0.0, fillDepth),
+  );
   if (chunkWidth <= 0 || groundDepth <= 0) {
     return const ChunkGroundLayout();
   }
@@ -86,8 +79,8 @@ ChunkGroundLayout buildChunkGroundLayout(LevelChunkDef chunk) {
       return a.gapId.compareTo(b.gapId);
     });
 
-  final solidWorldRects = <Rect>[];
-  final gapWorldRects = <Rect>[];
+  final solidWorldRects = <ui.Rect>[];
+  final gapWorldRects = <ui.Rect>[];
   var currentX = 0.0;
   for (final gap in sortedGaps) {
     final gapStart = gap.x.toDouble().clamp(0.0, chunkWidth);
@@ -97,18 +90,28 @@ ChunkGroundLayout buildChunkGroundLayout(LevelChunkDef chunk) {
     }
     if (gapStart > currentX) {
       solidWorldRects.add(
-        Rect.fromLTWH(currentX, groundTopY, gapStart - currentX, groundDepth),
+        ui.Rect.fromLTWH(
+          currentX,
+          groundTopY,
+          gapStart - currentX,
+          groundDepth,
+        ),
       );
     }
     gapWorldRects.add(
-      Rect.fromLTWH(gapStart, groundTopY, gapEnd - gapStart, groundDepth),
+      ui.Rect.fromLTWH(gapStart, groundTopY, gapEnd - gapStart, groundDepth),
     );
     currentX = math.max(currentX, gapEnd);
   }
 
   if (currentX < chunkWidth) {
     solidWorldRects.add(
-      Rect.fromLTWH(currentX, groundTopY, chunkWidth - currentX, groundDepth),
+      ui.Rect.fromLTWH(
+        currentX,
+        groundTopY,
+        chunkWidth - currentX,
+        groundDepth,
+      ),
     );
   }
 
@@ -118,48 +121,93 @@ ChunkGroundLayout buildChunkGroundLayout(LevelChunkDef chunk) {
   );
 }
 
-ChunkGroundTheme resolveChunkGroundTheme(List<AtlasSliceDef> tileSlices) {
-  final groundLikeSlices = tileSlices
-      .where(_looksLikeGroundSlice)
-      .toList(growable: false);
-  final candidates =
-      List<AtlasSliceDef>.from(
-          groundLikeSlices.isNotEmpty ? groundLikeSlices : tileSlices,
-        )
-        ..sort((a, b) {
-      final widthCompare = b.width.compareTo(a.width);
-      if (widthCompare != 0) {
-        return widthCompare;
-      }
-      final heightCompare = b.height.compareTo(a.height);
-      if (heightCompare != 0) {
-        return heightCompare;
-      }
-      return a.id.compareTo(b.id);
-    });
+ChunkGroundMaterialSpec resolveChunkGroundMaterialSpec(String levelId) {
+  switch (levelId.trim()) {
+    case 'forest':
+      return const ChunkGroundMaterialSpec(
+        sourceImagePath: 'assets/images/parallax/forest/Forest Layer 04.png',
+      );
+    case 'field':
+    default:
+      return const ChunkGroundMaterialSpec(
+        sourceImagePath: 'assets/images/parallax/field/Field Layer 09.png',
+      );
+  }
+}
 
-  if (candidates.isEmpty) {
-    return const ChunkGroundTheme();
+Future<ui.Rect> detectGroundMaterialSourceRect(
+  ui.Image image, {
+  double fallbackMaterialHeight = 16.0,
+}) async {
+  const alphaOpaqueThreshold = 1;
+  const rowCoverageThreshold = 0.20;
+  final bytes = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+  if (bytes == null) {
+    return _fallbackGroundMaterialSourceRect(
+      image,
+      fallbackMaterialHeight: fallbackMaterialHeight,
+    );
   }
 
-  final bodySlice = candidates.first;
-  final capHeightPx = math.min(
-    16,
-    math.max(8, math.max(1, bodySlice.height ~/ 2)),
+  final rgba = bytes.buffer.asUint8List();
+  final width = image.width;
+  final height = image.height;
+  final minOpaquePixels = (width * rowCoverageThreshold).ceil();
+  int? firstOpaqueRow;
+  for (var y = 0; y < height; y += 1) {
+    final rowOffset = y * width * 4;
+    var opaqueCount = 0;
+    for (var x = 0; x < width; x += 1) {
+      final alpha = rgba[rowOffset + x * 4 + 3];
+      if (alpha >= alphaOpaqueThreshold) {
+        firstOpaqueRow ??= y;
+        opaqueCount += 1;
+        if (opaqueCount >= minOpaquePixels) {
+          return ui.Rect.fromLTWH(
+            0,
+            y.toDouble(),
+            width.toDouble(),
+            (height - y).toDouble().clamp(1.0, height.toDouble()),
+          );
+        }
+      }
+    }
+  }
+
+  final fallbackTop = firstOpaqueRow ?? _fallbackMaterialTopRow(
+    image.height,
+    fallbackMaterialHeight,
   );
-  return ChunkGroundTheme(
-    surfaceSlices: List<AtlasSliceDef>.unmodifiable(candidates),
-    bodySlice: bodySlice,
-    capHeightPx: capHeightPx,
+  return ui.Rect.fromLTWH(
+    0,
+    fallbackTop.toDouble(),
+    image.width.toDouble(),
+    (image.height - fallbackTop)
+        .toDouble()
+        .clamp(1.0, image.height.toDouble()),
   );
 }
 
-bool _looksLikeGroundSlice(AtlasSliceDef slice) {
-  final id = slice.id.toLowerCase();
-  final sourcePath = slice.sourceImagePath.toLowerCase();
-  return id.contains('ground') ||
-      id.contains('grass') ||
-      id.contains('dirt') ||
-      id.contains('soil') ||
-      sourcePath.contains('ground');
+ui.Rect _fallbackGroundMaterialSourceRect(
+  ui.Image image, {
+  required double fallbackMaterialHeight,
+}) {
+  final topRow = _fallbackMaterialTopRow(image.height, fallbackMaterialHeight);
+  return ui.Rect.fromLTWH(
+    0,
+    topRow.toDouble(),
+    image.width.toDouble(),
+    (image.height - topRow).toDouble().clamp(1.0, image.height.toDouble()),
+  );
+}
+
+int _fallbackMaterialTopRow(int imageHeight, double fallbackMaterialHeight) {
+  final fallbackTop = (imageHeight - fallbackMaterialHeight).floor();
+  if (fallbackTop <= 0) {
+    return 0;
+  }
+  if (fallbackTop >= imageHeight) {
+    return imageHeight - 1;
+  }
+  return fallbackTop;
 }

@@ -104,6 +104,8 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
         return _updateChunkMetadata(chunkDocument, command.payload);
       case 'update_ground_profile':
         return _updateGroundProfile(chunkDocument, command.payload);
+      case 'update_ground_band_z_index':
+        return _updateGroundBandZIndex(chunkDocument, command.payload);
       case 'add_ground_gap':
         return _addGroundGap(chunkDocument, command.payload);
       case 'update_ground_gap':
@@ -531,6 +533,47 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
             chunk.copyWith(groundProfile: nextProfile).normalized(),
             document,
           ),
+        );
+      },
+    );
+  }
+
+  ChunkDocument _updateGroundBandZIndex(
+    ChunkDocument document,
+    Map<String, Object?> payload,
+  ) {
+    document = _clearOperationIssuesIfNeeded(document);
+    final chunkKey = _normalizedString(payload['chunkKey']);
+    if (chunkKey.isEmpty) {
+      return _withOperationIssue(
+        document,
+        code: 'update_ground_band_z_index_invalid_payload',
+        message: 'Update ground band layer requires chunkKey.',
+      );
+    }
+    final chunk = _findChunkByKey(document, chunkKey);
+    if (chunk == null) {
+      return _withOperationIssue(
+        document,
+        code: 'update_ground_band_z_index_missing_source',
+        message:
+            'Cannot update ground band layer for unknown chunkKey "$chunkKey".',
+        chunkKey: chunkKey,
+      );
+    }
+    final nextZIndex = _intOrDefault(
+      payload['groundBandZIndex'],
+      fallback: chunk.groundBandZIndex,
+    );
+    return _mapChunkByKey(
+      document,
+      chunkKey: chunkKey,
+      mapper: (entry) {
+        if (entry.groundBandZIndex == nextZIndex) {
+          return entry;
+        }
+        return _bumpRevision(
+          entry.copyWith(groundBandZIndex: nextZIndex).normalized(),
         );
       },
     );
@@ -1332,6 +1375,9 @@ bool _chunkEquals(
   }
   if (left.groundProfile.kind != right.groundProfile.kind ||
       left.groundProfile.topY != right.groundProfile.topY) {
+    return false;
+  }
+  if (left.groundBandZIndex != right.groundBandZIndex) {
     return false;
   }
   if (!_groundGapListEquals(left.groundGaps, right.groundGaps)) {

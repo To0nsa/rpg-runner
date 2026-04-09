@@ -404,6 +404,7 @@ class LevelChunkDef {
     this.prefabs = const <PlacedPrefabDef>[],
     this.markers = const <PlacedMarkerDef>[],
     this.groundProfile = const GroundProfileDef(),
+    this.groundBandZIndex = 0,
     this.groundGaps = const <GroundGapDef>[],
     this.status = chunkStatusActive,
   });
@@ -422,6 +423,11 @@ class LevelChunkDef {
   final List<PlacedPrefabDef> prefabs;
   final List<PlacedMarkerDef> markers;
   final GroundProfileDef groundProfile;
+  /// Chunk-authored scene layer for the visible ground band preview.
+  ///
+  /// This is owned by chunk composition, not by prefab authoring, so a chunk
+  /// can choose whether the floor sits behind props or partially buries them.
+  final int groundBandZIndex;
   final List<GroundGapDef> groundGaps;
   final String status;
 
@@ -446,6 +452,7 @@ class LevelChunkDef {
     List<PlacedPrefabDef>? prefabs,
     List<PlacedMarkerDef>? markers,
     GroundProfileDef? groundProfile,
+    int? groundBandZIndex,
     List<GroundGapDef>? groundGaps,
     String? status,
   }) {
@@ -464,6 +471,7 @@ class LevelChunkDef {
       prefabs: prefabs ?? this.prefabs,
       markers: markers ?? this.markers,
       groundProfile: groundProfile ?? this.groundProfile,
+      groundBandZIndex: groundBandZIndex ?? this.groundBandZIndex,
       groundGaps: groundGaps ?? this.groundGaps,
       status: status ?? this.status,
     );
@@ -548,6 +556,8 @@ class LevelChunkDef {
           .map((marker) => marker.toJson())
           .toList(growable: false),
       'groundProfile': normalizedChunk.groundProfile.toJson(),
+      if (normalizedChunk.groundBandZIndex != 0)
+        'groundBandZIndex': normalizedChunk.groundBandZIndex,
       'groundGaps': normalizedChunk.groundGaps
           .map((gap) => gap.toJson())
           .toList(growable: false),
@@ -577,6 +587,7 @@ class LevelChunkDef {
       prefabs: _readObjectList(json['prefabs'], PlacedPrefabDef.fromJson),
       markers: _readObjectList(json['markers'], PlacedMarkerDef.fromJson),
       groundProfile: GroundProfileDef.fromJson(json['groundProfile']),
+      groundBandZIndex: _intOrDefault(json['groundBandZIndex'], fallback: 0),
       groundGaps: _readObjectList(json['groundGaps'], GroundGapDef.fromJson),
     ).normalized();
   }

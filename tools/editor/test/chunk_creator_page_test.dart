@@ -85,6 +85,19 @@ void main() {
       );
       expect(deprecated.status, chunkStatusDeprecated);
 
+      final groundBandRaise = find.byKey(
+        const ValueKey<String>('ground_band_layer_raise'),
+      );
+      await tester.ensureVisible(groundBandRaise);
+      await tester.pumpAndSettle();
+      await tester.tap(groundBandRaise);
+      await tester.pumpAndSettle();
+      final sceneAfterGroundBandRaise = controller.scene as ChunkScene;
+      final raisedGroundBandChunk = sceneAfterGroundBandRaise.chunks.firstWhere(
+        (chunk) => chunk.id == 'chunk_renamed',
+      );
+      expect(raisedGroundBandChunk.groundBandZIndex, 1);
+
       await tester.enterText(
         find.widgetWithText(TextField, 'tileSize').first,
         '15',

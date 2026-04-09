@@ -34,6 +34,7 @@ void main() {
 
       final editedChunk = loaded.chunks.single.copyWith(
         tags: const <String>['zzz', 'aaa'],
+        groundBandZIndex: 1,
       );
       final edited = loaded.copyWith(chunks: <LevelChunkDef>[editedChunk]);
       final savePlan = store.buildSavePlan(workspace, document: edited);
@@ -50,6 +51,7 @@ void main() {
       final savedMap = savedJson as Map<String, Object?>;
       expect(savedMap['chunkKey'], 'chunk_field_001');
       expect(savedMap['height'], 270);
+      expect(savedMap['groundBandZIndex'], 1);
       expect(savedMap['tags'], <String>['aaa', 'zzz']);
     } finally {
       fixtureRoot.deleteSync(recursive: true);
@@ -106,6 +108,7 @@ void main() {
         final codes = loaded.loadIssues.map((issue) => issue.code).toSet();
         expect(codes, contains('malformed_tags_array'));
         expect(codes, contains('invalid_ground_profile'));
+        expect(codes, contains('invalid_ground_band_z_index'));
         expect(codes, contains('malformed_ground_gaps_entries'));
       } finally {
         fixtureRoot.deleteSync(recursive: true);
@@ -274,6 +277,7 @@ const int defaultLevelGroundTopYInt = 224;
   "prefabs": [],
   "markers": [],
   "groundProfile": "flat",
+  "groundBandZIndex": "bad",
   "groundGaps": "bad"
 }
 ''',

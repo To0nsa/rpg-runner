@@ -465,7 +465,8 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
               },
             ),
             const SizedBox(height: 8),
-            _buildPlacementLayerStepper(
+            _buildLayerStepper(
+              label: 'Layer',
               zIndex: _newPlacementZIndex,
               onChanged: (value) {
                 setState(() {
@@ -700,7 +701,8 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
                     ],
                   ),
                   const SizedBox(height: 8),
-                  _buildPlacementLayerStepper(
+                  _buildLayerStepper(
+                    label: 'Layer',
                     zIndex: selectedPlacement.prefab.zIndex,
                     onChanged: (value) {
                       _updatePlacementSettings(
@@ -981,6 +983,19 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
         const SizedBox(height: 4),
         Text(
           'Locked to runtime viewport floor baseline ${scene.runtimeGroundTopY}.',
+        ),
+        const SizedBox(height: 8),
+        _buildLayerStepper(
+          label: 'Ground Band Layer',
+          keyPrefix: 'ground_band_layer',
+          zIndex: selectedChunk.groundBandZIndex,
+          onChanged: (value) {
+            _updateGroundBandZIndex(selectedChunk, value);
+          },
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Compared against placed prefab z values in the chunk scene.',
         ),
       ],
     );
@@ -1481,23 +1496,36 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
     );
   }
 
-  Widget _buildPlacementLayerStepper({
+  Widget _buildLayerStepper({
+    required String label,
     required int zIndex,
     required ValueChanged<int> onChanged,
+    String? keyPrefix,
   }) {
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        const Text('Layer'),
+        Text(label),
         OutlinedButton.icon(
+          key: keyPrefix == null
+              ? null
+              : ValueKey<String>('${keyPrefix}_lower'),
           onPressed: () => onChanged(zIndex - 1),
           icon: const Icon(Icons.remove, size: 18),
           label: const Text('Lower'),
         ),
-        Chip(label: Text('z=$zIndex')),
+        Chip(
+          key: keyPrefix == null
+              ? null
+              : ValueKey<String>('${keyPrefix}_value'),
+          label: Text('z=$zIndex'),
+        ),
         OutlinedButton.icon(
+          key: keyPrefix == null
+              ? null
+              : ValueKey<String>('${keyPrefix}_raise'),
           onPressed: () => onChanged(zIndex + 1),
           icon: const Icon(Icons.add, size: 18),
           label: const Text('Raise'),
@@ -1680,6 +1708,18 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
         _selectedPlacementKey = null;
       }
     });
+  }
+
+  void _updateGroundBandZIndex(LevelChunkDef chunk, int groundBandZIndex) {
+    widget.controller.applyCommand(
+      AuthoringCommand(
+        kind: 'update_ground_band_z_index',
+        payload: <String, Object?>{
+          'chunkKey': chunk.chunkKey,
+          'groundBandZIndex': groundBandZIndex,
+        },
+      ),
+    );
   }
 
   PendingFileDiff? _selectedDiff(PendingChanges pendingChanges) {

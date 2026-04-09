@@ -78,6 +78,9 @@ class _ChunkSceneViewState extends State<ChunkSceneView> {
   final ScrollController _horizontalScrollController = ScrollController();
   final ScrollController _verticalScrollController = ScrollController();
   final EditorUiImageCache _imageCache = EditorUiImageCache();
+  final Map<String, ui.Rect> _groundMaterialSrcRectsByAbsolutePath =
+      <String, ui.Rect>{};
+  final Set<String> _groundMaterialDetectionInFlight = <String>{};
 
   double _zoom = 1.75;
   bool _ctrlPanActive = false;
@@ -130,8 +133,17 @@ class _ChunkSceneViewState extends State<ChunkSceneView> {
   Widget build(BuildContext context) {
     final renderPlacements = _buildRenderPlacements();
     final selectedPlacement = _resolveSelectedPlacement(renderPlacements);
-    final groundLayout = buildChunkGroundLayout(widget.chunk);
-    final groundTheme = resolveChunkGroundTheme(widget.prefabData.tileSlices);
+    final groundMaterial = resolveChunkGroundMaterialSpec(widget.chunk.levelId);
+    final groundMaterialAbsolutePath = _absoluteImagePath(
+      groundMaterial.sourceImagePath,
+    );
+    final groundMaterialSrcRect =
+        _groundMaterialSrcRectsByAbsolutePath[groundMaterialAbsolutePath];
+    final groundLayout = buildChunkGroundLayoutWithFillDepth(
+      widget.chunk,
+      fillDepth:
+          groundMaterialSrcRect?.height ?? groundMaterial.fallbackMaterialHeight,
+    );
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -165,7 +177,8 @@ class _ChunkSceneViewState extends State<ChunkSceneView> {
                 child: _buildScrollableCanvas(
                   geometry: geometry,
                   groundLayout: groundLayout,
-                  groundTheme: groundTheme,
+                  groundMaterial: groundMaterial,
+                  groundMaterialSrcRect: groundMaterialSrcRect,
                   renderPlacements: renderPlacements,
                   selectedPlacement: selectedPlacement,
                 ),
@@ -217,7 +230,8 @@ class _ChunkSceneViewState extends State<ChunkSceneView> {
   Widget _buildScrollableCanvas({
     required _ChunkSceneGeometry geometry,
     required ChunkGroundLayout groundLayout,
-    required ChunkGroundTheme groundTheme,
+    required ChunkGroundMaterialSpec groundMaterial,
+    required ui.Rect? groundMaterialSrcRect,
     required List<_ChunkRenderPlacement> renderPlacements,
     required _ChunkRenderPlacement? selectedPlacement,
   }) {
@@ -254,7 +268,8 @@ class _ChunkSceneViewState extends State<ChunkSceneView> {
                 geometry: geometry,
                 chunk: widget.chunk,
                 groundLayout: groundLayout,
-                groundTheme: groundTheme,
+                groundMaterial: groundMaterial,
+                groundMaterialSrcRect: groundMaterialSrcRect,
                 renderPlacements: renderPlacements,
                 selectedPlacement: selectedPlacement,
               ),
@@ -527,10 +542,8 @@ class _ChunkSceneViewState extends State<ChunkSceneView> {
 
   void _ensureAllSceneImagesLoaded() {
     final uniquePaths = <String>{};
-    final groundTheme = resolveChunkGroundTheme(widget.prefabData.tileSlices);
-    for (final relativePath in groundTheme.sourceImagePaths()) {
-      uniquePaths.add(relativePath);
-    }
+    final groundMaterial = resolveChunkGroundMaterialSpec(widget.chunk.levelId);
+    uniquePaths.add(groundMaterial.sourceImagePath);
     for (final placement in _buildRenderPlacements()) {
       for (final sprite in placement.sprites) {
         final sourceImagePath = sprite.slice?.sourceImagePath.trim() ?? '';
@@ -541,21 +554,45 @@ class _ChunkSceneViewState extends State<ChunkSceneView> {
       }
     }
     for (final relativePath in uniquePaths) {
-      _ensureImageLoaded(relativePath);
+      _ensureImageLoaded(
+        relativePath,
+        detectGroundMaterial:
+            relativePath == groundMaterial.sourceImagePath,
+        fallbackMaterialHeight: groundMaterial.fallbackMaterialHeight,
+      );
     }
   }
 
-  void _ensureImageLoaded(String sourceImagePath) {
-    final absolutePath = p.normalize(
-      p.join(widget.workspaceRootPath, sourceImagePath),
-    );
+  void _ensureImageLoaded(
+    String sourceImagePath, {
+    bool detectGroundMaterial = false,
+    double fallbackMaterialHeight = 16.0,
+  }) {
+    final absolutePath = _absoluteImagePath(sourceImagePath);
     () async {
       final image = await _imageCache.ensureLoaded(absolutePath);
       if (!mounted || image == null) {
         return;
       }
+      if (detectGroundMaterial &&
+          !_groundMaterialSrcRectsByAbsolutePath.containsKey(absolutePath) &&
+          _groundMaterialDetectionInFlight.add(absolutePath)) {
+        final srcRect = await detectGroundMaterialSourceRect(
+          image,
+          fallbackMaterialHeight: fallbackMaterialHeight,
+        );
+        _groundMaterialDetectionInFlight.remove(absolutePath);
+        if (!mounted) {
+          return;
+        }
+        _groundMaterialSrcRectsByAbsolutePath[absolutePath] = srcRect;
+      }
       setState(() {});
     }();
+  }
+
+  String _absoluteImagePath(String relativePath) {
+    return p.normalize(p.join(widget.workspaceRootPath, relativePath));
   }
 }
 
@@ -888,7 +925,8 @@ class _ChunkScenePainter extends CustomPainter {
     required this.geometry,
     required this.chunk,
     required this.groundLayout,
-    required this.groundTheme,
+    required this.groundMaterial,
+    required this.groundMaterialSrcRect,
     required this.renderPlacements,
     required this.selectedPlacement,
   });
@@ -899,7 +937,8 @@ class _ChunkScenePainter extends CustomPainter {
   final _ChunkSceneGeometry geometry;
   final LevelChunkDef chunk;
   final ChunkGroundLayout groundLayout;
-  final ChunkGroundTheme groundTheme;
+  final ChunkGroundMaterialSpec groundMaterial;
+  final ui.Rect? groundMaterialSrcRect;
   final List<_ChunkRenderPlacement> renderPlacements;
   final _ChunkRenderPlacement? selectedPlacement;
 
@@ -917,9 +956,8 @@ class _ChunkScenePainter extends CustomPainter {
 
     _paintPixelGrid(canvas, size);
 
-    _paintChunkGround(canvas);
+    _paintSceneContentLayers(canvas);
     _paintChunkBounds(canvas);
-    _paintPlacedPrefabs(canvas);
     _paintSelectedPlacementOverlay(canvas);
   }
 
@@ -961,66 +999,50 @@ class _ChunkScenePainter extends CustomPainter {
     }
   }
 
+  void _paintSceneContentLayers(Canvas canvas) {
+    // Ground is chunk-authored scene content now, so it participates in the
+    // same z ordering as placed prefabs. Editor chrome (frame/selection) is
+    // painted after this pass so chunk bounds remain readable.
+    final layers = <_ChunkSceneContentLayer>[
+      _ChunkSceneContentLayer.ground(zIndex: chunk.groundBandZIndex),
+      ...renderPlacements.map(_ChunkSceneContentLayer.prefab),
+    ]..sort(_compareChunkSceneContentLayers);
+
+    for (final layer in layers) {
+      if (layer.prefab != null) {
+        _paintPlacement(canvas, layer.prefab!);
+        continue;
+      }
+      _paintChunkGround(canvas);
+    }
+  }
+
   void _paintGroundSegment(Canvas canvas, Rect worldRect) {
-    final bodySlice = groundTheme.bodySlice;
-    if (!groundTheme.hasRenderableSlices || bodySlice == null) {
+    final groundImage = _resolveGroundMaterialImage();
+    final groundMaterialSrcRect = this.groundMaterialSrcRect;
+    if (groundImage == null || groundMaterialSrcRect == null) {
       _paintGroundSegmentFallback(canvas, worldRect);
       return;
     }
-
     final canvasRect = geometry.canvasRectFromWorld(worldRect);
-    canvas.drawRect(
-      canvasRect,
-      Paint()
-        ..shader = ui.Gradient.linear(
-          canvasRect.topCenter,
-          canvasRect.bottomCenter,
-          const [Color(0xFF4C5931), Color(0xFF2A241D)],
-        ),
-    );
-
-    final capHeightWorld = math.min(
-      worldRect.height,
-      groundTheme.capHeightPx.toDouble(),
-    );
-    if (capHeightWorld > 0) {
-      _paintGroundBand(
-        canvas,
-        Rect.fromLTWH(
-          worldRect.left,
-          worldRect.top,
-          worldRect.width,
-          capHeightWorld,
-        ),
-        slices: groundTheme.surfaceSlices,
-        sourceTopPx: 0,
-        sourceHeightPx: groundTheme.capHeightPx.toDouble(),
+    canvas.save();
+    canvas.clipRect(canvasRect);
+    final tileWidth = groundImage.width.toDouble();
+    final startTile = (worldRect.left / tileWidth).floor() - 1;
+    final endTile = (worldRect.right / tileWidth).ceil() + 1;
+    for (var tile = startTile; tile <= endTile; tile += 1) {
+      final tileWorldX = tile * tileWidth;
+      final dstRect = geometry.canvasRectFromWorld(
+        Rect.fromLTWH(tileWorldX, worldRect.top, tileWidth, worldRect.height),
+      );
+      canvas.drawImageRect(
+        groundImage,
+        groundMaterialSrcRect,
+        dstRect,
+        Paint()..filterQuality = FilterQuality.none,
       );
     }
-
-    final bodyHeightWorld = worldRect.height - capHeightWorld;
-    if (bodyHeightWorld > 0) {
-      _paintGroundBand(
-        canvas,
-        Rect.fromLTWH(
-          worldRect.left,
-          worldRect.top + capHeightWorld,
-          worldRect.width,
-          bodyHeightWorld,
-        ),
-        slices: <AtlasSliceDef>[bodySlice],
-        sourceTopPx: groundTheme.capHeightPx.toDouble(),
-        sourceHeightPx: math.max(
-          1.0,
-          bodySlice.height.toDouble() - groundTheme.capHeightPx,
-        ),
-      );
-    }
-
-    final topLine = Paint()
-      ..color = const Color(0xB5F4E4A5)
-      ..strokeWidth = 1.4;
-    canvas.drawLine(canvasRect.topLeft, canvasRect.topRight, topLine);
+    canvas.restore();
   }
 
   void _paintGroundSegmentFallback(Canvas canvas, Rect worldRect) {
@@ -1092,58 +1114,6 @@ class _ChunkScenePainter extends CustomPainter {
     );
   }
 
-  void _paintGroundBand(
-    Canvas canvas,
-    Rect worldRect, {
-    required List<AtlasSliceDef> slices,
-    required double sourceTopPx,
-    required double sourceHeightPx,
-  }) {
-    if (slices.isEmpty || worldRect.width <= 0 || worldRect.height <= 0) {
-      return;
-    }
-    var cursorX = worldRect.left;
-    var sliceIndex = 0;
-    while (cursorX < worldRect.right - 0.001) {
-      final slice = slices[sliceIndex % slices.length];
-      final image = _resolveSliceImage(slice);
-      final remainingWidth = worldRect.right - cursorX;
-      final drawWidth = math.min(slice.width.toDouble(), remainingWidth);
-      final availableSourceHeight = math.max(
-        1.0,
-        slice.height.toDouble() - sourceTopPx,
-      );
-      final croppedSourceHeight = math.min(
-        availableSourceHeight,
-        math.max(1.0, sourceHeightPx),
-      );
-      final drawWorldRect = Rect.fromLTWH(
-        cursorX,
-        worldRect.top,
-        drawWidth,
-        worldRect.height,
-      );
-      if (image == null) {
-        _paintGroundSegmentFallback(canvas, drawWorldRect);
-      } else {
-        final srcRect = Rect.fromLTWH(
-          slice.x.toDouble(),
-          slice.y.toDouble() + sourceTopPx,
-          drawWidth,
-          croppedSourceHeight,
-        );
-        canvas.drawImageRect(
-          image,
-          srcRect,
-          geometry.canvasRectFromWorld(drawWorldRect),
-          Paint()..filterQuality = FilterQuality.none,
-        );
-      }
-      cursorX += drawWidth;
-      sliceIndex += 1;
-    }
-  }
-
   void _paintChunkBounds(Canvas canvas) {
     final canvasRect = geometry.canvasRectFromWorld(geometry.chunkRect);
     final borderPaint = Paint()
@@ -1188,59 +1158,57 @@ class _ChunkScenePainter extends CustomPainter {
     );
   }
 
-  void _paintPlacedPrefabs(Canvas canvas) {
-    for (final placement in renderPlacements) {
-      if (placement.sprites.isEmpty) {
-        final fallbackRect = geometry.canvasRectFromWorld(
-          placement.visualWorldRect(),
+  void _paintPlacement(Canvas canvas, _ChunkRenderPlacement placement) {
+    if (placement.sprites.isEmpty) {
+      final fallbackRect = geometry.canvasRectFromWorld(
+        placement.visualWorldRect(),
+      );
+      canvas.drawRect(
+        fallbackRect,
+        Paint()
+          ..color = placement.fallbackColor.withAlpha(115)
+          ..style = PaintingStyle.fill,
+      );
+      canvas.drawRect(
+        fallbackRect,
+        Paint()
+          ..color = placement.fallbackColor
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.0,
+      );
+      return;
+    }
+
+    for (final sprite in placement.sprites) {
+      final worldRect = sprite.localRect.shift(
+        Offset(
+          placement.placement.x.toDouble(),
+          placement.placement.y.toDouble(),
+        ),
+      );
+      final canvasRect = geometry.canvasRectFromWorld(worldRect);
+      final slice = sprite.slice;
+      final image = slice == null ? null : _resolveSliceImage(slice);
+      if (slice != null && image != null) {
+        final srcRect = Rect.fromLTWH(
+          slice.x.toDouble(),
+          slice.y.toDouble(),
+          slice.width.toDouble(),
+          slice.height.toDouble(),
         );
-        canvas.drawRect(
-          fallbackRect,
-          Paint()
-            ..color = placement.fallbackColor.withAlpha(115)
-            ..style = PaintingStyle.fill,
+        canvas.drawImageRect(
+          image,
+          srcRect,
+          canvasRect,
+          Paint()..filterQuality = FilterQuality.none,
         );
+      } else {
         canvas.drawRect(
-          fallbackRect,
+          canvasRect,
           Paint()
             ..color = placement.fallbackColor
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 1.0,
+            ..style = PaintingStyle.fill,
         );
-        continue;
-      }
-
-      for (final sprite in placement.sprites) {
-        final worldRect = sprite.localRect.shift(
-          Offset(
-            placement.placement.x.toDouble(),
-            placement.placement.y.toDouble(),
-          ),
-        );
-        final canvasRect = geometry.canvasRectFromWorld(worldRect);
-        final slice = sprite.slice;
-        final image = slice == null ? null : _resolveSliceImage(slice);
-        if (slice != null && image != null) {
-          final srcRect = Rect.fromLTWH(
-            slice.x.toDouble(),
-            slice.y.toDouble(),
-            slice.width.toDouble(),
-            slice.height.toDouble(),
-          );
-          canvas.drawImageRect(
-            image,
-            srcRect,
-            canvasRect,
-            Paint()..filterQuality = FilterQuality.none,
-          );
-        } else {
-          canvas.drawRect(
-            canvasRect,
-            Paint()
-              ..color = placement.fallbackColor
-              ..style = PaintingStyle.fill,
-          );
-        }
       }
     }
   }
@@ -1286,10 +1254,20 @@ class _ChunkScenePainter extends CustomPainter {
     return imageCache.imageFor(absolutePath);
   }
 
+  ui.Image? _resolveGroundMaterialImage() {
+    final absolutePath = p.normalize(
+      p.join(workspaceRootPath, groundMaterial.sourceImagePath),
+    );
+    return imageCache.imageFor(absolutePath);
+  }
+
   @override
   bool shouldRepaint(covariant _ChunkScenePainter oldDelegate) {
     return oldDelegate.geometry.zoom != geometry.zoom ||
         oldDelegate.chunk != chunk ||
+        oldDelegate.groundMaterial.sourceImagePath !=
+            groundMaterial.sourceImagePath ||
+        oldDelegate.groundMaterialSrcRect != groundMaterialSrcRect ||
         oldDelegate.selectedPlacement != selectedPlacement ||
         oldDelegate.renderPlacements != renderPlacements ||
         oldDelegate.loadedImageCount != loadedImageCount;
@@ -1302,6 +1280,50 @@ int _compareRenderPlacements(_ChunkRenderPlacement a, _ChunkRenderPlacement b) {
     return zCompare;
   }
   return comparePlacedPrefabsDeterministic(a.placement, b.placement);
+}
+
+class _ChunkSceneContentLayer {
+  _ChunkSceneContentLayer._({
+    required this.zIndex,
+    required this.isGround,
+    this.prefab,
+  });
+
+  _ChunkSceneContentLayer.ground({required int zIndex})
+    : this._(zIndex: zIndex, isGround: true);
+
+  _ChunkSceneContentLayer.prefab(_ChunkRenderPlacement placement)
+    : this._(
+        zIndex: placement.zIndex,
+        isGround: false,
+        prefab: placement,
+      );
+
+  final int zIndex;
+  final bool isGround;
+  final _ChunkRenderPlacement? prefab;
+}
+
+int _compareChunkSceneContentLayers(
+  _ChunkSceneContentLayer a,
+  _ChunkSceneContentLayer b,
+) {
+  final zCompare = a.zIndex.compareTo(b.zIndex);
+  if (zCompare != 0) {
+    return zCompare;
+  }
+  if (a.isGround != b.isGround) {
+    return a.isGround ? -1 : 1;
+  }
+  final leftPrefab = a.prefab;
+  final rightPrefab = b.prefab;
+  if (leftPrefab == null || rightPrefab == null) {
+    return 0;
+  }
+  return comparePlacedPrefabsDeterministic(
+    leftPrefab.placement,
+    rightPrefab.placement,
+  );
 }
 
 Color _fallbackColorForId(String raw) {
