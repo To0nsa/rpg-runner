@@ -127,7 +127,7 @@ void main() {
     await _pumpPrefabCreatorPage(tester, workspacePath: fixtureRoot.path);
 
     expect(_dropdownByLabel('Atlas Slice'), findsOneWidget);
-    expect(find.text('Create/Update Platform Prefab'), findsNothing);
+    expect(find.text('Create Platform Prefab'), findsNothing);
     expect(
       find.byKey(const ValueKey<String>('obstacle_prefab_inspector_card')),
       findsOneWidget,
@@ -145,13 +145,38 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Advanced Module Controls'), findsOneWidget);
+    expect(find.text('Edit Module'), findsNothing);
+    expect(
+      find.text('Editing platform module "ground_module"'),
+      findsOneWidget,
+    );
+    expect(find.text('Update Module'), findsOneWidget);
+    expect(
+      find.byKey(
+        const ValueKey<String>('platform_module_preview_ground_module'),
+      ),
+      findsOneWidget,
+    );
     expect(find.text('Platform Prefab Output'), findsNothing);
     expect(_dropdownByLabel('Atlas Slice'), findsNothing);
+    expect(
+      find.byKey(const ValueKey<String>('platform_module_inspector_card')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('platform_module_scene_card')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('platform_module_display_card')),
+      findsOneWidget,
+    );
 
     await tester.tap(find.text('Platform Prefabs').first);
     await tester.pumpAndSettle();
 
-    expect(find.text('Create/Update Platform Prefab'), findsOneWidget);
+    expect(find.text('Create Platform Prefab'), findsOneWidget);
+    expect(find.text('Creating new platform prefab'), findsOneWidget);
     expect(
       find.byKey(const ValueKey<String>('platform_prefab_inspector_card')),
       findsOneWidget,
@@ -169,7 +194,7 @@ void main() {
     await tester.tap(find.text('Obstacle Prefabs').first);
     await tester.pumpAndSettle();
     expect(_dropdownByLabel('Atlas Slice'), findsOneWidget);
-    expect(find.text('Create/Update Platform Prefab'), findsNothing);
+    expect(find.text('Create Platform Prefab'), findsNothing);
   });
 
   testWidgets('obstacle tab stays atlas-slice only', (tester) async {
@@ -188,16 +213,16 @@ void main() {
     expect(_dropdownByLabel('Atlas Slice'), findsOneWidget);
     expect(find.text('crate_slice'), findsOneWidget);
     expect(find.text('ground_module'), findsNothing);
-    expect(find.text('Create/Update Platform Prefab'), findsNothing);
+    expect(find.text('Create Platform Prefab'), findsNothing);
 
     await tester.tap(find.text('Platform Modules').first);
     await tester.pumpAndSettle();
     expect(find.text('ground_module'), findsWidgets);
-    expect(find.text('Create/Update Platform Prefab'), findsNothing);
+    expect(find.text('Create Platform Prefab'), findsNothing);
 
     await tester.tap(find.text('Platform Prefabs').first);
     await tester.pumpAndSettle();
-    expect(find.text('Create/Update Platform Prefab'), findsOneWidget);
+    expect(find.text('Create Platform Prefab'), findsOneWidget);
   });
 
   testWidgets('obstacle create/edit flow is revision-safe', (tester) async {
@@ -279,7 +304,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Editing obstacle prefab "obstacle_box"'), findsOneWidget);
+      expect(
+        find.text('Editing obstacle prefab "obstacle_box"'),
+        findsOneWidget,
+      );
       expect(find.text('Update Prefab'), findsOneWidget);
 
       await tester.enterText(
@@ -304,12 +332,13 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final obstacleIds = _prefabScene(
-        controller,
-      ).data.prefabs.where((prefab) => prefab.kind == PrefabKind.obstacle).map(
-        (prefab) => prefab.id,
+      final obstacleIds = _prefabScene(controller).data.prefabs
+          .where((prefab) => prefab.kind == PrefabKind.obstacle)
+          .map((prefab) => prefab.id);
+      expect(
+        obstacleIds,
+        containsAll(<String>['obstacle_box', 'obstacle_box_variant']),
       );
-      expect(obstacleIds, containsAll(<String>['obstacle_box', 'obstacle_box_variant']));
       expect(obstacleIds.length, 2);
     },
   );
@@ -389,12 +418,18 @@ void main() {
 
     await tester.tap(find.text('Platform Prefabs').first);
     await tester.pumpAndSettle();
+    expect(find.text('Creating new platform prefab'), findsOneWidget);
+    expect(find.text('Create Platform Prefab'), findsOneWidget);
+
     await tester.enterText(
       _textFieldByLabel('Platform Prefab ID').first,
       'platform_bridge',
     );
-    await tester.ensureVisible(find.text('Create/Update Platform Prefab'));
-    await tester.tap(find.text('Create/Update Platform Prefab'));
+    final platformUpsertButton = find.byKey(
+      const ValueKey<String>('platform_prefab_upsert_button'),
+    );
+    await tester.ensureVisible(platformUpsertButton);
+    await tester.tap(platformUpsertButton);
     await tester.pumpAndSettle();
 
     expect(
@@ -405,8 +440,13 @@ void main() {
       find.textContaining('Upserted platform prefab "platform_bridge" (rev=1'),
       findsOneWidget,
     );
+    expect(find.text('Update Platform Prefab'), findsOneWidget);
+    expect(
+      find.text('Editing platform prefab "platform_bridge"'),
+      findsOneWidget,
+    );
 
-    await tester.tap(find.text('Create/Update Platform Prefab'));
+    await tester.tap(platformUpsertButton);
     await tester.pumpAndSettle();
 
     expect(
@@ -417,6 +457,62 @@ void main() {
     expect(
       find.textContaining('Upserted platform prefab "platform_bridge" (rev=1'),
       findsOneWidget,
+    );
+  });
+
+  testWidgets('platform can switch from edit mode to create mode', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1800, 1200));
+    addTearDown(() async {
+      await tester.binding.setSurfaceSize(null);
+    });
+
+    final fixtureRoot = _createPrefabAuthoringFixture();
+    addTearDown(() {
+      fixtureRoot.deleteSync(recursive: true);
+    });
+
+    await _pumpPrefabCreatorPage(tester, workspacePath: fixtureRoot.path);
+
+    await tester.tap(find.text('Platform Prefabs').first);
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      _textFieldByLabel('Platform Prefab ID').first,
+      'platform_bridge',
+    );
+    final platformUpsertButton = find.byKey(
+      const ValueKey<String>('platform_prefab_upsert_button'),
+    );
+    await tester.ensureVisible(platformUpsertButton);
+    await tester.tap(platformUpsertButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Update Platform Prefab'), findsOneWidget);
+    expect(
+      find.text('Editing platform prefab "platform_bridge"'),
+      findsOneWidget,
+    );
+
+    final newFromCurrentValuesButton = find.byKey(
+      const ValueKey<String>('platform_prefab_new_from_current_values_button'),
+    );
+    await tester.ensureVisible(newFromCurrentValuesButton);
+    await tester.tap(newFromCurrentValuesButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Create Platform Prefab'), findsOneWidget);
+    expect(find.text('Creating new platform prefab'), findsOneWidget);
+    expect(
+      find.textContaining(
+        'Creating a new platform prefab from the current form values.',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      _textFieldValueByLabel(tester, 'Platform Prefab ID'),
+      'platform_bridge',
     );
   });
 
@@ -445,8 +541,11 @@ void main() {
       _textFieldByLabel('Platform Prefab ID').first,
       'platform_bridge',
     );
-    await tester.ensureVisible(find.text('Create/Update Platform Prefab'));
-    await tester.tap(find.text('Create/Update Platform Prefab'));
+    final platformUpsertButton = find.byKey(
+      const ValueKey<String>('platform_prefab_upsert_button'),
+    );
+    await tester.ensureVisible(platformUpsertButton);
+    await tester.tap(platformUpsertButton);
     await tester.pumpAndSettle();
 
     expect(
@@ -529,6 +628,177 @@ void main() {
     },
   );
 
+  testWidgets('platform module inspector reflects create and edit modes', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1800, 1200));
+    addTearDown(() async {
+      await tester.binding.setSurfaceSize(null);
+    });
+
+    final fixtureRoot = _createPrefabAuthoringFixture();
+    addTearDown(() {
+      fixtureRoot.deleteSync(recursive: true);
+    });
+
+    await _pumpPrefabCreatorPage(tester, workspacePath: fixtureRoot.path);
+
+    await tester.tap(find.text('Platform Modules').first);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Editing platform module "ground_module"'),
+      findsOneWidget,
+    );
+    expect(find.text('Update Module'), findsOneWidget);
+    expect(find.text('Edit Module'), findsNothing);
+
+    final newEmptyModuleButton = find.byKey(
+      const ValueKey<String>('platform_module_new_empty_button'),
+    );
+    await tester.ensureVisible(newEmptyModuleButton);
+    await tester.tap(newEmptyModuleButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Creating new platform module'), findsOneWidget);
+    expect(find.text('Create Module'), findsOneWidget);
+    expect(find.text('New Empty Module'), findsOneWidget);
+    expect(find.text('Selected Module: none'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('platform_module_row_ground_module')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Editing platform module "ground_module"'),
+      findsOneWidget,
+    );
+    expect(find.text('Update Module'), findsOneWidget);
+    expect(
+      _textFieldValueByLabel(tester, 'Platform Module ID'),
+      'ground_module',
+    );
+  });
+
+  testWidgets(
+    'platform modules can start a new empty module without duplicating the selected module',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1800, 1200));
+      addTearDown(() async {
+        await tester.binding.setSurfaceSize(null);
+      });
+
+      final fixtureRoot = _createPrefabAuthoringFixture();
+      addTearDown(() {
+        fixtureRoot.deleteSync(recursive: true);
+      });
+
+      final controller = await _pumpPrefabCreatorPage(
+        tester,
+        workspacePath: fixtureRoot.path,
+      );
+
+      await tester.tap(find.text('Platform Modules').first);
+      await tester.pumpAndSettle();
+
+      final newEmptyModuleButton = find.byKey(
+        const ValueKey<String>('platform_module_new_empty_button'),
+      );
+      await tester.ensureVisible(newEmptyModuleButton);
+      await tester.tap(newEmptyModuleButton);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Creating new platform module'), findsOneWidget);
+      expect(find.text('Selected Module: none'), findsOneWidget);
+      expect(
+        find.textContaining('Creating a new empty platform module.'),
+        findsOneWidget,
+      );
+
+      await tester.enterText(
+        _textFieldByLabel('Platform Module ID').first,
+        'bridge_module',
+      );
+      final moduleUpsertButton = find.byKey(
+        const ValueKey<String>('platform_module_upsert_button'),
+      );
+      await tester.ensureVisible(moduleUpsertButton);
+      await tester.tap(moduleUpsertButton);
+      await tester.pumpAndSettle();
+
+      final createdModule = _prefabScene(controller).data.platformModules
+          .singleWhere((module) => module.id == 'bridge_module');
+      expect(createdModule.cells, isEmpty);
+      expect(createdModule.tileSize, 16);
+    },
+  );
+
+  testWidgets(
+    'platform module create and paint keep the edited module selected',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1800, 1200));
+      addTearDown(() async {
+        await tester.binding.setSurfaceSize(null);
+      });
+
+      final fixtureRoot = _createPrefabAuthoringFixture();
+      addTearDown(() {
+        fixtureRoot.deleteSync(recursive: true);
+      });
+
+      final controller = await _pumpPrefabCreatorPage(
+        tester,
+        workspacePath: fixtureRoot.path,
+      );
+
+      await tester.tap(find.text('Platform Modules').first);
+      await tester.pumpAndSettle();
+
+      final newEmptyModuleButton = find.byKey(
+        const ValueKey<String>('platform_module_new_empty_button'),
+      );
+      await tester.ensureVisible(newEmptyModuleButton);
+      await tester.tap(newEmptyModuleButton);
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        _textFieldByLabel('Platform Module ID').first,
+        'zz_bridge_module',
+      );
+      final moduleUpsertButton = find.byKey(
+        const ValueKey<String>('platform_module_upsert_button'),
+      );
+      await tester.ensureVisible(moduleUpsertButton);
+      await tester.tap(moduleUpsertButton);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Selected Module: zz_bridge_module'), findsOneWidget);
+      expect(
+        _textFieldValueByLabel(tester, 'Platform Module ID'),
+        'zz_bridge_module',
+      );
+
+      final sceneCanvas = find.byKey(
+        const ValueKey<String>('platform_module_scene_canvas'),
+      );
+      await tester.tap(find.byKey(const ValueKey<String>('module_tool_paint')));
+      await tester.pumpAndSettle();
+      await tester.tapAt(tester.getCenter(sceneCanvas));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Selected Module: zz_bridge_module'), findsOneWidget);
+      expect(
+        _textFieldValueByLabel(tester, 'Platform Module ID'),
+        'zz_bridge_module',
+      );
+
+      final createdModule = _prefabScene(controller).data.platformModules
+          .singleWhere((module) => module.id == 'zz_bridge_module');
+      expect(createdModule.cells, hasLength(1));
+    },
+  );
+
   testWidgets(
     'platform upsert does not overwrite a previously loaded obstacle prefab',
     (tester) async {
@@ -563,12 +833,21 @@ void main() {
         _textFieldByLabel('Platform Prefab ID').first,
         'platform_a',
       );
-      await tester.ensureVisible(find.text('Create/Update Platform Prefab'));
-      await tester.tap(find.text('Create/Update Platform Prefab'));
+      final platformUpsertButton = find.byKey(
+        const ValueKey<String>('platform_prefab_upsert_button'),
+      );
+      await tester.ensureVisible(platformUpsertButton);
+      await tester.tap(platformUpsertButton);
       await tester.pumpAndSettle();
 
       expect(
         find.textContaining('Upserted platform prefab "platform_a"'),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>('platform_prefab_preview_platform_a'),
+        ),
         findsOneWidget,
       );
 
@@ -621,8 +900,11 @@ void main() {
         _textFieldByLabel('Platform Prefab ID').first,
         'platform_ref',
       );
-      await tester.ensureVisible(find.text('Create/Update Platform Prefab'));
-      await tester.tap(find.text('Create/Update Platform Prefab'));
+      final platformUpsertButton = find.byKey(
+        const ValueKey<String>('platform_prefab_upsert_button'),
+      );
+      await tester.ensureVisible(platformUpsertButton);
+      await tester.tap(platformUpsertButton);
       await tester.pumpAndSettle();
       expect(
         find.textContaining('source=platform_module:ground_module'),
@@ -718,34 +1000,46 @@ void main() {
     },
   );
 
-  testWidgets('platform prefabs tab can create a platform prefab for selected module', (
-    tester,
-  ) async {
-    await tester.binding.setSurfaceSize(const Size(1800, 1200));
-    addTearDown(() async {
-      await tester.binding.setSurfaceSize(null);
-    });
+  testWidgets(
+    'platform prefabs tab can create a platform prefab for selected module',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1800, 1200));
+      addTearDown(() async {
+        await tester.binding.setSurfaceSize(null);
+      });
 
-    final fixtureRoot = _createPrefabAuthoringFixture();
-    addTearDown(() {
-      fixtureRoot.deleteSync(recursive: true);
-    });
+      final fixtureRoot = _createPrefabAuthoringFixture();
+      addTearDown(() {
+        fixtureRoot.deleteSync(recursive: true);
+      });
 
-    await _pumpPrefabCreatorPage(tester, workspacePath: fixtureRoot.path);
+      await _pumpPrefabCreatorPage(tester, workspacePath: fixtureRoot.path);
 
-    await tester.tap(find.text('Platform Prefabs').first);
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Platform Prefabs').first);
+      await tester.pumpAndSettle();
 
-    await tester.ensureVisible(find.text('Create/Update Platform Prefab'));
-    await tester.tap(find.text('Create/Update Platform Prefab'));
-    await tester.pumpAndSettle();
+      final platformUpsertButton = find.byKey(
+        const ValueKey<String>('platform_prefab_upsert_button'),
+      );
+      await tester.ensureVisible(platformUpsertButton);
+      await tester.tap(platformUpsertButton);
+      await tester.pumpAndSettle();
 
-    expect(find.textContaining('Upserted platform prefab'), findsOneWidget);
-    expect(
-      find.textContaining('source=platform_module:ground_module'),
-      findsWidgets,
-    );
-  });
+      expect(find.textContaining('Upserted platform prefab'), findsOneWidget);
+      expect(
+        find.textContaining('source=platform_module:ground_module'),
+        findsWidgets,
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>(
+            'platform_prefab_preview_ground_module_platform',
+          ),
+        ),
+        findsOneWidget,
+      );
+    },
+  );
 
   testWidgets('platform module edits support undo and redo', (tester) async {
     await tester.binding.setSurfaceSize(const Size(1800, 1200));

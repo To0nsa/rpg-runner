@@ -54,6 +54,7 @@ class PlatformModulePageCoordinator {
       selectedModuleSceneTool: _shellState.selectedModuleSceneTool,
       workspaceRootPath: _readWorkspaceRootPath(),
       onUpsertModule: upsertModuleFromForm,
+      onStartNewEmptyModule: startNewEmptyModule,
       onRenameSelectedModule: renameSelectedModuleFromForm,
       onDuplicateSelectedModule: duplicateSelectedModule,
       onToggleDeprecateSelectedModule: toggleDeprecateSelectedModule,
@@ -132,6 +133,21 @@ class PlatformModulePageCoordinator {
       }
       _moduleIdController.text = selectedModule.id;
       _moduleTileSizeController.text = selectedModule.tileSize.toString();
+    });
+  }
+
+  void startNewEmptyModule() {
+    _updateState(() {
+      _runWithoutLocalDraftHistory(() {
+        _shellState.selectedModuleId = null;
+        _moduleIdController.clear();
+        if (_moduleTileSizeController.text.trim().isEmpty) {
+          _moduleTileSizeController.text = '16';
+        }
+      });
+      _shellState.statusMessage =
+          'Creating a new empty platform module. Enter a new module ID to save it.';
+      _shellState.errorMessage = null;
     });
   }
 
@@ -258,10 +274,7 @@ class PlatformModulePageCoordinator {
     if (result == null) {
       return;
     }
-    _commitPrefabDataChange(
-      nextData: result.data,
-      statusMessage: result.statusMessage,
-    );
+    _commitModuleCellMutation(moduleId: moduleId, result: result);
   }
 
   void paintCellInSelectedModuleAt({
@@ -324,10 +337,7 @@ class PlatformModulePageCoordinator {
     if (result == null) {
       return;
     }
-    _commitPrefabDataChange(
-      nextData: result.data,
-      statusMessage: result.statusMessage,
-    );
+    _commitModuleCellMutation(moduleId: moduleId, result: result);
   }
 
   void _eraseCellInModuleAt({
@@ -344,10 +354,7 @@ class PlatformModulePageCoordinator {
     if (result == null) {
       return;
     }
-    _commitPrefabDataChange(
-      nextData: result.data,
-      statusMessage: result.statusMessage,
-    );
+    _commitModuleCellMutation(moduleId: moduleId, result: result);
   }
 
   void _moveCellInModuleAt({
@@ -368,8 +375,18 @@ class PlatformModulePageCoordinator {
     if (result == null) {
       return;
     }
+    _commitModuleCellMutation(moduleId: moduleId, result: result);
+  }
+
+  void _commitModuleCellMutation({
+    required String moduleId,
+    required PlatformModuleCellMutationResult result,
+  }) {
     _commitPrefabDataChange(
       nextData: result.data,
+      beforeSync: () {
+        _shellState.selectedModuleId = moduleId;
+      },
       statusMessage: result.statusMessage,
     );
   }

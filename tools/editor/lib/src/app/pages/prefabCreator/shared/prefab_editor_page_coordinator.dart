@@ -149,6 +149,7 @@ class PrefabEditorPageCoordinator {
       },
       onLoadPrefabForModule: loadPlatformPrefabForSelectedModule,
       onUpsertPrefabForModule: upsertPlatformPrefabForSelectedModule,
+      onStartNewFromCurrentValues: startNewPlatformPrefabFromCurrentValues,
       onSceneValuesChanged: onPlatformPrefabSceneValuesChanged,
       onLoadPrefab: loadPrefabIntoForm,
       onDeletePrefab: deletePrefab,
@@ -411,6 +412,30 @@ class PrefabEditorPageCoordinator {
       );
     });
     _upsertPrefabFromForm(_platformPrefabForm);
+  }
+
+  void startNewPlatformPrefabFromCurrentValues() {
+    final source = editingPrefabForForm(_platformPrefabForm);
+    if (source == null || source.kind != PrefabKind.platform) {
+      _updateState(() {
+        _shellState.statusMessage =
+            'Platform prefab form is already in create mode.';
+        _shellState.errorMessage = null;
+      });
+      return;
+    }
+
+    _updateState(() {
+      _runWithoutLocalDraftHistory(() {
+        _platformPrefabForm.selectedKind = PrefabKind.platform;
+        _platformPrefabForm.autoManagePlatformModule = false;
+        _platformPrefabForm.editingPrefabKey = null;
+      });
+      _syncFormDraftBaseline();
+      _shellState.statusMessage =
+          'Creating a new platform prefab from the current form values.';
+      _shellState.errorMessage = null;
+    });
   }
 
   void _upsertPrefabFromForm(PrefabFormState form) {

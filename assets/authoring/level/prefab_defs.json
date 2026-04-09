@@ -44,6 +44,30 @@
   ],
   "prefabs": [
     {
+      "prefabKey": "grass_dirt_32x32_platform",
+      "id": "grass_dirt_32x32_platform",
+      "revision": 1,
+      "status": "active",
+      "kind": "platform",
+      "visualSource": {
+        "type": "platform_module",
+        "moduleId": "platform_grass_dirt_32x32"
+      },
+      "anchorXPx": 16,
+      "anchorYPx": 16,
+      "colliders": [
+        {
+          "offsetX": 0,
+          "offsetY": 0,
+          "width": 31,
+          "height": 30
+        }
+      ],
+      "tags": [],
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
       "prefabKey": "village_barrel_01",
       "id": "village_barrel_01",
       "revision": 1,
@@ -120,6 +144,60 @@
       "tags": [
         "crate",
         "village"
+      ],
+      "zIndex": 0,
+      "snapToGrid": true
+    },
+    {
+      "prefabKey": "village_crate_02",
+      "id": "village_crate_02",
+      "revision": 1,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "village_crate_02"
+      },
+      "anchorXPx": 32,
+      "anchorYPx": 31,
+      "colliders": [
+        {
+          "offsetX": 0,
+          "offsetY": 0,
+          "width": 34,
+          "height": 34
+        }
+      ],
+      "tags": [
+        "crate",
+        "village"
+      ],
+      "zIndex": 0,
+      "snapToGrid": true
+    },
+    {
+      "prefabKey": "village_woodpile_01",
+      "id": "village_woodPile_01",
+      "revision": 1,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "village_woodPile_01"
+      },
+      "anchorXPx": 48,
+      "anchorYPx": 31,
+      "colliders": [
+        {
+          "offsetX": -4,
+          "offsetY": 1,
+          "width": 53,
+          "height": 46
+        }
+      ],
+      "tags": [
+        "village",
+        "woodPile"
       ],
       "zIndex": 0,
       "snapToGrid": true

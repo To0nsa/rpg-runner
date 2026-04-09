@@ -9,17 +9,21 @@ class PlatformPrefabOutputPanel extends StatelessWidget {
     super.key,
     required this.form,
     required this.isEnabled,
+    required this.isEditingPrefab,
     required this.sceneValues,
     required this.onLoadPrefabForModule,
     required this.onUpsertPrefabForModule,
+    required this.onStartNewFromCurrentValues,
     required this.onSnapToGridChanged,
   });
 
   final PrefabFormState form;
   final bool isEnabled;
+  final bool isEditingPrefab;
   final PrefabSceneValues? sceneValues;
   final VoidCallback onLoadPrefabForModule;
   final VoidCallback onUpsertPrefabForModule;
+  final VoidCallback onStartNewFromCurrentValues;
   final ValueChanged<bool> onSnapToGridChanged;
 
   @override
@@ -46,9 +50,26 @@ class PlatformPrefabOutputPanel extends StatelessWidget {
               label: const Text('Load Prefab For Module'),
             ),
             FilledButton.icon(
+              key: const ValueKey<String>('platform_prefab_upsert_button'),
               onPressed: isEnabled ? onUpsertPrefabForModule : null,
-              icon: const Icon(Icons.save_outlined),
-              label: const Text('Create/Update Platform Prefab'),
+              icon: Icon(
+                isEditingPrefab ? Icons.save_outlined : Icons.add_box_outlined,
+              ),
+              label: Text(
+                isEditingPrefab
+                    ? 'Update Platform Prefab'
+                    : 'Create Platform Prefab',
+              ),
+            ),
+            OutlinedButton.icon(
+              key: const ValueKey<String>(
+                'platform_prefab_new_from_current_values_button',
+              ),
+              onPressed: isEnabled && isEditingPrefab
+                  ? onStartNewFromCurrentValues
+                  : null,
+              icon: const Icon(Icons.post_add_outlined),
+              label: const Text('New From Current Values'),
             ),
           ],
         ),

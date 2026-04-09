@@ -47,6 +47,19 @@
           "gridY": 0
         }
       ]
+    },
+    {
+      "id": "platform_grass_dirt_64x32",
+      "revision": 2,
+      "status": "active",
+      "tileSize": 16,
+      "cells": [
+        {
+          "sliceId": "grass_dirt_64x32",
+          "gridX": 0,
+          "gridY": 0
+        }
+      ]
     }
   ]
 }
