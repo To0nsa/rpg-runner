@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 import 'dart:ui' show Size;
 
+import 'package:path/path.dart' as p;
+
 import '../models/models.dart';
 
 /// Prefab-domain validation entry points and shared private state.
@@ -53,6 +55,12 @@ List<PrefabValidationIssue> validatePrefabDataIssues({
   required PrefabData data,
   required Map<String, Size> atlasImageSizes,
 }) {
+  final normalizedAtlasImageSizes = <String, Size>{};
+  for (final entry in atlasImageSizes.entries) {
+    normalizedAtlasImageSizes[_normalizeAtlasSourcePath(entry.key)] =
+        entry.value;
+  }
+
   final issues = <PrefabValidationIssue>[];
   if (data.schemaVersion != currentPrefabSchemaVersion) {
     issues.add(
@@ -78,7 +86,7 @@ List<PrefabValidationIssue> validatePrefabDataIssues({
     issues: issues,
     prefabSlices: sortedPrefabSlices,
     tileSlices: sortedTileSlices,
-    atlasImageSizes: atlasImageSizes,
+    atlasImageSizes: normalizedAtlasImageSizes,
   );
 
   final moduleIndex = _validateAndIndexModules(
@@ -99,6 +107,14 @@ List<PrefabValidationIssue> validatePrefabDataIssues({
 
   issues.sort(_compareIssues);
   return List<PrefabValidationIssue>.unmodifiable(issues);
+}
+
+String _normalizeAtlasSourcePath(String rawPath) {
+  final normalized = p.normalize(rawPath.trim());
+  if (p.context.style == p.Style.windows) {
+    return normalized.toLowerCase();
+  }
+  return normalized;
 }
 
 /// Convenience wrapper used by callers that only need issue messages.

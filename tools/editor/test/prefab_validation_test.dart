@@ -1,6 +1,7 @@
 import 'dart:ui' show Size;
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as p;
 import 'package:runner_editor/src/prefabs/models/models.dart';
 import 'package:runner_editor/src/prefabs/validation/prefab_validation.dart';
 
@@ -75,6 +76,34 @@ void main() {
         'assets/images/level/props/TX Village Props.png': Size(256, 256),
         'assets/images/level/tileset/TX Tileset Ground.png': Size(64, 64),
       },
+    );
+
+    expect(errors, isEmpty);
+  });
+
+  test('validatePrefabData normalizes atlas source paths before lookup', () {
+    final data = PrefabData(
+      prefabSlices: const [
+        AtlasSliceDef(
+          id: 'prefab_slice_a',
+          sourceImagePath: 'assets/images/level/props/TX Village Props.png',
+          x: 16,
+          y: 16,
+          width: 32,
+          height: 32,
+        ),
+      ],
+    );
+
+    final normalizedPath = p.context.style == p.Style.windows
+        ? p
+              .normalize(r'assets\images\level\props\tx village props.png')
+              .toLowerCase()
+        : p.normalize('assets/images/level/props/TX Village Props.png');
+
+    final errors = validatePrefabData(
+      data: data,
+      atlasImageSizes: {normalizedPath: const Size(256, 256)},
     );
 
     expect(errors, isEmpty);

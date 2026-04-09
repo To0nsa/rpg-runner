@@ -22,12 +22,14 @@ class PrefabSceneView extends StatefulWidget {
     required this.slice,
     required this.values,
     required this.onChanged,
+    this.showCardFrame = true,
   });
 
   final String workspaceRootPath;
   final AtlasSliceDef slice;
   final PrefabSceneValues values;
   final ValueChanged<PrefabSceneValues> onChanged;
+  final bool showCardFrame;
 
   @override
   State<PrefabSceneView> createState() => _PrefabSceneViewState();
@@ -86,71 +88,74 @@ class _PrefabSceneViewState extends State<PrefabSceneView> {
             : _maxViewportWidth;
         final hasBoundedHeight = constraints.maxHeight.isFinite;
 
-        return Card(
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  width: viewportWidth,
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Prefab Scene View',
-                          style: Theme.of(context).textTheme.titleSmall,
-                        ),
+        final content = Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: viewportWidth,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Prefab Scene View',
+                        style: Theme.of(context).textTheme.titleSmall,
                       ),
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: EditorZoomControls(
-                            value: _zoom,
-                            min: _minZoom,
-                            max: _maxZoom,
-                            step: _zoomStep,
-                            onChanged: _setZoom,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Slice: ${widget.slice.id} '
-                  '[${widget.slice.width}x${widget.slice.height}]',
-                ),
-                const SizedBox(height: 8),
-                if (hasBoundedHeight)
-                  Expanded(
-                    child: LayoutBuilder(
-                      builder: (context, viewportConstraints) {
-                        final viewportHeight = viewportConstraints.maxHeight
-                            .clamp(1.0, double.infinity)
-                            .toDouble();
-                        return _buildViewport(
-                          viewportWidth: viewportWidth,
-                          viewportHeight: viewportHeight,
-                          image: image,
-                          imageExists: imageExists,
-                        );
-                      },
                     ),
-                  )
-                else
-                  _buildViewport(
-                    viewportWidth: viewportWidth,
-                    viewportHeight: _preferredViewportHeight,
-                    image: image,
-                    imageExists: imageExists,
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: EditorZoomControls(
+                          value: _zoom,
+                          min: _minZoom,
+                          max: _maxZoom,
+                          step: _zoomStep,
+                          onChanged: _setZoom,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Slice: ${widget.slice.id} '
+                '[${widget.slice.width}x${widget.slice.height}]',
+              ),
+              const SizedBox(height: 8),
+              if (hasBoundedHeight)
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, viewportConstraints) {
+                      final viewportHeight = viewportConstraints.maxHeight
+                          .clamp(1.0, double.infinity)
+                          .toDouble();
+                      return _buildViewport(
+                        viewportWidth: viewportWidth,
+                        viewportHeight: viewportHeight,
+                        image: image,
+                        imageExists: imageExists,
+                      );
+                    },
                   ),
-              ],
-            ),
+                )
+              else
+                _buildViewport(
+                  viewportWidth: viewportWidth,
+                  viewportHeight: _preferredViewportHeight,
+                  image: image,
+                  imageExists: imageExists,
+                ),
+            ],
           ),
         );
+
+        if (!widget.showCardFrame) {
+          return content;
+        }
+        return Card(child: content);
       },
     );
   }

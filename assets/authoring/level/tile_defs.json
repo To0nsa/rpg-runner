@@ -2,90 +2,49 @@
   "schemaVersion": 2,
   "tileSlices": [
     {
-      "id": "tile_grass_left_32x32",
-      "sourceImagePath": "assets/images/level/tileset/TX Tileset Ground.png",
-      "x": 0,
-      "y": 384,
-      "width": 32,
-      "height": 32
-    },
-    {
-      "id": "tile_grass_middle_32x32",
-      "sourceImagePath": "assets/images/level/tileset/TX Tileset Ground.png",
-      "x": 32,
-      "y": 384,
-      "width": 32,
-      "height": 32
-    },
-    {
-      "id": "tile_grass_right_32x32",
-      "sourceImagePath": "assets/images/level/tileset/TX Tileset Ground.png",
-      "x": 64,
-      "y": 384,
-      "width": 32,
-      "height": 32
-    },
-    {
-      "id": "tile_grass_sole_32x32",
+      "id": "grass_dirt_32x32",
       "sourceImagePath": "assets/images/level/tileset/TX Tileset Ground.png",
       "x": 128,
       "y": 96,
       "width": 32,
       "height": 32
+    },
+    {
+      "id": "grass_dirt_64x32",
+      "sourceImagePath": "assets/images/level/tileset/TX Tileset Ground.png",
+      "x": 288,
+      "y": 0,
+      "width": 64,
+      "height": 32
+    },
+    {
+      "id": "grass_dirt_96x32_less_square",
+      "sourceImagePath": "assets/images/level/tileset/TX Tileset Ground.png",
+      "x": 0,
+      "y": 448,
+      "width": 96,
+      "height": 32
+    },
+    {
+      "id": "grass_dirt_96x32_square",
+      "sourceImagePath": "assets/images/level/tileset/TX Tileset Ground.png",
+      "x": 0,
+      "y": 384,
+      "width": 96,
+      "height": 32
     }
   ],
   "platformModules": [
     {
-      "id": "platform_grass_32x32",
+      "id": "platform_grass_dirt_32x32",
       "revision": 2,
       "status": "active",
       "tileSize": 16,
       "cells": [
         {
-          "sliceId": "tile_grass_right_32x32",
-          "gridX": -1,
-          "gridY": 0
-        }
-      ]
-    },
-    {
-      "id": "platform_grass_64x32",
-      "revision": 8,
-      "status": "active",
-      "tileSize": 16,
-      "cells": [
-        {
-          "sliceId": "tile_grass_left_32x32",
-          "gridX": -1,
-          "gridY": 0
-        },
-        {
-          "sliceId": "tile_grass_right_32x32",
-          "gridX": 1,
-          "gridY": 0
-        }
-      ]
-    },
-    {
-      "id": "platform_grass_96x32",
-      "revision": 11,
-      "status": "active",
-      "tileSize": 16,
-      "cells": [
-        {
-          "sliceId": "tile_grass_left_32x32",
+          "sliceId": "grass_dirt_32x32",
           "gridX": 0,
-          "gridY": 1
-        },
-        {
-          "sliceId": "tile_grass_middle_32x32",
-          "gridX": 2,
-          "gridY": 1
-        },
-        {
-          "sliceId": "tile_grass_right_32x32",
-          "gridX": 4,
-          "gridY": 1
+          "gridY": 0
         }
       ]
     }

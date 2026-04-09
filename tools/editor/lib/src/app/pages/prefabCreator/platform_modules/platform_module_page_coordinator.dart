@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../prefabs/models/models.dart';
 import '../shared/prefab_editor_page_contracts.dart';
-import '../shared/prefab_form_state.dart';
 import '../shared/prefab_editor_shell_state.dart';
-import '../shared/prefab_scene_values.dart';
 import 'platform_module_controller.dart';
 import 'platform_modules_tab.dart';
 
@@ -18,45 +16,32 @@ class PlatformModulePageCoordinator {
     required PrefabEditorShellState shellState,
     required TextEditingController moduleIdController,
     required TextEditingController moduleTileSizeController,
-    required PrefabFormState platformPrefabForm,
     required String Function() readWorkspaceRootPath,
     required PrefabEditorStateSetter updateState,
     required PrefabEditorLocalDraftMutation runWithoutLocalDraftHistory,
     required PrefabEditorCommitDataChange commitPrefabDataChange,
-    required VoidCallback onPlatformPrefabLoad,
-    required VoidCallback onPlatformPrefabUpsert,
-    required ValueChanged<PrefabSceneValues> onPlatformPrefabSceneValuesChanged,
   }) : _moduleController = moduleController,
        _shellState = shellState,
        _moduleIdController = moduleIdController,
        _moduleTileSizeController = moduleTileSizeController,
-       _platformPrefabForm = platformPrefabForm,
        _readWorkspaceRootPath = readWorkspaceRootPath,
        _updateState = updateState,
        _runWithoutLocalDraftHistory = runWithoutLocalDraftHistory,
-       _commitPrefabDataChange = commitPrefabDataChange,
-       _onPlatformPrefabLoad = onPlatformPrefabLoad,
-       _onPlatformPrefabUpsert = onPlatformPrefabUpsert,
-       _onPlatformPrefabSceneValuesChanged = onPlatformPrefabSceneValuesChanged;
+       _commitPrefabDataChange = commitPrefabDataChange;
 
   final PlatformModuleController _moduleController;
   final PrefabEditorShellState _shellState;
   final TextEditingController _moduleIdController;
   final TextEditingController _moduleTileSizeController;
-  final PrefabFormState _platformPrefabForm;
   final String Function() _readWorkspaceRootPath;
   final PrefabEditorStateSetter _updateState;
   final PrefabEditorLocalDraftMutation _runWithoutLocalDraftHistory;
   final PrefabEditorCommitDataChange _commitPrefabDataChange;
-  final VoidCallback _onPlatformPrefabLoad;
-  final VoidCallback _onPlatformPrefabUpsert;
-  final ValueChanged<PrefabSceneValues> _onPlatformPrefabSceneValuesChanged;
 
   Widget buildTab() {
     final data = _shellState.data;
     final modules = data.platformModules;
     final selectedModule = this.selectedModule();
-    final sceneValues = _platformPrefabForm.tryParseSceneValues();
 
     return PlatformModulesTab(
       moduleIdController: _moduleIdController,
@@ -67,39 +52,17 @@ class PlatformModulePageCoordinator {
       tileSlices: data.tileSlices,
       selectedTileSliceId: _shellState.selectedTileSliceId,
       selectedModuleSceneTool: _shellState.selectedModuleSceneTool,
-      sceneValues: sceneValues,
       workspaceRootPath: _readWorkspaceRootPath(),
-      platformPrefabForm: _platformPrefabForm,
       onUpsertModule: upsertModuleFromForm,
       onRenameSelectedModule: renameSelectedModuleFromForm,
       onDuplicateSelectedModule: duplicateSelectedModule,
       onToggleDeprecateSelectedModule: toggleDeprecateSelectedModule,
-      onSelectedModuleChanged: (value) {
-        _updateState(() {
-          _shellState.selectedModuleId = value;
-          if (value == null) {
-            return;
-          }
-          final module = modules.firstWhere(
-            (candidate) => candidate.id == value,
-          );
-          _moduleIdController.text = module.id;
-          _moduleTileSizeController.text = module.tileSize.toString();
-        });
-      },
+      onSelectedModuleChanged: selectModuleById,
       onSelectedTileSliceChanged: (value) {
         _updateState(() {
           _shellState.selectedTileSliceId = value;
         });
       },
-      onPlatformPrefabSnapToGridChanged: (value) {
-        _updateState(() {
-          _platformPrefabForm.snapToGrid = value;
-        });
-      },
-      onPlatformPrefabLoad: _onPlatformPrefabLoad,
-      onPlatformPrefabUpsert: _onPlatformPrefabUpsert,
-      onPlatformPrefabSceneValuesChanged: _onPlatformPrefabSceneValuesChanged,
       onModuleSceneToolChanged: (tool) {
         _updateState(() {
           _shellState.selectedModuleSceneTool = tool;
@@ -128,6 +91,21 @@ class PlatformModulePageCoordinator {
         deleteModuleCell(moduleId: moduleId, cellIndex: cellIndex);
       },
     );
+  }
+
+  void selectModuleById(String? value) {
+    _updateState(() {
+      _shellState.selectedModuleId = value;
+      if (value == null) {
+        return;
+      }
+      final module = moduleById(value);
+      if (module == null) {
+        return;
+      }
+      _moduleIdController.text = module.id;
+      _moduleTileSizeController.text = module.tileSize.toString();
+    });
   }
 
   TileModuleDef? moduleById(String moduleId) {

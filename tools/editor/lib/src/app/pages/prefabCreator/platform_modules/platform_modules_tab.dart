@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../../prefabs/models/models.dart';
-import '../platform_prefabs/platform_prefab_output_panel.dart';
-import '../shared/prefab_form_state.dart';
-import '../shared/prefab_scene_values.dart';
 import 'widgets/platform_module_scene_view.dart';
 
-/// Platform-module editing view and platform-prefab output controls.
+/// Platform-module editing view.
 class PlatformModulesTab extends StatelessWidget {
   const PlatformModulesTab({
     super.key,
@@ -18,19 +15,13 @@ class PlatformModulesTab extends StatelessWidget {
     required this.tileSlices,
     required this.selectedTileSliceId,
     required this.selectedModuleSceneTool,
-    required this.sceneValues,
     required this.workspaceRootPath,
-    required this.platformPrefabForm,
     required this.onUpsertModule,
     required this.onRenameSelectedModule,
     required this.onDuplicateSelectedModule,
     required this.onToggleDeprecateSelectedModule,
     required this.onSelectedModuleChanged,
     required this.onSelectedTileSliceChanged,
-    required this.onPlatformPrefabSnapToGridChanged,
-    required this.onPlatformPrefabLoad,
-    required this.onPlatformPrefabUpsert,
-    required this.onPlatformPrefabSceneValuesChanged,
     required this.onModuleSceneToolChanged,
     required this.onPaintCell,
     required this.onEraseCell,
@@ -47,19 +38,13 @@ class PlatformModulesTab extends StatelessWidget {
   final List<AtlasSliceDef> tileSlices;
   final String? selectedTileSliceId;
   final PlatformModuleSceneTool selectedModuleSceneTool;
-  final PrefabSceneValues? sceneValues;
   final String workspaceRootPath;
-  final PrefabFormState platformPrefabForm;
   final VoidCallback onUpsertModule;
   final VoidCallback onRenameSelectedModule;
   final VoidCallback onDuplicateSelectedModule;
   final VoidCallback onToggleDeprecateSelectedModule;
   final ValueChanged<String?> onSelectedModuleChanged;
   final ValueChanged<String> onSelectedTileSliceChanged;
-  final ValueChanged<bool> onPlatformPrefabSnapToGridChanged;
-  final VoidCallback onPlatformPrefabLoad;
-  final VoidCallback onPlatformPrefabUpsert;
-  final ValueChanged<PrefabSceneValues> onPlatformPrefabSceneValuesChanged;
   final ValueChanged<PlatformModuleSceneTool> onModuleSceneToolChanged;
   final void Function(int gridX, int gridY, String sliceId) onPaintCell;
   final void Function(int gridX, int gridY) onEraseCell;
@@ -88,99 +73,110 @@ class PlatformModulesTab extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Card(
-                  child: ExpansionTile(
-                    key: const ValueKey<String>(
-                      'platform_module_advanced_controls',
-                    ),
-                    initiallyExpanded: false,
-                    title: const Text('Advanced Module Controls'),
-                    subtitle: const Text(
-                      'Create, rename, duplicate, deprecate, and select modules.',
-                    ),
-                    childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                    children: [
-                      TextField(
-                        controller: moduleIdController,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          labelText: 'Platform Module ID',
+                  key: const ValueKey<String>(
+                    'platform_module_advanced_controls',
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Advanced Module Controls',
+                          style: Theme.of(context).textTheme.titleMedium,
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: moduleTileSizeController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          labelText: 'Tile Size (px)',
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Create, rename, duplicate, deprecate, and select modules.',
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          FilledButton.icon(
-                            onPressed: onUpsertModule,
-                            icon: const Icon(Icons.add_box_outlined),
-                            label: const Text('Add/Update Module'),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: moduleIdController,
+                          decoration: const InputDecoration(
+                            border: OutlineInputBorder(),
+                            labelText: 'Platform Module ID',
                           ),
-                          OutlinedButton.icon(
-                            onPressed: onRenameSelectedModule,
-                            icon: const Icon(Icons.drive_file_rename_outline),
-                            label: const Text('Rename'),
+                        ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: moduleTileSizeController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            border: OutlineInputBorder(),
+                            labelText: 'Tile Size (px)',
                           ),
-                          OutlinedButton.icon(
-                            onPressed: onDuplicateSelectedModule,
-                            icon: const Icon(Icons.copy_outlined),
-                            label: const Text('Duplicate'),
-                          ),
-                          OutlinedButton.icon(
-                            onPressed: onToggleDeprecateSelectedModule,
-                            icon: Icon(
-                              isSelectedDeprecated
-                                  ? Icons.unarchive_outlined
-                                  : Icons.archive_outlined,
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            FilledButton.icon(
+                              onPressed: onUpsertModule,
+                              icon: const Icon(Icons.add_box_outlined),
+                              label: const Text('Add/Update Module'),
                             ),
-                            label: Text(
-                              isSelectedDeprecated ? 'Reactivate' : 'Deprecate',
+                            OutlinedButton.icon(
+                              onPressed: onRenameSelectedModule,
+                              icon: const Icon(
+                                Icons.drive_file_rename_outline,
+                              ),
+                              label: const Text('Rename'),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      DropdownButtonFormField<String>(
-                        key: ValueKey<String?>(
-                          'module_${selectedModuleId ?? 'none'}',
-                        ),
-                        initialValue: selectedModuleId,
-                        isExpanded: true,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          labelText: 'Edit Module',
-                        ),
-                        items: [
-                          for (final module in modules)
-                            DropdownMenuItem<String>(
-                              value: module.id,
-                              child: Text(
-                                module.status == TileModuleStatus.deprecated
-                                    ? '${module.id} (deprecated)'
-                                    : module.id,
+                            OutlinedButton.icon(
+                              onPressed: onDuplicateSelectedModule,
+                              icon: const Icon(Icons.copy_outlined),
+                              label: const Text('Duplicate'),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: onToggleDeprecateSelectedModule,
+                              icon: Icon(
+                                isSelectedDeprecated
+                                    ? Icons.unarchive_outlined
+                                    : Icons.archive_outlined,
+                              ),
+                              label: Text(
+                                isSelectedDeprecated
+                                    ? 'Reactivate'
+                                    : 'Deprecate',
                               ),
                             ),
-                        ],
-                        onChanged: onSelectedModuleChanged,
-                      ),
-                      if (selectedModule != null) ...[
-                        const SizedBox(height: 8),
-                        Text(
-                          'Selected: key=${selectedModule!.id} '
-                          'rev=${selectedModule!.revision} '
-                          'status=${selectedModule!.status.jsonValue}',
+                          ],
                         ),
+                        const SizedBox(height: 16),
+                        DropdownButtonFormField<String>(
+                          key: ValueKey<String?>(
+                            'module_${selectedModuleId ?? 'none'}',
+                          ),
+                          initialValue: selectedModuleId,
+                          isExpanded: true,
+                          decoration: const InputDecoration(
+                            border: OutlineInputBorder(),
+                            labelText: 'Edit Module',
+                          ),
+                          items: [
+                            for (final module in modules)
+                              DropdownMenuItem<String>(
+                                value: module.id,
+                                child: Text(
+                                  module.status == TileModuleStatus.deprecated
+                                      ? '${module.id} (deprecated)'
+                                      : module.id,
+                                ),
+                              ),
+                          ],
+                          onChanged: onSelectedModuleChanged,
+                        ),
+                        if (selectedModule != null) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            'Selected: key=${selectedModule!.id} '
+                            'rev=${selectedModule!.revision} '
+                            'status=${selectedModule!.status.jsonValue}',
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -199,15 +195,6 @@ class PlatformModulesTab extends StatelessWidget {
                     selectedTileSliceId: selectedTileSliceId,
                     onSelectedTileSliceChanged: onSelectedTileSliceChanged,
                   ),
-                const SizedBox(height: 16),
-                PlatformPrefabOutputPanel(
-                  form: platformPrefabForm,
-                  isEnabled: selectedModule != null,
-                  sceneValues: sceneValues,
-                  onLoadPrefabForModule: onPlatformPrefabLoad,
-                  onUpsertPrefabForModule: onPlatformPrefabUpsert,
-                  onSnapToGridChanged: onPlatformPrefabSnapToGridChanged,
-                ),
               ],
             ),
           ),
@@ -236,9 +223,6 @@ class PlatformModulesTab extends StatelessWidget {
                         tileSlices: tileSlices,
                         tool: selectedModuleSceneTool,
                         selectedTileSliceId: selectedTileSliceId,
-                        overlayValues: sceneValues,
-                        onOverlayValuesChanged:
-                            onPlatformPrefabSceneValuesChanged,
                         onToolChanged: onModuleSceneToolChanged,
                         onPaintCell: onPaintCell,
                         onEraseCell: onEraseCell,

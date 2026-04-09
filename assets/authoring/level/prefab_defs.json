@@ -2,6 +2,14 @@
   "schemaVersion": 2,
   "slices": [
     {
+      "id": "village_barrel_01",
+      "sourceImagePath": "assets/images/level/props/TX Village Props.png",
+      "x": 192,
+      "y": 23,
+      "width": 32,
+      "height": 47
+    },
+    {
       "id": "village_bench_01",
       "sourceImagePath": "assets/images/level/props/TX Village Props.png",
       "x": 448,
@@ -10,105 +18,108 @@
       "height": 48
     },
     {
-      "id": "village_foin_01",
+      "id": "village_crate_01",
       "sourceImagePath": "assets/images/level/props/TX Village Props.png",
-      "x": 176,
-      "y": 240,
-      "width": 96,
+      "x": 32,
+      "y": 16,
+      "width": 64,
+      "height": 52
+    },
+    {
+      "id": "village_crate_02",
+      "sourceImagePath": "assets/images/level/props/TX Village Props.png",
+      "x": 112,
+      "y": 16,
+      "width": 64,
       "height": 64
     },
     {
-      "id": "village_logs_01",
+      "id": "village_woodPile_01",
       "sourceImagePath": "assets/images/level/props/TX Village Props.png",
       "x": 160,
-      "y": 320,
+      "y": 329,
       "width": 96,
-      "height": 64
-    },
-    {
-      "id": "village_well_01",
-      "sourceImagePath": "assets/images/level/props/TX Village Props.png",
-      "x": 31,
-      "y": 160,
-      "width": 96,
-      "height": 96
+      "height": 60
     }
   ],
   "prefabs": [
     {
-      "prefabKey": "platform_grass_64x32",
-      "id": "platform_grass_32x32",
-      "revision": 2,
-      "status": "active",
-      "kind": "platform",
-      "visualSource": {
-        "type": "platform_module",
-        "moduleId": "platform_grass_32x32"
-      },
-      "anchorXPx": 32,
-      "anchorYPx": 16,
-      "colliders": [
-        {
-          "offsetX": -16,
-          "offsetY": 1,
-          "width": 30,
-          "height": 31
-        }
-      ],
-      "tags": [
-        "dirt",
-        "grass"
-      ],
-      "zIndex": 0,
-      "snapToGrid": false
-    },
-    {
-      "prefabKey": "platform_grass_96x32",
-      "id": "platform_grass_96x32",
-      "revision": 6,
-      "status": "active",
-      "kind": "platform",
-      "visualSource": {
-        "type": "platform_module",
-        "moduleId": "platform_grass_96x32"
-      },
-      "anchorXPx": 49,
-      "anchorYPx": 16,
-      "colliders": [
-        {
-          "offsetX": -1,
-          "offsetY": 0,
-          "width": 96,
-          "height": 30
-        }
-      ],
-      "tags": [],
-      "zIndex": 0,
-      "snapToGrid": false
-    },
-    {
-      "prefabKey": "village_well_01",
-      "id": "village_foin_01",
-      "revision": 8,
+      "prefabKey": "village_barrel_01",
+      "id": "village_barrel_01",
+      "revision": 1,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
         "type": "atlas_slice",
-        "sliceId": "village_foin_01"
+        "sliceId": "village_barrel_01"
       },
-      "anchorXPx": 47,
-      "anchorYPx": 35,
+      "anchorXPx": 16,
+      "anchorYPx": 23,
       "colliders": [
         {
           "offsetX": 0,
           "offsetY": 0,
-          "width": 35,
-          "height": 24
+          "width": 18,
+          "height": 34
         }
       ],
       "tags": [
-        "village",
-        "well"
+        "barrel",
+        "village"
+      ],
+      "zIndex": 0,
+      "snapToGrid": true
+    },
+    {
+      "prefabKey": "village_bench_01",
+      "id": "village_bench_01",
+      "revision": 1,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "village_bench_01"
+      },
+      "anchorXPx": 49,
+      "anchorYPx": 23,
+      "colliders": [
+        {
+          "offsetX": -3,
+          "offsetY": 7,
+          "width": 79,
+          "height": 37
+        }
+      ],
+      "tags": [
+        "bench",
+        "village"
+      ],
+      "zIndex": 0,
+      "snapToGrid": true
+    },
+    {
+      "prefabKey": "village_crate_01",
+      "id": "village_crate_01",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "village_crate_01"
+      },
+      "anchorXPx": 34,
+      "anchorYPx": 26,
+      "colliders": [
+        {
+          "offsetX": -1,
+          "offsetY": 0,
+          "width": 45,
+          "height": 45
+        }
+      ],
+      "tags": [
+        "crate",
+        "village"
       ],
       "zIndex": 0,
       "snapToGrid": true

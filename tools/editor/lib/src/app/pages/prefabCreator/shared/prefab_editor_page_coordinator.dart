@@ -4,6 +4,7 @@ import '../../../../prefabs/models/models.dart';
 import '../obstacle_prefabs/obstacle_prefabs_tab.dart';
 import '../platform_modules/platform_module_controller.dart';
 import '../platform_prefabs/platform_prefab_controller.dart';
+import '../platform_prefabs/platform_prefabs_tab.dart';
 import 'prefab_editor_data_reducer.dart';
 import 'prefab_editor_page_contracts.dart';
 import 'prefab_editor_mutations.dart';
@@ -105,7 +106,52 @@ class PrefabEditorPageCoordinator {
       onUpsertPrefab: upsertObstaclePrefabFromForm,
       onDuplicatePrefab: duplicateLoadedObstaclePrefab,
       onDeprecatePrefab: deprecateLoadedObstaclePrefab,
+      onStartNewFromCurrentValues: startNewObstaclePrefabFromCurrentValues,
       onClearForm: clearObstaclePrefabForm,
+    );
+  }
+
+  Widget buildPlatformPrefabsTab() {
+    final data = _shellState.data;
+    final selectedModule = _platformModuleController.selectedModule(
+      data: data,
+      selectedModuleId: _shellState.selectedModuleId,
+    );
+    final sceneValues = _platformPrefabForm.tryParseSceneValues();
+    final editingPrefab = editingPrefabForForm(_platformPrefabForm);
+    final editingPlatformPrefab =
+        editingPrefab != null && editingPrefab.kind == PrefabKind.platform
+        ? editingPrefab
+        : null;
+
+    return PlatformPrefabsTab(
+      form: _platformPrefabForm,
+      modules: data.platformModules,
+      selectedModuleId: _shellState.selectedModuleId,
+      selectedModule: selectedModule,
+      tileSlices: data.tileSlices,
+      platformPrefabs: data.prefabs
+          .where((prefab) => prefab.kind == PrefabKind.platform)
+          .toList(growable: false),
+      editingPlatformPrefab: editingPlatformPrefab,
+      sceneValues: sceneValues,
+      workspaceRootPath: _readWorkspaceRootPath(),
+      onSelectedModuleChanged: (value) {
+        _updateState(() {
+          _shellState.selectedModuleId = value;
+          _shellState.selectedPrefabPlatformModuleId = value;
+        });
+      },
+      onSnapToGridChanged: (value) {
+        _updateState(() {
+          _platformPrefabForm.snapToGrid = value;
+        });
+      },
+      onLoadPrefabForModule: loadPlatformPrefabForSelectedModule,
+      onUpsertPrefabForModule: upsertPlatformPrefabForSelectedModule,
+      onSceneValuesChanged: onPlatformPrefabSceneValuesChanged,
+      onLoadPrefab: loadPrefabIntoForm,
+      onDeletePrefab: deletePrefab,
     );
   }
 
@@ -270,6 +316,29 @@ class PrefabEditorPageCoordinator {
       });
       _syncFormDraftBaseline();
       _shellState.statusMessage = 'Cleared prefab form.';
+      _shellState.errorMessage = null;
+    });
+  }
+
+  void startNewObstaclePrefabFromCurrentValues() {
+    final source = editingPrefabForForm(_obstaclePrefabForm);
+    if (source == null || source.kind != PrefabKind.obstacle) {
+      _updateState(() {
+        _shellState.statusMessage =
+            'Obstacle prefab form is already in create mode.';
+        _shellState.errorMessage = null;
+      });
+      return;
+    }
+
+    _updateState(() {
+      _runWithoutLocalDraftHistory(() {
+        _obstaclePrefabForm.selectedKind = PrefabKind.obstacle;
+        _obstaclePrefabForm.editingPrefabKey = null;
+      });
+      _syncFormDraftBaseline();
+      _shellState.statusMessage =
+          'Creating a new obstacle prefab from the current form values.';
       _shellState.errorMessage = null;
     });
   }

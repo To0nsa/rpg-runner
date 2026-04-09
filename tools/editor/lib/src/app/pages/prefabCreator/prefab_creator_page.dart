@@ -185,17 +185,10 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
       shellState: _shellState,
       moduleIdController: _moduleIdController,
       moduleTileSizeController: _moduleTileSizeController,
-      platformPrefabForm: _platformPrefabForm,
       readWorkspaceRootPath: workspaceRootPath,
       updateState: _updateState,
       runWithoutLocalDraftHistory: _draftCoordinator.runWithoutTracking,
       commitPrefabDataChange: commitPrefabDataChange,
-      onPlatformPrefabLoad:
-          _prefabPageCoordinator.loadPlatformPrefabForSelectedModule,
-      onPlatformPrefabUpsert:
-          _prefabPageCoordinator.upsertPlatformPrefabForSelectedModule,
-      onPlatformPrefabSceneValuesChanged:
-          _prefabPageCoordinator.onPlatformPrefabSceneValuesChanged,
     );
     _sessionCoordinator = PrefabEditorPageSessionCoordinator(
       readController: () => widget.controller,
@@ -216,7 +209,7 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
       obstaclePrefabForm: _obstaclePrefabForm,
       platformPrefabForm: _platformPrefabForm,
     );
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _shellState.activeTabIndex = _tabController.index;
     _draftCoordinator.syncBaseline();
     _draftCoordinator.installListeners();
@@ -271,6 +264,7 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
         ),
         _prefabPageCoordinator.buildObstaclePrefabsTab(),
         _platformModulePageCoordinator.buildTab(),
+        _prefabPageCoordinator.buildPlatformPrefabsTab(),
       ],
     );
   }
@@ -300,6 +294,9 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
 
   void _switchToTab(int nextIndex) {
     _shellState.activeTabIndex = nextIndex;
+    if (nextIndex == 2) {
+      _platformModulePageCoordinator.syncSelectedModuleInputs();
+    }
   }
 
   void _ensurePrefabPluginSelection() {

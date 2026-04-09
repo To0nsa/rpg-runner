@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 
 import '../../../../prefabs/models/models.dart';
+import '../../shared/atlas_slice_preview_tile.dart';
 import '../../shared/atlas_selection_painter.dart';
+import '../../shared/editor_scene_view_utils.dart';
 import '../../shared/editor_viewport_grid_painter.dart';
 import '../../shared/editor_zoom_controls.dart';
 import '../../shared/scene_input_utils.dart';
@@ -28,12 +30,15 @@ class AtlasSlicerTab extends StatefulWidget {
     required this.selectionHController,
     required this.atlasSize,
     required this.slices,
+    required this.selectedSliceId,
+    required this.selectedSlice,
     required this.workspaceRootPath,
     required this.selectionRectInImagePixels,
     required this.horizontalScrollController,
     required this.verticalScrollController,
     required this.onSelectedAtlasChanged,
     required this.onSelectedSliceKindChanged,
+    required this.onSelectedSliceChanged,
     required this.onAtlasZoomChanged,
     required this.onSelectionInputsChanged,
     required this.onAddSlice,
@@ -57,12 +62,15 @@ class AtlasSlicerTab extends StatefulWidget {
   final TextEditingController selectionHController;
   final Size? atlasSize;
   final List<AtlasSliceDef> slices;
+  final String? selectedSliceId;
+  final AtlasSliceDef? selectedSlice;
   final String workspaceRootPath;
   final Rect? selectionRectInImagePixels;
   final ScrollController horizontalScrollController;
   final ScrollController verticalScrollController;
   final ValueChanged<String?> onSelectedAtlasChanged;
   final ValueChanged<AtlasSliceKind> onSelectedSliceKindChanged;
+  final ValueChanged<String> onSelectedSliceChanged;
   final ValueChanged<double> onAtlasZoomChanged;
   final VoidCallback onSelectionInputsChanged;
   final VoidCallback onAddSlice;
@@ -77,176 +85,335 @@ class AtlasSlicerTab extends StatefulWidget {
 }
 
 class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
+  final EditorUiImageCache _previewImageCache = EditorUiImageCache();
   bool _ctrlPanActive = false;
+
+  @override
+  void dispose() {
+    _previewImageCache.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SizedBox(
-          width: 380,
-          child: SingleChildScrollView(
-            child: Column(
+        Expanded(flex: 1, child: _buildInspectorCard(context)),
+        const SizedBox(width: 12),
+        Expanded(flex: 2, child: _buildScenePanel(context)),
+        const SizedBox(width: 12),
+        Expanded(flex: 1, child: _buildSliceDisplayCard(context)),
+      ],
+    );
+  }
+
+  Widget _buildInspectorCard(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Inspector',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                key: ValueKey<String?>(
+                  'atlas_${widget.selectedAtlasPath ?? 'none'}',
+                ),
+                initialValue: widget.selectedAtlasPath,
+                isExpanded: true,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  labelText: 'Atlas/Tileset Source',
+                ),
+                items: [
+                  for (final path in widget.atlasImagePaths)
+                    DropdownMenuItem<String>(value: path, child: Text(path)),
+                ],
+                onChanged: widget.onSelectedAtlasChanged,
+              ),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<AtlasSliceKind>(
+                key: ValueKey<String>(
+                  'slice_kind_${widget.selectedSliceKind.name}',
+                ),
+                initialValue: widget.selectedSliceKind,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  labelText: 'Slice Kind',
+                ),
+                items: const [
+                  DropdownMenuItem(
+                    value: AtlasSliceKind.prefab,
+                    child: Text('Prefab Slice'),
+                  ),
+                  DropdownMenuItem(
+                    value: AtlasSliceKind.tile,
+                    child: Text('Tile Slice'),
+                  ),
+                ],
+                onChanged: (value) {
+                  if (value == null) {
+                    return;
+                  }
+                  widget.onSelectedSliceKindChanged(value);
+                },
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: widget.sliceIdController,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  labelText: 'Slice ID',
+                  floatingLabelBehavior: FloatingLabelBehavior.always,
+                  hintText: 'village_crate_01 or ground_tile_01',
+                ),
+              ),
+              const SizedBox(height: 8),
+              EditorZoomControls(
+                value: widget.atlasZoom,
+                min: widget.zoomMin,
+                max: widget.zoomMax,
+                step: widget.zoomStep,
+                onChanged: widget.onAtlasZoomChanged,
+              ),
+              const SizedBox(height: 8),
+              Text(widget.selectionLabel),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: widget.selectionXController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        labelText: 'Selection X',
+                        floatingLabelBehavior: FloatingLabelBehavior.always,
+                      ),
+                      onChanged: (_) => widget.onSelectionInputsChanged(),
+                      onSubmitted: (_) => widget.onSelectionInputsChanged(),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextField(
+                      controller: widget.selectionYController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        labelText: 'Selection Y',
+                        floatingLabelBehavior: FloatingLabelBehavior.always,
+                      ),
+                      onChanged: (_) => widget.onSelectionInputsChanged(),
+                      onSubmitted: (_) => widget.onSelectionInputsChanged(),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: widget.selectionWController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        labelText: 'Selection W',
+                        floatingLabelBehavior: FloatingLabelBehavior.always,
+                      ),
+                      onChanged: (_) => widget.onSelectionInputsChanged(),
+                      onSubmitted: (_) => widget.onSelectionInputsChanged(),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextField(
+                      controller: widget.selectionHController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        labelText: 'Selection H',
+                        floatingLabelBehavior: FloatingLabelBehavior.always,
+                      ),
+                      onChanged: (_) => widget.onSelectionInputsChanged(),
+                      onSubmitted: (_) => widget.onSelectionInputsChanged(),
+                    ),
+                  ),
+                ],
+              ),
+              if (widget.atlasSize != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'Atlas size: '
+                  '${widget.atlasSize!.width.toInt()}x'
+                  '${widget.atlasSize!.height.toInt()} px',
+                ),
+              ],
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                onPressed: widget.onAddSlice,
+                icon: const Icon(Icons.add_box_outlined),
+                label: const Text('Add Slice'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildScenePanel(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Scene View', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 4),
+            Text(
+              widget.selectedAtlasPath == null
+                  ? 'Select an atlas/tileset source to start slicing.'
+                  : 'Showing $_sliceKindDisplayName slices for '
+                        '${p.basename(widget.selectedAtlasPath!)} '
+                        '(${widget.slices.length} visible).',
+            ),
+            const SizedBox(height: 12),
+            Expanded(child: _buildAtlasCanvas()),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSliceDisplayCard(BuildContext context) {
+    final selectedSlice = widget.selectedSlice;
+    final selectionBelongsToCurrentSource =
+        selectedSlice != null &&
+        widget.selectedAtlasPath != null &&
+        selectedSlice.sourceImagePath.trim() ==
+            widget.selectedAtlasPath!.trim();
+
+    return Card(
+      key: const ValueKey<String>('atlas_slice_display_card'),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '$_sliceKindDisplayName Slice List for:',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              widget.selectedAtlasPath == null
+                  ? 'Select an atlas/tileset image to inspect slices.'
+                  : 'Source: ${p.basename(widget.selectedAtlasPath!)}',
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '$_selectedSliceDisplayLabel: ${widget.selectedSliceId ?? 'none'}',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            if (widget.selectedSliceId != null &&
+                selectedSlice != null &&
+                !selectionBelongsToCurrentSource) ...[
+              const SizedBox(height: 4),
+              Text(
+                'The current selection belongs to another source.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+            const SizedBox(height: 12),
+            Expanded(
+              child: widget.slices.isEmpty
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Text(
+                          widget.selectedAtlasPath == null
+                              ? 'Select an atlas/tileset image first.'
+                              : 'No ${_sliceKindDisplayName.toLowerCase()} '
+                                    'slices for this source yet.',
+                        ),
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: widget.slices.length,
+                      itemBuilder: (context, index) {
+                        final slice = widget.slices[index];
+                        return _buildSliceRow(context, slice);
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSliceRow(BuildContext context, AtlasSliceDef slice) {
+    final isSelected = widget.selectedSliceId == slice.id;
+
+    return Card(
+      key: ValueKey<String>('atlas_slice_row_${slice.id}'),
+      clipBehavior: Clip.antiAlias,
+      margin: const EdgeInsets.only(bottom: 8),
+      child: InkWell(
+        onTap: () => widget.onSelectedSliceChanged(slice.id),
+        child: Ink(
+          color: isSelected ? const Color(0x1829C98E) : null,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 8),
-                DropdownButtonFormField<String>(
-                  key: ValueKey<String?>(
-                    'atlas_${widget.selectedAtlasPath ?? 'none'}',
-                  ),
-                  initialValue: widget.selectedAtlasPath,
-                  isExpanded: true,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: 'Atlas/Tileset Source',
-                  ),
-                  items: [
-                    for (final path in widget.atlasImagePaths)
-                      DropdownMenuItem<String>(value: path, child: Text(path)),
-                  ],
-                  onChanged: widget.onSelectedAtlasChanged,
-                ),
-                const SizedBox(height: 8),
-                DropdownButtonFormField<AtlasSliceKind>(
-                  key: ValueKey<String>(
-                    'slice_kind_${widget.selectedSliceKind.name}',
-                  ),
-                  initialValue: widget.selectedSliceKind,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: 'Slice Kind',
-                  ),
-                  items: const [
-                    DropdownMenuItem(
-                      value: AtlasSliceKind.prefab,
-                      child: Text('Prefab Slice'),
-                    ),
-                    DropdownMenuItem(
-                      value: AtlasSliceKind.tile,
-                      child: Text('Tile Slice'),
-                    ),
-                  ],
-                  onChanged: (value) {
-                    if (value == null) {
-                      return;
-                    }
-                    widget.onSelectedSliceKindChanged(value);
-                  },
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: widget.sliceIdController,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: 'Slice ID',
-                    floatingLabelBehavior: FloatingLabelBehavior.always,
-                    hintText: 'village_crate_01 or ground_tile_01',
-                  ),
-                ),
-                const SizedBox(height: 8),
-                EditorZoomControls(
-                  value: widget.atlasZoom,
-                  min: widget.zoomMin,
-                  max: widget.zoomMax,
-                  step: widget.zoomStep,
-                  onChanged: widget.onAtlasZoomChanged,
-                ),
-                const SizedBox(height: 8),
-                Text(widget.selectionLabel),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: widget.selectionXController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          labelText: 'Selection X',
-                          floatingLabelBehavior: FloatingLabelBehavior.always,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        slice.id,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: isSelected
+                              ? FontWeight.w700
+                              : FontWeight.w600,
                         ),
-                        onChanged: (_) => widget.onSelectionInputsChanged(),
-                        onSubmitted: (_) => widget.onSelectionInputsChanged(),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextField(
-                        controller: widget.selectionYController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          labelText: 'Selection Y',
-                          floatingLabelBehavior: FloatingLabelBehavior.always,
-                        ),
-                        onChanged: (_) => widget.onSelectionInputsChanged(),
-                        onSubmitted: (_) => widget.onSelectionInputsChanged(),
+                      const SizedBox(height: 4),
+                      Text(
+                        '[${slice.x},${slice.y},${slice.width},${slice.height}]',
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: widget.selectionWController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          labelText: 'Selection W',
-                          floatingLabelBehavior: FloatingLabelBehavior.always,
-                        ),
-                        onChanged: (_) => widget.onSelectionInputsChanged(),
-                        onSubmitted: (_) => widget.onSelectionInputsChanged(),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextField(
-                        controller: widget.selectionHController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          labelText: 'Selection H',
-                          floatingLabelBehavior: FloatingLabelBehavior.always,
-                        ),
-                        onChanged: (_) => widget.onSelectionInputsChanged(),
-                        onSubmitted: (_) => widget.onSelectionInputsChanged(),
-                      ),
-                    ),
-                  ],
-                ),
-                if (widget.atlasSize != null)
-                  Text(
-                    'Atlas size: ${widget.atlasSize!.width.toInt()}x${widget.atlasSize!.height.toInt()} px',
+                      const SizedBox(height: 2),
+                      Text('${slice.width}x${slice.height} px'),
+                    ],
                   ),
-                const SizedBox(height: 8),
-                FilledButton.icon(
-                  onPressed: widget.onAddSlice,
-                  icon: const Icon(Icons.add_box_outlined),
-                  label: const Text('Add Slice'),
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  widget.selectedSliceKind == AtlasSliceKind.prefab
-                      ? 'Prefab Slices'
-                      : 'Tile Slices',
-                  style: Theme.of(context).textTheme.titleSmall,
+                const SizedBox(width: 12),
+                AtlasSlicePreviewTile(
+                  key: ValueKey<String>('atlas_slice_preview_${slice.id}'),
+                  imageCache: _previewImageCache,
+                  workspaceRootPath: widget.workspaceRootPath,
+                  slice: slice,
                 ),
-                const SizedBox(height: 8),
-                _SlicesTable(
-                  slices: widget.slices,
-                  onDeleteSlice: widget.onDeleteSlice,
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline),
+                  onPressed: () => widget.onDeleteSlice(slice.id),
                 ),
               ],
             ),
           ),
         ),
-        const SizedBox(width: 12),
-        Expanded(child: _buildAtlasCanvas()),
-      ],
+      ),
     );
   }
 
@@ -301,6 +468,8 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
                 painter: AtlasSelectionPainter(
                   zoom: widget.atlasZoom,
                   selectionRectInImagePixels: widget.selectionRectInImagePixels,
+                  existingSlices: widget.slices,
+                  selectedSliceId: widget.selectedSliceId,
                 ),
               ),
             ),
@@ -362,50 +531,32 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
     );
   }
 
+  String get _sliceKindDisplayName {
+    switch (widget.selectedSliceKind) {
+      case AtlasSliceKind.prefab:
+        return 'Prefab';
+      case AtlasSliceKind.tile:
+        return 'Tile';
+    }
+  }
+
+  String get _selectedSliceDisplayLabel {
+    switch (widget.selectedSliceKind) {
+      case AtlasSliceKind.prefab:
+        return 'Selected Prefab Slice';
+      case AtlasSliceKind.tile:
+        return 'Selected Tile Slice';
+    }
+  }
+
   void _onPointerSignal(PointerSignalEvent event) {
     final signedSteps = SceneInputUtils.signedZoomStepsFromCtrlScroll(event);
     if (signedSteps == 0) {
       return;
     }
     final nextZoom = widget.atlasZoom + (signedSteps * widget.zoomStep);
-    widget.onAtlasZoomChanged(nextZoom.clamp(widget.zoomMin, widget.zoomMax));
-  }
-}
-
-class _SlicesTable extends StatelessWidget {
-  const _SlicesTable({required this.slices, required this.onDeleteSlice});
-
-  final List<AtlasSliceDef> slices;
-  final ValueChanged<String> onDeleteSlice;
-
-  @override
-  Widget build(BuildContext context) {
-    if (slices.isEmpty) {
-      return const Text('No slices yet.');
-    }
-
-    return SizedBox(
-      height: 320,
-      child: ListView.builder(
-        itemCount: slices.length,
-        itemBuilder: (context, index) {
-          final slice = slices[index];
-          return Card(
-            child: ListTile(
-              dense: true,
-              title: Text(slice.id),
-              subtitle: Text(
-                '${slice.sourceImagePath} '
-                '[${slice.x},${slice.y},${slice.width},${slice.height}]',
-              ),
-              trailing: IconButton(
-                icon: const Icon(Icons.delete_outline),
-                onPressed: () => onDeleteSlice(slice.id),
-              ),
-            ),
-          );
-        },
-      ),
+    widget.onAtlasZoomChanged(
+      nextZoom.clamp(widget.zoomMin, widget.zoomMax).toDouble(),
     );
   }
 }

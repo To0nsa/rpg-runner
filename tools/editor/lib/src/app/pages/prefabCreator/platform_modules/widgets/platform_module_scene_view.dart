@@ -43,6 +43,7 @@ class PlatformModuleSceneView extends StatefulWidget {
     required this.onPaintCell,
     required this.onEraseCell,
     required this.onMoveCell,
+    this.allowModuleEditing = true,
     this.overlayValues,
     this.onOverlayValuesChanged,
   });
@@ -62,6 +63,7 @@ class PlatformModuleSceneView extends StatefulWidget {
     int targetGridY,
   )
   onMoveCell;
+  final bool allowModuleEditing;
   final PrefabSceneValues? overlayValues;
   final ValueChanged<PrefabSceneValues>? onOverlayValuesChanged;
 
@@ -167,28 +169,30 @@ class _PlatformModuleSceneViewState extends State<PlatformModuleSceneView> {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  for (final tool in PlatformModuleSceneTool.values) ...[
-                    ChoiceChip(
-                      key: ValueKey<String>('module_tool_${tool.name}'),
-                      label: Text(tool.label),
-                      selected: widget.tool == tool,
-                      onSelected: (selected) {
-                        if (!selected) {
-                          return;
-                        }
-                        widget.onToolChanged(tool);
-                      },
-                    ),
-                    const SizedBox(width: 8),
+            if (widget.allowModuleEditing) ...[
+              const SizedBox(height: 8),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    for (final tool in PlatformModuleSceneTool.values) ...[
+                      ChoiceChip(
+                        key: ValueKey<String>('module_tool_${tool.name}'),
+                        label: Text(tool.label),
+                        selected: widget.tool == tool,
+                        onSelected: (selected) {
+                          if (!selected) {
+                            return;
+                          }
+                          widget.onToolChanged(tool);
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
+            ],
             const SizedBox(height: 8),
             Expanded(
               child: EditorSceneViewportFrame(
@@ -268,6 +272,9 @@ class _PlatformModuleSceneViewState extends State<PlatformModuleSceneView> {
     if (_tryStartOverlayDrag(event, geometry)) {
       return;
     }
+    if (!widget.allowModuleEditing) {
+      return;
+    }
     if (widget.tool == PlatformModuleSceneTool.move) {
       _tryStartModuleCellDrag(event.localPosition, geometry);
       return;
@@ -305,6 +312,12 @@ class _PlatformModuleSceneViewState extends State<PlatformModuleSceneView> {
             currentLocal: event.localPosition,
           ),
         );
+      }
+      return;
+    }
+    if (!widget.allowModuleEditing) {
+      if (!SceneInputUtils.isPrimaryButtonPressed(event.buttons)) {
+        _resetPointerState();
       }
       return;
     }

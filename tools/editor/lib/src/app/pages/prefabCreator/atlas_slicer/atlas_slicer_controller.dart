@@ -50,6 +50,21 @@ class AtlasSlicerController {
     }
   }
 
+  List<AtlasSliceDef> slicesForKindAndSource({
+    required PrefabData data,
+    required AtlasSliceKind kind,
+    required String? sourceImagePath,
+  }) {
+    final selectedSource = sourceImagePath?.trim();
+    if (selectedSource == null || selectedSource.isEmpty) {
+      return const <AtlasSliceDef>[];
+    }
+    final allSlices = slicesForKind(data, kind);
+    return allSlices
+        .where((slice) => slice.sourceImagePath.trim() == selectedSource)
+        .toList(growable: false);
+  }
+
   AtlasSlicerSelectionInputResult clampedSelectionFromInputs({
     required Size atlasSize,
     required String rawX,

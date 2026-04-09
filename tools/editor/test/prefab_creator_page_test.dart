@@ -13,7 +13,107 @@ import 'package:runner_editor/src/prefabs/models/models.dart';
 import 'package:runner_editor/src/session/editor_session_controller.dart';
 
 void main() {
-  testWidgets('tabs split obstacle and platform authoring', (tester) async {
+  testWidgets(
+    'atlas slicer filters slices by source and preserves prefab or tile selections',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1800, 1200));
+      addTearDown(() async {
+        await tester.binding.setSurfaceSize(null);
+      });
+
+      final fixtureRoot = _createAtlasSlicerFixture();
+
+      await _pumpPrefabCreatorPage(
+        tester,
+        workspacePath: fixtureRoot.path,
+        openObstacleTab: false,
+      );
+
+      expect(
+        find.byKey(const ValueKey<String>('atlas_slice_row_crate_slice')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('atlas_slice_row_barrel_slice')),
+        findsNothing,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('atlas_slice_row_crate_slice')),
+      );
+      await tester.pumpAndSettle();
+
+      await _selectDropdownItem(
+        tester,
+        label: 'Atlas/Tileset Source',
+        itemText: 'assets/images/level/props/props_b.png',
+      );
+
+      expect(
+        find.byKey(const ValueKey<String>('atlas_slice_row_barrel_slice')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('atlas_slice_row_crate_slice')),
+        findsNothing,
+      );
+      expect(
+        find.text('The current selection belongs to another source.'),
+        findsOneWidget,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('atlas_slice_row_barrel_slice')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Selected Prefab Slice: barrel_slice'), findsOneWidget);
+
+      await tester.tap(find.text('Obstacle Prefabs').first);
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Slice: barrel_slice'), findsOneWidget);
+
+      await tester.tap(find.text('Atlas Slicer').first);
+      await tester.pumpAndSettle();
+
+      await _selectDropdownItem(
+        tester,
+        label: 'Slice Kind',
+        itemText: 'Tile Slice',
+      );
+      await _selectDropdownItem(
+        tester,
+        label: 'Atlas/Tileset Source',
+        itemText: 'assets/images/level/tileset/tiles_b.png',
+      );
+
+      expect(
+        find.byKey(const ValueKey<String>('atlas_slice_row_wall_tile')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('atlas_slice_row_ground_tile')),
+        findsNothing,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('atlas_slice_row_wall_tile')),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Platform Modules').first);
+      await tester.pumpAndSettle();
+
+      final chip = tester.widget<ChoiceChip>(
+        find.widgetWithText(ChoiceChip, 'wall_tile (16x16)'),
+      );
+      expect(chip.selected, isTrue);
+    },
+  );
+
+  testWidgets('tabs split obstacle, module, and platform prefab authoring', (
+    tester,
+  ) async {
     await tester.binding.setSurfaceSize(const Size(1800, 1200));
     addTearDown(() async {
       await tester.binding.setSurfaceSize(null);
@@ -28,11 +128,42 @@ void main() {
 
     expect(_dropdownByLabel('Atlas Slice'), findsOneWidget);
     expect(find.text('Create/Update Platform Prefab'), findsNothing);
+    expect(
+      find.byKey(const ValueKey<String>('obstacle_prefab_inspector_card')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('obstacle_prefab_scene_card')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('obstacle_prefab_display_card')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text('Platform Modules').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Advanced Module Controls'), findsOneWidget);
+    expect(find.text('Platform Prefab Output'), findsNothing);
+    expect(_dropdownByLabel('Atlas Slice'), findsNothing);
 
     await tester.tap(find.text('Platform Prefabs').first);
     await tester.pumpAndSettle();
 
     expect(find.text('Create/Update Platform Prefab'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('platform_prefab_inspector_card')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('platform_prefab_scene_card')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('platform_prefab_display_card')),
+      findsOneWidget,
+    );
     expect(_dropdownByLabel('Atlas Slice'), findsNothing);
 
     await tester.tap(find.text('Obstacle Prefabs').first);
@@ -59,9 +190,13 @@ void main() {
     expect(find.text('ground_module'), findsNothing);
     expect(find.text('Create/Update Platform Prefab'), findsNothing);
 
-    await tester.tap(find.text('Platform Prefabs').first);
+    await tester.tap(find.text('Platform Modules').first);
     await tester.pumpAndSettle();
     expect(find.text('ground_module'), findsWidgets);
+    expect(find.text('Create/Update Platform Prefab'), findsNothing);
+
+    await tester.tap(find.text('Platform Prefabs').first);
+    await tester.pumpAndSettle();
     expect(find.text('Create/Update Platform Prefab'), findsOneWidget);
   });
 
@@ -113,6 +248,72 @@ void main() {
     );
   });
 
+  testWidgets(
+    'obstacle inspector can switch from edit mode to create-new mode',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1800, 1200));
+      addTearDown(() async {
+        await tester.binding.setSurfaceSize(null);
+      });
+
+      final fixtureRoot = _createPrefabAuthoringFixture();
+      addTearDown(() {
+        fixtureRoot.deleteSync(recursive: true);
+      });
+
+      final controller = await _pumpPrefabCreatorPage(
+        tester,
+        workspacePath: fixtureRoot.path,
+      );
+
+      expect(find.text('Creating new obstacle prefab'), findsOneWidget);
+      expect(find.text('Create Prefab'), findsOneWidget);
+      expect(find.text('Update Prefab'), findsNothing);
+
+      await tester.enterText(
+        _textFieldByLabel('Prefab ID').first,
+        'obstacle_box',
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('obstacle_prefab_upsert_button')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Editing obstacle prefab "obstacle_box"'), findsOneWidget);
+      expect(find.text('Update Prefab'), findsOneWidget);
+
+      await tester.enterText(
+        _textFieldByLabel('Prefab ID').first,
+        'obstacle_box_variant',
+      );
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>(
+            'obstacle_prefab_new_from_current_values_button',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Creating new obstacle prefab'), findsOneWidget);
+      expect(find.text('Create Prefab'), findsOneWidget);
+      expect(find.text('Update Prefab'), findsNothing);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('obstacle_prefab_upsert_button')),
+      );
+      await tester.pumpAndSettle();
+
+      final obstacleIds = _prefabScene(
+        controller,
+      ).data.prefabs.where((prefab) => prefab.kind == PrefabKind.obstacle).map(
+        (prefab) => prefab.id,
+      );
+      expect(obstacleIds, containsAll(<String>['obstacle_box', 'obstacle_box_variant']));
+      expect(obstacleIds.length, 2);
+    },
+  );
+
   testWidgets('obstacle prefab commits support undo and redo', (tester) async {
     await tester.binding.setSurfaceSize(const Size(1800, 1200));
     addTearDown(() async {
@@ -142,6 +343,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('No obstacle prefabs yet.'), findsNothing);
+    expect(
+      find.byKey(
+        const ValueKey<String>('obstacle_prefab_preview_obstacle_box'),
+      ),
+      findsOneWidget,
+    );
     expect(
       _prefabScene(controller).data.prefabs.map((prefab) => prefab.id),
       contains('obstacle_box'),
@@ -419,10 +626,10 @@ void main() {
       await tester.pumpAndSettle();
       expect(
         find.textContaining('source=platform_module:ground_module'),
-        findsOneWidget,
+        findsWidgets,
       );
 
-      await tester.tap(find.text('Platform Prefabs').first);
+      await tester.tap(find.text('Platform Modules').first);
       await tester.pumpAndSettle();
       await _openAdvancedModuleControls(tester);
       await tester.enterText(
@@ -464,7 +671,7 @@ void main() {
 
       await _pumpPrefabCreatorPage(tester, workspacePath: fixtureRoot.path);
 
-      await tester.tap(find.text('Platform Prefabs').first);
+      await tester.tap(find.text('Platform Modules').first);
       await tester.pumpAndSettle();
 
       final sceneCanvas = find.byKey(
@@ -511,7 +718,7 @@ void main() {
     },
   );
 
-  testWidgets('module tab can create a platform prefab for selected module', (
+  testWidgets('platform prefabs tab can create a platform prefab for selected module', (
     tester,
   ) async {
     await tester.binding.setSurfaceSize(const Size(1800, 1200));
@@ -536,7 +743,7 @@ void main() {
     expect(find.textContaining('Upserted platform prefab'), findsOneWidget);
     expect(
       find.textContaining('source=platform_module:ground_module'),
-      findsOneWidget,
+      findsWidgets,
     );
   });
 
@@ -556,7 +763,7 @@ void main() {
       workspacePath: fixtureRoot.path,
     );
 
-    await tester.tap(find.text('Platform Prefabs').first);
+    await tester.tap(find.text('Platform Modules').first);
     await tester.pumpAndSettle();
 
     final sceneCanvas = find.byKey(
@@ -598,6 +805,7 @@ void main() {
 Future<EditorSessionController> _pumpPrefabCreatorPage(
   WidgetTester tester, {
   required String workspacePath,
+  bool openObstacleTab = true,
 }) async {
   final controller = EditorSessionController(
     pluginRegistry: AuthoringPluginRegistry(
@@ -629,8 +837,10 @@ Future<EditorSessionController> _pumpPrefabCreatorPage(
     find.textContaining('Loaded prefab/tile authoring data'),
     findsOneWidget,
   );
-  await tester.tap(find.text('Obstacle Prefabs'));
-  await tester.pumpAndSettle();
+  if (openObstacleTab) {
+    await tester.tap(find.text('Obstacle Prefabs'));
+    await tester.pumpAndSettle();
+  }
 
   return controller;
 }
@@ -695,6 +905,96 @@ Directory _createPrefabAuthoringFixture() {
   return root;
 }
 
+Directory _createAtlasSlicerFixture() {
+  final root = Directory.systemTemp.createTempSync('atlas_slicer_fixture_');
+  final authoringDir = Directory(
+    p.join(root.path, 'assets', 'authoring', 'level'),
+  );
+  authoringDir.createSync(recursive: true);
+
+  final propsDir = Directory(
+    p.join(root.path, 'assets', 'images', 'level', 'props'),
+  );
+  final tilesetDir = Directory(
+    p.join(root.path, 'assets', 'images', 'level', 'tileset'),
+  );
+  propsDir.createSync(recursive: true);
+  tilesetDir.createSync(recursive: true);
+
+  _writeTestPng(p.join(propsDir.path, 'props_a.png'));
+  _writeTestPng(p.join(propsDir.path, 'props_b.png'));
+  _writeTestPng(p.join(tilesetDir.path, 'tiles_a.png'));
+  _writeTestPng(p.join(tilesetDir.path, 'tiles_b.png'));
+
+  const encoder = JsonEncoder.withIndent('  ');
+
+  final prefabDefs = <String, Object?>{
+    'schemaVersion': 2,
+    'slices': <Object?>[
+      <String, Object?>{
+        'id': 'crate_slice',
+        'sourceImagePath': 'assets/images/level/props/props_a.png',
+        'x': 0,
+        'y': 0,
+        'width': 32,
+        'height': 32,
+      },
+      <String, Object?>{
+        'id': 'barrel_slice',
+        'sourceImagePath': 'assets/images/level/props/props_b.png',
+        'x': 16,
+        'y': 0,
+        'width': 32,
+        'height': 32,
+      },
+    ],
+    'prefabs': <Object?>[],
+  };
+  final tileDefs = <String, Object?>{
+    'schemaVersion': 2,
+    'tileSlices': <Object?>[
+      <String, Object?>{
+        'id': 'ground_tile',
+        'sourceImagePath': 'assets/images/level/tileset/tiles_a.png',
+        'x': 0,
+        'y': 0,
+        'width': 16,
+        'height': 16,
+      },
+      <String, Object?>{
+        'id': 'wall_tile',
+        'sourceImagePath': 'assets/images/level/tileset/tiles_b.png',
+        'x': 16,
+        'y': 0,
+        'width': 16,
+        'height': 16,
+      },
+    ],
+    'platformModules': <Object?>[
+      <String, Object?>{
+        'id': 'ground_module',
+        'tileSize': 16,
+        'cells': <Object?>[
+          <String, Object?>{'sliceId': 'ground_tile', 'gridX': 0, 'gridY': 0},
+        ],
+      },
+    ],
+  };
+
+  File(
+    p.join(authoringDir.path, 'prefab_defs.json'),
+  ).writeAsStringSync('${encoder.convert(prefabDefs)}\n');
+  File(
+    p.join(authoringDir.path, 'tile_defs.json'),
+  ).writeAsStringSync('${encoder.convert(tileDefs)}\n');
+
+  return root;
+}
+
+void _writeTestPng(String path) {
+  File(path).writeAsBytesSync(base64Decode(_testAtlasPngBase64));
+}
+
 Future<void> _openAdvancedModuleControls(WidgetTester tester) async {
   if (_textFieldByLabel('Platform Module ID').evaluate().isNotEmpty) {
     return;
@@ -709,6 +1009,18 @@ Future<void> _openAdvancedModuleControls(WidgetTester tester) async {
       matching: find.text('Advanced Module Controls'),
     ),
   );
+  await tester.pumpAndSettle();
+}
+
+Future<void> _selectDropdownItem(
+  WidgetTester tester, {
+  required String label,
+  required String itemText,
+}) async {
+  await tester.ensureVisible(_dropdownByLabel(label).first);
+  await tester.tap(_dropdownByLabel(label).first);
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(itemText).last);
   await tester.pumpAndSettle();
 }
 
@@ -736,3 +1048,6 @@ PrefabScene _prefabScene(EditorSessionController controller) {
   expect(scene, isA<PrefabScene>());
   return scene! as PrefabScene;
 }
+
+const String _testAtlasPngBase64 =
+    'iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAACLSURBVHhe7dAxAQAgEIDAL2caW34x3akAwy2MzN7zzIbBpgEMNg1gsGkAg00DGGwawGDTAAabBjDYNIDBpgEMNg1gsGkAg00DGGwawGDTAAabBjDYNIDBpgEMNg1gsGkAg00DGGwawGDTAAabBjDYNIDBpgEMNg1gsGkAg00DGGwawGDTAAabBjDYfEOJEkoWqqmTAAAAAElFTkSuQmCC';

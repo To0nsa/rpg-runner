@@ -108,7 +108,8 @@ void _validateSlice({
     );
   }
 
-  final atlasSize = atlasImageSizes[slice.sourceImagePath];
+  final atlasSize =
+      atlasImageSizes[_normalizeAtlasSourcePath(slice.sourceImagePath)];
   if (slice.sourceImagePath.isNotEmpty && atlasSize == null) {
     issues.add(
       PrefabValidationIssue(

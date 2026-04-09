@@ -64,7 +64,8 @@ final class EditorSceneViewUtils {
 /// cache keeps the repeated file/decode/dispose/failure rules single-sourced.
 final class EditorUiImageCache {
   final Map<String, ui.Image> _images = <String, ui.Image>{};
-  final Set<String> _loadingPaths = <String>{};
+  final Map<String, Future<ui.Image?>> _loadingFutures =
+      <String, Future<ui.Image?>>{};
   final Set<String> _failedPaths = <String>{};
 
   int get loadedImageCount => _images.length;
@@ -73,27 +74,35 @@ final class EditorUiImageCache {
 
   Future<ui.Image?> ensureLoaded(String absolutePath) async {
     final existingImage = _images[absolutePath];
-    if (existingImage != null ||
-        _loadingPaths.contains(absolutePath) ||
-        _failedPaths.contains(absolutePath)) {
+    if (existingImage != null) {
       return existingImage;
     }
+    final existingLoad = _loadingFutures[absolutePath];
+    if (existingLoad != null) {
+      return existingLoad;
+    }
+    if (_failedPaths.contains(absolutePath)) {
+      return null;
+    }
 
-    _loadingPaths.add(absolutePath);
-    try {
-      final image = await EditorSceneViewUtils.loadFileImage(absolutePath);
-      if (image == null) {
+    final loadFuture = () async {
+      try {
+        final image = await EditorSceneViewUtils.loadFileImage(absolutePath);
+        if (image == null) {
+          _failedPaths.add(absolutePath);
+          return null;
+        }
+        _images[absolutePath] = image;
+        return image;
+      } catch (_) {
         _failedPaths.add(absolutePath);
         return null;
+      } finally {
+        _loadingFutures.remove(absolutePath);
       }
-      _images[absolutePath] = image;
-      return image;
-    } catch (_) {
-      _failedPaths.add(absolutePath);
-      return null;
-    } finally {
-      _loadingPaths.remove(absolutePath);
-    }
+    }();
+    _loadingFutures[absolutePath] = loadFuture;
+    return loadFuture;
   }
 
   void dispose() {
@@ -101,7 +110,7 @@ final class EditorUiImageCache {
       image.dispose();
     }
     _images.clear();
-    _loadingPaths.clear();
+    _loadingFutures.clear();
     _failedPaths.clear();
   }
 }
