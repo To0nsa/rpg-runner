@@ -131,6 +131,7 @@ flutter:
     - assets/images/icons/skills-icons/
     - assets/images/level/props/
     - assets/images/level/tileset/
+    - assets/images/parallax/dark-forest/
     - assets/images/parallax/field/
     - assets/images/parallax/forest/
     - assets/images/ui/weaponsIcon/
