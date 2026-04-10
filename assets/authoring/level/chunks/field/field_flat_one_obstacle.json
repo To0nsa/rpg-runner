@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "chunkKey": "field_flat_on_obstacle",
+  "id": "field_flat_one_obstacle",
+  "revision": 95,
+  "status": "active",
+  "levelId": "field",
+  "tileSize": 16,
+  "width": 600,
+  "height": 270,
+  "difficulty": "early",
+  "tags": [],
+  "tileLayers": [],
+  "prefabs": [
+    {
+      "prefabId": "village_crate_01",
+      "prefabKey": "village_crate_01",
+      "x": 289,
+      "y": 157,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "village_crate_01",
+      "prefabKey": "village_crate_01",
+      "x": 267,
+      "y": 202,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "village_crate_01",
+      "prefabKey": "village_crate_01",
+      "x": 313,
+      "y": 202,
+      "zIndex": 0,
+      "snapToGrid": false
+    }
+  ],
+  "markers": [],
+  "groundProfile": {
+    "kind": "flat",
+    "topY": 224
+  },
+  "groundGaps": []
+}

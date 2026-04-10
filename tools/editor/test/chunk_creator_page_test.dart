@@ -38,8 +38,14 @@ void main() {
 
       expect(controller.scene, isA<ChunkScene>());
 
-      await tester.tap(find.textContaining('Chunks (').first);
+      await tester.tap(find.text('Chunk List').first);
       await tester.pumpAndSettle();
+      expect(
+        find.byKey(
+          const ValueKey<String>('chunk_list_preview_chunk_field_001'),
+        ),
+        findsOneWidget,
+      );
 
       await tester.tap(find.byType(DropdownButtonFormField<String>).first);
       await tester.pumpAndSettle();
@@ -72,10 +78,10 @@ void main() {
       expect(sceneAfterDuplicate.chunks.length, greaterThanOrEqualTo(2));
 
       await tester.enterText(
-        find.widgetWithText(TextField, 'Rename ID'),
+        find.widgetWithText(TextField, 'id'),
         'chunk_renamed',
       );
-      await tester.tap(find.text('Rename'));
+      await tester.tap(find.text('Apply Changes'));
       await tester.pumpAndSettle();
       final sceneAfterRename = controller.scene as ChunkScene;
       expect(
@@ -106,8 +112,6 @@ void main() {
       );
       expect(raisedGroundBandChunk.groundBandZIndex, 1);
 
-      await tester.tap(find.text('Metadata'));
-      await tester.pumpAndSettle();
       await tester.tap(
         find.byKey(const ValueKey<String>('difficulty-$chunkDifficultyNormal')),
       );
@@ -119,11 +123,11 @@ void main() {
         find.widgetWithText(TextField, 'tileSize').first,
         '15',
       );
-      final applyMetadata = find.text('Apply Metadata', skipOffstage: false);
-      expect(applyMetadata, findsWidgets);
-      await tester.ensureVisible(applyMetadata.last);
+      final applyChanges = find.text('Apply Changes', skipOffstage: false);
+      expect(applyChanges, findsWidgets);
+      await tester.ensureVisible(applyChanges.last);
       await tester.pumpAndSettle();
-      await tester.tap(applyMetadata.last);
+      await tester.tap(applyChanges.last);
       await tester.pumpAndSettle();
 
       expect(controller.errorCount, greaterThan(0));
@@ -159,7 +163,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
 
-    await tester.tap(find.textContaining('Chunks (').first);
+    await tester.tap(find.text('Chunk List').first);
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('chunk_gap').first);
@@ -171,28 +175,18 @@ void main() {
     await tester.tap(find.text('Ground Gaps'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.edit_outlined).first);
-    await tester.pumpAndSettle();
-
-    final dialog = find.byType(AlertDialog);
-    expect(dialog, findsOneWidget);
-
     await tester.enterText(
-      find.descendant(
-        of: dialog,
-        matching: find.widgetWithText(TextFormField, 'x'),
-      ),
+      find.byKey(const ValueKey<String>('ground_gap_x_gap_1')),
       '48',
     );
     await tester.enterText(
-      find.descendant(
-        of: dialog,
-        matching: find.widgetWithText(TextFormField, 'width'),
-      ),
+      find.byKey(const ValueKey<String>('ground_gap_width_gap_1')),
       '64',
     );
-
-    await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+    final saveGap = find.byKey(const ValueKey<String>('ground_gap_save_gap_1'));
+    await tester.ensureVisible(saveGap);
+    await tester.pumpAndSettle();
+    await tester.tap(saveGap);
     await tester.pumpAndSettle();
 
     final sceneAfterEdit = controller.scene as ChunkScene;

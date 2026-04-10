@@ -132,13 +132,23 @@ class _PlatformModulePreviewTileState extends State<PlatformModulePreviewTile> {
     if (!mounted || loadGeneration != _loadGeneration) {
       return;
     }
-    setState(() {
-      for (final entry in loadedEntries) {
-        final image = entry.value;
-        if (image != null) {
-          _imagesByPath[entry.key] = image;
-        }
+    var hasNewImage = false;
+    final nextImagesByPath = Map<String, ui.Image>.from(_imagesByPath);
+    for (final entry in loadedEntries) {
+      final image = entry.value;
+      if (image == null) {
+        continue;
       }
+      if (!nextImagesByPath.containsKey(entry.key)) {
+        hasNewImage = true;
+      }
+      nextImagesByPath[entry.key] = image;
+    }
+    if (!hasNewImage) {
+      return;
+    }
+    setState(() {
+      _imagesByPath = nextImagesByPath;
     });
   }
 
@@ -304,7 +314,7 @@ class _PlatformModulePreviewPainter extends CustomPainter {
   bool shouldRepaint(covariant _PlatformModulePreviewPainter oldDelegate) {
     return oldDelegate.module != module ||
         oldDelegate.workspaceRootPath != workspaceRootPath ||
-        oldDelegate.tileSlicesById.length != tileSlicesById.length ||
-        oldDelegate.imagesByPath.length != imagesByPath.length;
+        oldDelegate.tileSlicesById != tileSlicesById ||
+        oldDelegate.imagesByPath != imagesByPath;
   }
 }

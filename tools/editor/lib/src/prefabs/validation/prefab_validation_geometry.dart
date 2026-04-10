@@ -93,11 +93,3 @@ _SourceGeometry? _geometryForModule(
     snapUnitPx: module.tileSize,
   );
 }
-
-/// Grid snap helper used for platform prefab anchor/collider checks.
-bool _isSnappedToUnit(int value, int unit) {
-  if (unit <= 1) {
-    return true;
-  }
-  return value % unit == 0;
-}

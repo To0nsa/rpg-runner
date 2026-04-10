@@ -6,7 +6,10 @@ import '../../../chunks/chunk_domain_models.dart';
 import '../../../domain/authoring_types.dart';
 import '../../../prefabs/models/models.dart';
 import '../../../session/editor_session_controller.dart';
+import '../shared/atlas_slice_preview_tile.dart';
 import '../shared/editor_page_local_draft_state.dart';
+import '../shared/editor_scene_view_utils.dart';
+import '../shared/platform_module_preview_tile.dart';
 import 'widgets/chunk_scene_view.dart';
 
 class ChunkCreatorPage extends StatefulWidget {
@@ -20,11 +23,13 @@ class ChunkCreatorPage extends StatefulWidget {
 
 class _ChunkCreatorPageState extends State<ChunkCreatorPage>
     implements EditorPageLocalDraftState {
+  static const String _chunkListDifficultyAll = 'all';
+  static const String _prefabPaletteTagAll = 'all';
   static const String _defaultNewChunkId = 'new_chunk';
   static const String _defaultNewGapX = '0';
   static const String _defaultNewGapWidth = '16';
-  static const String _defaultNewMarkerChancePercent = '100';
-  static const String _defaultNewMarkerSalt = '0';
+  static const int _defaultNewMarkerChancePercent = 100;
+  static const int _defaultNewMarkerSalt = 0;
   static const String _defaultNewMarkerPlacement = markerPlacementGround;
   static const List<String> _enemyMarkerIds = <String>[
     'grojib',
@@ -54,6 +59,8 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
   final TextEditingController _newGapWidthController = TextEditingController(
     text: _defaultNewGapWidth,
   );
+  final EditorUiImageCache _prefabPalettePreviewImageCache =
+      EditorUiImageCache();
 
   String? _selectedChunkKey;
   String? _selectedDiffPath;
@@ -66,21 +73,33 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
   ChunkSceneTool _sceneTool = ChunkSceneTool.place;
   ChunkScenePlaceMode _composerPlaceMode = ChunkScenePlaceMode.prefab;
   String _newEnemyMarkerId = _enemyMarkerIds.first;
-  String _newMarkerChancePercentRaw = _defaultNewMarkerChancePercent;
-  String _newMarkerSaltRaw = _defaultNewMarkerSalt;
-  String _newMarkerPlacement = _defaultNewMarkerPlacement;
-  bool _newPlacementSnapToGrid = true;
-  int _newPlacementZIndex = 0;
+  bool _showParallaxPreview = true;
+  final bool _newPlacementSnapToGrid = true;
+  final int _newPlacementZIndex = 0;
   bool _inspectorExpanded = false;
   bool _validationExpanded = false;
   bool _pendingDiffExpanded = false;
   bool _placedPrefabsExpanded = false;
-  bool _metadataExpanded = false;
   bool _groundProfileExpanded = false;
   bool _groundGapsExpanded = false;
   bool _enemyMarkersExpanded = false;
+  final Map<String, String> _groundGapXDraftByKey = <String, String>{};
+  final Map<String, String> _groundGapWidthDraftByKey = <String, String>{};
+  bool _createChunkExpanded = true;
   bool _chunkListExpanded = false;
   bool _prefabPaletteExpanded = false;
+  String _chunkListDifficultyFilter = _chunkListDifficultyAll;
+  String _prefabPaletteTagFilter = _prefabPaletteTagAll;
+  PrefabKind? _prefabPaletteKindFilter;
+
+  static const double _spaceXs = 4;
+  static const double _spaceSm = 8;
+  static const double _spaceMd = 12;
+  static const double _spaceLg = 16;
+  static const double _panelPadding = 12;
+  static const double _listViewportHeight = 220;
+  static const double _paletteViewportHeight = 260;
+  static const double _chunkListViewportHeight = 280;
 
   @override
   bool get hasLocalDraftChanges {
@@ -105,6 +124,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
 
   @override
   void dispose() {
+    _prefabPalettePreviewImageCache.dispose();
     _newChunkIdController.dispose();
     _renameIdController.dispose();
     _levelIdController.dispose();
@@ -137,53 +157,63 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
           return const Center(child: CircularProgressIndicator());
         }
 
-        return Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildControls(chunkScene),
-                const SizedBox(height: 12),
-                if (widget.controller.loadError != null)
-                  _buildErrorBanner(widget.controller.loadError!),
-                if (widget.controller.exportError != null)
-                  _buildErrorBanner(widget.controller.exportError!),
-                if (chunkScene == null)
-                  const Expanded(
-                    child: Center(
-                      child: Text('Chunk scene is not loaded for this route.'),
-                    ),
-                  )
-                else
-                  Expanded(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          flex: 1,
-                          child: _buildChunkListPanel(chunkScene, chunks),
+        final theme = Theme.of(context);
+        return Theme(
+          data: theme.copyWith(
+            inputDecorationTheme: theme.inputDecorationTheme.copyWith(
+              floatingLabelBehavior: FloatingLabelBehavior.always,
+            ),
+          ),
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.all(_spaceLg),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildControls(chunkScene),
+                  const SizedBox(height: _spaceMd),
+                  if (widget.controller.loadError != null)
+                    _buildErrorBanner(widget.controller.loadError!),
+                  if (widget.controller.exportError != null)
+                    _buildErrorBanner(widget.controller.exportError!),
+                  if (chunkScene == null)
+                    const Expanded(
+                      child: Center(
+                        child: Text(
+                          'Chunk scene is not loaded for this route.',
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          flex: 2,
-                          child: _buildChunkComposerPanel(
-                            selectedChunk,
-                            chunkScene,
+                      ),
+                    )
+                  else
+                    Expanded(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 1,
+                            child: _buildChunkListPanel(chunkScene, chunks),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          flex: 1,
-                          child: _buildChunkInspector(
-                            selectedChunk,
-                            chunkScene,
+                          const SizedBox(width: _spaceMd),
+                          Expanded(
+                            flex: 2,
+                            child: _buildChunkComposerPanel(
+                              selectedChunk,
+                              chunkScene,
+                            ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: _spaceMd),
+                          Expanded(
+                            flex: 1,
+                            child: _buildChunkInspector(
+                              selectedChunk,
+                              chunkScene,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
         );
@@ -193,8 +223,8 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
 
   Widget _buildControls(ChunkScene? scene) {
     return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+      spacing: _spaceSm,
+      runSpacing: _spaceSm,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         OutlinedButton.icon(
@@ -257,140 +287,304 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
   }
 
   Widget _buildChunkListPanel(ChunkScene scene, List<LevelChunkDef> chunks) {
-    return ListView(
+    final filteredChunks = _chunkListDifficultyFilter == _chunkListDifficultyAll
+        ? chunks
+        : chunks
+              .where((chunk) => chunk.difficulty == _chunkListDifficultyFilter)
+              .toList(growable: false);
+    final chunkListTitle = 'Chunk List';
+    final fillChunkList = _chunkListExpanded;
+    final fillPrefabPalette = _prefabPaletteExpanded;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Card(
+        _buildExpandableSectionCard(
+          title: 'Create Chunk',
+          subtitle: 'Create, duplicate, or deprecate chunk definitions.',
+          expanded: _createChunkExpanded,
+          onToggle: () {
+            setState(() {
+              _createChunkExpanded = !_createChunkExpanded;
+            });
+          },
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: _newChunkIdController,
+                decoration: const InputDecoration(
+                  labelText: 'New Chunk ID',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+              ),
+              const SizedBox(height: _spaceSm),
+              Wrap(
+                spacing: _spaceSm,
+                runSpacing: _spaceSm,
+                children: [
+                  FilledButton(
+                    onPressed: () {
+                      widget.controller.applyCommand(
+                        AuthoringCommand(
+                          kind: 'create_chunk',
+                          payload: <String, Object?>{
+                            'id': _newChunkIdController.text.trim(),
+                          },
+                        ),
+                      );
+                    },
+                    child: const Text('Create'),
+                  ),
+                  OutlinedButton(
+                    onPressed: _selectedChunkKey == null
+                        ? null
+                        : () {
+                            final selectedChunk = _selectedChunk(chunks);
+                            widget.controller.applyCommand(
+                              AuthoringCommand(
+                                kind: 'duplicate_chunk',
+                                payload: <String, Object?>{
+                                  'chunkKey': _selectedChunkKey!,
+                                  'id': '${selectedChunk?.id ?? 'chunk'}_copy',
+                                },
+                              ),
+                            );
+                          },
+                    child: const Text('Duplicate'),
+                  ),
+                  OutlinedButton(
+                    onPressed: _selectedChunkKey == null
+                        ? null
+                        : () {
+                            widget.controller.applyCommand(
+                              AuthoringCommand(
+                                kind: 'deprecate_chunk',
+                                payload: <String, Object?>{
+                                  'chunkKey': _selectedChunkKey!,
+                                },
+                              ),
+                            );
+                          },
+                    child: const Text('Deprecate'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: _spaceSm),
+        Expanded(
+          child: Column(
+            children: [
+              if (fillChunkList)
+                Expanded(
+                  child: _buildChunkListBrowseCard(
+                    scene: scene,
+                    chunks: filteredChunks,
+                    chunkListTitle: chunkListTitle,
+                    fillHeight: true,
+                  ),
+                )
+              else
+                _buildChunkListBrowseCard(
+                  scene: scene,
+                  chunks: filteredChunks,
+                  chunkListTitle: chunkListTitle,
+                  fillHeight: false,
+                ),
+              const SizedBox(height: _spaceSm),
+              if (fillPrefabPalette)
+                Expanded(
+                  child: _buildPrefabPaletteCard(scene, fillHeight: true),
+                )
+              else
+                _buildPrefabPaletteCard(scene, fillHeight: false),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildChunkListBrowseCard({
+    required ChunkScene scene,
+    required List<LevelChunkDef> chunks,
+    required String chunkListTitle,
+    required bool fillHeight,
+  }) {
+    final listContent = chunks.isEmpty
+        ? const Center(child: Text('No chunks for this difficulty.'))
+        : ListView.builder(
+            itemCount: chunks.length,
+            itemBuilder: (context, index) {
+              final chunk = chunks[index];
+              return Padding(
+                padding: EdgeInsets.only(
+                  bottom: index == chunks.length - 1 ? 0 : _spaceSm,
+                ),
+                child: _buildChunkListEntry(scene: scene, chunk: chunk),
+              );
+            },
+          );
+
+    return _buildExpandableSectionCard(
+      title: chunkListTitle,
+      subtitle: 'Browse authored chunks and select one to edit.',
+      expanded: _chunkListExpanded,
+      expandBody: fillHeight,
+      onToggle: () {
+        setState(() {
+          _chunkListExpanded = !_chunkListExpanded;
+        });
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: _spaceSm,
+            runSpacing: _spaceSm,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              ChoiceChip(
+                label: const Text('All'),
+                selected: _chunkListDifficultyFilter == _chunkListDifficultyAll,
+                onSelected: (_) {
+                  setState(() {
+                    _chunkListDifficultyFilter = _chunkListDifficultyAll;
+                  });
+                },
+              ),
+              ChoiceChip(
+                label: const Text(chunkDifficultyEarly),
+                selected: _chunkListDifficultyFilter == chunkDifficultyEarly,
+                onSelected: (_) {
+                  setState(() {
+                    _chunkListDifficultyFilter = chunkDifficultyEarly;
+                  });
+                },
+              ),
+              ChoiceChip(
+                label: const Text(chunkDifficultyEasy),
+                selected: _chunkListDifficultyFilter == chunkDifficultyEasy,
+                onSelected: (_) {
+                  setState(() {
+                    _chunkListDifficultyFilter = chunkDifficultyEasy;
+                  });
+                },
+              ),
+              ChoiceChip(
+                label: const Text(chunkDifficultyNormal),
+                selected: _chunkListDifficultyFilter == chunkDifficultyNormal,
+                onSelected: (_) {
+                  setState(() {
+                    _chunkListDifficultyFilter = chunkDifficultyNormal;
+                  });
+                },
+              ),
+              ChoiceChip(
+                label: const Text(chunkDifficultyHard),
+                selected: _chunkListDifficultyFilter == chunkDifficultyHard,
+                onSelected: (_) {
+                  setState(() {
+                    _chunkListDifficultyFilter = chunkDifficultyHard;
+                  });
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: _spaceSm),
+          if (fillHeight)
+            Expanded(child: listContent)
+          else
+            SizedBox(height: _chunkListViewportHeight, child: listContent),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChunkListEntry({
+    required ChunkScene scene,
+    required LevelChunkDef chunk,
+  }) {
+    final isSelected = chunk.chunkKey == _selectedChunkKey;
+    final isDirty = widget.controller.dirtyItemIds.contains(chunk.chunkKey);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final borderColor = isSelected
+        ? colorScheme.primary
+        : colorScheme.outlineVariant.withValues(alpha: 0.55);
+    final backgroundColor = isSelected
+        ? colorScheme.primaryContainer.withValues(alpha: 0.22)
+        : colorScheme.surface;
+    final titleStyle = theme.textTheme.titleSmall?.copyWith(
+      fontWeight: FontWeight.w600,
+    );
+    final metadataStyle = theme.textTheme.bodySmall;
+
+    return Material(
+      color: Colors.transparent,
+      child: Ink(
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(_spaceSm),
+          border: Border.all(color: borderColor),
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(_spaceSm),
+          onTap: () => _selectChunk(chunk),
           child: Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(_spaceSm),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                InkWell(
-                  onTap: () {
-                    setState(() {
-                      _chunkListExpanded = !_chunkListExpanded;
-                    });
-                  },
-                  child: Row(
-                    children: [
-                      Icon(
-                        _chunkListExpanded
-                            ? Icons.expand_more
-                            : Icons.chevron_right,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        isDirty ? '* ${chunk.id}' : chunk.id,
+                        style: titleStyle,
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Chunks (${chunks.length})',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                    _buildIssueMarker(
+                      chunk.status,
+                      color: chunk.status == chunkStatusDeprecated
+                          ? colorScheme.error
+                          : colorScheme.primary,
+                    ),
+                  ],
                 ),
-                if (_chunkListExpanded) ...[
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _newChunkIdController,
-                    decoration: const InputDecoration(
-                      labelText: 'New Chunk ID',
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      FilledButton(
-                        onPressed: () {
-                          widget.controller.applyCommand(
-                            AuthoringCommand(
-                              kind: 'create_chunk',
-                              payload: <String, Object?>{
-                                'id': _newChunkIdController.text.trim(),
-                              },
-                            ),
-                          );
-                        },
-                        child: const Text('Create'),
-                      ),
-                      OutlinedButton(
-                        onPressed: _selectedChunkKey == null
-                            ? null
-                            : () {
-                                final selectedChunk = _selectedChunk(chunks);
-                                widget.controller.applyCommand(
-                                  AuthoringCommand(
-                                    kind: 'duplicate_chunk',
-                                    payload: <String, Object?>{
-                                      'chunkKey': _selectedChunkKey!,
-                                      'id':
-                                          '${selectedChunk?.id ?? 'chunk'}_copy',
-                                    },
-                                  ),
-                                );
-                              },
-                        child: const Text('Duplicate'),
-                      ),
-                      OutlinedButton(
-                        onPressed: _selectedChunkKey == null
-                            ? null
-                            : () {
-                                widget.controller.applyCommand(
-                                  AuthoringCommand(
-                                    kind: 'deprecate_chunk',
-                                    payload: <String, Object?>{
-                                      'chunkKey': _selectedChunkKey!,
-                                    },
-                                  ),
-                                );
-                              },
-                        child: const Text('Deprecate'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  const Divider(height: 1),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    height: 320,
-                    child: ListView.builder(
-                      itemCount: chunks.length,
-                      itemBuilder: (context, index) {
-                        final chunk = chunks[index];
-                        final isSelected = chunk.chunkKey == _selectedChunkKey;
-                        final isDirty = widget.controller.dirtyItemIds.contains(
-                          chunk.chunkKey,
-                        );
-                        return ListTile(
-                          selected: isSelected,
-                          title: Text(isDirty ? '* ${chunk.id}' : chunk.id),
-                          subtitle: Text(
-                            '${chunk.levelId} | ${chunk.status} | rev ${chunk.revision}',
-                          ),
-                          onTap: () {
-                            setState(() {
-                              _selectedChunkKey = chunk.chunkKey;
-                              _selectedPlacementKey = null;
-                              _selectedMarkerKey = null;
-                              _sceneTool = ChunkSceneTool.select;
-                              _syncInspector(chunk);
-                            });
-                          },
-                        );
-                      },
-                    ),
+                const SizedBox(height: _spaceSm),
+                ChunkScenePreviewTile(
+                  key: ValueKey<String>('chunk_list_preview_${chunk.chunkKey}'),
+                  imageCache: _prefabPalettePreviewImageCache,
+                  workspaceRootPath: widget.controller.workspacePath,
+                  chunk: chunk,
+                  prefabData: scene.prefabData,
+                  runtimeGridSnap: scene.runtimeGridSnap,
+                  height: 92,
+                ),
+                const SizedBox(height: _spaceSm),
+                Text(
+                  '${chunk.levelId} | ${chunk.difficulty} | rev ${chunk.revision}',
+                  style: metadataStyle,
+                ),
+                if (chunk.tags.isNotEmpty) ...[
+                  const SizedBox(height: _spaceXs),
+                  Text(
+                    chunk.tags.join(', '),
+                    style: metadataStyle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ],
             ),
           ),
         ),
-        const SizedBox(height: 8),
-        _buildPrefabPaletteCard(scene),
-      ],
+      ),
     );
   }
 
@@ -421,28 +615,61 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
               '(${selectedMarker.marker.x}, ${selectedMarker.marker.y})';
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(_panelPadding),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Chunk Composer',
-              style: Theme.of(context).textTheme.titleMedium,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Chunk Composer',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: _spaceXs),
+                      Text(
+                        _composerPlaceMode == ChunkScenePlaceMode.prefab
+                            ? (selectedPlacement == null
+                                  ? 'Place or move prefabs directly in the scene.'
+                                  : 'Selected: ${selectedPlacementPrefab?.id ?? selectedPlacement.prefab.resolvedPrefabRef} '
+                                        '@ (${selectedPlacement.prefab.x}, ${selectedPlacement.prefab.y})')
+                            : (selectedEnemyLabel == null
+                                  ? 'Place or move enemy spawn markers directly in the scene.'
+                                  : 'Selected Marker: $selectedEnemyLabel'),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: _spaceSm),
+                FilterChip(
+                  key: const ValueKey<String>('chunk_scene_parallax_toggle'),
+                  label: const Text('Parallax Preview'),
+                  selected: _showParallaxPreview,
+                  onSelected: (value) {
+                    setState(() {
+                      _showParallaxPreview = value;
+                    });
+                  },
+                ),
+              ],
             ),
-            const SizedBox(height: 4),
-            Text(
-              _composerPlaceMode == ChunkScenePlaceMode.prefab
-                  ? (selectedPlacement == null
-                        ? 'Place or move prefabs directly in the scene.'
-                        : 'Selected: ${selectedPlacementPrefab?.id ?? selectedPlacement.prefab.resolvedPrefabRef} '
-                              '@ (${selectedPlacement.prefab.x}, ${selectedPlacement.prefab.y})')
-                  : (selectedEnemyLabel == null
-                        ? 'Place or move enemy spawn markers directly in the scene.'
-                        : 'Selected Marker: $selectedEnemyLabel'),
+            const SizedBox(height: _spaceSm),
+            _buildComposerModeControls(
+              selectedChunk: selectedChunk,
+              selectedMarker: selectedMarker,
             ),
-            const SizedBox(height: 8),
-            _buildComposerModeControls(),
-            const SizedBox(height: 12),
+            if (_composerPlaceMode == ChunkScenePlaceMode.prefab) ...[
+              const SizedBox(height: _spaceSm),
+              _buildSelectedPlacementComposerControls(
+                selectedChunk,
+                selectedPlacement,
+              ),
+            ],
+            const SizedBox(height: _spaceMd),
             Expanded(
               child: ChunkSceneView(
                 workspaceRootPath: widget.controller.workspacePath,
@@ -456,6 +683,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
                 selectedPlacementKey: _selectedPlacementKey,
                 selectedEnemyMarkerId: _newEnemyMarkerId,
                 selectedMarkerKey: _selectedMarkerKey,
+                showParallaxPreview: _showParallaxPreview,
                 onToolChanged: (tool) {
                   setState(() {
                     _sceneTool = tool;
@@ -519,7 +747,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
                 },
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: _spaceSm),
             _buildDiagnosticsRow(),
           ],
         ),
@@ -527,102 +755,298 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
     );
   }
 
-  Widget _buildPrefabPaletteCard(ChunkScene scene) {
-    final palette = _placeablePrefabs(scene.prefabData);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            InkWell(
-              onTap: () {
-                setState(() {
-                  _prefabPaletteExpanded = !_prefabPaletteExpanded;
-                });
-              },
-              child: Row(
-                children: [
-                  Icon(
-                    _prefabPaletteExpanded
-                        ? Icons.expand_more
-                        : Icons.chevron_right,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Prefab Palette (${palette.length})',
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (_prefabPaletteExpanded) ...[
-              const SizedBox(height: 8),
-              _buildPlacementModeChips(
-                snapToGrid: _newPlacementSnapToGrid,
-                onChanged: (value) {
+  Widget _buildPrefabPaletteCard(ChunkScene scene, {bool fillHeight = false}) {
+    final allPalette = _placeablePrefabs(scene.prefabData);
+    final palette = _filterPrefabsForPalette(allPalette);
+    final kindScopedPalette = _prefabPaletteKindFilter == null
+        ? allPalette
+        : allPalette
+              .where((prefab) => prefab.kind == _prefabPaletteKindFilter)
+              .toList(growable: false);
+    final availableTags = <String>{
+      for (final prefab in kindScopedPalette) ...prefab.tags,
+    }.toList(growable: false)..sort();
+    final prefabSlicesById = <String, AtlasSliceDef>{
+      for (final slice in scene.prefabData.prefabSlices) slice.id: slice,
+    };
+    final tileSlicesById = <String, AtlasSliceDef>{
+      for (final slice in scene.prefabData.tileSlices) slice.id: slice,
+    };
+    final modulesById = <String, TileModuleDef>{
+      for (final module in scene.prefabData.platformModules) module.id: module,
+    };
+    final paletteTitle = 'Prefab Palette';
+    return _buildExpandableSectionCard(
+      title: paletteTitle,
+      subtitle: 'Pick a prefab to place in the chunk scene.',
+      expanded: _prefabPaletteExpanded,
+      expandBody: fillHeight,
+      onToggle: () {
+        setState(() {
+          _prefabPaletteExpanded = !_prefabPaletteExpanded;
+        });
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: _spaceSm,
+            runSpacing: _spaceSm,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              ChoiceChip(
+                label: const Text('All'),
+                selected: _prefabPaletteKindFilter == null,
+                onSelected: (_) {
                   setState(() {
-                    _newPlacementSnapToGrid = value;
+                    _prefabPaletteKindFilter = null;
+                    final matching = _filterPrefabsForPalette(allPalette);
+                    if (matching.any(
+                      (prefab) => prefab.prefabKey == _selectedPalettePrefabKey,
+                    )) {
+                      return;
+                    }
+                    _selectedPalettePrefabKey = matching.isEmpty
+                        ? null
+                        : matching.first.prefabKey;
                   });
                 },
               ),
-              const SizedBox(height: 8),
-              _buildLayerStepper(
-                label: 'Layer',
-                zIndex: _newPlacementZIndex,
-                onChanged: (value) {
+              ChoiceChip(
+                label: const Text('Obstacle'),
+                selected: _prefabPaletteKindFilter == PrefabKind.obstacle,
+                onSelected: (_) {
                   setState(() {
-                    _newPlacementZIndex = value;
+                    _prefabPaletteKindFilter = PrefabKind.obstacle;
+                    final matching = _filterPrefabsForPalette(allPalette);
+                    if (matching.any(
+                      (prefab) => prefab.prefabKey == _selectedPalettePrefabKey,
+                    )) {
+                      return;
+                    }
+                    _selectedPalettePrefabKey = matching.isEmpty
+                        ? null
+                        : matching.first.prefabKey;
                   });
                 },
               ),
-              const SizedBox(height: 8),
-              const Divider(height: 1),
-              const SizedBox(height: 8),
-              SizedBox(
-                height: 280,
-                child: palette.isEmpty
-                    ? const Center(
-                        child: Text('No active prefabs are available to place.'),
-                      )
-                    : ListView.builder(
-                        itemCount: palette.length,
-                        itemBuilder: (context, index) {
-                          final prefab = palette[index];
-                          final isSelected =
-                              prefab.prefabKey == _selectedPalettePrefabKey;
-                          return ListTile(
-                            selected: isSelected,
-                            dense: true,
-                            leading: Icon(
-                              prefab.kind == PrefabKind.platform
-                                  ? Icons.view_agenda_outlined
-                                  : Icons.category_outlined,
-                            ),
-                            title: Text(prefab.id),
-                            subtitle: Text(
-                              '${prefab.kind.jsonValue} | '
-                              '${prefab.visualSource.type.jsonValue}',
-                            ),
-                            onTap: () {
-                              setState(() {
-                                _selectedPalettePrefabKey = prefab.prefabKey;
-                                _composerPlaceMode = ChunkScenePlaceMode.prefab;
-                                _selectedMarkerKey = null;
-                                _sceneTool = ChunkSceneTool.place;
-                              });
-                            },
-                          );
-                        },
-                      ),
+              ChoiceChip(
+                label: const Text('Platform'),
+                selected: _prefabPaletteKindFilter == PrefabKind.platform,
+                onSelected: (_) {
+                  setState(() {
+                    _prefabPaletteKindFilter = PrefabKind.platform;
+                    final matching = _filterPrefabsForPalette(allPalette);
+                    if (matching.any(
+                      (prefab) => prefab.prefabKey == _selectedPalettePrefabKey,
+                    )) {
+                      return;
+                    }
+                    _selectedPalettePrefabKey = matching.isEmpty
+                        ? null
+                        : matching.first.prefabKey;
+                  });
+                },
               ),
             ],
-          ],
-        ),
+          ),
+          const SizedBox(height: _spaceSm),
+          Row(
+            children: [
+              const SizedBox(width: _spaceSm),
+              Expanded(
+                child: Autocomplete<String>(
+                  initialValue: TextEditingValue(
+                    text: _prefabPaletteTagFilter == _prefabPaletteTagAll
+                        ? ''
+                        : _prefabPaletteTagFilter,
+                  ),
+                  optionsBuilder: (value) {
+                    final query = value.text.trim().toLowerCase();
+                    if (query.isEmpty) {
+                      return availableTags;
+                    }
+                    return availableTags.where(
+                      (tag) => tag.toLowerCase().contains(query),
+                    );
+                  },
+                  onSelected: (tag) {
+                    setState(() {
+                      _applyPrefabPaletteTagFilter(allPalette, tag);
+                    });
+                  },
+                  fieldViewBuilder:
+                      (
+                        context,
+                        textEditingController,
+                        focusNode,
+                        onFieldSubmitted,
+                      ) {
+                        return TextField(
+                          controller: textEditingController,
+                          focusNode: focusNode,
+                          decoration: InputDecoration(
+                            labelText: 'Tag',
+                            hintText: 'filter prefabs by tag',
+                            border: const OutlineInputBorder(),
+                            isDense: true,
+                            suffixIcon:
+                                _prefabPaletteTagFilter == _prefabPaletteTagAll
+                                ? null
+                                : IconButton(
+                                    tooltip: 'Clear tag filter',
+                                    icon: const Icon(Icons.clear),
+                                    onPressed: () {
+                                      setState(() {
+                                        textEditingController.clear();
+                                        _applyPrefabPaletteTagFilter(
+                                          allPalette,
+                                          '',
+                                        );
+                                      });
+                                    },
+                                  ),
+                          ),
+                          onSubmitted: (value) {
+                            setState(() {
+                              _applyPrefabPaletteTagFilter(allPalette, value);
+                            });
+                          },
+                        );
+                      },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: _spaceSm),
+          const Divider(height: 1),
+          const SizedBox(height: _spaceSm),
+          if (fillHeight)
+            Expanded(
+              child: allPalette.isEmpty
+                  ? const Center(
+                      child: Text('No active prefabs are available to place.'),
+                    )
+                  : palette.isEmpty
+                  ? const Center(
+                      child: Text('No prefabs found for the entered tag.'),
+                    )
+                  : ListView.builder(
+                      itemCount: palette.length,
+                      itemBuilder: (context, index) {
+                        final prefab = palette[index];
+                        final isSelected =
+                            prefab.prefabKey == _selectedPalettePrefabKey;
+                        return ListTile(
+                          selected: isSelected,
+                          dense: true,
+                          leading: _buildPalettePrefabPreview(
+                            prefab: prefab,
+                            workspaceRootPath: widget.controller.workspacePath,
+                            prefabSlicesById: prefabSlicesById,
+                            tileSlicesById: tileSlicesById,
+                            modulesById: modulesById,
+                          ),
+                          title: Text(prefab.id),
+                          subtitle: Text(
+                            '${prefab.kind.jsonValue} | '
+                            '${prefab.visualSource.type.jsonValue}',
+                          ),
+                          onTap: () {
+                            setState(() {
+                              _selectedPalettePrefabKey = prefab.prefabKey;
+                              _composerPlaceMode = ChunkScenePlaceMode.prefab;
+                              _selectedMarkerKey = null;
+                              _sceneTool = ChunkSceneTool.place;
+                            });
+                          },
+                        );
+                      },
+                    ),
+            )
+          else
+            SizedBox(
+              height: _paletteViewportHeight,
+              child: allPalette.isEmpty
+                  ? const Center(
+                      child: Text('No active prefabs are available to place.'),
+                    )
+                  : palette.isEmpty
+                  ? const Center(
+                      child: Text('No prefabs found for the entered tag.'),
+                    )
+                  : ListView.builder(
+                      itemCount: palette.length,
+                      itemBuilder: (context, index) {
+                        final prefab = palette[index];
+                        final isSelected =
+                            prefab.prefabKey == _selectedPalettePrefabKey;
+                        return ListTile(
+                          selected: isSelected,
+                          dense: true,
+                          leading: _buildPalettePrefabPreview(
+                            prefab: prefab,
+                            workspaceRootPath: widget.controller.workspacePath,
+                            prefabSlicesById: prefabSlicesById,
+                            tileSlicesById: tileSlicesById,
+                            modulesById: modulesById,
+                          ),
+                          title: Text(prefab.id),
+                          subtitle: Text(
+                            '${prefab.kind.jsonValue} | '
+                            '${prefab.visualSource.type.jsonValue}',
+                          ),
+                          onTap: () {
+                            setState(() {
+                              _selectedPalettePrefabKey = prefab.prefabKey;
+                              _composerPlaceMode = ChunkScenePlaceMode.prefab;
+                              _selectedMarkerKey = null;
+                              _sceneTool = ChunkSceneTool.place;
+                            });
+                          },
+                        );
+                      },
+                    ),
+            ),
+        ],
       ),
     );
+  }
+
+  Widget _buildPalettePrefabPreview({
+    required PrefabDef prefab,
+    required String workspaceRootPath,
+    required Map<String, AtlasSliceDef> prefabSlicesById,
+    required Map<String, AtlasSliceDef> tileSlicesById,
+    required Map<String, TileModuleDef> modulesById,
+  }) {
+    const previewWidth = 40.0;
+    const previewHeight = 32.0;
+    switch (prefab.visualSource.type) {
+      case PrefabVisualSourceType.atlasSlice:
+        return AtlasSlicePreviewTile(
+          imageCache: _prefabPalettePreviewImageCache,
+          workspaceRootPath: workspaceRootPath,
+          slice: prefabSlicesById[prefab.sliceId],
+          width: previewWidth,
+          height: previewHeight,
+        );
+      case PrefabVisualSourceType.platformModule:
+        return PlatformModulePreviewTile(
+          imageCache: _prefabPalettePreviewImageCache,
+          workspaceRootPath: workspaceRootPath,
+          module: modulesById[prefab.moduleId],
+          tileSlicesById: tileSlicesById,
+          width: previewWidth,
+          height: previewHeight,
+        );
+      case PrefabVisualSourceType.unknown:
+        return Icon(
+          prefab.kind == PrefabKind.platform
+              ? Icons.view_agenda_outlined
+              : Icons.category_outlined,
+        );
+    }
   }
 
   Widget _buildChunkInspector(LevelChunkDef? selectedChunk, ChunkScene scene) {
@@ -639,71 +1063,43 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(_panelPadding),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            InkWell(
+            _buildSectionHeader(
+              title: 'Inspector: ${selectedChunk.id}',
+              subtitle: 'Inspect and edit selected chunk details.',
+              expanded: _inspectorExpanded,
               onTap: () {
                 setState(() {
                   _inspectorExpanded = !_inspectorExpanded;
                 });
               },
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Inspector: ${selectedChunk.id}',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                  ),
-                  Icon(
-                    _inspectorExpanded ? Icons.expand_less : Icons.expand_more,
-                  ),
-                ],
-              ),
             ),
-            const Divider(height: 12),
             if (_inspectorExpanded) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: _spaceSm),
               _buildReadOnlyIdentitySection(selectedChunk, scene),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _renameIdController,
-                decoration: const InputDecoration(
-                  labelText: 'Rename ID',
-                  border: OutlineInputBorder(),
-                  isDense: true,
-                ),
-              ),
-              const SizedBox(height: 8),
-              OutlinedButton(
+              const SizedBox(height: _spaceSm),
+              _buildMetadataFields(selectedChunk, scene),
+              const SizedBox(height: _spaceSm),
+              FilledButton(
                 onPressed: () {
-                  widget.controller.applyCommand(
-                    AuthoringCommand(
-                      kind: 'rename_chunk',
-                      payload: <String, Object?>{
-                        'chunkKey': selectedChunk.chunkKey,
-                        'id': _renameIdController.text.trim(),
-                      },
-                    ),
-                  );
+                  _applyMetadata(selectedChunk);
                 },
-                child: const Text('Rename'),
+                child: const Text('Apply Changes'),
               ),
-              const Divider(height: 20),
+              const SizedBox(height: _spaceMd),
             ],
             Expanded(
               child: ListView(
                 children: [
                   _buildPlacedPrefabSection(selectedChunk, scene),
-                  const Divider(height: 20),
+                  const SizedBox(height: _spaceMd),
                   _buildEnemyMarkerSection(selectedChunk),
-                  const Divider(height: 20),
-                  _buildMetadataSection(selectedChunk, scene),
-                  const Divider(height: 20),
+                  const SizedBox(height: _spaceMd),
                   _buildGroundProfileSection(selectedChunk, scene),
-                  const Divider(height: 20),
+                  const SizedBox(height: _spaceMd),
                   _buildGroundGapsSection(selectedChunk),
                 ],
               ),
@@ -721,10 +1117,11 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
     final sourcePath =
         scene.sourcePathByChunkKey[selectedChunk.chunkKey] ??
         '(new chunk file will be created on apply)';
+    final colorScheme = Theme.of(context).colorScheme;
     return Card(
-      color: const Color(0xFF1E2730),
+      color: colorScheme.surfaceContainerHighest,
       child: Padding(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.all(_spaceSm),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -742,12 +1139,6 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
     ChunkScene scene,
   ) {
     final placements = buildChunkPlacedPrefabSelections(selectedChunk.prefabs);
-    final selectedPlacement = _selectedPlacement(selectedChunk);
-    final selectedPlacementPrefab = _selectedPlacementPrefab(
-      scene,
-      selectedChunk,
-    );
-    final selectedPalettePrefab = _selectedPalettePrefab(scene);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -765,108 +1156,12 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
           },
         ),
         if (_placedPrefabsExpanded) ...[
-          const SizedBox(height: 8),
-          if (selectedPlacement != null)
-            Card(
-              color: const Color(0xFF18232C),
-              child: Padding(
-                padding: const EdgeInsets.all(10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      selectedPlacementPrefab?.id ??
-                          selectedPlacement.prefab.resolvedPrefabRef,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'anchor=(${selectedPlacement.prefab.x}, ${selectedPlacement.prefab.y})',
-                    ),
-                    if (selectedPlacementPrefab != null)
-                      Text(
-                        'kind=${selectedPlacementPrefab.kind.jsonValue} '
-                        'source=${selectedPlacementPrefab.visualSource.type.jsonValue}',
-                      ),
-                    Text(
-                      'placement=${selectedPlacement.prefab.snapToGrid ? 'snap' : 'free'} '
-                      '| z=${selectedPlacement.prefab.zIndex}',
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Placement settings are owned by this chunk instance, not by the prefab definition.',
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        _buildPlacementModeChips(
-                          snapToGrid: selectedPlacement.prefab.snapToGrid,
-                          onChanged: (value) {
-                            _updatePlacementSettings(
-                              selectedChunk,
-                              selectionKey: selectedPlacement.selectionKey,
-                              snapToGrid: value,
-                              zIndex: selectedPlacement.prefab.zIndex,
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    _buildLayerStepper(
-                      label: 'Layer',
-                      zIndex: selectedPlacement.prefab.zIndex,
-                      onChanged: (value) {
-                        _updatePlacementSettings(
-                          selectedChunk,
-                          selectionKey: selectedPlacement.selectionKey,
-                          snapToGrid: selectedPlacement.prefab.snapToGrid,
-                          zIndex: value,
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        FilledButton.tonal(
-                          onPressed: selectedPalettePrefab == null
-                              ? null
-                              : () {
-                                  _replacePlacement(
-                                    selectedChunk,
-                                    selectedPlacement.selectionKey,
-                                    selectedPalettePrefab,
-                                  );
-                                },
-                          child: const Text('Retarget To Palette'),
-                        ),
-                        OutlinedButton(
-                          onPressed: () {
-                            _removePlacement(
-                              selectedChunk,
-                              selectedPlacement.selectionKey,
-                            );
-                          },
-                          child: const Text('Delete Placement'),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            )
-          else
-            const Text('No placement selected.'),
-          const SizedBox(height: 8),
+          const SizedBox(height: _spaceSm),
           if (placements.isEmpty)
             const Text('No prefab placements in this chunk.')
           else
             SizedBox(
-              height: 180,
+              height: _listViewportHeight,
               child: Card(
                 margin: EdgeInsets.zero,
                 child: ListView.builder(
@@ -888,6 +1183,16 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
                         '${placement.prefab.snapToGrid ? 'snap' : 'free'} | '
                         'z=${placement.prefab.zIndex}',
                       ),
+                      trailing: IconButton(
+                        tooltip: 'Delete placement',
+                        icon: const Icon(Icons.delete_outline),
+                        onPressed: () {
+                          _removePlacement(
+                            selectedChunk,
+                            placement.selectionKey,
+                          );
+                        },
+                      ),
                       onTap: () {
                         setState(() {
                           _selectedPlacementKey = placement.selectionKey;
@@ -906,131 +1211,260 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
     );
   }
 
-  Widget _buildComposerModeControls() {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      crossAxisAlignment: WrapCrossAlignment.center,
+  Widget _buildComposerModeControls({
+    required LevelChunkDef selectedChunk,
+    required ChunkPlacedMarkerSelection? selectedMarker,
+  }) {
+    final enemyControlsSelectedMarker =
+        _composerPlaceMode == ChunkScenePlaceMode.enemyMarker
+        ? selectedMarker
+        : null;
+    final enemyChanceRaw = enemyControlsSelectedMarker == null
+        ? _defaultNewMarkerChancePercent.toString()
+        : enemyControlsSelectedMarker.marker.chancePercent.toString();
+    final enemySaltRaw = enemyControlsSelectedMarker == null
+        ? _defaultNewMarkerSalt.toString()
+        : enemyControlsSelectedMarker.marker.salt.toString();
+    final enemyPlacementValue = enemyControlsSelectedMarker == null
+        ? _defaultNewMarkerPlacement
+        : enemyControlsSelectedMarker.marker.placement;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Composer Mode'),
-        ChoiceChip(
-          label: const Text('Prefabs'),
-          selected: _composerPlaceMode == ChunkScenePlaceMode.prefab,
-          onSelected: (_) {
-            setState(() {
-              _composerPlaceMode = ChunkScenePlaceMode.prefab;
-            });
-          },
-        ),
-        ChoiceChip(
-          label: const Text('Enemy Spawners'),
-          selected: _composerPlaceMode == ChunkScenePlaceMode.enemyMarker,
-          onSelected: (_) {
-            setState(() {
-              _composerPlaceMode = ChunkScenePlaceMode.enemyMarker;
-              _sceneTool = ChunkSceneTool.place;
-            });
-          },
-        ),
-        if (_composerPlaceMode == ChunkScenePlaceMode.enemyMarker)
-          SizedBox(
-            width: 220,
-            child: DropdownButtonFormField<String>(
-              key: ValueKey<String>('new_enemy_marker_id_$_newEnemyMarkerId'),
-              initialValue: _newEnemyMarkerId,
-              isExpanded: true,
-              decoration: const InputDecoration(
-                labelText: 'enemyId',
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
-              items: [
-                for (final enemyId in _enemyMarkerIds)
-                  DropdownMenuItem<String>(
-                    value: enemyId,
-                    child: Text(enemyId),
-                  ),
-              ],
-              onChanged: (value) {
-                if (value == null) {
-                  return;
-                }
+        Wrap(
+          spacing: _spaceSm,
+          runSpacing: _spaceSm,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            const Text('Composer Mode'),
+            ChoiceChip(
+              label: const Text('Prefabs'),
+              selected: _composerPlaceMode == ChunkScenePlaceMode.prefab,
+              onSelected: (_) {
                 setState(() {
-                  _newEnemyMarkerId = value;
+                  _composerPlaceMode = ChunkScenePlaceMode.prefab;
                 });
               },
             ),
-          ),
-        if (_composerPlaceMode == ChunkScenePlaceMode.enemyMarker)
-          SizedBox(
-            width: 120,
-            child: TextFormField(
-              key: const ValueKey<String>('new_enemy_marker_chance_percent'),
-              initialValue: _newMarkerChancePercentRaw,
-              decoration: const InputDecoration(
-                labelText: 'chance%',
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
-              onChanged: (value) {
-                _newMarkerChancePercentRaw = value;
-              },
-            ),
-          ),
-        if (_composerPlaceMode == ChunkScenePlaceMode.enemyMarker)
-          SizedBox(
-            width: 100,
-            child: TextFormField(
-              key: const ValueKey<String>('new_enemy_marker_salt'),
-              initialValue: _newMarkerSaltRaw,
-              decoration: const InputDecoration(
-                labelText: 'salt',
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
-              onChanged: (value) {
-                _newMarkerSaltRaw = value;
-              },
-            ),
-          ),
-        if (_composerPlaceMode == ChunkScenePlaceMode.enemyMarker)
-          SizedBox(
-            width: 210,
-            child: DropdownButtonFormField<String>(
-              key: ValueKey<String>(
-                'new_enemy_marker_placement_$_newMarkerPlacement',
-              ),
-              initialValue: _newMarkerPlacement,
-              isExpanded: true,
-              decoration: const InputDecoration(
-                labelText: 'placement',
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
-              items: [
-                for (final placement in _markerPlacementValues)
-                  DropdownMenuItem<String>(
-                    value: placement,
-                    child: Text(placement),
-                  ),
-              ],
-              onChanged: (value) {
-                if (value == null) {
-                  return;
-                }
+            ChoiceChip(
+              label: const Text('Enemy Spawners'),
+              selected: _composerPlaceMode == ChunkScenePlaceMode.enemyMarker,
+              onSelected: (_) {
                 setState(() {
-                  _newMarkerPlacement = value;
+                  _composerPlaceMode = ChunkScenePlaceMode.enemyMarker;
+                  _sceneTool = ChunkSceneTool.place;
                 });
               },
             ),
+            if (_composerPlaceMode == ChunkScenePlaceMode.enemyMarker)
+              SizedBox(
+                width: 220,
+                child: DropdownButtonFormField<String>(
+                  key: ValueKey<String>(
+                    'new_enemy_marker_id_$_newEnemyMarkerId',
+                  ),
+                  initialValue: _newEnemyMarkerId,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'enemyId',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  items: [
+                    for (final enemyId in _enemyMarkerIds)
+                      DropdownMenuItem<String>(
+                        value: enemyId,
+                        child: Text(enemyId),
+                      ),
+                  ],
+                  onChanged: (value) {
+                    if (value == null) {
+                      return;
+                    }
+                    setState(() {
+                      _newEnemyMarkerId = value;
+                    });
+                  },
+                ),
+              ),
+          ],
+        ),
+        if (_composerPlaceMode == ChunkScenePlaceMode.enemyMarker) ...[
+          const SizedBox(height: _spaceSm),
+          Wrap(
+            spacing: _spaceSm,
+            runSpacing: _spaceSm,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              SizedBox(
+                width: 120,
+                child: TextFormField(
+                  key: ValueKey<String>(
+                    'new_enemy_marker_chance_percent_'
+                    '${enemyControlsSelectedMarker?.selectionKey ?? 'draft'}_'
+                    '$enemyChanceRaw',
+                  ),
+                  initialValue: enemyChanceRaw,
+                  decoration: const InputDecoration(
+                    labelText: 'chance%',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  enabled: enemyControlsSelectedMarker != null,
+                  onChanged: (value) {
+                    if (enemyControlsSelectedMarker == null) {
+                      return;
+                    }
+                    final chancePercent = int.tryParse(value.trim());
+                    if (chancePercent == null ||
+                        chancePercent < 0 ||
+                        chancePercent > 100) {
+                      return;
+                    }
+                    _updateEnemyMarkerSettings(
+                      selectedChunk,
+                      selectionKey: enemyControlsSelectedMarker.selectionKey,
+                      chancePercent: chancePercent,
+                      salt: enemyControlsSelectedMarker.marker.salt,
+                      placement: enemyControlsSelectedMarker.marker.placement,
+                    );
+                  },
+                ),
+              ),
+              SizedBox(
+                width: 100,
+                child: TextFormField(
+                  key: ValueKey<String>(
+                    'new_enemy_marker_salt_'
+                    '${enemyControlsSelectedMarker?.selectionKey ?? 'draft'}_'
+                    '$enemySaltRaw',
+                  ),
+                  initialValue: enemySaltRaw,
+                  decoration: const InputDecoration(
+                    labelText: 'salt',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  enabled: enemyControlsSelectedMarker != null,
+                  onChanged: (value) {
+                    if (enemyControlsSelectedMarker == null) {
+                      return;
+                    }
+                    final salt = int.tryParse(value.trim());
+                    if (salt == null || salt < 0) {
+                      return;
+                    }
+                    _updateEnemyMarkerSettings(
+                      selectedChunk,
+                      selectionKey: enemyControlsSelectedMarker.selectionKey,
+                      chancePercent:
+                          enemyControlsSelectedMarker.marker.chancePercent,
+                      salt: salt,
+                      placement: enemyControlsSelectedMarker.marker.placement,
+                    );
+                  },
+                ),
+              ),
+              SizedBox(
+                width: 210,
+                child: DropdownButtonFormField<String>(
+                  key: ValueKey<String>(
+                    'new_enemy_marker_placement_'
+                    '${enemyControlsSelectedMarker?.selectionKey ?? 'draft'}_'
+                    '$enemyPlacementValue',
+                  ),
+                  initialValue: enemyPlacementValue,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'placement',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  onChanged: enemyControlsSelectedMarker == null
+                      ? null
+                      : (value) {
+                          if (value == null) {
+                            return;
+                          }
+                          _updateEnemyMarkerSettings(
+                            selectedChunk,
+                            selectionKey:
+                                enemyControlsSelectedMarker.selectionKey,
+                            chancePercent: enemyControlsSelectedMarker
+                                .marker
+                                .chancePercent,
+                            salt: enemyControlsSelectedMarker.marker.salt,
+                            placement: value,
+                          );
+                        },
+                  items: [
+                    for (final placement in _markerPlacementValues)
+                      DropdownMenuItem<String>(
+                        value: placement,
+                        child: Text(placement),
+                      ),
+                  ],
+                ),
+              ),
+            ],
           ),
+          if (enemyControlsSelectedMarker == null) ...[
+            const SizedBox(height: _spaceXs),
+            const Text(
+              'Select an enemy spawner to edit chance%, salt, and placement.',
+            ),
+          ],
+        ],
+      ],
+    );
+  }
+
+  Widget _buildSelectedPlacementComposerControls(
+    LevelChunkDef chunk,
+    ChunkPlacedPrefabSelection? selectedPlacement,
+  ) {
+    if (selectedPlacement == null) {
+      return const Text(
+        'Select a placed prefab to edit selected layer and placement mode.',
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildLayerStepper(
+          label: 'Selected Prefab Layer',
+          zIndex: selectedPlacement.prefab.zIndex,
+          onChanged: (value) {
+            _updatePlacementSettings(
+              chunk,
+              selectionKey: selectedPlacement.selectionKey,
+              snapToGrid: selectedPlacement.prefab.snapToGrid,
+              zIndex: value,
+            );
+          },
+          keyPrefix: 'selected_prefab_layer',
+        ),
+        const SizedBox(height: _spaceSm),
+        _buildPlacementModeChips(
+          label: 'Selected Prefab Placement Mode',
+          snapToGrid: selectedPlacement.prefab.snapToGrid,
+          onChanged: (value) {
+            _updatePlacementSettings(
+              chunk,
+              selectionKey: selectedPlacement.selectionKey,
+              snapToGrid: value,
+              zIndex: selectedPlacement.prefab.zIndex,
+            );
+          },
+        ),
       ],
     );
   }
 
   Widget _buildEnemyMarkerSection(LevelChunkDef selectedChunk) {
     final markers = buildChunkPlacedMarkerSelections(selectedChunk.markers);
-    final selectedMarker = _selectedMarker(selectedChunk);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1047,88 +1481,12 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
           },
         ),
         if (_enemyMarkersExpanded) ...[
-          const SizedBox(height: 8),
-          if (selectedMarker != null)
-            Card(
-              color: const Color(0xFF18232C),
-              child: Padding(
-                padding: const EdgeInsets.all(10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${selectedMarker.marker.markerId} '
-                      '@ (${selectedMarker.marker.x}, ${selectedMarker.marker.y})',
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'chance=${selectedMarker.marker.chancePercent}% | '
-                      'salt=${selectedMarker.marker.salt} | '
-                      'placement=${selectedMarker.marker.placement}',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                    const SizedBox(height: 8),
-                    DropdownButtonFormField<String>(
-                      key: ValueKey<String>(
-                        'selected_enemy_marker_id_${selectedMarker.selectionKey}_${selectedMarker.marker.markerId}',
-                      ),
-                      initialValue: selectedMarker.marker.markerId,
-                      isExpanded: true,
-                      decoration: const InputDecoration(
-                        labelText: 'enemyId',
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                      ),
-                      items: [
-                        for (final enemyId in _enemyMarkerIds)
-                          DropdownMenuItem<String>(
-                            value: enemyId,
-                            child: Text(enemyId),
-                          ),
-                      ],
-                      onChanged: (value) {
-                        if (value == null) {
-                          return;
-                        }
-                        _updateEnemyMarkerType(
-                          selectedChunk,
-                          selectionKey: selectedMarker.selectionKey,
-                          markerId: value,
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                    OutlinedButton(
-                      onPressed: () async {
-                        await _editEnemyMarkerSettings(
-                          selectedChunk,
-                          selectedMarker,
-                        );
-                      },
-                      child: const Text('Edit Marker Settings'),
-                    ),
-                    const SizedBox(height: 8),
-                    OutlinedButton(
-                      onPressed: () {
-                        _removeEnemyMarker(
-                          selectedChunk,
-                          selectedMarker.selectionKey,
-                        );
-                      },
-                      child: const Text('Delete Marker'),
-                    ),
-                  ],
-                ),
-              ),
-            )
-          else
-            const Text('No marker selected.'),
-          const SizedBox(height: 8),
+          const SizedBox(height: _spaceSm),
           if (markers.isEmpty)
             const Text('No enemy spawn markers in this chunk.')
           else
             SizedBox(
-              height: 180,
+              height: _listViewportHeight,
               child: Card(
                 margin: EdgeInsets.zero,
                 child: ListView.builder(
@@ -1144,6 +1502,16 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
                         '${marker.marker.chancePercent}% | '
                         'salt=${marker.marker.salt} | '
                         '${marker.marker.placement}',
+                      ),
+                      trailing: IconButton(
+                        tooltip: 'Delete marker',
+                        icon: const Icon(Icons.delete_outline),
+                        onPressed: () {
+                          _removeEnemyMarker(
+                            selectedChunk,
+                            marker.selectionKey,
+                          );
+                        },
                       ),
                       onTap: () {
                         setState(() {
@@ -1162,39 +1530,18 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
     );
   }
 
-  Widget _buildMetadataSection(LevelChunkDef selectedChunk, ChunkScene scene) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildExpandableSectionHeader(
-          title: 'Metadata',
-          subtitle:
-              'Level routing, difficulty, status, and runtime-locked size.',
-          expanded: _metadataExpanded,
-          onTap: () {
-            setState(() {
-              _metadataExpanded = !_metadataExpanded;
-            });
-          },
-        ),
-        if (_metadataExpanded) ...[
-          const SizedBox(height: 8),
-          _buildMetadataFields(selectedChunk, scene),
-          const SizedBox(height: 8),
-          FilledButton(
-            onPressed: () {
-              _applyMetadata(selectedChunk);
-            },
-            child: const Text('Apply Metadata'),
-          ),
-        ],
-      ],
-    );
-  }
-
   Widget _buildMetadataFields(LevelChunkDef selectedChunk, ChunkScene scene) {
     return Column(
       children: [
+        TextField(
+          controller: _renameIdController,
+          decoration: const InputDecoration(
+            labelText: 'id',
+            border: OutlineInputBorder(),
+            isDense: true,
+          ),
+        ),
+        const SizedBox(height: _spaceSm),
         TextField(
           controller: _levelIdController,
           decoration: const InputDecoration(
@@ -1203,7 +1550,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
             isDense: true,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: _spaceSm),
         Row(
           children: [
             Expanded(
@@ -1216,7 +1563,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
                 ),
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: _spaceSm),
             Expanded(
               child: TextField(
                 controller: _widthController,
@@ -1229,7 +1576,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
                 ),
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: _spaceSm),
             Expanded(
               child: TextField(
                 controller: _heightController,
@@ -1244,7 +1591,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: _spaceSm),
         Row(
           children: [
             Expanded(
@@ -1285,7 +1632,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
                 },
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: _spaceSm),
             Expanded(
               child: DropdownButtonFormField<String>(
                 key: ValueKey<String>('status-$_status'),
@@ -1318,7 +1665,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: _spaceSm),
         TextField(
           controller: _tagsController,
           decoration: const InputDecoration(
@@ -1327,12 +1674,12 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
             isDense: true,
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: _spaceXs),
         Text(
           'Runtime authority: gridSnap=${scene.runtimeGridSnap.toStringAsFixed(1)}, '
           'chunkWidth=${scene.runtimeChunkWidth.toStringAsFixed(1)}',
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: _spaceXs),
         Text(
           'Locked viewport: width=${scene.runtimeChunkWidth.round()}, '
           'height=${scene.lockedChunkHeight}, '
@@ -1360,7 +1707,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
           },
         ),
         if (_groundProfileExpanded) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: _spaceSm),
           Row(
             children: [
               Expanded(
@@ -1382,7 +1729,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
                   onChanged: null,
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: _spaceSm),
               Expanded(
                 child: TextField(
                   controller: _groundTopYController,
@@ -1397,11 +1744,11 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
               ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: _spaceXs),
           Text(
             'Locked to runtime viewport floor baseline ${scene.runtimeGroundTopY}.',
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: _spaceSm),
           _buildLayerStepper(
             label: 'Ground Band Layer',
             keyPrefix: 'ground_band_layer',
@@ -1410,7 +1757,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
               _updateGroundBandZIndex(selectedChunk, value);
             },
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: _spaceXs),
           const Text(
             'Compared against placed prefab z values in the chunk scene.',
           ),
@@ -1425,25 +1772,88 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
     required bool expanded,
     required VoidCallback onTap,
   }) {
-    return InkWell(
+    return _buildSectionHeader(
+      title: title,
+      subtitle: subtitle,
+      expanded: expanded,
       onTap: onTap,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: Theme.of(context).textTheme.titleSmall),
-                if (subtitle != null) ...[
-                  const SizedBox(height: 2),
-                  Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
-                ],
-              ],
+    );
+  }
+
+  Widget _buildExpandableSectionCard({
+    required String title,
+    String? subtitle,
+    Widget? marker,
+    required bool expanded,
+    bool expandBody = false,
+    required VoidCallback onToggle,
+    required Widget child,
+  }) {
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(_panelPadding),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildSectionHeader(
+              title: title,
+              subtitle: subtitle,
+              expanded: expanded,
+              onTap: onToggle,
+              marker: marker,
             ),
+            if (expanded && expandBody) ...[
+              const SizedBox(height: _spaceSm),
+              Expanded(child: child),
+            ] else if (expanded) ...[
+              const SizedBox(height: _spaceSm),
+              child,
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader({
+    required String title,
+    String? subtitle,
+    required bool expanded,
+    required VoidCallback onTap,
+    Widget? marker,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: _spaceXs),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: Theme.of(context).textTheme.titleSmall),
+                    if (subtitle != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (marker != null) ...[marker, const SizedBox(width: _spaceSm)],
+              Icon(expanded ? Icons.expand_more : Icons.chevron_right),
+            ],
           ),
-          Icon(expanded ? Icons.expand_less : Icons.expand_more),
-        ],
+        ),
       ),
     );
   }
@@ -1465,7 +1875,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
           },
         ),
         if (_groundGapsExpanded) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: _spaceSm),
           Row(
             children: [
               Expanded(
@@ -1478,7 +1888,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: _spaceSm),
               Expanded(
                 child: TextField(
                   controller: _newGapWidthController,
@@ -1489,7 +1899,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: _spaceSm),
               FilledButton(
                 onPressed: () {
                   final x = int.tryParse(_newGapXController.text.trim());
@@ -1500,13 +1910,23 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
                     _showSnackBar('Gap x/width must be integers.');
                     return;
                   }
+                  final tileSize = selectedChunk.tileSize <= 0
+                      ? 1
+                      : selectedChunk.tileSize;
+                  final snappedX = _roundToNearestMultiple(x, tileSize);
+                  var snappedWidth = _roundToNearestMultiple(width, tileSize);
+                  if (snappedWidth <= 0) {
+                    snappedWidth = tileSize;
+                  }
+                  _newGapXController.text = snappedX.toString();
+                  _newGapWidthController.text = snappedWidth.toString();
                   widget.controller.applyCommand(
                     AuthoringCommand(
                       kind: 'add_ground_gap',
                       payload: <String, Object?>{
                         'chunkKey': selectedChunk.chunkKey,
-                        'x': x,
-                        'width': width,
+                        'x': snappedX,
+                        'width': snappedWidth,
                       },
                     ),
                   );
@@ -1515,23 +1935,101 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: _spaceSm),
           if (selectedChunk.groundGaps.isEmpty)
             const Text('No gaps.')
           else
             ...selectedChunk.groundGaps.map((gap) {
+              final draftKey = _groundGapDraftKey(selectedChunk, gap);
+              final draftXRaw =
+                  _groundGapXDraftByKey[draftKey] ?? gap.x.toString();
+              final draftWidthRaw =
+                  _groundGapWidthDraftByKey[draftKey] ?? gap.width.toString();
               return ListTile(
                 contentPadding: EdgeInsets.zero,
                 title: Text('${gap.gapId} (${gap.type})'),
-                subtitle: Text('x=${gap.x}, width=${gap.width}'),
+                subtitle: Row(
+                  children: [
+                    SizedBox(
+                      width: 110,
+                      child: TextFormField(
+                        key: ValueKey<String>('ground_gap_x_${gap.gapId}'),
+                        initialValue: draftXRaw,
+                        decoration: const InputDecoration(
+                          labelText: 'x',
+                          border: OutlineInputBorder(),
+                          isDense: true,
+                        ),
+                        onChanged: (value) {
+                          _groundGapXDraftByKey[draftKey] = value;
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: _spaceSm),
+                    SizedBox(
+                      width: 120,
+                      child: TextFormField(
+                        key: ValueKey<String>('ground_gap_width_${gap.gapId}'),
+                        initialValue: draftWidthRaw,
+                        decoration: const InputDecoration(
+                          labelText: 'width',
+                          border: OutlineInputBorder(),
+                          isDense: true,
+                        ),
+                        onChanged: (value) {
+                          _groundGapWidthDraftByKey[draftKey] = value;
+                        },
+                      ),
+                    ),
+                  ],
+                ),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.edit_outlined),
-                      tooltip: 'Edit Gap',
+                      key: ValueKey<String>('ground_gap_save_${gap.gapId}'),
+                      icon: const Icon(Icons.save_outlined),
+                      tooltip: 'Save Gap',
                       onPressed: () {
-                        unawaited(_editGroundGap(selectedChunk, gap));
+                        final xRaw =
+                            _groundGapXDraftByKey[draftKey] ?? draftXRaw;
+                        final widthRaw =
+                            _groundGapWidthDraftByKey[draftKey] ??
+                            draftWidthRaw;
+                        final x = int.tryParse(xRaw.trim());
+                        final width = int.tryParse(widthRaw.trim());
+                        if (x == null || width == null) {
+                          _showSnackBar('Gap x/width must be integers.');
+                          return;
+                        }
+                        final tileSize = selectedChunk.tileSize <= 0
+                            ? 1
+                            : selectedChunk.tileSize;
+                        final snappedX = _roundToNearestMultiple(x, tileSize);
+                        var snappedWidth = _roundToNearestMultiple(
+                          width,
+                          tileSize,
+                        );
+                        if (snappedWidth <= 0) {
+                          snappedWidth = tileSize;
+                        }
+                        widget.controller.applyCommand(
+                          AuthoringCommand(
+                            kind: 'update_ground_gap',
+                            payload: <String, Object?>{
+                              'chunkKey': selectedChunk.chunkKey,
+                              'gapId': gap.gapId,
+                              'type': gap.type,
+                              'x': snappedX,
+                              'width': snappedWidth,
+                            },
+                          ),
+                        );
+                        setState(() {
+                          _groundGapXDraftByKey[draftKey] = snappedX.toString();
+                          _groundGapWidthDraftByKey[draftKey] = snappedWidth
+                              .toString();
+                        });
                       },
                     ),
                     IconButton(
@@ -1546,6 +2044,10 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
                             },
                           ),
                         );
+                        setState(() {
+                          _groundGapXDraftByKey.remove(draftKey);
+                          _groundGapWidthDraftByKey.remove(draftKey);
+                        });
                       },
                     ),
                   ],
@@ -1562,7 +2064,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(child: _buildValidationSummaryCard()),
-        const SizedBox(width: 8),
+        const SizedBox(width: _spaceSm),
         Expanded(child: _buildPendingDiffSummaryCard()),
       ],
     );
@@ -1586,15 +2088,15 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
           ? _buildIssueMarker(
               '${widget.controller.errorCount + widget.controller.warningCount}',
               color: widget.controller.errorCount > 0
-                  ? const Color(0xFFB94B4B)
-                  : const Color(0xFFB58A33),
+                  ? Theme.of(context).colorScheme.error
+                  : Theme.of(context).colorScheme.tertiary,
             )
           : null,
       summary: summary,
       child: issues.isEmpty
           ? const Text('No validation issues.')
           : SizedBox(
-              height: 180,
+              height: _listViewportHeight,
               child: ListView.builder(
                 itemCount: issues.length,
                 itemBuilder: (context, index) {
@@ -1631,7 +2133,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
       marker: hasPending
           ? _buildIssueMarker(
               '${pendingChanges.fileDiffs.length}',
-              color: const Color(0xFF497AA8),
+              color: Theme.of(context).colorScheme.primary,
             )
           : null,
       summary: summary,
@@ -1658,9 +2160,10 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
                 });
               },
             ),
-          if (pendingChanges.fileDiffs.length > 1) const SizedBox(height: 8),
+          if (pendingChanges.fileDiffs.length > 1)
+            const SizedBox(height: _spaceSm),
           SizedBox(
-            height: 180,
+            height: _listViewportHeight,
             child: selectedDiff == null
                 ? const Align(
                     alignment: Alignment.centerLeft,
@@ -1688,57 +2191,44 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
     required Widget child,
     Widget? marker,
   }) {
-    return Card(
-      margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            InkWell(
-              onTap: onToggle,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
-                  ),
-                  if (marker != null) ...[marker, const SizedBox(width: 8)],
-                  Icon(expanded ? Icons.expand_less : Icons.expand_more),
-                ],
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(summary, style: Theme.of(context).textTheme.bodySmall),
-            if (expanded) ...[const SizedBox(height: 8), child],
-          ],
-        ),
-      ),
+    return _buildExpandableSectionCard(
+      title: title,
+      subtitle: summary,
+      marker: marker,
+      expanded: expanded,
+      onToggle: onToggle,
+      child: child,
     );
   }
 
   Widget _buildIssueMarker(String label, {required Color color}) {
+    final onSurface = Theme.of(context).colorScheme.onSurface;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: _spaceSm, vertical: 2),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.18),
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: color.withValues(alpha: 0.55)),
       ),
-      child: Text(label, style: const TextStyle(fontSize: 12)),
+      child: Text(label, style: TextStyle(fontSize: 12, color: onSurface)),
     );
   }
 
   Widget _buildErrorBanner(String message) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: _spaceSm),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(8),
-        color: const Color(0xFF5A1F1F),
-        child: Text(message),
+        padding: const EdgeInsets.all(_spaceSm),
+        decoration: BoxDecoration(
+          color: colorScheme.errorContainer,
+          borderRadius: BorderRadius.circular(_spaceSm),
+        ),
+        child: Text(
+          message,
+          style: TextStyle(color: colorScheme.onErrorContainer),
+        ),
       ),
     );
   }
@@ -1809,9 +2299,10 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
   }
 
   void _ensurePaletteSelectionAfterBuild(ChunkScene? scene) {
-    final palette = scene == null
+    final allPalette = scene == null
         ? const <PrefabDef>[]
         : _placeablePrefabs(scene.prefabData);
+    final palette = _filterPrefabsForPalette(allPalette);
     if (palette.isEmpty) {
       if (_selectedPalettePrefabKey == null) {
         return;
@@ -1830,6 +2321,52 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
     _runAfterBuild(() {
       _selectedPalettePrefabKey = fallbackKey;
     });
+  }
+
+  List<PrefabDef> _filterPrefabsByTag(List<PrefabDef> prefabs, String tag) {
+    if (tag == _prefabPaletteTagAll) {
+      return prefabs;
+    }
+    final query = tag.toLowerCase();
+    return prefabs
+        .where(
+          (prefab) => prefab.tags.any((value) => value.toLowerCase() == query),
+        )
+        .toList(growable: false);
+  }
+
+  List<PrefabDef> _filterPrefabsForPalette(List<PrefabDef> prefabs) {
+    final byKind = _prefabPaletteKindFilter == null
+        ? prefabs
+        : prefabs
+              .where((prefab) => prefab.kind == _prefabPaletteKindFilter)
+              .toList(growable: false);
+    return _filterPrefabsByTag(byKind, _prefabPaletteTagFilter);
+  }
+
+  void _applyPrefabPaletteTagFilter(List<PrefabDef> allPalette, String input) {
+    final trimmed = input.trim();
+    if (trimmed.isEmpty) {
+      _prefabPaletteTagFilter = _prefabPaletteTagAll;
+    } else {
+      final canonicalTag = allPalette
+          .expand((prefab) => prefab.tags)
+          .firstWhere(
+            (tag) => tag.toLowerCase() == trimmed.toLowerCase(),
+            orElse: () => trimmed,
+          );
+      _prefabPaletteTagFilter = canonicalTag;
+    }
+
+    final matching = _filterPrefabsForPalette(allPalette);
+    if (matching.any(
+      (prefab) => prefab.prefabKey == _selectedPalettePrefabKey,
+    )) {
+      return;
+    }
+    _selectedPalettePrefabKey = matching.isEmpty
+        ? null
+        : matching.first.prefabKey;
   }
 
   void _ensurePlacementSelectionAfterBuild(LevelChunkDef? chunk) {
@@ -1940,6 +2477,17 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
     return null;
   }
 
+  String _groundGapDraftKey(LevelChunkDef chunk, GroundGapDef gap) {
+    return '${chunk.chunkKey}::${gap.gapId}';
+  }
+
+  int _roundToNearestMultiple(int value, int multiple) {
+    if (multiple <= 0) {
+      return value;
+    }
+    return (value / multiple).round() * multiple;
+  }
+
   String _selectionKeyForPlacementChange(
     LevelChunkDef chunk, {
     String? currentSelectionKey,
@@ -2023,15 +2571,16 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
   }
 
   Widget _buildPlacementModeChips({
+    String label = 'Placement Mode',
     required bool snapToGrid,
     required ValueChanged<bool> onChanged,
   }) {
     return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+      spacing: _spaceSm,
+      runSpacing: _spaceSm,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        const Text('Placement Mode'),
+        Text(label),
         ChoiceChip(
           label: const Text('Snap'),
           selected: snapToGrid,
@@ -2053,8 +2602,8 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
     String? keyPrefix,
   }) {
     return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+      spacing: _spaceSm,
+      runSpacing: _spaceSm,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         Text(label),
@@ -2157,18 +2706,10 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
     required int y,
   }) {
     final markerId = _newEnemyMarkerId.trim();
-    final chancePercent = int.tryParse(_newMarkerChancePercentRaw.trim());
-    final salt = int.tryParse(_newMarkerSaltRaw.trim());
+    const chancePercent = _defaultNewMarkerChancePercent;
+    const salt = _defaultNewMarkerSalt;
     if (markerId.isEmpty) {
       _showSnackBar('Choose an enemy marker type first.');
-      return;
-    }
-    if (chancePercent == null || chancePercent < 0 || chancePercent > 100) {
-      _showSnackBar('Marker chance% must be an integer between 0 and 100.');
-      return;
-    }
-    if (salt == null || salt < 0) {
-      _showSnackBar('Marker salt must be an integer >= 0.');
       return;
     }
     final nextMarker = PlacedMarkerDef(
@@ -2177,7 +2718,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
       y: y,
       chancePercent: chancePercent,
       salt: salt,
-      placement: _newMarkerPlacement,
+      placement: _defaultNewMarkerPlacement,
     );
     widget.controller.applyCommand(
       AuthoringCommand(
@@ -2189,7 +2730,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
           'y': y,
           'chancePercent': chancePercent,
           'salt': salt,
-          'placement': _newMarkerPlacement,
+          'placement': _defaultNewMarkerPlacement,
         },
       ),
     );
@@ -2229,37 +2770,6 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
         chunk,
         currentSelectionKey: selectionKey,
         nextPlacement: selectedPlacement.prefab.copyWith(x: x, y: y),
-      );
-    });
-  }
-
-  void _replacePlacement(
-    LevelChunkDef chunk,
-    String selectionKey,
-    PrefabDef prefab,
-  ) {
-    final placement = _selectedPlacement(chunk);
-    if (placement == null) {
-      return;
-    }
-    widget.controller.applyCommand(
-      AuthoringCommand(
-        kind: 'replace_prefab_placement',
-        payload: <String, Object?>{
-          'chunkKey': chunk.chunkKey,
-          'selectionKey': selectionKey,
-          'prefabKey': prefab.prefabKey,
-        },
-      ),
-    );
-    setState(() {
-      _selectedPlacementKey = _selectionKeyForPlacementChange(
-        chunk,
-        currentSelectionKey: selectionKey,
-        nextPlacement: placement.prefab.copyWith(
-          prefabKey: prefab.prefabKey,
-          prefabId: prefab.id,
-        ),
       );
     });
   }
@@ -2344,34 +2854,6 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
     });
   }
 
-  void _updateEnemyMarkerType(
-    LevelChunkDef chunk, {
-    required String selectionKey,
-    required String markerId,
-  }) {
-    final selectedMarker = _selectedMarker(chunk);
-    widget.controller.applyCommand(
-      AuthoringCommand(
-        kind: 'update_enemy_marker_type',
-        payload: <String, Object?>{
-          'chunkKey': chunk.chunkKey,
-          'selectionKey': selectionKey,
-          'markerId': markerId,
-        },
-      ),
-    );
-    if (selectedMarker == null) {
-      return;
-    }
-    setState(() {
-      _selectedMarkerKey = _selectionKeyForMarkerChange(
-        chunk,
-        currentSelectionKey: selectionKey,
-        nextMarker: selectedMarker.marker.copyWith(markerId: markerId),
-      );
-    });
-  }
-
   void _updateEnemyMarkerSettings(
     LevelChunkDef chunk, {
     required String selectionKey,
@@ -2437,232 +2919,6 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
     );
   }
 
-  Future<void> _editEnemyMarkerSettings(
-    LevelChunkDef chunk,
-    ChunkPlacedMarkerSelection markerSelection,
-  ) async {
-    var nextChancePercentRaw = markerSelection.marker.chancePercent.toString();
-    var nextSaltRaw = markerSelection.marker.salt.toString();
-    var nextPlacement = markerSelection.marker.placement;
-
-    final saved = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: Text('Edit Marker ${markerSelection.marker.markerId}'),
-              content: SizedBox(
-                width: 320,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextFormField(
-                      initialValue: nextChancePercentRaw,
-                      decoration: const InputDecoration(
-                        labelText: 'chancePercent',
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                      ),
-                      onChanged: (value) {
-                        nextChancePercentRaw = value;
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      initialValue: nextSaltRaw,
-                      decoration: const InputDecoration(
-                        labelText: 'salt',
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                      ),
-                      onChanged: (value) {
-                        nextSaltRaw = value;
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                    DropdownButtonFormField<String>(
-                      initialValue: nextPlacement,
-                      isExpanded: true,
-                      decoration: const InputDecoration(
-                        labelText: 'placement',
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                      ),
-                      items: [
-                        for (final placement in _markerPlacementValues)
-                          DropdownMenuItem<String>(
-                            value: placement,
-                            child: Text(placement),
-                          ),
-                      ],
-                      onChanged: (value) {
-                        if (value == null) {
-                          return;
-                        }
-                        setDialogState(() {
-                          nextPlacement = value;
-                        });
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(dialogContext).pop(false);
-                  },
-                  child: const Text('Cancel'),
-                ),
-                FilledButton(
-                  onPressed: () {
-                    Navigator.of(dialogContext).pop(true);
-                  },
-                  child: const Text('Save'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-
-    if (saved != true) {
-      return;
-    }
-
-    final chancePercent = int.tryParse(nextChancePercentRaw.trim());
-    final salt = int.tryParse(nextSaltRaw.trim());
-    if (chancePercent == null || chancePercent < 0 || chancePercent > 100) {
-      _showSnackBar('Marker chance% must be an integer between 0 and 100.');
-      return;
-    }
-    if (salt == null || salt < 0) {
-      _showSnackBar('Marker salt must be an integer >= 0.');
-      return;
-    }
-
-    _updateEnemyMarkerSettings(
-      chunk,
-      selectionKey: markerSelection.selectionKey,
-      chancePercent: chancePercent,
-      salt: salt,
-      placement: nextPlacement,
-    );
-  }
-
-  Future<void> _editGroundGap(LevelChunkDef chunk, GroundGapDef gap) async {
-    var nextXRaw = gap.x.toString();
-    var nextWidthRaw = gap.width.toString();
-    var nextType = gap.type;
-    final saved = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: Text('Edit Gap ${gap.gapId}'),
-              content: SizedBox(
-                width: 320,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    DropdownButtonFormField<String>(
-                      initialValue: nextType,
-                      isExpanded: true,
-                      decoration: const InputDecoration(
-                        labelText: 'type',
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                      ),
-                      items: const [
-                        DropdownMenuItem(
-                          value: groundGapTypePit,
-                          child: Text(groundGapTypePit),
-                        ),
-                      ],
-                      onChanged: (value) {
-                        if (value == null) {
-                          return;
-                        }
-                        setDialogState(() {
-                          nextType = value;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      initialValue: nextXRaw,
-                      decoration: const InputDecoration(
-                        labelText: 'x',
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                      ),
-                      onChanged: (value) {
-                        nextXRaw = value;
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      initialValue: nextWidthRaw,
-                      decoration: const InputDecoration(
-                        labelText: 'width',
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                      ),
-                      onChanged: (value) {
-                        nextWidthRaw = value;
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(dialogContext).pop(false);
-                  },
-                  child: const Text('Cancel'),
-                ),
-                FilledButton(
-                  onPressed: () {
-                    Navigator.of(dialogContext).pop(true);
-                  },
-                  child: const Text('Save'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-
-    final x = int.tryParse(nextXRaw.trim());
-    final width = int.tryParse(nextWidthRaw.trim());
-
-    if (saved != true) {
-      return;
-    }
-    if (x == null || width == null) {
-      _showSnackBar('Gap x/width must be integers.');
-      return;
-    }
-
-    widget.controller.applyCommand(
-      AuthoringCommand(
-        kind: 'update_ground_gap',
-        payload: <String, Object?>{
-          'chunkKey': chunk.chunkKey,
-          'gapId': gap.gapId,
-          'type': nextType,
-          'x': x,
-          'width': width,
-        },
-      ),
-    );
-  }
-
   PendingFileDiff? _selectedDiff(PendingChanges pendingChanges) {
     final selectedPath = _selectedDiffPath;
     if (selectedPath == null) {
@@ -2678,6 +2934,16 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
     return pendingChanges.fileDiffs.isEmpty
         ? null
         : pendingChanges.fileDiffs.first;
+  }
+
+  void _selectChunk(LevelChunkDef chunk) {
+    setState(() {
+      _selectedChunkKey = chunk.chunkKey;
+      _selectedPlacementKey = null;
+      _selectedMarkerKey = null;
+      _sceneTool = ChunkSceneTool.select;
+      _syncInspector(chunk);
+    });
   }
 
   void _syncInspector(LevelChunkDef chunk) {

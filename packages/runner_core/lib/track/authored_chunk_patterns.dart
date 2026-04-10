@@ -26,6 +26,59 @@ const List<ChunkPattern> fieldEarlyPatterns = <ChunkPattern>[
     ],
   ),
   ChunkPattern(
+    name: 'field_flat_one_obstacle',
+    chunkKey: 'field_flat_on_obstacle',
+    platforms: <PlatformRel>[
+    ],
+    obstacles: <ObstacleRel>[
+      ObstacleRel(x: 272.0, width: 32.0, height: 96.0),
+      ObstacleRel(x: 240.0, width: 48.0, height: 48.0),
+      ObstacleRel(x: 288.0, width: 48.0, height: 48.0),
+    ],
+    groundGaps: <GapRel>[
+    ],
+    visualSprites: <ChunkVisualSpriteRel>[
+      ChunkVisualSpriteRel(
+        assetPath: 'level/props/TX Village Props.png',
+        srcX: 32,
+        srcY: 16,
+        srcWidth: 64,
+        srcHeight: 52,
+        x: 255.0,
+        y: 131.0,
+        width: 64.0,
+        height: 52.0,
+        zIndex: 0,
+      ),
+      ChunkVisualSpriteRel(
+        assetPath: 'level/props/TX Village Props.png',
+        srcX: 32,
+        srcY: 16,
+        srcWidth: 64,
+        srcHeight: 52,
+        x: 233.0,
+        y: 176.0,
+        width: 64.0,
+        height: 52.0,
+        zIndex: 0,
+      ),
+      ChunkVisualSpriteRel(
+        assetPath: 'level/props/TX Village Props.png',
+        srcX: 32,
+        srcY: 16,
+        srcWidth: 64,
+        srcHeight: 52,
+        x: 279.0,
+        y: 176.0,
+        width: 64.0,
+        height: 52.0,
+        zIndex: 0,
+      ),
+    ],
+    spawnMarkers: <SpawnMarker>[
+    ],
+  ),
+  ChunkPattern(
     name: 'field_flat_one_gap',
     chunkKey: 'field_flat_one_gap',
     platforms: <PlatformRel>[
@@ -33,7 +86,7 @@ const List<ChunkPattern> fieldEarlyPatterns = <ChunkPattern>[
     obstacles: <ObstacleRel>[
     ],
     groundGaps: <GapRel>[
-      GapRel(gapId: 'gap_1', x: 80.0, width: 160.0),
+      GapRel(gapId: 'gap_2', x: 80.0, width: 144.0),
     ],
     visualSprites: <ChunkVisualSpriteRel>[
     ],
@@ -129,6 +182,35 @@ const List<ChunkPattern> fieldNormalPatterns = <ChunkPattern>[
 ];
 
 const List<ChunkPattern> fieldHardPatterns = <ChunkPattern>[
+  ChunkPattern(
+    name: 'field_unoco_gap_platform_to_pass_it',
+    chunkKey: 'new_chunk',
+    platforms: <PlatformRel>[
+      PlatformRel(x: 288.0, width: 32.0, aboveGroundTop: 48.0, thickness: 32.0),
+    ],
+    obstacles: <ObstacleRel>[
+    ],
+    groundGaps: <GapRel>[
+      GapRel(gapId: 'gap_2_2', x: 192.0, width: 192.0),
+    ],
+    visualSprites: <ChunkVisualSpriteRel>[
+      ChunkVisualSpriteRel(
+        assetPath: 'level/tileset/TX Tileset Ground.png',
+        srcX: 128,
+        srcY: 96,
+        srcWidth: 32,
+        srcHeight: 32,
+        x: 288.0,
+        y: 176.0,
+        width: 32.0,
+        height: 32.0,
+        zIndex: 0,
+      ),
+    ],
+    spawnMarkers: <SpawnMarker>[
+      SpawnMarker(enemyId: EnemyId.unocoDemon, x: 480.0, chancePercent: 100, salt: 0, placement: SpawnPlacementMode.ground),
+    ],
+  ),
 ];
 
 const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[

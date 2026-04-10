@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
@@ -58,6 +59,7 @@ class ChunkSceneView extends StatefulWidget {
     required this.onMoveMarker,
     required this.onCommitMarkerMove,
     required this.onRemoveMarker,
+    this.showParallaxPreview = true,
   });
 
   final String workspaceRootPath;
@@ -82,9 +84,205 @@ class ChunkSceneView extends StatefulWidget {
   final void Function(String selectionKey, int x, int y) onMoveMarker;
   final VoidCallback onCommitMarkerMove;
   final ValueChanged<String> onRemoveMarker;
+  final bool showParallaxPreview;
 
   @override
   State<ChunkSceneView> createState() => _ChunkSceneViewState();
+}
+
+/// Compact, non-interactive chunk thumbnail used by the chunk list.
+///
+/// This intentionally reuses the same render data and painter as the main chunk
+/// composer so ground bands, gaps, obstacles, and platform modules stay
+/// visually consistent with the editor scene.
+class ChunkScenePreviewTile extends StatefulWidget {
+  const ChunkScenePreviewTile({
+    super.key,
+    required this.imageCache,
+    required this.workspaceRootPath,
+    required this.chunk,
+    required this.prefabData,
+    required this.runtimeGridSnap,
+    this.width = double.infinity,
+    this.height = 92,
+  });
+
+  final EditorUiImageCache imageCache;
+  final String workspaceRootPath;
+  final LevelChunkDef chunk;
+  final PrefabData prefabData;
+  final double runtimeGridSnap;
+  final double width;
+  final double height;
+
+  @override
+  State<ChunkScenePreviewTile> createState() => _ChunkScenePreviewTileState();
+}
+
+class _ChunkScenePreviewTileState extends State<ChunkScenePreviewTile> {
+  final Map<String, ui.Rect> _groundMaterialSrcRectsByAbsolutePath =
+      <String, ui.Rect>{};
+
+  int _loadGeneration = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshAssets();
+  }
+
+  @override
+  void didUpdateWidget(covariant ChunkScenePreviewTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.workspaceRootPath != widget.workspaceRootPath ||
+        oldWidget.chunk != widget.chunk ||
+        oldWidget.prefabData != widget.prefabData ||
+        oldWidget.imageCache != widget.imageCache) {
+      _refreshAssets();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final renderPlacements = _buildChunkRenderPlacements(
+      chunk: widget.chunk,
+      prefabData: widget.prefabData,
+    );
+    final groundMaterial = resolveChunkGroundMaterialSpec(widget.chunk.levelId);
+    final groundMaterialAbsolutePath = _absoluteImagePath(
+      groundMaterial.sourceImagePath,
+    );
+    final groundMaterialSrcRect =
+        _groundMaterialSrcRectsByAbsolutePath[groundMaterialAbsolutePath];
+    final groundLayout = buildChunkGroundLayoutWithFillDepth(
+      widget.chunk,
+      fillDepth:
+          groundMaterialSrcRect?.height ??
+          groundMaterial.fallbackMaterialHeight,
+    );
+
+    return SizedBox(
+      width: widget.width.isFinite ? widget.width : double.infinity,
+      height: widget.height,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final previewWidth = widget.width.isFinite
+              ? widget.width
+              : (constraints.maxWidth.isFinite ? constraints.maxWidth : 240.0);
+          final previewSize = Size(
+            math.max(1.0, previewWidth),
+            math.max(1.0, widget.height),
+          );
+
+          return DecoratedBox(
+            decoration: BoxDecoration(
+              color: const Color(0xFF101820),
+              border: Border.all(color: const Color(0xFF29404F)),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(7),
+              child: CustomPaint(
+                painter: _ChunkScenePainter(
+                  workspaceRootPath: widget.workspaceRootPath,
+                  imageCache: widget.imageCache,
+                  loadedImageCount: widget.imageCache.loadedImageCount,
+                  geometry: _ChunkSceneGeometry.preview(
+                    chunk: widget.chunk,
+                    runtimeGridSnap: widget.runtimeGridSnap,
+                    renderPlacements: renderPlacements,
+                    renderMarkers: const <_ChunkRenderMarker>[],
+                    viewportSize: previewSize,
+                  ),
+                  chunk: widget.chunk,
+                  showParallaxPreview: false,
+                  showPixelGrid: false,
+                  showChunkBounds: false,
+                  showMarkers: false,
+                  clipSceneToChunkBounds: true,
+                  parallaxPreview: const ChunkParallaxPreviewSpec(),
+                  groundLayout: groundLayout,
+                  groundMaterial: groundMaterial,
+                  groundMaterialSrcRect: groundMaterialSrcRect,
+                  renderPlacements: renderPlacements,
+                  renderMarkers: const <_ChunkRenderMarker>[],
+                  selectedPlacement: null,
+                  selectedMarker: null,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _refreshAssets() {
+    final loadGeneration = ++_loadGeneration;
+    final groundMaterial = resolveChunkGroundMaterialSpec(widget.chunk.levelId);
+    final groundMaterialAbsolutePath = _absoluteImagePath(
+      groundMaterial.sourceImagePath,
+    );
+    final requiredPaths = <String>{groundMaterialAbsolutePath};
+    for (final placement in _buildChunkRenderPlacements(
+      chunk: widget.chunk,
+      prefabData: widget.prefabData,
+    )) {
+      for (final sprite in placement.sprites) {
+        final sourceImagePath = sprite.slice?.sourceImagePath.trim() ?? '';
+        if (sourceImagePath.isEmpty) {
+          continue;
+        }
+        requiredPaths.add(_absoluteImagePath(sourceImagePath));
+      }
+    }
+
+    unawaited(
+      _loadAssets(
+        loadGeneration: loadGeneration,
+        absolutePaths: requiredPaths.toList(growable: false),
+        groundMaterialAbsolutePath: groundMaterialAbsolutePath,
+        fallbackMaterialHeight: groundMaterial.fallbackMaterialHeight,
+      ),
+    );
+  }
+
+  Future<void> _loadAssets({
+    required int loadGeneration,
+    required List<String> absolutePaths,
+    required String groundMaterialAbsolutePath,
+    required double fallbackMaterialHeight,
+  }) async {
+    await Future.wait(
+      absolutePaths.map(
+        (absolutePath) => widget.imageCache.ensureLoaded(absolutePath),
+      ),
+    );
+    if (!mounted || loadGeneration != _loadGeneration) {
+      return;
+    }
+
+    final groundImage = widget.imageCache.imageFor(groundMaterialAbsolutePath);
+    if (groundImage != null &&
+        !_groundMaterialSrcRectsByAbsolutePath.containsKey(
+          groundMaterialAbsolutePath,
+        )) {
+      final srcRect = await detectGroundMaterialSourceRect(
+        groundImage,
+        fallbackMaterialHeight: fallbackMaterialHeight,
+      );
+      if (!mounted || loadGeneration != _loadGeneration) {
+        return;
+      }
+      _groundMaterialSrcRectsByAbsolutePath[groundMaterialAbsolutePath] =
+          srcRect;
+    }
+    setState(() {});
+  }
+
+  String _absoluteImagePath(String relativePath) {
+    return p.normalize(p.join(widget.workspaceRootPath, relativePath));
+  }
 }
 
 class _ChunkSceneViewState extends State<ChunkSceneView> {
@@ -101,7 +299,6 @@ class _ChunkSceneViewState extends State<ChunkSceneView> {
   final Set<String> _groundMaterialDetectionInFlight = <String>{};
 
   double _zoom = 1.75;
-  bool _showParallaxPreview = true;
   bool _ctrlPanActive = false;
   int? _activePointer;
   _ChunkPlacementDragState? _dragState;
@@ -145,7 +342,9 @@ class _ChunkSceneViewState extends State<ChunkSceneView> {
         selectedMarkerKey != null &&
         selectedMarkerKey.isNotEmpty &&
         selectedMarkerKey != markerDragState.selectionKey) {
-      _markerDragState = markerDragState.copyWith(selectionKey: selectedMarkerKey);
+      _markerDragState = markerDragState.copyWith(
+        selectionKey: selectedMarkerKey,
+      );
     }
   }
 
@@ -164,7 +363,9 @@ class _ChunkSceneViewState extends State<ChunkSceneView> {
     final selectedPlacement = _resolveSelectedPlacement(renderPlacements);
     final selectedMarker = _resolveSelectedMarker(renderMarkers);
     final groundMaterial = resolveChunkGroundMaterialSpec(widget.chunk.levelId);
-    final parallaxPreview = resolveChunkParallaxPreviewSpec(widget.chunk.levelId);
+    final parallaxPreview = resolveChunkParallaxPreviewSpec(
+      widget.chunk.levelId,
+    );
     final groundMaterialAbsolutePath = _absoluteImagePath(
       groundMaterial.sourceImagePath,
     );
@@ -173,7 +374,8 @@ class _ChunkSceneViewState extends State<ChunkSceneView> {
     final groundLayout = buildChunkGroundLayoutWithFillDepth(
       widget.chunk,
       fillDepth:
-          groundMaterialSrcRect?.height ?? groundMaterial.fallbackMaterialHeight,
+          groundMaterialSrcRect?.height ??
+          groundMaterial.fallbackMaterialHeight,
     );
 
     return LayoutBuilder(
@@ -227,10 +429,10 @@ class _ChunkSceneViewState extends State<ChunkSceneView> {
 
   Widget _buildControls(BuildContext context) {
     final paletteLabel = widget.placeMode == ChunkScenePlaceMode.prefab
-      ? (widget.selectedPalettePrefabKey == null
-          ? 'No prefab selected'
-          : 'Palette: ${widget.selectedPalettePrefabKey}')
-      : 'Enemy: ${widget.selectedEnemyMarkerId}';
+        ? (widget.selectedPalettePrefabKey == null
+              ? 'No prefab selected'
+              : 'Palette: ${widget.selectedPalettePrefabKey}')
+        : 'Enemy: ${widget.selectedEnemyMarkerId}';
     return Wrap(
       spacing: 12,
       runSpacing: 8,
@@ -255,20 +457,6 @@ class _ChunkSceneViewState extends State<ChunkSceneView> {
         Chip(
           avatar: const Icon(Icons.layers_outlined, size: 16),
           label: Text(paletteLabel),
-        ),
-        const Chip(
-          avatar: Icon(Icons.mouse_outlined, size: 16),
-          label: Text('Ctrl+drag pan  Ctrl+scroll zoom'),
-        ),
-        FilterChip(
-          key: const ValueKey<String>('chunk_scene_parallax_toggle'),
-          label: const Text('Parallax Preview'),
-          selected: _showParallaxPreview,
-          onSelected: (value) {
-            setState(() {
-              _showParallaxPreview = value;
-            });
-          },
         ),
       ],
     );
@@ -299,10 +487,7 @@ class _ChunkSceneViewState extends State<ChunkSceneView> {
           );
         },
         onPointerMove: (event) {
-          _onPointerMove(
-            event,
-            geometry: geometry,
-          );
+          _onPointerMove(event, geometry: geometry);
         },
         onPointerUp: _onPointerEnd,
         onPointerCancel: _onPointerEnd,
@@ -317,7 +502,7 @@ class _ChunkSceneViewState extends State<ChunkSceneView> {
                 loadedImageCount: _imageCache.loadedImageCount,
                 geometry: geometry,
                 chunk: widget.chunk,
-                showParallaxPreview: _showParallaxPreview,
+                showParallaxPreview: widget.showParallaxPreview,
                 parallaxPreview: parallaxPreview,
                 groundLayout: groundLayout,
                 groundMaterial: groundMaterial,
@@ -394,7 +579,10 @@ class _ChunkSceneViewState extends State<ChunkSceneView> {
       event.localPosition,
       renderPlacements,
     );
-    final markerHit = geometry.hitTestMarker(event.localPosition, renderMarkers);
+    final markerHit = geometry.hitTestMarker(
+      event.localPosition,
+      renderMarkers,
+    );
     switch (widget.tool) {
       case ChunkSceneTool.place:
         if (widget.placeMode == ChunkScenePlaceMode.prefab) {
@@ -442,7 +630,10 @@ class _ChunkSceneViewState extends State<ChunkSceneView> {
               snapToGrid: hit.placement.snapToGrid,
               grabOffsetWorld:
                   pointerWorld -
-                  Offset(hit.placement.x.toDouble(), hit.placement.y.toDouble()),
+                  Offset(
+                    hit.placement.x.toDouble(),
+                    hit.placement.y.toDouble(),
+                  ),
               lastAppliedX: hit.placement.x,
               lastAppliedY: hit.placement.y,
             );
@@ -464,7 +655,10 @@ class _ChunkSceneViewState extends State<ChunkSceneView> {
             selectionKey: markerHit.selectionKey,
             grabOffsetWorld:
                 pointerWorld -
-                Offset(markerHit.marker.x.toDouble(), markerHit.marker.y.toDouble()),
+                Offset(
+                  markerHit.marker.x.toDouble(),
+                  markerHit.marker.y.toDouble(),
+                ),
             lastAppliedX: markerHit.marker.x,
             lastAppliedY: markerHit.marker.y,
           );
@@ -556,7 +750,10 @@ class _ChunkSceneViewState extends State<ChunkSceneView> {
       return;
     }
     final candidateAnchor = pointerWorld - markerDragState.grabOffsetWorld;
-    final snapped = geometry.snapWorldPoint(candidateAnchor, widget.runtimeGridSnap);
+    final snapped = geometry.snapWorldPoint(
+      candidateAnchor,
+      widget.runtimeGridSnap,
+    );
     final snappedX = snapped.dx.round();
     final snappedY = snapped.dy.round();
     if (snappedX == markerDragState.lastAppliedX &&
@@ -618,58 +815,14 @@ class _ChunkSceneViewState extends State<ChunkSceneView> {
   }
 
   List<_ChunkRenderPlacement> _buildRenderPlacements() {
-    final prefabByKey = <String, PrefabDef>{
-      for (final prefab in widget.prefabData.prefabs)
-        if (prefab.prefabKey.isNotEmpty) prefab.prefabKey: prefab,
-    };
-    final prefabById = <String, PrefabDef>{
-      for (final prefab in widget.prefabData.prefabs)
-        if (prefab.id.isNotEmpty) prefab.id: prefab,
-    };
-    final prefabSliceById = <String, AtlasSliceDef>{
-      for (final slice in widget.prefabData.prefabSlices)
-        if (slice.id.isNotEmpty) slice.id: slice,
-    };
-    final tileSliceById = <String, AtlasSliceDef>{
-      for (final slice in widget.prefabData.tileSlices)
-        if (slice.id.isNotEmpty) slice.id: slice,
-    };
-    final moduleById = <String, TileModuleDef>{
-      for (final module in widget.prefabData.platformModules)
-        if (module.id.isNotEmpty) module.id: module,
-    };
-
-    final selections = buildChunkPlacedPrefabSelections(widget.chunk.prefabs);
-    return selections
-        .map((selection) {
-          final placement = selection.prefab;
-          final resolvedPrefab =
-              prefabByKey[placement.prefabKey] ??
-              prefabById[placement.prefabId];
-          return _ChunkRenderPlacement.fromPlacement(
-            selectionKey: selection.selectionKey,
-            placement: placement,
-            prefab: resolvedPrefab,
-            prefabSliceById: prefabSliceById,
-            tileSliceById: tileSliceById,
-            moduleById: moduleById,
-          );
-        })
-        .toList(growable: false)
-      ..sort(_compareRenderPlacements);
+    return _buildChunkRenderPlacements(
+      chunk: widget.chunk,
+      prefabData: widget.prefabData,
+    );
   }
 
   List<_ChunkRenderMarker> _buildRenderMarkers() {
-    final selections = buildChunkPlacedMarkerSelections(widget.chunk.markers);
-    return selections
-        .map(
-          (selection) => _ChunkRenderMarker(
-            selectionKey: selection.selectionKey,
-            marker: selection.marker,
-          ),
-        )
-        .toList(growable: false)
-      ..sort(_compareRenderMarkers);
+    return _buildChunkRenderMarkers(widget.chunk);
   }
 
   _ChunkRenderPlacement? _resolveSelectedPlacement(
@@ -705,7 +858,9 @@ class _ChunkSceneViewState extends State<ChunkSceneView> {
   void _ensureAllSceneImagesLoaded() {
     final uniquePaths = <String>{};
     final groundMaterial = resolveChunkGroundMaterialSpec(widget.chunk.levelId);
-    final parallaxPreview = resolveChunkParallaxPreviewSpec(widget.chunk.levelId);
+    final parallaxPreview = resolveChunkParallaxPreviewSpec(
+      widget.chunk.levelId,
+    );
     uniquePaths.add(groundMaterial.sourceImagePath);
     uniquePaths.addAll(
       parallaxPreview.backgroundLayers.map((layer) => layer.assetPath),
@@ -725,8 +880,7 @@ class _ChunkSceneViewState extends State<ChunkSceneView> {
     for (final relativePath in uniquePaths) {
       _ensureImageLoaded(
         relativePath,
-        detectGroundMaterial:
-            relativePath == groundMaterial.sourceImagePath,
+        detectGroundMaterial: relativePath == groundMaterial.sourceImagePath,
         fallbackMaterialHeight: groundMaterial.fallbackMaterialHeight,
       );
     }
@@ -763,6 +917,63 @@ class _ChunkSceneViewState extends State<ChunkSceneView> {
   String _absoluteImagePath(String relativePath) {
     return p.normalize(p.join(widget.workspaceRootPath, relativePath));
   }
+}
+
+List<_ChunkRenderPlacement> _buildChunkRenderPlacements({
+  required LevelChunkDef chunk,
+  required PrefabData prefabData,
+}) {
+  final prefabByKey = <String, PrefabDef>{
+    for (final prefab in prefabData.prefabs)
+      if (prefab.prefabKey.isNotEmpty) prefab.prefabKey: prefab,
+  };
+  final prefabById = <String, PrefabDef>{
+    for (final prefab in prefabData.prefabs)
+      if (prefab.id.isNotEmpty) prefab.id: prefab,
+  };
+  final prefabSliceById = <String, AtlasSliceDef>{
+    for (final slice in prefabData.prefabSlices)
+      if (slice.id.isNotEmpty) slice.id: slice,
+  };
+  final tileSliceById = <String, AtlasSliceDef>{
+    for (final slice in prefabData.tileSlices)
+      if (slice.id.isNotEmpty) slice.id: slice,
+  };
+  final moduleById = <String, TileModuleDef>{
+    for (final module in prefabData.platformModules)
+      if (module.id.isNotEmpty) module.id: module,
+  };
+
+  final selections = buildChunkPlacedPrefabSelections(chunk.prefabs);
+  return selections
+      .map((selection) {
+        final placement = selection.prefab;
+        final resolvedPrefab =
+            prefabByKey[placement.prefabKey] ?? prefabById[placement.prefabId];
+        return _ChunkRenderPlacement.fromPlacement(
+          selectionKey: selection.selectionKey,
+          placement: placement,
+          prefab: resolvedPrefab,
+          prefabSliceById: prefabSliceById,
+          tileSliceById: tileSliceById,
+          moduleById: moduleById,
+        );
+      })
+      .toList(growable: false)
+    ..sort(_compareRenderPlacements);
+}
+
+List<_ChunkRenderMarker> _buildChunkRenderMarkers(LevelChunkDef chunk) {
+  final selections = buildChunkPlacedMarkerSelections(chunk.markers);
+  return selections
+      .map(
+        (selection) => _ChunkRenderMarker(
+          selectionKey: selection.selectionKey,
+          marker: selection.marker,
+        ),
+      )
+      .toList(growable: false)
+    ..sort(_compareRenderMarkers);
 }
 
 class _ChunkPlacementDragState {
@@ -1064,6 +1275,58 @@ class _ChunkSceneGeometry {
     );
   }
 
+  _ChunkSceneGeometry.preview({
+    required this.chunk,
+    required this.runtimeGridSnap,
+    required this.renderPlacements,
+    required this.renderMarkers,
+    required this.viewportSize,
+    double padding = 6.0,
+  }) : canvasMargin = 0,
+       zoom = _previewZoom(
+         chunk: chunk,
+         viewportSize: viewportSize,
+         padding: padding,
+       ) {
+    final safeChunkSize = _safeChunkSize(chunk);
+    chunkRect = Offset.zero & safeChunkSize;
+    worldRect = chunkRect;
+    canvasSize = Size(
+      math.max(1.0, viewportSize.width),
+      math.max(1.0, viewportSize.height),
+    );
+    final previewCanvasRect = Alignment.center.inscribe(
+      Size(chunkRect.width * zoom, chunkRect.height * zoom),
+      Offset.zero & canvasSize,
+    );
+    worldOrigin = previewCanvasRect.topLeft;
+    worldCanvasRect = previewCanvasRect;
+  }
+
+  static Size _safeChunkSize(LevelChunkDef chunk) {
+    return Size(
+      math.max(1, chunk.width).toDouble(),
+      math.max(1, chunk.height).toDouble(),
+    );
+  }
+
+  static double _previewZoom({
+    required LevelChunkDef chunk,
+    required Size viewportSize,
+    required double padding,
+  }) {
+    final safeChunkSize = _safeChunkSize(chunk);
+    final availableSize = Size(
+      math.max(1.0, viewportSize.width - (padding * 2)),
+      math.max(1.0, viewportSize.height - (padding * 2)),
+    );
+    final fitted = applyBoxFit(BoxFit.contain, safeChunkSize, availableSize);
+    return math.min(
+      fitted.destination.width / safeChunkSize.width,
+      fitted.destination.height / safeChunkSize.height,
+    );
+  }
+
   final LevelChunkDef chunk;
   final double runtimeGridSnap;
   final List<_ChunkRenderPlacement> renderPlacements;
@@ -1163,6 +1426,10 @@ class _ChunkScenePainter extends CustomPainter {
     required this.geometry,
     required this.chunk,
     required this.showParallaxPreview,
+    this.showPixelGrid = true,
+    this.showChunkBounds = true,
+    this.showMarkers = true,
+    this.clipSceneToChunkBounds = false,
     required this.parallaxPreview,
     required this.groundLayout,
     required this.groundMaterial,
@@ -1179,6 +1446,10 @@ class _ChunkScenePainter extends CustomPainter {
   final _ChunkSceneGeometry geometry;
   final LevelChunkDef chunk;
   final bool showParallaxPreview;
+  final bool showPixelGrid;
+  final bool showChunkBounds;
+  final bool showMarkers;
+  final bool clipSceneToChunkBounds;
   final ChunkParallaxPreviewSpec parallaxPreview;
   final ChunkGroundLayout groundLayout;
   final ChunkGroundMaterialSpec groundMaterial;
@@ -1198,35 +1469,45 @@ class _ChunkScenePainter extends CustomPainter {
       geometry.worldCanvasRect,
       Paint()..color = const Color(0xFF0D131A),
     );
-    if (showParallaxPreview) {
-      _paintParallaxBackground(canvas);
-    }
     _paintChunkBackdrop(canvas);
-
-    _paintPixelGrid(canvas, size);
-
-    _paintSceneContentLayers(canvas);
-    _paintMarkers(canvas);
-    if (showParallaxPreview) {
-      _paintParallaxForeground(canvas);
+    if (clipSceneToChunkBounds) {
+      final chunkCanvasRect = geometry.canvasRectFromWorld(geometry.chunkRect);
+      canvas.save();
+      canvas.clipRect(chunkCanvasRect);
+      _paintSceneBody(canvas, size);
+      canvas.restore();
+    } else {
+      _paintSceneBody(canvas, size);
     }
-    _paintChunkBounds(canvas);
+    if (showChunkBounds) {
+      _paintChunkBounds(canvas);
+    }
     _paintSelectedPlacementOverlay(canvas);
     _paintSelectedMarkerOverlay(canvas);
   }
 
+  void _paintSceneBody(Canvas canvas, Size size) {
+    if (showParallaxPreview) {
+      _paintParallaxBackground(canvas);
+    }
+    if (showPixelGrid) {
+      _paintPixelGrid(canvas, size);
+    }
+    _paintSceneContentLayers(canvas);
+    if (showMarkers) {
+      _paintMarkers(canvas);
+    }
+    if (showParallaxPreview) {
+      _paintParallaxForeground(canvas);
+    }
+  }
+
   void _paintParallaxBackground(Canvas canvas) {
-    _paintParallaxLayersOverChunk(
-      canvas,
-      parallaxPreview.backgroundLayers,
-    );
+    _paintParallaxLayersOverChunk(canvas, parallaxPreview.backgroundLayers);
   }
 
   void _paintParallaxForeground(Canvas canvas) {
-    _paintParallaxLayersOnGroundBands(
-      canvas,
-      parallaxPreview.foregroundLayers,
-    );
+    _paintParallaxLayersOnGroundBands(canvas, parallaxPreview.foregroundLayers);
   }
 
   void _paintParallaxLayersOverChunk(
@@ -1337,12 +1618,7 @@ class _ChunkScenePainter extends CustomPainter {
       );
       canvas.drawImageRect(
         image,
-        Rect.fromLTWH(
-          0,
-          0,
-          image.width.toDouble(),
-          image.height.toDouble(),
-        ),
+        Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
         dstRect,
         Paint()..filterQuality = FilterQuality.none,
       );
@@ -1720,7 +1996,9 @@ class _ChunkScenePainter extends CustomPainter {
   }
 
   ui.Image? _resolveParallaxImage(String sourceImagePath) {
-    final absolutePath = p.normalize(p.join(workspaceRootPath, sourceImagePath));
+    final absolutePath = p.normalize(
+      p.join(workspaceRootPath, sourceImagePath),
+    );
     return imageCache.imageFor(absolutePath);
   }
 
@@ -1729,6 +2007,10 @@ class _ChunkScenePainter extends CustomPainter {
     return oldDelegate.geometry.zoom != geometry.zoom ||
         oldDelegate.chunk != chunk ||
         oldDelegate.showParallaxPreview != showParallaxPreview ||
+        oldDelegate.showPixelGrid != showPixelGrid ||
+        oldDelegate.showChunkBounds != showChunkBounds ||
+        oldDelegate.showMarkers != showMarkers ||
+        oldDelegate.clipSceneToChunkBounds != clipSceneToChunkBounds ||
         oldDelegate.groundMaterial.sourceImagePath !=
             groundMaterial.sourceImagePath ||
         oldDelegate.groundMaterialSrcRect != groundMaterialSrcRect ||
@@ -1771,11 +2053,7 @@ class _ChunkSceneContentLayer {
     : this._(zIndex: zIndex, isGround: true);
 
   _ChunkSceneContentLayer.prefab(_ChunkRenderPlacement placement)
-    : this._(
-        zIndex: placement.zIndex,
-        isGround: false,
-        prefab: placement,
-      );
+    : this._(zIndex: placement.zIndex, isGround: false, prefab: placement);
 
   final int zIndex;
   final bool isGround;

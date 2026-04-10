@@ -46,7 +46,7 @@
     {
       "prefabKey": "grass_dirt_32x32_platform",
       "id": "grass_dirt_32x32_platform",
-      "revision": 1,
+      "revision": 2,
       "status": "active",
       "kind": "platform",
       "visualSource": {
@@ -63,12 +63,15 @@
           "height": 30
         }
       ],
-      "tags": []
+      "tags": [
+        "dirt",
+        "grass"
+      ]
     },
     {
       "prefabKey": "grass_dirt_64x32_platform",
       "id": "grass_dirt_64x32_platform",
-      "revision": 1,
+      "revision": 2,
       "status": "active",
       "kind": "platform",
       "visualSource": {
@@ -85,12 +88,15 @@
           "height": 30
         }
       ],
-      "tags": []
+      "tags": [
+        "dirt",
+        "grass"
+      ]
     },
     {
       "prefabKey": "grass_dirt_96x32_less_square_platform",
       "id": "grass_dirt_96x32_less_square_platform",
-      "revision": 1,
+      "revision": 2,
       "status": "active",
       "kind": "platform",
       "visualSource": {
@@ -107,12 +113,15 @@
           "height": 30
         }
       ],
-      "tags": []
+      "tags": [
+        "dirt",
+        "grass"
+      ]
     },
     {
       "prefabKey": "grass_dirt_96x32_square_platform",
       "id": "grass_dirt_96x32_square_platform",
-      "revision": 1,
+      "revision": 2,
       "status": "active",
       "kind": "platform",
       "visualSource": {
@@ -129,7 +138,10 @@
           "height": 30
         }
       ],
-      "tags": []
+      "tags": [
+        "dirt",
+        "grass"
+      ]
     },
     {
       "prefabKey": "village_barrel_01",
