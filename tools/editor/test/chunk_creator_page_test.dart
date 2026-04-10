@@ -11,7 +11,7 @@ import 'package:runner_editor/src/workspace/editor_workspace.dart';
 
 void main() {
   testWidgets(
-    'chunk creator supports level switch, create/duplicate/rename/deprecate, and blocking validation surfacing',
+    'chunk creator supports level switch, create/duplicate/rename/deprecate, and runtime-locked tileSize metadata',
     (tester) async {
       await tester.binding.setSurfaceSize(const Size(1800, 1200));
       addTearDown(() async {
@@ -119,10 +119,12 @@ void main() {
       expect(find.text(chunkDifficultyEarly).last, findsOneWidget);
       await tester.tap(find.text(chunkDifficultyEarly).last);
       await tester.pumpAndSettle();
-      await tester.enterText(
-        find.widgetWithText(TextField, 'tileSize').first,
-        '15',
+
+      expect(
+        tester.widget<TextField>(find.widgetWithText(TextField, 'tileSize').first).enabled,
+        isFalse,
       );
+
       final applyChanges = find.text('Apply Changes', skipOffstage: false);
       expect(applyChanges, findsWidgets);
       await tester.ensureVisible(applyChanges.last);
@@ -130,10 +132,12 @@ void main() {
       await tester.tap(applyChanges.last);
       await tester.pumpAndSettle();
 
-      expect(controller.errorCount, greaterThan(0));
-      await tester.tap(find.text('Validation'));
-      await tester.pumpAndSettle();
-      expect(find.textContaining('tileSize must be snapped'), findsWidgets);
+      final sceneAfterMetadataApply = controller.scene as ChunkScene;
+      final updatedChunk = sceneAfterMetadataApply.chunks.firstWhere(
+        (chunk) => chunk.id == 'chunk_renamed',
+      );
+      expect(updatedChunk.difficulty, chunkDifficultyEarly);
+      expect(updatedChunk.tileSize, 16);
     },
   );
 
@@ -176,14 +180,20 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(
-      find.byKey(const ValueKey<String>('ground_gap_x_gap_1')),
+      find.byKey(
+        const ValueKey<String>('ground_gap_x_chunk_field_gap_001_gap_1'),
+      ),
       '48',
     );
     await tester.enterText(
-      find.byKey(const ValueKey<String>('ground_gap_width_gap_1')),
+      find.byKey(
+        const ValueKey<String>('ground_gap_width_chunk_field_gap_001_gap_1'),
+      ),
       '64',
     );
-    final saveGap = find.byKey(const ValueKey<String>('ground_gap_save_gap_1'));
+    final saveGap = find.byKey(
+      const ValueKey<String>('ground_gap_save_chunk_field_gap_001_gap_1'),
+    );
     await tester.ensureVisible(saveGap);
     await tester.pumpAndSettle();
     await tester.tap(saveGap);
@@ -196,6 +206,134 @@ void main() {
     final gap = chunk.groundGaps.firstWhere((entry) => entry.gapId == 'gap_1');
     expect(gap.x, 48);
     expect(gap.width, 64);
+  });
+
+  testWidgets('chunk creator resets new gap draft fields after adding a gap', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1800, 1200));
+    addTearDown(() async {
+      await tester.binding.setSurfaceSize(null);
+    });
+
+    final controller = EditorSessionController(
+      pluginRegistry: AuthoringPluginRegistry(
+        plugins: <AuthoringDomainPlugin>[
+          _InMemoryChunkPlugin(_initialChunkDocument),
+        ],
+      ),
+      initialPluginId: ChunkDomainPlugin.pluginId,
+      initialWorkspacePath: '.',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: ChunkCreatorPage(controller: controller)),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    await tester.tap(find.text('Chunk List').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('chunk_a').first);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.textContaining('Inspector:').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Ground Gaps'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('new_ground_gap_x')),
+      '48',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('new_ground_gap_width')),
+      '64',
+    );
+    await tester.tap(find.byKey(const ValueKey<String>('add_ground_gap')));
+    await tester.pumpAndSettle();
+
+    final sceneAfterAdd = controller.scene as ChunkScene;
+    final chunk = sceneAfterAdd.chunks.firstWhere(
+      (entry) => entry.id == 'chunk_a',
+    );
+    expect(chunk.groundGaps, hasLength(1));
+    expect(chunk.groundGaps.single.x, 48);
+    expect(chunk.groundGaps.single.width, 64);
+
+    final xField = tester.widget<TextField>(
+      find.byKey(const ValueKey<String>('new_ground_gap_x')),
+    );
+    final widthField = tester.widget<TextField>(
+      find.byKey(const ValueKey<String>('new_ground_gap_width')),
+    );
+    expect(xField.controller?.text, '0');
+    expect(widthField.controller?.text, '16');
+  });
+
+  testWidgets('chunk creator keeps existing gap field state scoped per chunk', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1800, 1200));
+    addTearDown(() async {
+      await tester.binding.setSurfaceSize(null);
+    });
+
+    final controller = EditorSessionController(
+      pluginRegistry: AuthoringPluginRegistry(
+        plugins: <AuthoringDomainPlugin>[
+          _InMemoryChunkPlugin(_initialChunkWithSharedGapIdsDocument),
+        ],
+      ),
+      initialPluginId: ChunkDomainPlugin.pluginId,
+      initialWorkspacePath: '.',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: ChunkCreatorPage(controller: controller)),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    await tester.tap(find.text('Chunk List').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('chunk_gap_a').first);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.textContaining('Inspector:').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Ground Gaps'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(
+        const ValueKey<String>('ground_gap_x_chunk_field_gap_a_001_gap_1'),
+      ),
+      '48',
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('chunk_gap_b').first);
+    await tester.pumpAndSettle();
+
+    expect(
+      _textFormFieldValue(
+        tester,
+        const ValueKey<String>('ground_gap_x_chunk_field_gap_b_001_gap_1'),
+      ),
+      '80',
+    );
+    expect(
+      _textFormFieldValue(
+        tester,
+        const ValueKey<String>('ground_gap_width_chunk_field_gap_b_001_gap_1'),
+      ),
+      '96',
+    );
   });
 }
 
@@ -261,6 +399,58 @@ const ChunkDocument _initialChunkWithGapDocument = ChunkDocument(
   runtimeGroundTopY: 224,
 );
 
+const ChunkDocument _initialChunkWithSharedGapIdsDocument = ChunkDocument(
+  chunks: <LevelChunkDef>[
+    LevelChunkDef(
+      chunkKey: 'chunk_field_gap_a_001',
+      id: 'chunk_gap_a',
+      revision: 1,
+      schemaVersion: 1,
+      levelId: 'field',
+      tileSize: 16,
+      width: 600,
+      height: 270,
+      difficulty: chunkDifficultyNormal,
+      tags: <String>['base'],
+      tileLayers: <TileLayerDef>[],
+      prefabs: <PlacedPrefabDef>[],
+      markers: <PlacedMarkerDef>[],
+      groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 224),
+      groundGaps: <GroundGapDef>[
+        GroundGapDef(gapId: 'gap_1', type: groundGapTypePit, x: 16, width: 32),
+      ],
+      status: chunkStatusActive,
+    ),
+    LevelChunkDef(
+      chunkKey: 'chunk_field_gap_b_001',
+      id: 'chunk_gap_b',
+      revision: 1,
+      schemaVersion: 1,
+      levelId: 'field',
+      tileSize: 16,
+      width: 600,
+      height: 270,
+      difficulty: chunkDifficultyNormal,
+      tags: <String>['base'],
+      tileLayers: <TileLayerDef>[],
+      prefabs: <PlacedPrefabDef>[],
+      markers: <PlacedMarkerDef>[],
+      groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 224),
+      groundGaps: <GroundGapDef>[
+        GroundGapDef(gapId: 'gap_1', type: groundGapTypePit, x: 80, width: 96),
+      ],
+      status: chunkStatusActive,
+    ),
+  ],
+  baselineByChunkKey: <String, ChunkSourceBaseline>{},
+  availableLevelIds: <String>['field', 'forest'],
+  activeLevelId: 'field',
+  levelOptionSource: 'test',
+  runtimeGridSnap: 16.0,
+  runtimeChunkWidth: 600.0,
+  runtimeGroundTopY: 224,
+);
+
 class _InMemoryChunkPlugin implements AuthoringDomainPlugin {
   _InMemoryChunkPlugin(this._initialDocument);
 
@@ -308,4 +498,13 @@ class _InMemoryChunkPlugin implements AuthoringDomainPlugin {
   }) {
     return PendingChanges.empty;
   }
+}
+
+String _textFormFieldValue(WidgetTester tester, Key key) {
+  final editableText = find.descendant(
+    of: find.byKey(key),
+    matching: find.byType(EditableText),
+  );
+  expect(editableText, findsOneWidget);
+  return tester.widget<EditableText>(editableText).controller.text;
 }

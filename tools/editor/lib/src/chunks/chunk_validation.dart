@@ -230,14 +230,15 @@ List<ValidationIssue> validateChunkDocument(ChunkDocument document) {
       );
     }
 
-    if (!_isSnapped(chunk.tileSize.toDouble(), document.runtimeGridSnap)) {
+    final runtimeTileSize = document.runtimeGridSnap.round();
+    if (runtimeTileSize <= 0 || chunk.tileSize != runtimeTileSize) {
       issues.add(
         ValidationIssue(
           severity: ValidationSeverity.error,
-          code: 'chunk_grid_snap_violation',
+          code: 'chunk_tile_size_mismatch',
           message:
-              'Chunk ${chunk.id} tileSize must be snapped to runtime grid '
-              '${document.runtimeGridSnap}.',
+              'Chunk ${chunk.id} tileSize ${chunk.tileSize} must equal '
+              'runtime grid tileSize $runtimeTileSize.',
           sourcePath: sourcePath,
         ),
       );

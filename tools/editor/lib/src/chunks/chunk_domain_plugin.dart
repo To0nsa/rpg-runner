@@ -467,6 +467,7 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
       document,
       chunkKey: chunkKey,
       mapper: (chunk) {
+        final runtimeTileSize = document.runtimeGridSnap.round();
         final resolvedId = _normalizedString(payload['id'], fallback: chunk.id);
         final resolvedTags = _parseTags(payload['tags'], fallback: chunk.tags);
         final nextChunk = _normalizeChunkToDocumentAuthority(
@@ -477,10 +478,7 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
                   payload['levelId'],
                   fallback: chunk.levelId,
                 ),
-                tileSize: _intOrDefault(
-                  payload['tileSize'],
-                  fallback: chunk.tileSize,
-                ),
+                tileSize: runtimeTileSize > 0 ? runtimeTileSize : chunk.tileSize,
                 width: document.runtimeChunkWidth.round(),
                 height: document.lockedChunkHeight,
                 difficulty: _normalizedString(

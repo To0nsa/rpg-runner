@@ -39,7 +39,7 @@ void main() {
     expect(codes, contains('unknown_level_id'));
     expect(codes, contains('active_level_mismatch'));
     expect(codes, contains('chunk_width_mismatch'));
-    expect(codes, contains('chunk_grid_snap_violation'));
+    expect(codes, contains('chunk_tile_size_mismatch'));
     expect(codes, contains('invalid_difficulty'));
     expect(codes, contains('invalid_ground_profile_kind'));
     expect(codes, contains('chunk_height_mismatch'));

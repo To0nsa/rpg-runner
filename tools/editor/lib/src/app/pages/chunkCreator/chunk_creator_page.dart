@@ -103,15 +103,13 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
 
   @override
   bool get hasLocalDraftChanges {
-    final scene = widget.controller.scene;
-    final chunkScene = scene is ChunkScene ? scene : null;
-    final selectedChunk = chunkScene == null
-        ? null
-        : _selectedChunk(chunkScene.chunks);
     return _newChunkIdController.text.trim() != _defaultNewChunkId ||
         _newGapXController.text.trim() != _defaultNewGapX ||
         _newGapWidthController.text.trim() != _defaultNewGapWidth ||
-        _metadataDraftDiffersFromSelectedChunk(selectedChunk);
+        _metadataDraftDiffersFromSelectedChunk(
+          _selectedChunkForDraftChecks(),
+        ) ||
+        _hasUnsavedGroundGapDraftChanges();
   }
 
   @override
@@ -1556,6 +1554,8 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
             Expanded(
               child: TextField(
                 controller: _tileSizeController,
+                readOnly: true,
+                enabled: false,
                 decoration: const InputDecoration(
                   labelText: 'tileSize',
                   border: OutlineInputBorder(),
@@ -1880,6 +1880,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
             children: [
               Expanded(
                 child: TextField(
+                  key: const ValueKey<String>('new_ground_gap_x'),
                   controller: _newGapXController,
                   decoration: const InputDecoration(
                     labelText: 'x',
@@ -1891,6 +1892,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
               const SizedBox(width: _spaceSm),
               Expanded(
                 child: TextField(
+                  key: const ValueKey<String>('new_ground_gap_width'),
                   controller: _newGapWidthController,
                   decoration: const InputDecoration(
                     labelText: 'width',
@@ -1901,6 +1903,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
               ),
               const SizedBox(width: _spaceSm),
               FilledButton(
+                key: const ValueKey<String>('add_ground_gap'),
                 onPressed: () {
                   final x = int.tryParse(_newGapXController.text.trim());
                   final width = int.tryParse(
@@ -1910,26 +1913,22 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
                     _showSnackBar('Gap x/width must be integers.');
                     return;
                   }
-                  final tileSize = selectedChunk.tileSize <= 0
-                      ? 1
-                      : selectedChunk.tileSize;
-                  final snappedX = _roundToNearestMultiple(x, tileSize);
-                  var snappedWidth = _roundToNearestMultiple(width, tileSize);
-                  if (snappedWidth <= 0) {
-                    snappedWidth = tileSize;
-                  }
-                  _newGapXController.text = snappedX.toString();
-                  _newGapWidthController.text = snappedWidth.toString();
+                  final snappedGap = _snapGroundGapValues(
+                    selectedChunk,
+                    x: x,
+                    width: width,
+                  );
                   widget.controller.applyCommand(
                     AuthoringCommand(
                       kind: 'add_ground_gap',
                       payload: <String, Object?>{
                         'chunkKey': selectedChunk.chunkKey,
-                        'x': snappedX,
-                        'width': snappedWidth,
+                        'x': snappedGap.x,
+                        'width': snappedGap.width,
                       },
                     ),
                   );
+                  _resetNewGapDraft();
                 },
                 child: const Text('Add Gap'),
               ),
@@ -1953,7 +1952,9 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
                     SizedBox(
                       width: 110,
                       child: TextFormField(
-                        key: ValueKey<String>('ground_gap_x_${gap.gapId}'),
+                        key: ValueKey<String>(
+                          'ground_gap_x_${selectedChunk.chunkKey}_${gap.gapId}',
+                        ),
                         initialValue: draftXRaw,
                         decoration: const InputDecoration(
                           labelText: 'x',
@@ -1969,7 +1970,9 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
                     SizedBox(
                       width: 120,
                       child: TextFormField(
-                        key: ValueKey<String>('ground_gap_width_${gap.gapId}'),
+                        key: ValueKey<String>(
+                          'ground_gap_width_${selectedChunk.chunkKey}_${gap.gapId}',
+                        ),
                         initialValue: draftWidthRaw,
                         decoration: const InputDecoration(
                           labelText: 'width',
@@ -1987,49 +1990,21 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                      key: ValueKey<String>('ground_gap_save_${gap.gapId}'),
+                      key: ValueKey<String>(
+                        'ground_gap_save_${selectedChunk.chunkKey}_${gap.gapId}',
+                      ),
                       icon: const Icon(Icons.save_outlined),
                       tooltip: 'Save Gap',
                       onPressed: () {
-                        final xRaw =
-                            _groundGapXDraftByKey[draftKey] ?? draftXRaw;
-                        final widthRaw =
-                            _groundGapWidthDraftByKey[draftKey] ??
-                            draftWidthRaw;
-                        final x = int.tryParse(xRaw.trim());
-                        final width = int.tryParse(widthRaw.trim());
-                        if (x == null || width == null) {
-                          _showSnackBar('Gap x/width must be integers.');
-                          return;
-                        }
-                        final tileSize = selectedChunk.tileSize <= 0
-                            ? 1
-                            : selectedChunk.tileSize;
-                        final snappedX = _roundToNearestMultiple(x, tileSize);
-                        var snappedWidth = _roundToNearestMultiple(
-                          width,
-                          tileSize,
+                        _saveGroundGapDraft(
+                          selectedChunk,
+                          gap,
+                          draftXRaw:
+                              _groundGapXDraftByKey[draftKey] ?? draftXRaw,
+                          draftWidthRaw:
+                              _groundGapWidthDraftByKey[draftKey] ??
+                              draftWidthRaw,
                         );
-                        if (snappedWidth <= 0) {
-                          snappedWidth = tileSize;
-                        }
-                        widget.controller.applyCommand(
-                          AuthoringCommand(
-                            kind: 'update_ground_gap',
-                            payload: <String, Object?>{
-                              'chunkKey': selectedChunk.chunkKey,
-                              'gapId': gap.gapId,
-                              'type': gap.type,
-                              'x': snappedX,
-                              'width': snappedWidth,
-                            },
-                          ),
-                        );
-                        setState(() {
-                          _groundGapXDraftByKey[draftKey] = snappedX.toString();
-                          _groundGapWidthDraftByKey[draftKey] = snappedWidth
-                              .toString();
-                        });
                       },
                     ),
                     IconButton(
@@ -2479,6 +2454,103 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
 
   String _groundGapDraftKey(LevelChunkDef chunk, GroundGapDef gap) {
     return '${chunk.chunkKey}::${gap.gapId}';
+  }
+
+  LevelChunkDef? _selectedChunkForDraftChecks() {
+    final scene = widget.controller.scene;
+    final chunkScene = scene is ChunkScene ? scene : null;
+    return chunkScene == null ? null : _selectedChunk(chunkScene.chunks);
+  }
+
+  bool _hasUnsavedGroundGapDraftChanges() {
+    final document = widget.controller.document;
+    if (document is! ChunkDocument) {
+      return false;
+    }
+
+    final gapByDraftKey = <String, GroundGapDef>{};
+    for (final chunk in document.chunks) {
+      for (final gap in chunk.groundGaps) {
+        gapByDraftKey[_groundGapDraftKey(chunk, gap)] = gap;
+      }
+    }
+
+    for (final entry in _groundGapXDraftByKey.entries) {
+      final gap = gapByDraftKey[entry.key];
+      if (gap != null && entry.value.trim() != gap.x.toString()) {
+        return true;
+      }
+    }
+    for (final entry in _groundGapWidthDraftByKey.entries) {
+      final gap = gapByDraftKey[entry.key];
+      if (gap != null && entry.value.trim() != gap.width.toString()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  ({int x, int width}) _snapGroundGapValues(
+    LevelChunkDef chunk, {
+    required int x,
+    required int width,
+  }) {
+    final snapUnit = _authoritativeRuntimeTileSize(chunk);
+    final snappedX = _roundToNearestMultiple(x, snapUnit);
+    var snappedWidth = _roundToNearestMultiple(width, snapUnit);
+    if (snappedWidth <= 0) {
+      snappedWidth = snapUnit;
+    }
+    return (x: snappedX, width: snappedWidth);
+  }
+
+  int _authoritativeRuntimeTileSize(LevelChunkDef chunk) {
+    final document = widget.controller.document;
+    if (document is ChunkDocument) {
+      final runtimeTileSize = document.runtimeGridSnap.round();
+      if (runtimeTileSize > 0) {
+        return runtimeTileSize;
+      }
+    }
+    return chunk.tileSize > 0 ? chunk.tileSize : 1;
+  }
+
+  void _resetNewGapDraft() {
+    _newGapXController.text = _defaultNewGapX;
+    _newGapWidthController.text = _defaultNewGapWidth;
+  }
+
+  void _saveGroundGapDraft(
+    LevelChunkDef chunk,
+    GroundGapDef gap, {
+    required String draftXRaw,
+    required String draftWidthRaw,
+  }) {
+    final x = int.tryParse(draftXRaw.trim());
+    final width = int.tryParse(draftWidthRaw.trim());
+    if (x == null || width == null) {
+      _showSnackBar('Gap x/width must be integers.');
+      return;
+    }
+
+    final snappedGap = _snapGroundGapValues(chunk, x: x, width: width);
+    final draftKey = _groundGapDraftKey(chunk, gap);
+    widget.controller.applyCommand(
+      AuthoringCommand(
+        kind: 'update_ground_gap',
+        payload: <String, Object?>{
+          'chunkKey': chunk.chunkKey,
+          'gapId': gap.gapId,
+          'type': gap.type,
+          'x': snappedGap.x,
+          'width': snappedGap.width,
+        },
+      ),
+    );
+    setState(() {
+      _groundGapXDraftByKey[draftKey] = snappedGap.x.toString();
+      _groundGapWidthDraftByKey[draftKey] = snappedGap.width.toString();
+    });
   }
 
   int _roundToNearestMultiple(int value, int multiple) {
@@ -2972,11 +3044,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
   }
 
   void _applyMetadata(LevelChunkDef chunk) {
-    final tileSize = int.tryParse(_tileSizeController.text.trim());
-    if (tileSize == null) {
-      _showSnackBar('tileSize must be an integer.');
-      return;
-    }
+    final tileSize = _authoritativeRuntimeTileSize(chunk);
 
     widget.controller.applyCommand(
       AuthoringCommand(
