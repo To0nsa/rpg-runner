@@ -118,10 +118,16 @@ void main() {
         expect(export.artifacts, isNotEmpty);
         expect(export.artifacts.single.title, 'chunk_summary.md');
 
-        final chunkPath = p.join(
+        final legacyChunkPath = p.join(
           fixtureRoot.path,
           'assets/authoring/level/chunks/chunk_field_001.json',
         );
+        final chunkPath = p.join(
+          fixtureRoot.path,
+          'assets/authoring/level/chunks/field/chunk_a.json',
+        );
+        expect(File(legacyChunkPath).existsSync(), isFalse);
+        expect(File(chunkPath).existsSync(), isTrue);
         final saved =
             jsonDecode(File(chunkPath).readAsStringSync())
                 as Map<String, Object?>;

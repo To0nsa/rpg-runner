@@ -79,6 +79,8 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
   bool _groundProfileExpanded = false;
   bool _groundGapsExpanded = false;
   bool _enemyMarkersExpanded = false;
+  bool _chunkListExpanded = false;
+  bool _prefabPaletteExpanded = false;
 
   @override
   bool get hasLocalDraftChanges {
@@ -255,130 +257,139 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
   }
 
   Widget _buildChunkListPanel(ChunkScene scene, List<LevelChunkDef> chunks) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    return ListView(
       children: [
-        Expanded(
-          child: Column(
-            children: [
-              Expanded(
-                child: Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Chunks',
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                InkWell(
+                  onTap: () {
+                    setState(() {
+                      _chunkListExpanded = !_chunkListExpanded;
+                    });
+                  },
+                  child: Row(
+                    children: [
+                      Icon(
+                        _chunkListExpanded
+                            ? Icons.expand_more
+                            : Icons.chevron_right,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Chunks (${chunks.length})',
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: _newChunkIdController,
-                          decoration: const InputDecoration(
-                            labelText: 'New Chunk ID',
-                            border: OutlineInputBorder(),
-                            isDense: true,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            FilledButton(
-                              onPressed: () {
+                      ),
+                    ],
+                  ),
+                ),
+                if (_chunkListExpanded) ...[
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _newChunkIdController,
+                    decoration: const InputDecoration(
+                      labelText: 'New Chunk ID',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      FilledButton(
+                        onPressed: () {
+                          widget.controller.applyCommand(
+                            AuthoringCommand(
+                              kind: 'create_chunk',
+                              payload: <String, Object?>{
+                                'id': _newChunkIdController.text.trim(),
+                              },
+                            ),
+                          );
+                        },
+                        child: const Text('Create'),
+                      ),
+                      OutlinedButton(
+                        onPressed: _selectedChunkKey == null
+                            ? null
+                            : () {
+                                final selectedChunk = _selectedChunk(chunks);
                                 widget.controller.applyCommand(
                                   AuthoringCommand(
-                                    kind: 'create_chunk',
+                                    kind: 'duplicate_chunk',
                                     payload: <String, Object?>{
-                                      'id': _newChunkIdController.text.trim(),
+                                      'chunkKey': _selectedChunkKey!,
+                                      'id':
+                                          '${selectedChunk?.id ?? 'chunk'}_copy',
                                     },
                                   ),
                                 );
                               },
-                              child: const Text('Create'),
-                            ),
-                            OutlinedButton(
-                              onPressed: _selectedChunkKey == null
-                                  ? null
-                                  : () {
-                                      final selectedChunk = _selectedChunk(
-                                        chunks,
-                                      );
-                                      widget.controller.applyCommand(
-                                        AuthoringCommand(
-                                          kind: 'duplicate_chunk',
-                                          payload: <String, Object?>{
-                                            'chunkKey': _selectedChunkKey!,
-                                            'id':
-                                                '${selectedChunk?.id ?? 'chunk'}_copy',
-                                          },
-                                        ),
-                                      );
+                        child: const Text('Duplicate'),
+                      ),
+                      OutlinedButton(
+                        onPressed: _selectedChunkKey == null
+                            ? null
+                            : () {
+                                widget.controller.applyCommand(
+                                  AuthoringCommand(
+                                    kind: 'deprecate_chunk',
+                                    payload: <String, Object?>{
+                                      'chunkKey': _selectedChunkKey!,
                                     },
-                              child: const Text('Duplicate'),
-                            ),
-                            OutlinedButton(
-                              onPressed: _selectedChunkKey == null
-                                  ? null
-                                  : () {
-                                      widget.controller.applyCommand(
-                                        AuthoringCommand(
-                                          kind: 'deprecate_chunk',
-                                          payload: <String, Object?>{
-                                            'chunkKey': _selectedChunkKey!,
-                                          },
-                                        ),
-                                      );
-                                    },
-                              child: const Text('Deprecate'),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        const Divider(height: 1),
-                        const SizedBox(height: 8),
-                        Expanded(
-                          child: ListView.builder(
-                            itemCount: chunks.length,
-                            itemBuilder: (context, index) {
-                              final chunk = chunks[index];
-                              final isSelected =
-                                  chunk.chunkKey == _selectedChunkKey;
-                              final isDirty = widget.controller.dirtyItemIds
-                                  .contains(chunk.chunkKey);
-                              return ListTile(
-                                selected: isSelected,
-                                title: Text(
-                                  isDirty ? '* ${chunk.id}' : chunk.id,
-                                ),
-                                subtitle: Text(
-                                  '${chunk.levelId} | ${chunk.status} | rev ${chunk.revision}',
-                                ),
-                                onTap: () {
-                                  setState(() {
-                                    _selectedChunkKey = chunk.chunkKey;
-                                    _selectedPlacementKey = null;
-                                    _selectedMarkerKey = null;
-                                    _sceneTool = ChunkSceneTool.select;
-                                    _syncInspector(chunk);
-                                  });
-                                },
-                              );
-                            },
+                                  ),
+                                );
+                              },
+                        child: const Text('Deprecate'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  const Divider(height: 1),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 320,
+                    child: ListView.builder(
+                      itemCount: chunks.length,
+                      itemBuilder: (context, index) {
+                        final chunk = chunks[index];
+                        final isSelected = chunk.chunkKey == _selectedChunkKey;
+                        final isDirty = widget.controller.dirtyItemIds.contains(
+                          chunk.chunkKey,
+                        );
+                        return ListTile(
+                          selected: isSelected,
+                          title: Text(isDirty ? '* ${chunk.id}' : chunk.id),
+                          subtitle: Text(
+                            '${chunk.levelId} | ${chunk.status} | rev ${chunk.revision}',
                           ),
-                        ),
-                      ],
+                          onTap: () {
+                            setState(() {
+                              _selectedChunkKey = chunk.chunkKey;
+                              _selectedPlacementKey = null;
+                              _selectedMarkerKey = null;
+                              _sceneTool = ChunkSceneTool.select;
+                              _syncInspector(chunk);
+                            });
+                          },
+                        );
+                      },
                     ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Expanded(child: _buildPrefabPaletteCard(scene)),
-            ],
+                ],
+              ],
+            ),
           ),
         ),
+        const SizedBox(height: 8),
+        _buildPrefabPaletteCard(scene),
       ],
     );
   }
@@ -524,68 +535,90 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Prefab Palette',
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-            const SizedBox(height: 8),
-            _buildPlacementModeChips(
-              snapToGrid: _newPlacementSnapToGrid,
-              onChanged: (value) {
+            InkWell(
+              onTap: () {
                 setState(() {
-                  _newPlacementSnapToGrid = value;
+                  _prefabPaletteExpanded = !_prefabPaletteExpanded;
                 });
               },
-            ),
-            const SizedBox(height: 8),
-            _buildLayerStepper(
-              label: 'Layer',
-              zIndex: _newPlacementZIndex,
-              onChanged: (value) {
-                setState(() {
-                  _newPlacementZIndex = value;
-                });
-              },
-            ),
-            const SizedBox(height: 8),
-            const Divider(height: 1),
-            const SizedBox(height: 8),
-            Expanded(
-              child: palette.isEmpty
-                  ? const Center(
-                      child: Text('No active prefabs are available to place.'),
-                    )
-                  : ListView.builder(
-                      itemCount: palette.length,
-                      itemBuilder: (context, index) {
-                        final prefab = palette[index];
-                        final isSelected =
-                            prefab.prefabKey == _selectedPalettePrefabKey;
-                        return ListTile(
-                          selected: isSelected,
-                          dense: true,
-                          leading: Icon(
-                            prefab.kind == PrefabKind.platform
-                                ? Icons.view_agenda_outlined
-                                : Icons.category_outlined,
-                          ),
-                          title: Text(prefab.id),
-                          subtitle: Text(
-                            '${prefab.kind.jsonValue} | '
-                            '${prefab.visualSource.type.jsonValue}',
-                          ),
-                          onTap: () {
-                            setState(() {
-                              _selectedPalettePrefabKey = prefab.prefabKey;
-                              _composerPlaceMode = ChunkScenePlaceMode.prefab;
-                              _selectedMarkerKey = null;
-                              _sceneTool = ChunkSceneTool.place;
-                            });
-                          },
-                        );
-                      },
+              child: Row(
+                children: [
+                  Icon(
+                    _prefabPaletteExpanded
+                        ? Icons.expand_more
+                        : Icons.chevron_right,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Prefab Palette (${palette.length})',
+                      style: Theme.of(context).textTheme.titleSmall,
                     ),
+                  ),
+                ],
+              ),
             ),
+            if (_prefabPaletteExpanded) ...[
+              const SizedBox(height: 8),
+              _buildPlacementModeChips(
+                snapToGrid: _newPlacementSnapToGrid,
+                onChanged: (value) {
+                  setState(() {
+                    _newPlacementSnapToGrid = value;
+                  });
+                },
+              ),
+              const SizedBox(height: 8),
+              _buildLayerStepper(
+                label: 'Layer',
+                zIndex: _newPlacementZIndex,
+                onChanged: (value) {
+                  setState(() {
+                    _newPlacementZIndex = value;
+                  });
+                },
+              ),
+              const SizedBox(height: 8),
+              const Divider(height: 1),
+              const SizedBox(height: 8),
+              SizedBox(
+                height: 280,
+                child: palette.isEmpty
+                    ? const Center(
+                        child: Text('No active prefabs are available to place.'),
+                      )
+                    : ListView.builder(
+                        itemCount: palette.length,
+                        itemBuilder: (context, index) {
+                          final prefab = palette[index];
+                          final isSelected =
+                              prefab.prefabKey == _selectedPalettePrefabKey;
+                          return ListTile(
+                            selected: isSelected,
+                            dense: true,
+                            leading: Icon(
+                              prefab.kind == PrefabKind.platform
+                                  ? Icons.view_agenda_outlined
+                                  : Icons.category_outlined,
+                            ),
+                            title: Text(prefab.id),
+                            subtitle: Text(
+                              '${prefab.kind.jsonValue} | '
+                              '${prefab.visualSource.type.jsonValue}',
+                            ),
+                            onTap: () {
+                              setState(() {
+                                _selectedPalettePrefabKey = prefab.prefabKey;
+                                _composerPlaceMode = ChunkScenePlaceMode.prefab;
+                                _selectedMarkerKey = null;
+                                _sceneTool = ChunkSceneTool.place;
+                              });
+                            },
+                          );
+                        },
+                      ),
+              ),
+            ],
           ],
         ),
       ),

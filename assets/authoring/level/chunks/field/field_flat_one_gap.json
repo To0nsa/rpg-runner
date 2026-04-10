@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "chunkKey": "field_flat_one_gap",
   "id": "field_flat_one_gap",
-  "revision": 3,
+  "revision": 5,
   "status": "active",
   "levelId": "field",
   "tileSize": 16,
@@ -19,10 +19,10 @@
   },
   "groundGaps": [
     {
-      "gapId": "gap_1",
+      "gapId": "gap_2",
       "type": "pit",
       "x": 80,
-      "width": 160
+      "width": 144
     }
   ]
 }

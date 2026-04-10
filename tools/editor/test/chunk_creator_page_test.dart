@@ -38,6 +38,9 @@ void main() {
 
       expect(controller.scene, isA<ChunkScene>());
 
+      await tester.tap(find.textContaining('Chunks (').first);
+      await tester.pumpAndSettle();
+
       await tester.tap(find.byType(DropdownButtonFormField<String>).first);
       await tester.pumpAndSettle();
       await tester.tap(find.text('forest').last);
@@ -155,6 +158,9 @@ void main() {
     );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
+
+    await tester.tap(find.textContaining('Chunks (').first);
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('chunk_gap').first);
     await tester.pumpAndSettle();
