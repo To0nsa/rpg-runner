@@ -16,7 +16,7 @@ void main() {
   test('level definition derives groundTopY from static ground plane', () {
     final level = LevelDefinition(
       id: LevelId.field,
-      patternPool: defaultPatternPool,
+      chunkPatternSource: defaultChunkPatternSource,
       cameraCenterY: 120,
       staticWorldGeometry: const StaticWorldGeometry(
         groundPlane: StaticGroundPlane(topY: 210),
@@ -30,7 +30,7 @@ void main() {
     expect(
       () => LevelDefinition(
         id: LevelId.field,
-        patternPool: defaultPatternPool,
+        chunkPatternSource: defaultChunkPatternSource,
         staticWorldGeometry: const StaticWorldGeometry(),
       ),
       throwsA(anyOf(isA<AssertionError>(), isA<StateError>())),
@@ -44,7 +44,7 @@ void main() {
       const customCameraCenterY = 118.0;
       final level = LevelDefinition(
         id: LevelId.field,
-        patternPool: defaultPatternPool,
+        chunkPatternSource: defaultChunkPatternSource,
         cameraCenterY: customCameraCenterY,
         staticWorldGeometry: const StaticWorldGeometry(
           groundPlane: StaticGroundPlane(topY: customGroundTopY),
@@ -79,7 +79,7 @@ void main() {
     );
     final fieldTheme = LevelDefinition(
       id: LevelId.field,
-      patternPool: defaultPatternPool,
+      chunkPatternSource: defaultChunkPatternSource,
       cameraCenterY: cameraCenterY,
       staticWorldGeometry: geometry,
       themeId: 'field',
@@ -90,7 +90,7 @@ void main() {
     );
     final forestTheme = LevelDefinition(
       id: LevelId.field,
-      patternPool: defaultPatternPool,
+      chunkPatternSource: defaultChunkPatternSource,
       cameraCenterY: cameraCenterY,
       staticWorldGeometry: geometry,
       themeId: 'forest',

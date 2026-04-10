@@ -18,6 +18,7 @@ class ChunkPattern {
     this.obstacles = const <ObstacleRel>[],
     this.groundGaps = const <GapRel>[],
     this.spawnMarkers = const <SpawnMarker>[],
+    this.visualSprites = const <ChunkVisualSpriteRel>[],
   });
 
   /// Human-readable identifier for debugging/logging.
@@ -37,6 +38,39 @@ class ChunkPattern {
 
   /// Probabilistic enemy spawn points.
   final List<SpawnMarker> spawnMarkers;
+
+  /// Author-authored visual sprites for this chunk.
+  final List<ChunkVisualSpriteRel> visualSprites;
+}
+
+/// Chunk-relative visual sprite entry used by runtime renderer.
+class ChunkVisualSpriteRel {
+  const ChunkVisualSpriteRel({
+    required this.assetPath,
+    required this.srcX,
+    required this.srcY,
+    required this.srcWidth,
+    required this.srcHeight,
+    required this.x,
+    required this.y,
+    required this.width,
+    required this.height,
+    this.zIndex = 0,
+  }) : assert(srcWidth > 0),
+       assert(srcHeight > 0),
+       assert(width > 0),
+       assert(height > 0);
+
+  final String assetPath;
+  final int srcX;
+  final int srcY;
+  final int srcWidth;
+  final int srcHeight;
+  final double x;
+  final double y;
+  final double width;
+  final double height;
+  final int zIndex;
 }
 
 /// Chunk-relative platform definition (one-way top surface).

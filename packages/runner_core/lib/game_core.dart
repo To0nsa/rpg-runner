@@ -350,10 +350,14 @@ class GameCore {
       groundEnemyLocomotionSystem: _groundEnemyLocomotionSystem,
       spawnService: _spawnService,
       groundTopY: effectiveGroundTopY,
-      patternPool: levelDefinition.patternPool,
+      chunkPatternSource: levelDefinition.chunkPatternSource,
       earlyPatternChunks: levelDefinition.earlyPatternChunks,
       noEnemyChunks: levelDefinition.noEnemyChunks,
     );
+
+    // Build the startup streamed world without advancing gameplay time so the
+    // ready overlay can render the authoritative initial terrain immediately.
+    _prewarmInitialWorld();
 
     // ─── Initialize snapshot builder (needs player entity ID) ───
     _snapshotBuilder = SnapshotBuilder(
@@ -374,6 +378,23 @@ class GameCore {
         projectileCatalog: _projectiles,
         spellBookCatalog: _spellBooks,
       ),
+    );
+  }
+
+  /// Prewarms streamed startup chunks without advancing [tick].
+  ///
+  /// This keeps the ready overlay aligned with the same authoritative world
+  /// state the first live gameplay tick would otherwise create lazily.
+  void _prewarmInitialWorld() {
+    if (gameOver) return;
+    _stepTrackManager();
+    _animSystem.step(
+      _world,
+      player: _player,
+      currentTick: tick,
+      playerDeathPhase: _playerDeathPhase,
+      playerDeathStartTick: _playerDeathStartTick,
+      playerSpawnStartTick: _playerSpawnStartTick,
     );
   }
 
@@ -1695,6 +1716,7 @@ class GameCore {
       collectibleScore: collectibleScore,
       staticSolids: _trackManager.staticSolidsSnapshot,
       groundSurfaces: _trackManager.groundSurfacesSnapshot,
+      staticPrefabSprites: _trackManager.staticPrefabSpritesSnapshot,
     );
   }
 }

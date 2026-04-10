@@ -56,13 +56,16 @@ void main() {
         bodyTemplate: BodyDef(sideMask: BodyDef.sideLeft, useGravity: false),
       ),
     );
+    final level = LevelRegistry.byId(
+      LevelId.field,
+    ).copyWith(noEnemyChunks: 9999);
     final a = GameCore(
-      levelDefinition: LevelRegistry.byId(LevelId.field),
+      levelDefinition: level,
       seed: seed,
       playerCharacter: playerCharacter,
     );
     final b = GameCore(
-      levelDefinition: LevelRegistry.byId(LevelId.field),
+      levelDefinition: level,
       seed: seed,
       playerCharacter: playerCharacter,
     );

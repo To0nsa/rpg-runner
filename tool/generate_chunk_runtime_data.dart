@@ -2,6 +2,12 @@ import 'dart:convert';
 import 'dart:io';
 
 const String _chunksDirectoryPath = 'assets/authoring/level/chunks';
+const String _prefabDefsPath = 'assets/authoring/level/prefab_defs.json';
+const String _tileDefsPath = 'assets/authoring/level/tile_defs.json';
+const String _outputPath =
+    'packages/runner_core/lib/track/authored_chunk_patterns.dart';
+const int _gridSnap = 16;
+const int _chunkWidth = 600;
 
 Future<void> main(List<String> args) async {
   final showHelp = args.contains('-h') || args.contains('--help');
@@ -23,25 +29,27 @@ Future<void> main(List<String> args) async {
   try {
     final issues = <_ValidationIssue>[];
     final identities = <_ChunkIdentity>[];
+    final authoredChunks = <_ChunkExportData>[];
     final files = await _listChunkJsonFiles();
+    final prefabRegistry = await _loadPrefabRegistry(issues);
 
     if (files.isEmpty) {
       stdout.writeln(
         'No chunk json files found under $_chunksDirectoryPath. '
         'Validation completed.',
       );
-      if (!dryRun) {
-        stdout.writeln(
-          'Generation output is not implemented yet; validation-only mode ran.',
-        );
-      }
       return;
     }
 
     for (final file in files) {
-      final identity = await _validateChunkFile(file, issues);
-      if (identity != null) {
-        identities.add(identity);
+      final parsed = await _validateAndParseChunkFile(
+        file,
+        issues,
+        prefabRegistry: prefabRegistry,
+      );
+      if (parsed != null) {
+        identities.add(parsed.identity);
+        authoredChunks.add(parsed.exportData);
       }
     }
 
@@ -78,8 +86,14 @@ Future<void> main(List<String> args) async {
       stdout.writeln('Dry-run completed with no blocking issues.');
       return;
     }
+
+    authoredChunks.sort((a, b) => a.chunkKey.compareTo(b.chunkKey));
+    final output = _renderDartOutput(authoredChunks);
+    final outputFile = File(_outputPath);
+    await outputFile.parent.create(recursive: true);
+    await outputFile.writeAsString(output);
     stdout.writeln(
-      'Generation output is not implemented yet; validation-only mode ran.',
+      'Generated $_outputPath (${authoredChunks.length} chunk(s)).',
     );
   } on Object catch (error) {
     stderr.writeln('Chunk generation failed: $error');
@@ -111,10 +125,11 @@ Future<List<File>> _listChunkJsonFiles() async {
   return files;
 }
 
-Future<_ChunkIdentity?> _validateChunkFile(
+Future<_ChunkParseResult?> _validateAndParseChunkFile(
   File file,
-  List<_ValidationIssue> issues,
-) async {
+  List<_ValidationIssue> issues, {
+  required _PrefabRegistry prefabRegistry,
+}) async {
   final path = _toRepoRelativePath(file.path);
   String raw;
   try {
@@ -185,7 +200,652 @@ Future<_ChunkIdentity?> _validateChunkFile(
     issues: issues,
   );
 
-  return _ChunkIdentity(path: path, chunkKey: chunkKey, id: id);
+  final chunk = _ChunkJson(
+    path: path,
+    chunkKey: chunkKey,
+    id: id,
+    levelId: _readRequiredString(
+      map: decoded,
+      path: path,
+      field: 'levelId',
+      issues: issues,
+    ),
+    groundTopY: _readGroundTopY(decoded),
+    prefabs: _readListOfMaps(decoded['prefabs']),
+    markers: _readListOfMaps(decoded['markers']),
+    groundGaps: _readListOfMaps(decoded['groundGaps']),
+  );
+
+  final exportData = _buildChunkExportData(
+    chunk,
+    issues,
+    prefabRegistry: prefabRegistry,
+  );
+  if (exportData == null) {
+    return null;
+  }
+
+  return _ChunkParseResult(
+    identity: _ChunkIdentity(path: path, chunkKey: chunkKey, id: id),
+    exportData: exportData,
+  );
+}
+
+int _readGroundTopY(Map<String, Object?> root) {
+  final profile = root['groundProfile'];
+  if (profile is Map<String, Object?>) {
+    final topY = profile['topY'];
+    if (topY is int) return topY;
+    if (topY is num) return topY.toInt();
+  }
+  return 224;
+}
+
+List<Map<String, Object?>> _readListOfMaps(Object? raw) {
+  if (raw is! List<Object?>) {
+    return const <Map<String, Object?>>[];
+  }
+  final out = <Map<String, Object?>>[];
+  for (final item in raw) {
+    if (item is Map<String, Object?>) {
+      out.add(item);
+    }
+  }
+  return out;
+}
+
+Future<_PrefabRegistry> _loadPrefabRegistry(
+  List<_ValidationIssue> issues,
+) async {
+  final prefabDefs = await _readJsonObjectFile(_prefabDefsPath, issues);
+  final tileDefs = await _readJsonObjectFile(_tileDefsPath, issues);
+
+  final slicesById = <String, _SliceDef>{};
+  for (final json in _readListOfMaps(prefabDefs['slices'])) {
+    final id = _normalizedString(json['id']);
+    if (id.isEmpty) continue;
+    slicesById[id] = _SliceDef(
+      id: id,
+      assetPath: _normalizedString(json['sourceImagePath']),
+      x: _intOrZero(json['x']),
+      y: _intOrZero(json['y']),
+      width: _intOrZero(json['width']),
+      height: _intOrZero(json['height']),
+    );
+  }
+  for (final json in _readListOfMaps(tileDefs['tileSlices'])) {
+    final id = _normalizedString(json['id']);
+    if (id.isEmpty) continue;
+    slicesById[id] = _SliceDef(
+      id: id,
+      assetPath: _normalizedString(json['sourceImagePath']),
+      x: _intOrZero(json['x']),
+      y: _intOrZero(json['y']),
+      width: _intOrZero(json['width']),
+      height: _intOrZero(json['height']),
+    );
+  }
+
+  final modulesById = <String, _ModuleDef>{};
+  for (final json in _readListOfMaps(tileDefs['platformModules'])) {
+    final id = _normalizedString(json['id']);
+    if (id.isEmpty) continue;
+    final cells = <_ModuleCell>[];
+    for (final cell in _readListOfMaps(json['cells'])) {
+      final sliceId = _normalizedString(cell['sliceId']);
+      if (sliceId.isEmpty) continue;
+      cells.add(
+        _ModuleCell(
+          sliceId: sliceId,
+          gridX: _intOrZero(cell['gridX']),
+          gridY: _intOrZero(cell['gridY']),
+        ),
+      );
+    }
+    modulesById[id] = _ModuleDef(id: id, cells: cells);
+  }
+
+  final prefabsByKey = <String, _PrefabDef>{};
+  for (final json in _readListOfMaps(prefabDefs['prefabs'])) {
+    final key = _normalizedString(json['prefabKey']);
+    if (key.isEmpty) continue;
+    final colliders = <_ColliderDef>[];
+    for (final collider in _readListOfMaps(json['colliders'])) {
+      colliders.add(
+        _ColliderDef(
+          offsetX: _intOrZero(collider['offsetX']).toDouble(),
+          offsetY: _intOrZero(collider['offsetY']).toDouble(),
+          width: _intOrZero(collider['width']).toDouble(),
+          height: _intOrZero(collider['height']).toDouble(),
+        ),
+      );
+    }
+    final visual = json['visualSource'];
+    String visualType = '';
+    String visualRefId = '';
+    if (visual is Map<String, Object?>) {
+      visualType = _normalizedString(visual['type']);
+      visualRefId = _normalizedString(
+        visualType == 'platform_module'
+            ? visual['moduleId']
+            : visual['sliceId'],
+      );
+    }
+
+    prefabsByKey[key] = _PrefabDef(
+      prefabKey: key,
+      kind: _normalizedString(json['kind']),
+      anchorX: _intOrZero(json['anchorXPx']).toDouble(),
+      anchorY: _intOrZero(json['anchorYPx']).toDouble(),
+      visualType: visualType,
+      visualRefId: visualRefId,
+      colliders: colliders,
+    );
+  }
+
+  return _PrefabRegistry(
+    prefabsByKey: prefabsByKey,
+    slicesById: slicesById,
+    modulesById: modulesById,
+  );
+}
+
+Future<Map<String, Object?>> _readJsonObjectFile(
+  String relativePath,
+  List<_ValidationIssue> issues,
+) async {
+  final file = File(relativePath);
+  if (!await file.exists()) {
+    issues.add(
+      _ValidationIssue(
+        path: relativePath,
+        code: 'missing_file',
+        message: 'Required file is missing.',
+      ),
+    );
+    return <String, Object?>{};
+  }
+  try {
+    final raw = await file.readAsString();
+    final decoded = jsonDecode(raw);
+    if (decoded is Map<String, Object?>) {
+      return decoded;
+    }
+    issues.add(
+      _ValidationIssue(
+        path: relativePath,
+        code: 'invalid_root_type',
+        message: 'Top-level JSON value must be an object.',
+      ),
+    );
+  } on Object catch (error) {
+    issues.add(
+      _ValidationIssue(
+        path: relativePath,
+        code: 'read_failed',
+        message: 'Unable to read/parse file: $error',
+      ),
+    );
+  }
+  return <String, Object?>{};
+}
+
+_ChunkExportData? _buildChunkExportData(
+  _ChunkJson chunk,
+  List<_ValidationIssue> issues, {
+  required _PrefabRegistry prefabRegistry,
+}) {
+  final platforms = <_PlatformExport>[];
+  final obstacles = <_ObstacleExport>[];
+  final visualSprites = <_VisualSpriteExport>[];
+  final groundGaps = <_GroundGapExport>[];
+  final markers = <_MarkerExport>[];
+
+  for (final gap in chunk.groundGaps) {
+    final x = _intOrZero(gap['x']);
+    final width = _intOrZero(gap['width']);
+    if (width <= 0) {
+      issues.add(
+        _ValidationIssue(
+          path: chunk.path,
+          code: 'invalid_gap_width',
+          message: 'Ground gap width must be > 0.',
+        ),
+      );
+      continue;
+    }
+    groundGaps.add(
+      _GroundGapExport(
+        gapId: _normalizedString(gap['gapId']),
+        x: x,
+        width: width,
+      ),
+    );
+  }
+
+  for (final marker in chunk.markers) {
+    final markerId = _normalizedString(marker['markerId']);
+    final enemyId = _enemyEnumFor(markerId);
+    if (enemyId == null) {
+      issues.add(
+        _ValidationIssue(
+          path: chunk.path,
+          code: 'unknown_enemy_marker_id',
+          message: 'Unknown markerId "$markerId".',
+        ),
+      );
+      continue;
+    }
+    markers.add(
+      _MarkerExport(
+        enemyEnum: enemyId,
+        x: _intOrZero(marker['x']),
+        chancePercent: _intOrDefault(marker['chancePercent'], 100),
+        salt: _intOrDefault(marker['salt'], 0),
+        placementEnum: _placementEnumFor(
+          _normalizedString(marker['placement']),
+        ),
+      ),
+    );
+  }
+
+  for (final placed in chunk.prefabs) {
+    final prefabKey = _normalizedString(placed['prefabKey']);
+    final prefab = prefabRegistry.prefabsByKey[prefabKey];
+    if (prefab == null) {
+      issues.add(
+        _ValidationIssue(
+          path: chunk.path,
+          code: 'missing_prefab_key',
+          message: 'Placed prefab references unknown prefabKey "$prefabKey".',
+        ),
+      );
+      continue;
+    }
+
+    final placementX = _intOrZero(placed['x']).toDouble();
+    final placementY = _intOrZero(placed['y']).toDouble();
+
+    final spriteEntries = _buildVisualSprites(
+      prefab: prefab,
+      placementX: placementX,
+      placementY: placementY,
+      registry: prefabRegistry,
+      chunkPath: chunk.path,
+      issues: issues,
+      zIndex: _intOrDefault(placed['zIndex'], 0),
+    );
+    visualSprites.addAll(spriteEntries);
+
+    if (prefab.kind == 'platform') {
+      final colliderBounds = _computeColliderBounds(
+        prefab: prefab,
+        placementX: placementX,
+        placementY: placementY,
+      );
+      final ref = colliderBounds ?? _computeVisualBounds(spriteEntries);
+      if (ref == null) continue;
+      final x = _snapToGrid(ref.left);
+      final width = _positiveSnapDimension(ref.width);
+      final topY = _snapToGrid(ref.top);
+      final aboveGroundTop = chunk.groundTopY - topY;
+      final thickness = _positiveSnapDimension(ref.height);
+      if (aboveGroundTop <= 0) {
+        issues.add(
+          _ValidationIssue(
+            path: chunk.path,
+            code: 'invalid_platform_height',
+            message: 'Platform aboveGroundTop must be > 0 for "$prefabKey".',
+          ),
+        );
+        continue;
+      }
+      platforms.add(
+        _PlatformExport(
+          x: x,
+          width: width,
+          aboveGroundTop: aboveGroundTop,
+          thickness: thickness,
+        ),
+      );
+      continue;
+    }
+
+    if (prefab.kind == 'obstacle') {
+      final colliderBounds = _computeColliderBounds(
+        prefab: prefab,
+        placementX: placementX,
+        placementY: placementY,
+      );
+      final ref = colliderBounds ?? _computeVisualBounds(spriteEntries);
+      if (ref == null) continue;
+      final left = _snapToGrid(ref.left);
+      final right = _snapToGrid(ref.right);
+      final top = _snapToGrid(ref.top);
+
+      final x = left.clamp(0, _chunkWidth - _gridSnap);
+      final width = _positiveSnapDimension((right - left).abs().toDouble());
+      final height = _positiveSnapDimension(
+        (chunk.groundTopY - top).toDouble(),
+      );
+      obstacles.add(_ObstacleExport(x: x, width: width, height: height));
+    }
+  }
+
+  return _ChunkExportData(
+    chunkKey: chunk.chunkKey,
+    name: chunk.id,
+    platforms: platforms,
+    obstacles: obstacles,
+    groundGaps: groundGaps,
+    visualSprites: visualSprites,
+    spawnMarkers: markers,
+  );
+}
+
+List<_VisualSpriteExport> _buildVisualSprites({
+  required _PrefabDef prefab,
+  required double placementX,
+  required double placementY,
+  required _PrefabRegistry registry,
+  required String chunkPath,
+  required List<_ValidationIssue> issues,
+  required int zIndex,
+}) {
+  if (prefab.visualType == 'atlas_slice') {
+    final slice = registry.slicesById[prefab.visualRefId];
+    if (slice == null) {
+      issues.add(
+        _ValidationIssue(
+          path: chunkPath,
+          code: 'missing_slice',
+          message: 'Missing atlas slice "${prefab.visualRefId}".',
+        ),
+      );
+      return const <_VisualSpriteExport>[];
+    }
+    return <_VisualSpriteExport>[
+      _VisualSpriteExport(
+        assetPath: _runtimeAssetPath(slice.assetPath),
+        srcX: slice.x,
+        srcY: slice.y,
+        srcWidth: slice.width,
+        srcHeight: slice.height,
+        x: placementX - prefab.anchorX,
+        y: placementY - prefab.anchorY,
+        width: slice.width.toDouble(),
+        height: slice.height.toDouble(),
+        zIndex: zIndex,
+      ),
+    ];
+  }
+
+  if (prefab.visualType == 'platform_module') {
+    final module = registry.modulesById[prefab.visualRefId];
+    if (module == null) {
+      issues.add(
+        _ValidationIssue(
+          path: chunkPath,
+          code: 'missing_module',
+          message: 'Missing platform module "${prefab.visualRefId}".',
+        ),
+      );
+      return const <_VisualSpriteExport>[];
+    }
+    final sprites = <_VisualSpriteExport>[];
+    for (final cell in module.cells) {
+      final slice = registry.slicesById[cell.sliceId];
+      if (slice == null) {
+        issues.add(
+          _ValidationIssue(
+            path: chunkPath,
+            code: 'missing_tile_slice',
+            message:
+                'Missing tile slice "${cell.sliceId}" for module "${module.id}".',
+          ),
+        );
+        continue;
+      }
+      sprites.add(
+        _VisualSpriteExport(
+          assetPath: _runtimeAssetPath(slice.assetPath),
+          srcX: slice.x,
+          srcY: slice.y,
+          srcWidth: slice.width,
+          srcHeight: slice.height,
+          x: placementX - prefab.anchorX + (cell.gridX * _gridSnap),
+          y: placementY - prefab.anchorY + (cell.gridY * _gridSnap),
+          width: slice.width.toDouble(),
+          height: slice.height.toDouble(),
+          zIndex: zIndex,
+        ),
+      );
+    }
+    return sprites;
+  }
+
+  return const <_VisualSpriteExport>[];
+}
+
+String _runtimeAssetPath(String authoredPath) {
+  const prefix = 'assets/images/';
+  if (authoredPath.startsWith(prefix)) {
+    return authoredPath.substring(prefix.length);
+  }
+  return authoredPath;
+}
+
+_RectD? _computeVisualBounds(List<_VisualSpriteExport> sprites) {
+  if (sprites.isEmpty) {
+    return null;
+  }
+  var left = sprites.first.x;
+  var top = sprites.first.y;
+  var right = sprites.first.x + sprites.first.width;
+  var bottom = sprites.first.y + sprites.first.height;
+
+  for (var i = 1; i < sprites.length; i += 1) {
+    final sprite = sprites[i];
+    left = left < sprite.x ? left : sprite.x;
+    top = top < sprite.y ? top : sprite.y;
+    right = right > (sprite.x + sprite.width)
+        ? right
+        : (sprite.x + sprite.width);
+    bottom = bottom > (sprite.y + sprite.height)
+        ? bottom
+        : (sprite.y + sprite.height);
+  }
+  return _RectD(left: left, top: top, right: right, bottom: bottom);
+}
+
+_RectD? _computeColliderBounds({
+  required _PrefabDef prefab,
+  required double placementX,
+  required double placementY,
+}) {
+  if (prefab.colliders.isEmpty) {
+    return null;
+  }
+  _RectD? bounds;
+  for (final collider in prefab.colliders) {
+    final cx = placementX + collider.offsetX;
+    final cy = placementY + collider.offsetY;
+    final halfW = collider.width * 0.5;
+    final halfH = collider.height * 0.5;
+    final rect = _RectD(
+      left: cx - halfW,
+      top: cy - halfH,
+      right: cx + halfW,
+      bottom: cy + halfH,
+    );
+    if (bounds == null) {
+      bounds = rect;
+    } else {
+      bounds = _RectD(
+        left: bounds.left < rect.left ? bounds.left : rect.left,
+        top: bounds.top < rect.top ? bounds.top : rect.top,
+        right: bounds.right > rect.right ? bounds.right : rect.right,
+        bottom: bounds.bottom > rect.bottom ? bounds.bottom : rect.bottom,
+      );
+    }
+  }
+  return bounds;
+}
+
+int _snapToGrid(double value) {
+  final scaled = value / _gridSnap;
+  return (scaled.round() * _gridSnap);
+}
+
+int _positiveSnapDimension(double value) {
+  final snapped = _snapToGrid(value.abs());
+  if (snapped <= 0) {
+    return _gridSnap;
+  }
+  return snapped;
+}
+
+String? _enemyEnumFor(String markerId) {
+  switch (markerId) {
+    case 'derf':
+      return 'EnemyId.derf';
+    case 'grojib':
+      return 'EnemyId.grojib';
+    case 'hashash':
+      return 'EnemyId.hashash';
+    case 'unocoDemon':
+      return 'EnemyId.unocoDemon';
+    default:
+      return null;
+  }
+}
+
+String _placementEnumFor(String raw) {
+  switch (raw) {
+    case 'highestSurfaceAtX':
+      return 'SpawnPlacementMode.highestSurfaceAtX';
+    case 'obstacleTop':
+      return 'SpawnPlacementMode.obstacleTop';
+    case 'ground':
+    default:
+      return 'SpawnPlacementMode.ground';
+  }
+}
+
+int _intOrZero(Object? value) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  return 0;
+}
+
+int _intOrDefault(Object? value, int fallback) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  return fallback;
+}
+
+String _normalizedString(Object? raw, {String fallback = ''}) {
+  if (raw is String) {
+    final trimmed = raw.trim();
+    if (trimmed.isNotEmpty) {
+      return trimmed;
+    }
+  }
+  return fallback;
+}
+
+String _renderDartOutput(List<_ChunkExportData> chunks) {
+  final buffer = StringBuffer()
+    ..writeln('/// GENERATED FILE. DO NOT EDIT BY HAND.')
+    ..writeln('///')
+    ..writeln('/// Generated by tool/generate_chunk_runtime_data.dart from:')
+    ..writeln('/// - assets/authoring/level/chunks/*.json')
+    ..writeln('/// - assets/authoring/level/prefab_defs.json')
+    ..writeln('/// - assets/authoring/level/tile_defs.json')
+    ..writeln('library;')
+    ..writeln()
+    ..writeln("import '../enemies/enemy_id.dart';")
+    ..writeln("import 'chunk_pattern.dart';")
+    ..writeln()
+    ..writeln('const List<ChunkPattern> authoredAllPatterns = <ChunkPattern>[');
+
+  for (final chunk in chunks) {
+    buffer
+      ..writeln('  ChunkPattern(')
+      ..writeln("    name: '${_escape(chunk.name)}',")
+      ..writeln("    chunkKey: '${_escape(chunk.chunkKey)}',");
+
+    buffer.writeln('    platforms: <PlatformRel>[');
+    for (final platform in chunk.platforms) {
+      buffer.writeln(
+        '      PlatformRel(x: ${platform.x.toDouble()}, width: ${platform.width.toDouble()}, aboveGroundTop: ${platform.aboveGroundTop.toDouble()}, thickness: ${platform.thickness.toDouble()}),',
+      );
+    }
+    buffer.writeln('    ],');
+
+    buffer.writeln('    obstacles: <ObstacleRel>[');
+    for (final obstacle in chunk.obstacles) {
+      buffer.writeln(
+        '      ObstacleRel(x: ${obstacle.x.toDouble()}, width: ${obstacle.width.toDouble()}, height: ${obstacle.height.toDouble()}),',
+      );
+    }
+    buffer.writeln('    ],');
+
+    buffer.writeln('    groundGaps: <GapRel>[');
+    for (final gap in chunk.groundGaps) {
+      if (gap.gapId.isEmpty) {
+        buffer.writeln(
+          '      GapRel(x: ${gap.x.toDouble()}, width: ${gap.width.toDouble()}),',
+        );
+      } else {
+        buffer.writeln(
+          "      GapRel(gapId: '${_escape(gap.gapId)}', x: ${gap.x.toDouble()}, width: ${gap.width.toDouble()}),",
+        );
+      }
+    }
+    buffer.writeln('    ],');
+
+    buffer.writeln('    visualSprites: <ChunkVisualSpriteRel>[');
+    for (final sprite in chunk.visualSprites) {
+      buffer
+        ..writeln('      ChunkVisualSpriteRel(')
+        ..writeln("        assetPath: '${_escape(sprite.assetPath)}',")
+        ..writeln('        srcX: ${sprite.srcX},')
+        ..writeln('        srcY: ${sprite.srcY},')
+        ..writeln('        srcWidth: ${sprite.srcWidth},')
+        ..writeln('        srcHeight: ${sprite.srcHeight},')
+        ..writeln('        x: ${sprite.x},')
+        ..writeln('        y: ${sprite.y},')
+        ..writeln('        width: ${sprite.width},')
+        ..writeln('        height: ${sprite.height},')
+        ..writeln('        zIndex: ${sprite.zIndex},')
+        ..writeln('      ),');
+    }
+    buffer.writeln('    ],');
+
+    buffer.writeln('    spawnMarkers: <SpawnMarker>[');
+    for (final marker in chunk.spawnMarkers) {
+      buffer.writeln(
+        '      SpawnMarker(enemyId: ${marker.enemyEnum}, x: ${marker.x.toDouble()}, chancePercent: ${marker.chancePercent}, salt: ${marker.salt}, placement: ${marker.placementEnum}),',
+      );
+    }
+    buffer
+      ..writeln('    ],')
+      ..writeln('  ),');
+  }
+
+  buffer
+    ..writeln('];')
+    ..writeln()
+    ..writeln(
+      'const List<ChunkPattern> authoredEasyPatterns = authoredAllPatterns;',
+    );
+
+  return buffer.toString();
+}
+
+String _escape(String raw) {
+  return raw.replaceAll('\\', '\\\\').replaceAll("'", "\\'");
 }
 
 String _readRequiredString({
@@ -277,6 +937,235 @@ class _ChunkIdentity {
   final String path;
   final String chunkKey;
   final String id;
+}
+
+class _ChunkParseResult {
+  const _ChunkParseResult({required this.identity, required this.exportData});
+
+  final _ChunkIdentity identity;
+  final _ChunkExportData exportData;
+}
+
+class _ChunkJson {
+  const _ChunkJson({
+    required this.path,
+    required this.chunkKey,
+    required this.id,
+    required this.levelId,
+    required this.groundTopY,
+    required this.prefabs,
+    required this.markers,
+    required this.groundGaps,
+  });
+
+  final String path;
+  final String chunkKey;
+  final String id;
+  final String levelId;
+  final int groundTopY;
+  final List<Map<String, Object?>> prefabs;
+  final List<Map<String, Object?>> markers;
+  final List<Map<String, Object?>> groundGaps;
+}
+
+class _PrefabRegistry {
+  const _PrefabRegistry({
+    required this.prefabsByKey,
+    required this.slicesById,
+    required this.modulesById,
+  });
+
+  final Map<String, _PrefabDef> prefabsByKey;
+  final Map<String, _SliceDef> slicesById;
+  final Map<String, _ModuleDef> modulesById;
+}
+
+class _PrefabDef {
+  const _PrefabDef({
+    required this.prefabKey,
+    required this.kind,
+    required this.anchorX,
+    required this.anchorY,
+    required this.visualType,
+    required this.visualRefId,
+    required this.colliders,
+  });
+
+  final String prefabKey;
+  final String kind;
+  final double anchorX;
+  final double anchorY;
+  final String visualType;
+  final String visualRefId;
+  final List<_ColliderDef> colliders;
+}
+
+class _ColliderDef {
+  const _ColliderDef({
+    required this.offsetX,
+    required this.offsetY,
+    required this.width,
+    required this.height,
+  });
+
+  final double offsetX;
+  final double offsetY;
+  final double width;
+  final double height;
+}
+
+class _SliceDef {
+  const _SliceDef({
+    required this.id,
+    required this.assetPath,
+    required this.x,
+    required this.y,
+    required this.width,
+    required this.height,
+  });
+
+  final String id;
+  final String assetPath;
+  final int x;
+  final int y;
+  final int width;
+  final int height;
+}
+
+class _ModuleDef {
+  const _ModuleDef({required this.id, required this.cells});
+
+  final String id;
+  final List<_ModuleCell> cells;
+}
+
+class _ModuleCell {
+  const _ModuleCell({
+    required this.sliceId,
+    required this.gridX,
+    required this.gridY,
+  });
+
+  final String sliceId;
+  final int gridX;
+  final int gridY;
+}
+
+class _RectD {
+  const _RectD({
+    required this.left,
+    required this.top,
+    required this.right,
+    required this.bottom,
+  });
+
+  final double left;
+  final double top;
+  final double right;
+  final double bottom;
+
+  double get width => right - left;
+  double get height => bottom - top;
+}
+
+class _ChunkExportData {
+  const _ChunkExportData({
+    required this.chunkKey,
+    required this.name,
+    required this.platforms,
+    required this.obstacles,
+    required this.groundGaps,
+    required this.visualSprites,
+    required this.spawnMarkers,
+  });
+
+  final String chunkKey;
+  final String name;
+  final List<_PlatformExport> platforms;
+  final List<_ObstacleExport> obstacles;
+  final List<_GroundGapExport> groundGaps;
+  final List<_VisualSpriteExport> visualSprites;
+  final List<_MarkerExport> spawnMarkers;
+}
+
+class _PlatformExport {
+  const _PlatformExport({
+    required this.x,
+    required this.width,
+    required this.aboveGroundTop,
+    required this.thickness,
+  });
+
+  final int x;
+  final int width;
+  final int aboveGroundTop;
+  final int thickness;
+}
+
+class _ObstacleExport {
+  const _ObstacleExport({
+    required this.x,
+    required this.width,
+    required this.height,
+  });
+
+  final int x;
+  final int width;
+  final int height;
+}
+
+class _GroundGapExport {
+  const _GroundGapExport({
+    required this.gapId,
+    required this.x,
+    required this.width,
+  });
+
+  final String gapId;
+  final int x;
+  final int width;
+}
+
+class _VisualSpriteExport {
+  const _VisualSpriteExport({
+    required this.assetPath,
+    required this.srcX,
+    required this.srcY,
+    required this.srcWidth,
+    required this.srcHeight,
+    required this.x,
+    required this.y,
+    required this.width,
+    required this.height,
+    required this.zIndex,
+  });
+
+  final String assetPath;
+  final int srcX;
+  final int srcY;
+  final int srcWidth;
+  final int srcHeight;
+  final double x;
+  final double y;
+  final double width;
+  final double height;
+  final int zIndex;
+}
+
+class _MarkerExport {
+  const _MarkerExport({
+    required this.enemyEnum,
+    required this.x,
+    required this.chancePercent,
+    required this.salt,
+    required this.placementEnum,
+  });
+
+  final String enemyEnum;
+  final int x;
+  final int chancePercent;
+  final int salt;
+  final String placementEnum;
 }
 
 class _ValidationIssue implements Comparable<_ValidationIssue> {

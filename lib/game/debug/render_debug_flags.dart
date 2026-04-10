@@ -7,6 +7,11 @@ library;
 import 'package:flutter/foundation.dart';
 
 abstract class RenderDebugFlags {
+  /// Draws static streamed solids (platforms/obstacles) as debug rectangles.
+  ///
+  /// Default is `false`; enable only for collision debugging.
+  static bool drawStaticSolids = false;
+
   /// Draws collision AABB overlays for "actor" entities (player + enemies).
   ///
   /// Default is `false` even in debug builds; toggle locally when needed.

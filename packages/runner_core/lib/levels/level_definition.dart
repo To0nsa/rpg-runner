@@ -2,6 +2,7 @@
 library;
 
 import '../collision/static_world_geometry.dart';
+import '../track/chunk_pattern_source.dart';
 import '../track/chunk_pattern_pool.dart';
 import '../tuning/core_tuning.dart';
 import 'level_id.dart';
@@ -13,7 +14,7 @@ import 'level_world_constants.dart';
 class LevelDefinition {
   LevelDefinition({
     required this.id,
-    required this.patternPool,
+    required this.chunkPatternSource,
     required this.staticWorldGeometry,
     this.tuning = const CoreTuning(),
     this.cameraCenterY = defaultLevelCameraCenterY,
@@ -52,9 +53,9 @@ class LevelDefinition {
   double get groundTopY => staticWorldGeometry.groundPlane!.topY;
 
   /// Pattern pool used for procedural chunk generation.
-  final ChunkPatternPool patternPool;
+  final ChunkPatternSource chunkPatternSource;
 
-  /// Number of early chunks that use [patternPool.easyPatterns].
+  /// Number of early chunks that use "early" chunk patterns.
   final int earlyPatternChunks;
 
   /// Number of early chunks that suppress enemy spawns.
@@ -69,14 +70,14 @@ class LevelDefinition {
     CoreTuning? tuning,
     double? cameraCenterY,
     StaticWorldGeometry? staticWorldGeometry,
-    ChunkPatternPool? patternPool,
+    ChunkPatternSource? chunkPatternSource,
     int? earlyPatternChunks,
     int? noEnemyChunks,
     String? themeId,
   }) {
     return LevelDefinition(
       id: id ?? this.id,
-      patternPool: patternPool ?? this.patternPool,
+      chunkPatternSource: chunkPatternSource ?? this.chunkPatternSource,
       tuning: tuning ?? this.tuning,
       cameraCenterY: cameraCenterY ?? this.cameraCenterY,
       staticWorldGeometry: staticWorldGeometry ?? this.staticWorldGeometry,

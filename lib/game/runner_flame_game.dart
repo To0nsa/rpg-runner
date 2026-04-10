@@ -232,6 +232,9 @@ class RunnerFlameGame extends FlameGame {
     );
 
     _liveWorldSync.mountStaticSolids(controller.snapshot.staticSolids);
+    _liveWorldSync.mountStaticPrefabSprites(
+      controller.snapshot.staticPrefabSprites,
+    );
     _setLoadState(RunLoadPhase.worldReady, 1.0);
   }
 
@@ -277,6 +280,13 @@ class RunnerFlameGame extends FlameGame {
     _liveWorldSync.syncStaticSolids(currSnapshot.staticSolids);
     _liveWorldSync.snapStaticSolids(
       currSnapshot.staticSolids,
+      cameraCenter: _cameraCenterScratch,
+      virtualWidth: virtualWidth,
+      virtualHeight: virtualHeight,
+    );
+    _liveWorldSync.syncStaticPrefabSprites(currSnapshot.staticPrefabSprites);
+    _liveWorldSync.snapStaticPrefabSprites(
+      currSnapshot.staticPrefabSprites,
       cameraCenter: _cameraCenterScratch,
       virtualWidth: virtualWidth,
       virtualHeight: virtualHeight,

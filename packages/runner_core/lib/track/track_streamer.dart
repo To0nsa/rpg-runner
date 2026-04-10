@@ -112,6 +112,8 @@ class TrackStreamer {
   List<StaticGroundSegment> _dynamicGroundSegments =
       const <StaticGroundSegment>[];
   List<StaticGroundGap> _dynamicGroundGaps = const <StaticGroundGap>[];
+    List<ChunkVisualSpriteWorld> _dynamicVisualSprites =
+      const <ChunkVisualSpriteWorld>[];
 
   /// Current streamed solids (excluding any caller-provided base solids).
   List<StaticSolid> get dynamicSolids => _dynamicSolids;
@@ -121,6 +123,9 @@ class TrackStreamer {
 
   /// Current streamed ground gaps (excluding any base gaps).
   List<StaticGroundGap> get dynamicGroundGaps => _dynamicGroundGaps;
+
+  /// Current streamed visual sprites for chunk prefab rendering.
+  List<ChunkVisualSpriteWorld> get dynamicVisualSprites => _dynamicVisualSprites;
 
   /// Advances chunk streaming based on the current camera bounds.
   ///
@@ -197,6 +202,23 @@ class TrackStreamer {
         spawnEnemy: spawnEnemy,
       );
 
+      final visualSprites = pattern.visualSprites
+          .map(
+            (sprite) => ChunkVisualSpriteWorld(
+              assetPath: sprite.assetPath,
+              srcX: sprite.srcX,
+              srcY: sprite.srcY,
+              srcWidth: sprite.srcWidth,
+              srcHeight: sprite.srcHeight,
+              x: startX + sprite.x,
+              y: sprite.y,
+              width: sprite.width,
+              height: sprite.height,
+              zIndex: sprite.zIndex,
+            ),
+          )
+          .toList(growable: false);
+
       // Track active chunk.
       _active.add(
         _ActiveChunk(
@@ -206,6 +228,7 @@ class TrackStreamer {
           solids: solids,
           groundSegments: ground.segments,
           groundGaps: ground.gaps,
+          visualSprites: visualSprites,
           pendingHashashSpawns: pendingHashashSpawns,
         ),
       );
@@ -241,10 +264,12 @@ class TrackStreamer {
       final rebuilt = <StaticSolid>[];
       final rebuiltGroundSegments = <StaticGroundSegment>[];
       final rebuiltGroundGaps = <StaticGroundGap>[];
+      final rebuiltVisualSprites = <ChunkVisualSpriteWorld>[];
       for (final c in _active) {
         rebuilt.addAll(c.solids);
         rebuiltGroundSegments.addAll(c.groundSegments);
         rebuiltGroundGaps.addAll(c.groundGaps);
+        rebuiltVisualSprites.addAll(c.visualSprites);
       }
       _dynamicSolids = List<StaticSolid>.unmodifiable(rebuilt);
       _dynamicGroundSegments = List<StaticGroundSegment>.unmodifiable(
@@ -252,6 +277,9 @@ class TrackStreamer {
       );
       _dynamicGroundGaps = List<StaticGroundGap>.unmodifiable(
         rebuiltGroundGaps,
+      );
+      _dynamicVisualSprites = List<ChunkVisualSpriteWorld>.unmodifiable(
+        rebuiltVisualSprites,
       );
     }
 
@@ -458,6 +486,7 @@ class _ActiveChunk {
     required this.solids,
     required this.groundSegments,
     required this.groundGaps,
+    required this.visualSprites,
     this.pendingHashashSpawns = 0,
   });
 
@@ -479,8 +508,38 @@ class _ActiveChunk {
   /// Holes in the ground.
   final List<StaticGroundGap> groundGaps;
 
+  /// Render sprites for authored prefab visuals in this chunk.
+  final List<ChunkVisualSpriteWorld> visualSprites;
+
   /// Deferred hashash spawns that should trigger when this chunk is camera-right.
   int pendingHashashSpawns;
+}
+
+/// World-space visual sprite emitted by [TrackStreamer].
+class ChunkVisualSpriteWorld {
+  const ChunkVisualSpriteWorld({
+    required this.assetPath,
+    required this.srcX,
+    required this.srcY,
+    required this.srcWidth,
+    required this.srcHeight,
+    required this.x,
+    required this.y,
+    required this.width,
+    required this.height,
+    required this.zIndex,
+  });
+
+  final String assetPath;
+  final int srcX;
+  final int srcY;
+  final int srcWidth;
+  final int srcHeight;
+  final double x;
+  final double y;
+  final double width;
+  final double height;
+  final int zIndex;
 }
 
 class _SurfaceCandidate {

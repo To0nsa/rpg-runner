@@ -35,6 +35,7 @@ import 'snapshots/entity_render_snapshot.dart';
 import 'snapshots/game_state_snapshot.dart';
 import 'snapshots/ground_surface_snapshot.dart';
 import 'snapshots/player_hud_snapshot.dart';
+import 'snapshots/static_prefab_sprite_snapshot.dart';
 import 'snapshots/static_solid_snapshot.dart';
 import 'players/player_tuning.dart';
 import 'util/vec2.dart';
@@ -141,6 +142,7 @@ class SnapshotBuilder {
   /// - [collectibleScore]: Total score from collectibles.
   /// - [staticSolids]: Pre-built list of platform snapshots.
   /// - [groundSurfaces]: Pre-built list of walkable ground surface snapshots.
+  /// - [staticPrefabSprites]: Pre-built list of static prefab visual sprites.
   GameStateSnapshot build({
     required int tick,
     required int runId,
@@ -155,6 +157,7 @@ class SnapshotBuilder {
     required int collectibleScore,
     required List<StaticSolidSnapshot> staticSolids,
     required List<GroundSurfaceSnapshot> groundSurfaces,
+    required List<StaticPrefabSpriteSnapshot> staticPrefabSprites,
   }) {
     // ─── Query player component indices ───
     final mi = world.movement.indexOf(player);
@@ -490,6 +493,7 @@ class SnapshotBuilder {
       entities: entities,
       staticSolids: staticSolids,
       groundSurfaces: groundSurfaces,
+      staticPrefabSprites: staticPrefabSprites,
     );
   }
 

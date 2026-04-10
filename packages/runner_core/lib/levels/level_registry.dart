@@ -2,16 +2,16 @@
 library;
 
 import '../collision/static_world_geometry.dart';
-import '../track/chunk_pattern_pool.dart';
-import '../track/chunk_patterns_library.dart';
+import '../track/authored_chunk_patterns.dart';
+import '../track/chunk_pattern_source.dart';
 import 'level_definition.dart';
 import 'level_id.dart';
 import 'level_world_constants.dart';
 
-/// Default pattern pool (matches current behavior).
-const ChunkPatternPool defaultPatternPool = ChunkPatternPool(
-  easyPatterns: easyPatterns,
-  allPatterns: allPatterns,
+/// Default runtime-authored chunk pattern source.
+const ChunkPatternSource defaultChunkPatternSource = ChunkPatternListSource(
+  easyPatterns: authoredEasyPatterns,
+  allPatterns: authoredAllPatterns,
 );
 
 const StaticWorldGeometry _defaultBaseGeometry = StaticWorldGeometry(
@@ -28,7 +28,7 @@ class LevelRegistry {
       case LevelId.forest:
         return LevelDefinition(
           id: LevelId.forest,
-          patternPool: defaultPatternPool,
+          chunkPatternSource: defaultChunkPatternSource,
           cameraCenterY: defaultLevelCameraCenterY,
           staticWorldGeometry: _defaultBaseGeometry,
           themeId: 'forest',
@@ -36,7 +36,7 @@ class LevelRegistry {
       case LevelId.field:
         return LevelDefinition(
           id: LevelId.field,
-          patternPool: defaultPatternPool,
+          chunkPatternSource: defaultChunkPatternSource,
           cameraCenterY: defaultLevelCameraCenterY,
           staticWorldGeometry: _defaultBaseGeometry,
           themeId: 'field',

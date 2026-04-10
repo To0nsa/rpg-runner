@@ -44,6 +44,7 @@ import 'ecs/systems/enemy_navigation_system.dart';
 import 'navigation/surface_graph_builder.dart';
 import 'navigation/utils/jump_template.dart';
 import 'snapshots/ground_surface_snapshot.dart';
+import 'snapshots/static_prefab_sprite_snapshot.dart';
 import 'snapshots/static_solid_snapshot.dart';
 import 'spawn_service.dart' hide StaticSolid;
 import 'track/chunk_pattern_pool.dart';
@@ -117,8 +118,7 @@ class TrackManager {
   /// - [groundEnemyLocomotionSystem]: Ground locomotion (receives graph updates).
   /// - [spawnService]: Entity spawner (receives surface graph updates).
   /// - [groundTopY]: Y coordinate of the ground surface (for spawning).
-  /// - [chunkPatternSource]: Optional deterministic pattern source seam.
-  /// - [patternPool]: Backward-compatible pool fallback when source omitted.
+  /// - [chunkPatternSource]: Deterministic chunk pattern source.
   /// - [earlyPatternChunks]: Number of early chunks using easy patterns.
   /// - [noEnemyChunks]: Number of early chunks that suppress enemy spawns.
   TrackManager({
@@ -133,8 +133,7 @@ class TrackManager {
     required GroundEnemyLocomotionSystem groundEnemyLocomotionSystem,
     required SpawnService spawnService,
     required double groundTopY,
-    ChunkPatternSource? chunkPatternSource,
-    ChunkPatternPool? patternPool,
+    required ChunkPatternSource chunkPatternSource,
     int earlyPatternChunks = defaultEarlyPatternChunks,
     int noEnemyChunks = defaultNoEnemyChunks,
   }) : _trackTuning = trackTuning,
@@ -146,10 +145,7 @@ class TrackManager {
        _enemyNavigationSystem = enemyNavigationSystem,
        _groundEnemyLocomotionSystem = groundEnemyLocomotionSystem,
        _spawnService = spawnService,
-       _chunkPatternSource = _resolveChunkPatternSource(
-         chunkPatternSource: chunkPatternSource,
-         patternPool: patternPool,
-       ),
+       _chunkPatternSource = chunkPatternSource,
        _earlyPatternChunks = earlyPatternChunks,
        _noEnemyChunks = noEnemyChunks {
     // Initialize geometry state from base level.
@@ -208,6 +204,10 @@ class TrackManager {
   /// Immutable snapshot of walkable ground surfaces for the render layer.
   late List<GroundSurfaceSnapshot> _groundSurfacesSnapshot;
 
+  /// Immutable snapshot of authored static prefab visual sprites.
+  List<StaticPrefabSpriteSnapshot> _staticPrefabSpritesSnapshot =
+      const <StaticPrefabSpriteSnapshot>[];
+
   // ───────────────────────────────────────────────────────────────────────────
   // Public API
   // ───────────────────────────────────────────────────────────────────────────
@@ -230,6 +230,10 @@ class TrackManager {
   /// Immutable snapshot of walkable ground surfaces for rendering.
   List<GroundSurfaceSnapshot> get groundSurfacesSnapshot =>
       _groundSurfacesSnapshot;
+
+    /// Immutable snapshot of authored static prefab visual sprites.
+    List<StaticPrefabSpriteSnapshot> get staticPrefabSpritesSnapshot =>
+      _staticPrefabSpritesSnapshot;
 
   /// Advances the track streamer and updates geometry if needed.
   ///
@@ -284,6 +288,9 @@ class TrackManager {
       ..._baseGeometry.groundGaps,
       ...streamer.dynamicGroundGaps,
     ];
+    _staticPrefabSpritesSnapshot = List<StaticPrefabSpriteSnapshot>.unmodifiable(
+      streamer.dynamicVisualSprites.map(_toStaticPrefabSpriteSnapshot),
+    );
 
     // Apply the new combined geometry (rebuilds index, snapshots, nav graph).
     _setStaticGeometry(
@@ -419,18 +426,20 @@ class TrackManager {
     );
   }
 
-  static ChunkPatternSource _resolveChunkPatternSource({
-    required ChunkPatternSource? chunkPatternSource,
-    required ChunkPatternPool? patternPool,
-  }) {
-    if (chunkPatternSource != null) {
-      return chunkPatternSource;
-    }
-    if (patternPool != null) {
-      return ChunkPatternPoolSource(patternPool);
-    }
-    throw ArgumentError(
-      'TrackManager requires chunkPatternSource or patternPool.',
+  static StaticPrefabSpriteSnapshot _toStaticPrefabSpriteSnapshot(
+    ChunkVisualSpriteWorld sprite,
+  ) {
+    return StaticPrefabSpriteSnapshot(
+      assetPath: sprite.assetPath,
+      srcX: sprite.srcX,
+      srcY: sprite.srcY,
+      srcWidth: sprite.srcWidth,
+      srcHeight: sprite.srcHeight,
+      x: sprite.x,
+      y: sprite.y,
+      width: sprite.width,
+      height: sprite.height,
+      zIndex: sprite.zIndex,
     );
   }
 }

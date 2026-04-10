@@ -8,10 +8,10 @@ import 'package:runner_core/players/player_character_registry.dart';
 import 'package:runner_core/snapshots/entity_render_snapshot.dart';
 import 'package:runner_core/snapshots/enums.dart';
 import 'package:runner_core/track/chunk_pattern.dart';
-import 'package:runner_core/track/chunk_pattern_pool.dart';
+import 'package:runner_core/track/chunk_pattern_source.dart';
 
 void main() {
-  test('hashash teleports in at the camera-right chunk edge', () {
+  test('hashash teleports in at the camera-right chunk edge during prewarm', () {
     const pattern = ChunkPattern(
       name: 'hashash-only',
       spawnMarkers: <SpawnMarker>[
@@ -23,14 +23,18 @@ void main() {
         ),
       ],
     );
-    const pool = ChunkPatternPool(
+    const source = ChunkPatternListSource(
       easyPatterns: <ChunkPattern>[pattern],
       allPatterns: <ChunkPattern>[pattern],
     );
 
     final level = LevelRegistry.byId(
       LevelId.field,
-    ).copyWith(patternPool: pool, earlyPatternChunks: 0, noEnemyChunks: 0);
+    ).copyWith(
+      chunkPatternSource: source,
+      earlyPatternChunks: 0,
+      noEnemyChunks: 0,
+    );
 
     final core = GameCore(
       seed: 42,
@@ -38,12 +42,12 @@ void main() {
       playerCharacter: PlayerCharacterRegistry.eloise,
     );
 
-    core.stepOneTick();
     final snapshot = core.buildSnapshot();
     final hashash = snapshot.entities
         .where((entity) => entity.enemyId == EnemyId.hashash)
         .toList();
 
+    expect(snapshot.tick, 0);
     expect(hashash.length, 1);
     expect(hashash.single.pos.x, closeTo(600.0, 1e-9));
     expect(hashash.single.anim, AnimKey.spawn);

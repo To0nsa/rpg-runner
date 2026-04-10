@@ -10,6 +10,7 @@ import 'entity_render_snapshot.dart';
 import 'enums.dart';
 import 'ground_surface_snapshot.dart';
 import 'player_hud_snapshot.dart';
+import 'static_prefab_sprite_snapshot.dart';
 import 'static_solid_snapshot.dart';
 
 /// Complete game state snapshot at a specific simulation tick.
@@ -31,6 +32,7 @@ class GameStateSnapshot {
     required this.entities,
     required this.staticSolids,
     required this.groundSurfaces,
+    required this.staticPrefabSprites,
   });
 
   /// Current simulation tick.
@@ -74,6 +76,9 @@ class GameStateSnapshot {
 
   /// Render-only walkable ground surfaces for this run.
   final List<GroundSurfaceSnapshot> groundSurfaces;
+
+  /// Render-only authored prefab visual sprites for static streamed chunks.
+  final List<StaticPrefabSpriteSnapshot> staticPrefabSprites;
 
   /// Returns the player entity snapshot, or `null` if not found.
   ///

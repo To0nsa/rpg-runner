@@ -106,7 +106,7 @@ void main() {
       final baseLevel = LevelRegistry.byId(LevelId.field);
       final level = LevelDefinition(
         id: baseLevel.id,
-        patternPool: baseLevel.patternPool,
+        chunkPatternSource: baseLevel.chunkPatternSource,
         cameraCenterY: baseLevel.cameraCenterY,
         staticWorldGeometry: baseLevel.staticWorldGeometry,
         earlyPatternChunks: baseLevel.earlyPatternChunks,

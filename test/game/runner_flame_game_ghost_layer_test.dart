@@ -251,6 +251,7 @@ GameStateSnapshot _copySnapshot(
     entities: entities,
     staticSolids: base.staticSolids,
     groundSurfaces: base.groundSurfaces,
+    staticPrefabSprites: base.staticPrefabSprites,
   );
 }
 

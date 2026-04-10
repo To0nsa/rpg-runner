@@ -4,14 +4,17 @@ import 'package:flutter/widgets.dart';
 import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/snapshots/entity_render_snapshot.dart';
 import 'package:runner_core/snapshots/enums.dart';
+import 'package:runner_core/snapshots/static_prefab_sprite_snapshot.dart';
 import 'package:runner_core/snapshots/static_solid_snapshot.dart';
 
+import '../components/static_prefab_sprite_component.dart';
 import '../components/player/player_view.dart';
 import '../components/enemies/enemy_render_registry.dart';
 import '../components/pickups/pickup_render_registry.dart';
 import '../components/projectiles/projectile_render_registry.dart';
 import '../components/sprite_anim/deterministic_anim_view.dart';
 import '../components/sprite_anim/sprite_anim_set.dart';
+import '../debug/render_debug_flags.dart';
 import '../game_controller.dart';
 import '../spatial/world_view_transform.dart';
 import '../tuning/combat_feedback_tuning.dart';
@@ -43,6 +46,13 @@ class LiveWorldSyncSystem {
   final CombatFeedbackTuning _combatFeedbackTuning;
 
   late final PlayerView _player;
+  final Map<_StaticPrefabSpriteKey, StaticPrefabSpriteComponent>
+  _staticPrefabSpritesByKey =
+      <_StaticPrefabSpriteKey, StaticPrefabSpriteComponent>{};
+  List<_StaticPrefabSpriteKey> _staticPrefabSpriteOrder =
+      const <_StaticPrefabSpriteKey>[];
+  List<StaticPrefabSpriteSnapshot>? _lastStaticPrefabSpritesSnapshot;
+
   final List<RectangleComponent> _staticSolids = <RectangleComponent>[];
   List<StaticSolidSnapshot>? _lastStaticSolidsSnapshot;
 
@@ -76,6 +86,9 @@ class LiveWorldSyncSystem {
 
   bool get hasTriggerHitboxes => _hitboxes.isNotEmpty;
 
+  bool get _drawStaticSolids =>
+      RenderDebugFlags.canUseRenderDebug && RenderDebugFlags.drawStaticSolids;
+
   void mountPlayer(SpriteAnimSet playerAnimations) {
     _player = PlayerView(
       animationSet: playerAnimations,
@@ -86,6 +99,10 @@ class LiveWorldSyncSystem {
   }
 
   void mountStaticSolids(List<StaticSolidSnapshot> solids) {
+    if (!_drawStaticSolids) {
+      _lastStaticSolidsSnapshot = solids;
+      return;
+    }
     if (solids.isEmpty) {
       return;
     }
@@ -106,7 +123,94 @@ class LiveWorldSyncSystem {
     }
   }
 
+  void mountStaticPrefabSprites(List<StaticPrefabSpriteSnapshot> sprites) {
+    syncStaticPrefabSprites(sprites);
+  }
+
+  void syncStaticPrefabSprites(List<StaticPrefabSpriteSnapshot> sprites) {
+    if (identical(sprites, _lastStaticPrefabSpritesSnapshot)) {
+      return;
+    }
+    _lastStaticPrefabSpritesSnapshot = sprites;
+
+    final nextOrder = <_StaticPrefabSpriteKey>[];
+    final nextKeys = <_StaticPrefabSpriteKey>{};
+
+    for (final sprite in sprites) {
+      final key = _StaticPrefabSpriteKey.fromSnapshot(sprite);
+      nextOrder.add(key);
+      nextKeys.add(key);
+      if (_staticPrefabSpritesByKey.containsKey(key)) {
+        continue;
+      }
+
+      final view = StaticPrefabSpriteComponent(
+        assetPath: sprite.assetPath,
+        srcRect: Rect.fromLTWH(
+          sprite.srcX.toDouble(),
+          sprite.srcY.toDouble(),
+          sprite.srcWidth.toDouble(),
+          sprite.srcHeight.toDouble(),
+        ),
+        position: Vector2(sprite.x, sprite.y),
+        size: Vector2(sprite.width, sprite.height),
+      )..priority = priorityStaticSolids + sprite.zIndex;
+      _staticPrefabSpritesByKey[key] = view;
+      world.add(view);
+    }
+
+    final staleKeys = _staticPrefabSpritesByKey.keys
+        .where((key) => !nextKeys.contains(key))
+        .toList(growable: false);
+    for (final key in staleKeys) {
+      _staticPrefabSpritesByKey.remove(key)?.removeFromParent();
+    }
+
+    _staticPrefabSpriteOrder = List<_StaticPrefabSpriteKey>.unmodifiable(
+      nextOrder,
+    );
+  }
+
+  void snapStaticPrefabSprites(
+    List<StaticPrefabSpriteSnapshot> sprites, {
+    required Vector2 cameraCenter,
+    required int virtualWidth,
+    required int virtualHeight,
+  }) {
+    if (sprites.isEmpty || _staticPrefabSpriteOrder.length != sprites.length) {
+      return;
+    }
+    final transform = WorldViewTransform(
+      cameraCenterX: cameraCenter.x,
+      cameraCenterY: cameraCenter.y,
+      viewWidth: virtualWidth.toDouble(),
+      viewHeight: virtualHeight.toDouble(),
+    );
+
+    for (final sprite in sprites) {
+      final key = _StaticPrefabSpriteKey.fromSnapshot(sprite);
+      final view = _staticPrefabSpritesByKey[key];
+      if (view == null) {
+        continue;
+      }
+      view.position.setValues(
+        math.snapWorldToPixelsInViewX(sprite.x, transform),
+        math.snapWorldToPixelsInViewY(sprite.y, transform),
+      );
+    }
+  }
+
   void syncStaticSolids(List<StaticSolidSnapshot> solids) {
+    if (!_drawStaticSolids) {
+      _lastStaticSolidsSnapshot = solids;
+      if (_staticSolids.isNotEmpty) {
+        for (final view in _staticSolids) {
+          view.removeFromParent();
+        }
+        _staticSolids.clear();
+      }
+      return;
+    }
     if (identical(solids, _lastStaticSolidsSnapshot)) {
       return;
     }
@@ -420,4 +524,74 @@ class LiveWorldSyncSystem {
     }
     _hitboxes.clear();
   }
+}
+
+class _StaticPrefabSpriteKey {
+  const _StaticPrefabSpriteKey({
+    required this.assetPath,
+    required this.srcX,
+    required this.srcY,
+    required this.srcWidth,
+    required this.srcHeight,
+    required this.x,
+    required this.y,
+    required this.width,
+    required this.height,
+    required this.zIndex,
+  });
+
+  factory _StaticPrefabSpriteKey.fromSnapshot(StaticPrefabSpriteSnapshot s) {
+    return _StaticPrefabSpriteKey(
+      assetPath: s.assetPath,
+      srcX: s.srcX,
+      srcY: s.srcY,
+      srcWidth: s.srcWidth,
+      srcHeight: s.srcHeight,
+      x: s.x,
+      y: s.y,
+      width: s.width,
+      height: s.height,
+      zIndex: s.zIndex,
+    );
+  }
+
+  final String assetPath;
+  final int srcX;
+  final int srcY;
+  final int srcWidth;
+  final int srcHeight;
+  final double x;
+  final double y;
+  final double width;
+  final double height;
+  final int zIndex;
+
+  @override
+  bool operator ==(Object other) {
+    return other is _StaticPrefabSpriteKey &&
+        other.assetPath == assetPath &&
+        other.srcX == srcX &&
+        other.srcY == srcY &&
+        other.srcWidth == srcWidth &&
+        other.srcHeight == srcHeight &&
+        other.x == x &&
+        other.y == y &&
+        other.width == width &&
+        other.height == height &&
+        other.zIndex == zIndex;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    assetPath,
+    srcX,
+    srcY,
+    srcWidth,
+    srcHeight,
+    x,
+    y,
+    width,
+    height,
+    zIndex,
+  );
 }
