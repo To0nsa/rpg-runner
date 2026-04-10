@@ -11,13 +11,14 @@ void main() {
       _writePrefabAndTileDefs(fixtureRoot.path);
       _writeFile(
         fixtureRoot.path,
-        'assets/authoring/level/chunks/chunk_ok.json',
+        'assets/authoring/level/chunks/field/chunk_ok.json',
         '''
 {
   "schemaVersion": 1,
   "chunkKey": "chunk_ok",
   "id": "chunk_ok",
-  "levelId": "field"
+  "levelId": "field",
+  "difficulty": "easy"
 }
 ''',
       );
@@ -43,12 +44,13 @@ void main() {
         _writePrefabAndTileDefs(fixtureRoot.path);
         _writeFile(
           fixtureRoot.path,
-          'assets/authoring/level/chunks/chunk_bad.json',
+          'assets/authoring/level/chunks/field/chunk_bad.json',
           '''
 {
   "schemaVersion": 1,
   "chunkKey": "chunk_bad",
-  "levelId": "field"
+  "levelId": "field",
+  "difficulty": "easy"
 }
 ''',
         );
@@ -75,13 +77,14 @@ void main() {
       _writePrefabAndTileDefs(fixtureRoot.path);
       _writeFile(
         fixtureRoot.path,
-        'assets/authoring/level/chunks/chunk_ok.json',
+        'assets/authoring/level/chunks/field/chunk_ok.json',
         '''
 {
   "schemaVersion": 1,
   "chunkKey": "chunk_ok",
   "id": "chunk_ok",
   "levelId": "field",
+  "difficulty": "easy",
   "groundProfile": {"kind": "flat", "topY": 224},
   "prefabs": [
     {
@@ -123,7 +126,8 @@ void main() {
       );
       expect(outputFile.existsSync(), isTrue);
       final output = outputFile.readAsStringSync();
-      expect(output, contains('authoredAllPatterns'));
+      expect(output, contains('fieldEasyPatterns'));
+      expect(output, contains('authoredChunkPatternSourcesByLevel'));
       expect(output, contains('visualSprites: <ChunkVisualSpriteRel>['));
       expect(output, contains('chancePercent: 80'));
       expect(output, contains('EnemyId.derf'));
@@ -137,6 +141,37 @@ void main() {
       fixtureRoot.deleteSync(recursive: true);
     }
   });
+
+  test(
+    'generator rejects chunk whose levelId does not match owning folder',
+    () async {
+      final fixtureRoot = await Directory.systemTemp.createTemp(
+        'chunk_generator_level_scope_',
+      );
+      try {
+        _writePrefabAndTileDefs(fixtureRoot.path);
+        _writeFile(
+          fixtureRoot.path,
+          'assets/authoring/level/chunks/field/chunk_bad.json',
+          '''
+{
+  "schemaVersion": 1,
+  "chunkKey": "chunk_bad",
+  "id": "chunk_bad",
+  "levelId": "forest",
+  "difficulty": "easy"
+}
+''',
+        );
+
+        final result = await _runDryRun(workingDirectory: fixtureRoot.path);
+        expect(result.exitCode, 1);
+        expect(result.stderr, contains('level_id_path_mismatch'));
+      } finally {
+        fixtureRoot.deleteSync(recursive: true);
+      }
+    },
+  );
 }
 
 Future<ProcessResult> _runDryRun({required String workingDirectory}) {

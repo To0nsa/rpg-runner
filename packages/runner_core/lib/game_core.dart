@@ -352,6 +352,8 @@ class GameCore {
       groundTopY: effectiveGroundTopY,
       chunkPatternSource: levelDefinition.chunkPatternSource,
       earlyPatternChunks: levelDefinition.earlyPatternChunks,
+      easyPatternChunks: levelDefinition.easyPatternChunks,
+      normalPatternChunks: levelDefinition.normalPatternChunks,
       noEnemyChunks: levelDefinition.noEnemyChunks,
     );
 

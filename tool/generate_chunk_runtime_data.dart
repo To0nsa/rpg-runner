@@ -8,6 +8,18 @@ const String _outputPath =
     'packages/runner_core/lib/track/authored_chunk_patterns.dart';
 const int _gridSnap = 16;
 const int _chunkWidth = 600;
+const List<String> _difficultyOrder = <String>[
+  'early',
+  'easy',
+  'normal',
+  'hard',
+];
+const Set<String> _supportedDifficulties = <String>{
+  'early',
+  'easy',
+  'normal',
+  'hard',
+};
 
 Future<void> main(List<String> args) async {
   final showHelp = args.contains('-h') || args.contains('--help');
@@ -87,7 +99,7 @@ Future<void> main(List<String> args) async {
       return;
     }
 
-    authoredChunks.sort((a, b) => a.chunkKey.compareTo(b.chunkKey));
+    authoredChunks.sort(_compareChunkExportData);
     final output = _renderDartOutput(authoredChunks);
     final outputFile = File(_outputPath);
     await outputFile.parent.create(recursive: true);
@@ -109,7 +121,7 @@ Future<List<File>> _listChunkJsonFiles() async {
 
   final files = <File>[];
   await for (final entity in directory.list(
-    recursive: false,
+    recursive: true,
     followLinks: false,
   )) {
     if (entity is! File) continue;
@@ -193,23 +205,25 @@ Future<_ChunkParseResult?> _validateAndParseChunkFile(
     field: 'id',
     issues: issues,
   );
-  _readRequiredString(
+  final levelId = _readRequiredString(
     map: decoded,
     path: path,
     field: 'levelId',
     issues: issues,
   );
+  final difficulty = _readRequiredDifficulty(
+    map: decoded,
+    path: path,
+    issues: issues,
+  );
+  _validateLevelOwnershipPath(path: path, levelId: levelId, issues: issues);
 
   final chunk = _ChunkJson(
     path: path,
     chunkKey: chunkKey,
     id: id,
-    levelId: _readRequiredString(
-      map: decoded,
-      path: path,
-      field: 'levelId',
-      issues: issues,
-    ),
+    levelId: levelId,
+    difficulty: difficulty,
     groundTopY: _readGroundTopY(decoded),
     prefabs: _readListOfMaps(decoded['prefabs']),
     markers: _readListOfMaps(decoded['markers']),
@@ -226,9 +240,86 @@ Future<_ChunkParseResult?> _validateAndParseChunkFile(
   }
 
   return _ChunkParseResult(
-    identity: _ChunkIdentity(path: path, chunkKey: chunkKey, id: id),
+    identity: _ChunkIdentity(
+      path: path,
+      levelId: levelId,
+      chunkKey: chunkKey,
+      id: id,
+    ),
     exportData: exportData,
   );
+}
+
+void _validateLevelOwnershipPath({
+  required String path,
+  required String levelId,
+  required List<_ValidationIssue> issues,
+}) {
+  final pathLevelId = _levelIdFromChunkPath(path);
+  if (pathLevelId == null) {
+    issues.add(
+      _ValidationIssue(
+        path: path,
+        code: 'invalid_chunk_path',
+        message:
+            'Chunk files must live under $_chunksDirectoryPath/<levelId>/...',
+      ),
+    );
+    return;
+  }
+  if (levelId.isEmpty) {
+    return;
+  }
+  if (pathLevelId != levelId) {
+    issues.add(
+      _ValidationIssue(
+        path: path,
+        code: 'level_id_path_mismatch',
+        message:
+            'levelId "$levelId" must match owning path level "$pathLevelId".',
+      ),
+    );
+  }
+}
+
+String? _levelIdFromChunkPath(String path) {
+  final normalized = _normalizePath(path);
+  final prefix = '$_chunksDirectoryPath/';
+  if (!normalized.startsWith(prefix)) {
+    return null;
+  }
+  final remainder = normalized.substring(prefix.length);
+  final segments = remainder.split('/');
+  if (segments.length < 2 || segments.first.isEmpty) {
+    return null;
+  }
+  return segments.first;
+}
+
+String _readRequiredDifficulty({
+  required Map<String, Object?> map,
+  required String path,
+  required List<_ValidationIssue> issues,
+}) {
+  final difficulty = _readRequiredString(
+    map: map,
+    path: path,
+    field: 'difficulty',
+    issues: issues,
+  );
+  if (difficulty.isEmpty) {
+    return '';
+  }
+  if (!_supportedDifficulties.contains(difficulty)) {
+    issues.add(
+      _ValidationIssue(
+        path: path,
+        code: 'invalid_difficulty',
+        message: 'difficulty must be one of: ${_difficultyOrder.join(', ')}.',
+      ),
+    );
+  }
+  return difficulty;
 }
 
 int _readGroundTopY(Map<String, Object?> root) {
@@ -533,6 +624,8 @@ _ChunkExportData? _buildChunkExportData(
   }
 
   return _ChunkExportData(
+    levelId: chunk.levelId,
+    difficulty: chunk.difficulty,
     chunkKey: chunk.chunkKey,
     name: chunk.id,
     platforms: platforms,
@@ -754,21 +847,106 @@ String _normalizedString(Object? raw, {String fallback = ''}) {
   return fallback;
 }
 
+int _compareChunkExportData(_ChunkExportData a, _ChunkExportData b) {
+  final levelCompare = a.levelId.compareTo(b.levelId);
+  if (levelCompare != 0) return levelCompare;
+  final difficultyCompare = _difficultyIndex(
+    a.difficulty,
+  ).compareTo(_difficultyIndex(b.difficulty));
+  if (difficultyCompare != 0) return difficultyCompare;
+  final chunkKeyCompare = a.chunkKey.compareTo(b.chunkKey);
+  if (chunkKeyCompare != 0) return chunkKeyCompare;
+  return a.name.compareTo(b.name);
+}
+
+int _difficultyIndex(String difficulty) {
+  final index = _difficultyOrder.indexOf(difficulty);
+  if (index >= 0) {
+    return index;
+  }
+  return _difficultyOrder.length;
+}
+
 String _renderDartOutput(List<_ChunkExportData> chunks) {
+  final chunksByLevel = <String, Map<String, List<_ChunkExportData>>>{};
+  for (final chunk in chunks) {
+    final byDifficulty = chunksByLevel.putIfAbsent(
+      chunk.levelId,
+      () => <String, List<_ChunkExportData>>{},
+    );
+    byDifficulty
+        .putIfAbsent(chunk.difficulty, () => <_ChunkExportData>[])
+        .add(chunk);
+  }
+
+  final levelIds = chunksByLevel.keys.toList()..sort();
   final buffer = StringBuffer()
     ..writeln('/// GENERATED FILE. DO NOT EDIT BY HAND.')
     ..writeln('///')
     ..writeln('/// Generated by tool/generate_chunk_runtime_data.dart from:')
-    ..writeln('/// - assets/authoring/level/chunks/*.json')
+    ..writeln('/// - assets/authoring/level/chunks/<levelId>/**/*.json')
     ..writeln('/// - assets/authoring/level/prefab_defs.json')
     ..writeln('/// - assets/authoring/level/tile_defs.json')
     ..writeln('library;')
     ..writeln()
     ..writeln("import '../enemies/enemy_id.dart';")
     ..writeln("import 'chunk_pattern.dart';")
-    ..writeln()
-    ..writeln('const List<ChunkPattern> authoredAllPatterns = <ChunkPattern>[');
+    ..writeln("import 'chunk_pattern_source.dart';")
+    ..writeln();
 
+  for (final levelId in levelIds) {
+    final byDifficulty = chunksByLevel[levelId]!;
+    for (final difficulty in _difficultyOrder) {
+      final tierChunks = byDifficulty[difficulty] ?? const <_ChunkExportData>[];
+      _writePatternList(
+        buffer,
+        _patternsVariableName(levelId, difficulty),
+        tierChunks,
+      );
+      buffer.writeln();
+    }
+  }
+
+  buffer.writeln(
+    'const Map<String, ChunkPatternListSource> authoredChunkPatternSourcesByLevel = <String, ChunkPatternListSource>{',
+  );
+  for (final levelId in levelIds) {
+    buffer
+      ..writeln("  '${_escape(levelId)}': ChunkPatternListSource(")
+      ..writeln(
+        '    earlyPatterns: ${_patternsVariableName(levelId, 'early')},',
+      )
+      ..writeln('    easyPatterns: ${_patternsVariableName(levelId, 'easy')},')
+      ..writeln(
+        '    normalPatterns: ${_patternsVariableName(levelId, 'normal')},',
+      )
+      ..writeln('    hardPatterns: ${_patternsVariableName(levelId, 'hard')},')
+      ..writeln('  ),');
+  }
+  buffer
+    ..writeln('};')
+    ..writeln()
+    ..writeln(
+      'ChunkPatternSource authoredChunkPatternSourceForLevel(String levelId) {',
+    )
+    ..writeln('  final source = authoredChunkPatternSourcesByLevel[levelId];')
+    ..writeln('  if (source != null) {')
+    ..writeln('    return source;')
+    ..writeln('  }')
+    ..writeln(
+      '  throw StateError(\'No authored chunk pattern source for levelId="\$levelId".\');',
+    )
+    ..writeln('}');
+
+  return buffer.toString();
+}
+
+void _writePatternList(
+  StringBuffer buffer,
+  String variableName,
+  List<_ChunkExportData> chunks,
+) {
+  buffer.writeln('const List<ChunkPattern> $variableName = <ChunkPattern>[');
   for (final chunk in chunks) {
     buffer
       ..writeln('  ChunkPattern(')
@@ -833,14 +1011,41 @@ String _renderDartOutput(List<_ChunkExportData> chunks) {
       ..writeln('    ],')
       ..writeln('  ),');
   }
+  buffer.writeln('];');
+}
 
-  buffer
-    ..writeln('];')
-    ..writeln()
-    ..writeln(
-      'const List<ChunkPattern> authoredEasyPatterns = authoredAllPatterns;',
-    );
+String _patternsVariableName(String levelId, String difficulty) {
+  return '${_toLowerCamelIdentifier(levelId)}${_toUpperCamelIdentifier(difficulty)}Patterns';
+}
 
+String _toLowerCamelIdentifier(String raw) {
+  final parts = raw
+      .split(RegExp(r'[^A-Za-z0-9]+'))
+      .where((part) => part.isNotEmpty)
+      .toList(growable: false);
+  if (parts.isEmpty) {
+    return 'patterns';
+  }
+  final first = parts.first;
+  final buffer = StringBuffer('${first[0].toLowerCase()}${first.substring(1)}');
+  for (final part in parts.skip(1)) {
+    buffer.write(_toUpperCamelIdentifier(part));
+  }
+  return buffer.toString();
+}
+
+String _toUpperCamelIdentifier(String raw) {
+  final parts = raw
+      .split(RegExp(r'[^A-Za-z0-9]+'))
+      .where((part) => part.isNotEmpty)
+      .toList(growable: false);
+  if (parts.isEmpty) {
+    return 'Patterns';
+  }
+  final buffer = StringBuffer();
+  for (final part in parts) {
+    buffer.write('${part[0].toUpperCase()}${part.substring(1)}');
+  }
   return buffer.toString();
 }
 
@@ -856,7 +1061,7 @@ String _readRequiredString({
 }) {
   final value = map[field];
   if (value is String && value.trim().isNotEmpty) {
-    return value;
+    return value.trim();
   }
   issues.add(
     _ValidationIssue(
@@ -875,25 +1080,30 @@ void _collectDuplicateIdentityIssues(
   required String issueCode,
   required String Function(_ChunkIdentity identity) selector,
 }) {
-  final byValue = <String, List<_ChunkIdentity>>{};
+  final byScopedValue = <String, List<_ChunkIdentity>>{};
   for (final identity in identities) {
     final value = selector(identity);
-    if (value.isEmpty) continue;
-    byValue.putIfAbsent(value, () => <_ChunkIdentity>[]).add(identity);
+    if (value.isEmpty || identity.levelId.isEmpty) continue;
+    final scopedValue = '${identity.levelId}\u0000$value';
+    byScopedValue
+        .putIfAbsent(scopedValue, () => <_ChunkIdentity>[])
+        .add(identity);
   }
 
-  final sortedValues = byValue.keys.toList()..sort();
-  for (final value in sortedValues) {
-    final entries = byValue[value]!;
+  final sortedValues = byScopedValue.keys.toList()..sort();
+  for (final scopedValue in sortedValues) {
+    final entries = byScopedValue[scopedValue]!;
     if (entries.length < 2) continue;
     entries.sort((a, b) => a.path.compareTo(b.path));
+    final value = selector(entries.first);
     final joinedPaths = entries.map((entry) => entry.path).join(', ');
     for (final entry in entries) {
       issues.add(
         _ValidationIssue(
           path: entry.path,
           code: issueCode,
-          message: '$fieldName "$value" is duplicated across: $joinedPaths',
+          message:
+              '$fieldName "$value" is duplicated within levelId "${entry.levelId}" across: $joinedPaths',
         ),
       );
     }
@@ -930,11 +1140,13 @@ void _printUsage() {
 class _ChunkIdentity {
   const _ChunkIdentity({
     required this.path,
+    required this.levelId,
     required this.chunkKey,
     required this.id,
   });
 
   final String path;
+  final String levelId;
   final String chunkKey;
   final String id;
 }
@@ -952,6 +1164,7 @@ class _ChunkJson {
     required this.chunkKey,
     required this.id,
     required this.levelId,
+    required this.difficulty,
     required this.groundTopY,
     required this.prefabs,
     required this.markers,
@@ -962,6 +1175,7 @@ class _ChunkJson {
   final String chunkKey;
   final String id;
   final String levelId;
+  final String difficulty;
   final int groundTopY;
   final List<Map<String, Object?>> prefabs;
   final List<Map<String, Object?>> markers;
@@ -1070,6 +1284,8 @@ class _RectD {
 
 class _ChunkExportData {
   const _ChunkExportData({
+    required this.levelId,
+    required this.difficulty,
     required this.chunkKey,
     required this.name,
     required this.platforms,
@@ -1079,6 +1295,8 @@ class _ChunkExportData {
     required this.spawnMarkers,
   });
 
+  final String levelId;
+  final String difficulty;
   final String chunkKey;
   final String name;
   final List<_PlatformExport> platforms;

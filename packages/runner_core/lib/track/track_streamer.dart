@@ -82,6 +82,8 @@ class TrackStreamer {
     required this.groundTopY,
     required this.patternSource,
     required this.earlyPatternChunks,
+    this.easyPatternChunks = 0,
+    this.normalPatternChunks = 0,
     required this.noEnemyChunks,
   }) : _nextChunkIndex = 0,
        _nextChunkStartX = 0.0;
@@ -98,8 +100,14 @@ class TrackStreamer {
   /// Pattern source for early vs full difficulty selection.
   final ChunkPatternSource patternSource;
 
-  /// Number of early chunks that should draw from an easier source pool.
+  /// Number of chunks that should request the `early` tier.
   final int earlyPatternChunks;
+
+  /// Number of chunks after the opening window that should request `easy`.
+  final int easyPatternChunks;
+
+  /// Number of chunks after the easy window that should request `normal`.
+  final int normalPatternChunks;
 
   /// Number of early chunks that suppress enemy spawns.
   final int noEnemyChunks;
@@ -112,7 +120,7 @@ class TrackStreamer {
   List<StaticGroundSegment> _dynamicGroundSegments =
       const <StaticGroundSegment>[];
   List<StaticGroundGap> _dynamicGroundGaps = const <StaticGroundGap>[];
-    List<ChunkVisualSpriteWorld> _dynamicVisualSprites =
+  List<ChunkVisualSpriteWorld> _dynamicVisualSprites =
       const <ChunkVisualSpriteWorld>[];
 
   /// Current streamed solids (excluding any caller-provided base solids).
@@ -125,7 +133,8 @@ class TrackStreamer {
   List<StaticGroundGap> get dynamicGroundGaps => _dynamicGroundGaps;
 
   /// Current streamed visual sprites for chunk prefab rendering.
-  List<ChunkVisualSpriteWorld> get dynamicVisualSprites => _dynamicVisualSprites;
+  List<ChunkVisualSpriteWorld> get dynamicVisualSprites =>
+      _dynamicVisualSprites;
 
   /// Advances chunk streaming based on the current camera bounds.
   ///
@@ -157,7 +166,7 @@ class TrackStreamer {
       final pattern = patternSource.patternFor(
         seed: seed,
         chunkIndex: chunkIndex,
-        isEarlyChunk: chunkIndex < earlyPatternChunks,
+        tier: _tierForChunkIndex(chunkIndex),
       );
 
       late List<StaticSolid> solids;
@@ -287,6 +296,22 @@ class TrackStreamer {
       changed: changed,
       spawnedChunks: List<TrackSpawnedChunk>.unmodifiable(spawnedChunks),
     );
+  }
+
+  ChunkPatternTier _tierForChunkIndex(int chunkIndex) {
+    if (chunkIndex < earlyPatternChunks) {
+      return ChunkPatternTier.early;
+    }
+    final easyStart = earlyPatternChunks;
+    final normalStart = easyStart + easyPatternChunks;
+    final hardStart = normalStart + normalPatternChunks;
+    if (chunkIndex < normalStart) {
+      return ChunkPatternTier.easy;
+    }
+    if (chunkIndex < hardStart) {
+      return ChunkPatternTier.normal;
+    }
+    return ChunkPatternTier.hard;
   }
 
   /// Rolls for enemy spawns defined in [pattern].

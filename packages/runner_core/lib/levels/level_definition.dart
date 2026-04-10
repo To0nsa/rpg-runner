@@ -19,9 +19,13 @@ class LevelDefinition {
     this.tuning = const CoreTuning(),
     this.cameraCenterY = defaultLevelCameraCenterY,
     this.earlyPatternChunks = defaultEarlyPatternChunks,
+    this.easyPatternChunks = defaultEasyPatternChunks,
+    this.normalPatternChunks = defaultNormalPatternChunks,
     this.noEnemyChunks = defaultNoEnemyChunks,
     this.themeId,
   }) : assert(earlyPatternChunks >= 0),
+       assert(easyPatternChunks >= 0),
+       assert(normalPatternChunks >= 0),
        assert(noEnemyChunks >= 0),
        assert(
          staticWorldGeometry.groundPlane != null,
@@ -58,6 +62,12 @@ class LevelDefinition {
   /// Number of early chunks that use "early" chunk patterns.
   final int earlyPatternChunks;
 
+  /// Number of chunks after the opening window that request `easy` patterns.
+  final int easyPatternChunks;
+
+  /// Number of chunks after the easy window that request `normal` patterns.
+  final int normalPatternChunks;
+
   /// Number of early chunks that suppress enemy spawns.
   final int noEnemyChunks;
 
@@ -72,6 +82,8 @@ class LevelDefinition {
     StaticWorldGeometry? staticWorldGeometry,
     ChunkPatternSource? chunkPatternSource,
     int? earlyPatternChunks,
+    int? easyPatternChunks,
+    int? normalPatternChunks,
     int? noEnemyChunks,
     String? themeId,
   }) {
@@ -82,6 +94,8 @@ class LevelDefinition {
       cameraCenterY: cameraCenterY ?? this.cameraCenterY,
       staticWorldGeometry: staticWorldGeometry ?? this.staticWorldGeometry,
       earlyPatternChunks: earlyPatternChunks ?? this.earlyPatternChunks,
+      easyPatternChunks: easyPatternChunks ?? this.easyPatternChunks,
+      normalPatternChunks: normalPatternChunks ?? this.normalPatternChunks,
       noEnemyChunks: noEnemyChunks ?? this.noEnemyChunks,
       themeId: themeId ?? this.themeId,
     );

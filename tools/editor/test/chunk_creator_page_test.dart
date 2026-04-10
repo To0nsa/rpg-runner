@@ -105,6 +105,13 @@ void main() {
 
       await tester.tap(find.text('Metadata'));
       await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('difficulty-$chunkDifficultyNormal')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text(chunkDifficultyEarly).last, findsOneWidget);
+      await tester.tap(find.text(chunkDifficultyEarly).last);
+      await tester.pumpAndSettle();
       await tester.enterText(
         find.widgetWithText(TextField, 'tileSize').first,
         '15',
@@ -142,7 +149,9 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MaterialApp(home: Scaffold(body: ChunkCreatorPage(controller: controller))),
+      MaterialApp(
+        home: Scaffold(body: ChunkCreatorPage(controller: controller)),
+      ),
     );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
@@ -181,7 +190,9 @@ void main() {
     await tester.pumpAndSettle();
 
     final sceneAfterEdit = controller.scene as ChunkScene;
-    final chunk = sceneAfterEdit.chunks.firstWhere((entry) => entry.id == 'chunk_gap');
+    final chunk = sceneAfterEdit.chunks.firstWhere(
+      (entry) => entry.id == 'chunk_gap',
+    );
     final gap = chunk.groundGaps.firstWhere((entry) => entry.gapId == 'gap_1');
     expect(gap.x, 48);
     expect(gap.width, 64);
@@ -236,12 +247,7 @@ const ChunkDocument _initialChunkWithGapDocument = ChunkDocument(
       markers: <PlacedMarkerDef>[],
       groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 224),
       groundGaps: <GroundGapDef>[
-        GroundGapDef(
-          gapId: 'gap_1',
-          type: groundGapTypePit,
-          x: 16,
-          width: 32,
-        ),
+        GroundGapDef(gapId: 'gap_1', type: groundGapTypePit, x: 16, width: 32),
       ],
       status: chunkStatusActive,
     ),

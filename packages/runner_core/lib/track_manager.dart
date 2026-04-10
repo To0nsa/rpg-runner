@@ -118,8 +118,10 @@ class TrackManager {
   /// - [groundEnemyLocomotionSystem]: Ground locomotion (receives graph updates).
   /// - [spawnService]: Entity spawner (receives surface graph updates).
   /// - [groundTopY]: Y coordinate of the ground surface (for spawning).
-  /// - [chunkPatternSource]: Deterministic chunk pattern source.
-  /// - [earlyPatternChunks]: Number of early chunks using easy patterns.
+  /// - [chunkPatternSource]: Deterministic tiered chunk pattern source.
+  /// - [earlyPatternChunks]: Number of chunks requesting the `early` tier.
+  /// - [easyPatternChunks]: Number of chunks after the opening window requesting `easy`.
+  /// - [normalPatternChunks]: Number of chunks after the easy window requesting `normal`.
   /// - [noEnemyChunks]: Number of early chunks that suppress enemy spawns.
   TrackManager({
     required int seed,
@@ -135,6 +137,8 @@ class TrackManager {
     required double groundTopY,
     required ChunkPatternSource chunkPatternSource,
     int earlyPatternChunks = defaultEarlyPatternChunks,
+    int easyPatternChunks = defaultEasyPatternChunks,
+    int normalPatternChunks = defaultNormalPatternChunks,
     int noEnemyChunks = defaultNoEnemyChunks,
   }) : _trackTuning = trackTuning,
        _collectibleTuning = collectibleTuning,
@@ -147,6 +151,8 @@ class TrackManager {
        _spawnService = spawnService,
        _chunkPatternSource = chunkPatternSource,
        _earlyPatternChunks = earlyPatternChunks,
+       _easyPatternChunks = easyPatternChunks,
+       _normalPatternChunks = normalPatternChunks,
        _noEnemyChunks = noEnemyChunks {
     // Initialize geometry state from base level.
     _staticGeometry = baseGeometry;
@@ -162,6 +168,8 @@ class TrackManager {
         groundTopY: groundTopY,
         patternSource: _chunkPatternSource,
         earlyPatternChunks: _earlyPatternChunks,
+        easyPatternChunks: _easyPatternChunks,
+        normalPatternChunks: _normalPatternChunks,
         noEnemyChunks: _noEnemyChunks,
       );
     }
@@ -182,6 +190,8 @@ class TrackManager {
   final SpawnService _spawnService;
   final ChunkPatternSource _chunkPatternSource;
   final int _earlyPatternChunks;
+  final int _easyPatternChunks;
+  final int _normalPatternChunks;
   final int _noEnemyChunks;
 
   // ─── Runtime State ───

@@ -34,7 +34,7 @@ void main() {
 
       const pool = ChunkPatternPool(
         easyPatterns: <ChunkPattern>[pattern],
-        allPatterns: <ChunkPattern>[pattern],
+        hardPatterns: <ChunkPattern>[pattern],
       );
 
       final streamer = TrackStreamer(
@@ -82,7 +82,7 @@ void main() {
 
     const pool = ChunkPatternPool(
       easyPatterns: <ChunkPattern>[pattern],
-      allPatterns: <ChunkPattern>[pattern],
+      hardPatterns: <ChunkPattern>[pattern],
     );
 
     final streamer = TrackStreamer(

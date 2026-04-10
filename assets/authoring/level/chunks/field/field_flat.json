@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "chunkKey": "field_flat",
+  "id": "field_flat",
+  "revision": 2,
+  "status": "active",
+  "levelId": "field",
+  "tileSize": 16,
+  "width": 600,
+  "height": 270,
+  "difficulty": "early",
+  "tags": [],
+  "tileLayers": [],
+  "prefabs": [],
+  "markers": [],
+  "groundProfile": {
+    "kind": "flat",
+    "topY": 224
+  },
+  "groundGaps": []
+}

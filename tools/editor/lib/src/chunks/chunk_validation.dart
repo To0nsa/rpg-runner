@@ -538,7 +538,8 @@ List<ValidationIssue> validateChunkDocument(ChunkDocument document) {
 }
 
 bool _isKnownDifficulty(String value) {
-  return value == chunkDifficultyEasy ||
+  return value == chunkDifficultyEarly ||
+      value == chunkDifficultyEasy ||
       value == chunkDifficultyNormal ||
       value == chunkDifficultyHard;
 }

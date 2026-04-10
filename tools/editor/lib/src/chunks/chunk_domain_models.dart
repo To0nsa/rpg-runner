@@ -6,6 +6,7 @@ import '../prefabs/models/models.dart';
 const int chunkSchemaVersion = 1;
 const String chunkStatusActive = 'active';
 const String chunkStatusDeprecated = 'deprecated';
+const String chunkDifficultyEarly = 'early';
 const String chunkDifficultyEasy = 'easy';
 const String chunkDifficultyNormal = 'normal';
 const String chunkDifficultyHard = 'hard';
@@ -17,7 +18,7 @@ const String markerPlacementObstacleTop = 'obstacleTop';
 const int defaultLockedChunkHeight = 270;
 const int defaultRuntimeGroundTopY = 224;
 
-enum ChunkDifficulty { easy, normal, hard }
+enum ChunkDifficulty { early, easy, normal, hard }
 
 enum ChunkStatus { active, deprecated }
 
@@ -58,6 +59,8 @@ class GroundGapType {
 
 ChunkDifficulty parseChunkDifficulty(String raw) {
   switch (raw) {
+    case chunkDifficultyEarly:
+      return ChunkDifficulty.early;
     case chunkDifficultyEasy:
       return ChunkDifficulty.easy;
     case chunkDifficultyHard:
@@ -530,6 +533,7 @@ class LevelChunkDef {
   final List<PlacedPrefabDef> prefabs;
   final List<PlacedMarkerDef> markers;
   final GroundProfileDef groundProfile;
+
   /// Chunk-authored scene layer for the visible ground band preview.
   ///
   /// This is owned by chunk composition, not by prefab authoring, so a chunk

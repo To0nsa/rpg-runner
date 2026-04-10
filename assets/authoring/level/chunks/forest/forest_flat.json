@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "chunkKey": "forest_flat",
+  "id": "forest_flat",
+  "revision": 1,
+  "status": "active",
+  "levelId": "forest",
+  "tileSize": 16,
+  "width": 600,
+  "height": 270,
+  "difficulty": "normal",
+  "tags": [],
+  "tileLayers": [],
+  "prefabs": [],
+  "markers": [],
+  "groundProfile": {
+    "kind": "flat",
+    "topY": 224
+  },
+  "groundGaps": []
+}

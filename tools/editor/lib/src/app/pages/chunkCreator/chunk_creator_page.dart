@@ -173,7 +173,10 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
                         const SizedBox(width: 12),
                         Expanded(
                           flex: 1,
-                          child: _buildChunkInspector(selectedChunk, chunkScene),
+                          child: _buildChunkInspector(
+                            selectedChunk,
+                            chunkScene,
+                          ),
                         ),
                       ],
                     ),
@@ -343,10 +346,8 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
                               final chunk = chunks[index];
                               final isSelected =
                                   chunk.chunkKey == _selectedChunkKey;
-                              final isDirty =
-                                  widget.controller.dirtyItemIds.contains(
-                                chunk.chunkKey,
-                              );
+                              final isDirty = widget.controller.dirtyItemIds
+                                  .contains(chunk.chunkKey);
                               return ListTile(
                                 selected: isSelected,
                                 title: Text(
@@ -420,13 +421,13 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
             const SizedBox(height: 4),
             Text(
               _composerPlaceMode == ChunkScenePlaceMode.prefab
-              ? (selectedPlacement == null
-                ? 'Place or move prefabs directly in the scene.'
-                : 'Selected: ${selectedPlacementPrefab?.id ?? selectedPlacement.prefab.resolvedPrefabRef} '
-                  '@ (${selectedPlacement.prefab.x}, ${selectedPlacement.prefab.y})')
-              : (selectedEnemyLabel == null
-                ? 'Place or move enemy spawn markers directly in the scene.'
-                : 'Selected Marker: $selectedEnemyLabel'),
+                  ? (selectedPlacement == null
+                        ? 'Place or move prefabs directly in the scene.'
+                        : 'Selected: ${selectedPlacementPrefab?.id ?? selectedPlacement.prefab.resolvedPrefabRef} '
+                              '@ (${selectedPlacement.prefab.x}, ${selectedPlacement.prefab.y})')
+                  : (selectedEnemyLabel == null
+                        ? 'Place or move enemy spawn markers directly in the scene.'
+                        : 'Selected Marker: $selectedEnemyLabel'),
             ),
             const SizedBox(height: 8),
             _buildComposerModeControls(),
@@ -624,9 +625,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
                     ),
                   ),
                   Icon(
-                    _inspectorExpanded
-                        ? Icons.expand_less
-                        : Icons.expand_more,
+                    _inspectorExpanded ? Icons.expand_less : Icons.expand_more,
                   ),
                 ],
               ),
@@ -965,7 +964,9 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
           SizedBox(
             width: 210,
             child: DropdownButtonFormField<String>(
-              key: ValueKey<String>('new_enemy_marker_placement_$_newMarkerPlacement'),
+              key: ValueKey<String>(
+                'new_enemy_marker_placement_$_newMarkerPlacement',
+              ),
               initialValue: _newMarkerPlacement,
               isExpanded: true,
               decoration: const InputDecoration(
@@ -1134,7 +1135,8 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
       children: [
         _buildExpandableSectionHeader(
           title: 'Metadata',
-          subtitle: 'Level routing, difficulty, status, and runtime-locked size.',
+          subtitle:
+              'Level routing, difficulty, status, and runtime-locked size.',
           expanded: _metadataExpanded,
           onTap: () {
             setState(() {
@@ -1224,6 +1226,10 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
                 ),
                 items: const [
                   DropdownMenuItem(
+                    value: chunkDifficultyEarly,
+                    child: Text(chunkDifficultyEarly),
+                  ),
+                  DropdownMenuItem(
                     value: chunkDifficultyEasy,
                     child: Text(chunkDifficultyEasy),
                   ),
@@ -1312,8 +1318,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
       children: [
         _buildExpandableSectionHeader(
           title: 'Ground Profile',
-          subtitle:
-              'Runtime floor lock and ground band layer for this chunk.',
+          subtitle: 'Runtime floor lock and ground band layer for this chunk.',
           expanded: _groundProfileExpanded,
           onTap: () {
             setState(() {
@@ -1455,7 +1460,9 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
               FilledButton(
                 onPressed: () {
                   final x = int.tryParse(_newGapXController.text.trim());
-                  final width = int.tryParse(_newGapWidthController.text.trim());
+                  final width = int.tryParse(
+                    _newGapWidthController.text.trim(),
+                  );
                   if (x == null || width == null) {
                     _showSnackBar('Gap x/width must be integers.');
                     return;
@@ -1629,9 +1636,9 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
                 : SingleChildScrollView(
                     child: SelectableText(
                       selectedDiff.unifiedDiff,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        fontFamily: 'monospace',
-                      ),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(fontFamily: 'monospace'),
                     ),
                   ),
           ),
@@ -1672,10 +1679,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
             ),
             const SizedBox(height: 4),
             Text(summary, style: Theme.of(context).textTheme.bodySmall),
-            if (expanded) ...[
-              const SizedBox(height: 8),
-              child,
-            ],
+            if (expanded) ...[const SizedBox(height: 8), child],
           ],
         ),
       ),
@@ -1834,8 +1838,9 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
     if (selectedMarkerKey == null) {
       return;
     }
-    final markerStillValid = buildChunkPlacedMarkerSelections(chunk.markers)
-        .any((marker) => marker.selectionKey == selectedMarkerKey);
+    final markerStillValid = buildChunkPlacedMarkerSelections(
+      chunk.markers,
+    ).any((marker) => marker.selectionKey == selectedMarkerKey);
     if (markerStillValid) {
       return;
     }
@@ -2113,7 +2118,11 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
     });
   }
 
-  void _placeEnemyMarker(LevelChunkDef chunk, {required int x, required int y}) {
+  void _placeEnemyMarker(
+    LevelChunkDef chunk, {
+    required int x,
+    required int y,
+  }) {
     final markerId = _newEnemyMarkerId.trim();
     final chancePercent = int.tryParse(_newMarkerChancePercentRaw.trim());
     final salt = int.tryParse(_newMarkerSaltRaw.trim());
@@ -2409,9 +2418,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: Text(
-                'Edit Marker ${markerSelection.marker.markerId}',
-              ),
+              title: Text('Edit Marker ${markerSelection.marker.markerId}'),
               content: SizedBox(
                 width: 320,
                 child: Column(

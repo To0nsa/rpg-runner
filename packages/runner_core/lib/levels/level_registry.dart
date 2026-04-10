@@ -9,10 +9,8 @@ import 'level_id.dart';
 import 'level_world_constants.dart';
 
 /// Default runtime-authored chunk pattern source.
-const ChunkPatternSource defaultChunkPatternSource = ChunkPatternListSource(
-  easyPatterns: authoredEasyPatterns,
-  allPatterns: authoredAllPatterns,
-);
+final ChunkPatternSource defaultChunkPatternSource =
+    authoredChunkPatternSourceForLevel(LevelId.field.name);
 
 const StaticWorldGeometry _defaultBaseGeometry = StaticWorldGeometry(
   groundPlane: StaticGroundPlane(topY: defaultLevelGroundTopY),
@@ -28,7 +26,9 @@ class LevelRegistry {
       case LevelId.forest:
         return LevelDefinition(
           id: LevelId.forest,
-          chunkPatternSource: defaultChunkPatternSource,
+          chunkPatternSource: authoredChunkPatternSourceForLevel(
+            LevelId.forest.name,
+          ),
           cameraCenterY: defaultLevelCameraCenterY,
           staticWorldGeometry: _defaultBaseGeometry,
           themeId: 'forest',
@@ -36,7 +36,9 @@ class LevelRegistry {
       case LevelId.field:
         return LevelDefinition(
           id: LevelId.field,
-          chunkPatternSource: defaultChunkPatternSource,
+          chunkPatternSource: authoredChunkPatternSourceForLevel(
+            LevelId.field.name,
+          ),
           cameraCenterY: defaultLevelCameraCenterY,
           staticWorldGeometry: _defaultBaseGeometry,
           themeId: 'field',

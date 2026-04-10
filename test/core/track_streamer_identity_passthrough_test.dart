@@ -16,7 +16,7 @@ void main() {
     const source = ChunkPatternPoolSource(
       ChunkPatternPool(
         easyPatterns: <ChunkPattern>[pattern],
-        allPatterns: <ChunkPattern>[pattern],
+        hardPatterns: <ChunkPattern>[pattern],
       ),
     );
 

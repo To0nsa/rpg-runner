@@ -42,17 +42,31 @@ void main() {
       expect(savePlan.hasChanges, isTrue);
       await store.save(workspace, document: edited, savePlan: savePlan);
 
-      final chunkPath = p.join(
+      final legacyChunkPath = p.join(
         fixtureRoot.path,
         'assets/authoring/level/chunks/chunk_field_001.json',
       );
-      final savedJson = jsonDecode(File(chunkPath).readAsStringSync());
+      final canonicalChunkPath = p.join(
+        fixtureRoot.path,
+        'assets/authoring/level/chunks/field/chunk_a.json',
+      );
+      expect(File(legacyChunkPath).existsSync(), isFalse);
+      expect(File(canonicalChunkPath).existsSync(), isTrue);
+      final savedJson = jsonDecode(File(canonicalChunkPath).readAsStringSync());
       expect(savedJson, isA<Map<String, Object?>>());
       final savedMap = savedJson as Map<String, Object?>;
       expect(savedMap['chunkKey'], 'chunk_field_001');
       expect(savedMap['height'], 270);
       expect(savedMap['groundBandZIndex'], 1);
       expect(savedMap['tags'], <String>['aaa', 'zzz']);
+
+      final reloaded = await store.load(
+        workspace,
+        preferredActiveLevelId: 'field',
+      );
+      expect(reloaded.chunks, hasLength(1));
+      expect(reloaded.chunks.single.id, 'chunk_a');
+      expect(reloaded.chunks.single.levelId, 'field');
     } finally {
       fixtureRoot.deleteSync(recursive: true);
     }
@@ -136,7 +150,7 @@ void main() {
       );
       const chunkB = LevelChunkDef(
         chunkKey: 'CHUNK_A',
-        id: 'chunk_b',
+        id: 'CHUNK_A',
         revision: 1,
         schemaVersion: 1,
         levelId: 'field',

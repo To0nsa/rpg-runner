@@ -140,12 +140,14 @@ class ChunkStore {
     final writes = <ChunkFileWrite>[];
     for (final chunk in sortedChunks) {
       final baseline = document.baselineByChunkKey[chunk.chunkKey];
-      final relativePath = baseline?.sourcePath ?? _defaultChunkPath(chunk);
+      final plannedPath = _resolveTargetChunkPath(chunk, baseline: baseline);
+      final relativePath = plannedPath.targetPath;
+      final previousRelativePath = plannedPath.previousPath;
       final file = File(workspace.resolve(relativePath));
       final beforeContent = file.existsSync() ? file.readAsStringSync() : null;
       final afterContent = '${encoder.convert(chunk.toJson())}\n';
 
-      if (beforeContent == afterContent) {
+      if (beforeContent == afterContent && previousRelativePath == null) {
         continue;
       }
 
@@ -154,6 +156,7 @@ class ChunkStore {
           chunkKey: chunk.chunkKey,
           chunkId: chunk.id,
           relativePath: p.normalize(relativePath),
+          previousRelativePath: previousRelativePath,
           beforeContent: beforeContent,
           afterContent: afterContent,
         ),
@@ -188,6 +191,17 @@ class ChunkStore {
     for (final write in savePlan.writes) {
       final targetFile = File(workspace.resolve(write.relativePath));
       _atomicWrite(targetFile, write.afterContent);
+      final previousRelativePath = write.previousRelativePath;
+      if (previousRelativePath == null) {
+        continue;
+      }
+      if (p.equals(previousRelativePath, write.relativePath)) {
+        continue;
+      }
+      final previousFile = File(workspace.resolve(previousRelativePath));
+      if (previousFile.existsSync()) {
+        previousFile.deleteSync();
+      }
     }
   }
 
@@ -198,7 +212,7 @@ class ChunkStore {
     }
     final files =
         chunkDirectory
-            .listSync(recursive: false, followLinks: false)
+            .listSync(recursive: true, followLinks: false)
             .whereType<File>()
             .where((file) => file.path.toLowerCase().endsWith('.json'))
             .toList(growable: false)
@@ -557,11 +571,56 @@ class ChunkStore {
   }
 
   /// Deterministic filename policy:
-  /// - Existing chunks preserve their baseline source path, including rename.
-  /// - New chunks are created as `<slug(chunkKey)>.json` under chunks directory.
-  String _defaultChunkPath(LevelChunkDef chunk) {
-    final fileName = '${_slugify(chunk.chunkKey)}.json';
-    return p.normalize(p.join(chunksDirectoryPath, fileName));
+  /// - Canonical path is `<chunks>/<slug(levelId)>/<slug(id)>.json`.
+  /// - Editor-managed legacy paths are migrated to canonical on save.
+  /// - Custom/manual source paths are preserved.
+  _PlannedChunkPath _resolveTargetChunkPath(
+    LevelChunkDef chunk, {
+    required ChunkSourceBaseline? baseline,
+  }) {
+    final canonicalPath = _canonicalChunkPath(chunk);
+    if (baseline == null) {
+      return _PlannedChunkPath(targetPath: canonicalPath);
+    }
+    final baselinePath = p.normalize(baseline.sourcePath);
+    if (!_isEditorManagedChunkPath(baselinePath)) {
+      return _PlannedChunkPath(targetPath: baselinePath);
+    }
+    if (p.equals(baselinePath, canonicalPath)) {
+      return _PlannedChunkPath(targetPath: baselinePath);
+    }
+    return _PlannedChunkPath(
+      targetPath: canonicalPath,
+      previousPath: baselinePath,
+    );
+  }
+
+  String _canonicalChunkPath(LevelChunkDef chunk) {
+    final levelDirectory = _slugify(chunk.levelId);
+    final fileName = '${_slugify(chunk.id)}.json';
+    return p.normalize(p.join(chunksDirectoryPath, levelDirectory, fileName));
+  }
+
+  bool _isEditorManagedChunkPath(String relativePath) {
+    final normalizedPath = p.normalize(relativePath);
+    final normalizedChunksPath = p.normalize(chunksDirectoryPath);
+    if (normalizedPath == normalizedChunksPath) {
+      return false;
+    }
+    if (!p.isWithin(normalizedChunksPath, normalizedPath)) {
+      return false;
+    }
+    final pathWithinChunks = p.normalize(
+      p.relative(normalizedPath, from: normalizedChunksPath),
+    );
+    if (pathWithinChunks == '.' || pathWithinChunks.startsWith('..')) {
+      return false;
+    }
+    final segments = p.split(pathWithinChunks);
+    if (segments.isEmpty || segments.length > 2) {
+      return false;
+    }
+    return segments.last.toLowerCase().endsWith('.json');
   }
 
   void _verifyNoSourceDrift(
@@ -675,6 +734,7 @@ class ChunkFileWrite {
     required this.chunkKey,
     required this.chunkId,
     required this.relativePath,
+    this.previousRelativePath,
     required this.beforeContent,
     required this.afterContent,
   });
@@ -682,8 +742,16 @@ class ChunkFileWrite {
   final String chunkKey;
   final String chunkId;
   final String relativePath;
+  final String? previousRelativePath;
   final String? beforeContent;
   final String afterContent;
+}
+
+class _PlannedChunkPath {
+  const _PlannedChunkPath({required this.targetPath, this.previousPath});
+
+  final String targetPath;
+  final String? previousPath;
 }
 
 class _LevelOptionsResult {
