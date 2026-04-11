@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../chunks/chunk_domain_plugin.dart';
 import '../entities/entity_domain_plugin.dart';
 import '../domain/authoring_plugin_registry.dart';
+import '../levels/level_domain_plugin.dart';
 import '../parallax/parallax_domain_plugin.dart';
 import '../prefabs/domain/prefab_domain_plugin.dart';
 import '../session/editor_session_controller.dart';
@@ -21,6 +22,7 @@ void runEditorApp({required String initialWorkspacePath}) {
       EntityDomainPlugin(),
       PrefabDomainPlugin(),
       ChunkDomainPlugin(),
+      LevelDomainPlugin(),
       ParallaxDomainPlugin(),
     ],
   );

@@ -6,8 +6,6 @@ import 'editor_workspace.dart';
 const String defaultLevelDefsPath = 'assets/authoring/level/level_defs.json';
 const String defaultLevelIdSourcePath =
     'packages/runner_core/lib/levels/level_id.dart';
-const String defaultLevelRegistrySourcePath =
-    'packages/runner_core/lib/levels/level_registry.dart';
 
 /// Deterministic level option source resolved for an editor workflow.
 class LevelOptionResolution {
@@ -57,24 +55,32 @@ String? resolveActiveLevelId({
   return options.first;
 }
 
-Map<String, String> extractLevelThemeIds(
-  EditorWorkspace workspace, {
-  String levelRegistryPath = defaultLevelRegistrySourcePath,
-}) {
-  final file = File(workspace.resolve(levelRegistryPath));
+Map<String, String> extractLevelThemeIds(EditorWorkspace workspace) {
+  final file = File(workspace.resolve(defaultLevelDefsPath));
   if (!file.existsSync()) {
     return const <String, String>{};
   }
 
-  final source = file.readAsStringSync();
+  final map = _parseJsonMap(file.readAsStringSync());
+  if (map == null) {
+    return const <String, String>{};
+  }
+
   final mapping = <String, String>{};
-  final casePattern = RegExp(
-    r"case\s+LevelId\.(\w+)\s*:\s*return\s+LevelDefinition\([\s\S]*?themeId:\s*'([^']+)'",
-    multiLine: true,
-  );
-  for (final match in casePattern.allMatches(source)) {
-    final levelId = match.group(1)?.trim() ?? '';
-    final themeId = match.group(2)?.trim() ?? '';
+  final rawLevels = map['levels'];
+  if (rawLevels is! List<Object?>) {
+    return const <String, String>{};
+  }
+
+  for (final value in rawLevels) {
+    if (value is! Map<String, Object?>) {
+      continue;
+    }
+    final levelId = _normalizedString(
+      value['levelId'],
+      fallback: _normalizedString(value['id']),
+    );
+    final themeId = _normalizedString(value['themeId']);
     if (levelId.isEmpty || themeId.isEmpty) {
       continue;
     }
@@ -83,9 +89,9 @@ Map<String, String> extractLevelThemeIds(
 
   final sortedEntries = mapping.entries.toList(growable: false)
     ..sort((a, b) => a.key.compareTo(b.key));
-  return Map<String, String>.unmodifiable(
-    <String, String>{for (final entry in sortedEntries) entry.key: entry.value},
-  );
+  return Map<String, String>.unmodifiable(<String, String>{
+    for (final entry in sortedEntries) entry.key: entry.value,
+  });
 }
 
 List<String> _extractLevelOptionsFromLevelDefs(EditorWorkspace workspace) {
@@ -105,7 +111,10 @@ List<String> _extractLevelOptionsFromLevelDefs(EditorWorkspace workspace) {
       if (value is! Map<String, Object?>) {
         continue;
       }
-      final id = _normalizedString(value['id']);
+      final id = _normalizedString(
+        value['levelId'],
+        fallback: _normalizedString(value['id']),
+      );
       if (id.isNotEmpty) {
         levelIds.add(id);
       }
@@ -166,9 +175,12 @@ Map<String, Object?>? _parseJsonMap(String raw) {
   return null;
 }
 
-String _normalizedString(Object? raw) {
+String _normalizedString(Object? raw, {String fallback = ''}) {
   if (raw is String) {
-    return raw.trim();
+    final normalized = raw.trim();
+    if (normalized.isNotEmpty) {
+      return normalized;
+    }
   }
-  return '';
+  return fallback;
 }

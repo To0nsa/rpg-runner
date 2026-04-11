@@ -1,14 +1,22 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'level_definition_generation.dart';
 import 'parallax_theme_generation.dart';
 
 const String _chunksDirectoryPath = 'assets/authoring/level/chunks';
+const String _levelDefsPath = 'assets/authoring/level/level_defs.json';
 const String _parallaxDefsPath = 'assets/authoring/level/parallax_defs.json';
 const String _prefabDefsPath = 'assets/authoring/level/prefab_defs.json';
 const String _tileDefsPath = 'assets/authoring/level/tile_defs.json';
 const String _outputPath =
     'packages/runner_core/lib/track/authored_chunk_patterns.dart';
+const String _levelIdOutputPath =
+    'packages/runner_core/lib/levels/level_id.dart';
+const String _levelRegistryOutputPath =
+    'packages/runner_core/lib/levels/level_registry.dart';
+const String _levelUiMetadataOutputPath =
+    'lib/ui/levels/generated_level_ui_metadata.dart';
 const String _parallaxOutputPath =
     'lib/game/themes/authored_parallax_themes.dart';
 const int _gridSnap = 16;
@@ -48,11 +56,21 @@ Future<void> main(List<String> args) async {
     final identities = <_ChunkIdentity>[];
     final authoredChunks = <_ChunkExportData>[];
     final files = await _listChunkJsonFiles();
+    final levelResult = await loadLevelDefinitions(defsPath: _levelDefsPath);
     final parallaxResult = await loadParallaxThemes(
       defsPath: _parallaxDefsPath,
     );
     final prefabRegistry = await _loadPrefabRegistry(issues);
 
+    issues.addAll(
+      levelResult.issues.map(
+        (issue) => _ValidationIssue(
+          path: issue.path,
+          code: issue.code,
+          message: issue.message,
+        ),
+      ),
+    );
     issues.addAll(
       parallaxResult.issues.map(
         (issue) => _ValidationIssue(
@@ -109,6 +127,9 @@ Future<void> main(List<String> args) async {
 
     stdout.writeln('Validated ${files.length} chunk json file(s).');
     stdout.writeln(
+      'Validated ${levelResult.levels.length} level definition(s).',
+    );
+    stdout.writeln(
       'Validated ${parallaxResult.themes.length} parallax theme definition(s).',
     );
     if (dryRun) {
@@ -116,17 +137,44 @@ Future<void> main(List<String> args) async {
       return;
     }
 
+    final levelIdOutput = renderLevelIdDartOutput(levelResult.levels);
+    final levelRegistryOutput = renderLevelRegistryDartOutput(
+      levelResult.levels,
+    );
+    final levelUiMetadataOutput = renderLevelUiMetadataDartOutput(
+      levelResult.levels,
+    );
     authoredChunks.sort(_compareChunkExportData);
     final output = _renderDartOutput(authoredChunks);
     final outputFile = File(_outputPath);
     await outputFile.parent.create(recursive: true);
     await outputFile.writeAsString(output);
+    final levelIdOutputFile = File(_levelIdOutputPath);
+    await levelIdOutputFile.parent.create(recursive: true);
+    await levelIdOutputFile.writeAsString(levelIdOutput);
+    final levelRegistryOutputFile = File(_levelRegistryOutputPath);
+    await levelRegistryOutputFile.parent.create(recursive: true);
+    await levelRegistryOutputFile.writeAsString(levelRegistryOutput);
+    final levelUiMetadataOutputFile = File(_levelUiMetadataOutputPath);
+    await levelUiMetadataOutputFile.parent.create(recursive: true);
+    await levelUiMetadataOutputFile.writeAsString(levelUiMetadataOutput);
     final parallaxOutput = renderParallaxThemeDartOutput(parallaxResult.themes);
     final parallaxOutputFile = File(_parallaxOutputPath);
     await parallaxOutputFile.parent.create(recursive: true);
     await parallaxOutputFile.writeAsString(parallaxOutput);
     stdout.writeln(
       'Generated $_outputPath (${authoredChunks.length} chunk(s)).',
+    );
+    stdout.writeln(
+      'Generated $_levelIdOutputPath (${levelResult.levels.length} level(s)).',
+    );
+    stdout.writeln(
+      'Generated $_levelRegistryOutputPath '
+      '(${levelResult.levels.length} level(s)).',
+    );
+    stdout.writeln(
+      'Generated $_levelUiMetadataOutputPath '
+      '(${levelResult.levels.length} level(s)).',
     );
     stdout.writeln(
       'Generated $_parallaxOutputPath '

@@ -9,6 +9,7 @@ void main() {
     );
     try {
       _writePrefabAndTileDefs(fixtureRoot.path);
+      _writeLevelDefs(fixtureRoot.path);
       _writeParallaxDefs(fixtureRoot.path);
       _writeFile(
         fixtureRoot.path,
@@ -43,6 +44,7 @@ void main() {
       );
       try {
         _writePrefabAndTileDefs(fixtureRoot.path);
+        _writeLevelDefs(fixtureRoot.path);
         _writeParallaxDefs(fixtureRoot.path);
         _writeFile(
           fixtureRoot.path,
@@ -77,6 +79,7 @@ void main() {
     );
     try {
       _writePrefabAndTileDefs(fixtureRoot.path);
+      _writeLevelDefs(fixtureRoot.path);
       _writeParallaxDefs(fixtureRoot.path);
       _writeFile(
         fixtureRoot.path,
@@ -116,6 +119,7 @@ void main() {
 
       final result = await _runGenerate(workingDirectory: fixtureRoot.path);
       expect(result.exitCode, 0, reason: result.stderr);
+      expect(result.stdout, contains('Validated 2 level definition(s).'));
 
       final outputFile = File(
         _joinPath(<String>[
@@ -140,6 +144,58 @@ void main() {
           'PlatformRel(x: 64.0, width: 16.0, aboveGroundTop: 160.0, thickness: 16.0)',
         ),
       );
+
+      final levelIdOutputFile = File(
+        _joinPath(<String>[
+          fixtureRoot.path,
+          'packages',
+          'runner_core',
+          'lib',
+          'levels',
+          'level_id.dart',
+        ]),
+      );
+      expect(levelIdOutputFile.existsSync(), isTrue);
+      final levelIdOutput = levelIdOutputFile.readAsStringSync();
+      expect(levelIdOutput, contains('enum LevelId { forest, field }'));
+
+      final levelRegistryOutputFile = File(
+        _joinPath(<String>[
+          fixtureRoot.path,
+          'packages',
+          'runner_core',
+          'lib',
+          'levels',
+          'level_registry.dart',
+        ]),
+      );
+      expect(levelRegistryOutputFile.existsSync(), isTrue);
+      final levelRegistryOutput = levelRegistryOutputFile.readAsStringSync();
+      expect(
+        levelRegistryOutput,
+        contains(
+          'defaultChunkPatternSource =\n'
+          '    authoredChunkPatternSourceForLevel(LevelId.field.name);',
+        ),
+      );
+      expect(levelRegistryOutput, contains('case LevelId.forest:'));
+      expect(levelRegistryOutput, contains('themeId: \'field\''));
+
+      final levelUiMetadataOutputFile = File(
+        _joinPath(<String>[
+          fixtureRoot.path,
+          'lib',
+          'ui',
+          'levels',
+          'generated_level_ui_metadata.dart',
+        ]),
+      );
+      expect(levelUiMetadataOutputFile.existsSync(), isTrue);
+      final levelUiMetadataOutput = levelUiMetadataOutputFile
+          .readAsStringSync();
+      expect(levelUiMetadataOutput, contains('generatedLevelUiMetadataById'));
+      expect(levelUiMetadataOutput, contains("displayName: 'Forest'"));
+      expect(levelUiMetadataOutput, contains('generatedSelectableLevelIds'));
 
       final parallaxOutputFile = File(
         _joinPath(<String>[
@@ -171,6 +227,7 @@ void main() {
       );
       try {
         _writePrefabAndTileDefs(fixtureRoot.path);
+        _writeLevelDefs(fixtureRoot.path);
         _writeParallaxDefs(fixtureRoot.path);
         _writeFile(
           fixtureRoot.path,
@@ -259,6 +316,44 @@ void _writePrefabAndTileDefs(String rootPath) {
   "schemaVersion": 2,
   "tileSlices": [],
   "platformModules": []
+}
+''');
+}
+
+void _writeLevelDefs(String rootPath) {
+  _writeFile(rootPath, 'assets/authoring/level/level_defs.json', '''
+{
+  "schemaVersion": 1,
+  "levels": [
+    {
+      "levelId": "field",
+      "revision": 1,
+      "displayName": "Field",
+      "themeId": "field",
+      "cameraCenterY": 135,
+      "groundTopY": 224,
+      "earlyPatternChunks": 3,
+      "easyPatternChunks": 0,
+      "normalPatternChunks": 0,
+      "noEnemyChunks": 3,
+      "enumOrdinal": 20,
+      "status": "active"
+    },
+    {
+      "levelId": "forest",
+      "revision": 1,
+      "displayName": "Forest",
+      "themeId": "forest",
+      "cameraCenterY": 135,
+      "groundTopY": 224,
+      "earlyPatternChunks": 3,
+      "easyPatternChunks": 0,
+      "normalPatternChunks": 0,
+      "noEnemyChunks": 3,
+      "enumOrdinal": 10,
+      "status": "active"
+    }
+  ]
 }
 ''');
 }

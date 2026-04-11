@@ -52,7 +52,7 @@ class _LeaderboardsPageState extends State<LeaderboardsPage> {
   }
 
   int _levelIndexOf(LevelId levelId) {
-    final index = LevelId.values.indexOf(levelId);
+    final index = selectableLevelIdsForUi().indexOf(levelId);
     return index == -1 ? 0 : index;
   }
 
@@ -116,7 +116,7 @@ class _PerLevelLeaderboards extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ui = context.ui;
-    final levels = LevelId.values;
+    final levels = selectableLevelIdsForUi();
 
     return DefaultTabController(
       length: levels.length,
@@ -236,7 +236,7 @@ class _OnlinePerLevelLeaderboards extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ui = context.ui;
-    final levels = LevelId.values;
+    final levels = selectableLevelIdsForUi();
     return DefaultTabController(
       length: levels.length,
       initialIndex: initialIndex,

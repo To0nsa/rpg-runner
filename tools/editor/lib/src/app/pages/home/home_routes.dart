@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../../../chunks/chunk_domain_plugin.dart';
 import '../../../entities/entity_domain_plugin.dart';
+import '../../../levels/level_domain_plugin.dart';
 import '../../../parallax/parallax_domain_plugin.dart';
 import '../../../prefabs/domain/prefab_domain_plugin.dart';
 import '../../../session/editor_session_controller.dart';
 import '../chunkCreator/chunk_creator_page.dart';
 import '../entities/entities_editor_page.dart';
+import '../levelCreator/level_creator_page.dart';
 import '../parallaxEditor/parallax_editor_page.dart';
 import '../prefabCreator/prefab_creator_page.dart';
 
@@ -45,6 +47,7 @@ class EditorHomeRoute {
 const String entitiesRouteId = 'entities';
 const String prefabCreatorRouteId = 'prefab_creator';
 const String chunkCreatorRouteId = 'chunk_creator';
+const String levelCreatorRouteId = 'level_creator';
 const String parallaxEditorRouteId = 'parallax_editor';
 
 /// Ordered top-level routes shown by the home page selector.
@@ -69,6 +72,12 @@ final List<EditorHomeRoute> homeRoutes = <EditorHomeRoute>[
     label: 'Chunk Creator',
     pluginId: ChunkDomainPlugin.pluginId,
     buildPage: _buildChunkCreatorPage,
+  ),
+  EditorHomeRoute(
+    id: levelCreatorRouteId,
+    label: 'Level Creator',
+    pluginId: LevelDomainPlugin.pluginId,
+    buildPage: _buildLevelCreatorPage,
   ),
   EditorHomeRoute(
     id: parallaxEditorRouteId,
@@ -97,6 +106,13 @@ Widget _buildChunkCreatorPage({
   required EditorSessionController controller,
 }) {
   return ChunkCreatorPage(key: key, controller: controller);
+}
+
+Widget _buildLevelCreatorPage({
+  required GlobalKey key,
+  required EditorSessionController controller,
+}) {
+  return LevelCreatorPage(key: key, controller: controller);
 }
 
 Widget _buildParallaxEditorPage({

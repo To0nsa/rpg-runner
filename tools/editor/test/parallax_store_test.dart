@@ -24,7 +24,9 @@ void main() {
       expect(resolveActiveThemeId(loaded), 'field');
       expect(loaded.themes, hasLength(2));
 
-      final fieldTheme = loaded.themes.firstWhere((theme) => theme.themeId == 'field');
+      final fieldTheme = loaded.themes.firstWhere(
+        (theme) => theme.themeId == 'field',
+      );
       final editedTheme = fieldTheme.copyWith(
         groundMaterialAssetPath: 'assets/images/parallax/field/ground_alt.png',
         layers: <ParallaxLayerDef>[
@@ -64,8 +66,7 @@ void main() {
         savedFieldTheme['groundMaterialAssetPath'],
         'assets/images/parallax/field/ground_alt.png',
       );
-      final savedLayers =
-          savedFieldTheme['layers'] as List<Object?>;
+      final savedLayers = savedFieldTheme['layers'] as List<Object?>;
       expect(
         (savedLayers.first as Map<String, Object?>)['layerKey'],
         'field_bg_10',
@@ -101,7 +102,9 @@ void main() {
         workspace,
         preferredActiveLevelId: 'field',
       );
-      final fieldTheme = loaded.themes.firstWhere((theme) => theme.themeId == 'field');
+      final fieldTheme = loaded.themes.firstWhere(
+        (theme) => theme.themeId == 'field',
+      );
       final edited = loaded.copyWith(
         themes: <ParallaxThemeDef>[
           fieldTheme.copyWith(revision: fieldTheme.revision + 1),
@@ -126,35 +129,42 @@ void main() {
 
 Future<Directory> _createFixtureWorkspace() async {
   final root = await Directory.systemTemp.createTemp('parallax_store_fixture_');
-  _writeFile(
-    root.path,
-    'assets/authoring/level/level_defs.json',
-    '''
+  _writeFile(root.path, 'assets/authoring/level/level_defs.json', '''
 {
-  "levelIds": ["field", "forest"]
-}
-''',
-  );
-  _writeFile(
-    root.path,
-    'packages/runner_core/lib/levels/level_registry.dart',
-    '''
-class LevelRegistry {
-  static Object byId(Object id) {
-    switch (id) {
-      case LevelId.field:
-        return LevelDefinition(themeId: 'field');
-      case LevelId.forest:
-        return LevelDefinition(themeId: 'forest');
+  "schemaVersion": 1,
+  "levels": [
+    {
+      "levelId": "field",
+      "revision": 1,
+      "displayName": "Field",
+      "themeId": "field",
+      "cameraCenterY": 135,
+      "groundTopY": 224,
+      "earlyPatternChunks": 3,
+      "easyPatternChunks": 0,
+      "normalPatternChunks": 0,
+      "noEnemyChunks": 3,
+      "enumOrdinal": 20,
+      "status": "active"
+    },
+    {
+      "levelId": "forest",
+      "revision": 1,
+      "displayName": "Forest",
+      "themeId": "forest",
+      "cameraCenterY": 135,
+      "groundTopY": 224,
+      "earlyPatternChunks": 3,
+      "easyPatternChunks": 0,
+      "normalPatternChunks": 0,
+      "noEnemyChunks": 3,
+      "enumOrdinal": 10,
+      "status": "active"
     }
-  }
+  ]
 }
-''',
-  );
-  _writeFile(
-    root.path,
-    'assets/authoring/level/parallax_defs.json',
-    '''
+''');
+  _writeFile(root.path, 'assets/authoring/level/parallax_defs.json', '''
 {
   "schemaVersion": 1,
   "themes": [
@@ -201,8 +211,7 @@ class LevelRegistry {
     }
   ]
 }
-''',
-  );
+''');
   for (final assetPath in <String>[
     'assets/images/parallax/field/ground.png',
     'assets/images/parallax/field/ground_alt.png',

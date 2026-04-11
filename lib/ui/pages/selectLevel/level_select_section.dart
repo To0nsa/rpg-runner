@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:runner_core/levels/level_id.dart';
+import '../../levels/level_id_ui.dart';
 import 'level_card.dart';
 
 class LevelSelectSection extends StatelessWidget {
@@ -15,12 +16,13 @@ class LevelSelectSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final levels = selectableLevelIdsForUi();
     return Wrap(
       spacing: 16,
       runSpacing: 16,
       alignment: WrapAlignment.center,
       children: [
-        for (final levelId in LevelId.values)
+        for (final levelId in levels)
           LevelCard(
             levelId: levelId,
             selected: levelId == selectedLevelId,

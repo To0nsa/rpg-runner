@@ -5,6 +5,9 @@ String canonicalJsonEncode(Object? value) {
   return jsonEncode(_normalize(value));
 }
 
+/// Recursively normalizes [value] by sorting object keys and ensuring only
+/// supported JSON types are present. Throws [FormatException] if an unsupported
+/// type is encountered.
 Object? _normalize(Object? value) {
   if (value is Map) {
     final entries = value.entries.toList()

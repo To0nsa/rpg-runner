@@ -23,6 +23,10 @@ outside the editor:
 - do not turn the editor into a gameplay shell, a generic asset manager, or a
   backend/admin tool
 
+Current in-progress domain foundations also include:
+
+- level metadata authoring in `tools/editor/lib/src/levels/**`
+
 ## Scope And Growth Direction
 
 Keep the editor small, focused, and extensible.
@@ -82,6 +86,7 @@ reading five other files first.
   - `Entities` route -> `EntityDomainPlugin`
   - `Prefab Creator` route -> `PrefabDomainPlugin`
   - `Chunk Creator` route -> `ChunkDomainPlugin`
+  - `Level Creator` route -> `LevelDomainPlugin`
   - `Parallax` route -> `ParallaxDomainPlugin`
 - route/plugin mapping and session-coherent route switching:
   - `tools/editor/lib/src/app/pages/home/home_routes.dart`
@@ -204,6 +209,19 @@ maintainability concerns.
   in chunk/core systems
 - keep deterministic theme/layer ordering, canonical numeric formatting, and
   validation/export gating in the plugin/store path instead of page-local logic
+
+### Level Domain
+
+- owner: `tools/editor/lib/src/levels/**` and
+  `tools/editor/lib/src/app/pages/levelCreator/**`
+- plugin: `LevelDomainPlugin`
+- source-of-truth file: `assets/authoring/level/level_defs.json`
+- current scope includes the Level Creator route, list/inspector UI, store,
+  validation, plugin, pending diff, and safe write flow
+- `levelId` remains stable identity, `themeId` ownership belongs here, and
+  gameplay authority stays in core/chunk systems
+- keep canonical file ordering by `levelId`, stable `enumOrdinal`, source-drift
+  checks, and export gating in the plugin/store path
 
 ### Future Authoring Domains
 

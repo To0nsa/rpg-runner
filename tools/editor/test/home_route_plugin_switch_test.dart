@@ -13,6 +13,8 @@ import 'package:runner_editor/src/chunks/chunk_domain_plugin.dart';
 import 'package:runner_editor/src/domain/authoring_plugin_registry.dart';
 import 'package:runner_editor/src/domain/authoring_types.dart';
 import 'package:runner_editor/src/entities/entity_domain_plugin.dart';
+import 'package:runner_editor/src/levels/level_domain_models.dart';
+import 'package:runner_editor/src/levels/level_domain_plugin.dart';
 import 'package:runner_editor/src/parallax/parallax_domain_models.dart';
 import 'package:runner_editor/src/parallax/parallax_domain_plugin.dart';
 import 'package:runner_editor/src/prefabs/domain/prefab_domain_models.dart';
@@ -36,6 +38,7 @@ void main() {
           _FakeEntitiesPlugin(),
           _FakePrefabPlugin(),
           _FakeChunkPlugin(),
+          _FakeLevelPlugin(),
           _FakeParallaxPlugin(),
         ],
       ),
@@ -61,6 +64,12 @@ void main() {
     await tester.tap(find.text('CHUNK CREATOR').last);
     await tester.pumpAndSettle();
     expect(controller.selectedPluginId, ChunkDomainPlugin.pluginId);
+
+    await tester.tap(find.byType(DropdownButton<String>).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('LEVEL CREATOR').last);
+    await tester.pumpAndSettle();
+    expect(controller.selectedPluginId, LevelDomainPlugin.pluginId);
 
     await tester.tap(find.byType(DropdownButton<String>).first);
     await tester.pumpAndSettle();
@@ -1148,6 +1157,92 @@ class _FakeParallaxPlugin implements AuthoringDomainPlugin {
       activeLevelId: 'field',
       levelOptionSource: 'test',
       themeIdByLevelId: const <String, String>{'field': 'field'},
+    );
+  }
+
+  @override
+  List<ValidationIssue> validate(AuthoringDocument document) {
+    return _delegate.validate(document);
+  }
+}
+
+class _FakeLevelPlugin implements AuthoringDomainPlugin {
+  final LevelDomainPlugin _delegate = LevelDomainPlugin();
+
+  @override
+  String get id => LevelDomainPlugin.pluginId;
+
+  @override
+  AuthoringDocument applyEdit(
+    AuthoringDocument document,
+    AuthoringCommand command,
+  ) {
+    return _delegate.applyEdit(document, command);
+  }
+
+  @override
+  EditableScene buildEditableScene(AuthoringDocument document) {
+    return _delegate.buildEditableScene(document);
+  }
+
+  @override
+  PendingChanges describePendingChanges(
+    EditorWorkspace workspace, {
+    required AuthoringDocument document,
+  }) {
+    return PendingChanges.empty;
+  }
+
+  @override
+  Future<ExportResult> exportToRepo(
+    EditorWorkspace workspace, {
+    required AuthoringDocument document,
+  }) async {
+    return ExportResult(applied: false);
+  }
+
+  @override
+  Future<AuthoringDocument> loadFromRepo(EditorWorkspace workspace) async {
+    return const LevelDefsDocument(
+      workspaceRootPath: '.',
+      levels: <LevelDef>[
+        LevelDef(
+          levelId: 'field',
+          revision: 1,
+          displayName: 'Field',
+          themeId: 'field',
+          cameraCenterY: 135,
+          groundTopY: 224,
+          earlyPatternChunks: 3,
+          easyPatternChunks: 0,
+          normalPatternChunks: 0,
+          noEnemyChunks: 3,
+          enumOrdinal: 20,
+          status: levelStatusActive,
+        ),
+      ],
+      baseline: null,
+      baselineLevels: <LevelDef>[
+        LevelDef(
+          levelId: 'field',
+          revision: 1,
+          displayName: 'Field',
+          themeId: 'field',
+          cameraCenterY: 135,
+          groundTopY: 224,
+          earlyPatternChunks: 3,
+          easyPatternChunks: 0,
+          normalPatternChunks: 0,
+          noEnemyChunks: 3,
+          enumOrdinal: 20,
+          status: levelStatusActive,
+        ),
+      ],
+      activeLevelId: 'field',
+      availableParallaxThemeIds: <String>['field'],
+      parallaxThemeSourceAvailable: true,
+      authoredChunkCountsByLevelId: <String, int>{'field': 1},
+      chunkCountSourceAvailable: true,
     );
   }
 
