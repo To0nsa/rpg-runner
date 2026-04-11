@@ -1,7 +1,7 @@
 # Chunk Creator High-Level Plan
 
 Date: March 27, 2026  
-Status: Active (Phase 0 completed on March 31, 2026; Phase 1 completed on April 1, 2026; Phase 2 completed on April 1, 2026; Phase 3 completed on April 3, 2026; Phase 4 completed on April 11, 2026; Phase 10 completed on April 10, 2026; Phases 5-9 and 11 remain open)
+Status: Active (Phase 0 completed on March 31, 2026; Phase 1 completed on April 1, 2026; Phase 2 completed on April 1, 2026; Phase 3 completed on April 3, 2026; Phase 4 completed on April 11, 2026; Phase 5 completed on April 11, 2026; Phase 6 completed on April 11, 2026; Phase 10 completed on April 10, 2026; Phases 7-9 and 11 remain open)
 
 ## 1) Mission
 
@@ -134,7 +134,8 @@ Parallax route now exists as a dedicated theme-authoring workflow:
   - metadata authoring (difficulty, tags, neighbors, weight)
 - Level assembly workflow:
   - define a level chunk set and assembly rules
-  - validate chunk references, order constraints, and socket transitions
+  - validate chunk references, order constraints, and optional render-theme
+    sequencing rules
 - Validation workflow:
   - structural checks
   - traversal/spawn fairness checks
@@ -237,15 +238,17 @@ Current simplification:
 
 - `entrySocket` and `exitSocket` were removed from the live chunk contract for
   now
-- if level assembly ever needs socket transitions later, add them back in the
-  dedicated assembly phase instead of carrying dead metadata early
+- do not reintroduce transition/socket metadata until there is a concrete
+  runtime problem that requires it
 
 Floor/gap contract rollout rule:
 
 - Phase 1 introduces schema/store/validation ownership for `groundProfile` and
   `groundGaps` (contract only).
-- Phase 5 adds dedicated floor/gap authoring tools, overlays, and fairness
-  validation on top of that existing contract.
+- Phase 5 adds flat-floor gap authoring and scene/runtime parity on top of
+  that existing contract.
+- richer terrain editing, jumpability overlays, and fairness policy stay out of
+  Phase 5 until gameplay rules are explicit enough to justify them.
 - Phase 1 contract shape must already be extensible:
   - `groundProfile` uses typed kind/schema fields (not ad-hoc map payloads)
   - each `groundGap` has stable identity + type + snapped placement fields
@@ -270,7 +273,8 @@ Mapping intent:
 
 - terrain/prefab collision tags map to runtime geometry/collision contracts
 - marker definitions map to runtime spawn/trigger contracts
-- socket and metadata become runtime-consumed selection constraints
+- chunk metadata and optional render-theme sequencing become runtime-consumed
+  selection constraints
 - ground profile and gap definitions map to runtime ground segment/gap
   contracts
 - level assembly definitions map to runtime chunk selection/ordering contracts
@@ -311,8 +315,8 @@ No step in the baseline workflow should require editing Dart or raw JSON files.
 - grid-snapping violations for geometry-affecting fields
 - chunk width incompatible with runtime chunk width contract
 - out-of-bounds placements
-- missing required sockets/metadata
-- illegal socket transitions in level assembly or neighbor constraints
+- missing required assembly metadata
+- invalid level assembly ordering/weighting or render-theme sequencing
 - deterministic filename collision (including case-insensitive collision risk)
 - source-drift detected between load baseline and export target
 - deterministic serialization failure
@@ -542,63 +546,83 @@ Gate:
 - legacy obstacle/platform authoring path is removed or marked with explicit
   adapter-removal criteria
 
-### Phase 5 - Ground Floor + Gap Authoring Through Editor
+### Phase 5 - Flat Floor + Explicit Gap Authoring Through Editor
+
+Status: Completed on April 11, 2026
 
 Scope:
 
-- add dedicated authoring tools for ground floor topology and gap placement
-  against `groundProfile`/`groundGaps` chunk contract fields introduced in
-  Phase 1
-- represent gaps as explicit authored data (width/type/placement), not only
-  implicit paint holes
-- add live overlays for walkable surfaces, jumpability, and unsafe gap spans
-- map authored ground/gap data into runtime contracts deterministically
-- validate level-specific gap constraints (minimum/maximum widths and clearance
-  rules)
+- keep `groundProfile` flat and runtime-locked for all current levels
+- author explicit gaps against `groundGaps` on top of that locked flat floor
+- use platforms above gaps for vertical variation instead of introducing terrain
+  sculpting early
+- render authored solid spans and gap spans in the chunk scene with runtime
+  parity
+- validate structural gap rules only: deterministic ordering, stable identity,
+  grid snap, bounds, and overlap
 
 Gate:
 
-- non-dev user can author ground floor and gaps entirely through editor tools
+- non-dev user can author explicit gaps entirely through editor tools without
+  hand-editing JSON
 - generated runtime data reproduces authored surfaces/gaps deterministically
-- invalid or unfair ground/gap patterns are blocked at export with actionable
+- invalid structural gap patterns are blocked at export with actionable
   diagnostics
 
-### Phase 6 - Gameplay Marker Authoring + Marker Contract Registry
+Deferred from Phase 5:
+
+- richer terrain editing (`ramps`, `steps`, per-segment height)
+- jumpability or unsafe-gap overlays tied to character/enemy movement rules
+- level-specific fairness constraints such as min/max widths or clearance rules
+
+### Phase 6 - Enemy Spawn Marker Authoring Through Editor
+
+Status: Completed on April 11, 2026
 
 Scope:
 
-- add dedicated gameplay marker authoring mode in chunk editor
-- support baseline marker families (enemy spawn, obstacle spawn, pickup spawn,
-  trigger, checkpoint)
-- add marker payload editor with typed validation by marker type
-- add marker overlap/proximity validation (spawn fairness and illegal overlaps)
-- implement marker contract registry: typed payload schema, defaults, and
-  migration hooks per marker type
-- map markers to runtime spawn/trigger contracts deterministically
+- support the gameplay marker family the current game actually uses:
+  deterministic enemy spawn markers
+- add dedicated enemy-marker authoring in the chunk editor
+- support typed enemy marker payload editing for `markerId`, `x`, `y`,
+  `chancePercent`, `salt`, and `placement`
+- validate marker ids, bounds, snap, chance range, salt, and placement against
+  the current runtime contract
+- map authored enemy markers deterministically into runtime `SpawnMarker`
+  output
 
 Gate:
 
-- non-dev user can create/edit/delete gameplay markers entirely in editor
+- non-dev user can create/edit/delete enemy spawn markers entirely in editor
 - marker payload validation blocks invalid runtime configurations
-- every shipped marker type has schema/default/migration coverage in tests
-- generated runtime data spawns/activates markers deterministically in tests
+- generated runtime data spawns enemy markers deterministically in tests
 
-### Phase 7 - Sockets + Level Assembly Workflow
+Deferred from Phase 6:
+
+- obstacle, pickup, trigger, checkpoint, and future marker families
+- broad marker-family registry/default/migration infrastructure before multiple
+  gameplay marker families actually exist
+- overlap/proximity fairness policy beyond the enemy spawn rules the runtime
+  already enforces
+
+### Phase 7 - Level Assembly + Render Theme Sequencing
 
 Scope:
 
-- add socket authoring UI (entry/exit socket + neighbor constraints)
-- add explicit socket transition matrix validator (`exit -> next entry`)
 - add level assembly editor for selecting chunk sets per level
 - add deterministic ordering/weighting rules for assembled level chunk sets
-- validate assembled level references and chunk transition legality
+- add optional render-only chunk theme sequencing so selected chunks can drive
+  temporary visual theme runs without affecting gameplay authority
+- validate assembled level references, ordering legality, and render-theme
+  sequencing rules
 
 Gate:
 
-- illegal socket transitions are blocked before export
 - assembled level definitions reference only valid chunks for that level
-- runtime chunk selection/ordering consumes socket + assembly constraints
+- runtime chunk selection/ordering consumes assembly constraints
   deterministically
+- authored render-theme sequencing resolves through runtime render/theme lookup
+  without affecting deterministic gameplay state
 
 ### Phase 8 - Simulation Preview + Validation Hardening
 
@@ -619,8 +643,8 @@ Gate:
 
 Scope:
 
-- integrate terrain, prefabs, gaps, markers, sockets, and metadata into one
-  level-scoped authoring/export path
+- integrate terrain, prefabs, gaps, markers, assembly metadata, and optional
+  render-theme sequencing into one level-scoped authoring/export path
 - run end-to-end non-dev workflow from atlas slicing to in-game playtest
 - verify level assembly constraints and chunk contracts across full level data
 
@@ -725,16 +749,13 @@ Asset sync when new level assets are added:
 
 ## 11) Immediate Next Slice
 
-1. Lock Phase 3 completion with regression verification only (do not reopen
-   completed Phase 3 scope):
+1. Keep completed Phases 3-6 green with regression verification only (do not
+   reopen completed scope):
    - `cd tools/editor && dart analyze`
    - `cd tools/editor && flutter test`
-2. Start Phase 5 ground floor and gap authoring tools with validation overlays
-   on top of the Phase 1 floor/gap contract.
-3. Start Phase 6 gameplay marker authoring and marker contract registry.
-4. Start Phase 7 sockets + level assembly workflow.
-5. Start Phase 8 simulation preview + validation hardening.
-6. Start Phase 9 first playable end-to-end chunk pipeline.
-7. Keep Phase 10 parallax parity and determinism coverage green while the
+2. Start Phase 7 level assembly + render theme sequencing.
+3. Start Phase 8 simulation preview + validation hardening.
+4. Start Phase 9 first playable end-to-end chunk pipeline.
+5. Keep Phase 10 parallax parity and determinism coverage green while the
    remaining chunk/runtime phases land.
-8. Start Phase 11 CI drift gate + adapter removal hardening.
+6. Start Phase 11 CI drift gate + adapter removal hardening.

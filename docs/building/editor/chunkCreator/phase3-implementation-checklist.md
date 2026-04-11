@@ -50,7 +50,7 @@ Out of scope in this phase:
 
 - runtime obstacle/platform cutover in `runner_core` (Phase 4)
 - chunk floor/gap tool mode (Phase 5)
-- marker/sockets/simulation/parallax phases
+- marker/assembly-theme/simulation/parallax phases
 - gameplay balancing rules beyond structural validity of module composition
 
 ## Current Gaps to Close
