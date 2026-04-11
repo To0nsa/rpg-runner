@@ -9,6 +9,7 @@ void main() {
     );
     try {
       _writePrefabAndTileDefs(fixtureRoot.path);
+      _writeParallaxDefs(fixtureRoot.path);
       _writeFile(
         fixtureRoot.path,
         'assets/authoring/level/chunks/field/chunk_ok.json',
@@ -42,6 +43,7 @@ void main() {
       );
       try {
         _writePrefabAndTileDefs(fixtureRoot.path);
+        _writeParallaxDefs(fixtureRoot.path);
         _writeFile(
           fixtureRoot.path,
           'assets/authoring/level/chunks/field/chunk_bad.json',
@@ -75,6 +77,7 @@ void main() {
     );
     try {
       _writePrefabAndTileDefs(fixtureRoot.path);
+      _writeParallaxDefs(fixtureRoot.path);
       _writeFile(
         fixtureRoot.path,
         'assets/authoring/level/chunks/field/chunk_ok.json',
@@ -137,6 +140,24 @@ void main() {
           'PlatformRel(x: 64.0, width: 16.0, aboveGroundTop: 160.0, thickness: 16.0)',
         ),
       );
+
+      final parallaxOutputFile = File(
+        _joinPath(<String>[
+          fixtureRoot.path,
+          'lib',
+          'game',
+          'themes',
+          'authored_parallax_themes.dart',
+        ]),
+      );
+      expect(parallaxOutputFile.existsSync(), isTrue);
+      final parallaxOutput = parallaxOutputFile.readAsStringSync();
+      expect(parallaxOutput, contains('authoredParallaxThemesById'));
+      expect(parallaxOutput, contains('groundMaterialAssetPath'));
+      expect(
+        parallaxOutput,
+        contains("assetPath: 'parallax/field/Field Layer 01.png'"),
+      );
     } finally {
       fixtureRoot.deleteSync(recursive: true);
     }
@@ -150,6 +171,7 @@ void main() {
       );
       try {
         _writePrefabAndTileDefs(fixtureRoot.path);
+        _writeParallaxDefs(fixtureRoot.path);
         _writeFile(
           fixtureRoot.path,
           'assets/authoring/level/chunks/field/chunk_bad.json',
@@ -239,6 +261,49 @@ void _writePrefabAndTileDefs(String rootPath) {
   "platformModules": []
 }
 ''');
+}
+
+void _writeParallaxDefs(String rootPath) {
+  _writeFile(rootPath, 'assets/authoring/level/parallax_defs.json', '''
+{
+  "schemaVersion": 1,
+  "themes": [
+    {
+      "themeId": "field",
+      "revision": 1,
+      "groundMaterialAssetPath": "assets/images/parallax/field/Field Layer 09.png",
+      "layers": [
+        {
+          "layerKey": "field_bg_01",
+          "assetPath": "assets/images/parallax/field/Field Layer 01.png",
+          "group": "background",
+          "parallaxFactor": 0.1,
+          "zOrder": 10,
+          "opacity": 1,
+          "yOffset": 0
+        },
+        {
+          "layerKey": "field_fg_10",
+          "assetPath": "assets/images/parallax/field/Field Layer 10.png",
+          "group": "foreground",
+          "parallaxFactor": 1,
+          "zOrder": 10,
+          "opacity": 1,
+          "yOffset": 0
+        }
+      ]
+    }
+  ]
+}
+''');
+
+  for (final relativePath in <String>[
+    'assets/images/parallax/field/Field Layer 01.png',
+    'assets/images/parallax/field/Field Layer 09.png',
+    'assets/images/parallax/field/Field Layer 10.png',
+  ]) {
+    _writeFile(rootPath, relativePath, '');
+  }
 }
 
 String _resolveDartExecutable() {

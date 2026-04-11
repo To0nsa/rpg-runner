@@ -20,8 +20,7 @@ import '../util/math_util.dart';
 /// - `0.0` = static (doesn't move with camera)
 /// - `1.0` = moves 1:1 with camera (no parallax effect)
 /// - Values between create the classic parallax depth illusion
-class PixelParallaxBackdrop extends Component
-    with HasGameReference<FlameGame> {
+class PixelParallaxBackdrop extends Component with HasGameReference<FlameGame> {
   PixelParallaxBackdrop({
     required this.virtualWidth,
     required this.virtualHeight,
@@ -113,14 +112,17 @@ class PixelParallaxBackdrop extends Component
 
     for (var i = 0; i < layers.length; i++) {
       final image = _images[i];
+      final layer = layers[i];
 
       final imageW = image.width;
       final imageH = image.height;
-      final y = resolveLayerTopY(
-        viewHeight: viewHeight,
-        imageHeight: imageH,
-        bottomAnchorY: bottomAnchorY,
-      );
+      final y =
+          resolveLayerTopY(
+            viewHeight: viewHeight,
+            imageHeight: imageH,
+            bottomAnchorY: bottomAnchorY,
+          ) +
+          layer.yOffset;
 
       // Optionally snap to whole pixels for crisp pixel-art rendering.
       final scroll = snapScrollToPixels
@@ -128,6 +130,12 @@ class PixelParallaxBackdrop extends Component
           : _scroll[i];
       final offsetPx = -scroll;
       final startX = positiveModDouble(offsetPx, imageW.toDouble());
+      _paint.color = ui.Color.fromRGBO(
+        255,
+        255,
+        255,
+        layer.opacity.clamp(0.0, 1.0),
+      );
 
       // Tile the image across the viewport width.
       for (var x = startX - imageW; x < viewWidth; x += imageW) {
@@ -157,6 +165,8 @@ class PixelParallaxLayerSpec {
   const PixelParallaxLayerSpec({
     required this.assetPath,
     required this.parallaxFactor,
+    this.opacity = 1.0,
+    this.yOffset = 0.0,
   });
 
   /// Path to the layer image (relative to assets/images/).
@@ -168,4 +178,10 @@ class PixelParallaxLayerSpec {
   /// - `0.5`: Layer moves at half camera speed (mid-ground).
   /// - `1.0`: Layer moves 1:1 with camera (no parallax, foreground).
   final double parallaxFactor;
+
+  /// Per-layer alpha applied at render time.
+  final double opacity;
+
+  /// Additional vertical offset in view-space pixels.
+  final double yOffset;
 }

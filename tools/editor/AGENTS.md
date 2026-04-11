@@ -12,6 +12,7 @@ It currently owns editor UX, validation, and deterministic import/export for:
 - entity collider/source-bound edits
 - prefab, tile, and platform-module authoring data
 - chunk authoring data
+- parallax theme authoring data
 
 The editor may author data consumed by gameplay, but gameplay authority stays
 outside the editor:
@@ -81,6 +82,7 @@ reading five other files first.
   - `Entities` route -> `EntityDomainPlugin`
   - `Prefab Creator` route -> `PrefabDomainPlugin`
   - `Chunk Creator` route -> `ChunkDomainPlugin`
+  - `Parallax` route -> `ParallaxDomainPlugin`
 - route/plugin mapping and session-coherent route switching:
   - `tools/editor/lib/src/app/pages/home/home_routes.dart`
   - `tools/editor/lib/src/app/pages/home/editor_home_page.dart`
@@ -187,6 +189,22 @@ maintainability concerns.
 - keep one-chunk-per-file semantics, stable `chunkKey`, deterministic save-plan
   output, source-drift checks, and case-insensitive path-collision protection
 
+### Parallax Domain
+
+- owner: `tools/editor/lib/src/parallax/**` and
+  `tools/editor/lib/src/app/pages/parallaxEditor/**`
+- plugin: `ParallaxDomainPlugin`
+- source-of-truth file: `assets/authoring/level/parallax_defs.json`
+- parallax themes are visual-only render data keyed by stable `themeId`
+- active level selection resolves the current `themeId` via
+  `packages/runner_core/lib/levels/level_registry.dart`; multiple levels may
+  reuse the same authored theme
+- `groundMaterialAssetPath` belongs to render/theme selection only; gameplay
+  ground geometry, collision, traversal, spawn, and streaming authority remain
+  in chunk/core systems
+- keep deterministic theme/layer ordering, canonical numeric formatting, and
+  validation/export gating in the plugin/store path instead of page-local logic
+
 ### Future Authoring Domains
 
 New authoring domains are allowed when they represent a real current workflow,
@@ -275,6 +293,10 @@ Run focused tests for touched slices, for example:
   - `tools/editor/test/chunk_creator_page_test.dart`
 - runtime authoring adapters when touched:
   - `tools/editor/test/prefab_runtime_adapter_test.dart`
+- parallax workflows:
+  - `tools/editor/test/parallax_store_test.dart`
+  - `tools/editor/test/parallax_domain_plugin_test.dart`
+  - `tools/editor/test/parallax_editor_page_test.dart`
 
 When authoring-runtime contract seams are touched, also run repo-level
 generator validation:

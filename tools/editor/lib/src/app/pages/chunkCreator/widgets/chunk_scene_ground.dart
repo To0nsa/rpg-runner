@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 
 import '../../../../chunks/chunk_domain_models.dart';
+import '../../shared/ground_material_render_rules.dart' as ground_material_rules;
 
 /// Read-only ground layout derived from the current chunk floor/gap contract.
 ///
@@ -26,9 +27,10 @@ class ChunkGroundLayout {
 
 /// Runtime-derived ground material source for a level theme.
 ///
-/// This mirrors the current game-side ground renderer source in
-/// `lib/game/themes/parallax_theme_registry.dart`. If that registry changes,
-/// this lookup should change in the same pass or be extracted to a shared seam.
+/// This mirrors the current generated game-side theme source in
+/// `lib/game/themes/authored_parallax_themes.dart`. If authored theme output
+/// changes, this lookup should change in the same pass or be extracted to a
+/// shared seam.
 @immutable
 class ChunkGroundMaterialSpec {
   const ChunkGroundMaterialSpec({
@@ -42,9 +44,9 @@ class ChunkGroundMaterialSpec {
 
 /// Level-driven parallax asset mapping used by chunk-scene preview.
 ///
-/// This mirrors the runtime theme asset sets in
-/// `lib/game/themes/parallax_theme_registry.dart` so layer depth checks in the
-/// editor stay visually aligned with game composition.
+/// This mirrors the generated runtime theme asset sets in
+/// `lib/game/themes/authored_parallax_themes.dart` so layer depth checks in
+/// the editor stay visually aligned with game composition.
 @immutable
 class ChunkParallaxPreviewSpec {
   const ChunkParallaxPreviewSpec({
@@ -262,72 +264,8 @@ Future<ui.Rect> detectGroundMaterialSourceRect(
   ui.Image image, {
   double fallbackMaterialHeight = 16.0,
 }) async {
-  const alphaOpaqueThreshold = 1;
-  const rowCoverageThreshold = 0.20;
-  final bytes = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
-  if (bytes == null) {
-    return _fallbackGroundMaterialSourceRect(
-      image,
-      fallbackMaterialHeight: fallbackMaterialHeight,
-    );
-  }
-
-  final rgba = bytes.buffer.asUint8List();
-  final width = image.width;
-  final height = image.height;
-  final minOpaquePixels = (width * rowCoverageThreshold).ceil();
-  int? firstOpaqueRow;
-  for (var y = 0; y < height; y += 1) {
-    final rowOffset = y * width * 4;
-    var opaqueCount = 0;
-    for (var x = 0; x < width; x += 1) {
-      final alpha = rgba[rowOffset + x * 4 + 3];
-      if (alpha >= alphaOpaqueThreshold) {
-        firstOpaqueRow ??= y;
-        opaqueCount += 1;
-        if (opaqueCount >= minOpaquePixels) {
-          return ui.Rect.fromLTWH(
-            0,
-            y.toDouble(),
-            width.toDouble(),
-            (height - y).toDouble().clamp(1.0, height.toDouble()),
-          );
-        }
-      }
-    }
-  }
-
-  final fallbackTop =
-      firstOpaqueRow ??
-      _fallbackMaterialTopRow(image.height, fallbackMaterialHeight);
-  return ui.Rect.fromLTWH(
-    0,
-    fallbackTop.toDouble(),
-    image.width.toDouble(),
-    (image.height - fallbackTop).toDouble().clamp(1.0, image.height.toDouble()),
+  return ground_material_rules.detectGroundMaterialSourceRectForPreview(
+    image,
+    fallbackMaterialHeight: fallbackMaterialHeight,
   );
-}
-
-ui.Rect _fallbackGroundMaterialSourceRect(
-  ui.Image image, {
-  required double fallbackMaterialHeight,
-}) {
-  final topRow = _fallbackMaterialTopRow(image.height, fallbackMaterialHeight);
-  return ui.Rect.fromLTWH(
-    0,
-    topRow.toDouble(),
-    image.width.toDouble(),
-    (image.height - topRow).toDouble().clamp(1.0, image.height.toDouble()),
-  );
-}
-
-int _fallbackMaterialTopRow(int imageHeight, double fallbackMaterialHeight) {
-  final fallbackTop = (imageHeight - fallbackMaterialHeight).floor();
-  if (fallbackTop <= 0) {
-    return 0;
-  }
-  if (fallbackTop >= imageHeight) {
-    return imageHeight - 1;
-  }
-  return fallbackTop;
 }

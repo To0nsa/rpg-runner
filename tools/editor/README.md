@@ -20,6 +20,8 @@ Implemented authoring domains:
 - prefab, tile-slice, and platform-module authoring
 - chunk authoring with scene-based prefab composition, shared pan/zoom/grid
   controls, rendered floor/gap visualization, and metadata/ground editing
+- parallax theme authoring scoped by active level, with ordered layer editing,
+  deterministic save output, validation, and preview motion simulation
 
 Editor foundations shared across those domains:
 

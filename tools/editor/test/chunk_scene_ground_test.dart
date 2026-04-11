@@ -114,12 +114,12 @@ void main() {
 Map<String, _RuntimeThemeSpec> _loadRuntimeThemes() {
   final root = _repoRootPath();
   final source = File(
-    p.join(root, 'lib', 'game', 'themes', 'parallax_theme_registry.dart'),
+    p.join(root, 'lib', 'game', 'themes', 'authored_parallax_themes.dart'),
   ).readAsStringSync();
 
   final themeBodiesByAlias = <String, String>{};
   final themeBlockPattern = RegExp(
-    r"const ParallaxTheme _([A-Za-z0-9_]+) = ParallaxTheme\(([\s\S]*?)\n\);",
+    r"const ParallaxTheme authoredParallaxTheme([A-Za-z0-9_]+) = ParallaxTheme\(([\s\S]*?)\n\);",
     multiLine: true,
   );
   for (final match in themeBlockPattern.allMatches(source)) {
@@ -127,11 +127,11 @@ Map<String, _RuntimeThemeSpec> _loadRuntimeThemes() {
   }
 
   final themeById = <String, _RuntimeThemeSpec>{};
-  final switchCasePattern = RegExp(
-    r"case '([^']+)':\s*return _([A-Za-z0-9_]+);",
+  final mapEntryPattern = RegExp(
+    r"'([^']+)': authoredParallaxTheme([A-Za-z0-9_]+),",
     multiLine: true,
   );
-  for (final match in switchCasePattern.allMatches(source)) {
+  for (final match in mapEntryPattern.allMatches(source)) {
     final levelId = match.group(1)!;
     final alias = match.group(2)!;
     final body = themeBodiesByAlias[alias];
@@ -145,7 +145,7 @@ Map<String, _RuntimeThemeSpec> _loadRuntimeThemes() {
 
 _RuntimeThemeSpec _parseRuntimeTheme(String body) {
   final backgroundLayersMatch = RegExp(
-    r'backgroundLayers:\s*<PixelParallaxLayerSpec>\[(.*?)\],\s*groundLayerAsset:',
+    r'backgroundLayers:\s*<PixelParallaxLayerSpec>\[(.*?)\],\s*groundMaterialAssetPath:',
     dotAll: true,
   ).firstMatch(body);
   final foregroundLayersMatch = RegExp(
@@ -153,7 +153,7 @@ _RuntimeThemeSpec _parseRuntimeTheme(String body) {
     dotAll: true,
   ).firstMatch(body);
   final groundAssetMatch = RegExp(
-    r"groundLayerAsset:\s*'([^']+)'",
+    r"groundMaterialAssetPath:\s*'([^']+)'",
   ).firstMatch(body);
 
   return _RuntimeThemeSpec(
@@ -208,7 +208,7 @@ String _repoRootPath() {
       'lib',
       'game',
       'themes',
-      'parallax_theme_registry.dart',
+      'authored_parallax_themes.dart',
     );
     if (File(registryPath).existsSync()) {
       return root;

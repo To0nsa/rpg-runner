@@ -136,15 +136,22 @@ class GroundBandParallaxForeground extends Component
 
       for (var i = 0; i < layers.length; i++) {
         final image = _images[i];
+        final layer = layers[i];
         final imageW = image.width;
         final imageH = image.height;
-        final y = bottomY - imageH.toDouble();
+        final y = bottomY - imageH.toDouble() + layer.yOffset;
 
         final scroll = snapScrollToPixels
             ? roundToPixels(_scroll[i])
             : _scroll[i];
         final offsetPx = -scroll;
         final startX = positiveModDouble(offsetPx, imageW.toDouble());
+        _paint.color = ui.Color.fromRGBO(
+          255,
+          255,
+          255,
+          layer.opacity.clamp(0.0, 1.0),
+        );
 
         for (var x = startX - imageW; x < virtualWidth; x += imageW) {
           canvas.drawImage(image, ui.Offset(x, y), _paint);

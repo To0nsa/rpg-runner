@@ -172,7 +172,7 @@ class RunnerFlameGame extends FlameGame {
     );
 
     _groundSurface = GroundSurface(
-      assetPath: theme.groundLayerAsset,
+      assetPath: theme.groundMaterialAssetPath,
       controller: controller,
       virtualWidth: virtualWidth,
       virtualHeight: virtualHeight,

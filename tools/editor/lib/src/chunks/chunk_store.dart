@@ -5,13 +5,15 @@ import 'package:path/path.dart' as p;
 
 import '../domain/authoring_types.dart';
 import '../workspace/editor_workspace.dart';
+import '../workspace/level_context_resolver.dart' as level_context;
+import '../workspace/workspace_file_io.dart';
 import 'chunk_domain_models.dart';
 
 class ChunkStore {
   static const String chunksDirectoryPath = 'assets/authoring/level/chunks';
-  static const String levelDefsPath = 'assets/authoring/level/level_defs.json';
+  static const String levelDefsPath = level_context.defaultLevelDefsPath;
   static const String levelIdSourcePath =
-      'packages/runner_core/lib/levels/level_id.dart';
+      level_context.defaultLevelIdSourcePath;
   static const String trackTuningSourcePath =
       'packages/runner_core/lib/tuning/track_tuning.dart';
   static const String spatialContractSourcePath =
@@ -33,7 +35,10 @@ class ChunkStore {
     final chunkFiles = _listChunkFiles(workspace);
     final discoveredLevelIds = <String>{};
     for (final file in chunkFiles) {
-      final relativePath = _toWorkspaceRelativePath(workspace, file.path);
+      final relativePath = WorkspaceFileIo.toWorkspaceRelativePath(
+        workspace,
+        file.path,
+      );
       String raw;
       try {
         raw = await file.readAsString();
@@ -96,15 +101,15 @@ class ChunkStore {
 
       baselineByChunkKey[chunk.chunkKey] = ChunkSourceBaseline(
         sourcePath: relativePath,
-        fingerprint: _fingerprint(raw),
+        fingerprint: WorkspaceFileIo.fingerprint(raw),
       );
     }
 
-    final levelOptions = _resolveLevelOptions(
+    final levelOptions = level_context.resolveLevelOptions(
       workspace,
       discoveredLevelIds: discoveredLevelIds,
     );
-    final activeLevelId = _resolveActiveLevelId(
+    final activeLevelId = level_context.resolveActiveLevelId(
       options: levelOptions.options,
       preferredLevelId: preferredActiveLevelId,
     );
@@ -190,7 +195,7 @@ class ChunkStore {
 
     for (final write in savePlan.writes) {
       final targetFile = File(workspace.resolve(write.relativePath));
-      _atomicWrite(targetFile, write.afterContent);
+      WorkspaceFileIo.atomicWrite(targetFile, write.afterContent);
       final previousRelativePath = write.previousRelativePath;
       if (previousRelativePath == null) {
         continue;
@@ -384,112 +389,6 @@ class ChunkStore {
     return issues;
   }
 
-  _LevelOptionsResult _resolveLevelOptions(
-    EditorWorkspace workspace, {
-    required Set<String> discoveredLevelIds,
-  }) {
-    final fromLevelDefs = _extractLevelOptionsFromLevelDefs(workspace);
-    if (fromLevelDefs.isNotEmpty) {
-      return _LevelOptionsResult(
-        options: fromLevelDefs,
-        source: 'level_defs_json',
-      );
-    }
-
-    final fromEnum = _extractLevelOptionsFromLevelEnum(workspace);
-    if (fromEnum.isNotEmpty) {
-      return _LevelOptionsResult(
-        options: fromEnum,
-        source: 'core_level_id_enum',
-      );
-    }
-
-    final fallback = discoveredLevelIds.toList(growable: false)..sort();
-    return _LevelOptionsResult(
-      options: fallback,
-      source: 'discovered_chunk_level_ids',
-    );
-  }
-
-  List<String> _extractLevelOptionsFromLevelDefs(EditorWorkspace workspace) {
-    final file = File(workspace.resolve(levelDefsPath));
-    if (!file.existsSync()) {
-      return const <String>[];
-    }
-    final map = _parseJsonMap(file.readAsStringSync());
-    if (map == null) {
-      return const <String>[];
-    }
-
-    final levelIds = <String>{};
-    final rawLevels = map['levels'];
-    if (rawLevels is List<Object?>) {
-      for (final value in rawLevels) {
-        if (value is! Map<String, Object?>) {
-          continue;
-        }
-        final id = _normalizedString(value['id']);
-        if (id.isNotEmpty) {
-          levelIds.add(id);
-        }
-      }
-    }
-
-    final rawLevelIds = map['levelIds'];
-    if (rawLevelIds is List<Object?>) {
-      for (final value in rawLevelIds) {
-        final id = _normalizedString(value);
-        if (id.isNotEmpty) {
-          levelIds.add(id);
-        }
-      }
-    }
-
-    final options = levelIds.toList(growable: false)..sort();
-    return options;
-  }
-
-  List<String> _extractLevelOptionsFromLevelEnum(EditorWorkspace workspace) {
-    final file = File(workspace.resolve(levelIdSourcePath));
-    if (!file.existsSync()) {
-      return const <String>[];
-    }
-    final source = file.readAsStringSync();
-    final enumMatch = RegExp(
-      r'enum\s+LevelId\s*\{([^}]*)\}',
-      dotAll: true,
-    ).firstMatch(source);
-    if (enumMatch == null) {
-      return const <String>[];
-    }
-    final enumBody = enumMatch.group(1) ?? '';
-    final values =
-        enumBody
-            .split(',')
-            .map((value) => value.trim())
-            .where((value) => value.isNotEmpty)
-            .where((value) => !value.startsWith('//'))
-            .map((value) => value.split(' ').first.trim())
-            .where((value) => value.isNotEmpty)
-            .toSet()
-            .toList(growable: false)
-          ..sort();
-    return values;
-  }
-
-  String? _resolveActiveLevelId({
-    required List<String> options,
-    required String? preferredLevelId,
-  }) {
-    if (options.isEmpty) {
-      return null;
-    }
-    if (preferredLevelId != null && options.contains(preferredLevelId)) {
-      return preferredLevelId;
-    }
-    return options.first;
-  }
-
   _RuntimeTrackAuthority _loadRuntimeAuthority(EditorWorkspace workspace) {
     final tuningFile = File(workspace.resolve(trackTuningSourcePath));
     final spatialContractFile = File(
@@ -640,53 +539,15 @@ class ChunkStore {
           '${baseline.sourcePath} no longer exists. Reload before export.',
         );
       }
-      final currentFingerprint = _fingerprint(baselineFile.readAsStringSync());
+      final currentFingerprint = WorkspaceFileIo.fingerprint(
+        baselineFile.readAsStringSync(),
+      );
       if (currentFingerprint != baseline.fingerprint) {
         throw StateError(
           'Source drift detected for ${write.chunkKey} at ${baseline.sourcePath}. '
           'Reload before export.',
         );
       }
-    }
-  }
-
-  void _atomicWrite(File targetFile, String content) {
-    final parent = targetFile.parent;
-    if (!parent.existsSync()) {
-      parent.createSync(recursive: true);
-    }
-
-    final tempFile = File('${targetFile.path}.tmp');
-    final backupFile = File('${targetFile.path}.bak.tmp');
-    final hadOriginal = targetFile.existsSync();
-
-    if (tempFile.existsSync()) {
-      tempFile.deleteSync();
-    }
-    if (backupFile.existsSync()) {
-      backupFile.deleteSync();
-    }
-
-    tempFile.writeAsStringSync(content);
-    try {
-      if (hadOriginal) {
-        targetFile.renameSync(backupFile.path);
-      }
-      tempFile.renameSync(targetFile.path);
-      if (backupFile.existsSync()) {
-        backupFile.deleteSync();
-      }
-    } on Object {
-      if (tempFile.existsSync()) {
-        tempFile.deleteSync();
-      }
-      if (backupFile.existsSync()) {
-        if (targetFile.existsSync()) {
-          targetFile.deleteSync();
-        }
-        backupFile.renameSync(targetFile.path);
-      }
-      rethrow;
     }
   }
 
@@ -705,18 +566,6 @@ class ChunkStore {
         '${write.relativePath} (${write.chunkKey}).',
       );
     }
-  }
-
-  String _toWorkspaceRelativePath(
-    EditorWorkspace workspace,
-    String absolutePath,
-  ) {
-    final normalizedAbsolute = p.normalize(absolutePath);
-    final normalizedRoot = p.normalize(workspace.rootPath);
-    if (p.isWithin(normalizedRoot, normalizedAbsolute)) {
-      return p.normalize(p.relative(normalizedAbsolute, from: normalizedRoot));
-    }
-    return normalizedAbsolute;
   }
 }
 
@@ -754,13 +603,6 @@ class _PlannedChunkPath {
   final String? previousPath;
 }
 
-class _LevelOptionsResult {
-  const _LevelOptionsResult({required this.options, required this.source});
-
-  final List<String> options;
-  final String source;
-}
-
 class _RuntimeTrackAuthority {
   const _RuntimeTrackAuthority({
     required this.chunkWidth,
@@ -787,13 +629,6 @@ int _compareChunksForMemory(LevelChunkDef a, LevelChunkDef b) {
   return a.chunkKey.compareTo(b.chunkKey);
 }
 
-String _normalizedString(Object? raw) {
-  if (raw is String) {
-    return raw.trim();
-  }
-  return '';
-}
-
 String _slugify(String raw) {
   final lower = raw.toLowerCase().trim();
   if (lower.isEmpty) {
@@ -804,18 +639,6 @@ String _slugify(String raw) {
     return 'chunk';
   }
   return slug;
-}
-
-String _fingerprint(String input) {
-  const int offsetBasis = 0x811C9DC5;
-  const int prime = 0x01000193;
-  var hash = offsetBasis;
-  final bytes = utf8.encode(input);
-  for (final value in bytes) {
-    hash ^= value;
-    hash = (hash * prime) & 0xFFFFFFFF;
-  }
-  return hash.toRadixString(16).padLeft(8, '0');
 }
 
 void _validateObjectArray(

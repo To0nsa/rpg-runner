@@ -13,6 +13,8 @@ import 'package:runner_editor/src/chunks/chunk_domain_plugin.dart';
 import 'package:runner_editor/src/domain/authoring_plugin_registry.dart';
 import 'package:runner_editor/src/domain/authoring_types.dart';
 import 'package:runner_editor/src/entities/entity_domain_plugin.dart';
+import 'package:runner_editor/src/parallax/parallax_domain_models.dart';
+import 'package:runner_editor/src/parallax/parallax_domain_plugin.dart';
 import 'package:runner_editor/src/prefabs/domain/prefab_domain_models.dart';
 import 'package:runner_editor/src/prefabs/domain/prefab_domain_plugin.dart';
 import 'package:runner_editor/src/prefabs/models/models.dart';
@@ -34,6 +36,7 @@ void main() {
           _FakeEntitiesPlugin(),
           _FakePrefabPlugin(),
           _FakeChunkPlugin(),
+          _FakeParallaxPlugin(),
         ],
       ),
       initialPluginId: EntityDomainPlugin.pluginId,
@@ -58,6 +61,12 @@ void main() {
     await tester.tap(find.text('CHUNK CREATOR').last);
     await tester.pumpAndSettle();
     expect(controller.selectedPluginId, ChunkDomainPlugin.pluginId);
+
+    await tester.tap(find.byType(DropdownButton<String>).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('PARALLAX').last);
+    await tester.pumpAndSettle();
+    expect(controller.selectedPluginId, ParallaxDomainPlugin.pluginId);
 
     await tester.tap(find.byType(DropdownButton<String>).first);
     await tester.pumpAndSettle();
@@ -1074,6 +1083,77 @@ class _FakePrefabPlugin implements AuthoringDomainPlugin {
   @override
   List<ValidationIssue> validate(AuthoringDocument document) {
     return const <ValidationIssue>[];
+  }
+}
+
+class _FakeParallaxPlugin implements AuthoringDomainPlugin {
+  final ParallaxDomainPlugin _delegate = ParallaxDomainPlugin();
+
+  @override
+  String get id => ParallaxDomainPlugin.pluginId;
+
+  @override
+  AuthoringDocument applyEdit(
+    AuthoringDocument document,
+    AuthoringCommand command,
+  ) {
+    return _delegate.applyEdit(document, command);
+  }
+
+  @override
+  EditableScene buildEditableScene(AuthoringDocument document) {
+    return _delegate.buildEditableScene(document);
+  }
+
+  @override
+  PendingChanges describePendingChanges(
+    EditorWorkspace workspace, {
+    required AuthoringDocument document,
+  }) {
+    return PendingChanges.empty;
+  }
+
+  @override
+  Future<ExportResult> exportToRepo(
+    EditorWorkspace workspace, {
+    required AuthoringDocument document,
+  }) async {
+    return ExportResult(applied: false);
+  }
+
+  @override
+  Future<AuthoringDocument> loadFromRepo(EditorWorkspace workspace) async {
+    return ParallaxDefsDocument(
+      workspaceRootPath: workspace.rootPath,
+      themes: const <ParallaxThemeDef>[
+        ParallaxThemeDef(
+          themeId: 'field',
+          revision: 1,
+          groundMaterialAssetPath: 'assets/images/parallax/field/ground.png',
+          layers: <ParallaxLayerDef>[
+            ParallaxLayerDef(
+              layerKey: 'field_bg_10',
+              assetPath: 'assets/images/parallax/field/bg_10.png',
+              group: parallaxGroupBackground,
+              parallaxFactor: 0.25,
+              zOrder: 10,
+              opacity: 1.0,
+              yOffset: 0.0,
+            ),
+          ],
+        ),
+      ],
+      baseline: null,
+      availableLevelIds: const <String>['field'],
+      activeLevelId: 'field',
+      levelOptionSource: 'test',
+      themeIdByLevelId: const <String, String>{'field': 'field'},
+    );
+  }
+
+  @override
+  List<ValidationIssue> validate(AuthoringDocument document) {
+    return _delegate.validate(document);
   }
 }
 

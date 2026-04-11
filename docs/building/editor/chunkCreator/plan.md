@@ -1,7 +1,7 @@
 # Chunk Creator High-Level Plan
 
 Date: March 27, 2026  
-Status: Active (Phase 0 completed on March 31, 2026; Phase 1 completed on April 1, 2026; Phase 2 completed on April 1, 2026; Phase 3 completed on April 3, 2026)
+Status: Active (Phase 0 completed on March 31, 2026; Phase 1 completed on April 1, 2026; Phase 2 completed on April 1, 2026; Phase 3 completed on April 3, 2026; Phase 10 completed on April 10, 2026; Phases 4-9 and 11 remain open)
 
 ## 1) Mission
 
@@ -94,6 +94,10 @@ Chunk route is now a functional composition workspace skeleton:
 
 - `tools/editor/lib/src/app/pages/chunkCreator/chunk_creator_page.dart`
 
+Parallax route now exists as a dedicated theme-authoring workflow:
+
+- `tools/editor/lib/src/app/pages/parallaxEditor/parallax_editor_page.dart`
+
 ### Assets
 
 - props atlas exists:
@@ -116,8 +120,11 @@ Chunk route is now a functional composition workspace skeleton:
   - chunk create/duplicate/rename/deprecate operations
   - stable ID/revision handling and reference-safe updates
 - Parallax workflow:
-  - level-scoped parallax layer set authoring
+  - theme-scoped parallax layer set authoring reusable across levels
+  - deterministic level -> theme resolution via runtime level registry
   - per-layer asset/speed/depth ordering controls
+  - render-side ground material selection only; gameplay ground authority stays
+    in chunk/core systems
 - Chunk workflow:
   - tile paint
   - ground floor surface authoring
@@ -157,6 +164,7 @@ Authoring files:
 - `assets/authoring/level/marker_defs.json`
 - `assets/authoring/level/chunks/*.json`
 - `assets/authoring/level/level_defs.json`
+- `assets/authoring/level/parallax_defs.json`
 
 Rules:
 
@@ -613,8 +621,6 @@ Scope:
   level-scoped authoring/export path
 - run end-to-end non-dev workflow from atlas slicing to in-game playtest
 - verify level assembly constraints and chunk contracts across full level data
-- keep parallax intentionally deferred to a dedicated later phase so chunk
-  production and runtime gameplay path ship first
 
 Gate:
 
@@ -623,24 +629,35 @@ Gate:
 - deterministic replay/streaming tests remain green with authored level data
 - non-dev acceptance pass completes on representative production tasks
 
-### Phase 10 - Parallax Authoring Through Editor (Deferred Visual Layer)
+### Phase 10 - Parallax Authoring Through Editor (Visual Theme Layer)
 
-Status: Deferred until core chunk-authoring pipeline (through Phase 9) is
-implemented and accepted
+Status: Completed on April 10, 2026
+
+Implementation note:
+
+- this phase was delivered out of the original sequence once the generator and
+  runtime theme bridge were ready, without expanding parallax into gameplay
+  authority
 
 Scope:
 
-- add parallax authoring UI in `tools/editor` for level-scoped parallax sets
+- add parallax authoring UI in `tools/editor` for theme-scoped parallax sets
+- resolve active theme selection from level context through
+  `level_registry.dart` so a single authored theme can be reused by multiple
+  levels
 - allow creating/editing ordered parallax layers (asset, z/depth, speed factor)
 - add preview of parallax motion using editor camera pan controls
 - persist parallax definitions in deterministic authoring JSON
 - wire generated parallax data into runtime theme/level consumption path
+- keep ground geometry and other gameplay-critical decisions outside parallax;
+  only render/theme lookup consumes authored parallax data
 - integrate parallax into previously shipped chunk pipeline without regressing
   deterministic gameplay behavior
 
 Gate:
 
-- non-dev user can create and edit a level parallax setup fully in editor
+- non-dev user can create and edit a reusable parallax theme fully in editor
+- multiple levels can resolve the same authored theme without duplicating data
 - authored parallax data is consumed by runtime without manual Dart edits
 - parallax load/save is deterministic and covered by tests
 - adding parallax does not alter gameplay-critical deterministic chunk outcomes
@@ -718,5 +735,6 @@ Asset sync when new level assets are added:
 5. Start Phase 7 sockets + level assembly workflow.
 6. Start Phase 8 simulation preview + validation hardening.
 7. Start Phase 9 first playable end-to-end chunk pipeline.
-8. Start Phase 10 deferred parallax authoring after chunk pipeline acceptance.
+8. Keep Phase 10 parallax parity and determinism coverage green while the
+   remaining chunk/runtime phases land.
 9. Start Phase 11 CI drift gate + adapter removal hardening.

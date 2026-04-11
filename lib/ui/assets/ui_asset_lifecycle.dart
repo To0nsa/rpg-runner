@@ -60,7 +60,7 @@ class UiAssetLifecycle {
       <PlayerCharacterId, Future<IdleAnimBundle>>{};
   final Map<PlayerCharacterId, Future<IdleAnimBundle>> _runIdleInFlight =
       <PlayerCharacterId, Future<IdleAnimBundle>>{};
-    final Map<String, Future<void>> _runBootstrapWarmInFlight =
+  final Map<String, Future<void>> _runBootstrapWarmInFlight =
       <String, Future<void>>{};
 
   final Map<AssetImage, Future<void>> _parallaxPrecacheInFlight =
@@ -151,13 +151,14 @@ class UiAssetLifecycle {
     final existing = _runBootstrapWarmInFlight[key];
     if (existing != null) return existing;
 
-    final future = _warmRunStartAssetsImpl(
-      levelId: levelId,
-      characterId: characterId,
-      context: context,
-    ).whenComplete(() {
-      _runBootstrapWarmInFlight.remove(key);
-    });
+    final future =
+        _warmRunStartAssetsImpl(
+          levelId: levelId,
+          characterId: characterId,
+          context: context,
+        ).whenComplete(() {
+          _runBootstrapWarmInFlight.remove(key);
+        });
 
     _runBootstrapWarmInFlight[key] = future;
     return future;
@@ -228,7 +229,7 @@ class UiAssetLifecycle {
 
     return <AssetImage>[
       for (final layer in theme.backgroundLayers) img(layer.assetPath),
-      img(theme.groundLayerAsset),
+      img(theme.groundMaterialAssetPath),
       for (final layer in theme.foregroundLayers) img(layer.assetPath),
     ];
   }
@@ -246,9 +247,7 @@ class UiAssetLifecycle {
       );
       if (!context.mounted) return;
 
-      final relPaths = _collectRunStartImagePaths(
-        characterId: characterId,
-      );
+      final relPaths = _collectRunStartImagePaths(characterId: characterId);
 
       final futures = <Future<void>>[
         getIdle(characterId, scope: AssetScope.run).then((_) {}),
@@ -256,10 +255,7 @@ class UiAssetLifecycle {
       ];
       for (final relPath in relPaths) {
         futures.add(
-          _precacheImageOnce(
-            AssetImage('assets/images/$relPath'),
-            context,
-          ),
+          _precacheImageOnce(AssetImage('assets/images/$relPath'), context),
         );
       }
 
