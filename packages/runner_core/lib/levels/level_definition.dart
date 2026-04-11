@@ -2,8 +2,8 @@
 library;
 
 import '../collision/static_world_geometry.dart';
+import '../track/chunk_pattern_defaults.dart';
 import '../track/chunk_pattern_source.dart';
-import '../track/chunk_pattern_pool.dart';
 import '../tuning/core_tuning.dart';
 import 'level_id.dart';
 import 'level_world_constants.dart';

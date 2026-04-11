@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runner_core/track/chunk_pattern.dart';
-import 'package:runner_core/track/chunk_pattern_pool.dart';
 import 'package:runner_core/track/chunk_pattern_source.dart';
 import 'package:runner_core/track/track_streamer.dart';
 import 'package:runner_core/tuning/track_tuning.dart';
@@ -13,11 +12,9 @@ void main() {
       chunkKey: 'chunk-field-001',
       groundGaps: <GapRel>[GapRel(x: 128.0, width: 80.0, gapId: 'gap-001')],
     );
-    const source = ChunkPatternPoolSource(
-      ChunkPatternPool(
-        easyPatterns: <ChunkPattern>[pattern],
-        hardPatterns: <ChunkPattern>[pattern],
-      ),
+    const source = ChunkPatternListSource(
+      easyPatterns: <ChunkPattern>[pattern],
+      hardPatterns: <ChunkPattern>[pattern],
     );
 
     final streamer = TrackStreamer(

@@ -1,12 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runner_core/track/chunk_pattern.dart';
-import 'package:runner_core/track/chunk_pattern_pool.dart';
 import 'package:runner_core/track/chunk_pattern_source.dart';
 import 'package:runner_core/util/deterministic_rng.dart' show mix32;
 
 void main() {
-  test('ChunkPatternPoolSource preserves deterministic selection behavior', () {
+  test('ChunkPatternListSource preserves deterministic selection behavior', () {
     const early = <ChunkPattern>[
       ChunkPattern(name: 'early-0'),
       ChunkPattern(name: 'early-1'),
@@ -25,13 +24,11 @@ void main() {
       ChunkPattern(name: 'hard-0'),
       ChunkPattern(name: 'hard-1'),
     ];
-    const source = ChunkPatternPoolSource(
-      ChunkPatternPool(
-        earlyPatterns: early,
-        easyPatterns: easy,
-        normalPatterns: normal,
-        hardPatterns: hard,
-      ),
+    const source = ChunkPatternListSource(
+      earlyPatterns: early,
+      easyPatterns: easy,
+      normalPatterns: normal,
+      hardPatterns: hard,
     );
     const seed = 1337;
     const requestedTiers = <ChunkPatternTier>[
@@ -66,13 +63,11 @@ void main() {
   });
 
   test(
-    'ChunkPatternPoolSource falls back across tiers when requested pool is empty',
+    'ChunkPatternListSource falls back across tiers when requested pool is empty',
     () {
-      const source = ChunkPatternPoolSource(
-        ChunkPatternPool(
-          easyPatterns: <ChunkPattern>[ChunkPattern(name: 'easy')],
-          hardPatterns: <ChunkPattern>[ChunkPattern(name: 'hard')],
-        ),
+      const source = ChunkPatternListSource(
+        easyPatterns: <ChunkPattern>[ChunkPattern(name: 'easy')],
+        hardPatterns: <ChunkPattern>[ChunkPattern(name: 'hard')],
       );
 
       expect(
@@ -96,10 +91,8 @@ void main() {
     },
   );
 
-  test('ChunkPatternPoolSource throws when every tier is empty', () {
-    const source = ChunkPatternPoolSource(
-      ChunkPatternPool(easyPatterns: <ChunkPattern>[]),
-    );
+  test('ChunkPatternListSource throws when every tier is empty', () {
+    const source = ChunkPatternListSource(easyPatterns: <ChunkPattern>[]);
 
     expect(
       () => source.patternFor(

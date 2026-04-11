@@ -150,8 +150,8 @@ Tasks:
   - [x] update
         [packages/runner_core/lib/track/track_streamer.dart](packages/runner_core/lib/track/track_streamer.dart)
         to consume abstraction instead of direct pool coupling.
-  - [x] keep existing `ChunkPatternPool` behavior via adapter so no gameplay
-        regression is introduced in this step.
+  - [x] keep legacy pattern-selection behavior stable during the abstraction
+        step so no gameplay regression is introduced in this phase.
 - [x] Add runtime identity passthrough:
   - [x] propagate stable chunk identity (`chunkKey`, optional while migrating)
         through streamed chunk metadata where feasible.

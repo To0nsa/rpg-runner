@@ -47,7 +47,7 @@ import 'snapshots/ground_surface_snapshot.dart';
 import 'snapshots/static_prefab_sprite_snapshot.dart';
 import 'snapshots/static_solid_snapshot.dart';
 import 'spawn_service.dart' hide StaticSolid;
-import 'track/chunk_pattern_pool.dart';
+import 'track/chunk_pattern_defaults.dart';
 import 'track/chunk_pattern_source.dart';
 import 'track/track_streamer.dart';
 import 'tuning/collectible_tuning.dart';
@@ -241,8 +241,8 @@ class TrackManager {
   List<GroundSurfaceSnapshot> get groundSurfacesSnapshot =>
       _groundSurfacesSnapshot;
 
-    /// Immutable snapshot of authored static prefab visual sprites.
-    List<StaticPrefabSpriteSnapshot> get staticPrefabSpritesSnapshot =>
+  /// Immutable snapshot of authored static prefab visual sprites.
+  List<StaticPrefabSpriteSnapshot> get staticPrefabSpritesSnapshot =>
       _staticPrefabSpritesSnapshot;
 
   /// Advances the track streamer and updates geometry if needed.
@@ -298,9 +298,10 @@ class TrackManager {
       ..._baseGeometry.groundGaps,
       ...streamer.dynamicGroundGaps,
     ];
-    _staticPrefabSpritesSnapshot = List<StaticPrefabSpriteSnapshot>.unmodifiable(
-      streamer.dynamicVisualSprites.map(_toStaticPrefabSpriteSnapshot),
-    );
+    _staticPrefabSpritesSnapshot =
+        List<StaticPrefabSpriteSnapshot>.unmodifiable(
+          streamer.dynamicVisualSprites.map(_toStaticPrefabSpriteSnapshot),
+        );
 
     // Apply the new combined geometry (rebuilds index, snapshots, nav graph).
     _setStaticGeometry(

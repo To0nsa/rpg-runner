@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runner_core/enemies/enemy_id.dart';
 import 'package:runner_core/track/chunk_pattern.dart';
-import 'package:runner_core/track/chunk_pattern_pool.dart';
 import 'package:runner_core/track/chunk_pattern_source.dart';
 import 'package:runner_core/track/track_streamer.dart';
 import 'package:runner_core/tuning/track_tuning.dart';
@@ -32,7 +31,7 @@ void main() {
         ],
       );
 
-      const pool = ChunkPatternPool(
+      const source = ChunkPatternListSource(
         easyPatterns: <ChunkPattern>[pattern],
         hardPatterns: <ChunkPattern>[pattern],
       );
@@ -41,7 +40,7 @@ void main() {
         seed: 99,
         tuning: const TrackTuning(spawnAheadMargin: 0.0),
         groundTopY: 220.0,
-        patternSource: ChunkPatternPoolSource(pool),
+        patternSource: source,
         earlyPatternChunks: 0,
         noEnemyChunks: 0,
       );
@@ -80,7 +79,7 @@ void main() {
       ],
     );
 
-    const pool = ChunkPatternPool(
+    const source = ChunkPatternListSource(
       easyPatterns: <ChunkPattern>[pattern],
       hardPatterns: <ChunkPattern>[pattern],
     );
@@ -89,7 +88,7 @@ void main() {
       seed: 77,
       tuning: const TrackTuning(spawnAheadMargin: 0.0),
       groundTopY: 220.0,
-      patternSource: ChunkPatternPoolSource(pool),
+      patternSource: source,
       earlyPatternChunks: 0,
       noEnemyChunks: 0,
     );

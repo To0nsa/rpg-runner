@@ -9,7 +9,7 @@ import 'package:runner_core/navigation/surface_extractor.dart';
 import 'package:runner_core/navigation/types/surface_graph.dart';
 import 'package:runner_core/navigation/surface_graph_builder.dart';
 import 'package:runner_core/track/chunk_builder.dart';
-import 'package:runner_core/track/chunk_patterns_library.dart';
+import 'package:runner_core/track/chunk_pattern.dart';
 
 JumpReachabilityTemplate _template() {
   const profile = JumpProfile(
@@ -563,8 +563,35 @@ void main() {
   test(
     'high-platform-over-obstacle emits left-ground jump edge onto obstacle top',
     () {
-      final pattern = allPatterns.firstWhere(
-        (p) => p.name == 'high-platform-over-obstacle',
+      const pattern = ChunkPattern(
+        name: 'high-platform-over-obstacle',
+        platforms: <PlatformRel>[
+          PlatformRel(
+            x: 224.0,
+            width: 192.0,
+            aboveGroundTop: 112.0,
+            thickness: 16.0,
+          ),
+        ],
+        obstacles: <ObstacleRel>[
+          ObstacleRel(x: 128.0, width: 48.0, height: 64.0),
+        ],
+        groundGaps: <GapRel>[GapRel(x: 176.0, width: 96.0)],
+        spawnMarkers: <SpawnMarker>[
+          SpawnMarker(
+            enemyId: EnemyId.derf,
+            x: 152.0,
+            chancePercent: 100,
+            salt: 0x13,
+            placement: SpawnPlacementMode.obstacleTop,
+          ),
+          SpawnMarker(
+            enemyId: EnemyId.hashash,
+            x: 320.0,
+            chancePercent: 22,
+            salt: 0x03,
+          ),
+        ],
       );
       const groundTopY = 220.0;
       const chunkWidth = 600.0;

@@ -3,7 +3,6 @@ library;
 
 import '../util/deterministic_rng.dart' show mix32;
 import 'chunk_pattern.dart';
-import 'chunk_pattern_pool.dart';
 
 /// Requested chunk pacing tier for a streamed chunk index.
 enum ChunkPatternTier { early, easy, normal, hard }
@@ -54,39 +53,6 @@ class ChunkPatternListSource implements ChunkPatternSource {
       );
     }
 
-    final h = mix32(seed ^ (chunkIndex * 0x9e3779b9) ^ 0x27d4eb2d);
-    final idx = h % patterns.length;
-    return patterns[idx];
-  }
-}
-
-/// Default [ChunkPatternSource] backed by [ChunkPatternPool].
-class ChunkPatternPoolSource implements ChunkPatternSource {
-  const ChunkPatternPoolSource(this.pool);
-
-  final ChunkPatternPool pool;
-
-  @override
-  ChunkPattern patternFor({
-    required int seed,
-    required int chunkIndex,
-    required ChunkPatternTier tier,
-  }) {
-    final patterns = _resolvePatternsForTier(
-      tier: tier,
-      earlyPatterns: pool.earlyPatterns,
-      easyPatterns: pool.easyPatterns,
-      normalPatterns: pool.normalPatterns,
-      hardPatterns: pool.hardPatterns,
-    );
-    if (patterns == null) {
-      throw StateError(
-        'ChunkPatternPool has no patterns available for '
-        'tier=${tier.name}, chunkIndex=$chunkIndex.',
-      );
-    }
-
-    // MurmurHash-style mix for uniform deterministic distribution.
     final h = mix32(seed ^ (chunkIndex * 0x9e3779b9) ^ 0x27d4eb2d);
     final idx = h % patterns.length;
     return patterns[idx];

@@ -1,7 +1,7 @@
 # Chunk Creator High-Level Plan
 
 Date: March 27, 2026  
-Status: Active (Phase 0 completed on March 31, 2026; Phase 1 completed on April 1, 2026; Phase 2 completed on April 1, 2026; Phase 3 completed on April 3, 2026; Phase 10 completed on April 10, 2026; Phases 4-9 and 11 remain open)
+Status: Active (Phase 0 completed on March 31, 2026; Phase 1 completed on April 1, 2026; Phase 2 completed on April 1, 2026; Phase 3 completed on April 3, 2026; Phase 4 completed on April 11, 2026; Phase 10 completed on April 10, 2026; Phases 5-9 and 11 remain open)
 
 ## 1) Mission
 
@@ -61,7 +61,7 @@ Deterministic chunk streaming currently exists in:
 - `packages/runner_core/lib/track/chunk_pattern.dart`
 - `packages/runner_core/lib/track/chunk_builder.dart`
 - `packages/runner_core/lib/track/track_streamer.dart`
-- `packages/runner_core/lib/track/chunk_patterns_library.dart`
+- `packages/runner_core/lib/track/authored_chunk_patterns.dart`
 
 Current authored chunk contract is `ChunkPattern` with:
 
@@ -380,7 +380,7 @@ Scope:
 - replace assert-only runtime geometry guards with runtime-safe validation paths
   in Core chunk build/stream flow
 - add runtime chunk-source abstraction so `TrackStreamer` is not hard-bound to
-  `ChunkPatternPool`
+  any legacy static pattern library
 - add immutable `chunkKey` + rename-safe identity semantics (`id` may change;
   `chunkKey` may not)
 - add explicit deterministic filename strategy and case-insensitive collision
@@ -522,6 +522,8 @@ Gate:
 - platform prefab flow can reference newly authored modules in the same session
 
 ### Phase 4 - Replace Existing Obstacles/Platforms With Prefab-Backed Runtime Data
+
+Status: Completed on April 11, 2026
 
 Scope:
 
@@ -727,14 +729,12 @@ Asset sync when new level assets are added:
    completed Phase 3 scope):
    - `cd tools/editor && dart analyze`
    - `cd tools/editor && flutter test`
-2. Start Phase 4 runtime replacement of legacy obstacle/platform definitions
-   with prefab-backed runtime data.
-3. Start Phase 5 ground floor and gap authoring tools with validation overlays
+2. Start Phase 5 ground floor and gap authoring tools with validation overlays
    on top of the Phase 1 floor/gap contract.
-4. Start Phase 6 gameplay marker authoring and marker contract registry.
-5. Start Phase 7 sockets + level assembly workflow.
-6. Start Phase 8 simulation preview + validation hardening.
-7. Start Phase 9 first playable end-to-end chunk pipeline.
-8. Keep Phase 10 parallax parity and determinism coverage green while the
+3. Start Phase 6 gameplay marker authoring and marker contract registry.
+4. Start Phase 7 sockets + level assembly workflow.
+5. Start Phase 8 simulation preview + validation hardening.
+6. Start Phase 9 first playable end-to-end chunk pipeline.
+7. Keep Phase 10 parallax parity and determinism coverage green while the
    remaining chunk/runtime phases land.
-9. Start Phase 11 CI drift gate + adapter removal hardening.
+8. Start Phase 11 CI drift gate + adapter removal hardening.
