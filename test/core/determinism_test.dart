@@ -15,7 +15,7 @@ String _digest(GameCore core) {
     'camx=${s.camera.centerX.toStringAsFixed(6)}',
     'camy=${s.camera.centerY.toStringAsFixed(6)}',
     'level=${s.levelId.name}',
-    'theme=${s.themeId}',
+    'theme=${s.visualThemeId}',
     'hp=${s.hud.hp.toStringAsFixed(6)}',
     'mana=${s.hud.mana.toStringAsFixed(6)}',
     'stamina=${s.hud.stamina.toStringAsFixed(6)}',

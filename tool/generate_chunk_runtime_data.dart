@@ -33,6 +33,8 @@ const Set<String> _supportedDifficulties = <String>{
   'normal',
   'hard',
 };
+const String _defaultChunkAssemblyGroupId = 'default';
+final RegExp _stableIdentifierPattern = RegExp(r'^[a-z][a-z0-9_]*$');
 
 Future<void> main(List<String> args) async {
   final showHelp = args.contains('-h') || args.contains('--help');
@@ -110,6 +112,23 @@ Future<void> main(List<String> args) async {
       fieldName: 'id',
       issueCode: 'duplicate_chunk_id',
       selector: (identity) => identity.id,
+    );
+    _validateChunkGroupsAgainstLevels(
+      levels: levelResult.levels,
+      authoredChunks: authoredChunks,
+      issues: issues,
+    );
+    _validateLevelAssemblyAgainstChunks(
+      levels: levelResult.levels,
+      authoredChunks: authoredChunks,
+      issues: issues,
+    );
+    _validateLevelVisualThemes(
+      levels: levelResult.levels,
+      authoredVisualThemeIds: parallaxResult.themes
+          .map((theme) => theme.parallaxThemeId)
+          .toSet(),
+      issues: issues,
     );
 
     issues.sort();
@@ -289,6 +308,11 @@ Future<_ChunkParseResult?> _validateAndParseChunkFile(
     path: path,
     issues: issues,
   );
+  final assemblyGroupId = _readAssemblyGroupId(
+    map: decoded,
+    path: path,
+    issues: issues,
+  );
   _validateLevelOwnershipPath(path: path, levelId: levelId, issues: issues);
 
   final chunk = _ChunkJson(
@@ -297,6 +321,7 @@ Future<_ChunkParseResult?> _validateAndParseChunkFile(
     id: id,
     levelId: levelId,
     difficulty: difficulty,
+    assemblyGroupId: assemblyGroupId,
     groundTopY: _readGroundTopY(decoded),
     prefabs: _readListOfMaps(decoded['prefabs']),
     markers: _readListOfMaps(decoded['markers']),
@@ -393,6 +418,40 @@ String _readRequiredDifficulty({
     );
   }
   return difficulty;
+}
+
+String _readAssemblyGroupId({
+  required Map<String, Object?> map,
+  required String path,
+  required List<_ValidationIssue> issues,
+}) {
+  final raw = map['assemblyGroupId'];
+  if (raw == null) {
+    return _defaultChunkAssemblyGroupId;
+  }
+  if (raw is! String || raw.trim().isEmpty) {
+    issues.add(
+      _ValidationIssue(
+        path: path,
+        code: 'invalid_assembly_group_id',
+        message: 'assemblyGroupId must be a non-empty string when present.',
+      ),
+    );
+    return _defaultChunkAssemblyGroupId;
+  }
+  final normalized = raw.trim();
+  if (!_stableIdentifierPattern.hasMatch(normalized)) {
+    issues.add(
+      _ValidationIssue(
+        path: path,
+        code: 'invalid_assembly_group_id',
+        message:
+            'assemblyGroupId must match ${_stableIdentifierPattern.pattern}.',
+      ),
+    );
+    return _defaultChunkAssemblyGroupId;
+  }
+  return normalized;
 }
 
 int _readGroundTopY(Map<String, Object?> root) {
@@ -697,10 +756,12 @@ _ChunkExportData? _buildChunkExportData(
   }
 
   return _ChunkExportData(
+    path: chunk.path,
     levelId: chunk.levelId,
     difficulty: chunk.difficulty,
     chunkKey: chunk.chunkKey,
     name: chunk.id,
+    assemblyGroupId: chunk.assemblyGroupId,
     platforms: platforms,
     obstacles: obstacles,
     groundGaps: groundGaps,
@@ -999,9 +1060,9 @@ String _renderDartOutput(List<_ChunkExportData> chunks) {
   buffer
     ..writeln('};')
     ..writeln()
-    ..writeln(
-      'ChunkPatternSource authoredChunkPatternSourceForLevel(String levelId) {',
-    )
+    ..writeln('ChunkPatternListSource authoredChunkPatternSourceForLevel(')
+    ..writeln('  String levelId,')
+    ..writeln(') {')
     ..writeln('  final source = authoredChunkPatternSourcesByLevel[levelId];')
     ..writeln('  if (source != null) {')
     ..writeln('    return source;')
@@ -1024,7 +1085,8 @@ void _writePatternList(
     buffer
       ..writeln('  ChunkPattern(')
       ..writeln("    name: '${_escape(chunk.name)}',")
-      ..writeln("    chunkKey: '${_escape(chunk.chunkKey)}',");
+      ..writeln("    chunkKey: '${_escape(chunk.chunkKey)}',")
+      ..writeln("    assemblyGroupId: '${_escape(chunk.assemblyGroupId)}',");
 
     buffer.writeln('    platforms: <PlatformRel>[');
     for (final platform in chunk.platforms) {
@@ -1183,6 +1245,119 @@ void _collectDuplicateIdentityIssues(
   }
 }
 
+void _validateLevelAssemblyAgainstChunks({
+  required List<LevelDefinitionSource> levels,
+  required List<_ChunkExportData> authoredChunks,
+  required List<_ValidationIssue> issues,
+}) {
+  final groupCountsByLevel = <String, Map<String, int>>{};
+  for (final chunk in authoredChunks) {
+    final groupCounts = groupCountsByLevel.putIfAbsent(
+      chunk.levelId,
+      () => <String, int>{},
+    );
+    groupCounts[chunk.assemblyGroupId] =
+        (groupCounts[chunk.assemblyGroupId] ?? 0) + 1;
+  }
+
+  for (final level in levels) {
+    final assembly = level.assembly;
+    if (assembly == null) {
+      continue;
+    }
+    final declaredGroupIds = level.chunkThemeGroups.toSet();
+    final availableGroups =
+        groupCountsByLevel[level.levelId] ?? const <String, int>{};
+    for (var i = 0; i < assembly.segments.length; i += 1) {
+      final segment = assembly.segments[i];
+      if (!declaredGroupIds.contains(segment.groupId)) {
+        issues.add(
+          _ValidationIssue(
+            path: _levelDefsPath,
+            code: 'unknown_assembly_group_id',
+            message:
+                'levels[${_levelIndexFor(levels, level.levelId)}].assembly.segments[$i] '
+                'references groupId "${segment.groupId}" that is not declared '
+                'in chunkThemeGroups for levelId "${level.levelId}".',
+          ),
+        );
+        continue;
+      }
+      if (segment.requireDistinctChunks &&
+          (availableGroups[segment.groupId] ?? 0) < segment.maxChunkCount) {
+        issues.add(
+          _ValidationIssue(
+            path: _levelDefsPath,
+            code: 'insufficient_distinct_group_chunks',
+            message:
+                'levels[${_levelIndexFor(levels, level.levelId)}].assembly.segments[$i] '
+                'requires ${segment.maxChunkCount} distinct chunks, but '
+                'group "${segment.groupId}" only has '
+                '${availableGroups[segment.groupId] ?? 0}.',
+          ),
+        );
+      }
+    }
+  }
+}
+
+void _validateChunkGroupsAgainstLevels({
+  required List<LevelDefinitionSource> levels,
+  required List<_ChunkExportData> authoredChunks,
+  required List<_ValidationIssue> issues,
+}) {
+  final declaredGroupsByLevelId = <String, Set<String>>{
+    for (final level in levels) level.levelId: level.chunkThemeGroups.toSet(),
+  };
+  for (final chunk in authoredChunks) {
+    final declaredGroups = declaredGroupsByLevelId[chunk.levelId];
+    if (declaredGroups == null) {
+      continue;
+    }
+    if (declaredGroups.contains(chunk.assemblyGroupId)) {
+      continue;
+    }
+    issues.add(
+      _ValidationIssue(
+        path: chunk.path,
+        code: 'unknown_chunk_group_id',
+        message:
+            'assemblyGroupId "${chunk.assemblyGroupId}" is not declared in '
+            'chunkThemeGroups for levelId "${chunk.levelId}".',
+      ),
+    );
+  }
+}
+
+void _validateLevelVisualThemes({
+  required List<LevelDefinitionSource> levels,
+  required Set<String> authoredVisualThemeIds,
+  required List<_ValidationIssue> issues,
+}) {
+  for (final level in levels) {
+    if (!authoredVisualThemeIds.contains(level.visualThemeId)) {
+      issues.add(
+        _ValidationIssue(
+          path: _levelDefsPath,
+          code: 'missing_level_parallax_theme',
+          message:
+              'levels[${_levelIndexFor(levels, level.levelId)}].visualThemeId '
+              'references unauthored theme "${level.visualThemeId}".',
+        ),
+      );
+    }
+  }
+}
+
+int _levelIndexFor(List<LevelDefinitionSource> levels, String levelId) {
+  for (var i = 0; i < levels.length; i += 1) {
+    if (levels[i].levelId == levelId) {
+      return i;
+    }
+  }
+  return -1;
+}
+
 String _toRepoRelativePath(String path) {
   final normalizedPath = _normalizePath(path);
   final normalizedCwd = _normalizePath(Directory.current.path);
@@ -1238,6 +1413,7 @@ class _ChunkJson {
     required this.id,
     required this.levelId,
     required this.difficulty,
+    required this.assemblyGroupId,
     required this.groundTopY,
     required this.prefabs,
     required this.markers,
@@ -1249,6 +1425,7 @@ class _ChunkJson {
   final String id;
   final String levelId;
   final String difficulty;
+  final String assemblyGroupId;
   final int groundTopY;
   final List<Map<String, Object?>> prefabs;
   final List<Map<String, Object?>> markers;
@@ -1357,10 +1534,12 @@ class _RectD {
 
 class _ChunkExportData {
   const _ChunkExportData({
+    required this.path,
     required this.levelId,
     required this.difficulty,
     required this.chunkKey,
     required this.name,
+    required this.assemblyGroupId,
     required this.platforms,
     required this.obstacles,
     required this.groundGaps,
@@ -1368,10 +1547,12 @@ class _ChunkExportData {
     required this.spawnMarkers,
   });
 
+  final String path;
   final String levelId;
   final String difficulty;
   final String chunkKey;
   final String name;
+  final String assemblyGroupId;
   final List<_PlatformExport> platforms;
   final List<_ObstacleExport> obstacles;
   final List<_GroundGapExport> groundGaps;

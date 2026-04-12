@@ -137,7 +137,11 @@ class RunnerFlameGame extends FlameGame {
   final Vector2 _cameraShakeOffsetScratch = Vector2.zero();
   final Vector2 _cameraCenterScratch = Vector2.zero();
 
-  late final GroundSurface _groundSurface;
+  PixelParallaxBackdrop? _backgroundParallax;
+  GroundSurface? _groundSurface;
+  GroundBandParallaxForeground? _foregroundParallax;
+  TemporaryFloorMask? _floorMask;
+  String? _appliedVisualThemeId;
 
   @override
   Future<void> onLoad() async {
@@ -150,45 +154,15 @@ class RunnerFlameGame extends FlameGame {
     }());
     controller.addEventListener(_eventFeedback.handleGameEvent);
 
-    final theme = ParallaxThemeRegistry.forThemeId(controller.snapshot.themeId);
     _setLoadState(RunLoadPhase.themeResolved, 0.15);
 
-    camera.backdrop.add(
-      PixelParallaxBackdrop(
-        virtualWidth: virtualWidth,
-        virtualHeight: virtualHeight,
-        snapScrollToPixels: false,
-        layers: theme.backgroundLayers,
-        layerBottomAnchorYProvider: _parallaxLayerBottomAnchorY,
-      )..priority = priorityBackgroundParallax,
-    );
-
-    camera.backdrop.add(
-      TemporaryFloorMask(
-        controller: controller,
-        virtualWidth: virtualWidth,
-        virtualHeight: virtualHeight,
-      )..priority = priorityTemporaryFloorMask,
-    );
-
-    _groundSurface = GroundSurface(
-      assetPath: theme.groundMaterialAssetPath,
+    _floorMask = TemporaryFloorMask(
       controller: controller,
       virtualWidth: virtualWidth,
       virtualHeight: virtualHeight,
-    )..priority = priorityGroundTiles;
-    camera.backdrop.add(_groundSurface);
-
-    camera.backdrop.add(
-      GroundBandParallaxForeground(
-        controller: controller,
-        virtualWidth: virtualWidth,
-        virtualHeight: virtualHeight,
-        layers: theme.foregroundLayers,
-        bandFillDepthProvider: () => _groundSurface.materialHeight,
-        snapScrollToPixels: false,
-      )..priority = priorityForegroundParallax,
-    );
+    )..priority = priorityTemporaryFloorMask;
+    camera.backdrop.add(_floorMask!);
+    _applyRenderTheme(controller.snapshot.visualThemeId);
     _setLoadState(RunLoadPhase.parallaxMounted, 0.35);
 
     final playerAnimations = await loadPlayerAnimations(
@@ -252,6 +226,7 @@ class RunnerFlameGame extends FlameGame {
     final prevSnapshot = controller.prevSnapshot;
     final currSnapshot = controller.snapshot;
     final alpha = controller.alpha;
+    _applyRenderTheme(currSnapshot.visualThemeId);
 
     _prevEntitiesById.clear();
     for (final entity in prevSnapshot.entities) {
@@ -508,4 +483,62 @@ class RunnerFlameGame extends FlameGame {
     );
     return math.roundToPixels(transform.worldToViewY(floorTopY));
   }
+
+  void _applyRenderTheme(String? visualThemeId) {
+    if (_appliedVisualThemeId == visualThemeId) {
+      return;
+    }
+    _appliedVisualThemeId = visualThemeId;
+
+    _backgroundParallax?.removeFromParent();
+    _backgroundParallax = null;
+    _groundSurface?.removeFromParent();
+    _groundSurface = null;
+    _foregroundParallax?.removeFromParent();
+    _foregroundParallax = null;
+
+    final theme = ParallaxThemeRegistry.maybeForParallaxThemeId(visualThemeId);
+    if (theme == null) {
+      return;
+    }
+
+    _backgroundParallax = PixelParallaxBackdrop(
+      virtualWidth: virtualWidth,
+      virtualHeight: virtualHeight,
+      snapScrollToPixels: false,
+      layers: theme.backgroundLayers,
+      layerBottomAnchorYProvider: _parallaxLayerBottomAnchorY,
+    )..priority = priorityBackgroundParallax;
+    camera.backdrop.add(_backgroundParallax!);
+
+    _groundSurface = GroundSurface(
+      assetPath: theme.groundMaterialAssetPath,
+      controller: controller,
+      virtualWidth: virtualWidth,
+      virtualHeight: virtualHeight,
+    )..priority = priorityGroundTiles;
+    camera.backdrop.add(_groundSurface!);
+
+    _foregroundParallax = GroundBandParallaxForeground(
+      controller: controller,
+      virtualWidth: virtualWidth,
+      virtualHeight: virtualHeight,
+      layers: theme.foregroundLayers,
+      bandFillDepthProvider: () => _groundSurface?.materialHeight ?? 0.0,
+      snapScrollToPixels: false,
+    )..priority = priorityForegroundParallax;
+    camera.backdrop.add(_foregroundParallax!);
+  }
+
+  @visibleForTesting
+  String? get debugAppliedVisualThemeId => _appliedVisualThemeId;
+
+  @visibleForTesting
+  bool get debugHasBackgroundParallax => _backgroundParallax != null;
+
+  @visibleForTesting
+  bool get debugHasGroundSurface => _groundSurface != null;
+
+  @visibleForTesting
+  bool get debugHasForegroundParallax => _foregroundParallax != null;
 }

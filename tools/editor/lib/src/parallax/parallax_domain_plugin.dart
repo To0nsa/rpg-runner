@@ -34,22 +34,22 @@ class ParallaxDomainPlugin implements AuthoringDomainPlugin {
   @override
   EditableScene buildEditableScene(AuthoringDocument document) {
     final parallaxDocument = _asParallaxDocument(document);
-    final activeThemeId = resolveActiveThemeId(parallaxDocument);
+    final activeParallaxThemeId = resolveActiveParallaxThemeId(parallaxDocument);
     final activeTheme = findParallaxThemeById(
       parallaxDocument.themes,
-      activeThemeId,
+      activeParallaxThemeId,
     );
     return ParallaxScene(
       themes: parallaxDocument.themes,
       availableLevelIds: parallaxDocument.availableLevelIds,
       activeLevelId: parallaxDocument.activeLevelId,
       levelOptionSource: parallaxDocument.levelOptionSource,
-      themeIdByLevelId: parallaxDocument.themeIdByLevelId,
-      activeThemeId: activeThemeId,
+      parallaxThemeIdByLevelId: parallaxDocument.parallaxThemeIdByLevelId,
+      activeParallaxThemeId: activeParallaxThemeId,
       activeTheme: activeTheme,
-      activeThemeUsageLevelIds: levelIdsUsingThemeId(
-        parallaxDocument.themeIdByLevelId,
-        activeThemeId,
+      activeThemeUsageLevelIds: levelIdsUsingParallaxThemeId(
+        parallaxDocument.parallaxThemeIdByLevelId,
+        activeParallaxThemeId,
       ),
       sourcePath:
           parallaxDocument.baseline?.sourcePath ?? ParallaxStore.defsPath,
@@ -139,7 +139,7 @@ class ParallaxDomainPlugin implements AuthoringDomainPlugin {
     }
 
     return PendingChanges(
-      changedItemIds: savePlan.changedThemeIds,
+      changedItemIds: savePlan.changedParallaxThemeIds,
       fileDiffs: savePlan.writes
           .map(
             (write) => PendingFileDiff(
@@ -178,25 +178,25 @@ class ParallaxDomainPlugin implements AuthoringDomainPlugin {
     Map<String, Object?> payload,
   ) {
     document = _clearOperationIssuesIfNeeded(document);
-    final activeThemeId = resolveActiveThemeId(document);
+    final activeParallaxThemeId = resolveActiveParallaxThemeId(document);
     final activeLevelId = document.activeLevelId ?? '';
-    if (activeThemeId == null || activeThemeId.isEmpty) {
+    if (activeParallaxThemeId == null || activeParallaxThemeId.isEmpty) {
       return _withOperationIssue(
         document,
         code: 'missing_active_theme_mapping',
         message:
-            'Active level "$activeLevelId" does not resolve to a themeId in '
+            'Active level "$activeLevelId" does not resolve to a parallaxThemeId in '
             'level_registry.dart.',
       );
     }
-    if (findParallaxThemeById(document.themes, activeThemeId) != null) {
+    if (findParallaxThemeById(document.themes, activeParallaxThemeId) != null) {
       return document;
     }
     final groundMaterialAssetPath = _normalizedString(
       payload['groundMaterialAssetPath'],
     );
     final nextTheme = ParallaxThemeDef(
-      themeId: activeThemeId,
+      parallaxThemeId: activeParallaxThemeId,
       revision: 1,
       groundMaterialAssetPath: groundMaterialAssetPath,
       layers: const <ParallaxLayerDef>[],
@@ -214,20 +214,20 @@ class ParallaxDomainPlugin implements AuthoringDomainPlugin {
     Map<String, Object?> payload,
   ) {
     document = _clearOperationIssuesIfNeeded(document);
-    final activeThemeId = resolveActiveThemeId(document);
-    if (activeThemeId == null || activeThemeId.isEmpty) {
+    final activeParallaxThemeId = resolveActiveParallaxThemeId(document);
+    if (activeParallaxThemeId == null || activeParallaxThemeId.isEmpty) {
       return _withOperationIssue(
         document,
         code: 'missing_active_theme_mapping',
-        message: 'Active level does not resolve to a themeId.',
+        message: 'Active level does not resolve to a parallaxThemeId.',
       );
     }
-    final theme = findParallaxThemeById(document.themes, activeThemeId);
+    final theme = findParallaxThemeById(document.themes, activeParallaxThemeId);
     if (theme == null) {
       return _withOperationIssue(
         document,
         code: 'missing_active_theme',
-        message: 'Resolved themeId "$activeThemeId" is not authored yet.',
+        message: 'Resolved parallaxThemeId "$activeParallaxThemeId" is not authored yet.',
       );
     }
     final nextPath = _normalizedString(
@@ -242,7 +242,7 @@ class ParallaxDomainPlugin implements AuthoringDomainPlugin {
     }
     return _replaceTheme(
       document,
-      themeId: activeThemeId,
+      parallaxThemeId: activeParallaxThemeId,
       nextTheme: _bumpThemeRevision(nextTheme, fromTheme: theme),
     );
   }
@@ -269,7 +269,7 @@ class ParallaxDomainPlugin implements AuthoringDomainPlugin {
         .toSet();
     final preferredLayerKey = _normalizedString(
       payload['layerKey'],
-      fallback: '${activeTheme.themeId}_${group}_layer',
+      fallback: '${activeTheme.parallaxThemeId}_${group}_layer',
     );
     final layerKey = _allocateUniqueLayerKey(existingKeys, preferredLayerKey);
     final nextZOrder = _nextZOrderForGroup(activeTheme, group);
@@ -290,7 +290,7 @@ class ParallaxDomainPlugin implements AuthoringDomainPlugin {
     ).normalized();
     return _replaceTheme(
       document,
-      themeId: activeTheme.themeId,
+      parallaxThemeId: activeTheme.parallaxThemeId,
       nextTheme: _bumpThemeRevision(nextTheme, fromTheme: activeTheme),
     );
   }
@@ -331,7 +331,7 @@ class ParallaxDomainPlugin implements AuthoringDomainPlugin {
     ).normalized();
     return _replaceTheme(
       document,
-      themeId: activeTheme.themeId,
+      parallaxThemeId: activeTheme.parallaxThemeId,
       nextTheme: _bumpThemeRevision(nextTheme, fromTheme: activeTheme),
     );
   }
@@ -364,7 +364,7 @@ class ParallaxDomainPlugin implements AuthoringDomainPlugin {
     ).normalized();
     return _replaceTheme(
       document,
-      themeId: activeTheme.themeId,
+      parallaxThemeId: activeTheme.parallaxThemeId,
       nextTheme: _bumpThemeRevision(nextTheme, fromTheme: activeTheme),
     );
   }
@@ -418,7 +418,7 @@ class ParallaxDomainPlugin implements AuthoringDomainPlugin {
     final nextTheme = activeTheme.copyWith(layers: nextLayers).normalized();
     return _replaceTheme(
       document,
-      themeId: activeTheme.themeId,
+      parallaxThemeId: activeTheme.parallaxThemeId,
       nextTheme: _bumpThemeRevision(nextTheme, fromTheme: activeTheme),
     );
   }
@@ -476,26 +476,26 @@ class ParallaxDomainPlugin implements AuthoringDomainPlugin {
     }
     return _replaceTheme(
       document,
-      themeId: activeTheme.themeId,
+      parallaxThemeId: activeTheme.parallaxThemeId,
       nextTheme: _bumpThemeRevision(nextTheme, fromTheme: activeTheme),
     );
   }
 
   ParallaxThemeDef? _requireActiveTheme(ParallaxDefsDocument document) {
-    final activeThemeId = resolveActiveThemeId(document);
-    if (activeThemeId == null || activeThemeId.isEmpty) {
+    final activeParallaxThemeId = resolveActiveParallaxThemeId(document);
+    if (activeParallaxThemeId == null || activeParallaxThemeId.isEmpty) {
       return null;
     }
-    return findParallaxThemeById(document.themes, activeThemeId);
+    return findParallaxThemeById(document.themes, activeParallaxThemeId);
   }
 
   ParallaxDefsDocument _replaceTheme(
     ParallaxDefsDocument document, {
-    required String themeId,
+    required String parallaxThemeId,
     required ParallaxThemeDef nextTheme,
   }) {
     final nextThemes = document.themes
-        .map((theme) => theme.themeId == themeId ? nextTheme : theme)
+        .map((theme) => theme.parallaxThemeId == parallaxThemeId ? nextTheme : theme)
         .toList(growable: false)
       ..sort(compareParallaxThemesDeterministic);
     return document.copyWith(
@@ -516,7 +516,7 @@ class ParallaxDomainPlugin implements AuthoringDomainPlugin {
     final lines = <String>[
       '# Parallax Export',
       '',
-      'changedThemes: ${savePlan.changedThemeIds.length}',
+      'changedThemes: ${savePlan.changedParallaxThemeIds.length}',
       'changedFiles: ${savePlan.writes.length}',
       '',
       '## Files',

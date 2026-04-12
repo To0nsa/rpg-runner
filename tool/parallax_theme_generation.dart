@@ -4,7 +4,7 @@ import 'dart:io';
 const int parallaxSchemaVersion = 1;
 
 const String _assetsImagesPrefix = 'assets/images/';
-const String _levelRegistryThemeIdPath =
+const String _levelRegistryVisualThemeIdPath =
     'packages/runner_core/lib/levels/level_registry.dart';
 
 const String _backgroundGroup = 'background';
@@ -18,7 +18,7 @@ const double _maxAbsYOffset = 4096.0;
 
 Future<ParallaxLoadResult> loadParallaxThemes({
   required String defsPath,
-  String levelRegistryPath = _levelRegistryThemeIdPath,
+  String levelRegistryPath = _levelRegistryVisualThemeIdPath,
 }) async {
   final issues = <ParallaxValidationIssue>[];
   final file = File(defsPath);
@@ -133,12 +133,12 @@ Future<ParallaxLoadResult> loadParallaxThemes({
     if (theme == null) {
       continue;
     }
-    if (!seenThemeIds.add(theme.themeId)) {
+    if (!seenThemeIds.add(theme.parallaxThemeId)) {
       issues.add(
         ParallaxValidationIssue(
           path: defsPath,
           code: 'duplicate_theme_id',
-          message: 'themeId "${theme.themeId}" is duplicated.',
+          message: 'parallaxThemeId "${theme.parallaxThemeId}" is duplicated.',
         ),
       );
       continue;
@@ -179,9 +179,9 @@ ParallaxThemeSource? _parseThemeEntry(
   required int themeIndex,
 }) {
   final fieldPrefix = 'themes[$themeIndex]';
-  final themeId = _readRequiredString(
+  final parallaxThemeId = _readRequiredString(
     entry,
-    field: 'themeId',
+    field: 'parallaxThemeId',
     issues: issues,
     path: defsPath,
     fieldPrefix: fieldPrefix,
@@ -249,13 +249,15 @@ ParallaxThemeSource? _parseThemeEntry(
     layers.add(layer);
   }
 
-  if (themeId.isEmpty || revision == null || groundMaterialAssetPath.isEmpty) {
+  if (parallaxThemeId.isEmpty ||
+      revision == null ||
+      groundMaterialAssetPath.isEmpty) {
     return null;
   }
 
   layers.sort(_compareLayers);
   return ParallaxThemeSource(
-    themeId: themeId,
+    parallaxThemeId: parallaxThemeId,
     revision: revision,
     groundMaterialAssetPath: groundMaterialAssetPath,
     layers: List<ParallaxLayerSource>.unmodifiable(layers),
@@ -380,12 +382,12 @@ void _validateReferencedThemeIds({
   }
   final source = file.readAsStringSync();
   final referencedThemeIds = RegExp(
-    r"themeId:\s*'([^']+)'",
+    r"(?:visualThemeId|parallaxThemeId):\s*'([^']+)'",
   ).allMatches(source).map((match) => match.group(1)!).toSet();
   if (referencedThemeIds.isEmpty) {
     return;
   }
-  final authoredThemeIds = themes.map((theme) => theme.themeId).toSet();
+  final authoredThemeIds = themes.map((theme) => theme.parallaxThemeId).toSet();
   final missingThemeIds =
       referencedThemeIds.difference(authoredThemeIds).toList()..sort();
   for (final missingThemeId in missingThemeIds) {
@@ -394,7 +396,7 @@ void _validateReferencedThemeIds({
         path: defsPath,
         code: 'missing_referenced_theme_id',
         message:
-            'Level registry references themeId "$missingThemeId" but '
+            'Level registry references visualThemeId "$missingThemeId" but '
             'parallax_defs.json does not define it.',
       ),
     );
@@ -408,7 +410,9 @@ String renderCanonicalParallaxDefsJson(List<ParallaxThemeSource> themes) {
   for (var i = 0; i < themes.length; i += 1) {
     final theme = themes[i];
     buffer.writeln('    {');
-    buffer.writeln('      "themeId": ${jsonEncode(theme.themeId)},');
+    buffer.writeln(
+      '      "parallaxThemeId": ${jsonEncode(theme.parallaxThemeId)},',
+    );
     buffer.writeln('      "revision": ${theme.revision},');
     buffer.writeln(
       '      "groundMaterialAssetPath": '
@@ -462,7 +466,7 @@ String renderParallaxThemeDartOutput(List<ParallaxThemeSource> themes) {
     ..writeln();
 
   for (final theme in themes) {
-    final variableName = _themeVariableName(theme.themeId);
+    final variableName = _themeVariableName(theme.parallaxThemeId);
     buffer.writeln('const ParallaxTheme $variableName = ParallaxTheme(');
     buffer.writeln('  backgroundLayers: <PixelParallaxLayerSpec>[');
     for (final layer in theme.layers.where(
@@ -492,7 +496,7 @@ String renderParallaxThemeDartOutput(List<ParallaxThemeSource> themes) {
   );
   for (final theme in themes) {
     buffer.writeln(
-      "  '${_escape(theme.themeId)}': ${_themeVariableName(theme.themeId)},",
+      "  '${_escape(theme.parallaxThemeId)}': ${_themeVariableName(theme.parallaxThemeId)},",
     );
   }
   buffer.writeln('};');
@@ -524,8 +528,8 @@ String _runtimeAssetPath(String authoredPath) {
   return authoredPath;
 }
 
-String _themeVariableName(String themeId) {
-  return 'authoredParallaxTheme${_toUpperCamelIdentifier(themeId)}';
+String _themeVariableName(String parallaxThemeId) {
+  return 'authoredParallaxTheme${_toUpperCamelIdentifier(parallaxThemeId)}';
 }
 
 String _toUpperCamelIdentifier(String raw) {
@@ -708,7 +712,7 @@ double? _readRequiredFiniteDouble(
 }
 
 int _compareThemes(ParallaxThemeSource a, ParallaxThemeSource b) {
-  return a.themeId.compareTo(b.themeId);
+  return a.parallaxThemeId.compareTo(b.parallaxThemeId);
 }
 
 int _compareLayers(ParallaxLayerSource a, ParallaxLayerSource b) {
@@ -772,13 +776,13 @@ class ParallaxLoadResult {
 
 class ParallaxThemeSource {
   const ParallaxThemeSource({
-    required this.themeId,
+    required this.parallaxThemeId,
     required this.revision,
     required this.groundMaterialAssetPath,
     required this.layers,
   });
 
-  final String themeId;
+  final String parallaxThemeId;
   final int revision;
   final String groundMaterialAssetPath;
   final List<ParallaxLayerSource> layers;

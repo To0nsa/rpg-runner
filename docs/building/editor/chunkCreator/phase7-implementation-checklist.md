@@ -1,7 +1,7 @@
 # Chunk Creator Phase 7 - Level Assembly + Render Theme Sequencing Implementation Checklist
 
 Date: April 11, 2026  
-Status: Planned  
+Status: Completed on April 11, 2026  
 Source plan: [docs/building/editor/chunkCreator/plan.md](docs/building/editor/chunkCreator/plan.md)
 
 This checklist turns Phase 7 of the chunk creator plan into an execution
@@ -107,7 +107,7 @@ Current baseline gaps that Phase 7 must close:
     the authored segment keeps them
   - validation requires positive integers and `minChunkCount <= maxChunkCount`
 - Levels without authored assembly configuration preserve current tier-based
-  chunk selection and current level `themeId` behavior.
+  chunk selection and current level `visualThemeId` behavior.
 - Distinctness requirements are blocking:
   - if a segment requests `requireDistinctChunks = true`, the authored level
     must provide at least `maxChunkCount` eligible active chunks in that
@@ -176,7 +176,7 @@ Tasks:
   - [ ] `maxChunkCount`
   - [ ] `requireDistinctChunks`
   - [ ] `renderTheme.mode` (`level_default | theme | none`)
-  - [ ] `renderTheme.themeId` when `mode = theme`
+  - [ ] `renderTheme.visualThemeId` when `mode = theme`
   - [ ] explicit segment loop/restart policy
 - [ ] Freeze explicit `none` semantics:
   - [ ] choose one exact runtime rule for `none` across the full render stack
@@ -194,7 +194,7 @@ Tasks:
   - [ ] no hidden runtime clamp keeps authored ranges near the defaults
 - [ ] Freeze behavior for levels with no `assembly` block:
   - [ ] current chunk tier selection remains in effect
-  - [ ] level `themeId` remains the effective render theme
+  - [ ] level `visualThemeId` remains the effective render theme
 - [ ] Freeze deterministic active-theme anchor rule for runtime snapshots.
 - [ ] Freeze deterministic chunk-count draw rule for each segment run.
 - [ ] Freeze runtime theme-switch application rule:
@@ -277,7 +277,7 @@ Tasks:
   - [ ] invalid `minChunkCount` / `maxChunkCount`
   - [ ] `minChunkCount > maxChunkCount`
   - [ ] invalid `renderTheme.mode`
-  - [ ] missing `themeId` when `mode = theme`
+  - [ ] missing `visualThemeId` when `mode = theme`
   - [ ] unknown parallax theme references
   - [ ] `requireDistinctChunks` asks for more chunks than the group contains
         at `maxChunkCount`
@@ -389,9 +389,9 @@ Tasks:
         - `GroundSurface`
         - `GroundBandParallaxForeground`
   - [ ] ensure mid-run theme changes rebuild or rebind those components
-        deterministically when `snapshot.themeId` changes
+        deterministically when `snapshot.visualThemeId` changes
 - [ ] Keep render-theme override behavior explicit:
-  - [ ] `level_default` uses level `themeId`
+  - [ ] `level_default` uses level `visualThemeId`
   - [ ] `theme` uses authored override
   - [ ] `none` follows the exact Step 0 rule for background/ground/foreground
 - [ ] Update run-start / mid-run asset loading:

@@ -7,10 +7,12 @@ import 'package:runner_editor/src/workspace/editor_workspace.dart';
 import 'package:runner_editor/src/workspace/level_context_resolver.dart';
 
 void main() {
-  test('extractLevelThemeIds reads authored mapping from level_defs.json', () {
-    final root = Directory.systemTemp.createTempSync('level_context_');
-    try {
-      _writeFile(root.path, 'assets/authoring/level/level_defs.json', '''
+  test(
+    'extractLevelVisualThemeIds reads authored mapping from level_defs.json',
+    () {
+      final root = Directory.systemTemp.createTempSync('level_context_');
+      try {
+        _writeFile(root.path, 'assets/authoring/level/level_defs.json', '''
 {
   "schemaVersion": 1,
   "levels": [
@@ -18,7 +20,7 @@ void main() {
       "levelId": "field",
       "revision": 1,
       "displayName": "Field",
-      "themeId": "field",
+      "visualThemeId": "field",
       "cameraCenterY": 135,
       "groundTopY": 224,
       "earlyPatternChunks": 3,
@@ -32,7 +34,58 @@ void main() {
       "levelId": "forest",
       "revision": 1,
       "displayName": "Forest",
-      "themeId": "forest",
+      "visualThemeId": "forest",
+      "cameraCenterY": 135,
+      "groundTopY": 224,
+      "earlyPatternChunks": 3,
+      "easyPatternChunks": 0,
+      "normalPatternChunks": 0,
+      "noEnemyChunks": 3,
+      "enumOrdinal": 10,
+      "status": "active"
+    }
+  ]
+}
+''');
+
+        final workspace = EditorWorkspace(rootPath: root.path);
+        expect(extractLevelVisualThemeIds(workspace), const <String, String>{
+          'field': 'field',
+          'forest': 'forest',
+        });
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    },
+  );
+
+  test('extractLevelChunkThemeGroups resolves default + authored groups', () {
+    final root = Directory.systemTemp.createTempSync('level_context_groups_');
+    try {
+      _writeFile(root.path, 'assets/authoring/level/level_defs.json', '''
+{
+  "schemaVersion": 1,
+  "levels": [
+    {
+      "levelId": "field",
+      "revision": 1,
+      "displayName": "Field",
+      "visualThemeId": "field",
+      "chunkThemeGroups": ["village", "default", "cemetery"],
+      "cameraCenterY": 135,
+      "groundTopY": 224,
+      "earlyPatternChunks": 3,
+      "easyPatternChunks": 0,
+      "normalPatternChunks": 0,
+      "noEnemyChunks": 3,
+      "enumOrdinal": 20,
+      "status": "active"
+    },
+    {
+      "levelId": "forest",
+      "revision": 1,
+      "displayName": "Forest",
+      "visualThemeId": "forest",
       "cameraCenterY": 135,
       "groundTopY": 224,
       "earlyPatternChunks": 3,
@@ -47,9 +100,9 @@ void main() {
 ''');
 
       final workspace = EditorWorkspace(rootPath: root.path);
-      expect(extractLevelThemeIds(workspace), const <String, String>{
-        'field': 'field',
-        'forest': 'forest',
+      expect(extractLevelChunkThemeGroups(workspace), const <String, List<String>>{
+        'field': <String>['default', 'cemetery', 'village'],
+        'forest': <String>['default'],
       });
     } finally {
       root.deleteSync(recursive: true);

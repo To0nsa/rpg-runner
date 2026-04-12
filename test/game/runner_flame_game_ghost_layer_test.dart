@@ -242,7 +242,7 @@ GameStateSnapshot _copySnapshot(
     runId: base.runId,
     seed: base.seed,
     levelId: base.levelId,
-    themeId: base.themeId,
+    visualThemeId: base.visualThemeId,
     distance: base.distance,
     paused: base.paused,
     gameOver: base.gameOver,

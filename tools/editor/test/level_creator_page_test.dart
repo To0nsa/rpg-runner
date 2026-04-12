@@ -44,6 +44,20 @@ void main() {
     await _flush(tester);
     expect((controller.scene as LevelScene).activeLevelId, 'field');
 
+    for (final label in const <String>['cameraCenterY', 'groundTopY']) {
+      final field = tester.widget<TextField>(_textFieldByLabel(label));
+      expect(field.readOnly, isTrue);
+    }
+    for (final label in const <String>[
+      'earlyPatternChunks',
+      'easyPatternChunks',
+      'normalPatternChunks',
+      'noEnemyChunks',
+    ]) {
+      final field = tester.widget<TextField>(_textFieldByLabel(label));
+      expect(field.readOnly, isFalse);
+    }
+
     await tester.enterText(_textFieldByLabel('New levelId'), 'cave');
     await tester.tap(find.text('Create'));
     await _flush(tester);
@@ -53,17 +67,41 @@ void main() {
     expect(scene.levels.any((level) => level.levelId == 'cave'), isTrue);
 
     await tester.enterText(_textFieldByLabel('displayName'), 'Crystal Cave');
-    await tester.enterText(_textFieldByLabel('themeId'), 'forest');
-    await tester.enterText(_textFieldByLabel('cameraCenterY'), '140');
+    await _selectDropdownByLabel(
+      tester,
+      label: 'visualThemeId (parallax + ground)',
+      value: 'forest',
+    );
     await tester.enterText(_textFieldByLabel('enumOrdinal'), '30');
-    await tester.tap(find.text('Apply Level'));
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('new_chunk_theme_group_id')),
+      'forest',
+    );
+    await tester.tap(
+      find.byKey(const ValueKey<String>('add_chunk_theme_group_button')),
+    );
+    await _flush(tester);
+    await tester.tap(find.text('Add Segment'));
+    await _flush(tester);
+    await tester.ensureVisible(_dropdownFieldByLabel('groupId'));
+    await _flush(tester);
+    await _selectDropdownByLabel(tester, label: 'groupId', value: 'forest');
+    await tester.enterText(_textFieldByLabel('segmentId'), 'forest_run');
+    await tester.drag(
+      find.byKey(const ValueKey<String>('level_inspector_scroll')),
+      const Offset(0, -600),
+    );
+    await _flush(tester);
+    final applyLevel = find.byKey(const ValueKey<String>('apply_level_button'));
+    await tester.tap(applyLevel);
     await _flush(tester);
 
     scene = controller.scene as LevelScene;
     final cave = scene.levels.firstWhere((level) => level.levelId == 'cave');
     expect(cave.displayName, 'Crystal Cave');
-    expect(cave.themeId, 'forest');
-    expect(cave.cameraCenterY, 140);
+    expect(cave.visualThemeId, 'forest');
+    expect(cave.cameraCenterY, 135);
+    expect(cave.assembly?.segments.single.segmentId, 'forest_run');
     expect(cave.revision, 2);
 
     await tester.tap(find.text('Duplicate'));
@@ -82,6 +120,58 @@ void main() {
     expect(scene.activeLevel?.status, levelStatusActive);
     expect(controller.pendingChanges.hasChanges, isTrue);
   });
+
+  testWidgets('level creator seeds new segments with the default group', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1800, 1200));
+    addTearDown(() async {
+      await tester.binding.setSurfaceSize(null);
+    });
+
+    final controller = EditorSessionController(
+      pluginRegistry: AuthoringPluginRegistry(
+        plugins: <AuthoringDomainPlugin>[
+          _InMemoryLevelPlugin(_initialDocument),
+        ],
+      ),
+      initialPluginId: LevelDomainPlugin.pluginId,
+      initialWorkspacePath: '.',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: LevelCreatorPage(controller: controller)),
+      ),
+    );
+    await _flush(tester);
+
+    await tester.tap(find.byType(DropdownButtonFormField<String>).first);
+    await _flush(tester);
+    await tester.tap(find.text('field').last);
+    await _flush(tester);
+
+    expect(
+      find.text(
+        'When disabled, runtime holds on the final authored segment after the ordered run list completes.',
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text('Add Segment'));
+    await _flush(tester);
+
+    expect(_dropdownFieldByLabel('groupId'), findsOneWidget);
+    expect(_textFieldByLabel('segmentId'), findsOneWidget);
+    final groupField = tester.widget<DropdownButtonFormField<String>>(
+      _dropdownFieldByLabel('groupId'),
+    );
+    final segmentField = tester.widget<TextField>(
+      _textFieldByLabel('segmentId'),
+    );
+    expect(groupField.initialValue, defaultAssemblyGroupId);
+    expect(segmentField.controller?.text, defaultAssemblyGroupId);
+  });
 }
 
 const LevelDefsDocument _initialDocument = LevelDefsDocument(
@@ -91,7 +181,8 @@ const LevelDefsDocument _initialDocument = LevelDefsDocument(
       levelId: 'field',
       revision: 1,
       displayName: 'Field',
-      themeId: 'field',
+      visualThemeId: 'field',
+      chunkThemeGroups: <String>['default', 'none'],
       cameraCenterY: 135,
       groundTopY: 224,
       earlyPatternChunks: 3,
@@ -105,7 +196,8 @@ const LevelDefsDocument _initialDocument = LevelDefsDocument(
       levelId: 'forest',
       revision: 1,
       displayName: 'Forest',
-      themeId: 'forest',
+      visualThemeId: 'forest',
+      chunkThemeGroups: <String>['default', 'forest', 'none'],
       cameraCenterY: 135,
       groundTopY: 224,
       earlyPatternChunks: 3,
@@ -122,7 +214,8 @@ const LevelDefsDocument _initialDocument = LevelDefsDocument(
       levelId: 'field',
       revision: 1,
       displayName: 'Field',
-      themeId: 'field',
+      visualThemeId: 'field',
+      chunkThemeGroups: <String>['default', 'none'],
       cameraCenterY: 135,
       groundTopY: 224,
       earlyPatternChunks: 3,
@@ -136,7 +229,8 @@ const LevelDefsDocument _initialDocument = LevelDefsDocument(
       levelId: 'forest',
       revision: 1,
       displayName: 'Forest',
-      themeId: 'forest',
+      visualThemeId: 'forest',
+      chunkThemeGroups: <String>['default', 'forest', 'none'],
       cameraCenterY: 135,
       groundTopY: 224,
       earlyPatternChunks: 3,
@@ -148,9 +242,13 @@ const LevelDefsDocument _initialDocument = LevelDefsDocument(
     ),
   ],
   activeLevelId: 'forest',
-  availableParallaxThemeIds: <String>['field', 'forest'],
+  availableParallaxVisualThemeIds: <String>['field', 'forest'],
   parallaxThemeSourceAvailable: true,
   authoredChunkCountsByLevelId: <String, int>{'field': 1, 'forest': 1},
+  authoredChunkAssemblyGroupCountsByLevelId: <String, Map<String, int>>{
+    'field': <String, int>{'default': 1, 'none': 1},
+    'forest': <String, int>{'forest': 1, 'default': 1, 'none': 1},
+  },
   chunkCountSourceAvailable: true,
 );
 
@@ -213,7 +311,7 @@ class _InMemoryLevelPlugin implements AuthoringDomainPlugin {
                       levelId: '',
                       revision: 0,
                       displayName: '',
-                      themeId: '',
+                      visualThemeId: '',
                       cameraCenterY: 0,
                       groundTopY: 0,
                       earlyPatternChunks: 0,
@@ -262,7 +360,8 @@ bool _sameLevel(LevelDef a, LevelDef b) {
   return a.levelId == b.levelId &&
       a.revision == b.revision &&
       a.displayName == b.displayName &&
-      a.themeId == b.themeId &&
+      a.visualThemeId == b.visualThemeId &&
+      _stringListEquals(a.chunkThemeGroups, b.chunkThemeGroups) &&
       a.cameraCenterY == b.cameraCenterY &&
       a.groundTopY == b.groundTopY &&
       a.earlyPatternChunks == b.earlyPatternChunks &&
@@ -270,13 +369,45 @@ bool _sameLevel(LevelDef a, LevelDef b) {
       a.normalPatternChunks == b.normalPatternChunks &&
       a.noEnemyChunks == b.noEnemyChunks &&
       a.enumOrdinal == b.enumOrdinal &&
-      a.status == b.status;
+      a.status == b.status &&
+      levelAssemblyEquals(a.assembly, b.assembly);
+}
+
+bool _stringListEquals(List<String> a, List<String> b) {
+  if (a.length != b.length) {
+    return false;
+  }
+  for (var i = 0; i < a.length; i += 1) {
+    if (a[i] != b[i]) {
+      return false;
+    }
+  }
+  return true;
 }
 
 Finder _textFieldByLabel(String label) {
   return find.byWidgetPredicate(
     (widget) => widget is TextField && widget.decoration?.labelText == label,
   );
+}
+
+Finder _dropdownFieldByLabel(String label) {
+  return find.byWidgetPredicate(
+    (widget) =>
+        widget is DropdownButtonFormField<String> &&
+        widget.decoration.labelText == label,
+  );
+}
+
+Future<void> _selectDropdownByLabel(
+  WidgetTester tester, {
+  required String label,
+  required String value,
+}) async {
+  await tester.tap(_dropdownFieldByLabel(label));
+  await _flush(tester);
+  await tester.tap(find.text(value).last);
+  await _flush(tester);
 }
 
 Future<void> _flush(WidgetTester tester) async {

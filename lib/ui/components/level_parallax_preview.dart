@@ -14,12 +14,12 @@ import '../assets/ui_asset_lifecycle.dart';
 class LevelParallaxPreview extends StatefulWidget {
   const LevelParallaxPreview({
     super.key,
-    required this.themeId,
+    required this.visualThemeId,
     this.alignment = Alignment.bottomCenter,
     this.filterQuality = FilterQuality.none,
   });
 
-  final String? themeId;
+  final String? visualThemeId;
 
   final AlignmentGeometry alignment;
   final FilterQuality filterQuality;
@@ -41,13 +41,13 @@ class _LevelParallaxPreviewState extends State<LevelParallaxPreview> {
   @override
   void didUpdateWidget(LevelParallaxPreview oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.themeId != widget.themeId) {
+    if (oldWidget.visualThemeId != widget.visualThemeId) {
       _refreshLayers();
     }
   }
 
   void _refreshLayers() {
-    final key = widget.themeId ?? '__null__';
+    final key = widget.visualThemeId ?? '__null__';
     if (_cacheKey == key) return;
 
     _cacheKey = key;
@@ -58,7 +58,7 @@ class _LevelParallaxPreviewState extends State<LevelParallaxPreview> {
   Future<void> _loadAndSwapLayers(String key) async {
     final lifecycle = context.read<UiAssetLifecycle>();
     try {
-      final layers = await lifecycle.getParallaxLayers(widget.themeId);
+      final layers = await lifecycle.getParallaxLayers(widget.visualThemeId);
       if (!mounted || _cacheKey != key) return;
 
       // Keep currently rendered layers visible while pre-caching the next

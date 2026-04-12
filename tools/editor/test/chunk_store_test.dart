@@ -31,8 +31,10 @@ void main() {
       expect(loaded.lockedChunkHeight, 270);
       expect(loaded.chunks.single.height, 270);
       expect(loaded.chunks.single.groundProfile.topY, 224);
+      expect(loaded.chunks.single.assemblyGroupId, defaultChunkAssemblyGroupId);
 
       final editedChunk = loaded.chunks.single.copyWith(
+        assemblyGroupId: 'cemetery',
         tags: const <String>['zzz', 'aaa'],
         groundBandZIndex: 1,
       );
@@ -58,6 +60,7 @@ void main() {
       expect(savedMap['chunkKey'], 'chunk_field_001');
       expect(savedMap['height'], 270);
       expect(savedMap['groundBandZIndex'], 1);
+      expect(savedMap['assemblyGroupId'], 'cemetery');
       expect(savedMap['tags'], <String>['aaa', 'zzz']);
 
       final reloaded = await store.load(
@@ -71,6 +74,39 @@ void main() {
       fixtureRoot.deleteSync(recursive: true);
     }
   });
+
+  test(
+    'save plan includes file deletion for removed baseline chunks',
+    () async {
+      final fixtureRoot = await _createFixtureWorkspace();
+      try {
+        final workspace = EditorWorkspace(rootPath: fixtureRoot.path);
+        const store = ChunkStore();
+        final loaded = await store.load(
+          workspace,
+          preferredActiveLevelId: 'field',
+        );
+
+        final edited = loaded.copyWith(chunks: const <LevelChunkDef>[]);
+        final savePlan = store.buildSavePlan(workspace, document: edited);
+
+        expect(savePlan.hasChanges, isTrue);
+        expect(savePlan.writes, hasLength(1));
+        expect(savePlan.writes.single.deleteFile, isTrue);
+
+        final chunkPath = p.join(
+          fixtureRoot.path,
+          'assets/authoring/level/chunks/chunk_field_001.json',
+        );
+        expect(File(chunkPath).existsSync(), isTrue);
+
+        await store.save(workspace, document: edited, savePlan: savePlan);
+        expect(File(chunkPath).existsSync(), isFalse);
+      } finally {
+        fixtureRoot.deleteSync(recursive: true);
+      }
+    },
+  );
 
   test('save fails when source drift is detected', () async {
     final fixtureRoot = await _createFixtureWorkspace();
@@ -121,6 +157,7 @@ void main() {
         expect(loaded.chunks, hasLength(1));
         final codes = loaded.loadIssues.map((issue) => issue.code).toSet();
         expect(codes, contains('malformed_tags_array'));
+        expect(codes, contains('invalid_assembly_group_id'));
         expect(codes, contains('invalid_ground_profile'));
         expect(codes, contains('invalid_ground_band_z_index'));
         expect(codes, contains('malformed_ground_gaps_entries'));
@@ -165,6 +202,9 @@ void main() {
         chunks: <LevelChunkDef>[chunkA, chunkB],
         baselineByChunkKey: <String, ChunkSourceBaseline>{},
         availableLevelIds: <String>['field'],
+        assemblyGroupOptionsByLevelId: <String, List<String>>{
+          'field': <String>['default'],
+        },
         activeLevelId: 'field',
         levelOptionSource: 'test',
         runtimeGridSnap: 16.0,
@@ -286,6 +326,7 @@ const int defaultLevelGroundTopYInt = 224;
   "width": 600,
   "height": 160,
   "difficulty": "normal",
+  "assemblyGroupId": 42,
   "tags": "bad",
   "tileLayers": [],
   "prefabs": [],

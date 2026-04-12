@@ -76,7 +76,7 @@ class LevelStore {
       sceneOrderedLevels,
       preferredActiveLevelId,
     );
-    final parallaxThemeSnapshot = _loadParallaxThemeIds(workspace);
+    final parallaxThemeSnapshot = _loadParallaxVisualThemeIds(workspace);
     final chunkCountSnapshot = _loadAuthoredChunkCounts(workspace);
 
     return LevelDefsDocument(
@@ -85,13 +85,20 @@ class LevelStore {
       baseline: baseline,
       baselineLevels: List<LevelDef>.unmodifiable(canonicalLevels),
       activeLevelId: activeLevelId,
-      availableParallaxThemeIds: List<String>.unmodifiable(
-        parallaxThemeSnapshot.themeIds,
+      availableParallaxVisualThemeIds: List<String>.unmodifiable(
+        parallaxThemeSnapshot.visualThemeIds,
       ),
       parallaxThemeSourceAvailable: parallaxThemeSnapshot.sourceAvailable,
       authoredChunkCountsByLevelId: Map<String, int>.unmodifiable(
         chunkCountSnapshot.countsByLevelId,
       ),
+      authoredChunkAssemblyGroupCountsByLevelId:
+          Map<String, Map<String, int>>.unmodifiable(
+            chunkCountSnapshot.assemblyGroupCountsByLevelId.map(
+              (levelId, groupCounts) =>
+                  MapEntry(levelId, Map<String, int>.unmodifiable(groupCounts)),
+            ),
+          ),
       chunkCountSourceAvailable: chunkCountSnapshot.sourceAvailable,
       loadIssues: List<ValidationIssue>.unmodifiable(loadIssues),
     );
@@ -264,12 +271,20 @@ class LevelStore {
       prefix: prefix,
       issues: issues,
     );
-    final themeId = _readRequiredString(
+    final visualThemeId = _readRequiredString(
       raw,
-      field: 'themeId',
+      field: 'visualThemeId',
       sourcePath: sourcePath,
       prefix: prefix,
       issues: issues,
+    );
+    final chunkThemeGroups = _readOptionalStringList(
+      raw,
+      field: 'chunkThemeGroups',
+      sourcePath: sourcePath,
+      prefix: prefix,
+      issues: issues,
+      fallback: const <String>[defaultLevelChunkThemeGroupId],
     );
     final cameraCenterY = _readRequiredDouble(
       raw,
@@ -327,11 +342,17 @@ class LevelStore {
       prefix: prefix,
       issues: issues,
     );
+    final assembly = _parseAssembly(
+      raw['assembly'],
+      sourcePath: sourcePath,
+      prefix: '$prefix.assembly',
+      issues: issues,
+    );
 
     if (levelId.isEmpty ||
         revision == null ||
         displayName.isEmpty ||
-        themeId.isEmpty ||
+        visualThemeId.isEmpty ||
         cameraCenterY == null ||
         groundTopY == null ||
         earlyPatternChunks == null ||
@@ -347,7 +368,8 @@ class LevelStore {
       levelId: levelId,
       revision: revision,
       displayName: displayName,
-      themeId: themeId,
+      visualThemeId: visualThemeId,
+      chunkThemeGroups: chunkThemeGroups,
       cameraCenterY: cameraCenterY,
       groundTopY: groundTopY,
       earlyPatternChunks: earlyPatternChunks,
@@ -356,44 +378,47 @@ class LevelStore {
       noEnemyChunks: noEnemyChunks,
       enumOrdinal: enumOrdinal,
       status: status,
+      assembly: assembly,
     ).normalized();
   }
 
-  _ParallaxThemeSnapshot _loadParallaxThemeIds(EditorWorkspace workspace) {
+  _ParallaxThemeSnapshot _loadParallaxVisualThemeIds(
+    EditorWorkspace workspace,
+  ) {
     final file = File(workspace.resolve(ParallaxStore.defsPath));
     if (!file.existsSync()) {
       return const _ParallaxThemeSnapshot(
-        themeIds: <String>[],
+        visualThemeIds: <String>[],
         sourceAvailable: false,
       );
     }
     final map = _parseJsonMap(file.readAsStringSync());
     if (map == null) {
       return const _ParallaxThemeSnapshot(
-        themeIds: <String>[],
+        visualThemeIds: <String>[],
         sourceAvailable: false,
       );
     }
     final rawThemes = map['themes'];
     if (rawThemes is! List<Object?>) {
       return const _ParallaxThemeSnapshot(
-        themeIds: <String>[],
+        visualThemeIds: <String>[],
         sourceAvailable: false,
       );
     }
-    final themeIds = <String>{};
+    final visualThemeIds = <String>{};
     for (final rawTheme in rawThemes) {
       if (rawTheme is! Map<String, Object?>) {
         continue;
       }
-      final themeId = _normalizedString(rawTheme['themeId']);
-      if (themeId.isNotEmpty) {
-        themeIds.add(themeId);
+      final visualThemeId = _normalizedString(rawTheme['parallaxThemeId']);
+      if (visualThemeId.isNotEmpty) {
+        visualThemeIds.add(visualThemeId);
       }
     }
-    final sortedThemeIds = themeIds.toList(growable: false)..sort();
+    final sortedVisualThemeIds = visualThemeIds.toList(growable: false)..sort();
     return _ParallaxThemeSnapshot(
-      themeIds: List<String>.unmodifiable(sortedThemeIds),
+      visualThemeIds: List<String>.unmodifiable(sortedVisualThemeIds),
       sourceAvailable: true,
     );
   }
@@ -403,10 +428,12 @@ class LevelStore {
     if (!chunkDirectory.existsSync()) {
       return const _ChunkCountSnapshot(
         countsByLevelId: <String, int>{},
+        assemblyGroupCountsByLevelId: <String, Map<String, int>>{},
         sourceAvailable: false,
       );
     }
     final countsByLevelId = <String, int>{};
+    final assemblyGroupCountsByLevelId = <String, Map<String, int>>{};
     final files =
         chunkDirectory
             .listSync(recursive: true, followLinks: false)
@@ -424,12 +451,40 @@ class LevelStore {
         continue;
       }
       countsByLevelId[levelId] = (countsByLevelId[levelId] ?? 0) + 1;
+      final status = _normalizedString(
+        map['status'],
+        fallback: levelStatusActive,
+      );
+      if (status == levelStatusDeprecated) {
+        continue;
+      }
+      final assemblyGroupId = _normalizedString(
+        map['assemblyGroupId'],
+        fallback: defaultAssemblyGroupId,
+      );
+      final groupCounts = assemblyGroupCountsByLevelId.putIfAbsent(
+        levelId,
+        () => <String, int>{},
+      );
+      groupCounts[assemblyGroupId] = (groupCounts[assemblyGroupId] ?? 0) + 1;
     }
     final sortedEntries = countsByLevelId.entries.toList(growable: false)
       ..sort((a, b) => a.key.compareTo(b.key));
+    final sortedGroupEntries = assemblyGroupCountsByLevelId.entries.toList(
+      growable: false,
+    )..sort((a, b) => a.key.compareTo(b.key));
     return _ChunkCountSnapshot(
       countsByLevelId: <String, int>{
         for (final entry in sortedEntries) entry.key: entry.value,
+      },
+      assemblyGroupCountsByLevelId: <String, Map<String, int>>{
+        for (final entry in sortedGroupEntries)
+          entry.key: <String, int>{
+            for (final groupEntry in (entry.value.entries.toList(
+              growable: false,
+            )..sort((a, b) => a.key.compareTo(b.key))))
+              groupEntry.key: groupEntry.value,
+          },
       },
       sourceAvailable: true,
     );
@@ -485,21 +540,23 @@ class LevelFileWrite {
 
 class _ParallaxThemeSnapshot {
   const _ParallaxThemeSnapshot({
-    required this.themeIds,
+    required this.visualThemeIds,
     required this.sourceAvailable,
   });
 
-  final List<String> themeIds;
+  final List<String> visualThemeIds;
   final bool sourceAvailable;
 }
 
 class _ChunkCountSnapshot {
   const _ChunkCountSnapshot({
     required this.countsByLevelId,
+    required this.assemblyGroupCountsByLevelId,
     required this.sourceAvailable,
   });
 
   final Map<String, int> countsByLevelId;
+  final Map<String, Map<String, int>> assemblyGroupCountsByLevelId;
   final bool sourceAvailable;
 }
 
@@ -619,14 +676,217 @@ double? _readRequiredDouble(
   return null;
 }
 
-String _normalizedString(Object? raw) {
+bool? _readRequiredBool(
+  Map<String, Object?> raw, {
+  required String field,
+  required String sourcePath,
+  required String prefix,
+  required List<ValidationIssue> issues,
+}) {
+  final value = raw[field];
+  if (value is bool) {
+    return value;
+  }
+  issues.add(
+    ValidationIssue(
+      severity: ValidationSeverity.error,
+      code: 'invalid_$field',
+      message: '$prefix.$field must be a boolean.',
+      sourcePath: sourcePath,
+    ),
+  );
+  return null;
+}
+
+List<String> _readOptionalStringList(
+  Map<String, Object?> raw, {
+  required String field,
+  required String sourcePath,
+  required String prefix,
+  required List<ValidationIssue> issues,
+  required List<String> fallback,
+}) {
+  final value = raw[field];
+  if (value == null) {
+    return fallback;
+  }
+  if (value is! List<Object?>) {
+    issues.add(
+      ValidationIssue(
+        severity: ValidationSeverity.error,
+        code: 'invalid_$field',
+        message: '$prefix.$field must be an array of strings when present.',
+        sourcePath: sourcePath,
+      ),
+    );
+    return fallback;
+  }
+  final strings = <String>[];
+  var hasInvalidValue = false;
+  for (final entry in value) {
+    final normalized = _normalizedString(entry);
+    if (normalized.isEmpty) {
+      hasInvalidValue = true;
+      continue;
+    }
+    strings.add(normalized);
+  }
+  if (hasInvalidValue) {
+    issues.add(
+      ValidationIssue(
+        severity: ValidationSeverity.error,
+        code: 'invalid_$field',
+        message: '$prefix.$field entries must be non-empty strings.',
+        sourcePath: sourcePath,
+      ),
+    );
+  }
+  if (strings.isEmpty) {
+    return fallback;
+  }
+  return normalizeLevelChunkThemeGroups(strings);
+}
+
+LevelAssemblyDef? _parseAssembly(
+  Object? raw, {
+  required String sourcePath,
+  required String prefix,
+  required List<ValidationIssue> issues,
+}) {
+  if (raw == null) {
+    return null;
+  }
+  if (raw is! Map<String, Object?>) {
+    issues.add(
+      ValidationIssue(
+        severity: ValidationSeverity.error,
+        code: 'invalid_assembly',
+        message: '$prefix must be an object.',
+        sourcePath: sourcePath,
+      ),
+    );
+    return null;
+  }
+  final loopSegments = _readRequiredBool(
+    raw,
+    field: 'loopSegments',
+    sourcePath: sourcePath,
+    prefix: prefix,
+    issues: issues,
+  );
+  final rawSegments = raw['segments'];
+  if (rawSegments is! List<Object?>) {
+    issues.add(
+      ValidationIssue(
+        severity: ValidationSeverity.error,
+        code: 'invalid_assembly_segments',
+        message: '$prefix.segments must be an array.',
+        sourcePath: sourcePath,
+      ),
+    );
+    return null;
+  }
+
+  final segments = <LevelAssemblySegmentDef>[];
+  for (var i = 0; i < rawSegments.length; i += 1) {
+    final entry = rawSegments[i];
+    if (entry is! Map<String, Object?>) {
+      issues.add(
+        ValidationIssue(
+          severity: ValidationSeverity.error,
+          code: 'invalid_assembly_segment',
+          message: '$prefix.segments[$i] must be an object.',
+          sourcePath: sourcePath,
+        ),
+      );
+      continue;
+    }
+    final segment = _parseAssemblySegment(
+      entry,
+      sourcePath: sourcePath,
+      prefix: '$prefix.segments[$i]',
+      issues: issues,
+    );
+    if (segment != null) {
+      segments.add(segment);
+    }
+  }
+
+  if (loopSegments == null) {
+    return null;
+  }
+
+  return LevelAssemblyDef(
+    loopSegments: loopSegments,
+    segments: List<LevelAssemblySegmentDef>.unmodifiable(segments),
+  ).normalized();
+}
+
+LevelAssemblySegmentDef? _parseAssemblySegment(
+  Map<String, Object?> raw, {
+  required String sourcePath,
+  required String prefix,
+  required List<ValidationIssue> issues,
+}) {
+  final segmentId = _readRequiredString(
+    raw,
+    field: 'segmentId',
+    sourcePath: sourcePath,
+    prefix: prefix,
+    issues: issues,
+  );
+  final groupId = _readRequiredString(
+    raw,
+    field: 'groupId',
+    sourcePath: sourcePath,
+    prefix: prefix,
+    issues: issues,
+  );
+  final minChunkCount = _readRequiredInt(
+    raw,
+    field: 'minChunkCount',
+    sourcePath: sourcePath,
+    prefix: prefix,
+    issues: issues,
+  );
+  final maxChunkCount = _readRequiredInt(
+    raw,
+    field: 'maxChunkCount',
+    sourcePath: sourcePath,
+    prefix: prefix,
+    issues: issues,
+  );
+  final requireDistinctChunks = _readRequiredBool(
+    raw,
+    field: 'requireDistinctChunks',
+    sourcePath: sourcePath,
+    prefix: prefix,
+    issues: issues,
+  );
+  if (segmentId.isEmpty ||
+      groupId.isEmpty ||
+      minChunkCount == null ||
+      maxChunkCount == null ||
+      requireDistinctChunks == null) {
+    return null;
+  }
+  return LevelAssemblySegmentDef(
+    segmentId: segmentId,
+    groupId: groupId,
+    minChunkCount: minChunkCount,
+    maxChunkCount: maxChunkCount,
+    requireDistinctChunks: requireDistinctChunks,
+  ).normalized();
+}
+
+String _normalizedString(Object? raw, {String fallback = ''}) {
   if (raw is String) {
     final normalized = raw.trim().replaceAll('\\', '/');
     if (normalized.isNotEmpty) {
       return normalized;
     }
   }
-  return '';
+  return fallback;
 }
 
 String _normalizeNewlines(String raw) {

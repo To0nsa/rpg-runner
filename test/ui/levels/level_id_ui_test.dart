@@ -30,10 +30,10 @@ void main() {
   );
 
   test(
-    'LevelIdUi themeId stays aligned with runtime registry theme lookup',
+    'LevelIdUi visualThemeId stays aligned with runtime registry theme lookup',
     () {
       for (final levelId in LevelId.values) {
-        expect(levelId.themeId, LevelRegistry.byId(levelId).themeId ?? 'field');
+        expect(levelId.visualThemeId, LevelRegistry.byId(levelId).visualThemeId ?? 'field');
       }
     },
   );

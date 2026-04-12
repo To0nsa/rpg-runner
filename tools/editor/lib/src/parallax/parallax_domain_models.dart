@@ -81,25 +81,25 @@ class ParallaxLayerDef {
 @immutable
 class ParallaxThemeDef {
   const ParallaxThemeDef({
-    required this.themeId,
+    required this.parallaxThemeId,
     required this.revision,
     required this.groundMaterialAssetPath,
     required this.layers,
   });
 
-  final String themeId;
+  final String parallaxThemeId;
   final int revision;
   final String groundMaterialAssetPath;
   final List<ParallaxLayerDef> layers;
 
   ParallaxThemeDef copyWith({
-    String? themeId,
+    String? parallaxThemeId,
     int? revision,
     String? groundMaterialAssetPath,
     List<ParallaxLayerDef>? layers,
   }) {
     return ParallaxThemeDef(
-      themeId: themeId ?? this.themeId,
+      parallaxThemeId: parallaxThemeId ?? this.parallaxThemeId,
       revision: revision ?? this.revision,
       groundMaterialAssetPath:
           groundMaterialAssetPath ?? this.groundMaterialAssetPath,
@@ -112,7 +112,7 @@ class ParallaxThemeDef {
       layers.map((layer) => layer.normalized()),
     )..sort(compareParallaxLayersDeterministic);
     return ParallaxThemeDef(
-      themeId: themeId.trim(),
+      parallaxThemeId: parallaxThemeId.trim(),
       revision: revision,
       groundMaterialAssetPath: _normalizePath(groundMaterialAssetPath),
       layers: List<ParallaxLayerDef>.unmodifiable(sortedLayers),
@@ -122,7 +122,7 @@ class ParallaxThemeDef {
   Map<String, Object?> toJson() {
     final normalized = this.normalized();
     return <String, Object?>{
-      'themeId': normalized.themeId,
+      'parallaxThemeId': normalized.parallaxThemeId,
       'revision': normalized.revision,
       'groundMaterialAssetPath': normalized.groundMaterialAssetPath,
       'layers': normalized.layers
@@ -151,7 +151,7 @@ class ParallaxDefsDocument extends AuthoringDocument {
     required this.availableLevelIds,
     required this.activeLevelId,
     required this.levelOptionSource,
-    required this.themeIdByLevelId,
+    required this.parallaxThemeIdByLevelId,
     this.loadIssues = const <ValidationIssue>[],
     this.operationIssues = const <ValidationIssue>[],
   });
@@ -162,7 +162,7 @@ class ParallaxDefsDocument extends AuthoringDocument {
   final List<String> availableLevelIds;
   final String? activeLevelId;
   final String levelOptionSource;
-  final Map<String, String> themeIdByLevelId;
+  final Map<String, String> parallaxThemeIdByLevelId;
   final List<ValidationIssue> loadIssues;
   final List<ValidationIssue> operationIssues;
 
@@ -175,7 +175,7 @@ class ParallaxDefsDocument extends AuthoringDocument {
     String? activeLevelId,
     bool clearActiveLevelId = false,
     String? levelOptionSource,
-    Map<String, String>? themeIdByLevelId,
+    Map<String, String>? parallaxThemeIdByLevelId,
     List<ValidationIssue>? loadIssues,
     List<ValidationIssue>? operationIssues,
     bool clearOperationIssues = false,
@@ -189,7 +189,7 @@ class ParallaxDefsDocument extends AuthoringDocument {
           ? null
           : (activeLevelId ?? this.activeLevelId),
       levelOptionSource: levelOptionSource ?? this.levelOptionSource,
-      themeIdByLevelId: themeIdByLevelId ?? this.themeIdByLevelId,
+      parallaxThemeIdByLevelId: parallaxThemeIdByLevelId ?? this.parallaxThemeIdByLevelId,
       loadIssues: loadIssues ?? this.loadIssues,
       operationIssues: clearOperationIssues
           ? const <ValidationIssue>[]
@@ -204,8 +204,8 @@ class ParallaxScene extends EditableScene {
     required this.availableLevelIds,
     required this.activeLevelId,
     required this.levelOptionSource,
-    required this.themeIdByLevelId,
-    required this.activeThemeId,
+    required this.parallaxThemeIdByLevelId,
+    required this.activeParallaxThemeId,
     required this.activeTheme,
     required this.activeThemeUsageLevelIds,
     required this.sourcePath,
@@ -216,46 +216,46 @@ class ParallaxScene extends EditableScene {
   final List<String> availableLevelIds;
   final String? activeLevelId;
   final String levelOptionSource;
-  final Map<String, String> themeIdByLevelId;
-  final String? activeThemeId;
+  final Map<String, String> parallaxThemeIdByLevelId;
+  final String? activeParallaxThemeId;
   final ParallaxThemeDef? activeTheme;
   final List<String> activeThemeUsageLevelIds;
   final String sourcePath;
   final String workspaceRootPath;
 }
 
-String? resolveActiveThemeId(ParallaxDefsDocument document) {
+String? resolveActiveParallaxThemeId(ParallaxDefsDocument document) {
   final activeLevelId = document.activeLevelId;
   if (activeLevelId == null || activeLevelId.isEmpty) {
     return null;
   }
-  return document.themeIdByLevelId[activeLevelId];
+  return document.parallaxThemeIdByLevelId[activeLevelId];
 }
 
 ParallaxThemeDef? findParallaxThemeById(
   Iterable<ParallaxThemeDef> themes,
-  String? themeId,
+  String? parallaxThemeId,
 ) {
-  if (themeId == null || themeId.isEmpty) {
+  if (parallaxThemeId == null || parallaxThemeId.isEmpty) {
     return null;
   }
   for (final theme in themes) {
-    if (theme.themeId == themeId) {
+    if (theme.parallaxThemeId == parallaxThemeId) {
       return theme;
     }
   }
   return null;
 }
 
-List<String> levelIdsUsingThemeId(
-  Map<String, String> themeIdByLevelId,
-  String? themeId,
+List<String> levelIdsUsingParallaxThemeId(
+  Map<String, String> parallaxThemeIdByLevelId,
+  String? parallaxThemeId,
 ) {
-  if (themeId == null || themeId.isEmpty) {
+  if (parallaxThemeId == null || parallaxThemeId.isEmpty) {
     return const <String>[];
   }
-  final levelIds = themeIdByLevelId.entries
-      .where((entry) => entry.value == themeId)
+  final levelIds = parallaxThemeIdByLevelId.entries
+      .where((entry) => entry.value == parallaxThemeId)
       .map((entry) => entry.key)
       .toList(growable: false)
     ..sort();
@@ -266,7 +266,7 @@ int compareParallaxThemesDeterministic(
   ParallaxThemeDef a,
   ParallaxThemeDef b,
 ) {
-  return a.themeId.compareTo(b.themeId);
+  return a.parallaxThemeId.compareTo(b.parallaxThemeId);
 }
 
 int compareParallaxLayersDeterministic(
@@ -325,7 +325,7 @@ String renderCanonicalParallaxDefsJson(Iterable<ParallaxThemeDef> themes) {
   for (var i = 0; i < sortedThemes.length; i += 1) {
     final theme = sortedThemes[i];
     buffer.writeln('    {');
-    buffer.writeln('      "themeId": ${_quoted(theme.themeId)},');
+    buffer.writeln('      "parallaxThemeId": ${_quoted(theme.parallaxThemeId)},');
     buffer.writeln('      "revision": ${theme.revision},');
     buffer.writeln(
       '      "groundMaterialAssetPath": '
@@ -386,7 +386,7 @@ bool parallaxThemeEquals(
 }) {
   final left = a.normalized();
   final right = b.normalized();
-  if (left.themeId != right.themeId ||
+  if (left.parallaxThemeId != right.parallaxThemeId ||
       left.groundMaterialAssetPath != right.groundMaterialAssetPath) {
     return false;
   }

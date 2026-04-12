@@ -890,7 +890,10 @@ class GameCore {
   LevelId get levelId => _levelDefinition.id;
 
   /// Optional render theme identifier for this run.
-  String? get themeId => _levelDefinition.themeId;
+  String? get visualThemeId => _trackManager.resolveRenderVisualThemeId(
+    cameraCenterX: _camera.state.centerX,
+    levelVisualThemeId: _levelDefinition.visualThemeId,
+  );
 
   /// Score tuning for UI display and leaderboard calculation.
   ScoreTuning get scoreTuning => _scoreTuning;
@@ -1704,7 +1707,7 @@ class GameCore {
       runId: runId,
       seed: seed,
       levelId: levelId,
-      themeId: themeId,
+      visualThemeId: visualThemeId,
       distance: distance,
       paused: paused,
       gameOver: gameOver,

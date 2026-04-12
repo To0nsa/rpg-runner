@@ -54,6 +54,7 @@ class PixelParallaxBackdrop extends Component with HasGameReference<FlameGame> {
 
   /// Accumulated scroll offset for each layer (in pixels).
   late final List<double> _scroll;
+  bool _assetsReady = false;
 
   /// Paint configured for nearest-neighbor (pixel-perfect) filtering.
   final Paint _paint = Paint()..filterQuality = FilterQuality.none;
@@ -65,6 +66,7 @@ class PixelParallaxBackdrop extends Component with HasGameReference<FlameGame> {
       layers.map((layer) => game.images.load(layer.assetPath)),
     );
     _scroll = List<double>.filled(layers.length, 0);
+    _assetsReady = true;
   }
 
   /// Updates scroll offsets based on camera movement.
@@ -74,6 +76,7 @@ class PixelParallaxBackdrop extends Component with HasGameReference<FlameGame> {
   @override
   void update(double dt) {
     super.update(dt);
+    if (!_assetsReady) return;
 
     final viewWidth = virtualWidth.toDouble();
     final camX = -game.camera.viewfinder.transform.offset.x;
@@ -100,6 +103,7 @@ class PixelParallaxBackdrop extends Component with HasGameReference<FlameGame> {
   @override
   void render(ui.Canvas canvas) {
     super.render(canvas);
+    if (!_assetsReady) return;
 
     final viewWidth = virtualWidth;
     final viewHeight = virtualHeight;

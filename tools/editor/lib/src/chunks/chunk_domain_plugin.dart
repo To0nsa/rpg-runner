@@ -70,6 +70,8 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
     return ChunkScene(
       chunks: List<LevelChunkDef>.unmodifiable(sortedChunks),
       availableLevelIds: chunkDocument.availableLevelIds,
+      assemblyGroupOptionsByLevelId:
+          chunkDocument.assemblyGroupOptionsByLevelId,
       activeLevelId: chunkDocument.activeLevelId,
       levelOptionSource: chunkDocument.levelOptionSource,
       sourcePathByChunkKey: Map<String, String>.unmodifiable(
@@ -100,6 +102,8 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
         return _renameChunk(chunkDocument, command.payload);
       case 'deprecate_chunk':
         return _deprecateChunk(chunkDocument, command.payload);
+      case 'delete_chunk':
+        return _deleteChunk(chunkDocument, command.payload);
       case 'update_chunk_metadata':
         return _updateChunkMetadata(chunkDocument, command.payload);
       case 'update_ground_profile':
@@ -256,6 +260,10 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
         (document.availableLevelIds.isEmpty
             ? ''
             : document.availableLevelIds.first);
+    final defaultAssemblyGroupId = _allowedAssemblyGroupIds(
+      document,
+      activeLevelId,
+    ).first;
 
     final defaultTileSize = document.runtimeGridSnap.round();
     final chunk = normalizeChunkToAuthority(
@@ -269,6 +277,7 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
         width: document.runtimeChunkWidth.round(),
         height: document.lockedChunkHeight,
         difficulty: chunkDifficultyNormal,
+        assemblyGroupId: defaultAssemblyGroupId,
         groundProfile: GroundProfileDef(
           kind: groundProfileKindFlat,
           topY: document.runtimeGroundTopY,
@@ -429,6 +438,34 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
     );
   }
 
+  ChunkDocument _deleteChunk(
+    ChunkDocument document,
+    Map<String, Object?> payload,
+  ) {
+    document = _clearOperationIssuesIfNeeded(document);
+    final chunkKey = _normalizedString(payload['chunkKey']);
+    if (chunkKey.isEmpty) {
+      return _withOperationIssue(
+        document,
+        code: 'delete_chunk_invalid_payload',
+        message: 'Delete chunk requires chunkKey.',
+      );
+    }
+    final target = _findChunkByKey(document, chunkKey);
+    if (target == null) {
+      return _withOperationIssue(
+        document,
+        code: 'delete_chunk_missing_source',
+        message: 'Cannot delete unknown chunkKey "$chunkKey".',
+        chunkKey: chunkKey,
+      );
+    }
+    final nextChunks = document.chunks
+        .where((chunk) => chunk.chunkKey != target.chunkKey)
+        .toList(growable: false);
+    return document.copyWith(chunks: nextChunks);
+  }
+
   ChunkDocument _updateChunkMetadata(
     ChunkDocument document,
     Map<String, Object?> payload,
@@ -463,6 +500,29 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
         chunkKey: chunkKey,
       );
     }
+    final requestedLevelId = _normalizedString(
+      payload['levelId'],
+      fallback: target.levelId,
+    );
+    final requestedAssemblyGroupId = _normalizedString(
+      payload['assemblyGroupId'],
+      fallback: target.assemblyGroupId,
+    );
+    final allowedAssemblyGroupIds = _allowedAssemblyGroupIds(
+      document,
+      requestedLevelId,
+    );
+    if (!allowedAssemblyGroupIds.contains(requestedAssemblyGroupId)) {
+      return _withOperationIssue(
+        document,
+        code: 'update_chunk_metadata_unknown_assembly_group',
+        message:
+            'Cannot set assemblyGroupId "$requestedAssemblyGroupId" for '
+            'levelId "$requestedLevelId". Allowed values: '
+            '${allowedAssemblyGroupIds.join(', ')}.',
+        chunkKey: chunkKey,
+      );
+    }
     return _mapChunkByKey(
       document,
       chunkKey: chunkKey,
@@ -474,17 +534,17 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
           chunk
               .copyWith(
                 id: resolvedId,
-                levelId: _normalizedString(
-                  payload['levelId'],
-                  fallback: chunk.levelId,
-                ),
-                tileSize: runtimeTileSize > 0 ? runtimeTileSize : chunk.tileSize,
+                levelId: requestedLevelId,
+                tileSize: runtimeTileSize > 0
+                    ? runtimeTileSize
+                    : chunk.tileSize,
                 width: document.runtimeChunkWidth.round(),
                 height: document.lockedChunkHeight,
                 difficulty: _normalizedString(
                   payload['difficulty'],
                   fallback: chunk.difficulty,
                 ),
+                assemblyGroupId: requestedAssemblyGroupId,
                 tags: resolvedTags,
                 status: _normalizedString(
                   payload['status'],
@@ -820,8 +880,14 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
         chunkKey: chunkKey,
       );
     }
-    final nextX = _intOrDefault(payload['x'], fallback: chunk.markers[targetIndex].x);
-    final nextY = _intOrDefault(payload['y'], fallback: chunk.markers[targetIndex].y);
+    final nextX = _intOrDefault(
+      payload['x'],
+      fallback: chunk.markers[targetIndex].x,
+    );
+    final nextY = _intOrDefault(
+      payload['y'],
+      fallback: chunk.markers[targetIndex].y,
+    );
     return _mapChunkByKey(
       document,
       chunkKey: chunkKey,
@@ -1391,7 +1457,9 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
       '',
       '## Files',
       ...savePlan.writes.map(
-        (write) => '- ${write.relativePath} (${write.chunkId})',
+        (write) => write.deleteFile
+            ? '- DELETE ${write.relativePath} (${write.chunkKey})'
+            : '- ${write.relativePath} (${write.chunkId})',
       ),
     ];
     return lines.join('\n');
@@ -1403,6 +1471,17 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
     final after = write.afterContent;
     final beforeLines = _splitLines(before);
     final afterLines = _splitLines(after);
+    if (write.deleteFile) {
+      final lines = <String>[
+        'diff --git a/$path b/$path',
+        'deleted file mode 100644',
+        '--- a/$path',
+        '+++ /dev/null',
+        '@@ -1,${beforeLines.length} +0,0 @@',
+        ...beforeLines.map((line) => '-$line'),
+      ];
+      return lines.join('\n');
+    }
     final lines = <String>[
       'diff --git a/$path b/$path',
       '--- a/$path',
@@ -1445,12 +1524,22 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
     final scopedChunks = document.chunks
         .where((chunk) => chunk.levelId == activeLevelId)
         .toList(growable: false);
+    final scopedChunkKeys = scopedChunks.map((chunk) => chunk.chunkKey).toSet();
     final scopedBaselines = <String, ChunkSourceBaseline>{};
     for (final chunk in scopedChunks) {
       final baseline = document.baselineByChunkKey[chunk.chunkKey];
       if (baseline != null) {
         scopedBaselines[chunk.chunkKey] = baseline;
       }
+    }
+    for (final entry in document.baselineByChunkKey.entries) {
+      if (scopedChunkKeys.contains(entry.key)) {
+        continue;
+      }
+      if (entry.value.levelId != activeLevelId) {
+        continue;
+      }
+      scopedBaselines[entry.key] = entry.value;
     }
 
     if (scopedChunks.length == document.chunks.length &&
@@ -1464,6 +1553,17 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
         scopedBaselines,
       ),
     );
+  }
+
+  List<String> _allowedAssemblyGroupIds(
+    ChunkDocument document,
+    String levelId,
+  ) {
+    final configured = document.assemblyGroupOptionsByLevelId[levelId];
+    if (configured == null || configured.isEmpty) {
+      return const <String>[defaultChunkAssemblyGroupId];
+    }
+    return configured;
   }
 
   ChunkDocument _asChunkDocument(AuthoringDocument document) {
@@ -1638,6 +1738,7 @@ bool _chunkEquals(
       left.width != right.width ||
       left.height != right.height ||
       left.difficulty != right.difficulty ||
+      left.assemblyGroupId != right.assemblyGroupId ||
       left.status != right.status) {
     return false;
   }

@@ -21,7 +21,8 @@ Implemented authoring domains:
 - chunk authoring with scene-based prefab composition, shared pan/zoom/grid
   controls, rendered floor/gap visualization, and metadata/ground editing
 - level metadata authoring with list/inspector editing, lifecycle controls,
-  validation, pending diff preview, and direct-write export
+  assembly segment sequencing, render-theme run validation, pending diff
+  preview, and direct-write export
 - parallax theme authoring scoped by active level, with ordered layer editing,
   deterministic save output, validation, and preview motion simulation
 

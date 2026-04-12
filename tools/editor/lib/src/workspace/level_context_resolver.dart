@@ -6,6 +6,7 @@ import 'editor_workspace.dart';
 const String defaultLevelDefsPath = 'assets/authoring/level/level_defs.json';
 const String defaultLevelIdSourcePath =
     'packages/runner_core/lib/levels/level_id.dart';
+const String defaultChunkThemeGroupId = 'default';
 
 /// Deterministic level option source resolved for an editor workflow.
 class LevelOptionResolution {
@@ -55,7 +56,7 @@ String? resolveActiveLevelId({
   return options.first;
 }
 
-Map<String, String> extractLevelThemeIds(EditorWorkspace workspace) {
+Map<String, String> extractLevelVisualThemeIds(EditorWorkspace workspace) {
   final file = File(workspace.resolve(defaultLevelDefsPath));
   if (!file.existsSync()) {
     return const <String, String>{};
@@ -80,17 +81,58 @@ Map<String, String> extractLevelThemeIds(EditorWorkspace workspace) {
       value['levelId'],
       fallback: _normalizedString(value['id']),
     );
-    final themeId = _normalizedString(value['themeId']);
-    if (levelId.isEmpty || themeId.isEmpty) {
+    final visualThemeId = _normalizedString(value['visualThemeId']);
+    if (levelId.isEmpty || visualThemeId.isEmpty) {
       continue;
     }
-    mapping[levelId] = themeId;
+    mapping[levelId] = visualThemeId;
   }
 
   final sortedEntries = mapping.entries.toList(growable: false)
     ..sort((a, b) => a.key.compareTo(b.key));
   return Map<String, String>.unmodifiable(<String, String>{
     for (final entry in sortedEntries) entry.key: entry.value,
+  });
+}
+
+Map<String, List<String>> extractLevelChunkThemeGroups(
+  EditorWorkspace workspace,
+) {
+  final file = File(workspace.resolve(defaultLevelDefsPath));
+  if (!file.existsSync()) {
+    return const <String, List<String>>{};
+  }
+
+  final map = _parseJsonMap(file.readAsStringSync());
+  if (map == null) {
+    return const <String, List<String>>{};
+  }
+
+  final mapping = <String, List<String>>{};
+  final rawLevels = map['levels'];
+  if (rawLevels is! List<Object?>) {
+    return const <String, List<String>>{};
+  }
+
+  for (final value in rawLevels) {
+    if (value is! Map<String, Object?>) {
+      continue;
+    }
+    final levelId = _normalizedString(
+      value['levelId'],
+      fallback: _normalizedString(value['id']),
+    );
+    if (levelId.isEmpty) {
+      continue;
+    }
+    mapping[levelId] = _normalizeChunkThemeGroups(value['chunkThemeGroups']);
+  }
+
+  final sortedEntries = mapping.entries.toList(growable: false)
+    ..sort((a, b) => a.key.compareTo(b.key));
+  return Map<String, List<String>>.unmodifiable(<String, List<String>>{
+    for (final entry in sortedEntries)
+      entry.key: List<String>.unmodifiable(entry.value),
   });
 }
 
@@ -183,4 +225,25 @@ String _normalizedString(Object? raw, {String fallback = ''}) {
     }
   }
   return fallback;
+}
+
+List<String> _normalizeChunkThemeGroups(Object? raw) {
+  if (raw is! List<Object?>) {
+    return const <String>[defaultChunkThemeGroupId];
+  }
+  final groups = <String>{};
+  for (final entry in raw) {
+    final normalized = _normalizedString(entry);
+    if (normalized.isNotEmpty) {
+      groups.add(normalized);
+    }
+  }
+  final sorted = groups.toList(growable: false)..sort();
+  if (sorted.contains(defaultChunkThemeGroupId)) {
+    final withoutDefault = sorted
+        .where((groupId) => groupId != defaultChunkThemeGroupId)
+        .toList(growable: false);
+    return <String>[defaultChunkThemeGroupId, ...withoutDefault];
+  }
+  return <String>[defaultChunkThemeGroupId, ...sorted];
 }

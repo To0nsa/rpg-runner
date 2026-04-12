@@ -14,7 +14,7 @@ void main() {
       workspaceRootPath: '.',
       themes: const <ParallaxThemeDef>[
         ParallaxThemeDef(
-          themeId: 'field',
+          parallaxThemeId: 'field',
           revision: 1,
           groundMaterialAssetPath: 'assets/images/parallax/field/ground.png',
           layers: <ParallaxLayerDef>[
@@ -34,7 +34,7 @@ void main() {
       availableLevelIds: const <String>['field'],
       activeLevelId: 'field',
       levelOptionSource: 'test',
-      themeIdByLevelId: const <String, String>{'field': 'field'},
+      parallaxThemeIdByLevelId: const <String, String>{'field': 'field'},
     );
 
     final created =
@@ -132,7 +132,7 @@ void main() {
         workspaceRootPath: root.path,
         themes: const <ParallaxThemeDef>[
           ParallaxThemeDef(
-            themeId: 'field',
+            parallaxThemeId: 'field',
             revision: 0,
             groundMaterialAssetPath: 'assets/images/missing_ground.png',
             layers: <ParallaxLayerDef>[
@@ -161,7 +161,7 @@ void main() {
         availableLevelIds: const <String>['field'],
         activeLevelId: 'field',
         levelOptionSource: 'test',
-        themeIdByLevelId: const <String, String>{'field': 'field'},
+        parallaxThemeIdByLevelId: const <String, String>{'field': 'field'},
       );
 
       final codes = validateParallaxDocument(document)

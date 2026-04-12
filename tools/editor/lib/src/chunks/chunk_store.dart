@@ -100,6 +100,7 @@ class ChunkStore {
       }
 
       baselineByChunkKey[chunk.chunkKey] = ChunkSourceBaseline(
+        levelId: chunk.levelId,
         sourcePath: relativePath,
         fingerprint: WorkspaceFileIo.fingerprint(raw),
       );
@@ -108,6 +109,10 @@ class ChunkStore {
     final levelOptions = level_context.resolveLevelOptions(
       workspace,
       discoveredLevelIds: discoveredLevelIds,
+    );
+    final assemblyGroupOptionsByLevelId = _resolveAssemblyGroupOptions(
+      workspace,
+      levelIds: levelOptions.options,
     );
     final activeLevelId = level_context.resolveActiveLevelId(
       options: levelOptions.options,
@@ -123,6 +128,12 @@ class ChunkStore {
         baselineByChunkKey,
       ),
       availableLevelIds: List<String>.unmodifiable(sortedLevelIds),
+      assemblyGroupOptionsByLevelId: Map<String, List<String>>.unmodifiable(
+        assemblyGroupOptionsByLevelId.map(
+          (levelId, groupIds) =>
+              MapEntry(levelId, List<String>.unmodifiable(groupIds)),
+        ),
+      ),
       activeLevelId: activeLevelId,
       levelOptionSource: levelOptions.source,
       runtimeGridSnap: runtimeAuthority.gridSnap,
@@ -141,8 +152,12 @@ class ChunkStore {
     final normalizedChunks = document.chunks.map((chunk) => chunk.normalized());
     final sortedChunks = normalizedChunks.toList(growable: false)
       ..sort(_compareChunksForMemory);
+    final currentChunkKeys = sortedChunks
+        .map((chunk) => chunk.chunkKey)
+        .toSet();
 
     final writes = <ChunkFileWrite>[];
+    final claimedPathsLower = <String>{};
     for (final chunk in sortedChunks) {
       final baseline = document.baselineByChunkKey[chunk.chunkKey];
       final plannedPath = _resolveTargetChunkPath(chunk, baseline: baseline);
@@ -166,6 +181,36 @@ class ChunkStore {
           afterContent: afterContent,
         ),
       );
+      claimedPathsLower.add(p.normalize(relativePath).toLowerCase());
+      if (previousRelativePath != null) {
+        claimedPathsLower.add(p.normalize(previousRelativePath).toLowerCase());
+      }
+    }
+
+    for (final entry in document.baselineByChunkKey.entries) {
+      final chunkKey = entry.key;
+      if (currentChunkKeys.contains(chunkKey)) {
+        continue;
+      }
+      final baselinePath = p.normalize(entry.value.sourcePath);
+      if (claimedPathsLower.contains(baselinePath.toLowerCase())) {
+        continue;
+      }
+      final file = File(workspace.resolve(baselinePath));
+      if (!file.existsSync()) {
+        continue;
+      }
+      writes.add(
+        ChunkFileWrite(
+          chunkKey: chunkKey,
+          chunkId: chunkKey,
+          relativePath: baselinePath,
+          beforeContent: file.readAsStringSync(),
+          afterContent: '',
+          deleteFile: true,
+        ),
+      );
+      claimedPathsLower.add(baselinePath.toLowerCase());
     }
 
     _ensureNoCaseInsensitivePathCollision(writes);
@@ -195,6 +240,12 @@ class ChunkStore {
 
     for (final write in savePlan.writes) {
       final targetFile = File(workspace.resolve(write.relativePath));
+      if (write.deleteFile) {
+        if (targetFile.existsSync()) {
+          targetFile.deleteSync();
+        }
+        continue;
+      }
       WorkspaceFileIo.atomicWrite(targetFile, write.afterContent);
       final previousRelativePath = write.previousRelativePath;
       if (previousRelativePath == null) {
@@ -223,6 +274,27 @@ class ChunkStore {
             .toList(growable: false)
           ..sort((a, b) => a.path.compareTo(b.path));
     return files;
+  }
+
+  Map<String, List<String>> _resolveAssemblyGroupOptions(
+    EditorWorkspace workspace, {
+    required Iterable<String> levelIds,
+  }) {
+    final fromLevelDefs = level_context.extractLevelChunkThemeGroups(workspace);
+    final resolved = <String, List<String>>{};
+    final uniqueLevelIds = <String>{
+      ...levelIds,
+      ...fromLevelDefs.keys,
+    }.toList(growable: false)..sort();
+    for (final levelId in uniqueLevelIds) {
+      final declaredGroups = fromLevelDefs[levelId];
+      if (declaredGroups == null || declaredGroups.isEmpty) {
+        resolved[levelId] = const <String>[defaultChunkAssemblyGroupId];
+      } else {
+        resolved[levelId] = declaredGroups;
+      }
+    }
+    return resolved;
   }
 
   Map<String, Object?>? _parseJsonMap(String raw) {
@@ -282,6 +354,24 @@ class ChunkStore {
         'invalid_revision',
         'revision must be a positive integer in source JSON.',
       );
+    }
+
+    final assemblyGroupId = raw['assemblyGroupId'];
+    if (assemblyGroupId != null) {
+      if (assemblyGroupId is! String || assemblyGroupId.trim().isEmpty) {
+        add(
+          'invalid_assembly_group_id',
+          'assemblyGroupId must be a non-empty string when present.',
+        );
+      } else if (!stableChunkAssemblyGroupPattern.hasMatch(
+        assemblyGroupId.trim(),
+      )) {
+        add(
+          'invalid_assembly_group_id',
+          'assemblyGroupId must match '
+              '${stableChunkAssemblyGroupPattern.pattern}.',
+        );
+      }
     }
 
     _validateStringArray(
@@ -586,6 +676,7 @@ class ChunkFileWrite {
     this.previousRelativePath,
     required this.beforeContent,
     required this.afterContent,
+    this.deleteFile = false,
   });
 
   final String chunkKey;
@@ -594,6 +685,7 @@ class ChunkFileWrite {
   final String? previousRelativePath;
   final String? beforeContent;
   final String afterContent;
+  final bool deleteFile;
 }
 
 class _PlannedChunkPath {

@@ -14,6 +14,7 @@ const List<ChunkPattern> fieldEarlyPatterns = <ChunkPattern>[
   ChunkPattern(
     name: 'field_flat',
     chunkKey: 'field_flat',
+    assemblyGroupId: 'default',
     platforms: <PlatformRel>[
     ],
     obstacles: <ObstacleRel>[
@@ -28,6 +29,7 @@ const List<ChunkPattern> fieldEarlyPatterns = <ChunkPattern>[
   ChunkPattern(
     name: 'field_flat_one_obstacle',
     chunkKey: 'field_flat_on_obstacle',
+    assemblyGroupId: 'forest',
     platforms: <PlatformRel>[
     ],
     obstacles: <ObstacleRel>[
@@ -81,6 +83,7 @@ const List<ChunkPattern> fieldEarlyPatterns = <ChunkPattern>[
   ChunkPattern(
     name: 'field_flat_one_gap',
     chunkKey: 'field_flat_one_gap',
+    assemblyGroupId: 'none',
     platforms: <PlatformRel>[
     ],
     obstacles: <ObstacleRel>[
@@ -96,6 +99,7 @@ const List<ChunkPattern> fieldEarlyPatterns = <ChunkPattern>[
   ChunkPattern(
     name: 'field_flat_one_obstacle_one_platform',
     chunkKey: 'field_flat_one_obstacle_one_platform',
+    assemblyGroupId: 'forest',
     platforms: <PlatformRel>[
       PlatformRel(x: 320.0, width: 96.0, aboveGroundTop: 112.0, thickness: 32.0),
     ],
@@ -136,6 +140,7 @@ const List<ChunkPattern> fieldEarlyPatterns = <ChunkPattern>[
   ChunkPattern(
     name: 'field_flat_two_platforms',
     chunkKey: 'field_flat_two_platforms',
+    assemblyGroupId: 'default',
     platforms: <PlatformRel>[
       PlatformRel(x: 288.0, width: 32.0, aboveGroundTop: 112.0, thickness: 32.0),
       PlatformRel(x: 160.0, width: 64.0, aboveGroundTop: 80.0, thickness: 32.0),
@@ -182,6 +187,7 @@ const List<ChunkPattern> fieldNormalPatterns = <ChunkPattern>[
   ChunkPattern(
     name: 'field_unoco_gap_platform_to_pass_it',
     chunkKey: 'new_chunk',
+    assemblyGroupId: 'forest',
     platforms: <PlatformRel>[
       PlatformRel(x: 288.0, width: 32.0, aboveGroundTop: 48.0, thickness: 32.0),
     ],
@@ -223,6 +229,7 @@ const List<ChunkPattern> forestNormalPatterns = <ChunkPattern>[
   ChunkPattern(
     name: 'forest_flat',
     chunkKey: 'forest_flat',
+    assemblyGroupId: 'default',
     platforms: <PlatformRel>[
     ],
     obstacles: <ObstacleRel>[
@@ -254,7 +261,9 @@ const Map<String, ChunkPatternListSource> authoredChunkPatternSourcesByLevel = <
   ),
 };
 
-ChunkPatternSource authoredChunkPatternSourceForLevel(String levelId) {
+ChunkPatternListSource authoredChunkPatternSourceForLevel(
+  String levelId,
+) {
   final source = authoredChunkPatternSourcesByLevel[levelId];
   if (source != null) {
     return source;

@@ -28,7 +28,7 @@ void main() {
 
         final runtime = LevelRegistry.byId(levelId);
         expect(authored!.displayName, levelId.displayName);
-        expect(authored.themeId, runtime.themeId);
+        expect(authored.visualThemeId, runtime.visualThemeId);
         expect(authored.cameraCenterY, runtime.cameraCenterY);
         expect(authored.groundTopY, runtime.groundTopY);
         expect(authored.earlyPatternChunks, runtime.earlyPatternChunks);
@@ -69,7 +69,8 @@ void main() {
       "levelId": "forest",
       "revision": 1,
       "displayName": "Forest",
-      "themeId": "forest",
+      "visualThemeId": "forest",
+      "chunkThemeGroups": ["default"],
       "cameraCenterY": 135,
       "groundTopY": 224,
       "earlyPatternChunks": 3,
@@ -83,7 +84,8 @@ void main() {
       "levelId": "field",
       "revision": 1,
       "displayName": "Field",
-      "themeId": "field",
+      "visualThemeId": "field",
+      "chunkThemeGroups": ["default"],
       "cameraCenterY": 135,
       "groundTopY": 224,
       "earlyPatternChunks": 3,
@@ -107,6 +109,80 @@ void main() {
       }
     },
   );
+
+  test('loadLevelDefinitions parses authored assembly blocks', () async {
+    final fixtureRoot = await Directory.systemTemp.createTemp(
+      'level_defs_assembly_',
+    );
+    try {
+      final defsFile = File(
+        _joinPath(<String>[
+          fixtureRoot.path,
+          'assets',
+          'authoring',
+          'level',
+          'level_defs.json',
+        ]),
+      );
+      defsFile.parent.createSync(recursive: true);
+      defsFile.writeAsStringSync(r'''
+{
+  "schemaVersion": 1,
+  "levels": [
+    {
+      "levelId": "field",
+      "revision": 1,
+      "displayName": "Field",
+      "visualThemeId": "field",
+      "chunkThemeGroups": ["default", "cemetery", "none"],
+      "cameraCenterY": 135,
+      "groundTopY": 224,
+      "earlyPatternChunks": 3,
+      "easyPatternChunks": 0,
+      "normalPatternChunks": 0,
+      "noEnemyChunks": 3,
+      "enumOrdinal": 20,
+      "status": "active",
+      "assembly": {
+        "loopSegments": true,
+        "segments": [
+          {
+            "segmentId": "cemetery_run",
+            "groupId": "cemetery",
+            "minChunkCount": 2,
+            "maxChunkCount": 5,
+            "requireDistinctChunks": true
+          },
+          {
+            "segmentId": "none_run",
+            "groupId": "none",
+            "minChunkCount": 4,
+            "maxChunkCount": 10,
+            "requireDistinctChunks": false
+          }
+        ]
+      }
+    }
+  ]
+}
+''');
+
+      final result = await loadLevelDefinitions(defsPath: defsFile.path);
+      expect(result.issues, isEmpty);
+      final assembly = result.levels.single.assembly;
+      expect(assembly, isNotNull);
+      expect(assembly!.segments.length, 2);
+      expect(assembly.segments.first.groupId, 'cemetery');
+      expect(assembly.segments.first.requireDistinctChunks, isTrue);
+      expect(assembly.segments.last.groupId, 'none');
+
+      final canonical = renderCanonicalLevelDefsJson(result.levels);
+      expect(canonical, contains('"assembly": {'));
+      expect(canonical, contains('"segmentId": "cemetery_run"'));
+    } finally {
+      fixtureRoot.deleteSync(recursive: true);
+    }
+  });
 
   test('renderLevelUiMetadataDartOutput excludes deprecated levels from '
       'generated selectable ids', () async {
@@ -132,7 +208,8 @@ void main() {
       "levelId": "field",
       "revision": 1,
       "displayName": "Field",
-      "themeId": "field",
+      "visualThemeId": "field",
+      "chunkThemeGroups": ["default"],
       "cameraCenterY": 135,
       "groundTopY": 224,
       "earlyPatternChunks": 3,
@@ -146,7 +223,8 @@ void main() {
       "levelId": "forest",
       "revision": 1,
       "displayName": "Forest",
-      "themeId": "forest",
+      "visualThemeId": "forest",
+      "chunkThemeGroups": ["default"],
       "cameraCenterY": 135,
       "groundTopY": 224,
       "earlyPatternChunks": 3,
@@ -209,6 +287,79 @@ void main() {
       ).readAsStringSync();
 
       expect(generated, checkedIn);
+    },
+  );
+
+  test(
+    'renderLevelRegistryDartOutput renders authored assembly contract',
+    () async {
+      final fixtureRoot = await Directory.systemTemp.createTemp(
+        'level_defs_registry_assembly_',
+      );
+      try {
+        final defsFile = File(
+          _joinPath(<String>[
+            fixtureRoot.path,
+            'assets',
+            'authoring',
+            'level',
+            'level_defs.json',
+          ]),
+        );
+        defsFile.parent.createSync(recursive: true);
+        defsFile.writeAsStringSync(r'''
+{
+  "schemaVersion": 1,
+  "levels": [
+    {
+      "levelId": "field",
+      "revision": 1,
+      "displayName": "Field",
+      "visualThemeId": "field",
+      "chunkThemeGroups": ["default", "cemetery"],
+      "cameraCenterY": 135,
+      "groundTopY": 224,
+      "earlyPatternChunks": 3,
+      "easyPatternChunks": 0,
+      "normalPatternChunks": 0,
+      "noEnemyChunks": 3,
+      "enumOrdinal": 20,
+      "status": "active",
+      "assembly": {
+        "loopSegments": true,
+        "segments": [
+          {
+            "segmentId": "cemetery_run",
+            "groupId": "cemetery",
+            "minChunkCount": 2,
+            "maxChunkCount": 5,
+            "requireDistinctChunks": true
+          }
+        ]
+      }
+    }
+  ]
+}
+''');
+
+        final result = await loadLevelDefinitions(defsPath: defsFile.path);
+        expect(result.issues, isEmpty);
+
+        final generated = renderLevelRegistryDartOutput(result.levels);
+        expect(generated, contains("import 'level_assembly.dart';"));
+        expect(generated, contains('LevelAssemblyDefinition('));
+        expect(generated, contains('LevelAssemblySegment('));
+        expect(generated, isNot(contains('LevelAssemblyRenderThemeMode')));
+        expect(generated, contains("groupId: 'cemetery'"));
+        expect(
+          RegExp(
+            r'assembly: const LevelAssemblyDefinition\(',
+          ).allMatches(generated).length,
+          1,
+        );
+      } finally {
+        fixtureRoot.deleteSync(recursive: true);
+      }
     },
   );
 

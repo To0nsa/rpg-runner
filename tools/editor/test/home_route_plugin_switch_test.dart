@@ -1037,6 +1037,9 @@ class _FakeChunkPlugin implements AuthoringDomainPlugin {
       ],
       baselineByChunkKey: <String, ChunkSourceBaseline>{},
       availableLevelIds: <String>['field'],
+      assemblyGroupOptionsByLevelId: <String, List<String>>{
+        'field': <String>['default'],
+      },
       activeLevelId: 'field',
       levelOptionSource: 'test',
       runtimeGridSnap: 16.0,
@@ -1136,7 +1139,7 @@ class _FakeParallaxPlugin implements AuthoringDomainPlugin {
       workspaceRootPath: workspace.rootPath,
       themes: const <ParallaxThemeDef>[
         ParallaxThemeDef(
-          themeId: 'field',
+          parallaxThemeId: 'field',
           revision: 1,
           groundMaterialAssetPath: 'assets/images/parallax/field/ground.png',
           layers: <ParallaxLayerDef>[
@@ -1156,7 +1159,7 @@ class _FakeParallaxPlugin implements AuthoringDomainPlugin {
       availableLevelIds: const <String>['field'],
       activeLevelId: 'field',
       levelOptionSource: 'test',
-      themeIdByLevelId: const <String, String>{'field': 'field'},
+      parallaxThemeIdByLevelId: const <String, String>{'field': 'field'},
     );
   }
 
@@ -1210,7 +1213,7 @@ class _FakeLevelPlugin implements AuthoringDomainPlugin {
           levelId: 'field',
           revision: 1,
           displayName: 'Field',
-          themeId: 'field',
+          visualThemeId: 'field',
           cameraCenterY: 135,
           groundTopY: 224,
           earlyPatternChunks: 3,
@@ -1227,7 +1230,7 @@ class _FakeLevelPlugin implements AuthoringDomainPlugin {
           levelId: 'field',
           revision: 1,
           displayName: 'Field',
-          themeId: 'field',
+          visualThemeId: 'field',
           cameraCenterY: 135,
           groundTopY: 224,
           earlyPatternChunks: 3,
@@ -1239,9 +1242,12 @@ class _FakeLevelPlugin implements AuthoringDomainPlugin {
         ),
       ],
       activeLevelId: 'field',
-      availableParallaxThemeIds: <String>['field'],
+      availableParallaxVisualThemeIds: <String>['field'],
       parallaxThemeSourceAvailable: true,
       authoredChunkCountsByLevelId: <String, int>{'field': 1},
+      authoredChunkAssemblyGroupCountsByLevelId: <String, Map<String, int>>{
+        'field': <String, int>{'default': 1},
+      },
       chunkCountSourceAvailable: true,
     );
   }

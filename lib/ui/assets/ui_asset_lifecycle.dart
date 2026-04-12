@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:runner_core/contracts/render_anim_set_definition.dart';
 import 'package:runner_core/enemies/enemy_catalog.dart';
 import 'package:runner_core/enemies/enemy_id.dart';
+import 'package:runner_core/levels/level_definition.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/levels/level_registry.dart';
 import 'package:runner_core/players/player_character_definition.dart';
@@ -94,15 +95,15 @@ class UiAssetLifecycle {
   }
 
   Future<List<AssetImage>> getParallaxLayers(
-    String? themeId, {
+    String? visualThemeId, {
     AssetScope scope = AssetScope.hub,
   }) async {
     final cache = _parallaxCacheFor(scope);
-    final key = _cacheKeyForTheme(themeId);
+    final key = _cacheKeyForTheme(visualThemeId);
     final cached = cache.get(key);
     if (cached != null) return cached;
 
-    final built = _buildParallaxLayers(themeId);
+    final built = _buildParallaxLayers(visualThemeId);
     cache.put(key, built);
     return built;
   }
@@ -120,12 +121,12 @@ class UiAssetLifecycle {
   }
 
   Future<void> warmHubSelection({
-    required String? themeId,
+    required String? visualThemeId,
     required PlayerCharacterId characterId,
     required BuildContext context,
   }) async {
     try {
-      final layers = await getParallaxLayers(themeId, scope: AssetScope.hub);
+      final layers = await getParallaxLayers(visualThemeId, scope: AssetScope.hub);
       if (!context.mounted) return;
       await Future.wait([
         getIdle(characterId, scope: AssetScope.hub),
@@ -217,12 +218,12 @@ class UiAssetLifecycle {
     return IdleAnimBundle(animation: idle, anchor: animSet.anchor);
   }
 
-  static String _cacheKeyForTheme(String? themeId) {
-    return themeId ?? '__null__';
+  static String _cacheKeyForTheme(String? visualThemeId) {
+    return visualThemeId ?? '__null__';
   }
 
-  static List<AssetImage> _buildParallaxLayers(String? themeId) {
-    final theme = ParallaxThemeRegistry.forThemeId(themeId);
+  static List<AssetImage> _buildParallaxLayers(String? visualThemeId) {
+    final theme = ParallaxThemeRegistry.forParallaxThemeId(visualThemeId);
 
     AssetImage img(String relToImagesFolder) =>
         AssetImage('assets/images/$relToImagesFolder');
@@ -240,10 +241,13 @@ class UiAssetLifecycle {
     required BuildContext context,
   }) async {
     try {
-      final themeId = LevelRegistry.byId(levelId).themeId;
-      final parallaxLayers = await getParallaxLayers(
-        themeId,
-        scope: AssetScope.run,
+      final level = LevelRegistry.byId(levelId);
+      final runVisualThemeIds = reachableRunVisualThemeIdsForLevelDefinition(level);
+      final resolvedParallaxLayers = await Future.wait(
+        <Future<List<AssetImage>>>[
+          for (final visualThemeId in runVisualThemeIds)
+            getParallaxLayers(visualThemeId, scope: AssetScope.run),
+        ],
       );
       if (!context.mounted) return;
 
@@ -251,8 +255,10 @@ class UiAssetLifecycle {
 
       final futures = <Future<void>>[
         getIdle(characterId, scope: AssetScope.run).then((_) {}),
-        precacheParallaxLayers(parallaxLayers, context),
       ];
+      for (final layers in resolvedParallaxLayers) {
+        futures.add(precacheParallaxLayers(layers, context));
+      }
       for (final relPath in relPaths) {
         futures.add(
           _precacheImageOnce(AssetImage('assets/images/$relPath'), context),
@@ -263,6 +269,19 @@ class UiAssetLifecycle {
     } catch (_) {
       // Best-effort warmup.
     }
+  }
+
+  @visibleForTesting
+  static List<String> reachableRunVisualThemeIdsForLevelDefinition(
+    LevelDefinition level,
+  ) {
+    final ordered = <String>{};
+    final levelVisualThemeId = level.visualThemeId;
+    if (levelVisualThemeId != null && levelVisualThemeId.isNotEmpty) {
+      ordered.add(levelVisualThemeId);
+    }
+
+    return ordered.toList(growable: false);
   }
 
   static Set<String> _collectRunStartImagePaths({

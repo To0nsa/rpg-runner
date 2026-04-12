@@ -27,6 +27,10 @@ void main() {
           <String>['forest', 'field'],
         );
         expect(scene.authoredChunkCountsByLevelId['forest'], 1);
+        expect(
+          scene.authoredChunkAssemblyGroupCountsByLevelId['forest'],
+          <String, int>{'forest': 1},
+        );
         expect(plugin.validate(loaded), isEmpty);
 
         final switched =
@@ -63,7 +67,19 @@ void main() {
                     payload: const <String, Object?>{
                       'levelId': 'field',
                       'displayName': 'Field Updated',
-                      'themeId': 'forest',
+                      'visualThemeId': 'forest',
+                      'assembly': <String, Object?>{
+                        'loopSegments': true,
+                        'segments': <Map<String, Object?>>[
+                          <String, Object?>{
+                            'segmentId': 'forest_run',
+                            'groupId': 'forest',
+                            'minChunkCount': 1,
+                            'maxChunkCount': 1,
+                            'requireDistinctChunks': true,
+                          },
+                        ],
+                      },
                     },
                   ),
                 )
@@ -94,7 +110,8 @@ void main() {
           p.join(fixtureRoot.path, levelDefsSourcePath),
         ).readAsStringSync();
         expect(saved, contains('"displayName": "Field Updated"'));
-        expect(saved, contains('"themeId": "forest"'));
+        expect(saved, contains('"visualThemeId": "forest"'));
+        expect(saved, contains('"segmentId": "forest_run"'));
         expect(saved.endsWith('\n'), isTrue);
       } finally {
         fixtureRoot.deleteSync(recursive: true);
@@ -150,7 +167,8 @@ Future<Directory> _createFixtureWorkspace() async {
       "levelId": "field",
       "revision": 1,
       "displayName": "Field",
-      "themeId": "field",
+      "visualThemeId": "field",
+      "chunkThemeGroups": ["default", "forest"],
       "cameraCenterY": 135,
       "groundTopY": 224,
       "earlyPatternChunks": 3,
@@ -164,7 +182,8 @@ Future<Directory> _createFixtureWorkspace() async {
       "levelId": "forest",
       "revision": 1,
       "displayName": "Forest",
-      "themeId": "forest",
+      "visualThemeId": "forest",
+      "chunkThemeGroups": ["default", "forest"],
       "cameraCenterY": 135,
       "groundTopY": 224,
       "earlyPatternChunks": 3,
@@ -182,13 +201,13 @@ Future<Directory> _createFixtureWorkspace() async {
   "schemaVersion": 1,
   "themes": [
     {
-      "themeId": "field",
+      "parallaxThemeId": "field",
       "revision": 1,
       "groundMaterialAssetPath": "assets/images/parallax/field/ground.png",
       "layers": []
     },
     {
-      "themeId": "forest",
+      "parallaxThemeId": "forest",
       "revision": 1,
       "groundMaterialAssetPath": "assets/images/parallax/forest/ground.png",
       "layers": []
@@ -199,12 +218,12 @@ Future<Directory> _createFixtureWorkspace() async {
   _writeFile(
     root.path,
     'assets/authoring/level/chunks/field/chunk_field_001.json',
-    '{"levelId":"field"}\n',
+    '{"levelId":"field","assemblyGroupId":"forest"}\n',
   );
   _writeFile(
     root.path,
     'assets/authoring/level/chunks/forest/chunk_forest_001.json',
-    '{"levelId":"forest"}\n',
+    '{"levelId":"forest","assemblyGroupId":"forest"}\n',
   );
   return root;
 }

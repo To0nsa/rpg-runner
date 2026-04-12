@@ -1,7 +1,7 @@
 # Chunk Creator High-Level Plan
 
 Date: March 27, 2026  
-Status: Active (Phase 0 completed on March 31, 2026; Phase 1 completed on April 1, 2026; Phase 2 completed on April 1, 2026; Phase 3 completed on April 3, 2026; Phase 4 completed on April 11, 2026; Phase 5 completed on April 11, 2026; Phase 6 completed on April 11, 2026; Phase 10 completed on April 10, 2026; Phases 7-9 and 11 remain open)
+Status: Active (Phase 0 completed on March 31, 2026; Phase 1 completed on April 1, 2026; Phase 2 completed on April 1, 2026; Phase 3 completed on April 3, 2026; Phase 4 completed on April 11, 2026; Phase 5 completed on April 11, 2026; Phase 6 completed on April 11, 2026; Phase 7 completed on April 11, 2026; Phase 10 completed on April 10, 2026; Phases 8-9 and 11 remain open)
 
 ## 1) Mission
 
@@ -607,6 +607,11 @@ Deferred from Phase 6:
 
 ### Phase 7 - Level Assembly + Render Theme Sequencing
 
+Status: Completed on April 11, 2026
+
+Implementation checklist:
+[docs/building/editor/chunkCreator/phase7-implementation-checklist.md](docs/building/editor/chunkCreator/phase7-implementation-checklist.md)
+
 Scope:
 
 - add level assembly editor for selecting chunk sets per level
@@ -753,7 +758,8 @@ Asset sync when new level assets are added:
    reopen completed scope):
    - `cd tools/editor && dart analyze`
    - `cd tools/editor && flutter test`
-2. Start Phase 7 level assembly + render theme sequencing.
+2. Keep completed Phase 7 assembly/theme sequencing green while the remaining
+   chunk/runtime phases land.
 3. Start Phase 8 simulation preview + validation hardening.
 4. Start Phase 9 first playable end-to-end chunk pipeline.
 5. Keep Phase 10 parallax parity and determinism coverage green while the

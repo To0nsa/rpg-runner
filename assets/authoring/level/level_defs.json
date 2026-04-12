@@ -3,9 +3,10 @@
   "levels": [
     {
       "levelId": "field",
-      "revision": 1,
+      "revision": 4,
       "displayName": "Field",
-      "themeId": "field",
+      "visualThemeId": "field",
+      "chunkThemeGroups": ["default"],
       "cameraCenterY": 135,
       "groundTopY": 224,
       "earlyPatternChunks": 3,
@@ -19,7 +20,8 @@
       "levelId": "forest",
       "revision": 1,
       "displayName": "Forest",
-      "themeId": "forest",
+      "visualThemeId": "forest",
+      "chunkThemeGroups": ["default"],
       "cameraCenterY": 135,
       "groundTopY": 224,
       "earlyPatternChunks": 3,

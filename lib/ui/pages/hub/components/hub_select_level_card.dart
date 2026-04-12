@@ -24,7 +24,7 @@ class HubSelectedLevelCard extends StatelessWidget {
     return HubSelectCardFrame(
       onTap: onChange,
       background: LevelParallaxPreview(
-        themeId: levelId.themeId,
+        visualThemeId: levelId.visualThemeId,
         alignment: Alignment.center,
       ),
       child: HubSelectCardBody(

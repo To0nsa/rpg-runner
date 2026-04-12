@@ -24,7 +24,8 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
     text: _defaultNewLevelId,
   );
   final TextEditingController _displayNameController = TextEditingController();
-  final TextEditingController _themeIdController = TextEditingController();
+  final TextEditingController _visualThemeIdController =
+      TextEditingController();
   final TextEditingController _cameraCenterYController =
       TextEditingController();
   final TextEditingController _groundTopYController = TextEditingController();
@@ -37,8 +38,25 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
   final TextEditingController _noEnemyChunksController =
       TextEditingController();
   final TextEditingController _enumOrdinalController = TextEditingController();
+  final TextEditingController _newChunkThemeGroupIdController =
+      TextEditingController();
+  final TextEditingController _segmentIdController = TextEditingController();
+  final TextEditingController _segmentGroupIdController =
+      TextEditingController();
+  final TextEditingController _segmentMinChunkCountController =
+      TextEditingController();
+  final TextEditingController _segmentMaxChunkCountController =
+      TextEditingController();
 
   String? _selectedLevelId;
+  bool _assemblyLoopSegments = true;
+  List<String> _chunkThemeGroupsDraft = const <String>[
+    defaultLevelChunkThemeGroupId,
+  ];
+  List<LevelAssemblySegmentDef> _assemblySegmentsDraft =
+      const <LevelAssemblySegmentDef>[];
+  int? _selectedAssemblySegmentIndex;
+  bool _selectedSegmentRequireDistinct = true;
 
   @override
   bool get hasLocalDraftChanges {
@@ -50,17 +68,22 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
     }
     if (activeLevel == null) {
       return _displayNameController.text.trim().isNotEmpty ||
-          _themeIdController.text.trim().isNotEmpty ||
+          _visualThemeIdController.text.trim().isNotEmpty ||
           _cameraCenterYController.text.trim().isNotEmpty ||
           _groundTopYController.text.trim().isNotEmpty ||
           _earlyPatternChunksController.text.trim().isNotEmpty ||
           _easyPatternChunksController.text.trim().isNotEmpty ||
           _normalPatternChunksController.text.trim().isNotEmpty ||
           _noEnemyChunksController.text.trim().isNotEmpty ||
-          _enumOrdinalController.text.trim().isNotEmpty;
+          _enumOrdinalController.text.trim().isNotEmpty ||
+          _newChunkThemeGroupIdController.text.trim().isNotEmpty ||
+          !_stringListEquals(_chunkThemeGroupsDraft, const <String>[
+            defaultLevelChunkThemeGroupId,
+          ]) ||
+          _assemblySegmentsDraft.isNotEmpty;
     }
     return _displayNameController.text.trim() != activeLevel.displayName ||
-        _themeIdController.text.trim() != activeLevel.themeId ||
+        _visualThemeIdController.text.trim() != activeLevel.visualThemeId ||
         _cameraCenterYController.text.trim() !=
             formatCanonicalLevelNumber(activeLevel.cameraCenterY) ||
         _groundTopYController.text.trim() !=
@@ -74,7 +97,12 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
         _noEnemyChunksController.text.trim() !=
             activeLevel.noEnemyChunks.toString() ||
         _enumOrdinalController.text.trim() !=
-            activeLevel.enumOrdinal.toString();
+            activeLevel.enumOrdinal.toString() ||
+        !_stringListEquals(
+          _chunkThemeGroupsDraft,
+          activeLevel.chunkThemeGroups,
+        ) ||
+        _assemblyDraftDiffersFromLevel(activeLevel);
   }
 
   @override
@@ -89,7 +117,7 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
   void dispose() {
     _newLevelIdController.dispose();
     _displayNameController.dispose();
-    _themeIdController.dispose();
+    _visualThemeIdController.dispose();
     _cameraCenterYController.dispose();
     _groundTopYController.dispose();
     _earlyPatternChunksController.dispose();
@@ -97,6 +125,11 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
     _normalPatternChunksController.dispose();
     _noEnemyChunksController.dispose();
     _enumOrdinalController.dispose();
+    _newChunkThemeGroupIdController.dispose();
+    _segmentIdController.dispose();
+    _segmentGroupIdController.dispose();
+    _segmentMinChunkCountController.dispose();
+    _segmentMaxChunkCountController.dispose();
     super.dispose();
   }
 
@@ -361,12 +394,17 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
                 Text(level.displayName),
                 const SizedBox(height: 4),
                 Text(
-                  'theme=${level.themeId}  status=${level.status}  chunks=$chunkCount',
+                  'visualTheme=${level.visualThemeId}  status=${level.status}  chunks=$chunkCount',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'ordinal=${level.enumOrdinal}  ground=${formatCanonicalLevelNumber(level.groundTopY)}  camera=${formatCanonicalLevelNumber(level.cameraCenterY)}',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'assembly=${level.assembly?.segments.length ?? 0} segment(s)',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],
@@ -381,10 +419,36 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
     final activeLevel = scene.activeLevel;
     final pendingChanges = widget.controller.pendingChanges;
     final issues = widget.controller.issues;
+    final selectedVisualThemeId = _visualThemeIdController.text.trim();
+    final availableVisualThemeIds = scene.availableParallaxVisualThemeIds;
+    final hasSelectedVisualThemeId = selectedVisualThemeId.isNotEmpty;
+    final selectedThemeIsAuthored = availableVisualThemeIds.contains(
+      selectedVisualThemeId,
+    );
+    final showMissingSelectedTheme =
+        hasSelectedVisualThemeId && !selectedThemeIsAuthored;
+    final visualThemeDropdownValue = hasSelectedVisualThemeId
+        ? selectedVisualThemeId
+        : null;
+    final visualThemeItems = <DropdownMenuItem<String>>[
+      if (showMissingSelectedTheme)
+        DropdownMenuItem<String>(
+          value: selectedVisualThemeId,
+          child: Text('$selectedVisualThemeId (missing)'),
+        ),
+      for (final visualThemeId in availableVisualThemeIds)
+        DropdownMenuItem<String>(
+          value: visualThemeId,
+          child: Text(visualThemeId),
+        ),
+    ];
+    final canSelectVisualTheme =
+        activeLevel != null && availableVisualThemeIds.isNotEmpty;
 
     return _buildPane(
       title: 'Inspector',
       child: ListView(
+        key: const ValueKey<String>('level_inspector_scroll'),
         children: [
           InputDecorator(
             decoration: const InputDecoration(
@@ -404,92 +468,30 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
             ),
           ),
           const SizedBox(height: 8),
-          TextField(
-            controller: _themeIdController,
-            decoration: const InputDecoration(
-              labelText: 'themeId',
+          DropdownButtonFormField<String>(
+            key: ValueKey<String>(
+              'level-visual-theme-${scene.activeLevelId ?? 'none'}-$selectedVisualThemeId',
+            ),
+            initialValue: visualThemeDropdownValue,
+            decoration: InputDecoration(
+              labelText: 'visualThemeId (parallax + ground)',
               border: OutlineInputBorder(),
               isDense: true,
             ),
-          ),
-          if (scene.availableParallaxThemeIds.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final themeId in scene.availableParallaxThemeIds)
-                  ActionChip(
-                    label: Text(themeId),
-                    onPressed: () {
-                      setState(() {
-                        _themeIdController.text = themeId;
-                      });
-                    },
-                  ),
-              ],
-            ),
-          ],
-          const SizedBox(height: 8),
-          TextField(
-            controller: _cameraCenterYController,
-            decoration: const InputDecoration(
-              labelText: 'cameraCenterY',
-              border: OutlineInputBorder(),
-              isDense: true,
-            ),
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            items: visualThemeItems,
+            onChanged: !canSelectVisualTheme
+                ? null
+                : (value) {
+                    if (value == null) {
+                      return;
+                    }
+                    setState(() {
+                      _visualThemeIdController.text = value;
+                    });
+                  },
           ),
           const SizedBox(height: 8),
-          TextField(
-            controller: _groundTopYController,
-            decoration: const InputDecoration(
-              labelText: 'groundTopY',
-              border: OutlineInputBorder(),
-              isDense: true,
-            ),
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _earlyPatternChunksController,
-            decoration: const InputDecoration(
-              labelText: 'earlyPatternChunks',
-              border: OutlineInputBorder(),
-              isDense: true,
-            ),
-            keyboardType: TextInputType.number,
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _easyPatternChunksController,
-            decoration: const InputDecoration(
-              labelText: 'easyPatternChunks',
-              border: OutlineInputBorder(),
-              isDense: true,
-            ),
-            keyboardType: TextInputType.number,
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _normalPatternChunksController,
-            decoration: const InputDecoration(
-              labelText: 'normalPatternChunks',
-              border: OutlineInputBorder(),
-              isDense: true,
-            ),
-            keyboardType: TextInputType.number,
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _noEnemyChunksController,
-            decoration: const InputDecoration(
-              labelText: 'noEnemyChunks',
-              border: OutlineInputBorder(),
-              isDense: true,
-            ),
-            keyboardType: TextInputType.number,
-          ),
+          _buildRuntimeMetricsRow(),
           const SizedBox(height: 8),
           TextField(
             controller: _enumOrdinalController,
@@ -500,8 +502,13 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
             ),
             keyboardType: TextInputType.number,
           ),
+          const SizedBox(height: 16),
+          _buildChunkThemeGroupsSection(scene),
+          const SizedBox(height: 16),
+          _buildAssemblySection(scene),
           const SizedBox(height: 8),
           FilledButton(
+            key: const ValueKey<String>('apply_level_button'),
             onPressed: activeLevel == null ? null : _applySelectedLevelChanges,
             child: const Text('Apply Level'),
           ),
@@ -541,6 +548,92 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildRuntimeMetricsRow() {
+    final lockedFillColor = Theme.of(
+      context,
+    ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.32);
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          _buildRuntimeMetricField(
+            controller: _cameraCenterYController,
+            label: 'cameraCenterY',
+            fillColor: lockedFillColor,
+            readOnly: true,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          ),
+          const SizedBox(width: 8),
+          _buildRuntimeMetricField(
+            controller: _groundTopYController,
+            label: 'groundTopY',
+            fillColor: lockedFillColor,
+            readOnly: true,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          ),
+          const SizedBox(width: 8),
+          _buildRuntimeMetricField(
+            controller: _earlyPatternChunksController,
+            label: 'earlyPatternChunks',
+            fillColor: lockedFillColor,
+            keyboardType: TextInputType.number,
+          ),
+          const SizedBox(width: 8),
+          _buildRuntimeMetricField(
+            controller: _easyPatternChunksController,
+            label: 'easyPatternChunks',
+            fillColor: lockedFillColor,
+            keyboardType: TextInputType.number,
+          ),
+          const SizedBox(width: 8),
+          _buildRuntimeMetricField(
+            controller: _normalPatternChunksController,
+            label: 'normalPatternChunks',
+            fillColor: lockedFillColor,
+            keyboardType: TextInputType.number,
+          ),
+          const SizedBox(width: 8),
+          _buildRuntimeMetricField(
+            controller: _noEnemyChunksController,
+            label: 'noEnemyChunks',
+            fillColor: lockedFillColor,
+            keyboardType: TextInputType.number,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRuntimeMetricField({
+    required TextEditingController controller,
+    required String label,
+    required Color fillColor,
+    bool readOnly = false,
+    TextInputType? keyboardType,
+  }) {
+    return SizedBox(
+      width: 190,
+      child: TextField(
+        controller: controller,
+        readOnly: readOnly,
+        style: readOnly
+            ? Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              )
+            : null,
+        decoration: InputDecoration(
+          labelText: label,
+          border: const OutlineInputBorder(),
+          isDense: true,
+          filled: readOnly,
+          fillColor: readOnly ? fillColor : null,
+          suffixIcon: readOnly ? const Icon(Icons.lock_outline) : null,
+        ),
+        keyboardType: keyboardType,
       ),
     );
   }
@@ -624,9 +717,415 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
     }
   }
 
+  Widget _buildChunkThemeGroupsSection(LevelScene scene) {
+    final activeLevel = scene.activeLevel;
+    final authoredCounts = activeLevel == null
+        ? const <String, int>{}
+        : scene.authoredChunkAssemblyGroupCountsByLevelId[activeLevel
+                  .levelId] ??
+              const <String, int>{};
+    final canEdit = activeLevel != null;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0x22101820),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: const Color(0x334A6074)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Chunk Theme Groups',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Define allowed chunk groups for this level. "default" is always required.',
+            ),
+            const SizedBox(height: 8),
+            if (!canEdit)
+              const Text('Select a level to edit chunk theme groups.')
+            else ...[
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final groupId in _chunkThemeGroupsDraft)
+                    InputChip(
+                      key: ValueKey<String>('chunk_theme_group_$groupId'),
+                      label: Text(
+                        authoredCounts.containsKey(groupId)
+                            ? '$groupId (${authoredCounts[groupId]})'
+                            : groupId,
+                      ),
+                      onDeleted: groupId == defaultLevelChunkThemeGroupId
+                          ? null
+                          : () => _removeChunkThemeGroup(scene, groupId),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      key: const ValueKey<String>('new_chunk_theme_group_id'),
+                      controller: _newChunkThemeGroupIdController,
+                      decoration: const InputDecoration(
+                        labelText: 'new groupId',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                      onSubmitted: (_) => _addChunkThemeGroup(),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton.tonal(
+                    key: const ValueKey<String>('add_chunk_theme_group_button'),
+                    onPressed: _addChunkThemeGroup,
+                    child: const Text('Add Group'),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAssemblySection(LevelScene scene) {
+    final activeLevel = scene.activeLevel;
+    final authoredGroupCounts = activeLevel == null
+        ? const <String, int>{}
+        : scene.authoredChunkAssemblyGroupCountsByLevelId[activeLevel
+                  .levelId] ??
+              const <String, int>{};
+    final availableGroupIds = _chunkThemeGroupsDraft.isEmpty
+        ? const <String>[defaultLevelChunkThemeGroupId]
+        : _chunkThemeGroupsDraft;
+    final selectedSegment = _selectedAssemblySegment;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0x22101820),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: const Color(0x334A6074)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Assembly Segments',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            const SizedBox(height: 8),
+            SwitchListTile.adaptive(
+              contentPadding: EdgeInsets.zero,
+              value: _assemblyLoopSegments,
+              title: const Text('Loop Segments'),
+              subtitle: const Text(
+                'When disabled, runtime holds on the final authored segment after the ordered run list completes.',
+              ),
+              onChanged: activeLevel == null
+                  ? null
+                  : (value) {
+                      setState(() {
+                        _assemblyLoopSegments = value;
+                      });
+                    },
+            ),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                FilledButton.tonal(
+                  onPressed: activeLevel == null
+                      ? null
+                      : () => _addAssemblySegment(scene),
+                  child: const Text('Add Segment'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (_assemblySegmentsDraft.isEmpty)
+              const Text(
+                'No assembly segments. Runtime falls back to the current level-based chunk selection path.',
+              )
+            else
+              Column(
+                children: [
+                  for (var i = 0; i < _assemblySegmentsDraft.length; i += 1)
+                    Padding(
+                      padding: EdgeInsets.only(
+                        bottom: i == _assemblySegmentsDraft.length - 1 ? 0 : 8,
+                      ),
+                      child: _buildAssemblySegmentTile(
+                        _assemblySegmentsDraft[i],
+                        index: i,
+                        isSelected: i == _selectedAssemblySegmentIndex,
+                      ),
+                    ),
+                ],
+              ),
+            if (activeLevel != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                'Allowed Chunk Groups',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final groupId in availableGroupIds)
+                    ActionChip(
+                      label: Text(
+                        authoredGroupCounts.containsKey(groupId)
+                            ? '$groupId (${authoredGroupCounts[groupId]})'
+                            : groupId,
+                      ),
+                      onPressed: selectedSegment == null
+                          ? null
+                          : () {
+                              setState(() {
+                                _segmentGroupIdController.text = groupId;
+                                _updateSelectedAssemblySegment(
+                                  selectedSegment.copyWith(groupId: groupId),
+                                );
+                              });
+                            },
+                    ),
+                ],
+              ),
+            ],
+            if (selectedSegment != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                'Selected Segment',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _segmentIdController,
+                decoration: const InputDecoration(
+                  labelText: 'segmentId',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    _updateSelectedAssemblySegment(
+                      selectedSegment.copyWith(segmentId: value.trim()),
+                    );
+                  });
+                },
+              ),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                key: ValueKey<String>(
+                  'assembly-segment-group-${_selectedAssemblySegmentIndex ?? 'none'}',
+                ),
+                initialValue: selectedSegment.groupId,
+                decoration: const InputDecoration(
+                  labelText: 'groupId',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+                items: [
+                  if (!availableGroupIds.contains(selectedSegment.groupId))
+                    DropdownMenuItem<String>(
+                      value: selectedSegment.groupId,
+                      child: Text('${selectedSegment.groupId} (missing)'),
+                    ),
+                  for (final groupId in availableGroupIds)
+                    DropdownMenuItem<String>(
+                      value: groupId,
+                      child: Text(groupId),
+                    ),
+                ],
+                onChanged: (value) {
+                  if (value == null) {
+                    return;
+                  }
+                  setState(() {
+                    _segmentGroupIdController.text = value;
+                    _updateSelectedAssemblySegment(
+                      selectedSegment.copyWith(groupId: value),
+                    );
+                  });
+                },
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _segmentMinChunkCountController,
+                      decoration: const InputDecoration(
+                        labelText: 'minChunkCount',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                      keyboardType: TextInputType.number,
+                      onChanged: (value) {
+                        final parsed = int.tryParse(value.trim());
+                        if (parsed == null) {
+                          return;
+                        }
+                        setState(() {
+                          _updateSelectedAssemblySegment(
+                            selectedSegment.copyWith(minChunkCount: parsed),
+                          );
+                        });
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextField(
+                      controller: _segmentMaxChunkCountController,
+                      decoration: const InputDecoration(
+                        labelText: 'maxChunkCount',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                      keyboardType: TextInputType.number,
+                      onChanged: (value) {
+                        final parsed = int.tryParse(value.trim());
+                        if (parsed == null) {
+                          return;
+                        }
+                        setState(() {
+                          _updateSelectedAssemblySegment(
+                            selectedSegment.copyWith(maxChunkCount: parsed),
+                          );
+                        });
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                value: _selectedSegmentRequireDistinct,
+                title: const Text('Require Distinct Chunks'),
+                onChanged: (value) {
+                  if (value == null) {
+                    return;
+                  }
+                  setState(() {
+                    _selectedSegmentRequireDistinct = value;
+                    _updateSelectedAssemblySegment(
+                      selectedSegment.copyWith(requireDistinctChunks: value),
+                    );
+                  });
+                },
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  OutlinedButton(
+                    onPressed:
+                        _selectedAssemblySegmentIndex == null ||
+                            _selectedAssemblySegmentIndex == 0
+                        ? null
+                        : _moveSelectedAssemblySegmentUp,
+                    child: const Text('Move Up'),
+                  ),
+                  OutlinedButton(
+                    onPressed:
+                        _selectedAssemblySegmentIndex == null ||
+                            _selectedAssemblySegmentIndex ==
+                                _assemblySegmentsDraft.length - 1
+                        ? null
+                        : _moveSelectedAssemblySegmentDown,
+                    child: const Text('Move Down'),
+                  ),
+                  OutlinedButton(
+                    onPressed: _selectedAssemblySegmentIndex == null
+                        ? null
+                        : _removeSelectedAssemblySegment,
+                    child: const Text('Remove Segment'),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAssemblySegmentTile(
+    LevelAssemblySegmentDef segment, {
+    required int index,
+    required bool isSelected,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Material(
+      color: Colors.transparent,
+      child: Ink(
+        decoration: BoxDecoration(
+          color: isSelected
+              ? colorScheme.primaryContainer.withValues(alpha: 0.24)
+              : colorScheme.surface,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: isSelected
+                ? colorScheme.primary
+                : colorScheme.outlineVariant.withValues(alpha: 0.7),
+          ),
+        ),
+        child: InkWell(
+          onTap: () {
+            setState(() {
+              _selectedAssemblySegmentIndex = index;
+              _syncSelectedAssemblySegmentControllers();
+            });
+          },
+          borderRadius: BorderRadius.circular(6),
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  segment.segmentId,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'group=${segment.groupId}  range=${segment.minChunkCount}..${segment.maxChunkCount}',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'distinct=${segment.requireDistinctChunks}',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   void _syncInspector(LevelDef level) {
     _displayNameController.text = level.displayName;
-    _themeIdController.text = level.themeId;
+    _visualThemeIdController.text = level.visualThemeId;
     _cameraCenterYController.text = formatCanonicalLevelNumber(
       level.cameraCenterY,
     );
@@ -636,11 +1135,19 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
     _normalPatternChunksController.text = level.normalPatternChunks.toString();
     _noEnemyChunksController.text = level.noEnemyChunks.toString();
     _enumOrdinalController.text = level.enumOrdinal.toString();
+    _newChunkThemeGroupIdController.text = '';
+    _chunkThemeGroupsDraft = List<String>.unmodifiable(level.chunkThemeGroups);
+    _assemblyLoopSegments = level.assembly?.loopSegments ?? true;
+    _assemblySegmentsDraft = List<LevelAssemblySegmentDef>.unmodifiable(
+      level.assembly?.segments ?? const <LevelAssemblySegmentDef>[],
+    );
+    _selectedAssemblySegmentIndex = _assemblySegmentsDraft.isEmpty ? null : 0;
+    _syncSelectedAssemblySegmentControllers();
   }
 
   void _clearInspector() {
     _displayNameController.text = '';
-    _themeIdController.text = '';
+    _visualThemeIdController.text = '';
     _cameraCenterYController.text = '';
     _groundTopYController.text = '';
     _earlyPatternChunksController.text = '';
@@ -648,6 +1155,12 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
     _normalPatternChunksController.text = '';
     _noEnemyChunksController.text = '';
     _enumOrdinalController.text = '';
+    _newChunkThemeGroupIdController.text = '';
+    _chunkThemeGroupsDraft = const <String>[defaultLevelChunkThemeGroupId];
+    _assemblyLoopSegments = true;
+    _assemblySegmentsDraft = const <LevelAssemblySegmentDef>[];
+    _selectedAssemblySegmentIndex = null;
+    _syncSelectedAssemblySegmentControllers();
   }
 
   void _createLevel() {
@@ -712,13 +1225,20 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
     if (scene is! LevelScene || scene.activeLevel == null) {
       return;
     }
+    final assemblyPayload = _assemblySegmentsDraft.isEmpty
+        ? null
+        : LevelAssemblyDef(
+            loopSegments: _assemblyLoopSegments,
+            segments: _assemblySegmentsDraft,
+          ).toJson();
     widget.controller.applyCommand(
       AuthoringCommand(
         kind: 'update_level',
         payload: <String, Object?>{
           'levelId': scene.activeLevel!.levelId,
           'displayName': _displayNameController.text.trim(),
-          'themeId': _themeIdController.text.trim(),
+          'visualThemeId': _visualThemeIdController.text.trim(),
+          'chunkThemeGroups': _chunkThemeGroupsDraft,
           'cameraCenterY': _cameraCenterYController.text.trim(),
           'groundTopY': _groundTopYController.text.trim(),
           'earlyPatternChunks': _earlyPatternChunksController.text.trim(),
@@ -726,6 +1246,7 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
           'normalPatternChunks': _normalPatternChunksController.text.trim(),
           'noEnemyChunks': _noEnemyChunksController.text.trim(),
           'enumOrdinal': _enumOrdinalController.text.trim(),
+          'assembly': assemblyPayload,
         },
       ),
     );
@@ -798,5 +1319,207 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  bool _assemblyDraftDiffersFromLevel(LevelDef level) {
+    final currentAssembly = _assemblySegmentsDraft.isEmpty
+        ? null
+        : LevelAssemblyDef(
+            loopSegments: _assemblyLoopSegments,
+            segments: _assemblySegmentsDraft,
+          );
+    return !levelAssemblyEquals(currentAssembly, level.assembly);
+  }
+
+  bool _stringListEquals(List<String> left, List<String> right) {
+    if (left.length != right.length) {
+      return false;
+    }
+    for (var i = 0; i < left.length; i += 1) {
+      if (left[i] != right[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  LevelAssemblySegmentDef? get _selectedAssemblySegment {
+    final index = _selectedAssemblySegmentIndex;
+    if (index == null || index < 0 || index >= _assemblySegmentsDraft.length) {
+      return null;
+    }
+    return _assemblySegmentsDraft[index];
+  }
+
+  void _syncSelectedAssemblySegmentControllers() {
+    final segment = _selectedAssemblySegment;
+    if (segment == null) {
+      _segmentIdController.text = '';
+      _segmentGroupIdController.text = '';
+      _segmentMinChunkCountController.text = '';
+      _segmentMaxChunkCountController.text = '';
+      _selectedSegmentRequireDistinct = true;
+      return;
+    }
+    _segmentIdController.text = segment.segmentId;
+    _segmentGroupIdController.text = segment.groupId;
+    _segmentMinChunkCountController.text = segment.minChunkCount.toString();
+    _segmentMaxChunkCountController.text = segment.maxChunkCount.toString();
+    _selectedSegmentRequireDistinct = segment.requireDistinctChunks;
+  }
+
+  void _updateSelectedAssemblySegment(LevelAssemblySegmentDef nextSegment) {
+    final index = _selectedAssemblySegmentIndex;
+    if (index == null || index < 0 || index >= _assemblySegmentsDraft.length) {
+      return;
+    }
+    final nextSegments = List<LevelAssemblySegmentDef>.from(
+      _assemblySegmentsDraft,
+    );
+    nextSegments[index] = nextSegment.normalized();
+    _assemblySegmentsDraft = List<LevelAssemblySegmentDef>.unmodifiable(
+      nextSegments,
+    );
+  }
+
+  void _addChunkThemeGroup() {
+    final candidate = _newChunkThemeGroupIdController.text.trim();
+    if (candidate.isEmpty) {
+      _showSnackBar('Enter a valid groupId before adding.');
+      return;
+    }
+    if (!stableLevelIdentifierPattern.hasMatch(candidate)) {
+      _showSnackBar(
+        'groupId must match ${stableLevelIdentifierPattern.pattern}.',
+      );
+      return;
+    }
+    if (_chunkThemeGroupsDraft.contains(candidate)) {
+      _showSnackBar('Group "$candidate" already exists for this level.');
+      return;
+    }
+    setState(() {
+      _chunkThemeGroupsDraft = normalizeLevelChunkThemeGroups(<String>[
+        ..._chunkThemeGroupsDraft,
+        candidate,
+      ]);
+      _newChunkThemeGroupIdController.text = '';
+    });
+  }
+
+  void _removeChunkThemeGroup(LevelScene scene, String groupId) {
+    if (groupId == defaultLevelChunkThemeGroupId) {
+      _showSnackBar('"$defaultLevelChunkThemeGroupId" cannot be removed.');
+      return;
+    }
+    if (_assemblySegmentsDraft.any((segment) => segment.groupId == groupId)) {
+      _showSnackBar(
+        'Reassign assembly segments using "$groupId" before removing it.',
+      );
+      return;
+    }
+    final activeLevelId = scene.activeLevelId;
+    final authoredCount = activeLevelId == null
+        ? 0
+        : (scene.authoredChunkAssemblyGroupCountsByLevelId[activeLevelId]?[groupId] ??
+              0);
+    if (authoredCount > 0) {
+      _showSnackBar(
+        'Group "$groupId" is still used by $authoredCount chunk(s). '
+        'Reassign chunks first.',
+      );
+      return;
+    }
+    setState(() {
+      _chunkThemeGroupsDraft = normalizeLevelChunkThemeGroups(
+        _chunkThemeGroupsDraft.where((entry) => entry != groupId),
+      );
+    });
+  }
+
+  void _addAssemblySegment(LevelScene scene) {
+    final activeLevel = scene.activeLevel;
+    if (activeLevel == null) {
+      return;
+    }
+    final nextSegments = List<LevelAssemblySegmentDef>.from(
+      _assemblySegmentsDraft,
+    );
+    final availableGroups = _chunkThemeGroupsDraft;
+    final selectedSegment = _selectedAssemblySegment;
+    final draftedGroupId = _segmentGroupIdController.text.trim();
+    final preferredGroupId = draftedGroupId.isNotEmpty
+        ? draftedGroupId
+        : (selectedSegment?.groupId ?? defaultAssemblyGroupId);
+    final nextSegment = buildSuggestedLevelAssemblySegment(
+      existingSegments: nextSegments,
+      availableGroupIds: availableGroups,
+      preferredGroupId: preferredGroupId,
+    );
+    nextSegments.add(nextSegment);
+    setState(() {
+      _assemblySegmentsDraft = List<LevelAssemblySegmentDef>.unmodifiable(
+        nextSegments,
+      );
+      _selectedAssemblySegmentIndex = nextSegments.length - 1;
+      _syncSelectedAssemblySegmentControllers();
+    });
+  }
+
+  void _moveSelectedAssemblySegmentUp() {
+    final index = _selectedAssemblySegmentIndex;
+    if (index == null || index <= 0) {
+      return;
+    }
+    final nextSegments = List<LevelAssemblySegmentDef>.from(
+      _assemblySegmentsDraft,
+    );
+    final current = nextSegments.removeAt(index);
+    nextSegments.insert(index - 1, current);
+    setState(() {
+      _assemblySegmentsDraft = List<LevelAssemblySegmentDef>.unmodifiable(
+        nextSegments,
+      );
+      _selectedAssemblySegmentIndex = index - 1;
+      _syncSelectedAssemblySegmentControllers();
+    });
+  }
+
+  void _moveSelectedAssemblySegmentDown() {
+    final index = _selectedAssemblySegmentIndex;
+    if (index == null || index >= _assemblySegmentsDraft.length - 1) {
+      return;
+    }
+    final nextSegments = List<LevelAssemblySegmentDef>.from(
+      _assemblySegmentsDraft,
+    );
+    final current = nextSegments.removeAt(index);
+    nextSegments.insert(index + 1, current);
+    setState(() {
+      _assemblySegmentsDraft = List<LevelAssemblySegmentDef>.unmodifiable(
+        nextSegments,
+      );
+      _selectedAssemblySegmentIndex = index + 1;
+      _syncSelectedAssemblySegmentControllers();
+    });
+  }
+
+  void _removeSelectedAssemblySegment() {
+    final index = _selectedAssemblySegmentIndex;
+    if (index == null || index < 0 || index >= _assemblySegmentsDraft.length) {
+      return;
+    }
+    final nextSegments = List<LevelAssemblySegmentDef>.from(
+      _assemblySegmentsDraft,
+    )..removeAt(index);
+    setState(() {
+      _assemblySegmentsDraft = List<LevelAssemblySegmentDef>.unmodifiable(
+        nextSegments,
+      );
+      _selectedAssemblySegmentIndex = nextSegments.isEmpty
+          ? null
+          : (index >= nextSegments.length ? nextSegments.length - 1 : index);
+      _syncSelectedAssemblySegmentControllers();
+    });
   }
 }

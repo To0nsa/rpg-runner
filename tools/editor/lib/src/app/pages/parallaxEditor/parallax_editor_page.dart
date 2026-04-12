@@ -19,7 +19,8 @@ class ParallaxEditorPage extends StatefulWidget {
   final Widget Function({
     required String workspaceRootPath,
     required ParallaxThemeDef? theme,
-  })? previewBuilder;
+  })?
+  previewBuilder;
 
   @override
   State<ParallaxEditorPage> createState() => _ParallaxEditorPageState();
@@ -38,7 +39,7 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
   final TextEditingController _yOffsetController = TextEditingController();
 
   String? _selectedLayerKey;
-  String? _selectedThemeId;
+  String? _selectedParallaxThemeId;
   String _selectedGroup = parallaxGroupBackground;
 
   @override
@@ -119,7 +120,9 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
                 if (parallaxScene == null)
                   const Expanded(
                     child: Center(
-                      child: Text('Parallax scene is not loaded for this route.'),
+                      child: Text(
+                        'Parallax scene is not loaded for this route.',
+                      ),
                     ),
                   )
                 else
@@ -127,9 +130,15 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(flex: 1, child: _buildLayerPane(parallaxScene)),
+                        Expanded(
+                          flex: 1,
+                          child: _buildLayerPane(parallaxScene),
+                        ),
                         const SizedBox(width: 12),
-                        Expanded(flex: 2, child: _buildPreviewPane(parallaxScene)),
+                        Expanded(
+                          flex: 2,
+                          child: _buildPreviewPane(parallaxScene),
+                        ),
                         const SizedBox(width: 12),
                         Expanded(
                           flex: 1,
@@ -205,14 +214,14 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
         if (scene != null)
           Chip(
             avatar: const Icon(Icons.palette_outlined, size: 16),
-            label: Text('themeId: ${scene.activeThemeId ?? 'unresolved'}'),
+            label: Text(
+              'parallaxThemeId: ${scene.activeParallaxThemeId ?? 'unresolved'}',
+            ),
           ),
         if (scene != null && scene.activeThemeUsageLevelIds.isNotEmpty)
           Chip(
             avatar: const Icon(Icons.link, size: 16),
-            label: Text(
-              'Used by ${scene.activeThemeUsageLevelIds.join(', ')}',
-            ),
+            label: Text('Used by ${scene.activeThemeUsageLevelIds.join(', ')}'),
           ),
       ],
     );
@@ -227,21 +236,22 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              scene.activeThemeId == null
-                  ? 'This level does not resolve to a themeId in level_registry.dart.'
-                  : 'Theme "${scene.activeThemeId}" is not authored yet.',
+              scene.activeParallaxThemeId == null
+                  ? 'This level does not resolve to a parallaxThemeId in level_registry.dart.'
+                  : 'Theme "${scene.activeParallaxThemeId}" is not authored yet.',
             ),
             const SizedBox(height: 12),
             FilledButton.icon(
-              onPressed: scene.activeThemeId == null
+              onPressed: scene.activeParallaxThemeId == null
                   ? null
                   : () {
                       widget.controller.applyCommand(
                         AuthoringCommand(
                           kind: 'ensure_active_theme',
                           payload: <String, Object?>{
-                            'groundMaterialAssetPath':
-                                _groundMaterialController.text.trim(),
+                            'groundMaterialAssetPath': _groundMaterialController
+                                .text
+                                .trim(),
                           },
                         ),
                       );
@@ -319,7 +329,9 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
           const SizedBox(height: 12),
           Expanded(
             child: activeTheme.layers.isEmpty
-                ? const Center(child: Text('No layers authored for this theme.'))
+                ? const Center(
+                    child: Text('No layers authored for this theme.'),
+                  )
                 : ListView.builder(
                     itemCount: activeTheme.layers.length,
                     itemBuilder: (context, index) {
@@ -327,7 +339,9 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
                       final isSelected = layer.layerKey == _selectedLayerKey;
                       return Padding(
                         padding: EdgeInsets.only(
-                          bottom: index == activeTheme.layers.length - 1 ? 0 : 8,
+                          bottom: index == activeTheme.layers.length - 1
+                              ? 0
+                              : 8,
                         ),
                         child: _buildLayerEntry(layer, isSelected: isSelected),
                       );
@@ -371,9 +385,9 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
               children: [
                 Text(
                   layer.layerKey,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -412,7 +426,9 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
 
   Widget _buildInspectorPane(ParallaxScene scene) {
     final activeTheme = scene.activeTheme;
-    final selectedLayer = activeTheme == null ? null : _selectedLayer(activeTheme);
+    final selectedLayer = activeTheme == null
+        ? null
+        : _selectedLayer(activeTheme);
     final pendingChanges = widget.controller.pendingChanges;
     final issues = widget.controller.issues;
 
@@ -437,8 +453,9 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
                       AuthoringCommand(
                         kind: 'update_ground_material_asset_path',
                         payload: <String, Object?>{
-                          'groundMaterialAssetPath':
-                              _groundMaterialController.text.trim(),
+                          'groundMaterialAssetPath': _groundMaterialController
+                              .text
+                              .trim(),
                         },
                       ),
                     );
@@ -447,7 +464,9 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
           ),
           const SizedBox(height: 16),
           Text(
-            selectedLayer == null ? 'Layer' : 'Layer: ${selectedLayer.layerKey}',
+            selectedLayer == null
+                ? 'Layer'
+                : 'Layer: ${selectedLayer.layerKey}',
             style: Theme.of(context).textTheme.titleSmall,
           ),
           const SizedBox(height: 8),
@@ -540,7 +559,9 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
           ),
           const SizedBox(height: 8),
           FilledButton(
-            onPressed: selectedLayer == null ? null : _applySelectedLayerChanges,
+            onPressed: selectedLayer == null
+                ? null
+                : _applySelectedLayerChanges,
             child: const Text('Apply Layer'),
           ),
           const SizedBox(height: 16),
@@ -641,14 +662,17 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
 
   void _syncSelection(ParallaxScene? scene) {
     final activeTheme = scene?.activeTheme;
-    final nextThemeId = activeTheme?.themeId;
-    if (_selectedThemeId != nextThemeId) {
-      _selectedThemeId = nextThemeId;
-      _groundMaterialController.text = activeTheme?.groundMaterialAssetPath ?? '';
+    final nextParallaxThemeId = activeTheme?.parallaxThemeId;
+    if (_selectedParallaxThemeId != nextParallaxThemeId) {
+      _selectedParallaxThemeId = nextParallaxThemeId;
+      _groundMaterialController.text =
+          activeTheme?.groundMaterialAssetPath ?? '';
       _selectedLayerKey = activeTheme?.layers.isEmpty ?? true
           ? null
           : activeTheme!.layers.first.layerKey;
-      final selectedLayer = activeTheme == null ? null : _selectedLayer(activeTheme);
+      final selectedLayer = activeTheme == null
+          ? null
+          : _selectedLayer(activeTheme);
       if (selectedLayer != null) {
         _syncLayerInspector(selectedLayer);
       } else {
@@ -670,8 +694,12 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
     }
 
     if (_selectedLayerKey == null ||
-        activeTheme.layers.every((layer) => layer.layerKey != _selectedLayerKey)) {
-      _selectedLayerKey = activeTheme.layers.isEmpty ? null : activeTheme.layers.first.layerKey;
+        activeTheme.layers.every(
+          (layer) => layer.layerKey != _selectedLayerKey,
+        )) {
+      _selectedLayerKey = activeTheme.layers.isEmpty
+          ? null
+          : activeTheme.layers.first.layerKey;
       final selectedLayer = _selectedLayer(activeTheme);
       if (selectedLayer != null) {
         _syncLayerInspector(selectedLayer);
@@ -685,8 +713,9 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
     _layerKeyController.text = layer.layerKey;
     _assetPathController.text = layer.assetPath;
     _selectedGroup = layer.group;
-    _parallaxFactorController.text =
-        formatCanonicalParallaxNumber(layer.parallaxFactor);
+    _parallaxFactorController.text = formatCanonicalParallaxNumber(
+      layer.parallaxFactor,
+    );
     _zOrderController.text = layer.zOrder.toString();
     _opacityController.text = formatCanonicalParallaxNumber(layer.opacity);
     _yOffsetController.text = formatCanonicalParallaxNumber(layer.yOffset);
@@ -717,7 +746,9 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
 
   void _applySelectedLayerChanges() {
     final scene = widget.controller.scene;
-    if (scene is! ParallaxScene || scene.activeTheme == null || _selectedLayerKey == null) {
+    if (scene is! ParallaxScene ||
+        scene.activeTheme == null ||
+        _selectedLayerKey == null) {
       return;
     }
     final previousLayerKey = _selectedLayerKey!;
@@ -741,7 +772,9 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
     if (updatedScene is! ParallaxScene || updatedScene.activeTheme == null) {
       return;
     }
-    final targetLayerKey = nextLayerKey.isEmpty ? previousLayerKey : nextLayerKey;
+    final targetLayerKey = nextLayerKey.isEmpty
+        ? previousLayerKey
+        : nextLayerKey;
     final updatedLayer = updatedScene.activeTheme!.layers
         .where((layer) => layer.layerKey == targetLayerKey)
         .cast<ParallaxLayerDef?>()
@@ -756,18 +789,24 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
 
   void _createLayer(ParallaxScene scene) {
     final activeTheme = scene.activeTheme;
-    final beforeKeys = activeTheme?.layers.map((layer) => layer.layerKey).toSet() ??
+    final beforeKeys =
+        activeTheme?.layers.map((layer) => layer.layerKey).toSet() ??
         const <String>{};
     widget.controller.applyCommand(
       AuthoringCommand(
         kind: 'create_layer',
         payload: <String, Object?>{
-          'group': _selectedLayer(activeTheme ?? const ParallaxThemeDef(
-            themeId: '',
-            revision: 1,
-            groundMaterialAssetPath: '',
-            layers: <ParallaxLayerDef>[],
-          ))?.group ?? parallaxGroupBackground,
+          'group':
+              _selectedLayer(
+                activeTheme ??
+                    const ParallaxThemeDef(
+                      parallaxThemeId: '',
+                      revision: 1,
+                      groundMaterialAssetPath: '',
+                      layers: <ParallaxLayerDef>[],
+                    ),
+              )?.group ??
+              parallaxGroupBackground,
         },
       ),
     );
@@ -792,7 +831,9 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
     if (activeTheme == null || selectedLayerKey == null) {
       return;
     }
-    final beforeKeys = activeTheme.layers.map((layer) => layer.layerKey).toSet();
+    final beforeKeys = activeTheme.layers
+        .map((layer) => layer.layerKey)
+        .toSet();
     widget.controller.applyCommand(
       AuthoringCommand(
         kind: 'duplicate_layer',

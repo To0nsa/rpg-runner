@@ -180,7 +180,7 @@ class _UiAppState extends State<UiApp> with WidgetsBindingObserver {
     final lifecycle = Provider.of<UiAssetLifecycle>(ctx, listen: false);
     final selection = appState.selection;
     await lifecycle.warmHubSelection(
-      themeId: selection.selectedLevelId.themeId,
+      visualThemeId: selection.selectedLevelId.visualThemeId,
       characterId: selection.selectedCharacterId,
       context: ctx,
     );

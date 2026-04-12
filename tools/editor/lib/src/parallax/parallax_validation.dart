@@ -47,16 +47,16 @@ List<ValidationIssue> validateParallaxDocument(ParallaxDefsDocument document) {
     );
   }
 
-  final activeThemeId = resolveActiveThemeId(document);
+  final activeParallaxThemeId = resolveActiveParallaxThemeId(document);
   if (activeLevelId != null &&
       activeLevelId.isNotEmpty &&
-      activeThemeId == null) {
+      activeParallaxThemeId == null) {
     issues.add(
       ValidationIssue(
         severity: ValidationSeverity.error,
         code: 'missing_active_theme_mapping',
         message:
-            'Level "$activeLevelId" does not resolve to a themeId in '
+            'Level "$activeLevelId" does not resolve to a parallaxThemeId in '
             'level_registry.dart.',
         sourcePath: sourcePath,
       ),
@@ -68,7 +68,7 @@ List<ValidationIssue> validateParallaxDocument(ParallaxDefsDocument document) {
       ValidationIssue(
         severity: ValidationSeverity.error,
         code: 'non_canonical_theme_order',
-        message: 'Themes must be ordered deterministically by themeId.',
+        message: 'Themes must be ordered deterministically by parallaxThemeId.',
         sourcePath: sourcePath,
       ),
     );
@@ -77,21 +77,21 @@ List<ValidationIssue> validateParallaxDocument(ParallaxDefsDocument document) {
   final themeIds = <String>{};
   final workspace = EditorWorkspace(rootPath: document.workspaceRootPath);
   for (final theme in sortedThemes) {
-    if (theme.themeId.isEmpty) {
+    if (theme.parallaxThemeId.isEmpty) {
       issues.add(
         ValidationIssue(
           severity: ValidationSeverity.error,
           code: 'missing_theme_id',
-          message: 'A parallax theme is missing themeId.',
+          message: 'A parallax theme is missing parallaxThemeId.',
           sourcePath: sourcePath,
         ),
       );
-    } else if (!themeIds.add(theme.themeId)) {
+    } else if (!themeIds.add(theme.parallaxThemeId)) {
       issues.add(
         ValidationIssue(
           severity: ValidationSeverity.error,
           code: 'duplicate_theme_id',
-          message: 'Duplicate themeId "${theme.themeId}".',
+          message: 'Duplicate parallaxThemeId "${theme.parallaxThemeId}".',
           sourcePath: sourcePath,
         ),
       );
@@ -102,7 +102,7 @@ List<ValidationIssue> validateParallaxDocument(ParallaxDefsDocument document) {
         ValidationIssue(
           severity: ValidationSeverity.error,
           code: 'invalid_revision',
-          message: 'Theme "${theme.themeId}" has invalid revision ${theme.revision}.',
+          message: 'Theme "${theme.parallaxThemeId}" has invalid revision ${theme.revision}.',
           sourcePath: sourcePath,
         ),
       );
@@ -115,7 +115,7 @@ List<ValidationIssue> validateParallaxDocument(ParallaxDefsDocument document) {
       code: 'invalid_ground_material_asset_path',
       fieldLabel: 'groundMaterialAssetPath',
       value: theme.groundMaterialAssetPath,
-      ownerLabel: 'Theme "${theme.themeId}"',
+      ownerLabel: 'Theme "${theme.parallaxThemeId}"',
     );
 
     if (!_layerOrderingMatches(theme.layers)) {
@@ -124,7 +124,7 @@ List<ValidationIssue> validateParallaxDocument(ParallaxDefsDocument document) {
           severity: ValidationSeverity.error,
           code: 'non_canonical_layer_order',
           message:
-              'Theme "${theme.themeId}" layers must be ordered by group, '
+              'Theme "${theme.parallaxThemeId}" layers must be ordered by group, '
               'zOrder, then layerKey.',
           sourcePath: sourcePath,
         ),
@@ -138,7 +138,7 @@ List<ValidationIssue> validateParallaxDocument(ParallaxDefsDocument document) {
           ValidationIssue(
             severity: ValidationSeverity.error,
             code: 'missing_layer_key',
-            message: 'Theme "${theme.themeId}" contains a layer without layerKey.',
+            message: 'Theme "${theme.parallaxThemeId}" contains a layer without layerKey.',
             sourcePath: sourcePath,
           ),
         );
@@ -148,7 +148,7 @@ List<ValidationIssue> validateParallaxDocument(ParallaxDefsDocument document) {
             severity: ValidationSeverity.error,
             code: 'duplicate_layer_key',
             message:
-                'Theme "${theme.themeId}" has duplicate layerKey "${layer.layerKey}".',
+                'Theme "${theme.parallaxThemeId}" has duplicate layerKey "${layer.layerKey}".',
             sourcePath: sourcePath,
           ),
         );
@@ -262,15 +262,15 @@ List<ValidationIssue> validateParallaxDocument(ParallaxDefsDocument document) {
     }
   }
 
-  if (activeThemeId != null &&
-      activeThemeId.isNotEmpty &&
-      findParallaxThemeById(document.themes, activeThemeId) == null) {
+  if (activeParallaxThemeId != null &&
+      activeParallaxThemeId.isNotEmpty &&
+      findParallaxThemeById(document.themes, activeParallaxThemeId) == null) {
     issues.add(
       ValidationIssue(
         severity: ValidationSeverity.error,
         code: 'missing_active_theme',
         message:
-            'Resolved themeId "$activeThemeId" for level "$activeLevelId" is '
+            'Resolved parallaxThemeId "$activeParallaxThemeId" for level "$activeLevelId" is '
             'not defined in parallax_defs.json.',
         sourcePath: sourcePath,
       ),
@@ -339,7 +339,7 @@ bool _themeOrderingMatches(List<ParallaxThemeDef> themes) {
     return false;
   }
   for (var i = 0; i < themes.length; i += 1) {
-    if (themes[i].themeId != expected[i].themeId) {
+    if (themes[i].parallaxThemeId != expected[i].parallaxThemeId) {
       return false;
     }
   }

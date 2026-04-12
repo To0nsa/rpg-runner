@@ -10,6 +10,7 @@ const String chunkDifficultyEarly = 'early';
 const String chunkDifficultyEasy = 'easy';
 const String chunkDifficultyNormal = 'normal';
 const String chunkDifficultyHard = 'hard';
+const String defaultChunkAssemblyGroupId = 'default';
 const String groundProfileKindFlat = 'flat';
 const String groundGapTypePit = 'pit';
 const String markerPlacementGround = 'ground';
@@ -23,6 +24,8 @@ enum ChunkDifficulty { early, easy, normal, hard }
 enum ChunkStatus { active, deprecated }
 
 enum GroundProfileKind { flat }
+
+final RegExp stableChunkAssemblyGroupPattern = RegExp(r'^[a-z][a-z0-9_]*$');
 
 @immutable
 class ChunkKey {
@@ -509,6 +512,7 @@ class LevelChunkDef {
     required this.width,
     required this.height,
     required this.difficulty,
+    this.assemblyGroupId = defaultChunkAssemblyGroupId,
     this.tags = const <String>[],
     this.tileLayers = const <TileLayerDef>[],
     this.prefabs = const <PlacedPrefabDef>[],
@@ -528,6 +532,7 @@ class LevelChunkDef {
   final int width;
   final int height;
   final String difficulty;
+  final String assemblyGroupId;
   final List<String> tags;
   final List<TileLayerDef> tileLayers;
   final List<PlacedPrefabDef> prefabs;
@@ -558,6 +563,7 @@ class LevelChunkDef {
     int? width,
     int? height,
     String? difficulty,
+    String? assemblyGroupId,
     List<String>? tags,
     List<TileLayerDef>? tileLayers,
     List<PlacedPrefabDef>? prefabs,
@@ -577,6 +583,7 @@ class LevelChunkDef {
       width: width ?? this.width,
       height: height ?? this.height,
       difficulty: difficulty ?? this.difficulty,
+      assemblyGroupId: assemblyGroupId ?? this.assemblyGroupId,
       tags: tags ?? this.tags,
       tileLayers: tileLayers ?? this.tileLayers,
       prefabs: prefabs ?? this.prefabs,
@@ -624,6 +631,10 @@ class LevelChunkDef {
       id: id.trim(),
       levelId: levelId.trim(),
       difficulty: difficulty.trim(),
+      assemblyGroupId: _normalizedString(
+        assemblyGroupId,
+        fallback: defaultChunkAssemblyGroupId,
+      ),
       status: status.trim(),
       tags: normalizedTags,
       tileLayers: normalizedLayers,
@@ -646,6 +657,7 @@ class LevelChunkDef {
       'width': normalizedChunk.width,
       'height': normalizedChunk.height,
       'difficulty': normalizedChunk.difficulty,
+      'assemblyGroupId': normalizedChunk.assemblyGroupId,
       'tags': normalizedChunk.tags,
       'tileLayers': normalizedChunk.tileLayers
           .map((layer) => layer.toJson())
@@ -683,6 +695,10 @@ class LevelChunkDef {
         json['difficulty'],
         fallback: chunkDifficultyNormal,
       ),
+      assemblyGroupId: _normalizedString(
+        json['assemblyGroupId'],
+        fallback: defaultChunkAssemblyGroupId,
+      ),
       tags: _readStringList(json['tags']),
       tileLayers: _readObjectList(json['tileLayers'], TileLayerDef.fromJson),
       prefabs: _readObjectList(json['prefabs'], PlacedPrefabDef.fromJson),
@@ -697,10 +713,12 @@ class LevelChunkDef {
 @immutable
 class ChunkSourceBaseline {
   const ChunkSourceBaseline({
+    required this.levelId,
     required this.sourcePath,
     required this.fingerprint,
   });
 
+  final String levelId;
   final String sourcePath;
   final String fingerprint;
 }
@@ -710,6 +728,7 @@ class ChunkDocument extends AuthoringDocument {
     required this.chunks,
     required this.baselineByChunkKey,
     required this.availableLevelIds,
+    required this.assemblyGroupOptionsByLevelId,
     required this.activeLevelId,
     required this.levelOptionSource,
     required this.runtimeGridSnap,
@@ -724,6 +743,7 @@ class ChunkDocument extends AuthoringDocument {
   final List<LevelChunkDef> chunks;
   final Map<String, ChunkSourceBaseline> baselineByChunkKey;
   final List<String> availableLevelIds;
+  final Map<String, List<String>> assemblyGroupOptionsByLevelId;
   final String? activeLevelId;
   final String levelOptionSource;
   final double runtimeGridSnap;
@@ -738,6 +758,7 @@ class ChunkDocument extends AuthoringDocument {
     List<LevelChunkDef>? chunks,
     Map<String, ChunkSourceBaseline>? baselineByChunkKey,
     List<String>? availableLevelIds,
+    Map<String, List<String>>? assemblyGroupOptionsByLevelId,
     String? activeLevelId,
     bool clearActiveLevelId = false,
     String? levelOptionSource,
@@ -754,6 +775,8 @@ class ChunkDocument extends AuthoringDocument {
       chunks: chunks ?? this.chunks,
       baselineByChunkKey: baselineByChunkKey ?? this.baselineByChunkKey,
       availableLevelIds: availableLevelIds ?? this.availableLevelIds,
+      assemblyGroupOptionsByLevelId:
+          assemblyGroupOptionsByLevelId ?? this.assemblyGroupOptionsByLevelId,
       activeLevelId: clearActiveLevelId
           ? null
           : (activeLevelId ?? this.activeLevelId),
@@ -775,6 +798,7 @@ class ChunkScene extends EditableScene {
   const ChunkScene({
     required this.chunks,
     required this.availableLevelIds,
+    required this.assemblyGroupOptionsByLevelId,
     required this.activeLevelId,
     required this.levelOptionSource,
     required this.sourcePathByChunkKey,
@@ -787,6 +811,7 @@ class ChunkScene extends EditableScene {
 
   final List<LevelChunkDef> chunks;
   final List<String> availableLevelIds;
+  final Map<String, List<String>> assemblyGroupOptionsByLevelId;
   final String? activeLevelId;
   final String levelOptionSource;
   final Map<String, String> sourcePathByChunkKey;

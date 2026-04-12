@@ -43,8 +43,11 @@ class LevelDomainPlugin implements AuthoringDomainPlugin {
       levels: List<LevelDef>.unmodifiable(sceneLevels),
       activeLevelId: levelDocument.activeLevelId,
       activeLevel: activeLevel,
-      availableParallaxThemeIds: levelDocument.availableParallaxThemeIds,
+      availableParallaxVisualThemeIds:
+          levelDocument.availableParallaxVisualThemeIds,
       authoredChunkCountsByLevelId: levelDocument.authoredChunkCountsByLevelId,
+      authoredChunkAssemblyGroupCountsByLevelId:
+          levelDocument.authoredChunkAssemblyGroupCountsByLevelId,
       sourcePath: levelDocument.baseline?.sourcePath ?? LevelStore.defsPath,
       workspaceRootPath: levelDocument.workspaceRootPath,
     );
@@ -205,7 +208,11 @@ class LevelDomainPlugin implements AuthoringDomainPlugin {
         payload['displayName'],
         fallback: titleCaseLevelId(levelId),
       ),
-      themeId: _normalizedString(payload['themeId'], fallback: levelId),
+      visualThemeId: _normalizedString(
+        payload['visualThemeId'],
+        fallback: levelId,
+      ),
+      chunkThemeGroups: const <String>[defaultLevelChunkThemeGroupId],
       cameraCenterY: _doubleOrDefault(
         payload['cameraCenterY'],
         fallback:
@@ -340,10 +347,16 @@ class LevelDomainPlugin implements AuthoringDomainPlugin {
             payload['displayName'],
             fallback: source.displayName,
           ),
-          themeId: _normalizedString(
-            payload['themeId'],
-            fallback: source.themeId,
+          visualThemeId: _normalizedString(
+            payload['visualThemeId'],
+            fallback: source.visualThemeId,
           ),
+          chunkThemeGroups: payload.containsKey('chunkThemeGroups')
+              ? _parseChunkThemeGroups(
+                  payload['chunkThemeGroups'],
+                  fallback: source.chunkThemeGroups,
+                )
+              : source.chunkThemeGroups,
           cameraCenterY: _doubleOrDefault(
             payload['cameraCenterY'],
             fallback: source.cameraCenterY,
@@ -373,8 +386,29 @@ class LevelDomainPlugin implements AuthoringDomainPlugin {
             fallback: source.enumOrdinal,
           ),
           status: _normalizedString(payload['status'], fallback: source.status),
+          assembly: payload.containsKey('assembly') ? null : source.assembly,
+          clearAssembly: payload.containsKey('assembly'),
         )
         .normalized();
+    if (payload.containsKey('assembly')) {
+      final assemblyParse = _parseAssemblyPayload(payload['assembly']);
+      if (assemblyParse.issueMessage != null) {
+        return _withOperationIssue(
+          document,
+          code: 'update_level_invalid_assembly',
+          message: assemblyParse.issueMessage!,
+        );
+      }
+      final rebuiltLevel = nextLevel.copyWith(
+        assembly: assemblyParse.value,
+        clearAssembly: assemblyParse.value == null,
+      );
+      if (levelDefEquals(rebuiltLevel, source, ignoreRevision: true)) {
+        return document;
+      }
+      final bumped = _bumpRevision(rebuiltLevel, fromLevel: source);
+      return _replaceLevel(document, levelId: levelId, nextLevel: bumped);
+    }
     if (levelDefEquals(nextLevel, source, ignoreRevision: true)) {
       return document;
     }
@@ -594,7 +628,136 @@ double _doubleOrDefault(Object? raw, {required double fallback}) {
   return fallback;
 }
 
+List<String> _parseChunkThemeGroups(Object? raw, {required List<String> fallback}) {
+  if (raw is List) {
+    final parsed = <String>[];
+    for (final entry in raw) {
+      final normalized = _normalizedString(entry);
+      if (normalized.isNotEmpty) {
+        parsed.add(normalized);
+      }
+    }
+    if (parsed.isNotEmpty) {
+      return normalizeLevelChunkThemeGroups(parsed);
+    }
+    return normalizeLevelChunkThemeGroups(fallback);
+  }
+  if (raw is String) {
+    final parsed = raw
+        .split(',')
+        .map((entry) => entry.trim())
+        .where((entry) => entry.isNotEmpty)
+        .toList(growable: false);
+    if (parsed.isNotEmpty) {
+      return normalizeLevelChunkThemeGroups(parsed);
+    }
+  }
+  return normalizeLevelChunkThemeGroups(fallback);
+}
+
 LevelDef _bumpRevision(LevelDef nextLevel, {required LevelDef fromLevel}) {
   final nextRevision = fromLevel.revision <= 0 ? 1 : fromLevel.revision + 1;
   return nextLevel.copyWith(revision: nextRevision);
+}
+
+_AssemblyPayloadParseResult _parseAssemblyPayload(Object? raw) {
+  if (raw == null) {
+    return const _AssemblyPayloadParseResult(value: null);
+  }
+  if (raw is! Map) {
+    return const _AssemblyPayloadParseResult(
+      issueMessage: 'assembly payload must be an object or null.',
+    );
+  }
+  final loopSegments = _boolOrNull(raw['loopSegments']);
+  if (loopSegments == null) {
+    return const _AssemblyPayloadParseResult(
+      issueMessage: 'assembly.loopSegments must be a boolean.',
+    );
+  }
+  final rawSegments = raw['segments'];
+  if (rawSegments is! List) {
+    return const _AssemblyPayloadParseResult(
+      issueMessage: 'assembly.segments must be an array.',
+    );
+  }
+  final segments = <LevelAssemblySegmentDef>[];
+  for (var i = 0; i < rawSegments.length; i += 1) {
+    final rawSegment = rawSegments[i];
+    if (rawSegment is! Map) {
+      return _AssemblyPayloadParseResult(
+        issueMessage: 'assembly.segments[$i] must be an object.',
+      );
+    }
+    final segmentId = _normalizedString(rawSegment['segmentId']);
+    final groupId = _normalizedString(rawSegment['groupId']);
+    final minChunkCount = _intOrNull(rawSegment['minChunkCount']);
+    final maxChunkCount = _intOrNull(rawSegment['maxChunkCount']);
+    final requireDistinctChunks = _boolOrNull(
+      rawSegment['requireDistinctChunks'],
+    );
+    if (segmentId.isEmpty ||
+        groupId.isEmpty ||
+        minChunkCount == null ||
+        maxChunkCount == null ||
+        requireDistinctChunks == null) {
+      return _AssemblyPayloadParseResult(
+        issueMessage:
+            'assembly.segments[$i] is missing required fields or uses invalid value types.',
+      );
+    }
+    segments.add(
+      LevelAssemblySegmentDef(
+        segmentId: segmentId,
+        groupId: groupId,
+        minChunkCount: minChunkCount,
+        maxChunkCount: maxChunkCount,
+        requireDistinctChunks: requireDistinctChunks,
+      ).normalized(),
+    );
+  }
+  if (segments.isEmpty) {
+    return const _AssemblyPayloadParseResult(value: null);
+  }
+  return _AssemblyPayloadParseResult(
+    value: LevelAssemblyDef(
+      loopSegments: loopSegments,
+      segments: List<LevelAssemblySegmentDef>.unmodifiable(segments),
+    ).normalized(),
+  );
+}
+
+int? _intOrNull(Object? raw) {
+  if (raw is int) {
+    return raw;
+  }
+  if (raw is num && raw.isFinite) {
+    return raw.toInt();
+  }
+  if (raw is String) {
+    return int.tryParse(raw.trim());
+  }
+  return null;
+}
+
+bool? _boolOrNull(Object? raw) {
+  if (raw is bool) {
+    return raw;
+  }
+  if (raw is String) {
+    switch (raw.trim().toLowerCase()) {
+      case 'true':
+        return true;
+      case 'false':
+        return false;
+    }
+  }
+  return null;
+}
+
+class _AssemblyPayloadParseResult {
+  const _AssemblyPayloadParseResult({this.value, this.issueMessage});
+
+  final LevelAssemblyDef? value;
+  final String? issueMessage;
 }

@@ -133,7 +133,7 @@ class SnapshotBuilder {
   /// - [runId]: Unique identifier for this run session.
   /// - [seed]: RNG seed for this run (stored for replay/debug).
   /// - [levelId]: Level identifier for this run (stored for replay/debug).
-  /// - [themeId]: Optional render theme identifier (stored for debug/UI).
+  /// - [visualThemeId]: Optional render theme identifier (stored for debug/UI).
   /// - [distance]: Total distance traveled (world units).
   /// - [paused]: Whether the game is currently paused.
   /// - [gameOver]: Whether the run has ended.
@@ -148,7 +148,7 @@ class SnapshotBuilder {
     required int runId,
     required int seed,
     required LevelId levelId,
-    required String? themeId,
+    required String? visualThemeId,
     required double distance,
     required bool paused,
     required bool gameOver,
@@ -442,7 +442,7 @@ class SnapshotBuilder {
       runId: runId,
       seed: seed,
       levelId: levelId,
-      themeId: themeId,
+      visualThemeId: visualThemeId,
       distance: distance,
       paused: paused,
       gameOver: gameOver,

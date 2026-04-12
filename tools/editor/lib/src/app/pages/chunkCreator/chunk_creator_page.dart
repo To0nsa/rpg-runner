@@ -24,6 +24,7 @@ class ChunkCreatorPage extends StatefulWidget {
 class _ChunkCreatorPageState extends State<ChunkCreatorPage>
     implements EditorPageLocalDraftState {
   static const String _chunkListDifficultyAll = 'all';
+  static const String _chunkListAssemblyGroupFilterAll = 'all';
   static const String _prefabPaletteTagAll = 'all';
   static const String _defaultNewChunkId = 'new_chunk';
   static const String _defaultNewGapX = '0';
@@ -51,6 +52,8 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
   final TextEditingController _tileSizeController = TextEditingController();
   final TextEditingController _widthController = TextEditingController();
   final TextEditingController _heightController = TextEditingController();
+  final TextEditingController _assemblyGroupIdController =
+      TextEditingController();
   final TextEditingController _tagsController = TextEditingController();
   final TextEditingController _groundTopYController = TextEditingController();
   final TextEditingController _newGapXController = TextEditingController(
@@ -88,6 +91,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
   bool _createChunkExpanded = true;
   bool _chunkListExpanded = false;
   bool _prefabPaletteExpanded = false;
+  String _chunkListAssemblyGroupFilter = _chunkListAssemblyGroupFilterAll;
   String _chunkListDifficultyFilter = _chunkListDifficultyAll;
   String _prefabPaletteTagFilter = _prefabPaletteTagAll;
   PrefabKind? _prefabPaletteKindFilter;
@@ -129,6 +133,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
     _tileSizeController.dispose();
     _widthController.dispose();
     _heightController.dispose();
+    _assemblyGroupIdController.dispose();
     _tagsController.dispose();
     _groundTopYController.dispose();
     _newGapXController.dispose();
@@ -285,11 +290,34 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
   }
 
   Widget _buildChunkListPanel(ChunkScene scene, List<LevelChunkDef> chunks) {
-    final filteredChunks = _chunkListDifficultyFilter == _chunkListDifficultyAll
-        ? chunks
-        : chunks
-              .where((chunk) => chunk.difficulty == _chunkListDifficultyFilter)
-              .toList(growable: false);
+    final sortedAssemblyGroupIds =
+        chunks
+            .map((chunk) => chunk.assemblyGroupId)
+            .toSet()
+            .toList(growable: false)
+          ..sort();
+    final assemblyGroupFilterOptions = <String>[
+      _chunkListAssemblyGroupFilterAll,
+      ...sortedAssemblyGroupIds,
+    ];
+    final assemblyGroupFilter =
+        assemblyGroupFilterOptions.contains(_chunkListAssemblyGroupFilter)
+        ? _chunkListAssemblyGroupFilter
+        : _chunkListAssemblyGroupFilterAll;
+    final filteredChunks = chunks
+        .where((chunk) {
+          final difficultyMatches =
+              _chunkListDifficultyFilter == _chunkListDifficultyAll ||
+              chunk.difficulty == _chunkListDifficultyFilter;
+          if (!difficultyMatches) {
+            return false;
+          }
+          if (assemblyGroupFilter == _chunkListAssemblyGroupFilterAll) {
+            return true;
+          }
+          return chunk.assemblyGroupId == assemblyGroupFilter;
+        })
+        .toList(growable: false);
     final chunkListTitle = 'Chunk List';
     final fillChunkList = _chunkListExpanded;
     final fillPrefabPalette = _prefabPaletteExpanded;
@@ -382,6 +410,8 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
                     scene: scene,
                     chunks: filteredChunks,
                     chunkListTitle: chunkListTitle,
+                    assemblyGroupFilterOptions: assemblyGroupFilterOptions,
+                    assemblyGroupFilter: assemblyGroupFilter,
                     fillHeight: true,
                   ),
                 )
@@ -390,6 +420,8 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
                   scene: scene,
                   chunks: filteredChunks,
                   chunkListTitle: chunkListTitle,
+                  assemblyGroupFilterOptions: assemblyGroupFilterOptions,
+                  assemblyGroupFilter: assemblyGroupFilter,
                   fillHeight: false,
                 ),
               const SizedBox(height: _spaceSm),
@@ -410,10 +442,12 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
     required ChunkScene scene,
     required List<LevelChunkDef> chunks,
     required String chunkListTitle,
+    required List<String> assemblyGroupFilterOptions,
+    required String assemblyGroupFilter,
     required bool fillHeight,
   }) {
     final listContent = chunks.isEmpty
-        ? const Center(child: Text('No chunks for this difficulty.'))
+        ? const Center(child: Text('No chunks match the current filters.'))
         : ListView.builder(
             itemCount: chunks.length,
             itemBuilder: (context, index) {
@@ -445,6 +479,40 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
             runSpacing: _spaceSm,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
+              SizedBox(
+                width: 220,
+                child: DropdownButtonFormField<String>(
+                  key: ValueKey<String>(
+                    'chunk_list_group_filter_$assemblyGroupFilter',
+                  ),
+                  initialValue: assemblyGroupFilter,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'chunkThemeGroupId filter',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  items: [
+                    for (final groupId in assemblyGroupFilterOptions)
+                      DropdownMenuItem<String>(
+                        value: groupId,
+                        child: Text(
+                          groupId == _chunkListAssemblyGroupFilterAll
+                              ? 'all groups'
+                              : groupId,
+                        ),
+                      ),
+                  ],
+                  onChanged: (value) {
+                    if (value == null) {
+                      return;
+                    }
+                    setState(() {
+                      _chunkListAssemblyGroupFilter = value;
+                    });
+                  },
+                ),
+              ),
               ChoiceChip(
                 label: const Text('All'),
                 selected: _chunkListDifficultyFilter == _chunkListDifficultyAll,
@@ -567,6 +635,11 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
                 const SizedBox(height: _spaceSm),
                 Text(
                   '${chunk.levelId} | ${chunk.difficulty} | rev ${chunk.revision}',
+                  style: metadataStyle,
+                ),
+                const SizedBox(height: _spaceXs),
+                Text(
+                  'theme/group: ${chunk.assemblyGroupId}',
                   style: metadataStyle,
                 ),
                 if (chunk.tags.isNotEmpty) ...[
@@ -1081,11 +1154,25 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
               const SizedBox(height: _spaceSm),
               _buildMetadataFields(selectedChunk, scene),
               const SizedBox(height: _spaceSm),
-              FilledButton(
-                onPressed: () {
-                  _applyMetadata(selectedChunk);
-                },
-                child: const Text('Apply Changes'),
+              Wrap(
+                spacing: _spaceSm,
+                runSpacing: _spaceSm,
+                children: [
+                  FilledButton(
+                    onPressed: () {
+                      _applyMetadata(selectedChunk);
+                    },
+                    child: const Text('Apply Changes'),
+                  ),
+                  OutlinedButton.icon(
+                    key: const ValueKey<String>('delete_chunk_button'),
+                    onPressed: () {
+                      unawaited(_confirmAndDeleteChunk(selectedChunk));
+                    },
+                    icon: const Icon(Icons.delete_outline),
+                    label: const Text('Delete Chunk'),
+                  ),
+                ],
               ),
               const SizedBox(height: _spaceMd),
             ],
@@ -1529,6 +1616,20 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
   }
 
   Widget _buildMetadataFields(LevelChunkDef selectedChunk, ChunkScene scene) {
+    final selectedLevelId = _levelIdController.text.trim().isNotEmpty
+        ? _levelIdController.text.trim()
+        : selectedChunk.levelId;
+    final allowedAssemblyGroupIds =
+        scene.assemblyGroupOptionsByLevelId[selectedLevelId] ??
+        const <String>[defaultChunkAssemblyGroupId];
+    final selectedAssemblyGroupId = _assemblyGroupIdController.text.trim();
+    final showMissingAssemblyGroup =
+        selectedAssemblyGroupId.isNotEmpty &&
+        !allowedAssemblyGroupIds.contains(selectedAssemblyGroupId);
+    final assemblyGroupDropdownValue = selectedAssemblyGroupId.isEmpty
+        ? null
+        : selectedAssemblyGroupId;
+
     return Column(
       children: [
         TextField(
@@ -1547,6 +1648,42 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
             border: OutlineInputBorder(),
             isDense: true,
           ),
+          onChanged: (_) {
+            setState(() {});
+          },
+        ),
+        const SizedBox(height: _spaceSm),
+        DropdownButtonFormField<String>(
+          key: ValueKey<String>(
+            'chunk_assembly_group_id_${selectedChunk.chunkKey}_$selectedLevelId',
+          ),
+          initialValue: assemblyGroupDropdownValue,
+          isExpanded: true,
+          decoration: InputDecoration(
+            labelText: 'chunkThemeGroupId',
+            helperText: showMissingAssemblyGroup
+                ? 'Current group is not allowed for this level. Select a valid group.'
+                : null,
+            border: const OutlineInputBorder(),
+            isDense: true,
+          ),
+          items: [
+            if (showMissingAssemblyGroup)
+              DropdownMenuItem<String>(
+                value: selectedAssemblyGroupId,
+                child: Text('$selectedAssemblyGroupId (missing)'),
+              ),
+            for (final groupId in allowedAssemblyGroupIds)
+              DropdownMenuItem<String>(value: groupId, child: Text(groupId)),
+          ],
+          onChanged: (value) {
+            if (value == null) {
+              return;
+            }
+            setState(() {
+              _assemblyGroupIdController.text = value;
+            });
+          },
         ),
         const SizedBox(height: _spaceSm),
         Row(
@@ -3024,6 +3161,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
     _tileSizeController.text = chunk.tileSize.toString();
     _widthController.text = chunk.width.toString();
     _heightController.text = chunk.height.toString();
+    _assemblyGroupIdController.text = chunk.assemblyGroupId;
     _tagsController.text = chunk.tags.join(', ');
     _groundTopYController.text = chunk.groundProfile.topY.toString();
     _difficulty = chunk.difficulty;
@@ -3038,6 +3176,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
     return _renameIdController.text.trim() != chunk.id ||
         _levelIdController.text.trim() != chunk.levelId ||
         _tileSizeController.text.trim() != chunk.tileSize.toString() ||
+        _assemblyGroupIdController.text.trim() != chunk.assemblyGroupId ||
         _tagsController.text.trim() != chunk.tags.join(', ') ||
         _difficulty != chunk.difficulty ||
         _status != chunk.status;
@@ -3045,6 +3184,20 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
 
   void _applyMetadata(LevelChunkDef chunk) {
     final tileSize = _authoritativeRuntimeTileSize(chunk);
+    final scene = widget.controller.scene;
+    final chunkScene = scene is ChunkScene ? scene : null;
+    final targetLevelId = _levelIdController.text.trim();
+    final selectedAssemblyGroupId = _assemblyGroupIdController.text.trim();
+    final allowedAssemblyGroupIds =
+        chunkScene?.assemblyGroupOptionsByLevelId[targetLevelId] ??
+        const <String>[defaultChunkAssemblyGroupId];
+    if (selectedAssemblyGroupId.isEmpty ||
+        !allowedAssemblyGroupIds.contains(selectedAssemblyGroupId)) {
+      _showSnackBar(
+        'Select a valid chunkThemeGroupId for level "$targetLevelId".',
+      );
+      return;
+    }
 
     widget.controller.applyCommand(
       AuthoringCommand(
@@ -3052,12 +3205,52 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
         payload: <String, Object?>{
           'chunkKey': chunk.chunkKey,
           'id': _renameIdController.text.trim(),
-          'levelId': _levelIdController.text.trim(),
+          'levelId': targetLevelId,
           'tileSize': tileSize,
           'difficulty': _difficulty,
+          'assemblyGroupId': selectedAssemblyGroupId,
           'status': _status,
           'tags': _tagsController.text.trim(),
         },
+      ),
+    );
+  }
+
+  Future<void> _confirmAndDeleteChunk(LevelChunkDef chunk) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Delete Chunk'),
+          content: Text(
+            'Delete "${chunk.id}" (${chunk.chunkKey}) from this level?\n'
+            'The file will be deleted when you apply to files.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(false);
+              },
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(true);
+              },
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    widget.controller.applyCommand(
+      AuthoringCommand(
+        kind: 'delete_chunk',
+        payload: <String, Object?>{'chunkKey': chunk.chunkKey},
       ),
     );
   }

@@ -81,6 +81,11 @@ void main() {
         find.widgetWithText(TextField, 'id'),
         'chunk_renamed',
       );
+      await _selectDropdownByLabel(
+        tester,
+        label: 'chunkThemeGroupId',
+        value: 'cemetery',
+      );
       await tester.tap(find.text('Apply Changes'));
       await tester.pumpAndSettle();
       final sceneAfterRename = controller.scene as ChunkScene;
@@ -121,7 +126,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        tester.widget<TextField>(find.widgetWithText(TextField, 'tileSize').first).enabled,
+        tester
+            .widget<TextField>(find.widgetWithText(TextField, 'tileSize').first)
+            .enabled,
         isFalse,
       );
 
@@ -137,9 +144,103 @@ void main() {
         (chunk) => chunk.id == 'chunk_renamed',
       );
       expect(updatedChunk.difficulty, chunkDifficultyEarly);
+      expect(updatedChunk.assemblyGroupId, 'cemetery');
       expect(updatedChunk.tileSize, 16);
     },
   );
+
+  testWidgets('chunk creator filters chunk list by chunkThemeGroupId', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1800, 1200));
+    addTearDown(() async {
+      await tester.binding.setSurfaceSize(null);
+    });
+
+    final controller = EditorSessionController(
+      pluginRegistry: AuthoringPluginRegistry(
+        plugins: <AuthoringDomainPlugin>[
+          _InMemoryChunkPlugin(_initialChunkWithAssemblyGroupsDocument),
+        ],
+      ),
+      initialPluginId: ChunkDomainPlugin.pluginId,
+      initialWorkspacePath: '.',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: ChunkCreatorPage(controller: controller)),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    await tester.tap(find.text('Chunk List').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('chunk_cemetery'), findsOneWidget);
+    expect(find.text('chunk_village'), findsOneWidget);
+
+    await _selectDropdownByLabel(
+      tester,
+      label: 'chunkThemeGroupId filter',
+      value: 'village',
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('chunk_cemetery'), findsNothing);
+    expect(find.text('chunk_village'), findsOneWidget);
+  });
+
+  testWidgets('chunk creator deletes selected chunk from inspector', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1800, 1200));
+    addTearDown(() async {
+      await tester.binding.setSurfaceSize(null);
+    });
+
+    final controller = EditorSessionController(
+      pluginRegistry: AuthoringPluginRegistry(
+        plugins: <AuthoringDomainPlugin>[
+          _InMemoryChunkPlugin(_initialChunkWithAssemblyGroupsDocument),
+        ],
+      ),
+      initialPluginId: ChunkDomainPlugin.pluginId,
+      initialWorkspacePath: '.',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: ChunkCreatorPage(controller: controller)),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    await tester.tap(find.text('Chunk List').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('chunk_cemetery').first);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.textContaining('Inspector:').first);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey<String>('delete_chunk_button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
+
+    final sceneAfterDelete = controller.scene as ChunkScene;
+    expect(
+      sceneAfterDelete.chunks.any((chunk) => chunk.id == 'chunk_cemetery'),
+      isFalse,
+    );
+    expect(
+      sceneAfterDelete.chunks.any((chunk) => chunk.id == 'chunk_village'),
+      isTrue,
+    );
+  });
 
   testWidgets('chunk creator updates an existing ground gap from inspector', (
     tester,
@@ -252,7 +353,10 @@ void main() {
       find.byKey(const ValueKey<String>('new_ground_gap_width')),
       '64',
     );
-    await tester.tap(find.byKey(const ValueKey<String>('add_ground_gap')));
+    final addGroundGap = find.byKey(const ValueKey<String>('add_ground_gap'));
+    await tester.ensureVisible(addGroundGap);
+    await tester.pumpAndSettle();
+    await tester.tap(addGroundGap);
     await tester.pumpAndSettle();
 
     final sceneAfterAdd = controller.scene as ChunkScene;
@@ -360,6 +464,10 @@ const ChunkDocument _initialChunkDocument = ChunkDocument(
   ],
   baselineByChunkKey: <String, ChunkSourceBaseline>{},
   availableLevelIds: <String>['field', 'forest'],
+  assemblyGroupOptionsByLevelId: <String, List<String>>{
+    'field': <String>['default', 'cemetery', 'village'],
+    'forest': <String>['default', 'cemetery', 'village'],
+  },
   activeLevelId: 'field',
   levelOptionSource: 'test',
   runtimeGridSnap: 16.0,
@@ -392,6 +500,62 @@ const ChunkDocument _initialChunkWithGapDocument = ChunkDocument(
   ],
   baselineByChunkKey: <String, ChunkSourceBaseline>{},
   availableLevelIds: <String>['field', 'forest'],
+  assemblyGroupOptionsByLevelId: <String, List<String>>{
+    'field': <String>['default', 'cemetery', 'village'],
+    'forest': <String>['default', 'cemetery', 'village'],
+  },
+  activeLevelId: 'field',
+  levelOptionSource: 'test',
+  runtimeGridSnap: 16.0,
+  runtimeChunkWidth: 600.0,
+  runtimeGroundTopY: 224,
+);
+
+const ChunkDocument _initialChunkWithAssemblyGroupsDocument = ChunkDocument(
+  chunks: <LevelChunkDef>[
+    LevelChunkDef(
+      chunkKey: 'chunk_field_cemetery_001',
+      id: 'chunk_cemetery',
+      revision: 1,
+      schemaVersion: 1,
+      levelId: 'field',
+      tileSize: 16,
+      width: 600,
+      height: 270,
+      difficulty: chunkDifficultyNormal,
+      assemblyGroupId: 'cemetery',
+      tileLayers: <TileLayerDef>[],
+      prefabs: <PlacedPrefabDef>[],
+      markers: <PlacedMarkerDef>[],
+      groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 224),
+      groundGaps: <GroundGapDef>[],
+      status: chunkStatusActive,
+    ),
+    LevelChunkDef(
+      chunkKey: 'chunk_field_village_001',
+      id: 'chunk_village',
+      revision: 1,
+      schemaVersion: 1,
+      levelId: 'field',
+      tileSize: 16,
+      width: 600,
+      height: 270,
+      difficulty: chunkDifficultyNormal,
+      assemblyGroupId: 'village',
+      tileLayers: <TileLayerDef>[],
+      prefabs: <PlacedPrefabDef>[],
+      markers: <PlacedMarkerDef>[],
+      groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 224),
+      groundGaps: <GroundGapDef>[],
+      status: chunkStatusActive,
+    ),
+  ],
+  baselineByChunkKey: <String, ChunkSourceBaseline>{},
+  availableLevelIds: <String>['field', 'forest'],
+  assemblyGroupOptionsByLevelId: <String, List<String>>{
+    'field': <String>['default', 'cemetery', 'village'],
+    'forest': <String>['default', 'cemetery', 'village'],
+  },
   activeLevelId: 'field',
   levelOptionSource: 'test',
   runtimeGridSnap: 16.0,
@@ -444,6 +608,10 @@ const ChunkDocument _initialChunkWithSharedGapIdsDocument = ChunkDocument(
   ],
   baselineByChunkKey: <String, ChunkSourceBaseline>{},
   availableLevelIds: <String>['field', 'forest'],
+  assemblyGroupOptionsByLevelId: <String, List<String>>{
+    'field': <String>['default', 'cemetery', 'village'],
+    'forest': <String>['default', 'cemetery', 'village'],
+  },
   activeLevelId: 'field',
   levelOptionSource: 'test',
   runtimeGridSnap: 16.0,
@@ -498,6 +666,23 @@ class _InMemoryChunkPlugin implements AuthoringDomainPlugin {
   }) {
     return PendingChanges.empty;
   }
+}
+
+Future<void> _selectDropdownByLabel(
+  WidgetTester tester, {
+  required String label,
+  required String value,
+}) async {
+  await tester.tap(
+    find.byWidgetPredicate(
+      (widget) =>
+          widget is DropdownButtonFormField<String> &&
+          widget.decoration.labelText == label,
+    ),
+  );
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(value).last);
+  await tester.pumpAndSettle();
 }
 
 String _textFormFieldValue(WidgetTester tester, Key key) {

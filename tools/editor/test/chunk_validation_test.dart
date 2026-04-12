@@ -16,6 +16,7 @@ void main() {
       width: 590,
       height: 150,
       difficulty: 'nightmare',
+      assemblyGroupId: 'Bad Group',
       groundProfile: GroundProfileDef(kind: 'slope', topY: 3),
       groundGaps: <GroundGapDef>[
         GroundGapDef(gapId: 'gap_1', type: 'pit', x: 16, width: 80),
@@ -26,6 +27,9 @@ void main() {
       chunks: <LevelChunkDef>[invalidChunk],
       baselineByChunkKey: <String, ChunkSourceBaseline>{},
       availableLevelIds: <String>['field'],
+      assemblyGroupOptionsByLevelId: <String, List<String>>{
+        'field': <String>['default'],
+      },
       activeLevelId: 'field',
       levelOptionSource: 'test',
       runtimeGridSnap: 16.0,
@@ -41,6 +45,7 @@ void main() {
     expect(codes, contains('chunk_width_mismatch'));
     expect(codes, contains('chunk_tile_size_mismatch'));
     expect(codes, contains('invalid_difficulty'));
+    expect(codes, contains('invalid_assembly_group_id'));
     expect(codes, contains('invalid_ground_profile_kind'));
     expect(codes, contains('chunk_height_mismatch'));
     expect(codes, contains('ground_profile_top_y_mismatch'));
@@ -65,6 +70,7 @@ void main() {
       chunks: <LevelChunkDef>[missingFields],
       baselineByChunkKey: <String, ChunkSourceBaseline>{},
       availableLevelIds: <String>[],
+      assemblyGroupOptionsByLevelId: <String, List<String>>{},
       activeLevelId: null,
       levelOptionSource: 'test',
       runtimeGridSnap: 16.0,
@@ -113,6 +119,9 @@ void main() {
       chunks: <LevelChunkDef>[malformed, duplicateId],
       baselineByChunkKey: <String, ChunkSourceBaseline>{},
       availableLevelIds: <String>['field'],
+      assemblyGroupOptionsByLevelId: <String, List<String>>{
+        'field': <String>['default'],
+      },
       activeLevelId: 'field',
       levelOptionSource: 'test',
       runtimeGridSnap: 16.0,
@@ -142,6 +151,9 @@ void main() {
       chunks: <LevelChunkDef>[chunk],
       baselineByChunkKey: <String, ChunkSourceBaseline>{},
       availableLevelIds: <String>['field'],
+      assemblyGroupOptionsByLevelId: <String, List<String>>{
+        'field': <String>['default'],
+      },
       activeLevelId: 'field',
       levelOptionSource: 'test',
       runtimeGridSnap: 16.0,
@@ -180,6 +192,9 @@ void main() {
       chunks: <LevelChunkDef>[chunk],
       baselineByChunkKey: <String, ChunkSourceBaseline>{},
       availableLevelIds: <String>['field'],
+      assemblyGroupOptionsByLevelId: <String, List<String>>{
+        'field': <String>['default'],
+      },
       activeLevelId: 'field',
       levelOptionSource: 'test',
       runtimeGridSnap: 16.0,
@@ -219,6 +234,9 @@ void main() {
       chunks: <LevelChunkDef>[chunk],
       baselineByChunkKey: <String, ChunkSourceBaseline>{},
       availableLevelIds: <String>['field'],
+      assemblyGroupOptionsByLevelId: <String, List<String>>{
+        'field': <String>['default'],
+      },
       activeLevelId: 'field',
       levelOptionSource: 'test',
       runtimeGridSnap: 16.0,

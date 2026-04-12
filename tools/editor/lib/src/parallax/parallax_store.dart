@@ -73,7 +73,9 @@ class ParallaxStore {
       options: levelOptions.options,
       preferredLevelId: preferredActiveLevelId,
     );
-    final themeIdByLevelId = level_context.extractLevelThemeIds(workspace);
+    final parallaxThemeIdByLevelId = level_context.extractLevelVisualThemeIds(
+      workspace,
+    );
     final sortedThemes = List<ParallaxThemeDef>.from(themes)
       ..sort(compareParallaxThemesDeterministic);
 
@@ -84,7 +86,7 @@ class ParallaxStore {
       availableLevelIds: List<String>.unmodifiable(levelOptions.options),
       activeLevelId: activeLevelId,
       levelOptionSource: levelOptions.source,
-      themeIdByLevelId: themeIdByLevelId,
+      parallaxThemeIdByLevelId: parallaxThemeIdByLevelId,
       loadIssues: List<ValidationIssue>.unmodifiable(loadIssues),
     );
   }
@@ -98,15 +100,15 @@ class ParallaxStore {
     final afterContent = renderCanonicalParallaxDefsJson(document.themes);
     if (_normalizeNewlines(beforeContent ?? '') == afterContent) {
       return const ParallaxSavePlan(
-        changedThemeIds: <String>[],
+        changedParallaxThemeIds: <String>[],
         writes: <ParallaxFileWrite>[],
       );
     }
 
     return ParallaxSavePlan(
-      changedThemeIds: document.themes
-          .map((theme) => theme.themeId)
-          .where((themeId) => themeId.isNotEmpty)
+      changedParallaxThemeIds: document.themes
+          .map((theme) => theme.parallaxThemeId)
+          .where((parallaxThemeId) => parallaxThemeId.isNotEmpty)
           .toList(growable: false),
       writes: <ParallaxFileWrite>[
         ParallaxFileWrite(
@@ -202,12 +204,13 @@ class ParallaxStore {
       if (theme == null) {
         continue;
       }
-      if (!themeIds.add(theme.themeId)) {
+      if (!themeIds.add(theme.parallaxThemeId)) {
         issues.add(
           ValidationIssue(
             severity: ValidationSeverity.error,
             code: 'duplicate_theme_id',
-            message: 'themeId "${theme.themeId}" is duplicated.',
+            message:
+                'parallaxThemeId "${theme.parallaxThemeId}" is duplicated.',
             sourcePath: sourcePath,
           ),
         );
@@ -226,9 +229,9 @@ class ParallaxStore {
     required int themeIndex,
   }) {
     final prefix = 'themes[$themeIndex]';
-    final themeId = _readRequiredString(
+    final parallaxThemeId = _readRequiredString(
       raw,
-      field: 'themeId',
+      field: 'parallaxThemeId',
       sourcePath: sourcePath,
       prefix: prefix,
       issues: issues,
@@ -299,12 +302,14 @@ class ParallaxStore {
       layers.add(layer);
     }
 
-    if (themeId.isEmpty || revision == null || groundMaterialAssetPath.isEmpty) {
+    if (parallaxThemeId.isEmpty ||
+        revision == null ||
+        groundMaterialAssetPath.isEmpty) {
       return null;
     }
 
     return ParallaxThemeDef(
-      themeId: themeId,
+      parallaxThemeId: parallaxThemeId,
       revision: revision,
       groundMaterialAssetPath: groundMaterialAssetPath,
       layers: List<ParallaxLayerDef>.unmodifiable(layers),
@@ -501,11 +506,11 @@ class ParallaxStore {
 
 class ParallaxSavePlan {
   const ParallaxSavePlan({
-    required this.changedThemeIds,
+    required this.changedParallaxThemeIds,
     required this.writes,
   });
 
-  final List<String> changedThemeIds;
+  final List<String> changedParallaxThemeIds;
   final List<ParallaxFileWrite> writes;
 
   bool get hasChanges => writes.isNotEmpty;

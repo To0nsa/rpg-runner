@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
+import 'package:runner_editor/src/levels/level_domain_models.dart';
 import 'package:runner_editor/src/levels/level_store.dart';
 import 'package:runner_editor/src/workspace/editor_workspace.dart';
 
@@ -19,8 +20,15 @@ void main() {
 
       expect(loaded.levels, hasLength(2));
       expect(loaded.activeLevelId, 'field');
-      expect(loaded.availableParallaxThemeIds, <String>['field', 'forest']);
+      expect(loaded.availableParallaxVisualThemeIds, <String>[
+        'field',
+        'forest',
+      ]);
       expect(loaded.authoredChunkCountsByLevelId['field'], 1);
+      expect(
+        loaded.authoredChunkAssemblyGroupCountsByLevelId['field'],
+        <String, int>{'default': 1},
+      );
 
       final edited = loaded.copyWith(
         levels: loaded.levels
@@ -28,7 +36,23 @@ void main() {
               (level) => level.levelId == 'field'
                   ? level.copyWith(
                       displayName: 'Sunny Field',
-                      themeId: 'forest',
+                      visualThemeId: 'forest',
+                      chunkThemeGroups: const <String>[
+                        'default',
+                        'forest',
+                      ],
+                      assembly: const LevelAssemblyDef(
+                        loopSegments: true,
+                        segments: <LevelAssemblySegmentDef>[
+                          LevelAssemblySegmentDef(
+                            segmentId: 'forest_run',
+                            groupId: 'forest',
+                            minChunkCount: 2,
+                            maxChunkCount: 5,
+                            requireDistinctChunks: true,
+                          ),
+                        ],
+                      ),
                       revision: level.revision + 1,
                     )
                   : level,
@@ -46,7 +70,9 @@ void main() {
       ).readAsStringSync();
       expect(savedRaw.endsWith('\n'), isTrue);
       expect(savedRaw, contains('"displayName": "Sunny Field"'));
-      expect(savedRaw, contains('"themeId": "forest"'));
+      expect(savedRaw, contains('"visualThemeId": "forest"'));
+      expect(savedRaw, contains('"assembly": {'));
+      expect(savedRaw, contains('"segmentId": "forest_run"'));
 
       final reloaded = await store.load(
         workspace,
@@ -56,7 +82,7 @@ void main() {
         (level) => level.levelId == 'field',
       );
       expect(field.displayName, 'Sunny Field');
-      expect(field.themeId, 'forest');
+      expect(field.visualThemeId, 'forest');
     } finally {
       fixtureRoot.deleteSync(recursive: true);
     }
@@ -106,7 +132,8 @@ Future<Directory> _createFixtureWorkspace() async {
       "levelId": "field",
       "revision": 1,
       "displayName": "Field",
-      "themeId": "field",
+      "visualThemeId": "field",
+      "chunkThemeGroups": ["default"],
       "cameraCenterY": 135,
       "groundTopY": 224,
       "earlyPatternChunks": 3,
@@ -120,7 +147,8 @@ Future<Directory> _createFixtureWorkspace() async {
       "levelId": "forest",
       "revision": 1,
       "displayName": "Forest",
-      "themeId": "forest",
+      "visualThemeId": "forest",
+      "chunkThemeGroups": ["default"],
       "cameraCenterY": 135,
       "groundTopY": 224,
       "earlyPatternChunks": 3,
@@ -138,13 +166,13 @@ Future<Directory> _createFixtureWorkspace() async {
   "schemaVersion": 1,
   "themes": [
     {
-      "themeId": "field",
+      "parallaxThemeId": "field",
       "revision": 1,
       "groundMaterialAssetPath": "assets/images/parallax/field/ground.png",
       "layers": []
     },
     {
-      "themeId": "forest",
+      "parallaxThemeId": "forest",
       "revision": 1,
       "groundMaterialAssetPath": "assets/images/parallax/forest/ground.png",
       "layers": []
@@ -157,7 +185,8 @@ Future<Directory> _createFixtureWorkspace() async {
     'assets/authoring/level/chunks/field/chunk_field_001.json',
     '''
 {
-  "levelId": "field"
+  "levelId": "field",
+  "assemblyGroupId": "default"
 }
 ''',
   );

@@ -37,6 +37,7 @@ class GroundSurface extends Component
   late final ui.Image _image;
   late final ui.Rect _materialSrcRect;
   double _materialHeight = _fallbackMaterialHeight;
+  bool _assetsReady = false;
 
   final Paint _paint = Paint()..filterQuality = FilterQuality.none;
 
@@ -66,11 +67,13 @@ class GroundSurface extends Component
       srcHeight,
     );
     _materialHeight = _materialSrcRect.height;
+    _assetsReady = true;
   }
 
   @override
   void render(ui.Canvas canvas) {
     super.render(canvas);
+    if (!_assetsReady) return;
 
     final surfaces = controller.snapshot.groundSurfaces;
     if (surfaces.isEmpty) return;

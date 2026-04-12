@@ -46,6 +46,7 @@ class GroundBandParallaxForeground extends Component
   late final List<ui.Image> _images;
   late final List<double> _scroll;
   double? _prevCameraLeftX;
+  bool _assetsReady = false;
 
   final Paint _paint = Paint()..filterQuality = FilterQuality.none;
 
@@ -56,11 +57,13 @@ class GroundBandParallaxForeground extends Component
       layers.map((layer) => game.images.load(layer.assetPath)),
     );
     _scroll = List<double>.filled(layers.length, 0.0);
+    _assetsReady = true;
   }
 
   @override
   void update(double dt) {
     super.update(dt);
+    if (!_assetsReady) return;
 
     final viewWidth = virtualWidth.toDouble();
     final camX = -game.camera.viewfinder.transform.offset.x;
@@ -82,6 +85,7 @@ class GroundBandParallaxForeground extends Component
   @override
   void render(ui.Canvas canvas) {
     super.render(canvas);
+    if (!_assetsReady) return;
 
     if (layers.isEmpty) return;
     final surfaces = controller.snapshot.groundSurfaces;

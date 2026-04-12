@@ -5,6 +5,7 @@ const int levelDefsSchemaVersion = 1;
 
 const String activeLevelStatus = 'active';
 const String deprecatedLevelStatus = 'deprecated';
+const String defaultChunkThemeGroupId = 'default';
 
 const Set<String> _supportedLevelStatuses = <String>{
   activeLevelStatus,
@@ -204,12 +205,18 @@ LevelDefinitionSource? _parseLevelEntry(
     path: defsPath,
     fieldPrefix: fieldPrefix,
   );
-  final themeId = _readRequiredString(
+  final visualThemeId = _readRequiredString(
     entry,
-    field: 'themeId',
+    field: 'visualThemeId',
     issues: issues,
     path: defsPath,
     fieldPrefix: fieldPrefix,
+  );
+  final chunkThemeGroups = _readChunkThemeGroups(
+    entry,
+    path: defsPath,
+    fieldPrefix: fieldPrefix,
+    issues: issues,
   );
   final cameraCenterY = _readRequiredFiniteDouble(
     entry,
@@ -267,6 +274,12 @@ LevelDefinitionSource? _parseLevelEntry(
     path: defsPath,
     fieldPrefix: fieldPrefix,
   );
+  final assembly = _parseAssembly(
+    entry['assembly'],
+    path: defsPath,
+    fieldPrefix: '$fieldPrefix.assembly',
+    issues: issues,
+  );
 
   if (levelId.isNotEmpty && !_stableIdentifierPattern.hasMatch(levelId)) {
     issues.add(
@@ -278,13 +291,14 @@ LevelDefinitionSource? _parseLevelEntry(
       ),
     );
   }
-  if (themeId.isNotEmpty && !_stableIdentifierPattern.hasMatch(themeId)) {
+  if (visualThemeId.isNotEmpty &&
+      !_stableIdentifierPattern.hasMatch(visualThemeId)) {
     issues.add(
       LevelDefinitionValidationIssue(
         path: defsPath,
         code: 'invalid_theme_id',
         message:
-            '$fieldPrefix.themeId must match ${_stableIdentifierPattern.pattern}.',
+            '$fieldPrefix.visualThemeId must match ${_stableIdentifierPattern.pattern}.',
       ),
     );
   }
@@ -299,11 +313,18 @@ LevelDefinitionSource? _parseLevelEntry(
       ),
     );
   }
+  _validateAssembly(
+    assembly,
+    path: defsPath,
+    fieldPrefix: '$fieldPrefix.assembly',
+    issues: issues,
+    levelChunkThemeGroups: chunkThemeGroups,
+  );
 
   if (levelId.isEmpty ||
       revision == null ||
       displayName.isEmpty ||
-      themeId.isEmpty ||
+      visualThemeId.isEmpty ||
       cameraCenterY == null ||
       groundTopY == null ||
       earlyPatternChunks == null ||
@@ -319,7 +340,8 @@ LevelDefinitionSource? _parseLevelEntry(
     levelId: levelId,
     revision: revision,
     displayName: displayName,
-    themeId: themeId,
+    visualThemeId: visualThemeId,
+    chunkThemeGroups: chunkThemeGroups,
     cameraCenterY: _normalizeZero(cameraCenterY),
     groundTopY: _normalizeZero(groundTopY),
     earlyPatternChunks: earlyPatternChunks,
@@ -328,7 +350,281 @@ LevelDefinitionSource? _parseLevelEntry(
     noEnemyChunks: noEnemyChunks,
     enumOrdinal: enumOrdinal,
     status: status,
+    assembly: assembly,
   );
+}
+
+List<String> _readChunkThemeGroups(
+  Map<String, Object?> entry, {
+  required String path,
+  required String fieldPrefix,
+  required List<LevelDefinitionValidationIssue> issues,
+}) {
+  final raw = entry['chunkThemeGroups'];
+  if (raw == null) {
+    return const <String>[defaultChunkThemeGroupId];
+  }
+  if (raw is! List<Object?>) {
+    issues.add(
+      LevelDefinitionValidationIssue(
+        path: path,
+        code: 'invalid_chunk_theme_groups',
+        message: '$fieldPrefix.chunkThemeGroups must be an array of strings.',
+      ),
+    );
+    return const <String>[defaultChunkThemeGroupId];
+  }
+  final groups = <String>{};
+  for (var i = 0; i < raw.length; i += 1) {
+    final value = raw[i];
+    if (value is! String || value.trim().isEmpty) {
+      issues.add(
+        LevelDefinitionValidationIssue(
+          path: path,
+          code: 'invalid_chunk_theme_group_id',
+          message:
+              '$fieldPrefix.chunkThemeGroups[$i] must be a non-empty string.',
+        ),
+      );
+      continue;
+    }
+    final normalized = value.trim();
+    if (!_stableIdentifierPattern.hasMatch(normalized)) {
+      issues.add(
+        LevelDefinitionValidationIssue(
+          path: path,
+          code: 'invalid_chunk_theme_group_id',
+          message:
+              '$fieldPrefix.chunkThemeGroups[$i] must match ${_stableIdentifierPattern.pattern}.',
+        ),
+      );
+    }
+    groups.add(normalized);
+  }
+  return _normalizeChunkThemeGroups(groups);
+}
+
+LevelAssemblySource? _parseAssembly(
+  Object? raw, {
+  required String path,
+  required String fieldPrefix,
+  required List<LevelDefinitionValidationIssue> issues,
+}) {
+  if (raw == null) {
+    return null;
+  }
+  if (raw is! Map<String, Object?>) {
+    issues.add(
+      LevelDefinitionValidationIssue(
+        path: path,
+        code: 'invalid_assembly',
+        message: '$fieldPrefix must be an object when present.',
+      ),
+    );
+    return null;
+  }
+
+  final loopSegmentsRaw = raw['loopSegments'];
+  if (loopSegmentsRaw is! bool) {
+    issues.add(
+      LevelDefinitionValidationIssue(
+        path: path,
+        code: 'invalid_assembly_loop_segments',
+        message: '$fieldPrefix.loopSegments must be a boolean.',
+      ),
+    );
+  }
+
+  final segmentsRaw = raw['segments'];
+  if (segmentsRaw is! List<Object?>) {
+    issues.add(
+      LevelDefinitionValidationIssue(
+        path: path,
+        code: 'invalid_assembly_segments',
+        message: '$fieldPrefix.segments must be an array.',
+      ),
+    );
+    return null;
+  }
+
+  final segments = <LevelAssemblySegmentSource>[];
+  for (var i = 0; i < segmentsRaw.length; i += 1) {
+    final entry = segmentsRaw[i];
+    if (entry is! Map<String, Object?>) {
+      issues.add(
+        LevelDefinitionValidationIssue(
+          path: path,
+          code: 'invalid_assembly_segment',
+          message: '$fieldPrefix.segments[$i] must be an object.',
+        ),
+      );
+      continue;
+    }
+    final segment = _parseAssemblySegment(
+      entry,
+      path: path,
+      fieldPrefix: '$fieldPrefix.segments[$i]',
+      issues: issues,
+    );
+    if (segment != null) {
+      segments.add(segment);
+    }
+  }
+
+  if (segments.isEmpty) {
+    return null;
+  }
+  return LevelAssemblySource(
+    loopSegments: loopSegmentsRaw is bool ? loopSegmentsRaw : true,
+    segments: List<LevelAssemblySegmentSource>.unmodifiable(segments),
+  );
+}
+
+LevelAssemblySegmentSource? _parseAssemblySegment(
+  Map<String, Object?> raw, {
+  required String path,
+  required String fieldPrefix,
+  required List<LevelDefinitionValidationIssue> issues,
+}) {
+  final segmentId = _readRequiredString(
+    raw,
+    field: 'segmentId',
+    issues: issues,
+    path: path,
+    fieldPrefix: fieldPrefix,
+  );
+  final groupId = _readRequiredString(
+    raw,
+    field: 'groupId',
+    issues: issues,
+    path: path,
+    fieldPrefix: fieldPrefix,
+  );
+  final minChunkCount = _readRequiredPositiveInt(
+    raw,
+    field: 'minChunkCount',
+    issues: issues,
+    path: path,
+    fieldPrefix: fieldPrefix,
+  );
+  final maxChunkCount = _readRequiredPositiveInt(
+    raw,
+    field: 'maxChunkCount',
+    issues: issues,
+    path: path,
+    fieldPrefix: fieldPrefix,
+  );
+  final requireDistinctChunksRaw = raw['requireDistinctChunks'];
+  if (requireDistinctChunksRaw is! bool) {
+    issues.add(
+      LevelDefinitionValidationIssue(
+        path: path,
+        code: 'invalid_require_distinct_chunks',
+        message: '$fieldPrefix.requireDistinctChunks must be a boolean.',
+      ),
+    );
+  }
+  if (segmentId.isEmpty ||
+      groupId.isEmpty ||
+      minChunkCount == null ||
+      maxChunkCount == null ||
+      requireDistinctChunksRaw is! bool) {
+    return null;
+  }
+  return LevelAssemblySegmentSource(
+    segmentId: segmentId,
+    groupId: groupId,
+    minChunkCount: minChunkCount,
+    maxChunkCount: maxChunkCount,
+    requireDistinctChunks: requireDistinctChunksRaw,
+  );
+}
+
+void _validateAssembly(
+  LevelAssemblySource? assembly, {
+  required String path,
+  required String fieldPrefix,
+  required List<LevelDefinitionValidationIssue> issues,
+  required List<String> levelChunkThemeGroups,
+}) {
+  if (assembly == null) {
+    return;
+  }
+
+  final seenSegmentIds = <String>{};
+  final allowedGroupIds = levelChunkThemeGroups.toSet();
+  for (var i = 0; i < assembly.segments.length; i += 1) {
+    final segment = assembly.segments[i];
+    final segmentPrefix = '$fieldPrefix.segments[$i]';
+    if (!seenSegmentIds.add(segment.segmentId)) {
+      issues.add(
+        LevelDefinitionValidationIssue(
+          path: path,
+          code: 'duplicate_segment_id',
+          message:
+              '$segmentPrefix.segmentId "${segment.segmentId}" is duplicated.',
+        ),
+      );
+    }
+    if (!_stableIdentifierPattern.hasMatch(segment.segmentId)) {
+      issues.add(
+        LevelDefinitionValidationIssue(
+          path: path,
+          code: 'invalid_segment_id',
+          message:
+              '$segmentPrefix.segmentId must match ${_stableIdentifierPattern.pattern}.',
+        ),
+      );
+    }
+    if (!_stableIdentifierPattern.hasMatch(segment.groupId)) {
+      issues.add(
+        LevelDefinitionValidationIssue(
+          path: path,
+          code: 'invalid_group_id',
+          message:
+              '$segmentPrefix.groupId must match ${_stableIdentifierPattern.pattern}.',
+        ),
+      );
+    } else if (!allowedGroupIds.contains(segment.groupId)) {
+      issues.add(
+        LevelDefinitionValidationIssue(
+          path: path,
+          code: 'unknown_assembly_group_id',
+          message:
+              '$segmentPrefix.groupId "${segment.groupId}" must be declared '
+              'in level chunkThemeGroups.',
+        ),
+      );
+    }
+    if (segment.maxChunkCount < segment.minChunkCount) {
+      issues.add(
+        LevelDefinitionValidationIssue(
+          path: path,
+          code: 'invalid_chunk_count_range',
+          message:
+              '$segmentPrefix must satisfy minChunkCount <= maxChunkCount.',
+        ),
+      );
+    }
+  }
+}
+
+List<String> _normalizeChunkThemeGroups(Iterable<String> rawGroups) {
+  final groups = <String>{};
+  for (final rawGroup in rawGroups) {
+    final normalized = rawGroup.trim();
+    if (normalized.isNotEmpty) {
+      groups.add(normalized);
+    }
+  }
+  final sorted = groups.toList(growable: false)..sort();
+  if (sorted.contains(defaultChunkThemeGroupId)) {
+    final withoutDefault = sorted
+        .where((groupId) => groupId != defaultChunkThemeGroupId)
+        .toList(growable: false);
+    return <String>[defaultChunkThemeGroupId, ...withoutDefault];
+  }
+  return <String>[defaultChunkThemeGroupId, ...sorted];
 }
 
 String renderCanonicalLevelDefsJson(List<LevelDefinitionSource> levels) {
@@ -344,7 +640,12 @@ String renderCanonicalLevelDefsJson(List<LevelDefinitionSource> levels) {
     buffer.writeln('      "levelId": ${jsonEncode(level.levelId)},');
     buffer.writeln('      "revision": ${level.revision},');
     buffer.writeln('      "displayName": ${jsonEncode(level.displayName)},');
-    buffer.writeln('      "themeId": ${jsonEncode(level.themeId)},');
+    buffer.writeln(
+      '      "visualThemeId": ${jsonEncode(level.visualThemeId)},',
+    );
+    buffer.writeln(
+      '      "chunkThemeGroups": ${_renderCanonicalStringList(level.chunkThemeGroups)},',
+    );
     buffer.writeln(
       '      "cameraCenterY": ${_formatCanonicalNumber(level.cameraCenterY)},',
     );
@@ -358,7 +659,12 @@ String renderCanonicalLevelDefsJson(List<LevelDefinitionSource> levels) {
     );
     buffer.writeln('      "noEnemyChunks": ${level.noEnemyChunks},');
     buffer.writeln('      "enumOrdinal": ${level.enumOrdinal},');
-    buffer.writeln('      "status": ${jsonEncode(level.status)}');
+    if (level.assembly == null) {
+      buffer.writeln('      "status": ${jsonEncode(level.status)}');
+    } else {
+      buffer.writeln('      "status": ${jsonEncode(level.status)},');
+      _writeAssembly(buffer, level.assembly!);
+    }
     buffer.write('    }');
     if (i < sortedLevels.length - 1) {
       buffer.write(',');
@@ -387,10 +693,37 @@ String renderLevelIdDartOutput(List<LevelDefinitionSource> levels) {
   return buffer.toString();
 }
 
+void _writeAssembly(StringBuffer buffer, LevelAssemblySource assembly) {
+  buffer.writeln('      "assembly": {');
+  buffer.writeln('        "loopSegments": ${assembly.loopSegments},');
+  buffer.writeln('        "segments": [');
+  for (var i = 0; i < assembly.segments.length; i += 1) {
+    final segment = assembly.segments[i];
+    buffer.writeln('          {');
+    buffer.writeln(
+      '            "segmentId": ${jsonEncode(segment.segmentId)},',
+    );
+    buffer.writeln('            "groupId": ${jsonEncode(segment.groupId)},');
+    buffer.writeln('            "minChunkCount": ${segment.minChunkCount},');
+    buffer.writeln('            "maxChunkCount": ${segment.maxChunkCount},');
+    buffer.writeln(
+      '            "requireDistinctChunks": ${segment.requireDistinctChunks}',
+    );
+    buffer.write('          }');
+    if (i < assembly.segments.length - 1) {
+      buffer.write(',');
+    }
+    buffer.writeln();
+  }
+  buffer.writeln('        ]');
+  buffer.writeln('      }');
+}
+
 String renderLevelRegistryDartOutput(List<LevelDefinitionSource> levels) {
   final enumOrderedLevels = _levelsInEnumOrder(levels);
   final canonicalLevels = List<LevelDefinitionSource>.from(levels)
     ..sort(_compareLevels);
+  final hasAssembly = enumOrderedLevels.any((level) => level.assembly != null);
   if (canonicalLevels.isEmpty) {
     throw StateError('Cannot render level registry without authored levels.');
   }
@@ -407,6 +740,7 @@ String renderLevelRegistryDartOutput(List<LevelDefinitionSource> levels) {
     ..writeln("import '../collision/static_world_geometry.dart';")
     ..writeln("import '../track/authored_chunk_patterns.dart';")
     ..writeln("import '../track/chunk_pattern_source.dart';")
+    ..writeln(hasAssembly ? "import 'level_assembly.dart';" : '')
     ..writeln("import 'level_definition.dart';")
     ..writeln("import 'level_id.dart';")
     ..writeln()
@@ -458,8 +792,13 @@ String renderLevelRegistryDartOutput(List<LevelDefinitionSource> levels) {
       ..writeln('          easyPatternChunks: ${level.easyPatternChunks},')
       ..writeln('          normalPatternChunks: ${level.normalPatternChunks},')
       ..writeln('          noEnemyChunks: ${level.noEnemyChunks},')
-      ..writeln("          themeId: '${_escape(level.themeId)}',")
-      ..writeln('        );');
+      ..writeln("          visualThemeId: '${_escape(level.visualThemeId)}',");
+    if (level.assembly != null) {
+      buffer.writeln(
+        '          assembly: ${_renderLevelAssemblyDart(level.assembly!)},',
+      );
+    }
+    buffer.writeln('        );');
   }
 
   buffer
@@ -538,6 +877,30 @@ String renderLevelUiMetadataDartOutput(List<LevelDefinitionSource> levels) {
     )
     ..writeln('}');
 
+  return buffer.toString();
+}
+
+String _renderLevelAssemblyDart(LevelAssemblySource assembly) {
+  final buffer = StringBuffer()
+    ..writeln('const LevelAssemblyDefinition(')
+    ..writeln('            loopSegments: ${assembly.loopSegments},')
+    ..writeln('            segments: <LevelAssemblySegment>[');
+  for (final segment in assembly.segments) {
+    buffer
+      ..writeln('              LevelAssemblySegment(')
+      ..writeln("                segmentId: '${_escape(segment.segmentId)}',")
+      ..writeln("                groupId: '${_escape(segment.groupId)}',")
+      ..writeln('                minChunkCount: ${segment.minChunkCount},')
+      ..writeln('                maxChunkCount: ${segment.maxChunkCount},')
+      ..writeln(
+        '                requireDistinctChunks: ${segment.requireDistinctChunks},',
+      )
+      ..writeln('              ),');
+  }
+  buffer
+    ..write('            ],')
+    ..writeln()
+    ..write('          )');
   return buffer.toString();
 }
 
@@ -715,6 +1078,13 @@ String _formatCanonicalNumber(double value) {
       .replaceFirst(RegExp(r'\.$'), '');
 }
 
+String _renderCanonicalStringList(List<String> values) {
+  if (values.isEmpty) {
+    return '[]';
+  }
+  return '[${values.map(jsonEncode).join(', ')}]';
+}
+
 String _formatDartDouble(double value) {
   final normalized = _normalizeZero(value);
   if ((normalized - normalized.roundToDouble()).abs() < 1e-9) {
@@ -762,7 +1132,8 @@ class LevelDefinitionSource {
     required this.levelId,
     required this.revision,
     required this.displayName,
-    required this.themeId,
+    required this.visualThemeId,
+    required this.chunkThemeGroups,
     required this.cameraCenterY,
     required this.groundTopY,
     required this.earlyPatternChunks,
@@ -771,12 +1142,14 @@ class LevelDefinitionSource {
     required this.noEnemyChunks,
     required this.enumOrdinal,
     required this.status,
+    this.assembly,
   });
 
   final String levelId;
   final int revision;
   final String displayName;
-  final String themeId;
+  final String visualThemeId;
+  final List<String> chunkThemeGroups;
   final double cameraCenterY;
   final double groundTopY;
   final int earlyPatternChunks;
@@ -785,6 +1158,33 @@ class LevelDefinitionSource {
   final int noEnemyChunks;
   final int enumOrdinal;
   final String status;
+  final LevelAssemblySource? assembly;
+}
+
+class LevelAssemblySource {
+  const LevelAssemblySource({
+    required this.loopSegments,
+    required this.segments,
+  });
+
+  final bool loopSegments;
+  final List<LevelAssemblySegmentSource> segments;
+}
+
+class LevelAssemblySegmentSource {
+  const LevelAssemblySegmentSource({
+    required this.segmentId,
+    required this.groupId,
+    required this.minChunkCount,
+    required this.maxChunkCount,
+    required this.requireDistinctChunks,
+  });
+
+  final String segmentId;
+  final String groupId;
+  final int minChunkCount;
+  final int maxChunkCount;
+  final bool requireDistinctChunks;
 }
 
 class LevelDefinitionValidationIssue

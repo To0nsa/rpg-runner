@@ -122,35 +122,99 @@ List<ValidationIssue> validateLevelDocument(LevelDefsDocument document) {
       );
     }
 
-    if (level.themeId.isEmpty) {
+    if (level.visualThemeId.isEmpty) {
       issues.add(
         ValidationIssue(
           severity: ValidationSeverity.error,
           code: 'missing_theme_id',
-          message: 'Level "${level.levelId}" must have a themeId.',
+          message: 'Level "${level.levelId}" must have a visualThemeId.',
           sourcePath: sourcePath,
         ),
       );
-    } else if (!stableLevelIdentifierPattern.hasMatch(level.themeId)) {
+    } else if (!stableLevelIdentifierPattern.hasMatch(level.visualThemeId)) {
       issues.add(
         ValidationIssue(
           severity: ValidationSeverity.error,
           code: 'invalid_theme_id',
           message:
-              'Level "${level.levelId}" themeId "${level.themeId}" must match '
+              'Level "${level.levelId}" visualThemeId "${level.visualThemeId}" must match '
               '${stableLevelIdentifierPattern.pattern}.',
           sourcePath: sourcePath,
         ),
       );
     } else if (document.parallaxThemeSourceAvailable &&
-        !document.availableParallaxThemeIds.contains(level.themeId)) {
+        !document.availableParallaxVisualThemeIds.contains(
+          level.visualThemeId,
+        )) {
       issues.add(
         ValidationIssue(
           severity: ValidationSeverity.warning,
           code: 'missing_parallax_theme',
           message:
-              'Level "${level.levelId}" references unauthored themeId '
-              '"${level.themeId}".',
+              'Level "${level.levelId}" references unauthored visualThemeId '
+              '"${level.visualThemeId}".',
+          sourcePath: sourcePath,
+        ),
+      );
+    }
+
+    final seenChunkThemeGroups = <String>{};
+    if (level.chunkThemeGroups.isEmpty) {
+      issues.add(
+        ValidationIssue(
+          severity: ValidationSeverity.error,
+          code: 'missing_chunk_theme_groups',
+          message:
+              'Level "${level.levelId}" must define at least one chunkThemeGroups value.',
+          sourcePath: sourcePath,
+        ),
+      );
+    }
+    for (final chunkThemeGroupId in level.chunkThemeGroups) {
+      if (chunkThemeGroupId.isEmpty) {
+        issues.add(
+          ValidationIssue(
+            severity: ValidationSeverity.error,
+            code: 'invalid_chunk_theme_group_id',
+            message:
+                'Level "${level.levelId}" has an empty chunkThemeGroups entry.',
+            sourcePath: sourcePath,
+          ),
+        );
+        continue;
+      }
+      if (!stableLevelIdentifierPattern.hasMatch(chunkThemeGroupId)) {
+        issues.add(
+          ValidationIssue(
+            severity: ValidationSeverity.error,
+            code: 'invalid_chunk_theme_group_id',
+            message:
+                'Level "${level.levelId}" chunkThemeGroups entry "$chunkThemeGroupId" must match '
+                '${stableLevelIdentifierPattern.pattern}.',
+            sourcePath: sourcePath,
+          ),
+        );
+      }
+      if (!seenChunkThemeGroups.add(chunkThemeGroupId)) {
+        issues.add(
+          ValidationIssue(
+            severity: ValidationSeverity.error,
+            code: 'duplicate_chunk_theme_group_id',
+            message:
+                'Level "${level.levelId}" has duplicate chunkThemeGroups entry "$chunkThemeGroupId".',
+            sourcePath: sourcePath,
+          ),
+        );
+      }
+    }
+    if (!level.chunkThemeGroups.contains(defaultLevelChunkThemeGroupId)) {
+      issues.add(
+        ValidationIssue(
+          severity: ValidationSeverity.error,
+          code: 'missing_default_chunk_theme_group',
+          message:
+              'Level "${level.levelId}" chunkThemeGroups must include '
+              '"$defaultLevelChunkThemeGroupId".',
           sourcePath: sourcePath,
         ),
       );
@@ -264,10 +328,162 @@ List<ValidationIssue> validateLevelDocument(LevelDefsDocument document) {
         ),
       );
     }
+
+    _validateAssembly(
+      issues,
+      document: document,
+      sourcePath: sourcePath,
+      level: level,
+    );
   }
 
   issues.sort(_compareIssues);
   return issues;
+}
+
+void _validateAssembly(
+  List<ValidationIssue> issues, {
+  required LevelDefsDocument document,
+  required String sourcePath,
+  required LevelDef level,
+}) {
+  final assembly = level.assembly;
+  if (assembly == null) {
+    return;
+  }
+
+  final seenSegmentIds = <String>{};
+  final levelChunkThemeGroups = level.chunkThemeGroups.toSet();
+  final availableGroupCounts =
+      document.authoredChunkAssemblyGroupCountsByLevelId[level.levelId] ??
+      const <String, int>{};
+
+  for (final segment in assembly.segments) {
+    var groupIsResolvable = false;
+    if (segment.segmentId.isEmpty) {
+      issues.add(
+        ValidationIssue(
+          severity: ValidationSeverity.error,
+          code: 'missing_segment_id',
+          message:
+              'Level "${level.levelId}" contains an assembly segment without segmentId.',
+          sourcePath: sourcePath,
+        ),
+      );
+    } else if (!stableLevelIdentifierPattern.hasMatch(segment.segmentId)) {
+      issues.add(
+        ValidationIssue(
+          severity: ValidationSeverity.error,
+          code: 'invalid_segment_id',
+          message:
+              'Level "${level.levelId}" segmentId "${segment.segmentId}" must match '
+              '${stableLevelIdentifierPattern.pattern}.',
+          sourcePath: sourcePath,
+        ),
+      );
+    } else if (!seenSegmentIds.add(segment.segmentId)) {
+      issues.add(
+        ValidationIssue(
+          severity: ValidationSeverity.error,
+          code: 'duplicate_segment_id',
+          message:
+              'Level "${level.levelId}" has duplicate segmentId "${segment.segmentId}".',
+          sourcePath: sourcePath,
+        ),
+      );
+    }
+
+    if (segment.groupId.isEmpty) {
+      issues.add(
+        ValidationIssue(
+          severity: ValidationSeverity.error,
+          code: 'missing_group_id',
+          message:
+              'Level "${level.levelId}" segment "${segment.segmentId}" must have a groupId.',
+          sourcePath: sourcePath,
+        ),
+      );
+    } else if (!stableLevelIdentifierPattern.hasMatch(segment.groupId)) {
+      issues.add(
+        ValidationIssue(
+          severity: ValidationSeverity.error,
+          code: 'invalid_group_id',
+          message:
+              'Level "${level.levelId}" segment "${segment.segmentId}" groupId '
+              '"${segment.groupId}" must match '
+              '${stableLevelIdentifierPattern.pattern}.',
+          sourcePath: sourcePath,
+        ),
+      );
+    } else if (!levelChunkThemeGroups.contains(segment.groupId)) {
+      issues.add(
+        ValidationIssue(
+          severity: ValidationSeverity.error,
+          code: 'unknown_assembly_group_id',
+          message:
+              'Level "${level.levelId}" segment "${segment.segmentId}" '
+              'references groupId "${segment.groupId}" that is not defined '
+              'in chunkThemeGroups.',
+          sourcePath: sourcePath,
+        ),
+      );
+    } else {
+      groupIsResolvable = true;
+    }
+
+    if (segment.minChunkCount <= 0) {
+      issues.add(
+        ValidationIssue(
+          severity: ValidationSeverity.error,
+          code: 'invalid_min_chunk_count',
+          message:
+              'Level "${level.levelId}" segment "${segment.segmentId}" '
+              'minChunkCount must be > 0.',
+          sourcePath: sourcePath,
+        ),
+      );
+    }
+    if (segment.maxChunkCount <= 0) {
+      issues.add(
+        ValidationIssue(
+          severity: ValidationSeverity.error,
+          code: 'invalid_max_chunk_count',
+          message:
+              'Level "${level.levelId}" segment "${segment.segmentId}" '
+              'maxChunkCount must be > 0.',
+          sourcePath: sourcePath,
+        ),
+      );
+    } else if (segment.maxChunkCount < segment.minChunkCount) {
+      issues.add(
+        ValidationIssue(
+          severity: ValidationSeverity.error,
+          code: 'invalid_chunk_count_range',
+          message:
+              'Level "${level.levelId}" segment "${segment.segmentId}" must '
+              'satisfy minChunkCount <= maxChunkCount.',
+          sourcePath: sourcePath,
+        ),
+      );
+    }
+
+    if (segment.requireDistinctChunks &&
+        groupIsResolvable &&
+        document.chunkCountSourceAvailable &&
+        (availableGroupCounts[segment.groupId] ?? 0) < segment.maxChunkCount) {
+      issues.add(
+        ValidationIssue(
+          severity: ValidationSeverity.error,
+          code: 'insufficient_distinct_group_chunks',
+          message:
+              'Level "${level.levelId}" segment "${segment.segmentId}" '
+              'requires ${segment.maxChunkCount} distinct chunks, but group '
+              '"${segment.groupId}" only has ${availableGroupCounts[segment.groupId] ?? 0}.',
+          sourcePath: sourcePath,
+        ),
+      );
+    }
+  }
 }
 
 void _validateChunkWindow(

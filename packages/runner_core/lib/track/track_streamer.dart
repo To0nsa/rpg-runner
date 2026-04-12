@@ -163,11 +163,12 @@ class TrackStreamer {
       final endX = startX + tuning.chunkWidth;
 
       // Select pattern deterministically from seed + index.
-      final pattern = patternSource.patternFor(
+      final selection = patternSource.selectionFor(
         seed: seed,
         chunkIndex: chunkIndex,
         tier: _tierForChunkIndex(chunkIndex),
       );
+      final pattern = selection.pattern;
 
       late List<StaticSolid> solids;
       late GroundBuildResult ground;

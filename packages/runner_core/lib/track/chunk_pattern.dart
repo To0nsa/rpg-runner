@@ -14,6 +14,7 @@ class ChunkPattern {
   const ChunkPattern({
     required this.name,
     this.chunkKey,
+    this.assemblyGroupId = defaultChunkAssemblyGroupId,
     this.platforms = const <PlatformRel>[],
     this.obstacles = const <ObstacleRel>[],
     this.groundGaps = const <GapRel>[],
@@ -26,6 +27,9 @@ class ChunkPattern {
 
   /// Stable chunk identity key (optional during migration from legacy patterns).
   final String? chunkKey;
+
+  /// Authored assembly membership key used by level segment scheduling.
+  final String assemblyGroupId;
 
   /// One-way platforms the player can jump through.
   final List<PlatformRel> platforms;
@@ -42,6 +46,9 @@ class ChunkPattern {
   /// Author-authored visual sprites for this chunk.
   final List<ChunkVisualSpriteRel> visualSprites;
 }
+
+/// Default chunk assembly group used by legacy-authored chunks.
+const String defaultChunkAssemblyGroupId = 'default';
 
 /// Chunk-relative visual sprite entry used by runtime renderer.
 class ChunkVisualSpriteRel {

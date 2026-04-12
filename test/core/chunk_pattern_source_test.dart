@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:runner_core/levels/level_assembly.dart';
 import 'package:runner_core/track/chunk_pattern.dart';
 import 'package:runner_core/track/chunk_pattern_source.dart';
 import 'package:runner_core/util/deterministic_rng.dart' show mix32;
@@ -109,4 +110,137 @@ void main() {
       ),
     );
   });
+
+  test('AssembledChunkPatternSource follows authored segment order', () {
+    final source = AssembledChunkPatternSource(
+      baseSource: const ChunkPatternListSource(
+        easyPatterns: <ChunkPattern>[
+          ChunkPattern(name: 'cemetery_a', assemblyGroupId: 'cemetery'),
+          ChunkPattern(name: 'cemetery_b', assemblyGroupId: 'cemetery'),
+          ChunkPattern(name: 'none_a', assemblyGroupId: 'none'),
+          ChunkPattern(name: 'village_a', assemblyGroupId: 'village'),
+          ChunkPattern(name: 'village_b', assemblyGroupId: 'village'),
+        ],
+      ),
+      assembly: const LevelAssemblyDefinition(
+        loopSegments: true,
+        segments: <LevelAssemblySegment>[
+          LevelAssemblySegment(
+            segmentId: 'cemetery_run',
+            groupId: 'cemetery',
+            minChunkCount: 2,
+            maxChunkCount: 2,
+            requireDistinctChunks: true,
+          ),
+          LevelAssemblySegment(
+            segmentId: 'none_run',
+            groupId: 'none',
+            minChunkCount: 1,
+            maxChunkCount: 1,
+            requireDistinctChunks: false,
+          ),
+          LevelAssemblySegment(
+            segmentId: 'village_run',
+            groupId: 'village',
+            minChunkCount: 2,
+            maxChunkCount: 2,
+            requireDistinctChunks: true,
+          ),
+        ],
+      ),
+    );
+
+    final selections = <ChunkPatternSelection>[
+      for (var chunkIndex = 0; chunkIndex < 6; chunkIndex += 1)
+        source.selectionFor(
+          seed: 7,
+          chunkIndex: chunkIndex,
+          tier: ChunkPatternTier.easy,
+        ),
+    ];
+
+    expect(
+      selections.take(2).map((selection) => selection.pattern.name).toSet(),
+      <String>{'cemetery_a', 'cemetery_b'},
+    );
+    expect(selections[2].pattern.name, 'none_a');
+    expect(
+      selections
+          .skip(3)
+          .take(2)
+          .map((selection) => selection.pattern.name)
+          .toSet(),
+      <String>{'village_a', 'village_b'},
+    );
+    expect(selections[5].pattern.assemblyGroupId, 'cemetery');
+  });
+
+  test(
+    'AssembledChunkPatternSource draws deterministic run lengths inside authored ranges',
+    () {
+      final source = AssembledChunkPatternSource(
+        baseSource: const ChunkPatternListSource(
+          easyPatterns: <ChunkPattern>[
+            ChunkPattern(name: 'cemetery_a', assemblyGroupId: 'cemetery'),
+            ChunkPattern(name: 'cemetery_b', assemblyGroupId: 'cemetery'),
+            ChunkPattern(name: 'cemetery_c', assemblyGroupId: 'cemetery'),
+            ChunkPattern(name: 'none_a', assemblyGroupId: 'none'),
+            ChunkPattern(name: 'none_b', assemblyGroupId: 'none'),
+            ChunkPattern(name: 'none_c', assemblyGroupId: 'none'),
+            ChunkPattern(name: 'none_d', assemblyGroupId: 'none'),
+          ],
+        ),
+        assembly: const LevelAssemblyDefinition(
+          loopSegments: false,
+          segments: <LevelAssemblySegment>[
+            LevelAssemblySegment(
+              segmentId: 'cemetery_run',
+              groupId: 'cemetery',
+              minChunkCount: 2,
+              maxChunkCount: 4,
+              requireDistinctChunks: false,
+            ),
+            LevelAssemblySegment(
+              segmentId: 'none_run',
+              groupId: 'none',
+              minChunkCount: 4,
+              maxChunkCount: 6,
+              requireDistinctChunks: false,
+            ),
+          ],
+        ),
+      );
+
+      final first = <String>[];
+      final second = <String>[];
+      for (var chunkIndex = 0; chunkIndex < 14; chunkIndex += 1) {
+        first.add(
+          source
+              .selectionFor(
+                seed: 99,
+                chunkIndex: chunkIndex,
+                tier: ChunkPatternTier.easy,
+              )
+              .pattern
+              .assemblyGroupId,
+        );
+        second.add(
+          source
+              .selectionFor(
+                seed: 99,
+                chunkIndex: chunkIndex,
+                tier: ChunkPatternTier.easy,
+              )
+              .pattern
+              .assemblyGroupId,
+        );
+      }
+
+      expect(second, first);
+      final firstNoneIndex = first.indexOf('none');
+      expect(firstNoneIndex, inInclusiveRange(2, 4));
+      expect(first.take(firstNoneIndex), everyElement('cemetery'));
+      expect(first.skip(firstNoneIndex), everyElement('none'));
+    },
+  );
 }

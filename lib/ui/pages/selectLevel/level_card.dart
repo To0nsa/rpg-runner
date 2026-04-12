@@ -69,7 +69,7 @@ class LevelCard extends StatelessWidget {
               fit: StackFit.expand,
               children: [
                 LevelParallaxPreview(
-                  themeId: levelId.themeId,
+                  visualThemeId: levelId.visualThemeId,
                   alignment: Alignment.center,
                 ),
                 if (!selected)

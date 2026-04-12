@@ -12,7 +12,7 @@ registries, not freeform world editing.
 ### Primary outcomes
 
 - authored level metadata replaces hand-maintained Dart registry data
-- `themeId` ownership moves into Level Creator
+- `visualThemeId` ownership moves into Level Creator
 - non-dev users can create and edit level metadata without touching runtime
   source files
 - deterministic authoring output and generated runtime data stay reviewable
@@ -21,7 +21,7 @@ registries, not freeform world editing.
 ### Core rules
 
 - level metadata becomes authored data, not hand-maintained Dart
-- `themeId` mapping belongs to Level Creator, not Parallax Editor
+- `visualThemeId` mapping belongs to Level Creator, not Parallax Editor
 - chunk/core stays authoritative for gameplay chunks, collision, traversal,
   spawn, and streaming
 - first shipped scope edits only the runtime level contract that exists today
@@ -69,7 +69,7 @@ Suggested per-level fields:
 - `levelId`
 - `revision`
 - `displayName`
-- `themeId`
+- `visualThemeId`
 - `cameraCenterY`
 - `groundTopY`
 - `earlyPatternChunks`
@@ -116,7 +116,7 @@ Capabilities:
 
 - create level
 - edit metadata
-- assign `themeId`
+- assign `visualThemeId`
 - deprecate/reactivate level
 - select active level
 - validate in real time
@@ -129,7 +129,7 @@ Capabilities:
 - duplicate `levelId`
 - duplicate `enumOrdinal`
 - invalid or empty `displayName`
-- invalid `levelId` or `themeId` format
+- invalid `levelId` or `visualThemeId` format
 - invalid revision
 - non-finite numeric values
 - negative chunk-window counts
@@ -139,7 +139,7 @@ Capabilities:
 
 ### Warnings
 
-- `themeId` not yet authored in parallax defs
+- `visualThemeId` not yet authored in parallax defs
 - level has zero chunks
 - deprecated level still selected in editor
 - unusual `cameraCenterY` or `groundTopY`
@@ -207,7 +207,7 @@ Scope:
 - level list pane
 - inspector pane
 - create/deprecate/reactivate workflows
-- `themeId` assignment and metadata editing
+- `visualThemeId` assignment and metadata editing
 
 Gate:
 

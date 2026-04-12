@@ -3,7 +3,7 @@ import 'package:rpg_runner/game/themes/parallax_theme_registry.dart';
 
 void main() {
   test('resolves generated authored theme content for field', () {
-    final theme = ParallaxThemeRegistry.forThemeId('field');
+    final theme = ParallaxThemeRegistry.forParallaxThemeId('field');
 
     expect(theme.groundMaterialAssetPath, 'parallax/field/Field Layer 09.png');
     expect(
@@ -28,10 +28,21 @@ void main() {
   });
 
   test('falls back to default authored theme for unknown theme id', () {
-    final fallbackTheme = ParallaxThemeRegistry.forThemeId('missing-theme');
+    final fallbackTheme = ParallaxThemeRegistry.forParallaxThemeId(
+      'missing-theme',
+    );
 
     expect(
       fallbackTheme.groundMaterialAssetPath,
+      'parallax/field/Field Layer 09.png',
+    );
+  });
+
+  test('null theme id resolves to default authored theme', () {
+    expect(
+      ParallaxThemeRegistry.maybeForParallaxThemeId(
+        null,
+      )?.groundMaterialAssetPath,
       'parallax/field/Field Layer 09.png',
     );
   });

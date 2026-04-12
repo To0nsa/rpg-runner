@@ -17,7 +17,7 @@ void main() {
             levelId: 'field',
             revision: 1,
             displayName: 'Field',
-            themeId: 'field',
+            visualThemeId: 'field',
             cameraCenterY: 135,
             groundTopY: 224,
             earlyPatternChunks: 3,
@@ -34,7 +34,7 @@ void main() {
             levelId: 'field',
             revision: 1,
             displayName: 'Field',
-            themeId: 'field',
+            visualThemeId: 'field',
             cameraCenterY: 135,
             groundTopY: 224,
             earlyPatternChunks: 3,
@@ -46,9 +46,12 @@ void main() {
           ),
         ],
         activeLevelId: 'field',
-        availableParallaxThemeIds: <String>['field', 'forest'],
+        availableParallaxVisualThemeIds: <String>['field', 'forest'],
         parallaxThemeSourceAvailable: true,
         authoredChunkCountsByLevelId: <String, int>{'field': 1},
+        authoredChunkAssemblyGroupCountsByLevelId: <String, Map<String, int>>{
+          'field': <String, int>{'default': 1, 'forest': 5},
+        },
         chunkCountSourceAvailable: true,
       );
 
@@ -93,9 +96,21 @@ void main() {
                   payload: const <String, Object?>{
                     'levelId': 'field',
                     'displayName': 'Field Updated',
-                    'themeId': 'forest',
+                    'visualThemeId': 'forest',
                     'cameraCenterY': '140',
                     'enumOrdinal': 50,
+                    'assembly': <String, Object?>{
+                      'loopSegments': true,
+                      'segments': <Map<String, Object?>>[
+                        <String, Object?>{
+                          'segmentId': 'forest_run',
+                          'groupId': 'forest',
+                          'minChunkCount': 2,
+                          'maxChunkCount': 5,
+                          'requireDistinctChunks': true,
+                        },
+                      ],
+                    },
                   },
                 ),
               )
@@ -105,9 +120,10 @@ void main() {
       );
       expect(updatedField.revision, 2);
       expect(updatedField.displayName, 'Field Updated');
-      expect(updatedField.themeId, 'forest');
+      expect(updatedField.visualThemeId, 'forest');
       expect(updatedField.cameraCenterY, 140);
       expect(updatedField.enumOrdinal, 50);
+      expect(updatedField.assembly?.segments.single.segmentId, 'forest_run');
 
       final deprecated =
           plugin.applyEdit(
@@ -164,7 +180,7 @@ void main() {
           levelId: 'field',
           revision: 1,
           displayName: 'Field',
-          themeId: 'field',
+          visualThemeId: 'field',
           cameraCenterY: 135,
           groundTopY: 224,
           earlyPatternChunks: 3,
@@ -178,9 +194,12 @@ void main() {
       baseline: null,
       baselineLevels: <LevelDef>[],
       activeLevelId: 'field',
-      availableParallaxThemeIds: <String>['field'],
+      availableParallaxVisualThemeIds: <String>['field'],
       parallaxThemeSourceAvailable: true,
       authoredChunkCountsByLevelId: <String, int>{'field': 1},
+      authoredChunkAssemblyGroupCountsByLevelId: <String, Map<String, int>>{
+        'field': <String, int>{'default': 1},
+      },
       chunkCountSourceAvailable: true,
       operationIssues: <ValidationIssue>[
         ValidationIssue(
@@ -211,7 +230,8 @@ void main() {
           levelId: 'field',
           revision: 0,
           displayName: '',
-          themeId: 'field',
+          visualThemeId: 'field',
+          chunkThemeGroups: <String>['default'],
           cameraCenterY: 9999,
           groundTopY: 224,
           earlyPatternChunks: -1,
@@ -220,12 +240,25 @@ void main() {
           noEnemyChunks: 3,
           enumOrdinal: 10,
           status: levelStatusDeprecated,
+          assembly: LevelAssemblyDef(
+            loopSegments: true,
+            segments: <LevelAssemblySegmentDef>[
+              LevelAssemblySegmentDef(
+                segmentId: 'Bad Segment',
+                groupId: 'missing_group',
+                minChunkCount: 5,
+                maxChunkCount: 3,
+                requireDistinctChunks: true,
+              ),
+            ],
+          ),
         ),
         LevelDef(
           levelId: 'field',
           revision: 1,
           displayName: 'Forest',
-          themeId: 'missing_theme',
+          visualThemeId: 'missing_theme',
+          chunkThemeGroups: <String>['default', 'forest'],
           cameraCenterY: 135,
           groundTopY: -10,
           earlyPatternChunks: 3,
@@ -234,14 +267,29 @@ void main() {
           noEnemyChunks: 3,
           enumOrdinal: 10,
           status: 'weird',
+          assembly: LevelAssemblyDef(
+            loopSegments: true,
+            segments: <LevelAssemblySegmentDef>[
+              LevelAssemblySegmentDef(
+                segmentId: 'forest_run',
+                groupId: 'forest',
+                minChunkCount: 2,
+                maxChunkCount: 5,
+                requireDistinctChunks: true,
+              ),
+            ],
+          ),
         ),
       ],
       baseline: null,
       baselineLevels: <LevelDef>[],
       activeLevelId: 'field',
-      availableParallaxThemeIds: <String>['field'],
+      availableParallaxVisualThemeIds: <String>['field'],
       parallaxThemeSourceAvailable: true,
       authoredChunkCountsByLevelId: <String, int>{'field': 0},
+      authoredChunkAssemblyGroupCountsByLevelId: <String, Map<String, int>>{
+        'field': <String, int>{'default': 1},
+      },
       chunkCountSourceAvailable: true,
     );
 
@@ -260,5 +308,9 @@ void main() {
     expect(codes, contains('unusual_ground_top_y'));
     expect(codes, contains('invalid_status'));
     expect(codes, contains('level_has_no_chunks'));
+    expect(codes, contains('invalid_segment_id'));
+    expect(codes, contains('unknown_assembly_group_id'));
+    expect(codes, contains('invalid_chunk_count_range'));
+    expect(codes, contains('insufficient_distinct_group_chunks'));
   });
 }

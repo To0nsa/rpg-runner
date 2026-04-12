@@ -44,6 +44,7 @@ List<ValidationIssue> validateChunkDocument(ChunkDocument document) {
       .where((id) => id.isNotEmpty)
       .toSet();
   final knownLevelIds = document.availableLevelIds.toSet();
+  final assemblyGroupOptionsByLevelId = document.assemblyGroupOptionsByLevelId;
   const tolerance = 1e-9;
   const knownEnemyMarkerIds = <String>{
     'unocoDemon',
@@ -180,6 +181,46 @@ List<ValidationIssue> validateChunkDocument(ChunkDocument document) {
           sourcePath: sourcePath,
         ),
       );
+    }
+
+    if (chunk.assemblyGroupId.isEmpty) {
+      issues.add(
+        ValidationIssue(
+          severity: ValidationSeverity.error,
+          code: 'missing_assembly_group_id',
+          message: 'Chunk ${chunk.id} is missing assemblyGroupId.',
+          sourcePath: sourcePath,
+        ),
+      );
+    } else if (!stableChunkAssemblyGroupPattern.hasMatch(
+      chunk.assemblyGroupId,
+    )) {
+      issues.add(
+        ValidationIssue(
+          severity: ValidationSeverity.error,
+          code: 'invalid_assembly_group_id',
+          message:
+              'Chunk ${chunk.id} assemblyGroupId "${chunk.assemblyGroupId}" '
+              'must match ${stableChunkAssemblyGroupPattern.pattern}.',
+          sourcePath: sourcePath,
+        ),
+      );
+    } else {
+      final allowedAssemblyGroupIds =
+          assemblyGroupOptionsByLevelId[chunk.levelId] ??
+          const <String>[defaultChunkAssemblyGroupId];
+      if (!allowedAssemblyGroupIds.contains(chunk.assemblyGroupId)) {
+        issues.add(
+          ValidationIssue(
+            severity: ValidationSeverity.error,
+            code: 'unknown_assembly_group_id',
+            message:
+                'Chunk ${chunk.id} assemblyGroupId "${chunk.assemblyGroupId}" '
+                'is not allowed for levelId "${chunk.levelId}".',
+            sourcePath: sourcePath,
+          ),
+        );
+      }
     }
 
     if (chunk.tileSize <= 0) {

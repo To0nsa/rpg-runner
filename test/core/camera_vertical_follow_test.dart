@@ -111,7 +111,7 @@ void main() {
         staticWorldGeometry: baseLevel.staticWorldGeometry,
         earlyPatternChunks: baseLevel.earlyPatternChunks,
         noEnemyChunks: baseLevel.noEnemyChunks,
-        themeId: baseLevel.themeId,
+        visualThemeId: baseLevel.visualThemeId,
         tuning: const CoreTuning(
           camera: followCamera,
           track: TrackTuning(enabled: false),

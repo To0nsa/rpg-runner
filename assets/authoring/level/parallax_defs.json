@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "themes": [
     {
-      "themeId": "field",
+      "parallaxThemeId": "field",
       "revision": 1,
       "groundMaterialAssetPath": "assets/images/parallax/field/Field Layer 09.png",
       "layers": [
@@ -90,7 +90,7 @@
       ]
     },
     {
-      "themeId": "forest",
+      "parallaxThemeId": "forest",
       "revision": 1,
       "groundMaterialAssetPath": "assets/images/parallax/forest/Forest Layer 04.png",
       "layers": [

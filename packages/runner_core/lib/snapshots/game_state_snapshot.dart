@@ -23,7 +23,7 @@ class GameStateSnapshot {
     required this.runId,
     required this.seed,
     required this.levelId,
-    required this.themeId,
+    required this.visualThemeId,
     required this.distance,
     required this.paused,
     required this.gameOver,
@@ -51,7 +51,7 @@ class GameStateSnapshot {
   ///
   /// This is Core-owned metadata (pure data) that the renderer can map to
   /// asset paths and visuals without importing any Core gameplay logic.
-  final String? themeId;
+  final String? visualThemeId;
 
   /// Distance progressed in the run.
   final double distance;

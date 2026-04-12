@@ -1,10 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runner_core/collision/static_world_geometry.dart';
+import 'package:runner_core/levels/level_assembly.dart';
 import 'package:runner_core/levels/level_definition.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/levels/level_registry.dart';
 import 'package:runner_core/game_core.dart';
+import 'package:runner_core/track/chunk_pattern.dart';
+import 'package:runner_core/track/chunk_pattern_source.dart';
 import '../support/test_level.dart';
 import 'package:runner_core/commands/command.dart';
 import 'package:runner_core/tuning/core_tuning.dart';
@@ -71,7 +74,7 @@ void main() {
     },
   );
 
-  test('themeId changes do not affect collision or geometry framing', () {
+  test('visualThemeId changes do not affect collision or geometry framing', () {
     const groundTopY = 214.0;
     const cameraCenterY = 122.0;
     const geometry = StaticWorldGeometry(
@@ -82,7 +85,7 @@ void main() {
       chunkPatternSource: defaultChunkPatternSource,
       cameraCenterY: cameraCenterY,
       staticWorldGeometry: geometry,
-      themeId: 'field',
+      visualThemeId: 'field',
       tuning: const CoreTuning(
         camera: noAutoscrollCameraTuning,
         track: TrackTuning(enabled: false),
@@ -93,7 +96,7 @@ void main() {
       chunkPatternSource: defaultChunkPatternSource,
       cameraCenterY: cameraCenterY,
       staticWorldGeometry: geometry,
-      themeId: 'forest',
+      visualThemeId: 'forest',
       tuning: const CoreTuning(
         camera: noAutoscrollCameraTuning,
         track: TrackTuning(enabled: false),
@@ -123,8 +126,8 @@ void main() {
 
     final sa = a.buildSnapshot();
     final sb = b.buildSnapshot();
-    expect(sa.themeId, 'field');
-    expect(sb.themeId, 'forest');
+    expect(sa.visualThemeId, 'field');
+    expect(sb.visualThemeId, 'forest');
     expect(sa.groundSurfaces.length, sb.groundSurfaces.length);
     for (var i = 0; i < sa.groundSurfaces.length; i += 1) {
       expect(sa.groundSurfaces[i].minX, sb.groundSurfaces[i].minX);
@@ -138,4 +141,71 @@ void main() {
     expect(sa.camera.centerY, sb.camera.centerY);
     expect(sa.camera.centerY, cameraCenterY);
   });
+
+  test(
+    'level definition keeps assembly as the single scheduling authority',
+    () {
+      const initialAssembly = LevelAssemblyDefinition(
+        loopSegments: true,
+        segments: <LevelAssemblySegment>[
+          LevelAssemblySegment(
+            segmentId: 'forest_run',
+            groupId: 'forest_group',
+            minChunkCount: 1,
+            maxChunkCount: 1,
+            requireDistinctChunks: false,
+          ),
+        ],
+      );
+      const nextAssembly = LevelAssemblyDefinition(
+        loopSegments: true,
+        segments: <LevelAssemblySegment>[
+          LevelAssemblySegment(
+            segmentId: 'none_run',
+            groupId: 'none_group',
+            minChunkCount: 1,
+            maxChunkCount: 1,
+            requireDistinctChunks: false,
+          ),
+        ],
+      );
+      final level = LevelDefinition(
+        id: LevelId.field,
+        chunkPatternSource: AssembledChunkPatternSource(
+          baseSource: const ChunkPatternListSource(
+            easyPatterns: <ChunkPattern>[
+              ChunkPattern(
+                name: 'forest_chunk',
+                assemblyGroupId: 'forest_group',
+              ),
+              ChunkPattern(name: 'none_chunk', assemblyGroupId: 'none_group'),
+            ],
+          ),
+          assembly: initialAssembly,
+        ),
+        staticWorldGeometry: const StaticWorldGeometry(
+          groundPlane: StaticGroundPlane(topY: 224),
+        ),
+      );
+
+      expect(level.assembly?.segments.single.segmentId, 'forest_run');
+      expect(
+        level.chunkPatternSource
+            .selectionFor(seed: 7, chunkIndex: 0, tier: ChunkPatternTier.easy)
+            .pattern
+            .assemblyGroupId,
+        'forest_group',
+      );
+
+      final updated = level.copyWith(assembly: nextAssembly);
+      expect(updated.assembly?.segments.single.segmentId, 'none_run');
+      expect(
+        updated.chunkPatternSource
+            .selectionFor(seed: 7, chunkIndex: 0, tier: ChunkPatternTier.easy)
+            .pattern
+            .assemblyGroupId,
+        'none_group',
+      );
+    },
+  );
 }

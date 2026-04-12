@@ -200,8 +200,8 @@ maintainability concerns.
   `tools/editor/lib/src/app/pages/parallaxEditor/**`
 - plugin: `ParallaxDomainPlugin`
 - source-of-truth file: `assets/authoring/level/parallax_defs.json`
-- parallax themes are visual-only render data keyed by stable `themeId`
-- active level selection resolves the current `themeId` via
+- parallax themes are visual-only render data keyed by stable `parallaxThemeId`
+- active level selection resolves the current `parallaxThemeId` via
   `packages/runner_core/lib/levels/level_registry.dart`; multiple levels may
   reuse the same authored theme
 - `groundMaterialAssetPath` belongs to render/theme selection only; gameplay
@@ -218,7 +218,7 @@ maintainability concerns.
 - source-of-truth file: `assets/authoring/level/level_defs.json`
 - current scope includes the Level Creator route, list/inspector UI, store,
   validation, plugin, pending diff, and safe write flow
-- `levelId` remains stable identity, `themeId` ownership belongs here, and
+- `levelId` remains stable identity, `visualThemeId` ownership belongs here, and
   gameplay authority stays in core/chunk systems
 - keep canonical file ordering by `levelId`, stable `enumOrdinal`, source-drift
   checks, and export gating in the plugin/store path

@@ -179,7 +179,7 @@ void main() {
         ),
       );
       expect(levelRegistryOutput, contains('case LevelId.forest:'));
-      expect(levelRegistryOutput, contains('themeId: \'field\''));
+      expect(levelRegistryOutput, contains('visualThemeId: \'field\''));
 
       final levelUiMetadataOutputFile = File(
         _joinPath(<String>[
@@ -213,6 +213,78 @@ void main() {
       expect(
         parallaxOutput,
         contains("assetPath: 'parallax/field/Field Layer 01.png'"),
+      );
+    } finally {
+      fixtureRoot.deleteSync(recursive: true);
+    }
+  });
+
+  test('generator emits assembly metadata into runtime outputs', () async {
+    final fixtureRoot = await Directory.systemTemp.createTemp(
+      'chunk_generator_assembly_',
+    );
+    try {
+      _writePrefabAndTileDefs(fixtureRoot.path);
+      _writeLevelDefsWithAssembly(fixtureRoot.path);
+      _writeParallaxDefs(fixtureRoot.path);
+      _writeFile(
+        fixtureRoot.path,
+        'assets/authoring/level/chunks/field/chunk_ok.json',
+        '''
+{
+  "schemaVersion": 1,
+  "chunkKey": "chunk_ok",
+  "id": "chunk_ok",
+  "levelId": "field",
+  "difficulty": "easy",
+  "assemblyGroupId": "cemetery"
+}
+''',
+      );
+
+      final result = await _runGenerate(workingDirectory: fixtureRoot.path);
+      expect(result.exitCode, 0, reason: result.stderr);
+
+      final chunkOutput = File(
+        _joinPath(<String>[
+          fixtureRoot.path,
+          'packages',
+          'runner_core',
+          'lib',
+          'track',
+          'authored_chunk_patterns.dart',
+        ]),
+      ).readAsStringSync();
+      expect(chunkOutput, contains("assemblyGroupId: 'cemetery'"));
+      expect(
+        chunkOutput,
+        contains('ChunkPatternListSource authoredChunkPatternSourceForLevel('),
+      );
+      expect(chunkOutput, isNot(contains('AssembledChunkPatternSource(')));
+      expect(chunkOutput, isNot(contains('LevelAssemblyDefinition? assembly')));
+
+      final levelRegistryOutput = File(
+        _joinPath(<String>[
+          fixtureRoot.path,
+          'packages',
+          'runner_core',
+          'lib',
+          'levels',
+          'level_registry.dart',
+        ]),
+      ).readAsStringSync();
+      expect(levelRegistryOutput, contains("import 'level_assembly.dart';"));
+      expect(levelRegistryOutput, contains('LevelAssemblyDefinition('));
+      expect(levelRegistryOutput, contains('LevelAssemblySegment('));
+      expect(
+        levelRegistryOutput,
+        isNot(contains('LevelAssemblyRenderThemeMode')),
+      );
+      expect(
+        RegExp(
+          r'assembly: const LevelAssemblyDefinition\(',
+        ).allMatches(levelRegistryOutput).length,
+        1,
       );
     } finally {
       fixtureRoot.deleteSync(recursive: true);
@@ -329,7 +401,8 @@ void _writeLevelDefs(String rootPath) {
       "levelId": "field",
       "revision": 1,
       "displayName": "Field",
-      "themeId": "field",
+      "visualThemeId": "field",
+      "chunkThemeGroups": ["default"],
       "cameraCenterY": 135,
       "groundTopY": 224,
       "earlyPatternChunks": 3,
@@ -343,7 +416,60 @@ void _writeLevelDefs(String rootPath) {
       "levelId": "forest",
       "revision": 1,
       "displayName": "Forest",
-      "themeId": "forest",
+      "visualThemeId": "forest",
+      "chunkThemeGroups": ["default"],
+      "cameraCenterY": 135,
+      "groundTopY": 224,
+      "earlyPatternChunks": 3,
+      "easyPatternChunks": 0,
+      "normalPatternChunks": 0,
+      "noEnemyChunks": 3,
+      "enumOrdinal": 10,
+      "status": "active"
+    }
+  ]
+}
+''');
+}
+
+void _writeLevelDefsWithAssembly(String rootPath) {
+  _writeFile(rootPath, 'assets/authoring/level/level_defs.json', '''
+{
+  "schemaVersion": 1,
+  "levels": [
+    {
+      "levelId": "field",
+      "revision": 1,
+      "displayName": "Field",
+      "visualThemeId": "field",
+      "chunkThemeGroups": ["default", "cemetery"],
+      "cameraCenterY": 135,
+      "groundTopY": 224,
+      "earlyPatternChunks": 3,
+      "easyPatternChunks": 0,
+      "normalPatternChunks": 0,
+      "noEnemyChunks": 3,
+      "enumOrdinal": 20,
+      "status": "active",
+      "assembly": {
+        "loopSegments": true,
+        "segments": [
+          {
+            "segmentId": "cemetery_run",
+            "groupId": "cemetery",
+            "minChunkCount": 2,
+            "maxChunkCount": 5,
+            "requireDistinctChunks": false
+          }
+        ]
+      }
+    },
+    {
+      "levelId": "forest",
+      "revision": 1,
+      "displayName": "Forest",
+      "visualThemeId": "forest",
+      "chunkThemeGroups": ["default"],
       "cameraCenterY": 135,
       "groundTopY": 224,
       "earlyPatternChunks": 3,
@@ -364,7 +490,7 @@ void _writeParallaxDefs(String rootPath) {
   "schemaVersion": 1,
   "themes": [
     {
-      "themeId": "field",
+      "parallaxThemeId": "field",
       "revision": 1,
       "groundMaterialAssetPath": "assets/images/parallax/field/Field Layer 09.png",
       "layers": [
@@ -387,6 +513,31 @@ void _writeParallaxDefs(String rootPath) {
           "yOffset": 0
         }
       ]
+    },
+    {
+      "parallaxThemeId": "forest",
+      "revision": 1,
+      "groundMaterialAssetPath": "assets/images/parallax/forest/Forest Layer 09.png",
+      "layers": [
+        {
+          "layerKey": "forest_bg_01",
+          "assetPath": "assets/images/parallax/forest/Forest Layer 01.png",
+          "group": "background",
+          "parallaxFactor": 0.1,
+          "zOrder": 10,
+          "opacity": 1,
+          "yOffset": 0
+        },
+        {
+          "layerKey": "forest_fg_10",
+          "assetPath": "assets/images/parallax/forest/Forest Layer 10.png",
+          "group": "foreground",
+          "parallaxFactor": 1,
+          "zOrder": 10,
+          "opacity": 1,
+          "yOffset": 0
+        }
+      ]
     }
   ]
 }
@@ -396,6 +547,9 @@ void _writeParallaxDefs(String rootPath) {
     'assets/images/parallax/field/Field Layer 01.png',
     'assets/images/parallax/field/Field Layer 09.png',
     'assets/images/parallax/field/Field Layer 10.png',
+    'assets/images/parallax/forest/Forest Layer 01.png',
+    'assets/images/parallax/forest/Forest Layer 09.png',
+    'assets/images/parallax/forest/Forest Layer 10.png',
   ]) {
     _writeFile(rootPath, relativePath, '');
   }

@@ -245,6 +245,19 @@ class TrackManager {
   List<StaticPrefabSpriteSnapshot> get staticPrefabSpritesSnapshot =>
       _staticPrefabSpritesSnapshot;
 
+  /// Resolves the effective render theme id.
+  ///
+  /// Segment-level render theme overrides are intentionally unsupported; render
+  /// theming is level-scoped via `LevelDefinition.visualThemeId`.
+  String? resolveRenderVisualThemeId({
+    required double cameraCenterX,
+    required String? levelVisualThemeId,
+  }) {
+    // Keep the cameraCenterX parameter in the contract for call-site stability.
+    final _ = cameraCenterX;
+    return levelVisualThemeId;
+  }
+
   /// Advances the track streamer and updates geometry if needed.
   ///
   /// This method should be called once per tick with the current camera

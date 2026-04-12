@@ -14,9 +14,9 @@ extension LevelIdUi on LevelId {
 
   /// Theme identifier used for asset lookup.
   ///
-  /// Resolves through [LevelRegistry] to get the authoritative themeId.
+  /// Resolves through [LevelRegistry] to get the authoritative visualThemeId.
   /// Returns 'field' as fallback if the level has no theme set.
-  String get themeId => LevelRegistry.byId(this).themeId ?? 'field';
+  String get visualThemeId => LevelRegistry.byId(this).visualThemeId ?? 'field';
 }
 
 List<LevelId> selectableLevelIdsForUi() {

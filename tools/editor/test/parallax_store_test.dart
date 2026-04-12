@@ -21,11 +21,11 @@ void main() {
 
       expect(loaded.availableLevelIds, <String>['field', 'forest']);
       expect(loaded.activeLevelId, 'field');
-      expect(resolveActiveThemeId(loaded), 'field');
+      expect(resolveActiveParallaxThemeId(loaded), 'field');
       expect(loaded.themes, hasLength(2));
 
       final fieldTheme = loaded.themes.firstWhere(
-        (theme) => theme.themeId == 'field',
+        (theme) => theme.parallaxThemeId == 'field',
       );
       final editedTheme = fieldTheme.copyWith(
         groundMaterialAssetPath: 'assets/images/parallax/field/ground_alt.png',
@@ -44,7 +44,9 @@ void main() {
       );
       final edited = loaded.copyWith(
         themes: <ParallaxThemeDef>[
-          loaded.themes.firstWhere((theme) => theme.themeId == 'forest'),
+          loaded.themes.firstWhere(
+            (theme) => theme.parallaxThemeId == 'forest',
+          ),
           editedTheme,
         ],
       );
@@ -61,7 +63,7 @@ void main() {
       final savedThemes = savedJson['themes'] as List<Object?>;
       final savedFieldTheme = savedThemes
           .cast<Map<String, Object?>>()
-          .firstWhere((theme) => theme['themeId'] == 'field');
+          .firstWhere((theme) => theme['parallaxThemeId'] == 'field');
       expect(
         savedFieldTheme['groundMaterialAssetPath'],
         'assets/images/parallax/field/ground_alt.png',
@@ -81,7 +83,7 @@ void main() {
         preferredActiveLevelId: 'field',
       );
       final reloadedFieldTheme = reloaded.themes.firstWhere(
-        (theme) => theme.themeId == 'field',
+        (theme) => theme.parallaxThemeId == 'field',
       );
       expect(reloadedFieldTheme.layers.last.layerKey, 'field_fg_20');
       expect(
@@ -103,12 +105,14 @@ void main() {
         preferredActiveLevelId: 'field',
       );
       final fieldTheme = loaded.themes.firstWhere(
-        (theme) => theme.themeId == 'field',
+        (theme) => theme.parallaxThemeId == 'field',
       );
       final edited = loaded.copyWith(
         themes: <ParallaxThemeDef>[
           fieldTheme.copyWith(revision: fieldTheme.revision + 1),
-          loaded.themes.firstWhere((theme) => theme.themeId == 'forest'),
+          loaded.themes.firstWhere(
+            (theme) => theme.parallaxThemeId == 'forest',
+          ),
         ],
       );
       final savePlan = store.buildSavePlan(workspace, document: edited);
@@ -137,7 +141,7 @@ Future<Directory> _createFixtureWorkspace() async {
       "levelId": "field",
       "revision": 1,
       "displayName": "Field",
-      "themeId": "field",
+      "visualThemeId": "field",
       "cameraCenterY": 135,
       "groundTopY": 224,
       "earlyPatternChunks": 3,
@@ -151,7 +155,7 @@ Future<Directory> _createFixtureWorkspace() async {
       "levelId": "forest",
       "revision": 1,
       "displayName": "Forest",
-      "themeId": "forest",
+      "visualThemeId": "forest",
       "cameraCenterY": 135,
       "groundTopY": 224,
       "earlyPatternChunks": 3,
@@ -169,7 +173,7 @@ Future<Directory> _createFixtureWorkspace() async {
   "schemaVersion": 1,
   "themes": [
     {
-      "themeId": "field",
+      "parallaxThemeId": "field",
       "revision": 1,
       "groundMaterialAssetPath": "assets/images/parallax/field/ground.png",
       "layers": [
@@ -194,7 +198,7 @@ Future<Directory> _createFixtureWorkspace() async {
       ]
     },
     {
-      "themeId": "forest",
+      "parallaxThemeId": "forest",
       "revision": 1,
       "groundMaterialAssetPath": "assets/images/parallax/forest/ground.png",
       "layers": [

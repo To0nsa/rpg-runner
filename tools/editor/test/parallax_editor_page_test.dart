@@ -103,7 +103,7 @@ const ParallaxDefsDocument _initialDocument = ParallaxDefsDocument(
   workspaceRootPath: '.',
   themes: <ParallaxThemeDef>[
     ParallaxThemeDef(
-      themeId: 'field',
+      parallaxThemeId: 'field',
       revision: 1,
       groundMaterialAssetPath: 'assets/images/parallax/field/ground.png',
       layers: <ParallaxLayerDef>[
@@ -119,7 +119,7 @@ const ParallaxDefsDocument _initialDocument = ParallaxDefsDocument(
       ],
     ),
     ParallaxThemeDef(
-      themeId: 'forest',
+      parallaxThemeId: 'forest',
       revision: 1,
       groundMaterialAssetPath: 'assets/images/parallax/forest/ground.png',
       layers: <ParallaxLayerDef>[
@@ -139,7 +139,7 @@ const ParallaxDefsDocument _initialDocument = ParallaxDefsDocument(
   availableLevelIds: <String>['field', 'forest'],
   activeLevelId: 'field',
   levelOptionSource: 'test',
-  themeIdByLevelId: <String, String>{'field': 'field', 'forest': 'forest'},
+  parallaxThemeIdByLevelId: <String, String>{'field': 'field', 'forest': 'forest'},
 );
 
 class _InMemoryParallaxPlugin implements AuthoringDomainPlugin {
@@ -188,7 +188,7 @@ class _InMemoryParallaxPlugin implements AuthoringDomainPlugin {
     }
     return PendingChanges(
       changedItemIds: parallaxDocument.themes
-          .map((theme) => theme.themeId)
+          .map((theme) => theme.parallaxThemeId)
           .toList(growable: false),
       fileDiffs: const <PendingFileDiff>[
         PendingFileDiff(

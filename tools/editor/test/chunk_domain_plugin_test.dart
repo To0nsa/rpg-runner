@@ -24,6 +24,9 @@ void main() {
       chunks: <LevelChunkDef>[chunk],
       baselineByChunkKey: <String, ChunkSourceBaseline>{},
       availableLevelIds: <String>['field'],
+      assemblyGroupOptionsByLevelId: <String, List<String>>{
+        'field': <String>['default', 'cemetery'],
+      },
       activeLevelId: 'field',
       levelOptionSource: 'test',
       runtimeGridSnap: 16.0,
@@ -62,6 +65,73 @@ void main() {
     expect(deprecated.chunks.single.revision, 4);
   });
 
+  test('delete removes chunk and reports missing source for unknown key', () {
+    final plugin = ChunkDomainPlugin();
+    const chunkA = LevelChunkDef(
+      chunkKey: 'chunk_a',
+      id: 'chunk_a',
+      revision: 1,
+      schemaVersion: 1,
+      levelId: 'field',
+      tileSize: 16,
+      width: 600,
+      height: 270,
+      difficulty: chunkDifficultyNormal,
+      groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 224),
+    );
+    const chunkB = LevelChunkDef(
+      chunkKey: 'chunk_b',
+      id: 'chunk_b',
+      revision: 1,
+      schemaVersion: 1,
+      levelId: 'field',
+      tileSize: 16,
+      width: 600,
+      height: 270,
+      difficulty: chunkDifficultyNormal,
+      groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 224),
+    );
+    const document = ChunkDocument(
+      chunks: <LevelChunkDef>[chunkA, chunkB],
+      baselineByChunkKey: <String, ChunkSourceBaseline>{},
+      availableLevelIds: <String>['field'],
+      assemblyGroupOptionsByLevelId: <String, List<String>>{
+        'field': <String>['default'],
+      },
+      activeLevelId: 'field',
+      levelOptionSource: 'test',
+      runtimeGridSnap: 16.0,
+      runtimeChunkWidth: 600.0,
+      runtimeGroundTopY: 224,
+    );
+
+    final afterDelete =
+        plugin.applyEdit(
+              document,
+              AuthoringCommand(
+                kind: 'delete_chunk',
+                payload: <String, Object?>{'chunkKey': 'chunk_a'},
+              ),
+            )
+            as ChunkDocument;
+    expect(afterDelete.chunks, hasLength(1));
+    expect(afterDelete.chunks.single.chunkKey, 'chunk_b');
+
+    final missing =
+        plugin.applyEdit(
+              afterDelete,
+              AuthoringCommand(
+                kind: 'delete_chunk',
+                payload: <String, Object?>{'chunkKey': 'chunk_missing'},
+              ),
+            )
+            as ChunkDocument;
+    expect(
+      missing.operationIssues.map((issue) => issue.code),
+      contains('delete_chunk_missing_source'),
+    );
+  });
+
   test('duplicate allocates new key and create fails on ID collision', () {
     final plugin = ChunkDomainPlugin();
     const base = LevelChunkDef(
@@ -80,6 +150,9 @@ void main() {
       chunks: <LevelChunkDef>[base],
       baselineByChunkKey: <String, ChunkSourceBaseline>{},
       availableLevelIds: <String>['field'],
+      assemblyGroupOptionsByLevelId: <String, List<String>>{
+        'field': <String>['default', 'cemetery'],
+      },
       activeLevelId: 'field',
       levelOptionSource: 'test',
       runtimeGridSnap: 16.0,
@@ -172,6 +245,9 @@ void main() {
         chunks: <LevelChunkDef>[base, other],
         baselineByChunkKey: <String, ChunkSourceBaseline>{},
         availableLevelIds: <String>['field'],
+        assemblyGroupOptionsByLevelId: <String, List<String>>{
+          'field': <String>['default', 'cemetery'],
+        },
         activeLevelId: 'field',
         levelOptionSource: 'test',
         runtimeGridSnap: 16.0,
@@ -202,102 +278,112 @@ void main() {
     },
   );
 
-  test('metadata, ground, and ground band edits bump revision deterministically', () {
-    final plugin = ChunkDomainPlugin();
-    const base = LevelChunkDef(
-      chunkKey: 'chunk_a',
-      id: 'chunk_a',
-      revision: 1,
-      schemaVersion: 1,
-      levelId: 'field',
-      tileSize: 16,
-      width: 600,
-      height: 270,
-      difficulty: chunkDifficultyNormal,
-      tags: <String>['base'],
-      groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 224),
-    );
-    const document = ChunkDocument(
-      chunks: <LevelChunkDef>[base],
-      baselineByChunkKey: <String, ChunkSourceBaseline>{},
-      availableLevelIds: <String>['field'],
-      activeLevelId: 'field',
-      levelOptionSource: 'test',
-      runtimeGridSnap: 16.0,
-      runtimeChunkWidth: 600.0,
-      runtimeGroundTopY: 224,
-    );
+  test(
+    'metadata, ground, and ground band edits bump revision deterministically',
+    () {
+      final plugin = ChunkDomainPlugin();
+      const base = LevelChunkDef(
+        chunkKey: 'chunk_a',
+        id: 'chunk_a',
+        revision: 1,
+        schemaVersion: 1,
+        levelId: 'field',
+        tileSize: 16,
+        width: 600,
+        height: 270,
+        difficulty: chunkDifficultyNormal,
+        assemblyGroupId: defaultChunkAssemblyGroupId,
+        tags: <String>['base'],
+        groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 224),
+      );
+      const document = ChunkDocument(
+        chunks: <LevelChunkDef>[base],
+        baselineByChunkKey: <String, ChunkSourceBaseline>{},
+        availableLevelIds: <String>['field'],
+        assemblyGroupOptionsByLevelId: <String, List<String>>{
+          'field': <String>['default', 'cemetery'],
+        },
+        activeLevelId: 'field',
+        levelOptionSource: 'test',
+        runtimeGridSnap: 16.0,
+        runtimeChunkWidth: 600.0,
+        runtimeGroundTopY: 224,
+      );
 
-    final afterMetadata =
-        plugin.applyEdit(
-              document,
-              AuthoringCommand(
-                kind: 'update_chunk_metadata',
-                payload: <String, Object?>{
-                  'chunkKey': 'chunk_a',
-                  'tags': 'base, updated',
-                },
-              ),
-            )
-            as ChunkDocument;
-    expect(afterMetadata.chunks.single.revision, 2);
-    expect(afterMetadata.chunks.single.tags, <String>['base', 'updated']);
+      final afterMetadata =
+          plugin.applyEdit(
+                document,
+                AuthoringCommand(
+                  kind: 'update_chunk_metadata',
+                  payload: <String, Object?>{
+                    'chunkKey': 'chunk_a',
+                    'assemblyGroupId': 'cemetery',
+                    'tags': 'base, updated',
+                  },
+                ),
+              )
+              as ChunkDocument;
+      expect(afterMetadata.chunks.single.revision, 2);
+      expect(afterMetadata.chunks.single.assemblyGroupId, 'cemetery');
+      expect(afterMetadata.chunks.single.tags, <String>['base', 'updated']);
 
-    final noOpMetadata =
-        plugin.applyEdit(
-              afterMetadata,
-              AuthoringCommand(
-                kind: 'update_chunk_metadata',
-                payload: <String, Object?>{
-                  'chunkKey': 'chunk_a',
-                  'tags': 'base, updated',
-                },
-              ),
-            )
-            as ChunkDocument;
-    expect(noOpMetadata.chunks.single.revision, 2);
+      final noOpMetadata =
+          plugin.applyEdit(
+                afterMetadata,
+                AuthoringCommand(
+                  kind: 'update_chunk_metadata',
+                  payload: <String, Object?>{
+                    'chunkKey': 'chunk_a',
+                    'assemblyGroupId': 'cemetery',
+                    'tags': 'base, updated',
+                  },
+                ),
+              )
+              as ChunkDocument;
+      expect(noOpMetadata.chunks.single.revision, 2);
 
-    final afterGround =
-        plugin.applyEdit(
-              noOpMetadata,
-              AuthoringCommand(
-                kind: 'update_ground_profile',
-                payload: <String, Object?>{'chunkKey': 'chunk_a', 'topY': 16},
-              ),
-            )
-            as ChunkDocument;
-    expect(afterGround.chunks.single.revision, 2);
-    expect(afterGround.chunks.single.groundProfile.topY, 224);
+      final afterGround =
+          plugin.applyEdit(
+                noOpMetadata,
+                AuthoringCommand(
+                  kind: 'update_ground_profile',
+                  payload: <String, Object?>{'chunkKey': 'chunk_a', 'topY': 16},
+                ),
+              )
+              as ChunkDocument;
+      expect(afterGround.chunks.single.revision, 2);
+      expect(afterGround.chunks.single.groundProfile.topY, 224);
 
-    final afterGroundBand =
-        plugin.applyEdit(
-              afterGround,
-              AuthoringCommand(
-                kind: 'update_ground_band_z_index',
-                payload: <String, Object?>{
-                  'chunkKey': 'chunk_a',
-                  'groundBandZIndex': 1,
-                },
-              ),
-            )
-            as ChunkDocument;
-    expect(afterGroundBand.chunks.single.revision, 3);
-    expect(afterGroundBand.chunks.single.groundBandZIndex, 1);
+      final afterGroundBand =
+          plugin.applyEdit(
+                afterGround,
+                AuthoringCommand(
+                  kind: 'update_ground_band_z_index',
+                  payload: <String, Object?>{
+                    'chunkKey': 'chunk_a',
+                    'groundBandZIndex': 1,
+                  },
+                ),
+              )
+              as ChunkDocument;
+      expect(afterGroundBand.chunks.single.revision, 3);
+      expect(afterGroundBand.chunks.single.groundBandZIndex, 1);
 
-    final noOpGroundBand =
-        plugin.applyEdit(
-              afterGroundBand,
-              AuthoringCommand(
-                kind: 'update_ground_band_z_index',
-                payload: <String, Object?>{
-                  'chunkKey': 'chunk_a',
-                  'groundBandZIndex': 1,
-                },
-              ),
-            )
-            as ChunkDocument;
-    expect(noOpGroundBand.chunks.single.revision, 3);
-  });
+      final noOpGroundBand =
+          plugin.applyEdit(
+                afterGroundBand,
+                AuthoringCommand(
+                  kind: 'update_ground_band_z_index',
+                  payload: <String, Object?>{
+                    'chunkKey': 'chunk_a',
+                    'groundBandZIndex': 1,
+                  },
+                ),
+              )
+              as ChunkDocument;
+      expect(noOpGroundBand.chunks.single.revision, 3);
+    },
+  );
 
   test(
     'no-op commands keep document identity when no operation issues exist',
@@ -319,6 +405,9 @@ void main() {
         chunks: <LevelChunkDef>[chunk],
         baselineByChunkKey: <String, ChunkSourceBaseline>{},
         availableLevelIds: <String>['field'],
+        assemblyGroupOptionsByLevelId: <String, List<String>>{
+          'field': <String>['default', 'cemetery'],
+        },
         activeLevelId: 'field',
         levelOptionSource: 'test',
         runtimeGridSnap: 16.0,
@@ -355,6 +444,9 @@ void main() {
       chunks: <LevelChunkDef>[chunk],
       baselineByChunkKey: <String, ChunkSourceBaseline>{},
       availableLevelIds: <String>['field'],
+      assemblyGroupOptionsByLevelId: <String, List<String>>{
+        'field': <String>['default', 'cemetery'],
+      },
       activeLevelId: 'field',
       levelOptionSource: 'test',
       runtimeGridSnap: 16.0,
@@ -402,6 +494,9 @@ void main() {
       chunks: <LevelChunkDef>[chunk],
       baselineByChunkKey: <String, ChunkSourceBaseline>{},
       availableLevelIds: <String>['field'],
+      assemblyGroupOptionsByLevelId: <String, List<String>>{
+        'field': <String>['default', 'cemetery'],
+      },
       activeLevelId: 'field',
       levelOptionSource: 'test',
       runtimeGridSnap: 16.0,
@@ -447,6 +542,9 @@ void main() {
         chunks: const <LevelChunkDef>[chunk],
         baselineByChunkKey: const <String, ChunkSourceBaseline>{},
         availableLevelIds: const <String>['field'],
+        assemblyGroupOptionsByLevelId: const <String, List<String>>{
+          'field': <String>['default', 'cemetery'],
+        },
         activeLevelId: 'field',
         levelOptionSource: 'test',
         runtimeGridSnap: 16.0,
