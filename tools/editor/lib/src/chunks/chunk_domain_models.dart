@@ -18,6 +18,10 @@ const String markerPlacementHighestSurfaceAtX = 'highestSurfaceAtX';
 const String markerPlacementObstacleTop = 'obstacleTop';
 const int defaultLockedChunkHeight = 270;
 const int defaultRuntimeGroundTopY = 224;
+const double defaultPrefabPlacementScale = 1.0;
+const double minPrefabPlacementScale = 0.3;
+const double maxPrefabPlacementScale = 3.0;
+const double prefabPlacementScaleStep = 0.1;
 
 enum ChunkDifficulty { early, easy, normal, hard }
 
@@ -158,6 +162,7 @@ class PlacedPrefabDef {
     required this.y,
     this.zIndex = 0,
     this.snapToGrid = true,
+    this.scale = defaultPrefabPlacementScale,
   });
 
   final String prefabId;
@@ -166,6 +171,7 @@ class PlacedPrefabDef {
   final int y;
   final int zIndex;
   final bool snapToGrid;
+  final double scale;
 
   String get resolvedPrefabRef => prefabKey.isNotEmpty ? prefabKey : prefabId;
 
@@ -176,6 +182,7 @@ class PlacedPrefabDef {
     int? y,
     int? zIndex,
     bool? snapToGrid,
+    double? scale,
   }) {
     return PlacedPrefabDef(
       prefabId: prefabId ?? this.prefabId,
@@ -184,6 +191,7 @@ class PlacedPrefabDef {
       y: y ?? this.y,
       zIndex: zIndex ?? this.zIndex,
       snapToGrid: snapToGrid ?? this.snapToGrid,
+      scale: scale ?? this.scale,
     );
   }
 
@@ -195,6 +203,8 @@ class PlacedPrefabDef {
       'y': y,
       'zIndex': zIndex,
       'snapToGrid': snapToGrid,
+      if (!_isDefaultPrefabPlacementScale(scale))
+        'scale': _canonicalPrefabPlacementScale(scale),
     };
     return json;
   }
@@ -212,6 +222,10 @@ class PlacedPrefabDef {
       y: _intOrDefault(json['y'], fallback: 0),
       zIndex: _intOrDefault(json['zIndex'], fallback: 0),
       snapToGrid: _boolOrDefault(json['snapToGrid'], fallback: true),
+      scale: _doubleOrDefault(
+        json['scale'],
+        fallback: defaultPrefabPlacementScale,
+      ),
     );
   }
 }
@@ -236,6 +250,10 @@ int comparePlacedPrefabsDeterministic(PlacedPrefabDef a, PlacedPrefabDef b) {
   final snapCompare = _compareBool(a.snapToGrid, b.snapToGrid);
   if (snapCompare != 0) {
     return snapCompare;
+  }
+  final scaleCompare = a.scale.compareTo(b.scale);
+  if (scaleCompare != 0) {
+    return scaleCompare;
   }
   return a.prefabId.compareTo(b.prefabId);
 }
@@ -844,6 +862,63 @@ bool _boolOrDefault(Object? raw, {required bool fallback}) {
     return raw;
   }
   return fallback;
+}
+
+double _doubleOrDefault(Object? raw, {required double fallback}) {
+  if (raw is num) {
+    return raw.toDouble();
+  }
+  return fallback;
+}
+
+double canonicalPrefabPlacementScale(double value) {
+  return _canonicalPrefabPlacementScale(value);
+}
+
+bool isPrefabPlacementScaleInRange(double value) {
+  return value >= minPrefabPlacementScale && value <= maxPrefabPlacementScale;
+}
+
+bool isPrefabPlacementScaleStepAligned(double value) {
+  final aligned =
+      (value / prefabPlacementScaleStep).roundToDouble() *
+      prefabPlacementScaleStep;
+  return (value - aligned).abs() < 1e-9;
+}
+
+double clampPrefabPlacementScale(double value) {
+  if (value < minPrefabPlacementScale) {
+    return minPrefabPlacementScale;
+  }
+  if (value > maxPrefabPlacementScale) {
+    return maxPrefabPlacementScale;
+  }
+  return value;
+}
+
+double stepPrefabPlacementScale(double value) {
+  final aligned =
+      (value / prefabPlacementScaleStep).roundToDouble() *
+      prefabPlacementScaleStep;
+  return _canonicalPrefabPlacementScale(aligned);
+}
+
+double normalizePrefabPlacementScale(
+  double value, {
+  double fallback = defaultPrefabPlacementScale,
+}) {
+  if (!value.isFinite) {
+    return fallback;
+  }
+  return stepPrefabPlacementScale(clampPrefabPlacementScale(value));
+}
+
+bool _isDefaultPrefabPlacementScale(double value) {
+  return (value - defaultPrefabPlacementScale).abs() < 1e-9;
+}
+
+double _canonicalPrefabPlacementScale(double value) {
+  return double.parse(value.toStringAsFixed(2));
 }
 
 int _compareBool(bool a, bool b) {

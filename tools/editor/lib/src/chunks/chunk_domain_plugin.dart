@@ -1109,6 +1109,10 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
       y: _intOrDefault(payload['y'], fallback: 0),
       zIndex: _intOrDefault(payload['zIndex'], fallback: 0),
       snapToGrid: _boolOrDefault(payload['snapToGrid'], fallback: true),
+      scale: _doubleOrDefault(
+        payload['scale'],
+        fallback: defaultPrefabPlacementScale,
+      ),
     );
     return _mapChunkByKey(
       document,
@@ -1300,19 +1304,25 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
       payload['snapToGrid'],
       fallback: currentTarget.snapToGrid,
     );
+    final nextScale = _doubleOrDefault(
+      payload['scale'],
+      fallback: currentTarget.scale,
+    );
     return _mapChunkByKey(
       document,
       chunkKey: chunkKey,
       mapper: (entry) {
         final current = entry.prefabs[targetIndex];
         if (current.snapToGrid == nextSnapToGrid &&
-            current.zIndex == nextZIndex) {
+            current.zIndex == nextZIndex &&
+            current.scale == nextScale) {
           return entry;
         }
         final nextPrefabs = List<PlacedPrefabDef>.from(entry.prefabs);
         nextPrefabs[targetIndex] = current.copyWith(
           zIndex: nextZIndex,
           snapToGrid: nextSnapToGrid,
+          scale: nextScale,
         );
         return _bumpRevision(entry.copyWith(prefabs: nextPrefabs).normalized());
       },
@@ -1635,6 +1645,13 @@ bool _boolOrDefault(Object? raw, {required bool fallback}) {
   return fallback;
 }
 
+double _doubleOrDefault(Object? raw, {required double fallback}) {
+  if (raw is num) {
+    return raw.toDouble();
+  }
+  return fallback;
+}
+
 List<String> _parseTags(Object? raw, {required List<String> fallback}) {
   if (raw is List<Object?>) {
     final tags = <String>{};
@@ -1810,7 +1827,8 @@ bool _placedPrefabListEquals(List<PlacedPrefabDef> a, List<PlacedPrefabDef> b) {
         left.x != right.x ||
         left.y != right.y ||
         left.zIndex != right.zIndex ||
-        left.snapToGrid != right.snapToGrid) {
+        left.snapToGrid != right.snapToGrid ||
+        left.scale != right.scale) {
       return false;
     }
   }

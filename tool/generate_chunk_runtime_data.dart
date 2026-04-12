@@ -21,6 +21,10 @@ const String _parallaxOutputPath =
     'lib/game/themes/authored_parallax_themes.dart';
 const int _gridSnap = 16;
 const int _chunkWidth = 600;
+const double _defaultPrefabScale = 1.0;
+const double _minPrefabScale = 0.3;
+const double _maxPrefabScale = 3.0;
+const double _prefabScaleStep = 0.1;
 const List<String> _difficultyOrder = <String>[
   'early',
   'easy',
@@ -688,11 +692,40 @@ _ChunkExportData? _buildChunkExportData(
 
     final placementX = _intOrZero(placed['x']).toDouble();
     final placementY = _intOrZero(placed['y']).toDouble();
+    final scale = _doubleOrDefault(placed['scale'], _defaultPrefabScale);
+    final validScaleRange =
+        scale >= _minPrefabScale && scale <= _maxPrefabScale;
+    final validScaleStep = _isStepAligned(scale, _prefabScaleStep);
+    if (!validScaleRange) {
+      issues.add(
+        _ValidationIssue(
+          path: chunk.path,
+          code: 'prefab_scale_out_of_range',
+          message:
+              'Placed prefab "$prefabKey" scale $scale must be between '
+              '$_minPrefabScale and $_maxPrefabScale.',
+        ),
+      );
+      continue;
+    }
+    if (!validScaleStep) {
+      issues.add(
+        _ValidationIssue(
+          path: chunk.path,
+          code: 'prefab_scale_step_violation',
+          message:
+              'Placed prefab "$prefabKey" scale $scale must use step '
+              '$_prefabScaleStep.',
+        ),
+      );
+      continue;
+    }
 
     final spriteEntries = _buildVisualSprites(
       prefab: prefab,
       placementX: placementX,
       placementY: placementY,
+      scale: scale,
       registry: prefabRegistry,
       chunkPath: chunk.path,
       issues: issues,
@@ -705,6 +738,7 @@ _ChunkExportData? _buildChunkExportData(
         prefab: prefab,
         placementX: placementX,
         placementY: placementY,
+        scale: scale,
       );
       final ref = colliderBounds ?? _computeVisualBounds(spriteEntries);
       if (ref == null) continue;
@@ -739,6 +773,7 @@ _ChunkExportData? _buildChunkExportData(
         prefab: prefab,
         placementX: placementX,
         placementY: placementY,
+        scale: scale,
       );
       final ref = colliderBounds ?? _computeVisualBounds(spriteEntries);
       if (ref == null) continue;
@@ -774,6 +809,7 @@ List<_VisualSpriteExport> _buildVisualSprites({
   required _PrefabDef prefab,
   required double placementX,
   required double placementY,
+  required double scale,
   required _PrefabRegistry registry,
   required String chunkPath,
   required List<_ValidationIssue> issues,
@@ -798,10 +834,10 @@ List<_VisualSpriteExport> _buildVisualSprites({
         srcY: slice.y,
         srcWidth: slice.width,
         srcHeight: slice.height,
-        x: placementX - prefab.anchorX,
-        y: placementY - prefab.anchorY,
-        width: slice.width.toDouble(),
-        height: slice.height.toDouble(),
+        x: placementX - (prefab.anchorX * scale),
+        y: placementY - (prefab.anchorY * scale),
+        width: slice.width.toDouble() * scale,
+        height: slice.height.toDouble() * scale,
         zIndex: zIndex,
       ),
     ];
@@ -840,10 +876,16 @@ List<_VisualSpriteExport> _buildVisualSprites({
           srcY: slice.y,
           srcWidth: slice.width,
           srcHeight: slice.height,
-          x: placementX - prefab.anchorX + (cell.gridX * _gridSnap),
-          y: placementY - prefab.anchorY + (cell.gridY * _gridSnap),
-          width: slice.width.toDouble(),
-          height: slice.height.toDouble(),
+          x:
+              placementX -
+              (prefab.anchorX * scale) +
+              (cell.gridX * _gridSnap * scale),
+          y:
+              placementY -
+              (prefab.anchorY * scale) +
+              (cell.gridY * _gridSnap * scale),
+          width: slice.width.toDouble() * scale,
+          height: slice.height.toDouble() * scale,
           zIndex: zIndex,
         ),
       );
@@ -889,16 +931,17 @@ _RectD? _computeColliderBounds({
   required _PrefabDef prefab,
   required double placementX,
   required double placementY,
+  required double scale,
 }) {
   if (prefab.colliders.isEmpty) {
     return null;
   }
   _RectD? bounds;
   for (final collider in prefab.colliders) {
-    final cx = placementX + collider.offsetX;
-    final cy = placementY + collider.offsetY;
-    final halfW = collider.width * 0.5;
-    final halfH = collider.height * 0.5;
+    final cx = placementX + (collider.offsetX * scale);
+    final cy = placementY + (collider.offsetY * scale);
+    final halfW = collider.width * scale * 0.5;
+    final halfH = collider.height * scale * 0.5;
     final rect = _RectD(
       left: cx - halfW,
       top: cy - halfH,
@@ -969,6 +1012,19 @@ int _intOrDefault(Object? value, int fallback) {
   if (value is int) return value;
   if (value is num) return value.toInt();
   return fallback;
+}
+
+double _doubleOrDefault(Object? value, double fallback) {
+  if (value is num) return value.toDouble();
+  return fallback;
+}
+
+bool _isStepAligned(double value, double step) {
+  if (!value.isFinite || step <= 0) {
+    return false;
+  }
+  final aligned = (value / step).roundToDouble() * step;
+  return (value - aligned).abs() < 1e-9;
 }
 
 String _normalizedString(Object? raw, {String fallback = ''}) {

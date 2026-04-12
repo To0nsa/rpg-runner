@@ -73,6 +73,88 @@ void main() {
     },
   );
 
+  test('generator rejects prefab scale outside supported range', () async {
+    final fixtureRoot = await Directory.systemTemp.createTemp(
+      'chunk_generator_scale_range_',
+    );
+    try {
+      _writePrefabAndTileDefs(fixtureRoot.path);
+      _writeLevelDefs(fixtureRoot.path);
+      _writeParallaxDefs(fixtureRoot.path);
+      _writeFile(
+        fixtureRoot.path,
+        'assets/authoring/level/chunks/field/chunk_bad_scale_range.json',
+        '''
+{
+  "schemaVersion": 1,
+  "chunkKey": "chunk_bad_scale_range",
+  "id": "chunk_bad_scale_range",
+  "levelId": "field",
+  "difficulty": "easy",
+  "prefabs": [
+    {
+      "prefabId": "grass",
+      "prefabKey": "grass",
+      "x": 80,
+      "y": 80,
+      "zIndex": 0,
+      "snapToGrid": true,
+      "scale": 0.2
+    }
+  ]
+}
+''',
+      );
+
+      final result = await _runDryRun(workingDirectory: fixtureRoot.path);
+      expect(result.exitCode, 1);
+      expect(result.stderr, contains('prefab_scale_out_of_range'));
+    } finally {
+      fixtureRoot.deleteSync(recursive: true);
+    }
+  });
+
+  test('generator rejects prefab scale values off 0.1 step', () async {
+    final fixtureRoot = await Directory.systemTemp.createTemp(
+      'chunk_generator_scale_step_',
+    );
+    try {
+      _writePrefabAndTileDefs(fixtureRoot.path);
+      _writeLevelDefs(fixtureRoot.path);
+      _writeParallaxDefs(fixtureRoot.path);
+      _writeFile(
+        fixtureRoot.path,
+        'assets/authoring/level/chunks/field/chunk_bad_scale_step.json',
+        '''
+{
+  "schemaVersion": 1,
+  "chunkKey": "chunk_bad_scale_step",
+  "id": "chunk_bad_scale_step",
+  "levelId": "field",
+  "difficulty": "easy",
+  "prefabs": [
+    {
+      "prefabId": "grass",
+      "prefabKey": "grass",
+      "x": 80,
+      "y": 80,
+      "zIndex": 0,
+      "snapToGrid": true,
+      "scale": 1.25
+    }
+  ]
+}
+''',
+      );
+
+      final result = await _runDryRun(workingDirectory: fixtureRoot.path);
+      expect(result.exitCode, 1);
+      expect(result.stderr, contains('prefab_scale_step_violation'));
+    } finally {
+      fixtureRoot.deleteSync(recursive: true);
+    }
+  });
+
   test('generator writes authored runtime dart output', () async {
     final fixtureRoot = await Directory.systemTemp.createTemp(
       'chunk_generator_write_',
@@ -99,7 +181,8 @@ void main() {
       "x": 80,
       "y": 80,
       "zIndex": 0,
-      "snapToGrid": true
+      "snapToGrid": true,
+      "scale": 1.5
     }
   ],
   "markers": [
@@ -136,12 +219,14 @@ void main() {
       expect(output, contains('fieldEasyPatterns'));
       expect(output, contains('authoredChunkPatternSourcesByLevel'));
       expect(output, contains('visualSprites: <ChunkVisualSpriteRel>['));
+      expect(output, contains('x: 56.0'));
+      expect(output, contains('width: 48.0'));
       expect(output, contains('chancePercent: 80'));
       expect(output, contains('EnemyId.derf'));
       expect(
         output,
         contains(
-          'PlatformRel(x: 64.0, width: 16.0, aboveGroundTop: 160.0, thickness: 16.0)',
+          'PlatformRel(x: 64.0, width: 32.0, aboveGroundTop: 160.0, thickness: 32.0)',
         ),
       );
 

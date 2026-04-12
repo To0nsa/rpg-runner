@@ -78,6 +78,7 @@ class RuntimeChunkPrefabRef {
     required this.y,
     required this.zIndex,
     required this.snapToGrid,
+    required this.scale,
   });
 
   final String prefabKey;
@@ -86,6 +87,7 @@ class RuntimeChunkPrefabRef {
   final int y;
   final int zIndex;
   final bool snapToGrid;
+  final double scale;
 
   Map<String, Object?> toJson() {
     return <String, Object?>{
@@ -95,6 +97,7 @@ class RuntimeChunkPrefabRef {
       'y': y,
       'zIndex': zIndex,
       'snapToGrid': snapToGrid,
+      if ((scale - defaultPrefabPlacementScale).abs() >= 1e-9) 'scale': scale,
     };
   }
 }
@@ -182,5 +185,6 @@ RuntimeChunkPrefabRef mapPlacedPrefabToRuntimeRef(
     y: placedPrefab.y,
     zIndex: placedPrefab.zIndex,
     snapToGrid: placedPrefab.snapToGrid,
+    scale: placedPrefab.scale,
   );
 }

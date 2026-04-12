@@ -1061,24 +1061,34 @@ class _ChunkRenderPlacement {
     required Map<String, TileModuleDef> moduleById,
   }) {
     final fallbackColor = _fallbackColorForId(placement.resolvedPrefabRef);
+    final placementScale = placement.scale.isFinite && placement.scale > 0
+        ? placement.scale
+        : defaultPrefabPlacementScale;
+    final fallbackRect = Rect.fromLTWH(
+      -8 * placementScale,
+      -8 * placementScale,
+      16 * placementScale,
+      16 * placementScale,
+    );
     if (prefab == null) {
       return _ChunkRenderPlacement(
         selectionKey: selectionKey,
         placement: placement,
         prefab: null,
         sprites: const <_ChunkRenderSprite>[],
-        localVisualBounds: Rect.fromLTWH(-8, -8, 16, 16),
+        localVisualBounds: fallbackRect,
         fallbackColor: fallbackColor,
       );
     }
 
     if (prefab.visualSource.isAtlasSlice) {
       final slice = prefabSliceById[prefab.visualSource.sliceId];
-      final width = math.max(1, slice?.width ?? 16).toDouble();
-      final height = math.max(1, slice?.height ?? 16).toDouble();
+      final width = math.max(1, slice?.width ?? 16).toDouble() * placementScale;
+      final height =
+          math.max(1, slice?.height ?? 16).toDouble() * placementScale;
       final localRect = Rect.fromLTWH(
-        -prefab.anchorXPx.toDouble(),
-        -prefab.anchorYPx.toDouble(),
+        -prefab.anchorXPx.toDouble() * placementScale,
+        -prefab.anchorYPx.toDouble() * placementScale,
         width,
         height,
       );
@@ -1102,7 +1112,7 @@ class _ChunkRenderPlacement {
           placement: placement,
           prefab: prefab,
           sprites: const <_ChunkRenderSprite>[],
-          localVisualBounds: Rect.fromLTWH(-8, -8, 16, 16),
+          localVisualBounds: fallbackRect,
           fallbackColor: fallbackColor,
         );
       }
@@ -1111,13 +1121,15 @@ class _ChunkRenderPlacement {
       final spriteSpecs = <_ChunkRenderSprite>[];
       for (final cell in module.cells) {
         final slice = tileSliceById[cell.sliceId];
-        final width = math.max(1, slice?.width ?? tileSize.toInt()).toDouble();
-        final height = math
-            .max(1, slice?.height ?? tileSize.toInt())
-            .toDouble();
+        final width =
+            math.max(1, slice?.width ?? tileSize.toInt()).toDouble() *
+            placementScale;
+        final height =
+            math.max(1, slice?.height ?? tileSize.toInt()).toDouble() *
+            placementScale;
         final localCellRect = Rect.fromLTWH(
-          cell.gridX * tileSize,
-          cell.gridY * tileSize,
+          cell.gridX * tileSize * placementScale,
+          cell.gridY * tileSize * placementScale,
           width,
           height,
         );
@@ -1129,10 +1141,16 @@ class _ChunkRenderPlacement {
         );
       }
       final safeBounds =
-          moduleBounds ?? Rect.fromLTWH(0, 0, tileSize, tileSize);
+          moduleBounds ??
+          Rect.fromLTWH(
+            0,
+            0,
+            tileSize * placementScale,
+            tileSize * placementScale,
+          );
       final visualBounds = Rect.fromLTWH(
-        -prefab.anchorXPx.toDouble(),
-        -prefab.anchorYPx.toDouble(),
+        -prefab.anchorXPx.toDouble() * placementScale,
+        -prefab.anchorYPx.toDouble() * placementScale,
         safeBounds.width,
         safeBounds.height,
       );
@@ -1164,7 +1182,7 @@ class _ChunkRenderPlacement {
       placement: placement,
       prefab: prefab,
       sprites: const <_ChunkRenderSprite>[],
-      localVisualBounds: Rect.fromLTWH(-8, -8, 16, 16),
+      localVisualBounds: fallbackRect,
       fallbackColor: fallbackColor,
     );
   }
@@ -1177,6 +1195,13 @@ class _ChunkRenderPlacement {
   final Color fallbackColor;
 
   int get zIndex => placement.zIndex;
+  double get visualScale {
+    final scale = placement.scale;
+    if (scale.isFinite && scale > 0) {
+      return scale;
+    }
+    return defaultPrefabPlacementScale;
+  }
 
   Rect visualWorldRect() {
     return localVisualBounds.shift(
@@ -1902,7 +1927,7 @@ class _ChunkScenePainter extends CustomPainter {
       anchorCanvasBase: geometry.canvasFromWorld(
         selectedPlacement.visualWorldRect().topLeft,
       ),
-      zoom: geometry.zoom,
+      zoom: geometry.zoom * selectedPlacement.visualScale,
     );
     PrefabOverlayPainter.paint(
       canvas: canvas,

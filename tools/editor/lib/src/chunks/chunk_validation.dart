@@ -382,6 +382,32 @@ List<ValidationIssue> validateChunkDocument(ChunkDocument document) {
           ),
         );
       }
+
+      if (!isPrefabPlacementScaleInRange(prefab.scale)) {
+        issues.add(
+          ValidationIssue(
+            severity: ValidationSeverity.error,
+            code: 'prefab_scale_out_of_range',
+            message:
+                'Chunk ${chunk.id} prefab placement '
+                '"${prefab.resolvedPrefabRef}" scale ${prefab.scale} must be '
+                'between $minPrefabPlacementScale and $maxPrefabPlacementScale.',
+            sourcePath: sourcePath,
+          ),
+        );
+      } else if (!isPrefabPlacementScaleStepAligned(prefab.scale)) {
+        issues.add(
+          ValidationIssue(
+            severity: ValidationSeverity.error,
+            code: 'prefab_scale_step_violation',
+            message:
+                'Chunk ${chunk.id} prefab placement '
+                '"${prefab.resolvedPrefabRef}" scale ${prefab.scale} must use '
+                'step $prefabPlacementScaleStep.',
+            sourcePath: sourcePath,
+          ),
+        );
+      }
     }
 
     final sortedMarkers = List<PlacedMarkerDef>.from(chunk.markers)

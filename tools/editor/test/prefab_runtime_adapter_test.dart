@@ -75,6 +75,7 @@ void main() {
         y: 32,
         zIndex: 3,
         snapToGrid: false,
+        scale: 1.6,
       );
 
       final runtimeRef = mapPlacedPrefabToRuntimeRef(placed);
@@ -84,6 +85,7 @@ void main() {
       expect(runtimeRef.y, 32);
       expect(runtimeRef.zIndex, 3);
       expect(runtimeRef.snapToGrid, isFalse);
+      expect(runtimeRef.scale, 1.6);
     },
   );
 
@@ -98,5 +100,6 @@ void main() {
     expect(placed.prefabId, 'stable_key');
     expect(placed.resolvedPrefabRef, 'stable_key');
     expect(placed.snapToGrid, isTrue);
+    expect(placed.scale, defaultPrefabPlacementScale);
   });
 }

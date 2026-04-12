@@ -79,6 +79,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
   bool _showParallaxPreview = true;
   final bool _newPlacementSnapToGrid = true;
   final int _newPlacementZIndex = 0;
+  final double _newPlacementScale = defaultPrefabPlacementScale;
   bool _inspectorExpanded = false;
   bool _validationExpanded = false;
   bool _pendingDiffExpanded = false;
@@ -1266,7 +1267,8 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
                       subtitle: Text(
                         'x=${placement.prefab.x}, y=${placement.prefab.y} | '
                         '${placement.prefab.snapToGrid ? 'snap' : 'free'} | '
-                        'z=${placement.prefab.zIndex}',
+                        'z=${placement.prefab.zIndex} | '
+                        'scale=${_formatPrefabPlacementScale(placement.prefab.scale)}',
                       ),
                       trailing: IconButton(
                         tooltip: 'Delete placement',
@@ -1511,7 +1513,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
   ) {
     if (selectedPlacement == null) {
       return const Text(
-        'Select a placed prefab to edit selected layer and placement mode.',
+        'Select a placed prefab to edit layer, placement mode, and scale.',
       );
     }
 
@@ -1527,6 +1529,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
               selectionKey: selectedPlacement.selectionKey,
               snapToGrid: selectedPlacement.prefab.snapToGrid,
               zIndex: value,
+              scale: selectedPlacement.prefab.scale,
             );
           },
           keyPrefix: 'selected_prefab_layer',
@@ -1541,8 +1544,24 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
               selectionKey: selectedPlacement.selectionKey,
               snapToGrid: value,
               zIndex: selectedPlacement.prefab.zIndex,
+              scale: selectedPlacement.prefab.scale,
             );
           },
+        ),
+        const SizedBox(height: _spaceSm),
+        _buildScaleStepper(
+          label: 'Selected Prefab Scale',
+          scale: selectedPlacement.prefab.scale,
+          onChanged: (value) {
+            _updatePlacementSettings(
+              chunk,
+              selectionKey: selectedPlacement.selectionKey,
+              snapToGrid: selectedPlacement.prefab.snapToGrid,
+              zIndex: selectedPlacement.prefab.zIndex,
+              scale: value,
+            );
+          },
+          keyPrefix: 'selected_prefab_scale',
         ),
       ],
     );
@@ -2842,6 +2861,59 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
     );
   }
 
+  Widget _buildScaleStepper({
+    required String label,
+    required double scale,
+    required ValueChanged<double> onChanged,
+    String? keyPrefix,
+  }) {
+    final normalizedScale = normalizePrefabPlacementScale(scale);
+    final canDecrease = normalizedScale > minPrefabPlacementScale;
+    final canIncrease = normalizedScale < maxPrefabPlacementScale;
+    return Wrap(
+      spacing: _spaceSm,
+      runSpacing: _spaceSm,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Text(label),
+        OutlinedButton.icon(
+          key: keyPrefix == null
+              ? null
+              : ValueKey<String>('${keyPrefix}_decrease'),
+          onPressed: canDecrease
+              ? () => onChanged(
+                  normalizePrefabPlacementScale(
+                    normalizedScale - prefabPlacementScaleStep,
+                  ),
+                )
+              : null,
+          icon: const Icon(Icons.remove, size: 18),
+          label: const Text('-0.10'),
+        ),
+        Chip(
+          key: keyPrefix == null
+              ? null
+              : ValueKey<String>('${keyPrefix}_value'),
+          label: Text('x${_formatPrefabPlacementScale(normalizedScale)}'),
+        ),
+        OutlinedButton.icon(
+          key: keyPrefix == null
+              ? null
+              : ValueKey<String>('${keyPrefix}_increase'),
+          onPressed: canIncrease
+              ? () => onChanged(
+                  normalizePrefabPlacementScale(
+                    normalizedScale + prefabPlacementScaleStep,
+                  ),
+                )
+              : null,
+          icon: const Icon(Icons.add, size: 18),
+          label: const Text('+0.10'),
+        ),
+      ],
+    );
+  }
+
   PrefabDef? _selectedPlacementPrefab(ChunkScene scene, LevelChunkDef chunk) {
     final placement = _selectedPlacement(chunk);
     if (placement == null) {
@@ -2884,6 +2956,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
       y: y,
       zIndex: _newPlacementZIndex,
       snapToGrid: _newPlacementSnapToGrid,
+      scale: _newPlacementScale,
     );
     widget.controller.applyCommand(
       AuthoringCommand(
@@ -2895,6 +2968,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
           'y': y,
           'zIndex': _newPlacementZIndex,
           'snapToGrid': _newPlacementSnapToGrid,
+          'scale': _newPlacementScale,
         },
       ),
     );
@@ -2988,8 +3062,10 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
     required String selectionKey,
     required bool snapToGrid,
     required int zIndex,
+    required double scale,
   }) {
     final selectedPlacement = _selectedPlacement(chunk);
+    final normalizedScale = normalizePrefabPlacementScale(scale);
     widget.controller.applyCommand(
       AuthoringCommand(
         kind: 'update_prefab_placement_settings',
@@ -2998,6 +3074,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
           'selectionKey': selectionKey,
           'zIndex': zIndex,
           'snapToGrid': snapToGrid,
+          'scale': normalizedScale,
         },
       ),
     );
@@ -3011,6 +3088,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
         nextPlacement: selectedPlacement.prefab.copyWith(
           zIndex: zIndex,
           snapToGrid: snapToGrid,
+          scale: normalizedScale,
         ),
       );
     });
@@ -3253,6 +3331,18 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
         payload: <String, Object?>{'chunkKey': chunk.chunkKey},
       ),
     );
+  }
+
+  String _formatPrefabPlacementScale(double scale) {
+    final canonical = canonicalPrefabPlacementScale(scale);
+    final text = canonical.toStringAsFixed(2);
+    if (text.endsWith('00')) {
+      return canonical.toStringAsFixed(1);
+    }
+    if (text.endsWith('0')) {
+      return text.substring(0, text.length - 1);
+    }
+    return text;
   }
 
   Future<void> _confirmAndApplyToFiles() async {

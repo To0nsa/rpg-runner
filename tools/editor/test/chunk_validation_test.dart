@@ -247,4 +247,52 @@ void main() {
     final codes = validateChunkDocument(document).map((i) => i.code).toSet();
     expect(codes, isNot(contains('prefab_snap_violation')));
   });
+
+  test('reports prefab scale out-of-range and step violations', () {
+    const chunk = LevelChunkDef(
+      chunkKey: 'chunk_prefab_scale',
+      id: 'chunk_prefab_scale',
+      revision: 1,
+      schemaVersion: 1,
+      levelId: 'field',
+      tileSize: 16,
+      width: 600,
+      height: 270,
+      difficulty: chunkDifficultyNormal,
+      prefabs: <PlacedPrefabDef>[
+        PlacedPrefabDef(
+          prefabId: 'crate_a',
+          prefabKey: 'crate_a',
+          x: 16,
+          y: 32,
+          scale: 0.2,
+        ),
+        PlacedPrefabDef(
+          prefabId: 'crate_b',
+          prefabKey: 'crate_b',
+          x: 32,
+          y: 32,
+          scale: 1.25,
+        ),
+      ],
+      groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 224),
+    );
+    const document = ChunkDocument(
+      chunks: <LevelChunkDef>[chunk],
+      baselineByChunkKey: <String, ChunkSourceBaseline>{},
+      availableLevelIds: <String>['field'],
+      assemblyGroupOptionsByLevelId: <String, List<String>>{
+        'field': <String>['default'],
+      },
+      activeLevelId: 'field',
+      levelOptionSource: 'test',
+      runtimeGridSnap: 16.0,
+      runtimeChunkWidth: 600.0,
+      runtimeGroundTopY: 224,
+    );
+
+    final codes = validateChunkDocument(document).map((i) => i.code).toSet();
+    expect(codes, contains('prefab_scale_out_of_range'));
+    expect(codes, contains('prefab_scale_step_violation'));
+  });
 }

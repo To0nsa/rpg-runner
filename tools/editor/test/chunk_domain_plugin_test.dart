@@ -604,6 +604,7 @@ void main() {
                     'y': 0,
                     'zIndex': 2,
                     'snapToGrid': false,
+                    'scale': 1.4,
                   },
                 ),
               )
@@ -611,6 +612,7 @@ void main() {
       expect(added.chunks.single.prefabs, hasLength(1));
       expect(added.chunks.single.prefabs.single.zIndex, 2);
       expect(added.chunks.single.prefabs.single.snapToGrid, isFalse);
+      expect(added.chunks.single.prefabs.single.scale, 1.4);
       expect(added.chunks.single.revision, 2);
 
       final selectionKey = buildChunkPlacedPrefabSelections(
@@ -655,6 +657,7 @@ void main() {
       expect(replaced.chunks.single.prefabs.single.prefabId, 'crate_b');
       expect(replaced.chunks.single.prefabs.single.zIndex, 2);
       expect(replaced.chunks.single.prefabs.single.snapToGrid, isFalse);
+      expect(replaced.chunks.single.prefabs.single.scale, 1.4);
       expect(replaced.chunks.single.revision, 4);
 
       final updatedSnapSelectionKey = buildChunkPlacedPrefabSelections(
@@ -670,12 +673,14 @@ void main() {
                     'selectionKey': updatedSnapSelectionKey,
                     'zIndex': 5,
                     'snapToGrid': true,
+                    'scale': 0.7,
                   },
                 ),
               )
               as ChunkDocument;
       expect(snapUpdated.chunks.single.prefabs.single.zIndex, 5);
       expect(snapUpdated.chunks.single.prefabs.single.snapToGrid, isTrue);
+      expect(snapUpdated.chunks.single.prefabs.single.scale, 0.7);
       expect(snapUpdated.chunks.single.revision, 5);
 
       final replacedSelectionKey = buildChunkPlacedPrefabSelections(
