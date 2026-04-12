@@ -17,7 +17,8 @@ flutter run -d windows
 Implemented authoring domains:
 
 - entity collider/source-bound authoring for players, enemies, and projectiles
-- prefab, tile-slice, and platform-module authoring
+- prefab (obstacle/platform/decoration), tile-slice, and platform-module
+  authoring
 - chunk authoring with scene-based prefab composition, shared pan/zoom/grid
   controls, rendered floor/gap visualization, and metadata/ground editing
 - level metadata authoring with list/inspector editing, lifecycle controls,
