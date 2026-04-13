@@ -29,6 +29,7 @@ class DecorationPrefabsTab extends StatelessWidget {
     super.key,
     required this.form,
     required this.prefabSlices,
+    required this.selectablePrefabSlices,
     required this.decorationPrefabs,
     required this.selectedSliceId,
     required this.selectedSlice,
@@ -48,6 +49,7 @@ class DecorationPrefabsTab extends StatelessWidget {
 
   final PrefabFormState form;
   final List<AtlasSliceDef> prefabSlices;
+  final List<AtlasSliceDef> selectablePrefabSlices;
   final List<PrefabDef> decorationPrefabs;
   final String? selectedSliceId;
   final AtlasSliceDef? selectedSlice;
@@ -70,6 +72,7 @@ class DecorationPrefabsTab extends StatelessWidget {
       inspector: _DecorationPrefabInspectorPanel(
         form: form,
         prefabSlices: prefabSlices,
+        selectablePrefabSlices: selectablePrefabSlices,
         selectedSliceId: selectedSliceId,
         editingDecorationPrefab: editingDecorationPrefab,
         workspaceRootPath: workspaceRootPath,
@@ -143,6 +146,7 @@ class _DecorationPrefabInspectorPanel extends StatelessWidget {
   const _DecorationPrefabInspectorPanel({
     required this.form,
     required this.prefabSlices,
+    required this.selectablePrefabSlices,
     required this.selectedSliceId,
     required this.editingDecorationPrefab,
     required this.workspaceRootPath,
@@ -156,6 +160,7 @@ class _DecorationPrefabInspectorPanel extends StatelessWidget {
 
   final PrefabFormState form;
   final List<AtlasSliceDef> prefabSlices;
+  final List<AtlasSliceDef> selectablePrefabSlices;
   final String? selectedSliceId;
   final PrefabDef? editingDecorationPrefab;
   final String workspaceRootPath;
@@ -254,6 +259,9 @@ class _DecorationPrefabInspectorPanel extends StatelessWidget {
                   label: const Text('Deprecate'),
                 ),
                 OutlinedButton.icon(
+                  key: const ValueKey<String>(
+                    'decoration_prefab_clear_form_button',
+                  ),
                   onPressed: onClearForm,
                   icon: const Icon(Icons.clear_outlined),
                   label: const Text('Clear Form'),
@@ -288,13 +296,14 @@ class _DecorationPrefabInspectorPanel extends StatelessWidget {
                         selectedPreviewKey: const ValueKey<String>(
                           'decoration_prefab_slice_selected_preview',
                         ),
-                        slices: prefabSlices,
+                        slices: selectablePrefabSlices,
                         selectedSliceId: selectedSliceId,
                         onSelectedSliceChanged: onSelectedSliceChanged,
                         workspaceRootPath: workspaceRootPath,
                         labelText: 'Atlas Slice',
                         hintText: 'Search decoration slices by id or tag',
-                        emptyStateMessage: 'Create prefab atlas slices first.',
+                        emptyStateMessage:
+                            'All atlas slices are already used by decoration prefabs.',
                         defaultScopeTags: const <String>['decoration'],
                       )
                     : const Text('Create prefab atlas slices first.'),

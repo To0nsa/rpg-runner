@@ -64,8 +64,14 @@ class _PrefabEditorAtlasSliceSelectorState
   @override
   void didUpdateWidget(covariant PrefabEditorAtlasSliceSelector oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.selectedSliceId != widget.selectedSliceId ||
-        oldWidget.slices != widget.slices) {
+    final selectionChanged = oldWidget.selectedSliceId != widget.selectedSliceId;
+    final oldHasSelected = _containsSliceId(
+      oldWidget.slices,
+      widget.selectedSliceId,
+    );
+    final newHasSelected = _containsSliceId(widget.slices, widget.selectedSliceId);
+    final selectedVisibilityChanged = oldHasSelected != newHasSelected;
+    if (selectionChanged || selectedVisibilityChanged) {
       _syncTextFromSelection();
     }
   }
@@ -94,10 +100,7 @@ class _PrefabEditorAtlasSliceSelectorState
 
   @override
   Widget build(BuildContext context) {
-    if (widget.slices.isEmpty) {
-      return Text(widget.emptyStateMessage);
-    }
-
+    final hasSelectableSlices = widget.slices.isNotEmpty;
     final selectedSlice = _selectedSlice;
     final scopedHint = widget.defaultScopeTags.isEmpty
         ? 'Search by slice id or tag.'
@@ -119,13 +122,16 @@ class _PrefabEditorAtlasSliceSelectorState
                   key: widget.fieldKey,
                   controller: textEditingController,
                   focusNode: focusNode,
+                  enabled: hasSelectableSlices,
                   decoration: InputDecoration(
                     border: const OutlineInputBorder(),
                     labelText: widget.labelText,
                     hintText: widget.hintText,
                     suffixIcon:
-                        textEditingController.text.trim().isEmpty &&
+                        !hasSelectableSlices ||
+                            (textEditingController.text.trim().isEmpty &&
                             widget.selectedSliceId == null
+                        )
                         ? null
                         : IconButton(
                             tooltip: 'Clear slice selection',
@@ -196,7 +202,9 @@ class _PrefabEditorAtlasSliceSelectorState
           },
         ),
         const SizedBox(height: PrefabEditorUiTokens.controlGap),
-        if (selectedSlice == null)
+        if (!hasSelectableSlices)
+          Text(widget.emptyStateMessage)
+        else if (selectedSlice == null)
           Text(scopedHint)
         else
           Row(
@@ -303,6 +311,18 @@ class _PrefabEditorAtlasSliceSelectorState
     return '${slice.width}x${slice.height} px · '
         '${p.basename(slice.sourceImagePath)} · '
         'tags=$tagText';
+  }
+
+  bool _containsSliceId(List<AtlasSliceDef> slices, String? sliceId) {
+    if (sliceId == null || sliceId.isEmpty) {
+      return false;
+    }
+    for (final slice in slices) {
+      if (slice.id == sliceId) {
+        return true;
+      }
+    }
+    return false;
   }
 
   void _handleOptionSelected(AtlasSliceDef slice) {

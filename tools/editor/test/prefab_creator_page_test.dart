@@ -307,6 +307,124 @@ void main() {
   });
 
   testWidgets(
+    'used obstacle slices are hidden for obstacle authoring and blocked on save',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1800, 1200));
+      addTearDown(() async {
+        await tester.binding.setSurfaceSize(null);
+      });
+
+      final fixtureRoot = _createPrefabAuthoringFixture();
+      addTearDown(() {
+        fixtureRoot.deleteSync(recursive: true);
+      });
+
+      final controller = await _pumpPrefabCreatorPage(
+        tester,
+        workspacePath: fixtureRoot.path,
+      );
+
+      await _selectSliceAutocompleteOption(
+        tester,
+        fieldKey: const ValueKey<String>('obstacle_prefab_slice_selector'),
+        query: 'crate',
+        optionKey: const ValueKey<String>(
+          'obstacle_prefab_slice_option_crate_slice',
+        ),
+      );
+      await tester.enterText(_textFieldByLabel('Prefab ID').first, 'obstacle_box');
+      await tester.tap(
+        find.byKey(const ValueKey<String>('obstacle_prefab_upsert_button')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining('Upserted obstacle prefab "obstacle_box"'),
+        findsOneWidget,
+      );
+
+      await tester.tap(
+        find.widgetWithText(OutlinedButton, 'Clear Form').first,
+      );
+      await tester.pumpAndSettle();
+
+      final obstacleField = find.byKey(
+        const ValueKey<String>('obstacle_prefab_slice_selector'),
+      );
+      await tester.ensureVisible(obstacleField);
+      await tester.tap(obstacleField);
+      await tester.pumpAndSettle();
+      await tester.enterText(obstacleField, '');
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(
+          const ValueKey<String>('obstacle_prefab_slice_option_crate_slice'),
+        ),
+        findsNothing,
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>('obstacle_prefab_slice_option_boulder_slice'),
+        ),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.text('Decoration Prefabs').first);
+      await tester.pumpAndSettle();
+
+      final decorationField = find.byKey(
+        const ValueKey<String>('decoration_prefab_slice_selector'),
+      );
+      await tester.ensureVisible(decorationField);
+      await tester.tap(decorationField);
+      await tester.pumpAndSettle();
+      await tester.enterText(decorationField, '');
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(
+          const ValueKey<String>('decoration_prefab_slice_option_crate_slice'),
+        ),
+        findsOneWidget,
+      );
+
+      await _selectSliceAutocompleteOption(
+        tester,
+        fieldKey: const ValueKey<String>('decoration_prefab_slice_selector'),
+        query: 'crate',
+        optionKey: const ValueKey<String>(
+          'decoration_prefab_slice_option_crate_slice',
+        ),
+      );
+
+      await tester.tap(find.text('Obstacle Prefabs').first);
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        _textFieldByLabel('Prefab ID').first,
+        'obstacle_box_variant',
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('obstacle_prefab_upsert_button')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining(
+          'Atlas slice "crate_slice" is already used by obstacle prefab "obstacle_box".',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        _prefabScene(controller).data.prefabs
+            .where((prefab) => prefab.kind == PrefabKind.obstacle)
+            .map((prefab) => prefab.id),
+        <String>['obstacle_box'],
+      );
+    },
+  );
+
+  testWidgets(
     'slice selectors render previews for options and selected slices',
     (tester) async {
       await tester.binding.setSurfaceSize(const Size(1800, 1200));
@@ -772,6 +890,16 @@ void main() {
       expect(find.text('Creating new obstacle prefab'), findsOneWidget);
       expect(find.text('Create Prefab'), findsOneWidget);
       expect(find.text('Update Prefab'), findsNothing);
+
+      final obstacleSliceField = find.byKey(
+        const ValueKey<String>('obstacle_prefab_slice_selector'),
+      );
+      await tester.ensureVisible(obstacleSliceField);
+      await tester.tap(obstacleSliceField);
+      await tester.pumpAndSettle();
+      await tester.enterText(obstacleSliceField, 'boulder_slice');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
 
       await tester.tap(
         find.byKey(const ValueKey<String>('obstacle_prefab_upsert_button')),

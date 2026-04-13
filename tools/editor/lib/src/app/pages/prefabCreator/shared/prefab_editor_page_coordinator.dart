@@ -72,20 +72,25 @@ class PrefabEditorPageCoordinator {
 
   Widget buildObstaclePrefabsTab() {
     final data = _shellState.data;
-    final selectedSlice = findSliceById(
-      slices: data.prefabSlices,
-      sliceId: _shellState.selectedPrefabSliceId,
-    );
-    final sceneValues = _obstaclePrefabForm.tryParseSceneValues();
     final editingPrefab = editingPrefabForForm(_obstaclePrefabForm);
     final editingObstaclePrefab =
         editingPrefab != null && editingPrefab.kind == PrefabKind.obstacle
         ? editingPrefab
         : null;
+    final selectablePrefabSlices = _selectablePrefabSlicesForKind(
+      kind: PrefabKind.obstacle,
+      editingPrefab: editingObstaclePrefab,
+    );
+    final selectedSlice = findSliceById(
+      slices: selectablePrefabSlices,
+      sliceId: _shellState.selectedPrefabSliceId,
+    );
+    final sceneValues = _obstaclePrefabForm.tryParseSceneValues();
 
     return ObstaclePrefabsTab(
       form: _obstaclePrefabForm,
       prefabSlices: data.prefabSlices,
+      selectablePrefabSlices: selectablePrefabSlices,
       obstaclePrefabs: data.prefabs
           .where((prefab) => prefab.kind == PrefabKind.obstacle)
           .toList(growable: false),
@@ -116,20 +121,25 @@ class PrefabEditorPageCoordinator {
 
   Widget buildDecorationPrefabsTab() {
     final data = _shellState.data;
-    final selectedSlice = findSliceById(
-      slices: data.prefabSlices,
-      sliceId: _shellState.selectedPrefabSliceId,
-    );
-    final sceneValues = _decorationPrefabForm.tryParseSceneValues();
     final editingPrefab = editingPrefabForForm(_decorationPrefabForm);
     final editingDecorationPrefab =
         editingPrefab != null && editingPrefab.kind == PrefabKind.decoration
         ? editingPrefab
         : null;
+    final selectablePrefabSlices = _selectablePrefabSlicesForKind(
+      kind: PrefabKind.decoration,
+      editingPrefab: editingDecorationPrefab,
+    );
+    final selectedSlice = findSliceById(
+      slices: selectablePrefabSlices,
+      sliceId: _shellState.selectedPrefabSliceId,
+    );
+    final sceneValues = _decorationPrefabForm.tryParseSceneValues();
 
     return DecorationPrefabsTab(
       form: _decorationPrefabForm,
       prefabSlices: data.prefabSlices,
+      selectablePrefabSlices: selectablePrefabSlices,
       decorationPrefabs: data.prefabs
           .where((prefab) => prefab.kind == PrefabKind.decoration)
           .toList(growable: false),
@@ -210,6 +220,81 @@ class PrefabEditorPageCoordinator {
       data: _shellState.data,
       form: form,
     );
+  }
+
+  String? _preferredSelectablePrefabSliceIdForKind({
+    required PrefabKind kind,
+    required PrefabDef? editingPrefab,
+  }) {
+    final selectablePrefabSlices = _selectablePrefabSlicesForKind(
+      kind: kind,
+      editingPrefab: editingPrefab,
+    );
+    if (selectablePrefabSlices.isEmpty) {
+      return null;
+    }
+    final currentSelection = _shellState.selectedPrefabSliceId?.trim();
+    if (currentSelection != null &&
+        selectablePrefabSlices.any((slice) => slice.id == currentSelection)) {
+      return currentSelection;
+    }
+    return selectablePrefabSlices.first.id;
+  }
+
+  List<AtlasSliceDef> _selectablePrefabSlicesForKind({
+    required PrefabKind kind,
+    required PrefabDef? editingPrefab,
+  }) {
+    final claimedSliceIds = _claimedAtlasSliceIdsForKind(
+      kind: kind,
+      excludingPrefabKey: editingPrefab?.prefabKey,
+    );
+    return _shellState.data.prefabSlices
+        .where((slice) => !claimedSliceIds.contains(slice.id))
+        .toList(growable: false);
+  }
+
+  Set<String> _claimedAtlasSliceIdsForKind({
+    required PrefabKind kind,
+    String? excludingPrefabKey,
+  }) {
+    final claimedSliceIds = <String>{};
+    for (final prefab in _shellState.data.prefabs) {
+      if (prefab.kind != kind || !prefab.usesAtlasSlice) {
+        continue;
+      }
+      if (excludingPrefabKey != null && prefab.prefabKey == excludingPrefabKey) {
+        continue;
+      }
+      final sliceId = prefab.sliceId.trim();
+      if (sliceId.isNotEmpty) {
+        claimedSliceIds.add(sliceId);
+      }
+    }
+    return claimedSliceIds;
+  }
+
+  PrefabDef? _prefabUsingAtlasSliceForKind({
+    required PrefabKind kind,
+    required String sliceId,
+    String? excludingPrefabKey,
+  }) {
+    final normalizedSliceId = sliceId.trim();
+    if (normalizedSliceId.isEmpty) {
+      return null;
+    }
+    for (final prefab in _shellState.data.prefabs) {
+      if (prefab.kind != kind || !prefab.usesAtlasSlice) {
+        continue;
+      }
+      if (excludingPrefabKey != null && prefab.prefabKey == excludingPrefabKey) {
+        continue;
+      }
+      if (prefab.sliceId == normalizedSliceId) {
+        return prefab;
+      }
+    }
+    return null;
   }
 
   /// Keeps create-mode prefab ids and tags aligned with the selected atlas
@@ -403,10 +488,10 @@ class PrefabEditorPageCoordinator {
       _runWithoutLocalDraftHistory(() {
         _obstaclePrefabForm.resetObstacleDefaults();
         _moduleTileSizeController.text = '16';
-        if (_shellState.data.prefabSlices.isNotEmpty) {
-          _shellState.selectedPrefabSliceId =
-              _shellState.data.prefabSlices.first.id;
-        }
+        _shellState.selectedPrefabSliceId = _preferredSelectablePrefabSliceIdForKind(
+          kind: PrefabKind.obstacle,
+          editingPrefab: null,
+        );
         syncPrefabIdsWithSelectedSlice();
         _shellState.selectedPrefabPlatformModuleId = _dataReducer
             .preferredModuleIdForPicker(_shellState.data.platformModules);
@@ -432,6 +517,10 @@ class PrefabEditorPageCoordinator {
       _runWithoutLocalDraftHistory(() {
         _obstaclePrefabForm.selectedKind = PrefabKind.obstacle;
         _obstaclePrefabForm.editingPrefabKey = null;
+        _shellState.selectedPrefabSliceId = _preferredSelectablePrefabSliceIdForKind(
+          kind: PrefabKind.obstacle,
+          editingPrefab: null,
+        );
         _syncCreateModePrefabIdForLoadedPrefabTransition(
           form: _obstaclePrefabForm,
           sourcePrefabId: source.id,
@@ -477,10 +566,10 @@ class PrefabEditorPageCoordinator {
     _updateState(() {
       _runWithoutLocalDraftHistory(() {
         _decorationPrefabForm.resetDecorationDefaults();
-        if (_shellState.data.prefabSlices.isNotEmpty) {
-          _shellState.selectedPrefabSliceId =
-              _shellState.data.prefabSlices.first.id;
-        }
+        _shellState.selectedPrefabSliceId = _preferredSelectablePrefabSliceIdForKind(
+          kind: PrefabKind.decoration,
+          editingPrefab: null,
+        );
         syncPrefabIdsWithSelectedSlice();
       });
       _syncFormDraftBaseline();
@@ -504,6 +593,10 @@ class PrefabEditorPageCoordinator {
       _runWithoutLocalDraftHistory(() {
         _decorationPrefabForm.selectedKind = PrefabKind.decoration;
         _decorationPrefabForm.editingPrefabKey = null;
+        _shellState.selectedPrefabSliceId = _preferredSelectablePrefabSliceIdForKind(
+          kind: PrefabKind.decoration,
+          editingPrefab: null,
+        );
         _syncCreateModePrefabIdForLoadedPrefabTransition(
           form: _decorationPrefabForm,
           sourcePrefabId: source.id,
@@ -698,18 +791,43 @@ class PrefabEditorPageCoordinator {
   }
 
   PrefabVisualSource? _selectedObstacleVisualSource() {
-    final sliceId = _shellState.selectedPrefabSliceId;
-    if (sliceId == null || sliceId.isEmpty) {
-      _setError('Select an atlas slice for obstacle prefab source.');
-      return null;
-    }
-    return PrefabVisualSource.atlasSlice(sliceId);
+    return _selectedAtlasSliceVisualSourceForForm(
+      form: _obstaclePrefabForm,
+      kind: PrefabKind.obstacle,
+      missingSelectionMessage: 'Select an atlas slice for obstacle prefab source.',
+    );
   }
 
   PrefabVisualSource? _selectedDecorationVisualSource() {
+    return _selectedAtlasSliceVisualSourceForForm(
+      form: _decorationPrefabForm,
+      kind: PrefabKind.decoration,
+      missingSelectionMessage:
+          'Select an atlas slice for decoration prefab source.',
+    );
+  }
+
+  PrefabVisualSource? _selectedAtlasSliceVisualSourceForForm({
+    required PrefabFormState form,
+    required PrefabKind kind,
+    required String missingSelectionMessage,
+  }) {
     final sliceId = _shellState.selectedPrefabSliceId;
     if (sliceId == null || sliceId.isEmpty) {
-      _setError('Select an atlas slice for decoration prefab source.');
+      _setError(missingSelectionMessage);
+      return null;
+    }
+    final editingPrefab = editingPrefabForForm(form);
+    final conflictingPrefab = _prefabUsingAtlasSliceForKind(
+      kind: kind,
+      sliceId: sliceId,
+      excludingPrefabKey: editingPrefab?.prefabKey,
+    );
+    if (conflictingPrefab != null) {
+      _setError(
+        'Atlas slice "$sliceId" is already used by '
+        '${kind.jsonValue} prefab "${conflictingPrefab.id}".',
+      );
       return null;
     }
     return PrefabVisualSource.atlasSlice(sliceId);

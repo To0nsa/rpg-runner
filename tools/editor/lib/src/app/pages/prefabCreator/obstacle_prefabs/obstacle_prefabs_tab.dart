@@ -27,6 +27,7 @@ class ObstaclePrefabsTab extends StatelessWidget {
     super.key,
     required this.form,
     required this.prefabSlices,
+    required this.selectablePrefabSlices,
     required this.obstaclePrefabs,
     required this.selectedSliceId,
     required this.selectedSlice,
@@ -46,6 +47,7 @@ class ObstaclePrefabsTab extends StatelessWidget {
 
   final PrefabFormState form;
   final List<AtlasSliceDef> prefabSlices;
+  final List<AtlasSliceDef> selectablePrefabSlices;
   final List<PrefabDef> obstaclePrefabs;
   final String? selectedSliceId;
   final AtlasSliceDef? selectedSlice;
@@ -68,6 +70,7 @@ class ObstaclePrefabsTab extends StatelessWidget {
       inspector: _ObstaclePrefabInspectorPanel(
         form: form,
         prefabSlices: prefabSlices,
+        selectablePrefabSlices: selectablePrefabSlices,
         selectedSliceId: selectedSliceId,
         editingObstaclePrefab: editingObstaclePrefab,
         workspaceRootPath: workspaceRootPath,
@@ -141,6 +144,7 @@ class _ObstaclePrefabInspectorPanel extends StatelessWidget {
   const _ObstaclePrefabInspectorPanel({
     required this.form,
     required this.prefabSlices,
+    required this.selectablePrefabSlices,
     required this.selectedSliceId,
     required this.editingObstaclePrefab,
     required this.workspaceRootPath,
@@ -154,6 +158,7 @@ class _ObstaclePrefabInspectorPanel extends StatelessWidget {
 
   final PrefabFormState form;
   final List<AtlasSliceDef> prefabSlices;
+  final List<AtlasSliceDef> selectablePrefabSlices;
   final String? selectedSliceId;
   final PrefabDef? editingObstaclePrefab;
   final String workspaceRootPath;
@@ -248,6 +253,7 @@ class _ObstaclePrefabInspectorPanel extends StatelessWidget {
                   label: const Text('Deprecate'),
                 ),
                 OutlinedButton.icon(
+                  key: const ValueKey<String>('obstacle_prefab_clear_form_button'),
                   onPressed: onClearForm,
                   icon: const Icon(Icons.clear_outlined),
                   label: const Text('Clear Form'),
@@ -282,13 +288,14 @@ class _ObstaclePrefabInspectorPanel extends StatelessWidget {
                         selectedPreviewKey: const ValueKey<String>(
                           'obstacle_prefab_slice_selected_preview',
                         ),
-                        slices: prefabSlices,
+                        slices: selectablePrefabSlices,
                         selectedSliceId: selectedSliceId,
                         onSelectedSliceChanged: onSelectedSliceChanged,
                         workspaceRootPath: workspaceRootPath,
                         labelText: 'Atlas Slice',
                         hintText: 'Search obstacle slices by id or tag',
-                        emptyStateMessage: 'Create prefab atlas slices first.',
+                        emptyStateMessage:
+                            'All atlas slices are already used by obstacle prefabs.',
                         defaultScopeTags: const <String>['obstacle'],
                       )
                     : const Text('Create prefab atlas slices first.'),

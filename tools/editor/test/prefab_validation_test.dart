@@ -157,6 +157,59 @@ void main() {
     expect(codes, contains('decoration_prefab_collider_forbidden'));
   });
 
+  test('validatePrefabData rejects reusing one slice for same-kind prefabs', () {
+    final data = PrefabData(
+      prefabSlices: const [
+        AtlasSliceDef(
+          id: 'shared_slice',
+          sourceImagePath: 'assets/images/level/props/TX Village Props.png',
+          x: 16,
+          y: 16,
+          width: 32,
+          height: 32,
+        ),
+      ],
+      prefabs: [
+        PrefabDef(
+          prefabKey: 'crate_a',
+          id: 'crate_a',
+          revision: 1,
+          status: PrefabStatus.active,
+          kind: PrefabKind.obstacle,
+          visualSource: PrefabVisualSource.atlasSlice('shared_slice'),
+          anchorXPx: 8,
+          anchorYPx: 20,
+          colliders: const [
+            PrefabColliderDef(offsetX: 0, offsetY: 0, width: 16, height: 16),
+          ],
+        ),
+        PrefabDef(
+          prefabKey: 'crate_b',
+          id: 'crate_b',
+          revision: 1,
+          status: PrefabStatus.active,
+          kind: PrefabKind.obstacle,
+          visualSource: PrefabVisualSource.atlasSlice('shared_slice'),
+          anchorXPx: 8,
+          anchorYPx: 20,
+          colliders: const [
+            PrefabColliderDef(offsetX: 0, offsetY: 0, width: 16, height: 16),
+          ],
+        ),
+      ],
+    );
+
+    final issues = validatePrefabDataIssues(
+      data: data,
+      atlasImageSizes: const {
+        'assets/images/level/props/TX Village Props.png': Size(256, 256),
+      },
+    );
+    final codes = issues.map((issue) => issue.code).toSet();
+
+    expect(codes, contains('obstacle_prefab_source_slice_reused'));
+  });
+
   test('validatePrefabData normalizes atlas source paths before lookup', () {
     final data = PrefabData(
       prefabSlices: const [

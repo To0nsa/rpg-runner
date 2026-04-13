@@ -12,6 +12,8 @@ void _validatePrefabs({
 }) {
   final prefabIds = <String>{};
   final prefabKeys = <String>{};
+  final obstaclePrefabBySliceId = <String, PrefabDef>{};
+  final decorationPrefabBySliceId = <String, PrefabDef>{};
 
   for (final prefab in prefabs) {
     final prefabLabel = _prefabLabel(prefab);
@@ -103,6 +105,13 @@ void _validatePrefabs({
               snapUnitPx: 1,
             );
           }
+          _validateAtlasSliceReuseForPrefabKind(
+            issues: issues,
+            prefab: prefab,
+            sliceId: source.sliceId,
+            obstaclePrefabBySliceId: obstaclePrefabBySliceId,
+            decorationPrefabBySliceId: decorationPrefabBySliceId,
+          );
         }
         if (prefab.kind == PrefabKind.platform) {
           issues.add(
@@ -171,6 +180,51 @@ void _validatePrefabs({
       prefab: prefab,
       sourceGeometry: sourceGeometry,
     );
+  }
+}
+
+void _validateAtlasSliceReuseForPrefabKind({
+  required List<PrefabValidationIssue> issues,
+  required PrefabDef prefab,
+  required String sliceId,
+  required Map<String, PrefabDef> obstaclePrefabBySliceId,
+  required Map<String, PrefabDef> decorationPrefabBySliceId,
+}) {
+  if (sliceId.isEmpty) {
+    return;
+  }
+  switch (prefab.kind) {
+    case PrefabKind.obstacle:
+      final existing = obstaclePrefabBySliceId[sliceId];
+      if (existing != null && existing.prefabKey != prefab.prefabKey) {
+        issues.add(
+          PrefabValidationIssue(
+            code: 'obstacle_prefab_source_slice_reused',
+            message:
+                'Obstacle prefab ${prefab.id} reuses atlas slice $sliceId '
+                'already used by obstacle prefab ${existing.id}.',
+          ),
+        );
+      } else {
+        obstaclePrefabBySliceId[sliceId] = prefab;
+      }
+    case PrefabKind.decoration:
+      final existing = decorationPrefabBySliceId[sliceId];
+      if (existing != null && existing.prefabKey != prefab.prefabKey) {
+        issues.add(
+          PrefabValidationIssue(
+            code: 'decoration_prefab_source_slice_reused',
+            message:
+                'Decoration prefab ${prefab.id} reuses atlas slice $sliceId '
+                'already used by decoration prefab ${existing.id}.',
+          ),
+        );
+      } else {
+        decorationPrefabBySliceId[sliceId] = prefab;
+      }
+    case PrefabKind.platform:
+    case PrefabKind.unknown:
+      break;
   }
 }
 
