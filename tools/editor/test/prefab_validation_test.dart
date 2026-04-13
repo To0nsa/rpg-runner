@@ -79,6 +79,84 @@ void main() {
     expect(errors, isEmpty);
   });
 
+  test('validatePrefabData accepts decoration prefab without colliders', () {
+    final data = PrefabData(
+      prefabSlices: const [
+        AtlasSliceDef(
+          id: 'deco_slice_a',
+          sourceImagePath: 'assets/images/level/props/TX Village Props.png',
+          x: 16,
+          y: 16,
+          width: 32,
+          height: 32,
+        ),
+      ],
+      prefabs: [
+        PrefabDef(
+          prefabKey: 'lantern_a',
+          id: 'lantern_a',
+          revision: 1,
+          status: PrefabStatus.active,
+          kind: PrefabKind.decoration,
+          visualSource: PrefabVisualSource.atlasSlice('deco_slice_a'),
+          anchorXPx: 8,
+          anchorYPx: 20,
+          colliders: const [],
+          tags: const ['decorative'],
+        ),
+      ],
+    );
+
+    final errors = validatePrefabData(
+      data: data,
+      atlasImageSizes: const {
+        'assets/images/level/props/TX Village Props.png': Size(256, 256),
+      },
+    );
+
+    expect(errors, isEmpty);
+  });
+
+  test('validatePrefabData rejects decoration prefab colliders', () {
+    final data = PrefabData(
+      prefabSlices: const [
+        AtlasSliceDef(
+          id: 'deco_slice_a',
+          sourceImagePath: 'assets/images/level/props/TX Village Props.png',
+          x: 16,
+          y: 16,
+          width: 32,
+          height: 32,
+        ),
+      ],
+      prefabs: [
+        PrefabDef(
+          prefabKey: 'lantern_with_collider',
+          id: 'lantern_with_collider',
+          revision: 1,
+          status: PrefabStatus.active,
+          kind: PrefabKind.decoration,
+          visualSource: PrefabVisualSource.atlasSlice('deco_slice_a'),
+          anchorXPx: 8,
+          anchorYPx: 20,
+          colliders: const [
+            PrefabColliderDef(offsetX: 0, offsetY: 0, width: 8, height: 8),
+          ],
+        ),
+      ],
+    );
+
+    final issues = validatePrefabDataIssues(
+      data: data,
+      atlasImageSizes: const {
+        'assets/images/level/props/TX Village Props.png': Size(256, 256),
+      },
+    );
+    final codes = issues.map((issue) => issue.code).toSet();
+
+    expect(codes, contains('decoration_prefab_collider_forbidden'));
+  });
+
   test('validatePrefabData normalizes atlas source paths before lookup', () {
     final data = PrefabData(
       prefabSlices: const [

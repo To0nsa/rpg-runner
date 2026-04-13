@@ -20,6 +20,7 @@ class PrefabEditorPageDraftCoordinator {
     required TextEditingController moduleTileSizeController,
     required PrefabFormState obstaclePrefabForm,
     required PrefabFormState platformPrefabForm,
+    required PrefabFormState decorationPrefabForm,
     required PrefabEditorShellState shellState,
     required PrefabEditorStateSetter updateState,
     required bool Function() isMounted,
@@ -32,6 +33,7 @@ class PrefabEditorPageDraftCoordinator {
        _moduleTileSizeController = moduleTileSizeController,
        _obstaclePrefabForm = obstaclePrefabForm,
        _platformPrefabForm = platformPrefabForm,
+       _decorationPrefabForm = decorationPrefabForm,
        _shellState = shellState {
     _history = PrefabEditorLocalDraftHistory<PrefabEditorPageDraftSnapshot>(
       trackedControllers: <TextEditingController>[
@@ -58,6 +60,14 @@ class PrefabEditorPageDraftCoordinator {
         platformPrefabForm.colliderWidthController,
         platformPrefabForm.colliderHeightController,
         platformPrefabForm.tagsController,
+        decorationPrefabForm.prefabIdController,
+        decorationPrefabForm.anchorXController,
+        decorationPrefabForm.anchorYController,
+        decorationPrefabForm.colliderOffsetXController,
+        decorationPrefabForm.colliderOffsetYController,
+        decorationPrefabForm.colliderWidthController,
+        decorationPrefabForm.colliderHeightController,
+        decorationPrefabForm.tagsController,
       ],
       captureSnapshot: _captureSnapshot,
       restoreSnapshot: _restoreSnapshot,
@@ -75,6 +85,7 @@ class PrefabEditorPageDraftCoordinator {
   final TextEditingController _moduleTileSizeController;
   final PrefabFormState _obstaclePrefabForm;
   final PrefabFormState _platformPrefabForm;
+  final PrefabFormState _decorationPrefabForm;
   final PrefabEditorShellState _shellState;
   late final PrefabEditorLocalDraftHistory<PrefabEditorPageDraftSnapshot>
   _history;
@@ -137,6 +148,7 @@ class PrefabEditorPageDraftCoordinator {
       moduleTileSize: _moduleTileSizeController.text,
       obstacleForm: _obstaclePrefabForm.captureDraftSnapshot(),
       platformForm: _platformPrefabForm.captureDraftSnapshot(),
+      decorationForm: _decorationPrefabForm.captureDraftSnapshot(),
     );
   }
 
@@ -154,6 +166,7 @@ class PrefabEditorPageDraftCoordinator {
       _moduleTileSizeController.text = snapshot.moduleTileSize;
       _obstaclePrefabForm.restoreDraftSnapshot(snapshot.obstacleForm);
       _platformPrefabForm.restoreDraftSnapshot(snapshot.platformForm);
+      _decorationPrefabForm.restoreDraftSnapshot(snapshot.decorationForm);
     });
   }
 }
@@ -171,6 +184,7 @@ class PrefabEditorPageDraftSnapshot {
     required this.moduleTileSize,
     required this.obstacleForm,
     required this.platformForm,
+    required this.decorationForm,
   });
 
   final String sliceId;
@@ -184,6 +198,7 @@ class PrefabEditorPageDraftSnapshot {
   final String moduleTileSize;
   final PrefabFormDraftSnapshot obstacleForm;
   final PrefabFormDraftSnapshot platformForm;
+  final PrefabFormDraftSnapshot decorationForm;
 
   @override
   bool operator ==(Object other) {
@@ -202,7 +217,8 @@ class PrefabEditorPageDraftSnapshot {
         other.moduleId == moduleId &&
         other.moduleTileSize == moduleTileSize &&
         other.obstacleForm == obstacleForm &&
-        other.platformForm == platformForm;
+        other.platformForm == platformForm &&
+        other.decorationForm == decorationForm;
   }
 
   @override
@@ -218,5 +234,6 @@ class PrefabEditorPageDraftSnapshot {
     moduleTileSize,
     obstacleForm,
     platformForm,
+    decorationForm,
   ]);
 }

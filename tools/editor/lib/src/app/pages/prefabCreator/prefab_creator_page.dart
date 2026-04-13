@@ -48,6 +48,7 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
   final TextEditingController _sliceIdController = TextEditingController();
   final PrefabFormState _obstaclePrefabForm = PrefabFormState.obstacle();
   final PrefabFormState _platformPrefabForm = PrefabFormState.platform();
+  final PrefabFormState _decorationPrefabForm = PrefabFormState.decoration();
 
   final TextEditingController _moduleIdController = TextEditingController();
   final TextEditingController _moduleTileSizeController = TextEditingController(
@@ -145,6 +146,7 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
       moduleTileSizeController: _moduleTileSizeController,
       obstaclePrefabForm: _obstaclePrefabForm,
       platformPrefabForm: _platformPrefabForm,
+      decorationPrefabForm: _decorationPrefabForm,
       shellState: _shellState,
       updateState: _updateState,
       isMounted: () => mounted,
@@ -172,6 +174,7 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
       shellState: _shellState,
       obstaclePrefabForm: _obstaclePrefabForm,
       platformPrefabForm: _platformPrefabForm,
+      decorationPrefabForm: _decorationPrefabForm,
       moduleTileSizeController: _moduleTileSizeController,
       readWorkspaceRootPath: workspaceRootPath,
       updateState: _updateState,
@@ -208,8 +211,9 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
       levelAssetsPath: _levelAssetsPath,
       obstaclePrefabForm: _obstaclePrefabForm,
       platformPrefabForm: _platformPrefabForm,
+      decorationPrefabForm: _decorationPrefabForm,
     );
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     _shellState.activeTabIndex = _tabController.index;
     _draftCoordinator.syncBaseline();
     _draftCoordinator.installListeners();
@@ -228,6 +232,7 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
     _sliceIdController.dispose();
     _obstaclePrefabForm.dispose();
     _platformPrefabForm.dispose();
+    _decorationPrefabForm.dispose();
     _moduleIdController.dispose();
     _moduleTileSizeController.dispose();
     _selectionXController.dispose();
@@ -263,6 +268,7 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
           zoomStep: _zoomStep,
         ),
         _prefabPageCoordinator.buildObstaclePrefabsTab(),
+        _prefabPageCoordinator.buildDecorationPrefabsTab(),
         _platformModulePageCoordinator.buildTab(),
         _prefabPageCoordinator.buildPlatformPrefabsTab(),
       ],
@@ -294,7 +300,7 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
 
   void _switchToTab(int nextIndex) {
     _shellState.activeTabIndex = nextIndex;
-    if (nextIndex == 2) {
+    if (nextIndex == 3) {
       _platformModulePageCoordinator.syncSelectedModuleInputs();
     }
   }

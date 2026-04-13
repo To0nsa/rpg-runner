@@ -4,6 +4,14 @@ import '../../../../prefabs/models/models.dart';
 import 'prefab_scene_values.dart';
 
 @immutable
+class PrefabAnchorValues {
+  const PrefabAnchorValues({required this.anchorX, required this.anchorY});
+
+  final int anchorX;
+  final int anchorY;
+}
+
+@immutable
 class PrefabFormDraftSnapshot {
   const PrefabFormDraftSnapshot({
     required this.prefabId,
@@ -75,6 +83,10 @@ class PrefabFormState {
     resetPlatformDefaults(tileSize: tileSize);
   }
 
+  PrefabFormState.decoration() {
+    resetDecorationDefaults();
+  }
+
   final TextEditingController prefabIdController = TextEditingController();
   final TextEditingController anchorXController = TextEditingController();
   final TextEditingController anchorYController = TextEditingController();
@@ -121,15 +133,15 @@ class PrefabFormState {
   }
 
   PrefabSceneValues? tryParseSceneValues() {
-    final anchorX = int.tryParse(anchorXController.text.trim());
-    final anchorY = int.tryParse(anchorYController.text.trim());
+    final anchor = tryParseAnchorValues();
+    if (anchor == null) {
+      return null;
+    }
     final colliderOffsetX = int.tryParse(colliderOffsetXController.text.trim());
     final colliderOffsetY = int.tryParse(colliderOffsetYController.text.trim());
     final colliderWidth = int.tryParse(colliderWidthController.text.trim());
     final colliderHeight = int.tryParse(colliderHeightController.text.trim());
-    if (anchorX == null ||
-        anchorY == null ||
-        colliderOffsetX == null ||
+    if (colliderOffsetX == null ||
         colliderOffsetY == null ||
         colliderWidth == null ||
         colliderHeight == null) {
@@ -139,13 +151,22 @@ class PrefabFormState {
       return null;
     }
     return PrefabSceneValues(
-      anchorX: anchorX,
-      anchorY: anchorY,
+      anchorX: anchor.anchorX,
+      anchorY: anchor.anchorY,
       colliderOffsetX: colliderOffsetX,
       colliderOffsetY: colliderOffsetY,
       colliderWidth: colliderWidth,
       colliderHeight: colliderHeight,
     );
+  }
+
+  PrefabAnchorValues? tryParseAnchorValues() {
+    final anchorX = int.tryParse(anchorXController.text.trim());
+    final anchorY = int.tryParse(anchorYController.text.trim());
+    if (anchorX == null || anchorY == null) {
+      return null;
+    }
+    return PrefabAnchorValues(anchorX: anchorX, anchorY: anchorY);
   }
 
   void applySceneValues(PrefabSceneValues values) {
@@ -155,6 +176,11 @@ class PrefabFormState {
     colliderOffsetYController.text = values.colliderOffsetY.toString();
     colliderWidthController.text = values.colliderWidth.toString();
     colliderHeightController.text = values.colliderHeight.toString();
+  }
+
+  void applyAnchorValues(PrefabAnchorValues values) {
+    anchorXController.text = values.anchorX.toString();
+    anchorYController.text = values.anchorY.toString();
   }
 
   void resetObstacleDefaults() {
@@ -184,6 +210,21 @@ class PrefabFormState {
     tagsController.clear();
     autoManagePlatformModule = true;
     selectedKind = PrefabKind.platform;
+    editingPrefabKey = null;
+  }
+
+  void resetDecorationDefaults() {
+    prefabIdController.clear();
+    anchorXController.text = '0';
+    anchorYController.text = '0';
+    // Decoration prefabs intentionally do not export colliders.
+    colliderOffsetXController.text = '0';
+    colliderOffsetYController.text = '0';
+    colliderWidthController.text = '16';
+    colliderHeightController.text = '16';
+    tagsController.clear();
+    autoManagePlatformModule = true;
+    selectedKind = PrefabKind.decoration;
     editingPrefabKey = null;
   }
 

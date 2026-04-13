@@ -25,6 +25,7 @@ class PrefabSceneView extends StatefulWidget {
     required this.values,
     required this.onChanged,
     this.showCardFrame = true,
+    this.showColliderOverlay = true,
   });
 
   final String workspaceRootPath;
@@ -32,6 +33,7 @@ class PrefabSceneView extends StatefulWidget {
   final PrefabSceneValues values;
   final ValueChanged<PrefabSceneValues> onChanged;
   final bool showCardFrame;
+  final bool showColliderOverlay;
 
   @override
   State<PrefabSceneView> createState() => _PrefabSceneViewState();
@@ -246,6 +248,7 @@ class _PrefabSceneViewState extends State<PrefabSceneView> {
                         values: widget.values,
                         zoom: _zoom,
                         activeHandle: _dragState?.handle,
+                        showColliderOverlay: widget.showColliderOverlay,
                       ),
                     ),
             ),
@@ -401,6 +404,7 @@ class _PrefabSceneViewState extends State<PrefabSceneView> {
       geometry: overlayGeometry,
       anchorHandleHitRadius: _anchorHandleHitRadius,
       colliderHandleHitRadius: _colliderHandleHitRadius,
+      includeColliderHandles: widget.showColliderOverlay,
     );
   }
 }
@@ -412,6 +416,7 @@ class _PrefabScenePainter extends CustomPainter {
     required this.values,
     required this.zoom,
     required this.activeHandle,
+    required this.showColliderOverlay,
   });
 
   final ui.Image image;
@@ -419,6 +424,7 @@ class _PrefabScenePainter extends CustomPainter {
   final PrefabSceneValues values;
   final double zoom;
   final PrefabOverlayHandleType? activeHandle;
+  final bool showColliderOverlay;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -458,6 +464,7 @@ class _PrefabScenePainter extends CustomPainter {
       canvas: canvas,
       geometry: overlayGeometry,
       activeHandle: activeHandle,
+      showCollider: showColliderOverlay,
     );
   }
 
@@ -467,7 +474,8 @@ class _PrefabScenePainter extends CustomPainter {
         oldDelegate.slice != slice ||
         oldDelegate.values != values ||
         oldDelegate.zoom != zoom ||
-        oldDelegate.activeHandle != activeHandle;
+        oldDelegate.activeHandle != activeHandle ||
+        oldDelegate.showColliderOverlay != showColliderOverlay;
   }
 }
 

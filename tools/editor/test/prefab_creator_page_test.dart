@@ -111,91 +111,113 @@ void main() {
     },
   );
 
-  testWidgets('tabs split obstacle, module, and platform prefab authoring', (
-    tester,
-  ) async {
-    await tester.binding.setSurfaceSize(const Size(1800, 1200));
-    addTearDown(() async {
-      await tester.binding.setSurfaceSize(null);
-    });
+  testWidgets(
+    'tabs split obstacle, decoration, module, and platform prefab authoring',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1800, 1200));
+      addTearDown(() async {
+        await tester.binding.setSurfaceSize(null);
+      });
 
-    final fixtureRoot = _createPrefabAuthoringFixture();
-    addTearDown(() {
-      fixtureRoot.deleteSync(recursive: true);
-    });
+      final fixtureRoot = _createPrefabAuthoringFixture();
+      addTearDown(() {
+        fixtureRoot.deleteSync(recursive: true);
+      });
 
-    await _pumpPrefabCreatorPage(tester, workspacePath: fixtureRoot.path);
+      await _pumpPrefabCreatorPage(tester, workspacePath: fixtureRoot.path);
 
-    expect(_dropdownByLabel('Atlas Slice'), findsOneWidget);
-    expect(find.text('Create Platform Prefab'), findsNothing);
-    expect(
-      find.byKey(const ValueKey<String>('obstacle_prefab_inspector_card')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey<String>('obstacle_prefab_scene_card')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey<String>('obstacle_prefab_display_card')),
-      findsOneWidget,
-    );
+      expect(_dropdownByLabel('Atlas Slice'), findsOneWidget);
+      expect(find.text('Create Platform Prefab'), findsNothing);
+      expect(
+        find.byKey(const ValueKey<String>('obstacle_prefab_inspector_card')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('obstacle_prefab_scene_card')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('obstacle_prefab_display_card')),
+        findsOneWidget,
+      );
 
-    await tester.tap(find.text('Platform Modules').first);
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Decoration Prefabs').first);
+      await tester.pumpAndSettle();
 
-    expect(find.text('Platform Module Controls'), findsOneWidget);
-    expect(find.text('Edit Module'), findsNothing);
-    expect(
-      find.text('Editing platform module "ground_module"'),
-      findsOneWidget,
-    );
-    expect(find.text('Update Module'), findsOneWidget);
-    expect(
-      find.byKey(
-        const ValueKey<String>('platform_module_preview_ground_module'),
-      ),
-      findsOneWidget,
-    );
-    expect(find.text('Platform Prefab Output'), findsNothing);
-    expect(_dropdownByLabel('Atlas Slice'), findsNothing);
-    expect(
-      find.byKey(const ValueKey<String>('platform_module_inspector_card')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey<String>('platform_module_scene_card')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey<String>('platform_module_display_card')),
-      findsOneWidget,
-    );
+      expect(_dropdownByLabel('Atlas Slice'), findsOneWidget);
+      expect(find.text('Create Platform Prefab'), findsNothing);
+      expect(
+        find.byKey(const ValueKey<String>('decoration_prefab_inspector_card')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('decoration_prefab_scene_card')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('decoration_prefab_display_card')),
+        findsOneWidget,
+      );
+      expect(_textFieldByLabel('Anchor X (px)'), findsOneWidget);
+      expect(_textFieldByLabel('Width'), findsNothing);
+      expect(_textFieldByLabel('Collider Width'), findsNothing);
 
-    await tester.tap(find.text('Platform Prefabs').first);
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Platform Modules').first);
+      await tester.pumpAndSettle();
 
-    expect(find.text('Create Platform Prefab'), findsOneWidget);
-    expect(find.text('Creating new platform prefab'), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey<String>('platform_prefab_inspector_card')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey<String>('platform_prefab_scene_card')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey<String>('platform_prefab_display_card')),
-      findsOneWidget,
-    );
-    expect(_dropdownByLabel('Atlas Slice'), findsNothing);
+      expect(find.text('Platform Module Controls'), findsOneWidget);
+      expect(find.text('Edit Module'), findsNothing);
+      expect(
+        find.text('Editing platform module "ground_module"'),
+        findsOneWidget,
+      );
+      expect(find.text('Update Module'), findsOneWidget);
+      expect(
+        find.byKey(
+          const ValueKey<String>('platform_module_preview_ground_module'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Platform Prefab Output'), findsNothing);
+      expect(_dropdownByLabel('Atlas Slice'), findsNothing);
+      expect(
+        find.byKey(const ValueKey<String>('platform_module_inspector_card')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('platform_module_scene_card')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('platform_module_display_card')),
+        findsOneWidget,
+      );
 
-    await tester.tap(find.text('Obstacle Prefabs').first);
-    await tester.pumpAndSettle();
-    expect(_dropdownByLabel('Atlas Slice'), findsOneWidget);
-    expect(find.text('Create Platform Prefab'), findsNothing);
-  });
+      await tester.tap(find.text('Platform Prefabs').first);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Create Platform Prefab'), findsOneWidget);
+      expect(find.text('Creating new platform prefab'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('platform_prefab_inspector_card')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('platform_prefab_scene_card')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('platform_prefab_display_card')),
+        findsOneWidget,
+      );
+      expect(_dropdownByLabel('Atlas Slice'), findsNothing);
+
+      await tester.tap(find.text('Obstacle Prefabs').first);
+      await tester.pumpAndSettle();
+      expect(_dropdownByLabel('Atlas Slice'), findsOneWidget);
+      expect(find.text('Create Platform Prefab'), findsNothing);
+    },
+  );
 
   testWidgets('obstacle tab stays atlas-slice only', (tester) async {
     await tester.binding.setSurfaceSize(const Size(1800, 1200));
@@ -271,6 +293,46 @@ void main() {
       find.textContaining('Upserted obstacle prefab "obstacle_box" (rev=1'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('decoration create flow writes collider-free prefab data', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1800, 1200));
+    addTearDown(() async {
+      await tester.binding.setSurfaceSize(null);
+    });
+
+    final fixtureRoot = _createPrefabAuthoringFixture();
+    addTearDown(() {
+      fixtureRoot.deleteSync(recursive: true);
+    });
+
+    final controller = await _pumpPrefabCreatorPage(
+      tester,
+      workspacePath: fixtureRoot.path,
+    );
+
+    await tester.tap(find.text('Decoration Prefabs').first);
+    await tester.pumpAndSettle();
+
+    await tester.enterText(_textFieldByLabel('Prefab ID').first, 'flower_deco');
+    await tester.tap(
+      find.byKey(const ValueKey<String>('decoration_prefab_upsert_button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('Upserted decoration prefab "flower_deco"'),
+      findsOneWidget,
+    );
+
+    final created = _prefabScene(
+      controller,
+    ).data.prefabs.singleWhere((prefab) => prefab.id == 'flower_deco');
+    expect(created.kind, PrefabKind.decoration);
+    expect(created.visualSource.type, PrefabVisualSourceType.atlasSlice);
+    expect(created.colliders, isEmpty);
   });
 
   testWidgets(

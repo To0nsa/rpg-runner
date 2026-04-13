@@ -96,6 +96,7 @@ class PrefabEditorShellChrome extends StatelessWidget {
               tabs: const [
                 Tab(text: 'Atlas Slicer'),
                 Tab(text: 'Obstacle Prefabs'),
+                Tab(text: 'Decoration Prefabs'),
                 Tab(text: 'Platform Modules'),
                 Tab(text: 'Platform Prefabs'),
               ],

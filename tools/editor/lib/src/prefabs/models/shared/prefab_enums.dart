@@ -1,5 +1,5 @@
 /// Gameplay-facing prefab role used by authoring validation and UI filtering.
-enum PrefabKind { obstacle, platform, unknown }
+enum PrefabKind { obstacle, platform, decoration, unknown }
 
 /// Lifecycle status for prefabs authored in `prefab_defs.json`.
 enum PrefabStatus { active, deprecated, unknown }
@@ -20,6 +20,8 @@ PrefabKind parsePrefabKind(String raw) {
       return PrefabKind.obstacle;
     case 'platform':
       return PrefabKind.platform;
+    case 'decoration':
+      return PrefabKind.decoration;
     default:
       return PrefabKind.unknown;
   }
@@ -71,6 +73,8 @@ extension PrefabKindJson on PrefabKind {
         return 'obstacle';
       case PrefabKind.platform:
         return 'platform';
+      case PrefabKind.decoration:
+        return 'decoration';
       case PrefabKind.unknown:
         return 'unknown';
     }

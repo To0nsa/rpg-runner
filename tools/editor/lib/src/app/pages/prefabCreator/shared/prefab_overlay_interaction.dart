@@ -83,10 +83,14 @@ final class PrefabOverlayHitTest {
     required PrefabOverlayHandleGeometry geometry,
     required double anchorHandleHitRadius,
     required double colliderHandleHitRadius,
+    bool includeColliderHandles = true,
   }) {
     if (_distanceSquared(point, geometry.anchorHandleCenter) <=
         anchorHandleHitRadius * anchorHandleHitRadius) {
       return PrefabOverlayHandleType.anchor;
+    }
+    if (!includeColliderHandles) {
+      return null;
     }
     if (_distanceSquared(point, geometry.colliderCenterHandle) <=
         colliderHandleHitRadius * colliderHandleHitRadius) {
@@ -196,17 +200,20 @@ final class PrefabOverlayPainter {
     required Canvas canvas,
     required PrefabOverlayHandleGeometry geometry,
     PrefabOverlayHandleType? activeHandle,
+    bool showCollider = true,
     bool drawHandles = true,
   }) {
-    final colliderFill = Paint()
-      ..color = const Color(0x4422D3EE)
-      ..style = PaintingStyle.fill;
-    final colliderStroke = Paint()
-      ..color = const Color(0xFF7CE5FF)
-      ..strokeWidth = 1.6
-      ..style = PaintingStyle.stroke;
-    canvas.drawRect(geometry.colliderRect, colliderFill);
-    canvas.drawRect(geometry.colliderRect, colliderStroke);
+    if (showCollider) {
+      final colliderFill = Paint()
+        ..color = const Color(0x4422D3EE)
+        ..style = PaintingStyle.fill;
+      final colliderStroke = Paint()
+        ..color = const Color(0xFF7CE5FF)
+        ..strokeWidth = 1.6
+        ..style = PaintingStyle.stroke;
+      canvas.drawRect(geometry.colliderRect, colliderFill);
+      canvas.drawRect(geometry.colliderRect, colliderStroke);
+    }
 
     final anchorCross = Paint()
       ..color = const Color(0xFFFF6B6B)
@@ -239,27 +246,29 @@ final class PrefabOverlayPainter {
       return;
     }
 
-    _paintHandle(
-      canvas,
-      geometry.colliderCenterHandle,
-      activeHandle == PrefabOverlayHandleType.colliderCenter,
-      const Color(0xFFE8F4FF),
-      const Color(0xFF0F1D28),
-    );
-    _paintHandle(
-      canvas,
-      geometry.colliderTopHandle,
-      activeHandle == PrefabOverlayHandleType.colliderTop,
-      const Color(0xFFE8F4FF),
-      const Color(0xFF0F1D28),
-    );
-    _paintHandle(
-      canvas,
-      geometry.colliderRightHandle,
-      activeHandle == PrefabOverlayHandleType.colliderRight,
-      const Color(0xFFE8F4FF),
-      const Color(0xFF0F1D28),
-    );
+    if (showCollider) {
+      _paintHandle(
+        canvas,
+        geometry.colliderCenterHandle,
+        activeHandle == PrefabOverlayHandleType.colliderCenter,
+        const Color(0xFFE8F4FF),
+        const Color(0xFF0F1D28),
+      );
+      _paintHandle(
+        canvas,
+        geometry.colliderTopHandle,
+        activeHandle == PrefabOverlayHandleType.colliderTop,
+        const Color(0xFFE8F4FF),
+        const Color(0xFF0F1D28),
+      );
+      _paintHandle(
+        canvas,
+        geometry.colliderRightHandle,
+        activeHandle == PrefabOverlayHandleType.colliderRight,
+        const Color(0xFFE8F4FF),
+        const Color(0xFF0F1D28),
+      );
+    }
     _paintHandle(
       canvas,
       geometry.anchorHandleCenter,

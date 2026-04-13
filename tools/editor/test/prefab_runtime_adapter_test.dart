@@ -8,6 +8,18 @@ void main() {
     final data = PrefabData(
       prefabs: [
         PrefabDef(
+          prefabKey: 'm_key',
+          id: 'm_id',
+          revision: 1,
+          status: PrefabStatus.active,
+          kind: PrefabKind.decoration,
+          visualSource: PrefabVisualSource.atlasSlice('slice_m'),
+          anchorXPx: 4,
+          anchorYPx: 5,
+          colliders: const [],
+          tags: const ['decorative'],
+        ),
+        PrefabDef(
           prefabKey: 'z_key',
           id: 'z_id',
           revision: 2,
@@ -38,8 +50,14 @@ void main() {
     );
 
     final contracts = buildRuntimePrefabContracts(data);
-    expect(contracts.map((contract) => contract.prefabKey), ['a_key', 'z_key']);
+    expect(contracts.map((contract) => contract.prefabKey), [
+      'a_key',
+      'm_key',
+      'z_key',
+    ]);
     expect(contracts.first.visualSourceType, 'atlas_slice');
+    expect(contracts[1].kind, 'decoration');
+    expect(contracts[1].colliders, isEmpty);
     expect(contracts.last.visualSourceType, 'platform_module');
   });
 

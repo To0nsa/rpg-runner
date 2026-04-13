@@ -38,6 +38,7 @@ class PrefabEditorPageSessionCoordinator {
     required String levelAssetsPath,
     required PrefabFormState obstaclePrefabForm,
     required PrefabFormState platformPrefabForm,
+    required PrefabFormState decorationPrefabForm,
   }) : _readController = readController,
        _readContext = readContext,
        _isMounted = isMounted,
@@ -54,7 +55,8 @@ class PrefabEditorPageSessionCoordinator {
        _syncFormDraftBaseline = syncFormDraftBaseline,
        _levelAssetsPath = levelAssetsPath,
        _obstaclePrefabForm = obstaclePrefabForm,
-       _platformPrefabForm = platformPrefabForm;
+       _platformPrefabForm = platformPrefabForm,
+       _decorationPrefabForm = decorationPrefabForm;
 
   final EditorSessionController Function() _readController;
   final BuildContext Function() _readContext;
@@ -73,6 +75,7 @@ class PrefabEditorPageSessionCoordinator {
   final String _levelAssetsPath;
   final PrefabFormState _obstaclePrefabForm;
   final PrefabFormState _platformPrefabForm;
+  final PrefabFormState _decorationPrefabForm;
 
   Future<void> reloadData() async {
     final workspacePath = _readController().workspacePath.trim();
@@ -328,6 +331,19 @@ class PrefabEditorPageSessionCoordinator {
       );
     } else {
       _platformPrefabForm.editingPrefabKey = null;
+    }
+
+    final editingDecorationPrefab = _prefabPageCoordinator.editingPrefabForForm(
+      _decorationPrefabForm,
+    );
+    if (editingDecorationPrefab != null) {
+      _prefabPageCoordinator.applyPrefabToForm(
+        _decorationPrefabForm,
+        editingDecorationPrefab,
+        setStatusMessage: false,
+      );
+    } else {
+      _decorationPrefabForm.editingPrefabKey = null;
     }
     _syncFormDraftBaseline();
   }

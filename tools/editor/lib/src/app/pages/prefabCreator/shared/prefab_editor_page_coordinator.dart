@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../prefabs/models/models.dart';
+import '../decoration_prefabs/decoration_prefabs_tab.dart';
 import '../obstacle_prefabs/obstacle_prefabs_tab.dart';
 import '../platform_modules/platform_module_controller.dart';
 import '../platform_prefabs/platform_prefab_controller.dart';
@@ -13,7 +14,7 @@ import 'prefab_editor_shell_state.dart';
 import 'prefab_form_state.dart';
 import 'prefab_scene_values.dart';
 
-/// Page-shell coordination for obstacle and platform prefab authoring.
+/// Page-shell coordination for obstacle/platform/decoration prefab authoring.
 ///
 /// The prefab page still owns session commits and controller lifetimes, but
 /// this seam keeps prefab-form orchestration out of the large shell widget.
@@ -27,6 +28,7 @@ class PrefabEditorPageCoordinator {
     required PrefabEditorShellState shellState,
     required PrefabFormState obstaclePrefabForm,
     required PrefabFormState platformPrefabForm,
+    required PrefabFormState decorationPrefabForm,
     required TextEditingController moduleTileSizeController,
     required String Function() readWorkspaceRootPath,
     required PrefabEditorStateSetter updateState,
@@ -42,6 +44,7 @@ class PrefabEditorPageCoordinator {
        _shellState = shellState,
        _obstaclePrefabForm = obstaclePrefabForm,
        _platformPrefabForm = platformPrefabForm,
+       _decorationPrefabForm = decorationPrefabForm,
        _moduleTileSizeController = moduleTileSizeController,
        _readWorkspaceRootPath = readWorkspaceRootPath,
        _updateState = updateState,
@@ -58,6 +61,7 @@ class PrefabEditorPageCoordinator {
   final PrefabEditorShellState _shellState;
   final PrefabFormState _obstaclePrefabForm;
   final PrefabFormState _platformPrefabForm;
+  final PrefabFormState _decorationPrefabForm;
   final TextEditingController _moduleTileSizeController;
   final String Function() _readWorkspaceRootPath;
   final PrefabEditorStateSetter _updateState;
@@ -103,6 +107,46 @@ class PrefabEditorPageCoordinator {
       onDeprecatePrefab: deprecateLoadedObstaclePrefab,
       onStartNewFromCurrentValues: startNewObstaclePrefabFromCurrentValues,
       onClearForm: clearObstaclePrefabForm,
+    );
+  }
+
+  Widget buildDecorationPrefabsTab() {
+    final data = _shellState.data;
+    final selectedSlice = findSliceById(
+      slices: data.prefabSlices,
+      sliceId: _shellState.selectedPrefabSliceId,
+    );
+    final sceneValues = _decorationPrefabForm.tryParseSceneValues();
+    final editingPrefab = editingPrefabForForm(_decorationPrefabForm);
+    final editingDecorationPrefab =
+        editingPrefab != null && editingPrefab.kind == PrefabKind.decoration
+        ? editingPrefab
+        : null;
+
+    return DecorationPrefabsTab(
+      form: _decorationPrefabForm,
+      prefabSlices: data.prefabSlices,
+      decorationPrefabs: data.prefabs
+          .where((prefab) => prefab.kind == PrefabKind.decoration)
+          .toList(growable: false),
+      selectedSliceId: _shellState.selectedPrefabSliceId,
+      selectedSlice: selectedSlice,
+      editingDecorationPrefab: editingDecorationPrefab,
+      sceneValues: sceneValues,
+      workspaceRootPath: _readWorkspaceRootPath(),
+      onSelectedSliceChanged: (value) {
+        _updateState(() {
+          _shellState.selectedPrefabSliceId = value;
+        });
+      },
+      onSceneValuesChanged: onDecorationPrefabSceneValuesChanged,
+      onLoadPrefab: loadPrefabIntoForm,
+      onDeletePrefab: deletePrefab,
+      onUpsertPrefab: upsertDecorationPrefabFromForm,
+      onDuplicatePrefab: duplicateLoadedDecorationPrefab,
+      onDeprecatePrefab: deprecateLoadedDecorationPrefab,
+      onStartNewFromCurrentValues: startNewDecorationPrefabFromCurrentValues,
+      onClearForm: clearDecorationPrefabForm,
     );
   }
 
@@ -169,6 +213,7 @@ class PrefabEditorPageCoordinator {
       _platformPrefabForm.resetPlatformDefaults(
         tileSize: defaultPlatformTileSize,
       );
+      _decorationPrefabForm.resetDecorationDefaults();
       _shellState.selectedPrefabPlatformModuleId = defaultPlatformModuleId;
     });
   }
@@ -186,6 +231,17 @@ class PrefabEditorPageCoordinator {
     _updateState(() {
       _applyLocalDraftMutation(() {
         _platformPrefabForm.applySceneValues(values);
+      });
+      _shellState.errorMessage = null;
+    });
+  }
+
+  void onDecorationPrefabSceneValuesChanged(PrefabSceneValues values) {
+    _updateState(() {
+      _applyLocalDraftMutation(() {
+        _decorationPrefabForm.applyAnchorValues(
+          PrefabAnchorValues(anchorX: values.anchorX, anchorY: values.anchorY),
+        );
       });
       _shellState.errorMessage = null;
     });
@@ -262,6 +318,9 @@ class PrefabEditorPageCoordinator {
           if (deleted.prefabKey == _platformPrefabForm.editingPrefabKey) {
             _platformPrefabForm.editingPrefabKey = null;
           }
+          if (deleted.prefabKey == _decorationPrefabForm.editingPrefabKey) {
+            _decorationPrefabForm.editingPrefabKey = null;
+          }
         }
       },
       statusMessage: 'Deleted prefab "$prefabId".',
@@ -330,6 +389,69 @@ class PrefabEditorPageCoordinator {
       _syncFormDraftBaseline();
       _shellState.statusMessage =
           'Creating a new obstacle prefab from the current form values.';
+      _shellState.errorMessage = null;
+    });
+  }
+
+  void upsertDecorationPrefabFromForm() {
+    _updateState(() {
+      _decorationPrefabForm.selectedKind = PrefabKind.decoration;
+    });
+    _upsertPrefabFromForm(_decorationPrefabForm);
+  }
+
+  void duplicateLoadedDecorationPrefab() {
+    final source = editingPrefabForForm(_decorationPrefabForm);
+    if (source == null || source.kind != PrefabKind.decoration) {
+      _setError('Load a decoration prefab before duplicating.');
+      return;
+    }
+    _duplicateLoadedPrefab(_decorationPrefabForm);
+  }
+
+  void deprecateLoadedDecorationPrefab() {
+    final source = editingPrefabForForm(_decorationPrefabForm);
+    if (source == null || source.kind != PrefabKind.decoration) {
+      _setError('Load a decoration prefab before deprecating.');
+      return;
+    }
+    _deprecateLoadedPrefab(_decorationPrefabForm);
+  }
+
+  void clearDecorationPrefabForm() {
+    _updateState(() {
+      _runWithoutLocalDraftHistory(() {
+        _decorationPrefabForm.resetDecorationDefaults();
+        if (_shellState.data.prefabSlices.isNotEmpty) {
+          _shellState.selectedPrefabSliceId =
+              _shellState.data.prefabSlices.first.id;
+        }
+      });
+      _syncFormDraftBaseline();
+      _shellState.statusMessage = 'Cleared decoration prefab form.';
+      _shellState.errorMessage = null;
+    });
+  }
+
+  void startNewDecorationPrefabFromCurrentValues() {
+    final source = editingPrefabForForm(_decorationPrefabForm);
+    if (source == null || source.kind != PrefabKind.decoration) {
+      _updateState(() {
+        _shellState.statusMessage =
+            'Decoration prefab form is already in create mode.';
+        _shellState.errorMessage = null;
+      });
+      return;
+    }
+
+    _updateState(() {
+      _runWithoutLocalDraftHistory(() {
+        _decorationPrefabForm.selectedKind = PrefabKind.decoration;
+        _decorationPrefabForm.editingPrefabKey = null;
+      });
+      _syncFormDraftBaseline();
+      _shellState.statusMessage =
+          'Creating a new decoration prefab from the current form values.';
       _shellState.errorMessage = null;
     });
   }
@@ -503,8 +625,10 @@ class PrefabEditorPageCoordinator {
           form: form,
           platformModuleIdOverride: platformModuleIdOverride,
         );
+      case PrefabKind.decoration:
+        return _selectedDecorationVisualSource();
       case PrefabKind.unknown:
-        _setError('Prefab kind must be obstacle or platform.');
+        _setError('Prefab kind must be obstacle, platform, or decoration.');
         return null;
     }
   }
@@ -513,6 +637,15 @@ class PrefabEditorPageCoordinator {
     final sliceId = _shellState.selectedPrefabSliceId;
     if (sliceId == null || sliceId.isEmpty) {
       _setError('Select an atlas slice for obstacle prefab source.');
+      return null;
+    }
+    return PrefabVisualSource.atlasSlice(sliceId);
+  }
+
+  PrefabVisualSource? _selectedDecorationVisualSource() {
+    final sliceId = _shellState.selectedPrefabSliceId;
+    if (sliceId == null || sliceId.isEmpty) {
+      _setError('Select an atlas slice for decoration prefab source.');
       return null;
     }
     return PrefabVisualSource.atlasSlice(sliceId);
@@ -661,9 +794,15 @@ class PrefabEditorPageCoordinator {
   }
 
   PrefabFormState _formForPrefabKind(PrefabKind kind) {
-    return kind == PrefabKind.platform
-        ? _platformPrefabForm
-        : _obstaclePrefabForm;
+    switch (kind) {
+      case PrefabKind.platform:
+        return _platformPrefabForm;
+      case PrefabKind.decoration:
+        return _decorationPrefabForm;
+      case PrefabKind.obstacle:
+      case PrefabKind.unknown:
+        return _obstaclePrefabForm;
+    }
   }
 
   void _setError(String message) {

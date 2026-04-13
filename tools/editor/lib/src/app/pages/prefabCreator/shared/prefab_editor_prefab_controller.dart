@@ -4,7 +4,7 @@ import '../../../../prefabs/models/models.dart';
 import 'prefab_editor_data_reducer.dart';
 import 'prefab_form_state.dart';
 
-/// Shared prefab-editing decisions for obstacle and platform workflows.
+/// Shared prefab-editing decisions for obstacle/platform/decoration workflows.
 ///
 /// This keeps id/revision/form projection rules out of the page shell while
 /// still letting the page own Flutter controllers and session commits.
@@ -53,7 +53,7 @@ class PrefabEditorPrefabController {
     }
     if (form.selectedKind == PrefabKind.unknown) {
       return const PrefabEditorDecision.error(
-        'Prefab kind must be obstacle or platform.',
+        'Prefab kind must be obstacle, platform, or decoration.',
       );
     }
 
@@ -88,11 +88,29 @@ class PrefabEditorPrefabController {
     required PrefabUpsertIdentity identity,
     required PrefabVisualSource visualSource,
   }) {
-    final sceneValues = form.tryParseSceneValues();
-    if (sceneValues == null) {
+    final anchorValues = form.tryParseAnchorValues();
+    if (anchorValues == null) {
       return const PrefabEditorDecision.error(
-        'Anchor/collider fields must be valid integers.',
+        'Anchor fields must be valid integers.',
       );
+    }
+
+    List<PrefabColliderDef> nextColliders = const <PrefabColliderDef>[];
+    if (form.selectedKind != PrefabKind.decoration) {
+      final sceneValues = form.tryParseSceneValues();
+      if (sceneValues == null) {
+        return const PrefabEditorDecision.error(
+          'Anchor/collider fields must be valid integers.',
+        );
+      }
+      nextColliders = <PrefabColliderDef>[
+        PrefabColliderDef(
+          offsetX: sceneValues.colliderOffsetX,
+          offsetY: sceneValues.colliderOffsetY,
+          width: sceneValues.colliderWidth,
+          height: sceneValues.colliderHeight,
+        ),
+      ];
     }
 
     final normalizedTags = reducer.normalizedTags(
@@ -110,16 +128,9 @@ class PrefabEditorPrefabController {
       status: identity.existingPrefab?.status ?? PrefabStatus.active,
       kind: form.selectedKind,
       visualSource: visualSource,
-      anchorXPx: sceneValues.anchorX,
-      anchorYPx: sceneValues.anchorY,
-      colliders: [
-        PrefabColliderDef(
-          offsetX: sceneValues.colliderOffsetX,
-          offsetY: sceneValues.colliderOffsetY,
-          width: sceneValues.colliderWidth,
-          height: sceneValues.colliderHeight,
-        ),
-      ],
+      anchorXPx: anchorValues.anchorX,
+      anchorYPx: anchorValues.anchorY,
+      colliders: nextColliders,
       tags: normalizedTags,
     );
 
@@ -139,16 +150,18 @@ class PrefabEditorPrefabController {
     final collider = prefab.colliders.isEmpty
         ? const PrefabColliderDef(offsetX: 0, offsetY: 0, width: 16, height: 16)
         : prefab.colliders.first;
-    final selectedKind = prefab.kind == PrefabKind.platform
-        ? PrefabKind.platform
-        : PrefabKind.obstacle;
-    final autoManagePlatformModule = selectedKind == PrefabKind.obstacle
-        ? true
-        : prefab.usesPlatformModule
-        ? reducer.isAutoManagedModuleForPrefab(
-            prefabKey: prefab.prefabKey,
-            moduleId: prefab.moduleId,
-          )
+    final selectedKind = switch (prefab.kind) {
+      PrefabKind.platform => PrefabKind.platform,
+      PrefabKind.decoration => PrefabKind.decoration,
+      _ => PrefabKind.obstacle,
+    };
+    final autoManagePlatformModule = selectedKind == PrefabKind.platform
+        ? prefab.usesPlatformModule
+              ? reducer.isAutoManagedModuleForPrefab(
+                  prefabKey: prefab.prefabKey,
+                  moduleId: prefab.moduleId,
+                )
+              : true
         : true;
 
     return PrefabFormLoadProjection(
