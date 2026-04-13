@@ -23,7 +23,29 @@ int _compareSlices(AtlasSliceDef a, AtlasSliceDef b) {
   if (yCompare != 0) {
     return yCompare;
   }
-  return a.x.compareTo(b.x);
+  final xCompare = a.x.compareTo(b.x);
+  if (xCompare != 0) {
+    return xCompare;
+  }
+  final widthCompare = a.width.compareTo(b.width);
+  if (widthCompare != 0) {
+    return widthCompare;
+  }
+  final heightCompare = a.height.compareTo(b.height);
+  if (heightCompare != 0) {
+    return heightCompare;
+  }
+  final lengthCompare = a.tags.length.compareTo(b.tags.length);
+  if (lengthCompare != 0) {
+    return lengthCompare;
+  }
+  for (var i = 0; i < a.tags.length; i += 1) {
+    final tagCompare = a.tags[i].compareTo(b.tags[i]);
+    if (tagCompare != 0) {
+      return tagCompare;
+    }
+  }
+  return 0;
 }
 
 /// Canonical prefab sort key for validation passes.

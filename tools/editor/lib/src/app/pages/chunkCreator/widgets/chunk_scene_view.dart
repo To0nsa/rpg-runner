@@ -1195,6 +1195,8 @@ class _ChunkRenderPlacement {
   final Color fallbackColor;
 
   int get zIndex => placement.zIndex;
+  bool get flipX => placement.flipX;
+  bool get flipY => placement.flipY;
   double get visualScale {
     final scale = placement.scale;
     if (scale.isFinite && scale > 0) {
@@ -1203,10 +1205,19 @@ class _ChunkRenderPlacement {
     return defaultPrefabPlacementScale;
   }
 
-  Rect visualWorldRect() {
-    return localVisualBounds.shift(
-      Offset(placement.x.toDouble(), placement.y.toDouble()),
+  Rect transformedLocalRect(Rect rect) {
+    return Rect.fromLTWH(
+      flipX ? -rect.right : rect.left,
+      flipY ? -rect.bottom : rect.top,
+      rect.width,
+      rect.height,
     );
+  }
+
+  Rect visualWorldRect() {
+    return transformedLocalRect(
+      localVisualBounds,
+    ).shift(Offset(placement.x.toDouble(), placement.y.toDouble()));
   }
 
   PrefabSceneValues? overlayValues() {
@@ -1868,38 +1879,40 @@ class _ChunkScenePainter extends CustomPainter {
       return;
     }
 
-    for (final sprite in placement.sprites) {
-      final worldRect = sprite.localRect.shift(
-        Offset(
-          placement.placement.x.toDouble(),
-          placement.placement.y.toDouble(),
-        ),
-      );
-      final canvasRect = geometry.canvasRectFromWorld(worldRect);
-      final slice = sprite.slice;
-      final image = slice == null ? null : _resolveSliceImage(slice);
-      if (slice != null && image != null) {
-        final srcRect = Rect.fromLTWH(
-          slice.x.toDouble(),
-          slice.y.toDouble(),
-          slice.width.toDouble(),
-          slice.height.toDouble(),
+    _paintWithPlacementTransform(canvas, placement, () {
+      for (final sprite in placement.sprites) {
+        final worldRect = sprite.localRect.shift(
+          Offset(
+            placement.placement.x.toDouble(),
+            placement.placement.y.toDouble(),
+          ),
         );
-        canvas.drawImageRect(
-          image,
-          srcRect,
-          canvasRect,
-          Paint()..filterQuality = FilterQuality.none,
-        );
-      } else {
-        canvas.drawRect(
-          canvasRect,
-          Paint()
-            ..color = placement.fallbackColor
-            ..style = PaintingStyle.fill,
-        );
+        final canvasRect = geometry.canvasRectFromWorld(worldRect);
+        final slice = sprite.slice;
+        final image = slice == null ? null : _resolveSliceImage(slice);
+        if (slice != null && image != null) {
+          final srcRect = Rect.fromLTWH(
+            slice.x.toDouble(),
+            slice.y.toDouble(),
+            slice.width.toDouble(),
+            slice.height.toDouble(),
+          );
+          canvas.drawImageRect(
+            image,
+            srcRect,
+            canvasRect,
+            Paint()..filterQuality = FilterQuality.none,
+          );
+        } else {
+          canvas.drawRect(
+            canvasRect,
+            Paint()
+              ..color = placement.fallbackColor
+              ..style = PaintingStyle.fill,
+          );
+        }
       }
-    }
+    });
   }
 
   void _paintSelectedPlacementOverlay(Canvas canvas) {
@@ -1922,18 +1935,49 @@ class _ChunkScenePainter extends CustomPainter {
     if (overlayValues == null) {
       return;
     }
-    final overlayGeometry = PrefabOverlayHandleGeometry.fromValues(
-      values: overlayValues,
-      anchorCanvasBase: geometry.canvasFromWorld(
-        selectedPlacement.visualWorldRect().topLeft,
+    _paintWithPlacementTransform(canvas, selectedPlacement, () {
+      final anchorCanvasBase = geometry.canvasFromWorld(
+        Offset(
+          selectedPlacement.placement.x.toDouble() +
+              selectedPlacement.localVisualBounds.left,
+          selectedPlacement.placement.y.toDouble() +
+              selectedPlacement.localVisualBounds.top,
+        ),
+      );
+      final overlayGeometry = PrefabOverlayHandleGeometry.fromValues(
+        values: overlayValues,
+        anchorCanvasBase: anchorCanvasBase,
+        zoom: geometry.zoom * selectedPlacement.visualScale,
+      );
+      PrefabOverlayPainter.paint(
+        canvas: canvas,
+        geometry: overlayGeometry,
+        drawHandles: false,
+      );
+    });
+  }
+
+  void _paintWithPlacementTransform(
+    Canvas canvas,
+    _ChunkRenderPlacement placement,
+    VoidCallback paint,
+  ) {
+    if (!placement.flipX && !placement.flipY) {
+      paint();
+      return;
+    }
+    final anchorCanvas = geometry.canvasFromWorld(
+      Offset(
+        placement.placement.x.toDouble(),
+        placement.placement.y.toDouble(),
       ),
-      zoom: geometry.zoom * selectedPlacement.visualScale,
     );
-    PrefabOverlayPainter.paint(
-      canvas: canvas,
-      geometry: overlayGeometry,
-      drawHandles: false,
-    );
+    canvas.save();
+    canvas.translate(anchorCanvas.dx, anchorCanvas.dy);
+    canvas.scale(placement.flipX ? -1 : 1, placement.flipY ? -1 : 1);
+    canvas.translate(-anchorCanvas.dx, -anchorCanvas.dy);
+    paint();
+    canvas.restore();
   }
 
   void _paintMarkers(Canvas canvas) {

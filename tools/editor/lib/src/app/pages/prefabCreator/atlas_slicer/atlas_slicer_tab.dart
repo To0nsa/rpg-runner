@@ -30,6 +30,7 @@ class AtlasSlicerTab extends StatefulWidget {
     required this.selectedAtlasPath,
     required this.selectedSliceKind,
     required this.sliceIdController,
+    required this.sliceTagsController,
     required this.atlasZoom,
     required this.zoomMin,
     required this.zoomMax,
@@ -41,6 +42,7 @@ class AtlasSlicerTab extends StatefulWidget {
     required this.selectionHController,
     required this.atlasSize,
     required this.slices,
+    required this.existingSliceIds,
     required this.selectedSliceId,
     required this.selectedSlice,
     required this.workspaceRootPath,
@@ -52,7 +54,7 @@ class AtlasSlicerTab extends StatefulWidget {
     required this.onSelectedSliceChanged,
     required this.onAtlasZoomChanged,
     required this.onSelectionInputsChanged,
-    required this.onAddSlice,
+    required this.onSaveSlice,
     required this.onDeleteSlice,
     required this.onSelectionDragStart,
     required this.onSelectionDragUpdate,
@@ -62,6 +64,7 @@ class AtlasSlicerTab extends StatefulWidget {
   final String? selectedAtlasPath;
   final AtlasSliceKind selectedSliceKind;
   final TextEditingController sliceIdController;
+  final TextEditingController sliceTagsController;
   final double atlasZoom;
   final double zoomMin;
   final double zoomMax;
@@ -73,6 +76,7 @@ class AtlasSlicerTab extends StatefulWidget {
   final TextEditingController selectionHController;
   final Size? atlasSize;
   final List<AtlasSliceDef> slices;
+  final Set<String> existingSliceIds;
   final String? selectedSliceId;
   final AtlasSliceDef? selectedSlice;
   final String workspaceRootPath;
@@ -84,7 +88,7 @@ class AtlasSlicerTab extends StatefulWidget {
   final ValueChanged<String> onSelectedSliceChanged;
   final ValueChanged<double> onAtlasZoomChanged;
   final VoidCallback onSelectionInputsChanged;
-  final VoidCallback onAddSlice;
+  final VoidCallback onSaveSlice;
   final ValueChanged<String> onDeleteSlice;
   final void Function(Offset localPosition, Size imageSize)
   onSelectionDragStart;
@@ -124,7 +128,7 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
           PrefabEditorSectionCard(
             title: 'Source & Slice Setup',
             description:
-                'Choose the atlas image, slice kind, and target slice id.',
+                'Choose the atlas image, slice kind, target slice id, and tags.',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -181,6 +185,16 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
                     hintText: 'village_crate_01 or grass_dirt_32x32',
                   ),
                 ),
+                const SizedBox(height: PrefabEditorUiTokens.controlGap),
+                TextField(
+                  controller: widget.sliceTagsController,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: 'Slice Tags (comma separated)',
+                    floatingLabelBehavior: FloatingLabelBehavior.always,
+                    hintText: 'obstacle, decoration, wall, ground',
+                  ),
+                ),
               ],
             ),
           ),
@@ -188,7 +202,7 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
           PrefabEditorSectionCard(
             title: 'Selection & Actions',
             description:
-                'Adjust the selection rectangle numerically and commit it as a slice.',
+                'Adjust the selection rectangle numerically and save it back to the slice list.',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -281,9 +295,18 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
                 PrefabEditorActionRow(
                   children: [
                     FilledButton.icon(
-                      onPressed: widget.onAddSlice,
+                      onPressed: widget.onSaveSlice,
                       icon: const Icon(Icons.add_box_outlined),
-                      label: const Text('Add Slice'),
+                      label: ValueListenableBuilder<TextEditingValue>(
+                        valueListenable: widget.sliceIdController,
+                        builder: (context, value, _) {
+                          final id = value.text.trim();
+                          final label = widget.existingSliceIds.contains(id)
+                              ? 'Update Slice'
+                              : 'Create Slice';
+                          return Text(label);
+                        },
+                      ),
                     ),
                   ],
                 ),
@@ -394,6 +417,7 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
         metadataLines: [
           '[${slice.x},${slice.y},${slice.width},${slice.height}]',
           '${slice.width}x${slice.height} px',
+          if (slice.tags.isNotEmpty) 'tags=${slice.tags.join(', ')}',
         ],
       ),
     );

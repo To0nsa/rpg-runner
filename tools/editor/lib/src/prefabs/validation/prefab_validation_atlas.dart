@@ -107,6 +107,12 @@ void _validateSlice({
       ),
     );
   }
+  _validateSliceTags(
+    issues: issues,
+    slice: slice,
+    kindCodePrefix: kindCodePrefix,
+    kindLabel: kindLabel,
+  );
 
   final atlasSize =
       atlasImageSizes[_normalizeAtlasSourcePath(slice.sourceImagePath)];
@@ -138,5 +144,47 @@ void _validateSlice({
             '${slice.sourceImagePath} (${atlasWidth}x$atlasHeight).',
       ),
     );
+  }
+}
+
+/// Validates slice tag normalization constraints used by selector filtering.
+void _validateSliceTags({
+  required List<PrefabValidationIssue> issues,
+  required AtlasSliceDef slice,
+  required String kindCodePrefix,
+  required String kindLabel,
+}) {
+  final seen = <String>{};
+  for (var i = 0; i < slice.tags.length; i += 1) {
+    final rawTag = slice.tags[i];
+    final normalized = rawTag.trim();
+    if (normalized.isEmpty) {
+      issues.add(
+        PrefabValidationIssue(
+          code: '${kindCodePrefix}_slice_tag_empty',
+          message: '$kindLabel slice ${slice.id} has empty tag at index $i.',
+        ),
+      );
+      continue;
+    }
+    if (normalized != rawTag) {
+      issues.add(
+        PrefabValidationIssue(
+          code: '${kindCodePrefix}_slice_tag_whitespace',
+          message:
+              '$kindLabel slice ${slice.id} tag "$rawTag" must not contain '
+              'leading/trailing whitespace.',
+        ),
+      );
+    }
+    if (!seen.add(normalized)) {
+      issues.add(
+        PrefabValidationIssue(
+          code: '${kindCodePrefix}_slice_tag_duplicate',
+          message:
+              '$kindLabel slice ${slice.id} has duplicate tag "$normalized".',
+        ),
+      );
+    }
   }
 }

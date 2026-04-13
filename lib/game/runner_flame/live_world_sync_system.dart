@@ -154,6 +154,8 @@ class LiveWorldSyncSystem {
         ),
         position: Vector2(sprite.x, sprite.y),
         size: Vector2(sprite.width, sprite.height),
+        flipX: sprite.flipX,
+        flipY: sprite.flipY,
       )..priority = priorityStaticSolids + sprite.zIndex;
       _staticPrefabSpritesByKey[key] = view;
       world.add(view);
@@ -538,6 +540,8 @@ class _StaticPrefabSpriteKey {
     required this.width,
     required this.height,
     required this.zIndex,
+    required this.flipX,
+    required this.flipY,
   });
 
   factory _StaticPrefabSpriteKey.fromSnapshot(StaticPrefabSpriteSnapshot s) {
@@ -552,6 +556,8 @@ class _StaticPrefabSpriteKey {
       width: s.width,
       height: s.height,
       zIndex: s.zIndex,
+      flipX: s.flipX,
+      flipY: s.flipY,
     );
   }
 
@@ -565,6 +571,8 @@ class _StaticPrefabSpriteKey {
   final double width;
   final double height;
   final int zIndex;
+  final bool flipX;
+  final bool flipY;
 
   @override
   bool operator ==(Object other) {
@@ -578,7 +586,9 @@ class _StaticPrefabSpriteKey {
         other.y == y &&
         other.width == width &&
         other.height == height &&
-        other.zIndex == zIndex;
+        other.zIndex == zIndex &&
+        other.flipX == flipX &&
+        other.flipY == flipY;
   }
 
   @override
@@ -593,5 +603,7 @@ class _StaticPrefabSpriteKey {
     width,
     height,
     zIndex,
+    flipX,
+    flipY,
   );
 }

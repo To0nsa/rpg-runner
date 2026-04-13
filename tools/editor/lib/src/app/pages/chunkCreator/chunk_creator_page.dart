@@ -77,6 +77,8 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
   ChunkScenePlaceMode _composerPlaceMode = ChunkScenePlaceMode.prefab;
   String _newEnemyMarkerId = _enemyMarkerIds.first;
   bool _showParallaxPreview = true;
+  bool _newPlacementFlipX = false;
+  bool _newPlacementFlipY = false;
   final bool _newPlacementSnapToGrid = true;
   final int _newPlacementZIndex = 0;
   final double _newPlacementScale = defaultPrefabPlacementScale;
@@ -1268,7 +1270,8 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
                         'x=${placement.prefab.x}, y=${placement.prefab.y} | '
                         '${placement.prefab.snapToGrid ? 'snap' : 'free'} | '
                         'z=${placement.prefab.zIndex} | '
-                        'scale=${_formatPrefabPlacementScale(placement.prefab.scale)}',
+                        'scale=${_formatPrefabPlacementScale(placement.prefab.scale)} | '
+                        '${_formatPrefabFlipLabel(placement.prefab)}',
                       ),
                       trailing: IconButton(
                         tooltip: 'Delete placement',
@@ -1503,6 +1506,25 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
             ),
           ],
         ],
+        if (_composerPlaceMode == ChunkScenePlaceMode.prefab) ...[
+          const SizedBox(height: _spaceSm),
+          _buildFlipChips(
+            label: 'New Prefab Flip',
+            flipX: _newPlacementFlipX,
+            flipY: _newPlacementFlipY,
+            onFlipXChanged: (value) {
+              setState(() {
+                _newPlacementFlipX = value;
+              });
+            },
+            onFlipYChanged: (value) {
+              setState(() {
+                _newPlacementFlipY = value;
+              });
+            },
+            keyPrefix: 'new_prefab_flip',
+          ),
+        ],
       ],
     );
   }
@@ -1513,7 +1535,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
   ) {
     if (selectedPlacement == null) {
       return const Text(
-        'Select a placed prefab to edit layer, placement mode, and scale.',
+        'Select a placed prefab to edit layer, placement mode, scale, and flip.',
       );
     }
 
@@ -1530,6 +1552,8 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
               snapToGrid: selectedPlacement.prefab.snapToGrid,
               zIndex: value,
               scale: selectedPlacement.prefab.scale,
+              flipX: selectedPlacement.prefab.flipX,
+              flipY: selectedPlacement.prefab.flipY,
             );
           },
           keyPrefix: 'selected_prefab_layer',
@@ -1545,6 +1569,8 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
               snapToGrid: value,
               zIndex: selectedPlacement.prefab.zIndex,
               scale: selectedPlacement.prefab.scale,
+              flipX: selectedPlacement.prefab.flipX,
+              flipY: selectedPlacement.prefab.flipY,
             );
           },
         ),
@@ -1559,9 +1585,40 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
               snapToGrid: selectedPlacement.prefab.snapToGrid,
               zIndex: selectedPlacement.prefab.zIndex,
               scale: value,
+              flipX: selectedPlacement.prefab.flipX,
+              flipY: selectedPlacement.prefab.flipY,
             );
           },
           keyPrefix: 'selected_prefab_scale',
+        ),
+        const SizedBox(height: _spaceSm),
+        _buildFlipChips(
+          label: 'Selected Prefab Flip',
+          flipX: selectedPlacement.prefab.flipX,
+          flipY: selectedPlacement.prefab.flipY,
+          onFlipXChanged: (value) {
+            _updatePlacementSettings(
+              chunk,
+              selectionKey: selectedPlacement.selectionKey,
+              snapToGrid: selectedPlacement.prefab.snapToGrid,
+              zIndex: selectedPlacement.prefab.zIndex,
+              scale: selectedPlacement.prefab.scale,
+              flipX: value,
+              flipY: selectedPlacement.prefab.flipY,
+            );
+          },
+          onFlipYChanged: (value) {
+            _updatePlacementSettings(
+              chunk,
+              selectionKey: selectedPlacement.selectionKey,
+              snapToGrid: selectedPlacement.prefab.snapToGrid,
+              zIndex: selectedPlacement.prefab.zIndex,
+              scale: selectedPlacement.prefab.scale,
+              flipX: selectedPlacement.prefab.flipX,
+              flipY: value,
+            );
+          },
+          keyPrefix: 'selected_prefab_flip',
         ),
       ],
     );
@@ -2914,6 +2971,36 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
     );
   }
 
+  Widget _buildFlipChips({
+    required String label,
+    required bool flipX,
+    required bool flipY,
+    required ValueChanged<bool> onFlipXChanged,
+    required ValueChanged<bool> onFlipYChanged,
+    String? keyPrefix,
+  }) {
+    return Wrap(
+      spacing: _spaceSm,
+      runSpacing: _spaceSm,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Text(label),
+        FilterChip(
+          key: keyPrefix == null ? null : ValueKey<String>('${keyPrefix}_x'),
+          label: const Text('Flip X'),
+          selected: flipX,
+          onSelected: onFlipXChanged,
+        ),
+        FilterChip(
+          key: keyPrefix == null ? null : ValueKey<String>('${keyPrefix}_y'),
+          label: const Text('Flip Y'),
+          selected: flipY,
+          onSelected: onFlipYChanged,
+        ),
+      ],
+    );
+  }
+
   PrefabDef? _selectedPlacementPrefab(ChunkScene scene, LevelChunkDef chunk) {
     final placement = _selectedPlacement(chunk);
     if (placement == null) {
@@ -2957,6 +3044,8 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
       zIndex: _newPlacementZIndex,
       snapToGrid: _newPlacementSnapToGrid,
       scale: _newPlacementScale,
+      flipX: _newPlacementFlipX,
+      flipY: _newPlacementFlipY,
     );
     widget.controller.applyCommand(
       AuthoringCommand(
@@ -2969,6 +3058,8 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
           'zIndex': _newPlacementZIndex,
           'snapToGrid': _newPlacementSnapToGrid,
           'scale': _newPlacementScale,
+          'flipX': _newPlacementFlipX,
+          'flipY': _newPlacementFlipY,
         },
       ),
     );
@@ -3063,6 +3154,8 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
     required bool snapToGrid,
     required int zIndex,
     required double scale,
+    required bool flipX,
+    required bool flipY,
   }) {
     final selectedPlacement = _selectedPlacement(chunk);
     final normalizedScale = normalizePrefabPlacementScale(scale);
@@ -3075,6 +3168,8 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
           'zIndex': zIndex,
           'snapToGrid': snapToGrid,
           'scale': normalizedScale,
+          'flipX': flipX,
+          'flipY': flipY,
         },
       ),
     );
@@ -3089,6 +3184,8 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
           zIndex: zIndex,
           snapToGrid: snapToGrid,
           scale: normalizedScale,
+          flipX: flipX,
+          flipY: flipY,
         ),
       );
     });
@@ -3343,6 +3440,19 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
       return text.substring(0, text.length - 1);
     }
     return text;
+  }
+
+  String _formatPrefabFlipLabel(PlacedPrefabDef placement) {
+    if (placement.flipX && placement.flipY) {
+      return 'flip=xy';
+    }
+    if (placement.flipX) {
+      return 'flip=x';
+    }
+    if (placement.flipY) {
+      return 'flip=y';
+    }
+    return 'flip=none';
   }
 
   Future<void> _confirmAndApplyToFiles() async {

@@ -13,6 +13,8 @@ class StaticPrefabSpriteSnapshot {
     required this.width,
     required this.height,
     required this.zIndex,
+    this.flipX = false,
+    this.flipY = false,
   });
 
   final String assetPath;
@@ -31,4 +33,6 @@ class StaticPrefabSpriteSnapshot {
 
   /// Authoring layer index for ordering.
   final int zIndex;
+  final bool flipX;
+  final bool flipY;
 }

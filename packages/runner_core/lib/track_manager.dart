@@ -464,6 +464,8 @@ class TrackManager {
       width: sprite.width,
       height: sprite.height,
       zIndex: sprite.zIndex,
+      flipX: sprite.flipX,
+      flipY: sprite.flipY,
     );
   }
 }

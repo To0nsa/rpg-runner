@@ -232,6 +232,59 @@ void main() {
     );
   });
 
+  test('validatePrefabData reports slice tag normalization violations', () {
+    final data = PrefabData(
+      prefabSlices: const [
+        AtlasSliceDef(
+          id: 'prefab_slice_bad_tags',
+          sourceImagePath: 'assets/images/level/props/TX Village Props.png',
+          x: 0,
+          y: 0,
+          width: 16,
+          height: 16,
+          tags: ['obstacle', ' obstacle ', 'obstacle'],
+        ),
+      ],
+      tileSlices: const [
+        AtlasSliceDef(
+          id: 'tile_slice_bad_tags',
+          sourceImagePath: 'assets/images/level/tileset/TX Tileset Ground.png',
+          x: 0,
+          y: 0,
+          width: 16,
+          height: 16,
+          tags: ['wall', 'wall'],
+        ),
+      ],
+    );
+
+    final issues = validatePrefabDataIssues(
+      data: data,
+      atlasImageSizes: const {
+        'assets/images/level/props/TX Village Props.png': Size(64, 64),
+        'assets/images/level/tileset/TX Tileset Ground.png': Size(64, 64),
+      },
+    );
+    final messages = issues
+        .map((issue) => issue.message)
+        .toList(growable: false);
+    final codes = issues.map((issue) => issue.code).toSet();
+
+    expect(codes, contains('prefab_slice_tag_whitespace'));
+    expect(codes, contains('prefab_slice_tag_duplicate'));
+    expect(codes, contains('tile_slice_tag_duplicate'));
+    expect(
+      messages,
+      contains(
+        'Prefab slice prefab_slice_bad_tags tag " obstacle " must not contain leading/trailing whitespace.',
+      ),
+    );
+    expect(
+      messages,
+      contains('Tile slice tile_slice_bad_tags has duplicate tag "wall".'),
+    );
+  });
+
   test('validatePrefabData reports v2 identity and source contract failures', () {
     final data = PrefabData(
       prefabSlices: const [

@@ -693,6 +693,8 @@ _ChunkExportData? _buildChunkExportData(
     final placementX = _intOrZero(placed['x']).toDouble();
     final placementY = _intOrZero(placed['y']).toDouble();
     final scale = _doubleOrDefault(placed['scale'], _defaultPrefabScale);
+    final flipX = _boolOrDefault(placed['flipX'], false);
+    final flipY = _boolOrDefault(placed['flipY'], false);
     final validScaleRange =
         scale >= _minPrefabScale && scale <= _maxPrefabScale;
     final validScaleStep = _isStepAligned(scale, _prefabScaleStep);
@@ -726,6 +728,8 @@ _ChunkExportData? _buildChunkExportData(
       placementX: placementX,
       placementY: placementY,
       scale: scale,
+      flipX: flipX,
+      flipY: flipY,
       registry: prefabRegistry,
       chunkPath: chunk.path,
       issues: issues,
@@ -739,6 +743,8 @@ _ChunkExportData? _buildChunkExportData(
         placementX: placementX,
         placementY: placementY,
         scale: scale,
+        flipX: flipX,
+        flipY: flipY,
       );
       final ref = colliderBounds ?? _computeVisualBounds(spriteEntries);
       if (ref == null) continue;
@@ -774,6 +780,8 @@ _ChunkExportData? _buildChunkExportData(
         placementX: placementX,
         placementY: placementY,
         scale: scale,
+        flipX: flipX,
+        flipY: flipY,
       );
       final ref = colliderBounds ?? _computeVisualBounds(spriteEntries);
       if (ref == null) continue;
@@ -810,6 +818,8 @@ List<_VisualSpriteExport> _buildVisualSprites({
   required double placementX,
   required double placementY,
   required double scale,
+  required bool flipX,
+  required bool flipY,
   required _PrefabRegistry registry,
   required String chunkPath,
   required List<_ValidationIssue> issues,
@@ -834,11 +844,25 @@ List<_VisualSpriteExport> _buildVisualSprites({
         srcY: slice.y,
         srcWidth: slice.width,
         srcHeight: slice.height,
-        x: placementX - (prefab.anchorX * scale),
-        y: placementY - (prefab.anchorY * scale),
+        x:
+            placementX +
+            _transformLocalAxisStart(
+              start: -(prefab.anchorX * scale),
+              extent: slice.width.toDouble() * scale,
+              flip: flipX,
+            ),
+        y:
+            placementY +
+            _transformLocalAxisStart(
+              start: -(prefab.anchorY * scale),
+              extent: slice.height.toDouble() * scale,
+              flip: flipY,
+            ),
         width: slice.width.toDouble() * scale,
         height: slice.height.toDouble() * scale,
         zIndex: zIndex,
+        flipX: flipX,
+        flipY: flipY,
       ),
     ];
   }
@@ -877,16 +901,28 @@ List<_VisualSpriteExport> _buildVisualSprites({
           srcWidth: slice.width,
           srcHeight: slice.height,
           x:
-              placementX -
-              (prefab.anchorX * scale) +
-              (cell.gridX * _gridSnap * scale),
+              placementX +
+              _transformLocalAxisStart(
+                start:
+                    -(prefab.anchorX * scale) +
+                    (cell.gridX * _gridSnap * scale),
+                extent: slice.width.toDouble() * scale,
+                flip: flipX,
+              ),
           y:
-              placementY -
-              (prefab.anchorY * scale) +
-              (cell.gridY * _gridSnap * scale),
+              placementY +
+              _transformLocalAxisStart(
+                start:
+                    -(prefab.anchorY * scale) +
+                    (cell.gridY * _gridSnap * scale),
+                extent: slice.height.toDouble() * scale,
+                flip: flipY,
+              ),
           width: slice.width.toDouble() * scale,
           height: slice.height.toDouble() * scale,
           zIndex: zIndex,
+          flipX: flipX,
+          flipY: flipY,
         ),
       );
     }
@@ -932,14 +968,18 @@ _RectD? _computeColliderBounds({
   required double placementX,
   required double placementY,
   required double scale,
+  required bool flipX,
+  required bool flipY,
 }) {
   if (prefab.colliders.isEmpty) {
     return null;
   }
   _RectD? bounds;
   for (final collider in prefab.colliders) {
-    final cx = placementX + (collider.offsetX * scale);
-    final cy = placementY + (collider.offsetY * scale);
+    final cx =
+        placementX + ((flipX ? -collider.offsetX : collider.offsetX) * scale);
+    final cy =
+        placementY + ((flipY ? -collider.offsetY : collider.offsetY) * scale);
     final halfW = collider.width * scale * 0.5;
     final halfH = collider.height * scale * 0.5;
     final rect = _RectD(
@@ -960,6 +1000,17 @@ _RectD? _computeColliderBounds({
     }
   }
   return bounds;
+}
+
+double _transformLocalAxisStart({
+  required double start,
+  required double extent,
+  required bool flip,
+}) {
+  if (!flip) {
+    return start;
+  }
+  return -(start + extent);
 }
 
 int _snapToGrid(double value) {
@@ -1016,6 +1067,11 @@ int _intOrDefault(Object? value, int fallback) {
 
 double _doubleOrDefault(Object? value, double fallback) {
   if (value is num) return value.toDouble();
+  return fallback;
+}
+
+bool _boolOrDefault(Object? value, bool fallback) {
+  if (value is bool) return value;
   return fallback;
 }
 
@@ -1187,8 +1243,14 @@ void _writePatternList(
         ..writeln('        y: ${sprite.y},')
         ..writeln('        width: ${sprite.width},')
         ..writeln('        height: ${sprite.height},')
-        ..writeln('        zIndex: ${sprite.zIndex},')
-        ..writeln('      ),');
+        ..writeln('        zIndex: ${sprite.zIndex},');
+      if (sprite.flipX) {
+        buffer.writeln('        flipX: true,');
+      }
+      if (sprite.flipY) {
+        buffer.writeln('        flipY: true,');
+      }
+      buffer.writeln('      ),');
     }
     buffer.writeln('    ],');
 
@@ -1666,6 +1728,8 @@ class _VisualSpriteExport {
     required this.width,
     required this.height,
     required this.zIndex,
+    required this.flipX,
+    required this.flipY,
   });
 
   final String assetPath;
@@ -1678,6 +1742,8 @@ class _VisualSpriteExport {
   final double width;
   final double height;
   final int zIndex;
+  final bool flipX;
+  final bool flipY;
 }
 
 class _MarkerExport {

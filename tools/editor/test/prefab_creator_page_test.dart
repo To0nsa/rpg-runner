@@ -72,6 +72,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.textContaining('Slice: barrel_slice'), findsOneWidget);
+      expect(_textFieldValueByLabel(tester, 'Prefab ID'), 'barrel_slice');
 
       await tester.tap(find.text('Atlas Slicer').first);
       await tester.pumpAndSettle();
@@ -104,10 +105,393 @@ void main() {
       await tester.tap(find.text('Platform Modules').first);
       await tester.pumpAndSettle();
 
-      final chip = tester.widget<ChoiceChip>(
-        find.widgetWithText(ChoiceChip, 'wall_tile (16x16)'),
+      expect(_textFieldValueByLabel(tester, 'Tile Slice'), 'wall_tile');
+    },
+  );
+
+  testWidgets('atlas slicer updates tags for the selected slice', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1800, 1200));
+    addTearDown(() async {
+      await tester.binding.setSurfaceSize(null);
+    });
+
+    final fixtureRoot = _createAtlasSlicerFixture();
+    await _pumpPrefabCreatorPage(
+      tester,
+      workspacePath: fixtureRoot.path,
+      openObstacleTab: false,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('atlas_slice_row_crate_slice')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      _textFieldValueByLabel(tester, 'Slice Tags (comma separated)'),
+      'obstacle',
+    );
+
+    await tester.enterText(
+      _textFieldByLabel('Slice Tags (comma separated)').first,
+      'obstacle, heavy',
+    );
+    await tester.tap(find.text('Update Slice'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('Updated prefab slice "crate_slice"'),
+      findsOneWidget,
+    );
+    expect(find.text('tags=heavy, obstacle'), findsOneWidget);
+
+    await tester.tap(find.text('Obstacle Prefabs').first);
+    await tester.pumpAndSettle();
+
+    await _selectSliceAutocompleteOption(
+      tester,
+      fieldKey: const ValueKey<String>('obstacle_prefab_slice_selector'),
+      query: 'heavy',
+      optionKey: const ValueKey<String>(
+        'obstacle_prefab_slice_option_crate_slice',
+      ),
+    );
+    expect(find.textContaining('Slice: crate_slice'), findsOneWidget);
+  });
+
+  testWidgets('atlas slicer save label reacts to slice id edits', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1800, 1200));
+    addTearDown(() async {
+      await tester.binding.setSurfaceSize(null);
+    });
+
+    final fixtureRoot = _createAtlasSlicerFixture();
+    await _pumpPrefabCreatorPage(
+      tester,
+      workspacePath: fixtureRoot.path,
+      openObstacleTab: false,
+    );
+
+    expect(find.text('Create Slice'), findsOneWidget);
+    expect(find.text('Update Slice'), findsNothing);
+
+    await tester.enterText(_textFieldByLabel('Slice ID').first, 'crate_slice');
+    await tester.pump();
+
+    expect(find.text('Update Slice'), findsOneWidget);
+    expect(find.text('Create Slice'), findsNothing);
+
+    await tester.enterText(_textFieldByLabel('Slice ID').first, 'new_slice');
+    await tester.pump();
+
+    expect(find.text('Create Slice'), findsOneWidget);
+    expect(find.text('Update Slice'), findsNothing);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('atlas_slice_row_crate_slice')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(_textFieldValueByLabel(tester, 'Slice ID'), 'crate_slice');
+    expect(find.text('Update Slice'), findsOneWidget);
+  });
+
+  testWidgets(
+    'slice selectors autocomplete by tags across prefab and module tabs',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1800, 1200));
+      addTearDown(() async {
+        await tester.binding.setSurfaceSize(null);
+      });
+
+      final fixtureRoot = _createPrefabAuthoringFixture();
+      addTearDown(() {
+        fixtureRoot.deleteSync(recursive: true);
+      });
+
+      await _pumpPrefabCreatorPage(tester, workspacePath: fixtureRoot.path);
+
+      await _selectSliceAutocompleteOption(
+        tester,
+        fieldKey: const ValueKey<String>('obstacle_prefab_slice_selector'),
+        query: 'obstacle',
+        optionKey: const ValueKey<String>(
+          'obstacle_prefab_slice_option_crate_slice',
+        ),
       );
-      expect(chip.selected, isTrue);
+      expect(find.textContaining('Slice: crate_slice'), findsOneWidget);
+
+      await tester.tap(find.text('Decoration Prefabs').first);
+      await tester.pumpAndSettle();
+
+      await _selectSliceAutocompleteOption(
+        tester,
+        fieldKey: const ValueKey<String>('decoration_prefab_slice_selector'),
+        query: 'flora',
+        optionKey: const ValueKey<String>(
+          'decoration_prefab_slice_option_flower_slice',
+        ),
+      );
+      expect(find.textContaining('Slice: flower_slice'), findsOneWidget);
+
+      await tester.tap(find.text('Platform Modules').first);
+      await tester.pumpAndSettle();
+
+      await _selectSliceAutocompleteOption(
+        tester,
+        fieldKey: const ValueKey<String>('platform_module_tile_slice_selector'),
+        query: 'wall',
+        optionKey: const ValueKey<String>(
+          'platform_module_tile_slice_option_wall_tile',
+        ),
+      );
+      expect(_textFieldValueByLabel(tester, 'Tile Slice'), 'wall_tile');
+    },
+  );
+
+  testWidgets('empty atlas slice queries show the full slice list', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1800, 1200));
+    addTearDown(() async {
+      await tester.binding.setSurfaceSize(null);
+    });
+
+    final fixtureRoot = _createPrefabAuthoringFixture(
+      extraPrefabSliceCount: 25,
+    );
+    addTearDown(() {
+      fixtureRoot.deleteSync(recursive: true);
+    });
+
+    await _pumpPrefabCreatorPage(tester, workspacePath: fixtureRoot.path);
+
+    final obstacleField = find.byKey(
+      const ValueKey<String>('obstacle_prefab_slice_selector'),
+    );
+    await tester.ensureVisible(obstacleField);
+    await tester.tap(obstacleField);
+    await tester.pumpAndSettle();
+    await tester.enterText(obstacleField, '');
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(
+        const ValueKey<String>('obstacle_prefab_slice_option_crate_slice'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey<String>('obstacle_prefab_slice_option_boulder_slice'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey<String>('obstacle_prefab_slice_option_flower_slice'),
+      ),
+      findsOneWidget,
+    );
+
+    final optionsList = tester.widget<ListView>(
+      find.byKey(
+        const ValueKey<String>('obstacle_prefab_slice_option_list'),
+      ),
+    );
+    expect(optionsList.childrenDelegate.estimatedChildCount, 28);
+  });
+
+  testWidgets(
+    'slice selectors render previews for options and selected slices',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1800, 1200));
+      addTearDown(() async {
+        await tester.binding.setSurfaceSize(null);
+      });
+
+      final fixtureRoot = _createPrefabAuthoringFixture();
+      addTearDown(() {
+        fixtureRoot.deleteSync(recursive: true);
+      });
+
+      await _pumpPrefabCreatorPage(tester, workspacePath: fixtureRoot.path);
+
+      final obstacleField = find.byKey(
+        const ValueKey<String>('obstacle_prefab_slice_selector'),
+      );
+      await tester.ensureVisible(obstacleField);
+      await tester.tap(obstacleField);
+      await tester.pumpAndSettle();
+      await tester.enterText(obstacleField, 'crate');
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(
+          const ValueKey<String>(
+            'obstacle_prefab_slice_option_preview_crate_slice',
+          ),
+        ),
+        findsOneWidget,
+      );
+
+      await tester.tap(
+        find
+            .byKey(
+              const ValueKey<String>(
+                'obstacle_prefab_slice_option_crate_slice',
+              ),
+            )
+            .last,
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(
+          const ValueKey<String>('obstacle_prefab_slice_selected_preview'),
+        ),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'prefab id and tags follow the selected slice until manually overridden',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1800, 1200));
+      addTearDown(() async {
+        await tester.binding.setSurfaceSize(null);
+      });
+
+      final fixtureRoot = _createPrefabAuthoringFixture();
+      addTearDown(() {
+        fixtureRoot.deleteSync(recursive: true);
+      });
+
+      await _pumpPrefabCreatorPage(tester, workspacePath: fixtureRoot.path);
+
+      expect(_textFieldValueByLabel(tester, 'Prefab ID'), isEmpty);
+      expect(_textFieldValueByLabel(tester, 'Tags (comma separated)'), isEmpty);
+
+      await _selectSliceAutocompleteOption(
+        tester,
+        fieldKey: const ValueKey<String>('obstacle_prefab_slice_selector'),
+        query: 'crate',
+        optionKey: const ValueKey<String>(
+          'obstacle_prefab_slice_option_crate_slice',
+        ),
+      );
+      expect(_textFieldValueByLabel(tester, 'Prefab ID'), 'crate_slice');
+      expect(
+        _textFieldValueByLabel(tester, 'Tags (comma separated)'),
+        'obstacle',
+      );
+
+      await _selectSliceAutocompleteOption(
+        tester,
+        fieldKey: const ValueKey<String>('obstacle_prefab_slice_selector'),
+        query: 'boulder',
+        optionKey: const ValueKey<String>(
+          'obstacle_prefab_slice_option_boulder_slice',
+        ),
+      );
+      expect(_textFieldValueByLabel(tester, 'Prefab ID'), 'boulder_slice');
+      expect(
+        _textFieldValueByLabel(tester, 'Tags (comma separated)'),
+        'heavy, obstacle',
+      );
+
+      await tester.enterText(
+        _textFieldByLabel('Prefab ID').first,
+        'custom_obstacle',
+      );
+      await tester.enterText(
+        _textFieldByLabel('Tags (comma separated)').first,
+        'custom_tags',
+      );
+
+      await _selectSliceAutocompleteOption(
+        tester,
+        fieldKey: const ValueKey<String>('obstacle_prefab_slice_selector'),
+        query: 'crate',
+        optionKey: const ValueKey<String>(
+          'obstacle_prefab_slice_option_crate_slice',
+        ),
+      );
+      expect(_textFieldValueByLabel(tester, 'Prefab ID'), 'custom_obstacle');
+      expect(
+        _textFieldValueByLabel(tester, 'Tags (comma separated)'),
+        'custom_tags',
+      );
+    },
+  );
+
+  testWidgets(
+    'new from current values re-seeds prefab id and tags from the selected slice',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1800, 1200));
+      addTearDown(() async {
+        await tester.binding.setSurfaceSize(null);
+      });
+
+      final fixtureRoot = _createPrefabAuthoringFixture();
+      addTearDown(() {
+        fixtureRoot.deleteSync(recursive: true);
+      });
+
+      await _pumpPrefabCreatorPage(tester, workspacePath: fixtureRoot.path);
+
+      await _selectSliceAutocompleteOption(
+        tester,
+        fieldKey: const ValueKey<String>('obstacle_prefab_slice_selector'),
+        query: 'crate',
+        optionKey: const ValueKey<String>(
+          'obstacle_prefab_slice_option_crate_slice',
+        ),
+      );
+
+      await tester.enterText(
+        _textFieldByLabel('Prefab ID').first,
+        'obstacle_box',
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('obstacle_prefab_upsert_button')),
+      );
+      await tester.pumpAndSettle();
+
+      await _selectSliceAutocompleteOption(
+        tester,
+        fieldKey: const ValueKey<String>('obstacle_prefab_slice_selector'),
+        query: 'boulder',
+        optionKey: const ValueKey<String>(
+          'obstacle_prefab_slice_option_boulder_slice',
+        ),
+      );
+
+      expect(_textFieldValueByLabel(tester, 'Prefab ID'), 'obstacle_box');
+      expect(
+        _textFieldValueByLabel(tester, 'Tags (comma separated)'),
+        'obstacle',
+      );
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>(
+            'obstacle_prefab_new_from_current_values_button',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(_textFieldValueByLabel(tester, 'Prefab ID'), 'boulder_slice');
+      expect(
+        _textFieldValueByLabel(tester, 'Tags (comma separated)'),
+        'heavy, obstacle',
+      );
     },
   );
 
@@ -126,7 +510,7 @@ void main() {
 
       await _pumpPrefabCreatorPage(tester, workspacePath: fixtureRoot.path);
 
-      expect(_dropdownByLabel('Atlas Slice'), findsOneWidget);
+      expect(_textFieldByLabel('Atlas Slice'), findsOneWidget);
       expect(find.text('Create Platform Prefab'), findsNothing);
       expect(
         find.byKey(const ValueKey<String>('obstacle_prefab_inspector_card')),
@@ -144,7 +528,7 @@ void main() {
       await tester.tap(find.text('Decoration Prefabs').first);
       await tester.pumpAndSettle();
 
-      expect(_dropdownByLabel('Atlas Slice'), findsOneWidget);
+      expect(_textFieldByLabel('Atlas Slice'), findsOneWidget);
       expect(find.text('Create Platform Prefab'), findsNothing);
       expect(
         find.byKey(const ValueKey<String>('decoration_prefab_inspector_card')),
@@ -179,7 +563,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Platform Prefab Output'), findsNothing);
-      expect(_dropdownByLabel('Atlas Slice'), findsNothing);
+      expect(_textFieldByLabel('Atlas Slice'), findsNothing);
       expect(
         find.byKey(const ValueKey<String>('platform_module_inspector_card')),
         findsOneWidget,
@@ -210,11 +594,11 @@ void main() {
         find.byKey(const ValueKey<String>('platform_prefab_display_card')),
         findsOneWidget,
       );
-      expect(_dropdownByLabel('Atlas Slice'), findsNothing);
+      expect(_textFieldByLabel('Atlas Slice'), findsNothing);
 
       await tester.tap(find.text('Obstacle Prefabs').first);
       await tester.pumpAndSettle();
-      expect(_dropdownByLabel('Atlas Slice'), findsOneWidget);
+      expect(_textFieldByLabel('Atlas Slice'), findsOneWidget);
       expect(find.text('Create Platform Prefab'), findsNothing);
     },
   );
@@ -232,8 +616,8 @@ void main() {
 
     await _pumpPrefabCreatorPage(tester, workspacePath: fixtureRoot.path);
 
-    expect(_dropdownByLabel('Atlas Slice'), findsOneWidget);
-    expect(find.text('crate_slice'), findsOneWidget);
+    expect(_textFieldByLabel('Atlas Slice'), findsOneWidget);
+    expect(_textFieldValueByLabel(tester, 'Atlas Slice'), isNotEmpty);
     expect(find.text('ground_module'), findsNothing);
     expect(find.text('Create Platform Prefab'), findsNothing);
 
@@ -1201,7 +1585,7 @@ Future<EditorSessionController> _pumpPrefabCreatorPage(
   return controller;
 }
 
-Directory _createPrefabAuthoringFixture() {
+Directory _createPrefabAuthoringFixture({int extraPrefabSliceCount = 0}) {
   final root = Directory.systemTemp.createTempSync('prefab_creator_fixture_');
   final authoringDir = Directory(
     p.join(root.path, 'assets', 'authoring', 'level'),
@@ -1224,7 +1608,36 @@ Directory _createPrefabAuthoringFixture() {
         'y': 0,
         'width': 32,
         'height': 32,
+        'tags': <String>['obstacle'],
       },
+      <String, Object?>{
+        'id': 'flower_slice',
+        'sourceImagePath': 'assets/images/level/props/missing_props.png',
+        'x': 32,
+        'y': 0,
+        'width': 32,
+        'height': 32,
+        'tags': <String>['decoration', 'flora'],
+      },
+      <String, Object?>{
+        'id': 'boulder_slice',
+        'sourceImagePath': 'assets/images/level/props/missing_props.png',
+        'x': 64,
+        'y': 0,
+        'width': 32,
+        'height': 32,
+        'tags': <String>['obstacle', 'heavy'],
+      },
+      for (var i = 0; i < extraPrefabSliceCount; i += 1)
+        <String, Object?>{
+          'id': 'z_slice_${i.toString().padLeft(2, '0')}',
+          'sourceImagePath': 'assets/images/level/props/missing_props.png',
+          'x': (i % 8) * 32,
+          'y': 32 + ((i ~/ 8) * 32),
+          'width': 32,
+          'height': 32,
+          'tags': <String>['filler'],
+        },
     ],
     'prefabs': <Object?>[],
   };
@@ -1238,6 +1651,16 @@ Directory _createPrefabAuthoringFixture() {
         'y': 0,
         'width': 16,
         'height': 16,
+        'tags': <String>['ground'],
+      },
+      <String, Object?>{
+        'id': 'wall_tile',
+        'sourceImagePath': 'assets/images/level/tileset/missing_tiles.png',
+        'x': 16,
+        'y': 0,
+        'width': 16,
+        'height': 16,
+        'tags': <String>['wall'],
       },
     ],
     'platformModules': <Object?>[
@@ -1294,6 +1717,7 @@ Directory _createAtlasSlicerFixture() {
         'y': 0,
         'width': 32,
         'height': 32,
+        'tags': <String>['obstacle'],
       },
       <String, Object?>{
         'id': 'barrel_slice',
@@ -1302,6 +1726,7 @@ Directory _createAtlasSlicerFixture() {
         'y': 0,
         'width': 32,
         'height': 32,
+        'tags': <String>['decoration'],
       },
     ],
     'prefabs': <Object?>[],
@@ -1316,6 +1741,7 @@ Directory _createAtlasSlicerFixture() {
         'y': 0,
         'width': 16,
         'height': 16,
+        'tags': <String>['ground'],
       },
       <String, Object?>{
         'id': 'wall_tile',
@@ -1324,6 +1750,7 @@ Directory _createAtlasSlicerFixture() {
         'y': 0,
         'width': 16,
         'height': 16,
+        'tags': <String>['wall'],
       },
     ],
     'platformModules': <Object?>[
@@ -1377,6 +1804,22 @@ Future<void> _selectDropdownItem(
   await tester.tap(_dropdownByLabel(label).first);
   await tester.pumpAndSettle();
   await tester.tap(find.text(itemText).last);
+  await tester.pumpAndSettle();
+}
+
+Future<void> _selectSliceAutocompleteOption(
+  WidgetTester tester, {
+  required Key fieldKey,
+  required String query,
+  required Key optionKey,
+}) async {
+  final field = find.byKey(fieldKey);
+  await tester.ensureVisible(field);
+  await tester.tap(field);
+  await tester.pumpAndSettle();
+  await tester.enterText(field, query);
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(optionKey).last);
   await tester.pumpAndSettle();
 }
 

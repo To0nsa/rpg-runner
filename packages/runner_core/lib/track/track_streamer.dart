@@ -225,6 +225,8 @@ class TrackStreamer {
               width: sprite.width,
               height: sprite.height,
               zIndex: sprite.zIndex,
+              flipX: sprite.flipX,
+              flipY: sprite.flipY,
             ),
           )
           .toList(growable: false);
@@ -554,6 +556,8 @@ class ChunkVisualSpriteWorld {
     required this.width,
     required this.height,
     required this.zIndex,
+    this.flipX = false,
+    this.flipY = false,
   });
 
   final String assetPath;
@@ -566,6 +570,8 @@ class ChunkVisualSpriteWorld {
   final double width;
   final double height;
   final int zIndex;
+  final bool flipX;
+  final bool flipY;
 }
 
 class _SurfaceCandidate {

@@ -40,6 +40,7 @@ void main() {
               y: 0,
               width: 16,
               height: 16,
+              tags: ['z_tag', 'a_tag', 'z_tag'],
             ),
             AtlasSliceDef(
               id: 'a_slice',
@@ -48,6 +49,7 @@ void main() {
               y: 0,
               width: 16,
               height: 16,
+              tags: ['decor'],
             ),
           ],
           tileSlices: const [
@@ -58,6 +60,7 @@ void main() {
               y: 0,
               width: 16,
               height: 16,
+              tags: ['wall', 'solid'],
             ),
             AtlasSliceDef(
               id: 'tile_a',
@@ -66,6 +69,7 @@ void main() {
               y: 0,
               width: 16,
               height: 16,
+              tags: ['ground'],
             ),
           ],
           prefabs: [
@@ -126,6 +130,8 @@ void main() {
         expect(loaded.schemaVersion, 3);
         expect(loaded.prefabSlices.map((s) => s.id), ['a_slice', 'z_slice']);
         expect(loaded.tileSlices.map((s) => s.id), ['tile_a', 'tile_b']);
+        expect(loaded.prefabSlices[1].tags, ['a_tag', 'z_tag']);
+        expect(loaded.tileSlices[1].tags, ['solid', 'wall']);
         expect(loaded.prefabs.map((prefab) => prefab.id), [
           'prefab_a',
           'prefab_b',
@@ -147,8 +153,20 @@ void main() {
         final tileJsonRaw = File(
           p.join(root.path, PrefabStore.tileDefsPath),
         ).readAsStringSync();
+        final prefabJson = jsonDecode(prefabJsonRaw) as Map<String, Object?>;
+        final tileJson = jsonDecode(tileJsonRaw) as Map<String, Object?>;
         expect(prefabJsonRaw, contains('"schemaVersion": 3'));
         expect(prefabJsonRaw, contains('"visualSource"'));
+        expect(
+          ((prefabJson['slices'] as List<Object?>).first
+              as Map<String, Object?>)['tags'],
+          <String>['decor'],
+        );
+        expect(
+          ((tileJson['tileSlices'] as List<Object?>)[1]
+              as Map<String, Object?>)['tags'],
+          <String>['solid', 'wall'],
+        );
         expect(
           prefabJsonRaw.indexOf('"a_slice"'),
           lessThan(prefabJsonRaw.indexOf('"z_slice"')),

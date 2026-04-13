@@ -94,6 +94,8 @@ void main() {
         zIndex: 3,
         snapToGrid: false,
         scale: 1.6,
+        flipX: true,
+        flipY: false,
       );
 
       final runtimeRef = mapPlacedPrefabToRuntimeRef(placed);
@@ -104,6 +106,18 @@ void main() {
       expect(runtimeRef.zIndex, 3);
       expect(runtimeRef.snapToGrid, isFalse);
       expect(runtimeRef.scale, 1.6);
+      expect(runtimeRef.flipX, isTrue);
+      expect(runtimeRef.flipY, isFalse);
+      expect(runtimeRef.toJson(), <String, Object?>{
+        'prefabKey': 'stable_key',
+        'prefabId': 'legacy_id',
+        'x': 48,
+        'y': 32,
+        'zIndex': 3,
+        'snapToGrid': false,
+        'scale': 1.6,
+        'flipX': true,
+      });
     },
   );
 

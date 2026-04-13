@@ -4,7 +4,7 @@ import '../../../../prefabs/models/models.dart';
 import '../../shared/editor_scene_view_utils.dart';
 import '../../shared/platform_module_preview_tile.dart';
 import '../shared/ui/prefab_editor_action_row.dart';
-import '../shared/ui/prefab_editor_choice_chip_group.dart';
+import '../shared/ui/prefab_editor_atlas_slice_selector.dart';
 import '../shared/ui/prefab_editor_delete_button.dart';
 import '../shared/ui/prefab_editor_empty_state.dart';
 import '../shared/ui/prefab_editor_mode_banner.dart';
@@ -61,7 +61,7 @@ class PlatformModulesTab extends StatelessWidget {
   final VoidCallback onDuplicateSelectedModule;
   final VoidCallback onToggleDeprecateSelectedModule;
   final ValueChanged<String?> onSelectedModuleChanged;
-  final ValueChanged<String> onSelectedTileSliceChanged;
+  final ValueChanged<String?> onSelectedTileSliceChanged;
   final ValueChanged<PlatformModuleSceneTool> onModuleSceneToolChanged;
   final void Function(int gridX, int gridY, String sliceId) onPaintCell;
   final void Function(int gridX, int gridY) onEraseCell;
@@ -88,6 +88,7 @@ class PlatformModulesTab extends StatelessWidget {
         selectedModule: selectedModule,
         tileSlices: tileSlices,
         selectedTileSliceId: selectedTileSliceId,
+        workspaceRootPath: workspaceRootPath,
         isSelectedDeprecated: isSelectedDeprecated,
         onUpsertModule: onUpsertModule,
         onStartNewEmptyModule: onStartNewEmptyModule,
@@ -185,6 +186,7 @@ class _PlatformModuleInspectorPanel extends StatelessWidget {
     required this.selectedModule,
     required this.tileSlices,
     required this.selectedTileSliceId,
+    required this.workspaceRootPath,
     required this.isSelectedDeprecated,
     required this.onUpsertModule,
     required this.onStartNewEmptyModule,
@@ -200,13 +202,14 @@ class _PlatformModuleInspectorPanel extends StatelessWidget {
   final TileModuleDef? selectedModule;
   final List<AtlasSliceDef> tileSlices;
   final String? selectedTileSliceId;
+  final String workspaceRootPath;
   final bool isSelectedDeprecated;
   final VoidCallback onUpsertModule;
   final VoidCallback onStartNewEmptyModule;
   final VoidCallback onRenameSelectedModule;
   final VoidCallback onDuplicateSelectedModule;
   final VoidCallback onToggleDeprecateSelectedModule;
-  final ValueChanged<String> onSelectedTileSliceChanged;
+  final ValueChanged<String?> onSelectedTileSliceChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -359,10 +362,24 @@ class _PlatformModuleInspectorPanel extends StatelessWidget {
                 ? const Text(
                     'No tile slices yet. Create tile slices in Atlas Slicer first.',
                   )
-                : _TileSlicePalette(
-                    tileSlices: tileSlices,
-                    selectedTileSliceId: selectedTileSliceId,
-                    onSelectedTileSliceChanged: onSelectedTileSliceChanged,
+                : PrefabEditorAtlasSliceSelector(
+                    fieldKey: const ValueKey<String>(
+                      'platform_module_tile_slice_selector',
+                    ),
+                    optionKeyPrefix: 'platform_module_tile_slice_option',
+                    optionPreviewKeyPrefix:
+                        'platform_module_tile_slice_option_preview',
+                    selectedPreviewKey: const ValueKey<String>(
+                      'platform_module_tile_slice_selected_preview',
+                    ),
+                    slices: tileSlices,
+                    selectedSliceId: selectedTileSliceId,
+                    onSelectedSliceChanged: onSelectedTileSliceChanged,
+                    workspaceRootPath: workspaceRootPath,
+                    labelText: 'Tile Slice',
+                    hintText: 'Search tile slices by id or tag',
+                    emptyStateMessage:
+                        'No tile slices yet. Create tile slices in Atlas Slicer first.',
                   ),
           ),
         ],
@@ -547,39 +564,6 @@ class _PlatformModuleDisplayPanelState
           ),
         ],
       ),
-    );
-  }
-}
-
-class _TileSlicePalette extends StatelessWidget {
-  const _TileSlicePalette({
-    required this.tileSlices,
-    required this.selectedTileSliceId,
-    required this.onSelectedTileSliceChanged,
-  });
-
-  final List<AtlasSliceDef> tileSlices;
-  final String? selectedTileSliceId;
-  final ValueChanged<String> onSelectedTileSliceChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    AtlasSliceDef? selectedSlice;
-    final selectedId = selectedTileSliceId;
-    if (selectedId != null) {
-      for (final slice in tileSlices) {
-        if (slice.id == selectedId) {
-          selectedSlice = slice;
-          break;
-        }
-      }
-    }
-
-    return PrefabEditorChoiceChipGroup<AtlasSliceDef>(
-      items: tileSlices,
-      selectedValue: selectedSlice,
-      labelBuilder: (slice) => '${slice.id} (${slice.width}x${slice.height})',
-      onSelected: (slice) => onSelectedTileSliceChanged(slice.id),
     );
   }
 }

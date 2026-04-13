@@ -50,6 +50,22 @@ class AtlasSlicerController {
     }
   }
 
+  AtlasSliceDef? findSliceById({
+    required PrefabData data,
+    required AtlasSliceKind kind,
+    required String? sliceId,
+  }) {
+    if (sliceId == null || sliceId.isEmpty) {
+      return null;
+    }
+    for (final slice in slicesForKind(data, kind)) {
+      if (slice.id == sliceId) {
+        return slice;
+      }
+    }
+    return null;
+  }
+
   List<AtlasSliceDef> slicesForKindAndSource({
     required PrefabData data,
     required AtlasSliceKind kind,
@@ -170,18 +186,22 @@ class AtlasSlicerController {
     );
   }
 
-  AtlasSlicerSliceMutationResult addSlice({
+  AtlasSlicerSliceMutationResult upsertSlice({
     required PrefabData data,
     required AtlasSlicerState state,
     required String id,
     required Rect selection,
-    required String? currentPrefabSliceId,
-    required String? currentTileSliceId,
+    required List<String> tags,
   }) {
     final selectedAtlasPath = state.selectedAtlasPath;
     if (selectedAtlasPath == null) {
-      throw StateError('Cannot add slice without a selected atlas path.');
+      throw StateError('Cannot save slice without a selected atlas path.');
     }
+    final previous = findSliceById(
+      data: data,
+      kind: state.selectedSliceKind,
+      sliceId: id,
+    );
     final newSlice = AtlasSliceDef(
       id: id,
       sourceImagePath: selectedAtlasPath,
@@ -189,8 +209,9 @@ class AtlasSlicerController {
       y: selection.top.toInt(),
       width: selection.width.toInt(),
       height: selection.height.toInt(),
+      tags: tags,
     );
-    final nextData = _mutations.addSlice(
+    final nextData = _mutations.upsertSlice(
       data: data,
       kind: state.selectedSliceKind,
       slice: newSlice,
@@ -198,12 +219,14 @@ class AtlasSlicerController {
     return AtlasSlicerSliceMutationResult(
       data: nextData,
       selectedPrefabSliceId: state.selectedSliceKind == AtlasSliceKind.prefab
-          ? currentPrefabSliceId ?? newSlice.id
-          : currentPrefabSliceId,
+          ? newSlice.id
+          : null,
       selectedTileSliceId: state.selectedSliceKind == AtlasSliceKind.tile
-          ? currentTileSliceId ?? newSlice.id
-          : currentTileSliceId,
-      statusMessage: 'Added ${state.selectedSliceKind.name} slice "$id".',
+          ? newSlice.id
+          : null,
+      statusMessage:
+          '${previous == null ? 'Created' : 'Updated'} '
+          '${state.selectedSliceKind.name} slice "$id".',
     );
   }
 

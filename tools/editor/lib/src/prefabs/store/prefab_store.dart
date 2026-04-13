@@ -269,23 +269,12 @@ class PrefabStore {
 
   /// Canonical slice ordering for deterministic serialization.
   List<AtlasSliceDef> _sortedSlices(List<AtlasSliceDef> slices) {
-    final sorted = List<AtlasSliceDef>.from(slices)
-      ..sort((a, b) {
-        final idCompare = a.id.compareTo(b.id);
-        if (idCompare != 0) {
-          return idCompare;
-        }
-        final sourceCompare = a.sourceImagePath.compareTo(b.sourceImagePath);
-        if (sourceCompare != 0) {
-          return sourceCompare;
-        }
-        final yCompare = a.y.compareTo(b.y);
-        if (yCompare != 0) {
-          return yCompare;
-        }
-        return a.x.compareTo(b.x);
-      });
-    return sorted;
+    return PrefabDeterminism.sortSlicesByIdThenSourceRect(
+      slices.map(
+        (slice) =>
+            slice.copyWith(tags: PrefabDeterminism.normalizeTags(slice.tags)),
+      ),
+    );
   }
 
   /// Canonical prefab normalization + optional legacy migration defaults.

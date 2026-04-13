@@ -16,6 +16,7 @@ class AtlasSliceDef {
     required this.y,
     required this.width,
     required this.height,
+    this.tags = const <String>[],
   });
 
   final String id;
@@ -24,6 +25,7 @@ class AtlasSliceDef {
   final int y;
   final int width;
   final int height;
+  final List<String> tags;
 
   AtlasSliceDef copyWith({
     String? id,
@@ -32,6 +34,7 @@ class AtlasSliceDef {
     int? y,
     int? width,
     int? height,
+    List<String>? tags,
   }) {
     return AtlasSliceDef(
       id: id ?? this.id,
@@ -40,6 +43,7 @@ class AtlasSliceDef {
       y: y ?? this.y,
       width: width ?? this.width,
       height: height ?? this.height,
+      tags: tags ?? this.tags,
     );
   }
 
@@ -51,10 +55,25 @@ class AtlasSliceDef {
       'y': y,
       'width': width,
       'height': height,
+      if (tags.isNotEmpty) 'tags': tags,
     };
   }
 
   static AtlasSliceDef fromJson(Map<String, Object?> json) {
+    final rawTags = json['tags'];
+    final tags = <String>[];
+    if (rawTags is List<Object?>) {
+      for (final value in rawTags) {
+        if (value is! String) {
+          continue;
+        }
+        final normalized = value.trim();
+        if (normalized.isEmpty) {
+          continue;
+        }
+        tags.add(normalized);
+      }
+    }
     return AtlasSliceDef(
       id: PrefabModelJson.normalizedString(json['id']),
       sourceImagePath: PrefabModelJson.normalizedString(
@@ -64,6 +83,7 @@ class AtlasSliceDef {
       y: (json['y'] as num?)?.toInt() ?? 0,
       width: (json['width'] as num?)?.toInt() ?? 0,
       height: (json['height'] as num?)?.toInt() ?? 0,
+      tags: tags,
     );
   }
 }

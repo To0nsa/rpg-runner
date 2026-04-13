@@ -24,6 +24,47 @@ class PrefabDeterminism {
     return normalized;
   }
 
+  /// Returns atlas slices sorted with [compareSlicesByIdThenSourceRect].
+  static List<AtlasSliceDef> sortSlicesByIdThenSourceRect(
+    Iterable<AtlasSliceDef> slices,
+  ) {
+    final sorted = List<AtlasSliceDef>.from(slices)
+      ..sort(compareSlicesByIdThenSourceRect);
+    return sorted;
+  }
+
+  /// Total-order comparator for atlas slices.
+  ///
+  /// User-facing id and source image stay first, then geometry and tags provide
+  /// a stable tie-breaker across semantically different slice records.
+  static int compareSlicesByIdThenSourceRect(AtlasSliceDef a, AtlasSliceDef b) {
+    final idCompare = a.id.compareTo(b.id);
+    if (idCompare != 0) {
+      return idCompare;
+    }
+    final sourceCompare = a.sourceImagePath.compareTo(b.sourceImagePath);
+    if (sourceCompare != 0) {
+      return sourceCompare;
+    }
+    final yCompare = a.y.compareTo(b.y);
+    if (yCompare != 0) {
+      return yCompare;
+    }
+    final xCompare = a.x.compareTo(b.x);
+    if (xCompare != 0) {
+      return xCompare;
+    }
+    final widthCompare = a.width.compareTo(b.width);
+    if (widthCompare != 0) {
+      return widthCompare;
+    }
+    final heightCompare = a.height.compareTo(b.height);
+    if (heightCompare != 0) {
+      return heightCompare;
+    }
+    return _compareStringLists(a.tags, b.tags);
+  }
+
   /// Returns prefabs sorted with [comparePrefabsByIdThenKey].
   static List<PrefabDef> sortPrefabsByIdThenKey(Iterable<PrefabDef> prefabs) {
     final sorted = List<PrefabDef>.from(prefabs)

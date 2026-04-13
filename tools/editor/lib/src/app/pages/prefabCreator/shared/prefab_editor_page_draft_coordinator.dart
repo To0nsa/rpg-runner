@@ -12,6 +12,7 @@ import 'prefab_form_state.dart';
 class PrefabEditorPageDraftCoordinator {
   PrefabEditorPageDraftCoordinator({
     required TextEditingController sliceIdController,
+    required TextEditingController sliceTagsController,
     required TextEditingController selectionXController,
     required TextEditingController selectionYController,
     required TextEditingController selectionWController,
@@ -25,6 +26,7 @@ class PrefabEditorPageDraftCoordinator {
     required PrefabEditorStateSetter updateState,
     required bool Function() isMounted,
   }) : _sliceIdController = sliceIdController,
+       _sliceTagsController = sliceTagsController,
        _selectionXController = selectionXController,
        _selectionYController = selectionYController,
        _selectionWController = selectionWController,
@@ -38,6 +40,7 @@ class PrefabEditorPageDraftCoordinator {
     _history = PrefabEditorLocalDraftHistory<PrefabEditorPageDraftSnapshot>(
       trackedControllers: <TextEditingController>[
         sliceIdController,
+        sliceTagsController,
         moduleIdController,
         moduleTileSizeController,
         selectionXController,
@@ -77,6 +80,7 @@ class PrefabEditorPageDraftCoordinator {
   }
 
   final TextEditingController _sliceIdController;
+  final TextEditingController _sliceTagsController;
   final TextEditingController _selectionXController;
   final TextEditingController _selectionYController;
   final TextEditingController _selectionWController;
@@ -137,6 +141,7 @@ class PrefabEditorPageDraftCoordinator {
   PrefabEditorPageDraftSnapshot _captureSnapshot() {
     return PrefabEditorPageDraftSnapshot(
       sliceId: _sliceIdController.text,
+      sliceTags: _sliceTagsController.text,
       selectionX: _selectionXController.text,
       selectionY: _selectionYController.text,
       selectionW: _selectionWController.text,
@@ -155,6 +160,7 @@ class PrefabEditorPageDraftCoordinator {
   void _restoreSnapshot(PrefabEditorPageDraftSnapshot snapshot) {
     runWithoutTracking(() {
       _sliceIdController.text = snapshot.sliceId;
+      _sliceTagsController.text = snapshot.sliceTags;
       _selectionXController.text = snapshot.selectionX;
       _selectionYController.text = snapshot.selectionY;
       _selectionWController.text = snapshot.selectionW;
@@ -174,6 +180,7 @@ class PrefabEditorPageDraftCoordinator {
 class PrefabEditorPageDraftSnapshot {
   const PrefabEditorPageDraftSnapshot({
     required this.sliceId,
+    required this.sliceTags,
     required this.selectionX,
     required this.selectionY,
     required this.selectionW,
@@ -188,6 +195,7 @@ class PrefabEditorPageDraftSnapshot {
   });
 
   final String sliceId;
+  final String sliceTags;
   final String selectionX;
   final String selectionY;
   final String selectionW;
@@ -207,6 +215,7 @@ class PrefabEditorPageDraftSnapshot {
     }
     return other is PrefabEditorPageDraftSnapshot &&
         other.sliceId == sliceId &&
+        other.sliceTags == sliceTags &&
         other.selectionX == selectionX &&
         other.selectionY == selectionY &&
         other.selectionW == selectionW &&
@@ -224,6 +233,7 @@ class PrefabEditorPageDraftSnapshot {
   @override
   int get hashCode => Object.hashAll([
     sliceId,
+    sliceTags,
     selectionX,
     selectionY,
     selectionW,

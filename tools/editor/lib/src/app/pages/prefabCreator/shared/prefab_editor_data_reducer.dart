@@ -8,6 +8,26 @@ class PrefabEditorDataReducer {
     return PrefabDeterminism.normalizeTags(tags);
   }
 
+  List<AtlasSliceDef> sortedSlicesForUi(List<AtlasSliceDef> slices) {
+    return PrefabDeterminism.sortSlicesByIdThenSourceRect(
+      slices.map(
+        (slice) =>
+            slice.copyWith(tags: PrefabDeterminism.normalizeTags(slice.tags)),
+      ),
+    );
+  }
+
+  bool didSlicePayloadChange(AtlasSliceDef previous, AtlasSliceDef next) {
+    if (previous.sourceImagePath != next.sourceImagePath ||
+        previous.x != next.x ||
+        previous.y != next.y ||
+        previous.width != next.width ||
+        previous.height != next.height) {
+      return true;
+    }
+    return !_stringListsEqual(previous.tags, next.tags);
+  }
+
   bool didPrefabPayloadChange(PrefabDef previous, PrefabDef next) {
     if (previous.kind != next.kind) {
       return true;

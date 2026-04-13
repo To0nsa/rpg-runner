@@ -17,7 +17,10 @@ class AtlasSlicerPageCoordinator {
     required AtlasSlicerController atlasSlicer,
     required PrefabEditorShellState shellState,
     required WorkspaceScopedSizeCache atlasImageSizes,
+    required void Function(String? previousSelectedSliceId)
+    syncPrefabIdsWithSelectedSlice,
     required TextEditingController sliceIdController,
+    required TextEditingController sliceTagsController,
     required TextEditingController selectionXController,
     required TextEditingController selectionYController,
     required TextEditingController selectionWController,
@@ -29,7 +32,9 @@ class AtlasSlicerPageCoordinator {
   }) : _atlasSlicer = atlasSlicer,
        _shellState = shellState,
        _atlasImageSizes = atlasImageSizes,
+       _syncPrefabIdsWithSelectedSlice = syncPrefabIdsWithSelectedSlice,
        _sliceIdController = sliceIdController,
+       _sliceTagsController = sliceTagsController,
        _selectionXController = selectionXController,
        _selectionYController = selectionYController,
        _selectionWController = selectionWController,
@@ -42,7 +47,10 @@ class AtlasSlicerPageCoordinator {
   final AtlasSlicerController _atlasSlicer;
   final PrefabEditorShellState _shellState;
   final WorkspaceScopedSizeCache _atlasImageSizes;
+  final void Function(String? previousSelectedSliceId)
+  _syncPrefabIdsWithSelectedSlice;
   final TextEditingController _sliceIdController;
+  final TextEditingController _sliceTagsController;
   final TextEditingController _selectionXController;
   final TextEditingController _selectionYController;
   final TextEditingController _selectionWController;
@@ -81,21 +89,18 @@ class AtlasSlicerPageCoordinator {
     final selectedSliceId = _selectedSliceIdForKind(
       atlasState.selectedSliceKind,
     );
-    AtlasSliceDef? selectedSlice;
-    if (selectedSliceId != null) {
-      for (final slice in slicesForKind) {
-        if (slice.id == selectedSliceId) {
-          selectedSlice = slice;
-          break;
-        }
-      }
-    }
+    final selectedSlice = _atlasSlicer.findSliceById(
+      data: _shellState.data,
+      kind: atlasState.selectedSliceKind,
+      sliceId: selectedSliceId,
+    );
 
     return AtlasSlicerTab(
       atlasImagePaths: _shellState.atlasImagePaths,
       selectedAtlasPath: selectedAtlasPath,
       selectedSliceKind: atlasState.selectedSliceKind,
       sliceIdController: _sliceIdController,
+      sliceTagsController: _sliceTagsController,
       atlasZoom: atlasState.zoom,
       zoomMin: zoomMin,
       zoomMax: zoomMax,
@@ -107,6 +112,7 @@ class AtlasSlicerPageCoordinator {
       selectionHController: _selectionHController,
       atlasSize: atlasSize,
       slices: filteredSlices,
+      existingSliceIds: slicesForKind.map((slice) => slice.id).toSet(),
       selectedSliceId: selectedSliceId,
       selectedSlice: selectedSlice,
       workspaceRootPath: _readWorkspaceRootPath(),
@@ -126,6 +132,7 @@ class AtlasSlicerPageCoordinator {
           _shellState.atlasState = _shellState.atlasState.withSelectedSliceKind(
             value,
           );
+          _syncSliceDraftForCurrentKind(clearIfMissing: true);
         });
       },
       onAtlasZoomChanged: (value) {
@@ -135,19 +142,28 @@ class AtlasSlicerPageCoordinator {
       },
       onSelectedSliceChanged: (sliceId) {
         _updateState(() {
+          final previousPrefabSliceId = _shellState.selectedPrefabSliceId;
           switch (_shellState.atlasState.selectedSliceKind) {
             case AtlasSliceKind.prefab:
               _shellState.selectedPrefabSliceId = sliceId;
+              _syncPrefabIdsWithSelectedSlice(previousPrefabSliceId);
               break;
             case AtlasSliceKind.tile:
               _shellState.selectedTileSliceId = sliceId;
               break;
           }
+          _syncSliceDraft(
+            _atlasSlicer.findSliceById(
+              data: _shellState.data,
+              kind: _shellState.atlasState.selectedSliceKind,
+              sliceId: sliceId,
+            ),
+          );
           _shellState.errorMessage = null;
         });
       },
       onSelectionInputsChanged: () => applySelectionFromInputs(silent: true),
-      onAddSlice: addSliceFromSelection,
+      onSaveSlice: saveSliceFromSelection,
       onDeleteSlice: (sliceId) =>
           deleteSlice(sliceId, _shellState.atlasState.selectedSliceKind),
       onSelectionDragStart: (localPosition, imageSize) {
@@ -192,6 +208,12 @@ class AtlasSlicerPageCoordinator {
     _syncSelectionInputsFromRect(null);
   }
 
+  void clearSliceDraft() {
+    _sliceIdController.clear();
+    _sliceTagsController.clear();
+    clearSelection();
+  }
+
   void applySelectionFromInputs({bool silent = false}) {
     final selectedAtlasPath = _shellState.atlasState.selectedAtlasPath;
     if (selectedAtlasPath == null) {
@@ -231,7 +253,7 @@ class AtlasSlicerPageCoordinator {
     });
   }
 
-  void addSliceFromSelection() {
+  void saveSliceFromSelection() {
     final atlasState = _shellState.atlasState;
     final selectedAtlasPath = atlasState.selectedAtlasPath;
     if (selectedAtlasPath == null) {
@@ -271,30 +293,18 @@ class AtlasSlicerPageCoordinator {
       );
       return;
     }
-    final sourceList = _atlasSlicer.slicesForKind(
-      _shellState.data,
-      atlasState.selectedSliceKind,
-    );
-    if (sourceList.any((slice) => slice.id == id)) {
-      _setError(
-        'Slice id "$id" already exists for '
-        '${atlasState.selectedSliceKind.name} slices.',
-      );
-      return;
-    }
+    final tags = _parseTagInput(_sliceTagsController.text);
 
     _updateState(() {
-      final result = _atlasSlicer.addSlice(
+      final result = _atlasSlicer.upsertSlice(
         data: _shellState.data,
         state: atlasState,
         id: id,
         selection: selection,
-        currentPrefabSliceId: _shellState.selectedPrefabSliceId,
-        currentTileSliceId: _shellState.selectedTileSliceId,
+        tags: tags,
       );
       _applySliceMutation(result);
-      _sliceIdController.clear();
-      clearSelection();
+      _syncSliceDraftForCurrentKind(clearIfMissing: false);
     });
   }
 
@@ -308,16 +318,57 @@ class AtlasSlicerPageCoordinator {
         currentTileSliceId: _shellState.selectedTileSliceId,
       );
       _applySliceMutation(result);
+      _syncSliceDraftForCurrentKind(clearIfMissing: true);
     });
   }
 
   void _applySliceMutation(AtlasSlicerSliceMutationResult result) {
     // The shell remains the source of truth for unsaved page-local prefab data.
     _shellState.data = result.data;
-    _shellState.selectedPrefabSliceId = result.selectedPrefabSliceId;
-    _shellState.selectedTileSliceId = result.selectedTileSliceId;
+    final previousPrefabSliceId = _shellState.selectedPrefabSliceId;
+    if (result.selectedPrefabSliceId != null ||
+        _shellState.atlasState.selectedSliceKind == AtlasSliceKind.prefab) {
+      _shellState.selectedPrefabSliceId = result.selectedPrefabSliceId;
+      _syncPrefabIdsWithSelectedSlice(previousPrefabSliceId);
+    }
+    if (result.selectedTileSliceId != null ||
+        _shellState.atlasState.selectedSliceKind == AtlasSliceKind.tile) {
+      _shellState.selectedTileSliceId = result.selectedTileSliceId;
+    }
     _shellState.statusMessage = result.statusMessage;
     _shellState.errorMessage = null;
+  }
+
+  void _syncSliceDraftForCurrentKind({required bool clearIfMissing}) {
+    _syncSliceDraft(
+      _atlasSlicer.findSliceById(
+        data: _shellState.data,
+        kind: _shellState.atlasState.selectedSliceKind,
+        sliceId: _selectedSliceIdForKind(
+          _shellState.atlasState.selectedSliceKind,
+        ),
+      ),
+      clearIfMissing: clearIfMissing,
+    );
+  }
+
+  void _syncSliceDraft(AtlasSliceDef? slice, {bool clearIfMissing = false}) {
+    if (slice == null) {
+      if (clearIfMissing) {
+        clearSliceDraft();
+      }
+      return;
+    }
+    _sliceIdController.text = slice.id;
+    _sliceTagsController.text = slice.tags.join(', ');
+    _setSelectionRect(
+      Rect.fromLTWH(
+        slice.x.toDouble(),
+        slice.y.toDouble(),
+        slice.width.toDouble(),
+        slice.height.toDouble(),
+      ),
+    );
   }
 
   void _setSelectionFromPoints(
@@ -359,5 +410,13 @@ class AtlasSlicerPageCoordinator {
     _updateState(() {
       _shellState.setError(message);
     });
+  }
+
+  List<String> _parseTagInput(String rawTags) {
+    return rawTags
+        .split(',')
+        .map((tag) => tag.trim())
+        .where((tag) => tag.isNotEmpty)
+        .toList(growable: false);
   }
 }

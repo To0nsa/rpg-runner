@@ -46,6 +46,7 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
   static const double _zoomStep = 0.2;
 
   final TextEditingController _sliceIdController = TextEditingController();
+  final TextEditingController _sliceTagsController = TextEditingController();
   final PrefabFormState _obstaclePrefabForm = PrefabFormState.obstacle();
   final PrefabFormState _platformPrefabForm = PrefabFormState.platform();
   final PrefabFormState _decorationPrefabForm = PrefabFormState.decoration();
@@ -138,6 +139,7 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
 
     _draftCoordinator = PrefabEditorPageDraftCoordinator(
       sliceIdController: _sliceIdController,
+      sliceTagsController: _sliceTagsController,
       selectionXController: _selectionXController,
       selectionYController: _selectionYController,
       selectionWController: _selectionWController,
@@ -150,20 +152,6 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
       shellState: _shellState,
       updateState: _updateState,
       isMounted: () => mounted,
-    );
-    _atlasPageCoordinator = AtlasSlicerPageCoordinator(
-      atlasSlicer: _atlasSlicer,
-      shellState: _shellState,
-      atlasImageSizes: _atlasImageSizes,
-      sliceIdController: _sliceIdController,
-      selectionXController: _selectionXController,
-      selectionYController: _selectionYController,
-      selectionWController: _selectionWController,
-      selectionHController: _selectionHController,
-      horizontalScrollController: _atlasHorizontalScrollController,
-      verticalScrollController: _atlasVerticalScrollController,
-      readWorkspaceRootPath: workspaceRootPath,
-      updateState: _updateState,
     );
     _prefabPageCoordinator = PrefabEditorPageCoordinator(
       prefabController: _prefabController,
@@ -182,6 +170,26 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
       applyLocalDraftMutation: _draftCoordinator.applyMutation,
       syncFormDraftBaseline: _draftCoordinator.syncBaseline,
       commitPrefabDataChange: commitPrefabDataChange,
+    );
+    _atlasPageCoordinator = AtlasSlicerPageCoordinator(
+      atlasSlicer: _atlasSlicer,
+      shellState: _shellState,
+      atlasImageSizes: _atlasImageSizes,
+      syncPrefabIdsWithSelectedSlice: (previousSelectedSliceId) {
+        _prefabPageCoordinator.syncPrefabIdsWithSelectedSlice(
+          previousSelectedSliceId: previousSelectedSliceId,
+        );
+      },
+      sliceIdController: _sliceIdController,
+      sliceTagsController: _sliceTagsController,
+      selectionXController: _selectionXController,
+      selectionYController: _selectionYController,
+      selectionWController: _selectionWController,
+      selectionHController: _selectionHController,
+      horizontalScrollController: _atlasHorizontalScrollController,
+      verticalScrollController: _atlasVerticalScrollController,
+      readWorkspaceRootPath: workspaceRootPath,
+      updateState: _updateState,
     );
     _platformModulePageCoordinator = PlatformModulePageCoordinator(
       moduleController: _platformModuleController,
@@ -230,6 +238,7 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
     _tabController.removeListener(_handleEditorTabChanged);
     _tabController.dispose();
     _sliceIdController.dispose();
+    _sliceTagsController.dispose();
     _obstaclePrefabForm.dispose();
     _platformPrefabForm.dispose();
     _decorationPrefabForm.dispose();

@@ -18,16 +18,33 @@ class PrefabEditorMutations {
 
   final PrefabEditorDataReducer _reducer;
 
-  PrefabData addSlice({
+  PrefabData upsertSlice({
     required PrefabData data,
     required AtlasSliceKind kind,
     required AtlasSliceDef slice,
   }) {
+    final normalizedSlice = slice.copyWith(
+      tags: _reducer.normalizedTags(slice.tags),
+    );
     switch (kind) {
       case AtlasSliceKind.prefab:
-        return data.copyWith(prefabSlices: [...data.prefabSlices, slice]);
+        return data.copyWith(
+          prefabSlices: _reducer.sortedSlicesForUi(
+            data.prefabSlices
+                .where((existing) => existing.id != normalizedSlice.id)
+                .followedBy([normalizedSlice])
+                .toList(growable: false),
+          ),
+        );
       case AtlasSliceKind.tile:
-        return data.copyWith(tileSlices: [...data.tileSlices, slice]);
+        return data.copyWith(
+          tileSlices: _reducer.sortedSlicesForUi(
+            data.tileSlices
+                .where((existing) => existing.id != normalizedSlice.id)
+                .followedBy([normalizedSlice])
+                .toList(growable: false),
+          ),
+        );
     }
   }
 

@@ -439,6 +439,69 @@ void main() {
       '96',
     );
   });
+
+  testWidgets(
+    'chunk creator flips selected prefab placements from composer controls',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1800, 1200));
+      addTearDown(() async {
+        await tester.binding.setSurfaceSize(null);
+      });
+
+      final controller = EditorSessionController(
+        pluginRegistry: AuthoringPluginRegistry(
+          plugins: <AuthoringDomainPlugin>[
+            _InMemoryChunkPlugin(_initialChunkWithPlacedPrefabDocument),
+          ],
+        ),
+        initialPluginId: ChunkDomainPlugin.pluginId,
+        initialWorkspacePath: '.',
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: ChunkCreatorPage(controller: controller)),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      await tester.tap(find.text('Chunk List').first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('chunk_prefab').first);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Placed Prefabs'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('crate_a').first);
+      await tester.pumpAndSettle();
+
+      final flipXChip = find.byKey(
+        const ValueKey<String>('selected_prefab_flip_x'),
+      );
+      final flipYChip = find.byKey(
+        const ValueKey<String>('selected_prefab_flip_y'),
+      );
+      await tester.ensureVisible(flipXChip);
+      await tester.pumpAndSettle();
+
+      await tester.tap(flipXChip);
+      await tester.pumpAndSettle();
+
+      var sceneAfterFlip = controller.scene as ChunkScene;
+      var placement = sceneAfterFlip.chunks.single.prefabs.single;
+      expect(placement.flipX, isTrue);
+      expect(placement.flipY, isFalse);
+
+      await tester.tap(flipYChip);
+      await tester.pumpAndSettle();
+
+      sceneAfterFlip = controller.scene as ChunkScene;
+      placement = sceneAfterFlip.chunks.single.prefabs.single;
+      expect(placement.flipX, isTrue);
+      expect(placement.flipY, isTrue);
+    },
+  );
 }
 
 const ChunkDocument _initialChunkDocument = ChunkDocument(
@@ -603,6 +666,47 @@ const ChunkDocument _initialChunkWithSharedGapIdsDocument = ChunkDocument(
       groundGaps: <GroundGapDef>[
         GroundGapDef(gapId: 'gap_1', type: groundGapTypePit, x: 80, width: 96),
       ],
+      status: chunkStatusActive,
+    ),
+  ],
+  baselineByChunkKey: <String, ChunkSourceBaseline>{},
+  availableLevelIds: <String>['field', 'forest'],
+  assemblyGroupOptionsByLevelId: <String, List<String>>{
+    'field': <String>['default', 'cemetery', 'village'],
+    'forest': <String>['default', 'cemetery', 'village'],
+  },
+  activeLevelId: 'field',
+  levelOptionSource: 'test',
+  runtimeGridSnap: 16.0,
+  runtimeChunkWidth: 600.0,
+  runtimeGroundTopY: 224,
+);
+
+const ChunkDocument _initialChunkWithPlacedPrefabDocument = ChunkDocument(
+  chunks: <LevelChunkDef>[
+    LevelChunkDef(
+      chunkKey: 'chunk_field_prefab_001',
+      id: 'chunk_prefab',
+      revision: 1,
+      schemaVersion: 1,
+      levelId: 'field',
+      tileSize: 16,
+      width: 600,
+      height: 270,
+      difficulty: chunkDifficultyNormal,
+      tags: <String>['base'],
+      tileLayers: <TileLayerDef>[],
+      prefabs: <PlacedPrefabDef>[
+        PlacedPrefabDef(
+          prefabId: 'crate_a',
+          prefabKey: 'crate_a',
+          x: 48,
+          y: 224,
+        ),
+      ],
+      markers: <PlacedMarkerDef>[],
+      groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 224),
+      groundGaps: <GroundGapDef>[],
       status: chunkStatusActive,
     ),
   ],

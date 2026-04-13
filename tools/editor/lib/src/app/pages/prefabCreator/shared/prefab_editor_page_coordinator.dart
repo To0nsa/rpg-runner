@@ -96,7 +96,11 @@ class PrefabEditorPageCoordinator {
       workspaceRootPath: _readWorkspaceRootPath(),
       onSelectedSliceChanged: (value) {
         _updateState(() {
+          final previousSelectedSliceId = _shellState.selectedPrefabSliceId;
           _shellState.selectedPrefabSliceId = value;
+          syncPrefabIdsWithSelectedSlice(
+            previousSelectedSliceId: previousSelectedSliceId,
+          );
         });
       },
       onSceneValuesChanged: onObstaclePrefabSceneValuesChanged,
@@ -136,7 +140,11 @@ class PrefabEditorPageCoordinator {
       workspaceRootPath: _readWorkspaceRootPath(),
       onSelectedSliceChanged: (value) {
         _updateState(() {
+          final previousSelectedSliceId = _shellState.selectedPrefabSliceId;
           _shellState.selectedPrefabSliceId = value;
+          syncPrefabIdsWithSelectedSlice(
+            previousSelectedSliceId: previousSelectedSliceId,
+          );
         });
       },
       onSceneValuesChanged: onDecorationPrefabSceneValuesChanged,
@@ -201,6 +209,44 @@ class PrefabEditorPageCoordinator {
     return _prefabController.editingPrefabForForm(
       data: _shellState.data,
       form: form,
+    );
+  }
+
+  /// Keeps create-mode prefab ids and tags aligned with the selected atlas
+  /// slice until a user edits those fields away from the slice-provided values.
+  void syncPrefabIdsWithSelectedSlice({String? previousSelectedSliceId}) {
+    final selectedSliceId = _shellState.selectedPrefabSliceId?.trim();
+    if (selectedSliceId == null || selectedSliceId.isEmpty) {
+      return;
+    }
+    final selectedSlice = _prefabController.findSliceById(
+      slices: _shellState.data.prefabSlices,
+      sliceId: selectedSliceId,
+    );
+
+    _syncCreateModePrefabIdWithSelectedSlice(
+      form: _obstaclePrefabForm,
+      previousSelectedSliceId: previousSelectedSliceId,
+      selectedSliceId: selectedSliceId,
+    );
+    _syncCreateModePrefabIdWithSelectedSlice(
+      form: _decorationPrefabForm,
+      previousSelectedSliceId: previousSelectedSliceId,
+      selectedSliceId: selectedSliceId,
+    );
+    if (selectedSlice == null) {
+      return;
+    }
+
+    _syncCreateModePrefabTagsWithSelectedSlice(
+      form: _obstaclePrefabForm,
+      previousSelectedSliceId: previousSelectedSliceId,
+      selectedSlice: selectedSlice,
+    );
+    _syncCreateModePrefabTagsWithSelectedSlice(
+      form: _decorationPrefabForm,
+      previousSelectedSliceId: previousSelectedSliceId,
+      selectedSlice: selectedSlice,
     );
   }
 
@@ -361,6 +407,7 @@ class PrefabEditorPageCoordinator {
           _shellState.selectedPrefabSliceId =
               _shellState.data.prefabSlices.first.id;
         }
+        syncPrefabIdsWithSelectedSlice();
         _shellState.selectedPrefabPlatformModuleId = _dataReducer
             .preferredModuleIdForPicker(_shellState.data.platformModules);
       });
@@ -385,6 +432,14 @@ class PrefabEditorPageCoordinator {
       _runWithoutLocalDraftHistory(() {
         _obstaclePrefabForm.selectedKind = PrefabKind.obstacle;
         _obstaclePrefabForm.editingPrefabKey = null;
+        _syncCreateModePrefabIdForLoadedPrefabTransition(
+          form: _obstaclePrefabForm,
+          sourcePrefabId: source.id,
+        );
+        _syncCreateModePrefabTagsForLoadedPrefabTransition(
+          form: _obstaclePrefabForm,
+          sourcePrefab: source,
+        );
       });
       _syncFormDraftBaseline();
       _shellState.statusMessage =
@@ -426,6 +481,7 @@ class PrefabEditorPageCoordinator {
           _shellState.selectedPrefabSliceId =
               _shellState.data.prefabSlices.first.id;
         }
+        syncPrefabIdsWithSelectedSlice();
       });
       _syncFormDraftBaseline();
       _shellState.statusMessage = 'Cleared decoration prefab form.';
@@ -448,6 +504,14 @@ class PrefabEditorPageCoordinator {
       _runWithoutLocalDraftHistory(() {
         _decorationPrefabForm.selectedKind = PrefabKind.decoration;
         _decorationPrefabForm.editingPrefabKey = null;
+        _syncCreateModePrefabIdForLoadedPrefabTransition(
+          form: _decorationPrefabForm,
+          sourcePrefabId: source.id,
+        );
+        _syncCreateModePrefabTagsForLoadedPrefabTransition(
+          form: _decorationPrefabForm,
+          sourcePrefab: source,
+        );
       });
       _syncFormDraftBaseline();
       _shellState.statusMessage =
@@ -809,5 +873,119 @@ class PrefabEditorPageCoordinator {
     _updateState(() {
       _shellState.setError(message);
     });
+  }
+
+  void _syncCreateModePrefabIdWithSelectedSlice({
+    required PrefabFormState form,
+    required String selectedSliceId,
+    String? previousSelectedSliceId,
+  }) {
+    if (editingPrefabForForm(form) != null) {
+      return;
+    }
+
+    final currentPrefabId = form.prefabIdController.text.trim();
+    final isTrackingPreviousSlice =
+        previousSelectedSliceId != null &&
+        previousSelectedSliceId.isNotEmpty &&
+        currentPrefabId == previousSelectedSliceId;
+    if (currentPrefabId.isNotEmpty && !isTrackingPreviousSlice) {
+      return;
+    }
+
+    form.prefabIdController.text = selectedSliceId;
+  }
+
+  void _syncCreateModePrefabIdForLoadedPrefabTransition({
+    required PrefabFormState form,
+    required String sourcePrefabId,
+  }) {
+    final selectedSliceId = _shellState.selectedPrefabSliceId?.trim();
+    if (selectedSliceId == null || selectedSliceId.isEmpty) {
+      return;
+    }
+
+    final currentPrefabId = form.prefabIdController.text.trim();
+    if (currentPrefabId.isNotEmpty && currentPrefabId != sourcePrefabId) {
+      return;
+    }
+
+    form.prefabIdController.text = selectedSliceId;
+  }
+
+  void _syncCreateModePrefabTagsWithSelectedSlice({
+    required PrefabFormState form,
+    required AtlasSliceDef selectedSlice,
+    String? previousSelectedSliceId,
+  }) {
+    if (editingPrefabForForm(form) != null) {
+      return;
+    }
+
+    final currentTagText = _normalizedTagText(form.tagsController.text);
+    final previousTagText = _normalizedSelectedSliceTagText(
+      previousSelectedSliceId,
+    );
+    final isTrackingPreviousSlice =
+        previousTagText.isNotEmpty && currentTagText == previousTagText;
+    if (currentTagText.isNotEmpty && !isTrackingPreviousSlice) {
+      return;
+    }
+
+    form.tagsController.text = _normalizedTagTextFromList(selectedSlice.tags);
+  }
+
+  void _syncCreateModePrefabTagsForLoadedPrefabTransition({
+    required PrefabFormState form,
+    required PrefabDef sourcePrefab,
+  }) {
+    final selectedSliceId = _shellState.selectedPrefabSliceId?.trim();
+    if (selectedSliceId == null || selectedSliceId.isEmpty) {
+      return;
+    }
+    final selectedSlice = _prefabController.findSliceById(
+      slices: _shellState.data.prefabSlices,
+      sliceId: selectedSliceId,
+    );
+    if (selectedSlice == null) {
+      return;
+    }
+
+    final currentTagText = _normalizedTagText(form.tagsController.text);
+    final sourceTagText = _normalizedTagTextFromList(sourcePrefab.tags);
+    if (currentTagText.isNotEmpty && currentTagText != sourceTagText) {
+      return;
+    }
+
+    form.tagsController.text = _normalizedTagTextFromList(selectedSlice.tags);
+  }
+
+  String _normalizedSelectedSliceTagText(String? sliceId) {
+    final normalizedSliceId = sliceId?.trim();
+    if (normalizedSliceId == null || normalizedSliceId.isEmpty) {
+      return '';
+    }
+    final slice = _prefabController.findSliceById(
+      slices: _shellState.data.prefabSlices,
+      sliceId: normalizedSliceId,
+    );
+    if (slice == null) {
+      return '';
+    }
+    return _normalizedTagTextFromList(slice.tags);
+  }
+
+  String _normalizedTagText(String raw) {
+    return _normalizedTagTextFromList(
+      raw
+          .split(',')
+          .map((tag) => tag.trim())
+          .where((tag) => tag.isNotEmpty)
+          .toList(growable: false),
+    );
+  }
+
+  String _normalizedTagTextFromList(List<String> tags) {
+    return _dataReducer.normalizedTags(tags).join(', ');
   }
 }

@@ -7,6 +7,7 @@ import '../obstacle_prefabs/widgets/prefab_scene_view.dart';
 import '../shared/prefab_form_state.dart';
 import '../shared/prefab_scene_values.dart';
 import '../shared/ui/prefab_editor_action_row.dart';
+import '../shared/ui/prefab_editor_atlas_slice_selector.dart';
 import '../shared/ui/prefab_editor_delete_button.dart';
 import '../shared/ui/prefab_editor_empty_state.dart';
 import '../shared/ui/prefab_editor_mode_banner.dart';
@@ -71,6 +72,7 @@ class DecorationPrefabsTab extends StatelessWidget {
         prefabSlices: prefabSlices,
         selectedSliceId: selectedSliceId,
         editingDecorationPrefab: editingDecorationPrefab,
+        workspaceRootPath: workspaceRootPath,
         onSelectedSliceChanged: onSelectedSliceChanged,
         onUpsertPrefab: onUpsertPrefab,
         onDuplicatePrefab: onDuplicatePrefab,
@@ -143,6 +145,7 @@ class _DecorationPrefabInspectorPanel extends StatelessWidget {
     required this.prefabSlices,
     required this.selectedSliceId,
     required this.editingDecorationPrefab,
+    required this.workspaceRootPath,
     required this.onSelectedSliceChanged,
     required this.onUpsertPrefab,
     required this.onDuplicatePrefab,
@@ -155,6 +158,7 @@ class _DecorationPrefabInspectorPanel extends StatelessWidget {
   final List<AtlasSliceDef> prefabSlices;
   final String? selectedSliceId;
   final PrefabDef? editingDecorationPrefab;
+  final String workspaceRootPath;
   final ValueChanged<String?> onSelectedSliceChanged;
   final VoidCallback onUpsertPrefab;
   final VoidCallback onDuplicatePrefab;
@@ -274,24 +278,24 @@ class _DecorationPrefabInspectorPanel extends StatelessWidget {
                 ),
                 const SizedBox(height: PrefabEditorUiTokens.controlGap),
                 hasDecorationSources
-                    ? DropdownButtonFormField<String>(
-                        key: ValueKey<String?>(
-                          'decoration_prefab_slice_${selectedSliceId ?? 'none'}',
+                    ? PrefabEditorAtlasSliceSelector(
+                        fieldKey: const ValueKey<String>(
+                          'decoration_prefab_slice_selector',
                         ),
-                        initialValue: selectedSliceId,
-                        isExpanded: true,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          labelText: 'Atlas Slice',
+                        optionKeyPrefix: 'decoration_prefab_slice_option',
+                        optionPreviewKeyPrefix:
+                            'decoration_prefab_slice_option_preview',
+                        selectedPreviewKey: const ValueKey<String>(
+                          'decoration_prefab_slice_selected_preview',
                         ),
-                        items: [
-                          for (final slice in prefabSlices)
-                            DropdownMenuItem<String>(
-                              value: slice.id,
-                              child: Text(slice.id),
-                            ),
-                        ],
-                        onChanged: onSelectedSliceChanged,
+                        slices: prefabSlices,
+                        selectedSliceId: selectedSliceId,
+                        onSelectedSliceChanged: onSelectedSliceChanged,
+                        workspaceRootPath: workspaceRootPath,
+                        labelText: 'Atlas Slice',
+                        hintText: 'Search decoration slices by id or tag',
+                        emptyStateMessage: 'Create prefab atlas slices first.',
+                        defaultScopeTags: const <String>['decoration'],
                       )
                     : const Text('Create prefab atlas slices first.'),
                 const SizedBox(height: PrefabEditorUiTokens.controlGap),

@@ -12,17 +12,21 @@ class StaticPrefabSpriteComponent extends PositionComponent
     required this.srcRect,
     required Vector2 position,
     required Vector2 size,
+    this.flipX = false,
+    this.flipY = false,
   }) : super(position: position, size: size, anchor: Anchor.topLeft);
 
   final String assetPath;
   final ui.Rect srcRect;
+  final bool flipX;
+  final bool flipY;
   bool _spriteLoadFailed = false;
   ui.Image? _image;
 
   static final ui.Paint _spritePaint = ui.Paint()
     ..filterQuality = ui.FilterQuality.none;
-  static final ui.Paint _fallbackPaint =
-      ui.Paint()..color = const ui.Color(0x66FF00FF);
+  static final ui.Paint _fallbackPaint = ui.Paint()
+    ..color = const ui.Color(0x66FF00FF);
 
   @override
   Future<void> onLoad() async {
@@ -68,12 +72,20 @@ class StaticPrefabSpriteComponent extends PositionComponent
     super.render(canvas);
     final image = _image;
     if (image != null) {
+      if (flipX || flipY) {
+        canvas.save();
+        canvas.translate(flipX ? size.x : 0, flipY ? size.y : 0);
+        canvas.scale(flipX ? -1 : 1, flipY ? -1 : 1);
+      }
       canvas.drawImageRect(
         image,
         srcRect,
         ui.Rect.fromLTWH(0, 0, size.x, size.y),
         _spritePaint,
       );
+      if (flipX || flipY) {
+        canvas.restore();
+      }
       return;
     }
 

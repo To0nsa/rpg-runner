@@ -2,359 +2,995 @@
   "schemaVersion": 2,
   "slices": [
     {
-      "id": "ruin_arch_large",
-      "sourceImagePath": "assets/images/level/props/Forest Prop.png",
-      "x": 339,
-      "y": 388,
-      "width": 194,
-      "height": 150
+      "id": "anvil_00",
+      "sourceImagePath": "assets/images/level/props/TX Village Props.png",
+      "x": 851,
+      "y": 162,
+      "width": 56,
+      "height": 38,
+      "tags": [
+        "anvil"
+      ]
     },
     {
-      "id": "ruin_big_stone",
-      "sourceImagePath": "assets/images/level/props/Forest Prop.png",
-      "x": 389,
-      "y": 72,
-      "width": 269,
-      "height": 134
+      "id": "apple_00",
+      "sourceImagePath": "assets/images/level/props/TX Village Props.png",
+      "x": 340,
+      "y": 171,
+      "width": 10,
+      "height": 9,
+      "tags": [
+        "apple",
+        "food",
+        "tableDeco"
+      ]
     },
     {
-      "id": "ruin_column_short",
-      "sourceImagePath": "assets/images/level/props/Forest Prop.png",
-      "x": 208,
-      "y": 463,
-      "width": 52,
-      "height": 73
+      "id": "bag_00",
+      "sourceImagePath": "assets/images/level/props/TX Village Props.png",
+      "x": 446,
+      "y": 217,
+      "width": 39,
+      "height": 44,
+      "tags": [
+        "bag"
+      ]
     },
     {
-      "id": "ruin_column_tall",
-      "sourceImagePath": "assets/images/level/props/Forest Prop.png",
-      "x": 75,
-      "y": 395,
-      "width": 54,
-      "height": 139
+      "id": "bag_01",
+      "sourceImagePath": "assets/images/level/props/TX Village Props.png",
+      "x": 507,
+      "y": 218,
+      "width": 42,
+      "height": 46,
+      "tags": [
+        "bag"
+      ]
     },
     {
-      "id": "ruin_double_stone",
-      "sourceImagePath": "assets/images/level/props/Forest Prop.png",
-      "x": 49,
-      "y": 47,
-      "width": 205,
-      "height": 94
+      "id": "barrel_01",
+      "sourceImagePath": "assets/images/level/props/TX Village Props.png",
+      "x": 191,
+      "y": 24,
+      "width": 34,
+      "height": 45,
+      "tags": [
+        "barrel"
+      ]
     },
     {
-      "id": "ruin_pic_tree",
-      "sourceImagePath": "assets/images/level/props/Forest Prop.png",
-      "x": 547,
-      "y": 406,
-      "width": 210,
-      "height": 127
+      "id": "boolder_pile_00",
+      "sourceImagePath": "assets/images/level/tileset/Decor.png",
+      "x": 0,
+      "y": 272,
+      "width": 94,
+      "height": 50,
+      "tags": [
+        "boulder",
+        "light",
+        "rock"
+      ]
     },
     {
-      "id": "ruin_small_rubble",
-      "sourceImagePath": "assets/images/level/props/Forest Prop.png",
-      "x": 843,
-      "y": 484,
-      "width": 106,
-      "height": 52
-    },
-    {
-      "id": "ruin_statue",
-      "sourceImagePath": "assets/images/level/props/Forest Prop.png",
-      "x": 724,
-      "y": 229,
-      "width": 84,
-      "height": 134
-    },
-    {
-      "id": "ruin_statue_headless",
-      "sourceImagePath": "assets/images/level/props/Forest Prop.png",
-      "x": 836,
-      "y": 246,
-      "width": 69,
-      "height": 116
-    },
-    {
-      "id": "ruin_stone_moss_left",
-      "sourceImagePath": "assets/images/level/props/Forest Prop.png",
-      "x": 194,
-      "y": 173,
+      "id": "boolder_pile_01",
+      "sourceImagePath": "assets/images/level/tileset/Decor.png",
+      "x": 94,
+      "y": 271,
       "width": 97,
-      "height": 73
+      "height": 51,
+      "tags": [
+        "boulder",
+        "light",
+        "rock"
+      ]
     },
     {
-      "id": "ruin_stone_moss_right",
-      "sourceImagePath": "assets/images/level/props/Forest Prop.png",
-      "x": 27,
-      "y": 175,
-      "width": 100,
-      "height": 73
+      "id": "boolder_pile_02",
+      "sourceImagePath": "assets/images/level/tileset/Decor.png",
+      "x": 191,
+      "y": 272,
+      "width": 95,
+      "height": 50,
+      "tags": [
+        "boulder",
+        "light",
+        "rock"
+      ]
     },
     {
-      "id": "village_barrel_01",
+      "id": "bread_00",
       "sourceImagePath": "assets/images/level/props/TX Village Props.png",
-      "x": 192,
-      "y": 16,
-      "width": 32,
-      "height": 64
+      "x": 354,
+      "y": 180,
+      "width": 19,
+      "height": 13,
+      "tags": [
+        "bread",
+        "food",
+        "plate",
+        "tableDeco"
+      ]
     },
     {
-      "id": "village_bench_01",
+      "id": "brick_wall_00",
       "sourceImagePath": "assets/images/level/props/TX Village Props.png",
-      "x": 448,
-      "y": 80,
-      "width": 96,
-      "height": 48
+      "x": 720,
+      "y": 624,
+      "width": 163,
+      "height": 59,
+      "tags": [
+        "brick",
+        "ruin",
+        "wall"
+      ]
     },
     {
-      "id": "village_crate_01",
+      "id": "cart_00",
       "sourceImagePath": "assets/images/level/props/TX Village Props.png",
       "x": 32,
-      "y": 16,
-      "width": 64,
-      "height": 52
-    },
-    {
-      "id": "village_crate_02",
-      "sourceImagePath": "assets/images/level/props/TX Village Props.png",
-      "x": 112,
-      "y": 16,
-      "width": 64,
-      "height": 64
-    },
-    {
-      "id": "village_woodPile_01",
-      "sourceImagePath": "assets/images/level/props/TX Village Props.png",
-      "x": 160,
-      "y": 329,
+      "y": 304,
       "width": 96,
-      "height": 60
-    }
-  ],
-  "prefabs": [
-    {
-      "prefabKey": "grass_dirt_32x32_platform",
-      "id": "grass_dirt_32x32_platform",
-      "revision": 2,
-      "status": "active",
-      "kind": "platform",
-      "visualSource": {
-        "type": "platform_module",
-        "moduleId": "platform_grass_dirt_32x32"
-      },
-      "anchorXPx": 16,
-      "anchorYPx": 16,
-      "colliders": [
-        {
-          "offsetX": 0,
-          "offsetY": 0,
-          "width": 31,
-          "height": 30
-        }
-      ],
+      "height": 48,
       "tags": [
-        "dirt",
-        "grass"
+        "cart"
       ]
     },
     {
-      "prefabKey": "grass_dirt_64x32_platform",
-      "id": "grass_dirt_64x32_platform",
-      "revision": 2,
-      "status": "active",
-      "kind": "platform",
-      "visualSource": {
-        "type": "platform_module",
-        "moduleId": "platform_grass_dirt_64x32"
-      },
-      "anchorXPx": 32,
-      "anchorYPx": 17,
-      "colliders": [
-        {
-          "offsetX": -1,
-          "offsetY": 0,
-          "width": 62,
-          "height": 30
-        }
-      ],
+      "id": "cart_wheel_00",
+      "sourceImagePath": "assets/images/level/props/TX Village Props.png",
+      "x": 127,
+      "y": 288,
+      "width": 33,
+      "height": 32,
       "tags": [
-        "dirt",
-        "grass"
+        "cart",
+        "wheel"
       ]
     },
     {
-      "prefabKey": "grass_dirt_96x32_less_square_platform",
-      "id": "grass_dirt_96x32_less_square_platform",
-      "revision": 2,
-      "status": "active",
-      "kind": "platform",
-      "visualSource": {
-        "type": "platform_module",
-        "moduleId": "platform_grass_dirt_96x32_less_square"
-      },
-      "anchorXPx": 48,
-      "anchorYPx": 17,
-      "colliders": [
-        {
-          "offsetX": 0,
-          "offsetY": 0,
-          "width": 95,
-          "height": 30
-        }
-      ],
+      "id": "chair_00",
+      "sourceImagePath": "assets/images/level/props/TX Village Props.png",
+      "x": 392,
+      "y": 184,
+      "width": 28,
+      "height": 45,
       "tags": [
-        "dirt",
-        "grass"
+        "chair"
       ]
     },
     {
-      "prefabKey": "grass_dirt_96x32_square_platform",
-      "id": "grass_dirt_96x32_square_platform",
-      "revision": 2,
-      "status": "active",
-      "kind": "platform",
-      "visualSource": {
-        "type": "platform_module",
-        "moduleId": "platform_grass_dirt_96x32_square"
-      },
-      "anchorXPx": 48,
-      "anchorYPx": 17,
-      "colliders": [
-        {
-          "offsetX": 0,
-          "offsetY": 0,
-          "width": 95,
-          "height": 30
-        }
-      ],
+      "id": "chope_00",
+      "sourceImagePath": "assets/images/level/props/TX Village Props.png",
+      "x": 340,
+      "y": 181,
+      "width": 11,
+      "height": 12,
       "tags": [
-        "dirt",
-        "grass"
+        "drink",
+        "glass",
+        "tableDeco"
       ]
     },
     {
-      "prefabKey": "village_barrel_01",
-      "id": "village_barrel_01",
-      "revision": 1,
-      "status": "active",
-      "kind": "obstacle",
-      "visualSource": {
-        "type": "atlas_slice",
-        "sliceId": "village_barrel_01"
-      },
-      "anchorXPx": 16,
-      "anchorYPx": 48,
-      "colliders": [
-        {
-          "offsetX": 1,
-          "offsetY": -17,
-          "width": 17,
-          "height": 35
-        }
-      ],
+      "id": "cloth_rack_00",
+      "sourceImagePath": "assets/images/level/tileset/Decor.png",
+      "x": 20,
+      "y": 350,
+      "width": 122,
+      "height": 70,
       "tags": [
-        "barrel",
-        "village"
+        "cloth",
+        "rack"
       ]
     },
     {
-      "prefabKey": "village_bench_01",
-      "id": "village_bench_01",
-      "revision": 1,
-      "status": "active",
-      "kind": "obstacle",
-      "visualSource": {
-        "type": "atlas_slice",
-        "sliceId": "village_bench_01"
-      },
-      "anchorXPx": 49,
-      "anchorYPx": 23,
-      "colliders": [
-        {
-          "offsetX": -3,
-          "offsetY": 7,
-          "width": 79,
-          "height": 37
-        }
-      ],
+      "id": "cooking_pot_00",
+      "sourceImagePath": "assets/images/level/props/TX Village Props.png",
+      "x": 358,
+      "y": 336,
+      "width": 21,
+      "height": 18,
       "tags": [
-        "bench",
-        "village"
+        "cooking",
+        "tableDeco"
       ]
     },
     {
-      "prefabKey": "village_crate_01",
-      "id": "village_crate_01",
-      "revision": 2,
-      "status": "active",
-      "kind": "obstacle",
-      "visualSource": {
-        "type": "atlas_slice",
-        "sliceId": "village_crate_01"
-      },
-      "anchorXPx": 34,
-      "anchorYPx": 26,
-      "colliders": [
-        {
-          "offsetX": -1,
-          "offsetY": 0,
-          "width": 45,
-          "height": 45
-        }
-      ],
+      "id": "crate_00",
+      "sourceImagePath": "assets/images/level/props/TX Village Props.png",
+      "x": 31,
+      "y": 11,
+      "width": 66,
+      "height": 61,
       "tags": [
-        "crate",
-        "village"
+        "crate"
       ]
     },
     {
-      "prefabKey": "village_crate_02",
-      "id": "village_crate_02",
-      "revision": 1,
-      "status": "active",
-      "kind": "obstacle",
-      "visualSource": {
-        "type": "atlas_slice",
-        "sliceId": "village_crate_02"
-      },
-      "anchorXPx": 32,
-      "anchorYPx": 31,
-      "colliders": [
-        {
-          "offsetX": 0,
-          "offsetY": 0,
-          "width": 34,
-          "height": 34
-        }
-      ],
+      "id": "crate_01",
+      "sourceImagePath": "assets/images/level/props/TX Village Props.png",
+      "x": 118,
+      "y": 21,
+      "width": 52,
+      "height": 51,
       "tags": [
-        "crate",
-        "village"
+        "crate"
       ]
     },
     {
-      "prefabKey": "village_woodpile_01",
-      "id": "village_woodPile_01",
-      "revision": 1,
-      "status": "active",
-      "kind": "obstacle",
-      "visualSource": {
-        "type": "atlas_slice",
-        "sliceId": "village_woodPile_01"
-      },
-      "anchorXPx": 48,
-      "anchorYPx": 31,
-      "colliders": [
-        {
-          "offsetX": -4,
-          "offsetY": 1,
-          "width": 53,
-          "height": 46
-        }
-      ],
+      "id": "dark_dead_tree_00",
+      "sourceImagePath": "assets/images/level/props/env_trees.png",
+      "x": 410,
+      "y": 346,
+      "width": 134,
+      "height": 153,
       "tags": [
-        "village",
+        "dark",
+        "tree"
+      ]
+    },
+    {
+      "id": "dark_dead_tree_01",
+      "sourceImagePath": "assets/images/level/props/env_trees.png",
+      "x": 0,
+      "y": 306,
+      "width": 128,
+      "height": 176,
+      "tags": [
+        "dark",
+        "tree"
+      ]
+    },
+    {
+      "id": "dark_dead_tree_02",
+      "sourceImagePath": "assets/images/level/props/env_trees.png",
+      "x": 2,
+      "y": 5,
+      "width": 266,
+      "height": 258,
+      "tags": [
+        "dark",
+        "tree"
+      ]
+    },
+    {
+      "id": "dark_dead_tree_03",
+      "sourceImagePath": "assets/images/level/props/env_trees.png",
+      "x": 329,
+      "y": 2,
+      "width": 186,
+      "height": 267,
+      "tags": [
+        "dark",
+        "tree"
+      ]
+    },
+    {
+      "id": "dark_menhir_00",
+      "sourceImagePath": "assets/images/level/props/Props-Rocks.png",
+      "x": 2,
+      "y": 164,
+      "width": 62,
+      "height": 93,
+      "tags": [
+        "dark",
+        "menhir",
+        "rock"
+      ]
+    },
+    {
+      "id": "dark_menhir_01",
+      "sourceImagePath": "assets/images/level/props/Props-Rocks.png",
+      "x": 64,
+      "y": 174,
+      "width": 48,
+      "height": 83,
+      "tags": [
+        "dark",
+        "menhir",
+        "rock"
+      ]
+    },
+    {
+      "id": "dark_menhir_02",
+      "sourceImagePath": "assets/images/level/props/Props-Rocks.png",
+      "x": 115,
+      "y": 192,
+      "width": 41,
+      "height": 63,
+      "tags": [
+        "dark",
+        "menhir",
+        "rock"
+      ]
+    },
+    {
+      "id": "dark_menhir_03",
+      "sourceImagePath": "assets/images/level/props/Props-Rocks.png",
+      "x": 161,
+      "y": 164,
+      "width": 46,
+      "height": 46,
+      "tags": [
+        "dark",
+        "menhir",
+        "rock"
+      ]
+    },
+    {
+      "id": "dark_menhir_04",
+      "sourceImagePath": "assets/images/level/props/Props-Rocks.png",
+      "x": 160,
+      "y": 210,
+      "width": 60,
+      "height": 45,
+      "tags": [
+        "dark",
+        "menhir",
+        "rock"
+      ]
+    },
+    {
+      "id": "dark_rock_00",
+      "sourceImagePath": "assets/images/level/props/env_rock.png",
+      "x": 142,
+      "y": 210,
+      "width": 131,
+      "height": 119,
+      "tags": [
+        "dark",
+        "rock"
+      ]
+    },
+    {
+      "id": "dark_rock_01",
+      "sourceImagePath": "assets/images/level/props/env_rock.png",
+      "x": 0,
+      "y": 202,
+      "width": 134,
+      "height": 139,
+      "tags": [
+        "dark",
+        "rock"
+      ]
+    },
+    {
+      "id": "dark_rock_02",
+      "sourceImagePath": "assets/images/level/props/env_rock.png",
+      "x": 0,
+      "y": 342,
+      "width": 237,
+      "height": 138,
+      "tags": [
+        "dark",
+        "rock"
+      ]
+    },
+    {
+      "id": "dummy_00",
+      "sourceImagePath": "assets/images/level/props/TX Village Props.png",
+      "x": 772,
+      "y": 246,
+      "width": 60,
+      "height": 81,
+      "tags": [
+        "dummy",
+        "training"
+      ]
+    },
+    {
+      "id": "fire_vasque_00",
+      "sourceImagePath": "assets/images/level/props/TX Village Props.png",
+      "x": 789,
+      "y": 25,
+      "width": 54,
+      "height": 46,
+      "tags": [
+        "feu",
+        "vasque"
+      ]
+    },
+    {
+      "id": "firecamp_00",
+      "sourceImagePath": "assets/images/level/props/TX Village Props.png",
+      "x": 352,
+      "y": 255,
+      "width": 65,
+      "height": 39,
+      "tags": [
+        "firecamp"
+      ]
+    },
+    {
+      "id": "foin_00",
+      "sourceImagePath": "assets/images/level/props/TX Village Props.png",
+      "x": 184,
+      "y": 247,
+      "width": 76,
+      "height": 48,
+      "tags": [
+        "foin"
+      ]
+    },
+    {
+      "id": "foin_square_00",
+      "sourceImagePath": "assets/images/level/props/TX Village Props.png",
+      "x": 279,
+      "y": 253,
+      "width": 51,
+      "height": 40,
+      "tags": [
+        "foin"
+      ]
+    },
+    {
+      "id": "lamppost_00",
+      "sourceImagePath": "assets/images/level/props/Forest Prop.png",
+      "x": 788,
+      "y": 70,
+      "width": 64,
+      "height": 128,
+      "tags": [
+        "decoration",
+        "lamppost"
+      ]
+    },
+    {
+      "id": "pot_00",
+      "sourceImagePath": "assets/images/level/props/TX Village Props.png",
+      "x": 262,
+      "y": 31,
+      "width": 21,
+      "height": 35,
+      "tags": [
+        "pot"
+      ]
+    },
+    {
+      "id": "pot_01",
+      "sourceImagePath": "assets/images/level/props/TX Village Props.png",
+      "x": 292,
+      "y": 41,
+      "width": 25,
+      "height": 25,
+      "tags": [
+        "pot"
+      ]
+    },
+    {
+      "id": "pot_02",
+      "sourceImagePath": "assets/images/level/props/TX Village Props.png",
+      "x": 323,
+      "y": 30,
+      "width": 29,
+      "height": 37,
+      "tags": [
+        "pot"
+      ]
+    },
+    {
+      "id": "rock_dark_00",
+      "sourceImagePath": "assets/images/level/props/Props-Rocks.png",
+      "x": 2,
+      "y": 0,
+      "width": 61,
+      "height": 82,
+      "tags": [
+        "dark",
+        "rock"
+      ]
+    },
+    {
+      "id": "rock_dark_01",
+      "sourceImagePath": "assets/images/level/props/Props-Rocks.png",
+      "x": 64,
+      "y": 0,
+      "width": 32,
+      "height": 32,
+      "tags": [
+        "dark",
+        "rock"
+      ]
+    },
+    {
+      "id": "rock_dark_02",
+      "sourceImagePath": "assets/images/level/props/Props-Rocks.png",
+      "x": 63,
+      "y": 32,
+      "width": 65,
+      "height": 49,
+      "tags": [
+        "dark",
+        "rock"
+      ]
+    },
+    {
+      "id": "rock_dark_03",
+      "sourceImagePath": "assets/images/level/props/Props-Rocks.png",
+      "x": 96,
+      "y": 0,
+      "width": 31,
+      "height": 32,
+      "tags": [
+        "dark",
+        "rock"
+      ]
+    },
+    {
+      "id": "rock_dark_04",
+      "sourceImagePath": "assets/images/level/props/Props-Rocks.png",
+      "x": 127,
+      "y": 7,
+      "width": 17,
+      "height": 27,
+      "tags": [
+        "dark",
+        "rock"
+      ]
+    },
+    {
+      "id": "rock_dark_05",
+      "sourceImagePath": "assets/images/level/props/Props-Rocks.png",
+      "x": 128,
+      "y": 33,
+      "width": 46,
+      "height": 46,
+      "tags": [
+        "dark",
+        "rock"
+      ]
+    },
+    {
+      "id": "rock_dark_06",
+      "sourceImagePath": "assets/images/level/props/Props-Rocks.png",
+      "x": 192,
+      "y": 17,
+      "width": 32,
+      "height": 31,
+      "tags": [
+        "dark",
+        "rock"
+      ]
+    },
+    {
+      "id": "rock_dark_07",
+      "sourceImagePath": "assets/images/level/props/Props-Rocks.png",
+      "x": 223,
+      "y": 6,
+      "width": 50,
+      "height": 44,
+      "tags": [
+        "dark",
+        "rock"
+      ]
+    },
+    {
+      "id": "rock_dark_08",
+      "sourceImagePath": "assets/images/level/props/Props-Rocks.png",
+      "x": 207,
+      "y": 50,
+      "width": 65,
+      "height": 33,
+      "tags": [
+        "dark",
+        "rock"
+      ]
+    },
+    {
+      "id": "rock_dark_09",
+      "sourceImagePath": "assets/images/level/props/Props-Rocks.png",
+      "x": 178,
+      "y": 48,
+      "width": 27,
+      "height": 33,
+      "tags": [
+        "dark",
+        "rock"
+      ]
+    },
+    {
+      "id": "rock_dark_moss_00",
+      "sourceImagePath": "assets/images/level/props/Props-Rocks.png",
+      "x": 2,
+      "y": 82,
+      "width": 61,
+      "height": 80,
+      "tags": [
+        "dark",
+        "moss",
+        "rock"
+      ]
+    },
+    {
+      "id": "rock_dark_moss_01",
+      "sourceImagePath": "assets/images/level/props/Props-Rocks.png",
+      "x": 63,
+      "y": 81,
+      "width": 33,
+      "height": 31,
+      "tags": [
+        "dark",
+        "moss",
+        "rock"
+      ]
+    },
+    {
+      "id": "rock_dark_moss_02",
+      "sourceImagePath": "assets/images/level/props/Props-Rocks.png",
+      "x": 62,
+      "y": 112,
+      "width": 65,
+      "height": 50,
+      "tags": [
+        "dark",
+        "moss",
+        "rock"
+      ]
+    },
+    {
+      "id": "rock_dark_moss_03",
+      "sourceImagePath": "assets/images/level/props/Props-Rocks.png",
+      "x": 96,
+      "y": 81,
+      "width": 31,
+      "height": 31,
+      "tags": [
+        "dark",
+        "moss",
+        "rock"
+      ]
+    },
+    {
+      "id": "rock_dark_moss_04",
+      "sourceImagePath": "assets/images/level/props/Props-Rocks.png",
+      "x": 127,
+      "y": 113,
+      "width": 48,
+      "height": 48,
+      "tags": [
+        "dark",
+        "moss",
+        "rock"
+      ]
+    },
+    {
+      "id": "rock_dark_moss_05",
+      "sourceImagePath": "assets/images/level/props/Props-Rocks.png",
+      "x": 193,
+      "y": 94,
+      "width": 31,
+      "height": 36,
+      "tags": [
+        "dark",
+        "moss",
+        "rock"
+      ]
+    },
+    {
+      "id": "rock_dark_moss_06",
+      "sourceImagePath": "assets/images/level/props/Props-Rocks.png",
+      "x": 223,
+      "y": 85,
+      "width": 51,
+      "height": 45,
+      "tags": [
+        "dark",
+        "moss",
+        "rock"
+      ]
+    },
+    {
+      "id": "rock_dark_moss_07",
+      "sourceImagePath": "assets/images/level/props/Props-Rocks.png",
+      "x": 127,
+      "y": 89,
+      "width": 17,
+      "height": 24,
+      "tags": [
+        "dark",
+        "moss",
+        "rock"
+      ]
+    },
+    {
+      "id": "rock_dark_moss_08",
+      "sourceImagePath": "assets/images/level/props/Props-Rocks.png",
+      "x": 207,
+      "y": 130,
+      "width": 65,
+      "height": 31,
+      "tags": [
+        "dark",
+        "moss",
+        "rock"
+      ]
+    },
+    {
+      "id": "rock_dark_moss_09",
+      "sourceImagePath": "assets/images/level/props/Props-Rocks.png",
+      "x": 179,
+      "y": 128,
+      "width": 25,
+      "height": 34,
+      "tags": [
+        "dark",
+        "moss",
+        "rock"
+      ]
+    },
+    {
+      "id": "rock_moss_00",
+      "sourceImagePath": "assets/images/level/props/Forest Prop.png",
+      "x": 19,
+      "y": 166,
+      "width": 128,
+      "height": 94,
+      "tags": [
+        "light",
+        "moss",
+        "obstacle",
+        "rock"
+      ]
+    },
+    {
+      "id": "rock_moss_01",
+      "sourceImagePath": "assets/images/level/props/Forest Prop.png",
+      "x": 180,
+      "y": 165,
+      "width": 128,
+      "height": 95,
+      "tags": [
+        "light",
+        "moss",
+        "obstacle",
+        "rock"
+      ]
+    },
+    {
+      "id": "rock_moss_02",
+      "sourceImagePath": "assets/images/level/props/Forest Prop.png",
+      "x": 51,
+      "y": 38,
+      "width": 225,
+      "height": 94,
+      "tags": [
+        "light",
+        "moss",
+        "obstacle",
+        "rock"
+      ]
+    },
+    {
+      "id": "rock_moss_03",
+      "sourceImagePath": "assets/images/level/props/Forest Prop.png",
+      "x": 372,
+      "y": 69,
+      "width": 288,
+      "height": 159,
+      "tags": [
+        "light",
+        "moss",
+        "obstacle",
+        "rock"
+      ]
+    },
+    {
+      "id": "ruin_stone_00",
+      "sourceImagePath": "assets/images/level/props/Forest Prop.png",
+      "x": 68,
+      "y": 390,
+      "width": 66,
+      "height": 158,
+      "tags": [
+        "light",
+        "ruin",
+        "stone"
+      ]
+    },
+    {
+      "id": "ruin_stone_01",
+      "sourceImagePath": "assets/images/level/props/Forest Prop.png",
+      "x": 196,
+      "y": 454,
+      "width": 80,
+      "height": 96,
+      "tags": [
+        "light",
+        "ruin",
+        "stone"
+      ]
+    },
+    {
+      "id": "ruin_stone_02",
+      "sourceImagePath": "assets/images/level/props/Forest Prop.png",
+      "x": 339,
+      "y": 390,
+      "width": 209,
+      "height": 159,
+      "tags": [
+        "light",
+        "ruin",
+        "stone"
+      ]
+    },
+    {
+      "id": "ruin_stone_03",
+      "sourceImagePath": "assets/images/level/props/Forest Prop.png",
+      "x": 547,
+      "y": 390,
+      "width": 210,
+      "height": 158,
+      "tags": [
+        "light",
+        "ruin",
+        "stone"
+      ]
+    },
+    {
+      "id": "ruin_stone_04",
+      "sourceImagePath": "assets/images/level/props/Forest Prop.png",
+      "x": 820,
+      "y": 455,
+      "width": 160,
+      "height": 94,
+      "tags": [
+        "light",
+        "ruin",
+        "stone"
+      ]
+    },
+    {
+      "id": "statue_00",
+      "sourceImagePath": "assets/images/level/props/Forest Prop.png",
+      "x": 724,
+      "y": 228,
+      "width": 96,
+      "height": 144,
+      "tags": [
+        "obstacle",
+        "statue"
+      ]
+    },
+    {
+      "id": "statue_headless_00",
+      "sourceImagePath": "assets/images/level/props/Forest Prop.png",
+      "x": 835,
+      "y": 229,
+      "width": 80,
+      "height": 140,
+      "tags": [
+        "obstacle",
+        "statue"
+      ]
+    },
+    {
+      "id": "table_00",
+      "sourceImagePath": "assets/images/level/props/TX Village Props.png",
+      "x": 313,
+      "y": 195,
+      "width": 78,
+      "height": 30,
+      "tags": [
+        "table"
+      ]
+    },
+    {
+      "id": "target_00",
+      "sourceImagePath": "assets/images/level/props/TX Village Props.png",
+      "x": 710,
+      "y": 19,
+      "width": 53,
+      "height": 50,
+      "tags": [
+        "target",
+        "training"
+      ]
+    },
+    {
+      "id": "tea_pot_00",
+      "sourceImagePath": "assets/images/level/props/TX Village Props.png",
+      "x": 328,
+      "y": 399,
+      "width": 17,
+      "height": 19,
+      "tags": [
+        "drink",
+        "tableDeco",
+        "teapot"
+      ]
+    },
+    {
+      "id": "tent_00",
+      "sourceImagePath": "assets/images/level/tileset/Decor.png",
+      "x": 0,
+      "y": 51,
+      "width": 97,
+      "height": 46,
+      "tags": [
+        "tent"
+      ]
+    },
+    {
+      "id": "tent_01",
+      "sourceImagePath": "assets/images/level/tileset/Decor.png",
+      "x": 97,
+      "y": 50,
+      "width": 96,
+      "height": 47,
+      "tags": [
+        "tent"
+      ]
+    },
+    {
+      "id": "tree_log_00",
+      "sourceImagePath": "assets/images/level/props/TX Village Props.png",
+      "x": 159,
+      "y": 394,
+      "width": 97,
+      "height": 25,
+      "tags": [
+        "log",
+        "tree"
+      ]
+    },
+    {
+      "id": "well_00",
+      "sourceImagePath": "assets/images/level/props/TX Village Props.png",
+      "x": 25,
+      "y": 160,
+      "width": 103,
+      "height": 101,
+      "tags": [
+        "well"
+      ]
+    },
+    {
+      "id": "wine_bottle_00",
+      "sourceImagePath": "assets/images/level/props/TX Village Props.png",
+      "x": 328,
+      "y": 171,
+      "width": 11,
+      "height": 22,
+      "tags": [
+        "bottle",
+        "drink",
+        "tableDeco"
+      ]
+    },
+    {
+      "id": "wood_chop_00",
+      "sourceImagePath": "assets/images/level/tileset/Decor.png",
+      "x": 226,
+      "y": 7,
+      "width": 28,
+      "height": 28,
+      "tags": [
+        "stump",
+        "woodChop"
+      ]
+    },
+    {
+      "id": "wood_defense_00",
+      "sourceImagePath": "assets/images/level/props/TX Village Props.png",
+      "x": 863,
+      "y": 15,
+      "width": 66,
+      "height": 56,
+      "tags": [
+        "defense"
+      ]
+    },
+    {
+      "id": "wood_pile_00",
+      "sourceImagePath": "assets/images/level/tileset/Decor.png",
+      "x": 199,
+      "y": 71,
+      "width": 52,
+      "height": 28,
+      "tags": [
         "woodPile"
       ]
     }
-  ]
+  ],
+  "prefabs": []
 }

@@ -163,6 +163,8 @@ class PlacedPrefabDef {
     this.zIndex = 0,
     this.snapToGrid = true,
     this.scale = defaultPrefabPlacementScale,
+    this.flipX = false,
+    this.flipY = false,
   });
 
   final String prefabId;
@@ -172,6 +174,8 @@ class PlacedPrefabDef {
   final int zIndex;
   final bool snapToGrid;
   final double scale;
+  final bool flipX;
+  final bool flipY;
 
   String get resolvedPrefabRef => prefabKey.isNotEmpty ? prefabKey : prefabId;
 
@@ -183,6 +187,8 @@ class PlacedPrefabDef {
     int? zIndex,
     bool? snapToGrid,
     double? scale,
+    bool? flipX,
+    bool? flipY,
   }) {
     return PlacedPrefabDef(
       prefabId: prefabId ?? this.prefabId,
@@ -192,6 +198,8 @@ class PlacedPrefabDef {
       zIndex: zIndex ?? this.zIndex,
       snapToGrid: snapToGrid ?? this.snapToGrid,
       scale: scale ?? this.scale,
+      flipX: flipX ?? this.flipX,
+      flipY: flipY ?? this.flipY,
     );
   }
 
@@ -205,6 +213,8 @@ class PlacedPrefabDef {
       'snapToGrid': snapToGrid,
       if (!_isDefaultPrefabPlacementScale(scale))
         'scale': _canonicalPrefabPlacementScale(scale),
+      if (flipX) 'flipX': true,
+      if (flipY) 'flipY': true,
     };
     return json;
   }
@@ -226,6 +236,8 @@ class PlacedPrefabDef {
         json['scale'],
         fallback: defaultPrefabPlacementScale,
       ),
+      flipX: _boolOrDefault(json['flipX'], fallback: false),
+      flipY: _boolOrDefault(json['flipY'], fallback: false),
     );
   }
 }
@@ -254,6 +266,14 @@ int comparePlacedPrefabsDeterministic(PlacedPrefabDef a, PlacedPrefabDef b) {
   final scaleCompare = a.scale.compareTo(b.scale);
   if (scaleCompare != 0) {
     return scaleCompare;
+  }
+  final flipXCompare = _compareBool(a.flipX, b.flipX);
+  if (flipXCompare != 0) {
+    return flipXCompare;
+  }
+  final flipYCompare = _compareBool(a.flipY, b.flipY);
+  if (flipYCompare != 0) {
+    return flipYCompare;
   }
   return a.prefabId.compareTo(b.prefabId);
 }

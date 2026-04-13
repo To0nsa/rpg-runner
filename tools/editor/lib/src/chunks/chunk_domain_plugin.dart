@@ -1113,6 +1113,8 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
         payload['scale'],
         fallback: defaultPrefabPlacementScale,
       ),
+      flipX: _boolOrDefault(payload['flipX'], fallback: false),
+      flipY: _boolOrDefault(payload['flipY'], fallback: false),
     );
     return _mapChunkByKey(
       document,
@@ -1308,6 +1310,14 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
       payload['scale'],
       fallback: currentTarget.scale,
     );
+    final nextFlipX = _boolOrDefault(
+      payload['flipX'],
+      fallback: currentTarget.flipX,
+    );
+    final nextFlipY = _boolOrDefault(
+      payload['flipY'],
+      fallback: currentTarget.flipY,
+    );
     return _mapChunkByKey(
       document,
       chunkKey: chunkKey,
@@ -1315,7 +1325,9 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
         final current = entry.prefabs[targetIndex];
         if (current.snapToGrid == nextSnapToGrid &&
             current.zIndex == nextZIndex &&
-            current.scale == nextScale) {
+            current.scale == nextScale &&
+            current.flipX == nextFlipX &&
+            current.flipY == nextFlipY) {
           return entry;
         }
         final nextPrefabs = List<PlacedPrefabDef>.from(entry.prefabs);
@@ -1323,6 +1335,8 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
           zIndex: nextZIndex,
           snapToGrid: nextSnapToGrid,
           scale: nextScale,
+          flipX: nextFlipX,
+          flipY: nextFlipY,
         );
         return _bumpRevision(entry.copyWith(prefabs: nextPrefabs).normalized());
       },
@@ -1828,7 +1842,9 @@ bool _placedPrefabListEquals(List<PlacedPrefabDef> a, List<PlacedPrefabDef> b) {
         left.y != right.y ||
         left.zIndex != right.zIndex ||
         left.snapToGrid != right.snapToGrid ||
-        left.scale != right.scale) {
+        left.scale != right.scale ||
+        left.flipX != right.flipX ||
+        left.flipY != right.flipY) {
       return false;
     }
   }

@@ -63,6 +63,8 @@ class ChunkVisualSpriteRel {
     required this.width,
     required this.height,
     this.zIndex = 0,
+    this.flipX = false,
+    this.flipY = false,
   }) : assert(srcWidth > 0),
        assert(srcHeight > 0),
        assert(width > 0),
@@ -78,6 +80,8 @@ class ChunkVisualSpriteRel {
   final double width;
   final double height;
   final int zIndex;
+  final bool flipX;
+  final bool flipY;
 }
 
 /// Chunk-relative platform definition (one-way top surface).

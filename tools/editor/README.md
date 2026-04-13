@@ -18,9 +18,10 @@ Implemented authoring domains:
 
 - entity collider/source-bound authoring for players, enemies, and projectiles
 - prefab (obstacle/platform/decoration), tile-slice, and platform-module
-  authoring
+  authoring, including tagged atlas/tile slices and searchable slice selection
 - chunk authoring with scene-based prefab composition, shared pan/zoom/grid
-  controls, rendered floor/gap visualization, and metadata/ground editing
+  controls, prefab flip toggles, rendered floor/gap visualization, and
+  metadata/ground editing
 - level metadata authoring with list/inspector editing, lifecycle controls,
   assembly segment sequencing, render-theme run validation, pending diff
   preview, and direct-write export
