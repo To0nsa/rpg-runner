@@ -1,7 +1,7 @@
 # Phase 2 Runtime Handoff Seams
 
 Date: April 1, 2026  
-Status: Implemented in editor/tooling layer (no `runner_core` cutover yet)
+Status: Historical Phase 2 seam; runtime collision cutover completed on April 14, 2026
 
 Related files:
 
@@ -9,6 +9,13 @@ Related files:
 - [tools/editor/lib/src/chunks/chunk_domain_models.dart](tools/editor/lib/src/chunks/chunk_domain_models.dart)
 - [tools/editor/test/prefab_runtime_adapter_test.dart](tools/editor/test/prefab_runtime_adapter_test.dart)
 - [tools/editor/test/chunk_validation_test.dart](tools/editor/test/chunk_validation_test.dart)
+
+Supersession note:
+
+- this document still describes the Phase 2 editor/tooling adapter seam
+- runtime chunk collision no longer waits on this seam; generated chunk output
+  now lands directly in `runner_core` as `SolidRel` data via
+  `packages/runner_core/lib/track/**`
 
 ## Purpose
 

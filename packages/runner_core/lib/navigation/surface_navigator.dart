@@ -4,6 +4,7 @@ import 'types/surface_graph.dart';
 import 'types/surface_id.dart';
 import 'surface_pathfinder.dart';
 import 'utils/surface_spatial_index.dart';
+import 'utils/standability.dart';
 
 /// Output of [SurfaceNavigator.update] indicating desired movement.
 class SurfaceNavIntent {
@@ -51,14 +52,15 @@ class SurfaceNavIntent {
 /// final intent = navigator.update(
 ///   navStore: store, navIndex: idx,
 ///   graph: graph, spatialIndex: index,
-///   graphVersion: version,
-///   entityX: e.x, entityBottomY: e.bottom, entityHalfWidth: e.hw,
-///   entityGrounded: e.grounded,
-///   targetX: t.x, targetBottomY: t.bottom, targetHalfWidth: t.hw,
-///   targetGrounded: t.grounded,
-/// );
-/// // Use intent.desiredX, intent.jumpNow, intent.commitMoveDirX
-/// ```
+  ///   graphVersion: version,
+  ///   entityX: e.x, entityBottomY: e.bottom, entityHalfWidth: e.hw,
+  ///   entityGrounded: e.grounded,
+  ///   targetX: t.x, targetBottomY: t.bottom, targetHalfWidth: t.hw,
+  ///   targetGrounded: t.grounded,
+  ///   entitySupportFraction: navFullSupportFraction,
+  /// );
+  /// // Use intent.desiredX, intent.jumpNow, intent.commitMoveDirX
+  /// ```
 class SurfaceNavigator {
   SurfaceNavigator({
     required this.pathfinder,
@@ -100,10 +102,12 @@ class SurfaceNavigator {
     required double entityBottomY,
     required double entityHalfWidth,
     required bool entityGrounded,
+    double entitySupportFraction = navFullSupportFraction,
     required double targetX,
     required double targetBottomY,
     required double targetHalfWidth,
     required bool targetGrounded,
+    double targetSupportFraction = navFullSupportFraction,
   }) {
     final prevCurrentId = navStore.currentSurfaceId[navIndex];
     final prevTargetId = navStore.targetSurfaceId[navIndex];
@@ -121,6 +125,7 @@ class SurfaceNavigator {
         entityX,
         entityBottomY,
         entityHalfWidth,
+        entitySupportFraction,
         surfaceEps,
       );
       currentSurfaceId = currentIndex == null
@@ -133,12 +138,13 @@ class SurfaceNavigator {
       var targetIndex = _locateSurfaceIndex(
         graph,
         spatialIndex,
-        _candidateBuffer,
-        targetX,
-        targetBottomY,
-        targetHalfWidth,
-        surfaceEps,
-      );
+          _candidateBuffer,
+          targetX,
+          targetBottomY,
+          targetHalfWidth,
+          targetSupportFraction,
+          surfaceEps,
+        );
       if (targetIndex == null && targetHalfWidth > 0.0) {
         // Target lookup is allowed to be edge-tolerant: if the full footprint
         // check fails (target near a ledge), still resolve a surface by center.
@@ -151,6 +157,7 @@ class SurfaceNavigator {
           targetX,
           targetBottomY,
           0.0,
+          targetSupportFraction,
           surfaceEps,
         );
       }
@@ -379,6 +386,7 @@ int? _locateSurfaceIndex(
   double x,
   double bottomY,
   double halfWidth,
+  double supportFraction,
   double eps,
 ) {
   final minX = x - halfWidth;
@@ -398,13 +406,16 @@ int? _locateSurfaceIndex(
   double? bestY;
   for (final i in candidates) {
     final s = graph.surfaces[i];
-    // Allow tiny horizontal overhang tolerance to match runtime collision
-    // support rules on narrow tops.
-    final standableMinX = s.xMin + halfWidth - eps;
-    final standableMaxX = s.xMax - halfWidth + eps;
-    if (standableMinX > standableMaxX + eps) continue;
-    // Entity center must be inside standable range.
-    if (x < standableMinX - eps || x > standableMaxX + eps) continue;
+    final standable = computeStandableCenterRange(
+      surfaceMinX: s.xMin,
+      surfaceMaxX: s.xMax,
+      halfWidth: halfWidth,
+      supportFraction: supportFraction,
+      eps: eps,
+    );
+    if (standable == null) continue;
+    // Entity center must be inside the supported range.
+    if (x < standable.minX - eps || x > standable.maxX + eps) continue;
     // Skip if too far vertically.
     if ((s.yTop - bottomY).abs() > eps) continue;
 

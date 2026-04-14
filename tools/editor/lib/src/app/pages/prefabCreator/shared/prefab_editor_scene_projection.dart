@@ -85,10 +85,12 @@ class PrefabEditorSceneProjectionHelper {
       selectedPrefabSliceId: _resolveAtlasSliceSelection(
         currentSelection: null,
         slices: data.prefabSlices,
+        fallbackToFirstWhenUnselected: true,
       ),
       selectedTileSliceId: _resolveAtlasSliceSelection(
         currentSelection: null,
         slices: data.tileSlices,
+        fallbackToFirstWhenUnselected: true,
       ),
       selectedModuleId: defaultPlatformModuleId,
       defaultPlatformModuleId: defaultPlatformModuleId,
@@ -119,10 +121,12 @@ class PrefabEditorSceneProjectionHelper {
       selectedPrefabSliceId: _resolveAtlasSliceSelection(
         currentSelection: currentPrefabSliceSelection,
         slices: data.prefabSlices,
+        fallbackToFirstWhenUnselected: false,
       ),
       selectedTileSliceId: _resolveAtlasSliceSelection(
         currentSelection: currentTileSliceSelection,
         slices: data.tileSlices,
+        fallbackToFirstWhenUnselected: false,
       ),
       selectedModuleId: _resolveModuleSelection(
         currentSelection: currentModuleSelection,
@@ -150,10 +154,17 @@ class PrefabEditorSceneProjectionHelper {
   String? _resolveAtlasSliceSelection({
     required String? currentSelection,
     required List<AtlasSliceDef> slices,
+    required bool fallbackToFirstWhenUnselected,
   }) {
-    if (currentSelection != null &&
-        slices.any((slice) => slice.id == currentSelection)) {
-      return currentSelection;
+    final normalizedSelection = currentSelection?.trim();
+    if (normalizedSelection != null &&
+        normalizedSelection.isNotEmpty &&
+        slices.any((slice) => slice.id == normalizedSelection)) {
+      return normalizedSelection;
+    }
+    if ((normalizedSelection == null || normalizedSelection.isEmpty) &&
+        !fallbackToFirstWhenUnselected) {
+      return null;
     }
     if (slices.isEmpty) {
       return null;

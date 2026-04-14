@@ -36,8 +36,7 @@ void main() {
         ),
       );
 
-      expect(values, isNotNull);
-      expect(values!.anchorX, 16);
+      expect(values.anchorX, 16);
       expect(values.anchorY, 23);
       expect(values.colliderOffsetX, 0);
       expect(values.colliderOffsetY, 0);
@@ -164,10 +163,10 @@ void main() {
     var values = const PrefabSceneValues(
       anchorX: 0,
       anchorY: 0,
-      colliderOffsetX: 0,
-      colliderOffsetY: 0,
-      colliderWidth: 64,
-      colliderHeight: 64,
+      colliders: <PrefabColliderDef>[
+        PrefabColliderDef(offsetX: 0, offsetY: 0, width: 64, height: 64),
+      ],
+      selectedColliderIndex: 0,
     );
 
     await tester.pumpWidget(
@@ -225,6 +224,64 @@ void main() {
     final zoomAfter = _zoomFieldValue(tester);
     expect(zoomAfter, isNot(zoomBefore));
     expect(values.colliderWidth, 64);
+  });
+
+  testWidgets('prefab scene tap selects a non-primary collider overlay', (
+    tester,
+  ) async {
+    final workspaceRoot = _repoRootPath();
+    const slice = AtlasSliceDef(
+      id: 'prefab_slice',
+      sourceImagePath: 'assets/images/level/props/TX Village Props.png',
+      x: 0,
+      y: 0,
+      width: 128,
+      height: 128,
+    );
+    var values = const PrefabSceneValues(
+      anchorX: 64,
+      anchorY: 64,
+      colliders: <PrefabColliderDef>[
+        PrefabColliderDef(offsetX: 0, offsetY: 0, width: 16, height: 16),
+        PrefabColliderDef(offsetX: 20, offsetY: 0, width: 12, height: 12),
+      ],
+      selectedColliderIndex: 0,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 620,
+            height: 420,
+            child: StatefulBuilder(
+              builder: (context, setState) {
+                return PrefabSceneView(
+                  workspaceRootPath: workspaceRoot,
+                  slice: slice,
+                  values: values,
+                  onChanged: (next) {
+                    setState(() {
+                      values = next;
+                    });
+                  },
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final canvas = find.byKey(const ValueKey<String>('prefab_scene_canvas'));
+    expect(canvas, findsOneWidget);
+
+    await tester.tapAt(tester.getCenter(canvas) + const Offset(60, 0));
+    await tester.pumpAndSettle();
+
+    expect(values.selectedColliderIndex, 1);
+    expect(values.colliderWidth, 12);
   });
 
   testWidgets(

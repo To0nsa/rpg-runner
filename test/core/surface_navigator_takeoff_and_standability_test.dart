@@ -8,6 +8,7 @@ import 'package:runner_core/navigation/types/surface_graph.dart';
 import 'package:runner_core/navigation/types/surface_id.dart';
 import 'package:runner_core/navigation/types/walk_surface.dart';
 import 'package:runner_core/navigation/utils/surface_spatial_index.dart';
+import 'package:runner_core/navigation/utils/standability.dart';
 
 void main() {
   SurfaceGraph buildDropGraph({
@@ -247,5 +248,47 @@ void main() {
 
     expect(navStore.currentSurfaceId[navIndex], surfaceIdUnknown);
     expect(intent.hasPlan, isFalse);
+  });
+
+  test('surface locator accepts one-third support width for ground enemies', () {
+    final navStore = SurfaceNavStateStore();
+    navStore.add(1);
+    final navIndex = navStore.indexOf(1);
+
+    const surfaces = <WalkSurface>[
+      WalkSurface(id: 11, xMin: -6, xMax: 6, yTop: 0),
+    ];
+    final graph = SurfaceGraph(
+      surfaces: surfaces,
+      edgeOffsets: const <int>[0, 0],
+      edges: const <SurfaceEdge>[],
+      indexById: const <int, int>{11: 0},
+    );
+    final spatialIndex = SurfaceSpatialIndex(index: GridIndex2D(cellSize: 64));
+    spatialIndex.rebuild(graph.surfaces);
+
+    final navigator = SurfaceNavigator(
+      pathfinder: SurfacePathfinder(maxExpandedNodes: 8, runSpeedX: 100.0),
+      repathCooldownTicks: 0,
+    );
+
+    navigator.update(
+      navStore: navStore,
+      navIndex: navIndex,
+      graph: graph,
+      spatialIndex: spatialIndex,
+      graphVersion: 1,
+      entityX: 0.0,
+      entityBottomY: 0.0,
+      entityHalfWidth: 18.0,
+      entityGrounded: true,
+      entitySupportFraction: groundEnemySupportFraction,
+      targetX: 0.0,
+      targetBottomY: 0.0,
+      targetHalfWidth: 1.0,
+      targetGrounded: true,
+    );
+
+    expect(navStore.currentSurfaceId[navIndex], 11);
   });
 }

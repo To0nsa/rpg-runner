@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_editor/src/app/pages/prefabCreator/platform_modules/widgets/platform_module_scene_view.dart';
+import 'package:runner_editor/src/app/pages/prefabCreator/shared/prefab_scene_values.dart';
 import 'package:runner_editor/src/prefabs/models/models.dart';
 
 void main() {
@@ -136,6 +137,60 @@ void main() {
     expect(eraseCalls, hasLength(1));
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('overlay tap selects collider before tile paint applies', (
+    tester,
+  ) async {
+    final paintCalls = <_PaintCall>[];
+    var overlayValues = const PrefabSceneValues(
+      anchorX: 8,
+      anchorY: 8,
+      colliders: <PrefabColliderDef>[
+        PrefabColliderDef(offsetX: 0, offsetY: 0, width: 6, height: 6),
+        PrefabColliderDef(offsetX: 8, offsetY: 0, width: 4, height: 4),
+      ],
+      selectedColliderIndex: 0,
+    );
+
+    await _pumpModuleScene(
+      tester,
+      module: _moduleWithSingleCell(),
+      tileSlices: const <AtlasSliceDef>[
+        AtlasSliceDef(
+          id: 'ground_tile',
+          sourceImagePath: 'assets/images/level/tileset/missing.png',
+          x: 0,
+          y: 0,
+          width: 16,
+          height: 16,
+        ),
+      ],
+      overlayValues: overlayValues,
+      onOverlayValuesChanged: (next) {
+        overlayValues = next;
+      },
+      onPaintCell: (gridX, gridY, sliceId) {
+        paintCalls.add(
+          _PaintCall(gridX: gridX, gridY: gridY, sliceId: sliceId),
+        );
+      },
+      onEraseCell: (_, _) {},
+      onMoveCell: (_, _, _, _) {},
+    );
+
+    final sceneCanvas = find.byKey(
+      const ValueKey<String>('platform_module_scene_canvas'),
+    );
+    expect(sceneCanvas, findsOneWidget);
+    _centerSceneScroll(tester);
+    await tester.pump();
+
+    await tester.tapAt(tester.getCenter(sceneCanvas) + const Offset(16, 0));
+    await tester.pumpAndSettle();
+
+    expect(overlayValues.selectedColliderIndex, 1);
+    expect(paintCalls, isEmpty);
+  });
 }
 
 Future<void> _pumpModuleScene(
@@ -152,9 +207,12 @@ Future<void> _pumpModuleScene(
   )
   onMoveCell,
   Size size = const Size(720, 520),
+  PrefabSceneValues? overlayValues,
+  ValueChanged<PrefabSceneValues>? onOverlayValuesChanged,
 }) async {
   var tool = PlatformModuleSceneTool.paint;
   final selectedTileSliceId = tileSlices.isEmpty ? null : tileSlices.first.id;
+  var currentOverlayValues = overlayValues;
   await tester.pumpWidget(
     MaterialApp(
       home: Scaffold(
@@ -178,6 +236,15 @@ Future<void> _pumpModuleScene(
                   onPaintCell: onPaintCell,
                   onEraseCell: onEraseCell,
                   onMoveCell: onMoveCell,
+                  overlayValues: currentOverlayValues,
+                  onOverlayValuesChanged: onOverlayValuesChanged == null
+                      ? null
+                      : (next) {
+                          onOverlayValuesChanged(next);
+                          setState(() {
+                            currentOverlayValues = next;
+                          });
+                        },
                 );
               },
             ),

@@ -98,6 +98,8 @@ class PrefabEditorPageCoordinator {
       selectedSlice: selectedSlice,
       editingObstaclePrefab: editingObstaclePrefab,
       sceneValues: sceneValues,
+      colliderDrafts: _obstaclePrefabForm.colliderDrafts,
+      selectedColliderIndex: _obstaclePrefabForm.selectedColliderIndex,
       workspaceRootPath: _readWorkspaceRootPath(),
       onSelectedSliceChanged: (value) {
         _updateState(() {
@@ -109,6 +111,32 @@ class PrefabEditorPageCoordinator {
         });
       },
       onSceneValuesChanged: onObstaclePrefabSceneValuesChanged,
+      onSelectedColliderChanged: (index) {
+        _applyColliderMutation(
+          form: _obstaclePrefabForm,
+          mutate: () => _obstaclePrefabForm.selectCollider(index),
+        );
+      },
+      onAddCollider: () {
+        _applyColliderMutation(
+          form: _obstaclePrefabForm,
+          mutate: _obstaclePrefabForm.addCollider,
+        );
+      },
+      onDuplicateCollider: () {
+        _applyColliderMutation(
+          form: _obstaclePrefabForm,
+          mutate: _obstaclePrefabForm.duplicateSelectedCollider,
+        );
+      },
+      onDeleteCollider: _obstaclePrefabForm.canDeleteSelectedCollider
+          ? () {
+              _applyColliderMutation(
+                form: _obstaclePrefabForm,
+                mutate: _obstaclePrefabForm.deleteSelectedCollider,
+              );
+            }
+          : null,
       onLoadPrefab: loadPrefabIntoForm,
       onDeletePrefab: deletePrefab,
       onUpsertPrefab: upsertObstaclePrefabFromForm,
@@ -192,6 +220,8 @@ class PrefabEditorPageCoordinator {
           .toList(growable: false),
       editingPlatformPrefab: editingPlatformPrefab,
       sceneValues: sceneValues,
+      colliderDrafts: _platformPrefabForm.colliderDrafts,
+      selectedColliderIndex: _platformPrefabForm.selectedColliderIndex,
       workspaceRootPath: _readWorkspaceRootPath(),
       onSelectedModuleChanged: (value) {
         _updateState(() {
@@ -203,6 +233,32 @@ class PrefabEditorPageCoordinator {
       onUpsertPrefabForModule: upsertPlatformPrefabForSelectedModule,
       onStartNewFromCurrentValues: startNewPlatformPrefabFromCurrentValues,
       onSceneValuesChanged: onPlatformPrefabSceneValuesChanged,
+      onSelectedColliderChanged: (index) {
+        _applyColliderMutation(
+          form: _platformPrefabForm,
+          mutate: () => _platformPrefabForm.selectCollider(index),
+        );
+      },
+      onAddCollider: () {
+        _applyColliderMutation(
+          form: _platformPrefabForm,
+          mutate: _platformPrefabForm.addCollider,
+        );
+      },
+      onDuplicateCollider: () {
+        _applyColliderMutation(
+          form: _platformPrefabForm,
+          mutate: _platformPrefabForm.duplicateSelectedCollider,
+        );
+      },
+      onDeleteCollider: _platformPrefabForm.canDeleteSelectedCollider
+          ? () {
+              _applyColliderMutation(
+                form: _platformPrefabForm,
+                mutate: _platformPrefabForm.deleteSelectedCollider,
+              );
+            }
+          : null,
       onLoadPrefab: loadPrefabIntoForm,
       onDeletePrefab: deletePrefab,
     );
@@ -225,10 +281,12 @@ class PrefabEditorPageCoordinator {
   String? _preferredSelectablePrefabSliceIdForKind({
     required PrefabKind kind,
     required PrefabDef? editingPrefab,
+    PrefabData? data,
   }) {
     final selectablePrefabSlices = _selectablePrefabSlicesForKind(
       kind: kind,
       editingPrefab: editingPrefab,
+      data: data,
     );
     if (selectablePrefabSlices.isEmpty) {
       return null;
@@ -244,12 +302,15 @@ class PrefabEditorPageCoordinator {
   List<AtlasSliceDef> _selectablePrefabSlicesForKind({
     required PrefabKind kind,
     required PrefabDef? editingPrefab,
+    PrefabData? data,
   }) {
     final claimedSliceIds = _claimedAtlasSliceIdsForKind(
       kind: kind,
       excludingPrefabKey: editingPrefab?.prefabKey,
+      data: data,
     );
-    return _shellState.data.prefabSlices
+    final sourceData = data ?? _shellState.data;
+    return sourceData.prefabSlices
         .where((slice) => !claimedSliceIds.contains(slice.id))
         .toList(growable: false);
   }
@@ -257,13 +318,16 @@ class PrefabEditorPageCoordinator {
   Set<String> _claimedAtlasSliceIdsForKind({
     required PrefabKind kind,
     String? excludingPrefabKey,
+    PrefabData? data,
   }) {
+    final sourceData = data ?? _shellState.data;
     final claimedSliceIds = <String>{};
-    for (final prefab in _shellState.data.prefabs) {
+    for (final prefab in sourceData.prefabs) {
       if (prefab.kind != kind || !prefab.usesAtlasSlice) {
         continue;
       }
-      if (excludingPrefabKey != null && prefab.prefabKey == excludingPrefabKey) {
+      if (excludingPrefabKey != null &&
+          prefab.prefabKey == excludingPrefabKey) {
         continue;
       }
       final sliceId = prefab.sliceId.trim();
@@ -287,7 +351,8 @@ class PrefabEditorPageCoordinator {
       if (prefab.kind != kind || !prefab.usesAtlasSlice) {
         continue;
       }
-      if (excludingPrefabKey != null && prefab.prefabKey == excludingPrefabKey) {
+      if (excludingPrefabKey != null &&
+          prefab.prefabKey == excludingPrefabKey) {
         continue;
       }
       if (prefab.sliceId == normalizedSliceId) {
@@ -297,8 +362,12 @@ class PrefabEditorPageCoordinator {
     return null;
   }
 
-  /// Keeps create-mode prefab ids and tags aligned with the selected atlas
-  /// slice until a user edits those fields away from the slice-provided values.
+  /// Keeps prefab ids and tags aligned with the selected atlas slice while the
+  /// draft still matches the previously selected slice-provided values.
+  ///
+  /// This applies in both create mode and edit mode so selecting a new atlas
+  /// slice can still reseed id/tag defaults for an existing prefab unless the
+  /// user has already diverged from the slice-derived values.
   void syncPrefabIdsWithSelectedSlice({String? previousSelectedSliceId}) {
     final selectedSliceId = _shellState.selectedPrefabSliceId?.trim();
     if (selectedSliceId == null || selectedSliceId.isEmpty) {
@@ -374,6 +443,23 @@ class PrefabEditorPageCoordinator {
           PrefabAnchorValues(anchorX: values.anchorX, anchorY: values.anchorY),
         );
       });
+      _shellState.errorMessage = null;
+    });
+  }
+
+  void _applyColliderMutation({
+    required PrefabFormState form,
+    required String? Function() mutate,
+  }) {
+    _updateState(() {
+      String? error;
+      _applyLocalDraftMutation(() {
+        error = mutate();
+      });
+      if (error != null) {
+        _shellState.setError(error!);
+        return;
+      }
       _shellState.errorMessage = null;
     });
   }
@@ -485,17 +571,7 @@ class PrefabEditorPageCoordinator {
 
   void clearObstaclePrefabForm() {
     _updateState(() {
-      _runWithoutLocalDraftHistory(() {
-        _obstaclePrefabForm.resetObstacleDefaults();
-        _moduleTileSizeController.text = '16';
-        _shellState.selectedPrefabSliceId = _preferredSelectablePrefabSliceIdForKind(
-          kind: PrefabKind.obstacle,
-          editingPrefab: null,
-        );
-        syncPrefabIdsWithSelectedSlice();
-        _shellState.selectedPrefabPlatformModuleId = _dataReducer
-            .preferredModuleIdForPicker(_shellState.data.platformModules);
-      });
+      _resetObstaclePrefabFormForCreate(data: _shellState.data);
       _syncFormDraftBaseline();
       _shellState.statusMessage = 'Cleared prefab form.';
       _shellState.errorMessage = null;
@@ -517,10 +593,11 @@ class PrefabEditorPageCoordinator {
       _runWithoutLocalDraftHistory(() {
         _obstaclePrefabForm.selectedKind = PrefabKind.obstacle;
         _obstaclePrefabForm.editingPrefabKey = null;
-        _shellState.selectedPrefabSliceId = _preferredSelectablePrefabSliceIdForKind(
-          kind: PrefabKind.obstacle,
-          editingPrefab: null,
-        );
+        _shellState.selectedPrefabSliceId =
+            _preferredSelectablePrefabSliceIdForKind(
+              kind: PrefabKind.obstacle,
+              editingPrefab: null,
+            );
         _syncCreateModePrefabIdForLoadedPrefabTransition(
           form: _obstaclePrefabForm,
           sourcePrefabId: source.id,
@@ -564,14 +641,7 @@ class PrefabEditorPageCoordinator {
 
   void clearDecorationPrefabForm() {
     _updateState(() {
-      _runWithoutLocalDraftHistory(() {
-        _decorationPrefabForm.resetDecorationDefaults();
-        _shellState.selectedPrefabSliceId = _preferredSelectablePrefabSliceIdForKind(
-          kind: PrefabKind.decoration,
-          editingPrefab: null,
-        );
-        syncPrefabIdsWithSelectedSlice();
-      });
+      _resetDecorationPrefabFormForCreate();
       _syncFormDraftBaseline();
       _shellState.statusMessage = 'Cleared decoration prefab form.';
       _shellState.errorMessage = null;
@@ -593,10 +663,11 @@ class PrefabEditorPageCoordinator {
       _runWithoutLocalDraftHistory(() {
         _decorationPrefabForm.selectedKind = PrefabKind.decoration;
         _decorationPrefabForm.editingPrefabKey = null;
-        _shellState.selectedPrefabSliceId = _preferredSelectablePrefabSliceIdForKind(
-          kind: PrefabKind.decoration,
-          editingPrefab: null,
-        );
+        _shellState.selectedPrefabSliceId =
+            _preferredSelectablePrefabSliceIdForKind(
+              kind: PrefabKind.decoration,
+              editingPrefab: null,
+            );
         _syncCreateModePrefabIdForLoadedPrefabTransition(
           form: _decorationPrefabForm,
           sourcePrefabId: source.id,
@@ -753,14 +824,24 @@ class PrefabEditorPageCoordinator {
       return;
     }
     final nextPrefab = prefabDecision.value!;
+    final isCreate = identity.existingPrefab == null;
+    final committedData = _mutations.upsertPrefab(data: nextData, prefab: nextPrefab);
 
     _commitPrefabDataChange(
-      nextData: _mutations.upsertPrefab(data: nextData, prefab: nextPrefab),
+      nextData: committedData,
       beforeSync: () {
-        form.editingPrefabKey = nextPrefab.prefabKey;
-        if (forcedPlatformModuleId != null) {
-          _shellState.selectedPrefabPlatformModuleId = forcedPlatformModuleId;
-          _shellState.selectedModuleId = forcedPlatformModuleId;
+        if (isCreate) {
+          _resetCreatedPrefabForm(
+            kind: nextPrefab.kind,
+            data: committedData,
+            platformModuleIdOverride: forcedPlatformModuleId,
+          );
+        } else {
+          form.editingPrefabKey = nextPrefab.prefabKey;
+          if (forcedPlatformModuleId != null) {
+            _shellState.selectedPrefabPlatformModuleId = forcedPlatformModuleId;
+            _shellState.selectedModuleId = forcedPlatformModuleId;
+          }
         }
       },
       statusMessage:
@@ -794,7 +875,8 @@ class PrefabEditorPageCoordinator {
     return _selectedAtlasSliceVisualSourceForForm(
       form: _obstaclePrefabForm,
       kind: PrefabKind.obstacle,
-      missingSelectionMessage: 'Select an atlas slice for obstacle prefab source.',
+      missingSelectionMessage:
+          'Select an atlas slice for obstacle prefab source.',
     );
   }
 
@@ -975,6 +1057,71 @@ class PrefabEditorPageCoordinator {
     });
   }
 
+  void _resetCreatedPrefabForm({
+    required PrefabKind kind,
+    required PrefabData data,
+    String? platformModuleIdOverride,
+  }) {
+    switch (kind) {
+      case PrefabKind.obstacle:
+        _resetObstaclePrefabFormForCreate(data: data);
+        return;
+      case PrefabKind.decoration:
+        _resetDecorationPrefabFormForCreate();
+        return;
+      case PrefabKind.platform:
+        _resetPlatformPrefabFormForCreate(
+          data: data,
+          selectedModuleIdOverride: platformModuleIdOverride,
+        );
+        return;
+      case PrefabKind.unknown:
+        return;
+    }
+  }
+
+  void _resetObstaclePrefabFormForCreate({required PrefabData data}) {
+    _runWithoutLocalDraftHistory(() {
+      _obstaclePrefabForm.resetObstacleDefaults();
+      _moduleTileSizeController.text = '16';
+      _shellState.selectedPrefabSliceId = null;
+      _shellState.selectedPrefabPlatformModuleId = _dataReducer
+          .preferredModuleIdForPicker(data.platformModules);
+    });
+  }
+
+  void _resetDecorationPrefabFormForCreate() {
+    _runWithoutLocalDraftHistory(() {
+      _decorationPrefabForm.resetDecorationDefaults();
+      _shellState.selectedPrefabSliceId = null;
+    });
+  }
+
+  void _resetPlatformPrefabFormForCreate({
+    required PrefabData data,
+    String? selectedModuleIdOverride,
+  }) {
+    _runWithoutLocalDraftHistory(() {
+      final selectedModuleId =
+          selectedModuleIdOverride ??
+          _shellState.selectedModuleId ??
+          _dataReducer.preferredModuleIdForPicker(data.platformModules);
+      final selectedModule = _platformModuleController.selectedModule(
+        data: data,
+        selectedModuleId: selectedModuleId,
+      );
+      _platformPrefabForm.resetPlatformDefaults(
+        tileSize: selectedModule?.tileSize ?? 16,
+      );
+      _platformPrefabForm.autoManagePlatformModule = false;
+      _shellState.selectedModuleId = selectedModuleId;
+      _shellState.selectedPrefabPlatformModuleId = selectedModuleId;
+      if (selectedModule != null) {
+        _moduleTileSizeController.text = selectedModule.tileSize.toString();
+      }
+    });
+  }
+
   PrefabFormState _formForPrefabKind(PrefabKind kind) {
     switch (kind) {
       case PrefabKind.platform:
@@ -998,10 +1145,6 @@ class PrefabEditorPageCoordinator {
     required String selectedSliceId,
     String? previousSelectedSliceId,
   }) {
-    if (editingPrefabForForm(form) != null) {
-      return;
-    }
-
     final currentPrefabId = form.prefabIdController.text.trim();
     final isTrackingPreviousSlice =
         previousSelectedSliceId != null &&
@@ -1036,10 +1179,6 @@ class PrefabEditorPageCoordinator {
     required AtlasSliceDef selectedSlice,
     String? previousSelectedSliceId,
   }) {
-    if (editingPrefabForForm(form) != null) {
-      return;
-    }
-
     final currentTagText = _normalizedTagText(form.tagsController.text);
     final previousTagText = _normalizedSelectedSliceTagText(
       previousSelectedSliceId,

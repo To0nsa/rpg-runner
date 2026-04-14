@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../prefabs/models/models.dart';
 import 'prefab_scene_values.dart';
 
 enum PrefabOverlayHandleType {
@@ -32,7 +33,9 @@ class PrefabOverlayDragState {
 class PrefabOverlayHandleGeometry {
   const PrefabOverlayHandleGeometry({
     required this.anchorHandleCenter,
-    required this.colliderRect,
+    required this.colliderRects,
+    required this.selectedColliderIndex,
+    required this.selectedColliderRect,
     required this.colliderCenterHandle,
     required this.colliderTopHandle,
     required this.colliderRightHandle,
@@ -47,32 +50,49 @@ class PrefabOverlayHandleGeometry {
       anchorCanvasBase.dx + (values.anchorX * zoom),
       anchorCanvasBase.dy + (values.anchorY * zoom),
     );
-    final colliderCenter = Offset(
-      anchorHandleCenter.dx + (values.colliderOffsetX * zoom),
-      anchorHandleCenter.dy + (values.colliderOffsetY * zoom),
-    );
-    final halfW = values.colliderWidth * 0.5 * zoom;
-    final halfH = values.colliderHeight * 0.5 * zoom;
-    final colliderRect = Rect.fromLTRB(
-      colliderCenter.dx - halfW,
-      colliderCenter.dy - halfH,
-      colliderCenter.dx + halfW,
-      colliderCenter.dy + halfH,
-    );
+    final colliderRects = <Rect>[];
+    for (final collider in values.colliders) {
+      final colliderCenter = Offset(
+        anchorHandleCenter.dx + (collider.offsetX * zoom),
+        anchorHandleCenter.dy + (collider.offsetY * zoom),
+      );
+      final halfW = collider.width * 0.5 * zoom;
+      final halfH = collider.height * 0.5 * zoom;
+      colliderRects.add(
+        Rect.fromLTRB(
+          colliderCenter.dx - halfW,
+          colliderCenter.dy - halfH,
+          colliderCenter.dx + halfW,
+          colliderCenter.dy + halfH,
+        ),
+      );
+    }
+    final selectedColliderIndex = values.normalizedSelectedColliderIndex;
+    final selectedColliderRect = selectedColliderIndex == null
+        ? null
+        : colliderRects[selectedColliderIndex];
     return PrefabOverlayHandleGeometry(
       anchorHandleCenter: anchorHandleCenter,
-      colliderRect: colliderRect,
-      colliderCenterHandle: colliderCenter,
-      colliderTopHandle: Offset(colliderRect.center.dx, colliderRect.top),
-      colliderRightHandle: Offset(colliderRect.right, colliderRect.center.dy),
+      colliderRects: colliderRects,
+      selectedColliderIndex: selectedColliderIndex,
+      selectedColliderRect: selectedColliderRect,
+      colliderCenterHandle: selectedColliderRect?.center,
+      colliderTopHandle: selectedColliderRect == null
+          ? null
+          : Offset(selectedColliderRect.center.dx, selectedColliderRect.top),
+      colliderRightHandle: selectedColliderRect == null
+          ? null
+          : Offset(selectedColliderRect.right, selectedColliderRect.center.dy),
     );
   }
 
   final Offset anchorHandleCenter;
-  final Rect colliderRect;
-  final Offset colliderCenterHandle;
-  final Offset colliderTopHandle;
-  final Offset colliderRightHandle;
+  final List<Rect> colliderRects;
+  final int? selectedColliderIndex;
+  final Rect? selectedColliderRect;
+  final Offset? colliderCenterHandle;
+  final Offset? colliderTopHandle;
+  final Offset? colliderRightHandle;
 }
 
 final class PrefabOverlayHitTest {
@@ -92,17 +112,46 @@ final class PrefabOverlayHitTest {
     if (!includeColliderHandles) {
       return null;
     }
-    if (_distanceSquared(point, geometry.colliderCenterHandle) <=
-        colliderHandleHitRadius * colliderHandleHitRadius) {
+    final colliderCenterHandle = geometry.colliderCenterHandle;
+    if (colliderCenterHandle != null &&
+        _distanceSquared(point, colliderCenterHandle) <=
+            colliderHandleHitRadius * colliderHandleHitRadius) {
       return PrefabOverlayHandleType.colliderCenter;
     }
-    if (_distanceSquared(point, geometry.colliderTopHandle) <=
-        colliderHandleHitRadius * colliderHandleHitRadius) {
+    final colliderTopHandle = geometry.colliderTopHandle;
+    if (colliderTopHandle != null &&
+        _distanceSquared(point, colliderTopHandle) <=
+            colliderHandleHitRadius * colliderHandleHitRadius) {
       return PrefabOverlayHandleType.colliderTop;
     }
-    if (_distanceSquared(point, geometry.colliderRightHandle) <=
-        colliderHandleHitRadius * colliderHandleHitRadius) {
+    final colliderRightHandle = geometry.colliderRightHandle;
+    if (colliderRightHandle != null &&
+        _distanceSquared(point, colliderRightHandle) <=
+            colliderHandleHitRadius * colliderHandleHitRadius) {
       return PrefabOverlayHandleType.colliderRight;
+    }
+    return null;
+  }
+
+  static int? hitTestColliderIndex({
+    required Offset point,
+    required PrefabOverlayHandleGeometry geometry,
+  }) {
+    final selectedIndex = geometry.selectedColliderIndex;
+    final selectedRect = geometry.selectedColliderRect;
+    if (selectedIndex != null &&
+        selectedRect != null &&
+        selectedRect.contains(point)) {
+      return selectedIndex;
+    }
+
+    for (var i = geometry.colliderRects.length - 1; i >= 0; i -= 1) {
+      if (i == selectedIndex) {
+        continue;
+      }
+      if (geometry.colliderRects[i].contains(point)) {
+        return i;
+      }
     }
     return null;
   }
@@ -117,6 +166,23 @@ final class PrefabOverlayHitTest {
 final class PrefabOverlayInteraction {
   PrefabOverlayInteraction._();
 
+  static PrefabSceneValues valuesWithSelectedCollider({
+    required PrefabSceneValues values,
+    required int selectedColliderIndex,
+  }) {
+    if (selectedColliderIndex < 0 ||
+        selectedColliderIndex >= values.colliders.length ||
+        values.normalizedSelectedColliderIndex == selectedColliderIndex) {
+      return values;
+    }
+    return PrefabSceneValues(
+      anchorX: values.anchorX,
+      anchorY: values.anchorY,
+      colliders: values.colliders,
+      selectedColliderIndex: selectedColliderIndex,
+    );
+  }
+
   static PrefabSceneValues valuesFromDrag({
     required PrefabOverlayDragState drag,
     required Offset currentLocal,
@@ -125,6 +191,7 @@ final class PrefabOverlayInteraction {
     final deltaX = delta.dx / drag.zoom;
     final deltaY = delta.dy / drag.zoom;
     final start = drag.startValues;
+    final selectedCollider = start.selectedCollider;
 
     switch (drag.handle) {
       case PrefabOverlayHandleType.anchor:
@@ -139,23 +206,26 @@ final class PrefabOverlayInteraction {
         return PrefabSceneValues(
           anchorX: anchorX,
           anchorY: anchorY,
-          colliderOffsetX: start.colliderOffsetX,
-          colliderOffsetY: start.colliderOffsetY,
-          colliderWidth: start.colliderWidth,
-          colliderHeight: start.colliderHeight,
+          colliders: start.colliders,
+          selectedColliderIndex: start.normalizedSelectedColliderIndex,
         );
       case PrefabOverlayHandleType.colliderCenter:
-        return PrefabSceneValues(
-          anchorX: start.anchorX,
-          anchorY: start.anchorY,
-          colliderOffsetX: (start.colliderOffsetX + deltaX).round(),
-          colliderOffsetY: (start.colliderOffsetY + deltaY).round(),
-          colliderWidth: start.colliderWidth,
-          colliderHeight: start.colliderHeight,
+        if (selectedCollider == null) {
+          return start;
+        }
+        return _replaceSelectedCollider(
+          start,
+          selectedCollider.copyWith(
+            offsetX: (selectedCollider.offsetX + deltaX).round(),
+            offsetY: (selectedCollider.offsetY + deltaY).round(),
+          ),
         );
       case PrefabOverlayHandleType.colliderTop:
-        final startCenterY = start.anchorY + start.colliderOffsetY;
-        final startHalfH = start.colliderHeight * 0.5;
+        if (selectedCollider == null) {
+          return start;
+        }
+        final startCenterY = start.anchorY + selectedCollider.offsetY;
+        final startHalfH = selectedCollider.height * 0.5;
         final bottom = startCenterY + startHalfH;
         var nextTop = (startCenterY - startHalfH) + deltaY;
         if (nextTop > bottom - 1) {
@@ -163,17 +233,19 @@ final class PrefabOverlayInteraction {
         }
         final nextHalf = (bottom - nextTop) * 0.5;
         final nextCenterY = nextTop + nextHalf;
-        return PrefabSceneValues(
-          anchorX: start.anchorX,
-          anchorY: start.anchorY,
-          colliderOffsetX: start.colliderOffsetX,
-          colliderOffsetY: (nextCenterY - start.anchorY).round(),
-          colliderWidth: start.colliderWidth,
-          colliderHeight: (nextHalf * 2).round().clamp(1, 99999),
+        return _replaceSelectedCollider(
+          start,
+          selectedCollider.copyWith(
+            offsetY: (nextCenterY - start.anchorY).round(),
+            height: (nextHalf * 2).round().clamp(1, 99999),
+          ),
         );
       case PrefabOverlayHandleType.colliderRight:
-        final startCenterX = start.anchorX + start.colliderOffsetX;
-        final startHalfW = start.colliderWidth * 0.5;
+        if (selectedCollider == null) {
+          return start;
+        }
+        final startCenterX = start.anchorX + selectedCollider.offsetX;
+        final startHalfW = selectedCollider.width * 0.5;
         final left = startCenterX - startHalfW;
         var nextRight = (startCenterX + startHalfW) + deltaX;
         if (nextRight < left + 1) {
@@ -181,15 +253,32 @@ final class PrefabOverlayInteraction {
         }
         final nextHalf = (nextRight - left) * 0.5;
         final nextCenterX = left + nextHalf;
-        return PrefabSceneValues(
-          anchorX: start.anchorX,
-          anchorY: start.anchorY,
-          colliderOffsetX: (nextCenterX - start.anchorX).round(),
-          colliderOffsetY: start.colliderOffsetY,
-          colliderWidth: (nextHalf * 2).round().clamp(1, 99999),
-          colliderHeight: start.colliderHeight,
+        return _replaceSelectedCollider(
+          start,
+          selectedCollider.copyWith(
+            offsetX: (nextCenterX - start.anchorX).round(),
+            width: (nextHalf * 2).round().clamp(1, 99999),
+          ),
         );
     }
+  }
+
+  static PrefabSceneValues _replaceSelectedCollider(
+    PrefabSceneValues values,
+    PrefabColliderDef collider,
+  ) {
+    final index = values.normalizedSelectedColliderIndex;
+    if (index == null) {
+      return values;
+    }
+    final colliders = values.colliders.toList(growable: false);
+    colliders[index] = collider;
+    return PrefabSceneValues(
+      anchorX: values.anchorX,
+      anchorY: values.anchorY,
+      colliders: colliders,
+      selectedColliderIndex: index,
+    );
   }
 }
 
@@ -208,11 +297,23 @@ final class PrefabOverlayPainter {
         ..color = const Color(0x4422D3EE)
         ..style = PaintingStyle.fill;
       final colliderStroke = Paint()
-        ..color = const Color(0xFF7CE5FF)
-        ..strokeWidth = 1.6
+        ..color = const Color(0xFF4BB5CF)
+        ..strokeWidth = 1.2
         ..style = PaintingStyle.stroke;
-      canvas.drawRect(geometry.colliderRect, colliderFill);
-      canvas.drawRect(geometry.colliderRect, colliderStroke);
+      final selectedColliderStroke = Paint()
+        ..color = const Color(0xFF7CE5FF)
+        ..strokeWidth = 1.8
+        ..style = PaintingStyle.stroke;
+      for (var i = 0; i < geometry.colliderRects.length; i += 1) {
+        final rect = geometry.colliderRects[i];
+        canvas.drawRect(rect, colliderFill);
+        canvas.drawRect(
+          rect,
+          geometry.selectedColliderIndex == i
+              ? selectedColliderStroke
+              : colliderStroke,
+        );
+      }
     }
 
     final anchorCross = Paint()
@@ -247,27 +348,36 @@ final class PrefabOverlayPainter {
     }
 
     if (showCollider) {
-      _paintHandle(
-        canvas,
-        geometry.colliderCenterHandle,
-        activeHandle == PrefabOverlayHandleType.colliderCenter,
-        const Color(0xFFE8F4FF),
-        const Color(0xFF0F1D28),
-      );
-      _paintHandle(
-        canvas,
-        geometry.colliderTopHandle,
-        activeHandle == PrefabOverlayHandleType.colliderTop,
-        const Color(0xFFE8F4FF),
-        const Color(0xFF0F1D28),
-      );
-      _paintHandle(
-        canvas,
-        geometry.colliderRightHandle,
-        activeHandle == PrefabOverlayHandleType.colliderRight,
-        const Color(0xFFE8F4FF),
-        const Color(0xFF0F1D28),
-      );
+      final colliderCenterHandle = geometry.colliderCenterHandle;
+      if (colliderCenterHandle != null) {
+        _paintHandle(
+          canvas,
+          colliderCenterHandle,
+          activeHandle == PrefabOverlayHandleType.colliderCenter,
+          const Color(0xFFE8F4FF),
+          const Color(0xFF0F1D28),
+        );
+      }
+      final colliderTopHandle = geometry.colliderTopHandle;
+      if (colliderTopHandle != null) {
+        _paintHandle(
+          canvas,
+          colliderTopHandle,
+          activeHandle == PrefabOverlayHandleType.colliderTop,
+          const Color(0xFFE8F4FF),
+          const Color(0xFF0F1D28),
+        );
+      }
+      final colliderRightHandle = geometry.colliderRightHandle;
+      if (colliderRightHandle != null) {
+        _paintHandle(
+          canvas,
+          colliderRightHandle,
+          activeHandle == PrefabOverlayHandleType.colliderRight,
+          const Color(0xFFE8F4FF),
+          const Color(0xFF0F1D28),
+        );
+      }
     }
     _paintHandle(
       canvas,

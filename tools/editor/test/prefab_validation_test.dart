@@ -157,58 +157,61 @@ void main() {
     expect(codes, contains('decoration_prefab_collider_forbidden'));
   });
 
-  test('validatePrefabData rejects reusing one slice for same-kind prefabs', () {
-    final data = PrefabData(
-      prefabSlices: const [
-        AtlasSliceDef(
-          id: 'shared_slice',
-          sourceImagePath: 'assets/images/level/props/TX Village Props.png',
-          x: 16,
-          y: 16,
-          width: 32,
-          height: 32,
-        ),
-      ],
-      prefabs: [
-        PrefabDef(
-          prefabKey: 'crate_a',
-          id: 'crate_a',
-          revision: 1,
-          status: PrefabStatus.active,
-          kind: PrefabKind.obstacle,
-          visualSource: PrefabVisualSource.atlasSlice('shared_slice'),
-          anchorXPx: 8,
-          anchorYPx: 20,
-          colliders: const [
-            PrefabColliderDef(offsetX: 0, offsetY: 0, width: 16, height: 16),
-          ],
-        ),
-        PrefabDef(
-          prefabKey: 'crate_b',
-          id: 'crate_b',
-          revision: 1,
-          status: PrefabStatus.active,
-          kind: PrefabKind.obstacle,
-          visualSource: PrefabVisualSource.atlasSlice('shared_slice'),
-          anchorXPx: 8,
-          anchorYPx: 20,
-          colliders: const [
-            PrefabColliderDef(offsetX: 0, offsetY: 0, width: 16, height: 16),
-          ],
-        ),
-      ],
-    );
+  test(
+    'validatePrefabData rejects reusing one slice for same-kind prefabs',
+    () {
+      final data = PrefabData(
+        prefabSlices: const [
+          AtlasSliceDef(
+            id: 'shared_slice',
+            sourceImagePath: 'assets/images/level/props/TX Village Props.png',
+            x: 16,
+            y: 16,
+            width: 32,
+            height: 32,
+          ),
+        ],
+        prefabs: [
+          PrefabDef(
+            prefabKey: 'crate_a',
+            id: 'crate_a',
+            revision: 1,
+            status: PrefabStatus.active,
+            kind: PrefabKind.obstacle,
+            visualSource: PrefabVisualSource.atlasSlice('shared_slice'),
+            anchorXPx: 8,
+            anchorYPx: 20,
+            colliders: const [
+              PrefabColliderDef(offsetX: 0, offsetY: 0, width: 16, height: 16),
+            ],
+          ),
+          PrefabDef(
+            prefabKey: 'crate_b',
+            id: 'crate_b',
+            revision: 1,
+            status: PrefabStatus.active,
+            kind: PrefabKind.obstacle,
+            visualSource: PrefabVisualSource.atlasSlice('shared_slice'),
+            anchorXPx: 8,
+            anchorYPx: 20,
+            colliders: const [
+              PrefabColliderDef(offsetX: 0, offsetY: 0, width: 16, height: 16),
+            ],
+          ),
+        ],
+      );
 
-    final issues = validatePrefabDataIssues(
-      data: data,
-      atlasImageSizes: const {
-        'assets/images/level/props/TX Village Props.png': Size(256, 256),
-      },
-    );
-    final codes = issues.map((issue) => issue.code).toSet();
+      final issues = validatePrefabDataIssues(
+        data: data,
+        atlasImageSizes: const {
+          'assets/images/level/props/TX Village Props.png': Size(256, 256),
+        },
+      );
+      final codes = issues.map((issue) => issue.code).toSet();
 
-    expect(codes, contains('obstacle_prefab_source_slice_reused'));
-  });
+      expect(codes, contains('obstacle_prefab_source_slice_reused'));
+    },
+  );
 
   test('validatePrefabData normalizes atlas source paths before lookup', () {
     final data = PrefabData(
@@ -563,6 +566,64 @@ void main() {
         errors.where((error) => error.contains('outside source bounds')),
         isEmpty,
       );
+    },
+  );
+
+  test(
+    'validatePrefabDataIssues reports multi-collider platform snap violations by collider index',
+    () {
+      final data = PrefabData(
+        tileSlices: const [
+          AtlasSliceDef(
+            id: 'tile_slice_a',
+            sourceImagePath:
+                'assets/images/level/tileset/TX Tileset Ground.png',
+            x: 0,
+            y: 0,
+            width: 16,
+            height: 16,
+          ),
+        ],
+        platformModules: const [
+          TileModuleDef(
+            id: 'module_a',
+            tileSize: 16,
+            cells: [
+              TileModuleCellDef(sliceId: 'tile_slice_a', gridX: 0, gridY: 0),
+            ],
+          ),
+        ],
+        prefabs: [
+          PrefabDef(
+            prefabKey: 'platform_multi',
+            id: 'platform_multi',
+            revision: 1,
+            status: PrefabStatus.active,
+            kind: PrefabKind.platform,
+            visualSource: PrefabVisualSource.platformModule('module_a'),
+            anchorXPx: 0,
+            anchorYPx: 0,
+            colliders: [
+              PrefabColliderDef(offsetX: 0, offsetY: 0, width: 16, height: 16),
+              PrefabColliderDef(offsetX: 8, offsetY: 0, width: 16, height: 16),
+            ],
+          ),
+        ],
+      );
+
+      final issues = validatePrefabDataIssues(
+        data: data,
+        atlasImageSizes: const {
+          'assets/images/level/tileset/TX Tileset Ground.png': Size(64, 64),
+        },
+      );
+      final snapIssues = issues
+          .where((issue) => issue.code == 'platform_collider_snap_invalid')
+          .toList(growable: false);
+
+      expect(snapIssues, hasLength(1));
+      expect(snapIssues.single.message, contains('collider[1]'));
+      expect(snapIssues.single.message, isNot(contains('collider[0]')));
     },
   );
 

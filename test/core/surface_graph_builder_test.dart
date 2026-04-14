@@ -5,6 +5,7 @@ import 'package:runner_core/enemies/enemy_catalog.dart';
 import 'package:runner_core/enemies/enemy_id.dart';
 import 'package:runner_core/ecs/spatial/grid_index_2d.dart';
 import 'package:runner_core/navigation/utils/jump_template.dart';
+import 'package:runner_core/navigation/utils/standability.dart';
 import 'package:runner_core/navigation/surface_extractor.dart';
 import 'package:runner_core/navigation/types/surface_graph.dart';
 import 'package:runner_core/navigation/surface_graph_builder.dart';
@@ -565,16 +566,22 @@ void main() {
     () {
       const pattern = ChunkPattern(
         name: 'high-platform-over-obstacle',
-        platforms: <PlatformRel>[
-          PlatformRel(
+        solids: <SolidRel>[
+          SolidRel(
             x: 224.0,
-            width: 192.0,
             aboveGroundTop: 112.0,
-            thickness: 16.0,
+            width: 192.0,
+            height: 16.0,
+            sides: SolidRel.sideTop,
+            oneWayTop: true,
           ),
-        ],
-        obstacles: <ObstacleRel>[
-          ObstacleRel(x: 128.0, width: 48.0, height: 64.0),
+          SolidRel(
+            x: 128.0,
+            aboveGroundTop: 64.0,
+            width: 48.0,
+            height: 64.0,
+            sides: SolidRel.sideAll,
+          ),
         ],
         groundGaps: <GapRel>[GapRel(x: 176.0, width: 96.0)],
         spawnMarkers: <SpawnMarker>[
@@ -657,4 +664,122 @@ void main() {
       expect(_hasJumpEdgeTo(graph, leftGroundIndex, obstacleTopIndex), isTrue);
     },
   );
+
+  test('hashash can use narrower obstacle tops than grojib', () {
+    const groundTopY = 220.0;
+    const geometry = StaticWorldGeometry(
+      groundSegments: <StaticGroundSegment>[
+        StaticGroundSegment(
+          minX: 0.0,
+          maxX: 128.0,
+          topY: groundTopY,
+          chunkIndex: 0,
+          localSegmentIndex: 0,
+        ),
+        StaticGroundSegment(
+          minX: 140.0,
+          maxX: 320.0,
+          topY: groundTopY,
+          chunkIndex: 0,
+          localSegmentIndex: 1,
+        ),
+      ],
+      solids: <StaticSolid>[
+        StaticSolid(
+          minX: 128.0,
+          minY: 156.0,
+          maxX: 139.0,
+          maxY: groundTopY,
+          sides: StaticSolid.sideAll,
+          oneWayTop: false,
+          chunkIndex: 0,
+          localSolidIndex: 2,
+        ),
+      ],
+    );
+
+    const enemyCatalog = EnemyCatalog();
+    final grojib = enemyCatalog.get(EnemyId.grojib);
+    final hashash = enemyCatalog.get(EnemyId.hashash);
+    JumpReachabilityTemplate buildTemplate(
+      double halfWidth,
+      double halfHeight,
+      bool ignoreCeilings,
+      int sideMask,
+    ) {
+      return JumpReachabilityTemplate.build(
+        JumpProfile(
+          jumpSpeed: 500.0,
+          gravityY: 1200.0,
+          maxAirTicks: 120,
+          airSpeedX: 300.0,
+          dtSeconds: 1.0 / 60.0,
+          agentHalfWidth: halfWidth,
+          agentHalfHeight: halfHeight,
+          requiredSupportFraction: groundEnemySupportFraction,
+          collideCeilings: !ignoreCeilings,
+          collideLeftWalls: (sideMask & 0x1) != 0,
+          collideRightWalls: (sideMask & 0x2) != 0,
+        ),
+      );
+    }
+
+    final builder = SurfaceGraphBuilder(surfaceGrid: GridIndex2D(cellSize: 64));
+    final grojibGraph = builder.build(
+      geometry: geometry,
+      jumpTemplate: buildTemplate(
+        grojib.collider.halfX,
+        grojib.collider.halfY,
+        grojib.body.ignoreCeilings,
+        grojib.body.sideMask,
+      ),
+    ).graph;
+    final hashashGraph = builder.build(
+      geometry: geometry,
+      jumpTemplate: buildTemplate(
+        hashash.collider.halfX,
+        hashash.collider.halfY,
+        hashash.body.ignoreCeilings,
+        hashash.body.sideMask,
+      ),
+    ).graph;
+
+    final grojibLeftGroundIndex = _indexForSurface(
+      grojibGraph,
+      yTop: groundTopY,
+      xMin: 0.0,
+      xMax: 128.0,
+    );
+    final grojibObstacleTopIndex = _indexForSurface(
+      grojibGraph,
+      yTop: 156.0,
+      xMin: 128.0,
+      xMax: 139.0,
+    );
+    final hashashLeftGroundIndex = _indexForSurface(
+      hashashGraph,
+      yTop: groundTopY,
+      xMin: 0.0,
+      xMax: 128.0,
+    );
+    final hashashObstacleTopIndex = _indexForSurface(
+      hashashGraph,
+      yTop: 156.0,
+      xMin: 128.0,
+      xMax: 139.0,
+    );
+
+    expect(
+      _hasJumpEdgeTo(grojibGraph, grojibLeftGroundIndex, grojibObstacleTopIndex),
+      isFalse,
+    );
+    expect(
+      _hasJumpEdgeTo(
+        hashashGraph,
+        hashashLeftGroundIndex,
+        hashashObstacleTopIndex,
+      ),
+      isTrue,
+    );
+  });
 }

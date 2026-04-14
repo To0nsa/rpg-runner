@@ -18,9 +18,9 @@ class GroundBuildResult {
   final List<StaticGroundGap> gaps;
 }
 
-/// Converts pattern platforms/obstacles into world-space [StaticSolid]s.
+/// Converts pattern solids into world-space [StaticSolid]s.
 ///
-/// [pattern] - The chunk pattern containing platforms and obstacles.
+/// [pattern] - The chunk pattern containing static collision geometry.
 /// [chunkStartX] - World X where this chunk begins.
 /// [chunkIndex] - Sequential chunk number for tagging solids.
 /// [groundTopY] - World Y of the ground surface.
@@ -46,107 +46,83 @@ List<StaticSolid> buildSolids(
   final solids = <StaticSolid>[];
   var localSolidIndex = 0;
 
-  // ── Platforms (one-way top) ──
-  for (var i = 0; i < pattern.platforms.length; i += 1) {
-    final p = pattern.platforms[i];
+  for (var i = 0; i < pattern.solids.length; i += 1) {
+    final solid = pattern.solids[i];
     _validateSpanValue(
-      p.width,
-      field: 'platform[$i].width',
+      solid.width,
+      field: 'solid[$i].width',
       pattern: pattern,
       chunkIndex: chunkIndex,
       requirePositive: true,
     );
     _validateSpanValue(
-      p.thickness,
-      field: 'platform[$i].thickness',
+      solid.height,
+      field: 'solid[$i].height',
       pattern: pattern,
       chunkIndex: chunkIndex,
       requirePositive: true,
     );
     _validateSpanValue(
-      p.aboveGroundTop,
-      field: 'platform[$i].aboveGroundTop',
+      solid.aboveGroundTop,
+      field: 'solid[$i].aboveGroundTop',
       pattern: pattern,
       chunkIndex: chunkIndex,
-      requirePositive: true,
+      requirePositive: false,
     );
-    if (!_withinChunk(p.x, p.width, chunkWidth)) {
+    if (solid.aboveGroundTop < -_validationTolerance) {
       _throwChunkValidation(
-        'Platform out of chunk bounds at index $i (x=${p.x}, width=${p.width}, chunkWidth=$chunkWidth)',
+        'Solid aboveGroundTop must be >= 0 at index $i '
+        '(aboveGroundTop=${solid.aboveGroundTop})',
         pattern: pattern,
         chunkIndex: chunkIndex,
       );
     }
-    if (!_snapped(p.x, gridSnap) ||
-        !_snapped(p.width, gridSnap) ||
-        !_snapped(p.aboveGroundTop, gridSnap) ||
-        !_snapped(p.thickness, gridSnap)) {
+    if (!_withinChunk(solid.x, solid.width, chunkWidth)) {
       _throwChunkValidation(
-        'Platform not snapped to grid at index $i '
-        '(x=${p.x}, width=${p.width}, aboveGroundTop=${p.aboveGroundTop}, '
-        'thickness=${p.thickness}, gridSnap=$gridSnap)',
+        'Solid out of chunk bounds at index $i '
+        '(x=${solid.x}, width=${solid.width}, chunkWidth=$chunkWidth)',
         pattern: pattern,
         chunkIndex: chunkIndex,
       );
     }
-    final topY = groundTopY - p.aboveGroundTop;
-    solids.add(
-      StaticSolid(
-        minX: chunkStartX + p.x,
-        minY: topY,
-        maxX: chunkStartX + p.x + p.width,
-        maxY: topY + p.thickness,
-        sides: StaticSolid.sideTop,
-        oneWayTop: true,
+    if (!_snapped(solid.x, gridSnap) ||
+        !_snapped(solid.width, gridSnap) ||
+        !_snapped(solid.height, gridSnap) ||
+        !_snapped(solid.aboveGroundTop, gridSnap)) {
+      _throwChunkValidation(
+        'Solid not snapped to grid at index $i '
+        '(x=${solid.x}, width=${solid.width}, height=${solid.height}, '
+        'aboveGroundTop=${solid.aboveGroundTop}, gridSnap=$gridSnap)',
+        pattern: pattern,
         chunkIndex: chunkIndex,
-        localSolidIndex: localSolidIndex,
-      ),
-    );
-    localSolidIndex += 1;
-  }
+      );
+    }
+    if (!_isValidSolidSideMask(solid.sides)) {
+      _throwChunkValidation(
+        'Solid has invalid side mask at index $i '
+        '(sides=${solid.sides})',
+        pattern: pattern,
+        chunkIndex: chunkIndex,
+      );
+    }
+    if (solid.oneWayTop && (solid.sides & SolidRel.sideTop) == 0) {
+      _throwChunkValidation(
+        'Solid oneWayTop requires sideTop at index $i '
+        '(sides=${solid.sides})',
+        pattern: pattern,
+        chunkIndex: chunkIndex,
+      );
+    }
 
-  // ── Obstacles (solid on all sides) ──
-  for (var i = 0; i < pattern.obstacles.length; i += 1) {
-    final o = pattern.obstacles[i];
-    _validateSpanValue(
-      o.width,
-      field: 'obstacle[$i].width',
-      pattern: pattern,
-      chunkIndex: chunkIndex,
-      requirePositive: true,
-    );
-    _validateSpanValue(
-      o.height,
-      field: 'obstacle[$i].height',
-      pattern: pattern,
-      chunkIndex: chunkIndex,
-      requirePositive: true,
-    );
-    if (!_withinChunk(o.x, o.width, chunkWidth)) {
-      _throwChunkValidation(
-        'Obstacle out of chunk bounds at index $i (x=${o.x}, width=${o.width}, chunkWidth=$chunkWidth)',
-        pattern: pattern,
-        chunkIndex: chunkIndex,
-      );
-    }
-    if (!_snapped(o.x, gridSnap) ||
-        !_snapped(o.width, gridSnap) ||
-        !_snapped(o.height, gridSnap)) {
-      _throwChunkValidation(
-        'Obstacle not snapped to grid at index $i '
-        '(x=${o.x}, width=${o.width}, height=${o.height}, gridSnap=$gridSnap)',
-        pattern: pattern,
-        chunkIndex: chunkIndex,
-      );
-    }
+    final topY = groundTopY - solid.aboveGroundTop;
     solids.add(
       StaticSolid(
-        minX: chunkStartX + o.x,
-        minY: groundTopY - o.height,
-        maxX: chunkStartX + o.x + o.width,
-        maxY: groundTopY,
-        sides: StaticSolid.sideAll,
-        oneWayTop: false,
+        minX: chunkStartX + solid.x,
+        minY: topY,
+        maxX: chunkStartX + solid.x + solid.width,
+        maxY: topY + solid.height,
+        sides: solid.sides,
+        oneWayTop: solid.oneWayTop,
         chunkIndex: chunkIndex,
         localSolidIndex: localSolidIndex,
       ),
@@ -289,6 +265,10 @@ bool _snapped(double v, double gridSnap) {
 
 const double _validationTolerance = 1e-9;
 const double _gapOverlapTolerance = 1e-6;
+
+bool _isValidSolidSideMask(int sides) {
+  return sides > SolidRel.sideNone && (sides & ~SolidRel.sideAll) == 0;
+}
 
 void _validateBuildInputs(
   ChunkPattern pattern, {

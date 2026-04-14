@@ -281,21 +281,56 @@ class _PrefabSceneViewState extends State<PrefabSceneView> {
       _dragState = null;
       return;
     }
-    final hit = _hitTestHandle(event.localPosition, canvasSize: canvasSize);
-    if (hit == null) {
+    final overlayGeometry = _overlayGeometry(canvasSize);
+    final colliderIndex = !widget.showColliderOverlay
+        ? null
+        : PrefabOverlayHitTest.hitTestColliderIndex(
+            point: event.localPosition,
+            geometry: overlayGeometry,
+          );
+    if (colliderIndex != null &&
+        colliderIndex != widget.values.normalizedSelectedColliderIndex) {
+      widget.onChanged(
+        PrefabOverlayInteraction.valuesWithSelectedCollider(
+          values: widget.values,
+          selectedColliderIndex: colliderIndex,
+        ),
+      );
       return;
     }
-    setState(() {
-      _dragState = PrefabOverlayDragState(
-        pointer: event.pointer,
-        handle: hit,
-        startLocal: event.localPosition,
-        startValues: widget.values,
-        zoom: _zoom,
-        boundsWidthPx: widget.slice.width,
-        boundsHeightPx: widget.slice.height,
-      );
-    });
+    final hit = PrefabOverlayHitTest.hitTestHandle(
+      point: event.localPosition,
+      geometry: overlayGeometry,
+      anchorHandleHitRadius: _anchorHandleHitRadius,
+      colliderHandleHitRadius: _colliderHandleHitRadius,
+      includeColliderHandles: widget.showColliderOverlay,
+    );
+    if (hit != null) {
+      setState(() {
+        _dragState = PrefabOverlayDragState(
+          pointer: event.pointer,
+          handle: hit,
+          startLocal: event.localPosition,
+          startValues: widget.values,
+          zoom: _zoom,
+          boundsWidthPx: widget.slice.width,
+          boundsHeightPx: widget.slice.height,
+        );
+      });
+      return;
+    }
+    if (!widget.showColliderOverlay) {
+      return;
+    }
+    if (colliderIndex == null) {
+      return;
+    }
+    widget.onChanged(
+      PrefabOverlayInteraction.valuesWithSelectedCollider(
+        values: widget.values,
+        selectedColliderIndex: colliderIndex,
+      ),
+    );
   }
 
   void _onPointerMove(PointerMoveEvent event) {
@@ -385,26 +420,16 @@ class _PrefabSceneViewState extends State<PrefabSceneView> {
     );
   }
 
-  PrefabOverlayHandleType? _hitTestHandle(
-    Offset point, {
-    required Size canvasSize,
-  }) {
+  PrefabOverlayHandleGeometry _overlayGeometry(Size canvasSize) {
     final geometry = _PrefabSceneGeometry(
       slice: widget.slice,
       zoom: _zoom,
       viewportSize: canvasSize,
     );
-    final overlayGeometry = PrefabOverlayHandleGeometry.fromValues(
+    return PrefabOverlayHandleGeometry.fromValues(
       values: widget.values,
       anchorCanvasBase: geometry.spriteRect.topLeft,
       zoom: _zoom,
-    );
-    return PrefabOverlayHitTest.hitTestHandle(
-      point: point,
-      geometry: overlayGeometry,
-      anchorHandleHitRadius: _anchorHandleHitRadius,
-      colliderHandleHitRadius: _colliderHandleHitRadius,
-      includeColliderHandles: widget.showColliderOverlay,
     );
   }
 }

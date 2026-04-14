@@ -8,7 +8,7 @@ library;
 import '../collision/static_world_geometry.dart';
 import '../track/authored_chunk_patterns.dart';
 import '../track/chunk_pattern_source.dart';
-import 'level_assembly.dart';
+
 import 'level_definition.dart';
 import 'level_id.dart';
 
@@ -58,32 +58,6 @@ class LevelRegistry {
           normalPatternChunks: 0,
           noEnemyChunks: 3,
           visualThemeId: 'field',
-          assembly: const LevelAssemblyDefinition(
-            loopSegments: true,
-            segments: <LevelAssemblySegment>[
-              LevelAssemblySegment(
-                segmentId: 'field_run',
-                groupId: 'default',
-                minChunkCount: 2,
-                maxChunkCount: 2,
-                requireDistinctChunks: false,
-              ),
-              LevelAssemblySegment(
-                segmentId: 'forest_run',
-                groupId: 'forest',
-                minChunkCount: 1,
-                maxChunkCount: 1,
-                requireDistinctChunks: false,
-              ),
-              LevelAssemblySegment(
-                segmentId: 'none_run',
-                groupId: 'none',
-                minChunkCount: 1,
-                maxChunkCount: 1,
-                requireDistinctChunks: false,
-              ),
-            ],
-          ),
         );
     }
   }

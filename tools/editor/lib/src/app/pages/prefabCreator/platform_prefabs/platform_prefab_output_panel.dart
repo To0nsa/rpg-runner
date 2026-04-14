@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../prefabs/models/models.dart';
 import '../shared/ui/prefab_editor_action_row.dart';
 import '../shared/ui/prefab_editor_placement_fields.dart';
 import '../shared/prefab_form_state.dart';
@@ -15,18 +16,30 @@ class PlatformPrefabOutputPanel extends StatelessWidget {
     required this.isEnabled,
     required this.isEditingPrefab,
     required this.sceneValues,
+    required this.colliderDrafts,
+    required this.selectedColliderIndex,
     required this.onLoadPrefabForModule,
     required this.onUpsertPrefabForModule,
     required this.onStartNewFromCurrentValues,
+    required this.onSelectedColliderChanged,
+    required this.onAddCollider,
+    required this.onDuplicateCollider,
+    required this.onDeleteCollider,
   });
 
   final PrefabFormState form;
   final bool isEnabled;
   final bool isEditingPrefab;
   final PrefabSceneValues? sceneValues;
+  final List<PrefabColliderDef> colliderDrafts;
+  final int? selectedColliderIndex;
   final VoidCallback onLoadPrefabForModule;
   final VoidCallback onUpsertPrefabForModule;
   final VoidCallback onStartNewFromCurrentValues;
+  final ValueChanged<int> onSelectedColliderChanged;
+  final VoidCallback onAddCollider;
+  final VoidCallback onDuplicateCollider;
+  final VoidCallback? onDeleteCollider;
 
   @override
   Widget build(BuildContext context) {
@@ -83,10 +96,17 @@ class PlatformPrefabOutputPanel extends StatelessWidget {
           PrefabEditorPlacementFields(
             form: form,
             isEnabled: isEnabled,
+            colliders: colliderDrafts,
+            selectedColliderIndex: selectedColliderIndex,
             colliderOffsetXLabel: 'Collider Offset X',
             colliderOffsetYLabel: 'Collider Offset Y',
             colliderWidthLabel: 'Collider Width',
             colliderHeightLabel: 'Collider Height',
+            colliderKeyPrefix: 'platform_prefab_collider',
+            onSelectedColliderChanged: onSelectedColliderChanged,
+            onAddCollider: onAddCollider,
+            onDuplicateCollider: onDuplicateCollider,
+            onDeleteCollider: onDeleteCollider,
             invalidValuesMessage: sceneValues == null
                 ? 'Anchor/collider fields contain invalid values. '
                       'Fix them before saving the prefab.'

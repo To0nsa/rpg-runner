@@ -33,9 +33,15 @@ class ObstaclePrefabsTab extends StatelessWidget {
     required this.selectedSlice,
     required this.editingObstaclePrefab,
     required this.sceneValues,
+    required this.colliderDrafts,
+    required this.selectedColliderIndex,
     required this.workspaceRootPath,
     required this.onSelectedSliceChanged,
     required this.onSceneValuesChanged,
+    required this.onSelectedColliderChanged,
+    required this.onAddCollider,
+    required this.onDuplicateCollider,
+    required this.onDeleteCollider,
     required this.onLoadPrefab,
     required this.onDeletePrefab,
     required this.onUpsertPrefab,
@@ -53,9 +59,15 @@ class ObstaclePrefabsTab extends StatelessWidget {
   final AtlasSliceDef? selectedSlice;
   final PrefabDef? editingObstaclePrefab;
   final PrefabSceneValues? sceneValues;
+  final List<PrefabColliderDef> colliderDrafts;
+  final int? selectedColliderIndex;
   final String workspaceRootPath;
   final ValueChanged<String?> onSelectedSliceChanged;
   final ValueChanged<PrefabSceneValues> onSceneValuesChanged;
+  final ValueChanged<int> onSelectedColliderChanged;
+  final VoidCallback onAddCollider;
+  final VoidCallback onDuplicateCollider;
+  final VoidCallback? onDeleteCollider;
   final ValueChanged<PrefabDef> onLoadPrefab;
   final ValueChanged<String> onDeletePrefab;
   final VoidCallback onUpsertPrefab;
@@ -73,8 +85,14 @@ class ObstaclePrefabsTab extends StatelessWidget {
         selectablePrefabSlices: selectablePrefabSlices,
         selectedSliceId: selectedSliceId,
         editingObstaclePrefab: editingObstaclePrefab,
+        colliderDrafts: colliderDrafts,
+        selectedColliderIndex: selectedColliderIndex,
         workspaceRootPath: workspaceRootPath,
         onSelectedSliceChanged: onSelectedSliceChanged,
+        onSelectedColliderChanged: onSelectedColliderChanged,
+        onAddCollider: onAddCollider,
+        onDuplicateCollider: onDuplicateCollider,
+        onDeleteCollider: onDeleteCollider,
         onUpsertPrefab: onUpsertPrefab,
         onDuplicatePrefab: onDuplicatePrefab,
         onDeprecatePrefab: onDeprecatePrefab,
@@ -147,8 +165,14 @@ class _ObstaclePrefabInspectorPanel extends StatelessWidget {
     required this.selectablePrefabSlices,
     required this.selectedSliceId,
     required this.editingObstaclePrefab,
+    required this.colliderDrafts,
+    required this.selectedColliderIndex,
     required this.workspaceRootPath,
     required this.onSelectedSliceChanged,
+    required this.onSelectedColliderChanged,
+    required this.onAddCollider,
+    required this.onDuplicateCollider,
+    required this.onDeleteCollider,
     required this.onUpsertPrefab,
     required this.onDuplicatePrefab,
     required this.onDeprecatePrefab,
@@ -161,8 +185,14 @@ class _ObstaclePrefabInspectorPanel extends StatelessWidget {
   final List<AtlasSliceDef> selectablePrefabSlices;
   final String? selectedSliceId;
   final PrefabDef? editingObstaclePrefab;
+  final List<PrefabColliderDef> colliderDrafts;
+  final int? selectedColliderIndex;
   final String workspaceRootPath;
   final ValueChanged<String?> onSelectedSliceChanged;
+  final ValueChanged<int> onSelectedColliderChanged;
+  final VoidCallback onAddCollider;
+  final VoidCallback onDuplicateCollider;
+  final VoidCallback? onDeleteCollider;
   final VoidCallback onUpsertPrefab;
   final VoidCallback onDuplicatePrefab;
   final VoidCallback onDeprecatePrefab;
@@ -253,7 +283,9 @@ class _ObstaclePrefabInspectorPanel extends StatelessWidget {
                   label: const Text('Deprecate'),
                 ),
                 OutlinedButton.icon(
-                  key: const ValueKey<String>('obstacle_prefab_clear_form_button'),
+                  key: const ValueKey<String>(
+                    'obstacle_prefab_clear_form_button',
+                  ),
                   onPressed: onClearForm,
                   icon: const Icon(Icons.clear_outlined),
                   label: const Text('Clear Form'),
@@ -317,10 +349,17 @@ class _ObstaclePrefabInspectorPanel extends StatelessWidget {
             title: 'Placement & Collider',
             child: PrefabEditorPlacementFields(
               form: form,
+              colliders: colliderDrafts,
+              selectedColliderIndex: selectedColliderIndex,
               colliderOffsetXLabel: 'Offset X',
               colliderOffsetYLabel: 'Offset Y',
               colliderWidthLabel: 'Width',
               colliderHeightLabel: 'Height',
+              colliderKeyPrefix: 'obstacle_prefab_collider',
+              onSelectedColliderChanged: onSelectedColliderChanged,
+              onAddCollider: onAddCollider,
+              onDuplicateCollider: onDuplicateCollider,
+              onDeleteCollider: onDeleteCollider,
             ),
           ),
           const SizedBox(height: PrefabEditorUiTokens.controlGap),

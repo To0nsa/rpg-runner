@@ -97,20 +97,13 @@ class PrefabEditorPrefabController {
 
     List<PrefabColliderDef> nextColliders = const <PrefabColliderDef>[];
     if (form.selectedKind != PrefabKind.decoration) {
-      final sceneValues = form.tryParseSceneValues();
-      if (sceneValues == null) {
+      final colliders = form.tryParseColliderDrafts();
+      if (colliders == null) {
         return const PrefabEditorDecision.error(
           'Anchor/collider fields must be valid integers.',
         );
       }
-      nextColliders = <PrefabColliderDef>[
-        PrefabColliderDef(
-          offsetX: sceneValues.colliderOffsetX,
-          offsetY: sceneValues.colliderOffsetY,
-          width: sceneValues.colliderWidth,
-          height: sceneValues.colliderHeight,
-        ),
-      ];
+      nextColliders = colliders;
     }
 
     final normalizedTags = reducer.normalizedTags(
@@ -173,6 +166,8 @@ class PrefabEditorPrefabController {
         colliderOffsetY: collider.offsetY.toString(),
         colliderWidth: collider.width.toString(),
         colliderHeight: collider.height.toString(),
+        colliders: List<PrefabColliderDef>.unmodifiable(prefab.colliders),
+        selectedColliderIndex: prefab.colliders.isEmpty ? null : 0,
         tags: prefab.tags.join(', '),
         autoManagePlatformModule: autoManagePlatformModule,
         selectedKind: selectedKind,

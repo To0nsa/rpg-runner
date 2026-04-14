@@ -10,31 +10,47 @@ class PrefabSceneValues {
   const PrefabSceneValues({
     required this.anchorX,
     required this.anchorY,
-    required this.colliderOffsetX,
-    required this.colliderOffsetY,
-    required this.colliderWidth,
-    required this.colliderHeight,
+    required this.colliders,
+    this.selectedColliderIndex,
   });
 
   final int anchorX;
   final int anchorY;
-  final int colliderOffsetX;
-  final int colliderOffsetY;
-  final int colliderWidth;
-  final int colliderHeight;
+  final List<PrefabColliderDef> colliders;
+  final int? selectedColliderIndex;
+
+  int? get normalizedSelectedColliderIndex {
+    if (colliders.isEmpty) {
+      return null;
+    }
+    if (selectedColliderIndex == null || selectedColliderIndex! < 0) {
+      return 0;
+    }
+    if (selectedColliderIndex! >= colliders.length) {
+      return colliders.length - 1;
+    }
+    return selectedColliderIndex;
+  }
+
+  PrefabColliderDef? get selectedCollider {
+    final index = normalizedSelectedColliderIndex;
+    if (index == null) {
+      return null;
+    }
+    return colliders[index];
+  }
+
+  int get colliderOffsetX => selectedCollider?.offsetX ?? 0;
+  int get colliderOffsetY => selectedCollider?.offsetY ?? 0;
+  int get colliderWidth => selectedCollider?.width ?? 0;
+  int get colliderHeight => selectedCollider?.height ?? 0;
 }
 
-PrefabSceneValues? prefabSceneValuesFromPrefab(PrefabDef prefab) {
-  if (prefab.colliders.isEmpty) {
-    return null;
-  }
-  final collider = prefab.colliders.first;
+PrefabSceneValues prefabSceneValuesFromPrefab(PrefabDef prefab) {
   return PrefabSceneValues(
     anchorX: prefab.anchorXPx,
     anchorY: prefab.anchorYPx,
-    colliderOffsetX: collider.offsetX,
-    colliderOffsetY: collider.offsetY,
-    colliderWidth: collider.width,
-    colliderHeight: collider.height,
+    colliders: prefab.colliders,
+    selectedColliderIndex: prefab.colliders.isEmpty ? null : 0,
   );
 }

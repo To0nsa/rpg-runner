@@ -1,22 +1,22 @@
 /// Chunk pattern data structures for track streaming.
 ///
-/// Defines the authored building blocks (platforms, obstacles, gaps, spawns)
-/// used to compose procedural track chunks.
+/// Defines the authored building blocks (solids, gaps, spawns) used to compose
+/// procedural track chunks.
 library;
 
 import '../enemies/enemy_id.dart';
 
-/// Authored chunk template defining platforms, obstacles, gaps, and spawns.
+/// Authored chunk template defining static geometry, gaps, and spawns.
 ///
 /// All coordinates are chunk-relative (x in `[0, chunkWidth)`).
 /// Heights are expressed as "above ground top" so patterns are ground-agnostic.
+///
 class ChunkPattern {
   const ChunkPattern({
     required this.name,
     this.chunkKey,
     this.assemblyGroupId = defaultChunkAssemblyGroupId,
-    this.platforms = const <PlatformRel>[],
-    this.obstacles = const <ObstacleRel>[],
+    this.solids = const <SolidRel>[],
     this.groundGaps = const <GapRel>[],
     this.spawnMarkers = const <SpawnMarker>[],
     this.visualSprites = const <ChunkVisualSpriteRel>[],
@@ -31,11 +31,12 @@ class ChunkPattern {
   /// Authored assembly membership key used by level segment scheduling.
   final String assemblyGroupId;
 
-  /// One-way platforms the player can jump through.
-  final List<PlatformRel> platforms;
-
-  /// Solid obstacles the player must jump over.
-  final List<ObstacleRel> obstacles;
+  /// Generic static solids consumed directly by runtime collision.
+  ///
+  /// This preserves per-rectangle side masks and vertical placement for
+  /// generated authored prefab geometry without any secondary collision
+  /// representation.
+  final List<SolidRel> solids;
 
   /// Holes in the ground (pit hazards or visual breaks).
   final List<GapRel> groundGaps;
@@ -84,47 +85,50 @@ class ChunkVisualSpriteRel {
   final bool flipY;
 }
 
-/// Chunk-relative platform definition (one-way top surface).
-class PlatformRel {
-  const PlatformRel({
+/// Chunk-relative generic static solid.
+///
+/// This maps directly to runtime `StaticSolid` fields after converting
+/// [aboveGroundTop] into a world-space top Y against the active chunk's
+/// `groundTopY`.
+class SolidRel {
+  const SolidRel({
     required this.x,
-    required this.width,
     required this.aboveGroundTop,
-    required this.thickness,
-  }) : assert(width > 0),
-       assert(thickness > 0),
-       assert(aboveGroundTop > 0);
-
-  /// Left edge offset from chunk start.
-  final double x;
-
-  /// Horizontal extent.
-  final double width;
-
-  /// Vertical offset above ground (positive = higher).
-  final double aboveGroundTop;
-
-  /// Platform thickness (visual/collision depth).
-  final double thickness;
-}
-
-/// Chunk-relative obstacle definition (solid on all sides).
-class ObstacleRel {
-  const ObstacleRel({
-    required this.x,
     required this.width,
     required this.height,
+    required this.sides,
+    this.oneWayTop = false,
   }) : assert(width > 0),
-       assert(height > 0);
+       assert(height > 0),
+       assert(aboveGroundTop >= 0);
 
   /// Left edge offset from chunk start.
   final double x;
 
+  /// Distance from the chunk ground top to this solid's top face.
+  final double aboveGroundTop;
+
   /// Horizontal extent.
   final double width;
 
-  /// Vertical extent (sits on ground, extends upward).
+  /// Vertical extent.
   final double height;
+
+  /// Collision face bitmask mirrored into runtime `StaticSolid.sides`.
+  ///
+  /// The values intentionally mirror runtime side flags so generated content can
+  /// stay in the `track` contract layer without importing collision classes.
+  final int sides;
+
+  /// Whether the top face resolves as one-way while falling.
+  final bool oneWayTop;
+
+  static const int sideNone = 0;
+  static const int sideTop = 1 << 0;
+  static const int sideBottom = 1 << 1;
+  static const int sideLeft = 1 << 2;
+  static const int sideRight = 1 << 3;
+  static const int sideAll = sideTop | sideBottom | sideLeft | sideRight;
 }
 
 /// Chunk-relative ground gap (pit hazard).

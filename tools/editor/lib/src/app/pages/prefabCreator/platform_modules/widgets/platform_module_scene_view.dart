@@ -483,28 +483,51 @@ class _PlatformModuleSceneViewState extends State<PlatformModuleSceneView> {
       anchorCanvasBase: geometry.canvasFromWorld(moduleBounds.topLeft),
       zoom: geometry.zoom,
     );
+    final colliderIndex = PrefabOverlayHitTest.hitTestColliderIndex(
+      point: event.localPosition,
+      geometry: handleGeometry,
+    );
+    if (colliderIndex != null &&
+        colliderIndex != values.normalizedSelectedColliderIndex) {
+      onOverlayValuesChanged(
+        PrefabOverlayInteraction.valuesWithSelectedCollider(
+          values: values,
+          selectedColliderIndex: colliderIndex,
+        ),
+      );
+      return true;
+    }
     final handle = PrefabOverlayHitTest.hitTestHandle(
       point: event.localPosition,
       geometry: handleGeometry,
       anchorHandleHitRadius: 10,
       colliderHandleHitRadius: 12,
     );
-    if (handle == null) {
+    if (handle != null) {
+      final boundsWidth = moduleBounds.width.round().clamp(1, 99999);
+      final boundsHeight = moduleBounds.height.round().clamp(1, 99999);
+      setState(() {
+        _overlayDragState = PrefabOverlayDragState(
+          pointer: event.pointer,
+          handle: handle,
+          startLocal: event.localPosition,
+          startValues: values,
+          zoom: geometry.zoom,
+          boundsWidthPx: boundsWidth,
+          boundsHeightPx: boundsHeight,
+        );
+      });
+      return true;
+    }
+    if (colliderIndex == null) {
       return false;
     }
-    final boundsWidth = moduleBounds.width.round().clamp(1, 99999);
-    final boundsHeight = moduleBounds.height.round().clamp(1, 99999);
-    setState(() {
-      _overlayDragState = PrefabOverlayDragState(
-        pointer: event.pointer,
-        handle: handle,
-        startLocal: event.localPosition,
-        startValues: values,
-        zoom: geometry.zoom,
-        boundsWidthPx: boundsWidth,
-        boundsHeightPx: boundsHeight,
-      );
-    });
+    onOverlayValuesChanged(
+      PrefabOverlayInteraction.valuesWithSelectedCollider(
+        values: values,
+        selectedColliderIndex: colliderIndex,
+      ),
+    );
     return true;
   }
 

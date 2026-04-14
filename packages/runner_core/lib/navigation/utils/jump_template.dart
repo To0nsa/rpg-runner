@@ -1,5 +1,7 @@
 import '../types/nav_tolerances.dart';
 
+import 'standability.dart';
+
 /// Physics parameters for simulating a jump arc.
 ///
 /// Used to precompute reachability templates for AI pathfinding.
@@ -12,13 +14,15 @@ class JumpProfile {
     required this.dtSeconds,
     required this.agentHalfWidth,
     this.agentHalfHeight,
+    this.requiredSupportFraction = navFullSupportFraction,
     this.collideCeilings = true,
     this.collideLeftWalls = true,
     this.collideRightWalls = true,
   }) : assert(maxAirTicks > 0),
        assert(dtSeconds > 0),
        assert(agentHalfWidth > 0.0),
-       assert(agentHalfHeight == null || agentHalfHeight > 0.0);
+       assert(agentHalfHeight == null || agentHalfHeight > 0.0),
+       assert(requiredSupportFraction > 0.0 && requiredSupportFraction <= 1.0);
 
   /// Instantaneous vertical speed at jump start (negative = upward).
   final double jumpSpeed;
@@ -43,6 +47,9 @@ class JumpProfile {
   /// If not provided, [agentHalfWidth] is used.
   final double? agentHalfHeight;
 
+  /// Minimum fraction of the collider width that must stay supported.
+  final double requiredSupportFraction;
+
   /// Whether jump arc validation should treat ceiling bottoms as blocking.
   final bool collideCeilings;
 
@@ -54,6 +61,12 @@ class JumpProfile {
 
   /// Effective half-height used by jump obstruction checks.
   double get effectiveHalfHeight => agentHalfHeight ?? agentHalfWidth;
+
+  /// Minimum supported width required to stand or land on a surface.
+  double get requiredSupportWidth => supportWidthForHalfWidth(
+    agentHalfWidth,
+    supportFraction: requiredSupportFraction,
+  );
 }
 
 /// A single sample point along a precomputed jump arc.

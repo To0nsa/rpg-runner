@@ -38,10 +38,12 @@
 library;
 
 import 'collision/static_world_geometry_index.dart';
+import 'enemies/enemy_id.dart';
 import 'ecs/stores/restoration_item_store.dart' show RestorationStat;
 import 'ecs/systems/ground_enemy_locomotion_system.dart';
 import 'ecs/systems/enemy_navigation_system.dart';
 import 'navigation/surface_graph_builder.dart';
+import 'navigation/types/surface_graph.dart';
 import 'navigation/utils/jump_template.dart';
 import 'snapshots/ground_surface_snapshot.dart';
 import 'snapshots/static_prefab_sprite_snapshot.dart';
@@ -113,7 +115,7 @@ class TrackManager {
   /// - [restorationItemTuning]: Restoration item spawn parameters.
   /// - [baseGeometry]: Static level geometry (ground plane, initial platforms).
   /// - [surfaceGraphBuilder]: Builder for navigation surface graphs.
-  /// - [jumpTemplate]: Precomputed jump reachability for pathfinding.
+  /// - [enemyJumpTemplatesById]: Per-enemy jump/support profiles for nav graphs.
   /// - [enemyNavigationSystem]: Ground enemy navigation (receives graph updates).
   /// - [groundEnemyLocomotionSystem]: Ground locomotion (receives graph updates).
   /// - [spawnService]: Entity spawner (receives surface graph updates).
@@ -130,7 +132,7 @@ class TrackManager {
     required RestorationItemTuning restorationItemTuning,
     required StaticWorldGeometry baseGeometry,
     required SurfaceGraphBuilder surfaceGraphBuilder,
-    required JumpReachabilityTemplate jumpTemplate,
+    required Map<EnemyId, JumpReachabilityTemplate> enemyJumpTemplatesById,
     required EnemyNavigationSystem enemyNavigationSystem,
     required GroundEnemyLocomotionSystem groundEnemyLocomotionSystem,
     required SpawnService spawnService,
@@ -140,12 +142,15 @@ class TrackManager {
     int easyPatternChunks = defaultEasyPatternChunks,
     int normalPatternChunks = defaultNormalPatternChunks,
     int noEnemyChunks = defaultNoEnemyChunks,
-  }) : _trackTuning = trackTuning,
+  }) : assert(enemyJumpTemplatesById.isNotEmpty),
+       _trackTuning = trackTuning,
        _collectibleTuning = collectibleTuning,
        _restorationItemTuning = restorationItemTuning,
        _baseGeometry = baseGeometry,
        _surfaceGraphBuilder = surfaceGraphBuilder,
-       _jumpTemplate = jumpTemplate,
+       _enemyJumpTemplatesById = Map<EnemyId, JumpReachabilityTemplate>.unmodifiable(
+         enemyJumpTemplatesById,
+       ),
        _enemyNavigationSystem = enemyNavigationSystem,
        _groundEnemyLocomotionSystem = groundEnemyLocomotionSystem,
        _spawnService = spawnService,
@@ -184,7 +189,7 @@ class TrackManager {
   final RestorationItemTuning _restorationItemTuning;
   final StaticWorldGeometry _baseGeometry;
   final SurfaceGraphBuilder _surfaceGraphBuilder;
-  final JumpReachabilityTemplate _jumpTemplate;
+  final Map<EnemyId, JumpReachabilityTemplate> _enemyJumpTemplatesById;
   final EnemyNavigationSystem _enemyNavigationSystem;
   final GroundEnemyLocomotionSystem _groundEnemyLocomotionSystem;
   final SpawnService _spawnService;
@@ -387,24 +392,65 @@ class TrackManager {
   /// invalidate cached paths.
   void _rebuildSurfaceGraph() {
     _surfaceGraphVersion += 1;
-    final result = _surfaceGraphBuilder.build(
-      geometry: _staticGeometry,
-      jumpTemplate: _jumpTemplate,
-    );
+    final graphResultsByEnemy = <EnemyId, SurfaceGraphBuildResult>{};
+    SurfaceGraphBuildResult? primaryResult;
+    for (final entry in _enemyJumpTemplatesById.entries) {
+      final result = _surfaceGraphBuilder.build(
+        geometry: _staticGeometry,
+        jumpTemplate: entry.value,
+      );
+      primaryResult ??= result;
+      if (primaryResult != result) {
+        _assertCompatibleSurfaceGraphs(
+          primaryResult.graph,
+          result.graph,
+          enemyId: entry.key,
+        );
+      }
+      graphResultsByEnemy[entry.key] = result;
+    }
+
+    final sharedResult = primaryResult!;
 
     // Distribute new graph to spawn service.
     _spawnService.setSurfaceGraph(
-      graph: result.graph,
-      spatialIndex: result.spatialIndex,
+      graph: sharedResult.graph,
+      spatialIndex: sharedResult.spatialIndex,
     );
 
-    // Distribute new graph to enemy AI system.
-    _enemyNavigationSystem.setSurfaceGraph(
-      graph: result.graph,
-      spatialIndex: result.spatialIndex,
+    final graphsByEnemy = <EnemyId, SurfaceGraph>{
+      for (final entry in graphResultsByEnemy.entries) entry.key: entry.value.graph,
+    };
+
+    // Distribute per-enemy graphs to the AI systems. All graph variants share
+    // identical surface IDs/order; only the edge sets differ by enemy profile.
+    _enemyNavigationSystem.setSurfaceGraphs(
+      graphsByEnemy: graphsByEnemy,
+      spatialIndex: sharedResult.spatialIndex,
       graphVersion: _surfaceGraphVersion,
     );
-    _groundEnemyLocomotionSystem.setSurfaceGraph(graph: result.graph);
+    _groundEnemyLocomotionSystem.setSurfaceGraphs(graphsByEnemy: graphsByEnemy);
+  }
+
+  static void _assertCompatibleSurfaceGraphs(
+    SurfaceGraph expected,
+    SurfaceGraph actual, {
+    required EnemyId enemyId,
+  }) {
+    if (expected.surfaces.length != actual.surfaces.length) {
+      throw StateError(
+        'Surface graph for $enemyId changed surface count; per-enemy graphs '
+        'must share identical surface extraction.',
+      );
+    }
+    for (var i = 0; i < expected.surfaces.length; i += 1) {
+      if (expected.surfaces[i].id != actual.surfaces[i].id) {
+        throw StateError(
+          'Surface graph for $enemyId changed surface ordering at index $i; '
+          'shared spatial-index routing would become invalid.',
+        );
+      }
+    }
   }
 
   /// Builds an immutable list of [StaticSolidSnapshot] from geometry.

@@ -218,15 +218,18 @@ void main() {
       final output = outputFile.readAsStringSync();
       expect(output, contains('fieldEasyPatterns'));
       expect(output, contains('authoredChunkPatternSourcesByLevel'));
+      expect(output, contains('solids: <SolidRel>['));
       expect(output, contains('visualSprites: <ChunkVisualSpriteRel>['));
       expect(output, contains('x: 56.0'));
       expect(output, contains('width: 48.0'));
       expect(output, contains('chancePercent: 80'));
       expect(output, contains('EnemyId.derf'));
+      expect(output, isNot(contains('PlatformRel(')));
+      expect(output, isNot(contains('ObstacleRel(')));
       expect(
         output,
         contains(
-          'PlatformRel(x: 64.0, width: 32.0, aboveGroundTop: 160.0, thickness: 32.0)',
+          'SolidRel(x: 64.0, aboveGroundTop: 160.0, width: 32.0, height: 32.0, sides: SolidRel.sideTop, oneWayTop: true)',
         ),
       );
 
@@ -303,6 +306,238 @@ void main() {
       fixtureRoot.deleteSync(recursive: true);
     }
   });
+
+  test(
+    'generator preserves multiple prefab colliders as separate solids',
+    () async {
+      final fixtureRoot = await Directory.systemTemp.createTemp(
+        'chunk_generator_multi_collider_',
+      );
+      try {
+        _writeFile(
+          fixtureRoot.path,
+          'assets/authoring/level/prefab_defs.json',
+          '''
+{
+  "schemaVersion": 2,
+  "slices": [
+    {
+      "id": "rock_slice",
+      "sourceImagePath": "assets/images/level/tileset/TX Tileset Ground.png",
+      "x": 0,
+      "y": 0,
+      "width": 32,
+      "height": 32
+    }
+  ],
+  "prefabs": [
+    {
+      "prefabKey": "rock_stack",
+      "id": "rock_stack",
+      "revision": 1,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {"type": "atlas_slice", "sliceId": "rock_slice"},
+      "anchorXPx": 16,
+      "anchorYPx": 16,
+      "colliders": [
+        {"offsetX": -16, "offsetY": -16, "width": 32, "height": 32},
+        {"offsetX": 32, "offsetY": -48, "width": 32, "height": 32}
+      ],
+      "tags": []
+    }
+  ]
+}
+''',
+        );
+        _writeFile(
+          fixtureRoot.path,
+          'assets/authoring/level/tile_defs.json',
+          '''
+{
+  "schemaVersion": 2,
+  "tileSlices": [],
+  "platformModules": []
+}
+''',
+        );
+        _writeLevelDefs(fixtureRoot.path);
+        _writeParallaxDefs(fixtureRoot.path);
+        _writeFile(
+          fixtureRoot.path,
+          'assets/authoring/level/chunks/field/chunk_multi.json',
+          '''
+{
+  "schemaVersion": 1,
+  "chunkKey": "chunk_multi",
+  "id": "chunk_multi",
+  "levelId": "field",
+  "difficulty": "easy",
+  "groundProfile": {"kind": "flat", "topY": 224},
+  "prefabs": [
+    {
+      "prefabId": "rock_stack",
+      "prefabKey": "rock_stack",
+      "x": 128,
+      "y": 192,
+      "zIndex": 0,
+      "snapToGrid": true,
+      "flipX": true
+    }
+  ]
+}
+''',
+        );
+
+        final result = await _runGenerate(workingDirectory: fixtureRoot.path);
+        expect(result.exitCode, 0, reason: result.stderr);
+
+        final output = File(
+          _joinPath(<String>[
+            fixtureRoot.path,
+            'packages',
+            'runner_core',
+            'lib',
+            'track',
+            'authored_chunk_patterns.dart',
+          ]),
+        ).readAsStringSync();
+
+        expect(output, contains('chunk_multi'));
+        expect(
+          output,
+          contains(
+            'SolidRel(x: 128.0, aboveGroundTop: 64.0, width: 32.0, height: 32.0, sides: SolidRel.sideAll, oneWayTop: false)',
+          ),
+        );
+        expect(
+          output,
+          contains(
+            'SolidRel(x: 80.0, aboveGroundTop: 96.0, width: 32.0, height: 32.0, sides: SolidRel.sideAll, oneWayTop: false)',
+          ),
+        );
+      } finally {
+        fixtureRoot.deleteSync(recursive: true);
+      }
+    },
+  );
+
+  test(
+    'generator preserves platform multi-collider scale and flip into one-way solids',
+    () async {
+      final fixtureRoot = await Directory.systemTemp.createTemp(
+        'chunk_generator_platform_flip_scale_',
+      );
+      try {
+        _writeFile(
+          fixtureRoot.path,
+          'assets/authoring/level/prefab_defs.json',
+          '''
+{
+  "schemaVersion": 2,
+  "slices": [
+    {
+      "id": "bridge_slice",
+      "sourceImagePath": "assets/images/level/tileset/TX Tileset Ground.png",
+      "x": 0,
+      "y": 0,
+      "width": 32,
+      "height": 32
+    }
+  ],
+  "prefabs": [
+    {
+      "prefabKey": "bridge_stack",
+      "id": "bridge_stack",
+      "revision": 1,
+      "status": "active",
+      "kind": "platform",
+      "visualSource": {"type": "atlas_slice", "sliceId": "bridge_slice"},
+      "anchorXPx": 16,
+      "anchorYPx": 16,
+      "colliders": [
+        {"offsetX": -16, "offsetY": -16, "width": 32, "height": 32},
+        {"offsetX": 16, "offsetY": -32, "width": 32, "height": 32}
+      ],
+      "tags": []
+    }
+  ]
+}
+''',
+        );
+        _writeFile(
+          fixtureRoot.path,
+          'assets/authoring/level/tile_defs.json',
+          '''
+{
+  "schemaVersion": 2,
+  "tileSlices": [],
+  "platformModules": []
+}
+''',
+        );
+        _writeLevelDefs(fixtureRoot.path);
+        _writeParallaxDefs(fixtureRoot.path);
+        _writeFile(
+          fixtureRoot.path,
+          'assets/authoring/level/chunks/field/chunk_platform_flip_scale.json',
+          '''
+{
+  "schemaVersion": 1,
+  "chunkKey": "chunk_platform_flip_scale",
+  "id": "chunk_platform_flip_scale",
+  "levelId": "field",
+  "difficulty": "easy",
+  "groundProfile": {"kind": "flat", "topY": 224},
+  "prefabs": [
+    {
+      "prefabId": "bridge_stack",
+      "prefabKey": "bridge_stack",
+      "x": 160,
+      "y": 160,
+      "zIndex": 0,
+      "snapToGrid": true,
+      "scale": 2.0,
+      "flipX": true,
+      "flipY": true
+    }
+  ]
+}
+''',
+        );
+
+        final result = await _runGenerate(workingDirectory: fixtureRoot.path);
+        expect(result.exitCode, 0, reason: result.stderr);
+
+        final output = File(
+          _joinPath(<String>[
+            fixtureRoot.path,
+            'packages',
+            'runner_core',
+            'lib',
+            'track',
+            'authored_chunk_patterns.dart',
+          ]),
+        ).readAsStringSync();
+
+        expect(output, contains('chunk_platform_flip_scale'));
+        expect(
+          output,
+          contains(
+            'SolidRel(x: 160.0, aboveGroundTop: 64.0, width: 64.0, height: 64.0, sides: SolidRel.sideTop, oneWayTop: true)',
+          ),
+        );
+        expect(
+          output,
+          contains(
+            'SolidRel(x: 96.0, aboveGroundTop: 32.0, width: 64.0, height: 64.0, sides: SolidRel.sideTop, oneWayTop: true)',
+          ),
+        );
+      } finally {
+        fixtureRoot.deleteSync(recursive: true);
+      }
+    },
+  );
 
   test('generator emits assembly metadata into runtime outputs', () async {
     final fixtureRoot = await Directory.systemTemp.createTemp(

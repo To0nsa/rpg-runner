@@ -151,6 +151,7 @@ import 'navigation/surface_graph_builder.dart';
 import 'navigation/surface_navigator.dart';
 import 'navigation/surface_pathfinder.dart';
 import 'navigation/utils/jump_template.dart';
+import 'navigation/utils/standability.dart';
 import 'navigation/utils/trajectory_predictor.dart';
 import 'players/player_catalog.dart';
 import 'players/player_character_definition.dart';
@@ -345,7 +346,7 @@ class GameCore {
       restorationItemTuning: _restorationItemTuning,
       baseGeometry: levelDefinition.staticWorldGeometry,
       surfaceGraphBuilder: _surfaceGraphBuilder,
-      jumpTemplate: _groundEnemyJumpTemplate,
+      enemyJumpTemplatesById: _groundEnemyJumpTemplatesById,
       enemyNavigationSystem: _enemyNavigationSystem,
       groundEnemyLocomotionSystem: _groundEnemyLocomotionSystem,
       spawnService: _spawnService,
@@ -532,23 +533,10 @@ class GameCore {
       surfaceGrid: GridIndex2D(cellSize: _spatialGridTuning.broadphaseCellSize),
       takeoffSampleMaxStep: _navigationTuning.takeoffSampleMaxStep,
     );
-    final groundEnemyArchetype = _enemyCatalog.get(EnemyId.grojib);
-    _groundEnemyJumpTemplate = JumpReachabilityTemplate.build(
-      JumpProfile(
-        jumpSpeed: _groundEnemyTuning.locomotion.jumpSpeed,
-        gravityY: _physicsTuning.gravityY,
-        maxAirTicks: _groundEnemyMaxAirTicks(),
-        airSpeedX: _groundEnemyTuning.locomotion.speedX,
-        dtSeconds: _movement.dtSeconds,
-        agentHalfWidth: groundEnemyArchetype.collider.halfX,
-        agentHalfHeight: groundEnemyArchetype.collider.halfY,
-        collideCeilings: !groundEnemyArchetype.body.ignoreCeilings,
-        collideLeftWalls:
-            (groundEnemyArchetype.body.sideMask & BodyDef.sideLeft) != 0,
-        collideRightWalls:
-            (groundEnemyArchetype.body.sideMask & BodyDef.sideRight) != 0,
-      ),
-    );
+    _groundEnemyJumpTemplatesById = <EnemyId, JumpReachabilityTemplate>{
+      EnemyId.grojib: _buildGroundEnemyJumpTemplate(EnemyId.grojib),
+      EnemyId.hashash: _buildGroundEnemyJumpTemplate(EnemyId.hashash),
+    };
     _surfacePathfinder = SurfacePathfinder(
       maxExpandedNodes: _navigationTuning.maxExpandedNodes,
       runSpeedX: _groundEnemyTuning.locomotion.speedX,
@@ -816,7 +804,8 @@ class GameCore {
   late FlyingEnemyMeleeSystem _flyingEnemyMeleeSystem;
   late EnemyMeleeSystem _enemyMeleeSystem;
   late final SurfaceGraphBuilder _surfaceGraphBuilder;
-  late final JumpReachabilityTemplate _groundEnemyJumpTemplate;
+  late final Map<EnemyId, JumpReachabilityTemplate>
+  _groundEnemyJumpTemplatesById;
   late final SurfacePathfinder _surfacePathfinder;
   late final SurfaceNavigator _surfaceNavigator;
   late final AbilityActivationSystem _abilityActivationSystem;
@@ -1648,6 +1637,25 @@ class GameCore {
     final jumpSpeed = _groundEnemyTuning.locomotion.jumpSpeed.abs();
     final baseAirSeconds = (2.0 * jumpSpeed) / gravity;
     return ticksFromSecondsCeil(baseAirSeconds * 1.5, tickHz);
+  }
+
+  JumpReachabilityTemplate _buildGroundEnemyJumpTemplate(EnemyId enemyId) {
+    final archetype = _enemyCatalog.get(enemyId);
+    return JumpReachabilityTemplate.build(
+      JumpProfile(
+        jumpSpeed: _groundEnemyTuning.locomotion.jumpSpeed,
+        gravityY: _physicsTuning.gravityY,
+        maxAirTicks: _groundEnemyMaxAirTicks(),
+        airSpeedX: _groundEnemyTuning.locomotion.speedX,
+        dtSeconds: _movement.dtSeconds,
+        agentHalfWidth: archetype.collider.halfX,
+        agentHalfHeight: archetype.collider.halfY,
+        requiredSupportFraction: groundEnemySupportFraction,
+        collideCeilings: !archetype.body.ignoreCeilings,
+        collideLeftWalls: (archetype.body.sideMask & BodyDef.sideLeft) != 0,
+        collideRightWalls: (archetype.body.sideMask & BodyDef.sideRight) != 0,
+      ),
+    );
   }
 
   int _damagePulseIntensityBp(int appliedAmount100) {

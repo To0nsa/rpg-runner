@@ -65,10 +65,10 @@ Deterministic chunk streaming currently exists in:
 
 Current authored chunk contract is `ChunkPattern` with:
 
-- `platforms`
-- `obstacles`
+- `solids`
 - `groundGaps`
 - `spawnMarkers` (enemy-focused)
+- `visualSprites`
 
 ### Editor side
 
@@ -764,4 +764,6 @@ Asset sync when new level assets are added:
 4. Start Phase 9 first playable end-to-end chunk pipeline.
 5. Keep Phase 10 parallax parity and determinism coverage green while the
    remaining chunk/runtime phases land.
-6. Start Phase 11 CI drift gate + adapter removal hardening.
+6. Start Phase 11 CI drift gate + remaining hardening.
+   Runtime chunk collision adapter removal is complete; the open work is CI
+   drift enforcement and future contract cleanup around new content families.

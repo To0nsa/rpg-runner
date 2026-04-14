@@ -31,9 +31,21 @@ void main() {
   test('ground enemy clears double-block obstacle sequence', () {
     const pattern = ChunkPattern(
       name: 'double-blocks',
-      obstacles: <ObstacleRel>[
-        ObstacleRel(x: 160.0, width: 32.0, height: 48.0),
-        ObstacleRel(x: 288.0, width: 48.0, height: 64.0),
+      solids: <SolidRel>[
+        SolidRel(
+          x: 160.0,
+          aboveGroundTop: 48.0,
+          width: 32.0,
+          height: 48.0,
+          sides: SolidRel.sideAll,
+        ),
+        SolidRel(
+          x: 288.0,
+          aboveGroundTop: 64.0,
+          width: 48.0,
+          height: 64.0,
+          sides: SolidRel.sideAll,
+        ),
       ],
     );
     const groundTopY = 220.0;

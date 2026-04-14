@@ -17,3 +17,9 @@ enum EnemyId {
   /// A stationary caster perched on obstacle tops.
   derf,
 }
+
+/// Enemy types that use the surface-navigation stack for grounded traversal.
+const List<EnemyId> groundNavigatingEnemyIds = <EnemyId>[
+  EnemyId.grojib,
+  EnemyId.hashash,
+];

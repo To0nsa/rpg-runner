@@ -31,12 +31,18 @@ class PlatformPrefabsTab extends StatelessWidget {
     required this.platformPrefabs,
     required this.editingPlatformPrefab,
     required this.sceneValues,
+    required this.colliderDrafts,
+    required this.selectedColliderIndex,
     required this.workspaceRootPath,
     required this.onSelectedModuleChanged,
     required this.onLoadPrefabForModule,
     required this.onUpsertPrefabForModule,
     required this.onStartNewFromCurrentValues,
     required this.onSceneValuesChanged,
+    required this.onSelectedColliderChanged,
+    required this.onAddCollider,
+    required this.onDuplicateCollider,
+    required this.onDeleteCollider,
     required this.onLoadPrefab,
     required this.onDeletePrefab,
   });
@@ -49,12 +55,18 @@ class PlatformPrefabsTab extends StatelessWidget {
   final List<PrefabDef> platformPrefabs;
   final PrefabDef? editingPlatformPrefab;
   final PrefabSceneValues? sceneValues;
+  final List<PrefabColliderDef> colliderDrafts;
+  final int? selectedColliderIndex;
   final String workspaceRootPath;
   final ValueChanged<String?> onSelectedModuleChanged;
   final VoidCallback onLoadPrefabForModule;
   final VoidCallback onUpsertPrefabForModule;
   final VoidCallback onStartNewFromCurrentValues;
   final ValueChanged<PrefabSceneValues> onSceneValuesChanged;
+  final ValueChanged<int> onSelectedColliderChanged;
+  final VoidCallback onAddCollider;
+  final VoidCallback onDuplicateCollider;
+  final VoidCallback? onDeleteCollider;
   final ValueChanged<PrefabDef> onLoadPrefab;
   final ValueChanged<String> onDeletePrefab;
 
@@ -68,10 +80,16 @@ class PlatformPrefabsTab extends StatelessWidget {
         selectedModule: selectedModule,
         editingPlatformPrefab: editingPlatformPrefab,
         sceneValues: sceneValues,
+        colliderDrafts: colliderDrafts,
+        selectedColliderIndex: selectedColliderIndex,
         onSelectedModuleChanged: onSelectedModuleChanged,
         onLoadPrefabForModule: onLoadPrefabForModule,
         onUpsertPrefabForModule: onUpsertPrefabForModule,
         onStartNewFromCurrentValues: onStartNewFromCurrentValues,
+        onSelectedColliderChanged: onSelectedColliderChanged,
+        onAddCollider: onAddCollider,
+        onDuplicateCollider: onDuplicateCollider,
+        onDeleteCollider: onDeleteCollider,
       ),
       scene: _buildSceneCard(
         workspaceRootPath: workspaceRootPath,
@@ -145,10 +163,16 @@ class _PlatformPrefabInspectorPanel extends StatelessWidget {
     required this.selectedModule,
     required this.editingPlatformPrefab,
     required this.sceneValues,
+    required this.colliderDrafts,
+    required this.selectedColliderIndex,
     required this.onSelectedModuleChanged,
     required this.onLoadPrefabForModule,
     required this.onUpsertPrefabForModule,
     required this.onStartNewFromCurrentValues,
+    required this.onSelectedColliderChanged,
+    required this.onAddCollider,
+    required this.onDuplicateCollider,
+    required this.onDeleteCollider,
   });
 
   final PrefabFormState form;
@@ -157,10 +181,16 @@ class _PlatformPrefabInspectorPanel extends StatelessWidget {
   final TileModuleDef? selectedModule;
   final PrefabDef? editingPlatformPrefab;
   final PrefabSceneValues? sceneValues;
+  final List<PrefabColliderDef> colliderDrafts;
+  final int? selectedColliderIndex;
   final ValueChanged<String?> onSelectedModuleChanged;
   final VoidCallback onLoadPrefabForModule;
   final VoidCallback onUpsertPrefabForModule;
   final VoidCallback onStartNewFromCurrentValues;
+  final ValueChanged<int> onSelectedColliderChanged;
+  final VoidCallback onAddCollider;
+  final VoidCallback onDuplicateCollider;
+  final VoidCallback? onDeleteCollider;
 
   @override
   Widget build(BuildContext context) {
@@ -244,9 +274,15 @@ class _PlatformPrefabInspectorPanel extends StatelessWidget {
             isEnabled: selectedModule != null,
             isEditingPrefab: isEditingPlatformPrefab,
             sceneValues: sceneValues,
+            colliderDrafts: colliderDrafts,
+            selectedColliderIndex: selectedColliderIndex,
             onLoadPrefabForModule: onLoadPrefabForModule,
             onUpsertPrefabForModule: onUpsertPrefabForModule,
             onStartNewFromCurrentValues: onStartNewFromCurrentValues,
+            onSelectedColliderChanged: onSelectedColliderChanged,
+            onAddCollider: onAddCollider,
+            onDuplicateCollider: onDuplicateCollider,
+            onDeleteCollider: onDeleteCollider,
           ),
         ],
       ),

@@ -49,10 +49,12 @@ class SurfaceNavigatorProbe extends SurfaceNavigator {
     required double entityBottomY,
     required double entityHalfWidth,
     required bool entityGrounded,
+    double entitySupportFraction = 1.0,
     required double targetX,
     required double targetBottomY,
     required double targetHalfWidth,
     required bool targetGrounded,
+    double targetSupportFraction = 1.0,
   }) {
     targetXs.add(targetX);
     return SurfaceNavIntent(

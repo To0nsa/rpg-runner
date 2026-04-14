@@ -1,10 +1,12 @@
 import 'package:runner_core/ecs/entity_id.dart';
 
 import '../../combat/control_lock.dart';
+import '../../enemies/enemy_id.dart';
 import '../../navigation/surface_navigator.dart';
 import '../../navigation/types/surface_graph.dart';
 import '../../navigation/types/surface_id.dart';
 import '../../navigation/utils/surface_spatial_index.dart';
+import '../../navigation/utils/standability.dart';
 import '../../navigation/utils/trajectory_predictor.dart';
 import '../world.dart';
 
@@ -28,7 +30,8 @@ class EnemyNavigationSystem {
 
   final int _chaseTargetDelayTicks;
 
-  SurfaceGraph? _surfaceGraph;
+  Map<EnemyId, SurfaceGraph> _surfaceGraphsByEnemy = <EnemyId, SurfaceGraph>{};
+  SurfaceGraph? _defaultSurfaceGraph;
   SurfaceSpatialIndex? _surfaceIndex;
   int _surfaceGraphVersion = 0;
 
@@ -44,7 +47,25 @@ class EnemyNavigationSystem {
     required SurfaceSpatialIndex spatialIndex,
     required int graphVersion,
   }) {
-    _surfaceGraph = graph;
+    setSurfaceGraphs(
+      graphsByEnemy: <EnemyId, SurfaceGraph>{
+        for (final enemyId in groundNavigatingEnemyIds) enemyId: graph,
+      },
+      spatialIndex: spatialIndex,
+      graphVersion: graphVersion,
+    );
+  }
+
+  /// Updates per-enemy navigation graphs while keeping a shared spatial index.
+  void setSurfaceGraphs({
+    required Map<EnemyId, SurfaceGraph> graphsByEnemy,
+    required SurfaceSpatialIndex spatialIndex,
+    required int graphVersion,
+  }) {
+    _surfaceGraphsByEnemy = Map<EnemyId, SurfaceGraph>.unmodifiable(
+      graphsByEnemy,
+    );
+    _defaultSurfaceGraph = graphsByEnemy.isEmpty ? null : graphsByEnemy.values.first;
     _surfaceIndex = spatialIndex;
     _surfaceGraphVersion = graphVersion;
   }
@@ -76,7 +97,7 @@ class EnemyNavigationSystem {
       playerBottomY = playerY + offsetY + world.colliderAabb.halfY[ai];
     }
 
-    final graph = _surfaceGraph;
+    final graph = _defaultSurfaceGraph;
     final spatialIndex = _surfaceIndex;
 
     var rawTargetX = playerX;
@@ -140,6 +161,7 @@ class EnemyNavigationSystem {
     final enemies = world.enemy;
     for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
       final enemy = enemies.denseEntities[ei];
+      final enemyId = enemies.enemyId[ei];
       if (world.deathState.has(enemy)) continue;
       if (!world.surfaceNav.has(enemy)) continue;
       final ti = world.transform.tryIndexOf(enemy);
@@ -173,7 +195,8 @@ class EnemyNavigationSystem {
           world.collision.has(enemy) &&
           world.collision.grounded[world.collision.indexOf(enemy)];
 
-      if (graph == null ||
+      final enemyGraph = _surfaceGraphsByEnemy[enemyId] ?? graph;
+      if (enemyGraph == null ||
           spatialIndex == null ||
           !world.colliderAabb.has(enemy)) {
         intent = SurfaceNavIntent(
@@ -191,13 +214,14 @@ class EnemyNavigationSystem {
         intent = surfaceNavigator.update(
           navStore: world.surfaceNav,
           navIndex: navIndex,
-          graph: graph,
+          graph: enemyGraph,
           spatialIndex: spatialIndex,
           graphVersion: _surfaceGraphVersion,
           entityX: ex,
           entityBottomY: enemyBottomY,
           entityHalfWidth: enemyHalfX,
           entityGrounded: enemyGrounded,
+          entitySupportFraction: groundEnemySupportFraction,
           targetX: navTargetX,
           targetBottomY: navTargetBottomY,
           targetHalfWidth: playerHalfX,
@@ -212,15 +236,19 @@ class EnemyNavigationSystem {
               ? currentSurfaceId
               : lastGroundSurfaceId;
           if (safeSurfaceId != surfaceIdUnknown) {
-            final currentIndex = graph.indexOfSurfaceId(safeSurfaceId);
+            final currentIndex = enemyGraph.indexOfSurfaceId(safeSurfaceId);
             if (currentIndex != null) {
-              final surface = graph.surfaces[currentIndex];
-              final minX = surface.xMin + enemyHalfX;
-              final maxX = surface.xMax - enemyHalfX;
-              if (minX <= maxX) {
+              final surface = enemyGraph.surfaces[currentIndex];
+              final standable = computeStandableCenterRange(
+                surfaceMinX: surface.xMin,
+                surfaceMaxX: surface.xMax,
+                halfWidth: enemyHalfX,
+                supportFraction: groundEnemySupportFraction,
+              );
+              if (standable != null) {
                 hasSafeSurface = true;
-                safeSurfaceMinX = minX;
-                safeSurfaceMaxX = maxX;
+                safeSurfaceMinX = standable.minX;
+                safeSurfaceMaxX = standable.maxX;
               }
             }
           }

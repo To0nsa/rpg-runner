@@ -12,12 +12,14 @@ void main() {
     () {
       const pattern = ChunkPattern(
         name: 'obstacle-top-fallback',
-        platforms: <PlatformRel>[
-          PlatformRel(
+        solids: <SolidRel>[
+          SolidRel(
             x: 160.0,
-            width: 80.0,
             aboveGroundTop: 64.0,
-            thickness: 16.0,
+            width: 80.0,
+            height: 16.0,
+            sides: SolidRel.sideTop,
+            oneWayTop: true,
           ),
         ],
         spawnMarkers: <SpawnMarker>[
@@ -57,16 +59,22 @@ void main() {
   test('obstacleTop prefers obstacle surfaces over platform surfaces', () {
     const pattern = ChunkPattern(
       name: 'obstacle-top-preference',
-      platforms: <PlatformRel>[
-        PlatformRel(
+      solids: <SolidRel>[
+        SolidRel(
           x: 160.0,
-          width: 128.0,
           aboveGroundTop: 96.0,
-          thickness: 16.0,
+          width: 128.0,
+          height: 16.0,
+          sides: SolidRel.sideTop,
+          oneWayTop: true,
         ),
-      ],
-      obstacles: <ObstacleRel>[
-        ObstacleRel(x: 176.0, width: 80.0, height: 64.0),
+        SolidRel(
+          x: 176.0,
+          aboveGroundTop: 64.0,
+          width: 80.0,
+          height: 64.0,
+          sides: SolidRel.sideAll,
+        ),
       ],
       spawnMarkers: <SpawnMarker>[
         SpawnMarker(

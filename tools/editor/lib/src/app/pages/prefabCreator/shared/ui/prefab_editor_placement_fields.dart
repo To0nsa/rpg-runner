@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
-import 'prefab_editor_ui_tokens.dart';
+import '../../../../../prefabs/models/models.dart';
 import '../prefab_form_state.dart';
+import 'prefab_editor_action_row.dart';
+import 'prefab_editor_ui_tokens.dart';
 
 /// Shared placement/collider fields used by obstacle and platform prefab flows.
 class PrefabEditorPlacementFields extends StatelessWidget {
@@ -13,6 +15,13 @@ class PrefabEditorPlacementFields extends StatelessWidget {
     this.colliderOffsetYLabel = 'Offset Y',
     this.colliderWidthLabel = 'Width',
     this.colliderHeightLabel = 'Height',
+    this.colliders = const <PrefabColliderDef>[],
+    this.selectedColliderIndex,
+    this.onSelectedColliderChanged,
+    this.onAddCollider,
+    this.onDuplicateCollider,
+    this.onDeleteCollider,
+    this.colliderKeyPrefix = 'prefab_collider',
     this.invalidValuesMessage,
   });
 
@@ -22,6 +31,13 @@ class PrefabEditorPlacementFields extends StatelessWidget {
   final String colliderOffsetYLabel;
   final String colliderWidthLabel;
   final String colliderHeightLabel;
+  final List<PrefabColliderDef> colliders;
+  final int? selectedColliderIndex;
+  final ValueChanged<int>? onSelectedColliderChanged;
+  final VoidCallback? onAddCollider;
+  final VoidCallback? onDuplicateCollider;
+  final VoidCallback? onDeleteCollider;
+  final String colliderKeyPrefix;
   final String? invalidValuesMessage;
 
   @override
@@ -53,6 +69,50 @@ class PrefabEditorPlacementFields extends StatelessWidget {
                   labelText: 'Anchor Y (px)',
                 ),
               ),
+            ),
+          ],
+        ),
+        const SizedBox(height: PrefabEditorUiTokens.controlGap),
+        Text('Collider List', style: Theme.of(context).textTheme.titleSmall),
+        const SizedBox(height: PrefabEditorUiTokens.controlGap),
+        if (colliders.isEmpty)
+          const Text('No colliders configured.')
+        else
+          Wrap(
+            spacing: PrefabEditorUiTokens.controlGap,
+            runSpacing: PrefabEditorUiTokens.controlGap,
+            children: [
+              for (var i = 0; i < colliders.length; i += 1)
+                ChoiceChip(
+                  key: ValueKey<String>('${colliderKeyPrefix}_chip_$i'),
+                  label: Text(_colliderLabel(i, colliders[i])),
+                  selected: selectedColliderIndex == i,
+                  onSelected: !isEnabled || onSelectedColliderChanged == null
+                      ? null
+                      : (_) => onSelectedColliderChanged!(i),
+                ),
+            ],
+          ),
+        const SizedBox(height: PrefabEditorUiTokens.controlGap),
+        PrefabEditorActionRow(
+          children: [
+            OutlinedButton.icon(
+              key: ValueKey<String>('${colliderKeyPrefix}_add_button'),
+              onPressed: isEnabled ? onAddCollider : null,
+              icon: const Icon(Icons.add_box_outlined),
+              label: const Text('Add Collider'),
+            ),
+            OutlinedButton.icon(
+              key: ValueKey<String>('${colliderKeyPrefix}_duplicate_button'),
+              onPressed: isEnabled ? onDuplicateCollider : null,
+              icon: const Icon(Icons.copy_outlined),
+              label: const Text('Duplicate Collider'),
+            ),
+            OutlinedButton.icon(
+              key: ValueKey<String>('${colliderKeyPrefix}_delete_button'),
+              onPressed: isEnabled ? onDeleteCollider : null,
+              icon: const Icon(Icons.delete_outline),
+              label: const Text('Delete Collider'),
             ),
           ],
         ),
@@ -112,12 +172,17 @@ class PrefabEditorPlacementFields extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: PrefabEditorUiTokens.controlGap),
         if (invalidValuesMessage != null) ...[
           const SizedBox(height: PrefabEditorUiTokens.controlGap),
           Text(invalidValuesMessage!),
         ],
       ],
     );
+  }
+
+  String _colliderLabel(int index, PrefabColliderDef collider) {
+    return '#${index + 1} '
+        '${collider.width}x${collider.height} '
+        '@ ${collider.offsetX},${collider.offsetY}';
   }
 }

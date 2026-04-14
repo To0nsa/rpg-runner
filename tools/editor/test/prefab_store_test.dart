@@ -468,4 +468,118 @@ void main() {
       root.deleteSync(recursive: true);
     }
   });
+
+  test(
+    'save canonicalizes multi-collider prefab ordering deterministically',
+    () async {
+      final root = Directory.systemTemp.createTempSync(
+        'prefab_store_multi_collider_order_',
+      );
+      try {
+        final input = PrefabData(
+          prefabSlices: const <AtlasSliceDef>[
+            AtlasSliceDef(
+              id: 'crate_slice',
+              sourceImagePath: 'assets/images/level/props/a.png',
+              x: 0,
+              y: 0,
+              width: 32,
+              height: 32,
+            ),
+          ],
+          prefabs: <PrefabDef>[
+            PrefabDef(
+              prefabKey: 'crate_multi',
+              id: 'crate_multi',
+              revision: 1,
+              status: PrefabStatus.active,
+              kind: PrefabKind.obstacle,
+              sliceId: 'crate_slice',
+              anchorXPx: 16,
+              anchorYPx: 16,
+              colliders: <PrefabColliderDef>[
+                PrefabColliderDef(
+                  offsetX: 4,
+                  offsetY: 8,
+                  width: 10,
+                  height: 10,
+                ),
+                PrefabColliderDef(
+                  offsetX: 12,
+                  offsetY: 0,
+                  width: 12,
+                  height: 12,
+                ),
+                PrefabColliderDef(
+                  offsetX: -8,
+                  offsetY: 0,
+                  width: 8,
+                  height: 14,
+                ),
+              ],
+            ),
+          ],
+        );
+
+        await store.save(root.path, data: input);
+        final loaded = await store.load(root.path);
+
+        expect(loaded.prefabs, hasLength(1));
+        expect(
+          loaded.prefabs.single.colliders
+              .map(
+                (collider) => <int>[
+                  collider.offsetX,
+                  collider.offsetY,
+                  collider.width,
+                  collider.height,
+                ],
+              )
+              .toList(growable: false),
+          <List<int>>[
+            <int>[-8, 0, 8, 14],
+            <int>[12, 0, 12, 12],
+            <int>[4, 8, 10, 10],
+          ],
+        );
+
+        final prefabJson =
+            jsonDecode(
+                  File(
+                    p.join(root.path, PrefabStore.prefabDefsPath),
+                  ).readAsStringSync(),
+                )
+                as Map<String, Object?>;
+        final persistedPrefabs =
+            prefabJson['prefabs'] as List<Object?>? ?? const <Object?>[];
+        final persistedColliders =
+            ((persistedPrefabs.single as Map<String, Object?>)['colliders'])
+                as List<Object?>? ??
+            const <Object?>[];
+
+        expect(persistedColliders, <Object?>[
+          <String, Object?>{
+            'offsetX': -8,
+            'offsetY': 0,
+            'width': 8,
+            'height': 14,
+          },
+          <String, Object?>{
+            'offsetX': 12,
+            'offsetY': 0,
+            'width': 12,
+            'height': 12,
+          },
+          <String, Object?>{
+            'offsetX': 4,
+            'offsetY': 8,
+            'width': 10,
+            'height': 10,
+          },
+        ]);
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    },
+  );
 }

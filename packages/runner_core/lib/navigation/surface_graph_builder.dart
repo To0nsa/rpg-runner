@@ -1,6 +1,7 @@
 import '../collision/static_world_geometry_index.dart';
 import '../ecs/spatial/grid_index_2d.dart';
 import 'utils/jump_template.dart';
+import 'utils/standability.dart';
 import 'types/nav_tolerances.dart';
 import 'surface_extractor.dart';
 import 'types/surface_graph.dart';
@@ -101,6 +102,7 @@ class SurfaceGraphBuilder {
       final standable = _standableRange(
         from,
         jumpTemplate.profile.agentHalfWidth,
+        jumpTemplate.profile.requiredSupportFraction,
         standableEps,
       );
       if (standable == null) {
@@ -112,19 +114,27 @@ class SurfaceGraphBuilder {
       // -----------------------------------------------------------------------
       // Step 2a: Generate drop edges (walk off ledge).
       // -----------------------------------------------------------------------
-      final dropSamples = _dropSamples(standable.min, standable.max);
-      final dropMid = (standable.min + standable.max) * 0.5;
+      final dropSamples = _dropSamples(standable.minX, standable.maxX);
+      final dropMid = (standable.minX + standable.maxX) * 0.5;
       for (final dropX in dropSamples) {
         final landingIndex = _findFirstSurfaceBelow(
           surfaces,
           dropX,
           from.yTop,
           jumpTemplate.profile.agentHalfWidth,
+          jumpTemplate.profile.requiredSupportFraction,
           standableEps,
         );
         if (landingIndex == null) continue;
 
         final landingSurface = surfaces[landingIndex];
+        final landingRange = _standableRange(
+          landingSurface,
+          jumpTemplate.profile.agentHalfWidth,
+          jumpTemplate.profile.requiredSupportFraction,
+          standableEps,
+        );
+        if (landingRange == null) continue;
         final dy = landingSurface.yTop - from.yTop;
         final fallTicks = estimateFallTicks(
           dy: dy,
@@ -143,8 +153,8 @@ class SurfaceGraphBuilder {
           takeoffX: takeoffX,
           landingX: _clamp(
             dropX,
-            landingSurface.xMin + jumpTemplate.profile.agentHalfWidth,
-            landingSurface.xMax - jumpTemplate.profile.agentHalfWidth,
+            landingRange.minX,
+            landingRange.maxX,
           ),
           commitDirX: commitDirX,
           travelTicks: fallTicks,
@@ -157,8 +167,8 @@ class SurfaceGraphBuilder {
       // Step 2b: Generate jump edges (sample takeoff points).
       // -----------------------------------------------------------------------
       final takeoffXs = _takeoffSamples(
-        standable.min,
-        standable.max,
+        standable.minX,
+        standable.maxX,
         jumpTemplate.maxDx,
         takeoffSampleMaxStep,
       );
@@ -203,13 +213,14 @@ class SurfaceGraphBuilder {
           final landing = _standableRange(
             target,
             jumpTemplate.profile.agentHalfWidth,
+            jumpTemplate.profile.requiredSupportFraction,
             standableEps,
           );
           if (landing == null) continue; // Target too narrow.
 
           // Check if jump arc can reach target surface.
-          final dxMin = landing.min - takeoffX;
-          final dxMax = landing.max - takeoffX;
+          final dxMin = landing.minX - takeoffX;
+          final dxMax = landing.maxX - takeoffX;
           final landingTick = jumpTemplate.findFirstLanding(
             dy: dy,
             dxMin: dxMin,
@@ -220,8 +231,8 @@ class SurfaceGraphBuilder {
           // Compute actual landing range (intersection of reach and surface).
           final reachMin = takeoffX - landingTick.maxDx;
           final reachMax = takeoffX + landingTick.maxDx;
-          final low = reachMin > landing.min ? reachMin : landing.min;
-          final high = reachMax < landing.max ? reachMax : landing.max;
+          final low = reachMin > landing.minX ? reachMin : landing.minX;
+          final high = reachMax < landing.maxX ? reachMax : landing.maxX;
           if (low > high + standableEps) continue; // No overlap.
 
           final landingX = (low + high) * 0.5; // Center of landing range.
@@ -275,25 +286,22 @@ class SurfaceGraphBuilder {
 // Helper types and functions
 // =============================================================================
 
-/// A horizontal range [min, max].
-class _Range {
-  const _Range(this.min, this.max);
-
-  final double min;
-  final double max;
-}
-
 /// Computes the standable X range for an agent on a surface.
 ///
-/// The agent's center must be at least [halfWidth] from each edge.
-/// Returns `null` if the surface is too narrow.
-_Range? _standableRange(WalkSurface surface, double halfWidth, double eps) {
-  // Allow a tiny support overhang to stay aligned with runtime collision,
-  // which accepts partial horizontal overlap when landing.
-  final min = surface.xMin + halfWidth - eps;
-  final max = surface.xMax - halfWidth + eps;
-  if (min > max + eps) return null;
-  return _Range(min, max);
+/// Returns `null` if the surface cannot provide the required support width.
+StandableCenterRange? _standableRange(
+  WalkSurface surface,
+  double halfWidth,
+  double supportFraction,
+  double eps,
+) {
+  return computeStandableCenterRange(
+    surfaceMinX: surface.xMin,
+    surfaceMaxX: surface.xMax,
+    halfWidth: halfWidth,
+    supportFraction: supportFraction,
+    eps: eps,
+  );
 }
 
 /// Generates takeoff sample points across a standable range.
@@ -365,6 +373,7 @@ int? _findFirstSurfaceBelow(
   double x,
   double fromY,
   double halfWidth,
+  double supportFraction,
   double eps,
 ) {
   int? bestIndex;
@@ -375,10 +384,16 @@ int? _findFirstSurfaceBelow(
     // Must be below starting point.
     if (s.yTop <= fromY) continue;
     // Must be standable at this X.
-    final minX = s.xMin + halfWidth - eps;
-    final maxX = s.xMax - halfWidth + eps;
-    if (minX > maxX + eps) continue;
-    if (x < minX || x > maxX) continue;
+    if (!isStandableAtX(
+      x: x,
+      surfaceMinX: s.xMin,
+      surfaceMaxX: s.xMax,
+      halfWidth: halfWidth,
+      supportFraction: supportFraction,
+      eps: eps,
+    )) {
+      continue;
+    }
 
     // Prefer highest surface (lowest yTop).
     if (bestY == null || s.yTop < bestY) {

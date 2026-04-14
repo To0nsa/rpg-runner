@@ -622,8 +622,7 @@ _ChunkExportData? _buildChunkExportData(
   List<_ValidationIssue> issues, {
   required _PrefabRegistry prefabRegistry,
 }) {
-  final platforms = <_PlatformExport>[];
-  final obstacles = <_ObstacleExport>[];
+  final solids = <_SolidExport>[];
   final visualSprites = <_VisualSpriteExport>[];
   final groundGaps = <_GroundGapExport>[];
   final markers = <_MarkerExport>[];
@@ -738,63 +737,44 @@ _ChunkExportData? _buildChunkExportData(
     visualSprites.addAll(spriteEntries);
 
     if (prefab.kind == 'platform') {
-      final colliderBounds = _computeColliderBounds(
-        prefab: prefab,
-        placementX: placementX,
-        placementY: placementY,
-        scale: scale,
-        flipX: flipX,
-        flipY: flipY,
-      );
-      final ref = colliderBounds ?? _computeVisualBounds(spriteEntries);
-      if (ref == null) continue;
-      final x = _snapToGrid(ref.left);
-      final width = _positiveSnapDimension(ref.width);
-      final topY = _snapToGrid(ref.top);
-      final aboveGroundTop = chunk.groundTopY - topY;
-      final thickness = _positiveSnapDimension(ref.height);
-      if (aboveGroundTop <= 0) {
-        issues.add(
-          _ValidationIssue(
-            path: chunk.path,
-            code: 'invalid_platform_height',
-            message: 'Platform aboveGroundTop must be > 0 for "$prefabKey".',
-          ),
-        );
-        continue;
-      }
-      platforms.add(
-        _PlatformExport(
-          x: x,
-          width: width,
-          aboveGroundTop: aboveGroundTop,
-          thickness: thickness,
+      solids.addAll(
+        _buildColliderSolids(
+          prefabKey: prefabKey,
+          prefabKind: prefab.kind,
+          prefab: prefab,
+          placementX: placementX,
+          placementY: placementY,
+          scale: scale,
+          flipX: flipX,
+          flipY: flipY,
+          chunkGroundTopY: chunk.groundTopY,
+          chunkPath: chunk.path,
+          issues: issues,
+          sides: _SolidExport.sideTop,
+          oneWayTop: true,
         ),
       );
       continue;
     }
 
     if (prefab.kind == 'obstacle') {
-      final colliderBounds = _computeColliderBounds(
-        prefab: prefab,
-        placementX: placementX,
-        placementY: placementY,
-        scale: scale,
-        flipX: flipX,
-        flipY: flipY,
+      solids.addAll(
+        _buildColliderSolids(
+          prefabKey: prefabKey,
+          prefabKind: prefab.kind,
+          prefab: prefab,
+          placementX: placementX,
+          placementY: placementY,
+          scale: scale,
+          flipX: flipX,
+          flipY: flipY,
+          chunkGroundTopY: chunk.groundTopY,
+          chunkPath: chunk.path,
+          issues: issues,
+          sides: _SolidExport.sideAll,
+          oneWayTop: false,
+        ),
       );
-      final ref = colliderBounds ?? _computeVisualBounds(spriteEntries);
-      if (ref == null) continue;
-      final left = _snapToGrid(ref.left);
-      final right = _snapToGrid(ref.right);
-      final top = _snapToGrid(ref.top);
-
-      final x = left.clamp(0, _chunkWidth - _gridSnap);
-      final width = _positiveSnapDimension((right - left).abs().toDouble());
-      final height = _positiveSnapDimension(
-        (chunk.groundTopY - top).toDouble(),
-      );
-      obstacles.add(_ObstacleExport(x: x, width: width, height: height));
     }
   }
 
@@ -805,12 +785,94 @@ _ChunkExportData? _buildChunkExportData(
     chunkKey: chunk.chunkKey,
     name: chunk.id,
     assemblyGroupId: chunk.assemblyGroupId,
-    platforms: platforms,
-    obstacles: obstacles,
+    solids: solids,
     groundGaps: groundGaps,
     visualSprites: visualSprites,
     spawnMarkers: markers,
   );
+}
+
+List<_SolidExport> _buildColliderSolids({
+  required String prefabKey,
+  required String prefabKind,
+  required _PrefabDef prefab,
+  required double placementX,
+  required double placementY,
+  required double scale,
+  required bool flipX,
+  required bool flipY,
+  required int chunkGroundTopY,
+  required String chunkPath,
+  required List<_ValidationIssue> issues,
+  required int sides,
+  required bool oneWayTop,
+}) {
+  if (prefab.colliders.isEmpty) {
+    issues.add(
+      _ValidationIssue(
+        path: chunkPath,
+        code: 'missing_prefab_colliders',
+        message:
+            'Placed $prefabKind prefab "$prefabKey" must define at least one collider.',
+      ),
+    );
+    return const <_SolidExport>[];
+  }
+
+  final solids = <_SolidExport>[];
+  for (final collider in prefab.colliders) {
+    final rect = _computeColliderRect(
+      collider: collider,
+      placementX: placementX,
+      placementY: placementY,
+      scale: scale,
+      flipX: flipX,
+      flipY: flipY,
+    );
+    final left = _snapToGrid(rect.left);
+    final top = _snapToGrid(rect.top);
+    final width = _positiveSnapDimension(rect.width);
+    final height = _positiveSnapDimension(rect.height);
+    final aboveGroundTop = chunkGroundTopY - top;
+
+    if (left < 0 || left + width > _chunkWidth) {
+      issues.add(
+        _ValidationIssue(
+          path: chunkPath,
+          code: 'prefab_collider_outside_chunk_bounds',
+          message:
+              'Placed $prefabKind prefab "$prefabKey" has a collider outside '
+              'chunk bounds after transform.',
+        ),
+      );
+      continue;
+    }
+
+    if (aboveGroundTop < 0) {
+      issues.add(
+        _ValidationIssue(
+          path: chunkPath,
+          code: 'prefab_collider_below_ground_top',
+          message:
+              'Placed $prefabKind prefab "$prefabKey" has a collider top below '
+              'the chunk ground.',
+        ),
+      );
+      continue;
+    }
+
+    solids.add(
+      _SolidExport(
+        x: left,
+        aboveGroundTop: aboveGroundTop,
+        width: width,
+        height: height,
+        sides: sides,
+        oneWayTop: oneWayTop,
+      ),
+    );
+  }
+  return solids;
 }
 
 List<_VisualSpriteExport> _buildVisualSprites({
@@ -940,66 +1002,26 @@ String _runtimeAssetPath(String authoredPath) {
   return authoredPath;
 }
 
-_RectD? _computeVisualBounds(List<_VisualSpriteExport> sprites) {
-  if (sprites.isEmpty) {
-    return null;
-  }
-  var left = sprites.first.x;
-  var top = sprites.first.y;
-  var right = sprites.first.x + sprites.first.width;
-  var bottom = sprites.first.y + sprites.first.height;
-
-  for (var i = 1; i < sprites.length; i += 1) {
-    final sprite = sprites[i];
-    left = left < sprite.x ? left : sprite.x;
-    top = top < sprite.y ? top : sprite.y;
-    right = right > (sprite.x + sprite.width)
-        ? right
-        : (sprite.x + sprite.width);
-    bottom = bottom > (sprite.y + sprite.height)
-        ? bottom
-        : (sprite.y + sprite.height);
-  }
-  return _RectD(left: left, top: top, right: right, bottom: bottom);
-}
-
-_RectD? _computeColliderBounds({
-  required _PrefabDef prefab,
+_RectD _computeColliderRect({
+  required _ColliderDef collider,
   required double placementX,
   required double placementY,
   required double scale,
   required bool flipX,
   required bool flipY,
 }) {
-  if (prefab.colliders.isEmpty) {
-    return null;
-  }
-  _RectD? bounds;
-  for (final collider in prefab.colliders) {
-    final cx =
-        placementX + ((flipX ? -collider.offsetX : collider.offsetX) * scale);
-    final cy =
-        placementY + ((flipY ? -collider.offsetY : collider.offsetY) * scale);
-    final halfW = collider.width * scale * 0.5;
-    final halfH = collider.height * scale * 0.5;
-    final rect = _RectD(
-      left: cx - halfW,
-      top: cy - halfH,
-      right: cx + halfW,
-      bottom: cy + halfH,
-    );
-    if (bounds == null) {
-      bounds = rect;
-    } else {
-      bounds = _RectD(
-        left: bounds.left < rect.left ? bounds.left : rect.left,
-        top: bounds.top < rect.top ? bounds.top : rect.top,
-        right: bounds.right > rect.right ? bounds.right : rect.right,
-        bottom: bounds.bottom > rect.bottom ? bounds.bottom : rect.bottom,
-      );
-    }
-  }
-  return bounds;
+  final cx =
+      placementX + ((flipX ? -collider.offsetX : collider.offsetX) * scale);
+  final cy =
+      placementY + ((flipY ? -collider.offsetY : collider.offsetY) * scale);
+  final halfW = collider.width * scale * 0.5;
+  final halfH = collider.height * scale * 0.5;
+  return _RectD(
+    left: cx - halfW,
+    top: cy - halfH,
+    right: cx + halfW,
+    bottom: cy + halfH,
+  );
 }
 
 double _transformLocalAxisStart({
@@ -1126,6 +1148,9 @@ String _renderDartOutput(List<_ChunkExportData> chunks) {
   }
 
   final levelIds = chunksByLevel.keys.toList()..sort();
+  final hasAnySpawnMarkers = chunks.any(
+    (chunk) => chunk.spawnMarkers.isNotEmpty,
+  );
   final buffer = StringBuffer()
     ..writeln('/// GENERATED FILE. DO NOT EDIT BY HAND.')
     ..writeln('///')
@@ -1134,8 +1159,11 @@ String _renderDartOutput(List<_ChunkExportData> chunks) {
     ..writeln('/// - assets/authoring/level/prefab_defs.json')
     ..writeln('/// - assets/authoring/level/tile_defs.json')
     ..writeln('library;')
-    ..writeln()
-    ..writeln("import '../enemies/enemy_id.dart';")
+    ..writeln();
+  if (hasAnySpawnMarkers) {
+    buffer.writeln("import '../enemies/enemy_id.dart';");
+  }
+  buffer
     ..writeln("import 'chunk_pattern.dart';")
     ..writeln("import 'chunk_pattern_source.dart';")
     ..writeln();
@@ -1200,18 +1228,10 @@ void _writePatternList(
       ..writeln("    chunkKey: '${_escape(chunk.chunkKey)}',")
       ..writeln("    assemblyGroupId: '${_escape(chunk.assemblyGroupId)}',");
 
-    buffer.writeln('    platforms: <PlatformRel>[');
-    for (final platform in chunk.platforms) {
+    buffer.writeln('    solids: <SolidRel>[');
+    for (final solid in chunk.solids) {
       buffer.writeln(
-        '      PlatformRel(x: ${platform.x.toDouble()}, width: ${platform.width.toDouble()}, aboveGroundTop: ${platform.aboveGroundTop.toDouble()}, thickness: ${platform.thickness.toDouble()}),',
-      );
-    }
-    buffer.writeln('    ],');
-
-    buffer.writeln('    obstacles: <ObstacleRel>[');
-    for (final obstacle in chunk.obstacles) {
-      buffer.writeln(
-        '      ObstacleRel(x: ${obstacle.x.toDouble()}, width: ${obstacle.width.toDouble()}, height: ${obstacle.height.toDouble()}),',
+        '      SolidRel(x: ${solid.x.toDouble()}, aboveGroundTop: ${solid.aboveGroundTop.toDouble()}, width: ${solid.width.toDouble()}, height: ${solid.height.toDouble()}, sides: ${_solidSidesExpression(solid.sides)}, oneWayTop: ${solid.oneWayTop}),',
       );
     }
     buffer.writeln('    ],');
@@ -1304,6 +1324,33 @@ String _toUpperCamelIdentifier(String raw) {
 
 String _escape(String raw) {
   return raw.replaceAll('\\', '\\\\').replaceAll("'", "\\'");
+}
+
+String _solidSidesExpression(int sides) {
+  if (sides == _SolidExport.sideNone) {
+    return 'SolidRel.sideNone';
+  }
+  if (sides == _SolidExport.sideAll) {
+    return 'SolidRel.sideAll';
+  }
+
+  final parts = <String>[];
+  if ((sides & _SolidExport.sideTop) != 0) {
+    parts.add('SolidRel.sideTop');
+  }
+  if ((sides & _SolidExport.sideBottom) != 0) {
+    parts.add('SolidRel.sideBottom');
+  }
+  if ((sides & _SolidExport.sideLeft) != 0) {
+    parts.add('SolidRel.sideLeft');
+  }
+  if ((sides & _SolidExport.sideRight) != 0) {
+    parts.add('SolidRel.sideRight');
+  }
+  if (parts.isEmpty) {
+    return '$sides';
+  }
+  return parts.join(' | ');
 }
 
 String _readRequiredString({
@@ -1658,8 +1705,7 @@ class _ChunkExportData {
     required this.chunkKey,
     required this.name,
     required this.assemblyGroupId,
-    required this.platforms,
-    required this.obstacles,
+    required this.solids,
     required this.groundGaps,
     required this.visualSprites,
     required this.spawnMarkers,
@@ -1671,37 +1717,35 @@ class _ChunkExportData {
   final String chunkKey;
   final String name;
   final String assemblyGroupId;
-  final List<_PlatformExport> platforms;
-  final List<_ObstacleExport> obstacles;
+  final List<_SolidExport> solids;
   final List<_GroundGapExport> groundGaps;
   final List<_VisualSpriteExport> visualSprites;
   final List<_MarkerExport> spawnMarkers;
 }
 
-class _PlatformExport {
-  const _PlatformExport({
+class _SolidExport {
+  const _SolidExport({
     required this.x,
-    required this.width,
     required this.aboveGroundTop,
-    required this.thickness,
-  });
-
-  final int x;
-  final int width;
-  final int aboveGroundTop;
-  final int thickness;
-}
-
-class _ObstacleExport {
-  const _ObstacleExport({
-    required this.x,
     required this.width,
     required this.height,
+    required this.sides,
+    required this.oneWayTop,
   });
 
   final int x;
+  final int aboveGroundTop;
   final int width;
   final int height;
+  final int sides;
+  final bool oneWayTop;
+
+  static const int sideNone = 0;
+  static const int sideTop = 1 << 0;
+  static const int sideBottom = 1 << 1;
+  static const int sideLeft = 1 << 2;
+  static const int sideRight = 1 << 3;
+  static const int sideAll = sideTop | sideBottom | sideLeft | sideRight;
 }
 
 class _GroundGapExport {

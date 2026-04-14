@@ -1,6 +1,7 @@
 import 'package:runner_core/ecs/entity_id.dart';
 
 import '../../combat/control_lock.dart';
+import '../../enemies/enemy_id.dart';
 import '../../navigation/types/surface_graph.dart';
 import '../../snapshots/enums.dart';
 import '../../tuning/ground_enemy_tuning.dart';
@@ -15,10 +16,22 @@ class GroundEnemyLocomotionSystem {
 
   final GroundEnemyTuningDerived groundEnemyTuning;
 
-  SurfaceGraph? _surfaceGraph;
+  Map<EnemyId, SurfaceGraph> _surfaceGraphsByEnemy = <EnemyId, SurfaceGraph>{};
+  SurfaceGraph? _defaultSurfaceGraph;
 
   void setSurfaceGraph({required SurfaceGraph graph}) {
-    _surfaceGraph = graph;
+    setSurfaceGraphs(
+      graphsByEnemy: <EnemyId, SurfaceGraph>{
+        for (final enemyId in groundNavigatingEnemyIds) enemyId: graph,
+      },
+    );
+  }
+
+  void setSurfaceGraphs({required Map<EnemyId, SurfaceGraph> graphsByEnemy}) {
+    _surfaceGraphsByEnemy = Map<EnemyId, SurfaceGraph>.unmodifiable(
+      graphsByEnemy,
+    );
+    _defaultSurfaceGraph = graphsByEnemy.isEmpty ? null : graphsByEnemy.values.first;
   }
 
   /// Applies locomotion for all ground enemies.
@@ -92,6 +105,7 @@ class GroundEnemyLocomotionSystem {
       final ex = world.transform.posX[enemyTi];
       _applyGroundEnemyLocomotion(
         world,
+        enemyId: world.enemy.enemyId[enemyIndex],
         enemyIndex: enemyIndex,
         enemyTi: enemyTi,
         navIndex: navIndex,
@@ -107,6 +121,7 @@ class GroundEnemyLocomotionSystem {
 
   void _applyGroundEnemyLocomotion(
     EcsWorld world, {
+    required EnemyId enemyId,
     required int enemyIndex,
     required int enemyTi,
     required int navIndex,
@@ -164,7 +179,7 @@ class GroundEnemyLocomotionSystem {
       stateSpeedMul: stateSpeedMul,
       lockFacingToPlayer: lockFacingToPlayer,
       dtSeconds: dtSeconds,
-      graph: _surfaceGraph,
+      graph: _surfaceGraphsByEnemy[enemyId] ?? _defaultSurfaceGraph,
       playerX: playerX,
     );
   }
