@@ -250,12 +250,7 @@ _chunkSceneThemePreviewSpecsByLevelId = <String, _ChunkSceneThemePreviewSpec>{
           parallaxFactor: 0.30,
         ),
       ],
-      foregroundLayers: <ChunkParallaxLayerPreviewSpec>[
-        ChunkParallaxLayerPreviewSpec(
-          assetPath: 'assets/images/parallax/forest/Forest Layer 05.png',
-          parallaxFactor: 1.0,
-        ),
-      ],
+      foregroundLayers: <ChunkParallaxLayerPreviewSpec>[],
     ),
   ),
 };

@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "chunkKey": "forest_early_01",
+  "id": "forest_early_01",
+  "revision": 764,
+  "status": "active",
+  "levelId": "forest",
+  "tileSize": 16,
+  "width": 600,
+  "height": 270,
+  "difficulty": "early",
+  "assemblyGroupId": "default",
+  "tags": [],
+  "tileLayers": [],
+  "prefabs": [
+    {
+      "prefabId": "mushroom_01",
+      "prefabKey": "mushroom_01",
+      "x": 102,
+      "y": 231,
+      "zIndex": -2,
+      "snapToGrid": false,
+      "flipX": true
+    },
+    {
+      "prefabId": "grass_dirt_64x32_platform",
+      "prefabKey": "grass_dirt_64x32_platform",
+      "x": 496,
+      "y": 174,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "scale": 0.8,
+      "flipX": true
+    },
+    {
+      "prefabId": "mushrooms_00",
+      "prefabKey": "mushrooms_00",
+      "x": 87,
+      "y": 226,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "rock_dark_moss_00",
+      "prefabKey": "rock_dark_moss_00",
+      "x": 305,
+      "y": 233,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "dark_dead_tree_00",
+      "prefabKey": "dark_dead_tree_00",
+      "x": 342,
+      "y": 227,
+      "zIndex": 1,
+      "snapToGrid": false,
+      "scale": 0.9
+    },
+    {
+      "prefabId": "rock_dark_moss_01",
+      "prefabKey": "rock_dark_moss_01",
+      "x": 271,
+      "y": 232,
+      "zIndex": 1,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "rock_dark_moss_08",
+      "prefabKey": "rock_dark_moss_08",
+      "x": 214,
+      "y": 235,
+      "zIndex": 2,
+      "snapToGrid": false,
+      "flipX": true
+    },
+    {
+      "prefabId": "bush_02",
+      "prefabKey": "bush_02",
+      "x": 181,
+      "y": 234,
+      "zIndex": 3,
+      "snapToGrid": false,
+      "scale": 1.4
+    },
+    {
+      "prefabId": "herb_04",
+      "prefabKey": "herb_04",
+      "x": 393,
+      "y": 234,
+      "zIndex": 5,
+      "snapToGrid": false
+    }
+  ],
+  "markers": [],
+  "groundProfile": {
+    "kind": "flat",
+    "topY": 224
+  },
+  "groundGaps": []
+}

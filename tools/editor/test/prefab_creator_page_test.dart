@@ -1236,6 +1236,22 @@ void main() {
     expect(find.text('Create Platform Prefab'), findsOneWidget);
     expect(find.text('Update Platform Prefab'), findsNothing);
     expect(find.text('Creating new platform prefab'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String?>('platform_prefab_module_none')),
+      findsOneWidget,
+    );
+    expect(_textFieldValueByLabel(tester, 'Platform Prefab ID'), isEmpty);
+    expect(_textFieldValueByLabel(tester, 'Tags (comma separated)'), isEmpty);
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey<String?>('platform_prefab_module_none')),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey<String?>('platform_prefab_module_none')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('ground_module').last);
+    await tester.pumpAndSettle();
 
     await tester.ensureVisible(find.text('Load Prefab For Module'));
     await tester.tap(find.text('Load Prefab For Module'));
@@ -1293,6 +1309,16 @@ void main() {
 
     expect(find.text('Create Platform Prefab'), findsOneWidget);
     expect(find.text('Update Platform Prefab'), findsNothing);
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey<String?>('platform_prefab_module_none')),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey<String?>('platform_prefab_module_none')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('ground_module').last);
+    await tester.pumpAndSettle();
 
     await tester.ensureVisible(find.text('Load Prefab For Module'));
     await tester.tap(find.text('Load Prefab For Module'));

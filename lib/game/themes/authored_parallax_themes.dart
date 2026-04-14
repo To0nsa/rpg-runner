@@ -92,12 +92,6 @@ const ParallaxTheme authoredParallaxThemeForest = ParallaxTheme(
   ],
   groundMaterialAssetPath: 'parallax/forest/Forest Layer 04.png',
   foregroundLayers: <PixelParallaxLayerSpec>[
-    PixelParallaxLayerSpec(
-      assetPath: 'parallax/forest/Forest Layer 05.png',
-      parallaxFactor: 1,
-      opacity: 1,
-      yOffset: 0,
-    ),
   ],
 );
 

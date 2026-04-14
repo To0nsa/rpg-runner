@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "chunkKey": "forest_easy_woodcamp_00_2",
+  "id": "forest_normal_woodcamp_00",
+  "revision": 6,
+  "status": "active",
+  "levelId": "forest",
+  "tileSize": 16,
+  "width": 600,
+  "height": 270,
+  "difficulty": "normal",
+  "assemblyGroupId": "default",
+  "tags": [],
+  "tileLayers": [],
+  "prefabs": [
+    {
+      "prefabId": "wood_pile_00",
+      "prefabKey": "wood_pile_00",
+      "x": 416,
+      "y": 224,
+      "zIndex": 0,
+      "snapToGrid": true
+    },
+    {
+      "prefabId": "wood_defense_00",
+      "prefabKey": "wood_defense_00",
+      "x": 513,
+      "y": 228,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "scale": 0.8
+    },
+    {
+      "prefabId": "cloth_rack_00",
+      "prefabKey": "cloth_rack_00",
+      "x": 197,
+      "y": 231,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "scale": 0.8
+    },
+    {
+      "prefabId": "wood_defense_00",
+      "prefabKey": "wood_defense_00",
+      "x": 113,
+      "y": 232,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "scale": 0.8
+    },
+    {
+      "prefabId": "firecamp_00",
+      "prefabKey": "firecamp_00",
+      "x": 345,
+      "y": 232,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "scale": 0.7
+    },
+    {
+      "prefabId": "tent_01",
+      "prefabKey": "tent_01",
+      "x": 267,
+      "y": 232,
+      "zIndex": 1,
+      "snapToGrid": false,
+      "flipX": true
+    },
+    {
+      "prefabId": "wood_chop_00",
+      "prefabKey": "wood_chop_00",
+      "x": 452,
+      "y": 232,
+      "zIndex": 2,
+      "snapToGrid": false
+    }
+  ],
+  "markers": [
+    {
+      "markerId": "grojib",
+      "x": 560,
+      "y": 192,
+      "chancePercent": 75,
+      "salt": 0,
+      "placement": "ground"
+    }
+  ],
+  "groundProfile": {
+    "kind": "flat",
+    "topY": 224
+  },
+  "groundGaps": [
+    {
+      "gapId": "gap_1",
+      "type": "pit",
+      "x": 32,
+      "width": 64
+    }
+  ]
+}

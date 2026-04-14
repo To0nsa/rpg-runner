@@ -198,9 +198,11 @@ class PrefabEditorPageCoordinator {
 
   Widget buildPlatformPrefabsTab() {
     final data = _shellState.data;
+    final selectedPrefabPlatformModuleId =
+        _shellState.selectedPrefabPlatformModuleId;
     final selectedModule = _platformModuleController.selectedModule(
       data: data,
-      selectedModuleId: _shellState.selectedModuleId,
+      selectedModuleId: selectedPrefabPlatformModuleId,
     );
     final sceneValues = _platformPrefabForm.tryParseSceneValues();
     final editingPrefab = editingPrefabForForm(_platformPrefabForm);
@@ -212,7 +214,7 @@ class PrefabEditorPageCoordinator {
     return PlatformPrefabsTab(
       form: _platformPrefabForm,
       modules: data.platformModules,
-      selectedModuleId: _shellState.selectedModuleId,
+      selectedModuleId: selectedPrefabPlatformModuleId,
       selectedModule: selectedModule,
       tileSlices: data.tileSlices,
       platformPrefabs: data.prefabs
@@ -225,8 +227,8 @@ class PrefabEditorPageCoordinator {
       workspaceRootPath: _readWorkspaceRootPath(),
       onSelectedModuleChanged: (value) {
         _updateState(() {
-          _shellState.selectedModuleId = value;
           _shellState.selectedPrefabPlatformModuleId = value;
+          _shellState.selectedModuleId = value;
         });
       },
       onLoadPrefabForModule: loadPlatformPrefabForSelectedModule,
@@ -687,7 +689,7 @@ class PrefabEditorPageCoordinator {
   void loadPlatformPrefabForSelectedModule() {
     final module = _platformModuleController.selectedModule(
       data: _shellState.data,
-      selectedModuleId: _shellState.selectedModuleId,
+      selectedModuleId: _shellState.selectedPrefabPlatformModuleId,
     );
     if (module == null) {
       _setError('Select a module before loading prefab defaults.');
@@ -729,7 +731,7 @@ class PrefabEditorPageCoordinator {
   void upsertPlatformPrefabForSelectedModule() {
     final module = _platformModuleController.selectedModule(
       data: _shellState.data,
-      selectedModuleId: _shellState.selectedModuleId,
+      selectedModuleId: _shellState.selectedPrefabPlatformModuleId,
     );
     if (module == null) {
       _setError('Select a module before saving a platform prefab.');
@@ -1072,7 +1074,6 @@ class PrefabEditorPageCoordinator {
       case PrefabKind.platform:
         _resetPlatformPrefabFormForCreate(
           data: data,
-          selectedModuleIdOverride: platformModuleIdOverride,
         );
         return;
       case PrefabKind.unknown:
@@ -1099,26 +1100,11 @@ class PrefabEditorPageCoordinator {
 
   void _resetPlatformPrefabFormForCreate({
     required PrefabData data,
-    String? selectedModuleIdOverride,
   }) {
     _runWithoutLocalDraftHistory(() {
-      final selectedModuleId =
-          selectedModuleIdOverride ??
-          _shellState.selectedModuleId ??
-          _dataReducer.preferredModuleIdForPicker(data.platformModules);
-      final selectedModule = _platformModuleController.selectedModule(
-        data: data,
-        selectedModuleId: selectedModuleId,
-      );
-      _platformPrefabForm.resetPlatformDefaults(
-        tileSize: selectedModule?.tileSize ?? 16,
-      );
+      _platformPrefabForm.resetPlatformDefaults();
       _platformPrefabForm.autoManagePlatformModule = false;
-      _shellState.selectedModuleId = selectedModuleId;
-      _shellState.selectedPrefabPlatformModuleId = selectedModuleId;
-      if (selectedModule != null) {
-        _moduleTileSizeController.text = selectedModule.tileSize.toString();
-      }
+      _shellState.selectedPrefabPlatformModuleId = null;
     });
   }
 

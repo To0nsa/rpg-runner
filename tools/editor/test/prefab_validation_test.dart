@@ -430,7 +430,7 @@ void main() {
   });
 
   test(
-    'validatePrefabData reports anchor, tag, and platform snap violations',
+    'validatePrefabData reports anchor and tag violations',
     () {
       final data = PrefabData(
         prefabSlices: const [
@@ -497,18 +497,6 @@ void main() {
       );
       expect(
         errors,
-        contains(
-          'Prefab platform_bad anchor must be snapped to module tileSize 16.',
-        ),
-      );
-      expect(
-        errors,
-        contains(
-          'Prefab platform_bad collider[0] must be snapped to module tileSize 16.',
-        ),
-      );
-      expect(
-        errors,
         contains('Prefab platform_bad has duplicate tag "solid".'),
       );
     },
@@ -570,7 +558,7 @@ void main() {
   );
 
   test(
-    'validatePrefabDataIssues reports multi-collider platform snap violations by collider index',
+    'validatePrefabDataIssues does not report platform snap violations',
     () {
       final data = PrefabData(
         tileSlices: const [
@@ -580,7 +568,7 @@ void main() {
                 'assets/images/level/tileset/TX Tileset Ground.png',
             x: 0,
             y: 0,
-            width: 16,
+            width: 32,
             height: 16,
           ),
         ],
@@ -601,7 +589,7 @@ void main() {
             status: PrefabStatus.active,
             kind: PrefabKind.platform,
             visualSource: PrefabVisualSource.platformModule('module_a'),
-            anchorXPx: 0,
+            anchorXPx: 8,
             anchorYPx: 0,
             colliders: [
               PrefabColliderDef(offsetX: 0, offsetY: 0, width: 16, height: 16),
@@ -617,13 +605,15 @@ void main() {
           'assets/images/level/tileset/TX Tileset Ground.png': Size(64, 64),
         },
       );
-      final snapIssues = issues
-          .where((issue) => issue.code == 'platform_collider_snap_invalid')
-          .toList(growable: false);
 
-      expect(snapIssues, hasLength(1));
-      expect(snapIssues.single.message, contains('collider[1]'));
-      expect(snapIssues.single.message, isNot(contains('collider[0]')));
+      expect(
+        issues.where((issue) => issue.code == 'platform_anchor_snap_invalid'),
+        isEmpty,
+      );
+      expect(
+        issues.where((issue) => issue.code == 'platform_collider_snap_invalid'),
+        isEmpty,
+      );
     },
   );
 

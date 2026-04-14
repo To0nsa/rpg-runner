@@ -132,11 +132,13 @@ class PrefabEditorSceneProjectionHelper {
         currentSelection: currentModuleSelection,
         fallbackSelection: preferredModuleId,
         modules: data.platformModules,
+        preserveNullSelection: false,
       ),
       selectedPrefabPlatformModuleId: _resolveModuleSelection(
         currentSelection: currentPrefabPlatformModuleSelection,
         fallbackSelection: preferredModuleId,
         modules: data.platformModules,
+        preserveNullSelection: true,
       ),
     );
   }
@@ -176,10 +178,14 @@ class PrefabEditorSceneProjectionHelper {
     required String? currentSelection,
     required String? fallbackSelection,
     required List<TileModuleDef> modules,
+    required bool preserveNullSelection,
   }) {
-    if (currentSelection != null &&
-        modules.any((module) => module.id == currentSelection)) {
-      return currentSelection;
+    final normalizedSelection = currentSelection?.trim();
+    if (normalizedSelection == null || normalizedSelection.isEmpty) {
+      return preserveNullSelection ? null : fallbackSelection;
+    }
+    if (modules.any((module) => module.id == normalizedSelection)) {
+      return normalizedSelection;
     }
     return fallbackSelection;
   }

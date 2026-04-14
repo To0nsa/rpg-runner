@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "chunkKey": "forest_early_03",
+  "id": "forest_early_03",
+  "revision": 655,
+  "status": "active",
+  "levelId": "forest",
+  "tileSize": 16,
+  "width": 600,
+  "height": 270,
+  "difficulty": "early",
+  "assemblyGroupId": "default",
+  "tags": [],
+  "tileLayers": [],
+  "prefabs": [
+    {
+      "prefabId": "grass_dirt_64x64_platform",
+      "prefabKey": "grass_dirt_64x64_platform",
+      "x": 512,
+      "y": 176,
+      "zIndex": 0,
+      "snapToGrid": true,
+      "scale": 0.8
+    },
+    {
+      "prefabId": "dark_rock_02",
+      "prefabKey": "dark_rock_02",
+      "x": 314,
+      "y": 228,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "herb_01",
+      "prefabKey": "herb_01",
+      "x": 468,
+      "y": 229,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "scale": 0.8
+    },
+    {
+      "prefabId": "herb_01",
+      "prefabKey": "herb_01",
+      "x": 359,
+      "y": 232,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "scale": 0.8
+    },
+    {
+      "prefabId": "rock_dark_moss_02",
+      "prefabKey": "rock_dark_moss_02",
+      "x": 89,
+      "y": 236,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "scale": 1.2
+    },
+    {
+      "prefabId": "bush_00",
+      "prefabKey": "bush_00",
+      "x": 256,
+      "y": 231,
+      "zIndex": 1,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "rock_dark_moss_03",
+      "prefabKey": "rock_dark_moss_03",
+      "x": 129,
+      "y": 233,
+      "zIndex": 1,
+      "snapToGrid": false,
+      "scale": 1.3
+    },
+    {
+      "prefabId": "rock_dark_moss_01",
+      "prefabKey": "rock_dark_moss_01",
+      "x": 51,
+      "y": 230,
+      "zIndex": 2,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "herb_00",
+      "prefabKey": "herb_00",
+      "x": 365,
+      "y": 99,
+      "zIndex": 3,
+      "snapToGrid": false,
+      "scale": 0.4,
+      "flipX": true
+    },
+    {
+      "prefabId": "bush_01",
+      "prefabKey": "bush_01",
+      "x": 200,
+      "y": 231,
+      "zIndex": 5,
+      "snapToGrid": false,
+      "flipX": true
+    }
+  ],
+  "markers": [],
+  "groundProfile": {
+    "kind": "flat",
+    "topY": 224
+  },
+  "groundGaps": []
+}

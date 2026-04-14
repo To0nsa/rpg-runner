@@ -10,6 +10,12 @@ import 'chunk_pattern.dart';
 import 'chunk_pattern_source.dart';
 
 const List<ChunkPattern> fieldEarlyPatterns = <ChunkPattern>[
+];
+
+const List<ChunkPattern> fieldEasyPatterns = <ChunkPattern>[
+];
+
+const List<ChunkPattern> fieldNormalPatterns = <ChunkPattern>[
   ChunkPattern(
     name: 'field_flat',
     chunkKey: 'field_flat',
@@ -25,25 +31,13 @@ const List<ChunkPattern> fieldEarlyPatterns = <ChunkPattern>[
   ),
 ];
 
-const List<ChunkPattern> fieldEasyPatterns = <ChunkPattern>[
-];
-
-const List<ChunkPattern> fieldNormalPatterns = <ChunkPattern>[
-];
-
 const List<ChunkPattern> fieldHardPatterns = <ChunkPattern>[
 ];
 
 const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
-];
-
-const List<ChunkPattern> forestEasyPatterns = <ChunkPattern>[
-];
-
-const List<ChunkPattern> forestNormalPatterns = <ChunkPattern>[
   ChunkPattern(
-    name: 'forest_flat',
-    chunkKey: 'forest_flat',
+    name: 'forest_early_flat',
+    chunkKey: 'forest_earlt_flat',
     assemblyGroupId: 'default',
     solids: <SolidRel>[
     ],
@@ -54,6 +48,215 @@ const List<ChunkPattern> forestNormalPatterns = <ChunkPattern>[
     spawnMarkers: <SpawnMarker>[
     ],
   ),
+  ChunkPattern(
+    name: 'forest_early_00',
+    chunkKey: 'forest_early_00',
+    assemblyGroupId: 'default',
+    solids: <SolidRel>[
+      SolidRel(x: 272.0, aboveGroundTop: 112.0, width: 48.0, height: 16.0, sides: SolidRel.sideTop, oneWayTop: true),
+      SolidRel(x: 384.0, aboveGroundTop: 112.0, width: 80.0, height: 16.0, sides: SolidRel.sideTop, oneWayTop: true),
+      SolidRel(x: 144.0, aboveGroundTop: 64.0, width: 16.0, height: 16.0, sides: SolidRel.sideTop, oneWayTop: true),
+    ],
+    groundGaps: <GapRel>[
+    ],
+    visualSprites: <ChunkVisualSpriteRel>[
+      ChunkVisualSpriteRel(
+        assetPath: 'level/tileset/TX Tileset Ground.png',
+        srcX: 288,
+        srcY: 0,
+        srcWidth: 64,
+        srcHeight: 32,
+        x: 264.0,
+        y: 104.0,
+        width: 51.2,
+        height: 25.6,
+        zIndex: 0,
+      ),
+      ChunkVisualSpriteRel(
+        assetPath: 'level/tileset/TX Tileset Ground.png',
+        srcX: 0,
+        srcY: 384,
+        srcWidth: 96,
+        srcHeight: 32,
+        x: 377.6,
+        y: 103.2,
+        width: 76.80000000000001,
+        height: 25.6,
+        zIndex: 0,
+      ),
+      ChunkVisualSpriteRel(
+        assetPath: 'level/tileset/TX Tileset Ground.png',
+        srcX: 128,
+        srcY: 96,
+        srcWidth: 32,
+        srcHeight: 32,
+        x: 148.8,
+        y: 152.8,
+        width: 25.6,
+        height: 25.6,
+        zIndex: 0,
+      ),
+    ],
+    spawnMarkers: <SpawnMarker>[
+    ],
+  ),
+  ChunkPattern(
+    name: 'forest_early_01',
+    chunkKey: 'forest_early_01',
+    assemblyGroupId: 'default',
+    solids: <SolidRel>[
+      SolidRel(x: 368.0, aboveGroundTop: 32.0, width: 16.0, height: 16.0, sides: SolidRel.sideAll, oneWayTop: false),
+      SolidRel(x: 352.0, aboveGroundTop: 16.0, width: 48.0, height: 16.0, sides: SolidRel.sideAll, oneWayTop: false),
+      SolidRel(x: 336.0, aboveGroundTop: 0.0, width: 80.0, height: 16.0, sides: SolidRel.sideAll, oneWayTop: false),
+      SolidRel(x: 192.0, aboveGroundTop: 64.0, width: 32.0, height: 16.0, sides: SolidRel.sideAll, oneWayTop: false),
+      SolidRel(x: 176.0, aboveGroundTop: 64.0, width: 32.0, height: 16.0, sides: SolidRel.sideAll, oneWayTop: false),
+      SolidRel(x: 192.0, aboveGroundTop: 48.0, width: 16.0, height: 48.0, sides: SolidRel.sideAll, oneWayTop: false),
+    ],
+    groundGaps: <GapRel>[
+    ],
+    visualSprites: <ChunkVisualSpriteRel>[
+      ChunkVisualSpriteRel(
+        assetPath: 'level/tileset/Decor.png',
+        srcX: 94,
+        srcY: 271,
+        srcWidth: 97,
+        srcHeight: 51,
+        x: 325.0,
+        y: 178.0,
+        width: 97.0,
+        height: 51.0,
+        zIndex: 0,
+      ),
+      ChunkVisualSpriteRel(
+        assetPath: 'level/props/env_trees.png',
+        srcX: 410,
+        srcY: 346,
+        srcWidth: 134,
+        srcHeight: 153,
+        x: 151.4,
+        y: 126.0,
+        width: 93.8,
+        height: 107.1,
+        zIndex: 1,
+      ),
+    ],
+    spawnMarkers: <SpawnMarker>[
+    ],
+  ),
+  ChunkPattern(
+    name: 'forest_early_02',
+    chunkKey: 'forest_early_02',
+    assemblyGroupId: 'default',
+    solids: <SolidRel>[
+      SolidRel(x: 336.0, aboveGroundTop: 48.0, width: 80.0, height: 16.0, sides: SolidRel.sideTop, oneWayTop: true),
+      SolidRel(x: 240.0, aboveGroundTop: 32.0, width: 48.0, height: 32.0, sides: SolidRel.sideAll, oneWayTop: false),
+      SolidRel(x: 208.0, aboveGroundTop: 32.0, width: 32.0, height: 32.0, sides: SolidRel.sideAll, oneWayTop: false),
+    ],
+    groundGaps: <GapRel>[
+    ],
+    visualSprites: <ChunkVisualSpriteRel>[
+      ChunkVisualSpriteRel(
+        assetPath: 'level/tileset/TX Tileset Ground.png',
+        srcX: 0,
+        srcY: 384,
+        srcWidth: 96,
+        srcHeight: 32,
+        x: 338.6,
+        y: 168.2,
+        width: 76.80000000000001,
+        height: 25.6,
+        zIndex: 0,
+      ),
+      ChunkVisualSpriteRel(
+        assetPath: 'level/props/Props-Rocks.png',
+        srcX: 223,
+        srcY: 85,
+        srcWidth: 51,
+        srcHeight: 45,
+        x: 230.0,
+        y: 186.0,
+        width: 51.0,
+        height: 45.0,
+        zIndex: 0,
+      ),
+      ChunkVisualSpriteRel(
+        assetPath: 'level/props/Props-Rocks.png',
+        srcX: 127,
+        srcY: 113,
+        srcWidth: 48,
+        srcHeight: 48,
+        x: 193.0,
+        y: 184.0,
+        width: 48.0,
+        height: 48.0,
+        zIndex: 1,
+      ),
+    ],
+    spawnMarkers: <SpawnMarker>[
+    ],
+  ),
+  ChunkPattern(
+    name: 'forest_early_03',
+    chunkKey: 'forest_early_03',
+    assemblyGroupId: 'default',
+    solids: <SolidRel>[
+      SolidRel(x: 160.0, aboveGroundTop: 80.0, width: 32.0, height: 16.0, sides: SolidRel.sideAll, oneWayTop: false),
+      SolidRel(x: 192.0, aboveGroundTop: 64.0, width: 32.0, height: 16.0, sides: SolidRel.sideAll, oneWayTop: false),
+      SolidRel(x: 208.0, aboveGroundTop: 64.0, width: 16.0, height: 64.0, sides: SolidRel.sideAll, oneWayTop: false),
+      SolidRel(x: 272.0, aboveGroundTop: 64.0, width: 48.0, height: 64.0, sides: SolidRel.sideAll, oneWayTop: false),
+      SolidRel(x: 256.0, aboveGroundTop: 16.0, width: 80.0, height: 16.0, sides: SolidRel.sideAll, oneWayTop: false),
+      SolidRel(x: 112.0, aboveGroundTop: 32.0, width: 48.0, height: 32.0, sides: SolidRel.sideAll, oneWayTop: false),
+    ],
+    groundGaps: <GapRel>[
+    ],
+    visualSprites: <ChunkVisualSpriteRel>[
+      ChunkVisualSpriteRel(
+        assetPath: 'level/props/env_trees.png',
+        srcX: 410,
+        srcY: 346,
+        srcWidth: 134,
+        srcHeight: 153,
+        x: 147.2,
+        y: 112.0,
+        width: 107.2,
+        height: 122.4,
+        zIndex: 0,
+        flipX: true,
+      ),
+      ChunkVisualSpriteRel(
+        assetPath: 'level/props/env_rock.png',
+        srcX: 142,
+        srcY: 210,
+        srcWidth: 131,
+        srcHeight: 119,
+        x: 243.2,
+        y: 141.39999999999998,
+        width: 104.80000000000001,
+        height: 95.2,
+        zIndex: 0,
+      ),
+      ChunkVisualSpriteRel(
+        assetPath: 'level/props/Props-Rocks.png',
+        srcX: 160,
+        srcY: 210,
+        srcWidth: 60,
+        srcHeight: 45,
+        x: 97.0,
+        y: 185.0,
+        width: 60.0,
+        height: 45.0,
+        zIndex: 0,
+      ),
+    ],
+    spawnMarkers: <SpawnMarker>[
+    ],
+  ),
+];
+
+const List<ChunkPattern> forestEasyPatterns = <ChunkPattern>[
+];
+
+const List<ChunkPattern> forestNormalPatterns = <ChunkPattern>[
 ];
 
 const List<ChunkPattern> forestHardPatterns = <ChunkPattern>[

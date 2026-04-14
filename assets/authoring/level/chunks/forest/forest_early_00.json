@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "chunkKey": "forest_early_00",
+  "id": "forest_early_00",
+  "revision": 515,
+  "status": "active",
+  "levelId": "forest",
+  "tileSize": 16,
+  "width": 600,
+  "height": 270,
+  "difficulty": "early",
+  "assemblyGroupId": "default",
+  "tags": [],
+  "tileLayers": [],
+  "prefabs": [
+    {
+      "prefabId": "grass_dirt_96x32_platform",
+      "prefabKey": "grass_dirt_96x32_platform",
+      "x": 416,
+      "y": 112,
+      "zIndex": 0,
+      "snapToGrid": true,
+      "scale": 0.8
+    },
+    {
+      "prefabId": "grass_dirt_96x32_platform",
+      "prefabKey": "grass_dirt_96x32_platform",
+      "x": 256,
+      "y": 144,
+      "zIndex": 0,
+      "snapToGrid": true,
+      "scale": 0.8
+    },
+    {
+      "prefabId": "grass_dirt_64x32_platform",
+      "prefabKey": "grass_dirt_64x32_platform",
+      "x": 128,
+      "y": 176,
+      "zIndex": 0,
+      "snapToGrid": true,
+      "scale": 0.8
+    },
+    {
+      "prefabId": "rock_dark_00",
+      "prefabKey": "rock_dark_00",
+      "x": 350,
+      "y": 226,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "herb_00",
+      "prefabKey": "herb_00",
+      "x": 68,
+      "y": 237,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "scale": 0.8
+    },
+    {
+      "prefabId": "dark_menhir_03",
+      "prefabKey": "dark_menhir_03",
+      "x": 374,
+      "y": 225,
+      "zIndex": 1,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "herb_01",
+      "prefabKey": "herb_01",
+      "x": 418,
+      "y": 232,
+      "zIndex": 1,
+      "snapToGrid": false,
+      "scale": 0.8
+    },
+    {
+      "prefabId": "bush_00",
+      "prefabKey": "bush_00",
+      "x": 218,
+      "y": 226,
+      "zIndex": 3,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "herb_03",
+      "prefabKey": "herb_03",
+      "x": 221,
+      "y": 238,
+      "zIndex": 4,
+      "snapToGrid": false,
+      "scale": 0.8
+    }
+  ],
+  "markers": [],
+  "groundProfile": {
+    "kind": "flat",
+    "topY": 224
+  },
+  "groundGaps": []
+}

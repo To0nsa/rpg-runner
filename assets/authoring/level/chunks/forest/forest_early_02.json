@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "chunkKey": "forest_early_02",
+  "id": "forest_early_02",
+  "revision": 400,
+  "status": "active",
+  "levelId": "forest",
+  "tileSize": 16,
+  "width": 600,
+  "height": 270,
+  "difficulty": "early",
+  "assemblyGroupId": "default",
+  "tags": [],
+  "tileLayers": [],
+  "prefabs": [
+    {
+      "prefabId": "grass_dirt_32x32_platform",
+      "prefabKey": "grass_dirt_32x32_platform",
+      "x": 208,
+      "y": 112,
+      "zIndex": 0,
+      "snapToGrid": true,
+      "scale": 0.8
+    },
+    {
+      "prefabId": "grass_dirt_64x32_platform",
+      "prefabKey": "grass_dirt_64x32_platform",
+      "x": 464,
+      "y": 128,
+      "zIndex": 0,
+      "snapToGrid": true,
+      "scale": 0.8
+    },
+    {
+      "prefabId": "grass_dirt_64x32_platform",
+      "prefabKey": "grass_dirt_64x32_platform",
+      "x": 352,
+      "y": 160,
+      "zIndex": 0,
+      "snapToGrid": true,
+      "scale": 0.8
+    },
+    {
+      "prefabId": "grass_dirt_96x32_platform",
+      "prefabKey": "grass_dirt_96x32_platform",
+      "x": 105,
+      "y": 187,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "scale": 0.8
+    },
+    {
+      "prefabId": "rock_dark_moss_06",
+      "prefabKey": "rock_dark_moss_06",
+      "x": 255,
+      "y": 228,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "herb_02",
+      "prefabKey": "herb_02",
+      "x": 357,
+      "y": 229,
+      "zIndex": 0,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "herb_00",
+      "prefabKey": "herb_00",
+      "x": 90,
+      "y": 237,
+      "zIndex": 0,
+      "snapToGrid": false,
+      "scale": 0.8
+    },
+    {
+      "prefabId": "rock_dark_moss_04",
+      "prefabKey": "rock_dark_moss_04",
+      "x": 220,
+      "y": 229,
+      "zIndex": 1,
+      "snapToGrid": false
+    }
+  ],
+  "markers": [],
+  "groundProfile": {
+    "kind": "flat",
+    "topY": 224
+  },
+  "groundGaps": []
+}

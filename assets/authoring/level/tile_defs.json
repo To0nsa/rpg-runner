@@ -74,5 +74,71 @@
       "height": 32
     }
   ],
-  "platformModules": []
+  "platformModules": [
+    {
+      "id": "grass_dirt_32x32",
+      "revision": 2,
+      "status": "active",
+      "tileSize": 16,
+      "cells": [
+        {
+          "sliceId": "grass_dirt_32x32",
+          "gridX": 0,
+          "gridY": 0
+        }
+      ]
+    },
+    {
+      "id": "grass_dirt_64x32",
+      "revision": 2,
+      "status": "active",
+      "tileSize": 16,
+      "cells": [
+        {
+          "sliceId": "grass_dirt_64x32_00",
+          "gridX": 0,
+          "gridY": 0
+        }
+      ]
+    },
+    {
+      "id": "grass_dirt_64x64",
+      "revision": 2,
+      "status": "active",
+      "tileSize": 16,
+      "cells": [
+        {
+          "sliceId": "grass_dirt_64x64",
+          "gridX": 0,
+          "gridY": 0
+        }
+      ]
+    },
+    {
+      "id": "grass_dirt_96x32",
+      "revision": 2,
+      "status": "active",
+      "tileSize": 16,
+      "cells": [
+        {
+          "sliceId": "grass_dirt_96x32_00",
+          "gridX": 0,
+          "gridY": 0
+        }
+      ]
+    },
+    {
+      "id": "grass_dirt_96x32_01",
+      "revision": 2,
+      "status": "active",
+      "tileSize": 16,
+      "cells": [
+        {
+          "sliceId": "grass_dirt_96x32_01",
+          "gridX": 0,
+          "gridY": 0
+        }
+      ]
+    }
+  ]
 }

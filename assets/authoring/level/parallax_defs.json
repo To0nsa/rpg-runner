@@ -91,7 +91,7 @@
     },
     {
       "parallaxThemeId": "forest",
-      "revision": 1,
+      "revision": 2,
       "groundMaterialAssetPath": "assets/images/parallax/forest/Forest Layer 04.png",
       "layers": [
         {
@@ -118,15 +118,6 @@
           "group": "background",
           "parallaxFactor": 0.3,
           "zOrder": 30,
-          "opacity": 1,
-          "yOffset": 0
-        },
-        {
-          "layerKey": "forest_fg_05",
-          "assetPath": "assets/images/parallax/forest/Forest Layer 05.png",
-          "group": "foreground",
-          "parallaxFactor": 1,
-          "zOrder": 10,
           "opacity": 1,
           "yOffset": 0
         }

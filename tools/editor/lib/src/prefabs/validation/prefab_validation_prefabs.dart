@@ -286,7 +286,6 @@ void _validatePrefabAnchorAndColliders({
   final prefabId = prefab.id;
   final anchorX = prefab.anchorXPx;
   final anchorY = prefab.anchorYPx;
-  final snapUnitPx = sourceGeometry?.snapUnitPx ?? 1;
 
   if (sourceGeometry != null) {
     if (anchorX < 0 ||
@@ -315,36 +314,6 @@ void _validatePrefabAnchorAndColliders({
       );
     }
     return;
-  }
-
-  if (prefab.kind == PrefabKind.platform && snapUnitPx > 1) {
-    if (!_isSnappedToUnit(anchorX, snapUnitPx) ||
-        !_isSnappedToUnit(anchorY, snapUnitPx)) {
-      issues.add(
-        PrefabValidationIssue(
-          code: 'platform_anchor_snap_invalid',
-          message:
-              'Prefab $prefabId anchor must be snapped to module tileSize $snapUnitPx.',
-        ),
-      );
-    }
-
-    for (var i = 0; i < prefab.colliders.length; i += 1) {
-      final collider = prefab.colliders[i];
-      if (!_isSnappedToUnit(collider.offsetX, snapUnitPx) ||
-          !_isSnappedToUnit(collider.offsetY, snapUnitPx) ||
-          !_isSnappedToUnit(collider.width, snapUnitPx) ||
-          !_isSnappedToUnit(collider.height, snapUnitPx)) {
-        issues.add(
-          PrefabValidationIssue(
-            code: 'platform_collider_snap_invalid',
-            message:
-                'Prefab $prefabId collider[$i] must be snapped to module tileSize '
-                '$snapUnitPx.',
-          ),
-        );
-      }
-    }
   }
 
   if (prefab.colliders.isEmpty) {
@@ -396,11 +365,4 @@ void _validatePrefabAnchorAndColliders({
       ),
     );
   }
-}
-
-bool _isSnappedToUnit(int value, int unit) {
-  if (unit <= 1) {
-    return true;
-  }
-  return value % unit == 0;
 }
