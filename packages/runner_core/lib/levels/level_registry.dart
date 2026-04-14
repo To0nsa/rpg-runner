@@ -40,8 +40,8 @@ class LevelRegistry {
           cameraCenterY: 135.0,
           staticWorldGeometry: _forestBaseGeometry,
           earlyPatternChunks: 3,
-          easyPatternChunks: 0,
-          normalPatternChunks: 0,
+          easyPatternChunks: 10,
+          normalPatternChunks: 15,
           noEnemyChunks: 3,
           visualThemeId: 'forest',
         );
