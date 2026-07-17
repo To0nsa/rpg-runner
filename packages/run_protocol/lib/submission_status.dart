@@ -78,6 +78,7 @@ enum RunSessionState {
   uploaded,
   pendingValidation,
   validating,
+  settlementPending,
   validated,
   rejected,
   expired,
@@ -86,6 +87,7 @@ enum RunSessionState {
 
   String get wireValue => switch (this) {
     RunSessionState.pendingValidation => 'pending_validation',
+    RunSessionState.settlementPending => 'settlement_pending',
     RunSessionState.internalError => 'internal_error',
     _ => name,
   };
@@ -100,6 +102,7 @@ enum RunSessionState {
       'uploaded' => RunSessionState.uploaded,
       'pending_validation' => RunSessionState.pendingValidation,
       'validating' => RunSessionState.validating,
+      'settlement_pending' => RunSessionState.settlementPending,
       'validated' => RunSessionState.validated,
       'rejected' => RunSessionState.rejected,
       'expired' => RunSessionState.expired,

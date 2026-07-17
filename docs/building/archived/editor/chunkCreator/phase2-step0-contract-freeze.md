@@ -5,8 +5,8 @@ Status: Frozen for Phase 2 implementation
 
 Related docs:
 
-- [docs/building/editor/chunkCreator/plan.md](docs/building/editor/chunkCreator/plan.md)
-- [docs/building/editor/chunkCreator/phase2-implementation-checklist.md](docs/building/editor/chunkCreator/phase2-implementation-checklist.md)
+- [docs/building/editor/chunkCreator/plan.md](../../../editor/chunkCreator/plan.md)
+- [docs/building/archived/editor/chunkCreator/phase2-implementation-checklist.md](phase2-implementation-checklist.md)
 
 ## Purpose
 

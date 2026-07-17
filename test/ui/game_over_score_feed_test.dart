@@ -84,6 +84,7 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        theme: ThemeData(useMaterial3: false),
         home: GameOverOverlay(
           visible: true,
           onRestart: () {},
@@ -124,6 +125,7 @@ void main() {
   testWidgets('GameOverOverlay feeds all rows into score', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
+        theme: ThemeData(useMaterial3: false),
         home: GameOverOverlay(
           visible: true,
           onRestart: () {},
@@ -169,6 +171,7 @@ void main() {
   testWidgets('GameOverOverlay skip completes feed', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
+        theme: ThemeData(useMaterial3: false),
         home: GameOverOverlay(
           visible: true,
           onRestart: () {},
@@ -198,7 +201,7 @@ void main() {
     expect(find.text('Skip'), findsNothing);
   });
 
-  testWidgets('GameOverOverlay animates earned gold into actual gold', (
+  testWidgets('GameOverOverlay keeps provisional gold outside the wallet', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -219,7 +222,7 @@ void main() {
       ),
     );
 
-    expect(find.text('Gold earned: 7 + '), findsOneWidget);
+    expect(find.text('Reward pending: 7 (not spendable)'), findsOneWidget);
     expect(find.text('1234'), findsOneWidget);
 
     await tester.tap(find.text('Collect Score'));
@@ -227,9 +230,90 @@ void main() {
     await tester.tap(find.text('Skip'));
     await tester.pump();
 
-    expect(find.text('Gold earned: 0 + '), findsOneWidget);
-    expect(find.text('1241'), findsOneWidget);
+    expect(find.text('Reward pending: 7 (not spendable)'), findsOneWidget);
+    expect(find.text('1234'), findsOneWidget);
   });
+
+  testWidgets('GameOverOverlay blocks exit until the replay is journaled', (
+    tester,
+  ) async {
+    var exitCalls = 0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData(useMaterial3: false),
+        home: GameOverOverlay(
+          visible: true,
+          onRestart: () {},
+          onExit: () => exitCalls += 1,
+          showExitButton: true,
+          levelId: LevelId.field,
+          runMode: RunMode.practice,
+          runEndedEvent: _buildEvent(),
+          scoreTuning: _tuning,
+          tickHz: _tickHz,
+          provisionalGoldEarned: 7,
+          verifiedGold: 1234,
+          replaySubmissionJournaled: false,
+        ),
+      ),
+    );
+
+    expect(find.text('Saving replay'), findsOneWidget);
+    expect(find.text('Reward pending: 7 (not spendable)'), findsNothing);
+
+    await tester.tap(find.text('Collect Score'));
+    await tester.pump();
+    await tester.tap(find.text('Skip'));
+    await tester.pump();
+
+    expect(find.text('Saving Replay'), findsOneWidget);
+    await tester.tap(find.text('Saving Replay'), warnIfMissed: false);
+    await tester.pump();
+    expect(exitCalls, 0);
+  });
+
+  testWidgets(
+    'GameOverOverlay permits an explicit discard after save failure',
+    (tester) async {
+      var exitCalls = 0;
+      var retryCalls = 0;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(useMaterial3: false),
+          home: GameOverOverlay(
+            visible: true,
+            onRestart: () {},
+            onExit: () => exitCalls += 1,
+            showExitButton: true,
+            levelId: LevelId.field,
+            runMode: RunMode.practice,
+            runEndedEvent: _buildEvent(),
+            scoreTuning: _tuning,
+            tickHz: _tickHz,
+            replaySubmissionJournaled: false,
+            replaySubmissionJournalError: 'disk unavailable',
+            onRetryReplayJournal: () => retryCalls += 1,
+          ),
+        ),
+      );
+
+      expect(find.text('Replay save failed'), findsOneWidget);
+      await tester.tap(find.text('Retry Saving'));
+      await tester.pump();
+      expect(retryCalls, 1);
+
+      await tester.tap(find.text('Collect Score'));
+      await tester.pump();
+      await tester.tap(find.text('Skip'));
+      await tester.pump();
+      await tester.tap(find.text('Exit Without Reward'));
+      await tester.pump();
+
+      expect(exitCalls, 1);
+    },
+  );
 
   testWidgets('Competitive mode does not write local leaderboard entries', (
     tester,
@@ -238,6 +322,7 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        theme: ThemeData(useMaterial3: false),
         home: GameOverOverlay(
           visible: true,
           onRestart: () {},
@@ -282,7 +367,7 @@ void main() {
   });
 
   group('GameOverOverlay gold panel reward states', () {
-    RunSubmissionStatus _provisionalStatus({
+    RunSubmissionStatus provisionalStatus({
       required int provisionalGold,
       String runSessionId = 'run_test',
       protocol.RunSessionState state =
@@ -308,7 +393,7 @@ void main() {
       );
     }
 
-    RunSubmissionStatus _finalStatus({
+    RunSubmissionStatus finalStatus({
       required int provisionalGold,
       required int effectiveGoldDelta,
       required int spendableGoldDelta,
@@ -333,7 +418,7 @@ void main() {
       );
     }
 
-    RunSubmissionStatus _revokedStatus({
+    RunSubmissionStatus revokedStatus({
       required int provisionalGold,
       String runSessionId = 'run_test',
     }) {
@@ -375,7 +460,7 @@ void main() {
         ),
       );
 
-      expect(find.textContaining('Gold earned:'), findsNothing);
+      expect(find.textContaining('Gold:'), findsNothing);
     });
 
     testWidgets(
@@ -394,27 +479,26 @@ void main() {
               scoreTuning: _tuning,
               tickHz: _tickHz,
               verifiedGold: 100,
-              runSubmissionStatus: _provisionalStatus(provisionalGold: 50),
+              runSubmissionStatus: provisionalStatus(provisionalGold: 50),
             ),
           ),
         );
 
-        // Before collect: 50 earned remaining, 100 in wallet.
-        expect(find.text('Gold earned: 50 + '), findsOneWidget);
+        expect(find.text('Gold: '), findsOneWidget);
         expect(find.text('100'), findsOneWidget);
+        expect(find.text('Reward pending: 50 (not spendable)'), findsOneWidget);
 
         await tester.tap(find.text('Collect Score'));
         await tester.pump();
         await tester.tap(find.text('Skip'));
         await tester.pump();
 
-        // After collect: 0 remaining, 150 in wallet.
-        expect(find.text('Gold earned: 0 + '), findsOneWidget);
-        expect(find.text('150'), findsOneWidget);
+        expect(find.text('100'), findsOneWidget);
+        expect(find.text('Reward pending: 50 (not spendable)'), findsOneWidget);
       },
     );
 
-    testWidgets('gold panel shows final reward using provisionalGold field', (
+    testWidgets('gold panel only shows canonical gold after final settlement', (
       tester,
     ) async {
       await tester.pumpWidget(
@@ -430,7 +514,7 @@ void main() {
             scoreTuning: _tuning,
             tickHz: _tickHz,
             verifiedGold: 200,
-            runSubmissionStatus: _finalStatus(
+            runSubmissionStatus: finalStatus(
               provisionalGold: 40,
               effectiveGoldDelta: 40,
               spendableGoldDelta: 40,
@@ -439,9 +523,9 @@ void main() {
         ),
       );
 
-      // Final reward: overlay uses provisionalGold for the earn row.
-      expect(find.text('Gold earned: 40 + '), findsOneWidget);
+      expect(find.text('Gold: '), findsOneWidget);
       expect(find.text('200'), findsOneWidget);
+      expect(find.textContaining('Reward pending:'), findsNothing);
     });
 
     testWidgets(
@@ -460,48 +544,47 @@ void main() {
               scoreTuning: _tuning,
               tickHz: _tickHz,
               // No verifiedGold — earnedTotal = 0 and actualGold = 0.
-              runSubmissionStatus: _revokedStatus(provisionalGold: 50),
+              runSubmissionStatus: revokedStatus(provisionalGold: 50),
             ),
           ),
         );
 
-        expect(find.textContaining('Gold earned:'), findsNothing);
+        expect(find.textContaining('Gold:'), findsNothing);
       },
     );
 
-    testWidgets(
-      'gold panel shows zero earned and full verifiedGold when reward revoked',
-      (tester) async {
-        await tester.pumpWidget(
-          MaterialApp(
-            home: GameOverOverlay(
-              visible: true,
-              onRestart: () {},
-              onExit: null,
-              showExitButton: false,
-              levelId: LevelId.field,
-              runMode: RunMode.practice,
-              runEndedEvent: _buildEvent(),
-              scoreTuning: _tuning,
-              tickHz: _tickHz,
-              verifiedGold: 200,
-              runSubmissionStatus: _revokedStatus(provisionalGold: 50),
-            ),
+    testWidgets('gold panel shows only verifiedGold when reward is revoked', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: GameOverOverlay(
+            visible: true,
+            onRestart: () {},
+            onExit: null,
+            showExitButton: false,
+            levelId: LevelId.field,
+            runMode: RunMode.practice,
+            runEndedEvent: _buildEvent(),
+            scoreTuning: _tuning,
+            tickHz: _tickHz,
+            verifiedGold: 200,
+            runSubmissionStatus: revokedStatus(provisionalGold: 50),
           ),
-        );
+        ),
+      );
 
-        // _resolvedEarnedGold() = 0 (revoked), actualGold = 200.
-        expect(find.text('Gold earned: 0 + '), findsOneWidget);
-        expect(find.text('200'), findsOneWidget);
-      },
-    );
+      expect(find.text('Gold: '), findsOneWidget);
+      expect(find.text('200'), findsOneWidget);
+      expect(find.textContaining('Reward pending:'), findsNothing);
+    });
 
     testWidgets(
-      'verifiedGoldBaseline does not re-inflate after widget update with new verifiedGold',
+      'verified gold refresh replaces the displayed wallet value without double count',
       (tester) async {
         late StateSetter updateState;
         int verifiedGold = 100;
-        RunSubmissionStatus? runSubmissionStatus = _provisionalStatus(
+        RunSubmissionStatus? runSubmissionStatus = provisionalStatus(
           provisionalGold: 50,
         );
 
@@ -528,20 +611,12 @@ void main() {
           ),
         );
 
-        // Collect to drain all provisional gold into the wallet.
-        await tester.tap(find.text('Collect Score'));
-        await tester.pump();
-        await tester.tap(find.text('Skip'));
-        await tester.pump();
+        expect(find.text('100'), findsOneWidget);
+        expect(find.text('Reward pending: 50 (not spendable)'), findsOneWidget);
 
-        // Baseline 100 + collected 50 = 150.
-        expect(find.text('Gold earned: 0 + '), findsOneWidget);
-        expect(find.text('150'), findsOneWidget);
-
-        // Simulate a server poll that settles the grant: verifiedGold now 150.
         updateState(() {
           verifiedGold = 150;
-          runSubmissionStatus = _finalStatus(
+          runSubmissionStatus = finalStatus(
             provisionalGold: 50,
             effectiveGoldDelta: 50,
             spendableGoldDelta: 50,
@@ -549,10 +624,9 @@ void main() {
         });
         await tester.pump();
 
-        // Baseline must NOT update — stays 100 — so actualGold stays 150,
-        // not 200 (which would double-count the earned gold).
         expect(find.text('150'), findsOneWidget);
         expect(find.text('200'), findsNothing);
+        expect(find.textContaining('Reward pending:'), findsNothing);
       },
     );
   });

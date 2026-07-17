@@ -13,6 +13,7 @@ It currently owns editor UX, validation, and deterministic import/export for:
 - prefab, tile, and platform-module authoring data
 - chunk authoring data
 - parallax theme authoring data
+- level metadata authoring data
 
 The editor may author data consumed by gameplay, but gameplay authority stays
 outside the editor:
@@ -22,10 +23,6 @@ outside the editor:
   reviewable
 - do not turn the editor into a gameplay shell, a generic asset manager, or a
   backend/admin tool
-
-Current in-progress domain foundations also include:
-
-- level metadata authoring in `tools/editor/lib/src/levels/**`
 
 ## Scope And Growth Direction
 
@@ -48,9 +45,12 @@ Keep the editor small, focused, and extensible.
 ## Read First
 
 - repo root: `AGENTS.md`
-- docs policy: `docs/rules/documentation_and_commenting_guide.md`
+- docs policy: `docs/rules/code-documentation-policy.md`
 - chunk roadmap/checklists: `docs/building/editor/chunkCreator/**` when changing
   prefab/chunk contracts or milestone status
+- archived level creator plan:
+  `docs/building/archived/editor/levelCreator/plan.md` for historical level
+  authoring context
 
 ## Commenting For Onboarding
 
@@ -315,6 +315,12 @@ Run focused tests for touched slices, for example:
   - `tools/editor/test/parallax_store_test.dart`
   - `tools/editor/test/parallax_domain_plugin_test.dart`
   - `tools/editor/test/parallax_editor_page_test.dart`
+- level workflows:
+  - `tools/editor/test/level_store_test.dart`
+  - `tools/editor/test/level_domain_plugin_test.dart`
+  - `tools/editor/test/level_domain_plugin_integration_test.dart`
+  - `tools/editor/test/level_creator_page_test.dart`
+  - `tools/editor/test/level_context_resolver_test.dart`
 
 When authoring-runtime contract seams are touched, also run repo-level
 generator validation:

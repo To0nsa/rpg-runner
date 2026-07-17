@@ -4,6 +4,7 @@ export const runSessionStates = [
   "uploaded",
   "pending_validation",
   "validating",
+  "settlement_pending",
   "validated",
   "rejected",
   "expired",

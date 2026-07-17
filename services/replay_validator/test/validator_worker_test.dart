@@ -25,76 +25,66 @@ void main() {
     expect(distanceUnitsToMeters(149.9), 2);
   });
 
-  test(
-    'accepted practice replay marks terminal validated and writes reward',
-    () async {
-      final replayBlob = ReplayBlobV1.withComputedDigest(
-        runSessionId: 'run_accepted',
-        tickHz: 60,
-        seed: 1234,
-        levelId: 'field',
-        playerCharacterId: 'eloise',
-        loadoutSnapshot: _defaultLoadoutSnapshot(),
-        totalTicks: 0,
-        commandStream: const <ReplayCommandFrameV1>[],
-      );
-      final replayBytes = utf8.encode(jsonEncode(replayBlob.toJson()));
-      final session = _session(
-        runSessionId: replayBlob.runSessionId,
-        mode: RunMode.practice,
-        seed: replayBlob.seed,
-        digest: replayBlob.canonicalSha256,
-        contentLengthBytes: replayBytes.length,
-        validationAttempt: 1,
-      );
-      final repo = _FakeRunSessionRepository(
-        leaseResult: RunSessionLeaseAcquireResult(
-          status: RunSessionLeaseStatus.acquired,
-          session: session,
-        ),
-      );
-      final loader = _FakeReplayLoader(
-        bytesByRunSession: <String, List<int>>{
-          replayBlob.runSessionId: replayBytes,
-        },
-      );
-      final rewards = _FakeRewardGrantWriter();
-      final leaderboard = _FakeLeaderboardProjector();
-      final ghosts = _FakeGhostPublisher();
-      final metrics = _FakeValidatorMetrics();
-      final worker = DeterministicValidatorWorker(
-        replayLoader: loader,
-        boardRepository: _FakeBoardRepository(),
-        runSessionRepository: repo,
-        leaderboardProjector: leaderboard,
-        rewardGrantWriter: rewards,
-        ghostPublisher: ghosts,
-        metrics: metrics,
-        clockMs: () => 10_000,
-      );
+  test('accepted practice replay creates a settlement handoff', () async {
+    final replayBlob = ReplayBlobV1.withComputedDigest(
+      runSessionId: 'run_accepted',
+      tickHz: 60,
+      seed: 1234,
+      levelId: 'field',
+      playerCharacterId: 'eloise',
+      loadoutSnapshot: _defaultLoadoutSnapshot(),
+      totalTicks: 0,
+      commandStream: const <ReplayCommandFrameV1>[],
+    );
+    final replayBytes = utf8.encode(jsonEncode(replayBlob.toJson()));
+    final session = _session(
+      runSessionId: replayBlob.runSessionId,
+      mode: RunMode.practice,
+      seed: replayBlob.seed,
+      digest: replayBlob.canonicalSha256,
+      contentLengthBytes: replayBytes.length,
+      validationAttempt: 1,
+    );
+    final repo = _FakeRunSessionRepository(
+      leaseResult: RunSessionLeaseAcquireResult(
+        status: RunSessionLeaseStatus.acquired,
+        session: session,
+      ),
+    );
+    final loader = _FakeReplayLoader(
+      bytesByRunSession: <String, List<int>>{
+        replayBlob.runSessionId: replayBytes,
+      },
+    );
+    final rewards = _FakeRewardGrantWriter();
+    final leaderboard = _FakeLeaderboardProjector();
+    final ghosts = _FakeGhostPublisher();
+    final metrics = _FakeValidatorMetrics();
+    final worker = DeterministicValidatorWorker(
+      replayLoader: loader,
+      boardRepository: _FakeBoardRepository(),
+      runSessionRepository: repo,
+      leaderboardProjector: leaderboard,
+      rewardGrantWriter: rewards,
+      ghostPublisher: ghosts,
+      metrics: metrics,
+      clockMs: () => 10_000,
+    );
 
-      final result = await worker.validateRunSession(
-        runSessionId: replayBlob.runSessionId,
-      );
+    final result = await worker.validateRunSession(
+      runSessionId: replayBlob.runSessionId,
+    );
 
-      expect(result.status, ValidationDispatchStatus.accepted);
-      expect(repo.persistedValidatedRuns, hasLength(1));
-      expect(repo.persistedValidatedRuns.single.accepted, isTrue);
-      expect(rewards.validatedRunSessionIds, <String>[replayBlob.runSessionId]);
-      expect(rewards.revokedSettlements, isEmpty);
-      expect(leaderboard.runSessionIds, isEmpty);
-      expect(ghosts.runSessionIds, isEmpty);
-      expect(repo.terminalWrites, hasLength(1));
-      expect(
-        repo.terminalWrites.single.terminalState,
-        RunSessionTerminalState.validated,
-      );
-      expect(
-        metrics.records.last.status,
-        ValidationDispatchStatus.accepted.name,
-      );
-    },
-  );
+    expect(result.status, ValidationDispatchStatus.accepted);
+    expect(repo.acceptedSettlementHandoffs, hasLength(1));
+    expect(repo.acceptedSettlementHandoffs.single.accepted, isTrue);
+    expect(rewards.revokedSettlements, isEmpty);
+    expect(leaderboard.runSessionIds, isEmpty);
+    expect(ghosts.runSessionIds, isEmpty);
+    expect(repo.persistedValidatedRuns, isEmpty);
+    expect(repo.terminalWrites, isEmpty);
+    expect(metrics.records.last.status, ValidationDispatchStatus.accepted.name);
+  });
 
   test('invalid replay digest is rejected and terminalized', () async {
     final validBlob = ReplayBlobV1.withComputedDigest(
@@ -156,7 +146,6 @@ void main() {
       repo.persistedValidatedRuns.single.rejectionReason,
       'protocol_invalid',
     );
-    expect(rewards.validatedRunSessionIds, isEmpty);
     expect(rewards.revokedSettlements, hasLength(1));
     expect(
       rewards.revokedSettlements.single.runSessionId,
@@ -239,7 +228,7 @@ void main() {
     expect(repo.terminalWrites, isEmpty);
   });
 
-  test('reward settlement writes can be disabled via rollout toggle', () async {
+  test('accepted runs cannot bypass the settlement handoff', () async {
     final replayBlob = ReplayBlobV1.withComputedDigest(
       runSessionId: 'run_no_settlement_writes',
       tickHz: 60,
@@ -279,7 +268,6 @@ void main() {
       rewardGrantWriter: rewards,
       ghostPublisher: _FakeGhostPublisher(),
       metrics: _FakeValidatorMetrics(),
-      enableRewardSettlementWrites: false,
       clockMs: () => 1000,
     );
 
@@ -288,13 +276,10 @@ void main() {
     );
 
     expect(result.status, ValidationDispatchStatus.accepted);
-    expect(rewards.validatedRunSessionIds, isEmpty);
     expect(rewards.revokedSettlements, isEmpty);
-    expect(repo.terminalWrites, hasLength(1));
-    expect(
-      repo.terminalWrites.single.terminalState,
-      RunSessionTerminalState.validated,
-    );
+    expect(repo.acceptedSettlementHandoffs, hasLength(1));
+    expect(repo.persistedValidatedRuns, isEmpty);
+    expect(repo.terminalWrites, isEmpty);
   });
 
   test(
@@ -340,7 +325,6 @@ void main() {
       expect(result.status, ValidationDispatchStatus.retryScheduled);
       expect(repo.pendingRetryWrites, hasLength(1));
       expect(repo.pendingRetryWrites.single.internalErrorFirstAtMs, 1000);
-      expect(rewards.validatedRunSessionIds, isEmpty);
       expect(rewards.revokedSettlements, isEmpty);
       expect(repo.terminalWrites, isEmpty);
     },
@@ -519,6 +503,7 @@ class _FakeRunSessionRepository implements RunSessionRepository {
   _FakeRunSessionRepository({required this.leaseResult});
 
   final RunSessionLeaseAcquireResult leaseResult;
+  final List<ValidatedRun> acceptedSettlementHandoffs = <ValidatedRun>[];
   final List<ValidatedRun> persistedValidatedRuns = <ValidatedRun>[];
   final List<_TerminalWrite> terminalWrites = <_TerminalWrite>[];
   final List<_PendingRetryWrite> pendingRetryWrites = <_PendingRetryWrite>[];
@@ -528,6 +513,13 @@ class _FakeRunSessionRepository implements RunSessionRepository {
     required String runSessionId,
   }) async {
     return leaseResult;
+  }
+
+  @override
+  Future<void> handoffAcceptedRunForSettlement({
+    required ValidatedRun validatedRun,
+  }) async {
+    acceptedSettlementHandoffs.add(validatedRun);
   }
 
   @override
@@ -645,16 +637,7 @@ class _FakeLeaderboardProjector implements LeaderboardProjector {
 }
 
 class _FakeRewardGrantWriter implements RewardGrantWriter {
-  final List<String> validatedRunSessionIds = <String>[];
   final List<_RevokedSettlement> revokedSettlements = <_RevokedSettlement>[];
-
-  @override
-  Future<void> settleValidatedRewardGrant({
-    required String runSessionId,
-    ValidatedRun? validatedRun,
-  }) async {
-    validatedRunSessionIds.add(runSessionId);
-  }
 
   @override
   Future<void> settleRevokedRewardGrant({

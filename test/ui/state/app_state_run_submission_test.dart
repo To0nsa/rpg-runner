@@ -18,6 +18,51 @@ import 'package:rpg_runner/ui/state/run/run_submission_status.dart';
 import 'package:rpg_runner/ui/state/ownership/selection_state.dart';
 
 void main() {
+  test(
+    'journalRunReplay persists the replay before any remote submission',
+    () async {
+      final runSessionApi = _FakeRunSessionApi(
+        finalizeStatus: const SubmissionStatus(
+          runSessionId: 'run_journaled',
+          state: RunSessionState.pendingValidation,
+          updatedAtMs: 1000,
+        ),
+      );
+      final spoolStore = _InMemorySpoolStore();
+      final appState = AppState(
+        authApi: _StaticAuthApi.authenticated(),
+        loadoutOwnershipApi: _StaticOwnershipApi(),
+        runSessionApi: runSessionApi,
+        runSubmissionCoordinator: RunSubmissionCoordinator(
+          runSessionApi: runSessionApi,
+          spoolStore: spoolStore,
+          replayUploader: _NoopReplayUploader(),
+          clock: () => 1000,
+        ),
+      );
+      await appState.bootstrap(force: true);
+
+      final journaled = await appState.journalRunReplay(
+        runSessionId: 'run_journaled',
+        runMode: RunMode.practice,
+        replayFilePath: '/tmp/replay_journaled.json',
+        canonicalSha256:
+            'abababababababababababababababababababababababababababababababab',
+        contentLengthBytes: 256,
+        provisionalSummary: const <String, Object?>{'goldEarned': 27},
+      );
+
+      expect(journaled.phase, RunSubmissionPhase.queued);
+      expect(journaled.resultContextGold, 27);
+      expect(runSessionApi.createUploadGrantCallCount, 0);
+      expect(await spoolStore.load(runSessionId: 'run_journaled'), isNotNull);
+
+      await appState.processJournaledRunReplay(runSessionId: 'run_journaled');
+
+      expect(runSessionApi.createUploadGrantCallCount, 1);
+    },
+  );
+
   test('submitRunReplay preserves reward payload from server status', () async {
     final runSessionApi = _FakeRunSessionApi(
       finalizeStatus: const SubmissionStatus(
@@ -65,12 +110,11 @@ void main() {
       isTrue,
     );
     expect(appState.runSubmissionStatusFor('run_reward')?.provisionalGold, 17);
-    expect(appState.unverifiedGold, 17);
-    expect(appState.displayGold, 17);
+    expect(appState.progression.gold, 0);
   });
 
   test(
-    'submitRunReplay surfaces provisionalSummary gold in displayGold before verification',
+    'submitRunReplay retains provisionalSummary outside canonical gold',
     () async {
       final runSessionApi = _FakeRunSessionApi(
         finalizeStatus: const SubmissionStatus(
@@ -104,9 +148,8 @@ void main() {
       );
 
       expect(status.hasProvisionalReward, isFalse);
-      expect(status.displayProvisionalGold, 23);
-      expect(appState.unverifiedGold, 23);
-      expect(appState.displayGold, 23);
+      expect(status.resultContextGold, 23);
+      expect(appState.progression.gold, 0);
     },
   );
 
@@ -149,7 +192,7 @@ void main() {
   });
 
   test(
-    'submitRunReplay updates displayGold immediately while submission is in flight',
+    'submitRunReplay does not update canonical gold while submission is in flight',
     () async {
       final finalizeGate = Completer<void>();
       final runSessionApi = _BlockingFinalizeRunSessionApi(
@@ -185,13 +228,11 @@ void main() {
       );
 
       await Future<void>.delayed(Duration.zero);
-      expect(appState.unverifiedGold, 31);
-      expect(appState.displayGold, 31);
+      expect(appState.progression.gold, 0);
 
       finalizeGate.complete();
       await submitFuture;
-      expect(appState.unverifiedGold, 31);
-      expect(appState.displayGold, 31);
+      expect(appState.progression.gold, 0);
     },
   );
 
@@ -239,8 +280,7 @@ void main() {
       );
 
       expect(status.isRewardFinal, isTrue);
-      expect(appState.unverifiedGold, 0);
-      expect(appState.displayGold, 11);
+      expect(appState.progression.gold, 11);
       expect(ownershipApi.loadCanonicalStateCallCount, 2);
     },
   );
@@ -279,8 +319,7 @@ void main() {
         contentLengthBytes: 1024,
         provisionalSummary: const <String, Object?>{'goldEarned': 23},
       );
-      expect(appState.unverifiedGold, 23);
-      expect(appState.displayGold, 23);
+      expect(appState.progression.gold, 0);
 
       ownershipApi.setCanonicalState(_canonicalWithGold(gold: 23, revision: 2));
       runSessionApi.setLoadStatus(
@@ -304,8 +343,7 @@ void main() {
       );
 
       expect(status.isRewardFinal, isTrue);
-      expect(appState.unverifiedGold, 0);
-      expect(appState.displayGold, 23);
+      expect(appState.progression.gold, 23);
       expect(ownershipApi.loadCanonicalStateCallCount, 2);
     },
   );
@@ -401,6 +439,7 @@ class _FakeRunSessionApi implements RunSessionApi {
   _FakeRunSessionApi({required this.finalizeStatus});
 
   final SubmissionStatus finalizeStatus;
+  int createUploadGrantCallCount = 0;
 
   @override
   Future<RunUploadGrant> createUploadGrant({
@@ -408,6 +447,7 @@ class _FakeRunSessionApi implements RunSessionApi {
     required String sessionId,
     required String runSessionId,
   }) async {
+    createUploadGrantCallCount += 1;
     return RunUploadGrant(
       runSessionId: runSessionId,
       objectPath:

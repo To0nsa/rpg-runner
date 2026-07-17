@@ -1,7 +1,25 @@
 # Ownership Hybrid Sync Plan (Loadout + Selection)
 
 Date: March 16, 2026  
-Status: Ready to implement
+Status: Implemented; archived on July 7, 2026
+
+Implementation execution checklist lives in:
+[implementation-checklist.md](implementation-checklist.md)
+
+Related ownership foundation:
+
+- [Firebase Loadout Ownership Backend Playbook](firebase-loadout-ownership-backend-playbook.md)
+- [Superseded standalone write-behind plan](loadout-ownership-hybrid-write-behind-plan.md)
+
+## Plan/Checklist Split
+
+This document is strategy-only (why/what).
+
+- keep architecture, scope, invariants, and acceptance criteria here
+- keep execution sequencing, file-by-file tasks, and completion checkboxes in
+  the implementation checklist
+
+If plan and checklist ever diverge, update both in the same PR.
 
 ## Goal
 
@@ -145,9 +163,9 @@ Use deterministic keys:
 - `setAbilitySlot`: `ability:{characterId}:{slot}`
 - `setProjectileSpell`: `projectile:{characterId}`
 - `equipGear`: `gear:{characterId}:{slot}`
-- `setRunMode`: `selection:runMode`
-- `setLevel`: `selection:level`
-- `setCharacter` (if Tier C): `selection:character`
+- `setRunMode`: `selection`
+- `setLevel`: `selection`
+- `setCharacter` (if Tier C): `selection`
 
 Latest payload wins per key.
 
@@ -255,7 +273,7 @@ Selection-specific rule:
 
 Include now (same shared engine, policy-aware):
 
-- `setCharacter` as Tier C (`selection:character` coalesce key)
+- `setCharacter` as Tier C (`selection` coalesce key)
   - reason: aligns character switching with level/mode fast-sync semantics
   - reason: removes mixed behavior caused by fire-and-forget character syncing
 - leaderboard ghost-run preselection flow
@@ -319,8 +337,8 @@ Phase 3:
 
 Phase 4:
 
-- optionally move `setCharacter` into Tier C (if desired)
 - remove legacy direct-send fallback from production path
+- harden telemetry dashboards and operational alerts for Tier B/Tier C
 
 ## Test Plan
 
@@ -351,4 +369,3 @@ Add/update tests in `test/ui/state`:
   connectivity restore.
 - Tier C sync barriers protect run start and route transitions.
 - Touched tests pass and `dart analyze` is clean for touched files.
-

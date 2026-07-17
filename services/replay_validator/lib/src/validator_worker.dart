@@ -74,7 +74,6 @@ class DeterministicValidatorWorker implements ValidatorWorker {
     required this.rewardGrantWriter,
     required this.ghostPublisher,
     required this.metrics,
-    this.enableRewardSettlementWrites = true,
     this.maxRetryAttempts = 8,
     this.internalErrorGraceWindow = const Duration(hours: 1),
     this.incidentModeAutoRevokePaused = false,
@@ -92,7 +91,6 @@ class DeterministicValidatorWorker implements ValidatorWorker {
   final RewardGrantWriter rewardGrantWriter;
   final GhostPublisher ghostPublisher;
   final ValidatorMetrics metrics;
-  final bool enableRewardSettlementWrites;
   final int maxRetryAttempts;
   final Duration internalErrorGraceWindow;
   final bool incidentModeAutoRevokePaused;
@@ -161,13 +159,9 @@ class DeterministicValidatorWorker implements ValidatorWorker {
         replayBlob: replayBlob,
         session: session,
       );
-      await runSessionRepository.persistValidatedRun(validatedRun: acceptedRun);
-      if (enableRewardSettlementWrites) {
-        await rewardGrantWriter.settleValidatedRewardGrant(
-          runSessionId: normalizedRunSessionId,
-          validatedRun: acceptedRun,
-        );
-      }
+      await runSessionRepository.handoffAcceptedRunForSettlement(
+        validatedRun: acceptedRun,
+      );
       if (session.runTicket.mode.requiresBoard) {
         await leaderboardProjector.projectValidatedRun(
           runSessionId: normalizedRunSessionId,
@@ -179,10 +173,6 @@ class DeterministicValidatorWorker implements ValidatorWorker {
           validatedRun: acceptedRun,
         );
       }
-      await runSessionRepository.markTerminal(
-        runSessionId: normalizedRunSessionId,
-        terminalState: RunSessionTerminalState.validated,
-      );
       await metrics.recordDispatch(
         runSessionId: normalizedRunSessionId,
         status: ValidationDispatchStatus.accepted.name,
@@ -198,12 +188,10 @@ class DeterministicValidatorWorker implements ValidatorWorker {
         rejectionMessage: rejection.message,
       );
       await runSessionRepository.persistValidatedRun(validatedRun: rejectedRun);
-      if (enableRewardSettlementWrites) {
-        await rewardGrantWriter.settleRevokedRewardGrant(
-          runSessionId: normalizedRunSessionId,
-          settlementReason: rejection.reason,
-        );
-      }
+      await rewardGrantWriter.settleRevokedRewardGrant(
+        runSessionId: normalizedRunSessionId,
+        settlementReason: rejection.reason,
+      );
       await runSessionRepository.markTerminal(
         runSessionId: normalizedRunSessionId,
         terminalState: RunSessionTerminalState.rejected,
@@ -274,12 +262,10 @@ class DeterministicValidatorWorker implements ValidatorWorker {
           return ValidationDispatchResult.retryScheduled(message: message);
         }
 
-        if (enableRewardSettlementWrites) {
-          await rewardGrantWriter.settleRevokedRewardGrant(
-            runSessionId: normalizedRunSessionId,
-            settlementReason: RunSessionTerminalState.internalError.wireValue,
-          );
-        }
+        await rewardGrantWriter.settleRevokedRewardGrant(
+          runSessionId: normalizedRunSessionId,
+          settlementReason: RunSessionTerminalState.internalError.wireValue,
+        );
         await runSessionRepository.markTerminal(
           runSessionId: normalizedRunSessionId,
           terminalState: RunSessionTerminalState.internalError,

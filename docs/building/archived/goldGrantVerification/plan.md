@@ -1,7 +1,10 @@
 # Gold Grant Verification Plan (Refactor-First)
 
 Date: March 17, 2026  
-Status: Design-ready, implementation pending
+Status: Superseded July 16, 2026 by [strategy-refresh.md](../../goldGrantVerification/strategy-refresh.md); retained as a historical implementation record.
+
+> Archived: this plan describes the prior client/read-time reconciliation
+> architecture. Do not use it to guide new implementation work.
 
 ## Summary
 
@@ -16,6 +19,38 @@ Target outcome:
 - provisional gold may be visible before verification, but it is not spendable until verified
 
 This plan intentionally favors refactoring existing flows over layering UI-only fixes or temporary shortcuts.
+
+## Current audit - July 7, 2026
+
+Most backend and client plumbing from this plan now exists: replay finalize can
+create provisional reward grants, backend status projection carries reward
+payloads, validator settlement writes lifecycle transitions, canonical
+`progression.gold` remains verified spendable state, and Game Over consumes the
+reward payload for its local collect presentation.
+
+The updated strategy lives in
+[strategy-refresh.md](../../goldGrantVerification/strategy-refresh.md). Use that document as the working
+direction before changing implementation.
+
+This archived plan recorded a cross-screen display mismatch: it required hub,
+town, profile, and other persistent economy screens to show verified-only
+`progression.gold`, while Flutter code and tests included provisional reward
+gold in those global displays.
+
+Observed mismatch:
+
+- `lib/ui/state/app/app_state.dart` exposes `displayGold` as
+  `progression.gold + unverifiedGold`.
+- `lib/ui/pages/hub/play_hub_page.dart`, `lib/ui/pages/town/town_page.dart`, and
+  `lib/ui/pages/profile/profile_page.dart` render that `displayGold` value.
+- `test/ui/pages/hub/play_hub_page_test.dart`,
+  `test/ui/pages/meta/town_page_test.dart`, and
+  `test/ui/pages/profile/profile_page_test.dart` assert that unverified reward
+  gold is included on those screens.
+
+The refreshed strategy keeps `progression.gold` as the only visible wallet and
+fixes the verification/synchronization latency at the source. Do not close this
+plan until the single-wallet flow is restored.
 
 ## Why this needs a refactor
 
@@ -329,7 +364,8 @@ Exit criteria to deprecate:
 	- preserve non-terminal lifecycle states (`provisional_created`, `provisional_visible`, `revocation_visible`)
 	- only treat `validated_settled` and `revoked_final` as reward-terminal for deletion eligibility
 
-6. Verify ownership hybrid-write compatibility with `docs/building/ownershipHybridWrite/plan.md`:
+6. Verify ownership hybrid-write compatibility with
+   `docs/building/archived/ownershipHybridWrite/plan.md`:
 	- provisional reward display does not require local ownership mutation
 	- hybrid sync timing affects when verified gold appears globally, not whether provisional gold is spendable
 	- canonical gold remains stable and verified-only across sync boundaries

@@ -35,15 +35,13 @@ class ReplayValidatorApp {
         _readEnv('GCLOUD_PROJECT') ?? _readEnv('GOOGLE_CLOUD_PROJECT');
     final replayStorageBucket = _readEnv('REPLAY_STORAGE_BUCKET');
     final graceWindowMs =
-      _readPositiveIntEnv('VALIDATOR_INTERNAL_ERROR_GRACE_WINDOW_MS') ??
-      const Duration(hours: 1).inMilliseconds;
+        _readPositiveIntEnv('VALIDATOR_INTERNAL_ERROR_GRACE_WINDOW_MS') ??
+        const Duration(hours: 1).inMilliseconds;
     final incidentMode =
-      _readBoolEnv('VALIDATOR_INCIDENT_MODE_PAUSE_AUTO_REVOKE') ?? false;
-    final enableRewardSettlementWrites =
-      _readBoolEnv('VALIDATOR_REWARD_SETTLEMENT_WRITES_ENABLED') ?? true;
+        _readBoolEnv('VALIDATOR_INCIDENT_MODE_PAUSE_AUTO_REVOKE') ?? false;
     final incidentRetryDelayMs =
-      _readPositiveIntEnv('VALIDATOR_INCIDENT_MODE_RETRY_DELAY_MS') ??
-      const Duration(minutes: 15).inMilliseconds;
+        _readPositiveIntEnv('VALIDATOR_INCIDENT_MODE_RETRY_DELAY_MS') ??
+        const Duration(minutes: 15).inMilliseconds;
     if (projectId == null || replayStorageBucket == null) {
       return ReplayValidatorApp(port: parsedPort ?? 8080);
     }
@@ -77,7 +75,6 @@ class ReplayValidatorApp {
           apiProvider: apiProvider,
         ),
         metrics: ConsoleValidatorMetrics(),
-        enableRewardSettlementWrites: enableRewardSettlementWrites,
         internalErrorGraceWindow: Duration(milliseconds: graceWindowMs),
         incidentModeAutoRevokePaused: incidentMode,
         incidentModeRetryDelay: Duration(milliseconds: incidentRetryDelayMs),

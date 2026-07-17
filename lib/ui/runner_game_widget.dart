@@ -114,7 +114,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       ValueNotifier<GameStateSnapshot?>(null);
   final ValueNotifier<List<GameEvent>> _ghostEventsBridge =
       ValueNotifier<List<GameEvent>>(const <GameEvent>[]);
-    final ValueNotifier<ReplayBlobV1?> _ghostReplayBlobBridge =
+  final ValueNotifier<ReplayBlobV1?> _ghostReplayBlobBridge =
       ValueNotifier<ReplayBlobV1?>(null);
 
   bool _pausedByLifecycle = false;
@@ -140,6 +140,9 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   Timer? _runSubmissionPollTimer;
   bool _runSubmissionPollInFlight = false;
   String? _runSubmissionRunSessionId;
+  bool _runReplayJournaled = false;
+  bool _runReplayJournalInFlight = false;
+  String? _runReplayJournalError;
 
   late GameController _controller;
   late RunnerInputRouter _input;
@@ -259,7 +262,9 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       _ghostEventsBridge.value = const <GameEvent>[];
       return;
     }
-    _ghostEventsBridge.value = List<GameEvent>.unmodifiable(runner.drainedEvents);
+    _ghostEventsBridge.value = List<GameEvent>.unmodifiable(
+      runner.drainedEvents,
+    );
     runner.clearDrainedEvents();
   }
 
@@ -379,10 +384,15 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       return;
     }
     _runSubmissionRunSessionId = _runSessionId;
-    unawaited(_submitReplayForValidation(event));
+    setState(() {
+      _runReplayJournaled = false;
+      _runReplayJournalInFlight = true;
+      _runReplayJournalError = null;
+    });
+    unawaited(_journalReplayForSubmission(event));
   }
 
-  Future<void> _submitReplayForValidation(RunEndedEvent event) async {
+  Future<void> _journalReplayForSubmission(RunEndedEvent event) async {
     final appState = _maybeAppState();
     if (_runRecorder == null && _runRecorderInitializing) {
       await _waitForRunRecorderReady();
@@ -391,6 +401,9 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     if (appState == null || recorder == null) {
       if (!mounted) return;
       setState(() {
+        _runReplayJournalInFlight = false;
+        _runReplayJournalError =
+            'Replay saving prerequisites were unavailable. Retry before leaving.';
         _runSubmissionStatus = RunSubmissionStatus(
           runSessionId: _runSessionId,
           phase: RunSubmissionPhase.internalError,
@@ -405,7 +418,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       final summary = _buildReplayProvisionalSummary(event);
       final finalized = await recorder.finalize(clientSummary: summary);
       final replaySize = await finalized.replayBlobFile.length();
-      final status = await appState.submitRunReplay(
+      final journaledStatus = await appState.journalRunReplay(
         runSessionId: _runSessionId,
         runMode: _runMode,
         replayFilePath: finalized.replayBlobFile.path,
@@ -414,20 +427,60 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
         provisionalSummary: summary,
       );
       if (!mounted) return;
+      setState(() {
+        _runReplayJournaled = true;
+        _runReplayJournalInFlight = false;
+        _runReplayJournalError = null;
+        _runSubmissionStatus = journaledStatus;
+      });
+      unawaited(
+        _processJournaledReplayForValidation(
+          appState: appState,
+          runSessionId: _runSessionId,
+        ),
+      );
+    } catch (error) {
+      debugPrint(
+        'Replay journaling failed for runSessionId=$_runSessionId: $error',
+      );
+      if (!mounted) return;
+      setState(() {
+        _runReplayJournalInFlight = false;
+        _runReplayJournalError = '$error';
+        _runSubmissionStatus = RunSubmissionStatus(
+          runSessionId: _runSessionId,
+          phase: RunSubmissionPhase.internalError,
+          updatedAtMs: DateTime.now().millisecondsSinceEpoch,
+          message: 'Replay could not be saved. Retry before leaving.',
+        );
+      });
+    }
+  }
+
+  Future<void> _processJournaledReplayForValidation({
+    required AppState appState,
+    required String runSessionId,
+  }) async {
+    try {
+      final status = await appState.processJournaledRunReplay(
+        runSessionId: runSessionId,
+      );
+      if (!mounted || runSessionId != _runSessionId) return;
       setState(() => _runSubmissionStatus = status);
       _scheduleSubmissionStatusPolling(
         appState: appState,
-        runSessionId: _runSessionId,
+        runSessionId: runSessionId,
         initialStatus: status,
       );
     } catch (error) {
       debugPrint(
-        'Replay submission failed for runSessionId=$_runSessionId: $error',
+        'Replay submission processing failed for runSessionId=$runSessionId: '
+        '$error',
       );
-      if (!mounted) return;
+      if (!mounted || runSessionId != _runSessionId) return;
       setState(() {
         _runSubmissionStatus = RunSubmissionStatus(
-          runSessionId: _runSessionId,
+          runSessionId: runSessionId,
           phase: RunSubmissionPhase.internalError,
           updatedAtMs: DateTime.now().millisecondsSinceEpoch,
           message: '$error',
@@ -713,6 +766,9 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       _provisionalGoldEarned = null;
       _runSubmissionStatus = null;
       _runSubmissionRunSessionId = null;
+      _runReplayJournaled = false;
+      _runReplayJournalInFlight = false;
+      _runReplayJournalError = null;
       _runRecorder = null;
       _runRecorderInitError = null;
       _runRecorderInitializing = false;
@@ -888,6 +944,19 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
                     provisionalGoldEarned: _provisionalGoldEarned,
                     verifiedGold: _verifiedGoldForGameOver(),
                     runSubmissionStatus: _runSubmissionStatus,
+                    replaySubmissionJournaled: _runReplayJournaled,
+                    replaySubmissionJournalError: _runReplayJournalError,
+                    onRetryReplayJournal: _runReplayJournalInFlight
+                        ? null
+                        : () {
+                            final event = _controller.lastRunEndedEvent;
+                            if (event == null) return;
+                            setState(() {
+                              _runReplayJournalInFlight = true;
+                              _runReplayJournalError = null;
+                            });
+                            unawaited(_journalReplayForSubmission(event));
+                          },
                   );
                 }
                 return GameOverlay(

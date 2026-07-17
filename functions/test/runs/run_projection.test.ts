@@ -4,6 +4,8 @@ import { after, beforeEach, test } from "node:test";
 import { deleteApp, getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 
+import { loadOrCreateCanonicalState } from "../../src/ownership/canonical_store.js";
+import { settleAcceptedRunSession } from "../../src/runs/reward_settlement.js";
 import { loadRunSessionSubmissionStatus } from "../../src/runs/submission_store.js";
 
 const firestoreEmulatorHost = process.env.FIRESTORE_EMULATOR_HOST;
@@ -28,6 +30,7 @@ beforeEach(async () => {
     clearCollection(db, "run_sessions"),
     clearCollection(db, "reward_grants"),
     clearCollection(db, "validated_runs"),
+    clearCollection(db, "ownership_profiles"),
   ]);
 });
 
@@ -101,6 +104,53 @@ test("reward projection: validated_settled grant → final reward with full delt
   assert.equal(reward.provisionalGold, 75);
   assert.equal(reward.effectiveGoldDelta, 75);
   assert.equal(reward.spendableGoldDelta, 75);
+});
+
+test("settlement handoff credits gold once and exposes terminal validation together", async () => {
+  const runSessionId = await seedRunSession(db, uid, "settlement_pending");
+  await db.collection("run_sessions").doc(runSessionId).set(
+    { mode: "practice" },
+    { merge: true },
+  );
+  await db.collection("validated_runs").doc(runSessionId).set({
+    runSessionId,
+    uid,
+    mode: "practice",
+    accepted: true,
+    goldEarned: 75,
+  });
+  await seedRewardGrant(db, runSessionId, {
+    uid,
+    mode: "practice",
+    lifecycleState: "settlement_pending",
+    goldAmount: 75,
+  });
+
+  const firstOutcome = await settleAcceptedRunSession({
+    db,
+    runSessionId,
+    nowMs,
+  });
+
+  assert.equal(firstOutcome, "settled");
+  const canonical = await loadOrCreateCanonicalState({ db, uid });
+  assert.equal(canonical.progression.gold, 75);
+  assert.equal(canonical.revision, 1);
+  const session = await db.collection("run_sessions").doc(runSessionId).get();
+  const grant = await db.collection("reward_grants").doc(runSessionId).get();
+  assert.equal(session.get("state"), "validated");
+  assert.equal(grant.get("lifecycleState"), "validated_settled");
+  assert.equal(grant.get("appliedRevision"), 1);
+
+  const secondOutcome = await settleAcceptedRunSession({
+    db,
+    runSessionId,
+    nowMs: nowMs + 1,
+  });
+  const canonicalAfterRetry = await loadOrCreateCanonicalState({ db, uid });
+  assert.equal(secondOutcome, "already_settled");
+  assert.equal(canonicalAfterRetry.progression.gold, 75);
+  assert.equal(canonicalAfterRetry.revision, 1);
 });
 
 test("reward projection: revocation_visible grant → revoked reward with zero deltas", async () => {

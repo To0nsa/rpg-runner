@@ -1,5 +1,7 @@
 # Ghost Run Visual Layer Plan
 
+Status: Implemented (verified against current code on July 7, 2026)
+
 ## 1) Goal
 
 Replace the ghost text-only HUD with in-world ghost visuals while preserving deterministic gameplay authority.
@@ -21,8 +23,13 @@ Replace the ghost text-only HUD with in-world ghost visuals while preserving det
 
 - Ghost replay bootstrap is loaded before run start (when ghost run is explicitly requested).
 - `RunnerGameWidget` advances `GhostPlaybackRunner` with live tick progression.
-- HUD currently shows a ghost status label.
-- No in-world ghost entity rendering yet.
+- `RunnerGameWidget` publishes ghost snapshots, events, and replay metadata to
+  the Flame renderer through render-only listenables.
+- `RunnerFlameGame` owns a `GhostLayerSystem` that renders ghost player, enemy,
+  and projectile entities in-world.
+- Default HUD no longer depends on a text-first ghost status label.
+- Focused game/UI/state tests cover ghost playback, render scope, failure
+  disable behavior, manifest/bootstrap, and replay cache behavior.
 
 ---
 
@@ -33,7 +40,21 @@ Replace the ghost text-only HUD with in-world ghost visuals while preserving det
 - [x] Phase 3 — Ghost Visual Style
 - [x] Phase 4 — Ghost Entity Rendering Layer
 - [x] Phase 5 — HUD Cleanup
-- [ ] Phase 6 — Tests and Validation hardening
+- [x] Phase 6 — Tests and Validation hardening
+
+Implementation notes:
+
+- Ghost render synchronization lives in
+  `lib/game/runner_flame/ghost_layer_system.dart`.
+- `RunnerFlameGame` wires the ghost layer as render-only state; Core remains the
+  sole gameplay authority.
+- Ghost visual styling uses `RenderVisualStyle.ghost` in
+  `lib/game/components/sprite_anim/deterministic_anim_view.dart`.
+- Tests include:
+  - `test/game/runner_flame_game_ghost_layer_test.dart`
+  - `test/game/replay/ghost_playback_runner_test.dart`
+  - `test/ui/state/app_state_ghost_test.dart`
+  - `test/ui/state/ghost_replay_cache_test.dart`
 
 ---
 
@@ -340,7 +361,7 @@ Remove text-first ghost status from default UX after in-world ghost visuals land
 
 ## 10) Post-Implementation Documentation Checklist
 
-- Update this plan with final architecture notes and deviations.
-- Add implementation summary under `docs/building/ghostRun/`.
-- Update `AGENTS.md` guidance if boundaries changed.
-- Update any public/developer docs affected by ghost run UX contract.
+- [x] Update this plan with final architecture notes and deviations.
+- [x] Add implementation summary under `docs/building/archived/ghostRun/`.
+- [x] Update agent guidance if boundaries changed.
+- [x] Update or preserve public/developer docs affected by ghost run UX contract.

@@ -11,7 +11,27 @@ final class _AppStateRunSubmissionController extends _AppStateController {
     String contentType = 'application/octet-stream',
     Map<String, Object?>? provisionalSummary,
   }) async {
-    final session = await _ensureAuthSession();
+    await journalRunReplay(
+      runSessionId: runSessionId,
+      runMode: runMode,
+      replayFilePath: replayFilePath,
+      canonicalSha256: canonicalSha256,
+      contentLengthBytes: contentLengthBytes,
+      contentType: contentType,
+      provisionalSummary: provisionalSummary,
+    );
+    return processJournaledRunReplay(runSessionId: runSessionId);
+  }
+
+  Future<RunSubmissionStatus> journalRunReplay({
+    required String runSessionId,
+    required RunMode runMode,
+    required String replayFilePath,
+    required String canonicalSha256,
+    required int contentLengthBytes,
+    String contentType = 'application/octet-stream',
+    Map<String, Object?>? provisionalSummary,
+  }) async {
     final pending = await _runSubmissionCoordinator.enqueueSubmission(
       runSessionId: runSessionId,
       runMode: runMode,
@@ -25,6 +45,13 @@ final class _AppStateRunSubmissionController extends _AppStateController {
       pending,
     );
     _notifyListeners();
+    return _runSubmissionStatuses[runSessionId]!;
+  }
+
+  Future<RunSubmissionStatus> processJournaledRunReplay({
+    required String runSessionId,
+  }) async {
+    final session = await _ensureAuthSession();
     final status = await _runSubmissionCoordinator.processRunSession(
       userId: session.userId,
       sessionId: session.sessionId,

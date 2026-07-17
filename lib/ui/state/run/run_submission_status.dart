@@ -10,6 +10,7 @@ enum RunSubmissionPhase {
   retryScheduled,
   pendingValidation,
   validating,
+  settlementPending,
   validated,
   rejected,
   expired,
@@ -64,7 +65,7 @@ final class RunSubmissionStatus {
   bool get isRewardRevoked =>
       reward?.status == protocol.SubmissionRewardStatus.revoked;
 
-  int get displayProvisionalGold {
+  int get resultContextGold {
     if (hasProvisionalReward) {
       return provisionalGold > 0 ? provisionalGold : 0;
     }
@@ -130,6 +131,8 @@ final class RunSubmissionStatus {
       protocol.RunSessionState.pendingValidation =>
         RunSubmissionPhase.pendingValidation,
       protocol.RunSessionState.validating => RunSubmissionPhase.validating,
+      protocol.RunSessionState.settlementPending =>
+        RunSubmissionPhase.settlementPending,
       protocol.RunSessionState.validated => RunSubmissionPhase.validated,
       protocol.RunSessionState.rejected => RunSubmissionPhase.rejected,
       protocol.RunSessionState.expired => RunSubmissionPhase.expired,
@@ -140,7 +143,8 @@ final class RunSubmissionStatus {
     final effectiveNowMs = nowMs ?? DateTime.now().millisecondsSinceEpoch;
     final verificationDelayed =
         (phase == RunSubmissionPhase.pendingValidation ||
-            phase == RunSubmissionPhase.validating) &&
+            phase == RunSubmissionPhase.validating ||
+            phase == RunSubmissionPhase.settlementPending) &&
         effectiveNowMs - status.updatedAtMs >= verificationDelayedThresholdMs;
     return RunSubmissionStatus(
       runSessionId: status.runSessionId,

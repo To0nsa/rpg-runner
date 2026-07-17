@@ -14,6 +14,21 @@
   "firestore": {
     "rules": "firestore.rules"
   },
+  "hosting": {
+    "site": "rpg-runner-d7add",
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
   "flutter": {
     "platforms": {
       "android": {

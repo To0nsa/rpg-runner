@@ -1,486 +1,420 @@
 # Run-Start Latency Optimization — Implementation Checklist
 
-Date: March 18, 2026  
-Status: Phase 5 implemented (Phase 0 backend percentile capture still pending)  
-Source plan: [docs/building/optimizeStartRun/plan.md](docs/building/optimizeStartRun/plan.md)
+- Originally implemented: March 18, 2026
+- Corrective audit: July 16, 2026
+- Status: Corrective work required; do not archive or mark accepted
+- Authoritative design: [plan.md](plan.md)
 
-This checklist converts the run-start optimization plan into an execution order
-with explicit done criteria and validation gates.
+## How to use this checklist
 
-## Definition of done
+- `[x]` means the current implementation and available evidence satisfy the
+  item.
+- `[ ]` means required work or verification remains.
+- Historical passes are evidence for that revision only; they do not override a
+  later failing or blocked validation run.
+- A phase is complete only when every task and done condition in that phase is
+  checked.
 
-- Play tap transitions immediately to run bootstrap/loading UI
-- run ticket prefetch is bounded, safe, consume-once, and key-validated
-- run start remains strict for restart preconditions
-- ownership sync gate fast-path skips unnecessary work only when safe
-- backend `runSessionCreate` tail latency (`p95/p99`) improves measurably
-- callable contracts remain backward-compatible with current Flutter adapters
-- no determinism/auth/authority regressions
+## Current audit summary
 
-## Locked constraints and invariants
+| Area | Current state | Decision |
+| --- | --- | --- |
+| Route-first Play feedback | Implemented | Keep |
+| Consume-once bounded ticket cache | Implemented | Keep and harden |
+| Strict restart path | Implemented | Keep |
+| Ownership known-clean fast path | Implemented | Keep |
+| Speculative weekly prefetch | Rejected by backend canonical-mode check | Remove |
+| Prefetch ownership gate | Missing | Add |
+| Stale async result rejection | Key-only; no generation protection | Add generation |
+| Client prefetch diagnostics | Missing | Add |
+| Bootstrap Return to Hub action | Missing | Add |
+| Blocking asset warmup | Global catalog scan | Bound to critical selected assets |
+| Server-time authority | Callable request can supply `nowMs` | Fix before rollout |
+| Board/session backend fast path | Implemented and tested | Keep |
+| Persisted authoritative `runTicket` | Implemented and cross-layer tested | Keep |
+| `minInstances` | Optional environment hook only | Record deployed value |
+| Latency improvement | No representative before/after comparison | Measure |
 
-Do not relax these without updating the plan in the same PR:
+## Locked completion order
 
-- no backend callable contract change for run start
-- no gameplay determinism behavior change
-- restart flows stay strict (no relaxed precondition behavior)
-- prefetch cache stays bounded in-memory only
-- prefetched ticket reuse requires full key match + expiry safety check
-- no ticket payload logging in diagnostics
+1. Restore server-time authority.
+2. Correct prefetch eligibility, ownership gating, and stale-result handling.
+3. Complete route failure UX and bound blocking asset warmup.
+4. Verify deployed runtime configuration and representative latency.
+5. Run the final cross-layer validation gate.
+6. Complete rollout/rollback evidence, then archive.
 
-## Locked implementation order
-
-1. Baseline + observability scaffolding
-2. Client prefetch cache core
-3. Client run-start fast path + invalidation rules
-4. Ownership sync fast no-op gate
-5. Route-first transition UX
-6. Backend run-session latency optimizations
-7. Tests and rollout verification
-
-Do not start a later step until previous step done criteria are met.
+Do not skip authority or correctness work to continue performance rollout.
 
 ---
 
-## Phase 0 — Pre-flight baseline
+## Phase 0 — Restore server-time authority
 
 Objective:
 
-- establish measurable baseline before changes
+- ensure user callable payloads cannot influence authoritative time
 
-Tasks:
+Implementation:
 
-- [x] Re-read plan and confirm constants/guardrails:
-	- [x] [docs/building/optimizeStartRun/plan.md](docs/building/optimizeStartRun/plan.md)
-- [x] Capture baseline timings (dev/staging):
-	- [x] Play tap -> first navigation feedback
-	- [x] Play tap -> `prepareRunStartDescriptor(...)` completed
-	- [x] Play tap -> first rendered run frame
-- [ ] Capture backend baseline for `runSessionCreate`:
-	- [ ] `p50`
-	- [ ] `p95`
-	- [ ] `p99`
-- [x] Confirm repo starts green before edits:
-	- [x] `dart analyze` (no errors; 7 info-level lints)
-	- [x] relevant `flutter test` slices
-	- [x] `corepack pnpm --dir functions build`
-	- [x] `corepack pnpm --dir functions test`
+- [ ] Stop reading request `nowMs` as authority in
+  [run validators](../../../functions/src/runs/validators.ts).
+- [ ] Ensure
+  [run callable handlers](../../../functions/src/runs/callable_handlers.ts)
+  supply server time to internal functions.
+- [ ] Apply the same rule to board resolution/provisioning callables involved in
+  run start.
+- [ ] Ensure
+  [run-session creation](../../../functions/src/runs/store.ts) derives ticket
+  issue/expiry time from the server boundary.
+- [ ] Ensure
+  [upload grant and finalize](../../../functions/src/runs/submission_store.ts)
+  derive lease/expiry transitions from the server boundary.
+- [ ] Retain deterministic time injection for internal unit/emulator tests.
+- [ ] Confirm the normal Flutter callable request/response remains compatible.
+
+Tests:
+
+- [ ] Request-supplied future time cannot future-date a run ticket.
+- [ ] Request-supplied time cannot select or provision a future board.
+- [ ] Request-supplied time cannot extend an upload lease.
+- [ ] Request-supplied time cannot bypass run-session expiry during finalize.
+- [ ] Auth gating remains unchanged.
 
 Done when:
 
-- [ ] baseline metrics documented
-- [x] green baseline recorded
-
-Execution notes (2026-03-18):
-
-- `dart analyze`: completed; no errors, 7 info-level diagnostics.
-- `flutter test test/ui/state`: passed (`+100`, all tests passed).
-- `flutter test test/ui/pages`: passed (`+46`, all tests passed).
-- `flutter test test/ui`: passed (`+226`, all tests passed).
-- `corepack pnpm --dir functions build`: passed.
-- `corepack pnpm --dir functions test`: passed (`97/97`).
-- Backend tooling warning observed (non-blocking for baseline run):
-  unsupported engine (`node 20` requested, `node v24.12.0` active).
-- Manual start-timing baseline (user-provided):
-	- cold start: `8-10s`
-	- warm/otherwise: `3-6s`
-
-Remaining to finish Phase 0:
-
-- capture backend `runSessionCreate` percentile baseline (`p50/p95/p99`)
+- [ ] no user-controlled clock reaches an authority decision
+- [ ] Functions build and emulator tests pass
 
 ---
 
-## Phase 1 — Client prefetch primitives in AppState
+## Phase 1 — Correct current-selection prefetch
 
 Objective:
 
-- add safe bounded ticket prefetch model without changing run-start behavior yet
+- retain the useful cache fast path while making every prefetched ticket
+  canonical, ownership-clean, and generation-safe
 
-Tasks:
+### Verified foundation
 
-- [x] Add prefetch key model in [lib/ui/state/app_state.dart](lib/ui/state/app_state.dart):
-	- [x] `userId`
-	- [x] `ownershipRevision`
-	- [x] `gameCompatVersion`
-	- [x] `mode`
-	- [x] `levelId`
-	- [x] `playerCharacterId`
-	- [x] `loadoutDigest`
-- [x] Add bounded cache structures:
-	- [x] `Map<RunTicketPrefetchKey, RunTicket>`
-	- [x] in-flight dedupe map
-	- [x] LRU eviction metadata
-- [x] Enforce defaults:
-	- [x] max entries = `4`
-	- [x] expiry skew = `5000ms`
-- [x] Add prefetch APIs:
-	- [x] `startRunTicketPrefetchForCurrentSelection()`
-	- [x] `startRunTicketPrefetchFor({required RunMode mode, required LevelId levelId})`
-- [x] Add per-key request minimum interval/rate limit
-- [x] Add dedupe/stale-result-drop behavior
+- [x] Prefetch key contains:
+  - [x] user id
+  - [x] ownership revision
+  - [x] game compatibility version
+  - [x] mode
+  - [x] level
+  - [x] selected character
+  - [x] deterministic loadout digest
+- [x] Cache is in-memory.
+- [x] Maximum cached ticket entries is `4`.
+- [x] Expiry safety skew is `5000ms`.
+- [x] Per-key request interval is `1500ms`.
+- [x] Concurrent same-key requests are deduplicated.
+- [x] Ticket consumption removes the selected entry immediately.
+- [x] Exact ticket identity is checked before reuse.
+- [x] Expired or mismatched tickets fall back to remote creation.
+- [x] Restart bypasses prefetched tickets and uses the strict remote path.
+- [x] Auth, canonical apply, local mutation, reset, and disposal clear cache
+  structures.
+
+### Required corrections
+
+- [ ] Remove the additional weekly request from
+  [startWarmup](../../../lib/ui/state/app/controllers/auth_profile_controller.dart).
+- [ ] Make current canonical selection the only supported prefetch target.
+- [ ] If `startRunTicketPrefetchFor(...)` remains, make it no-op for a
+  noncanonical mode/level.
+- [ ] Run the ownership-sync-before-run gate before creating a prefetched
+  session.
+- [ ] Snapshot selection/key only after the ownership gate completes.
+- [ ] Add a monotonic invalidation generation in
+  [AppState](../../../lib/ui/state/app/app_state.dart).
+- [ ] Capture generation at request start and require it to match at completion.
+- [ ] Ensure A → B → A state drift cannot revive the A request.
+- [ ] Ensure auth-session drift cannot revive an old request for the same user.
+- [ ] Validate the response against the captured key before placing it in cache.
+- [ ] Keep request-budget, LRU, and in-flight metadata bounded across churn.
+
+Diagnostics:
+
+- [ ] `prefetch_request`
+- [ ] `prefetch_stored`
+- [ ] `prefetch_hit`
+- [ ] `prefetch_miss_empty`
+- [ ] `prefetch_miss_expired`
+- [ ] `prefetch_miss_key_mismatch`
+- [ ] `prefetch_drop_generation`
+- [ ] `prefetch_drop_ownership_not_clean`
+- [ ] `prefetch_request_failed`
+- [ ] Verify diagnostics never contain ticket/session/nonce/auth/loadout
+  payloads.
+
+Tests in
+[app_state_run_ticket_prefetch_test.dart](../../../test/ui/state/app_state_run_ticket_prefetch_test.dart):
+
+- [x] exact-match reuse
+- [x] consume-once behavior
+- [x] expired fallback
+- [x] mismatched fallback
+- [x] same-key in-flight dedupe
+- [x] request interval
+- [x] LRU eviction
+- [x] restart bypass
+- [x] canonical/auth invalidation of completed cache entries
+- [ ] response mismatch rejected before storage
+- [ ] ownership-pending state prevents prefetch request
+- [ ] current canonical selection is the only warmup request
+- [ ] stale completion dropped after selection A → B → A
+- [ ] stale completion dropped after canonical invalidation with the same key
+- [ ] stale completion dropped after auth-session drift for the same user
+- [ ] diagnostics cover hit, miss, failure, and generation drop
 
 Done when:
 
-- [x] prefetch requests can run in background safely
-- [x] cache stays bounded and memory-stable under churn
-
-Execution notes (2026-03-18):
-
-- Added prefetch key/cache primitives and bounded LRU in `AppState`.
-- Added auth/canonical/reset cache invalidation hooks.
-- Added prefetch tests in [test/ui/state/app_state_run_ticket_prefetch_test.dart](test/ui/state/app_state_run_ticket_prefetch_test.dart):
-	- concurrent dedupe
-	- request budget suppression
-	- weekly level normalization
-	- unconfigured API no-op
-- Validation:
-	- `dart analyze lib/ui/state/app_state.dart test/ui/state/app_state_run_ticket_prefetch_test.dart` (clean)
-	- `flutter test test/ui/state/app_state_run_ticket_prefetch_test.dart` (pass)
-	- `flutter test test/ui/state/app_state_hybrid_sync_test.dart` (pass)
+- [ ] every prefetch request represents the current ownership-clean canonical
+  selection
+- [ ] invalidation cannot be undone by an older asynchronous completion
+- [ ] no speculative weekly request reaches the backend
+- [ ] state tests pass without relying on a backend-incompatible fake
 
 ---
 
-## Phase 2 — Client run-start fast path + invalidation
+## Phase 2 — Complete route UX and bound asset warmup
 
 Objective:
 
-- consume prefetched ticket when valid, fallback safely when not
+- preserve immediate feedback while making failures explicit and actual
+  Play-to-run latency measurable
 
-Tasks:
+### Verified route behavior
 
-- [x] Update `prepareRunStartDescriptor(...)` in [lib/ui/state/app_state.dart](lib/ui/state/app_state.dart):
-	- [x] resolve canonical/effective mode+level
-	- [x] compute prefetch key
-	- [x] consume cached ticket on full validation pass
-	- [x] fallback to `_runSessionApi.createRunSession(...)` on miss
-- [x] Implement consume-once semantics
-- [x] Implement hard validation checks:
-	- [x] full key match
-	- [x] not near expiry
-	- [x] same authenticated `userId`
-	- [x] no ghost/flow incompatibility
-- [x] Implement invalidation triggers:
-	- [x] auth transition
-	- [x] canonical apply
-	- [x] account deletion/reset
-	- [x] local selection/loadout mutation (v1 clear-all)
-- [x] Keep restart path strict remote in v1
+- [x] Hub Play navigates to a bootstrap route before descriptor preparation.
+- [x] Level setup enters the bootstrap route after its selection barrier.
+- [x] Bootstrap prepares the descriptor through `AppState`.
+- [x] Success replaces bootstrap with the run route.
+- [x] Failure displays an error and Retry action.
+- [x] Platform back navigation remains available.
+
+### Required route correction
+
+- [ ] Add an explicit Return to Hub action to
+  [run_start_bootstrap_page.dart](../../../lib/ui/pages/hub/run_start_bootstrap_page.dart).
+- [ ] Ensure Return to Hub cannot leave duplicate bootstrap/run routes.
+- [ ] Test visible Retry and Return to Hub actions.
+- [ ] Test retry without route stacking or stale descriptor state.
+- [ ] Test Return to Hub reaches the hub.
+
+### Required asset correction
+
+- [ ] Define the selected level/character first-frame critical asset set.
+- [ ] Limit blocking
+  [run-start warmup](../../../lib/ui/assets/ui_asset_lifecycle.dart) to that set.
+- [ ] Stop blocking on every enemy catalog entry.
+- [ ] Stop blocking on every projectile catalog entry.
+- [ ] Stop blocking on every pickup catalog entry.
+- [ ] Stop blocking on every spell-impact catalog entry.
+- [ ] Keep non-critical warmup game-managed or non-blocking.
+- [ ] Update the forest parallax test to match authoritative generated theme
+  data, or correct the generated data if five layers are intended.
 
 Done when:
 
-- [x] hot-path start uses cache when safe
-- [x] all mismatches cleanly fallback to remote fetch
-- [x] restart behavior unchanged
-
-Execution notes (2026-03-18):
-
-- `prepareRunStartDescriptor(...)` now attempts prefetched ticket consume first
-  (except restart path), then falls back to remote create.
-- Added consume-once ticket take path with strict validation:
-	- full key match (user/mode/level/character/game-compat/loadout-digest)
-	- expiry safety skew check
-	- drop invalid/expired entries and fetch remote
-- Added local mutation invalidation for optimistic selection/loadout edits.
-- Added run-start prefetch consumption tests in
-  [test/ui/state/app_state_run_ticket_prefetch_test.dart](test/ui/state/app_state_run_ticket_prefetch_test.dart):
-	- exact-match cache reuse
-	- consume-once remote fallback on second start
-	- expired ticket remote fallback
-	- key mismatch remote fallback
-	- restart path strict remote bypass
-- Validation:
-	- `dart analyze lib/ui/state/app_state.dart test/ui/state/app_state_run_ticket_prefetch_test.dart test/ui/state/app_state_loadout_mask_test.dart` (clean)
-	- `flutter test test/ui/state/app_state_run_ticket_prefetch_test.dart` (pass)
-	- `flutter test test/ui/state/app_state_loadout_mask_test.dart` (pass)
-	- `flutter test test/ui/state/app_state_hybrid_sync_test.dart` (pass)
+- [ ] failure recovery has explicit Retry and Return to Hub actions
+- [ ] blocking asset work is selected-run-specific and bounded
+- [ ] Play tap → bootstrap and Play tap → first usable frame are both measured
+- [ ] relevant widget and asset lifecycle tests pass
 
 ---
 
-## Phase 3 — Ownership sync fast no-op gate
+## Phase 3 — Preserve backend fast paths and finish deployment configuration
 
 Objective:
 
-- avoid unnecessary pre-run sync latency when already clean
+- retain verified backend improvements and make runtime tuning deployable and
+  measurable
 
-Tasks:
+### Verified backend implementation
 
-- [x] Update ownership run-start gating in [lib/ui/state/app_state.dart](lib/ui/state/app_state.dart):
-	- [x] if no active flush and pending outbox count is known-zero, return immediately
-	- [x] otherwise keep existing flush + refresh + failed-precondition logic
-- [x] Add stale/unknown-state guard (no fast-return when state freshness is unknown)
-- [x] Keep fail-closed behavior when pending writes remain
+- [x] `runSessionCreate` has explicit region alignment in
+  [index.ts](../../../functions/src/index.ts).
+- [x] Active-board loading tries deterministic managed document id first.
+- [x] Compatibility query remains available when managed id is absent.
+- [x] Board status/mode/level/window/version/bounds validation remains.
+- [x] Ranked session creation loads before provisioning.
+- [x] Provisioning occurs only for an explicit missing-board result.
+- [x] Manifest is reloaded once after provisioning.
+- [x] Callable response still returns `runTicket`.
+- [x] The authoritative `runTicket` is persisted in `run_sessions`.
+- [x] Submission paths preserve top-level board compatibility and ticket
+  fallback.
+- [x] Replay validator decodes the persisted ticket.
+- [x] Structured timing contains canonical load, board resolution, session
+  write, and total duration.
 
-Done when:
+### Required deployment and observability work
 
-- [x] clean state path no longer performs avoidable sync work
-- [x] pending-write path still throws failed-precondition correctly
-
-Execution notes (2026-03-18):
-
-- Added run-start sync fast-path guard in `AppState`:
-	- returns immediately only when status is known-clean and fresh
-	- falls back to existing flush+refresh path otherwise
-- Added freshness tracking and max-age bound for outbox status visibility.
-- Added unknown-state invalidation on auth/session transitions.
-- Added tests in [test/ui/state/app_state_hybrid_sync_test.dart](test/ui/state/app_state_hybrid_sync_test.dart):
-	- fresh known-clean status skips extra flush/read path
-	- unknown status still executes full sync path
-	- existing fail-closed pending-write test remains passing
-- Validation:
-	- `dart analyze lib/ui/state/app_state.dart test/ui/state/app_state_hybrid_sync_test.dart` (clean)
-	- `flutter test test/ui/state/app_state_hybrid_sync_test.dart` (pass)
-	- `flutter test test/ui/state/app_state_run_ticket_prefetch_test.dart` (pass)
-
----
-
-## Phase 4 — Route-first transition for perceived speed
-
-Objective:
-
-- provide immediate feedback after Play tap while preserving preconditions
-
-Tasks:
-
-- [x] Change hub start flow in [lib/ui/pages/hub/play_hub_page.dart](lib/ui/pages/hub/play_hub_page.dart):
-	- [x] navigate immediately to bootstrap/loading route
-	- [x] stop waiting on hub for descriptor fetch
-- [x] Implement bootstrap route behavior in run route/widget path:
-	- [x] call `prepareRunStartDescriptor(...)` within bootstrap route
-	- [x] mount `RunnerGameWidget` on success
-	- [x] show retry + return-to-hub affordances on failure
-- [x] Keep existing error semantics/messages aligned with precondition failures
+- [ ] Record `RUN_SESSION_CREATE_MIN_INSTANCES` for local/dev.
+- [ ] Record `RUN_SESSION_CREATE_MIN_INSTANCES` for staging.
+- [ ] Record `RUN_SESSION_CREATE_MIN_INSTANCES` for production.
+- [ ] Identify the cost owner for a nonzero production value.
+- [ ] Confirm deployed Flutter and Functions regions match.
+- [ ] Confirm timing logs cover bounded success/failure outcomes.
+- [ ] Capture representative backend baseline `p50/p95/p99`.
+- [ ] Capture representative post-change `p50/p95/p99`.
+- [ ] Record sample size, traffic shape, cold/warm split, region, and date.
+- [ ] Decide whether CPU/memory tuning is needed from evidence.
 
 Done when:
 
-- [x] Play tap always gives immediate route transition feedback
-- [x] run-start failures are recoverable (retry/back)
-
-Execution notes (2026-03-18):
-
-- Added route-first bootstrap route and args in [lib/ui/app/ui_routes.dart](lib/ui/app/ui_routes.dart).
-- Added run bootstrap page in [lib/ui/pages/hub/run_start_bootstrap_page.dart](lib/ui/pages/hub/run_start_bootstrap_page.dart):
-	- immediate loading state
-	- async descriptor prep via `AppState`
-	- replacement navigation to run route on success
-	- retry + back affordances on failure
-- Wired route handling in [lib/ui/app/ui_router.dart](lib/ui/app/ui_router.dart).
-- Updated hub start flow in [lib/ui/pages/hub/play_hub_page.dart](lib/ui/pages/hub/play_hub_page.dart) to navigate to bootstrap route.
-- Updated Select Level Play flow in [lib/ui/pages/selectLevel/level_setup_page.dart](lib/ui/pages/selectLevel/level_setup_page.dart) to navigate to bootstrap route after draft flush.
-- Added route/widget tests in [test/ui/pages/hub/run_start_bootstrap_page_test.dart](test/ui/pages/hub/run_start_bootstrap_page_test.dart):
-	- successful bootstrap transitions to run route
-	- failure path shows retry and retry re-attempts run-start prep
-- Validation:
-	- `dart analyze lib/ui/app/ui_router.dart lib/ui/app/ui_routes.dart lib/ui/pages/hub/play_hub_page.dart lib/ui/pages/hub/run_start_bootstrap_page.dart test/ui/pages/hub/play_hub_page_test.dart test/ui/pages/hub/run_start_bootstrap_page_test.dart` (clean)
-	- `flutter test test/ui/pages/hub/play_hub_page_test.dart` (pass)
-	- `flutter test test/ui/pages/hub/run_start_bootstrap_page_test.dart` (pass)
+- [ ] runtime settings are explicit rather than merely supported by code
+- [ ] representative tail-latency improvement is demonstrated
+- [ ] backend authority and callable compatibility tests remain green
 
 ---
 
-## Phase 5 — Warmup integration
+## Phase 4 — Validation gate
 
-Objective:
+### Audit evidence from July 16, 2026
 
-- trigger prefetch predictably from hub-time warmup
+- [x] `dart analyze`
+  - no errors or warnings
+  - five unrelated info-level diagnostics
+- [x] focused client state tests
+  - command:
+    `flutter test test/ui/state/app_state_run_ticket_prefetch_test.dart test/ui/state/app_state_hybrid_sync_test.dart`
+  - result: `27` passed
+  - note: warmup tests emit binding-noise from replay submission resume
+- [x] `corepack pnpm --dir functions build`
+  - passed
+  - warning: repository requests Node 20; audit runtime was Node 24.16.0
+- [x] full Functions emulator suite
+  - passed using an isolated Firestore emulator because local port `8080` was
+    occupied by a WSL relay
+- [x] replay validator tests
+  - result: `18` passed
+- [x] run protocol tests
+  - result: `27` passed
+- [ ] bootstrap widget test file
+  - success test passed
+  - failure/Retry test is blocked by local
+    `shaders/ink_sparkle.frag` runtime-stage format mismatch
+- [ ] asset lifecycle tests
+  - forest expectation currently requests five layers while generated theme
+    data returns four
 
-Tasks:
+The passing prefetch test that requests both current and weekly combinations is
+not valid production evidence: its fake run-session API does not enforce the
+backend canonical-mode precondition.
 
-- [x] Extend `startWarmup()` in [lib/ui/state/app_state.dart](lib/ui/state/app_state.dart):
-	- [x] prefetch current selection
-	- [x] optionally prefetch weekly featured combination
-- [x] Keep warmup trigger in [lib/ui/pages/hub/play_hub_page.dart](lib/ui/pages/hub/play_hub_page.dart)
-- [x] Ensure warmup is idempotent (no duplicate flood)
+### Required final commands
 
-Done when:
-
-- [x] warmup prefetch occurs once per warmup session
-- [x] rapid selection changes do not spam network calls
-
-Execution notes (2026-03-18):
-
-- Extended `startWarmup()` to trigger:
-	- prefetch for current selected mode/level combo
-	- additional weekly featured combo prefetch when current mode is not weekly
-- Warmup remains single-shot per session via existing `_warmupStarted` guard.
-- Added tests in [test/ui/state/app_state_run_ticket_prefetch_test.dart](test/ui/state/app_state_run_ticket_prefetch_test.dart):
-	- warmup triggers both current + weekly prefetch
-	- repeated warmup calls remain idempotent
-- Validation:
-	- `dart analyze lib/ui/state/app_state.dart test/ui/state/app_state_run_ticket_prefetch_test.dart` (clean)
-	- `flutter test test/ui/state/app_state_run_ticket_prefetch_test.dart` (pass)
-
----
-
-## Phase 6 — Backend runSessionCreate latency work
-
-Objective:
-
-- reduce tail latency while preserving contract and validation invariants
-
-Tasks:
-
-- [x] Tune callable runtime in [functions/src/index.ts](functions/src/index.ts):
-	- [x] explicit region alignment
-	- [x] `minInstances`
-	- [x] memory/CPU tuning only with profiling evidence
-- [x] Optimize board read path:
-	- [x] [functions/src/boards/store.ts](functions/src/boards/store.ts)
-	- [x] [functions/src/boards/provisioning.ts](functions/src/boards/provisioning.ts)
-	- [x] preserve status/window/version checks
-- [x] Implement ranked create-session fast path in [functions/src/runs/store.ts](functions/src/runs/store.ts):
-	- [x] load manifest first
-	- [x] ensure/provision only on not-found
-	- [x] single retry load after ensure
-- [x] Align run session persistence for validator contract in [functions/src/runs/store.ts](functions/src/runs/store.ts)
-	- [x] persist authoritative `runTicket` in `run_sessions`
-	- [x] keep callable response unchanged
-- [x] Add step timings + structured summaries in [functions/src/runs/store.ts](functions/src/runs/store.ts)
-
-Done when:
-
-- [x] backend functional behavior unchanged
-- [ ] measurable tail-latency reduction is observed
-
-Execution notes (2026-03-18):
-
-- `runSessionCreate` callable now has explicit runtime options in
-  [functions/src/index.ts](functions/src/index.ts):
-	- region from `RUN_SESSION_CREATE_REGION`/`FUNCTIONS_REGION` (fallback `europe-west1`)
-	- `minInstances` from `RUN_SESSION_CREATE_MIN_INSTANCES` when set
-- Active board lookup in [functions/src/boards/store.ts](functions/src/boards/store.ts)
-  now performs deterministic managed-doc lookup first, then compatibility
-  fallback query.
-- Ranked run creation in [functions/src/runs/store.ts](functions/src/runs/store.ts)
-  now follows load-first semantics:
-	- load active manifest first
-	- provision only on explicit missing-board condition
-	- single manifest retry after ensure
-- `run_sessions` writes in [functions/src/runs/store.ts](functions/src/runs/store.ts)
-  persist the authoritative `runTicket` required by replay validation lease
-  acquisition.
-- [functions/src/runs/submission_store.ts](functions/src/runs/submission_store.ts)
-  now reads board context from top-level `boardId`/`boardKey` with legacy
-  `runTicket` fallback for compatibility.
-- Added bounded timing logs (`runSessionCreate_timing`) in
-  [functions/src/runs/store.ts](functions/src/runs/store.ts):
-	- canonical load
-	- board resolve/provision
-	- run-session write
-	- total duration
-
----
-
-## Phase 7 — Tests
-
-Objective:
-
-- prove safety, correctness, and latency-facing behavior
-
-### Client tests
-
-- [x] Add/extend tests under [test/ui/state](test/ui/state):
-	- [x] cached ticket reused on exact key match
-	- [x] expired ticket falls back to remote
-	- [x] key mismatch falls back to remote
-	- [x] consume-once prevents second reuse
-	- [x] invalidation on canonical/auth drift
-	- [x] in-flight dedupe prevents duplicate calls
-	- [x] LRU eviction enforces max entries
-	- [x] restart path does not consume prefetched ticket
-	- [ ] stale in-flight completion is dropped
-	- [x] ownership sync fast-path immediate return on known-zero pending
-	- [x] pending writes still fail closed
-- [x] Add/extend route/widget tests (not state-only) for route-first behavior:
-	- [x] immediate navigation feedback after Play tap
-	- [x] descriptor failure shows retry/back UX
-	- [x] retry path succeeds without stale state
-
-### Backend tests
-
-- [x] ranked `createRunSession` hot path with existing board
-- [x] ensure-on-miss success path when board absent
-- [x] deterministic board reads preserve validations
-- [x] slimmed run-session document does not break finalize/status flows
-- [x] callable contract payload unchanged for `runSessionCreate`
-
-Done when:
-
-- [ ] all targeted tests pass
-- [x] no contract or invariant regressions
-
-Execution notes (2026-03-18):
-
-- Client validation run:
-	- `flutter test test/ui/state/app_state_run_ticket_prefetch_test.dart test/ui/state/app_state_hybrid_sync_test.dart test/ui/pages/hub/run_start_bootstrap_page_test.dart test/ui/pages/hub/play_hub_page_test.dart` (pass)
-	- Added extra client assertions:
-		- canonical/auth invalidation coverage
-		- LRU bounded cache eviction coverage
-		- immediate Play-tap bootstrap navigation coverage
-- Backend validation run:
-	- `corepack pnpm --dir functions test` (pass, `98/98`)
-- Known non-blocking environment warning:
-	- functions workspace requests Node `20`; active runtime was `v24.12.0`.
-
-Remaining in Phase 7:
-
-- add deterministic stale in-flight completion drop test coverage (tracked as pending).
-
----
-
-## Phase 8 — Validation and rollout
-
-Objective:
-
-- validate gains and ship safely in phases
-
-Tasks:
-
-- [ ] Compare before/after latency metrics:
-	- [ ] Play tap -> loading route (median)
-	- [ ] Play tap -> run-ready (median)
-	- [ ] backend `runSessionCreate` `p50/p95/p99`
-- [ ] Rollout phases:
-	- [ ] Phase 1: prefetch + sync fast-path + diagnostics
-	- [ ] Phase 2: route-first UX
-	- [ ] Phase 3: backend latency changes
-- [ ] Add rollback notes per phase:
-	- [ ] disable route-first path (fallback to current flow)
-	- [ ] disable prefetch consumption (remote-only run start)
-	- [ ] rollback backend runtime knobs/fast-path if tail regresses
-
-Done when:
-
-- [ ] acceptance criteria are met in staging
-- [ ] rollout/rollback procedure is documented and tested
-
-Execution notes (2026-03-18):
-
-- Backend sampled timing capture (emulator test run, post-change only):
-	- command: `corepack pnpm --dir functions test`
-	- extracted `runSessionCreate_timing.totalMs` samples: `n=14`
-	- sampled percentiles: `p50=86ms`, `p95=258ms`, `p99=258ms`
-	- sampled range: `min=46ms`, `max=258ms`
-- This is not a before/after comparison yet; baseline percentile capture from
-  pre-change backend run is still required to complete Phase 8 latency
-  comparison criteria.
-
----
-
-## Verification commands
-
-- [ ] `dart analyze lib/ui test`
+- [ ] `dart analyze`
 - [ ] `flutter test test/ui/state`
-- [ ] `flutter test test/ui/pages`
+- [ ] `flutter test test/ui/pages/hub`
+- [ ] `flutter test test/ui/pages/select_level`
+- [ ] `flutter test test/ui/ui_asset_lifecycle_parallax_test.dart`
 - [ ] `flutter test test/ui`
 - [ ] `corepack pnpm --dir functions build`
-- [x] `corepack pnpm --dir functions test`
+- [ ] `corepack pnpm --dir functions test`
+- [ ] `dart analyze packages/run_protocol`
+- [ ] `dart test` from `packages/run_protocol`
+- [ ] `dart analyze services/replay_validator`
+- [ ] `dart test` from `services/replay_validator`
 
-## Final acceptance checklist
+Done when:
 
-- [ ] immediate Play-tap transition feedback is present
-- [ ] strict run-start safety rules remain intact
-- [ ] no expired/mismatched ticket reuse
-- [ ] cache boundedness confirmed under stress
-- [ ] sync fast no-op only triggers under safe known-zero conditions
-- [ ] backend tail latency improved (`p95/p99`)
-- [ ] contracts remain backward compatible
+- [ ] every required command passes in the supported Flutter/Dart/Node toolchain
+- [ ] no test fake permits a state the production backend rejects
+- [ ] no authority, determinism, auth, replay, or revision invariant regresses
+
+---
+
+## Phase 5 — Performance evidence and rollout
+
+### Metrics ledger
+
+Historical manual baseline recorded March 18, 2026:
+
+- cold start: `8–10s`
+- warm/otherwise: `3–6s`
+
+Historical post-change emulator sample:
+
+- source: Functions emulator tests
+- sample size: `n=14`
+- `p50=86ms`
+- `p95=258ms`
+- `p99=258ms`
+- range: `46–258ms`
+
+The emulator sample is not comparable to the manual client baseline and does not
+prove production improvement.
+
+### Required measurements
+
+- [ ] Play tap → first bootstrap feedback, before and after
+- [ ] Play tap → descriptor ready, before and after
+- [ ] Play tap → first usable run frame, before and after
+- [ ] prefetch request/store/hit/miss/drop counts
+- [ ] backend cold/warm `p50/p95/p99`, before and after
+- [ ] asset warmup duration and critical asset count
+
+### Rollout
+
+- [ ] Deploy server-time authority hardening.
+- [ ] Verify authority tests and production error rate.
+- [ ] Deploy corrected current-selection prefetch and diagnostics.
+- [ ] Verify hit rate, generation drops, and backend request volume.
+- [ ] Deploy explicit route failure actions and bounded asset warmup.
+- [ ] Verify Play-to-run-ready latency does not regress.
+- [ ] Apply documented backend runtime settings.
+- [ ] Verify tail latency and cost.
+
+### Rollback
+
+- [ ] Document remote-only ordinary start fallback.
+- [ ] Document prefetch-consumption disable path.
+- [ ] Document optional asset-warmup disable path.
+- [ ] Document previous `minInstances` value.
+- [ ] Exercise route-first rollback without weakening restart rules.
+
+Server-time authority hardening is not rolled back as a latency experiment.
+
+Done when:
+
+- [ ] staging acceptance criteria pass
+- [ ] production rollout evidence is recorded
+- [ ] rollback instructions are tested
+
+---
+
+## Final acceptance
+
+### Authority and correctness
+
+- [ ] user payload time cannot influence run/board/upload authority
+- [ ] prefetch targets only current canonical selection
+- [ ] prefetch requires ownership-clean state
+- [ ] stale generations cannot repopulate cache
+- [ ] expired/mismatched/invalidated tickets are never reused
+- [ ] restart remains strict and remote
+- [ ] replay validator binds new sessions to persisted tickets
+
+### UX and performance
+
+- [ ] Play tap gives immediate feedback
+- [ ] failure exposes Retry and Return to Hub
+- [ ] blocking asset warmup is bounded and selection-specific
+- [ ] useful prefetch hit rate is measured
+- [ ] Play-to-run-ready latency does not regress
+- [ ] backend tail latency improves measurably
+
+### Operational readiness
+
+- [ ] client/backend diagnostics are bounded and privacy-safe
+- [ ] runtime configuration is explicit per environment
+- [ ] all required validation passes in supported toolchains
+- [ ] rollout and rollback evidence is complete
+- [ ] this checklist has no unchecked blocker
+
+Only after every final acceptance item is checked should this folder move to
+`docs/building/archived/`.

@@ -1,7 +1,8 @@
 # Replay Validation Production Plan
 
-Date: March 12, 2026  
-Status: Ready to implement
+Date: March 12, 2026
+Last reviewed: July 16, 2026
+Status: Code implementation complete; release verification pending
 
 ## Goal
 
@@ -106,31 +107,25 @@ Recommended rollout order:
 2. stabilize board, reward, and ghost contracts
 3. add Google Play result publishing as a downstream sync adapter
 
-## Current Baseline (As-Is)
+## Current Implementation Status
 
-The current runtime is not safe for server-authoritative rewards or
-Competitive fairness:
+The code implementation covers all seven delivery phases:
 
-- `lib/ui/state/app_state.dart`
-  - `buildRunStartArgs()` issues a random seed for all modes.
-  - `createRunId()` generates a timestamp-derived integer on device.
-- `lib/ui/state/selection_state.dart`
-  - `RunType` only models `practice` and `competitive`.
-  - Weekly exists only in docs/UI placeholders, not in authoritative state.
-- `lib/ui/runner_game_widget.dart`
-  - trusts local `RunEndedEvent`
-  - immediately calls `AppState.awardRunGold(...)`
-- `lib/ui/leaderboard/shared_prefs_leaderboard_store.dart`
-  - stores Competitive results locally in SharedPreferences
-- `functions/src/index.ts`
-  - exposes ownership/profile/account callables only
-  - has no board metadata, run ticket, replay submission, or leaderboard
-    endpoints
-- `packages/runner_core` is now extracted as a pure Dart package, but replay
-  protocol, submission, and validation authority are not implemented yet
+- `runner_core` and `run_protocol` are pure Dart packages used by the app and
+  validator.
+- Practice, Competitive, and Weekly starts require authenticated,
+  server-issued sessions; ranked sessions are board-bound and compat-gated.
+- The client records applied commands, spools replay blobs, and submits them
+  through the upload/finalize/status flow.
+- The Cloud Run validator replays Core headlessly, writes accepted or rejected
+  audit results, projects ranked results and ghosts, and hands accepted rewards
+  to Functions-owned settlement.
+- Competitive/Weekly leaderboards and Top 10 ghosts are server-projected;
+  Practice PB remains local-only.
 
-This baseline is acceptable for a local game slice. It is not acceptable for a
-production Competitive leaderboard.
+The remaining work is operational release verification, not feature
+implementation. The implementation checklist retains the staging, load,
+rollover, IAM, and policy gates that must be proven before launch.
 
 ## Locked Decisions
 
@@ -170,6 +165,7 @@ Use a four-part architecture:
    - run ticket issuance
    - upload finalize / status endpoints
    - online leaderboard read API
+   - accepted-reward settlement trigger and repair job
 3. Firestore + Cloud Storage + task queue:
    - Firestore stores board metadata, run session state, validated result
      records, best-entry projections, and reward grants
@@ -179,8 +175,7 @@ Use a four-part architecture:
 4. Dart replay validator service:
    - decodes canonical replay blobs
    - replays `runner_core` headlessly
-   - writes validated results
-   - issues server-owned reward grants
+   - writes rejected results and atomically hands accepted results to settlement
    - updates leaderboard projections and ghost availability
 
 `Cloud Run` and `Cloud Tasks` are Google Cloud services used alongside Firebase,
@@ -205,10 +200,10 @@ Cloud Tasks
 
 Validator service
   -> Cloud Storage: download replay blob
-  -> Firestore: validated runs / best entries / top10 snapshot / reward grants
+  -> Firestore: validated runs / settlement handoff / best entries / top10 snapshot
 
-Ownership backend
-  -> folds reward grants into canonical progression state
+Firebase Functions settlement
+  -> ownership transaction: apply reward grant, expose terminal `validated`
 ```
 
 ## Required Modularization
@@ -467,8 +462,12 @@ Recommended states:
   - finalize succeeded and validation work has been queued
 - `validating`
   - validator lease acquired
+- `settlement_pending`
+  - accepted replay, validated-run record, and reward-grant handoff are
+    persisted; Functions must settle canonical progression before the session
+    can become `validated`
 - `validated`
-  - replay accepted and terminal artifacts persisted
+  - accepted reward is applied idempotently and the session is terminal
 - `rejected`
   - replay processed and rejected
 - `expired`
@@ -482,7 +481,8 @@ State rules:
 
 - only legal forward transitions are allowed
 - canonical happy path is:
-  - `issued -> uploading -> uploaded -> pending_validation -> validating -> validated|rejected`
+  - `issued -> uploading -> uploaded -> pending_validation -> validating -> settlement_pending -> validated`
+  - validation rejection instead transitions from `validating` to `rejected`
 - `runSessionCreate` issues only the ticket and starts at `issued`
 - `runSessionCreateUploadGrant` moves `issued|uploading -> uploading` and may be
   called repeatedly until finalize succeeds
@@ -496,6 +496,12 @@ State rules:
 - validation retries may move `pending_validation -> validating ->
   pending_validation` without creating duplicate grants or duplicate leaderboard
   entries
+- accepted validation must atomically persist the accepted `validated_runs`
+  record, transition its reward grant to `settlement_pending`, and transition
+  the session to `settlement_pending`
+- `runSettlementOnHandoff`, with `runSettlementRepair` as recovery, must use an
+  ownership transaction to apply the exact grant once, mark it
+  `validated_settled`, and expose terminal `validated` in the same transaction
 - terminal states are immutable except for support metadata or audit annotations
 - expired sessions must never mint rewards or leaderboard entries
 
@@ -1035,22 +1041,24 @@ For each queued `runSessionId`:
    - loadout snapshot from ticket
 7. Apply recorded frames tick-by-tick until completion.
 8. Build canonical result from replayed Core output only.
-9. Persist `validated_runs/{runSessionId}`.
-10. If accepted:
-    - issue `reward_grants/{runSessionId}`
-    - if mode is Competitive/Weekly:
-      - update `player_bests/{uid}` if this run improves the board best
-      - refresh `views/top10`
-      - if the resulting entry is Top 10:
-        - promote the verified replay to `ghosts/{boardId}/{entryId}/...`
-        - publish ghost eligibility on the top10 projection
-      - if the resulting entry is not Top 10:
-        - keep the accepted replay only in short-retention validated storage
-        - ensure no durable ghost exposure is published
-11. Mark `run_sessions/{runSessionId}` terminal:
-    - `validated`
-    - `rejected`
-    - `internal_error`
+9. For a rejected replay, persist `validated_runs/{runSessionId}`, revoke the
+   provisional reward grant, and terminalize the session as `rejected`.
+10. For an accepted replay, atomically persist `validated_runs/{runSessionId}`
+    and transition the existing reward grant and session to
+    `settlement_pending`. The validator never credits canonical gold or marks
+    the accepted session `validated`.
+11. Firebase Functions independently receives the settlement handoff. Its
+    transaction applies the exact reward grant to canonical ownership, marks it
+    `validated_settled`, and terminalizes the run session as `validated`.
+    `runSettlementRepair` retries handoffs missed by the document trigger.
+12. In parallel with settlement, if the accepted mode is Competitive/Weekly:
+    - project the best entry and refresh `views/top10`
+    - if the resulting entry is Top 10:
+      - promote the verified replay to `ghosts/{boardId}/{entryId}/...`
+      - publish ghost eligibility on the top10 projection
+    - if the resulting entry is not Top 10:
+      - keep the accepted replay only in short-retention validated storage
+      - ensure no durable ghost exposure is published
 
 The worker must be safe to retry on the same run session without double rewards,
 double promotions, or duplicate entries.
@@ -1133,6 +1141,7 @@ Game Over for any reward-bearing mode must show:
    - uploading
    - queued
    - validating
+   - settling reward
    - validated
    - rejected
    - retrying
@@ -1151,7 +1160,8 @@ Requirements:
 
 - submission state survives route exit
 - hub/profile/leaderboard pages can reflect pending and recently validated runs
-- progress refresh happens when a reward grant reaches `validated_settled`
+- progress refresh happens after the settlement transaction marks the reward
+  grant `validated_settled` and the run session `validated`
 
 ### Failure and Recovery UX
 
@@ -1163,6 +1173,7 @@ Required states:
 - `upload pending`
 - `upload failed, retrying`
 - `waiting for verification`
+- `reward settlement pending`
 - `verification delayed`
 - `verification failed`
 - `reward granted`
@@ -1176,8 +1187,9 @@ Rules:
   finalize enqueue), the UI must say so explicitly instead of looking stuck
 - if validation reaches terminal rejection, the UI must show that gold was not
   granted
-- if reward grant application lags behind validation success, the UI must show
-  a separate pending reward state rather than silently dropping the result
+- if the session is `settlement_pending`, the UI must show a separate pending
+  reward state rather than presenting local or validated replay output as
+  spendable gold
 - support and telemetry need a stable `runSessionId` surfaced in logs and, if
   needed later, in player-visible support copy
 
@@ -1282,7 +1294,8 @@ Exit gate:
 - add signed upload grant flow
 - add pending submission spool and retry logic
 - add validator worker and task queue
-- add validated run persistence and reward grant writing
+- add validated-run persistence, settlement handoff, and Functions-owned reward
+  settlement
 
 Exit gate:
 
@@ -1423,6 +1436,8 @@ Alert on:
 - Practice PB remains local and isolated from online authority.
 - The old local gold-award path and local Competitive leaderboard path are
   removed.
+- An accepted run does not become terminal `validated` until its exact reward
+  grant is applied idempotently by the Functions-owned settlement transaction.
 
 ## Recommended Implementation Order
 

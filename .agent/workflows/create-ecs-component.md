@@ -1,250 +1,78 @@
 ---
-description: Create a new ECS component in the Core layer
+description: Create a new ECS store/component in the Core package
 ---
 
 # Create ECS Component Workflow
 
-This workflow guides you through creating a new ECS (Entity-Component-System) component following the SoA + SparseSet architecture.
+Use this workflow when adding persistent ECS state to
+`packages/runner_core/lib/`. Read `packages/runner_core/lib/AGENTS.md` first.
 
-## Prerequisites
+## Current Shape
 
-- Understand ECS architecture (see [lib/core/AGENTS.md - ECS Architecture](file:///c:/dev/rpg_runner/lib/core/AGENTS.md))
-- Understand component storage patterns (SoA + SparseSet)
+Core uses typed sparse-set stores registered on `EcsWorld`:
+
+- world: `packages/runner_core/lib/ecs/world.dart`
+- sparse-set base: `packages/runner_core/lib/ecs/sparse_set.dart`
+- stores: `packages/runner_core/lib/ecs/stores/**`
+- systems: `packages/runner_core/lib/ecs/systems/**`
+- simulation ordering: `packages/runner_core/lib/game_core.dart`
+
+Do not use the obsolete `lib/core/**` paths.
 
 ## Steps
 
-### 1. Define Component Class
+1. Find the closest existing store.
 
-Create the component class in `lib/core/ecs/components/`:
+   Match the local style for SoA fields, dense-index access, `add/remove`, and
+   `removeEntity` behavior. Prefer extending an existing domain store when the
+   data is naturally part of the same component.
 
-```dart
-// lib/core/ecs/components/shield_component.dart
-class ShieldComponent {
-  double durability;
-  double maxDurability;
-  double rechargeRate;
-  double rechargeCooldown;
-  
-  ShieldComponent({
-    required this.durability,
-    required this.maxDurability,
-    this.rechargeRate = 10.0,
-    this.rechargeCooldown = 0.0,
-  });
-}
-```
+2. Add the typed store under `packages/runner_core/lib/ecs/stores/**`.
 
-**Key points** (from [lib/core/AGENTS.md](file:///c:/dev/rpg_runner/lib/core/AGENTS.md)):
-- Components are plain data classes
-- Use `final` where possible
-- Prefer value types for small structs
-- No logic in components (that goes in systems)
+   Keep persistent component data plain and allocation-light. Avoid putting
+   per-tick behavior in the store unless existing stores use that pattern for
+   lifecycle bookkeeping.
 
-### 2. Create Component Store
+3. Register the store on `EcsWorld`.
 
-Create a SparseSet-based store for the component:
+   Add the import and a `late final` field initialized through `_register(...)`
+   so entity destruction removes the component consistently.
 
-```dart
-// lib/core/ecs/stores/shield_store.dart
-class ShieldStore {
-  final _sparse = <int, int>{}; // entity ID -> dense index
-  final _dense = <int>[];        // dense array of entity IDs
-  final _components = <ShieldComponent>[]; // parallel array of components
-  
-  void add(int entityId, ShieldComponent component) {
-    if (_sparse.containsKey(entityId)) return;
-    
-    final denseIndex = _dense.length;
-    _sparse[entityId] = denseIndex;
-    _dense.add(entityId);
-    _components.add(component);
-  }
-  
-  void remove(int entityId) {
-    if (!_sparse.containsKey(entityId)) return;
-    
-    final denseIndex = _sparse[entityId]!;
-    final lastIndex = _dense.length - 1;
-    
-    if (denseIndex != lastIndex) {
-      // Swap with last element
-      final lastEntityId = _dense[lastIndex];
-      _dense[denseIndex] = lastEntityId;
-      _components[denseIndex] = _components[lastIndex];
-      _sparse[lastEntityId] = denseIndex;
-    }
-    
-    _dense.removeLast();
-    _components.removeLast();
-    _sparse.remove(entityId);
-  }
-  
-  ShieldComponent? get(int entityId) {
-    final index = _sparse[entityId];
-    return index != null ? _components[index] : null;
-  }
-  
-  bool has(int entityId) => _sparse.containsKey(entityId);
-  
-  Iterable<int> get entities => _dense;
-}
-```
+4. Add or update systems under `ecs/systems/**`.
 
-### 3. Register Component in World
+   Systems own behavior. Keep iteration deterministic, avoid structural changes
+   mid-iteration, and use explicit queues or existing lifecycle phases when
+   entities/components must be added or removed.
 
-Add the component store to the ECS World:
+5. Wire system ordering in `GameCore` only when needed.
 
-```dart
-// lib/core/ecs/world.dart
-class World {
-  // ... existing stores ...
-  final shieldStore = ShieldStore();
-  
-  // Add to query support
-  Iterable<int> queryWithShield() {
-    return shieldStore.entities;
-  }
-}
-```
+   Treat `GameCore.stepOneTick()` order as a behavior contract. Document any
+   non-obvious ordering dependency near the ordering code.
 
-### 4. Create System (if needed)
+6. Expose snapshots/events only when consumers need them.
 
-If the component requires logic, create a system:
+   Add snapshot/event fields intentionally and update all `lib/game/**` and
+   `lib/ui/**` consumers in the same change.
 
-```dart
-// lib/core/ecs/systems/shield_system.dart
-class ShieldSystem {
-  void execute(World world, double dt) {
-    // Query entities with Shield component
-    for (final entityId in world.queryWithShield()) {
-      final shield = world.shieldStore.get(entityId)!;
-      
-      // Update shield logic
-      if (shield.rechargeCooldown > 0) {
-        shield.rechargeCooldown -= dt;
-      } else if (shield.durability < shield.maxDurability) {
-        shield.durability = min(
-          shield.maxDurability,
-          shield.durability + shield.rechargeRate * dt
-        );
-      }
-    }
-  }
-}
-```
+## Suggested Validation
 
-**Critical rules** (from [lib/core/AGENTS.md](file:///c:/dev/rpg_runner/lib/core/AGENTS.md)):
-- ❌ **Never add/remove components mid-iteration**
-- ❌ **Never destroy entities mid-iteration**
-- ✅ Queue structural changes and apply after iteration
-
-### 5. Add to System Pipeline
-
-Register the system in the game loop execution order:
-
-```dart
-// lib/core/game_core.dart
-class GameCore {
-  final shieldSystem = ShieldSystem();
-  
-  void tick() {
-    // Execute systems in order
-    inputSystem.execute(world, tickDt);
-    movementSystem.execute(world, tickDt);
-    shieldSystem.execute(world, tickDt); // Add here
-    combatSystem.execute(world, tickDt);
-    // ... other systems
-  }
-}
-```
-
-### 6. Update Snapshot Builder (if renderable)
-
-If the component affects rendering, add it to the snapshot:
-
-```dart
-// lib/core/snapshot_builder.dart
-class SnapshotBuilder {
-  EntitySnapshot buildEntitySnapshot(int entityId) {
-    final shield = world.shieldStore.get(entityId);
-    
-    return EntitySnapshot(
-      // ... other fields ...
-      shieldDurability: shield?.durability,
-      shieldMaxDurability: shield?.maxDurability,
-    );
-  }
-}
-```
-
-And update the snapshot data class:
-
-```dart
-// lib/core/snapshots/entity_snapshot.dart
-class EntitySnapshot {
-  // ... existing fields ...
-  final double? shieldDurability;
-  final double? shieldMaxDurability;
-  
-  // Update constructor and copyWith
-}
-```
-
-### 7. Add Tests
-
-Create tests for the component and system:
-
-```dart
-// test/core/ecs/systems/shield_system_test.dart
-test('shield recharges after cooldown', () {
-  final world = World();
-  final system = ShieldSystem();
-  
-  final entityId = world.createEntity();
-  world.shieldStore.add(entityId, ShieldComponent(
-    durability: 50.0,
-    maxDurability: 100.0,
-    rechargeRate: 10.0,
-    rechargeCooldown: 2.0,
-  ));
-  
-  // Tick during cooldown
-  system.execute(world, 1.0);
-  expect(world.shieldStore.get(entityId)!.durability, equals(50.0));
-  
-  // Tick after cooldown
-  system.execute(world, 2.0);
-  expect(world.shieldStore.get(entityId)!.durability, greaterThan(50.0));
-});
-```
-
-// turbo
-Run tests:
 ```bash
-dart test test/core/ecs/systems/shield_system_test.dart
+dart analyze packages/runner_core
+flutter test test/core
 ```
 
-## Common Issues
+Add focused tests for:
 
-### Component not updating
-- Verify system is registered in the system pipeline
-- Check system execution order (dependencies)
-- Ensure component is actually added to entities
+- store add/remove/destroy lifecycle
+- deterministic system output for stable inputs
+- ordering-sensitive interactions
+- snapshot/event exposure when added
 
-### Memory leaks
-- Ensure components are removed when entities are destroyed
-- Check for dangling references in sparse/dense arrays
-- Verify swap-and-pop logic in remove()
+## Guardrails
 
-### Performance issues
-- Avoid allocations in hot loops (system execute)
-- Use value types for small data (Vec2, not class)
-- Profile with many entities (1000+)
-
-## Follow-Up
-
-After creating a component, consider:
-- Adding component to entity factory functions
-- Creating debug visualization in Game layer
-- Adding component serialization for save/load
-- Documenting component purpose and usage
+- no Flutter or Flame imports in Core
+- no `DateTime.now()` or unseeded randomness for gameplay
+- no stringly typed component maps when a typed store fits
+- no component/entity removal during active store iteration unless the existing
+  system phase explicitly supports it
+- no snapshot shape changes without updating render/UI tests

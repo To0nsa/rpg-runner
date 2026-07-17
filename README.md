@@ -50,6 +50,16 @@ Run integration benchmark test:
 flutter drive --driver=test_driver/integration_test.dart --target=test/integration_test/core-fixed-point/core_fixed_point_benchmark_test.dart -d <deviceId> --profile
 ```
 
+## Deploy The Web Client
+
+Build the Flutter web client, then publish it to the configured Firebase
+Hosting site:
+
+```bash
+flutter build web --release
+firebase deploy --only hosting --project rpg-runner-d7add
+```
+
 ## Tech Stack
 
 - Flutter

@@ -7,6 +7,7 @@
 library;
 
 import '../snapshots/enums.dart';
+import '../contracts/render_anim_set_definition.dart';
 import '../util/tick_math.dart';
 import '../util/fixed_math.dart';
 import '../tuning/utils/anim_tuning.dart' as anim_utils;
@@ -315,17 +316,41 @@ class AnimTuningDerived {
     required this.spawnAnimTicks,
   });
 
-  factory AnimTuningDerived.from(AnimTuning base, {required int tickHz}) {
+  /// Compiles player animation lifecycle windows for [tickHz].
+  ///
+  /// When [renderAnim] supplies a matching strip, its frame-count and
+  /// per-frame step time determine the duration using the same quantization as
+  /// the renderer. Otherwise the authored seconds field is used as a fallback.
+  factory AnimTuningDerived.from(
+    AnimTuning base, {
+    required int tickHz,
+    RenderAnimSetDefinition? renderAnim,
+  }) {
     if (tickHz <= 0) {
       throw ArgumentError.value(tickHz, 'tickHz', 'must be > 0');
+    }
+
+    int lifecycleTicksFor(AnimKey key, double fallbackSeconds) {
+      final definition = renderAnim;
+      if (definition != null &&
+          definition.frameCountsByKey.containsKey(key) &&
+          definition.stepTimeSecondsByKey.containsKey(key)) {
+        return anim_utils.ticksForKey(
+          key: key,
+          frameCounts: definition.frameCountsByKey,
+          stepTimeSecondsByKey: definition.stepTimeSecondsByKey,
+          tickHz: tickHz,
+        );
+      }
+      return ticksFromSecondsCeil(fallbackSeconds, tickHz);
     }
 
     return AnimTuningDerived._(
       tickHz: tickHz,
       base: base,
-      hitAnimTicks: ticksFromSecondsCeil(base.hitAnimSeconds, tickHz),
-      deathAnimTicks: ticksFromSecondsCeil(base.deathAnimSeconds, tickHz),
-      spawnAnimTicks: ticksFromSecondsCeil(base.spawnAnimSeconds, tickHz),
+      hitAnimTicks: lifecycleTicksFor(AnimKey.hit, base.hitAnimSeconds),
+      deathAnimTicks: lifecycleTicksFor(AnimKey.death, base.deathAnimSeconds),
+      spawnAnimTicks: lifecycleTicksFor(AnimKey.spawn, base.spawnAnimSeconds),
     );
   }
 

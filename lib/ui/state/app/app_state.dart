@@ -237,13 +237,6 @@ class AppState extends ChangeNotifier {
   OwnershipSyncStatus get ownershipSyncStatus => _ownershipSyncStatus;
   RunSubmissionStatus? runSubmissionStatusFor(String runSessionId) =>
       _runSubmissionStatuses[runSessionId];
-  int get unverifiedGold => _runSubmissionStatuses.values
-      .map((status) => status.displayProvisionalGold)
-      .fold<int>(0, (sum, amount) => sum + amount);
-  int get displayGold {
-    final total = _progression.gold + unverifiedGold;
-    return total < 0 ? 0 : total;
-  }
 
   Future<void> bootstrap({bool force = false}) =>
       _authProfileController.bootstrap(force: force);
@@ -377,6 +370,36 @@ class AppState extends ChangeNotifier {
     contentLengthBytes: contentLengthBytes,
     contentType: contentType,
     provisionalSummary: provisionalSummary,
+  );
+
+  /// Persists a finalized replay locally before any network work begins.
+  ///
+  /// A player may safely leave the run after this completes: bootstrap will
+  /// resume uploading the retained replay on a later app launch.
+  Future<RunSubmissionStatus> journalRunReplay({
+    required String runSessionId,
+    required RunMode runMode,
+    required String replayFilePath,
+    required String canonicalSha256,
+    required int contentLengthBytes,
+    String contentType = 'application/octet-stream',
+    Map<String, Object?>? provisionalSummary,
+  }) => _runSubmissionController.journalRunReplay(
+    runSessionId: runSessionId,
+    runMode: runMode,
+    replayFilePath: replayFilePath,
+    canonicalSha256: canonicalSha256,
+    contentLengthBytes: contentLengthBytes,
+    contentType: contentType,
+    provisionalSummary: provisionalSummary,
+  );
+
+  /// Starts network processing for a replay already persisted by
+  /// [journalRunReplay].
+  Future<RunSubmissionStatus> processJournaledRunReplay({
+    required String runSessionId,
+  }) => _runSubmissionController.processJournaledRunReplay(
+    runSessionId: runSessionId,
   );
 
   Future<RunSubmissionStatus> refreshRunSubmissionStatus({

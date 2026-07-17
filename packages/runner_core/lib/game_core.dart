@@ -260,6 +260,7 @@ class GameCore {
        _animTuning = AnimTuningDerived.from(
          playerCharacter.tuning.anim,
          tickHz: tickHz,
+         renderAnim: playerCharacter.renderAnim,
        ),
        _combat = CombatTuningDerived.from(
          playerCharacter.tuning.combat,

@@ -4,7 +4,7 @@ Date: April 1, 2026
 Status: Completed (April 3, 2026)  
 Source plan: [docs/building/editor/chunkCreator/plan.md](docs/building/editor/chunkCreator/plan.md)
 Phase 2 closure input:
-[docs/building/editor/chunkCreator/phase2-closure-summary.md](docs/building/editor/chunkCreator/phase2-closure-summary.md)
+[docs/building/archived/editor/chunkCreator/phase2-closure-summary.md](phase2-closure-summary.md)
 
 This checklist turns Phase 3 of the chunk creator plan into an execution
 sequence with concrete file targets, contract decisions, scene-view interaction
@@ -392,7 +392,7 @@ Done when:
       [docs/building/editor/chunkCreator/plan.md](docs/building/editor/chunkCreator/plan.md)
       when complete.
 - [x] Add Phase 3 closure summary doc:
-      `docs/building/editor/chunkCreator/phase3-closure-summary.md`.
+      `docs/building/archived/editor/chunkCreator/phase3-closure-summary.md`.
 - [x] Document finalized module lifecycle contract and migration rules.
 - [x] Document module rename/delete dependency policy for prefab references.
 - [x] Document finalized shared scene-control profile and extension rules for

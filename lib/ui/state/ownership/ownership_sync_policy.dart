@@ -38,7 +38,7 @@ class OwnershipSyncPolicy {
     required this.retryJitterRatio,
   });
 
-  /// Default policy aligned with docs/building/hybridWrite/plan.md.
+  /// Default policy aligned with the archived ownership hybrid sync plan.
   static const OwnershipSyncPolicy defaults = OwnershipSyncPolicy(
     tierBDebounceMs: 750,
     tierCDebounceMs: 150,

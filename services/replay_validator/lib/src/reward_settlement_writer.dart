@@ -1,15 +1,9 @@
 import 'package:googleapis/firestore/v1.dart' as firestore;
-import 'package:run_protocol/validated_run.dart';
 
 import 'firestore_value_codec.dart';
 import 'google_api_helpers.dart';
 
 abstract class RewardGrantWriter {
-  Future<void> settleValidatedRewardGrant({
-    required String runSessionId,
-    ValidatedRun? validatedRun,
-  });
-
   Future<void> settleRevokedRewardGrant({
     required String runSessionId,
     required String settlementReason,
@@ -17,12 +11,6 @@ abstract class RewardGrantWriter {
 }
 
 class NoopRewardGrantWriter implements RewardGrantWriter {
-  @override
-  Future<void> settleValidatedRewardGrant({
-    required String runSessionId,
-    ValidatedRun? validatedRun,
-  }) async {}
-
   @override
   Future<void> settleRevokedRewardGrant({
     required String runSessionId,
@@ -42,81 +30,8 @@ class FirestoreRewardGrantWriter implements RewardGrantWriter {
   final int Function() _clockMs;
 
   String get _databaseRoot => 'projects/$projectId/databases/(default)';
-  String _validatedRunDocPath(String runSessionId) =>
-      '$_databaseRoot/documents/validated_runs/$runSessionId';
   String _rewardGrantDocPath(String runSessionId) =>
       '$_databaseRoot/documents/reward_grants/$runSessionId';
-
-  @override
-  Future<void> settleValidatedRewardGrant({
-    required String runSessionId,
-    ValidatedRun? validatedRun,
-  }) async {
-    final firestoreApi = await apiProvider.firestoreApi();
-    final rewardDocPath = _rewardGrantDocPath(runSessionId);
-
-    final nowMs = _clockMs();
-    final validatedRunMatch =
-        validatedRun != null && validatedRun.runSessionId == runSessionId
-        ? validatedRun
-        : null;
-    final resolvedValidatedRun =
-        validatedRunMatch ??
-        await _loadValidatedRun(
-          firestoreApi: firestoreApi,
-          runSessionId: runSessionId,
-        );
-    final acceptedGold =
-        resolvedValidatedRun != null && resolvedValidatedRun.accepted
-        ? resolvedValidatedRun.goldEarned
-        : null;
-
-    try {
-      await firestoreApi.projects.databases.documents.patch(
-        firestore.Document(
-          fields: encodeFirestoreFields(<String, Object?>{
-            'lifecycleState': 'validated_settled',
-            'updatedAtMs': nowMs,
-            'validatedAtMs': nowMs,
-            if (acceptedGold != null && acceptedGold >= 0)
-              'goldAmount': acceptedGold,
-            if (resolvedValidatedRun != null) 'uid': resolvedValidatedRun.uid,
-            if (resolvedValidatedRun?.mode != null)
-              'mode': resolvedValidatedRun!.mode.name,
-            if (resolvedValidatedRun?.boardId != null)
-              'boardId': resolvedValidatedRun!.boardId,
-            if (resolvedValidatedRun?.boardKey != null)
-              'boardKey': resolvedValidatedRun!.boardKey!.toJson(),
-            if (resolvedValidatedRun != null)
-              'validatedRunRef': 'validated_runs/$runSessionId',
-            'lastTransitionBy': 'validator',
-            'settlementReason': null,
-          }),
-        ),
-        rewardDocPath,
-        updateMask_fieldPaths: const <String>[
-          'lifecycleState',
-          'updatedAtMs',
-          'validatedAtMs',
-          'goldAmount',
-          'uid',
-          'mode',
-          'boardId',
-          'boardKey',
-          'validatedRunRef',
-          'lastTransitionBy',
-          'settlementReason',
-        ],
-      );
-    } catch (error) {
-      if (isApiNotFound(error)) {
-        // Finalize is authoritative for grant creation. If the grant is missing,
-        // skip settlement to preserve idempotency.
-        return;
-      }
-      rethrow;
-    }
-  }
 
   @override
   Future<void> settleRevokedRewardGrant({
@@ -152,32 +67,6 @@ class FirestoreRewardGrantWriter implements RewardGrantWriter {
         return;
       }
       rethrow;
-    }
-  }
-
-  Future<ValidatedRun?> _loadValidatedRun({
-    required firestore.FirestoreApi firestoreApi,
-    required String runSessionId,
-  }) async {
-    final validatedPath = _validatedRunDocPath(runSessionId);
-    firestore.Document document;
-    try {
-      document = await firestoreApi.projects.databases.documents.get(
-        validatedPath,
-      );
-    } catch (error) {
-      if (isApiNotFound(error)) {
-        return null;
-      }
-      rethrow;
-    }
-    final decoded = decodeFirestoreFields(document.fields);
-    try {
-      return ValidatedRun.fromJson(decoded);
-    } on FormatException {
-      return null;
-    } on ArgumentError {
-      return null;
     }
   }
 }

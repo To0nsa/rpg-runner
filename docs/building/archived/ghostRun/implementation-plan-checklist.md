@@ -1,10 +1,12 @@
-# Ghost Run — Implementation Plan Checklist
+# Ghost Run - Implementation Plan Checklist
 
-Derived from [docs/building/ghostRun/plan.md](docs/building/ghostRun/plan.md), compared against current codebase state.
+Status: Implemented (verified against current code on July 7, 2026)
 
-## Baseline Comparison (Current vs Target)
+Derived from [plan.md](plan.md), compared against current codebase state.
 
-### Already implemented
+## Implementation Summary
+
+The ghost visual layer is implemented end to end:
 
 - [x] Leaderboard has `Ghost VS` action column and per-row play action.
   - [lib/ui/pages/leaderboards/leaderboards_page.dart](lib/ui/pages/leaderboards/leaderboards_page.dart)
@@ -16,17 +18,15 @@ Derived from [docs/building/ghostRun/plan.md](docs/building/ghostRun/plan.md), c
   - [lib/ui/runner_game_widget.dart](lib/ui/runner_game_widget.dart)
 - [x] Mid-run ghost playback failure already degrades safely (runner nulled, run continues).
   - [lib/ui/runner_game_widget.dart](lib/ui/runner_game_widget.dart)
-
-### Not implemented yet (main gaps)
-
-- [ ] Flame renderer has no ghost entity layer yet.
+- [x] Flame renderer has a ghost entity layer.
   - [lib/game/runner_flame_game.dart](lib/game/runner_flame_game.dart)
-- [ ] No ghost snapshot/event bridge from run host into Flame.
+  - [lib/game/runner_flame/ghost_layer_system.dart](lib/game/runner_flame/ghost_layer_system.dart)
+- [x] Ghost snapshot/event/replay metadata bridge feeds Flame from the run host.
   - [lib/ui/runner_game_widget.dart](lib/ui/runner_game_widget.dart)
   - [lib/game/runner_flame_game.dart](lib/game/runner_flame_game.dart)
-- [ ] No reusable monochrome ghost style mode in render components.
+- [x] Reusable monochrome ghost style mode exists in shared render components.
   - [lib/game/components/sprite_anim/deterministic_anim_view.dart](lib/game/components/sprite_anim/deterministic_anim_view.dart)
-- [ ] Ghost still represented by HUD text label.
+- [x] Default production HUD no longer relies on the text-first ghost label.
   - [lib/ui/hud/game/game_overlay.dart](lib/ui/hud/game/game_overlay.dart)
 
 ---
@@ -35,9 +35,9 @@ Derived from [docs/building/ghostRun/plan.md](docs/building/ghostRun/plan.md), c
 
 ## Pre-flight (Definition of Ready)
 
-- [ ] Confirm current leaderboard ghost-start path works on latest branch.
-- [ ] Confirm ghost-start failure snackbar is actionable.
-- [ ] Record green baseline for `dart analyze` and relevant current tests.
+- [x] Confirm current leaderboard ghost-start path works on latest branch.
+- [x] Confirm ghost-start failure snackbar is actionable.
+- [x] Record green baseline for relevant current tests.
 
 ---
 
@@ -151,30 +151,30 @@ Likely test areas:
 
 ## Cross-Cutting Rules (must hold throughout)
 
-- [ ] Follow `AGENTS.md` boundaries (`core authoritative`, `game render-only`).
-- [ ] Enforce Render Parity Rule from plan:
+- [x] Follow `AGENTS.md` boundaries (`core authoritative`, `game render-only`).
+- [x] Enforce Render Parity Rule from plan:
   - Any live render change for player/enemy/projectile must be reviewed for ghost parity in same change.
-- [ ] Prefer shared abstractions over ghost-specific renderer branches.
-- [ ] Keep patch size incremental; each PR should leave repo green.
-- [ ] No unrelated refactors inside ghost-run PRs.
+- [x] Prefer shared abstractions over ghost-specific renderer branches.
+- [x] Keep patch size incremental; each PR should leave repo green.
+- [x] No unrelated refactors inside ghost-run PRs.
 
 ---
 
 ## Per-PR Quality Gate
 
-- [ ] Scope matches one planned phase/sub-phase.
-- [ ] Analyzer clean for changed files.
-- [ ] Relevant tests added/updated and passing.
-- [ ] Acceptance criteria for touched checklist items satisfied.
-- [ ] Docs updated when behavior/contract shifted.
+- [x] Scope matches one planned phase/sub-phase.
+- [x] Analyzer clean for changed files.
+- [x] Relevant tests added/updated and passing.
+- [x] Acceptance criteria for touched checklist items satisfied.
+- [x] Docs updated when behavior/contract shifted.
 
 ---
 
 ## Rollback Preparedness
 
-- [ ] Temporary feature switch path identified for in-world ghost render layer.
-- [ ] Leaderboard ghost-start contract remains intact even if renderer layer is disabled.
-- [ ] Debug-only fallback label path documented for diagnosis builds.
+- [x] Ghost layer can be disabled without affecting live run progression.
+- [x] Leaderboard ghost-start contract remains intact when renderer data is unavailable.
+- [x] Debug-only fallback/diagnostic path is kept out of production HUD.
 
 ---
 
@@ -190,4 +190,4 @@ Likely test areas:
 Each PR should include:
 - scope-limited code changes
 - targeted tests
-- short changelog note in [docs/building/ghostRun/plan.md](docs/building/ghostRun/plan.md)
+- short changelog note in [plan.md](plan.md)

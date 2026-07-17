@@ -73,6 +73,10 @@ abstract class RunSessionRepository {
     required String runSessionId,
   });
 
+  Future<void> handoffAcceptedRunForSettlement({
+    required ValidatedRun validatedRun,
+  });
+
   Future<void> persistValidatedRun({required ValidatedRun validatedRun});
 
   Future<void> markTerminal({
@@ -109,6 +113,11 @@ class NoopRunSessionRepository implements RunSessionRepository {
   }) async {}
 
   @override
+  Future<void> handoffAcceptedRunForSettlement({
+    required ValidatedRun validatedRun,
+  }) async {}
+
+  @override
   Future<void> markTerminal({
     required String runSessionId,
     required RunSessionTerminalState terminalState,
@@ -137,6 +146,8 @@ class FirestoreRunSessionRepository implements RunSessionRepository {
       '$_databaseRoot/documents/run_sessions/$runSessionId';
   String _validatedRunDocPath(String runSessionId) =>
       '$_databaseRoot/documents/validated_runs/$runSessionId';
+  String _rewardGrantDocPath(String runSessionId) =>
+      '$_databaseRoot/documents/reward_grants/$runSessionId';
 
   @override
   Future<RunSessionLeaseAcquireResult> acquireValidationLease({
@@ -266,6 +277,117 @@ class FirestoreRunSessionRepository implements RunSessionRepository {
   }
 
   @override
+  Future<void> handoffAcceptedRunForSettlement({
+    required ValidatedRun validatedRun,
+  }) async {
+    if (!validatedRun.accepted) {
+      throw ArgumentError.value(
+        validatedRun.accepted,
+        'validatedRun.accepted',
+        'Accepted settlement handoff requires an accepted run.',
+      );
+    }
+
+    final firestoreApi = await apiProvider.firestoreApi();
+    final runSessionId = validatedRun.runSessionId;
+    final sessionPath = _runSessionDocPath(runSessionId);
+    final rewardGrantPath = _rewardGrantDocPath(runSessionId);
+    final validatedRunPath = _validatedRunDocPath(runSessionId);
+    final sessionDocument = await firestoreApi.projects.databases.documents.get(
+      sessionPath,
+    );
+    final rewardGrantDocument = await firestoreApi.projects.databases.documents
+        .get(rewardGrantPath);
+    final session = decodeFirestoreFields(sessionDocument.fields);
+    final rewardGrant = decodeFirestoreFields(rewardGrantDocument.fields);
+    final sessionUpdateTime = sessionDocument.updateTime;
+    final rewardGrantUpdateTime = rewardGrantDocument.updateTime;
+    if (sessionUpdateTime == null || sessionUpdateTime.isEmpty) {
+      throw StateError('runSessionId "$runSessionId" is missing updateTime.');
+    }
+    if (rewardGrantUpdateTime == null || rewardGrantUpdateTime.isEmpty) {
+      throw StateError('reward grant "$runSessionId" is missing updateTime.');
+    }
+    _assertSettlementHandoffBindings(
+      runSessionId: runSessionId,
+      session: session,
+      rewardGrant: rewardGrant,
+      validatedRun: validatedRun,
+    );
+
+    final nowMs = _clockMs();
+    final validatedRunPayload = validatedRun.toJson();
+    final rewardGrantPayload = <String, Object?>{
+      'lifecycleState': 'settlement_pending',
+      'updatedAtMs': nowMs,
+      'settlementPendingAtMs': nowMs,
+      'goldAmount': validatedRun.goldEarned,
+      'uid': validatedRun.uid,
+      'mode': validatedRun.mode.name,
+      if (validatedRun.boardId != null) 'boardId': validatedRun.boardId,
+      if (validatedRun.boardKey != null)
+        'boardKey': validatedRun.boardKey!.toJson(),
+      'validatedRunRef': 'validated_runs/$runSessionId',
+      'lastTransitionBy': 'validator_handoff',
+      'settlementReason': null,
+    };
+    final sessionPayload = <String, Object?>{
+      'state': 'settlement_pending',
+      'updatedAtMs': nowMs,
+      'settlementPendingAtMs': nowMs,
+      'message': 'Reward settlement pending.',
+    };
+
+    try {
+      await firestoreApi.projects.databases.documents.commit(
+        firestore.CommitRequest(
+          writes: <firestore.Write>[
+            firestore.Write(
+              update: firestore.Document(
+                name: validatedRunPath,
+                fields: encodeFirestoreFields(validatedRunPayload),
+              ),
+              currentDocument: firestore.Precondition(exists: false),
+            ),
+            firestore.Write(
+              update: firestore.Document(
+                name: rewardGrantPath,
+                fields: encodeFirestoreFields(rewardGrantPayload),
+              ),
+              updateMask: firestore.DocumentMask(
+                fieldPaths: rewardGrantPayload.keys.toList(growable: false),
+              ),
+              currentDocument: firestore.Precondition(
+                updateTime: rewardGrantUpdateTime,
+              ),
+            ),
+            firestore.Write(
+              update: firestore.Document(
+                name: sessionPath,
+                fields: encodeFirestoreFields(sessionPayload),
+              ),
+              updateMask: firestore.DocumentMask(
+                fieldPaths: sessionPayload.keys.toList(growable: false),
+              ),
+              currentDocument: firestore.Precondition(
+                updateTime: sessionUpdateTime,
+              ),
+            ),
+          ],
+        ),
+        _databaseRoot,
+      );
+    } catch (error) {
+      if (isApiConflict(error)) {
+        throw StateError(
+          'Accepted settlement handoff conflicted for "$runSessionId".',
+        );
+      }
+      rethrow;
+    }
+  }
+
+  @override
   Future<void> markTerminal({
     required String runSessionId,
     required RunSessionTerminalState terminalState,
@@ -302,26 +424,118 @@ class FirestoreRunSessionRepository implements RunSessionRepository {
   }) async {
     final firestoreApi = await apiProvider.firestoreApi();
     final path = _runSessionDocPath(runSessionId);
+    final existing = await firestoreApi.projects.databases.documents.get(path);
+    final existingState = decodeFirestoreFields(existing.fields)['state'];
+    if (existingState != 'validating') {
+      return;
+    }
+    final updateTime = existing.updateTime;
+    if (updateTime == null || updateTime.isEmpty) {
+      throw StateError('runSessionId "$runSessionId" is missing updateTime.');
+    }
     final nowMs = _clockMs();
-    await firestoreApi.projects.databases.documents.patch(
-      firestore.Document(
-        fields: encodeFirestoreFields(<String, Object?>{
-          'state': 'pending_validation',
-          'updatedAtMs': nowMs,
-          'validationNextAttemptAtMs': nextAttemptAtMs,
-          'message': message,
-          'internalErrorFirstAtMs': internalErrorFirstAtMs,
-        }),
-      ),
-      path,
-      updateMask_fieldPaths: const <String>[
-        'state',
-        'updatedAtMs',
-        'validationNextAttemptAtMs',
-        'message',
-        'internalErrorFirstAtMs',
-      ],
-    );
+    try {
+      await firestoreApi.projects.databases.documents.patch(
+        firestore.Document(
+          fields: encodeFirestoreFields(<String, Object?>{
+            'state': 'pending_validation',
+            'updatedAtMs': nowMs,
+            'validationNextAttemptAtMs': nextAttemptAtMs,
+            'message': message,
+            'internalErrorFirstAtMs': internalErrorFirstAtMs,
+          }),
+        ),
+        path,
+        updateMask_fieldPaths: const <String>[
+          'state',
+          'updatedAtMs',
+          'validationNextAttemptAtMs',
+          'message',
+          'internalErrorFirstAtMs',
+        ],
+        currentDocument_updateTime: updateTime,
+      );
+    } catch (error) {
+      if (isApiConflict(error)) {
+        return;
+      }
+      rethrow;
+    }
+  }
+
+  void _assertSettlementHandoffBindings({
+    required String runSessionId,
+    required Map<String, Object?> session,
+    required Map<String, Object?> rewardGrant,
+    required ValidatedRun validatedRun,
+  }) {
+    if (session['state'] != 'validating') {
+      throw StateError(
+        'runSessionId "$runSessionId" must be validating before handoff.',
+      );
+    }
+    if (session['uid'] != validatedRun.uid) {
+      throw StateError(
+        'runSessionId "$runSessionId" uid does not match validated run.',
+      );
+    }
+    if (session['mode'] != validatedRun.mode.name ||
+        rewardGrant['mode'] != validatedRun.mode.name) {
+      throw StateError(
+        'runSessionId "$runSessionId" mode does not match validated run.',
+      );
+    }
+    if (rewardGrant['uid'] != validatedRun.uid ||
+        rewardGrant['runSessionId'] != runSessionId) {
+      throw StateError(
+        'reward grant "$runSessionId" does not match the validated run.',
+      );
+    }
+    final rewardState = rewardGrant['lifecycleState'];
+    if (rewardState != 'provisional_created' &&
+        rewardState != 'provisional_visible') {
+      throw StateError(
+        'reward grant "$runSessionId" must be provisional before handoff.',
+      );
+    }
+    if (session['boardId'] != validatedRun.boardId ||
+        rewardGrant['boardId'] != validatedRun.boardId ||
+        !_sameJsonValue(session['boardKey'], validatedRun.boardKey?.toJson()) ||
+        !_sameJsonValue(
+          rewardGrant['boardKey'],
+          validatedRun.boardKey?.toJson(),
+        )) {
+      throw StateError(
+        'runSessionId "$runSessionId" board context does not match validated run.',
+      );
+    }
+  }
+
+  bool _sameJsonValue(Object? left, Object? right) {
+    if (left is Map && right is Map) {
+      if (left.length != right.length) {
+        return false;
+      }
+      for (final entry in left.entries) {
+        if (!right.containsKey(entry.key) ||
+            !_sameJsonValue(entry.value, right[entry.key])) {
+          return false;
+        }
+      }
+      return true;
+    }
+    if (left is List && right is List) {
+      if (left.length != right.length) {
+        return false;
+      }
+      for (var index = 0; index < left.length; index += 1) {
+        if (!_sameJsonValue(left[index], right[index])) {
+          return false;
+        }
+      }
+      return true;
+    }
+    return left == right;
   }
 
   ValidatorRunSession? _decodeValidatorRunSession(

@@ -1,7 +1,12 @@
 # Firebase Loadout Ownership Backend Playbook
 
 Date: March 10, 2026  
-Status: Ready to implement
+Status: Implemented; archived with ownership hybrid sync docs on July 7, 2026
+
+Archived context:
+
+- This is the backend authority foundation for the ownership hybrid sync work.
+- Client-side write-behind behavior is documented in [plan.md](plan.md).
 
 ## Goal
 

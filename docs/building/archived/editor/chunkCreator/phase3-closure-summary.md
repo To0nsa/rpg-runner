@@ -5,8 +5,8 @@ Status: Phase 3 complete
 
 Related docs:
 
-- [docs/building/editor/chunkCreator/plan.md](docs/building/editor/chunkCreator/plan.md)
-- [docs/building/editor/chunkCreator/phase3-implementation-checklist.md](docs/building/editor/chunkCreator/phase3-implementation-checklist.md)
+- [docs/building/editor/chunkCreator/plan.md](../../../editor/chunkCreator/plan.md)
+- [docs/building/archived/editor/chunkCreator/phase3-implementation-checklist.md](phase3-implementation-checklist.md)
 
 ## Finalized Platform Module Contract
 
@@ -78,8 +78,8 @@ Tests:
 
 Docs:
 
-- `docs/building/editor/chunkCreator/phase3-implementation-checklist.md`
-- `docs/building/editor/chunkCreator/phase3-closure-summary.md`
+- `docs/building/archived/editor/chunkCreator/phase3-implementation-checklist.md`
+- `docs/building/archived/editor/chunkCreator/phase3-closure-summary.md`
 - `docs/building/editor/chunkCreator/plan.md`
 
 ## Validation Commands (Phase 3 Close-Out)

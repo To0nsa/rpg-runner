@@ -1,8 +1,10 @@
-# Documentation And Commenting Guide For Agents
+# Code Documentation Policy
 
 ## Purpose
 
-Prevent low-value comments (noise) and enforce high-signal documentation that reduces future bugs and review time.
+Set the repository standard for high-signal code documentation and comments.
+It applies to every contributor, including AI agents, and aims to prevent noise
+while reducing future bugs and review time.
 
 **Delete comments that only:**
 
@@ -30,10 +32,14 @@ If it does none of these: **do not add it** (or remove it).
 
 ## Scope
 
-Applies to:
+Apply this policy when creating or modifying:
 
 * Source code comments and API docs
 * Architecture/contract docs **when cross-module behavior or boundaries change**
+
+It does not require a retroactive documentation pass over untouched code. When
+working in an existing slice, improve or remove nearby documentation only when
+it is relevant to the change or is demonstrably stale.
 
 ### Comment formats
 
@@ -42,7 +48,7 @@ Applies to:
 
 ---
 
-## Non-Negotiable Rules (Enforced)
+## Repository Standards
 
 ### R1 — No name-only docs
 
@@ -74,9 +80,9 @@ Allowed only when encoding reasoning:
 // Clamp to avoid negative retries after clock skew.
 ```
 
-### R3 — Public surface must be self-usable
+### R3 — Changed public APIs must be self-usable
 
-Every public type/function/method must document:
+Every new or materially changed public type, function, or method must document:
 
 * **what it does**
 * **key constraints/invariants**
@@ -220,34 +226,41 @@ Write/update an architecture/contract doc when any of these happen:
 
 ---
 
-## Agent Workflow (Mandatory Sequence)
+## Documentation Review Checklist
 
-1. **Work in a slice** (folder/module), not the entire repo
-2. **Public API pass first** (ensure callers can use it correctly)
-3. **Reasoning hotspot pass** (add minimal “why” comments)
-4. **Deletion pass** (remove name-only, narration, stale, redundant)
-5. **Validation pass** (lint/analyzer/tests)
+For the changed slice:
+
+1. **Review public APIs** — ensure callers can use new or changed APIs correctly.
+2. **Review reasoning hotspots** — add only the minimal comments needed to
+   explain constraints, rationale, or non-obvious behavior.
+3. **Remove noise and staleness** — delete name-only, narrative, redundant, or
+   outdated comments relevant to the change.
+4. **Review contracts** — update relevant architecture or contract docs when
+   cross-module behavior, ownership, or invariants change.
+5. **Validate** — run the smallest relevant lint, analyzer, and test checks.
 
 ---
 
-## Definition Of Done (Hard Checks)
+## Completion Criteria
 
-A change is doc-complete if:
+A change is documentation-complete if:
 
-* Every touched public symbol has meaningful docs (purpose + constraints)
-* No narration/name-only comments remain in the touched scope
+* Every new or materially changed public API has meaningful docs (purpose +
+  constraints)
+* No new narration/name-only comments remain in the touched scope
 * Comments explain **why/constraints**, not “what”
 * Units are stated where ambiguity exists
 * Documented constants match code values
-* Repo validation checks pass
+* Relevant repository validation checks pass
 
 ---
 
-## Quick Adoption Notes
+## Policy Maintenance
 
-Before copying this into a new repo, replace:
+Update this policy when repository conventions or supported languages change,
+including:
 
 * language doc syntax examples
 * module/layer naming
 * validation commands
-* project-specific invariants (tick rate, determinism rules, etc.)
+* project-specific invariants, such as tick rate or determinism rules

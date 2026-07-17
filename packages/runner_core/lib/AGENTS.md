@@ -13,7 +13,9 @@ Instructions for AI coding agents working in `packages/runner_core/lib/`.
 - level definitions, track streaming, spawn logic, and tuning data
 - player, gear, loadout, meta, and progression data structures used by the run
 
-If gameplay truth matters, it belongs here.
+If gameplay truth matters, it belongs here. The Flutter app and
+`services/replay_validator` both consume this package, so replay-sensitive
+changes can affect client runs and asynchronous validation.
 
 ## Hard Constraints
 
@@ -49,6 +51,10 @@ Core currently depends on deterministic fixed-tick behavior. Preserve these rule
 - tie-breaks must stay stable when iterating entities or resolving conflicts
 
 If you touch a rule that could affect replay stability, document it and add or update tests.
+
+Also check `packages/run_protocol/**` and `services/replay_validator/**` when a
+Core change affects command encoding, replayed run outcomes, loadout snapshots,
+level identity, scoring, or run-ended events.
 
 ## How The Current Core Is Organized
 
@@ -112,6 +118,8 @@ Core changes usually need tests. Target the most relevant slice:
 
 - `test/core/**` for gameplay rules and deterministic behavior
 - integration tests when a feature spans multiple systems or run flow
+- `services/replay_validator/test/**` when replay validation assumptions or
+  accepted run outputs change
 
 Focus tests on:
 

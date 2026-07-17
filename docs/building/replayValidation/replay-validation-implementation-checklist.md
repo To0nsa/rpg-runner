@@ -1,8 +1,13 @@
 # Replay Validation Implementation Checklist
 
-Date: March 12, 2026  
-Status: In progress (Phases 1-6 complete, Phase 7 in progress)  
+Date: March 12, 2026
+Last reviewed: July 16, 2026
+Status: Code implementation complete; release verification pending
 Source plan: `docs/building/replayValidation/replay-validation-plan.md`
+
+All Phase 1-7 implementation tasks are complete in the repository. The open
+items below are staging, IAM, policy, and release-verification gates; they are
+not evidence that the code phase remains incomplete.
 
 ## Goal
 
@@ -13,10 +18,10 @@ Turn the replay-validation production plan into an execution checklist with:
 - explicit done criteria per phase
 - cross-layer validation and release gates
 
-## Delivery Assumptions
+## Historical Delivery Assumptions
 
-- Current Competitive leaderboard state is local-only and non-authoritative, so
-      no production leaderboard data conversion is required.
+- The prior local Competitive leaderboard was non-authoritative, so no
+  production leaderboard data conversion was required for the cutover.
 - Existing local Practice PB data can remain local and isolated from online
   authority.
 - Firebase Auth/Functions/Firestore/Storage are available in the same project as
@@ -24,11 +29,11 @@ Turn the replay-validation production plan into an execution checklist with:
 - This rollout can introduce new packages/services in the same mono-repo without
   splitting repositories.
 
-If any assumption is false, update this checklist before implementation begins.
+Update these notes if a production-data migration or rollout assumption changes.
 
 ## Locked Phase Order
 
-Implementation order is locked:
+Implementation order was locked:
 
 1. `runner_core` extraction
 2. replay protocol + recorder
@@ -38,7 +43,8 @@ Implementation order is locked:
 6. ghost publication + playback
 7. weekly mode activation
 
-Do not start a later phase before the previous phase exit gate is met.
+The release gates below remain the proof required to launch each completed
+phase.
 
 ## Pre-Phase Setup
 
@@ -51,7 +57,7 @@ Tasks:
 - [x] Confirm canonical naming and literals for:
       - `RunMode`: `practice|competitive|weekly`
       - board statuses: `scheduled|active|closed|disabled`
-      - run-session states: `issued|uploading|uploaded|pending_validation|validating|validated|rejected|expired|cancelled|internal_error`
+      - run-session states: `issued|uploading|uploaded|pending_validation|validating|settlement_pending|validated|rejected|expired|cancelled|internal_error`
 - [x] Lock window cadence and ids:
       - Competitive season window = one UTC calendar month
       - Competitive `windowId` format = `YYYY-MM` (for example `2026-03`)
@@ -288,7 +294,8 @@ Tasks:
       - size bounds
       - content-type constraints
 - [x] Implement run-session state transitions and legal-transition checks:
-      - `issued -> uploading -> uploaded -> pending_validation -> validating -> terminal`
+      - `issued -> uploading -> uploaded -> pending_validation -> validating -> settlement_pending -> validated`
+      - rejected and exhausted-retry paths terminalize directly from validation
       - idempotent finalize for same metadata
       - conflict rejection for mismatched re-finalize
 - [x] Add Cloud Tasks enqueue path from finalize.
@@ -303,7 +310,8 @@ Tasks:
       - protocol sanity checks
       - headless core replay
       - validated run persistence
-      - terminal session update
+      - accepted settlement handoff; only rejected/internal-error terminal
+        session updates are validator-owned
 - [x] Implement retry/backoff and exhausted-retry terminalization
       (`internal_error`).
 - [x] Add cleanup jobs for:
@@ -346,11 +354,14 @@ Tasks:
         - `services/replay_validator/lib/src/leaderboard_projector.dart`
 - [x] Implement reward grant writing:
       - `reward_grants/{runSessionId}`
-      - no direct ownership canonical writes from validator
-- [x] Update ownership flows (`functions/src/ownership/**`) to reconcile unapplied
-      grants transactionally.
-      - load + execute ownership transactions reconcile pending grants and mark
-            `reward_grants/*` as `validated_settled` when verification is accepted
+      - accepted validation atomically transitions the existing provisional
+        grant to `settlement_pending`; the validator never writes canonical
+        ownership state
+- [x] Implement Functions-owned settlement for accepted grants.
+      - `runSettlementOnHandoff` and `runSettlementRepair` invoke the exact
+        ownership reconciliation transaction.
+      - the transaction credits gold idempotently, marks the grant
+        `validated_settled`, and marks the session `validated` together.
 - [x] Add leaderboard read APIs:
       - `leaderboardLoadBoard`
       - `leaderboardLoadMyRank`
@@ -361,8 +372,8 @@ Tasks:
 - [x] Remove local Competitive leaderboard authority:
       - no writes to `shared_prefs_leaderboard_store.dart` for Competitive
 - [x] Preserve Practice local PB display as local-only (not online authority).
-- [x] Update Game Over and leaderboard UI to show provisional/submission/validated
-      states clearly.
+- [x] Update Game Over and leaderboard UI to show provisional, submission,
+  settlement-pending, and validated states clearly.
 - [x] Add tests:
       - [x] reward grant idempotency
       - [x] lower-than-best run does not replace best
@@ -370,6 +381,7 @@ Tasks:
       - [x] Practice validated rewards with no leaderboard projection
       - implemented in:
         - `functions/test/ownership/ownership_callable.test.ts`
+        - `functions/test/runs/run_projection.test.ts`
         - `functions/test/leaderboards/leaderboard_callable.test.ts`
         - `services/replay_validator/test/validator_worker_test.dart`
         - `services/replay_validator/test/leaderboard_projector_test.dart`
@@ -466,7 +478,7 @@ These are mandatory alongside phase work, not after all phases.
       - update `functions/src/account/delete.ts`
       - update `functions/test/account/account_delete_callable.test.ts`
 - [x] Keep retention cleanup jobs aligned with documented TTL policies.
-- [ ] Keep docs synchronized:
+- [x] Keep docs synchronized:
       - `docs/building/replayValidation/replay-validation-plan.md`
       - `AGENTS.md` files if boundaries/rules change
       - `README.md` if public capability/setup changes
@@ -477,26 +489,26 @@ These are mandatory alongside phase work, not after all phases.
 
 Gate A: Validation Foundation
 
-- [ ] Phases 1-4 complete
+- [x] Phases 1-4 complete
 - [ ] end-to-end submit/validate terminal status stable in staging
 - [ ] no duplicate rewards/entries under forced retry tests
 
 Gate B: Competitive Authority Cutover
 
-- [ ] Phase 5 complete
+- [x] Phase 5 complete
 - [ ] client-authoritative reward path removed
 - [ ] local Competitive leaderboard writes removed
 - [ ] leaderboard and rewards validated in staging load tests
 
 Gate C: Ghost Launch
 
-- [ ] Phase 6 complete
+- [x] Phase 6 complete
 - [ ] top10 ghost promotion/demotion stable
 - [ ] ghost manifest/download paths verified for compat/version rules
 
 Gate D: Weekly Launch
 
-- [ ] Phase 7 complete
+- [x] Phase 7 complete
 - [ ] weekly rollover operation runbook verified
 - [ ] weekly leaderboard + rewards + ghost rules validated
 
@@ -514,9 +526,9 @@ Run targeted checks as each phase lands:
 Run these once new package/service directories exist:
 
 - [x] `dart analyze packages/runner_core packages/run_protocol services/replay_validator`
-- [x] `dart test packages/runner_core/test`
-- [x] `dart test packages/run_protocol/test`
-- [x] `dart test services/replay_validator/test`
+- [x] `cd packages/runner_core && dart test`
+- [x] `cd packages/run_protocol && dart test`
+- [x] `cd services/replay_validator && dart test`
 
 ## Exit Criteria
 
@@ -527,6 +539,8 @@ The replay-validation implementation is complete when:
 - submissions are durable, asynchronous, and terminally resolved server-side
 - validator authority is headless, deterministic, and retry-safe
 - gold rewards come only from validated results
+- accepted runs pass through `settlement_pending` and become terminal
+  `validated` only when Functions applies the exact reward grant idempotently
 - Competitive/Weekly ranking and top10 ghost publication are server-owned
 - Practice remains unranked online while keeping local PB display
 - Weekly mode runs through the same validated authority path

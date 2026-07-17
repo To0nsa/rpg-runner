@@ -197,11 +197,11 @@ class AnimResolver {
   /// 2. Death (if dying or dead)
   /// 3. Hit React (if taking damage)
   /// 4. Active Action (manual overrides from abilities)
-  /// 5. Movement (Jump/Fall > Spawn > Dash > Run > Walk > Idle)
+  /// 5. Movement (Jump/Fall > Spawn > Idle > Dash > Walk > Run)
   ///
   /// Frame-origin policy:
   /// - Relative-to-start: stun, death, hit, active action, spawn.
-  /// - Global tick: jump, fall, idle, walk, run.
+  /// - Global tick: jump, fall, idle, locomotion dash, walk, run.
   ///
   /// Locomotion branches use global tick intentionally to keep loops phase-
   /// continuous through brief state toggles (for example grounded jitter).

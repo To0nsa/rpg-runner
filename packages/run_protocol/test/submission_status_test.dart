@@ -2,6 +2,16 @@ import 'package:run_protocol/submission_status.dart';
 import 'package:test/test.dart';
 
 void main() {
+  group('RunSessionState wire values', () {
+    test('settlementPending round-trips through the wire contract', () {
+      expect(RunSessionState.settlementPending.wireValue, 'settlement_pending');
+      expect(
+        RunSessionState.parse('settlement_pending'),
+        RunSessionState.settlementPending,
+      );
+    });
+  });
+
   group('SubmissionRewardStatus wire values', () {
     test('provisional wire value is provisional', () {
       expect(SubmissionRewardStatus.provisional.wireValue, 'provisional');
@@ -22,38 +32,49 @@ void main() {
 
   group('SubmissionRewardStatus.parse', () {
     test('parses provisional', () {
-      expect(SubmissionRewardStatus.parse('provisional'),
-          SubmissionRewardStatus.provisional);
+      expect(
+        SubmissionRewardStatus.parse('provisional'),
+        SubmissionRewardStatus.provisional,
+      );
     });
 
     test('parses final', () {
-      expect(SubmissionRewardStatus.parse('final'),
-          SubmissionRewardStatus.finalReward);
+      expect(
+        SubmissionRewardStatus.parse('final'),
+        SubmissionRewardStatus.finalReward,
+      );
     });
 
     test('parses revoked', () {
-      expect(SubmissionRewardStatus.parse('revoked'),
-          SubmissionRewardStatus.revoked);
+      expect(
+        SubmissionRewardStatus.parse('revoked'),
+        SubmissionRewardStatus.revoked,
+      );
     });
 
     test('parses none', () {
-      expect(
-          SubmissionRewardStatus.parse('none'), SubmissionRewardStatus.none);
+      expect(SubmissionRewardStatus.parse('none'), SubmissionRewardStatus.none);
     });
 
     test('throws on unknown string', () {
-      expect(() => SubmissionRewardStatus.parse('unknown'),
-          throwsA(isA<FormatException>()));
+      expect(
+        () => SubmissionRewardStatus.parse('unknown'),
+        throwsA(isA<FormatException>()),
+      );
     });
 
     test('throws on non-string', () {
-      expect(() => SubmissionRewardStatus.parse(42),
-          throwsA(isA<FormatException>()));
+      expect(
+        () => SubmissionRewardStatus.parse(42),
+        throwsA(isA<FormatException>()),
+      );
     });
 
     test('throws on null', () {
-      expect(() => SubmissionRewardStatus.parse(null),
-          throwsA(isA<FormatException>()));
+      expect(
+        () => SubmissionRewardStatus.parse(null),
+        throwsA(isA<FormatException>()),
+      );
     });
   });
 

@@ -5,6 +5,7 @@ import type { JsonObject, OwnershipCanonicalState } from "./contracts.js";
 const rewardGrantsCollection = "reward_grants";
 const rewardGrantLifecycleProvisionalCreated = "provisional_created";
 const rewardGrantLifecycleProvisionalVisible = "provisional_visible";
+const rewardGrantLifecycleSettlementPending = "settlement_pending";
 const rewardGrantLifecycleValidatedSettled = "validated_settled";
 const rewardGrantLifecycleRevocationVisible = "revocation_visible";
 const rewardGrantLifecycleRevokedFinal = "revoked_final";
@@ -25,14 +26,32 @@ export async function reconcilePendingRewardGrantsForTransaction(args: {
   uid: string;
   canonicalState: OwnershipCanonicalState;
   nowMs?: number;
+  settlementGrantId?: string;
 }): Promise<RewardGrantReconcileResult> {
   const nowMs = args.nowMs ?? Date.now();
-  const rewardGrantQuery = args.db
-    .collection(rewardGrantsCollection)
-    .where("uid", "==", args.uid)
-    .limit(rewardGrantBatchLimit);
-  const rewardGrantSnapshot = await args.tx.get(rewardGrantQuery);
-  if (rewardGrantSnapshot.empty) {
+  const rewardGrantDocuments = args.settlementGrantId === undefined
+    ? (await args.tx.get(
+        args.db
+          .collection(rewardGrantsCollection)
+          .where("uid", "==", args.uid)
+          .limit(rewardGrantBatchLimit),
+      )).docs
+    : (() => {
+        // The settlement owner names its exact grant. Reading it directly
+        // avoids a uid query limit turning a valid handoff into a false no-op.
+        return [];
+      })();
+  const settlementGrantSnapshot = args.settlementGrantId === undefined
+    ? undefined
+    : await args.tx.get(
+        args.db.collection(rewardGrantsCollection).doc(args.settlementGrantId),
+      );
+  const rewardGrantDocs = settlementGrantSnapshot === undefined
+    ? rewardGrantDocuments
+    : settlementGrantSnapshot.exists
+      ? [settlementGrantSnapshot]
+      : [];
+  if (rewardGrantDocs.length === 0) {
     return {
       canonicalState: args.canonicalState,
       canonicalChanged: false,
@@ -60,16 +79,36 @@ export async function reconcilePendingRewardGrantsForTransaction(args: {
     canonicalChanged = true;
   }
   const appliedRewardGrantIdSet = new Set(appliedRewardGrantIds);
+  const nextCanonicalRevision = args.canonicalState.revision + 1;
 
   let appliedGrantCount = 0;
   let revokedGrantCount = 0;
-  for (const rewardGrantDoc of rewardGrantSnapshot.docs) {
+  for (const rewardGrantDoc of rewardGrantDocs) {
+    if (
+      args.settlementGrantId !== undefined &&
+      rewardGrantDoc.id !== args.settlementGrantId
+    ) {
+      continue;
+    }
     const rewardGrant = rewardGrantDoc.data() as Record<string, unknown>;
-    const stateResolution = resolveRewardGrantSettlementState(rewardGrant);
+    if (
+      args.settlementGrantId === rewardGrantDoc.id &&
+      readOptionalNonEmptyString(rewardGrant.uid) !== args.uid
+    ) {
+      throw new Error(
+        `reward_grants/${rewardGrantDoc.id} does not belong to ${args.uid}.`,
+      );
+    }
+    const stateResolution = resolveRewardGrantSettlementState({
+      rewardGrant,
+      allowSettlementPending:
+        args.settlementGrantId === rewardGrantDoc.id,
+    });
 
     if (stateResolution === "settle") {
       const grantId = rewardGrantDoc.id;
       const goldAmount = parseInteger(rewardGrant.goldAmount) ?? 0;
+      let appliedNow = false;
       if (!appliedRewardGrantIdSet.has(grantId)) {
         const nonNegativeGoldAmount = Math.max(0, goldAmount);
         const nextGold = gold + nonNegativeGoldAmount;
@@ -82,6 +121,7 @@ export async function reconcilePendingRewardGrantsForTransaction(args: {
         appliedRewardGrantIds.push(grantId);
         appliedRewardGrantIdSet.add(grantId);
         canonicalChanged = true;
+        appliedNow = true;
         const weeklyChanged = applyWeeklyProgressHook({
           progression,
           rewardGrant,
@@ -101,7 +141,9 @@ export async function reconcilePendingRewardGrantsForTransaction(args: {
           appliedAtMs: nowMs,
           updatedAtMs: nowMs,
           appliedProfileId: args.canonicalState.profileId,
-          appliedRevision: args.canonicalState.revision,
+          appliedRevision: appliedNow
+            ? nextCanonicalRevision
+            : args.canonicalState.revision,
         },
         { merge: true },
       );
@@ -147,6 +189,7 @@ export async function reconcilePendingRewardGrantsForTransaction(args: {
   return {
     canonicalState: {
       ...args.canonicalState,
+      revision: nextCanonicalRevision,
       progression: progression as JsonObject,
     },
     canonicalChanged: true,
@@ -359,15 +402,25 @@ function readOptionalNonEmptyString(value: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-function resolveRewardGrantSettlementState(
-  rewardGrant: Record<string, unknown>,
-): "settle" | "terminalize_revoked" | "skip" {
-  const lifecycleState = readOptionalNonEmptyString(rewardGrant.lifecycleState);
+function resolveRewardGrantSettlementState(args: {
+  rewardGrant: Record<string, unknown>;
+  allowSettlementPending: boolean;
+}): "settle" | "terminalize_revoked" | "skip" {
+  const lifecycleState = readOptionalNonEmptyString(
+    args.rewardGrant.lifecycleState,
+  );
   if (lifecycleState == null) {
     return "skip";
   }
 
   if (lifecycleState === rewardGrantLifecycleValidatedSettled) {
+    return "settle";
+  }
+
+  if (
+    lifecycleState === rewardGrantLifecycleSettlementPending &&
+    args.allowSettlementPending
+  ) {
     return "settle";
   }
 
@@ -378,6 +431,7 @@ function resolveRewardGrantSettlementState(
   if (
     lifecycleState === rewardGrantLifecycleProvisionalCreated ||
     lifecycleState === rewardGrantLifecycleProvisionalVisible ||
+    lifecycleState === rewardGrantLifecycleSettlementPending ||
     lifecycleState === rewardGrantLifecycleRevokedFinal
   ) {
     return "skip";

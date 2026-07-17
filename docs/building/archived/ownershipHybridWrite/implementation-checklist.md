@@ -1,8 +1,8 @@
 # Hybrid Sync — Implementation Checklist
 
 Date: March 16, 2026  
-Status: Ready to implement  
-Source plan: docs/building/hybridWrite/plan.md
+Status: Implemented; archived on July 7, 2026  
+Source plan: [plan.md](plan.md)
 
 ## Goal
 

@@ -1,6 +1,8 @@
 import '../../enemies/death_behavior.dart';
 import '../../enemies/enemy_catalog.dart';
 import '../../enemies/enemy_id.dart';
+import '../../snapshots/enums.dart';
+import '../../tuning/utils/anim_tuning.dart' as anim_utils;
 import '../../util/tick_math.dart';
 import '../stores/death_state_store.dart';
 import '../world.dart';
@@ -24,8 +26,18 @@ class EnemyDeathStateSystem {
   void _buildDeathAnimTicksById(int tickHz) {
     _deathAnimTicksById = <EnemyId, int>{};
     for (final id in EnemyId.values) {
-      final seconds = _enemyCatalog.get(id).deathAnimSeconds;
-      _deathAnimTicksById[id] = ticksFromSecondsCeil(seconds, tickHz);
+      final archetype = _enemyCatalog.get(id);
+      final renderAnim = archetype.renderAnim;
+      _deathAnimTicksById[id] =
+          renderAnim.frameCountsByKey.containsKey(AnimKey.death) &&
+              renderAnim.stepTimeSecondsByKey.containsKey(AnimKey.death)
+          ? anim_utils.ticksForKey(
+              key: AnimKey.death,
+              frameCounts: renderAnim.frameCountsByKey,
+              stepTimeSecondsByKey: renderAnim.stepTimeSecondsByKey,
+              tickHz: tickHz,
+            )
+          : ticksFromSecondsCeil(archetype.deathAnimSeconds, tickHz);
     }
   }
 
@@ -49,8 +61,8 @@ class EnemyDeathStateSystem {
         final phase = deathState.phase[di];
         if (phase != DeathPhase.fallingUntilGround) continue;
 
-        final grounded = collision.has(e) &&
-            collision.grounded[collision.indexOf(e)];
+        final grounded =
+            collision.has(e) && collision.grounded[collision.indexOf(e)];
         final maxFallTick = deathState.maxFallDespawnTick[di];
         final shouldStartDeathAnim =
             grounded || (maxFallTick >= 0 && currentTick >= maxFallTick);
@@ -81,8 +93,8 @@ class EnemyDeathStateSystem {
         outEnemiesKilled.add(enemies.enemyId[ei]);
       }
 
-      final grounded = collision.has(e) &&
-          collision.grounded[collision.indexOf(e)];
+      final grounded =
+          collision.has(e) && collision.grounded[collision.indexOf(e)];
 
       if (archetype.deathBehavior == DeathBehavior.groundImpactThenDeath &&
           !grounded) {

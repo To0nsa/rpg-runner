@@ -4,12 +4,18 @@ Instructions for AI coding agents working in `functions/`.
 
 ## Backend Responsibility
 
-`functions/` contains the authenticated backend for player profile, ownership/progression state, and account deletion workflows.
+`functions/` contains the Firebase Functions backend for authenticated player
+profile, ownership/progression, run-session, board, leaderboard, ghost, cleanup,
+and account deletion workflows.
 
 Current domains:
 
 - `src/ownership/`: canonical ownership state, command validation, command execution, idempotency, Firestore paths/defaults
 - `src/profile/`: remote player profile loading and updates, display-name uniqueness
+- `src/runs/`: run-session ticket creation, upload grants, validation status, reward grant backfill, submission cleanup, and callable auth gating
+- `src/boards/`: leaderboard board manifests, UTC windowing, provisioning, and active-board validation
+- `src/leaderboards/`: callable board/rank reads and top-view decoding
+- `src/ghosts/`: ghost manifest reads and signed replay download grants
 - `src/account/`: account deletion across profile, ownership, ghost-related collections, and auth user cleanup
 - `src/index.ts`: callable function exports and auth gate entrypoints
 
@@ -27,7 +33,9 @@ If you change source files, the expected follow-up is a build.
 The backend uses:
 
 - Firebase Functions v2 callable handlers via `onCall`
+- Firebase Functions v2 scheduled handlers via `onSchedule`
 - Firestore via `firebase-admin`
+- Cloud Tasks dispatch support for replay validation
 - Node 20
 - TypeScript compiled to ESM-style JavaScript in `lib/`
 - emulator-driven tests executed against compiled `lib_test/**`
@@ -36,7 +44,7 @@ Do not introduce a second backend style or bypass the existing callable/transact
 
 ## Auth And Validation Rules
 
-Every callable currently follows the same pattern:
+Every user callable currently follows the same pattern:
 
 1. require `request.auth?.uid`
 2. parse and validate request data using the domain validator
@@ -45,6 +53,10 @@ Every callable currently follows the same pattern:
 5. return a typed payload shape
 
 Preserve that sequence. Do not trust client-supplied identity fields just because the client already authenticated.
+
+Scheduled maintenance functions such as board provisioning and replay-submission
+cleanup are not user callables, but they must still use narrow domain helpers and
+avoid ad-hoc Firestore writes in `index.ts`.
 
 ## Ownership Domain Rules
 
@@ -90,6 +102,42 @@ Account deletion currently spans:
 
 If the schema grows, update the explicit deletion coverage. Silent partial deletion is a bug.
 
+## Run Session, Replay, And Reward Rules
+
+Run sessions are the server-issued authority for replay validation. Preserve
+these invariants:
+
+- run tickets bind mode, level, character, loadout snapshot, seed, tick rate,
+  board identity when applicable, and compatibility versions
+- clients must create sessions through callables, not locally mint tickets
+- upload grants must remain scoped to the authenticated user/session path
+- finalize/status callables must preserve auth gating and state-machine checks
+- validation state changes must remain compatible with
+  `services/replay_validator`
+- reward grants must be idempotent and tied to run-session lifecycle state
+- cleanup must not delete active or terminal artifacts outside its explicit
+  eligibility rules
+
+If run-ticket or submission-status payloads change, update
+`packages/run_protocol`, the Flutter client adapters, and replay validator tests
+in the same change.
+
+## Board, Leaderboard, And Ghost Rules
+
+Boards are provisioned server-side and act as the authority for ranked windows.
+Preserve these invariants:
+
+- board ids/keys must match mode, level, ruleset, score version, and window
+- competitive windows use exact UTC month boundaries
+- weekly windows use exact ISO week boundaries
+- disabled or incompatible boards must not be returned as active play targets
+- leaderboard callables read projected data; they do not validate replays
+- ghost manifests must point only at approved ghost artifact paths and use
+  signed download URLs
+
+Leaderboard projection and ghost artifact creation happen in the replay validator
+worker after deterministic validation, not in read callables.
+
 ## Firestore And Transaction Discipline
 
 Use transactions when enforcing multi-document invariants such as:
@@ -126,8 +174,12 @@ When changing backend behavior:
 
 Changes here often require Flutter-side updates too. When a callable request or response changes, update:
 
+- shared Dart protocol contracts in `packages/run_protocol/**` when the payload
+  is shared with replay validation or app state
 - `lib/ui/state/firebase_*.dart` implementations
 - any shared UI/state value objects or error handling
+- `services/replay_validator/**` when run-session, board, leaderboard, ghost, or
+  reward validation semantics change
 - docs that describe the contract
 
 Do not leave the app and backend on different protocol versions in the same repo change.

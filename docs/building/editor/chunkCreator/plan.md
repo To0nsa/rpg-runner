@@ -374,7 +374,7 @@ Gate:
 Status: Completed on April 1, 2026
 
 Implementation checklist:
-[docs/building/editor/chunkCreator/phase1-implementation-checklist.md](docs/building/editor/chunkCreator/phase1-implementation-checklist.md)
+[docs/building/archived/editor/chunkCreator/phase1-implementation-checklist.md](../../archived/editor/chunkCreator/phase1-implementation-checklist.md)
 
 Scope:
 
@@ -461,13 +461,13 @@ Phase 1 added files/contracts (implementation output list):
 Status: Completed on April 1, 2026
 
 Implementation checklist:
-[docs/building/editor/chunkCreator/phase2-implementation-checklist.md](docs/building/editor/chunkCreator/phase2-implementation-checklist.md)
+[docs/building/archived/editor/chunkCreator/phase2-implementation-checklist.md](../../archived/editor/chunkCreator/phase2-implementation-checklist.md)
 
 Step 0 contract freeze:
-[docs/building/editor/chunkCreator/phase2-step0-contract-freeze.md](docs/building/editor/chunkCreator/phase2-step0-contract-freeze.md)
+[docs/building/archived/editor/chunkCreator/phase2-step0-contract-freeze.md](../../archived/editor/chunkCreator/phase2-step0-contract-freeze.md)
 
 Phase 2 closure summary:
-[docs/building/editor/chunkCreator/phase2-closure-summary.md](docs/building/editor/chunkCreator/phase2-closure-summary.md)
+[docs/building/archived/editor/chunkCreator/phase2-closure-summary.md](../../archived/editor/chunkCreator/phase2-closure-summary.md)
 
 Scope:
 
@@ -493,7 +493,7 @@ Gate:
 Status: Completed on April 3, 2026
 
 Implementation checklist:
-[docs/building/editor/chunkCreator/phase3-implementation-checklist.md](docs/building/editor/chunkCreator/phase3-implementation-checklist.md)
+[docs/building/archived/editor/chunkCreator/phase3-implementation-checklist.md](../../archived/editor/chunkCreator/phase3-implementation-checklist.md)
 
 Scope:
 
@@ -610,7 +610,7 @@ Deferred from Phase 6:
 Status: Completed on April 11, 2026
 
 Implementation checklist:
-[docs/building/editor/chunkCreator/phase7-implementation-checklist.md](docs/building/editor/chunkCreator/phase7-implementation-checklist.md)
+[docs/building/archived/editor/chunkCreator/phase7-implementation-checklist.md](../../archived/editor/chunkCreator/phase7-implementation-checklist.md)
 
 Scope:
 

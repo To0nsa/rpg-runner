@@ -239,7 +239,7 @@ class _ProfilePageState extends State<ProfilePage> {
     final appState = context.watch<AppState>();
     final profile = appState.profile;
     final authSession = appState.authSession;
-    final gold = appState.displayGold;
+    final gold = appState.progression.gold;
 
     return MenuScaffold(
       title: 'Profile',

@@ -461,7 +461,7 @@ test("weekly progression hooks roll over when a new week grant is applied", asyn
   assert.equal(weekly.lastValidatedAtMs, 1700000002000);
 });
 
-test("executeOwnershipCommand reconciles settled reward grants before apply", async () => {
+test("settled reward grants advance revision before a client command applies", async () => {
   const canonical = await loadOrCreateCanonicalState({ db, uid });
   await db.collection("reward_grants").doc("grant_run_2").set({
     uid,
@@ -470,7 +470,7 @@ test("executeOwnershipCommand reconciles settled reward grants before apply", as
     goldAmount: 7,
   });
 
-  const result = await executeOwnershipCommand({
+  const staleResult = await executeOwnershipCommand({
     db,
     uid,
     command: setProjectileSpellCommand({
@@ -480,11 +480,22 @@ test("executeOwnershipCommand reconciles settled reward grants before apply", as
     }),
   });
 
-  assert.equal(result.rejectedReason, null);
-  assert.equal(result.canonicalState.progression.gold, 7);
-  assert.deepEqual(result.canonicalState.progression.appliedRewardGrantIds, [
+  assert.equal(staleResult.rejectedReason, "staleRevision");
+  assert.equal(staleResult.canonicalState.progression.gold, 7);
+  assert.equal(staleResult.newRevision, canonical.revision + 1);
+  assert.deepEqual(staleResult.canonicalState.progression.appliedRewardGrantIds, [
     "grant_run_2",
   ]);
+  const result = await executeOwnershipCommand({
+    db,
+    uid,
+    command: setProjectileSpellCommand({
+      expectedRevision: staleResult.newRevision,
+      commandId: "cmd_reconcile_grant_then_apply_after_refresh",
+      spellId: "holyBolt",
+    }),
+  });
+  assert.equal(result.rejectedReason, null);
   assert.equal(
     loadoutFor(result.canonicalState, "eloise").projectileSlotSpellId,
     "holyBolt",

@@ -8,7 +8,8 @@ Current scope in this scaffold:
 - standalone Dart HTTP service package
 - health endpoint: `GET /healthz`
 - Cloud Tasks endpoint: `POST /tasks/validate`
-- deterministic validator worker when required env vars are present
+- deterministic validator worker and backend-settlement handoff when required
+  env vars are present
 - safe fallback behavior: validation dispatch returns `501 not_implemented`
   when required env vars are missing
 
@@ -38,17 +39,10 @@ Run from repository root (`c:\dev\rpg_runner`):
 PROJECT_ID="rpg-runner-d7add"
 IMAGE_URI="europe-west1-docker.pkg.dev/${PROJECT_ID}/replay/replay-validator:$(date +%Y%m%d-%H%M%S)"
 
-cat > /tmp/replay-validator-build.yaml <<'EOF'
-steps:
-- name: gcr.io/cloud-builders/docker
-  args: ["build","-f","services/replay_validator/Dockerfile","-t","${_IMAGE_URI}","."]
-images: ["${_IMAGE_URI}"]
-EOF
-
 gcloud builds submit \
   . \
   --project="${PROJECT_ID}" \
-  --config=/tmp/replay-validator-build.yaml \
+  --config=services/replay_validator/cloudbuild.yaml \
   --substitutions=_IMAGE_URI="${IMAGE_URI}"
 ```
 
@@ -92,6 +86,11 @@ gcloud tasks queues update "${QUEUE_NAME}" \
   --http-oidc-service-account-email-override="${TASK_DISPATCH_SA}" \
   --http-oidc-token-audience-override="${RUN_URL}"
 ```
+
+Before this Cloud Run deployment, deploy the paired Firebase Functions
+settlement dispatcher and repair schedule. This validator revision emits
+`settlement_pending` for accepted runs and deliberately does not mark them
+terminal or credit a wallet itself.
 
 ## Quick Verify (End-To-End)
 
@@ -159,4 +158,5 @@ Healthy signals:
 
 - validator logs show `POST [202] /tasks/validate`
 - queue task `lastAttempt.responseStatus` is not `HTTP status code 501/403`
-- `runSessionLoadStatus` eventually stops returning `pending_validation/uploaded` and moves to a terminal verification state
+- `runSessionLoadStatus` may briefly return `settlement_pending`, then moves to
+  terminal `validated` only after the Functions-owned wallet settlement

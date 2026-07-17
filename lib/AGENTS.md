@@ -9,6 +9,7 @@ Instructions for AI coding agents working in `lib/`.
 - `lib/main.dart`: standalone app entrypoint for this game app
 - `lib/runner.dart`: public embedding barrel for host apps
 - `packages/runner_core/lib/`: deterministic gameplay authority
+- `packages/run_protocol/lib/`: shared run/replay/leaderboard protocol values used by app state and validation
 - `lib/game/`: Flame renderer and fixed-tick bridge
 - `lib/ui/`: Flutter app shell, routes, pages, HUD, controls, state, and backend clients
 
@@ -44,7 +45,8 @@ Put work in the layer that owns the behavior:
 
 - gameplay rules, combat, AI, level data, progression math, authoritative events: `packages/runner_core/lib/`
 - render components, interpolation, view registries, camera shake, aim rays, debug overlays: `lib/game/`
-- menus, hub/setup flow, town/meta screens, HUD widgets, theme extensions, provider state, backend adapters: `lib/ui/`
+- menus, hub/setup flow, town/meta screens, HUD widgets, theme extensions, provider state, backend adapters, run submission orchestration, board/leaderboard/ghost clients: `lib/ui/`
+- shared replay/run/leaderboard payload contracts with no gameplay authority: `packages/run_protocol/lib/`
 
 Common mistakes to avoid:
 
@@ -63,6 +65,7 @@ Important existing flows and modules:
 - shared components, text helpers, icons, theming: `lib/ui/components/`, `lib/ui/text/`, `lib/ui/theme/`
 - HUD and in-run controls: `lib/ui/hud/`, `lib/ui/controls/`
 - backend client interfaces and Firebase implementations: `lib/ui/state/`
+- run-session, replay-submission, board, leaderboard, and ghost client orchestration: `lib/ui/state/run/`, `lib/ui/state/boards/`, and `lib/ui/state/app/controllers/`
 - viewport math and route-scoped system UI/orientation helpers: `lib/ui/viewport/`, `lib/ui/scoped/`
 
 The run route currently flows like this:
@@ -71,7 +74,9 @@ The run route currently flows like this:
 2. `UiRouter` creates the run route.
 3. `RunnerGameWidget` constructs `GameCore`, `GameController`, `RunnerInputRouter`, and `RunnerFlameGame`.
 4. `RunnerFlameGame` renders immutable snapshots while `GameOverlay` and `GameOverOverlay` handle in-run UI.
-5. End-of-run rewards feed back into `AppState`, which talks to the ownership backend.
+5. End-of-run rewards and replay submissions feed back into `AppState`, which
+   talks to run-session, ownership, leaderboard, and ghost-facing backend
+   adapters.
 
 ## Public API Discipline
 
@@ -93,6 +98,7 @@ These are the contracts other layers depend on:
 - transient `GameEvent` output
 - stable render metadata from Core contracts and catalogs
 - `AppState` and `lib/ui/state/**` as the client-side ownership/profile facade
+- run/replay/board/leaderboard protocol values from `packages/run_protocol/**`
 
 If you change one of these contracts, update all affected consumers in the same pass. Do not leave stale adapters behind.
 

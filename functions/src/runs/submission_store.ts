@@ -484,7 +484,11 @@ function projectSubmissionReward(args: {
   const message =
     requireOptionalString(rewardGrant.settlementReason) ?? args.session.message;
 
-  if (state === "provisional_created" || state === "provisional_visible") {
+  if (
+    state === "provisional_created" ||
+    state === "provisional_visible" ||
+    state === "settlement_pending"
+  ) {
     return {
       status: "provisional",
       provisionalGold: goldAmount,
@@ -495,7 +499,7 @@ function projectSubmissionReward(args: {
       message,
     };
   }
-  if (state === "validated_settled") {
+  if (state === "validated_settled" && args.session.state === "validated") {
     return {
       status: "final",
       provisionalGold: goldAmount,

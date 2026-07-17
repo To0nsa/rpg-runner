@@ -6,7 +6,7 @@ Status: Implemented in code; authored content reauthoring pending
 Related docs:
 
 - `docs/building/editor/chunkCreator/plan.md`
-- `docs/building/editor/chunkCreator/phase2-runtime-handoff-seams.md`
+- `docs/building/archived/editor/chunkCreator/phase2-runtime-handoff-seams.md`
 - `docs/building/editor/chunkCreator/prefab-multi-rect-collision-implementation-checklist.md`
 
 Primary touched areas:

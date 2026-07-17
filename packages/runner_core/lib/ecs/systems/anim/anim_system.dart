@@ -7,6 +7,7 @@ import '../../../enemies/death_behavior.dart';
 import '../../../enemies/enemy_catalog.dart';
 import '../../../enemies/enemy_id.dart';
 import '../../../players/player_tuning.dart';
+import '../../../tuning/utils/anim_tuning.dart' as anim_utils;
 import '../../../util/tick_math.dart';
 import '../../entity_id.dart';
 import '../../world.dart';
@@ -53,8 +54,13 @@ class AnimSystem {
   void _buildHitAnimTicksById(int tickHz) {
     _hitAnimTicksById = <EnemyId, int>{};
     for (final id in EnemyId.values) {
-      final seconds = enemyCatalog.get(id).hitAnimSeconds;
-      _hitAnimTicksById[id] = ticksFromSecondsCeil(seconds, tickHz);
+      final archetype = enemyCatalog.get(id);
+      _hitAnimTicksById[id] = _lifecycleTicksFor(
+        archetype,
+        key: AnimKey.hit,
+        fallbackSeconds: archetype.hitAnimSeconds,
+        tickHz: tickHz,
+      );
     }
   }
 
@@ -63,10 +69,34 @@ class AnimSystem {
     for (final id in EnemyId.values) {
       final archetype = enemyCatalog.get(id);
       final ticks = archetype.animProfile.supportsSpawn
-          ? ticksFromSecondsCeil(archetype.spawnAnimSeconds, tickHz)
+          ? _lifecycleTicksFor(
+              archetype,
+              key: AnimKey.spawn,
+              fallbackSeconds: archetype.spawnAnimSeconds,
+              tickHz: tickHz,
+            )
           : 0;
       _spawnAnimTicksById[id] = ticks;
     }
+  }
+
+  int _lifecycleTicksFor(
+    EnemyArchetype archetype, {
+    required AnimKey key,
+    required double fallbackSeconds,
+    required int tickHz,
+  }) {
+    final renderAnim = archetype.renderAnim;
+    if (!renderAnim.frameCountsByKey.containsKey(key) ||
+        !renderAnim.stepTimeSecondsByKey.containsKey(key)) {
+      return ticksFromSecondsCeil(fallbackSeconds, tickHz);
+    }
+    return anim_utils.ticksForKey(
+      key: key,
+      frameCounts: renderAnim.frameCountsByKey,
+      stepTimeSecondsByKey: renderAnim.stepTimeSecondsByKey,
+      tickHz: tickHz,
+    );
   }
 
   /// Updates animation state for player and enemies.

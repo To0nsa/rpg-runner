@@ -361,7 +361,7 @@ Still required for full server authority:
 - enforce same revision/idempotency semantics server-side
 - return canonical normalized state from backend
 - implementation playbook:
-  `docs/building/firebase-loadout-ownership-backend-playbook.md`
+  `docs/building/archived/ownershipHybridWrite/firebase-loadout-ownership-backend-playbook.md`
 
 `AppState` should not require additional behavioral changes beyond dependency
 rewiring once backend callables are live.

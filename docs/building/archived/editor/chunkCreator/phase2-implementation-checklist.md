@@ -2,11 +2,11 @@
 
 Date: April 1, 2026  
 Status: Completed on April 1, 2026 (with explicit deferred non-gate follow-ups documented in phase2-closure-summary.md)  
-Source plan: [docs/building/editor/chunkCreator/plan.md](docs/building/editor/chunkCreator/plan.md)
+Source plan: [docs/building/editor/chunkCreator/plan.md](../../../editor/chunkCreator/plan.md)
 Step 0 freeze doc:
-[docs/building/editor/chunkCreator/phase2-step0-contract-freeze.md](docs/building/editor/chunkCreator/phase2-step0-contract-freeze.md)
+[docs/building/archived/editor/chunkCreator/phase2-step0-contract-freeze.md](phase2-step0-contract-freeze.md)
 Runtime seam doc:
-[docs/building/editor/chunkCreator/phase2-runtime-handoff-seams.md](docs/building/editor/chunkCreator/phase2-runtime-handoff-seams.md)
+[docs/building/archived/editor/chunkCreator/phase2-runtime-handoff-seams.md](phase2-runtime-handoff-seams.md)
 
 This checklist turns Phase 2 of the chunk creator plan into an execution
 sequence with concrete file targets, future-proof contract decisions, and
@@ -126,7 +126,7 @@ Objective:
 
 Reference:
 
-- [docs/building/editor/chunkCreator/phase2-step0-contract-freeze.md](docs/building/editor/chunkCreator/phase2-step0-contract-freeze.md)
+- [docs/building/archived/editor/chunkCreator/phase2-step0-contract-freeze.md](phase2-step0-contract-freeze.md)
 
 Tasks:
 

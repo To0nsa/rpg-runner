@@ -87,7 +87,7 @@ class _PlayHubPageState extends State<PlayHubPage> {
     final progression = appState.progression;
     final selection = appState.selection;
     final profile = appState.profile;
-    final gold = appState.displayGold;
+    final gold = appState.progression.gold;
 
     return MenuScaffold(
       showAppBar: false,

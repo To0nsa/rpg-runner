@@ -5,10 +5,10 @@ Status: Implementation complete for Phase 2 scope; explicit deferred items liste
 
 Related docs:
 
-- [docs/building/editor/chunkCreator/plan.md](docs/building/editor/chunkCreator/plan.md)
-- [docs/building/editor/chunkCreator/phase2-step0-contract-freeze.md](docs/building/editor/chunkCreator/phase2-step0-contract-freeze.md)
-- [docs/building/editor/chunkCreator/phase2-runtime-handoff-seams.md](docs/building/editor/chunkCreator/phase2-runtime-handoff-seams.md)
-- [docs/building/editor/chunkCreator/phase2-implementation-checklist.md](docs/building/editor/chunkCreator/phase2-implementation-checklist.md)
+- [docs/building/editor/chunkCreator/plan.md](../../../editor/chunkCreator/plan.md)
+- [docs/building/archived/editor/chunkCreator/phase2-step0-contract-freeze.md](phase2-step0-contract-freeze.md)
+- [docs/building/archived/editor/chunkCreator/phase2-runtime-handoff-seams.md](phase2-runtime-handoff-seams.md)
+- [docs/building/archived/editor/chunkCreator/phase2-implementation-checklist.md](phase2-implementation-checklist.md)
 
 ## Finalized Phase 2 Prefab Contract
 
@@ -106,9 +106,9 @@ Chunk/runtime seam:
 
 Docs:
 
-- `docs/building/editor/chunkCreator/phase2-implementation-checklist.md`
-- `docs/building/editor/chunkCreator/phase2-runtime-handoff-seams.md`
-- `docs/building/editor/chunkCreator/phase2-closure-summary.md`
+- `docs/building/archived/editor/chunkCreator/phase2-implementation-checklist.md`
+- `docs/building/archived/editor/chunkCreator/phase2-runtime-handoff-seams.md`
+- `docs/building/archived/editor/chunkCreator/phase2-closure-summary.md`
 
 ## Tests Added/Updated
 

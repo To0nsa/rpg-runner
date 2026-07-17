@@ -1,6 +1,7 @@
 import { getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { setGlobalOptions } from "firebase-functions/v2";
+import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 
@@ -29,6 +30,7 @@ import {
 } from "./runs/callable_handlers.js";
 import { ensureManagedLeaderboardBoards } from "./boards/provisioning.js";
 import { runReplaySubmissionCleanup } from "./runs/cleanup.js";
+import { settleAcceptedRunSession } from "./runs/reward_settlement.js";
 import {
   handleLeaderboardLoadActiveBoardData,
   handleLeaderboardLoadBoard,
@@ -62,6 +64,9 @@ const leaderboardRegion =
 const leaderboardMinInstances = readNonNegativeInt(
   process.env.LEADERBOARD_MIN_INSTANCES,
 );
+const settlementRepairBatchSize = readPositiveInt(
+  process.env.RUN_SETTLEMENT_REPAIR_BATCH_SIZE,
+) ?? 64;
 
 export const loadoutOwnershipLoadCanonicalState = onCall(async (request) => {
   const uid = request.auth?.uid;
@@ -177,6 +182,27 @@ export const runSessionLoadStatus = onCall(async (request) => {
   return handleRunSessionLoadStatus(request, db);
 });
 
+export const runSettlementOnHandoff = onDocumentWritten(
+  {
+    document: "run_sessions/{runSessionId}",
+    retry: true,
+  },
+  async (event) => {
+    const after = event.data?.after;
+    if (!after?.exists || after.data()?.state !== "settlement_pending") {
+      return;
+    }
+    const outcome = await settleAcceptedRunSession({
+      db,
+      runSessionId: event.params.runSessionId,
+    });
+    console.log("runSettlementOnHandoff", {
+      runSessionId: event.params.runSessionId,
+      outcome,
+    });
+  },
+);
+
 export const leaderboardLoadBoard = onCall(
   {
     region: leaderboardRegion,
@@ -228,6 +254,43 @@ export const runSubmissionCleanup = onSchedule(
   },
 );
 
+export const runSettlementRepair = onSchedule(
+  {
+    schedule: "every 5 minutes",
+    timeZone: "Etc/UTC",
+  },
+  async () => {
+    const pendingSessions = await db
+      .collection("run_sessions")
+      .where("state", "==", "settlement_pending")
+      .limit(settlementRepairBatchSize)
+      .get();
+    let settledCount = 0;
+    const failures: string[] = [];
+    for (const session of pendingSessions.docs) {
+      try {
+        const outcome = await settleAcceptedRunSession({
+          db,
+          runSessionId: session.id,
+        });
+        if (outcome === "settled") {
+          settledCount += 1;
+        }
+      } catch (error) {
+        failures.push(`${session.id}: ${String(error)}`);
+      }
+    }
+    console.log("runSettlementRepair", {
+      scannedCount: pendingSessions.size,
+      settledCount,
+      failureCount: failures.length,
+    });
+    if (failures.length > 0) {
+      throw new Error(`run settlement repair failed: ${failures.join("; ")}`);
+    }
+  },
+);
+
 export const leaderboardBoardMaintenance = onSchedule(
   {
     schedule: "every 60 minutes",
@@ -249,4 +312,9 @@ function readNonNegativeInt(raw: string | undefined): number | undefined {
     return undefined;
   }
   return parsed;
+}
+
+function readPositiveInt(raw: string | undefined): number | undefined {
+  const parsed = readNonNegativeInt(raw);
+  return parsed !== undefined && parsed > 0 ? parsed : undefined;
 }

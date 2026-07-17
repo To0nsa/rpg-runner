@@ -12,6 +12,8 @@ Instructions for AI coding agents working in `lib/ui/`.
 - HUD, controls, and game-over presentation
 - theme extensions and shared UI components
 - app state, Firebase client adapters, and local orchestration around backend data
+- run-session creation, replay submission, board/leaderboard loading, and ghost
+  manifest/cache orchestration
 - viewport integration, scoped orientation/system UI helpers, and haptics
 
 Widgets should stay focused on presentation and orchestration, not backend or gameplay internals.
@@ -23,7 +25,12 @@ Widgets should stay focused on presentation and orchestration, not backend or ga
 - `lib/ui/pages/`: hub, level/setup, town, options, messages, profile, leaderboards
 - `lib/ui/hud/` and `lib/ui/controls/`: in-run overlays and input widgets
 - `lib/ui/components/`, `lib/ui/text/`, `lib/ui/icons/`, `lib/ui/theme/`: shared design system pieces
-- `lib/ui/state/`: `AppState`, auth/profile/ownership/account-deletion APIs, Firebase-backed implementations
+- `lib/ui/state/`: `AppState`, auth/profile/ownership/run/board APIs,
+  Firebase-backed implementations, and app-state controllers
+- `lib/ui/state/run/`: run-session API, replay-submission spool/coordinator,
+  and submission status values
+- `lib/ui/state/boards/`: active-board, leaderboard, ghost manifest, and ghost
+  replay cache clients
 - `lib/ui/assets/`: preview cache and warmup lifecycle
 - `lib/ui/viewport/` and `lib/ui/scoped/`: viewport fitting and scoped system UI/orientation behavior
 
@@ -57,7 +64,10 @@ This repo already centralizes global immersive-mode behavior in `UiApp` and rout
 - loading and mutating remote ownership canonical state
 - preparing run-start descriptors from selected level/character/loadout after
   auth + ownership preflight
-- awarding run gold back into remote progression
+- creating remote run sessions and consuming server-issued run tickets
+- submitting completed run replays for asynchronous validation
+- loading active boards, leaderboards, ranks, and ghost manifests
+- awarding run gold back into remote progression through validated run flows
 - handling account deletion reset flow
 
 Rules:
@@ -65,6 +75,9 @@ Rules:
 - widgets should call `AppState` or a narrow UI-facing abstraction, not Firebase SDKs directly
 - keep backend contract handling in `lib/ui/state/**`
 - when a callable/backend contract changes, update both the client adapter and the consuming UI/state flow
+- when a run/replay/leaderboard payload changes, also check
+  `packages/run_protocol/**`, `functions/src/**`, and
+  `services/replay_validator/**`
 
 ## Run Route Responsibilities
 
@@ -105,7 +118,8 @@ Good fits for `lib/ui/`:
 - component/theme cleanup
 - HUD layout and controls
 - backend-client integration through `AppState` and state APIs
-- local leaderboard presentation and profile/account flows
+- local and remote leaderboard presentation, ghost loading, and profile/account
+  flows
 
 Bad fits for `lib/ui/`:
 

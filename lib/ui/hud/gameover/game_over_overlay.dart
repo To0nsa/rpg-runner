@@ -43,6 +43,9 @@ class GameOverOverlay extends StatefulWidget {
     this.provisionalGoldEarned,
     this.verifiedGold,
     this.runSubmissionStatus,
+    this.replaySubmissionJournaled = true,
+    this.replaySubmissionJournalError,
+    this.onRetryReplayJournal,
     this.leaderboardStore,
   });
 
@@ -59,6 +62,9 @@ class GameOverOverlay extends StatefulWidget {
   final int? provisionalGoldEarned;
   final int? verifiedGold;
   final RunSubmissionStatus? runSubmissionStatus;
+  final bool replaySubmissionJournaled;
+  final String? replaySubmissionJournalError;
+  final VoidCallback? onRetryReplayJournal;
   final LeaderboardStore? leaderboardStore;
 
   @override
@@ -72,9 +78,6 @@ class _GameOverOverlayState extends State<GameOverOverlay>
 
   Ticker? _ticker;
   Duration _lastElapsed = Duration.zero;
-  static const double _goldCollectDurationSeconds = 0.35;
-  double _goldCollectProgress = 0;
-  late int _verifiedGoldBaseline;
 
   @override
   void initState() {
@@ -84,7 +87,6 @@ class _GameOverOverlayState extends State<GameOverOverlay>
       rows: _breakdown.rows,
       totalPoints: _breakdown.totalPoints,
     );
-    _verifiedGoldBaseline = _resolvedVerifiedGold();
   }
 
   RunScoreBreakdown _buildBreakdown() {
@@ -109,10 +111,9 @@ class _GameOverOverlayState extends State<GameOverOverlay>
       return null;
     }
     final ui = context.ui;
-    final earnedTotal = _resolvedEarnedGold();
-    final remaining = _remainingEarnedGold();
-    final actualGold = _displayedActualGold();
-    if (earnedTotal <= 0 && actualGold <= 0) {
+    final pendingRewardGold = _pendingRewardGold();
+    final verifiedGold = _resolvedVerifiedGold();
+    if (pendingRewardGold <= 0 && verifiedGold <= 0) {
       return null;
     }
 
@@ -130,13 +131,22 @@ class _GameOverOverlayState extends State<GameOverOverlay>
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Gold earned: $remaining + ',
+              'Gold: ',
               style: ui.text.body.copyWith(
                 color: ui.colors.textPrimary,
                 fontWeight: FontWeight.w600,
               ),
             ),
-            GoldDisplay(gold: actualGold, variant: GoldDisplayVariant.body),
+            GoldDisplay(gold: verifiedGold, variant: GoldDisplayVariant.body),
+            if (pendingRewardGold > 0) ...[
+              SizedBox(width: ui.space.xs),
+              Flexible(
+                child: Text(
+                  'Reward pending: $pendingRewardGold (not spendable)',
+                  style: ui.text.body.copyWith(color: ui.colors.textMuted),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -148,40 +158,80 @@ class _GameOverOverlayState extends State<GameOverOverlay>
     return raw < 0 ? 0 : raw;
   }
 
-  int _resolvedEarnedGold() {
-    if (!_enableGameOverRewardRow) {
+  int _pendingRewardGold() {
+    if (!_enableGameOverRewardRow || !widget.replaySubmissionJournaled) {
       return 0;
     }
-    final fromReward = widget.runSubmissionStatus?.reward?.provisionalGold;
+    final status = widget.runSubmissionStatus;
+    if (status?.isRewardFinal == true || status?.isRewardRevoked == true) {
+      return 0;
+    }
+    final fromReward = status?.reward?.provisionalGold;
     final raw = fromReward ?? widget.provisionalGoldEarned ?? 0;
     if (raw <= 0) {
-      return 0;
-    }
-    if (widget.runSubmissionStatus?.isRewardRevoked == true) {
       return 0;
     }
     return raw;
   }
 
-  int _collectedEarnedGold() {
-    final total = _resolvedEarnedGold();
-    final progress = _goldCollectProgress.clamp(0, 1);
-    return (total * progress).round();
-  }
-
-  int _remainingEarnedGold() => _resolvedEarnedGold() - _collectedEarnedGold();
-
-  int _displayedActualGold() => _verifiedGoldBaseline + _collectedEarnedGold();
-
-  bool _hasUncollectedGold() => _remainingEarnedGold() > 0;
-
   Widget? _buildSubmissionStatusPanel(BuildContext context) {
+    if (!widget.replaySubmissionJournaled) {
+      final ui = context.ui;
+      final journalError = widget.replaySubmissionJournalError;
+      final message = journalError == null
+          ? 'Saving replay. Keep this screen open until it is saved.'
+          : 'Replay could not be saved. Retry before leaving, or exit without '
+                'a verified reward.';
+      return DecoratedBox(
+        decoration: BoxDecoration(
+          color: ui.colors.shadow.withValues(alpha: 0.2),
+          borderRadius: BorderRadius.circular(ui.radii.sm),
+        ),
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: ui.space.sm,
+            vertical: ui.space.xs,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                journalError == null ? 'Saving replay' : 'Replay save failed',
+                style: ui.text.body.copyWith(
+                  color: journalError == null
+                      ? ui.colors.textPrimary
+                      : ui.colors.danger,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              SizedBox(height: ui.space.xxs),
+              Text(
+                message,
+                style: ui.text.body.copyWith(color: ui.colors.textMuted),
+                textAlign: TextAlign.center,
+              ),
+              if (journalError != null &&
+                  widget.onRetryReplayJournal != null) ...[
+                SizedBox(height: ui.space.xs),
+                AppButton(
+                  label: 'Retry Saving',
+                  variant: AppButtonVariant.secondary,
+                  size: AppButtonSize.xs,
+                  onPressed: widget.onRetryReplayJournal,
+                ),
+              ],
+            ],
+          ),
+        ),
+      );
+    }
     final status = widget.runSubmissionStatus;
     if (status == null) {
       return null;
     }
     final shouldShow =
         status.verificationDelayed ||
+        status.phase == RunSubmissionPhase.settlementPending ||
         status.phase == RunSubmissionPhase.rejected ||
         status.phase == RunSubmissionPhase.expired ||
         status.phase == RunSubmissionPhase.cancelled ||
@@ -279,18 +329,7 @@ class _GameOverOverlayState extends State<GameOverOverlay>
       changed = _feedController.tick(dt) || changed;
     }
 
-    if (_goldCollectProgress < 1 && _resolvedEarnedGold() > 0) {
-      final next = (_goldCollectProgress + (dt / _goldCollectDurationSeconds))
-          .clamp(0, 1)
-          .toDouble();
-      if (next != _goldCollectProgress) {
-        _goldCollectProgress = next;
-        changed = true;
-      }
-    }
-
-    if (_feedController.feedState == ScoreFeedState.complete &&
-        _goldCollectProgress >= 1) {
+    if (_feedController.feedState == ScoreFeedState.complete) {
       _stopTicker();
     }
     if (changed && mounted) setState(() {});
@@ -304,30 +343,17 @@ class _GameOverOverlayState extends State<GameOverOverlay>
   void _onCollectPressed() {
     if (_feedController.feedState == ScoreFeedState.idle) {
       _startFeed();
-      if (_hasUncollectedGold()) {
-        _startTicker();
-      }
       return;
     }
     if (_feedController.feedState == ScoreFeedState.feeding) {
       _completeFeed();
-      if (_hasUncollectedGold()) {
-        _goldCollectProgress = 1;
-      }
-      setState(() {});
-      return;
-    }
-    if (_hasUncollectedGold()) {
-      _goldCollectProgress = 1;
       setState(() {});
     }
   }
 
   void _completeThen(VoidCallback? action) {
-    if (_feedController.feedState != ScoreFeedState.complete ||
-        _hasUncollectedGold()) {
+    if (_feedController.feedState != ScoreFeedState.complete) {
       _completeFeed();
-      _goldCollectProgress = 1;
       setState(() {});
     }
     if (action == null) return;
@@ -348,8 +374,7 @@ class _GameOverOverlayState extends State<GameOverOverlay>
     final subtitleDeathReason = _buildSubtitleDeathReason(widget.runEndedEvent);
     final showCollectButton =
         (_feedController.totalPoints > 0 &&
-            _feedController.feedState != ScoreFeedState.complete) ||
-        _hasUncollectedGold();
+        _feedController.feedState != ScoreFeedState.complete);
     final showScoreInHeader =
         _feedController.feedState == ScoreFeedState.complete;
     final collectLabel = _feedController.feedState == ScoreFeedState.idle
@@ -357,6 +382,9 @@ class _GameOverOverlayState extends State<GameOverOverlay>
         : 'Skip';
     final goldPanel = _buildGoldPanel(context);
     final submissionPanel = _buildSubmissionStatusPanel(context);
+    final mayLeaveGameOver =
+        widget.replaySubmissionJournaled ||
+        widget.replaySubmissionJournalError != null;
     final rowLabels = [
       for (var i = 0; i < _feedController.rows.length; i += 1)
         formatScoreRow(
@@ -366,84 +394,97 @@ class _GameOverOverlayState extends State<GameOverOverlay>
         ),
     ];
 
-    return SizedBox.expand(
-      child: ColoredBox(
-        color: ui.colors.scrim.withValues(alpha: 0.53),
-        child: SafeArea(
-          minimum: EdgeInsets.all(ui.space.md),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 2,
-                child: Align(
-                  alignment: Alignment.topCenter,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.max,
-                    children: [
-                      GameOverHeader(
-                        subtitleDeathReason: subtitleDeathReason,
-                        displayScore: showScoreInHeader
-                            ? _feedController.displayScore
-                            : null,
-                      ),
-                      if (goldPanel != null) ...[
-                        SizedBox(height: ui.space.xs + ui.space.xxs / 2),
-                        goldPanel,
-                      ],
-                      if (submissionPanel != null) ...[
-                        SizedBox(height: ui.space.xs),
-                        submissionPanel,
-                      ],
-                      SizedBox(height: ui.space.sm + ui.space.xxs / 2),
-                      if (showCollectButton)
-                        AppButton(
-                          label: collectLabel,
-                          variant: AppButtonVariant.secondary,
-                          size: AppButtonSize.md,
-                          onPressed: _onCollectPressed,
-                        )
-                      else
-                        RestartExitButtons(
-                          restartButton: PlayButton(
-                            label: 'Restart',
-                            variant: AppButtonVariant.secondary,
-                            size: AppButtonSize.xs,
-                            isLoading: widget.restartInProgress,
-                            onPressed: () => _completeThen(widget.onRestart),
-                          ),
-                          exitButton: widget.showExitButton
-                              ? AppButton(
-                                  label: 'Exit',
-                                  variant: AppButtonVariant.secondary,
-                                  size: AppButtonSize.xs,
-                                  onPressed: () => _completeThen(widget.onExit),
-                                )
+    return PopScope<Object?>(
+      canPop: mayLeaveGameOver,
+      child: SizedBox.expand(
+        child: ColoredBox(
+          color: ui.colors.scrim.withValues(alpha: 0.53),
+          child: SafeArea(
+            minimum: EdgeInsets.all(ui.space.md),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.max,
+                      children: [
+                        GameOverHeader(
+                          subtitleDeathReason: subtitleDeathReason,
+                          displayScore: showScoreInHeader
+                              ? _feedController.displayScore
                               : null,
                         ),
-                      SizedBox(height: ui.space.md),
-                      Flexible(child: ScoreDistribution(rowLabels: rowLabels)),
-                    ],
+                        if (goldPanel != null) ...[
+                          SizedBox(height: ui.space.xs + ui.space.xxs / 2),
+                          goldPanel,
+                        ],
+                        if (submissionPanel != null) ...[
+                          SizedBox(height: ui.space.xs),
+                          submissionPanel,
+                        ],
+                        SizedBox(height: ui.space.sm + ui.space.xxs / 2),
+                        if (showCollectButton)
+                          AppButton(
+                            label: collectLabel,
+                            variant: AppButtonVariant.secondary,
+                            size: AppButtonSize.md,
+                            onPressed: _onCollectPressed,
+                          )
+                        else
+                          RestartExitButtons(
+                            restartButton: PlayButton(
+                              label: 'Restart',
+                              variant: AppButtonVariant.secondary,
+                              size: AppButtonSize.xs,
+                              isLoading: widget.restartInProgress,
+                              onPressed: mayLeaveGameOver
+                                  ? () => _completeThen(widget.onRestart)
+                                  : null,
+                            ),
+                            exitButton: widget.showExitButton
+                                ? AppButton(
+                                    label: mayLeaveGameOver
+                                        ? (widget.replaySubmissionJournaled
+                                              ? 'Exit'
+                                              : 'Exit Without Reward')
+                                        : 'Saving Replay',
+                                    variant: AppButtonVariant.secondary,
+                                    size: AppButtonSize.xs,
+                                    onPressed: mayLeaveGameOver
+                                        ? () => _completeThen(widget.onExit)
+                                        : null,
+                                  )
+                                : null,
+                          ),
+                        SizedBox(height: ui.space.md),
+                        Flexible(
+                          child: ScoreDistribution(rowLabels: rowLabels),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              Expanded(
-                flex: 1,
-                child: Align(
-                  alignment: Alignment.topCenter,
-                  child: LeaderboardPanel(
-                    levelId: widget.levelId,
-                    runMode: widget.runMode,
-                    runEndedEvent: widget.runEndedEvent,
-                    scoreTuning: widget.scoreTuning,
-                    tickHz: widget.tickHz,
-                    revealCurrentRunScore:
-                        _feedController.feedState == ScoreFeedState.complete,
-                    leaderboardStore: widget.leaderboardStore,
+                Expanded(
+                  flex: 1,
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: LeaderboardPanel(
+                      levelId: widget.levelId,
+                      runMode: widget.runMode,
+                      runEndedEvent: widget.runEndedEvent,
+                      scoreTuning: widget.scoreTuning,
+                      tickHz: widget.tickHz,
+                      revealCurrentRunScore:
+                          _feedController.feedState == ScoreFeedState.complete,
+                      leaderboardStore: widget.leaderboardStore,
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -562,6 +603,7 @@ String _submissionStatusLabel(RunSubmissionPhase phase) {
     RunSubmissionPhase.retryScheduled => 'Retry Scheduled',
     RunSubmissionPhase.pendingValidation => 'Waiting For Verification',
     RunSubmissionPhase.validating => 'Validating',
+    RunSubmissionPhase.settlementPending => 'Settling Reward',
     RunSubmissionPhase.validated => 'Validated',
     RunSubmissionPhase.rejected => 'Rejected',
     RunSubmissionPhase.expired => 'Expired',
