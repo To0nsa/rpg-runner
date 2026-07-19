@@ -958,7 +958,7 @@ This is implementation evidence, not deployment or closure evidence.
 | Docker runtime smoke | Pass | July 19: 12,100,223-byte image ran PID 1 as UID/GID 65532; `/live` returned 200, missing configuration failed `/ready` with 503, configured readiness returned 200, retired probe routes returned 404, and malformed validation/projection requests returned safe 400 responses |
 | Exact-image isolated deployment smoke | Pass | Artifact digest matched the scanned local image; private authenticated `/live` and `/ready` returned 200, malformed tasks returned 400, unauthenticated access returned 403, and the temporary service was deleted |
 | Production monitoring | Pass | Four log metrics and ten enabled validator/projection policies were applied idempotently with one production notification channel and no duplicate policy names |
-| Pre-release production canary | Pass | Valid replay, final reward, leaderboard, ghost, invalid replay rejection/revocation, and account-deletion request all passed on revision `replay-validator-00024-rzt` |
+| Pre-release production canary | Pass | Valid replay, final reward, leaderboard, ghost, invalid replay rejection/revocation, and account deletion all passed on revision `replay-validator-00024-rzt`; the exact follow-up found zero residual canary Firestore or Storage data |
 
 The first July 19 scan of the `debian:bookworm-slim` runtime correctly failed
 with 4 Critical and 17 High OS-package findings. That image was not accepted.
@@ -1041,6 +1041,9 @@ and operations portions of the earlier records:
 - a disposable-account production canary passed valid validation, final
   settlement, leaderboard/ghost projection, invalid replay rejection and
   revocation, and durable account-deletion handoff;
+- a read-only exact follow-up at `2026-07-19T16:10:29Z` found both synthetic
+  deletion requests complete after final reconciliation, with zero residual
+  canary Firestore documents, projection entries, or Storage objects;
 - complete evidence is in
   [Pre-Release Production Rollout](production-rollout-2026-07-19.md).
 

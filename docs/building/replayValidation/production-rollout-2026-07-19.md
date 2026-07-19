@@ -3,8 +3,8 @@
 Date: July 19, 2026  
 Project: `rpg-runner-d7add`  
 Region: `europe-west1`  
-Status: Successful; canary account deletion is progressing through the durable
-cleanup workflow
+Status: Successful; canary account deletion completed with zero residual
+canary data
 
 ## Decision and scope
 
@@ -125,6 +125,28 @@ The disposable production canary verified:
 The canary requested its own account deletion. The scheduled bounded deletion
 workflow advanced without a recorded cleanup error; this record intentionally
 contains no user, run-session, board, or task identifiers.
+
+### Deletion closure evidence
+
+A read-only follow-up at `2026-07-19T16:10:29Z` checked the complete canary and
+the earlier synthetic account created by an interrupted canary setup:
+
+- both deletion requests were `complete` at `delete_auth` after their final
+  reconciliation pass and retained the configured completion expiry;
+- exact queries found zero matching profiles, display-name claims, ownership
+  state or idempotency records, quota state, run sessions, validated runs,
+  reward grants, flat ghost records, player-best projections, ghost manifests,
+  or materialized leaderboard-view entries;
+- exact Storage checks found zero pending replay objects, validated replay
+  objects, or published ghost objects;
+- the completed `delete_auth` checkpoint means Firebase Auth deletion
+  succeeded or the account was already absent. The earlier exact Auth lookup
+  for these same synthetic account hashes also returned zero users, as recorded
+  in the
+  [Functions production-verification record](../functions-audit-remediation/production-verification-2026-07-19.md).
+
+The two retained completion tombstones are bounded workflow evidence, not
+residual player data, and remain subject to the configured 30-day expiry.
 
 ## Result
 
