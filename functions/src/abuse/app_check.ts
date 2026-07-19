@@ -1,3 +1,4 @@
+import * as logger from "firebase-functions/logger";
 import type { CallableOptions } from "firebase-functions/v2/https";
 
 export type AppCheckRolloutMode = "monitor" | "enforce";
@@ -33,7 +34,7 @@ export function logAppCheckObservation(args: {
 }): void {
   const mode = args.mode ?? appCheckRolloutMode();
   const app = args.request.app;
-  console.log("callable_app_check", {
+  logger.info("callable_app_check", {
     functionName: args.functionName,
     rolloutMode: mode,
     tokenStatus: app ? "verified" : "missing_or_invalid",

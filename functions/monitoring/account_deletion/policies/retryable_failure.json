@@ -1,0 +1,27 @@
+{
+  "displayName": "RPG Runner - account deletion retryable failure",
+  "documentation": {
+    "content": "An account-deletion stage failed and was checkpointed as retryable. Inspect the hashed account identifier, stage, attempt count, and error class in the matching log. Let the bounded repair worker retry; do not manually delete partial account data.",
+    "mimeType": "text/markdown"
+  },
+  "conditions": [
+    {
+      "displayName": "Account deletion entered retryable state",
+      "conditionMatchedLog": {
+        "filter": "jsonPayload.message=\"accountDeletionRetryable\""
+      }
+    }
+  ],
+  "combiner": "OR",
+  "enabled": true,
+  "alertStrategy": {
+    "notificationRateLimit": {
+      "period": "300s"
+    },
+    "autoClose": "604800s"
+  },
+  "userLabels": {
+    "component": "account-deletion",
+    "severity": "critical"
+  }
+}

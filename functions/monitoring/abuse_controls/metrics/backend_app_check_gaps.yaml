@@ -1,0 +1,9 @@
+description: Callable verification summaries with missing or invalid App Check context.
+filter: |-
+  resource.type="cloud_run_revision"
+  jsonPayload.verifications.app:*
+  (jsonPayload.verifications.app="MISSING" OR jsonPayload.verifications.app="INVALID")
+metricDescriptor:
+  metricKind: DELTA
+  valueType: INT64
+  unit: "1"

@@ -6,6 +6,7 @@ import type {
   Transaction,
 } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
+import * as logger from "firebase-functions/logger";
 import { HttpsError } from "firebase-functions/v2/https";
 
 import { assertAccountActiveInTransaction } from "../account/deletion_guard.js";
@@ -260,7 +261,7 @@ export async function createRunSessionUploadGrant(
   if (uploadGrantTransaction.outcome === "expired") {
     throwExpiredBeforeFinalize();
   }
-  console.log("runUploadGrant_active_grants", {
+  logger.info("runUploadGrant_active_grants", {
     mode: readAbuseControlMode(),
     activeCount: uploadGrantTransaction.activeUploadGrantCount,
     activeLimit: uploadGrantTransaction.activeUploadGrantLimit,

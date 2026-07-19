@@ -1,0 +1,27 @@
+{
+  "displayName": "RPG Runner - abuse-control configuration invalid",
+  "documentation": {
+    "content": "A quota or active-resource environment override was malformed. Enforcement fails closed. Inspect the named environment value and redeploy a reviewed positive integer; do not switch to monitor merely to hide the configuration error.",
+    "mimeType": "text/markdown"
+  },
+  "conditions": [
+    {
+      "displayName": "Any invalid abuse-control configuration",
+      "conditionMatchedLog": {
+        "filter": "jsonPayload.message=\"abuse_configuration_invalid\""
+      }
+    }
+  ],
+  "combiner": "OR",
+  "enabled": true,
+  "alertStrategy": {
+    "notificationRateLimit": {
+      "period": "300s"
+    },
+    "autoClose": "604800s"
+  },
+  "userLabels": {
+    "component": "abuse-control",
+    "severity": "critical"
+  }
+}

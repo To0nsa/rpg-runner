@@ -21,8 +21,8 @@ archived yet.
 | F-02 | Closed | Public time inputs were removed/rejected, the validator enforces ticket time/window invariants, boundary tests pass, and legacy production tickets were explicitly adjudicated. |
 | F-03 | Closed | Direct dependencies and the lockfile were upgraded, the production audit reports no known vulnerability, Node 24 tests pass, and deployed Storage/Tasks/trigger/schedule paths were canaried. |
 | F-04 | Closed | Retry disposition, quarantine, stable cursor paging, metrics, alerting, and the runbook are deployed. Poisoned-page, transient-failure, Eventarc/immediate/repair race, and multi-page drills converge without duplicate payment. |
-| F-05 | Production verified | Tombstone-first guards, bounded resumable erasure, repeated reconciliation, 23-stage crash replay, production Auth/data/artifact erasure, and four-field completion compaction are verified. Formal closure waits for deletion age/failure alert coverage plus public retention disclosure and lawful-basis documentation. |
-| F-06 | In progress | Reviewed per-UID quotas are enforced, payload/replay/resource bounds and compact retention are live, web App Check attestation works, and email delivery is verified. Native release attestation/exclusion decisions, App Check enforcement, and rejection/storage/task/cost alerts remain. |
+| F-05 | Production verified | Tombstone-first guards, bounded resumable erasure, repeated reconciliation, 23-stage crash replay, production Auth/data/artifact erasure, four-field completion compaction, and deletion age/failure alerts are verified. Formal closure waits for public retention disclosure and lawful-basis documentation. |
+| F-06 | In progress | Reviewed per-UID quotas are enforced, payload/replay/resource bounds and compact retention are live, web App Check attestation works, email delivery is verified, and rejection/storage/task/cost-pressure alerts are deployed. Native release attestation/exclusion decisions and App Check enforcement remain. |
 | F-07 | Closed | Expiry commits before the callable error, repeated and racing cleanup paths converge, and the client-absent expiry drills pass. |
 | F-08 | Closed | Enqueue failure remains repairable, terminal cleanup atomically revokes provisional grants, projections suppress incompatible rewards, and valid/invalid production replay canaries converged. |
 | F-09 | Closed | Rename time and cooldown are server-authoritative; exact-boundary and concurrent-rename tests pass; the authoritative profile functions are deployed. |
@@ -54,21 +54,22 @@ The exact non-secret deployment and verification evidence is split by concern:
 - [quota enforcement](quota-selection-and-enforcement-2026-07-19.md);
 - [alert delivery](alert-channel-confirmation-2026-07-19.md);
 - [deletion retention review](deletion-retention-privacy-review-2026-07-19.md);
-- [isolated destructive fault drills](isolated-destructive-fault-drills-2026-07-19.md).
+- [isolated destructive fault drills](isolated-destructive-fault-drills-2026-07-19.md);
+- [Functions safety monitoring rollout](functions-safety-monitoring-rollout-2026-07-19.md).
 
 The final deletion deployment reports:
 
 - source/configuration hash
-  `5bab5424c9d8aee530f9bddf4ef536dfdadaf26c`;
-- `accountDelete` revision `accountdelete-00010-ted`;
-- `accountDeletionRepair` revision `accountdeletionrepair-00004-wiy`;
+  `a0e9f8ecfd9afba9d89c8e1cfa7ce24a36f1c48b`;
+- `accountDelete` revision `accountdelete-00013-sov`;
+- `accountDeletionRepair` revision `accountdeletionrepair-00007-quf`;
 - both functions `ACTIVE`;
 - the one-minute scheduler `ENABLED`.
 
 ## Final validation
 
 - `corepack pnpm --dir functions build`: passed.
-- `corepack pnpm --dir functions test`: 171/171 passed.
+- `corepack pnpm --dir functions test`: 172/172 passed.
 - `corepack pnpm --dir functions audit --prod`: no known vulnerabilities.
 - `dart analyze services/replay_validator`: no issues.
 - `dart test services/replay_validator/test`: 75/75 passed.
@@ -93,22 +94,24 @@ The final deletion deployment reports:
   retryable, non-minimal, missing-expiry, or expired deletion records.
 - The fault matrix was isolated from production; production received only
   normal canary traffic and ordinary repair-worker invocations.
+- The deletion worker emits privacy-safe ordered backlog health; three deletion
+  policies and twelve callable/resource policies are enabled on the verified
+  channel.
+- Four log metrics and native Cloud Run, Storage, and Tasks metrics cover App
+  Check gaps, quota rejection, contention, retention saturation, signer/replay
+  volume, and project resource/cost pressure.
 
 ## Gates before public launch
 
-1. Add and deploy source-controlled deletion retry/age/incomplete-work alerts,
-   then exercise their delivery without corrupting production.
-2. Publish the compact deletion-retention disclosure and external deletion
+1. Publish the compact deletion-retention disclosure and external deletion
    resource, and record the selected lawful basis with appropriate owner/legal
    review.
-3. Measure legitimate App Check release traffic for Android, iOS, macOS, and
+2. Measure legitimate App Check release traffic for Android, iOS, macOS, and
    any other supported Firebase platform, or explicitly exclude each
    unsupported platform from the release.
-4. Enable App Check enforcement only after those platform gates pass; retain
+3. Enable App Check enforcement only after those platform gates pass; retain
    the documented monitor-mode rollback.
-5. Add source-controlled alerts for App Check/quota rejection, task/storage
-   pressure, transaction contention, and cost signals.
-6. Complete the broader release checks still listed in the active plan,
+4. Complete the broader release checks still listed in the active plan,
    including browser Storage CORS/lifecycle decisions, compatible native
    client provenance, and a longer latency/backlog/cost observation window.
 

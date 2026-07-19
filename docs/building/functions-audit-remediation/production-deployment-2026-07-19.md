@@ -291,3 +291,27 @@ completions, zero active or retryable workflows, zero non-minimal completions,
 zero missing expiries, and zero expired completion records. The complete matrix
 is in the
 [isolated fault-drill record](isolated-destructive-fault-drills-2026-07-19.md).
+
+## Follow-up Functions safety monitoring rollout
+
+Deletion and callable abuse/resource monitoring were source-controlled and
+deployed later on July 19.
+
+- final Functions source/configuration hash:
+  `a0e9f8ecfd9afba9d89c8e1cfa7ce24a36f1c48b`;
+- `accountDelete`: `accountdelete-00013-sov`;
+- `accountDeletionRepair`: `accountdeletionrepair-00007-quf`;
+- `abuseQuotaRetentionCleanup`: `abusequotaretentioncleanup-00002-saw`;
+- 16 targeted functions deployed successfully and reported `ACTIVE`;
+- the ordered account-deletion composite index reached `READY`;
+- three deletion policies, four log metrics, and twelve callable/resource
+  policies were deployed;
+- all 29 production policies are enabled on the verified email channel;
+- `ABUSE_CONTROL_MODE=enforce` remains live;
+- App Check remains in source-default `monitor` mode.
+
+Structured production probes confirmed App Check, deletion-health, and
+quota-retention event shapes, and no error-severity Cloud Run entry was found
+after rollout. Exact revisions, policy resources, thresholds, synthetic
+filter exercises, and remaining gates are in the
+[Functions safety monitoring rollout](functions-safety-monitoring-rollout-2026-07-19.md).

@@ -127,6 +127,25 @@ last retryable error, age inputs, and aggregate deletion counters for operator
 inspection. Missing Auth users and already-missing data/artifacts are normal
 idempotent outcomes.
 
+The repair worker selects active requests in ascending `requestedAtMs` order
+through the source-controlled `state` plus `requestedAtMs` composite index. It
+reads one extra document beyond the bounded processing page to expose
+`activePageSaturated` without an unbounded count. Its structured heartbeat also
+reports oldest age/stage, maximum attempt count, and retryable backlog. The
+heartbeat contains no account identifier. Retryable-failure logs use a
+16-character SHA-256 UID hash rather than raw UID.
+
+Source-controlled production policies under
+`functions/monitoring/account_deletion/` alert on:
+
+- any transition to retryable failure;
+- incomplete work at least six hours old or at 400 attempts;
+- unexpected scheduled repair runtime errors.
+
+Six hours allows the normal multi-board repeated-reconciliation workflow to
+complete. A threshold change requires updated production-duration evidence and
+this document.
+
 The implemented policy retains the compact completed tombstone for at most 30
 days. The record exists only to keep the deletion barrier fail-closed and to
 support bounded deletion/security incident evidence. It contains no gameplay
@@ -170,3 +189,8 @@ Production verification additionally confirmed:
   objects, and ghost artifact;
 - restoration of gameplay/projection counts to the pre-canary baseline;
 - completion in 18.1 to 18.9 minutes with no retryable terminal state.
+
+Production monitoring verification additionally confirmed the ordered index
+as `READY`, structured zero-work heartbeats from the deployed repair revision,
+all three policies enabled on the verified email channel, and an exact-filter
+synthetic event that touched no deletion state.

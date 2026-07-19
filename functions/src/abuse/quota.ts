@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import type { Firestore } from "firebase-admin/firestore";
+import * as logger from "firebase-functions/logger";
 import { HttpsError } from "firebase-functions/v2/https";
 
 import { assertAccountActiveInTransaction } from "../account/deletion_guard.js";
@@ -415,7 +416,9 @@ function readConfiguredPositiveInt(args: {
   if (parsed !== undefined) {
     return parsed;
   }
-  console.error("abuse_configuration_invalid", {
+  logger.write({
+    severity: "ERROR",
+    message: "abuse_configuration_invalid",
     envName: args.envName,
     mode: readAbuseControlMode(args.env.ABUSE_CONTROL_MODE),
     expected: "positive safe integer",
@@ -436,7 +439,9 @@ function handleInvalidOptionalLimit(
   env: NodeJS.ProcessEnv,
 ): undefined {
   const mode = readAbuseControlMode(env.ABUSE_CONTROL_MODE);
-  console.error("abuse_configuration_invalid", {
+  logger.write({
+    severity: "ERROR",
+    message: "abuse_configuration_invalid",
     envName,
     mode,
     expected: `integer in 1..${max}`,
@@ -451,7 +456,7 @@ function handleInvalidOptionalLimit(
 }
 
 function logQuotaDecision(uid: string, decision: AbuseQuotaDecision): void {
-  console.log("callable_quota", {
+  const fields = {
     route: decision.route,
     mode: decision.mode,
     accepted: decision.accepted,
@@ -460,5 +465,10 @@ function logQuotaDecision(uid: string, decision: AbuseQuotaDecision): void {
     counters: decision.counters,
     limits: decision.limits,
     uidHash: createHash("sha256").update(uid).digest("hex").slice(0, 16),
-  });
+  };
+  if (decision.accepted) {
+    logger.info("callable_quota", fields);
+  } else {
+    logger.warn("callable_quota", fields);
+  }
 }

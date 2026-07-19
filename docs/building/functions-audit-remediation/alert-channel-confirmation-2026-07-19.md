@@ -87,3 +87,12 @@ investigations must distinguish these separate stages:
 
 API-visible channel status or an opened incident alone is not sufficient proof
 of recipient delivery; this controlled test includes all four stages.
+
+## Follow-up monitoring inventory
+
+After the later Functions safety-monitoring rollout, the same enabled and
+verified channel is referenced by all 29 enabled production policies. Three
+account-deletion and twelve callable/resource policies were added without
+changing the channel. Exact resources and safe real-filter exercises are in
+the
+[Functions safety monitoring rollout](functions-safety-monitoring-rollout-2026-07-19.md).

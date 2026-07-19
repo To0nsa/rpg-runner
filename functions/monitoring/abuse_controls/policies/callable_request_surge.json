@@ -1,0 +1,37 @@
+{
+  "displayName": "RPG Runner - callable request cost surge",
+  "documentation": {
+    "content": "More than 5,000 callable requests reached Firebase request verification in 15 minutes. This is a project-cost proxy, not a currency budget. Inspect service, authentication, App Check, quota rejection, Cloud Run, Firestore, Storage, and Tasks usage before raising the threshold.",
+    "mimeType": "text/markdown"
+  },
+  "conditions": [
+    {
+      "displayName": "More than 5000 callable requests in 15 minutes",
+      "conditionThreshold": {
+        "filter": "metric.type=\"logging.googleapis.com/user/backend_callable_requests\" AND resource.type=\"cloud_run_revision\"",
+        "aggregations": [
+          {
+            "alignmentPeriod": "900s",
+            "perSeriesAligner": "ALIGN_SUM",
+            "crossSeriesReducer": "REDUCE_SUM"
+          }
+        ],
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 5000,
+        "duration": "0s",
+        "trigger": {
+          "count": 1
+        }
+      }
+    }
+  ],
+  "combiner": "OR",
+  "enabled": true,
+  "alertStrategy": {
+    "autoClose": "3600s"
+  },
+  "userLabels": {
+    "component": "backend-cost",
+    "severity": "warning"
+  }
+}

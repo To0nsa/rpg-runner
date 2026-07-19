@@ -1,0 +1,37 @@
+{
+  "displayName": "RPG Runner - replay task attempt pressure",
+  "documentation": {
+    "content": "Replay validation/projection queues dispatched more than 1,000 task attempts in 15 minutes. Inspect queue, response-code, retry, backlog, validator 5xx, and repair telemetry. Existing queue-depth policies separately cover sustained latency.",
+    "mimeType": "text/markdown"
+  },
+  "conditions": [
+    {
+      "displayName": "More than 1000 replay task attempts in 15 minutes",
+      "conditionThreshold": {
+        "filter": "metric.type=\"cloudtasks.googleapis.com/queue/task_attempt_count\" AND resource.type=\"cloud_tasks_queue\" AND resource.label.location=\"europe-west1\"",
+        "aggregations": [
+          {
+            "alignmentPeriod": "900s",
+            "perSeriesAligner": "ALIGN_SUM",
+            "crossSeriesReducer": "REDUCE_SUM"
+          }
+        ],
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 1000,
+        "duration": "0s",
+        "trigger": {
+          "count": 1
+        }
+      }
+    }
+  ],
+  "combiner": "OR",
+  "enabled": true,
+  "alertStrategy": {
+    "autoClose": "3600s"
+  },
+  "userLabels": {
+    "component": "replay-tasks",
+    "severity": "warning"
+  }
+}

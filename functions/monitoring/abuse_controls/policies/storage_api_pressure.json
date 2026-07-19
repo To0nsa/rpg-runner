@@ -1,0 +1,37 @@
+{
+  "displayName": "RPG Runner - replay Storage API pressure",
+  "documentation": {
+    "content": "The production replay bucket received more than 1,000 API requests in 15 minutes. Inspect method/response-code series, signed URL and replay-byte alerts, cleanup activity, and unexpected clients. The native metric has an ingestion delay.",
+    "mimeType": "text/markdown"
+  },
+  "conditions": [
+    {
+      "displayName": "More than 1000 replay-bucket requests in 15 minutes",
+      "conditionThreshold": {
+        "filter": "metric.type=\"storage.googleapis.com/api/request_count\" AND resource.type=\"gcs_bucket\" AND resource.label.bucket_name=\"rpg-runner-replay-euw1-20260312-01\"",
+        "aggregations": [
+          {
+            "alignmentPeriod": "900s",
+            "perSeriesAligner": "ALIGN_SUM",
+            "crossSeriesReducer": "REDUCE_SUM"
+          }
+        ],
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 1000,
+        "duration": "0s",
+        "trigger": {
+          "count": 1
+        }
+      }
+    }
+  ],
+  "combiner": "OR",
+  "enabled": true,
+  "alertStrategy": {
+    "autoClose": "3600s"
+  },
+  "userLabels": {
+    "component": "replay-storage",
+    "severity": "warning"
+  }
+}

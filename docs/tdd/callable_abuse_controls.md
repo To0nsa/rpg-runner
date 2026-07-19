@@ -5,7 +5,9 @@
 Implemented and deployed on July 19, 2026. Per-UID quotas are enforced with
 reviewed source-controlled defaults. App Check remains in monitoring mode. The
 production web client has supplied one verified end-to-end reCAPTCHA Enterprise
-attestation; native release platforms remain unmeasured.
+attestation; native release platforms remain unmeasured. Source-controlled
+rejection, App Check gap, transaction, retention, Storage, task, and
+resource/cost-pressure alerts are deployed to the verified production channel.
 The initial production evidence, completed legacy-idempotency migration, and
 web rollout are recorded in the
 [Functions production verification](../building/functions-audit-remediation/production-verification-2026-07-19.md)
@@ -227,6 +229,29 @@ Structured logs currently emit:
 Raw UID is not written to the new quota logs. Firestore quota state necessarily
 uses UID as its server-only document key.
 
+Firebase callable verification summaries feed a counter for missing or invalid
+App Check context and a total callable-request counter. Quota decisions feed
+replay-finalize and signed-URL attempt counters. No log metric extracts UID,
+app ID, function, route, or another high-cardinality label.
+
+The source-controlled bundle under
+`functions/monitoring/abuse_controls/` alerts on:
+
+- App Check gaps above 20 observations in 15 minutes;
+- any enforced quota rejection or malformed enforcement configuration;
+- active-session or upload-grant saturation;
+- backend 5xx and recognized Firestore transaction contention;
+- a saturated 200-document quota-retention cleanup page;
+- more than 64 replay finalizes, 500 signed-URL attempts, 1,000 replay-bucket
+  operations, 1,000 task attempts, or 5,000 callable requests in 15 minutes.
+
+The native Storage, Cloud Tasks, and Cloud Run metrics complement the
+application logs. Existing replay-validator policies remain authoritative for
+validation/projection queue backlog, retries, validator 5xx, resource
+rejections, probes, and memory. These signals are project resource/cost
+proxies, not a currency-denominated billing budget. The pre-launch thresholds
+must be reviewed after at least seven days of organic traffic.
+
 Rollout order:
 
 1. deploy App Check-capable clients and backend monitoring mode;
@@ -235,16 +260,16 @@ Rollout order:
 4. choose burst, sustained, active-resource, and byte limits with recorded
    measurements and owner approval;
 5. load-test atomic contention and rollback in staging;
-6. configure alerts for App Check gaps, `wouldReject`, actual rejection,
-   transaction errors, signed URLs, replay bytes, Storage/task volume, and
-   retention backlog;
+6. configure alerts for App Check gaps, actual rejection, transaction errors,
+   signed URLs, replay-finalize attempts, Storage/task volume, retention
+   backlog, and callable cost pressure;
 7. canary the enforcement configuration in staging or an isolated backend,
    then enable it globally only after every in-scope platform passes the
    readiness gate; retain a documented rollback to `monitor`.
 
-Alert completion and App Check production enforcement remain open in the audit
-remediation tracker. Quota selection, isolated load evidence, monitor canary,
-and production quota enforcement were completed on July 19.
+Alert completion, quota selection, isolated load evidence, monitor canary, and
+production quota enforcement were completed on July 19. App Check production
+enforcement remains open in the audit remediation tracker.
 The first direct production canary emitted only missing/invalid App Check
 tokens, which monitoring accepted as designed. The follow-up web release
 produced one server-verified production-origin attestation before reaching the

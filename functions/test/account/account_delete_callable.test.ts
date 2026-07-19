@@ -10,6 +10,7 @@ import {
   type AccountDeletionAuth,
   type AccountDeletionDependencies,
   processAccountDeletion,
+  processPendingAccountDeletions,
   type ReplayArtifactStore,
   requestAccountDeletion,
 } from "../../src/account/delete.js";
@@ -353,6 +354,53 @@ test("retryable stage failure resumes without losing coverage", async () => {
     false,
   );
   assert.deepEqual(auth.calls, [`disable:${uid}`, `delete:${uid}`]);
+});
+
+test("repair scan reports bounded backlog health without account identifiers", async () => {
+  const nowMs = requestNowMs + 7 * 60 * 60 * 1000;
+  const auth = new InMemoryAccountDeletionAuth();
+  const dependencies = deletionDependencies(auth);
+  await Promise.all([
+    db.collection("account_deletion_requests").doc("uid_oldest").set({
+      uid: "uid_oldest",
+      state: "retryable",
+      stage: "disable_auth",
+      requestedAtMs: requestNowMs,
+      updatedAtMs: requestNowMs,
+      attemptCount: 400,
+      deleted: {},
+    }),
+    db.collection("account_deletion_requests").doc("uid_newer").set({
+      uid: "uid_newer",
+      state: "requested",
+      stage: "disable_auth",
+      requestedAtMs: requestNowMs + 1,
+      updatedAtMs: requestNowMs + 1,
+      attemptCount: 2,
+      deleted: {},
+    }),
+  ]);
+
+  const result = await processPendingAccountDeletions({
+    db,
+    nowMs,
+    maxRequests: 1,
+    dependencies,
+  });
+
+  assert.deepEqual(result, {
+    scannedCount: 1,
+    processedCount: 1,
+    retryableCount: 0,
+    completedRecordDeletes: 0,
+    retryableBacklogCount: 1,
+    oldestActiveAgeMs: 7 * 60 * 60 * 1000,
+    oldestActiveStage: "disable_auth",
+    maxAttemptCount: 400,
+    activePageSaturated: true,
+  });
+  assert.equal("uid" in result, false);
+  assert.equal("requestId" in result, false);
 });
 
 test("failure after every deletion stage replays from its durable checkpoint", async () => {

@@ -1,0 +1,27 @@
+{
+  "displayName": "RPG Runner - enforced callable quota rejection",
+  "documentation": {
+    "content": "A per-UID callable quota rejected a request in enforcement mode. Inspect route, counters, limits, units, and the privacy-safe UID hash. Repeated identities or routes can indicate abuse; do not loosen limits without new client measurements.",
+    "mimeType": "text/markdown"
+  },
+  "conditions": [
+    {
+      "displayName": "Any enforced quota rejection",
+      "conditionMatchedLog": {
+        "filter": "jsonPayload.message=\"callable_quota\" AND jsonPayload.mode=\"enforce\" AND jsonPayload.accepted=false"
+      }
+    }
+  ],
+  "combiner": "OR",
+  "enabled": true,
+  "alertStrategy": {
+    "notificationRateLimit": {
+      "period": "300s"
+    },
+    "autoClose": "604800s"
+  },
+  "userLabels": {
+    "component": "abuse-control",
+    "severity": "warning"
+  }
+}

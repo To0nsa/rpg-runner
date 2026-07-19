@@ -1,6 +1,7 @@
 import { randomInt, randomUUID } from "node:crypto";
 
 import type { Firestore } from "firebase-admin/firestore";
+import * as logger from "firebase-functions/logger";
 import { HttpsError } from "firebase-functions/v2/https";
 
 import { assertAccountActiveInTransaction } from "../account/deletion_guard.js";
@@ -81,7 +82,7 @@ export async function createRunSession(
     createRequestHash,
   });
   if (existingTicket) {
-    console.log("runSessionCreate_idempotency", {
+    logger.info("runSessionCreate_idempotency", {
       outcome: "replayed",
       runSessionId,
     });
@@ -297,7 +298,7 @@ export async function createRunSession(
     };
   });
   runSessionWriteMs = Date.now() - runSessionWriteStartMs;
-  console.log("runSessionCreate_active_sessions", {
+  logger.info("runSessionCreate_active_sessions", {
     mode: readAbuseControlMode(),
     activeCount: transactionResult.activeCount,
     activeLimit: transactionResult.activeLimit,
@@ -305,7 +306,7 @@ export async function createRunSession(
     countCapped: transactionResult.activeCount === activeSessionScanCap,
   });
   if (transactionResult.replayed) {
-    console.log("runSessionCreate_idempotency", {
+    logger.info("runSessionCreate_idempotency", {
       outcome: "concurrent_replay",
       runSessionId,
     });
@@ -313,7 +314,7 @@ export async function createRunSession(
   }
 
   const totalMs = Date.now() - startedAtMs;
-  console.log("runSessionCreate_timing", {
+  logger.info("runSessionCreate_timing", {
     mode: snapshot.mode,
     levelId: snapshot.levelId,
     boardRequired: runModeRequiresBoard(snapshot.mode),

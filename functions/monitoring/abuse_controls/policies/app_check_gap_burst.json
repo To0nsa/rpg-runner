@@ -1,0 +1,37 @@
+{
+  "displayName": "RPG Runner - App Check missing or invalid burst",
+  "documentation": {
+    "content": "More than 20 callable verification summaries had missing or invalid App Check context in 15 minutes. Inspect platform, app ID, release version, and Firebase App Check verification logs before enabling or retaining enforcement. Controlled canaries should stay below this threshold.",
+    "mimeType": "text/markdown"
+  },
+  "conditions": [
+    {
+      "displayName": "At least 21 App Check gaps in 15 minutes",
+      "conditionThreshold": {
+        "filter": "metric.type=\"logging.googleapis.com/user/backend_app_check_gaps\" AND resource.type=\"cloud_run_revision\"",
+        "aggregations": [
+          {
+            "alignmentPeriod": "900s",
+            "perSeriesAligner": "ALIGN_SUM",
+            "crossSeriesReducer": "REDUCE_SUM"
+          }
+        ],
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 20,
+        "duration": "0s",
+        "trigger": {
+          "count": 1
+        }
+      }
+    }
+  ],
+  "combiner": "OR",
+  "enabled": true,
+  "alertStrategy": {
+    "autoClose": "3600s"
+  },
+  "userLabels": {
+    "component": "app-check",
+    "severity": "warning"
+  }
+}

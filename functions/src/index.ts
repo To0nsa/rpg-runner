@@ -1,5 +1,6 @@
 import { getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
+import * as logger from "firebase-functions/logger";
 import { setGlobalOptions } from "firebase-functions/v2";
 import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import { HttpsError, onCall, onRequest } from "firebase-functions/v2/https";
@@ -489,7 +490,7 @@ export const abuseQuotaRetentionCleanup = onSchedule(
   },
   async () => {
     const result = await cleanupExpiredAbuseQuota({ db });
-    console.log("abuseQuotaRetentionCleanup", result);
+    logger.info("abuseQuotaRetentionCleanup", result);
   },
 );
 
@@ -511,7 +512,7 @@ export const accountDeletionRepair = onSchedule(
   },
   async () => {
     const result = await processPendingAccountDeletions({ db });
-    console.log("accountDeletionRepair", result);
+    logger.info("accountDeletionRepair", result);
   },
 );
 

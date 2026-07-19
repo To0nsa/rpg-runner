@@ -103,6 +103,20 @@
       ]
     },
     {
+      "collectionGroup": "account_deletion_requests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "state",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "requestedAtMs",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "run_sessions",
       "queryScope": "COLLECTION",
       "fields": [

@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 
 import { getAuth } from "firebase-admin/auth";
 import {
@@ -8,6 +8,7 @@ import {
   type Firestore,
 } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
+import * as logger from "firebase-functions/logger";
 
 import { normalizeDisplayNameForPolicy } from "../profile/validators.js";
 import {
@@ -110,6 +111,18 @@ export interface AccountDeleteResult {
 export interface AccountDeletionProcessResult extends AccountDeleteResult {
   processed: boolean;
   stage: AccountDeletionStage | "complete";
+}
+
+export interface AccountDeletionRepairResult {
+  scannedCount: number;
+  processedCount: number;
+  retryableCount: number;
+  completedRecordDeletes: number;
+  retryableBacklogCount: number;
+  oldestActiveAgeMs: number;
+  oldestActiveStage: AccountDeletionStage | null;
+  maxAttemptCount: number;
+  activePageSaturated: boolean;
 }
 
 interface AccountDeletionRequestDocument {
@@ -321,12 +334,7 @@ export async function processPendingAccountDeletions(args: {
   maxRequests?: number;
   pageSize?: number;
   dependencies?: AccountDeletionDependencies;
-}): Promise<{
-  scannedCount: number;
-  processedCount: number;
-  retryableCount: number;
-  completedRecordDeletes: number;
-}> {
+}): Promise<AccountDeletionRepairResult> {
   const nowMs = args.nowMs ?? Date.now();
   const maxRequests = args.maxRequests ?? 10;
   requirePositiveSafeInteger(nowMs, "nowMs");
@@ -355,11 +363,36 @@ export async function processPendingAccountDeletions(args: {
   const pending = await args.db
     .collection(accountDeletionRequestsCollection)
     .where("state", "in", ["requested", "in_progress", "retryable"])
-    .limit(maxRequests)
+    .orderBy("requestedAtMs")
+    .limit(maxRequests + 1)
     .get();
+  const active = pending.docs.slice(0, maxRequests);
+  const activeDocuments = active.map(
+    (doc) => doc.data() as AccountDeletionRequestDocument,
+  );
+  const oldest = activeDocuments[0];
+  const oldestRequestedAtMs = readPositiveInteger(
+    oldest?.requestedAtMs,
+    nowMs,
+  );
+  const oldestActiveAgeMs =
+    activeDocuments.length === 0
+      ? 0
+      : Math.max(0, nowMs - oldestRequestedAtMs);
+  const oldestActiveStage =
+    activeDocuments.length === 0 ? null : readStage(oldest?.stage);
+  const maxAttemptCount = activeDocuments.reduce(
+    (highest, document) =>
+      Math.max(highest, readNonNegativeInteger(document.attemptCount)),
+    0,
+  );
+  const retryableBacklogCount = activeDocuments.filter(
+    (document) => document.state === "retryable",
+  ).length;
+
   let processedCount = 0;
   let retryableCount = 0;
-  for (const doc of pending.docs) {
+  for (const doc of active) {
     const result = await processAccountDeletion({
       db: args.db,
       uid: doc.id,
@@ -375,10 +408,15 @@ export async function processPendingAccountDeletions(args: {
     }
   }
   return {
-    scannedCount: pending.size,
+    scannedCount: active.length,
     processedCount,
     retryableCount,
     completedRecordDeletes,
+    retryableBacklogCount,
+    oldestActiveAgeMs,
+    oldestActiveStage,
+    maxAttemptCount,
+    activePageSaturated: pending.size > maxRequests,
   };
 }
 
@@ -1016,8 +1054,10 @@ async function recordRetryableFailure(args: {
       { merge: true },
     );
   });
-  console.error("accountDeletionRetryable", {
-    uid: args.deletion.uid,
+  logger.write({
+    severity: "ERROR",
+    message: "accountDeletionRetryable",
+    uidHash: hashUid(args.deletion.uid),
     stage: args.deletion.stage,
     attemptCount: args.deletion.attemptCount,
     errorClass: errorClass(args.error),
@@ -1282,4 +1322,8 @@ function errorClass(error: unknown): string {
 function safeErrorMessage(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
   return message.slice(0, 512);
+}
+
+function hashUid(uid: string): string {
+  return createHash("sha256").update(uid).digest("hex").slice(0, 16);
 }

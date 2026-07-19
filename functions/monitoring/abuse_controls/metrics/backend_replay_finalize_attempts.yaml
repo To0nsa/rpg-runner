@@ -1,0 +1,9 @@
+description: Replay finalize attempts charged by callable quota before Storage and task work.
+filter: |-
+  resource.type="cloud_run_revision"
+  jsonPayload.message="callable_quota"
+  jsonPayload.route="finalize_replay_bytes"
+metricDescriptor:
+  metricKind: DELTA
+  valueType: INT64
+  unit: "1"

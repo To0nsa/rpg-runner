@@ -1,0 +1,9 @@
+description: Callable requests that reached the Firebase callable verification summary.
+filter: |-
+  resource.type="cloud_run_revision"
+  jsonPayload.verifications.app:*
+  jsonPayload.verifications.auth:*
+metricDescriptor:
+  metricKind: DELTA
+  valueType: INT64
+  unit: "1"

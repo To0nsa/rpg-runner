@@ -1,0 +1,37 @@
+{
+  "displayName": "RPG Runner - replay finalize attempt pressure",
+  "documentation": {
+    "content": "More than 64 replay finalize attempts were quota-charged in 15 minutes. Inspect the exact units fields, UID hashes, rejection state, Storage traffic, validation queue depth, and validator resource rejections. Per-UID byte quotas still enforce 32 MiB/minute and 1 GiB/day.",
+    "mimeType": "text/markdown"
+  },
+  "conditions": [
+    {
+      "displayName": "More than 64 replay finalizes in 15 minutes",
+      "conditionThreshold": {
+        "filter": "metric.type=\"logging.googleapis.com/user/backend_replay_finalize_attempts\" AND resource.type=\"cloud_run_revision\"",
+        "aggregations": [
+          {
+            "alignmentPeriod": "900s",
+            "perSeriesAligner": "ALIGN_SUM",
+            "crossSeriesReducer": "REDUCE_SUM"
+          }
+        ],
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 64,
+        "duration": "0s",
+        "trigger": {
+          "count": 1
+        }
+      }
+    }
+  ],
+  "combiner": "OR",
+  "enabled": true,
+  "alertStrategy": {
+    "autoClose": "3600s"
+  },
+  "userLabels": {
+    "component": "replay-storage",
+    "severity": "warning"
+  }
+}

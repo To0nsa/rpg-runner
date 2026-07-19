@@ -1,0 +1,37 @@
+{
+  "displayName": "RPG Runner - signed URL request pressure",
+  "documentation": {
+    "content": "More than 500 accepted upload-grant or ghost-download quota decisions occurred in 15 minutes. Inspect route and UID-hash distributions, Storage API requests, and enforced quotas. The metric counts requests allowed to proceed to signer work.",
+    "mimeType": "text/markdown"
+  },
+  "conditions": [
+    {
+      "displayName": "More than 500 signed URL attempts in 15 minutes",
+      "conditionThreshold": {
+        "filter": "metric.type=\"logging.googleapis.com/user/backend_signed_url_attempts\" AND resource.type=\"cloud_run_revision\"",
+        "aggregations": [
+          {
+            "alignmentPeriod": "900s",
+            "perSeriesAligner": "ALIGN_SUM",
+            "crossSeriesReducer": "REDUCE_SUM"
+          }
+        ],
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 500,
+        "duration": "0s",
+        "trigger": {
+          "count": 1
+        }
+      }
+    }
+  ],
+  "combiner": "OR",
+  "enabled": true,
+  "alertStrategy": {
+    "autoClose": "3600s"
+  },
+  "userLabels": {
+    "component": "storage-signing",
+    "severity": "warning"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "displayName": "RPG Runner - active run resource saturation",
+  "documentation": {
+    "content": "Run creation or upload-grant issuance reached its active-resource limit or bounded scan cap. Inspect abandoned sessions, expiry/cleanup behavior, quota mode, and the affected route. Keep the bounded scan and transactional limit intact.",
+    "mimeType": "text/markdown"
+  },
+  "conditions": [
+    {
+      "displayName": "Active session or upload grant saturated",
+      "conditionMatchedLog": {
+        "filter": "(jsonPayload.message=\"runSessionCreate_active_sessions\" OR jsonPayload.message=\"runUploadGrant_active_grants\") AND (jsonPayload.wouldReject=true OR jsonPayload.countCapped=true)"
+      }
+    }
+  ],
+  "combiner": "OR",
+  "enabled": true,
+  "alertStrategy": {
+    "notificationRateLimit": {
+      "period": "300s"
+    },
+    "autoClose": "604800s"
+  },
+  "userLabels": {
+    "component": "run-resource",
+    "severity": "warning"
+  }
+}

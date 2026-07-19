@@ -246,8 +246,9 @@ This proves fail-open monitoring is active, not that enforcement is ready.
   behavior verified.
 - F-06 remains in progress: bounded retention and reviewed quotas are enforced,
   but only the web platform has a legitimate verified App Check sample.
-  Native-platform measurements, App Check enforcement, and rejection/cost
-  alert coverage are not complete.
+  Native-platform measurements and App Check enforcement are not complete.
+  Rejection/resource/cost alert coverage was completed in the later
+  [Functions safety monitoring rollout](functions-safety-monitoring-rollout-2026-07-19.md).
 
 ## Remaining work that was intentionally not forced in production
 

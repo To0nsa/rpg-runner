@@ -1,0 +1,27 @@
+{
+  "displayName": "RPG Runner - quota retention cleanup page saturated",
+  "documentation": {
+    "content": "The hourly abuse-quota retention cleanup filled its 200-document page, so expired state may remain. Inspect consecutive cleanup heartbeats and Firestore errors; repeated hourly saturation requires bounded paging or cadence review.",
+    "mimeType": "text/markdown"
+  },
+  "conditions": [
+    {
+      "displayName": "Quota cleanup scanned its full page",
+      "conditionMatchedLog": {
+        "filter": "jsonPayload.message=\"abuseQuotaRetentionCleanup\" AND jsonPayload.scanned>=200"
+      }
+    }
+  ],
+  "combiner": "OR",
+  "enabled": true,
+  "alertStrategy": {
+    "notificationRateLimit": {
+      "period": "3600s"
+    },
+    "autoClose": "604800s"
+  },
+  "userLabels": {
+    "component": "abuse-retention",
+    "severity": "warning"
+  }
+}

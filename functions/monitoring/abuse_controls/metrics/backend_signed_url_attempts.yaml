@@ -1,0 +1,10 @@
+description: Accepted upload-grant or ghost-download requests that proceed to signed URL creation.
+filter: |-
+  resource.type="cloud_run_revision"
+  jsonPayload.message="callable_quota"
+  jsonPayload.accepted=true
+  (jsonPayload.route="upload_grant" OR jsonPayload.route="ghost_url")
+metricDescriptor:
+  metricKind: DELTA
+  valueType: INT64
+  unit: "1"
