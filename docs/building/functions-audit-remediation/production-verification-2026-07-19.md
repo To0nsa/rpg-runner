@@ -165,9 +165,12 @@ mutation; the second was the complete canary above.
 - Profile, ownership, run, reward, validated-run, player-best, ghost-manifest,
   and view counts returned to their pre-canary values.
 
-The retained completion tombstones have the configured expiry. Privacy/legal
-approval of that retention policy remains an owner task; this verification
-does not substitute for that review.
+The retained completion tombstones have the configured expiry. A subsequent
+engineering privacy review reduced completed records from 16 fields to exactly
+terminal status plus request, completion, and expiry times while preserving the
+30-day maximum. Both existing completed synthetic records were compacted in
+production; details and launch conditions are in the
+[deletion-retention review](deletion-retention-privacy-review-2026-07-19.md).
 
 ## Scheduled maintenance and index correction
 
@@ -207,9 +210,13 @@ alert policies:
 - immediate settlement fallback above 5%;
 - payout latency p99 above 15 seconds.
 
-All four policies target one enabled email notification channel. The Monitoring
-API does not report its verification status, so the recipient must confirm the
-Google verification email before alert delivery can be relied upon.
+All four policies target the production email notification channel. Subsequent
+monitoring rollout brought the total to 14 enabled policies using that channel.
+The channel is enabled and API-reported as `VERIFIED`. An exact-match temporary
+log alert opened the expected incident at `2026-07-19T16:01:37Z`, and the
+recipient confirmed receipt of the matching email. The temporary policy was
+then deleted. Full evidence is in the
+[alert-channel confirmation record](alert-channel-confirmation-2026-07-19.md).
 
 During the verification window:
 
@@ -237,26 +244,26 @@ This proves fail-open monitoring is active, not that enforcement is ready.
 - F-10: live profile/index inventory and repair job verified.
 - F-11/F-12: Node 24 deployment, rules, auth-first failures, and lazy dependency
   behavior verified.
-- F-06 remains in progress: monitoring and bounded retention are live, but
-  only the web platform now has a legitimate verified App Check sample;
-  native-platform measurements, measured quotas, and enforcement are not
-  complete.
+- F-06 remains in progress: bounded retention and reviewed quotas are enforced,
+  but only the web platform has a legitimate verified App Check sample.
+  Native-platform measurements, App Check enforcement, and rejection/cost
+  alert coverage are not complete.
 
 ## Remaining work that was intentionally not forced in production
 
 - measure release attestation success for Android, iOS, macOS, and any other
   in-scope platform, or explicitly exclude unsupported platforms;
-- collect normal-client quota distributions, choose reviewed burst/sustained
-  limits, and test enforcement rollback;
-- confirm the alert channel verification email;
-- complete privacy/legal review of deletion completion evidence and retention;
+- publish the reviewed compact deletion-retention disclosure and document its
+  lawful basis before launch;
 - observe settlement latency and verify the corrected precondition-conflict
   classification under natural contention or a future isolated drill;
-- exercise deliberately injected quarantine, dispatch outage, upload expiry,
-  and every deletion-stage failure in an emulator or future isolated test
-  project, rather than manufacturing destructive production incidents;
-- complete release provenance and final finding-by-finding closure review
-  before archiving the remediation plan.
+- complete the remaining F-05/F-06 launch gates before archiving the
+  remediation plan.
+
+Deliberately injected quarantine, dispatch, upload-expiry, partial projection,
+and all 23 deletion-stage failures were subsequently exercised outside
+production. See the
+[isolated fault-drill record](isolated-destructive-fault-drills-2026-07-19.md).
 
 ## Follow-up web App Check verification
 
@@ -293,3 +300,23 @@ The enforcement canary used synthetic UID hash `fb00f59b1754133a`. Quota
 enforcement is production-verified for controlled normal-client traffic. Exact
 limits, revisions, load-test caveats, and rollback are in the
 [quota rollout record](quota-selection-and-enforcement-2026-07-19.md).
+
+## Final deletion-canary convergence
+
+Normal page-bounded repair invocations were accelerated after the fault drill
+so disposable quota/App Check canary identities did not remain active for
+hours while traversing 31 board documents per stage. No fault or alternate
+deletion path was used.
+
+The final read-only inventory at `2026-07-19T17:13:27Z` reported:
+
+- nine completed deletion records, all compacted to exactly four fields;
+- zero active, retryable, or older-than-15-minute workflows;
+- zero non-minimal or missing-expiry completions;
+- zero expired completion records.
+
+The final deployed deletion source uses a non-merge terminal replacement, so an
+unexpected legacy/future diagnostic field cannot survive compaction. Both
+deletion services were active on source hash
+`5bab5424c9d8aee530f9bddf4ef536dfdadaf26c`, and no error-severity entry was
+found after rollout.

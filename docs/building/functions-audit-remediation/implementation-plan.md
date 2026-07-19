@@ -1,7 +1,7 @@
 # Firebase Functions Audit Remediation Plan
 
 - Created: July 18, 2026
-- Status: Production verification recorded; owner-dependent rollout and closure gates remain
+- Status: Dated closure review recorded; F-05/F-06 launch gates remain active
 - Evidence baseline:
   [Firebase Functions Audit — 2026-07-18](../../audit/functions/functions-audit-2026-07-18.md)
 - Read-only live configuration:
@@ -14,6 +14,14 @@
   [App Check Client Rollout Evidence — 2026-07-19](app-check-client-rollout-2026-07-19.md)
 - Quota rollout:
   [Quota Selection and Enforcement Evidence — 2026-07-19](quota-selection-and-enforcement-2026-07-19.md)
+- Alert delivery:
+  [Production Alert Channel Confirmation — 2026-07-19](alert-channel-confirmation-2026-07-19.md)
+- Deletion retention:
+  [Account-Deletion Retention Privacy Review — 2026-07-19](deletion-retention-privacy-review-2026-07-19.md)
+- Fault drills:
+  [Isolated Destructive Fault-Drill Evidence — 2026-07-19](isolated-destructive-fault-drills-2026-07-19.md)
+- Closure review:
+  [Functions Audit Remediation Closure Review — 2026-07-19](closure-review-2026-07-19.md)
 
 ## Purpose
 
@@ -99,18 +107,18 @@ All findings start open. Update this table as work lands.
 
 | ID | Severity | Phase | Status | Implementation evidence | Validation/deployment evidence |
 | --- | --- | ---: | --- | --- | --- |
-| F-01 | Critical | 1 | Production verified | Public command allowlist and transactional loadout authorization | Public reward rejection, valid settlement, ownership inventory, and no-repair adjudication are in the [production verification](production-verification-2026-07-19.md) |
-| F-02 | Critical | 1 | Production verified | Callable-owned clock plus validator ticket/window gates | Client-time rejection and legacy ticket/window adjudication are in the [production verification](production-verification-2026-07-19.md) |
-| F-03 | High | 2 | Production verified | Functions 7.3.0, Admin 14.2.0, Cloud Tasks 6.2.3, patched dependency graph | No known vulnerabilities; Node 24, signed URLs, task retry, triggers, and schedules are production verified |
-| F-04 | High | 3 | Deployed | Cursor-paged repair, legacy classifier, quarantine, and explicit retry disposition | Multi-page and exact-once tests pass; repair/validator revisions and queue policy are deployed |
-| F-05 | High | 4 | Production verified | Tombstone-first leased deletion, strict guards, early Auth disable, and repeated reconciliation | Two synthetic workflows converged, including the complete canary; age, Auth, Storage, projection, and final-pass evidence are recorded; privacy review remains |
-| F-06 | High | 5 | In progress | App Check rollout, payload bounds, atomic quotas, idempotent run creation, replay cap, and bounded idempotency | Quotas are selected, load-tested, and production-enforced; retention and migration are complete; web attestation is verified; native App Check measurements, channel confirmation, and App Check enforcement remain |
-| F-07 | Medium | 3 | Deployed | Shared transactional expiry before callable error return | Expiry, repeat, and cleanup-race tests pass; remediated Functions source is deployed |
-| F-08 | Medium | 3 | Production verified | Atomic provisional-grant revocation, projection suppression, and orphan cleanup | The invalid replay was rejected, its grant was revoked, and leaderboard/ghost projection was suppressed in production |
-| F-09 | Medium | 6 | Deployed | Server-time transactional rename cooldown | Boundary/concurrency and focused Flutter tests pass; authoritative profile Functions are deployed |
-| F-10 | Medium | 6 | Production verified | Transactional profile creation plus consistency repair | Live profile/index inventory and the repair schedule found zero mismatches or repairs |
-| F-11 | Low | 2 | Production verified | Node 24 test harness and explicit Firestore deny tests | 167/167 tests pass; Node 24 Functions, Firestore rules, and required indexes are live |
-| F-12 | Low | 2 | Production verified | Auth-first lazy external dependency construction | Production unauthenticated and UID-mismatch checks fail before domain work or dependency use |
+| F-01 | Critical | 1 | Closed | Public command allowlist and transactional loadout authorization | Public reward rejection, valid settlement, ownership inventory, and no-repair adjudication are in the [production verification](production-verification-2026-07-19.md) |
+| F-02 | Critical | 1 | Closed | Callable-owned clock plus validator ticket/window gates | Client-time rejection and legacy ticket/window adjudication are in the [production verification](production-verification-2026-07-19.md) |
+| F-03 | High | 2 | Closed | Functions 7.3.0, Admin 14.2.0, Cloud Tasks 6.2.3, patched dependency graph | No known vulnerabilities; Node 24, signed URLs, task retry, triggers, and schedules are production verified |
+| F-04 | High | 3 | Closed | Cursor-paged repair, legacy classifier, quarantine, and explicit retry disposition | Multi-page, fault, and exact-once tests pass; repair/validator revisions, queue policy, metrics, and alerts are deployed |
+| F-05 | High | 4 | Production verified | Tombstone-first leased deletion, strict guards, early Auth disable, repeated reconciliation, and four-field completion compaction | Two synthetic workflows converged; Auth, Storage, projection, final-pass, retention, production compaction, and all-stage destructive fault evidence are recorded; public launch disclosure remains |
+| F-06 | High | 5 | In progress | App Check rollout, payload bounds, atomic quotas, idempotent run creation, replay cap, and bounded idempotency | Quotas are selected, load-tested, and production-enforced; retention and migration are complete; web attestation and production email alert delivery are verified; native App Check measurements and App Check enforcement remain |
+| F-07 | Medium | 3 | Closed | Shared transactional expiry before callable error return | Expiry, repeat, cleanup-race, and client-absent fault tests pass; remediated Functions source is deployed |
+| F-08 | Medium | 3 | Closed | Atomic provisional-grant revocation, projection suppression, and orphan cleanup | The invalid replay was rejected, its grant was revoked, and leaderboard/ghost projection was suppressed in production |
+| F-09 | Medium | 6 | Closed | Server-time transactional rename cooldown | Boundary/concurrency and focused Flutter tests pass; authoritative profile Functions are deployed |
+| F-10 | Medium | 6 | Closed | Transactional profile creation plus consistency repair | Live profile/index inventory and the repair schedule found zero mismatches or repairs |
+| F-11 | Low | 2 | Closed | Node 24 test harness and explicit Firestore deny tests | 171/171 tests pass; Node 24 Functions, Firestore rules, and required indexes are live |
+| F-12 | Low | 2 | Closed | Auth-first lazy external dependency construction | Production unauthenticated and UID-mismatch checks fail before domain work or dependency use |
 
 ## Read-only Baseline Record — July 18, 2026
 
@@ -610,7 +618,8 @@ repair pages without changing canonical gold.
 - [x] Multi-page repair proves forward progress.
 - [x] Every current production run/grant state pair is consistent; emulator
   cases converge or become an explicit incident.
-- [ ] Staging forced-failure tests pass with the client closed.
+- [x] Isolated forced-failure tests pass with the client closed under the
+  approved no-staging waiver.
 
 ---
 
@@ -634,8 +643,10 @@ repair pages without changing canonical gold.
 
 - [x] Define deletion-request states, attempt metadata, cursor/checkpoint data,
   and terminal outcomes in a TDD.
-- [ ] Define the minimal retained deletion audit data and TTL with privacy/legal
-  review.
+- [x] Define the minimal retained deletion evidence and 30-day maximum under an
+  engineering privacy review. The completed record is limited to terminal
+  status plus request, completion, and expiry times; public disclosure and
+  lawful-basis documentation remain launch work.
 - [x] Define how the Flutter client handles `requested`, `in_progress`,
   `complete`, and retryable failure without requiring the deleted account to
   remain authenticated.
@@ -664,7 +675,8 @@ repair pages without changing canonical gold.
 
 - [x] Concurrent writes after tombstone creation are rejected.
 - [x] Concurrent lazy loads cannot recreate profile/ownership data.
-- [ ] Failure after each deletion stage resumes without losing coverage.
+- [x] Failure after each of all 23 deletion stages resumes without losing
+  coverage.
 - [x] Accounts larger than one page are fully erased.
 - [x] Repeated delete requests resolve to the same workflow.
 - [x] Missing documents/objects do not fail the workflow.
@@ -677,14 +689,16 @@ repair pages without changing canonical gold.
 - [x] Update `docs/tdd/firebase_cloud_functions_overview.md`.
 - [x] Update `docs/tdd/authentication_flow_and_authorization.md`.
 - [x] Update `docs/EU-compliance/checklist.md`.
-- [ ] Update the privacy/data-retention documentation and public deletion
-  behavior if the user-visible contract changes.
+- [x] Update the technical privacy/data-retention documentation. The
+  user-visible deletion result did not change; the future public privacy policy
+  and external deletion resource must disclose the retained compact evidence.
 
 ### F-05 closure
 
 - [x] No authenticated request can recreate data after deletion begins.
 - [x] The workflow is resumable and page-bounded.
-- [ ] Staging concurrency/failure tests pass.
+- [x] Isolated emulator concurrency/failure tests pass under the approved
+  no-staging waiver.
 - [x] Production deletion age/failure telemetry and one controlled verification
   are recorded.
 
@@ -760,6 +774,8 @@ rationale next to each chosen value.
   endpoints; they cannot use a client-claimed bypass.
 - [x] Load-test quotas and transactions in the isolated Firestore emulator
   under the no-staging waiver; record the high-fan-in contention boundary.
+- [x] Confirm the production email channel is verified and delivers an isolated
+  synthetic log-match incident without changing real alert thresholds.
 - [ ] Alert on sudden rejection, storage, task, and cost increases.
 
 ### F-06 closure
@@ -841,15 +857,15 @@ rationale next to each chosen value.
 
 - [x] Functions:
   - [x] `corepack pnpm --dir functions build`
-  - [x] `corepack pnpm --dir functions test` (167/167)
+  - [x] `corepack pnpm --dir functions test` (171/171 after the all-stage
+    deletion fault drill)
   - [x] `corepack pnpm --dir functions audit --prod` (no known vulnerabilities)
 - [x] Shared protocol:
   - [x] `dart analyze packages/run_protocol`
   - [x] `cd packages/run_protocol && dart test test` (35/35)
 - [x] Replay validator:
   - [x] `dart analyze services/replay_validator`
-  - [x] `cd services/replay_validator && dart test test` (73/73 after the
-    production conflict-classification regression)
+  - [x] `cd services/replay_validator && dart test test` (75/75)
 - [x] Flutter:
   - [x] `dart analyze`
   - [x] targeted ownership/profile/run/submission/account widget and state tests
@@ -861,7 +877,7 @@ rationale next to each chosen value.
 - [x] Repository:
   - [x] generated output was not hand-edited
   - [x] `git diff --check`
-  - [ ] required TDD/GDD/building documents are current
+  - [x] required TDD/GDD/building documents are current
 
 ### Staging verification
 
@@ -876,11 +892,14 @@ passed.
   failures.
 - [x] Run one valid and one invalid replay through upload, validation,
   settlement, leaderboard projection, and ghost eligibility.
-- [ ] Exercise immediate dispatch failure, Eventarc retry, scheduled repair,
-  quarantine, and multi-page progress.
-- [ ] Exercise upload expiry and enqueue failure with the client closed.
-- [ ] Exercise account deletion with concurrent writes and more than one page.
-- [ ] Exercise profile rename boundaries and concurrent first creation.
+- [x] Exercise immediate dispatch failure, Eventarc/repair races, scheduled
+  repair, quarantine, and multi-page progress in isolated tests.
+- [x] Exercise upload expiry and enqueue failure with the client closed in
+  isolated tests.
+- [x] Exercise account deletion with concurrent writes, more than one page, and
+  a crash after every destructive stage in isolated tests.
+- [x] Exercise profile rename boundaries and concurrent first creation in
+  isolated tests.
 - [x] Confirm signed upload/download URL scope and TTL.
 - [x] Confirm task queue identity, OIDC/IAM, retry, rate, and target policy.
 - [x] Confirm scheduled jobs, regions, time zones, and Eventarc retry policy.
@@ -899,7 +918,8 @@ passed.
 - [x] Deploy the App Check-capable Flutter web release and verify its exact
   Hosting bundle and one production-origin attestation.
 - [x] Deploy Functions/validator changes in the documented contract-safe order.
-- [ ] Enable App Check enforcement and quotas gradually after monitoring mode.
+- [ ] Enable App Check enforcement after platform readiness; reviewed per-UID
+  quotas are already enforced.
 - [x] Enable reviewed per-UID quotas after an isolated load test and a
   zero-would-reject production monitor canary.
 - [x] Verify no spike in auth, stale revision, quota, App Check, upload,
@@ -913,20 +933,20 @@ passed.
 
 For each F-01 through F-12:
 
-- [ ] Link the implementing changes.
+- [x] Link the implementing changes.
 - [x] Link local and approved production-canary test evidence.
 - [x] Link migration/inventory evidence when applicable.
 - [x] Link deployment revision/configuration.
 - [x] Link production verification or approved risk acceptance.
-- [ ] Change the tracker status to `Closed` only after all required evidence is
-  present.
+- [x] Change each tracker status to `Closed` only after all finding-specific
+  evidence is present; F-05 and F-06 deliberately remain open.
 
 ### Plan completion
 
-- [ ] All Critical findings are `Closed`.
+- [x] All Critical findings are `Closed`.
 - [ ] All High findings are `Closed` or have an unexpired named risk acceptance.
-- [ ] All Medium and Low findings are `Closed`.
-- [ ] The release-block decision is superseded by a dated closure review; the
+- [x] All Medium and Low findings are `Closed`.
+- [x] The release-block decision is superseded by a dated closure review; the
   original audit remains unchanged.
 - [ ] Move this plan to
   `docs/building/archived/functions-audit-remediation/implementation-plan.md`.
@@ -963,3 +983,5 @@ retention, quota values, or rollout here.
 | 2026-07-19 | Classify only structured HTTP 400 `FAILED_PRECONDITION` responses as Firestore contention. | Production returned this shape for an update-time race; arbitrary HTTP 400 input failures must not be broadened into retryable conflicts. | Repository owner (production authorization) |
 | 2026-07-19 | Configure a domain-restricted reCAPTCHA Enterprise provider and deploy the App Check-capable web client while retaining monitor mode. | One verified production-origin sample proves the web path, but native platforms and sustained success rates remain unmeasured, so global enforcement would be premature. | Repository owner (production authorization) |
 | 2026-07-19 | Source-control and enforce the reviewed per-UID quota defaults after isolated load validation and a zero-would-reject production monitor canary. | The game is not live and has no organic distribution; values combine the controlled-client maxima with protocol/retry bounds and generous margins. A complete enforcement canary passed all six routes. | Repository owner (production authorization) |
+| 2026-07-19 | Verify the production email channel and exercise it with an exact-match temporary log alert. | API status does not prove human receipt. The test opened the expected incident, the recipient confirmed the matching email, and the temporary policy was deleted without changing the 14 real policies. | Repository owner |
+| 2026-07-19 | Retain completed deletion evidence for at most 30 days and compact it to four fields. | The UID-keyed record remains personal data. Terminal status and request/completion/expiry times are sufficient for the bounded security and erasure-integrity purpose; workflow diagnostics and counters are unnecessary after completion. | Repository owner (engineering privacy review) |

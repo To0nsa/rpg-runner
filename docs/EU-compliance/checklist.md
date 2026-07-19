@@ -392,6 +392,11 @@ It is a practical engineering status check against the checklist above. It is no
   (`functions/src/abuse/quota.ts`, `functions/src/account/delete.ts`).
 - [x] There is an in-app Delete Account flow with two-step confirmation (`lib/ui/pages/profile/profile_page.dart`).
 - [x] There is a tombstone-first backend account-deletion callable plus a bounded resumable scheduled worker. User callables/lazy creation are blocked immediately, Auth is disabled early, the Firestore/Storage inventory is reconciled through a final pass, and Auth is deleted last (`functions/src/index.ts`, `functions/src/account/delete.ts`, `functions/src/account/deletion_guard.ts`, `docs/tdd/account_deletion_workflow.md`).
+- [x] Completed account-deletion records are reduced to terminal status plus
+  request, completion, and expiry times, retained for at most 30 days, and
+  removed by scheduled cleanup. The engineering privacy review and launch
+  conditions are recorded in
+  `docs/building/functions-audit-remediation/deletion-retention-privacy-review-2026-07-19.md`.
 - [x] Backend callables require authentication and reject mismatched `userId` values (`functions/src/index.ts`).
 - [x] Firestore client access is locked down with deny-by-default rules (`firestore.rules`).
 - [x] Emulator-backed backend tests exist for ownership and account-deletion flows (`functions/package.json`, `functions/test/account/account_delete_callable.test.ts`, `functions/test/ownership/ownership_callable.test.ts`).
@@ -413,7 +418,10 @@ It is a practical engineering status check against the checklist above. It is no
   leaderboard data.
 - [ ] Defined retention periods for local and cloud player data beyond the
   implemented deletion, quota, and ownership-idempotency records.
-- [ ] Privacy/legal confirmation of the implemented 30-day minimal completed-deletion tombstone retention; the technical rationale and change rule are documented in `docs/tdd/account_deletion_workflow.md`.
+- [ ] Publicly disclose the compact completed-deletion record, its
+  security/erasure-integrity purpose, and the 30-day maximum; document the
+  applicable lawful basis. The engineering review does not constitute legal
+  advice.
 - [ ] An operational path for access, export, correction, and deletion requests.
 - [ ] Accurate Google Play Data Safety answers and account-deletion answers aligned to the current implementation.
 - [ ] An internal note confirming that Firebase / Google terms and international-transfer wording are handled in the project owner setup and privacy policy.

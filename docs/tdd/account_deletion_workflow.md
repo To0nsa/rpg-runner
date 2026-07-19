@@ -6,8 +6,9 @@ Implemented and deployed on July 19, 2026. Two synthetic workflows completed
 the final reconciliation and Auth-deletion path; the controlled evidence is in
 the
 [Functions production verification record](../building/functions-audit-remediation/production-verification-2026-07-19.md).
-Privacy/legal confirmation of the 30-day completion-record retention remains
-pending.
+The engineering privacy review accepted a compact 30-day maximum with launch
+conditions; see the
+[retention review](../building/functions-audit-remediation/deletion-retention-privacy-review-2026-07-19.md).
 
 ## Purpose
 
@@ -35,10 +36,14 @@ workflow checkpoint. Its states are:
 - `complete`: the final zero-change reconciliation passed and Firebase Auth was
   deleted.
 
-The record stores the current stage, pass number, final-pass flag, per-pass
-deletion count, nested-board cursor, bounded lease token/expiry, attempt count,
-last error class/message, aggregate deletion counters, and completion expiry.
-The UID is the request ID, so repeated calls converge on one workflow.
+While active, the record stores the current stage, pass number, final-pass
+flag, per-pass deletion count, nested-board cursor, bounded lease token/expiry,
+attempt count, last error class/message, and aggregate deletion counters. The
+UID is the request ID, so repeated calls converge on one workflow.
+
+On completion, all workflow mechanics and diagnostics are removed. The
+document retains exactly `state`, `requestedAtMs`, `completedAtMs`, and
+`expiresAtMs`; the UID remains only as the document ID.
 
 Workers acquire a five-minute transactional lease. A crash after deleting data
 but before checkpointing is safe: the same bounded page is retried and missing
@@ -122,12 +127,23 @@ last retryable error, age inputs, and aggregate deletion counters for operator
 inspection. Missing Auth users and already-missing data/artifacts are normal
 idempotent outcomes.
 
-The implemented engineering default retains a minimal completed tombstone for
-30 days, after which the scheduled worker removes it. This exceeds token and
-signed-URL lifetimes and supports retry/incident diagnosis. The 30-day policy
-must be confirmed by the project owner's privacy/legal review before
-public launch and audit closure; changing it requires updating this document
-and the EU-compliance checklist.
+The implemented policy retains the compact completed tombstone for at most 30
+days. The record exists only to keep the deletion barrier fail-closed and to
+support bounded deletion/security incident evidence. It contains no gameplay
+or identity-provider data.
+
+The scheduled worker evaluates expiry every minute and deletes up to 10 expired
+completed records per invocation. Firestore native TTL is not enabled because
+the source-controlled expiry field is integer epoch milliseconds while native
+TTL requires a timestamp. Inventory checks expose missing expiry, expired
+evidence, and non-minimal completions.
+
+The engineering privacy review accepted this policy with launch conditions.
+The public privacy policy and external deletion resource must disclose the
+purpose, fields, 30-day maximum, and automatic deletion. The project owner must
+select the applicable lawful basis and obtain jurisdiction-specific advice if
+needed. Changing the fields, purpose, or duration requires updating this
+document, the retention review, and the EU-compliance checklist.
 
 ## Validation
 
@@ -137,6 +153,8 @@ Emulator tests cover:
 - transaction-protected lazy creation;
 - multi-page ownership/idempotency/quota/run/reward/ghost cleanup;
 - concurrent worker serialization;
+- a crash after the side effects of each of all 23 ordered deletion stages,
+  before checkpoint commit, followed by idempotent replay;
 - a deliberately reinserted late record and pending upload;
 - retryable Storage failure and resume;
 - repeated delete requests;

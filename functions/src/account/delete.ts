@@ -33,10 +33,20 @@ const replayValidatedPathPrefix = "replay-submissions/validated";
 const ghostArtifactPathPrefix = "ghosts";
 
 const signedUploadQuietPeriodMs = 15 * 60 * 1000;
+/**
+ * Maximum lifetime of compact completion evidence: 30 days in milliseconds.
+ *
+ * The retained document contains only terminal status and request, completion,
+ * and expiry times; gameplay data and workflow diagnostics are removed.
+ */
 export const accountDeletionCompletionRetentionMs = 30 * 24 * 60 * 60 * 1000;
 const deletionLeaseMs = 5 * 60 * 1000;
 
-const stages = [
+/**
+ * Ordered deletion stages used by the resumable worker and isolated fault
+ * drills. Production callers must not skip or reorder this sequence.
+ */
+export const accountDeletionStages = [
   "disable_auth",
   "profile",
   "display_name_index",
@@ -62,7 +72,7 @@ const stages = [
   "delete_auth",
 ] as const;
 
-type AccountDeletionStage = (typeof stages)[number];
+type AccountDeletionStage = (typeof accountDeletionStages)[number];
 type AccountDeletionState =
   | "requested"
   | "in_progress"
@@ -85,6 +95,11 @@ export interface AccountDeletionAuth {
 export interface AccountDeletionDependencies {
   auth?: AccountDeletionAuth;
   replayArtifactStore?: ReplayArtifactStore;
+  /**
+   * Runs after a stage's side effects but before its checkpoint commits.
+   * Production call sites omit this; isolated drills use it to prove replay.
+   */
+  afterStage?: (stage: AccountDeletionStage) => Promise<void>;
 }
 
 export interface AccountDeleteResult {
@@ -276,6 +291,7 @@ export async function processAccountDeletion(args: {
       pageSize,
       dependencies: args.dependencies,
     });
+    await args.dependencies?.afterStage?.(acquired.stage);
     await commitStageOutcome({
       db: args.db,
       deletion: acquired,
@@ -939,8 +955,21 @@ async function commitStageOutcome(args: {
       args.outcome.passDeletedCount ??
       readNonNegativeInteger(document.passDeletedCount) +
         deletedThisStage;
+    if (args.outcome.completed) {
+      tx.set(
+        ref,
+        {
+          state: "complete",
+          requestedAtMs: args.deletion.requestedAtMs,
+          completedAtMs: args.nowMs,
+          expiresAtMs:
+            args.nowMs + accountDeletionCompletionRetentionMs,
+        },
+      );
+      return;
+    }
     const write: Record<string, unknown> = {
-      state: args.outcome.completed ? "complete" : "in_progress",
+      state: "in_progress",
       stage: args.outcome.stage,
       pass: args.outcome.pass ?? args.deletion.pass,
       finalPass: args.outcome.finalPass ?? args.deletion.finalPass,
@@ -957,12 +986,6 @@ async function commitStageOutcome(args: {
       updatedAtMs: args.nowMs,
       updatedAt: FieldValue.serverTimestamp(),
     };
-    if (args.outcome.completed) {
-      write.completedAtMs = args.nowMs;
-      write.expiresAtMs =
-        args.nowMs + accountDeletionCompletionRetentionMs;
-      write.completedAt = FieldValue.serverTimestamp();
-    }
     tx.set(ref, write, { merge: true });
   });
 }
@@ -1106,8 +1129,8 @@ class CloudStorageReplayArtifactStore implements ReplayArtifactStore {
 }
 
 function nextStage(stage: AccountDeletionStage): AccountDeletionStage {
-  const index = stages.indexOf(stage);
-  return stages[index + 1] ?? "delete_auth";
+  const index = accountDeletionStages.indexOf(stage);
+  return accountDeletionStages[index + 1] ?? "delete_auth";
 }
 
 function emptyCounters(): AccountDeletionCounters {
@@ -1178,7 +1201,7 @@ function readState(value: unknown): AccountDeletionState {
 
 function readStage(value: unknown): AccountDeletionStage {
   return typeof value === "string" &&
-    stages.includes(value as AccountDeletionStage)
+    accountDeletionStages.includes(value as AccountDeletionStage)
     ? (value as AccountDeletionStage)
     : "disable_auth";
 }

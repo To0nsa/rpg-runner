@@ -794,7 +794,10 @@ function inventoryDeletion(deletionRequests, observedAtMs) {
   );
   const stageCounts = countBy(
     deletionRequests,
-    (doc) => asString(doc.data.stage) ?? "<missing>",
+    (doc) =>
+      doc.data.state === "complete"
+        ? "complete"
+        : asString(doc.data.stage) ?? "<missing>",
   );
   const active = deletionRequests.filter((doc) => doc.data.state !== "complete");
   const completed = deletionRequests.filter((doc) => doc.data.state === "complete");
@@ -817,19 +820,28 @@ function inventoryDeletion(deletionRequests, observedAtMs) {
       .map((doc) => ({
         uidHash: shortHash(doc.id),
         state: asString(doc.data.state) ?? "<missing>",
-        stage: asString(doc.data.stage) ?? "<missing>",
-        pass: Number.isSafeInteger(doc.data.pass) ? doc.data.pass : null,
-        finalPass: doc.data.finalPass === true,
-        attemptCount: Number.isSafeInteger(doc.data.attemptCount)
-          ? doc.data.attemptCount
-          : null,
+        stage:
+          doc.data.state === "complete"
+            ? "complete"
+            : asString(doc.data.stage) ?? "<missing>",
+        pass:
+          doc.data.state !== "complete" && Number.isSafeInteger(doc.data.pass)
+            ? doc.data.pass
+            : null,
+        finalPass:
+          doc.data.state === "complete" ? null : doc.data.finalPass === true,
+        attemptCount:
+          doc.data.state !== "complete" &&
+          Number.isSafeInteger(doc.data.attemptCount)
+            ? doc.data.attemptCount
+            : null,
       }))
       .sort((left, right) => left.uidHash.localeCompare(right.uidHash)),
     activeCount: active.length,
     retryableCount: deletionRequests.filter(
       (doc) => doc.data.state === "retryable",
     ).length,
-    finalPassCount: deletionRequests.filter(
+    finalPassCount: active.filter(
       (doc) => doc.data.finalPass === true,
     ).length,
     activeOlderThan15MinutesCount: active.filter(
@@ -839,6 +851,16 @@ function inventoryDeletion(deletionRequests, observedAtMs) {
     ).length,
     completedMissingExpiryCount: completed.filter(
       (doc) => !Number.isSafeInteger(doc.data.expiresAtMs),
+    ).length,
+    compactedCompletionCount: completed.filter(
+      (doc) =>
+        Object.keys(doc.data).sort().join(",") ===
+        "completedAtMs,expiresAtMs,requestedAtMs,state",
+    ).length,
+    nonMinimalCompletionCount: completed.filter(
+      (doc) =>
+        Object.keys(doc.data).sort().join(",") !==
+        "completedAtMs,expiresAtMs,requestedAtMs,state",
     ).length,
     completedDurationMsRange:
       completedDurationsMs.length === 0

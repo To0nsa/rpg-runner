@@ -5,6 +5,8 @@ import { deleteApp, getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 
 import {
+  accountDeletionStages,
+  accountDeletionCompletionRetentionMs,
   type AccountDeletionAuth,
   type AccountDeletionDependencies,
   processAccountDeletion,
@@ -165,7 +167,29 @@ test("bounded workflow erases large account, catches reinsertion, then deletes a
   );
   artifacts.add("replay-submissions/validated/late_run.bin.gz");
 
-  const completed = await drainDeletion({
+  const readyToDeleteAuth = await processUntilStage({
+    db,
+    uid,
+    targetStage: "delete_auth",
+    nowMs: afterUploadLeaseMs,
+    pageSize: 2,
+    dependencies,
+  });
+  assert.equal(readyToDeleteAuth.status, "in_progress");
+  const activeTombstone = (
+    await db.collection("account_deletion_requests").doc(uid).get()
+  ).data();
+  assert.ok((activeTombstone?.pass as number) >= 3);
+  assert.ok((activeTombstone?.deleted?.runSessionDocs as number) > 2);
+  assert.ok(
+    (activeTombstone?.deleted?.pendingReplayObjectDeletes as number) > 2,
+  );
+  await db.collection("account_deletion_requests").doc(uid).set(
+    { unexpectedLegacyDiagnostic: "must not survive completion" },
+    { merge: true },
+  );
+
+  const completed = await processAccountDeletion({
     db,
     uid,
     nowMs: afterUploadLeaseMs,
@@ -255,11 +279,13 @@ test("bounded workflow erases large account, catches reinsertion, then deletes a
   const tombstone = (
     await db.collection("account_deletion_requests").doc(uid).get()
   ).data();
-  assert.equal(tombstone?.state, "complete");
-  assert.ok((tombstone?.pass as number) >= 3);
-  assert.ok((tombstone?.deleted?.runSessionDocs as number) > 2);
-  assert.ok((tombstone?.deleted?.pendingReplayObjectDeletes as number) > 2);
-  assert.ok((tombstone?.expiresAtMs as number) > afterUploadLeaseMs);
+  assert.deepEqual(tombstone, {
+    state: "complete",
+    requestedAtMs: requestNowMs,
+    completedAtMs: afterUploadLeaseMs,
+    expiresAtMs:
+      afterUploadLeaseMs + accountDeletionCompletionRetentionMs,
+  });
 });
 
 test("repeated requests converge on the same workflow", async () => {
@@ -327,6 +353,87 @@ test("retryable stage failure resumes without losing coverage", async () => {
     false,
   );
   assert.deepEqual(auth.calls, [`disable:${uid}`, `delete:${uid}`]);
+});
+
+test("failure after every deletion stage replays from its durable checkpoint", async () => {
+  for (const stage of accountDeletionStages) {
+    const uid = `uid_fault_${stage}`;
+    const auth = new InMemoryAccountDeletionAuth();
+    const artifacts = new InMemoryReplayArtifactStore();
+    const artifactExists = await seedDeletionStageArtifact({
+      db,
+      uid,
+      stage,
+      artifacts,
+    });
+    await db.collection("account_deletion_requests").doc(uid).set({
+      uid,
+      state: "requested",
+      stage,
+      pass: 1,
+      finalPass: false,
+      passDeletedCount: 0,
+      boardCursor: null,
+      requestedAtMs: requestNowMs,
+      updatedAtMs: requestNowMs,
+      attemptCount: 0,
+      deleted: {},
+    });
+
+    let injectFailure = true;
+    const dependencies: AccountDeletionDependencies = {
+      auth,
+      replayArtifactStore: artifacts,
+      afterStage: async (completedStage) => {
+        if (injectFailure && completedStage === stage) {
+          injectFailure = false;
+          throw new Error(`injected post-stage failure: ${stage}`);
+        }
+      },
+    };
+
+    const failed = await processAccountDeletion({
+      db,
+      uid,
+      nowMs: afterUploadLeaseMs,
+      pageSize: 2,
+      dependencies,
+    });
+    assert.equal(failed.status, "retryable", stage);
+    assert.equal(failed.stage, stage, stage);
+    assert.equal(await artifactExists(), false, stage);
+
+    const retryable = (
+      await db.collection("account_deletion_requests").doc(uid).get()
+    ).data();
+    assert.equal(retryable?.state, "retryable", stage);
+    assert.equal(retryable?.stage, stage, stage);
+    assert.equal(
+      retryable?.lastErrorMessage,
+      `injected post-stage failure: ${stage}`,
+      stage,
+    );
+
+    let resumed = failed;
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      resumed = await processAccountDeletion({
+        db,
+        uid,
+        nowMs: afterUploadLeaseMs + attempt + 1,
+        pageSize: 2,
+        dependencies,
+      });
+      if (resumed.stage !== stage) {
+        break;
+      }
+    }
+    assert.notEqual(resumed.stage, stage, stage);
+    const checkpoint = (
+      await db.collection("account_deletion_requests").doc(uid).get()
+    ).data();
+    assert.equal(checkpoint?.lastErrorClass, undefined, stage);
+    assert.equal(checkpoint?.lastErrorMessage, undefined, stage);
+  }
 });
 
 test("concurrent workers serialize deletion pages without duplicating a stage", async () => {
@@ -503,6 +610,119 @@ async function seedLargeAccount(args: {
     .doc("top10")
     .set({ entries: [{ uid: args.uid }] });
   args.artifacts.add("ghosts/board_1/entry_target/ghost.bin.gz");
+}
+
+type DeletionStage = (typeof accountDeletionStages)[number];
+
+async function seedDeletionStageArtifact(args: {
+  db: Firestore;
+  uid: string;
+  stage: DeletionStage;
+  artifacts: InMemoryReplayArtifactStore;
+}): Promise<() => Promise<boolean>> {
+  const documentExists = (path: string) => async () =>
+    (await args.db.doc(path).get()).exists;
+  const collectionStages: Partial<
+    Record<DeletionStage, { collection: string; uidField: string }>
+  > = {
+    display_name_index: {
+      collection: "display_name_index",
+      uidField: "uid",
+    },
+    ownership: { collection: "ownership_profiles", uidField: "uid" },
+    abuse_quota: { collection: "abuse_quota", uidField: "uid" },
+    reward_grants: { collection: "reward_grants", uidField: "uid" },
+    ghost_runs_uid: { collection: "ghost_runs", uidField: "uid" },
+    ghost_runs_user_id: {
+      collection: "ghost_runs",
+      uidField: "userId",
+    },
+    ghost_runs_owner_uid: {
+      collection: "ghost_runs",
+      uidField: "ownerUid",
+    },
+    leaderboard_ghost_runs_uid: {
+      collection: "leaderboard_ghost_runs",
+      uidField: "uid",
+    },
+    leaderboard_ghost_runs_user_id: {
+      collection: "leaderboard_ghost_runs",
+      uidField: "userId",
+    },
+    leaderboard_ghost_runs_owner_uid: {
+      collection: "leaderboard_ghost_runs",
+      uidField: "ownerUid",
+    },
+    weekly_ghost_runs_uid: {
+      collection: "weekly_ghost_runs",
+      uidField: "uid",
+    },
+    weekly_ghost_runs_user_id: {
+      collection: "weekly_ghost_runs",
+      uidField: "userId",
+    },
+    weekly_ghost_runs_owner_uid: {
+      collection: "weekly_ghost_runs",
+      uidField: "ownerUid",
+    },
+  };
+
+  if (args.stage === "profile") {
+    const path = `player_profiles/${args.uid}`;
+    await args.db.doc(path).set({ uid: args.uid });
+    return documentExists(path);
+  }
+  if (args.stage === "ownership_idempotency") {
+    const parent = args.db.collection("ownership_profiles").doc(args.uid);
+    await parent.set({ uid: args.uid });
+    const child = parent.collection("idempotency").doc("fault");
+    await child.set({ payloadHash: "fault" });
+    return async () => (await child.get()).exists;
+  }
+  if (args.stage === "run_sessions" || args.stage === "validated_runs") {
+    const collection =
+      args.stage === "run_sessions" ? "run_sessions" : "validated_runs";
+    const runId = `${args.uid}_run`;
+    const path = `${collection}/${runId}`;
+    const artifactPath = `replay-submissions/validated/${runId}.bin.gz`;
+    await args.db.doc(path).set({ uid: args.uid, runSessionId: runId });
+    args.artifacts.add(artifactPath);
+    return async () =>
+      (await args.db.doc(path).get()).exists ||
+      args.artifacts.hasObject(artifactPath);
+  }
+  if (args.stage === "board_ghosts") {
+    await clearCollection(args.db, "leaderboard_boards");
+    const board = args.db.collection("leaderboard_boards").doc("fault_board");
+    await board.set({ boardId: "fault_board" });
+    const manifest = board.collection("ghost_manifests").doc("fault");
+    await manifest.set({ uid: args.uid });
+    return async () => (await manifest.get()).exists;
+  }
+  if (args.stage === "board_player_bests") {
+    await clearCollection(args.db, "leaderboard_boards");
+    const board = args.db.collection("leaderboard_boards").doc("fault_board");
+    await board.set({ boardId: "fault_board" });
+    const best = board.collection("player_bests").doc(args.uid);
+    const view = board.collection("views").doc("top10");
+    await best.set({ uid: args.uid });
+    await view.set({ entries: [] });
+    return async () => (await best.get()).exists || (await view.get()).exists;
+  }
+  if (args.stage === "pending_replay_artifacts") {
+    const prefix = `replay-submissions/pending/${args.uid}/`;
+    args.artifacts.add(`${prefix}fault/replay.bin.gz`);
+    return async () => args.artifacts.hasPrefix(prefix);
+  }
+  const collectionStage = collectionStages[args.stage];
+  if (collectionStage) {
+    const path = `${collectionStage.collection}/${args.uid}_${args.stage}`;
+    await args.db.doc(path).set({
+      [collectionStage.uidField]: args.uid,
+    });
+    return documentExists(path);
+  }
+  return async () => false;
 }
 
 async function drainDeletion(args: {

@@ -16,8 +16,8 @@ Deployment scope:
 Firebase Hosting and native Flutter releases were not part of the initial
 backend deployment. A follow-up App Check-capable web release was deployed
 later the same day and is recorded below. Native releases were not deployed.
-App Check and abuse quotas remain in monitoring mode with production limits
-unset.
+App Check remains in monitoring mode. Reviewed abuse quotas were subsequently
+production-enforced as recorded below.
 
 Post-deployment behavior, inventory, canary deletion, retention migration, and
 monitoring evidence are recorded separately in the
@@ -181,12 +181,11 @@ collection-group index for ownership-idempotency expiry was found, added to
 
 Remaining work includes:
 
-- deployment of an App Check-capable Flutter release;
-- measured legitimate App Check success rates and normal-client quota
-  distributions;
-- reviewed quota values and enforcement;
-- confirmation that the alert notification channel can deliver;
-- privacy/legal review of retained deletion evidence;
+- native-platform App Check release measurements or explicit platform
+  exclusions;
+- the App Check enforcement readiness decision;
+- publication of the reviewed compact deletion-retention disclosure and
+  lawful-basis documentation;
 - a longer observation window covering settlement latency, repair, deletion,
   idempotency, and resource cost;
 - intentionally injected failure/quarantine coverage in an emulator or future
@@ -241,3 +240,54 @@ Final revisions:
 All nine are active with enforcement configured. App Check remains in monitor
 mode. Limits, isolated validation, canary measurements, and rollback are in the
 [quota rollout record](quota-selection-and-enforcement-2026-07-19.md).
+
+## Follow-up alert-channel confirmation
+
+The production email notification channel was verified and exercised with an
+exact-match temporary log alert. Cloud Monitoring opened the expected incident,
+the recipient confirmed receipt of the matching email, and the temporary policy
+was deleted. The channel remains enabled and `VERIFIED`; all 14 real enabled
+policies still reference it. Exact non-secret evidence is in the
+[alert-channel confirmation record](alert-channel-confirmation-2026-07-19.md).
+
+## Follow-up deletion-retention minimization
+
+The account-deletion completion path was changed to replace active workflow
+state with exactly four fields: terminal status, request time, completion time,
+and expiry time. The 30-day maximum remains.
+
+Deployment:
+
+- Functions source/configuration hash:
+  `a968167e5da186d99a87a2f77a640485787c7222`;
+- `accountDelete`: `accountdelete-00008-bet`;
+- `accountDeletionRepair`: `accountdeletionrepair-00002-yet`.
+
+Two existing completed synthetic tombstones were compacted from 16 fields to
+four. The post-migration inventory found two compact completions, zero
+non-minimal completions, zero missing expiries, and zero expired completion
+records. Active synthetic workflows were left to the normal repair scheduler.
+The privacy assessment and launch conditions are in the
+[deletion-retention review](deletion-retention-privacy-review-2026-07-19.md).
+
+## Follow-up destructive fault drills
+
+All 23 account-deletion stages were exercised with an isolated crash after the
+stage's side effects and before checkpoint commit. The complete Functions suite
+passed 171/171, and the related validator fault matrix passed 48/48. No
+destructive production fault was injected.
+
+The inert test seam and full-document terminal compaction were deployed so the
+validated and live deletion source match:
+
+- Functions source/configuration hash:
+  `5bab5424c9d8aee530f9bddf4ef536dfdadaf26c`;
+- `accountDelete`: `accountdelete-00010-ted`;
+- `accountDeletionRepair`: `accountdeletionrepair-00004-wiy`.
+
+Both functions were `ACTIVE`, and the one-minute repair scheduler remained
+`ENABLED`. The final inventory at `2026-07-19T17:13:27Z` found nine compact
+completions, zero active or retryable workflows, zero non-minimal completions,
+zero missing expiries, and zero expired completion records. The complete matrix
+is in the
+[isolated fault-drill record](isolated-destructive-fault-drills-2026-07-19.md).
