@@ -824,14 +824,14 @@ Objective:
 - [x] Kill/timeout workers after lease acquisition and prove automatic
       recovery.
 - [x] Exhaust task retries and prove scheduled repair.
-- [x] Run concurrent same-player and board-wide projection load.
+- [ ] Run concurrent same-player and board-wide projection load.
 - [ ] Inject failures after each durable projection/terminalization step.
 - [x] Overwrite a pending upload path and prove generation-pinned rejection or
       immutable evidence use.
 - [x] Exercise more than 100 ghost manifests and no-new-submission cleanup.
 - [x] Verify actual queue retry timing, OIDC audience, and Cloud Run resource
       limits.
-- [x] Verify dashboards, alerts, and runbook actions with synthetic incidents.
+- [ ] Verify dashboards, alerts, and runbook actions with synthetic incidents.
 
 ### Production rollout
 
@@ -1031,9 +1031,9 @@ revision portion of this record:
 - no error log was observed for the new revision during the verification
   window.
 
-This closes `RV2-L01`. `RV2-M02` remains verification-pending until contention
-is observed naturally or exercised in an isolated drill; the other ledger
-gates are unchanged.
+This closed `RV2-L01`. At this intermediate checkpoint, `RV2-M02` remained
+verification-pending until contention was observed naturally or exercised in
+an isolated drill; the later fault-drill record closes that gate.
 
 Final pre-release rollout at `2026-07-19T15:20Z` superseded the active revision
 and operations portions of the earlier records:
@@ -1148,7 +1148,7 @@ release covered by this plan.
 
 - [ ] Production adapters have direct integration/failure coverage.
 - [ ] Readiness fails closed; telemetry is structured and player-safe.
-- [x] Alerts and runbooks are exercised.
+- [ ] Alerts and runbooks are exercised.
 - [ ] Container, dependencies, build context, commands, and docs are current.
 - [ ] Repair inventory is empty or every exception has an incident disposition.
 - [ ] A separate successor audit confirms no release-blocking finding remains.
