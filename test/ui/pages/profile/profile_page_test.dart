@@ -56,52 +56,53 @@ void main() {
     expect(find.text('Link Play Games'), findsNothing);
   });
 
-  testWidgets('profile gold row includes unverified gold from app state', (
-    tester,
-  ) async {
-    final authApi = _StaticAuthApi(session: _anonymousSession());
-    final runSessionApi = _StatusOnlyRunSessionApi(
-      const SubmissionStatus(
-        runSessionId: 'run_profile_pending',
-        state: RunSessionState.pendingValidation,
-        updatedAtMs: 1,
-        reward: SubmissionReward(
-          status: SubmissionRewardStatus.provisional,
-          provisionalGold: 17,
-          effectiveGoldDelta: 0,
-          spendableGoldDelta: 0,
+  testWidgets(
+    'profile gold row excludes provisional gold from canonical wallet',
+    (tester) async {
+      final authApi = _StaticAuthApi(session: _anonymousSession());
+      final runSessionApi = _StatusOnlyRunSessionApi(
+        const SubmissionStatus(
+          runSessionId: 'run_profile_pending',
+          state: RunSessionState.pendingValidation,
           updatedAtMs: 1,
-          grantId: 'run_profile_pending',
+          reward: SubmissionReward(
+            status: SubmissionRewardStatus.provisional,
+            provisionalGold: 17,
+            effectiveGoldDelta: 0,
+            spendableGoldDelta: 0,
+            updatedAtMs: 1,
+            grantId: 'run_profile_pending',
+          ),
         ),
-      ),
-    );
-    final coordinator = RunSubmissionCoordinator(
-      runSessionApi: runSessionApi,
-      spoolStore: _InMemorySpoolStore(),
-    );
-    final appState = AppState(
-      authApi: authApi,
-      loadoutOwnershipApi: _NoopOwnershipApi(gold: 222),
-      runSessionApi: runSessionApi,
-      runSubmissionCoordinator: coordinator,
-    );
-    await appState.bootstrap(force: true);
-    await appState.refreshRunSubmissionStatus(
-      runSessionId: 'run_profile_pending',
-    );
+      );
+      final coordinator = RunSubmissionCoordinator(
+        runSessionApi: runSessionApi,
+        spoolStore: _InMemorySpoolStore(),
+      );
+      final appState = AppState(
+        authApi: authApi,
+        loadoutOwnershipApi: _NoopOwnershipApi(gold: 222),
+        runSessionApi: runSessionApi,
+        runSubmissionCoordinator: coordinator,
+      );
+      await appState.bootstrap(force: true);
+      await appState.refreshRunSubmissionStatus(
+        runSessionId: 'run_profile_pending',
+      );
 
-    await tester.pumpWidget(_TestApp(appState: appState));
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(_TestApp(appState: appState));
+      await tester.pumpAndSettle();
 
-    final goldWidget = tester.widget<GoldDisplay>(
-      find.byWidgetPredicate((widget) {
-        return widget is GoldDisplay &&
-            widget.gold == 239 &&
-            widget.variant == GoldDisplayVariant.body;
-      }),
-    );
-    expect(goldWidget.gold, 239);
-  });
+      final goldWidget = tester.widget<GoldDisplay>(
+        find.byWidgetPredicate((widget) {
+          return widget is GoldDisplay &&
+              widget.gold == 222 &&
+              widget.variant == GoldDisplayVariant.body;
+        }),
+      );
+      expect(goldWidget.gold, 222);
+    },
+  );
 
   testWidgets('name edit shows specific duplicate-name error', (tester) async {
     final authApi = _StaticAuthApi(session: _anonymousSession());
@@ -345,13 +346,6 @@ class _NoopOwnershipApi implements LoadoutOwnershipApi {
   }
 
   @override
-  Future<OwnershipCommandResult> resetOwnership(
-    ResetOwnershipCommand command,
-  ) async {
-    return _accepted;
-  }
-
-  @override
   Future<OwnershipCommandResult> equipGear(EquipGearCommand command) async {
     return _accepted;
   }
@@ -371,32 +365,6 @@ class _NoopOwnershipApi implements LoadoutOwnershipApi {
   @override
   Future<OwnershipCommandResult> setProjectileSpell(
     SetProjectileSpellCommand command,
-  ) async {
-    return _accepted;
-  }
-
-  @override
-  Future<OwnershipCommandResult> learnProjectileSpell(
-    LearnProjectileSpellCommand command,
-  ) async {
-    return _accepted;
-  }
-
-  @override
-  Future<OwnershipCommandResult> learnSpellAbility(
-    LearnSpellAbilityCommand command,
-  ) async {
-    return _accepted;
-  }
-
-  @override
-  Future<OwnershipCommandResult> unlockGear(UnlockGearCommand command) async {
-    return _accepted;
-  }
-
-  @override
-  Future<OwnershipCommandResult> awardRunGold(
-    AwardRunGoldCommand command,
   ) async {
     return _accepted;
   }

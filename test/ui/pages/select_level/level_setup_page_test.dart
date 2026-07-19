@@ -69,11 +69,11 @@ void main() {
     await appState.bootstrap(force: true);
     final initialMode = appState.selection.selectedRunMode;
     final targetMode = initialMode == RunMode.practice
-      ? RunMode.competitive
-      : RunMode.practice;
+        ? RunMode.competitive
+        : RunMode.practice;
     final targetLabel = targetMode == RunMode.practice
-      ? 'PRACTICE'
-      : 'COMPETITIVE';
+        ? 'PRACTICE'
+        : 'COMPETITIVE';
 
     await tester.pumpWidget(_TestApp(appState: appState));
     await tester.pumpAndSettle();
@@ -261,11 +261,6 @@ class _RecordingOwnershipApi implements LoadoutOwnershipApi {
   }
 
   @override
-  Future<OwnershipCommandResult> resetOwnership(
-    ResetOwnershipCommand command,
-  ) async => _accepted();
-
-  @override
   Future<OwnershipCommandResult> equipGear(EquipGearCommand command) async =>
       _accepted();
 
@@ -281,25 +276,6 @@ class _RecordingOwnershipApi implements LoadoutOwnershipApi {
   @override
   Future<OwnershipCommandResult> setProjectileSpell(
     SetProjectileSpellCommand command,
-  ) async => _accepted();
-
-  @override
-  Future<OwnershipCommandResult> learnProjectileSpell(
-    LearnProjectileSpellCommand command,
-  ) async => _accepted();
-
-  @override
-  Future<OwnershipCommandResult> learnSpellAbility(
-    LearnSpellAbilityCommand command,
-  ) async => _accepted();
-
-  @override
-  Future<OwnershipCommandResult> unlockGear(UnlockGearCommand command) async =>
-      _accepted();
-
-  @override
-  Future<OwnershipCommandResult> awardRunGold(
-    AwardRunGoldCommand command,
   ) async => _accepted();
 
   @override

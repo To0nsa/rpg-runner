@@ -143,6 +143,27 @@ test("handleLeaderboardLoadActiveBoardData rejects userId/auth uid mismatch", as
   );
 });
 
+test("handleLeaderboardLoadActiveBoardData rejects client authority time", async () => {
+  await assert.rejects(
+    () =>
+      handleLeaderboardLoadActiveBoardData(
+        {
+          auth: { uid: "uid_1" },
+          data: {
+            userId: "uid_1",
+            sessionId: "session_1",
+            mode: "competitive",
+            levelId: "field",
+            gameCompatVersion: "2026.03.0",
+            nowMs: Date.UTC(2099, 0, 1),
+          },
+        },
+        db,
+      ),
+    (error: { code?: string }) => error.code === "invalid-argument",
+  );
+});
+
 test("load board returns ranked top entries from player_bests", async () => {
   await seedBoardWithEntries(db);
 
@@ -271,10 +292,10 @@ test("load active board data returns manifest + board + my rank", async () => {
         mode: "competitive",
         levelId: "field",
         gameCompatVersion: "2026.03.0",
-        nowMs: Date.UTC(2026, 2, 16, 12, 0, 0),
       },
     },
     db,
+    () => Date.UTC(2026, 2, 16, 12, 0, 0),
   );
 
   assert.equal(response.boardManifest.boardId, "board_competitive_live_field");
@@ -295,10 +316,10 @@ test("load active board data provisions board when missing", async () => {
         mode: "competitive",
         levelId: "field",
         gameCompatVersion: "2026.03.0",
-        nowMs: Date.UTC(2026, 2, 16, 12, 0, 0),
       },
     },
     db,
+    () => Date.UTC(2026, 2, 16, 12, 0, 0),
   );
 
   assert.ok(typeof response.boardManifest.boardId === "string");

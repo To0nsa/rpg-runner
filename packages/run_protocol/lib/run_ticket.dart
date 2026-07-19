@@ -22,8 +22,19 @@ final class RunTicket {
     this.rulesetVersion,
     this.scoreVersion,
     this.ghostVersion,
-  }) : assert(tickHz > 0, 'tickHz must be > 0'),
-       assert(expiresAtMs > issuedAtMs, 'expiresAtMs must be > issuedAtMs') {
+    this.boardOpensAtMs,
+    this.boardClosesAtMs,
+  }) {
+    if (tickHz <= 0) {
+      throw ArgumentError.value(tickHz, 'tickHz', 'must be positive');
+    }
+    if (expiresAtMs <= issuedAtMs) {
+      throw ArgumentError.value(
+        expiresAtMs,
+        'expiresAtMs',
+        'must be greater than issuedAtMs',
+      );
+    }
     if (mode.requiresBoard) {
       if (boardId == null ||
           boardKey == null ||
@@ -34,14 +45,26 @@ final class RunTicket {
           'Competitive/Weekly tickets require board and version fields.',
         );
       }
+      if ((boardOpensAtMs == null) != (boardClosesAtMs == null)) {
+        throw ArgumentError(
+          'Competitive/Weekly ticket board window must be complete when set.',
+        );
+      }
+      if (boardClosesAtMs != null && boardClosesAtMs! <= boardOpensAtMs!) {
+        throw ArgumentError(
+          'Competitive/Weekly ticket board window must be increasing.',
+        );
+      }
     } else {
       if (boardId != null ||
           boardKey != null ||
           rulesetVersion != null ||
           scoreVersion != null ||
-          ghostVersion != null) {
+          ghostVersion != null ||
+          boardOpensAtMs != null ||
+          boardClosesAtMs != null) {
         throw ArgumentError(
-          'Practice tickets must omit board and board-version fields.',
+          'Practice tickets must omit board, window, and board-version fields.',
         );
       }
     }
@@ -58,6 +81,13 @@ final class RunTicket {
   final String? rulesetVersion;
   final String? scoreVersion;
   final String? ghostVersion;
+
+  /// Immutable half-open board window captured at ranked ticket issuance.
+  ///
+  /// Both values are Unix epoch milliseconds. They are optional only when
+  /// decoding legacy ranked tickets; new backend writers emit the pair.
+  final int? boardOpensAtMs;
+  final int? boardClosesAtMs;
   final String levelId;
   final String playerCharacterId;
   final Map<String, Object?> loadoutSnapshot;
@@ -79,6 +109,8 @@ final class RunTicket {
       if (rulesetVersion != null) 'rulesetVersion': rulesetVersion,
       if (scoreVersion != null) 'scoreVersion': scoreVersion,
       if (ghostVersion != null) 'ghostVersion': ghostVersion,
+      if (boardOpensAtMs != null) 'boardOpensAtMs': boardOpensAtMs,
+      if (boardClosesAtMs != null) 'boardClosesAtMs': boardClosesAtMs,
       'levelId': levelId,
       'playerCharacterId': playerCharacterId,
       'loadoutSnapshot': loadoutSnapshot,
@@ -96,13 +128,17 @@ final class RunTicket {
       uid: readRequiredString(json, 'uid'),
       mode: RunMode.parse(json['mode'], fieldName: 'mode'),
       boardId: readOptionalString(json, 'boardId'),
-      boardKey: json['boardKey'] == null ? null : BoardKey.fromJson(json['boardKey']),
+      boardKey: json['boardKey'] == null
+          ? null
+          : BoardKey.fromJson(json['boardKey']),
       seed: readRequiredInt(json, 'seed'),
       tickHz: readRequiredInt(json, 'tickHz'),
       gameCompatVersion: readRequiredString(json, 'gameCompatVersion'),
       rulesetVersion: readOptionalString(json, 'rulesetVersion'),
       scoreVersion: readOptionalString(json, 'scoreVersion'),
       ghostVersion: readOptionalString(json, 'ghostVersion'),
+      boardOpensAtMs: readOptionalInt(json, 'boardOpensAtMs'),
+      boardClosesAtMs: readOptionalInt(json, 'boardClosesAtMs'),
       levelId: readRequiredString(json, 'levelId'),
       playerCharacterId: readRequiredString(json, 'playerCharacterId'),
       loadoutSnapshot: readRequiredObject(json, 'loadoutSnapshot'),

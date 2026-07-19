@@ -11,13 +11,12 @@ runtime integration begins.
 The Town store should let players buy permanent unlocks for loadout content
 while keeping ownership, pricing, and refresh behavior server-authoritative.
 
-## Delivery Assumption
+## Delivery Context
 
-- This is pre-launch work with no live users.
-- No production data migration path is required for ownership/progression
-  schema changes.
-- During implementation, local/emulator state can be reset instead of carrying
-  legacy compatibility logic.
+The original plan assumed pre-launch implementation. That assumption no longer
+applies: the Firebase backend is deployed, so ownership/progression changes now
+require a production inventory, compatible rollout, and explicit repair policy
+when persisted authority may have been affected.
 
 ## Locked Decisions
 
@@ -52,26 +51,21 @@ These decisions are locked for v1 unless explicitly revised:
 - Ownership model changes ship as direct schema replacement (no live-data
   migration track).
 
-## Current Baseline
+## Current Implemented Baseline
 
-Already in place:
+The original direct grant baseline has been superseded. The current authority
+model is:
 
 - Firebase-backed ownership canonical state with revision + idempotency
-- permanent ownership mutations for:
-  - gear unlocks
-  - projectile spell learning
-  - spell-slot ability learning
-- gold accrual via `awardRunGold`
-- placeholder Town route in UI
+- server-authored store inventory, purchase pricing, permanent unlocks, and
+  refresh quota state
+- public permanent unlocks only through `purchaseStoreOffer`
+- run gold credited only through accepted replay reward settlement
+- no public `awardRunGold`, direct learn/unlock, or reset command DTO/API
+- selection/equip requests authorized against canonical ownership
+- Town UI and gold refresh integration
 
-Current gaps:
-
-- no store inventory state
-- no gold spending command
-- no store refresh command
-- no rewarded-ad integration
-- no daily refresh quota tracking
-- non-spell skills are not yet modeled as individually owned unlocks
+Rewarded-ad refresh remains the planned final delivery phase.
 
 ## Scope
 

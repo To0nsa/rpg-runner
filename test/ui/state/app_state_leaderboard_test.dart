@@ -87,27 +87,30 @@ void main() {
     expect(leaderboardApi.lastLoadMyRankBoardId, 'board_2026_03_field');
   });
 
-  test('loadOnlineLeaderboardData delegates to combined leaderboard api', () async {
-    final leaderboardApi = _RecordingLeaderboardApi();
-    final appState = AppState(
-      authApi: _StaticAuthApi.authenticated(),
-      loadoutOwnershipApi: _StaticOwnershipApi(),
-      runBoardsApi: _RecordingRunBoardsApi(),
-      leaderboardApi: leaderboardApi,
-    );
-    await appState.bootstrap(force: true);
+  test(
+    'loadOnlineLeaderboardData delegates to combined leaderboard api',
+    () async {
+      final leaderboardApi = _RecordingLeaderboardApi();
+      final appState = AppState(
+        authApi: _StaticAuthApi.authenticated(),
+        loadoutOwnershipApi: _StaticOwnershipApi(),
+        runBoardsApi: _RecordingRunBoardsApi(),
+        leaderboardApi: leaderboardApi,
+      );
+      await appState.bootstrap(force: true);
 
-    final data = await appState.loadOnlineLeaderboardData(
-      mode: RunMode.competitive,
-      levelId: LevelId.field,
-    );
+      final data = await appState.loadOnlineLeaderboardData(
+        mode: RunMode.competitive,
+        levelId: LevelId.field,
+      );
 
-    expect(data.board.boardId, 'board_2026_03_field');
-    expect(data.myRank.rank, 7);
-    expect(leaderboardApi.loadActiveBoardDataCalls, 1);
-    expect(leaderboardApi.lastLoadActiveBoardMode, RunMode.competitive);
-    expect(leaderboardApi.lastLoadActiveBoardLevelId, LevelId.field);
-  });
+      expect(data.board.boardId, 'board_2026_03_field');
+      expect(data.myRank.rank, 7);
+      expect(leaderboardApi.loadActiveBoardDataCalls, 1);
+      expect(leaderboardApi.lastLoadActiveBoardMode, RunMode.competitive);
+      expect(leaderboardApi.lastLoadActiveBoardLevelId, LevelId.field);
+    },
+  );
 
   test('loadOnlineLeaderboardBoard rejects practice mode', () async {
     final appState = AppState(
@@ -325,28 +328,7 @@ class _StaticOwnershipApi implements LoadoutOwnershipApi {
   final OwnershipCanonicalState _canonical;
 
   @override
-  Future<OwnershipCommandResult> awardRunGold(
-    AwardRunGoldCommand command,
-  ) async {
-    return _acceptedNoop();
-  }
-
-  @override
   Future<OwnershipCommandResult> equipGear(EquipGearCommand command) async {
-    return _acceptedNoop();
-  }
-
-  @override
-  Future<OwnershipCommandResult> learnProjectileSpell(
-    LearnProjectileSpellCommand command,
-  ) async {
-    return _acceptedNoop();
-  }
-
-  @override
-  Future<OwnershipCommandResult> learnSpellAbility(
-    LearnSpellAbilityCommand command,
-  ) async {
     return _acceptedNoop();
   }
 
@@ -368,13 +350,6 @@ class _StaticOwnershipApi implements LoadoutOwnershipApi {
   @override
   Future<OwnershipCommandResult> refreshStore(
     RefreshStoreCommand command,
-  ) async {
-    return _acceptedNoop();
-  }
-
-  @override
-  Future<OwnershipCommandResult> resetOwnership(
-    ResetOwnershipCommand command,
   ) async {
     return _acceptedNoop();
   }
@@ -402,11 +377,6 @@ class _StaticOwnershipApi implements LoadoutOwnershipApi {
   Future<OwnershipCommandResult> setSelection(
     SetSelectionCommand command,
   ) async {
-    return _acceptedNoop();
-  }
-
-  @override
-  Future<OwnershipCommandResult> unlockGear(UnlockGearCommand command) async {
     return _acceptedNoop();
   }
 

@@ -1,5 +1,7 @@
 import { HttpsError } from "firebase-functions/v2/https";
 
+import { assertCallablePayloadBounds } from "../abuse/payload_bounds.js";
+import { rejectClientAuthorityTime } from "../authority_time.js";
 import { requireNonEmptyString, requireObject } from "../ownership/validators.js";
 import { parseRunMode } from "../runs/mode.js";
 import type { BoardStatus } from "./contracts.js";
@@ -10,11 +12,12 @@ interface LoadActiveBoardRequest {
   mode: "competitive" | "weekly";
   levelId: string;
   gameCompatVersion: string;
-  nowMs?: number;
 }
 
 export function parseLoadActiveBoardRequest(raw: unknown): LoadActiveBoardRequest {
+  assertCallablePayloadBounds(raw);
   const data = requireObject(raw, "request");
+  rejectClientAuthorityTime(data);
   const mode = parseRunMode(data.mode, "mode");
   if (mode === "practice") {
     throw new HttpsError(
@@ -31,7 +34,6 @@ export function parseLoadActiveBoardRequest(raw: unknown): LoadActiveBoardReques
       data.gameCompatVersion,
       "gameCompatVersion",
     ),
-    nowMs: parseOptionalNowMs(data.nowMs),
   };
 }
 
@@ -52,14 +54,3 @@ export function parseBoardStatusValue(value: unknown, fieldName: string): BoardS
       );
   }
 }
-
-function parseOptionalNowMs(value: unknown): number | undefined {
-  if (value === undefined || value === null) {
-    return undefined;
-  }
-  if (!Number.isInteger(value)) {
-    throw new HttpsError("invalid-argument", "nowMs must be an integer.");
-  }
-  return value as number;
-}
-

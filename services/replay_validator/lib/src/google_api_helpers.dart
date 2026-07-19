@@ -1,15 +1,13 @@
-import 'package:_discoveryapis_commons/_discoveryapis_commons.dart'
-    as commons;
+import 'package:_discoveryapis_commons/_discoveryapis_commons.dart' as commons;
 import 'package:googleapis/firestore/v1.dart' as firestore;
 import 'package:googleapis/storage/v1.dart' as storage;
 import 'package:googleapis_auth/auth_io.dart' as auth;
 
 class GoogleCloudApiProvider {
-  GoogleCloudApiProvider({
-    List<String>? scopes,
-  }) : _scopes =
-           scopes ??
-           const <String>['https://www.googleapis.com/auth/cloud-platform'];
+  GoogleCloudApiProvider({List<String>? scopes})
+    : _scopes =
+          scopes ??
+          const <String>['https://www.googleapis.com/auth/cloud-platform'];
 
   final List<String> _scopes;
   Future<auth.AutoRefreshingAuthClient>? _authClientFuture;
@@ -37,7 +35,23 @@ bool isApiConflict(Object error) {
   if (error is! commons.DetailedApiRequestError) {
     return false;
   }
-  return error.status == 409 || error.status == 412;
+  if (error.status == 409 || error.status == 412) {
+    return true;
+  }
+  if (error.status != 400) {
+    return false;
+  }
+  final responseError = error.jsonResponse?['error'];
+  if (responseError is Map &&
+      responseError['status'] == 'FAILED_PRECONDITION') {
+    return true;
+  }
+  // The Firestore REST client sometimes omits the JSON error body for this
+  // optimistic-concurrency response. Its stable message remains specific to a
+  // document update-time precondition, unlike a general invalid request.
+  final message = error.message?.toLowerCase() ?? '';
+  return message.contains('stored version') &&
+      message.contains('required base version');
 }
 
 bool isApiAlreadyExists(Object error) {

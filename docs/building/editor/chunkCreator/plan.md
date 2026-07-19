@@ -571,7 +571,8 @@ Gate:
 
 Deferred from Phase 5:
 
-- richer terrain editing (`ramps`, `steps`, per-segment height)
+- richer terrain editing (`ramps`, `steps`, per-segment height), now owned by the
+  [Sloped Terrain And Capsule Traversal High-Level Plan](../../slopes/plan.md)
 - jumpability or unsafe-gap overlays tied to character/enemy movement rules
 - level-specific fairness constraints such as min/max widths or clearance rules
 

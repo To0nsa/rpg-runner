@@ -57,6 +57,8 @@ coordinate them deliberately.
   board metadata contracts
 - `lib/leaderboard_entry.dart` and `lib/sort_key.dart`: projection contracts and
   deterministic ranking keys
+- `lib/run_duration.dart`: canonical authoritative/client tick-to-seconds
+  conversion
 - `lib/submission_status.dart` and `lib/validated_run.dart`: validation result
   and client-visible submission state
 - `lib/codecs/`: typed JSON parsing and canonical JSON helpers
@@ -100,6 +102,8 @@ Add focused tests for:
 - adding dependencies that make this package unusable from workers or tests
 - changing protocol semantics without updating the replay validator and
   Firebase callable validators
+- dropping immutable replay generation/digest fields between validated-run,
+  leaderboard, and ghost contracts
 
 ---
 

@@ -24,7 +24,11 @@ const app = initializeApp({ projectId }, appName);
 const db = getFirestore(app);
 
 beforeEach(async () => {
-  await clearCollection(db, "leaderboard_boards");
+  await Promise.all([
+    clearCollection(db, "leaderboard_boards"),
+    clearCollection(db, "abuse_quota"),
+    clearCollection(db, "account_deletion_requests"),
+  ]);
 });
 
 after(async () => {
@@ -32,42 +36,73 @@ after(async () => {
 });
 
 test("handleGhostLoadManifest rejects unauthenticated requests", async () => {
-  await assert.rejects(
-    () =>
-      handleGhostLoadManifest(
-        {
-          data: {
-            userId: "uid_1",
-            sessionId: "session_1",
-            boardId: "board_1",
-            entryId: "entry_1",
+  await withoutReplayStorageBucket(async () => {
+    await assert.rejects(
+      () =>
+        handleGhostLoadManifest(
+          {
+            data: {
+              userId: "uid_1",
+              sessionId: "session_1",
+              boardId: "board_1",
+              entryId: "entry_1",
+            },
           },
-        },
-        db,
-        new _RecordingGhostDownloadUrlSigner(),
-      ),
-    (error: { code?: string }) => error.code === "unauthenticated",
-  );
+          db,
+        ),
+      (error: { code?: string }) => error.code === "unauthenticated",
+    );
+  });
 });
 
 test("handleGhostLoadManifest rejects userId/auth uid mismatch", async () => {
-  await assert.rejects(
-    () =>
-      handleGhostLoadManifest(
-        {
-          auth: { uid: "uid_auth" },
-          data: {
-            userId: "uid_other",
-            sessionId: "session_1",
-            boardId: "board_1",
-            entryId: "entry_1",
+  await withoutReplayStorageBucket(async () => {
+    await assert.rejects(
+      () =>
+        handleGhostLoadManifest(
+          {
+            auth: { uid: "uid_auth" },
+            data: {
+              userId: "uid_other",
+              sessionId: "session_1",
+              boardId: "board_1",
+              entryId: "entry_1",
+            },
           },
-        },
-        db,
-        new _RecordingGhostDownloadUrlSigner(),
-      ),
-    (error: { code?: string }) => error.code === "permission-denied",
-  );
+          db,
+        ),
+      (error: { code?: string }) => error.code === "permission-denied",
+    );
+  });
+});
+
+test("authorized ghost loads report missing Storage configuration", async () => {
+  await seedManifest(db, {
+    boardId: "board_1",
+    entryId: "entry_1",
+    replayStorageRef: "ghosts/board_1/entry_1/ghost.bin.gz",
+    status: "active",
+    exposed: true,
+  });
+
+  await withoutReplayStorageBucket(async () => {
+    await assert.rejects(
+      () =>
+        handleGhostLoadManifest(
+          {
+            auth: { uid: "uid_1" },
+            data: {
+              userId: "uid_1",
+              sessionId: "session_1",
+              boardId: "board_1",
+              entryId: "entry_1",
+            },
+          },
+          db,
+        ),
+      (error: { code?: string }) => error.code === "failed-precondition",
+    );
+  });
 });
 
 test("loads active exposed ghost manifest with signed download URL", async () => {
@@ -101,12 +136,53 @@ test("loads active exposed ghost manifest with signed download URL", async () =>
     response.ghostManifest.replayStorageRef,
     "ghosts/board_1/entry_1/ghost.bin.gz",
   );
+  assert.equal(response.ghostManifest.sourceReplayStorageGeneration, "123");
+  assert.equal(response.ghostManifest.promotedReplayStorageGeneration, "456");
+  assert.equal(response.ghostManifest.replayDigest, "a".repeat(64));
   assert.equal(
     response.ghostManifest.downloadUrl,
     "https://example.test/ghosts/board_1/entry_1/ghost.bin.gz",
   );
   assert.ok(response.ghostManifest.downloadUrlExpiresAtMs > Date.now());
   assert.equal(signer.lastObjectPath, "ghosts/board_1/entry_1/ghost.bin.gz");
+});
+
+test("ghost quota rejects before a second signed URL is created", async () => {
+  await seedManifest(db, {
+    boardId: "board_quota",
+    entryId: "entry_quota",
+    replayStorageRef: "ghosts/board_quota/entry_quota/ghost.bin.gz",
+    status: "active",
+    exposed: true,
+  });
+  const signer = new _RecordingGhostDownloadUrlSigner();
+  const previous = captureEnv([
+    "ABUSE_CONTROL_MODE",
+    "ABUSE_GHOST_URL_BURST_LIMIT",
+    "ABUSE_GHOST_URL_SUSTAINED_LIMIT",
+  ]);
+  process.env.ABUSE_CONTROL_MODE = "enforce";
+  process.env.ABUSE_GHOST_URL_BURST_LIMIT = "1";
+  process.env.ABUSE_GHOST_URL_SUSTAINED_LIMIT = "1";
+  const request = {
+    auth: { uid: "uid_quota" },
+    data: {
+      userId: "uid_quota",
+      sessionId: "session_1",
+      boardId: "board_quota",
+      entryId: "entry_quota",
+    },
+  };
+  try {
+    await handleGhostLoadManifest(request, db, signer);
+    await assert.rejects(
+      () => handleGhostLoadManifest(request, db, signer),
+      (error: { code?: string }) => error.code === "resource-exhausted",
+    );
+    assert.equal(signer.callCount, 1);
+  } finally {
+    restoreEnv(previous);
+  }
 });
 
 test("rejects demoted or hidden ghost manifests", async () => {
@@ -192,6 +268,9 @@ async function seedManifest(
       replayStorageRef: args.replayStorageRef,
       sourceReplayStorageRef:
         `replay-submissions/pending/uid_1/run_${args.entryId}/replay.bin.gz`,
+      sourceReplayStorageGeneration: "123",
+      promotedReplayStorageGeneration: "456",
+      replayDigest: "a".repeat(64),
       score: 1000,
       distanceMeters: 400,
       durationSeconds: 120,
@@ -208,14 +287,46 @@ async function clearCollection(dbValue: Firestore, name: string): Promise<void> 
   await Promise.all(docs.map((docRef) => dbValue.recursiveDelete(docRef)));
 }
 
+async function withoutReplayStorageBucket(
+  action: () => Promise<void>,
+): Promise<void> {
+  const previous = process.env.REPLAY_STORAGE_BUCKET;
+  delete process.env.REPLAY_STORAGE_BUCKET;
+  try {
+    await action();
+  } finally {
+    if (previous === undefined) {
+      delete process.env.REPLAY_STORAGE_BUCKET;
+    } else {
+      process.env.REPLAY_STORAGE_BUCKET = previous;
+    }
+  }
+}
+
 class _RecordingGhostDownloadUrlSigner implements GhostDownloadUrlSigner {
   lastObjectPath?: string;
+  callCount = 0;
 
   async signDownloadUrl(args: {
     objectPath: string;
     expiresAtMs: number;
   }): Promise<string> {
+    this.callCount += 1;
     this.lastObjectPath = args.objectPath;
     return `https://example.test/${args.objectPath}`;
+  }
+}
+
+function captureEnv(names: string[]): Map<string, string | undefined> {
+  return new Map(names.map((name) => [name, process.env[name]]));
+}
+
+function restoreEnv(values: Map<string, string | undefined>): void {
+  for (const [name, value] of values.entries()) {
+    if (value === undefined) {
+      delete process.env[name];
+    } else {
+      process.env[name] = value;
+    }
   }
 }

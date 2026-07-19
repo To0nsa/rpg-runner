@@ -10,6 +10,9 @@ export interface GhostManifestResult {
   uid: string;
   replayStorageRef: string;
   sourceReplayStorageRef: string;
+  sourceReplayStorageGeneration: string;
+  promotedReplayStorageGeneration: string;
+  replayDigest: string;
   score: number;
   distanceMeters: number;
   durationSeconds: number;
@@ -69,6 +72,18 @@ export async function loadGhostManifest(args: {
       parsed.sourceReplayStorageRef,
       "ghostManifest.sourceReplayStorageRef",
     ),
+    sourceReplayStorageGeneration: readRequiredGeneration(
+      parsed.sourceReplayStorageGeneration,
+      "ghostManifest.sourceReplayStorageGeneration",
+    ),
+    promotedReplayStorageGeneration: readRequiredGeneration(
+      parsed.promotedReplayStorageGeneration,
+      "ghostManifest.promotedReplayStorageGeneration",
+    ),
+    replayDigest: readRequiredDigest(
+      parsed.replayDigest,
+      "ghostManifest.replayDigest",
+    ),
     score: readRequiredInt(parsed.score, "ghostManifest.score"),
     distanceMeters: readRequiredInt(
       parsed.distanceMeters,
@@ -105,6 +120,28 @@ function readRequiredInt(value: unknown, fieldName: string): number {
   const parsed = readInt(value);
   if (parsed == null) {
     throw new HttpsError("failed-precondition", `${fieldName} must be an integer.`);
+  }
+  return parsed;
+}
+
+function readRequiredGeneration(value: unknown, fieldName: string): string {
+  const parsed = readRequiredString(value, fieldName);
+  if (!/^[1-9][0-9]*$/u.test(parsed)) {
+    throw new HttpsError(
+      "failed-precondition",
+      `${fieldName} must be a positive integer string.`,
+    );
+  }
+  return parsed;
+}
+
+function readRequiredDigest(value: unknown, fieldName: string): string {
+  const parsed = readRequiredString(value, fieldName);
+  if (!/^[a-f0-9]{64}$/u.test(parsed)) {
+    throw new HttpsError(
+      "failed-precondition",
+      `${fieldName} must be a lower-case SHA-256 digest.`,
+    );
   }
   return parsed;
 }

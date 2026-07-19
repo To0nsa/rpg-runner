@@ -1,7 +1,4 @@
-Map<String, Object?> asObjectMap(
-  Object? raw, {
-  required String fieldName,
-}) {
+Map<String, Object?> asObjectMap(Object? raw, {required String fieldName}) {
   if (raw is! Map) {
     throw FormatException('$fieldName must be a JSON object.');
   }
@@ -38,6 +35,9 @@ int readRequiredInt(Map<String, Object?> json, String key) {
   if (raw is! num) {
     throw FormatException('$key must be a number.');
   }
+  if (!raw.toDouble().isFinite) {
+    throw FormatException('$key must be finite.');
+  }
   if (raw is! int && raw != raw.roundToDouble()) {
     throw FormatException('$key must be an integer.');
   }
@@ -50,6 +50,9 @@ int? readOptionalInt(Map<String, Object?> json, String key) {
   if (raw is! num) {
     throw FormatException('$key must be a number when set.');
   }
+  if (!raw.toDouble().isFinite) {
+    throw FormatException('$key must be finite when set.');
+  }
   if (raw is! int && raw != raw.roundToDouble()) {
     throw FormatException('$key must be an integer when set.');
   }
@@ -61,7 +64,11 @@ double readRequiredDouble(Map<String, Object?> json, String key) {
   if (raw is! num) {
     throw FormatException('$key must be a number.');
   }
-  return raw.toDouble();
+  final value = raw.toDouble();
+  if (!value.isFinite) {
+    throw FormatException('$key must be finite.');
+  }
+  return value;
 }
 
 double? readOptionalDouble(Map<String, Object?> json, String key) {
@@ -70,7 +77,11 @@ double? readOptionalDouble(Map<String, Object?> json, String key) {
   if (raw is! num) {
     throw FormatException('$key must be a number when set.');
   }
-  return raw.toDouble();
+  final value = raw.toDouble();
+  if (!value.isFinite) {
+    throw FormatException('$key must be finite when set.');
+  }
+  return value;
 }
 
 bool readRequiredBool(Map<String, Object?> json, String key) {
@@ -85,7 +96,10 @@ Map<String, Object?> readRequiredObject(Map<String, Object?> json, String key) {
   return asObjectMap(json[key], fieldName: key);
 }
 
-Map<String, Object?>? readOptionalObject(Map<String, Object?> json, String key) {
+Map<String, Object?>? readOptionalObject(
+  Map<String, Object?> json,
+  String key,
+) {
   final raw = json[key];
   if (raw == null) return null;
   return asObjectMap(raw, fieldName: key);

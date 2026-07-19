@@ -32,21 +32,14 @@ class UserProfileRemoteException implements Exception {
 }
 
 class UserProfileUpdate {
-  const UserProfileUpdate({
-    this.displayName,
-    this.displayNameLastChangedAtMs,
-    this.namePromptCompleted,
-  });
+  const UserProfileUpdate({this.displayName, this.namePromptCompleted});
 
   final String? displayName;
-  final int? displayNameLastChangedAtMs;
   final bool? namePromptCompleted;
 
   Map<String, Object?> toJson() {
     return <String, Object?>{
       if (displayName != null) 'displayName': displayName,
-      if (displayNameLastChangedAtMs != null)
-        'displayNameLastChangedAtMs': displayNameLastChangedAtMs,
       if (namePromptCompleted != null)
         'namePromptCompleted': namePromptCompleted,
     };
@@ -85,7 +78,6 @@ class NoopUserProfileRemoteApi implements UserProfileRemoteApi {
   }) async {
     return UserProfile.empty.copyWith(
       displayName: update.displayName,
-      displayNameLastChangedAtMs: update.displayNameLastChangedAtMs,
       namePromptCompleted: update.namePromptCompleted,
     );
   }

@@ -1,0 +1,192 @@
+# Functions Audit Remediation Production Deployment — July 19, 2026
+
+## Authorization and scope
+
+The repository owner authorized direct deployment to
+`rpg-runner-d7add` because there is no staging project and the game is not
+live. Production was treated as an empty-user canary.
+
+Deployment scope:
+
+- Firestore Security Rules and composite indexes;
+- the complete Firebase Functions codebase;
+- the replay-validator Cloud Run service;
+- replay-validation and replay-projection queue policy.
+
+Firebase Hosting and native Flutter releases were not deployed. App Check and
+abuse quotas remain in monitoring mode with production limits unset.
+
+Post-deployment behavior, inventory, canary deletion, retention migration, and
+monitoring evidence are recorded separately in the
+[production verification record](production-verification-2026-07-19.md).
+
+## Pre-deployment validation
+
+- Functions TypeScript build: passed.
+- Functions emulator suite: 167/167 passed.
+- Production dependency audit: no known vulnerabilities.
+- Repository Dart analysis: no issues.
+- Flutter state suite: 118/118 passed.
+- Shared protocol: analysis passed; 35/35 tests passed.
+- Replay validator: analysis passed; 65/65 tests passed.
+- Replay validator deployment executable compilation: passed.
+- `git diff --check`: passed.
+
+## Firestore deployment
+
+Deployment began at approximately `2026-07-19T11:17:04Z`.
+
+- Ruleset: `49614c26-f9f7-4bea-be06-8e9b0bb40800`.
+- Rules release updated at `2026-07-19T11:17:12.378901Z`.
+- Eight `run_sessions` composite indexes were created.
+- All eight indexes reached `READY` before Functions deployment began.
+- No native Firestore TTL policy was added. Quota and ownership-idempotency
+  retention continue to use the source-controlled scheduled cleanup.
+
+## Firebase Functions deployment
+
+All 27 second-generation Functions are active in `europe-west1` on Node.js 24.
+Every Function reports source hash:
+
+`2115e29ed3b5871781e1fcc53f6d11305a8dc53f`
+
+Deployed revisions:
+
+| Function | Revision |
+| --- | --- |
+| `abuseQuotaRetentionCleanup` | `abusequotaretentioncleanup-00001-wuc` |
+| `accountDelete` | `accountdelete-00007-zob` |
+| `accountDeletionRepair` | `accountdeletionrepair-00001-piz` |
+| `ghostLoadManifest` | `ghostloadmanifest-00007-lev` |
+| `leaderboardBoardMaintenance` | `leaderboardboardmaintenance-00007-per` |
+| `leaderboardLoadActiveBoardData` | `leaderboardloadactiveboarddata-00007-dif` |
+| `leaderboardLoadBoard` | `leaderboardloadboard-00007-zac` |
+| `leaderboardLoadMyRank` | `leaderboardloadmyrank-00007-ner` |
+| `loadoutOwnershipExecuteCommand` | `loadoutownershipexecutecommand-00007-gac` |
+| `loadoutOwnershipLoadCanonicalState` | `loadoutownershiploadcanonicalstate-00007-mev` |
+| `ownershipIdempotencyRetentionCleanup` | `ownershipidempotencyretentioncleanup-00001-jem` |
+| `playerProfileConsistencyRepair` | `playerprofileconsistencyrepair-00001-xer` |
+| `playerProfileLoad` | `playerprofileload-00007-cuq` |
+| `playerProfileUpdate` | `playerprofileupdate-00007-vos` |
+| `runBoardsLoadActive` | `runboardsloadactive-00007-xef` |
+| `runLegacyRewardGrantMigration` | `runlegacyrewardgrantmigration-00005-tuc` |
+| `runProjectionOnAccepted` | `runprojectiononaccepted-00004-feg` |
+| `runProjectionReconciliation` | `runprojectionreconciliation-00001-vad` |
+| `runSessionCreate` | `runsessioncreate-00007-yux` |
+| `runSessionCreateUploadGrant` | `runsessioncreateuploadgrant-00007-men` |
+| `runSessionFinalizeUpload` | `runsessionfinalizeupload-00007-xeg` |
+| `runSessionLoadStatus` | `runsessionloadstatus-00007-qox` |
+| `runSettlementImmediate` | `runsettlementimmediate-00006-jez` |
+| `runSettlementOnHandoff` | `runsettlementonhandoff-00006-tur` |
+| `runSettlementRepair` | `runsettlementrepair-00006-vux` |
+| `runSubmissionCleanup` | `runsubmissioncleanup-00007-rod` |
+| `runValidationRepair` | `runvalidationrepair-00001-tav` |
+
+Deployment configuration verification:
+
+- `APP_CHECK_*` environment key count on `runSessionCreate`: zero;
+- `ABUSE_*` environment key count on `runSessionCreate`: zero;
+- source defaults therefore keep both controls in monitoring mode;
+- quota limits remain unset;
+- `runSettlementImmediate` has no public invoker and grants
+  `roles/run.invoker` only to the replay-validator service account;
+- all ten scheduler jobs are enabled except the intentionally paused
+  `runLegacyRewardGrantMigration`.
+
+The first `accountDeletionRepair` scheduler attempt received 403 during IAM
+propagation at `2026-07-19T11:25:08Z`. The next attempt at
+`2026-07-19T11:26:08Z` and every observed attempt through 11:32 returned 200.
+Its scheduler OIDC identity matches the service's sole invoker binding.
+
+## Replay-validator deployment
+
+- Cloud Build:
+  `bce6cbc9-ee1c-46e0-819c-02e7aa3ab290`.
+- Image:
+  `europe-west1-docker.pkg.dev/rpg-runner-d7add/replay/replay-validator:audit-remediation-20260719-112556`.
+- Image digest:
+  `sha256:2702ae532949d041d3cf4b6351cd0378abce7c9ebd9b4939e721d98fd2a27240`.
+- Cloud Run revision: `replay-validator-00021-lqc`.
+- Traffic: 100%.
+- Runtime identity: replay-validator service account.
+- Concurrency: 1.
+- Request timeout: 240 seconds.
+- Startup `/readyz` and liveness `/healthz` probes: configured and passing.
+- Authenticated `/readyz`: HTTP 200 with `status: ready`.
+- Direct external authenticated `/healthz` returned a Google frontend 404, but
+  the container's liveness probe and application request logs repeatedly show
+  HTTP 200 for `/healthz`. The revision remains ready and healthy.
+
+Queue policy after deployment:
+
+| Queue | Rate | Concurrency | Attempts | Retry duration | Target |
+| --- | ---: | ---: | ---: | --- | --- |
+| `replay-validation` | 5/sec | 5 | 8 | 24 hours | `/tasks/validate` |
+| `replay-projection` | 5/sec | 5 | 100 | 7 days | `/tasks/project` |
+
+Both queues are running, use the task-dispatch service identity with OIDC, and
+target the deployed validator URL.
+
+### Follow-up conflict-classification revision
+
+The authenticated canary exposed a structured Firestore
+`FAILED_PRECONDITION` response that the validator initially allowed to escape
+as HTTP 500 before Cloud Tasks recovered. The classifier was corrected and
+redeployed later on July 19:
+
+- Cloud Build:
+  `cee682f7-57d0-4f72-b6e0-8be327d19b6e`;
+- image digest:
+  `sha256:b75a241d53eb8ff5936c815867f3497e539f6d9a178c63c293d10a130e48c70c`;
+- Cloud Run revision: `replay-validator-00022-sb6`;
+- traffic: 100%;
+- startup probe: `/ready`, HTTP 200;
+- liveness probe: `/live`, HTTP 200;
+- retired `/readyz` and `/healthz`: HTTP 404;
+- validator analysis passed, 73 tests passed, and the deployment executable
+  compiled successfully.
+
+The new classifier accepts HTTP 400 only when the structured Google error
+status is exactly `FAILED_PRECONDITION`; arbitrary HTTP 400 errors remain
+unclassified input failures. Lease and atomic-handoff conflicts now return
+structured retry results for Cloud Tasks instead of an unclassified 500.
+
+## Production smoke evidence
+
+- `loadoutOwnershipLoadCanonicalState` without Firebase Auth: HTTP 401
+  `UNAUTHENTICATED`.
+- `runSessionCreate` without Firebase Auth: HTTP 401 `UNAUTHENTICATED`.
+- Both smokes emitted `callable_app_check` with rollout mode `monitor` and
+  token status `missing_or_invalid`.
+- `runSettlementImmediate` without its authorized identity: HTTP 403.
+- Validator `/readyz`: HTTP 200.
+- Validator startup and liveness probes: HTTP 200.
+- No Cloud Run error entries were observed after the completed rollout.
+- The only scheduler error was the initial IAM-propagation 403 described
+  above; subsequent attempts succeeded.
+
+No synthetic authenticated account, run session, replay, reward, deletion, or
+profile mutation was created during these smoke checks.
+
+## Remaining verification
+
+The production inventory, authenticated valid/invalid replay canary, controlled
+account deletion, profile/index consistency check, idempotency migration, and
+initial monitoring verification are now complete. During that work, a missing
+collection-group index for ownership-idempotency expiry was found, added to
+`firestore.indexes.json`, deployed, and verified `READY`.
+
+Remaining work includes:
+
+- deployment of an App Check-capable Flutter release;
+- measured legitimate App Check success rates and normal-client quota
+  distributions;
+- reviewed quota values and enforcement;
+- confirmation that the alert notification channel can deliver;
+- privacy/legal review of retained deletion evidence;
+- a longer observation window covering settlement latency, repair, deletion,
+  idempotency, and resource cost;
+- intentionally injected failure/quarantine coverage in an emulator or future
+  isolated test project.
+
+No audit finding is marked closed solely because this deployment succeeded.

@@ -1,0 +1,45 @@
+{
+  "displayName": "RPG Runner - immediate settlement fallback above 5%",
+  "documentation": {
+    "content": "More than 5% of accepted runs needed Eventarc or repair after the immediate settlement request failed. Gold remains protected by the durable fallback, but inspect validator-to-Functions authentication, availability, and latency.",
+    "mimeType": "text/markdown"
+  },
+  "conditions": [
+    {
+      "displayName": "Fallback ratio over 15 minutes",
+      "conditionThreshold": {
+        "filter": "metric.type=\"logging.googleapis.com/user/reward_settlement_immediate_dispatch_fallbacks\" AND resource.type=\"cloud_run_revision\"",
+        "aggregations": [
+          {
+            "alignmentPeriod": "900s",
+            "perSeriesAligner": "ALIGN_SUM",
+            "crossSeriesReducer": "REDUCE_SUM"
+          }
+        ],
+        "denominatorFilter": "metric.type=\"logging.googleapis.com/user/reward_settlement_immediate_dispatch_attempts\" AND resource.type=\"cloud_run_revision\"",
+        "denominatorAggregations": [
+          {
+            "alignmentPeriod": "900s",
+            "perSeriesAligner": "ALIGN_SUM",
+            "crossSeriesReducer": "REDUCE_SUM"
+          }
+        ],
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 0.05,
+        "duration": "0s",
+        "trigger": {
+          "count": 1
+        }
+      }
+    }
+  ],
+  "combiner": "OR",
+  "enabled": true,
+  "alertStrategy": {
+    "autoClose": "604800s"
+  },
+  "userLabels": {
+    "component": "reward-settlement",
+    "severity": "warning"
+  }
+}

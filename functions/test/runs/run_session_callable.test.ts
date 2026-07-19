@@ -74,6 +74,69 @@ test("createRunSession issues boardless practice ticket from canonical selection
   assert.deepEqual(persisted.get("runTicket"), ticket);
 });
 
+test("createRunSession is idempotent for a bounded client request ID", async () => {
+  const args = {
+    db,
+    uid,
+    clientRequestId: "run_request_idempotent_1",
+    mode: "practice" as const,
+    levelId: "field",
+    gameCompatVersion: "build-2026-03-12",
+    nowMs: Date.UTC(2026, 2, 12, 12, 0, 0, 0),
+  };
+
+  const [first, concurrentReplay] = await Promise.all([
+    createRunSession(args),
+    createRunSession(args),
+  ]);
+  const laterReplay = await createRunSession(args);
+
+  assert.deepEqual(concurrentReplay.runTicket, first.runTicket);
+  assert.deepEqual(laterReplay.runTicket, first.runTicket);
+  assert.equal((await db.collection("run_sessions").get()).size, 1);
+  await assert.rejects(
+    () =>
+      createRunSession({
+        ...args,
+        gameCompatVersion: "different-build",
+      }),
+    (error: { code?: string }) => error.code === "already-exists",
+  );
+});
+
+test("active session enforcement is atomic when a measured limit is configured", async () => {
+  const previousMode = process.env.ABUSE_CONTROL_MODE;
+  const previousLimit = process.env.ABUSE_RUN_ACTIVE_SESSIONS_LIMIT;
+  process.env.ABUSE_CONTROL_MODE = "enforce";
+  process.env.ABUSE_RUN_ACTIVE_SESSIONS_LIMIT = "1";
+  try {
+    await createRunSession({
+      db,
+      uid,
+      clientRequestId: "run_active_limit_1",
+      mode: "practice",
+      levelId: "field",
+      gameCompatVersion: "build-2026-03-12",
+    });
+    await assert.rejects(
+      () =>
+        createRunSession({
+          db,
+          uid,
+          clientRequestId: "run_active_limit_2",
+          mode: "practice",
+          levelId: "field",
+          gameCompatVersion: "build-2026-03-12",
+        }),
+      (error: { code?: string }) => error.code === "resource-exhausted",
+    );
+    assert.equal((await db.collection("run_sessions").get()).size, 1);
+  } finally {
+    restoreEnv("ABUSE_CONTROL_MODE", previousMode);
+    restoreEnv("ABUSE_RUN_ACTIVE_SESSIONS_LIMIT", previousLimit);
+  }
+});
+
 test("createRunSession provisions missing ranked board and persists run ticket context", async () => {
   const nowMs = Date.UTC(2026, 2, 12, 12, 0, 0, 0);
   const gameCompatVersion = "2026.03.0";
@@ -242,6 +305,8 @@ test("createRunSession binds competitive ticket to active monthly board", async 
   assert.equal(ticket.scoreVersion, "score-v1");
   assert.equal(ticket.ghostVersion, "ghost-v1");
   assert.equal(ticket.gameCompatVersion, gameCompatVersion);
+  assert.equal(ticket.boardOpensAtMs, window.opensAtMs);
+  assert.equal(ticket.boardClosesAtMs, window.closesAtMs);
   assert.equal(ticket.seed, 424242);
 });
 
@@ -306,6 +371,8 @@ test("createRunSession binds weekly ticket to active weekly board", async () => 
   assert.equal(ticket.scoreVersion, "score-v1");
   assert.equal(ticket.ghostVersion, "ghost-v1");
   assert.equal(ticket.gameCompatVersion, gameCompatVersion);
+  assert.equal(ticket.boardOpensAtMs, window.opensAtMs);
+  assert.equal(ticket.boardClosesAtMs, window.closesAtMs);
   assert.equal(ticket.seed, 818181);
 });
 
@@ -352,6 +419,48 @@ test("createRunSession rejects mode mismatch between request and canonical selec
     (error: { code?: string; message?: string }) =>
       error.code === "failed-precondition" &&
       (error.message ?? "").includes("mode"),
+  );
+});
+
+test("createRunSession rejects canonical loadout containing unowned content", async () => {
+  await loadOrCreateCanonicalState({ db, uid });
+  const canonicalRef = canonicalDocRef(db, uid, defaultCanonicalProfileId);
+  await canonicalRef.set(
+    {
+      selection: {
+        loadoutsByCharacter: {
+          eloise: {
+            mask: 7,
+            mainWeaponId: "plainsteel",
+            offhandWeaponId: "roadguard",
+            spellBookId: "bastionCodex",
+            projectileSlotSpellId: "acidBolt",
+            accessoryId: "strengthBelt",
+            abilityPrimaryId: "eloise.seeker_slash",
+            abilitySecondaryId: "eloise.shield_block",
+            abilityProjectileId: "eloise.snap_shot",
+            abilitySpellId: "eloise.arcane_haste",
+            abilityMobilityId: "eloise.dash",
+            abilityJumpId: "eloise.jump",
+          },
+        },
+      },
+    },
+    { merge: true },
+  );
+
+  await assert.rejects(
+    () =>
+      createRunSession({
+        db,
+        uid,
+        mode: "practice",
+        levelId: "field",
+        gameCompatVersion: "build-2026-03-12",
+      }),
+    (error: { code?: string; message?: string }) =>
+      error.code === "failed-precondition" &&
+      (error.message ?? "").includes("unowned"),
   );
 });
 
@@ -565,4 +674,12 @@ test("createRunSession resolves weekly board by week window across rollover", as
 async function clearCollection(dbValue: Firestore, name: string): Promise<void> {
   const docs = await dbValue.collection(name).listDocuments();
   await Promise.all(docs.map((docRef) => dbValue.recursiveDelete(docRef)));
+}
+
+function restoreEnv(name: string, value: string | undefined): void {
+  if (value === undefined) {
+    delete process.env[name];
+    return;
+  }
+  process.env[name] = value;
 }

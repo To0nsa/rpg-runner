@@ -152,13 +152,6 @@ class _NoopOwnershipApi implements LoadoutOwnershipApi {
   }
 
   @override
-  Future<OwnershipCommandResult> resetOwnership(
-    ResetOwnershipCommand command,
-  ) async {
-    return _accepted();
-  }
-
-  @override
   Future<OwnershipCommandResult> equipGear(EquipGearCommand command) async {
     return _accepted();
   }
@@ -178,32 +171,6 @@ class _NoopOwnershipApi implements LoadoutOwnershipApi {
   @override
   Future<OwnershipCommandResult> setProjectileSpell(
     SetProjectileSpellCommand command,
-  ) async {
-    return _accepted();
-  }
-
-  @override
-  Future<OwnershipCommandResult> learnProjectileSpell(
-    LearnProjectileSpellCommand command,
-  ) async {
-    return _accepted();
-  }
-
-  @override
-  Future<OwnershipCommandResult> learnSpellAbility(
-    LearnSpellAbilityCommand command,
-  ) async {
-    return _accepted();
-  }
-
-  @override
-  Future<OwnershipCommandResult> unlockGear(UnlockGearCommand command) async {
-    return _accepted();
-  }
-
-  @override
-  Future<OwnershipCommandResult> awardRunGold(
-    AwardRunGoldCommand command,
   ) async {
     return _accepted();
   }

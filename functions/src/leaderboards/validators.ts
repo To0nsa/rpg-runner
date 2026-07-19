@@ -1,5 +1,7 @@
 import { HttpsError } from "firebase-functions/v2/https";
 
+import { assertCallablePayloadBounds } from "../abuse/payload_bounds.js";
+import { rejectClientAuthorityTime } from "../authority_time.js";
 import { requireNonEmptyString, requireObject } from "../ownership/validators.js";
 import { parseRunMode } from "../runs/mode.js";
 
@@ -21,12 +23,12 @@ export interface LeaderboardLoadActiveBoardDataRequest {
   mode: "competitive" | "weekly";
   levelId: string;
   gameCompatVersion: string;
-  nowMs?: number;
 }
 
 export function parseLeaderboardLoadBoardRequest(
   raw: unknown,
 ): LeaderboardLoadBoardRequest {
+  assertCallablePayloadBounds(raw);
   const data = requireRequestObject(raw);
   return {
     userId: requireNonEmptyString(data.userId, "userId"),
@@ -38,6 +40,7 @@ export function parseLeaderboardLoadBoardRequest(
 export function parseLeaderboardLoadMyRankRequest(
   raw: unknown,
 ): LeaderboardLoadMyRankRequest {
+  assertCallablePayloadBounds(raw);
   const data = requireRequestObject(raw);
   return {
     userId: requireNonEmptyString(data.userId, "userId"),
@@ -49,7 +52,9 @@ export function parseLeaderboardLoadMyRankRequest(
 export function parseLeaderboardLoadActiveBoardDataRequest(
   raw: unknown,
 ): LeaderboardLoadActiveBoardDataRequest {
+  assertCallablePayloadBounds(raw);
   const data = requireRequestObject(raw);
+  rejectClientAuthorityTime(data);
   const mode = parseRunMode(data.mode, "mode");
   if (mode === "practice") {
     throw new HttpsError(
@@ -66,20 +71,9 @@ export function parseLeaderboardLoadActiveBoardDataRequest(
       data.gameCompatVersion,
       "gameCompatVersion",
     ),
-    nowMs: parseOptionalNowMs(data.nowMs),
   };
 }
 
 function requireRequestObject(raw: unknown): Record<string, unknown> {
   return requireObject(raw, "request");
-}
-
-function parseOptionalNowMs(value: unknown): number | undefined {
-  if (value === undefined || value === null) {
-    return undefined;
-  }
-  if (!Number.isInteger(value)) {
-    throw new HttpsError("invalid-argument", "nowMs must be an integer.");
-  }
-  return value as number;
 }

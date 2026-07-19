@@ -13,6 +13,8 @@ abstract class GhostPublisher {
     required String runSessionId,
     ValidatedRun? validatedRun,
   });
+
+  Future<void> reconcileBoard({required String boardId});
 }
 
 class NoopGhostPublisher implements GhostPublisher {
@@ -21,6 +23,9 @@ class NoopGhostPublisher implements GhostPublisher {
     required String runSessionId,
     ValidatedRun? validatedRun,
   }) async {}
+
+  @override
+  Future<void> reconcileBoard({required String boardId}) async {}
 }
 
 enum GhostManifestStatus { active, demoted }
@@ -44,6 +49,9 @@ class GhostManifestRecord {
     this.promotedAtMs,
     this.demotedAtMs,
     this.expiresAtMs,
+    this.sourceReplayStorageGeneration,
+    this.promotedReplayStorageGeneration,
+    this.replayDigest,
   });
 
   final String boardId;
@@ -52,6 +60,9 @@ class GhostManifestRecord {
   final String uid;
   final String replayStorageRef;
   final String sourceReplayStorageRef;
+  final String? sourceReplayStorageGeneration;
+  final String? promotedReplayStorageGeneration;
+  final String? replayDigest;
   final int score;
   final int distanceMeters;
   final int durationSeconds;
@@ -83,12 +94,19 @@ abstract class GhostPublicationStore {
 }
 
 abstract class GhostObjectStore {
-  Future<void> promoteReplayToGhost({
+  Future<GhostPromotionResult> promoteReplayToGhost({
     required String sourceObjectPath,
+    required String sourceStorageGeneration,
     required String destinationObjectPath,
   });
 
   Future<void> deleteGhostObject({required String objectPath});
+}
+
+final class GhostPromotionResult {
+  const GhostPromotionResult({required this.destinationStorageGeneration});
+
+  final String destinationStorageGeneration;
 }
 
 class FirestoreGhostPublisher implements GhostPublisher {
@@ -139,12 +157,19 @@ class FirestoreGhostPublisher implements GhostPublisher {
       return;
     }
 
-    final boardId = resolvedValidatedRun.boardId!;
-    final nowMs = _clockMs();
-    final topEntries = await _store.loadTop10Entries(boardId: boardId);
-    if (topEntries.isEmpty) {
-      return;
+    await reconcileBoard(boardId: resolvedValidatedRun.boardId!);
+  }
+
+  @override
+  Future<void> reconcileBoard({required String boardId}) async {
+    final normalizedBoardId = boardId.trim();
+    if (normalizedBoardId.isEmpty) {
+      throw ArgumentError.value(boardId, 'boardId', 'must be non-empty');
     }
+    final nowMs = _clockMs();
+    final topEntries = await _store.loadTop10Entries(
+      boardId: normalizedBoardId,
+    );
     final topByEntryId = <String, LeaderboardEntry>{
       for (final entry in topEntries) entry.entryId: entry,
     };
@@ -153,7 +178,9 @@ class FirestoreGhostPublisher implements GhostPublisher {
       await _promoteTopEntry(entry: entry, nowMs: nowMs);
     }
 
-    final manifests = await _store.listGhostManifests(boardId: boardId);
+    final manifests = await _store.listGhostManifests(
+      boardId: normalizedBoardId,
+    );
     for (final manifest in manifests) {
       final stillTop = topByEntryId.containsKey(manifest.entryId);
       if (stillTop) {
@@ -184,6 +211,10 @@ class FirestoreGhostPublisher implements GhostPublisher {
           uid: manifest.uid,
           replayStorageRef: manifest.replayStorageRef,
           sourceReplayStorageRef: manifest.sourceReplayStorageRef,
+          sourceReplayStorageGeneration: manifest.sourceReplayStorageGeneration,
+          promotedReplayStorageGeneration:
+              manifest.promotedReplayStorageGeneration,
+          replayDigest: manifest.replayDigest,
           score: manifest.score,
           distanceMeters: manifest.distanceMeters,
           durationSeconds: manifest.durationSeconds,
@@ -205,7 +236,11 @@ class FirestoreGhostPublisher implements GhostPublisher {
     required int nowMs,
   }) async {
     final sourcePath = _nonEmpty(entry.replayStorageRef);
-    if (sourcePath == null) {
+    final sourceGeneration = _positiveGeneration(entry.replayStorageGeneration);
+    final replayDigest = _sha256Digest(entry.replayDigest);
+    if (sourcePath == null ||
+        sourceGeneration == null ||
+        replayDigest == null) {
       return;
     }
     final destinationPath = _ghostObjectPath(
@@ -213,10 +248,16 @@ class FirestoreGhostPublisher implements GhostPublisher {
       entryId: entry.entryId,
     );
 
+    final GhostPromotionResult promotion;
     if (sourcePath != destinationPath) {
-      await _objectStore.promoteReplayToGhost(
+      promotion = await _objectStore.promoteReplayToGhost(
         sourceObjectPath: sourcePath,
+        sourceStorageGeneration: sourceGeneration,
         destinationObjectPath: destinationPath,
+      );
+    } else {
+      promotion = GhostPromotionResult(
+        destinationStorageGeneration: sourceGeneration,
       );
     }
 
@@ -228,6 +269,9 @@ class FirestoreGhostPublisher implements GhostPublisher {
         uid: entry.uid,
         replayStorageRef: destinationPath,
         sourceReplayStorageRef: sourcePath,
+        sourceReplayStorageGeneration: sourceGeneration,
+        promotedReplayStorageGeneration: promotion.destinationStorageGeneration,
+        replayDigest: replayDigest,
         score: entry.score,
         distanceMeters: entry.distanceMeters,
         durationSeconds: entry.durationSeconds,
@@ -327,20 +371,25 @@ class FirestoreGhostPublicationStore implements GhostPublicationStore {
     required String boardId,
   }) async {
     final firestoreApi = await apiProvider.firestoreApi();
-    final listed = await firestoreApi.projects.databases.documents.list(
-      _boardParentDocPath(boardId),
-      'ghost_manifests',
-      orderBy: 'rank',
-      pageSize: 100,
-    );
-    final docs = listed.documents ?? const <firestore.Document>[];
     final out = <GhostManifestRecord>[];
-    for (final doc in docs) {
-      final parsed = _parseGhostManifest(decodeFirestoreFields(doc.fields));
-      if (parsed != null) {
-        out.add(parsed);
+    String? pageToken;
+    do {
+      final listed = await firestoreApi.projects.databases.documents.list(
+        _boardParentDocPath(boardId),
+        'ghost_manifests',
+        orderBy: 'rank',
+        pageSize: 100,
+        pageToken: pageToken,
+      );
+      final docs = listed.documents ?? const <firestore.Document>[];
+      for (final doc in docs) {
+        final parsed = _parseGhostManifest(decodeFirestoreFields(doc.fields));
+        if (parsed != null) {
+          out.add(parsed);
+        }
       }
-    }
+      pageToken = _nonEmpty(listed.nextPageToken);
+    } while (pageToken != null);
     return out;
   }
 
@@ -356,6 +405,12 @@ class FirestoreGhostPublicationStore implements GhostPublicationStore {
       'uid': manifest.uid,
       'replayStorageRef': manifest.replayStorageRef,
       'sourceReplayStorageRef': manifest.sourceReplayStorageRef,
+      if (manifest.sourceReplayStorageGeneration != null)
+        'sourceReplayStorageGeneration': manifest.sourceReplayStorageGeneration,
+      if (manifest.promotedReplayStorageGeneration != null)
+        'promotedReplayStorageGeneration':
+            manifest.promotedReplayStorageGeneration,
+      if (manifest.replayDigest != null) 'replayDigest': manifest.replayDigest,
       'score': manifest.score,
       'distanceMeters': manifest.distanceMeters,
       'durationSeconds': manifest.durationSeconds,
@@ -439,6 +494,13 @@ class FirestoreGhostPublicationStore implements GhostPublicationStore {
       uid: uid,
       replayStorageRef: replayStorageRef,
       sourceReplayStorageRef: sourceReplayStorageRef,
+      sourceReplayStorageGeneration: _positiveGeneration(
+        raw['sourceReplayStorageGeneration'],
+      ),
+      promotedReplayStorageGeneration: _positiveGeneration(
+        raw['promotedReplayStorageGeneration'],
+      ),
+      replayDigest: _sha256Digest(raw['replayDigest']),
       score: score,
       distanceMeters: distanceMeters,
       durationSeconds: durationSeconds,
@@ -464,18 +526,65 @@ class GoogleCloudStorageGhostObjectStore implements GhostObjectStore {
   final GoogleCloudApiProvider apiProvider;
 
   @override
-  Future<void> promoteReplayToGhost({
+  Future<GhostPromotionResult> promoteReplayToGhost({
     required String sourceObjectPath,
+    required String sourceStorageGeneration,
     required String destinationObjectPath,
   }) async {
     final storageApi = await apiProvider.storageApi();
-    await storageApi.objects.copy(
-      storage.Object(),
-      bucketName,
-      sourceObjectPath,
-      bucketName,
-      destinationObjectPath,
-    );
+    try {
+      final copied = await storageApi.objects.copy(
+        storage.Object(),
+        bucketName,
+        sourceObjectPath,
+        bucketName,
+        destinationObjectPath,
+        sourceGeneration: sourceStorageGeneration,
+        ifSourceGenerationMatch: sourceStorageGeneration,
+        ifGenerationMatch: '0',
+      );
+      final destinationGeneration = _positiveGeneration(copied.generation);
+      if (destinationGeneration == null) {
+        throw StateError(
+          'Ghost copy response omitted destination object generation.',
+        );
+      }
+      return GhostPromotionResult(
+        destinationStorageGeneration: destinationGeneration,
+      );
+    } catch (error) {
+      if (!isApiConflict(error)) {
+        rethrow;
+      }
+      final source = await storageApi.objects.get(
+        bucketName,
+        sourceObjectPath,
+        generation: sourceStorageGeneration,
+        ifGenerationMatch: sourceStorageGeneration,
+      );
+      final destination = await storageApi.objects.get(
+        bucketName,
+        destinationObjectPath,
+      );
+      if (source is! storage.Object ||
+          destination is! storage.Object ||
+          source.size != destination.size ||
+          source.crc32c == null ||
+          source.crc32c != destination.crc32c) {
+        throw StateError(
+          'Existing ghost object does not match finalized replay evidence.',
+        );
+      }
+      final destinationGeneration = _positiveGeneration(destination.generation);
+      if (destinationGeneration == null) {
+        throw StateError(
+          'Existing ghost object omitted destination generation.',
+        );
+      }
+      return GhostPromotionResult(
+        destinationStorageGeneration: destinationGeneration,
+      );
+    }
   }
 
   @override
@@ -515,6 +624,22 @@ int? _readInt(Object? raw) {
     return raw.toInt();
   }
   return null;
+}
+
+String? _positiveGeneration(Object? raw) {
+  final value = _nonEmpty(raw);
+  if (value == null || !RegExp(r'^[1-9][0-9]*$').hasMatch(value)) {
+    return null;
+  }
+  return value;
+}
+
+String? _sha256Digest(Object? raw) {
+  final value = _nonEmpty(raw);
+  if (value == null || !RegExp(r'^[a-f0-9]{64}$').hasMatch(value)) {
+    return null;
+  }
+  return value;
 }
 
 int _defaultClockMs() => DateTime.now().millisecondsSinceEpoch;

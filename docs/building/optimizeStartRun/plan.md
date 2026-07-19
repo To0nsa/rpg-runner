@@ -1,8 +1,22 @@
 # Run-Start Latency Optimization Plan
 
-- Reviewed: July 16, 2026
-- Status: Corrective implementation required; not accepted for rollout
+- Reviewed: July 19, 2026
+- Status: Server-time authority production verified; latency corrective work remains
 - Execution tracker: [implementation-checklist.md](implementation-checklist.md)
+
+Implementation update (July 19, 2026): public `nowMs` is rejected and a
+callable-owned clock is injected after auth/UID checks. The Functions and replay
+validator remediation is deployed, a production canary rejected client time,
+and legacy ticket/window data was inventoried and adjudicated. See the
+[deployment record](../functions-audit-remediation/production-deployment-2026-07-19.md)
+and
+[production verification](../functions-audit-remediation/production-verification-2026-07-19.md).
+
+Abuse-control update (July 18, 2026): run creation now carries a client request
+ID, records an atomic per-UID quota window, and transactionally observes active
+sessions. This prevents duplicate sessions and unbounded issuance but adds
+backend work to the cold path. All later latency measurements must include
+these controls; they must not be bypassed to recover the former timing.
 
 ## Purpose
 
@@ -26,10 +40,8 @@ The current implementation has a sound base:
 - ranked session creation provisions only on an explicit missing-board result
 - authoritative run tickets are persisted for replay validation
 
-The implementation is not complete because:
+The remaining latency work is not complete because:
 
-- production callables accept client-provided time and use it for authority
-  decisions
 - hub warmup requests a weekly ticket while canonical mode is not weekly, which
   the backend correctly rejects
 - prefetch does not run through the ownership-sync gate
@@ -61,6 +73,8 @@ These decisions are required for the corrective implementation:
    level/character's first useful frame.
 8. No phase is complete based only on emulator timings. Rollout requires
    representative staging or production evidence.
+9. Run-create idempotency and abuse-control transactions are part of the
+   production authority path and cannot be disabled as a latency optimization.
 
 Changing one of these decisions requires updating this plan and checklist in the
 same change.

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 abstract class ValidatorMetrics {
   Future<void> recordDispatch({
     required String runSessionId,
@@ -7,6 +9,8 @@ abstract class ValidatorMetrics {
     String? mode,
     String? phase,
     String? rejectionReason,
+    int? durationMs,
+    String? errorClass,
   });
 }
 
@@ -20,20 +24,24 @@ class ConsoleValidatorMetrics implements ValidatorMetrics {
     String? mode,
     String? phase,
     String? rejectionReason,
+    int? durationMs,
+    String? errorClass,
   }) async {
-    // Keep logging plain and structured for Cloud Run log filters.
-    final suffix = message == null ? '' : ' message="$message"';
-    final attemptSegment = attempt == null ? '' : ' attempt=$attempt';
-    final modeSegment = mode == null ? '' : ' mode="$mode"';
-    final phaseSegment = phase == null ? '' : ' phase="$phase"';
-    final rejectionSegment = rejectionReason == null
-        ? ''
-        : ' rejectionReason="$rejectionReason"';
+    // JSON stdout becomes structured Cloud Logging payload without player data.
     // ignore: avoid_print
     print(
-      'replay_validator.dispatch runSessionId="$runSessionId" '
-      'status="$status"$attemptSegment$modeSegment$phaseSegment'
-      '$rejectionSegment$suffix',
+      jsonEncode(<String, Object?>{
+        'event': 'replay_validator.dispatch',
+        'metricVersion': 1,
+        'runSessionId': runSessionId,
+        'status': status,
+        'attempt': ?attempt,
+        'mode': ?mode,
+        'phase': ?phase,
+        'rejectionReason': ?rejectionReason,
+        'durationMs': ?durationMs,
+        'errorClass': ?errorClass,
+      }),
     );
   }
 }

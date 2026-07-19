@@ -1,0 +1,62 @@
+name: Functions
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/functions.yml"
+      - "firebase.json"
+      - "firebase.test.json"
+      - "firestore.indexes.json"
+      - "firestore.rules"
+      - "functions/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+  push:
+    branches:
+      - master
+    paths:
+      - ".github/workflows/functions.yml"
+      - "firebase.json"
+      - "firebase.test.json"
+      - "firestore.indexes.json"
+      - "firestore.rules"
+      - "functions/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Enable repository package manager
+        run: corepack enable
+
+      - name: Install dependencies
+        run: corepack pnpm install --frozen-lockfile
+
+      - name: Audit production dependencies
+        run: corepack pnpm --dir functions audit --prod
+
+      - name: Build Functions
+        run: corepack pnpm --dir functions build
+
+      - name: Run Functions tests
+        run: corepack pnpm --dir functions test

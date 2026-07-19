@@ -1,0 +1,27 @@
+{
+  "displayName": "RPG Runner - reward pending over 15 minutes",
+  "documentation": {
+    "content": "The settlement-repair scan found retryable rewards pending longer than 15 minutes. Inspect the run session and delivery logs, then use the bounded repair path; do not edit wallet or grant data manually.",
+    "mimeType": "text/markdown"
+  },
+  "conditions": [
+    {
+      "displayName": "Oldest retryable settlement exceeds 15 minutes",
+      "conditionMatchedLog": {
+        "filter": "jsonPayload.message=\"run_settlement\" AND jsonPayload.event=\"settlement_repair_scan\" AND jsonPayload.retryablePendingCount>0 AND jsonPayload.oldestRetryableAgeMs>=900000"
+      }
+    }
+  ],
+  "combiner": "OR",
+  "enabled": true,
+  "alertStrategy": {
+    "notificationRateLimit": {
+      "period": "300s"
+    },
+    "autoClose": "604800s"
+  },
+  "userLabels": {
+    "component": "reward-settlement",
+    "severity": "critical"
+  }
+}

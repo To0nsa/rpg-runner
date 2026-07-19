@@ -14,6 +14,13 @@ import {
   purchaseStoreOffer,
   refreshStore,
 } from "./store_state.js";
+import {
+  isAuthorizedAbility,
+  isAuthorizedGear,
+  isAuthorizedProjectileSpell,
+  normalizeAuthorizedLoadout,
+  normalizeAuthorizedSelection,
+} from "./loadout_authorization.js";
 
 const maxAwardRunGold = 10_000;
 const maxTrackedAwardedRunIds = 512;
@@ -77,7 +84,10 @@ function applySetSelection(
   canonical: OwnershipCanonicalState,
   payload: Record<string, unknown>,
 ): ApplyCommandResult {
-  const selection = asJsonObject(payload.selection);
+  const selection = normalizeAuthorizedSelection({
+    selection: payload.selection,
+    meta: canonical.meta,
+  });
   if (selection === null) {
     return rejected("invalidCommand");
   }
@@ -99,9 +109,17 @@ function applySetLoadout(
   if (!isKnownCharacterId(characterId)) {
     return rejected("invalidCommand");
   }
+  const normalizedLoadout = normalizeAuthorizedLoadout({
+    loadout,
+    meta: canonical.meta,
+    characterId,
+  });
+  if (normalizedLoadout === null) {
+    return rejected("invalidCommand");
+  }
   const selection = ensureSelectionObject(canonical.selection);
   const loadouts = ensureMap(selection, "loadoutsByCharacter");
-  loadouts[characterId] = structuredClone(loadout);
+  loadouts[characterId] = normalizedLoadout;
   return accepted({
     ...canonical,
     selection,
@@ -129,7 +147,14 @@ function applyEquipGear(
   }
 
   const gearField = gearSlotToField(slot);
-  if (gearField === null) {
+  if (
+    gearField === null ||
+    !isAuthorizedGear({
+      meta: canonical.meta,
+      slot: slot as "mainWeapon" | "offhandWeapon" | "spellBook" | "accessory",
+      itemId,
+    })
+  ) {
     return rejected("invalidCommand");
   }
 
@@ -166,7 +191,21 @@ function applySetAbilitySlot(
   }
 
   const abilityField = abilitySlotToField(slot);
-  if (abilityField === null) {
+  if (
+    abilityField === null ||
+    !isAuthorizedAbility({
+      meta: canonical.meta,
+      characterId,
+      slot: slot as
+        | "primary"
+        | "secondary"
+        | "projectile"
+        | "spell"
+        | "mobility"
+        | "jump",
+      abilityId,
+    })
+  ) {
     return rejected("invalidCommand");
   }
 
@@ -191,6 +230,15 @@ function applySetProjectileSpell(
     return rejected("invalidCommand");
   }
   if (!isKnownCharacterId(characterId)) {
+    return rejected("invalidCommand");
+  }
+  if (
+    !isAuthorizedProjectileSpell({
+      meta: canonical.meta,
+      characterId,
+      spellId,
+    })
+  ) {
     return rejected("invalidCommand");
   }
   const selection = ensureSelectionObject(canonical.selection);
@@ -409,14 +457,6 @@ function asRecord(value: unknown): Record<string, unknown> | null {
     return null;
   }
   return value as Record<string, unknown>;
-}
-
-function asJsonObject(value: unknown): JsonObject | null {
-  const record = asRecord(value);
-  if (record === null) {
-    return null;
-  }
-  return structuredClone(record) as JsonObject;
 }
 
 function nonEmptyString(value: unknown): string | null {

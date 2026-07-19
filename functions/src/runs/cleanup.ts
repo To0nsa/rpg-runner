@@ -10,6 +10,7 @@ import {
   isTerminalRunSessionState,
   type RunSessionState,
 } from "./session_state.js";
+import { writeExpiredRunSessionTransition } from "./grant_terminalization.js";
 
 const runSessionsCollection = "run_sessions";
 const validatedRunsCollection = "validated_runs";
@@ -22,12 +23,14 @@ const defaultStaleValidatedArtifactCutoffMs = 15 * 24 * 60 * 60 * 1000;
 const defaultTerminalRunSessionRetentionMs = 90 * 24 * 60 * 60 * 1000;
 const defaultValidatedRunRetentionMs = 365 * 24 * 60 * 60 * 1000;
 const defaultRewardGrantRetentionMs = 365 * 24 * 60 * 60 * 1000;
+const defaultOrphanProvisionalGrantGraceMs = 48 * 60 * 60 * 1000;
 const defaultMaxExpiredSessionUpdatesPerRun = 200;
 const defaultMaxPendingUploadDeletesPerRun = 200;
 const defaultMaxValidatedArtifactDeletesPerRun = 200;
 const defaultMaxTerminalRunSessionDeletesPerRun = 200;
 const defaultMaxValidatedRunDeletesPerRun = 200;
 const defaultMaxRewardGrantDeletesPerRun = 200;
+const defaultMaxOrphanProvisionalGrantRepairsPerRun = 200;
 const defaultRunSessionScanPageSize = 200;
 const defaultFirestoreRetentionPageSize = 200;
 const defaultRetentionScanMultiplier = 10;
@@ -75,12 +78,14 @@ export interface RunSubmissionCleanupDependencies {
   terminalRunSessionRetentionMs?: number;
   validatedRunRetentionMs?: number;
   rewardGrantRetentionMs?: number;
+  orphanProvisionalGrantGraceMs?: number;
   maxExpiredSessionUpdatesPerRun?: number;
   maxPendingUploadDeletesPerRun?: number;
   maxValidatedArtifactDeletesPerRun?: number;
   maxTerminalRunSessionDeletesPerRun?: number;
   maxValidatedRunDeletesPerRun?: number;
   maxRewardGrantDeletesPerRun?: number;
+  maxOrphanProvisionalGrantRepairsPerRun?: number;
 }
 
 export interface RunSubmissionCleanupResult {
@@ -96,6 +101,9 @@ export interface RunSubmissionCleanupResult {
   rewardGrantDeletedCount: number;
   rewardGrantScannedCount: number;
   rewardGrantRetentionMs: number;
+  orphanProvisionalGrantRepairedCount: number;
+  orphanProvisionalGrantScannedCount: number;
+  orphanProvisionalGrantGraceMs: number;
   stalePendingUploadDeletedCount: number;
   stalePendingUploadScannedCount: number;
   stalePendingUploadCutoffMs: number;
@@ -137,12 +145,15 @@ export function createDefaultRunSubmissionCleanupDependencies(): RunSubmissionCl
     terminalRunSessionRetentionMs: defaultTerminalRunSessionRetentionMs,
     validatedRunRetentionMs: defaultValidatedRunRetentionMs,
     rewardGrantRetentionMs: defaultRewardGrantRetentionMs,
+    orphanProvisionalGrantGraceMs: defaultOrphanProvisionalGrantGraceMs,
     maxExpiredSessionUpdatesPerRun: defaultMaxExpiredSessionUpdatesPerRun,
     maxPendingUploadDeletesPerRun: defaultMaxPendingUploadDeletesPerRun,
     maxValidatedArtifactDeletesPerRun: defaultMaxValidatedArtifactDeletesPerRun,
     maxTerminalRunSessionDeletesPerRun: defaultMaxTerminalRunSessionDeletesPerRun,
     maxValidatedRunDeletesPerRun: defaultMaxValidatedRunDeletesPerRun,
     maxRewardGrantDeletesPerRun: defaultMaxRewardGrantDeletesPerRun,
+    maxOrphanProvisionalGrantRepairsPerRun:
+      defaultMaxOrphanProvisionalGrantRepairsPerRun,
   };
 }
 
@@ -165,6 +176,9 @@ export async function runReplaySubmissionCleanup(args: {
     dependencies.validatedRunRetentionMs ?? defaultValidatedRunRetentionMs;
   const rewardGrantRetentionMs =
     dependencies.rewardGrantRetentionMs ?? defaultRewardGrantRetentionMs;
+  const orphanProvisionalGrantGraceMs =
+    dependencies.orphanProvisionalGrantGraceMs ??
+    defaultOrphanProvisionalGrantGraceMs;
   const maxExpiredSessionUpdatesPerRun =
     dependencies.maxExpiredSessionUpdatesPerRun ??
     defaultMaxExpiredSessionUpdatesPerRun;
@@ -183,6 +197,9 @@ export async function runReplaySubmissionCleanup(args: {
   const maxRewardGrantDeletesPerRun =
     dependencies.maxRewardGrantDeletesPerRun ??
     defaultMaxRewardGrantDeletesPerRun;
+  const maxOrphanProvisionalGrantRepairsPerRun =
+    dependencies.maxOrphanProvisionalGrantRepairsPerRun ??
+    defaultMaxOrphanProvisionalGrantRepairsPerRun;
 
   const expiredSessionOutcome = await expireRunSessionsPastExpiry({
     db: args.db,
@@ -207,6 +224,16 @@ export async function runReplaySubmissionCleanup(args: {
     maxScanCount: defaultValidatedRunRetentionMaxScanCount,
     pageSize: defaultFirestoreRetentionPageSize,
   });
+
+  const orphanProvisionalGrantOutcome =
+    await terminalizeOrphanedProvisionalGrants({
+      db: args.db,
+      cutoffMs: nowMs - orphanProvisionalGrantGraceMs,
+      nowMs,
+      maxRepairs: maxOrphanProvisionalGrantRepairsPerRun,
+      maxScanCount: defaultRewardGrantRetentionMaxScanCount,
+      pageSize: defaultFirestoreRetentionPageSize,
+    });
 
   const rewardGrantOutcome = await deleteSettledRewardGrantsPastRetention({
     db: args.db,
@@ -263,6 +290,11 @@ export async function runReplaySubmissionCleanup(args: {
     rewardGrantDeletedCount: rewardGrantOutcome.deletedCount,
     rewardGrantScannedCount: rewardGrantOutcome.scannedCount,
     rewardGrantRetentionMs,
+    orphanProvisionalGrantRepairedCount:
+      orphanProvisionalGrantOutcome.repairedCount,
+    orphanProvisionalGrantScannedCount:
+      orphanProvisionalGrantOutcome.scannedCount,
+    orphanProvisionalGrantGraceMs,
     stalePendingUploadDeletedCount,
     stalePendingUploadScannedCount,
     stalePendingUploadCutoffMs,
@@ -316,29 +348,45 @@ async function expireRunSessionsPastExpiry(args: {
     cursor = page.docs[page.docs.length - 1];
   }
 
-  if (toExpire.length === 0) {
-    return {
-      expiredCount: 0,
-      scannedCount,
-    };
-  }
-
-  const batch = args.db.batch();
+  let expiredCount = 0;
   for (const doc of toExpire) {
-    batch.set(
-      doc.ref,
-      {
-        state: "expired",
-        updatedAtMs: args.nowMs,
+    const expired = await args.db.runTransaction(async (tx) => {
+      const sessionSnapshot = await tx.get(doc.ref);
+      if (!sessionSnapshot.exists) {
+        return false;
+      }
+      const session = sessionSnapshot.data() as RunSessionDocLike;
+      const state = parseRunSessionState(session.state);
+      const expiresAtMs = integerOrNull(session.expiresAtMs);
+      if (
+        !state ||
+        !expirableStates.has(state) ||
+        expiresAtMs === null ||
+        expiresAtMs > args.nowMs
+      ) {
+        return false;
+      }
+      const rewardGrantRef = args.db
+        .collection(rewardGrantsCollection)
+        .doc(doc.id);
+      const rewardGrantSnapshot = await tx.get(rewardGrantRef);
+      writeExpiredRunSessionTransition({
+        tx,
+        runSessionRef: doc.ref,
+        rewardGrantRef,
+        rewardGrantSnapshot,
+        nowMs: args.nowMs,
         message: "Run session expired by cleanup job.",
-      },
-      { merge: true },
-    );
+      });
+      return true;
+    });
+    if (expired) {
+      expiredCount += 1;
+    }
   }
-  await batch.commit();
 
   return {
-    expiredCount: toExpire.length,
+    expiredCount,
     scannedCount,
   };
 }
@@ -457,6 +505,104 @@ async function deleteValidatedRunsPastRetention(args: {
   };
 }
 
+async function terminalizeOrphanedProvisionalGrants(args: {
+  db: Firestore;
+  cutoffMs: number;
+  nowMs: number;
+  maxRepairs: number;
+  maxScanCount: number;
+  pageSize: number;
+}): Promise<{ repairedCount: number; scannedCount: number }> {
+  if (args.maxRepairs <= 0 || args.maxScanCount <= 0) {
+    return { repairedCount: 0, scannedCount: 0 };
+  }
+  const rewardGrants = args.db.collection(rewardGrantsCollection);
+  const candidates: QueryDocumentSnapshot[] = [];
+  let scannedCount = 0;
+  let cursor: QueryDocumentSnapshot | undefined;
+  while (
+    candidates.length < args.maxRepairs &&
+    scannedCount < args.maxScanCount
+  ) {
+    let query = rewardGrants
+      .where("updatedAtMs", "<=", args.cutoffMs)
+      .orderBy("updatedAtMs", "asc")
+      .limit(args.pageSize);
+    if (cursor) {
+      query = query.startAfter(cursor);
+    }
+    const page = await query.get();
+    if (page.empty) {
+      break;
+    }
+    scannedCount += page.size;
+    for (const grant of page.docs) {
+      if (candidates.length >= args.maxRepairs) {
+        break;
+      }
+      const lifecycleState = optionalTrimmedString(
+        grant.get("lifecycleState"),
+      );
+      if (
+        lifecycleState === "provisional_created" ||
+        lifecycleState === "provisional_visible"
+      ) {
+        candidates.push(grant);
+      }
+    }
+    cursor = page.docs.at(-1);
+  }
+
+  let repairedCount = 0;
+  for (const candidate of candidates) {
+    const repaired = await args.db.runTransaction(async (tx) => {
+      const grant = await tx.get(candidate.ref);
+      if (!grant.exists) {
+        return false;
+      }
+      const lifecycleState = optionalTrimmedString(
+        grant.get("lifecycleState"),
+      );
+      const updatedAtMs = integerOrNull(grant.get("updatedAtMs"));
+      if (
+        (lifecycleState !== "provisional_created" &&
+          lifecycleState !== "provisional_visible") ||
+        updatedAtMs === null ||
+        updatedAtMs > args.cutoffMs
+      ) {
+        return false;
+      }
+      const sessionRef = args.db
+        .collection(runSessionsCollection)
+        .doc(candidate.id);
+      const session = await tx.get(sessionRef);
+      let settlementReason = "orphaned_provisional_grant";
+      if (session.exists) {
+        const state = parseRunSessionState(session.get("state"));
+        if (!state || !isTerminalRunSessionState(state)) {
+          return false;
+        }
+        settlementReason = `terminal_run_${state}`;
+      }
+      tx.set(
+        candidate.ref,
+        {
+          lifecycleState: "revoked_final",
+          settlementReason,
+          revokedAtMs: args.nowMs,
+          updatedAtMs: args.nowMs,
+        },
+        { merge: true },
+      );
+      return true;
+    });
+    if (repaired) {
+      repairedCount += 1;
+    }
+  }
+  return { repairedCount, scannedCount };
+}
+
 async function deleteSettledRewardGrantsPastRetention(args: {
   db: Firestore;
   cutoffMs: number;
@@ -525,6 +671,13 @@ function optionalTrimmedString(value: unknown): string | null {
   }
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
+}
+
+function integerOrNull(value: unknown): number | null {
+  if (typeof value !== "number" || !Number.isSafeInteger(value)) {
+    return null;
+  }
+  return value;
 }
 
 async function deleteStalePendingUploadObjects(args: {

@@ -118,63 +118,6 @@ final class _AppStateSelectionOwnershipController extends _AppStateController {
     );
   }
 
-  Future<void> learnProjectileSpell({
-    required PlayerCharacterId characterId,
-    required ProjectileId spellId,
-  }) async {
-    final session = await _ensureAuthSession();
-    final result = await _ownershipApi.learnProjectileSpell(
-      LearnProjectileSpellCommand(
-        userId: session.userId,
-        sessionId: session.sessionId,
-        expectedRevision: _ownershipRevision,
-        commandId: _newCommandId(),
-        characterId: characterId,
-        spellId: spellId,
-      ),
-    );
-    _applyOwnershipResult(result);
-    _notifyListeners();
-  }
-
-  Future<void> learnSpellAbility({
-    required PlayerCharacterId characterId,
-    required AbilityKey abilityId,
-  }) async {
-    final session = await _ensureAuthSession();
-    final result = await _ownershipApi.learnSpellAbility(
-      LearnSpellAbilityCommand(
-        userId: session.userId,
-        sessionId: session.sessionId,
-        expectedRevision: _ownershipRevision,
-        commandId: _newCommandId(),
-        characterId: characterId,
-        abilityId: abilityId,
-      ),
-    );
-    _applyOwnershipResult(result);
-    _notifyListeners();
-  }
-
-  Future<void> unlockGear({
-    required GearSlot slot,
-    required Object itemId,
-  }) async {
-    final session = await _ensureAuthSession();
-    final result = await _ownershipApi.unlockGear(
-      UnlockGearCommand(
-        userId: session.userId,
-        sessionId: session.sessionId,
-        expectedRevision: _ownershipRevision,
-        commandId: _newCommandId(),
-        slot: slot,
-        itemId: itemId,
-      ),
-    );
-    _applyOwnershipResult(result);
-    _notifyListeners();
-  }
-
   Future<void> equipGear({
     required PlayerCharacterId characterId,
     required GearSlot slot,
@@ -219,39 +162,6 @@ final class _AppStateSelectionOwnershipController extends _AppStateController {
     if (normalized == _selection.buildName) return;
     final nextSelection = _selection.copyWith(buildName: normalized);
     await _setSelection(nextSelection);
-  }
-
-  Future<void> awardRunGold({
-    required int runId,
-    required int goldEarned,
-  }) async {
-    if (goldEarned <= 0) {
-      return;
-    }
-    final session = await _ensureAuthSession();
-    var result = await _ownershipApi.awardRunGold(
-      _newAwardRunGoldCommand(
-        session: session,
-        runId: runId,
-        goldEarned: goldEarned,
-      ),
-    );
-    if (result.rejectedReason == OwnershipRejectedReason.staleRevision) {
-      final canonical = await _ownershipApi.loadCanonicalState(
-        userId: session.userId,
-        sessionId: session.sessionId,
-      );
-      _applyCanonicalState(canonical);
-      result = await _ownershipApi.awardRunGold(
-        _newAwardRunGoldCommand(
-          session: session,
-          runId: runId,
-          goldEarned: goldEarned,
-        ),
-      );
-    }
-    _applyOwnershipResult(result);
-    _notifyListeners();
   }
 
   Future<OwnershipCommandResult> purchaseStoreOffer({
@@ -380,21 +290,6 @@ final class _AppStateSelectionOwnershipController extends _AppStateController {
       Map<String, dynamic>.from(selectionRaw),
     );
     _selection = projectedSelection;
-  }
-
-  AwardRunGoldCommand _newAwardRunGoldCommand({
-    required AuthSession session,
-    required int runId,
-    required int goldEarned,
-  }) {
-    return AwardRunGoldCommand(
-      userId: session.userId,
-      sessionId: session.sessionId,
-      expectedRevision: _ownershipRevision,
-      commandId: 'award_run_gold_${runId}_${_newCommandId()}',
-      runId: runId,
-      goldEarned: goldEarned,
-    );
   }
 
   EquippedLoadoutDef _withAbilityInLoadout({

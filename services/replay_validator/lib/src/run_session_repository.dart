@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:math';
+
 import 'package:run_protocol/run_ticket.dart';
 import 'package:run_protocol/validated_run.dart';
 import 'package:googleapis/firestore/v1.dart' as firestore;
@@ -24,18 +27,38 @@ enum RunSessionTerminalState {
   };
 }
 
+final class ValidationLease {
+  const ValidationLease({required this.token, required this.expiresAtMs});
+
+  final String token;
+  final int expiresAtMs;
+}
+
+final class StaleValidationLeaseException implements Exception {
+  const StaleValidationLeaseException(this.runSessionId);
+
+  final String runSessionId;
+
+  @override
+  String toString() => 'Stale validation lease for "$runSessionId".';
+}
+
 final class UploadedReplayRef {
   const UploadedReplayRef({
     required this.objectPath,
     required this.canonicalSha256,
     required this.contentLengthBytes,
+    required this.finalizedAtMs,
     this.contentType,
+    this.storageGeneration,
   });
 
   final String objectPath;
   final String canonicalSha256;
   final int contentLengthBytes;
+  final int finalizedAtMs;
   final String? contentType;
+  final String? storageGeneration;
 }
 
 final class ValidatorRunSession {
@@ -45,6 +68,7 @@ final class ValidatorRunSession {
     required this.runTicket,
     required this.uploadedReplay,
     required this.validationAttempt,
+    this.validationLease,
     this.internalErrorFirstAtMs,
   });
 
@@ -53,6 +77,7 @@ final class ValidatorRunSession {
   final RunTicket runTicket;
   final UploadedReplayRef uploadedReplay;
   final int validationAttempt;
+  final ValidationLease? validationLease;
   final int? internalErrorFirstAtMs;
 }
 
@@ -75,18 +100,24 @@ abstract class RunSessionRepository {
 
   Future<void> handoffAcceptedRunForSettlement({
     required ValidatedRun validatedRun,
+    required String validationLeaseToken,
   });
 
-  Future<void> persistValidatedRun({required ValidatedRun validatedRun});
+  Future<void> handoffRejectedRun({
+    required ValidatedRun validatedRun,
+    required String validationLeaseToken,
+    required String publicMessage,
+  });
 
-  Future<void> markTerminal({
+  Future<void> handoffInternalError({
     required String runSessionId,
-    required RunSessionTerminalState terminalState,
-    String? message,
+    required String validationLeaseToken,
+    required String publicMessage,
   });
 
   Future<void> markPendingValidationRetry({
     required String runSessionId,
+    required String validationLeaseToken,
     required int nextAttemptAtMs,
     required String message,
     int? internalErrorFirstAtMs,
@@ -107,6 +138,7 @@ class NoopRunSessionRepository implements RunSessionRepository {
   @override
   Future<void> markPendingValidationRetry({
     required String runSessionId,
+    required String validationLeaseToken,
     required int nextAttemptAtMs,
     required String message,
     int? internalErrorFirstAtMs,
@@ -115,31 +147,49 @@ class NoopRunSessionRepository implements RunSessionRepository {
   @override
   Future<void> handoffAcceptedRunForSettlement({
     required ValidatedRun validatedRun,
+    required String validationLeaseToken,
   }) async {}
 
   @override
-  Future<void> markTerminal({
-    required String runSessionId,
-    required RunSessionTerminalState terminalState,
-    String? message,
-  }) async {}
-
-  @override
-  Future<void> persistValidatedRun({
+  Future<void> handoffRejectedRun({
     required ValidatedRun validatedRun,
+    required String validationLeaseToken,
+    required String publicMessage,
+  }) async {}
+
+  @override
+  Future<void> handoffInternalError({
+    required String runSessionId,
+    required String validationLeaseToken,
+    required String publicMessage,
   }) async {}
 }
 
 class FirestoreRunSessionRepository implements RunSessionRepository {
+  static const int _maxImmediateLeaseAcquireAttempts = 2;
+
   FirestoreRunSessionRepository({
     required this.projectId,
     required this.apiProvider,
+    this.validationLeaseDuration = const Duration(minutes: 10),
     int Function()? clockMs,
-  }) : _clockMs = clockMs ?? _defaultClockMs;
+    String Function()? leaseTokenFactory,
+  }) : _clockMs = clockMs ?? _defaultClockMs,
+       _leaseTokenFactory = leaseTokenFactory ?? _defaultLeaseToken {
+    if (validationLeaseDuration <= Duration.zero) {
+      throw ArgumentError.value(
+        validationLeaseDuration,
+        'validationLeaseDuration',
+        'must be positive',
+      );
+    }
+  }
 
   final String projectId;
   final GoogleCloudApiProvider apiProvider;
+  final Duration validationLeaseDuration;
   final int Function() _clockMs;
+  final String Function() _leaseTokenFactory;
 
   String get _databaseRoot => 'projects/$projectId/databases/(default)';
   String _runSessionDocPath(String runSessionId) =>
@@ -155,6 +205,36 @@ class FirestoreRunSessionRepository implements RunSessionRepository {
   }) async {
     final firestoreApi = await apiProvider.firestoreApi();
     final docPath = _runSessionDocPath(runSessionId);
+    for (
+      var attempt = 0;
+      attempt < _maxImmediateLeaseAcquireAttempts;
+      attempt += 1
+    ) {
+      final result = await _acquireValidationLeaseOnce(
+        firestoreApi: firestoreApi,
+        docPath: docPath,
+        runSessionId: runSessionId,
+      );
+      if (result != null) {
+        return result;
+      }
+    }
+
+    return RunSessionLeaseAcquireResult(
+      status: RunSessionLeaseStatus.alreadyValidating,
+      message:
+          'runSessionId "$runSessionId" lease contention persisted after '
+          '$_maxImmediateLeaseAcquireAttempts immediate attempts.',
+    );
+  }
+
+  /// Returns null only for an optimistic-concurrency conflict that can be
+  /// resolved by immediately reading the session again.
+  Future<RunSessionLeaseAcquireResult?> _acquireValidationLeaseOnce({
+    required firestore.FirestoreApi firestoreApi,
+    required String docPath,
+    required String runSessionId,
+  }) async {
     firestore.Document document;
     try {
       document = await firestoreApi.projects.databases.documents.get(docPath);
@@ -182,16 +262,30 @@ class FirestoreRunSessionRepository implements RunSessionRepository {
         message: 'runSessionId "$runSessionId" is already terminal ($state).',
       );
     }
-    if (state == 'validating') {
+    final nowMs = _clockMs();
+    final existingLeaseExpiresAtMs =
+        _readInt(decoded['validationLeaseExpiresAtMs']) ??
+        _legacyLeaseExpiresAtMs(decoded);
+    final reclaimingExpiredLease =
+        state == 'validating' &&
+        existingLeaseExpiresAtMs != null &&
+        existingLeaseExpiresAtMs <= nowMs;
+    if (state == 'validating' && !reclaimingExpiredLease) {
       return RunSessionLeaseAcquireResult(
         status: RunSessionLeaseStatus.alreadyValidating,
-        message: 'runSessionId "$runSessionId" is already validating.',
+        message: existingLeaseExpiresAtMs == null
+            ? 'runSessionId "$runSessionId" has an active legacy validation '
+                  'lease without an expiry.'
+            : 'runSessionId "$runSessionId" is already validating until '
+                  '$existingLeaseExpiresAtMs.',
       );
     }
     // Accept both states to avoid a race where Cloud Tasks dispatches a freshly
     // enqueued validation task before the finalize flow flips uploaded ->
     // pending_validation.
-    if (state != 'pending_validation' && state != 'uploaded') {
+    if (state != 'pending_validation' &&
+        state != 'uploaded' &&
+        !reclaimingExpiredLease) {
       return RunSessionLeaseAcquireResult(
         status: RunSessionLeaseStatus.invalidState,
         message:
@@ -215,13 +309,21 @@ class FirestoreRunSessionRepository implements RunSessionRepository {
         message: 'runSessionId "$runSessionId" is missing document updateTime.',
       );
     }
-    final nowMs = _clockMs();
+    final leaseToken = _leaseTokenFactory();
+    if (leaseToken.trim().isEmpty) {
+      throw StateError(
+        'Validation lease token factory returned an empty token.',
+      );
+    }
+    final leaseExpiresAtMs = nowMs + validationLeaseDuration.inMilliseconds;
     final patch = firestore.Document(
       fields: encodeFirestoreFields(<String, Object?>{
         'state': 'validating',
         'updatedAtMs': nowMs,
         'validationAttempt': nextAttempt,
         'validationStartedAtMs': nowMs,
+        'validationLeaseToken': leaseToken,
+        'validationLeaseExpiresAtMs': leaseExpiresAtMs,
         'message': null,
       }),
     );
@@ -236,17 +338,14 @@ class FirestoreRunSessionRepository implements RunSessionRepository {
           'updatedAtMs',
           'validationAttempt',
           'validationStartedAtMs',
+          'validationLeaseToken',
+          'validationLeaseExpiresAtMs',
           'message',
         ],
       );
     } catch (error) {
       if (isApiConflict(error)) {
-        return RunSessionLeaseAcquireResult(
-          status: RunSessionLeaseStatus.alreadyValidating,
-          message:
-              'runSessionId "$runSessionId" lease conflict; likely already '
-              'claimed.',
-        );
+        return null;
       }
       rethrow;
     }
@@ -259,26 +358,22 @@ class FirestoreRunSessionRepository implements RunSessionRepository {
         runTicket: session.runTicket,
         uploadedReplay: session.uploadedReplay,
         validationAttempt: nextAttempt,
+        validationLease: ValidationLease(
+          token: leaseToken,
+          expiresAtMs: leaseExpiresAtMs,
+        ),
+        internalErrorFirstAtMs: session.internalErrorFirstAtMs,
       ),
-      message: 'runSessionId "$runSessionId" validation lease acquired.',
-    );
-  }
-
-  @override
-  Future<void> persistValidatedRun({required ValidatedRun validatedRun}) async {
-    final firestoreApi = await apiProvider.firestoreApi();
-    final path = _validatedRunDocPath(validatedRun.runSessionId);
-    final payload = validatedRun.toJson();
-    await firestoreApi.projects.databases.documents.patch(
-      firestore.Document(fields: encodeFirestoreFields(payload)),
-      path,
-      updateMask_fieldPaths: payload.keys.toList(growable: false),
+      message: reclaimingExpiredLease
+          ? 'runSessionId "$runSessionId" expired validation lease reclaimed.'
+          : 'runSessionId "$runSessionId" validation lease acquired.',
     );
   }
 
   @override
   Future<void> handoffAcceptedRunForSettlement({
     required ValidatedRun validatedRun,
+    required String validationLeaseToken,
   }) async {
     if (!validatedRun.accepted) {
       throw ArgumentError.value(
@@ -308,11 +403,12 @@ class FirestoreRunSessionRepository implements RunSessionRepository {
     if (rewardGrantUpdateTime == null || rewardGrantUpdateTime.isEmpty) {
       throw StateError('reward grant "$runSessionId" is missing updateTime.');
     }
-    _assertSettlementHandoffBindings(
+    _assertValidationHandoffBindings(
       runSessionId: runSessionId,
       session: session,
       rewardGrant: rewardGrant,
       validatedRun: validatedRun,
+      validationLeaseToken: validationLeaseToken,
     );
 
     final nowMs = _clockMs();
@@ -335,7 +431,12 @@ class FirestoreRunSessionRepository implements RunSessionRepository {
       'state': 'settlement_pending',
       'updatedAtMs': nowMs,
       'settlementPendingAtMs': nowMs,
+      'settlementRepairDisposition': 'retryable',
+      'settlementRepairClassifiedAtMs': nowMs,
+      'settlementRepairAttempts': 0,
       'message': 'Reward settlement pending.',
+      'validationLeaseToken': null,
+      'validationLeaseExpiresAtMs': null,
     };
 
     try {
@@ -379,60 +480,186 @@ class FirestoreRunSessionRepository implements RunSessionRepository {
       );
     } catch (error) {
       if (isApiConflict(error)) {
-        throw StateError(
-          'Accepted settlement handoff conflicted for "$runSessionId".',
-        );
+        throw StaleValidationLeaseException(runSessionId);
       }
       rethrow;
     }
   }
 
   @override
-  Future<void> markTerminal({
-    required String runSessionId,
-    required RunSessionTerminalState terminalState,
-    String? message,
+  Future<void> handoffRejectedRun({
+    required ValidatedRun validatedRun,
+    required String validationLeaseToken,
+    required String publicMessage,
   }) async {
+    if (validatedRun.accepted) {
+      throw ArgumentError.value(
+        validatedRun.accepted,
+        'validatedRun.accepted',
+        'Rejected handoff requires a rejected run.',
+      );
+    }
+
     final firestoreApi = await apiProvider.firestoreApi();
-    final path = _runSessionDocPath(runSessionId);
+    final runSessionId = validatedRun.runSessionId;
+    final sessionPath = _runSessionDocPath(runSessionId);
+    final rewardGrantPath = _rewardGrantDocPath(runSessionId);
+    final validatedRunPath = _validatedRunDocPath(runSessionId);
+    final sessionDocument = await firestoreApi.projects.databases.documents.get(
+      sessionPath,
+    );
+    final rewardGrantDocument = await firestoreApi.projects.databases.documents
+        .get(rewardGrantPath);
+    final session = decodeFirestoreFields(sessionDocument.fields);
+    final rewardGrant = decodeFirestoreFields(rewardGrantDocument.fields);
+    final sessionUpdateTime = _requireUpdateTime(
+      sessionDocument,
+      'runSessionId "$runSessionId"',
+    );
+    final rewardGrantUpdateTime = _requireUpdateTime(
+      rewardGrantDocument,
+      'reward grant "$runSessionId"',
+    );
+    _assertValidationHandoffBindings(
+      runSessionId: runSessionId,
+      session: session,
+      rewardGrant: rewardGrant,
+      validatedRun: validatedRun,
+      validationLeaseToken: validationLeaseToken,
+    );
+
     final nowMs = _clockMs();
-    await firestoreApi.projects.databases.documents.patch(
-      firestore.Document(
-        fields: encodeFirestoreFields(<String, Object?>{
-          'state': terminalState.wireValue,
-          'updatedAtMs': nowMs,
-          'terminalAtMs': nowMs,
-          'message': message,
-        }),
-      ),
-      path,
-      updateMask_fieldPaths: const <String>[
-        'state',
-        'updatedAtMs',
-        'terminalAtMs',
-        'message',
-      ],
+    final validatedRunPayload = validatedRun.toJson();
+    final rewardGrantPayload = _revokedRewardGrantPayload(
+      nowMs: nowMs,
+      settlementReason: validatedRun.rejectionReason ?? 'rejected',
+    );
+    final sessionPayload = <String, Object?>{
+      'state': RunSessionTerminalState.rejected.wireValue,
+      'updatedAtMs': nowMs,
+      'terminalAtMs': nowMs,
+      'message': publicMessage,
+      'validationLeaseToken': null,
+      'validationLeaseExpiresAtMs': null,
+    };
+    await _commitTerminalHandoff(
+      firestoreApi: firestoreApi,
+      runSessionId: runSessionId,
+      validatedRunPath: validatedRunPath,
+      validatedRunPayload: validatedRunPayload,
+      rewardGrantPath: rewardGrantPath,
+      rewardGrantPayload: rewardGrantPayload,
+      rewardGrantUpdateTime: rewardGrantUpdateTime,
+      sessionPath: sessionPath,
+      sessionPayload: sessionPayload,
+      sessionUpdateTime: sessionUpdateTime,
     );
   }
 
   @override
+  Future<void> handoffInternalError({
+    required String runSessionId,
+    required String validationLeaseToken,
+    required String publicMessage,
+  }) async {
+    final firestoreApi = await apiProvider.firestoreApi();
+    final sessionPath = _runSessionDocPath(runSessionId);
+    final rewardGrantPath = _rewardGrantDocPath(runSessionId);
+    final sessionDocument = await firestoreApi.projects.databases.documents.get(
+      sessionPath,
+    );
+    final rewardGrantDocument = await firestoreApi.projects.databases.documents
+        .get(rewardGrantPath);
+    final session = decodeFirestoreFields(sessionDocument.fields);
+    final rewardGrant = decodeFirestoreFields(rewardGrantDocument.fields);
+    final sessionUpdateTime = _requireUpdateTime(
+      sessionDocument,
+      'runSessionId "$runSessionId"',
+    );
+    final rewardGrantUpdateTime = _requireUpdateTime(
+      rewardGrantDocument,
+      'reward grant "$runSessionId"',
+    );
+    _assertLeaseAndRewardBindings(
+      runSessionId: runSessionId,
+      session: session,
+      rewardGrant: rewardGrant,
+      validationLeaseToken: validationLeaseToken,
+    );
+
+    final nowMs = _clockMs();
+    final rewardGrantPayload = _revokedRewardGrantPayload(
+      nowMs: nowMs,
+      settlementReason: RunSessionTerminalState.internalError.wireValue,
+    );
+    final sessionPayload = <String, Object?>{
+      'state': RunSessionTerminalState.internalError.wireValue,
+      'updatedAtMs': nowMs,
+      'terminalAtMs': nowMs,
+      'message': publicMessage,
+      'validationLeaseToken': null,
+      'validationLeaseExpiresAtMs': null,
+    };
+    try {
+      await firestoreApi.projects.databases.documents.commit(
+        firestore.CommitRequest(
+          writes: <firestore.Write>[
+            firestore.Write(
+              update: firestore.Document(
+                name: rewardGrantPath,
+                fields: encodeFirestoreFields(rewardGrantPayload),
+              ),
+              updateMask: firestore.DocumentMask(
+                fieldPaths: rewardGrantPayload.keys.toList(growable: false),
+              ),
+              currentDocument: firestore.Precondition(
+                updateTime: rewardGrantUpdateTime,
+              ),
+            ),
+            firestore.Write(
+              update: firestore.Document(
+                name: sessionPath,
+                fields: encodeFirestoreFields(sessionPayload),
+              ),
+              updateMask: firestore.DocumentMask(
+                fieldPaths: sessionPayload.keys.toList(growable: false),
+              ),
+              currentDocument: firestore.Precondition(
+                updateTime: sessionUpdateTime,
+              ),
+            ),
+          ],
+        ),
+        _databaseRoot,
+      );
+    } catch (error) {
+      if (isApiConflict(error)) {
+        throw StaleValidationLeaseException(runSessionId);
+      }
+      rethrow;
+    }
+  }
+
+  /*
+   * A pending retry releases the lease. The next delivery must acquire a new
+   * token before it can write validation-owned state.
+   */
+  @override
   Future<void> markPendingValidationRetry({
     required String runSessionId,
+    required String validationLeaseToken,
     required int nextAttemptAtMs,
     required String message,
     int? internalErrorFirstAtMs,
   }) async {
     final firestoreApi = await apiProvider.firestoreApi();
     final path = _runSessionDocPath(runSessionId);
-    final existing = await firestoreApi.projects.databases.documents.get(path);
-    final existingState = decodeFirestoreFields(existing.fields)['state'];
-    if (existingState != 'validating') {
-      return;
-    }
-    final updateTime = existing.updateTime;
-    if (updateTime == null || updateTime.isEmpty) {
-      throw StateError('runSessionId "$runSessionId" is missing updateTime.');
-    }
+    final ownedLease = await _loadOwnedLease(
+      firestoreApi: firestoreApi,
+      path: path,
+      runSessionId: runSessionId,
+      validationLeaseToken: validationLeaseToken,
+    );
     final nowMs = _clockMs();
     try {
       await firestoreApi.projects.databases.documents.patch(
@@ -443,6 +670,8 @@ class FirestoreRunSessionRepository implements RunSessionRepository {
             'validationNextAttemptAtMs': nextAttemptAtMs,
             'message': message,
             'internalErrorFirstAtMs': internalErrorFirstAtMs,
+            'validationLeaseToken': null,
+            'validationLeaseExpiresAtMs': null,
           }),
         ),
         path,
@@ -452,43 +681,87 @@ class FirestoreRunSessionRepository implements RunSessionRepository {
           'validationNextAttemptAtMs',
           'message',
           'internalErrorFirstAtMs',
+          'validationLeaseToken',
+          'validationLeaseExpiresAtMs',
         ],
-        currentDocument_updateTime: updateTime,
+        currentDocument_updateTime: ownedLease.updateTime,
       );
     } catch (error) {
       if (isApiConflict(error)) {
-        return;
+        throw StaleValidationLeaseException(runSessionId);
       }
       rethrow;
     }
   }
 
-  void _assertSettlementHandoffBindings({
+  void _assertValidationHandoffBindings({
     required String runSessionId,
     required Map<String, Object?> session,
     required Map<String, Object?> rewardGrant,
     required ValidatedRun validatedRun,
+    required String validationLeaseToken,
+  }) {
+    _assertLeaseAndRewardBindings(
+      runSessionId: runSessionId,
+      session: session,
+      rewardGrant: rewardGrant,
+      validationLeaseToken: validationLeaseToken,
+    );
+    if (session['uid'] != validatedRun.uid) {
+      throw StateError(
+        'runSessionId "$runSessionId" uid does not match validated run.',
+      );
+    }
+    if (session['mode'] != validatedRun.mode.name) {
+      throw StateError(
+        'runSessionId "$runSessionId" mode does not match validated run.',
+      );
+    }
+    if (session['boardId'] != validatedRun.boardId ||
+        !_sameJsonValue(session['boardKey'], validatedRun.boardKey?.toJson())) {
+      throw StateError(
+        'runSessionId "$runSessionId" board context does not match validated run.',
+      );
+    }
+    final uploadedReplay = session['uploadedReplay'];
+    if (uploadedReplay is! Map ||
+        uploadedReplay['objectPath'] != validatedRun.replayStorageRef ||
+        uploadedReplay['canonicalSha256'] != validatedRun.replayDigest ||
+        uploadedReplay['storageGeneration'] !=
+            validatedRun.replayStorageGeneration) {
+      throw StateError(
+        'runSessionId "$runSessionId" replay evidence does not match validated run.',
+      );
+    }
+  }
+
+  void _assertLeaseAndRewardBindings({
+    required String runSessionId,
+    required Map<String, Object?> session,
+    required Map<String, Object?> rewardGrant,
+    required String validationLeaseToken,
   }) {
     if (session['state'] != 'validating') {
       throw StateError(
         'runSessionId "$runSessionId" must be validating before handoff.',
       );
     }
-    if (session['uid'] != validatedRun.uid) {
-      throw StateError(
-        'runSessionId "$runSessionId" uid does not match validated run.',
-      );
+    if (session['validationLeaseToken'] != validationLeaseToken) {
+      throw StaleValidationLeaseException(runSessionId);
     }
-    if (session['mode'] != validatedRun.mode.name ||
-        rewardGrant['mode'] != validatedRun.mode.name) {
-      throw StateError(
-        'runSessionId "$runSessionId" mode does not match validated run.',
-      );
+    final leaseExpiresAtMs = _readInt(session['validationLeaseExpiresAtMs']);
+    if (leaseExpiresAtMs == null || leaseExpiresAtMs <= _clockMs()) {
+      throw StaleValidationLeaseException(runSessionId);
     }
-    if (rewardGrant['uid'] != validatedRun.uid ||
+    if (session['uid'] != rewardGrant['uid'] ||
         rewardGrant['runSessionId'] != runSessionId) {
       throw StateError(
-        'reward grant "$runSessionId" does not match the validated run.',
+        'reward grant "$runSessionId" does not match the validating session.',
+      );
+    }
+    if (session['mode'] != rewardGrant['mode']) {
+      throw StateError(
+        'reward grant "$runSessionId" mode does not match the session.',
       );
     }
     final rewardState = rewardGrant['lifecycleState'];
@@ -498,17 +771,117 @@ class FirestoreRunSessionRepository implements RunSessionRepository {
         'reward grant "$runSessionId" must be provisional before handoff.',
       );
     }
-    if (session['boardId'] != validatedRun.boardId ||
-        rewardGrant['boardId'] != validatedRun.boardId ||
-        !_sameJsonValue(session['boardKey'], validatedRun.boardKey?.toJson()) ||
-        !_sameJsonValue(
-          rewardGrant['boardKey'],
-          validatedRun.boardKey?.toJson(),
-        )) {
+    if (session['boardId'] != rewardGrant['boardId'] ||
+        !_sameJsonValue(session['boardKey'], rewardGrant['boardKey'])) {
       throw StateError(
-        'runSessionId "$runSessionId" board context does not match validated run.',
+        'reward grant "$runSessionId" board context does not match the session.',
       );
     }
+  }
+
+  Map<String, Object?> _revokedRewardGrantPayload({
+    required int nowMs,
+    required String settlementReason,
+  }) {
+    return <String, Object?>{
+      'lifecycleState': 'revoked_final',
+      'updatedAtMs': nowMs,
+      'revokedAtMs': nowMs,
+      'revokedFinalAtMs': nowMs,
+      'settlementReason': settlementReason,
+      'lastTransitionBy': 'validator_terminal_handoff',
+      'revokedFinalBy': 'validator_terminal_handoff',
+    };
+  }
+
+  Future<void> _commitTerminalHandoff({
+    required firestore.FirestoreApi firestoreApi,
+    required String runSessionId,
+    required String validatedRunPath,
+    required Map<String, Object?> validatedRunPayload,
+    required String rewardGrantPath,
+    required Map<String, Object?> rewardGrantPayload,
+    required String rewardGrantUpdateTime,
+    required String sessionPath,
+    required Map<String, Object?> sessionPayload,
+    required String sessionUpdateTime,
+  }) async {
+    try {
+      await firestoreApi.projects.databases.documents.commit(
+        firestore.CommitRequest(
+          writes: <firestore.Write>[
+            firestore.Write(
+              update: firestore.Document(
+                name: validatedRunPath,
+                fields: encodeFirestoreFields(validatedRunPayload),
+              ),
+              currentDocument: firestore.Precondition(exists: false),
+            ),
+            firestore.Write(
+              update: firestore.Document(
+                name: rewardGrantPath,
+                fields: encodeFirestoreFields(rewardGrantPayload),
+              ),
+              updateMask: firestore.DocumentMask(
+                fieldPaths: rewardGrantPayload.keys.toList(growable: false),
+              ),
+              currentDocument: firestore.Precondition(
+                updateTime: rewardGrantUpdateTime,
+              ),
+            ),
+            firestore.Write(
+              update: firestore.Document(
+                name: sessionPath,
+                fields: encodeFirestoreFields(sessionPayload),
+              ),
+              updateMask: firestore.DocumentMask(
+                fieldPaths: sessionPayload.keys.toList(growable: false),
+              ),
+              currentDocument: firestore.Precondition(
+                updateTime: sessionUpdateTime,
+              ),
+            ),
+          ],
+        ),
+        _databaseRoot,
+      );
+    } catch (error) {
+      if (isApiConflict(error)) {
+        throw StaleValidationLeaseException(runSessionId);
+      }
+      rethrow;
+    }
+  }
+
+  String _requireUpdateTime(firestore.Document document, String label) {
+    final updateTime = document.updateTime;
+    if (updateTime == null || updateTime.isEmpty) {
+      throw StateError('$label is missing updateTime.');
+    }
+    return updateTime;
+  }
+
+  Future<_OwnedLeaseDocument> _loadOwnedLease({
+    required firestore.FirestoreApi firestoreApi,
+    required String path,
+    required String runSessionId,
+    required String validationLeaseToken,
+  }) async {
+    final existing = await firestoreApi.projects.databases.documents.get(path);
+    final decoded = decodeFirestoreFields(existing.fields);
+    if (decoded['state'] != 'validating' ||
+        decoded['validationLeaseToken'] != validationLeaseToken) {
+      throw StaleValidationLeaseException(runSessionId);
+    }
+    final leaseExpiresAtMs = _readInt(decoded['validationLeaseExpiresAtMs']);
+    if (leaseExpiresAtMs == null || leaseExpiresAtMs <= _clockMs()) {
+      throw StaleValidationLeaseException(runSessionId);
+    }
+    final updateTime = existing.updateTime;
+    if (updateTime == null || updateTime.isEmpty) {
+      throw StateError('runSessionId "$runSessionId" is missing updateTime.');
+    }
+    return _OwnedLeaseDocument(updateTime: updateTime);
   }
 
   bool _sameJsonValue(Object? left, Object? right) {
@@ -580,21 +953,30 @@ class FirestoreRunSessionRepository implements RunSessionRepository {
     final objectPath = raw['objectPath'];
     final canonicalSha256 = raw['canonicalSha256'];
     final contentLengthBytes = _readInt(raw['contentLengthBytes']);
+    final finalizedAtMs = _readInt(raw['finalizedAtMs']);
     final contentType = raw['contentType'];
+    final storageGeneration = raw['storageGeneration'];
     if (objectPath is! String ||
         objectPath.trim().isEmpty ||
         canonicalSha256 is! String ||
         canonicalSha256.trim().isEmpty ||
         contentLengthBytes == null ||
-        contentLengthBytes <= 0) {
+        contentLengthBytes <= 0 ||
+        finalizedAtMs == null ||
+        finalizedAtMs <= 0) {
       throw const FormatException('uploadedReplay payload is invalid.');
     }
     return UploadedReplayRef(
       objectPath: objectPath.trim(),
       canonicalSha256: canonicalSha256.trim(),
       contentLengthBytes: contentLengthBytes,
+      finalizedAtMs: finalizedAtMs,
       contentType: contentType is String && contentType.trim().isNotEmpty
           ? contentType.trim()
+          : null,
+      storageGeneration:
+          storageGeneration is String && storageGeneration.trim().isNotEmpty
+          ? storageGeneration.trim()
           : null,
     );
   }
@@ -612,6 +994,14 @@ class FirestoreRunSessionRepository implements RunSessionRepository {
     return null;
   }
 
+  int? _legacyLeaseExpiresAtMs(Map<String, Object?> decoded) {
+    final startedAtMs = _readInt(decoded['validationStartedAtMs']);
+    if (startedAtMs == null) {
+      return null;
+    }
+    return startedAtMs + validationLeaseDuration.inMilliseconds;
+  }
+
   bool _isTerminalState(String state) {
     return state == 'validated' ||
         state == 'rejected' ||
@@ -621,4 +1011,16 @@ class FirestoreRunSessionRepository implements RunSessionRepository {
   }
 }
 
+final class _OwnedLeaseDocument {
+  const _OwnedLeaseDocument({required this.updateTime});
+
+  final String updateTime;
+}
+
 int _defaultClockMs() => DateTime.now().millisecondsSinceEpoch;
+
+String _defaultLeaseToken() {
+  final random = Random.secure();
+  final bytes = List<int>.generate(24, (_) => random.nextInt(256));
+  return base64Url.encode(bytes).replaceAll('=', '');
+}

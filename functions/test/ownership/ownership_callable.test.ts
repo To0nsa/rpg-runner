@@ -6,16 +6,23 @@ import { getFirestore, type Firestore } from "firebase-admin/firestore";
 
 import { loadOrCreateCanonicalState } from "../../src/ownership/canonical_store.js";
 import { executeOwnershipCommand } from "../../src/ownership/command_executor.js";
+import { starterSelection } from "../../src/ownership/defaults.js";
+import { legacyReadReconciliationEnabled } from "../../src/ownership/legacy_reward_reconciliation.js";
+import { parseExecuteCommandRequest } from "../../src/ownership/validators.js";
+import { backfillLegacyRewardGrantStates } from "../../src/runs/reward_grant_backfill.js";
 import type {
+  JsonObject,
   OwnershipCanonicalState,
   OwnershipCommandEnvelope,
 } from "../../src/ownership/contracts.js";
 import { defaultCanonicalProfileId } from "../../src/ownership/firestore_paths.js";
 import { defaultPriceGold, storeBuckets } from "../../src/ownership/store_pricing.js";
 import {
+  displayNameRenameCooldownMs,
   loadOrCreatePlayerProfile,
   updatePlayerProfile,
 } from "../../src/profile/store.js";
+import { parseUpdatePlayerProfileRequest } from "../../src/profile/validators.js";
 
 const firestoreEmulatorHost = process.env.FIRESTORE_EMULATOR_HOST;
 if (!firestoreEmulatorHost) {
@@ -36,6 +43,10 @@ const uid = "uid_owner";
 const sessionId = "session_1";
 const maxAwardRunGold = 10_000;
 const goldRefreshCost = 50;
+
+// Final-state tests exercise the post-migration configuration. Production
+// initially overrides this to true only while inventory/apply is in progress.
+process.env.LEGACY_READ_RECONCILIATION_ENABLED = "false";
 
 const swordItemIds = [
   "plainsteel",
@@ -127,11 +138,22 @@ beforeEach(async () => {
     clearPlayerProfiles(db),
     clearDisplayNameIndex(db),
     clearCollection(db, "reward_grants"),
+    clearCollection(db, "system_maintenance"),
   ]);
 });
 
 after(async () => {
   await Promise.all(getApps().map((value) => deleteApp(value)));
+});
+
+test("legacy read reconciliation defaults on only for staged migration safety", () => {
+  assert.equal(legacyReadReconciliationEnabled({}), true);
+  assert.equal(
+    legacyReadReconciliationEnabled({
+      LEGACY_READ_RECONCILIATION_ENABLED: "false",
+    }),
+    false,
+  );
 });
 
 test("loadOrCreateCanonicalState creates starter canonical state", async () => {
@@ -174,6 +196,33 @@ test("accepted command increments revision and persists canonical mutation", asy
     loadoutFor(persisted, "eloise").projectileSlotSpellId,
     "holyBolt",
   );
+});
+
+test("public command parser rejects server-only ownership mutations", () => {
+  for (const type of [
+    "resetOwnership",
+    "learnProjectileSpell",
+    "learnSpellAbility",
+    "unlockGear",
+    "awardRunGold",
+  ]) {
+    assert.throws(
+      () =>
+        parseExecuteCommandRequest({
+          command: {
+            type,
+            userId: uid,
+            sessionId,
+            expectedRevision: 0,
+            commandId: `cmd_public_${type}`,
+            payload: {},
+          },
+        }),
+      (error: { code?: string; message?: string }) =>
+        error.code === "permission-denied" &&
+        (error.message ?? "").includes("server-only"),
+    );
+  }
 });
 
 test("awardRunGold increments canonical progression and is idempotent", async () => {
@@ -222,7 +271,7 @@ test("awardRunGold rejects oversized gold payload", async () => {
   assert.equal(result.canonicalState.progression.gold, 0);
 });
 
-test("loadOrCreateCanonicalState reconciles settled reward grants exactly once", async () => {
+test("ordinary canonical reads do not reconcile legacy reward grants", async () => {
   await db.collection("reward_grants").doc("grant_run_1").set({
     uid,
     runSessionId: "run_1",
@@ -231,39 +280,17 @@ test("loadOrCreateCanonicalState reconciles settled reward grants exactly once",
   });
 
   const first = await loadOrCreateCanonicalState({ db, uid });
-  assert.equal(first.progression.gold, 25);
-  assert.deepEqual(first.progression.appliedRewardGrantIds, ["grant_run_1"]);
+  assert.equal(first.progression.gold, 0);
 
   const second = await loadOrCreateCanonicalState({ db, uid });
-  assert.equal(second.progression.gold, 25);
-  assert.deepEqual(second.progression.appliedRewardGrantIds, ["grant_run_1"]);
+  assert.equal(second.progression.gold, 0);
 
   const rewardGrant = await db.collection("reward_grants").doc("grant_run_1").get();
   assert.equal(rewardGrant.exists, true);
   assert.equal(rewardGrant.data()?.lifecycleState, "validated_settled");
 });
 
-test("loadOrCreateCanonicalState keeps provisional rewards non-spendable", async () => {
-  await db.collection("reward_grants").doc("grant_run_provisional").set({
-    uid,
-    runSessionId: "run_provisional_1",
-    lifecycleState: "provisional_created",
-    goldAmount: 25,
-  });
-
-  const canonical = await loadOrCreateCanonicalState({ db, uid });
-  assert.equal(canonical.progression.gold, 0);
-  assert.deepEqual(canonical.progression.appliedRewardGrantIds, []);
-
-  const rewardGrant = await db
-    .collection("reward_grants")
-    .doc("grant_run_provisional")
-    .get();
-  assert.equal(rewardGrant.exists, true);
-  assert.equal(rewardGrant.data()?.lifecycleState, "provisional_created");
-});
-
-test("revocation_visible reward grant is terminalized to revoked_final on reconcile", async () => {
+test("ordinary canonical reads do not terminalize legacy revocations", async () => {
   await db.collection("reward_grants").doc("grant_run_revocation").set({
     uid,
     runSessionId: "run_revocation_1",
@@ -274,44 +301,14 @@ test("revocation_visible reward grant is terminalized to revoked_final on reconc
   });
 
   const canonical = await loadOrCreateCanonicalState({ db, uid });
-  // revoked grant must not contribute spendable gold
   assert.equal(canonical.progression.gold, 0);
-  assert.deepEqual(canonical.progression.appliedRewardGrantIds, []);
 
   const rewardGrant = await db
     .collection("reward_grants")
     .doc("grant_run_revocation")
     .get();
   assert.equal(rewardGrant.exists, true);
-  // lifecycle must be terminalized
-  assert.equal(rewardGrant.data()?.lifecycleState, "revoked_final");
-  assert.equal(rewardGrant.data()?.revokedFinalBy, "ownership_reconcile");
-});
-
-test("revoked_final reward grant is skipped idempotently on reconcile", async () => {
-  await db.collection("reward_grants").doc("grant_run_revoked_final").set({
-    uid,
-    runSessionId: "run_revoked_final_1",
-    lifecycleState: "revoked_final",
-    goldAmount: 15,
-    revokedFinalBy: "ownership_reconcile",
-    updatedAtMs: 1700000010000,
-    revokedFinalAtMs: 1700000010000,
-  });
-
-  const first = await loadOrCreateCanonicalState({ db, uid });
-  assert.equal(first.progression.gold, 0);
-  assert.deepEqual(first.progression.appliedRewardGrantIds, []);
-
-  const second = await loadOrCreateCanonicalState({ db, uid });
-  assert.equal(second.progression.gold, 0);
-
-  // lifecycleState must stay revoked_final with no mutation
-  const rewardGrant = await db
-    .collection("reward_grants")
-    .doc("grant_run_revoked_final")
-    .get();
-  assert.equal(rewardGrant.data()?.lifecycleState, "revoked_final");
+  assert.equal(rewardGrant.data()?.lifecycleState, "revocation_visible");
 });
 
 test("purchaseStoreOffer rejects when gold is only provisional", async () => {
@@ -343,23 +340,31 @@ test("purchaseStoreOffer rejects when gold is only provisional", async () => {
   assert.equal(purchase.canonicalState.progression.gold, 0);
 });
 
-test("validated_settled reward grant applies spendable gold exactly once across multiple reconcile calls", async () => {
+test("legacy migration applies a settled reward exactly once", async () => {
   await db.collection("reward_grants").doc("grant_run_settled_once").set({
     uid,
-    runSessionId: "run_settled_once_1",
+    runSessionId: "grant_run_settled_once",
     lifecycleState: "validated_settled",
     goldAmount: 50,
   });
 
+  const firstMigration = await backfillLegacyRewardGrantStates({
+    db,
+    options: { mode: "apply", nowMs: 1_700_000_000_000 },
+  });
+  assert.equal(firstMigration.repairedAppliedCount, 1);
   const first = await loadOrCreateCanonicalState({ db, uid });
   assert.equal(first.progression.gold, 50);
   assert.deepEqual(first.progression.appliedRewardGrantIds, ["grant_run_settled_once"]);
 
+  // A completed migration page is read-only when the scheduler delivers it again.
+  const secondMigration = await backfillLegacyRewardGrantStates({
+    db,
+    options: { mode: "apply", nowMs: 1_700_000_000_001 },
+  });
+  assert.equal(secondMigration.repairedAppliedCount, 0);
   const second = await loadOrCreateCanonicalState({ db, uid });
   assert.equal(second.progression.gold, 50);
-
-  const third = await loadOrCreateCanonicalState({ db, uid });
-  assert.equal(third.progression.gold, 50);
 
   const rewardGrant = await db
     .collection("reward_grants")
@@ -368,10 +373,10 @@ test("validated_settled reward grant applies spendable gold exactly once across 
   assert.equal(rewardGrant.data()?.lifecycleState, "validated_settled");
 });
 
-test("weekly settled reward grants update weekly progression hooks", async () => {
+test("legacy weekly migration updates weekly progression hooks", async () => {
   await db.collection("reward_grants").doc("grant_weekly_1").set({
     uid,
-    runSessionId: "run_weekly_1",
+    runSessionId: "grant_weekly_1",
     lifecycleState: "validated_settled",
     goldAmount: 25,
     mode: "weekly",
@@ -386,6 +391,10 @@ test("weekly settled reward grants update weekly progression hooks", async () =>
     createdAtMs: 1700000000123,
   });
 
+  await backfillLegacyRewardGrantStates({
+    db,
+    options: { mode: "apply", nowMs: 1_700_000_000_000 },
+  });
   const canonical = await loadOrCreateCanonicalState({ db, uid });
   const weekly = weeklyProgress(canonical);
 
@@ -398,7 +407,7 @@ test("weekly settled reward grants update weekly progression hooks", async () =>
   assert.equal(weekly.lifetimeGoldEarned, 25);
   assert.equal(weekly.lastWindowId, "2026-W11");
   assert.equal(weekly.lastBoardId, "board_weekly_field_w11");
-  assert.equal(weekly.lastRunSessionId, "run_weekly_1");
+  assert.equal(weekly.lastRunSessionId, "grant_weekly_1");
   assert.equal(weekly.lastRewardGrantId, "grant_weekly_1");
   assert.equal(weekly.lastValidatedAtMs, 1700000000123);
 
@@ -407,10 +416,10 @@ test("weekly settled reward grants update weekly progression hooks", async () =>
   assert.equal(rewardGrant.data()?.lifecycleState, "validated_settled");
 });
 
-test("weekly progression hooks roll over when a new week grant is applied", async () => {
+test("legacy weekly migration preserves progression rollover", async () => {
   await db.collection("reward_grants").doc("grant_weekly_2").set({
     uid,
-    runSessionId: "run_weekly_2",
+    runSessionId: "grant_weekly_2",
     lifecycleState: "validated_settled",
     goldAmount: 7,
     mode: "weekly",
@@ -425,13 +434,9 @@ test("weekly progression hooks roll over when a new week grant is applied", asyn
     createdAtMs: 1700000001000,
   });
 
-  const first = await loadOrCreateCanonicalState({ db, uid });
-  assert.equal(first.progression.gold, 7);
-  assert.equal(weeklyProgress(first).currentWindowId, "2026-W11");
-
   await db.collection("reward_grants").doc("grant_weekly_3").set({
     uid,
-    runSessionId: "run_weekly_3",
+    runSessionId: "grant_weekly_3",
     lifecycleState: "validated_settled",
     goldAmount: 11,
     mode: "weekly",
@@ -446,6 +451,10 @@ test("weekly progression hooks roll over when a new week grant is applied", asyn
     createdAtMs: 1700000002000,
   });
 
+  await backfillLegacyRewardGrantStates({
+    db,
+    options: { mode: "apply", nowMs: 1_700_000_000_000 },
+  });
   const second = await loadOrCreateCanonicalState({ db, uid });
   const weekly = weeklyProgress(second);
   assert.equal(second.progression.gold, 18);
@@ -456,42 +465,57 @@ test("weekly progression hooks roll over when a new week grant is applied", asyn
   assert.equal(weekly.lifetimeGoldEarned, 18);
   assert.equal(weekly.lastWindowId, "2026-W12");
   assert.equal(weekly.lastBoardId, "board_weekly_field_w12");
-  assert.equal(weekly.lastRunSessionId, "run_weekly_3");
+  assert.equal(weekly.lastRunSessionId, "grant_weekly_3");
   assert.equal(weekly.lastRewardGrantId, "grant_weekly_3");
   assert.equal(weekly.lastValidatedAtMs, 1700000002000);
 });
 
-test("settled reward grants advance revision before a client command applies", async () => {
+test("legacy migration advances revision before a client command applies", async () => {
   const canonical = await loadOrCreateCanonicalState({ db, uid });
   await db.collection("reward_grants").doc("grant_run_2").set({
     uid,
-    runSessionId: "run_2",
+    runSessionId: "grant_run_2",
     lifecycleState: "validated_settled",
     goldAmount: 7,
   });
+
+  const firstCommand = await executeOwnershipCommand({
+    db,
+    uid,
+    command: setProjectileSpellCommand({
+      expectedRevision: canonical.revision,
+      commandId: "cmd_before_legacy_migration",
+      spellId: "holyBolt",
+    }),
+  });
+
+  assert.equal(firstCommand.rejectedReason, null);
+  assert.equal(firstCommand.canonicalState.progression.gold, 0);
+
+  await backfillLegacyRewardGrantStates({
+    db,
+    options: { mode: "apply", nowMs: 1_700_000_000_000 },
+  });
+  const settled = await loadOrCreateCanonicalState({ db, uid });
+  assert.equal(settled.progression.gold, 7);
+  assert.equal(settled.revision, canonical.revision + 2);
 
   const staleResult = await executeOwnershipCommand({
     db,
     uid,
     command: setProjectileSpellCommand({
-      expectedRevision: canonical.revision,
-      commandId: "cmd_reconcile_grant_then_apply",
+      expectedRevision: firstCommand.newRevision,
+      commandId: "cmd_after_legacy_migration_stale",
       spellId: "holyBolt",
     }),
   });
-
   assert.equal(staleResult.rejectedReason, "staleRevision");
-  assert.equal(staleResult.canonicalState.progression.gold, 7);
-  assert.equal(staleResult.newRevision, canonical.revision + 1);
-  assert.deepEqual(staleResult.canonicalState.progression.appliedRewardGrantIds, [
-    "grant_run_2",
-  ]);
   const result = await executeOwnershipCommand({
     db,
     uid,
     command: setProjectileSpellCommand({
-      expectedRevision: staleResult.newRevision,
-      commandId: "cmd_reconcile_grant_then_apply_after_refresh",
+      expectedRevision: settled.revision,
+      commandId: "cmd_after_legacy_migration_refresh",
       spellId: "holyBolt",
     }),
   });
@@ -605,6 +629,24 @@ test("command actor mismatch rejects with forbidden", async () => {
 });
 
 test("equipGear keeps meta and selection gear in sync", async () => {
+  const unlocked = await executeOwnershipCommand({
+    db,
+    uid,
+    command: {
+      type: "unlockGear",
+      userId: uid,
+      sessionId,
+      expectedRevision: 0,
+      commandId: "cmd_unlock_gear_for_equip",
+      payload: {
+        slot: "spellBook",
+        itemDomain: "spellBook",
+        itemId: "bastionCodex",
+      },
+    },
+  });
+  assert.equal(unlocked.rejectedReason, null);
+
   const result = await executeOwnershipCommand({
     db,
     uid,
@@ -612,7 +654,7 @@ test("equipGear keeps meta and selection gear in sync", async () => {
       type: "equipGear",
       userId: uid,
       sessionId,
-      expectedRevision: 0,
+      expectedRevision: unlocked.newRevision,
       commandId: "cmd_equip_gear",
       payload: {
         characterId: "eloise",
@@ -624,7 +666,7 @@ test("equipGear keeps meta and selection gear in sync", async () => {
   });
 
   assert.equal(result.rejectedReason, null);
-  assert.equal(result.newRevision, 1);
+  assert.equal(result.newRevision, 2);
   assert.equal(
     loadoutFor(result.canonicalState, "eloise").spellBookId,
     "bastionCodex",
@@ -633,6 +675,112 @@ test("equipGear keeps meta and selection gear in sync", async () => {
     equippedFor(result.canonicalState, "eloise").spellBookId,
     "bastionCodex",
   );
+});
+
+test("equipGear rejects known but unowned gear", async () => {
+  const result = await executeOwnershipCommand({
+    db,
+    uid,
+    command: {
+      type: "equipGear",
+      userId: uid,
+      sessionId,
+      expectedRevision: 0,
+      commandId: "cmd_equip_unowned_gear",
+      payload: {
+        characterId: "eloise",
+        slot: "spellBook",
+        itemDomain: "spellBook",
+        itemId: "bastionCodex",
+      },
+    },
+  });
+
+  assert.equal(result.rejectedReason, "invalidCommand");
+  assert.equal(result.newRevision, 0);
+  assert.equal(
+    loadoutFor(result.canonicalState, "eloise").spellBookId,
+    "apprenticePrimer",
+  );
+});
+
+test("ability and projectile selection reject unowned content", async () => {
+  const ability = await executeOwnershipCommand({
+    db,
+    uid,
+    command: {
+      type: "setAbilitySlot",
+      userId: uid,
+      sessionId,
+      expectedRevision: 0,
+      commandId: "cmd_set_unowned_ability",
+      payload: {
+        characterId: "eloise",
+        slot: "primary",
+        abilityId: "eloise.bloodletter_slash",
+      },
+    },
+  });
+  assert.equal(ability.rejectedReason, "invalidCommand");
+
+  const projectile = await executeOwnershipCommand({
+    db,
+    uid,
+    command: {
+      type: "setProjectileSpell",
+      userId: uid,
+      sessionId,
+      expectedRevision: 0,
+      commandId: "cmd_set_unowned_projectile",
+      payload: {
+        characterId: "eloise",
+        spellId: "fireBolt",
+      },
+    },
+  });
+  assert.equal(projectile.rejectedReason, "invalidCommand");
+});
+
+test("whole selection and loadout commands reject unowned nested content", async () => {
+  const selection = starterSelection();
+  const loadouts = selection.loadoutsByCharacter as Record<string, unknown>;
+  const eloiseLoadout = loadouts.eloise as Record<string, unknown>;
+  eloiseLoadout.spellBookId = "bastionCodex";
+
+  const selectionResult = await executeOwnershipCommand({
+    db,
+    uid,
+    command: {
+      type: "setSelection",
+      userId: uid,
+      sessionId,
+      expectedRevision: 0,
+      commandId: "cmd_set_unowned_selection",
+      payload: { selection },
+    },
+  });
+  assert.equal(selectionResult.rejectedReason, "invalidCommand");
+
+  const loadout = structuredClone(
+    (starterSelection().loadoutsByCharacter as JsonObject).eloise,
+  ) as JsonObject;
+  loadout.spellBookId = "bastionCodex";
+  const loadoutResult = await executeOwnershipCommand({
+    db,
+    uid,
+    command: {
+      type: "setLoadout",
+      userId: uid,
+      sessionId,
+      expectedRevision: 0,
+      commandId: "cmd_set_unowned_loadout",
+      payload: {
+        characterId: "eloise",
+        loadout,
+      },
+    },
+  });
+  assert.equal(loadoutResult.rejectedReason, "invalidCommand");
 });
 
 test("invalid character payload rejects with invalidCommand", async () => {
@@ -745,6 +893,46 @@ test("purchaseStoreOffer replay is idempotent with no double spend", async () =>
   assert.equal(replay.newRevision, first.newRevision);
   assert.equal(
     replay.canonicalState.progression.gold,
+    first.canonicalState.progression.gold,
+  );
+});
+
+test("retention cleanup cannot make an applied purchase spend twice", async () => {
+  const seeded = await loadOrCreateCanonicalState({ db, uid });
+  const offer = activeStoreOffers(seeded)[0];
+  assert.ok(offer);
+  const withGold = await executeOwnershipCommand({
+    db,
+    uid,
+    command: awardRunGoldCommand({
+      expectedRevision: seeded.revision,
+      commandId: "cmd_retention_purchase_award",
+      runId: 5_020,
+      goldEarned: 500,
+    }),
+  });
+  const command = purchaseStoreOfferCommand({
+    expectedRevision: withGold.newRevision,
+    commandId: "cmd_retention_purchase",
+    offerId: offer.offerId,
+  });
+  const first = await executeOwnershipCommand({ db, uid, command });
+  const canonicalRef = await ownershipCanonicalDocRef(db, uid);
+  await canonicalRef
+    .collection("idempotency")
+    .doc(command.commandId)
+    .delete();
+
+  const outsideRetryWindow = await executeOwnershipCommand({
+    db,
+    uid,
+    command,
+  });
+
+  assert.equal(first.rejectedReason, null);
+  assert.equal(outsideRetryWindow.rejectedReason, "staleRevision");
+  assert.equal(
+    outsideRetryWindow.canonicalState.progression.gold,
     first.canonicalState.progression.gold,
   );
 });
@@ -962,17 +1150,17 @@ test("updatePlayerProfile persists name and onboarding flag", async () => {
   const updated = await updatePlayerProfile({
     db,
     uid,
+    nowMs: 1700000000000,
     displayName: "HeroName",
-    displayNameLastChangedAtMs: 1700000000000,
     namePromptCompleted: true,
   });
   assert.equal(updated.displayName, "HeroName");
-  assert.equal(updated.displayNameLastChangedAtMs, 1700000000000);
+  assert.equal(updated.displayNameLastChangedAtMs, 0);
   assert.equal(updated.namePromptCompleted, true);
 
   const loaded = await loadOrCreatePlayerProfile({ db, uid });
   assert.equal(loaded.displayName, "HeroName");
-  assert.equal(loaded.displayNameLastChangedAtMs, 1700000000000);
+  assert.equal(loaded.displayNameLastChangedAtMs, 0);
   assert.equal(loaded.namePromptCompleted, true);
 });
 
@@ -980,8 +1168,8 @@ test("updatePlayerProfile rejects duplicate normalized name across users", async
   await updatePlayerProfile({
     db,
     uid: "uid_primary",
+    nowMs: 100,
     displayName: "Hero Name",
-    displayNameLastChangedAtMs: 100,
   });
 
   await assert.rejects(
@@ -989,8 +1177,8 @@ test("updatePlayerProfile rejects duplicate normalized name across users", async
       updatePlayerProfile({
         db,
         uid: "uid_secondary",
+        nowMs: 101,
         displayName: "hero   name",
-        displayNameLastChangedAtMs: 101,
       }),
     (error: { code?: string }) => error.code === "already-exists",
   );
@@ -1000,23 +1188,194 @@ test("updatePlayerProfile rename releases prior name for another user", async ()
   await updatePlayerProfile({
     db,
     uid: "uid_primary",
+    nowMs: 100,
     displayName: "Alpha",
-    displayNameLastChangedAtMs: 100,
   });
   await updatePlayerProfile({
     db,
     uid: "uid_primary",
+    nowMs: 101,
     displayName: "Beta",
-    displayNameLastChangedAtMs: 101,
   });
 
   const claimed = await updatePlayerProfile({
     db,
     uid: "uid_secondary",
+    nowMs: 102,
     displayName: "alpha",
-    displayNameLastChangedAtMs: 102,
   });
   assert.equal(claimed.displayName, "alpha");
+});
+
+test("profile validator rejects caller-controlled rename timestamps", () => {
+  for (const value of [0, 1, Number.MAX_SAFE_INTEGER]) {
+    assert.throws(
+      () =>
+        parseUpdatePlayerProfileRequest({
+          userId: uid,
+          sessionId,
+          displayName: "HeroName",
+          displayNameLastChangedAtMs: value,
+        }),
+      (error: { code?: string }) => error.code === "invalid-argument",
+    );
+  }
+});
+
+test("updatePlayerProfile enforces cooldown at the exact boundary", async () => {
+  const initial = await updatePlayerProfile({
+    db,
+    uid,
+    nowMs: 100,
+    displayName: "Alpha",
+  });
+  assert.equal(initial.displayNameLastChangedAtMs, 0);
+
+  const firstRenameAtMs = 200;
+  const firstRename = await updatePlayerProfile({
+    db,
+    uid,
+    nowMs: firstRenameAtMs,
+    displayName: "Beta",
+  });
+  assert.equal(firstRename.displayNameLastChangedAtMs, firstRenameAtMs);
+
+  await assert.rejects(
+    () =>
+      updatePlayerProfile({
+        db,
+        uid,
+        nowMs: firstRenameAtMs + displayNameRenameCooldownMs - 1,
+        displayName: "Gamma",
+      }),
+    (error: { code?: string }) => error.code === "failed-precondition",
+  );
+
+  const exactBoundary = await updatePlayerProfile({
+    db,
+    uid,
+    nowMs: firstRenameAtMs + displayNameRenameCooldownMs,
+    displayName: "Gamma",
+  });
+  assert.equal(exactBoundary.displayName, "Gamma");
+  assert.equal(
+    exactBoundary.displayNameLastChangedAtMs,
+    firstRenameAtMs + displayNameRenameCooldownMs,
+  );
+});
+
+test("updatePlayerProfile repairs a legacy future cooldown on rename", async () => {
+  await updatePlayerProfile({
+    db,
+    uid,
+    nowMs: 100,
+    displayName: "Alpha",
+  });
+  await db.collection("player_profiles").doc(uid).set(
+    {
+      displayNameLastChangedAtMs: 999999,
+    },
+    { merge: true },
+  );
+
+  const renamed = await updatePlayerProfile({
+    db,
+    uid,
+    nowMs: 200,
+    displayName: "Beta",
+  });
+  assert.equal(renamed.displayNameLastChangedAtMs, 200);
+});
+
+test("concurrent rename attempts allow one winner and preserve indexes", async () => {
+  await updatePlayerProfile({
+    db,
+    uid,
+    nowMs: 100,
+    displayName: "Alpha",
+  });
+
+  const results = await Promise.allSettled([
+    updatePlayerProfile({
+      db,
+      uid,
+      nowMs: 200,
+      displayName: "Beta",
+    }),
+    updatePlayerProfile({
+      db,
+      uid,
+      nowMs: 200,
+      displayName: "Gamma",
+    }),
+  ]);
+  assert.equal(
+    results.filter((result) => result.status === "fulfilled").length,
+    1,
+  );
+  assert.equal(
+    results.filter((result) => result.status === "rejected").length,
+    1,
+  );
+
+  const profile = await loadOrCreatePlayerProfile({ db, uid });
+  assert.ok(profile.displayName === "Beta" || profile.displayName === "Gamma");
+  assert.equal(profile.displayNameLastChangedAtMs, 200);
+  assert.equal(
+    (
+      await db
+        .collection("display_name_index")
+        .doc(profile.displayName.toLowerCase())
+        .get()
+    ).data()?.uid,
+    uid,
+  );
+  assert.equal(
+    (
+      await db
+        .collection("display_name_index")
+        .doc(profile.displayName === "Beta" ? "gamma" : "beta")
+        .get()
+    ).exists,
+    false,
+  );
+});
+
+test("first profile load racing first update preserves name and index", async () => {
+  const raceUid = "uid_profile_race";
+  const [loaded, updated] = await Promise.all([
+    loadOrCreatePlayerProfile({ db, uid: raceUid }),
+    updatePlayerProfile({
+      db,
+      uid: raceUid,
+      nowMs: 100,
+      displayName: "Racer Name",
+    }),
+  ]);
+  const persisted = await loadOrCreatePlayerProfile({ db, uid: raceUid });
+
+  assert.ok(loaded.displayName === "" || loaded.displayName === "Racer Name");
+  assert.equal(updated.displayName, "Racer Name");
+  assert.equal(persisted.displayName, "Racer Name");
+  assert.equal(
+    (await db.collection("display_name_index").doc("racer name").get()).data()
+      ?.uid,
+    raceUid,
+  );
+});
+
+test("concurrent first profile loads converge on one default document", async () => {
+  const raceUid = "uid_profile_load_race";
+  const profiles = await Promise.all(
+    Array.from({ length: 8 }, () =>
+      loadOrCreatePlayerProfile({ db, uid: raceUid }),
+    ),
+  );
+  assert.deepEqual(
+    new Set(profiles.map((profile) => JSON.stringify(profile))),
+    new Set([JSON.stringify(profiles[0])]),
+  );
+  assert.equal((await db.collection("player_profiles").get()).size, 1);
 });
 
 function setProjectileSpellCommand(args: {

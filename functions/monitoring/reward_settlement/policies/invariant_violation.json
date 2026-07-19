@@ -1,0 +1,27 @@
+{
+  "displayName": "RPG Runner - settlement invariant violation",
+  "documentation": {
+    "content": "A persisted settlement invariant failed. Preserve the run session, validated run, reward grant, and canonical ownership record; follow the stale-settlement runbook. Do not compensate with client gold.",
+    "mimeType": "text/markdown"
+  },
+  "conditions": [
+    {
+      "displayName": "Settlement invariant violation log",
+      "conditionMatchedLog": {
+        "filter": "jsonPayload.message=\"run_settlement\" AND (jsonPayload.outcome=\"invariant_violation\" OR jsonPayload.invariantViolationCount>0)"
+      }
+    }
+  ],
+  "combiner": "OR",
+  "enabled": true,
+  "alertStrategy": {
+    "notificationRateLimit": {
+      "period": "300s"
+    },
+    "autoClose": "604800s"
+  },
+  "userLabels": {
+    "component": "reward-settlement",
+    "severity": "critical"
+  }
+}

@@ -201,38 +201,42 @@ void main() {
     expect(find.text('Skip'), findsNothing);
   });
 
-  testWidgets('GameOverOverlay keeps provisional gold outside the wallet', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        home: GameOverOverlay(
-          visible: true,
-          onRestart: () {},
-          onExit: null,
-          showExitButton: false,
-          levelId: LevelId.field,
-          runMode: RunMode.practice,
-          runEndedEvent: _buildEvent(),
-          scoreTuning: _tuning,
-          tickHz: _tickHz,
-          provisionalGoldEarned: 7,
-          verifiedGold: 1234,
+  testWidgets(
+    'GameOverOverlay presents provisional gold as a verifying result',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(useMaterial3: false),
+          home: GameOverOverlay(
+            visible: true,
+            onRestart: () {},
+            onExit: null,
+            showExitButton: false,
+            levelId: LevelId.field,
+            runMode: RunMode.practice,
+            runEndedEvent: _buildEvent(),
+            scoreTuning: _tuning,
+            tickHz: _tickHz,
+            provisionalGoldEarned: 7,
+            verifiedGold: 1234,
+          ),
         ),
-      ),
-    );
+      );
 
-    expect(find.text('Reward pending: 7 (not spendable)'), findsOneWidget);
-    expect(find.text('1234'), findsOneWidget);
+      expect(find.text('Run reward: +'), findsOneWidget);
+      expect(find.text('Verifying reward…'), findsOneWidget);
+      expect(find.textContaining('Reward pending:'), findsNothing);
+      expect(find.text('1234'), findsOneWidget);
 
-    await tester.tap(find.text('Collect Score'));
-    await tester.pump();
-    await tester.tap(find.text('Skip'));
-    await tester.pump();
+      await tester.tap(find.text('Collect Score'));
+      await tester.pump();
+      await tester.tap(find.text('Skip'));
+      await tester.pump();
 
-    expect(find.text('Reward pending: 7 (not spendable)'), findsOneWidget);
-    expect(find.text('1234'), findsOneWidget);
-  });
+      expect(find.text('Verifying reward…'), findsOneWidget);
+      expect(find.text('1234'), findsOneWidget);
+    },
+  );
 
   testWidgets('GameOverOverlay blocks exit until the replay is journaled', (
     tester,
@@ -260,7 +264,7 @@ void main() {
     );
 
     expect(find.text('Saving replay'), findsOneWidget);
-    expect(find.text('Reward pending: 7 (not spendable)'), findsNothing);
+    expect(find.text('Verifying reward…'), findsNothing);
 
     await tester.tap(find.text('Collect Score'));
     await tester.pump();
@@ -349,6 +353,7 @@ void main() {
   ) async {
     await tester.pumpWidget(
       MaterialApp(
+        theme: ThemeData(useMaterial3: false),
         home: GameOverOverlay(
           visible: true,
           onRestart: () {},
@@ -446,6 +451,7 @@ void main() {
     ) async {
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData(useMaterial3: false),
           home: GameOverOverlay(
             visible: true,
             onRestart: () {},
@@ -468,6 +474,7 @@ void main() {
       (tester) async {
         await tester.pumpWidget(
           MaterialApp(
+            theme: ThemeData(useMaterial3: false),
             home: GameOverOverlay(
               visible: true,
               onRestart: () {},
@@ -484,9 +491,10 @@ void main() {
           ),
         );
 
-        expect(find.text('Gold: '), findsOneWidget);
+        expect(find.text('Wallet: '), findsOneWidget);
         expect(find.text('100'), findsOneWidget);
-        expect(find.text('Reward pending: 50 (not spendable)'), findsOneWidget);
+        expect(find.text('Run reward: +'), findsOneWidget);
+        expect(find.text('Verifying reward…'), findsOneWidget);
 
         await tester.tap(find.text('Collect Score'));
         await tester.pump();
@@ -494,15 +502,47 @@ void main() {
         await tester.pump();
 
         expect(find.text('100'), findsOneWidget);
-        expect(find.text('Reward pending: 50 (not spendable)'), findsOneWidget);
+        expect(find.text('Verifying reward…'), findsOneWidget);
       },
     );
+
+    testWidgets('settlement processing uses the compact reward confirmation', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(useMaterial3: false),
+          home: GameOverOverlay(
+            visible: true,
+            onRestart: () {},
+            onExit: null,
+            showExitButton: false,
+            levelId: LevelId.field,
+            runMode: RunMode.practice,
+            runEndedEvent: _buildEvent(),
+            scoreTuning: _tuning,
+            tickHz: _tickHz,
+            verifiedGold: 100,
+            runSubmissionStatus: provisionalStatus(
+              provisionalGold: 50,
+              state: protocol.RunSessionState.settlementPending,
+              phase: RunSubmissionPhase.settlementPending,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Verifying reward…'), findsOneWidget);
+      expect(find.text('Verification: '), findsNothing);
+      expect(find.text('Settling Reward'), findsNothing);
+    });
 
     testWidgets('gold panel only shows canonical gold after final settlement', (
       tester,
     ) async {
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData(useMaterial3: false),
           home: GameOverOverlay(
             visible: true,
             onRestart: () {},
@@ -523,9 +563,9 @@ void main() {
         ),
       );
 
-      expect(find.text('Gold: '), findsOneWidget);
+      expect(find.text('Wallet: '), findsOneWidget);
       expect(find.text('200'), findsOneWidget);
-      expect(find.textContaining('Reward pending:'), findsNothing);
+      expect(find.text('Reward verified'), findsOneWidget);
     });
 
     testWidgets(
@@ -533,6 +573,7 @@ void main() {
       (tester) async {
         await tester.pumpWidget(
           MaterialApp(
+            theme: ThemeData(useMaterial3: false),
             home: GameOverOverlay(
               visible: true,
               onRestart: () {},
@@ -558,6 +599,7 @@ void main() {
     ) async {
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData(useMaterial3: false),
           home: GameOverOverlay(
             visible: true,
             onRestart: () {},
@@ -574,9 +616,9 @@ void main() {
         ),
       );
 
-      expect(find.text('Gold: '), findsOneWidget);
+      expect(find.text('Wallet: '), findsOneWidget);
       expect(find.text('200'), findsOneWidget);
-      expect(find.textContaining('Reward pending:'), findsNothing);
+      expect(find.textContaining('Run reward:'), findsNothing);
     });
 
     testWidgets(
@@ -590,6 +632,7 @@ void main() {
 
         await tester.pumpWidget(
           MaterialApp(
+            theme: ThemeData(useMaterial3: false),
             home: StatefulBuilder(
               builder: (context, setState) {
                 updateState = setState;
@@ -612,7 +655,7 @@ void main() {
         );
 
         expect(find.text('100'), findsOneWidget);
-        expect(find.text('Reward pending: 50 (not spendable)'), findsOneWidget);
+        expect(find.text('Verifying reward…'), findsOneWidget);
 
         updateState(() {
           verifiedGold = 150;
@@ -626,7 +669,7 @@ void main() {
 
         expect(find.text('150'), findsOneWidget);
         expect(find.text('200'), findsNothing);
-        expect(find.textContaining('Reward pending:'), findsNothing);
+        expect(find.text('Reward verified'), findsOneWidget);
       },
     );
   });

@@ -282,6 +282,71 @@ test("run cleanup deletes only terminal settled reward_grants past retention cut
   );
 });
 
+test("run cleanup revokes old orphaned grants but preserves active validation grants", async () => {
+  const nowMs = 1_000_000;
+  await db.collection("reward_grants").doc("orphan_missing").set({
+    runSessionId: "orphan_missing",
+    uid: "uid_cleanup",
+    lifecycleState: "provisional_created",
+    goldAmount: 12,
+    updatedAtMs: 100,
+  });
+  await seedRunSession(
+    "orphan_terminal",
+    "expired",
+    nowMs - 10_000,
+  );
+  await db.collection("reward_grants").doc("orphan_terminal").set({
+    runSessionId: "orphan_terminal",
+    uid: "uid_cleanup",
+    lifecycleState: "provisional_visible",
+    goldAmount: 13,
+    updatedAtMs: 200,
+  });
+  await seedRunSession(
+    "active_validation",
+    "pending_validation",
+    nowMs + 10_000,
+  );
+  await db.collection("reward_grants").doc("active_validation").set({
+    runSessionId: "active_validation",
+    uid: "uid_cleanup",
+    lifecycleState: "provisional_created",
+    goldAmount: 14,
+    updatedAtMs: 300,
+  });
+
+  const result = await runReplaySubmissionCleanup({
+    db,
+    nowMs,
+    dependencies: {
+      orphanProvisionalGrantGraceMs: 1_000,
+      maxOrphanProvisionalGrantRepairsPerRun: 10,
+      maxExpiredSessionUpdatesPerRun: 10,
+    },
+  });
+
+  assert.equal(result.orphanProvisionalGrantRepairedCount, 2);
+  assert.equal(
+    (
+      await db.collection("reward_grants").doc("orphan_missing").get()
+    ).get("lifecycleState"),
+    "revoked_final",
+  );
+  assert.equal(
+    (
+      await db.collection("reward_grants").doc("orphan_terminal").get()
+    ).get("settlementReason"),
+    "terminal_run_expired",
+  );
+  assert.equal(
+    (
+      await db.collection("reward_grants").doc("active_validation").get()
+    ).get("lifecycleState"),
+    "provisional_created",
+  );
+});
+
 type SeededRunSessionState =
   | "issued"
   | "uploading"

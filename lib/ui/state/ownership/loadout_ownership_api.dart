@@ -267,21 +267,6 @@ class SetSelectionCommand extends OwnershipCommand {
   }
 }
 
-class ResetOwnershipCommand extends OwnershipCommand {
-  const ResetOwnershipCommand({
-    required super.userId,
-    required super.sessionId,
-    required super.expectedRevision,
-    required super.commandId,
-  });
-
-  @override
-  String get type => 'resetOwnership';
-
-  @override
-  Map<String, Object?> payloadToJson() => const <String, Object?>{};
-}
-
 class SetLoadoutCommand extends OwnershipCommand {
   const SetLoadoutCommand({
     required super.userId,
@@ -388,103 +373,6 @@ class EquipGearCommand extends OwnershipCommand {
   }
 }
 
-class LearnProjectileSpellCommand extends OwnershipCommand {
-  const LearnProjectileSpellCommand({
-    required super.userId,
-    required super.sessionId,
-    required super.expectedRevision,
-    required super.commandId,
-    required this.characterId,
-    required this.spellId,
-  });
-
-  final PlayerCharacterId characterId;
-  final ProjectileId spellId;
-
-  @override
-  String get type => 'learnProjectileSpell';
-
-  @override
-  Map<String, Object?> payloadToJson() {
-    return <String, Object?>{
-      'characterId': characterId.name,
-      'spellId': spellId.name,
-    };
-  }
-}
-
-class LearnSpellAbilityCommand extends OwnershipCommand {
-  const LearnSpellAbilityCommand({
-    required super.userId,
-    required super.sessionId,
-    required super.expectedRevision,
-    required super.commandId,
-    required this.characterId,
-    required this.abilityId,
-  });
-
-  final PlayerCharacterId characterId;
-  final AbilityKey abilityId;
-
-  @override
-  String get type => 'learnSpellAbility';
-
-  @override
-  Map<String, Object?> payloadToJson() {
-    return <String, Object?>{
-      'characterId': characterId.name,
-      'abilityId': abilityId,
-    };
-  }
-}
-
-class UnlockGearCommand extends OwnershipCommand {
-  const UnlockGearCommand({
-    required super.userId,
-    required super.sessionId,
-    required super.expectedRevision,
-    required super.commandId,
-    required this.slot,
-    required this.itemId,
-  });
-
-  final GearSlot slot;
-  final Object itemId;
-
-  @override
-  String get type => 'unlockGear';
-
-  @override
-  Map<String, Object?> payloadToJson() {
-    return <String, Object?>{
-      'slot': slot.name,
-      ..._gearItemToJson(slot, itemId),
-    };
-  }
-}
-
-class AwardRunGoldCommand extends OwnershipCommand {
-  const AwardRunGoldCommand({
-    required super.userId,
-    required super.sessionId,
-    required super.expectedRevision,
-    required super.commandId,
-    required this.runId,
-    required this.goldEarned,
-  });
-
-  final int runId;
-  final int goldEarned;
-
-  @override
-  String get type => 'awardRunGold';
-
-  @override
-  Map<String, Object?> payloadToJson() {
-    return <String, Object?>{'runId': runId, 'goldEarned': goldEarned};
-  }
-}
-
 class PurchaseStoreOfferCommand extends OwnershipCommand {
   const PurchaseStoreOfferCommand({
     required super.userId,
@@ -540,8 +428,6 @@ abstract class LoadoutOwnershipApi {
 
   Future<OwnershipCommandResult> setSelection(SetSelectionCommand command);
 
-  Future<OwnershipCommandResult> resetOwnership(ResetOwnershipCommand command);
-
   Future<OwnershipCommandResult> equipGear(EquipGearCommand command);
 
   Future<OwnershipCommandResult> setLoadout(SetLoadoutCommand command);
@@ -551,18 +437,6 @@ abstract class LoadoutOwnershipApi {
   Future<OwnershipCommandResult> setProjectileSpell(
     SetProjectileSpellCommand command,
   );
-
-  Future<OwnershipCommandResult> learnProjectileSpell(
-    LearnProjectileSpellCommand command,
-  );
-
-  Future<OwnershipCommandResult> learnSpellAbility(
-    LearnSpellAbilityCommand command,
-  );
-
-  Future<OwnershipCommandResult> unlockGear(UnlockGearCommand command);
-
-  Future<OwnershipCommandResult> awardRunGold(AwardRunGoldCommand command);
 
   Future<OwnershipCommandResult> purchaseStoreOffer(
     PurchaseStoreOfferCommand command,

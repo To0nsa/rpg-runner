@@ -1,6 +1,13 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { HttpsError } from "firebase-functions/v2/https";
 
+import { assertAccountActive } from "../account/deletion_guard.js";
+import { consumeUserQuota } from "../abuse/quota.js";
+import {
+  captureAuthorityTimeMs,
+  systemAuthorityClock,
+  type AuthorityClock,
+} from "../authority_time.js";
 import { ensureManagedBoardForModeLevel } from "../boards/provisioning.js";
 import { loadActiveBoardManifest, toBoardManifestJson } from "../boards/store.js";
 import {
@@ -38,6 +45,12 @@ export async function handleLeaderboardLoadBoard(
   if (userId !== uid) {
     throw new HttpsError("permission-denied", "userId does not match auth uid.");
   }
+  await assertAccountActive(db, uid);
+  await consumeUserQuota({
+    db,
+    uid,
+    route: "leaderboard_read",
+  });
   const board = await loadLeaderboardBoard({
     db,
     boardId,
@@ -57,6 +70,12 @@ export async function handleLeaderboardLoadMyRank(
   if (userId !== uid) {
     throw new HttpsError("permission-denied", "userId does not match auth uid.");
   }
+  await assertAccountActive(db, uid);
+  await consumeUserQuota({
+    db,
+    uid,
+    route: "leaderboard_read",
+  });
   const myRank = await loadLeaderboardMyRank({
     db,
     boardId,
@@ -68,6 +87,7 @@ export async function handleLeaderboardLoadMyRank(
 export async function handleLeaderboardLoadActiveBoardData(
   request: CallableRequestLike,
   db: Firestore,
+  clock: AuthorityClock = systemAuthorityClock,
 ): Promise<{
   boardManifest: Record<string, unknown>;
   board: LeaderboardBoardResult;
@@ -77,11 +97,19 @@ export async function handleLeaderboardLoadActiveBoardData(
   if (!uid) {
     throw new HttpsError("unauthenticated", "Authentication required.");
   }
-  const { userId, mode, levelId, gameCompatVersion, nowMs } =
+  const { userId, mode, levelId, gameCompatVersion } =
     parseLeaderboardLoadActiveBoardDataRequest(request.data);
   if (userId !== uid) {
     throw new HttpsError("permission-denied", "userId does not match auth uid.");
   }
+  await assertAccountActive(db, uid);
+  const nowMs = captureAuthorityTimeMs(clock);
+  await consumeUserQuota({
+    db,
+    uid,
+    route: "leaderboard_read",
+    nowMs,
+  });
   const manifest = await loadActiveBoardManifestWithProvisioningFallback({
     db,
     mode,
@@ -107,7 +135,7 @@ async function loadActiveBoardManifestWithProvisioningFallback(args: {
   mode: "competitive" | "weekly";
   levelId: string;
   gameCompatVersion: string;
-  nowMs?: number;
+  nowMs: number;
 }) {
   try {
     return await loadActiveBoardManifest(args);

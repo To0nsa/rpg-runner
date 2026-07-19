@@ -75,11 +75,93 @@ void main() {
 
     test('rejects boardId/boardKey mismatch', () {
       final blob = buildSampleBlob();
-      final json = Map<String, Object?>.from(blob.toJson())
-        ..remove('boardKey');
+      final json = Map<String, Object?>.from(blob.toJson())..remove('boardKey');
       expect(
         () => ReplayBlobV1.fromJson(json, verifyDigest: false),
         throwsArgumentError,
+      );
+    });
+
+    test('explicitly rejects unsupported protocol versions', () {
+      final replayVersion = Map<String, Object?>.from(
+        buildSampleBlob().toJson(),
+      )..['replayVersion'] = 2;
+      final commandVersion = Map<String, Object?>.from(
+        buildSampleBlob().toJson(),
+      )..['commandEncodingVersion'] = 2;
+
+      expect(
+        () => ReplayBlobV1.fromJson(replayVersion, verifyDigest: false),
+        throwsFormatException,
+      );
+      expect(
+        () => ReplayBlobV1.fromJson(commandVersion, verifyDigest: false),
+        throwsFormatException,
+      );
+    });
+
+    test('explicitly rejects unknown command bits', () {
+      final json = Map<String, Object?>.from(buildSampleBlob().toJson());
+      final stream = (json['commandStream'] as List<Object?>).toList();
+      stream[0] = Map<String, Object?>.from(stream[0] as Map)..['pm'] = 1 << 10;
+      json['commandStream'] = stream;
+
+      expect(
+        () => ReplayBlobV1.fromJson(json, verifyDigest: false),
+        throwsFormatException,
+      );
+    });
+
+    test('explicitly rejects unpaired axes and invalid hold masks', () {
+      final unpaired = Map<String, Object?>.from(buildSampleBlob().toJson());
+      final unpairedStream = (unpaired['commandStream'] as List<Object?>)
+          .toList();
+      unpairedStream[0] = Map<String, Object?>.from(unpairedStream[0] as Map)
+        ..['ax'] = 0.5;
+      unpaired['commandStream'] = unpairedStream;
+
+      final holdMask = Map<String, Object?>.from(buildSampleBlob().toJson());
+      final holdStream = (holdMask['commandStream'] as List<Object?>).toList();
+      holdStream[0] = Map<String, Object?>.from(holdStream[0] as Map)
+        ..['hm'] = 1
+        ..['hv'] = 2;
+      holdMask['commandStream'] = holdStream;
+
+      expect(
+        () => ReplayBlobV1.fromJson(unpaired, verifyDigest: false),
+        throwsFormatException,
+      );
+      expect(
+        () => ReplayBlobV1.fromJson(holdMask, verifyDigest: false),
+        throwsFormatException,
+      );
+    });
+
+    test('explicitly rejects non-monotonic and out-of-range frame ticks', () {
+      final nonMonotonic = Map<String, Object?>.from(
+        buildSampleBlob().toJson(),
+      );
+      final nonMonotonicStream =
+          (nonMonotonic['commandStream'] as List<Object?>).toList();
+      nonMonotonicStream[1] = Map<String, Object?>.from(
+        nonMonotonicStream[1] as Map,
+      )..['t'] = 1;
+      nonMonotonic['commandStream'] = nonMonotonicStream;
+
+      final beyondTotal = Map<String, Object?>.from(buildSampleBlob().toJson());
+      final beyondStream = (beyondTotal['commandStream'] as List<Object?>)
+          .toList();
+      beyondStream[1] = Map<String, Object?>.from(beyondStream[1] as Map)
+        ..['t'] = 43;
+      beyondTotal['commandStream'] = beyondStream;
+
+      expect(
+        () => ReplayBlobV1.fromJson(nonMonotonic, verifyDigest: false),
+        throwsFormatException,
+      );
+      expect(
+        () => ReplayBlobV1.fromJson(beyondTotal, verifyDigest: false),
+        throwsFormatException,
       );
     });
   });

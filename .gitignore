@@ -17,6 +17,7 @@ Desktop.ini
 .pub/
 .pub-cache/
 build/
+coverage/
 .flutter-plugins-dependencies
 
 # Flutter tool state

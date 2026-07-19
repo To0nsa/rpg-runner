@@ -18,38 +18,44 @@ import 'package:rpg_runner/ui/state/run/run_session_api.dart';
 import 'package:rpg_runner/ui/state/ownership/selection_state.dart';
 
 void main() {
-  test('prefetch concurrent requests issue only one run-session call', () async {
-    final runSessionApi = _RecordingRunSessionApi(holdResponses: true);
-    final appState = AppState(
-      authApi: _StaticAuthApi.authenticated(),
-      loadoutOwnershipApi: _NoopOwnershipApi(),
-      runSessionApi: runSessionApi,
-    );
+  test(
+    'prefetch concurrent requests issue only one run-session call',
+    () async {
+      final runSessionApi = _RecordingRunSessionApi(holdResponses: true);
+      final appState = AppState(
+        authApi: _StaticAuthApi.authenticated(),
+        loadoutOwnershipApi: _NoopOwnershipApi(),
+        runSessionApi: runSessionApi,
+      );
 
-    final first = appState.startRunTicketPrefetchForCurrentSelection();
-    final second = appState.startRunTicketPrefetchForCurrentSelection();
+      final first = appState.startRunTicketPrefetchForCurrentSelection();
+      final second = appState.startRunTicketPrefetchForCurrentSelection();
 
-    await Future<void>.delayed(Duration.zero);
-    expect(runSessionApi.createRunSessionCalls, 1);
+      await Future<void>.delayed(Duration.zero);
+      expect(runSessionApi.createRunSessionCalls, 1);
 
-    runSessionApi.completePending();
-    await Future.wait(<Future<void>>[first, second]);
-    expect(runSessionApi.createRunSessionCalls, 1);
-  });
+      runSessionApi.completePending();
+      await Future.wait(<Future<void>>[first, second]);
+      expect(runSessionApi.createRunSessionCalls, 1);
+    },
+  );
 
-  test('prefetch request budget suppresses immediate duplicate request', () async {
-    final runSessionApi = _RecordingRunSessionApi();
-    final appState = AppState(
-      authApi: _StaticAuthApi.authenticated(),
-      loadoutOwnershipApi: _NoopOwnershipApi(),
-      runSessionApi: runSessionApi,
-    );
+  test(
+    'prefetch request budget suppresses immediate duplicate request',
+    () async {
+      final runSessionApi = _RecordingRunSessionApi();
+      final appState = AppState(
+        authApi: _StaticAuthApi.authenticated(),
+        loadoutOwnershipApi: _NoopOwnershipApi(),
+        runSessionApi: runSessionApi,
+      );
 
-    await appState.startRunTicketPrefetchForCurrentSelection();
-    await appState.startRunTicketPrefetchForCurrentSelection();
+      await appState.startRunTicketPrefetchForCurrentSelection();
+      await appState.startRunTicketPrefetchForCurrentSelection();
 
-    expect(runSessionApi.createRunSessionCalls, 1);
-  });
+      expect(runSessionApi.createRunSessionCalls, 1);
+    },
+  );
 
   test('weekly prefetch normalizes level to featured weekly level', () async {
     final runSessionApi = _RecordingRunSessionApi();
@@ -78,90 +84,99 @@ void main() {
     await appState.startRunTicketPrefetchForCurrentSelection();
   });
 
-  test('prepareRunStartDescriptor reuses prefetched ticket on exact match', () async {
-    final runSessionApi = _RecordingRunSessionApi(
-      ticketBuilder: (request) {
-        final nowMs = DateTime.now().millisecondsSinceEpoch;
-        return _ticketForRequest(
-          request: request,
-          runSessionId: request.callIndex == 1
-              ? 'prefetched_run_session'
-              : 'fallback_run_session',
-          expiresAtMs: nowMs + 60000,
-        );
-      },
-    );
-    final appState = AppState(
-      authApi: _StaticAuthApi.authenticated(),
-      loadoutOwnershipApi: _NoopOwnershipApi(),
-      runSessionApi: runSessionApi,
-    );
-
-    await appState.startRunTicketPrefetchForCurrentSelection();
-    final descriptor = await appState.prepareRunStartDescriptor();
-
-    expect(runSessionApi.createRunSessionCalls, 1);
-    expect(descriptor.runSessionId, 'prefetched_run_session');
-  });
-
-  test('prefetched ticket is consumed once then falls back to remote', () async {
-    final runSessionApi = _RecordingRunSessionApi(
-      ticketBuilder: (request) {
-        final nowMs = DateTime.now().millisecondsSinceEpoch;
-        return _ticketForRequest(
-          request: request,
-          runSessionId: request.callIndex == 1
-              ? 'prefetched_once'
-              : 'remote_after_consume',
-          expiresAtMs: nowMs + 60000,
-        );
-      },
-    );
-    final appState = AppState(
-      authApi: _StaticAuthApi.authenticated(),
-      loadoutOwnershipApi: _NoopOwnershipApi(),
-      runSessionApi: runSessionApi,
-    );
-
-    await appState.startRunTicketPrefetchForCurrentSelection();
-    final first = await appState.prepareRunStartDescriptor();
-    final second = await appState.prepareRunStartDescriptor();
-
-    expect(first.runSessionId, 'prefetched_once');
-    expect(second.runSessionId, 'remote_after_consume');
-    expect(runSessionApi.createRunSessionCalls, 2);
-  });
-
-  test('expired prefetched ticket falls back to remote createRunSession', () async {
-    final runSessionApi = _RecordingRunSessionApi(
-      ticketBuilder: (request) {
-        final nowMs = DateTime.now().millisecondsSinceEpoch;
-        if (request.callIndex == 1) {
+  test(
+    'prepareRunStartDescriptor reuses prefetched ticket on exact match',
+    () async {
+      final runSessionApi = _RecordingRunSessionApi(
+        ticketBuilder: (request) {
+          final nowMs = DateTime.now().millisecondsSinceEpoch;
           return _ticketForRequest(
             request: request,
-            runSessionId: 'expired_prefetch',
-            expiresAtMs: nowMs + 1000,
+            runSessionId: request.callIndex == 1
+                ? 'prefetched_run_session'
+                : 'fallback_run_session',
+            expiresAtMs: nowMs + 60000,
           );
-        }
-        return _ticketForRequest(
-          request: request,
-          runSessionId: 'remote_fallback',
-          expiresAtMs: nowMs + 60000,
-        );
-      },
-    );
-    final appState = AppState(
-      authApi: _StaticAuthApi.authenticated(),
-      loadoutOwnershipApi: _NoopOwnershipApi(),
-      runSessionApi: runSessionApi,
-    );
+        },
+      );
+      final appState = AppState(
+        authApi: _StaticAuthApi.authenticated(),
+        loadoutOwnershipApi: _NoopOwnershipApi(),
+        runSessionApi: runSessionApi,
+      );
 
-    await appState.startRunTicketPrefetchForCurrentSelection();
-    final descriptor = await appState.prepareRunStartDescriptor();
+      await appState.startRunTicketPrefetchForCurrentSelection();
+      final descriptor = await appState.prepareRunStartDescriptor();
 
-    expect(descriptor.runSessionId, 'remote_fallback');
-    expect(runSessionApi.createRunSessionCalls, 2);
-  });
+      expect(runSessionApi.createRunSessionCalls, 1);
+      expect(descriptor.runSessionId, 'prefetched_run_session');
+    },
+  );
+
+  test(
+    'prefetched ticket is consumed once then falls back to remote',
+    () async {
+      final runSessionApi = _RecordingRunSessionApi(
+        ticketBuilder: (request) {
+          final nowMs = DateTime.now().millisecondsSinceEpoch;
+          return _ticketForRequest(
+            request: request,
+            runSessionId: request.callIndex == 1
+                ? 'prefetched_once'
+                : 'remote_after_consume',
+            expiresAtMs: nowMs + 60000,
+          );
+        },
+      );
+      final appState = AppState(
+        authApi: _StaticAuthApi.authenticated(),
+        loadoutOwnershipApi: _NoopOwnershipApi(),
+        runSessionApi: runSessionApi,
+      );
+
+      await appState.startRunTicketPrefetchForCurrentSelection();
+      final first = await appState.prepareRunStartDescriptor();
+      final second = await appState.prepareRunStartDescriptor();
+
+      expect(first.runSessionId, 'prefetched_once');
+      expect(second.runSessionId, 'remote_after_consume');
+      expect(runSessionApi.createRunSessionCalls, 2);
+    },
+  );
+
+  test(
+    'expired prefetched ticket falls back to remote createRunSession',
+    () async {
+      final runSessionApi = _RecordingRunSessionApi(
+        ticketBuilder: (request) {
+          final nowMs = DateTime.now().millisecondsSinceEpoch;
+          if (request.callIndex == 1) {
+            return _ticketForRequest(
+              request: request,
+              runSessionId: 'expired_prefetch',
+              expiresAtMs: nowMs + 1000,
+            );
+          }
+          return _ticketForRequest(
+            request: request,
+            runSessionId: 'remote_fallback',
+            expiresAtMs: nowMs + 60000,
+          );
+        },
+      );
+      final appState = AppState(
+        authApi: _StaticAuthApi.authenticated(),
+        loadoutOwnershipApi: _NoopOwnershipApi(),
+        runSessionApi: runSessionApi,
+      );
+
+      await appState.startRunTicketPrefetchForCurrentSelection();
+      final descriptor = await appState.prepareRunStartDescriptor();
+
+      expect(descriptor.runSessionId, 'remote_fallback');
+      expect(runSessionApi.createRunSessionCalls, 2);
+    },
+  );
 
   test('prefetch key mismatch falls back to remote createRunSession', () async {
     final runSessionApi = _RecordingRunSessionApi(
@@ -243,32 +258,35 @@ void main() {
     expect(runSessionApi.createRunSessionCalls, 2);
   });
 
-  test('prefetch cache is invalidated when canonical state is re-applied', () async {
-    final runSessionApi = _RecordingRunSessionApi(
-      ticketBuilder: (request) {
-        final nowMs = DateTime.now().millisecondsSinceEpoch;
-        return _ticketForRequest(
-          request: request,
-          runSessionId: request.callIndex == 1
-              ? 'prefetched_before_bootstrap'
-              : 'remote_after_bootstrap',
-          expiresAtMs: nowMs + 60000,
-        );
-      },
-    );
-    final appState = AppState(
-      authApi: _StaticAuthApi.authenticated(),
-      loadoutOwnershipApi: _NoopOwnershipApi(),
-      runSessionApi: runSessionApi,
-    );
+  test(
+    'prefetch cache is invalidated when canonical state is re-applied',
+    () async {
+      final runSessionApi = _RecordingRunSessionApi(
+        ticketBuilder: (request) {
+          final nowMs = DateTime.now().millisecondsSinceEpoch;
+          return _ticketForRequest(
+            request: request,
+            runSessionId: request.callIndex == 1
+                ? 'prefetched_before_bootstrap'
+                : 'remote_after_bootstrap',
+            expiresAtMs: nowMs + 60000,
+          );
+        },
+      );
+      final appState = AppState(
+        authApi: _StaticAuthApi.authenticated(),
+        loadoutOwnershipApi: _NoopOwnershipApi(),
+        runSessionApi: runSessionApi,
+      );
 
-    await appState.startRunTicketPrefetchForCurrentSelection();
-    await appState.bootstrap(force: true);
-    final descriptor = await appState.prepareRunStartDescriptor();
+      await appState.startRunTicketPrefetchForCurrentSelection();
+      await appState.bootstrap(force: true);
+      final descriptor = await appState.prepareRunStartDescriptor();
 
-    expect(descriptor.runSessionId, 'remote_after_bootstrap');
-    expect(runSessionApi.createRunSessionCalls, 2);
-  });
+      expect(descriptor.runSessionId, 'remote_after_bootstrap');
+      expect(runSessionApi.createRunSessionCalls, 2);
+    },
+  );
 
   test('prefetch cache is invalidated on auth session transition', () async {
     final authApi = _MutableAuthApi.initialUser('user_1', 'session_1');
@@ -369,10 +387,7 @@ void main() {
 }
 
 class _RecordingRunSessionApi implements RunSessionApi {
-  _RecordingRunSessionApi({
-    this.holdResponses = false,
-    this.ticketBuilder,
-  });
+  _RecordingRunSessionApi({this.holdResponses = false, this.ticketBuilder});
 
   final bool holdResponses;
   final RunTicket Function(_RunSessionRequest request)? ticketBuilder;
@@ -503,15 +518,12 @@ class _NoopOwnershipApi implements LoadoutOwnershipApi {
   }
 
   @override
-  Future<OwnershipCommandResult> setSelection(SetSelectionCommand command) async {
+  Future<OwnershipCommandResult> setSelection(
+    SetSelectionCommand command,
+  ) async {
     _selection = command.selection;
     return _accepted();
   }
-
-  @override
-  Future<OwnershipCommandResult> resetOwnership(
-    ResetOwnershipCommand command,
-  ) async => _accepted();
 
   @override
   Future<OwnershipCommandResult> equipGear(EquipGearCommand command) async =>
@@ -529,25 +541,6 @@ class _NoopOwnershipApi implements LoadoutOwnershipApi {
   @override
   Future<OwnershipCommandResult> setProjectileSpell(
     SetProjectileSpellCommand command,
-  ) async => _accepted();
-
-  @override
-  Future<OwnershipCommandResult> learnProjectileSpell(
-    LearnProjectileSpellCommand command,
-  ) async => _accepted();
-
-  @override
-  Future<OwnershipCommandResult> learnSpellAbility(
-    LearnSpellAbilityCommand command,
-  ) async => _accepted();
-
-  @override
-  Future<OwnershipCommandResult> unlockGear(UnlockGearCommand command) async =>
-      _accepted();
-
-  @override
-  Future<OwnershipCommandResult> awardRunGold(
-    AwardRunGoldCommand command,
   ) async => _accepted();
 
   @override

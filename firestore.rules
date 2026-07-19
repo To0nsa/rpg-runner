@@ -16,5 +16,13 @@ service cloud.firestore {
     match /display_name_index/{normalizedName} {
       allow read, write: if false;
     }
+
+    match /account_deletion_requests/{uid} {
+      allow read, write: if false;
+    }
+
+    match /abuse_quota/{uid} {
+      allow read, write: if false;
+    }
   }
 }

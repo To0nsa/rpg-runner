@@ -8,22 +8,30 @@ import type {
 import { getStorage } from "firebase-admin/storage";
 import { HttpsError } from "firebase-functions/v2/https";
 
+import { assertAccountActiveInTransaction } from "../account/deletion_guard.js";
+import {
+  readAbuseControlMode,
+  readOptionalBoundedAbuseLimit,
+} from "../abuse/quota.js";
 import type { JsonObject } from "../ownership/contracts.js";
 import { requireObject } from "../ownership/validators.js";
 import {
+  defaultValidationRepairStaleThresholdMs,
   isRunSessionState,
   type RunSessionState,
 } from "./session_state.js";
+import { writeExpiredRunSessionTransition } from "./grant_terminalization.js";
+import { replayUploadMaxBytes } from "./limits.js";
 
 const runSessionsCollection = "run_sessions";
 const validatedRunsCollection = "validated_runs";
 const rewardGrantsCollection = "reward_grants";
 
-const replayUploadMaxBytes = 8_388_608;
 const uploadGrantTtlMs = 15 * 60 * 1000;
 const replayUploadContentType = "application/octet-stream";
 const replaySubmissionFileName = "replay.bin.gz";
 const replaySubmissionPathPrefix = "replay-submissions/pending";
+const activeUploadGrantScanCap = 128;
 
 function isProvisionalRewardCreationEnabled(): boolean {
   return readBooleanEnv("RUN_REWARD_PROVISIONAL_CREATE_ENABLED") ?? true;
@@ -91,7 +99,7 @@ interface UploadGrantIssueResult {
 interface ReplayObjectMetadata {
   contentLengthBytes: number;
   contentType?: string;
-  generation?: string;
+  generation: string;
 }
 
 export interface ReplaySubmissionObjectStore {
@@ -104,7 +112,10 @@ export interface ReplaySubmissionObjectStore {
 }
 
 export interface RunValidationTaskDispatcher {
-  enqueueRunValidationTask(args: { runSessionId: string }): Promise<void>;
+  enqueueRunValidationTask(args: {
+    runSessionId: string;
+    taskKey?: string;
+  }): Promise<void>;
 }
 
 export interface RunSubmissionDependencies {
@@ -164,10 +175,58 @@ export async function createRunSessionUploadGrant(
     .collection(runSessionsCollection)
     .doc(args.runSessionId);
 
-  await args.db.runTransaction(async (tx) => {
+  const uploadGrantTransaction = await args.db.runTransaction(async (tx) => {
+    await assertAccountActiveInTransaction(tx, args.db, args.uid);
     const session = await loadRunSessionForUpdate(tx, runSessionRef);
     assertRunSessionOwner(session, args.uid);
-    throwIfExpiredBeforeFinalize(session, nowMs, tx, runSessionRef);
+    let activeUploadGrantCount: number | null = null;
+    let activeUploadGrantLimit: number | null = null;
+    let wouldRejectActiveUploadGrantLimit = false;
+    if (session.state === "issued") {
+      const configuredLimit = readConfiguredActiveUploadGrantLimit();
+      const activeUploadGrants = await tx.get(
+        args.db
+          .collection(runSessionsCollection)
+          .where("uid", "==", args.uid)
+          .where("state", "==", "uploading")
+          .where("uploadLease.expiresAtMs", ">", nowMs)
+          .limit(activeUploadGrantScanCap),
+      );
+      activeUploadGrantCount = activeUploadGrants.size;
+      activeUploadGrantLimit = configuredLimit ?? null;
+      wouldRejectActiveUploadGrantLimit =
+        configuredLimit !== undefined &&
+        activeUploadGrants.size >= configuredLimit;
+      if (
+        wouldRejectActiveUploadGrantLimit &&
+        readAbuseControlMode() === "enforce"
+      ) {
+        throw new HttpsError(
+          "resource-exhausted",
+          "Active upload grant limit exceeded.",
+        );
+      }
+    }
+    const rewardGrantRef = args.db
+      .collection(rewardGrantsCollection)
+      .doc(args.runSessionId);
+    const rewardGrantSnapshot = await tx.get(rewardGrantRef);
+    if (shouldExpireBeforeFinalize(session, nowMs)) {
+      writeExpiredRunSessionTransition({
+        tx,
+        runSessionRef,
+        rewardGrantRef,
+        rewardGrantSnapshot,
+        nowMs,
+        message: "Run session expired before upload grant issuance.",
+      });
+      return {
+        outcome: "expired",
+        activeUploadGrantCount,
+        activeUploadGrantLimit,
+        wouldRejectActiveUploadGrantLimit,
+      } as const;
+    }
     if (session.state !== "issued" && session.state !== "uploading") {
       throw new HttpsError(
         "failed-precondition",
@@ -190,6 +249,23 @@ export async function createRunSessionUploadGrant(
       },
       { merge: true },
     );
+    return {
+      outcome: "issued",
+      activeUploadGrantCount,
+      activeUploadGrantLimit,
+      wouldRejectActiveUploadGrantLimit,
+    } as const;
+  });
+  if (uploadGrantTransaction.outcome === "expired") {
+    throwExpiredBeforeFinalize();
+  }
+  console.log("runUploadGrant_active_grants", {
+    mode: readAbuseControlMode(),
+    activeCount: uploadGrantTransaction.activeUploadGrantCount,
+    activeLimit: uploadGrantTransaction.activeUploadGrantLimit,
+    wouldReject: uploadGrantTransaction.wouldRejectActiveUploadGrantLimit,
+    countCapped:
+      uploadGrantTransaction.activeUploadGrantCount === activeUploadGrantScanCap,
   });
 
   const issued = await args.dependencies.objectStore.issueUploadGrant({
@@ -263,6 +339,12 @@ export async function finalizeRunSessionUpload(
       "Uploaded replay contentType does not match finalize metadata.",
     );
   }
+  if (!/^[1-9][0-9]*$/u.test(storageMetadata.generation)) {
+    throw new HttpsError(
+      "failed-precondition",
+      "Uploaded replay metadata did not contain a valid object generation.",
+    );
+  }
 
   const runSessionRef = args.db
     .collection(runSessionsCollection)
@@ -271,11 +353,22 @@ export async function finalizeRunSessionUpload(
     .collection(rewardGrantsCollection)
     .doc(args.runSessionId);
 
-  let shouldEnqueue = false;
-  await args.db.runTransaction(async (tx) => {
+  const finalizeTransaction = await args.db.runTransaction(async (tx) => {
+    await assertAccountActiveInTransaction(tx, args.db, args.uid);
     const session = await loadRunSessionForUpdate(tx, runSessionRef);
     assertRunSessionOwner(session, args.uid);
-    throwIfExpiredBeforeFinalize(session, nowMs, tx, runSessionRef);
+    const rewardGrantSnapshot = await tx.get(rewardGrantRef);
+    if (shouldExpireBeforeFinalize(session, nowMs)) {
+      writeExpiredRunSessionTransition({
+        tx,
+        runSessionRef,
+        rewardGrantRef,
+        rewardGrantSnapshot,
+        nowMs,
+        message: "Run session expired before finalize completed.",
+      });
+      return { expired: true, shouldEnqueue: false };
+    }
 
     if (
       session.state !== "issued" &&
@@ -303,9 +396,7 @@ export async function finalizeRunSessionUpload(
 
     const nextState: RunSessionState =
       session.state === "pending_validation" ? "pending_validation" : "uploaded";
-    shouldEnqueue = nextState === "uploaded";
-
-    const rewardGrantSnapshot = await tx.get(rewardGrantRef);
+    const shouldEnqueue = nextState === "uploaded";
 
     tx.set(
       runSessionRef,
@@ -344,9 +435,13 @@ export async function finalizeRunSessionUpload(
         );
       }
     }
+    return { expired: false, shouldEnqueue };
   });
+  if (finalizeTransaction.expired) {
+    throwExpiredBeforeFinalize();
+  }
 
-  if (shouldEnqueue) {
+  if (finalizeTransaction.shouldEnqueue) {
     try {
       await args.dependencies.taskDispatcher.enqueueRunValidationTask({
         runSessionId: args.runSessionId,
@@ -356,6 +451,7 @@ export async function finalizeRunSessionUpload(
     }
 
     await args.db.runTransaction(async (tx) => {
+      await assertAccountActiveInTransaction(tx, args.db, args.uid);
       const session = await loadRunSessionForUpdate(tx, runSessionRef);
       assertRunSessionOwner(session, args.uid);
       if (session.state === "uploaded") {
@@ -364,6 +460,10 @@ export async function finalizeRunSessionUpload(
           {
             state: "pending_validation",
             updatedAtMs: nowMs,
+            validationLastEnqueuedAtMs: nowMs,
+            validationNextAttemptAtMs:
+              nowMs + defaultValidationRepairStaleThresholdMs,
+            validationTaskGeneration: 0,
           },
           { merge: true },
         );
@@ -486,9 +586,29 @@ function projectSubmissionReward(args: {
 
   if (
     state === "provisional_created" ||
-    state === "provisional_visible" ||
-    state === "settlement_pending"
+    state === "provisional_visible"
   ) {
+    if (
+      args.session.state !== "uploaded" &&
+      args.session.state !== "pending_validation" &&
+      args.session.state !== "validating"
+    ) {
+      return undefined;
+    }
+    return {
+      status: "provisional",
+      provisionalGold: goldAmount,
+      effectiveGoldDelta: 0,
+      spendableGoldDelta: 0,
+      updatedAtMs,
+      grantId,
+      message,
+    };
+  }
+  if (state === "settlement_pending") {
+    if (args.session.state !== "settlement_pending") {
+      return undefined;
+    }
     return {
       status: "provisional",
       provisionalGold: goldAmount,
@@ -560,28 +680,18 @@ function assertRunSessionOwner(
   }
 }
 
-function throwIfExpiredBeforeFinalize(
+function shouldExpireBeforeFinalize(
   session: RunSessionSubmissionRecord,
   nowMs: number,
-  tx: Transaction,
-  runSessionRef: DocumentReference,
-): void {
+): boolean {
   const canExpire =
     session.state === "issued" ||
     session.state === "uploading" ||
     session.state === "uploaded";
-  if (!canExpire || nowMs < session.expiresAtMs) {
-    return;
-  }
-  tx.set(
-    runSessionRef,
-    {
-      state: "expired",
-      updatedAtMs: nowMs,
-      message: "Run session expired before finalize completed.",
-    },
-    { merge: true },
-  );
+  return canExpire && nowMs >= session.expiresAtMs;
+}
+
+function throwExpiredBeforeFinalize(): never {
   throw new HttpsError(
     "failed-precondition",
     "Run session expired before finalize.",
@@ -713,7 +823,9 @@ function decodeOptionalUploadedReplay(
       object.contentType,
       "runSession.uploadedReplay.contentType",
     ),
-    storageGeneration: requireOptionalString(object.storageGeneration),
+    storageGeneration: requireOptionalStorageGeneration(
+      object.storageGeneration,
+    ),
     finalizedAtMs: requireInteger(
       object.finalizedAtMs,
       "runSession.uploadedReplay.finalizedAtMs",
@@ -755,7 +867,9 @@ function assertFinalizeMetadataMatches(
     existing.objectPath !== next.objectPath ||
     existing.canonicalSha256 !== next.canonicalSha256 ||
     existing.contentLengthBytes !== next.contentLengthBytes ||
-    normalizeContentType(existing.contentType) !== normalizeContentType(next.contentType)
+    normalizeContentType(existing.contentType) !== normalizeContentType(next.contentType) ||
+    (existing.storageGeneration != null &&
+      existing.storageGeneration !== next.storageGeneration)
   ) {
     throw new HttpsError(
       "already-exists",
@@ -769,6 +883,27 @@ function requireString(value: unknown, fieldName: string): string {
     throw new HttpsError("failed-precondition", `${fieldName} must be a string.`);
   }
   return value.trim();
+}
+
+function requireStorageGeneration(value: unknown): string {
+  const generation = requireString(
+    value,
+    "runSession.uploadedReplay.storageGeneration",
+  );
+  if (!/^[1-9][0-9]*$/u.test(generation)) {
+    throw new HttpsError(
+      "failed-precondition",
+      "runSession.uploadedReplay.storageGeneration must be a positive integer string.",
+    );
+  }
+  return generation;
+}
+
+function requireOptionalStorageGeneration(value: unknown): string | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  return requireStorageGeneration(value);
 }
 
 function requireOptionalString(value: unknown): string | undefined {
@@ -826,10 +961,17 @@ class CloudStorageReplaySubmissionObjectStore
           "Uploaded replay metadata did not contain a valid size.",
         );
       }
+      const generation = toOptionalString(metadata.generation);
+      if (generation == null || !/^[1-9][0-9]*$/u.test(generation)) {
+        throw new HttpsError(
+          "failed-precondition",
+          "Uploaded replay metadata did not contain a valid object generation.",
+        );
+      }
       return {
         contentLengthBytes,
         contentType: toOptionalString(metadata.contentType),
-        generation: toOptionalString(metadata.generation),
+        generation,
       };
     } catch (error) {
       if (isStorageNotFoundError(error)) {
@@ -856,17 +998,23 @@ class CloudTasksRunValidationTaskDispatcher
     private readonly tasksClient: CloudTasksClient = new CloudTasksClient(),
   ) {}
 
-  async enqueueRunValidationTask(args: { runSessionId: string }): Promise<void> {
+  async enqueueRunValidationTask(args: {
+    runSessionId: string;
+    taskKey?: string;
+  }): Promise<void> {
     const queuePath = this.tasksClient.queuePath(
       this.config.projectId,
       this.config.location,
       this.config.queueName,
     );
+    const taskSuffix = args.taskKey
+      ? `-${sanitizeTaskId(args.taskKey)}`
+      : "";
     const taskName = this.tasksClient.taskPath(
       this.config.projectId,
       this.config.location,
       this.config.queueName,
-      `run-${sanitizeTaskId(args.runSessionId)}`,
+      `run-${sanitizeTaskId(args.runSessionId)}${taskSuffix}`,
     );
     try {
       await this.tasksClient.createTask({
@@ -907,7 +1055,7 @@ function createCloudStorageReplaySubmissionObjectStore(): ReplaySubmissionObject
   return new CloudStorageReplaySubmissionObjectStore(bucketName);
 }
 
-function createCloudTasksRunValidationTaskDispatcher(): RunValidationTaskDispatcher {
+export function createCloudTasksRunValidationTaskDispatcher(): RunValidationTaskDispatcher {
   const projectId =
     process.env.GCLOUD_PROJECT?.trim() ??
     process.env.GOOGLE_CLOUD_PROJECT?.trim();
@@ -975,6 +1123,13 @@ function readBooleanEnv(name: string): boolean | undefined {
     return false;
   }
   return undefined;
+}
+
+function readConfiguredActiveUploadGrantLimit(): number | undefined {
+  return readOptionalBoundedAbuseLimit({
+    envName: "ABUSE_RUN_ACTIVE_UPLOAD_GRANTS_LIMIT",
+    max: activeUploadGrantScanCap,
+  });
 }
 
 function toOptionalString(value: unknown): string | undefined {

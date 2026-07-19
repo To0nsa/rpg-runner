@@ -4,6 +4,7 @@ import type {
   Transaction,
 } from "firebase-admin/firestore";
 
+import { assertAccountActiveInTransaction } from "../account/deletion_guard.js";
 import { applyOwnershipCommand } from "./apply_command.js";
 import {
   canonicalMergeWriteData,
@@ -19,21 +20,26 @@ import type {
   OwnershipCommandResult,
   OwnershipRejectedReason,
 } from "./contracts.js";
+import { isOwnershipRejectedReason } from "./contracts.js";
 import { canonicalJsonString, sha256Hex } from "./hash.js";
 import { idempotencyDocRef } from "./firestore_paths.js";
+import { legacyReadReconciliationEnabled } from "./legacy_reward_reconciliation.js";
 import { reconcilePendingRewardGrantsForTransaction } from "./reward_grants.js";
 
 export async function executeOwnershipCommand(args: {
   db: Firestore;
   uid: string;
   command: OwnershipCommandEnvelope;
+  nowMs?: number;
 }): Promise<OwnershipCommandResult> {
   const { db, uid, command } = args;
+  const nowMs = args.nowMs ?? Date.now();
   const payloadHash = sha256Hex(
     canonicalJsonString(command as unknown as JsonValue),
   );
 
   return db.runTransaction(async (tx) => {
+    await assertAccountActiveInTransaction(tx, db, uid);
     const resolved = await resolveCanonicalStateForTransaction({
       db,
       tx,
@@ -42,15 +48,20 @@ export async function executeOwnershipCommand(args: {
     const canonicalRef = resolved.canonicalRef;
     const idempotencyRef = idempotencyDocRef(canonicalRef, command.commandId);
     const idempotencySnap = await tx.get(idempotencyRef);
-    const reconciled = await reconcilePendingRewardGrantsForTransaction({
-      db,
-      tx,
-      uid,
-      canonicalState: resolved.canonical,
-    });
-    const canonical = reconciled.canonicalState;
+    const reconciliation = legacyReadReconciliationEnabled()
+      ? await reconcilePendingRewardGrantsForTransaction({
+          db,
+          tx,
+          uid,
+          canonicalState: resolved.canonical,
+        })
+      : {
+          canonicalState: resolved.canonical,
+          canonicalChanged: false,
+        };
+    const canonical = reconciliation.canonicalState;
     const shouldPersistCanonicalBeforeCommand =
-      !resolved.exists || reconciled.canonicalChanged;
+      !resolved.exists || reconciliation.canonicalChanged;
 
     if (idempotencySnap.exists) {
       const stored = idempotencySnap.data() as IdempotencyDocument | undefined;
@@ -64,7 +75,7 @@ export async function executeOwnershipCommand(args: {
         });
       }
       if (stored?.payloadHash === payloadHash) {
-        return normalizeStoredResult(stored.result, canonical);
+        return normalizeStoredResult(stored, canonical);
       }
       return rejectResult(canonical, "idempotencyKeyReuseMismatch");
     }
@@ -81,7 +92,10 @@ export async function executeOwnershipCommand(args: {
           exists: resolved.exists,
         });
       }
-      tx.set(idempotencyRef, idempotencyWriteData({ payloadHash, result: rejected }));
+      tx.set(
+        idempotencyRef,
+        idempotencyWriteData({ payloadHash, result: rejected, nowMs }),
+      );
       return rejected;
     }
 
@@ -96,7 +110,10 @@ export async function executeOwnershipCommand(args: {
           exists: resolved.exists,
         });
       }
-      tx.set(idempotencyRef, idempotencyWriteData({ payloadHash, result: rejected }));
+      tx.set(
+        idempotencyRef,
+        idempotencyWriteData({ payloadHash, result: rejected, nowMs }),
+      );
       return rejected;
     }
 
@@ -112,7 +129,10 @@ export async function executeOwnershipCommand(args: {
           exists: resolved.exists,
         });
       }
-      tx.set(idempotencyRef, idempotencyWriteData({ payloadHash, result: rejected }));
+      tx.set(
+        idempotencyRef,
+        idempotencyWriteData({ payloadHash, result: rejected, nowMs }),
+      );
       return rejected;
     }
 
@@ -134,7 +154,10 @@ export async function executeOwnershipCommand(args: {
     } else {
       tx.set(canonicalRef, canonicalWriteData(uid, nextCanonical));
     }
-    tx.set(idempotencyRef, idempotencyWriteData({ payloadHash, result: accepted }));
+    tx.set(
+      idempotencyRef,
+      idempotencyWriteData({ payloadHash, result: accepted, nowMs }),
+    );
     return accepted;
   });
 }
@@ -170,9 +193,22 @@ function rejectResult(
 }
 
 function normalizeStoredResult(
-  result: OwnershipCommandResult | undefined,
+  stored: IdempotencyDocument,
   fallbackCanonical: OwnershipCanonicalState,
 ): OwnershipCommandResult {
+  const compact = compactStoredOutcome(stored);
+  if (compact) {
+    return {
+      canonicalState: fallbackCanonical,
+      newRevision: Math.max(
+        compact.resultingRevision,
+        fallbackCanonical.revision,
+      ),
+      replayedFromIdempotency: true,
+      rejectedReason: compact.rejectedReason,
+    };
+  }
+  const result = stored.result;
   if (!result) {
     return {
       canonicalState: fallbackCanonical,
@@ -194,5 +230,38 @@ function normalizeStoredResult(
         : canonicalState.revision,
     replayedFromIdempotency: true,
     rejectedReason: result.rejectedReason ?? null,
+  };
+}
+
+function compactStoredOutcome(stored: IdempotencyDocument): {
+  resultingRevision: number;
+  rejectedReason: OwnershipRejectedReason | null;
+} | null {
+  const outcome = stored.outcome;
+  if (!outcome || typeof outcome !== "object") {
+    return null;
+  }
+  const resultingRevision = outcome.resultingRevision;
+  if (
+    typeof resultingRevision !== "number" ||
+    !Number.isSafeInteger(resultingRevision) ||
+    resultingRevision < 0
+  ) {
+    return null;
+  }
+  const rejectedRaw = outcome.rejectedReason;
+  const rejectedReason =
+    rejectedRaw === null
+      ? null
+      : typeof rejectedRaw === "string" &&
+          isOwnershipRejectedReason(rejectedRaw)
+        ? rejectedRaw
+        : undefined;
+  if (rejectedReason === undefined) {
+    return null;
+  }
+  return {
+    resultingRevision,
+    rejectedReason,
   };
 }

@@ -110,6 +110,18 @@ It follows the project stance: gameplay is **deterministic and fair**, and UI sh
 - From Meta access screens:
   - `Back` → Play Hub
 
+### 3.3 Profile name rules
+
+- The first non-empty profile name does not start the rename cooldown. This
+  gives a new player one immediate correction after onboarding.
+- The first later rename starts a 24-hour cooldown. Another rename becomes
+  available at the exact 24-hour boundary.
+- The profile page may show an advisory countdown, but the backend owns the
+  final decision and timestamp. A player cannot shorten or extend the cooldown
+  by changing device time.
+- A rejected rename leaves the current profile name unchanged and should show
+  the backend error through the existing save-error presentation.
+
 ---
 
 ## 4. Screen Specs

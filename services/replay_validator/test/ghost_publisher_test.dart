@@ -1,3 +1,9 @@
+import 'dart:convert';
+
+import 'package:googleapis/firestore/v1.dart' as firestore;
+import 'package:googleapis/storage/v1.dart' as storage;
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:run_protocol/board_key.dart';
 import 'package:run_protocol/leaderboard_entry.dart';
 import 'package:run_protocol/run_mode.dart';
@@ -6,6 +12,7 @@ import 'package:run_protocol/validated_run.dart';
 import 'package:test/test.dart';
 
 import 'package:replay_validator/src/ghost_publisher.dart';
+import 'package:replay_validator/src/google_api_helpers.dart';
 
 void main() {
   test(
@@ -59,6 +66,7 @@ void main() {
         objectStore.promotions.single.destination,
         'ghosts/$boardId/$runSessionId/ghost.bin.gz',
       );
+      expect(objectStore.promotions.single.sourceGeneration, '123');
       final manifest = store.manifestsByBoard[boardId]![runSessionId]!;
       expect(manifest.status, GhostManifestStatus.active);
       expect(manifest.exposed, isTrue);
@@ -66,6 +74,9 @@ void main() {
         manifest.replayStorageRef,
         'ghosts/$boardId/$runSessionId/ghost.bin.gz',
       );
+      expect(manifest.sourceReplayStorageGeneration, '123');
+      expect(manifest.promotedReplayStorageGeneration, '456');
+      expect(manifest.replayDigest, 'a' * 64);
     },
   );
 
@@ -223,6 +234,200 @@ void main() {
       'ghosts/$boardId/run_expired/ghost.bin.gz',
     ]);
   });
+
+  test('empty top10 demotes previously exposed ghosts', () async {
+    const boardId = 'board_competitive_2026_03_field';
+    final store = _InMemoryGhostPublicationStore(
+      manifestsByBoard: <String, Map<String, GhostManifestRecord>>{
+        boardId: <String, GhostManifestRecord>{
+          'run_old': _activeManifest(boardId: boardId, runSessionId: 'run_old'),
+        },
+      },
+    );
+    final publisher = FirestoreGhostPublisher(
+      projectId: 'demo',
+      replayStorageBucket: 'bucket',
+      publicationStore: store,
+      objectStore: _InMemoryGhostObjectStore(),
+      clockMs: () => 20_000,
+    );
+
+    await publisher.reconcileBoard(boardId: boardId);
+
+    final manifest = store.manifestsByBoard[boardId]!['run_old']!;
+    expect(manifest.status, GhostManifestStatus.demoted);
+    expect(manifest.exposed, isFalse);
+    expect(manifest.demotedAtMs, 20_000);
+  });
+
+  test('ghost copy pins source and destination generations', () async {
+    late http.Request copyRequest;
+    final client = MockClient((request) async {
+      copyRequest = request;
+      return http.Response(
+        jsonEncode(<String, Object?>{'generation': '456'}),
+        200,
+        headers: const <String, String>{'content-type': 'application/json'},
+      );
+    });
+    final objectStore = GoogleCloudStorageGhostObjectStore(
+      bucketName: 'bucket',
+      apiProvider: _StorageApiProvider(storage.StorageApi(client)),
+    );
+
+    final result = await objectStore.promoteReplayToGhost(
+      sourceObjectPath: 'replays/run_1.bin.gz',
+      sourceStorageGeneration: '123',
+      destinationObjectPath: 'ghosts/board/run_1/ghost.bin.gz',
+    );
+
+    expect(result.destinationStorageGeneration, '456');
+    expect(copyRequest.url.queryParameters['sourceGeneration'], '123');
+    expect(copyRequest.url.queryParameters['ifSourceGenerationMatch'], '123');
+    expect(copyRequest.url.queryParameters['ifGenerationMatch'], '0');
+  });
+
+  test(
+    'ghost copy rejects an existing object with different evidence',
+    () async {
+      var requestCount = 0;
+      final client = MockClient((request) async {
+        requestCount += 1;
+        if (requestCount == 1) {
+          return http.Response(
+            jsonEncode(<String, Object?>{
+              'error': <String, Object?>{
+                'code': 412,
+                'message': 'destination exists',
+                'status': 'PRECONDITION_FAILED',
+              },
+            }),
+            412,
+            headers: const <String, String>{'content-type': 'application/json'},
+          );
+        }
+        final isSource = request.url.path.contains('replays%2Frun_1.bin.gz');
+        return http.Response(
+          jsonEncode(<String, Object?>{
+            'generation': isSource ? '123' : '999',
+            'size': '10',
+            'crc32c': isSource ? 'source-crc' : 'other-crc',
+          }),
+          200,
+          headers: const <String, String>{'content-type': 'application/json'},
+        );
+      });
+      final objectStore = GoogleCloudStorageGhostObjectStore(
+        bucketName: 'bucket',
+        apiProvider: _StorageApiProvider(storage.StorageApi(client)),
+      );
+
+      await expectLater(
+        objectStore.promoteReplayToGhost(
+          sourceObjectPath: 'replays/run_1.bin.gz',
+          sourceStorageGeneration: '123',
+          destinationObjectPath: 'ghosts/board/run_1/ghost.bin.gz',
+        ),
+        throwsA(isA<StateError>()),
+      );
+    },
+  );
+
+  test('manifest repository follows every Firestore page token', () async {
+    final requestedPageTokens = <String?>[];
+    final client = MockClient((request) async {
+      requestedPageTokens.add(request.url.queryParameters['pageToken']);
+      final pageToken = request.url.queryParameters['pageToken'];
+      return http.Response(
+        jsonEncode(<String, Object?>{
+          'documents': <Object?>[
+            _manifestDocumentJson(
+              entryId: pageToken == null ? 'run_1' : 'run_2',
+            ),
+          ],
+          if (pageToken == null) 'nextPageToken': 'page-2',
+        }),
+        200,
+        headers: const <String, String>{'content-type': 'application/json'},
+      );
+    });
+    final store = FirestoreGhostPublicationStore(
+      projectId: 'demo',
+      apiProvider: _FirestoreApiProvider(firestore.FirestoreApi(client)),
+    );
+
+    final manifests = await store.listGhostManifests(boardId: 'board_1');
+
+    expect(manifests.map((manifest) => manifest.entryId), <String>[
+      'run_1',
+      'run_2',
+    ]);
+    expect(requestedPageTokens, <String?>[null, 'page-2']);
+  });
+}
+
+GhostManifestRecord _activeManifest({
+  required String boardId,
+  required String runSessionId,
+}) {
+  return GhostManifestRecord(
+    boardId: boardId,
+    entryId: runSessionId,
+    runSessionId: runSessionId,
+    uid: 'uid_old',
+    replayStorageRef: 'ghosts/$boardId/$runSessionId/ghost.bin.gz',
+    sourceReplayStorageRef:
+        'replay-submissions/pending/uid_old/$runSessionId/replay.bin.gz',
+    sourceReplayStorageGeneration: '123',
+    promotedReplayStorageGeneration: '456',
+    replayDigest: 'a' * 64,
+    score: 1000,
+    distanceMeters: 390,
+    durationSeconds: 140,
+    sortKey: buildLeaderboardSortKey(
+      score: 1000,
+      distanceMeters: 390,
+      durationSeconds: 140,
+      entryId: runSessionId,
+    ),
+    rank: 1,
+    status: GhostManifestStatus.active,
+    exposed: true,
+    updatedAtMs: 5_000,
+    promotedAtMs: 5_000,
+  );
+}
+
+Map<String, Object?> _manifestDocumentJson({required String entryId}) {
+  Map<String, Object?> stringValue(String value) => <String, Object?>{
+    'stringValue': value,
+  };
+  Map<String, Object?> integerValue(int value) => <String, Object?>{
+    'integerValue': '$value',
+  };
+  return <String, Object?>{
+    'name':
+        'projects/demo/databases/(default)/documents/'
+        'leaderboard_boards/board_1/ghost_manifests/$entryId',
+    'fields': <String, Object?>{
+      'boardId': stringValue('board_1'),
+      'entryId': stringValue(entryId),
+      'runSessionId': stringValue(entryId),
+      'uid': stringValue('uid_1'),
+      'replayStorageRef': stringValue('ghosts/board_1/$entryId/ghost.bin.gz'),
+      'sourceReplayStorageRef': stringValue(
+        'replay-submissions/pending/uid_1/$entryId/replay.bin.gz',
+      ),
+      'score': integerValue(1000),
+      'distanceMeters': integerValue(400),
+      'durationSeconds': integerValue(120),
+      'sortKey': stringValue('0001:$entryId'),
+      'rank': integerValue(1),
+      'status': stringValue('active'),
+      'exposed': <String, Object?>{'booleanValue': true},
+      'updatedAtMs': integerValue(1),
+    },
+  };
 }
 
 ValidatedRun _validatedRun({
@@ -254,6 +459,7 @@ ValidatedRun _validatedRun({
     replayDigest:
         'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
     replayStorageRef: replayStorageRef,
+    replayStorageGeneration: '123',
     createdAtMs: 1,
   );
 }
@@ -286,6 +492,8 @@ LeaderboardEntry _entry({
     ),
     ghostEligible: true,
     replayStorageRef: replayStorageRef,
+    replayStorageGeneration: '123',
+    replayDigest: 'a' * 64,
     updatedAtMs: 1,
     rank: rank,
   );
@@ -354,13 +562,19 @@ class _InMemoryGhostObjectStore implements GhostObjectStore {
   final List<String> deletions = <String>[];
 
   @override
-  Future<void> promoteReplayToGhost({
+  Future<GhostPromotionResult> promoteReplayToGhost({
     required String sourceObjectPath,
+    required String sourceStorageGeneration,
     required String destinationObjectPath,
   }) async {
     promotions.add(
-      _Promotion(source: sourceObjectPath, destination: destinationObjectPath),
+      _Promotion(
+        source: sourceObjectPath,
+        sourceGeneration: sourceStorageGeneration,
+        destination: destinationObjectPath,
+      ),
     );
+    return const GhostPromotionResult(destinationStorageGeneration: '456');
   }
 
   @override
@@ -370,8 +584,31 @@ class _InMemoryGhostObjectStore implements GhostObjectStore {
 }
 
 class _Promotion {
-  const _Promotion({required this.source, required this.destination});
+  const _Promotion({
+    required this.source,
+    required this.sourceGeneration,
+    required this.destination,
+  });
 
   final String source;
+  final String sourceGeneration;
   final String destination;
+}
+
+final class _StorageApiProvider extends GoogleCloudApiProvider {
+  _StorageApiProvider(this.api);
+
+  final storage.StorageApi api;
+
+  @override
+  Future<storage.StorageApi> storageApi() async => api;
+}
+
+final class _FirestoreApiProvider extends GoogleCloudApiProvider {
+  _FirestoreApiProvider(this.api);
+
+  final firestore.FirestoreApi api;
+
+  @override
+  Future<firestore.FirestoreApi> firestoreApi() async => api;
 }

@@ -48,20 +48,6 @@ final class _AppStateAuthProfileController extends _AppStateController {
       );
     }
     _applyCanonicalState(canonical);
-
-    try {
-      final resetResult = await _ownershipApi.resetOwnership(
-        ResetOwnershipCommand(
-          userId: session.userId,
-          sessionId: session.sessionId,
-          expectedRevision: _ownershipRevision,
-          commandId: _newCommandId(),
-        ),
-      );
-      _applyOwnershipResult(resetResult);
-    } catch (error) {
-      debugPrint('Ownership fallback reset failed: $error');
-    }
     _bootstrapped = true;
     _notifyListeners();
   }
@@ -72,17 +58,10 @@ final class _AppStateAuthProfileController extends _AppStateController {
     if (trimmed == _profile.displayName) {
       return;
     }
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final shouldSetCooldown = _profile.displayName.isNotEmpty;
     final nextProfile = await _profileRemoteApi.updateProfile(
       userId: session.userId,
       sessionId: session.sessionId,
-      update: UserProfileUpdate(
-        displayName: trimmed,
-        displayNameLastChangedAtMs: shouldSetCooldown
-            ? nowMs
-            : _profile.displayNameLastChangedAtMs,
-      ),
+      update: UserProfileUpdate(displayName: trimmed),
     );
     _profile = nextProfile;
     _notifyListeners();
@@ -92,17 +71,11 @@ final class _AppStateAuthProfileController extends _AppStateController {
     final session = await _ensureAuthSession();
     final trimmed = displayName?.trim();
     final shouldUpdateDisplayName = trimmed != null && trimmed.isNotEmpty;
-    final shouldSetCooldown =
-        shouldUpdateDisplayName && _profile.displayName.isNotEmpty;
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
     final nextProfile = await _profileRemoteApi.updateProfile(
       userId: session.userId,
       sessionId: session.sessionId,
       update: UserProfileUpdate(
         displayName: shouldUpdateDisplayName ? trimmed : null,
-        displayNameLastChangedAtMs: shouldUpdateDisplayName
-            ? (shouldSetCooldown ? nowMs : _profile.displayNameLastChangedAtMs)
-            : null,
         namePromptCompleted: true,
       ),
     );

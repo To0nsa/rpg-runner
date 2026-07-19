@@ -3,15 +3,21 @@ import { after, beforeEach, test } from "node:test";
 
 import { deleteApp, getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
-import { HttpsError } from "firebase-functions/v2/https";
 
 import {
-  deleteAccountAndData,
+  type AccountDeletionAuth,
+  type AccountDeletionDependencies,
+  processAccountDeletion,
   type ReplayArtifactStore,
+  requestAccountDeletion,
 } from "../../src/account/delete.js";
+import { assertAccountActive } from "../../src/account/deletion_guard.js";
 import { parseAccountDeleteRequest } from "../../src/account/validators.js";
-import { canonicalDocRef } from "../../src/ownership/firestore_paths.js";
-import { updatePlayerProfile } from "../../src/profile/store.js";
+import { loadOrCreateCanonicalState } from "../../src/ownership/canonical_store.js";
+import {
+  loadOrCreatePlayerProfile,
+  updatePlayerProfile,
+} from "../../src/profile/store.js";
 
 const firestoreEmulatorHost = process.env.FIRESTORE_EMULATOR_HOST;
 if (!firestoreEmulatorHost) {
@@ -27,19 +33,26 @@ const appName = `account-delete-tests-${process.pid}-${Date.now()}`;
 const app = initializeApp({ projectId }, appName);
 const db = getFirestore(app);
 
+const requestNowMs = 1_000;
+const afterUploadLeaseMs = requestNowMs + 15 * 60 * 1000 + 1;
+
 beforeEach(async () => {
-  await Promise.all([
-    clearCollection(db, "ownership_profiles"),
-    clearCollection(db, "player_profiles"),
-    clearCollection(db, "display_name_index"),
-    clearCollection(db, "ghost_runs"),
-    clearCollection(db, "leaderboard_ghost_runs"),
-    clearCollection(db, "weekly_ghost_runs"),
-    clearCollection(db, "leaderboard_boards"),
-    clearCollection(db, "run_sessions"),
-    clearCollection(db, "validated_runs"),
-    clearCollection(db, "reward_grants"),
-  ]);
+  await Promise.all(
+    [
+      "account_deletion_requests",
+      "abuse_quota",
+      "ownership_profiles",
+      "player_profiles",
+      "display_name_index",
+      "ghost_runs",
+      "leaderboard_ghost_runs",
+      "weekly_ghost_runs",
+      "leaderboard_boards",
+      "run_sessions",
+      "validated_runs",
+      "reward_grants",
+    ].map((collection) => clearCollection(db, collection)),
+  );
 });
 
 after(async () => {
@@ -55,235 +68,140 @@ test("parseAccountDeleteRequest validates required fields", () => {
   assert.equal(parsed.sessionId, "s1");
 });
 
-test("deleteAccountAndData removes UID-scoped profile, ownership, and ghost data", async () => {
-  const uid = "uid_delete_target";
-  const profileId = "profile_a";
-  const otherUid = "uid_keep";
-  const otherProfileId = "profile_other";
-  const replayArtifacts = new InMemoryReplayArtifactStore([
-    `replay-submissions/pending/${uid}/run_target/replay.bin.gz`,
-    `replay-submissions/pending/${otherUid}/run_other/replay.bin.gz`,
-    "replay-submissions/validated/run_target.bin.gz",
-    "replay-submissions/validated/run_other.bin.gz",
-    "ghosts/board_1/entry_target/ghost.bin.gz",
-    "ghosts/board_1/entry_other/ghost.bin.gz",
-  ]);
+test("request creates tombstone before disabling auth and blocks lazy creation", async () => {
+  const uid = "uid_tombstone";
+  const auth = new InMemoryAccountDeletionAuth();
+  const dependencies = deletionDependencies(auth);
 
-  await updatePlayerProfile({
+  const result = await requestAccountDeletion({
     db,
     uid,
-    displayName: "Delete Me",
-    displayNameLastChangedAtMs: 100,
-  });
-  await updatePlayerProfile({
-    db,
-    uid: otherUid,
-    displayName: "Keep Me",
-    displayNameLastChangedAtMs: 101,
+    nowMs: requestNowMs,
+    dependencies,
   });
 
-  const targetOwnershipRef = canonicalDocRef(db, uid, profileId);
-  await targetOwnershipRef.set({
-    uid,
-    profileId,
-    revision: 1,
-    selection: { selectedCharacterId: "eloise" },
-    meta: { schemaVersion: 1 },
-  });
-  await targetOwnershipRef.collection("idempotency").doc("cmd_1").set({
-    payloadHash: "abc",
-    result: { rejectedReason: null },
-  });
-
-  const targetOwnershipRef2 = canonicalDocRef(db, uid, "profile_b");
-  await targetOwnershipRef2.set({
-    uid,
-    profileId: "profile_b",
-    revision: 2,
-    selection: { selectedCharacterId: "nyra" },
-    meta: { schemaVersion: 1 },
-  });
-  await targetOwnershipRef2.collection("idempotency").doc("cmd_2").set({
-    payloadHash: "def",
-    result: { rejectedReason: null },
-  });
-
-  const otherOwnershipRef = canonicalDocRef(db, otherUid, otherProfileId);
-  await otherOwnershipRef.set({
-    uid: otherUid,
-    profileId: otherProfileId,
-    revision: 1,
-    selection: { selectedCharacterId: "eloise" },
-    meta: { schemaVersion: 1 },
-  });
-
-  await db.collection("run_sessions").doc("run_target").set({
-    uid,
-    runSessionId: "run_target",
-    state: "issued",
-  });
-  await db.collection("run_sessions").doc("run_other").set({
-    uid: otherUid,
-    runSessionId: "run_other",
-    state: "issued",
-  });
-  await db.collection("validated_runs").doc("run_target").set({
-    uid,
-    runSessionId: "run_target",
-    accepted: true,
-  });
-  await db.collection("validated_runs").doc("run_other").set({
-    uid: otherUid,
-    runSessionId: "run_other",
-    accepted: true,
-  });
-  await db.collection("reward_grants").doc("run_target").set({
-    uid,
-    runSessionId: "run_target",
-    lifecycleState: "provisional_created",
-    goldAmount: 10,
-  });
-  await db.collection("reward_grants").doc("run_other").set({
-    uid: otherUid,
-    runSessionId: "run_other",
-    lifecycleState: "provisional_created",
-    goldAmount: 11,
-  });
-
-  await db.collection("ghost_runs").doc("g1").set({ uid, runId: "r1" });
-  await db
-    .collection("leaderboard_ghost_runs")
-    .doc("g2")
-    .set({ userId: uid, runId: "r2" });
-  await db
-    .collection("weekly_ghost_runs")
-    .doc("g3")
-    .set({ ownerUid: uid, runId: "r3" });
-  await db
-    .collection("leaderboard_boards")
-    .doc("board_1")
-    .collection("ghost_manifests")
-    .doc("entry_target")
-    .set({
-      boardId: "board_1",
-      entryId: "entry_target",
-      uid,
-      runSessionId: "run_target",
-      replayStorageRef: "ghosts/board_1/entry_target/ghost.bin.gz",
-      sourceReplayStorageRef: "replay-submissions/validated/run_target.bin.gz",
-      status: "active",
-      exposed: true,
-    });
-  await db.collection("ghost_runs").doc("g_other").set({ uid: otherUid });
-  await db
-    .collection("leaderboard_boards")
-    .doc("board_1")
-    .collection("player_bests")
-    .doc(uid)
-    .set({
-      boardId: "board_1",
-      uid,
-      runSessionId: "run_target",
-      entryId: "run_target",
-      sortKey: "0001",
-      score: 100,
-      distanceMeters: 100,
-      durationSeconds: 10,
-      displayName: "Delete Me",
-      characterId: "eloise",
-      updatedAtMs: 1,
-    });
-  await db
-    .collection("leaderboard_boards")
-    .doc("board_2")
-    .collection("player_bests")
-    .doc(uid)
-    .set({
-      boardId: "board_2",
-      uid,
-      runSessionId: "run_target",
-      entryId: "run_target",
-      sortKey: "0002",
-      score: 110,
-      distanceMeters: 101,
-      durationSeconds: 11,
-      displayName: "Delete Me",
-      characterId: "eloise",
-      updatedAtMs: 2,
-    });
-  await db
-    .collection("leaderboard_boards")
-    .doc("board_1")
-    .collection("player_bests")
-    .doc(otherUid)
-    .set({
-      boardId: "board_1",
-      uid: otherUid,
-      runSessionId: "run_other",
-      entryId: "run_other",
-      sortKey: "0003",
-      score: 90,
-      distanceMeters: 90,
-      durationSeconds: 20,
-      displayName: "Keep Me",
-      characterId: "nyra",
-      updatedAtMs: 3,
-    });
-  await db.collection("leaderboard_boards").doc("board_1").collection("views").doc("top10").set({
-    boardId: "board_1",
-    entries: [{ uid }],
-    updatedAtMs: 1,
-  });
-  await db.collection("leaderboard_boards").doc("board_2").collection("views").doc("top10").set({
-    boardId: "board_2",
-    entries: [{ uid }],
-    updatedAtMs: 2,
-  });
-  await db.collection("leaderboard_boards").doc("board_3").collection("views").doc("top10").set({
-    boardId: "board_3",
-    entries: [{ uid: otherUid }],
-    updatedAtMs: 3,
-  });
-
-  let deletedAuthUid = "";
-  const result = await deleteAccountAndData({
-    db,
-    uid,
-    deleteAuthUser: async (value) => {
-      deletedAuthUid = value;
-    },
-    replayArtifactStore: replayArtifacts,
-  });
-
-  assert.equal(result.status, "deleted");
-  assert.equal(deletedAuthUid, uid);
-  assert.equal(result.deleted.profileDocs, 1);
-  assert.equal(result.deleted.displayNameIndexDocs, 1);
-  assert.equal(result.deleted.ownershipDocs, 2);
-  assert.equal(result.deleted.runSessionDocs, 1);
-  assert.equal(result.deleted.validatedRunDocs, 1);
-  assert.equal(result.deleted.rewardGrantDocs, 1);
-  assert.equal(result.deleted.ghostDocs, 4);
-  assert.equal(result.deleted.leaderboardPlayerBestDocs, 2);
-  assert.equal(result.deleted.invalidatedTop10ViewDocs, 2);
-  assert.equal(result.deleted.pendingReplayObjectDeletes, 1);
-  assert.equal(result.deleted.validatedReplayObjectDeletes, 1);
-  assert.equal(result.deleted.ghostArtifactObjectDeletes, 1);
-
-  assert.equal((await db.collection("player_profiles").doc(uid).get()).exists, false);
+  assert.equal(result.status, "in_progress");
+  assert.deepEqual(auth.calls, [`disable:${uid}`]);
   assert.equal(
-    (await db.collection("display_name_index").where("uid", "==", uid).get()).size,
-    0,
+    (
+      await db.collection("account_deletion_requests").doc(uid).get()
+    ).exists,
+    true,
   );
-  assert.equal((await targetOwnershipRef.get()).exists, false);
-  assert.equal((await targetOwnershipRef2.get()).exists, false);
-  assert.equal((await db.collection("ghost_runs").doc("g1").get()).exists, false);
+  await assert.rejects(
+    assertAccountActive(db, uid),
+    isDeletionInProgressError,
+  );
+  await assert.rejects(
+    loadOrCreatePlayerProfile({ db, uid }),
+    isDeletionInProgressError,
+  );
+  await assert.rejects(
+    updatePlayerProfile({
+      db,
+      uid,
+      nowMs: requestNowMs + 1,
+      displayName: "Should Not Exist",
+    }),
+    isDeletionInProgressError,
+  );
+  await assert.rejects(
+    loadOrCreateCanonicalState({ db, uid }),
+    isDeletionInProgressError,
+  );
   assert.equal(
-    (await db.collection("leaderboard_ghost_runs").doc("g2").get()).exists,
+    (await db.collection("player_profiles").doc(uid).get()).exists,
     false,
   );
   assert.equal(
-    (await db.collection("weekly_ghost_runs").doc("g3").get()).exists,
+    (
+      await db
+        .collection("ownership_profiles")
+        .where("uid", "==", uid)
+        .get()
+    ).empty,
+    true,
+  );
+});
+
+test("bounded workflow erases large account, catches reinsertion, then deletes auth", async () => {
+  const uid = "uid_delete_target";
+  const otherUid = "uid_keep";
+  const auth = new InMemoryAccountDeletionAuth();
+  const artifacts = new InMemoryReplayArtifactStore();
+  const dependencies = deletionDependencies(auth, artifacts);
+
+  await seedLargeAccount({ db, uid, otherUid, artifacts });
+  await requestAccountDeletion({
+    db,
+    uid,
+    nowMs: requestNowMs,
+    pageSize: 2,
+    dependencies,
+  });
+
+  const quiet = await processUntilStage({
+    db,
+    uid,
+    targetStage: "quiet_wait",
+    nowMs: requestNowMs,
+    pageSize: 2,
+    dependencies,
+  });
+  assert.equal(quiet.status, "in_progress");
+  assert.deepEqual(auth.calls, [`disable:${uid}`]);
+
+  // Simulate late server work or an upload signed before the tombstone.
+  await db.collection("reward_grants").doc("late_reward").set({
+    uid,
+    runSessionId: "late_reward",
+  });
+  await db.collection("validated_runs").doc("late_run").set({
+    uid,
+    runSessionId: "late_run",
+  });
+  artifacts.add(
+    `replay-submissions/pending/${uid}/late_run/replay.bin.gz`,
+  );
+  artifacts.add("replay-submissions/validated/late_run.bin.gz");
+
+  const completed = await drainDeletion({
+    db,
+    uid,
+    nowMs: afterUploadLeaseMs,
+    pageSize: 2,
+    dependencies,
+  });
+  assert.equal(completed.status, "deleted");
+  assert.deepEqual(auth.calls, [`disable:${uid}`, `delete:${uid}`]);
+
+  for (const collection of [
+    "player_profiles",
+    "display_name_index",
+    "ownership_profiles",
+    "abuse_quota",
+    "run_sessions",
+    "validated_runs",
+    "reward_grants",
+    "ghost_runs",
+    "leaderboard_ghost_runs",
+    "weekly_ghost_runs",
+  ]) {
+    const owned = await db
+      .collection(collection)
+      .where("uid", "==", uid)
+      .get();
+    assert.equal(owned.empty, true, collection);
+  }
+  assert.equal(
+    (
+      await db
+        .collection("leaderboard_boards")
+        .doc("board_1")
+        .collection("player_bests")
+        .doc(uid)
+        .get()
+    ).exists,
     false,
   );
   assert.equal(
@@ -297,37 +215,6 @@ test("deleteAccountAndData removes UID-scoped profile, ownership, and ghost data
     ).exists,
     false,
   );
-  assert.equal((await db.collection("run_sessions").doc("run_target").get()).exists, false);
-  assert.equal(
-    (await db.collection("validated_runs").doc("run_target").get()).exists,
-    false,
-  );
-  assert.equal(
-    (await db.collection("reward_grants").doc("run_target").get()).exists,
-    false,
-  );
-  assert.equal(
-    (
-      await db
-        .collection("leaderboard_boards")
-        .doc("board_1")
-        .collection("player_bests")
-        .doc(uid)
-        .get()
-    ).exists,
-    false,
-  );
-  assert.equal(
-    (
-      await db
-        .collection("leaderboard_boards")
-        .doc("board_2")
-        .collection("player_bests")
-        .doc(uid)
-        .get()
-    ).exists,
-    false,
-  );
   assert.equal(
     (
       await db
@@ -339,42 +226,18 @@ test("deleteAccountAndData removes UID-scoped profile, ownership, and ghost data
     ).exists,
     false,
   );
+  assert.equal(artifacts.hasPrefix(`replay-submissions/pending/${uid}/`), false);
   assert.equal(
-    (
-      await db
-        .collection("leaderboard_boards")
-        .doc("board_2")
-        .collection("views")
-        .doc("top10")
-        .get()
-    ).exists,
-    false,
-  );
-  assert.equal(
-    replayArtifacts.hasObject(
-      `replay-submissions/pending/${uid}/run_target/replay.bin.gz`,
-    ),
-    false,
-  );
-  assert.equal(
-    replayArtifacts.hasObject("replay-submissions/validated/run_target.bin.gz"),
-    false,
-  );
-  assert.equal(
-    replayArtifacts.hasObject("ghosts/board_1/entry_target/ghost.bin.gz"),
+    artifacts.hasObject("replay-submissions/validated/late_run.bin.gz"),
     false,
   );
 
-  assert.equal((await db.collection("player_profiles").doc(otherUid).get()).exists, true);
-  assert.equal((await otherOwnershipRef.get()).exists, true);
-  assert.equal((await db.collection("ghost_runs").doc("g_other").get()).exists, true);
-  assert.equal((await db.collection("run_sessions").doc("run_other").get()).exists, true);
   assert.equal(
-    (await db.collection("validated_runs").doc("run_other").get()).exists,
+    (await db.collection("player_profiles").doc(otherUid).get()).exists,
     true,
   );
   assert.equal(
-    (await db.collection("reward_grants").doc("run_other").get()).exists,
+    (await db.collection("abuse_quota").doc(otherUid).get()).exists,
     true,
   );
   assert.equal(
@@ -388,134 +251,352 @@ test("deleteAccountAndData removes UID-scoped profile, ownership, and ghost data
     ).exists,
     true,
   );
-  assert.equal(
-    (
-      await db
-        .collection("leaderboard_boards")
-        .doc("board_3")
-        .collection("views")
-        .doc("top10")
-        .get()
-    ).exists,
-    true,
-  );
-  assert.equal(
-    replayArtifacts.hasObject(
-      `replay-submissions/pending/${otherUid}/run_other/replay.bin.gz`,
-    ),
-    true,
-  );
-  assert.equal(
-    replayArtifacts.hasObject("replay-submissions/validated/run_other.bin.gz"),
-    true,
-  );
-  assert.equal(
-    replayArtifacts.hasObject("ghosts/board_1/entry_other/ghost.bin.gz"),
-    true,
-  );
+
+  const tombstone = (
+    await db.collection("account_deletion_requests").doc(uid).get()
+  ).data();
+  assert.equal(tombstone?.state, "complete");
+  assert.ok((tombstone?.pass as number) >= 3);
+  assert.ok((tombstone?.deleted?.runSessionDocs as number) > 2);
+  assert.ok((tombstone?.deleted?.pendingReplayObjectDeletes as number) > 2);
+  assert.ok((tombstone?.expiresAtMs as number) > afterUploadLeaseMs);
 });
 
-test("deleteAccountAndData tolerates already-missing auth user", async () => {
-  const uid = "uid_missing_auth";
-  await db.collection("ghost_runs").doc("g1").set({ uid });
+test("repeated requests converge on the same workflow", async () => {
+  const uid = "uid_repeat";
+  const auth = new InMemoryAccountDeletionAuth();
+  const dependencies = deletionDependencies(auth);
 
-  const result = await deleteAccountAndData({
+  const first = await requestAccountDeletion({
     db,
     uid,
-    deleteAuthUser: async () => {
-      const error = new Error("not found") as Error & { code?: string };
-      error.code = "auth/user-not-found";
-      throw error;
-    },
-    replayArtifactStore: new InMemoryReplayArtifactStore(),
+    nowMs: requestNowMs,
+    dependencies,
+  });
+  const second = await requestAccountDeletion({
+    db,
+    uid,
+    nowMs: requestNowMs + 1,
+    dependencies,
   });
 
-  assert.equal(result.status, "deleted");
-  assert.equal((await db.collection("ghost_runs").doc("g1").get()).exists, false);
+  assert.equal(first.requestId, uid);
+  assert.equal(second.requestId, uid);
+  assert.equal(
+    (
+      await db.collection("account_deletion_requests").get()
+    ).size,
+    1,
+  );
+  assert.equal(auth.calls.filter((call) => call === `disable:${uid}`).length, 1);
 });
 
-test(
-  "deleteAccountAndData maps Firebase Auth permission errors to permission-denied",
-  async () => {
-    const uid = "uid_auth_permission_denied";
-    const authError = new Error(
-      "Insufficient permission to access the requested resource.",
-    ) as Error & { code?: string };
-    authError.code = "auth/insufficient-permission";
+test("retryable stage failure resumes without losing coverage", async () => {
+  const uid = "uid_retry";
+  const auth = new InMemoryAccountDeletionAuth();
+  const artifacts = new InMemoryReplayArtifactStore([
+    `replay-submissions/pending/${uid}/run_1/replay.bin.gz`,
+  ]);
+  artifacts.failNextPrefixDelete = true;
+  const dependencies = deletionDependencies(auth, artifacts);
 
-    await assert.rejects(
-      deleteAccountAndData({
-        db,
-        uid,
-        replayArtifactStore: new InMemoryReplayArtifactStore(),
-        deleteAuthUser: async () => {
-          throw authError;
-        },
-      }),
-      (error: unknown) => {
-        assert.ok(error instanceof HttpsError);
-        assert.equal(error.code, "permission-denied");
-        assert.match(error.message, /firebase auth permissions/i);
-        return true;
-      },
+  await requestAccountDeletion({
+    db,
+    uid,
+    nowMs: requestNowMs,
+    dependencies,
+  });
+  const retryable = await processUntilStatus({
+    db,
+    uid,
+    targetStatus: "retryable",
+    nowMs: requestNowMs,
+    dependencies,
+  });
+  assert.equal(retryable.stage, "pending_replay_artifacts");
+
+  const completed = await drainDeletion({
+    db,
+    uid,
+    nowMs: afterUploadLeaseMs,
+    dependencies,
+  });
+  assert.equal(completed.status, "deleted");
+  assert.equal(
+    artifacts.hasPrefix(`replay-submissions/pending/${uid}/`),
+    false,
+  );
+  assert.deepEqual(auth.calls, [`disable:${uid}`, `delete:${uid}`]);
+});
+
+test("concurrent workers serialize deletion pages without duplicating a stage", async () => {
+  const uid = "uid_lease";
+  const auth = new InMemoryAccountDeletionAuth();
+  auth.disableDelayMs = 100;
+  const dependencies = deletionDependencies(auth);
+  await db.collection("account_deletion_requests").doc(uid).set({
+    uid,
+    state: "requested",
+    stage: "disable_auth",
+    pass: 1,
+    finalPass: false,
+    passDeletedCount: 0,
+    requestedAtMs: requestNowMs,
+    attemptCount: 0,
+  });
+
+  const results = await Promise.all([
+    processAccountDeletion({
+      db,
+      uid,
+      nowMs: requestNowMs + 1,
+      dependencies,
+    }),
+    processAccountDeletion({
+      db,
+      uid,
+      nowMs: requestNowMs + 1,
+      dependencies,
+    }),
+  ]);
+  assert.ok(results.filter((result) => result.processed).length >= 1);
+  assert.deepEqual(auth.calls, [`disable:${uid}`]);
+  let tombstone = (
+    await db.collection("account_deletion_requests").doc(uid).get()
+  ).data();
+  if (tombstone?.stage !== "display_name_index") {
+    await processAccountDeletion({
+      db,
+      uid,
+      nowMs: requestNowMs + 2,
+      dependencies,
+    });
+    tombstone = (
+      await db.collection("account_deletion_requests").doc(uid).get()
+    ).data();
+  }
+  assert.ok((tombstone?.attemptCount as number) >= 2);
+  assert.equal(tombstone?.stage, "display_name_index");
+});
+
+test("already-missing auth user is terminally successful", async () => {
+  const uid = "uid_missing_auth";
+  const auth = new InMemoryAccountDeletionAuth();
+  auth.userMissing = true;
+  const dependencies = deletionDependencies(auth);
+
+  await requestAccountDeletion({
+    db,
+    uid,
+    nowMs: requestNowMs,
+    dependencies,
+  });
+  const completed = await drainDeletion({
+    db,
+    uid,
+    nowMs: afterUploadLeaseMs,
+    dependencies,
+  });
+  assert.equal(completed.status, "deleted");
+});
+
+async function seedLargeAccount(args: {
+  db: Firestore;
+  uid: string;
+  otherUid: string;
+  artifacts: InMemoryReplayArtifactStore;
+}): Promise<void> {
+  await args.db.collection("player_profiles").doc(args.uid).set({
+    uid: args.uid,
+    displayName: "Delete Me",
+    displayNameNormalized: "delete me",
+  });
+  await args.db.collection("display_name_index").doc("delete me").set({
+    uid: args.uid,
+  });
+  await args.db.collection("player_profiles").doc(args.otherUid).set({
+    uid: args.otherUid,
+    displayName: "Keep Me",
+    displayNameNormalized: "keep me",
+  });
+  await args.db.collection("abuse_quota").doc(args.uid).set({
+    uid: args.uid,
+    expiresAtMs: 999_999,
+  });
+  await args.db.collection("abuse_quota").doc(args.otherUid).set({
+    uid: args.otherUid,
+    expiresAtMs: 999_999,
+  });
+
+  for (let index = 0; index < 5; index += 1) {
+    const suffix = String(index);
+    const ownership = args.db
+      .collection("ownership_profiles")
+      .doc(`profile_${suffix}`);
+    await ownership.set({ uid: args.uid, profileId: `profile_${suffix}` });
+    for (let command = 0; command < 3; command += 1) {
+      await ownership
+        .collection("idempotency")
+        .doc(`command_${command}`)
+        .set({ payloadHash: `${index}-${command}` });
+    }
+    await args.db.collection("run_sessions").doc(`run_${suffix}`).set({
+      uid: args.uid,
+      runSessionId: `run_${suffix}`,
+    });
+    await args.db.collection("validated_runs").doc(`run_${suffix}`).set({
+      uid: args.uid,
+      runSessionId: `run_${suffix}`,
+    });
+    await args.db.collection("reward_grants").doc(`run_${suffix}`).set({
+      uid: args.uid,
+      runSessionId: `run_${suffix}`,
+    });
+    args.artifacts.add(
+      `replay-submissions/pending/${args.uid}/run_${suffix}/replay.bin.gz`,
     );
-  },
-);
-
-test(
-  "deleteAccountAndData maps replay storage permission errors to permission-denied",
-  async () => {
-    const uid = "uid_storage_permission_denied";
-    const storageError = new Error(
-      "Permission 'storage.objects.list' denied on resource.",
-    ) as Error & { code?: number };
-    storageError.code = 7;
-
-    await assert.rejects(
-      deleteAccountAndData({
-        db,
-        uid,
-        replayArtifactStore: new ThrowingReplayArtifactStore(storageError),
-        deleteAuthUser: async () => {},
-      }),
-      (error: unknown) => {
-        assert.ok(error instanceof HttpsError);
-        assert.equal(error.code, "permission-denied");
-        assert.match(error.message, /missing required permissions/i);
-        return true;
-      },
+    args.artifacts.add(
+      `replay-submissions/validated/run_${suffix}.bin.gz`,
     );
-  },
-);
+  }
 
-test(
-  "deleteAccountAndData maps failed-precondition errors to explicit HttpsError",
-  async () => {
-    const uid = "uid_failed_precondition";
-    const firestoreError = new Error("FAILED_PRECONDITION: missing index") as
-      Error & { code?: number };
-    firestoreError.code = 9;
+  await args.db.collection("ghost_runs").doc("ghost_1").set({
+    uid: args.uid,
+    runSessionId: "run_0",
+  });
+  await args.db.collection("leaderboard_ghost_runs").doc("ghost_2").set({
+    userId: args.uid,
+    replayStorageRef: "ghosts/board_1/entry_target/ghost.bin.gz",
+  });
+  await args.db.collection("weekly_ghost_runs").doc("ghost_3").set({
+    ownerUid: args.uid,
+  });
+  await args.db.collection("leaderboard_boards").doc("board_1").set({
+    boardId: "board_1",
+  });
+  await args.db
+    .collection("leaderboard_boards")
+    .doc("board_1")
+    .collection("ghost_manifests")
+    .doc("entry_target")
+    .set({
+      uid: args.uid,
+      runSessionId: "run_0",
+      replayStorageRef: "ghosts/board_1/entry_target/ghost.bin.gz",
+    });
+  await args.db
+    .collection("leaderboard_boards")
+    .doc("board_1")
+    .collection("player_bests")
+    .doc(args.uid)
+    .set({ uid: args.uid });
+  await args.db
+    .collection("leaderboard_boards")
+    .doc("board_1")
+    .collection("player_bests")
+    .doc(args.otherUid)
+    .set({ uid: args.otherUid });
+  await args.db
+    .collection("leaderboard_boards")
+    .doc("board_1")
+    .collection("views")
+    .doc("top10")
+    .set({ entries: [{ uid: args.uid }] });
+  args.artifacts.add("ghosts/board_1/entry_target/ghost.bin.gz");
+}
 
-    await assert.rejects(
-      deleteAccountAndData({
-        db,
-        uid,
-        replayArtifactStore: new ThrowingReplayArtifactStore(firestoreError),
-        deleteAuthUser: async () => {},
-      }),
-      (error: unknown) => {
-        assert.ok(error instanceof HttpsError);
-        assert.equal(error.code, "failed-precondition");
-        assert.match(error.message, /firestore precondition/i);
-        return true;
-      },
-    );
-  },
-);
+async function drainDeletion(args: {
+  db: Firestore;
+  uid: string;
+  nowMs: number;
+  pageSize?: number;
+  dependencies: AccountDeletionDependencies;
+}) {
+  for (let attempt = 0; attempt < 500; attempt += 1) {
+    const result = await processAccountDeletion(args);
+    if (result.status === "deleted") {
+      return result;
+    }
+  }
+  throw new Error(`Deletion ${args.uid} did not complete.`);
+}
 
-async function clearCollection(dbValue: Firestore, name: string): Promise<void> {
+async function processUntilStage(args: {
+  db: Firestore;
+  uid: string;
+  targetStage: string;
+  nowMs: number;
+  pageSize?: number;
+  dependencies: AccountDeletionDependencies;
+}) {
+  for (let attempt = 0; attempt < 500; attempt += 1) {
+    const result = await processAccountDeletion(args);
+    if (result.stage === args.targetStage) {
+      return result;
+    }
+  }
+  throw new Error(`Deletion ${args.uid} did not reach ${args.targetStage}.`);
+}
+
+async function processUntilStatus(args: {
+  db: Firestore;
+  uid: string;
+  targetStatus: string;
+  nowMs: number;
+  pageSize?: number;
+  dependencies: AccountDeletionDependencies;
+}) {
+  for (let attempt = 0; attempt < 500; attempt += 1) {
+    const result = await processAccountDeletion(args);
+    if (result.status === args.targetStatus) {
+      return result;
+    }
+  }
+  throw new Error(`Deletion ${args.uid} did not reach ${args.targetStatus}.`);
+}
+
+function deletionDependencies(
+  auth: InMemoryAccountDeletionAuth,
+  replayArtifactStore = new InMemoryReplayArtifactStore(),
+): AccountDeletionDependencies {
+  return { auth, replayArtifactStore };
+}
+
+function isDeletionInProgressError(error: { code?: string }): boolean {
+  return error.code === "failed-precondition";
+}
+
+async function clearCollection(
+  dbValue: Firestore,
+  name: string,
+): Promise<void> {
   const docs = await dbValue.collection(name).listDocuments();
-  await Promise.all(docs.map((docRef) => dbValue.recursiveDelete(docRef)));
+  await Promise.all(
+    docs.map((docRef) => dbValue.recursiveDelete(docRef)),
+  );
+}
+
+class InMemoryAccountDeletionAuth implements AccountDeletionAuth {
+  readonly calls: string[] = [];
+  userMissing = false;
+  disableDelayMs = 0;
+
+  async disableAndRevoke(uid: string): Promise<void> {
+    if (this.disableDelayMs > 0) {
+      await new Promise((resolve) =>
+        setTimeout(resolve, this.disableDelayMs),
+      );
+    }
+    if (!this.userMissing) {
+      this.calls.push(`disable:${uid}`);
+    }
+  }
+
+  async deleteUser(uid: string): Promise<void> {
+    if (!this.userMissing) {
+      this.calls.push(`delete:${uid}`);
+    }
+  }
 }
 
 class InMemoryReplayArtifactStore implements ReplayArtifactStore {
@@ -526,37 +607,42 @@ class InMemoryReplayArtifactStore implements ReplayArtifactStore {
   }
 
   private readonly objects = new Set<string>();
+  failNextPrefixDelete = false;
+
+  add(objectPath: string): void {
+    this.objects.add(objectPath);
+  }
 
   hasObject(objectPath: string): boolean {
     return this.objects.has(objectPath);
   }
 
-  async deleteByPrefix(args: { prefix: string }): Promise<number> {
-    const toDelete: string[] = [];
-    for (const objectPath of this.objects) {
-      if (objectPath.startsWith(args.prefix)) {
-        toDelete.push(objectPath);
-      }
+  hasPrefix(prefix: string): boolean {
+    return [...this.objects].some((objectPath) =>
+      objectPath.startsWith(prefix),
+    );
+  }
+
+  async deletePageByPrefix(args: {
+    prefix: string;
+    maxResults: number;
+  }): Promise<number> {
+    if (this.failNextPrefixDelete) {
+      this.failNextPrefixDelete = false;
+      throw new Error("injected storage failure");
     }
+    const toDelete = [...this.objects]
+      .filter((objectPath) => objectPath.startsWith(args.prefix))
+      .slice(0, args.maxResults);
     for (const objectPath of toDelete) {
       this.objects.delete(objectPath);
     }
     return toDelete.length;
   }
 
-  async deleteObjectIfExists(args: { objectPath: string }): Promise<boolean> {
+  async deleteObjectIfExists(args: {
+    objectPath: string;
+  }): Promise<boolean> {
     return this.objects.delete(args.objectPath);
-  }
-}
-
-class ThrowingReplayArtifactStore implements ReplayArtifactStore {
-  constructor(private readonly errorToThrow: unknown) {}
-
-  async deleteByPrefix(_args: { prefix: string }): Promise<number> {
-    throw this.errorToThrow;
-  }
-
-  async deleteObjectIfExists(_args: { objectPath: string }): Promise<boolean> {
-    throw this.errorToThrow;
   }
 }

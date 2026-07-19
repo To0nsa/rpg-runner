@@ -1,6 +1,7 @@
 import 'package:runner_core/events/game_event.dart';
 import 'package:runner_core/scoring/run_score_breakdown.dart';
 import 'package:runner_core/tuning/score_tuning.dart';
+import 'package:run_protocol/run_duration.dart';
 
 class RunResult {
   const RunResult({
@@ -23,11 +24,7 @@ class RunResult {
   final int tick;
   final String? displayName;
 
-  RunResult copyWith({
-    int? runId,
-    int? endedAtMs,
-    String? displayName,
-  }) {
+  RunResult copyWith({int? runId, int? endedAtMs, String? displayName}) {
     return RunResult(
       runId: runId ?? this.runId,
       endedAtMs: endedAtMs ?? this.endedAtMs,
@@ -41,15 +38,15 @@ class RunResult {
   }
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-        'runId': runId,
-        'endedAtMs': endedAtMs,
-        'endedReason': endedReason.name,
-        'score': score,
-        'distanceMeters': distanceMeters,
-        'durationSeconds': durationSeconds,
-        'tick': tick,
-        'displayName': displayName,
-      };
+    'runId': runId,
+    'endedAtMs': endedAtMs,
+    'endedReason': endedReason.name,
+    'score': score,
+    'distanceMeters': distanceMeters,
+    'durationSeconds': durationSeconds,
+    'tick': tick,
+    'displayName': displayName,
+  };
 
   static RunResult fromJson(Map<String, dynamic> json) {
     final reasonName = json['endedReason'] as String?;
@@ -92,7 +89,10 @@ RunResult buildRunResult({
   );
 
   final distanceMeters = (event.distance / kWorldUnitsPerMeter).floor();
-  final durationSeconds = tickHz <= 0 ? 0 : event.tick ~/ tickHz;
+  final durationSeconds = canonicalRunDurationSeconds(
+    tick: event.tick,
+    tickHz: tickHz,
+  );
 
   return RunResult(
     runId: 0,

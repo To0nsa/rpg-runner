@@ -39,11 +39,6 @@ class FirebaseLoadoutOwnershipApi implements LoadoutOwnershipApi {
   }
 
   @override
-  Future<OwnershipCommandResult> resetOwnership(ResetOwnershipCommand command) {
-    return _executeCommand(command);
-  }
-
-  @override
   Future<OwnershipCommandResult> equipGear(EquipGearCommand command) {
     return _executeCommand(command);
   }
@@ -62,30 +57,6 @@ class FirebaseLoadoutOwnershipApi implements LoadoutOwnershipApi {
   Future<OwnershipCommandResult> setProjectileSpell(
     SetProjectileSpellCommand command,
   ) {
-    return _executeCommand(command);
-  }
-
-  @override
-  Future<OwnershipCommandResult> learnProjectileSpell(
-    LearnProjectileSpellCommand command,
-  ) {
-    return _executeCommand(command);
-  }
-
-  @override
-  Future<OwnershipCommandResult> learnSpellAbility(
-    LearnSpellAbilityCommand command,
-  ) {
-    return _executeCommand(command);
-  }
-
-  @override
-  Future<OwnershipCommandResult> unlockGear(UnlockGearCommand command) {
-    return _executeCommand(command);
-  }
-
-  @override
-  Future<OwnershipCommandResult> awardRunGold(AwardRunGoldCommand command) {
     return _executeCommand(command);
   }
 

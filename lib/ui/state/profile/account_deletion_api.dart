@@ -1,4 +1,7 @@
 enum AccountDeletionStatus {
+  requested,
+  inProgress,
+  retrying,
   deleted,
   requiresRecentLogin,
   unauthorized,
@@ -17,7 +20,11 @@ class AccountDeletionResult {
   final String? errorCode;
   final String? errorMessage;
 
-  bool get succeeded => status == AccountDeletionStatus.deleted;
+  bool get succeeded =>
+      status == AccountDeletionStatus.requested ||
+      status == AccountDeletionStatus.inProgress ||
+      status == AccountDeletionStatus.retrying ||
+      status == AccountDeletionStatus.deleted;
 }
 
 abstract class AccountDeletionApi {

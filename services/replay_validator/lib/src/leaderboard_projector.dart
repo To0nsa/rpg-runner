@@ -1,5 +1,6 @@
 import 'package:googleapis/firestore/v1.dart' as firestore;
 import 'package:run_protocol/leaderboard_entry.dart';
+import 'package:run_protocol/replay_digest.dart';
 import 'package:run_protocol/sort_key.dart';
 import 'package:run_protocol/validated_run.dart';
 
@@ -12,6 +13,8 @@ abstract class LeaderboardProjector {
     ValidatedRun? validatedRun,
     String? characterId,
   });
+
+  Future<void> reconcileBoard({required String boardId});
 }
 
 class NoopLeaderboardProjector implements LeaderboardProjector {
@@ -21,6 +24,9 @@ class NoopLeaderboardProjector implements LeaderboardProjector {
     ValidatedRun? validatedRun,
     String? characterId,
   }) async {}
+
+  @override
+  Future<void> reconcileBoard({required String boardId}) async {}
 }
 
 abstract class LeaderboardProjectionStore {
@@ -30,16 +36,11 @@ abstract class LeaderboardProjectionStore {
 
   Future<String?> loadCharacterId({required String runSessionId});
 
-  Future<LeaderboardEntry?> loadPlayerBest({
-    required String boardId,
-    required String uid,
+  Future<PlayerBestWriteResult> replacePlayerBestIfBetter({
+    required LeaderboardEntry candidate,
   });
 
-  Future<void> upsertPlayerBest({required LeaderboardEntry entry});
-
-  Future<List<LeaderboardEntry>> loadTop10ViewEntries({
-    required String boardId,
-  });
+  Future<Top10ViewSnapshot> loadTop10View({required String boardId});
 
   Future<List<LeaderboardEntry>> listTopPlayerBests({
     required String boardId,
@@ -53,11 +54,31 @@ abstract class LeaderboardProjectionStore {
     required int nowMs,
   });
 
-  Future<void> writeTop10View({
+  Future<bool> writeTop10View({
     required String boardId,
     required List<LeaderboardEntry> entries,
     required int updatedAtMs,
+    required Top10ViewSnapshot expected,
   });
+}
+
+enum PlayerBestWriteResult { improved, unchanged }
+
+final class Top10ViewSnapshot {
+  const Top10ViewSnapshot({
+    required this.entries,
+    required this.exists,
+    this.updateTime,
+  });
+
+  const Top10ViewSnapshot.missing()
+    : entries = const <LeaderboardEntry>[],
+      exists = false,
+      updateTime = null;
+
+  final List<LeaderboardEntry> entries;
+  final bool exists;
+  final String? updateTime;
 }
 
 class FirestoreLeaderboardProjector implements LeaderboardProjector {
@@ -123,76 +144,99 @@ class FirestoreLeaderboardProjector implements LeaderboardProjector {
       ),
       ghostEligible: false,
       replayStorageRef: resolvedValidatedRun.replayStorageRef,
+      replayStorageGeneration: resolvedValidatedRun.replayStorageGeneration,
+      replayDigest: resolvedValidatedRun.replayDigest,
       updatedAtMs: nowMs,
     );
-    final existing = await _store.loadPlayerBest(boardId: boardId, uid: uid);
-    if (existing != null &&
-        existing.sortKey.compareTo(candidate.sortKey) <= 0) {
-      return;
-    }
-
-    await _store.upsertPlayerBest(entry: candidate);
+    await _store.replacePlayerBestIfBetter(candidate: candidate);
+    // Always rebuild the materialized view. A duplicate task may be resuming
+    // after the player-best write but before top-10/ghost projection completed.
     await _refreshTop10View(boardId: boardId, nowMs: nowMs);
+  }
+
+  @override
+  Future<void> reconcileBoard({required String boardId}) async {
+    final normalizedBoardId = boardId.trim();
+    if (normalizedBoardId.isEmpty) {
+      throw ArgumentError.value(boardId, 'boardId', 'must be non-empty');
+    }
+    await _refreshTop10View(boardId: normalizedBoardId, nowMs: _clockMs());
   }
 
   Future<void> _refreshTop10View({
     required String boardId,
     required int nowMs,
   }) async {
-    final previousTopEntries = await _store.loadTop10ViewEntries(
-      boardId: boardId,
-    );
-    final listed = await _store.listTopPlayerBests(boardId: boardId, limit: 10);
-
-    final topEntries = <LeaderboardEntry>[];
-    final topUids = <String>{};
-    for (var i = 0; i < listed.length; i += 1) {
-      final parsed = listed[i];
-      final ranked = LeaderboardEntry(
-        boardId: parsed.boardId,
-        entryId: parsed.entryId,
-        runSessionId: parsed.runSessionId,
-        uid: parsed.uid,
-        displayName: parsed.displayName,
-        characterId: parsed.characterId,
-        score: parsed.score,
-        distanceMeters: parsed.distanceMeters,
-        durationSeconds: parsed.durationSeconds,
-        sortKey: parsed.sortKey,
-        ghostEligible: true,
-        replayStorageRef: parsed.replayStorageRef,
-        updatedAtMs: nowMs,
-        rank: i + 1,
-      );
-      topEntries.add(ranked);
-      topUids.add(ranked.uid);
-      await _store.setPlayerBestGhostEligible(
+    for (
+      var projectionAttempt = 0;
+      projectionAttempt < 5;
+      projectionAttempt++
+    ) {
+      final previous = await _store.loadTop10View(boardId: boardId);
+      final listed = await _store.listTopPlayerBests(
         boardId: boardId,
-        uid: ranked.uid,
-        ghostEligible: true,
-        nowMs: nowMs,
+        limit: 10,
       );
-    }
 
-    final previousTopUids = <String>{
-      for (final entry in previousTopEntries) entry.uid,
-    };
-    for (final uid in previousTopUids) {
-      if (topUids.contains(uid)) {
-        continue;
+      final topEntries = <LeaderboardEntry>[];
+      final topUids = <String>{};
+      for (var i = 0; i < listed.length; i += 1) {
+        final parsed = listed[i];
+        final ranked = LeaderboardEntry(
+          boardId: parsed.boardId,
+          entryId: parsed.entryId,
+          runSessionId: parsed.runSessionId,
+          uid: parsed.uid,
+          displayName: parsed.displayName,
+          characterId: parsed.characterId,
+          score: parsed.score,
+          distanceMeters: parsed.distanceMeters,
+          durationSeconds: parsed.durationSeconds,
+          sortKey: parsed.sortKey,
+          ghostEligible: true,
+          replayStorageRef: parsed.replayStorageRef,
+          replayStorageGeneration: parsed.replayStorageGeneration,
+          replayDigest: parsed.replayDigest,
+          updatedAtMs: nowMs,
+          rank: i + 1,
+        );
+        topEntries.add(ranked);
+        topUids.add(ranked.uid);
+        await _store.setPlayerBestGhostEligible(
+          boardId: boardId,
+          uid: ranked.uid,
+          ghostEligible: true,
+          nowMs: nowMs,
+        );
       }
-      await _store.setPlayerBestGhostEligible(
-        boardId: boardId,
-        uid: uid,
-        ghostEligible: false,
-        nowMs: nowMs,
-      );
-    }
 
-    await _store.writeTop10View(
-      boardId: boardId,
-      entries: topEntries,
-      updatedAtMs: nowMs,
+      final previousTopUids = <String>{
+        for (final entry in previous.entries) entry.uid,
+      };
+      for (final uid in previousTopUids) {
+        if (topUids.contains(uid)) {
+          continue;
+        }
+        await _store.setPlayerBestGhostEligible(
+          boardId: boardId,
+          uid: uid,
+          ghostEligible: false,
+          nowMs: nowMs,
+        );
+      }
+
+      final committed = await _store.writeTop10View(
+        boardId: boardId,
+        entries: topEntries,
+        updatedAtMs: nowMs,
+        expected: previous,
+      );
+      if (committed) {
+        return;
+      }
+    }
+    throw StateError(
+      'Top-10 projection conflicted repeatedly for board "$boardId".',
     );
   }
 }
@@ -297,40 +341,55 @@ class FirestoreLeaderboardProjectionStore
   }
 
   @override
-  Future<LeaderboardEntry?> loadPlayerBest({
-    required String boardId,
-    required String uid,
+  Future<PlayerBestWriteResult> replacePlayerBestIfBetter({
+    required LeaderboardEntry candidate,
   }) async {
     final firestoreApi = await apiProvider.firestoreApi();
-    firestore.Document document;
-    try {
-      document = await firestoreApi.projects.databases.documents.get(
-        _playerBestDocPath(boardId, uid),
-      );
-    } catch (error) {
-      if (isApiNotFound(error)) {
-        return null;
+    final path = _playerBestDocPath(candidate.boardId, candidate.uid);
+    for (var attempt = 0; attempt < 5; attempt++) {
+      firestore.Document? existingDocument;
+      try {
+        existingDocument = await firestoreApi.projects.databases.documents.get(
+          path,
+        );
+      } catch (error) {
+        if (!isApiNotFound(error)) {
+          rethrow;
+        }
       }
-      rethrow;
+      final existing = existingDocument == null
+          ? null
+          : _parseLeaderboardEntry(
+              decodeFirestoreFields(existingDocument.fields),
+            );
+      if (existing != null &&
+          existing.sortKey.compareTo(candidate.sortKey) <= 0) {
+        return PlayerBestWriteResult.unchanged;
+      }
+      final payload = candidate.toJson();
+      try {
+        await firestoreApi.projects.databases.documents.patch(
+          firestore.Document(fields: encodeFirestoreFields(payload)),
+          path,
+          updateMask_fieldPaths: payload.keys.toList(growable: false),
+          currentDocument_exists: existingDocument == null ? false : null,
+          currentDocument_updateTime: existingDocument?.updateTime,
+        );
+        return PlayerBestWriteResult.improved;
+      } catch (error) {
+        if (!isApiConflict(error)) {
+          rethrow;
+        }
+      }
     }
-    return _parseLeaderboardEntry(decodeFirestoreFields(document.fields));
-  }
-
-  @override
-  Future<void> upsertPlayerBest({required LeaderboardEntry entry}) async {
-    final firestoreApi = await apiProvider.firestoreApi();
-    final payload = entry.toJson();
-    await firestoreApi.projects.databases.documents.patch(
-      firestore.Document(fields: encodeFirestoreFields(payload)),
-      _playerBestDocPath(entry.boardId, entry.uid),
-      updateMask_fieldPaths: payload.keys.toList(growable: false),
+    throw StateError(
+      'Player-best compare-and-replace conflicted repeatedly for '
+      '"${candidate.boardId}/${candidate.uid}".',
     );
   }
 
   @override
-  Future<List<LeaderboardEntry>> loadTop10ViewEntries({
-    required String boardId,
-  }) async {
+  Future<Top10ViewSnapshot> loadTop10View({required String boardId}) async {
     final firestoreApi = await apiProvider.firestoreApi();
     firestore.Document document;
     try {
@@ -339,14 +398,24 @@ class FirestoreLeaderboardProjectionStore
       );
     } catch (error) {
       if (isApiNotFound(error)) {
-        return const <LeaderboardEntry>[];
+        return const Top10ViewSnapshot.missing();
       }
       rethrow;
     }
     final decoded = decodeFirestoreFields(document.fields);
+    final updateTime = document.updateTime;
+    if (updateTime == null || updateTime.isEmpty) {
+      throw StateError(
+        'Top-10 view "$boardId" is missing its Firestore updateTime.',
+      );
+    }
     final rawEntries = decoded['entries'];
     if (rawEntries is! List) {
-      return const <LeaderboardEntry>[];
+      return Top10ViewSnapshot(
+        entries: const <LeaderboardEntry>[],
+        exists: true,
+        updateTime: updateTime,
+      );
     }
     final out = <LeaderboardEntry>[];
     for (final raw in rawEntries) {
@@ -355,7 +424,11 @@ class FirestoreLeaderboardProjectionStore
         out.add(parsed);
       }
     }
-    return out;
+    return Top10ViewSnapshot(
+      entries: out,
+      exists: true,
+      updateTime: updateTime,
+    );
   }
 
   @override
@@ -402,22 +475,44 @@ class FirestoreLeaderboardProjectionStore
   }
 
   @override
-  Future<void> writeTop10View({
+  Future<bool> writeTop10View({
     required String boardId,
     required List<LeaderboardEntry> entries,
     required int updatedAtMs,
+    required Top10ViewSnapshot expected,
   }) async {
     final firestoreApi = await apiProvider.firestoreApi();
     final payload = <String, Object?>{
       'boardId': boardId,
       'entries': entries.map((e) => e.toJson()).toList(growable: false),
+      'sourceRevision': ReplayDigest.canonicalSha256ForMap(<String, Object?>{
+        'entries': entries
+            .map(
+              (entry) => <String, Object?>{
+                'uid': entry.uid,
+                'runSessionId': entry.runSessionId,
+                'sortKey': entry.sortKey,
+              },
+            )
+            .toList(growable: false),
+      }),
       'updatedAtMs': updatedAtMs,
     };
-    await firestoreApi.projects.databases.documents.patch(
-      firestore.Document(fields: encodeFirestoreFields(payload)),
-      _top10ViewDocPath(boardId),
-      updateMask_fieldPaths: payload.keys.toList(growable: false),
-    );
+    try {
+      await firestoreApi.projects.databases.documents.patch(
+        firestore.Document(fields: encodeFirestoreFields(payload)),
+        _top10ViewDocPath(boardId),
+        updateMask_fieldPaths: payload.keys.toList(growable: false),
+        currentDocument_exists: expected.exists ? null : false,
+        currentDocument_updateTime: expected.updateTime,
+      );
+      return true;
+    } catch (error) {
+      if (isApiConflict(error)) {
+        return false;
+      }
+      rethrow;
+    }
   }
 }
 

@@ -7,8 +7,10 @@ This doc describes how the replay validator worker works today in `services/repl
 The replay validator worker is a Cloud Run HTTP service that consumes run validation tasks and deterministically validates replay uploads.
 
 Main entrypoints:
-- `GET /healthz`
+- `GET /live`
+- `GET /ready`
 - `POST /tasks/validate`
+- `POST /tasks/project`
 
 Core runtime classes:
 - `ReplayValidatorApp`
@@ -52,8 +54,18 @@ Task enqueue configuration uses:
 
 - Rejects empty `runSessionId` as `badRequest`.
 - Acquires a validation lease through `RunSessionRepository.acquireValidationLease(...)`.
-- Lease transitions state to `validating` and increments `validationAttempt`.
-- If lease is not acquired (`notFound`, `alreadyTerminal`, `alreadyValidating`, invalid state), worker exits idempotently without reprocessing.
+- Lease transitions state to `validating`, increments `validationAttempt`, and
+  writes a cryptographically random token plus an expiry.
+- Every validation-owned session/result transition must prove that exact,
+  unexpired token. A stale worker cannot write after another delivery reclaims
+  the lease.
+- An active lease returns HTTP 503 so Cloud Tasks retries. An expired lease can
+  be reclaimed with a new token. Already-terminal sessions remain idempotent
+  successful no-ops.
+- Firestore REST may represent an update-time precondition conflict as error
+  code 400 with structured status `FAILED_PRECONDITION`. The repository treats
+  only that exact structured status, plus 409/412, as contention; unrelated
+  HTTP 400 input errors are not reclassified.
 
 Accepted pre-lease states are intentionally permissive:
 - `uploaded`
@@ -61,21 +73,58 @@ Accepted pre-lease states are intentionally permissive:
 
 This avoids races between task dispatch timing and finalize state transition.
 
-## 4.2 Load prerequisites
+## 4.2 Ticket-time and board authority
 
-- If mode requires board, loads board metadata (`BoardRepository`).
-- Loads replay bytes from Cloud Storage (`ReplayLoader`) using uploaded object path.
+The worker treats ticket and upload timestamps as Unix epoch milliseconds and
+rejects impossible authority metadata before loading replay bytes:
 
-## 4.3 Decode + structural validation
+- `issuedAtMs` must be positive and `expiresAtMs` must be greater than it.
+- Ticket lifetime must be exactly 24 hours.
+- Issuance and replay finalization may be at most five minutes ahead of the
+  worker clock to tolerate bounded infrastructure clock skew.
+- Replay finalization must be at or after issuance and strictly before ticket
+  expiry.
+- Ranked ticket issuance must fall within the bound board's half-open
+  `[opensAtMs, closesAtMs)` window.
+- Missing or malformed ranked board window timestamps are rejected.
+
+Queue delay after a valid finalize does not invalidate a ticket: validation may
+run after `expiresAtMs` when the server-authored `finalizedAtMs` proves the
+replay was finalized before expiry.
+
+## 4.3 Immutable evidence and compatibility prerequisites
+
+- New upload finalizations must include the positive Cloud Storage object
+  generation captured from object metadata.
+- Replay download uses both the finalized object path and exact generation,
+  with a generation-match precondition. A missing legacy generation or a
+  replaced/deleted generation is a stable evidence rejection; the worker never
+  substitutes the latest object at that path.
+- Ticket `uid` and `runSessionId` must match the stored session.
+- The canonical loadout digest is recomputed from the ticket snapshot.
+- The currently supported compatibility tuple is:
+  - game compatibility: `2026.03.0`
+  - replay/command encoding: `1` / `1`
+  - ruleset: `rules-v1`
+  - score: `score-v1`
+  - ghost: `ghost-v1`
+- A ranked ticket carries the board window captured at issuance. Validation
+  uses that immutable ticket snapshot, so later board closure or deletion does
+  not reinterpret an already issued run.
+
+## 4.4 Decode + structural validation
 
 Validation gates include:
 - non-empty bytes
 - uploaded `contentLengthBytes` match
-- optional gzip decode when payload has gzip magic header
+- compressed-byte limit checked before/full download
+- optional streaming gzip decode when payload has gzip magic header
+- expanded-byte limit enforced while streaming decompressed output
+- JSON nesting-depth limit checked before `jsonDecode`
 - JSON object decode
 - protocol parse (`ReplayBlobV1.fromJson(..., verifyDigest: true)`)
 
-## 4.4 Session binding validation
+## 4.5 Session binding validation
 
 Replay must match issued ticket/session metadata:
 - `runSessionId`
@@ -85,24 +134,30 @@ Replay must match issued ticket/session metadata:
 - level
 - character
 - loadout snapshot (canonical JSON comparison)
+- ticket identity, canonical loadout digest, exact Storage generation, and
+  every compatibility version
 - mode/board binding invariants:
   - practice: board fields must be absent
   - board modes: `boardId` + `boardKey` must exist and match ticket
 
-## 4.5 Command stream sanity validation
+## 4.6 Command stream sanity validation
 
 Checks include:
 - strictly increasing frame ticks
 - `moveAxis` and aim components in `[-1, 1]`
 - hold masks are internally consistent (`valueMask` cannot set bits outside `changedMask`)
 - `totalTicks >= max(command tick)`
+- bounded command-frame count and total run duration
+- explicit replay/command version, known-bit, axis-pair/range, and numeric
+  validation in production code; assertions are not a security boundary
 
-## 4.6 Deterministic simulation replay
+## 4.7 Deterministic simulation replay
 
 Worker reconstructs `GameCore` from ticket data and replays command frames tick-by-tick:
 - `core.applyCommands(...)`
 - `core.stepOneTick()`
 - drains events and captures final `RunEndedEvent`
+- checks a monotonic simulation deadline throughout the tick loop
 
 If no end event is produced, worker forces give-up and requires a terminal `RunEndedEvent`.
 
@@ -121,34 +176,101 @@ Outputs `ValidatedRun(accepted: true, ...)`.
 ## 5) Side effects after validation
 
 On accepted run:
-1. Persist `validated_runs/<runSessionId>`.
-2. Write reward grant (`reward_grants/<runSessionId>`) if accepted and `goldEarned > 0`.
-3. For board modes only:
-   - project leaderboard top/player best
-   - update ghost artifacts/manifests
-4. Mark `run_sessions/<runSessionId>` terminal state `validated`.
+1. Atomically persist `validated_runs/<runSessionId>`, update the matching
+   `reward_grants/<runSessionId>` to `settlement_pending`, and update the run
+   session to `settlement_pending` with
+   `settlementRepairDisposition = retryable`.
+2. Request the private `runSettlementImmediate` Functions endpoint with the
+   Cloud Run service identity and only the run-session id. The endpoint invokes
+   the Functions-owned settlement transaction; it never accepts client reward
+   values.
+3. If that bounded request fails, times out, or races another delivery, leave
+   the durable handoff unchanged. The retry-enabled Firestore/Eventarc
+   dispatcher and scheduled stale-pending repair invoke the same transaction.
+4. A Firestore-triggered Cloud Task independently invokes `/tasks/project` for
+   board modes. That task projects leaderboard top/player-best state and then
+   updates ghost artifacts/manifests. A failure returns HTTP 503 for Cloud
+   Tasks retry; it never re-enters replay validation or changes payout state.
+
+Leaderboard projection uses conditional compare-and-replace for player best
+and an update-time precondition for the top-10 materialized view. A duplicate
+task always resumes top-10 refresh even when the candidate is already the
+stored best. `runProjectionReconciliation` independently pages through boards
+every 15 minutes and sends board reconciliation tasks, so convergence does not
+depend on a new score.
+
+Ghost reconciliation derives exposure from the current top 10, including an
+empty top 10, and pages through every prior manifest. Promotion copies the
+exact validated source generation with source and destination preconditions.
+The manifest records source generation, promoted generation, and replay digest
+before it becomes callable-visible. Destination collisions are idempotent only
+when Storage metadata proves the existing object matches the source evidence.
+
+The validator never writes canonical gold, `validated_settled`, or terminal
+`validated`. The settlement transaction applies the exact grant once to
+canonical ownership, records its applied revision, and only then marks the run
+terminal `validated`.
 
 On protocol/rules rejection:
-1. Persist rejected `ValidatedRun(accepted: false, rejectionReason, ...)`.
-2. Mark run session terminal state `rejected`.
+1. Atomically create rejected `ValidatedRun(accepted: false, rejectionReason,
+   ...)`.
+2. In the same commit, move the matching provisional reward grant to
+   `revoked_final` and the lease-owned run session to terminal `rejected`.
 
 On unexpected/transient worker errors:
-- If attempt budget remains, state becomes `pending_validation` with `validationNextAttemptAtMs`.
-- If budget exhausted, terminal state becomes `internal_error`.
+- If attempt budget remains, state becomes `pending_validation`.
+- `validationNextAttemptAtMs` is the earliest scheduled-repair eligibility
+  timestamp. It is not the ordinary task scheduler.
+- If the attempt budget is exhausted, the original internal-error grace start
+  is preserved across leases. After grace, reward revocation and terminal
+  `internal_error` commit atomically.
 
 ---
 
 ## 6) Retry policy and idempotency
 
-Default retry backoff schedule (`validationAttempt` based):
-- 30s, 2m, 5m, 15m, 30m, 1h, 2h, 4h
+Cloud Tasks is the ordinary retry-timing authority. The checked-in deployment
+policy configures:
 
-`maxRetryAttempts` default: `8`.
+- maximum attempts: `8`
+- minimum backoff: `30s`
+- maximum backoff: `4h`
+- maximum retry duration: `24h`
+
+The worker's default attempt budget is also `8`. A scheduled
+`runValidationRepair` Functions job runs every five minutes and:
+
+- moves an expired `validating` lease back to `pending_validation` while
+  clearing its token;
+- requeues pending validation after its repair-eligibility timestamp;
+- uses a transactionally incremented generation in the task name;
+- restores immediate repair eligibility if enqueue fails.
 
 Idempotency controls:
-- Lease acquisition ensures only one validator instance claims processing.
-- Task name is deterministic (`run-<sanitizedRunSessionId>`), so duplicate enqueue returns already-exists safely.
-- Existing reward grant doc short-circuits duplicate creation.
+- Token-fenced lease acquisition ensures only one current validator instance
+  can mutate processing state.
+- The initial task name is deterministic
+  (`run-<sanitizedRunSessionId>`).
+- Repair task names are deterministic per persisted generation
+  (`run-<sanitizedRunSessionId>-repair-<generation>`), avoiding Cloud Tasks
+  tombstone collisions after an exhausted task.
+- Accepted, rejected, and exhausted-error handoffs use multi-document
+  preconditions.
+- A precondition conflict during lease acquisition becomes an
+  `alreadyValidating` retry result. A conflict during an owned atomic handoff
+  becomes a stale-lease result. The worker records `lease` or
+  `lease_conflict` retry telemetry and returns HTTP 503 for Cloud Tasks instead
+  of leaking an unclassified HTTP 500.
+
+Default validation resource limits:
+
+- compressed replay: `8 MiB`
+- expanded replay: `32 MiB`
+- JSON nesting depth: `64`
+- command frames: `250,000`
+- run duration: `6 hours`
+- simulation wall time: `2 minutes`
+- lease duration: `10 minutes`
 
 ---
 
@@ -158,14 +280,19 @@ Relevant states in lifecycle:
 - `uploaded`
 - `pending_validation`
 - `validating`
+- `settlement_pending`
 - `validated`
 - `rejected`
 - `internal_error`
 
-Worker itself transitions:
+The validation worker itself transitions:
 - to `validating` (lease)
-- to `validated` / `rejected` / `internal_error`
+- to `settlement_pending` after an accepted replay handoff
+- to `rejected` / `internal_error` for terminal failure paths
 - or back to `pending_validation` with next retry timestamp
+
+Firebase Functions transitions `settlement_pending` to `validated` only in the
+canonical settlement transaction.
 
 ---
 
@@ -177,7 +304,45 @@ Worker itself transitions:
 - If missing:
   - falls back to `StubValidatorWorker`, which returns `notImplemented`.
 
-This makes local/dev boot safe even before cloud dependencies are configured.
+`SETTLEMENT_DISPATCH_URL` enables the immediate settlement request. It must be
+an HTTPS URL for the IAM-protected `runSettlementImmediate` Function.
+`SETTLEMENT_DISPATCH_TIMEOUT_MS` bounds the request (default: 4000 ms). Missing
+the URL disables only the immediate path; Eventarc and repair still settle a
+durable accepted handoff.
+
+Validation lease/recovery configuration:
+
+- `VALIDATOR_LEASE_DURATION_MS` (default `600000`)
+- `VALIDATOR_ORPHANED_TASK_REPAIR_DELAY_MS` (default `900000`)
+
+Replay resource configuration:
+
+- `VALIDATOR_MAX_COMPRESSED_REPLAY_BYTES` (default `8388608`)
+- `VALIDATOR_MAX_EXPANDED_REPLAY_BYTES` (default `33554432`)
+- `VALIDATOR_MAX_JSON_NESTING_DEPTH` (default `64`)
+- `VALIDATOR_MAX_COMMAND_FRAMES` (default `250000`)
+- `VALIDATOR_MAX_RUN_DURATION_SECONDS` (default `21600`)
+- `VALIDATOR_MAX_SIMULATION_WALL_TIME_MS` (default `120000`)
+
+Missing project/bucket configuration leaves liveness available but makes
+`/ready` return `503`; validation remains `501` and projection remains
+retryable rather than acknowledging work. Invalid configured numeric/boolean
+limits fail startup instead of silently selecting defaults. The checked-in
+Cloud Run policy uses `/ready` as its startup probe and `/live` as its
+liveness probe. Neither endpoint ends in `z`, because Cloud Run reserves some
+such externally routed paths and can intercept `/healthz` before it reaches the
+container.
+
+The projection endpoint is active only in the fully configured worker. The
+Functions `runProjectionOnAccepted` trigger enqueues it in the separate
+`replay-projection` queue with the Cloud Tasks service identity. It is optional
+for a player reward: a queue or artifact outage must not delay settlement.
+The scheduled `runProjectionReconciliation` enqueues board-id tasks through
+the same endpoint for leaderboard and ghost convergence.
+
+The digest-pinned distroless container runs as numeric UID/GID `65532`. Root
+`.dockerignore` and `.gcloudignore` files restrict the build context to the
+service and its two local Dart package dependencies.
 
 ---
 
@@ -191,6 +356,10 @@ This makes local/dev boot safe even before cloud dependencies are configured.
 - `phase`
 - optional rejection reason/message
 
+Accepted runs additionally emit `settlement_dispatch`,
+`settlement_dispatch_fallback`, or `settlement_dispatch_disabled` phases. These
+separate immediate delivery latency/failure from replay validation correctness.
+
 Cloud Run logs can be filtered on `replay_validator.dispatch` for operational triage.
 
 ---
@@ -199,7 +368,7 @@ Cloud Run logs can be filtered on `replay_validator.dispatch` for operational tr
 
 Ghost availability depends on accepted board-mode validation.
 
-Only after validator acceptance does the pipeline:
+Only after validator acceptance does the independent projection pipeline:
 - project leaderboard top entries (`ghostEligible` updates), and
 - publish/refresh ghost manifests via `GhostPublisher`.
 
@@ -210,18 +379,27 @@ So ghost runs are downstream of validator success, not client-side upload succes
 ## 11) Quick troubleshooting checklist
 
 1. Task reaches `/tasks/validate` and includes non-empty `runSessionId`.
-2. Lease acquired (session not already terminal/validating).
+2. Lease acquired with token/expiry (session not already terminal or protected
+   by an active lease).
 3. Replay object exists and size/content metadata match uploaded fields.
 4. Replay digest/ticket binding checks pass.
 5. Deterministic simulation emits `RunEndedEvent`.
 6. `validated_runs` document is written.
-7. Session terminal state updated as expected.
-8. For board modes: leaderboard projection + ghost publication succeeded.
+7. Accepted runs reach `settlement_pending` with the matching grant before any
+   immediate request.
+8. Immediate dispatch succeeds, or Eventarc/repair eventually settles the same
+   handoff exactly once.
+9. Expired validation leases and orphaned pending work appear in
+   `runValidationRepair` metrics and are requeued.
+10. Session becomes `validated` only with the canonical applied-grant record.
+11. For board modes: projection task completes eventually; its retry health is
+    monitored separately from the settled reward.
 
 ---
 
 ## Related docs
 
 - `docs/tdd/firebase_cloud_functions_overview.md`
-- `docs/tdd/ghost_run_flow_what_how_why.md`
+- `docs/tdd/reward_settlement_operations.md`
+- `docs/tdd/ghost_run_flow.md`
 - `docs/tdd/authentication_flow_and_authorization.md`

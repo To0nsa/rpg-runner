@@ -111,9 +111,9 @@ class _GameOverOverlayState extends State<GameOverOverlay>
       return null;
     }
     final ui = context.ui;
-    final pendingRewardGold = _pendingRewardGold();
+    final runRewardGold = _runRewardGold();
     final verifiedGold = _resolvedVerifiedGold();
-    if (pendingRewardGold <= 0 && verifiedGold <= 0) {
+    if (runRewardGold <= 0 && verifiedGold <= 0) {
       return null;
     }
 
@@ -127,24 +127,47 @@ class _GameOverOverlayState extends State<GameOverOverlay>
           horizontal: ui.space.sm,
           vertical: ui.space.xs,
         ),
-        child: Row(
+        child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Gold: ',
-              style: ui.text.body.copyWith(
-                color: ui.colors.textPrimary,
-                fontWeight: FontWeight.w600,
+            if (verifiedGold > 0)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Wallet: ',
+                    style: ui.text.body.copyWith(
+                      color: ui.colors.textPrimary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  GoldDisplay(
+                    gold: verifiedGold,
+                    variant: GoldDisplayVariant.body,
+                  ),
+                ],
               ),
-            ),
-            GoldDisplay(gold: verifiedGold, variant: GoldDisplayVariant.body),
-            if (pendingRewardGold > 0) ...[
-              SizedBox(width: ui.space.xs),
-              Flexible(
-                child: Text(
-                  'Reward pending: $pendingRewardGold (not spendable)',
-                  style: ui.text.body.copyWith(color: ui.colors.textMuted),
-                ),
+            if (runRewardGold > 0) ...[
+              if (verifiedGold > 0) SizedBox(height: ui.space.xxs),
+              Wrap(
+                spacing: ui.space.sm,
+                runSpacing: ui.space.xxs,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Text(
+                    'Run reward: +',
+                    style: ui.text.body.copyWith(
+                      color: ui.colors.textPrimary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  GoldDisplay(
+                    gold: runRewardGold,
+                    variant: GoldDisplayVariant.body,
+                  ),
+                  _buildRewardVerificationLabel(ui),
+                ],
               ),
             ],
           ],
@@ -158,20 +181,50 @@ class _GameOverOverlayState extends State<GameOverOverlay>
     return raw < 0 ? 0 : raw;
   }
 
-  int _pendingRewardGold() {
+  int _runRewardGold() {
     if (!_enableGameOverRewardRow || !widget.replaySubmissionJournaled) {
       return 0;
     }
     final status = widget.runSubmissionStatus;
-    if (status?.isRewardFinal == true || status?.isRewardRevoked == true) {
+    if (status?.isRewardRevoked == true) {
       return 0;
     }
-    final fromReward = status?.reward?.provisionalGold;
+    final fromReward = status?.isRewardFinal == true
+        ? status?.reward?.effectiveGoldDelta
+        : status?.reward?.provisionalGold;
     final raw = fromReward ?? widget.provisionalGoldEarned ?? 0;
     if (raw <= 0) {
       return 0;
     }
     return raw;
+  }
+
+  Widget _buildRewardVerificationLabel(UiTokens ui) {
+    final status = widget.runSubmissionStatus;
+    if (status?.isRewardFinal == true) {
+      return Text(
+        'Reward verified',
+        style: ui.text.body.copyWith(
+          color: ui.colors.success,
+          fontWeight: FontWeight.w600,
+        ),
+      );
+    }
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          Icons.hourglass_top,
+          color: ui.colors.accentStrong,
+          size: ui.sizes.iconSize.xs,
+        ),
+        SizedBox(width: ui.space.xxs),
+        Text(
+          'Verifying reward…',
+          style: ui.text.body.copyWith(color: ui.colors.textMuted),
+        ),
+      ],
+    );
   }
 
   Widget? _buildSubmissionStatusPanel(BuildContext context) {
@@ -231,7 +284,6 @@ class _GameOverOverlayState extends State<GameOverOverlay>
     }
     final shouldShow =
         status.verificationDelayed ||
-        status.phase == RunSubmissionPhase.settlementPending ||
         status.phase == RunSubmissionPhase.rejected ||
         status.phase == RunSubmissionPhase.expired ||
         status.phase == RunSubmissionPhase.cancelled ||

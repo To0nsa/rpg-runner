@@ -19,15 +19,15 @@ import 'package:runner_core/weapons/weapon_id.dart';
 import 'package:run_protocol/codecs/canonical_json_codec.dart';
 import 'package:run_protocol/replay_blob.dart';
 import 'package:run_protocol/replay_digest.dart';
+import 'package:run_protocol/run_duration.dart';
 import 'package:run_protocol/validated_run.dart';
 
 import 'board_repository.dart';
-import 'ghost_publisher.dart';
-import 'leaderboard_projector.dart';
 import 'metrics.dart';
 import 'replay_loader.dart';
-import 'reward_settlement_writer.dart';
+import 'replay_validation_limits.dart';
 import 'run_session_repository.dart';
+import 'settlement_dispatcher.dart';
 
 enum ValidationDispatchStatus {
   accepted,
@@ -70,44 +70,51 @@ class DeterministicValidatorWorker implements ValidatorWorker {
     required this.replayLoader,
     required this.boardRepository,
     required this.runSessionRepository,
-    required this.leaderboardProjector,
-    required this.rewardGrantWriter,
-    required this.ghostPublisher,
     required this.metrics,
+    SettlementDispatcher? settlementDispatcher,
     this.maxRetryAttempts = 8,
     this.internalErrorGraceWindow = const Duration(hours: 1),
     this.incidentModeAutoRevokePaused = false,
     this.incidentModeRetryDelay = const Duration(minutes: 15),
-    List<Duration>? retryBackoffSchedule,
+    this.orphanedTaskRepairDelay = const Duration(minutes: 15),
+    this.limits = const ReplayValidationLimits(),
     int Function()? clockMs,
-  }) : _retryBackoffSchedule =
-           retryBackoffSchedule ?? _defaultRetryBackoffSchedule,
-       _clockMs = clockMs ?? _defaultClockMs;
+    int Function()? monotonicClockMicros,
+  }) : settlementDispatcher =
+           settlementDispatcher ?? const NoopSettlementDispatcher(),
+       _clockMs = clockMs ?? _defaultClockMs,
+       _monotonicClockMicros =
+           monotonicClockMicros ?? _defaultMonotonicClockMicros {
+    limits.validate();
+    if (orphanedTaskRepairDelay <= Duration.zero) {
+      throw ArgumentError.value(
+        orphanedTaskRepairDelay,
+        'orphanedTaskRepairDelay',
+        'must be positive',
+      );
+    }
+  }
 
   final ReplayLoader replayLoader;
   final BoardRepository boardRepository;
   final RunSessionRepository runSessionRepository;
-  final LeaderboardProjector leaderboardProjector;
-  final RewardGrantWriter rewardGrantWriter;
-  final GhostPublisher ghostPublisher;
   final ValidatorMetrics metrics;
+  final SettlementDispatcher settlementDispatcher;
   final int maxRetryAttempts;
   final Duration internalErrorGraceWindow;
   final bool incidentModeAutoRevokePaused;
   final Duration incidentModeRetryDelay;
-  final List<Duration> _retryBackoffSchedule;
+  final Duration orphanedTaskRepairDelay;
+  final ReplayValidationLimits limits;
   final int Function() _clockMs;
+  final int Function() _monotonicClockMicros;
 
-  static const List<Duration> _defaultRetryBackoffSchedule = <Duration>[
-    Duration(seconds: 30),
-    Duration(minutes: 2),
-    Duration(minutes: 5),
-    Duration(minutes: 15),
-    Duration(minutes: 30),
-    Duration(hours: 1),
-    Duration(hours: 2),
-    Duration(hours: 4),
-  ];
+  static const Duration _ticketValidity = Duration(hours: 24);
+  static const Duration _allowedAuthorityClockSkew = Duration(minutes: 5);
+  static const Set<String> _supportedGameCompatVersions = <String>{'2026.03.0'};
+  static const Set<String> _supportedRulesetVersions = <String>{'rules-v1'};
+  static const Set<String> _supportedScoreVersions = <String>{'score-v1'};
+  static const Set<String> _supportedGhostVersions = <String>{'ghost-v1'};
 
   @override
   Future<ValidationDispatchResult> validateRunSession({
@@ -134,45 +141,77 @@ class DeterministicValidatorWorker implements ValidatorWorker {
       final message =
           lease.message ??
           _leaseStatusMessage(lease.status, normalizedRunSessionId);
+      final retryableLease =
+          lease.status == RunSessionLeaseStatus.alreadyValidating;
       await metrics.recordDispatch(
         runSessionId: normalizedRunSessionId,
-        status: ValidationDispatchStatus.accepted.name,
+        status: retryableLease
+            ? ValidationDispatchStatus.retryScheduled.name
+            : ValidationDispatchStatus.accepted.name,
         phase: 'lease',
         message: message,
       );
-      return ValidationDispatchResult.accepted(message: message);
+      return retryableLease
+          ? ValidationDispatchResult.retryScheduled(message: message)
+          : ValidationDispatchResult.accepted(message: message);
     }
 
     final session = lease.session!;
+    final validationLease = session.validationLease;
+    if (validationLease == null) {
+      const message = 'Acquired validation session is missing lease fencing.';
+      await metrics.recordDispatch(
+        runSessionId: normalizedRunSessionId,
+        status: ValidationDispatchStatus.retryScheduled.name,
+        phase: 'lease',
+        message: message,
+      );
+      return const ValidationDispatchResult.retryScheduled(message: message);
+    }
+    final validationLeaseToken = validationLease.token;
     final mode = session.runTicket.mode.name;
     final attempt = session.validationAttempt;
     try {
-      final board = await _loadBoardIfNeeded(session);
-      final replayBlob = await _loadAndDecodeReplayBlob(session);
-      _validateReplayAgainstSession(
-        replayBlob: replayBlob,
+      final validationNowMs = _clockMs();
+      _validateTicketTimeAuthority(
         session: session,
-        board: board,
+        validationNowMs: validationNowMs,
       );
+      _validateTicketIdentityAndCompatibility(session);
+      _validateTicketBoardWindow(session: session);
+      final replayBlob = await _loadAndDecodeReplayBlob(session);
+      _validateReplayAgainstSession(replayBlob: replayBlob, session: session);
 
       final acceptedRun = _replayDeterministically(
         replayBlob: replayBlob,
         session: session,
       );
-      await runSessionRepository.handoffAcceptedRunForSettlement(
-        validatedRun: acceptedRun,
-      );
-      if (session.runTicket.mode.requiresBoard) {
-        await leaderboardProjector.projectValidatedRun(
-          runSessionId: normalizedRunSessionId,
+      try {
+        await runSessionRepository.handoffAcceptedRunForSettlement(
           validatedRun: acceptedRun,
-          characterId: session.runTicket.playerCharacterId,
+          validationLeaseToken: validationLeaseToken,
         );
-        await ghostPublisher.updateGhostArtifacts(
+      } on StaleValidationLeaseException {
+        return _recordStaleLeaseRetry(
           runSessionId: normalizedRunSessionId,
-          validatedRun: acceptedRun,
+          mode: mode,
+          attempt: attempt,
+          operation: 'accepted handoff',
         );
       }
+      await metrics.recordDispatch(
+        runSessionId: normalizedRunSessionId,
+        status: ValidationDispatchStatus.accepted.name,
+        phase: 'settlement_handoff',
+        mode: mode,
+        attempt: attempt,
+        durationMs: _clockMs() - session.uploadedReplay.finalizedAtMs,
+      );
+      await _requestImmediateSettlement(
+        runSessionId: normalizedRunSessionId,
+        mode: mode,
+        attempt: attempt,
+      );
       await metrics.recordDispatch(
         runSessionId: normalizedRunSessionId,
         status: ValidationDispatchStatus.accepted.name,
@@ -187,16 +226,20 @@ class DeterministicValidatorWorker implements ValidatorWorker {
         rejectionReason: rejection.reason,
         rejectionMessage: rejection.message,
       );
-      await runSessionRepository.persistValidatedRun(validatedRun: rejectedRun);
-      await rewardGrantWriter.settleRevokedRewardGrant(
-        runSessionId: normalizedRunSessionId,
-        settlementReason: rejection.reason,
-      );
-      await runSessionRepository.markTerminal(
-        runSessionId: normalizedRunSessionId,
-        terminalState: RunSessionTerminalState.rejected,
-        message: rejection.message,
-      );
+      try {
+        await runSessionRepository.handoffRejectedRun(
+          validatedRun: rejectedRun,
+          validationLeaseToken: validationLeaseToken,
+          publicMessage: rejection.message,
+        );
+      } on StaleValidationLeaseException {
+        return _recordStaleLeaseRetry(
+          runSessionId: normalizedRunSessionId,
+          mode: mode,
+          attempt: attempt,
+          operation: 'rejected handoff',
+        );
+      }
       await metrics.recordDispatch(
         runSessionId: normalizedRunSessionId,
         status: ValidationDispatchStatus.rejected.name,
@@ -218,13 +261,23 @@ class DeterministicValidatorWorker implements ValidatorWorker {
 
         if (incidentModeAutoRevokePaused) {
           final nextAttemptAtMs = nowMs + incidentModeRetryDelay.inMilliseconds;
-          await runSessionRepository.markPendingValidationRetry(
-            runSessionId: normalizedRunSessionId,
-            nextAttemptAtMs: nextAttemptAtMs,
-            message:
-                '$message; incident mode active, reward revocation paused.',
-            internalErrorFirstAtMs: graceStartMs,
-          );
+          try {
+            await runSessionRepository.markPendingValidationRetry(
+              runSessionId: normalizedRunSessionId,
+              validationLeaseToken: validationLeaseToken,
+              nextAttemptAtMs: nextAttemptAtMs,
+              message:
+                  'Replay verification is delayed during an active incident.',
+              internalErrorFirstAtMs: graceStartMs,
+            );
+          } on StaleValidationLeaseException {
+            return _recordStaleLeaseRetry(
+              runSessionId: normalizedRunSessionId,
+              mode: mode,
+              attempt: attempt,
+              operation: 'incident retry release',
+            );
+          }
           await metrics.recordDispatch(
             runSessionId: normalizedRunSessionId,
             status: ValidationDispatchStatus.retryScheduled.name,
@@ -240,14 +293,22 @@ class DeterministicValidatorWorker implements ValidatorWorker {
         }
 
         if (graceWindowMs > 0 && nowMs < graceDeadlineMs) {
-          await runSessionRepository.markPendingValidationRetry(
-            runSessionId: normalizedRunSessionId,
-            nextAttemptAtMs: graceDeadlineMs,
-            message:
-                '$message; grace window active until $graceDeadlineMs before '
-                'auto-revoke.',
-            internalErrorFirstAtMs: graceStartMs,
-          );
+          try {
+            await runSessionRepository.markPendingValidationRetry(
+              runSessionId: normalizedRunSessionId,
+              validationLeaseToken: validationLeaseToken,
+              nextAttemptAtMs: graceDeadlineMs,
+              message: 'Replay verification is temporarily delayed.',
+              internalErrorFirstAtMs: graceStartMs,
+            );
+          } on StaleValidationLeaseException {
+            return _recordStaleLeaseRetry(
+              runSessionId: normalizedRunSessionId,
+              mode: mode,
+              attempt: attempt,
+              operation: 'grace retry release',
+            );
+          }
           await metrics.recordDispatch(
             runSessionId: normalizedRunSessionId,
             status: ValidationDispatchStatus.retryScheduled.name,
@@ -262,15 +323,20 @@ class DeterministicValidatorWorker implements ValidatorWorker {
           return ValidationDispatchResult.retryScheduled(message: message);
         }
 
-        await rewardGrantWriter.settleRevokedRewardGrant(
-          runSessionId: normalizedRunSessionId,
-          settlementReason: RunSessionTerminalState.internalError.wireValue,
-        );
-        await runSessionRepository.markTerminal(
-          runSessionId: normalizedRunSessionId,
-          terminalState: RunSessionTerminalState.internalError,
-          message: message,
-        );
+        try {
+          await runSessionRepository.handoffInternalError(
+            runSessionId: normalizedRunSessionId,
+            validationLeaseToken: validationLeaseToken,
+            publicMessage: 'Replay verification could not be completed.',
+          );
+        } on StaleValidationLeaseException {
+          return _recordStaleLeaseRetry(
+            runSessionId: normalizedRunSessionId,
+            mode: mode,
+            attempt: attempt,
+            operation: 'internal-error handoff',
+          );
+        }
         await metrics.recordDispatch(
           runSessionId: normalizedRunSessionId,
           status: ValidationDispatchStatus.rejected.name,
@@ -283,14 +349,24 @@ class DeterministicValidatorWorker implements ValidatorWorker {
         return ValidationDispatchResult.rejected(message: message);
       }
 
-      final delay = retryDelayForAttempt(attempt);
-      final nextAttemptAtMs = _clockMs() + delay.inMilliseconds;
-      await runSessionRepository.markPendingValidationRetry(
-        runSessionId: normalizedRunSessionId,
-        nextAttemptAtMs: nextAttemptAtMs,
-        message: message,
-        internalErrorFirstAtMs: null,
-      );
+      final nextAttemptAtMs =
+          _clockMs() + orphanedTaskRepairDelay.inMilliseconds;
+      try {
+        await runSessionRepository.markPendingValidationRetry(
+          runSessionId: normalizedRunSessionId,
+          validationLeaseToken: validationLeaseToken,
+          nextAttemptAtMs: nextAttemptAtMs,
+          message: 'Replay verification is temporarily delayed.',
+          internalErrorFirstAtMs: null,
+        );
+      } on StaleValidationLeaseException {
+        return _recordStaleLeaseRetry(
+          runSessionId: normalizedRunSessionId,
+          mode: mode,
+          attempt: attempt,
+          operation: 'retry release',
+        );
+      }
       await metrics.recordDispatch(
         runSessionId: normalizedRunSessionId,
         status: ValidationDispatchStatus.retryScheduled.name,
@@ -298,53 +374,235 @@ class DeterministicValidatorWorker implements ValidatorWorker {
         mode: mode,
         attempt: attempt,
         message:
-            '$message; nextAttemptAtMs=$nextAttemptAtMs; retryDelay=${delay.inSeconds}s',
+            '$message; repairEligibleAtMs=$nextAttemptAtMs; '
+            'ordinary retries are owned by Cloud Tasks',
       );
       return ValidationDispatchResult.retryScheduled(message: message);
     }
   }
 
-  Duration retryDelayForAttempt(int attempt) {
-    if (_retryBackoffSchedule.isEmpty) {
-      return Duration.zero;
-    }
-    final index = attempt <= 0 ? 0 : attempt - 1;
-    if (index >= _retryBackoffSchedule.length) {
-      return _retryBackoffSchedule.last;
-    }
-    return _retryBackoffSchedule[index];
+  Future<ValidationDispatchResult> _recordStaleLeaseRetry({
+    required String runSessionId,
+    required String mode,
+    required int attempt,
+    required String operation,
+  }) async {
+    final message =
+        'Validation lease changed during $operation; task retry is required.';
+    await metrics.recordDispatch(
+      runSessionId: runSessionId,
+      status: ValidationDispatchStatus.retryScheduled.name,
+      phase: 'lease_conflict',
+      mode: mode,
+      attempt: attempt,
+      message: message,
+    );
+    return ValidationDispatchResult.retryScheduled(message: message);
   }
 
-  Future<Map<String, Object?>?> _loadBoardIfNeeded(
-    ValidatorRunSession session,
-  ) async {
-    if (!session.runTicket.mode.requiresBoard) {
-      return null;
-    }
-    final boardId = session.runTicket.boardId;
-    if (boardId == null || boardId.trim().isEmpty) {
-      throw const _ValidationRejectedException(
-        reason: 'board_not_found',
-        message: 'No active board metadata found for ranked run session.',
+  Future<void> _requestImmediateSettlement({
+    required String runSessionId,
+    required String mode,
+    required int attempt,
+  }) async {
+    final startedAtMs = _clockMs();
+    await metrics.recordDispatch(
+      runSessionId: runSessionId,
+      status: ValidationDispatchStatus.accepted.name,
+      phase: 'settlement_dispatch_start',
+      mode: mode,
+      attempt: attempt,
+    );
+    try {
+      final outcome = await settlementDispatcher.dispatch(
+        runSessionId: runSessionId,
+      );
+      await metrics.recordDispatch(
+        runSessionId: runSessionId,
+        status: ValidationDispatchStatus.accepted.name,
+        phase: switch (outcome) {
+          SettlementDispatchOutcome.disabled => 'settlement_dispatch_disabled',
+          _ => 'settlement_dispatch_outcome',
+        },
+        mode: mode,
+        attempt: attempt,
+        durationMs: _clockMs() - startedAtMs,
+        message: 'outcome=${outcome.name}',
+      );
+    } catch (error) {
+      // The handoff is already durable. Eventarc and repair own retrying payout.
+      await metrics.recordDispatch(
+        runSessionId: runSessionId,
+        status: ValidationDispatchStatus.accepted.name,
+        phase: 'settlement_dispatch_fallback',
+        mode: mode,
+        attempt: attempt,
+        durationMs: _clockMs() - startedAtMs,
+        errorClass: error.runtimeType.toString(),
       );
     }
-    final board = await boardRepository.loadBoard(boardId: boardId);
-    if (board == null) {
+  }
+
+  void _validateTicketTimeAuthority({
+    required ValidatorRunSession session,
+    required int validationNowMs,
+  }) {
+    final ticket = session.runTicket;
+    if (ticket.issuedAtMs <= 0 || ticket.expiresAtMs <= ticket.issuedAtMs) {
       throw const _ValidationRejectedException(
-        reason: 'board_not_found',
-        message: 'No active board metadata found for ranked run session.',
+        reason: 'ticket_time_range_invalid',
+        message:
+            'Run ticket issue and expiry timestamps do not form a valid range.',
       );
     }
-    return board;
+    if (ticket.expiresAtMs - ticket.issuedAtMs !=
+        _ticketValidity.inMilliseconds) {
+      throw const _ValidationRejectedException(
+        reason: 'ticket_expiry_duration_invalid',
+        message: 'Run ticket expiry duration does not match protocol policy.',
+      );
+    }
+
+    final latestAllowedAuthorityTimeMs =
+        validationNowMs + _allowedAuthorityClockSkew.inMilliseconds;
+    if (ticket.issuedAtMs > latestAllowedAuthorityTimeMs) {
+      throw const _ValidationRejectedException(
+        reason: 'ticket_issued_in_future',
+        message:
+            'Run ticket was issued beyond the allowed authority clock skew.',
+      );
+    }
+
+    final finalizedAtMs = session.uploadedReplay.finalizedAtMs;
+    if (finalizedAtMs < ticket.issuedAtMs) {
+      throw const _ValidationRejectedException(
+        reason: 'ticket_finalized_before_issue',
+        message: 'Replay finalization predates run ticket issuance.',
+      );
+    }
+    if (finalizedAtMs >= ticket.expiresAtMs) {
+      throw const _ValidationRejectedException(
+        reason: 'ticket_expired',
+        message: 'Replay was finalized after the run ticket expired.',
+      );
+    }
+    if (finalizedAtMs > latestAllowedAuthorityTimeMs) {
+      throw const _ValidationRejectedException(
+        reason: 'ticket_finalized_in_future',
+        message:
+            'Replay finalization is beyond the allowed authority clock skew.',
+      );
+    }
+  }
+
+  void _validateTicketIdentityAndCompatibility(ValidatorRunSession session) {
+    final ticket = session.runTicket;
+    if (ticket.runSessionId != session.runSessionId ||
+        ticket.uid != session.uid) {
+      throw const _ValidationRejectedException(
+        reason: 'ticket_identity_mismatch',
+        message: 'Run ticket identity does not match its stored session.',
+      );
+    }
+    if (!_supportedGameCompatVersions.contains(ticket.gameCompatVersion)) {
+      throw const _ValidationRejectedException(
+        reason: 'game_compat_version_unsupported',
+        message: 'Run ticket game compatibility version is not supported.',
+      );
+    }
+    final computedLoadoutDigest = ReplayDigest.canonicalSha256ForMap(
+      ticket.loadoutSnapshot,
+    );
+    if (ticket.loadoutDigest != computedLoadoutDigest) {
+      throw const _ValidationRejectedException(
+        reason: 'loadout_digest_mismatch',
+        message: 'Run ticket loadout digest does not match its snapshot.',
+      );
+    }
+    if (!ticket.mode.requiresBoard) {
+      return;
+    }
+    final boardKey = ticket.boardKey;
+    if (boardKey == null ||
+        ticket.rulesetVersion != boardKey.rulesetVersion ||
+        ticket.scoreVersion != boardKey.scoreVersion) {
+      throw const _ValidationRejectedException(
+        reason: 'ticket_board_version_mismatch',
+        message: 'Run ticket board versions are internally inconsistent.',
+      );
+    }
+    if (!_supportedRulesetVersions.contains(ticket.rulesetVersion) ||
+        !_supportedScoreVersions.contains(ticket.scoreVersion) ||
+        !_supportedGhostVersions.contains(ticket.ghostVersion)) {
+      throw const _ValidationRejectedException(
+        reason: 'board_compat_version_unsupported',
+        message: 'Run ticket board compatibility version is not supported.',
+      );
+    }
+  }
+
+  void _validateTicketBoardWindow({required ValidatorRunSession session}) {
+    final ticket = session.runTicket;
+    if (!ticket.mode.requiresBoard) {
+      return;
+    }
+    final opensAtMs = ticket.boardOpensAtMs;
+    final closesAtMs = ticket.boardClosesAtMs;
+    if (opensAtMs == null || closesAtMs == null || opensAtMs >= closesAtMs) {
+      throw const _ValidationRejectedException(
+        reason: 'board_window_invalid',
+        message: 'Run ticket has invalid immutable board-window metadata.',
+      );
+    }
+    if (ticket.issuedAtMs < opensAtMs || ticket.issuedAtMs >= closesAtMs) {
+      throw const _ValidationRejectedException(
+        reason: 'ticket_board_window_mismatch',
+        message: 'Run ticket issuance is outside its bound board window.',
+      );
+    }
   }
 
   Future<ReplayBlobV1> _loadAndDecodeReplayBlob(
     ValidatorRunSession session,
   ) async {
-    final loaded = await replayLoader.loadReplay(
-      runSessionId: session.runSessionId,
-      objectPath: session.uploadedReplay.objectPath,
-    );
+    if (session.uploadedReplay.contentLengthBytes > limits.maxCompressedBytes) {
+      throw const _ValidationRejectedException(
+        reason: 'replay_compressed_size_limit_exceeded',
+        message: 'Replay blob exceeds the compressed-size limit.',
+      );
+    }
+    final storageGeneration = session.uploadedReplay.storageGeneration;
+    if (storageGeneration == null ||
+        !RegExp(r'^[1-9][0-9]*$').hasMatch(storageGeneration)) {
+      throw const _ValidationRejectedException(
+        reason: 'replay_generation_missing',
+        message: 'Replay immutable storage generation is unavailable.',
+      );
+    }
+    final LoadedReplay loaded;
+    try {
+      loaded = await replayLoader.loadReplay(
+        runSessionId: session.runSessionId,
+        objectPath: session.uploadedReplay.objectPath,
+        storageGeneration: storageGeneration,
+      );
+    } on ReplayPayloadTooLargeException {
+      throw const _ValidationRejectedException(
+        reason: 'replay_compressed_size_limit_exceeded',
+        message: 'Replay blob exceeds the compressed-size limit.',
+      );
+    } on ReplayGenerationUnavailableException {
+      throw const _ValidationRejectedException(
+        reason: 'replay_generation_unavailable',
+        message: 'Finalized replay evidence is no longer available.',
+      );
+    }
+    if (loaded.storageGeneration != storageGeneration) {
+      throw const _ValidationRejectedException(
+        reason: 'replay_generation_mismatch',
+        message: 'Loaded replay generation does not match finalized evidence.',
+      );
+    }
     if (loaded.bytes.isEmpty) {
       throw const _ValidationRejectedException(
         reason: 'empty_replay_blob',
@@ -359,7 +617,13 @@ class DeterministicValidatorWorker implements ValidatorWorker {
             'uploaded metadata ${session.uploadedReplay.contentLengthBytes}.',
       );
     }
-    final decodedBytes = _maybeDecompressGzip(loaded.bytes);
+    if (loaded.bytes.length > limits.maxCompressedBytes) {
+      throw const _ValidationRejectedException(
+        reason: 'replay_compressed_size_limit_exceeded',
+        message: 'Replay blob exceeds the compressed-size limit.',
+      );
+    }
+    final decodedBytes = await _maybeDecompressGzip(loaded.bytes);
     final decodedJson = _decodeJsonObject(decodedBytes);
     try {
       return ReplayBlobV1.fromJson(decodedJson, verifyDigest: true);
@@ -368,27 +632,48 @@ class DeterministicValidatorWorker implements ValidatorWorker {
         reason: 'protocol_invalid',
         message: 'Replay blob decode failed: ${error.message}',
       );
+    } on ArgumentError {
+      throw const _ValidationRejectedException(
+        reason: 'protocol_invalid',
+        message: 'Replay blob failed protocol validation.',
+      );
     }
   }
 
-  List<int> _maybeDecompressGzip(List<int> bytes) {
+  Future<List<int>> _maybeDecompressGzip(List<int> bytes) async {
     final isGzip = bytes.length >= 2 && bytes[0] == 0x1f && bytes[1] == 0x8b;
     if (!isGzip) {
+      if (bytes.length > limits.maxExpandedBytes) {
+        throw const _ValidationRejectedException(
+          reason: 'replay_expanded_size_limit_exceeded',
+          message: 'Replay blob exceeds the expanded-size limit.',
+        );
+      }
       return bytes;
     }
     try {
-      return gzip.decode(bytes);
-    } catch (error) {
-      throw _ValidationRejectedException(
+      return await collectReplayBytes(
+        gzip.decoder.bind(Stream<List<int>>.value(bytes)),
+        maxBytes: limits.maxExpandedBytes,
+      );
+    } on ReplayPayloadTooLargeException {
+      throw const _ValidationRejectedException(
+        reason: 'replay_expanded_size_limit_exceeded',
+        message: 'Replay blob exceeds the expanded-size limit.',
+      );
+    } catch (_) {
+      throw const _ValidationRejectedException(
         reason: 'gzip_decode_failed',
-        message: 'Replay gzip decode failed: $error',
+        message: 'Replay gzip decode failed.',
       );
     }
   }
 
   Map<String, Object?> _decodeJsonObject(List<int> bytes) {
     try {
-      final decoded = jsonDecode(utf8.decode(bytes));
+      final source = utf8.decode(bytes);
+      _validateJsonNesting(source);
+      final decoded = jsonDecode(source);
       if (decoded is! Map) {
         throw const _ValidationRejectedException(
           reason: 'protocol_invalid',
@@ -406,12 +691,63 @@ class DeterministicValidatorWorker implements ValidatorWorker {
     }
   }
 
+  void _validateJsonNesting(String source) {
+    var depth = 0;
+    var inString = false;
+    var escaped = false;
+    for (final codeUnit in source.codeUnits) {
+      if (inString) {
+        if (escaped) {
+          escaped = false;
+        } else if (codeUnit == 0x5c) {
+          escaped = true;
+        } else if (codeUnit == 0x22) {
+          inString = false;
+        }
+        continue;
+      }
+      if (codeUnit == 0x22) {
+        inString = true;
+        continue;
+      }
+      if (codeUnit == 0x7b || codeUnit == 0x5b) {
+        depth += 1;
+        if (depth > limits.maxJsonNestingDepth) {
+          throw const _ValidationRejectedException(
+            reason: 'replay_json_nesting_limit_exceeded',
+            message: 'Replay JSON exceeds the nesting-depth limit.',
+          );
+        }
+      } else if (codeUnit == 0x7d || codeUnit == 0x5d) {
+        depth -= 1;
+      }
+    }
+  }
+
   void _validateReplayAgainstSession({
     required ReplayBlobV1 replayBlob,
     required ValidatorRunSession session,
-    required Map<String, Object?>? board,
   }) {
     final ticket = session.runTicket;
+    if (ticket.tickHz <= 0) {
+      throw const _ValidationRejectedException(
+        reason: 'invalid_tick_rate',
+        message: 'Replay ticket tick rate must be positive.',
+      );
+    }
+    if (replayBlob.commandStream.length > limits.maxCommandFrames) {
+      throw const _ValidationRejectedException(
+        reason: 'replay_frame_limit_exceeded',
+        message: 'Replay command stream exceeds the frame-count limit.',
+      );
+    }
+    final maxTotalTicks = ticket.tickHz * limits.maxRunDuration.inSeconds;
+    if (replayBlob.totalTicks > maxTotalTicks) {
+      throw const _ValidationRejectedException(
+        reason: 'replay_duration_limit_exceeded',
+        message: 'Replay duration exceeds the validation limit.',
+      );
+    }
     if (replayBlob.runSessionId != session.runSessionId) {
       throw _ValidationRejectedException(
         reason: 'run_session_mismatch',
@@ -461,12 +797,6 @@ class DeterministicValidatorWorker implements ValidatorWorker {
       );
     }
     _validateModeAndBoardBinding(replayBlob: replayBlob, session: session);
-    if (ticket.mode.requiresBoard && board == null) {
-      throw const _ValidationRejectedException(
-        reason: 'board_not_found',
-        message: 'Ranked replay requires board metadata.',
-      );
-    }
     _validateCommandStream(replayBlob);
   }
 
@@ -569,6 +899,7 @@ class DeterministicValidatorWorker implements ValidatorWorker {
     required ReplayBlobV1 replayBlob,
     required ValidatorRunSession session,
   }) {
+    final simulationStartedAtMicros = _monotonicClockMicros();
     final ticket = session.runTicket;
     final levelId = _enumByName(
       LevelId.values,
@@ -595,6 +926,9 @@ class DeterministicValidatorWorker implements ValidatorWorker {
     };
     RunEndedEvent? runEnded;
     for (var tick = 1; tick <= replayBlob.totalTicks; tick += 1) {
+      if (tick == 1 || tick % 256 == 0) {
+        _throwIfSimulationDeadlineExceeded(simulationStartedAtMicros);
+      }
       final frame = frameByTick[tick];
       final commands = frame == null
           ? const <Command>[]
@@ -638,7 +972,10 @@ class DeterministicValidatorWorker implements ValidatorWorker {
       accepted: true,
       score: breakdown.totalPoints,
       distanceMeters: distanceUnitsToMeters(runEnded.distance),
-      durationSeconds: (runEnded.tick / core.tickHz).round(),
+      durationSeconds: canonicalRunDurationSeconds(
+        tick: runEnded.tick,
+        tickHz: core.tickHz,
+      ),
       tick: runEnded.tick,
       endedReason: runEnded.reason.name,
       goldEarned: runEnded.goldEarned,
@@ -649,8 +986,19 @@ class DeterministicValidatorWorker implements ValidatorWorker {
       },
       replayDigest: replayBlob.canonicalSha256,
       replayStorageRef: session.uploadedReplay.objectPath,
+      replayStorageGeneration: session.uploadedReplay.storageGeneration,
       createdAtMs: _clockMs(),
     );
+  }
+
+  void _throwIfSimulationDeadlineExceeded(int startedAtMicros) {
+    final elapsedMicros = _monotonicClockMicros() - startedAtMicros;
+    if (elapsedMicros > limits.maxSimulationWallTime.inMicroseconds) {
+      throw const _ValidationRejectedException(
+        reason: 'simulation_time_limit_exceeded',
+        message: 'Replay simulation exceeded the validation time limit.',
+      );
+    }
   }
 
   RunEndedEvent? _extractRunEnded(List<GameEvent> events) {
@@ -811,6 +1159,7 @@ class DeterministicValidatorWorker implements ValidatorWorker {
       stats: <String, Object?>{'message': rejectionMessage},
       replayDigest: digest,
       replayStorageRef: session.uploadedReplay.objectPath,
+      replayStorageGeneration: session.uploadedReplay.storageGeneration,
       createdAtMs: _clockMs(),
     );
   }
@@ -839,18 +1188,12 @@ class StubValidatorWorker implements ValidatorWorker {
     required this.replayLoader,
     required this.boardRepository,
     required this.runSessionRepository,
-    required this.leaderboardProjector,
-    required this.rewardGrantWriter,
-    required this.ghostPublisher,
     required this.metrics,
   });
 
   final ReplayLoader replayLoader;
   final BoardRepository boardRepository;
   final RunSessionRepository runSessionRepository;
-  final LeaderboardProjector leaderboardProjector;
-  final RewardGrantWriter rewardGrantWriter;
-  final GhostPublisher ghostPublisher;
   final ValidatorMetrics metrics;
 
   @override
@@ -883,6 +1226,11 @@ final class _ValidationRejectedException implements Exception {
 }
 
 int _defaultClockMs() => DateTime.now().millisecondsSinceEpoch;
+
+final Stopwatch _processMonotonicClock = Stopwatch()..start();
+
+int _defaultMonotonicClockMicros() =>
+    _processMonotonicClock.elapsedMicroseconds;
 
 int distanceUnitsToMeters(
   double distanceUnits, {

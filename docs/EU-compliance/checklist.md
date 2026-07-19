@@ -1,10 +1,10 @@
-# Firebase + Play Games + Anonymous Auth + Firestore - EU compliance checklist
+# Firebase + Play Games Auth + Firestore - EU compliance checklist
 
 This document is a practical implementation checklist for a mobile game that uses:
 
 - Firebase Authentication
-  - Anonymous auth
   - Google Play Games sign-in
+- Firebase App Check
 - Cloud Firestore
 - Google Play distribution
 
@@ -38,6 +38,8 @@ Typical examples in this setup:
 - device-linked or account-linked records in Firestore
 - gameplay progress tied to a user or pseudonymous account
 - authentication logs
+- App Check application identifiers and attestation status
+- per-account anti-abuse counters and pseudonymized security logs
 - IP/network metadata processed by providers
 
 The GDPR is technology-neutral and applies whenever personal data is processed in an organized way. ([commission.europa.eu](https://commission.europa.eu/law/law-topic/data-protection/data-protection-explained_en?utm_source=chatgpt.com))
@@ -92,7 +94,7 @@ Break processing into purposes and record the data used for each one.
 
 Examples:
 
-- anonymous sign-in
+- Play Games-linked Firebase sign-in
 - Play Games sign-in
 - account linking
 - session restoration
@@ -225,7 +227,7 @@ Do not:
 - mirror all Google profile fields into Firestore "just in case"
 - keep stale linked-provider metadata forever
 
-For anonymous auth:
+If anonymous auth is reintroduced:
 
 - do not treat anonymous auth as outside GDPR
 - define a retention period for abandoned anonymous accounts
@@ -283,10 +285,16 @@ If you do not define retention, you will keep junk forever.
 Reasonable first pass:
 
 - linked-account save data: keep while the account is active
-- anonymous guest accounts with no activity: auto-delete after a defined inactivity period, for example 90-180 days depending on recovery design
+- anonymous guest accounts, if reintroduced: auto-delete after a defined
+  inactivity period, for example 90-180 days depending on recovery design
 - deletion request records: keep only what is necessary to prove handling and defend against disputes, for a limited period
 - support emails: define a retention period, for example 12-24 months unless legally needed longer
 - operational logs: keep short and narrow
+- callable anti-abuse counters: the longest configured window plus a 24-hour
+  operational margin; the default 24-hour sustained window therefore retains
+  inactive quota state for at most about 48 hours
+- ownership command idempotency: 14 days, longer than the supported seven-day
+  offline retry window
 
 ### Rights handling
 
@@ -365,19 +373,29 @@ If you later add ads, attribution SDKs, broader analytics, or child-targeted fea
 
 ## 10. Repo status snapshot (current implementation only)
 
-This section is based only on the repository state as of March 11, 2026.
+This section is based only on the repository state as of July 18, 2026.
 
 It is a practical engineering status check against the checklist above. It is not a legal sign-off, and it can go stale as soon as the implementation changes.
 
 ### Done
 
-- [x] Firebase-backed app accounts already exist in practice through anonymous auth and optional Play Games linking (`lib/ui/state/firebase_auth_api.dart`).
+- [x] Firebase-backed app accounts use Play Games-linked Firebase identity;
+  bootstrap does not create anonymous users
+  (`lib/ui/state/auth/firebase_auth_api.dart`).
+- [x] App Check activation is implemented for supported release platforms and
+  debug/staging providers, while backend enforcement remains in monitoring
+  mode until platform success rates are measured
+  (`lib/firebase_app_check_bootstrap.dart`,
+  `functions/src/abuse/app_check.ts`).
+- [x] Server-only per-UID quota state is fixed-shape, has bounded retention,
+  emits hashed-UID operational logs, and is included in account erasure
+  (`functions/src/abuse/quota.ts`, `functions/src/account/delete.ts`).
 - [x] There is an in-app Delete Account flow with two-step confirmation (`lib/ui/pages/profile/profile_page.dart`).
-- [x] There is a backend account-deletion callable that deletes the Firebase Auth user and UID-scoped Firestore data including player profile, ownership data, and ghost data (`functions/src/index.ts`, `functions/src/account/delete.ts`).
+- [x] There is a tombstone-first backend account-deletion callable plus a bounded resumable scheduled worker. User callables/lazy creation are blocked immediately, Auth is disabled early, the Firestore/Storage inventory is reconciled through a final pass, and Auth is deleted last (`functions/src/index.ts`, `functions/src/account/delete.ts`, `functions/src/account/deletion_guard.ts`, `docs/tdd/account_deletion_workflow.md`).
 - [x] Backend callables require authentication and reject mismatched `userId` values (`functions/src/index.ts`).
 - [x] Firestore client access is locked down with deny-by-default rules (`firestore.rules`).
 - [x] Emulator-backed backend tests exist for ownership and account-deletion flows (`functions/package.json`, `functions/test/account/account_delete_callable.test.ts`, `functions/test/ownership/ownership_callable.test.ts`).
-- [x] Remote profile persistence now covers display name, display-name cooldown timestamp, and onboarding completion, while ownership stores server-side selection/meta/progression state (`functions/src/profile/store.ts`, `functions/src/ownership/contracts.ts`, `lib/ui/state/firebase_user_profile_remote_api.dart`).
+- [x] Remote profile persistence now covers display name, server-authoritative display-name cooldown timestamp, and onboarding completion, while ownership stores server-side selection/meta/progression state. The client renders but cannot write the cooldown timestamp (`functions/src/profile/store.ts`, `functions/src/profile/validators.ts`, `functions/src/ownership/contracts.ts`, `lib/ui/state/firebase_user_profile_remote_api.dart`).
 - [x] The app still stores local leaderboard data in `SharedPreferences`, so that local data should still be disclosed (`lib/ui/leaderboard/shared_prefs_leaderboard_store.dart`).
 - [x] No ads or analytics SDKs are visible in the current app dependencies (`pubspec.yaml`).
 
@@ -387,8 +405,15 @@ It is a practical engineering status check against the checklist above. It is no
 - [ ] A privacy-policy link or privacy-policy text inside the app.
 - [ ] An out-of-app account-deletion page or form on the web.
 - [ ] A real support / privacy contact channel such as a support email or web form.
-- [ ] A privacy policy that covers the exact data already processed today, including Firebase Auth identifiers, Play Games linking, display name, `displayNameLastChangedAtMs`, onboarding-completion status, server-side ownership / loadout / progression data, and local leaderboard data.
-- [ ] Defined retention periods, especially for abandoned anonymous accounts and local / cloud player data.
+- [ ] A privacy policy that covers the exact data already processed today,
+  including Firebase Auth identifiers, Play Games linking, App Check app and
+  attestation metadata, short-lived per-UID quota counters, hashed security
+  logs, display name, `displayNameLastChangedAtMs`, onboarding-completion
+  status, server-side ownership / loadout / progression data, and local
+  leaderboard data.
+- [ ] Defined retention periods for local and cloud player data beyond the
+  implemented deletion, quota, and ownership-idempotency records.
+- [ ] Privacy/legal confirmation of the implemented 30-day minimal completed-deletion tombstone retention; the technical rationale and change rule are documented in `docs/tdd/account_deletion_workflow.md`.
 - [ ] An operational path for access, export, correction, and deletion requests.
 - [ ] Accurate Google Play Data Safety answers and account-deletion answers aligned to the current implementation.
 - [ ] An internal note confirming that Firebase / Google terms and international-transfer wording are handled in the project owner setup and privacy policy.
@@ -401,7 +426,9 @@ It is a practical engineering status check against the checklist above. It is no
 
 ### Important interpretation
 
-Because the app currently creates Firebase-authenticated anonymous users during bootstrap (`lib/ui/state/firebase_auth_api.dart`), the safest Google Play interpretation is to treat this as an app-account implementation and meet the account-deletion policy accordingly.
+Because the app requires a Play Games-linked Firebase user during bootstrap,
+it is an app-account implementation and must meet the Google Play
+account-deletion policy.
 
 ---
 
@@ -431,5 +458,6 @@ After this checklist, the highest-value next deliverables are:
 
 1. a data inventory table for the exact Firebase / Auth / Firestore / local-storage fields in the current app
 2. a privacy-policy draft tailored to the current implementation
-3. a deletion and retention design for anonymous and linked users
+3. a complete deletion and retention schedule for linked users and any future
+   anonymous-user support
 4. a Play Console Data Safety answer sheet for the current implementation

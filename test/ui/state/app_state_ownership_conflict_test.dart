@@ -178,13 +178,6 @@ class _RevisionedOwnershipApi implements LoadoutOwnershipApi {
   }
 
   @override
-  Future<OwnershipCommandResult> resetOwnership(
-    ResetOwnershipCommand command,
-  ) async {
-    return _acceptedFor(command.userId);
-  }
-
-  @override
   Future<OwnershipCommandResult> equipGear(EquipGearCommand command) async {
     return _acceptedFor(command.userId);
   }
@@ -199,32 +192,6 @@ class _RevisionedOwnershipApi implements LoadoutOwnershipApi {
   @override
   Future<OwnershipCommandResult> setProjectileSpell(
     SetProjectileSpellCommand command,
-  ) async {
-    return _acceptedFor(command.userId);
-  }
-
-  @override
-  Future<OwnershipCommandResult> learnProjectileSpell(
-    LearnProjectileSpellCommand command,
-  ) async {
-    return _acceptedFor(command.userId);
-  }
-
-  @override
-  Future<OwnershipCommandResult> learnSpellAbility(
-    LearnSpellAbilityCommand command,
-  ) async {
-    return _acceptedFor(command.userId);
-  }
-
-  @override
-  Future<OwnershipCommandResult> unlockGear(UnlockGearCommand command) async {
-    return _acceptedFor(command.userId);
-  }
-
-  @override
-  Future<OwnershipCommandResult> awardRunGold(
-    AwardRunGoldCommand command,
   ) async {
     return _acceptedFor(command.userId);
   }

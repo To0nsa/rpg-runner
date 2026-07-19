@@ -2,7 +2,7 @@
   "name": "rpg-runner-functions",
   "private": true,
   "engines": {
-    "node": "20"
+    "node": "24"
   },
   "main": "lib/index.js",
   "scripts": {
@@ -11,16 +11,20 @@
     "build:watch": "tsc --watch",
     "serve": "corepack pnpm run build && firebase emulators:start --only functions,firestore",
     "shell": "corepack pnpm run build && firebase functions:shell",
-    "deploy": "corepack pnpm run build && firebase deploy --only functions,firestore:rules",
-    "test": "corepack pnpm run build:test && firebase emulators:exec --only firestore \"node --test lib_test/test/ownership/ownership_callable.test.js lib_test/test/account/account_delete_callable.test.js lib_test/test/runs/run_session_callable.test.js lib_test/test/runs/run_callables_auth_gating.test.js lib_test/test/runs/run_submission_callable.test.js lib_test/test/runs/run_projection.test.js lib_test/test/runs/run_cleanup.test.js lib_test/test/leaderboards/leaderboard_callable.test.js lib_test/test/ghosts/ghost_callable.test.js lib_test/test/boards/board_provisioning.test.js\""
+    "deploy": "corepack pnpm run build && firebase deploy --only functions,firestore:rules,firestore:indexes",
+    "test": "corepack pnpm run build:test && firebase emulators:exec --config ../firebase.test.json --project demo-rpg-runner-functions-tests --only firestore \"corepack pnpm run test:compiled\"",
+    "test:compiled": "node --test \"lib_test/test/**/*.test.js\""
   },
   "dependencies": {
-    "@google-cloud/tasks": "^5.5.0",
-    "firebase-admin": "^12.7.0",
-    "firebase-functions": "^6.0.1"
+    "@google-cloud/tasks": "^6.2.3",
+    "firebase-admin": "^14.2.0",
+    "firebase-functions": "^7.3.0"
   },
   "devDependencies": {
-    "@types/node": "^20.17.57",
-    "typescript": "^5.8.3"
+    "@firebase/rules-unit-testing": "5.0.1",
+    "@types/node": "^24.13.3",
+    "firebase": "12.0.0",
+    "firebase-tools": "15.2.1",
+    "typescript": "^5.9.3"
   }
 }

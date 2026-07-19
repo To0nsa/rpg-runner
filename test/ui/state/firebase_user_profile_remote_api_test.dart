@@ -23,16 +23,19 @@ void main() {
     expect(profile.namePromptCompleted, isTrue);
   });
 
-  test('loadProfile falls back to empty profile when payload is missing', () async {
-    final source = _FakeFirebaseUserProfileRemoteSource()
-      ..loadResponse = <String, dynamic>{};
-    final api = FirebaseUserProfileRemoteApi(source: source);
+  test(
+    'loadProfile falls back to empty profile when payload is missing',
+    () async {
+      final source = _FakeFirebaseUserProfileRemoteSource()
+        ..loadResponse = <String, dynamic>{};
+      final api = FirebaseUserProfileRemoteApi(source: source);
 
-    final profile = await api.loadProfile(userId: 'u1', sessionId: 's1');
+      final profile = await api.loadProfile(userId: 'u1', sessionId: 's1');
 
-    expect(profile.displayName, isEmpty);
-    expect(profile.namePromptCompleted, isFalse);
-  });
+      expect(profile.displayName, isEmpty);
+      expect(profile.namePromptCompleted, isFalse);
+    },
+  );
 
   test('updateProfile forwards patch payload to Firebase source', () async {
     final source = _FakeFirebaseUserProfileRemoteSource();
@@ -43,7 +46,6 @@ void main() {
       sessionId: 's1',
       update: const UserProfileUpdate(
         displayName: 'HeroName',
-        displayNameLastChangedAtMs: 1700000000000,
         namePromptCompleted: true,
       ),
     );
@@ -51,8 +53,11 @@ void main() {
     expect(source.lastSavedUserId, 'u1');
     expect(source.lastSavedSessionId, 's1');
     expect(source.lastSavedDisplayName, 'HeroName');
-    expect(source.lastSavedLastChangedAtMs, 1700000000000);
     expect(source.lastSavedNamePromptCompleted, isTrue);
+    expect(source.lastSavedUpdate?.toJson(), <String, Object?>{
+      'displayName': 'HeroName',
+      'namePromptCompleted': true,
+    });
   });
 
   test(
@@ -69,10 +74,7 @@ void main() {
         () => api.updateProfile(
           userId: 'u1',
           sessionId: 's1',
-          update: const UserProfileUpdate(
-            displayName: 'HeroName',
-            displayNameLastChangedAtMs: 1700000000000,
-          ),
+          update: const UserProfileUpdate(displayName: 'HeroName'),
         ),
         throwsA(
           isA<UserProfileRemoteException>()
@@ -89,10 +91,7 @@ void main() {
 
   test('loadProfile maps platform failures to domain exception', () async {
     final source = _FakeFirebaseUserProfileRemoteSource()
-      ..error = PlatformException(
-        code: 'unavailable',
-        message: 'network down',
-      );
+      ..error = PlatformException(code: 'unavailable', message: 'network down');
     final api = FirebaseUserProfileRemoteApi(source: source);
 
     await expectLater(
@@ -115,8 +114,8 @@ class _FakeFirebaseUserProfileRemoteSource
   String? lastSavedUserId;
   String? lastSavedSessionId;
   String? lastSavedDisplayName;
-  int? lastSavedLastChangedAtMs;
   bool? lastSavedNamePromptCompleted;
+  UserProfileUpdate? lastSavedUpdate;
 
   @override
   Future<Map<String, dynamic>> loadProfile({
@@ -143,8 +142,8 @@ class _FakeFirebaseUserProfileRemoteSource
     lastSavedUserId = userId;
     lastSavedSessionId = sessionId;
     lastSavedDisplayName = update.displayName;
-    lastSavedLastChangedAtMs = update.displayNameLastChangedAtMs;
     lastSavedNamePromptCompleted = update.namePromptCompleted;
+    lastSavedUpdate = update;
     return saveResponse;
   }
 }

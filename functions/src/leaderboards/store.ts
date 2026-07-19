@@ -282,6 +282,17 @@ function decodeLeaderboardEntry(
   if (replayStorageRef != null && replayStorageRef.length > 0) {
     out.replayStorageRef = replayStorageRef;
   }
+  const replayStorageGeneration = readString(raw.replayStorageGeneration);
+  if (
+    replayStorageGeneration != null &&
+    /^[1-9][0-9]*$/u.test(replayStorageGeneration)
+  ) {
+    out.replayStorageGeneration = replayStorageGeneration;
+  }
+  const replayDigest = readString(raw.replayDigest);
+  if (replayDigest != null && /^[a-f0-9]{64}$/u.test(replayDigest)) {
+    out.replayDigest = replayDigest;
+  }
   if (rank != null && rank > 0) {
     out.rank = rank;
   }

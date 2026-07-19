@@ -2,7 +2,7 @@
 
 - Originally implemented: March 18, 2026
 - Corrective audit: July 16, 2026
-- Status: Corrective work required; do not archive or mark accepted
+- Status: Authority fix production verified; latency corrective work remains
 - Authoritative design: [plan.md](plan.md)
 
 ## How to use this checklist
@@ -29,7 +29,7 @@
 | Client prefetch diagnostics | Missing | Add |
 | Bootstrap Return to Hub action | Missing | Add |
 | Blocking asset warmup | Global catalog scan | Bound to critical selected assets |
-| Server-time authority | Callable request can supply `nowMs` | Fix before rollout |
+| Server-time authority | Fixed, deployed, and production verified | Preserve |
 | Board/session backend fast path | Implemented and tested | Keep |
 | Persisted authoritative `runTicket` | Implemented and cross-layer tested | Keep |
 | `minInstances` | Optional environment hook only | Record deployed value |
@@ -56,34 +56,44 @@ Objective:
 
 Implementation:
 
-- [ ] Stop reading request `nowMs` as authority in
+- [x] Stop reading request `nowMs` as authority in
   [run validators](../../../functions/src/runs/validators.ts).
-- [ ] Ensure
+- [x] Ensure
   [run callable handlers](../../../functions/src/runs/callable_handlers.ts)
   supply server time to internal functions.
-- [ ] Apply the same rule to board resolution/provisioning callables involved in
+- [x] Apply the same rule to board resolution/provisioning callables involved in
   run start.
-- [ ] Ensure
+- [x] Ensure
   [run-session creation](../../../functions/src/runs/store.ts) derives ticket
   issue/expiry time from the server boundary.
-- [ ] Ensure
+- [x] Ensure
   [upload grant and finalize](../../../functions/src/runs/submission_store.ts)
   derive lease/expiry transitions from the server boundary.
-- [ ] Retain deterministic time injection for internal unit/emulator tests.
-- [ ] Confirm the normal Flutter callable request/response remains compatible.
+- [x] Retain deterministic time injection for internal unit/emulator tests.
+- [x] Confirm the normal Flutter callable request/response remains compatible.
 
 Tests:
 
-- [ ] Request-supplied future time cannot future-date a run ticket.
-- [ ] Request-supplied time cannot select or provision a future board.
-- [ ] Request-supplied time cannot extend an upload lease.
-- [ ] Request-supplied time cannot bypass run-session expiry during finalize.
-- [ ] Auth gating remains unchanged.
+- [x] Request-supplied future time cannot future-date a run ticket.
+- [x] Request-supplied time cannot select or provision a future board.
+- [x] Request-supplied time cannot extend an upload lease.
+- [x] Request-supplied time cannot bypass run-session expiry during finalize.
+- [x] Auth gating remains unchanged.
 
 Done when:
 
-- [ ] no user-controlled clock reaches an authority decision
-- [ ] Functions build and emulator tests pass
+- [x] no user-controlled clock reaches an authority decision in local source
+- [x] Functions build and emulator tests pass
+- [x] deployed callables reject client-selected time and the validator enforces
+  the ticket/window policy
+
+Evidence:
+
+- `corepack pnpm --dir functions test`: 167 passed
+- `dart analyze services/replay_validator`: no issues
+- `dart test test` from `services/replay_validator`: 65 passed
+- [production deployment](../functions-audit-remediation/production-deployment-2026-07-19.md)
+- [production client-time and ticket/window verification](../functions-audit-remediation/production-verification-2026-07-19.md)
 
 ---
 
@@ -249,6 +259,10 @@ Objective:
 - [x] Replay validator decodes the persisted ticket.
 - [x] Structured timing contains canonical load, board resolution, session
   write, and total duration.
+- [x] Run creation uses a bounded client request ID and concurrent duplicates
+  return one persisted ticket.
+- [x] Atomic quota and active-session observations remain on the run-create
+  authority path.
 
 ### Required deployment and observability work
 
@@ -260,6 +274,8 @@ Objective:
 - [ ] Confirm timing logs cover bounded success/failure outcomes.
 - [ ] Capture representative backend baseline `p50/p95/p99`.
 - [ ] Capture representative post-change `p50/p95/p99`.
+- [ ] Separate quota/idempotency transaction time from canonical, board, and
+  final session-write time in representative traces before tuning.
 - [ ] Record sample size, traffic shape, cold/warm split, region, and date.
 - [ ] Decide whether CPU/memory tuning is needed from evidence.
 
@@ -285,7 +301,7 @@ Done when:
   - note: warmup tests emit binding-noise from replay submission resume
 - [x] `corepack pnpm --dir functions build`
   - passed
-  - warning: repository requests Node 20; audit runtime was Node 24.16.0
+  - repository and audit runtime are aligned on Node 24
 - [x] full Functions emulator suite
   - passed using an isolated Firestore emulator because local port `8080` was
     occupied by a WSL relay

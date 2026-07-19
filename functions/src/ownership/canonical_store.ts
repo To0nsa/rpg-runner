@@ -6,6 +6,7 @@ import {
 } from "firebase-admin/firestore";
 import { HttpsError } from "firebase-functions/v2/https";
 
+import { assertAccountActiveInTransaction } from "../account/deletion_guard.js";
 import type {
   CanonicalDocument,
   IdempotencyDocument,
@@ -14,37 +15,50 @@ import type {
 } from "./contracts.js";
 import { normalizeCanonicalState } from "./defaults.js";
 import { canonicalDocRef, defaultCanonicalProfileId } from "./firestore_paths.js";
+import { legacyReadReconciliationEnabled } from "./legacy_reward_reconciliation.js";
 import { reconcilePendingRewardGrantsForTransaction } from "./reward_grants.js";
 
 export async function loadOrCreateCanonicalState(args: {
   db: Firestore;
   uid: string;
+  /** Overrides the temporary production migration compatibility path in tests. */
+  reconcileLegacyRewards?: boolean;
 }): Promise<OwnershipCanonicalState> {
   const { db, uid } = args;
   return db.runTransaction(async (tx) => {
+    await assertAccountActiveInTransaction(tx, db, uid);
     const resolved = await resolveCanonicalStateForTransaction({
       db,
       tx,
       uid,
     });
-    let canonical = resolved.canonical;
-    const reconciled = await reconcilePendingRewardGrantsForTransaction({
-      db,
-      tx,
-      uid,
-      canonicalState: canonical,
-    });
-    canonical = reconciled.canonicalState;
-    if (!resolved.exists) {
-      tx.set(resolved.canonicalRef, canonicalWriteData(uid, canonical));
-      return canonical;
+    const reconciliation =
+      args.reconcileLegacyRewards ?? legacyReadReconciliationEnabled()
+        ? await reconcilePendingRewardGrantsForTransaction({
+            db,
+            tx,
+            uid,
+            canonicalState: resolved.canonical,
+          })
+        : {
+            canonicalState: resolved.canonical,
+            canonicalChanged: false,
+          };
+    if (!resolved.exists || reconciliation.canonicalChanged) {
+      if (resolved.exists) {
+        tx.set(
+          resolved.canonicalRef,
+          canonicalMergeWriteData(uid, reconciliation.canonicalState),
+          { merge: true },
+        );
+      } else {
+        tx.set(
+          resolved.canonicalRef,
+          canonicalWriteData(uid, reconciliation.canonicalState),
+        );
+      }
     }
-    if (reconciled.canonicalChanged) {
-      tx.set(resolved.canonicalRef, canonicalMergeWriteData(uid, canonical), {
-        merge: true,
-      });
-    }
-    return canonical;
+    return reconciliation.canonicalState;
   });
 }
 
@@ -121,13 +135,24 @@ export function canonicalMergeWriteData(
 export function idempotencyWriteData(args: {
   payloadHash: string;
   result: OwnershipCommandResult;
+  nowMs: number;
 }): IdempotencyDocument {
   return {
     payloadHash: args.payloadHash,
-    result: args.result,
+    schemaVersion: ownershipIdempotencySchemaVersion,
+    outcome: {
+      resultingRevision: args.result.newRevision,
+      rejectedReason: args.result.rejectedReason,
+    },
     createdAt: FieldValue.serverTimestamp(),
+    createdAtMs: args.nowMs,
+    expiresAtMs: args.nowMs + ownershipIdempotencyRetentionMs,
   };
 }
+
+export const ownershipOfflineRetryWindowMs = 7 * 24 * 60 * 60 * 1000;
+export const ownershipIdempotencyRetentionMs = 14 * 24 * 60 * 60 * 1000;
+export const ownershipIdempotencySchemaVersion = 2;
 
 interface ResolvedCanonicalState {
   canonicalRef: DocumentReference;

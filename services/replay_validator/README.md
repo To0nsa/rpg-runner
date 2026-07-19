@@ -3,15 +3,25 @@
 `services/replay_validator` is the Cloud Run worker service for replay-validation
 tasks.
 
-Current scope in this scaffold:
+Current scope:
 
 - standalone Dart HTTP service package
-- health endpoint: `GET /healthz`
+- liveness/readiness endpoints: `GET /live` and `GET /ready`
 - Cloud Tasks endpoint: `POST /tasks/validate`
-- deterministic validator worker and backend-settlement handoff when required
-  env vars are present
-- safe fallback behavior: validation dispatch returns `501 not_implemented`
-  when required env vars are missing
+- independent Cloud Tasks endpoint: `POST /tasks/project` for optional
+  leaderboard and ghost publication retries
+- deterministic validator worker and immediate backend-settlement dispatch after
+  its durable handoff when required env vars are present
+- token-fenced, expiring validation leases with scheduled lost-task repair
+- bounded replay download, streaming gzip expansion, JSON nesting, frame count,
+  duration, and simulation wall time
+- exact-generation replay validation and ghost promotion with persisted
+  generation/digest lineage
+- atomic accepted, rejected, and exhausted-error handoffs
+- conditional player-best/top-10 writes plus scheduled board/ghost
+  reconciliation
+- safe local fallback behavior: validation dispatch returns
+  `501 not_implemented` when required env vars are missing
 
 ## Local Run
 
@@ -25,10 +35,14 @@ Default port is `8080` (or `PORT` env var if set).
 
 ## Build And Test
 
+Run from `services/replay_validator`:
+
 ```bash
-dart analyze services/replay_validator
-dart test services/replay_validator/test
-dart compile exe services/replay_validator/bin/server.dart -o .tmp/replay_validator_server
+dart analyze
+dart test test
+dart compile exe bin/server.dart -o ../../.tmp/replay_validator_server
+dart compile exe tool/aot_protocol_probe.dart -o ../../.tmp/aot_protocol_probe
+../../.tmp/aot_protocol_probe
 ```
 
 ## Build Container Image
@@ -48,49 +62,87 @@ gcloud builds submit \
 
 ## Deploy To Cloud Run
 
-```bash
-PROJECT_ID="rpg-runner-d7add"
-REGION="europe-west1"
-SERVICE="replay-validator"
-QUEUE_NAME="replay-validation"
-VALIDATOR_SA="sa-replay-validator@${PROJECT_ID}.iam.gserviceaccount.com"
-TASK_DISPATCH_SA="sa-replay-task-dispatch@${PROJECT_ID}.iam.gserviceaccount.com"
-REPLAY_STORAGE_BUCKET="rpg-runner-replay-euw1-20260312-01"
-IMAGE_URI="europe-west1-docker.pkg.dev/${PROJECT_ID}/replay/replay-validator:<replace-with-built-tag>"
+Deploy the paired Functions repair/settlement surfaces and required Firestore
+indexes first:
 
-gcloud run deploy "${SERVICE}" \
-  --project="${PROJECT_ID}" \
-  --region="${REGION}" \
-  --image="${IMAGE_URI}" \
-  --service-account="${VALIDATOR_SA}" \
-  --no-allow-unauthenticated \
-  --set-env-vars="GCLOUD_PROJECT=${PROJECT_ID},REPLAY_STORAGE_BUCKET=${REPLAY_STORAGE_BUCKET}"
-
-gcloud run services add-iam-policy-binding "${SERVICE}" \
-  --project="${PROJECT_ID}" \
-  --region="${REGION}" \
-  --member="serviceAccount:${TASK_DISPATCH_SA}" \
-  --role="roles/run.invoker"
-
-RUN_URL="$(gcloud run services describe "${SERVICE}" \
-  --project="${PROJECT_ID}" \
-  --region="${REGION}" \
-  --format='value(status.url)')"
-
-HOST="$(echo "${RUN_URL}" | sed -E 's#https?://([^/]+)/?#\1#')"
-
-gcloud tasks queues update "${QUEUE_NAME}" \
-  --project="${PROJECT_ID}" \
-  --location="${REGION}" \
-  --http-uri-override="scheme:https,host:${HOST},path:/tasks/validate" \
-  --http-oidc-service-account-email-override="${TASK_DISPATCH_SA}" \
-  --http-oidc-token-audience-override="${RUN_URL}"
+```powershell
+firebase deploy --project rpg-runner-d7add `
+  --only "firestore:indexes,functions:runValidationRepair,functions:runSettlementOnHandoff,functions:runSettlementRepair,functions:runSettlementImmediate,functions:runProjectionOnAccepted,functions:runProjectionReconciliation"
 ```
 
+Then run the checked-in service/queue policy from the repository root:
+
+```powershell
+.\services\replay_validator\configure_cloud.ps1 `
+  -ProjectId "rpg-runner-d7add" `
+  -ReplayStorageBucket "rpg-runner-replay-euw1-20260312-01" `
+  -ImageUri "europe-west1-docker.pkg.dev/rpg-runner-d7add/replay/replay-validator:<replace-with-built-tag>" `
+  -SettlementDispatchUrl "https://europe-west1-rpg-runner-d7add.cloudfunctions.net/runSettlementImmediate"
+```
+
+The script is idempotent for existing queues and fixes the release policy at:
+
+- Cloud Run: 1 CPU, 512 MiB, 240-second request timeout, concurrency 1,
+  maximum 10 instances, readiness startup probe, and independent liveness
+  probe
+- validation queue: 8 attempts, 24-hour retry duration, 30-second minimum and
+  4-hour maximum backoff, 5 dispatches/second, 5 concurrent dispatches
+- projection queue: independent retry/URI policy; it never targets
+  `/tasks/validate`
+- validation lease: 10 minutes
+- orphaned-task repair eligibility: 15 minutes
+- compressed/expanded replay limits: 8 MiB / 32 MiB; JSON nesting depth: 64
+- command-frame/run-duration/simulation limits: 250,000 / 6 hours / 2 minutes
+- the container runtime user is unprivileged and root build-context ignore
+  files include only the service and its local package dependencies
+
+Do not apply only the Cloud Run revision. The Firestore indexes and scheduled
+validation repair are required to recover expired leases and tasks deleted
+after retry exhaustion.
+
 Before this Cloud Run deployment, deploy the paired Firebase Functions
-settlement dispatcher and repair schedule. This validator revision emits
-`settlement_pending` for accepted runs and deliberately does not mark them
-terminal or credit a wallet itself.
+settlement dispatcher, immediate settlement endpoint, and repair schedule. The
+immediate endpoint's IAM invoker must be only `${VALIDATOR_SA}`. This validator
+revision emits `settlement_pending` for accepted runs, requests that endpoint
+with its Cloud Run identity token, and deliberately does not mark runs terminal
+or credit wallets itself. Eventarc and scheduled repair remain fallback
+delivery paths when immediate dispatch fails or times out.
+Leaderboard and ghost projection are enqueued only after accepted validation;
+their retries use `${PROJECTION_QUEUE_NAME}` and never affect reward settlement.
+
+After deploying `runSettlementImmediate`, grant its underlying Cloud Run
+service invoker role explicitly and verify that no public principal is present:
+
+```bash
+gcloud run services add-iam-policy-binding runsettlementimmediate \
+  --project="${PROJECT_ID}" \
+  --region="${REGION}" \
+  --member="serviceAccount:${VALIDATOR_SA}" \
+  --role="roles/run.invoker"
+
+gcloud run services get-iam-policy runsettlementimmediate \
+  --project="${PROJECT_ID}" \
+  --region="${REGION}"
+```
+
+Firestore Eventarc delivery has a separate, non-public invoker binding. After
+every Firebase Functions deployment, grant the Functions control-plane service
+account access to both Eventarc target services:
+
+```bash
+for service in runprojectiononaccepted runsettlementonhandoff; do
+  gcloud run services add-iam-policy-binding "${service}" \
+    --project="${PROJECT_ID}" \
+    --region="${REGION}" \
+    --member="serviceAccount:sa-run-control@${PROJECT_ID}.iam.gserviceaccount.com" \
+    --role="roles/run.invoker"
+done
+```
+
+This is required in addition to `roles/eventarc.eventReceiver`: it permits the
+authenticated Eventarc push to invoke the generated Cloud Run services without
+making either endpoint public. It covers both projection and the independent
+settlement fallback.
 
 ## Quick Verify (End-To-End)
 
@@ -150,12 +202,13 @@ gcloud logging read "${FILTER}" \
 --limit=100 \
 --format='table(timestamp,textPayload)'
 
-gcloud functions logs read runSessionFinalizeUpload --gen2 --region us-central1 --limit 50
-gcloud functions logs read runSessionLoadStatus --gen2 --region us-central1 --limit 50
+gcloud functions logs read runSessionFinalizeUpload --gen2 --region europe-west1 --limit 50
+gcloud functions logs read runSessionLoadStatus --gen2 --region europe-west1 --limit 50
 ```
 
 Healthy signals:
 
+- `GET /live` and `GET /ready` return `200` on the deployed revision
 - validator logs show `POST [202] /tasks/validate`
 - queue task `lastAttempt.responseStatus` is not `HTTP status code 501/403`
 - `runSessionLoadStatus` may briefly return `settlement_pending`, then moves to

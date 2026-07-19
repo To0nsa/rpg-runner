@@ -2,6 +2,8 @@ import type { Firestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
 import { HttpsError } from "firebase-functions/v2/https";
 
+import { assertAccountActive } from "../account/deletion_guard.js";
+import { consumeUserQuota } from "../abuse/quota.js";
 import { loadGhostManifest, type GhostManifestResult } from "./store.js";
 import { parseGhostLoadManifestRequest } from "./validators.js";
 
@@ -56,7 +58,7 @@ function createDefaultGhostDownloadUrlSigner(): GhostDownloadUrlSigner {
 export async function handleGhostLoadManifest(
   request: CallableRequestLike,
   db: Firestore,
-  downloadUrlSigner: GhostDownloadUrlSigner = createDefaultGhostDownloadUrlSigner(),
+  downloadUrlSigner?: GhostDownloadUrlSigner,
 ): Promise<{ ghostManifest: GhostManifestResult & {
   downloadUrl: string;
   downloadUrlExpiresAtMs: number;
@@ -69,6 +71,14 @@ export async function handleGhostLoadManifest(
   if (userId !== uid) {
     throw new HttpsError("permission-denied", "userId does not match auth uid.");
   }
+  await assertAccountActive(db, uid);
+  const nowMs = Date.now();
+  await consumeUserQuota({
+    db,
+    uid,
+    route: "ghost_url",
+    nowMs,
+  });
   const ghostManifest = await loadGhostManifest({
     db,
     boardId,
@@ -80,8 +90,10 @@ export async function handleGhostLoadManifest(
       "ghost manifest replay path must be under ghosts/.",
     );
   }
-  const downloadUrlExpiresAtMs = Date.now() + defaultGhostDownloadUrlTtlMs;
-  const downloadUrl = await downloadUrlSigner.signDownloadUrl({
+  const downloadUrlExpiresAtMs = nowMs + defaultGhostDownloadUrlTtlMs;
+  const resolvedDownloadUrlSigner =
+    downloadUrlSigner ?? createDefaultGhostDownloadUrlSigner();
+  const downloadUrl = await resolvedDownloadUrlSigner.signDownloadUrl({
     objectPath: ghostManifest.replayStorageRef,
     expiresAtMs: downloadUrlExpiresAtMs,
   });

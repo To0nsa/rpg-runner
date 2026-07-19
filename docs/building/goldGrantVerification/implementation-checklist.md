@@ -1,8 +1,10 @@
 # Gold Grant Verification — Implementation Checklist
 
-Date: July 16, 2026
-Status: Backend settlement services deployed; client compatibility, legacy
-migration, and production acceptance remain before broad rollout.
+Date: July 18, 2026
+Status: The settlement/projection cutover is deployed to production. Legacy
+inventory and its idempotent apply pass completed cleanly; normal canonical
+reads no longer perform legacy reconciliation. Production latency monitoring
+and client-closed end-to-end verification remain before broad-rollout approval.
 Source strategy: [strategy-refresh.md](strategy-refresh.md)
 
 This checklist implements the backend-settlement architecture in
@@ -34,8 +36,11 @@ Do not relax these without updating the strategy in the same change:
 - The Dart validator may derive authoritative replay reward data, but it must
   not duplicate TypeScript ownership normalization, canonical revision, or gold
   application behavior.
-- Firestore event delivery, scheduled repair, and an optional fast validation
-  lane are dispatch mechanisms. They all invoke the same settlement authority.
+- The validator may make a bounded, IAM-authenticated immediate settlement
+  request only after its durable `settlement_pending` handoff commits. That
+  request, Firestore event delivery, scheduled repair, and an optional fast
+  validation lane are dispatch mechanisms. They all invoke the same settlement
+  authority.
 - The client may refresh or animate canonical gold, but it must not settle,
   award, or retry a payout on the server's behalf.
 - Provisional reward value may appear only in run-result context. It is never a
@@ -50,7 +55,7 @@ Do not relax these without updating the strategy in the same change:
 1. Baseline, migration inventory, and rollout controls
 2. Shared state/protocol contract for `settlement_pending`
 3. Functions-owned atomic settlement transaction
-4. Server dispatcher, retry, and stale-settlement repair
+4. Low-latency server settlement dispatch, retry, and stale-settlement repair
 5. Validator atomic handoff and projection decoupling
 6. Client one-wallet and Game Over simplification
 7. Legacy migration, cutover, and normal-path reconciler removal
@@ -77,13 +82,53 @@ focused checks pass.
 - [x] Flutter web client deployed to Firebase Hosting on July 17, 2026 at
   `https://rpg-runner-d7add.web.app`. The release journals a finalized replay
   locally before Game Over permits normal exit/restart/back navigation.
+- [x] IAM-only `runSettlementImmediate` Function deployed to `europe-west1` on
+  July 17, 2026. Its underlying Cloud Run service grants `roles/run.invoker`
+  only to `sa-replay-validator@rpg-runner-d7add.iam.gserviceaccount.com`.
+- [x] Cloud Run validator revision `replay-validator-00019-gmt` deployed with
+  immediate settlement URL and 4000 ms request deadline, serving 100% of
+  traffic. Eventarc and scheduled repair remain enabled fallback delivery.
+- [x] One accepted production replay on July 17, 2026 reached the canonical
+  wallet commit 1.98 seconds after durable finalize. The IAM-only immediate
+  endpoint recorded `outcome: settled`; this is a single observation, not a
+  percentile target or a reason to remove fallback delivery.
+- [x] Functions and Firebase Hosting were redeployed on July 17, 2026 with
+  immutable settled-grant audit fields and the compact Game Over verification
+  confirmation. A matching Android release APK was built for manual install.
 
 This is a backend and web-client deployment record, not broad-rollout approval.
 Before users on older native app builds can create runs, release the same client
 compatibility and replay-journaling changes there (or enforce a minimum
 version), then complete the legacy inventory in Phase 0/6, structured
 observability and runbook work in Phases 3/7, and an end-to-end settlement test
-with the client closed.
+with the client closed. The immediate dispatcher is deployed; record latency
+percentiles and fallback outcomes before broad rollout.
+
+July 18, 2026 production cutover:
+
+- [x] Deployed Cloud Run validator revision `replay-validator-00020-ps7` with
+  the private `/tasks/project` route.
+- [x] Created the `replay-projection` Cloud Tasks queue in `europe-west1` with
+  the validation queue's bounded rate/retry limits, no URI override, and enqueue
+  permission only for `sa-run-control`.
+- [x] Confirmed `sa-replay-task-dispatch` remains the only explicit
+  `roles/run.invoker` principal on the validator service.
+- [x] Ran migration `inventory`: 11 grants scanned, 11 already applied, zero
+  missing applications, revocation terminalizations, or invariant violations.
+- [x] Ran migration `apply`: the same 11 grants were already applied; zero
+  wallet mutations were needed and the finite page completed.
+- [x] Set `LEGACY_REWARD_GRANT_MIGRATION_MODE=off` and
+  `LEGACY_READ_RECONCILIATION_ENABLED=false` across the canonical-read and
+  ownership-command entry points, verified the scheduler performs a no-op, and
+  paused its five-minute Cloud Scheduler job to avoid ongoing no-op invocations.
+- [x] Upgraded all 21 deployed 2nd-generation Functions from Node.js 20 to
+  Node.js 24 on July 18, 2026. Every function reports `ACTIVE` with the
+  `nodejs24` runtime; the paused legacy-migration schedule remained paused.
+- [x] Restored `sa-run-control` `roles/run.invoker` bindings on the
+  `runprojectiononaccepted` and `runsettlementonhandoff` Cloud Run services on
+  July 19, 2026. Firestore/Eventarc retries then enqueued and completed the
+  affected competitive-run projection tasks; the board top-10 view and ghost
+  manifest converged without changing settlement timing.
 
 ---
 
@@ -107,7 +152,8 @@ Tasks:
 - [ ] Define rollout flags and their safe defaults:
   - [ ] new settlement dispatcher enabled
   - [ ] stale-settlement repair enabled
-  - [ ] legacy read-time repair enabled
+  - [x] legacy migration mode defaults to `off`; only `inventory` and then
+    explicit `apply` can run the server-side adapter
   - [ ] optional fast validation lane enabled
 - [ ] Define the stale `settlement_pending` threshold, retry policy, alert
   target, and incident escalation owner.
@@ -183,11 +229,14 @@ Tasks:
   revision in one canonical write.
 - [x] Mark the reward grant `validated_settled` with applied audit fields in the
   same transaction.
+- [x] Keep final grant audit fields immutable during ordinary canonical reads;
+  legacy reconciliation may repair a missing canonical applied-grant id once,
+  but cannot turn `appliedAtMs` into profile-read time.
 - [x] Mark the run session `validated` with terminal fields in the same
   transaction.
-- [ ] Return an explicit result for settled, already-settled, not-ready, and
-  invariant-violation outcomes; only retryable outcomes may be retried by a
-  dispatcher.
+- [x] Return an explicit result for settled, already-settled, not-ready, and
+  invariant-violation outcomes; only retryable infrastructure failures are
+  retried by a dispatcher.
 - [x] Keep legacy reconciliation separate from this helper until Phase 7. Do
   not make a canonical client read required for a newly accepted reward.
 
@@ -202,6 +251,7 @@ Focused tests:
 
 - [x] first settlement applies gold and increments revision exactly once
 - [x] duplicate settlement is an idempotent no-op
+- [x] canonical reads after settlement preserve the grant audit timestamp
 - [ ] Firestore transaction retry is safe
 - [x] concurrent purchase/refresh observes normal stale-revision behavior
 - [ ] missing, mismatched, malformed, rejected, and overflow inputs cannot pay
@@ -209,7 +259,7 @@ Focused tests:
 
 ---
 
-## Phase 3 — Add Server Settlement Dispatch and Repair
+## Phase 3 — Add Low-Latency Server Settlement Dispatch and Repair
 
 Objective:
 
@@ -217,35 +267,57 @@ Objective:
 
 Tasks:
 
+- [x] Add a Functions-owned internal settlement endpoint that accepts only a
+  run-session id, authenticates the validator's service identity, and calls the
+  Phase 2 settlement helper.
+- [x] After the validator atomically writes `settlement_pending`, make one
+  short, bounded authenticated request to that endpoint. Do not make the
+  request before the handoff commits or let its response affect replay
+  acceptance semantics.
+- [x] Keep the immediate-dispatch timeout/failure path non-terminal. It must
+  leave the durable pending documents untouched for fallback delivery.
 - [x] Add a retry-enabled Firebase Functions Firestore dispatcher for the
-  transition to `run_sessions.state == settlement_pending`.
+  transition to `run_sessions.state == settlement_pending` as a fallback
+  delivery mechanism.
 - [x] Ensure duplicate event delivery and events for already-terminal sessions
   call the Phase 2 helper safely and do not create another payout path.
+- [x] Ensure duplicate immediate calls, an immediate call racing an Eventarc
+  delivery, and an immediate call racing repair are idempotent no-ops after the
+  first settlement commit.
 - [x] Add a scheduled stale-settlement repair scan for
   `settlement_pending` sessions.
 - [x] Make repair invoke the exact Phase 2 helper; it must not directly edit
   canonical gold, reward grants, or run state.
-- [ ] Bound repair scan pages, retries, and per-run work; emit an actionable
-  metric when a session remains stale after the configured threshold.
-- [ ] Add structured metrics for dispatch start/outcome, transaction retry,
-  idempotent no-op, invariant violation, repair age, and repair outcome.
-- [ ] Write an operator runbook for inspecting and replaying a stale settlement
+- [x] Bound repair scan pages and per-run work; emit an actionable metric when
+  a session remains stale after the configured threshold.
+- [x] Cursor-page the explicit retryable settlement lane and transactionally
+  quarantine invariant violations so poisoned records cannot starve later
+  valid settlements.
+- [x] Add structured metrics for immediate dispatch start/outcome/timeout,
+  fallback reason, transaction retry, idempotent no-op by delivery mechanism,
+  invariant violation, repair age, and repair outcome.
+- [x] Write an operator runbook for inspecting and replaying a stale settlement
   through the safe helper only.
 
 Done when:
 
 - [ ] a server-accepted run settles while no client is connected
-- [ ] event failure, duplicate delivery, and repair execution preserve exact-once
-  wallet effects
+- [ ] immediate-dispatch failure, event failure, duplicate delivery, and repair
+  execution preserve exact-once wallet effects
 - [ ] stale settlement has an observable alert and safe remediation path
 
 Focused tests:
 
 - [ ] dispatcher ignores unrelated writes and non-pending sessions
+- [ ] immediate dispatch starts only after a durable pending handoff and only
+  authenticates the validator service identity
+- [ ] immediate-dispatch timeout or error leaves the run pending for Eventarc
+  and repair
 - [ ] dispatcher retries transaction failures
 - [ ] duplicate event after success is a no-op
-- [ ] repair finds stale pending sessions and uses the same helper
-- [ ] repair cannot settle rejected, mismatched, or malformed records
+- [x] duplicate immediate/event/repair delivery races are no-ops after success
+- [x] repair finds stale pending sessions and uses the same helper
+- [x] repair cannot settle rejected, mismatched, or malformed records
 
 ---
 
@@ -263,17 +335,20 @@ Tasks:
 - [x] Add a validator repository operation that atomically persists the accepted
   validated run, derives server-authoritative gold, sets the matching grant to
   `settlement_pending`, and sets the run session to `settlement_pending`.
+- [x] After that transaction commits, invoke the Phase 3 immediate dispatcher
+  with a bounded trusted request. The validator never applies canonical gold or
+  derives a separate settlement result.
 - [x] Preserve validation lease/idempotency behavior for duplicate Cloud Tasks
   dispatches and retries.
 - [x] Ensure the validator handoff validates the existing grant/session uid and
   run-session bindings before requesting settlement.
 - [x] Keep rejected and internal-error transitions server-owned, idempotent, and
   wallet-neutral. Do not mark a rejected run `validated` to release a reward.
-- [ ] Decide the retry boundary for leaderboard projection and ghost publishing:
-  - [ ] payout settlement must not wait for optional projection work
-  - [ ] projection retries must not turn an accepted reward into a revoked one
-  - [ ] document any artifact required before the validator may request
-    settlement
+- [x] Decide the retry boundary for leaderboard projection and ghost publishing:
+  - [x] payout settlement never waits for optional projection work
+  - [x] projection retries cannot turn an accepted reward into a revoked one
+  - [x] accepted validation handoff is the only artifact required before
+    settlement; projection is queued afterwards
 - [x] Refactor `reward_settlement_writer.dart` so its API cannot imply
   that the validator writes final canonical settlement.
 
@@ -287,10 +362,12 @@ Done when:
 Focused tests:
 
 - [ ] accepted replay persists data and requests settlement without terminalizing
+- [x] immediate settlement dispatch uses only the durable run-session id and
+  cannot change validation acceptance, grant amount, or canonical-write rules
 - [ ] rejected replay and retry-exhausted internal error never credit gold
 - [ ] duplicate validator dispatch cannot create duplicate settlement requests
 - [ ] failure before atomic handoff leaves no false final state
-- [ ] projection failure follows its documented retry path without blocking or
+- [x] projection failure follows its documented retry path without blocking or
   reversing a valid payout
 
 ---
@@ -308,8 +385,11 @@ Tasks:
   direct canonical `progression.gold` only.
 - [x] Keep store affordability and command checks based on the same canonical
   value.
-- [x] Map `settlement_pending` to processing state in Game Over; do not expose
-  it as a second currency or a final reward.
+- [x] Map `settlement_pending` to internal processing in Game Over; present the
+  run result with `Verifying reward…` instead of a player-facing `pending`
+  reward state or a second currency.
+- [x] Poll once per second for the first ten seconds after the initial server
+  status, then every five seconds while Game Over remains mounted.
 - [x] On terminal `validated`, refresh canonical ownership for presentation only
   and render the already-settled wallet.
 - [x] Make Collect a local acknowledgement/animation only:
@@ -324,7 +404,7 @@ Tasks:
 - [x] Remove any durable client marker or retry loop whose purpose is to cause
   a canonical payout; keep normal ownership refresh on foreground/root entry.
 - [x] Add safe copy for delayed processing, rejection, and retry without showing
-  pending gold as wallet value.
+  a pending reward as wallet value.
 
 Done when:
 
@@ -335,7 +415,8 @@ Done when:
 Focused tests:
 
 - [ ] Hub, Town, and Profile exclude provisional reward gold
-- [ ] Game Over shows result context for pending settlement without wallet merge
+- [x] Game Over shows result context with compact verification without wallet
+  merge or a visible settlement-pending panel
 - [ ] terminal validated refreshes and displays canonical settled gold once
 - [ ] Collect cannot mutate AppState progression or call an economy API
 - [ ] app restart/background during pending settlement has no local payout
@@ -356,26 +437,27 @@ Tasks:
   server-state emission.
 - [ ] Deploy the Phase 2 settlement helper, dispatcher, repair job, metrics, and
   dashboards with the dispatcher disabled or scoped to internal test users.
-- [ ] Build and run the legacy inventory/backfill using an idempotent server-side
+- [x] Build and run the legacy inventory/backfill using an idempotent server-side
   adapter; record every repaired, skipped, and invariant-violating item.
 - [ ] Verify every reward-eligible terminal `validated` run has the grant id in
   canonical `appliedRewardGrantIds`.
 - [ ] Enable validator `settlement_pending` handoff for an internal cohort, then
   progressively expand according to observed latency/error targets.
-- [ ] Keep legacy read-time reconciliation enabled only as monitored repair
-  during the migration window.
-- [ ] Remove routine reconciliation from `loadOrCreateCanonicalState` and
-  ownership command execution only after inventory, repair, and telemetry prove
-  that new payouts do not depend on it.
+- [x] Add a temporary compatibility switch around routine reconciliation in
+  `loadOrCreateCanonicalState` and ownership command execution. It defaults to
+  enabled solely so the migration deployment cannot strand a legacy grant.
+- [x] Keep the compatibility switch enabled until migration inventory is
+  complete, every exception has an incident disposition, and the idempotent
+  `apply` pass completes; then set it to `false`.
 - [ ] Remove retired flags, state branches, and tests in one cleanup pass after
   the rollback window closes.
 
 Done when:
 
-- [ ] migration inventory is empty or each exception has an explicit incident
+- [x] migration inventory is empty or each exception has an explicit incident
   disposition
 - [ ] normal client navigation cannot trigger payout completion for a new run
-- [ ] legacy reconciliation has a documented retirement commit and no active
+- [x] legacy reconciliation has a documented retirement deployment and no active
   production dependency
 
 ---
@@ -392,17 +474,31 @@ Tasks:
 - [ ] Validate the initial operational targets from the strategy:
   - [ ] Game Over slow-path threshold: 10 seconds from durable finalize
   - [ ] finalize-to-`settlement_pending`: p95 ≤ 8 seconds, p99 ≤ 30 seconds
+  - [ ] immediate settlement dispatch starts p95 ≤ 1 second after durable
+    handoff
   - [ ] `settlement_pending`-to-terminal: p95 ≤ 2 seconds, p99 ≤ 15 seconds
   - [ ] stale repair attempts begin within five minutes of the configured stale
     threshold
 - [ ] Verify dashboards distinguish validation delay, dispatcher delay,
-  transaction conflict, invariant violation, and optional projection delay.
+  immediate-dispatch timeout, fallback delivery, transaction conflict,
+  invariant violation, and optional projection delay.
+- [x] Create production alerts for invariant violations, retryable rewards
+  pending over 15 minutes, immediate-dispatch fallback above 5% in 15 minutes,
+  and p99 finalize-to-handoff latency above 15 seconds. Confirm the email
+  notification channel before treating inbox delivery as operational.
+- [x] Deploy validator revision `replay-validator-00023-hsn` with a bounded
+  immediate reread/retry for the Firestore finalization-versus-lease
+  update-time race. Persistent contention remains a Cloud Tasks retry; the
+  latency histogram now uses one-second buckets through 60 seconds.
 - [ ] Exercise an end-to-end scenario with the app closed after finalize and
   confirm the server settles before the next ownership read.
-- [ ] Exercise duplicate task/event/repair delivery and concurrent ownership
-  command scenarios in staging.
+- [x] Exercise duplicate immediate/Eventarc/repair delivery in the Firestore
+  emulator and concurrent ownership revision behavior in backend tests.
+- [x] Exercise an immediate-dispatch timeout and a simultaneous
+  immediate/Eventarc/repair delivery; prove eventual settlement occurs exactly
+  once without client activity.
 - [ ] Add the optional fast validation lane only after the durable path meets
-  the targets:
+  the targets and immediate settlement dispatch meets its target:
   - [ ] durable Cloud Tasks fallback exists before fast dispatch
   - [ ] fast invocation uses trusted service identity
   - [ ] it uses the existing validator lease and Phase 2 settlement authority

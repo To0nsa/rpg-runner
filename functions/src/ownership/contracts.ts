@@ -15,6 +15,19 @@ export const ownershipCommandTypes = [
 
 export type OwnershipCommandType = (typeof ownershipCommandTypes)[number];
 
+export const clientOwnershipCommandTypes = [
+  "setSelection",
+  "setLoadout",
+  "equipGear",
+  "setAbilitySlot",
+  "setProjectileSpell",
+  "purchaseStoreOffer",
+  "refreshStore",
+] as const satisfies readonly OwnershipCommandType[];
+
+export type ClientOwnershipCommandType =
+  (typeof clientOwnershipCommandTypes)[number];
+
 export const ownershipRejectedReasons = [
   "staleRevision",
   "idempotencyKeyReuseMismatch",
@@ -77,14 +90,28 @@ export interface CanonicalDocument {
 
 export interface IdempotencyDocument {
   payloadHash: string;
-  result: OwnershipCommandResult;
+  schemaVersion?: unknown;
+  outcome?: {
+    resultingRevision?: unknown;
+    rejectedReason?: unknown;
+  };
+  /** Legacy schema retained only for the bounded compaction migration. */
+  result?: OwnershipCommandResult;
   createdAt?: unknown;
+  createdAtMs?: unknown;
+  expiresAtMs?: unknown;
 }
 
 export function isOwnershipCommandType(
   value: string,
 ): value is OwnershipCommandType {
   return (ownershipCommandTypes as readonly string[]).includes(value);
+}
+
+export function isClientOwnershipCommandType(
+  value: OwnershipCommandType,
+): value is ClientOwnershipCommandType {
+  return (clientOwnershipCommandTypes as readonly string[]).includes(value);
 }
 
 export function isOwnershipRejectedReason(

@@ -6,7 +6,15 @@ import {
   canonicalWriteData,
   resolveCanonicalStateForTransaction,
 } from "../ownership/canonical_store.js";
-import { reconcilePendingRewardGrantsForTransaction } from "../ownership/reward_grants.js";
+import {
+  reconcilePendingRewardGrantsForTransaction,
+  RewardGrantInvariantViolationError,
+} from "../ownership/reward_grants.js";
+import {
+  logSettlementMetric,
+  settlementErrorClass,
+  type SettlementDeliverySource,
+} from "./settlement_metrics.js";
 
 const runSessionsCollection = "run_sessions";
 const validatedRunsCollection = "validated_runs";
@@ -15,7 +23,21 @@ const rewardGrantsCollection = "reward_grants";
 export type AcceptedRunSettlementOutcome =
   | "settled"
   | "already_settled"
-  | "not_ready";
+  | "not_ready"
+  | "invariant_violation";
+
+/**
+ * Marks malformed or contradictory persisted reward data as non-retryable.
+ *
+ * Delivery may be duplicated, but retrying a stable document invariant cannot
+ * repair it and would hide an operator-visible incident behind trigger retries.
+ */
+export class SettlementInvariantViolationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "SettlementInvariantViolationError";
+  }
+}
 
 /**
  * The only path that turns an accepted reward grant into spendable gold.
@@ -29,8 +51,13 @@ export async function settleAcceptedRunSession(args: {
   db: Firestore;
   runSessionId: string;
   nowMs?: number;
+  deliverySource?: SettlementDeliverySource;
 }): Promise<AcceptedRunSettlementOutcome> {
   const nowMs = args.nowMs ?? Date.now();
+  const startedAtMs = Date.now();
+  const deliverySource = args.deliverySource ?? "immediate";
+  let pendingAgeMs: number | undefined;
+  let transactionAttempts = 0;
   const sessionRef = args.db
     .collection(runSessionsCollection)
     .doc(args.runSessionId);
@@ -41,85 +68,153 @@ export async function settleAcceptedRunSession(args: {
     .collection(rewardGrantsCollection)
     .doc(args.runSessionId);
 
-  return args.db.runTransaction(async (tx) => {
-    const [sessionSnapshot, validatedRunSnapshot, rewardGrantSnapshot] =
-      await Promise.all([
-        tx.get(sessionRef),
-        tx.get(validatedRunRef),
-        tx.get(rewardGrantRef),
-      ]);
-    if (!sessionSnapshot.exists) {
-      return "not_ready";
-    }
+  try {
+    const outcome = await args.db.runTransaction(async (tx) => {
+      transactionAttempts += 1;
+      const [sessionSnapshot, validatedRunSnapshot, rewardGrantSnapshot] =
+        await Promise.all([
+          tx.get(sessionRef),
+          tx.get(validatedRunRef),
+          tx.get(rewardGrantRef),
+        ]);
+      if (!sessionSnapshot.exists) {
+        return "not_ready";
+      }
 
-    const session = sessionSnapshot.data() as Record<string, unknown>;
-    const state = readRequiredString(session.state, "run session state");
-    if (state === "validated") {
-      return "already_settled";
-    }
-    if (state !== "settlement_pending") {
-      return "not_ready";
-    }
+      const session = sessionSnapshot.data() as Record<string, unknown>;
+      const state = readRequiredString(session.state, "run session state");
+      if (state === "validated") {
+        const uid = readRequiredString(session.uid, "run session uid");
+        assertAcceptedValidatedRun({
+          runSessionId: args.runSessionId,
+          uid,
+          data: validatedRunSnapshot.data() as Record<string, unknown> | undefined,
+          exists: validatedRunSnapshot.exists,
+        });
+        assertSettledRewardGrant({
+          runSessionId: args.runSessionId,
+          uid,
+          data: rewardGrantSnapshot.data() as Record<string, unknown> | undefined,
+          exists: rewardGrantSnapshot.exists,
+        });
+        assertMatchingSettlementContext({
+          runSessionId: args.runSessionId,
+          session,
+          validatedRun: validatedRunSnapshot.data() as Record<string, unknown>,
+          rewardGrant: rewardGrantSnapshot.data() as Record<string, unknown>,
+        });
+        const resolvedCanonical = await resolveCanonicalStateForTransaction({
+          db: args.db,
+          tx,
+          uid,
+        });
+        assertCanonicalAppliedGrant({
+          runSessionId: args.runSessionId,
+          canonical: resolvedCanonical.canonical,
+        });
+        return "already_settled";
+      }
+      if (state !== "settlement_pending") {
+        return "not_ready";
+      }
+      pendingAgeMs = durationSinceMs(session.settlementPendingAtMs, nowMs);
 
-    const uid = readRequiredString(session.uid, "run session uid");
-    assertAcceptedValidatedRun({
-      runSessionId: args.runSessionId,
-      uid,
-      data: validatedRunSnapshot.data() as Record<string, unknown> | undefined,
-      exists: validatedRunSnapshot.exists,
-    });
-    assertPendingRewardGrant({
-      runSessionId: args.runSessionId,
-      uid,
-      data: rewardGrantSnapshot.data() as Record<string, unknown> | undefined,
-      exists: rewardGrantSnapshot.exists,
-    });
-    assertMatchingSettlementContext({
-      runSessionId: args.runSessionId,
-      session,
-      validatedRun: validatedRunSnapshot.data() as Record<string, unknown>,
-      rewardGrant: rewardGrantSnapshot.data() as Record<string, unknown>,
-    });
+      const uid = readRequiredString(session.uid, "run session uid");
+      assertAcceptedValidatedRun({
+        runSessionId: args.runSessionId,
+        uid,
+        data: validatedRunSnapshot.data() as Record<string, unknown> | undefined,
+        exists: validatedRunSnapshot.exists,
+      });
+      assertPendingRewardGrant({
+        runSessionId: args.runSessionId,
+        uid,
+        data: rewardGrantSnapshot.data() as Record<string, unknown> | undefined,
+        exists: rewardGrantSnapshot.exists,
+      });
+      assertMatchingSettlementContext({
+        runSessionId: args.runSessionId,
+        session,
+        validatedRun: validatedRunSnapshot.data() as Record<string, unknown>,
+        rewardGrant: rewardGrantSnapshot.data() as Record<string, unknown>,
+      });
 
-    const resolvedCanonical = await resolveCanonicalStateForTransaction({
-      db: args.db,
-      tx,
-      uid,
-    });
-    const reconciled = await reconcilePendingRewardGrantsForTransaction({
-      db: args.db,
-      tx,
-      uid,
-      canonicalState: resolvedCanonical.canonical,
-      nowMs,
-      settlementGrantId: args.runSessionId,
-    });
-    if (resolvedCanonical.exists && reconciled.canonicalChanged) {
+      const resolvedCanonical = await resolveCanonicalStateForTransaction({
+        db: args.db,
+        tx,
+        uid,
+      });
+      const reconciled = await reconcilePendingRewardGrantsForTransaction({
+        db: args.db,
+        tx,
+        uid,
+        canonicalState: resolvedCanonical.canonical,
+        nowMs,
+        settlementGrantId: args.runSessionId,
+      });
+      if (resolvedCanonical.exists && reconciled.canonicalChanged) {
+        tx.set(
+          resolvedCanonical.canonicalRef,
+          canonicalMergeWriteData(uid, reconciled.canonicalState),
+          { merge: true },
+        );
+      } else if (!resolvedCanonical.exists) {
+        tx.set(
+          resolvedCanonical.canonicalRef,
+          canonicalWriteData(uid, reconciled.canonicalState),
+        );
+      }
       tx.set(
-        resolvedCanonical.canonicalRef,
-        canonicalMergeWriteData(uid, reconciled.canonicalState),
+        sessionRef,
+        {
+          state: "validated",
+          updatedAtMs: nowMs,
+          terminalAtMs: nowMs,
+          settledAtMs: nowMs,
+          settlementMessage: "Reward settled.",
+          message: null,
+        },
         { merge: true },
       );
-    } else if (!resolvedCanonical.exists) {
-      tx.set(
-        resolvedCanonical.canonicalRef,
-        canonicalWriteData(uid, reconciled.canonicalState),
-      );
+      return "settled";
+    });
+    logSettlementMetric({
+      event: "settlement_transaction",
+      runSessionId: args.runSessionId,
+      deliverySource,
+      outcome,
+      durationMs: Date.now() - startedAtMs,
+      pendingAgeMs,
+      transactionAttempts,
+    });
+    return outcome;
+  } catch (error) {
+    if (
+      error instanceof SettlementInvariantViolationError ||
+      error instanceof RewardGrantInvariantViolationError
+    ) {
+      logSettlementMetric({
+        event: "settlement_transaction",
+        runSessionId: args.runSessionId,
+        deliverySource,
+        outcome: "invariant_violation",
+        durationMs: Date.now() - startedAtMs,
+        pendingAgeMs,
+        transactionAttempts,
+        errorClass: settlementErrorClass(error),
+      });
+      return "invariant_violation";
     }
-    tx.set(
-      sessionRef,
-      {
-        state: "validated",
-        updatedAtMs: nowMs,
-        terminalAtMs: nowMs,
-        settledAtMs: nowMs,
-        settlementMessage: "Reward settled.",
-        message: null,
-      },
-      { merge: true },
-    );
-    return "settled";
-  });
+    logSettlementMetric({
+      event: "settlement_transaction_failure",
+      runSessionId: args.runSessionId,
+      deliverySource,
+      durationMs: Date.now() - startedAtMs,
+      transactionAttempts,
+      errorClass: settlementErrorClass(error),
+    });
+    throw error;
+  }
 }
 
 function assertAcceptedValidatedRun(args: {
@@ -129,17 +224,17 @@ function assertAcceptedValidatedRun(args: {
   data: Record<string, unknown> | undefined;
 }): void {
   if (!args.exists || !args.data) {
-    throw new Error(
+    throw new SettlementInvariantViolationError(
       `validated_runs/${args.runSessionId} is required before settlement.`,
     );
   }
   if (args.data.accepted !== true) {
-    throw new Error(
+    throw new SettlementInvariantViolationError(
       `validated_runs/${args.runSessionId} must be accepted before settlement.`,
     );
   }
   if (readRequiredString(args.data.uid, "validated run uid") !== args.uid) {
-    throw new Error(
+    throw new SettlementInvariantViolationError(
       `validated_runs/${args.runSessionId} uid does not match the run session.`,
     );
   }
@@ -147,7 +242,7 @@ function assertAcceptedValidatedRun(args: {
     readRequiredString(args.data.runSessionId, "validated run session id") !==
     args.runSessionId
   ) {
-    throw new Error(
+    throw new SettlementInvariantViolationError(
       `validated_runs/${args.runSessionId} has a mismatched runSessionId.`,
     );
   }
@@ -160,17 +255,17 @@ function assertPendingRewardGrant(args: {
   data: Record<string, unknown> | undefined;
 }): void {
   if (!args.exists || !args.data) {
-    throw new Error(
+    throw new SettlementInvariantViolationError(
       `reward_grants/${args.runSessionId} is required before settlement.`,
     );
   }
   if (args.data.lifecycleState !== "settlement_pending") {
-    throw new Error(
+    throw new SettlementInvariantViolationError(
       `reward_grants/${args.runSessionId} is not settlement_pending.`,
     );
   }
   if (readRequiredString(args.data.uid, "reward grant uid") !== args.uid) {
-    throw new Error(
+    throw new SettlementInvariantViolationError(
       `reward_grants/${args.runSessionId} uid does not match the run session.`,
     );
   }
@@ -178,8 +273,54 @@ function assertPendingRewardGrant(args: {
     readRequiredString(args.data.runSessionId, "reward grant run session id") !==
     args.runSessionId
   ) {
-    throw new Error(
+    throw new SettlementInvariantViolationError(
       `reward_grants/${args.runSessionId} has a mismatched runSessionId.`,
+    );
+  }
+}
+
+function assertSettledRewardGrant(args: {
+  runSessionId: string;
+  uid: string;
+  exists: boolean;
+  data: Record<string, unknown> | undefined;
+}): void {
+  if (!args.exists || !args.data) {
+    throw new SettlementInvariantViolationError(
+      `reward_grants/${args.runSessionId} is required for a validated run.`,
+    );
+  }
+  if (args.data.lifecycleState !== "validated_settled") {
+    throw new SettlementInvariantViolationError(
+      `reward_grants/${args.runSessionId} is not validated_settled for a validated run.`,
+    );
+  }
+  if (readRequiredString(args.data.uid, "reward grant uid") !== args.uid) {
+    throw new SettlementInvariantViolationError(
+      `reward_grants/${args.runSessionId} uid does not match the run session.`,
+    );
+  }
+  if (
+    readRequiredString(args.data.runSessionId, "reward grant run session id") !==
+    args.runSessionId
+  ) {
+    throw new SettlementInvariantViolationError(
+      `reward_grants/${args.runSessionId} has a mismatched runSessionId.`,
+    );
+  }
+}
+
+function assertCanonicalAppliedGrant(args: {
+  runSessionId: string;
+  canonical: { progression: Record<string, unknown> };
+}): void {
+  const appliedRewardGrantIds = args.canonical.progression.appliedRewardGrantIds;
+  if (
+    !Array.isArray(appliedRewardGrantIds) ||
+    !appliedRewardGrantIds.includes(args.runSessionId)
+  ) {
+    throw new SettlementInvariantViolationError(
+      `validated run ${args.runSessionId} is missing its canonical applied reward grant id.`,
     );
   }
 }
@@ -195,7 +336,7 @@ function assertMatchingSettlementContext(args: {
     readRequiredRunMode(args.validatedRun.mode, "validated run mode") !== mode ||
     readRequiredRunMode(args.rewardGrant.mode, "reward grant mode") !== mode
   ) {
-    throw new Error(
+    throw new SettlementInvariantViolationError(
       `run ${args.runSessionId} has mismatched settlement mode context.`,
     );
   }
@@ -210,7 +351,7 @@ function assertMatchingSettlementContext(args: {
       "reward grant goldAmount",
     ) !== validatedGold
   ) {
-    throw new Error(
+    throw new SettlementInvariantViolationError(
       `run ${args.runSessionId} grant gold does not match validated gold.`,
     );
   }
@@ -219,7 +360,7 @@ function assertMatchingSettlementContext(args: {
   const validatedBoardId = readOptionalNonEmptyString(args.validatedRun.boardId);
   const rewardBoardId = readOptionalNonEmptyString(args.rewardGrant.boardId);
   if (boardId !== validatedBoardId || boardId !== rewardBoardId) {
-    throw new Error(
+    throw new SettlementInvariantViolationError(
       `run ${args.runSessionId} has mismatched settlement board id context.`,
     );
   }
@@ -227,19 +368,19 @@ function assertMatchingSettlementContext(args: {
     !isDeepStrictEqual(args.session.boardKey, args.validatedRun.boardKey) ||
     !isDeepStrictEqual(args.session.boardKey, args.rewardGrant.boardKey)
   ) {
-    throw new Error(
+    throw new SettlementInvariantViolationError(
       `run ${args.runSessionId} has mismatched settlement board key context.`,
     );
   }
 
   const requiresBoard = mode !== "practice";
   if (requiresBoard && (boardId == null || args.session.boardKey == null)) {
-    throw new Error(
+    throw new SettlementInvariantViolationError(
       `run ${args.runSessionId} is board-bound but has no board context.`,
     );
   }
   if (!requiresBoard && (boardId != null || args.session.boardKey != null)) {
-    throw new Error(
+    throw new SettlementInvariantViolationError(
       `practice run ${args.runSessionId} must not have board context.`,
     );
   }
@@ -247,7 +388,9 @@ function assertMatchingSettlementContext(args: {
 
 function readRequiredString(value: unknown, fieldName: string): string {
   if (typeof value !== "string" || value.trim().length === 0) {
-    throw new Error(`${fieldName} must be a non-empty string.`);
+    throw new SettlementInvariantViolationError(
+      `${fieldName} must be a non-empty string.`,
+    );
   }
   return value.trim();
 }
@@ -268,7 +411,9 @@ function readRequiredRunMode(
   if (mode === "practice" || mode === "competitive" || mode === "weekly") {
     return mode;
   }
-  throw new Error(`${fieldName} must be a supported run mode.`);
+  throw new SettlementInvariantViolationError(
+    `${fieldName} must be a supported run mode.`,
+  );
 }
 
 function readRequiredNonNegativeInteger(value: unknown, fieldName: string): number {
@@ -277,7 +422,20 @@ function readRequiredNonNegativeInteger(value: unknown, fieldName: string): numb
     !Number.isSafeInteger(value) ||
     value < 0
   ) {
-    throw new Error(`${fieldName} must be a non-negative safe integer.`);
+    throw new SettlementInvariantViolationError(
+      `${fieldName} must be a non-negative safe integer.`,
+    );
   }
   return value;
+}
+
+function durationSinceMs(value: unknown, nowMs: number): number | undefined {
+  if (
+    typeof value !== "number" ||
+    !Number.isSafeInteger(value) ||
+    value <= 0
+  ) {
+    return undefined;
+  }
+  return Math.max(0, nowMs - value);
 }

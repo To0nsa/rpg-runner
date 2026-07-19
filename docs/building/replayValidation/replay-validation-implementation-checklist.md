@@ -1,13 +1,18 @@
 # Replay Validation Implementation Checklist
 
 Date: March 12, 2026
-Last reviewed: July 16, 2026
-Status: Code implementation complete; release verification pending
+Last reviewed: July 18, 2026
+Status: Historical Phase 1-7 delivery complete; corrective remediation and
+release verification pending. Production release is blocked by the July 18
+audit.
 Source plan: `docs/building/replayValidation/replay-validation-plan.md`
+Active remediation:
+[replay-validator-audit-remediation-plan.md](replay-validator-audit-remediation-plan.md)
 
-All Phase 1-7 implementation tasks are complete in the repository. The open
-items below are staging, IAM, policy, and release-verification gates; they are
-not evidence that the code phase remains incomplete.
+The historical Phase 1-7 delivery tasks remain complete. The separate
+remediation plan owns corrective code, migration, staging, and release work
+identified by the immutable audit baseline. The open items below remain
+applicable but cannot approve release before the remediation plan closes.
 
 ## Goal
 

@@ -1,7 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_core/abilities/ability_def.dart';
-import 'package:runner_core/accessories/accessory_id.dart';
-import 'package:runner_core/meta/gear_slot.dart';
 import 'package:runner_core/meta/meta_service.dart';
 import 'package:runner_core/projectiles/projectile_id.dart';
 import 'package:rpg_runner/ui/state/app/app_state.dart';
@@ -36,44 +34,11 @@ void main() {
         characterId: characterId,
         spellId: ProjectileId.holyBolt,
       );
-      await appState.flushOwnershipEdits(
-        trigger: OwnershipFlushTrigger.manual,
-      );
+      await appState.flushOwnershipEdits(trigger: OwnershipFlushTrigger.manual);
 
       expect(api.setAbilitySlotCalls, 1);
       expect(api.setProjectileSpellCalls, 1);
       expect(api.setLoadoutCalls, 0);
-    },
-  );
-
-  test(
-    'AppState routes learn and unlock mutations through dedicated commands',
-    () async {
-      final api = _RecordingOwnershipApi();
-      final appState = AppState(
-        authApi: _StaticAuthApi.authenticated(),
-        loadoutOwnershipApi: api,
-      );
-
-      await appState.bootstrap(force: true);
-      final characterId = appState.selection.selectedCharacterId;
-
-      await appState.learnProjectileSpell(
-        characterId: characterId,
-        spellId: ProjectileId.acidBolt,
-      );
-      await appState.learnSpellAbility(
-        characterId: characterId,
-        abilityId: appState.selection.loadoutFor(characterId).abilitySpellId,
-      );
-      await appState.unlockGear(
-        slot: GearSlot.accessory,
-        itemId: AccessoryId.strengthBelt,
-      );
-
-      expect(api.learnProjectileSpellCalls, 1);
-      expect(api.learnSpellAbilityCalls, 1);
-      expect(api.unlockGearCalls, 1);
     },
   );
 
@@ -103,9 +68,6 @@ class _RecordingOwnershipApi implements LoadoutOwnershipApi {
   int setLoadoutCalls = 0;
   int setAbilitySlotCalls = 0;
   int setProjectileSpellCalls = 0;
-  int learnProjectileSpellCalls = 0;
-  int learnSpellAbilityCalls = 0;
-  int unlockGearCalls = 0;
   int purchaseStoreOfferCalls = 0;
   int refreshStoreCalls = 0;
 
@@ -145,13 +107,6 @@ class _RecordingOwnershipApi implements LoadoutOwnershipApi {
   }
 
   @override
-  Future<OwnershipCommandResult> resetOwnership(
-    ResetOwnershipCommand command,
-  ) async {
-    return _acceptedResult();
-  }
-
-  @override
   Future<OwnershipCommandResult> equipGear(EquipGearCommand command) async {
     return _acceptedResult();
   }
@@ -175,35 +130,6 @@ class _RecordingOwnershipApi implements LoadoutOwnershipApi {
     SetProjectileSpellCommand command,
   ) async {
     setProjectileSpellCalls += 1;
-    return _acceptedResult();
-  }
-
-  @override
-  Future<OwnershipCommandResult> learnProjectileSpell(
-    LearnProjectileSpellCommand command,
-  ) async {
-    learnProjectileSpellCalls += 1;
-    return _acceptedResult();
-  }
-
-  @override
-  Future<OwnershipCommandResult> learnSpellAbility(
-    LearnSpellAbilityCommand command,
-  ) async {
-    learnSpellAbilityCalls += 1;
-    return _acceptedResult();
-  }
-
-  @override
-  Future<OwnershipCommandResult> unlockGear(UnlockGearCommand command) async {
-    unlockGearCalls += 1;
-    return _acceptedResult();
-  }
-
-  @override
-  Future<OwnershipCommandResult> awardRunGold(
-    AwardRunGoldCommand command,
-  ) async {
     return _acceptedResult();
   }
 

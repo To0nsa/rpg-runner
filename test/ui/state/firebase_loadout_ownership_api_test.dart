@@ -1,7 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_core/abilities/ability_def.dart';
-import 'package:runner_core/accessories/accessory_id.dart';
-import 'package:runner_core/meta/gear_slot.dart';
 import 'package:runner_core/meta/meta_service.dart';
 import 'package:runner_core/players/player_character_definition.dart';
 import 'package:rpg_runner/ui/state/ownership/firebase_loadout_ownership_api.dart';
@@ -108,14 +106,13 @@ void main() {
     final api = FirebaseLoadoutOwnershipApi(source: source);
 
     await expectLater(
-      () => api.unlockGear(
-        const UnlockGearCommand(
+      () => api.purchaseStoreOffer(
+        const PurchaseStoreOfferCommand(
           userId: 'u1',
           sessionId: 's1',
           expectedRevision: 0,
           commandId: 'cmd-fallback',
-          slot: GearSlot.accessory,
-          itemId: AccessoryId.strengthBelt,
+          offerId: 'offer-1',
         ),
       ),
       throwsA(isA<StateError>()),

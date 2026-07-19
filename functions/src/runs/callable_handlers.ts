@@ -1,6 +1,13 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { HttpsError } from "firebase-functions/v2/https";
 
+import { assertAccountActive } from "../account/deletion_guard.js";
+import { consumeUserQuota } from "../abuse/quota.js";
+import {
+  captureAuthorityTimeMs,
+  systemAuthorityClock,
+  type AuthorityClock,
+} from "../authority_time.js";
 import { ensureManagedBoardForModeLevel } from "../boards/provisioning.js";
 import { loadActiveBoardManifest, toBoardManifestJson } from "../boards/store.js";
 import type { JsonObject } from "../ownership/contracts.js";
@@ -33,16 +40,25 @@ interface CallableRequestLike {
 export async function handleRunBoardsLoadActive(
   request: CallableRequestLike,
   db: Firestore,
+  clock: AuthorityClock = systemAuthorityClock,
 ): Promise<{ boardManifest: Record<string, unknown> }> {
   const uid = request.auth?.uid;
   if (!uid) {
     throw new HttpsError("unauthenticated", "Authentication required.");
   }
-  const { userId, mode, levelId, gameCompatVersion, nowMs } =
+  const { userId, mode, levelId, gameCompatVersion } =
     parseLoadActiveBoardRequest(request.data);
   if (userId !== uid) {
     throw new HttpsError("permission-denied", "userId does not match auth uid.");
   }
+  await assertAccountActive(db, uid);
+  const nowMs = captureAuthorityTimeMs(clock);
+  await consumeUserQuota({
+    db,
+    uid,
+    route: "leaderboard_read",
+    nowMs,
+  });
   const manifest = await loadBoardManifestWithProvisioningFallback({
     db,
     mode,
@@ -58,19 +74,29 @@ export async function handleRunBoardsLoadActive(
 export async function handleRunSessionCreate(
   request: CallableRequestLike,
   db: Firestore,
+  clock: AuthorityClock = systemAuthorityClock,
 ): Promise<{ runTicket: Record<string, unknown> }> {
   const uid = request.auth?.uid;
   if (!uid) {
     throw new HttpsError("unauthenticated", "Authentication required.");
   }
-  const { userId, mode, levelId, gameCompatVersion, nowMs } =
+  const { userId, clientRequestId, mode, levelId, gameCompatVersion } =
     parseRunSessionCreateRequest(request.data);
   if (userId !== uid) {
     throw new HttpsError("permission-denied", "userId does not match auth uid.");
   }
+  await assertAccountActive(db, uid);
+  const nowMs = captureAuthorityTimeMs(clock);
+  await consumeUserQuota({
+    db,
+    uid,
+    route: "run_create",
+    nowMs,
+  });
   const result = await createRunSession({
     db,
     uid,
+    clientRequestId,
     mode,
     levelId,
     gameCompatVersion,
@@ -84,23 +110,32 @@ export async function handleRunSessionCreate(
 export async function handleRunSessionCreateUploadGrant(
   request: CallableRequestLike,
   db: Firestore,
-  dependencies: RunSubmissionDependencies = createDefaultRunSubmissionDependencies(),
+  dependencies?: RunSubmissionDependencies,
+  clock: AuthorityClock = systemAuthorityClock,
 ): Promise<{ uploadGrant: UploadGrantRecord }> {
   const uid = request.auth?.uid;
   if (!uid) {
     throw new HttpsError("unauthenticated", "Authentication required.");
   }
-  const { userId, runSessionId, nowMs } =
+  const { userId, runSessionId } =
     parseRunSessionCreateUploadGrantRequest(request.data);
   if (userId !== uid) {
     throw new HttpsError("permission-denied", "userId does not match auth uid.");
   }
+  await assertAccountActive(db, uid);
+  const nowMs = captureAuthorityTimeMs(clock);
+  await consumeUserQuota({
+    db,
+    uid,
+    route: "upload_grant",
+    nowMs,
+  });
   const result = await createRunSessionUploadGrant({
     db,
     uid,
     runSessionId,
     nowMs,
-    dependencies,
+    dependencies: dependencies ?? createDefaultRunSubmissionDependencies(),
   });
   return {
     uploadGrant: result.uploadGrant,
@@ -110,7 +145,8 @@ export async function handleRunSessionCreateUploadGrant(
 export async function handleRunSessionFinalizeUpload(
   request: CallableRequestLike,
   db: Firestore,
-  dependencies: RunSubmissionDependencies = createDefaultRunSubmissionDependencies(),
+  dependencies?: RunSubmissionDependencies,
+  clock: AuthorityClock = systemAuthorityClock,
 ): Promise<{ submissionStatus: JsonObject }> {
   const uid = request.auth?.uid;
   if (!uid) {
@@ -124,11 +160,19 @@ export async function handleRunSessionFinalizeUpload(
     contentType,
     objectPath,
     provisionalSummary,
-    nowMs,
   } = parseRunSessionFinalizeUploadRequest(request.data);
   if (userId !== uid) {
     throw new HttpsError("permission-denied", "userId does not match auth uid.");
   }
+  await assertAccountActive(db, uid);
+  const nowMs = captureAuthorityTimeMs(clock);
+  await consumeUserQuota({
+    db,
+    uid,
+    route: "finalize_replay_bytes",
+    units: contentLengthBytes,
+    nowMs,
+  });
   const result = await finalizeRunSessionUpload({
     db,
     uid,
@@ -139,7 +183,7 @@ export async function handleRunSessionFinalizeUpload(
     objectPath,
     provisionalSummary,
     nowMs,
-    dependencies,
+    dependencies: dependencies ?? createDefaultRunSubmissionDependencies(),
   });
   return {
     submissionStatus: result.submissionStatus,
@@ -158,6 +202,7 @@ export async function handleRunSessionLoadStatus(
   if (userId !== uid) {
     throw new HttpsError("permission-denied", "userId does not match auth uid.");
   }
+  await assertAccountActive(db, uid);
   const result = await loadRunSessionSubmissionStatus({
     db,
     uid,
@@ -173,7 +218,7 @@ async function loadBoardManifestWithProvisioningFallback(args: {
   mode: "competitive" | "weekly";
   levelId: string;
   gameCompatVersion: string;
-  nowMs?: number;
+  nowMs: number;
 }) {
   try {
     return await loadActiveBoardManifest(args);

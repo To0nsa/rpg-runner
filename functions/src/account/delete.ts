@@ -1,17 +1,24 @@
+import { randomUUID } from "node:crypto";
+
 import { getAuth } from "firebase-admin/auth";
-import type {
-  CollectionReference,
-  DocumentReference,
-  Firestore,
+import {
+  FieldPath,
+  FieldValue,
+  type DocumentReference,
+  type Firestore,
 } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
-import { HttpsError } from "firebase-functions/v2/https";
 
 import { normalizeDisplayNameForPolicy } from "../profile/validators.js";
+import {
+  accountDeletionRequestRef,
+  accountDeletionRequestsCollection,
+} from "./deletion_guard.js";
 
 const playerProfilesCollection = "player_profiles";
 const displayNameIndexCollection = "display_name_index";
 const ownershipProfilesCollection = "ownership_profiles";
+const abuseQuotaCollection = "abuse_quota";
 const runSessionsCollection = "run_sessions";
 const validatedRunsCollection = "validated_runs";
 const rewardGrantsCollection = "reward_grants";
@@ -25,61 +32,97 @@ const replaySubmissionPendingPathPrefix = "replay-submissions/pending";
 const replayValidatedPathPrefix = "replay-submissions/validated";
 const ghostArtifactPathPrefix = "ghosts";
 
-/**
- * Keep this list explicit until ghost storage schema is finalized.
- * These are safe to query because deletes are always scoped by UID fields.
- */
-const ghostCollectionSpecs: readonly GhostCollectionSpec[] = [
-  { collection: "ghost_runs", uidFields: ["uid", "userId", "ownerUid"] },
-  {
-    collection: "leaderboard_ghost_runs",
-    uidFields: ["uid", "userId", "ownerUid"],
-  },
-  {
-    collection: "weekly_ghost_runs",
-    uidFields: ["uid", "userId", "ownerUid"],
-  },
-];
+const signedUploadQuietPeriodMs = 15 * 60 * 1000;
+export const accountDeletionCompletionRetentionMs = 30 * 24 * 60 * 60 * 1000;
+const deletionLeaseMs = 5 * 60 * 1000;
 
-interface GhostCollectionSpec {
-  collection: string;
-  uidFields: readonly string[];
-}
+const stages = [
+  "disable_auth",
+  "profile",
+  "display_name_index",
+  "ownership_idempotency",
+  "ownership",
+  "abuse_quota",
+  "run_sessions",
+  "validated_runs",
+  "reward_grants",
+  "ghost_runs_uid",
+  "ghost_runs_user_id",
+  "ghost_runs_owner_uid",
+  "leaderboard_ghost_runs_uid",
+  "leaderboard_ghost_runs_user_id",
+  "leaderboard_ghost_runs_owner_uid",
+  "weekly_ghost_runs_uid",
+  "weekly_ghost_runs_user_id",
+  "weekly_ghost_runs_owner_uid",
+  "board_ghosts",
+  "board_player_bests",
+  "pending_replay_artifacts",
+  "quiet_wait",
+  "delete_auth",
+] as const;
+
+type AccountDeletionStage = (typeof stages)[number];
+type AccountDeletionState =
+  | "requested"
+  | "in_progress"
+  | "retryable"
+  | "complete";
 
 export interface ReplayArtifactStore {
-  deleteByPrefix(args: { prefix: string }): Promise<number>;
+  deletePageByPrefix(args: {
+    prefix: string;
+    maxResults: number;
+  }): Promise<number>;
   deleteObjectIfExists(args: { objectPath: string }): Promise<boolean>;
 }
 
-export interface AccountDeleteResult {
-  status: "deleted";
-  deleted: {
-    profileDocs: number;
-    displayNameIndexDocs: number;
-    ownershipDocs: number;
-    runSessionDocs: number;
-    validatedRunDocs: number;
-    rewardGrantDocs: number;
-    ghostDocs: number;
-    leaderboardPlayerBestDocs: number;
-    invalidatedTop10ViewDocs: number;
-    pendingReplayObjectDeletes: number;
-    validatedReplayObjectDeletes: number;
-    ghostArtifactObjectDeletes: number;
-  };
+export interface AccountDeletionAuth {
+  disableAndRevoke(uid: string): Promise<void>;
+  deleteUser(uid: string): Promise<void>;
 }
 
-interface AccountDeleteArgs {
-  db: Firestore;
-  uid: string;
-  deleteAuthUser?: (uid: string) => Promise<void>;
+export interface AccountDeletionDependencies {
+  auth?: AccountDeletionAuth;
   replayArtifactStore?: ReplayArtifactStore;
 }
 
-interface AccountDeleteCounters {
+export interface AccountDeleteResult {
+  status: "requested" | "in_progress" | "retryable" | "deleted";
+  requestId: string;
+}
+
+export interface AccountDeletionProcessResult extends AccountDeleteResult {
+  processed: boolean;
+  stage: AccountDeletionStage | "complete";
+}
+
+interface AccountDeletionRequestDocument {
+  uid?: unknown;
+  state?: unknown;
+  stage?: unknown;
+  pass?: unknown;
+  finalPass?: unknown;
+  passDeletedCount?: unknown;
+  boardCursor?: unknown;
+  requestedAtMs?: unknown;
+  updatedAtMs?: unknown;
+  completedAtMs?: unknown;
+  expiresAtMs?: unknown;
+  attemptCount?: unknown;
+  leaseToken?: unknown;
+  leaseExpiresAtMs?: unknown;
+  lastErrorClass?: unknown;
+  lastErrorMessage?: unknown;
+  deleted?: unknown;
+}
+
+interface AccountDeletionCounters {
   profileDocs: number;
   displayNameIndexDocs: number;
+  ownershipIdempotencyDocs: number;
   ownershipDocs: number;
+  abuseQuotaDocs: number;
   runSessionDocs: number;
   validatedRunDocs: number;
   rewardGrantDocs: number;
@@ -91,34 +134,989 @@ interface AccountDeleteCounters {
   ghostArtifactObjectDeletes: number;
 }
 
-interface PlayerProfileDocument {
-  uid?: unknown;
-  displayName?: unknown;
-  displayNameNormalized?: unknown;
+interface AcquiredDeletion {
+  uid: string;
+  state: Exclude<AccountDeletionState, "complete">;
+  stage: AccountDeletionStage;
+  pass: number;
+  finalPass: boolean;
+  passDeletedCount: number;
+  boardCursor: string | null;
+  requestedAtMs: number;
+  attemptCount: number;
+  deleted: AccountDeletionCounters;
+  leaseToken: string;
 }
 
-interface DisplayNameIndexDocument {
-  uid?: unknown;
+interface StageOutcome {
+  stage: AccountDeletionStage;
+  pass?: number;
+  finalPass?: boolean;
+  passDeletedCount?: number;
+  boardCursor?: string | null;
+  counters?: Partial<AccountDeletionCounters>;
+  completed?: boolean;
 }
 
-interface GhostManifestDocument {
-  runSessionId?: unknown;
-  replayStorageRef?: unknown;
-  sourceReplayStorageRef?: unknown;
+interface FlatGhostStage {
+  collection: string;
+  uidField: "uid" | "userId" | "ownerUid";
 }
 
-interface GhostDeleteOutcome {
-  runSessionIds: Set<string>;
-  ghostArtifactObjectPaths: Set<string>;
+const flatGhostStages: Partial<
+  Record<AccountDeletionStage, FlatGhostStage>
+> = {
+  ghost_runs_uid: { collection: "ghost_runs", uidField: "uid" },
+  ghost_runs_user_id: { collection: "ghost_runs", uidField: "userId" },
+  ghost_runs_owner_uid: { collection: "ghost_runs", uidField: "ownerUid" },
+  leaderboard_ghost_runs_uid: {
+    collection: "leaderboard_ghost_runs",
+    uidField: "uid",
+  },
+  leaderboard_ghost_runs_user_id: {
+    collection: "leaderboard_ghost_runs",
+    uidField: "userId",
+  },
+  leaderboard_ghost_runs_owner_uid: {
+    collection: "leaderboard_ghost_runs",
+    uidField: "ownerUid",
+  },
+  weekly_ghost_runs_uid: {
+    collection: "weekly_ghost_runs",
+    uidField: "uid",
+  },
+  weekly_ghost_runs_user_id: {
+    collection: "weekly_ghost_runs",
+    uidField: "userId",
+  },
+  weekly_ghost_runs_owner_uid: {
+    collection: "weekly_ghost_runs",
+    uidField: "ownerUid",
+  },
+};
+
+export async function requestAccountDeletion(args: {
+  db: Firestore;
+  uid: string;
+  nowMs?: number;
+  pageSize?: number;
+  dependencies?: AccountDeletionDependencies;
+}): Promise<AccountDeleteResult> {
+  const nowMs = args.nowMs ?? Date.now();
+  requirePositiveSafeInteger(nowMs, "nowMs");
+  const ref = accountDeletionRequestRef(args.db, args.uid);
+  await args.db.runTransaction(async (tx) => {
+    const snapshot = await tx.get(ref);
+    if (snapshot.exists) {
+      return;
+    }
+    tx.create(ref, {
+      uid: args.uid,
+      state: "requested",
+      stage: "disable_auth",
+      pass: 1,
+      finalPass: false,
+      passDeletedCount: 0,
+      boardCursor: null,
+      requestedAtMs: nowMs,
+      updatedAtMs: nowMs,
+      attemptCount: 0,
+      deleted: emptyCounters(),
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+  });
+
+  const processed = await processAccountDeletion({
+    db: args.db,
+    uid: args.uid,
+    nowMs,
+    pageSize: args.pageSize,
+    dependencies: args.dependencies,
+  });
+  return {
+    status: processed.status,
+    requestId: processed.requestId,
+  };
 }
 
-export async function deleteAccountAndData(
-  args: AccountDeleteArgs,
-): Promise<AccountDeleteResult> {
-  const counters: AccountDeleteCounters = {
+export async function processAccountDeletion(args: {
+  db: Firestore;
+  uid: string;
+  nowMs?: number;
+  pageSize?: number;
+  dependencies?: AccountDeletionDependencies;
+}): Promise<AccountDeletionProcessResult> {
+  const nowMs = args.nowMs ?? Date.now();
+  const pageSize = args.pageSize ?? 100;
+  requirePositiveSafeInteger(nowMs, "nowMs");
+  if (!Number.isSafeInteger(pageSize) || pageSize <= 0 || pageSize > 500) {
+    throw new Error("pageSize must be an integer between 1 and 500.");
+  }
+
+  const acquired = await acquireDeletionLease({
+    db: args.db,
+    uid: args.uid,
+    nowMs,
+  });
+  if (!acquired) {
+    const current = await loadDeletionResult(args.db, args.uid);
+    return {
+      ...current.result,
+      processed: false,
+      stage: current.stage,
+    };
+  }
+
+  try {
+    const outcome = await executeStage({
+      db: args.db,
+      deletion: acquired,
+      nowMs,
+      pageSize,
+      dependencies: args.dependencies,
+    });
+    await commitStageOutcome({
+      db: args.db,
+      deletion: acquired,
+      outcome,
+      nowMs,
+    });
+  } catch (error) {
+    await recordRetryableFailure({
+      db: args.db,
+      deletion: acquired,
+      nowMs,
+      error,
+    });
+  }
+
+  const current = await loadDeletionResult(args.db, args.uid);
+  return {
+    ...current.result,
+    processed: true,
+    stage: current.stage,
+  };
+}
+
+export async function processPendingAccountDeletions(args: {
+  db: Firestore;
+  nowMs?: number;
+  maxRequests?: number;
+  pageSize?: number;
+  dependencies?: AccountDeletionDependencies;
+}): Promise<{
+  scannedCount: number;
+  processedCount: number;
+  retryableCount: number;
+  completedRecordDeletes: number;
+}> {
+  const nowMs = args.nowMs ?? Date.now();
+  const maxRequests = args.maxRequests ?? 10;
+  requirePositiveSafeInteger(nowMs, "nowMs");
+  if (
+    !Number.isSafeInteger(maxRequests) ||
+    maxRequests <= 0 ||
+    maxRequests > 100
+  ) {
+    throw new Error("maxRequests must be an integer between 1 and 100.");
+  }
+
+  const expired = await args.db
+    .collection(accountDeletionRequestsCollection)
+    .where("expiresAtMs", "<=", nowMs)
+    .limit(maxRequests)
+    .get();
+  let completedRecordDeletes = 0;
+  for (const doc of expired.docs) {
+    const data = doc.data() as AccountDeletionRequestDocument | undefined;
+    if (data?.state === "complete") {
+      await doc.ref.delete();
+      completedRecordDeletes += 1;
+    }
+  }
+
+  const pending = await args.db
+    .collection(accountDeletionRequestsCollection)
+    .where("state", "in", ["requested", "in_progress", "retryable"])
+    .limit(maxRequests)
+    .get();
+  let processedCount = 0;
+  let retryableCount = 0;
+  for (const doc of pending.docs) {
+    const result = await processAccountDeletion({
+      db: args.db,
+      uid: doc.id,
+      nowMs,
+      pageSize: args.pageSize,
+      dependencies: args.dependencies,
+    });
+    if (result.processed) {
+      processedCount += 1;
+    }
+    if (result.status === "retryable") {
+      retryableCount += 1;
+    }
+  }
+  return {
+    scannedCount: pending.size,
+    processedCount,
+    retryableCount,
+    completedRecordDeletes,
+  };
+}
+
+async function acquireDeletionLease(args: {
+  db: Firestore;
+  uid: string;
+  nowMs: number;
+}): Promise<AcquiredDeletion | null> {
+  const ref = accountDeletionRequestRef(args.db, args.uid);
+  return args.db.runTransaction(async (tx) => {
+    const snapshot = await tx.get(ref);
+    if (!snapshot.exists) {
+      throw new Error(`Account deletion request ${args.uid} does not exist.`);
+    }
+    const document =
+      snapshot.data() as AccountDeletionRequestDocument | undefined;
+    const state = readState(document?.state);
+    if (state === "complete") {
+      return null;
+    }
+    const existingLeaseToken = readOptionalString(document?.leaseToken);
+    const existingLeaseExpiresAtMs = readNonNegativeInteger(
+      document?.leaseExpiresAtMs,
+    );
+    if (
+      existingLeaseToken &&
+      existingLeaseExpiresAtMs > args.nowMs
+    ) {
+      return null;
+    }
+
+    const leaseToken = randomUUID();
+    const attemptCount = readNonNegativeInteger(document?.attemptCount) + 1;
+    tx.set(
+      ref,
+      {
+        state: "in_progress",
+        attemptCount,
+        leaseToken,
+        leaseExpiresAtMs: args.nowMs + deletionLeaseMs,
+        updatedAtMs: args.nowMs,
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+    return {
+      uid: args.uid,
+      state,
+      stage: readStage(document?.stage),
+      pass: Math.max(1, readNonNegativeInteger(document?.pass)),
+      finalPass: document?.finalPass === true,
+      passDeletedCount: readNonNegativeInteger(document?.passDeletedCount),
+      boardCursor: readOptionalString(document?.boardCursor),
+      requestedAtMs: readPositiveInteger(document?.requestedAtMs, args.nowMs),
+      attemptCount,
+      deleted: readCounters(document?.deleted),
+      leaseToken,
+    };
+  });
+}
+
+async function executeStage(args: {
+  db: Firestore;
+  deletion: AcquiredDeletion;
+  nowMs: number;
+  pageSize: number;
+  dependencies?: AccountDeletionDependencies;
+}): Promise<StageOutcome> {
+  const { stage } = args.deletion;
+  const flatGhost = flatGhostStages[stage];
+  if (flatGhost) {
+    const deleted = await deleteQueryPage({
+      db: args.db,
+      collection: flatGhost.collection,
+      uidField: flatGhost.uidField,
+      uid: args.deletion.uid,
+      pageSize: args.pageSize,
+      beforeDelete: async (doc) =>
+        deleteGhostArtifactsFromDocument(
+          doc.data() as Record<string, unknown>,
+          resolveReplayArtifactStore(args.dependencies),
+        ),
+    });
+    return repeatedQueryOutcome({
+      currentStage: stage,
+      deletedCount: deleted.documentCount,
+      counters: {
+        ghostDocs: deleted.documentCount,
+        ghostArtifactObjectDeletes: deleted.ghostArtifactObjectDeletes,
+        validatedReplayObjectDeletes:
+          deleted.validatedReplayObjectDeletes,
+      },
+    });
+  }
+
+  switch (stage) {
+    case "disable_auth":
+      await resolveDeletionAuth(args.dependencies).disableAndRevoke(
+        args.deletion.uid,
+      );
+      return { stage: "profile" };
+    case "profile":
+      return deleteProfile(args.db, args.deletion.uid);
+    case "display_name_index":
+      return deleteSimpleUidPage({
+        ...args,
+        collection: displayNameIndexCollection,
+        counter: "displayNameIndexDocs",
+      });
+    case "ownership_idempotency":
+      return deleteNestedPage({
+        ...args,
+        parentCollection: ownershipProfilesCollection,
+        childCollection: "idempotency",
+        counter: "ownershipIdempotencyDocs",
+      });
+    case "ownership":
+      return deleteSimpleUidPage({
+        ...args,
+        collection: ownershipProfilesCollection,
+        counter: "ownershipDocs",
+      });
+    case "abuse_quota":
+      return deleteSimpleUidPage({
+        ...args,
+        collection: abuseQuotaCollection,
+        counter: "abuseQuotaDocs",
+      });
+    case "run_sessions":
+      return deleteRunDocumentPage({
+        ...args,
+        collection: runSessionsCollection,
+        counter: "runSessionDocs",
+      });
+    case "validated_runs":
+      return deleteRunDocumentPage({
+        ...args,
+        collection: validatedRunsCollection,
+        counter: "validatedRunDocs",
+      });
+    case "reward_grants":
+      return deleteSimpleUidPage({
+        ...args,
+        collection: rewardGrantsCollection,
+        counter: "rewardGrantDocs",
+      });
+    case "board_ghosts":
+      return deleteBoardGhostPage(args);
+    case "board_player_bests":
+      return deleteBoardPlayerBestPage(args);
+    case "pending_replay_artifacts":
+      return deletePendingReplayArtifactPage(args);
+    case "quiet_wait":
+      if (
+        args.nowMs <
+        args.deletion.requestedAtMs + signedUploadQuietPeriodMs
+      ) {
+        return { stage: "quiet_wait" };
+      }
+      return {
+        stage: "profile",
+        pass: args.deletion.pass + 1,
+        finalPass: true,
+        passDeletedCount: 0,
+        boardCursor: null,
+      };
+    case "delete_auth":
+      await resolveDeletionAuth(args.dependencies).deleteUser(
+        args.deletion.uid,
+      );
+      return { stage: "delete_auth", completed: true };
+  }
+  throw new Error(`Unsupported account deletion stage: ${stage}`);
+}
+
+async function deleteProfile(
+  db: Firestore,
+  uid: string,
+): Promise<StageOutcome> {
+  const ref = db.collection(playerProfilesCollection).doc(uid);
+  const snapshot = await ref.get();
+  if (!snapshot.exists) {
+    return { stage: "display_name_index" };
+  }
+  const document = snapshot.data() as Record<string, unknown>;
+  const normalized = readNormalizedDisplayName(document);
+  let indexDeleted = 0;
+  if (normalized) {
+    const indexRef = db
+      .collection(displayNameIndexCollection)
+      .doc(normalized);
+    const indexSnapshot = await indexRef.get();
+    if (indexSnapshot.data()?.uid === uid) {
+      await indexRef.delete();
+      indexDeleted = 1;
+    }
+  }
+  await ref.delete();
+  return {
+    stage: "profile",
+    counters: {
+      profileDocs: 1,
+      displayNameIndexDocs: indexDeleted,
+    },
+  };
+}
+
+async function deleteSimpleUidPage(args: {
+  db: Firestore;
+  deletion: AcquiredDeletion;
+  pageSize: number;
+  collection: string;
+  counter: keyof AccountDeletionCounters;
+}): Promise<StageOutcome> {
+  const deleted = await deleteQueryPage({
+    db: args.db,
+    collection: args.collection,
+    uidField: "uid",
+    uid: args.deletion.uid,
+    pageSize: args.pageSize,
+  });
+  return repeatedQueryOutcome({
+    currentStage: args.deletion.stage,
+    deletedCount: deleted.documentCount,
+    counters: { [args.counter]: deleted.documentCount },
+  });
+}
+
+async function deleteRunDocumentPage(args: {
+  db: Firestore;
+  deletion: AcquiredDeletion;
+  pageSize: number;
+  dependencies?: AccountDeletionDependencies;
+  collection: string;
+  counter: "runSessionDocs" | "validatedRunDocs";
+}): Promise<StageOutcome> {
+  const replayArtifactStore = resolveReplayArtifactStore(args.dependencies);
+  const deleted = await deleteQueryPage({
+    db: args.db,
+    collection: args.collection,
+    uidField: "uid",
+    uid: args.deletion.uid,
+    pageSize: args.pageSize,
+    beforeDelete: async (doc) => {
+      const deletedArtifact =
+        await replayArtifactStore.deleteObjectIfExists({
+          objectPath: buildValidatedReplayObjectPath(doc.id),
+        });
+      return {
+        validatedReplayObjectDeletes: deletedArtifact ? 1 : 0,
+      };
+    },
+  });
+  return repeatedQueryOutcome({
+    currentStage: args.deletion.stage,
+    deletedCount: deleted.documentCount,
+    counters: {
+      [args.counter]: deleted.documentCount,
+      validatedReplayObjectDeletes:
+        deleted.validatedReplayObjectDeletes,
+    },
+  });
+}
+
+async function deleteNestedPage(args: {
+  db: Firestore;
+  deletion: AcquiredDeletion;
+  pageSize: number;
+  parentCollection: string;
+  childCollection: string;
+  counter: keyof AccountDeletionCounters;
+}): Promise<StageOutcome> {
+  const parent = await nextOwnedParent({
+    db: args.db,
+    collection: args.parentCollection,
+    uid: args.deletion.uid,
+    after: args.deletion.boardCursor,
+  });
+  if (!parent) {
+    return {
+      stage: nextStage(args.deletion.stage),
+      boardCursor: null,
+    };
+  }
+  const children = await parent
+    .collection(args.childCollection)
+    .orderBy(FieldPath.documentId())
+    .limit(args.pageSize)
+    .get();
+  if (children.empty) {
+    return {
+      stage: args.deletion.stage,
+      boardCursor: parent.id,
+    };
+  }
+  await Promise.all(children.docs.map((doc) => doc.ref.delete()));
+  return {
+    stage: args.deletion.stage,
+    boardCursor: args.deletion.boardCursor,
+    counters: { [args.counter]: children.size },
+  };
+}
+
+async function deleteBoardGhostPage(args: {
+  db: Firestore;
+  deletion: AcquiredDeletion;
+  pageSize: number;
+  dependencies?: AccountDeletionDependencies;
+}): Promise<StageOutcome> {
+  const board = await nextBoard(args.db, args.deletion.boardCursor);
+  if (!board) {
+    return { stage: "board_player_bests", boardCursor: null };
+  }
+  const manifests = await board
+    .collection(ghostManifestsCollection)
+    .where("uid", "==", args.deletion.uid)
+    .limit(args.pageSize)
+    .get();
+  if (manifests.empty) {
+    return { stage: "board_ghosts", boardCursor: board.id };
+  }
+  const store = resolveReplayArtifactStore(args.dependencies);
+  let ghostArtifactObjectDeletes = 0;
+  let validatedReplayObjectDeletes = 0;
+  for (const manifest of manifests.docs) {
+    const artifactDeletes = await deleteGhostArtifactsFromDocument(
+      manifest.data(),
+      store,
+    );
+    ghostArtifactObjectDeletes +=
+      artifactDeletes.ghostArtifactObjectDeletes ?? 0;
+    validatedReplayObjectDeletes +=
+      artifactDeletes.validatedReplayObjectDeletes ?? 0;
+    await manifest.ref.delete();
+  }
+  return {
+    stage: "board_ghosts",
+    boardCursor: args.deletion.boardCursor,
+    counters: {
+      ghostDocs: manifests.size,
+      ghostArtifactObjectDeletes,
+      validatedReplayObjectDeletes,
+    },
+  };
+}
+
+async function deleteBoardPlayerBestPage(args: {
+  db: Firestore;
+  deletion: AcquiredDeletion;
+  pageSize: number;
+}): Promise<StageOutcome> {
+  const board = await nextBoard(args.db, args.deletion.boardCursor);
+  if (!board) {
+    return { stage: "pending_replay_artifacts", boardCursor: null };
+  }
+  const refs = new Map<string, DocumentReference>();
+  const directRef = board
+    .collection(playerBestsCollection)
+    .doc(args.deletion.uid);
+  const direct = await directRef.get();
+  if (direct.exists) {
+    refs.set(directRef.path, directRef);
+  }
+  const query = await board
+    .collection(playerBestsCollection)
+    .where("uid", "==", args.deletion.uid)
+    .limit(args.pageSize)
+    .get();
+  for (const doc of query.docs) {
+    refs.set(doc.ref.path, doc.ref);
+  }
+  if (refs.size === 0) {
+    return { stage: "board_player_bests", boardCursor: board.id };
+  }
+  await Promise.all([...refs.values()].map((ref) => ref.delete()));
+  const top10Ref = board.collection(boardViewsCollection).doc(top10ViewDocId);
+  const top10 = await top10Ref.get();
+  if (top10.exists) {
+    await top10Ref.delete();
+  }
+  return {
+    stage: "board_player_bests",
+    boardCursor: args.deletion.boardCursor,
+    counters: {
+      leaderboardPlayerBestDocs: refs.size,
+      invalidatedTop10ViewDocs: top10.exists ? 1 : 0,
+    },
+  };
+}
+
+async function deletePendingReplayArtifactPage(args: {
+  deletion: AcquiredDeletion;
+  pageSize: number;
+  dependencies?: AccountDeletionDependencies;
+}): Promise<StageOutcome> {
+  const deleted = await resolveReplayArtifactStore(
+    args.dependencies,
+  ).deletePageByPrefix({
+    prefix: `${replaySubmissionPendingPathPrefix}/${args.deletion.uid}/`,
+    maxResults: args.pageSize,
+  });
+  if (deleted > 0) {
+    return {
+      stage: "pending_replay_artifacts",
+      counters: { pendingReplayObjectDeletes: deleted },
+    };
+  }
+
+  if (!args.deletion.finalPass) {
+    if (args.deletion.passDeletedCount > 0) {
+      return {
+        stage: "profile",
+        pass: args.deletion.pass + 1,
+        passDeletedCount: 0,
+        boardCursor: null,
+      };
+    }
+    return { stage: "quiet_wait" };
+  }
+  if (args.deletion.passDeletedCount > 0) {
+    return {
+      stage: "profile",
+      pass: args.deletion.pass + 1,
+      finalPass: true,
+      passDeletedCount: 0,
+      boardCursor: null,
+    };
+  }
+  return { stage: "delete_auth" };
+}
+
+async function deleteQueryPage(args: {
+  db: Firestore;
+  collection: string;
+  uidField: string;
+  uid: string;
+  pageSize: number;
+  beforeDelete?: (
+    doc: FirebaseFirestore.QueryDocumentSnapshot,
+  ) => Promise<Partial<AccountDeletionCounters> | void>;
+}): Promise<{
+  documentCount: number;
+  ghostArtifactObjectDeletes: number;
+  validatedReplayObjectDeletes: number;
+}> {
+  const snapshot = await args.db
+    .collection(args.collection)
+    .where(args.uidField, "==", args.uid)
+    .orderBy(FieldPath.documentId())
+    .limit(args.pageSize)
+    .get();
+  let ghostArtifactObjectDeletes = 0;
+  let validatedReplayObjectDeletes = 0;
+  for (const doc of snapshot.docs) {
+    const before = await args.beforeDelete?.(doc);
+    ghostArtifactObjectDeletes +=
+      before?.ghostArtifactObjectDeletes ?? 0;
+    validatedReplayObjectDeletes +=
+      before?.validatedReplayObjectDeletes ?? 0;
+    await doc.ref.delete();
+  }
+  return {
+    documentCount: snapshot.size,
+    ghostArtifactObjectDeletes,
+    validatedReplayObjectDeletes,
+  };
+}
+
+async function deleteGhostArtifactsFromDocument(
+  document: Record<string, unknown>,
+  store: ReplayArtifactStore,
+): Promise<Partial<AccountDeletionCounters>> {
+  let ghostArtifactObjectDeletes = 0;
+  let validatedReplayObjectDeletes = 0;
+  const ghostPath = readStoragePath(
+    document.replayStorageRef,
+    ghostArtifactPathPrefix,
+  );
+  if (
+    ghostPath &&
+    (await store.deleteObjectIfExists({ objectPath: ghostPath }))
+  ) {
+    ghostArtifactObjectDeletes += 1;
+  }
+  const runSessionId =
+    readOptionalString(document.runSessionId) ??
+    extractRunSessionIdFromValidatedObjectPath(
+      readStoragePath(
+        document.sourceReplayStorageRef,
+        replayValidatedPathPrefix,
+      ),
+    );
+  if (
+    runSessionId &&
+    (await store.deleteObjectIfExists({
+      objectPath: buildValidatedReplayObjectPath(runSessionId),
+    }))
+  ) {
+    validatedReplayObjectDeletes += 1;
+  }
+  return {
+    ghostArtifactObjectDeletes,
+    validatedReplayObjectDeletes,
+  };
+}
+
+function repeatedQueryOutcome(args: {
+  currentStage: AccountDeletionStage;
+  deletedCount: number;
+  counters: Partial<AccountDeletionCounters>;
+}): StageOutcome {
+  return {
+    stage:
+      args.deletedCount > 0
+        ? args.currentStage
+        : nextStage(args.currentStage),
+    counters: args.counters,
+  };
+}
+
+async function nextOwnedParent(args: {
+  db: Firestore;
+  collection: string;
+  uid: string;
+  after: string | null;
+}): Promise<DocumentReference | null> {
+  let query = args.db
+    .collection(args.collection)
+    .where("uid", "==", args.uid)
+    .orderBy(FieldPath.documentId())
+    .limit(1);
+  if (args.after) {
+    query = query.startAfter(args.after);
+  }
+  const snapshot = await query.get();
+  return snapshot.docs[0]?.ref ?? null;
+}
+
+async function nextBoard(
+  db: Firestore,
+  after: string | null,
+): Promise<DocumentReference | null> {
+  let query = db
+    .collection(leaderboardBoardsCollection)
+    .orderBy(FieldPath.documentId())
+    .limit(1);
+  if (after) {
+    query = query.startAfter(after);
+  }
+  const snapshot = await query.get();
+  return snapshot.docs[0]?.ref ?? null;
+}
+
+async function commitStageOutcome(args: {
+  db: Firestore;
+  deletion: AcquiredDeletion;
+  outcome: StageOutcome;
+  nowMs: number;
+}): Promise<void> {
+  const ref = accountDeletionRequestRef(args.db, args.deletion.uid);
+  await args.db.runTransaction(async (tx) => {
+    const snapshot = await tx.get(ref);
+    const document =
+      snapshot.data() as AccountDeletionRequestDocument | undefined;
+    if (document?.leaseToken !== args.deletion.leaseToken) {
+      return;
+    }
+    const counters = mergeCounters(
+      readCounters(document.deleted),
+      args.outcome.counters,
+    );
+    const deletedThisStage = sumCounters(args.outcome.counters);
+    const passDeletedCount =
+      args.outcome.passDeletedCount ??
+      readNonNegativeInteger(document.passDeletedCount) +
+        deletedThisStage;
+    const write: Record<string, unknown> = {
+      state: args.outcome.completed ? "complete" : "in_progress",
+      stage: args.outcome.stage,
+      pass: args.outcome.pass ?? args.deletion.pass,
+      finalPass: args.outcome.finalPass ?? args.deletion.finalPass,
+      passDeletedCount,
+      boardCursor:
+        args.outcome.boardCursor === undefined
+          ? args.deletion.boardCursor
+          : args.outcome.boardCursor,
+      deleted: counters,
+      leaseToken: FieldValue.delete(),
+      leaseExpiresAtMs: FieldValue.delete(),
+      lastErrorClass: FieldValue.delete(),
+      lastErrorMessage: FieldValue.delete(),
+      updatedAtMs: args.nowMs,
+      updatedAt: FieldValue.serverTimestamp(),
+    };
+    if (args.outcome.completed) {
+      write.completedAtMs = args.nowMs;
+      write.expiresAtMs =
+        args.nowMs + accountDeletionCompletionRetentionMs;
+      write.completedAt = FieldValue.serverTimestamp();
+    }
+    tx.set(ref, write, { merge: true });
+  });
+}
+
+async function recordRetryableFailure(args: {
+  db: Firestore;
+  deletion: AcquiredDeletion;
+  nowMs: number;
+  error: unknown;
+}): Promise<void> {
+  const ref = accountDeletionRequestRef(args.db, args.deletion.uid);
+  await args.db.runTransaction(async (tx) => {
+    const snapshot = await tx.get(ref);
+    if (snapshot.data()?.leaseToken !== args.deletion.leaseToken) {
+      return;
+    }
+    tx.set(
+      ref,
+      {
+        state: "retryable",
+        leaseToken: FieldValue.delete(),
+        leaseExpiresAtMs: FieldValue.delete(),
+        lastErrorClass: errorClass(args.error),
+        lastErrorMessage: safeErrorMessage(args.error),
+        updatedAtMs: args.nowMs,
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+  });
+  console.error("accountDeletionRetryable", {
+    uid: args.deletion.uid,
+    stage: args.deletion.stage,
+    attemptCount: args.deletion.attemptCount,
+    errorClass: errorClass(args.error),
+  });
+}
+
+async function loadDeletionResult(
+  db: Firestore,
+  uid: string,
+): Promise<{
+  result: AccountDeleteResult;
+  stage: AccountDeletionStage | "complete";
+}> {
+  const snapshot = await accountDeletionRequestRef(db, uid).get();
+  if (!snapshot.exists) {
+    throw new Error(`Account deletion request ${uid} does not exist.`);
+  }
+  const document =
+    snapshot.data() as AccountDeletionRequestDocument | undefined;
+  const state = readState(document?.state);
+  return {
+    result: {
+      status:
+        state === "complete"
+          ? "deleted"
+          : state === "retryable"
+            ? "retryable"
+            : state === "requested"
+              ? "requested"
+              : "in_progress",
+      requestId: uid,
+    },
+    stage: state === "complete" ? "complete" : readStage(document?.stage),
+  };
+}
+
+function resolveDeletionAuth(
+  dependencies: AccountDeletionDependencies | undefined,
+): AccountDeletionAuth {
+  return dependencies?.auth ?? firebaseAccountDeletionAuth;
+}
+
+function resolveReplayArtifactStore(
+  dependencies: AccountDeletionDependencies | undefined,
+): ReplayArtifactStore {
+  if (dependencies?.replayArtifactStore) {
+    return dependencies.replayArtifactStore;
+  }
+  const bucketName = process.env.REPLAY_STORAGE_BUCKET?.trim();
+  if (!bucketName) {
+    throw new Error(
+      "REPLAY_STORAGE_BUCKET must be configured for account deletion.",
+    );
+  }
+  return new CloudStorageReplayArtifactStore(bucketName);
+}
+
+const firebaseAccountDeletionAuth: AccountDeletionAuth = {
+  async disableAndRevoke(uid: string): Promise<void> {
+    try {
+      await getAuth().updateUser(uid, { disabled: true });
+      await getAuth().revokeRefreshTokens(uid);
+    } catch (error) {
+      if (!isAuthUserNotFoundError(error)) {
+        throw error;
+      }
+    }
+  },
+  async deleteUser(uid: string): Promise<void> {
+    try {
+      await getAuth().deleteUser(uid);
+    } catch (error) {
+      if (!isAuthUserNotFoundError(error)) {
+        throw error;
+      }
+    }
+  },
+};
+
+class CloudStorageReplayArtifactStore implements ReplayArtifactStore {
+  constructor(private readonly bucketName: string) {}
+
+  async deletePageByPrefix(args: {
+    prefix: string;
+    maxResults: number;
+  }): Promise<number> {
+    const [files] = await getStorage().bucket(this.bucketName).getFiles({
+      autoPaginate: false,
+      prefix: args.prefix,
+      maxResults: args.maxResults,
+    });
+    await Promise.all(
+      files.map((file) => file.delete({ ignoreNotFound: true })),
+    );
+    return files.length;
+  }
+
+  async deleteObjectIfExists(args: {
+    objectPath: string;
+  }): Promise<boolean> {
+    const file = getStorage().bucket(this.bucketName).file(args.objectPath);
+    const [exists] = await file.exists();
+    if (!exists) {
+      return false;
+    }
+    await file.delete({ ignoreNotFound: true });
+    return true;
+  }
+}
+
+function nextStage(stage: AccountDeletionStage): AccountDeletionStage {
+  const index = stages.indexOf(stage);
+  return stages[index + 1] ?? "delete_auth";
+}
+
+function emptyCounters(): AccountDeletionCounters {
+  return {
     profileDocs: 0,
     displayNameIndexDocs: 0,
+    ownershipIdempotencyDocs: 0,
     ownershipDocs: 0,
+    abuseQuotaDocs: 0,
     runSessionDocs: 0,
     validatedRunDocs: 0,
     rewardGrantDocs: 0,
@@ -129,468 +1127,63 @@ export async function deleteAccountAndData(
     validatedReplayObjectDeletes: 0,
     ghostArtifactObjectDeletes: 0,
   };
-  const deleteAuthUser = args.deleteAuthUser ?? defaultDeleteAuthUser;
-  const replayArtifactStore = await runDeleteStep(
-    "create replay artifact store",
-    async () => args.replayArtifactStore ?? createDefaultReplayArtifactStore(),
+}
+
+function readCounters(value: unknown): AccountDeletionCounters {
+  const object =
+    value && typeof value === "object"
+      ? (value as Record<string, unknown>)
+      : {};
+  const counters = emptyCounters();
+  for (const key of Object.keys(counters) as Array<
+    keyof AccountDeletionCounters
+  >) {
+    counters[key] = readNonNegativeInteger(object[key]);
+  }
+  return counters;
+}
+
+function mergeCounters(
+  current: AccountDeletionCounters,
+  increments: Partial<AccountDeletionCounters> | undefined,
+): AccountDeletionCounters {
+  const merged = { ...current };
+  if (!increments) {
+    return merged;
+  }
+  for (const [key, value] of Object.entries(increments)) {
+    const counter = key as keyof AccountDeletionCounters;
+    merged[counter] += value ?? 0;
+  }
+  return merged;
+}
+
+function sumCounters(
+  counters: Partial<AccountDeletionCounters> | undefined,
+): number {
+  return Object.values(counters ?? {}).reduce(
+    (sum, value) => sum + (value ?? 0),
+    0,
   );
-
-  await runDeleteStep("delete profile and display-name index", async () =>
-    deletePlayerProfileAndNameIndex({
-      db: args.db,
-      uid: args.uid,
-      counters,
-    }),
-  );
-  await runDeleteStep("delete ownership state", async () =>
-    deleteOwnershipData({
-      db: args.db,
-      uid: args.uid,
-      counters,
-    }),
-  );
-  const deletedRunSessionIds = await runDeleteStep("delete run sessions", async () =>
-    deleteRunSessionData({
-      db: args.db,
-      uid: args.uid,
-      counters,
-    }),
-  );
-  const deletedValidatedRunSessionIds = await runDeleteStep(
-    "delete validated runs",
-    async () =>
-      deleteValidatedRunData({
-        db: args.db,
-        uid: args.uid,
-        counters,
-      }),
-  );
-  await runDeleteStep("delete reward grants", async () =>
-    deleteRewardGrantData({
-      db: args.db,
-      uid: args.uid,
-      counters,
-    }),
-  );
-  const ghostDeleteOutcome = await runDeleteStep("delete ghost documents", async () =>
-    deleteGhostData({
-      db: args.db,
-      uid: args.uid,
-      counters,
-    }),
-  );
-  const affectedLeaderboardBoardIds = await runDeleteStep(
-    "delete leaderboard player best entries",
-    async () =>
-      deleteLeaderboardPlayerBestData({
-        db: args.db,
-        uid: args.uid,
-        counters,
-      }),
-  );
-  await runDeleteStep("invalidate leaderboard cached views", async () =>
-    invalidateTop10ViewsForAffectedBoards({
-      db: args.db,
-      boardIds: affectedLeaderboardBoardIds,
-      counters,
-    }),
-  );
-  await runDeleteStep("delete replay and ghost artifacts", async () =>
-    deleteReplayArtifacts({
-      uid: args.uid,
-      runSessionIds: mergeSets(
-        deletedRunSessionIds,
-        deletedValidatedRunSessionIds,
-        ghostDeleteOutcome.runSessionIds,
-      ),
-      ghostArtifactObjectPaths: ghostDeleteOutcome.ghostArtifactObjectPaths,
-      replayArtifactStore,
-      counters,
-    }),
-  );
-  await runDeleteStep("delete Firebase Auth user", async () =>
-    deleteAuthUserIfPresent(deleteAuthUser, args.uid),
-  );
-
-  return {
-    status: "deleted",
-    deleted: counters,
-  };
 }
 
-async function defaultDeleteAuthUser(uid: string): Promise<void> {
-  await getAuth().deleteUser(uid);
+function readState(value: unknown): AccountDeletionState {
+  return value === "requested" ||
+    value === "in_progress" ||
+    value === "retryable" ||
+    value === "complete"
+    ? value
+    : "requested";
 }
 
-async function deleteAuthUserIfPresent(
-  deleteAuthUser: (uid: string) => Promise<void>,
-  uid: string,
-): Promise<void> {
-  try {
-    await deleteAuthUser(uid);
-  } catch (error) {
-    if (isAuthUserNotFoundError(error)) {
-      return;
-    }
-    throw error;
-  }
+function readStage(value: unknown): AccountDeletionStage {
+  return typeof value === "string" &&
+    stages.includes(value as AccountDeletionStage)
+    ? (value as AccountDeletionStage)
+    : "disable_auth";
 }
 
-function isAuthUserNotFoundError(error: unknown): boolean {
-  if (!error || typeof error !== "object") {
-    return false;
-  }
-  const code = (error as { code?: unknown }).code;
-  return code === "auth/user-not-found";
-}
-
-async function deletePlayerProfileAndNameIndex(args: {
-  db: Firestore;
-  uid: string;
-  counters: AccountDeleteCounters;
-}): Promise<void> {
-  const profileRef = args.db.collection(playerProfilesCollection).doc(args.uid);
-  const profileSnap = await profileRef.get();
-  const profileDoc = profileSnap.data() as PlayerProfileDocument | undefined;
-  const claimedNormalized = readNormalizedDisplayName(profileDoc);
-
-  if (profileSnap.exists) {
-    await profileRef.delete();
-    args.counters.profileDocs += 1;
-  }
-
-  const indexRefsByPath = new Map<string, DocumentReference>();
-  if (claimedNormalized.length > 0) {
-    const directRef = args.db
-      .collection(displayNameIndexCollection)
-      .doc(claimedNormalized);
-    const directSnap = await directRef.get();
-    if (directSnap.exists) {
-      const owner = readUid(
-        directSnap.data() as DisplayNameIndexDocument | undefined,
-      );
-      if (owner === args.uid) {
-        indexRefsByPath.set(directRef.path, directRef);
-      }
-    }
-  }
-
-  const claimedQuery = await args.db
-    .collection(displayNameIndexCollection)
-    .where("uid", "==", args.uid)
-    .get();
-  for (const doc of claimedQuery.docs) {
-    indexRefsByPath.set(doc.ref.path, doc.ref);
-  }
-
-  for (const ref of indexRefsByPath.values()) {
-    await ref.delete();
-    args.counters.displayNameIndexDocs += 1;
-  }
-}
-
-async function deleteOwnershipData(args: {
-  db: Firestore;
-  uid: string;
-  counters: AccountDeleteCounters;
-}): Promise<void> {
-  const docRefsByPath = new Map<string, DocumentReference>();
-  const ownedQuery = await args.db
-    .collection(ownershipProfilesCollection)
-    .where("uid", "==", args.uid)
-    .get();
-  for (const doc of ownedQuery.docs) {
-    docRefsByPath.set(doc.ref.path, doc.ref);
-  }
-
-  for (const ref of docRefsByPath.values()) {
-    const snap = await ref.get();
-    if (!snap.exists) {
-      continue;
-    }
-    await args.db.recursiveDelete(ref);
-    args.counters.ownershipDocs += 1;
-  }
-}
-
-async function deleteGhostData(args: {
-  db: Firestore;
-  uid: string;
-  counters: AccountDeleteCounters;
-}): Promise<GhostDeleteOutcome> {
-  const refsByPath = new Map<string, DocumentReference>();
-  const runSessionIds = new Set<string>();
-  const ghostArtifactObjectPaths = new Set<string>();
-
-  for (const spec of ghostCollectionSpecs) {
-    const collectionRef = args.db.collection(
-      spec.collection,
-    ) as CollectionReference;
-    for (const uidField of spec.uidFields) {
-      const snapshot = await collectionRef.where(uidField, "==", args.uid).get();
-      for (const doc of snapshot.docs) {
-        refsByPath.set(doc.ref.path, doc.ref);
-      }
-    }
-  }
-
-  const boardRefs = await args.db
-    .collection(leaderboardBoardsCollection)
-    .listDocuments();
-  for (const boardRef of boardRefs) {
-    const manifestQuery = await boardRef
-      .collection(ghostManifestsCollection)
-      .where("uid", "==", args.uid)
-      .get();
-    for (const doc of manifestQuery.docs) {
-      const manifest = doc.data() as GhostManifestDocument | undefined;
-      const runSessionId = readOptionalNonEmptyString(manifest?.runSessionId);
-      if (runSessionId) {
-        runSessionIds.add(runSessionId);
-      }
-      const replayStorageRef = readStorageObjectPath(
-        manifest?.replayStorageRef,
-        ghostArtifactPathPrefix,
-      );
-      if (replayStorageRef) {
-        ghostArtifactObjectPaths.add(replayStorageRef);
-      }
-      const sourceReplayStorageRef = readStorageObjectPath(
-        manifest?.sourceReplayStorageRef,
-        replayValidatedPathPrefix,
-      );
-      const sourceRunSessionId = sourceReplayStorageRef
-        ? extractRunSessionIdFromValidatedObjectPath(sourceReplayStorageRef)
-        : null;
-      if (sourceRunSessionId) {
-        runSessionIds.add(sourceRunSessionId);
-      }
-      refsByPath.set(doc.ref.path, doc.ref);
-    }
-  }
-
-  for (const ref of refsByPath.values()) {
-    await args.db.recursiveDelete(ref);
-    args.counters.ghostDocs += 1;
-  }
-
-  return {
-    runSessionIds,
-    ghostArtifactObjectPaths,
-  };
-}
-
-async function deleteRunSessionData(args: {
-  db: Firestore;
-  uid: string;
-  counters: AccountDeleteCounters;
-}): Promise<Set<string>> {
-  const runSessionIds = new Set<string>();
-  const query = await args.db
-    .collection(runSessionsCollection)
-    .where("uid", "==", args.uid)
-    .get();
-  for (const doc of query.docs) {
-    const runSessionId = doc.id.trim();
-    if (runSessionId.length > 0) {
-      runSessionIds.add(runSessionId);
-    }
-    await args.db.recursiveDelete(doc.ref);
-    args.counters.runSessionDocs += 1;
-  }
-  return runSessionIds;
-}
-
-async function deleteValidatedRunData(args: {
-  db: Firestore;
-  uid: string;
-  counters: AccountDeleteCounters;
-}): Promise<Set<string>> {
-  const runSessionIds = new Set<string>();
-  const query = await args.db
-    .collection(validatedRunsCollection)
-    .where("uid", "==", args.uid)
-    .get();
-  for (const doc of query.docs) {
-    const runSessionId = doc.id.trim();
-    if (runSessionId.length > 0) {
-      runSessionIds.add(runSessionId);
-    }
-    await args.db.recursiveDelete(doc.ref);
-    args.counters.validatedRunDocs += 1;
-  }
-  return runSessionIds;
-}
-
-async function deleteRewardGrantData(args: {
-  db: Firestore;
-  uid: string;
-  counters: AccountDeleteCounters;
-}): Promise<void> {
-  const query = await args.db
-    .collection(rewardGrantsCollection)
-    .where("uid", "==", args.uid)
-    .get();
-  for (const doc of query.docs) {
-    await args.db.recursiveDelete(doc.ref);
-    args.counters.rewardGrantDocs += 1;
-  }
-}
-
-async function deleteLeaderboardPlayerBestData(args: {
-  db: Firestore;
-  uid: string;
-  counters: AccountDeleteCounters;
-}): Promise<Set<string>> {
-  const boardIds = new Set<string>();
-  const boardRefs = await args.db
-    .collection(leaderboardBoardsCollection)
-    .listDocuments();
-  for (const boardRef of boardRefs) {
-    const boardId = boardRef.id.trim();
-    if (boardId.length === 0) {
-      continue;
-    }
-    const refsByPath = new Map<string, DocumentReference>();
-    const directRef = boardRef.collection(playerBestsCollection).doc(args.uid);
-    const directSnap = await directRef.get();
-    if (directSnap.exists) {
-      refsByPath.set(directRef.path, directRef);
-    }
-    const snapshot = await boardRef
-      .collection(playerBestsCollection)
-      .where("uid", "==", args.uid)
-      .get();
-    for (const doc of snapshot.docs) {
-      refsByPath.set(doc.ref.path, doc.ref);
-    }
-    if (refsByPath.size === 0) {
-      continue;
-    }
-    boardIds.add(boardId);
-    for (const ref of refsByPath.values()) {
-      await args.db.recursiveDelete(ref);
-      args.counters.leaderboardPlayerBestDocs += 1;
-    }
-  }
-  return boardIds;
-}
-
-async function invalidateTop10ViewsForAffectedBoards(args: {
-  db: Firestore;
-  boardIds: Set<string>;
-  counters: AccountDeleteCounters;
-}): Promise<void> {
-  for (const boardId of args.boardIds) {
-    const top10ViewRef = args.db
-      .collection(leaderboardBoardsCollection)
-      .doc(boardId)
-      .collection(boardViewsCollection)
-      .doc(top10ViewDocId);
-    const top10ViewSnap = await top10ViewRef.get();
-    if (!top10ViewSnap.exists) {
-      continue;
-    }
-    await top10ViewRef.delete();
-    args.counters.invalidatedTop10ViewDocs += 1;
-  }
-}
-
-async function deleteReplayArtifacts(args: {
-  uid: string;
-  runSessionIds: Set<string>;
-  ghostArtifactObjectPaths: Set<string>;
-  replayArtifactStore: ReplayArtifactStore;
-  counters: AccountDeleteCounters;
-}): Promise<void> {
-  args.counters.pendingReplayObjectDeletes +=
-    await args.replayArtifactStore.deleteByPrefix({
-      prefix: buildPendingReplayPrefix(args.uid),
-    });
-  args.counters.validatedReplayObjectDeletes +=
-    await deleteValidatedReplayArtifactsForRunSessions({
-      replayArtifactStore: args.replayArtifactStore,
-      runSessionIds: args.runSessionIds,
-    });
-  args.counters.ghostArtifactObjectDeletes +=
-    await deleteGhostReplayArtifactsByPath({
-      replayArtifactStore: args.replayArtifactStore,
-      objectPaths: args.ghostArtifactObjectPaths,
-    });
-}
-
-async function deleteValidatedReplayArtifactsForRunSessions(args: {
-  replayArtifactStore: ReplayArtifactStore;
-  runSessionIds: Set<string>;
-}): Promise<number> {
-  let deletedCount = 0;
-  for (const runSessionId of args.runSessionIds) {
-    const objectPath = buildValidatedReplayObjectPath(runSessionId);
-    const deleted = await args.replayArtifactStore.deleteObjectIfExists({
-      objectPath,
-    });
-    if (deleted) {
-      deletedCount += 1;
-    }
-  }
-  return deletedCount;
-}
-
-async function deleteGhostReplayArtifactsByPath(args: {
-  replayArtifactStore: ReplayArtifactStore;
-  objectPaths: Set<string>;
-}): Promise<number> {
-  let deletedCount = 0;
-  for (const objectPath of args.objectPaths) {
-    const deleted = await args.replayArtifactStore.deleteObjectIfExists({
-      objectPath,
-    });
-    if (deleted) {
-      deletedCount += 1;
-    }
-  }
-  return deletedCount;
-}
-
-function buildPendingReplayPrefix(uid: string): string {
-  return `${replaySubmissionPendingPathPrefix}/${uid}/`;
-}
-
-function buildValidatedReplayObjectPath(runSessionId: string): string {
-  return `${replayValidatedPathPrefix}/${runSessionId}.bin.gz`;
-}
-
-function extractRunSessionIdFromValidatedObjectPath(
-  objectPath: string,
-): string | null {
-  const validatedPrefix = `${replayValidatedPathPrefix}/`;
-  if (!objectPath.startsWith(validatedPrefix)) {
-    return null;
-  }
-  const relativePath = objectPath.slice(validatedPrefix.length).trim();
-  if (relativePath.length === 0 || relativePath.includes("/")) {
-    return null;
-  }
-  if (!relativePath.endsWith(".bin.gz")) {
-    return relativePath;
-  }
-  const runSessionId = relativePath.slice(0, -".bin.gz".length).trim();
-  return runSessionId.length > 0 ? runSessionId : null;
-}
-
-function readStorageObjectPath(value: unknown, prefix: string): string | null {
-  const path = readOptionalNonEmptyString(value);
-  if (!path) {
-    return null;
-  }
-  const requiredPrefix = `${prefix}/`;
-  if (!path.startsWith(requiredPrefix)) {
-    return null;
-  }
-  return path;
-}
-
-function readOptionalNonEmptyString(value: unknown): string | null {
+function readOptionalString(value: unknown): string | null {
   if (typeof value !== "string") {
     return null;
   }
@@ -598,210 +1191,72 @@ function readOptionalNonEmptyString(value: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-async function runDeleteStep<T>(
-  step: string,
-  operation: () => Promise<T>,
-): Promise<T> {
-  try {
-    return await operation();
-  } catch (error) {
-    throw mapDeleteStepError({ step, error });
+function readNonNegativeInteger(value: unknown): number {
+  return Number.isSafeInteger(value) && (value as number) >= 0
+    ? (value as number)
+    : 0;
+}
+
+function readPositiveInteger(value: unknown, fallback: number): number {
+  const parsed = readNonNegativeInteger(value);
+  return parsed > 0 ? parsed : fallback;
+}
+
+function requirePositiveSafeInteger(value: number, field: string): void {
+  if (!Number.isSafeInteger(value) || value <= 0) {
+    throw new Error(`${field} must be a positive safe integer.`);
   }
 }
 
-function mapDeleteStepError(args: {
-  step: string;
-  error: unknown;
-}): HttpsError {
-  if (args.error instanceof HttpsError) {
-    return args.error;
+function readNormalizedDisplayName(
+  document: Record<string, unknown>,
+): string | null {
+  const stored = readOptionalString(document.displayNameNormalized);
+  if (stored) {
+    return stored;
   }
-  const code = readErrorCode(args.error);
-  const message = readErrorMessage(args.error);
-  const details = {
-    step: args.step,
-    upstreamCode: code ?? null,
-  };
-  if (
-    code === "auth/insufficient-permission" ||
-    message.includes("insufficient permission")
-  ) {
-    return new HttpsError(
-      "permission-denied",
-      `Account deletion failed during ${args.step}: backend service account is missing required Firebase Auth permissions.`,
-      details,
-    );
+  const displayName = readOptionalString(document.displayName);
+  return displayName ? normalizeDisplayNameForPolicy(displayName) : null;
+}
+
+function buildValidatedReplayObjectPath(runSessionId: string): string {
+  return `${replayValidatedPathPrefix}/${runSessionId}.bin.gz`;
+}
+
+function readStoragePath(value: unknown, prefix: string): string | null {
+  const path = readOptionalString(value);
+  return path?.startsWith(`${prefix}/`) ? path : null;
+}
+
+function extractRunSessionIdFromValidatedObjectPath(
+  objectPath: string | null,
+): string | null {
+  if (!objectPath) {
+    return null;
   }
-  if (
-    code === "auth/invalid-credential" ||
-    message.includes("must initialize app with a certificate credential")
-  ) {
-    return new HttpsError(
-      "failed-precondition",
-      `Account deletion failed during ${args.step}: backend Firebase Auth credentials are not configured correctly.`,
-      details,
-    );
+  const prefix = `${replayValidatedPathPrefix}/`;
+  const relative = objectPath.slice(prefix.length);
+  if (!objectPath.startsWith(prefix) || relative.includes("/")) {
+    return null;
   }
-  if (
-    code === "failed-precondition" ||
-    code === "9" ||
-    message.includes("failed_precondition") ||
-    message.includes("failed precondition")
-  ) {
-    return new HttpsError(
-      "failed-precondition",
-      `Account deletion failed during ${args.step}: Firestore precondition check failed. Ensure required indexes/preconditions are available, then retry.`,
-      details,
-    );
-  }
-  if (
-    code === "permission-denied" ||
-    code === "7" ||
-    code === "insufficient-permission" ||
-    message.includes("permission denied") ||
-    message.includes("insufficient permission") ||
-    message.includes("storage.objects.")
-  ) {
-    return new HttpsError(
-      "permission-denied",
-      `Account deletion failed during ${args.step}: backend service account is missing required permissions.`,
-      details,
-    );
-  }
-  if (
-    code === "deadline-exceeded" ||
-    code === "4" ||
-    message.includes("deadline exceeded")
-  ) {
-    return new HttpsError(
-      "deadline-exceeded",
-      `Account deletion timed out during ${args.step}. Retry and check backend performance limits.`,
-      details,
-    );
-  }
-  if (message.includes("replay_storage_bucket")) {
-    return new HttpsError(
-      "failed-precondition",
-      `Account deletion failed during ${args.step}: REPLAY_STORAGE_BUCKET must be configured.`,
-      details,
-    );
-  }
-  return new HttpsError(
-    "internal",
-    `Account deletion failed during ${args.step}.`,
-    details,
+  return relative.endsWith(".bin.gz")
+    ? readOptionalString(relative.slice(0, -".bin.gz".length))
+    : readOptionalString(relative);
+}
+
+function isAuthUserNotFoundError(error: unknown): boolean {
+  return (
+    !!error &&
+    typeof error === "object" &&
+    (error as { code?: unknown }).code === "auth/user-not-found"
   );
 }
 
-function readErrorCode(error: unknown): string | null {
-  if (!error || typeof error !== "object") {
-    return null;
-  }
-  const rawCode = (error as { code?: unknown }).code;
-  if (typeof rawCode === "string") {
-    return rawCode.trim().toLowerCase();
-  }
-  if (typeof rawCode === "number" && Number.isFinite(rawCode)) {
-    return String(rawCode);
-  }
-  return null;
+function errorClass(error: unknown): string {
+  return error instanceof Error ? error.name : typeof error;
 }
 
-function readErrorMessage(error: unknown): string {
-  if (!error || typeof error !== "object") {
-    return "";
-  }
-  const rawMessage = (error as { message?: unknown }).message;
-  if (typeof rawMessage !== "string") {
-    return "";
-  }
-  return rawMessage.trim().toLowerCase();
-}
-
-function mergeSets<T>(...sets: Set<T>[]): Set<T> {
-  const merged = new Set<T>();
-  for (const set of sets) {
-    for (const item of set) {
-      merged.add(item);
-    }
-  }
-  return merged;
-}
-
-function createDefaultReplayArtifactStore(): ReplayArtifactStore {
-  const bucketName = process.env.REPLAY_STORAGE_BUCKET?.trim();
-  if (!bucketName) {
-    throw new Error(
-      "REPLAY_STORAGE_BUCKET must be configured for account deletion replay artifact cleanup.",
-    );
-  }
-  return new CloudStorageReplayArtifactStore(bucketName);
-}
-
-class CloudStorageReplayArtifactStore implements ReplayArtifactStore {
-  constructor(private readonly bucketName: string) {}
-
-  async deleteByPrefix(args: { prefix: string }): Promise<number> {
-    const bucket = getStorage().bucket(this.bucketName);
-    let deletedCount = 0;
-    let pageToken: string | undefined;
-    do {
-      const [files, nextQuery] = await bucket.getFiles({
-        autoPaginate: false,
-        prefix: args.prefix,
-        pageToken,
-      });
-      for (const file of files) {
-        await file.delete({ ignoreNotFound: true });
-        deletedCount += 1;
-      }
-      pageToken = readPageToken(nextQuery);
-    } while (pageToken);
-    return deletedCount;
-  }
-
-  async deleteObjectIfExists(args: { objectPath: string }): Promise<boolean> {
-    const bucket = getStorage().bucket(this.bucketName);
-    const file = bucket.file(args.objectPath);
-    const [exists] = await file.exists();
-    if (!exists) {
-      return false;
-    }
-    await file.delete({ ignoreNotFound: true });
-    return true;
-  }
-}
-
-function readPageToken(value: unknown): string | undefined {
-  if (!value || typeof value !== "object") {
-    return undefined;
-  }
-  const token = (value as { pageToken?: unknown }).pageToken;
-  if (typeof token !== "string" || token.trim().length === 0) {
-    return undefined;
-  }
-  return token;
-}
-
-function readUid(doc: DisplayNameIndexDocument | undefined): string {
-  if (!doc || typeof doc.uid !== "string") {
-    return "";
-  }
-  return doc.uid;
-}
-
-function readNormalizedDisplayName(doc: PlayerProfileDocument | undefined): string {
-  if (!doc) {
-    return "";
-  }
-  if (
-    typeof doc.displayNameNormalized === "string" &&
-    doc.displayNameNormalized.trim().length > 0
-  ) {
-    return doc.displayNameNormalized.trim();
-  }
-  if (typeof doc.displayName !== "string" || doc.displayName.trim().length === 0) {
-    return "";
-  }
-  return normalizeDisplayNameForPolicy(doc.displayName);
+function safeErrorMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.slice(0, 512);
 }

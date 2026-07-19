@@ -3,9 +3,15 @@ import { randomInt, randomUUID } from "node:crypto";
 import type { Firestore } from "firebase-admin/firestore";
 import { HttpsError } from "firebase-functions/v2/https";
 
+import { assertAccountActiveInTransaction } from "../account/deletion_guard.js";
+import {
+  readAbuseControlMode,
+  readOptionalBoundedAbuseLimit,
+} from "../abuse/quota.js";
 import { ensureManagedBoardForModeLevel } from "../boards/provisioning.js";
 import { loadActiveBoardManifest } from "../boards/store.js";
 import { loadOrCreateCanonicalState } from "../ownership/canonical_store.js";
+import { normalizeAuthorizedLoadout } from "../ownership/loadout_authorization.js";
 import type { JsonObject, JsonValue } from "../ownership/contracts.js";
 import { canonicalJsonString, sha256Hex } from "../ownership/hash.js";
 import {
@@ -18,10 +24,20 @@ const runSessionsCollection = "run_sessions";
 const runSessionIssuedState = "issued";
 const defaultTickHz = 60;
 const runSessionExpiryMs = 24 * 60 * 60 * 1000;
+const activeSessionScanCap = 256;
+const activeSessionStates = [
+  "issued",
+  "uploading",
+  "uploaded",
+  "pending_validation",
+  "validating",
+  "settlement_pending",
+] as const;
 
 interface CreateRunSessionArgs {
   db: Firestore;
   uid: string;
+  clientRequestId?: string;
   mode: RunModeValue;
   levelId: string;
   gameCompatVersion: string;
@@ -43,6 +59,34 @@ export async function createRunSession(
   args: CreateRunSessionArgs,
 ): Promise<CreateRunSessionResult> {
   const nowMs = args.nowMs ?? Date.now();
+  const clientRequestId = args.clientRequestId ?? randomUUID();
+  const createRequestHash = sha256Hex(
+    canonicalJsonString({
+      uid: args.uid,
+      clientRequestId,
+      mode: args.mode,
+      levelId: args.levelId,
+      gameCompatVersion: args.gameCompatVersion,
+    }),
+  );
+  const runSessionId = runSessionIdForRequest(args.uid, clientRequestId);
+  const runSessionRef = args.db
+    .collection(runSessionsCollection)
+    .doc(runSessionId);
+  const existingTicket = await loadExistingIdempotentRun({
+    db: args.db,
+    uid: args.uid,
+    runSessionRef,
+    createRequestHash,
+  });
+  if (existingTicket) {
+    console.log("runSessionCreate_idempotency", {
+      outcome: "replayed",
+      runSessionId,
+    });
+    return { runTicket: existingTicket };
+  }
+
   const startedAtMs = Date.now();
   let canonicalLoadMs = 0;
   let boardResolveMs = 0;
@@ -56,6 +100,18 @@ export async function createRunSession(
   });
   canonicalLoadMs = Date.now() - canonicalLoadStartMs;
   const snapshot = deriveStartSnapshot(canonicalState.selection);
+  const authorizedLoadout = normalizeAuthorizedLoadout({
+    loadout: snapshot.loadoutSnapshot,
+    meta: canonicalState.meta,
+    characterId: snapshot.playerCharacterId,
+  });
+  if (authorizedLoadout === null) {
+    throw new HttpsError(
+      "failed-precondition",
+      "Canonical run loadout contains unknown or unowned content.",
+    );
+  }
+  snapshot.loadoutSnapshot = authorizedLoadout;
 
   if (snapshot.mode !== args.mode) {
     throw new HttpsError(
@@ -70,7 +126,6 @@ export async function createRunSession(
     );
   }
 
-  const runSessionId = randomUUID();
   const singleUseNonce = randomUUID();
   const issuedAtMs = nowMs;
   const expiresAtMs = issuedAtMs + runSessionExpiryMs;
@@ -88,6 +143,8 @@ export async function createRunSession(
         rulesetVersion: string;
         scoreVersion: string;
         ghostVersion: string;
+        boardOpensAtMs: number;
+        boardClosesAtMs: number;
       }
     | undefined;
   let runTicket: JsonObject;
@@ -127,6 +184,8 @@ export async function createRunSession(
       rulesetVersion: boardManifest.boardKey.rulesetVersion,
       scoreVersion: boardManifest.boardKey.scoreVersion,
       ghostVersion: boardManifest.ghostVersion,
+      boardOpensAtMs: boardManifest.opensAtMs,
+      boardClosesAtMs: boardManifest.closesAtMs,
     };
 
     runTicket = {
@@ -141,6 +200,8 @@ export async function createRunSession(
       rulesetVersion: boardContext.rulesetVersion,
       scoreVersion: boardContext.scoreVersion,
       ghostVersion: boardContext.ghostVersion,
+      boardOpensAtMs: boardContext.boardOpensAtMs,
+      boardClosesAtMs: boardContext.boardClosesAtMs,
       levelId: snapshot.levelId,
       playerCharacterId: snapshot.playerCharacterId,
       loadoutSnapshot: snapshot.loadoutSnapshot,
@@ -170,6 +231,8 @@ export async function createRunSession(
   const runSessionDoc: JsonObject = {
     runSessionId,
     uid: args.uid,
+    clientRequestId,
+    createRequestHash,
     mode: snapshot.mode,
     runTicket,
     ...(boardContext
@@ -189,8 +252,64 @@ export async function createRunSession(
   };
 
   const runSessionWriteStartMs = Date.now();
-  await args.db.collection(runSessionsCollection).doc(runSessionId).set(runSessionDoc);
+  const transactionResult = await args.db.runTransaction(async (tx) => {
+    await assertAccountActiveInTransaction(tx, args.db, args.uid);
+    const existing = await tx.get(runSessionRef);
+    if (existing.exists) {
+      return {
+        replayed: true,
+        runTicket: decodeIdempotentRunTicket(
+          existing.data(),
+          createRequestHash,
+        ),
+        activeCount: null,
+        activeLimit: null,
+        wouldRejectActiveLimit: false,
+      };
+    }
+    const activeLimit = readConfiguredActiveSessionLimit();
+    const activeSnapshot = await tx.get(
+      args.db
+        .collection(runSessionsCollection)
+        .where("uid", "==", args.uid)
+        .where("state", "in", [...activeSessionStates])
+        .limit(activeSessionScanCap),
+    );
+    const wouldRejectActiveLimit =
+      activeLimit !== undefined && activeSnapshot.size >= activeLimit;
+    if (
+      wouldRejectActiveLimit &&
+      readAbuseControlMode() === "enforce"
+    ) {
+      throw new HttpsError(
+        "resource-exhausted",
+        "Active run session limit exceeded.",
+      );
+    }
+    tx.create(runSessionRef, runSessionDoc);
+    return {
+      replayed: false,
+      runTicket,
+      activeCount: activeSnapshot.size,
+      activeLimit: activeLimit ?? null,
+      wouldRejectActiveLimit,
+    };
+  });
   runSessionWriteMs = Date.now() - runSessionWriteStartMs;
+  console.log("runSessionCreate_active_sessions", {
+    mode: readAbuseControlMode(),
+    activeCount: transactionResult.activeCount,
+    activeLimit: transactionResult.activeLimit,
+    wouldReject: transactionResult.wouldRejectActiveLimit,
+    countCapped: transactionResult.activeCount === activeSessionScanCap,
+  });
+  if (transactionResult.replayed) {
+    console.log("runSessionCreate_idempotency", {
+      outcome: "concurrent_replay",
+      runSessionId,
+    });
+    return { runTicket: transactionResult.runTicket };
+  }
 
   const totalMs = Date.now() - startedAtMs;
   console.log("runSessionCreate_timing", {
@@ -204,7 +323,57 @@ export async function createRunSession(
     totalMs,
   });
 
-  return { runTicket };
+  return { runTicket: transactionResult.runTicket };
+}
+
+async function loadExistingIdempotentRun(args: {
+  db: Firestore;
+  uid: string;
+  runSessionRef: FirebaseFirestore.DocumentReference;
+  createRequestHash: string;
+}): Promise<JsonObject | null> {
+  return args.db.runTransaction(async (tx) => {
+    await assertAccountActiveInTransaction(tx, args.db, args.uid);
+    const snapshot = await tx.get(args.runSessionRef);
+    if (!snapshot.exists) {
+      return null;
+    }
+    return decodeIdempotentRunTicket(
+      snapshot.data(),
+      args.createRequestHash,
+    );
+  });
+}
+
+function decodeIdempotentRunTicket(
+  data: FirebaseFirestore.DocumentData | undefined,
+  expectedRequestHash: string,
+): JsonObject {
+  if (data?.createRequestHash !== expectedRequestHash) {
+    throw new HttpsError(
+      "already-exists",
+      "clientRequestId was already used with different run parameters.",
+    );
+  }
+  const runTicket = data.runTicket;
+  if (!runTicket || typeof runTicket !== "object" || Array.isArray(runTicket)) {
+    throw new HttpsError(
+      "failed-precondition",
+      "Idempotent run-session record has a malformed run ticket.",
+    );
+  }
+  return structuredClone(runTicket) as JsonObject;
+}
+
+function runSessionIdForRequest(uid: string, clientRequestId: string): string {
+  return `run_${sha256Hex(`${uid}:${clientRequestId}`).slice(0, 40)}`;
+}
+
+function readConfiguredActiveSessionLimit(): number | undefined {
+  return readOptionalBoundedAbuseLimit({
+    envName: "ABUSE_RUN_ACTIVE_SESSIONS_LIMIT",
+    max: activeSessionScanCap,
+  });
 }
 
 async function loadBoardManifestWithProvisioningFallback(args: {

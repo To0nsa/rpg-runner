@@ -92,6 +92,43 @@ test("handleRunBoardsLoadActive rejects practice mode requests", async () => {
   );
 });
 
+test("public run and board callables reject client authority time", async () => {
+  const nowMs = Date.UTC(2026, 2, 12, 12, 0, 0, 0);
+  const calls = [
+    () =>
+      handleRunSessionCreate(
+        callableRequest(validRunSessionPayload({ nowMs }), uid),
+        db,
+      ),
+    () =>
+      handleRunBoardsLoadActive(
+        callableRequest(validBoardLoadPayload({ nowMs }), uid),
+        db,
+      ),
+    () =>
+      handleRunSessionCreateUploadGrant(
+        callableRequest(validUploadGrantPayload({ nowMs }), uid),
+        db,
+        noOpSubmissionDependencies(),
+      ),
+    () =>
+      handleRunSessionFinalizeUpload(
+        callableRequest(validFinalizePayload({ nowMs }), uid),
+        db,
+        noOpSubmissionDependencies(),
+      ),
+  ];
+
+  for (const call of calls) {
+    await assert.rejects(
+      call,
+      (error: { code?: string; message?: string }) =>
+        error.code === "invalid-argument" &&
+        (error.message ?? "").includes("server-controlled"),
+    );
+  }
+});
+
 test("handleRunBoardsLoadActive rejects game compatibility mismatch", async () => {
   const nowMs = Date.UTC(2026, 2, 12, 12, 0, 0, 0);
   const window = resolveCompetitiveWindow(nowMs);
@@ -122,11 +159,11 @@ test("handleRunBoardsLoadActive rejects game compatibility mismatch", async () =
         callableRequest(
           validBoardLoadPayload({
             gameCompatVersion: "build-2026-03-12",
-            nowMs,
           }),
           uid,
         ),
         db,
+        () => nowMs,
       ),
     (error: { code?: string; message?: string }) =>
       error.code === "failed-precondition" &&
@@ -225,6 +262,7 @@ function validRunSessionPayload(
   return {
     userId: uid,
     sessionId: "session_1",
+    clientRequestId: "run_request_1",
     mode: "practice",
     levelId: "field",
     gameCompatVersion: "build-2026-03-12",
@@ -294,6 +332,7 @@ function noOpSubmissionDependencies(): RunSubmissionDependencies {
         return {
           contentLengthBytes: 1024,
           contentType: "application/octet-stream",
+          generation: "1",
         };
       },
     },

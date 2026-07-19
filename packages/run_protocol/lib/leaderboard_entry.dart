@@ -1,4 +1,5 @@
 import 'codecs/json_value_reader.dart';
+import 'replay_digest.dart';
 
 final class LeaderboardEntry {
   LeaderboardEntry({
@@ -15,12 +16,30 @@ final class LeaderboardEntry {
     required this.ghostEligible,
     required this.updatedAtMs,
     this.replayStorageRef,
+    this.replayStorageGeneration,
+    this.replayDigest,
     this.rank,
   }) : assert(score >= 0),
        assert(distanceMeters >= 0),
        assert(durationSeconds >= 0),
        assert(updatedAtMs >= 0),
-       assert(rank == null || rank > 0);
+       assert(rank == null || rank > 0) {
+    if (replayStorageGeneration != null &&
+        !RegExp(r'^[1-9][0-9]*$').hasMatch(replayStorageGeneration!)) {
+      throw ArgumentError.value(
+        replayStorageGeneration,
+        'replayStorageGeneration',
+        'must be a positive integer string when set.',
+      );
+    }
+    if (replayDigest != null && !ReplayDigest.isValidSha256Hex(replayDigest!)) {
+      throw ArgumentError.value(
+        replayDigest,
+        'replayDigest',
+        'must be a lower-case SHA-256 digest when set.',
+      );
+    }
+  }
 
   final String boardId;
   final String entryId;
@@ -34,6 +53,12 @@ final class LeaderboardEntry {
   final String sortKey;
   final bool ghostEligible;
   final String? replayStorageRef;
+
+  /// Immutable source generation used when promoting this entry as a ghost.
+  final String? replayStorageGeneration;
+
+  /// Canonical SHA-256 of the replay evidence represented by this entry.
+  final String? replayDigest;
   final int updatedAtMs;
   final int? rank;
 
@@ -51,6 +76,9 @@ final class LeaderboardEntry {
       'sortKey': sortKey,
       'ghostEligible': ghostEligible,
       if (replayStorageRef != null) 'replayStorageRef': replayStorageRef,
+      if (replayStorageGeneration != null)
+        'replayStorageGeneration': replayStorageGeneration,
+      if (replayDigest != null) 'replayDigest': replayDigest,
       'updatedAtMs': updatedAtMs,
       if (rank != null) 'rank': rank,
     };
@@ -71,6 +99,11 @@ final class LeaderboardEntry {
       sortKey: readRequiredString(json, 'sortKey'),
       ghostEligible: readRequiredBool(json, 'ghostEligible'),
       replayStorageRef: readOptionalString(json, 'replayStorageRef'),
+      replayStorageGeneration: readOptionalString(
+        json,
+        'replayStorageGeneration',
+      ),
+      replayDigest: readOptionalString(json, 'replayDigest'),
       updatedAtMs: readRequiredInt(json, 'updatedAtMs'),
       rank: readOptionalInt(json, 'rank'),
     );

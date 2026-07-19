@@ -1,0 +1,145 @@
+name: Replay Validator
+
+on:
+  pull_request:
+    paths:
+      - ".dockerignore"
+      - ".github/workflows/replay-validator.yml"
+      - "packages/run_protocol/**"
+      - "packages/runner_core/**"
+      - "services/replay_validator/**"
+  push:
+    branches:
+      - master
+    paths:
+      - ".dockerignore"
+      - ".github/workflows/replay-validator.yml"
+      - "packages/run_protocol/**"
+      - "packages/runner_core/**"
+      - "services/replay_validator/**"
+
+permissions:
+  contents: read
+
+env:
+  REPLAY_VALIDATOR_IMAGE: replay-validator:ci
+  TRIVY_IMAGE: aquasec/trivy@sha256:cffe3f5161a47a6823fbd23d985795b3ed72a4c806da4c4df16266c02accdd6f
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: "3.10.4"
+
+      - name: Install dependencies
+        working-directory: services/replay_validator
+        run: dart pub get
+
+      - name: Analyze service
+        working-directory: services/replay_validator
+        run: dart analyze
+
+      - name: Run service tests
+        working-directory: services/replay_validator
+        run: dart test test
+
+      - name: Compile and run AOT protocol rejection probe
+        working-directory: services/replay_validator
+        run: |
+          dart compile exe tool/aot_protocol_probe.dart \
+            -o "$RUNNER_TEMP/aot_protocol_probe"
+          "$RUNNER_TEMP/aot_protocol_probe"
+
+      - name: Build final image
+        run: >-
+          docker build --pull
+          -f services/replay_validator/Dockerfile
+          -t "$REPLAY_VALIDATOR_IMAGE"
+          .
+
+      - name: Smoke-test final image
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          unconfigured="replay-validator-ci-unconfigured"
+          configured="replay-validator-ci-configured"
+          cleanup() {
+            docker rm -f "$unconfigured" "$configured" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          docker run -d --name "$unconfigured" \
+            -p 18082:8080 \
+            "$REPLAY_VALIDATOR_IMAGE"
+          docker run -d --name "$configured" \
+            -p 18083:8080 \
+            -e GCLOUD_PROJECT=ci-project \
+            -e REPLAY_STORAGE_BUCKET=ci-bucket \
+            "$REPLAY_VALIDATOR_IMAGE"
+
+          for attempt in {1..40}; do
+            if curl --fail --silent --show-error \
+              http://localhost:18083/live >/dev/null; then
+              break
+            fi
+            if [[ "$attempt" == "40" ]]; then
+              docker logs "$configured"
+              exit 1
+            fi
+            sleep 0.25
+          done
+
+          test "$(docker image inspect "$REPLAY_VALIDATOR_IMAGE" \
+            --format '{{.Config.User}}')" = "65532:65532"
+          docker top "$configured" -eo user,group,pid,args |
+            grep -Eq '^65532[[:space:]]+65532[[:space:]]+'
+
+          test "$(curl --silent --output /tmp/live.json \
+            --write-out '%{http_code}' \
+            http://localhost:18082/live)" = "200"
+          grep -q '"status":"ok"' /tmp/live.json
+
+          test "$(curl --silent --output /tmp/not-ready.json \
+            --write-out '%{http_code}' \
+            http://localhost:18082/ready)" = "503"
+          grep -q '"status":"not_ready"' /tmp/not-ready.json
+
+          test "$(curl --silent --output /tmp/ready.json \
+            --write-out '%{http_code}' \
+            http://localhost:18083/ready)" = "200"
+          grep -q '"status":"ready"' /tmp/ready.json
+
+          test "$(curl --silent --output /tmp/validate.json \
+            --write-out '%{http_code}' \
+            --request POST \
+            --header 'Content-Type: application/json' \
+            --data '{}' \
+            http://localhost:18083/tasks/validate)" = "400"
+          grep -q '"error":"invalid_request"' /tmp/validate.json
+
+          test "$(curl --silent --output /tmp/project.json \
+            --write-out '%{http_code}' \
+            --request POST \
+            --header 'Content-Type: application/json' \
+            --data '{}' \
+            http://localhost:18083/tasks/project)" = "400"
+          grep -q '"error":"invalid_request"' /tmp/project.json
+
+      - name: Reject Critical or High image vulnerabilities
+        run: >-
+          docker run --rm
+          -v /var/run/docker.sock:/var/run/docker.sock
+          "$TRIVY_IMAGE"
+          image
+          --scanners vuln
+          --severity CRITICAL,HIGH
+          --exit-code 1
+          --no-progress
+          "$REPLAY_VALIDATOR_IMAGE"

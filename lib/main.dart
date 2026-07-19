@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 
+import 'firebase_app_check_bootstrap.dart';
 import 'firebase_options.dart';
 import 'ui/app/ui_app.dart';
 
@@ -9,7 +10,8 @@ import 'ui/app/ui_app.dart';
 ///
 /// The runner can also be embedded in other Flutter apps via
 /// `RunnerGameWidget` / `createRunnerGameRoute` (see `lib/runner.dart`).
-/// Embedding apps should initialize Firebase (and any other services) themselves.
+/// Embedding apps should initialize Firebase, activate App Check where
+/// supported, and initialize any other services themselves.
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -24,5 +26,6 @@ Future<void> main() async {
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await activateFirebaseAppCheck();
   runApp(const UiApp());
 }

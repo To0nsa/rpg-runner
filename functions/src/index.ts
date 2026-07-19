@@ -2,21 +2,39 @@ import { getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { setGlobalOptions } from "firebase-functions/v2";
 import { onDocumentWritten } from "firebase-functions/v2/firestore";
-import { HttpsError, onCall } from "firebase-functions/v2/https";
+import { HttpsError, onCall, onRequest } from "firebase-functions/v2/https";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 
-import { deleteAccountAndData } from "./account/delete.js";
+import {
+  appCheckCallableOptions,
+  logAppCheckObservation,
+} from "./abuse/app_check.js";
+import {
+  cleanupExpiredAbuseQuota,
+  consumeUserQuota,
+} from "./abuse/quota.js";
+import {
+  processPendingAccountDeletions,
+  requestAccountDeletion,
+} from "./account/delete.js";
+import { assertAccountActive } from "./account/deletion_guard.js";
 import { parseAccountDeleteRequest } from "./account/validators.js";
+import {
+  captureAuthorityTimeMs,
+  systemAuthorityClock,
+} from "./authority_time.js";
 import {
   loadOrCreatePlayerProfile,
   updatePlayerProfile,
 } from "./profile/store.js";
+import { repairProfileConsistency } from "./profile/consistency_repair.js";
 import {
   parseLoadPlayerProfileRequest,
   parseUpdatePlayerProfileRequest,
 } from "./profile/validators.js";
 import { loadOrCreateCanonicalState } from "./ownership/canonical_store.js";
 import { executeOwnershipCommand } from "./ownership/command_executor.js";
+import { maintainOwnershipIdempotencyRetention } from "./ownership/idempotency_retention.js";
 import {
   parseExecuteCommandRequest,
   parseLoadCanonicalRequest,
@@ -31,6 +49,19 @@ import {
 import { ensureManagedLeaderboardBoards } from "./boards/provisioning.js";
 import { runReplaySubmissionCleanup } from "./runs/cleanup.js";
 import { settleAcceptedRunSession } from "./runs/reward_settlement.js";
+import { enqueueAcceptedRunProjection } from "./runs/projection_dispatch.js";
+import { reconcileLeaderboardBoardProjections } from "./runs/projection_reconciliation.js";
+import {
+  backfillLegacyRewardGrantStates,
+  type LegacyRewardGrantMigrationMode,
+} from "./runs/reward_grant_backfill.js";
+import {
+  dispatchImmediateSettlement,
+  ImmediateSettlementDispatchRequestError,
+} from "./runs/immediate_settlement_dispatch.js";
+import { logSettlementMetric } from "./runs/settlement_metrics.js";
+import { repairStaleRunValidations } from "./runs/validation_repair.js";
+import { repairPendingSettlements } from "./runs/settlement_repair.js";
 import {
   handleLeaderboardLoadActiveBoardData,
   handleLeaderboardLoadBoard,
@@ -51,6 +82,7 @@ setGlobalOptions({
 });
 
 const db = getFirestore();
+const userCallableAppCheckOptions = appCheckCallableOptions();
 
 const runSessionCreateRegion =
   process.env.RUN_SESSION_CREATE_REGION?.trim() ||
@@ -67,120 +99,213 @@ const leaderboardMinInstances = readNonNegativeInt(
 const settlementRepairBatchSize = readPositiveInt(
   process.env.RUN_SETTLEMENT_REPAIR_BATCH_SIZE,
 ) ?? 64;
+// A run still pending 15 minutes after its durable handoff needs operator attention.
+const settlementStaleThresholdMs = readPositiveInt(
+  process.env.RUN_SETTLEMENT_STALE_THRESHOLD_MS,
+) ?? 15 * 60 * 1000;
+const validationRepairBatchSize = readPositiveInt(
+  process.env.RUN_VALIDATION_REPAIR_BATCH_SIZE,
+) ?? 64;
+const projectionReconciliationBatchSize = readPositiveInt(
+  process.env.RUN_PROJECTION_RECONCILIATION_BATCH_SIZE,
+) ?? 64;
+const legacyRewardGrantMigrationBatchSize = readPositiveInt(
+  process.env.LEGACY_REWARD_GRANT_MIGRATION_BATCH_SIZE,
+) ?? 64;
+const legacyRewardGrantMigrationMode = readLegacyRewardGrantMigrationMode(
+  process.env.LEGACY_REWARD_GRANT_MIGRATION_MODE,
+);
+const replayValidatorServiceAccount =
+  process.env.REPLAY_VALIDATOR_SERVICE_ACCOUNT?.trim() ||
+  "sa-replay-validator@rpg-runner-d7add.iam.gserviceaccount.com";
+const profileConsistencyRepairBatchSize =
+  readPositiveInt(process.env.PROFILE_CONSISTENCY_REPAIR_BATCH_SIZE) ?? 64;
 
-export const loadoutOwnershipLoadCanonicalState = onCall(async (request) => {
-  const uid = request.auth?.uid;
-  if (!uid) {
-    throw new HttpsError("unauthenticated", "Authentication required.");
-  }
-  const { userId } = parseLoadCanonicalRequest(request.data);
-  if (userId !== uid) {
-    throw new HttpsError("permission-denied", "userId does not match auth uid.");
-  }
-  const canonicalState = await loadOrCreateCanonicalState({
-    db,
-    uid,
-  });
-  return { canonicalState };
-});
+export const loadoutOwnershipLoadCanonicalState = onCall(
+  userCallableAppCheckOptions,
+  async (request) => {
+    logAppCheckObservation({
+      functionName: "loadoutOwnershipLoadCanonicalState",
+      request,
+    });
+    const uid = request.auth?.uid;
+    if (!uid) {
+      throw new HttpsError("unauthenticated", "Authentication required.");
+    }
+    const { userId } = parseLoadCanonicalRequest(request.data);
+    if (userId !== uid) {
+      throw new HttpsError(
+        "permission-denied",
+        "userId does not match auth uid.",
+      );
+    }
+    await assertAccountActive(db, uid);
+    const canonicalState = await loadOrCreateCanonicalState({
+      db,
+      uid,
+    });
+    return { canonicalState };
+  },
+);
 
-export const loadoutOwnershipExecuteCommand = onCall(async (request) => {
-  const uid = request.auth?.uid;
-  if (!uid) {
-    throw new HttpsError("unauthenticated", "Authentication required.");
-  }
-  const { command } = parseExecuteCommandRequest(request.data);
-  if (command.userId !== uid) {
-    throw new HttpsError("permission-denied", "userId does not match auth uid.");
-  }
-  const result = await executeOwnershipCommand({
-    db,
-    uid,
-    command,
-  });
-  return { result };
-});
+export const loadoutOwnershipExecuteCommand = onCall(
+  userCallableAppCheckOptions,
+  async (request) => {
+    logAppCheckObservation({
+      functionName: "loadoutOwnershipExecuteCommand",
+      request,
+    });
+    const uid = request.auth?.uid;
+    if (!uid) {
+      throw new HttpsError("unauthenticated", "Authentication required.");
+    }
+    const { command } = parseExecuteCommandRequest(request.data);
+    if (command.userId !== uid) {
+      throw new HttpsError(
+        "permission-denied",
+        "userId does not match auth uid.",
+      );
+    }
+    await assertAccountActive(db, uid);
+    await consumeUserQuota({
+      db,
+      uid,
+      route: "ownership_command",
+      nowMs: captureAuthorityTimeMs(systemAuthorityClock),
+    });
+    const result = await executeOwnershipCommand({
+      db,
+      uid,
+      command,
+    });
+    return { result };
+  },
+);
 
-export const playerProfileLoad = onCall(async (request) => {
-  const uid = request.auth?.uid;
-  if (!uid) {
-    throw new HttpsError("unauthenticated", "Authentication required.");
-  }
-  const { userId } = parseLoadPlayerProfileRequest(request.data);
-  if (userId !== uid) {
-    throw new HttpsError("permission-denied", "userId does not match auth uid.");
-  }
-  const profile = await loadOrCreatePlayerProfile({ db, uid });
-  return { profile };
-});
+export const playerProfileLoad = onCall(
+  userCallableAppCheckOptions,
+  async (request) => {
+    logAppCheckObservation({ functionName: "playerProfileLoad", request });
+    const uid = request.auth?.uid;
+    if (!uid) {
+      throw new HttpsError("unauthenticated", "Authentication required.");
+    }
+    const { userId } = parseLoadPlayerProfileRequest(request.data);
+    if (userId !== uid) {
+      throw new HttpsError(
+        "permission-denied",
+        "userId does not match auth uid.",
+      );
+    }
+    await assertAccountActive(db, uid);
+    const profile = await loadOrCreatePlayerProfile({ db, uid });
+    return { profile };
+  },
+);
 
-export const playerProfileUpdate = onCall(async (request) => {
-  const uid = request.auth?.uid;
-  if (!uid) {
-    throw new HttpsError("unauthenticated", "Authentication required.");
-  }
-  const {
-    userId,
-    displayName,
-    displayNameLastChangedAtMs,
-    namePromptCompleted,
-  } = parseUpdatePlayerProfileRequest(request.data);
-  if (userId !== uid) {
-    throw new HttpsError("permission-denied", "userId does not match auth uid.");
-  }
-  const profile = await updatePlayerProfile({
-    db,
-    uid,
-    displayName,
-    displayNameLastChangedAtMs,
-    namePromptCompleted,
-  });
-  return { profile };
-});
+export const playerProfileUpdate = onCall(
+  userCallableAppCheckOptions,
+  async (request) => {
+    logAppCheckObservation({ functionName: "playerProfileUpdate", request });
+    const uid = request.auth?.uid;
+    if (!uid) {
+      throw new HttpsError("unauthenticated", "Authentication required.");
+    }
+    const { userId, displayName, namePromptCompleted } =
+      parseUpdatePlayerProfileRequest(request.data);
+    if (userId !== uid) {
+      throw new HttpsError(
+        "permission-denied",
+        "userId does not match auth uid.",
+      );
+    }
+    await assertAccountActive(db, uid);
+    const profile = await updatePlayerProfile({
+      db,
+      uid,
+      nowMs: captureAuthorityTimeMs(systemAuthorityClock),
+      displayName,
+      namePromptCompleted,
+    });
+    return { profile };
+  },
+);
 
-export const accountDelete = onCall(async (request) => {
-  const uid = request.auth?.uid;
-  if (!uid) {
-    throw new HttpsError("unauthenticated", "Authentication required.");
-  }
-  const { userId } = parseAccountDeleteRequest(request.data);
-  if (userId !== uid) {
-    throw new HttpsError("permission-denied", "userId does not match auth uid.");
-  }
-  const result = await deleteAccountAndData({
-    db,
-    uid,
-  });
-  return { result };
-});
+export const accountDelete = onCall(
+  userCallableAppCheckOptions,
+  async (request) => {
+    logAppCheckObservation({ functionName: "accountDelete", request });
+    const uid = request.auth?.uid;
+    if (!uid) {
+      throw new HttpsError("unauthenticated", "Authentication required.");
+    }
+    const { userId } = parseAccountDeleteRequest(request.data);
+    if (userId !== uid) {
+      throw new HttpsError(
+        "permission-denied",
+        "userId does not match auth uid.",
+      );
+    }
+    const result = await requestAccountDeletion({
+      db,
+      uid,
+      nowMs: captureAuthorityTimeMs(systemAuthorityClock),
+    });
+    return { result };
+  },
+);
 
-export const runBoardsLoadActive = onCall(async (request) => {
-  return handleRunBoardsLoadActive(request, db);
-});
+export const runBoardsLoadActive = onCall(
+  userCallableAppCheckOptions,
+  async (request) => {
+    logAppCheckObservation({ functionName: "runBoardsLoadActive", request });
+    return handleRunBoardsLoadActive(request, db);
+  },
+);
 
 export const runSessionCreate = onCall(
   {
+    ...userCallableAppCheckOptions,
     region: runSessionCreateRegion,
     ...(runSessionCreateMinInstances !== undefined
       ? { minInstances: runSessionCreateMinInstances }
       : {}),
   },
   async (request) => {
+    logAppCheckObservation({ functionName: "runSessionCreate", request });
     return handleRunSessionCreate(request, db);
   },
 );
 
-export const runSessionCreateUploadGrant = onCall(async (request) => {
-  return handleRunSessionCreateUploadGrant(request, db);
-});
+export const runSessionCreateUploadGrant = onCall(
+  userCallableAppCheckOptions,
+  async (request) => {
+    logAppCheckObservation({
+      functionName: "runSessionCreateUploadGrant",
+      request,
+    });
+    return handleRunSessionCreateUploadGrant(request, db);
+  },
+);
 
-export const runSessionFinalizeUpload = onCall(async (request) => {
-  return handleRunSessionFinalizeUpload(request, db);
-});
+export const runSessionFinalizeUpload = onCall(
+  userCallableAppCheckOptions,
+  async (request) => {
+    logAppCheckObservation({
+      functionName: "runSessionFinalizeUpload",
+      request,
+    });
+    return handleRunSessionFinalizeUpload(request, db);
+  },
+);
 
-export const runSessionLoadStatus = onCall(async (request) => {
-  return handleRunSessionLoadStatus(request, db);
-});
+export const runSessionLoadStatus = onCall(
+  userCallableAppCheckOptions,
+  async (request) => {
+    logAppCheckObservation({ functionName: "runSessionLoadStatus", request });
+    return handleRunSessionLoadStatus(request, db);
+  },
+);
 
 export const runSettlementOnHandoff = onDocumentWritten(
   {
@@ -195,53 +320,142 @@ export const runSettlementOnHandoff = onDocumentWritten(
     const outcome = await settleAcceptedRunSession({
       db,
       runSessionId: event.params.runSessionId,
+      deliverySource: "eventarc",
     });
-    console.log("runSettlementOnHandoff", {
+    logSettlementMetric({
+      event: "settlement_eventarc_delivery",
+      runSessionId: event.params.runSessionId,
+      outcome,
+      deliverySource: "eventarc",
+    });
+  },
+);
+
+/**
+ * Enqueues optional board projection only after the accepted run is durable.
+ * Its retry contract is independent from settlement and cannot hold gold back.
+ */
+export const runProjectionOnAccepted = onDocumentWritten(
+  {
+    document: "validated_runs/{runSessionId}",
+    retry: true,
+  },
+  async (event) => {
+    const after = event.data?.after;
+    if (!after?.exists || after.data()?.accepted !== true) {
+      return;
+    }
+    const outcome = await enqueueAcceptedRunProjection({
+      db,
+      runSessionId: event.params.runSessionId,
+    });
+    logSettlementMetric({
+      event: "projection_enqueue",
       runSessionId: event.params.runSessionId,
       outcome,
     });
   },
 );
 
+/**
+ * Low-latency, IAM-only delivery path for a validator settlement handoff.
+ *
+ * The validator can call this only after it has atomically persisted
+ * settlement_pending. Eventarc and scheduled repair invoke the same
+ * transaction when this request is unavailable, slow, or duplicated.
+ */
+export const runSettlementImmediate = onRequest(
+  {
+    invoker: replayValidatorServiceAccount,
+  },
+  async (request, response) => {
+    if (request.method !== "POST") {
+      response.status(405).json({ error: "method_not_allowed" });
+      return;
+    }
+    try {
+      const result = await dispatchImmediateSettlement({
+        db,
+        data: request.body,
+      });
+      logSettlementMetric({
+        event: "settlement_immediate_response",
+        runSessionId: result.runSessionId,
+        deliverySource: "immediate",
+        outcome: result.outcome,
+      });
+      if (result.outcome === "not_ready") {
+        response.status(409).json(result);
+        return;
+      }
+      if (result.outcome === "invariant_violation") {
+        response.status(422).json(result);
+        return;
+      }
+      response.status(200).json(result);
+    } catch (error) {
+      if (error instanceof ImmediateSettlementDispatchRequestError) {
+        response.status(400).json({ error: "invalid_request", message: error.message });
+        return;
+      }
+      console.error("runSettlementImmediate failed", error);
+      response.status(500).json({ error: "settlement_failed" });
+    }
+  },
+);
+
 export const leaderboardLoadBoard = onCall(
   {
+    ...userCallableAppCheckOptions,
     region: leaderboardRegion,
     ...(leaderboardMinInstances !== undefined
       ? { minInstances: leaderboardMinInstances }
       : {}),
   },
   async (request) => {
+    logAppCheckObservation({ functionName: "leaderboardLoadBoard", request });
     return handleLeaderboardLoadBoard(request, db);
   },
 );
 
 export const leaderboardLoadMyRank = onCall(
   {
+    ...userCallableAppCheckOptions,
     region: leaderboardRegion,
     ...(leaderboardMinInstances !== undefined
       ? { minInstances: leaderboardMinInstances }
       : {}),
   },
   async (request) => {
+    logAppCheckObservation({ functionName: "leaderboardLoadMyRank", request });
     return handleLeaderboardLoadMyRank(request, db);
   },
 );
 
 export const leaderboardLoadActiveBoardData = onCall(
   {
+    ...userCallableAppCheckOptions,
     region: leaderboardRegion,
     ...(leaderboardMinInstances !== undefined
       ? { minInstances: leaderboardMinInstances }
       : {}),
   },
   async (request) => {
+    logAppCheckObservation({
+      functionName: "leaderboardLoadActiveBoardData",
+      request,
+    });
     return handleLeaderboardLoadActiveBoardData(request, db);
   },
 );
 
-export const ghostLoadManifest = onCall(async (request) => {
+export const ghostLoadManifest = onCall(
+  userCallableAppCheckOptions,
+  async (request) => {
+  logAppCheckObservation({ functionName: "ghostLoadManifest", request });
   return handleGhostLoadManifest(request, db);
-});
+  },
+);
 
 export const runSubmissionCleanup = onSchedule(
   {
@@ -254,40 +468,141 @@ export const runSubmissionCleanup = onSchedule(
   },
 );
 
+export const playerProfileConsistencyRepair = onSchedule(
+  {
+    schedule: "every 60 minutes",
+    timeZone: "Etc/UTC",
+  },
+  async () => {
+    const result = await repairProfileConsistency({
+      db,
+      batchSize: profileConsistencyRepairBatchSize,
+    });
+    console.log("playerProfileConsistencyRepair", result);
+  },
+);
+
+export const abuseQuotaRetentionCleanup = onSchedule(
+  {
+    schedule: "every 60 minutes",
+    timeZone: "Etc/UTC",
+  },
+  async () => {
+    const result = await cleanupExpiredAbuseQuota({ db });
+    console.log("abuseQuotaRetentionCleanup", result);
+  },
+);
+
+export const ownershipIdempotencyRetentionCleanup = onSchedule(
+  {
+    schedule: "every 60 minutes",
+    timeZone: "Etc/UTC",
+  },
+  async () => {
+    const result = await maintainOwnershipIdempotencyRetention({ db });
+    console.log("ownershipIdempotencyRetentionCleanup", result);
+  },
+);
+
+export const accountDeletionRepair = onSchedule(
+  {
+    schedule: "every 1 minutes",
+    timeZone: "Etc/UTC",
+  },
+  async () => {
+    const result = await processPendingAccountDeletions({ db });
+    console.log("accountDeletionRepair", result);
+  },
+);
+
 export const runSettlementRepair = onSchedule(
   {
     schedule: "every 5 minutes",
     timeZone: "Etc/UTC",
   },
   async () => {
-    const pendingSessions = await db
-      .collection("run_sessions")
-      .where("state", "==", "settlement_pending")
-      .limit(settlementRepairBatchSize)
-      .get();
-    let settledCount = 0;
-    const failures: string[] = [];
-    for (const session of pendingSessions.docs) {
-      try {
-        const outcome = await settleAcceptedRunSession({
-          db,
-          runSessionId: session.id,
-        });
-        if (outcome === "settled") {
-          settledCount += 1;
-        }
-      } catch (error) {
-        failures.push(`${session.id}: ${String(error)}`);
-      }
-    }
-    console.log("runSettlementRepair", {
-      scannedCount: pendingSessions.size,
-      settledCount,
-      failureCount: failures.length,
+    const result = await repairPendingSettlements({
+      db,
+      options: {
+        batchSize: settlementRepairBatchSize,
+        staleThresholdMs: settlementStaleThresholdMs,
+      },
     });
-    if (failures.length > 0) {
-      throw new Error(`run settlement repair failed: ${failures.join("; ")}`);
+    console.log("runSettlementRepair", result);
+    if (result.failureCount > 0) {
+      throw new Error(
+        `run settlement repair had ${result.failureCount} infrastructure failures`,
+      );
     }
+  },
+);
+
+/**
+ * Reclaims expired validation leases and requeues orphaned pending work.
+ *
+ * Queue retries remain the ordinary delivery authority. This bounded repair
+ * scan handles process death, task exhaustion, and lost-task edge cases.
+ */
+export const runValidationRepair = onSchedule(
+  {
+    schedule: "every 5 minutes",
+    timeZone: "Etc/UTC",
+  },
+  async () => {
+    const result = await repairStaleRunValidations({
+      db,
+      options: {
+        batchSize: validationRepairBatchSize,
+      },
+    });
+    console.log("runValidationRepair", result);
+    if (result.failureCount > 0) {
+      throw new Error(
+        `run validation repair had ${result.failureCount} enqueue failures`,
+      );
+    }
+  },
+);
+
+/**
+ * Rebuilds board projections from player-best truth even when no new score is
+ * submitted. The persisted cursor bounds each invocation while eventually
+ * visiting active, closed, and empty boards.
+ */
+export const runProjectionReconciliation = onSchedule(
+  {
+    schedule: "every 15 minutes",
+    timeZone: "Etc/UTC",
+  },
+  async () => {
+    const result = await reconcileLeaderboardBoardProjections({
+      db,
+      batchSize: projectionReconciliationBatchSize,
+    });
+    console.log("runProjectionReconciliation", result);
+  },
+);
+
+/**
+ * Finite migration for grants created before server-owned settlement existed.
+ *
+ * Default `off` makes deployment audit-safe. Operators run `inventory` first,
+ * then explicitly switch to `apply` after reviewing the recorded counts.
+ */
+export const runLegacyRewardGrantMigration = onSchedule(
+  {
+    schedule: "every 5 minutes",
+    timeZone: "Etc/UTC",
+  },
+  async () => {
+    const result = await backfillLegacyRewardGrantStates({
+      db,
+      options: {
+        mode: legacyRewardGrantMigrationMode,
+        maxDocs: legacyRewardGrantMigrationBatchSize,
+      },
+    });
+    console.log("runLegacyRewardGrantMigration", result);
   },
 );
 
@@ -317,4 +632,18 @@ function readNonNegativeInt(raw: string | undefined): number | undefined {
 function readPositiveInt(raw: string | undefined): number | undefined {
   const parsed = readNonNegativeInt(raw);
   return parsed !== undefined && parsed > 0 ? parsed : undefined;
+}
+
+function readLegacyRewardGrantMigrationMode(
+  raw: string | undefined,
+): LegacyRewardGrantMigrationMode {
+  const normalized = raw?.trim().toLowerCase();
+  if (
+    normalized === "inventory" ||
+    normalized === "apply" ||
+    normalized === "off"
+  ) {
+    return normalized;
+  }
+  return "off";
 }

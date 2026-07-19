@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/services.dart';
 
@@ -10,10 +12,14 @@ import 'run_session_api.dart';
 import 'run_start_remote_exception.dart';
 
 class FirebaseRunSessionApi implements RunSessionApi {
-  FirebaseRunSessionApi({FirebaseRunSessionSource? source})
-    : _source = source ?? PluginFirebaseRunSessionSource();
+  FirebaseRunSessionApi({
+    FirebaseRunSessionSource? source,
+    RunCreateRequestIdFactory? requestIdFactory,
+  }) : _source = source ?? PluginFirebaseRunSessionSource(),
+       _requestIdFactory = requestIdFactory ?? createRunClientRequestId;
 
   final FirebaseRunSessionSource _source;
+  final RunCreateRequestIdFactory _requestIdFactory;
 
   @override
   Future<RunTicket> createRunSession({
@@ -27,6 +33,7 @@ class FirebaseRunSessionApi implements RunSessionApi {
       final response = await _source.createRunSession(
         userId: userId,
         sessionId: sessionId,
+        clientRequestId: _requestIdFactory(),
         mode: mode,
         levelId: levelId,
         gameCompatVersion: gameCompatVersion,
@@ -189,6 +196,7 @@ abstract class FirebaseRunSessionSource {
   Future<Map<String, dynamic>> createRunSession({
     required String userId,
     required String sessionId,
+    required String clientRequestId,
     required RunMode mode,
     required LevelId levelId,
     required String gameCompatVersion,
@@ -237,6 +245,7 @@ class PluginFirebaseRunSessionSource implements FirebaseRunSessionSource {
   Future<Map<String, dynamic>> createRunSession({
     required String userId,
     required String sessionId,
+    required String clientRequestId,
     required RunMode mode,
     required LevelId levelId,
     required String gameCompatVersion,
@@ -245,6 +254,7 @@ class PluginFirebaseRunSessionSource implements FirebaseRunSessionSource {
     final result = await callable.call(<String, Object?>{
       'userId': userId,
       'sessionId': sessionId,
+      'clientRequestId': clientRequestId,
       'mode': mode.name,
       'levelId': levelId.name,
       'gameCompatVersion': gameCompatVersion,
@@ -319,4 +329,17 @@ class PluginFirebaseRunSessionSource implements FirebaseRunSessionSource {
       '${raw.runtimeType}',
     );
   }
+}
+
+typedef RunCreateRequestIdFactory = String Function();
+
+String createRunClientRequestId() {
+  final random = Random.secure();
+  final timestamp = DateTime.now().microsecondsSinceEpoch.toRadixString(36);
+  final entropy = List<String>.generate(
+    4,
+    (_) => random.nextInt(1 << 32).toRadixString(36).padLeft(7, '0'),
+    growable: false,
+  ).join();
+  return 'run_${timestamp}_$entropy';
 }

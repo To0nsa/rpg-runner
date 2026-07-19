@@ -140,6 +140,9 @@ class FirebaseAccountDeletionApi implements AccountDeletionApi {
     }
     return switch (raw) {
       'deleted' || 'success' => AccountDeletionStatus.deleted,
+      'requested' => AccountDeletionStatus.requested,
+      'in_progress' || 'in-progress' => AccountDeletionStatus.inProgress,
+      'retryable' || 'retrying' => AccountDeletionStatus.retrying,
       'requiresRecentLogin' ||
       'requires-recent-login' => AccountDeletionStatus.requiresRecentLogin,
       'unauthorized' => AccountDeletionStatus.unauthorized,

@@ -34,7 +34,9 @@ void main() {
     expect(find.text('Run Route Placeholder'), findsOneWidget);
   });
 
-  testWidgets('bootstrap page shows retry on run-start failure', (tester) async {
+  testWidgets('bootstrap page shows retry on run-start failure', (
+    tester,
+  ) async {
     final runSessionApi = _ThrowingRunSessionApi();
     final appState = AppState(
       authApi: _StaticAuthApi.authenticated(),
@@ -47,7 +49,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.text('Unable to start run right now. Check your connection and try again.'),
+      find.text(
+        'Unable to start run right now. Check your connection and try again.',
+      ),
       findsOneWidget,
     );
     expect(find.text('Retry'), findsOneWidget);
@@ -273,15 +277,12 @@ class _NoopOwnershipApi implements LoadoutOwnershipApi {
   }
 
   @override
-  Future<OwnershipCommandResult> setSelection(SetSelectionCommand command) async {
+  Future<OwnershipCommandResult> setSelection(
+    SetSelectionCommand command,
+  ) async {
     _selection = command.selection;
     return _accepted();
   }
-
-  @override
-  Future<OwnershipCommandResult> resetOwnership(
-    ResetOwnershipCommand command,
-  ) async => _accepted();
 
   @override
   Future<OwnershipCommandResult> equipGear(EquipGearCommand command) async =>
@@ -299,25 +300,6 @@ class _NoopOwnershipApi implements LoadoutOwnershipApi {
   @override
   Future<OwnershipCommandResult> setProjectileSpell(
     SetProjectileSpellCommand command,
-  ) async => _accepted();
-
-  @override
-  Future<OwnershipCommandResult> learnProjectileSpell(
-    LearnProjectileSpellCommand command,
-  ) async => _accepted();
-
-  @override
-  Future<OwnershipCommandResult> learnSpellAbility(
-    LearnSpellAbilityCommand command,
-  ) async => _accepted();
-
-  @override
-  Future<OwnershipCommandResult> unlockGear(UnlockGearCommand command) async =>
-      _accepted();
-
-  @override
-  Future<OwnershipCommandResult> awardRunGold(
-    AwardRunGoldCommand command,
   ) async => _accepted();
 
   @override

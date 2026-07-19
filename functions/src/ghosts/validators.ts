@@ -1,3 +1,4 @@
+import { assertCallablePayloadBounds } from "../abuse/payload_bounds.js";
 import { requireNonEmptyString, requireObject } from "../ownership/validators.js";
 
 export interface GhostLoadManifestRequest {
@@ -10,6 +11,7 @@ export interface GhostLoadManifestRequest {
 export function parseGhostLoadManifestRequest(
   raw: unknown,
 ): GhostLoadManifestRequest {
+  assertCallablePayloadBounds(raw);
   const data = requireObject(raw, "request");
   return {
     userId: requireNonEmptyString(data.userId, "userId"),

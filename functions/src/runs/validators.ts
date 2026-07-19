@@ -1,23 +1,29 @@
 import { HttpsError } from "firebase-functions/v2/https";
 
+import { assertCallablePayloadBounds } from "../abuse/payload_bounds.js";
+import { rejectClientAuthorityTime } from "../authority_time.js";
 import type { JsonObject } from "../ownership/contracts.js";
-import { requireNonEmptyString, requireObject } from "../ownership/validators.js";
+import {
+  requireBoundedIdentifier,
+  requireNonEmptyString,
+  requireObject,
+} from "../ownership/validators.js";
+import { replayUploadMaxBytes } from "./limits.js";
 import { parseRunMode, type RunModeValue } from "./mode.js";
 
 interface RunSessionCreateRequest {
   userId: string;
   sessionId: string;
+  clientRequestId: string;
   mode: RunModeValue;
   levelId: string;
   gameCompatVersion: string;
-  nowMs?: number;
 }
 
 interface RunSessionCreateUploadGrantRequest {
   userId: string;
   sessionId: string;
   runSessionId: string;
-  nowMs?: number;
 }
 
 interface RunSessionFinalizeUploadRequest {
@@ -29,7 +35,6 @@ interface RunSessionFinalizeUploadRequest {
   contentType?: string;
   objectPath?: string;
   provisionalSummary?: JsonObject;
-  nowMs?: number;
 }
 
 interface RunSessionLoadStatusRequest {
@@ -41,36 +46,45 @@ interface RunSessionLoadStatusRequest {
 export function parseRunSessionCreateRequest(
   raw: unknown,
 ): RunSessionCreateRequest {
+  assertCallablePayloadBounds(raw);
   const data = requireObject(raw, "request");
+  rejectClientAuthorityTime(data);
   return {
     userId: requireNonEmptyString(data.userId, "userId"),
     sessionId: requireNonEmptyString(data.sessionId, "sessionId"),
+    clientRequestId: requireBoundedIdentifier(
+      data.clientRequestId,
+      "clientRequestId",
+      96,
+    ),
     mode: parseRunMode(data.mode, "mode"),
     levelId: requireNonEmptyString(data.levelId, "levelId"),
     gameCompatVersion: requireNonEmptyString(
       data.gameCompatVersion,
       "gameCompatVersion",
     ),
-    nowMs: parseOptionalNowMs(data.nowMs),
   };
 }
 
 export function parseRunSessionCreateUploadGrantRequest(
   raw: unknown,
 ): RunSessionCreateUploadGrantRequest {
+  assertCallablePayloadBounds(raw);
   const data = requireObject(raw, "request");
+  rejectClientAuthorityTime(data);
   return {
     userId: requireNonEmptyString(data.userId, "userId"),
     sessionId: requireNonEmptyString(data.sessionId, "sessionId"),
     runSessionId: requireNonEmptyString(data.runSessionId, "runSessionId"),
-    nowMs: parseOptionalNowMs(data.nowMs),
   };
 }
 
 export function parseRunSessionFinalizeUploadRequest(
   raw: unknown,
 ): RunSessionFinalizeUploadRequest {
+  assertCallablePayloadBounds(raw);
   const data = requireObject(raw, "request");
+  rejectClientAuthorityTime(data);
   const canonicalSha256 = requireNonEmptyString(
     data.canonicalSha256,
     "canonicalSha256",
@@ -91,6 +105,12 @@ export function parseRunSessionFinalizeUploadRequest(
       "contentLengthBytes must be greater than zero.",
     );
   }
+  if (contentLengthBytes > replayUploadMaxBytes) {
+    throw new HttpsError(
+      "invalid-argument",
+      `contentLengthBytes exceeds ${replayUploadMaxBytes} bytes.`,
+    );
+  }
   const provisionalSummaryRaw = data.provisionalSummary;
   return {
     userId: requireNonEmptyString(data.userId, "userId"),
@@ -104,29 +124,19 @@ export function parseRunSessionFinalizeUploadRequest(
       provisionalSummaryRaw === undefined || provisionalSummaryRaw === null
         ? undefined
         : (requireObject(provisionalSummaryRaw, "provisionalSummary") as JsonObject),
-    nowMs: parseOptionalNowMs(data.nowMs),
   };
 }
 
 export function parseRunSessionLoadStatusRequest(
   raw: unknown,
 ): RunSessionLoadStatusRequest {
+  assertCallablePayloadBounds(raw);
   const data = requireObject(raw, "request");
   return {
     userId: requireNonEmptyString(data.userId, "userId"),
     sessionId: requireNonEmptyString(data.sessionId, "sessionId"),
     runSessionId: requireNonEmptyString(data.runSessionId, "runSessionId"),
   };
-}
-
-function parseOptionalNowMs(value: unknown): number | undefined {
-  if (value === undefined || value === null) {
-    return undefined;
-  }
-  if (typeof value !== "number" || !Number.isInteger(value)) {
-    throw new HttpsError("invalid-argument", "nowMs must be an integer.");
-  }
-  return value;
 }
 
 function parseRequiredInteger(value: unknown, fieldName: string): number {

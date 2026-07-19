@@ -1,0 +1,37 @@
+{
+  "displayName": "RPG Runner - payout latency p99 above 15 seconds",
+  "documentation": {
+    "content": "The p99 time from durable replay finalize to settlement handoff exceeded 15 seconds. Check validator capacity, replay loading, and deterministic replay duration. The pending-over-15-minutes policy separately covers the post-handoff settlement path.",
+    "mimeType": "text/markdown"
+  },
+  "conditions": [
+    {
+      "displayName": "Finalize to settlement handoff p99 over 15 seconds",
+      "conditionThreshold": {
+        "filter": "metric.type=\"logging.googleapis.com/user/reward_settlement_finalize_to_handoff_latency_ms\" AND resource.type=\"cloud_run_revision\"",
+        "aggregations": [
+          {
+            "alignmentPeriod": "900s",
+            "perSeriesAligner": "ALIGN_DELTA",
+            "crossSeriesReducer": "REDUCE_PERCENTILE_99"
+          }
+        ],
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 15000,
+        "duration": "0s",
+        "trigger": {
+          "count": 1
+        }
+      }
+    }
+  ],
+  "combiner": "OR",
+  "enabled": true,
+  "alertStrategy": {
+    "autoClose": "604800s"
+  },
+  "userLabels": {
+    "component": "reward-settlement",
+    "severity": "warning"
+  }
+}

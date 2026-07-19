@@ -1,5 +1,6 @@
 import { HttpsError } from "firebase-functions/v2/https";
 
+import { assertCallablePayloadBounds } from "../abuse/payload_bounds.js";
 import { requireNonEmptyString, requireObject } from "../ownership/validators.js";
 
 interface LoadPlayerProfileRequest {
@@ -11,7 +12,6 @@ interface UpdatePlayerProfileRequest {
   userId: string;
   sessionId: string;
   displayName?: string;
-  displayNameLastChangedAtMs?: number;
   namePromptCompleted?: boolean;
 }
 
@@ -40,6 +40,7 @@ const bannedDisplayNameSubstrings = [
 export function parseLoadPlayerProfileRequest(
   raw: unknown,
 ): LoadPlayerProfileRequest {
+  assertCallablePayloadBounds(raw);
   const data = requireObject(raw, "request");
   return {
     userId: requireNonEmptyString(data.userId, "userId"),
@@ -50,25 +51,21 @@ export function parseLoadPlayerProfileRequest(
 export function parseUpdatePlayerProfileRequest(
   raw: unknown,
 ): UpdatePlayerProfileRequest {
+  assertCallablePayloadBounds(raw);
   const data = requireObject(raw, "request");
+  if (Object.hasOwn(data, "displayNameLastChangedAtMs")) {
+    throw new HttpsError(
+      "invalid-argument",
+      "displayNameLastChangedAtMs is server-controlled and must not be supplied.",
+    );
+  }
   const displayName = parseOptionalDisplayName(data.displayName);
-  const displayNameLastChangedAtMs = parseOptionalNonNegativeInteger(
-    data.displayNameLastChangedAtMs,
-    "displayNameLastChangedAtMs",
-  );
   const namePromptCompleted = parseOptionalBoolean(
     data.namePromptCompleted,
     "namePromptCompleted",
   );
 
   const hasDisplayName = displayName !== undefined;
-  const hasDisplayNameTimestamp = displayNameLastChangedAtMs !== undefined;
-  if (hasDisplayName != hasDisplayNameTimestamp) {
-    throw new HttpsError(
-      "invalid-argument",
-      "displayName and displayNameLastChangedAtMs must be supplied together.",
-    );
-  }
   if (!hasDisplayName && namePromptCompleted === undefined) {
     throw new HttpsError(
       "invalid-argument",
@@ -80,7 +77,6 @@ export function parseUpdatePlayerProfileRequest(
     userId: requireNonEmptyString(data.userId, "userId"),
     sessionId: requireNonEmptyString(data.sessionId, "sessionId"),
     displayName,
-    displayNameLastChangedAtMs,
     namePromptCompleted,
   };
 }
@@ -92,16 +88,6 @@ function parseOptionalDisplayName(value: unknown): string | undefined {
   const displayName = requireNonEmptyString(value, "displayName").trim();
   validateDisplayName(displayName);
   return displayName;
-}
-
-function parseOptionalNonNegativeInteger(
-  value: unknown,
-  fieldName: string,
-): number | undefined {
-  if (value === undefined || value === null) {
-    return undefined;
-  }
-  return requireNonNegativeInteger(value, fieldName);
 }
 
 function parseOptionalBoolean(
@@ -150,14 +136,4 @@ function validateDisplayName(name: string): void {
 
 export function normalizeDisplayNameForPolicy(value: string): string {
   return value.trim().replace(/\s+/g, " ").toLowerCase();
-}
-
-function requireNonNegativeInteger(value: unknown, fieldName: string): number {
-  if (typeof value !== "number" || !Number.isInteger(value) || value < 0) {
-    throw new HttpsError(
-      "invalid-argument",
-      `${fieldName} must be a non-negative integer`,
-    );
-  }
-  return value;
 }

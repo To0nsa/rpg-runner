@@ -22,7 +22,7 @@ import 'package:rpg_runner/ui/theme/ui_button_theme.dart';
 import 'package:rpg_runner/ui/theme/ui_tokens.dart';
 
 void main() {
-  testWidgets('hub top row includes unverified gold from app state', (
+  testWidgets('hub top row excludes provisional gold from canonical wallet', (
     tester,
   ) async {
     final runSessionApi = _StatusOnlyRunSessionApi(
@@ -57,7 +57,7 @@ void main() {
     await tester.pump();
 
     final topRow = tester.widget<HubTopRow>(find.byType(HubTopRow));
-    expect(topRow.gold, 338);
+    expect(topRow.gold, 321);
   });
 
   testWidgets('play tap transitions immediately to run bootstrap route', (
@@ -214,23 +214,8 @@ class _NoopOwnershipApi implements LoadoutOwnershipApi {
   }
 
   @override
-  Future<OwnershipCommandResult> awardRunGold(
-    AwardRunGoldCommand command,
-  ) async => _accepted;
-
-  @override
   Future<OwnershipCommandResult> equipGear(EquipGearCommand command) async =>
       _accepted;
-
-  @override
-  Future<OwnershipCommandResult> learnProjectileSpell(
-    LearnProjectileSpellCommand command,
-  ) async => _accepted;
-
-  @override
-  Future<OwnershipCommandResult> learnSpellAbility(
-    LearnSpellAbilityCommand command,
-  ) async => _accepted;
 
   @override
   Future<OwnershipCommandResult> purchaseStoreOffer(
@@ -240,11 +225,6 @@ class _NoopOwnershipApi implements LoadoutOwnershipApi {
   @override
   Future<OwnershipCommandResult> refreshStore(
     RefreshStoreCommand command,
-  ) async => _accepted;
-
-  @override
-  Future<OwnershipCommandResult> resetOwnership(
-    ResetOwnershipCommand command,
   ) async => _accepted;
 
   @override
@@ -265,10 +245,6 @@ class _NoopOwnershipApi implements LoadoutOwnershipApi {
   Future<OwnershipCommandResult> setSelection(
     SetSelectionCommand command,
   ) async => _accepted;
-
-  @override
-  Future<OwnershipCommandResult> unlockGear(UnlockGearCommand command) async =>
-      _accepted;
 }
 
 class _StatusOnlyRunSessionApi extends NoopRunSessionApi {

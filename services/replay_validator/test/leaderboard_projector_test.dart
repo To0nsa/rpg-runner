@@ -48,7 +48,7 @@ void main() {
     await projector.projectValidatedRun(runSessionId: 'run_lower');
 
     expect(store.upsertedEntries, isEmpty);
-    expect(store.top10Writes, isEmpty);
+    expect(store.top10Writes, hasLength(1));
     final best = store.playerBestsByBoard[boardId]![uid]!;
     expect(best.runSessionId, 'run_best');
     expect(best.score, 1100);
@@ -139,6 +139,130 @@ void main() {
       );
     },
   );
+
+  test(
+    'concurrent better and worse candidates preserve the better best',
+    () async {
+      const boardId = 'board_concurrent';
+      const uid = 'uid_player';
+      final store = _InMemoryLeaderboardProjectionStore(
+        validatedRuns: <String, ValidatedRun>{
+          'run_worse': _validatedRun(
+            runSessionId: 'run_worse',
+            uid: uid,
+            boardId: boardId,
+            score: 900,
+            distanceMeters: 300,
+            durationSeconds: 150,
+          ),
+          'run_better': _validatedRun(
+            runSessionId: 'run_better',
+            uid: uid,
+            boardId: boardId,
+            score: 1300,
+            distanceMeters: 450,
+            durationSeconds: 100,
+          ),
+        },
+        displayNames: const <String, String>{uid: 'Player One'},
+        characterIds: const <String, String>{
+          'run_worse': 'eloise',
+          'run_better': 'eloise',
+        },
+      );
+      final projector = FirestoreLeaderboardProjector(
+        projectId: 'demo-project',
+        store: store,
+        clockMs: () => 9000,
+      );
+
+      await Future.wait(<Future<void>>[
+        projector.projectValidatedRun(runSessionId: 'run_worse'),
+        projector.projectValidatedRun(runSessionId: 'run_better'),
+      ]);
+
+      expect(
+        store.playerBestsByBoard[boardId]![uid]!.runSessionId,
+        'run_better',
+      );
+    },
+  );
+
+  test(
+    'top10 compare-and-swap conflict recomputes before completion',
+    () async {
+      const boardId = 'board_retry';
+      const uid = 'uid_player';
+      final store = _InMemoryLeaderboardProjectionStore(
+        validatedRuns: <String, ValidatedRun>{
+          'run_retry': _validatedRun(
+            runSessionId: 'run_retry',
+            uid: uid,
+            boardId: boardId,
+            score: 1200,
+            distanceMeters: 400,
+            durationSeconds: 100,
+          ),
+        },
+        displayNames: const <String, String>{uid: 'Player One'},
+        characterIds: const <String, String>{'run_retry': 'eloise'},
+        top10WriteConflictsRemaining: 1,
+      );
+      final projector = FirestoreLeaderboardProjector(
+        projectId: 'demo-project',
+        store: store,
+        clockMs: () => 9000,
+      );
+
+      await projector.projectValidatedRun(runSessionId: 'run_retry');
+
+      expect(store.top10WriteAttempts, 2);
+      expect(store.top10Writes, <String>[boardId]);
+      expect(store.top10Views[boardId]!.single.runSessionId, 'run_retry');
+    },
+  );
+
+  test(
+    'retry after player-best write resumes an incomplete top10 projection',
+    () async {
+      const boardId = 'board_partial_projection';
+      const uid = 'uid_player';
+      final store = _InMemoryLeaderboardProjectionStore(
+        validatedRuns: <String, ValidatedRun>{
+          'run_partial': _validatedRun(
+            runSessionId: 'run_partial',
+            uid: uid,
+            boardId: boardId,
+            score: 1200,
+            distanceMeters: 400,
+            durationSeconds: 100,
+          ),
+        },
+        displayNames: const <String, String>{uid: 'Player One'},
+        characterIds: const <String, String>{'run_partial': 'eloise'},
+        top10WriteFailuresRemaining: 1,
+      );
+      final projector = FirestoreLeaderboardProjector(
+        projectId: 'demo-project',
+        store: store,
+        clockMs: () => 9000,
+      );
+
+      await expectLater(
+        projector.projectValidatedRun(runSessionId: 'run_partial'),
+        throwsA(isA<StateError>()),
+      );
+      expect(
+        store.playerBestsByBoard[boardId]![uid]!.runSessionId,
+        'run_partial',
+      );
+
+      await projector.projectValidatedRun(runSessionId: 'run_partial');
+
+      expect(store.upsertedEntries, hasLength(1));
+      expect(store.top10Views[boardId]!.single.runSessionId, 'run_partial');
+    },
+  );
 }
 
 ValidatedRun _validatedRun({
@@ -173,6 +297,7 @@ ValidatedRun _validatedRun({
         'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
     replayStorageRef:
         'replay-submissions/pending/$uid/$runSessionId/replay.bin.gz',
+    replayStorageGeneration: '123',
     createdAtMs: 1,
   );
 }
@@ -228,6 +353,8 @@ LeaderboardEntry _copyEntry(
     sortKey: source.sortKey,
     ghostEligible: ghostEligible ?? source.ghostEligible,
     replayStorageRef: source.replayStorageRef,
+    replayStorageGeneration: source.replayStorageGeneration,
+    replayDigest: source.replayDigest,
     updatedAtMs: updatedAtMs ?? source.updatedAtMs,
     rank: rank ?? source.rank,
   );
@@ -241,6 +368,8 @@ class _InMemoryLeaderboardProjectionStore
     Map<String, String>? characterIds,
     Map<String, Map<String, LeaderboardEntry>>? playerBestsByBoard,
     Map<String, List<LeaderboardEntry>>? top10Views,
+    this.top10WriteConflictsRemaining = 0,
+    this.top10WriteFailuresRemaining = 0,
   }) : validatedRuns = validatedRuns ?? <String, ValidatedRun>{},
        displayNames = displayNames ?? <String, String>{},
        characterIds = characterIds ?? <String, String>{},
@@ -256,6 +385,9 @@ class _InMemoryLeaderboardProjectionStore
 
   final List<LeaderboardEntry> upsertedEntries = <LeaderboardEntry>[];
   final List<String> top10Writes = <String>[];
+  int top10WriteConflictsRemaining;
+  int top10WriteFailuresRemaining;
+  int top10WriteAttempts = 0;
 
   @override
   Future<ValidatedRun?> loadValidatedRun({required String runSessionId}) async {
@@ -273,28 +405,32 @@ class _InMemoryLeaderboardProjectionStore
   }
 
   @override
-  Future<LeaderboardEntry?> loadPlayerBest({
-    required String boardId,
-    required String uid,
+  Future<PlayerBestWriteResult> replacePlayerBestIfBetter({
+    required LeaderboardEntry candidate,
   }) async {
-    return playerBestsByBoard[boardId]?[uid];
-  }
-
-  @override
-  Future<void> upsertPlayerBest({required LeaderboardEntry entry}) async {
+    final existing = playerBestsByBoard[candidate.boardId]?[candidate.uid];
+    if (existing != null &&
+        existing.sortKey.compareTo(candidate.sortKey) <= 0) {
+      return PlayerBestWriteResult.unchanged;
+    }
     final board =
-        playerBestsByBoard[entry.boardId] ?? <String, LeaderboardEntry>{};
-    board[entry.uid] = entry;
-    playerBestsByBoard[entry.boardId] = board;
-    upsertedEntries.add(entry);
+        playerBestsByBoard[candidate.boardId] ?? <String, LeaderboardEntry>{};
+    board[candidate.uid] = candidate;
+    playerBestsByBoard[candidate.boardId] = board;
+    upsertedEntries.add(candidate);
+    return PlayerBestWriteResult.improved;
   }
 
   @override
-  Future<List<LeaderboardEntry>> loadTop10ViewEntries({
-    required String boardId,
-  }) async {
-    return List<LeaderboardEntry>.from(
-      top10Views[boardId] ?? const <LeaderboardEntry>[],
+  Future<Top10ViewSnapshot> loadTop10View({required String boardId}) async {
+    return Top10ViewSnapshot(
+      entries: List<LeaderboardEntry>.from(
+        top10Views[boardId] ?? const <LeaderboardEntry>[],
+      ),
+      exists: top10Views.containsKey(boardId),
+      updateTime: top10Views.containsKey(boardId)
+          ? 'version-${top10Writes.length}'
+          : null,
     );
   }
 
@@ -333,14 +469,25 @@ class _InMemoryLeaderboardProjectionStore
   }
 
   @override
-  Future<void> writeTop10View({
+  Future<bool> writeTop10View({
     required String boardId,
     required List<LeaderboardEntry> entries,
     required int updatedAtMs,
+    required Top10ViewSnapshot expected,
   }) async {
+    top10WriteAttempts += 1;
+    if (top10WriteFailuresRemaining > 0) {
+      top10WriteFailuresRemaining -= 1;
+      throw StateError('injected top10 write failure');
+    }
+    if (top10WriteConflictsRemaining > 0) {
+      top10WriteConflictsRemaining -= 1;
+      return false;
+    }
     top10Views[boardId] = entries
         .map((entry) => _copyEntry(entry, updatedAtMs: updatedAtMs))
         .toList(growable: false);
     top10Writes.add(boardId);
+    return true;
   }
 }

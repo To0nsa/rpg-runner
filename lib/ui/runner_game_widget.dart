@@ -109,6 +109,12 @@ class RunnerGameWidget extends StatefulWidget {
 
 class _RunnerGameWidgetState extends State<RunnerGameWidget>
     with WidgetsBindingObserver {
+  // One-second checks cover the normal immediate settlement path; after ten
+  // seconds, five-second polling avoids a long-lived mobile/network hot loop.
+  static const Duration _initialSubmissionPollInterval = Duration(seconds: 1);
+  static const Duration _initialSubmissionPollWindow = Duration(seconds: 10);
+  static const Duration _steadySubmissionPollInterval = Duration(seconds: 5);
+
   final UiHaptics _haptics = const UiHapticsService();
   final ValueNotifier<GameStateSnapshot?> _ghostSnapshotBridge =
       ValueNotifier<GameStateSnapshot?>(null);
@@ -139,6 +145,8 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   RunSubmissionStatus? _runSubmissionStatus;
   Timer? _runSubmissionPollTimer;
   bool _runSubmissionPollInFlight = false;
+  DateTime? _runSubmissionPollingStartedAt;
+  bool _runSubmissionPollingFast = false;
   String? _runSubmissionRunSessionId;
   bool _runReplayJournaled = false;
   bool _runReplayJournalInFlight = false;
@@ -523,7 +531,21 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     if (initialStatus.isTerminal) {
       return;
     }
-    _runSubmissionPollTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+    _runSubmissionPollingStartedAt = DateTime.now();
+    _runSubmissionPollingFast = true;
+    _startSubmissionStatusPollingTimer(
+      interval: _initialSubmissionPollInterval,
+      appState: appState,
+      runSessionId: runSessionId,
+    );
+  }
+
+  void _startSubmissionStatusPollingTimer({
+    required Duration interval,
+    required AppState appState,
+    required String runSessionId,
+  }) {
+    _runSubmissionPollTimer = Timer.periodic(interval, (_) {
       unawaited(
         _refreshSubmissionStatus(
           appState: appState,
@@ -558,13 +580,43 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       );
     } finally {
       _runSubmissionPollInFlight = false;
+      _backOffSubmissionStatusPollingIfNeeded(
+        appState: appState,
+        runSessionId: runSessionId,
+      );
     }
+  }
+
+  void _backOffSubmissionStatusPollingIfNeeded({
+    required AppState appState,
+    required String runSessionId,
+  }) {
+    if (runSessionId != _runSessionId) {
+      return;
+    }
+    final startedAt = _runSubmissionPollingStartedAt;
+    if (!_runSubmissionPollingFast || startedAt == null) {
+      return;
+    }
+    if (DateTime.now().difference(startedAt) < _initialSubmissionPollWindow) {
+      return;
+    }
+    _runSubmissionPollTimer?.cancel();
+    _runSubmissionPollTimer = null;
+    _runSubmissionPollingFast = false;
+    _startSubmissionStatusPollingTimer(
+      interval: _steadySubmissionPollInterval,
+      appState: appState,
+      runSessionId: runSessionId,
+    );
   }
 
   void _stopSubmissionStatusPolling() {
     _runSubmissionPollTimer?.cancel();
     _runSubmissionPollTimer = null;
     _runSubmissionPollInFlight = false;
+    _runSubmissionPollingStartedAt = null;
+    _runSubmissionPollingFast = false;
   }
 
   void _onAppliedCommandFrame(ReplayCommandFrameV1 frame) {

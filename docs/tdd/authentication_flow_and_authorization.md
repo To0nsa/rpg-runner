@@ -33,7 +33,8 @@ Authoritative data access (profile, ownership, runs, boards, ghosts, account del
 
 Boot route flow:
 
-1. `main()` initializes Firebase and starts `UiApp`.
+1. `main()` initializes Firebase, activates App Check where the platform is
+   configured, and starts `UiApp`.
 2. `BrandSplashScreen` routes to loader.
 3. `LoaderPage` calls `AppState.bootstrap()`.
 4. `AppState.bootstrap()` calls `_ensureAuthSession()`.
@@ -83,11 +84,13 @@ UI entry point:
 
 Current callable pattern across domains:
 
-1. Require `request.auth?.uid`.
-2. Parse and validate request payload.
-3. Verify request `userId` equals authenticated `uid`.
-4. Execute domain logic.
-5. Return typed payload.
+1. The Functions v2 callable runtime applies the configured App Check policy.
+2. Require `request.auth?.uid`.
+3. Bound, parse, and validate the request payload.
+4. Verify request `userId` equals authenticated `uid`.
+5. Enforce deletion, quota, domain allowlist, and ownership checks.
+6. Execute domain logic.
+7. Return a typed payload.
 
 This pattern is implemented in:
 
@@ -96,9 +99,45 @@ This pattern is implemented in:
 
 So even if client sends a forged `userId`, the backend rejects on uid mismatch.
 
+App Check defaults to monitoring. Android and Apple release builds use
+platform attestation; release web requires a configured reCAPTCHA v3 site key;
+the current Windows SDK supports only a registered debug token and therefore
+has no production enforcement path. `APP_CHECK_ROLLOUT_MODE=enforce` makes the
+callable runtime reject missing/invalid tokens before the handler, but Firebase
+Auth and UID authorization remain mandatory afterward. This switch applies
+globally to each callable: it cannot be enabled while an in-scope production
+platform lacks attestation unless that platform is excluded or uses separately
+reviewed endpoints. Platform configuration, debug-token rules, per-UID quotas,
+and rollback are defined in
+[`callable_abuse_controls.md`](callable_abuse_controls.md).
+
+For ownership commands, matching the UID is necessary but not sufficient. The
+public callable accepts only selection/loadout/equip and store
+purchase/refresh intents. Gold award, entitlement grant, and reset command
+types are rejected as server-only before Firestore mutation. Flutter does not
+define DTOs or API methods for those server-only operations.
+
+Selection and loadout intents are authorized against the backend catalog and
+the caller's canonical inventory/learned abilities. Run-session issuance
+repeats the loadout authorization before creating a reward-bearing ticket.
+
+Profile time authority follows the same boundary. `playerProfileUpdate`
+accepts a requested display name but rejects
+`displayNameLastChangedAtMs`. The callable captures server time after
+authentication and UID matching, and the profile transaction uses it for the
+24-hour rename decision and persisted timestamp. Flutter's countdown is
+advisory; a backend `failed-precondition` rejection is final.
+
+The first non-empty display name is the explicit exception and retains
+timestamp `0`, allowing one immediate correction. That correction records
+server time and starts the ordinary cooldown. A legacy future timestamp from
+the removed client-authoritative contract is repairable on the next rename.
+
 ## 7) Authorization boundaries and data access model
 
-- Firestore security rules deny direct client access for key collections (`ownership_profiles`, `player_profiles`, `display_name_index`).
+- Firestore security rules deny direct client access for server-owned
+  collections, including ownership idempotency, profiles/name claims,
+  deletion tombstones, and abuse quota state.
 - App uses `cloud_functions` callables as the only remote mutation/read path for authoritative state.
 - Backend uses Admin SDK with explicit auth checks in callable handlers.
 
@@ -113,10 +152,22 @@ Client flow:
 
 Server flow (`functions/src/account/delete.ts`):
 
-- Deletes profile docs and display-name index claims.
-- Deletes ownership docs/subcollections.
-- Deletes run/session/validated/reward docs and ghost-related docs/artifacts.
-- Attempts Firebase Auth user deletion (`deleteUser(uid)`), tolerating already-missing user.
+- Transactionally creates `account_deletion_requests/{uid}` before any
+  destructive work.
+- Disables the Auth user and revokes refresh tokens first.
+- Uses the tombstone in callable guards and profile/ownership/run mutation
+  transactions, so a still-valid ID token cannot recreate user data.
+- A scheduled worker erases the explicit Firestore/Storage inventory in
+  bounded, leased, resumable pages.
+- The inventory includes quota counters and ownership idempotency records.
+- Waits out the signed-upload URL lifetime and requires a fresh zero-change
+  final pass before deleting Firebase Auth.
+- Tolerates already-missing Auth users, documents, and objects.
+
+Flutter treats `requested`, `in_progress`, `retryable`, and `deleted` as
+accepted server-owned outcomes, clears local state, and signs out. Detailed
+stages, retention, and inventory rules are in
+[`account_deletion_workflow.md`](account_deletion_workflow.md).
 
 ## 9) Failure behavior worth knowing
 

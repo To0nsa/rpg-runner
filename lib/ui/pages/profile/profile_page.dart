@@ -79,6 +79,10 @@ class _ProfilePageState extends State<ProfilePage> {
 
   String _accountDeletionFailureMessage(AccountDeletionResult result) {
     switch (result.status) {
+      case AccountDeletionStatus.requested:
+      case AccountDeletionStatus.inProgress:
+      case AccountDeletionStatus.retrying:
+        return 'Account deletion is in progress.';
       case AccountDeletionStatus.requiresRecentLogin:
         return 'Please sign in again and retry account deletion.';
       case AccountDeletionStatus.unauthorized:

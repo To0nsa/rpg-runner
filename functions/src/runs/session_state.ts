@@ -12,6 +12,10 @@ export const runSessionStates = [
   "internal_error",
 ] as const;
 
+export const defaultValidationLeaseDurationMs = 10 * 60 * 1000;
+export const defaultValidationRepairStaleThresholdMs = 15 * 60 * 1000;
+export const defaultValidationRepairReenqueueCooldownMs = 15 * 60 * 1000;
+
 export type RunSessionState = (typeof runSessionStates)[number];
 
 export function isRunSessionState(value: unknown): value is RunSessionState {

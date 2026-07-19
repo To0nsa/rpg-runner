@@ -615,28 +615,7 @@ class _StaticOwnershipApi implements LoadoutOwnershipApi {
   }
 
   @override
-  Future<OwnershipCommandResult> awardRunGold(
-    AwardRunGoldCommand command,
-  ) async {
-    return _acceptedNoop();
-  }
-
-  @override
   Future<OwnershipCommandResult> equipGear(EquipGearCommand command) async {
-    return _acceptedNoop();
-  }
-
-  @override
-  Future<OwnershipCommandResult> learnProjectileSpell(
-    LearnProjectileSpellCommand command,
-  ) async {
-    return _acceptedNoop();
-  }
-
-  @override
-  Future<OwnershipCommandResult> learnSpellAbility(
-    LearnSpellAbilityCommand command,
-  ) async {
     return _acceptedNoop();
   }
 
@@ -664,13 +643,6 @@ class _StaticOwnershipApi implements LoadoutOwnershipApi {
   }
 
   @override
-  Future<OwnershipCommandResult> resetOwnership(
-    ResetOwnershipCommand command,
-  ) async {
-    return _acceptedNoop();
-  }
-
-  @override
   Future<OwnershipCommandResult> setAbilitySlot(
     SetAbilitySlotCommand command,
   ) async {
@@ -693,11 +665,6 @@ class _StaticOwnershipApi implements LoadoutOwnershipApi {
   Future<OwnershipCommandResult> setSelection(
     SetSelectionCommand command,
   ) async {
-    return _acceptedNoop();
-  }
-
-  @override
-  Future<OwnershipCommandResult> unlockGear(UnlockGearCommand command) async {
     return _acceptedNoop();
   }
 

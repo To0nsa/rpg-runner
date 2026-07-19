@@ -12,11 +12,15 @@ Current domains:
 
 - `src/ownership/`: canonical ownership state, command validation, command execution, idempotency, Firestore paths/defaults
 - `src/profile/`: remote player profile loading and updates, display-name uniqueness
-- `src/runs/`: run-session ticket creation, upload grants, validation status, reward grant backfill, submission cleanup, and callable auth gating
+- `src/runs/`: run-session ticket creation, upload grants, validation status,
+  stale-validation repair, reward grant backfill, submission cleanup, and
+  callable auth gating
 - `src/boards/`: leaderboard board manifests, UTC windowing, provisioning, and active-board validation
 - `src/leaderboards/`: callable board/rank reads and top-view decoding
 - `src/ghosts/`: ghost manifest reads and signed replay download grants
 - `src/account/`: account deletion across profile, ownership, ghost-related collections, and auth user cleanup
+- `src/abuse/`: App Check rollout options, callable payload bounds, atomic
+  per-UID quota windows, and bounded quota retention
 - `src/index.ts`: callable function exports and auth gate entrypoints
 
 ## Source Of Truth Rules
@@ -36,7 +40,7 @@ The backend uses:
 - Firebase Functions v2 scheduled handlers via `onSchedule`
 - Firestore via `firebase-admin`
 - Cloud Tasks dispatch support for replay validation
-- Node 20
+- Node 24
 - TypeScript compiled to ESM-style JavaScript in `lib/`
 - emulator-driven tests executed against compiled `lib_test/**`
 
@@ -46,11 +50,13 @@ Do not introduce a second backend style or bypass the existing callable/transact
 
 Every user callable currently follows the same pattern:
 
-1. require `request.auth?.uid`
-2. parse and validate request data using the domain validator
-3. verify `userId` in the request matches the authenticated uid
-4. execute domain logic
-5. return a typed payload shape
+1. apply the configured Functions App Check option
+2. require `request.auth?.uid`
+3. enforce shared payload bounds, then parse using the domain validator
+4. verify `userId` in the request matches the authenticated uid
+5. apply deletion/quota and domain authorization
+6. execute domain logic
+7. return a typed payload shape
 
 Preserve that sequence. Do not trust client-supplied identity fields just because the client already authenticated.
 
@@ -66,6 +72,9 @@ The ownership backend is revisioned and command-driven. Preserve these invariant
 - callers mutate ownership through command envelopes, not arbitrary field patches
 - commands include `expectedRevision` and `commandId`
 - idempotency is enforced per command id with payload hashing
+- public command IDs are bounded and backend-safe
+- idempotency outcomes are compact and expire only after the supported offline
+  retry window
 - stale revisions and reused command ids with mismatched payloads must stay rejected
 - canonical normalization/defaulting stays centralized in the ownership helpers
 
@@ -97,10 +106,23 @@ Account deletion currently spans:
 - player profile docs
 - display-name index docs
 - ownership profile docs and subcollections
+- abuse quota state
 - ghost-related collections listed explicitly in `src/account/delete.ts`
 - Firebase Auth user deletion
 
 If the schema grows, update the explicit deletion coverage. Silent partial deletion is a bug.
+
+## App Check And Abuse Controls
+
+- keep App Check in monitoring mode until every enabled platform has measured
+  attestation success and a rollback plan
+- never treat App Check as identity or operation authorization
+- do not add production quota values without recorded normal-client telemetry
+- enforce quotas transactionally per UID and before Storage signing, task
+  dispatch, or protected expensive reads
+- keep quota/idempotency retention bounded and included in account deletion
+- update `docs/tdd/callable_abuse_controls.md` when routes, limits, windows,
+  platform providers, or retention change
 
 ## Run Session, Replay, And Reward Rules
 
@@ -114,6 +136,11 @@ these invariants:
 - finalize/status callables must preserve auth gating and state-machine checks
 - validation state changes must remain compatible with
   `services/replay_validator`
+- scheduled validation repair must remain bounded and idempotent; it may reclaim
+  only expired leases or requeue eligible pending sessions, and must use
+  generation-specific task names
+- finalized replay metadata must preserve the exact positive Storage
+  generation; re-finalization must not rebind a run to overwritten evidence
 - reward grants must be idempotent and tied to run-session lifecycle state
 - cleanup must not delete active or terminal artifacts outside its explicit
   eligibility rules
@@ -137,6 +164,9 @@ Preserve these invariants:
 
 Leaderboard projection and ghost artifact creation happen in the replay validator
 worker after deterministic validation, not in read callables.
+Scheduled projection reconciliation must remain bounded, cursor-based, and
+idempotent, and may advance its cursor only after the full board page is
+durably enqueued.
 
 ## Firestore And Transaction Discipline
 

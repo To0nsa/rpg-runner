@@ -13,6 +13,19 @@ const maxAppliedRewardGrantIds = 512;
 const rewardGrantBatchLimit = 64;
 const weeklyProgressSchemaVersion = 1;
 
+/**
+ * A persisted reward-grant contradiction that retrying cannot repair.
+ *
+ * Settlement converts this to an operator-visible invariant outcome rather
+ * than repeatedly retrying a transaction that must not credit the wallet.
+ */
+export class RewardGrantInvariantViolationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "RewardGrantInvariantViolationError";
+  }
+}
+
 export interface RewardGrantReconcileResult {
   canonicalState: OwnershipCanonicalState;
   canonicalChanged: boolean;
@@ -29,28 +42,35 @@ export async function reconcilePendingRewardGrantsForTransaction(args: {
   settlementGrantId?: string;
 }): Promise<RewardGrantReconcileResult> {
   const nowMs = args.nowMs ?? Date.now();
-  const rewardGrantDocuments = args.settlementGrantId === undefined
-    ? (await args.tx.get(
-        args.db
-          .collection(rewardGrantsCollection)
-          .where("uid", "==", args.uid)
-          .limit(rewardGrantBatchLimit),
-      )).docs
-    : (() => {
-        // The settlement owner names its exact grant. Reading it directly
-        // avoids a uid query limit turning a valid handoff into a false no-op.
-        return [];
-      })();
-  const settlementGrantSnapshot = args.settlementGrantId === undefined
-    ? undefined
-    : await args.tx.get(
-        args.db.collection(rewardGrantsCollection).doc(args.settlementGrantId),
-      );
-  const rewardGrantDocs = settlementGrantSnapshot === undefined
-    ? rewardGrantDocuments
-    : settlementGrantSnapshot.exists
-      ? [settlementGrantSnapshot]
-      : [];
+  const rewardGrantDocuments =
+    args.settlementGrantId === undefined
+      ? (
+          await args.tx.get(
+            args.db
+              .collection(rewardGrantsCollection)
+              .where("uid", "==", args.uid)
+              .limit(rewardGrantBatchLimit),
+          )
+        ).docs
+      : (() => {
+          // The settlement owner names its exact grant. Reading it directly
+          // avoids a uid query limit turning a valid handoff into a false no-op.
+          return [];
+        })();
+  const settlementGrantSnapshot =
+    args.settlementGrantId === undefined
+      ? undefined
+      : await args.tx.get(
+          args.db
+            .collection(rewardGrantsCollection)
+            .doc(args.settlementGrantId),
+        );
+  const rewardGrantDocs =
+    settlementGrantSnapshot === undefined
+      ? rewardGrantDocuments
+      : settlementGrantSnapshot.exists
+        ? [settlementGrantSnapshot]
+        : [];
   if (rewardGrantDocs.length === 0) {
     return {
       canonicalState: args.canonicalState,
@@ -60,7 +80,9 @@ export async function reconcilePendingRewardGrantsForTransaction(args: {
     };
   }
 
-  const progression = asRecord(structuredClone(args.canonicalState.progression));
+  const progression = asRecord(
+    structuredClone(args.canonicalState.progression),
+  );
   let canonicalChanged = false;
   let gold = parseInteger(progression.gold) ?? 0;
   if (progression.gold !== gold) {
@@ -95,25 +117,27 @@ export async function reconcilePendingRewardGrantsForTransaction(args: {
       args.settlementGrantId === rewardGrantDoc.id &&
       readOptionalNonEmptyString(rewardGrant.uid) !== args.uid
     ) {
-      throw new Error(
+      throw new RewardGrantInvariantViolationError(
         `reward_grants/${rewardGrantDoc.id} does not belong to ${args.uid}.`,
       );
     }
     const stateResolution = resolveRewardGrantSettlementState({
       rewardGrant,
-      allowSettlementPending:
-        args.settlementGrantId === rewardGrantDoc.id,
+      allowSettlementPending: args.settlementGrantId === rewardGrantDoc.id,
     });
 
     if (stateResolution === "settle") {
       const grantId = rewardGrantDoc.id;
       const goldAmount = parseInteger(rewardGrant.goldAmount) ?? 0;
+      const lifecycleState = readOptionalNonEmptyString(
+        rewardGrant.lifecycleState,
+      );
       let appliedNow = false;
       if (!appliedRewardGrantIdSet.has(grantId)) {
         const nonNegativeGoldAmount = Math.max(0, goldAmount);
         const nextGold = gold + nonNegativeGoldAmount;
         if (!Number.isSafeInteger(nextGold) || nextGold < 0) {
-          throw new Error(
+          throw new RewardGrantInvariantViolationError(
             `reward_grants/${grantId} would overflow progression.gold.`,
           );
         }
@@ -134,20 +158,28 @@ export async function reconcilePendingRewardGrantsForTransaction(args: {
         }
       }
 
-      args.tx.set(
-        rewardGrantDoc.ref,
-        {
+      const mustFinalizePendingGrant =
+        lifecycleState === rewardGrantLifecycleSettlementPending;
+      if (mustFinalizePendingGrant || appliedNow) {
+        // Migration and settlement may inspect an already-applied grant. They
+        // must not turn its settlement audit time into processing time.
+        const grantSettlementWrite: Record<string, unknown> = {
           lifecycleState: rewardGrantLifecycleValidatedSettled,
-          appliedAtMs: nowMs,
           updatedAtMs: nowMs,
           appliedProfileId: args.canonicalState.profileId,
           appliedRevision: appliedNow
             ? nextCanonicalRevision
             : args.canonicalState.revision,
-        },
-        { merge: true },
-      );
-      appliedGrantCount += 1;
+        };
+        if (
+          mustFinalizePendingGrant ||
+          parseInteger(rewardGrant.appliedAtMs) === null
+        ) {
+          grantSettlementWrite.appliedAtMs = nowMs;
+        }
+        args.tx.set(rewardGrantDoc.ref, grantSettlementWrite, { merge: true });
+        appliedGrantCount += 1;
+      }
       continue;
     }
 
@@ -246,7 +278,9 @@ function applyWeeklyProgressHook(args: {
 
   const weekly = ensureWeeklyProgressObject(args.progression);
   const windowId = readWeeklyWindowId(args.rewardGrant);
-  const runSessionId = readOptionalNonEmptyString(args.rewardGrant.runSessionId);
+  const runSessionId = readOptionalNonEmptyString(
+    args.rewardGrant.runSessionId,
+  );
   const boardId = readOptionalNonEmptyString(args.rewardGrant.boardId);
   const validatedAtMs =
     parseInteger(args.rewardGrant.createdAtMs) ??
@@ -256,29 +290,15 @@ function applyWeeklyProgressHook(args: {
   let changed = false;
   changed = ensureWeeklyProgressInteger(weekly, "schemaVersion", 1) || changed;
   changed =
-    ensureWeeklyProgressInteger(
-      weekly,
-      "lifetimeValidatedRuns",
-      0,
-    ) || changed;
+    ensureWeeklyProgressInteger(weekly, "lifetimeValidatedRuns", 0) || changed;
   changed =
-    ensureWeeklyProgressInteger(
-      weekly,
-      "lifetimeGoldEarned",
-      0,
-    ) || changed;
+    ensureWeeklyProgressInteger(weekly, "lifetimeGoldEarned", 0) || changed;
   changed =
-    ensureWeeklyProgressInteger(
-      weekly,
-      "currentWindowValidatedRuns",
-      0,
-    ) || changed;
+    ensureWeeklyProgressInteger(weekly, "currentWindowValidatedRuns", 0) ||
+    changed;
   changed =
-    ensureWeeklyProgressInteger(
-      weekly,
-      "currentWindowGoldEarned",
-      0,
-    ) || changed;
+    ensureWeeklyProgressInteger(weekly, "currentWindowGoldEarned", 0) ||
+    changed;
 
   weekly.schemaVersion = weeklyProgressSchemaVersion;
   changed = true;
@@ -292,8 +312,11 @@ function applyWeeklyProgressHook(args: {
 
   const nextLifetimeValidatedRuns =
     (parseInteger(weekly.lifetimeValidatedRuns) ?? 0) + 1;
-  if (!Number.isSafeInteger(nextLifetimeValidatedRuns) || nextLifetimeValidatedRuns < 0) {
-    throw new Error(
+  if (
+    !Number.isSafeInteger(nextLifetimeValidatedRuns) ||
+    nextLifetimeValidatedRuns < 0
+  ) {
+    throw new RewardGrantInvariantViolationError(
       `reward_grants/${args.grantId} would overflow weekly lifetimeValidatedRuns.`,
     );
   }
@@ -302,7 +325,7 @@ function applyWeeklyProgressHook(args: {
   const nextLifetimeGold =
     (parseInteger(weekly.lifetimeGoldEarned) ?? 0) + args.grantedGoldAmount;
   if (!Number.isSafeInteger(nextLifetimeGold) || nextLifetimeGold < 0) {
-    throw new Error(
+    throw new RewardGrantInvariantViolationError(
       `reward_grants/${args.grantId} would overflow weekly lifetimeGoldEarned.`,
     );
   }
@@ -314,16 +337,20 @@ function applyWeeklyProgressHook(args: {
     !Number.isSafeInteger(nextCurrentWindowValidatedRuns) ||
     nextCurrentWindowValidatedRuns < 0
   ) {
-    throw new Error(
+    throw new RewardGrantInvariantViolationError(
       `reward_grants/${args.grantId} would overflow weekly currentWindowValidatedRuns.`,
     );
   }
   weekly.currentWindowValidatedRuns = nextCurrentWindowValidatedRuns;
 
   const nextCurrentWindowGold =
-    (parseInteger(weekly.currentWindowGoldEarned) ?? 0) + args.grantedGoldAmount;
-  if (!Number.isSafeInteger(nextCurrentWindowGold) || nextCurrentWindowGold < 0) {
-    throw new Error(
+    (parseInteger(weekly.currentWindowGoldEarned) ?? 0) +
+    args.grantedGoldAmount;
+  if (
+    !Number.isSafeInteger(nextCurrentWindowGold) ||
+    nextCurrentWindowGold < 0
+  ) {
+    throw new RewardGrantInvariantViolationError(
       `reward_grants/${args.grantId} would overflow weekly currentWindowGoldEarned.`,
     );
   }
@@ -376,14 +403,18 @@ function ensureWeeklyProgressInteger(
   return false;
 }
 
-function readMode(value: unknown): "practice" | "competitive" | "weekly" | null {
+function readMode(
+  value: unknown,
+): "practice" | "competitive" | "weekly" | null {
   if (value !== "practice" && value !== "competitive" && value !== "weekly") {
     return null;
   }
   return value;
 }
 
-function readWeeklyWindowId(rewardGrant: Record<string, unknown>): string | null {
+function readWeeklyWindowId(
+  rewardGrant: Record<string, unknown>,
+): string | null {
   const boardKey = asNullableRecord(rewardGrant.boardKey);
   if (boardKey !== null) {
     const fromBoardKey = readOptionalNonEmptyString(boardKey.windowId);

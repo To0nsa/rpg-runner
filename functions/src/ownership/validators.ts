@@ -1,8 +1,10 @@
 import { HttpsError } from "firebase-functions/v2/https";
 
+import { assertCallablePayloadBounds } from "../abuse/payload_bounds.js";
 import {
   type JsonObject,
   type OwnershipCommandEnvelope,
+  isClientOwnershipCommandType,
   isOwnershipCommandType,
 } from "./contracts.js";
 import {
@@ -25,6 +27,7 @@ interface ExecuteCommandRequest {
 }
 
 export function parseLoadCanonicalRequest(raw: unknown): LoadCanonicalRequest {
+  assertCallablePayloadBounds(raw);
   const data = requireObject(raw, "request");
   return {
     userId: requireNonEmptyString(data.userId, "userId"),
@@ -33,6 +36,7 @@ export function parseLoadCanonicalRequest(raw: unknown): LoadCanonicalRequest {
 }
 
 export function parseExecuteCommandRequest(raw: unknown): ExecuteCommandRequest {
+  assertCallablePayloadBounds(raw);
   const data = requireObject(raw, "request");
   const commandRaw = requireObject(data.command, "command");
   const type = requireNonEmptyString(commandRaw.type, "command.type");
@@ -40,6 +44,12 @@ export function parseExecuteCommandRequest(raw: unknown): ExecuteCommandRequest 
     throw new HttpsError(
       "invalid-argument",
       `Unsupported command.type: ${type}`,
+    );
+  }
+  if (!isClientOwnershipCommandType(type)) {
+    throw new HttpsError(
+      "permission-denied",
+      `command.type is server-only: ${type}`,
     );
   }
   const payloadRaw = requireObject(commandRaw.payload, "command.payload");
@@ -59,7 +69,11 @@ export function parseExecuteCommandRequest(raw: unknown): ExecuteCommandRequest 
     userId: requireNonEmptyString(commandRaw.userId, "command.userId"),
     sessionId: requireNonEmptyString(commandRaw.sessionId, "command.sessionId"),
     expectedRevision,
-    commandId: requireNonEmptyString(commandRaw.commandId, "command.commandId"),
+    commandId: requireBoundedIdentifier(
+      commandRaw.commandId,
+      "command.commandId",
+      96,
+    ),
     payload: payloadRaw as JsonObject,
   };
   return { command };
@@ -129,6 +143,27 @@ export function requireNonEmptyString(value: unknown, fieldName: string): string
     );
   }
   return trimmed;
+}
+
+export function requireBoundedIdentifier(
+  value: unknown,
+  fieldName: string,
+  maxLength = 128,
+): string {
+  const identifier = requireNonEmptyString(value, fieldName);
+  if (identifier.length > maxLength) {
+    throw new HttpsError(
+      "invalid-argument",
+      `${fieldName} must be at most ${maxLength} characters.`,
+    );
+  }
+  if (!/^[a-zA-Z0-9][a-zA-Z0-9._:-]*$/u.test(identifier)) {
+    throw new HttpsError(
+      "invalid-argument",
+      `${fieldName} contains unsupported characters.`,
+    );
+  }
+  return identifier;
 }
 
 export function requireObject(

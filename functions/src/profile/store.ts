@@ -6,6 +6,7 @@ import {
 } from "firebase-admin/firestore";
 import { HttpsError } from "firebase-functions/v2/https";
 
+import { assertAccountActiveInTransaction } from "../account/deletion_guard.js";
 import { normalizeDisplayNameForPolicy } from "./validators.js";
 
 export interface PlayerProfile {
@@ -33,37 +34,42 @@ interface DisplayNameIndexDocument {
 
 const playerProfilesCollection = "player_profiles";
 const displayNameIndexCollection = "display_name_index";
+export const displayNameRenameCooldownMs = 24 * 60 * 60 * 1000;
 
 export async function loadOrCreatePlayerProfile(args: {
   db: Firestore;
   uid: string;
 }): Promise<PlayerProfile> {
   const ref = playerProfileDocRef(args.db, args.uid);
-  const snap = await ref.get();
-  if (snap.exists) {
-    return playerProfileFromDocument(
-      snap.data() as PlayerProfileDocument | undefined,
-    );
-  }
+  return args.db.runTransaction(async (tx) => {
+    await assertAccountActiveInTransaction(tx, args.db, args.uid);
+    const snap = await tx.get(ref);
+    if (snap.exists) {
+      return playerProfileFromDocument(
+        snap.data() as PlayerProfileDocument | undefined,
+      );
+    }
 
-  const profile = emptyPlayerProfile();
-  await ref.set(playerProfileWriteData(args.uid, profile, { create: true }));
-  return profile;
+    const profile = emptyPlayerProfile();
+    tx.set(ref, playerProfileWriteData(args.uid, profile, { create: true }));
+    return profile;
+  });
 }
 
 export async function updatePlayerProfile(args: {
   db: Firestore;
   uid: string;
+  nowMs: number;
   displayName?: string;
-  displayNameLastChangedAtMs?: number;
   namePromptCompleted?: boolean;
 }): Promise<PlayerProfile> {
+  requireAuthorityTimeMs(args.nowMs);
   const nextDisplayName = args.displayName?.trim();
-  const nextDisplayNameLastChangedAtMs = args.displayNameLastChangedAtMs;
   const nextNamePromptCompleted = args.namePromptCompleted;
 
   let resolvedProfile = emptyPlayerProfile();
   await args.db.runTransaction(async (tx) => {
+    await assertAccountActiveInTransaction(tx, args.db, args.uid);
     const profileRef = playerProfileDocRef(args.db, args.uid);
     const profileSnap = await tx.get(profileRef);
     const existingProfile = profileSnap.exists
@@ -76,7 +82,7 @@ export async function updatePlayerProfile(args: {
     const previousNormalized = readNormalizedDisplayName(currentDoc);
     const changingDisplayName =
       nextDisplayName !== undefined &&
-      nextDisplayNameLastChangedAtMs !== undefined;
+      nextDisplayName !== existingProfile.displayName;
 
     let nextNormalized = previousNormalized;
     let indexRef: DocumentReference | null = null;
@@ -84,6 +90,7 @@ export async function updatePlayerProfile(args: {
     let previousIndexSnap: DocumentSnapshot | null = null;
 
     if (changingDisplayName) {
+      enforceDisplayNameRenameCooldown(existingProfile, args.nowMs);
       nextNormalized = normalizeDisplayNameForPolicy(nextDisplayName);
       indexRef = displayNameIndexDocRef(args.db, nextNormalized);
       const indexSnap = await tx.get(indexRef);
@@ -106,7 +113,7 @@ export async function updatePlayerProfile(args: {
         ? nextDisplayName
         : existingProfile.displayName,
       displayNameLastChangedAtMs: changingDisplayName
-        ? normalizeNonNegativeInteger(nextDisplayNameLastChangedAtMs)
+        ? nextDisplayNameChangeTime(existingProfile, args.nowMs)
         : existingProfile.displayNameLastChangedAtMs,
       namePromptCompleted:
         nextNamePromptCompleted ?? existingProfile.namePromptCompleted,
@@ -146,6 +153,35 @@ export async function updatePlayerProfile(args: {
   });
 
   return resolvedProfile;
+}
+
+function enforceDisplayNameRenameCooldown(
+  existingProfile: PlayerProfile,
+  nowMs: number,
+): void {
+  if (existingProfile.displayName.length === 0) {
+    return;
+  }
+  const lastChangedAtMs = existingProfile.displayNameLastChangedAtMs;
+  // A zero timestamp is the explicit initial-name exception. A future value
+  // could only have come from the legacy client-authoritative contract; allow
+  // one rename to replace it with server time instead of locking the account.
+  if (lastChangedAtMs <= 0 || lastChangedAtMs > nowMs) {
+    return;
+  }
+  if (nowMs - lastChangedAtMs < displayNameRenameCooldownMs) {
+    throw new HttpsError(
+      "failed-precondition",
+      "Display name can only be changed once every 24 hours.",
+    );
+  }
+}
+
+function nextDisplayNameChangeTime(
+  existingProfile: PlayerProfile,
+  nowMs: number,
+): number {
+  return existingProfile.displayName.length === 0 ? 0 : nowMs;
 }
 
 function emptyPlayerProfile(): PlayerProfile {
@@ -232,8 +268,14 @@ function readNormalizedDisplayName(doc: PlayerProfileDocument | undefined): stri
 }
 
 function normalizeNonNegativeInteger(value: unknown): number {
-  if (typeof value !== "number" || !Number.isInteger(value) || value < 0) {
+  if (!Number.isSafeInteger(value) || (value as number) < 0) {
     return 0;
   }
-  return value;
+  return value as number;
+}
+
+function requireAuthorityTimeMs(value: number): void {
+  if (!Number.isSafeInteger(value) || value <= 0) {
+    throw new Error("nowMs must be a positive safe integer.");
+  }
 }

@@ -295,25 +295,6 @@ class AppState extends ChangeNotifier {
     spellId: spellId,
   );
 
-  Future<void> learnProjectileSpell({
-    required PlayerCharacterId characterId,
-    required ProjectileId spellId,
-  }) => _selectionOwnershipController.learnProjectileSpell(
-    characterId: characterId,
-    spellId: spellId,
-  );
-
-  Future<void> learnSpellAbility({
-    required PlayerCharacterId characterId,
-    required AbilityKey abilityId,
-  }) => _selectionOwnershipController.learnSpellAbility(
-    characterId: characterId,
-    abilityId: abilityId,
-  );
-
-  Future<void> unlockGear({required GearSlot slot, required Object itemId}) =>
-      _selectionOwnershipController.unlockGear(slot: slot, itemId: itemId);
-
   Future<void> equipGear({
     required PlayerCharacterId characterId,
     required GearSlot slot,
@@ -326,12 +307,6 @@ class AppState extends ChangeNotifier {
 
   Future<void> setBuildName(String buildName) =>
       _selectionOwnershipController.setBuildName(buildName);
-
-  Future<void> awardRunGold({required int runId, required int goldEarned}) =>
-      _selectionOwnershipController.awardRunGold(
-        runId: runId,
-        goldEarned: goldEarned,
-      );
 
   Future<OwnershipCommandResult> purchaseStoreOffer({
     required String offerId,

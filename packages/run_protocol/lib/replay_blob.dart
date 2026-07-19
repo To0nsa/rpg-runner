@@ -39,6 +39,14 @@ final class ReplayCommandFrameV1 {
   static const int pressedProjectileBit = 1 << 3;
   static const int pressedSecondaryBit = 1 << 4;
   static const int pressedSpellBit = 1 << 5;
+  static const int knownPressedMask =
+      pressedJumpBit |
+      pressedDashBit |
+      pressedStrikeBit |
+      pressedProjectileBit |
+      pressedSecondaryBit |
+      pressedSpellBit;
+  static const int knownAbilitySlotMask = (1 << 6) - 1;
 
   bool get jumpPressed => (pressedMask & pressedJumpBit) != 0;
   bool get dashPressed => (pressedMask & pressedDashBit) != 0;
@@ -63,14 +71,62 @@ final class ReplayCommandFrameV1 {
 
   factory ReplayCommandFrameV1.fromJson(Object? raw) {
     final json = asObjectMap(raw, fieldName: 'commandStream.frame');
+    final tick = readRequiredInt(json, 't');
+    final moveAxis = readOptionalDouble(json, 'mx');
+    final aimDirX = readOptionalDouble(json, 'ax');
+    final aimDirY = readOptionalDouble(json, 'ay');
+    final pressedMask = readOptionalInt(json, 'pm') ?? 0;
+    final abilitySlotHeldChangedMask = readOptionalInt(json, 'hm') ?? 0;
+    final abilitySlotHeldValueMask = readOptionalInt(json, 'hv') ?? 0;
+    if (tick <= 0) {
+      throw const FormatException('commandStream.frame.t must be positive.');
+    }
+    if ((aimDirX == null) != (aimDirY == null)) {
+      throw const FormatException(
+        'commandStream.frame aim axes must both be set or both be absent.',
+      );
+    }
+    if (moveAxis != null && (moveAxis < -1 || moveAxis > 1)) {
+      throw const FormatException(
+        'commandStream.frame.mx must be within [-1, 1].',
+      );
+    }
+    if (aimDirX != null && (aimDirX < -1 || aimDirX > 1)) {
+      throw const FormatException(
+        'commandStream.frame.ax must be within [-1, 1].',
+      );
+    }
+    if (aimDirY != null && (aimDirY < -1 || aimDirY > 1)) {
+      throw const FormatException(
+        'commandStream.frame.ay must be within [-1, 1].',
+      );
+    }
+    if (pressedMask < 0 || (pressedMask & ~knownPressedMask) != 0) {
+      throw const FormatException(
+        'commandStream.frame.pm contains unsupported command bits.',
+      );
+    }
+    if (abilitySlotHeldChangedMask < 0 ||
+        (abilitySlotHeldChangedMask & ~knownAbilitySlotMask) != 0) {
+      throw const FormatException(
+        'commandStream.frame.hm contains unsupported ability-slot bits.',
+      );
+    }
+    if (abilitySlotHeldValueMask < 0 ||
+        (abilitySlotHeldValueMask & ~knownAbilitySlotMask) != 0 ||
+        (abilitySlotHeldValueMask & ~abilitySlotHeldChangedMask) != 0) {
+      throw const FormatException(
+        'commandStream.frame.hv must be a subset of hm.',
+      );
+    }
     return ReplayCommandFrameV1(
-      tick: readRequiredInt(json, 't'),
-      moveAxis: readOptionalDouble(json, 'mx'),
-      aimDirX: readOptionalDouble(json, 'ax'),
-      aimDirY: readOptionalDouble(json, 'ay'),
-      pressedMask: readOptionalInt(json, 'pm') ?? 0,
-      abilitySlotHeldChangedMask: readOptionalInt(json, 'hm') ?? 0,
-      abilitySlotHeldValueMask: readOptionalInt(json, 'hv') ?? 0,
+      tick: tick,
+      moveAxis: moveAxis,
+      aimDirX: aimDirX,
+      aimDirY: aimDirY,
+      pressedMask: pressedMask,
+      abilitySlotHeldChangedMask: abilitySlotHeldChangedMask,
+      abilitySlotHeldValueMask: abilitySlotHeldValueMask,
     );
   }
 }
@@ -91,11 +147,16 @@ final class ReplayBlobV1 {
     this.commandEncodingVersion = kCommandEncodingVersion1,
     this.replayVersion = kReplayBlobVersion1,
     this.clientSummary,
-  }) : assert(replayVersion == kReplayBlobVersion1, 'Unsupported replayVersion'),
+  }) : assert(
+         replayVersion == kReplayBlobVersion1,
+         'Unsupported replayVersion',
+       ),
        assert(tickHz > 0, 'tickHz must be > 0'),
        assert(totalTicks >= 0, 'totalTicks must be >= 0') {
     if ((boardId == null) != (boardKey == null)) {
-      throw ArgumentError('boardId and boardKey must both be set or both be null.');
+      throw ArgumentError(
+        'boardId and boardKey must both be set or both be null.',
+      );
     }
     if (!ReplayDigest.isValidSha256Hex(canonicalSha256)) {
       throw ArgumentError.value(
@@ -139,8 +200,8 @@ final class ReplayBlobV1 {
     final payload = <String, Object?>{
       'replayVersion': replayVersion,
       'runSessionId': runSessionId,
-      'boardId':? boardId,
-      'boardKey':? boardKey?.toJson(),
+      'boardId': ?boardId,
+      'boardKey': ?boardKey?.toJson(),
       'tickHz': tickHz,
       'seed': seed,
       'levelId': levelId,
@@ -151,7 +212,7 @@ final class ReplayBlobV1 {
       'commandStream': commandStream
           .map((frame) => frame.toJson())
           .toList(growable: false),
-      'clientSummary':? clientSummary,
+      'clientSummary': ?clientSummary,
     };
     final digest = ReplayDigest.canonicalSha256ForMap(payload);
     return ReplayBlobV1(
@@ -174,21 +235,60 @@ final class ReplayBlobV1 {
 
   factory ReplayBlobV1.fromJson(Object? raw, {bool verifyDigest = true}) {
     final json = asObjectMap(raw, fieldName: 'replayBlob');
+    final replayVersion = readRequiredInt(json, 'replayVersion');
+    final commandEncodingVersion = readRequiredInt(
+      json,
+      'commandEncodingVersion',
+    );
+    final tickHz = readRequiredInt(json, 'tickHz');
+    final totalTicks = readRequiredInt(json, 'totalTicks');
+    if (replayVersion != kReplayBlobVersion1) {
+      throw FormatException('Unsupported replayVersion $replayVersion.');
+    }
+    if (commandEncodingVersion != kCommandEncodingVersion1) {
+      throw FormatException(
+        'Unsupported commandEncodingVersion $commandEncodingVersion.',
+      );
+    }
+    if (tickHz <= 0) {
+      throw const FormatException('tickHz must be positive.');
+    }
+    if (totalTicks < 0) {
+      throw const FormatException('totalTicks must be non-negative.');
+    }
+    final commandStream = readRequiredList(
+      json,
+      'commandStream',
+    ).map(ReplayCommandFrameV1.fromJson).toList(growable: false);
+    var previousTick = 0;
+    for (final frame in commandStream) {
+      if (frame.tick <= previousTick) {
+        throw const FormatException(
+          'commandStream ticks must be strictly increasing.',
+        );
+      }
+      if (frame.tick > totalTicks) {
+        throw const FormatException(
+          'commandStream frame tick exceeds totalTicks.',
+        );
+      }
+      previousTick = frame.tick;
+    }
     final blob = ReplayBlobV1(
-      replayVersion: readRequiredInt(json, 'replayVersion'),
+      replayVersion: replayVersion,
       runSessionId: readRequiredString(json, 'runSessionId'),
       boardId: readOptionalString(json, 'boardId'),
-      boardKey: json['boardKey'] == null ? null : BoardKey.fromJson(json['boardKey']),
-      tickHz: readRequiredInt(json, 'tickHz'),
+      boardKey: json['boardKey'] == null
+          ? null
+          : BoardKey.fromJson(json['boardKey']),
+      tickHz: tickHz,
       seed: readRequiredInt(json, 'seed'),
       levelId: readRequiredString(json, 'levelId'),
       playerCharacterId: readRequiredString(json, 'playerCharacterId'),
       loadoutSnapshot: readRequiredObject(json, 'loadoutSnapshot'),
-      commandEncodingVersion: readRequiredInt(json, 'commandEncodingVersion'),
-      totalTicks: readRequiredInt(json, 'totalTicks'),
-      commandStream: readRequiredList(json, 'commandStream')
-          .map(ReplayCommandFrameV1.fromJson)
-          .toList(growable: false),
+      commandEncodingVersion: commandEncodingVersion,
+      totalTicks: totalTicks,
+      commandStream: commandStream,
       canonicalSha256: readRequiredString(json, 'canonicalSha256'),
       clientSummary: readOptionalObject(json, 'clientSummary'),
     );

@@ -71,6 +71,50 @@ void main() {
     );
 
     test(
+      'a forced close after journaling resumes submission on the next bootstrap',
+      () async {
+        await coordinator.enqueueSubmission(
+          runSessionId: 'run_forced_close',
+          runMode: RunMode.practice,
+          replayFilePath: '/tmp/run_forced_close.replay.json',
+          canonicalSha256:
+              'abababababababababababababababababababababababababababababababab',
+          contentLengthBytes: 1024,
+        );
+
+        // Simulate process death: no upload/finalize future survives this point.
+        final afterRestart = RunSubmissionCoordinator(
+          runSessionApi: runSessionApi,
+          spoolStore: spoolStore,
+          replayUploader: replayUploader,
+          clock: clock.now,
+        );
+        runSessionApi.finalizeStatus = SubmissionStatus(
+          runSessionId: 'run_forced_close',
+          state: RunSessionState.pendingValidation,
+          updatedAtMs: clock.now(),
+        );
+
+        final statuses = await afterRestart.processReadySubmissions(
+          userId: 'uid_restart',
+          sessionId: 'session_restart',
+        );
+
+        expect(statuses.single.phase, RunSubmissionPhase.pendingValidation);
+        expect(replayUploader.uploadedRunSessionIds, <String>[
+          'run_forced_close',
+        ]);
+        expect(runSessionApi.finalizeRunSessionIds, <String>[
+          'run_forced_close',
+        ]);
+        expect(
+          await spoolStore.load(runSessionId: 'run_forced_close'),
+          isNotNull,
+        );
+      },
+    );
+
+    test(
       'processRunSession removes local spool row for terminal status',
       () async {
         await coordinator.enqueueSubmission(

@@ -83,60 +83,66 @@ void main() {
     expect(appState.selection.selectedLevelId, LevelId.forest);
   });
 
-  test('older in-flight selection response is ignored after newer change', () async {
-    final ownershipApi = _DelayedFirstSelectionOwnershipApi();
-    final appState = AppState(
-      authApi: _StaticAuthApi.authenticated(),
-      loadoutOwnershipApi: ownershipApi,
-    );
+  test(
+    'older in-flight selection response is ignored after newer change',
+    () async {
+      final ownershipApi = _DelayedFirstSelectionOwnershipApi();
+      final appState = AppState(
+        authApi: _StaticAuthApi.authenticated(),
+        loadoutOwnershipApi: ownershipApi,
+      );
 
-    await appState.bootstrap(force: true);
-    await appState.setRunMode(RunMode.competitive);
+      await appState.bootstrap(force: true);
+      await appState.setRunMode(RunMode.competitive);
 
-    final firstFlush = appState.flushOwnershipEdits(
-      trigger: OwnershipFlushTrigger.manual,
-    );
-    await ownershipApi.waitForFirstSelectionSend();
+      final firstFlush = appState.flushOwnershipEdits(
+        trigger: OwnershipFlushTrigger.manual,
+      );
+      await ownershipApi.waitForFirstSelectionSend();
 
-    await appState.setLevel(LevelId.forest);
-    ownershipApi.releaseFirstSelectionSend();
+      await appState.setLevel(LevelId.forest);
+      ownershipApi.releaseFirstSelectionSend();
 
-    await firstFlush;
-    await appState.flushOwnershipEdits(trigger: OwnershipFlushTrigger.manual);
+      await firstFlush;
+      await appState.flushOwnershipEdits(trigger: OwnershipFlushTrigger.manual);
 
-    expect(ownershipApi.setSelectionCalls, 2);
-    expect(appState.selection.selectedRunMode, RunMode.competitive);
-    expect(appState.selection.selectedLevelId, LevelId.forest);
-    expect(appState.ownershipSyncStatus.pendingSelectionCount, 0);
-  });
+      expect(ownershipApi.setSelectionCalls, 2);
+      expect(appState.selection.selectedRunMode, RunMode.competitive);
+      expect(appState.selection.selectedLevelId, LevelId.forest);
+      expect(appState.ownershipSyncStatus.pendingSelectionCount, 0);
+    },
+  );
 
-  test('setAbilitySlot coalesces rapid writes into one remote command', () async {
-    final ownershipApi = _RecordingOwnershipApi();
-    final appState = AppState(
-      authApi: _StaticAuthApi.authenticated(),
-      loadoutOwnershipApi: ownershipApi,
-    );
+  test(
+    'setAbilitySlot coalesces rapid writes into one remote command',
+    () async {
+      final ownershipApi = _RecordingOwnershipApi();
+      final appState = AppState(
+        authApi: _StaticAuthApi.authenticated(),
+        loadoutOwnershipApi: ownershipApi,
+      );
 
-    await appState.bootstrap(force: true);
-    final characterId = appState.selection.selectedCharacterId;
+      await appState.bootstrap(force: true);
+      final characterId = appState.selection.selectedCharacterId;
 
-    await appState.setAbilitySlot(
-      characterId: characterId,
-      slot: AbilitySlot.spell,
-      abilityId: 'eloise.arcane_haste',
-    );
-    await appState.setAbilitySlot(
-      characterId: characterId,
-      slot: AbilitySlot.spell,
-      abilityId: 'eloise.crystal_volley',
-    );
+      await appState.setAbilitySlot(
+        characterId: characterId,
+        slot: AbilitySlot.spell,
+        abilityId: 'eloise.arcane_haste',
+      );
+      await appState.setAbilitySlot(
+        characterId: characterId,
+        slot: AbilitySlot.spell,
+        abilityId: 'eloise.crystal_volley',
+      );
 
-    expect(ownershipApi.setAbilitySlotCalls, 0);
-    await appState.flushOwnershipEdits(trigger: OwnershipFlushTrigger.manual);
+      expect(ownershipApi.setAbilitySlotCalls, 0);
+      await appState.flushOwnershipEdits(trigger: OwnershipFlushTrigger.manual);
 
-    expect(ownershipApi.setAbilitySlotCalls, 1);
-    expect(ownershipApi.lastSetAbilityId, 'eloise.crystal_volley');
-  });
+      expect(ownershipApi.setAbilitySlotCalls, 1);
+      expect(ownershipApi.lastSetAbilityId, 'eloise.crystal_volley');
+    },
+  );
 
   test('run-start sync fails closed when pending edits cannot flush', () async {
     final ownershipApi = _FailingSelectionOwnershipApi();
@@ -180,67 +186,73 @@ void main() {
     expect(appState.ownershipSyncStatus.pendingSelectionCount, 0);
   });
 
-  test('flush prioritizes Tier C selection commands over Tier B commands', () async {
-    final ownershipApi = _OrderingOwnershipApi();
-    final appState = AppState(
-      authApi: _StaticAuthApi.authenticated(),
-      loadoutOwnershipApi: ownershipApi,
-    );
+  test(
+    'flush prioritizes Tier C selection commands over Tier B commands',
+    () async {
+      final ownershipApi = _OrderingOwnershipApi();
+      final appState = AppState(
+        authApi: _StaticAuthApi.authenticated(),
+        loadoutOwnershipApi: ownershipApi,
+      );
 
-    await appState.bootstrap(force: true);
-    final characterId = appState.selection.selectedCharacterId;
-    await appState.setAbilitySlot(
-      characterId: characterId,
-      slot: AbilitySlot.spell,
-      abilityId: 'eloise.arcane_haste',
-    );
-    await appState.setRunMode(RunMode.competitive);
+      await appState.bootstrap(force: true);
+      final characterId = appState.selection.selectedCharacterId;
+      await appState.setAbilitySlot(
+        characterId: characterId,
+        slot: AbilitySlot.spell,
+        abilityId: 'eloise.arcane_haste',
+      );
+      await appState.setRunMode(RunMode.competitive);
 
-    await appState.flushOwnershipEdits(trigger: OwnershipFlushTrigger.manual);
+      await appState.flushOwnershipEdits(trigger: OwnershipFlushTrigger.manual);
 
-    expect(ownershipApi.commandOrder, hasLength(2));
-    expect(ownershipApi.commandOrder.first, 'setSelection');
-    expect(ownershipApi.commandOrder.last, 'setAbilitySlot');
-  });
+      expect(ownershipApi.commandOrder, hasLength(2));
+      expect(ownershipApi.commandOrder.first, 'setSelection');
+      expect(ownershipApi.commandOrder.last, 'setAbilitySlot');
+    },
+  );
 
-  test('queued stale-revision command reloads canonical then reapplies draft', () async {
-    final ownershipApi = _StaleThenAcceptAbilityOwnershipApi();
-    final appState = AppState(
-      authApi: _StaticAuthApi.authenticated(),
-      loadoutOwnershipApi: ownershipApi,
-      ownershipSyncPolicy: const OwnershipSyncPolicy(
-        tierBDebounceMs: 750,
-        tierCDebounceMs: 150,
-        maxStalenessMs: 8000,
-        retryInitialDelayMs: 0,
-        retryMaxDelayMs: 0,
-        retryJitterRatio: 0,
-      ),
-    );
+  test(
+    'queued stale-revision command reloads canonical then reapplies draft',
+    () async {
+      final ownershipApi = _StaleThenAcceptAbilityOwnershipApi();
+      final appState = AppState(
+        authApi: _StaticAuthApi.authenticated(),
+        loadoutOwnershipApi: ownershipApi,
+        ownershipSyncPolicy: const OwnershipSyncPolicy(
+          tierBDebounceMs: 750,
+          tierCDebounceMs: 150,
+          maxStalenessMs: 8000,
+          retryInitialDelayMs: 0,
+          retryMaxDelayMs: 0,
+          retryJitterRatio: 0,
+        ),
+      );
 
-    await appState.bootstrap(force: true);
-    final characterId = appState.selection.selectedCharacterId;
+      await appState.bootstrap(force: true);
+      final characterId = appState.selection.selectedCharacterId;
 
-    await appState.setAbilitySlot(
-      characterId: characterId,
-      slot: AbilitySlot.spell,
-      abilityId: 'eloise.crystal_volley',
-    );
+      await appState.setAbilitySlot(
+        characterId: characterId,
+        slot: AbilitySlot.spell,
+        abilityId: 'eloise.crystal_volley',
+      );
 
-    expect(
-      appState.selection.loadoutFor(characterId).abilitySpellId,
-      'eloise.crystal_volley',
-    );
+      expect(
+        appState.selection.loadoutFor(characterId).abilitySpellId,
+        'eloise.crystal_volley',
+      );
 
-    await appState.flushOwnershipEdits(trigger: OwnershipFlushTrigger.manual);
-    expect(appState.ownershipSyncStatus.conflictCount, 1);
-    expect(ownershipApi.setAbilitySlotCalls, 2);
-    expect(appState.ownershipSyncStatus.pendingCount, 0);
-    expect(
-      appState.selection.loadoutFor(characterId).abilitySpellId,
-      'eloise.crystal_volley',
-    );
-  });
+      await appState.flushOwnershipEdits(trigger: OwnershipFlushTrigger.manual);
+      expect(appState.ownershipSyncStatus.conflictCount, 1);
+      expect(ownershipApi.setAbilitySlotCalls, 2);
+      expect(appState.ownershipSyncStatus.pendingCount, 0);
+      expect(
+        appState.selection.loadoutFor(characterId).abilitySpellId,
+        'eloise.crystal_volley',
+      );
+    },
+  );
 
   test('leave-level-setup barrier flushes pending selection edits', () async {
     final ownershipApi = _RecordingOwnershipApi();
@@ -308,41 +320,47 @@ void main() {
     expect(appState.ownershipSyncStatus.pendingCount, 0);
   });
 
-  test('run-start sync fast-path skips flush when known-clean status is fresh', () async {
-    final ownershipApi = _RecordingOwnershipApi();
-    final outbox = _CountingOwnershipOutboxStore();
-    final appState = AppState(
-      authApi: _StaticAuthApi.authenticated(),
-      loadoutOwnershipApi: ownershipApi,
-      ownershipOutboxStore: outbox,
-    );
+  test(
+    'run-start sync fast-path skips flush when known-clean status is fresh',
+    () async {
+      final ownershipApi = _RecordingOwnershipApi();
+      final outbox = _CountingOwnershipOutboxStore();
+      final appState = AppState(
+        authApi: _StaticAuthApi.authenticated(),
+        loadoutOwnershipApi: ownershipApi,
+        ownershipOutboxStore: outbox,
+      );
 
-    await appState.bootstrap(force: true);
-    appState.startWarmup();
-    await outbox.waitForLoadAllAtLeast(1);
+      await appState.bootstrap(force: true);
+      appState.startWarmup();
+      await outbox.waitForLoadAllAtLeast(1);
 
-    final loadAllCallsBeforeRunStart = outbox.loadAllCalls;
-    await appState.ensureOwnershipSyncedBeforeRunStart();
+      final loadAllCallsBeforeRunStart = outbox.loadAllCalls;
+      await appState.ensureOwnershipSyncedBeforeRunStart();
 
-    expect(outbox.loadAllCalls, loadAllCallsBeforeRunStart);
-  });
+      expect(outbox.loadAllCalls, loadAllCallsBeforeRunStart);
+    },
+  );
 
-  test('run-start sync does full path when sync-status freshness is unknown', () async {
-    final ownershipApi = _RecordingOwnershipApi();
-    final outbox = _CountingOwnershipOutboxStore();
-    final appState = AppState(
-      authApi: _StaticAuthApi.authenticated(),
-      loadoutOwnershipApi: ownershipApi,
-      ownershipOutboxStore: outbox,
-    );
+  test(
+    'run-start sync does full path when sync-status freshness is unknown',
+    () async {
+      final ownershipApi = _RecordingOwnershipApi();
+      final outbox = _CountingOwnershipOutboxStore();
+      final appState = AppState(
+        authApi: _StaticAuthApi.authenticated(),
+        loadoutOwnershipApi: ownershipApi,
+        ownershipOutboxStore: outbox,
+      );
 
-    await appState.bootstrap(force: true);
-    expect(outbox.loadAllCalls, 0);
+      await appState.bootstrap(force: true);
+      expect(outbox.loadAllCalls, 0);
 
-    await appState.ensureOwnershipSyncedBeforeRunStart();
+      await appState.ensureOwnershipSyncedBeforeRunStart();
 
-    expect(outbox.loadAllCalls, greaterThan(0));
-  });
+      expect(outbox.loadAllCalls, greaterThan(0));
+    },
+  );
 }
 
 class _CountingOwnershipOutboxStore implements OwnershipOutboxStore {
@@ -440,11 +458,6 @@ class _RecordingOwnershipApi implements LoadoutOwnershipApi {
   }
 
   @override
-  Future<OwnershipCommandResult> resetOwnership(
-    ResetOwnershipCommand command,
-  ) async => _acceptedResult();
-
-  @override
   Future<OwnershipCommandResult> equipGear(EquipGearCommand command) async =>
       _acceptedResult();
 
@@ -464,25 +477,6 @@ class _RecordingOwnershipApi implements LoadoutOwnershipApi {
   @override
   Future<OwnershipCommandResult> setProjectileSpell(
     SetProjectileSpellCommand command,
-  ) async => _acceptedResult();
-
-  @override
-  Future<OwnershipCommandResult> learnProjectileSpell(
-    LearnProjectileSpellCommand command,
-  ) async => _acceptedResult();
-
-  @override
-  Future<OwnershipCommandResult> learnSpellAbility(
-    LearnSpellAbilityCommand command,
-  ) async => _acceptedResult();
-
-  @override
-  Future<OwnershipCommandResult> unlockGear(UnlockGearCommand command) async =>
-      _acceptedResult();
-
-  @override
-  Future<OwnershipCommandResult> awardRunGold(
-    AwardRunGoldCommand command,
   ) async => _acceptedResult();
 
   @override
@@ -645,11 +639,6 @@ class _StaleThenAcceptAbilityOwnershipApi implements LoadoutOwnershipApi {
   ) async => _acceptedNoop();
 
   @override
-  Future<OwnershipCommandResult> resetOwnership(
-    ResetOwnershipCommand command,
-  ) async => _acceptedNoop();
-
-  @override
   Future<OwnershipCommandResult> equipGear(EquipGearCommand command) async =>
       _acceptedNoop();
 
@@ -660,25 +649,6 @@ class _StaleThenAcceptAbilityOwnershipApi implements LoadoutOwnershipApi {
   @override
   Future<OwnershipCommandResult> setProjectileSpell(
     SetProjectileSpellCommand command,
-  ) async => _acceptedNoop();
-
-  @override
-  Future<OwnershipCommandResult> learnProjectileSpell(
-    LearnProjectileSpellCommand command,
-  ) async => _acceptedNoop();
-
-  @override
-  Future<OwnershipCommandResult> learnSpellAbility(
-    LearnSpellAbilityCommand command,
-  ) async => _acceptedNoop();
-
-  @override
-  Future<OwnershipCommandResult> unlockGear(UnlockGearCommand command) async =>
-      _acceptedNoop();
-
-  @override
-  Future<OwnershipCommandResult> awardRunGold(
-    AwardRunGoldCommand command,
   ) async => _acceptedNoop();
 
   @override

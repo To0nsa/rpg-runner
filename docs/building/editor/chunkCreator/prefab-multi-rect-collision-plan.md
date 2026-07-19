@@ -3,6 +3,12 @@
 Date: April 13, 2026  
 Status: Implemented in code; authored content reauthoring pending
 
+Successor direction:
+[Sloped Terrain And Capsule Traversal High-Level Plan](../../slopes/plan.md).
+This document remains the record of the implemented multi-rectangle baseline,
+but its earlier choice of rectangles as the long-term static-world primitive is
+superseded by the polygon/edge migration plan.
+
 Related docs:
 
 - `docs/building/editor/chunkCreator/plan.md`

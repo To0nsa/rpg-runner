@@ -22,11 +22,17 @@ final class ValidatedRun {
     this.boardId,
     this.boardKey,
     this.rejectionReason,
-  }) : assert(score >= 0),
-       assert(distanceMeters >= 0),
-       assert(durationSeconds >= 0),
-       assert(tick >= 0),
-       assert(goldEarned >= 0) {
+    this.replayStorageGeneration,
+  }) {
+    if (score < 0 ||
+        distanceMeters < 0 ||
+        durationSeconds < 0 ||
+        tick < 0 ||
+        goldEarned < 0) {
+      throw ArgumentError(
+        'Validated-run score, distance, duration, tick, and gold must be non-negative.',
+      );
+    }
     if (accepted && rejectionReason != null) {
       throw ArgumentError('accepted runs must not include rejectionReason.');
     }
@@ -35,7 +41,9 @@ final class ValidatedRun {
     }
     if (mode.requiresBoard) {
       if (boardId == null || boardKey == null) {
-        throw ArgumentError('Competitive/Weekly validated runs require board fields.');
+        throw ArgumentError(
+          'Competitive/Weekly validated runs require board fields.',
+        );
       }
     } else if (boardId != null || boardKey != null) {
       throw ArgumentError('Practice validated runs must omit board fields.');
@@ -45,6 +53,14 @@ final class ValidatedRun {
         replayDigest,
         'replayDigest',
         'must be a lower-case 64-char SHA-256 hex string.',
+      );
+    }
+    if (replayStorageGeneration != null &&
+        !RegExp(r'^[1-9][0-9]*$').hasMatch(replayStorageGeneration!)) {
+      throw ArgumentError.value(
+        replayStorageGeneration,
+        'replayStorageGeneration',
+        'must be a positive integer string when set.',
       );
     }
   }
@@ -65,6 +81,11 @@ final class ValidatedRun {
   final Map<String, Object?> stats;
   final String replayDigest;
   final String replayStorageRef;
+
+  /// Positive Cloud Storage generation of the exact replay bytes validated.
+  ///
+  /// Null is retained only for backward reads of legacy evidence.
+  final String? replayStorageGeneration;
   final int createdAtMs;
 
   Map<String, Object?> toJson() {
@@ -85,6 +106,8 @@ final class ValidatedRun {
       'stats': stats,
       'replayDigest': replayDigest,
       'replayStorageRef': replayStorageRef,
+      if (replayStorageGeneration != null)
+        'replayStorageGeneration': replayStorageGeneration,
       'createdAtMs': createdAtMs,
     };
   }
@@ -95,7 +118,9 @@ final class ValidatedRun {
       runSessionId: readRequiredString(json, 'runSessionId'),
       uid: readRequiredString(json, 'uid'),
       boardId: readOptionalString(json, 'boardId'),
-      boardKey: json['boardKey'] == null ? null : BoardKey.fromJson(json['boardKey']),
+      boardKey: json['boardKey'] == null
+          ? null
+          : BoardKey.fromJson(json['boardKey']),
       mode: RunMode.parse(json['mode'], fieldName: 'mode'),
       accepted: readRequiredBool(json, 'accepted'),
       rejectionReason: readOptionalString(json, 'rejectionReason'),
@@ -108,6 +133,10 @@ final class ValidatedRun {
       stats: readRequiredObject(json, 'stats'),
       replayDigest: readRequiredString(json, 'replayDigest'),
       replayStorageRef: readRequiredString(json, 'replayStorageRef'),
+      replayStorageGeneration: readOptionalString(
+        json,
+        'replayStorageGeneration',
+      ),
       createdAtMs: readRequiredInt(json, 'createdAtMs'),
     );
   }
