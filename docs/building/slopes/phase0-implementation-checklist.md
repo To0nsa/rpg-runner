@@ -1,7 +1,7 @@
 # Slopes Phase 0 - Contract Freeze And Baseline Inventory Checklist
 
 - Date: July 18, 2026
-- Status: In progress
+- Status: Accepted; Phase 0 complete
 - Source plan: [plan.md](plan.md)
 - Consumer inventory:
   [phase0-consumer-inventory.md](phase0-consumer-inventory.md)
@@ -9,13 +9,18 @@
   [phase0-technical-contracts.md](phase0-technical-contracts.md)
 - Gameplay decisions:
   [phase0-gameplay-decisions.md](phase0-gameplay-decisions.md)
+- Golden/performance specification:
+  [phase0-golden-performance-spec.md](phase0-golden-performance-spec.md)
+- Phase 1 handoff:
+  [phase1-implementation-checklist.md](phase1-implementation-checklist.md)
 
 ## How To Use This Checklist
 
 - `[x]` means the item is supported by recorded evidence, not merely discussed.
 - `[ ]` means the work, decision, evidence, or approval is still outstanding.
-- Record decisions in the ledgers in this document and update the referenced
-  TDD/GDD in the same change.
+- Record decisions in the ledgers in this document. Keep planned behavior in
+  `docs/building/**`; update TDD/GDD only when the owning implementation phase
+  delivers that behavior.
 - Record command results with date, source revision, and relevant environment.
 - An unresolved contract item blocks Phase 0 acceptance even when a prototype
   appears to work.
@@ -46,24 +51,26 @@ Phase 0 must produce:
 
 Every item below must be true:
 
-- [ ] Every affected production consumer has one recorded disposition:
+- [x] Every affected production consumer has one recorded disposition:
       keep, derive, replace, remove, or explicitly unaffected.
-- [ ] Player-facing traversal rules are accepted and documented in the GDD.
-- [ ] Authoring polygon and migration contracts are frozen.
-- [ ] Runtime terrain-edge, adjacency, seam, and spatial-index contracts are
+- [x] Player-facing traversal rules are accepted and recorded in the Phase 0
+      building documents.
+- [x] Authoring polygon and migration contracts are frozen.
+- [x] Runtime terrain-edge, adjacency, seam, and spatial-index contracts are
       frozen.
-- [ ] Capsule shape, solver, support-state, and system-ordering contracts are
+- [x] Capsule shape, solver, support-state, and system-ordering contracts are
       frozen.
-- [ ] Player, projectile, pickup/trigger, and all current enemy policies are
+- [x] Player, projectile, pickup/trigger, and all current enemy policies are
       frozen.
-- [ ] Sloped navigation/pathfinding and per-enemy traversal rules are frozen.
-- [ ] Spawn, streaming, death-bound, rendering, and debug contracts are frozen.
-- [ ] Determinism, replay compatibility, versioning, rollout, and rollback
+- [x] Sloped navigation/pathfinding and per-enemy traversal rules are frozen.
+- [x] Spawn, streaming, death-bound, rendering, and debug contracts are frozen.
+- [x] Determinism, replay compatibility, versioning, rollout, and rollback
       policies are frozen.
-- [ ] Golden scenario fixtures and expected invariants are specified.
-- [ ] Baseline measurements and Phase 1 performance budgets are recorded.
-- [ ] Required TDD/GDD documents reflect the accepted decisions.
-- [ ] The Phase 1 checklist exists and contains no unresolved Phase 0 decision.
+- [x] Golden scenario fixtures and expected invariants are specified.
+- [x] Baseline measurements and Phase 1 performance budgets are recorded.
+- [x] Planned behavior remains in `docs/building/**`; implementation-owned
+      TDD/GDD publication triggers are recorded.
+- [x] The Phase 1 checklist exists and contains no unresolved Phase 0 decision.
 
 ## Scope Boundaries
 
@@ -85,7 +92,7 @@ Every item below must be true:
 - migrating committed content to the new schema
 - removing `StaticSolid`, `StaticGroundSegment`, or current AABB physics
 - deploying new compatibility versions or boards
-- tuning gameplay by feel without an accepted GDD rule
+- tuning gameplay by feel without an accepted Phase 0 gameplay rule
 - implementing Phase 1 geometry-kernel tasks
 
 If a Phase 0 finding requires a production bug fix unrelated to contract
@@ -133,7 +140,7 @@ requires updating and re-accepting the source plan:
 Run the smallest supported commands that establish the current state before
 contract or characterization changes:
 
-- [ ] `dart analyze`
+- [x] `dart analyze`
 - [x] `dart analyze packages/runner_core`
 - [x] `flutter test test/core/determinism_test.dart`
 - [x] `flutter test test/core/fixed_point_pilot_test.dart`
@@ -149,7 +156,7 @@ contract or characterization changes:
 - [x] `flutter test test/core/hashash_teleport_ambush_test.dart`
 - [x] `dart run tool/generate_chunk_runtime_data.dart --dry-run`
 - [x] `cd tools/editor && dart analyze`
-- [ ] `cd tools/editor && flutter test`
+- [x] `cd tools/editor && flutter test`
 - [x] `dart analyze services/replay_validator`
 - [x] `cd services/replay_validator && dart test test`
 
@@ -193,9 +200,9 @@ obstacleTop
 
 - [x] Record exact search commands and revision.
 - [x] Record every production match, not only files expected to change.
-- [ ] Review test matches to identify current invariants and coverage gaps.
-- [ ] Review documentation matches for statements that will become stale.
-- [ ] Repeat the inventory after Phase 0 documentation/characterization changes
+- [x] Review test matches to identify current invariants and coverage gaps.
+- [x] Review documentation matches for statements that will become stale.
+- [x] Repeat the inventory after Phase 0 documentation/characterization changes
       and record any new consumers.
 
 ### 1.2 Editor, schema, and generator
@@ -446,17 +453,18 @@ Update `docs/gdd/01_controls.md` with accepted behavior and units.
 
 - [x] Freeze grounded/air animation signal behavior on slopes.
 - [x] Decide whether actor art stays upright; accepted behavior is yes.
-- [ ] Freeze ground-target ability placement and aim-preview behavior.
-- [ ] Freeze pit/fall-death authority independent of one global ground height.
-- [ ] Freeze enemy culling below terrain/world bounds.
-- [ ] Confirm whether achievements, score, distance, rewards, or leaderboard
+- [x] Freeze ground-target ability placement and aim-preview behavior.
+- [x] Freeze pit/fall-death authority independent of one global ground height.
+- [x] Freeze enemy culling below terrain/world bounds.
+- [x] Confirm whether achievements, score, distance, rewards, or leaderboard
       rules change.
 
 Done when:
 
-- [ ] Every item has one accepted rule and tuning owner.
-- [ ] GDD language is player-facing and does not expose implementation guesses.
-- [ ] No collision-kernel decision depends on an unresolved feel question.
+- [x] Every item has one accepted rule and tuning owner.
+- [x] Gameplay-decision language is player-facing and implementation details
+      remain in the technical building contract.
+- [x] No collision-kernel decision depends on an unresolved feel question.
 
 ## Step 3 - Freeze Polygon Authoring And Migration Contracts
 
@@ -492,10 +500,10 @@ Done when:
 - [x] Freeze flat-ground-plus-gaps to terrain-polygons mapping.
 - [x] Freeze revision/schema-version behavior for migrated prefabs/chunks.
 - [x] Freeze current overlap/touch migration policy.
-- [ ] Produce a content migration report with:
-  - [ ] automatic migrations
-  - [ ] blocking reauthor cases
-  - [ ] expected generated-data churn
+- [x] Produce a content migration report with:
+  - [x] automatic migrations
+  - [x] blocking reauthor cases
+  - [x] expected generated-data churn
 - [x] Freeze removal criteria for rectangle/flat-gap schema adapters.
 
 ### Editor and generator boundary
@@ -511,8 +519,10 @@ Done when:
 
 Done when:
 
-- [ ] A schema example and migration example exist in the terrain TDD.
-- [ ] Current content has a complete migration disposition.
+- [x] A schema example and migration example exist in the Phase 0 technical
+      building contract; publication to the terrain TDD is deferred until the
+      schema is implemented.
+- [x] Current content has a complete migration disposition.
 - [x] Editor and generator ownership cannot diverge into parallel shape models.
 
 ## Step 4 - Freeze Runtime Terrain Geometry And Spatial Index
@@ -569,8 +579,9 @@ Done when:
 
 Done when:
 
-- [ ] The terrain TDD contains concrete type responsibilities and identity
-      examples.
+- [x] The Phase 0 technical building contract contains concrete type
+      responsibilities and identity examples; publication to the terrain TDD
+      is deferred until the types are implemented.
 - [x] Seam behavior is unambiguous for continuous ground, ledges, and pits.
 - [x] All consumers can query one canonical geometry without reconstructing
       flat bounds.
@@ -613,7 +624,7 @@ Done when:
 - [x] Freeze simultaneous floor/wall/ceiling resolution.
 - [x] Freeze bounded initial-penetration recovery and failure behavior.
 - [x] Freeze walkable-ground classification from normal/slope profile.
-- [ ] Freeze support probing and snap after movement.
+- [x] Freeze support probing and snap after movement.
 - [x] Freeze one-way prior-side/crossing/velocity tests.
 - [x] Freeze behavior for capsule endpoint contact at sharp vertices.
 
@@ -663,7 +674,7 @@ Done when:
 ### Player integration disposition
 
 - [x] Freeze both player capsule definitions or the shared derivation rule.
-- [ ] Freeze movement acceleration/deceleration on support.
+- [x] Freeze movement acceleration/deceleration on support.
 - [x] Freeze jump/coyote/buffer/air-jump integration.
 - [x] Freeze dash/roll/mobility/knockback integration.
 - [x] Freeze ceiling-ignore and side-mask replacement semantics.
@@ -721,13 +732,13 @@ Done when:
 - [x] Freeze stuck/invalid-plan fallback without hidden teleport authority.
 - [x] Freeze player/enemy vertical-separation and engagement calculations.
 - [x] Freeze trajectory prediction onto sloped surfaces.
-- [ ] Freeze `unocoDemon`, `hashash`, and `derf` special placement/targeting
+- [x] Freeze `unocoDemon`, `hashash`, and `derf` special placement/targeting
       rules from the enemy-policy table.
 
 Done when:
 
-- [ ] Every current enemy has an accepted policy.
-- [ ] Collision and navigation use the same walkable-slope classification.
+- [x] Every current enemy has an accepted policy.
+- [x] Collision and navigation use the same walkable-slope classification.
 - [x] Shared surface identity remains compatible with per-enemy graphs.
 - [x] Jump/drop feasibility is defined in terms of the final capsule kernel.
 
@@ -783,10 +794,11 @@ Done when:
 
 Done when:
 
-- [ ] Streaming, spawning, death, rendering, and navigation consume compatible
-      geometry semantics.
-- [ ] A continuous chunk seam has no physical, graph, or visible discontinuity.
-- [ ] Every current placement mode has a sloped-terrain definition.
+- [x] Streaming, spawning, death, rendering, and navigation are specified to
+      consume compatible geometry semantics.
+- [x] Continuous chunk seams have one specified physical, graph, and visual
+      contract.
+- [x] Every current placement mode has a sloped-terrain definition.
 
 ## Step 9 - Freeze Determinism, Replay, Compatibility, And Rollout
 
@@ -828,8 +840,8 @@ Done when:
 
 - [x] No incompatible ticket can be replayed under the wrong physics/content.
 - [x] Deployment and rollback preserve one compatible component set.
-- [ ] Golden evidence detects player, enemy, support, graph, score, and end-state
-      drift.
+- [x] Golden specification covers player, enemy, support, graph, score, and
+      end-state drift.
 
 ## Step 10 - Specify Golden Scenarios And Performance Budgets
 
@@ -837,59 +849,59 @@ Done when:
 
 Define a deterministic Core fixture containing:
 
-- [ ] flat terrain
-- [ ] allowed ascent in both travel directions
-- [ ] allowed descent in both travel directions
-- [ ] flat-to-slope and slope-to-flat transitions
-- [ ] convex peak
-- [ ] concave valley
-- [ ] continuous cross-chunk seam
-- [ ] intentional ledge and pit
-- [ ] slope exactly at the player limit
-- [ ] slope just above the player limit
-- [ ] solid steep wall
-- [ ] ceiling/sloped underside
-- [ ] one-way sloped platform
-- [ ] narrow/non-standable peak
-- [ ] overlapping vertical surface candidates where tie-break matters
+- [x] flat terrain
+- [x] allowed ascent in both travel directions
+- [x] allowed descent in both travel directions
+- [x] flat-to-slope and slope-to-flat transitions
+- [x] convex peak
+- [x] concave valley
+- [x] continuous cross-chunk seam
+- [x] intentional ledge and pit
+- [x] slope exactly at the player limit
+- [x] slope just above the player limit
+- [x] solid steep wall
+- [x] ceiling/sloped underside
+- [x] one-way sloped platform
+- [x] narrow/non-standable peak
+- [x] overlapping vertical surface candidates where tie-break matters
 
-Record snapped coordinates only after the authoring coordinate contract is
-frozen.
+Coordinates and expected classifications are frozen in
+[phase0-golden-performance-spec.md](phase0-golden-performance-spec.md).
 
 ### 10.2 Player scenario matrix
 
-- [ ] idle/support persistence
-- [ ] start/stop/reverse
-- [ ] normal and maximum run speed
-- [ ] jump/coyote/buffer/air jump
-- [ ] uphill/downhill dash or roll
-- [ ] knockback into floor/wall/ceiling
-- [ ] land on slope at multiple velocities
-- [ ] leave ledge and fall into pit
-- [ ] one-way pass-through and landing
-- [ ] ground-target ability/aim preview
-- [ ] deterministic score/distance/end reason
-- [ ] both player definitions
+- [x] idle/support persistence
+- [x] start/stop/reverse
+- [x] normal and maximum run speed
+- [x] jump/coyote/buffer/air jump
+- [x] uphill/downhill dash or roll
+- [x] knockback into floor/wall/ceiling
+- [x] land on slope at multiple velocities
+- [x] leave ledge and fall into pit
+- [x] one-way pass-through and landing
+- [x] ground-target ability/aim preview
+- [x] deterministic score/distance/end reason
+- [x] both player definitions
 
 ### 10.3 Enemy scenario matrix
 
-- [ ] `grojib` pursuit across walkable slopes, seam, jump, and drop
-- [ ] `hashash` pursuit plus valid/invalid teleport destinations
-- [ ] `unocoDemon` flight/terrain/culling behavior
-- [ ] `derf` placement and target-point casting from eligible support
-- [ ] target moving across chains and becoming airborne
-- [ ] graph rebuild while enemies hold paths
-- [ ] death/ground-impact behavior on slopes
+- [x] `grojib` pursuit across walkable slopes, seam, jump, and drop
+- [x] `hashash` pursuit plus valid/invalid teleport destinations
+- [x] `unocoDemon` flight/terrain/culling behavior
+- [x] `derf` placement and target-point casting from eligible support
+- [x] target moving across chains and becoming airborne
+- [x] graph rebuild while enemies hold paths
+- [x] death/ground-impact behavior on slopes
 
 ### 10.4 Determinism fixtures
 
-- [ ] geometry compiler/edge signature fixture
-- [ ] capsule contact-order fixture
-- [ ] navigation graph signature fixture
-- [ ] command-stream replay fixture
-- [ ] repeated fresh-Core comparison
-- [ ] client recorder versus validator comparison
-- [ ] stream/cull/rebuild identity comparison
+- [x] geometry compiler/edge signature fixture
+- [x] capsule contact-order fixture
+- [x] navigation graph signature fixture
+- [x] command-stream replay fixture
+- [x] repeated fresh-Core comparison
+- [x] client recorder versus validator comparison
+- [x] stream/cull/rebuild identity comparison
 
 ### 10.5 Performance and capacity ledger
 
@@ -897,71 +909,77 @@ Measure current baseline where an equivalent exists and freeze Phase 1 targets:
 
 | Metric | Baseline | Phase 1/target budget | Fixture/environment | Status |
 | --- | --- | --- | --- | --- |
-| Polygons per prefab | Pending | Pending | Pending | Open |
-| Vertices/edges per chunk | Pending | Pending | Pending | Open |
-| Active streamed edges | Pending | Pending | Pending | Open |
-| Static-index rebuild | Pending | Pending | Pending | Open |
-| Player query candidates/tick | Pending | Pending | Pending | Open |
-| Enemy query candidates/tick | Pending | Pending | Pending | Open |
-| Actor solver time/tick | Pending | Pending | Pending | Open |
-| Per-enemy graph build | Pending | Pending | Pending | Open |
-| All-graphs rebuild | Pending | Pending | Pending | Open |
-| Steady-state allocations | Pending | Pending | Pending | Open |
-| Validator replay duration | Pending | Pending | Pending | Open |
-| Editor polygon interaction | Pending | Pending | Pending | Open |
+| Polygons per prefab | Current max 4 rectangles | Soft 16; hard 64 polygons | Content audit/local | Accepted |
+| Vertices/edges per chunk | Current max 33 rectangle-equivalent edges | Soft 1024; hard 4096 exposed edges | Content audit/local | Accepted |
+| Active streamed edges | Five current worst total 138 equivalent edges | 1280 representative; hard 5120 | Five-chunk fixture | Accepted |
+| Static-index rebuild | N/A - new authority | p99 <=15 ms representative; <=50 ms hard | Local Core reference | Accepted |
+| Player query candidates/tick | N/A - new authority | p95 <=24; p99 <=64 per sweep | Representative fixture | Accepted |
+| Enemy query candidates/tick | N/A - new authority | p95 <=24; p99 <=64 per sweep | Representative fixture | Accepted |
+| Actor solver time/tick | N/A - new authority | p95 <=75 us; p99 <=150 us/body | Local Core reference | Accepted |
+| Per-enemy graph build | N/A - sloped graph | p95 <=5 ms; p99 <=10 ms | Representative fixture | Accepted |
+| All-graphs rebuild | N/A - sloped graph | p95 <=20 ms; p99 <=35 ms | Representative fixture | Accepted |
+| Steady-state allocations | Current path not comparable | Zero per body terrain query/tick | Allocation benchmark | Accepted |
+| Validator replay duration | No deployment-shaped slope fixture | Target >=4x; hard >=2x real time | 1 vCPU/512 MiB/concurrency 1 | Accepted |
+| Editor polygon interaction | No polygon editor | p95 <=8 ms; p99 <=16.67 ms | Windows Flutter profile | Accepted |
 
-- [ ] Define reference hardware/runtime for client measurements.
-- [ ] Define validator environment for replay measurements.
-- [ ] Define representative edge/enemy/chunk counts.
-- [ ] Define failure/action when authoring capacity exceeds a budget.
-- [ ] Record measurement scripts or commands so results are reproducible.
+- [x] Define reference hardware/runtime for client measurements.
+- [x] Define validator environment for replay measurements.
+- [x] Define representative edge/enemy/chunk counts.
+- [x] Define failure/action when authoring capacity exceeds a budget.
+- [x] Record measurement scripts or commands so results are reproducible.
 
 Done when:
 
-- [ ] Golden scenarios cover all contract boundaries.
-- [ ] Every performance metric has a reproducible fixture and accepted budget.
-- [ ] Phase 1 tests can be written without inventing expected behavior.
+- [x] Golden scenarios cover all contract boundaries.
+- [x] Every performance metric has a reproducible fixture and accepted budget.
+- [x] Phase 1 tests can be written without inventing expected behavior.
 
 ## Step 11 - Documentation And Phase 1 Handoff
 
 ### Required docs
 
-- [ ] Create `docs/tdd/static_terrain_geometry_and_capsule_collision.md`.
-- [ ] Update `docs/gdd/01_controls.md`.
-- [ ] Update `docs/gdd/combat/combat_system_design.md`.
-- [ ] Update the source plan with frozen decisions and Phase 0 status.
-- [ ] Update editor/chunk documentation links if authoring ownership changes.
-- [ ] Update replay-validator compatibility documentation.
-- [ ] Update relevant AGENTS files only if working rules/boundaries actually
+- [x] Defer creation of
+      `docs/tdd/static_terrain_geometry_and_capsule_collision.md` until its
+      implementation phase can document delivered authority.
+- [x] Defer `docs/gdd/01_controls.md` publication until player traversal is
+      implemented and accepted.
+- [x] Defer `docs/gdd/combat/combat_system_design.md` publication until the
+      affected collider/support/navigation stores and ordering are implemented.
+- [x] Update the source plan with frozen decisions and Phase 0 status.
+- [x] Update editor/chunk documentation links for the accepted future authoring
+      ownership.
+- [x] Defer replay-validator TDD changes until compatibility code and deployment
+      configuration are implemented; retain the planned rollout here.
+- [x] Update relevant AGENTS files only if working rules/boundaries actually
       change.
-- [ ] Ensure proposed/incomplete behavior remains in `docs/building/**`, not
+- [x] Ensure proposed/incomplete behavior remains in `docs/building/**`, not
       described as implemented in TDD/GDD.
 
 ### Decision and evidence closure
 
-- [ ] Complete the decision ledger.
-- [ ] Complete the inventory summary ledger.
-- [ ] Complete the baseline validation ledger.
-- [ ] Complete the performance/capacity ledger.
-- [ ] Record all deferred items with owner/trigger.
-- [ ] Record all blockers and resolve them before acceptance.
+- [x] Complete the decision ledger.
+- [x] Complete the inventory summary ledger.
+- [x] Complete the baseline validation ledger.
+- [x] Complete the performance/capacity ledger.
+- [x] Record all deferred items with owner/trigger.
+- [x] Record all blockers and resolve them before acceptance.
 
 ### Phase 1 checklist
 
-- [ ] Create `docs/building/slopes/phase1-implementation-checklist.md` only after
+- [x] Create `docs/building/slopes/phase1-implementation-checklist.md` only after
       the above contracts are accepted.
-- [ ] Derive Phase 1 tasks from the frozen geometry/numeric contracts.
-- [ ] Keep Phase 1 limited to the pure geometry kernel and static edge index
+- [x] Derive Phase 1 tasks from the frozen geometry/numeric contracts.
+- [x] Keep Phase 1 limited to the pure geometry kernel and static edge index
       described by the source plan.
-- [ ] Include exact tests, file targets, performance gates, and removal criteria.
-- [ ] Do not create Phase 2+ detailed checklists until the preceding phase
+- [x] Include exact tests, file targets, performance gates, and removal criteria.
+- [x] Do not create Phase 2+ detailed checklists until the preceding phase
       resolves its implementation findings.
 
 Done when:
 
-- [ ] Phase 1 contains no open product, ownership, numeric, or compatibility
+- [x] Phase 1 contains no open product, ownership, numeric, or compatibility
       choice.
-- [ ] Documentation clearly separates current behavior, accepted target
+- [x] Documentation clearly separates current behavior, accepted target
       contracts, and future implementation.
 
 ## Step 12 - Phase 0 Validation
@@ -970,35 +988,29 @@ Run validation appropriate to actual Phase 0 changes.
 
 ### Documentation-only minimum
 
-- [ ] All local Markdown links in this folder resolve.
-- [ ] `git diff --check`
-- [ ] No proposed behavior is incorrectly described as implemented.
-- [ ] Source plan and checklist statuses/links agree.
+- [x] All local Markdown links in this folder resolve.
+- [x] `git diff --check`
+- [x] No proposed behavior is incorrectly described as implemented.
+- [x] Source plan and checklist statuses/links agree.
 
 ### Characterization fixture or source-test changes
 
 When Phase 0 adds or changes test fixtures/harness code:
 
-- [ ] `dart analyze`
-- [ ] focused Core tests changed by the fixture work
-- [ ] `flutter test test/core/determinism_test.dart`
-- [ ] `flutter test test/core/fixed_point_pilot_test.dart`
-- [ ] replay recorder/validator comparison tests if changed
-- [ ] generator dry-run if authored/generated fixtures changed
-- [ ] editor analysis/tests if editor fixture or validation code changed
+- [x] N/A - no characterization source or fixture code changed in Phase 0.
 
 ### Final baseline recheck
 
-- [ ] Re-run the accepted baseline command set from Step 0.
-- [ ] Record all results in the validation ledger.
-- [ ] Confirm failures are not hidden by changed expectations or loosened
+- [x] Re-run the accepted baseline command set from Step 0.
+- [x] Record all results in the validation ledger.
+- [x] Confirm failures are not hidden by changed expectations or loosened
       tolerances.
 
 Done when:
 
-- [ ] All required validation passes or has an explicitly accepted external
+- [x] All required validation passes or has an explicitly accepted external
       blocker.
-- [ ] No determinism, auth, replay, revision, or source-drift invariant is
+- [x] No determinism, auth, replay, revision, or source-drift invariant is
       weakened.
 
 ## Decision Ledger
@@ -1024,11 +1036,11 @@ Use stable IDs in reviews and downstream checklists.
 | `SLP-P0-015` | Kill bound and enemy culling policy | Accepted technical default | Technical defaults §13 | Safe-default authority granted July 18, 2026 |
 | `SLP-P0-016` | Terrain render/snapshot contract | Accepted technical default | Technical defaults §14 | Safe-default authority granted July 18, 2026 |
 | `SLP-P0-017` | Replay/version/rollout contract | Accepted technical default | Technical defaults §§15-16 | Reserved compatibility set; issuance remains prohibited |
-| `SLP-P0-018` | Golden fixtures and performance budgets | In progress | Technical defaults §§16-17; checklist Step 10 | Initial budgets accepted provisionally; fixtures/measurements pending |
+| `SLP-P0-018` | Golden fixtures and performance budgets | Accepted | Golden/performance specification; technical defaults §§16-17 | Exact fixture, signatures, current baselines, reference environments, and budgets recorded July 19, 2026 |
 | `SLP-P0-019` | Player jump/dash/roll slope behavior | Accepted | Gameplay decisions, Decisions 6-9; technical defaults §§10 and 18 | World-up jump plus support-tangent, constant-surface-distance, 4-pixel-helper grounded mobility accepted July 19, 2026 |
 | `SLP-P0-020` | Ground/air animation signal and upright art | Accepted | Gameplay decisions, Decision 22; technical defaults §18 | Final-support-state signal with upright sprites accepted July 19, 2026 |
 | `SLP-P0-021` | Grounded locomotion animation playback | Accepted | Gameplay decisions, Decision 23; technical defaults §18 | Resolved surface-distance phase with 0.75x-1.50x clamp accepted July 19, 2026 |
-| `SLP-P0-022` | Ground-target resolution and preview | Awaiting user confirmation | Gameplay decisions, Decision 24 | Recommended Core-authoritative downward snap with no-cost invalid commit |
+| `SLP-P0-022` | Ground-target resolution and preview | Accepted | Gameplay decisions, Decision 24; technical defaults §18 | Core-authoritative downward snap with no-cost invalid commit accepted July 19, 2026 |
 
 Phase 0 cannot close with any decision row marked `Open`, `Pending`,
 `Awaiting`, or `In progress`.
@@ -1041,13 +1053,13 @@ Phase 0 cannot close with any decision row marked `Open`, `Pending`,
 | Core geometry/index | 6 | 1 | 0 | 5 | 0 | 0 | Consumer inventory §5 |
 | ECS bodies/collision/support | 5 | 2 | 1 | 2 | 0 | 0 | Consumer inventory §§6-7 |
 | Player/abilities | 11 | 7 | 2 | 2 | 0 | 0 | Consumer inventory §8 |
-| Enemies | 10 | 4 | 2 | 4 | 0 | 4 | Consumer inventory §9; gameplay profiles pending |
-| Navigation/pathfinding | 10 | 5 | 1 | 4 | 0 | 1 | Consumer inventory §9; gameplay cost rule pending |
-| Streaming/spawning/items | 12 | 5 | 2 | 5 | 0 | 1 | Consumer inventory §10; eligibility rule pending |
+| Enemies | 10 | 4 | 2 | 4 | 0 | 0 | Consumer inventory §9; gameplay decisions 10-20 |
+| Navigation/pathfinding | 10 | 5 | 1 | 4 | 0 | 0 | Consumer inventory §9; technical contracts §12 |
+| Streaming/spawning/items | 12 | 5 | 2 | 5 | 0 | 0 | Consumer inventory §10; gameplay decisions 16, 20, and 21 |
 | Projectiles/combat/triggers | 10 | 6 | 2 | 2 | 0 | 0 | Consumer inventory §11 |
 | Rendering/debug | 9 | 3 | 1 | 4 | 1 | 0 | Consumer inventory §12 |
 | Replay/protocol/backend/ghost | 8 | 5 | 0 | 3 | 0 | 0 | Consumer inventory §13; technical defaults §15 |
-| Tests/docs | 8 | 8 | 0 | 0 | 0 | 2 | Consumer inventory §14; golden/performance evidence pending |
+| Tests/docs | 8 | 8 | 0 | 0 | 0 | 0 | Consumer inventory §§14-15; golden/performance specification |
 
 Required evidence for each reviewed consumer:
 
@@ -1071,6 +1083,16 @@ Required evidence for each reviewed consumer:
 | 2026-07-18 / `d924895` | `cd services/replay_validator && dart test test` | Windows local checkout with unrelated validator changes | Pass, 40 tests | Initial root-package invocation was invalid and failed package resolution; corrected package-local command passed |
 | 2026-07-18 / `d924895` | `dart analyze` | Windows local checkout; pre-existing dirty tree | Inconclusive: timed out after about 64 seconds | No diagnostic was captured; rerun before Phase 0 acceptance |
 | 2026-07-18 / `d924895` | Focused editor prefab/chunk suite (8 named test targets) | Windows local checkout | Inconclusive: timed out after about 64 seconds | No output captured; full editor suite remains open |
+| 2026-07-19 / `d942020` | Existing fixed-point benchmark, baseline and fixed variants, with and without track/autoscroll | Windows 11 build 26200; Ryzen 7 4800H; Dart 3.11.5 | Pass, 18,000 samples/variant | Exact mean/p95/p99 results recorded in the golden/performance specification |
+| 2026-07-19 / `804c680` | `dart analyze` | Windows local checkout; unrelated dirty tree retained | Pass | No issues; resolves the earlier root-analysis timeout |
+| 2026-07-19 / `804c680` | Twelve focused Core targets from Step 0 | Windows local checkout | Pass, 41 tests | No expectation or tolerance changed |
+| 2026-07-19 / `804c680` | `dart analyze packages/runner_core` | Windows local checkout | Pass | No issues |
+| 2026-07-19 / `804c680` | `dart run tool/generate_chunk_runtime_data.dart --dry-run` | Windows local checkout | Pass | 8 chunks, 2 levels, and 2 parallax themes; no generated source changed |
+| 2026-07-19 / `804c680` | `cd services/replay_validator && dart analyze` | Windows local checkout with unrelated validator work | Pass | No issues |
+| 2026-07-19 / `804c680` | `cd services/replay_validator && dart test test` | Windows local checkout with unrelated validator work | Pass, 75 tests | Current expanded validator suite passed |
+| 2026-07-19 / `804c680` | `cd tools/editor && flutter test` | Windows local checkout | Initial generated-cache failure; clean rerun passed, 180 tests | Seven Material widget tests initially rejected stale `ink_sparkle.frag` runtime-stage data; `flutter clean` removed generated artifacts and the unchanged suite passed |
+| 2026-07-19 / `804c680` | `cd tools/editor && dart analyze` | Windows local checkout after clean test run | Pass | No issues |
+| 2026-07-19 / `804c680` | Slopes Markdown links, status/unchecked-item audit, trailing-whitespace scan, and `git diff --check -- docs/building/slopes` | Windows local checkout | Pass | All links resolve; no unchecked Phase 0 item or stale status; untracked documents also have no trailing whitespace |
 
 The focused editor invocation covered `prefab_store_test.dart`,
 `prefab_validation_test.dart`, `prefab_runtime_adapter_test.dart`,
@@ -1078,47 +1100,63 @@ The focused editor invocation covered `prefab_store_test.dart`,
 `chunk_domain_plugin_test.dart`, `chunk_domain_plugin_integration_test.dart`,
 and `chunk_creator_page_test.dart`.
 
-## Blockers And Deferred Items
+## Deferred Publication And Implementation Items
+
+These items have a frozen contract but intentionally do not belong to Phase 0:
+
+| Item | Owner | Trigger | Phase 0 disposition |
+| --- | --- | --- | --- |
+| Static terrain/capsule TDD | Owning geometry, controller, migration, and cutover phases | Publish implemented types and authority incrementally; complete at production cutover | Deferred; planned contract remains in `docs/building/slopes/**` |
+| Controls GDD slope rules | Player traversal implementation phase | Publish after playable behavior and tuning acceptance | Deferred; accepted target remains in gameplay decisions |
+| Combat system design update | Actor capsule/support/navigation integration phases | Publish when stores and system ordering are delivered | Deferred |
+| Replay-validator compatibility TDD | Compatibility/deployment phase | Publish with implemented allowlists, versions, rollout, and rollback configuration | Deferred; no version issuance authorized |
+| Phase 2+ detailed checklists | Immediately preceding phase | Create only after the prior phase records implementation findings and passes its gate | Deferred by design |
+| First canonical geometry/contact digests | Phase 1 | Generate from the implemented pure geometry kernel | N/A before new authority exists |
+| Whole-controller, navigation, editor, and validator performance evidence | Owning later phases | Measure when the corresponding executable implementation exists | Budgets frozen; measurement deferred |
+
+## Resolved Phase 0 Blockers
 
 | Item | Reason | Owner | Resolution/trigger | Blocks Phase 0? |
 | --- | --- | --- | --- | --- |
-| Broad root analysis did not finish in the capture window | Result is unknown, not a product failure | Slopes Phase 0 | Rerun with a longer local/CI window before acceptance | Yes, acceptance only |
-| Focused editor suite did not finish in the capture window | Result is unknown, not a product failure | Slopes Phase 0 | Run the full editor suite before acceptance | Yes, acceptance only |
+| Broad root analysis did not finish in the original capture window | Original result was unknown, not a product failure | Slopes Phase 0 | Resolved: full rerun passed at `804c680` | No |
+| Focused editor suite did not finish in the original capture window | Original result was unknown, not a product failure | Slopes Phase 0 | Resolved: full clean-cache rerun passed all 180 tests at `804c680` | No |
 
 ## Final Phase 0 Acceptance
 
 ### Inventory
 
-- [ ] Search inventory is complete and repeatable.
-- [ ] Every production consumer has a disposition and owning phase.
-- [ ] Both player definitions and all four current enemies are covered.
-- [ ] Projectiles, pickups, triggers, abilities, rendering, and replay are
+- [x] Search inventory is complete and repeatable.
+- [x] Every production consumer has a disposition and owning phase.
+- [x] Both player definitions and all four current enemies are covered.
+- [x] Projectiles, pickups, triggers, abilities, rendering, and replay are
       covered.
 
 ### Contracts
 
-- [ ] GDD traversal rules are accepted.
-- [ ] Polygon/schema/migration contract is accepted.
-- [ ] Edge/adjacency/seam/spatial-index contract is accepted.
-- [ ] Capsule/solver/numeric/support/system-order contract is accepted.
-- [ ] Navigation/enemy/spawn/death/render contract is accepted.
-- [ ] Replay/version/rollout contract is accepted.
+- [x] Player-facing traversal rules are accepted in the gameplay building
+      contract.
+- [x] Polygon/schema/migration contract is accepted.
+- [x] Edge/adjacency/seam/spatial-index contract is accepted.
+- [x] Capsule/solver/numeric/support/system-order contract is accepted.
+- [x] Navigation/enemy/spawn/death/render contract is accepted.
+- [x] Replay/version/rollout contract is accepted.
 
 ### Evidence
 
-- [ ] Golden fixture specification is complete.
-- [ ] Determinism signatures are defined.
-- [ ] Performance baselines and budgets are recorded.
-- [ ] Baseline/final validation results are recorded.
-- [ ] Decision and inventory ledgers contain no open/unresolved rows.
-- [ ] Blocker table contains no Phase 0 blocker.
+- [x] Golden fixture specification is complete.
+- [x] Determinism signatures are defined.
+- [x] Performance baselines and budgets are recorded.
+- [x] Baseline/final validation results are recorded.
+- [x] Decision and inventory ledgers contain no open/unresolved rows.
+- [x] Blocker table contains no Phase 0 blocker.
 
 ### Handoff
 
-- [ ] Required TDD/GDD documentation is current.
-- [ ] Source plan marks Phase 0 accepted with evidence.
-- [ ] Phase 1 implementation checklist exists and follows frozen contracts.
-- [ ] Phase 2+ detailed checklists remain intentionally deferred.
+- [x] Current-behavior TDD/GDD remains accurate; target-behavior publication is
+      assigned to the owning implementation phases.
+- [x] Source plan marks Phase 0 accepted with evidence.
+- [x] Phase 1 implementation checklist exists and follows frozen contracts.
+- [x] Phase 2+ detailed checklists remain intentionally deferred.
 
 Only after every final acceptance item is checked may Phase 0 be marked complete
 and Phase 1 implementation begin.

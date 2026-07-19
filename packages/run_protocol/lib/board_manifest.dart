@@ -24,7 +24,7 @@ enum BoardStatus {
 }
 
 final class BoardManifest {
-  const BoardManifest({
+  BoardManifest({
     required this.boardId,
     required this.boardKey,
     required this.gameCompatVersion,
@@ -35,8 +35,28 @@ final class BoardManifest {
     required this.closesAtMs,
     required this.status,
     this.minClientBuild,
-  }) : assert(tickHz > 0, 'tickHz must be > 0'),
-       assert(closesAtMs > opensAtMs, 'closesAtMs must be > opensAtMs');
+  }) {
+    _requireNonEmpty(boardId, 'boardId');
+    _requireNonEmpty(gameCompatVersion, 'gameCompatVersion');
+    _requireNonEmpty(ghostVersion, 'ghostVersion');
+    if (tickHz <= 0) {
+      throw ArgumentError.value(tickHz, 'tickHz', 'must be positive');
+    }
+    if (closesAtMs <= opensAtMs) {
+      throw ArgumentError.value(
+        closesAtMs,
+        'closesAtMs',
+        'must be greater than opensAtMs',
+      );
+    }
+    if (minClientBuild != null && minClientBuild!.isEmpty) {
+      throw ArgumentError.value(
+        minClientBuild,
+        'minClientBuild',
+        'must be non-empty when set',
+      );
+    }
+  }
 
   final String boardId;
   final BoardKey boardKey;
@@ -78,5 +98,11 @@ final class BoardManifest {
       minClientBuild: readOptionalString(json, 'minClientBuild'),
       status: BoardStatus.parse(json['status']),
     );
+  }
+
+  static void _requireNonEmpty(String value, String name) {
+    if (value.isEmpty) {
+      throw ArgumentError.value(value, name, 'must be non-empty');
+    }
   }
 }

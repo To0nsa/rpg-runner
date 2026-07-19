@@ -3,8 +3,8 @@
 Date: July 19, 2026  
 Project: `rpg-runner-d7add`  
 Region: `europe-west1`  
-Status: Successful; canary account deletion completed with zero residual
-canary data
+Status: Successful; canary and controlled fault-drill cleanup completed with
+zero residual synthetic data
 
 ## Decision and scope
 
@@ -12,9 +12,11 @@ There is no staging project and the game has no released users. The repository
 owner approved production as the controlled pre-release verification
 environment for non-destructive smoke and disposable-account canary work.
 
-This record does not claim destructive crash, task-exhaustion, or large
-concurrency fault injection. Those drills still require an isolated
-environment or a later explicit production test window.
+The owner later authorized an explicit pre-release fault-drill window.
+Lease-expiry and retry-exhaustion work used a temporary private service and
+queue; the other drills used bounded disposable data and briefly paused empty
+production queues. Detailed evidence is in
+[Pre-Release Fault Drills](pre-release-fault-drills-2026-07-19.md).
 
 ## Source and artifact
 
@@ -50,8 +52,9 @@ two immediate read/precondition attempts before returning durable task retry.
 `dart analyze` passed and all 75 replay-validator tests passed.
 
 The exact successful commit is deployed. The earlier naturally observed status
-400 response supplied the production fixture, but this rollout did not force a
-new concurrent precondition collision.
+400 response supplied the production fixture. A later nine-delivery live
+contention drill produced one controlled retryable 503, eight idempotent 202
+responses, no unclassified 500, and terminal validation on attempt 1.
 
 ## Monitoring rollout
 
@@ -78,8 +81,10 @@ Ten enabled policies use the existing production email channel:
 - projection queue backlog over 30 minutes;
 - replay repair or reconciliation job failure.
 
-Google Monitoring accepted every native metric and log-metric filter. No
-synthetic false incident was generated.
+Google Monitoring accepted every native metric and log-metric filter. A later
+isolated exact-match delivery policy opened an incident and delivered the
+expected email to the verified recipient; the temporary policy was deleted
+without changing production alert routing.
 
 ## Production deployment
 
@@ -148,9 +153,30 @@ the earlier synthetic account created by an interrupted canary setup:
 The two retained completion tombstones are bounded workflow evidence, not
 residual player data, and remain subject to the configured 30-day expiry.
 
+## Controlled fault-drill evidence
+
+The separately recorded fault window verified:
+
+- bounded concurrent validation lease contention;
+- generation-pinned rejection after a finalized path overwrite;
+- top-10 and ghost recovery after partial state removal and duplicate
+  projection delivery;
+- cleanup of 105 expired manifests across the Firestore page boundary;
+- two-attempt task exhaustion on a private temporary queue;
+- expired-lease reclaim by deployed scheduled validation repair;
+- successful recovery on the production worker;
+- verified alert email delivery and temporary-policy cleanup;
+- complete deletion of four disposable accounts with zero residual Firestore
+  or Storage data.
+
+The production revision, image digest, resource policy, queue retry/OIDC
+configuration, and traffic remained unchanged. Both temporary resources were
+deleted, and both production queues were `RUNNING` and empty afterward.
+
 ## Result
 
 The conflict-classifier fix, validator/projection monitoring, exact-commit
 artifact, corrected probes, queue policy, and pre-release production canary are
-deployed and healthy. The rollback revision remains available if a later
+deployed and healthy. The controlled recovery drills converged and left no
+synthetic residue. The rollback revision remains available if a later
 observation crosses an alert threshold.

@@ -22,7 +22,7 @@ void main() {
     'journalRunReplay persists the replay before any remote submission',
     () async {
       final runSessionApi = _FakeRunSessionApi(
-        finalizeStatus: const SubmissionStatus(
+        finalizeStatus: SubmissionStatus(
           runSessionId: 'run_journaled',
           state: RunSessionState.pendingValidation,
           updatedAtMs: 1000,
@@ -65,7 +65,7 @@ void main() {
 
   test('submitRunReplay preserves reward payload from server status', () async {
     final runSessionApi = _FakeRunSessionApi(
-      finalizeStatus: const SubmissionStatus(
+      finalizeStatus: SubmissionStatus(
         runSessionId: 'run_reward',
         state: RunSessionState.pendingValidation,
         updatedAtMs: 3000,
@@ -117,7 +117,7 @@ void main() {
     'submitRunReplay retains provisionalSummary outside canonical gold',
     () async {
       final runSessionApi = _FakeRunSessionApi(
-        finalizeStatus: const SubmissionStatus(
+        finalizeStatus: SubmissionStatus(
           runSessionId: 'run_pending_reward',
           state: RunSessionState.pendingValidation,
           updatedAtMs: 4000,
@@ -155,7 +155,7 @@ void main() {
 
   test('submitRunReplay stores latest status in AppState', () async {
     final runSessionApi = _FakeRunSessionApi(
-      finalizeStatus: const SubmissionStatus(
+      finalizeStatus: SubmissionStatus(
         runSessionId: 'run_submit',
         state: RunSessionState.pendingValidation,
         updatedAtMs: 1000,
@@ -196,7 +196,7 @@ void main() {
     () async {
       final finalizeGate = Completer<void>();
       final runSessionApi = _BlockingFinalizeRunSessionApi(
-        finalizeStatus: const SubmissionStatus(
+        finalizeStatus: SubmissionStatus(
           runSessionId: 'run_immediate_gold',
           state: RunSessionState.pendingValidation,
           updatedAtMs: 5000,
@@ -240,7 +240,7 @@ void main() {
     'submitRunReplay syncs canonical gold when submission reward is final',
     () async {
       final runSessionApi = _FakeRunSessionApi(
-        finalizeStatus: const SubmissionStatus(
+        finalizeStatus: SubmissionStatus(
           runSessionId: 'run_final_reward',
           state: RunSessionState.validated,
           updatedAtMs: 6000,
@@ -289,7 +289,7 @@ void main() {
     'refreshRunSubmissionStatus syncs canonical gold when reward settles',
     () async {
       final runSessionApi = _MutableRunSessionApi(
-        finalizeStatus: const SubmissionStatus(
+        finalizeStatus: SubmissionStatus(
           runSessionId: 'run_refresh_final',
           state: RunSessionState.pendingValidation,
           updatedAtMs: 7000,
@@ -323,7 +323,7 @@ void main() {
 
       ownershipApi.setCanonicalState(_canonicalWithGold(gold: 23, revision: 2));
       runSessionApi.setLoadStatus(
-        const SubmissionStatus(
+        SubmissionStatus(
           runSessionId: 'run_refresh_final',
           state: RunSessionState.validated,
           updatedAtMs: 7100,
@@ -350,7 +350,7 @@ void main() {
 
   test('processPendingRunSubmissions drains queued spool entries', () async {
     final runSessionApi = _FakeRunSessionApi(
-      finalizeStatus: const SubmissionStatus(
+      finalizeStatus: SubmissionStatus(
         runSessionId: 'run_pending',
         state: RunSessionState.validated,
         updatedAtMs: 2000,

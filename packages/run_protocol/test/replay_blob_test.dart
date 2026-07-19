@@ -7,7 +7,7 @@ void main() {
       return ReplayBlobV1.withComputedDigest(
         runSessionId: 'run_01',
         boardId: 'board_01',
-        boardKey: const BoardKey(
+        boardKey: BoardKey(
           mode: RunMode.competitive,
           levelId: 'field',
           windowId: '2026-03',
@@ -23,7 +23,7 @@ void main() {
           'ability': 'eloise.seeker_slash',
         },
         totalTicks: 42,
-        commandStream: const <ReplayCommandFrameV1>[
+        commandStream: <ReplayCommandFrameV1>[
           ReplayCommandFrameV1(
             tick: 1,
             moveAxis: 1.0,

@@ -54,7 +54,7 @@ void main() {
         ),
       );
       final runSessionApi = _StatusOnlyRunSessionApi(
-        const SubmissionStatus(
+        SubmissionStatus(
           runSessionId: 'run_town_pending',
           state: RunSessionState.pendingValidation,
           updatedAtMs: 1,

@@ -26,10 +26,10 @@ void main() {
     expect(distanceUnitsToMeters(149.9), 2);
   });
 
-  test('accepted practice replay creates a settlement handoff', () async {
+  test('accepted 30 Hz practice replay creates a settlement handoff', () async {
     final replayBlob = ReplayBlobV1.withComputedDigest(
       runSessionId: 'run_accepted',
-      tickHz: 60,
+      tickHz: 30,
       seed: 1234,
       levelId: 'field',
       playerCharacterId: 'eloise',
@@ -45,6 +45,7 @@ void main() {
       digest: replayBlob.canonicalSha256,
       contentLengthBytes: replayBytes.length,
       validationAttempt: 1,
+      tickHz: replayBlob.tickHz,
     );
     final repo = _FakeRunSessionRepository(
       leaseResult: RunSessionLeaseAcquireResult(
@@ -86,7 +87,7 @@ void main() {
   test(
     'accepted ranked replay uses immutable ticket board data after board deletion',
     () async {
-      const boardKey = BoardKey(
+      final boardKey = BoardKey(
         mode: RunMode.competitive,
         levelId: 'field',
         windowId: '2026-07',
@@ -818,7 +819,7 @@ void main() {
         playerCharacterId: 'eloise',
         loadoutSnapshot: _defaultLoadoutSnapshot(),
         totalTicks: 2,
-        commandStream: const <ReplayCommandFrameV1>[
+        commandStream: <ReplayCommandFrameV1>[
           ReplayCommandFrameV1(tick: 1),
           ReplayCommandFrameV1(tick: 2),
         ],
@@ -1207,6 +1208,7 @@ ValidatorRunSession _session({
   String? scoreVersion,
   String? ghostVersion,
   String? loadoutDigest,
+  int tickHz = 60,
 }) {
   assert(
     ReplayDigest.isValidSha256Hex(digest),
@@ -1231,7 +1233,7 @@ ValidatorRunSession _session({
       boardId: mode.requiresBoard ? 'board_1' : null,
       boardKey: boardKey,
       seed: seed,
-      tickHz: 60,
+      tickHz: tickHz,
       gameCompatVersion: gameCompatVersion,
       rulesetVersion: mode.requiresBoard ? rulesetVersion ?? 'rules-v1' : null,
       scoreVersion: mode.requiresBoard ? scoreVersion ?? 'score-v1' : null,

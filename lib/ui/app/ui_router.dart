@@ -64,6 +64,7 @@ class UiRouter {
             runSessionId: args.runSessionId,
             runId: args.runId,
             seed: args.seed,
+            tickHz: args.tickHz,
             levelId: args.levelId,
             playerCharacterId: args.playerCharacterId,
             runMode: args.runMode,

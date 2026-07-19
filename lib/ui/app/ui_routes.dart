@@ -46,6 +46,7 @@ class RunStartDescriptor {
     required this.runSessionId,
     required this.runId,
     required this.seed,
+    required this.tickHz,
     required this.levelId,
     required this.playerCharacterId,
     required this.runMode,
@@ -58,6 +59,7 @@ class RunStartDescriptor {
   final String runSessionId;
   final int runId;
   final int seed;
+  final int tickHz;
   final LevelId levelId;
   final PlayerCharacterId playerCharacterId;
   final RunMode runMode;
@@ -70,6 +72,7 @@ class RunStartDescriptor {
     String? runSessionId,
     int? runId,
     int? seed,
+    int? tickHz,
     LevelId? levelId,
     PlayerCharacterId? playerCharacterId,
     RunMode? runMode,
@@ -83,6 +86,7 @@ class RunStartDescriptor {
       runSessionId: runSessionId ?? this.runSessionId,
       runId: runId ?? this.runId,
       seed: seed ?? this.seed,
+      tickHz: tickHz ?? this.tickHz,
       levelId: levelId ?? this.levelId,
       playerCharacterId: playerCharacterId ?? this.playerCharacterId,
       runMode: runMode ?? this.runMode,

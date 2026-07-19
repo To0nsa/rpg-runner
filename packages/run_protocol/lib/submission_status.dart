@@ -27,7 +27,7 @@ enum SubmissionRewardStatus {
 }
 
 final class SubmissionReward {
-  const SubmissionReward({
+  SubmissionReward({
     required this.status,
     required this.provisionalGold,
     required this.effectiveGoldDelta,
@@ -35,8 +35,27 @@ final class SubmissionReward {
     required this.updatedAtMs,
     this.grantId,
     this.message,
-  }) : assert(provisionalGold >= 0),
-       assert(updatedAtMs >= 0);
+  }) {
+    if (provisionalGold < 0 || updatedAtMs < 0) {
+      throw ArgumentError(
+        'Submission reward provisionalGold and updatedAtMs must be non-negative.',
+      );
+    }
+    if (grantId != null && grantId!.isEmpty) {
+      throw ArgumentError.value(
+        grantId,
+        'grantId',
+        'must be non-empty when set',
+      );
+    }
+    if (message != null && message!.isEmpty) {
+      throw ArgumentError.value(
+        message,
+        'message',
+        'must be non-empty when set',
+      );
+    }
+  }
 
   final SubmissionRewardStatus status;
   final int provisionalGold;
@@ -114,14 +133,41 @@ enum RunSessionState {
 }
 
 final class SubmissionStatus {
-  const SubmissionStatus({
+  SubmissionStatus({
     required this.runSessionId,
     required this.state,
     required this.updatedAtMs,
     this.message,
     this.validatedRun,
     this.reward,
-  }) : assert(updatedAtMs >= 0);
+  }) {
+    if (runSessionId.isEmpty) {
+      throw ArgumentError.value(
+        runSessionId,
+        'runSessionId',
+        'must be non-empty',
+      );
+    }
+    if (updatedAtMs < 0) {
+      throw ArgumentError.value(
+        updatedAtMs,
+        'updatedAtMs',
+        'must be non-negative',
+      );
+    }
+    if (message != null && message!.isEmpty) {
+      throw ArgumentError.value(
+        message,
+        'message',
+        'must be non-empty when set',
+      );
+    }
+    if (validatedRun != null && validatedRun!.runSessionId != runSessionId) {
+      throw ArgumentError(
+        'validatedRun.runSessionId must match the submission status runSessionId.',
+      );
+    }
+  }
 
   final String runSessionId;
   final RunSessionState state;

@@ -121,19 +121,10 @@ void main() {
   });
 
   test(
-    'field level authored assembly is generated and drives selection order',
+    'field level uses its flat default chunk without an authored assembly',
     () {
       final level = LevelRegistry.byId(LevelId.field);
-      final assembly = level.assembly;
-      expect(assembly, isNotNull);
-      expect(
-        assembly!.segments.map((segment) => segment.segmentId).toList(),
-        <String>['field_run', 'forest_run', 'none_run'],
-      );
-      expect(
-        assembly.segments.map((segment) => segment.groupId).toList(),
-        <String>['default', 'forest', 'none'],
-      );
+      expect(level.assembly, isNull);
 
       final selections = <ChunkPatternSelection>[
         for (var chunkIndex = 0; chunkIndex < 6; chunkIndex += 1)
@@ -150,10 +141,14 @@ void main() {
       ];
 
       expect(
+        selections.map((selection) => selection.pattern.name).toList(),
+        everyElement('field_flat'),
+      );
+      expect(
         selections
             .map((selection) => selection.pattern.assemblyGroupId)
             .toList(),
-        <String>['default', 'default', 'forest', 'none', 'default', 'default'],
+        everyElement('default'),
       );
     },
   );

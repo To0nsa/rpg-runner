@@ -374,12 +374,12 @@ class _InMemorySpoolStore implements RunSubmissionSpoolStore {
 }
 
 class _FakeRunSessionApi implements RunSessionApi {
-  SubmissionStatus finalizeStatus = const SubmissionStatus(
+  SubmissionStatus finalizeStatus = SubmissionStatus(
     runSessionId: 'run_default',
     state: RunSessionState.pendingValidation,
     updatedAtMs: 0,
   );
-  SubmissionStatus loadStatus = const SubmissionStatus(
+  SubmissionStatus loadStatus = SubmissionStatus(
     runSessionId: 'run_default',
     state: RunSessionState.pendingValidation,
     updatedAtMs: 0,

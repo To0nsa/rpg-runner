@@ -68,6 +68,9 @@ void main() {
     // while held because Core resets tick inputs before applying commands.
     const ticks = 240;
     for (var t = 1; t <= ticks; t += 1) {
+      if (a.gameOver || b.gameOver) {
+        break;
+      }
       final cmds = <Command>[];
 
       final axis = (t <= 120) ? 1.0 : -1.0;

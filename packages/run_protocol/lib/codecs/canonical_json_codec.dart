@@ -27,10 +27,11 @@ Object? _normalize(Object? value) {
     return value.map(_normalize).toList(growable: false);
   }
 
-  if (value == null ||
-      value is bool ||
-      value is num ||
-      value is String) {
+  if (value is num && !value.toDouble().isFinite) {
+    throw FormatException('Canonical JSON requires finite numbers.');
+  }
+
+  if (value == null || value is bool || value is num || value is String) {
     return value;
   }
 

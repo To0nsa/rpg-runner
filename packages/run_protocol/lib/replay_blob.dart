@@ -1,4 +1,5 @@
 import 'board_key.dart';
+import 'codecs/json_value_copy.dart';
 import 'codecs/json_value_reader.dart';
 import 'replay_digest.dart';
 
@@ -6,7 +7,7 @@ const int kReplayBlobVersion1 = 1;
 const int kCommandEncodingVersion1 = 1;
 
 final class ReplayCommandFrameV1 {
-  const ReplayCommandFrameV1({
+  ReplayCommandFrameV1({
     required this.tick,
     this.moveAxis,
     this.aimDirX,
@@ -14,16 +15,43 @@ final class ReplayCommandFrameV1 {
     this.pressedMask = 0,
     this.abilitySlotHeldChangedMask = 0,
     this.abilitySlotHeldValueMask = 0,
-  }) : assert(tick > 0, 'tick must be > 0'),
-       assert(
-         (aimDirX == null && aimDirY == null) ||
-             (aimDirX != null && aimDirY != null),
-         'aimDirX and aimDirY must be both set or both unset.',
-       ),
-       assert(
-         (abilitySlotHeldValueMask & ~abilitySlotHeldChangedMask) == 0,
-         'abilitySlotHeldValueMask cannot set bits outside abilitySlotHeldChangedMask.',
-       );
+  }) {
+    if (tick <= 0) {
+      throw ArgumentError.value(tick, 'tick', 'must be positive');
+    }
+    if ((aimDirX == null) != (aimDirY == null)) {
+      throw ArgumentError(
+        'aimDirX and aimDirY must be both set or both unset.',
+      );
+    }
+    _validateAxis(moveAxis, 'moveAxis');
+    _validateAxis(aimDirX, 'aimDirX');
+    _validateAxis(aimDirY, 'aimDirY');
+    if (pressedMask < 0 || (pressedMask & ~knownPressedMask) != 0) {
+      throw ArgumentError.value(
+        pressedMask,
+        'pressedMask',
+        'contains unsupported command bits',
+      );
+    }
+    if (abilitySlotHeldChangedMask < 0 ||
+        (abilitySlotHeldChangedMask & ~knownAbilitySlotMask) != 0) {
+      throw ArgumentError.value(
+        abilitySlotHeldChangedMask,
+        'abilitySlotHeldChangedMask',
+        'contains unsupported ability-slot bits',
+      );
+    }
+    if (abilitySlotHeldValueMask < 0 ||
+        (abilitySlotHeldValueMask & ~knownAbilitySlotMask) != 0 ||
+        (abilitySlotHeldValueMask & ~abilitySlotHeldChangedMask) != 0) {
+      throw ArgumentError.value(
+        abilitySlotHeldValueMask,
+        'abilitySlotHeldValueMask',
+        'must be a subset of abilitySlotHeldChangedMask',
+      );
+    }
+  }
 
   final int tick;
   final double? moveAxis;
@@ -129,6 +157,17 @@ final class ReplayCommandFrameV1 {
       abilitySlotHeldValueMask: abilitySlotHeldValueMask,
     );
   }
+
+  static void _validateAxis(double? value, String name) {
+    if (value == null) return;
+    if (!value.isFinite || value < -1 || value > 1) {
+      throw ArgumentError.value(
+        value,
+        name,
+        'must be finite and within [-1, 1]',
+      );
+    }
+  }
 }
 
 final class ReplayBlobV1 {
@@ -138,21 +177,50 @@ final class ReplayBlobV1 {
     required this.seed,
     required this.levelId,
     required this.playerCharacterId,
-    required this.loadoutSnapshot,
+    required Map<String, Object?> loadoutSnapshot,
     required this.totalTicks,
-    required this.commandStream,
+    required List<ReplayCommandFrameV1> commandStream,
     required this.canonicalSha256,
     this.boardId,
     this.boardKey,
     this.commandEncodingVersion = kCommandEncodingVersion1,
     this.replayVersion = kReplayBlobVersion1,
-    this.clientSummary,
-  }) : assert(
-         replayVersion == kReplayBlobVersion1,
-         'Unsupported replayVersion',
+    Map<String, Object?>? clientSummary,
+  }) : loadoutSnapshot = immutableJsonObject(
+         loadoutSnapshot,
+         fieldName: 'loadoutSnapshot',
        ),
-       assert(tickHz > 0, 'tickHz must be > 0'),
-       assert(totalTicks >= 0, 'totalTicks must be >= 0') {
+       clientSummary = clientSummary == null
+           ? null
+           : immutableJsonObject(clientSummary, fieldName: 'clientSummary'),
+       commandStream = List<ReplayCommandFrameV1>.unmodifiable(commandStream) {
+    if (replayVersion != kReplayBlobVersion1) {
+      throw ArgumentError.value(
+        replayVersion,
+        'replayVersion',
+        'is unsupported',
+      );
+    }
+    if (commandEncodingVersion != kCommandEncodingVersion1) {
+      throw ArgumentError.value(
+        commandEncodingVersion,
+        'commandEncodingVersion',
+        'is unsupported',
+      );
+    }
+    _requireNonEmpty(runSessionId, 'runSessionId');
+    _requireNonEmpty(levelId, 'levelId');
+    _requireNonEmpty(playerCharacterId, 'playerCharacterId');
+    if (tickHz <= 0) {
+      throw ArgumentError.value(tickHz, 'tickHz', 'must be positive');
+    }
+    if (totalTicks < 0) {
+      throw ArgumentError.value(
+        totalTicks,
+        'totalTicks',
+        'must be non-negative',
+      );
+    }
     if ((boardId == null) != (boardKey == null)) {
       throw ArgumentError(
         'boardId and boardKey must both be set or both be null.',
@@ -164,6 +232,18 @@ final class ReplayBlobV1 {
         'canonicalSha256',
         'must be a lower-case 64-char SHA-256 hex string.',
       );
+    }
+    if (boardId != null) {
+      _requireNonEmpty(boardId!, 'boardId');
+    }
+    var previousTick = 0;
+    for (final frame in commandStream) {
+      if (frame.tick <= previousTick || frame.tick > totalTicks) {
+        throw ArgumentError(
+          'commandStream ticks must be strictly increasing and within totalTicks.',
+        );
+      }
+      previousTick = frame.tick;
     }
   }
 
@@ -227,7 +307,7 @@ final class ReplayBlobV1 {
       loadoutSnapshot: loadoutSnapshot,
       commandEncodingVersion: commandEncodingVersion,
       totalTicks: totalTicks,
-      commandStream: List<ReplayCommandFrameV1>.unmodifiable(commandStream),
+      commandStream: commandStream,
       canonicalSha256: digest,
       clientSummary: clientSummary,
     );
@@ -308,13 +388,20 @@ final class ReplayBlobV1 {
       'seed': seed,
       'levelId': levelId,
       'playerCharacterId': playerCharacterId,
-      'loadoutSnapshot': loadoutSnapshot,
+      'loadoutSnapshot': mutableJsonObjectCopy(
+        loadoutSnapshot,
+        fieldName: 'loadoutSnapshot',
+      ),
       'commandEncodingVersion': commandEncodingVersion,
       'totalTicks': totalTicks,
       'commandStream': commandStream
           .map((frame) => frame.toJson())
           .toList(growable: false),
-      if (clientSummary != null) 'clientSummary': clientSummary,
+      if (clientSummary != null)
+        'clientSummary': mutableJsonObjectCopy(
+          clientSummary!,
+          fieldName: 'clientSummary',
+        ),
     };
   }
 
@@ -330,5 +417,11 @@ final class ReplayBlobV1 {
       ...toCanonicalPayloadJson(),
       'canonicalSha256': canonicalSha256,
     };
+  }
+
+  static void _requireNonEmpty(String value, String name) {
+    if (value.isEmpty) {
+      throw ArgumentError.value(value, name, 'must be non-empty');
+    }
   }
 }

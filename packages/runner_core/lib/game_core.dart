@@ -932,7 +932,6 @@ class GameCore {
   }
 
   /// Remaining projectile cooldown ticks.
-  /// Remaining projectile cooldown ticks.
   int get playerProjectileCooldownTicksLeft =>
       _world.cooldown.getTicksLeft(_player, CooldownGroup.projectile);
 
@@ -944,7 +943,7 @@ class GameCore {
   // Command Processing
   // ─────────────────────────────────────────────────────────────────────────
 
-  /// Applies all commands scheduled for the current tick.
+  /// Applies commands scheduled for the next simulation tick.
   ///
   /// Commands are the only way external code can influence the simulation.
   /// Each command type maps to a specific player input flag or value:
@@ -960,9 +959,25 @@ class GameCore {
   /// - [AbilitySlotHeldCommand]: Applies per-slot hold transitions for maintain
   ///   abilities (latched until the next transition command).
   ///
-  /// Commands are processed before [stepOneTick] to ensure inputs are
-  /// available when systems read them.
+  /// Every command must have `tick == [tick] + 1`; mismatched commands are
+  /// rejected before this method changes input state. Call this immediately
+  /// before [stepOneTick] so systems consume inputs for that scheduled tick.
+  ///
+  /// Throws [ArgumentError] when a command is stale or scheduled for a future
+  /// tick. This keeps replay scheduling authority inside Core instead of
+  /// relying on each caller to enforce it.
   void applyCommands(List<Command> commands) {
+    final expectedTick = tick + 1;
+    for (final command in commands) {
+      if (command.tick != expectedTick) {
+        throw ArgumentError.value(
+          command.tick,
+          'commands',
+          'Command ticks must equal the next simulation tick ($expectedTick).',
+        );
+      }
+    }
+
     // Reset all input flags to their default state.
     _world.playerInput.resetTickInputs(_player);
     final inputIndex = _world.playerInput.indexOf(_player);

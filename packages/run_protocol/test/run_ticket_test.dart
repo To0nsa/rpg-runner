@@ -73,7 +73,7 @@ void main() {
         uid: 'u_01',
         mode: RunMode.competitive,
         boardId: 'board_01',
-        boardKey: const BoardKey(
+        boardKey: BoardKey(
           mode: RunMode.competitive,
           levelId: 'field',
           windowId: '2026-07',

@@ -67,9 +67,12 @@ record below.
 On July 19 the repository owner confirmed that no staging project exists and
 the game has no released users. Production is therefore the approved controlled
 pre-release environment for smoke and disposable-account canary verification.
-This decision does not authorize destructive crash, exhaustion, or large-load
-fault injection; those gates remain deferred until an isolated environment or
-explicit test window exists.
+The owner later authorized an explicit fault-drill window. Lease expiry and
+task exhaustion used a temporary private service and queue; concurrent
+validation, overwrite rejection, projection recovery, and pagination used
+bounded disposable fixtures while the affected production queue was empty.
+Evidence and restoration checks are in
+[Pre-Release Fault Drills](pre-release-fault-drills-2026-07-19.md).
 
 ## Local implementation update — July 18, 2026
 
@@ -818,17 +821,17 @@ Objective:
 
 - [ ] Run adversarial decompression, large replay, and execution-deadline tests
       against the deployed container.
-- [ ] Kill/timeout workers after lease acquisition and prove automatic
+- [x] Kill/timeout workers after lease acquisition and prove automatic
       recovery.
-- [ ] Exhaust task retries and prove scheduled repair.
-- [ ] Run concurrent same-player and board-wide projection load.
+- [x] Exhaust task retries and prove scheduled repair.
+- [x] Run concurrent same-player and board-wide projection load.
 - [ ] Inject failures after each durable projection/terminalization step.
-- [ ] Overwrite a pending upload path and prove generation-pinned rejection or
+- [x] Overwrite a pending upload path and prove generation-pinned rejection or
       immutable evidence use.
-- [ ] Exercise more than 100 ghost manifests and no-new-submission cleanup.
-- [ ] Verify actual queue retry timing, OIDC audience, and Cloud Run resource
+- [x] Exercise more than 100 ghost manifests and no-new-submission cleanup.
+- [x] Verify actual queue retry timing, OIDC audience, and Cloud Run resource
       limits.
-- [ ] Verify dashboards, alerts, and runbook actions with synthetic incidents.
+- [x] Verify dashboards, alerts, and runbook actions with synthetic incidents.
 
 ### Production rollout
 
@@ -959,6 +962,12 @@ This is implementation evidence, not deployment or closure evidence.
 | Exact-image isolated deployment smoke | Pass | Artifact digest matched the scanned local image; private authenticated `/live` and `/ready` returned 200, malformed tasks returned 400, unauthenticated access returned 403, and the temporary service was deleted |
 | Production monitoring | Pass | Four log metrics and ten enabled validator/projection policies were applied idempotently with one production notification channel and no duplicate policy names |
 | Pre-release production canary | Pass | Valid replay, final reward, leaderboard, ghost, invalid replay rejection/revocation, and account deletion all passed on revision `replay-validator-00024-rzt`; the exact follow-up found zero residual canary Firestore or Storage data |
+| Concurrent validation contention | Pass | Nine simultaneous deliveries produced one retryable 503, eight idempotent 202 responses, no unclassified 500, and terminal validation on attempt 1 |
+| Finalized-generation overwrite | Pass | Latest Storage generation changed while the session stayed pinned; validation rejected `replay_generation_unavailable` and produced no accepted/projection outcome |
+| Projection and ghost convergence | Pass | Two run and two board tasks rebuilt removed top-10/manifest state and removed all 105 expired manifests with no retry/error entry |
+| Lease expiry and queue exhaustion | Pass | Exact-image private service emitted two `lease_conflict` 503 attempts; scheduled repair advanced generation and production validation completed on attempt 3 |
+| Alert delivery | Pass | Verified channel received the exact-match synthetic incident email; temporary policy was deleted and production routing remained |
+| Drill cleanup | Pass | Four accounts completed final pass 3; exact Firestore/Storage scan found zero residual synthetic data and no temporary queue/service remained |
 
 The first July 19 scan of the `debian:bookworm-slim` runtime correctly failed
 with 4 Critical and 17 High OS-package findings. That image was not accepted.
@@ -1044,8 +1053,14 @@ and operations portions of the earlier records:
 - a read-only exact follow-up at `2026-07-19T16:10:29Z` found both synthetic
   deletion requests complete after final reconciliation, with zero residual
   canary Firestore documents, projection entries, or Storage objects;
+- a controlled fault window verified concurrent lease handling,
+  finalized-generation overwrite rejection, duplicate/partial projection
+  convergence, 105-manifest pagination, retry exhaustion, scheduled lease
+  repair, alert delivery, and zero-residual deletion for four more disposable
+  accounts;
 - complete evidence is in
-  [Pre-Release Production Rollout](production-rollout-2026-07-19.md).
+  [Pre-Release Production Rollout](production-rollout-2026-07-19.md) and
+  [Pre-Release Fault Drills](pre-release-fault-drills-2026-07-19.md).
 
 ## Closure evidence ledger
 
@@ -1054,21 +1069,21 @@ records, and the successor audit. Do not edit the baseline audit.
 
 | Audit ID | Status | Implementation evidence | Test evidence | Deployment/data evidence |
 |---|---|---|---|---|
-| `RV-C01` | Implemented; verification pending | Fenced lease/reclaim plus scheduled repair | Service repository/worker and Functions repair tests pass locally | Repair/schedule deployed and a live transient conflict recovered; kill/timeout and backlog drills pending |
+| `RV-C01` | Closed | Fenced lease/reclaim plus scheduled repair | Service repository/worker and Functions repair tests pass locally | A 1 ms lease expired during exact-image validation; two deliveries exhausted, scheduled repair reclaimed it, and production validation completed on attempt 3 |
 | `RV-C02` | Implemented; verification pending | Grace start preserved through production repository codec | Repository round-trip and grace-window worker tests pass locally | Aggregate inventory contained no legacy session; deployed grace-window drill pending |
 | `RV-C03` | Implemented; verification pending | Bounded loader/decompress/JSON/frame/tick/simulation plus checked-in service limits | Boundary, gzip expansion, JSON depth, and wall-deadline tests pass locally | Exact-image resource config verified in isolation; adversarial deployed load/alert evidence pending |
-| `RV-H01` | Implemented; verification pending | Cloud Tasks is documented/configured as retry authority; scheduled lost-task repair implemented | Queue-exhaustion repair unit/emulator paths implemented | Target queues match policy and a live retry recovered; deliberate exhaustion/repair drill pending |
-| `RV-H02` | Implemented; verification pending | Generation captured through upload, validation, projection, copy, and manifest | Exact-generation read/copy/collision tests pass locally | Storage integration and deployed overwrite drill pending |
-| `RV-H03` | Implemented; verification pending | Duplicate projection always resumes materialized-view work | Partial player-best/top-10 retry regression passes locally | Staging fault injection pending |
+| `RV-H01` | Closed | Cloud Tasks is documented/configured as retry authority; scheduled lost-task repair implemented | Queue-exhaustion repair unit/emulator paths implemented | A private two-attempt queue exhausted; deployed repair advanced task generation and the production queue converged the run |
+| `RV-H02` | Closed | Generation captured through upload, validation, projection, copy, and manifest | Exact-generation read/copy/collision tests pass locally | A post-finalize overwrite changed the latest generation without rebinding the session; validator rejected `replay_generation_unavailable` |
+| `RV-H03` | Closed | Duplicate projection always resumes materialized-view work | Partial player-best/top-10 retry regression passes locally | Removed top-10/manifest state converged under two run and two board deliveries with no retry/error entry |
 | `RV-H04` | Implemented; verification pending | Conditional player best and version-preconditioned top 10 plus reconciliation | Concurrent best/top-10 tests and 167-test Functions emulator suite pass | Deployed board-wide load verification pending |
 | `RV-H05` | Closed | Stubs are retryable; readiness fails closed; separate probes configured | App/final-container tests and exact-image readiness smoke pass | Exact commit revision `00024-rzt` serves 100%; startup and repeated liveness probes are healthy |
 | `RV-H06` | Closed | Production decoders explicitly reject versions, bits, axes, masks, and ranges | Protocol tests, compiled AOT rejection probe, and GitHub workflow pass | Exact successful commit digest is deployed |
 | `RV-H07` | Implemented; verification pending | Identity, loadout, compatibility, and immutable board-window binding | Compatibility/identity/loadout/board-deletion matrix passes locally | Compatibility retirement/production fixture review pending |
 | `RV-H08` | Implemented; verification pending | Rejected/exhausted-error transitions use preconditioned atomic commits | Repository commit/precondition tests and 167-test Functions emulator suite pass | Inventory found no legacy partial data; deployed fault matrix pending |
-| `RV-H09` | Implemented; verification pending | All manifest pages and empty boards reconcile via scheduled board tasks | Pagination, empty-board, demotion, and purge tests pass locally | Over-100 deployed lifecycle drill pending |
+| `RV-H09` | Closed | All manifest pages and empty boards reconcile via scheduled board tasks | Pagination, empty-board, demotion, and purge tests pass locally | Board reconciliation removed all 105 expired manifests without a new submission and restored the active ghost |
 | `RV-M01` | In progress | Added production-shaped Firestore/Storage precondition and pagination coverage | Focused suites pass; aggregate service coverage is 61.1% | Complete risk matrix and real emulator/Storage integration pending |
 | `RV-M02` | Implemented; verification pending | Shared canonical floor conversion exported from `run_protocol` | Duration and 18 focused UI tests pass | Full Flutter suite has 3 unrelated asset-generation failures |
-| `RV-M03` | Implemented; verification pending | Separate readiness, stable public errors, structured dispatch categories, four log metrics, and ten validator/projection/recovery policies | Readiness/safe rejection tests, policy API validation, healthy native probe series, and canary pass | Synthetic false incidents were intentionally not generated; runbook alert-response drill remains |
+| `RV-M03` | Closed | Separate readiness, stable public errors, structured dispatch categories, four log metrics, and ten validator/projection/recovery policies | Readiness/safe rejection tests, policy API validation, healthy native probe series, and canary pass | Exact-match synthetic incident opened, expected email was confirmed, temporary policy was removed, and production routing remained |
 | `RV-L01` | Closed | Digest-pinned distroless runtime, numeric non-root identity, allowlisted contexts, and source CI workflow | Exact image runs as UID/GID 65532; GitHub/Trivy report 0 Critical/High | Exact successful commit digest is deployed to revision `00024-rzt` |
 | `RV-L02` | Closed | Commands, links, region examples, queues, `/live` and `/ready`, and service policy corrected | Policy syntax, local smoke, exact-image smoke, and production probe evidence pass | Correct production routes and configuration serve 100% |
 | `RV-L03` | Closed | `googleapis` 16.0.0 and `googleapis_auth` 2.3.3 | Analyzer, dependency freshness, adapters, GitHub workflow, and production canary pass | Exact commit artifact is deployed |
@@ -1078,7 +1093,7 @@ records, and the successor audit. Do not edit the baseline audit.
 | Audit ID | Status | Evidence | Closure gate |
 |---|---|---|---|
 | `RV2-M01` | Closed | Commit `815aadde` has successful Functions and Replay Validator push workflows; the exact commit archive produced the release image | GitHub test/AOT/container/Trivy gate and local exact-image scan/smoke pass | Immutable exact-commit digest serves revision `00024-rzt` |
-| `RV2-M02` | Implemented; verification pending | Structured HTTP 400/`FAILED_PRECONDITION` classification is limited to the exact Google status; lease and every atomic-handoff fixture use the production response; worker emits `lease_conflict` retry telemetry | Analysis and 75 tests pass; exact successful commit is live and the production canary passed | A new forced concurrent precondition collision was not generated in production |
+| `RV2-M02` | Closed | Structured HTTP 400/`FAILED_PRECONDITION` classification is limited to the exact Google status; lease and every atomic-handoff fixture use the production response; worker emits `lease_conflict` retry telemetry | Analysis and 75 tests pass with the captured production response fixture | Nine live concurrent deliveries produced one bounded retryable 503, eight idempotent 202 responses, no unclassified 500, and terminal validation |
 | `RV2-L01` | Closed | `/live` and `/ready` replace the reserved-suffix routes in source and deployment policy | Revision `replay-validator-00024-rzt` serves 100%; Cloud Run recorded healthy startup and liveness probes |
 
 Allowed status values:
@@ -1097,16 +1112,16 @@ release covered by this plan.
 ### Validation authority and recovery
 
 - [ ] Every validation write is fenced to an unexpired lease token.
-- [ ] Crashes, timeouts, duplicate tasks, and exhausted queues converge without
+- [x] Crashes, timeouts, duplicate tasks, and exhausted queues converge without
       manual document edits.
 - [ ] Internal-error grace has one immutable start and a finite outcome.
 - [ ] Replay memory, CPU, and wall-time work is bounded.
-- [ ] Queue and Cloud Run resource/retry configuration is explicit and
+- [x] Queue and Cloud Run resource/retry configuration is explicit and
       deployed.
 
 ### Evidence and compatibility
 
-- [ ] Validated and promoted bytes match one immutable generation and digest.
+- [x] Validated and promoted bytes match one immutable generation and digest.
 - [ ] Every external protocol constraint is checked explicitly in AOT.
 - [ ] Ticket identity, loadout, board snapshot, and compatibility versions are
       enforced.
@@ -1118,22 +1133,22 @@ release covered by this plan.
       resumable with preconditions.
 - [ ] Reward-grant and terminal session state cannot disagree.
 - [ ] Player best is monotonic under concurrency.
-- [ ] Top 10 and ghost eligibility converge after partial failure and stale
+- [x] Top 10 and ghost eligibility converge after partial failure and stale
       delivery.
 - [ ] Projection misconfiguration cannot acknowledge work.
 
 ### Ghost lifecycle
 
 - [ ] Only the exact validated generation is published.
-- [ ] Empty boards and boards with more than 100 historical manifests
+- [x] Empty boards and boards with more than 100 historical manifests
       reconcile correctly.
-- [ ] Demoted artifacts expire without requiring a new player submission.
+- [x] Demoted artifacts expire without requiring a new player submission.
 
 ### Operations and release
 
 - [ ] Production adapters have direct integration/failure coverage.
 - [ ] Readiness fails closed; telemetry is structured and player-safe.
-- [ ] Alerts and runbooks are exercised.
+- [x] Alerts and runbooks are exercised.
 - [ ] Container, dependencies, build context, commands, and docs are current.
 - [ ] Repair inventory is empty or every exception has an incident disposition.
 - [ ] A separate successor audit confirms no release-blocking finding remains.

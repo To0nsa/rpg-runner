@@ -277,7 +277,7 @@ ReplayBlobV1 _ghostReplayBlob({required LevelId levelId}) {
   return ReplayBlobV1.withComputedDigest(
     runSessionId: 'ghost_run_1',
     boardId: 'board_1',
-    boardKey: const BoardKey(
+    boardKey: BoardKey(
       mode: RunMode.competitive,
       levelId: 'field',
       windowId: '2026-03',

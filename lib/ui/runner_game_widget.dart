@@ -50,6 +50,7 @@ class RunnerGameWidget extends StatefulWidget {
     required this.runSessionId,
     required this.runId,
     required this.seed,
+    this.tickHz = 60,
     required this.levelId,
     this.playerCharacterId = PlayerCharacterId.eloise,
     this.runMode = RunMode.practice,
@@ -65,6 +66,9 @@ class RunnerGameWidget extends StatefulWidget {
 
   /// Master RNG seed for deterministic generation.
   final int seed;
+
+  /// Fixed simulation tick rate from the server-issued run ticket.
+  final int tickHz;
 
   /// Unique identifier for this run session (replay/ghost).
   final String runSessionId;
@@ -131,6 +135,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
 
   late String _runSessionId;
   late int _seed;
+  late int _tickHz;
   late LevelId _levelId;
   late PlayerCharacterId _playerCharacterId;
   late RunMode _runMode;
@@ -176,6 +181,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     _runSessionId = widget.runSessionId;
     _runId = widget.runId;
     _seed = widget.seed;
+    _tickHz = widget.tickHz;
     _levelId = widget.levelId;
     _playerCharacterId = widget.playerCharacterId;
     _runMode = widget.runMode;
@@ -322,6 +328,9 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   void _validateInitialRunInputs() {
     if (widget.runSessionId.trim().isEmpty) {
       throw StateError('RunnerGameWidget requires non-empty runSessionId.');
+    }
+    if (widget.tickHz <= 0) {
+      throw StateError('RunnerGameWidget requires a positive tickHz.');
     }
     if (widget.runId <= 0) {
       throw StateError('RunnerGameWidget requires runId > 0.');
@@ -808,6 +817,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       _runSessionId = descriptor.runSessionId;
       _runId = descriptor.runId;
       _seed = descriptor.seed;
+      _tickHz = descriptor.tickHz;
       _levelId = descriptor.levelId;
       _playerCharacterId = descriptor.playerCharacterId;
       _runMode = descriptor.runMode;
@@ -877,10 +887,12 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
       core: GameCore(
         seed: _seed,
         runId: _runId,
+        tickHz: _tickHz,
         levelDefinition: LevelRegistry.byId(_levelId),
         playerCharacter: playerCharacter,
         equippedLoadoutOverride: _equippedLoadout,
       ),
+      tickHz: _tickHz,
     );
     _controller.addEventListener(_handleGameEvent);
     _controller.addListener(_onControllerTick);

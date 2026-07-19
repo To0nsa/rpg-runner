@@ -2,8 +2,8 @@
 
 - Date: July 18, 2026
 - Source revision: `d924895cf32f25abd6fdc4f3317fbfbc9936dcc9`
-- Status: First production-consumer pass complete; validation and final repeat
-  search remain open
+- Final repeat revision: `804c680`
+- Status: Complete; production, test, and documentation consumers classified
 - Source checklist:
   [phase0-implementation-checklist.md](phase0-implementation-checklist.md)
 - Technical contracts:
@@ -122,6 +122,49 @@ This does not make those records invalid. It means rectangle-to-polygon
 migration must union their occupied areas or emit an explicit reauthoring
 report; converting each rectangle independently would create overlapping
 terrain polygons.
+
+### Content migration disposition
+
+The final Phase 0 coordinate audit found that 60 of the 70 collision-bearing
+prefabs contain at least one odd rectangle width or height. Because collider
+offsets are centers, exact legacy bounds may lie on half pixels. The source
+contract therefore uses deterministic integer half-pixel ticks rather than
+whole-pixel-only vertices.
+
+A coordinate-compressed rectangle-union audit classified every current source
+record:
+
+| Migration result | Count |
+| --- | ---: |
+| Decoration prefabs unchanged | 29 |
+| Collision-bearing prefabs converted automatically | 70 |
+| Output simple source polygons | 88 |
+| Multi-rectangle prefabs audited | 29 |
+| Union holes | 0 |
+| Point-only/non-manifold touches | 0 |
+| Manual prefab reauthor blockers | 0 |
+| Collision-bearing chunk placements | 31 |
+| Output placed polygon instances | 32 |
+| Authored chunks migrated | 8 |
+| Output ground polygons after gaps | 9 |
+
+Disconnected occupied components intentionally become separate simple polygons;
+the largest current prefab produces three. All current results remain below
+the accepted shape/vertex limits.
+
+Expected generated-data churn is deliberate and complete:
+
+- all current generated `SolidRel` records become polygon plus precompiled-edge
+  records
+- all flat-ground/`GapRel` records become finite ground polygons with missing
+  coverage for pits
+- all 8 generated chunk entries and both level pattern sources are regenerated
+  in one deterministic pass
+- prefab/chunk stable keys and placement order remain unchanged
+- no legacy generated collision record remains after direct authority cutover
+
+The production migration tool must rerun the same union checks and emit the
+sorted automatic/blocker/churn report before it is allowed to write files.
 
 ### Chunks and levels
 
@@ -439,21 +482,41 @@ with new slope physics, and an old validator must not accept the new version.
 | Core geometry/index | 1 | 0 | 5 | 0 | 0 |
 | ECS bodies/collision/support | 2 | 1 | 2 | 0 | 0 |
 | Player/abilities | 7 | 2 | 2 | 0 | 0 |
-| Enemies | 4 | 2 | 4 | 0 | 4 gameplay profiles |
-| Navigation/pathfinding | 5 | 1 | 4 | 0 | 1 gameplay cost rule |
-| Streaming/spawning/items | 5 | 2 | 5 | 0 | 1 gameplay eligibility rule |
+| Enemies | 4 | 2 | 4 | 0 | 0 |
+| Navigation/pathfinding | 5 | 1 | 4 | 0 | 0 |
+| Streaming/spawning/items | 5 | 2 | 5 | 0 | 0 |
 | Projectiles/combat/triggers | 6 | 2 | 2 | 0 | 0 |
 | Rendering/debug | 3 | 1 | 4 | 1 temporary mask | 0 |
-| Replay/protocol/backend/ghost | 5 | 0 | 3 | 0 | exact release version |
-| Tests/docs | 8 | 0 | 0 | 0 | golden/performance evidence |
+| Replay/protocol/backend/ghost | 5 | 0 | 3 | 0 | 0 |
+| Tests/docs | 8 | 0 | 0 | 0 | 0 |
 
 Counts in this summary classify responsibilities, not files. The detailed
 tables above are the evidence source.
 
-## 15) Remaining Inventory Work
+The former open rows are closed by:
 
-- complete the remaining baseline commands
-- record current performance measurements
-- inspect and classify every test/doc match during Phase 1 checklist creation
-- repeat all required-term searches at the end of Phase 0
-- verify no new enemy/body/placement category appeared during Phase 0
+- the accepted four-enemy traversal/placement profiles in
+  [phase0-gameplay-decisions.md](phase0-gameplay-decisions.md)
+- the accepted surface-distance graph cost and placement eligibility contracts
+  in
+  [phase0-technical-contracts.md](phase0-technical-contracts.md)
+- the reserved compatibility set and no-issuance rule in that same contract
+- the exact fixture, signature, capacity, and performance evidence in
+  [phase0-golden-performance-spec.md](phase0-golden-performance-spec.md)
+
+## 15) Final Repeat Audit
+
+The required-term search was repeated at revision `804c680` across Core, Flame,
+UI, editor, protocol, replay validator, root tests, TDD, and GDD sources.
+Test matches were classified against the regression matrix and documentation
+matches were classified for later implementation-owned updates.
+
+The source diff from the initial inventory revision to the final repeat contains
+no change under `packages/runner_core/lib/**`, `lib/game/**`, or
+`tools/editor/lib/**`. Direct registry inspection still finds exactly two
+player definitions, four enemy IDs, and the same ground, highest-surface,
+obstacle-top, deferred-Hashash, flying, collectible, and restoration placement
+paths. No new slopes consumer or body/placement category appeared.
+
+Remaining baseline command execution belongs to the Phase 0 validation ledger,
+not to the consumer inventory.

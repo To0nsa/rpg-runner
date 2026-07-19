@@ -19,11 +19,30 @@ final class LeaderboardEntry {
     this.replayStorageGeneration,
     this.replayDigest,
     this.rank,
-  }) : assert(score >= 0),
-       assert(distanceMeters >= 0),
-       assert(durationSeconds >= 0),
-       assert(updatedAtMs >= 0),
-       assert(rank == null || rank > 0) {
+  }) {
+    _requireNonEmpty(boardId, 'boardId');
+    _requireNonEmpty(entryId, 'entryId');
+    _requireNonEmpty(runSessionId, 'runSessionId');
+    _requireNonEmpty(uid, 'uid');
+    _requireNonEmpty(displayName, 'displayName');
+    _requireNonEmpty(characterId, 'characterId');
+    _requireNonEmpty(sortKey, 'sortKey');
+    if (score < 0 ||
+        distanceMeters < 0 ||
+        durationSeconds < 0 ||
+        updatedAtMs < 0 ||
+        (rank != null && rank! <= 0)) {
+      throw ArgumentError(
+        'Leaderboard score, distance, duration, updatedAtMs, and rank must be non-negative.',
+      );
+    }
+    if (replayStorageRef != null && replayStorageRef!.isEmpty) {
+      throw ArgumentError.value(
+        replayStorageRef,
+        'replayStorageRef',
+        'must be non-empty when set',
+      );
+    }
     if (replayStorageGeneration != null &&
         !RegExp(r'^[1-9][0-9]*$').hasMatch(replayStorageGeneration!)) {
       throw ArgumentError.value(
@@ -107,5 +126,11 @@ final class LeaderboardEntry {
       updatedAtMs: readRequiredInt(json, 'updatedAtMs'),
       rank: readOptionalInt(json, 'rank'),
     );
+  }
+
+  static void _requireNonEmpty(String value, String name) {
+    if (value.isEmpty) {
+      throw ArgumentError.value(value, name, 'must be non-empty');
+    }
   }
 }

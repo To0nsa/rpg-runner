@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:crypto/crypto.dart' as crypto;
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:runner_core/levels/level_id.dart';
@@ -16,6 +17,11 @@ import 'package:rpg_runner/ui/state/ownership/loadout_ownership_api.dart';
 import 'package:rpg_runner/ui/state/ownership/progression_state.dart';
 import 'package:rpg_runner/ui/state/run/run_session_api.dart';
 import 'package:rpg_runner/ui/state/ownership/selection_state.dart';
+import 'package:rpg_runner/ui/app/ui_router.dart';
+import 'package:rpg_runner/ui/app/ui_routes.dart';
+import 'package:rpg_runner/ui/runner_game_widget.dart';
+import 'package:rpg_runner/ui/scoped/scoped_preferred_orientations.dart';
+import 'package:rpg_runner/ui/scoped/scoped_system_ui_mode.dart';
 
 void main() {
   test(
@@ -112,6 +118,69 @@ void main() {
       expect(descriptor.runSessionId, 'prefetched_run_session');
     },
   );
+
+  test('prepareRunStartDescriptor preserves the ticket tick rate', () async {
+    final runSessionApi = _RecordingRunSessionApi(
+      ticketBuilder: (request) => _ticketForRequest(
+        request: request,
+        runSessionId: 'run_30_hz',
+        expiresAtMs: DateTime.now().millisecondsSinceEpoch + 60000,
+        tickHz: 30,
+      ),
+    );
+    final appState = AppState(
+      authApi: _StaticAuthApi.authenticated(),
+      loadoutOwnershipApi: _NoopOwnershipApi(),
+      runSessionApi: runSessionApi,
+    );
+
+    final descriptor = await appState.prepareRunStartDescriptor();
+
+    expect(descriptor.tickHz, 30);
+  });
+
+  testWidgets('a non-60 Hz ticket reaches the runner route widget', (
+    tester,
+  ) async {
+    final runSessionApi = _RecordingRunSessionApi(
+      ticketBuilder: (request) => _ticketForRequest(
+        request: request,
+        runSessionId: 'run_30_hz',
+        expiresAtMs: DateTime.now().millisecondsSinceEpoch + 60000,
+        tickHz: 30,
+      ),
+    );
+    final appState = AppState(
+      authApi: _StaticAuthApi.authenticated(),
+      loadoutOwnershipApi: _NoopOwnershipApi(),
+      runSessionApi: runSessionApi,
+    );
+    final descriptor = await appState.prepareRunStartDescriptor();
+    final route =
+        UiRouter.onGenerateRoute(
+              RouteSettings(name: UiRoutes.run, arguments: descriptor),
+            )
+            as MaterialPageRoute<void>;
+    late Widget routeChild;
+
+    await tester.pumpWidget(
+      Directionality(
+        textDirection: TextDirection.ltr,
+        child: Builder(
+          builder: (context) {
+            routeChild = route.builder(context);
+            return const SizedBox.shrink();
+          },
+        ),
+      ),
+    );
+
+    final scaffold = routeChild as Scaffold;
+    final systemUi = scaffold.body! as ScopedSystemUiMode;
+    final orientationScope = systemUi.child as ScopedPreferredOrientations;
+    final game = orientationScope.child as RunnerGameWidget;
+    expect(game.tickHz, 30);
+  });
 
   test(
     'prefetched ticket is consumed once then falls back to remote',
@@ -643,6 +712,7 @@ RunTicket _ticketForRequest({
   required _RunSessionRequest request,
   required String runSessionId,
   required int expiresAtMs,
+  int tickHz = 60,
 }) {
   final nowMs = DateTime.now().millisecondsSinceEpoch;
   final loadout = SelectionState.defaults.loadoutFor(PlayerCharacterId.eloise);
@@ -666,7 +736,7 @@ RunTicket _ticketForRequest({
       uid: request.userId,
       mode: request.mode,
       seed: 12345 + request.callIndex,
-      tickHz: 60,
+      tickHz: tickHz,
       gameCompatVersion: request.gameCompatVersion,
       levelId: request.levelId.name,
       playerCharacterId: PlayerCharacterId.eloise.name,
@@ -690,7 +760,7 @@ RunTicket _ticketForRequest({
       scoreVersion: 'score-v1',
     ),
     seed: 12345 + request.callIndex,
-    tickHz: 60,
+    tickHz: tickHz,
     gameCompatVersion: request.gameCompatVersion,
     rulesetVersion: 'rules-v1',
     scoreVersion: 'score-v1',

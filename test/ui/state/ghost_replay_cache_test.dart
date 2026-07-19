@@ -116,7 +116,7 @@ ReplayBlobV1 _buildReplayBlob({
   return ReplayBlobV1.withComputedDigest(
     runSessionId: runSessionId,
     boardId: boardId,
-    boardKey: const BoardKey(
+    boardKey: BoardKey(
       mode: RunMode.competitive,
       levelId: 'field',
       windowId: '2026-03',
@@ -142,7 +142,7 @@ ReplayBlobV1 _buildReplayBlob({
       'abilityJumpId': 'jump',
     },
     totalTicks: 2,
-    commandStream: const <ReplayCommandFrameV1>[
+    commandStream: <ReplayCommandFrameV1>[
       ReplayCommandFrameV1(tick: 1, moveAxis: 1),
       ReplayCommandFrameV1(tick: 2, moveAxis: 1),
     ],

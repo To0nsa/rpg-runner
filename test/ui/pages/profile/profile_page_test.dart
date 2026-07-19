@@ -61,7 +61,7 @@ void main() {
     (tester) async {
       final authApi = _StaticAuthApi(session: _anonymousSession());
       final runSessionApi = _StatusOnlyRunSessionApi(
-        const SubmissionStatus(
+        SubmissionStatus(
           runSessionId: 'run_profile_pending',
           state: RunSessionState.pendingValidation,
           updatedAtMs: 1,

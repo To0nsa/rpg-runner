@@ -277,7 +277,7 @@ ValidatedRun _validatedRun({
     runSessionId: runSessionId,
     uid: uid,
     boardId: boardId,
-    boardKey: const BoardKey(
+    boardKey: BoardKey(
       mode: RunMode.competitive,
       levelId: 'field',
       windowId: '2026-03',

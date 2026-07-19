@@ -524,6 +524,8 @@ class DeterministicValidatorWorker implements ValidatorWorker {
     }
     final boardKey = ticket.boardKey;
     if (boardKey == null ||
+        boardKey.mode != ticket.mode ||
+        boardKey.levelId != ticket.levelId ||
         ticket.rulesetVersion != boardKey.rulesetVersion ||
         ticket.scoreVersion != boardKey.scoreVersion) {
       throw const _ValidationRejectedException(

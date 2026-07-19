@@ -1,7 +1,7 @@
 # Slopes Phase 0 - Technical Defaults
 
 - Date: July 18, 2026
-- Status: Accepted technical defaults; gameplay-dependent values remain open
+- Status: Complete; technical defaults and gameplay-dependent values accepted
 - Source checklist:
   [phase0-implementation-checklist.md](phase0-implementation-checklist.md)
 - Consumer evidence:
@@ -56,9 +56,11 @@ cannot change collision behavior.
 ### Coordinates and transforms
 
 - World X increases right; world Y increases down.
-- Source vertices use integer world-pixel coordinates.
-- The editor defaults to the owning document's grid snap but permits integer
-  pixel vertices for intentional detail.
+- Source vertices use exact half-world-pixel coordinates. JSON numbers must be
+  multiples of `0.5` and are normalized immediately to integer half-pixel
+  ticks, avoiding floating-point identity.
+- The editor defaults to the owning document's grid snap but permits half-pixel
+  vertices for exact legacy-bound preservation or intentional detail.
 - Prefab vertices are relative to the existing prefab anchor.
 - Placement applies anchor-relative vertex, optional X/Y reflection, uniform
   scale, and translation in that order.
@@ -149,9 +151,19 @@ below the two sloped top edges.
 - Legacy readers exist only for the migration tooling window. They are removed
   before production authority cutover.
 
-Current content is mechanically tractable in principle, but the 22 prefabs
-listed in the inventory with touching/overlapping pairs must pass the union
-report before being classified automatic.
+The Phase 0 union audit classifies all current collision source as automatic:
+
+- 70 collision-bearing prefabs produce 88 simple source polygons
+- 29 decoration prefabs remain unchanged
+- 29 prefabs have multiple rectangles; no current union creates a hole,
+  point-only ambiguity, invalid half-pixel boundary, or limit overflow
+- 31 collision-bearing chunk placements produce 32 polygon instances
+- 8 flat chunk profiles, including the one current gap, produce 9 ground
+  polygons
+- no current prefab or chunk requires manual reauthoring for mechanical
+  migration
+
+The migration tool must reproduce this sorted report before writing source.
 
 ### Rectangle-union example
 
@@ -695,8 +707,8 @@ Accepted:
   changes target X speed and existing acceleration/deceleration approaches the
   new target; support transitions do not directly rewrite velocity.
 - Distance, score, and camera retain world-X semantics and therefore observe
-  the accepted uphill slowdown/downhill increase. Slope-dependent animation
-  playback remains a separate pending gameplay decision.
+  the accepted uphill slowdown/downhill increase. Looping grounded locomotion
+  animation uses the accepted surface-distance rate in this section.
 - Automatic small step-up is enabled for Éloïse during ordinary grounded
   locomotion with a maximum height of 4 world pixels. Enemies do not inherit
   the feature.
@@ -770,10 +782,18 @@ Accepted:
 - The locomotion phase is deterministic and snapshot-visible but has no
   gameplay authority. Idle, airborne, mobility, attack, cast, hit, spawn,
   stun, and death animation timing remains authored and unscaled.
+- No current player ability uses `TargetingModel.groundTarget`. For a future
+  player ground-target ability, Core derives the desired endpoint from the
+  authoritative cast origin, normalized aim, and authored range, then probes
+  world-down by the ability's authored limit to the first player-walkable solid
+  or one-way top surface. The final point must remain within range and have
+  unobstructed collision-side-aware line of sight.
+- Core publishes the resolved ground-target point and validity for preview;
+  Flame never reclassifies terrain. Commit reruns the same query against
+  current geometry. Invalid commit spends no resource, starts no cooldown, and
+  never redirects to unrelated terrain. Existing projectile/melee previews and
+  Derf's predicted-player-center explosion are unchanged.
 
-Still intentionally not guessed:
-
-- ground-target ability and aim-preview behavior
-
-They are asked and accepted one at a time. All are profile/tuning inputs to the
-contracts above and do not require a second architecture.
+The Phase 0 gameplay decision, evidence, and implementation-planning audits are
+complete. Delivery begins with the Phase 1 pure geometry checklist; no
+unresolved gameplay behavior remains.

@@ -6,10 +6,10 @@ import 'package:runner_core/levels/level_registry.dart';
 import 'package:runner_core/players/player_character_registry.dart';
 
 void main() {
-  test('field level prewarms static prefab sprite snapshots before startup', () {
+  test('forest level prewarms authored static prefab sprite snapshots', () {
     final core = GameCore(
       seed: 42,
-      levelDefinition: LevelRegistry.byId(LevelId.field),
+      levelDefinition: LevelRegistry.byId(LevelId.forest),
       playerCharacter: PlayerCharacterRegistry.eloise,
     );
 

@@ -121,10 +121,9 @@ metrics. Logs-based metrics start collecting only after their creation, so the
 initial latency/rate windows intentionally have no historical backfill. All
 four policies route to the `RPG Runner production alerts` email channel; confirm
 the Google Cloud verification email before relying on inbox delivery. The
-latency distribution uses one-second explicit buckets through 60 seconds, then
-90, 120, and 300 seconds, so low-volume percentile alerts remain within about
-one second of the observed handoff latency instead of overstating a sample from
-a broad bucket.
+latency distribution uses 1.5-second linear buckets through five minutes, so
+low-volume percentile alerts remain within about 1.5 seconds of the observed
+handoff latency instead of overstating a sample from a broad bucket.
 
 The same reconciliation script manages the `RPG Runner - Reward settlement`
 Cloud Monitoring dashboard. It charts durable handoff percentiles, immediate
@@ -132,6 +131,17 @@ attempt/fallback activity and ratio, and validator 5xx responses. Three log
 panels keep settlement decisions/pending age, repair/invariant signals, and
 validator fallback/projection retries visibly separate without high-cardinality
 metric labels.
+
+### Planned replay-drill maintenance
+
+Expected queue pauses, lease conflicts, or retry responses must use the bounded
+`snooze_replay_drill.ps1` helper before the drill begins. It snoozes only the
+payout-latency, validator-5xx, and validation-retry policies for an explicit
+reason and a maximum of 60 minutes; it does not disable policy evaluation.
+Use `-WhatIf` to verify the exact policy set before creating a snooze. Let the
+snooze expire after the drill and acknowledge its known incidents through the
+Monitoring console; never change a threshold or disable a policy to hide drill
+signals.
 
 ### Client-closed production verification — July 19, 2026
 

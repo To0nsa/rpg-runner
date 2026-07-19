@@ -1,4 +1,5 @@
 import 'board_key.dart';
+import 'codecs/json_value_copy.dart';
 import 'codecs/json_value_reader.dart';
 import 'replay_digest.dart';
 import 'run_mode.dart';
@@ -15,7 +16,7 @@ final class ValidatedRun {
     required this.tick,
     required this.endedReason,
     required this.goldEarned,
-    required this.stats,
+    required Map<String, Object?> stats,
     required this.replayDigest,
     required this.replayStorageRef,
     required this.createdAtMs,
@@ -23,7 +24,11 @@ final class ValidatedRun {
     this.boardKey,
     this.rejectionReason,
     this.replayStorageGeneration,
-  }) {
+  }) : stats = immutableJsonObject(stats, fieldName: 'stats') {
+    _requireNonEmpty(runSessionId, 'runSessionId');
+    _requireNonEmpty(uid, 'uid');
+    _requireNonEmpty(endedReason, 'endedReason');
+    _requireNonEmpty(replayStorageRef, 'replayStorageRef');
     if (score < 0 ||
         distanceMeters < 0 ||
         durationSeconds < 0 ||
@@ -39,10 +44,23 @@ final class ValidatedRun {
     if (!accepted && rejectionReason == null) {
       throw ArgumentError('rejected runs must include rejectionReason.');
     }
+    if (rejectionReason != null && rejectionReason!.isEmpty) {
+      throw ArgumentError.value(
+        rejectionReason,
+        'rejectionReason',
+        'must be non-empty when set',
+      );
+    }
     if (mode.requiresBoard) {
       if (boardId == null || boardKey == null) {
         throw ArgumentError(
           'Competitive/Weekly validated runs require board fields.',
+        );
+      }
+      _requireNonEmpty(boardId!, 'boardId');
+      if (boardKey!.mode != mode) {
+        throw ArgumentError(
+          'Competitive/Weekly validated runs must bind boardKey to their mode.',
         );
       }
     } else if (boardId != null || boardKey != null) {
@@ -61,6 +79,13 @@ final class ValidatedRun {
         replayStorageGeneration,
         'replayStorageGeneration',
         'must be a positive integer string when set.',
+      );
+    }
+    if (createdAtMs < 0) {
+      throw ArgumentError.value(
+        createdAtMs,
+        'createdAtMs',
+        'must be non-negative',
       );
     }
   }
@@ -103,7 +128,7 @@ final class ValidatedRun {
       'tick': tick,
       'endedReason': endedReason,
       'goldEarned': goldEarned,
-      'stats': stats,
+      'stats': mutableJsonObjectCopy(stats, fieldName: 'stats'),
       'replayDigest': replayDigest,
       'replayStorageRef': replayStorageRef,
       if (replayStorageGeneration != null)
@@ -139,5 +164,11 @@ final class ValidatedRun {
       ),
       createdAtMs: readRequiredInt(json, 'createdAtMs'),
     );
+  }
+
+  static void _requireNonEmpty(String value, String name) {
+    if (value.isEmpty) {
+      throw ArgumentError.value(value, name, 'must be non-empty');
+    }
   }
 }

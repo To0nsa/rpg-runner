@@ -2,13 +2,21 @@ import 'codecs/json_value_reader.dart';
 import 'run_mode.dart';
 
 final class BoardKey {
-  const BoardKey({
+  BoardKey({
     required this.mode,
     required this.levelId,
     required this.windowId,
     required this.rulesetVersion,
     required this.scoreVersion,
-  }) : assert(mode != RunMode.practice, 'BoardKey mode cannot be practice');
+  }) {
+    if (mode == RunMode.practice) {
+      throw ArgumentError.value(mode, 'mode', 'cannot be practice');
+    }
+    _requireNonEmpty(levelId, 'levelId');
+    _requireNonEmpty(windowId, 'windowId');
+    _requireNonEmpty(rulesetVersion, 'rulesetVersion');
+    _requireNonEmpty(scoreVersion, 'scoreVersion');
+  }
 
   final RunMode mode;
   final String levelId;
@@ -39,5 +47,11 @@ final class BoardKey {
       rulesetVersion: readRequiredString(json, 'rulesetVersion'),
       scoreVersion: readRequiredString(json, 'scoreVersion'),
     );
+  }
+
+  static void _requireNonEmpty(String value, String name) {
+    if (value.isEmpty) {
+      throw ArgumentError.value(value, name, 'must be non-empty');
+    }
   }
 }

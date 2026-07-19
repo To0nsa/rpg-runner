@@ -17,11 +17,12 @@ import 'state/ownership/selection_state.dart';
 /// on this package's development host app (`lib/main.dart`).
 ///
 /// [runSessionId], [runId], and [seed] must come from a server-issued run
-/// session ticket.
+/// session ticket. [tickHz] must use that ticket's fixed simulation rate.
 Route<void> createRunnerGameRoute({
   required String runSessionId,
   required int runId,
   required int seed,
+  int tickHz = 60,
   required LevelId levelId,
   PlayerCharacterId playerCharacterId = PlayerCharacterId.eloise,
   RunMode runMode = RunMode.practice,
@@ -47,6 +48,9 @@ Route<void> createRunnerGameRoute({
   if (seed <= 0) {
     throw ArgumentError.value(seed, 'seed', 'seed must be > 0.');
   }
+  if (tickHz <= 0) {
+    throw ArgumentError.value(tickHz, 'tickHz', 'tickHz must be > 0.');
+  }
   return MaterialPageRoute<void>(
     settings: settings,
     builder: (context) {
@@ -54,6 +58,7 @@ Route<void> createRunnerGameRoute({
         runSessionId: runSessionId,
         runId: runId,
         seed: seed,
+        tickHz: tickHz,
         levelId: levelId,
         playerCharacterId: playerCharacterId,
         runMode: runMode,

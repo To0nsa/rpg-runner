@@ -26,7 +26,7 @@ void main() {
     tester,
   ) async {
     final runSessionApi = _StatusOnlyRunSessionApi(
-      const SubmissionStatus(
+      SubmissionStatus(
         runSessionId: 'run_hub_pending',
         state: RunSessionState.pendingValidation,
         updatedAtMs: 1,

@@ -1,7 +1,7 @@
 # Sloped Terrain And Capsule Traversal High-Level Plan
 
 - Date: July 18, 2026
-- Status: Active planning; implementation has not started
+- Status: Phase 0 accepted; Phase 1 ready; implementation has not started
 - Phase 0 tracker:
   [phase0-implementation-checklist.md](phase0-implementation-checklist.md)
 - Phase 0 evidence:
@@ -10,6 +10,10 @@
   [phase0-technical-contracts.md](phase0-technical-contracts.md)
 - Phase 0 gameplay decisions:
   [phase0-gameplay-decisions.md](phase0-gameplay-decisions.md)
+- Phase 0 golden/performance specification:
+  [phase0-golden-performance-spec.md](phase0-golden-performance-spec.md)
+- Phase 1 implementation checklist:
+  [phase1-implementation-checklist.md](phase1-implementation-checklist.md)
 
 Related plans and contracts:
 
@@ -315,10 +319,15 @@ Accepted player-facing input:
 - looping grounded walk/run playback follows final resolved support distance
   with a continuous 0.75x-1.50x authored-rate clamp; all action, airborne, hit,
   spawn, stun, and death timing remains unscaled
+- future player ground-target abilities resolve an authored-range aim endpoint
+  through a Core-owned world-down query to player-walkable terrain; preview
+  displays that exact result, line-of-sight applies, and an invalid commit has
+  no resource or cooldown cost
+- no current player ability uses ground targeting; current projectile/melee
+  previews and Derf's predicted-player-center explosion remain unchanged
 
-The implementation must not guess these remaining player-facing rules:
-
-- ground-target ability and aim-preview behavior on sloped terrain
+All Phase 0 player-facing decisions, fixtures, budgets, implementation
+contracts, and validation evidence are accepted.
 
 The recommended baseline is conservative:
 
@@ -330,7 +339,9 @@ The recommended baseline is conservative:
 - treat surfaces above the configured angle as walls
 - preserve current one-way behavior without adding drop-through input
 
-These recommendations must be confirmed in the GDD before gameplay cutover.
+These accepted rules must be published in the GDD when the player traversal
+implementation is delivered and accepted; until then they remain proposed
+behavior owned by these building documents.
 
 ## 6) Authoring And Geometry Contracts
 
@@ -992,10 +1003,14 @@ Gate:
 
 - no unresolved ownership or behavior decision blocks collision math
 - all affected systems have an explicit migration disposition
-- TDD/GDD updates describe the accepted contract
+- accepted target behavior is complete in `docs/building/slopes/**`, with
+  implementation-owned TDD/GDD publication triggers recorded
 - golden fixtures cover the first playable slope scenario
 
 ### Phase 1 - Pure Geometry Kernel And Static Edge Index
+
+Execution checklist:
+[phase1-implementation-checklist.md](phase1-implementation-checklist.md)
 
 Scope:
 
@@ -1322,8 +1337,8 @@ Mitigation:
 - runtime spline collision
 - polygon holes/boolean authoring in the baseline editor
 - automatic navmesh generation unrelated to the existing surface-graph model
-- adding step-up, ledge grab, wall slide, or drop-through mechanics without
-  explicit GDD scope
+- adding step-up beyond the accepted 4-pixel helpers, ledge grab, wall slide, or
+  drop-through mechanics without a separately accepted gameplay contract
 
 Moving platforms are not included in this static-terrain migration. If they are
 added later, they need a separate deterministic support-velocity, transform,
@@ -1351,16 +1366,8 @@ This plan is complete only when:
 
 ## 22) Immediate Next Step
 
-Execute and accept
-[phase0-implementation-checklist.md](phase0-implementation-checklist.md). It
-must:
-
-1. record the full consumer inventory
-2. freeze the open gameplay/tuning decisions
-3. define the initial slope test chunk and replay goldens
-4. freeze polygon, edge, capsule, support, and navigation contracts
-5. establish determinism and performance budgets
-
-Create the Phase 1 checklist only after these contracts are accepted. Do not
-begin editor polygon implementation or production collision cutover during
-Phase 0.
+Execute
+[phase1-implementation-checklist.md](phase1-implementation-checklist.md).
+Phase 1 is limited to the pure geometry kernel and static edge index. It does
+not begin editor polygon authoring, actor integration, or production collision
+cutover.

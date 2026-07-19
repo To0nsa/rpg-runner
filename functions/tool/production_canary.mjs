@@ -2,7 +2,7 @@
 
 import { createHash, randomBytes } from "node:crypto";
 import { gzipSync } from "node:zlib";
-import { mkdir, writeFile } from "node:fs/promises";
+import { access, mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 
 class CallableError extends Error {
@@ -28,6 +28,12 @@ const statePath = resolve(
   args.get("state-file")?.trim() ||
     ".tmp/functions-remediation-canary-state.json",
 );
+const cleanupSignalPath = optionalResolvedPath(
+  args.get("cleanup-signal-file"),
+);
+const cleanupWaitMs =
+  parsePositiveInteger(args.get("cleanup-wait-seconds")) * 1000 ||
+  30 * 60 * 1000;
 const gameCompatVersion = "2026.03.0";
 const sessionId = `canary-session-${randomBytes(8).toString("hex")}`;
 const marker = `Canary${randomBytes(3).toString("hex")}`;
@@ -54,6 +60,15 @@ try {
   await saveState();
 
   const report = await runCanary();
+  if (cleanupSignalPath) {
+    state = {
+      ...state,
+      phase: "awaiting_cleanup_signal",
+      cleanupWaitStartedAt: new Date().toISOString(),
+    };
+    await saveState();
+    await waitForCleanupSignal();
+  }
   const deletion = await requestDeletion();
   deletionRequested = true;
   state = {
@@ -609,6 +624,25 @@ async function saveState() {
   });
 }
 
+async function waitForCleanupSignal() {
+  const deadlineMs = Date.now() + cleanupWaitMs;
+  while (Date.now() < deadlineMs) {
+    try {
+      await access(cleanupSignalPath);
+      state = {
+        ...state,
+        phase: "cleanup_signal_received",
+        cleanupSignalReceivedAt: new Date().toISOString(),
+      };
+      await saveState();
+      return;
+    } catch {
+      await delay(1000);
+    }
+  }
+  throw new Error("Timed out waiting for the cleanup signal.");
+}
+
 async function readJson(response) {
   const text = await response.text();
   if (!text) {
@@ -658,6 +692,22 @@ function requireArg(parsed, name) {
     throw new Error(`--${name} is required.`);
   }
   return value;
+}
+
+function optionalResolvedPath(value) {
+  const trimmed = value?.trim();
+  return trimmed ? resolve(trimmed) : null;
+}
+
+function parsePositiveInteger(value) {
+  if (value === undefined) {
+    return 0;
+  }
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed <= 0) {
+    throw new Error(`Expected a positive integer, got "${value}".`);
+  }
+  return parsed;
 }
 
 function isObject(value) {

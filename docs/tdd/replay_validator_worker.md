@@ -136,6 +136,7 @@ Replay must match issued ticket/session metadata:
 - loadout snapshot (canonical JSON comparison)
 - ticket identity, canonical loadout digest, exact Storage generation, and
   every compatibility version
+- board ticket keys must match the ticket's mode, level, and version fields
 - mode/board binding invariants:
   - practice: board fields must be absent
   - board modes: `boardId` + `boardKey` must exist and match ticket
@@ -150,11 +151,14 @@ Checks include:
 - bounded command-frame count and total run duration
 - explicit replay/command version, known-bit, axis-pair/range, and numeric
   validation in production code; assertions are not a security boundary
+- the client starts Core and records the replay at the ticket's exact `tickHz`;
+  the validator rejects a replay at any other rate
 
 ## 4.7 Deterministic simulation replay
 
 Worker reconstructs `GameCore` from ticket data and replays command frames tick-by-tick:
-- `core.applyCommands(...)`
+- maps each frame only to its matching next simulation tick, then calls
+  `core.applyCommands(...)`; Core rejects stale or future command ticks
 - `core.stepOneTick()`
 - drains events and captures final `RunEndedEvent`
 - checks a monotonic simulation deadline throughout the tick loop

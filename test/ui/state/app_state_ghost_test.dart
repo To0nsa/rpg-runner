@@ -222,7 +222,7 @@ class _RecordingGhostReplayCache implements GhostReplayCache {
     final replayBlob = ReplayBlobV1.withComputedDigest(
       runSessionId: manifest.runSessionId,
       boardId: manifest.boardId,
-      boardKey: const BoardKey(
+      boardKey: BoardKey(
         mode: RunMode.competitive,
         levelId: 'field',
         windowId: '2026-03',

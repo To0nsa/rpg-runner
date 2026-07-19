@@ -29,6 +29,24 @@ and validator 5xx responses. Its log panels provide the run-session-level
 settlement, repair/invariant, and projection-retry evidence needed to diagnose
 an alert without adding high-cardinality metric labels.
 
+## Planned replay drills
+
+Do not pause queues or induce retry/lease contention under live alerting
+without a time-bounded Monitoring snooze. Create it before the drill; it covers
+only the payout-latency, validator-5xx, and validation-retry policies and never
+disables their evaluation:
+
+```powershell
+.\functions\monitoring\reward_settlement\snooze_replay_drill.ps1 `
+  -Reason "lease-recovery drill" `
+  -DurationMinutes 15
+```
+
+The helper requires a reason, limits a snooze to 60 minutes, resolves the
+managed policies by exact display name, and prints its start/end times. Use
+`-WhatIf` to verify the target policies without creating a snooze. Allow the
+snooze to expire naturally; do not disable or edit alert policies for a drill.
+
 The stale-pending policy independently covers delivery after the durable
 handoff. Google Cloud sends a verification email when a new email notification
 channel is created; alerts cannot notify that address until its link is

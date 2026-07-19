@@ -191,6 +191,7 @@ final class _AppStateRunStartController extends _AppStateController {
       runSessionId: ticket.runSessionId,
       runId: _runIdFromRunSessionId(ticket.runSessionId),
       seed: ticket.seed,
+      tickHz: ticket.tickHz,
       levelId: parsedLevelId,
       playerCharacterId: parsedCharacterId,
       runMode: ticket.mode,

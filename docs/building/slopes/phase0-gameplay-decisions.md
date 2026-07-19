@@ -2,7 +2,7 @@
 
 - Date: July 18, 2026
 - Last updated: July 19, 2026
-- Status: In progress; decisions are confirmed one at a time
+- Status: Complete; all Phase 0 gameplay decisions accepted
 - Source checklist:
   [phase0-implementation-checklist.md](phase0-implementation-checklist.md)
 - Technical defaults:
@@ -110,6 +110,7 @@ Consequences:
 | `SLP-P0-014c` | Remaining terrain-dependent spawns | Profile-eligible same-support placement with full clearance | July 19, 2026 |
 | `SLP-P0-020` | Ground/air animation signal and upright art | Final support state selects animation; sprites stay upright | July 19, 2026 |
 | `SLP-P0-021` | Grounded locomotion animation playback | Resolved surface distance with a continuous 0.75x-1.50x clamp | July 19, 2026 |
+| `SLP-P0-022` | Ground-target resolution and preview | Core-authoritative downward snap; invalid cast has no cost | July 19, 2026 |
 
 ## Decision 3 - Automatic Step-Up
 
@@ -612,9 +613,10 @@ turn the animation into an unreadable blur.
 ## Decision 24 - Ground-Target Resolution And Preview
 
 - Decision ID: `SLP-P0-022`
-- Status: Awaiting user confirmation
-- Recommended default: snap the aim endpoint world-down to the first valid
+- Status: Accepted
+- Accepted value: snap the aim endpoint world-down to the first valid
   player-walkable surface; invalid targets cannot commit
+- Accepted by user: July 19, 2026
 
 Current scope:
 
@@ -624,7 +626,7 @@ Current scope:
 - Derf's fire explosion retains its accepted predicted-player-center target
   and does not snap to terrain
 
-Recommended behavior for a future player ground-target ability:
+Accepted behavior for a future player ground-target ability:
 
 - Core computes the desired world-space endpoint from the authoritative cast
   origin, normalized aim direction, and the ability's authored range
@@ -646,15 +648,9 @@ Recommended behavior for a future player ground-target ability:
 This makes targeting readable on slopes and stacked platforms while preventing
 through-wall placement or a render preview that disagrees with gameplay.
 
-User question:
+## Gameplay Decision Audit
 
-> Should future player ground-target abilities use this Core-authoritative
-> downward-snap rule, with invalid targets refusing the cast at no cost?
-
-## Later Decision Queue
-
-After `SLP-P0-022` is accepted, audit the Phase 0 checklist for any remaining
-player-facing decision before moving to golden/performance evidence.
-
-This queue is sequencing information, not a request to answer multiple
-questions at once.
+The Phase 0 checklist was re-audited after `SLP-P0-022`. No unresolved
+player-facing collision, traversal, enemy, spawn, animation, run-rule, or
+future ground-target behavior remains. Delivery work uses these accepted rules
+and does not require another Phase 0 gameplay choice.

@@ -251,7 +251,7 @@ void main() {
       core.stepOneTick();
     }
 
-    core.applyCommands(const [ProjectilePressedCommand(tick: 2)]);
+    core.applyCommands([ProjectilePressedCommand(tick: core.tick + 1)]);
     core.stepOneTick();
     for (var i = 0; i < windupTicks; i += 1) {
       core.applyCommands(const <Command>[]);
@@ -276,7 +276,7 @@ void main() {
       core.stepOneTick();
     }
 
-    core.applyCommands(const [ProjectilePressedCommand(tick: 9)]);
+    core.applyCommands([ProjectilePressedCommand(tick: core.tick + 1)]);
     core.stepOneTick();
     for (var i = 0; i < windupTicks; i += 1) {
       core.applyCommands(const <Command>[]);
@@ -412,7 +412,7 @@ void main() {
         ),
       );
 
-      core.applyCommands(const [SpellPressedCommand(tick: 2)]);
+      core.applyCommands([SpellPressedCommand(tick: core.tick + 1)]);
       core.stepOneTick();
 
       final afterBonusPressed = core.buildSnapshot();
@@ -524,7 +524,7 @@ void main() {
       final projectileCooldownBeforeBonus =
           beforeBonus.hud.cooldownTicksLeft[CooldownGroup.projectile];
 
-      core.applyCommands(const [SpellPressedCommand(tick: 2)]);
+      core.applyCommands([SpellPressedCommand(tick: core.tick + 1)]);
       core.stepOneTick();
       final afterBonusPressed = core.buildSnapshot();
       final expectedProjectileAfterOneTick = projectileCooldownBeforeBonus > 0

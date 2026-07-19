@@ -41,6 +41,10 @@ Digest generation is deterministic:
 3. SHA-256 over UTF-8 JSON bytes.
 4. Store as lowercase hex `canonicalSha256`.
 
+Digest-bound JSON objects are deep-copied and immutable within their protocol
+values. Serialization returns detached JSON maps, so callers cannot mutate a
+replay's covered payload after its digest is generated.
+
 Source:
 - [packages/run_protocol/lib/codecs/canonical_json_codec.dart](packages/run_protocol/lib/codecs/canonical_json_codec.dart)
 - [packages/run_protocol/lib/replay_digest.dart](packages/run_protocol/lib/replay_digest.dart)
