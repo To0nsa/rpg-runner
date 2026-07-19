@@ -303,6 +303,15 @@ Achievements/progression do not directly own terrain collision. They consume
 run results, distance, score, kills, and death reasons, so compatibility tests
 must prove those semantics stay intentional.
 
+`TargetingModel.groundTarget` exists in the ability contract and HUD targeting
+classification, but no current player ability uses it and player activation
+does not currently commit `TargetPointHitDelivery`. The only authored
+target-point delivery is Derf's predicted-player-center fire explosion.
+Current projectile/melee `AimRay` components draw a fixed-length render-only
+direction and do not query terrain. A future ground-target preview therefore
+needs a Core-authored resolved target/validity result; Flame must not invent
+slope or line-of-sight rules.
+
 ## 9) Enemy And Navigation Consumers
 
 ### Enemy policy inventory

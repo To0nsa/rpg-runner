@@ -109,6 +109,7 @@ Consequences:
 | `SLP-P0-014b` | Derf perch and invalid marker | 32-pixel minimum span; same-support clamp; otherwise skip | July 19, 2026 |
 | `SLP-P0-014c` | Remaining terrain-dependent spawns | Profile-eligible same-support placement with full clearance | July 19, 2026 |
 | `SLP-P0-020` | Ground/air animation signal and upright art | Final support state selects animation; sprites stay upright | July 19, 2026 |
+| `SLP-P0-021` | Grounded locomotion animation playback | Resolved surface distance with a continuous 0.75x-1.50x clamp | July 19, 2026 |
 
 ## Decision 3 - Automatic Step-Up
 
@@ -580,11 +581,12 @@ silhouettes readable on steep terrain.
 ## Decision 23 - Grounded Locomotion Animation Playback
 
 - Decision ID: `SLP-P0-021`
-- Status: Awaiting user confirmation
-- Recommended default: resolved surface-distance playback, clamped to
+- Status: Accepted
+- Accepted value: resolved surface-distance playback, clamped to
   0.75x-1.50x authored rate
+- Accepted by user: July 19, 2026
 
-Recommended behavior:
+Accepted behavior:
 
 - only looping grounded walk/run animation phase follows the actor's actual
   resolved distance traveled along eligible support
@@ -607,17 +609,52 @@ Recommended behavior:
 This reduces visible foot sliding without allowing steep downhill terrain to
 turn the animation into an unreadable blur.
 
+## Decision 24 - Ground-Target Resolution And Preview
+
+- Decision ID: `SLP-P0-022`
+- Status: Awaiting user confirmation
+- Recommended default: snap the aim endpoint world-down to the first valid
+  player-walkable surface; invalid targets cannot commit
+
+Current scope:
+
+- no current player ability uses `TargetingModel.groundTarget`; this freezes
+  behavior for future abilities without claiming one is implemented
+- existing projectile and melee directional previews remain unchanged
+- Derf's fire explosion retains its accepted predicted-player-center target
+  and does not snap to terrain
+
+Recommended behavior for a future player ground-target ability:
+
+- Core computes the desired world-space endpoint from the authoritative cast
+  origin, normalized aim direction, and the ability's authored range
+- from that endpoint, Core probes world-down and selects the first solid or
+  one-way top surface that is player-walkable at up to 60 degrees
+- the authored ability owns the maximum downward probe distance; the final
+  resolved point must also remain within its authored cast range
+- vertically overlapping candidates use the canonical terrain-query priority
+  and stable surface-ID tie-break
+- solid terrain between the cast origin and resolved target blocks line of
+  sight; one-way edges block only from their collidable side
+- the preview displays Core's exact resolved point and validity, rather than
+  duplicating terrain classification in Flame
+- commit reruns the same query against current authoritative geometry; an
+  invalid target produces no cast, resource cost, or cooldown
+- geometry changes between preview and commit may invalidate the preview, but
+  cannot redirect the cast to unrelated terrain
+
+This makes targeting readable on slopes and stacked platforms while preventing
+through-wall placement or a render preview that disagrees with gameplay.
+
 User question:
 
-> Should grounded walk/run playback follow resolved surface distance with a
-> continuous 0.75x-1.50x rate clamp?
+> Should future player ground-target abilities use this Core-authoritative
+> downward-snap rule, with invalid targets refusing the cast at no cost?
 
 ## Later Decision Queue
 
-After `SLP-P0-021` is accepted, the next unresolved gameplay decision is asked
-from this order:
-
-1. ground-target ability and aim-preview behavior
+After `SLP-P0-022` is accepted, audit the Phase 0 checklist for any remaining
+player-facing decision before moving to golden/performance evidence.
 
 This queue is sequencing information, not a request to answer multiple
 questions at once.

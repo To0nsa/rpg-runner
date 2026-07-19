@@ -267,7 +267,7 @@ Review both current player definitions:
       velocity or position.
 - [x] Inventory cast/projectile origin calculations derived from collider
       bounds.
-- [ ] Inventory ground-target ability and target-point placement behavior.
+- [x] Inventory ground-target ability and target-point placement behavior.
 - [x] Inventory renderer aim previews that may need authoritative terrain-hit
       data.
 - [x] Record whether achievements/progression consume grounded, distance,
@@ -1027,7 +1027,8 @@ Use stable IDs in reviews and downstream checklists.
 | `SLP-P0-018` | Golden fixtures and performance budgets | In progress | Technical defaults §§16-17; checklist Step 10 | Initial budgets accepted provisionally; fixtures/measurements pending |
 | `SLP-P0-019` | Player jump/dash/roll slope behavior | Accepted | Gameplay decisions, Decisions 6-9; technical defaults §§10 and 18 | World-up jump plus support-tangent, constant-surface-distance, 4-pixel-helper grounded mobility accepted July 19, 2026 |
 | `SLP-P0-020` | Ground/air animation signal and upright art | Accepted | Gameplay decisions, Decision 22; technical defaults §18 | Final-support-state signal with upright sprites accepted July 19, 2026 |
-| `SLP-P0-021` | Grounded locomotion animation playback | Awaiting user confirmation | Gameplay decisions, Decision 23 | Recommended resolved surface-distance phase with 0.75x-1.50x clamp |
+| `SLP-P0-021` | Grounded locomotion animation playback | Accepted | Gameplay decisions, Decision 23; technical defaults §18 | Resolved surface-distance phase with 0.75x-1.50x clamp accepted July 19, 2026 |
+| `SLP-P0-022` | Ground-target resolution and preview | Awaiting user confirmation | Gameplay decisions, Decision 24 | Recommended Core-authoritative downward snap with no-cost invalid commit |
 
 Phase 0 cannot close with any decision row marked `Open`, `Pending`,
 `Awaiting`, or `In progress`.

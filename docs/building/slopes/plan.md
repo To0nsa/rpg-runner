@@ -312,10 +312,12 @@ Accepted player-facing input:
 - final post-solver support state controls grounded/air animation selection;
   supported slope traversal does not trigger airborne frames, and all actor
   sprites remain upright with horizontal facing
+- looping grounded walk/run playback follows final resolved support distance
+  with a continuous 0.75x-1.50x authored-rate clamp; all action, airborne, hit,
+  spawn, stun, and death timing remains unscaled
 
 The implementation must not guess these remaining player-facing rules:
 
-- slope influence on animation playback rate
 - ground-target ability and aim-preview behavior on sloped terrain
 
 The recommended baseline is conservative:

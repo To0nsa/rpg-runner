@@ -761,10 +761,18 @@ Accepted:
   support loss uses the existing airborne vertical-velocity thresholds.
 - Player and enemy render art remains upright with horizontal facing. Terrain
   tangent and normal never rotate actor sprites, cast origins, or hit bounds.
+- Looping grounded walk/run animation phase advances from final resolved
+  support distance rather than requested velocity or slope-angle tiers. The
+  rate is normalized by the archetype's authored flat-ground locomotion speed
+  and continuously clamped to 0.75x-1.50x its authored animation rate.
+  Player 60-degree downhill motion therefore caps at 1.50x rather than using
+  its raw 2.30x surface-distance ratio.
+- The locomotion phase is deterministic and snapshot-visible but has no
+  gameplay authority. Idle, airborne, mobility, attack, cast, hit, spawn,
+  stun, and death animation timing remains authored and unscaled.
 
 Still intentionally not guessed:
 
-- slope-dependent animation playback rate
 - ground-target ability and aim-preview behavior
 
 They are asked and accepted one at a time. All are profile/tuning inputs to the
