@@ -113,3 +113,10 @@ Firebase-backed release. The current `monitor` default is the rollback:
 missing or invalid App Check context remains observable without weakening Auth
 or UID checks.
 
+The subsequent
+[native readiness preflight](native-app-check-readiness-2026-07-19.md)
+inventoried the registered providers, release identities, signing state,
+available devices, and current production observations. It added a reusable
+native smoke entrypoint but found that Android and Apple still lack the
+prerequisites for a legitimate release-device measurement. Global enforcement
+therefore remains off.

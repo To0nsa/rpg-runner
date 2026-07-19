@@ -12,6 +12,8 @@
   [Functions Audit Remediation Production Verification — 2026-07-19](production-verification-2026-07-19.md)
 - App Check web rollout:
   [App Check Client Rollout Evidence — 2026-07-19](app-check-client-rollout-2026-07-19.md)
+- Native App Check readiness:
+  [Native App Check Readiness — 2026-07-19](native-app-check-readiness-2026-07-19.md)
 - Quota rollout:
   [Quota Selection and Enforcement Evidence — 2026-07-19](quota-selection-and-enforcement-2026-07-19.md)
 - Alert delivery:
@@ -114,7 +116,7 @@ All findings start open. Update this table as work lands.
 | F-03 | High | 2 | Closed | Functions 7.3.0, Admin 14.2.0, Cloud Tasks 6.2.3, patched dependency graph | No known vulnerabilities; Node 24, signed URLs, task retry, triggers, and schedules are production verified |
 | F-04 | High | 3 | Closed | Cursor-paged repair, legacy classifier, quarantine, and explicit retry disposition | Multi-page, fault, and exact-once tests pass; repair/validator revisions, queue policy, metrics, and alerts are deployed |
 | F-05 | High | 4 | Production verified | Tombstone-first leased deletion, strict guards, early Auth disable, repeated reconciliation, four-field completion compaction, and production failure/age monitoring | Two synthetic workflows converged; Auth, Storage, projection, final-pass, retention, production compaction, all-stage destructive fault, and alert evidence are recorded; public launch disclosure remains |
-| F-06 | High | 5 | In progress | App Check rollout, payload bounds, atomic quotas, idempotent run creation, replay cap, bounded idempotency, and resource/cost-pressure monitoring | Quotas are selected, load-tested, and production-enforced; retention, migration, and alert coverage are complete; web attestation and email delivery are verified; native App Check measurements and App Check enforcement remain |
+| F-06 | High | 5 | In progress | App Check rollout, payload bounds, atomic quotas, idempotent run creation, replay cap, bounded idempotency, and resource/cost-pressure monitoring | Quotas are selected, load-tested, and production-enforced; retention, migration, and alert coverage are complete; web attestation and email delivery are verified; native preflight found unresolved release identity/signing/device gates, so native measurements and App Check enforcement remain |
 | F-07 | Medium | 3 | Closed | Shared transactional expiry before callable error return | Expiry, repeat, cleanup-race, and client-absent fault tests pass; remediated Functions source is deployed |
 | F-08 | Medium | 3 | Closed | Atomic provisional-grant revocation, projection suppression, and orphan cleanup | The invalid replay was rejected, its grant was revoked, and leaderboard/ghost projection was suppressed in production |
 | F-09 | Medium | 6 | Closed | Server-time transactional rename cooldown | Boundary/concurrency and focused Flutter tests pass; authoritative profile Functions are deployed |
@@ -768,6 +770,8 @@ rationale next to each chosen value.
 - [ ] Confirm legitimate platform attestation success rates.
 - [x] Deploy the production web client and record one server-verified
   production-origin reCAPTCHA Enterprise attestation.
+- [x] Complete native cloud/client/device preflight and add a privacy-safe
+  reusable native attestation smoke entrypoint.
 - [ ] Record release attestation measurements for every other in-scope
   platform, or explicitly exclude unsupported platforms.
 - [ ] Complete the readiness gate for every in-scope platform, then enable the
@@ -985,6 +989,7 @@ retention, quota values, or rollout here.
 | 2026-07-19 | Classify only structured HTTP 400 `FAILED_PRECONDITION` responses as Firestore contention. | Production returned this shape for an update-time race; arbitrary HTTP 400 input failures must not be broadened into retryable conflicts. | Repository owner (production authorization) |
 | 2026-07-19 | Configure a domain-restricted reCAPTCHA Enterprise provider and deploy the App Check-capable web client while retaining monitor mode. | One verified production-origin sample proves the web path, but native platforms and sustained success rates remain unmeasured, so global enforcement would be premature. | Repository owner (production authorization) |
 | 2026-07-19 | Source-control and enforce the reviewed per-UID quota defaults after isolated load validation and a zero-would-reject production monitor canary. | The game is not live and has no organic distribution; values combine the controlled-client maxima with protocol/retry bounds and generous margins. A complete enforcement canary passed all six routes. | Repository owner (production authorization) |
+| 2026-07-19 | Keep global App Check enforcement in monitor after native preflight. | Android still uses an example package and debug release signing, has no registered SHA-256, and has no Play-installed physical-device sample; Apple release identity/device evidence and explicit non-release platform exclusions are also absent. | Technical readiness gate |
 | 2026-07-19 | Verify the production email channel and exercise it with an exact-match temporary log alert. | API status does not prove human receipt. The test opened the expected incident, the recipient confirmed the matching email, and the temporary policy was deleted without changing the 14 real policies. | Repository owner |
 | 2026-07-19 | Retain completed deletion evidence for at most 30 days and compact it to four fields. | The UID-keyed record remains personal data. Terminal status and request/completion/expiry times are sufficient for the bounded security and erasure-integrity purpose; workflow diagnostics and counters are unnecessary after completion. | Repository owner (engineering privacy review) |
 | 2026-07-19 | Deploy source-controlled deletion and callable resource/cost-pressure monitoring to the verified production channel. | Structured heartbeats and decision logs now drive three deletion policies, four log metrics, and twelve abuse/resource policies; existing replay queue and validator policies remain authoritative for backlog and recovery. Pre-launch volume thresholds are deliberately above controlled canary traffic and require review after organic measurements. | Repository owner (production authorization) |

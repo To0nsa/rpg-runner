@@ -22,7 +22,7 @@ archived yet.
 | F-03 | Closed | Direct dependencies and the lockfile were upgraded, the production audit reports no known vulnerability, Node 24 tests pass, and deployed Storage/Tasks/trigger/schedule paths were canaried. |
 | F-04 | Closed | Retry disposition, quarantine, stable cursor paging, metrics, alerting, and the runbook are deployed. Poisoned-page, transient-failure, Eventarc/immediate/repair race, and multi-page drills converge without duplicate payment. |
 | F-05 | Production verified | Tombstone-first guards, bounded resumable erasure, repeated reconciliation, 23-stage crash replay, production Auth/data/artifact erasure, four-field completion compaction, and deletion age/failure alerts are verified. Formal closure waits for public retention disclosure and lawful-basis documentation. |
-| F-06 | In progress | Reviewed per-UID quotas are enforced, payload/replay/resource bounds and compact retention are live, web App Check attestation works, email delivery is verified, and rejection/storage/task/cost-pressure alerts are deployed. Native release attestation/exclusion decisions and App Check enforcement remain. |
+| F-06 | In progress | Reviewed per-UID quotas are enforced, payload/replay/resource bounds and compact retention are live, web App Check attestation works, email delivery is verified, and rejection/storage/task/cost-pressure alerts are deployed. Native preflight is complete, but Android release identity/signing/Play-device measurement, other-platform exclusion decisions, and App Check enforcement remain. |
 | F-07 | Closed | Expiry commits before the callable error, repeated and racing cleanup paths converge, and the client-absent expiry drills pass. |
 | F-08 | Closed | Enqueue failure remains repairable, terminal cleanup atomically revokes provisional grants, projections suppress incompatible rewards, and valid/invalid production replay canaries converged. |
 | F-09 | Closed | Rename time and cooldown are server-authoritative; exact-boundary and concurrent-rename tests pass; the authoritative profile functions are deployed. |
@@ -51,6 +51,7 @@ The exact non-secret deployment and verification evidence is split by concern:
 - [production deployment](production-deployment-2026-07-19.md);
 - [production verification](production-verification-2026-07-19.md);
 - [App Check web rollout](app-check-client-rollout-2026-07-19.md);
+- [native App Check readiness](native-app-check-readiness-2026-07-19.md);
 - [quota enforcement](quota-selection-and-enforcement-2026-07-19.md);
 - [alert delivery](alert-channel-confirmation-2026-07-19.md);
 - [deletion retention review](deletion-retention-privacy-review-2026-07-19.md);
@@ -108,7 +109,10 @@ The final deletion deployment reports:
    review.
 2. Measure legitimate App Check release traffic for Android, iOS, macOS, and
    any other supported Firebase platform, or explicitly exclude each
-   unsupported platform from the release.
+   unsupported platform from the release. Native preflight found that Android
+   still has an example package, debug release signing, no registered SHA-256,
+   and no Play-installed physical-device sample; Apple has no configured team
+   identity or reachable release environment.
 3. Enable App Check enforcement only after those platform gates pass; retain
    the documented monitor-mode rollback.
 4. Complete the broader release checks still listed in the active plan,

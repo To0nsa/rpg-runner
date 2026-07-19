@@ -5,15 +5,20 @@
 Implemented and deployed on July 19, 2026. Per-UID quotas are enforced with
 reviewed source-controlled defaults. App Check remains in monitoring mode. The
 production web client has supplied one verified end-to-end reCAPTCHA Enterprise
-attestation; native release platforms remain unmeasured. Source-controlled
-rejection, App Check gap, transaction, retention, Storage, task, and
+attestation. Native cloud/client/device preflight is complete, but release
+platforms remain unmeasured because production identity, signing,
+distribution/device evidence, and explicit platform exclusions are incomplete.
+Source-controlled rejection, App Check gap, transaction, retention, Storage,
+task, and
 resource/cost-pressure alerts are deployed to the verified production channel.
 The initial production evidence, completed legacy-idempotency migration, and
 web rollout are recorded in the
 [Functions production verification](../building/functions-audit-remediation/production-verification-2026-07-19.md)
 and
 [App Check client rollout](../building/functions-audit-remediation/app-check-client-rollout-2026-07-19.md),
-with quota selection and enforcement in the
+with native readiness details in the
+[native App Check preflight](../building/functions-audit-remediation/native-app-check-readiness-2026-07-19.md)
+and quota selection and enforcement in the
 [quota rollout record](../building/functions-audit-remediation/quota-selection-and-enforcement-2026-07-19.md).
 
 ## Purpose and boundary
