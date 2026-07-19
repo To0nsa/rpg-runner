@@ -1,0 +1,38 @@
+{
+  "displayName": "RPG Runner - projection queue backlog",
+  "documentation": {
+    "content": "The replay-projection queue remained non-empty for 30 minutes. Reward settlement is independent, but leaderboard and ghost state may be stale. Inspect projection retries, validator capacity, and reconciliation logs.",
+    "mimeType": "text/markdown"
+  },
+  "conditions": [
+    {
+      "displayName": "Projection queue depth above zero for 30 minutes",
+      "conditionThreshold": {
+        "filter": "metric.type=\"cloudtasks.googleapis.com/queue/depth\" AND resource.type=\"cloud_tasks_queue\" AND resource.label.queue_id=\"replay-projection\" AND resource.label.location=\"europe-west1\"",
+        "aggregations": [
+          {
+            "alignmentPeriod": "300s",
+            "perSeriesAligner": "ALIGN_MAX",
+            "crossSeriesReducer": "REDUCE_MAX"
+          }
+        ],
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 0,
+        "duration": "1800s",
+        "trigger": {
+          "count": 1
+        },
+        "evaluationMissingData": "EVALUATION_MISSING_DATA_INACTIVE"
+      }
+    }
+  ],
+  "combiner": "OR",
+  "enabled": true,
+  "alertStrategy": {
+    "autoClose": "3600s"
+  },
+  "userLabels": {
+    "component": "replay-projection",
+    "severity": "warning"
+  }
+}

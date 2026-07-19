@@ -100,6 +100,15 @@ Consequences:
 | `SLP-P0-002b` | Grojib small terrain transitions | 4-pixel step-up and downward snap | July 19, 2026 |
 | `SLP-P0-002c` | Grojib slope speed | Constant distance-along-surface speed | July 19, 2026 |
 | `SLP-P0-002d` | Hashash maximum walkable slope | 60 degrees, inclusive | July 19, 2026 |
+| `SLP-P0-002e` | Hashash small terrain transitions | 4-pixel step-up and downward snap | July 19, 2026 |
+| `SLP-P0-002f` | Hashash slope speed | Constant distance-along-surface speed | July 19, 2026 |
+| `SLP-P0-014a` | Hashash blocked ambush fallback | Try mirrored side, then cancel safely with normal cooldown | July 19, 2026 |
+| `SLP-P0-002g` | Unoco Demon hover reference | Existing 60-180-pixel band above local terrain | July 19, 2026 |
+| `SLP-P0-002h` | Unoco Demon terrain blocking | Solid terrain blocks all sides; one-way platforms are ignored | July 19, 2026 |
+| `SLP-P0-002i` | Derf maximum placement slope | 15 degrees, inclusive | July 19, 2026 |
+| `SLP-P0-014b` | Derf perch and invalid marker | 32-pixel minimum span; same-support clamp; otherwise skip | July 19, 2026 |
+| `SLP-P0-014c` | Remaining terrain-dependent spawns | Profile-eligible same-support placement with full clearance | July 19, 2026 |
+| `SLP-P0-020` | Ground/air animation signal and upright art | Final support state selects animation; sprites stay upright | July 19, 2026 |
 
 ## Decision 3 - Automatic Step-Up
 
@@ -350,10 +359,11 @@ Accepted behavior:
 ## Decision 14 - Hashash Small Terrain Transitions
 
 - Decision sub-ID: `SLP-P0-002e`
-- Status: Awaiting user confirmation
-- Recommended default: 4-pixel step-up and downward snap
+- Status: Accepted
+- Accepted value: 4-pixel step-up and downward snap
+- Accepted by user: July 19, 2026
 
-Recommended behavior:
+Accepted behavior:
 
 - during ordinary grounded pursuit, Hashash may step up by at most 4 pixels and
   snap down by at most 4 pixels
@@ -367,20 +377,247 @@ Recommended behavior:
 This gives both navigating ground enemies the same authoring tolerance while
 their different slope limits preserve their distinct route access.
 
+## Decision 15 - Hashash Slope Speed
+
+- Decision sub-ID: `SLP-P0-002f`
+- Status: Accepted
+- Accepted value: constant distance-along-surface speed
+- Accepted by user: July 19, 2026
+
+Accepted behavior:
+
+- Hashash keeps its authored locomotion speed measured along eligible terrain
+- it receives no automatic uphill slowdown or downhill boost
+- horizontal pursuit falls with slope angle; at 60 degrees it is 50% of
+  flat-ground horizontal progress
+- navigation walk cost is surface length divided by Hashash's authored speed,
+  matching runtime traversal time
+- Hashash's agility continues to come from its authored base speed, jump graph,
+  and validated ambush teleport
+
+This avoids hidden directional speed changes and keeps path selection
+predictable while the teleport remains its distinctive pressure tool.
+
+## Decision 16 - Hashash Ambush Placement Fallback
+
+- Decision sub-ID: `SLP-P0-014a`
+- Status: Accepted
+- Accepted value: try the mirrored side, then cancel safely
+- Accepted by user: July 19, 2026
+
+Accepted behavior:
+
+- preserve the current primary ambush point 36 pixels right and 36 pixels above
+  the predicted player position
+- require the complete Hashash capsule to be clear of terrain at teleport-in;
+  support is not required because the ambush intentionally drops from the air
+- if the primary point is blocked, try the mirrored point 36 pixels left and
+  36 pixels above the prediction
+- queue the ambush strike only after a destination passes clearance
+- if both points are blocked, cancel the ambush, keep/restore the last safe
+  position, and apply the normal teleport cooldown
+- candidate order is fixed and consumes no additional RNG
+
+This preserves the current attack shape while preventing teleporting inside a
+slope, ceiling, or obstacle.
+
+## Decision 17 - Unoco Demon Hover Reference
+
+- Decision sub-ID: `SLP-P0-002g`
+- Status: Accepted
+- Accepted value: local terrain under Unoco Demon
+- Accepted by user: July 19, 2026
+
+Accepted behavior:
+
+- preserve the current randomized 60-180-pixel hover band
+- measure that band above the highest relevant solid/walkable terrain beneath
+  Unoco Demon's current horizontal footprint instead of one global
+  `groundTopY`
+- use existing bounded vertical steering to follow changes in terrain height;
+  never teleport vertically to the new target
+- when no surface exists below, retain the last valid local reference; if no
+  reference exists, use an explicit level flight-reference plane
+- terrain collision/clearance remains authoritative even when the desired hover
+  target is obstructed
+
+This lets the flying enemy follow hills and raised terrain without inheriting a
+ground-navigation graph.
+
+## Decision 18 - Unoco Demon Terrain Blocking
+
+- Decision sub-ID: `SLP-P0-002h`
+- Status: Accepted
+- Accepted value: solid terrain blocks; one-way platforms do not
+- Accepted by user: July 19, 2026
+
+Accepted behavior:
+
+- Unoco Demon's capsule cannot enter solid terrain from any side, including
+  slopes, walls, ceilings, and obstacle polygons
+- collision uses swept movement, so high flight speed cannot tunnel through a
+  thin solid
+- when its desired route is blocked, deterministic clearance steering chooses
+  a clear direction around the obstacle and then returns toward its combat/
+  hover target
+- no collision response grants teleport or terrain-phasing authority
+- Unoco Demon ignores one-way platforms entirely so it cannot become grounded
+  or snag on a platform top while flying
+
+This makes solid terrain readable and trustworthy while keeping one-way
+platforms a player/ground-actor traversal feature.
+
+## Decision 19 - Derf Placement Slope
+
+- Decision sub-ID: `SLP-P0-002i`
+- Status: Accepted
+- Accepted value: 15 degrees, inclusive
+- Accepted by user: July 19, 2026
+
+Accepted behavior:
+
+- Derf may spawn on authored obstacle-top/placement support up to and including
+  15 degrees from horizontal
+- steeper support is ineligible for Derf placement
+- the entire stationary capsule must be clear and its required support interval
+  must fit on the surface
+- Derf remains visually upright and does not rotate with the support
+- Decision 20 defines the only allowed same-support adjustment and the
+  skip-on-failure behavior
+
+This permits gentle natural perches while avoiding a stationary caster looking
+unstable on steep terrain.
+
+## Decision 20 - Derf Perch Width And Invalid Marker
+
+- Decision sub-ID: `SLP-P0-014b`
+- Status: Accepted
+- Accepted value: 32-pixel minimum perch; skip invalid placement
+- Accepted by user: July 19, 2026
+
+Accepted behavior:
+
+- Derf's eligible support must provide at least 32 world pixels of horizontal
+  span
+- this fits the current 23-pixel-wide derived capsule footprint with roughly
+  4.5 pixels of margin on each side
+- marker X may clamp only to the nearest standable point on the same intended
+  obstacle-top support
+- if that obstacle top is too narrow, over 15 degrees, obstructed, or absent,
+  skip the spawn and emit an authoring/debug diagnostic
+- do not fall back to unrelated highest terrain or ordinary ground
+- spawn RNG and marker iteration remain unchanged; an invalid rolled marker
+  simply produces no Derf
+
+This keeps stationary casters on deliberate, readable perches instead of
+silently relocating them when terrain changes.
+
+## Decision 21 - Remaining Terrain-Dependent Spawn Eligibility
+
+- Decision sub-ID: `SLP-P0-014c`
+- Status: Accepted
+- Accepted value: require profile-eligible support and full clearance;
+  never relocate to unrelated terrain
+- Accepted by user: July 19, 2026
+
+Accepted behavior:
+
+- Éloïse's initial spawn requires a player-walkable surface, the full
+  20.6-pixel capsule-width support interval, and complete capsule clearance;
+  an invalid required start is a level validation error rather than a runtime
+  relocation
+- Grojib and Hashash grounded spawns require support within their accepted
+  slope profiles, their full capsule-width support interval, and complete
+  capsule clearance
+- a grounded enemy marker may clamp only to the nearest standable point on its
+  same intended support; if no such point exists, skip it and emit an
+  authoring/debug diagnostic
+- a deferred Hashash edge spawn uses the same requirements; failure skips that
+  pending spawn instead of moving it to another surface
+- an Unoco Demon spawn requires complete capsule clearance at its intended
+  flying position; a blocked marker is skipped rather than starting embedded
+  or being moved to unrelated terrain
+- collectibles and restoration items may use any player-walkable solid or
+  one-way support up to 60 degrees, but require at least 20 horizontal pixels
+  of support: their current 16-pixel width plus the existing 2-pixel margin on
+  each side
+- item placement retains exact `yAt(x)`, vertical clearance, and full AABB
+  clearance; an invalid candidate consumes its normal deterministic attempt,
+  and exhaustion produces no item
+- existing marker order, rejection-attempt counts, and RNG consumption remain
+  unchanged
+
+This prevents unavoidable embedded or unreachable spawns while preserving
+authored intent, deterministic spawn density, and current retry semantics.
+
+## Decision 22 - Ground/Air Animation Signal And Upright Art
+
+- Decision ID: `SLP-P0-020`
+- Status: Accepted
+- Accepted value: final support state selects ground/air animation;
+  sprites remain upright
+- Accepted by user: July 19, 2026
+
+Accepted behavior:
+
+- the post-solver support state, not world vertical velocity, decides whether
+  a player or grounded enemy is grounded for animation
+- supported uphill/downhill motion, accepted 4-pixel step-up, and downward
+  ground snap retain idle/run or the active grounded mobility animation even
+  though the actor's world Y changes
+- an accepted jump clears support immediately and selects the existing jump
+  animation; natural ledge departure or support loss selects the existing
+  airborne jump/fall state according to current vertical-velocity thresholds
+- crossing a valid slope seam does not flash an airborne frame; if the solver
+  truly cannot retain support, the actor becomes airborne normally
+- player and enemy sprites stay upright and continue to face horizontally;
+  support tangent/normal affects collision and movement, not sprite rotation
+- this decision does not yet choose slope-dependent animation playback rate
+
+This avoids false jump/fall flicker when descending a slope and keeps character
+silhouettes readable on steep terrain.
+
+## Decision 23 - Grounded Locomotion Animation Playback
+
+- Decision ID: `SLP-P0-021`
+- Status: Awaiting user confirmation
+- Recommended default: resolved surface-distance playback, clamped to
+  0.75x-1.50x authored rate
+
+Recommended behavior:
+
+- only looping grounded walk/run animation phase follows the actor's actual
+  resolved distance traveled along eligible support
+- playback changes continuously rather than at slope-angle tiers and uses
+  final resolved motion, so pushing into a wall does not animate nonexistent
+  travel
+- the distance rate is normalized against the archetype's authored flat-ground
+  locomotion speed, then clamped to 0.75x-1.50x its authored animation rate
+- Éloïse's raw ordinary-locomotion rate at 60 degrees would be 1.50x uphill
+  and 2.30x downhill; the downhill case is therefore capped at 1.50x for
+  readability
+- Grojib and Hashash normally remain near 1.00x because their accepted movement
+  speed is already constant along the surface
+- idle, jump/fall, dash/roll, attacks, casts, hit reactions, spawn, stun, and
+  death keep their authored time; playback scaling never changes gameplay
+  windows or ability duration
+- walk/run animation selection retains its existing movement thresholds; this
+  decision changes only the selected loop's phase rate
+
+This reduces visible foot sliding without allowing steep downhill terrain to
+turn the animation into an unreadable blur.
+
 User question:
 
-> Should Hashash also use 4-pixel automatic step-up and downward ground snap?
+> Should grounded walk/run playback follow resolved surface distance with a
+> continuous 0.75x-1.50x rate clamp?
 
 ## Later Decision Queue
 
-After `SLP-P0-002e` is accepted, the next unresolved gameplay decision is asked
+After `SLP-P0-021` is accepted, the next unresolved gameplay decision is asked
 from this order:
 
-1. Hashash slope-speed behavior
-2. Hashash teleport/ambush placement behavior
-3. Unoco Demon terrain-clearance behavior
-4. Derf placement eligibility
-5. steep/narrow spawn eligibility
+1. ground-target ability and aim-preview behavior
 
 This queue is sequencing information, not a request to answer multiple
 questions at once.

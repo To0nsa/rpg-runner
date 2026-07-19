@@ -1,0 +1,37 @@
+{
+  "displayName": "RPG Runner - replay validation retry activity",
+  "documentation": {
+    "content": "Validation returned a retryable lease, stale-write, internal, or incident result. Cloud Tasks and scheduled repair should converge it. Inspect the structured phase, task attempts, and lease age.",
+    "mimeType": "text/markdown"
+  },
+  "conditions": [
+    {
+      "displayName": "Any validation retry in 5 minutes",
+      "conditionThreshold": {
+        "filter": "metric.type=\"logging.googleapis.com/user/replay_validator_validation_retries\" AND resource.type=\"cloud_run_revision\"",
+        "aggregations": [
+          {
+            "alignmentPeriod": "300s",
+            "perSeriesAligner": "ALIGN_SUM",
+            "crossSeriesReducer": "REDUCE_SUM"
+          }
+        ],
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 0,
+        "duration": "0s",
+        "trigger": {
+          "count": 1
+        }
+      }
+    }
+  ],
+  "combiner": "OR",
+  "enabled": true,
+  "alertStrategy": {
+    "autoClose": "3600s"
+  },
+  "userLabels": {
+    "component": "replay-validator",
+    "severity": "warning"
+  }
+}

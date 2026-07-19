@@ -13,7 +13,8 @@ Logging metrics, Cloud Monitoring alert policies, and notification channels:
   -NotificationEmail lothringen.rpg@gmail.com
 ```
 
-The script creates or updates three logs-based metrics and four alert policies:
+The script creates or updates three logs-based metrics, four alert policies,
+and the `RPG Runner - Reward settlement` Cloud Monitoring dashboard:
 
 - settlement invariant violation: immediate critical log-match alert;
 - retryable reward pending more than 15 minutes: critical repair-scan log-match
@@ -21,6 +22,12 @@ The script creates or updates three logs-based metrics and four alert policies:
 - immediate dispatch fallback ratio greater than 5% in 15 minutes: warning;
 - p99 durable-finalize-to-settlement-handoff latency greater than 15 seconds in
   15 minutes: warning.
+
+The dashboard keeps payout and optional leaderboard/ghost work separate. It
+charts durable handoff latency, immediate delivery activity and fallback ratio,
+and validator 5xx responses. Its log panels provide the run-session-level
+settlement, repair/invariant, and projection-retry evidence needed to diagnose
+an alert without adding high-cardinality metric labels.
 
 The stale-pending policy independently covers delivery after the durable
 handoff. Google Cloud sends a verification email when a new email notification

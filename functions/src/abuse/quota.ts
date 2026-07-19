@@ -32,6 +32,63 @@ export interface AbuseQuotaPolicy {
   windows: readonly AbuseQuotaWindowPolicy[];
 }
 
+interface AbuseQuotaDefault {
+  burstWindowMs: number;
+  burstLimit: number;
+  sustainedWindowMs: number;
+  sustainedLimit: number;
+}
+
+const minuteMs = 60 * 1000;
+const dayMs = 24 * 60 * 60 * 1000;
+
+/**
+ * Reviewed production defaults selected from the July 19 controlled-client
+ * measurements and bounded protocol behavior. Environment values may tighten
+ * or relax these limits, but malformed enforcement overrides fail closed.
+ */
+export const defaultAbuseQuotaConfiguration = {
+  ownership_command: {
+    burstWindowMs: minuteMs,
+    burstLimit: 120,
+    sustainedWindowMs: dayMs,
+    sustainedLimit: 5_000,
+  },
+  run_create: {
+    burstWindowMs: minuteMs,
+    burstLimit: 20,
+    sustainedWindowMs: dayMs,
+    sustainedLimit: 300,
+  },
+  upload_grant: {
+    burstWindowMs: minuteMs,
+    burstLimit: 20,
+    sustainedWindowMs: dayMs,
+    sustainedLimit: 300,
+  },
+  finalize_replay_bytes: {
+    burstWindowMs: minuteMs,
+    burstLimit: 32 * 1024 * 1024,
+    sustainedWindowMs: dayMs,
+    sustainedLimit: 1024 * 1024 * 1024,
+  },
+  leaderboard_read: {
+    burstWindowMs: minuteMs,
+    burstLimit: 120,
+    sustainedWindowMs: dayMs,
+    sustainedLimit: 5_000,
+  },
+  ghost_url: {
+    burstWindowMs: minuteMs,
+    burstLimit: 30,
+    sustainedWindowMs: dayMs,
+    sustainedLimit: 1_000,
+  },
+} as const satisfies Record<AbuseQuotaRoute, AbuseQuotaDefault>;
+
+export const defaultRunActiveSessionsLimit = 32;
+export const defaultRunActiveUploadGrantsLimit = 8;
+
 interface QuotaCounter {
   windowStartedAtMs: number;
   count: number;
@@ -60,22 +117,36 @@ export function resolveAbuseQuotaPolicy(
   env: NodeJS.ProcessEnv = process.env,
 ): AbuseQuotaPolicy {
   const prefix = `ABUSE_${route.toUpperCase()}`;
+  const defaults = defaultAbuseQuotaConfiguration[route];
   return {
     route,
     mode: readAbuseControlMode(env.ABUSE_CONTROL_MODE),
     windows: [
       {
         name: "burst",
-        durationMs:
-          readPositiveInt(env[`${prefix}_BURST_WINDOW_MS`]) ?? 60 * 1000,
-        limit: readPositiveInt(env[`${prefix}_BURST_LIMIT`]),
+        durationMs: readConfiguredPositiveInt({
+          envName: `${prefix}_BURST_WINDOW_MS`,
+          defaultValue: defaults.burstWindowMs,
+          env,
+        }),
+        limit: readConfiguredPositiveInt({
+          envName: `${prefix}_BURST_LIMIT`,
+          defaultValue: defaults.burstLimit,
+          env,
+        }),
       },
       {
         name: "sustained",
-        durationMs:
-          readPositiveInt(env[`${prefix}_SUSTAINED_WINDOW_MS`]) ??
-          24 * 60 * 60 * 1000,
-        limit: readPositiveInt(env[`${prefix}_SUSTAINED_LIMIT`]),
+        durationMs: readConfiguredPositiveInt({
+          envName: `${prefix}_SUSTAINED_WINDOW_MS`,
+          defaultValue: defaults.sustainedWindowMs,
+          env,
+        }),
+        limit: readConfiguredPositiveInt({
+          envName: `${prefix}_SUSTAINED_LIMIT`,
+          defaultValue: defaults.sustainedLimit,
+          env,
+        }),
       },
     ],
   };
@@ -329,6 +400,34 @@ function readPositiveInt(raw: string | undefined): number | undefined {
     return undefined;
   }
   return parsed;
+}
+
+function readConfiguredPositiveInt(args: {
+  envName: string;
+  defaultValue: number;
+  env: NodeJS.ProcessEnv;
+}): number {
+  const raw = args.env[args.envName]?.trim();
+  if (!raw) {
+    return args.defaultValue;
+  }
+  const parsed = readPositiveInt(raw);
+  if (parsed !== undefined) {
+    return parsed;
+  }
+  console.error("abuse_configuration_invalid", {
+    envName: args.envName,
+    mode: readAbuseControlMode(args.env.ABUSE_CONTROL_MODE),
+    expected: "positive safe integer",
+    fallback: args.defaultValue,
+  });
+  if (readAbuseControlMode(args.env.ABUSE_CONTROL_MODE) === "enforce") {
+    throw new HttpsError(
+      "failed-precondition",
+      `Abuse-control configuration ${args.envName} is invalid.`,
+    );
+  }
+  return args.defaultValue;
 }
 
 function handleInvalidOptionalLimit(

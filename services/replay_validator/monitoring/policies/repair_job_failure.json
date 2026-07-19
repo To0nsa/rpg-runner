@@ -1,0 +1,27 @@
+{
+  "displayName": "RPG Runner - replay repair or reconciliation job failure",
+  "documentation": {
+    "content": "The scheduled validation-repair or projection-reconciliation function logged an error. Durable recovery may be impaired. Inspect the function invocation, Firestore query/index state, and task-enqueue permissions.",
+    "mimeType": "text/markdown"
+  },
+  "conditions": [
+    {
+      "displayName": "Scheduled replay recovery function error",
+      "conditionMatchedLog": {
+        "filter": "resource.type=\"cloud_run_revision\" AND (resource.labels.service_name=\"runvalidationrepair\" OR resource.labels.service_name=\"runprojectionreconciliation\") AND severity>=ERROR"
+      }
+    }
+  ],
+  "combiner": "OR",
+  "enabled": true,
+  "alertStrategy": {
+    "notificationRateLimit": {
+      "period": "300s"
+    },
+    "autoClose": "604800s"
+  },
+  "userLabels": {
+    "component": "replay-recovery",
+    "severity": "critical"
+  }
+}

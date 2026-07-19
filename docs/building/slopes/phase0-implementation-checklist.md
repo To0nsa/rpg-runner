@@ -279,17 +279,17 @@ Record current and target policy for every `EnemyId`:
 
 | Enemy | Current baseline | Target world-contact policy | Navigation/placement policy | Status |
 | --- | --- | --- | --- | --- |
-| `unocoDemon` | Dynamic flying body, no gravity, no side collision | Capsule and explicit flying contact policy | Terrain-clear flight profile pending | Gameplay open |
+| `unocoDemon` | Dynamic flying body, no gravity, no side collision | Swept capsule blocked by solids; ignores one-way platforms | Local-terrain 60-180-pixel hover plus deterministic clearance steering | Accepted |
 | `grojib` | Gravity-driven ground navigator, ignores ceilings | Upright capsule and support state | 45-degree maximum, 4-pixel step/snap, constant surface speed | Accepted |
-| `hashash` | Gravity-driven ground navigator with teleport/ambush behavior | Upright capsule and support state | Graph plus capsule-safe teleport; 60-degree maximum accepted | Gameplay partial |
-| `derf` | Kinematic stationary caster spawned on obstacle tops | Kinematic capsule clearance | Eligible support placement profile pending | Gameplay open |
+| `hashash` | Gravity-driven ground navigator with teleport/ambush behavior | Upright capsule and support state | 60-degree maximum, 4-pixel step/snap, constant surface speed, mirrored safe teleport fallback | Accepted |
+| `derf` | Kinematic stationary caster spawned on obstacle tops | Kinematic upright capsule clearance | Maximum placement slope 15 degrees; 32-pixel intended-support span; invalid markers skip | Accepted |
 
-- [ ] Freeze `unocoDemon` collision, terrain avoidance, culling, and flight-target
+- [x] Freeze `unocoDemon` collision, terrain avoidance, culling, and flight-target
       reference policy.
 - [x] Freeze `grojib` capsule, support, slope, jump/drop, and death-impact policy.
-- [ ] Freeze `hashash` capsule, support, slope, jump/drop, teleport-clearance,
+- [x] Freeze `hashash` capsule, support, slope, jump/drop, teleport-clearance,
       ambush, spawn-animation, and death-impact policy.
-- [ ] Freeze `derf` spawn support, slope eligibility, capsule clearance,
+- [x] Freeze `derf` spawn support, slope eligibility, capsule clearance,
       stationary behavior, and target-point casting policy.
 - [x] Inventory enemy engagement/melee/facing calculations using AABB extents or
       flat vertical assumptions.
@@ -407,11 +407,11 @@ Update `docs/gdd/01_controls.md` with accepted behavior and units.
 ### Slope and speed
 
 - [x] Freeze player maximum walkable slope.
-- [ ] Freeze default and per-enemy maximum walkable slopes.
+- [x] Freeze default and per-enemy maximum walkable slopes.
 - [x] Choose angle representation in authoring/tuning/runtime comparisons.
 - [x] Decide world-horizontal X speed versus constant surface-arc speed.
 - [x] Record consequences for distance, score, camera, and animation speed.
-- [ ] Freeze enemy travel cost with the per-enemy traversal profiles.
+- [x] Freeze enemy travel cost with the per-enemy traversal profiles.
 - [x] Decide whether uphill/downhill traversal modifies acceleration, stamina,
       or movement speed.
 
@@ -444,8 +444,8 @@ Update `docs/gdd/01_controls.md` with accepted behavior and units.
 
 ### Player feedback and run rules
 
-- [ ] Freeze grounded/air animation signal behavior on slopes.
-- [ ] Decide whether actor art stays upright; recommended baseline is yes.
+- [x] Freeze grounded/air animation signal behavior on slopes.
+- [x] Decide whether actor art stays upright; accepted behavior is yes.
 - [ ] Freeze ground-target ability placement and aim-preview behavior.
 - [ ] Freeze pit/fall-death authority independent of one global ground height.
 - [ ] Freeze enemy culling below terrain/world bounds.
@@ -701,8 +701,8 @@ Done when:
 
 ### Graph construction
 
-- [ ] Freeze ordinary walk-edge generation and cost.
-- [ ] Freeze slope arc-length versus horizontal/time-based traversal cost.
+- [x] Freeze ordinary walk-edge generation and cost.
+- [x] Freeze slope arc-length versus horizontal/time-based traversal cost.
 - [x] Freeze jump takeoff/landing samples using source/destination `yAt(x)`.
 - [x] Freeze capsule clearance for jump paths.
 - [x] Freeze landing slope eligibility.
@@ -717,7 +717,7 @@ Done when:
 - [x] Freeze takeoff approach and in-flight commit direction.
 - [x] Freeze landing completion.
 - [x] Freeze chase-offset behavior on slopes.
-- [ ] Freeze slope-following velocity for `grojib` and `hashash`.
+- [x] Freeze slope-following velocity for `grojib` and `hashash`.
 - [x] Freeze stuck/invalid-plan fallback without hidden teleport authority.
 - [x] Freeze player/enemy vertical-separation and engagement calculations.
 - [x] Freeze trajectory prediction onto sloped surfaces.
@@ -749,7 +749,7 @@ Done when:
 - [x] Freeze exact surface Y/normal/tangent evaluation.
 - [x] Freeze full-capsule clearance query.
 - [x] Freeze stable tie-break for vertically overlapping surfaces.
-- [ ] Freeze slope/narrow-surface eligibility per actor/item.
+- [x] Freeze slope/narrow-surface eligibility per actor/item.
 - [x] Freeze initial player spawn.
 - [x] Freeze enemy marker placement modes.
 - [x] Freeze deferred Hashash edge spawn.
@@ -1008,7 +1008,7 @@ Use stable IDs in reviews and downstream checklists.
 | ID | Decision | Status | Authoritative doc/section | Evidence/approval |
 | --- | --- | --- | --- | --- |
 | `SLP-P0-001` | Player maximum slope | Accepted | Gameplay decisions, Decision 1; technical defaults §18 | User selected 60 degrees inclusive on July 19, 2026 |
-| `SLP-P0-002` | Per-enemy slope profiles | Gameplay in progress | Gameplay decisions, Decision 10+ | Grojib profile and Hashash 60-degree limit accepted July 19, 2026; Hashash small-transition tolerance is next |
+| `SLP-P0-002` | Per-enemy slope profiles | Accepted | Gameplay decisions, Decisions 10-19; technical defaults §18 | All four enemy profiles accepted July 19, 2026 |
 | `SLP-P0-003` | Horizontal versus surface-arc speed | Accepted | Gameplay decisions, Decision 2; technical defaults §18 | User selected the continuous signed-slope X-speed curve on July 19, 2026 |
 | `SLP-P0-004` | Ground snap/skin/step policy | Accepted | Technical defaults §§9-10 and §18; gameplay decisions | Player ordinary and grounded-mobility step/snap accepted at 4 world pixels on July 19, 2026 |
 | `SLP-P0-005` | Sharp vertex and seam behavior | Accepted | Technical defaults §§6, 9, and 10; gameplay decisions | User accepted no artificial launch impulse on July 19, 2026 |
@@ -1018,14 +1018,16 @@ Use stable IDs in reviews and downstream checklists.
 | `SLP-P0-009` | Capsule representation and body roles | Accepted technical default | Technical defaults §8 | Safe-default authority granted July 18, 2026 |
 | `SLP-P0-010` | Sweep/solver/numeric policy | Accepted technical default | Technical defaults §9 | Safe-default authority granted July 18, 2026 |
 | `SLP-P0-011` | Support state and system ordering | Accepted technical default | Technical defaults §§10-11 | Safe-default authority granted July 18, 2026 |
-| `SLP-P0-012` | Sloped surface graph/path costs | Technical accepted; gameplay pending | Technical defaults §12; gameplay decisions | Graph/clearance contract accepted; speed/cost semantics remain open |
-| `SLP-P0-013` | Current enemy policies | Gameplay pending | Consumer inventory §9; gameplay decisions | Mechanical migration mapped; traversal profiles remain open |
-| `SLP-P0-014` | Spawn/teleport/clearance policy | Technical accepted; gameplay pending | Technical defaults §13; gameplay decisions | Clearance/fallback accepted; steep/narrow eligibility remains open |
+| `SLP-P0-012` | Sloped surface graph/path costs | Accepted | Technical defaults §12; gameplay decisions, Decisions 12 and 15 | Graph/clearance contract plus Grojib and Hashash time-based costs accepted |
+| `SLP-P0-013` | Current enemy policies | Accepted | Consumer inventory §9; gameplay decisions, Decisions 10-20 | All four enemy migration profiles accepted July 19, 2026 |
+| `SLP-P0-014` | Spawn/teleport/clearance policy | Accepted | Technical defaults §13; gameplay decisions, Decisions 16, 20, and 21 | Same-support validation, full actor clearance, and 20-pixel item support accepted July 19, 2026 |
 | `SLP-P0-015` | Kill bound and enemy culling policy | Accepted technical default | Technical defaults §13 | Safe-default authority granted July 18, 2026 |
 | `SLP-P0-016` | Terrain render/snapshot contract | Accepted technical default | Technical defaults §14 | Safe-default authority granted July 18, 2026 |
 | `SLP-P0-017` | Replay/version/rollout contract | Accepted technical default | Technical defaults §§15-16 | Reserved compatibility set; issuance remains prohibited |
 | `SLP-P0-018` | Golden fixtures and performance budgets | In progress | Technical defaults §§16-17; checklist Step 10 | Initial budgets accepted provisionally; fixtures/measurements pending |
 | `SLP-P0-019` | Player jump/dash/roll slope behavior | Accepted | Gameplay decisions, Decisions 6-9; technical defaults §§10 and 18 | World-up jump plus support-tangent, constant-surface-distance, 4-pixel-helper grounded mobility accepted July 19, 2026 |
+| `SLP-P0-020` | Ground/air animation signal and upright art | Accepted | Gameplay decisions, Decision 22; technical defaults §18 | Final-support-state signal with upright sprites accepted July 19, 2026 |
+| `SLP-P0-021` | Grounded locomotion animation playback | Awaiting user confirmation | Gameplay decisions, Decision 23 | Recommended resolved surface-distance phase with 0.75x-1.50x clamp |
 
 Phase 0 cannot close with any decision row marked `Open`, `Pending`,
 `Awaiting`, or `In progress`.

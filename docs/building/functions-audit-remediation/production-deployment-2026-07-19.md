@@ -13,8 +13,11 @@ Deployment scope:
 - the replay-validator Cloud Run service;
 - replay-validation and replay-projection queue policy.
 
-Firebase Hosting and native Flutter releases were not deployed. App Check and
-abuse quotas remain in monitoring mode with production limits unset.
+Firebase Hosting and native Flutter releases were not part of the initial
+backend deployment. A follow-up App Check-capable web release was deployed
+later the same day and is recorded below. Native releases were not deployed.
+App Check and abuse quotas remain in monitoring mode with production limits
+unset.
 
 Post-deployment behavior, inventory, canary deletion, retention migration, and
 monitoring evidence are recorded separately in the
@@ -190,3 +193,51 @@ Remaining work includes:
   isolated test project.
 
 No audit finding is marked closed solely because this deployment succeeded.
+
+## Follow-up Firebase Hosting App Check release
+
+At `2026-07-19T15:08:10.236Z`, the App Check-capable Flutter web release was
+deployed to the live Hosting channel:
+
+- Hosting version:
+  `projects/964001571974/sites/rpg-runner-d7add/versions/4a5f6b9928bdc2ea`;
+- live release:
+  `projects/964001571974/sites/rpg-runner-d7add/channels/live/releases/1784473690236000`;
+- URL: `https://rpg-runner-d7add.web.app`;
+- live/local `main.dart.js` SHA-256 match: yes;
+- SHA-256:
+  `6588584c24a96b1fda182c7fd74901926c33b7a704fe97172652bbdb8ba96b95`.
+
+The release uses a domain-restricted reCAPTCHA Enterprise App Check provider.
+The public site key was injected at build time and was not committed. App Check
+remained in monitoring mode. Full configuration, validation, and attestation
+evidence are in the
+[App Check client rollout record](app-check-client-rollout-2026-07-19.md).
+
+## Follow-up quota enforcement deployment
+
+The nine quota-bearing callables were deployed once with reviewed
+source-controlled limits in monitor mode, then redeployed after a complete
+zero-would-reject canary with `ABUSE_CONTROL_MODE=enforce`.
+
+Final Functions source/configuration hash:
+
+`47bfddc5836917610b6d27ac2802dbbed8c42aa1`
+
+Final revisions:
+
+| Function | Revision |
+| --- | --- |
+| `loadoutOwnershipExecuteCommand` | `loadoutownershipexecutecommand-00009-qur` |
+| `runBoardsLoadActive` | `runboardsloadactive-00009-vos` |
+| `runSessionCreate` | `runsessioncreate-00009-woy` |
+| `runSessionCreateUploadGrant` | `runsessioncreateuploadgrant-00009-tah` |
+| `runSessionFinalizeUpload` | `runsessionfinalizeupload-00009-mit` |
+| `leaderboardLoadBoard` | `leaderboardloadboard-00009-tiq` |
+| `leaderboardLoadMyRank` | `leaderboardloadmyrank-00009-bet` |
+| `leaderboardLoadActiveBoardData` | `leaderboardloadactiveboarddata-00009-vek` |
+| `ghostLoadManifest` | `ghostloadmanifest-00009-hed` |
+
+All nine are active with enforcement configured. App Check remains in monitor
+mode. Limits, isolated validation, canary measurements, and rollback are in the
+[quota rollout record](quota-selection-and-enforcement-2026-07-19.md).

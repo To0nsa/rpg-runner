@@ -11,6 +11,7 @@ $ErrorActionPreference = "Stop"
 
 $metricRoot = Join-Path $PSScriptRoot "metrics"
 $policyRoot = Join-Path $PSScriptRoot "policies"
+$dashboardPath = Join-Path $PSScriptRoot "dashboard.json"
 
 function Invoke-Gcloud {
   param([Parameter(Mandatory = $true)][string[]]$CommandArgs)
@@ -115,6 +116,52 @@ function Ensure-AlertPolicy {
   }
 }
 
+function Ensure-Dashboard {
+  param([Parameter(Mandatory = $true)][string]$ConfigPath)
+
+  $dashboard = Get-Content -Raw $ConfigPath | ConvertFrom-Json -AsHashtable
+  $dashboardsJson = @(& gcloud monitoring dashboards list `
+    "--project=$ProjectId" "--format=json")
+  if ($LASTEXITCODE -ne 0) {
+    throw "Unable to list existing dashboards."
+  }
+  $existingDashboards = @(($dashboardsJson -join [Environment]::NewLine) |
+    ConvertFrom-Json)
+  $existing = @($existingDashboards | Where-Object {
+    $_.displayName -eq $dashboard.displayName
+  } | Select-Object -First 1)
+
+  $temporaryPath = New-TemporaryFile
+  try {
+    if ($existing.Count -gt 0) {
+      $currentJson = @(& gcloud monitoring dashboards describe $existing[0].name `
+        "--project=$ProjectId" "--format=json")
+      if ($LASTEXITCODE -ne 0) {
+        throw "Unable to load existing dashboard $($existing[0].name)."
+      }
+      $current = ($currentJson -join [Environment]::NewLine) |
+        ConvertFrom-Json -AsHashtable
+      $dashboard.etag = $current.etag
+      $dashboard | ConvertTo-Json -Depth 30 | Set-Content -NoNewline $temporaryPath
+      Invoke-Gcloud @(
+        "monitoring", "dashboards", "update", $existing[0].name,
+        "--project=$ProjectId",
+        "--config-from-file=$temporaryPath"
+      )
+      return
+    }
+
+    $dashboard | ConvertTo-Json -Depth 30 | Set-Content -NoNewline $temporaryPath
+    Invoke-Gcloud @(
+      "monitoring", "dashboards", "create",
+      "--project=$ProjectId",
+      "--config-from-file=$temporaryPath"
+    )
+  } finally {
+    Remove-Item -LiteralPath $temporaryPath -Force -ErrorAction SilentlyContinue
+  }
+}
+
 Ensure-LogMetric `
   -Name "reward_settlement_immediate_dispatch_attempts" `
   -ConfigPath (Join-Path $metricRoot "immediate_dispatch_attempts.yaml")
@@ -130,6 +177,7 @@ Get-ChildItem -Path $policyRoot -Filter "*.json" | Sort-Object Name |
   ForEach-Object {
     Ensure-AlertPolicy -TemplatePath $_.FullName -NotificationChannel $channel
   }
+Ensure-Dashboard -ConfigPath $dashboardPath
 
 Write-Output "Applied reward-settlement monitoring to $ProjectId."
 Write-Output "Email channel: $channel"

@@ -479,9 +479,12 @@ Tasks:
   - [ ] `settlement_pending`-to-terminal: p95 ≤ 2 seconds, p99 ≤ 15 seconds
   - [ ] stale repair attempts begin within five minutes of the configured stale
     threshold
-- [ ] Verify dashboards distinguish validation delay, dispatcher delay,
+- [x] Verify dashboards distinguish validation delay, dispatcher delay,
   immediate-dispatch timeout, fallback delivery, transaction conflict,
-  invariant violation, and optional projection delay.
+  invariant violation, and optional projection delay. The production `RPG
+  Runner - Reward settlement` dashboard separates durable-handoff percentiles,
+  immediate delivery/fallback activity, validator 5xx responses, settlement
+  decisions, repair/invariant signals, and optional projection retries.
 - [x] Create production alerts for invariant violations, retryable rewards
   pending over 15 minutes, immediate-dispatch fallback above 5% in 15 minutes,
   and p99 finalize-to-handoff latency above 15 seconds. Confirm the email
@@ -490,8 +493,13 @@ Tasks:
   immediate reread/retry for the Firestore finalization-versus-lease
   update-time race. Persistent contention remains a Cloud Tasks retry; the
   latency histogram now uses one-second buckets through 60 seconds.
-- [ ] Exercise an end-to-end scenario with the app closed after finalize and
-  confirm the server settles before the next ownership read.
+- [x] Exercise an end-to-end scenario with the app closed after finalize and
+  confirm the server settles before the next ownership read. On July 19, 2026,
+  `run_1fc15abce1a949893a156bce9823e831850df1c4` began validation immediately
+  before finalization, completed in its first Cloud Tasks delivery, handed off
+  in 1.15 seconds, and reached canonical settlement through Eventarc 1.86
+  seconds after durable finalize. The concurrent immediate request correctly
+  observed `already_settled`.
 - [x] Exercise duplicate immediate/Eventarc/repair delivery in the Firestore
   emulator and concurrent ownership revision behavior in backend tests.
 - [x] Exercise an immediate-dispatch timeout and a simultaneous

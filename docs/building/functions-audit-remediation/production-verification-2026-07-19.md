@@ -238,12 +238,14 @@ This proves fail-open monitoring is active, not that enforcement is ready.
 - F-11/F-12: Node 24 deployment, rules, auth-first failures, and lazy dependency
   behavior verified.
 - F-06 remains in progress: monitoring and bounded retention are live, but
-  legitimate App Check evidence, measured quotas, and enforcement are not.
+  only the web platform now has a legitimate verified App Check sample;
+  native-platform measurements, measured quotas, and enforcement are not
+  complete.
 
 ## Remaining work that was intentionally not forced in production
 
-- ship an App Check-capable Flutter release and measure legitimate attestation
-  success by platform;
+- measure release attestation success for Android, iOS, macOS, and any other
+  in-scope platform, or explicitly exclude unsupported platforms;
 - collect normal-client quota distributions, choose reviewed burst/sustained
   limits, and test enforcement rollback;
 - confirm the alert channel verification email;
@@ -255,3 +257,39 @@ This proves fail-open monitoring is active, not that enforcement is ready.
   project, rather than manufacturing destructive production incidents;
 - complete release provenance and final finding-by-finding closure review
   before archiving the remediation plan.
+
+## Follow-up web App Check verification
+
+The App Check-capable Flutter web bundle was deployed to Firebase Hosting at
+`2026-07-19T15:08:10.236Z`. A controlled headless Edge request from the live
+Hosting origin obtained a 960-byte App Check token and called
+`playerProfileLoad` without Firebase Auth. The callable returned the expected
+HTTP 401 Auth failure, while Cloud Logging at `2026-07-19T15:19:05Z` classified
+the App Check context as `verified` for the production web app in `monitor`
+mode.
+
+This changes the web observation count to one verified controlled request out
+of one attempt. It proves the web integration end to end but is not a sustained
+success rate and does not satisfy the native-platform readiness gate. Exact
+build, Hosting, provider, and rollback evidence are in the
+[App Check client rollout record](app-check-client-rollout-2026-07-19.md).
+
+## Follow-up quota enforcement verification
+
+Reviewed source-controlled per-UID limits passed all 170 Functions emulator
+tests. A production monitor canary emitted 11 decisions across all six routes,
+with zero `wouldReject` results. After enforcement deployment, a second
+complete canary emitted:
+
+- 11 decisions in `enforce` mode;
+- 11 accepted decisions;
+- zero rejections and zero `wouldReject` decisions;
+- valid and invalid replay convergence;
+- final/revoked reward behavior;
+- leaderboard and ghost projection behavior;
+- an account-deletion request for the disposable canary identity.
+
+The enforcement canary used synthetic UID hash `fb00f59b1754133a`. Quota
+enforcement is production-verified for controlled normal-client traffic. Exact
+limits, revisions, load-test caveats, and rollback are in the
+[quota rollout record](quota-selection-and-enforcement-2026-07-19.md).

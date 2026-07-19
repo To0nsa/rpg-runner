@@ -282,16 +282,41 @@ Accepted player-facing input:
   uses the same surface distance and authored locomotion speed
 - Hashash's maximum walkable slope is 60 degrees, inclusive; steeper edges are
   walls and are excluded from its ordinary walk graph
+- Hashash uses 4-pixel step-up and downward snap during ordinary grounded
+  pursuit, with navigation and collision sharing the same feasibility query
+- Hashash moves at constant distance-along-surface speed; its navigation walk
+  cost uses the same surface distance and authored locomotion speed
+- Hashash ambush teleport tries the current right/above point, then its mirrored
+  left/above point; both require capsule clearance, and failure cancels safely
+  with the normal cooldown
+- Unoco Demon's existing randomized 60-180-pixel hover band references local
+  terrain beneath its capsule footprint, retaining its last valid reference
+  where no terrain lies below
+- solid terrain blocks Unoco Demon's swept capsule from every side; it ignores
+  one-way platforms and uses bounded deterministic clearance steering without
+  phasing
+- Derf may spawn only on support up to 15 degrees with full stationary-capsule
+  clearance and remains visually upright
+- Derf requires at least 32 world pixels of horizontal span on its intended
+  obstacle-top support; its marker may clamp only within that support, and an
+  invalid placement is skipped instead of falling back to unrelated terrain
+- every remaining grounded actor spawn requires profile-eligible support over
+  its full capsule width plus complete clearance; marker correction stays on
+  the intended support, optional invalid spawns skip, and an invalid required
+  player start fails level validation
+- Unoco Demon requires complete capsule clearance at its intended flying spawn
+  and skips a blocked marker
+- collectible/restoration placement uses player-walkable support up to
+  60 degrees, a 20-pixel minimum horizontal span, exact surface height, and
+  full AABB clearance; deterministic retry exhaustion produces no item
+- final post-solver support state controls grounded/air animation selection;
+  supported slope traversal does not trigger airborne frames, and all actor
+  sprites remain upright with horizontal facing
 
 The implementation must not guess these remaining player-facing rules:
 
-- remaining Hashash traversal/teleport tuning plus Unoco Demon and Derf
-  profiles
-- slope influence, if any, on animation selection, speed, stamina, score, or
-  distance
-- spawn eligibility on steep or narrow surfaces
-- fall/death threshold behavior now that one global flat `groundTopY` is no
-  longer sufficient
+- slope influence on animation playback rate
+- ground-target ability and aim-preview behavior on sloped terrain
 
 The recommended baseline is conservative:
 

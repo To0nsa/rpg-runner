@@ -126,6 +126,25 @@ latency distribution uses one-second explicit buckets through 60 seconds, then
 one second of the observed handoff latency instead of overstating a sample from
 a broad bucket.
 
+The same reconciliation script manages the `RPG Runner - Reward settlement`
+Cloud Monitoring dashboard. It charts durable handoff percentiles, immediate
+attempt/fallback activity and ratio, and validator 5xx responses. Three log
+panels keep settlement decisions/pending age, repair/invariant signals, and
+validator fallback/projection retries visibly separate without high-cardinality
+metric labels.
+
+### Client-closed production verification — July 19, 2026
+
+The fresh competitive run
+`run_1fc15abce1a949893a156bce9823e831850df1c4` was force-closed at Game Over
+and then reopened. Its first validation Cloud Tasks delivery began just before
+durable finalization, exercised the finalize-versus-lease race, and returned
+`202` without a 30-second task retry. Durable handoff completed 1.15 seconds
+after finalization; Eventarc applied canonical settlement 1.86 seconds after
+finalization. The validator's concurrent immediate request later observed the
+expected idempotent `already_settled` outcome. Board projection also completed
+independently in 0.52 seconds.
+
 ## Stale settlement runbook
 
 1. Find the `runSessionId` from a `stale_settlement_repair`,

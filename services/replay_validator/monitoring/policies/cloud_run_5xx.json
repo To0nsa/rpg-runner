@@ -1,0 +1,37 @@
+{
+  "displayName": "RPG Runner - replay validator HTTP 5xx",
+  "documentation": {
+    "content": "The replay-validator Cloud Run service returned a 5xx response. Cloud Tasks should retry task routes, but inspect the revision logs, queue attempts, and lease/repair state before the retry budget is consumed.",
+    "mimeType": "text/markdown"
+  },
+  "conditions": [
+    {
+      "displayName": "Any replay-validator 5xx in 5 minutes",
+      "conditionThreshold": {
+        "filter": "metric.type=\"run.googleapis.com/request_count\" AND resource.type=\"cloud_run_revision\" AND resource.label.service_name=\"replay-validator\" AND metric.label.response_code_class=\"5xx\"",
+        "aggregations": [
+          {
+            "alignmentPeriod": "300s",
+            "perSeriesAligner": "ALIGN_SUM",
+            "crossSeriesReducer": "REDUCE_SUM"
+          }
+        ],
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 0,
+        "duration": "0s",
+        "trigger": {
+          "count": 1
+        }
+      }
+    }
+  ],
+  "combiner": "OR",
+  "enabled": true,
+  "alertStrategy": {
+    "autoClose": "3600s"
+  },
+  "userLabels": {
+    "component": "replay-validator",
+    "severity": "warning"
+  }
+}

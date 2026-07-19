@@ -10,6 +10,7 @@ import { HttpsError } from "firebase-functions/v2/https";
 
 import { assertAccountActiveInTransaction } from "../account/deletion_guard.js";
 import {
+  defaultRunActiveUploadGrantsLimit,
   readAbuseControlMode,
   readOptionalBoundedAbuseLimit,
 } from "../abuse/quota.js";
@@ -1126,10 +1127,12 @@ function readBooleanEnv(name: string): boolean | undefined {
 }
 
 function readConfiguredActiveUploadGrantLimit(): number | undefined {
-  return readOptionalBoundedAbuseLimit({
-    envName: "ABUSE_RUN_ACTIVE_UPLOAD_GRANTS_LIMIT",
-    max: activeUploadGrantScanCap,
-  });
+  return (
+    readOptionalBoundedAbuseLimit({
+      envName: "ABUSE_RUN_ACTIVE_UPLOAD_GRANTS_LIMIT",
+      max: activeUploadGrantScanCap,
+    }) ?? defaultRunActiveUploadGrantsLimit
+  );
 }
 
 function toOptionalString(value: unknown): string | undefined {

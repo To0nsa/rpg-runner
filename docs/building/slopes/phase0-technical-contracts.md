@@ -511,10 +511,10 @@ skip `usePhysics` projectiles.
 - Invalid/no-plan fallback clamps to the last known eligible surface and never
   gains hidden teleport authority.
 
-Walk-cost speed semantics remain tied to the pending horizontal-versus-arc
-enemy-profile decision. Player movement uses the accepted continuous
-world-horizontal speed curve in §18. Every other graph identity and clearance
-rule can be implemented independently.
+Grojib and Hashash walk cost is surface length divided by the relevant
+archetype's authored locomotion speed, matching their accepted constant
+distance-along-surface runtime movement. Player movement uses the accepted
+continuous world-horizontal speed curve in §18.
 
 ## 13) Spawn, Teleport, Death, And Culling
 
@@ -522,17 +522,50 @@ rule can be implemented independently.
   identity, not only Y.
 - Highest-surface queries prefer the smallest world Y and tie-break by stable
   edge ID.
-- Placement requires the actor/item profile's slope eligibility, minimum
-  support interval, and full-shape clearance.
+- Unoco Demon's randomized 60-180-world-pixel hover band references the highest
+  relevant local terrain beneath its horizontal capsule footprint rather than
+  global `groundTopY`. Existing hold timing and RNG order remain unchanged.
+  When no surface exists below it retains the last valid local reference;
+  without one it uses an explicit level flight-reference plane. Existing
+  bounded vertical steering follows the target without teleporting.
+- Éloïse's required initial placement needs player-walkable support no steeper
+  than 60 degrees, the full 20.6-pixel capsule-width support interval, and
+  complete capsule clearance. Failure is a level-validation error; runtime
+  does not relocate the player.
+- Grojib and Hashash grounded placement needs support within the relevant
+  traversal profile, the actor's full capsule-width support interval, and
+  complete capsule clearance. A marker may clamp only to the nearest standable
+  point on the same intended support. Failure, including a deferred Hashash
+  edge spawn, skips that spawn and emits a diagnostic.
+- Unoco Demon placement requires complete capsule clearance at the intended
+  flying position. A blocked marker is skipped rather than embedded or moved
+  to unrelated terrain.
 - Marker RNG, marker iteration, chunk selection, and Hashash deferred-roll
   order remain unchanged.
 - Hashash teleport must validate the destination capsule and support when the
   ambush requires landing; failure uses a deterministic ordered fallback list
   or cancels, never embeds the actor.
-- Derf remains stationary and may spawn only on a profile-eligible surface
-  with full capsule clearance.
-- Pickups/restoration items remain AABBs but use exact `yAt(x)` plus their
-  existing clearance/margin rules.
+- Hashash's airborne ambush preserves its primary point 36 pixels right and
+  36 pixels above the predicted player. Teleport-in requires full capsule
+  clearance but not support. If blocked, it tries the mirrored left/above point;
+  if both fail, it keeps/restores the last safe position, queues no strike, and
+  applies the normal cooldown. The fixed candidate order consumes no RNG.
+- Derf remains stationary and may spawn only on support at or below 15 degrees
+  with full capsule clearance and at least 32 world pixels of horizontal
+  support span. Marker X may clamp only to the nearest standable point on that
+  same obstacle-top support. An absent, obstructed, too-steep, or too-narrow
+  intended support skips the spawn and emits a diagnostic; it never falls back
+  to unrelated highest terrain or ordinary ground.
+- Derf retains its existing predicted-player-center cast target, face-player
+  policy, and upright world-space cast-origin semantics. Support slope does not
+  rotate its art, aim, cast origin, or target point.
+- Pickups/restoration items remain AABBs and may use solid or one-way
+  player-walkable support no steeper than 60 degrees. Placement requires at
+  least 20 world pixels of horizontal support: the current 16-pixel item width
+  plus the existing 2-pixel margin on each side. They use exact `yAt(x)`,
+  existing vertical clearance, and full AABB clearance. An invalid candidate
+  consumes its normal deterministic attempt; exhausting the existing attempt
+  budget produces no item.
 
 Player fall death uses a level-authored absolute `killPlaneY`. Legacy levels
 default it to `groundTopY + gapKillOffsetY`, preserving current behavior.
@@ -662,8 +695,8 @@ Accepted:
   changes target X speed and existing acceleration/deceleration approaches the
   new target; support transitions do not directly rewrite velocity.
 - Distance, score, and camera retain world-X semantics and therefore observe
-  the accepted uphill slowdown/downhill increase. Animation may derive playback
-  rate from surface-relative velocity.
+  the accepted uphill slowdown/downhill increase. Slope-dependent animation
+  playback remains a separate pending gameplay decision.
 - Automatic small step-up is enabled for Éloïse during ordinary grounded
   locomotion with a maximum height of 4 world pixels. Enemies do not inherit
   the feature.
@@ -703,12 +736,36 @@ Accepted:
   remain collision walls and are excluded from Hashash's walk graph; existing
   valid jump/drop and separately validated teleport transitions remain
   available.
+- Hashash uses 4-pixel automatic step-up and downward snap during ordinary
+  grounded pursuit. Its graph emits a small ordinary walk transition only when
+  the same capsule-clearance and support query accepts it.
+- Hashash moves at constant distance-along-surface speed. Its walk-edge cost is
+  surface length divided by its authored locomotion speed, matching runtime
+  travel time; no uphill/downhill multiplier is applied.
+- Unoco Demon's swept capsule is blocked by solid terrain from every side and
+  completely ignores one-way platforms. It never becomes supported/grounded.
+  When desired motion is blocked, a bounded deterministic clearance-steering
+  candidate set ranks clear directions by progress toward the current
+  hover/combat target, clearance, then stable candidate ID. It uses no flight
+  nav graph, new RNG draw, teleport, or phasing fallback.
+- Derf may be placed only on support at or below 15 degrees. It remains
+  kinematic and visually upright; the complete capsule and required support
+  interval must be clear. Its intended obstacle-top support must provide at
+  least 32 world pixels of horizontal span. Marker X may clamp only within that
+  same support; invalid placement is skipped with a diagnostic and never
+  falls back to unrelated terrain.
+- Final post-solver support state, rather than world vertical velocity,
+  controls grounded versus airborne animation for the player, Grojib, and
+  Hashash. Supported slope traversal, accepted step-up, and ground snap retain
+  grounded animation; an accepted jump clears support immediately, and true
+  support loss uses the existing airborne vertical-velocity thresholds.
+- Player and enemy render art remains upright with horizontal facing. Terrain
+  tangent and normal never rotate actor sprites, cast origins, or hit bounds.
 
 Still intentionally not guessed:
 
-- remaining Hashash traversal/teleport tuning
-- Unoco Demon and Derf traversal/placement profiles
-- spawn eligibility on steep/narrow surfaces
+- slope-dependent animation playback rate
+- ground-target ability and aim-preview behavior
 
 They are asked and accepted one at a time. All are profile/tuning inputs to the
 contracts above and do not require a second architecture.

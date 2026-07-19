@@ -1,0 +1,37 @@
+{
+  "displayName": "RPG Runner - replay validation terminal internal error",
+  "documentation": {
+    "content": "A replay exhausted its validator retry and grace policy and terminalized as an internal error. Preserve the run session, validated evidence, reward grant, and task logs; use bounded repair paths only.",
+    "mimeType": "text/markdown"
+  },
+  "conditions": [
+    {
+      "displayName": "Any terminal validator internal error",
+      "conditionThreshold": {
+        "filter": "metric.type=\"logging.googleapis.com/user/replay_validator_internal_errors\" AND resource.type=\"cloud_run_revision\"",
+        "aggregations": [
+          {
+            "alignmentPeriod": "300s",
+            "perSeriesAligner": "ALIGN_SUM",
+            "crossSeriesReducer": "REDUCE_SUM"
+          }
+        ],
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 0,
+        "duration": "0s",
+        "trigger": {
+          "count": 1
+        }
+      }
+    }
+  ],
+  "combiner": "OR",
+  "enabled": true,
+  "alertStrategy": {
+    "autoClose": "604800s"
+  },
+  "userLabels": {
+    "component": "replay-validator",
+    "severity": "critical"
+  }
+}

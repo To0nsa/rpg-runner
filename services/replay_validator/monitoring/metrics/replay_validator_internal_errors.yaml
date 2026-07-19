@@ -1,0 +1,12 @@
+description: Replay validations that exhausted recovery and terminalized as internal error.
+filter: |-
+  resource.type="cloud_run_revision"
+  resource.labels.service_name="replay-validator"
+  jsonPayload.event="replay_validator.dispatch"
+  jsonPayload.phase="terminal"
+  jsonPayload.status="rejected"
+  jsonPayload.rejectionReason="internal_error"
+metricDescriptor:
+  metricKind: DELTA
+  valueType: INT64
+  unit: "1"

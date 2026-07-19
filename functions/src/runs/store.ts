@@ -5,6 +5,7 @@ import { HttpsError } from "firebase-functions/v2/https";
 
 import { assertAccountActiveInTransaction } from "../account/deletion_guard.js";
 import {
+  defaultRunActiveSessionsLimit,
   readAbuseControlMode,
   readOptionalBoundedAbuseLimit,
 } from "../abuse/quota.js";
@@ -370,10 +371,12 @@ function runSessionIdForRequest(uid: string, clientRequestId: string): string {
 }
 
 function readConfiguredActiveSessionLimit(): number | undefined {
-  return readOptionalBoundedAbuseLimit({
-    envName: "ABUSE_RUN_ACTIVE_SESSIONS_LIMIT",
-    max: activeSessionScanCap,
-  });
+  return (
+    readOptionalBoundedAbuseLimit({
+      envName: "ABUSE_RUN_ACTIVE_SESSIONS_LIMIT",
+      max: activeSessionScanCap,
+    }) ?? defaultRunActiveSessionsLimit
+  );
 }
 
 async function loadBoardManifestWithProvisioningFallback(args: {

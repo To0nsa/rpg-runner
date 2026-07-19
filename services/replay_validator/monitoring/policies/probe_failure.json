@@ -1,0 +1,37 @@
+{
+  "displayName": "RPG Runner - replay validator unhealthy probe",
+  "documentation": {
+    "content": "A replay-validator startup or liveness probe failed. Check mandatory configuration, worker construction, process health, and the current revision before allowing task dispatch to continue.",
+    "mimeType": "text/markdown"
+  },
+  "conditions": [
+    {
+      "displayName": "Any unhealthy startup or liveness probe",
+      "conditionThreshold": {
+        "filter": "metric.type=\"run.googleapis.com/container/completed_probe_count\" AND resource.type=\"cloud_run_revision\" AND resource.label.service_name=\"replay-validator\" AND metric.label.is_healthy=\"false\"",
+        "aggregations": [
+          {
+            "alignmentPeriod": "300s",
+            "perSeriesAligner": "ALIGN_SUM",
+            "crossSeriesReducer": "REDUCE_SUM"
+          }
+        ],
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 0,
+        "duration": "0s",
+        "trigger": {
+          "count": 1
+        }
+      }
+    }
+  ],
+  "combiner": "OR",
+  "enabled": true,
+  "alertStrategy": {
+    "autoClose": "3600s"
+  },
+  "userLabels": {
+    "component": "replay-validator",
+    "severity": "critical"
+  }
+}

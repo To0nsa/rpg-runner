@@ -14,6 +14,9 @@ import {
 import {
   cleanupExpiredAbuseQuota,
   consumeUserQuota,
+  defaultAbuseQuotaConfiguration,
+  defaultRunActiveSessionsLimit,
+  defaultRunActiveUploadGrantsLimit,
   readOptionalBoundedAbuseLimit,
   resolveAbuseQuotaPolicy,
   type AbuseQuotaPolicy,
@@ -57,6 +60,32 @@ test("App Check defaults to monitoring and has an explicit enforcement switch", 
     enforceAppCheck: true,
     consumeAppCheckToken: false,
   });
+});
+
+test("reviewed production quota defaults resolve for every protected route", () => {
+  for (const [route, expected] of Object.entries(
+    defaultAbuseQuotaConfiguration,
+  )) {
+    const policy = resolveAbuseQuotaPolicy(
+      route as AbuseQuotaPolicy["route"],
+      {},
+    );
+    assert.equal(policy.mode, "monitor");
+    assert.deepEqual(policy.windows, [
+      {
+        name: "burst",
+        durationMs: expected.burstWindowMs,
+        limit: expected.burstLimit,
+      },
+      {
+        name: "sustained",
+        durationMs: expected.sustainedWindowMs,
+        limit: expected.sustainedLimit,
+      },
+    ]);
+  }
+  assert.equal(defaultRunActiveSessionsLimit, 32);
+  assert.equal(defaultRunActiveUploadGrantsLimit, 8);
 });
 
 test("payload bounds reject oversized and deeply nested JSON", () => {
@@ -182,6 +211,74 @@ test("atomic concurrent quota requests cannot exceed enforcement limit", async (
   assert.equal(stored?.counters?.ownership_command_burst?.count, 10);
 });
 
+test("reviewed run-create burst remains atomic under concurrent load", async () => {
+  const quotaPolicy = resolveAbuseQuotaPolicy("run_create", {
+    ABUSE_CONTROL_MODE: "enforce",
+  });
+  const attempts = defaultAbuseQuotaConfiguration.run_create.burstLimit * 2;
+  const results: PromiseSettledResult<unknown>[] = [];
+  for (let offset = 0; offset < attempts; offset += 5) {
+    const wave = await Promise.allSettled(
+      Array.from({ length: Math.min(5, attempts - offset) }, () =>
+        consumeUserQuota({
+          db,
+          uid: "uid_reviewed_concurrent",
+          route: "run_create",
+          nowMs: 1_700_000_000_000,
+          policy: quotaPolicy,
+        }),
+      ),
+    );
+    results.push(...wave);
+  }
+
+  assert.equal(
+    results.filter((result) => result.status === "fulfilled").length,
+    defaultAbuseQuotaConfiguration.run_create.burstLimit,
+  );
+  assert.equal(
+    results.filter(
+      (result) =>
+        result.status === "rejected" &&
+        (result.reason as { code?: string }).code === "resource-exhausted",
+    ).length,
+    defaultAbuseQuotaConfiguration.run_create.burstLimit,
+  );
+  const stored = (
+    await db.collection("abuse_quota").doc("uid_reviewed_concurrent").get()
+  ).data();
+  assert.equal(stored?.counters?.run_create_burst?.count, attempts);
+});
+
+test("reviewed replay-byte burst permits four maximum replays and rejects five", async () => {
+  const quotaPolicy = resolveAbuseQuotaPolicy("finalize_replay_bytes", {
+    ABUSE_CONTROL_MODE: "enforce",
+  });
+  const maxReplayBytes = 8 * 1024 * 1024;
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    await consumeUserQuota({
+      db,
+      uid: "uid_reviewed_replay_bytes",
+      route: "finalize_replay_bytes",
+      units: maxReplayBytes,
+      nowMs: 1_700_000_000_000,
+      policy: quotaPolicy,
+    });
+  }
+  await assert.rejects(
+    () =>
+      consumeUserQuota({
+        db,
+        uid: "uid_reviewed_replay_bytes",
+        route: "finalize_replay_bytes",
+        units: maxReplayBytes,
+        nowMs: 1_700_000_000_000,
+        policy: quotaPolicy,
+      }),
+    (error: { code?: string }) => error.code === "resource-exhausted",
+  );
+});
+
 test("enforcement fails closed when any configured window lacks a limit", async () => {
   await assert.rejects(
     () =>
@@ -206,16 +303,9 @@ test("malformed configured limits cannot silently weaken enforcement", async () 
     ABUSE_RUN_CREATE_SUSTAINED_LIMIT: "100",
     ABUSE_RUN_ACTIVE_SESSIONS_LIMIT: "256sessions",
   };
-  const resolved = resolveAbuseQuotaPolicy("run_create", env);
-  assert.equal(resolved.windows[0]?.limit, undefined);
-  await assert.rejects(
+  assert.throws(
     () =>
-      consumeUserQuota({
-        db,
-        uid: "uid_malformed_limit",
-        route: "run_create",
-        policy: resolved,
-      }),
+      resolveAbuseQuotaPolicy("run_create", env),
     (error: { code?: string }) => error.code === "failed-precondition",
   );
   assert.throws(
@@ -239,6 +329,14 @@ test("monitoring logs malformed optional limits without blocking traffic", () =>
     },
   });
   assert.equal(actual, undefined);
+  const resolved = resolveAbuseQuotaPolicy("run_create", {
+    ABUSE_CONTROL_MODE: "monitor",
+    ABUSE_RUN_CREATE_BURST_LIMIT: "20requests",
+  });
+  assert.equal(
+    resolved.windows[0]?.limit,
+    defaultAbuseQuotaConfiguration.run_create.burstLimit,
+  );
 });
 
 test("quota retention cleanup deletes only expired bounded state", async () => {

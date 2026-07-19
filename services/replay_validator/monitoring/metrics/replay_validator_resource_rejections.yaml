@@ -1,0 +1,12 @@
+description: Replay validation rejected work at an explicit byte, shape, duration, or execution limit.
+filter: |-
+  resource.type="cloud_run_revision"
+  resource.labels.service_name="replay-validator"
+  jsonPayload.event="replay_validator.dispatch"
+  jsonPayload.phase="terminal"
+  jsonPayload.status="rejected"
+  jsonPayload.rejectionReason=~"^(replay_.*_limit_exceeded|simulation_time_limit_exceeded)$"
+metricDescriptor:
+  metricKind: DELTA
+  valueType: INT64
+  unit: "1"

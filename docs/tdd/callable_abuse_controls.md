@@ -2,12 +2,17 @@
 
 ## Status
 
-Implemented and deployed on July 19, 2026. App Check and quotas remain in
-monitoring mode until an App Check-capable client supplies legitimate
-attestation telemetry and normal route measurements support reviewed limits.
-The initial production evidence and completed legacy-idempotency migration are
-recorded in the
-[Functions production verification](../building/functions-audit-remediation/production-verification-2026-07-19.md).
+Implemented and deployed on July 19, 2026. Per-UID quotas are enforced with
+reviewed source-controlled defaults. App Check remains in monitoring mode. The
+production web client has supplied one verified end-to-end reCAPTCHA Enterprise
+attestation; native release platforms remain unmeasured.
+The initial production evidence, completed legacy-idempotency migration, and
+web rollout are recorded in the
+[Functions production verification](../building/functions-audit-remediation/production-verification-2026-07-19.md)
+and
+[App Check client rollout](../building/functions-audit-remediation/app-check-client-rollout-2026-07-19.md),
+with quota selection and enforcement in the
+[quota rollout record](../building/functions-audit-remediation/quota-selection-and-enforcement-2026-07-19.md).
 
 ## Purpose and boundary
 
@@ -115,12 +120,24 @@ ABUSE_<ROUTE>_SUSTAINED_WINDOW_MS
 ABUSE_<ROUTE>_SUSTAINED_LIMIT
 ```
 
-For example, the run-create prefix is `ABUSE_RUN_CREATE`. No limit has a source
-default because the repository has no representative production telemetry.
+For example, the run-create prefix is `ABUSE_RUN_CREATE`. Reviewed
+source-controlled defaults are:
+
+| Route | Burst per minute | Sustained per 24 hours |
+| --- | ---: | ---: |
+| `ownership_command` | 120 requests | 5,000 requests |
+| `run_create` | 20 requests | 300 requests |
+| `upload_grant` | 20 requests | 300 requests |
+| `finalize_replay_bytes` | 32 MiB | 1 GiB |
+| `leaderboard_read` | 120 requests | 5,000 requests |
+| `ghost_url` | 30 requests | 1,000 requests |
+
 `ABUSE_CONTROL_MODE=monitor` records counters and `wouldReject` signals without
-rejecting. In `enforce` mode, an unset burst or sustained limit fails closed
-with `failed-precondition`; an exceeded limit returns `resource-exhausted`
-before Storage signing, task dispatch, or the protected expensive read.
+rejecting. Production uses `enforce`; an exceeded limit returns
+`resource-exhausted` before Storage signing, task dispatch, or the protected
+expensive read. Route environment variables can override the defaults.
+Malformed overrides fail closed with `failed-precondition` during enforcement;
+monitor mode logs the configuration error and uses the reviewed default.
 
 The quota document contains only the fixed route set and expires after the
 longest active window plus a 24-hour operational margin.
@@ -138,9 +155,10 @@ ABUSE_RUN_ACTIVE_SESSIONS_LIMIT
 ABUSE_RUN_ACTIVE_UPLOAD_GRANTS_LIMIT
 ```
 
-Both follow `ABUSE_CONTROL_MODE`. Scans are capped at 256 sessions and 128
-active upload grants, respectively, and the required composite indexes are in
-`firestore.indexes.json`. Production values remain unset pending telemetry.
+Both follow `ABUSE_CONTROL_MODE`. Production defaults are 32 active sessions
+and eight active upload grants. Scans are capped at 256 sessions and 128 active
+upload grants, respectively, and the required composite indexes are in
+`firestore.indexes.json`.
 
 ## Run-create idempotency and replay size
 
@@ -224,8 +242,11 @@ Rollout order:
    then enable it globally only after every in-scope platform passes the
    readiness gate; retain a documented rollback to `monitor`.
 
-Limit selection, alert creation, staging load evidence, and production
-enforcement are deliberately still open in the audit remediation tracker.
+Alert completion and App Check production enforcement remain open in the audit
+remediation tracker. Quota selection, isolated load evidence, monitor canary,
+and production quota enforcement were completed on July 19.
 The first direct production canary emitted only missing/invalid App Check
-tokens, which monitoring accepted as designed; it is not evidence that a
-release client can attest successfully.
+tokens, which monitoring accepted as designed. The follow-up web release
+produced one server-verified production-origin attestation before reaching the
+expected Firebase Auth gate. That sample proves web compatibility, but it is
+not a sustained success rate and does not cover native platforms.

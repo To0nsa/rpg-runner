@@ -100,6 +100,24 @@ Do not apply only the Cloud Run revision. The Firestore indexes and scheduled
 validation repair are required to recover expired leases and tasks deleted
 after retry exhaustion.
 
+## Monitoring
+
+Apply the checked-in validator/projection metrics and alert policies from the
+repository root:
+
+```powershell
+.\services\replay_validator\monitoring\apply_alerts.ps1 `
+  -ProjectId "rpg-runner-d7add" `
+  -NotificationEmail "lothringen.rpg@gmail.com"
+```
+
+The idempotent policy covers validation and projection retries, terminal
+internal errors, replay resource-limit bursts, Cloud Run 5xx/probe/memory
+failures, validation/projection queue backlog, and scheduled repair or
+reconciliation failures. See
+`services/replay_validator/monitoring/README.md` for thresholds and operational
+interpretation.
+
 Before this Cloud Run deployment, deploy the paired Firebase Functions
 settlement dispatcher, immediate settlement endpoint, and repair schedule. The
 immediate endpoint's IAM invoker must be only `${VALIDATOR_SA}`. This validator

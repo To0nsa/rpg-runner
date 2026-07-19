@@ -10,6 +10,10 @@
   [Functions Audit Remediation Production Deployment — 2026-07-19](production-deployment-2026-07-19.md)
 - Production verification:
   [Functions Audit Remediation Production Verification — 2026-07-19](production-verification-2026-07-19.md)
+- App Check web rollout:
+  [App Check Client Rollout Evidence — 2026-07-19](app-check-client-rollout-2026-07-19.md)
+- Quota rollout:
+  [Quota Selection and Enforcement Evidence — 2026-07-19](quota-selection-and-enforcement-2026-07-19.md)
 
 ## Purpose
 
@@ -100,7 +104,7 @@ All findings start open. Update this table as work lands.
 | F-03 | High | 2 | Production verified | Functions 7.3.0, Admin 14.2.0, Cloud Tasks 6.2.3, patched dependency graph | No known vulnerabilities; Node 24, signed URLs, task retry, triggers, and schedules are production verified |
 | F-04 | High | 3 | Deployed | Cursor-paged repair, legacy classifier, quarantine, and explicit retry disposition | Multi-page and exact-once tests pass; repair/validator revisions and queue policy are deployed |
 | F-05 | High | 4 | Production verified | Tombstone-first leased deletion, strict guards, early Auth disable, and repeated reconciliation | Two synthetic workflows converged, including the complete canary; age, Auth, Storage, projection, and final-pass evidence are recorded; privacy review remains |
-| F-06 | High | 5 | In progress | App Check rollout, payload bounds, atomic quotas, idempotent run creation, replay cap, and bounded idempotency | Monitoring and retention are live; the legacy idempotency migration completed; legitimate attestation data, measured limits, channel confirmation, and enforcement remain |
+| F-06 | High | 5 | In progress | App Check rollout, payload bounds, atomic quotas, idempotent run creation, replay cap, and bounded idempotency | Quotas are selected, load-tested, and production-enforced; retention and migration are complete; web attestation is verified; native App Check measurements, channel confirmation, and App Check enforcement remain |
 | F-07 | Medium | 3 | Deployed | Shared transactional expiry before callable error return | Expiry, repeat, and cleanup-race tests pass; remediated Functions source is deployed |
 | F-08 | Medium | 3 | Production verified | Atomic provisional-grant revocation, projection suppression, and orphan cleanup | The invalid replay was rejected, its grant was revoked, and leaderboard/ghost projection was suppressed in production |
 | F-09 | Medium | 6 | Deployed | Server-time transactional rename cooldown | Boundary/concurrency and focused Flutter tests pass; authoritative profile Functions are deployed |
@@ -692,10 +696,13 @@ repair pages without changing canonical gold.
 
 #### Policy decisions
 
-- [ ] Define per-UID limits for ownership commands, active run sessions, upload
+- [x] Define per-UID limits for ownership commands, active run sessions, upload
   grants, finalized replay bytes, expensive leaderboard reads, and ghost URLs.
-- [ ] Define burst and sustained windows from measured normal-client behavior.
-- [ ] Define anonymous-account limits separately where needed.
+- [x] Define burst and sustained windows from controlled normal-client
+  measurements plus protocol/retry bounds.
+- [x] Decide anonymous-account policy: controlled anonymous canaries use the
+  same per-UID limits; release authentication remains Play Games, and account
+  churn requires App Check rather than a privileged anonymous tier.
 - [x] Define maximum request/string/array/object depth and serialized payload
   sizes.
 - [x] Define the maximum offline command retry window.
@@ -743,19 +750,26 @@ rationale next to each chosen value.
 
 - [x] Deploy App Check in metrics/monitoring mode first where supported.
 - [ ] Confirm legitimate platform attestation success rates.
+- [x] Deploy the production web client and record one server-verified
+  production-origin reCAPTCHA Enterprise attestation.
+- [ ] Record release attestation measurements for every other in-scope
+  platform, or explicitly exclude unsupported platforms.
 - [ ] Complete the readiness gate for every in-scope platform, then enable the
   global callable enforcement switch with a documented rollback. Unsupported
   production platforms require explicit exclusion or separately reviewed
   endpoints; they cannot use a client-claimed bypass.
-- [ ] Load-test quotas and transactions in staging.
+- [x] Load-test quotas and transactions in the isolated Firestore emulator
+  under the no-staging waiver; record the high-fan-in contention boundary.
 - [ ] Alert on sudden rejection, storage, task, and cost increases.
 
 ### F-06 closure
 
 - [ ] High-value callables have layered app/auth/quota controls.
 - [x] Idempotency and rate-limit storage are bounded.
-- [ ] Normal clients, retries, and offline recovery remain functional.
-- [ ] Staging load and production monitoring evidence are recorded.
+- [x] Normal controlled clients, retries, and offline recovery remain
+  functional under enforced quotas.
+- [x] Isolated load plus production monitor/enforcement evidence are recorded
+  under the no-staging waiver.
 
 ---
 
@@ -882,8 +896,12 @@ passed.
   commands.
 - [ ] Deploy compatible Flutter clients and enforce a minimum compatible
   version where required.
+- [x] Deploy the App Check-capable Flutter web release and verify its exact
+  Hosting bundle and one production-origin attestation.
 - [x] Deploy Functions/validator changes in the documented contract-safe order.
 - [ ] Enable App Check enforcement and quotas gradually after monitoring mode.
+- [x] Enable reviewed per-UID quotas after an isolated load test and a
+  zero-would-reject production monitor canary.
 - [x] Verify no spike in auth, stale revision, quota, App Check, upload,
   validation, settlement, or profile errors during the recorded canary window;
   longer observation remains.
@@ -943,3 +961,5 @@ retention, quota values, or rollout here.
 | 2026-07-19 | Do not mutate the two accepted pre-cutover tickets that lack embedded board-window fields. | Their issuance matches the canonical board windows and all identity/loadout/settlement evidence is valid; rewriting accepted ticket evidence adds risk without repairing an authority violation. | Pending closure review |
 | 2026-07-19 | Add and deploy the `idempotency.expiresAtMs` collection-group ascending index. | The live retention job exposed the missing query prerequisite; after the index reached `READY`, all six legacy outcomes compacted successfully. | Repository owner (production authorization) |
 | 2026-07-19 | Classify only structured HTTP 400 `FAILED_PRECONDITION` responses as Firestore contention. | Production returned this shape for an update-time race; arbitrary HTTP 400 input failures must not be broadened into retryable conflicts. | Repository owner (production authorization) |
+| 2026-07-19 | Configure a domain-restricted reCAPTCHA Enterprise provider and deploy the App Check-capable web client while retaining monitor mode. | One verified production-origin sample proves the web path, but native platforms and sustained success rates remain unmeasured, so global enforcement would be premature. | Repository owner (production authorization) |
+| 2026-07-19 | Source-control and enforce the reviewed per-UID quota defaults after isolated load validation and a zero-would-reject production monitor canary. | The game is not live and has no organic distribution; values combine the controlled-client maxima with protocol/retry bounds and generous margins. A complete enforcement canary passed all six routes. | Repository owner (production authorization) |

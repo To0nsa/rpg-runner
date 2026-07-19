@@ -5,8 +5,8 @@ Status: Backend settlement, independent projection retry, and the legacy
 cutover are deployed. Production inventory scanned 11 legacy grants; all were
 already canonically applied, and the idempotent `apply` pass made no wallet
 changes or found invariant violations. Migration mode and temporary read-time
-compatibility are now disabled. Latency monitoring and a client-closed
-end-to-end production check remain before broad-rollout approval.
+compatibility are now disabled. The client-closed production check has passed;
+representative latency monitoring remains before broad-rollout approval.
 
 ## Position
 

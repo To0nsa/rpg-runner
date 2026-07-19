@@ -1,0 +1,37 @@
+{
+  "displayName": "RPG Runner - projection retry activity",
+  "documentation": {
+    "content": "Leaderboard or ghost projection returned a retryable result. Cloud Tasks should retry independently of reward settlement. Inspect the error class, queue backlog, board reconciliation, and Storage/Firestore dependencies.",
+    "mimeType": "text/markdown"
+  },
+  "conditions": [
+    {
+      "displayName": "Any projection retry in 5 minutes",
+      "conditionThreshold": {
+        "filter": "metric.type=\"logging.googleapis.com/user/replay_validator_projection_retries\" AND resource.type=\"cloud_run_revision\"",
+        "aggregations": [
+          {
+            "alignmentPeriod": "300s",
+            "perSeriesAligner": "ALIGN_SUM",
+            "crossSeriesReducer": "REDUCE_SUM"
+          }
+        ],
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 0,
+        "duration": "0s",
+        "trigger": {
+          "count": 1
+        }
+      }
+    }
+  ],
+  "combiner": "OR",
+  "enabled": true,
+  "alertStrategy": {
+    "autoClose": "3600s"
+  },
+  "userLabels": {
+    "component": "replay-projection",
+    "severity": "warning"
+  }
+}

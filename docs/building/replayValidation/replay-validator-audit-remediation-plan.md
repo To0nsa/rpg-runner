@@ -64,6 +64,13 @@ no new Critical or High issue, but it kept every original Critical/High row at
 The remaining gates are recorded in the closure ledger and July 19 environment
 record below.
 
+On July 19 the repository owner confirmed that no staging project exists and
+the game has no released users. Production is therefore the approved controlled
+pre-release environment for smoke and disposable-account canary verification.
+This decision does not authorize destructive crash, exhaustion, or large-load
+fault injection; those gates remain deferred until an isolated environment or
+explicit test window exists.
+
 ## Local implementation update — July 18, 2026
 
 The first local remediation tranche is implemented but is not production
@@ -931,7 +938,7 @@ This is implementation evidence, not deployment or closure evidence.
 | Check | Result | Evidence |
 |---|---|---|
 | Replay validator analysis | Pass | No issues |
-| Replay validator tests | Pass | 65 tests |
+| Replay validator tests | Pass | 75 tests |
 | Replay validator library coverage | Pass | 972 / 1,592 executable lines (61.1%) |
 | Server AOT compile | Pass | `bin/server.dart` compiled |
 | Protocol AOT rejection probe | Pass | Compiled probe rejected unsupported versions and command bits |
@@ -944,12 +951,14 @@ This is implementation evidence, not deployment or closure evidence.
 | Full Flutter suite | Partial | 751 passed and 3 unrelated authored-asset/parallax tests failed |
 | Cloud policy script syntax | Pass | PowerShell parser reports no errors |
 | Gcloud upload context | Pass | Upload listing contains only the service and its two local Dart packages |
-| Replay-validator workflow lint | Pass locally | `actionlint` accepted the source workflow; no GitHub run exists yet |
+| Replay-validator workflow | Pass | GitHub push workflow run 1 succeeded for commit `815aaddebb077429ea52774d2bb86e3a76a217c4` |
 | Whitespace/error scan | Pass | `git diff --check` |
 | Audit immutability | Pass | Blob hash remains `4b075d4b1b571d3c947d79f9b0bbb22c519aca20` |
-| Docker image build and vulnerability scan | Pass | July 19: digest-pinned image `sha256:24425cc992a595812d1165cb7a3aa292c09a329bdeb34429a6bc0e12f778a217` built successfully; Trivy 0.72.0 reported 0 Critical, 0 High, 4 Medium, and 9 Low findings across the final image's six Debian packages |
+| Docker image build and vulnerability scan | Pass | Exact commit image digest `sha256:54aa8c6b75da9cad8396acbb3c6abfdb398a7f8a42cfbb06b68157cb0128103d`; Trivy 0.72 reported 0 Critical and 0 High findings |
 | Docker runtime smoke | Pass | July 19: 12,100,223-byte image ran PID 1 as UID/GID 65532; `/live` returned 200, missing configuration failed `/ready` with 503, configured readiness returned 200, retired probe routes returned 404, and malformed validation/projection requests returned safe 400 responses |
 | Exact-image isolated deployment smoke | Pass | Artifact digest matched the scanned local image; private authenticated `/live` and `/ready` returned 200, malformed tasks returned 400, unauthenticated access returned 403, and the temporary service was deleted |
+| Production monitoring | Pass | Four log metrics and ten enabled validator/projection policies were applied idempotently with one production notification channel and no duplicate policy names |
+| Pre-release production canary | Pass | Valid replay, final reward, leaderboard, ghost, invalid replay rejection/revocation, and account-deletion request all passed on revision `replay-validator-00024-rzt` |
 
 The first July 19 scan of the `debian:bookworm-slim` runtime correctly failed
 with 4 Critical and 17 High OS-package findings. That image was not accepted.
@@ -1017,6 +1026,24 @@ This closes `RV2-L01`. `RV2-M02` remains verification-pending until contention
 is observed naturally or exercised in an isolated drill; the other ledger
 gates are unchanged.
 
+Final pre-release rollout at `2026-07-19T15:20Z` superseded the active revision
+and operations portions of the earlier records:
+
+- GitHub push workflows for Functions and Replay Validator succeeded on commit
+  `815aaddebb077429ea52774d2bb86e3a76a217c4`;
+- the exact commit image passed non-root runtime smoke and the Trivy
+  Critical/High gate, then was pushed and deployed by immutable digest
+  `sha256:54aa8c6b75da9cad8396acbb3c6abfdb398a7f8a42cfbb06b68157cb0128103d`;
+- revision `replay-validator-00024-rzt` serves 100% with `/ready` and `/live`,
+  the fixed resource policy, and no error/5xx entry in its rollout window;
+- four validator log metrics and ten enabled validator/projection/recovery
+  policies are deployed through the existing notification channel;
+- a disposable-account production canary passed valid validation, final
+  settlement, leaderboard/ghost projection, invalid replay rejection and
+  revocation, and durable account-deletion handoff;
+- complete evidence is in
+  [Pre-Release Production Rollout](production-rollout-2026-07-19.md).
+
 ## Closure evidence ledger
 
 Update this table as work lands. Link commits, tests, deployment records, repair
@@ -1031,25 +1058,25 @@ records, and the successor audit. Do not edit the baseline audit.
 | `RV-H02` | Implemented; verification pending | Generation captured through upload, validation, projection, copy, and manifest | Exact-generation read/copy/collision tests pass locally | Storage integration and deployed overwrite drill pending |
 | `RV-H03` | Implemented; verification pending | Duplicate projection always resumes materialized-view work | Partial player-best/top-10 retry regression passes locally | Staging fault injection pending |
 | `RV-H04` | Implemented; verification pending | Conditional player best and version-preconditioned top 10 plus reconciliation | Concurrent best/top-10 tests and 167-test Functions emulator suite pass | Deployed board-wide load verification pending |
-| `RV-H05` | Implemented; verification pending | Stubs are retryable; readiness fails closed; separate probes configured | App/final-container tests and exact-image isolated readiness smoke pass | Controlled production route/config rollout pending |
-| `RV-H06` | Implemented; verification pending | Production decoders explicitly reject versions, bits, axes, masks, and ranges | Protocol tests and compiled AOT rejection probe pass | Workflow is uncommitted/unrun; release-artifact CI evidence pending |
+| `RV-H05` | Closed | Stubs are retryable; readiness fails closed; separate probes configured | App/final-container tests and exact-image readiness smoke pass | Exact commit revision `00024-rzt` serves 100%; startup and repeated liveness probes are healthy |
+| `RV-H06` | Closed | Production decoders explicitly reject versions, bits, axes, masks, and ranges | Protocol tests, compiled AOT rejection probe, and GitHub workflow pass | Exact successful commit digest is deployed |
 | `RV-H07` | Implemented; verification pending | Identity, loadout, compatibility, and immutable board-window binding | Compatibility/identity/loadout/board-deletion matrix passes locally | Compatibility retirement/production fixture review pending |
 | `RV-H08` | Implemented; verification pending | Rejected/exhausted-error transitions use preconditioned atomic commits | Repository commit/precondition tests and 167-test Functions emulator suite pass | Inventory found no legacy partial data; deployed fault matrix pending |
 | `RV-H09` | Implemented; verification pending | All manifest pages and empty boards reconcile via scheduled board tasks | Pagination, empty-board, demotion, and purge tests pass locally | Over-100 deployed lifecycle drill pending |
 | `RV-M01` | In progress | Added production-shaped Firestore/Storage precondition and pagination coverage | Focused suites pass; aggregate service coverage is 61.1% | Complete risk matrix and real emulator/Storage integration pending |
 | `RV-M02` | Implemented; verification pending | Shared canonical floor conversion exported from `run_protocol` | Duration and 18 focused UI tests pass | Full Flutter suite has 3 unrelated asset-generation failures |
-| `RV-M03` | In progress | Separate readiness, stable public errors, and structured dispatch categories | Readiness and safe rejection tests pass locally | Only settlement monitoring is deployed; validator/projection/ghost/readiness alerts and drills pending |
-| `RV-L01` | Implemented; verification pending | Digest-pinned distroless runtime, numeric non-root identity, allowlisted contexts, and source CI workflow | Exact image runs as UID/GID 65532; Trivy reports 0 Critical/High; isolated digest smoke passes | Workflow remains uncommitted/unrun and production uses a different digest |
-| `RV-L02` | Implemented; verification pending | Commands, links, region examples, queues, `/live` and `/ready`, and service policy corrected | Policy syntax, local smoke, and isolated exact-image smoke pass | Production still uses retired `z`-suffixed routes pending controlled rollout |
-| `RV-L03` | Implemented; verification pending | `googleapis` 16.0.0 and `googleapis_auth` 2.3.3 | Analyzer, dependency freshness, adapters, and isolated authenticated smoke pass | Committed CI/release-artifact provenance pending |
+| `RV-M03` | Implemented; verification pending | Separate readiness, stable public errors, structured dispatch categories, four log metrics, and ten validator/projection/recovery policies | Readiness/safe rejection tests, policy API validation, healthy native probe series, and canary pass | Synthetic false incidents were intentionally not generated; runbook alert-response drill remains |
+| `RV-L01` | Closed | Digest-pinned distroless runtime, numeric non-root identity, allowlisted contexts, and source CI workflow | Exact image runs as UID/GID 65532; GitHub/Trivy report 0 Critical/High | Exact successful commit digest is deployed to revision `00024-rzt` |
+| `RV-L02` | Closed | Commands, links, region examples, queues, `/live` and `/ready`, and service policy corrected | Policy syntax, local smoke, exact-image smoke, and production probe evidence pass | Correct production routes and configuration serve 100% |
+| `RV-L03` | Closed | `googleapis` 16.0.0 and `googleapis_auth` 2.3.3 | Analyzer, dependency freshness, adapters, GitHub workflow, and production canary pass | Exact commit artifact is deployed |
 
 ### Successor finding ledger
 
 | Audit ID | Status | Evidence | Closure gate |
 |---|---|---|---|
-| `RV2-M01` | Open | CI workflow passes local lint/build/test/scan/smoke equivalents, but source is uncommitted and no GitHub run exists | Required successful CI tied to reviewed source and release image |
-| `RV2-M02` | Implemented; verification pending | Structured HTTP 400/`FAILED_PRECONDITION` classification is limited to the exact Google status; lease and every atomic-handoff fixture use the production response; worker emits `lease_conflict` retry telemetry | Analysis and 73 tests pass; revision `replay-validator-00022-sb6` is live; controlled contention drill remains |
-| `RV2-L01` | Closed | `/live` and `/ready` replace the reserved-suffix routes in source and deployment policy | Revision `replay-validator-00022-sb6` serves 100%; authenticated new probes return 200 and retired routes return 404 |
+| `RV2-M01` | Closed | Commit `815aadde` has successful Functions and Replay Validator push workflows; the exact commit archive produced the release image | GitHub test/AOT/container/Trivy gate and local exact-image scan/smoke pass | Immutable exact-commit digest serves revision `00024-rzt` |
+| `RV2-M02` | Implemented; verification pending | Structured HTTP 400/`FAILED_PRECONDITION` classification is limited to the exact Google status; lease and every atomic-handoff fixture use the production response; worker emits `lease_conflict` retry telemetry | Analysis and 75 tests pass; exact successful commit is live and the production canary passed | A new forced concurrent precondition collision was not generated in production |
+| `RV2-L01` | Closed | `/live` and `/ready` replace the reserved-suffix routes in source and deployment policy | Revision `replay-validator-00024-rzt` serves 100%; Cloud Run recorded healthy startup and liveness probes |
 
 Allowed status values:
 

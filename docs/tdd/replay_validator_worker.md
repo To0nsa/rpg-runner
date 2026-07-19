@@ -348,19 +348,42 @@ service and its two local Dart package dependencies.
 
 ## 9) Observability
 
-`ValidatorMetrics` currently logs structured dispatch lines to stdout (`ConsoleValidatorMetrics`), including:
+`ValidatorMetrics` logs structured dispatch lines to stdout
+(`ConsoleValidatorMetrics`), including:
+
 - `runSessionId`
 - `status`
 - `attempt`
 - `mode`
 - `phase`
-- optional rejection reason/message
+- optional rejection reason
+- optional duration in milliseconds
+- safe exception class for projection retries
 
-Accepted runs additionally emit `settlement_dispatch`,
-`settlement_dispatch_fallback`, or `settlement_dispatch_disabled` phases. These
-separate immediate delivery latency/failure from replay validation correctness.
+Accepted runs additionally emit `settlement_dispatch_start`,
+`settlement_dispatch_outcome`, `settlement_dispatch_fallback`, or
+`settlement_dispatch_disabled` phases. These separate immediate delivery
+latency/failure from replay validation correctness.
 
-Cloud Run logs can be filtered on `replay_validator.dispatch` for operational triage.
+Cloud Run logs can be filtered on `replay_validator.dispatch` for operational
+triage. Run-session ids remain log-only correlation data and are never
+extracted as metric labels.
+
+`services/replay_validator/monitoring/` is the executable monitoring source. It
+defines four label-free log metrics and ten alert policies covering:
+
+- validation retry/lease-conflict activity;
+- projection and ghost-reconciliation retries;
+- terminal validator internal errors;
+- replay resource-limit rejection bursts;
+- Cloud Run request 5xx, unhealthy probes, and sustained memory pressure;
+- validation and projection queue backlog;
+- scheduled validation-repair and projection-reconciliation failures.
+
+Validation backlog alerts after 15 minutes and projection backlog after
+30 minutes, beyond normal dispatch/reconciliation cadence. Alerts reuse the
+production notification channel and are reconciled idempotently by
+`monitoring/apply_alerts.ps1`.
 
 ---
 
