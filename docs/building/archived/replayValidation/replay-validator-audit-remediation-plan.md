@@ -1,7 +1,7 @@
 # Replay Validator Audit Remediation Plan
 
 Date: July 18, 2026  
-Status: Implementation in progress; production release remains blocked  
+Status: Complete; replay-validator release block removed July 21, 2026
 Evidence baseline:
 [Replay Validator Full Audit — July 18, 2026](../../audit/replay-validator-full-audit-2026-07-18.md)  
 Baseline Git blob hash: `4b075d4b1b571d3c947d79f9b0bbb22c519aca20`
@@ -9,6 +9,10 @@ Successor evidence:
 [Replay Validator Successor Audit — July 19, 2026](../../audit/replay-validator-successor-audit-2026-07-19.md)
 Successor audit Git blob hash:
 `f966a89f8b60c3b7c60dcfa1482d8e5ddbf6534b`
+Closure evidence:
+[Replay Validator Closure Audit — July 21, 2026](../../audit/replay-validator-closure-audit-2026-07-21.md)
+Closure audit Git blob hash:
+`df6eed4c8fac8689a7e4599f842d03aa5c1a113a`
 
 Related active plans:
 
@@ -46,23 +50,20 @@ baseline audit.
 
 ## Current decision
 
-The release remains blocked. Passing unit tests and static analysis do not
-override the audit findings.
+The replay-validator-specific release block is removed. The July 21 closure
+audit found no remaining release-blocking finding after every original and
+successor row completed its implementation, deployed verification, production
+inventory, and cleanup gate.
 
-Production rollout may resume only after:
+Production revision `replay-validator-00025-wfv` serves 100% on manifest digest
+`sha256:92adcfe4bfc57647b0be5c11105aee9f466f555e786b51084f0a00fd5351fa22`.
+Both queues were empty at final observation, the two temporary services and
+temporary service identity were removed, and exact cleanup reported zero
+residual data for both disposable accounts.
 
-- every Critical and High finding is closed with regression evidence;
-- affected persisted data has been inventoried and repaired;
-- queue, Cloud Run, IAM, and alert configuration is verified in the target
-  environment;
-- adversarial, retry, concurrency, and partial-failure staging gates pass;
-- a separate dated re-audit finds no remaining release blocker.
-
-The July 19 successor audit is complete and does not remove the block. It found
-no new Critical or High issue, but it kept every original Critical/High row at
-`Implemented; verification pending` and added two Medium and one Low finding.
-The remaining gates are recorded in the closure ledger and July 19 environment
-record below.
+Closure evidence is in
+[Release Closure Verification](release-closure-verification-2026-07-21.md) and
+[Replay Validator Closure Audit](../../audit/replay-validator-closure-audit-2026-07-21.md).
 
 On July 19 the repository owner confirmed that no staging project exists and
 the game has no released users. Production is therefore the approved controlled
@@ -213,111 +214,111 @@ Objective:
 
 ### Contract decisions
 
-- [ ] Define the validation lease contract:
-  - [ ] unique lease/attempt token
-  - [ ] lease acquisition and expiry timestamps
-  - [ ] expected-state and update-time preconditions
-  - [ ] stale lease reclaim rules
-  - [ ] stale worker write rejection
-  - [ ] duplicate active-delivery behavior
-- [ ] Select and document one retry authority.
-  - [ ] Prefer Cloud Tasks queue policy for ordinary delivery retries.
-  - [ ] Treat persisted retry timestamps as observability or repair input, not
+- [x] Define the validation lease contract:
+  - [x] unique lease/attempt token
+  - [x] lease acquisition and expiry timestamps
+  - [x] expected-state and update-time preconditions
+  - [x] stale lease reclaim rules
+  - [x] stale worker write rejection
+  - [x] duplicate active-delivery behavior
+- [x] Select and document one retry authority.
+  - [x] Prefer Cloud Tasks queue policy for ordinary delivery retries.
+  - [x] Treat persisted retry timestamps as observability or repair input, not
         an unimplemented scheduler.
-  - [ ] Define how scheduled repair restores work after queue exhaustion,
+  - [x] Define how scheduled repair restores work after queue exhaustion,
         deletion, or retention expiry.
-  - [ ] Define how the internal-error grace window survives task-budget
+  - [x] Define how the internal-error grace window survives task-budget
         exhaustion.
-- [ ] Define hard replay limits:
-  - [ ] compressed bytes
-  - [ ] expanded bytes
-  - [ ] JSON/object nesting where applicable
-  - [ ] frame count
-  - [ ] command count/density
-  - [ ] total ticks and duration
-  - [ ] maximum simulation wall time
-- [ ] Derive limits from currently valid content and expected gameplay duration;
+- [x] Define hard replay limits:
+  - [x] compressed bytes
+  - [x] expanded bytes
+  - [x] JSON/object nesting where applicable
+  - [x] frame count
+  - [x] command count/density
+  - [x] total ticks and duration
+  - [x] maximum simulation wall time
+- [x] Derive limits from currently valid content and expected gameplay duration;
       do not select values that reject issued tickets.
-- [ ] Define the immutable replay identity:
-  - [ ] bucket
-  - [ ] object path
-  - [ ] object generation
-  - [ ] content digest
-  - [ ] finalized timestamp
-- [ ] Define the supported compatibility matrix for:
-  - [ ] replay version
-  - [ ] command encoding version
-  - [ ] game compatibility version
-  - [ ] ruleset version
-  - [ ] score version
-  - [ ] ghost version
-- [ ] Define immutable board validation data captured at ticket issuance.
-- [ ] Define the projection truth model:
-  - [ ] player best is canonical per-player board state
-  - [ ] top 10 is a recoverable materialized view
-  - [ ] stale projection writers cannot replace newer revisions
-  - [ ] reconciliation does not depend on a new score arriving
-- [ ] Define one canonical tick-to-duration conversion rule.
-- [ ] Update the relevant TDD documents with these decisions in the same change
+- [x] Define the immutable replay identity:
+  - [x] bucket
+  - [x] object path
+  - [x] object generation
+  - [x] content digest
+  - [x] finalized timestamp
+- [x] Define the supported compatibility matrix for:
+  - [x] replay version
+  - [x] command encoding version
+  - [x] game compatibility version
+  - [x] ruleset version
+  - [x] score version
+  - [x] ghost version
+- [x] Define immutable board validation data captured at ticket issuance.
+- [x] Define the projection truth model:
+  - [x] player best is canonical per-player board state
+  - [x] top 10 is a recoverable materialized view
+  - [x] stale projection writers cannot replace newer revisions
+  - [x] reconciliation does not depend on a new score arriving
+- [x] Define one canonical tick-to-duration conversion rule.
+- [x] Update the relevant TDD documents with these decisions in the same change
       that implements them. Proposed decisions remain in this building plan
       until implemented.
 
 ### Environment and data inventory
 
-- [ ] Record the deployed Cloud Run:
-  - [ ] image digest and revision
-  - [ ] service account
-  - [ ] region
-  - [ ] CPU and memory
-  - [ ] request timeout
-  - [ ] container concurrency
-  - [ ] minimum and maximum instances
-  - [ ] startup and readiness behavior
-- [ ] Record both validation and projection queue:
-  - [ ] region
-  - [ ] target URL
-  - [ ] OIDC service account and audience
-  - [ ] maximum attempts and retry duration
-  - [ ] minimum/maximum backoff and doublings
-  - [ ] dispatch rate and maximum concurrent dispatches
-  - [ ] task retention
-- [ ] Verify least-privilege IAM for Functions, task dispatch, validator,
+- [x] Record the deployed Cloud Run:
+  - [x] image digest and revision
+  - [x] service account
+  - [x] region
+  - [x] CPU and memory
+  - [x] request timeout
+  - [x] container concurrency
+  - [x] minimum and maximum instances
+  - [x] startup and readiness behavior
+- [x] Record both validation and projection queue:
+  - [x] region
+  - [x] target URL
+  - [x] OIDC service account and audience
+  - [x] maximum attempts and retry duration
+  - [x] minimum/maximum backoff and doublings
+  - [x] dispatch rate and maximum concurrent dispatches
+  - [x] task retention
+- [x] Verify least-privilege IAM for Functions, task dispatch, validator,
       Firestore, and Storage paths.
-- [ ] Inventory persisted state without mutating it:
-  - [ ] `validating` sessions grouped by lease age
-  - [ ] `pending_validation` sessions grouped by next-attempt age
-  - [ ] internal-error retries grouped by first-error age
-  - [ ] terminal runs whose reward-grant state disagrees
-  - [ ] missing or malformed reward grants
-  - [ ] player-best/top-10 disagreement by board
-  - [ ] active ghost manifests outside top 10
-  - [ ] expired demoted manifests/objects
-  - [ ] replay objects whose finalized generation is missing from session data
-- [ ] Store counts and query timestamps in a dated rollout record; do not put
+- [x] Inventory persisted state without mutating it:
+  - [x] `validating` sessions grouped by lease age
+  - [x] `pending_validation` sessions grouped by next-attempt age
+  - [x] internal-error retries grouped by first-error age
+  - [x] terminal runs whose reward-grant state disagrees
+  - [x] missing or malformed reward grants
+  - [x] player-best/top-10 disagreement by board
+  - [x] active ghost manifests outside top 10
+  - [x] expired demoted manifests/objects
+  - [x] replay objects whose finalized generation is missing from session data
+- [x] Store counts and query timestamps in a dated rollout record; do not put
       production identifiers or sensitive payloads in repository docs.
 
 ### Rollback and migration preparation
 
-- [ ] Define deployment order for additive schema reads before new writes.
-- [ ] Define a bounded, cursor-based, idempotent repair command/job with
+- [x] Define deployment order for additive schema reads before new writes.
+- [x] Define a bounded, cursor-based, idempotent repair command/job with
       `off`, `inventory`, and explicit `apply` modes.
-- [ ] Define rollback behavior that preserves new fields and never restores
+- [x] Define rollback behavior that preserves new fields and never restores
       unfenced writes.
-- [ ] Define feature controls for:
-  - [ ] validation dispatch
-  - [ ] stale-lease reclaim
-  - [ ] automatic internal-error revocation
-  - [ ] leaderboard projection
-  - [ ] ghost publication
-- [ ] Confirm disabling a side effect cannot acknowledge and lose its durable
+- [x] Define feature controls for:
+  - [x] validation dispatch
+  - [x] stale-lease reclaim
+  - [x] automatic internal-error revocation
+  - [x] leaderboard projection
+  - [x] ghost publication
+- [x] Confirm disabling a side effect cannot acknowledge and lose its durable
       task.
 
 Done when:
 
-- [ ] every contract decision is recorded and reviewed
-- [ ] live configuration and data inventory is captured
-- [ ] migration and rollback paths are idempotent and bounded
-- [ ] no implementation phase relies on an unresolved authority decision
+- [x] every contract decision is recorded and reviewed
+- [x] live configuration and data inventory is captured
+- [x] migration and rollback paths are idempotent and bounded
+- [x] no implementation phase relies on an unresolved authority decision
 
 ---
 
@@ -332,96 +333,96 @@ Objective:
 
 ### Shared/session contract
 
-- [ ] Add additive lease metadata to the run-session contract.
-- [ ] Preserve backward reads for sessions created before the migration.
-- [ ] Ensure new writers emit the complete lease contract before strict reads
+- [x] Add additive lease metadata to the run-session contract.
+- [x] Preserve backward reads for sessions created before the migration.
+- [x] Ensure new writers emit the complete lease contract before strict reads
       are enabled.
-- [ ] Preserve the first internal-error timestamp across every repository
+- [x] Preserve the first internal-error timestamp across every repository
       decode, lease, retry, and terminal transition.
-- [ ] Distinguish public status/error codes from operator-only diagnostic
+- [x] Distinguish public status/error codes from operator-only diagnostic
       details.
 
 ### Lease repository
 
-- [ ] Acquire a lease transactionally with:
-  - [ ] unique token
-  - [ ] expected source state
-  - [ ] incremented attempt
-  - [ ] start and expiry timestamps
-  - [ ] document precondition
-- [ ] Require the lease token on:
-  - [ ] retry scheduling
-  - [ ] accepted handoff
-  - [ ] rejection handoff
-  - [ ] internal-error terminalization
-  - [ ] any validation-owned message/status write
-- [ ] Reject every stale lease writer without mutating current state.
-- [ ] Reclaim expired `validating` sessions transactionally.
-- [ ] Make active duplicate delivery explicitly retryable or prove another
+- [x] Acquire a lease transactionally with:
+  - [x] unique token
+  - [x] expected source state
+  - [x] incremented attempt
+  - [x] start and expiry timestamps
+  - [x] document precondition
+- [x] Require the lease token on:
+  - [x] retry scheduling
+  - [x] accepted handoff
+  - [x] rejection handoff
+  - [x] internal-error terminalization
+  - [x] any validation-owned message/status write
+- [x] Reject every stale lease writer without mutating current state.
+- [x] Reclaim expired `validating` sessions transactionally.
+- [x] Make active duplicate delivery explicitly retryable or prove another
       durable recovery task exists before acknowledging it.
-- [ ] Handle an acquisition conflict separately from an already active lease;
+- [x] Handle an acquisition conflict separately from an already active lease;
       do not collapse invalid state and transient contention into success.
 
 ### Retry and repair
 
-- [ ] Check in declarative Cloud Tasks queue policy or an equivalent
+- [x] Check in declarative Cloud Tasks queue policy or an equivalent
       reviewable configuration source.
-- [ ] Align worker retry accounting with actual Cloud Tasks attempt headers.
-- [ ] Remove or rename application retry schedules that are not enforced.
-- [ ] Add a scheduled Functions repair job that:
-  - [ ] scans a bounded page
-  - [ ] requeues expired leases
-  - [ ] requeues orphaned pending validations
-  - [ ] respects the original internal-error grace start
-  - [ ] uses deterministic task names/idempotency
-  - [ ] emits repaired/skipped/conflict metrics
-- [ ] Ensure queue exhaustion cannot permanently strand a run.
-- [ ] Ensure incident-mode pause has a durable revisit mechanism.
+- [x] Align worker retry accounting with actual Cloud Tasks attempt headers.
+- [x] Remove or rename application retry schedules that are not enforced.
+- [x] Add a scheduled Functions repair job that:
+  - [x] scans a bounded page
+  - [x] requeues expired leases
+  - [x] requeues orphaned pending validations
+  - [x] respects the original internal-error grace start
+  - [x] uses deterministic task names/idempotency
+  - [x] emits repaired/skipped/conflict metrics
+- [x] Ensure queue exhaustion cannot permanently strand a run.
+- [x] Ensure incident-mode pause has a durable revisit mechanism.
 
 ### Bounded input and execution
 
-- [ ] Reject an object larger than the finalized compressed-byte contract
+- [x] Reject an object larger than the finalized compressed-byte contract
       before full materialization where possible.
-- [ ] Replace unbounded gzip decoding with bounded streaming decompression.
-- [ ] Stop decoding immediately when the expanded-byte limit is exceeded.
-- [ ] Enforce frame, command, tick, and run-duration limits before simulation.
-- [ ] Enforce a monotonic wall-time deadline during simulation.
-- [ ] Classify limit violations as stable player-input rejection, not transient
+- [x] Replace unbounded gzip decoding with bounded streaming decompression.
+- [x] Stop decoding immediately when the expanded-byte limit is exceeded.
+- [x] Enforce frame, command, tick, and run-duration limits before simulation.
+- [x] Enforce a monotonic wall-time deadline during simulation.
+- [x] Classify limit violations as stable player-input rejection, not transient
       infrastructure errors.
-- [ ] Prevent error messages from echoing large/malicious input.
+- [x] Prevent error messages from echoing large/malicious input.
 
 ### Deployment controls
 
-- [ ] Set explicit Cloud Run CPU, memory, timeout, concurrency, and maximum
+- [x] Set explicit Cloud Run CPU, memory, timeout, concurrency, and maximum
       instances based on adversarial and representative load tests.
-- [ ] Set explicit queue dispatch rate and concurrent dispatch limits.
-- [ ] Ensure Cloud Run timeout exceeds the application deadline plus bounded
+- [x] Set explicit queue dispatch rate and concurrent dispatch limits.
+- [x] Ensure Cloud Run timeout exceeds the application deadline plus bounded
       terminal-write allowance.
-- [ ] Alert on container OOM, request timeout, lease expiry, and repair backlog.
+- [x] Alert on container OOM, request timeout, lease expiry, and repair backlog.
 
 ### Required tests
 
-- [ ] crash immediately after lease acquisition
-- [ ] request timeout after lease acquisition
-- [ ] active duplicate task delivery
-- [ ] expired lease reclaim
-- [ ] stale worker attempting every write type
-- [ ] queue exhaustion followed by repair
-- [ ] internal-error grace across production repository round trips
-- [ ] incident mode across process restarts
-- [ ] gzip expansion past the limit
-- [ ] replay at and one unit beyond every size/count/tick limit
-- [ ] simulation deadline cancellation
-- [ ] concurrent reclaim attempts
+- [x] crash immediately after lease acquisition
+- [x] request timeout after lease acquisition
+- [x] active duplicate task delivery
+- [x] expired lease reclaim
+- [x] stale worker attempting every write type
+- [x] queue exhaustion followed by repair
+- [x] internal-error grace across production repository round trips
+- [x] incident mode across process restarts
+- [x] gzip expansion past the limit
+- [x] replay at and one unit beyond every size/count/tick limit
+- [x] simulation deadline cancellation
+- [x] concurrent reclaim attempts
 
 Done when:
 
-- [ ] no worker crash or queue exhaustion can strand a run indefinitely
-- [ ] stale writers cannot terminalize a newer attempt
-- [ ] the first internal-error timestamp remains immutable
-- [ ] adversarial replay work remains within measured CPU, memory, and time
+- [x] no worker crash or queue exhaustion can strand a run indefinitely
+- [x] stale writers cannot terminalize a newer attempt
+- [x] the first internal-error timestamp remains immutable
+- [x] adversarial replay work remains within measured CPU, memory, and time
       budgets
-- [ ] deployed service and queue limits match checked-in policy
+- [x] deployed service and queue limits match checked-in policy
 
 ---
 
@@ -436,84 +437,84 @@ Objective:
 
 ### Immutable upload lineage
 
-- [ ] Carry storage generation through:
-  - [ ] upload finalization record
-  - [ ] run session
-  - [ ] validator replay reference
-  - [ ] validated-run evidence
-  - [ ] leaderboard candidate
-  - [ ] ghost promotion input and manifest
-- [ ] Require finalized generation and digest for every newly finalized upload.
-- [ ] Read the exact generation from Cloud Storage with a generation
+- [x] Carry storage generation through:
+  - [x] upload finalization record
+  - [x] run session
+  - [x] validator replay reference
+  - [x] validated-run evidence
+  - [x] leaderboard candidate
+  - [x] ghost promotion input and manifest
+- [x] Require finalized generation and digest for every newly finalized upload.
+- [x] Read the exact generation from Cloud Storage with a generation
       precondition.
-- [ ] Reject a missing/replaced generation as a stable evidence failure.
-- [ ] Prevent upload URL reuse from changing finalized evidence:
-  - [ ] use generation preconditions on upload/finalization; or
-  - [ ] promote finalized bytes immediately to an immutable evidence object.
-- [ ] Preserve old-session handling explicitly; do not silently treat “latest”
+- [x] Reject a missing/replaced generation as a stable evidence failure.
+- [x] Prevent upload URL reuse from changing finalized evidence:
+  - [x] use generation preconditions on upload/finalization; or
+  - [x] promote finalized bytes immediately to an immutable evidence object.
+- [x] Preserve old-session handling explicitly; do not silently treat “latest”
       as the generation for legacy sessions.
 
 ### Explicit decoder validation
 
-- [ ] Replace all untrusted-input safety assertions with explicit validation
+- [x] Replace all untrusted-input safety assertions with explicit validation
       errors.
-- [ ] Allowlist replay and command-encoding versions.
-- [ ] Validate:
-  - [ ] known command-bit mask
-  - [ ] paired aim axes
-  - [ ] axis ranges
-  - [ ] monotonic and bounded frame ticks
-  - [ ] held/pressed/released relationships
-  - [ ] total tick relationship
-  - [ ] all numeric and collection bounds
-- [ ] Keep assertions only for internal programmer invariants after input
+- [x] Allowlist replay and command-encoding versions.
+- [x] Validate:
+  - [x] known command-bit mask
+  - [x] paired aim axes
+  - [x] axis ranges
+  - [x] monotonic and bounded frame ticks
+  - [x] held/pressed/released relationships
+  - [x] total tick relationship
+  - [x] all numeric and collection bounds
+- [x] Keep assertions only for internal programmer invariants after input
       validation.
-- [ ] Compile and exercise decoder rejection behavior in AOT mode.
+- [x] Compile and exercise decoder rejection behavior in AOT mode.
 
 ### Ticket, loadout, board, and compatibility binding
 
-- [ ] Bind ticket `uid` and `runSessionId` to the stored session and replay.
-- [ ] Recompute and verify the canonical loadout digest.
-- [ ] Validate every supported version against the Phase 0 compatibility
+- [x] Bind ticket `uid` and `runSessionId` to the stored session and replay.
+- [x] Recompute and verify the canonical loadout digest.
+- [x] Validate every supported version against the Phase 0 compatibility
       matrix.
-- [ ] Select the correct Core/rules implementation for the issued ticket, or
+- [x] Select the correct Core/rules implementation for the issued ticket, or
       reject a version that is no longer supported.
-- [ ] Persist immutable board validation fields at ticket issuance.
-- [ ] Validate ticket board key/revision/ruleset/score/ghost versions against
+- [x] Persist immutable board validation fields at ticket issuance.
+- [x] Validate ticket board key/revision/ruleset/score/ghost versions against
       that immutable snapshot.
-- [ ] Stop relying on mutable board existence if issued-ticket policy says a
+- [x] Stop relying on mutable board existence if issued-ticket policy says a
       run remains valid after board closure/deletion.
-- [ ] Define and test the expiry/retirement policy for old compatibility
+- [x] Define and test the expiry/retirement policy for old compatibility
       implementations.
 
 ### Shared duration contract
 
-- [ ] Put the canonical tick-to-duration conversion in the lowest shared
+- [x] Put the canonical tick-to-duration conversion in the lowest shared
       appropriate layer.
-- [ ] Use it for authoritative validated runs and provisional client display.
-- [ ] Use the same value for leaderboard tie-breaking.
+- [x] Use it for authoritative validated runs and provisional client display.
+- [x] Use the same value for leaderboard tie-breaking.
 
 ### Required tests
 
-- [ ] overwrite upload path after finalization
-- [ ] read old versus current object generation
-- [ ] copy/read generation precondition failure
-- [ ] malformed replay with assertions disabled/AOT
-- [ ] unknown replay, command, game, ruleset, score, and ghost versions
-- [ ] unknown command bits
-- [ ] ticket/session/replay uid and run-session mismatch
-- [ ] loadout digest mismatch
-- [ ] board closure/deletion after ticket issuance
-- [ ] every supported compatibility fixture
-- [ ] duration immediately below, at, and above rounding boundaries
+- [x] overwrite upload path after finalization
+- [x] read old versus current object generation
+- [x] copy/read generation precondition failure
+- [x] malformed replay with assertions disabled/AOT
+- [x] unknown replay, command, game, ruleset, score, and ghost versions
+- [x] unknown command bits
+- [x] ticket/session/replay uid and run-session mismatch
+- [x] loadout digest mismatch
+- [x] board closure/deletion after ticket issuance
+- [x] every supported compatibility fixture
+- [x] duration immediately below, at, and above rounding boundaries
 
 Done when:
 
-- [ ] validated evidence identifies one immutable object generation and digest
-- [ ] no “latest object” lookup participates in authority
-- [ ] every external protocol constraint is enforced without assertions
-- [ ] issued tickets select only documented compatible behavior
-- [ ] client and validator produce the same canonical duration
+- [x] validated evidence identifies one immutable object generation and digest
+- [x] no “latest object” lookup participates in authority
+- [x] every external protocol constraint is enforced without assertions
+- [x] issued tickets select only documented compatible behavior
+- [x] client and validator produce the same canonical duration
 
 ---
 
@@ -528,53 +529,53 @@ Objective:
 
 ### Transition design
 
-- [ ] Add semantic repository operations for:
-  - [ ] rejected validation handoff
-  - [ ] exhausted internal-error handoff
-- [ ] Retire the validator's standalone reward-grant patch path after the
+- [x] Add semantic repository operations for:
+  - [x] rejected validation handoff
+  - [x] exhausted internal-error handoff
+- [x] Retire the validator's standalone reward-grant patch path after the
       atomic operations land.
-- [ ] Atomically bind:
-  - [ ] validated/rejection evidence where required
-  - [ ] reward-grant final disposition
-  - [ ] run-session terminal state
-  - [ ] lease token
-  - [ ] uid and run-session identity
-  - [ ] expected prior state
-  - [ ] document update times/existence
-- [ ] Specify missing-grant behavior explicitly.
-- [ ] Prevent patch/upsert from creating a malformed partial reward grant.
-- [ ] Prevent an unexpected final grant state from being overwritten.
-- [ ] Keep canonical wallet application in the Functions-owned settlement
+- [x] Atomically bind:
+  - [x] validated/rejection evidence where required
+  - [x] reward-grant final disposition
+  - [x] run-session terminal state
+  - [x] lease token
+  - [x] uid and run-session identity
+  - [x] expected prior state
+  - [x] document update times/existence
+- [x] Specify missing-grant behavior explicitly.
+- [x] Prevent patch/upsert from creating a malformed partial reward grant.
+- [x] Prevent an unexpected final grant state from being overwritten.
+- [x] Keep canonical wallet application in the Functions-owned settlement
       authority; rejection finalization must not introduce wallet mutation in
       Dart.
-- [ ] Coordinate any shared state change with the active Gold Grant
+- [x] Coordinate any shared state change with the active Gold Grant
       Verification checklist.
 
 ### Recovery and migration
 
-- [ ] Make a duplicate identical verdict idempotently successful.
-- [ ] Reject a different/stale verdict for the same run.
-- [ ] Add repair logic for pre-existing partial terminal/reward states.
-- [ ] Record every repaired invariant violation without exposing player data.
+- [x] Make a duplicate identical verdict idempotently successful.
+- [x] Reject a different/stale verdict for the same run.
+- [x] Add repair logic for pre-existing partial terminal/reward states.
+- [x] Record every repaired invariant violation without exposing player data.
 
 ### Required tests
 
-- [ ] injected failure before and after every transition write
-- [ ] missing reward grant
-- [ ] malformed reward grant
-- [ ] unexpected final reward state
-- [ ] stale lease token
-- [ ] duplicate identical rejection
-- [ ] competing accepted and rejected verdicts
-- [ ] exhausted error racing a recovered successful validation
-- [ ] emulator verification of atomic rollback on precondition failure
+- [x] injected failure before and after every transition write
+- [x] missing reward grant
+- [x] malformed reward grant
+- [x] unexpected final reward state
+- [x] stale lease token
+- [x] duplicate identical rejection
+- [x] competing accepted and rejected verdicts
+- [x] exhausted error racing a recovered successful validation
+- [x] emulator verification of atomic rollback on precondition failure
 
 Done when:
 
-- [ ] terminal session and reward disposition cannot partially commit
-- [ ] no missing document can be created as a partial reward grant
-- [ ] stale/competing verdicts cannot overwrite authoritative state
-- [ ] accepted, rejected, and internal-error paths are all safely retryable
+- [x] terminal session and reward disposition cannot partially commit
+- [x] no missing document can be created as a partial reward grant
+- [x] stale/competing verdicts cannot overwrite authoritative state
+- [x] accepted, rejected, and internal-error paths are all safely retryable
 
 ---
 
@@ -589,56 +590,56 @@ Objective:
 
 ### Player-best authority
 
-- [ ] Make compare-and-replace transactional or conditional on the observed
+- [x] Make compare-and-replace transactional or conditional on the observed
       document version.
-- [ ] Guarantee a worse candidate cannot overwrite a better candidate.
-- [ ] Treat an identical run already stored as a resumable idempotent state,
+- [x] Guarantee a worse candidate cannot overwrite a better candidate.
+- [x] Treat an identical run already stored as a resumable idempotent state,
       not proof that all downstream projection completed.
-- [ ] Persist enough projection revision/state to resume incomplete side
+- [x] Persist enough projection revision/state to resume incomplete side
       effects.
 
 ### Top-10 materialization
 
-- [ ] Define a monotonic board projection revision or equivalent stale-writer
+- [x] Define a monotonic board projection revision or equivalent stale-writer
       protection.
-- [ ] Prevent an older top-10 build from overwriting a newer build.
-- [ ] Make ghost-eligibility updates and top-10 view publication resumable.
-- [ ] Add an independent scheduled reconciliation job deriving top 10 from
+- [x] Prevent an older top-10 build from overwriting a newer build.
+- [x] Make ghost-eligibility updates and top-10 view publication resumable.
+- [x] Add an independent scheduled reconciliation job deriving top 10 from
       player-best truth.
-- [ ] Make reconciliation bounded, paginated, observable, and idempotent.
-- [ ] Decide and document whether per-board task serialization supplements,
+- [x] Make reconciliation bounded, paginated, observable, and idempotent.
+- [x] Decide and document whether per-board task serialization supplements,
       but does not replace, database correctness controls.
 
 ### Task lifecycle and configuration
 
-- [ ] Remove production-success behavior from `StubProjectionWorker`.
-- [ ] Fail startup/readiness when project, bucket, or projection configuration
+- [x] Remove production-success behavior from `StubProjectionWorker`.
+- [x] Fail startup/readiness when project, bucket, or projection configuration
       is missing.
-- [ ] Ensure a disabled projection path returns retryable status unless a
+- [x] Ensure a disabled projection path returns retryable status unless a
       durable alternative owns the work.
-- [ ] Use deterministic task identity or persisted projection state to make
+- [x] Use deterministic task identity or persisted projection state to make
       duplicate tasks safe.
-- [ ] Ensure projection delay/failure remains separate from reward settlement.
+- [x] Ensure projection delay/failure remains separate from reward settlement.
 
 ### Required tests
 
-- [ ] failure after player-best write and before top-10 refresh
-- [ ] failure during every ghost-eligibility update
-- [ ] failure before and after top-10 view write
-- [ ] same-player better/worse candidates delivered concurrently
-- [ ] different-player board updates delivered concurrently
-- [ ] older projection finishing after a newer projection
-- [ ] duplicate identical projection
-- [ ] reconciliation after task exhaustion
-- [ ] missing configuration does not return 2xx
-- [ ] readiness fails for stub/misconfigured worker
+- [x] failure after player-best write and before top-10 refresh
+- [x] failure during every ghost-eligibility update
+- [x] failure before and after top-10 view write
+- [x] same-player better/worse candidates delivered concurrently
+- [x] different-player board updates delivered concurrently
+- [x] older projection finishing after a newer projection
+- [x] duplicate identical projection
+- [x] reconciliation after task exhaustion
+- [x] missing configuration does not return 2xx
+- [x] readiness fails for stub/misconfigured worker
 
 Done when:
 
-- [ ] player best is monotonic according to canonical sort order
-- [ ] top 10 converges from player-best truth after every tested fault
-- [ ] stale writers cannot replace a newer view
-- [ ] no misconfigured worker can acknowledge and lose a projection task
+- [x] player best is monotonic according to canonical sort order
+- [x] top 10 converges from player-best truth after every tested fault
+- [x] stale writers cannot replace a newer view
+- [x] no misconfigured worker can acknowledge and lose a projection task
 
 ---
 
@@ -653,49 +654,49 @@ Objective:
 
 ### Generation-pinned promotion
 
-- [ ] Copy the exact validated source generation.
-- [ ] Apply source-generation and destination preconditions.
-- [ ] Persist source generation, promoted generation, and digest in the ghost
+- [x] Copy the exact validated source generation.
+- [x] Apply source-generation and destination preconditions.
+- [x] Persist source generation, promoted generation, and digest in the ghost
       manifest.
-- [ ] Verify promoted bytes/digest before setting `exposed: true`.
-- [ ] Make a duplicate promotion idempotent only when generation/digest match.
-- [ ] Reject a destination collision with different evidence.
+- [x] Verify promoted bytes/digest before setting `exposed: true`.
+- [x] Make a duplicate promotion idempotent only when generation/digest match.
+- [x] Reject a destination collision with different evidence.
 
 ### Full lifecycle reconciliation
 
-- [ ] Reconcile prior manifests even when current top 10 is empty.
-- [ ] Paginate through every relevant active manifest.
-- [ ] Query and purge every expired demoted manifest/object, not only the first
+- [x] Reconcile prior manifests even when current top 10 is empty.
+- [x] Paginate through every relevant active manifest.
+- [x] Query and purge every expired demoted manifest/object, not only the first
       100 records.
-- [ ] Add a scheduled cleanup/reconciliation job independent of projection
+- [x] Add a scheduled cleanup/reconciliation job independent of projection
       arrivals.
-- [ ] Make demotion ordering safe:
-  - [ ] revoke exposure first
-  - [ ] retain through the documented grace period
-  - [ ] delete object and manifest idempotently after expiry
-- [ ] Handle closed/disabled/deleted boards according to documented policy.
-- [ ] Coordinate replay-submission cleanup so active ghost evidence is never
+- [x] Make demotion ordering safe:
+  - [x] revoke exposure first
+  - [x] retain through the documented grace period
+  - [x] delete object and manifest idempotently after expiry
+- [x] Handle closed/disabled/deleted boards according to documented policy.
+- [x] Coordinate replay-submission cleanup so active ghost evidence is never
       deleted early.
 
 ### Required tests
 
-- [ ] source object overwritten after validation
-- [ ] generation mismatch during copy
-- [ ] destination collision with same and different digest
-- [ ] more than 100 active/demoted manifests
-- [ ] tied ranks across pagination boundaries
-- [ ] empty top 10
-- [ ] board closes with no future projection
-- [ ] cleanup duplicate delivery
-- [ ] cleanup interruption between object and manifest operations
-- [ ] active ghost protected from submission cleanup
+- [x] source object overwritten after validation
+- [x] generation mismatch during copy
+- [x] destination collision with same and different digest
+- [x] more than 100 active/demoted manifests
+- [x] tied ranks across pagination boundaries
+- [x] empty top 10
+- [x] board closes with no future projection
+- [x] cleanup duplicate delivery
+- [x] cleanup interruption between object and manifest operations
+- [x] active ghost protected from submission cleanup
 
 Done when:
 
-- [ ] every exposed ghost matches the validated generation and digest
-- [ ] only current eligible top-10 ghosts are exposed
-- [ ] all expired demoted artifacts are eventually purged without a new score
-- [ ] reconciliation is complete, paginated, idempotent, and observable
+- [x] every exposed ghost matches the validated generation and digest
+- [x] only current eligible top-10 ghosts are exposed
+- [x] all expired demoted artifacts are eventually purged without a new score
+- [x] reconciliation is complete, paginated, idempotent, and observable
 
 ---
 
@@ -711,53 +712,53 @@ Objective:
 
 ### Integration and failure testing
 
-- [ ] Add Firestore emulator coverage for:
-  - [ ] session codec round trips
-  - [ ] update-time/existence preconditions
-  - [ ] lease fencing
-  - [ ] atomic terminal transitions
-  - [ ] concurrent player-best writes
-  - [ ] versioned top-10 writes
-- [ ] Add Storage adapter coverage for:
-  - [ ] exact-generation reads
-  - [ ] bounded downloads
-  - [ ] generation-pinned copies
-  - [ ] delete/not-found idempotency
-- [ ] Add authenticated HTTP integration coverage for:
-  - [ ] validation task
-  - [ ] projection task
-  - [ ] immediate settlement dispatch
-  - [ ] invalid task identity/audience
-- [ ] Add end-to-end forced-failure scenarios spanning Functions, Cloud Tasks
+- [x] Add Firestore emulator coverage for:
+  - [x] session codec round trips
+  - [x] update-time/existence preconditions
+  - [x] lease fencing
+  - [x] atomic terminal transitions
+  - [x] concurrent player-best writes
+  - [x] versioned top-10 writes
+- [x] Add Storage adapter coverage for:
+  - [x] exact-generation reads
+  - [x] bounded downloads
+  - [x] generation-pinned copies
+  - [x] delete/not-found idempotency
+- [x] Add authenticated HTTP integration coverage for:
+  - [x] validation task
+  - [x] projection task
+  - [x] immediate settlement dispatch
+  - [x] invalid task identity/audience
+- [x] Add end-to-end forced-failure scenarios spanning Functions, Cloud Tasks
       semantics, validator, and Firestore.
-- [ ] Track risk-based coverage by production adapter and critical failure
+- [x] Track risk-based coverage by production adapter and critical failure
       branch. Do not use aggregate line coverage as the only gate.
 
 ### Readiness and safe telemetry
 
-- [ ] Separate liveness and readiness endpoints.
-- [ ] Readiness must verify mandatory configuration and worker construction.
-- [ ] Decide which dependency probes are safe and bounded for readiness.
-- [ ] Emit structured fields for:
-  - [ ] run-session id
-  - [ ] task identity and actual attempt
-  - [ ] lease token hash/correlation value, not raw secret material
-  - [ ] phase and outcome
-  - [ ] safe error category/class
-  - [ ] duration and resource-limit category
-  - [ ] repair/reconciliation result
-- [ ] Keep raw exception and stack trace in restricted logs only.
-- [ ] Persist only stable public error codes/messages to player-visible state.
-- [ ] Add dashboards and alerts for:
-  - [ ] stale/expired leases
-  - [ ] orphaned pending validations
-  - [ ] retry exhaustion
-  - [ ] internal-error grace age
-  - [ ] OOM/timeout/resource rejection
-  - [ ] settlement lag/invariant violation
-  - [ ] projection lag/drift
-  - [ ] ghost reconciliation/retention lag
-  - [ ] readiness failure
+- [x] Separate liveness and readiness endpoints.
+- [x] Readiness must verify mandatory configuration and worker construction.
+- [x] Decide which dependency probes are safe and bounded for readiness.
+- [x] Emit structured fields for:
+  - [x] run-session id
+  - [x] task identity and actual attempt
+  - [x] lease token hash/correlation value, not raw secret material
+  - [x] phase and outcome
+  - [x] safe error category/class
+  - [x] duration and resource-limit category
+  - [x] repair/reconciliation result
+- [x] Keep raw exception and stack trace in restricted logs only.
+- [x] Persist only stable public error codes/messages to player-visible state.
+- [x] Add dashboards and alerts for:
+  - [x] stale/expired leases
+  - [x] orphaned pending validations
+  - [x] retry exhaustion
+  - [x] internal-error grace age
+  - [x] OOM/timeout/resource rejection
+  - [x] settlement lag/invariant violation
+  - [x] projection lag/drift
+  - [x] ghost reconciliation/retention lag
+  - [x] readiness failure
 
 ### Container and dependency hardening
 
@@ -767,28 +768,28 @@ Objective:
       policy.
 - [x] Review and upgrade `googleapis` and `googleapis_auth`, or record a
       time-bounded compatibility reason for deferral.
-- [ ] Build and vulnerability-scan the final image in CI.
-- [ ] Verify the AOT artifact and container receive the same regression suite.
+- [x] Build and vulnerability-scan the final image in CI.
+- [x] Verify the AOT artifact and container receive the same regression suite.
 
 ### Documentation and executable configuration
 
-- [ ] Correct service validation commands so they work from the documented
+- [x] Correct service validation commands so they work from the documented
       directory.
-- [ ] Correct stale implementation descriptions, links, and region examples.
-- [ ] Check in queue retry/dispatch policy.
-- [ ] Check in or script Cloud Run CPU/memory/timeout/concurrency/instance
+- [x] Correct stale implementation descriptions, links, and region examples.
+- [x] Check in queue retry/dispatch policy.
+- [x] Check in or script Cloud Run CPU/memory/timeout/concurrency/instance
       policy.
-- [ ] Document OIDC audience and least-privilege IAM verification.
-- [ ] Update implemented-behavior TDD documents only as each change lands.
-- [ ] Update service/root `AGENTS.md` only if ownership or working rules change.
+- [x] Document OIDC audience and least-privilege IAM verification.
+- [x] Update implemented-behavior TDD documents only as each change lands.
+- [x] Update service/root `AGENTS.md` only if ownership or working rules change.
 
 Done when:
 
-- [ ] critical production adapters and failure branches have direct tests
-- [ ] misconfigured revisions cannot become ready
-- [ ] operators can distinguish validation, settlement, projection, and ghost
+- [x] critical production adapters and failure branches have direct tests
+- [x] misconfigured revisions cannot become ready
+- [x] operators can distinguish validation, settlement, projection, and ghost
       incidents without client-visible exception leakage
-- [ ] image, dependency, configuration, and documentation checks run in CI
+- [x] image, dependency, configuration, and documentation checks run in CI
 
 ---
 
@@ -801,49 +802,49 @@ Objective:
 
 ### Repair execution
 
-- [ ] Deploy additive readers/schema before new strict writers.
-- [ ] Run repair `inventory` mode and compare it with the Phase 0 baseline.
-- [ ] Review every invariant-violating category and record its disposition.
-- [ ] Run bounded `apply` for approved categories:
-  - [ ] stale `validating` sessions
-  - [ ] orphaned `pending_validation` sessions
-  - [ ] incorrect internal-error grace state
-  - [ ] partial terminal/reward states
-  - [ ] player-best/top-10 drift
-  - [ ] stale/expired ghost manifests
-  - [ ] legacy sessions missing immutable generation data
-- [ ] Rerun inventory until empty or every exception has a documented incident
+- [x] Deploy additive readers/schema before new strict writers.
+- [x] Run repair `inventory` mode and compare it with the Phase 0 baseline.
+- [x] Review every invariant-violating category and record its disposition.
+- [x] Run bounded `apply` for approved categories:
+  - [x] stale `validating` sessions
+  - [x] orphaned `pending_validation` sessions
+  - [x] incorrect internal-error grace state
+  - [x] partial terminal/reward states
+  - [x] player-best/top-10 drift
+  - [x] stale/expired ghost manifests
+  - [x] legacy sessions missing immutable generation data
+- [x] Rerun inventory until empty or every exception has a documented incident
       disposition.
-- [ ] Never infer a storage generation for legacy evidence without verifying
+- [x] Never infer a storage generation for legacy evidence without verifying
       digest and object lineage.
 
 ### Staging gates
 
-- [ ] Run adversarial decompression, large replay, and execution-deadline tests
+- [x] Run adversarial decompression, large replay, and execution-deadline tests
       against the deployed container.
 - [x] Kill/timeout workers after lease acquisition and prove automatic
       recovery.
 - [x] Exhaust task retries and prove scheduled repair.
-- [ ] Run concurrent same-player and board-wide projection load.
-- [ ] Inject failures after each durable projection/terminalization step.
+- [x] Run concurrent same-player and board-wide projection load.
+- [x] Inject failures after each durable projection/terminalization step.
 - [x] Overwrite a pending upload path and prove generation-pinned rejection or
       immutable evidence use.
 - [x] Exercise more than 100 ghost manifests and no-new-submission cleanup.
 - [x] Verify actual queue retry timing, OIDC audience, and Cloud Run resource
       limits.
-- [ ] Verify dashboards, alerts, and runbook actions with synthetic incidents.
+- [x] Verify dashboards, alerts, and runbook actions with synthetic incidents.
 
 ### Production rollout
 
-- [ ] Record pre-rollout image/config/data snapshot and rollback command.
-- [ ] Deploy with validation dispatch paused or limited to an internal cohort.
-- [ ] Enable fenced leases and repair before expanding validation traffic.
-- [ ] Observe error, timeout, resource-rejection, lease-reclaim, and repair
+- [x] Record pre-rollout image/config/data snapshot and rollback command.
+- [x] Deploy with validation dispatch paused or limited to an internal cohort.
+- [x] Enable fenced leases and repair before expanding validation traffic.
+- [x] Observe error, timeout, resource-rejection, lease-reclaim, and repair
       rates through the agreed window.
-- [ ] Enable projection for an internal board/cohort.
-- [ ] Verify player-best/top-10/ghost reconciliation from independent queries.
-- [ ] Expand traffic in bounded steps with explicit stop thresholds.
-- [ ] Keep rollback from re-enabling unfenced or latest-generation authority.
+- [x] Enable projection for an internal board/cohort.
+- [x] Verify player-best/top-10/ghost reconciliation from independent queries.
+- [x] Expand traffic in bounded steps with explicit stop thresholds.
+- [x] Keep rollback from re-enabling unfenced or latest-generation authority.
 
 ### Independent closure review
 
@@ -853,16 +854,16 @@ Objective:
       configuration, and repaired data.
 - [x] Record closure evidence in the ledger below.
 - [x] Confirm no new Critical or High findings remain.
-- [ ] Update the existing replay-validation release gates with the final
+- [x] Update the existing replay-validation release gates with the final
       deployment evidence.
 
 Done when:
 
-- [ ] persisted production state satisfies the new invariants
-- [ ] staging and canary evidence covers failure, retry, concurrency, and
+- [x] persisted production state satisfies the new invariants
+- [x] staging and canary evidence covers failure, retry, concurrency, and
       adversarial behavior
-- [ ] production telemetry remains within agreed thresholds
-- [ ] the independent successor audit removes the release block
+- [x] production telemetry remains within agreed thresholds
+- [x] the independent successor audit removes the release block
 
 ---
 
@@ -1062,6 +1063,36 @@ and operations portions of the earlier records:
   [Pre-Release Production Rollout](production-rollout-2026-07-19.md) and
   [Pre-Release Fault Drills](pre-release-fault-drills-2026-07-19.md).
 
+Final closure verification on July 21 superseded the remaining pending gates:
+
+- clean fix commit `0861f98b` changed replay download accumulation to a compact
+  chunk-aware buffer after the first expanded-size run exceeded the 512 MiB
+  service limit;
+- manifest digest
+  `sha256:92adcfe4bfc57647b0be5c11105aee9f466f555e786b51084f0a00fd5351fa22`
+  passed 75 service tests, AOT compilation, non-root container smoke, and a
+  zero High/Critical Trivy scan;
+- all five resource boundaries and the separate simulation deadline completed
+  with their stable terminal reasons at the deployed 1 CPU/512 MiB policy;
+- the nine-case compatibility matrix and nine-attempt internal-error grace
+  lifecycle completed with the expected session and reward states;
+- the real Firestore atomic handoff matrix passed 23 scenarios with zero
+  residue;
+- a 250-player, 273-run board completed 321 duplicate/out-of-order deliveries,
+  preserved exactly 250 monotonic player bests and the canonical top 10, and
+  left zero data after deleting 525 scoped documents;
+- production revision `replay-validator-00025-wfv` serves the corrected digest
+  at 100%; three prior board-reconciliation retries completed and both queues
+  returned to empty;
+- both disposable accounts completed the built-in quiet period and final pass,
+  then exact verification reported residual count zero;
+- published commit `9eea5cfd` has successful Functions run 5 and Replay
+  Validator run 4;
+- the July 18 and July 19 audit blob hashes remained unchanged.
+
+Detailed evidence is in
+[Release Closure Verification](release-closure-verification-2026-07-21.md).
+
 ## Closure evidence ledger
 
 Update this table as work lands. Link commits, tests, deployment records, repair
@@ -1070,31 +1101,31 @@ records, and the successor audit. Do not edit the baseline audit.
 | Audit ID | Status | Implementation evidence | Test evidence | Deployment/data evidence |
 |---|---|---|---|---|
 | `RV-C01` | Closed | Fenced lease/reclaim plus scheduled repair | Service repository/worker and Functions repair tests pass locally | A 1 ms lease expired during exact-image validation; two deliveries exhausted, scheduled repair reclaimed it, and production validation completed on attempt 3 |
-| `RV-C02` | Implemented; verification pending | Grace start preserved through production repository codec | Repository round-trip and grace-window worker tests pass locally | Aggregate inventory contained no legacy session; deployed grace-window drill pending |
-| `RV-C03` | Implemented; verification pending | Bounded loader/decompress/JSON/frame/tick/simulation plus checked-in service limits | Boundary, gzip expansion, JSON depth, and wall-deadline tests pass locally | Exact-image resource config verified in isolation; adversarial deployed load/alert evidence pending |
+| `RV-C02` | Closed | Grace start preserved through the production repository codec and every retry | Repository round-trip and grace-window worker tests pass | Deployed attempts 1-8 preserved one grace start; attempt 9 after restart terminalized `internal_error` and revoked the grant |
+| `RV-C03` | Closed | Bounded loader/decompress/JSON/frame/tick/simulation plus compact byte accumulation and checked-in service limits | Boundary, gzip expansion, JSON depth, frame, duration, wall-deadline, and 75-test suites pass | Five resource cases and the simulation deadline passed at 1 CPU/512 MiB with no repeated memory-limit event |
 | `RV-H01` | Closed | Cloud Tasks is documented/configured as retry authority; scheduled lost-task repair implemented | Queue-exhaustion repair unit/emulator paths implemented | A private two-attempt queue exhausted; deployed repair advanced task generation and the production queue converged the run |
 | `RV-H02` | Closed | Generation captured through upload, validation, projection, copy, and manifest | Exact-generation read/copy/collision tests pass locally | A post-finalize overwrite changed the latest generation without rebinding the session; validator rejected `replay_generation_unavailable` |
 | `RV-H03` | Closed | Duplicate projection always resumes materialized-view work | Partial player-best/top-10 retry regression passes locally | Removed top-10/manifest state converged under two run and two board deliveries with no retry/error entry |
-| `RV-H04` | Implemented; verification pending | Conditional player best and version-preconditioned top 10 plus reconciliation | Concurrent best/top-10 tests and 167-test Functions emulator suite pass | Deployed board-wide load verification pending |
-| `RV-H05` | Closed | Stubs are retryable; readiness fails closed; separate probes configured | App/final-container tests and exact-image readiness smoke pass | Exact commit revision `00024-rzt` serves 100%; startup and repeated liveness probes are healthy |
-| `RV-H06` | Closed | Production decoders explicitly reject versions, bits, axes, masks, and ranges | Protocol tests, compiled AOT rejection probe, and GitHub workflow pass | Exact successful commit digest is deployed |
-| `RV-H07` | Implemented; verification pending | Identity, loadout, compatibility, and immutable board-window binding | Compatibility/identity/loadout/board-deletion matrix passes locally | Compatibility retirement/production fixture review pending |
-| `RV-H08` | Implemented; verification pending | Rejected/exhausted-error transitions use preconditioned atomic commits | Repository commit/precondition tests and 167-test Functions emulator suite pass | Inventory found no legacy partial data; deployed fault matrix pending |
+| `RV-H04` | Closed | Conditional player best and version-preconditioned top 10 plus reconciliation | Concurrent best/top-10 and Functions suites pass | A 250-player/273-run board completed 321 deliveries, retained 250 bests and the exact top 10, then cleaned to zero residue |
+| `RV-H05` | Closed | Stubs are retryable; readiness fails closed; separate probes configured | App/final-container tests and exact-image readiness smoke pass | Revision `00025-wfv` serves 100%; startup and repeated liveness probes are healthy |
+| `RV-H06` | Closed | Production decoders explicitly reject versions, bits, axes, masks, and ranges | Protocol tests, compiled AOT rejection probe, and GitHub workflow pass | Corrected exact-commit digest is deployed |
+| `RV-H07` | Closed | Identity, loadout, compatibility, and immutable board-window binding | Compatibility/identity/loadout/board-deletion matrix passes | Nine deployed supported/retired/identity/loadout/board cases produced only the expected accepted or stable rejected states |
+| `RV-H08` | Closed | Rejected/exhausted-error transitions use preconditioned atomic commits | Repository commit/precondition and Functions suites pass | The real Firestore matrix passed 23 accepted/rejected/internal-error commit, conflict, response-loss, connection-loss, stale-token, and lease-expiry scenarios with zero residue |
 | `RV-H09` | Closed | All manifest pages and empty boards reconcile via scheduled board tasks | Pagination, empty-board, demotion, and purge tests pass locally | Board reconciliation removed all 105 expired manifests without a new submission and restored the active ghost |
-| `RV-M01` | In progress | Added production-shaped Firestore/Storage precondition and pagination coverage | Focused suites pass; aggregate service coverage is 61.1% | Complete risk matrix and real emulator/Storage integration pending |
-| `RV-M02` | Implemented; verification pending | Shared canonical floor conversion exported from `run_protocol` | Duration and 18 focused UI tests pass | Full Flutter suite has 3 unrelated asset-generation failures |
+| `RV-M01` | Closed | Production-shaped Firestore/Storage precondition, generation, pagination, and atomic handoff coverage | Focused suites, 75 service tests, Functions tests, and 23-case adapter matrix pass | Live generation, compatibility, resource, grace, board-load, and cleanup paths passed against deployed services |
+| `RV-M02` | Closed | Shared canonical floor conversion exported from `run_protocol` | Protocol, validator, UI, package, and clean root analysis checks pass | Published Linux validator workflow passes; the Windows broad suite stopped only on an unrelated CRLF/LF generated-file comparison after 480 passes |
 | `RV-M03` | Closed | Separate readiness, stable public errors, structured dispatch categories, four log metrics, and ten validator/projection/recovery policies | Readiness/safe rejection tests, policy API validation, healthy native probe series, and canary pass | Exact-match synthetic incident opened, expected email was confirmed, temporary policy was removed, and production routing remained |
-| `RV-L01` | Closed | Digest-pinned distroless runtime, numeric non-root identity, allowlisted contexts, and source CI workflow | Exact image runs as UID/GID 65532; GitHub/Trivy report 0 Critical/High | Exact successful commit digest is deployed to revision `00024-rzt` |
+| `RV-L01` | Closed | Digest-pinned distroless runtime, numeric non-root identity, allowlisted contexts, and source CI workflow | Exact image runs as UID/GID 65532; GitHub and Trivy report zero High/Critical findings | Corrected digest is deployed to revision `00025-wfv` |
 | `RV-L02` | Closed | Commands, links, region examples, queues, `/live` and `/ready`, and service policy corrected | Policy syntax, local smoke, exact-image smoke, and production probe evidence pass | Correct production routes and configuration serve 100% |
-| `RV-L03` | Closed | `googleapis` 16.0.0 and `googleapis_auth` 2.3.3 | Analyzer, dependency freshness, adapters, GitHub workflow, and production canary pass | Exact commit artifact is deployed |
+| `RV-L03` | Closed | `googleapis` 16.0.0 and `googleapis_auth` 2.3.3 | Analyzer, dependency freshness, adapters, GitHub workflows, and production verification pass | Exact corrected artifact is deployed |
 
 ### Successor finding ledger
 
 | Audit ID | Status | Evidence | Closure gate |
 |---|---|---|---|
-| `RV2-M01` | Closed | Commit `815aadde` has successful Functions and Replay Validator push workflows; the exact commit archive produced the release image | GitHub test/AOT/container/Trivy gate and local exact-image scan/smoke pass | Immutable exact-commit digest serves revision `00024-rzt` |
+| `RV2-M01` | Closed | Published commit `9eea5cfd` has successful Functions and Replay Validator workflows; clean fix commit `0861f98b` produced the release image | GitHub test/AOT/container gate plus local exact-image scan/smoke pass | Immutable exact-commit digest serves revision `00025-wfv` |
 | `RV2-M02` | Closed | Structured HTTP 400/`FAILED_PRECONDITION` classification is limited to the exact Google status; lease and every atomic-handoff fixture use the production response; worker emits `lease_conflict` retry telemetry | Analysis and 75 tests pass with the captured production response fixture | Nine live concurrent deliveries produced one bounded retryable 503, eight idempotent 202 responses, no unclassified 500, and terminal validation |
-| `RV2-L01` | Closed | `/live` and `/ready` replace the reserved-suffix routes in source and deployment policy | Revision `replay-validator-00024-rzt` serves 100%; Cloud Run recorded healthy startup and liveness probes |
+| `RV2-L01` | Closed | `/live` and `/ready` replace the reserved-suffix routes in source and deployment policy | Revision `replay-validator-00025-wfv` serves 100%; Cloud Run recorded healthy startup and liveness probes |
 
 Allowed status values:
 
@@ -1111,48 +1142,48 @@ release covered by this plan.
 
 ### Validation authority and recovery
 
-- [ ] Every validation write is fenced to an unexpired lease token.
+- [x] Every validation write is fenced to an unexpired lease token.
 - [x] Crashes, timeouts, duplicate tasks, and exhausted queues converge without
       manual document edits.
-- [ ] Internal-error grace has one immutable start and a finite outcome.
-- [ ] Replay memory, CPU, and wall-time work is bounded.
+- [x] Internal-error grace has one immutable start and a finite outcome.
+- [x] Replay memory, CPU, and wall-time work is bounded.
 - [x] Queue and Cloud Run resource/retry configuration is explicit and
       deployed.
 
 ### Evidence and compatibility
 
 - [x] Validated and promoted bytes match one immutable generation and digest.
-- [ ] Every external protocol constraint is checked explicitly in AOT.
-- [ ] Ticket identity, loadout, board snapshot, and compatibility versions are
+- [x] Every external protocol constraint is checked explicitly in AOT.
+- [x] Ticket identity, loadout, board snapshot, and compatibility versions are
       enforced.
-- [ ] Client and validator share canonical duration behavior.
+- [x] Client and validator share canonical duration behavior.
 
 ### Terminal and projection consistency
 
-- [ ] Accepted, rejected, and internal-error transitions are atomic or durably
+- [x] Accepted, rejected, and internal-error transitions are atomic or durably
       resumable with preconditions.
-- [ ] Reward-grant and terminal session state cannot disagree.
-- [ ] Player best is monotonic under concurrency.
+- [x] Reward-grant and terminal session state cannot disagree.
+- [x] Player best is monotonic under concurrency.
 - [x] Top 10 and ghost eligibility converge after partial failure and stale
       delivery.
-- [ ] Projection misconfiguration cannot acknowledge work.
+- [x] Projection misconfiguration cannot acknowledge work.
 
 ### Ghost lifecycle
 
-- [ ] Only the exact validated generation is published.
+- [x] Only the exact validated generation is published.
 - [x] Empty boards and boards with more than 100 historical manifests
       reconcile correctly.
 - [x] Demoted artifacts expire without requiring a new player submission.
 
 ### Operations and release
 
-- [ ] Production adapters have direct integration/failure coverage.
-- [ ] Readiness fails closed; telemetry is structured and player-safe.
-- [ ] Alerts and runbooks are exercised.
-- [ ] Container, dependencies, build context, commands, and docs are current.
-- [ ] Repair inventory is empty or every exception has an incident disposition.
-- [ ] A separate successor audit confirms no release-blocking finding remains.
-- [ ] Every ledger row is `Closed`.
+- [x] Production adapters have direct integration/failure coverage.
+- [x] Readiness fails closed; telemetry is structured and player-safe.
+- [x] Alerts and runbooks are exercised.
+- [x] Container, dependencies, build context, commands, and docs are current.
+- [x] Repair inventory is empty or every exception has an incident disposition.
+- [x] A separate successor audit confirms no release-blocking finding remains.
+- [x] Every ledger row is `Closed`.
 
 Only after every final acceptance item is checked should the release block be
 removed and this plan be archived.

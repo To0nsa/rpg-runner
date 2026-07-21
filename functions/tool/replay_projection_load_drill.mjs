@@ -131,7 +131,7 @@ async function prepare() {
           tick: run.durationSeconds * 60,
           endedReason: "completed",
           goldEarned: 0,
-          stats: {},
+          stats: { projectionLoadFixture: true },
           replayDigest: "c".repeat(64),
           replayStorageRef:
             `drill-unpublished/${drillId}/${run.runSessionId}.bin.gz`,

@@ -7,7 +7,7 @@ release verification pending. Production release is blocked by the July 18
 audit.
 Source plan: `docs/building/replayValidation/replay-validation-plan.md`
 Active remediation:
-[replay-validator-audit-remediation-plan.md](replay-validator-audit-remediation-plan.md)
+[archived replay-validator audit remediation plan](../archived/replayValidation/replay-validator-audit-remediation-plan.md)
 
 The historical Phase 1-7 delivery tasks remain complete. The separate
 remediation plan owns corrective code, migration, staging, and release work

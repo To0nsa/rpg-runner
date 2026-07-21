@@ -118,6 +118,9 @@ Validation gates include:
 - non-empty bytes
 - uploaded `contentLengthBytes` match
 - compressed-byte limit checked before/full download
+- streamed download bytes are accumulated with a chunk-aware `BytesBuilder`
+  and compacted to one `Uint8List`, avoiding growable integer-list capacity
+  overhead near the deployed memory boundary
 - optional streaming gzip decode when payload has gzip magic header
 - expanded-byte limit enforced while streaming decompressed output
 - JSON nesting-depth limit checked before `jsonDecode`
