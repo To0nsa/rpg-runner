@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:_discoveryapis_commons/_discoveryapis_commons.dart' as commons;
 
 import 'google_api_helpers.dart';
@@ -131,16 +133,17 @@ Future<List<int>> collectReplayBytes(
   if (maxBytes <= 0) {
     throw ArgumentError.value(maxBytes, 'maxBytes', 'must be positive');
   }
-  final bytes = <int>[];
+  final bytes = BytesBuilder(copy: false);
+  var observedBytes = 0;
   await for (final chunk in stream) {
-    final nextLength = bytes.length + chunk.length;
-    if (nextLength > maxBytes) {
+    observedBytes += chunk.length;
+    if (observedBytes > maxBytes) {
       throw ReplayPayloadTooLargeException(
         maxBytes: maxBytes,
-        observedBytes: nextLength,
+        observedBytes: observedBytes,
       );
     }
-    bytes.addAll(chunk);
+    bytes.add(chunk);
   }
-  return bytes;
+  return bytes.takeBytes();
 }

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:googleapis/storage/v1.dart' as storage;
 import 'package:http/http.dart' as http;
@@ -19,6 +20,7 @@ void main() {
     );
 
     expect(bytes, <int>[1, 2, 3, 4]);
+    expect(bytes, isA<Uint8List>());
   });
 
   test(
