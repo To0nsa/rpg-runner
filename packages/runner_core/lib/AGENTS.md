@@ -2,6 +2,10 @@
 
 Instructions for AI coding agents working in `packages/runner_core/lib/`.
 
+Read `packages/runner_core/AGENTS.md` first for package-wide ownership,
+generated-content rules, and validation. This file adds implementation rules
+for the authoritative simulation source under `lib/`.
+
 ## Core Responsibility
 
 `packages/runner_core/lib/` is the authoritative gameplay layer. It is pure Dart and owns:

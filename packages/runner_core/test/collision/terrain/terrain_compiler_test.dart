@@ -157,7 +157,7 @@ void main() {
     test('one-way loop emits only its upward authored top edge', () {
       final input = TerrainPolygonInput.fromWorld(
         sourcePath: 'one_way',
-        identity: const TerrainSourceIdentity(
+        identity: TerrainSourceIdentity(
           chunkIndex: 0,
           chunkKey: 'chunk',
           shapeId: 'one_way',
@@ -173,6 +173,51 @@ void main() {
       expect(geometry.edges.single.outwardNormal.yTicks, lessThan(0));
       expect(geometry.edges.single.previousId, isNull);
       expect(geometry.edges.single.nextId, isNull);
+    });
+
+    test('compiled horizontal, vertical, and slope fields are exact', () {
+      final geometry = compiler.compile(<TerrainPolygonInput>[
+        _input('fields', const [(0, 0), (20, 0), (20, 20), (10, 10), (0, 20)]),
+      ], geometryVersion: 1);
+
+      expect(geometry.edges.any((edge) => edge.dyTicks == 0), isTrue);
+      expect(geometry.edges.any((edge) => edge.dxTicks == 0), isTrue);
+      expect(
+        geometry.edges.any((edge) => edge.dxTicks != 0 && edge.dyTicks != 0),
+        isTrue,
+      );
+      for (final edge in geometry.edges) {
+        expect(
+          edge.tangent,
+          TerrainDirection.fromDelta(edge.dxTicks, edge.dyTicks),
+        );
+        expect(
+          edge.outwardNormal,
+          TerrainDirection.fromDelta(edge.dyTicks, -edge.dxTicks),
+        );
+        expect(
+          <int>[
+            edge.bounds.minX,
+            edge.bounds.minY,
+            edge.bounds.maxX,
+            edge.bounds.maxY,
+          ],
+          <int>[
+            edge.start.xTicks < edge.end.xTicks
+                ? edge.start.xTicks
+                : edge.end.xTicks,
+            edge.start.yTicks < edge.end.yTicks
+                ? edge.start.yTicks
+                : edge.end.yTicks,
+            edge.start.xTicks > edge.end.xTicks
+                ? edge.start.xTicks
+                : edge.end.xTicks,
+            edge.start.yTicks > edge.end.yTicks
+                ? edge.start.yTicks
+                : edge.end.yTicks,
+          ],
+        );
+      }
     });
   });
 }

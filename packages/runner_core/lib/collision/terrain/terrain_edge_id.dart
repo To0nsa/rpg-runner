@@ -3,25 +3,55 @@
 /// Ordering is independent of object hash codes and is shared by compilation,
 /// spatial candidates, signatures, and equal-time collision ties.
 class TerrainEdgeId implements Comparable<TerrainEdgeId> {
-  const TerrainEdgeId({
+  factory TerrainEdgeId({
+    required int chunkIndex,
+    required String chunkKey,
+    required String shapeId,
+    required int localEdgeIndex,
+    String? placementKey,
+    int subEdgeIndex = 0,
+  }) {
+    if (chunkKey.isEmpty || shapeId.isEmpty) {
+      throw ArgumentError('Terrain edge keys must not be empty.');
+    }
+    if (placementKey != null && placementKey.isEmpty) {
+      throw ArgumentError('A present placement key must not be empty.');
+    }
+    if (localEdgeIndex < 0 || subEdgeIndex < 0) {
+      throw ArgumentError('Terrain edge indices must be non-negative.');
+    }
+    return TerrainEdgeId._(
+      chunkIndex: chunkIndex,
+      chunkKey: chunkKey,
+      placementKey: placementKey,
+      shapeId: shapeId,
+      localEdgeIndex: localEdgeIndex,
+      subEdgeIndex: subEdgeIndex,
+    );
+  }
+
+  const TerrainEdgeId._({
     required this.chunkIndex,
     required this.chunkKey,
     required this.shapeId,
     required this.localEdgeIndex,
-    this.placementKey,
-    this.subEdgeIndex = 0,
-  }) : assert(chunkKey != ''),
-       assert(shapeId != ''),
-       assert(localEdgeIndex >= 0),
-       assert(subEdgeIndex >= 0);
+    required this.placementKey,
+    required this.subEdgeIndex,
+  });
 
+  /// Signed authored chunk order; base terrain may use a negative index.
   final int chunkIndex;
+
+  /// Stable chunk key within [chunkIndex].
   final String chunkKey;
 
   /// Stable placed-prefab selection key, or `null` for direct chunk source.
   final String? placementKey;
 
+  /// Stable source shape key within the chunk or placement.
   final String shapeId;
+
+  /// Edge position in the canonical source polygon loop.
   final int localEdgeIndex;
 
   /// Stable interval index when collinear splitting divides a source edge.
@@ -52,6 +82,7 @@ class TerrainEdgeId implements Comparable<TerrainEdgeId> {
       localEdgeIndex == other.localEdgeIndex &&
       subEdgeIndex == other.subEdgeIndex;
 
+  /// Collection hash only; canonical signatures serialize ordered fields.
   @override
   int get hashCode => Object.hash(
     chunkIndex,
@@ -64,12 +95,15 @@ class TerrainEdgeId implements Comparable<TerrainEdgeId> {
 
   /// Canonical text form used by diagnostics and signature records.
   String get canonicalKey =>
-      '$chunkIndex/$chunkKey/${placementKey ?? "-"}/$shapeId/'
-      '$localEdgeIndex/$subEdgeIndex';
+      '$chunkIndex/${_field(chunkKey)}/'
+      '${placementKey == null ? '-' : _field(placementKey!)}/'
+      '${_field(shapeId)}/$localEdgeIndex/$subEdgeIndex';
 
   @override
   String toString() => canonicalKey;
 }
+
+String _field(String value) => '${value.length}:$value';
 
 int _compareNullable(String? left, String? right) {
   if (identical(left, right)) return 0;

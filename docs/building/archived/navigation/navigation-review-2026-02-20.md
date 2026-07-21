@@ -1,5 +1,11 @@
 # Navigation Review (2026-02-20)
 
+> Archived from `packages/runner_core/lib/navigation/REVIEW.md`: every listed
+> remediation was completed. This is historical review context, not the current
+> navigation contract. See
+> [`runner_core_simulation_contract.md`](../../../tdd/runner_core_simulation_contract.md)
+> for current Core ownership and invariants.
+
 Scope: `packages/runner_core/lib/navigation/**` with runtime touchpoints in `packages/runner_core/lib/ecs/systems/enemy_navigation_system.dart` and `packages/runner_core/lib/ecs/systems/ground_enemy_locomotion_system.dart`.
 
 Validation run:

@@ -1,12 +1,16 @@
 import '../entity_id.dart';
 import '../sparse_set.dart';
 
-/// AABB collider configuration for an entity.
+/// AABB broad-phase/combat bound and legacy world collider for an entity.
 ///
 /// Representation is center-based for stability:
 /// - `Transform.pos` is treated as the entity center
 /// - collider center is `pos + offset`
 /// - extents are half-sizes in world units (virtual pixels)
+///
+/// When an actor has an authoritative world-contact capsule, this AABB remains
+/// the derived broad-phase, combat/trigger, culling, and render-debug bound; it
+/// is not used to classify polygon terrain contact.
 class ColliderAabbDef {
   const ColliderAabbDef({
     required this.halfX,
@@ -23,7 +27,7 @@ class ColliderAabbDef {
 
 /// SoA store for AABB collider config (half extents + offset).
 ///
-/// Collision bounds are distinct from render bounds or hitbox bounds (which are temporary).
+/// These persistent bounds remain distinct from temporary authored hitboxes.
 class ColliderAabbStore extends SparseSet {
   final List<double> halfX = <double>[];
   final List<double> halfY = <double>[];

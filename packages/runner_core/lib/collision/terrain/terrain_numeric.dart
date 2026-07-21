@@ -14,14 +14,29 @@ const int terrainGeometryEpsilonTicks = 1;
 /// Contact and deterministic tie tolerance in physics ticks.
 const int terrainContactEpsilonTicks = 2;
 
+/// Dimensionless guard for zero denominators and stalled sweep progress.
+const double terrainParametricGuard = 1e-12;
+
+/// Dimensionless endpoint classifier tolerance for segment parameters.
+const double terrainEndpointParameterEpsilon = 1e-9;
+
 /// Collision skin in physics ticks (`1/16` world unit).
 const int terrainCollisionSkinTicks = 64;
+
+/// Maximum blocking contacts resolved for one actor during one fixed tick.
+const int terrainMaxBlockingContacts = 4;
+
+/// Maximum deterministic initial-overlap correction passes per fixed tick.
+const int terrainMaxRecoveryIterations = 4;
 
 /// Fixed scale used by compiled unit tangents and normals.
 ///
 /// Reusing the 1/1024 physics scale makes the accepted `(56,-97)` edge
 /// quantize exactly to the inclusive 60-degree walkability threshold.
 const int terrainDirectionScale = 1024;
+
+/// Fixed slope-angle units per degree used by traversal caches.
+const int terrainSlopeAngleUnitsPerDegree = 1024;
 
 /// Default square terrain-index cell width in world units.
 const int terrainDefaultCellSizeWorld = 64;
@@ -35,7 +50,15 @@ const int terrainMaxAbsPhysicsTicks = 1 << 40;
 /// Exact point on the authored half-world-unit coordinate grid.
 class SourceTerrainPoint {
   /// Creates a source point from already-validated half-world-unit ticks.
-  const SourceTerrainPoint(this.xTicks, this.yTicks);
+  factory SourceTerrainPoint(int xTicks, int yTicks) {
+    const factor =
+        terrainPhysicsTicksPerWorldUnit ~/ terrainSourceTicksPerWorldUnit;
+    _checkPhysicsRange(xTicks * factor, 'xTicks');
+    _checkPhysicsRange(yTicks * factor, 'yTicks');
+    return SourceTerrainPoint._(xTicks, yTicks);
+  }
+
+  const SourceTerrainPoint._(this.xTicks, this.yTicks);
 
   /// Converts exact half-grid world coordinates to source ticks.
   factory SourceTerrainPoint.fromWorld(double x, double y) {
@@ -74,7 +97,13 @@ class SourceTerrainPoint {
 /// Exact point on the deterministic 1/1024-world-unit physics grid.
 class TerrainPoint implements Comparable<TerrainPoint> {
   /// Creates a point from checked physics-grid ticks.
-  const TerrainPoint(this.xTicks, this.yTicks);
+  factory TerrainPoint(int xTicks, int yTicks) {
+    _checkPhysicsRange(xTicks, 'xTicks');
+    _checkPhysicsRange(yTicks, 'yTicks');
+    return TerrainPoint._(xTicks, yTicks);
+  }
+
+  const TerrainPoint._(this.xTicks, this.yTicks);
 
   /// Quantizes finite world coordinates to the physics grid.
   factory TerrainPoint.fromWorld(double x, double y) {
@@ -120,19 +149,39 @@ class TerrainPoint implements Comparable<TerrainPoint> {
 /// Quantized unit vector used for compiled tangents and outward normals.
 class TerrainDirection {
   /// Creates a direction whose components use [terrainDirectionScale].
-  const TerrainDirection(this.xTicks, this.yTicks);
+  factory TerrainDirection(int xTicks, int yTicks) {
+    if (xTicks == 0 && yTicks == 0) {
+      throw ArgumentError('Terrain direction must not be zero.');
+    }
+    if (xTicks.abs() > terrainDirectionScale ||
+        yTicks.abs() > terrainDirectionScale) {
+      throw RangeError('Terrain direction components must be normalized.');
+    }
+    final magnitudeSquared = xTicks * xTicks + yTicks * yTicks;
+    final targetSquared = terrainDirectionScale * terrainDirectionScale;
+    if ((magnitudeSquared - targetSquared).abs() > 2 * terrainDirectionScale) {
+      throw ArgumentError('Terrain direction must be a quantized unit vector.');
+    }
+    return TerrainDirection._(xTicks, yTicks);
+  }
+
+  const TerrainDirection._(this.xTicks, this.yTicks);
 
   /// Quantizes and normalizes a non-zero vector without trigonometry.
-  factory TerrainDirection.fromDelta(int dxTicks, int dyTicks) {
-    if (dxTicks == 0 && dyTicks == 0) {
+  factory TerrainDirection.fromDelta(int dxTicks, int dyTicks) =>
+      TerrainDirection.fromVector(dxTicks.toDouble(), dyTicks.toDouble());
+
+  /// Quantizes and normalizes finite components already expressed in one unit.
+  factory TerrainDirection.fromVector(double dx, double dy) {
+    _requireFinite(dx, 'dx');
+    _requireFinite(dy, 'dy');
+    if (dx == 0 && dy == 0) {
       throw ArgumentError('Cannot normalize a zero-length terrain vector.');
     }
-    final length = math.sqrt(
-      dxTicks.toDouble() * dxTicks + dyTicks.toDouble() * dyTicks,
-    );
+    final length = math.sqrt(dx * dx + dy * dy);
     return TerrainDirection(
-      (dxTicks * terrainDirectionScale / length).round(),
-      (dyTicks * terrainDirectionScale / length).round(),
+      terrainQuantizeDirectionComponent(dx, length),
+      terrainQuantizeDirectionComponent(dy, length),
     );
   }
 
@@ -142,7 +191,10 @@ class TerrainDirection {
   /// Vertical component where [terrainDirectionScale] equals one.
   final int yTicks;
 
+  /// Horizontal component converted to the inclusive unit-vector range.
   double get x => xTicks / terrainDirectionScale;
+
+  /// Vertical component converted to the inclusive unit-vector range.
   double get y => yTicks / terrainDirectionScale;
 
   @override
@@ -160,17 +212,40 @@ class TerrainDirection {
 
 /// Closed axis-aligned bounds expressed in deterministic physics ticks.
 class TerrainAabb {
-  const TerrainAabb({
+  /// Creates checked closed bounds in 1/1024-world-unit physics ticks.
+  factory TerrainAabb({
+    required int minX,
+    required int minY,
+    required int maxX,
+    required int maxY,
+  }) {
+    _checkPhysicsRange(minX, 'minX');
+    _checkPhysicsRange(minY, 'minY');
+    _checkPhysicsRange(maxX, 'maxX');
+    _checkPhysicsRange(maxY, 'maxY');
+    if (minX > maxX || minY > maxY) {
+      throw ArgumentError('Terrain AABB minimums must not exceed maximums.');
+    }
+    return TerrainAabb._(minX: minX, minY: minY, maxX: maxX, maxY: maxY);
+  }
+
+  const TerrainAabb._({
     required this.minX,
     required this.minY,
     required this.maxX,
     required this.maxY,
-  }) : assert(minX <= maxX),
-       assert(minY <= maxY);
+  });
 
+  /// Inclusive minimum horizontal coordinate in physics ticks.
   final int minX;
+
+  /// Inclusive minimum vertical coordinate in physics ticks.
   final int minY;
+
+  /// Inclusive maximum horizontal coordinate in physics ticks.
   final int maxX;
+
+  /// Inclusive maximum vertical coordinate in physics ticks.
   final int maxY;
 
   /// Returns bounds expanded by [ticks] on all sides.
@@ -205,6 +280,10 @@ class TerrainAabb {
 /// Source placement transform applied in anchor/reflection/scale/translation
 /// order before one physics-grid quantization.
 class TerrainSourceTransform {
+  /// Defines a finite positive-scale placement transform in world units.
+  ///
+  /// Values are validated when [apply] runs so constant source definitions can
+  /// remain lightweight.
   const TerrainSourceTransform({
     this.anchorX = 0,
     this.anchorY = 0,
@@ -215,12 +294,25 @@ class TerrainSourceTransform {
     this.translateY = 0,
   });
 
+  /// Horizontal reflection/scale pivot in world units.
   final double anchorX;
+
+  /// Vertical reflection/scale pivot in world units.
   final double anchorY;
+
+  /// Whether to reflect the anchor-relative horizontal coordinate.
   final bool reflectX;
+
+  /// Whether to reflect the anchor-relative vertical coordinate.
   final bool reflectY;
+
+  /// Uniform positive scale applied after reflection.
   final double scale;
+
+  /// Horizontal world-unit translation applied after scale.
   final double translateX;
+
+  /// Vertical world-unit translation applied after scale.
   final double translateY;
 
   /// Applies this transform and returns one quantized physics-grid point.
@@ -271,6 +363,40 @@ int physicsCoordinateToTicks(double value, {String name = 'value'}) {
   final ticks = (value * terrainPhysicsTicksPerWorldUnit).round();
   _checkPhysicsRange(ticks, name);
   return ticks;
+}
+
+/// Rounds a finite value already expressed in physics ticks with range checks.
+int terrainPhysicsTickValueToInt(double value, {String name = 'value'}) {
+  _requireFinite(value, name);
+  final ticks = value.round();
+  _checkPhysicsRange(ticks, name);
+  return ticks;
+}
+
+/// Quantizes one finite unit-vector component without allocating an object.
+///
+/// [vectorLength] must be the positive length of the vector that owns
+/// [component].
+int terrainQuantizeDirectionComponent(double component, double vectorLength) {
+  _requireFinite(component, 'component');
+  _requireFinite(vectorLength, 'vectorLength');
+  if (vectorLength <= 0) {
+    throw ArgumentError.value(
+      vectorLength,
+      'vectorLength',
+      'Must be positive.',
+    );
+  }
+  final quantized = (component * terrainDirectionScale / vectorLength).round();
+  if (quantized.abs() > terrainDirectionScale) {
+    throw RangeError.range(
+      quantized,
+      -terrainDirectionScale,
+      terrainDirectionScale,
+      'component',
+    );
+  }
+  return quantized;
 }
 
 /// Deterministic floor division for positive [divisor], including negatives.

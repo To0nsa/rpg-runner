@@ -26,6 +26,8 @@ Use the most specific AGENTS file that matches the area you are touching:
 
 - `AGENTS.md`: repo-wide rules and cross-cutting quality bar
 - `lib/AGENTS.md`: app-level architecture and layer boundaries
+- `packages/runner_core/AGENTS.md`: Core package scope, generated-content, and
+  validation rules
 - `packages/runner_core/lib/AGENTS.md`: deterministic simulation layer
 - `packages/run_protocol/AGENTS.md`: shared run/replay/board protocol contracts
 - `lib/game/AGENTS.md`: Flame renderer and controller bridge

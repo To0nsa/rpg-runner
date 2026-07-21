@@ -1,5 +1,10 @@
 # Navigation Refactor Checklist
 
+> Archived from `packages/runner_core/lib/navigation/REFACTOR_CHECKLIST.md`:
+> all phases and acceptance criteria are complete. This checklist is retained
+> as implementation history; current Core rules are documented in
+> [`runner_core_simulation_contract.md`](../../../tdd/runner_core_simulation_contract.md).
+
 Date: 2026-02-20  
 Scope: `packages/runner_core/lib/navigation/**` and direct runtime integrations that consume navigation outputs.
 
@@ -95,7 +100,7 @@ Target files: `enemy_navigation_system.dart`, `ground_enemy_locomotion_system.da
 - [x] Re-tune `repathCooldownTicks`, `takeoffEps`, and related thresholds after behavior changes.
 - [x] Validate interaction with jump snap velocity and commit direction in locomotion.
 - [x] Run full nav-related tests plus targeted gameplay sanity checks.
-- [x] Update `REVIEW.md` with completion status and residual risks.
+- [x] Update the navigation review with completion status and residual risks.
 
 Acceptance criteria:
 - [x] NPC chase behavior is smoother in practical scenarios (jump chase, ledge chase, multi-platform pursuit).

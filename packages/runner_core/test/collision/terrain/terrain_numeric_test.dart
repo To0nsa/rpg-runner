@@ -18,6 +18,27 @@ void main() {
         () => TerrainPoint.fromWorld(terrainMaxAbsPhysicsTicks.toDouble(), 0),
         throwsRangeError,
       );
+      expect(
+        () => TerrainPoint(terrainMaxAbsPhysicsTicks + 1, 0),
+        throwsRangeError,
+      );
+      expect(
+        () => TerrainAabb(minX: 1, minY: 0, maxX: 0, maxY: 1),
+        throwsArgumentError,
+      );
+      expect(() => TerrainDirection(1, 0), throwsArgumentError);
+      expect(
+        () => TerrainDirection.fromVector(double.infinity, 0),
+        throwsArgumentError,
+      );
+      expect(
+        () => terrainPhysicsTickValueToInt(double.nan),
+        throwsArgumentError,
+      );
+      expect(
+        () => terrainQuantizeDirectionComponent(1, 0),
+        throwsArgumentError,
+      );
     });
 
     test('physics quantization ties are symmetric', () {
@@ -36,7 +57,7 @@ void main() {
           scale: 1.5,
           translateX: 10,
           translateY: -4,
-        ).apply(const SourceTerrainPoint(8, 6));
+        ).apply(SourceTerrainPoint(8, 6));
 
         expect(result, TerrainPoint.fromWorld(7, -1));
       },

@@ -15,8 +15,27 @@ class TerrainGeometry {
     required Iterable<TerrainEdge> edges,
     Iterable<TerrainDiagnostic> diagnostics = const [],
   }) {
-    final polygonList = List<TerrainPolygon>.of(polygons);
-    final edgeList = List<TerrainEdge>.of(edges);
+    if (version < 0) {
+      throw ArgumentError.value(version, 'version', 'Must be non-negative.');
+    }
+    final polygonList = List<TerrainPolygon>.of(polygons)
+      ..sort((left, right) {
+        final identityOrder = left.identity.compareTo(right.identity);
+        return identityOrder != 0
+            ? identityOrder
+            : left.sourcePath.compareTo(right.sourcePath);
+      });
+    final edgeList = List<TerrainEdge>.of(edges)
+      ..sort((left, right) => left.id.compareTo(right.id));
+    for (var index = 1; index < edgeList.length; index += 1) {
+      if (edgeList[index - 1].id == edgeList[index].id) {
+        throw ArgumentError.value(
+          edgeList[index].id,
+          'edges',
+          'Edge IDs must be unique.',
+        );
+      }
+    }
     final diagnosticList = List<TerrainDiagnostic>.of(diagnostics)..sort();
     return TerrainGeometry._(
       version: version,

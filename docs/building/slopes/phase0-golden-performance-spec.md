@@ -422,15 +422,20 @@ Phase 1 creates these test-only harnesses before implementing production
 authority:
 
 ```powershell
-dart test packages/runner_core/test/terrain/slopes_golden_geometry_test.dart
-dart test packages/runner_core/test/terrain/capsule_segment_golden_test.dart
+Push-Location packages/runner_core
+dart test test/collision/terrain/slopes_golden_geometry_test.dart
+dart test test/collision/terrain/capsule_segment_golden_test.dart
+dart run tool/benchmark_slopes.dart `
+  --fixture=representative --runs=8 --ticks=8000 `
+  --json-out=../../.tmp/slopes.json
+dart run tool/benchmark_slopes.dart `
+  --fixture=hard-stream --runs=8 --rebuilds=1000 `
+  --json-out=../../.tmp/slopes-hard.json
+Pop-Location
+
 dart test packages/runner_core/test/navigation/sloped_graph_golden_test.dart
 flutter test test/core/slopes_gameplay_golden_test.dart
 flutter test test/game/replay/slopes_recorder_validator_parity_test.dart
-dart run packages/runner_core/tool/benchmark_slopes.dart `
-  --fixture=representative --runs=8 --ticks=8000 --json-out=.tmp/slopes.json
-dart run packages/runner_core/tool/benchmark_slopes.dart `
-  --fixture=hard-stream --runs=8 --rebuilds=1000 --json-out=.tmp/slopes-hard.json
 ```
 
 Validator acceptance:

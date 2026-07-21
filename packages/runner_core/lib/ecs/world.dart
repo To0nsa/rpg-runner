@@ -3,6 +3,10 @@ import 'sparse_set.dart';
 import 'stores/body_store.dart';
 import 'stores/collider_aabb_store.dart';
 import 'stores/collision_state_store.dart';
+import 'stores/resolved_motion_store.dart';
+import 'stores/terrain_contact_state_store.dart';
+import 'stores/terrain_traversal_profile_store.dart';
+import 'stores/world_contact_capsule_store.dart';
 import 'stores/cooldown_store.dart';
 import 'stores/projectile_intent_store.dart';
 import 'stores/self_intent_store.dart';
@@ -152,11 +156,34 @@ class EcsWorld {
   /// Physics properties like mass, friction, and restitution.
   late final BodyStore body = _register(BodyStore());
 
-  /// Axis-Aligned Bounding Box (AABB) for collision detection.
+  /// AABB for broad phase, combat/triggers, culling, and legacy world contact.
+  ///
+  /// A terrain-integrated actor's [worldContactCapsule] is authoritative for
+  /// static terrain; this exact derived AABB remains its non-terrain bound.
   late final ColliderAabbStore colliderAabb = _register(ColliderAabbStore());
 
   /// Runtime state of collisions (e.g., is grounded, wall contact).
   late final CollisionStateStore collision = _register(CollisionStateStore());
+
+  /// Upright capsule used only by the staged terrain-motion authority.
+  late final WorldContactCapsuleStore worldContactCapsule = _register(
+    WorldContactCapsuleStore(),
+  );
+
+  /// Final support/contact state written by staged terrain motion.
+  late final TerrainContactStateStore terrainContact = _register(
+    TerrainContactStateStore(),
+  );
+
+  /// Immutable traversal rules for entities under staged terrain authority.
+  late final TerrainTraversalProfileStore terrainTraversalProfile = _register(
+    TerrainTraversalProfileStore(),
+  );
+
+  /// Requested and actual per-tick displacement from staged terrain motion.
+  late final ResolvedMotionStore resolvedMotion = _register(
+    ResolvedMotionStore(),
+  );
 
   /// Generic cooldown timer for abilities or actions.
   late final CooldownStore cooldown = _register(CooldownStore());

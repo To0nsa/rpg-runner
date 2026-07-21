@@ -1,5 +1,7 @@
 import '../ecs/stores/body_store.dart';
 import '../ecs/stores/collider_aabb_store.dart';
+import '../ecs/stores/world_contact_capsule_store.dart';
+import '../collision/terrain/terrain_traversal_profile.dart';
 import '../ecs/stores/combat/creature_tag_store.dart';
 import '../ecs/stores/combat/damage_resistance_store.dart';
 import '../ecs/stores/combat/equipped_loadout_store.dart';
@@ -74,10 +76,11 @@ class PlayerCatalog {
   /// for velocity limits.
   final BodyDef bodyTemplate;
 
-  /// Player collision AABB size (full extents) in world units.
+  /// Player broad-phase/combat AABB size (full extents) in world units.
   ///
   /// Core uses center-based AABBs, so `halfX = width * 0.5` and
-  /// `halfY = height * 0.5`.
+  /// `halfY = height * 0.5`. Normal levels also use it for legacy static-world
+  /// contact; the terrain harness derives the same bounds from its capsule.
   final double colliderWidth;
   final double colliderHeight;
 
@@ -190,12 +193,22 @@ class PlayerCatalogDerived {
       sideMask: base.bodyTemplate.sideMask,
     );
 
-    // AABB collider from catalog.
-    final collider = ColliderAabbDef(
+    final legacyCollider = ColliderAabbDef(
       halfX: base.colliderHalfX,
       halfY: base.colliderHalfY,
       offsetX: base.colliderOffsetX,
       offsetY: base.colliderOffsetY,
+    );
+    final worldContactCapsule = WorldContactCapsuleDef.fromAabb(legacyCollider);
+    final collider = worldContactCapsule.derivedAabb;
+    final terrainTraversalProfile = createEloiseTerrainTraversalProfile(
+      enabled: body.enabled,
+      isKinematic: body.isKinematic,
+      useGravity: body.useGravity,
+      gravityScale: body.gravityScale,
+      collideCeilings: !body.ignoreCeilings,
+      collideLeftWalls: (body.sideMask & BodyDef.sideLeft) != 0,
+      collideRightWalls: (body.sideMask & BodyDef.sideRight) != 0,
     );
 
     // Resource pools from resource tuning.
@@ -218,6 +231,8 @@ class PlayerCatalogDerived {
     return PlayerCatalogDerived._(
       archetype: PlayerArchetype(
         collider: collider,
+        worldContactCapsule: worldContactCapsule,
+        terrainTraversalProfile: terrainTraversalProfile,
         body: body,
         health: health,
         mana: mana,

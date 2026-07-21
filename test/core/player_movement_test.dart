@@ -88,7 +88,7 @@ void main() {
         (catalog.colliderOffsetY + catalog.colliderHalfY);
 
     // Put the player high above the floor so coyote time expires before landing.
-    core.setPlayerPosXY(core.playerPosX, floorY - 200);
+    core.setPlayerPosXYUnsafeForTest(core.playerPosX, floorY - 200);
     core.setPlayerVelXY(0, 0);
 
     // Burn coyote time (default is 0.10s => 6 ticks at 60 Hz).
@@ -99,7 +99,7 @@ void main() {
     }
 
     // Snap close to the ground while staying airborne (keeps coyote expired).
-    core.setPlayerPosXY(core.playerPosX, floorY - 5);
+    core.setPlayerPosXYUnsafeForTest(core.playerPosX, floorY - 5);
     core.setPlayerVelXY(0, 0);
 
     // Press jump while still in the air (buffer should be stored, not executed).
@@ -275,7 +275,7 @@ void main() {
         defaultLevelGroundTopYInt.toDouble() -
         (catalog.colliderOffsetY + catalog.colliderHalfY);
 
-    core.setPlayerPosXY(core.playerPosX, floorY - 200);
+    core.setPlayerPosXYUnsafeForTest(core.playerPosX, floorY - 200);
     core.setPlayerVelXY(0, 0);
 
     // Let coyote-time expire while airborne.
@@ -415,7 +415,7 @@ void main() {
         defaultLevelGroundTopYInt.toDouble() -
         (catalog.colliderOffsetY + catalog.colliderHalfY);
 
-    core.setPlayerPosXY(core.playerPosX, floorY - 120);
+    core.setPlayerPosXYUnsafeForTest(core.playerPosX, floorY - 120);
     core.setPlayerVelXY(0, 0);
 
     _tick(core);
@@ -439,7 +439,7 @@ void main() {
         defaultLevelGroundTopYInt.toDouble() -
         (catalog.colliderOffsetY + catalog.colliderHalfY);
 
-    core.setPlayerPosXY(core.playerPosX, floorY - 120);
+    core.setPlayerPosXYUnsafeForTest(core.playerPosX, floorY - 120);
     core.setPlayerVelXY(0, 0);
 
     _tick(core, axis: 1, jumpPressed: true, dashPressed: true);

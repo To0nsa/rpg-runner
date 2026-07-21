@@ -9,9 +9,16 @@ import 'terrain_polygon.dart';
 
 /// Hard runtime-safety limits applied before compiled geometry is published.
 abstract final class TerrainGeometryLimits {
+  /// Maximum collision shapes contributed by one placed prefab.
   static const int maxShapesPerPrefab = 64;
+
+  /// Maximum authored vertices retained by one collision shape.
   static const int maxVerticesPerShape = 64;
+
+  /// Maximum direct and placed collision shapes in one chunk.
   static const int maxShapesPerChunk = 512;
+
+  /// Maximum exposed runtime segments emitted for one chunk.
   static const int maxExposedEdgesPerChunk = 4096;
 }
 
@@ -72,9 +79,9 @@ class TerrainCompiler {
     final exposed = _removeInternalSolidEdges(splitEdges);
     exposed.sort((left, right) => left.id.compareTo(right.id));
 
-    final edgeCountsByChunk = <String, int>{};
+    final edgeCountsByChunk = <(int, String), int>{};
     for (final edge in exposed) {
-      final key = '${edge.id.chunkIndex}/${edge.id.chunkKey}';
+      final key = (edge.id.chunkIndex, edge.id.chunkKey);
       final count = (edgeCountsByChunk[key] ?? 0) + 1;
       edgeCountsByChunk[key] = count;
       if (count > TerrainGeometryLimits.maxExposedEdgesPerChunk) {
@@ -106,11 +113,11 @@ void _validateShapeLimits(
   List<TerrainPolygonInput> inputs,
   List<TerrainDiagnostic> diagnostics,
 ) {
-  final chunkCounts = <String, int>{};
-  final placementCounts = <String, int>{};
+  final chunkCounts = <(int, String), int>{};
+  final placementCounts = <(int, String, String), int>{};
   final identities = <TerrainSourceIdentity>{};
   for (final input in inputs) {
-    final chunkKey = '${input.identity.chunkIndex}/${input.identity.chunkKey}';
+    final chunkKey = (input.identity.chunkIndex, input.identity.chunkKey);
     final chunkCount = (chunkCounts[chunkKey] ?? 0) + 1;
     chunkCounts[chunkKey] = chunkCount;
     if (chunkCount > TerrainGeometryLimits.maxShapesPerChunk) {
@@ -145,8 +152,11 @@ void _validateShapeLimits(
     }
     final placementKey = input.identity.placementKey;
     if (placementKey != null) {
-      final key =
-          '${input.identity.chunkIndex}/${input.identity.chunkKey}/$placementKey';
+      final key = (
+        input.identity.chunkIndex,
+        input.identity.chunkKey,
+        placementKey,
+      );
       placementCounts[key] = (placementCounts[key] ?? 0) + 1;
       if (placementCounts[key]! > TerrainGeometryLimits.maxShapesPerPrefab) {
         diagnostics.add(

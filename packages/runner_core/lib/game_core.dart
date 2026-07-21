@@ -1,75 +1,9 @@
-/// Authoritative, deterministic simulation layer (pure Dart).
+/// Authoritative, deterministic gameplay simulation implemented in pure Dart.
 ///
-/// This is the heart of the game—a pure Dart simulation that processes
-/// tick-stamped commands, advances physics and AI, and produces immutable
-/// snapshots for the renderer/UI. By keeping this layer Flutter/Flame-free,
-/// we gain:
-/// - **Testability**: Unit tests can run headless at any tick rate.
-/// - **Determinism**: Same seed + commands = identical simulation.
-/// - **Portability**: Core logic could run on a server for validation.
-///
-/// ## Architecture Overview
-///
-/// ```
-/// Commands (from input layer)
-///         ↓
-///    GameCore.applyCommands()
-///         ↓
-///    GameCore.stepOneTick()
-///         ↓
-///    [Track streaming → Physics → AI → Combat → Cleanup]
-///         ↓
-///    GameStateSnapshot (to render layer)
-/// ```
-///
-/// ## Module Dependencies
-///
-/// [GameCore] orchestrates three extracted modules:
-/// - [TrackManager]: Procedural chunk generation, geometry lifecycle.
-/// - [SpawnService]: Deterministic entity spawning (enemies, items).
-/// - [SnapshotBuilder]: ECS → render snapshot conversion.
-///
-/// ## ECS System Execution Order
-///
-/// Systems run in a carefully ordered pipeline each tick:
-/// 1. **Track streaming**: Spawn/cull chunks based on camera.
-/// 2. **Cooldowns & invulnerability**: Decrement timers.
-/// 3. **Enemy AI steering**: Path planning and movement intent.
-/// 4. **Player input**: Resolve ability intents (including mobility).
-/// 5. **Jump execution**: Apply coyote/buffer/air-jump rules.
-/// 6. **Player movement**: Apply horizontal input to velocity.
-/// 7. **Mobility execution**: Apply dash/roll state.
-/// 8. **Gravity**: Apply gravity to non-kinematic bodies.
-/// 9. **Collision**: Resolve static world collisions.
-/// 10. **Pickups**: Collect items overlapping player.
-/// 11. **Broadphase rebuild**: Update spatial grid for hit detection.
-/// 12. **Projectile movement**: Advance existing projectiles.
-/// 13. **Strike intents**: Enemies and player queue strikes.
-/// 14. **Strike execution**: Spawn hitboxes/projectiles/self abilities.
-/// 15. **Hitbox positioning**: Follow owner entities.
-/// 16. **Hit resolution**: Detect overlaps, queue damage.
-/// 17. **Mobility impacts**: Apply overlap effects from active mobility.
-/// 18. **Status ticking**: Apply DoT ticks and queue damage.
-/// 19. **Damage middleware**: Apply combat rule edits/cancellations.
-/// 20. **Damage application**: Apply queued damage, set invulnerability.
-/// 21. **Reactive procs**: Resolve on-damaged/low-health hooks.
-/// 22. **Status application**: Apply queued status profiles.
-/// 23. **Death handling**: Despawn dead entities, record kills.
-/// 24. **Resource regen**: Regenerate mana/stamina.
-/// 25. **Lifetime cleanup**: Remove expired entities.
-///
-/// ## Determinism Contract
-///
-/// Given identical inputs:
-/// - Same [seed] parameter
-/// - Same sequence of [Command]s with same tick stamps
-/// - Same [tickHz]
-///
-/// The simulation will produce identical results across runs and platforms.
-/// This is achieved by:
-/// - Using [DeterministicRng] instead of `dart:math Random`
-/// - Fixed-point-style tick math (no frame-rate-dependent dt accumulation)
-/// - Deterministic iteration order (entity IDs, not hash-based)
+/// Call [applyCommands] with inputs for `tick + 1`, then call [stepOneTick].
+/// Core advances gameplay and exposes immutable snapshots/events; render, UI,
+/// and replay transport remain outside this package. The complete cross-layer
+/// contract lives in `docs/tdd/runner_core_simulation_contract.md`.
 library;
 
 import 'dart:math';
@@ -85,6 +19,8 @@ import 'combat/middleware/ward_middleware.dart';
 import 'combat/damage_type.dart';
 import 'combat/status/status.dart';
 import 'collision/static_world_geometry_index.dart';
+import 'collision/terrain/terrain_geometry.dart';
+import 'collision/terrain/terrain_numeric.dart';
 import 'commands/command.dart';
 import 'contracts/render_contract.dart';
 import 'ecs/collider_aabb_utils.dart';
@@ -95,7 +31,6 @@ import 'ecs/spatial/grid_index_2d.dart';
 import 'ecs/stores/restoration_item_store.dart';
 import 'ecs/stores/body_store.dart';
 import 'ecs/systems/collectible_system.dart';
-import 'ecs/systems/collision_system.dart';
 import 'ecs/systems/cooldown_system.dart';
 import 'ecs/systems/damage_middleware_system.dart';
 import 'ecs/systems/damage_system.dart';
@@ -121,6 +56,7 @@ import 'ecs/systems/melee_strike_system.dart';
 import 'ecs/systems/ability_activation_system.dart';
 import 'ecs/systems/hold_ability_system.dart';
 import 'ecs/systems/mobility_system.dart';
+import 'ecs/systems/world_motion_authority.dart';
 import 'ecs/systems/mobility_impact_system.dart';
 import 'ecs/systems/player_movement_system.dart';
 import 'ecs/systems/jump_system.dart';
@@ -154,12 +90,14 @@ import 'navigation/utils/jump_template.dart';
 import 'navigation/utils/standability.dart';
 import 'navigation/utils/trajectory_predictor.dart';
 import 'players/player_catalog.dart';
+import 'players/player_archetype.dart';
 import 'players/player_character_definition.dart';
 import 'projectiles/projectile_catalog.dart';
 import 'spellBook/spell_book_catalog.dart';
 import 'snapshots/enums.dart';
 import 'snapshots/camera_snapshot.dart';
 import 'snapshots/game_state_snapshot.dart';
+import 'snapshots/terrain_player_debug_snapshot.dart';
 import 'snapshot_builder.dart';
 import 'loadout/loadout_validator.dart';
 import 'spawn_service.dart';
@@ -230,7 +168,42 @@ class GameCore {
          weaponCatalog: weaponCatalog,
          accessoryCatalog: accessoryCatalog,
          equippedLoadoutOverride: equippedLoadoutOverride,
+         terrainHarnessGeometry: null,
        );
+
+  /// Creates the isolated Phase 2 player-terrain integration harness.
+  ///
+  /// This is a test/tool construction boundary, not a level or replay option.
+  /// It rejects enabled dynamic non-player bodies until Phase 3 migrates them.
+  factory GameCore.terrainMotionHarness({
+    required int seed,
+    int runId = 0,
+    int tickHz = defaultTickHz,
+    required LevelDefinition levelDefinition,
+    required PlayerCharacterDefinition playerCharacter,
+    required TerrainGeometry terrainGeometry,
+    EquippedLoadoutDef? equippedLoadoutOverride,
+    ProjectileCatalog projectileCatalog = const ProjectileCatalog(),
+    SpellBookCatalog spellBookCatalog = const SpellBookCatalog(),
+    EnemyCatalog enemyCatalog = const EnemyCatalog(),
+    WeaponCatalog weaponCatalog = const WeaponCatalog(),
+    AccessoryCatalog accessoryCatalog = const AccessoryCatalog(),
+  }) {
+    return GameCore._fromLevel(
+      seed: seed,
+      runId: runId,
+      tickHz: tickHz,
+      levelDefinition: levelDefinition,
+      projectileCatalog: projectileCatalog,
+      spellBookCatalog: spellBookCatalog,
+      enemyCatalog: enemyCatalog,
+      playerCharacter: playerCharacter,
+      weaponCatalog: weaponCatalog,
+      accessoryCatalog: accessoryCatalog,
+      equippedLoadoutOverride: equippedLoadoutOverride,
+      terrainHarnessGeometry: terrainGeometry,
+    );
+  }
 
   GameCore._fromLevel({
     required this.seed,
@@ -244,6 +217,7 @@ class GameCore {
     required WeaponCatalog weaponCatalog,
     required AccessoryCatalog accessoryCatalog,
     required EquippedLoadoutDef? equippedLoadoutOverride,
+    required TerrainGeometry? terrainHarnessGeometry,
   }) : _levelDefinition = levelDefinition,
        _movement = MovementTuningDerived.from(
          playerCharacter.tuning.movement,
@@ -288,6 +262,7 @@ class GameCore {
          accessories: accessoryCatalog,
        ),
        _equippedLoadoutOverride = equippedLoadoutOverride,
+       _terrainHarnessGeometry = terrainHarnessGeometry,
        _scoreTuning = levelDefinition.tuning.score,
        _trackTuning = levelDefinition.tuning.track,
        _collectibleTuning = levelDefinition.tuning.collectible,
@@ -297,6 +272,19 @@ class GameCore {
 
   /// Common initialization shared by all constructors.
   void _initializeWorld(LevelDefinition levelDefinition) {
+    _playerArchetype = PlayerCatalogDerived.from(
+      _playerCharacter.catalog,
+      movement: _movement,
+      resources: _resourceTuning,
+    ).archetype;
+    final terrainGeometry = _terrainHarnessGeometry;
+    _worldMotionAuthority = terrainGeometry == null
+        ? LegacyWorldMotionAuthority()
+        : TerrainPlayerWorldMotionAuthority(
+            geometry: terrainGeometry,
+            profile: _playerArchetype.terrainTraversalProfile,
+          );
+
     // ─── Initialize ECS world and entity factory ───
     _world = EcsWorld(seed: seed);
     _entityFactory = EntityFactory(_world);
@@ -420,7 +408,6 @@ class GameCore {
     );
     _jumpSystem = JumpSystem(abilities: abilityCatalog);
     _mobilitySystem = MobilitySystem();
-    _collisionSystem = CollisionSystem();
     _cooldownSystem = CooldownSystem();
     _gravitySystem = GravitySystem();
 
@@ -610,11 +597,7 @@ class GameCore {
     _playerDeathStartTick = -1;
 
     final spawnX = _trackTuning.playerStartX;
-    final playerArchetype = PlayerCatalogDerived.from(
-      _playerCharacter.catalog,
-      movement: _movement,
-      resources: _resourceTuning,
-    ).archetype;
+    final playerArchetype = _playerArchetype;
     final playerCollider = playerArchetype.collider;
 
     // Position so collider bottom touches ground.
@@ -650,7 +633,7 @@ class GameCore {
       velY: 0.0,
       facing: playerArchetype.facing,
       artFacing: playerArchetype.facing,
-      grounded: true,
+      grounded: _worldMotionAuthority.initialPlayerGrounded,
       body: playerArchetype.body,
       collider: playerCollider,
       health: scaledHealth,
@@ -660,6 +643,11 @@ class GameCore {
       resistance: playerArchetype.resistance,
       statusImmunity: playerArchetype.statusImmunity,
       equippedLoadout: equippedLoadout,
+    );
+    _worldMotionAuthority.initializePlayer(
+      _world,
+      player: _player,
+      archetype: playerArchetype,
     );
   }
 
@@ -746,6 +734,8 @@ class GameCore {
   final CharacterStatsResolver _statsResolver;
   late final ResolvedStatsCache _resolvedStatsCache;
   final EquippedLoadoutDef? _equippedLoadoutOverride;
+  final TerrainGeometry? _terrainHarnessGeometry;
+  late final PlayerArchetype _playerArchetype;
 
   // ─── ECS Core ───
 
@@ -772,7 +762,7 @@ class GameCore {
   late final PlayerMovementSystem _movementSystem;
   late final JumpSystem _jumpSystem;
   late final MobilitySystem _mobilitySystem;
-  late final CollisionSystem _collisionSystem;
+  late final WorldMotionAuthority _worldMotionAuthority;
   late final CooldownSystem _cooldownSystem;
   late final GravitySystem _gravitySystem;
   late final ProjectileSystem _projectileSystem;
@@ -902,9 +892,15 @@ class GameCore {
   double get playerPosY =>
       _world.transform.posY[_world.transform.indexOf(_player)];
 
-  /// Sets player position (for tests or teleportation).
-  void setPlayerPosXY(double x, double y) =>
-      _world.transform.setPosXY(_player, x, y);
+  /// Unsafely sets player position for deterministic tests.
+  ///
+  /// This deliberately skips destination-clearance validation. Gameplay
+  /// teleport or placement code must use an authority-owned clearance query
+  /// before committing a transform.
+  void setPlayerPosXYUnsafeForTest(double x, double y) {
+    _worldMotionAuthority.beforePlayerTeleport(_world, _player);
+    _world.transform.setPosXY(_player, x, y);
+  }
 
   /// Player X velocity (positive = moving right).
   double get playerVelX =>
@@ -915,12 +911,131 @@ class GameCore {
       _world.transform.velY[_world.transform.indexOf(_player)];
 
   /// Sets player velocity (for tests or knockback effects).
-  void setPlayerVelXY(double x, double y) =>
-      _world.transform.setVelXY(_player, x, y);
+  void setPlayerVelXY(double x, double y) {
+    _worldMotionAuthority.beforeExternalPlayerVelocity(
+      _world,
+      _player,
+      velocityY: y,
+    );
+    _world.transform.setVelXY(_player, x, y);
+  }
 
   /// Whether the player is currently on the ground.
   bool get playerGrounded =>
-      _world.collision.grounded[_world.collision.indexOf(_player)];
+      _worldMotionAuthority.playerGrounded(_world, _player);
+
+  /// Builds an immutable terrain diagnostic snapshot on demand.
+  ///
+  /// Returns `null` for the normal legacy world-motion path. This method is
+  /// intended for tests and tooling; normal ticks do not allocate snapshots.
+  TerrainPlayerDebugSnapshot? buildTerrainPlayerDebugSnapshot() {
+    final geometryVersion = _worldMotionAuthority.terrainGeometryVersion;
+    final terrainIndex = _world.terrainContact.tryIndexOf(_player);
+    final capsuleIndex = _world.worldContactCapsule.tryIndexOf(_player);
+    final resolvedIndex = _world.resolvedMotion.tryIndexOf(_player);
+    final transformIndex = _world.transform.tryIndexOf(_player);
+    if (geometryVersion == null ||
+        terrainIndex == null ||
+        capsuleIndex == null ||
+        resolvedIndex == null ||
+        transformIndex == null) {
+      return null;
+    }
+    final contacts = <TerrainBlockingContactSnapshot>[];
+    final count = _world.terrainContact.blockingContactCount[terrainIndex];
+    for (var index = 0; index < count; index += 1) {
+      final edgeId =
+          _world.terrainContact.blockingContactEdgeIds[terrainIndex][index];
+      if (edgeId == null) continue;
+      contacts.add(
+        TerrainBlockingContactSnapshot(
+          edgeId: edgeId,
+          kind: _world.terrainContact.blockingContactKinds[terrainIndex][index],
+          feature: _world
+              .terrainContact
+              .blockingContactFeatures[terrainIndex][index],
+          normalXTicks: _world
+              .terrainContact
+              .blockingContactNormalXTicks[terrainIndex][index],
+          normalYTicks: _world
+              .terrainContact
+              .blockingContactNormalYTicks[terrainIndex][index],
+        ),
+      );
+    }
+    return TerrainPlayerDebugSnapshot(
+      entityId: _player,
+      tick: tick,
+      capsuleCenterXTicks:
+          _world.terrainContact.lastCapsuleCenterXTicks[terrainIndex],
+      capsuleCenterYTicks:
+          _world.terrainContact.lastCapsuleCenterYTicks[terrainIndex],
+      capsuleRadiusTicks: _world.worldContactCapsule.radiusTicks[capsuleIndex],
+      capsuleVerticalHalfSegmentTicks:
+          _world.worldContactCapsule.verticalHalfSegmentTicks[capsuleIndex],
+      requestedXTicks: _world.resolvedMotion.requestedXTicks[resolvedIndex],
+      requestedYTicks: _world.resolvedMotion.requestedYTicks[resolvedIndex],
+      gravityXTicks: _world.resolvedMotion.gravityXTicks[resolvedIndex],
+      gravityYTicks: _world.resolvedMotion.gravityYTicks[resolvedIndex],
+      resolvedXTicks: _world.resolvedMotion.resolvedXTicks[resolvedIndex],
+      resolvedYTicks: _world.resolvedMotion.resolvedYTicks[resolvedIndex],
+      supportedTravelTicks:
+          _world.resolvedMotion.supportedTravelTicks[resolvedIndex],
+      groundedLocomotionPhaseBp: _world
+          .animState
+          .groundedLocomotionPhaseBp[_world.animState.indexOf(_player)],
+      finalBodyXTicks: physicsCoordinateToTicks(
+        _world.transform.posX[transformIndex],
+        name: 'debugBodyX',
+      ),
+      finalBodyYTicks: physicsCoordinateToTicks(
+        _world.transform.posY[transformIndex],
+        name: 'debugBodyY',
+      ),
+      finalVelocityXTicks: physicsCoordinateToTicks(
+        _world.transform.velX[transformIndex],
+        name: 'debugVelocityX',
+      ),
+      finalVelocityYTicks: physicsCoordinateToTicks(
+        _world.transform.velY[transformIndex],
+        name: 'debugVelocityY',
+      ),
+      geometryVersion: geometryVersion,
+      grounded: _world.terrainContact.grounded[terrainIndex],
+      supportEdgeId: _world.terrainContact.supportEdgeId[terrainIndex],
+      supportPointXTicks:
+          _world.terrainContact.supportPointXTicks[terrainIndex],
+      supportPointYTicks:
+          _world.terrainContact.supportPointYTicks[terrainIndex],
+      supportNormalXTicks:
+          _world.terrainContact.supportNormalXTicks[terrainIndex],
+      supportNormalYTicks:
+          _world.terrainContact.supportNormalYTicks[terrainIndex],
+      supportTangentXTicks:
+          _world.terrainContact.supportTangentXTicks[terrainIndex],
+      supportTangentYTicks:
+          _world.terrainContact.supportTangentYTicks[terrainIndex],
+      blockingContacts: contacts,
+      hitLeft: _world.terrainContact.hitLeft[terrainIndex],
+      hitRight: _world.terrainContact.hitRight[terrainIndex],
+      hitCeiling: _world.terrainContact.hitCeiling[terrainIndex],
+      wallNormalXTicks: _world.terrainContact.wallNormalXTicks[terrainIndex],
+      wallNormalYTicks: _world.terrainContact.wallNormalYTicks[terrainIndex],
+      ceilingNormalXTicks:
+          _world.terrainContact.ceilingNormalXTicks[terrainIndex],
+      ceilingNormalYTicks:
+          _world.terrainContact.ceilingNormalYTicks[terrainIndex],
+      usedStep: _world.terrainContact.usedStep[terrainIndex],
+      usedSnap: _world.terrainContact.usedSnap[terrainIndex],
+      usedRecovery: _world.terrainContact.usedRecovery[terrainIndex],
+      contactIterations: _world.terrainContact.contactIterations[terrainIndex],
+      recoveryIterations:
+          _world.terrainContact.recoveryIterations[terrainIndex],
+      candidateCount: _world.terrainContact.candidateCount[terrainIndex],
+      queryCellsVisited: _world.terrainContact.queryCellsVisited[terrainIndex],
+      diagnostic: _world.terrainContact.diagnostic[terrainIndex],
+    );
+  }
 
   /// Player facing direction (left or right).
   Facing get playerFacing =>
@@ -1124,6 +1239,11 @@ class GameCore {
 
     // ─── Phase 1: World generation ───
     _stepTrackManager();
+    _worldMotionAuthority.prepareTick(
+      _world,
+      player: _player,
+      currentTick: tick,
+    );
 
     // ─── Phase 2: Timer decrements ───
     _cooldownSystem.step(_world);
@@ -1184,20 +1304,21 @@ class GameCore {
     );
     _mobilitySystem.step(_world, _movement, currentTick: tick);
     _gravitySystem.step(_world, _movement, physics: _physicsTuning);
-    _collisionSystem.step(
+    final distanceDelta = _worldMotionAuthority.step(
       _world,
-      _movement,
-      staticWorld: _trackManager.staticIndex,
+      player: _player,
+      movement: _movement,
+      legacyStaticWorld: _trackManager.staticIndex,
       fixedPointPilotEnabled: _physicsTuning.fixedPointPilot.enabled,
       fixedPointSubpixelScale: _physicsTuning.fixedPointPilot.subpixelScale,
+      currentTick: tick,
     );
 
     // ─── Phase 4: Distance tracking ───
-    // Only count forward movement (positive X velocity).
-    distance += max(0.0, playerVelX) * _movement.dtSeconds;
+    distance += distanceDelta;
 
     // ─── Phase 5: Death condition checks ───
-    if (_checkFellIntoGap(effectiveGroundTopY)) {
+    if (_checkFellIntoGap()) {
       _endRun(RunEndReason.fellIntoGap);
       return;
     }
@@ -1379,6 +1500,7 @@ class GameCore {
     if (_isPlayerDead()) {
       if (_deathAnimTicksLeft <= 0) {
         if (_playerDeathPhase == DeathPhase.none) {
+          _worldMotionAuthority.beforePlayerMotionStops(_world, _player);
           _playerDeathPhase = DeathPhase.deathAnim;
           // First death frame is rendered during the freeze tick immediately
           // after this gameplay tick.
@@ -1568,10 +1690,9 @@ class GameCore {
 
   /// Checks if the player has fallen into a ground gap (pit).
   ///
-  /// The kill threshold is set well below ground level to give visual
-  /// feedback of falling before the death triggers. Configured via
-  /// [TrackTuning.gapKillOffsetY].
-  bool _checkFellIntoGap(double groundTopY) {
+  /// The threshold is an absolute level kill plane. Legacy level definitions
+  /// derive it from ground top plus [TrackTuning.gapKillOffsetY].
+  bool _checkFellIntoGap() {
     if (!(_world.transform.has(_player) && _world.colliderAabb.has(_player))) {
       return false;
     }
@@ -1583,7 +1704,10 @@ class GameCore {
         _world.colliderAabb.offsetY[ai] +
         _world.colliderAabb.halfY[ai];
 
-    return bottomY > groundTopY + _trackTuning.gapKillOffsetY;
+    return bottomY >
+        _levelDefinition.resolveKillPlaneY(
+          legacyGapOffsetY: _trackTuning.gapKillOffsetY,
+        );
   }
 
   // ─────────────────────────────────────────────────────────────────────────

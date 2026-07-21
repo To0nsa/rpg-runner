@@ -3,6 +3,7 @@ import '../../snapshots/enums.dart';
 import '../../players/player_tuning.dart';
 import '../stores/mobility_intent_store.dart';
 import '../world.dart';
+import '../world_support_view.dart';
 
 /// Executes mobility intents (dash/roll) and applies movement state.
 ///
@@ -43,14 +44,23 @@ class MobilitySystem {
 
       final activeTicks = intents.activeTicks[ii];
       if (activeTicks <= 0) continue;
+      final dirX = intents.dirX[ii];
+      final dirY = intents.dirY[ii];
+
+      final terrainContactIndex = world.terrainContact.tryIndexOf(entity);
+      if (terrainContactIndex != null) {
+        final fallbackDirection = movements.facing[mi] == Facing.right ? 1 : -1;
+        world.terrainContact.mobilityStartedGrounded[terrainContactIndex] =
+            WorldSupportView(world).isGrounded(entity);
+        world.terrainContact.mobilitySurfaceDirectionSign[terrainContactIndex] =
+            dirX.abs() > 1e-6 ? dirX.sign.toInt() : fallbackDirection;
+      }
 
       final modifierIndex = world.statModifier.tryIndexOf(entity);
       final moveSpeedMul = modifierIndex == null
           ? 1.0
           : world.statModifier.moveSpeedMul[modifierIndex];
 
-      final dirX = intents.dirX[ii];
-      final dirY = intents.dirY[ii];
       final speedScale = intents.speedScaleBp[ii] / 10000.0;
       final baseSpeed = intents.mobilitySpeedX[ii];
       final dashSpeed = baseSpeed * moveSpeedMul * speedScale;

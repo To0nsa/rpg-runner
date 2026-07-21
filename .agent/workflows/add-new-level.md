@@ -71,8 +71,8 @@ Do not hand-edit generated runtime files.
 
 ```bash
 dart run tool/generate_chunk_runtime_data.dart --dry-run
-dart test test/tool/level_definition_generation_test.dart
-dart test test/tool/generate_chunk_runtime_data_test.dart
+flutter test test/tool/level_definition_generation_test.dart
+flutter test test/tool/generate_chunk_runtime_data_test.dart
 dart analyze packages/runner_core lib/ui lib/game
 flutter test test/core test/ui test/game
 ```

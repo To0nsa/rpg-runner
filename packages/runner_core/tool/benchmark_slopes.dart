@@ -103,6 +103,9 @@ void main(List<String> args) {
     'insertedReferences': slopeIndex.insertedReferences,
     'occupiedCells': slopeIndex.occupiedCellCount,
     'steadyStateBufferResizeDelta': slopeQuery.bufferResizeDelta,
+    'steadyStateOwnedStorageAllocationCount': slopeQuery.bufferResizeDelta,
+    'allocationEvidence':
+        'caller-owned query/hit outputs; no query-buffer storage replacement',
     'matchedFlatOverheadPercent': queryOverheadPercent,
     'gates': gates,
     'passed': passed,

@@ -1,5 +1,7 @@
 import '../ecs/stores/body_store.dart';
 import '../ecs/stores/collider_aabb_store.dart';
+import '../ecs/stores/world_contact_capsule_store.dart';
+import '../collision/terrain/terrain_traversal_profile.dart';
 import '../ecs/stores/combat/creature_tag_store.dart';
 import '../ecs/stores/combat/damage_resistance_store.dart';
 import '../ecs/stores/combat/equipped_loadout_store.dart';
@@ -29,6 +31,8 @@ import '../abilities/ability_def.dart';
 class PlayerArchetype {
   const PlayerArchetype({
     required this.collider,
+    required this.worldContactCapsule,
+    required this.terrainTraversalProfile,
     required this.body,
     required this.health,
     required this.mana,
@@ -56,6 +60,15 @@ class PlayerArchetype {
   /// Typically derived from [PlayerCatalog.colliderWidth] and
   /// [PlayerCatalog.colliderHeight].
   final ColliderAabbDef collider;
+
+  /// Upright terrain-contact shape derived from [collider].
+  ///
+  /// Normal GameCore spawning keeps legacy AABB authority during Phase 2; the
+  /// isolated terrain-motion harness attaches this definition explicitly.
+  final WorldContactCapsuleDef worldContactCapsule;
+
+  /// Actor policy used only when staged terrain motion owns integration.
+  final TerrainTraversalProfile terrainTraversalProfile;
 
   /// Physics body configuration (gravity, kinematic flags, velocity clamps).
   ///

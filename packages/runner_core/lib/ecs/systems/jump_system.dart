@@ -7,6 +7,7 @@ import '../entity_id.dart';
 import '../stores/mobility_intent_store.dart';
 import '../stores/player/jump_state_store.dart';
 import '../world.dart';
+import '../world_support_view.dart';
 
 /// Executes buffered jump intents with coyote-time and air-jump rules.
 ///
@@ -24,6 +25,7 @@ class JumpSystem {
     required int currentTick,
   }) {
     final jumpState = world.jumpState;
+    final supportView = WorldSupportView(world);
     final entities = jumpState.denseEntities;
     for (var ji = 0; ji < entities.length; ji += 1) {
       final entity = entities[ji];
@@ -37,9 +39,10 @@ class JumpSystem {
 
       _tickForgivenessState(
         world,
+        entity: entity,
+        supportView: supportView,
         jumpState: jumpState,
         jumpStateIndex: ji,
-        collisionIndex: ci,
         tuning: tuning,
       );
 
@@ -74,7 +77,7 @@ class JumpSystem {
       }
 
       final canGroundJump =
-          world.collision.grounded[ci] || jumpState.coyoteTicksLeft[ji] > 0;
+          supportView.isGrounded(entity) || jumpState.coyoteTicksLeft[ji] > 0;
       final canAirJump =
           !canGroundJump && jumpState.airJumpsUsed[ji] < ability.maxAirJumps;
       if (!canGroundJump && !canAirJump) {
@@ -89,6 +92,11 @@ class JumpSystem {
       }
 
       _payJumpCost(world, entity: entity, cost: jumpCost);
+      final terrainContactIndex = world.terrainContact.tryIndexOf(entity);
+      if (terrainContactIndex != null) {
+        world.terrainContact.clearSupport(entity);
+        world.collision.grounded[ci] = false;
+      }
       final jumpSpeedY = canGroundJump
           ? (ability.groundJumpSpeedY ?? tuning.base.jumpSpeed)
           : (ability.airJumpSpeedY ??
@@ -115,16 +123,17 @@ class JumpSystem {
 
   void _tickForgivenessState(
     EcsWorld world, {
+    required EntityId entity,
+    required WorldSupportView supportView,
     required JumpStateStore jumpState,
     required int jumpStateIndex,
-    required int collisionIndex,
     required MovementTuningDerived tuning,
   }) {
     if (jumpState.jumpBufferTicksLeft[jumpStateIndex] > 0) {
       jumpState.jumpBufferTicksLeft[jumpStateIndex] -= 1;
     }
 
-    final grounded = world.collision.grounded[collisionIndex];
+    final grounded = supportView.isGrounded(entity);
     if (grounded) {
       jumpState.coyoteTicksLeft[jumpStateIndex] = tuning.coyoteTicks;
       jumpState.airJumpsUsed[jumpStateIndex] = 0;

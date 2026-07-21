@@ -11,12 +11,27 @@ enum TerrainFacing { left, right }
 /// A zero half-segment is a circle. The derived AABB half extents are
 /// `(radius, radius + halfSegment)`.
 class UprightCapsule {
-  const UprightCapsule({
+  /// Creates a non-negative capsule on the physics grid.
+  factory UprightCapsule({
+    required TerrainPoint center,
+    required int radiusTicks,
+    required int verticalHalfSegmentTicks,
+  }) {
+    if (radiusTicks < 0 || verticalHalfSegmentTicks < 0) {
+      throw ArgumentError('Capsule dimensions must be non-negative.');
+    }
+    return UprightCapsule._(
+      center: center,
+      radiusTicks: radiusTicks,
+      verticalHalfSegmentTicks: verticalHalfSegmentTicks,
+    );
+  }
+
+  const UprightCapsule._({
     required this.center,
     required this.radiusTicks,
     required this.verticalHalfSegmentTicks,
-  }) : assert(radiusTicks >= 0),
-       assert(verticalHalfSegmentTicks >= 0);
+  });
 
   /// Resolves a body-centered capsule, mirroring only the authored X offset.
   factory UprightCapsule.fromBody({
@@ -38,17 +53,29 @@ class UprightCapsule {
     );
   }
 
+  /// Center of the vertical spine in physics ticks.
   final TerrainPoint center;
+
+  /// Cap/side radius in 1/1024-world-unit physics ticks.
   final int radiusTicks;
+
+  /// Half-length of the vertical spine in physics ticks.
   final int verticalHalfSegmentTicks;
 
+  /// Horizontal AABB half extent in physics ticks.
   int get halfWidthTicks => radiusTicks;
+
+  /// Vertical AABB half extent in physics ticks.
   int get halfHeightTicks => radiusTicks + verticalHalfSegmentTicks;
 
+  /// Upper endpoint of the vertical spine in Y-down coordinates.
   TerrainPoint get spineStart =>
       center.translated(0, -verticalHalfSegmentTicks);
+
+  /// Lower endpoint of the vertical spine in Y-down coordinates.
   TerrainPoint get spineEnd => center.translated(0, verticalHalfSegmentTicks);
 
+  /// Tight inclusive bounds in physics ticks.
   TerrainAabb get bounds => TerrainAabb(
     minX: center.xTicks - radiusTicks,
     minY: center.yTicks - halfHeightTicks,

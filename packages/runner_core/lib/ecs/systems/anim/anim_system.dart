@@ -11,6 +11,7 @@ import '../../../tuning/utils/anim_tuning.dart' as anim_utils;
 import '../../../util/tick_math.dart';
 import '../../entity_id.dart';
 import '../../world.dart';
+import '../../world_support_view.dart';
 
 /// System that computes per-entity animation state each tick.
 ///
@@ -23,7 +24,8 @@ class AnimSystem {
     required MovementTuningDerived playerMovement,
     required AnimTuningDerived playerAnimTuning,
     this.abilities = AbilityCatalog.shared,
-  }) : _playerAnimTuning = playerAnimTuning,
+  }) : _tickHz = tickHz,
+       _playerAnimTuning = playerAnimTuning,
        _playerProfile = AnimProfile(
          minMoveSpeed: playerMovement.base.minMoveSpeed,
          runSpeedThresholdX: playerMovement.base.runSpeedThresholdX,
@@ -44,6 +46,7 @@ class AnimSystem {
   final EnemyCatalog enemyCatalog;
   final AbilityResolver abilities;
 
+  final int _tickHz;
   final AnimTuningDerived _playerAnimTuning;
   final AnimProfile _playerProfile;
 
@@ -170,7 +173,12 @@ class AnimSystem {
 
     final result = AnimResolver.resolve(_playerProfile, signals);
     world.animState.anim[ai] = result.anim;
-    world.animState.animFrame[ai] = result.animFrame;
+    world.animState.animFrame[ai] = _terrainPlayerAnimFrame(
+      world,
+      player: player,
+      animStateIndex: ai,
+      resolved: result,
+    );
   }
 
   void _stepEnemies(EcsWorld world, {required int currentTick}) {
@@ -259,9 +267,7 @@ class AnimSystem {
     final hi = world.health.tryIndexOf(entity);
     final hp = hi == null ? 1 : world.health.hp[hi];
 
-    final grounded = world.collision.has(entity)
-        ? world.collision.grounded[world.collision.indexOf(entity)]
-        : false;
+    final grounded = WorldSupportView(world).isGrounded(entity);
 
     final ti = world.transform.tryIndexOf(entity);
     final velX = ti == null ? 0.0 : world.transform.velX[ti];
@@ -291,6 +297,37 @@ class AnimSystem {
       stunLocked: stunLocked,
       stunStartTick: stunStartTick,
     );
+  }
+
+  int _terrainPlayerAnimFrame(
+    EcsWorld world, {
+    required EntityId player,
+    required int animStateIndex,
+    required AnimResult resolved,
+  }) {
+    final motionIndex = world.resolvedMotion.tryIndexOf(player);
+    if (motionIndex == null ||
+        (resolved.anim != AnimKey.walk && resolved.anim != AnimKey.run)) {
+      return resolved.animFrame;
+    }
+    final travel = world.resolvedMotion.supportedTravelTicks[motionIndex].abs();
+    final reference = world
+        .resolvedMotion
+        .locomotionReferenceSpeedTicksPerSecond[motionIndex];
+    if (travel <= 0 || reference <= 0) {
+      return world.animState.groundedLocomotionPhaseBp[animStateIndex] ~/
+          _locomotionPhaseScale;
+    }
+    final rawRateBp =
+        (travel * _tickHz * _locomotionPhaseScale + reference ~/ 2) ~/
+        reference;
+    final rateBp = rawRateBp.clamp(
+      _minimumLocomotionRateBp,
+      _maximumLocomotionRateBp,
+    );
+    world.animState.groundedLocomotionPhaseBp[animStateIndex] += rateBp;
+    return world.animState.groundedLocomotionPhaseBp[animStateIndex] ~/
+        _locomotionPhaseScale;
   }
 
   ({AnimKey? anim, int frame}) _resolveActiveAction(
@@ -369,4 +406,8 @@ class AnimSystem {
 
     return AnimKey.backStrike;
   }
+
+  static const int _locomotionPhaseScale = 10000;
+  static const int _minimumLocomotionRateBp = 7500;
+  static const int _maximumLocomotionRateBp = 15000;
 }

@@ -8,19 +8,46 @@ enum TerrainCollisionMode { solid, oneWay }
 
 /// Stable source identity shared by polygons and their compiled edges.
 class TerrainSourceIdentity implements Comparable<TerrainSourceIdentity> {
-  const TerrainSourceIdentity({
+  factory TerrainSourceIdentity({
+    required int chunkIndex,
+    required String chunkKey,
+    required String shapeId,
+    String? placementKey,
+  }) {
+    if (chunkKey.isEmpty || shapeId.isEmpty) {
+      throw ArgumentError('Terrain source keys must not be empty.');
+    }
+    if (placementKey != null && placementKey.isEmpty) {
+      throw ArgumentError('A present placement key must not be empty.');
+    }
+    return TerrainSourceIdentity._(
+      chunkIndex: chunkIndex,
+      chunkKey: chunkKey,
+      placementKey: placementKey,
+      shapeId: shapeId,
+    );
+  }
+
+  const TerrainSourceIdentity._({
     required this.chunkIndex,
     required this.chunkKey,
+    required this.placementKey,
     required this.shapeId,
-    this.placementKey,
-  }) : assert(chunkKey != ''),
-       assert(shapeId != '');
+  });
 
+  /// Signed authored chunk order; base terrain may use a negative index.
   final int chunkIndex;
+
+  /// Stable chunk key within [chunkIndex].
   final String chunkKey;
+
+  /// Stable placed-prefab selection key, or `null` for direct chunk source.
   final String? placementKey;
+
+  /// Stable shape key within the chunk or placement.
   final String shapeId;
 
+  /// Derives deterministic edge lineage from this source identity.
   TerrainEdgeId edgeId(int localEdgeIndex, {int subEdgeIndex = 0}) =>
       TerrainEdgeId(
         chunkIndex: chunkIndex,
@@ -43,6 +70,7 @@ class TerrainSourceIdentity implements Comparable<TerrainSourceIdentity> {
       placementKey == other.placementKey &&
       shapeId == other.shapeId;
 
+  /// Collection hash only; canonical signatures serialize ordered fields.
   @override
   int get hashCode => Object.hash(chunkIndex, chunkKey, placementKey, shapeId);
 }
@@ -83,12 +111,25 @@ class TerrainPolygonInput {
          transform: transform,
        );
 
+  /// Stable diagnostic path; compilation rejects an empty value.
   final String sourcePath;
+
+  /// Canonical lineage shared with every compiled edge.
   final TerrainSourceIdentity identity;
+
+  /// Immutable authored loop in half-world-unit ticks.
   final List<SourceTerrainPoint> vertices;
+
+  /// Physical sidedness, independent from semantic metadata.
   final TerrainCollisionMode collisionMode;
+
+  /// Optional gameplay surface classifier retained without interpretation.
   final String? surfaceKind;
+
+  /// Optional material classifier retained without interpretation.
   final String? materialKey;
+
+  /// Placement transform applied once during compilation.
   final TerrainSourceTransform transform;
 }
 
@@ -109,12 +150,25 @@ class TerrainPolygon {
          List<TerrainPoint>.of(vertices),
        );
 
+  /// Stable diagnostic path inherited from the source.
   final String sourcePath;
+
+  /// Canonical lineage shared with every compiled edge.
   final TerrainSourceIdentity identity;
+
+  /// Clockwise Y-down canonical loop in half-world-unit source ticks.
   final List<SourceTerrainPoint> sourceVertices;
+
+  /// Transformed canonical loop in 1/1024-world-unit physics ticks.
   final List<TerrainPoint> vertices;
+
+  /// Physical sidedness, independent from semantic metadata.
   final TerrainCollisionMode collisionMode;
+
+  /// Optional gameplay surface classifier retained without interpretation.
   final String? surfaceKind;
+
+  /// Optional material classifier retained without interpretation.
   final String? materialKey;
 
   @override
@@ -161,10 +215,19 @@ class TerrainDiagnostic implements Comparable<TerrainDiagnostic> {
     required this.message,
   });
 
+  /// Stable source path used as the first diagnostic sort key.
   final String sourcePath;
+
+  /// Stable source shape key used as the second diagnostic sort key.
   final String shapeId;
+
+  /// Source element position used as the third diagnostic sort key.
   final int elementIndex;
+
+  /// Machine-readable final diagnostic sort key.
   final String code;
+
+  /// Human-readable explanation; excluded from diagnostic ordering.
   final String message;
 
   @override
@@ -189,6 +252,7 @@ class TerrainValidationException implements Exception {
         List<TerrainDiagnostic>.of(diagnostics)..sort(),
       );
 
+  /// Immutable diagnostics in canonical source/shape/element/code order.
   final List<TerrainDiagnostic> diagnostics;
 
   @override

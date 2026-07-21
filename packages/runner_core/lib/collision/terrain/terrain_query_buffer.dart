@@ -33,6 +33,7 @@ class TerrainQueryBuffer {
     return canonicalEdges[_candidateIndices[candidateIndex]];
   }
 
+  /// Resets query state and grows storage only when [edgeCount] changes.
   void prepare(int edgeCount) {
     if (_stamps.length != edgeCount) {
       _stamps = List<int>.filled(edgeCount, 0);
@@ -49,6 +50,9 @@ class TerrainQueryBuffer {
     }
   }
 
+  /// Marks [edgeIndex] once for the current query generation.
+  ///
+  /// Returns `true` only on its first occurrence.
   bool mark(int edgeIndex) {
     if (_stamps[edgeIndex] == _generation) return false;
     _stamps[edgeIndex] = _generation;
@@ -95,10 +99,16 @@ class TerrainQueryBuffer {
 
 /// Mutable, allocation-free counters populated by a terrain-index query.
 class TerrainQueryStats {
+  /// Number of closed grid cells traversed by the latest query.
   int cellsVisited = 0;
+
+  /// Total bucket entries visited before deduplication.
   int rawCandidates = 0;
+
+  /// Exact-AABB candidates retained after deduplication.
   int uniqueCandidates = 0;
 
+  /// Clears all counters without replacing this stats object.
   void reset() {
     cellsVisited = 0;
     rawCandidates = 0;

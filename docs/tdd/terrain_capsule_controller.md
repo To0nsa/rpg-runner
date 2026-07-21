@@ -1,0 +1,260 @@
+# Terrain Capsule Controller
+
+## Status And Authority Boundary
+
+The deterministic terrain geometry and upright-capsule controller are
+implemented in `packages/runner_core`, but polygon terrain is not yet the
+authority for normal repository-backed runs.
+
+There are currently two construction-time world-motion owners:
+
+| Construction path | Motion owner | Intended use |
+| --- | --- | --- |
+| `GameCore(...)` | `LegacyWorldMotionAuthority` | Normal game and replay execution |
+| `GameCore.terrainMotionHarness(...)` | `TerrainPlayerWorldMotionAuthority` | Phase 2 tests and benchmarks only |
+
+The selection is immutable after Core construction. It is not level data,
+saved data, replay data, UI state, or remote configuration. The terrain
+harness rejects enabled dynamic non-player bodies rather than falling back to
+rectangle collision. Enemy, navigation, streaming, authored-content, and
+production replay cutovers remain later phases of the slopes plan.
+
+## Authoritative Units And Geometry
+
+Terrain motion uses integer physics ticks:
+
+- `1024` ticks per world unit
+- `1` tick geometry equality epsilon
+- `2` ticks contact and equal-time tolerance
+- `64` ticks retained collision skin
+- at most `4` blocking-contact iterations
+- at most `4` recovery iterations
+- at most one capsule radius of recovery correction per tick
+- `4096` ticks for both Éloïse step-up and support snap
+
+The immutable `TerrainGeometry` and `TerrainEdgeIndex` produced by the Phase 1
+compiler are the only terrain representation read by the controller. Candidate
+edges and equal-time contacts remain in canonical `TerrainEdgeId` order.
+Runtime slope angles come from `TerrainTraversalCache`; they are not calculated
+with platform trigonometry in the tick loop.
+
+## Actor Shape And Traversal Profile
+
+`WorldContactCapsuleStore` owns the world-contact radius, vertical
+half-segment, and facing-aware offset. Both current Éloïse definitions use:
+
+```text
+radius = 10.3 world units
+vertical half-segment = 12.7 world units
+offset = (-0.3, 1.0) world units
+derived AABB half extents = (10.3, 23.0) world units
+```
+
+The capsule is authoritative only for terrain contact. Existing combat,
+pickup, broad-phase, culling, and render consumers keep the exact derived AABB.
+A facing reversal is included in the next capsule sweep through the retained
+tick-start capsule center; it is not an unchecked shape teleport.
+
+`TerrainTraversalProfile` is actor-neutral data. It owns enable/kinematic and
+side-collision policy, the inclusive walkable slope threshold, signed speed
+curve, step/snap distances, and one-way behavior. The controller does not read
+a player entity ID or Éloïse tuning directly. Phase 3 can therefore provide
+enemy-specific profiles without branching the collision kernel.
+
+Éloïse's implemented walkability and target-X speed curve are:
+
+| Absolute slope | Uphill | Downhill |
+| ---: | ---: | ---: |
+| 0° | 100% | 100% |
+| 30° | 95% | 105% |
+| 45° | 85% | 110% |
+| 60° | 75% | 115% |
+
+The curve is continuously integer-interpolated between points. A quantized
+60-degree support is walkable; an over-limit edge is a wall.
+
+## Motion Request Semantics
+
+`TerrainMotionRequest` distinguishes three forms of authored movement:
+
+- `groundedHorizontal` preserves ordinary locomotion's requested world-X
+  displacement and derives Y from eligible support.
+- `groundedSurface` preserves grounded dash/roll distance along support.
+- `worldSpace` preserves airborne movement, falling, launch, and knockback as
+  a world vector until an entering component is removed by contact.
+
+Gravity is carried separately. Valid support consumes it as contact bias, so
+idle or move-locked actors do not slide downhill. Once support is lost, gravity
+is resolved in world space on that same tick. Jump impulse remains world-up;
+grounded mobility uses the committed horizontal direction or facing when the
+committed X direction is zero.
+
+## Solve Pipeline
+
+One controller instance owns reusable query, hit, contact, constraint, and
+result scratch state and is not concurrent. A solve performs:
+
+1. Validate previous support against the immutable geometry version.
+2. Recover an invalid initial solid overlap in canonical order.
+3. Query the expanded swept-capsule bounds.
+4. Select the earliest allowed continuous contact and all equal-time blockers.
+5. Advance to retained skin and constrain only entering motion.
+6. Continue for at most four contacts.
+7. Attempt at most one eligible step sequence.
+8. Resolve final support or a support-preserving downward snap.
+9. Atomically publish transform, velocity, contacts, resolved motion,
+   last-valid state, and a stable diagnostic.
+
+Solid faces block from their physical side and can classify as support, wall,
+or ceiling. One-way faces:
+
+- block only from the collidable side,
+- require an approaching/crossing motion,
+- require a finite-face projection,
+- never recover a capsule from the back side,
+- never turn an exposed endpoint into a wall or step.
+
+Compatible endpoint adjacency suppresses ghost normals at smooth joins and
+exact cross-polygon seams. Convex peaks and concave valleys retain support
+through their canonical adjacent edges. A ledge beyond snap range clears
+support on the first unsupported tick.
+
+Equal-time non-parallel blockers are solved as a deterministic 2D half-space
+intersection. The controller keeps the requested vector when it is feasible,
+otherwise selects the closest feasible single-face tangent, otherwise stops at
+the shared corner. This prevents alternating projection between floor/wall,
+ceiling/wall, and opposing-wall contacts.
+
+Step-up sweeps up, forward, and down. Its final support must be an eligible
+finite face; an endpoint-only hit is rejected so the helper cannot perch past
+a narrow landing or climb a one-way endpoint.
+
+Recovery is bounded. If correction exceeds one radius, cannot make progress,
+or remains unresolved after four iterations, the controller restores the
+last-valid transform when available, clears support, and reports
+`recoveryFailed`.
+
+## ECS Publication And Consumers
+
+The terrain harness adds four focused stores/facades:
+
+- `WorldContactCapsuleStore` for the authoritative contact shape
+- `TerrainTraversalProfileStore` for immutable actor policy
+- `TerrainContactStateStore` for final support, blockers, history, and
+  diagnostics
+- `ResolvedMotionStore` for requested and accepted per-tick movement
+- `WorldSupportView` for consumers that must read terrain support in the
+  harness and legacy collision flags everywhere else
+
+`TerrainPlayerWorldMotionAuthority.prepareTick` captures prior valid support
+before jump, movement, mobility, and gravity. Its `step` integrates exactly
+once after those systems compose velocity. Final support and resolved motion
+then drive distance, death/camera checks, snapshots, and animation.
+
+Terrain-harness distance uses positive accepted body X progression and does not
+count movement requested into a wall. Grounded locomotion animation advances
+from accepted distance along support, with a continuous `0.75x` to `1.50x`
+playback clamp. Recovery, snap, and vertical step legs do not advance that
+phase. Normal `GameCore` runs keep their historical distance and collision
+semantics.
+
+`GameCore.setPlayerPosXYUnsafeForTest` is the only unchecked position mutation.
+Its name exposes that it skips destination clearance, and it clears support,
+snap eligibility, last-valid placement, and retained capsule history before
+the write. No production player teleport exists. Hashash teleport and future
+gameplay placement must validate full capsule clearance through their owning
+authority before committing. An externally applied upward velocity clears
+support before the next solve. Disabled or kinematic terrain bodies clear
+support and do not move.
+
+## Diagnostics And Determinism
+
+`GameCore.buildTerrainPlayerDebugSnapshot()` builds an immutable diagnostic
+record only on demand and returns `null` on the legacy path. Normal ticks do not
+allocate debug snapshots.
+
+Phase 2 adds two versioned deterministic signatures without changing Phase 1
+records:
+
+- `contacts-v2` for quantized controller/contact checkpoints
+- `player-run-v1` for the command-driven terrain harness
+
+The reviewed hashes live under
+`packages/runner_core/test/fixtures/goldens/`. Phase 1 `source-v1`, `edges-v1`,
+and `contacts-v1` signatures remain unchanged.
+
+## Future Ground Targets
+
+`TerrainGroundTargetResolver` is a pure Core query for a future
+ground-targeted ability. It resolves a ranged aim endpoint to the first
+canonical walkable support below it, checks cast range and line of sight,
+applies one-way sidedness, and binds the result to a geometry version.
+
+No production ability currently consumes this resolver. Preview, HUD,
+resource, and cooldown integration remain deferred until such an ability is
+authored.
+
+## Enemy And Navigation Handoff
+
+Phase 2 deliberately does not move enemies. The authority classifies the
+unsupported policies that later work must implement:
+
+- Grojib grounded capsule/profile and surface navigation
+- Hashash capsule/profile plus teleport clearance and fallback
+- Unoco Demon flying solid contact with one-way ignore
+- Derf kinematic placement/clearance
+- ballistic projectile swept-circle ownership
+
+Phase 3 must build walkable edge chains and navigation graph location,
+standability, jump/drop reachability, trajectory checks, streaming
+invalidation, spawn clearance, and enemy death/culling on the same
+`TerrainEdgeId` and geometry-version contracts.
+
+Enemy intent and navigation run before the current tick's motion result exists,
+so Phase 3 AI must deliberately read the previous tick's validated support.
+Post-motion animation, snapshots, and other presentation consumers read the
+new final support.
+
+## Validation
+
+The focused controller benchmark is:
+
+```powershell
+Push-Location packages/runner_core
+dart compile exe tool/benchmark_slopes_phase2.dart `
+  -o "$env:TEMP\rpg_runner_slopes_phase2.exe"
+& "$env:TEMP\rpg_runner_slopes_phase2.exe" --strict `
+  --warmup=1000 --iterations=5000 --harness-iterations=5000
+dart --observe=0 --no-pause-isolates-on-exit --profiler run `
+  tool/benchmark_slopes_phase2.dart --allocation-profile `
+  --allocation-iterations=500
+Pop-Location
+```
+
+It measures supported idle, ordinary slope traversal, maximum-speed
+multi-contact, step, snap, one-way landing, overlap recovery, and matched flat
+and sloped full-harness ticks against a 1280-edge fixture.
+
+The closest-segment kernel writes its result in one unboxed pass. Initial
+overlap recovery uses a recovery-only query that records the exact integer
+separation floor and collision-skin correction without materializing floating
+contact fields; parity with the full contact query is tested.
+
+All Phase 2 gates pass. The accepted AOT run reports controller p95/p99 of
+`22/24 us`, a full slope-harness p99 of `36 us`, `2.81%` matched-flat
+overhead, at most `16` candidates, bounded iterations, and zero buffer growth.
+The paired VM profile reports zero tracked hot-loop instances, `0.0`
+allocations per solve, and no `_Double` allocation call sites. This accepts
+the isolated Phase 2 authority; it does not authorize production cutover
+before the remaining actor, content, editor, replay, and rollout phases.
+
+## Removal And Cutover
+
+At the direct production cutover:
+
+- normal Core construction must select the terrain authority,
+- enemies and other dynamic policies must already be migrated,
+- authored/streamed polygon geometry must be the shared source,
+- live and replay-validator compatibility must be issued together,
+- the temporary `terrainMotionHarness` selection seam and legacy motion adapter
+  must be removed rather than retained as runtime alternatives.

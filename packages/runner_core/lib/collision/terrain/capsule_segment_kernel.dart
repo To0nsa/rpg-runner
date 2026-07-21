@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 
@@ -9,57 +10,205 @@ import 'terrain_numeric.dart';
 import 'upright_capsule.dart';
 
 /// Terrain feature selected by a closest-point or sweep query.
-enum TerrainSegmentFeature { startEndpoint, face, endEndpoint }
+enum TerrainSegmentFeature {
+  /// Radial contact with the directed edge's start point.
+  startEndpoint,
+
+  /// Contact with the finite edge interior using its compiled face normal.
+  face,
+
+  /// Radial contact with the directed edge's end point.
+  endEndpoint,
+}
 
 /// Caller-owned closest-point output; coordinates are physics ticks.
-class TerrainClosestPointResult {
-  double pointXTicks = 0;
-  double pointYTicks = 0;
-  double segmentT = 0;
-  double squaredDistanceTicks = 0;
+final class TerrainClosestPointResult {
+  final Float64List _values = Float64List(4);
+
+  /// Closest horizontal coordinate in 1/1024-world-unit physics ticks.
+  @pragma('vm:prefer-inline')
+  double get pointXTicks => _values[0];
+  @pragma('vm:prefer-inline')
+  set pointXTicks(double value) => _values[0] = value;
+
+  /// Closest vertical coordinate in 1/1024-world-unit physics ticks.
+  @pragma('vm:prefer-inline')
+  double get pointYTicks => _values[1];
+  @pragma('vm:prefer-inline')
+  set pointYTicks(double value) => _values[1] = value;
+
+  /// Clamped parametric position on the segment in the inclusive range 0..1.
+  @pragma('vm:prefer-inline')
+  double get segmentT => _values[2];
+  @pragma('vm:prefer-inline')
+  set segmentT(double value) => _values[2] = value;
+
+  /// Squared point-to-segment distance in physics ticks squared.
+  @pragma('vm:prefer-inline')
+  double get squaredDistanceTicks => _values[3];
+  @pragma('vm:prefer-inline')
+  set squaredDistanceTicks(double value) => _values[3] = value;
 }
 
 /// Caller-owned closest-points output for two finite segments.
-class TerrainSegmentPairResult {
-  double firstXTicks = 0;
-  double firstYTicks = 0;
-  double secondXTicks = 0;
-  double secondYTicks = 0;
-  double firstT = 0;
-  double secondT = 0;
-  double squaredDistanceTicks = 0;
+final class TerrainSegmentPairResult {
+  final Float64List _values = Float64List(7);
+
+  /// Closest horizontal coordinate on the first segment, in physics ticks.
+  @pragma('vm:prefer-inline')
+  double get firstXTicks => _values[0];
+  @pragma('vm:prefer-inline')
+  set firstXTicks(double value) => _values[0] = value;
+
+  /// Closest vertical coordinate on the first segment, in physics ticks.
+  @pragma('vm:prefer-inline')
+  double get firstYTicks => _values[1];
+  @pragma('vm:prefer-inline')
+  set firstYTicks(double value) => _values[1] = value;
+
+  /// Closest horizontal coordinate on the second segment, in physics ticks.
+  @pragma('vm:prefer-inline')
+  double get secondXTicks => _values[2];
+  @pragma('vm:prefer-inline')
+  set secondXTicks(double value) => _values[2] = value;
+
+  /// Closest vertical coordinate on the second segment, in physics ticks.
+  @pragma('vm:prefer-inline')
+  double get secondYTicks => _values[3];
+  @pragma('vm:prefer-inline')
+  set secondYTicks(double value) => _values[3] = value;
+
+  /// Clamped first-segment parametric position in the inclusive range 0..1.
+  @pragma('vm:prefer-inline')
+  double get firstT => _values[4];
+  @pragma('vm:prefer-inline')
+  set firstT(double value) => _values[4] = value;
+
+  /// Clamped second-segment parametric position in the inclusive range 0..1.
+  @pragma('vm:prefer-inline')
+  double get secondT => _values[5];
+  @pragma('vm:prefer-inline')
+  set secondT(double value) => _values[5] = value;
+
+  /// Squared distance between the closest points, in physics ticks squared.
+  @pragma('vm:prefer-inline')
+  double get squaredDistanceTicks => _values[6];
+  @pragma('vm:prefer-inline')
+  set squaredDistanceTicks(double value) => _values[6] = value;
 }
 
 /// Caller-owned capsule/edge separation and overlap diagnostic.
-class CapsuleSegmentContact {
-  double signedSeparationTicks = double.infinity;
-  double penetrationTicks = 0;
+final class CapsuleSegmentContact {
+  CapsuleSegmentContact() {
+    _values[0] = double.infinity;
+  }
+
+  final Float64List _values = Float64List(2);
+
+  /// Surface separation in physics ticks; negative values are penetration.
+  @pragma('vm:prefer-inline')
+  double get signedSeparationTicks => _values[0];
+  @pragma('vm:prefer-inline')
+  set signedSeparationTicks(double value) => _values[0] = value;
+
+  /// Non-negative penetration depth in physics ticks.
+  @pragma('vm:prefer-inline')
+  double get penetrationTicks => _values[1];
+  @pragma('vm:prefer-inline')
+  set penetrationTicks(double value) => _values[1] = value;
+
+  /// Floor of the signed separation in physics ticks.
+  ///
+  /// Valid after either full or recovery-only evaluation.
+  int signedSeparationFloorTicks = 0;
+
+  /// Integer physics-tick correction needed to reach the collision skin.
+  ///
+  /// Valid after either full or recovery-only evaluation.
+  int collisionSkinCorrectionTicks = 0;
+
+  /// Contact point horizontal coordinate rounded to physics ticks.
   int pointXTicks = 0;
+
+  /// Contact point vertical coordinate rounded to physics ticks.
   int pointYTicks = 0;
+
+  /// Contact normal horizontal component using [terrainDirectionScale].
   int normalXTicks = 0;
+
+  /// Contact normal vertical component using [terrainDirectionScale].
   int normalYTicks = 0;
+
+  /// Finite edge feature that produced the closest contact.
   TerrainSegmentFeature feature = TerrainSegmentFeature.face;
+
+  /// Stable source edge identity, populated after [CapsuleSegmentKernel.evaluate].
   TerrainEdgeId? edgeId;
 
+  /// Whether separation lies inside the frozen inclusive contact tolerance.
   bool get overlaps => signedSeparationTicks <= terrainContactEpsilonTicks;
 
+  /// Compares the current separation without exposing a boxed double.
+  @pragma('vm:prefer-inline')
+  bool separationLessThanTicks(int thresholdTicks) =>
+      _values[0] < thresholdTicks;
+
+  /// Compares the current separation without exposing a boxed double.
+  @pragma('vm:prefer-inline')
+  bool separationAtMostTicks(int thresholdTicks) =>
+      _values[0] <= thresholdTicks;
+
+  /// Signed separation converted to world units.
   double get signedSeparationWorld =>
       signedSeparationTicks / terrainPhysicsTicksPerWorldUnit;
 }
 
 /// Caller-owned result for a moving upright capsule against one terrain edge.
-class CapsuleSweepHit {
+final class CapsuleSweepHit {
+  CapsuleSweepHit() {
+    _values[0] = 1;
+    _values[1] = double.infinity;
+  }
+
+  final Float64List _values = Float64List(2);
+
+  /// Whether continuous sweep found an accepted contact.
   bool hit = false;
+
+  /// Whether the capsule began beyond the negative contact tolerance.
   bool startedOverlapping = false;
-  double timeOfImpact = 1;
-  double signedSeparationTicks = double.infinity;
+
+  /// Fraction of the supplied displacement in the inclusive range 0..1.
+  @pragma('vm:prefer-inline')
+  double get timeOfImpact => _values[0];
+  @pragma('vm:prefer-inline')
+  set timeOfImpact(double value) => _values[0] = value;
+
+  /// Surface separation at [timeOfImpact], in physics ticks.
+  @pragma('vm:prefer-inline')
+  double get signedSeparationTicks => _values[1];
+  @pragma('vm:prefer-inline')
+  set signedSeparationTicks(double value) => _values[1] = value;
+
+  /// Contact point horizontal coordinate rounded to physics ticks.
   int pointXTicks = 0;
+
+  /// Contact point vertical coordinate rounded to physics ticks.
   int pointYTicks = 0;
+
+  /// Contact normal horizontal component using [terrainDirectionScale].
   int normalXTicks = 0;
+
+  /// Contact normal vertical component using [terrainDirectionScale].
   int normalYTicks = 0;
+
+  /// Finite edge feature selected at [timeOfImpact].
   TerrainSegmentFeature feature = TerrainSegmentFeature.face;
+
+  /// Stable source edge identity when [hit] is true.
   TerrainEdgeId? edgeId;
 
+  /// Restores the no-hit state without replacing this caller-owned object.
   void reset() {
     hit = false;
     startedOverlapping = false;
@@ -71,6 +220,51 @@ class CapsuleSweepHit {
     normalYTicks = 0;
     feature = TerrainSegmentFeature.face;
     edgeId = null;
+  }
+
+  /// Copies a hit without exposing floating-point fields to the controller.
+  @pragma('vm:prefer-inline')
+  void copyFrom(CapsuleSweepHit source) {
+    hit = source.hit;
+    startedOverlapping = source.startedOverlapping;
+    _values[0] = source._values[0];
+    _values[1] = source._values[1];
+    pointXTicks = source.pointXTicks;
+    pointYTicks = source.pointYTicks;
+    normalXTicks = source.normalXTicks;
+    normalYTicks = source.normalYTicks;
+    feature = source.feature;
+    edgeId = source.edgeId;
+  }
+
+  /// Quantizes the supplied displacement remaining after this impact.
+  @pragma('vm:prefer-inline')
+  int displacementAfterImpactTicks(int displacementTicks) =>
+      terrainPhysicsTickValueToInt(
+        displacementTicks * (1 - _values[0]),
+        name: 'displacementAfterImpact',
+      );
+
+  /// Advances to this impact while retaining [skinTicks] along the normal.
+  ///
+  /// [closingProjection] is the positive, direction-scaled displacement into
+  /// the accepted constraint normal.
+  @pragma('vm:prefer-inline')
+  int displacementBeforeImpactTicks({
+    required int displacementTicks,
+    required int closingProjection,
+    required int skinTicks,
+  }) {
+    if (closingProjection <= 0) return 0;
+    final closingDistance = closingProjection / terrainDirectionScale;
+    final safeFraction = math.max(
+      0.0,
+      _values[0] - skinTicks / closingDistance,
+    );
+    return terrainPhysicsTickValueToInt(
+      displacementTicks * safeFraction,
+      name: 'displacementBeforeImpact',
+    );
   }
 }
 
@@ -135,12 +329,85 @@ class CapsuleSegmentKernel {
     required TerrainEdge edge,
     required CapsuleSegmentContact out,
   }) {
-    _evaluateAt(
-      capsule: capsule,
+    evaluateAtCenter(
+      centerXTicks: capsule.center.xTicks,
+      centerYTicks: capsule.center.yTicks,
+      radiusTicks: capsule.radiusTicks,
+      verticalHalfSegmentTicks: capsule.verticalHalfSegmentTicks,
       edge: edge,
-      offsetXTicks: 0,
-      offsetYTicks: 0,
       out: out,
+    );
+  }
+
+  /// Primitive-center equivalent of [evaluate] for allocation-sensitive loops.
+  @pragma('vm:prefer-inline')
+  void evaluateAtCenter({
+    required int centerXTicks,
+    required int centerYTicks,
+    required int radiusTicks,
+    required int verticalHalfSegmentTicks,
+    required TerrainEdge edge,
+    required CapsuleSegmentContact out,
+  }) {
+    _evaluateAtCenter(
+      centerXTicks: centerXTicks,
+      centerYTicks: centerYTicks,
+      radiusTicks: radiusTicks,
+      verticalHalfSegmentTicks: verticalHalfSegmentTicks,
+      edge: edge,
+      out: out,
+    );
+  }
+
+  /// Writes only the integer facts needed by overlap recovery.
+  ///
+  /// Contact point, feature, normal, edge, separation floor, and collision-skin
+  /// correction use physics ticks and match [evaluateAtCenter]. Floating
+  /// separation and penetration fields are intentionally left unchanged.
+  @pragma('vm:prefer-inline')
+  void evaluateRecoveryAtCenter({
+    required int centerXTicks,
+    required int centerYTicks,
+    required int radiusTicks,
+    required int verticalHalfSegmentTicks,
+    required TerrainEdge edge,
+    required CapsuleSegmentContact out,
+  }) {
+    final centerX = centerXTicks.toDouble();
+    final centerY = centerYTicks.toDouble();
+    _closestSegmentPair(
+      centerX,
+      centerY - verticalHalfSegmentTicks,
+      centerX,
+      centerY + verticalHalfSegmentTicks,
+      edge.start.xTicks.toDouble(),
+      edge.start.yTicks.toDouble(),
+      edge.end.xTicks.toDouble(),
+      edge.end.yTicks.toDouble(),
+      _pair,
+    );
+    final distance = math.sqrt(_pair.squaredDistanceTicks);
+    final separation = distance - radiusTicks;
+    out
+      ..signedSeparationFloorTicks = separation.floor()
+      ..collisionSkinCorrectionTicks = (terrainCollisionSkinTicks - separation)
+          .ceil()
+      ..pointXTicks = terrainPhysicsTickValueToInt(
+        _pair.secondXTicks,
+        name: 'contactPointX',
+      )
+      ..pointYTicks = terrainPhysicsTickValueToInt(
+        _pair.secondYTicks,
+        name: 'contactPointY',
+      )
+      ..feature = _featureFor(_pair.secondT)
+      ..edgeId = edge.id;
+    _writeContactNormal(
+      edge,
+      _pair.firstXTicks - _pair.secondXTicks,
+      _pair.firstYTicks - _pair.secondYTicks,
+      distance,
+      out,
     );
   }
 
@@ -156,6 +423,30 @@ class CapsuleSegmentKernel {
     required TerrainEdge edge,
     required CapsuleSweepHit out,
   }) {
+    sweepAtCenter(
+      centerXTicks: capsule.center.xTicks,
+      centerYTicks: capsule.center.yTicks,
+      radiusTicks: capsule.radiusTicks,
+      verticalHalfSegmentTicks: capsule.verticalHalfSegmentTicks,
+      displacementXTicks: displacementXTicks,
+      displacementYTicks: displacementYTicks,
+      edge: edge,
+      out: out,
+    );
+  }
+
+  /// Primitive-center equivalent of [sweep] for allocation-sensitive loops.
+  @pragma('vm:prefer-inline')
+  void sweepAtCenter({
+    required int centerXTicks,
+    required int centerYTicks,
+    required int radiusTicks,
+    required int verticalHalfSegmentTicks,
+    required int displacementXTicks,
+    required int displacementYTicks,
+    required TerrainEdge edge,
+    required CapsuleSweepHit out,
+  }) {
     out.reset();
     final speedTicks = math.sqrt(
       displacementXTicks.toDouble() * displacementXTicks +
@@ -164,7 +455,10 @@ class CapsuleSegmentKernel {
 
     var time = 0.0;
     var separation = _separationAt(
-      capsule,
+      centerXTicks,
+      centerYTicks,
+      radiusTicks,
+      verticalHalfSegmentTicks,
       edge,
       displacementXTicks,
       displacementYTicks,
@@ -172,7 +466,10 @@ class CapsuleSegmentKernel {
     );
     if (separation <= terrainContactEpsilonTicks) {
       _writeSweepHit(
-        capsule,
+        centerXTicks,
+        centerYTicks,
+        radiusTicks,
+        verticalHalfSegmentTicks,
         edge,
         displacementXTicks,
         displacementYTicks,
@@ -190,11 +487,28 @@ class CapsuleSegmentKernel {
     for (var iteration = 0; iteration < 8; iteration += 1) {
       final remaining = 1.0 - time;
       if (remaining <= 0) break;
-      final advance = separation / speedTicks;
+      final distance = separation + radiusTicks;
+      final closingSpeed = distance <= terrainGeometryEpsilonTicks
+          ? speedTicks
+          : -((_pair.firstXTicks - _pair.secondXTicks) * displacementXTicks +
+                    (_pair.firstYTicks - _pair.secondYTicks) *
+                        displacementYTicks) /
+                distance;
+      if (closingSpeed <= terrainParametricGuard) break;
+      // The closest-distance function is convex for a translating capsule
+      // against one segment. Advancing to its tangent-plane root remains
+      // conservative and converges on endpoint grazing within the fixed cap.
+      final advance = separation / closingSpeed;
       if (advance > remaining) break;
-      final nextTime = math.min(1.0, time + math.max(advance, 1e-12));
+      final nextTime = math.min(
+        1.0,
+        time + math.max(advance, terrainParametricGuard),
+      );
       final nextSeparation = _separationAt(
-        capsule,
+        centerXTicks,
+        centerYTicks,
+        radiusTicks,
+        verticalHalfSegmentTicks,
         edge,
         displacementXTicks,
         displacementYTicks,
@@ -215,7 +529,10 @@ class CapsuleSegmentKernel {
     for (var iteration = 0; iteration < 8; iteration += 1) {
       final middle = (bracketLow + bracketHigh) * 0.5;
       final middleSeparation = _separationAt(
-        capsule,
+        centerXTicks,
+        centerYTicks,
+        radiusTicks,
+        verticalHalfSegmentTicks,
         edge,
         displacementXTicks,
         displacementYTicks,
@@ -228,7 +545,10 @@ class CapsuleSegmentKernel {
       }
     }
     _writeSweepHit(
-      capsule,
+      centerXTicks,
+      centerYTicks,
+      radiusTicks,
+      verticalHalfSegmentTicks,
       edge,
       displacementXTicks,
       displacementYTicks,
@@ -254,6 +574,12 @@ class CapsuleSegmentKernel {
     return leftId.compareTo(rightId);
   }
 
+  /// Whether two hit times fall inside the frozen equal-time tolerance.
+  @pragma('vm:prefer-inline')
+  bool hitsHaveEqualTime(CapsuleSweepHit left, CapsuleSweepHit right) =>
+      (left._values[0] - right._values[0]).abs() <=
+      terrainContactEpsilonTicks / terrainPhysicsTicksPerWorldUnit;
+
   /// SHA-256 digest of successful hits in canonical `contacts-v1` order.
   ///
   /// This allocates by design and is intended for golden evidence, never the
@@ -272,10 +598,14 @@ class CapsuleSegmentKernel {
         <String>[
           'contacts-v1',
           hit.edgeId!.canonicalKey,
-          (hit.timeOfImpact * terrainPhysicsTicksPerWorldUnit)
-              .round()
-              .toString(),
-          hit.signedSeparationTicks.round().toString(),
+          terrainPhysicsTickValueToInt(
+            hit.timeOfImpact * terrainPhysicsTicksPerWorldUnit,
+            name: 'timeOfImpact',
+          ).toString(),
+          terrainPhysicsTickValueToInt(
+            hit.signedSeparationTicks,
+            name: 'signedSeparationTicks',
+          ).toString(),
           hit.pointXTicks.toString(),
           hit.pointYTicks.toString(),
           hit.normalXTicks.toString(),
@@ -287,33 +617,39 @@ class CapsuleSegmentKernel {
     return sha256.convert(utf8.encode(records.join('\n'))).toString();
   }
 
+  @pragma('vm:prefer-inline')
   double _separationAt(
-    UprightCapsule capsule,
+    int centerXTicks,
+    int centerYTicks,
+    int radiusTicks,
+    int verticalHalfSegmentTicks,
     TerrainEdge edge,
     int displacementXTicks,
     int displacementYTicks,
     double time,
   ) {
-    final centerX =
-        capsule.center.xTicks + displacementXTicks.toDouble() * time;
-    final centerY =
-        capsule.center.yTicks + displacementYTicks.toDouble() * time;
+    final centerX = centerXTicks + displacementXTicks.toDouble() * time;
+    final centerY = centerYTicks + displacementYTicks.toDouble() * time;
     _closestSegmentPair(
       centerX,
-      centerY - capsule.verticalHalfSegmentTicks,
+      centerY - verticalHalfSegmentTicks,
       centerX,
-      centerY + capsule.verticalHalfSegmentTicks,
+      centerY + verticalHalfSegmentTicks,
       edge.start.xTicks.toDouble(),
       edge.start.yTicks.toDouble(),
       edge.end.xTicks.toDouble(),
       edge.end.yTicks.toDouble(),
       _pair,
     );
-    return math.sqrt(_pair.squaredDistanceTicks) - capsule.radiusTicks;
+    return math.sqrt(_pair.squaredDistanceTicks) - radiusTicks;
   }
 
+  @pragma('vm:prefer-inline')
   void _writeSweepHit(
-    UprightCapsule capsule,
+    int centerXTicks,
+    int centerYTicks,
+    int radiusTicks,
+    int verticalHalfSegmentTicks,
     TerrainEdge edge,
     int displacementXTicks,
     int displacementYTicks,
@@ -321,15 +657,13 @@ class CapsuleSegmentKernel {
     CapsuleSweepHit out, {
     required bool startedOverlapping,
   }) {
-    final centerX =
-        capsule.center.xTicks + displacementXTicks.toDouble() * time;
-    final centerY =
-        capsule.center.yTicks + displacementYTicks.toDouble() * time;
+    final centerX = centerXTicks + displacementXTicks.toDouble() * time;
+    final centerY = centerYTicks + displacementYTicks.toDouble() * time;
     _closestSegmentPair(
       centerX,
-      centerY - capsule.verticalHalfSegmentTicks,
+      centerY - verticalHalfSegmentTicks,
       centerX,
-      centerY + capsule.verticalHalfSegmentTicks,
+      centerY + verticalHalfSegmentTicks,
       edge.start.xTicks.toDouble(),
       edge.start.yTicks.toDouble(),
       edge.end.xTicks.toDouble(),
@@ -341,9 +675,15 @@ class CapsuleSegmentKernel {
       ..hit = true
       ..startedOverlapping = startedOverlapping
       ..timeOfImpact = time
-      ..signedSeparationTicks = distance - capsule.radiusTicks
-      ..pointXTicks = _pair.secondXTicks.round()
-      ..pointYTicks = _pair.secondYTicks.round()
+      ..signedSeparationTicks = distance - radiusTicks
+      ..pointXTicks = terrainPhysicsTickValueToInt(
+        _pair.secondXTicks,
+        name: 'contactPointX',
+      )
+      ..pointYTicks = terrainPhysicsTickValueToInt(
+        _pair.secondYTicks,
+        name: 'contactPointY',
+      )
       ..feature = _featureFor(_pair.secondT)
       ..edgeId = edge.id;
     _writeNormal(
@@ -355,20 +695,22 @@ class CapsuleSegmentKernel {
     );
   }
 
-  void _evaluateAt({
-    required UprightCapsule capsule,
+  @pragma('vm:prefer-inline')
+  void _evaluateAtCenter({
+    required int centerXTicks,
+    required int centerYTicks,
+    required int radiusTicks,
+    required int verticalHalfSegmentTicks,
     required TerrainEdge edge,
-    required double offsetXTicks,
-    required double offsetYTicks,
     required CapsuleSegmentContact out,
   }) {
-    final centerX = capsule.center.xTicks + offsetXTicks;
-    final centerY = capsule.center.yTicks + offsetYTicks;
+    final centerX = centerXTicks.toDouble();
+    final centerY = centerYTicks.toDouble();
     _closestSegmentPair(
       centerX,
-      centerY - capsule.verticalHalfSegmentTicks,
+      centerY - verticalHalfSegmentTicks,
       centerX,
-      centerY + capsule.verticalHalfSegmentTicks,
+      centerY + verticalHalfSegmentTicks,
       edge.start.xTicks.toDouble(),
       edge.start.yTicks.toDouble(),
       edge.end.xTicks.toDouble(),
@@ -376,12 +718,21 @@ class CapsuleSegmentKernel {
       _pair,
     );
     final distance = math.sqrt(_pair.squaredDistanceTicks);
-    final separation = distance - capsule.radiusTicks;
+    final separation = distance - radiusTicks;
     out
       ..signedSeparationTicks = separation
-      ..penetrationTicks = math.max(0, -separation)
-      ..pointXTicks = _pair.secondXTicks.round()
-      ..pointYTicks = _pair.secondYTicks.round()
+      ..penetrationTicks = separation < 0 ? -separation : 0
+      ..signedSeparationFloorTicks = separation.floor()
+      ..collisionSkinCorrectionTicks = (terrainCollisionSkinTicks - separation)
+          .ceil()
+      ..pointXTicks = terrainPhysicsTickValueToInt(
+        _pair.secondXTicks,
+        name: 'contactPointX',
+      )
+      ..pointYTicks = terrainPhysicsTickValueToInt(
+        _pair.secondYTicks,
+        name: 'contactPointY',
+      )
       ..feature = _featureFor(_pair.secondT)
       ..edgeId = edge.id;
     _writeContactNormal(
@@ -394,6 +745,7 @@ class CapsuleSegmentKernel {
   }
 }
 
+@pragma('vm:prefer-inline')
 void _closestSegmentPair(
   double p0x,
   double p0y,
@@ -417,129 +769,79 @@ void _closestSegmentPair(
   final d = ux * wx + uy * wy;
   final e = vx * wx + vy * wy;
   final denominator = a * c - b * b;
-  const tiny = 1e-12;
+  const tiny = terrainParametricGuard;
 
+  var firstT = 0.0;
+  var secondT = 0.0;
   if (a <= tiny && c <= tiny) {
-    _writeSegmentPairResult(
-      p0x: p0x,
-      p0y: p0y,
-      q0x: q0x,
-      q0y: q0y,
-      firstT: 0,
-      secondT: 0,
-      out: out,
-    );
-    return;
-  }
-  if (a <= tiny) {
-    final secondT = (e / c).clamp(0.0, 1.0);
-    _writeSegmentPairResult(
-      p0x: p0x,
-      p0y: p0y,
-      q0x: q0x,
-      q0y: q0y,
-      vx: vx,
-      vy: vy,
-      firstT: 0,
-      secondT: secondT,
-      out: out,
-    );
-    return;
-  }
-  if (c <= tiny) {
-    final firstT = (-d / a).clamp(0.0, 1.0);
-    _writeSegmentPairResult(
-      p0x: p0x,
-      p0y: p0y,
-      q0x: q0x,
-      q0y: q0y,
-      ux: ux,
-      uy: uy,
-      firstT: firstT,
-      secondT: 0,
-      out: out,
-    );
-    return;
-  }
-
-  var sNumerator = 0.0;
-  var sDenominator = denominator;
-  var tNumerator = 0.0;
-  var tDenominator = denominator;
-
-  if (denominator <= tiny) {
-    sNumerator = 0;
-    sDenominator = 1;
-    tNumerator = e;
-    tDenominator = c;
+    // Both closest points remain at their segment starts.
+  } else if (a <= tiny) {
+    secondT = e / c;
+    if (secondT < 0) {
+      secondT = 0;
+    } else if (secondT > 1) {
+      secondT = 1;
+    }
+  } else if (c <= tiny) {
+    firstT = -d / a;
+    if (firstT < 0) {
+      firstT = 0;
+    } else if (firstT > 1) {
+      firstT = 1;
+    }
   } else {
-    sNumerator = b * e - c * d;
-    tNumerator = a * e - b * d;
-    if (sNumerator < 0) {
+    var sNumerator = 0.0;
+    var sDenominator = denominator;
+    var tNumerator = 0.0;
+    var tDenominator = denominator;
+
+    if (denominator <= tiny) {
       sNumerator = 0;
       tNumerator = e;
       tDenominator = c;
-    } else if (sNumerator > sDenominator) {
-      sNumerator = sDenominator;
-      tNumerator = e + b;
-      tDenominator = c;
+      sDenominator = 1;
+    } else {
+      sNumerator = b * e - c * d;
+      tNumerator = a * e - b * d;
+      if (sNumerator < 0) {
+        sNumerator = 0;
+        tNumerator = e;
+        tDenominator = c;
+      } else if (sNumerator > sDenominator) {
+        sNumerator = sDenominator;
+        tNumerator = e + b;
+        tDenominator = c;
+      }
     }
+
+    if (tNumerator < 0) {
+      tNumerator = 0;
+      if (-d < 0) {
+        sNumerator = 0;
+        sDenominator = 1;
+      } else if (-d > a) {
+        sNumerator = sDenominator;
+      } else {
+        sNumerator = -d;
+        sDenominator = a;
+      }
+    } else if (tNumerator > tDenominator) {
+      tNumerator = tDenominator;
+      if (-d + b < 0) {
+        sNumerator = 0;
+        sDenominator = 1;
+      } else if (-d + b > a) {
+        sNumerator = sDenominator;
+      } else {
+        sNumerator = -d + b;
+        sDenominator = a;
+      }
+    }
+
+    firstT = sNumerator.abs() <= tiny ? 0.0 : sNumerator / sDenominator;
+    secondT = tNumerator.abs() <= tiny ? 0.0 : tNumerator / tDenominator;
   }
 
-  if (tNumerator < 0) {
-    tNumerator = 0;
-    if (-d < 0) {
-      sNumerator = 0;
-      sDenominator = 1;
-    } else if (-d > a) {
-      sNumerator = sDenominator;
-    } else {
-      sNumerator = -d;
-      sDenominator = a;
-    }
-  } else if (tNumerator > tDenominator) {
-    tNumerator = tDenominator;
-    if (-d + b < 0) {
-      sNumerator = 0;
-      sDenominator = 1;
-    } else if (-d + b > a) {
-      sNumerator = sDenominator;
-    } else {
-      sNumerator = -d + b;
-      sDenominator = a;
-    }
-  }
-
-  final firstT = sNumerator.abs() <= tiny ? 0.0 : sNumerator / sDenominator;
-  final secondT = tNumerator.abs() <= tiny ? 0.0 : tNumerator / tDenominator;
-  _writeSegmentPairResult(
-    p0x: p0x,
-    p0y: p0y,
-    q0x: q0x,
-    q0y: q0y,
-    ux: ux,
-    uy: uy,
-    vx: vx,
-    vy: vy,
-    firstT: firstT,
-    secondT: secondT,
-    out: out,
-  );
-}
-
-void _writeSegmentPairResult({
-  required double p0x,
-  required double p0y,
-  required double q0x,
-  required double q0y,
-  double ux = 0,
-  double uy = 0,
-  double vx = 0,
-  double vy = 0,
-  required double firstT,
-  required double secondT,
-  required TerrainSegmentPairResult out,
-}) {
   final firstX = p0x + firstT * ux;
   final firstY = p0y + firstT * uy;
   final secondX = q0x + secondT * vx;
@@ -557,7 +859,7 @@ void _writeSegmentPairResult({
 }
 
 TerrainSegmentFeature _featureFor(double segmentT) {
-  const endpointTolerance = 1e-9;
+  const endpointTolerance = terrainEndpointParameterEpsilon;
   if (segmentT <= endpointTolerance) {
     return TerrainSegmentFeature.startEndpoint;
   }
@@ -567,6 +869,7 @@ TerrainSegmentFeature _featureFor(double segmentT) {
   return TerrainSegmentFeature.face;
 }
 
+@pragma('vm:prefer-inline')
 void _writeContactNormal(
   TerrainEdge edge,
   double radialX,
@@ -587,10 +890,11 @@ void _writeContactNormal(
     return;
   }
   out
-    ..normalXTicks = (radialX * terrainDirectionScale / distance).round()
-    ..normalYTicks = (radialY * terrainDirectionScale / distance).round();
+    ..normalXTicks = terrainQuantizeDirectionComponent(radialX, distance)
+    ..normalYTicks = terrainQuantizeDirectionComponent(radialY, distance);
 }
 
+@pragma('vm:prefer-inline')
 void _writeNormal(
   TerrainEdge edge,
   double radialX,
@@ -606,6 +910,6 @@ void _writeNormal(
     return;
   }
   out
-    ..normalXTicks = (radialX * terrainDirectionScale / distance).round()
-    ..normalYTicks = (radialY * terrainDirectionScale / distance).round();
+    ..normalXTicks = terrainQuantizeDirectionComponent(radialX, distance)
+    ..normalYTicks = terrainQuantizeDirectionComponent(radialY, distance);
 }

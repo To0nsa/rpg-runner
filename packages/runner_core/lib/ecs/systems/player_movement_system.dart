@@ -2,6 +2,8 @@ import '../../stats/character_stats_resolver.dart';
 import '../../stats/resolved_stats_cache.dart';
 import '../../snapshots/enums.dart';
 import '../../players/player_tuning.dart';
+import '../../combat/control_lock.dart';
+import '../../collision/terrain/terrain_numeric.dart';
 import '../../util/fixed_math.dart';
 import '../../util/velocity_math.dart';
 import '../queries.dart';
@@ -67,6 +69,11 @@ class PlayerMovementSystem {
         world.transform.velX[ti] = 0;
         return;
       }
+      final moveLocked = world.controlLock.isLocked(
+        e,
+        LockFlag.move,
+        currentTick,
+      );
 
       // -- Timers --
       // Decrement state timers. These track temporary movement states.
@@ -81,6 +88,17 @@ class PlayerMovementSystem {
           ? 1.0
           : world.statModifier.moveSpeedMul[modifierIndex];
       final moveSpeedMul = gearMoveSpeedMul * statusMoveSpeedMul;
+      final resolvedMotionIndex = world.resolvedMotion.tryIndexOf(e);
+      if (resolvedMotionIndex != null) {
+        final axis = moveLocked ? 0.0 : world.playerInput.moveAxis[ii].abs();
+        world.resolvedMotion.setLocomotionReferenceSpeed(
+          e,
+          ticksPerSecond: physicsCoordinateToTicks(
+            axis * tuning.base.maxSpeedX * moveSpeedMul,
+            name: 'locomotionReferenceSpeed',
+          ),
+        );
+      }
 
       if (world.movement.facingLockTicksLeft[mi] > 0) {
         world.movement.facingLockTicksLeft[mi] -= 1;
@@ -97,7 +115,9 @@ class PlayerMovementSystem {
         world.transform.velY[ti] = world.movement.dashDirY[mi] * dashSpeed;
       } else {
         // [State: Normal Control]
-        final axis = world.playerInput.moveAxis[ii];
+        // A move-only lock suppresses ordinary horizontal control without
+        // cancelling a separately authorized active mobility action.
+        final axis = moveLocked ? 0.0 : world.playerInput.moveAxis[ii];
 
         // Visuals: Update facing direction based on input.
         // This is decoupled from velocity to allow "turning" animations before velocity flips.
@@ -106,12 +126,18 @@ class PlayerMovementSystem {
         }
 
         // Apply horizontal acceleration/deceleration.
+        final slopeTargetMultiplier = _terrainSlopeTargetMultiplier(
+          world,
+          entity: e,
+          axis: axis,
+        );
         world.transform.velX[ti] = _applyHorizontalMove(
           world.transform.velX[ti],
           axis,
           dt,
           tuning,
           moveSpeedMul,
+          slopeTargetMultiplier,
         );
       }
 
@@ -148,9 +174,12 @@ class PlayerMovementSystem {
     double dt,
     MovementTuningDerived tuning,
     double moveSpeedMul,
+    double slopeTargetMultiplier,
   ) {
     final t = tuning.base;
-    final desiredX = axis == 0.0 ? 0.0 : axis * t.maxSpeedX * moveSpeedMul;
+    final desiredX = axis == 0.0
+        ? 0.0
+        : axis * t.maxSpeedX * moveSpeedMul * slopeTargetMultiplier;
     return applyAccelDecel(
       current: velocityX,
       desired: desiredX,
@@ -159,6 +188,32 @@ class PlayerMovementSystem {
       decelPerSecond: t.decelerationX * moveSpeedMul,
       minStopSpeed: t.minMoveSpeed,
     );
+  }
+
+  double _terrainSlopeTargetMultiplier(
+    EcsWorld world, {
+    required int entity,
+    required double axis,
+  }) {
+    if (axis == 0) return 1;
+    final profileIndex = world.terrainTraversalProfile.tryIndexOf(entity);
+    final contactIndex = world.terrainContact.tryIndexOf(entity);
+    if (profileIndex == null ||
+        contactIndex == null ||
+        !world.terrainContact.grounded[contactIndex] ||
+        world.terrainContact.supportEdgeId[contactIndex] == null) {
+      return 1;
+    }
+    final tangentX = world.terrainContact.supportTangentXTicks[contactIndex];
+    final tangentY = world.terrainContact.supportTangentYTicks[contactIndex];
+    final uphill = axis.sign * tangentX * tangentY < 0;
+    final profile = world.terrainTraversalProfile.profile[profileIndex];
+    return profile.slopeMultiplierBp(
+          absoluteAngleUnits:
+              world.terrainContact.supportSlopeAngleUnits[contactIndex],
+          uphill: uphill,
+        ) /
+        10000;
   }
 
   // Dash initiation moved to MobilitySystem (ability-driven).

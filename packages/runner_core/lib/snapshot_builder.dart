@@ -25,6 +25,7 @@ import 'dart:math';
 
 import 'ecs/entity_id.dart';
 import 'ecs/world.dart';
+import 'ecs/world_support_view.dart';
 import 'ecs/stores/combat/equipped_loadout_store.dart';
 import 'ecs/stores/restoration_item_store.dart';
 import 'levels/level_id.dart';
@@ -161,7 +162,7 @@ class SnapshotBuilder {
   }) {
     // ─── Query player component indices ───
     final mi = world.movement.indexOf(player);
-    final onGround = world.collision.grounded[world.collision.indexOf(player)];
+    final onGround = WorldSupportView(world).isGrounded(player);
     final jumpStateIndex = world.jumpState.tryIndexOf(player);
     final hi = world.health.indexOf(player);
     final mai = world.mana.indexOf(player);

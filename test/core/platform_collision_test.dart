@@ -51,7 +51,7 @@ void main() {
       ),
     );
 
-    core.setPlayerPosXY(120, 40);
+    core.setPlayerPosXYUnsafeForTest(120, 40);
     core.setPlayerVelXY(0, 0);
 
     // Clear the initial grounded state inherited from spawn-on-ground.
@@ -100,7 +100,7 @@ void main() {
     );
 
     final startY = topY + 40;
-    core.setPlayerPosXY(120, startY);
+    core.setPlayerPosXYUnsafeForTest(120, startY);
     core.setPlayerVelXY(0, -800);
 
     _tick(core);
@@ -145,7 +145,7 @@ void main() {
     );
 
     // Start on top of the platform.
-    core.setPlayerPosXY(120, topY - r);
+    core.setPlayerPosXYUnsafeForTest(120, topY - r);
     core.setPlayerVelXY(0, 0);
 
     // Let one tick settle the grounded state (gravity pushes down slightly).

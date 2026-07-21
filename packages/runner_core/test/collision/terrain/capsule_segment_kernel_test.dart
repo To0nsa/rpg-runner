@@ -11,6 +11,17 @@ import 'package:test/test.dart';
 void main() {
   final kernel = CapsuleSegmentKernel();
 
+  test('capsule rejects negative dimensions at runtime', () {
+    expect(
+      () => UprightCapsule(
+        center: TerrainPoint.fromWorld(0, 0),
+        radiusTicks: -1,
+        verticalHalfSegmentTicks: 0,
+      ),
+      throwsArgumentError,
+    );
+  });
+
   test('closest point clamps to both endpoints and the finite face', () {
     final out = TerrainClosestPointResult();
     final start = TerrainPoint.fromWorld(0, 0);
@@ -111,6 +122,32 @@ void main() {
 
     kernel.evaluate(
       capsule: UprightCapsule(
+        center: TerrainPoint.fromWorld(206, 70),
+        radiusTicks: 10 * terrainPhysicsTicksPerWorldUnit,
+        verticalHalfSegmentTicks: 20 * terrainPhysicsTicksPerWorldUnit,
+      ),
+      edge: edge,
+      out: contact,
+    );
+    expect(contact.feature, TerrainSegmentFeature.endEndpoint);
+    expect(contact.normalXTicks, greaterThan(0));
+    expect(contact.normalYTicks, lessThan(0));
+
+    kernel.evaluate(
+      capsule: UprightCapsule(
+        center: TerrainPoint.fromWorld(100, 130),
+        radiusTicks: 10 * terrainPhysicsTicksPerWorldUnit,
+        verticalHalfSegmentTicks: 20 * terrainPhysicsTicksPerWorldUnit,
+      ),
+      edge: _edge(1, 200, 100, 0, 100),
+      out: contact,
+    );
+    expect(contact.feature, TerrainSegmentFeature.face);
+    expect(contact.signedSeparationTicks, closeTo(0, 1e-9));
+    expect(contact.normalYTicks, terrainDirectionScale);
+
+    kernel.evaluate(
+      capsule: UprightCapsule(
         center: TerrainPoint.fromWorld(100, 80),
         radiusTicks: 20 * terrainPhysicsTicksPerWorldUnit,
         verticalHalfSegmentTicks: 0,
@@ -141,6 +178,45 @@ void main() {
     );
     expect(contact.normalXTicks, edge.outwardNormal.xTicks);
     expect(contact.normalYTicks, edge.outwardNormal.yTicks);
+  });
+
+  test('recovery-only evaluation matches full integer contact facts', () {
+    final edge = _edge(0, 0, 100, 100, 0);
+    final center = TerrainPoint.fromWorld(42.75, 42.5);
+    final full = CapsuleSegmentContact();
+    final recovery = CapsuleSegmentContact();
+
+    kernel.evaluateAtCenter(
+      centerXTicks: center.xTicks,
+      centerYTicks: center.yTicks,
+      radiusTicks: 10 * terrainPhysicsTicksPerWorldUnit,
+      verticalHalfSegmentTicks: 0,
+      edge: edge,
+      out: full,
+    );
+    kernel.evaluateRecoveryAtCenter(
+      centerXTicks: center.xTicks,
+      centerYTicks: center.yTicks,
+      radiusTicks: 10 * terrainPhysicsTicksPerWorldUnit,
+      verticalHalfSegmentTicks: 0,
+      edge: edge,
+      out: recovery,
+    );
+
+    expect(
+      recovery.signedSeparationFloorTicks,
+      full.signedSeparationTicks.floor(),
+    );
+    expect(
+      recovery.collisionSkinCorrectionTicks,
+      (terrainCollisionSkinTicks - full.signedSeparationTicks).ceil(),
+    );
+    expect(recovery.pointXTicks, full.pointXTicks);
+    expect(recovery.pointYTicks, full.pointYTicks);
+    expect(recovery.normalXTicks, full.normalXTicks);
+    expect(recovery.normalYTicks, full.normalYTicks);
+    expect(recovery.feature, full.feature);
+    expect(recovery.edgeId, full.edgeId);
   });
 
   test('continuous sweep finds floor, wall, and high-speed contacts', () {
@@ -185,6 +261,96 @@ void main() {
     );
     expect(hit.hit, isTrue);
     expect(hit.timeOfImpact, closeTo(0.03, 0.001));
+  });
+
+  test('sweeps classify both endpoints and face on every surface axis', () {
+    final fixtures = <(String, TerrainEdge)>[
+      ('flat', _edge(10, 0, 100, 200, 100)),
+      ('slope', _edge(11, 0, 150, 100, 50)),
+      ('wall', _edge(12, 100, 200, 100, 0)),
+      ('ceiling', _edge(13, 200, 100, 0, 100)),
+    ];
+    const radiusTicks = 10 * terrainPhysicsTicksPerWorldUnit;
+    const approachTicks = 20 * terrainPhysicsTicksPerWorldUnit;
+    final hit = CapsuleSweepHit();
+
+    for (final fixture in fixtures) {
+      final edge = fixture.$2;
+      for (final feature in TerrainSegmentFeature.values) {
+        final target = switch (feature) {
+          TerrainSegmentFeature.startEndpoint => edge.start,
+          TerrainSegmentFeature.face => TerrainPoint(
+            (edge.start.xTicks + edge.end.xTicks) ~/ 2,
+            (edge.start.yTicks + edge.end.yTicks) ~/ 2,
+          ),
+          TerrainSegmentFeature.endEndpoint => edge.end,
+        };
+        final startDistance = radiusTicks + approachTicks;
+        final startX =
+            target.xTicks +
+            _scaleDirection(edge.outwardNormal.xTicks, startDistance);
+        final startY =
+            target.yTicks +
+            _scaleDirection(edge.outwardNormal.yTicks, startDistance);
+
+        kernel.sweepAtCenter(
+          centerXTicks: startX,
+          centerYTicks: startY,
+          radiusTicks: radiusTicks,
+          verticalHalfSegmentTicks: 0,
+          displacementXTicks: _scaleDirection(
+            -edge.outwardNormal.xTicks,
+            approachTicks * 2,
+          ),
+          displacementYTicks: _scaleDirection(
+            -edge.outwardNormal.yTicks,
+            approachTicks * 2,
+          ),
+          edge: edge,
+          out: hit,
+        );
+
+        expect(hit.hit, isTrue, reason: '${fixture.$1} $feature');
+        expect(hit.feature, feature, reason: fixture.$1);
+        expect(hit.startedOverlapping, isFalse, reason: fixture.$1);
+      }
+    }
+  });
+
+  test('near-parallel miss and endpoint grazing remain bounded', () {
+    final edge = _edge(0, 0, 100, 200, 100);
+    final hit = CapsuleSweepHit();
+    kernel.sweep(
+      capsule: UprightCapsule(
+        center: TerrainPoint.fromWorld(20, 65),
+        radiusTicks: 10 * terrainPhysicsTicksPerWorldUnit,
+        verticalHalfSegmentTicks: 20 * terrainPhysicsTicksPerWorldUnit,
+      ),
+      displacementXTicks: 100 * terrainPhysicsTicksPerWorldUnit,
+      displacementYTicks: terrainGeometryEpsilonTicks,
+      edge: edge,
+      out: hit,
+    );
+    expect(hit.hit, isFalse);
+
+    kernel.sweep(
+      capsule: UprightCapsule(
+        center: TerrainPoint.fromWorld(-20, 90),
+        radiusTicks: 10 * terrainPhysicsTicksPerWorldUnit,
+        verticalHalfSegmentTicks: 0,
+      ),
+      displacementXTicks: 20 * terrainPhysicsTicksPerWorldUnit,
+      displacementYTicks: 0,
+      edge: edge,
+      out: hit,
+    );
+    expect(hit.hit, isTrue);
+    expect(hit.feature, TerrainSegmentFeature.startEndpoint);
+    expect(hit.timeOfImpact, inInclusiveRange(0.98, 1));
+    expect(
+      hit.signedSeparationTicks,
+      lessThanOrEqualTo(terrainContactEpsilonTicks),
+    );
   });
 
   test('zero displacement misses and starting penetration is explicit', () {
@@ -244,13 +410,32 @@ void main() {
       right.bounds.maxY - right.bounds.minY,
       left.bounds.maxY - left.bounds.minY,
     );
+    expect(
+      right.sweptBounds(
+        -20 * terrainPhysicsTicksPerWorldUnit,
+        10 * terrainPhysicsTicksPerWorldUnit,
+      ),
+      isA<TerrainAabb>()
+          .having(
+            (bounds) => bounds.minX,
+            'minX',
+            right.bounds.minX - 20 * terrainPhysicsTicksPerWorldUnit,
+          )
+          .having((bounds) => bounds.minY, 'minY', right.bounds.minY)
+          .having((bounds) => bounds.maxX, 'maxX', right.bounds.maxX)
+          .having(
+            (bounds) => bounds.maxY,
+            'maxY',
+            right.bounds.maxY + 10 * terrainPhysicsTicksPerWorldUnit,
+          ),
+    );
   });
 
   test('equal-time hit tie uses canonical edge identity', () {
     final earlier = CapsuleSweepHit()
       ..hit = true
       ..timeOfImpact = 0.5
-      ..edgeId = const TerrainEdgeId(
+      ..edgeId = TerrainEdgeId(
         chunkIndex: 0,
         chunkKey: 'chunk',
         shapeId: 'a',
@@ -260,7 +445,7 @@ void main() {
       ..hit = true
       ..timeOfImpact =
           0.5 + terrainContactEpsilonTicks / terrainPhysicsTicksPerWorldUnit / 2
-      ..edgeId = const TerrainEdgeId(
+      ..edgeId = TerrainEdgeId(
         chunkIndex: 0,
         chunkKey: 'chunk',
         shapeId: 'b',
@@ -269,6 +454,13 @@ void main() {
 
     expect(kernel.compareHits(earlier, later), lessThan(0));
   });
+}
+
+int _scaleDirection(int direction, int distance) {
+  final product = direction * distance;
+  final magnitude =
+      (product.abs() + terrainDirectionScale ~/ 2) ~/ terrainDirectionScale;
+  return product < 0 ? -magnitude : magnitude;
 }
 
 TerrainEdge _edge(

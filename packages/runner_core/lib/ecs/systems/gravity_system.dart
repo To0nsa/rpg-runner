@@ -1,4 +1,5 @@
 import '../../players/player_tuning.dart';
+import '../../collision/terrain/terrain_numeric.dart';
 import '../../tuning/physics_tuning.dart';
 import '../../util/fixed_math.dart';
 import '../world.dart';
@@ -24,6 +25,13 @@ class GravitySystem {
 
       final ti = world.transform.tryIndexOf(e);
       if (ti == null) continue;
+      final resolvedMotionIndex = world.resolvedMotion.tryIndexOf(e);
+      if (resolvedMotionIndex != null) {
+        world
+                .resolvedMotion
+                .appliedGravityVelocityDeltaYTicks[resolvedMotionIndex] =
+            0;
+      }
 
       if (!bodies.enabled[bi]) continue;
       if (bodies.isKinematic[bi]) continue;
@@ -34,12 +42,12 @@ class GravitySystem {
       final gci = world.gravityControl.tryIndexOf(e);
       if (gci != null) {
         final ticksLeft = world.gravityControl.suppressGravityTicksLeft[gci];
-        
+
         if (ticksLeft > 0) {
           // Decrement timer.
           final nextTicks = ticksLeft - 1;
           world.gravityControl.suppressGravityTicksLeft[gci] = nextTicks;
-          
+
           // If timer just expired, remove the component so gravity resumes NEXT tick.
           if (nextTicks <= 0) {
             world.gravityControl.removeEntity(e);
@@ -53,6 +61,7 @@ class GravitySystem {
       }
 
       // -- Apply Gravity --
+      final velocityBeforeGravity = world.transform.velY[ti];
       final scaledGravityY = gravityY * bodies.gravityScale[bi];
       if (fixedPointPilot.enabled) {
         final deltaVel = accelerationDeltaPerTickFixed(
@@ -70,13 +79,24 @@ class GravitySystem {
 
       // -- Terminal Velocity --
       final maxVelY = bodies.maxVelY[bi];
-      world.transform.velY[ti] = world.transform.velY[ti]
-          .clamp(-maxVelY, maxVelY);
+      world.transform.velY[ti] = world.transform.velY[ti].clamp(
+        -maxVelY,
+        maxVelY,
+      );
       if (fixedPointPilot.enabled) {
         world.transform.quantizeVelAtIndex(
           ti,
           subpixelScale: fixedPointPilot.subpixelScale,
         );
+      }
+      if (resolvedMotionIndex != null) {
+        world
+                .resolvedMotion
+                .appliedGravityVelocityDeltaYTicks[resolvedMotionIndex] =
+            physicsCoordinateToTicks(
+              world.transform.velY[ti] - velocityBeforeGravity,
+              name: 'gravityVelocityDeltaY',
+            );
       }
     }
   }

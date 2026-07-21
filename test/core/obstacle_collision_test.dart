@@ -57,7 +57,7 @@ void main() {
     );
 
     // Place the player left of the obstacle so walking right exercises the wall.
-    core.setPlayerPosXY(obstacleMinX - r - 40, core.playerPosY);
+    core.setPlayerPosXYUnsafeForTest(obstacleMinX - r - 40, core.playerPosY);
     core.setPlayerVelXY(0, core.playerVelY);
     _tick(core);
 
@@ -117,7 +117,7 @@ void main() {
     );
 
     // Place the player left of the obstacle so walking right attempts to collide.
-    core.setPlayerPosXY(obstacleMinX - r - 40, core.playerPosY);
+    core.setPlayerPosXYUnsafeForTest(obstacleMinX - r - 40, core.playerPosY);
     core.setPlayerVelXY(0, core.playerVelY);
     _tick(core);
 
@@ -163,7 +163,7 @@ void main() {
     );
 
     // Place the player to the right of the obstacle.
-    core.setPlayerPosXY(obstacleMaxX + r + 40, core.playerPosY);
+    core.setPlayerPosXYUnsafeForTest(obstacleMaxX + r + 40, core.playerPosY);
     core.setPlayerVelXY(0, core.playerVelY);
 
     // Clear spawn grounded state consistency (pos override doesn't change it).

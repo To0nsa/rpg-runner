@@ -12,9 +12,8 @@ import 'terrain_query_buffer.dart';
 class TerrainEdgeIndex {
   TerrainEdgeIndex({
     required Iterable<TerrainEdge> edges,
-    int cellSizeWorld = terrainDefaultCellSizeWorld,
+    this.cellSizeWorld = terrainDefaultCellSizeWorld,
   }) : _grid = GridIndex2D(cellSize: cellSizeWorld.toDouble()),
-       cellSizeWorld = cellSizeWorld,
        cellSizeTicks = cellSizeWorld * terrainPhysicsTicksPerWorldUnit,
        edges = UnmodifiableListView<TerrainEdge>(
          List<TerrainEdge>.of(edges)
@@ -56,15 +55,38 @@ class TerrainEdgeIndex {
 
   /// Queries all edges whose indexed closed AABBs overlap [bounds].
   ///
+  /// The caller owns swept-shape construction and must expand [bounds] by the
+  /// applicable collision skin/contact tolerance before calling.
+  ///
   /// Results are deduplicated and emitted in canonical edge-ID order through
   /// [buffer]. The returned count is also available as
   /// `buffer.candidateCount`.
   int query(TerrainAabb bounds, TerrainQueryBuffer buffer) {
+    return queryBounds(
+      minX: bounds.minX,
+      minY: bounds.minY,
+      maxX: bounds.maxX,
+      maxY: bounds.maxY,
+      buffer: buffer,
+    );
+  }
+
+  /// Primitive-bound variant used by allocation-sensitive controller loops.
+  int queryBounds({
+    required int minX,
+    required int minY,
+    required int maxX,
+    required int maxY,
+    required TerrainQueryBuffer buffer,
+  }) {
+    if (minX > maxX || minY > maxY) {
+      throw ArgumentError('Terrain query minimums must not exceed maximums.');
+    }
     buffer.prepare(edges.length);
-    final minCellX = _closedMinCell(bounds.minX);
-    final maxCellX = _closedMaxCell(bounds.maxX);
-    final minCellY = _closedMinCell(bounds.minY);
-    final maxCellY = _closedMaxCell(bounds.maxY);
+    final minCellX = _closedMinCell(minX);
+    final maxCellX = _closedMaxCell(maxX);
+    final minCellY = _closedMinCell(minY);
+    final maxCellY = _closedMaxCell(maxY);
 
     for (var cy = minCellY; cy <= maxCellY; cy += 1) {
       for (var cx = minCellX; cx <= maxCellX; cx += 1) {
@@ -88,7 +110,11 @@ class TerrainEdgeIndex {
       candidateIndex += 1
     ) {
       final edgeIndex = buffer.candidateEdgeIndexAt(candidateIndex);
-      if (edges[edgeIndex].bounds.intersects(bounds)) {
+      final edgeBounds = edges[edgeIndex].bounds;
+      if (edgeBounds.minX <= maxX &&
+          edgeBounds.maxX >= minX &&
+          edgeBounds.minY <= maxY &&
+          edgeBounds.maxY >= minY) {
         buffer.writeCandidateEdgeIndex(acceptedCount, edgeIndex);
         acceptedCount += 1;
       }

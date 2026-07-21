@@ -41,12 +41,40 @@ Treat encoded JSON shapes as compatibility-sensitive wire contracts.
   helpers
 - keep map ordering and canonical serialization deterministic wherever a digest,
   sort key, or idempotency check depends on it
+- accept only JSON-compatible values in canonical payloads: string object keys,
+  finite numbers, lists, and JSON primitives
 
 Replay digest changes can invalidate stored submissions and ghost artifacts, so
 coordinate them deliberately.
 
+## Value Object Invariants
+
+Public constructors are also a protocol boundary. Do not use `assert` as the
+only invariant check: assertions are disabled in production/AOT builds.
+
+- direct construction must reject invalid values with runtime argument errors;
+  malformed wire payloads must fail through the JSON decoder as format errors
+- preserve the replay command-frame constraints in both paths: positive,
+  strictly ordered ticks, paired finite axes in range, and known command masks
+- ranked `RunTicket` and `ValidatedRun` board keys must match their mode and
+  level; a ranked ticket's ruleset and score versions must match its board key
+- a ticket's `tickHz` is authoritative for the client Core, recorder, replay,
+  and validator comparison; do not substitute a default rate
+
+Digest-bound JSON must be retained as recursively immutable, detached values:
+
+- `ReplayBlobV1.loadoutSnapshot` and `clientSummary`
+- `RunTicket.loadoutSnapshot`
+- `ValidatedRun.stats`
+
+`toJson` and canonical-payload methods must return detached JSON values. A
+caller changing source or serialized maps must not alter a retained contract or
+invalidate an existing digest.
+
 ## Current Important Files
 
+- `README.md`: consumer-facing package overview, guarantees, and validation
+  commands
 - `lib/run_protocol.dart`: public barrel for package consumers
 - `lib/replay_blob.dart`: replay payload, command-frame encoding, and digest
   binding
@@ -61,7 +89,8 @@ coordinate them deliberately.
   conversion
 - `lib/submission_status.dart` and `lib/validated_run.dart`: validation result
   and client-visible submission state
-- `lib/codecs/`: typed JSON parsing and canonical JSON helpers
+- `lib/codecs/`: typed JSON parsing, canonical JSON, and immutable JSON-copy
+  helpers
 
 ## Cross-Layer Responsibilities
 
@@ -89,8 +118,17 @@ Add focused tests for:
 - JSON round trips
 - malformed input rejection
 - canonical digest stability
+- canonical JSON edge cases (non-string keys, non-finite numbers, unsupported
+  values)
+- direct-constructor invariant rejection and defensive-copy behavior
 - sort-key ordering
 - backward-compatible optional fields
+
+When changing runtime constructor validation, also extend and run
+`services/replay_validator/tool/aot_protocol_probe.dart`: it is the
+release-mode regression check for protocol checks that must not rely on
+assertions. When changing ticket/replay fields, add a cross-layer regression
+that uses a non-default tick rate as appropriate.
 
 ## Common Failure Modes To Avoid
 
@@ -104,9 +142,14 @@ Add focused tests for:
   Firebase callable validators
 - dropping immutable replay generation/digest fields between validated-run,
   leaderboard, and ghost contracts
+- retaining caller-owned maps or returning internal maps from JSON serializers
+- accepting a ranked board key that disagrees with the ticket's mode, level, or
+  version tuple
 
 ---
 
 For authoritative gameplay behavior, see `packages/runner_core/lib/AGENTS.md`.
 For backend callables, see `functions/AGENTS.md`. For replay validation, see
 `services/replay_validator/AGENTS.md`.
+For current protocol ownership and invariants, see
+`docs/tdd/run_protocol_contracts.md`.

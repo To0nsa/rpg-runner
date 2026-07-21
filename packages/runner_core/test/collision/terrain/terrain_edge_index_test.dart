@@ -16,12 +16,12 @@ void main() {
     expect(
       index.canonicalMembershipRecords(),
       containsAll(<String>[
-        'index-cell|0/chunk/-/shape_0/0/0|-1|-1',
-        'index-cell|0/chunk/-/shape_0/0/0|0|-1',
-        'index-cell|0/chunk/-/shape_0/0/0|1|-1',
-        'index-cell|0/chunk/-/shape_0/0/0|-1|0',
-        'index-cell|0/chunk/-/shape_0/0/0|0|0',
-        'index-cell|0/chunk/-/shape_0/0/0|1|0',
+        'index-cell|${edge.id.canonicalKey}|-1|-1',
+        'index-cell|${edge.id.canonicalKey}|0|-1',
+        'index-cell|${edge.id.canonicalKey}|1|-1',
+        'index-cell|${edge.id.canonicalKey}|-1|0',
+        'index-cell|${edge.id.canonicalKey}|0|0',
+        'index-cell|${edge.id.canonicalKey}|1|0',
       ]),
     );
   });
@@ -33,7 +33,7 @@ void main() {
     final buffer = index.createQueryBuffer();
 
     final count = index.query(
-      const TerrainAabb(minX: -1, minY: -1, maxX: 1, maxY: 1),
+      TerrainAabb(minX: -1, minY: -1, maxX: 1, maxY: 1),
       buffer,
     );
 
@@ -135,7 +135,7 @@ void main() {
       ],
     );
     final buffer = index.createQueryBuffer();
-    const query = TerrainAabb(
+    final query = TerrainAabb(
       minX: -terrainCollisionSkinTicks,
       minY: -terrainCollisionSkinTicks,
       maxX: 10 * terrainPhysicsTicksPerWorldUnit,

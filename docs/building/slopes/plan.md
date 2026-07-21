@@ -1,7 +1,7 @@
 # Sloped Terrain And Capsule Traversal High-Level Plan
 
 - Date: July 18, 2026
-- Status: Phase 0 accepted; Phase 1 ready; implementation has not started
+- Status: Phases 0-2 accepted; Phase 3 checklist is ready for implementation
 - Phase 0 tracker:
   [phase0-implementation-checklist.md](phase0-implementation-checklist.md)
 - Phase 0 evidence:
@@ -14,6 +14,10 @@
   [phase0-golden-performance-spec.md](phase0-golden-performance-spec.md)
 - Phase 1 implementation checklist:
   [phase1-implementation-checklist.md](phase1-implementation-checklist.md)
+- Phase 2 implementation checklist:
+  [phase2-implementation-checklist.md](phase2-implementation-checklist.md)
+- Phase 3 implementation checklist:
+  [phase3-implementation-checklist.md](phase3-implementation-checklist.md)
 
 Related plans and contracts:
 
@@ -1030,6 +1034,9 @@ Gate:
 
 ### Phase 2 - Capsule Controller And Player Traversal Harness
 
+Execution checklist:
+[phase2-implementation-checklist.md](phase2-implementation-checklist.md)
+
 Scope:
 
 - add authoritative world-contact capsule storage
@@ -1047,6 +1054,9 @@ Gate:
 - fixed-point/determinism golden tests pass
 
 ### Phase 3 - Sloped Surface Graphs And Enemy Cutover Readiness
+
+Execution checklist:
+[phase3-implementation-checklist.md](phase3-implementation-checklist.md)
 
 Scope:
 
@@ -1366,8 +1376,16 @@ This plan is complete only when:
 
 ## 22) Immediate Next Step
 
-Execute
-[phase1-implementation-checklist.md](phase1-implementation-checklist.md).
-Phase 1 is limited to the pure geometry kernel and static edge index. It does
-not begin editor polygon authoring, actor integration, or production collision
-cutover.
+Phase 2 is accepted in
+[phase2-implementation-checklist.md](phase2-implementation-checklist.md).
+The reusable controller, isolated player traversal authority, player/consumer
+matrix, golden signatures, zero-allocation profile, and performance gates all
+pass.
+
+The next step is implementing
+[phase3-implementation-checklist.md](phase3-implementation-checklist.md).
+It preserves the accepted controller, `TerrainEdgeId`, geometry-version,
+previous-support timing, zero-allocation, and deterministic-ordering
+contracts while migrating navigation and every current enemy policy in an
+isolated Core authority. Normal repository-backed levels continue to use the
+legacy production authority until the direct Phase 6 cutover.

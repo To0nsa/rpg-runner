@@ -55,7 +55,7 @@ void main() {
       ),
     );
 
-    core.setPlayerPosXY(160, defaultLevelGroundTopYInt - r - 60);
+    core.setPlayerPosXYUnsafeForTest(160, defaultLevelGroundTopYInt - r - 60);
     core.setPlayerVelXY(0, 0);
 
     _tick(core);

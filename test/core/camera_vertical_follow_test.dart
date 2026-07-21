@@ -127,7 +127,7 @@ void main() {
 
       // Move the player well above the baseline so vertical follow has work.
       for (var i = 0; i < 30; i += 1) {
-        core.setPlayerPosXY(core.playerPosX, 80.0);
+        core.setPlayerPosXYUnsafeForTest(core.playerPosX, 80.0);
         core.setPlayerVelXY(0.0, 0.0);
         core.stepOneTick();
       }

@@ -13,4 +13,7 @@ Archive policy:
   complete, implemented, historical, or otherwise closed
 - keep partially implemented or pending plans in the active tree
 - preserve the original path under `docs/building/archived/`
+- for completed implementation records that originated outside `docs/building/`,
+  use a clearly named topical folder and state the original location in the
+  archived document
 - update active links after moving files

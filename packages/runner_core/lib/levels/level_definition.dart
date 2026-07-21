@@ -19,6 +19,7 @@ class LevelDefinition {
     required this.staticWorldGeometry,
     this.tuning = const CoreTuning(),
     this.cameraCenterY = defaultLevelCameraCenterY,
+    this.killPlaneY,
     this.earlyPatternChunks = defaultEarlyPatternChunks,
     this.easyPatternChunks = defaultEasyPatternChunks,
     this.normalPatternChunks = defaultNormalPatternChunks,
@@ -37,6 +38,7 @@ class LevelDefinition {
          chunkPatternSource: chunkPatternSource,
          assembly: assembly,
        ),
+       assert(killPlaneY == null || killPlaneY.isFinite),
        assert(
          staticWorldGeometry.groundPlane != null,
          'LevelDefinition.staticWorldGeometry.groundPlane must be set',
@@ -45,6 +47,9 @@ class LevelDefinition {
       throw StateError(
         'LevelDefinition($id) requires staticWorldGeometry.groundPlane',
       );
+    }
+    if (killPlaneY != null && !killPlaneY!.isFinite) {
+      throw ArgumentError.value(killPlaneY, 'killPlaneY', 'Must be finite.');
     }
   }
 
@@ -59,6 +64,16 @@ class LevelDefinition {
 
   /// World-space camera center Y for snapshot/render framing.
   final double cameraCenterY;
+
+  /// Optional absolute world-space Y at which the player's bottom dies.
+  ///
+  /// Omitted legacy levels continue to resolve their threshold from
+  /// `groundTopY + TrackTuning.gapKillOffsetY`.
+  final double? killPlaneY;
+
+  /// Resolves the absolute player-bottom kill plane for this level.
+  double resolveKillPlaneY({required double legacyGapOffsetY}) =>
+      killPlaneY ?? groundTopY + legacyGapOffsetY;
 
   /// Authoritative world-space ground top Y for gameplay and spawning.
   ///
@@ -103,6 +118,7 @@ class LevelDefinition {
     LevelId? id,
     CoreTuning? tuning,
     double? cameraCenterY,
+    double? killPlaneY,
     StaticWorldGeometry? staticWorldGeometry,
     ChunkPatternSource? chunkPatternSource,
     int? earlyPatternChunks,
@@ -117,6 +133,7 @@ class LevelDefinition {
       chunkPatternSource: chunkPatternSource ?? _baseChunkPatternSource,
       tuning: tuning ?? this.tuning,
       cameraCenterY: cameraCenterY ?? this.cameraCenterY,
+      killPlaneY: killPlaneY ?? this.killPlaneY,
       staticWorldGeometry: staticWorldGeometry ?? this.staticWorldGeometry,
       earlyPatternChunks: earlyPatternChunks ?? this.earlyPatternChunks,
       easyPatternChunks: easyPatternChunks ?? this.easyPatternChunks,

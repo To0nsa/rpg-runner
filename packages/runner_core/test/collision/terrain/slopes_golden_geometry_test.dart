@@ -1,7 +1,9 @@
 import 'dart:io';
+import 'dart:convert';
 
 import 'package:runner_core/collision/terrain/terrain_compiler.dart';
 import 'package:runner_core/collision/terrain/terrain_edge.dart';
+import 'package:runner_core/collision/terrain/terrain_edge_id.dart';
 import 'package:runner_core/collision/terrain/terrain_edge_index.dart';
 import 'package:runner_core/collision/terrain/terrain_numeric.dart';
 import 'package:test/test.dart';
@@ -72,6 +74,30 @@ void main() {
       isTrue,
     );
 
+    final overlapBuffer = index.createQueryBuffer();
+    index.query(
+      TerrainAabb(
+        minX: physicsCoordinateToTicks(920),
+        minY: physicsCoordinateToTicks(200),
+        maxX: physicsCoordinateToTicks(920),
+        maxY: physicsCoordinateToTicks(340),
+      ),
+      overlapBuffer,
+    );
+    final overlapIds = <TerrainEdgeId>[
+      for (
+        var candidate = 0;
+        candidate < overlapBuffer.candidateCount;
+        candidate++
+      )
+        overlapBuffer.edgeAt(candidate, index.edges).id,
+    ];
+    expect(overlapIds, orderedEquals(overlapIds.toList()..sort()));
+    expect(
+      overlapIds.map((id) => id.shapeId),
+      containsAll(<String>['one_way_slope', 'over_limit_island']),
+    );
+
     expect(geometry.sourceSignature(), matches(RegExp(r'^[0-9a-f]{64}$')));
     expect(
       geometry.sourceSignature(),
@@ -106,6 +132,21 @@ void main() {
         indexMembershipRecords: forwardIndex.canonicalMembershipRecords(),
       ),
     );
+  });
+
+  test('fresh processes produce identical reviewed signatures', () {
+    Map<String, Object?> runFreshProcess() {
+      final result = Process.runSync(Platform.resolvedExecutable, <String>[
+        'run',
+        'tool/update_slopes_goldens.dart',
+        '--print',
+      ], workingDirectory: Directory.current.path);
+      expect(result.exitCode, 0, reason: result.stderr as String);
+      return jsonDecode((result.stdout as String).trim())
+          as Map<String, Object?>;
+    }
+
+    expect(runFreshProcess(), runFreshProcess());
   });
 }
 
