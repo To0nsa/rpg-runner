@@ -9,6 +9,7 @@ import '../../navigation/utils/surface_spatial_index.dart';
 import '../../navigation/utils/standability.dart';
 import '../../navigation/utils/trajectory_predictor.dart';
 import '../world.dart';
+import '../world_support_view.dart';
 
 /// Builds navigation intents for ground enemies using the surface graph.
 class EnemyNavigationSystem {
@@ -65,7 +66,9 @@ class EnemyNavigationSystem {
     _surfaceGraphsByEnemy = Map<EnemyId, SurfaceGraph>.unmodifiable(
       graphsByEnemy,
     );
-    _defaultSurfaceGraph = graphsByEnemy.isEmpty ? null : graphsByEnemy.values.first;
+    _defaultSurfaceGraph = graphsByEnemy.isEmpty
+        ? null
+        : graphsByEnemy.values.first;
     _surfaceIndex = spatialIndex;
     _surfaceGraphVersion = graphVersion;
   }
@@ -83,10 +86,9 @@ class EnemyNavigationSystem {
     final playerY = world.transform.posY[playerTi];
     final playerVelX = world.transform.velX[playerTi];
     final playerVelY = world.transform.velY[playerTi];
+    final supportView = WorldSupportView(world);
 
-    final playerGrounded = world.collision.has(player)
-        ? world.collision.grounded[world.collision.indexOf(player)]
-        : false;
+    final playerGrounded = supportView.isGrounded(player);
 
     var playerHalfX = 0.0;
     var playerBottomY = playerY;
@@ -191,9 +193,7 @@ class EnemyNavigationSystem {
       var safeSurfaceMinX = 0.0;
       var safeSurfaceMaxX = 0.0;
       final ex = world.transform.posX[ti];
-      final enemyGrounded =
-          world.collision.has(enemy) &&
-          world.collision.grounded[world.collision.indexOf(enemy)];
+      final enemyGrounded = supportView.isGrounded(enemy);
 
       final enemyGraph = _surfaceGraphsByEnemy[enemyId] ?? graph;
       if (enemyGraph == null ||

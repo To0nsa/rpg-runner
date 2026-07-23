@@ -1,6 +1,7 @@
 import 'package:runner_core/ecs/entity_id.dart';
 
 import '../../combat/control_lock.dart';
+import '../../collision/terrain/terrain_numeric.dart';
 import '../../enemies/enemy_id.dart';
 import '../../navigation/types/surface_graph.dart';
 import '../../snapshots/enums.dart';
@@ -9,6 +10,7 @@ import '../../util/double_math.dart';
 import '../../util/velocity_math.dart';
 import '../stores/enemies/melee_engagement_store.dart';
 import '../world.dart';
+import '../world_support_view.dart';
 
 /// Applies movement for ground enemies based on nav + engagement intents.
 class GroundEnemyLocomotionSystem {
@@ -31,7 +33,9 @@ class GroundEnemyLocomotionSystem {
     _surfaceGraphsByEnemy = Map<EnemyId, SurfaceGraph>.unmodifiable(
       graphsByEnemy,
     );
-    _defaultSurfaceGraph = graphsByEnemy.isEmpty ? null : graphsByEnemy.values.first;
+    _defaultSurfaceGraph = graphsByEnemy.isEmpty
+        ? null
+        : graphsByEnemy.values.first;
   }
 
   /// Applies locomotion for all ground enemies.
@@ -46,6 +50,7 @@ class GroundEnemyLocomotionSystem {
 
     final playerTi = world.transform.indexOf(player);
     final playerX = world.transform.posX[playerTi];
+    final supportView = WorldSupportView(world);
 
     final navIntent = world.navIntent;
     for (var i = 0; i < navIntent.denseEntities.length; i += 1) {
@@ -54,10 +59,15 @@ class GroundEnemyLocomotionSystem {
       final enemyTi = world.transform.tryIndexOf(enemy);
       if (enemyTi == null) continue;
 
+      final grounded = supportView.isGrounded(enemy);
       if (world.controlLock.isStunned(enemy, currentTick) ||
           world.controlLock.isLocked(enemy, LockFlag.move, currentTick)) {
         world.transform.velX[enemyTi] = 0.0;
-        // Keep velY for falling
+        if (grounded && world.terrainContact.has(enemy)) {
+          world.transform.velY[enemyTi] = 0.0;
+        }
+        _writeLocomotionReferenceSpeed(world, enemy, 0.0);
+        // Keep velY for legacy and terrain-airborne falling.
         continue;
       }
 
@@ -112,6 +122,7 @@ class GroundEnemyLocomotionSystem {
         navIntentIndex: i,
         engagementIndex: engagementIndex,
         lockFacingToPlayer: lockFacingToPlayer,
+        grounded: grounded,
         ex: ex,
         playerX: playerX,
         dtSeconds: dtSeconds,
@@ -128,6 +139,7 @@ class GroundEnemyLocomotionSystem {
     required int navIntentIndex,
     required int engagementIndex,
     required bool lockFacingToPlayer,
+    required bool grounded,
     required double ex,
     required double playerX,
     required double dtSeconds,
@@ -178,6 +190,7 @@ class GroundEnemyLocomotionSystem {
       arrivalSlowRadiusX: arrivalSlowRadiusX,
       stateSpeedMul: stateSpeedMul,
       lockFacingToPlayer: lockFacingToPlayer,
+      grounded: grounded,
       dtSeconds: dtSeconds,
       graph: _surfaceGraphsByEnemy[enemyId] ?? _defaultSurfaceGraph,
       playerX: playerX,
@@ -201,14 +214,14 @@ class GroundEnemyLocomotionSystem {
     required double arrivalSlowRadiusX,
     required double stateSpeedMul,
     required bool lockFacingToPlayer,
+    required bool grounded,
     required double dtSeconds,
     required SurfaceGraph? graph,
     required double playerX,
   }) {
     final tuning = groundEnemyTuning;
     final enemy = world.enemy.denseEntities[enemyIndex];
-    final enemyCi = world.collision.tryIndexOf(enemy);
-    final grounded = enemyCi != null && world.collision.grounded[enemyCi];
+    final terrainGrounded = grounded && world.terrainContact.has(enemy);
     final activeJumpEdge = _activeJumpEdge(
       world,
       navIndex: navIndex,
@@ -228,7 +241,10 @@ class GroundEnemyLocomotionSystem {
         effectiveSpeedScale *
         stateSpeedMul *
         moveSpeedMul;
-    final currentVelX = world.transform.velX[enemyTi];
+    final currentWorldVelX = world.transform.velX[enemyTi];
+    final currentVelX = terrainGrounded
+        ? _surfaceSpeedAlongWorldX(world, enemy, enemyTi)
+        : currentWorldVelX;
     final lockAirborneJumpVelX = hasPlan && !grounded && activeJumpEdge != null;
     final activeJumpEdgeDirX = _resolveEdgeCommitDirX(
       activeJumpEdge,
@@ -254,7 +270,8 @@ class GroundEnemyLocomotionSystem {
       const edgeOffCourseVelEps = 1.0;
       final offCourse =
           activeJumpEdgeDirX != 0 &&
-          (currentVelX * activeJumpEdgeDirX.toDouble()) <= edgeOffCourseVelEps;
+          (currentWorldVelX * activeJumpEdgeDirX.toDouble()) <=
+              edgeOffCourseVelEps;
       if (offCourse && activeJumpCruiseAbs > 0.0) {
         desiredDirX = activeJumpEdgeDirX;
         desiredVelX = desiredDirX.toDouble() * activeJumpCruiseAbs;
@@ -262,9 +279,9 @@ class GroundEnemyLocomotionSystem {
         // edge so traversal doesn't devolve into vertical hopping in place.
         forcedAirborneVelX = desiredVelX;
       } else {
-        desiredVelX = currentVelX;
-        if (currentVelX.abs() > 1e-6) {
-          desiredDirX = currentVelX > 0.0 ? 1 : -1;
+        desiredVelX = currentWorldVelX;
+        if (currentWorldVelX.abs() > 1e-6) {
+          desiredDirX = currentWorldVelX > 0.0 ? 1 : -1;
         }
       }
     } else if (commitMoveDirX != 0) {
@@ -281,10 +298,6 @@ class GroundEnemyLocomotionSystem {
       if (desiredVelX.abs() < baseSpeed) {
         desiredVelX = jumpDirX.toDouble() * baseSpeed;
       }
-    }
-
-    if (jumpNow) {
-      world.transform.velY[enemyTi] = -tuning.locomotion.jumpSpeed;
     }
 
     final nextVelX = applyAccelDecel(
@@ -327,8 +340,25 @@ class GroundEnemyLocomotionSystem {
     }
 
     final resolvedVelX = jumpSnapVelX ?? forcedAirborneVelX ?? nextVelX;
+    _writeLocomotionReferenceSpeed(world, enemy, desiredVelX.abs());
 
-    world.transform.velX[enemyTi] = resolvedVelX;
+    if (jumpNow) {
+      if (terrainGrounded) {
+        world.terrainContact.clearSupport(enemy);
+        final collisionIndex = world.collision.tryIndexOf(enemy);
+        if (collisionIndex != null) {
+          world.collision.grounded[collisionIndex] = false;
+        }
+      }
+      // Jump edges retain their existing world-X snap/commit velocity and use
+      // a world-up launch. Terrain projection resumes only after landing.
+      world.transform.velX[enemyTi] = resolvedVelX;
+      world.transform.velY[enemyTi] = -tuning.locomotion.jumpSpeed;
+    } else if (terrainGrounded) {
+      _writeSurfaceVelocity(world, enemy, enemyTi, resolvedVelX);
+    } else {
+      world.transform.velX[enemyTi] = resolvedVelX;
+    }
 
     if (commitMoveDirX != 0) {
       world.enemy.facing[enemyIndex] = commitMoveDirX > 0
@@ -354,9 +384,9 @@ class GroundEnemyLocomotionSystem {
       final stopDist = tuning.locomotion.stopDistanceX;
       final nextVelX = world.transform.velX[enemyTi];
       if (nextVelX > 0.0 && ex >= safeSurfaceMaxX - stopDist) {
-        world.transform.velX[enemyTi] = 0.0;
+        _stopLocomotion(world, enemy, enemyTi, terrainGrounded);
       } else if (nextVelX < 0.0 && ex <= safeSurfaceMinX + stopDist) {
-        world.transform.velX[enemyTi] = 0.0;
+        _stopLocomotion(world, enemy, enemyTi, terrainGrounded);
       }
     }
 
@@ -368,6 +398,67 @@ class GroundEnemyLocomotionSystem {
             : Facing.left;
       }
     }
+  }
+
+  double _surfaceSpeedAlongWorldX(
+    EcsWorld world,
+    EntityId enemy,
+    int transformIndex,
+  ) {
+    final contactIndex = world.terrainContact.indexOf(enemy);
+    final tangentX = world.terrainContact.supportTangentXTicks[contactIndex];
+    final tangentY = world.terrainContact.supportTangentYTicks[contactIndex];
+    if (tangentX == 0) return world.transform.velX[transformIndex];
+    final positiveXSign = tangentX > 0 ? 1.0 : -1.0;
+    return positiveXSign *
+        (world.transform.velX[transformIndex] * tangentX +
+            world.transform.velY[transformIndex] * tangentY) /
+        terrainDirectionScale;
+  }
+
+  void _writeSurfaceVelocity(
+    EcsWorld world,
+    EntityId enemy,
+    int transformIndex,
+    double signedSurfaceSpeed,
+  ) {
+    final contactIndex = world.terrainContact.indexOf(enemy);
+    final tangentX = world.terrainContact.supportTangentXTicks[contactIndex];
+    final tangentY = world.terrainContact.supportTangentYTicks[contactIndex];
+    if (tangentX == 0) {
+      world.transform.velX[transformIndex] = signedSurfaceSpeed;
+      return;
+    }
+    final positiveXSign = tangentX > 0 ? 1.0 : -1.0;
+    final scale = signedSurfaceSpeed * positiveXSign / terrainDirectionScale;
+    world.transform.velX[transformIndex] = tangentX * scale;
+    world.transform.velY[transformIndex] = tangentY * scale;
+  }
+
+  void _stopLocomotion(
+    EcsWorld world,
+    EntityId enemy,
+    int transformIndex,
+    bool terrainGrounded,
+  ) {
+    world.transform.velX[transformIndex] = 0.0;
+    if (terrainGrounded) world.transform.velY[transformIndex] = 0.0;
+    _writeLocomotionReferenceSpeed(world, enemy, 0.0);
+  }
+
+  void _writeLocomotionReferenceSpeed(
+    EcsWorld world,
+    EntityId enemy,
+    double speed,
+  ) {
+    if (!world.resolvedMotion.has(enemy)) return;
+    world.resolvedMotion.setLocomotionReferenceSpeed(
+      enemy,
+      ticksPerSecond: physicsCoordinateToTicks(
+        speed,
+        name: 'enemyLocomotionReferenceSpeed',
+      ),
+    );
   }
 
   int _resolveJumpForwardDirX({

@@ -6,6 +6,7 @@ import '../ecs/stores/combat/status_immunity_store.dart';
 import '../ecs/stores/health_store.dart';
 import '../ecs/stores/mana_store.dart';
 import '../ecs/stores/stamina_store.dart';
+import '../ecs/stores/world_contact_capsule_store.dart';
 import '../combat/creature_tag.dart';
 import '../abilities/ability_def.dart';
 import '../anim/anim_resolver.dart';
@@ -14,6 +15,53 @@ import 'death_behavior.dart';
 import '../snapshots/enums.dart';
 import '../util/vec2.dart';
 import 'enemy_id.dart';
+import 'enemy_terrain_profile.dart';
+
+const ColliderAabbDef _unocoCollider = ColliderAabbDef(
+  halfX: 8.125,
+  halfY: 8.625,
+  offsetX: 0.0,
+  offsetY: 2.0,
+);
+const ColliderAabbDef _grojibCollider = ColliderAabbDef(
+  halfX: 19.5,
+  halfY: 25.0,
+  offsetX: -4.0,
+  offsetY: 18.0,
+);
+const ColliderAabbDef _hashashCollider = ColliderAabbDef(
+  halfX: 14.0,
+  halfY: 21.5,
+  offsetX: -1.0,
+  offsetY: 7.0,
+);
+const ColliderAabbDef _derfCollider = ColliderAabbDef(
+  halfX: 11.5,
+  halfY: 24.25,
+  offsetX: 0.0,
+  offsetY: 7.0,
+);
+
+final EnemyTerrainContactProfile _unocoTerrainProfile =
+    createFlyingEnemyTerrainProfile(
+      capsule: WorldContactCapsuleDef.fromAabb(_unocoCollider),
+    );
+final EnemyTerrainContactProfile _grojibTerrainProfile =
+    createGroundedEnemyTerrainProfile(
+      capsule: WorldContactCapsuleDef.fromAabb(_grojibCollider),
+      maxWalkableSlopeDegrees: 45,
+      minimumSupportUpComponent: 724,
+    );
+final EnemyTerrainContactProfile _hashashTerrainProfile =
+    createGroundedEnemyTerrainProfile(
+      capsule: WorldContactCapsuleDef.fromAabb(_hashashCollider),
+      maxWalkableSlopeDegrees: 60,
+      minimumSupportUpComponent: 512,
+    );
+final EnemyTerrainContactProfile _derfTerrainProfile =
+    createKinematicEnemyTerrainProfile(
+      capsule: WorldContactCapsuleDef.fromAabb(_derfCollider),
+    );
 
 // -----------------------------------------------------------------------------
 // Unoco Demon render animation strip definitions (authoring-time)
@@ -558,7 +606,7 @@ class EnemyCatalog {
             maxVelX: 800.0,
             maxVelY: 800.0,
           ),
-          collider: ColliderAabbDef(halfX: 8.125, halfY: 8.625, offsetX: 0.0, offsetY: 2.0),
+          collider: _unocoCollider,
           health: HealthDef(hp: 2000, hpMax: 2000, regenPerSecond100: 50),
           mana: ManaDef(mana: 8000, manaMax: 8000, regenPerSecond100: 500),
           stamina: StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
@@ -587,7 +635,7 @@ class EnemyCatalog {
             gravityScale: 1.0,
             sideMask: BodyDef.sideLeft | BodyDef.sideRight,
           ),
-          collider: ColliderAabbDef(halfX: 19.5, halfY: 25.0, offsetX: -4.0, offsetY: 18.0),
+          collider: _grojibCollider,
           health: HealthDef(hp: 2000, hpMax: 2000, regenPerSecond100: 50),
           mana: ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
           stamina: StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
@@ -609,7 +657,7 @@ class EnemyCatalog {
             gravityScale: 1.0,
             sideMask: BodyDef.sideLeft | BodyDef.sideRight,
           ),
-          collider: ColliderAabbDef(halfX: 14.0, halfY: 21.5, offsetX: -1.0, offsetY: 7.0),
+          collider: _hashashCollider,
           health: HealthDef(hp: 1600, hpMax: 1600, regenPerSecond100: 50),
           mana: ManaDef(mana: 0, manaMax: 0, regenPerSecond100: 0),
           stamina: StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
@@ -630,7 +678,7 @@ class EnemyCatalog {
             gravityScale: 0.0,
             sideMask: BodyDef.sideNone,
           ),
-          collider: ColliderAabbDef(halfX: 11.5, halfY: 24.25, offsetX: 0.0, offsetY: 7.0),
+          collider: _derfCollider,
           health: HealthDef(hp: 2200, hpMax: 2200, regenPerSecond100: 40),
           mana: ManaDef(mana: 10000, manaMax: 10000, regenPerSecond100: 600),
           stamina: StaminaDef(stamina: 0, staminaMax: 0, regenPerSecond100: 0),
@@ -647,5 +695,19 @@ class EnemyCatalog {
           resistance: DamageResistanceDef(fireBp: -3000, iceBp: 2000),
         );
     }
+  }
+
+  /// Returns the explicit Phase 3 polygon-terrain policy for [id].
+  ///
+  /// The returned profile is catalog-owned and initialized once. The
+  /// exhaustive switch makes adding an enemy without choosing a terrain
+  /// policy a compile-time error.
+  EnemyTerrainContactProfile terrainContactProfile(EnemyId id) {
+    return switch (id) {
+      EnemyId.unocoDemon => _unocoTerrainProfile,
+      EnemyId.grojib => _grojibTerrainProfile,
+      EnemyId.hashash => _hashashTerrainProfile,
+      EnemyId.derf => _derfTerrainProfile,
+    };
   }
 }

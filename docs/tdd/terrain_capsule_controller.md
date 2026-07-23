@@ -11,13 +11,16 @@ There are currently two construction-time world-motion owners:
 | Construction path | Motion owner | Intended use |
 | --- | --- | --- |
 | `GameCore(...)` | `LegacyWorldMotionAuthority` | Normal game and replay execution |
-| `GameCore.terrainMotionHarness(...)` | `TerrainPlayerWorldMotionAuthority` | Phase 2 tests and benchmarks only |
+| `GameCore.terrainMotionHarness(...)` | `TerrainMultiBodyWorldMotionAuthority` | Phase 2/3 tests and benchmarks only |
 
 The selection is immutable after Core construction. It is not level data,
 saved data, replay data, UI state, or remote configuration. The terrain
-harness rejects enabled dynamic non-player bodies rather than falling back to
-rectangle collision. Enemy, navigation, streaming, authored-content, and
-production replay cutovers remain later phases of the slopes plan.
+harness integrates the player, Grojib, Hashash, and Unoco through explicit
+profiles, keeps Derf kinematic, and rejects unsupported dynamic or ballistic
+bodies rather than falling back to rectangle collision. Enemy locomotion,
+streaming, authored-content, and production replay cutovers remain later work.
+The implemented Phase 3 profile/surface/index foundation is documented in
+[sloped_navigation_and_enemy_terrain.md](sloped_navigation_and_enemy_terrain.md).
 
 ## Authoritative Units And Geometry
 
@@ -79,7 +82,8 @@ The curve is continuously integer-interpolated between points. A quantized
 
 - `groundedHorizontal` preserves ordinary locomotion's requested world-X
   displacement and derives Y from eligible support.
-- `groundedSurface` preserves grounded dash/roll distance along support.
+- `groundedSurface` preserves scalar distance along support for grounded
+  mobility and constant-surface-distance enemy locomotion.
 - `worldSpace` preserves airborne movement, falling, launch, and knockback as
   a world vector until an entering component is removed by contact.
 
@@ -146,10 +150,11 @@ The terrain harness adds four focused stores/facades:
 - `WorldSupportView` for consumers that must read terrain support in the
   harness and legacy collision flags everywhere else
 
-`TerrainPlayerWorldMotionAuthority.prepareTick` captures prior valid support
-before jump, movement, mobility, and gravity. Its `step` integrates exactly
-once after those systems compose velocity. Final support and resolved motion
-then drive distance, death/camera checks, snapshots, and animation.
+`TerrainMultiBodyWorldMotionAuthority.prepareTick` preflights every body and
+captures prior valid support before AI, jump, movement, mobility, and gravity.
+Its `step` integrates each enabled dynamic terrain body exactly once in entity
+ID order after those systems compose velocity. Final support and resolved
+motion then drive distance, death/camera checks, snapshots, and animation.
 
 Terrain-harness distance uses positive accepted body X progression and does not
 count movement requested into a wall. Grounded locomotion animation advances
@@ -161,11 +166,13 @@ semantics.
 `GameCore.setPlayerPosXYUnsafeForTest` is the only unchecked position mutation.
 Its name exposes that it skips destination clearance, and it clears support,
 snap eligibility, last-valid placement, and retained capsule history before
-the write. No production player teleport exists. Hashash teleport and future
-gameplay placement must validate full capsule clearance through their owning
-authority before committing. An externally applied upward velocity clears
-support before the next solve. Disabled or kinematic terrain bodies clear
-support and do not move.
+the write. No production player teleport exists. Hashash now uses the world
+motion authority's transactional begin/commit/cancel placement API: rejected
+candidates never write a transform, and accepted points reinitialize retained
+capsule history. Future gameplay placement must use the same authority-owned
+clearance boundary. An externally applied upward velocity clears support before
+the next solve. Disabled or kinematic terrain bodies clear support and do not
+move.
 
 ## Diagnostics And Determinism
 
@@ -196,18 +203,25 @@ authored.
 
 ## Enemy And Navigation Handoff
 
-Phase 2 deliberately does not move enemies. The authority classifies the
-unsupported policies that later work must implement:
+The Phase 3 harness now attaches and dispatches the catalog-owned policies:
 
-- Grojib grounded capsule/profile and surface navigation
-- Hashash capsule/profile plus teleport clearance and fallback
-- Unoco Demon flying solid contact with one-way ignore
-- Derf kinematic placement/clearance
-- ballistic projectile swept-circle ownership
+- Grojib and Hashash are grounded dynamic capsules
+- Unoco Demon is a support-free flying capsule blocked by solid terrain
+- Derf receives its capsule/profile but remains excluded from per-tick motion
+- ballistic projectiles remain an explicit unsupported disposition
 
-Phase 3 must build walkable edge chains and navigation graph location,
-standability, jump/drop reachability, trajectory checks, streaming
-invalidation, spawn clearance, and enemy death/culling on the same
+Phase 3 now has catalog-owned enemy shapes/policies, canonical walkable edge
+chains, a deterministic shared surface index, and one complete-capsule
+standability/support/placement query. Shared-node Grojib/Hashash graph views
+now emit profile-valid walk edges for compatible joins and accepted 4-pixel
+transitions plus continuously swept jump/drop edges on sloped supports.
+Grojib/Hashash locomotion now projects the previous final tangent velocity into
+signed surface-speed space, applies existing AI/status/lock tuning, and submits
+one `groundedSurface` request. Enemy jumps clear support before their world-up
+launch, and final support drives resolved-distance animation and ground-impact
+death. Hashash airborne teleport and deferred grounded spawn placement now use
+the shared complete-capsule query. Unoco clearance steering, Derf placement,
+remaining spawn placement, and streaming publication remain on the same
 `TerrainEdgeId` and geometry-version contracts.
 
 Enemy intent and navigation run before the current tick's motion result exists,

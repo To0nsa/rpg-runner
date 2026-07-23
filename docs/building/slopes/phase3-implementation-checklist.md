@@ -1,7 +1,8 @@
 # Slopes Phase 3 - Sloped Surface Graphs And Enemy Cutover Readiness Checklist
 
 - Created: July 20, 2026
-- Status: Ready for implementation; no open gameplay decision blocks work
+- Status: In progress; grounded enemy locomotion and Hashash terrain-safe
+  teleport/deferred-spawn placement pass; Unoco flying contact is next
 - Source plan: [plan.md](plan.md)
 - Frozen gameplay decisions:
   [phase0-gameplay-decisions.md](phase0-gameplay-decisions.md)
@@ -144,20 +145,20 @@ phase.
 
 ## 6) Baseline And Compatibility Evidence
 
-- [ ] Record the starting revision, dirty flag, OS, Dart/Flutter versions, and
+- [x] Record the starting revision, dirty flag, OS, Dart/Flutter versions, and
       relevant dependency lock state.
-- [ ] Run `dart analyze packages/runner_core`.
-- [ ] Run all `packages/runner_core` tests.
-- [ ] Run the full root `test/core` suite.
-- [ ] Run replay-validator analysis and tests.
-- [ ] Record current Grojib and Hashash path/position/attack outcomes on flat
+- [x] Run `dart analyze packages/runner_core`.
+- [x] Run all `packages/runner_core` tests.
+- [x] Run the full root `test/core` suite.
+- [x] Run replay-validator analysis and tests.
+- [x] Record current Grojib and Hashash path/position/attack outcomes on flat
       geometry for fixed seeds and command streams.
-- [ ] Record current Unoco hover, steering, cast, melee, and spawn behavior.
-- [ ] Record current Hashash deferred spawn, teleport timing, destination,
+- [x] Record current Unoco hover, steering, cast, melee, and spawn behavior.
+- [x] Record current Hashash deferred spawn, teleport timing, destination,
       strike queue, cancellation, and cooldown behavior.
-- [ ] Record current Derf placement, facing, cast origin, and target behavior.
-- [ ] Record existing graph node/edge ordering and A* tie-break behavior.
-- [ ] Confirm normal construction and replay validation still use the legacy
+- [x] Record current Derf placement, facing, cast origin, and target behavior.
+- [x] Record existing graph node/edge ordering and A* tie-break behavior.
+- [x] Confirm normal construction and replay validation still use the legacy
       authority before Phase 3 work begins.
 
 Flat compatibility is intentional behavior parity, not necessarily byte parity
@@ -184,30 +185,30 @@ Frozen definitions:
 | Hashash | `14.0` | `7.5` | `(-1.0, 7.0)` |
 | Derf | `11.5` | `12.75` | `(0.0, 7.0)` |
 
-- [ ] Add immutable enemy world-contact shape/profile definitions to the
+- [x] Add immutable enemy world-contact shape/profile definitions to the
       authoritative enemy catalog or a catalog-owned resolver.
-- [ ] Quantize every shape/profile value once at construction.
-- [ ] Preserve the existing authored-facing offset mirror rule.
-- [ ] Prove the derived AABB is exact for both facings and all four enemies.
-- [ ] Keep combat, pickup, broad-phase, culling, and render bounds on the
+- [x] Quantize every shape/profile value once at construction.
+- [x] Preserve the existing authored-facing offset mirror rule.
+- [x] Prove the derived AABB is exact for both facings and all four enemies.
+- [x] Keep combat, pickup, broad-phase, culling, and render bounds on the
       derived AABB.
-- [ ] Give Grojib a `45°`, 4-pixel step/snap grounded profile.
-- [ ] Give Hashash a `60°`, 4-pixel step/snap grounded profile.
-- [ ] Give both grounded enemies constant distance-along-surface locomotion.
-- [ ] Give Unoco a flying profile with no support, snap, step, gravity, or
+- [x] Give Grojib a `45°`, 4-pixel step/snap grounded profile.
+- [x] Give Hashash a `60°`, 4-pixel step/snap grounded profile.
+- [x] Give both grounded enemies constant distance-along-surface locomotion.
+- [x] Give Unoco a flying profile with no support, snap, step, gravity, or
       one-way contact.
-- [ ] Give Derf a kinematic clearance profile; do not integrate it per tick.
-- [ ] Preserve Grojib/Hashash ceiling-ignore and one-way behavior explicitly;
+- [x] Give Derf a kinematic clearance profile; do not integrate it per tick.
+- [x] Preserve Grojib/Hashash ceiling-ignore and one-way behavior explicitly;
       do not inherit player defaults accidentally.
-- [ ] Fail construction when a current enemy has no explicit terrain policy.
+- [x] Fail construction when a current enemy has no explicit terrain policy.
 
 Tests:
 
-- [ ] invalid dimensions and non-finite authoring values fail
-- [ ] exact tick values and derived bounds for all four enemies
-- [ ] mirrored offset parity for left/right facing
-- [ ] profile slope/step/snap/one-way/ceiling flags are explicit
-- [ ] catalog enumeration and policy enumeration contain the same four IDs
+- [x] invalid dimensions and non-finite authoring values fail
+- [x] exact tick values and derived bounds for all four enemies
+- [x] mirrored offset parity for left/right facing
+- [x] profile slope/step/snap/one-way/ceiling flags are explicit
+- [x] catalog enumeration and policy enumeration contain the same four IDs
 
 ## 8) Shared Sloped Surface Set
 
@@ -226,60 +227,60 @@ Each node exposes at minimum:
 - ledge endpoint classification
 - stable chain identity derived without hashing collisions
 
-- [ ] Use canonical `TerrainEdgeId` as the graph node's persistent identity
+- [x] Use canonical `TerrainEdgeId` as the graph node's persistent identity
       and deterministic tie-break; do not hash it into a legacy packed integer.
-- [ ] Cache graph node indices in runtime nav state only with the exact bundle
+- [x] Cache graph node indices in runtime nav state only with the exact bundle
       version and clear them before use on every version mismatch.
-- [ ] Do not retain a node index across bundle versions.
-- [ ] Include exposed, upward-facing, X-monotonic, non-vertical candidate
+- [x] Do not retain a node index across bundle versions.
+- [x] Include exposed, upward-facing, X-monotonic, non-vertical candidate
       surfaces in canonical edge-ID order.
-- [ ] Keep over-limit slopes in the shared set; profile filtering happens
+- [x] Keep over-limit slopes in the shared set; profile filtering happens
       later.
-- [ ] Preserve solid versus one-way classification.
-- [ ] Exclude walls, ceilings, internal/shared boundaries, and invalid seams
+- [x] Preserve solid versus one-way classification.
+- [x] Exclude walls, ceilings, internal/shared boundaries, and invalid seams
       from standable candidates.
-- [ ] Build connected chains only through compatible exact endpoints.
-- [ ] Preserve intentional ledges and incompatible material/collision-mode
+- [x] Build connected chains only through compatible exact endpoints.
+- [x] Preserve intentional ledges and incompatible material/collision-mode
       boundaries.
-- [ ] Derive chain identity from the canonical lowest member identity and
+- [x] Derive chain identity from the canonical lowest member identity and
       verify uniqueness.
-- [ ] Reuse the Phase 1 geometry version; do not invent an independent surface
+- [x] Reuse the Phase 1 geometry version; do not invent an independent surface
       version.
-- [ ] Remove constant-`yTop` assumptions from the new representation.
+- [x] Remove constant-`yTop` assumptions from the new representation.
 - [ ] Keep one navigation node representation; any temporary legacy adapter
       must emit that representation rather than maintaining a second graph
       model.
 
 Tests:
 
-- [ ] flat, uphill, downhill, vertical, ceiling, and one-way edges
-- [ ] flat-slope-flat, convex peak, concave valley, and intentional ledge
-- [ ] exact and incompatible cross-polygon/chunk seams
-- [ ] clockwise/counterclockwise input parity
-- [ ] negative coordinates and overlapping X ranges
-- [ ] canonical IDs/order across input permutations and fresh processes
-- [ ] no-op geometry rebuild produces the same surface/chain signature
+- [x] flat, uphill, downhill, vertical, ceiling, and one-way edges
+- [x] flat-slope-flat, convex peak, concave valley, and intentional ledge
+- [x] exact and incompatible cross-polygon/chunk seams
+- [x] clockwise/counterclockwise input parity
+- [x] negative coordinates and overlapping X ranges
+- [x] canonical IDs/order across input permutations and fresh processes
+- [x] no-op geometry rebuild produces the same surface/chain signature
 
 ## 9) Surface Spatial Index And Query Buffers
 
-- [ ] Index full segment bounds, not a thin slab at one `yTop`.
-- [ ] Reuse the accepted Phase 1 grid and canonical candidate ordering where
+- [x] Index full segment bounds, not a thin slab at one `yTop`.
+- [x] Reuse the accepted Phase 1 grid and canonical candidate ordering where
       practical.
-- [ ] Query into caller-owned buffers with stamp-based deduplication.
-- [ ] Sort candidates by canonical surface identity only after deduplication.
-- [ ] Expose candidate count, cells visited, and buffer resize count.
-- [ ] Never truncate candidates to satisfy a budget.
-- [ ] Handle exact cell boundaries, long slopes, negative coordinates, and
+- [x] Query into caller-owned buffers with stamp-based deduplication.
+- [x] Sort candidates by canonical surface identity only after deduplication.
+- [x] Expose candidate count, cells visited, and buffer resize count.
+- [x] Never truncate candidates to satisfy a budget.
+- [x] Handle exact cell boundaries, long slopes, negative coordinates, and
       5120-edge hard-stream bounds.
-- [ ] Prove zero steady-state query-buffer growth after warmup.
+- [x] Prove zero steady-state query-buffer growth after warmup.
 
 Tests:
 
-- [ ] indexed results match brute-force segment-bounds queries
-- [ ] duplicate cell occupancy yields one candidate
-- [ ] stable order is independent of insertion order
-- [ ] queries above, below, and across a sloped segment are complete
-- [ ] representative and hard-stream capacities do not truncate
+- [x] indexed results match brute-force segment-bounds queries
+- [x] duplicate cell occupancy yields one candidate
+- [x] stable order is independent of insertion order
+- [x] queries above, below, and across a sloped segment are complete
+- [x] representative and hard-stream capacities do not truncate
 
 ## 10) Standability, Support Location, And Placement Query
 
@@ -296,32 +297,32 @@ The query result records:
 - geometry version
 - query diagnostics/candidate counts
 
-- [ ] Use the complete upright capsule for terrain clearance.
-- [ ] Use exact `yAt(x)` and the support normal; never reconstruct a flat
+- [x] Use the complete upright capsule for terrain clearance.
+- [x] Use exact `yAt(x)` and the support normal; never reconstruct a flat
       bottom Y.
-- [ ] Separate runtime navigation support fraction from spawn support width.
-- [ ] Preserve the existing per-enemy runtime support fraction used by jump
+- [x] Separate runtime navigation support fraction from spawn support width.
+- [x] Preserve the existing per-enemy runtime support fraction used by jump
       profiles unless a measured counterexample requires review.
-- [ ] Require full capsule-width support for grounded spawns.
-- [ ] Require profile-eligible slope/collision mode.
-- [ ] Highest-surface lookup prefers smallest world Y, then canonical edge ID.
-- [ ] Same-support clamp never crosses a ledge, chain break, or source boundary.
-- [ ] Full-clearance validation checks walls, ceilings, undersides, adjacent
+- [x] Require full capsule-width support for grounded spawns.
+- [x] Require profile-eligible slope/collision mode.
+- [x] Highest-surface lookup prefers smallest world Y, then canonical edge ID.
+- [x] Same-support clamp never crosses a ledge, chain break, or source boundary.
+- [x] Full-clearance validation checks walls, ceilings, undersides, adjacent
       polygons, and capsule endpoint contacts.
-- [ ] One-way back sides do not block a clearance-only flying/teleport query
+- [x] One-way back sides do not block a clearance-only flying/teleport query
       when the actor policy ignores them.
-- [ ] Return stable typed failure diagnostics; do not silently relocate.
+- [x] Return stable typed failure diagnostics; do not silently relocate.
 
 Tests:
 
-- [ ] surface lookup at every slope transition and exact endpoint
-- [ ] profile difference at `45°`, between `45-60°`, exactly `60°`, and over
+- [x] surface lookup at every slope transition and exact endpoint
+- [x] profile difference at `45°`, between `45-60°`, exactly `60°`, and over
       `60°`
-- [ ] narrow peaks, insufficient support, blocked headroom, and adjacent wall
-- [ ] solid/one-way surfaces with overlapping X ranges
-- [ ] highest-surface and same-support tie-breaks
-- [ ] full-width spawn versus runtime partial-support distinction
-- [ ] geometry-version mismatch invalidates a retained result
+- [x] narrow peaks, insufficient support, blocked headroom, and adjacent wall
+- [x] solid/one-way surfaces with overlapping X ranges
+- [x] highest-surface and same-support tie-breaks
+- [x] full-width spawn versus runtime partial-support distinction
+- [x] geometry-version mismatch invalidates a retained result
 
 ## 11) Shared Nodes And Per-Enemy Graph Variants
 
@@ -334,135 +335,135 @@ Refactor graph construction into:
 Both graph variants contain the same nodes, IDs, indices, and ordering. They
 may differ only in node eligibility and directed traversal edges.
 
-- [ ] Add an explicit `walk` edge kind alongside `jump` and `drop`.
-- [ ] Store profile eligibility without deleting or reordering shared nodes.
-- [ ] Assert shared node identity/order on every publication.
-- [ ] Generate walk edges for compatible adjacent segments and accepted
+- [x] Add an explicit `walk` edge kind alongside `jump` and `drop`.
+- [x] Store profile eligibility without deleting or reordering shared nodes.
+- [x] Assert shared node identity/order on every publication.
+- [x] Generate walk edges for compatible adjacent segments and accepted
       4-pixel transitions.
-- [ ] Require the same capsule/clearance query used at runtime.
-- [ ] Exclude over-profile slopes from ordinary walking.
-- [ ] Preserve deterministic CSR edge grouping and ordering.
-- [ ] Define walk cost from distance along the surface divided by the enemy's
+- [x] Require the same capsule/clearance query used at runtime.
+- [x] Exclude over-profile slopes from ordinary walking.
+- [x] Preserve deterministic CSR edge grouping and ordering.
+- [x] Define walk cost from distance along the surface divided by the enemy's
       authored locomotion speed.
-- [ ] Keep jump/drop costs time-based as currently authored.
-- [ ] Make all cost/tie-break math deterministic and signature-visible.
-- [ ] Do not add fallback edges merely to make every target reachable.
+- [x] Keep jump/drop costs time-based as currently authored.
+- [x] Make all cost/tie-break math deterministic and signature-visible.
+- [x] Do not add fallback edges merely to make every target reachable.
 
 Tests:
 
-- [ ] shared node IDs/order with different eligibility and edge sets
-- [ ] Grojib rejects a `46-60°` walk route that Hashash accepts
-- [ ] both accept their exact inclusive limits
-- [ ] connected slopes and compatible seams emit ordinary walk edges
-- [ ] a 4-pixel feasible transition emits walk; 5 pixels does not
-- [ ] blocked/narrow/steep transition emits no walk edge
-- [ ] walk cost equals measured constant-surface-speed travel time
-- [ ] repeated graph builds and input permutations produce identical CSR
+- [x] shared node IDs/order with different eligibility and edge sets
+- [x] Grojib rejects a `46-60°` walk route that Hashash accepts
+- [x] both accept their exact inclusive limits
+- [x] connected slopes and compatible seams emit ordinary walk edges
+- [x] a 4-pixel feasible transition emits walk; 5 pixels does not
+- [x] blocked/narrow/steep transition emits no walk edge
+- [x] walk cost equals measured constant-surface-speed travel time
+- [x] repeated graph builds and input permutations produce identical CSR
 
 ## 12) Jump And Drop Graph Construction
 
-- [ ] Compute takeoff Y from the source segment at takeoff X.
-- [ ] Compute landing Y/normal from the destination at landing X.
-- [ ] Use profile-specific standability and slope eligibility.
-- [ ] Use existing deterministic jump templates and tick integration.
-- [ ] Sweep the complete capsule through solid terrain for obstruction.
-- [ ] Respect each enemy's ceiling and one-way policy.
-- [ ] Reject arcs blocked by walls, ceilings when applicable, sloped
+- [x] Compute takeoff Y from the source segment at takeoff X.
+- [x] Compute landing Y/normal from the destination at landing X.
+- [x] Use profile-specific standability and slope eligibility.
+- [x] Use existing deterministic jump templates and tick integration.
+- [x] Sweep the complete capsule through solid terrain for obstruction.
+- [x] Respect each enemy's ceiling and one-way policy.
+- [x] Reject arcs blocked by walls, ceilings when applicable, sloped
       undersides, endpoints, or intervening terrain.
-- [ ] Find the earliest valid landing on the collision-valid side.
-- [ ] Drop from the true ledge and select the first valid support below.
-- [ ] Preserve takeoff sampling bounds and document any changed sample rule.
-- [ ] Tie-break equal landings by tick, vertical priority, then canonical
+- [x] Find the earliest valid landing on the collision-valid side.
+- [x] Drop from the true ledge and select the first valid support below.
+- [x] Preserve takeoff sampling bounds and document any changed sample rule.
+- [x] Tie-break equal landings by tick, vertical priority, then canonical
       surface ID.
-- [ ] Never emit jump/drop edges to an ineligible destination.
+- [x] Never emit jump/drop edges to an ineligible destination.
 
 Tests:
 
-- [ ] flat-to-slope, slope-to-flat, slope-to-slope jump
-- [ ] uphill/downhill takeoff in both directions
-- [ ] landing at an endpoint, on a narrow surface, and at the slope limit
-- [ ] one-way landing from above and pass from below
-- [ ] convex peak and concave valley near takeoff
-- [ ] wall, ceiling, underside, and intermediate-platform obstruction
-- [ ] drop from both ledges to the first eligible sloped support
-- [ ] high-speed/thin-surface landing without tunneling
-- [ ] equal-time candidate order remains stable
+- [x] flat-to-slope, slope-to-flat, slope-to-slope jump
+- [x] uphill/downhill takeoff in both directions
+- [x] landing at an endpoint, on a narrow surface, and at the slope limit
+- [x] one-way landing from above and pass from below
+- [x] convex peak and concave valley near takeoff
+- [x] wall, ceiling, underside, and intermediate-platform obstruction
+- [x] drop from both ledges to the first eligible sloped support
+- [x] high-speed/thin-surface landing without tunneling
+- [x] equal-time candidate order remains stable
 
 ## 13) Pathfinder And Runtime Navigator
 
-- [ ] Preserve deterministic A* and reusable path buffers.
-- [ ] Extend A* to `walk`, `jump`, and `drop` edges.
-- [ ] Preserve stable cost, preferred-direction, and surface-ID tie-breaks.
-- [ ] Read prior-tick validated support ID/version for the enemy.
-- [ ] Read the player's prior-tick support for grounded target reasoning.
-- [ ] Invalidate current/last/target support, path, cursor, and active edge
+- [x] Preserve deterministic A* and reusable path buffers.
+- [x] Extend A* to `walk`, `jump`, and `drop` edges.
+- [x] Preserve stable cost, preferred-direction, and surface-ID tie-breaks.
+- [x] Read prior-tick validated support ID/version for the enemy.
+- [x] Read the player's prior-tick support for grounded target reasoning.
+- [x] Invalidate current/last/target support, path, cursor, and active edge
       before AI runs when geometry/graph version changes.
-- [ ] Use the shared query only when retained support is absent or needs
+- [x] Use the shared query only when retained support is absent or needs
       validation.
-- [ ] Follow connected same-chain geometry without repeated repath or segment
+- [x] Follow connected same-chain geometry without repeated repath or segment
       oscillation.
-- [ ] Preserve takeoff approach and in-flight commit direction.
-- [ ] Complete an edge only on validated destination support.
-- [ ] Clamp no-plan fallback to the last known eligible support; never
+- [x] Preserve takeoff approach and in-flight commit direction.
+- [x] Complete an edge only on validated destination support.
+- [x] Clamp no-plan fallback to the last known eligible support; never
       teleport or cross an ineligible ledge.
-- [ ] Preserve nav/move/stun lock semantics.
+- [x] Preserve nav/move/stun lock semantics.
 
 Tests:
 
-- [ ] same-chain chase across multiple slope segments
-- [ ] target crosses a seam or moves to another chain
-- [ ] target becomes airborne and lands on a slope
-- [ ] path preference/tie-break parity in both horizontal directions
-- [ ] takeoff overshoot does not oscillate
-- [ ] in-flight jump/drop direction remains committed
-- [ ] wrong landing does not complete the active edge
-- [ ] graph-version replacement clears all stale references immediately
-- [ ] no-plan fallback remains on eligible terrain
+- [x] same-chain chase across multiple slope segments
+- [x] target crosses a seam or moves to another chain
+- [x] target becomes airborne and lands on a slope
+- [x] path preference/tie-break parity in both horizontal directions
+- [x] takeoff overshoot does not oscillate
+- [x] in-flight jump/drop direction remains committed
+- [x] wrong landing does not complete the active edge
+- [x] graph-version replacement clears all stale references immediately
+- [x] no-plan fallback remains on eligible terrain
 
 ## 14) Sloped Trajectory Prediction
 
-- [ ] Match Core's fixed-tick gravity/velocity integration.
-- [ ] Predict the full capsule/support path, not a center ray or horizontal
+- [x] Match Core's fixed-tick gravity/velocity integration.
+- [x] Predict the full capsule/support path, not a center ray or horizontal
       bottom band.
-- [ ] Query swept segment bounds each predicted tick.
-- [ ] Accept only descending contact on a profile-eligible surface.
-- [ ] Return exact landing point, support ID, geometry version, and tick.
-- [ ] Choose earliest tick, then highest surface, then canonical ID.
-- [ ] Reuse candidate/output buffers in repeated AI queries.
-- [ ] Return no landing when the first contact is a wall/ceiling or clearance
+- [x] Query swept segment bounds each predicted tick.
+- [x] Accept only descending contact on a profile-eligible surface.
+- [x] Return exact landing point, support ID, geometry version, and tick.
+- [x] Choose earliest tick, then highest surface, then canonical ID.
+- [x] Reuse candidate/output buffers in repeated AI queries.
+- [x] Return no landing when the first contact is a wall/ceiling or clearance
       is insufficient.
 
 Tests:
 
-- [ ] vertical and diagonal fall onto flat and sloped surfaces
-- [ ] high-speed fall onto a thin sloped platform
-- [ ] jump arc landing uphill/downhill
-- [ ] multiple crossed surfaces select the first valid landing
-- [ ] ascending/back-side/one-way-invalid contacts are ignored
-- [ ] too-wide capsule and blocked landing return no result
-- [ ] predictor result agrees with the accepted controller replay
+- [x] vertical and diagonal fall onto flat and sloped surfaces
+- [x] high-speed fall onto a thin sloped platform
+- [x] jump arc landing uphill/downhill
+- [x] multiple crossed surfaces select the first valid landing
+- [x] ascending/back-side/one-way-invalid contacts are ignored
+- [x] too-wide capsule and blocked landing return no result
+- [x] predictor result agrees with the accepted controller replay
 
 ## 15) Multi-Body World-Motion Authority
 
 Generalize the isolated player authority into one terrain dispatcher that owns
 every enabled non-kinematic actor in the Phase 3 harness exactly once.
 
-- [ ] Preserve one `prepareTick` and one `step` audit per Core tick.
-- [ ] Iterate bodies in stable entity order.
-- [ ] Initialize capsule, traversal, contact, and resolved-motion stores for
+- [x] Preserve one `prepareTick` and one `step` audit per Core tick.
+- [x] Iterate bodies in stable entity order.
+- [x] Initialize capsule, traversal, contact, and resolved-motion stores for
       player, Grojib, Hashash, and Unoco according to policy.
-- [ ] Reuse one controller/result scratch set per traversal profile; do not
+- [x] Reuse one controller/result scratch set per traversal profile; do not
       allocate per entity/tick.
-- [ ] Read prior support before AI and publish final support after motion.
-- [ ] Compose locomotion, jump, mobility/teleport state, gravity, and external
+- [x] Read prior support before AI and publish final support after motion.
+- [x] Compose locomotion, jump, mobility/teleport state, gravity, and external
       velocity before the one terrain solve.
-- [ ] Keep Derf kinematic and validate only explicit placement/mutation.
-- [ ] Continue to reject unsupported dynamic bodies and ballistic projectiles
+- [x] Keep Derf kinematic and validate only explicit placement/mutation.
+- [x] Continue to reject unsupported dynamic bodies and ballistic projectiles
       in the Phase 3 harness.
-- [ ] Do not fall back to legacy AABB collision for a terrain-owned body.
-- [ ] Write derived AABB/contact compatibility only after the final transform.
-- [ ] Preserve the player-distance return contract.
-- [ ] Keep normal production construction on `LegacyWorldMotionAuthority`.
+- [x] Do not fall back to legacy AABB collision for a terrain-owned body.
+- [x] Write derived AABB/contact compatibility only after the final transform.
+- [x] Preserve the player-distance return contract.
+- [x] Keep normal production construction on `LegacyWorldMotionAuthority`.
 
 Body disposition after Phase 3:
 
@@ -479,70 +480,70 @@ Body disposition after Phase 3:
 
 Tests:
 
-- [ ] zero/one/many enemies are integrated exactly once
-- [ ] stable entity order cannot change outcomes
-- [ ] missing policy/store fails before partial integration
-- [ ] geometry replacement invalidates every affected support/path
-- [ ] disabled, kinematic, dying, and falling bodies follow explicit policy
-- [ ] player results remain identical with and without inactive enemy bodies
+- [x] zero/one/many enemies are integrated exactly once
+- [x] stable entity order cannot change outcomes
+- [x] missing policy/store fails before partial integration
+- [x] geometry replacement invalidates every affected support/path
+- [x] disabled, kinematic, dying, and falling bodies follow explicit policy
+- [x] player results remain identical with and without inactive enemy bodies
 
 ## 16) Grojib And Hashash Grounded Locomotion
 
-- [ ] Convert authored speed to constant requested distance along support.
-- [ ] Do not apply Éloïse's uphill/downhill speed curve.
-- [ ] Preserve existing engagement, arrival, status, and control-lock
+- [x] Convert authored speed to constant requested distance along support.
+- [x] Do not apply Éloïse's uphill/downhill speed curve.
+- [x] Preserve existing engagement, arrival, status, and control-lock
       multipliers before terrain projection.
-- [ ] Preserve world-X chase/stand-off targets.
-- [ ] Follow the support tangent in the intended horizontal direction.
-- [ ] Use the accepted 4-pixel step/snap helper during ordinary grounded
+- [x] Preserve world-X chase/stand-off targets.
+- [x] Follow the support tangent in the intended horizontal direction.
+- [x] Use the accepted 4-pixel step/snap helper during ordinary grounded
       pursuit.
-- [ ] Keep jump launch world-up and existing horizontal jump-edge velocity
+- [x] Keep jump launch world-up and existing horizontal jump-edge velocity
       snap/commit rules.
-- [ ] Do not snap an accepted jump back to support.
-- [ ] Remove only velocity entering a blocking terrain constraint.
-- [ ] Preserve final-support-driven animation and resolved-distance playback.
-- [ ] Preserve melee/cast origins and facing behavior.
-- [ ] Ground-impact death waits for final support or the existing deterministic
+- [x] Do not snap an accepted jump back to support.
+- [x] Remove only velocity entering a blocking terrain constraint.
+- [x] Preserve final-support-driven animation and resolved-distance playback.
+- [x] Preserve melee/cast origins and facing behavior.
+- [x] Ground-impact death waits for final support or the existing deterministic
       timeout.
 
 Tests:
 
-- [ ] idle, walk, reverse, accelerate, decelerate, and stop on slopes
-- [ ] both directions at flat/intermediate/exact-limit angles
-- [ ] Grojib constant surface speed at `45°`
-- [ ] Hashash constant surface speed at `60°`
-- [ ] step, snap, seam, peak, valley, wall, ceiling policy, and one-way
-- [ ] jump/drop graph execution and off-course velocity recovery
-- [ ] nav/move/stun locks and status speed modifiers
-- [ ] melee engage/strike/recover facing and stand-off offsets
-- [ ] grounded/airborne animation has no seam flicker
-- [ ] death in air, slope landing, timeout, and culling
+- [x] idle, walk, reverse, accelerate, decelerate, and stop on slopes
+- [x] both directions at flat/intermediate/exact-limit angles
+- [x] Grojib constant surface speed at `45°`
+- [x] Hashash constant surface speed at `60°`
+- [x] step, snap, seam, peak, valley, wall, ceiling policy, and one-way
+- [x] jump/drop graph execution and off-course velocity recovery
+- [x] nav/move/stun locks and status speed modifiers
+- [x] melee engage/strike/recover facing and stand-off offsets
+- [x] grounded/airborne animation has no seam flicker
+- [x] death in air, slope landing, timeout, and culling
 
 ## 17) Hashash Teleport And Deferred Spawn
 
-- [ ] Route teleport writes through a terrain placement authority.
-- [ ] Clear prior support/path before destination validation.
-- [ ] Test the primary point `36 px` right and `36 px` above the predicted
+- [x] Route teleport writes through a terrain placement authority.
+- [x] Clear prior support/path before destination validation.
+- [x] Test the primary point `36 px` right and `36 px` above the predicted
       player first.
-- [ ] Require full capsule clearance; airborne ambush support is not required.
-- [ ] If blocked, test the mirrored left/above point second.
-- [ ] Queue the strike only after successful placement.
-- [ ] If both fail, restore/retain last safe transform, queue no strike, and
+- [x] Require full capsule clearance; airborne ambush support is not required.
+- [x] If blocked, test the mirrored left/above point second.
+- [x] Queue the strike only after successful placement.
+- [x] If both fail, restore/retain last safe transform, queue no strike, and
       apply the normal cooldown.
-- [ ] Consume no RNG during fallback.
-- [ ] Reinitialize last-valid capsule state after successful teleport.
-- [ ] Apply the same grounded placement query to deferred edge spawns; invalid
+- [x] Consume no RNG during fallback.
+- [x] Reinitialize last-valid capsule state after successful teleport.
+- [x] Apply the same grounded placement query to deferred edge spawns; invalid
       placement skips that pending spawn.
 
 Tests:
 
-- [ ] primary point clear
-- [ ] primary blocked/mirrored clear
-- [ ] both blocked by slope, wall, ceiling, and concave corner
-- [ ] no support remains valid for airborne ambush
-- [ ] no strike on cancellation and cooldown is normal
-- [ ] destination/result independent of candidate/input ordering
-- [ ] deferred spawn succeeds on eligible slope and skips invalid support
+- [x] primary point clear
+- [x] primary blocked/mirrored clear
+- [x] both blocked by slope, wall, ceiling, and concave corner
+- [x] no support remains valid for airborne ambush
+- [x] no strike on cancellation and cooldown is normal
+- [x] destination/result independent of candidate/input ordering
+- [x] deferred spawn succeeds on eligible slope and skips invalid support
 
 ## 18) Unoco Demon Flying Contact And Hover
 
@@ -567,6 +568,21 @@ Before implementing clearance steering, record its ordered candidate vectors
 and turn/hold rule in this checklist. If profiling shows that a candidate set
 materially changes combat pressure rather than merely resolving blockage, ask
 the user one gameplay question before accepting it.
+
+Recorded implementation default (July 23, 2026):
+
+1. candidate `0`: current direct combat/hover velocity
+2. candidate `1`: positive tangent of the prior solid blocking normal
+3. candidate `2`: negative tangent of that normal
+4. candidate `3`: outward along that normal
+
+Candidates are generated only after a solid contact and previewed for six
+fixed ticks through the real Unoco capsule/controller. Rank by accepted dot
+progress toward the current combat/hover target, then accepted clear-travel
+distance, then candidate ID. Hold the selected detour vector for `0.20 s`
+(`12` ticks at `60 Hz`) unless a new solid contact forces deterministic
+re-evaluation; when the hold expires, resume direct steering. The preview,
+selection, and hold consume no RNG.
 
 Tests:
 
@@ -812,24 +828,44 @@ accepted gameplay.
 
 | Finding | Resolution | Later-phase impact |
 | --- | --- | --- |
-| _None yet_ | Record during implementation. | Review before Phase 4 planning. |
+| Enemy capsule tuning could drift if copied beside the legacy collider. | All four archetypes and Phase 3 profiles now reuse one catalog collider constant; the capsule derives and quantizes from it once. | Production AABB consumers remain unchanged while later terrain stores attach the exact derived capsule. |
+| Identical geometry may be republished under a new bundle version. | `nav-surfaces-v1` excludes publication version but includes exact IDs, integer geometry, metadata, adjacency, and chains. Runtime indices remain version-local. | Atomic bundle work must compare version for cache validity and signature for content parity. |
+| Exact endpoint branches can have more than one geometrically compatible continuation. | Surface extraction connects only one reciprocal candidate; ambiguous branches remain deterministic ledges instead of choosing an arbitrary path. | Authoring diagnostics may flag such joins in Phase 4, but graph construction must not synthesize fallback continuity. |
+| A capsule positioned from only one face can overlap the compatible neighbor at an exact convex/concave transition. | Ground placement starts from exact `yAt(x)` and normal-aware capsule height, then raises only enough to clear eligible surfaces in the same canonical chain. | Graph/runtime location must use the shared query result instead of reconstructing a face-local bottom Y. |
+| Legacy runtime standability stores its foothold as a floating one-third fraction. | The shared query represents support width as an exact rational and rounds the required tick width upward; grounded spawn is a separate full-diameter rule. | Graph construction can preserve each jump profile's fraction without copying floating-point range math. |
+| Squaring both a large capsule radius and a long surface length can overflow the VM's signed integer range before square-root reduction. | Normal-aware placement now divides the radius projection by the compiled quantized up-normal component, then uses the existing chain-clearance correction. | Long 512-unit surfaces and current enemy capsules are regression-tested; future fixed-point geometry should avoid multiplying squared magnitudes together. |
+| Legacy navigation costs are platform doubles, while Phase 3 signatures require canonical values. | `nav-graphs-v1` stores one-million-units-per-second integer costs; walk cost derives from source length/speed and jump/drop cost derives from travel ticks. | The Phase 3 A* migration must compare integer cost units and must not reintroduce formatted doubles. |
+| A partial foothold formula can mathematically place a capsule center beyond a finite surface, where authoritative `yAtXTicks` intentionally rejects extrapolation. | Shared standable ranges retain the exact rational width test but clamp their emitted center interval to the finite source segment. | Jump/drop sampling, spawn clamping, and runtime lookup now share finite ledge bounds instead of inventing support beyond an endpoint. |
+| Legacy drop reachability estimated a vertical fall even though runtime navigation commits horizontal movement after leaving the ledge. | Sloped drop construction integrates zero-initial-speed gravity and authored horizontal air speed each tick, then sweeps the complete capsule to the first valid support. | Section 13 must execute the recorded commit direction and must not substitute a vertical-only landing predictor. |
+| A chain ID alone says that geometry is connected, but does not prove that one enemy profile can traverse every intermediate segment. | Same-chain pursuit verifies profile eligibility and an emitted walk edge at every adjacency before bypassing A*. | Later locomotion can pursue directly across slopes without oscillation while still respecting Grojib/Hashash graph differences. |
+| Letting a move-locked actor activate a jump edge consumes the one-tick jump request while locomotion suppresses it. | Move locks may refresh support/path state but cannot activate a pending edge; nav/stun locks hold state after mandatory bundle invalidation. | Ground-enemy integration must pass the existing locks explicitly and preserve the pending takeoff until movement unlocks. |
+| A raw time-of-impact point is not necessarily the controller's final support point for that tick because remaining motion can slide along a slope. | The predictor uses the first blocking contact to accept/reject the landing, then replays that complete tick through the accepted capsule controller and publishes its final support state. | Enemy navigation can compare prediction with runtime replay without accumulating slope-position drift. |
+| Looking past an invalid first support could predict a lower landing through terrain the capsule cannot actually occupy. | The first support contact must pass the shared placement/clearance query; failure is terminal for that prediction rather than continuing to a later surface. | Trajectory consumers receive no landing for narrow or blocked first contact and must use their existing safe fallback. |
+| Sparse-set dense order changes after swap removal, so using it directly would make multi-body diagnostics and failure position lifecycle-dependent. | The terrain dispatcher reuses an insertion-sorted ascending entity-ID body buffer for both preflight and integration. | Later mixed-enemy goldens can rely on one canonical body order independent of component churn. |
+| A flying capsule still needs floor faces to block motion, but the shared controller classifies eligible solid floor contact as support. | Unoco keeps the controller's solid constraint and velocity projection while its motion-kind policy suppresses support/contact grounding publication. | Flying steering can use wall/ceiling/solid clearance without entering grounded navigation or receiving step/snap behavior. |
+| Lazy enemy spawn means terrain stores may first appear immediately before AI, while a partial topology must never allow earlier actors to move. | `prepareTick` preflights every body first, then atomically attaches the complete catalog topology for untouched known enemies; `step` permits no initialization. | Spawn and streaming work may add known enemies before preparation, but any missing or mismatched store remains a typed hard failure before integration. |
+| Terrain preparation resets the legacy collision compatibility flags before AI, so reading `CollisionStore.grounded` at that point makes valid terrain support appear airborne. | Enemy navigation, locomotion, animation, death, and render snapshots now read `WorldSupportView`, which selects terrain contact for migrated actors and legacy collision for all others. | Remaining enemy consumers must use the staged support facade rather than observing compatibility storage mid-tick. |
+| Reusing world-X velocity as the acceleration state on a slope makes authored speed depend on tangent X and can retain stale slope Y while reversing or stopping. | Grounded enemy locomotion projects final velocity onto the positive-world-X support tangent, applies existing tuning in signed scalar surface-speed space, then emits one tangent vector for terrain authority. | Future status/AI speed modifiers stay upstream of terrain projection; they must not add a second incline curve. |
+| An unchecked teleport write cannot safely validate two candidates because the first rejected point would already have destroyed the retained transform/history. | World motion now exposes begin, exact-candidate commit, and cancel operations. Begin retains the last valid body/capsule-facing transform and clears support/path; only a valid placement result mutates the destination. | Future teleports must use the transactional authority contract instead of writing transforms around a clearance query. |
+| Deferred Hashash requests were indistinguishable from ordinary authored marker spawns at the `GameCore` callback. | `SpawnEnemyRequest` now carries deterministic source provenance; only `deferredHashashEdge` binds its exact body-X/requested-Y point to one canonical intended edge and runs the full-width grounded placement query there. Rejection consumes the pending request without relocation or replacement RNG. | Phase 5 terrain streaming can replace the legacy surface hint with exact terrain source identity without changing spawn ordering or failure policy. |
 
 ## 26) Documentation
 
 During implementation:
 
-- [ ] create or update a focused TDD for sloped navigation, enemy motion,
+- [x] create or update a focused TDD for sloped navigation, enemy motion,
       placement authority, versioning, and deterministic ordering
-- [ ] update `docs/tdd/terrain_capsule_controller.md` if controller/profile
+- [x] update `docs/tdd/terrain_capsule_controller.md` if controller/profile
       contracts change
-- [ ] update `docs/tdd/runner_core_simulation_contract.md` if tick ordering or
+- [x] update `docs/tdd/runner_core_simulation_contract.md` if tick ordering or
       construction boundaries change
-- [ ] update the enemy/navigation/spawn GDD documents for delivered
+- [x] update the enemy/navigation/spawn GDD documents for delivered
       player-facing behavior
-- [ ] keep proposed Phase 4-7 work in `docs/building/**`
-- [ ] update the closest `AGENTS.md` only if working rules/boundaries drift
-- [ ] update the master slopes plan status and immediate next step
-- [ ] keep public APIs self-usable with units, ownership, version, mutation,
+- [x] keep proposed Phase 4-7 work in `docs/building/**`
+- [x] review the closest `AGENTS.md`; no working rule or boundary drift requires
+      an update
+- [x] update the master slopes plan status and immediate next step
+- [x] keep public APIs self-usable with units, ownership, version, mutation,
       and failure behavior documented
 
 Do not document the Phase 3 harness as normal production authority.
@@ -838,7 +874,17 @@ Do not document the Phase 3 harness as normal production authority.
 
 | Date/revision | Command/evidence | Environment | Result |
 | --- | --- | --- | --- |
-| _Pending_ | Baseline and implementation evidence | _Pending_ | _Pending_ |
+| July 21, 2026 / `9eea5cfd` clean baseline | `dart analyze`; `dart test` in `packages/runner_core`; `flutter test test/core`; validator `dart analyze` + `dart test test` | Windows `10.0.26200` X64; Dart `3.11.5`; Flutter `3.41.7` | PASS: `143` package, `432` root Core, `75` validator tests; analyzers clean |
+| July 21, 2026 / working tree | Enemy profile, surface extraction, fresh-process signature, brute-force index, 1,280/5,120 capacity, and 10,000-query warm-buffer tests | Same baseline environment | PASS: `5` enemy-profile, `8` surface-extraction, and `8` surface-index tests; package analyzer clean |
+| July 21, 2026 / working tree post-foundation | Root/package `dart analyze`; full package `dart test`; `flutter test test/core`; validator analysis + full tests | Same baseline environment | PASS: analyzers clean; `164` package, `432` root Core, and `75` validator tests |
+| July 22, 2026 / working tree post-placement-query | Focused placement-query test; root/package `dart analyze`; full package `dart test`; `flutter test test/core` | Same baseline environment | PASS: `11` focused placement tests, analyzers clean, `175` package tests, and `432` root Core tests |
+| July 22, 2026 / working tree post-walk-graphs | Focused placement/walk-graph tests; root/package `dart analyze`; full package `dart test`; `flutter test test/core` | Same baseline environment | PASS: `20` focused tests, analyzers clean, `184` package tests, and `432` root Core tests |
+| July 22, 2026 / working tree post-jump/drop-graphs | Focused placement/graph tests; root/package `dart analyze`; full package `dart test`; diff check | Same baseline environment | PASS: `28` focused and `192` package tests; analyzers and diff check clean |
+| July 22, 2026 / working tree post-terrain-navigator | Focused terrain pathfinder/navigator test; root/package analysis; full package `dart test`; diff check | Same baseline environment | PASS: `11` focused and `203` package tests; analyzers and diff check clean |
+| July 22, 2026 / working tree post-terrain-trajectory | Focused terrain trajectory test; root/package analysis; full package `dart test`; diff check | Same baseline environment | PASS: `12` focused and `215` package tests; analyzers and diff check clean |
+| July 22, 2026 / working tree post-multi-body-motion | Focused world-motion authority and terrain-harness tests; root/package analysis; full package `dart test`; `flutter test test/core`; diff check | Same baseline environment | PASS: `14` focused authority, `223` package, and `432` root Core tests; analyzers and diff check clean |
+| July 23, 2026 / working tree post-ground-enemy-locomotion | Focused grounded-enemy terrain locomotion and prepared-support navigation tests; root/package analysis; full package `dart test`; `flutter test test/core` | Same baseline environment | PASS: `11` focused, `234` package, and `432` root Core tests; analyzers clean |
+| July 23, 2026 / working tree post-Hashash-placement | Hashash terrain placement, world-motion authority, legacy ambush, and deferred-streamer tests; root/package analysis; full package `dart test`; `flutter test test/core`; final exact-intended-edge refinement followed by package full and root focused reruns | Same baseline environment | PASS: `19` package-focused, `4` root-focused, `239` full package, and `432` root Core tests; final rerun kept `239` package and `4` focused root tests green; analyzers clean |
 
 Planned final validation:
 
@@ -871,8 +917,8 @@ complete package/root/validator suites and benchmark evidence are mandatory.
 - [ ] Grojib and Hashash graph variants differ only by eligibility/edges.
 - [ ] Collision and navigation agree on slopes, step/snap, one-way, clearance,
       jump, and drop feasibility.
-- [ ] Grounded enemy locomotion and animation use final support correctly.
-- [ ] Hashash teleport/deferred spawn cannot embed or silently relocate.
+- [x] Grounded enemy locomotion and animation use final support correctly.
+- [x] Hashash teleport/deferred spawn cannot embed or silently relocate.
 - [ ] Unoco cannot tunnel, ground on one-way terrain, phase, or teleport around
       blockers.
 - [ ] Derf placement enforces slope, width, same-support, and clearance rules.

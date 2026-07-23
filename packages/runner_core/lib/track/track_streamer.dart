@@ -17,17 +17,22 @@ import 'chunk_pattern_source.dart';
 /// Callback to spawn an enemy at a world X position.
 typedef SpawnEnemy = void Function(SpawnEnemyRequest request);
 
+/// Why a streamed enemy request was emitted.
+enum EnemySpawnRequestSource { authoredMarker, deferredHashashEdge }
+
 /// Spawn request payload emitted by [TrackStreamer].
 class SpawnEnemyRequest {
   const SpawnEnemyRequest({
     required this.enemyId,
     required this.x,
     required this.surfaceTopY,
+    this.source = EnemySpawnRequestSource.authoredMarker,
   });
 
   final EnemyId enemyId;
   final double x;
   final double surfaceTopY;
+  final EnemySpawnRequestSource source;
 }
 
 /// Metadata for a newly spawned chunk, returned by [TrackStreamer.step].
@@ -392,6 +397,7 @@ class TrackStreamer {
           enemyId: EnemyId.hashash,
           x: spawnX,
           surfaceTopY: groundTopY,
+          source: EnemySpawnRequestSource.deferredHashashEdge,
         ),
       );
     }

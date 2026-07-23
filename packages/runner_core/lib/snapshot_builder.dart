@@ -897,9 +897,7 @@ class SnapshotBuilder {
         );
       }
 
-      final grounded = world.collision.has(e)
-          ? world.collision.grounded[world.collision.indexOf(e)]
-          : false;
+      final grounded = WorldSupportView(world).isGrounded(e);
 
       // Read pre-computed animation from AnimStateStore.
       final AnimKey anim;

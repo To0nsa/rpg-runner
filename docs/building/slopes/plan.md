@@ -1,7 +1,8 @@
 # Sloped Terrain And Capsule Traversal High-Level Plan
 
 - Date: July 18, 2026
-- Status: Phases 0-2 accepted; Phase 3 checklist is ready for implementation
+- Status: Phases 0-2 accepted; Phase 3 grounded enemy locomotion and Hashash
+  terrain-safe placement pass; Unoco flying contact is next
 - Phase 0 tracker:
   [phase0-implementation-checklist.md](phase0-implementation-checklist.md)
 - Phase 0 evidence:
@@ -26,6 +27,8 @@ Related plans and contracts:
 - [Controls GDD](../../gdd/01_controls.md)
 - [Combat System Design](../../gdd/combat/combat_system_design.md)
 - [Replay Validator Worker TDD](../../tdd/replay_validator_worker.md)
+- [Sloped Navigation And Enemy Terrain Foundation](../../tdd/sloped_navigation_and_enemy_terrain.md)
+- [Enemy Terrain Traversal GDD](../../gdd/enemy_terrain_traversal.md)
 
 ## 1) Mission
 
@@ -1382,10 +1385,29 @@ The reusable controller, isolated player traversal authority, player/consumer
 matrix, golden signatures, zero-allocation profile, and performance gates all
 pass.
 
-The next step is implementing
+Phase 3 implementation is active in
 [phase3-implementation-checklist.md](phase3-implementation-checklist.md).
-It preserves the accepted controller, `TerrainEdgeId`, geometry-version,
-previous-support timing, zero-allocation, and deterministic-ordering
-contracts while migrating navigation and every current enemy policy in an
-isolated Core authority. Normal repository-backed levels continue to use the
-legacy production authority until the direct Phase 6 cutover.
+Enemy capsule/policy definitions and the canonical shared sloped surface set,
+signature, spatial index, reusable query buffers, actor-neutral
+standability/support/placement query, and shared-node Grojib/Hashash ordinary
+walk/jump/drop graph variants are implemented. Deterministic integer A* and the
+isolated runtime navigator now consume those nodes and edges, including
+prior-support validation, same-chain pursuit, committed jump/drop execution,
+version invalidation, locks, and finite no-plan fallback. The isolated
+full-capsule trajectory predictor now matches fixed-tick integration, continuous
+segment contact, placement clearance, deterministic landing order, and accepted
+controller replay. The isolated multi-body authority now preflights and
+dispatches the player, Grojib, Hashash, and Unoco exactly once in stable entity
+order, retains Derf as a kinematic placement actor, rejects unsupported bodies,
+and preserves player motion/distance behavior. Grojib and Hashash now consume
+prepared terrain support, apply existing AI/status/lock tuning in scalar
+surface-speed space, follow eligible tangents at constant authored distance,
+use the accepted 4-pixel helpers, launch jumps world-up without resnapping, and
+drive animation/death from final support. Hashash ambush now validates its
+fixed right-then-left airborne candidates transactionally, restores the last
+safe transform on cancellation, and routes deferred edge spawns through the
+same full-capsule placement authority without relocation or replacement RNG.
+The next dependency is Section 18's Unoco solid contact, local hover reference,
+and bounded clearance steering. Normal
+repository-backed levels continue to use the legacy production authority until
+the direct Phase 6 cutover.

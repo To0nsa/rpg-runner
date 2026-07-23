@@ -250,12 +250,15 @@ class SpawnService {
   /// to ensure consistent chase behavior relative to player speed.
   ///
   /// [enemyId] must be an archetype that uses ground locomotion.
+  /// [spawnBodyY], when provided by world placement authority, is an already
+  /// validated body-center Y and replaces the legacy flat-surface derivation.
   ///
   /// Returns the [EntityId] of the newly created enemy.
   EntityId spawnGroundEnemy({
     EnemyId enemyId = EnemyId.grojib,
     required double spawnX,
     required double groundTopY,
+    double? spawnBodyY,
     int? spawnTick,
   }) {
     final archetype = _enemyCatalog.get(enemyId);
@@ -265,6 +268,7 @@ class SpawnService {
       enemyId: enemyId,
       posX: spawnX,
       posY:
+          spawnBodyY ??
           groundTopY - (archetype.collider.offsetY + archetype.collider.halfY),
       velX: 0.0,
       velY: 0.0,

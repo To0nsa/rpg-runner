@@ -40,12 +40,19 @@ void main() {
       noEnemyChunks: 0,
     );
 
-    final spawns = <({EnemyId enemyId, double x, double surfaceTopY})>[];
+    final spawns =
+        <({
+          EnemyId enemyId,
+          double x,
+          double surfaceTopY,
+          EnemySpawnRequestSource source,
+        })>[];
     void onSpawn(SpawnEnemyRequest request) {
       spawns.add((
         enemyId: request.enemyId,
         x: request.x,
         surfaceTopY: request.surfaceTopY,
+        source: request.source,
       ));
     }
 
@@ -58,7 +65,17 @@ void main() {
         .toList();
     expect(firstHashash.length, 1);
     expect(firstHashash.single.x, closeTo(600.0, 1e-9));
+    expect(
+      firstHashash.single.source,
+      EnemySpawnRequestSource.deferredHashashEdge,
+    );
     expect(firstUnoco.length, 3);
+    expect(
+      firstUnoco.every(
+        (spawn) => spawn.source == EnemySpawnRequestSource.authoredMarker,
+      ),
+      isTrue,
+    );
     expect(firstUnoco[0].x, closeTo(160.0, 1e-9));
     expect(firstUnoco[1].x, closeTo(760.0, 1e-9));
     expect(firstUnoco[2].x, closeTo(1360.0, 1e-9));

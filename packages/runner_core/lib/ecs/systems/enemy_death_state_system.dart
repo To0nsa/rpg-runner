@@ -6,6 +6,7 @@ import '../../tuning/utils/anim_tuning.dart' as anim_utils;
 import '../../util/tick_math.dart';
 import '../stores/death_state_store.dart';
 import '../world.dart';
+import '../world_support_view.dart';
 
 /// Tracks enemy death phases and schedules despawn timing.
 class EnemyDeathStateSystem {
@@ -50,9 +51,9 @@ class EnemyDeathStateSystem {
     if (enemies.denseEntities.isEmpty) return;
 
     final health = world.health;
-    final collision = world.collision;
     final deathState = world.deathState;
     final transform = world.transform;
+    final supportView = WorldSupportView(world);
 
     for (var ei = 0; ei < enemies.denseEntities.length; ei += 1) {
       final e = enemies.denseEntities[ei];
@@ -61,8 +62,7 @@ class EnemyDeathStateSystem {
         final phase = deathState.phase[di];
         if (phase != DeathPhase.fallingUntilGround) continue;
 
-        final grounded =
-            collision.has(e) && collision.grounded[collision.indexOf(e)];
+        final grounded = supportView.isGrounded(e);
         final maxFallTick = deathState.maxFallDespawnTick[di];
         final shouldStartDeathAnim =
             grounded || (maxFallTick >= 0 && currentTick >= maxFallTick);
@@ -93,8 +93,7 @@ class EnemyDeathStateSystem {
         outEnemiesKilled.add(enemies.enemyId[ei]);
       }
 
-      final grounded =
-          collision.has(e) && collision.grounded[collision.indexOf(e)];
+      final grounded = supportView.isGrounded(e);
 
       if (archetype.deathBehavior == DeathBehavior.groundImpactThenDeath &&
           !grounded) {

@@ -173,9 +173,9 @@ class AnimSystem {
 
     final result = AnimResolver.resolve(_playerProfile, signals);
     world.animState.anim[ai] = result.anim;
-    world.animState.animFrame[ai] = _terrainPlayerAnimFrame(
+    world.animState.animFrame[ai] = _terrainLocomotionAnimFrame(
       world,
-      player: player,
+      entity: player,
       animStateIndex: ai,
       resolved: result,
     );
@@ -245,7 +245,12 @@ class AnimSystem {
 
       final result = AnimResolver.resolve(profile, signals);
       animStore.anim[ai] = result.anim;
-      animStore.animFrame[ai] = result.animFrame;
+      animStore.animFrame[ai] = _terrainLocomotionAnimFrame(
+        world,
+        entity: e,
+        animStateIndex: ai,
+        resolved: result,
+      );
     }
   }
 
@@ -299,13 +304,13 @@ class AnimSystem {
     );
   }
 
-  int _terrainPlayerAnimFrame(
+  int _terrainLocomotionAnimFrame(
     EcsWorld world, {
-    required EntityId player,
+    required EntityId entity,
     required int animStateIndex,
     required AnimResult resolved,
   }) {
-    final motionIndex = world.resolvedMotion.tryIndexOf(player);
+    final motionIndex = world.resolvedMotion.tryIndexOf(entity);
     if (motionIndex == null ||
         (resolved.anim != AnimKey.walk && resolved.anim != AnimKey.run)) {
       return resolved.animFrame;

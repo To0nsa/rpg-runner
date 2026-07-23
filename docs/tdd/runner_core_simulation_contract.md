@@ -13,6 +13,7 @@ implementation. Those concerns are documented in:
 - [ghost run serialization](ghost_run_serialization_deserialization.md)
 - [animation data flow and timing](animation_data_flow_and_timing.md)
 - [terrain capsule controller](terrain_capsule_controller.md)
+- [sloped navigation and enemy terrain foundation](sloped_navigation_and_enemy_terrain.md)
 
 ## Ownership boundaries
 
@@ -68,16 +69,25 @@ order; the contract below records the dependencies that must survive changes.
 World-motion ownership is selected once when `GameCore` is constructed. The
 normal constructor installs the legacy rectangle collision adapter. The
 test/tool-only `GameCore.terrainMotionHarness` factory installs the staged
-player capsule authority against caller-supplied immutable terrain.
+multi-body capsule authority against caller-supplied immutable terrain.
 
 Both owners follow the same ordering seam:
 
 1. prepare motion immediately after world generation, capturing prior valid
    support and auditing exactly-once ownership;
-2. let jump, ordinary movement, mobility, and gravity compose velocity;
+2. let AI, jump, ordinary movement, mobility/teleport state, external velocity,
+   and gravity compose motion;
 3. integrate exactly once;
 4. publish final transform/support/resolved motion before distance, death,
    camera, pickup broad phase, animation, and snapshots consume it.
+
+Between preparation and integration, terrain-owned AI/locomotion consumers
+read prior support through `WorldSupportView`; they must not read the reset
+legacy compatibility flags directly. Grounded enemy tuning resolves to one
+signed scalar surface speed before gravity, and the authority converts that
+intent into one support-distance solve. Accepted jump launch explicitly clears
+prior support so the same tick remains world-space. Animation and ground-impact
+death read final support only after integration.
 
 The terrain harness rejects unsupported enabled dynamic bodies and never falls
 back to rectangle collision. It is not selected by authored level data,

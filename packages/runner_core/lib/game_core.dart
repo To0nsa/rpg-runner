@@ -103,6 +103,7 @@ import 'loadout/loadout_validator.dart';
 import 'spawn_service.dart';
 import 'progression/run_rewards.dart';
 import 'track_manager.dart';
+import 'track/track_streamer.dart' show EnemySpawnRequestSource;
 import 'weapons/weapon_catalog.dart';
 import 'stats/character_stats_resolver.dart';
 import 'stats/resolved_stats_cache.dart';
@@ -171,10 +172,11 @@ class GameCore {
          terrainHarnessGeometry: null,
        );
 
-  /// Creates the isolated Phase 2 player-terrain integration harness.
+  /// Creates the isolated Phase 3 multi-body terrain integration harness.
   ///
   /// This is a test/tool construction boundary, not a level or replay option.
-  /// It rejects enabled dynamic non-player bodies until Phase 3 migrates them.
+  /// Known player/enemy actors use explicit terrain policies; unsupported
+  /// dynamic bodies and ballistic projectiles fail without a legacy fallback.
   factory GameCore.terrainMotionHarness({
     required int seed,
     int runId = 0,
@@ -280,9 +282,10 @@ class GameCore {
     final terrainGeometry = _terrainHarnessGeometry;
     _worldMotionAuthority = terrainGeometry == null
         ? LegacyWorldMotionAuthority()
-        : TerrainPlayerWorldMotionAuthority(
+        : TerrainMultiBodyWorldMotionAuthority(
             geometry: terrainGeometry,
-            profile: _playerArchetype.terrainTraversalProfile,
+            playerProfile: _playerArchetype.terrainTraversalProfile,
+            enemyCatalog: _enemyCatalog,
           );
 
     // ─── Initialize ECS world and entity factory ───
@@ -557,6 +560,7 @@ class GameCore {
     _hashashTeleportAmbushSystem = HashashTeleportAmbushSystem(
       tickHz: tickHz,
       abilityResolver: abilityCatalog,
+      worldMotionAuthority: _worldMotionAuthority,
     );
     _groundEnemyLocomotionSystem = GroundEnemyLocomotionSystem(
       groundEnemyTuning: _groundEnemyTuning,
@@ -898,7 +902,7 @@ class GameCore {
   /// teleport or placement code must use an authority-owned clearance query
   /// before committing a transform.
   void setPlayerPosXYUnsafeForTest(double x, double y) {
-    _worldMotionAuthority.beforePlayerTeleport(_world, _player);
+    _worldMotionAuthority.beginBodyTeleport(_world, _player);
     _world.transform.setPosXY(_player, x, y);
   }
 
@@ -912,7 +916,7 @@ class GameCore {
 
   /// Sets player velocity (for tests or knockback effects).
   void setPlayerVelXY(double x, double y) {
-    _worldMotionAuthority.beforeExternalPlayerVelocity(
+    _worldMotionAuthority.beforeExternalBodyVelocity(
       _world,
       _player,
       velocityY: y,
@@ -1500,7 +1504,7 @@ class GameCore {
     if (_isPlayerDead()) {
       if (_deathAnimTicksLeft <= 0) {
         if (_playerDeathPhase == DeathPhase.none) {
-          _worldMotionAuthority.beforePlayerMotionStops(_world, _player);
+          _worldMotionAuthority.beforeBodyMotionStops(_world, _player);
           _playerDeathPhase = DeathPhase.deathAnim;
           // First death frame is rendered during the freeze tick immediately
           // after this gameplay tick.
@@ -1553,10 +1557,23 @@ class GameCore {
           case EnemyId.grojib:
             _spawnService.spawnGroundEnemy(spawnX: x, groundTopY: surfaceTopY);
           case EnemyId.hashash:
+            final placement =
+                request.source == EnemySpawnRequestSource.deferredHashashEdge
+                ? _worldMotionAuthority.resolveGroundedEnemySpawn(
+                    enemyId: EnemyId.hashash,
+                    desiredBodyX: x,
+                    requestedSupportY: surfaceTopY,
+                  )
+                : null;
+            if (request.source == EnemySpawnRequestSource.deferredHashashEdge &&
+                placement == null) {
+              return;
+            }
             _spawnService.spawnGroundEnemy(
               enemyId: EnemyId.hashash,
-              spawnX: x,
+              spawnX: placement?.bodyX ?? x,
               groundTopY: surfaceTopY,
+              spawnBodyY: placement?.bodyY,
               spawnTick: tick,
             );
           case EnemyId.derf:

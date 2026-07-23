@@ -10,6 +10,7 @@ import '../entity_id.dart';
 import '../stores/enemies/hashash_teleport_state_store.dart';
 import '../stores/melee_intent_store.dart';
 import '../world.dart';
+import 'world_motion_authority.dart';
 
 /// Resolves Hashash teleport-out transitions into teleport-in ambush commits.
 class HashashTeleportAmbushSystem {
@@ -19,9 +20,12 @@ class HashashTeleportAmbushSystem {
     this.ambushAbilityId = 'hashash.ambush',
     this.ambushRightOffsetX = 36.0,
     this.ambushDropHeightY = 36.0,
+    WorldMotionAuthority? worldMotionAuthority,
   }) : assert(tickHz > 0, 'tickHz must be > 0.'),
        assert(ambushRightOffsetX >= 0.0, 'ambushRightOffsetX must be >= 0.'),
-       assert(ambushDropHeightY >= 0.0, 'ambushDropHeightY must be >= 0.');
+       assert(ambushDropHeightY >= 0.0, 'ambushDropHeightY must be >= 0.'),
+       _worldMotionAuthority =
+           worldMotionAuthority ?? LegacyWorldMotionAuthority();
 
   static const int _ambushLockMask = LockFlag.allExceptStun;
 
@@ -30,6 +34,7 @@ class HashashTeleportAmbushSystem {
   final AbilityKey ambushAbilityId;
   final double ambushRightOffsetX;
   final double ambushDropHeightY;
+  final WorldMotionAuthority _worldMotionAuthority;
 
   void step(
     EcsWorld world, {
@@ -93,15 +98,37 @@ class HashashTeleportAmbushSystem {
           leadSeconds: leadSeconds,
         );
 
-        final ambushX = predictedPlayer.$1 + ambushRightOffsetX;
         final ambushY = predictedPlayer.$2 - ambushDropHeightY;
-        world.transform.posX[transformIndex] = ambushX;
-        world.transform.posY[transformIndex] = ambushY;
+        final origin = _worldMotionAuthority.beginBodyTeleport(world, enemy);
+        final primaryX = predictedPlayer.$1 + ambushRightOffsetX;
+        var facing = _facingToward(predictedPlayer.$1, primaryX);
+        var placed = _worldMotionAuthority.tryCommitBodyTeleport(
+          world,
+          enemy,
+          bodyX: primaryX,
+          bodyY: ambushY,
+          facing: facing,
+        );
+        if (!placed) {
+          final mirroredX = predictedPlayer.$1 - ambushRightOffsetX;
+          facing = _facingToward(predictedPlayer.$1, mirroredX);
+          placed = _worldMotionAuthority.tryCommitBodyTeleport(
+            world,
+            enemy,
+            bodyX: mirroredX,
+            bodyY: ambushY,
+            facing: facing,
+          );
+        }
 
-        final facing = predictedPlayer.$1 >= ambushX
-            ? Facing.right
-            : Facing.left;
-        world.enemy.facing[enemyIndex] = facing;
+        if (!placed) {
+          _worldMotionAuthority.cancelBodyTeleport(world, enemy, origin);
+          teleport.phase[i] = HashashTeleportPhase.idle;
+          teleport.phaseEndTick[i] = -1;
+          teleport.cooldownUntilTick[i] =
+              currentTick + totalTicks + cooldownTicks;
+          continue;
+        }
 
         _queueAmbushStrike(
           world,
@@ -222,4 +249,7 @@ class HashashTeleportAmbushSystem {
     final seconds = ticks / abilityAuthoringTickHz;
     return (seconds * tickHz).ceil();
   }
+
+  Facing _facingToward(double targetX, double bodyX) =>
+      targetX >= bodyX ? Facing.right : Facing.left;
 }
