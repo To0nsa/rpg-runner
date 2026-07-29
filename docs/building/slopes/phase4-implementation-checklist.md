@@ -375,26 +375,26 @@ Chunk v2 replaces `groundProfile` and `groundGaps` with direct chunk-local
 
 ## 12) Placement Transform And Quantization
 
-- [ ] Add one small pure-Dart Core-owned placement-transform primitive under
+- [x] Add one small pure-Dart Core-owned placement-transform primitive under
       `collision/terrain`; it accepts integer half-pixel vertices, reflection,
       exact scale numerator/denominator, translation, and emits physics ticks.
-- [ ] Keep JSON parsing, editor selection, and UI state outside that Core
+- [x] Keep JSON parsing, editor selection, and UI state outside that Core
       primitive.
 - [ ] Make both editor preview and root generation call the same primitive.
-- [ ] Convert source half-pixel ticks relative to the prefab anchor.
-- [ ] Apply `flipX` and `flipY` before scale.
-- [ ] Represent the existing `0.3-3.0`, `0.1`-step uniform scale as an exact
+- [x] Convert source half-pixel ticks relative to the prefab anchor.
+- [x] Apply `flipX` and `flipY` before scale.
+- [x] Represent the existing `0.3-3.0`, `0.1`-step uniform scale as an exact
       integer rational, not binary floating-point identity.
-- [ ] Reject authored scale outside bounds or off the `0.1` step.
-- [ ] Apply placement translation after uniform scale.
-- [ ] Quantize once to `1/1024` world-unit physics ticks using the accepted Core
+- [x] Reject authored scale outside bounds or off the `0.1` step.
+- [x] Apply placement translation after uniform scale.
+- [x] Quantize once to `1/1024` world-unit physics ticks using the accepted Core
       rounding rule.
-- [ ] Recanonicalize transformed winding/start after an odd reflection.
-- [ ] Preserve local shape/vertex lineage through placement and compilation.
-- [ ] Prove flip/scale/translation order with asymmetric half-pixel fixtures.
+- [x] Recanonicalize transformed winding/start after an odd reflection.
+- [x] Preserve local shape/vertex lineage through placement and compilation.
+- [x] Prove flip/scale/translation order with asymmetric half-pixel fixtures.
 - [ ] Prove identical transformed ticks across editor preview, generator, Core,
       Windows/Linux, JIT/AOT, and fresh processes.
-- [ ] Treat a post-transform degenerate/short edge as blocking, even when the
+- [x] Treat a post-transform degenerate/short edge as blocking, even when the
       untransformed source was valid.
 
 One function/adapter owns this transform. The Chunk scene, validation,
@@ -920,6 +920,8 @@ result.
 | 2026-07-29 / `35ea2d08` | Editor-to-Core polygon source adapter | Flutter test VM on Windows | Editor analysis clean; all 197 editor tests pass, including 4 adapter tests and 10 source-model tests. The dependency is one-way, conversion preserves exact identity/integer coordinates, and placement transforms remain pending §12. |
 | 2026-07-29 / `0ee1b750` | Source-coordinate overflow guard | Dart VM on Windows | Focused analysis clean and all 6 terrain numeric tests pass. Maximum accepted source ticks convert exactly; one-unit-over and overflow-sized values reject before multiplication. |
 | 2026-07-29 / `a048ff44` | Exact cross-shape occupied-area overlap | Dart VM and Flutter test VM on Windows | Core analysis clean; 26 focused numeric/canonicalization/overlap/compiler tests and all 304 Core package tests pass. Shared edges and points remain legal, concave/contained/crossing/near-limit overlap is exact, existing geometry/signature goldens are unchanged, and the editor adapter's 4 tests still pass. |
+| 2026-07-29 / `2e40d351` | Exact Core placement transform | Dart VM on Windows | Core analysis clean and all 308 Core package tests pass. Anchor/reflection/rational scale/translation/one quantization order, half-away rounding, scale bounds/steps, and post-transform edge rejection are covered; existing geometry/signature goldens are unchanged. |
+| 2026-07-29 / `0e8b0f90` | Editor exact-placement adapter | Flutter test VM on Windows | Editor analysis clean and all 199 editor tests pass, including 6 source/Core adapter tests. The editor bridge accepts integer half-pixel anchor/translation and integer scale tenths; prefab/chunk UI and JSON remain unchanged. |
 
 ### 28.1 Baseline Environment And Source Identity
 
