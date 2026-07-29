@@ -469,17 +469,20 @@ pass. Do not truncate shapes, vertices, edges, or diagnostics at a hard limit.
 
 ## 15) Deterministic Migration Tool
 
-Add a dedicated offline command with explicit modes, for example:
+The read-only command now runs from the editor package:
 
 ```powershell
+Push-Location tools/editor
 dart run tool/migrate_polygon_authoring.dart --check `
   --report=.tmp/slopes-phase4-migration.json
-dart run tool/migrate_polygon_authoring.dart --write `
-  --report=.tmp/slopes-phase4-migration.json
+Pop-Location
 ```
 
-- [ ] Default to read-only `--check`; never infer write from a missing flag.
-- [ ] Reject unknown CLI flags once the offline command exists.
+`--write` is intentionally rejected until §16 is complete.
+
+- [x] Default to read-only `--check`; never infer write from a missing flag.
+- [x] Reject unknown/duplicate CLI flags and unavailable `--write` with usage
+      exit code `64` and no source/report side effect.
 - [x] Detect dirty source drift after planning through canonical-path SHA-256
       audit records.
 - [x] Parse legacy prefab v1/v2 and chunk v1 strictly without compatibility
@@ -497,34 +500,43 @@ dart run tool/migrate_polygon_authoring.dart --write `
 - [x] Derive `ground_001...` IDs left-to-right/canonical order.
 - [x] Preserve occupied area exactly for automatic unions; require an explicit
       reviewed delta and exact source guard for any approved reauthoring.
-- [ ] Preserve stable prefab/chunk keys and human IDs.
-- [ ] Keep revisions unchanged for representation-only equivalent migration.
+- [x] Preserve stable prefab/chunk keys and human IDs in every strict target.
+- [x] Keep revisions unchanged for representation-only equivalent migration.
 - [x] Emit sorted automatic conversion, union, disconnected component,
       reviewed-reauthoring, and blocker records.
-- [ ] Extend the report with revision and generated-impact records.
+- [x] Extend the report with all 107 revision decisions and 99 deterministic
+      prefab downstream-impact records covering all 50 placements.
+- [ ] Add staged generated-artifact impact records once generator output exists.
 - [x] Include exact legacy/planned occupied-area facts.
 - [x] Include exact before-source paths and SHA-256 signatures in report v2.
-- [ ] Include after-migration canonical source signatures.
-- [ ] Make `--check` exit nonzero for blockers or source already differing from
-      the planned canonical output.
+- [x] Include after-migration canonical target SHA-256 signatures.
+- [x] Make `--check` exit `1` for source, plan, target, drift, or report-write
+      blockers.
+- [ ] Decide and implement post-cutover `--check` behavior so current-schema
+      source reports zero pending migration instead of entering the legacy
+      parser.
 - [ ] Make `--write` require a complete blocker-free plan generated from the
       same source fingerprints.
 
 ## 16) Migration Write Transaction And Recovery
 
-- [ ] Build and validate every target file in memory before the first write.
-- [ ] Show the exact multi-file save plan and source fingerprints.
+- [x] Build and strictly byte-round-trip every target file in memory without
+      exposing a source-write path.
+- [x] Show the exact nine-file target plan with before/after SHA-256 values.
 - [x] Provide a pure, deterministic audit that rejects missing, changed, or
       ambiguously canonicalized source paths against the reviewed SHA-256 set.
 - [ ] Stage temporary files on the same volume.
 - [ ] Recheck every source fingerprint immediately before replacement.
+- [x] Recheck every source SHA-256 immediately before emitting a readiness
+      result or optional report artifact.
 - [ ] Preserve existing newline/encoding policy and canonical JSON formatting.
 - [ ] Replace files through the repository's safe-write primitives.
 - [ ] If any replacement fails, restore every already-replaced source from the
       transaction backup and report the failure.
 - [ ] Never leave mixed prefab/chunk schema versions after a failed batch.
-- [ ] Write a machine-readable transaction/report artifact outside authored
-      source; do not commit backup files.
+- [x] Permit an explicit machine-readable check report only at a
+      workspace-relative `.json` path outside `assets/authoring`.
+- [ ] Add the machine-readable write-transaction/rollback artifact.
 - [ ] Re-running `--check` after success must report zero pending migrations.
 - [ ] Re-running `--write` after success must be a no-op.
 
@@ -845,7 +857,10 @@ Migration:
 - [x] exact corrected audit counts and zero unclassified blockers
 - [x] stable report/order/IDs across repeated and permuted checks
 - [x] exact source SHA-256 binding plus changed/missing/ambiguous drift audit
-- [ ] stable revision decisions across repeated checks
+- [x] stable unchanged revision decisions and deterministic prefab placement
+      impact records across repeated checks
+- [x] default/explicit check, report-only write, usage/blocker exit codes,
+      malformed source, invalid target, and authored-path rejection
 - [ ] write transaction, source-drift abort, rollback, and idempotence
 
 Stores/plugins:
@@ -956,6 +971,8 @@ result.
 | 2026-07-29 / `feb925fa` + `da334c3f` | Shared fail-closed migration JSON and retained-metadata parsing | Flutter test VM on Windows | Focused analysis clean and all 5 target-codec tests remain green. Structural/type/order/default rules now have one migration-scoped implementation shared by legacy and target codecs. |
 | 2026-07-29 / `1caced16` | Strict legacy prefab-v1/v2 and chunk-v1 source codecs | Flutter test VM on Windows | Focused analysis clean and 9 legacy/target codec tests pass. All 99 current prefabs and all 8 chunks parse directly from repository text; unknown fields, wrong numeric types, invalid scales, and noncanonical current-schema order reject. Prefab-v1 defaults are promoted only after strict parsing. |
 | 2026-07-29 / `7ef9c92d` | Exact source-digest plan binding and drift audit | Flutter test VM on Windows | Editor analysis clean and all 231 editor tests pass. Report v2 contains canonical path plus SHA-256 for the prefab file and all 8 chunks, remains invariant under input reversal/path separators, and has fingerprint `cc2ed2e6`. Missing, malformed, changed, absent, and ambiguously canonicalized signatures fail closed. `crypto` was promoted from transitive to direct editor dependency; no authored JSON, normal store, CLI write, or runtime authority changed. |
+| 2026-07-29 / `c3637865` | Complete read-only repository check and in-memory targets | Flutter test VM on Windows | Focused migration analysis clean and 14 migration/check/target tests pass. The current check strictly builds 9 target files, records 107 unchanged revision decisions and 99 prefab impact records covering 50 placements, rejects unknown placement references, and reports strict target failures without source writes. Readiness report v1 fingerprint is `90fbd996`. |
+| 2026-07-29 / `15b2aa56` + `afa5c7d9` | Pure-Dart model boundary and read-only migration CLI | Dart VM and Flutter test VM on Windows | Plain `dart tool/migrate_polygon_authoring.dart --check` succeeds with 99 prefabs, 8 chunks, and 9 validated targets. Editor analysis is clean and all 241 editor tests pass; root chunk-generator dry-run still validates 8 chunks, 2 levels, and 2 themes. Six command tests cover default/explicit check, report-only output, usage and blocker exit codes, malformed source, invalid target, and authored-path protection. `--write` remains unavailable; authored JSON and runtime authority are unchanged. |
 
 ### 28.1 Baseline Environment And Source Identity
 

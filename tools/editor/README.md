@@ -34,3 +34,25 @@ Editor foundations shared across those domains:
 - session-managed load, validation, pending-change previews, and direct-write export
 - undo/redo history for entity edits, chunk edits, and committed prefab/module edits
 - shared pan/zoom scene controls, inspector forms, and deterministic export summaries
+
+## Polygon Migration Readiness Check
+
+Phase 4 includes a read-only offline check for the planned prefab-v3/chunk-v2
+polygon source migration:
+
+```bash
+cd tools/editor
+dart run tool/migrate_polygon_authoring.dart --check \
+  --report=.tmp/slopes-phase4-migration.json
+```
+
+Omitting `--check` still runs check mode. The command strictly parses the
+legacy prefab/chunk files, builds and round-trips all target files in memory,
+records before/after SHA-256 values plus revision and placement-impact facts,
+and rechecks source digests before reporting. The optional report must be a
+workspace-relative `.json` path outside `assets/authoring`.
+
+Exit codes are `0` for a blocker-free readiness plan, `1` for a source,
+planning, target-validation, drift, or report failure, and `64` for invalid
+arguments. `--write` is intentionally unavailable: the command cannot modify
+authored source or activate polygon collision at runtime.

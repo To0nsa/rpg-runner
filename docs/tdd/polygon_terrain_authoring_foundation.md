@@ -29,7 +29,7 @@ The active schema migration, generator, preview, and cutover work remains in
 | Legacy prefab occupied-area union and reviewed corrections | editor prefab migration domain | aggregate check plan; removal follows verified prefab v3 write |
 | Legacy flat-ground/gap conversion | editor chunk migration domain | aggregate check plan; removal follows verified chunk v2 write |
 | Strict legacy prefab-v1/v2 and chunk-v1 source parsing | editor migration domain | read-only aggregate planner input; compatibility stores are bypassed |
-| Cross-domain canonical migration report | editor migration domain | read-only tests and exact source SHA-256 audit; CLI and writes remain pending |
+| Cross-domain canonical migration report | editor migration domain | read-only CLI, strict in-memory targets, and exact source SHA-256 audit; source writes remain pending |
 | Isolated prefab-v3/chunk-v2 target structures | editor migration domain | strict canonical codecs and complete-repository round-trip; normal stores do not consume them yet |
 
 Core has no dependency on editor models, JSON, widgets, or filesystem state.
@@ -155,10 +155,28 @@ fingerprint is `cc2ed2e6`.
 
 The plan exposes a pure pre-write audit for freshly computed SHA-256 values.
 Changed, missing, or ambiguously canonicalized paths reject deterministically.
-This report is still not a write authorization: revision/generated-impact
-decisions, CLI exit behavior, target validation orchestration, and the
-multi-file transaction remain separate gates. Normal source and runtime
-behavior are unchanged.
+
+`PolygonAuthoringMigrationCheck` is the read-only repository orchestrator. It
+strictly loads all nine legacy files, validates unknown prefab placement
+references, builds every prefab-v3/chunk-v2 target in memory, and requires each
+target to decode and re-encode byte-for-byte. Readiness report v1 records the
+nine before/after SHA-256 pairs, all 107 unchanged representation-only revision
+decisions, and 99 prefab impact records covering the current 50 chunk
+placements. Its current canonical report fingerprint is `90fbd996`.
+
+`tool/migrate_polygon_authoring.dart` defaults to check mode. It returns `0`
+for a complete blocker-free readiness plan, `1` for source/plan/target/drift or
+report-write failure, and `64` for invalid usage. Immediately before reporting,
+it rereads and rehashes every source. The only optional write is an explicitly
+requested workspace-relative `.json` report outside `assets/authoring`;
+`--write` is rejected. The command dependency chain is pure Dart: shared model
+immutability annotations use `package:meta` rather than pulling `dart:ui` into
+offline tooling.
+
+This report is still not a source-write authorization. Post-cutover/current-
+schema idempotence, staged generated-artifact impact, transaction staging,
+rollback, and source replacement remain separate gates. Normal source and
+runtime behavior are unchanged.
 
 ## Isolated Polygon Target Schemas
 
