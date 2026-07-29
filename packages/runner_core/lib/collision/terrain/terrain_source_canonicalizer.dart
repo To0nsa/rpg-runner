@@ -35,7 +35,7 @@ class TerrainSourceCanonicalizationResult {
   final List<TerrainDiagnostic> diagnostics;
 
   /// Shoelace sum in half-unit ticks squared; positive is clockwise in Y-down.
-  final int signedDoubledArea;
+  final BigInt signedDoubledArea;
 
   /// Whether any diagnostic blocks compilation or source commit.
   bool get hasBlockingDiagnostics =>
@@ -109,7 +109,7 @@ class TerrainSourceCanonicalizer {
           'A polygon requires at least three distinct vertices.',
         ),
       );
-      return _result(source, diagnostics, signedDoubledArea: 0);
+      return _result(source, diagnostics, signedDoubledArea: BigInt.zero);
     }
 
     final collinearIndices = _collinearMiddleIndices(source);
@@ -147,13 +147,15 @@ class TerrainSourceCanonicalizer {
           'Normalization left fewer than three polygon vertices.',
         ),
       );
-      return _result(source, diagnostics, signedDoubledArea: 0);
+      return _result(source, diagnostics, signedDoubledArea: BigInt.zero);
     }
 
     _validateSourceEdges(input, source, diagnostics);
     final signedDoubledArea = _signedDoubledArea(source);
     if (signedDoubledArea.abs() <
-        2 * terrainSourceTicksPerWorldUnit * terrainSourceTicksPerWorldUnit) {
+        BigInt.from(
+          2 * terrainSourceTicksPerWorldUnit * terrainSourceTicksPerWorldUnit,
+        )) {
       diagnostics.add(
         _diagnostic(
           input,
@@ -178,13 +180,13 @@ class TerrainSourceCanonicalizer {
       return _result(source, diagnostics, signedDoubledArea: signedDoubledArea);
     }
 
-    final windingCanonical = signedDoubledArea < 0
+    final windingCanonical = signedDoubledArea.isNegative
         ? source.reversed.toList(growable: false)
         : List<SourceTerrainPoint>.of(source);
     final firstIndex = _canonicalRotationIndex(windingCanonical);
     final canonical = _rotate(windingCanonical, firstIndex);
     if (requireCanonical) {
-      if (signedDoubledArea < 0) {
+      if (signedDoubledArea.isNegative) {
         diagnostics.add(
           _diagnostic(
             input,
@@ -222,7 +224,7 @@ bool terrainDiagnosticIsBlocking(TerrainDiagnostic diagnostic) =>
 TerrainSourceCanonicalizationResult _result(
   List<SourceTerrainPoint> source,
   List<TerrainDiagnostic> diagnostics, {
-  required int signedDoubledArea,
+  required BigInt signedDoubledArea,
 }) => TerrainSourceCanonicalizationResult(
   validatedVertices: source,
   canonicalVertices: null,
@@ -242,7 +244,9 @@ void _validateSourceEdges(
     final end = vertices[(index + 1) % vertices.length];
     final dx = end.xTicks - start.xTicks;
     final dy = end.yTicks - start.yTicks;
-    if (dx * dx + dy * dy < minimumLengthSquared) {
+    final lengthSquared =
+        BigInt.from(dx) * BigInt.from(dx) + BigInt.from(dy) * BigInt.from(dy);
+    if (lengthSquared < BigInt.from(minimumLengthSquared)) {
       diagnostics.add(
         _diagnostic(
           input,
@@ -261,7 +265,7 @@ List<int> _collinearMiddleIndices(List<SourceTerrainPoint> vertices) {
     final previous = vertices[(index - 1 + vertices.length) % vertices.length];
     final current = vertices[index];
     final next = vertices[(index + 1) % vertices.length];
-    if (_cross(previous, current, next) == 0) {
+    if (_cross(previous, current, next) == BigInt.zero) {
       indices.add(index);
     }
   }
@@ -280,7 +284,7 @@ List<SourceTerrainPoint> _removeCollinearMiddleVertices(
       final previous = result[(index - 1 + result.length) % result.length];
       final current = result[index];
       final following = result[(index + 1) % result.length];
-      if (_cross(previous, current, following) == 0) {
+      if (_cross(previous, current, following) == BigInt.zero) {
         changed = true;
       } else {
         next.add(current);
@@ -319,14 +323,13 @@ bool _segmentsIntersect(
   final abD = _cross(a, b, d);
   final cdA = _cross(c, d, a);
   final cdB = _cross(c, d, b);
-  if (((abC > 0 && abD < 0) || (abC < 0 && abD > 0)) &&
-      ((cdA > 0 && cdB < 0) || (cdA < 0 && cdB > 0))) {
+  if (abC.sign * abD.sign < 0 && cdA.sign * cdB.sign < 0) {
     return true;
   }
-  return (abC == 0 && _pointOnSegment(c, a, b)) ||
-      (abD == 0 && _pointOnSegment(d, a, b)) ||
-      (cdA == 0 && _pointOnSegment(a, c, d)) ||
-      (cdB == 0 && _pointOnSegment(b, c, d));
+  return (abC == BigInt.zero && _pointOnSegment(c, a, b)) ||
+      (abD == BigInt.zero && _pointOnSegment(d, a, b)) ||
+      (cdA == BigInt.zero && _pointOnSegment(a, c, d)) ||
+      (cdB == BigInt.zero && _pointOnSegment(b, c, d));
 }
 
 bool _pointOnSegment(
@@ -339,23 +342,27 @@ bool _pointOnSegment(
     point.yTicks >= math.min(start.yTicks, end.yTicks) &&
     point.yTicks <= math.max(start.yTicks, end.yTicks);
 
-int _signedDoubledArea(List<SourceTerrainPoint> vertices) {
-  var area = 0;
+BigInt _signedDoubledArea(List<SourceTerrainPoint> vertices) {
+  var area = BigInt.zero;
   for (var index = 0; index < vertices.length; index += 1) {
     final current = vertices[index];
     final next = vertices[(index + 1) % vertices.length];
-    area += current.xTicks * next.yTicks - next.xTicks * current.yTicks;
+    area +=
+        BigInt.from(current.xTicks) * BigInt.from(next.yTicks) -
+        BigInt.from(next.xTicks) * BigInt.from(current.yTicks);
   }
   return area;
 }
 
-int _cross(
+BigInt _cross(
   SourceTerrainPoint origin,
   SourceTerrainPoint a,
   SourceTerrainPoint b,
 ) =>
-    (a.xTicks - origin.xTicks) * (b.yTicks - origin.yTicks) -
-    (a.yTicks - origin.yTicks) * (b.xTicks - origin.xTicks);
+    BigInt.from(a.xTicks - origin.xTicks) *
+        BigInt.from(b.yTicks - origin.yTicks) -
+    BigInt.from(a.yTicks - origin.yTicks) *
+        BigInt.from(b.xTicks - origin.xTicks);
 
 int _canonicalRotationIndex(List<SourceTerrainPoint> vertices) {
   var best = 0;

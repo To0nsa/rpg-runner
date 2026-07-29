@@ -6,6 +6,7 @@ import 'terrain_edge_id.dart';
 import 'terrain_geometry.dart';
 import 'terrain_numeric.dart';
 import 'terrain_polygon.dart';
+import 'terrain_polygon_overlap.dart';
 import 'terrain_source_canonicalizer.dart';
 
 /// Hard runtime-safety limits applied before compiled geometry is published.
@@ -191,7 +192,8 @@ TerrainPolygon? _canonicalize(
   var source = List<SourceTerrainPoint>.of(review.validatedVertices);
 
   var transformed = source.map(input.transform.apply).toList();
-  if (_signedAreaPhysics(transformed) == 0) {
+  final transformedArea = _signedAreaPhysics(transformed);
+  if (transformedArea == BigInt.zero) {
     diagnostics.add(
       _diagnostic(
         input,
@@ -205,7 +207,7 @@ TerrainPolygon? _canonicalize(
 
   // Clockwise loops in the game's Y-down coordinates have positive shoelace
   // area. Reverse both lists together so source lineage remains aligned.
-  if (_signedAreaPhysics(transformed) < 0) {
+  if (transformedArea.isNegative) {
     source = source.reversed.toList();
     transformed = transformed.reversed.toList();
   }
@@ -428,7 +430,7 @@ void _validatePolygonOverlaps(
       if (!bounds[i].intersects(bounds[j])) continue;
       final left = polygons[i];
       final right = polygons[j];
-      if (_polygonsOverlapInArea(left.vertices, right.vertices)) {
+      if (TerrainPolygonOverlap.physicsLoops(left.vertices, right.vertices)) {
         diagnostics.add(
           TerrainDiagnostic(
             sourcePath: right.sourcePath,
@@ -445,119 +447,17 @@ void _validatePolygonOverlaps(
   }
 }
 
-bool _polygonsOverlapInArea(List<TerrainPoint> left, List<TerrainPoint> right) {
-  if (_samePointSet(left, right)) return true;
-
-  for (var i = 0; i < left.length; i += 1) {
-    final a = left[i];
-    final b = left[(i + 1) % left.length];
-    for (var j = 0; j < right.length; j += 1) {
-      final c = right[j];
-      final d = right[(j + 1) % right.length];
-      if (_segmentsProperlyIntersect(a, b, c, d)) return true;
-      if (_collinearOverlapSameDirection(a, b, c, d)) return true;
-    }
-  }
-  return left.any((point) => _pointStrictlyInside(point, right)) ||
-      right.any((point) => _pointStrictlyInside(point, left));
-}
-
-bool _samePointSet(List<TerrainPoint> left, List<TerrainPoint> right) {
-  if (left.length != right.length) return false;
-  final rightSet = right.toSet();
-  return left.every(rightSet.contains);
-}
-
-bool _pointStrictlyInside(TerrainPoint point, List<TerrainPoint> polygon) {
-  if (_pointOnPolygonBoundary(point, polygon)) return false;
-  var inside = false;
-  for (var i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-    final a = polygon[i];
-    final b = polygon[j];
-    final crossesY = (a.yTicks > point.yTicks) != (b.yTicks > point.yTicks);
-    if (!crossesY) continue;
-    final crossingX =
-        (b.xTicks - a.xTicks) *
-            (point.yTicks - a.yTicks) /
-            (b.yTicks - a.yTicks) +
-        a.xTicks;
-    if (point.xTicks < crossingX) inside = !inside;
-  }
-  return inside;
-}
-
-bool _pointOnPolygonBoundary(TerrainPoint point, List<TerrainPoint> polygon) {
-  for (var i = 0; i < polygon.length; i += 1) {
-    if (_pointOnSegment(point, polygon[i], polygon[(i + 1) % polygon.length])) {
-      return true;
-    }
-  }
-  return false;
-}
-
-bool _segmentsProperlyIntersect(
-  TerrainPoint a,
-  TerrainPoint b,
-  TerrainPoint c,
-  TerrainPoint d,
-) {
-  final abC = _crossPhysics(a, b, c);
-  final abD = _crossPhysics(a, b, d);
-  final cdA = _crossPhysics(c, d, a);
-  final cdB = _crossPhysics(c, d, b);
-  return ((abC > 0 && abD < 0) || (abC < 0 && abD > 0)) &&
-      ((cdA > 0 && cdB < 0) || (cdA < 0 && cdB > 0));
-}
-
-bool _collinearOverlapSameDirection(
-  TerrainPoint a,
-  TerrainPoint b,
-  TerrainPoint c,
-  TerrainPoint d,
-) {
-  if (_crossPhysics(a, b, c) != 0 || _crossPhysics(a, b, d) != 0) {
-    return false;
-  }
-  final abX = b.xTicks - a.xTicks;
-  final abY = b.yTicks - a.yTicks;
-  final cdX = d.xTicks - c.xTicks;
-  final cdY = d.yTicks - c.yTicks;
-  if (abX * cdX + abY * cdY <= 0) return false;
-  if (abX.abs() >= abY.abs()) {
-    return math.max(
-          math.min(a.xTicks, b.xTicks),
-          math.min(c.xTicks, d.xTicks),
-        ) <
-        math.min(math.max(a.xTicks, b.xTicks), math.max(c.xTicks, d.xTicks));
-  }
-  return math.max(math.min(a.yTicks, b.yTicks), math.min(c.yTicks, d.yTicks)) <
-      math.min(math.max(a.yTicks, b.yTicks), math.max(c.yTicks, d.yTicks));
-}
-
-bool _pointOnSegment(
-  TerrainPoint point,
-  TerrainPoint start,
-  TerrainPoint end,
-) =>
-    _crossPhysics(start, end, point) == 0 &&
-    point.xTicks >= math.min(start.xTicks, end.xTicks) &&
-    point.xTicks <= math.max(start.xTicks, end.xTicks) &&
-    point.yTicks >= math.min(start.yTicks, end.yTicks) &&
-    point.yTicks <= math.max(start.yTicks, end.yTicks);
-
-int _signedAreaPhysics(List<TerrainPoint> vertices) {
-  var area = 0;
+BigInt _signedAreaPhysics(List<TerrainPoint> vertices) {
+  var area = BigInt.zero;
   for (var i = 0; i < vertices.length; i += 1) {
     final current = vertices[i];
     final next = vertices[(i + 1) % vertices.length];
-    area += current.xTicks * next.yTicks - next.xTicks * current.yTicks;
+    area +=
+        BigInt.from(current.xTicks) * BigInt.from(next.yTicks) -
+        BigInt.from(next.xTicks) * BigInt.from(current.yTicks);
   }
   return area;
 }
-
-int _crossPhysics(TerrainPoint origin, TerrainPoint a, TerrainPoint b) =>
-    (a.xTicks - origin.xTicks) * (b.yTicks - origin.yTicks) -
-    (a.yTicks - origin.yTicks) * (b.xTicks - origin.xTicks);
 
 int _canonicalRotationIndex(List<TerrainPoint> vertices) {
   var best = 0;
@@ -610,7 +510,9 @@ String _lineKey(TerrainPoint start, TerrainPoint end) {
     a = -a;
     b = -b;
   }
-  final c = a * start.xTicks + b * start.yTicks;
+  final c =
+      BigInt.from(a) * BigInt.from(start.xTicks) +
+      BigInt.from(b) * BigInt.from(start.yTicks);
   return '$a:$b:$c';
 }
 

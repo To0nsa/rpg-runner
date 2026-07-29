@@ -43,8 +43,9 @@ const int terrainDefaultCellSizeWorld = 64;
 
 /// Maximum absolute coordinate accepted at public conversion boundaries.
 ///
-/// This keeps values and common products inside signed 63-bit arithmetic while
-/// allowing more than one billion world units in either direction.
+/// This keeps coordinates and deltas inside signed 63-bit arithmetic while
+/// allowing more than one billion world units in either direction. Exact
+/// compiler products promote to [BigInt] where their range can be larger.
 const int terrainMaxAbsPhysicsTicks = 1 << 40;
 
 /// Maximum absolute coordinate accepted on the authored half-unit grid.

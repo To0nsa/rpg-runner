@@ -18,7 +18,7 @@ void main() {
 
     final result = canonicalizer.review(input, requireCanonical: true);
 
-    expect(result.signedDoubledArea, 400);
+    expect(result.signedDoubledArea, BigInt.from(400));
     expect(result.diagnostics.map((diagnostic) => diagnostic.code), <String>[
       'noncanonical_start',
     ]);
@@ -39,7 +39,7 @@ void main() {
 
     final result = canonicalizer.review(input, requireCanonical: true);
 
-    expect(result.signedDoubledArea, -400);
+    expect(result.signedDoubledArea, BigInt.from(-400));
     expect(result.validatedVertices, input.vertices);
     expect(result.diagnostics.map((diagnostic) => diagnostic.code), <String>[
       'noncanonical_winding',
@@ -61,9 +61,27 @@ void main() {
       requireCanonical: true,
     );
 
-    expect(result.signedDoubledArea, 32);
+    expect(result.signedDoubledArea, BigInt.from(32));
     expect(result.isCanonical, isTrue);
     expect(result.diagnostics, isEmpty);
+  });
+
+  test('signed area remains exact at the accepted coordinate limit', () {
+    const limit = terrainMaxAbsSourceTicks;
+    final result = canonicalizer.review(
+      _input('coordinate_limit', const <(int, int)>[
+        (-limit, -limit),
+        (limit, -limit),
+        (limit, limit),
+        (-limit, limit),
+      ]),
+      requireCanonical: true,
+    );
+
+    final expectedArea =
+        BigInt.from(8) * BigInt.from(limit) * BigInt.from(limit);
+    expect(result.signedDoubledArea, expectedArea);
+    expect(result.isCanonical, isTrue);
   });
 
   test('collinear removal occurs only in explicit normalization mode', () {
