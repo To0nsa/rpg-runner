@@ -151,17 +151,24 @@ below the two sloped top edges.
 - Legacy readers exist only for the migration tooling window. They are removed
   before production authority cutover.
 
-The Phase 0 union audit classifies all current collision source as automatic:
+The Phase 0 topology-only union audit produced the following candidate output:
 
 - 70 collision-bearing prefabs produce 88 simple source polygons
 - 29 decoration prefabs remain unchanged
 - 29 prefabs have multiple rectangles; no current union creates a hole,
-  point-only ambiguity, invalid half-pixel boundary, or limit overflow
+  point-only ambiguity, or limit overflow
 - 31 collision-bearing chunk placements produce 32 polygon instances
 - 8 flat chunk profiles, including the one current gap, produce 9 ground
   polygons
-- no current prefab or chunk requires manual reauthoring for mechanical
-  migration
+
+Phase 4 exact Core revalidation corrects the earlier blocker conclusion. It
+accepts 67 of the 70 collision-bearing prefabs and 85 of the 88 candidate
+loops. `dark_menhir_01`, `dark_menhir_03`, and `ruin_stone_00` each contain an
+exact one-source-tick (`0.5 px`) exterior edge, which is below the frozen
+one-world-unit minimum edge length. This is not a hole or union ambiguity; it
+is a resolution mismatch that the topology-only audit did not test. Migration
+must remain read-only for those records until an explicit content decision is
+made. It must not silently alter occupied area or relax the Core rule.
 
 The migration tool must reproduce this sorted report before writing source.
 

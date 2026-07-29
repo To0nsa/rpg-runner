@@ -87,6 +87,35 @@ and scale as integer tenths. Existing editor placement JSON still stores a
 `double`; converting that legacy field and the root generator to this exact
 boundary is pending Phase 4 work.
 
+## Read-only Legacy Prefab Union Planner
+
+The editor owns a pure migration-planning primitive for legacy prefab AABB
+colliders. It performs no filesystem writes, schema changes, or runtime
+cutover. For a collider centered at integer offset `(x, y)` with integer width
+`w` and height `h`, its exact half-pixel-tick bounds are:
+
+```text
+left = 2x - w   right  = 2x + w
+top  = 2y - h   bottom = 2y + h
+```
+
+The planner coordinate-compresses those bounds, unions occupied cells using
+four-way connectivity, traces deterministic clockwise outer boundaries,
+removes only collinear middle vertices, and delegates final canonicalization
+and validation to Core. Disconnected components receive stable canonical IDs
+`collision_001...`. Exact occupied-area comparison detects any lost or added
+coverage. Holes, point-only contacts, invalid dimensions, coordinate overflow,
+unsupported topology, and Core shape/vertex/geometry failures are blockers.
+
+The current repository audit produces 88 topological candidate loops from 70
+collision-bearing prefabs. Core accepts 85 loops across 67 prefabs unchanged.
+`dark_menhir_01`, `dark_menhir_03`, and `ruin_stone_00` each produce an exact
+one-source-tick (`0.5 px`) exterior edge below the accepted one-world-unit
+minimum. The planner reports those records instead of modifying their occupied
+area or weakening the shared geometry rule. Prefab v3 writing remains pending
+an explicit content decision; existing schema v2 source and legacy runtime
+authority are unchanged.
+
 ## Determinism And Validation Evidence
 
 The foundation is covered by:

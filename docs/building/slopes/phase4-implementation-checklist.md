@@ -474,18 +474,18 @@ dart run tool/migrate_polygon_authoring.dart --write `
 - [ ] Default to read-only `--check`; never infer write from a missing flag.
 - [ ] Reject unknown flags and dirty source drift discovered after planning.
 - [ ] Parse legacy prefab v1/v2 and chunk v1 strictly.
-- [ ] Convert one isolated AABB to four exact clockwise vertices.
-- [ ] Union touching/overlapping AABBs with deterministic integer orthogonal
+- [x] Convert one isolated AABB to four exact clockwise vertices.
+- [x] Union touching/overlapping AABBs with deterministic integer orthogonal
       geometry, removing every interior edge.
-- [ ] Emit multiple loops for disconnected union components.
-- [ ] Block holes, point-only ambiguity, invalid half pixels, overflow, or
+- [x] Emit multiple loops for disconnected union components.
+- [x] Block holes, point-only ambiguity, invalid half pixels, overflow, or
       unsupported topology.
-- [ ] Derive `collision_001...` IDs from canonical component order and preserve
+- [x] Derive `collision_001...` IDs from canonical component order and preserve
       them on repeated runs.
 - [ ] Convert flat chunk ground into finite `[0,width] x [topY,height]`
       coverage minus pit intervals.
 - [ ] Derive `ground_001...` IDs left-to-right/canonical order.
-- [ ] Preserve occupied area exactly before placement quantization.
+- [x] Preserve occupied area exactly before placement quantization.
 - [ ] Preserve stable prefab/chunk keys and human IDs.
 - [ ] Keep revisions unchanged for representation-only equivalent migration.
 - [ ] Emit sorted automatic conversion, union, disconnected component,
@@ -819,10 +819,11 @@ Geometry/compiler:
 
 Migration:
 
-- [ ] isolated/multi/overlapping/touching/disconnected rectangles
-- [ ] hole and point-only ambiguity blockers
+- [x] isolated/multi/overlapping/touching/disconnected rectangles
+- [x] hole and point-only ambiguity blockers
 - [ ] flat ground with zero/one/multiple gaps
-- [ ] exact Phase 0 audit counts and zero unexpected blockers
+- [ ] exact corrected audit counts and zero unclassified blockers (pending the
+      explicit resolution of the three minimum-edge blockers in §26)
 - [ ] stable report/order/IDs/revisions across repeated checks
 - [ ] write transaction, source-drift abort, rollback, and idempotence
 
@@ -881,6 +882,7 @@ before changing the accepted plan.
 | Source-point construction multiplied an unchecked authored tick by the source-to-physics factor before range validation, so native integer overflow could occur before rejection. | Validate against an explicit source-tick limit before conversion and use overflow-safe comparison bounds. Promote exact authoring/compiler area, orientation, overlap, and line-key products to `BigInt`; keep this work outside per-tick contact. | Migration and editor validation can safely exercise the accepted coordinate limits without platform-dependent wraparound. |
 | Phase 4 must stage polygon data while production still reads rectangles. | Source cuts over once; generation emits an unreachable staged terrain artifact and a bounded exact legacy projection for orthogonal current content. | Phase 5 removes the projection when streaming consumes staged terrain; no runtime toggle is introduced. |
 | Phase 3 moved enemy AABBs into top-level constants so legacy collision and staged capsules share one definition, but the entity editor only parsed inline collider expressions. | Resolve a directly referenced top-level `ColliderAabbDef` initializer and bind edits to that initializer; keep unresolved/indirect shapes non-writable. | Enemy authoring remains operational through the Phase 4 source migration without duplicating capsule/AABB dimensions. |
+| The earlier Phase 0 topology audit did not run the accepted one-world-unit minimum-edge predicate. Exact Core revalidation finds `0.5 px` exterior edges in `dark_menhir_01`, `dark_menhir_03`, and `ruin_stone_00`; 67/70 collision prefabs and 85/88 candidate loops pass unchanged. | Keep the migration planner blocking and preserve exact occupied area; do not relax the global rule or rewrite the three records without an explicit content decision. | Prefab v3 write/cutover remains blocked for those three records; production source and legacy runtime behavior are unchanged. |
 
 Append rows during implementation. Do not silently relax source, compiler,
 seam, determinism, or performance contracts.
@@ -924,6 +926,7 @@ result.
 | 2026-07-29 / `a048ff44` | Exact cross-shape occupied-area overlap | Dart VM and Flutter test VM on Windows | Core analysis clean; 26 focused numeric/canonicalization/overlap/compiler tests and all 304 Core package tests pass. Shared edges and points remain legal, concave/contained/crossing/near-limit overlap is exact, existing geometry/signature goldens are unchanged, and the editor adapter's 4 tests still pass. |
 | 2026-07-29 / `2e40d351` | Exact Core placement transform | Dart VM on Windows | Core analysis clean and all 308 Core package tests pass. Anchor/reflection/rational scale/translation/one quantization order, half-away rounding, scale bounds/steps, and post-transform edge rejection are covered; existing geometry/signature goldens are unchanged. |
 | 2026-07-29 / `0e8b0f90` | Editor exact-placement adapter | Flutter test VM on Windows | Editor analysis clean and all 199 editor tests pass, including 6 source/Core adapter tests. The editor bridge accepts integer half-pixel anchor/translation and integer scale tenths; prefab/chunk UI and JSON remain unchanged. |
+| 2026-07-29 / `668cf375` | Read-only legacy prefab collider union planner | Flutter test VM on Windows | Editor analysis clean; 8 focused planner tests and all 207 editor tests pass. Exact Core revalidation accepts 67/70 collision prefabs and 85/88 candidate loops; three minimum-edge blockers are reported without source, schema, or runtime writes. |
 
 ### 28.1 Baseline Environment And Source Identity
 
@@ -953,10 +956,11 @@ result.
 
 ### 28.2 Reproduced Migration Audit
 
-The read-only coordinate-compressed union audit converted rectangle bounds to
-integer half-pixel ticks, flood-filled positive-area components, inspected
-unoccupied components for holes, detected diagonal point contacts, and counted
-canonical boundary turns. It independently reproduced:
+The initial read-only coordinate-compressed union audit converted rectangle
+bounds to integer half-pixel ticks, flood-filled positive-area components,
+inspected unoccupied components for holes, detected diagonal point contacts,
+and counted canonical boundary turns. It reproduced the topology-only
+candidate inventory:
 
 - 70 collision-bearing prefabs -> 88 simple polygons; 29 decorations remain
   collider-free and 29 collision prefabs contain multiple rectangles
@@ -964,10 +968,17 @@ canonical boundary turns. It independently reproduced:
 - 8 flat profiles plus one pit gap -> 9 finite ground polygons
 - 60 collision prefabs require half-pixel-exact bounds because at least one
   rectangle dimension is odd
-- 0 invalid legacy collider numbers, holes, point-only contacts, or manual
-  blockers
+- 0 invalid legacy collider numbers, holes, or point-only contacts
 - maximum 3 polygon components per prefab and 14 vertices per polygon, below
   Core's limits of 64 shapes per prefab and 64 vertices per shape
+
+Phase 4's implemented planner additionally runs every loop through the accepted
+exact Core canonicalizer. That revalidation accepts 67/70 collision prefabs and
+85/88 candidate loops. It blocks `dark_menhir_01`, `dark_menhir_03`, and
+`ruin_stone_00` because each has a one-source-tick (`0.5 px`) exterior edge,
+below Core's one-world-unit minimum. The earlier zero-blocker conclusion was
+therefore incomplete rather than a different topology result. No authored
+source or runtime data has been changed.
 
 ### 28.3 No-op And Removal Baseline
 

@@ -132,25 +132,33 @@ contract therefore uses deterministic integer half-pixel ticks rather than
 whole-pixel-only vertices.
 
 A coordinate-compressed rectangle-union audit classified every current source
-record:
+record. Phase 4 then reran each candidate loop through the accepted exact Core
+validator; that stricter pass corrected the earlier topology-only blocker
+count:
 
 | Migration result | Count |
 | --- | ---: |
 | Decoration prefabs unchanged | 29 |
-| Collision-bearing prefabs converted automatically | 70 |
-| Output simple source polygons | 88 |
+| Collision-bearing prefabs audited | 70 |
+| Prefabs accepted automatically by exact Core rules | 67 |
+| Candidate simple source polygons from topological union | 88 |
+| Source polygons accepted by exact Core rules | 85 |
 | Multi-rectangle prefabs audited | 29 |
 | Union holes | 0 |
 | Point-only/non-manifold touches | 0 |
-| Manual prefab reauthor blockers | 0 |
+| Minimum-edge reauthor blockers | 3 |
 | Collision-bearing chunk placements | 31 |
 | Output placed polygon instances | 32 |
 | Authored chunks migrated | 8 |
 | Output ground polygons after gaps | 9 |
 
 Disconnected occupied components intentionally become separate simple polygons;
-the largest current prefab produces three. All current results remain below
-the accepted shape/vertex limits.
+the largest current prefab produces three. All current results remain below the
+accepted shape/vertex limits. `dark_menhir_01`, `dark_menhir_03`, and
+`ruin_stone_00` each produce one exact exterior edge that is one source tick
+(`0.5 px`) long, below Core's accepted one-world-unit minimum. Their occupied
+areas have not been silently changed and the migration remains read-only until
+that content decision is resolved.
 
 Expected generated-data churn is deliberate and complete:
 
