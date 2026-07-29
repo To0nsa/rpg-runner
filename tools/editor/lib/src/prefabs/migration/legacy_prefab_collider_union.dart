@@ -236,6 +236,7 @@ abstract final class LegacyPrefabColliderUnion {
     }
 
     final shapes = <TerrainSourceShapeDef>[];
+    var plannedDoubledArea = BigInt.zero;
     for (var index = 0; index < candidates.length; index += 1) {
       final candidate = candidates[index];
       if (candidate.vertices.length >
@@ -276,9 +277,10 @@ abstract final class LegacyPrefabColliderUnion {
       shapes.add(
         TerrainSourceCoreAdapter.applyCanonicalVertices(candidate, review),
       );
+      plannedDoubledArea += review.signedDoubledArea.abs();
     }
 
-    final plannedArea = _shapeAreaHalfPixelSquared(shapes);
+    final plannedArea = plannedDoubledArea ~/ BigInt.two;
     if (issues.isEmpty) {
       final expectedDelta =
           reviewedReauthoring?.expectedAddedAreaHalfPixelSquared ?? BigInt.zero;
@@ -644,20 +646,6 @@ int _compareLoops(
     if (order != 0) return order;
   }
   return left.length.compareTo(right.length);
-}
-
-BigInt _shapeAreaHalfPixelSquared(List<TerrainSourceShapeDef> shapes) {
-  var doubledArea = BigInt.zero;
-  for (final shape in shapes) {
-    for (var index = 0; index < shape.vertices.length; index += 1) {
-      final current = shape.vertices[index];
-      final next = shape.vertices[(index + 1) % shape.vertices.length];
-      doubledArea +=
-          BigInt.from(current.xHalfPixels) * BigInt.from(next.yHalfPixels) -
-          BigInt.from(next.xHalfPixels) * BigInt.from(current.yHalfPixels);
-    }
-  }
-  return doubledArea.abs() ~/ BigInt.two;
 }
 
 final class _HalfPixelRect implements Comparable<_HalfPixelRect> {
