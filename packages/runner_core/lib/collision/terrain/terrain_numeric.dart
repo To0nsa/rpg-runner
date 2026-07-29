@@ -284,25 +284,26 @@ class TerrainAabb {
 /// Source placement transform applied in anchor/reflection/scale/translation
 /// order before one physics-grid quantization.
 class TerrainSourceTransform {
-  /// Defines a finite positive-scale placement transform in world units.
+  /// Defines one exact placement transform in half-world-unit source ticks.
   ///
   /// Values are validated when [apply] runs so constant source definitions can
   /// remain lightweight.
   const TerrainSourceTransform({
-    this.anchorX = 0,
-    this.anchorY = 0,
+    this.anchorXSourceTicks = 0,
+    this.anchorYSourceTicks = 0,
     this.reflectX = false,
     this.reflectY = false,
-    this.scale = 1,
-    this.translateX = 0,
-    this.translateY = 0,
+    this.scaleNumerator = 1,
+    this.scaleDenominator = 1,
+    this.translateXSourceTicks = 0,
+    this.translateYSourceTicks = 0,
   });
 
-  /// Horizontal reflection/scale pivot in world units.
-  final double anchorX;
+  /// Horizontal reflection/scale pivot in half-world-unit source ticks.
+  final int anchorXSourceTicks;
 
-  /// Vertical reflection/scale pivot in world units.
-  final double anchorY;
+  /// Vertical reflection/scale pivot in half-world-unit source ticks.
+  final int anchorYSourceTicks;
 
   /// Whether to reflect the anchor-relative horizontal coordinate.
   final bool reflectX;
@@ -310,35 +311,118 @@ class TerrainSourceTransform {
   /// Whether to reflect the anchor-relative vertical coordinate.
   final bool reflectY;
 
-  /// Uniform positive scale applied after reflection.
-  final double scale;
+  /// Exact uniform-scale numerator applied after reflection.
+  final int scaleNumerator;
 
-  /// Horizontal world-unit translation applied after scale.
-  final double translateX;
+  /// Exact uniform-scale denominator applied after reflection.
+  final int scaleDenominator;
 
-  /// Vertical world-unit translation applied after scale.
-  final double translateY;
+  /// Horizontal translation in half-world-unit source ticks.
+  final int translateXSourceTicks;
+
+  /// Vertical translation in half-world-unit source ticks.
+  final int translateYSourceTicks;
+
+  /// Existing authoring scale represented as canonical integer tenths.
+  int get scaleTenths => _validateTerrainScale(
+    numerator: scaleNumerator,
+    denominator: scaleDenominator,
+  );
 
   /// Applies this transform and returns one quantized physics-grid point.
   TerrainPoint apply(SourceTerrainPoint source) {
-    _requireFinite(anchorX, 'anchorX');
-    _requireFinite(anchorY, 'anchorY');
-    _requireFinite(scale, 'scale');
-    _requireFinite(translateX, 'translateX');
-    _requireFinite(translateY, 'translateY');
-    if (scale <= 0) {
-      throw ArgumentError.value(scale, 'scale', 'Must be positive.');
-    }
+    _checkSourceRange(anchorXSourceTicks, 'anchorXSourceTicks');
+    _checkSourceRange(anchorYSourceTicks, 'anchorYSourceTicks');
+    _checkSourceRange(translateXSourceTicks, 'translateXSourceTicks');
+    _checkSourceRange(translateYSourceTicks, 'translateYSourceTicks');
+    _validateTerrainScale(
+      numerator: scaleNumerator,
+      denominator: scaleDenominator,
+    );
 
-    var x = source.xTicks / terrainSourceTicksPerWorldUnit - anchorX;
-    var y = source.yTicks / terrainSourceTicksPerWorldUnit - anchorY;
-    if (reflectX) x = -x;
-    if (reflectY) y = -y;
-    return TerrainPoint.fromWorld(
-      x * scale + translateX,
-      y * scale + translateY,
+    return TerrainPoint(
+      _applyTerrainTransformAxis(
+        sourceTicks: source.xTicks,
+        anchorTicks: anchorXSourceTicks,
+        reflect: reflectX,
+        scaleNumerator: scaleNumerator,
+        scaleDenominator: scaleDenominator,
+        translateTicks: translateXSourceTicks,
+        name: 'x',
+      ),
+      _applyTerrainTransformAxis(
+        sourceTicks: source.yTicks,
+        anchorTicks: anchorYSourceTicks,
+        reflect: reflectY,
+        scaleNumerator: scaleNumerator,
+        scaleDenominator: scaleDenominator,
+        translateTicks: translateYSourceTicks,
+        name: 'y',
+      ),
     );
   }
+}
+
+int _validateTerrainScale({required int numerator, required int denominator}) {
+  if (numerator <= 0) {
+    throw ArgumentError.value(numerator, 'scaleNumerator', 'Must be positive.');
+  }
+  if (denominator <= 0) {
+    throw ArgumentError.value(
+      denominator,
+      'scaleDenominator',
+      'Must be positive.',
+    );
+  }
+  final scaledTenths = BigInt.from(numerator) * BigInt.from(10);
+  final exactDenominator = BigInt.from(denominator);
+  if (scaledTenths.remainder(exactDenominator) != BigInt.zero) {
+    throw ArgumentError('Terrain placement scale must use an exact 0.1 step.');
+  }
+  final exactTenths = scaledTenths ~/ exactDenominator;
+  if (exactTenths < BigInt.from(3) || exactTenths > BigInt.from(30)) {
+    throw RangeError('scaleTenths must be between 3 and 30.');
+  }
+  return exactTenths.toInt();
+}
+
+int _applyTerrainTransformAxis({
+  required int sourceTicks,
+  required int anchorTicks,
+  required bool reflect,
+  required int scaleNumerator,
+  required int scaleDenominator,
+  required int translateTicks,
+  required String name,
+}) {
+  final localTicks = sourceTicks - anchorTicks;
+  final reflectedTicks = reflect ? -localTicks : localTicks;
+  const physicsTicksPerSourceTick =
+      terrainPhysicsTicksPerWorldUnit ~/ terrainSourceTicksPerWorldUnit;
+  final denominator = BigInt.from(scaleDenominator);
+  final numerator =
+      BigInt.from(reflectedTicks) *
+          BigInt.from(scaleNumerator) *
+          BigInt.from(physicsTicksPerSourceTick) +
+      BigInt.from(translateTicks) *
+          BigInt.from(physicsTicksPerSourceTick) *
+          denominator;
+  final rounded = _roundRatioAwayFromZero(numerator, denominator);
+  final minimum = BigInt.from(-terrainMaxAbsPhysicsTicks);
+  final maximum = BigInt.from(terrainMaxAbsPhysicsTicks);
+  if (rounded < minimum || rounded > maximum) {
+    throw RangeError('$name placement result exceeds the physics-grid range.');
+  }
+  return rounded.toInt();
+}
+
+BigInt _roundRatioAwayFromZero(BigInt numerator, BigInt denominator) {
+  final magnitude = numerator.abs();
+  var rounded = magnitude ~/ denominator;
+  if ((magnitude.remainder(denominator) * BigInt.two) >= denominator) {
+    rounded += BigInt.one;
+  }
+  return numerator.isNegative ? -rounded : rounded;
 }
 
 /// Converts one exact half-grid world coordinate to authored integer ticks.
@@ -353,11 +437,7 @@ int sourceCoordinateToTicks(double value, {String name = 'value'}) {
       'Must be an exact multiple of 0.5 world units.',
     );
   }
-  _checkPhysicsRange(
-    rounded *
-        (terrainPhysicsTicksPerWorldUnit ~/ terrainSourceTicksPerWorldUnit),
-    name,
-  );
+  _checkSourceRange(rounded, name);
   return rounded;
 }
 

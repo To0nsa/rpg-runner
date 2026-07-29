@@ -272,7 +272,8 @@ TerrainPolygonInput _polygon({
     surfaceKind: surfaceKind,
     materialKey: 'golden',
     transform: TerrainSourceTransform(
-      translateX: chunkIndex * slopesGoldenChunkWidth.toDouble(),
+      translateXSourceTicks:
+          chunkIndex * slopesGoldenChunkWidth * terrainSourceTicksPerWorldUnit,
     ),
   );
 }

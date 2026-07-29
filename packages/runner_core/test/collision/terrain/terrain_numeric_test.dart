@@ -32,6 +32,12 @@ void main() {
       );
       expect(() => SourceTerrainPoint(1 << 55, 0), throwsRangeError);
       expect(
+        () => sourceCoordinateToTicks(
+          (terrainMaxAbsSourceTicks + 1) / terrainSourceTicksPerWorldUnit,
+        ),
+        throwsRangeError,
+      );
+      expect(
         () => TerrainAabb(minX: 1, minY: 0, maxX: 0, maxY: 1),
         throwsArgumentError,
       );
@@ -60,17 +66,61 @@ void main() {
       'transform order mirrors, scales, translates, then quantizes once',
       () {
         final result = const TerrainSourceTransform(
-          anchorX: 2,
-          anchorY: 1,
+          anchorXSourceTicks: 4,
+          anchorYSourceTicks: 2,
           reflectX: true,
-          scale: 1.5,
-          translateX: 10,
-          translateY: -4,
+          scaleNumerator: 3,
+          scaleDenominator: 2,
+          translateXSourceTicks: 20,
+          translateYSourceTicks: -8,
         ).apply(SourceTerrainPoint(8, 6));
 
         expect(result, TerrainPoint.fromWorld(7, -1));
       },
     );
+
+    test('exact scale quantization rounds half ticks away from zero', () {
+      const transform = TerrainSourceTransform(
+        scaleNumerator: 3,
+        scaleDenominator: 10,
+      );
+
+      expect(transform.apply(SourceTerrainPoint(1, 0)).xTicks, 154);
+      expect(transform.apply(SourceTerrainPoint(-1, 0)).xTicks, -154);
+    });
+
+    test('asymmetric reflection and rational placement order is exact', () {
+      const transform = TerrainSourceTransform(
+        anchorXSourceTicks: 2,
+        anchorYSourceTicks: -4,
+        reflectX: true,
+        reflectY: true,
+        scaleNumerator: 7,
+        scaleDenominator: 10,
+        translateXSourceTicks: 6,
+        translateYSourceTicks: -8,
+      );
+
+      expect(
+        transform.apply(SourceTerrainPoint(5, 3)),
+        TerrainPoint(1997, -6605),
+      );
+    });
+
+    test('transform rejects off-step and out-of-range authored scales', () {
+      for (final transform in <TerrainSourceTransform>[
+        const TerrainSourceTransform(scaleNumerator: 1, scaleDenominator: 3),
+        const TerrainSourceTransform(scaleNumerator: 1, scaleDenominator: 5),
+        const TerrainSourceTransform(scaleNumerator: 31, scaleDenominator: 10),
+        const TerrainSourceTransform(scaleNumerator: 0),
+        const TerrainSourceTransform(scaleNumerator: 0x7fffffffffffffff),
+      ]) {
+        expect(
+          () => transform.apply(SourceTerrainPoint(0, 0)),
+          throwsArgumentError,
+        );
+      }
+    });
   });
 
   test('floor division is stable for negative cell coordinates', () {

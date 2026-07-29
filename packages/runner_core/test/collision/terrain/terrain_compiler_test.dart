@@ -92,6 +92,35 @@ void main() {
       },
     );
 
+    test('rejects edges made too short by an exact placement scale', () {
+      final input = TerrainPolygonInput.fromWorld(
+        sourcePath: 'test/transformed_short',
+        identity: TerrainSourceIdentity(
+          chunkIndex: 0,
+          chunkKey: 'chunk',
+          shapeId: 'transformed_short',
+        ),
+        vertices: const <(double, double)>[(0, 0), (1, 0), (1, 1), (0, 1)],
+        transform: const TerrainSourceTransform(
+          scaleNumerator: 3,
+          scaleDenominator: 10,
+        ),
+      );
+
+      expect(
+        () =>
+            compiler.compile(<TerrainPolygonInput>[input], geometryVersion: 1),
+        throwsA(
+          isA<TerrainValidationException>().having(
+            (error) =>
+                error.diagnostics.map((diagnostic) => diagnostic.code).toSet(),
+            'diagnostic codes',
+            <String>{'transform_minimum_edge_length'},
+          ),
+        ),
+      );
+    });
+
     test(
       'accepts exact shared boundaries and rejects occupied-area overlap',
       () {

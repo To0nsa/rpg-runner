@@ -192,6 +192,9 @@ TerrainPolygon? _canonicalize(
   var source = List<SourceTerrainPoint>.of(review.validatedVertices);
 
   var transformed = source.map(input.transform.apply).toList();
+  if (!_validateTransformedEdges(input, transformed, diagnostics)) {
+    return null;
+  }
   final transformedArea = _signedAreaPhysics(transformed);
   if (transformedArea == BigInt.zero) {
     diagnostics.add(
@@ -225,6 +228,35 @@ TerrainPolygon? _canonicalize(
     surfaceKind: input.surfaceKind,
     materialKey: input.materialKey,
   );
+}
+
+bool _validateTransformedEdges(
+  TerrainPolygonInput input,
+  List<TerrainPoint> vertices,
+  List<TerrainDiagnostic> diagnostics,
+) {
+  final minimumLengthSquared = BigInt.from(
+    terrainPhysicsTicksPerWorldUnit * terrainPhysicsTicksPerWorldUnit,
+  );
+  var valid = true;
+  for (var index = 0; index < vertices.length; index += 1) {
+    final start = vertices[index];
+    final end = vertices[(index + 1) % vertices.length];
+    final dx = BigInt.from(end.xTicks - start.xTicks);
+    final dy = BigInt.from(end.yTicks - start.yTicks);
+    if (dx * dx + dy * dy < minimumLengthSquared) {
+      valid = false;
+      diagnostics.add(
+        _diagnostic(
+          input,
+          index,
+          'transform_minimum_edge_length',
+          'Placement transform made an edge shorter than one world unit.',
+        ),
+      );
+    }
+  }
+  return valid;
 }
 
 List<_RawEdge> _emitRawEdges(List<TerrainPolygon> polygons) {
