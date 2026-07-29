@@ -1,6 +1,7 @@
 import '../chunks/chunk_domain_models.dart';
 import '../prefabs/models/models.dart';
 import '../terrain_authoring/terrain_source_models.dart';
+import 'polygon_authoring_metadata_codec.dart';
 import 'polygon_authoring_target_models.dart';
 import 'strict_migration_json.dart';
 
@@ -198,40 +199,9 @@ AtlasSliceDef _decodeSlice(
   Map<String, Object?> json, {
   required String sourcePath,
 }) {
-  _requireKeys(
+  return PolygonAuthoringMetadataCodec.decodeSlice(
     json,
     sourcePath: sourcePath,
-    allowed: const <String>{
-      'id',
-      'sourceImagePath',
-      'x',
-      'y',
-      'width',
-      'height',
-      'tags',
-    },
-    required: const <String>{
-      'id',
-      'sourceImagePath',
-      'x',
-      'y',
-      'width',
-      'height',
-    },
-  );
-  return AtlasSliceDef(
-    id: _nonEmptyString(json['id'], sourcePath: '$sourcePath.id'),
-    sourceImagePath: _nonEmptyString(
-      json['sourceImagePath'],
-      sourcePath: '$sourcePath.sourceImagePath',
-    ),
-    x: _int(json['x'], sourcePath: '$sourcePath.x'),
-    y: _int(json['y'], sourcePath: '$sourcePath.y'),
-    width: _positiveInt(json['width'], sourcePath: '$sourcePath.width'),
-    height: _positiveInt(json['height'], sourcePath: '$sourcePath.height'),
-    tags: json.containsKey('tags')
-        ? _canonicalTags(json['tags'], sourcePath: '$sourcePath.tags')
-        : const <String>[],
   );
 }
 
@@ -306,30 +276,9 @@ PrefabVisualSource _decodeVisualSource(
   Object? raw, {
   required String sourcePath,
 }) {
-  final json = _object(raw, sourcePath: sourcePath);
-  final type = _enumString(json['type'], const <String>{
-    'atlas_slice',
-    'platform_module',
-  }, sourcePath: '$sourcePath.type');
-  if (type == 'atlas_slice') {
-    _requireKeys(
-      json,
-      sourcePath: sourcePath,
-      allowed: const <String>{'type', 'sliceId'},
-      required: const <String>{'type', 'sliceId'},
-    );
-    return PrefabVisualSource.atlasSlice(
-      _nonEmptyString(json['sliceId'], sourcePath: '$sourcePath.sliceId'),
-    );
-  }
-  _requireKeys(
-    json,
+  return PolygonAuthoringMetadataCodec.decodeVisualSource(
+    raw,
     sourcePath: sourcePath,
-    allowed: const <String>{'type', 'moduleId'},
-    required: const <String>{'type', 'moduleId'},
-  );
-  return PrefabVisualSource.platformModule(
-    _nonEmptyString(json['moduleId'], sourcePath: '$sourcePath.moduleId'),
   );
 }
 
@@ -337,16 +286,9 @@ TileLayerDef _decodeTileLayer(
   Map<String, Object?> json, {
   required String sourcePath,
 }) {
-  _requireKeys(
+  return PolygonAuthoringMetadataCodec.decodeTileLayer(
     json,
     sourcePath: sourcePath,
-    allowed: const <String>{'id', 'kind', 'visible'},
-    required: const <String>{'id', 'kind', 'visible'},
-  );
-  return TileLayerDef(
-    id: _nonEmptyString(json['id'], sourcePath: '$sourcePath.id'),
-    kind: _nonEmptyString(json['kind'], sourcePath: '$sourcePath.kind'),
-    visible: _bool(json['visible'], sourcePath: '$sourcePath.visible'),
   );
 }
 
@@ -354,47 +296,9 @@ PlacedPrefabDef _decodePlacement(
   Map<String, Object?> json, {
   required String sourcePath,
 }) {
-  _requireKeys(
+  return PolygonAuthoringMetadataCodec.decodePlacement(
     json,
     sourcePath: sourcePath,
-    allowed: const <String>{
-      'prefabId',
-      'prefabKey',
-      'x',
-      'y',
-      'zIndex',
-      'snapToGrid',
-      'scale',
-      'flipX',
-      'flipY',
-    },
-    required: const <String>{'prefabId', 'x', 'y', 'zIndex', 'snapToGrid'},
-  );
-  final scale = json.containsKey('scale')
-      ? _scale(json['scale'], sourcePath: '$sourcePath.scale')
-      : defaultPrefabPlacementScale;
-  return PlacedPrefabDef(
-    prefabId: _nonEmptyString(
-      json['prefabId'],
-      sourcePath: '$sourcePath.prefabId',
-    ),
-    prefabKey: json.containsKey('prefabKey')
-        ? _nonEmptyString(
-            json['prefabKey'],
-            sourcePath: '$sourcePath.prefabKey',
-          )
-        : '',
-    x: _int(json['x'], sourcePath: '$sourcePath.x'),
-    y: _int(json['y'], sourcePath: '$sourcePath.y'),
-    zIndex: _int(json['zIndex'], sourcePath: '$sourcePath.zIndex'),
-    snapToGrid: _bool(json['snapToGrid'], sourcePath: '$sourcePath.snapToGrid'),
-    scale: scale,
-    flipX: json.containsKey('flipX')
-        ? _bool(json['flipX'], sourcePath: '$sourcePath.flipX')
-        : false,
-    flipY: json.containsKey('flipY')
-        ? _bool(json['flipY'], sourcePath: '$sourcePath.flipY')
-        : false,
   );
 }
 
@@ -402,47 +306,9 @@ PlacedMarkerDef _decodeMarker(
   Map<String, Object?> json, {
   required String sourcePath,
 }) {
-  _requireKeys(
+  return PolygonAuthoringMetadataCodec.decodeMarker(
     json,
     sourcePath: sourcePath,
-    allowed: const <String>{
-      'markerId',
-      'x',
-      'y',
-      'chancePercent',
-      'salt',
-      'placement',
-    },
-    required: const <String>{
-      'markerId',
-      'x',
-      'y',
-      'chancePercent',
-      'salt',
-      'placement',
-    },
-  );
-  final chancePercent = _int(
-    json['chancePercent'],
-    sourcePath: '$sourcePath.chancePercent',
-  );
-  if (chancePercent < 0 || chancePercent > 100) {
-    throw FormatException('$sourcePath.chancePercent must be from 0 to 100.');
-  }
-  return PlacedMarkerDef(
-    markerId: _nonEmptyString(
-      json['markerId'],
-      sourcePath: '$sourcePath.markerId',
-    ),
-    x: _int(json['x'], sourcePath: '$sourcePath.x'),
-    y: _int(json['y'], sourcePath: '$sourcePath.y'),
-    chancePercent: chancePercent,
-    salt: _int(json['salt'], sourcePath: '$sourcePath.salt'),
-    placement: _enumString(json['placement'], const <String>{
-      markerPlacementGround,
-      markerPlacementHighestSurfaceAtX,
-      markerPlacementObstacleTop,
-    }, sourcePath: '$sourcePath.placement'),
   );
 }
 
@@ -570,14 +436,6 @@ int _int(Object? raw, {required String sourcePath}) {
 
 int _positiveInt(Object? raw, {required String sourcePath}) {
   return StrictMigrationJson.positiveInt(raw, sourcePath: sourcePath);
-}
-
-bool _bool(Object? raw, {required String sourcePath}) {
-  return StrictMigrationJson.boolean(raw, sourcePath: sourcePath);
-}
-
-double _scale(Object? raw, {required String sourcePath}) {
-  return StrictMigrationJson.prefabScale(raw, sourcePath: sourcePath);
 }
 
 List<String> _canonicalTags(Object? raw, {required String sourcePath}) {
