@@ -6,6 +6,7 @@ import 'terrain_edge_id.dart';
 import 'terrain_geometry.dart';
 import 'terrain_numeric.dart';
 import 'terrain_polygon.dart';
+import 'terrain_source_canonicalizer.dart';
 
 /// Hard runtime-safety limits applied before compiled geometry is published.
 abstract final class TerrainGeometryLimits {
@@ -66,12 +67,12 @@ class TerrainCompiler {
       if (polygon != null) polygons.add(polygon);
     }
 
-    if (diagnostics.any((diagnostic) => !_isNormalizationNotice(diagnostic))) {
+    if (diagnostics.any(terrainDiagnosticIsBlocking)) {
       throw TerrainValidationException(diagnostics);
     }
 
     _validatePolygonOverlaps(polygons, diagnostics);
-    if (diagnostics.any((diagnostic) => !_isNormalizationNotice(diagnostic))) {
+    if (diagnostics.any(terrainDiagnosticIsBlocking)) {
       throw TerrainValidationException(diagnostics);
     }
 
@@ -104,7 +105,9 @@ class TerrainCompiler {
       version: geometryVersion,
       polygons: polygons,
       edges: edges,
-      diagnostics: diagnostics.where(_isNormalizationNotice),
+      diagnostics: diagnostics.where(
+        (diagnostic) => !terrainDiagnosticIsBlocking(diagnostic),
+      ),
     );
   }
 }
@@ -177,122 +180,15 @@ TerrainPolygon? _canonicalize(
   required bool normalizeCollinear,
   required List<TerrainDiagnostic> diagnostics,
 }) {
-  if (input.sourcePath.isEmpty) {
-    diagnostics.add(
-      _diagnostic(
-        input,
-        0,
-        'empty_source_path',
-        'Source path must not be empty.',
-      ),
-    );
-  }
-
-  var source = List<SourceTerrainPoint>.of(input.vertices);
-  if (source.length > 1 && source.first == source.last) {
-    diagnostics.add(
-      _diagnostic(
-        input,
-        source.length - 1,
-        'repeated_closing_vertex',
-        'The closing vertex must not repeat the first vertex.',
-      ),
-    );
-  }
-  for (var i = 1; i < source.length; i += 1) {
-    if (source[i - 1] == source[i]) {
-      diagnostics.add(
-        _diagnostic(
-          input,
-          i,
-          'consecutive_duplicate',
-          'Consecutive source vertices must be distinct.',
-        ),
-      );
-    }
-  }
-  if (source.toSet().length < 3) {
-    diagnostics.add(
-      _diagnostic(
-        input,
-        0,
-        'too_few_vertices',
-        'A polygon requires at least three distinct vertices.',
-      ),
-    );
+  final review = const TerrainSourceCanonicalizer().review(
+    input,
+    normalizeCollinear: normalizeCollinear,
+  );
+  diagnostics.addAll(review.diagnostics);
+  if (review.hasBlockingDiagnostics) {
     return null;
   }
-
-  final collinearIndices = _collinearMiddleIndices(source);
-  if (collinearIndices.isNotEmpty && !normalizeCollinear) {
-    for (final index in collinearIndices) {
-      diagnostics.add(
-        _diagnostic(
-          input,
-          index,
-          'collinear_middle_vertex',
-          'Collinear middle vertices require explicit normalization.',
-        ),
-      );
-    }
-  } else if (collinearIndices.isNotEmpty) {
-    source = _removeCollinearMiddleVertices(source);
-    for (final index in collinearIndices) {
-      diagnostics.add(
-        _diagnostic(
-          input,
-          index,
-          'normalized_collinear_vertex',
-          'Explicit normalization removed a collinear middle vertex.',
-        ),
-      );
-    }
-  }
-
-  if (source.length < 3) {
-    diagnostics.add(
-      _diagnostic(
-        input,
-        0,
-        'zero_area',
-        'Normalization left fewer than three polygon vertices.',
-      ),
-    );
-    return null;
-  }
-
-  _validateSourceEdges(input, source, diagnostics);
-  final signedSourceArea = _signedAreaSource(source);
-  if (signedSourceArea.abs() <
-      2 * terrainSourceTicksPerWorldUnit * terrainSourceTicksPerWorldUnit) {
-    diagnostics.add(
-      _diagnostic(
-        input,
-        0,
-        'minimum_area',
-        'Polygon area must be at least one square world unit.',
-      ),
-    );
-  }
-  if (_hasSelfIntersectionSource(source)) {
-    diagnostics.add(
-      _diagnostic(
-        input,
-        0,
-        'self_intersection',
-        'Polygon edges must not self-intersect.',
-      ),
-    );
-  }
-
-  if (diagnostics.any(
-    (diagnostic) =>
-        diagnostic.sourcePath == input.sourcePath &&
-        diagnostic.shapeId == input.identity.shapeId &&
-        !_isNormalizationNotice(diagnostic),
-  )) {
-    return null;
-  }
+  var source = List<SourceTerrainPoint>.of(review.validatedVertices);
 
   var transformed = source.map(input.transform.apply).toList();
   if (_signedAreaPhysics(transformed) == 0) {
@@ -327,67 +223,6 @@ TerrainPolygon? _canonicalize(
     surfaceKind: input.surfaceKind,
     materialKey: input.materialKey,
   );
-}
-
-void _validateSourceEdges(
-  TerrainPolygonInput input,
-  List<SourceTerrainPoint> vertices,
-  List<TerrainDiagnostic> diagnostics,
-) {
-  final minLengthSq =
-      terrainSourceTicksPerWorldUnit * terrainSourceTicksPerWorldUnit;
-  for (var i = 0; i < vertices.length; i += 1) {
-    final start = vertices[i];
-    final end = vertices[(i + 1) % vertices.length];
-    final dx = end.xTicks - start.xTicks;
-    final dy = end.yTicks - start.yTicks;
-    if (dx * dx + dy * dy < minLengthSq) {
-      diagnostics.add(
-        _diagnostic(
-          input,
-          i,
-          'minimum_edge_length',
-          'Every source edge must be at least one world unit long.',
-        ),
-      );
-    }
-  }
-}
-
-List<int> _collinearMiddleIndices(List<SourceTerrainPoint> vertices) {
-  final indices = <int>[];
-  for (var i = 0; i < vertices.length; i += 1) {
-    final previous = vertices[(i - 1 + vertices.length) % vertices.length];
-    final current = vertices[i];
-    final next = vertices[(i + 1) % vertices.length];
-    if (_crossSource(previous, current, next) == 0) {
-      indices.add(i);
-    }
-  }
-  return indices;
-}
-
-List<SourceTerrainPoint> _removeCollinearMiddleVertices(
-  List<SourceTerrainPoint> vertices,
-) {
-  var result = List<SourceTerrainPoint>.of(vertices);
-  var changed = true;
-  while (changed && result.length >= 3) {
-    changed = false;
-    final next = <SourceTerrainPoint>[];
-    for (var i = 0; i < result.length; i += 1) {
-      final previous = result[(i - 1 + result.length) % result.length];
-      final current = result[i];
-      final following = result[(i + 1) % result.length];
-      if (_crossSource(previous, current, following) == 0) {
-        changed = true;
-      } else {
-        next.add(current);
-      }
-    }
-    result = next;
-  }
-  return result;
 }
 
 List<_RawEdge> _emitRawEdges(List<TerrainPolygon> polygons) {
@@ -699,54 +534,6 @@ bool _collinearOverlapSameDirection(
       math.min(math.max(a.yTicks, b.yTicks), math.max(c.yTicks, d.yTicks));
 }
 
-bool _hasSelfIntersectionSource(List<SourceTerrainPoint> vertices) {
-  for (var i = 0; i < vertices.length; i += 1) {
-    final a = vertices[i];
-    final b = vertices[(i + 1) % vertices.length];
-    for (var j = i + 1; j < vertices.length; j += 1) {
-      if (j == i ||
-          (j + 1) % vertices.length == i ||
-          (i + 1) % vertices.length == j) {
-        continue;
-      }
-      final c = vertices[j];
-      final d = vertices[(j + 1) % vertices.length];
-      if (_segmentsIntersectSource(a, b, c, d)) return true;
-    }
-  }
-  return false;
-}
-
-bool _segmentsIntersectSource(
-  SourceTerrainPoint a,
-  SourceTerrainPoint b,
-  SourceTerrainPoint c,
-  SourceTerrainPoint d,
-) {
-  final abC = _crossSource(a, b, c);
-  final abD = _crossSource(a, b, d);
-  final cdA = _crossSource(c, d, a);
-  final cdB = _crossSource(c, d, b);
-  if (((abC > 0 && abD < 0) || (abC < 0 && abD > 0)) &&
-      ((cdA > 0 && cdB < 0) || (cdA < 0 && cdB > 0))) {
-    return true;
-  }
-  return (abC == 0 && _pointOnSegmentSource(c, a, b)) ||
-      (abD == 0 && _pointOnSegmentSource(d, a, b)) ||
-      (cdA == 0 && _pointOnSegmentSource(a, c, d)) ||
-      (cdB == 0 && _pointOnSegmentSource(b, c, d));
-}
-
-bool _pointOnSegmentSource(
-  SourceTerrainPoint point,
-  SourceTerrainPoint start,
-  SourceTerrainPoint end,
-) =>
-    point.xTicks >= math.min(start.xTicks, end.xTicks) &&
-    point.xTicks <= math.max(start.xTicks, end.xTicks) &&
-    point.yTicks >= math.min(start.yTicks, end.yTicks) &&
-    point.yTicks <= math.max(start.yTicks, end.yTicks);
-
 bool _pointOnSegment(
   TerrainPoint point,
   TerrainPoint start,
@@ -758,16 +545,6 @@ bool _pointOnSegment(
     point.yTicks >= math.min(start.yTicks, end.yTicks) &&
     point.yTicks <= math.max(start.yTicks, end.yTicks);
 
-int _signedAreaSource(List<SourceTerrainPoint> vertices) {
-  var area = 0;
-  for (var i = 0; i < vertices.length; i += 1) {
-    final current = vertices[i];
-    final next = vertices[(i + 1) % vertices.length];
-    area += current.xTicks * next.yTicks - next.xTicks * current.yTicks;
-  }
-  return area;
-}
-
 int _signedAreaPhysics(List<TerrainPoint> vertices) {
   var area = 0;
   for (var i = 0; i < vertices.length; i += 1) {
@@ -777,14 +554,6 @@ int _signedAreaPhysics(List<TerrainPoint> vertices) {
   }
   return area;
 }
-
-int _crossSource(
-  SourceTerrainPoint origin,
-  SourceTerrainPoint a,
-  SourceTerrainPoint b,
-) =>
-    (a.xTicks - origin.xTicks) * (b.yTicks - origin.yTicks) -
-    (a.yTicks - origin.yTicks) * (b.xTicks - origin.xTicks);
 
 int _crossPhysics(TerrainPoint origin, TerrainPoint a, TerrainPoint b) =>
     (a.xTicks - origin.xTicks) * (b.yTicks - origin.yTicks) -
@@ -881,9 +650,6 @@ TerrainDiagnostic _diagnostic(
   code: code,
   message: message,
 );
-
-bool _isNormalizationNotice(TerrainDiagnostic diagnostic) =>
-    diagnostic.code == 'normalized_collinear_vertex';
 
 class _RawEdge {
   const _RawEdge({
