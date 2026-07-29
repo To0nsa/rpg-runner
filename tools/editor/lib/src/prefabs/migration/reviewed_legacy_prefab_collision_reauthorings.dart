@@ -62,10 +62,11 @@ abstract final class ReviewedLegacyPrefabCollisionReauthorings {
   ) => _byPrefabKey[prefabKey];
 
   /// All reviewed corrections in stable prefab-key order.
-  static List<ReviewedLegacyPrefabCollisionReauthoring> get all =>
-      List<ReviewedLegacyPrefabCollisionReauthoring>.unmodifiable(
-        _byPrefabKey.values,
-      );
+  static List<ReviewedLegacyPrefabCollisionReauthoring> get all {
+    final values = _byPrefabKey.values.toList(growable: false)
+      ..sort((left, right) => left.prefabKey.compareTo(right.prefabKey));
+    return List<ReviewedLegacyPrefabCollisionReauthoring>.unmodifiable(values);
+  }
 
   static final Map<String, ReviewedLegacyPrefabCollisionReauthoring>
   _byPrefabKey = <String, ReviewedLegacyPrefabCollisionReauthoring>{
