@@ -17,6 +17,7 @@ abstract final class TerrainSourceCoreAdapter {
     required int chunkIndex,
     required String chunkKey,
     String? placementKey,
+    TerrainSourceTransform transform = const TerrainSourceTransform(),
   }) {
     return TerrainPolygonInput(
       sourcePath: sourcePath,
@@ -35,7 +36,36 @@ abstract final class TerrainSourceCoreAdapter {
       },
       surfaceKind: shape.surfaceKind,
       materialKey: shape.materialKey,
+      transform: transform,
     );
+  }
+
+  /// Builds the one exact Core placement transform from editor integer values.
+  ///
+  /// Anchor and translation values use the editor's half-pixel source ticks.
+  /// [scaleTenths] is the existing authored `0.3` through `3.0` scale encoded
+  /// as `3` through `30`; Core validates the accepted range.
+  static TerrainSourceTransform placementTransform({
+    required int anchorXHalfPixels,
+    required int anchorYHalfPixels,
+    required int translationXHalfPixels,
+    required int translationYHalfPixels,
+    required int scaleTenths,
+    bool flipX = false,
+    bool flipY = false,
+  }) {
+    final transform = TerrainSourceTransform(
+      anchorXSourceTicks: anchorXHalfPixels,
+      anchorYSourceTicks: anchorYHalfPixels,
+      reflectX: flipX,
+      reflectY: flipY,
+      scaleNumerator: scaleTenths,
+      scaleDenominator: 10,
+      translateXSourceTicks: translationXHalfPixels,
+      translateYSourceTicks: translationYHalfPixels,
+    );
+    final _ = transform.scaleTenths;
+    return transform;
   }
 
   /// Runs Core's exact review without changing the editor [shape].

@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:runner_core/collision/terrain/terrain_numeric.dart';
 import 'package:runner_core/collision/terrain/terrain_polygon.dart';
 import 'package:runner_editor/src/terrain_authoring/terrain_source_core_adapter.dart';
 import 'package:runner_editor/src/terrain_authoring/terrain_source_models.dart';
@@ -138,5 +139,55 @@ void main() {
       () => TerrainSourceCoreAdapter.applyCanonicalVertices(crossing, review),
       throwsStateError,
     );
+  });
+
+  test('builds and applies the exact Core placement transform once', () {
+    final shape = TerrainSourceShapeDef(
+      shapeId: 'asymmetric',
+      vertices: const <TerrainSourceVertexDef>[
+        TerrainSourceVertexDef(xHalfPixels: 5, yHalfPixels: 3),
+        TerrainSourceVertexDef(xHalfPixels: 9, yHalfPixels: 3),
+        TerrainSourceVertexDef(xHalfPixels: 5, yHalfPixels: 7),
+      ],
+    );
+    final transform = TerrainSourceCoreAdapter.placementTransform(
+      anchorXHalfPixels: 2,
+      anchorYHalfPixels: -4,
+      translationXHalfPixels: 6,
+      translationYHalfPixels: -8,
+      scaleTenths: 7,
+      flipX: true,
+      flipY: true,
+    );
+    final input = TerrainSourceCoreAdapter.toPolygonInput(
+      shape: shape,
+      sourcePath: 'test/asymmetric',
+      chunkIndex: 2,
+      chunkKey: 'chunk_2',
+      placementKey: 'placement_3',
+      transform: transform,
+    );
+
+    expect(input.transform, same(transform));
+    expect(input.transform.scaleTenths, 7);
+    expect(
+      input.transform.apply(input.vertices.first),
+      TerrainPoint(1997, -6605),
+    );
+  });
+
+  test('rejects placement scale outside the accepted integer tenths', () {
+    for (final scaleTenths in <int>[2, 31]) {
+      expect(
+        () => TerrainSourceCoreAdapter.placementTransform(
+          anchorXHalfPixels: 0,
+          anchorYHalfPixels: 0,
+          translationXHalfPixels: 0,
+          translationYHalfPixels: 0,
+          scaleTenths: scaleTenths,
+        ),
+        throwsRangeError,
+      );
+    }
   });
 }
