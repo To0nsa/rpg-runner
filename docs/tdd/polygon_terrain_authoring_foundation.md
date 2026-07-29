@@ -111,10 +111,13 @@ The current repository audit produces 88 topological candidate loops from 70
 collision-bearing prefabs. Core accepts 85 loops across 67 prefabs unchanged.
 `dark_menhir_01`, `dark_menhir_03`, and `ruin_stone_00` each produce an exact
 one-source-tick (`0.5 px`) exterior edge below the accepted one-world-unit
-minimum. The planner reports those records instead of modifying their occupied
-area or weakening the shared geometry rule. Prefab v3 writing remains pending
-an explicit content decision; existing schema v2 source and legacy runtime
-authority are unchanged.
+minimum. The accepted resolution keeps the shared geometry rule and provides a
+closed migration-only catalog of minimal outward replacements. They add 34,
+25, and 36 half-pixel-square ticks (`8.5 px²`, `6.25 px²`, and `9 px²`) and are
+bound to the complete expected collider lists. Any source drift blocks rather
+than applying a stale correction. All 70 collision prefabs and 88 planned
+loops now pass Core. Prefab v3 writing remains pending; existing schema v2
+source and legacy runtime authority are unchanged.
 
 ## Determinism And Validation Evidence
 

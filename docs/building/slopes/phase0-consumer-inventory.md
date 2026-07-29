@@ -140,13 +140,15 @@ count:
 | --- | ---: |
 | Decoration prefabs unchanged | 29 |
 | Collision-bearing prefabs audited | 70 |
-| Prefabs accepted automatically by exact Core rules | 67 |
+| Prefabs accepted without content correction | 67 |
+| Prefabs with reviewed minimal outward correction | 3 |
+| Prefabs ready for deterministic migration | 70 |
 | Candidate simple source polygons from topological union | 88 |
-| Source polygons accepted by exact Core rules | 85 |
+| Planned source polygons accepted by exact Core rules | 88 |
 | Multi-rectangle prefabs audited | 29 |
 | Union holes | 0 |
 | Point-only/non-manifold touches | 0 |
-| Minimum-edge reauthor blockers | 3 |
+| Remaining prefab blockers | 0 |
 | Collision-bearing chunk placements | 31 |
 | Output placed polygon instances | 32 |
 | Authored chunks migrated | 8 |
@@ -156,9 +158,12 @@ Disconnected occupied components intentionally become separate simple polygons;
 the largest current prefab produces three. All current results remain below the
 accepted shape/vertex limits. `dark_menhir_01`, `dark_menhir_03`, and
 `ruin_stone_00` each produce one exact exterior edge that is one source tick
-(`0.5 px`) long, below Core's accepted one-world-unit minimum. Their occupied
-areas have not been silently changed and the migration remains read-only until
-that content decision is resolved.
+(`0.5 px`) long, below Core's accepted one-world-unit minimum. The accepted
+resolution keeps that global rule and applies explicit minimal outward polygon
+corrections only during migration. They add 34, 25, and 36 half-pixel-square
+ticks (`8.5 px²`, `6.25 px²`, and `9 px²`) respectively. Each correction is
+bound to its exact legacy collider list so source drift blocks the plan. The
+production source and runtime remain unchanged until the later schema cutover.
 
 Expected generated-data churn is deliberate and complete:
 

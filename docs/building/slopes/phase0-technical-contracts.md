@@ -166,9 +166,15 @@ accepts 67 of the 70 collision-bearing prefabs and 85 of the 88 candidate
 loops. `dark_menhir_01`, `dark_menhir_03`, and `ruin_stone_00` each contain an
 exact one-source-tick (`0.5 px`) exterior edge, which is below the frozen
 one-world-unit minimum edge length. This is not a hole or union ambiguity; it
-is a resolution mismatch that the topology-only audit did not test. Migration
-must remain read-only for those records until an explicit content decision is
-made. It must not silently alter occupied area or relax the Core rule.
+is a resolution mismatch that the topology-only audit did not test.
+
+The accepted content decision retains the one-world-unit global minimum and
+uses explicit minimal outward corrections for only those three migration
+records. The corrections add 34, 25, and 36 half-pixel-square ticks
+(`8.5 px²`, `6.25 px²`, and `9 px²`) respectively. Exact legacy-collider guards
+make source drift blocking. With those reviewed inputs, all 70 collision
+prefabs and all 88 planned loops pass Core. Normal schema v2 source and legacy
+runtime collision remain unchanged until the later single schema cutover.
 
 The migration tool must reproduce this sorted report before writing source.
 
