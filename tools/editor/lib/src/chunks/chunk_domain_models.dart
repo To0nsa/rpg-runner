@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:meta/meta.dart';
 
 import '../domain/authoring_types.dart';
 import '../prefabs/models/models.dart';

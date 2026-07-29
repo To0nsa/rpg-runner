@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:meta/meta.dart';
 
 /// Axis-aligned collider authored in prefab-local pixel space.
 ///

@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:meta/meta.dart';
 
 import 'atlas/atlas_slice_def.dart';
 import 'platform/tile_module_def.dart';
