@@ -28,7 +28,8 @@ The active schema migration, generator, preview, and cutover work remains in
 | Editor-to-Core conversion | editor `TerrainSourceCoreAdapter` | pure-Dart authoring tests; prefab/chunk UI integration is pending |
 | Legacy prefab occupied-area union and reviewed corrections | editor prefab migration domain | aggregate check plan; removal follows verified prefab v3 write |
 | Legacy flat-ground/gap conversion | editor chunk migration domain | aggregate check plan; removal follows verified chunk v2 write |
-| Cross-domain canonical migration report | editor migration domain | read-only tests; strict legacy parser, CLI, fingerprints, and writes remain pending |
+| Strict legacy prefab-v1/v2 and chunk-v1 source parsing | editor migration domain | read-only aggregate planner input; compatibility stores are bypassed |
+| Cross-domain canonical migration report | editor migration domain | read-only tests and exact source SHA-256 audit; CLI and writes remain pending |
 | Isolated prefab-v3/chunk-v2 target structures | editor migration domain | strict canonical codecs and complete-repository round-trip; normal stores do not consume them yet |
 
 Core has no dependency on editor models, JSON, widgets, or filesystem state.
@@ -134,18 +135,29 @@ missing coverage. Adjacent gaps create no zero-width shape, a full-width gap
 creates an empty valid ground list, and exact planned area is checked against
 Core's reviewed doubled area.
 
-The cross-domain `PolygonAuthoringMigrationPlan` combines prefab and chunk
-results without filesystem I/O. It canonicalizes path separators, rejects
-missing/duplicate stable owner keys, verifies that every reviewed correction
-still has an owner, and emits stable JSON containing exact decimal-string area
-facts plus the complete planned polygon source. Input order does not affect the
-report. The current report contains 99 prefabs, 88 prefab shapes, 8 chunks, and
-9 ground shapes with zero blockers; its check-report fingerprint is
-`f2a9c639`.
+`PolygonAuthoringLegacyCodec` parses the migration inputs without the normal
+stores' compatibility normalization. It accepts only the documented prefab-v1
+or prefab-v2 and chunk-v1 field sets, exact JSON types, known enums, valid scale
+steps, and canonical current-schema ordering. Unknown fields, numeric coercion,
+and noncanonical order reject. Prefab-v1 key/lifecycle defaults are promoted
+only after its exact source shape passes validation. Each returned document is
+bound to the SHA-256 digest of the exact UTF-8 text that was parsed.
 
-This report is not yet a write authorization. Strict legacy schema parsing,
-source fingerprints, revision/generated-impact decisions, CLI exit behavior,
-and the multi-file transaction remain separate gates. Normal source and runtime
+The cross-domain `PolygonAuthoringMigrationPlan` combines those prefab and
+chunk results without filesystem I/O. It canonicalizes path separators,
+rejects missing/duplicate stable owner keys or absent/malformed digests,
+verifies that every reviewed correction still has an owner, and emits stable
+report-v2 JSON containing all nine source path/SHA-256 records, exact
+decimal-string area facts, and the complete planned polygon source. Input
+order does not affect the report. The current report contains 99 prefabs, 88
+prefab shapes, 8 chunks, and 9 ground shapes with zero blockers; its report
+fingerprint is `cc2ed2e6`.
+
+The plan exposes a pure pre-write audit for freshly computed SHA-256 values.
+Changed, missing, or ambiguously canonicalized paths reject deterministically.
+This report is still not a write authorization: revision/generated-impact
+decisions, CLI exit behavior, target validation orchestration, and the
+multi-file transaction remain separate gates. Normal source and runtime
 behavior are unchanged.
 
 ## Isolated Polygon Target Schemas

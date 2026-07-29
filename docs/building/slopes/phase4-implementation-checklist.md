@@ -479,8 +479,11 @@ dart run tool/migrate_polygon_authoring.dart --write `
 ```
 
 - [ ] Default to read-only `--check`; never infer write from a missing flag.
-- [ ] Reject unknown flags and dirty source drift discovered after planning.
-- [ ] Parse legacy prefab v1/v2 and chunk v1 strictly.
+- [ ] Reject unknown CLI flags once the offline command exists.
+- [x] Detect dirty source drift after planning through canonical-path SHA-256
+      audit records.
+- [x] Parse legacy prefab v1/v2 and chunk v1 strictly without compatibility
+      normalization or numeric coercion.
 - [x] Convert one isolated AABB to four exact clockwise vertices.
 - [x] Union touching/overlapping AABBs with deterministic integer orthogonal
       geometry, removing every interior edge.
@@ -500,7 +503,8 @@ dart run tool/migrate_polygon_authoring.dart --write `
       reviewed-reauthoring, and blocker records.
 - [ ] Extend the report with revision and generated-impact records.
 - [x] Include exact legacy/planned occupied-area facts.
-- [ ] Include before/after canonical source signatures.
+- [x] Include exact before-source paths and SHA-256 signatures in report v2.
+- [ ] Include after-migration canonical source signatures.
 - [ ] Make `--check` exit nonzero for blockers or source already differing from
       the planned canonical output.
 - [ ] Make `--write` require a complete blocker-free plan generated from the
@@ -510,6 +514,8 @@ dart run tool/migrate_polygon_authoring.dart --write `
 
 - [ ] Build and validate every target file in memory before the first write.
 - [ ] Show the exact multi-file save plan and source fingerprints.
+- [x] Provide a pure, deterministic audit that rejects missing, changed, or
+      ambiguously canonicalized source paths against the reviewed SHA-256 set.
 - [ ] Stage temporary files on the same volume.
 - [ ] Recheck every source fingerprint immediately before replacement.
 - [ ] Preserve existing newline/encoding policy and canonical JSON formatting.
@@ -817,6 +823,8 @@ Models/codecs:
 - [x] malformed/nonfinite/off-grid numeric rejection
 - [x] staged v3/v2 schema versions, canonical round-trip, and strict legacy
       field rejection
+- [x] strict prefab-v1/v2 and chunk-v1 parsing of the complete repository
+      without normal-store defaults or normalization
 - [ ] normal-store `migration_required` behavior after source cutover
 - [x] stable shape IDs/list order/equality/copy behavior
 - [x] canonical winding/start and explicit normalization
@@ -836,6 +844,7 @@ Migration:
 - [x] flat ground with zero/one/multiple gaps
 - [x] exact corrected audit counts and zero unclassified blockers
 - [x] stable report/order/IDs across repeated and permuted checks
+- [x] exact source SHA-256 binding plus changed/missing/ambiguous drift audit
 - [ ] stable revision decisions across repeated checks
 - [ ] write transaction, source-drift abort, rollback, and idempotence
 
@@ -895,6 +904,7 @@ before changing the accepted plan.
 | Phase 4 must stage polygon data while production still reads rectangles. | Source cuts over once; generation emits an unreachable staged terrain artifact and a bounded exact legacy projection for orthogonal current content. | Phase 5 removes the projection when streaming consumes staged terrain; no runtime toggle is introduced. |
 | Phase 3 moved enemy AABBs into top-level constants so legacy collision and staged capsules share one definition, but the entity editor only parsed inline collider expressions. | Resolve a directly referenced top-level `ColliderAabbDef` initializer and bind edits to that initializer; keep unresolved/indirect shapes non-writable. | Enemy authoring remains operational through the Phase 4 source migration without duplicating capsule/AABB dimensions. |
 | The earlier Phase 0 topology audit did not run the accepted one-world-unit minimum-edge predicate. Exact Core revalidation finds `0.5 px` exterior edges in `dark_menhir_01`, `dark_menhir_03`, and `ruin_stone_00`; 67/70 collision prefabs and 85/88 candidate loops pass unchanged. | Keep the global rule. Apply reviewed minimal outward corrections adding 34, 25, and 36 half-pixel-square ticks, guarded by exact expected collider lists. | All 70 prefabs / 88 loops now plan successfully with zero unclassified blockers. The correction catalog is migration-only and is removed after verified v3 source write; production source/runtime remain unchanged meanwhile. |
+| Normal editor stores intentionally normalize compatibility input, so using them for migration checks could hide malformed legacy fields or bind a report to different semantics than the reviewed bytes. | Add a separate read-only legacy codec with exact prefab-v1/v2 and chunk-v1 fields/types/order, explicit v1 promotion, and SHA-256 of the parsed UTF-8 text. Report v2 records all nine source digests and exposes a pure canonical-path drift audit. | The future CLI must build from these strict documents and call the digest audit immediately before replacement; normal store behavior remains unchanged until cutover. |
 
 Append rows during implementation. Do not silently relax source, compiler,
 seam, determinism, or performance contracts.
@@ -943,6 +953,9 @@ result.
 | 2026-07-29 / `a8eff1e5` | Read-only legacy chunk ground planner | Flutter test VM on Windows | Editor analysis clean and all 217 editor tests pass, including 8 chunk migration tests. Zero/one/multiple/adjacent/full-width pits, invalid bounds/types, nested overlaps, exact area, and current-repository output are covered; 8 chunks produce 9 Core-valid ground shapes. |
 | 2026-07-29 / `e1fa53f1` | Aggregate polygon-authoring check plan and canonical report | Flutter test VM on Windows | Editor analysis clean and all 220 editor tests pass. The complete current plan reports 99 prefabs, 70 collision prefabs, 88 prefab shapes, 8 chunks, 1 legacy gap, 9 ground shapes, 3 reviewed corrections, and 0 blockers. Report fingerprint is `f2a9c639`; input reversal and host path separators do not change it. No CLI, schema, source, or runtime write path is enabled. |
 | 2026-07-29 / `0a7d8a40` | Isolated prefab-v3 and chunk-v2 target documents/codecs | Flutter test VM on Windows | Editor analysis clean; 5 focused target-codec tests and all 225 editor tests pass. The complete 99-prefab/8-chunk planned output strictly round-trips. Legacy versions/fields, unknown fields, noncanonical order, off-grid coordinates, off-step scales, and wrong numeric types reject. Normal stores, source files, and runtime authority remain unchanged. |
+| 2026-07-29 / `feb925fa` + `da334c3f` | Shared fail-closed migration JSON and retained-metadata parsing | Flutter test VM on Windows | Focused analysis clean and all 5 target-codec tests remain green. Structural/type/order/default rules now have one migration-scoped implementation shared by legacy and target codecs. |
+| 2026-07-29 / `1caced16` | Strict legacy prefab-v1/v2 and chunk-v1 source codecs | Flutter test VM on Windows | Focused analysis clean and 9 legacy/target codec tests pass. All 99 current prefabs and all 8 chunks parse directly from repository text; unknown fields, wrong numeric types, invalid scales, and noncanonical current-schema order reject. Prefab-v1 defaults are promoted only after strict parsing. |
+| 2026-07-29 / `7ef9c92d` | Exact source-digest plan binding and drift audit | Flutter test VM on Windows | Editor analysis clean and all 231 editor tests pass. Report v2 contains canonical path plus SHA-256 for the prefab file and all 8 chunks, remains invariant under input reversal/path separators, and has fingerprint `cc2ed2e6`. Missing, malformed, changed, absent, and ambiguously canonicalized signatures fail closed. `crypto` was promoted from transitive to direct editor dependency; no authored JSON, normal store, CLI write, or runtime authority changed. |
 
 ### 28.1 Baseline Environment And Source Identity
 
