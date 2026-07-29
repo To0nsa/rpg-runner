@@ -1,8 +1,8 @@
 # Slopes Phase 3 - Sloped Surface Graphs And Enemy Cutover Readiness Checklist
 
 - Created: July 20, 2026
-- Status: In progress; grounded enemy locomotion and Hashash terrain-safe
-  teleport/deferred-spawn placement pass; Unoco flying contact is next
+- Status: Accepted July 28, 2026; all deterministic, allocation, capacity,
+  performance, documentation, and validation gates pass
 - Source plan: [plan.md](plan.md)
 - Frozen gameplay decisions:
   [phase0-gameplay-decisions.md](phase0-gameplay-decisions.md)
@@ -547,22 +547,22 @@ Tests:
 
 ## 18) Unoco Demon Flying Contact And Hover
 
-- [ ] Resolve the highest relevant local solid terrain below the capsule's
+- [x] Resolve the highest relevant local solid terrain below the capsule's
       horizontal footprint.
-- [ ] Preserve the existing randomized `60-180 px` hover band and RNG order.
-- [ ] Retain the last valid local reference when no terrain lies below.
-- [ ] Use the level flight-reference plane only when no prior local reference
+- [x] Preserve the existing randomized `60-180 px` hover band and RNG order.
+- [x] Retain the last valid local reference when no terrain lies below.
+- [x] Use the level flight-reference plane only when no prior local reference
       exists.
-- [ ] Continue bounded vertical steering; never teleport to a new reference.
-- [ ] Sweep the complete capsule against solid terrain from every side.
-- [ ] Ignore one-way platforms for contact, recovery, support, and steering.
-- [ ] Never set grounded/support state.
-- [ ] Keep move-and-slide as the immediate collision response.
-- [ ] Add a fixed, bounded clearance-steering candidate set only when blocked.
-- [ ] Rank candidates by progress toward combat/hover target, then clearance,
+- [x] Continue bounded vertical steering; never teleport to a new reference.
+- [x] Sweep the complete capsule against solid terrain from every side.
+- [x] Ignore one-way platforms for contact, recovery, support, and steering.
+- [x] Never set grounded/support state.
+- [x] Keep move-and-slide as the immediate collision response.
+- [x] Add a fixed, bounded clearance-steering candidate set only when blocked.
+- [x] Rank candidates by progress toward combat/hover target, then clearance,
       then stable candidate ID.
-- [ ] Consume no RNG and grant no phasing/teleport fallback.
-- [ ] Preserve cast/melee timing, target policy, origins, and facing.
+- [x] Consume no RNG and grant no phasing/teleport fallback.
+- [x] Preserve cast/melee timing, target policy, origins, and facing.
 
 Before implementing clearance steering, record its ordered candidate vectors
 and turn/hold rule in this checklist. If profiling shows that a candidate set
@@ -584,69 +584,144 @@ distance, then candidate ID. Hold the selected detour vector for `0.20 s`
 re-evaluation; when the hold expires, resume direct steering. The preview,
 selection, and hold consume no RNG.
 
+Implemented evidence (July 23, 2026):
+
+- `FlyingEnemyLocomotionSystem` resolves the current combat/hover target first,
+  then asks the selected world-motion authority for the local terrain reference
+  and any blocked-flight clearance vector. The existing range/height RNG calls
+  and combat-mode branches are unchanged.
+- `TerrainMultiBodyWorldMotionAuthority` queries only upward solid surfaces
+  below the facing-resolved capsule footprint, previews the four candidates
+  through the retained Unoco controller scratch, and copies the final blocking
+  normal into persistent steering state for the following tick.
+- The ordinary terrain solve remains the only transform integrator. Solid
+  contact projects entering velocity through move-and-slide; flying policy
+  suppresses support and grounded publication. One-way surfaces are absent
+  from both the hover reference and flying contact policy.
+- `flying_enemy_terrain_locomotion_test.dart` covers local references, retained
+  fallback, RNG parity, all-side blocking, maximum-speed thin solids, one-way
+  pass-through, bounded non-oscillating clearance, deterministic route parity,
+  and return to the hover target. Existing `flying_enemy_steering_test.dart`
+  and `enemy_attacks_test.dart` retain combat-mode, target, timing, origin, and
+  facing coverage.
+
 Tests:
 
-- [ ] follow flat/uphill/downhill local hover reference
-- [ ] pit/no-surface retains last reference, then explicit plane fallback
-- [ ] wall, slope, ceiling, underside, and concave-corner blocking
-- [ ] thin solid at maximum flight speed does not tunnel
-- [ ] one-way platforms never block or ground
-- [ ] deterministic route around an obstacle and return toward target
-- [ ] no oscillation, new RNG, teleport, or terrain phasing
-- [ ] combat timing/outcomes remain intentional
+- [x] follow flat/uphill/downhill local hover reference
+- [x] pit/no-surface retains last reference, then explicit plane fallback
+- [x] wall, slope, ceiling, underside, and concave-corner blocking
+- [x] thin solid at maximum flight speed does not tunnel
+- [x] one-way platforms never block or ground
+- [x] deterministic route around an obstacle and return toward target
+- [x] no oscillation, new RNG, teleport, or terrain phasing
+- [x] combat timing/outcomes remain intentional
 
 ## 19) Derf Kinematic Placement
 
-- [ ] Use the common placement query without giving Derf motion authority.
-- [ ] Accept solid intended obstacle-top support at `15°` inclusive.
-- [ ] Require at least `32 px` horizontal support span.
-- [ ] Require complete capsule clearance.
-- [ ] Clamp marker X only to the nearest valid point on the same support.
-- [ ] Skip absent, too-steep, too-narrow, or obstructed placements.
-- [ ] Emit a stable authoring/debug diagnostic.
-- [ ] Never fall back to unrelated highest terrain or ordinary ground.
-- [ ] Preserve face-player, predicted-player-center cast target, world-space
+- [x] Use the common placement query without giving Derf motion authority.
+- [x] Accept solid intended obstacle-top support at `15°` inclusive.
+- [x] Require at least `32 px` horizontal support span.
+- [x] Require complete capsule clearance.
+- [x] Clamp marker X only to the nearest valid point on the same support.
+- [x] Skip absent, too-steep, too-narrow, or obstructed placements.
+- [x] Emit a stable authoring/debug diagnostic.
+- [x] Never fall back to unrelated highest terrain or ordinary ground.
+- [x] Preserve face-player, predicted-player-center cast target, world-space
       cast origin, upright art, and instant death behavior.
+
+Implemented evidence (July 23, 2026):
+
+- `WorldMotionAuthority.resolveSpawnPlacement` preserves legacy placement under
+  `LegacyWorldMotionAuthority` and routes terrain-harness Derf requests through
+  the shared typed placement resolver without adding Derf to dynamic
+  integration.
+- Terrain resolution binds the requested marker X/Y to one canonical solid
+  intended edge, applies Derf's inclusive `15°` profile, requires a full
+  capsule foothold plus an independent `32 px` total perch span, and permits
+  only the query's nearest same-edge clamp.
+- Every attempt returns `terrain-spawn-placement-v1`, including profile,
+  source-selection mode, validity, geometry version, requested/final
+  coordinates, intended/support/blocker IDs, slope, and clamp state.
+  `GameCore.lastSpawnPlacementDiagnostic` exposes the latest record to terrain
+  tests and authoring tools.
+- `TrackStreamer` retains marker placement intent and whether the legacy
+  resolver found that exact kind. Normal legacy fallback remains unchanged;
+  terrain Derf rejects an `obstacleTop` marker that reached highest-surface or
+  ordinary-ground fallback.
 
 Tests:
 
-- [ ] flat, `15°`, and just-over-limit support
-- [ ] exactly `32 px` and just-under-width support
-- [ ] blocked capsule/headroom and adjacent wall
-- [ ] same-support clamp in both directions
-- [ ] no unrelated fallback and stable diagnostic
-- [ ] cast origin/target/facing unchanged on gentle slope
+- [x] flat, `15°`, and just-over-limit support
+- [x] exactly `32 px` and just-under-width support
+- [x] blocked capsule/headroom and adjacent wall
+- [x] same-support clamp in both directions
+- [x] no unrelated fallback and stable diagnostic
+- [x] cast origin/target/facing unchanged on gentle slope
 
 ## 20) Terrain-Dependent Spawn And Item Queries
 
-- [ ] Introduce one placement request/result API with explicit actor/item
+- [x] Introduce one placement request/result API with explicit actor/item
       profile, intended support/source, clamp permission, and failure reason.
-- [ ] Preserve marker iteration, chunk selection, spawn rolls, rejection
+- [x] Preserve marker iteration, chunk selection, spawn rolls, rejection
       attempts, salts, and RNG consumption.
-- [ ] Grounded Grojib/Hashash require eligible same-support full-width
+- [x] Grounded Grojib/Hashash require eligible same-support full-width
       placement and clearance.
-- [ ] Unoco spawn requires clearance at the intended flying point and skips
+- [x] Unoco spawn requires clearance at the intended flying point and skips
       when blocked.
-- [ ] Derf uses §19 only.
-- [ ] Collectible/restoration placement uses player-walkable solid or one-way
+- [x] Derf uses §19 only.
+- [x] Collectible/restoration placement uses player-walkable solid or one-way
       support up to `60°`.
-- [ ] Items require at least `20 px` horizontal support and full AABB
+- [x] Items require at least `20 px` horizontal support and full AABB
       clearance with existing vertical/margin tuning.
-- [ ] Invalid item candidates consume their normal attempt; exhaustion spawns
+- [x] Invalid item candidates consume their normal attempt; exhaustion spawns
       nothing.
-- [ ] Preserve placement-mode intent for `ground`, `highestSurfaceAtX`, and
+- [x] Preserve placement-mode intent for `ground`, `highestSurfaceAtX`, and
       `obstacleTop` without depending on rectangle top faces.
-- [ ] Keep the required player-initial-placement validation query available
+- [x] Keep the required player-initial-placement validation query available
       for Phase 5; do not cut over production level startup here.
+
+Implemented evidence (July 24, 2026):
+
+- `TerrainSpawnPlacementRequest`, profile variants, and
+  `TerrainSpawnPlacementResult` provide one mutation-free authority boundary.
+  Exact `TerrainEdgeId` input bypasses the temporary legacy support-height
+  bridge; physical support selection happens before actor/profile filtering,
+  so invalid intended or highest terrain never falls through to a lower edge.
+- `GameCore` sends every terrain-harness enemy marker through that boundary.
+  Grojib and Hashash use their catalog capsules and traversal limits; ordinary
+  markers may clamp only on the selected edge, deferred Hashash never clamps,
+  Unoco performs clearance only at the authored flying point, and Derf retains
+  its Section 19 obstacle-top policy.
+- `SpawnService` retains its existing count draws, candidate draws, salts,
+  snapping, spacing, attempt limits, marker ordering, and chunk schedule.
+  Under terrain authority, each collectible/restoration candidate selects the
+  physical highest surface first, requires Éloïse-eligible solid or one-way
+  support, a `20 px` total span, exact `yAt(x)`, the existing vertical gap and
+  no-spawn margin, and full upright AABB clearance. Rejection consumes only the
+  attempt already drawn.
+- A steep support may be player-walkable yet still reject a production item if
+  its upright AABB plus the existing `10 px` clearance would clip the uphill
+  side. This is the intended conjunction of support eligibility and full-AABB
+  clearance, not a lower-surface fallback.
+- Normal `GameCore(...)` still commits the historical rectangle candidate.
+  Player initial placement remains on the existing shared placement query and
+  is not switched to streamed terrain before Phase 5.
 
 Tests:
 
-- [ ] all three marker placement modes on flat/sloped/overlapping terrain
-- [ ] enemy profile differences and same-support clamp
-- [ ] item solid/one-way/width/slope/clearance rules
-- [ ] invalid marker does not shift later RNG outcomes
-- [ ] deferred Hashash count/order remains deterministic
-- [ ] repeated and fresh-process spawn results match
+- [x] all three marker placement modes on flat/sloped/overlapping terrain
+- [x] enemy profile differences and same-support clamp
+- [x] item solid/one-way/width/slope/clearance rules
+- [x] invalid marker does not shift later RNG outcomes
+- [x] deferred Hashash count/order remains deterministic
+- [x] repeated and fresh-process spawn results match
+
+Executable evidence:
+
+- `packages/runner_core/test/ecs/terrain_spawn_placement_test.dart`
+- `packages/runner_core/test/ecs/hashash_terrain_placement_test.dart`
+- `packages/runner_core/test/ecs/derf_terrain_placement_test.dart`
+- `test/core/track_streamer_hashash_deferred_spawn_test.dart`
 
 ## 21) Atomic Geometry, Index, Surface, And Graph Publication
 
@@ -659,46 +734,72 @@ Define one immutable versioned terrain runtime bundle for the Phase 3 harness:
 - Hashash graph
 - one shared geometry/graph version
 
-- [ ] Build all derived structures before publication.
-- [ ] Validate shared node identity/order and every profile graph first.
-- [ ] Publish the complete bundle atomically.
-- [ ] Never expose mixed old/new geometry and graph versions during a tick.
-- [ ] AI invalidates stale support/path before reading it.
-- [ ] Motion rejects stale support and resolves against the current bundle.
-- [ ] No-op rebuild signatures remain identical even if version increments.
-- [ ] Controlled spawn/cull replacement removes obsolete adjacency and paths.
-- [ ] Preserve normal `TrackManager` legacy publication until Phase 5.
+- [x] Build all derived structures before publication.
+- [x] Validate shared node identity/order and every profile graph first.
+- [x] Publish the complete bundle atomically.
+- [x] Never expose mixed old/new geometry and graph versions during a tick.
+- [x] AI invalidates stale support/path before reading it.
+- [x] Motion rejects stale support and resolves against the current bundle.
+- [x] No-op rebuild signatures remain identical even if version increments.
+- [x] Controlled spawn/cull replacement removes obsolete adjacency and paths.
+- [x] Preserve normal `TrackManager` legacy publication until Phase 5.
 
 Tests:
 
-- [ ] no-op replacement
-- [ ] add/remove a chunk-side surface
-- [ ] cull the current/target/landing surface
-- [ ] replace support while an enemy is grounded
-- [ ] replace graph during jump/drop execution
-- [ ] identical result independent of rebuild/input ordering
-- [ ] no consumer observes mixed versions
+- [x] no-op replacement
+- [x] add/remove a chunk-side surface
+- [x] cull the current/target/landing surface
+- [x] replace support while an enemy is grounded
+- [x] replace graph during jump/drop execution
+- [x] identical result independent of rebuild/input ordering
+- [x] no consumer observes mixed versions
+
+Implementation notes:
+
+- `TerrainRuntimeBundle` owns immutable geometry, collision index, one shared
+  surface set/index, and the Grojib/Hashash graph publication. Construction
+  validates the exact shared surface-set identity and version before returning.
+- `TerrainMultiBodyWorldMotionAuthority` builds a complete authority
+  publication, including the placement query and all controller/query scratch
+  bound to the bundle, before queueing it. `prepareTick` publishes the one
+  pending reference before support/path preparation; queueing between prepare
+  and integration is a hard failure.
+- Replacement versions increase monotonically. A new version clears retained
+  support, current/last/target surfaces, active edge, cursor, and path before
+  AI. Integration rejects any stale support injected after preparation.
+- `nav-surfaces-v1` and `nav-graphs-v1` omit the runtime version, so a no-op
+  rebuild retains content signatures while all version-local caches still
+  invalidate.
+- Normal `GameCore(...)`, `TrackManager`, and replay-validator construction do
+  not expose or publish the terrain bundle. Only the named terrain harness can
+  queue a replacement.
+
+Executable evidence:
+
+- `packages/runner_core/test/navigation/terrain_runtime_bundle_test.dart`
+- `packages/runner_core/test/ecs/world_motion_authority_test.dart`
+- `packages/runner_core/test/terrain_game_core_harness_test.dart`
 
 ## 22) Consumer And Ordering Audit
 
 For every row, add executable evidence or an explicit later-phase disposition.
 
-| Consumer | Required evidence |
-| --- | --- |
-| enemy navigation | reads prior validated support/version and current graph bundle |
-| grounded locomotion | composes intent before exactly-one terrain integration |
-| gravity/jump | policy-specific and ordered before motion |
-| animation | reads final support and resolved support distance |
-| engagement/melee/cast | world-X targets and derived AABB/origins remain intentional |
-| Hashash teleport | authority-owned clearance, support/path reset, safe fallback |
-| Unoco hover/combat | local terrain reference and final resolved transform |
-| enemy death/cull | final support/AABB and authored cull plane; camera cull unchanged |
-| spawn service | exact placement result, stable diagnostics, unchanged RNG order |
-| track manager | Phase 3 harness bundle only; production legacy disposition |
-| player target prediction | previous support or authoritative sloped landing |
-| snapshots/debug | Core-authored support/path/contact only; no Flame authority |
-| replay validator | normal legacy construction unchanged in Phase 3 |
-| ballistic projectiles | explicit later-phase rejection in terrain harness |
+| Consumer | Required evidence | Executable evidence or disposition |
+| --- | --- | --- |
+| enemy navigation | reads prior validated support/version and current graph bundle | `enemy_navigation_terrain_support_test.dart` fixes the prepared-support seam; `terrain_surface_navigator_test.dart` covers bundle-version support/path invalidation. Production continues to consume its legacy graph until Phase 5. |
+| grounded locomotion | composes intent before exactly-one terrain integration | `ground_enemy_terrain_locomotion_test.dart` and `world_motion_authority_test.dart` cover tangent intent, locks, and the single dispatcher. |
+| gravity/jump | policy-specific and ordered before motion | `terrain_game_core_harness_test.dart`, `ground_enemy_terrain_locomotion_test.dart`, and `world_motion_authority_test.dart` cover player/enemy launch, gravity composition, and flying no-gravity policy. |
+| animation | reads final support and resolved support distance | `enemy_navigation_terrain_support_test.dart` distinguishes prior AI support from final airborne animation; `ground_enemy_terrain_locomotion_test.dart` covers final support distance and seam stability. |
+| engagement/melee/cast | world-X targets and derived AABB/origins remain intentional | `ground_enemy_terrain_locomotion_test.dart`, `test/core/enemy_engagement_system_test.dart`, and `test/core/ground_enemy_melee_facing_lock_test.dart`. |
+| Hashash teleport | authority-owned clearance, support/path reset, safe fallback | `hashash_terrain_placement_test.dart` plus legacy `test/core/hashash_teleport_ambush_test.dart`. |
+| Unoco hover/combat | local terrain reference and final resolved transform | `flying_enemy_terrain_locomotion_test.dart` plus legacy `test/core/flying_enemy_steering_test.dart` and `test/core/enemy_attacks_test.dart`. |
+| enemy death/cull | final support/AABB and authored cull plane; camera cull unchanged | `ground_enemy_terrain_locomotion_test.dart` covers landing/timeout; `world_motion_authority_test.dart` covers death/fall policies. Camera culling remains the unchanged AABB consumer until Phase 5. |
+| spawn service | exact placement result, stable diagnostics, unchanged RNG order | `terrain_spawn_placement_test.dart`, `hashash_terrain_placement_test.dart`, and `test/core/track_streamer_spawn_placement_test.dart`. |
+| track manager | Phase 3 harness bundle only; production legacy disposition | `terrain_game_core_harness_test.dart` proves normal construction rejects replacement; production `TrackManager` still publishes rectangle geometry/legacy graphs. |
+| player target prediction | previous support or authoritative sloped landing | `terrain_surface_navigator_test.dart` and `terrain_trajectory_predictor_test.dart`. ECS production targeting remains legacy until Phase 5. |
+| snapshots/debug | Core-authored support/path/contact only; no Flame authority | `terrain_game_core_harness_test.dart` covers immutable Core terrain debug and final snapshot support/animation. |
+| replay validator | normal legacy construction unchanged in Phase 3 | `services/replay_validator/test/validator_worker_test.dart`; validator calls normal `GameCore(...)`, and no replay contract selects the harness. |
+| ballistic projectiles | explicit later-phase rejection in terrain harness | `world_motion_authority_test.dart` expects `ballisticProjectileUnsupported`; projectile terrain cutover remains Phase 5. |
 
 Frozen high-level tick order:
 
@@ -711,10 +812,18 @@ Frozen high-level tick order:
 7. downstream combat, death/cull, animation, snapshots, and debug read their
    documented state
 
-- [ ] Add an ordering test that fails if AI reads current-tick support before
+- [x] Add an ordering test that fails if AI reads current-tick support before
       motion.
-- [ ] Add an ordering test that fails if animation reads stale support.
-- [ ] Add an exactly-once audit with multiple enemy policies.
+- [x] Add an ordering test that fails if animation reads stale support.
+- [x] Add an exactly-once audit with multiple enemy policies.
+
+The ordering seam is exercised by
+`enemy_navigation_terrain_support_test.dart`: navigation observes the prepared
+grounded state, the test publishes an airborne final motion state, and
+animation must select `fall`. The mixed-policy audit in
+`world_motion_authority_test.dart` dispatches player, Grojib, Hashash, and
+Unoco exactly once while Derf remains kinematic and unsupported ballistics
+remain rejected.
 
 ## 23) Deterministic Signatures And Scenario Matrix
 
@@ -728,12 +837,12 @@ Add reviewed versioned signatures:
 
 Signature rules:
 
-- [ ] serialize canonical integers/IDs/enums, never formatted platform doubles
-- [ ] include explicit schema/version prefixes
-- [ ] generate in Core only
-- [ ] compare against committed reviewed SHA-256 files
-- [ ] prove fresh object, input permutation, and fresh-process parity
-- [ ] never update a golden merely because a test failed
+- [x] serialize canonical integers/IDs/enums, never formatted platform doubles
+- [x] include explicit schema/version prefixes
+- [x] generate in Core only
+- [x] compare against committed reviewed SHA-256 files
+- [x] prove fresh object, input permutation, and fresh-process parity
+- [x] never update a golden merely because a test failed
 
 Required scenario IDs:
 
@@ -755,6 +864,31 @@ Required scenario IDs:
 | `SG-E14` | controlled geometry replacement while grounded, navigating, and airborne |
 | `SG-E15` | all Phase 3 signatures repeat across fresh processes |
 
+All scenarios use seed `0x3E71`. The Core-owned canonical serializer records
+the fixture ID, sorted actor profiles, ordered command/AI schedule, quantized
+checkpoints, named outcomes, and explicit legacy disposition for every row.
+`enemy_terrain_signatures_test.dart` proves fresh-object, reversed polygon and
+scenario input, reviewed-golden, mutation, completeness, and two-fresh-process
+parity.
+
+| ID | Fixture | Transition/final evidence and direct assertion |
+| --- | --- | --- |
+| `SG-E01` | `flat-45-flat-v1` | Grojib crosses the inclusive `45°` face in both directions, stays supported, and finishes on both requested flats. |
+| `SG-E02` | `shared-60-route-v1` | The same node is ineligible in the Grojib graph and eligible in the Hashash graph; Hashash executes the route grounded. |
+| `SG-E03` | `step-snap-4-vs-5-v1` | Grojib and Hashash activate step/snap on the lower-to-upper transition at exactly `4 px`; the `5 px` transition never activates either helper. |
+| `SG-E04` | `peak-valley-seams-v1` | Same-chain pursuit crosses exact chunk seams, peaks, and valleys without a direction reversal before arrival. |
+| `SG-E05` | `sloped-jump-drop-v1` | The Hashash graph emits quantized jump and committed-drop edges between separated sloped/lower supports; jump landing is replayed through the shared predictor and drop retains its swept descent/landing record. |
+| `SG-E06` | `solid-one-way-mask-v1` | One-way top support is retained, vertical wall faces are absent from navigation nodes, and solid edge policy remains signature-visible. |
+| `SG-E07` | `target-seam-airborne-invalidation-v1` | A Hashash airborne query predicts the sloped landing; a version change then clears current/last/target surfaces, active edge, cursor, and path after the recorded seam schedule. |
+| `SG-E08` | `hashash-teleport-transaction-v1` | Primary and mirrored commits succeed; wall, ceiling, slope, and concave double-blockers cancel to retained state with unchanged RNG. |
+| `SG-E09` | `unoco-terrain-flight-v1` | Local sloped hover, solid sweep contact, one-way pass-through, and bounded deterministic clearance selection all execute through the flying authority. |
+| `SG-E10` | `derf-perch-cast-v1` | Flat/`15°` perches accept, over-limit rejects, and the accepted slope preserves ability, aim point, execute tick, facing, and instant-death semantics. |
+| `SG-E11` | `shared-spawn-placement-v1` | Grounded, item, flying, and exact-edge deferred diagnostics remain canonical under permutation with zero replacement RNG draws; existing stream tests retain iteration/roll order. |
+| `SG-E12` | `locks-status-death-cull-v1` | Move/nav/stun locking, composed status speed, landing death, timeout death, and ordinary cull all preserve their existing outcomes. |
+| `SG-E13` | `representative-mixed-enemies-v1` | `8` Grojib, `8` Hashash, `4` Unoco, and `4` Derf run for `90` ticks; exactly `20` dynamic enemy bodies integrate and all `24` final states are recorded. |
+| `SG-E14` | `atomic-bundle-replacement-v1` | Three version-`23` authorities publish version `24` while grounded, navigating, and airborne; stale paths clear before continued motion. |
+| `SG-E15` | `fresh-process-parity-v1` | Two new Dart processes independently reproduce `nav-surfaces-v1`, `nav-graphs-v1`, and `enemy-terrain-run-v1`. |
+
 For each scenario, record:
 
 - fixture and seed
@@ -771,18 +905,18 @@ Extend the existing benchmark rather than creating an unrelated timing format.
 
 Measure separately:
 
-- [ ] shared surface extraction/index build
-- [ ] Grojib graph build
-- [ ] Hashash graph build
-- [ ] both grounded-enemy graphs from one shared surface set
-- [ ] combined terrain index plus both graph variants
-- [ ] supported Grojib and Hashash terrain solves
-- [ ] jump/drop multi-contact solves
-- [ ] Unoco blocked-flight solve and clearance steering
-- [ ] steady-state navigator update with and without repath
-- [ ] trajectory prediction
-- [ ] complete representative mixed-enemy Core tick
-- [ ] controlled streamed-bundle replacement
+- [x] shared surface extraction/index build
+- [x] Grojib graph build
+- [x] Hashash graph build
+- [x] both grounded-enemy graphs from one shared surface set
+- [x] combined terrain index plus both graph variants
+- [x] supported Grojib and Hashash terrain solves
+- [x] jump/drop multi-contact solves
+- [x] Unoco blocked-flight solve and clearance steering
+- [x] steady-state navigator update with and without repath
+- [x] trajectory prediction
+- [x] complete representative mixed-enemy Core tick
+- [x] controlled streamed-bundle replacement
 
 Representative fixture:
 
@@ -804,22 +938,59 @@ Hard-stream fixture:
 
 Frozen gates:
 
-- [ ] enemy candidates p95 `<=24`, p99 `<=64`
-- [ ] dynamic actor solve p95 `<=75 us`, p99 `<=150 us`
-- [ ] one enemy-profile graph build p95 `<=5 ms`, p99 `<=10 ms`
-- [ ] both grounded-enemy graphs p95 `<=20 ms`, p99 `<=35 ms`
-- [ ] combined index + graph rebuild p95 `<=35 ms`, p99 `<=50 ms`
-- [ ] representative whole-Core slope tick p99 `<=2 ms`
-- [ ] representative whole-Core hard gate p99 `<4 ms`
-- [ ] terrain adds `<=25%` versus the matched flat fixture
-- [ ] zero steady-state terrain-query/controller allocations per dynamic actor
-- [ ] zero steady-state query-buffer growth after warmup
-- [ ] bounded controller, predictor, steering, A*, and graph-build loops
-- [ ] no candidate/path/edge truncation
+- [x] enemy candidates p95 `<=24`, p99 `<=64`
+- [x] dynamic actor solve p95 `<=75 us`, p99 `<=150 us`
+- [x] one enemy-profile graph build p95 `<=5 ms`, p99 `<=10 ms`
+- [x] both grounded-enemy graphs p95 `<=20 ms`, p99 `<=35 ms`
+- [x] combined index + graph rebuild p95 `<=35 ms`, p99 `<=50 ms`
+- [x] representative whole-Core slope tick p99 `<=2 ms`
+- [x] representative whole-Core hard gate p99 `<4 ms`
+- [x] terrain adds `<=25%` versus the matched flat fixture
+- [x] zero steady-state terrain-query/controller allocations per dynamic actor
+- [x] zero steady-state query-buffer growth after warmup
+- [x] bounded controller, predictor, steering, A*, and graph-build loops
+- [x] no candidate/path/edge truncation
 
 Every report records revision, dirty flag, OS/runtime, fixture/signatures,
 warmup, sample count, p50/p95/p99/max, candidates, graph nodes/edges, rebuild
 counts, allocation evidence, buffer growth, diagnostics, and per-gate result.
+
+Implemented evidence:
+
+- `tool/src/slopes_phase3_benchmark_fixture.dart` owns the reusable functional
+  five-chunk/1,280-edge and hard 5,120-edge fixtures. Nonfunctional capacity
+  edges are distant, non-walkable detail and cannot create fake jump origins.
+- `tool/benchmark_slopes_phase3.dart` emits the same JSON evidence shape as the
+  accepted Phase 1/2 tools and rejects any frozen gate under `--strict`.
+- `test/performance/slopes_phase3_benchmark_fixture_test.dart` fixes fixture
+  identity, graph counts, `8/8/4/4` integration, warmed storage, hard-stream
+  capacity, and no-truncation behavior.
+- the exact controller allocation loop is profiled separately under the VM
+  service. Paired 500-iteration trials report zero `_Double`, `_Mint`, terrain,
+  capsule, record, or wrapper allocations and `0.0` allocations per solve.
+- acceptance timing uses a compiled product executable, 100 rebuild samples,
+  500 hot warmups, 5,000 controller/navigation samples, 10,000 hard queries,
+  four balanced 1,000-tick flat/slope runs, and the frozen gates above.
+
+Accepted July 28 product-AOT report (`85b5b902`, dirty working tree, Windows
+`10.0.26200`, Dart `3.11.5`):
+
+| Measurement | p95 | p99 | Frozen gate |
+| --- | ---: | ---: | ---: |
+| Grojib graph build | `1.964 ms` | `2.713 ms` | `5/10 ms` |
+| Hashash graph build | `1.553 ms` | `1.803 ms` | `5/10 ms` |
+| Both ground-enemy graphs | `3.048 ms` | `3.339 ms` | `20/35 ms` |
+| Combined terrain bundle | `6.219 ms` | `6.971 ms` | `35/50 ms` |
+| Hard 5,120-edge index build | `6.199 ms` | `8.079 ms` | p99 `50 ms` |
+| Supported ground solve | `26 us` | `48 us` | `75/150 us` |
+| Blocked flying solve | `29 us` | `68 us` | `75/150 us` |
+| Whole-Core slope tick | `805 us` | `1,134 us` | p99 `2/4 ms` |
+
+The combined candidate distribution is p95 `3` and p99 `4`; every warmed
+query-buffer delta is zero. The matched slope fixture is `0.02%` faster than
+flat in this balanced run, well inside the `25%` ceiling. The separate paired
+VM profile reports zero tracked hot-loop instances and `0.0` allocations per
+solve. Every strict report gate is `true`.
 
 ## 25) Implementation Findings
 
@@ -848,6 +1019,17 @@ accepted gameplay.
 | Reusing world-X velocity as the acceleration state on a slope makes authored speed depend on tangent X and can retain stale slope Y while reversing or stopping. | Grounded enemy locomotion projects final velocity onto the positive-world-X support tangent, applies existing tuning in signed scalar surface-speed space, then emits one tangent vector for terrain authority. | Future status/AI speed modifiers stay upstream of terrain projection; they must not add a second incline curve. |
 | An unchecked teleport write cannot safely validate two candidates because the first rejected point would already have destroyed the retained transform/history. | World motion now exposes begin, exact-candidate commit, and cancel operations. Begin retains the last valid body/capsule-facing transform and clears support/path; only a valid placement result mutates the destination. | Future teleports must use the transactional authority contract instead of writing transforms around a clearance query. |
 | Deferred Hashash requests were indistinguishable from ordinary authored marker spawns at the `GameCore` callback. | `SpawnEnemyRequest` now carries deterministic source provenance; only `deferredHashashEdge` binds its exact body-X/requested-Y point to one canonical intended edge and runs the full-width grounded placement query there. Rejection consumes the pending request without relocation or replacement RNG. | Phase 5 terrain streaming can replace the legacy surface hint with exact terrain source identity without changing spawn ordering or failure policy. |
+| Terrain contact blockers are transient and reset before AI, while blocked flying steering must react on the following tick. | The authority copies only Unoco's final blocked bit and first canonical solid normal into its persistent steering store after integration. Clearance consumes that prior result, previews four fixed vectors for six ticks, and holds a selected detour for 12 ticks unless a new solid contact re-evaluates it. | Future flying profiles can reuse the authority contract without reading cleared contact state, adding RNG, or gaining a second transform writer. |
+| The common foothold fraction alone cannot express Derf's 32-pixel perch margin: treating 32 pixels as capsule contact width would over-constrain an exactly 32-pixel support. | `TerrainGroundPlacementRequest.minimumSupportSpanTicks` is independent of the existing foothold requirement and reserves half the total span on each edge. Derf combines a full capsule foothold with a 32-pixel total span, so an exact perch accepts only its midpoint. | Section 20 item placement can reuse the independent absolute-span contract without changing grounded runtime foothold semantics. |
+| A player-walkable steep support does not guarantee that an upright item using the existing vertical clearance fits above it. | Item placement first accepts support through Éloïse's inclusive 60-degree profile, then independently tests the complete margin-expanded AABB. A clipping candidate is terminal and consumes its normal attempt. | Content authoring may increase local clearance or choose gentler item-bearing surfaces; runtime must not rotate the pickup or search beneath an invalid highest surface. |
+| Publishing geometry and graph objects alone would still leave controller, spawn, and flying-query scratch bound to the old indexes. | The authority queues a complete publication wrapper containing the immutable runtime bundle plus every geometry-bound controller/query scratch object, then swaps that one wrapper at `prepareTick`. | Phase 5 streaming must preserve this publication unit and must not rebuild controller/index state lazily inside consumers. |
+| The terrain graph needs the same jump templates and speed tuning as the legacy graph, but world-motion authority construction previously happened before system/template initialization. | GameCore now creates the existing ground-enemy jump templates before authority selection and supplies those exact templates to both the terrain graph profiles and legacy TrackManager setup. | Production cutover can compare graph outputs without maintaining parallel reachability tuning or changing normal construction behavior. |
+| Lifting by exactly the authored step height makes an inclusive `4 px` ledge appear as endpoint tangency, while capsule corner motion can otherwise activate a helper after crossing a `5 px` discontinuity. | Step preview adds deterministic skin/epsilon clearance, accepts an eligible endpoint only after comparing source/destination surface height, and applies the same geometric-height cap to snap transitions. Exact `4 px` accepts and `5 px` never activates the helper for both grounded enemies. | Future profile limits must test the inclusive boundary and the first rejected grid value, not only an interior `3 px` example. |
+| Filling a performance fixture with ordinary walkable polygons silently creates graph nodes and jump origins that are not part of the intended workload. | The accepted fixture uses functional terrain for graph/navigation behavior and distant over-limit detail only for edge/index capacity. Exact fixture signatures and counts are tested. | Future benchmarks must prove their synthetic capacity geometry cannot participate in gameplay systems being measured. |
+| Persisting every edge-to-cell membership as object records made the 5,120-edge hard rebuild spend memory and time on evidence needed only by golden serialization. | `TerrainEdgeIndex` stores only runtime buckets and derives canonical membership records on demand from immutable edge bounds. | Phase 5 streaming should keep diagnostic serialization outside query/rebuild hot storage. |
+| Replacing one boxed retained-support `double` with naïve squared integer math introduced three boxed `_Mint` values per solve; multiplying a long edge length by the fractional scale also overflowed signed 64-bit arithmetic. | Edges now precompute bounded GCD-reduced projection factors and a conservative 1/1024-tick ceiling length without scaled-square multiplication. Long 3,000-unit support, endpoint, and full-kernel parity tests protect the fix; the profiler tracks both `_Double` and `_Mint`. | Fixed-point optimization is accepted only with allocation traces and long-coordinate tests, not by assuming integer expressions stay unboxed. |
+| Skipping continuous sweep for every walkable candidate improved timing but changed the reviewed enemy-run digest because neighboring/overlapping support contacts are gameplay-significant. | Grounded motion skips only its already-retained support edge. Every neighboring or unrelated face remains in canonical sweep/contact selection, and all three reviewed signatures remain unchanged. | Later optimizations must use the scenario digest as a semantic guardrail and may not rewrite goldens to hide support-selection drift. |
+| Unoco's local hover query rescanned every geometry edge for the same immutable maximum Y, multiplying a topology-wide operation by every flying actor and tick. | The authority publication now computes minimum/maximum terrain Y once beside the immutable bundle and every geometry-bound query scratch. Player placement and flying reference queries reuse those version-local bounds. | Phase 5 streamed publication must rebuild aggregate geometry bounds once with the bundle; per-actor queries must not rediscover topology-wide facts. |
 
 ## 26) Documentation
 
@@ -885,8 +1067,11 @@ Do not document the Phase 3 harness as normal production authority.
 | July 22, 2026 / working tree post-multi-body-motion | Focused world-motion authority and terrain-harness tests; root/package analysis; full package `dart test`; `flutter test test/core`; diff check | Same baseline environment | PASS: `14` focused authority, `223` package, and `432` root Core tests; analyzers and diff check clean |
 | July 23, 2026 / working tree post-ground-enemy-locomotion | Focused grounded-enemy terrain locomotion and prepared-support navigation tests; root/package analysis; full package `dart test`; `flutter test test/core` | Same baseline environment | PASS: `11` focused, `234` package, and `432` root Core tests; analyzers clean |
 | July 23, 2026 / working tree post-Hashash-placement | Hashash terrain placement, world-motion authority, legacy ambush, and deferred-streamer tests; root/package analysis; full package `dart test`; `flutter test test/core`; final exact-intended-edge refinement followed by package full and root focused reruns | Same baseline environment | PASS: `19` package-focused, `4` root-focused, `239` full package, and `432` root Core tests; final rerun kept `239` package and `4` focused root tests green; analyzers clean |
+| July 26, 2026 / working tree post-atomic-publication/audit | Runtime-bundle, world-motion replacement, prepared-support/final-animation ordering, and terrain-harness input-order tests; package/root analysis; full package `dart test`; `flutter test test/core --reporter compact`; diff check | Same baseline environment | PASS: `51` focused, `278` full package, and `432` root Core tests; package analyzer clean; root analyzer reports only the pre-existing unrelated `use_null_aware_elements` info in `services/replay_validator/lib/src/run_session_repository.dart:447` |
+| July 27, 2026 / working tree post-scenario-signatures | Exact `4/5 px` controller boundary tests; `105` focused terrain/enemy tests; reviewed signature print; package/root analysis; full package `dart test`; `flutter test test/core --reporter compact`; replay-validator analysis + full tests; `git diff --check` | Windows `10.0.26200` X64; Dart `3.11.5`; Flutter `3.41.7` | PASS: package analyzer clean; `283` full package, `432` root Core, and `78` replay-validator tests; three reviewed hashes repeat across reversed input and two fresh processes; root analyzer reports only the same pre-existing unrelated `use_null_aware_elements` info |
+| July 28, 2026 / `85b5b902` dirty working tree, Phase 3 acceptance | Compiled `benchmark_slopes_phase3.dart --strict`; paired VM allocation profile; package/root/validator analysis; full package, root Core, and validator tests; reviewed signature helper; diff check | Windows `10.0.26200` X64; Dart `3.11.5`; Flutter `3.41.7`; compiled-product benchmark | PASS: every frozen benchmark gate; zero tracked controller allocations and buffer growth; `291` package, `432` root Core, and `78` validator tests; all reviewed hashes unchanged. Package/validator analyzers are clean; root analysis retains only the pre-existing unrelated `use_null_aware_elements` info. |
 
-Planned final validation:
+Final validation commands:
 
 ```powershell
 dart analyze
@@ -894,9 +1079,14 @@ dart analyze packages/runner_core
 
 Push-Location packages/runner_core
 dart test
-dart test test/navigation/sloped_graph_golden_test.dart
-dart test test/enemies/terrain_enemy_harness_test.dart
-dart run tool/benchmark_slopes_phase3.dart --strict
+dart compile exe tool/benchmark_slopes_phase3.dart `
+  -o .tmp/slopes-phase3.exe
+.\.tmp\slopes-phase3.exe --strict `
+  --json-out=.tmp/slopes-phase3-final.json
+dart --observe=0 run tool/benchmark_slopes_phase2.dart `
+  --warmup=10 --iterations=10 --harness-iterations=10 `
+  --allocation-profile --allocation-iterations=500 `
+  --json-out=.tmp/slopes-phase2-allocation-final.json
 Pop-Location
 
 flutter test test/core
@@ -907,30 +1097,32 @@ dart test test
 Pop-Location
 ```
 
-The exact focused test paths may be split during implementation, but the
-complete package/root/validator suites and benchmark evidence are mandatory.
+The allocation invocation deliberately uses small ordinary timing samples:
+its acceptance evidence is the isolated paired heap profile, while timing
+acceptance comes only from the compiled Phase 3 executable with default sample
+counts.
 
 ## 28) Exit Gate
 
-- [ ] All four current enemies have explicit tested terrain policies.
-- [ ] Shared sloped surface nodes/identity/order are deterministic.
-- [ ] Grojib and Hashash graph variants differ only by eligibility/edges.
-- [ ] Collision and navigation agree on slopes, step/snap, one-way, clearance,
+- [x] All four current enemies have explicit tested terrain policies.
+- [x] Shared sloped surface nodes/identity/order are deterministic.
+- [x] Grojib and Hashash graph variants differ only by eligibility/edges.
+- [x] Collision and navigation agree on slopes, step/snap, one-way, clearance,
       jump, and drop feasibility.
 - [x] Grounded enemy locomotion and animation use final support correctly.
 - [x] Hashash teleport/deferred spawn cannot embed or silently relocate.
-- [ ] Unoco cannot tunnel, ground on one-way terrain, phase, or teleport around
+- [x] Unoco cannot tunnel, ground on one-way terrain, phase, or teleport around
       blockers.
-- [ ] Derf placement enforces slope, width, same-support, and clearance rules.
-- [ ] Spawn/item placement and RNG ordering pass.
-- [ ] Geometry/graph bundle replacement is atomic and invalidates stale state.
-- [ ] All `SG-E01` through `SG-E15` scenarios pass.
-- [ ] All reviewed signatures match across fresh instances/processes.
-- [ ] Allocation, capacity, and performance gates pass.
-- [ ] Normal production and replay construction remain legacy and unchanged.
-- [ ] Full Core, root gameplay, and replay-validator validation passes.
-- [ ] Documentation describes implemented Phase 3 behavior accurately.
-- [ ] Implementation findings are reviewed before Phase 4 work begins.
+- [x] Derf placement enforces slope, width, same-support, and clearance rules.
+- [x] Spawn/item placement and RNG ordering pass.
+- [x] Geometry/graph bundle replacement is atomic and invalidates stale state.
+- [x] All `SG-E01` through `SG-E15` scenarios pass.
+- [x] All reviewed signatures match across fresh instances/processes.
+- [x] Allocation, capacity, and performance gates pass.
+- [x] Normal production and replay construction remain legacy and unchanged.
+- [x] Full Core, root gameplay, and replay-validator validation passes.
+- [x] Documentation describes implemented Phase 3 behavior accurately.
+- [x] Implementation findings are reviewed before Phase 4 work begins.
 
 Only after every exit item is checked and evidence is accepted may Phase 4
 polygon authoring/schema implementation planning begin.

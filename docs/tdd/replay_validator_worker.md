@@ -183,21 +183,33 @@ Outputs `ValidatedRun(accepted: true, ...)`.
 ## 5) Side effects after validation
 
 On accepted run:
-1. Atomically persist `validated_runs/<runSessionId>`, update the matching
+1. Copy the exact finalized upload generation to the validator-owned immutable
+   `replay-submissions/validated/<runSessionId>.bin.gz` path using source and
+   destination generation preconditions. The accepted handoff records both
+   source and sealed-artifact lineage in the run session; a pre-handoff copy
+   left behind by a crashed worker is verified and reused on retry.
+2. Atomically persist `validated_runs/<runSessionId>`, update the matching
    `reward_grants/<runSessionId>` to `settlement_pending`, and update the run
    session to `settlement_pending` with
    `settlementRepairDisposition = retryable`.
-2. Request the private `runSettlementImmediate` Functions endpoint with the
+3. Request the private `runSettlementImmediate` Functions endpoint with the
    Cloud Run service identity and only the run-session id. The endpoint invokes
    the Functions-owned settlement transaction; it never accepts client reward
    values.
-3. If that bounded request fails, times out, or races another delivery, leave
+4. If that bounded request fails, times out, or races another delivery, leave
    the durable handoff unchanged. The retry-enabled Firestore/Eventarc
    dispatcher and scheduled stale-pending repair invoke the same transaction.
-4. A Firestore-triggered Cloud Task independently invokes `/tasks/project` for
+5. A Firestore-triggered Cloud Task independently invokes `/tasks/project` for
    board modes. That task projects leaderboard top/player-best state and then
    updates ghost artifacts/manifests. A failure returns HTTP 503 for Cloud
    Tasks retry; it never re-enters replay validation or changes payout state.
+
+Pending-object cleanup may delete an old upload only when it has no matching
+run session, belongs to an unfinalized/expired session, or the accepted session
+has recorded its sealed validated artifact. It must preserve validating and
+unarchived source evidence. Non-Top-10 validated artifacts keep the 15-day
+retention policy; an active ghost is instead pinned by its independently durable
+`ghosts/...` generation.
 
 Leaderboard projection uses conditional compare-and-replace for player best
 and an update-time precondition for the top-10 materialized view. A duplicate
@@ -387,8 +399,10 @@ defines four label-free log metrics and ten alert policies covering:
 - validation and projection queue backlog;
 - scheduled validation-repair and projection-reconciliation failures.
 
-Validation backlog alerts after 15 minutes and projection backlog after
-30 minutes, beyond normal dispatch/reconciliation cadence. Alerts reuse the
+Validation backlog alerts after 30 minutes during pre-release cost containment
+and projection backlog after 30 minutes, beyond normal
+dispatch/reconciliation cadence. Before public release, remeasure validation
+recovery and restore its production alert threshold. Alerts reuse the
 production notification channel and are reconciled idempotently by
 `monitoring/apply_alerts.ps1`.
 
@@ -403,6 +417,11 @@ Only after validator acceptance does the independent projection pipeline:
 - publish/refresh ghost manifests via `GhostPublisher`.
 
 So ghost runs are downstream of validator success, not client-side upload success.
+When an active manifest's source lineage, digest, and promoted ghost generation
+match a current top entry, reconciliation verifies that pinned ghost generation
+and acknowledges it without rereading a short-lived source artifact. If the
+ghost is absent, source evidence is still required to repair it; a missing
+source and ghost remains a retryable integrity failure.
 
 ---
 

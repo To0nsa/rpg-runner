@@ -284,19 +284,105 @@ void main() {
       expect(harness.authority.lastIntegratedBodyCount, 0);
     });
 
-    test('geometry replacement invalidates affected support and paths', () {
+    test(
+      'atomic geometry replacement invalidates support and every path key',
+      () {
+        final harness = _terrainHarness();
+        final grojib = _spawnEnemy(
+          harness.world,
+          EnemyId.grojib,
+          x: 150,
+          velocityY: 60,
+        );
+        final hashash = _spawnEnemy(
+          harness.world,
+          EnemyId.hashash,
+          x: 210,
+          velocityY: 60,
+        );
+        harness.authority.prepareTick(
+          harness.world,
+          player: harness.player,
+          currentTick: 1,
+        );
+        _stepAuthority(harness, currentTick: 1);
+        for (final enemy in <int>[grojib, hashash]) {
+          final contactIndex = harness.world.terrainContact.indexOf(enemy);
+          expect(harness.world.terrainContact.grounded[contactIndex], isTrue);
+          final navIndex = harness.world.surfaceNav.indexOf(enemy);
+          harness.world.surfaceNav.graphVersion[navIndex] = 1;
+          harness.world.surfaceNav.currentSurfaceId[navIndex] = 4;
+          harness.world.surfaceNav.lastGroundSurfaceId[navIndex] = 5;
+          harness.world.surfaceNav.targetSurfaceId[navIndex] = 6;
+          harness.world.surfaceNav.activeEdgeIndex[navIndex] = 7;
+          harness.world.surfaceNav.pathCursor[navIndex] = 1;
+          harness.world.surfaceNav.pathEdges[navIndex].addAll(<int>[7, 8]);
+        }
+
+        final oldSurfaceSignature = harness.authority.terrainRuntimeBundle
+            .surfaceSignature();
+        final oldGraphSignature = harness.authority.terrainRuntimeBundle
+            .graphSignature();
+        harness.authority.queueTerrainGeometryReplacement(
+          _terrainGeometry(version: 2),
+        );
+        expect(harness.authority.terrainGeometryVersion, 1);
+        expect(harness.authority.terrainRuntimeBundle.version, 1);
+
+        harness.authority.prepareTick(
+          harness.world,
+          player: harness.player,
+          currentTick: 2,
+        );
+
+        final published = harness.authority.terrainRuntimeBundle;
+        expect(published.version, 2);
+        expect(published.surfaceIndex.geometryVersion, 2);
+        expect(published.graphPublication.geometryVersion, 2);
+        expect(
+          identical(published.surfaceIndex.surfaceSet, published.surfaceSet),
+          isTrue,
+        );
+        expect(
+          identical(
+            published.graphPublication.surfaceSet,
+            published.surfaceSet,
+          ),
+          isTrue,
+        );
+        expect(published.surfaceSignature(), oldSurfaceSignature);
+        expect(published.graphSignature(), oldGraphSignature);
+
+        for (final entity in <int>[harness.player, grojib, hashash]) {
+          final contactIndex = harness.world.terrainContact.indexOf(entity);
+          expect(harness.world.terrainContact.grounded[contactIndex], isFalse);
+          expect(
+            harness.world.terrainContact.supportEdgeId[contactIndex],
+            isNull,
+          );
+        }
+        for (final enemy in <int>[grojib, hashash]) {
+          final navIndex = harness.world.surfaceNav.indexOf(enemy);
+          expect(harness.world.surfaceNav.graphVersion[navIndex], -1);
+          expect(harness.world.surfaceNav.currentSurfaceId[navIndex], -1);
+          expect(harness.world.surfaceNav.lastGroundSurfaceId[navIndex], -1);
+          expect(harness.world.surfaceNav.targetSurfaceId[navIndex], -1);
+          expect(harness.world.surfaceNav.activeEdgeIndex[navIndex], -1);
+          expect(harness.world.surfaceNav.pathCursor[navIndex], 0);
+          expect(harness.world.surfaceNav.pathEdges[navIndex], isEmpty);
+        }
+      },
+    );
+
+    test('airborne active-edge state is culled before replacement AI', () {
       final harness = _terrainHarness();
-      final grojib = _spawnEnemy(
-        harness.world,
-        EnemyId.grojib,
-        x: 150,
-        velocityY: 60,
-      );
       final hashash = _spawnEnemy(
         harness.world,
         EnemyId.hashash,
         x: 210,
-        velocityY: 60,
+        bodyY: 20,
+        velocityX: 80,
+        velocityY: -120,
       );
       harness.authority.prepareTick(
         harness.world,
@@ -304,44 +390,75 @@ void main() {
         currentTick: 1,
       );
       _stepAuthority(harness, currentTick: 1);
-      for (final enemy in <int>[grojib, hashash]) {
-        final contactIndex = harness.world.terrainContact.indexOf(enemy);
-        expect(harness.world.terrainContact.grounded[contactIndex], isTrue);
-        final navIndex = harness.world.surfaceNav.indexOf(enemy);
-        harness.world.surfaceNav.graphVersion[navIndex] = 1;
-        harness.world.surfaceNav.currentSurfaceId[navIndex] = 4;
-        harness.world.surfaceNav.pathEdges[navIndex].addAll(<int>[7, 8]);
-      }
+      final contactIndex = harness.world.terrainContact.indexOf(hashash);
+      expect(harness.world.terrainContact.grounded[contactIndex], isFalse);
+      final navIndex = harness.world.surfaceNav.indexOf(hashash);
+      harness.world.surfaceNav.graphVersion[navIndex] = 1;
+      harness.world.surfaceNav.currentSurfaceId[navIndex] = 4;
+      harness.world.surfaceNav.lastGroundSurfaceId[navIndex] = 5;
+      harness.world.surfaceNav.targetSurfaceId[navIndex] = 6;
+      harness.world.surfaceNav.activeEdgeIndex[navIndex] = 7;
+      harness.world.surfaceNav.pathCursor[navIndex] = 1;
+      harness.world.surfaceNav.pathEdges[navIndex].addAll(<int>[7, 8]);
 
-      final replacement = TerrainMultiBodyWorldMotionAuthority(
-        geometry: _terrainGeometry(version: 2),
-        playerProfile:
-            harness.world.terrainTraversalProfile.profile[harness
-                .world
-                .terrainTraversalProfile
-                .indexOf(harness.player)],
+      harness.authority.queueTerrainGeometryReplacement(
+        _terrainGeometry(version: 2),
       );
-      replacement.prepareTick(
+      harness.authority.prepareTick(
         harness.world,
         player: harness.player,
         currentTick: 2,
       );
 
-      for (final entity in <int>[harness.player, grojib, hashash]) {
-        final contactIndex = harness.world.terrainContact.indexOf(entity);
-        expect(harness.world.terrainContact.grounded[contactIndex], isFalse);
-        expect(
-          harness.world.terrainContact.supportEdgeId[contactIndex],
-          isNull,
-        );
-      }
-      for (final enemy in <int>[grojib, hashash]) {
-        final navIndex = harness.world.surfaceNav.indexOf(enemy);
-        expect(harness.world.surfaceNav.graphVersion[navIndex], -1);
-        expect(harness.world.surfaceNav.currentSurfaceId[navIndex], -1);
-        expect(harness.world.surfaceNav.pathEdges[navIndex], isEmpty);
-      }
+      expect(harness.world.surfaceNav.graphVersion[navIndex], -1);
+      expect(harness.world.surfaceNav.currentSurfaceId[navIndex], -1);
+      expect(harness.world.surfaceNav.lastGroundSurfaceId[navIndex], -1);
+      expect(harness.world.surfaceNav.targetSurfaceId[navIndex], -1);
+      expect(harness.world.surfaceNav.activeEdgeIndex[navIndex], -1);
+      expect(harness.world.surfaceNav.pathCursor[navIndex], 0);
+      expect(harness.world.surfaceNav.pathEdges[navIndex], isEmpty);
     });
+
+    test(
+      'replacement cannot publish mid-tick and motion rejects stale support',
+      () {
+        final harness = _terrainHarness();
+        harness.authority.prepareTick(
+          harness.world,
+          player: harness.player,
+          currentTick: 1,
+        );
+        expect(
+          () => harness.authority.queueTerrainGeometryReplacement(
+            _terrainGeometry(version: 2),
+          ),
+          throwsStateError,
+        );
+        _stepAuthority(harness, currentTick: 1);
+
+        harness.authority.queueTerrainGeometryReplacement(
+          _terrainGeometry(version: 2),
+        );
+        harness.authority.prepareTick(
+          harness.world,
+          player: harness.player,
+          currentTick: 2,
+        );
+        final contactIndex = harness.world.terrainContact.indexOf(
+          harness.player,
+        );
+        harness.world.terrainContact.supportGeometryVersion[contactIndex] = 1;
+
+        expect(
+          () => _stepAuthority(harness, currentTick: 2),
+          throwsA(
+            isA<TerrainStaleRuntimeStateError>()
+                .having((error) => error.supportVersion, 'supportVersion', 1)
+                .having((error) => error.bundleVersion, 'bundleVersion', 2),
+          ),
+        );
+      },
+    );
 
     test('disabled, kinematic, dying, and falling bodies follow policy', () {
       final harness = _terrainHarness();

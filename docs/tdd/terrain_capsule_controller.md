@@ -17,8 +17,10 @@ The selection is immutable after Core construction. It is not level data,
 saved data, replay data, UI state, or remote configuration. The terrain
 harness integrates the player, Grojib, Hashash, and Unoco through explicit
 profiles, keeps Derf kinematic, and rejects unsupported dynamic or ballistic
-bodies rather than falling back to rectangle collision. Enemy locomotion,
-streaming, authored-content, and production replay cutovers remain later work.
+bodies rather than falling back to rectangle collision. Grounded-enemy and
+Unoco terrain locomotion plus the shared terrain-safe enemy/item placement
+boundary are implemented only in that harness; atomic streaming publication,
+authored-content, and production replay cutovers remain later work.
 The implemented Phase 3 profile/surface/index foundation is documented in
 [sloped_navigation_and_enemy_terrain.md](sloped_navigation_and_enemy_terrain.md).
 
@@ -129,9 +131,16 @@ otherwise selects the closest feasible single-face tangent, otherwise stops at
 the shared corner. This prevents alternating projection between floor/wall,
 ceiling/wall, and opposing-wall contacts.
 
-Step-up sweeps up, forward, and down. Its final support must be an eligible
-finite face; an endpoint-only hit is rejected so the helper cannot perch past
-a narrow landing or climb a one-way endpoint.
+Step-up sweeps up, forward, and down. Its preview adds one deterministic
+collision-skin/epsilon clearance beyond the authored lift so an exactly
+`4 px` ledge is not misclassified as endpoint tangency. The final body rise
+and the geometric height between the source and destination supports remain
+bounded by the authored step height. An eligible endpoint may therefore be
+used during the exact-boundary transition, but it cannot ratchet a capsule
+onto a `5 px` ledge. Snap applies the matching geometric source/destination
+height check. Complete support-width validation remains the responsibility of
+navigation and placement queries; the runtime helper does not authorize a
+narrow authored spawn perch.
 
 Recovery is bounded. If correction exceeds one radius, cannot make progress,
 or remains unresolved after four iterations, the controller restores the
@@ -169,10 +178,13 @@ snap eligibility, last-valid placement, and retained capsule history before
 the write. No production player teleport exists. Hashash now uses the world
 motion authority's transactional begin/commit/cancel placement API: rejected
 candidates never write a transform, and accepted points reinitialize retained
-capsule history. Future gameplay placement must use the same authority-owned
-clearance boundary. An externally applied upward velocity clears support before
-the next solve. Disabled or kinematic terrain bodies clear support and do not
-move.
+capsule history. Derf obstacle-top spawning uses the authority's common
+ground-placement query without entering the dynamic controller: it binds one
+intended solid edge, enforces the catalog slope limit, a full-capsule foothold,
+an independent 32-pixel support span, complete clearance, and same-edge-only
+clamping. Future gameplay placement must use the same authority-owned clearance
+boundary. An externally applied upward velocity clears support before the next
+solve. Disabled or kinematic terrain bodies clear support and do not move.
 
 ## Diagnostics And Determinism
 
@@ -189,6 +201,15 @@ records:
 The reviewed hashes live under
 `packages/runner_core/test/fixtures/goldens/`. Phase 1 `source-v1`, `edges-v1`,
 and `contacts-v1` signatures remain unchanged.
+
+Phase 3 adds reviewed `nav-surfaces-v1`, `nav-graphs-v1`, and
+`enemy-terrain-run-v1` SHA-256 files. The enemy-run schema contains only
+length-prefixed UTF-8 strings and integer/ID/enum fields, requires exactly
+`SG-E01` through `SG-E15`, and includes fixed-tick transforms, support,
+navigation, contacts, placement/teleport/combat outcomes, lifecycle state,
+and each scenario's legacy disposition. Test-only fixtures drive the real Core
+systems; normal gameplay and replay construction do not consume the signature
+fixture.
 
 ## Future Ground Targets
 
@@ -220,9 +241,16 @@ signed surface-speed space, applies existing AI/status/lock tuning, and submits
 one `groundedSurface` request. Enemy jumps clear support before their world-up
 launch, and final support drives resolved-distance animation and ground-impact
 death. Hashash airborne teleport and deferred grounded spawn placement now use
-the shared complete-capsule query. Unoco clearance steering, Derf placement,
-remaining spawn placement, and streaming publication remain on the same
-`TerrainEdgeId` and geometry-version contracts.
+the shared complete-capsule query. Unoco now uses the shared surface index for
+its retained local hover reference and the controller for solid-only contact
+plus fixed, deterministic blocked-flight candidate previews; it remains
+support-free and ignores one-way terrain. Derf obstacle-top placement and all
+other enemy/item spawn candidates now use one typed world-authority
+request/result with a stable canonical diagnostic. Grounded enemies reuse
+full-width capsule support, Unoco uses exact-point clearance, and procedural
+items combine Éloïse-eligible support with complete upright-AABB clearance.
+Placement remains outside per-tick motion and consumes no RNG. Atomic streaming
+publication stays on the same `TerrainEdgeId` and geometry-version contracts.
 
 Enemy intent and navigation run before the current tick's motion result exists,
 so Phase 3 AI must deliberately read the previous tick's validated support.
@@ -254,13 +282,35 @@ overlap recovery uses a recovery-only query that records the exact integer
 separation floor and collision-skin correction without materializing floating
 contact fields; parity with the full contact query is tested.
 
+Allocation-sensitive ECS dispatch uses `moveAtValues(...)` and
+`ResolvedMotionStore.beginTickValues(...)`, so a dynamic body does not create a
+`TerrainMotionRequest` or wrapper capsule per tick. Immutable edges cache their
+squared length, a conservative 1/1024-tick ceiling length, and GCD-reduced
+finite-face projection factors at construction. Retained-support validation
+therefore uses bounded integer products and exact rounded contact points
+without `sqrt`, boxed `_Double`, or overflowing `_Mint` intermediates. A
+grounded solve also skips continuous sweep only for its already-retained
+support edge; connected or overlapping neighboring faces remain observable to
+canonical contact/support selection. Flat, ordinary slope, long 3,000-unit
+slope, endpoint, seam, and reviewed enemy-run tests cover these distinctions.
+
+Connected-support transition facts use one controller-owned mutable scratch
+and a one-entry cache keyed by source-edge identity, direction, and capsule
+dimensions. Repeated actors sharing one immutable profile/controller therefore
+do not recreate identical join geometry, while a different edge, direction,
+or capsule size recomputes it. The reviewed enemy-run hash guards the cached
+path against changing canonical contact or support selection.
+
 All Phase 2 gates pass. The accepted AOT run reports controller p95/p99 of
 `22/24 us`, a full slope-harness p99 of `36 us`, `2.81%` matched-flat
 overhead, at most `16` candidates, bounded iterations, and zero buffer growth.
-The paired VM profile reports zero tracked hot-loop instances, `0.0`
-allocations per solve, and no `_Double` allocation call sites. This accepts
-the isolated Phase 2 authority; it does not authorize production cutover
-before the remaining actor, content, editor, replay, and rollout phases.
+The paired VM profile tracks `_Double`, `_Mint`, terrain/capsule objects,
+records, and wrapper capsules. It reports zero tracked hot-loop instances,
+`0.0` allocations per solve, and no runner-core allocation callsites. Small VM
+service/JIT-only `_Double` deltas are reported separately and count as hot-loop
+allocations whenever trace sampling resolves a runner-core callsite. This
+accepts the isolated controller authority; it does not authorize production
+cutover before the remaining content, editor, replay, and rollout phases.
 
 ## Removal And Cutover
 

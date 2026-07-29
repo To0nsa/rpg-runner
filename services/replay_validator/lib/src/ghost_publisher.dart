@@ -100,6 +100,14 @@ abstract class GhostObjectStore {
     required String destinationObjectPath,
   });
 
+  /// Confirms that the immutable generation recorded in a manifest still
+  /// exists. Reconciliation can then acknowledge a completed promotion even
+  /// after short-lived source replay evidence has been cleaned up.
+  Future<bool> hasGhostObject({
+    required String objectPath,
+    required String storageGeneration,
+  });
+
   Future<void> deleteGhostObject({required String objectPath});
 }
 
@@ -170,17 +178,37 @@ class FirestoreGhostPublisher implements GhostPublisher {
     final topEntries = await _store.loadTop10Entries(
       boardId: normalizedBoardId,
     );
+    final manifests = await _store.listGhostManifests(
+      boardId: normalizedBoardId,
+    );
+    final manifestsByEntryId = <String, GhostManifestRecord>{
+      for (final manifest in manifests) manifest.entryId: manifest,
+    };
     final topByEntryId = <String, LeaderboardEntry>{
       for (final entry in topEntries) entry.entryId: entry,
     };
 
     for (final entry in topEntries) {
+      final existingManifest = manifestsByEntryId[entry.entryId];
+      if (existingManifest != null &&
+          await _isActivePromotionStillValid(
+            manifest: existingManifest,
+            entry: entry,
+          )) {
+        if (existingManifest.rank != (entry.rank ?? 0)) {
+          await _store.upsertGhostManifest(
+            manifest: _activeManifestWithCurrentRank(
+              manifest: existingManifest,
+              rank: entry.rank ?? 0,
+              nowMs: nowMs,
+            ),
+          );
+        }
+        continue;
+      }
       await _promoteTopEntry(entry: entry, nowMs: nowMs);
     }
 
-    final manifests = await _store.listGhostManifests(
-      boardId: normalizedBoardId,
-    );
     for (final manifest in manifests) {
       final stillTop = topByEntryId.containsKey(manifest.entryId);
       if (stillTop) {
@@ -229,6 +257,65 @@ class FirestoreGhostPublisher implements GhostPublisher {
         ),
       );
     }
+  }
+
+  Future<bool> _isActivePromotionStillValid({
+    required GhostManifestRecord manifest,
+    required LeaderboardEntry entry,
+  }) async {
+    final expectedObjectPath = _ghostObjectPath(
+      boardId: entry.boardId,
+      entryId: entry.entryId,
+    );
+    final sourceGeneration = _positiveGeneration(entry.replayStorageGeneration);
+    final replayDigest = _sha256Digest(entry.replayDigest);
+    final promotedGeneration = manifest.promotedReplayStorageGeneration;
+    if (manifest.status != GhostManifestStatus.active ||
+        !manifest.exposed ||
+        manifest.boardId != entry.boardId ||
+        manifest.entryId != entry.entryId ||
+        manifest.runSessionId != entry.runSessionId ||
+        manifest.uid != entry.uid ||
+        manifest.replayStorageRef != expectedObjectPath ||
+        manifest.sourceReplayStorageRef != entry.replayStorageRef ||
+        sourceGeneration == null ||
+        manifest.sourceReplayStorageGeneration != sourceGeneration ||
+        replayDigest == null ||
+        manifest.replayDigest != replayDigest ||
+        promotedGeneration == null) {
+      return false;
+    }
+    return _objectStore.hasGhostObject(
+      objectPath: manifest.replayStorageRef,
+      storageGeneration: promotedGeneration,
+    );
+  }
+
+  GhostManifestRecord _activeManifestWithCurrentRank({
+    required GhostManifestRecord manifest,
+    required int rank,
+    required int nowMs,
+  }) {
+    return GhostManifestRecord(
+      boardId: manifest.boardId,
+      entryId: manifest.entryId,
+      runSessionId: manifest.runSessionId,
+      uid: manifest.uid,
+      replayStorageRef: manifest.replayStorageRef,
+      sourceReplayStorageRef: manifest.sourceReplayStorageRef,
+      sourceReplayStorageGeneration: manifest.sourceReplayStorageGeneration,
+      promotedReplayStorageGeneration: manifest.promotedReplayStorageGeneration,
+      replayDigest: manifest.replayDigest,
+      score: manifest.score,
+      distanceMeters: manifest.distanceMeters,
+      durationSeconds: manifest.durationSeconds,
+      sortKey: manifest.sortKey,
+      rank: rank,
+      status: GhostManifestStatus.active,
+      exposed: true,
+      updatedAtMs: nowMs,
+      promotedAtMs: manifest.promotedAtMs,
+    );
   }
 
   Future<void> _promoteTopEntry({
@@ -584,6 +671,28 @@ class GoogleCloudStorageGhostObjectStore implements GhostObjectStore {
       return GhostPromotionResult(
         destinationStorageGeneration: destinationGeneration,
       );
+    }
+  }
+
+  @override
+  Future<bool> hasGhostObject({
+    required String objectPath,
+    required String storageGeneration,
+  }) async {
+    final storageApi = await apiProvider.storageApi();
+    try {
+      await storageApi.objects.get(
+        bucketName,
+        objectPath,
+        generation: storageGeneration,
+        ifGenerationMatch: storageGeneration,
+      );
+      return true;
+    } catch (error) {
+      if (isApiNotFound(error) || isApiConflict(error)) {
+        return false;
+      }
+      rethrow;
     }
   }
 

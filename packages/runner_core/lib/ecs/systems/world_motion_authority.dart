@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import '../../collision/static_world_geometry_index.dart';
 import '../../collision/terrain/terrain_capsule_controller.dart';
 import '../../collision/terrain/terrain_controller_diagnostic.dart';
+import '../../collision/terrain/terrain_edge_id.dart';
 import '../../collision/terrain/terrain_edge_index.dart';
 import '../../collision/terrain/terrain_geometry.dart';
 import '../../collision/terrain/terrain_motion_request.dart';
@@ -17,11 +18,11 @@ import '../../players/player_tuning.dart';
 import '../../enemies/enemy_id.dart';
 import '../../enemies/enemy_terrain_profile.dart';
 import '../../navigation/terrain_placement_query.dart';
-import '../../navigation/terrain_surface_extractor.dart';
-import '../../navigation/terrain_surface_spatial_index.dart';
+import '../../navigation/terrain_runtime_bundle.dart';
+import '../../navigation/terrain_spawn_placement.dart';
 import '../../navigation/terrain_surface_query_buffer.dart';
 import '../../navigation/types/surface_id.dart';
-import '../../navigation/types/terrain_navigation_surface.dart';
+import '../../navigation/types/terrain_surface_graph.dart';
 import '../../snapshots/enums.dart';
 import '../entity_id.dart';
 import '../stores/world_contact_capsule_store.dart';
@@ -39,6 +40,9 @@ abstract interface class WorldMotionAuthority {
   int? get terrainGeometryVersion;
 
   bool get initialPlayerGrounded;
+
+  /// Latest canonical spawn-placement record, or `null` before any request.
+  String? get lastSpawnPlacementDiagnostic;
 
   void initializePlayer(
     EcsWorld world, {
@@ -88,17 +92,28 @@ abstract interface class WorldMotionAuthority {
     WorldBodyPlacementOrigin origin,
   );
 
-  /// Resolves an exact-X/requested-support, fully supported enemy spawn.
-  GroundedEnemySpawnPlacement? resolveGroundedEnemySpawn({
-    required EnemyId enemyId,
-    required double desiredBodyX,
-    required double requestedSupportY,
-  });
+  /// Resolves one enemy or item candidate through the selected world authority.
+  ///
+  /// Legacy construction preserves the requested historical candidate.
+  /// Terrain construction validates the explicit actor/item profile, intended
+  /// support, and full clearance without mutating the ECS or consuming RNG.
+  TerrainSpawnPlacementResult resolveSpawnPlacement(
+    TerrainSpawnPlacementRequest request,
+  );
 
   /// Highest solid upward face below a flying capsule's current footprint.
+  ///
+  /// Returns world-space Y, or `null` when the entity/profile is unsupported
+  /// or no solid upward surface lies below the footprint. One-way surfaces are
+  /// intentionally invisible to this query.
   double? flyingTerrainReferenceY(EcsWorld world, EntityId entity);
 
   /// Previews and ranks the bounded solid-clearance steering candidates.
+  ///
+  /// Velocities use world units per second, target coordinates use world
+  /// units, blocker normals use [terrainDirectionScale], and [previewTicks]
+  /// uses [tickHz]. The caller owns and may reuse [out]. This method only
+  /// selects steering; it never mutates the entity transform or consumes RNG.
   void resolveFlyingClearanceSteering(
     EcsWorld world,
     EntityId entity, {
@@ -135,20 +150,18 @@ final class WorldBodyPlacementOrigin {
   final Facing facing;
 }
 
-/// Exact body transform approved for a grounded enemy spawn.
-final class GroundedEnemySpawnPlacement {
-  const GroundedEnemySpawnPlacement({required this.bodyX, required this.bodyY});
-
-  final double bodyX;
-  final double bodyY;
-}
-
 /// Caller-owned result for one bounded flying-clearance selection.
 final class FlyingClearanceSteeringOutput {
+  /// Selected world-X velocity in world units per second.
   double velocityX = 0;
+
+  /// Selected world-Y velocity in world units per second.
   double velocityY = 0;
+
+  /// Stable candidate ID, where zero is unchanged direct steering.
   int candidateId = -1;
 
+  /// Resets this caller-owned output to candidate zero.
   void setDirect(double x, double y) {
     velocityX = x;
     velocityY = y;
@@ -186,6 +199,22 @@ final class TerrainBodyStoreError extends StateError {
     : super('Phase 3 terrain body $entity is invalid: $reason');
 
   final EntityId entity;
+}
+
+/// A motion consumer attempted to use support from another terrain bundle.
+final class TerrainStaleRuntimeStateError extends StateError {
+  TerrainStaleRuntimeStateError({
+    required this.entity,
+    required this.supportVersion,
+    required this.bundleVersion,
+  }) : super(
+         'Terrain body $entity retained support version $supportVersion '
+         'while runtime bundle $bundleVersion is published.',
+       );
+
+  final EntityId entity;
+  final int supportVersion;
+  final int bundleVersion;
 }
 
 /// Classifies a body under the Phase 3 terrain-harness policy.
@@ -226,9 +255,9 @@ TerrainBodyDisposition terrainBodyDisposition(
 /// Adapter preserving the pre-slopes rectangle integration path exactly.
 class LegacyWorldMotionAuthority implements WorldMotionAuthority {
   final CollisionSystem _collision = CollisionSystem();
-  final EnemyCatalog _enemyCatalog = const EnemyCatalog();
   int _preparedTick = -1;
   int _integratedTick = -1;
+  String? _lastSpawnPlacementDiagnostic;
 
   @override
   bool get usesTerrainPlayer => false;
@@ -238,6 +267,9 @@ class LegacyWorldMotionAuthority implements WorldMotionAuthority {
 
   @override
   bool get initialPlayerGrounded => true;
+
+  @override
+  String? get lastSpawnPlacementDiagnostic => _lastSpawnPlacementDiagnostic;
 
   @override
   void initializePlayer(
@@ -322,16 +354,12 @@ class LegacyWorldMotionAuthority implements WorldMotionAuthority {
   }
 
   @override
-  GroundedEnemySpawnPlacement? resolveGroundedEnemySpawn({
-    required EnemyId enemyId,
-    required double desiredBodyX,
-    required double requestedSupportY,
-  }) {
-    final collider = _enemyCatalog.get(enemyId).collider;
-    return GroundedEnemySpawnPlacement(
-      bodyX: desiredBodyX,
-      bodyY: requestedSupportY - (collider.offsetY + collider.halfY),
-    );
+  TerrainSpawnPlacementResult resolveSpawnPlacement(
+    TerrainSpawnPlacementRequest request,
+  ) {
+    final result = TerrainSpawnPlacementResult.legacyAccepted(request);
+    _lastSpawnPlacementDiagnostic = result.diagnostic;
+    return result;
   }
 
   @override
@@ -399,90 +427,80 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
     required TerrainGeometry geometry,
     required TerrainTraversalProfile playerProfile,
     EnemyCatalog enemyCatalog = const EnemyCatalog(),
+    Iterable<TerrainSurfaceGraphBuildProfile>? groundEnemyGraphProfiles,
   }) {
-    final edgeIndex = TerrainEdgeIndex(edges: geometry.edges);
-    final surfaceIndex = TerrainSurfaceSpatialIndex(
-      surfaceSet: const TerrainSurfaceExtractor().extract(geometry),
-    );
-    final placementQuery = TerrainPlacementQuery(
-      geometry: geometry,
-      terrainIndex: edgeIndex,
-      surfaceIndex: surfaceIndex,
-    );
-    _TerrainMotionScratch scratchFor(
-      TerrainTraversalProfile profile,
-      EnemyTerrainMotionKind motionKind,
-    ) => _TerrainMotionScratch(
-      profile: profile,
-      motionKind: motionKind,
-      geometry: geometry,
-      edgeIndex: edgeIndex,
-    );
-
     final grojib = enemyCatalog.terrainContactProfile(EnemyId.grojib);
     final hashash = enemyCatalog.terrainContactProfile(EnemyId.hashash);
     final unoco = enemyCatalog.terrainContactProfile(EnemyId.unocoDemon);
     final derf = enemyCatalog.terrainContactProfile(EnemyId.derf);
-    return TerrainMultiBodyWorldMotionAuthority._(
+    final graphProfiles = List<TerrainSurfaceGraphBuildProfile>.unmodifiable(
+      groundEnemyGraphProfiles ??
+          buildDefaultGroundEnemyTerrainGraphProfiles(
+            enemyCatalog: enemyCatalog,
+          ),
+    );
+    final publication = _TerrainAuthorityPublication.build(
       geometry: geometry,
-      placementQuery: placementQuery,
-      enemyCatalog: enemyCatalog,
-      playerScratch: scratchFor(
-        playerProfile,
-        EnemyTerrainMotionKind.groundedDynamic,
-      ),
+      graphProfiles: graphProfiles,
+      playerProfile: playerProfile,
       grojibProfile: grojib,
-      grojibScratch: scratchFor(grojib.traversal, grojib.motionKind),
       hashashProfile: hashash,
-      hashashScratch: scratchFor(hashash.traversal, hashash.motionKind),
       unocoProfile: unoco,
-      unocoScratch: scratchFor(unoco.traversal, unoco.motionKind),
+    );
+    return TerrainMultiBodyWorldMotionAuthority._(
+      publication: publication,
+      graphProfiles: graphProfiles,
+      playerProfile: playerProfile,
+      grojibProfile: grojib,
+      hashashProfile: hashash,
+      unocoProfile: unoco,
       derfProfile: derf,
     );
   }
 
   TerrainMultiBodyWorldMotionAuthority._({
-    required TerrainGeometry geometry,
-    required TerrainPlacementQuery placementQuery,
-    required EnemyCatalog enemyCatalog,
-    required _TerrainMotionScratch playerScratch,
+    required _TerrainAuthorityPublication publication,
+    required List<TerrainSurfaceGraphBuildProfile> graphProfiles,
+    required TerrainTraversalProfile playerProfile,
     required EnemyTerrainContactProfile grojibProfile,
-    required _TerrainMotionScratch grojibScratch,
     required EnemyTerrainContactProfile hashashProfile,
-    required _TerrainMotionScratch hashashScratch,
     required EnemyTerrainContactProfile unocoProfile,
-    required _TerrainMotionScratch unocoScratch,
     required EnemyTerrainContactProfile derfProfile,
-  }) : _geometry = geometry,
-       _placementQuery = placementQuery,
-       _flightSurfaceBuffer = placementQuery.surfaceIndex.createQueryBuffer(),
-       _enemyCatalog = enemyCatalog,
-       _playerScratch = playerScratch,
+  }) : _publication = publication,
+       _graphProfiles = graphProfiles,
+       _playerProfile = playerProfile,
        _grojibProfile = grojibProfile,
-       _grojibScratch = grojibScratch,
        _hashashProfile = hashashProfile,
-       _hashashScratch = hashashScratch,
        _unocoProfile = unocoProfile,
-       _unocoScratch = unocoScratch,
        _derfProfile = derfProfile;
 
-  final TerrainGeometry _geometry;
-  final TerrainPlacementQuery _placementQuery;
-  final TerrainSurfaceQueryBuffer _flightSurfaceBuffer;
+  _TerrainAuthorityPublication _publication;
+  _TerrainAuthorityPublication? _pendingPublication;
+  final List<TerrainSurfaceGraphBuildProfile> _graphProfiles;
+  final TerrainTraversalProfile _playerProfile;
   final TerrainCapsuleMotionResult _flyingPreviewResult =
       TerrainCapsuleMotionResult();
-  final EnemyCatalog _enemyCatalog;
-  final _TerrainMotionScratch _playerScratch;
   final EnemyTerrainContactProfile _grojibProfile;
-  final _TerrainMotionScratch _grojibScratch;
   final EnemyTerrainContactProfile _hashashProfile;
-  final _TerrainMotionScratch _hashashScratch;
   final EnemyTerrainContactProfile _unocoProfile;
-  final _TerrainMotionScratch _unocoScratch;
   final EnemyTerrainContactProfile _derfProfile;
   final List<EntityId> _orderedBodies = <EntityId>[];
   int _preparedTick = -1;
   int _integratedTick = -1;
+  String? _lastSpawnPlacementDiagnostic;
+
+  TerrainGeometry get _geometry => _publication.bundle.geometry;
+  TerrainPlacementQuery get _placementQuery => _publication.placementQuery;
+  TerrainSpawnPlacementResolver get _spawnPlacementResolver =>
+      _publication.spawnPlacementResolver;
+  TerrainSurfaceQueryBuffer get _flightSurfaceBuffer =>
+      _publication.flightSurfaceBuffer;
+  int get _minimumGeometryY => _publication.minimumGeometryY;
+  int get _maximumGeometryY => _publication.maximumGeometryY;
+  _TerrainMotionScratch get _playerScratch => _publication.playerScratch;
+  _TerrainMotionScratch get _grojibScratch => _publication.grojibScratch;
+  _TerrainMotionScratch get _hashashScratch => _publication.hashashScratch;
+  _TerrainMotionScratch get _unocoScratch => _publication.unocoScratch;
 
   /// Number of enabled dynamic terrain bodies solved by the latest [step].
   int lastIntegratedBodyCount = 0;
@@ -491,10 +509,52 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
   bool get usesTerrainPlayer => true;
 
   @override
-  int get terrainGeometryVersion => _geometry.version;
+  int get terrainGeometryVersion => _publication.bundle.version;
+
+  /// Complete terrain bundle visible to collision and navigation consumers.
+  TerrainRuntimeBundle get terrainRuntimeBundle => _publication.bundle;
+
+  /// Builds and queues a complete replacement for the next tick boundary.
+  ///
+  /// Construction is synchronous and cannot expose a partial bundle. The
+  /// queued publication becomes visible at the start of the next successful
+  /// [prepareTick], before stale support and paths are inspected by AI.
+  void queueTerrainGeometryReplacement(TerrainGeometry geometry) {
+    if (_preparedTick >= 0 && _integratedTick != _preparedTick) {
+      throw StateError(
+        'Terrain geometry cannot be queued between prepareTick and step.',
+      );
+    }
+    if (_pendingPublication != null) {
+      throw StateError(
+        'A terrain geometry replacement is already queued for publication.',
+      );
+    }
+    if (geometry.version <= _publication.bundle.version) {
+      throw ArgumentError.value(
+        geometry.version,
+        'geometry.version',
+        'Replacement versions must increase monotonically.',
+      );
+    }
+
+    // Build every derived structure before assigning the pending reference.
+    final replacement = _TerrainAuthorityPublication.build(
+      geometry: geometry,
+      graphProfiles: _graphProfiles,
+      playerProfile: _playerProfile,
+      grojibProfile: _grojibProfile,
+      hashashProfile: _hashashProfile,
+      unocoProfile: _unocoProfile,
+    );
+    _pendingPublication = replacement;
+  }
 
   @override
   bool get initialPlayerGrounded => false;
+
+  @override
+  String? get lastSpawnPlacementDiagnostic => _lastSpawnPlacementDiagnostic;
 
   @override
   void initializePlayer(
@@ -529,19 +589,13 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
       world.transform.posX[transformIndex],
       name: 'spawnBodyX',
     );
-    var minimumY = _geometry.edges.first.bounds.minY;
-    var maximumY = _geometry.edges.first.bounds.maxY;
-    for (final edge in _geometry.edges.skip(1)) {
-      minimumY = math.min(minimumY, edge.bounds.minY);
-      maximumY = math.max(maximumY, edge.bounds.maxY);
-    }
     final radius = world.worldContactCapsule.radiusTicks[capsuleIndex];
     final halfSegment =
         world.worldContactCapsule.verticalHalfSegmentTicks[capsuleIndex];
     final startCapsule = UprightCapsule(
       center: TerrainPoint(
         bodyX + offsetX,
-        minimumY -
+        _minimumGeometryY -
             radius -
             halfSegment -
             terrainCollisionSkinTicks -
@@ -551,7 +605,7 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
       verticalHalfSegmentTicks: halfSegment,
     );
     final fallDistance =
-        maximumY -
+        _maximumGeometryY -
         startCapsule.center.yTicks +
         radius +
         halfSegment +
@@ -613,6 +667,7 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
     _refreshOrderedBodies(world);
     _preflightBodies(world, player: player, allowInitialization: true);
     _auditPrepare(currentTick);
+    _publishPendingTerrainBundle();
     _initializePendingEnemyStores(world);
 
     for (final entity in _orderedBodies) {
@@ -681,8 +736,9 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
         );
         continue;
       }
+      _rejectStaleSupport(world, entity);
 
-      final progression = _integrateBody(
+      final progressionTicks = _integrateBody(
         world,
         entity: entity,
         player: player,
@@ -691,7 +747,10 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
         currentTick: currentTick,
       );
       lastIntegratedBodyCount += 1;
-      if (entity == player) playerDistanceDelta = progression;
+      if (entity == player) {
+        playerDistanceDelta =
+            progressionTicks / terrainPhysicsTicksPerWorldUnit;
+      }
     }
     return playerDistanceDelta;
   }
@@ -834,67 +893,12 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
   }
 
   @override
-  GroundedEnemySpawnPlacement? resolveGroundedEnemySpawn({
-    required EnemyId enemyId,
-    required double desiredBodyX,
-    required double requestedSupportY,
-  }) {
-    final profile = _enemyProfile(enemyId);
-    if (!profile.canGround || _geometry.edges.isEmpty) return null;
-    final archetype = _enemyCatalog.get(enemyId);
-    final facingSign = Facing.left == archetype.artFacingDir ? 1 : -1;
-    final desiredBodyXTicks = physicsCoordinateToTicks(
-      desiredBodyX,
-      name: 'groundEnemySpawnBodyX',
-    );
-    final requestedSupportYTicks = physicsCoordinateToTicks(
-      requestedSupportY,
-      name: 'groundEnemySpawnSupportY',
-    );
-    TerrainNavigationSurface? intendedSupport;
-    for (final surface in _placementQuery.surfaceIndex.surfaces) {
-      if (desiredBodyXTicks < surface.xMinTicks ||
-          desiredBodyXTicks > surface.xMaxTicks ||
-          surface.yAtXTicks(desiredBodyXTicks) != requestedSupportYTicks) {
-        continue;
-      }
-      if (intendedSupport == null ||
-          surface.id.compareTo(intendedSupport.id) < 0) {
-        intendedSupport = surface;
-      }
-    }
-    if (intendedSupport == null) return null;
-    final minimumSupportY = math.min(
-      intendedSupport.start.yTicks,
-      intendedSupport.end.yTicks,
-    );
-    final maximumSupportY = math.max(
-      intendedSupport.start.yTicks,
-      intendedSupport.end.yTicks,
-    );
-    final result = _placementQuery.resolveGrounded(
-      TerrainGroundPlacementRequest(
-        desiredBodyCenterXTicks: desiredBodyXTicks,
-        minimumSupportYTicks: minimumSupportY,
-        maximumSupportYTicks: maximumSupportY,
-        capsule: TerrainPlacementCapsule(
-          radiusTicks: profile.capsule.radiusTicks,
-          verticalHalfSegmentTicks: profile.capsule.verticalHalfSegmentTicks,
-          resolvedOffsetXTicks: profile.capsule.offsetXTicks * facingSign,
-          offsetYTicks: profile.capsule.offsetYTicks,
-        ),
-        traversalProfile: profile.traversal,
-        supportRequirement: const TerrainSupportRequirement.groundedSpawn(),
-        intendedSupportEdgeId: intendedSupport.id,
-        expectedGeometryVersion: _geometry.version,
-      ),
-    );
-    if (!_placementQuery.canCommit(result)) return null;
-    final body = result.bodyCenter!;
-    return GroundedEnemySpawnPlacement(
-      bodyX: body.xTicks / terrainPhysicsTicksPerWorldUnit,
-      bodyY: body.yTicks / terrainPhysicsTicksPerWorldUnit,
-    );
+  TerrainSpawnPlacementResult resolveSpawnPlacement(
+    TerrainSpawnPlacementRequest request,
+  ) {
+    final result = _spawnPlacementResolver.resolve(request);
+    _lastSpawnPlacementDiagnostic = result.diagnostic;
+    return result;
   }
 
   @override
@@ -928,11 +932,7 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
         centerY +
         radius +
         world.worldContactCapsule.verticalHalfSegmentTicks[capsuleIndex];
-    var maximumGeometryY = _geometry.edges.first.bounds.maxY;
-    for (final edge in _geometry.edges.skip(1)) {
-      maximumGeometryY = math.max(maximumGeometryY, edge.bounds.maxY);
-    }
-    if (capsuleBottom > maximumGeometryY) return null;
+    if (capsuleBottom > _maximumGeometryY) return null;
 
     final footprintMinX = centerX - radius;
     final footprintMaxX = centerX + radius;
@@ -940,7 +940,7 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
       minX: footprintMinX,
       minY: capsuleBottom,
       maxX: footprintMaxX,
-      maxY: maximumGeometryY,
+      maxY: _maximumGeometryY,
       buffer: _flightSurfaceBuffer,
     );
     int? bestY;
@@ -1024,16 +1024,10 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
     final centerX = bodyX + offsetX;
     final centerY = bodyY + offsetY;
     final targetDeltaX =
-        physicsCoordinateToTicks(
-          targetBodyX,
-          name: 'flyingClearanceTargetX',
-        ) -
+        physicsCoordinateToTicks(targetBodyX, name: 'flyingClearanceTargetX') -
         bodyX;
     final targetDeltaY =
-        physicsCoordinateToTicks(
-          targetBodyY,
-          name: 'flyingClearanceTargetY',
-        ) -
+        physicsCoordinateToTicks(targetBodyY, name: 'flyingClearanceTargetY') -
         bodyY;
 
     int? bestProgress;
@@ -1075,28 +1069,27 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
           ),
         ),
       };
-      final request = TerrainMotionRequest(
-        displacementXTicks: _roundedDivide(
-          velocityXTicks * previewTicks,
-          tickHz,
-        ),
-        displacementYTicks: _roundedDivide(
-          velocityYTicks * previewTicks,
-          tickHz,
-        ),
-        gravityYTicks: 0,
-        surfaceDirectionSign: velocityXTicks.sign == 0
-            ? facingSign
-            : velocityXTicks.sign,
-        mode: TerrainMotionMode.worldSpace,
+      final previewDisplacementX = _roundedDivide(
+        velocityXTicks * previewTicks,
+        tickHz,
       );
-      _unocoScratch.controller.moveAt(
+      final previewDisplacementY = _roundedDivide(
+        velocityYTicks * previewTicks,
+        tickHz,
+      );
+      _unocoScratch.controller.moveAtValues(
         centerXTicks: centerX,
         centerYTicks: centerY,
         radiusTicks: world.worldContactCapsule.radiusTicks[capsuleIndex],
         verticalHalfSegmentTicks:
             world.worldContactCapsule.verticalHalfSegmentTicks[capsuleIndex],
-        request: request,
+        displacementXTicks: previewDisplacementX,
+        displacementYTicks: previewDisplacementY,
+        gravityYTicks: 0,
+        surfaceDirectionSign: velocityXTicks.sign == 0
+            ? facingSign
+            : velocityXTicks.sign,
+        mode: TerrainMotionMode.worldSpace,
         beganGrounded: false,
         priorSupportEdgeId: null,
         priorSupportGeometryVersion: -1,
@@ -1107,8 +1100,7 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
       final acceptedX = _flyingPreviewResult.finalCenterXTicks - centerX;
       final acceptedY = _flyingPreviewResult.finalCenterYTicks - centerY;
       final progress = acceptedX * targetDeltaX + acceptedY * targetDeltaY;
-      final clearTravelSquared =
-          acceptedX * acceptedX + acceptedY * acceptedY;
+      final clearTravelSquared = acceptedX * acceptedX + acceptedY * acceptedY;
       final better =
           bestProgress == null ||
           progress > bestProgress ||
@@ -1157,7 +1149,7 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
     }
   }
 
-  double _integrateBody(
+  int _integrateBody(
     EcsWorld world, {
     required EntityId entity,
     required EntityId player,
@@ -1234,30 +1226,34 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
         : world.transform.velX[transformIndex].sign == 0
         ? currentFacingSign
         : world.transform.velX[transformIndex].sign.toInt();
-    final request = TerrainMotionRequest(
-      displacementXTicks: bodyDisplacementX + currentOffsetX - previousOffsetX,
-      displacementYTicks: bodyDisplacementY - gravityDisplacementY,
-      gravityYTicks: gravityDisplacementY,
-      surfaceDirectionSign: surfaceDirectionSign,
-      mode: mode,
-    );
-    world.resolvedMotion.beginTick(
+    final requestDisplacementX =
+        bodyDisplacementX + currentOffsetX - previousOffsetX;
+    final requestDisplacementY = bodyDisplacementY - gravityDisplacementY;
+    world.resolvedMotion.beginTickValues(
       entity,
       capsuleCenterXTicks: startCapsuleCenterX,
       capsuleCenterYTicks: startCapsuleCenterY,
-      request: request,
+      displacementXTicks: requestDisplacementX,
+      displacementYTicks: requestDisplacementY,
+      gravityXTicks: 0,
+      gravityYTicks: gravityDisplacementY,
+      motionMode: mode,
     );
 
     final hasLastValid =
         world.terrainContact.hasLastValidBodyPosition[contactIndex];
     final result = scratch.result;
-    scratch.controller.moveAt(
+    scratch.controller.moveAtValues(
       centerXTicks: startCapsuleCenterX,
       centerYTicks: startCapsuleCenterY,
       radiusTicks: world.worldContactCapsule.radiusTicks[capsuleIndex],
       verticalHalfSegmentTicks:
           world.worldContactCapsule.verticalHalfSegmentTicks[capsuleIndex],
-      request: request,
+      displacementXTicks: requestDisplacementX,
+      displacementYTicks: requestDisplacementY,
+      gravityYTicks: gravityDisplacementY,
+      surfaceDirectionSign: surfaceDirectionSign,
+      mode: mode,
       beganGrounded: beganGrounded,
       priorSupportEdgeId: scratch.canGround
           ? world.terrainContact.supportEdgeId[contactIndex]
@@ -1318,9 +1314,7 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
     );
     final progressionBodyX =
         result.progressionXTicks - (currentOffsetX - previousOffsetX);
-    return math
-        .max(0, progressionBodyX / terrainPhysicsTicksPerWorldUnit)
-        .toDouble();
+    return progressionBodyX > 0 ? progressionBodyX : 0;
   }
 
   void _writeContactState(
@@ -1396,10 +1390,12 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
         final blocked = result.contactCount > 0;
         world.flyingEnemySteering.terrainBlockedLastTick[steeringIndex] =
             blocked;
-        world.flyingEnemySteering.blockingNormalXTicks[steeringIndex] =
-            blocked ? result.contactNormalXTicks[0] : 0;
-        world.flyingEnemySteering.blockingNormalYTicks[steeringIndex] =
-            blocked ? result.contactNormalYTicks[0] : 0;
+        world.flyingEnemySteering.blockingNormalXTicks[steeringIndex] = blocked
+            ? result.contactNormalXTicks[0]
+            : 0;
+        world.flyingEnemySteering.blockingNormalYTicks[steeringIndex] = blocked
+            ? result.contactNormalYTicks[0]
+            : 0;
       }
     }
   }
@@ -1781,6 +1777,26 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
     _clearNavigation(world, entity);
   }
 
+  void _rejectStaleSupport(EcsWorld world, EntityId entity) {
+    final contactIndex = world.terrainContact.indexOf(entity);
+    final supportVersion =
+        world.terrainContact.supportGeometryVersion[contactIndex];
+    final bundleVersion = _publication.bundle.version;
+    if (supportVersion < 0 || supportVersion == bundleVersion) return;
+    throw TerrainStaleRuntimeStateError(
+      entity: entity,
+      supportVersion: supportVersion,
+      bundleVersion: bundleVersion,
+    );
+  }
+
+  void _publishPendingTerrainBundle() {
+    final pending = _pendingPublication;
+    if (pending == null) return;
+    _publication = pending;
+    _pendingPublication = null;
+  }
+
   void _auditPrepare(int currentTick) {
     if (_preparedTick >= 0 && _integratedTick != _preparedTick) {
       throw StateError(
@@ -1804,6 +1820,96 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
     }
     _integratedTick = currentTick;
   }
+}
+
+final class _TerrainAuthorityPublication {
+  factory _TerrainAuthorityPublication.build({
+    required TerrainGeometry geometry,
+    required List<TerrainSurfaceGraphBuildProfile> graphProfiles,
+    required TerrainTraversalProfile playerProfile,
+    required EnemyTerrainContactProfile grojibProfile,
+    required EnemyTerrainContactProfile hashashProfile,
+    required EnemyTerrainContactProfile unocoProfile,
+  }) {
+    final bundle = TerrainRuntimeBundle.build(
+      geometry: geometry,
+      groundEnemyProfiles: graphProfiles,
+    );
+    final placementQuery = TerrainPlacementQuery(
+      geometry: bundle.geometry,
+      terrainIndex: bundle.edgeIndex,
+      surfaceIndex: bundle.surfaceIndex,
+    );
+    _TerrainMotionScratch scratchFor(
+      TerrainTraversalProfile profile,
+      EnemyTerrainMotionKind motionKind,
+    ) => _TerrainMotionScratch(
+      profile: profile,
+      motionKind: motionKind,
+      geometry: bundle.geometry,
+      edgeIndex: bundle.edgeIndex,
+    );
+
+    var minimumGeometryY = 0;
+    var maximumGeometryY = 0;
+    if (bundle.geometry.edges.isNotEmpty) {
+      minimumGeometryY = bundle.geometry.edges.first.bounds.minY;
+      maximumGeometryY = bundle.geometry.edges.first.bounds.maxY;
+      for (var index = 1; index < bundle.geometry.edges.length; index += 1) {
+        final bounds = bundle.geometry.edges[index].bounds;
+        minimumGeometryY = math.min(minimumGeometryY, bounds.minY);
+        maximumGeometryY = math.max(maximumGeometryY, bounds.maxY);
+      }
+    }
+
+    return _TerrainAuthorityPublication._(
+      bundle: bundle,
+      minimumGeometryY: minimumGeometryY,
+      maximumGeometryY: maximumGeometryY,
+      placementQuery: placementQuery,
+      spawnPlacementResolver: TerrainSpawnPlacementResolver(
+        placementQuery: placementQuery,
+      ),
+      flightSurfaceBuffer: bundle.surfaceIndex.createQueryBuffer(),
+      playerScratch: scratchFor(
+        playerProfile,
+        EnemyTerrainMotionKind.groundedDynamic,
+      ),
+      grojibScratch: scratchFor(
+        grojibProfile.traversal,
+        grojibProfile.motionKind,
+      ),
+      hashashScratch: scratchFor(
+        hashashProfile.traversal,
+        hashashProfile.motionKind,
+      ),
+      unocoScratch: scratchFor(unocoProfile.traversal, unocoProfile.motionKind),
+    );
+  }
+
+  const _TerrainAuthorityPublication._({
+    required this.bundle,
+    required this.minimumGeometryY,
+    required this.maximumGeometryY,
+    required this.placementQuery,
+    required this.spawnPlacementResolver,
+    required this.flightSurfaceBuffer,
+    required this.playerScratch,
+    required this.grojibScratch,
+    required this.hashashScratch,
+    required this.unocoScratch,
+  });
+
+  final TerrainRuntimeBundle bundle;
+  final int minimumGeometryY;
+  final int maximumGeometryY;
+  final TerrainPlacementQuery placementQuery;
+  final TerrainSpawnPlacementResolver spawnPlacementResolver;
+  final TerrainSurfaceQueryBuffer flightSurfaceBuffer;
+  final _TerrainMotionScratch playerScratch;
+  final _TerrainMotionScratch grojibScratch;
+  final _TerrainMotionScratch hashashScratch;
+  final _TerrainMotionScratch unocoScratch;
 }
 
 final class _TerrainMotionScratch {

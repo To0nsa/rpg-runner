@@ -53,6 +53,8 @@ void main() {
       expect(spawns.length, 1);
       expect(spawns.single.enemyId, EnemyId.derf);
       expect(spawns.single.surfaceTopY, closeTo(156.0, 1e-9)); // 220 - 64
+      expect(spawns.single.placement, SpawnPlacementMode.obstacleTop);
+      expect(spawns.single.intendedSurfaceResolved, isFalse);
     },
   );
 
@@ -107,5 +109,7 @@ void main() {
     expect(spawns.length, 1);
     expect(spawns.single.enemyId, EnemyId.derf);
     expect(spawns.single.surfaceTopY, closeTo(156.0, 1e-9)); // 220 - 64
+    expect(spawns.single.placement, SpawnPlacementMode.obstacleTop);
+    expect(spawns.single.intendedSurfaceResolved, isTrue);
   });
 }

@@ -265,6 +265,18 @@ void main() {
           0;
 
       expect((run.stats['enemies']! as Map<String, Object?>)['defeated'], 3);
+
+      final sealed = run.withReplayArtifact(
+        replayStorageRef: 'replay-submissions/validated/run_1.bin.gz',
+        replayStorageGeneration: '456',
+      );
+      expect(
+        sealed.replayStorageRef,
+        'replay-submissions/validated/run_1.bin.gz',
+      );
+      expect(sealed.replayStorageGeneration, '456');
+      expect(sealed.replayDigest, run.replayDigest);
+      expect(sealed.stats, run.stats);
     });
   });
 }

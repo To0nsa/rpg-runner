@@ -169,8 +169,8 @@ Use a four-part architecture:
 3. Firestore + Cloud Storage + task queue:
    - Firestore stores board metadata, run session state, validated result
      records, best-entry projections, and reward grants
-   - Cloud Storage stores pending replay submissions for all runs and promoted
-     ghost payloads for Top 10 only
+   - Cloud Storage stores short-lived pending submissions, sealed validated
+     replay artifacts, and promoted ghost payloads for Top 10 only
    - Cloud Tasks (or equivalent queue) drives validator retries and backoff
 4. Dart replay validator service:
    - decodes canonical replay blobs
@@ -710,6 +710,8 @@ Concrete IAM bindings:
   - Storage access on replay bucket with IAM Conditions scoped to object prefixes:
     - read pending/validated replay blobs:
       `resource.name.startsWith("projects/_/buckets/<replay-bucket>/objects/replay-submissions/")`
+    - create/read sealed validated replay blobs:
+      `resource.name.startsWith("projects/_/buckets/<replay-bucket>/objects/replay-submissions/validated/")`
     - write/update/delete ghost artifacts:
       `resource.name.startsWith("projects/_/buckets/<replay-bucket>/objects/ghosts/")`
 - Bind board admin principal to:

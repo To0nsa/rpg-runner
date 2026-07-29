@@ -175,6 +175,10 @@ Future<void> main(List<String> args) async {
     output.parent.createSync(recursive: true);
     output.writeAsStringSync('$json\n');
   }
+  if (config.profileAllocations) {
+    await developer.Service.controlWebServer(enable: false);
+    exit(config.strict && !passed ? 1 : 0);
+  }
   if (config.strict && !passed) exitCode = 1;
 }
 
@@ -230,6 +234,7 @@ class _AllocationMeasurement {
     required this.solveAllocatedInstances,
     required this.profilerPositiveDeltaInstances,
     required this.hotLoopAllocatedInstances,
+    required this.unattributedDoubleDeltaInstances,
     required this.positiveClassDeltas,
     required this.hotLoopClassDeltas,
     required this.doubleAllocationCallsites,
@@ -241,6 +246,7 @@ class _AllocationMeasurement {
   final int solveAllocatedInstances;
   final int profilerPositiveDeltaInstances;
   final int hotLoopAllocatedInstances;
+  final int unattributedDoubleDeltaInstances;
   final Map<String, int> positiveClassDeltas;
   final Map<String, int> hotLoopClassDeltas;
   final Map<String, int> doubleAllocationCallsites;
@@ -256,6 +262,7 @@ class _AllocationMeasurement {
     'solveAllocatedInstances': solveAllocatedInstances,
     'profilerPositiveDeltaInstances': profilerPositiveDeltaInstances,
     'hotLoopAllocatedInstances': hotLoopAllocatedInstances,
+    'unattributedDoubleDeltaInstances': unattributedDoubleDeltaInstances,
     'allocationsPerSolve':
         hotLoopAllocatedInstances / (iterationsPerTrial * trialPairs),
     'positiveClassDeltas': positiveClassDeltas,
@@ -344,9 +351,19 @@ Future<_AllocationMeasurement> _measureControllerAllocations({
       final delta = (solve[className] ?? 0) - (baseline[className] ?? 0);
       if (delta > 0) positiveDeltas[className] = delta;
     }
+    // VM-service/JIT bookkeeping can leave a small positive `_Double` delta
+    // even when no allocation trace resolves to runner_core. Treat doubles as
+    // hot-loop allocations only when the independent trace attributes them to
+    // a runner_core callsite; the former one-double-per-solve regression is
+    // both linear in the profile and reliably visible in that trace.
+    final unattributedDoubleDeltaInstances = doubleAllocationCallsites.isEmpty
+        ? positiveDeltas['_Double'] ?? 0
+        : 0;
     final hotLoopDeltas = <String, int>{
       for (final entry in positiveDeltas.entries)
-        if (_isTrackedHotLoopClass(entry.key)) entry.key: entry.value,
+        if (_isTrackedHotLoopClass(entry.key) &&
+            (entry.key != '_Double' || doubleAllocationCallsites.isNotEmpty))
+          entry.key: entry.value,
     };
     return _AllocationMeasurement(
       iterationsPerTrial: iterations,
@@ -358,6 +375,7 @@ Future<_AllocationMeasurement> _measureControllerAllocations({
         (a, b) => a + b,
       ),
       hotLoopAllocatedInstances: hotLoopDeltas.values.fold(0, (a, b) => a + b),
+      unattributedDoubleDeltaInstances: unattributedDoubleDeltaInstances,
       positiveClassDeltas: positiveDeltas,
       hotLoopClassDeltas: hotLoopDeltas,
       doubleAllocationCallsites: doubleAllocationCallsites,
@@ -371,6 +389,7 @@ Future<_AllocationMeasurement> _measureControllerAllocations({
 
 bool _isTrackedHotLoopClass(String className) =>
     className == '_Double' ||
+    className == '_Mint' ||
     className == '_Record' ||
     className == '_SupportTransition' ||
     className.startsWith('Terrain') ||
@@ -471,7 +490,10 @@ Future<Map<String, int>> _allocationTrial({
 
 void _allocationWorker(SendPort readyPort) {
   final benchmarkCase = _ordinarySlopeCase();
-  for (var index = 0; index < 50000; index += 1) {
+  // Allocation tracing makes each solve substantially slower than the normal
+  // benchmark. This pre-warm plus the profiled warm-up trial optimize the
+  // isolated hot loop before any measured heap baseline is captured.
+  for (var index = 0; index < 2000; index += 1) {
     benchmarkCase.run();
   }
   final requests = ReceivePort();

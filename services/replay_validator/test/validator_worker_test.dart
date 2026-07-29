@@ -15,6 +15,7 @@ import 'package:replay_validator/src/replay_loader.dart';
 import 'package:replay_validator/src/replay_validation_limits.dart';
 import 'package:replay_validator/src/run_session_repository.dart';
 import 'package:replay_validator/src/settlement_dispatcher.dart';
+import 'package:replay_validator/src/validated_replay_archiver.dart';
 import 'package:replay_validator/src/validator_worker.dart';
 
 void main() {
@@ -60,12 +61,14 @@ void main() {
     );
     final metrics = _FakeValidatorMetrics();
     final settlementDispatcher = _FakeSettlementDispatcher();
+    final archiver = _FakeValidatedReplayArchiver();
     final worker = DeterministicValidatorWorker(
       replayLoader: loader,
       boardRepository: _FakeBoardRepository(),
       runSessionRepository: repo,
       metrics: metrics,
       settlementDispatcher: settlementDispatcher,
+      validatedReplayArchiver: archiver,
       clockMs: () => 10_000,
     );
 
@@ -76,6 +79,15 @@ void main() {
     expect(result.status, ValidationDispatchStatus.accepted);
     expect(repo.acceptedSettlementHandoffs, hasLength(1));
     expect(repo.acceptedSettlementHandoffs.single.accepted, isTrue);
+    expect(
+      repo.acceptedSettlementHandoffs.single.replayStorageRef,
+      'replay-submissions/validated/${replayBlob.runSessionId}.bin.gz',
+    );
+    expect(
+      repo.acceptedSettlementHandoffs.single.replayStorageGeneration,
+      '456',
+    );
+    expect(archiver.runSessionIds, <String>[replayBlob.runSessionId]);
     expect(settlementDispatcher.runSessionIds, <String>[
       replayBlob.runSessionId,
     ]);
@@ -1429,6 +1441,23 @@ class _FakeReplayLoader implements ReplayLoader {
       objectPath: objectPath,
       storageGeneration: storageGeneration,
       bytes: bytes,
+    );
+  }
+}
+
+class _FakeValidatedReplayArchiver implements ValidatedReplayArchiver {
+  final List<String> runSessionIds = <String>[];
+
+  @override
+  Future<ArchivedValidatedReplay> archive({
+    required String runSessionId,
+    required String sourceObjectPath,
+    required String sourceStorageGeneration,
+  }) async {
+    runSessionIds.add(runSessionId);
+    return ArchivedValidatedReplay(
+      objectPath: 'replay-submissions/validated/$runSessionId.bin.gz',
+      storageGeneration: '456',
     );
   }
 }

@@ -41,7 +41,6 @@ class TerrainEdgeIndex {
   final List<TerrainEdge> edges;
 
   final Map<int, List<int>> _buckets = <int, List<int>>{};
-  late final List<List<_CellCoordinate>> _memberships;
 
   /// Total bucket references inserted during rebuild.
   int insertedReferences = 0;
@@ -128,21 +127,21 @@ class TerrainEdgeIndex {
   List<String> canonicalMembershipRecords() {
     final records = <String>[];
     for (var edgeIndex = 0; edgeIndex < edges.length; edgeIndex += 1) {
-      for (final cell in _memberships[edgeIndex]) {
-        records.add(
-          'index-cell|${edges[edgeIndex].id.canonicalKey}|'
-          '${cell.x}|${cell.y}',
-        );
+      final edge = edges[edgeIndex];
+      final minCellX = _closedMinCell(edge.bounds.minX);
+      final maxCellX = _closedMaxCell(edge.bounds.maxX);
+      final minCellY = _closedMinCell(edge.bounds.minY);
+      final maxCellY = _closedMaxCell(edge.bounds.maxY);
+      for (var cellY = minCellY; cellY <= maxCellY; cellY += 1) {
+        for (var cellX = minCellX; cellX <= maxCellX; cellX += 1) {
+          records.add('index-cell|${edge.id.canonicalKey}|$cellX|$cellY');
+        }
       }
     }
     return List<String>.unmodifiable(records);
   }
 
   void _rebuild() {
-    _memberships = List<List<_CellCoordinate>>.generate(
-      edges.length,
-      (_) => <_CellCoordinate>[],
-    );
     for (var edgeIndex = 0; edgeIndex < edges.length; edgeIndex += 1) {
       final bounds = edges[edgeIndex].bounds;
       final minCellX = _closedMinCell(bounds.minX);
@@ -153,13 +152,9 @@ class TerrainEdgeIndex {
         for (var cx = minCellX; cx <= maxCellX; cx += 1) {
           final key = _grid.cellKey(cx, cy);
           _buckets.putIfAbsent(key, () => <int>[]).add(edgeIndex);
-          _memberships[edgeIndex].add(_CellCoordinate(cx, cy));
           insertedReferences += 1;
         }
       }
-    }
-    for (var i = 0; i < _memberships.length; i += 1) {
-      _memberships[i] = List<_CellCoordinate>.unmodifiable(_memberships[i]);
     }
   }
 
@@ -169,11 +164,4 @@ class TerrainEdgeIndex {
   }
 
   int _closedMaxCell(int ticks) => terrainFloorDiv(ticks, cellSizeTicks);
-}
-
-class _CellCoordinate {
-  const _CellCoordinate(this.x, this.y);
-
-  final int x;
-  final int y;
 }

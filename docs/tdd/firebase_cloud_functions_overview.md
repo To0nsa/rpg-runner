@@ -334,7 +334,7 @@ Why:
 - Both run hourly; Security Rules deny direct clients and account deletion
   removes UID-owned quota/idempotency state.
 
-### Settlement, projection, and legacy-grant operations
+### Settlement and projection operations
 
 - `runSettlementOnHandoff` settles an accepted run after Firestore handoff.
 - `runSettlementImmediate` is the validator's low-latency authenticated request
@@ -351,13 +351,16 @@ Why:
   after a 48-hour grace period while preserving active validation grants.
 - `runProjectionOnAccepted` enqueues board-backed leaderboard/ghost projection
   separately from settlement, so projection retry cannot delay payout.
-- `runProjectionReconciliation` pages through managed board documents every 15
-  minutes and enqueues deterministic board reconciliation tasks. It advances
-  its cursor only after the whole page is durably enqueued, so a failed page is
+- `runProjectionReconciliation` is configured with 512 MiB of memory, pages
+  through managed board documents every 15 minutes, and enqueues deterministic
+  reconciliation tasks. One Cloud Tasks client is reused for the complete
+  invocation and closed on either success or enqueue failure. It advances its
+  cursor only after the whole page is durably enqueued, so a failed page is
   replay-safe and leaderboard/ghost convergence does not require a new score.
-- `runLegacyRewardGrantMigration` is disabled by default and supports bounded
-  `inventory` then `apply` modes for the one-time legacy reconciliation
-  cutover. Normal canonical state reads never perform that migration work.
+- The completed legacy reward-grant cutover has no deployed scheduled
+  function. Normal canonical state reads never perform migration work; any
+  future migration must be explicitly introduced, verified, and removed as a
+  finite operation rather than left as idle production infrastructure.
 
 Operational metrics, alert thresholds, and the staged migration procedure are
 defined in `docs/tdd/reward_settlement_operations.md`.

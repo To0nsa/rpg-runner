@@ -205,6 +205,38 @@ Expression? _namedArgumentExpression(
   return _namedArgument(arguments, name)?.expression;
 }
 
+_ResolvedColliderAabbExpression? _resolveColliderAabbExpression(
+  CompilationUnit unit,
+  Expression? expression,
+) {
+  var resolved = expression;
+  if (resolved is SimpleIdentifier) {
+    final variableName = resolved.name;
+    final declaration = unit.declarations
+        .whereType<TopLevelVariableDeclaration>()
+        .expand((entry) => entry.variables.variables)
+        .where((variable) => variable.name.lexeme == variableName)
+        .firstOrNull;
+    resolved = declaration?.initializer;
+  }
+
+  if (resolved is InstanceCreationExpression &&
+      resolved.constructorName.type.toSource() == 'ColliderAabbDef') {
+    return _ResolvedColliderAabbExpression(
+      expression: resolved,
+      arguments: resolved.argumentList.arguments,
+    );
+  }
+  if (resolved is MethodInvocation &&
+      resolved.methodName.name == 'ColliderAabbDef') {
+    return _ResolvedColliderAabbExpression(
+      expression: resolved,
+      arguments: resolved.argumentList.arguments,
+    );
+  }
+  return null;
+}
+
 double? _doubleNamedArg(NodeList<Expression> arguments, String name) {
   final expression = _namedArgumentExpression(arguments, name);
   if (expression == null) {
@@ -357,4 +389,14 @@ String _titleCaseCamel(String value) {
 
 extension<T> on Iterable<T> {
   T? get firstOrNull => isEmpty ? null : first;
+}
+
+class _ResolvedColliderAabbExpression {
+  const _ResolvedColliderAabbExpression({
+    required this.expression,
+    required this.arguments,
+  });
+
+  final Expression expression;
+  final NodeList<Expression> arguments;
 }

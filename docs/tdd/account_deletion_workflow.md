@@ -122,10 +122,13 @@ account to remain authenticated.
 
 ## Scheduling, retention, and operations
 
-`accountDeletionRepair` runs every minute. Each request records attempts, stage,
-last retryable error, age inputs, and aggregate deletion counters for operator
-inspection. Missing Auth users and already-missing data/artifacts are normal
-idempotent outcomes.
+`accountDeletionRepair` runs every 15 minutes during pre-release cost
+containment. Each request records attempts, stage, last retryable error, age
+inputs, and aggregate deletion counters for operator inspection. Missing Auth
+users and already-missing data/artifacts are normal idempotent outcomes. This
+temporarily trades deletion-recovery latency for lower idle cost; before public
+release, restore a measured cadence and re-verify the alert thresholds and
+end-to-end deletion duration.
 
 The repair worker selects active requests in ascending `requestedAtMs` order
 through the source-controlled `state` plus `requestedAtMs` composite index. It
@@ -139,7 +142,7 @@ Source-controlled production policies under
 `functions/monitoring/account_deletion/` alert on:
 
 - any transition to retryable failure;
-- incomplete work at least six hours old or at 400 attempts;
+- incomplete work at least twelve hours old or at 400 attempts;
 - unexpected scheduled repair runtime errors.
 
 Six hours allows the normal multi-board repeated-reconciliation workflow to
@@ -151,11 +154,11 @@ days. The record exists only to keep the deletion barrier fail-closed and to
 support bounded deletion/security incident evidence. It contains no gameplay
 or identity-provider data.
 
-The scheduled worker evaluates expiry every minute and deletes up to 10 expired
-completed records per invocation. Firestore native TTL is not enabled because
-the source-controlled expiry field is integer epoch milliseconds while native
-TTL requires a timestamp. Inventory checks expose missing expiry, expired
-evidence, and non-minimal completions.
+The scheduled worker evaluates expiry every 15 minutes and deletes up to 10
+expired completed records per invocation. Firestore native TTL is not enabled
+because the source-controlled expiry field is integer epoch milliseconds while
+native TTL requires a timestamp. Inventory checks expose missing expiry,
+expired evidence, and non-minimal completions.
 
 The engineering privacy review accepted this policy with launch conditions.
 The public privacy policy and external deletion resource must disclose the
@@ -182,7 +185,8 @@ Emulator tests cover:
 
 Production verification additionally confirmed:
 
-- the one-minute repair scheduler and IAM path;
+- the original one-minute repair scheduler and IAM path before the pre-release
+  cost-containment cadence change;
 - three-pass final reconciliation after the 15-minute signed-upload quiet
   period;
 - deletion of the synthetic Auth users, Firestore documents, pending replay

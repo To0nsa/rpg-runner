@@ -181,6 +181,7 @@ class TerrainCapsuleController {
   final CapsuleSweepHit _bestHit = CapsuleSweepHit();
   final TerrainContactDecision _scratchDecision = TerrainContactDecision();
   final CapsuleSegmentContact _scratchContact = CapsuleSegmentContact();
+  final _SupportTransition _supportTransitionScratch = _SupportTransition();
   final List<int> _constraintNormalX = List<int>.filled(
     terrainMaxBlockingContacts,
     0,
@@ -214,8 +215,14 @@ class TerrainCapsuleController {
   var _beganGrounded = false;
   var _supportedPathTravelTicks = 0;
   var _supportedPathDirectionSign = 1;
+  TerrainEdge? _tickStartSupport;
   TerrainEdge? _provisionalSupport;
   TerrainEdge? _recoveryEdge;
+  TerrainEdge? _cachedTransitionSource;
+  var _cachedTransitionDirection = 0;
+  var _cachedTransitionRadiusTicks = -1;
+  var _cachedTransitionHalfSegmentTicks = -1;
+  var _cachedTransitionExists = false;
   var _recoveryCorrectionTicks = 0;
   var _recoveryNormalXTicks = 0;
   var _recoveryNormalYTicks = 0;
@@ -321,6 +328,45 @@ class TerrainCapsuleController {
     int? lastValidCapsuleCenterYTicks,
     required TerrainCapsuleMotionResult out,
   }) {
+    moveAtValues(
+      centerXTicks: centerXTicks,
+      centerYTicks: centerYTicks,
+      radiusTicks: radiusTicks,
+      verticalHalfSegmentTicks: verticalHalfSegmentTicks,
+      displacementXTicks: request.displacementXTicks,
+      displacementYTicks: request.displacementYTicks,
+      gravityXTicks: request.gravityXTicks,
+      gravityYTicks: request.gravityYTicks,
+      surfaceDirectionSign: request.surfaceDirectionSign,
+      mode: request.mode,
+      beganGrounded: beganGrounded,
+      priorSupportEdgeId: priorSupportEdgeId,
+      priorSupportGeometryVersion: priorSupportGeometryVersion,
+      lastValidCapsuleCenterXTicks: lastValidCapsuleCenterXTicks,
+      lastValidCapsuleCenterYTicks: lastValidCapsuleCenterYTicks,
+      out: out,
+    );
+  }
+
+  /// Allocation-free primitive request equivalent of [moveAt].
+  void moveAtValues({
+    required int centerXTicks,
+    required int centerYTicks,
+    required int radiusTicks,
+    required int verticalHalfSegmentTicks,
+    required int displacementXTicks,
+    required int displacementYTicks,
+    int gravityXTicks = 0,
+    int gravityYTicks = 0,
+    int surfaceDirectionSign = 1,
+    required TerrainMotionMode mode,
+    required bool beganGrounded,
+    TerrainEdgeId? priorSupportEdgeId,
+    int priorSupportGeometryVersion = -1,
+    int? lastValidCapsuleCenterXTicks,
+    int? lastValidCapsuleCenterYTicks,
+    required TerrainCapsuleMotionResult out,
+  }) {
     if ((lastValidCapsuleCenterXTicks == null) !=
         (lastValidCapsuleCenterYTicks == null)) {
       throw ArgumentError(
@@ -329,6 +375,19 @@ class TerrainCapsuleController {
     }
     if (radiusTicks < 0 || verticalHalfSegmentTicks < 0) {
       throw ArgumentError('Capsule dimensions must be non-negative.');
+    }
+    if (displacementXTicks.abs() > terrainMaxAbsPhysicsTicks ||
+        displacementYTicks.abs() > terrainMaxAbsPhysicsTicks ||
+        gravityXTicks.abs() > terrainMaxAbsPhysicsTicks ||
+        gravityYTicks.abs() > terrainMaxAbsPhysicsTicks) {
+      throw RangeError('Terrain request values exceed the physics range.');
+    }
+    if (surfaceDirectionSign != -1 && surfaceDirectionSign != 1) {
+      throw ArgumentError.value(
+        surfaceDirectionSign,
+        'surfaceDirectionSign',
+        'Must be -1 or 1.',
+      );
     }
     _out = out;
     _tickStartCenterX = centerXTicks;
@@ -339,7 +398,8 @@ class TerrainCapsuleController {
     _centerY = centerYTicks;
     _beganGrounded = beganGrounded;
     _supportedPathTravelTicks = 0;
-    _supportedPathDirectionSign = request.surfaceDirectionSign;
+    _supportedPathDirectionSign = surfaceDirectionSign;
+    _tickStartSupport = null;
     _provisionalSupport = null;
     out.resetAt(centerXTicks: centerXTicks, centerYTicks: centerYTicks);
 
@@ -351,6 +411,7 @@ class TerrainCapsuleController {
     final priorSupport = priorSupportIsCurrent
         ? geometry.edgeById[priorSupportEdgeId]
         : null;
+    _tickStartSupport = priorSupport;
     if (beganGrounded && !priorSupportIsCurrent) {
       out.diagnostic = priorSupportGeometryVersion != geometry.version
           ? TerrainControllerDiagnostic.invalidGeometryVersion
@@ -371,44 +432,44 @@ class TerrainCapsuleController {
     }
 
     if (priorSupport != null &&
-        (request.mode == TerrainMotionMode.groundedHorizontal ||
-            request.mode == TerrainMotionMode.groundedSurface) &&
+        (mode == TerrainMotionMode.groundedHorizontal ||
+            mode == TerrainMotionMode.groundedSurface) &&
         profile.isWalkableSupport(priorSupport)) {
       _provisionalSupport = priorSupport;
-      if (request.mode == TerrainMotionMode.groundedHorizontal) {
+      if (mode == TerrainMotionMode.groundedHorizontal) {
         _solveGroundedHorizontal(
-          request.displacementXTicks,
+          displacementXTicks,
           support: priorSupport,
-          surfaceDirectionSign: request.surfaceDirectionSign,
+          surfaceDirectionSign: surfaceDirectionSign,
         );
       } else {
         final distance = _integerSqrt(
-          request.displacementXTicks * request.displacementXTicks +
-              request.displacementYTicks * request.displacementYTicks,
+          displacementXTicks * displacementXTicks +
+              displacementYTicks * displacementYTicks,
         );
         _solveGroundedSurface(
           distance,
           support: priorSupport,
-          surfaceDirectionSign: request.surfaceDirectionSign,
+          surfaceDirectionSign: surfaceDirectionSign,
         );
       }
       _resolveFinalSupport(beganGrounded: true, allowSnap: true);
       if (!out.grounded) {
         _solveDisplacement(
-          request.gravityXTicks,
-          request.gravityYTicks,
+          gravityXTicks,
+          gravityYTicks,
           mode: TerrainMotionMode.worldSpace,
-          surfaceDirectionSign: request.surfaceDirectionSign,
+          surfaceDirectionSign: surfaceDirectionSign,
           allowStep: false,
         );
         _resolveFinalSupport(beganGrounded: false, allowSnap: false);
       }
     } else {
       _solveDisplacement(
-        request.composedXTicks,
-        request.composedYTicks,
+        displacementXTicks + gravityXTicks,
+        displacementYTicks + gravityYTicks,
         mode: TerrainMotionMode.worldSpace,
-        surfaceDirectionSign: request.surfaceDirectionSign,
+        surfaceDirectionSign: surfaceDirectionSign,
         allowStep: false,
       );
       _resolveFinalSupport(beganGrounded: false, allowSnap: false);
@@ -571,15 +632,27 @@ class TerrainCapsuleController {
   }
 
   _SupportTransition? _supportTransition(TerrainEdge edge, int direction) {
+    if (identical(edge, _cachedTransitionSource) &&
+        direction == _cachedTransitionDirection &&
+        _radiusTicks == _cachedTransitionRadiusTicks &&
+        _verticalHalfSegmentTicks == _cachedTransitionHalfSegmentTicks) {
+      return _cachedTransitionExists ? _supportTransitionScratch : null;
+    }
     final useEnd = direction > 0
         ? edge.end.xTicks >= edge.start.xTicks
         : edge.end.xTicks <= edge.start.xTicks;
     final vertex = useEnd ? edge.end : edge.start;
     final adjacentId = useEnd ? edge.nextId : edge.previousId;
     final join = useEnd ? edge.endJoin : edge.startJoin;
-    if (adjacentId == null || join == TerrainVertexJoin.exposed) return null;
+    if (adjacentId == null || join == TerrainVertexJoin.exposed) {
+      _cacheSupportTransition(edge, direction, exists: false);
+      return null;
+    }
     final adjacent = geometry.edgeById[adjacentId];
-    if (adjacent == null || !profile.isWalkableSupport(adjacent)) return null;
+    if (adjacent == null || !profile.isWalkableSupport(adjacent)) {
+      _cacheSupportTransition(edge, direction, exists: false);
+      return null;
+    }
 
     final incoming = useEnd ? edge : adjacent;
     final outgoing = useEnd ? adjacent : edge;
@@ -593,24 +666,43 @@ class TerrainCapsuleController {
       final thresholdX =
           vertex.xTicks +
           _roundedDivide(radiusWithSkin * _rawNormalX(edge), edgeLength);
-      return _SupportTransition(
+      final transition = _supportTransitionScratch..set(
         nextSupport: adjacent,
         vertex: vertex,
         thresholdX: thresholdX,
         thresholdY: _supportCenterYAtX(edge, thresholdX),
         convex: true,
       );
+      _cacheSupportTransition(edge, direction, exists: true);
+      return transition;
     }
 
     final intersection = _supportLineIntersection(edge, adjacent);
-    if (intersection == null) return null;
-    return _SupportTransition(
+    if (intersection == null) {
+      _cacheSupportTransition(edge, direction, exists: false);
+      return null;
+    }
+    final transition = _supportTransitionScratch..set(
       nextSupport: adjacent,
       vertex: vertex,
       thresholdX: intersection.xTicks,
       thresholdY: intersection.yTicks,
       convex: false,
     );
+    _cacheSupportTransition(edge, direction, exists: true);
+    return transition;
+  }
+
+  void _cacheSupportTransition(
+    TerrainEdge edge,
+    int direction, {
+    required bool exists,
+  }) {
+    _cachedTransitionSource = edge;
+    _cachedTransitionDirection = direction;
+    _cachedTransitionRadiusTicks = _radiusTicks;
+    _cachedTransitionHalfSegmentTicks = _verticalHalfSegmentTicks;
+    _cachedTransitionExists = exists;
   }
 
   bool _followConvexVertex({
@@ -814,8 +906,7 @@ class TerrainCapsuleController {
 
   int _rawNormalY(TerrainEdge edge) => -edge.dxTicks;
 
-  int _edgeLengthTicks(TerrainEdge edge) =>
-      _integerSqrt(edge.dxTicks * edge.dxTicks + edge.dyTicks * edge.dyTicks);
+  int _edgeLengthTicks(TerrainEdge edge) => edge.lengthFloorTicks;
 
   void _solveDisplacement(
     int requestedX,
@@ -847,6 +938,17 @@ class TerrainCapsuleController {
           candidateIndex += 1
         ) {
           final edge = _queryBuffer.edgeAt(candidateIndex, index.edges);
+          final retainedSupport = _provisionalSupport;
+          if ((mode == TerrainMotionMode.groundedHorizontal ||
+                  mode == TerrainMotionMode.groundedSurface) &&
+              retainedSupport != null &&
+              edge.id == retainedSupport.id) {
+            // Grounded traversal already constrains motion to its current
+            // eligible support face. That same face cannot block as a wall;
+            // neighboring walkable faces must still sweep so canonical
+            // support transitions and contacts remain observable.
+            continue;
+          }
           _kernel.sweepAtCenter(
             centerXTicks: sweepStartX,
             centerYTicks: sweepStartY,
@@ -1040,18 +1142,30 @@ class TerrainCapsuleController {
   bool _tryStep({required int forwardXTicks}) {
     final startX = _centerX;
     final startY = _centerY;
-    final raisedY = startY - profile.stepHeightTicks;
-    if (_pathBlocked(0, -profile.stepHeightTicks)) return false;
+    final stepOriginSupport = _provisionalSupport;
+    // Lift and advance one skin beyond the authored request so an
+    // exactly-max-height ledge is not rejected as endpoint tangency during
+    // preview. Final support below remains bounded by authored geometry.
+    final previewLiftTicks =
+        profile.stepHeightTicks +
+        terrainCollisionSkinTicks +
+        terrainContactEpsilonTicks;
+    final raisedY = startY - previewLiftTicks;
+    if (_pathBlocked(0, -previewLiftTicks)) return false;
     _centerY = raisedY;
-    if (_pathBlocked(forwardXTicks, 0)) {
+    final previewForwardXTicks =
+        forwardXTicks +
+        forwardXTicks.sign *
+            (terrainCollisionSkinTicks + terrainContactEpsilonTicks);
+    if (_pathBlocked(previewForwardXTicks, 0)) {
       _centerX = startX;
       _centerY = startY;
       return false;
     }
-    _centerX += forwardXTicks;
+    _centerX += previewForwardXTicks;
 
     final probeDistance =
-        profile.stepHeightTicks +
+        previewLiftTicks +
         terrainCollisionSkinTicks +
         terrainContactEpsilonTicks;
     final supportHit = _findFirstSupportSweep(
@@ -1059,7 +1173,22 @@ class TerrainCapsuleController {
       centerY: _centerY,
       displacementYTicks: probeDistance,
     );
-    if (supportHit == null || _bestHit.feature != TerrainSegmentFeature.face) {
+    if (supportHit == null) {
+      _centerX = startX;
+      _centerY = startY;
+      return false;
+    }
+    if (stepOriginSupport == null) {
+      _centerX = startX;
+      _centerY = startY;
+      return false;
+    }
+    final supportX = _bestHit.pointXTicks;
+    final geometricRise =
+        _edgeYAtXClamped(stepOriginSupport, supportX) -
+        _edgeYAtXClamped(supportHit, supportX);
+    if (geometricRise < 0 ||
+        geometricRise > profile.stepHeightTicks + terrainContactEpsilonTicks) {
       _centerX = startX;
       _centerY = startY;
       return false;
@@ -1074,7 +1203,9 @@ class TerrainCapsuleController {
     );
     final finalY = raisedY + downDistance;
     final rise = startY - finalY;
-    if (finalY > startY || rise < 0 || rise > profile.stepHeightTicks) {
+    if (finalY > startY ||
+        rise < 0 ||
+        rise > profile.stepHeightTicks + terrainContactEpsilonTicks) {
       _centerX = startX;
       _centerY = startY;
       return false;
@@ -1091,6 +1222,18 @@ class TerrainCapsuleController {
     _provisionalSupport = supportHit;
     _writeSupport(supportHit, _bestHit.pointXTicks, _bestHit.pointYTicks);
     return true;
+  }
+
+  int _edgeYAtXClamped(TerrainEdge edge, int xTicks) {
+    if (edge.dxTicks == 0) return edge.start.yTicks;
+    final minX = math.min(edge.start.xTicks, edge.end.xTicks);
+    final maxX = math.max(edge.start.xTicks, edge.end.xTicks);
+    final clampedX = xTicks.clamp(minX, maxX);
+    return edge.start.yTicks +
+        _roundedDivide(
+          (clampedX - edge.start.xTicks) * edge.dyTicks,
+          edge.dxTicks,
+        );
   }
 
   bool _pathBlocked(int displacementX, int displacementY) {
@@ -1339,17 +1482,17 @@ class TerrainCapsuleController {
     _out._clearSupport();
     final provisional = _provisionalSupport;
     if (provisional != null) {
-      _kernel.evaluateAtCenter(
+      final withinSupportTolerance = _kernel.evaluateSupportAtCenterWithin(
         centerXTicks: _centerX,
         centerYTicks: _centerY,
         radiusTicks: _radiusTicks,
         verticalHalfSegmentTicks: _verticalHalfSegmentTicks,
         edge: provisional,
+        maximumSeparationTicks:
+            terrainCollisionSkinTicks + terrainContactEpsilonTicks,
         out: _scratchContact,
       );
-      if (_scratchContact.separationAtMostTicks(
-            terrainCollisionSkinTicks + terrainContactEpsilonTicks,
-          ) &&
+      if (withinSupportTolerance &&
           policy.acceptsSupportContactAtCenter(
             tickStartCenterXTicks: _tickStartCenterX,
             tickStartCenterYTicks: _tickStartCenterY,
@@ -1416,6 +1559,18 @@ class TerrainCapsuleController {
       }
     }
     if (support == null) return;
+
+    final tickStartSupport = _tickStartSupport;
+    if (tickStartSupport != null && tickStartSupport.id != support.id) {
+      final supportX = _bestHit.pointXTicks;
+      final geometricDrop =
+          _edgeYAtXClamped(support, supportX) -
+          _edgeYAtXClamped(tickStartSupport, supportX);
+      if (geometricDrop >
+          profile.snapDistanceTicks + terrainContactEpsilonTicks) {
+        return;
+      }
+    }
 
     final snapDistance = math.max(
       0,
@@ -1645,19 +1800,25 @@ class TerrainCapsuleController {
 }
 
 class _SupportTransition {
-  const _SupportTransition({
-    required this.nextSupport,
-    required this.vertex,
-    required this.thresholdX,
-    required this.thresholdY,
-    required this.convex,
-  });
+  late TerrainEdge nextSupport;
+  late TerrainPoint vertex;
+  int thresholdX = 0;
+  int thresholdY = 0;
+  bool convex = false;
 
-  final TerrainEdge nextSupport;
-  final TerrainPoint vertex;
-  final int thresholdX;
-  final int thresholdY;
-  final bool convex;
+  void set({
+    required TerrainEdge nextSupport,
+    required TerrainPoint vertex,
+    required int thresholdX,
+    required int thresholdY,
+    required bool convex,
+  }) {
+    this.nextSupport = nextSupport;
+    this.vertex = vertex;
+    this.thresholdX = thresholdX;
+    this.thresholdY = thresholdY;
+    this.convex = convex;
+  }
 }
 
 bool _crossesInDirection(int start, int end, int threshold) {

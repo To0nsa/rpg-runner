@@ -15,7 +15,9 @@ enum TerrainMotionMode {
 /// Immutable quantized displacement request consumed by terrain motion.
 ///
 /// Gravity remains separate so retained support can consume it as contact bias
-/// without turning it into passive downhill speed.
+/// without turning it into passive downhill speed. Allocation-sensitive
+/// authorities use the controller's primitive-value entry point instead of
+/// weakening this immutable public contract.
 class TerrainMotionRequest {
   factory TerrainMotionRequest({
     required int displacementXTicks,

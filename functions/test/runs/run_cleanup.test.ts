@@ -101,6 +101,52 @@ test("run cleanup deletes stale pending replay uploads older than cutoff", async
   ]);
 });
 
+test("run cleanup preserves validating replay evidence until a sealed artifact exists", async () => {
+  const nowMs = 10_000;
+  const validatingPath =
+    "replay-submissions/pending/u1/run_validating/replay.bin.gz";
+  const archivedPath =
+    "replay-submissions/pending/u1/run_archived/replay.bin.gz";
+  await seedRunSession("run_validating", "pending_validation", nowMs + 10_000);
+  await db.collection("run_sessions").doc("run_validating").set({
+    uploadedReplay: {
+      objectPath: validatingPath,
+      storageGeneration: "123",
+    },
+  }, { merge: true });
+  await seedRunSession("run_archived", "settlement_pending", nowMs + 10_000);
+  await db.collection("run_sessions").doc("run_archived").set({
+    uploadedReplay: {
+      objectPath: archivedPath,
+      storageGeneration: "456",
+    },
+    validatedReplay: {
+      objectPath: "replay-submissions/validated/run_archived.bin.gz",
+      storageGeneration: "789",
+      sourceObjectPath: archivedPath,
+      sourceStorageGeneration: "456",
+    },
+  }, { merge: true });
+  const objectStore = new FakePendingReplayObjectStore([
+    { objectPath: validatingPath, updatedAtMs: 1_000 },
+    { objectPath: archivedPath, updatedAtMs: 1_000 },
+  ]);
+
+  const result = await runReplaySubmissionCleanup({
+    db,
+    nowMs,
+    dependencies: {
+      pendingReplayObjectStore: objectStore,
+      stalePendingUploadCutoffMs: 1_000,
+      maxExpiredSessionUpdatesPerRun: 10,
+      maxPendingUploadDeletesPerRun: 10,
+    },
+  });
+
+  assert.equal(result.stalePendingUploadDeletedCount, 1);
+  assert.deepEqual(objectStore.deletedObjectPaths, [archivedPath]);
+});
+
 test("run cleanup deletes stale validated artifacts only for non-top10 runs", async () => {
   const nowMs = 1_000_000;
   const objectStore = new FakePendingReplayObjectStore([
@@ -352,6 +398,7 @@ type SeededRunSessionState =
   | "uploading"
   | "uploaded"
   | "pending_validation"
+  | "settlement_pending"
   | "validated"
   | "rejected"
   | "expired"

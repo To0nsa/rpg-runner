@@ -57,10 +57,10 @@ order; the contract below records the dependencies that must survive changes.
 
 | Order | Contractual phase | Dependency |
 | --- | --- | --- |
-| 1 | Stream/cull track and decrement cooldown/invulnerability timers | Later systems read current world geometry and remaining timers. |
-| 2 | Refresh control locks, ability phases, and hold/charge state | Input activation must observe current ability/control state. |
-| 3 | Resolve AI, ability activation, jump, movement, mobility, gravity, and collision | Movement and collision produce the authoritative positions used downstream. |
-| 4 | Update distance, camera, and terminal fall conditions | Camera-dependent culling, pickups, and run termination use this state. |
+| 1 | Stream/cull track, publish any complete harness terrain bundle, and prepare motion | No consumer may observe mixed terrain/index/surface/graph versions; AI receives validated prior support. |
+| 2 | Decrement timers and refresh control locks, ability phases, and hold/charge state | Input activation must observe current timer, ability, and control state. |
+| 3 | Resolve AI, ability activation, jump, movement, mobility, gravity, and collision | Intent is composed before every terrain-owned dynamic actor is integrated exactly once. |
+| 4 | Update distance, camera, and terminal fall conditions | Camera-dependent culling, pickups, and run termination use final motion state. |
 | 5 | Collect pickups, rebuild broadphase, and move existing projectiles | Hit detection requires current spatial data; newly spawned projectiles do not move until a later tick. |
 | 6 | Write enemy intents, execute abilities, then position hitboxes | Self abilities resolve before downstream combat so their effects apply deterministically. |
 | 7 | Resolve projectile/hitbox/mobility/world hits, then status and damage | Damage middleware changes queued damage before application; reactive effects follow applied damage. |
@@ -71,10 +71,12 @@ normal constructor installs the legacy rectangle collision adapter. The
 test/tool-only `GameCore.terrainMotionHarness` factory installs the staged
 multi-body capsule authority against caller-supplied immutable terrain.
 
-Both owners follow the same ordering seam:
+Both owners follow the same ordering seam; the terrain-only publication step is
+a no-op for legacy ownership:
 
-1. prepare motion immediately after world generation, capturing prior valid
-   support and auditing exactly-once ownership;
+1. after world generation, atomically publish any fully built terrain bundle,
+   capture/invalidate prior support against its version, and audit exactly-once
+   ownership;
 2. let AI, jump, ordinary movement, mobility/teleport state, external velocity,
    and gravity compose motion;
 3. integrate exactly once;
@@ -93,6 +95,22 @@ The terrain harness rejects unsupported enabled dynamic bodies and never falls
 back to rectangle collision. It is not selected by authored level data,
 replays, saved state, UI, or remote configuration. See the terrain controller
 TDD for the staged boundary and direct-cutover requirements.
+
+A harness replacement is built completely before queueing and becomes visible
+only at the next preparation boundary. It cannot be queued mid-integration,
+and motion rejects support from any version other than the published bundle.
+Normal `TrackManager` graph publication and replay construction remain legacy
+through Phase 3.
+
+Track streaming and procedural item generation retain their established Phase
+1/prewarm order. Marker rolls remain keyed by seed, chunk, marker index, and
+salt. Collectible/restoration count draws, candidate draws, salts, snapping,
+spacing, and attempt limits are unchanged. The selected world-motion authority
+validates each already-created candidate through a mutation-free placement
+request that consumes no RNG. Legacy authority commits the historical
+rectangle candidate exactly; terrain-harness rejection consumes the existing
+marker request or item attempt and never draws a replacement. Therefore an
+invalid placement cannot shift any later marker roll or candidate sequence.
 
 Player death may enter a death-animation freeze: only animation advances until
 the terminal `RunEndedEvent` is emitted. Any terminal end freezes normal

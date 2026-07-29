@@ -183,10 +183,10 @@ void main() {
       }
     });
 
-    test('ordinary pursuit uses the accepted step and snap helpers', () {
+    test('ordinary pursuit accepts exact four-pixel step and snap', () {
       final step = _Harness.create(
         enemyId: EnemyId.grojib,
-        geometry: _threePixelStepTerrain,
+        geometry: _fourPixelStepTerrain,
         enemyX: 280,
         enemySupportY: 304,
         playerX: 650,
@@ -209,7 +209,7 @@ void main() {
 
       final snap = _Harness.create(
         enemyId: EnemyId.grojib,
-        geometry: _threePixelDropTerrain,
+        geometry: _fourPixelDropTerrain,
         enemyX: 280,
         enemySupportY: 300,
         playerX: 650,
@@ -223,6 +223,37 @@ void main() {
       }
       expect(usedSnap, isTrue);
       expect(snap.enemyGrounded, isTrue);
+    });
+
+    test('five-pixel transitions do not activate step or snap helpers', () {
+      bool activated({required TerrainGeometry geometry, required bool snap}) {
+        final harness = _Harness.create(
+          enemyId: EnemyId.grojib,
+          geometry: geometry,
+          enemyX: 280,
+          enemySupportY: 300,
+          playerX: 650,
+          speedX: 600,
+        );
+        harness.settle();
+        for (var tick = 0; tick < 30; tick += 1) {
+          final contact = harness.world.terrainContact.indexOf(harness.enemy);
+          final prior =
+              harness.world.terrainContact.supportEdgeId[contact]?.shapeId;
+          harness.step(targetX: 650);
+          final current =
+              harness.world.terrainContact.supportEdgeId[contact]?.shapeId;
+          if (prior?.startsWith('lower') == true &&
+              current?.startsWith('upper') == true &&
+              (snap ? harness.usedSnap : harness.usedStep)) {
+            return true;
+          }
+        }
+        return false;
+      }
+
+      expect(activated(geometry: _fivePixelStepTerrain, snap: false), isFalse);
+      expect(activated(geometry: _fivePixelDropTerrain, snap: true), isFalse);
     });
 
     test('seams and one-way supports traverse while walls block pursuit', () {
@@ -658,7 +689,7 @@ final TerrainGeometry _uphill60Terrain = const TerrainCompiler().compile([
   ),
 ], geometryVersion: 1);
 
-final TerrainGeometry _threePixelStepTerrain = const TerrainCompiler().compile([
+final TerrainGeometry _fourPixelStepTerrain = const TerrainCompiler().compile([
   TerrainPolygonInput.fromWorld(
     sourcePath: 'test/lower-step',
     identity: TerrainSourceIdentity(
@@ -675,11 +706,11 @@ final TerrainGeometry _threePixelStepTerrain = const TerrainCompiler().compile([
       chunkKey: 'test',
       shapeId: 'upper-step',
     ),
-    vertices: [(320, 301), (700, 301), (700, 500), (320, 500)],
+    vertices: [(320, 300), (700, 300), (700, 500), (320, 500)],
   ),
 ], geometryVersion: 1);
 
-final TerrainGeometry _threePixelDropTerrain = const TerrainCompiler().compile([
+final TerrainGeometry _fourPixelDropTerrain = const TerrainCompiler().compile([
   TerrainPolygonInput.fromWorld(
     sourcePath: 'test/high-drop',
     identity: TerrainSourceIdentity(
@@ -696,7 +727,49 @@ final TerrainGeometry _threePixelDropTerrain = const TerrainCompiler().compile([
       chunkKey: 'test',
       shapeId: 'low-drop',
     ),
-    vertices: [(320, 303), (700, 303), (700, 500), (320, 500)],
+    vertices: [(320, 304), (700, 304), (700, 500), (320, 500)],
+  ),
+], geometryVersion: 1);
+
+final TerrainGeometry _fivePixelStepTerrain = const TerrainCompiler().compile([
+  TerrainPolygonInput.fromWorld(
+    sourcePath: 'test/lower-step-5',
+    identity: TerrainSourceIdentity(
+      chunkIndex: 0,
+      chunkKey: 'test',
+      shapeId: 'lower-step-5',
+    ),
+    vertices: [(0, 300), (320, 300), (320, 500), (0, 500)],
+  ),
+  TerrainPolygonInput.fromWorld(
+    sourcePath: 'test/upper-step-5',
+    identity: TerrainSourceIdentity(
+      chunkIndex: 0,
+      chunkKey: 'test',
+      shapeId: 'upper-step-5',
+    ),
+    vertices: [(320, 295), (700, 295), (700, 500), (320, 500)],
+  ),
+], geometryVersion: 1);
+
+final TerrainGeometry _fivePixelDropTerrain = const TerrainCompiler().compile([
+  TerrainPolygonInput.fromWorld(
+    sourcePath: 'test/lower-drop-5',
+    identity: TerrainSourceIdentity(
+      chunkIndex: 0,
+      chunkKey: 'test',
+      shapeId: 'lower-drop-5',
+    ),
+    vertices: [(0, 300), (320, 300), (320, 500), (0, 500)],
+  ),
+  TerrainPolygonInput.fromWorld(
+    sourcePath: 'test/upper-drop-5',
+    identity: TerrainSourceIdentity(
+      chunkIndex: 0,
+      chunkKey: 'test',
+      shapeId: 'upper-drop-5',
+    ),
+    vertices: [(320, 305), (700, 305), (700, 500), (320, 500)],
   ),
 ], geometryVersion: 1);
 

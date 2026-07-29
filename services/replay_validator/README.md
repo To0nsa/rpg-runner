@@ -17,6 +17,8 @@ Current scope:
   duration, and simulation wall time
 - exact-generation replay validation and ghost promotion with persisted
   generation/digest lineage
+- sealed `replay-submissions/validated/...` artifacts before accepted-run
+  handoff, with pending-upload cleanup guarded by that durable record
 - atomic accepted, rejected, and exhausted-error handoffs
 - conditional player-best/top-10 writes plus scheduled board/ghost
   reconciliation

@@ -146,6 +146,7 @@ class TerrainGroundPlacementRequest {
     required TerrainPlacementCapsule capsule,
     required TerrainTraversalProfile traversalProfile,
     required TerrainSupportRequirement supportRequirement,
+    int minimumSupportSpanTicks = 0,
     TerrainEdgeId? intendedSupportEdgeId,
     bool allowSameSupportClamp = false,
     TerrainOneWayClearancePolicy oneWayClearancePolicy =
@@ -154,6 +155,13 @@ class TerrainGroundPlacementRequest {
   }) {
     if (minimumSupportYTicks > maximumSupportYTicks) {
       throw ArgumentError('Support Y minimum must not exceed its maximum.');
+    }
+    if (minimumSupportSpanTicks < 0) {
+      throw ArgumentError.value(
+        minimumSupportSpanTicks,
+        'minimumSupportSpanTicks',
+        'Must be non-negative.',
+      );
     }
     if (allowSameSupportClamp && intendedSupportEdgeId == null) {
       throw ArgumentError(
@@ -183,6 +191,7 @@ class TerrainGroundPlacementRequest {
       capsule: capsule,
       traversalProfile: traversalProfile,
       supportRequirement: supportRequirement,
+      minimumSupportSpanTicks: minimumSupportSpanTicks,
       intendedSupportEdgeId: intendedSupportEdgeId,
       allowSameSupportClamp: allowSameSupportClamp,
       oneWayClearancePolicy: oneWayClearancePolicy,
@@ -197,6 +206,7 @@ class TerrainGroundPlacementRequest {
     required this.capsule,
     required this.traversalProfile,
     required this.supportRequirement,
+    required this.minimumSupportSpanTicks,
     required this.intendedSupportEdgeId,
     required this.allowSameSupportClamp,
     required this.oneWayClearancePolicy,
@@ -209,6 +219,13 @@ class TerrainGroundPlacementRequest {
   final TerrainPlacementCapsule capsule;
   final TerrainTraversalProfile traversalProfile;
   final TerrainSupportRequirement supportRequirement;
+
+  /// Minimum total horizontal span of the intended finite support.
+  ///
+  /// This is independent of the capsule foothold fraction. A non-zero value
+  /// also reserves half of this span on each side of the final capsule center.
+  final int minimumSupportSpanTicks;
+
   final TerrainEdgeId? intendedSupportEdgeId;
   final bool allowSameSupportClamp;
   final TerrainOneWayClearancePolicy oneWayClearancePolicy;
@@ -398,9 +415,12 @@ class TerrainPlacementQuery {
     final versionFailure = _versionFailure(request.expectedGeometryVersion);
     if (versionFailure != null) return versionFailure;
 
-    final requiredWidth = request.supportRequirement.requiredWidthTicks(
+    final footholdWidth = request.supportRequirement.requiredWidthTicks(
       request.capsule.radiusTicks,
     );
+    final requiredWidth = footholdWidth > request.minimumSupportSpanTicks
+        ? footholdWidth
+        : request.minimumSupportSpanTicks;
     final desiredCapsuleX =
         request.desiredBodyCenterXTicks + request.capsule.resolvedOffsetXTicks;
     var surfaceCandidates = 0;
@@ -475,7 +495,8 @@ class TerrainPlacementQuery {
     final standable = _standableCenterRange(
       support,
       request.capsule.radiusTicks,
-      requiredWidth,
+      footholdWidth,
+      minimumSupportSpanTicks: request.minimumSupportSpanTicks,
     );
     if (standable == null) {
       return _failure(
@@ -649,17 +670,22 @@ class TerrainPlacementQuery {
   (int, int)? _standableCenterRange(
     TerrainNavigationSurface support,
     int radiusTicks,
-    int requiredWidthTicks,
-  ) {
-    if (support.dxTicks < requiredWidthTicks) return null;
+    int footholdWidthTicks, {
+    int minimumSupportSpanTicks = 0,
+  }) {
+    if (support.dxTicks < footholdWidthTicks ||
+        support.dxTicks < minimumSupportSpanTicks) {
+      return null;
+    }
+    final minimumSpanInset = _divideCeil(minimumSupportSpanTicks, 2);
     return (
       _maxInt(
-        support.xMinTicks,
-        support.xMinTicks + requiredWidthTicks - radiusTicks,
+        support.xMinTicks + minimumSpanInset,
+        support.xMinTicks + footholdWidthTicks - radiusTicks,
       ),
       _minInt(
-        support.xMaxTicks,
-        support.xMaxTicks - requiredWidthTicks + radiusTicks,
+        support.xMaxTicks - minimumSpanInset,
+        support.xMaxTicks - footholdWidthTicks + radiusTicks,
       ),
     );
   }

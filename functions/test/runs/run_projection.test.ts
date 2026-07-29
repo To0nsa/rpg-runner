@@ -39,6 +39,7 @@ const nowMs = 1700000000000;
 // This suite asserts the final post-migration behavior, without the temporary
 // read-time compatibility path used only during production inventory/apply.
 process.env.LEGACY_READ_RECONCILIATION_ENABLED = "false";
+process.env.REPLAY_VALIDATOR_URL = "https://validator.example";
 
 beforeEach(async () => {
   await Promise.all([
@@ -531,25 +532,48 @@ test("scheduled projection reconciliation walks boards through a persisted curso
   );
 });
 
+test("scheduled projection reconciliation reuses and closes one task client", async () => {
+  await Promise.all(
+    ["board_a", "board_b", "board_c"].map((boardId) =>
+      db.collection("leaderboard_boards").doc(boardId).set({ boardId }),
+    ),
+  );
+  const tasks = new FakeCloudTasksClient();
+  let clientCreateCount = 0;
+
+  const result = await reconcileLeaderboardBoardProjections({
+    db,
+    nowMs,
+    batchSize: 3,
+    createTasksClient: () => {
+      clientCreateCount += 1;
+      return tasks as unknown as CloudTasksClient;
+    },
+  });
+
+  assert.equal(result.enqueuedCount, 3);
+  assert.equal(clientCreateCount, 1);
+  assert.equal(tasks.requests.length, 3);
+  assert.equal(tasks.closeCount, 1);
+});
+
 test("projection reconciliation does not advance its cursor after enqueue failure", async () => {
   await db
     .collection("leaderboard_boards")
     .doc("board_failure")
     .set({ boardId: "board_failure" });
+  const tasks = new FakeCloudTasksClient(new Error("queue unavailable"));
 
   await assert.rejects(
     () =>
       reconcileLeaderboardBoardProjections({
         db,
         nowMs,
-        dispatcher: {
-          async enqueue(): Promise<void> {
-            throw new Error("queue unavailable");
-          },
-        },
+        createTasksClient: () => tasks as unknown as CloudTasksClient,
       }),
     /queue unavailable/u,
   );
+  assert.equal(tasks.closeCount, 1);
 
   const state = await db
     .collection("system_maintenance")
@@ -720,6 +744,9 @@ interface ProjectionTaskRequest {
 
 class FakeCloudTasksClient {
   readonly requests: ProjectionTaskRequest[] = [];
+  closeCount = 0;
+
+  constructor(private readonly createTaskError?: Error) {}
 
   queuePath(projectId: string, location: string, queueName: string): string {
     return `projects/${projectId}/locations/${location}/queues/${queueName}`;
@@ -735,6 +762,13 @@ class FakeCloudTasksClient {
   }
 
   async createTask(request: ProjectionTaskRequest): Promise<void> {
+    if (this.createTaskError) {
+      throw this.createTaskError;
+    }
     this.requests.push(request);
+  }
+
+  async close(): Promise<void> {
+    this.closeCount += 1;
   }
 }

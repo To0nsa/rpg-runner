@@ -1,12 +1,12 @@
 {
   "displayName": "RPG Runner - validation queue backlog",
   "documentation": {
-    "content": "The replay-validation queue remained non-empty for 15 minutes, exceeding normal dispatch/retry cadence. Inspect Cloud Run capacity, 5xx/retry alerts, expired leases, and scheduled validation repair.",
+    "content": "The replay-validation queue remained non-empty for 30 minutes, exceeding the pre-release dispatch/retry cadence. Inspect Cloud Run capacity, 5xx/retry alerts, expired leases, and scheduled validation repair.",
     "mimeType": "text/markdown"
   },
   "conditions": [
     {
-      "displayName": "Validation queue depth above zero for 15 minutes",
+      "displayName": "Validation queue depth above zero for 30 minutes",
       "conditionThreshold": {
         "filter": "metric.type=\"cloudtasks.googleapis.com/queue/depth\" AND resource.type=\"cloud_tasks_queue\" AND resource.label.queue_id=\"replay-validation\" AND resource.label.location=\"europe-west1\"",
         "aggregations": [
@@ -18,7 +18,7 @@
         ],
         "comparison": "COMPARISON_GT",
         "thresholdValue": 0,
-        "duration": "900s",
+        "duration": "1800s",
         "trigger": {
           "count": 1
         },

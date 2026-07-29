@@ -159,6 +159,70 @@ void main() {
     },
   );
 
+  test(
+    'reconciliation accepts a pinned active ghost after source cleanup',
+    () async {
+      const boardId = 'board_competitive_2026_03_field';
+      const runSessionId = 'run_retained_ghost';
+      final entry = _entry(
+        boardId: boardId,
+        runSessionId: runSessionId,
+        uid: 'uid_1',
+        score: 1200,
+        distanceMeters: 420,
+        durationSeconds: 120,
+        replayStorageRef: 'replay-submissions/validated/$runSessionId.bin.gz',
+        rank: 1,
+      );
+      final objectStore = _InMemoryGhostObjectStore()
+        ..addGhostObject(
+          objectPath: 'ghosts/$boardId/$runSessionId/ghost.bin.gz',
+          storageGeneration: '456',
+        );
+      final store = _InMemoryGhostPublicationStore(
+        top10EntriesByBoard: <String, List<LeaderboardEntry>>{
+          boardId: <LeaderboardEntry>[entry],
+        },
+        manifestsByBoard: <String, Map<String, GhostManifestRecord>>{
+          boardId: <String, GhostManifestRecord>{
+            runSessionId: GhostManifestRecord(
+              boardId: boardId,
+              entryId: runSessionId,
+              runSessionId: runSessionId,
+              uid: 'uid_1',
+              replayStorageRef: 'ghosts/$boardId/$runSessionId/ghost.bin.gz',
+              sourceReplayStorageRef:
+                  'replay-submissions/validated/$runSessionId.bin.gz',
+              sourceReplayStorageGeneration: '123',
+              promotedReplayStorageGeneration: '456',
+              replayDigest: 'a' * 64,
+              score: 1200,
+              distanceMeters: 420,
+              durationSeconds: 120,
+              sortKey: entry.sortKey,
+              rank: 1,
+              status: GhostManifestStatus.active,
+              exposed: true,
+              updatedAtMs: 5_000,
+              promotedAtMs: 5_000,
+            ),
+          },
+        },
+      );
+      final publisher = FirestoreGhostPublisher(
+        projectId: 'demo',
+        replayStorageBucket: 'bucket',
+        publicationStore: store,
+        objectStore: objectStore,
+        clockMs: () => 10_000,
+      );
+
+      await publisher.reconcileBoard(boardId: boardId);
+
+      expect(objectStore.promotions, isEmpty);
+    },
+  );
+
   test('purges expired demoted ghosts and deletes durable object', () async {
     const boardId = 'board_competitive_2026_03_field';
     final store = _InMemoryGhostPublicationStore(
@@ -560,6 +624,14 @@ class _InMemoryGhostPublicationStore implements GhostPublicationStore {
 class _InMemoryGhostObjectStore implements GhostObjectStore {
   final List<_Promotion> promotions = <_Promotion>[];
   final List<String> deletions = <String>[];
+  final Set<String> _objects = <String>{};
+
+  void addGhostObject({
+    required String objectPath,
+    required String storageGeneration,
+  }) {
+    _objects.add('$objectPath#$storageGeneration');
+  }
 
   @override
   Future<GhostPromotionResult> promoteReplayToGhost({
@@ -574,8 +646,15 @@ class _InMemoryGhostObjectStore implements GhostObjectStore {
         destination: destinationObjectPath,
       ),
     );
+    addGhostObject(objectPath: destinationObjectPath, storageGeneration: '456');
     return const GhostPromotionResult(destinationStorageGeneration: '456');
   }
+
+  @override
+  Future<bool> hasGhostObject({
+    required String objectPath,
+    required String storageGeneration,
+  }) async => _objects.contains('$objectPath#$storageGeneration');
 
   @override
   Future<void> deleteGhostObject({required String objectPath}) async {

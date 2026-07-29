@@ -8,12 +8,20 @@ import '../../util/velocity_math.dart';
 import '../collider_aabb_utils.dart';
 import '../stores/enemies/flying_enemy_combat_mode_store.dart';
 import '../world.dart';
+import 'world_motion_authority.dart';
 
 /// Applies movement for flying enemies based on steering behaviors.
 class FlyingEnemyLocomotionSystem {
-  FlyingEnemyLocomotionSystem({required this.unocoDemonTuning});
+  FlyingEnemyLocomotionSystem({
+    required this.unocoDemonTuning,
+    WorldMotionAuthority? worldMotionAuthority,
+  }) : _worldMotionAuthority =
+           worldMotionAuthority ?? LegacyWorldMotionAuthority();
 
   final UnocoDemonTuningDerived unocoDemonTuning;
+  final WorldMotionAuthority _worldMotionAuthority;
+  final FlyingClearanceSteeringOutput _clearanceOutput =
+      FlyingClearanceSteeringOutput();
 
   /// Applies locomotion for all flying enemies.
   void step(
@@ -161,8 +169,11 @@ class FlyingEnemyLocomotionSystem {
 
     final dx = playerCenterX - ex;
     final distX = dx.abs();
+    var targetX = ex;
     if (distX > 1e-6) {
       world.enemy.facing[enemyIndex] = dx >= 0 ? Facing.right : Facing.left;
+      final dirToPlayerX = dx >= 0 ? 1.0 : -1.0;
+      targetX = playerCenterX - dirToPlayerX * desiredRange;
     }
 
     final slack = locomotionMode == _FlyingLocomotionMode.approachStrike
@@ -189,6 +200,16 @@ class FlyingEnemyLocomotionSystem {
     var flightTargetHoldLeftS = steering.flightTargetHoldLeftS[steeringIndex];
     var flightTargetAboveGround =
         steering.flightTargetAboveGround[steeringIndex];
+    final observedTerrainReference = _worldMotionAuthority
+        .flyingTerrainReferenceY(world, enemy);
+    if (observedTerrainReference != null) {
+      steering.hasLocalTerrainReference[steeringIndex] = true;
+      steering.localTerrainReferenceY[steeringIndex] = observedTerrainReference;
+    }
+    final flightReferenceY = steering.hasLocalTerrainReference[steeringIndex]
+        ? steering.localTerrainReferenceY[steeringIndex]
+        : groundTopY;
+    steering.effectiveFlightReferenceY[steeringIndex] = flightReferenceY;
     late final double targetY;
     if (locomotionMode == _FlyingLocomotionMode.hover) {
       if (flightTargetHoldLeftS > 0.0) {
@@ -203,7 +224,7 @@ class FlyingEnemyLocomotionSystem {
           tuning.base.unocoDemonMaxHeightAboveGround,
         );
       }
-      targetY = groundTopY - flightTargetAboveGround;
+      targetY = flightReferenceY - flightTargetAboveGround;
     } else {
       targetY = playerCenterY;
     }
@@ -224,14 +245,52 @@ class FlyingEnemyLocomotionSystem {
     desiredVelX *= moveSpeedMul;
     desiredVelY *= moveSpeedMul;
     final currentVelX = world.transform.velX[enemyTi];
-    world.transform.velX[enemyTi] = applyAccelDecel(
+    var resolvedVelX = applyAccelDecel(
       current: currentVelX,
       desired: desiredVelX,
       dtSeconds: dtSeconds,
       accelPerSecond: tuning.base.unocoDemonAccelX,
       decelPerSecond: tuning.base.unocoDemonDecelX,
     );
-    world.transform.velY[enemyTi] = desiredVelY;
+    var resolvedVelY = desiredVelY;
+
+    if (steering.terrainBlockedLastTick[steeringIndex]) {
+      _worldMotionAuthority.resolveFlyingClearanceSteering(
+        world,
+        enemy,
+        directVelocityX: resolvedVelX,
+        directVelocityY: resolvedVelY,
+        targetBodyX: targetX,
+        targetBodyY: targetY,
+        blockerNormalXTicks: steering.blockingNormalXTicks[steeringIndex],
+        blockerNormalYTicks: steering.blockingNormalYTicks[steeringIndex],
+        previewTicks: _clearancePreviewTicks,
+        tickHz: tuning.tickHz,
+        out: _clearanceOutput,
+      );
+      steering.terrainBlockedLastTick[steeringIndex] = false;
+      steering.clearanceCandidateId[steeringIndex] =
+          _clearanceOutput.candidateId;
+      if (_clearanceOutput.candidateId > 0) {
+        resolvedVelX = _clearanceOutput.velocityX;
+        resolvedVelY = _clearanceOutput.velocityY;
+        steering.clearanceVelocityX[steeringIndex] = resolvedVelX;
+        steering.clearanceVelocityY[steeringIndex] = resolvedVelY;
+        steering.clearanceHoldTicksLeft[steeringIndex] =
+            (_clearanceHoldSeconds * tuning.tickHz).ceil();
+      } else {
+        steering.clearanceHoldTicksLeft[steeringIndex] = 0;
+      }
+    } else if (steering.clearanceHoldTicksLeft[steeringIndex] > 0) {
+      resolvedVelX = steering.clearanceVelocityX[steeringIndex];
+      resolvedVelY = steering.clearanceVelocityY[steeringIndex];
+      steering.clearanceHoldTicksLeft[steeringIndex] -= 1;
+    } else {
+      steering.clearanceCandidateId[steeringIndex] = -1;
+    }
+
+    world.transform.velX[enemyTi] = resolvedVelX;
+    world.transform.velY[enemyTi] = resolvedVelY;
 
     steering.desiredRangeHoldLeftS[steeringIndex] = desiredRangeHoldLeftS;
     steering.desiredRange[steeringIndex] = desiredRange;
@@ -243,6 +302,8 @@ class FlyingEnemyLocomotionSystem {
   static const double _fallbackMeleeContactRange = 0.0;
   static const double _approachStrikeSlackX = 0.0;
   static const double _approachStrikeDeadzoneY = 0.0;
+  static const int _clearancePreviewTicks = 6;
+  static const double _clearanceHoldSeconds = 0.20;
 }
 
 enum _FlyingLocomotionMode { hover, approachStrike }

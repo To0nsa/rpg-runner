@@ -73,6 +73,54 @@ void main() {
     expect(core.playerVelY, lessThan(0));
   });
 
+  test(
+    'queued terrain publishes before intent regardless of call ordering',
+    () {
+      GameCore build() => GameCore.terrainMotionHarness(
+        seed: 81,
+        levelDefinition: _level(),
+        playerCharacter: eloiseCharacter,
+        terrainGeometry: _terrain(),
+      );
+
+      final queuedFirst = build();
+      queuedFirst.queueTerrainHarnessGeometryReplacement(_terrain(version: 2));
+      queuedFirst.applyCommands(const [MoveAxisCommand(tick: 1, axis: 1)]);
+
+      final inputFirst = build();
+      inputFirst.applyCommands(const [MoveAxisCommand(tick: 1, axis: 1)]);
+      inputFirst.queueTerrainHarnessGeometryReplacement(_terrain(version: 2));
+
+      queuedFirst.stepOneTick();
+      inputFirst.stepOneTick();
+      final queuedDebug = queuedFirst.buildTerrainPlayerDebugSnapshot()!;
+      final inputDebug = inputFirst.buildTerrainPlayerDebugSnapshot()!;
+
+      expect(queuedDebug.geometryVersion, 2);
+      expect(inputDebug.geometryVersion, 2);
+      expect(queuedFirst.playerPosX, inputFirst.playerPosX);
+      expect(queuedFirst.playerPosY, inputFirst.playerPosY);
+      expect(queuedFirst.playerVelX, inputFirst.playerVelX);
+      expect(queuedFirst.playerVelY, inputFirst.playerVelY);
+      expect(queuedDebug.supportEdgeId, inputDebug.supportEdgeId);
+      expect(queuedDebug.resolvedXTicks, inputDebug.resolvedXTicks);
+      expect(queuedDebug.resolvedYTicks, inputDebug.resolvedYTicks);
+    },
+  );
+
+  test('normal construction rejects terrain-harness replacement', () {
+    final core = GameCore(
+      seed: 82,
+      levelDefinition: _level(),
+      playerCharacter: eloiseCharacter,
+    );
+
+    expect(
+      () => core.queueTerrainHarnessGeometryReplacement(_terrain(version: 2)),
+      throwsStateError,
+    );
+  });
+
   test('terrain support applies the continuous signed slope target curve', () {
     final uphill = GameCore.terrainMotionHarness(
       seed: 9,
@@ -1214,7 +1262,7 @@ LevelDefinition _level({
   killPlaneY: killPlaneY,
 );
 
-TerrainGeometry _terrain() => const TerrainCompiler().compile([
+TerrainGeometry _terrain({int version = 1}) => const TerrainCompiler().compile([
   TerrainPolygonInput.fromWorld(
     sourcePath: 'test/ground',
     identity: TerrainSourceIdentity(
@@ -1224,7 +1272,7 @@ TerrainGeometry _terrain() => const TerrainCompiler().compile([
     ),
     vertices: [(0, 300), (1000, 300), (1000, 500), (0, 500)],
   ),
-], geometryVersion: 1);
+], geometryVersion: version);
 
 TerrainGeometry _slopeTerrain() => const TerrainCompiler().compile([
   TerrainPolygonInput.fromWorld(

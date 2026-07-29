@@ -28,6 +28,7 @@ import 'replay_loader.dart';
 import 'replay_validation_limits.dart';
 import 'run_session_repository.dart';
 import 'settlement_dispatcher.dart';
+import 'validated_replay_archiver.dart';
 
 enum ValidationDispatchStatus {
   accepted,
@@ -72,6 +73,7 @@ class DeterministicValidatorWorker implements ValidatorWorker {
     required this.runSessionRepository,
     required this.metrics,
     SettlementDispatcher? settlementDispatcher,
+    ValidatedReplayArchiver? validatedReplayArchiver,
     this.maxRetryAttempts = 8,
     this.internalErrorGraceWindow = const Duration(hours: 1),
     this.incidentModeAutoRevokePaused = false,
@@ -82,6 +84,9 @@ class DeterministicValidatorWorker implements ValidatorWorker {
     int Function()? monotonicClockMicros,
   }) : settlementDispatcher =
            settlementDispatcher ?? const NoopSettlementDispatcher(),
+       validatedReplayArchiver =
+           validatedReplayArchiver ??
+           const PassthroughValidatedReplayArchiver(),
        _clockMs = clockMs ?? _defaultClockMs,
        _monotonicClockMicros =
            monotonicClockMicros ?? _defaultMonotonicClockMicros {
@@ -100,6 +105,7 @@ class DeterministicValidatorWorker implements ValidatorWorker {
   final RunSessionRepository runSessionRepository;
   final ValidatorMetrics metrics;
   final SettlementDispatcher settlementDispatcher;
+  final ValidatedReplayArchiver validatedReplayArchiver;
   final int maxRetryAttempts;
   final Duration internalErrorGraceWindow;
   final bool incidentModeAutoRevokePaused;
@@ -182,9 +188,25 @@ class DeterministicValidatorWorker implements ValidatorWorker {
       final replayBlob = await _loadAndDecodeReplayBlob(session);
       _validateReplayAgainstSession(replayBlob: replayBlob, session: session);
 
-      final acceptedRun = _replayDeterministically(
+      final replayedRun = _replayDeterministically(
         replayBlob: replayBlob,
         session: session,
+      );
+      final sourceStorageGeneration = session.uploadedReplay.storageGeneration;
+      if (sourceStorageGeneration == null) {
+        throw StateError(
+          'Accepted replay "$normalizedRunSessionId" is missing its immutable '
+          'Storage generation.',
+        );
+      }
+      final archivedReplay = await validatedReplayArchiver.archive(
+        runSessionId: normalizedRunSessionId,
+        sourceObjectPath: session.uploadedReplay.objectPath,
+        sourceStorageGeneration: sourceStorageGeneration,
+      );
+      final acceptedRun = replayedRun.withReplayArtifact(
+        replayStorageRef: archivedReplay.objectPath,
+        replayStorageGeneration: archivedReplay.storageGeneration,
       );
       try {
         await runSessionRepository.handoffAcceptedRunForSettlement(

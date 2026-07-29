@@ -2,9 +2,10 @@
 
 ## Status
 
-Grojib and Hashash slope traversal, Hashash terrain-safe ambush placement, and
-deferred Hashash slope spawning are implemented in the isolated Phase 3
-polygon-terrain harness. Repository-backed production levels and replay
+Grojib and Hashash slope traversal, Hashash terrain-safe ambush placement,
+Unoco flying-terrain traversal, Derf terrain-safe obstacle-top placement, and
+shared terrain-safe enemy/item spawning are implemented in the isolated Phase
+3 polygon-terrain harness. Repository-backed production levels and replay
 validation still use the legacy flat/rectangle authority until the later
 terrain cutover phases.
 
@@ -55,6 +56,81 @@ An accepted jump always launches world-up. Its existing horizontal graph-edge
 commit and recovery rules remain in force while airborne; ground snap cannot
 pull the enemy back onto the takeoff slope. A drop likewise keeps its committed
 horizontal direction until landing or deterministic fallback.
+
+## Unoco Flying Terrain Rules
+
+Unoco remains a flying enemy and never joins the grounded surface graph. Its
+existing random target height stays between `60` and `180 px`, but that height
+is now measured above the highest local solid terrain beneath its capsule
+footprint. This lets it follow hills and raised terrain without snapping to
+them. When it crosses a pit, it keeps the last valid terrain reference so its
+flight does not suddenly dive. The level's explicit flight plane is used only
+when no local solid reference has been observed yet.
+
+Its complete capsule is blocked by solid floors, walls, slopes, ceilings,
+undersides, and concave boundaries. It ignores one-way platforms completely
+and can never become grounded, step, or snap. Contact immediately slides away
+the entering part of its velocity instead of bouncing or teleporting it.
+
+If direct hover/combat movement remains blocked, Unoco tries a small fixed set
+of deterministic directions around the contact and briefly commits to the best
+one. The choice favors movement toward its existing combat/hover target, then
+clear travel, with a stable final tie-break. It uses no extra randomness and
+cannot phase or relocate through terrain. After the short detour it returns to
+ordinary hover/combat steering; its attack ranges, projectile/melee timing,
+aiming policy, attack origins, cooldowns, and facing behavior are unchanged.
+
+## Derf Placement Rules
+
+Derf remains stationary after spawning; slope support does not turn it into a
+walking or falling enemy. An obstacle-top marker may place Derf only when its
+intended solid support:
+
+- is no steeper than `15°`, inclusive
+- provides at least `32 px` of total horizontal span
+- has room for Derf's complete upright capsule
+
+If a marker lies too close to an edge, it moves to the nearest valid point on
+that same support. It never moves to another ledge, a lower surface, the
+highest unrelated terrain, or ordinary ground. An absent, one-way, steep,
+narrow, or obstructed intended perch skips the spawn.
+
+The support does not rotate Derf, its art, aim, or cast origin. It continues to
+face the player, target the predicted player center, cast from its existing
+world-space origin, and die instantly when killed.
+
+## Enemy Spawn Rules
+
+Terrain-backed enemy markers keep their authored meaning instead of choosing
+whichever nearby surface happens to fit:
+
+- a Grojib or ordinary Hashash marker needs a complete capsule-width foothold,
+  room for the whole capsule, and a slope within that enemy's limit
+- an ordinary marker near an edge may move only to the nearest valid point on
+  that same support
+- deferred Hashash edge spawning stays at its exact requested X; invalid
+  support skips the spawn
+- Unoco must fit at its exact intended flying point; solid blockage skips the
+  spawn, while one-way terrain is ignored
+- Derf keeps the stricter obstacle-top rules above
+
+Missing or invalid intended terrain never relocates an enemy to a lower or
+unrelated ledge. Skipping one marker does not reroll or reorder later markers.
+
+## Collectible And Restoration Placement
+
+Coins and restoration gems may rest on solid terrain or the top of a one-way
+platform that Éloïse can traverse, including slopes through `60°`. A candidate
+needs at least `20 px` of horizontal support and enough room for the complete
+upright pickup, including its existing visual/collision margin and vertical
+gap above the surface.
+
+Pickups remain upright; they do not rotate to match a ramp. Consequently, a
+very steep but walkable ramp can reject a candidate if the uphill side of the
+pickup would clip the terrain. The game then consumes that normal placement
+attempt. It does not hide the pickup on a lower overlapping surface or grant an
+extra random attempt beyond the existing limit; exhausted placement creates no
+pickup.
 
 ## Presentation And Death
 

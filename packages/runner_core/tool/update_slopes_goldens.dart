@@ -13,12 +13,14 @@ import 'package:runner_core/levels/level_definition.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/players/characters/eloise.dart';
 import 'package:runner_core/snapshots/terrain_player_debug_snapshot.dart';
+import 'package:runner_core/snapshots/enemy_terrain_signatures.dart';
 import 'package:runner_core/snapshots/terrain_player_signatures.dart';
 import 'package:runner_core/track/chunk_pattern_source.dart';
 import 'package:runner_core/tuning/core_tuning.dart';
 import 'package:runner_core/tuning/track_tuning.dart';
 
 import '../test/fixtures/slopes_golden_fixture.dart';
+import '../test/fixtures/enemy_terrain_run_fixture.dart';
 
 void main(List<String> args) {
   final update = args.contains('--update');
@@ -39,6 +41,7 @@ void main(List<String> args) {
   final index = TerrainEdgeIndex(edges: geometry.edges);
   final kernel = CapsuleSegmentKernel();
   final phase2 = _buildPhase2Signatures();
+  final phase3 = buildEnemyTerrainRunFixture();
   final values = <String, String>{
     'slopes_golden_source_v1.sha256': geometry.sourceSignature(),
     'slopes_golden_edges_v1.sha256': geometry.edgeSignature(
@@ -49,6 +52,11 @@ void main(List<String> args) {
     ),
     'slopes_golden_contacts_v2.sha256': phase2.contacts,
     'slopes_golden_player_run_v1.sha256': phase2.run,
+    'slopes_golden_nav_surfaces_v1.sha256': phase3.surfaceSignature,
+    'slopes_golden_nav_graphs_v1.sha256': phase3.graphSignature,
+    'slopes_golden_enemy_terrain_run_v1.sha256': enemyTerrainRunSignatureV1(
+      phase3,
+    ),
   };
 
   if (printOnly) {

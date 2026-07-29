@@ -1,8 +1,7 @@
 # Sloped Terrain And Capsule Traversal High-Level Plan
 
 - Date: July 18, 2026
-- Status: Phases 0-2 accepted; Phase 3 grounded enemy locomotion and Hashash
-  terrain-safe placement pass; Unoco flying contact is next
+- Status: Phases 0-3 accepted; Phase 4 implementation checklist is ready
 - Phase 0 tracker:
   [phase0-implementation-checklist.md](phase0-implementation-checklist.md)
 - Phase 0 evidence:
@@ -19,6 +18,8 @@
   [phase2-implementation-checklist.md](phase2-implementation-checklist.md)
 - Phase 3 implementation checklist:
   [phase3-implementation-checklist.md](phase3-implementation-checklist.md)
+- Phase 4 implementation checklist:
+  [phase4-implementation-checklist.md](phase4-implementation-checklist.md)
 
 Related plans and contracts:
 
@@ -1081,14 +1082,19 @@ Gate:
 
 ### Phase 4 - Authoring Schema, Generator, And Editor Polygon Tools
 
+Detailed tracker:
+[phase4-implementation-checklist.md](phase4-implementation-checklist.md)
+
 Scope:
 
 - add versioned polygon schemas and migrations
-- migrate rectangle prefabs and flat ground/gaps
+- mechanically migrate current rectangle prefabs and flat ground/gaps without
+  changing their occupied collision area
 - update stores, validators, plugins, scene state, and pending diffs
 - add polygon editing and seam diagnostics
 - update generator output and dry-run drift validation
-- generate canonical runtime polygon/edge data
+- generate canonical runtime polygon/edge data and deterministic render
+  triangles
 - add authoring/runtime parity fixtures
 
 Gate:
@@ -1119,7 +1125,8 @@ Gate:
 
 Scope:
 
-- migrate and regenerate all level/prefab content
+- complete the reviewed slope-content reauthoring pass and regenerate all
+  level/prefab content for production
 - run all player/enemy/content acceptance scenarios
 - switch Core production authority to edges/capsules
 - remove `StaticSolid`, horizontal-ground, legacy gap, and temporary adapter
@@ -1385,7 +1392,7 @@ The reusable controller, isolated player traversal authority, player/consumer
 matrix, golden signatures, zero-allocation profile, and performance gates all
 pass.
 
-Phase 3 implementation is active in
+Phase 3 is accepted in
 [phase3-implementation-checklist.md](phase3-implementation-checklist.md).
 Enemy capsule/policy definitions and the canonical shared sloped surface set,
 signature, spatial index, reusable query buffers, actor-neutral
@@ -1407,7 +1414,44 @@ drive animation/death from final support. Hashash ambush now validates its
 fixed right-then-left airborne candidates transactionally, restores the last
 safe transform on cancellation, and routes deferred edge spawns through the
 same full-capsule placement authority without relocation or replacement RNG.
-The next dependency is Section 18's Unoco solid contact, local hover reference,
-and bounded clearance steering. Normal
-repository-backed levels continue to use the legacy production authority until
-the direct Phase 6 cutover.
+Unoco now follows the highest local solid surface under its capsule footprint,
+retains that reference over pits, falls back to the explicit level plane only
+before any local reference exists, and preserves its randomized 60-180-pixel
+hover band and combat steering. Its full capsule sweeps all solid sides, ignores
+one-way terrain, never grounds, and reacts to blocking through a fixed four-way,
+six-tick preview with a deterministic 12-tick detour hold and no new RNG or
+relocation path. Derf now binds only to a real intended solid obstacle top,
+accepts slopes through 15 degrees, and requires an independent 32-pixel perch
+span plus complete capsule clearance. It clamps only within that edge. Invalid
+markers skip with a stable diagnostic while legacy placement fallback remains
+unchanged. All enemy markers and procedural collectibles/restoration items now
+share one typed placement request/result boundary in the terrain harness. It
+preserves authored support-source intent, catalog/profile limits, same-edge
+clamp policy, full actor/item clearance, item attempt consumption, marker
+order, salts, and RNG draws. Exact terrain edge identity can bypass the
+temporary legacy support-height bridge, while normal repository-backed levels
+continue to use the legacy production authority. The terrain harness now builds
+geometry, collision/surface indexes, one shared surface set, and both enemy
+graph views into an immutable versioned bundle, then publishes a queued
+replacement through one tick-boundary reference change. Grounded and airborne
+support/path caches invalidate before AI, stale motion state is rejected, and
+no-op rebuild signatures remain content-identical across version changes. The
+consumer audit fixes prior-support AI, exactly-one integration, and final-state
+animation/downstream evidence while retaining explicit later-phase dispositions
+for production navigation, replay validation, and ballistics. Section 23 now
+binds all of that evidence into reviewed `nav-surfaces-v1`, `nav-graphs-v1`,
+and `enemy-terrain-run-v1` hashes across fresh objects, input permutations, and
+fresh processes. Its five-chunk/1,280-edge representative fixture, 5,120-edge
+hard fixture, paired VM allocation profile, compiled product benchmark, and
+full package/root/replay-validator suites pass their frozen gates without
+changing the reviewed scenario hashes or normal legacy construction.
+
+Phase 4 is planned in
+[phase4-implementation-checklist.md](phase4-implementation-checklist.md).
+Its dependency-ordered implementation begins with a read-only baseline and
+reproduction of the Phase 0 migration audit, then introduces shared exact
+half-pixel polygon source values, prefab v3/chunk v2 schemas, editor polygon
+tools, scheduler-aware seam diagnostics, deterministic migration, and staged
+generated terrain data. Phase 4 consumes the accepted Phase 1-3 contracts and
+must not select polygon terrain in normal production runs before the later
+streaming/content cutover phases.

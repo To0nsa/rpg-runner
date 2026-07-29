@@ -14,6 +14,7 @@ import 'replay_loader.dart';
 import 'replay_validation_limits.dart';
 import 'run_session_repository.dart';
 import 'settlement_dispatcher.dart';
+import 'validated_replay_archiver.dart';
 import 'validator_worker.dart';
 
 class ReplayValidatorApp {
@@ -117,6 +118,10 @@ class ReplayValidatorApp {
           ),
         ),
         metrics: ConsoleValidatorMetrics(),
+        validatedReplayArchiver: GoogleCloudStorageValidatedReplayArchiver(
+          bucketName: replayStorageBucket,
+          apiProvider: apiProvider,
+        ),
         settlementDispatcher: settlementDispatchUrl == null
             ? const NoopSettlementDispatcher()
             : FunctionsSettlementDispatcher(

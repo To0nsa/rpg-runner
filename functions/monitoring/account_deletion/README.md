@@ -4,11 +4,13 @@ This bundle owns the production alerts for the resumable account-deletion
 workflow:
 
 - any stage transition to `retryable`;
-- incomplete work older than six hours or at 400 attempts;
+- incomplete work older than twelve hours or at 400 attempts;
 - unexpected errors from the scheduled repair service.
 
-The six-hour threshold deliberately exceeds the expected duration of the
-multi-board, repeated-reconciliation workflow. Each
+The twelve-hour threshold accommodates the pre-release 15-minute repair
+cadence and the expected duration of the multi-board,
+repeated-reconciliation workflow. Before public release, remeasure the
+workflow and restore the intended cadence and alert threshold. Each
 `accountDeletionRepair` heartbeat includes the bounded page size, oldest age
 and stage, retryable count, maximum attempt count, and page-saturation signal.
 It contains no account identifier. Retryable-failure logs use a truncated
@@ -32,6 +34,6 @@ When an alert fires:
 
 1. inspect the `accountdeletionrepair` revision and scheduler execution;
 2. correlate retryable failures by `uidHash`, stage, and attempt count;
-3. confirm the scheduler remains enabled and one-minute invocations continue;
+3. confirm the scheduler remains enabled and 15-minute invocations continue;
 4. allow the idempotent worker to retry, or repair the failed dependency;
 5. never skip stages or manually delete a subset of account data.

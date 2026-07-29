@@ -46,8 +46,9 @@ the explicit retryable lane in stable document-id order. A persisted-data
 invariant transactionally changes the disposition to `quarantined` and records
 the attempt time and incident reason without changing the session's
 `settlement_pending` state, grant, or canonical wallet. Infrastructure failures
-leave the disposition retryable; the five-minute schedule remains the retry
-cadence.
+leave the disposition retryable; during pre-release cost containment the
+15-minute schedule remains the retry cadence. Before public release, remeasure
+this fallback path and restore the production cadence and alert timing.
 
 ## Observability contract
 
@@ -92,7 +93,7 @@ Initial alert policy:
 
 - Page immediately for any `invariant_violation` or stale pending age over
   15 minutes.
-- Page when no repair attempt succeeds within five minutes after that stale
+- Page when no repair attempt succeeds within fifteen minutes after that stale
   threshold.
 - Warn when immediate fallback exceeds 5% over 15 minutes, or when its p95
   start-to-response time exceeds one second.
@@ -180,28 +181,18 @@ independently in 0.52 seconds.
 ## Legacy migration
 
 Normal canonical reads and ownership commands never reconcile grants. The
-finite `runLegacyRewardGrantMigration` schedule is the only final legacy
-adapter. During the one-time production cutover,
-`LEGACY_READ_RECONCILIATION_ENABLED=true` temporarily preserves the previous
-read-time repair behavior so deploying the migration cannot strand an older
-grant. Set it to `false` only after the inventory and `apply` migration finish;
-the compatibility branch is then removed after the rollback window.
+one-time production cutover used a bounded `inventory` then `apply` migration;
+after verification, its runtime flags were disabled and the scheduled function
+was removed. A future data migration must be introduced as a new, finite,
+source-controlled operation with its own inventory, apply verification, and
+retirement step. It must not reintroduce a dormant periodic production job.
 
-Its environment-controlled mode defaults to `off`:
+The settlement repair configuration remains:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `LEGACY_REWARD_GRANT_MIGRATION_MODE` | `off` | `inventory` records candidates without grant/canonical writes; `apply` performs idempotent repair. |
-| `LEGACY_READ_RECONCILIATION_ENABLED` | `true` during migration | Temporary compatibility path; set to `false` only after verified `apply` completion. |
-| `LEGACY_REWARD_GRANT_MIGRATION_BATCH_SIZE` | `64` | Bounded page size, clamped to 1–200. |
 | `RUN_SETTLEMENT_STALE_THRESHOLD_MS` | `900000` | Stale-pending alert threshold in milliseconds. |
 | `RUN_SETTLEMENT_REPAIR_BATCH_SIZE` | `64` | Bounded repair page size. |
-
-Run `inventory` to completion first. Review invalid bindings and the count of
-`validated_settled` grants absent from canonical applied-grant ids. Only then
-deploy with `apply`; it uses the same applied-grant idempotency and weekly
-progression hooks as new settlement. After its persisted migration cursor marks
-the finite population complete, return the mode to `off`.
 
 ### Production record — July 18, 2026
 
@@ -210,9 +201,9 @@ The `rpg-runner-d7add` / `europe-west1` rollout completed inventory and apply:
 invariant-violating records. The deployment then set
 `LEGACY_REWARD_GRANT_MIGRATION_MODE=off` and
 `LEGACY_READ_RECONCILIATION_ENABLED=false`; a subsequent scheduled run confirmed
-the migration is a no-op. The five-minute Cloud Scheduler job was then paused to
-avoid ongoing no-op invocations; explicitly resume it before any future
-maintenance migration (a later Firebase Functions deployment may re-enable it).
+the migration is a no-op. The retired five-minute scheduled function was then
+removed so it cannot create recurring Scheduler charges or be re-enabled by a
+later Firebase Functions deployment.
 
 ## Board projection retry boundary
 

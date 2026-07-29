@@ -1,3 +1,4 @@
+import { CloudTasksClient } from "@google-cloud/tasks";
 import {
   FieldPath,
   type Firestore,
@@ -27,13 +28,17 @@ export interface BoardProjectionReconciliationDispatcher {
 /**
  * Walks every board through a persisted cursor and enqueues a board-level
  * convergence task. Replaying a page is safe because task ids are stable for
- * the reconciliation time bucket and projection writes are conditional.
+ * the reconciliation time bucket and projection writes are conditional. The
+ * default dispatcher owns one Cloud Tasks client for the whole invocation and
+ * closes it even when enqueueing fails.
  */
 export async function reconcileLeaderboardBoardProjections(args: {
   db: Firestore;
   nowMs?: number;
   batchSize?: number;
   dispatcher?: BoardProjectionReconciliationDispatcher;
+  /** Test seam for the one invocation-scoped Cloud Tasks client. */
+  createTasksClient?: () => CloudTasksClient;
 }): Promise<ProjectionReconciliationResult> {
   const nowMs = args.nowMs ?? Date.now();
   const batchSize =
@@ -71,37 +76,49 @@ export async function reconcileLeaderboardBoardProjections(args: {
     };
   }
 
+  const tasksClient =
+    args.dispatcher == null
+      ? (args.createTasksClient?.() ?? new CloudTasksClient())
+      : null;
   const dispatcher =
     args.dispatcher ??
     {
-      enqueue: enqueueBoardProjectionReconciliation,
+      enqueue: (enqueueArgs: { boardId: string; taskKey: string }) =>
+        enqueueBoardProjectionReconciliation({
+          ...enqueueArgs,
+          tasksClient: tasksClient!,
+        }),
     };
-  const taskKey = `cycle-${Math.floor(nowMs / reconciliationIntervalMs)}`;
-  for (const board of page.docs) {
-    await dispatcher.enqueue({ boardId: board.id, taskKey });
-  }
+  try {
+    const taskKey = `cycle-${Math.floor(nowMs / reconciliationIntervalMs)}`;
+    for (const board of page.docs) {
+      await dispatcher.enqueue({ boardId: board.id, taskKey });
+    }
 
-  const completedPage = page.size < batchSize;
-  const nextCursor = completedPage
-    ? null
-    : (page.docs.at(-1)?.id ?? null);
-  await stateRef.set(
-    {
-      cursor: nextCursor,
-      updatedAtMs: nowMs,
+    const completedPage = page.size < batchSize;
+    const nextCursor = completedPage
+      ? null
+      : (page.docs.at(-1)?.id ?? null);
+    await stateRef.set(
+      {
+        cursor: nextCursor,
+        updatedAtMs: nowMs,
+        scannedCount: page.size,
+        enqueuedCount: page.size,
+        ...(completedPage ? { completedAtMs: nowMs } : {}),
+      },
+      { merge: true },
+    );
+    return {
+      nowMs,
       scannedCount: page.size,
       enqueuedCount: page.size,
-      ...(completedPage ? { completedAtMs: nowMs } : {}),
-    },
-    { merge: true },
-  );
-  return {
-    nowMs,
-    scannedCount: page.size,
-    enqueuedCount: page.size,
-    completedPage,
-    nextCursor,
-  };
+      completedPage,
+      nextCursor,
+    };
+  } finally {
+    await tasksClient?.close();
+  }
 }
 
 function readCursor(value: unknown): string | null {

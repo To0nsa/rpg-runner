@@ -7,6 +7,7 @@ import 'package:googleapis/firestore/v1.dart' as firestore;
 
 import 'firestore_value_codec.dart';
 import 'google_api_helpers.dart';
+import 'validated_replay_archiver.dart';
 
 enum RunSessionLeaseStatus {
   acquired,
@@ -413,6 +414,12 @@ class FirestoreRunSessionRepository implements RunSessionRepository {
 
     final nowMs = _clockMs();
     final validatedRunPayload = validatedRun.toJson();
+    final validatedReplayPayload = _validatedReplayPayload(
+      runSessionId: runSessionId,
+      session: session,
+      validatedRun: validatedRun,
+      archivedAtMs: nowMs,
+    );
     final rewardGrantPayload = <String, Object?>{
       'lifecycleState': 'settlement_pending',
       'updatedAtMs': nowMs,
@@ -437,6 +444,8 @@ class FirestoreRunSessionRepository implements RunSessionRepository {
       'message': 'Reward settlement pending.',
       'validationLeaseToken': null,
       'validationLeaseExpiresAtMs': null,
+      if (validatedReplayPayload != null)
+        'validatedReplay': validatedReplayPayload,
     };
 
     try {
@@ -725,14 +734,69 @@ class FirestoreRunSessionRepository implements RunSessionRepository {
     }
     final uploadedReplay = session['uploadedReplay'];
     if (uploadedReplay is! Map ||
-        uploadedReplay['objectPath'] != validatedRun.replayStorageRef ||
-        uploadedReplay['canonicalSha256'] != validatedRun.replayDigest ||
-        uploadedReplay['storageGeneration'] !=
-            validatedRun.replayStorageGeneration) {
+        uploadedReplay['canonicalSha256'] != validatedRun.replayDigest) {
       throw StateError(
         'runSessionId "$runSessionId" replay evidence does not match validated run.',
       );
     }
+    final matchesUploadedReplay =
+        uploadedReplay['objectPath'] == validatedRun.replayStorageRef &&
+        uploadedReplay['storageGeneration'] ==
+            validatedRun.replayStorageGeneration;
+    final matchesValidatedReplay = _isSealedValidatedReplay(
+      runSessionId: runSessionId,
+      uploadedReplay: uploadedReplay,
+      validatedRun: validatedRun,
+    );
+    if (!matchesUploadedReplay && !matchesValidatedReplay) {
+      throw StateError(
+        'runSessionId "$runSessionId" replay artifact does not preserve the '
+        'uploaded replay evidence.',
+      );
+    }
+  }
+
+  Map<String, Object?>? _validatedReplayPayload({
+    required String runSessionId,
+    required Map<String, Object?> session,
+    required ValidatedRun validatedRun,
+    required int archivedAtMs,
+  }) {
+    final uploadedReplay = session['uploadedReplay'];
+    if (uploadedReplay is! Map ||
+        !_isSealedValidatedReplay(
+          runSessionId: runSessionId,
+          uploadedReplay: uploadedReplay,
+          validatedRun: validatedRun,
+        )) {
+      return null;
+    }
+    return <String, Object?>{
+      'objectPath': validatedRun.replayStorageRef,
+      'storageGeneration': validatedRun.replayStorageGeneration,
+      'canonicalSha256': validatedRun.replayDigest,
+      'sourceObjectPath': uploadedReplay['objectPath'],
+      'sourceStorageGeneration': uploadedReplay['storageGeneration'],
+      'archivedAtMs': archivedAtMs,
+    };
+  }
+
+  bool _isSealedValidatedReplay({
+    required String runSessionId,
+    required Map uploadedReplay,
+    required ValidatedRun validatedRun,
+  }) {
+    final sourceObjectPath = uploadedReplay['objectPath'];
+    final sourceGeneration = uploadedReplay['storageGeneration'];
+    final destinationGeneration = validatedRun.replayStorageGeneration;
+    return sourceObjectPath is String &&
+        sourceObjectPath.isNotEmpty &&
+        sourceGeneration is String &&
+        RegExp(r'^[1-9][0-9]*$').hasMatch(sourceGeneration) &&
+        destinationGeneration != null &&
+        RegExp(r'^[1-9][0-9]*$').hasMatch(destinationGeneration) &&
+        validatedRun.replayStorageRef ==
+            validatedReplayObjectPath(runSessionId);
   }
 
   void _assertLeaseAndRewardBindings({

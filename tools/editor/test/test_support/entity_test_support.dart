@@ -32,6 +32,7 @@ void writeEntityColliderFixture(
   bool reorderPlayerColliderArgs = false,
   bool reorderProjectileColliderArgs = false,
   bool includeSecondPlayerCatalog = false,
+  bool useTopLevelEnemyCollider = false,
 }) {
   final enemyPath = p.join(
     rootPath,
@@ -113,6 +114,25 @@ $colliderArgs);
 ''';
   }
 
+  final enemyColliderDeclaration = useTopLevelEnemyCollider
+      ? '''
+const ColliderAabbDef _unocoCollider = ColliderAabbDef(
+  halfX: 12.0,
+  halfY: 14.0,
+  offsetX: 0.0,
+  offsetY: 0.0,
+);
+'''
+      : '';
+  final enemyColliderExpression = useTopLevelEnemyCollider
+      ? '_unocoCollider'
+      : '''ColliderAabbDef(
+            halfX: 12.0,
+            halfY: 14.0,
+            offsetX: 0.0,
+            offsetY: 0.0,
+          )''';
+
   File(enemyPath).writeAsStringSync('''
 enum EnemyId { unocoDemon }
 
@@ -128,6 +148,7 @@ class ColliderAabbDef {
   final double offsetX;
   final double offsetY;
 }
+$enemyColliderDeclaration
 
 class EnemyArchetype {
   const EnemyArchetype({required this.collider});
@@ -140,12 +161,7 @@ class EnemyCatalog {
     switch (id) {
       case EnemyId.unocoDemon:
         return const EnemyArchetype(
-          collider: ColliderAabbDef(
-            halfX: 12.0,
-            halfY: 14.0,
-            offsetX: 0.0,
-            offsetY: 0.0,
-          ),
+          collider: $enemyColliderExpression,
         );
     }
   }

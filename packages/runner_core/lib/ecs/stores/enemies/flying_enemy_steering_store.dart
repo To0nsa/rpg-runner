@@ -2,9 +2,7 @@ import '../../entity_id.dart';
 import '../../sparse_set.dart';
 
 class FlyingEnemySteeringDef {
-  const FlyingEnemySteeringDef({
-    required this.rngState,
-  });
+  const FlyingEnemySteeringDef({required this.rngState});
 
   final int rngState;
 }
@@ -68,8 +66,7 @@ class FlyingEnemySteeringStore extends SparseSet {
     desiredRangeHoldLeftS[removeIndex] = desiredRangeHoldLeftS[lastIndex];
     flightTargetAboveGround[removeIndex] = flightTargetAboveGround[lastIndex];
     flightTargetHoldLeftS[removeIndex] = flightTargetHoldLeftS[lastIndex];
-    hasLocalTerrainReference[removeIndex] =
-        hasLocalTerrainReference[lastIndex];
+    hasLocalTerrainReference[removeIndex] = hasLocalTerrainReference[lastIndex];
     localTerrainReferenceY[removeIndex] = localTerrainReferenceY[lastIndex];
     effectiveFlightReferenceY[removeIndex] =
         effectiveFlightReferenceY[lastIndex];

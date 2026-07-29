@@ -77,6 +77,15 @@ $environmentVariables = @(
   "VALIDATOR_MAX_SIMULATION_WALL_TIME_MS=120000"
 ) -join ","
 
+# Grant the validated-artifact prefix before the revision can receive traffic.
+# Source submissions remain read-only under their existing IAM binding.
+Invoke-Gcloud @(
+  "storage", "buckets", "add-iam-policy-binding", "gs://$ReplayStorageBucket",
+  "--member=serviceAccount:$ValidatorServiceAccount",
+  "--role=roles/storage.objectCreator",
+  "--condition=expression=resource.name.startsWith('projects/_/buckets/$ReplayStorageBucket/objects/replay-submissions/validated/'),title=ValidatedReplayArtifactsWrite,description=Write sealed validated replay artifacts"
+)
+
 Invoke-Gcloud @(
   "run", "deploy", $Service,
   "--project=$ProjectId",

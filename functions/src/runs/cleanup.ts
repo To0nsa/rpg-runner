@@ -249,6 +249,7 @@ export async function runReplaySubmissionCleanup(args: {
   const pendingUploadCleanupSkipped = dependencies.pendingReplayObjectStore == null;
   if (dependencies.pendingReplayObjectStore) {
     const staleUploadOutcome = await deleteStalePendingUploadObjects({
+      db: args.db,
       objectStore: dependencies.pendingReplayObjectStore,
       cutoffMs: pendingCutoffMs,
       maxDeletes: maxPendingUploadDeletesPerRun,
@@ -681,6 +682,7 @@ function integerOrNull(value: unknown): number | null {
 }
 
 async function deleteStalePendingUploadObjects(args: {
+  db: Firestore;
   objectStore: PendingReplayObjectStore;
   cutoffMs: number;
   maxDeletes: number;
@@ -714,6 +716,12 @@ async function deleteStalePendingUploadObjects(args: {
       if (objectInfo.updatedAtMs > args.cutoffMs) {
         continue;
       }
+      if (!(await isPendingReplayDeletionEligible({
+        db: args.db,
+        objectPath: objectInfo.objectPath,
+      }))) {
+        continue;
+      }
       await args.objectStore.deleteObject({ objectPath: objectInfo.objectPath });
       deletedCount += 1;
       if (deletedCount >= args.maxDeletes) {
@@ -728,6 +736,71 @@ async function deleteStalePendingUploadObjects(args: {
   }
 
   return { deletedCount, scannedCount };
+}
+
+/**
+ * Pending uploads are client-owned only until a run has been finalized. Once
+ * validation starts, preserve the exact source generation until an accepted
+ * run has a sealed validated artifact. This avoids deleting evidence needed by
+ * a delayed validator or first ghost promotion.
+ */
+async function isPendingReplayDeletionEligible(args: {
+  db: Firestore;
+  objectPath: string;
+}): Promise<boolean> {
+  const runSessionId = extractRunSessionIdFromPendingObjectPath(args.objectPath);
+  if (!runSessionId) {
+    return true;
+  }
+  const session = await args.db.collection(runSessionsCollection).doc(runSessionId).get();
+  if (!session.exists) {
+    return true;
+  }
+  const uploadedReplay = session.get("uploadedReplay");
+  if (
+    uploadedReplay === null ||
+    typeof uploadedReplay !== "object" ||
+    Array.isArray(uploadedReplay) ||
+    (uploadedReplay as Record<string, unknown>).objectPath !== args.objectPath
+  ) {
+    return true;
+  }
+  const state = session.get("state");
+  if (
+    state === "issued" ||
+    state === "uploading" ||
+    state === "uploaded" ||
+    state === "expired"
+  ) {
+    return true;
+  }
+  if (state !== "settlement_pending" && state !== "validated") {
+    return false;
+  }
+  const validatedReplay = session.get("validatedReplay");
+  if (
+    validatedReplay === null ||
+    typeof validatedReplay !== "object" ||
+    Array.isArray(validatedReplay)
+  ) {
+    return false;
+  }
+  const artifact = validatedReplay as Record<string, unknown>;
+  return (
+    artifact.objectPath === `replay-submissions/validated/${runSessionId}.bin.gz` &&
+    artifact.sourceObjectPath === args.objectPath &&
+    typeof artifact.storageGeneration === "string" &&
+    /^[1-9][0-9]*$/.test(artifact.storageGeneration) &&
+    typeof artifact.sourceStorageGeneration === "string" &&
+    /^[1-9][0-9]*$/.test(artifact.sourceStorageGeneration)
+  );
+}
+
+function extractRunSessionIdFromPendingObjectPath(objectPath: string): string | undefined {
+  const match = /^replay-submissions\/pending\/[^/]+\/([^/]+)\/replay\.bin\.gz$/.exec(
+    objectPath,
+  );
+  return match?.[1];
 }
 
 async function deleteStaleValidatedReplayArtifacts(args: {

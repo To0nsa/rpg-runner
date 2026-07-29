@@ -35,6 +35,8 @@ library;
 
 import 'abilities/ability_catalog.dart';
 import 'abilities/ability_def.dart';
+import 'collision/terrain/terrain_numeric.dart';
+import 'collision/terrain/terrain_traversal_profile.dart';
 import 'combat/control_lock.dart';
 import 'ecs/entity_id.dart';
 import 'ecs/entity_factory.dart';
@@ -44,11 +46,13 @@ import 'ecs/stores/body_store.dart';
 import 'ecs/stores/collider_aabb_store.dart';
 import 'ecs/stores/collectible_store.dart';
 import 'ecs/stores/restoration_item_store.dart';
+import 'ecs/systems/world_motion_authority.dart';
 import 'ecs/world.dart';
 import 'enemies/enemy_catalog.dart';
 import 'enemies/enemy_id.dart';
 import 'navigation/types/nav_tolerances.dart';
 import 'navigation/types/surface_graph.dart';
+import 'navigation/terrain_spawn_placement.dart';
 import 'navigation/utils/surface_spatial_index.dart';
 import 'snapshots/enums.dart';
 import 'tuning/collectible_tuning.dart';
@@ -114,6 +118,8 @@ class SpawnService {
     required CollectibleTuning collectibleTuning,
     required RestorationItemTuning restorationItemTuning,
     required TrackTuning trackTuning,
+    required WorldMotionAuthority worldMotionAuthority,
+    required TerrainTraversalProfile playerTerrainTraversalProfile,
     required int seed,
     this.abilities = AbilityCatalog.shared,
   }) : _world = world,
@@ -124,6 +130,25 @@ class SpawnService {
        _collectibleTuning = collectibleTuning,
        _restorationItemTuning = restorationItemTuning,
        _trackTuning = trackTuning,
+       _worldMotionAuthority = worldMotionAuthority,
+       _collectiblePlacementProfile =
+           TerrainItemSpawnPlacementProfile.fromWorld(
+             itemKind: TerrainSpawnItemKind.collectible,
+             width: collectibleTuning.collectibleSize,
+             height: collectibleTuning.collectibleSize,
+             supportClearance: collectibleTuning.surfaceClearanceY,
+             noSpawnMargin: collectibleTuning.noSpawnMargin,
+             traversalProfile: playerTerrainTraversalProfile,
+           ),
+       _restorationPlacementProfile =
+           TerrainItemSpawnPlacementProfile.fromWorld(
+             itemKind: TerrainSpawnItemKind.restoration,
+             width: restorationItemTuning.itemSize,
+             height: restorationItemTuning.itemSize,
+             supportClearance: restorationItemTuning.surfaceClearanceY,
+             noSpawnMargin: restorationItemTuning.noSpawnMargin,
+             traversalProfile: playerTerrainTraversalProfile,
+           ),
        _seed = seed;
 
   // ─── Dependencies ───
@@ -135,6 +160,9 @@ class SpawnService {
   final CollectibleTuning _collectibleTuning;
   final RestorationItemTuning _restorationItemTuning;
   final TrackTuning _trackTuning;
+  final WorldMotionAuthority _worldMotionAuthority;
+  final TerrainItemSpawnPlacementProfile _collectiblePlacementProfile;
+  final TerrainItemSpawnPlacementProfile _restorationPlacementProfile;
   final int _seed;
   final AbilityResolver abilities;
 
@@ -198,17 +226,22 @@ class SpawnService {
   ///
   /// The enemy's cast cooldown is pre-set to avoid immediate projectile
   /// spam on the spawn tick—this keeps early-game pacing predictable.
+  /// [spawnBodyY] commits an already terrain-validated flying position while
+  /// legacy callers retain the historical ground-relative offset.
   ///
   /// Returns the [EntityId] of the newly created enemy.
   EntityId spawnUnocoDemon({
     required double spawnX,
     required double groundTopY,
+    double? spawnBodyY,
   }) {
     final archetype = _enemyCatalog.get(EnemyId.unocoDemon);
     final unocoDemon = _entityFactory.createEnemy(
       enemyId: EnemyId.unocoDemon,
       posX: spawnX,
-      posY: groundTopY - _unocoDemonTuning.base.unocoDemonHoverOffsetY,
+      posY:
+          spawnBodyY ??
+          groundTopY - _unocoDemonTuning.base.unocoDemonHoverOffsetY,
       velX: 0.0,
       velY: 0.0,
       facing: Facing.left,
@@ -385,7 +418,8 @@ class SpawnService {
 
     final graph = _surfaceGraph;
     final spatialIndex = _surfaceSpatialIndex;
-    if (graph == null || spatialIndex == null || graph.surfaces.isEmpty) {
+    if (!_worldMotionAuthority.usesTerrainPlayer &&
+        (graph == null || spatialIndex == null || graph.surfaces.isEmpty)) {
       return;
     }
 
@@ -430,25 +464,46 @@ class SpawnService {
         if (!spaced) continue;
       }
 
-      // Find surface Y and compute item center position.
+      // Resolve the historical candidate before the selected authority decides
+      // whether legacy rectangles or polygon terrain owns placement.
       final surfaceY = _highestSurfaceYAtX(x);
-      if (surfaceY == null) continue;
-      final centerY = surfaceY - tuning.surfaceClearanceY - halfSize;
+      if (!_worldMotionAuthority.usesTerrainPlayer && surfaceY == null) {
+        continue;
+      }
+      final legacyCenterY = surfaceY == null
+          ? 0.0
+          : surfaceY - tuning.surfaceClearanceY - halfSize;
 
-      // Reject if overlapping static geometry.
-      if (_overlapsAnySolid(
-        centerX: x,
-        centerY: centerY,
-        halfSize: halfSize,
-        margin: tuning.noSpawnMargin,
-        solids: solids,
-      )) {
+      if (!_worldMotionAuthority.usesTerrainPlayer &&
+          _overlapsAnySolid(
+            centerX: x,
+            centerY: legacyCenterY,
+            halfSize: halfSize,
+            margin: tuning.noSpawnMargin,
+            solids: solids,
+          )) {
         continue;
       }
 
-      // Success—spawn and record position.
-      spawnCollectibleAt(x, centerY);
-      _collectibleSpawnXs.add(x);
+      final placement = _worldMotionAuthority.resolveSpawnPlacement(
+        TerrainSpawnPlacementRequest(
+          profile: _collectiblePlacementProfile,
+          desiredBodyCenter: TerrainPoint(
+            physicsCoordinateToTicks(x, name: 'collectibleSpawnX'),
+            physicsCoordinateToTicks(legacyCenterY, name: 'collectibleSpawnY'),
+          ),
+          supportSelection: TerrainSpawnSupportSelection.highestSurfaceAtX,
+          requestedSupportYTicks: surfaceY == null
+              ? null
+              : physicsCoordinateToTicks(surfaceY, name: 'collectibleSupportY'),
+        ),
+      );
+      if (!placement.accepted) continue;
+      final body = placement.bodyCenter!;
+      final bodyX = body.xTicks / terrainPhysicsTicksPerWorldUnit;
+      final bodyY = body.yTicks / terrainPhysicsTicksPerWorldUnit;
+      spawnCollectibleAt(bodyX, bodyY);
+      _collectibleSpawnXs.add(bodyX);
     }
   }
 
@@ -482,7 +537,8 @@ class SpawnService {
 
     final graph = _surfaceGraph;
     final spatialIndex = _surfaceSpatialIndex;
-    if (graph == null || spatialIndex == null || graph.surfaces.isEmpty) {
+    if (!_worldMotionAuthority.usesTerrainPlayer &&
+        (graph == null || spatialIndex == null || graph.surfaces.isEmpty)) {
       return;
     }
 
@@ -506,24 +562,46 @@ class SpawnService {
       if (x < minX || x > maxX) continue;
 
       final surfaceY = _highestSurfaceYAtX(x);
-      if (surfaceY == null) continue;
-      final centerY = surfaceY - tuning.surfaceClearanceY - halfSize;
+      if (!_worldMotionAuthority.usesTerrainPlayer && surfaceY == null) {
+        continue;
+      }
+      final legacyCenterY = surfaceY == null
+          ? 0.0
+          : surfaceY - tuning.surfaceClearanceY - halfSize;
 
-      // Reject if overlapping static geometry.
-      if (_overlapsAnySolid(
-        centerX: x,
-        centerY: centerY,
-        halfSize: halfSize,
-        margin: tuning.noSpawnMargin,
-        solids: solids,
-      )) {
+      if (!_worldMotionAuthority.usesTerrainPlayer &&
+          _overlapsAnySolid(
+            centerX: x,
+            centerY: legacyCenterY,
+            halfSize: halfSize,
+            margin: tuning.noSpawnMargin,
+            solids: solids,
+          )) {
         continue;
       }
 
+      final placement = _worldMotionAuthority.resolveSpawnPlacement(
+        TerrainSpawnPlacementRequest(
+          profile: _restorationPlacementProfile,
+          desiredBodyCenter: TerrainPoint(
+            physicsCoordinateToTicks(x, name: 'restorationSpawnX'),
+            physicsCoordinateToTicks(legacyCenterY, name: 'restorationSpawnY'),
+          ),
+          supportSelection: TerrainSpawnSupportSelection.highestSurfaceAtX,
+          requestedSupportYTicks: surfaceY == null
+              ? null
+              : physicsCoordinateToTicks(surfaceY, name: 'restorationSupportY'),
+        ),
+      );
+      if (!placement.accepted) continue;
+      final body = placement.bodyCenter!;
+      final bodyX = body.xTicks / terrainPhysicsTicksPerWorldUnit;
+      final bodyY = body.yTicks / terrainPhysicsTicksPerWorldUnit;
+
       // Reject if overlapping existing collectibles.
       if (_overlapsAnyCollectible(
-        centerX: x,
-        centerY: centerY,
+        centerX: bodyX,
+        centerY: bodyY,
         halfSize: halfSize,
         margin: tuning.noSpawnMargin,
       )) {
@@ -531,7 +609,7 @@ class SpawnService {
       }
 
       // Success—spawn and exit.
-      spawnRestorationItemAt(x, centerY, stat);
+      spawnRestorationItemAt(bodyX, bodyY, stat);
       return;
     }
   }

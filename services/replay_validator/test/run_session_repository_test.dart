@@ -397,6 +397,81 @@ void main() {
   );
 
   test(
+    'accepted handoff atomically records the sealed replay artifact',
+    () async {
+      final requests = <http.Request>[];
+      final client = MockClient((request) async {
+        requests.add(request);
+        if (request.method == 'GET' &&
+            request.url.path.contains('/run_sessions/')) {
+          return _jsonResponse(
+            _runSessionDocument(
+              state: 'validating',
+              validationAttempt: 1,
+              validationLeaseToken: 'current-token',
+              validationLeaseExpiresAtMs: 15000,
+            ).toJson(),
+          );
+        }
+        if (request.method == 'GET' &&
+            request.url.path.contains('/reward_grants/')) {
+          return _jsonResponse(_rewardGrantDocument().toJson());
+        }
+        if (request.method == 'POST' &&
+            request.url.path.endsWith('/documents:commit')) {
+          return _jsonResponse(<String, Object?>{
+            'writeResults': <Object?>[],
+            'commitTime': '2026-07-18T00:00:01.000000Z',
+          });
+        }
+        fail('Unexpected ${request.method} ${request.url}');
+      });
+      final repository = FirestoreRunSessionRepository(
+        projectId: 'test-project',
+        apiProvider: _TestApiProvider(firestore.FirestoreApi(client)),
+        clockMs: () => 5000,
+      );
+      final sealedRun = _acceptedRun().withReplayArtifact(
+        replayStorageRef: 'replay-submissions/validated/run_repo_test.bin.gz',
+        replayStorageGeneration: '456',
+      );
+
+      await repository.handoffAcceptedRunForSettlement(
+        validatedRun: sealedRun,
+        validationLeaseToken: 'current-token',
+      );
+
+      expect(requests, hasLength(3));
+      final commit = firestore.CommitRequest.fromJson(
+        jsonDecode(requests.last.body) as Map<String, Object?>,
+      );
+      final validatedRunFields = decodeFirestoreFields(
+        commit.writes![0].update?.fields,
+      );
+      final sessionFields = decodeFirestoreFields(
+        commit.writes![2].update?.fields,
+      );
+      final validatedReplay = sessionFields['validatedReplay'] as Map;
+      expect(
+        validatedRunFields['replayStorageRef'],
+        'replay-submissions/validated/run_repo_test.bin.gz',
+      );
+      expect(validatedRunFields['replayStorageGeneration'], '456');
+      expect(
+        validatedReplay['objectPath'],
+        'replay-submissions/validated/run_repo_test.bin.gz',
+      );
+      expect(validatedReplay['storageGeneration'], '456');
+      expect(
+        validatedReplay['sourceObjectPath'],
+        'replay-submissions/pending/uid_1/run_repo_test/replay.bin.gz',
+      );
+      expect(validatedReplay['sourceStorageGeneration'], '123');
+      expect(validatedReplay['archivedAtMs'], 5000);
+    },
+  );
+
+  test(
     'internal-error handoff classifies production FAILED_PRECONDITION as stale',
     () async {
       final repository = FirestoreRunSessionRepository(

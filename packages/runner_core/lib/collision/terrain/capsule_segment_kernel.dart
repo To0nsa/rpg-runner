@@ -212,8 +212,8 @@ final class CapsuleSweepHit {
   void reset() {
     hit = false;
     startedOverlapping = false;
-    timeOfImpact = 1;
-    signedSeparationTicks = double.infinity;
+    _values[0] = 1;
+    _values[1] = double.infinity;
     pointXTicks = 0;
     pointYTicks = 0;
     normalXTicks = 0;
@@ -357,6 +357,74 @@ class CapsuleSegmentKernel {
       edge: edge,
       out: out,
     );
+  }
+
+  /// Evaluates a walkable upward support with integer-only closest distance.
+  ///
+  /// The bottom endpoint of an upright capsule spine is always closest to an
+  /// upward-facing support plane. Keeping this retained-support validation in
+  /// integer space avoids one boxed floating value per dynamic body and tick.
+  @pragma('vm:prefer-inline')
+  bool evaluateSupportAtCenterWithin({
+    required int centerXTicks,
+    required int centerYTicks,
+    required int radiusTicks,
+    required int verticalHalfSegmentTicks,
+    required TerrainEdge edge,
+    required int maximumSeparationTicks,
+    required CapsuleSegmentContact out,
+  }) {
+    if (edge.outwardNormal.yTicks >= 0) return false;
+    final pointX = centerXTicks;
+    final pointY = centerYTicks + verticalHalfSegmentTicks;
+    final deltaX = pointX - edge.start.xTicks;
+    final deltaY = pointY - edge.start.yTicks;
+    final edgeLengthSquared = edge.lengthSquaredTicks;
+    final projection = deltaX * edge.dxTicks + deltaY * edge.dyTicks;
+    final maximumDistance = radiusTicks + maximumSeparationTicks;
+    int closestX;
+    int closestY;
+    bool withinMaximumDistance;
+    if (projection <= 0) {
+      closestX = edge.start.xTicks;
+      closestY = edge.start.yTicks;
+      final x = pointX - closestX;
+      final y = pointY - closestY;
+      withinMaximumDistance =
+          x * x + y * y <= maximumDistance * maximumDistance;
+      out.feature = TerrainSegmentFeature.startEndpoint;
+    } else if (projection >= edgeLengthSquared) {
+      closestX = edge.end.xTicks;
+      closestY = edge.end.yTicks;
+      final x = pointX - closestX;
+      final y = pointY - closestY;
+      withinMaximumDistance =
+          x * x + y * y <= maximumDistance * maximumDistance;
+      out.feature = TerrainSegmentFeature.endEndpoint;
+    } else {
+      closestX =
+          edge.start.xTicks +
+          _roundedDivide(
+            projection * edge.projectionXFactor,
+            edge.projectionXDenominator,
+          );
+      closestY =
+          edge.start.yTicks +
+          _roundedDivide(
+            projection * edge.projectionYFactor,
+            edge.projectionYDenominator,
+          );
+      final cross = deltaX * edge.dyTicks - deltaY * edge.dxTicks;
+      withinMaximumDistance =
+          cross.abs() * terrainEdgeLengthFractionScale <=
+          maximumDistance * edge.lengthScaledCeilTicks;
+      out.feature = TerrainSegmentFeature.face;
+    }
+    out
+      ..pointXTicks = closestX
+      ..pointYTicks = closestY
+      ..edgeId = edge.id;
+    return withinMaximumDistance;
   }
 
   /// Writes only the integer facts needed by overlap recovery.
@@ -856,6 +924,13 @@ void _closestSegmentPair(
     ..firstT = firstT
     ..secondT = secondT
     ..squaredDistanceTicks = deltaX * deltaX + deltaY * deltaY;
+}
+
+int _roundedDivide(int numerator, int positiveDenominator) {
+  final negative = numerator < 0;
+  final quotient =
+      (numerator.abs() + positiveDenominator ~/ 2) ~/ positiveDenominator;
+  return negative ? -quotient : quotient;
 }
 
 TerrainSegmentFeature _featureFor(double segmentT) {

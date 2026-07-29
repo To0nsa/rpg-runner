@@ -70,6 +70,63 @@ void main() {
     }
   });
 
+  test(
+    'enemy collider references bind and write the top-level initializer',
+    () async {
+      final fixtureRoot = Directory.systemTemp.createTempSync(
+        'runner_editor_fixture_',
+      );
+      try {
+        writeEntityColliderFixture(
+          fixtureRoot.path,
+          useTopLevelEnemyCollider: true,
+        );
+        final workspace = EditorWorkspace(rootPath: fixtureRoot.path);
+        final plugin = EntityDomainPlugin();
+        final loaded = await plugin.loadFromRepo(workspace);
+        final document = loaded as EntityDocument;
+        final enemy = document.entries.singleWhere(
+          (entry) => entry.id == 'enemy.unocoDemon',
+        );
+
+        expect(
+          enemy.sourceBinding.sourceSnippet,
+          startsWith('ColliderAabbDef('),
+        );
+        expect(
+          document.loadIssues.map((issue) => issue.code),
+          isNot(contains('enemy_collider_missing')),
+        );
+
+        final edited = plugin.applyEdit(
+          document,
+          AuthoringCommand(
+            kind: 'update_entry',
+            payload: <String, Object?>{
+              'id': enemy.id,
+              'halfX': 13.0,
+              'halfY': enemy.halfY,
+              'offsetX': enemy.offsetX,
+              'offsetY': enemy.offsetY,
+            },
+          ),
+        );
+        await plugin.exportToRepo(workspace, document: edited);
+
+        final enemySource = File(
+          p.join(
+            fixtureRoot.path,
+            'packages/runner_core/lib/enemies/enemy_catalog.dart',
+          ),
+        ).readAsStringSync();
+        expect(enemySource, contains('halfX: 13.0'));
+        expect(enemySource, contains('collider: _unocoCollider'));
+      } finally {
+        fixtureRoot.deleteSync(recursive: true);
+      }
+    },
+  );
+
   test('fixture parser keeps per-anim row/frame/grid metadata', () async {
     final fixtureRoot = Directory.systemTemp.createTempSync(
       'runner_editor_fixture_',

@@ -53,10 +53,6 @@ import { settleAcceptedRunSession } from "./runs/reward_settlement.js";
 import { enqueueAcceptedRunProjection } from "./runs/projection_dispatch.js";
 import { reconcileLeaderboardBoardProjections } from "./runs/projection_reconciliation.js";
 import {
-  backfillLegacyRewardGrantStates,
-  type LegacyRewardGrantMigrationMode,
-} from "./runs/reward_grant_backfill.js";
-import {
   dispatchImmediateSettlement,
   ImmediateSettlementDispatchRequestError,
 } from "./runs/immediate_settlement_dispatch.js";
@@ -110,12 +106,6 @@ const validationRepairBatchSize = readPositiveInt(
 const projectionReconciliationBatchSize = readPositiveInt(
   process.env.RUN_PROJECTION_RECONCILIATION_BATCH_SIZE,
 ) ?? 64;
-const legacyRewardGrantMigrationBatchSize = readPositiveInt(
-  process.env.LEGACY_REWARD_GRANT_MIGRATION_BATCH_SIZE,
-) ?? 64;
-const legacyRewardGrantMigrationMode = readLegacyRewardGrantMigrationMode(
-  process.env.LEGACY_REWARD_GRANT_MIGRATION_MODE,
-);
 const replayValidatorServiceAccount =
   process.env.REPLAY_VALIDATOR_SERVICE_ACCOUNT?.trim() ||
   "sa-replay-validator@rpg-runner-d7add.iam.gserviceaccount.com";
@@ -507,7 +497,7 @@ export const ownershipIdempotencyRetentionCleanup = onSchedule(
 
 export const accountDeletionRepair = onSchedule(
   {
-    schedule: "every 1 minutes",
+    schedule: "every 15 minutes",
     timeZone: "Etc/UTC",
   },
   async () => {
@@ -518,7 +508,7 @@ export const accountDeletionRepair = onSchedule(
 
 export const runSettlementRepair = onSchedule(
   {
-    schedule: "every 5 minutes",
+    schedule: "every 15 minutes",
     timeZone: "Etc/UTC",
   },
   async () => {
@@ -546,7 +536,7 @@ export const runSettlementRepair = onSchedule(
  */
 export const runValidationRepair = onSchedule(
   {
-    schedule: "every 5 minutes",
+    schedule: "every 15 minutes",
     timeZone: "Etc/UTC",
   },
   async () => {
@@ -574,6 +564,7 @@ export const runProjectionReconciliation = onSchedule(
   {
     schedule: "every 15 minutes",
     timeZone: "Etc/UTC",
+    memory: "512MiB",
   },
   async () => {
     const result = await reconcileLeaderboardBoardProjections({
@@ -581,29 +572,6 @@ export const runProjectionReconciliation = onSchedule(
       batchSize: projectionReconciliationBatchSize,
     });
     console.log("runProjectionReconciliation", result);
-  },
-);
-
-/**
- * Finite migration for grants created before server-owned settlement existed.
- *
- * Default `off` makes deployment audit-safe. Operators run `inventory` first,
- * then explicitly switch to `apply` after reviewing the recorded counts.
- */
-export const runLegacyRewardGrantMigration = onSchedule(
-  {
-    schedule: "every 5 minutes",
-    timeZone: "Etc/UTC",
-  },
-  async () => {
-    const result = await backfillLegacyRewardGrantStates({
-      db,
-      options: {
-        mode: legacyRewardGrantMigrationMode,
-        maxDocs: legacyRewardGrantMigrationBatchSize,
-      },
-    });
-    console.log("runLegacyRewardGrantMigration", result);
   },
 );
 
@@ -633,18 +601,4 @@ function readNonNegativeInt(raw: string | undefined): number | undefined {
 function readPositiveInt(raw: string | undefined): number | undefined {
   const parsed = readNonNegativeInt(raw);
   return parsed !== undefined && parsed > 0 ? parsed : undefined;
-}
-
-function readLegacyRewardGrantMigrationMode(
-  raw: string | undefined,
-): LegacyRewardGrantMigrationMode {
-  const normalized = raw?.trim().toLowerCase();
-  if (
-    normalized === "inventory" ||
-    normalized === "apply" ||
-    normalized === "off"
-  ) {
-    return normalized;
-  }
-  return "off";
 }

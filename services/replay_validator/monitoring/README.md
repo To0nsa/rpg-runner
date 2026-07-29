@@ -37,11 +37,14 @@ repair are expected to recover them. A terminal internal error, unhealthy
 probe, or failed repair/reconciliation job is critical because the durable
 recovery boundary itself failed or a run exhausted its recovery window.
 
-Queue backlog thresholds deliberately exceed the normal retry and
+Queue backlog thresholds deliberately exceed the pre-release retry and
 reconciliation cadence:
 
-- validation depth greater than zero for 15 minutes;
+- validation depth greater than zero for 30 minutes;
 - projection depth greater than zero for 30 minutes.
+
+Before public release, remeasure validation recovery and restore the production
+repair cadence and alert threshold.
 
 After applying the policies, verify their enabled state, notification channel,
 metric filters, and a healthy `/live` and `/ready` production smoke. Do not

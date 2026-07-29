@@ -71,25 +71,20 @@ List<EntityEntry> _parseEnemies(
       returnExpr.argumentList.arguments,
       'collider',
     );
-    final colliderValueExpr = colliderExpr;
-    NodeList<Expression>? colliderArgs;
-    if (colliderValueExpr is InstanceCreationExpression) {
-      colliderArgs = colliderValueExpr.argumentList.arguments;
-    } else if (colliderValueExpr is MethodInvocation &&
-        colliderValueExpr.methodName.name == 'ColliderAabbDef') {
-      colliderArgs = colliderValueExpr.argumentList.arguments;
-    }
-    if (colliderArgs == null || colliderValueExpr == null) {
+    final resolvedCollider = _resolveColliderAabbExpression(unit, colliderExpr);
+    if (resolvedCollider == null) {
       issues.add(
         ValidationIssue(
           severity: ValidationSeverity.warning,
           code: 'enemy_collider_missing',
-          message: 'Enemy $enemyName has no ColliderAabbDef collider.',
+          message: 'Enemy $enemyName has no writable ColliderAabbDef collider.',
           sourcePath: EntitySourceParser.enemyCatalogPath,
         ),
       );
       continue;
     }
+    final colliderValueExpr = resolvedCollider.expression;
+    final colliderArgs = resolvedCollider.arguments;
 
     final halfX = _doubleNamedArg(colliderArgs, 'halfX');
     final halfY = _doubleNamedArg(colliderArgs, 'halfY');

@@ -380,6 +380,42 @@ void main() {
       },
     );
 
+    test('long slope retains support without a corrective snap', () {
+      final harness = _Harness([
+        _polygon('slope', const [
+          (-1000, 1500),
+          (2000, 0),
+          (2000, 1800),
+          (-1000, 1800),
+        ]),
+      ]);
+      final support = harness.geometry.edges.singleWhere(
+        (edge) =>
+            edge.dxTicks == 3000 * 1024 &&
+            edge.dyTicks == -1500 * 1024 &&
+            edge.outwardNormal.yTicks < 0,
+      );
+      final result = TerrainCapsuleMotionResult();
+
+      harness.controller.move(
+        capsule: _supportedCircleAtCenterX(support, centerXWorld: 300),
+        request: TerrainMotionRequest(
+          displacementXTicks: 4 * 1024,
+          displacementYTicks: 0,
+          gravityYTicks: 256,
+          mode: TerrainMotionMode.groundedHorizontal,
+        ),
+        beganGrounded: true,
+        priorSupportEdgeId: support.id,
+        priorSupportGeometryVersion: harness.geometry.version,
+        out: result,
+      );
+
+      expect(result.grounded, isTrue);
+      expect(result.usedSnap, isFalse);
+      expect(result.resolvedXTicks, 4 * 1024);
+    });
+
     test(
       'support snap follows a three-pixel descent without acquiring from air',
       () {

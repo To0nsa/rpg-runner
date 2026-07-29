@@ -86,6 +86,8 @@ import 'levels/level_id.dart';
 import 'navigation/surface_graph_builder.dart';
 import 'navigation/surface_navigator.dart';
 import 'navigation/surface_pathfinder.dart';
+import 'navigation/terrain_runtime_bundle.dart';
+import 'navigation/terrain_spawn_placement.dart';
 import 'navigation/utils/jump_template.dart';
 import 'navigation/utils/standability.dart';
 import 'navigation/utils/trajectory_predictor.dart';
@@ -103,6 +105,7 @@ import 'loadout/loadout_validator.dart';
 import 'spawn_service.dart';
 import 'progression/run_rewards.dart';
 import 'track_manager.dart';
+import 'track/chunk_pattern.dart' show SpawnPlacementMode;
 import 'track/track_streamer.dart' show EnemySpawnRequestSource;
 import 'weapons/weapon_catalog.dart';
 import 'stats/character_stats_resolver.dart';
@@ -279,6 +282,10 @@ class GameCore {
       movement: _movement,
       resources: _resourceTuning,
     ).archetype;
+    _groundEnemyJumpTemplatesById = <EnemyId, JumpReachabilityTemplate>{
+      EnemyId.grojib: _buildGroundEnemyJumpTemplate(EnemyId.grojib),
+      EnemyId.hashash: _buildGroundEnemyJumpTemplate(EnemyId.hashash),
+    };
     final terrainGeometry = _terrainHarnessGeometry;
     _worldMotionAuthority = terrainGeometry == null
         ? LegacyWorldMotionAuthority()
@@ -286,6 +293,15 @@ class GameCore {
             geometry: terrainGeometry,
             playerProfile: _playerArchetype.terrainTraversalProfile,
             enemyCatalog: _enemyCatalog,
+            groundEnemyGraphProfiles: buildGroundEnemyTerrainGraphProfiles(
+              enemyCatalog: _enemyCatalog,
+              jumpTemplatesById: _groundEnemyJumpTemplatesById,
+              locomotionSpeedTicksPerSecond: physicsCoordinateToTicks(
+                _groundEnemyTuning.locomotion.speedX,
+                name: 'groundEnemyLocomotionSpeed',
+              ),
+              simulationTicksPerSecond: tickHz,
+            ),
           );
 
     // ─── Initialize ECS world and entity factory ───
@@ -323,6 +339,8 @@ class GameCore {
       collectibleTuning: _collectibleTuning,
       restorationItemTuning: _restorationItemTuning,
       trackTuning: _trackTuning,
+      worldMotionAuthority: _worldMotionAuthority,
+      playerTerrainTraversalProfile: _playerArchetype.terrainTraversalProfile,
       seed: seed,
     );
 
@@ -524,10 +542,6 @@ class GameCore {
       surfaceGrid: GridIndex2D(cellSize: _spatialGridTuning.broadphaseCellSize),
       takeoffSampleMaxStep: _navigationTuning.takeoffSampleMaxStep,
     );
-    _groundEnemyJumpTemplatesById = <EnemyId, JumpReachabilityTemplate>{
-      EnemyId.grojib: _buildGroundEnemyJumpTemplate(EnemyId.grojib),
-      EnemyId.hashash: _buildGroundEnemyJumpTemplate(EnemyId.hashash),
-    };
     _surfacePathfinder = SurfacePathfinder(
       maxExpandedNodes: _navigationTuning.maxExpandedNodes,
       runSpeedX: _groundEnemyTuning.locomotion.speedX,
@@ -567,6 +581,7 @@ class GameCore {
     );
     _flyingEnemyLocomotionSystem = FlyingEnemyLocomotionSystem(
       unocoDemonTuning: _unocoDemonTuning,
+      worldMotionAuthority: _worldMotionAuthority,
     );
     _flyingEnemyCombatModeSystem = FlyingEnemyCombatModeSystem(
       enemyCatalog: _enemyCatalog,
@@ -759,7 +774,6 @@ class GameCore {
   DeathPhase _playerDeathPhase = DeathPhase.none;
   int _playerDeathStartTick = -1;
   int _playerSpawnStartTick = -1;
-
   // ─── ECS Systems ───
   // Stateless processors that operate on component stores.
 
@@ -927,6 +941,27 @@ class GameCore {
   /// Whether the player is currently on the ground.
   bool get playerGrounded =>
       _worldMotionAuthority.playerGrounded(_world, _player);
+
+  /// Stable diagnostic for the latest enemy or item placement attempt.
+  ///
+  /// This is intended for authoring tools and terrain-harness tests. It stays
+  /// `null` until a terrain-dependent spawn candidate is processed.
+  String? get lastSpawnPlacementDiagnostic =>
+      _worldMotionAuthority.lastSpawnPlacementDiagnostic;
+
+  /// Queues a complete terrain-harness replacement for the next Core tick.
+  ///
+  /// Normal and replay construction keep the legacy rectangle world and
+  /// reject this test/tooling-only mutation explicitly.
+  void queueTerrainHarnessGeometryReplacement(TerrainGeometry geometry) {
+    final authority = _worldMotionAuthority;
+    if (authority is! TerrainMultiBodyWorldMotionAuthority) {
+      throw StateError(
+        'Terrain geometry replacement requires terrain-harness construction.',
+      );
+    }
+    authority.queueTerrainGeometryReplacement(geometry);
+  }
 
   /// Builds an immutable terrain diagnostic snapshot on demand.
   ///
@@ -1550,37 +1585,79 @@ class GameCore {
         final enemyId = request.enemyId;
         final x = request.x;
         final surfaceTopY = request.surfaceTopY;
-        // Route spawn requests to the appropriate SpawnService method.
+        final archetype = _enemyCatalog.get(enemyId);
+        final legacyBodyY = enemyId == EnemyId.unocoDemon
+            ? surfaceTopY - _unocoDemonTuning.base.unocoDemonHoverOffsetY
+            : surfaceTopY -
+                  (archetype.collider.offsetY + archetype.collider.halfY);
+        final supportSelection =
+            request.source == EnemySpawnRequestSource.deferredHashashEdge
+            ? TerrainSpawnSupportSelection.deferredEdge
+            : switch (request.placement) {
+                SpawnPlacementMode.ground =>
+                  TerrainSpawnSupportSelection.ground,
+                SpawnPlacementMode.highestSurfaceAtX =>
+                  TerrainSpawnSupportSelection.highestSurfaceAtX,
+                SpawnPlacementMode.obstacleTop =>
+                  TerrainSpawnSupportSelection.obstacleTop,
+              };
+        final placement = _worldMotionAuthority.resolveSpawnPlacement(
+          TerrainSpawnPlacementRequest(
+            profile: TerrainEnemySpawnPlacementProfile.fromCatalog(
+              catalog: _enemyCatalog,
+              enemyId: enemyId,
+              facing: Facing.left,
+            ),
+            desiredBodyCenter: TerrainPoint(
+              physicsCoordinateToTicks(x, name: 'enemySpawnX'),
+              physicsCoordinateToTicks(legacyBodyY, name: 'enemySpawnY'),
+            ),
+            supportSelection: supportSelection,
+            requestedSupportYTicks: physicsCoordinateToTicks(
+              surfaceTopY,
+              name: 'enemySpawnSupportY',
+            ),
+            intendedSourceAvailable:
+                request.source == EnemySpawnRequestSource.deferredHashashEdge ||
+                request.placement == SpawnPlacementMode.ground ||
+                request.intendedSurfaceResolved,
+            allowSameSupportClamp:
+                enemyId != EnemyId.unocoDemon &&
+                request.source != EnemySpawnRequestSource.deferredHashashEdge,
+          ),
+        );
+        if (!placement.accepted) return;
+        final body = placement.bodyCenter!;
+        final bodyX = body.xTicks / terrainPhysicsTicksPerWorldUnit;
+        final bodyY = body.yTicks / terrainPhysicsTicksPerWorldUnit;
+
         switch (enemyId) {
           case EnemyId.unocoDemon:
-            _spawnService.spawnUnocoDemon(spawnX: x, groundTopY: surfaceTopY);
+            _spawnService.spawnUnocoDemon(
+              spawnX: bodyX,
+              groundTopY: surfaceTopY,
+              spawnBodyY: bodyY,
+            );
           case EnemyId.grojib:
-            _spawnService.spawnGroundEnemy(spawnX: x, groundTopY: surfaceTopY);
+            _spawnService.spawnGroundEnemy(
+              spawnX: bodyX,
+              groundTopY: surfaceTopY,
+              spawnBodyY: bodyY,
+            );
           case EnemyId.hashash:
-            final placement =
-                request.source == EnemySpawnRequestSource.deferredHashashEdge
-                ? _worldMotionAuthority.resolveGroundedEnemySpawn(
-                    enemyId: EnemyId.hashash,
-                    desiredBodyX: x,
-                    requestedSupportY: surfaceTopY,
-                  )
-                : null;
-            if (request.source == EnemySpawnRequestSource.deferredHashashEdge &&
-                placement == null) {
-              return;
-            }
             _spawnService.spawnGroundEnemy(
               enemyId: EnemyId.hashash,
-              spawnX: placement?.bodyX ?? x,
+              spawnX: bodyX,
               groundTopY: surfaceTopY,
-              spawnBodyY: placement?.bodyY,
+              spawnBodyY: bodyY,
               spawnTick: tick,
             );
           case EnemyId.derf:
             _spawnService.spawnGroundEnemy(
               enemyId: EnemyId.derf,
-              spawnX: x,
+              spawnX: bodyX,
               groundTopY: surfaceTopY,
+              spawnBodyY: bodyY,
             );
         }
       },

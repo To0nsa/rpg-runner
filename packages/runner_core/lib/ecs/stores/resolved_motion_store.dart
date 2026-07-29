@@ -31,17 +31,40 @@ class ResolvedMotionStore extends SparseSet {
     required int capsuleCenterYTicks,
     required TerrainMotionRequest request,
   }) {
+    beginTickValues(
+      entity,
+      capsuleCenterXTicks: capsuleCenterXTicks,
+      capsuleCenterYTicks: capsuleCenterYTicks,
+      displacementXTicks: request.displacementXTicks,
+      displacementYTicks: request.displacementYTicks,
+      gravityXTicks: request.gravityXTicks,
+      gravityYTicks: request.gravityYTicks,
+      motionMode: request.mode,
+    );
+  }
+
+  /// Allocation-free primitive request equivalent of [beginTick].
+  void beginTickValues(
+    EntityId entity, {
+    required int capsuleCenterXTicks,
+    required int capsuleCenterYTicks,
+    required int displacementXTicks,
+    required int displacementYTicks,
+    required int gravityXTicks,
+    required int gravityYTicks,
+    required TerrainMotionMode motionMode,
+  }) {
     final index = indexOf(entity);
     startCapsuleCenterXTicks[index] = capsuleCenterXTicks;
     startCapsuleCenterYTicks[index] = capsuleCenterYTicks;
-    requestedXTicks[index] = request.displacementXTicks;
-    requestedYTicks[index] = request.displacementYTicks;
-    gravityXTicks[index] = request.gravityXTicks;
-    gravityYTicks[index] = request.gravityYTicks;
+    requestedXTicks[index] = displacementXTicks;
+    requestedYTicks[index] = displacementYTicks;
+    this.gravityXTicks[index] = gravityXTicks;
+    this.gravityYTicks[index] = gravityYTicks;
     resolvedXTicks[index] = 0;
     resolvedYTicks[index] = 0;
     supportedTravelTicks[index] = 0;
-    mode[index] = request.mode;
+    mode[index] = motionMode;
   }
 
   /// Records the flat-ground speed used to normalize locomotion playback.

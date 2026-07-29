@@ -10,7 +10,9 @@ import 'package:runner_core/ecs/systems/world_motion_authority.dart';
 import 'package:runner_core/ecs/world.dart';
 import 'package:runner_core/enemies/enemy_catalog.dart';
 import 'package:runner_core/enemies/enemy_id.dart';
+import 'package:runner_core/navigation/terrain_placement_query.dart';
 import 'package:runner_core/navigation/types/surface_id.dart';
+import 'package:runner_core/navigation/terrain_spawn_placement.dart';
 import 'package:runner_core/players/characters/eloise.dart';
 import 'package:runner_core/players/player_archetype.dart';
 import 'package:runner_core/players/player_catalog.dart';
@@ -135,15 +137,21 @@ void main() {
         ]),
       );
 
-      final placement = authority.resolveGroundedEnemySpawn(
-        enemyId: EnemyId.hashash,
-        desiredBodyX: 500,
-        requestedSupportY: 400,
+      final placement = _resolveDeferredSpawn(
+        authority,
+        bodyX: 500,
+        supportY: 400,
       );
 
-      expect(placement, isNotNull);
-      expect(placement!.bodyX, closeTo(500, 1 / 1024));
-      expect(placement.bodyY, lessThan(400));
+      expect(placement.accepted, isTrue);
+      expect(
+        placement.bodyCenter!.xTicks / terrainPhysicsTicksPerWorldUnit,
+        closeTo(500, 1 / 1024),
+      );
+      expect(
+        placement.bodyCenter!.yTicks / terrainPhysicsTicksPerWorldUnit,
+        lessThan(400),
+      );
     });
 
     test(
@@ -156,13 +164,17 @@ void main() {
           ]),
         );
 
-        final placement = authority.resolveGroundedEnemySpawn(
-          enemyId: EnemyId.hashash,
-          desiredBodyX: 500,
-          requestedSupportY: 400,
+        final placement = _resolveDeferredSpawn(
+          authority,
+          bodyX: 500,
+          supportY: 400,
         );
 
-        expect(placement, isNull);
+        expect(placement.accepted, isFalse);
+        expect(
+          placement.validity,
+          TerrainPlacementValidity.insufficientSupportWidth,
+        );
       },
     );
   });
@@ -323,6 +335,30 @@ TerrainMultiBodyWorldMotionAuthority _authority(TerrainGeometry geometry) =>
       geometry: geometry,
       playerProfile: _playerArchetype().terrainTraversalProfile,
     );
+
+TerrainSpawnPlacementResult _resolveDeferredSpawn(
+  TerrainMultiBodyWorldMotionAuthority authority, {
+  required double bodyX,
+  required double supportY,
+}) {
+  const catalog = EnemyCatalog();
+  final collider = catalog.get(EnemyId.hashash).collider;
+  return authority.resolveSpawnPlacement(
+    TerrainSpawnPlacementRequest(
+      profile: TerrainEnemySpawnPlacementProfile.fromCatalog(
+        catalog: catalog,
+        enemyId: EnemyId.hashash,
+        facing: Facing.left,
+      ),
+      desiredBodyCenter: TerrainPoint.fromWorld(
+        bodyX,
+        supportY - (collider.offsetY + collider.halfY),
+      ),
+      supportSelection: TerrainSpawnSupportSelection.deferredEdge,
+      requestedSupportYTicks: physicsCoordinateToTicks(supportY),
+    ),
+  );
+}
 
 PlayerArchetype _playerArchetype() {
   final movement = MovementTuningDerived.from(

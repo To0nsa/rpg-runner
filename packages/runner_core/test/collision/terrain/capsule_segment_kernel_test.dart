@@ -219,6 +219,54 @@ void main() {
     expect(recovery.edgeId, full.edgeId);
   });
 
+  test('integer retained-support check matches full support distance', () {
+    const radiusTicks = 10 * terrainPhysicsTicksPerWorldUnit;
+    const verticalHalfSegmentTicks = 20 * terrainPhysicsTicksPerWorldUnit;
+    const toleranceTicks = 2 * terrainPhysicsTicksPerWorldUnit;
+    final cases = <(TerrainEdge, TerrainPoint)>[
+      (_edge(10, 0, 100, 200, 100), TerrainPoint.fromWorld(100, 70)),
+      (_edge(11, 0, 150, 100, 50), TerrainPoint.fromWorld(43, 73)),
+      (_edge(12, 0, 100, 200, 100), TerrainPoint.fromWorld(-6, 70)),
+      (_edge(13, 0, 100, 200, 100), TerrainPoint.fromWorld(206, 70)),
+      (_edge(14, 0, 100, 200, 100), TerrainPoint.fromWorld(100, 67)),
+    ];
+
+    for (final benchmarkCase in cases) {
+      final edge = benchmarkCase.$1;
+      final center = benchmarkCase.$2;
+      final full = CapsuleSegmentContact();
+      final retained = CapsuleSegmentContact();
+      kernel.evaluateAtCenter(
+        centerXTicks: center.xTicks,
+        centerYTicks: center.yTicks,
+        radiusTicks: radiusTicks,
+        verticalHalfSegmentTicks: verticalHalfSegmentTicks,
+        edge: edge,
+        out: full,
+      );
+
+      final within = kernel.evaluateSupportAtCenterWithin(
+        centerXTicks: center.xTicks,
+        centerYTicks: center.yTicks,
+        radiusTicks: radiusTicks,
+        verticalHalfSegmentTicks: verticalHalfSegmentTicks,
+        edge: edge,
+        maximumSeparationTicks: toleranceTicks,
+        out: retained,
+      );
+
+      expect(
+        within,
+        full.signedSeparationTicks <= toleranceTicks,
+        reason: edge.id.shapeId,
+      );
+      expect(retained.feature, full.feature, reason: edge.id.shapeId);
+      expect(retained.pointXTicks, full.pointXTicks, reason: edge.id.shapeId);
+      expect(retained.pointYTicks, full.pointYTicks, reason: edge.id.shapeId);
+      expect(retained.edgeId, full.edgeId, reason: edge.id.shapeId);
+    }
+  });
+
   test('continuous sweep finds floor, wall, and high-speed contacts', () {
     final hit = CapsuleSweepHit();
     final capsule = UprightCapsule(

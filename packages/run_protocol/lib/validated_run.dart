@@ -113,6 +113,36 @@ final class ValidatedRun {
   final String? replayStorageGeneration;
   final int createdAtMs;
 
+  /// Returns this immutable validation result with a sealed replay artifact.
+  ///
+  /// The digest and gameplay outcome stay unchanged; only the storage lineage
+  /// moves from a client upload to the validator-owned validated-artifact area.
+  ValidatedRun withReplayArtifact({
+    required String replayStorageRef,
+    required String replayStorageGeneration,
+  }) {
+    return ValidatedRun(
+      runSessionId: runSessionId,
+      uid: uid,
+      boardId: boardId,
+      boardKey: boardKey,
+      mode: mode,
+      accepted: accepted,
+      score: score,
+      distanceMeters: distanceMeters,
+      durationSeconds: durationSeconds,
+      tick: tick,
+      endedReason: endedReason,
+      goldEarned: goldEarned,
+      stats: stats,
+      replayDigest: replayDigest,
+      replayStorageRef: replayStorageRef,
+      replayStorageGeneration: replayStorageGeneration,
+      createdAtMs: createdAtMs,
+      rejectionReason: rejectionReason,
+    );
+  }
+
   Map<String, Object?> toJson() {
     return <String, Object?>{
       'runSessionId': runSessionId,

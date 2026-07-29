@@ -27,12 +27,23 @@ class SpawnEnemyRequest {
     required this.x,
     required this.surfaceTopY,
     this.source = EnemySpawnRequestSource.authoredMarker,
+    this.placement = SpawnPlacementMode.ground,
+    this.intendedSurfaceResolved = true,
   });
 
   final EnemyId enemyId;
   final double x;
   final double surfaceTopY;
   final EnemySpawnRequestSource source;
+
+  /// Authored marker placement intent, retained across legacy resolution.
+  final SpawnPlacementMode placement;
+
+  /// Whether legacy geometry found the requested placement kind itself.
+  ///
+  /// A fallback Y is still carried for legacy behavior, but terrain placement
+  /// consumers use this bit to reject silent relocation to another surface.
+  final bool intendedSurfaceResolved;
 }
 
 /// Metadata for a newly spawned chunk, returned by [TrackStreamer.step].
@@ -355,7 +366,7 @@ class TrackStreamer {
       }
 
       final x = chunkStartX + m.x;
-      final spawnSurfaceTopY = _resolveSpawnSurfaceTopY(
+      final spawnSurface = _resolveSpawnSurface(
         marker: m,
         x: x,
         solids: solids,
@@ -365,7 +376,9 @@ class TrackStreamer {
         SpawnEnemyRequest(
           enemyId: m.enemyId,
           x: x,
-          surfaceTopY: spawnSurfaceTopY,
+          surfaceTopY: spawnSurface.topY,
+          placement: m.placement,
+          intendedSurfaceResolved: spawnSurface.intendedSurfaceResolved,
         ),
       );
     }
@@ -428,7 +441,7 @@ class TrackStreamer {
 
   static const double _hashashEdgeSpawnInsetX = -96.0;
 
-  double _resolveSpawnSurfaceTopY({
+  _SpawnSurfaceResolution _resolveSpawnSurface({
     required SpawnMarker marker,
     required double x,
     required List<StaticSolid> solids,
@@ -436,22 +449,38 @@ class TrackStreamer {
   }) {
     switch (marker.placement) {
       case SpawnPlacementMode.ground:
-        return groundTopY;
+        return _SpawnSurfaceResolution(
+          topY: groundTopY,
+          intendedSurfaceResolved: true,
+        );
       case SpawnPlacementMode.highestSurfaceAtX:
-        return _resolveHighestSurfaceTopYAtX(
-              x: x,
-              solids: solids,
-              groundSegments: groundSegments,
-            ) ??
-            groundTopY;
+        final highest = _resolveHighestSurfaceTopYAtX(
+          x: x,
+          solids: solids,
+          groundSegments: groundSegments,
+        );
+        return _SpawnSurfaceResolution(
+          topY: highest ?? groundTopY,
+          intendedSurfaceResolved: highest != null,
+        );
       case SpawnPlacementMode.obstacleTop:
-        return _resolveObstacleTopYAtX(x: x, solids: solids) ??
-            _resolveHighestSurfaceTopYAtX(
-              x: x,
-              solids: solids,
-              groundSegments: groundSegments,
-            ) ??
-            groundTopY;
+        final obstacle = _resolveObstacleTopYAtX(x: x, solids: solids);
+        if (obstacle != null) {
+          return _SpawnSurfaceResolution(
+            topY: obstacle,
+            intendedSurfaceResolved: true,
+          );
+        }
+        return _SpawnSurfaceResolution(
+          topY:
+              _resolveHighestSurfaceTopYAtX(
+                x: x,
+                solids: solids,
+                groundSegments: groundSegments,
+              ) ??
+              groundTopY,
+          intendedSurfaceResolved: false,
+        );
     }
   }
 
@@ -509,6 +538,16 @@ class TrackStreamer {
 
     return best?.yTop;
   }
+}
+
+class _SpawnSurfaceResolution {
+  const _SpawnSurfaceResolution({
+    required this.topY,
+    required this.intendedSurfaceResolved,
+  });
+
+  final double topY;
+  final bool intendedSurfaceResolved;
 }
 
 /// Tracks a spawned chunk's geometry while it's within camera culling bounds.
