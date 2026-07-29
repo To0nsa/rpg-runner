@@ -47,14 +47,17 @@ const int terrainDefaultCellSizeWorld = 64;
 /// allowing more than one billion world units in either direction.
 const int terrainMaxAbsPhysicsTicks = 1 << 40;
 
+/// Maximum absolute coordinate accepted on the authored half-unit grid.
+const int terrainMaxAbsSourceTicks =
+    terrainMaxAbsPhysicsTicks ~/
+    (terrainPhysicsTicksPerWorldUnit ~/ terrainSourceTicksPerWorldUnit);
+
 /// Exact point on the authored half-world-unit coordinate grid.
 class SourceTerrainPoint {
   /// Creates a source point from already-validated half-world-unit ticks.
   factory SourceTerrainPoint(int xTicks, int yTicks) {
-    const factor =
-        terrainPhysicsTicksPerWorldUnit ~/ terrainSourceTicksPerWorldUnit;
-    _checkPhysicsRange(xTicks * factor, 'xTicks');
-    _checkPhysicsRange(yTicks * factor, 'yTicks');
+    _checkSourceRange(xTicks, 'xTicks');
+    _checkSourceRange(yTicks, 'yTicks');
     return SourceTerrainPoint._(xTicks, yTicks);
   }
 
@@ -430,11 +433,22 @@ void _requireFinite(double value, String name) {
 }
 
 void _checkPhysicsRange(int ticks, String name) {
-  if (ticks.abs() > terrainMaxAbsPhysicsTicks) {
+  if (ticks < -terrainMaxAbsPhysicsTicks || ticks > terrainMaxAbsPhysicsTicks) {
     throw RangeError.range(
       ticks,
       -terrainMaxAbsPhysicsTicks,
       terrainMaxAbsPhysicsTicks,
+      name,
+    );
+  }
+}
+
+void _checkSourceRange(int ticks, String name) {
+  if (ticks < -terrainMaxAbsSourceTicks || ticks > terrainMaxAbsSourceTicks) {
+    throw RangeError.range(
+      ticks,
+      -terrainMaxAbsSourceTicks,
+      terrainMaxAbsSourceTicks,
       name,
     );
   }

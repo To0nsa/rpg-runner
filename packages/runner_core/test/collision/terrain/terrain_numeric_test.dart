@@ -23,6 +23,15 @@ void main() {
         throwsRangeError,
       );
       expect(
+        SourceTerrainPoint(terrainMaxAbsSourceTicks, -terrainMaxAbsSourceTicks),
+        isA<SourceTerrainPoint>(),
+      );
+      expect(
+        () => SourceTerrainPoint(terrainMaxAbsSourceTicks + 1, 0),
+        throwsRangeError,
+      );
+      expect(() => SourceTerrainPoint(1 << 55, 0), throwsRangeError);
+      expect(
         () => TerrainAabb(minX: 1, minY: 0, maxX: 0, maxY: 1),
         throwsArgumentError,
       );
