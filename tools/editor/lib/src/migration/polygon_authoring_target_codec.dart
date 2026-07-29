@@ -1,9 +1,8 @@
-import 'dart:convert';
-
 import '../chunks/chunk_domain_models.dart';
 import '../prefabs/models/models.dart';
 import '../terrain_authoring/terrain_source_models.dart';
 import 'polygon_authoring_target_models.dart';
+import 'strict_migration_json.dart';
 
 /// Strict structural codec for staged prefab-v3 and chunk-v2 source.
 ///
@@ -507,22 +506,11 @@ List<TerrainSourceShapeDef> _decodeShapes(
 }
 
 Map<String, Object?> _decodeRoot(String raw, {required String sourcePath}) {
-  Object? decoded;
-  try {
-    decoded = jsonDecode(raw);
-  } on FormatException catch (error) {
-    throw FormatException('$sourcePath is malformed JSON: ${error.message}');
-  }
-  return _object(decoded, sourcePath: sourcePath);
+  return StrictMigrationJson.decodeRoot(raw, sourcePath: sourcePath);
 }
 
 Map<String, Object?> _object(Object? raw, {required String sourcePath}) {
-  if (raw is! Map<Object?, Object?> || raw.keys.any((key) => key is! String)) {
-    throw FormatException('$sourcePath must be an object.');
-  }
-  return <String, Object?>{
-    for (final entry in raw.entries) entry.key! as String: entry.value,
-  };
+  return StrictMigrationJson.object(raw, sourcePath: sourcePath);
 }
 
 List<T> _objectList<T>(
@@ -531,16 +519,11 @@ List<T> _objectList<T>(
   required T Function(Map<String, Object?> json, {required String sourcePath})
   parse,
 }) {
-  if (raw is! List<Object?>) {
-    throw FormatException('$sourcePath must be an array.');
-  }
-  return <T>[
-    for (var index = 0; index < raw.length; index += 1)
-      parse(
-        _object(raw[index], sourcePath: '$sourcePath[$index]'),
-        sourcePath: '$sourcePath[$index]',
-      ),
-  ];
+  return StrictMigrationJson.objectList(
+    raw,
+    sourcePath: sourcePath,
+    parse: parse,
+  );
 }
 
 void _requireKeys(
@@ -549,16 +532,12 @@ void _requireKeys(
   required Set<String> allowed,
   required Set<String> required,
 }) {
-  final unknown = json.keys.where((key) => !allowed.contains(key)).toList()
-    ..sort();
-  if (unknown.isNotEmpty) {
-    throw FormatException('$sourcePath has unknown field ${unknown.first}.');
-  }
-  final missing = required.where((key) => !json.containsKey(key)).toList()
-    ..sort();
-  if (missing.isNotEmpty) {
-    throw FormatException('$sourcePath is missing field ${missing.first}.');
-  }
+  StrictMigrationJson.requireKeys(
+    json,
+    sourcePath: sourcePath,
+    allowed: allowed,
+    required: required,
+  );
 }
 
 void _requireSchemaVersion(
@@ -566,16 +545,15 @@ void _requireSchemaVersion(
   int expected, {
   required String sourcePath,
 }) {
-  if (raw is! int || raw != expected) {
-    throw FormatException('$sourcePath must be exactly $expected.');
-  }
+  StrictMigrationJson.requireSchemaVersion(
+    raw,
+    expected,
+    sourcePath: sourcePath,
+  );
 }
 
 String _nonEmptyString(Object? raw, {required String sourcePath}) {
-  if (raw is! String || raw.isEmpty || raw.trim() != raw) {
-    throw FormatException('$sourcePath must be a non-empty trimmed string.');
-  }
-  return raw;
+  return StrictMigrationJson.nonEmptyString(raw, sourcePath: sourcePath);
 }
 
 String _enumString(
@@ -583,69 +561,34 @@ String _enumString(
   Set<String> accepted, {
   required String sourcePath,
 }) {
-  final value = _nonEmptyString(raw, sourcePath: sourcePath);
-  if (!accepted.contains(value)) {
-    final choices = accepted.toList()..sort();
-    throw FormatException('$sourcePath must be one of ${choices.join(', ')}.');
-  }
-  return value;
+  return StrictMigrationJson.enumString(raw, accepted, sourcePath: sourcePath);
 }
 
 int _int(Object? raw, {required String sourcePath}) {
-  if (raw is! int) throw FormatException('$sourcePath must be an integer.');
-  return raw;
+  return StrictMigrationJson.integer(raw, sourcePath: sourcePath);
 }
 
 int _positiveInt(Object? raw, {required String sourcePath}) {
-  final value = _int(raw, sourcePath: sourcePath);
-  if (value <= 0) throw FormatException('$sourcePath must be positive.');
-  return value;
+  return StrictMigrationJson.positiveInt(raw, sourcePath: sourcePath);
 }
 
 bool _bool(Object? raw, {required String sourcePath}) {
-  if (raw is! bool) throw FormatException('$sourcePath must be a boolean.');
-  return raw;
+  return StrictMigrationJson.boolean(raw, sourcePath: sourcePath);
 }
 
 double _scale(Object? raw, {required String sourcePath}) {
-  if (raw is! num || !raw.isFinite) {
-    throw FormatException('$sourcePath must be a finite number.');
-  }
-  final value = raw.toDouble();
-  if (!isPrefabPlacementScaleInRange(value) ||
-      !isPrefabPlacementScaleStepAligned(value)) {
-    throw FormatException(
-      '$sourcePath must use an accepted 0.3-3.0 scale in 0.1 steps.',
-    );
-  }
-  return canonicalPrefabPlacementScale(value);
+  return StrictMigrationJson.prefabScale(raw, sourcePath: sourcePath);
 }
 
 List<String> _canonicalTags(Object? raw, {required String sourcePath}) {
-  if (raw is! List<Object?>) {
-    throw FormatException('$sourcePath must be an array.');
-  }
-  final tags = <String>[];
-  for (var index = 0; index < raw.length; index += 1) {
-    tags.add(_nonEmptyString(raw[index], sourcePath: '$sourcePath[$index]'));
-  }
-  _requireStrictIdOrder(tags, sourcePath: sourcePath);
-  return tags;
+  return StrictMigrationJson.canonicalTags(raw, sourcePath: sourcePath);
 }
 
 void _requireStrictIdOrder(
   Iterable<String> values, {
   required String sourcePath,
 }) {
-  String? previous;
-  for (final value in values) {
-    if (previous != null && previous.compareTo(value) >= 0) {
-      throw FormatException(
-        '$sourcePath must be strictly ordered with no duplicates.',
-      );
-    }
-    previous = value;
-  }
+  StrictMigrationJson.requireStrictStringOrder(values, sourcePath: sourcePath);
 }
 
 void _requireUniqueStrings(
@@ -653,13 +596,11 @@ void _requireUniqueStrings(
   required String sourcePath,
   required bool caseInsensitive,
 }) {
-  final seen = <String>{};
-  for (final value in values) {
-    final identity = caseInsensitive ? value.toLowerCase() : value;
-    if (!seen.add(identity)) {
-      throw FormatException('$sourcePath must contain unique values.');
-    }
-  }
+  StrictMigrationJson.requireUniqueStrings(
+    values,
+    sourcePath: sourcePath,
+    caseInsensitive: caseInsensitive,
+  );
 }
 
 void _requirePrefabOrder(
@@ -684,14 +625,11 @@ void _requireComparatorOrder<T>(
   int Function(T left, T right) compare, {
   required String sourcePath,
 }) {
-  for (var index = 1; index < values.length; index += 1) {
-    if (compare(values[index - 1], values[index]) >= 0) {
-      throw FormatException(
-        '$sourcePath must be in canonical order without duplicates.',
-      );
-    }
-  }
+  StrictMigrationJson.requireComparatorOrder(
+    values,
+    compare,
+    sourcePath: sourcePath,
+  );
 }
 
-String _encode(Map<String, Object> json) =>
-    '${const JsonEncoder.withIndent('  ').convert(json)}\n';
+String _encode(Map<String, Object> json) => StrictMigrationJson.encode(json);
