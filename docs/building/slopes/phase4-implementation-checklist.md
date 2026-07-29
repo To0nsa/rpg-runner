@@ -264,7 +264,7 @@ generic geometry framework or duplicate the accepted terrain compiler.
 - [x] Reject area smaller than four half-pixel square units (`1 px²`).
 - [x] Detect non-adjacent edge intersection, collinear overlap, and point-only
       self-contact exactly.
-- [ ] Detect positive-area shape overlap while permitting exact shared
+- [x] Detect positive-area shape overlap while permitting exact shared
       boundaries.
 - [x] Treat collinear middle vertices as a normalization diagnostic.
 - [ ] Provide an explicit undoable Normalize action that can remove collinear
@@ -812,7 +812,7 @@ Models/codecs:
 Geometry/compiler:
 
 - [ ] simple/concave polygons and every invalid topology class
-- [ ] shared boundaries versus positive-area overlap
+- [x] shared boundaries versus positive-area overlap
 - [ ] minimum edge/area and hard limits
 - [ ] transform order, reflection, rational scale, quantization
 - [ ] Core preview/generator signature parity
@@ -878,6 +878,7 @@ before changing the accepted plan.
 | Current chunk selection draws from tier/group pools and authored runs, so file adjacency does not describe runtime adjacency. | Seam validation enumerates the scheduler's actual possible pair set. | Phase 5 can stitch only combinations already proven compatible without changing procedural pacing. |
 | Prefab geometry changes can affect many chunks while those chunk JSON records remain untouched. | Pending changes report downstream placement/output impact, but only the prefab revision/source changes. | Phase 5 runtime identities must include referenced prefab revision/signature without forcing mass chunk revision churn. |
 | Existing placement scales are decimal tenths; multiplying half-pixel source coordinates with binary doubles would make identity platform-sensitive. | Parse scale into an exact integer rational and quantize once after reflection/scale/translation. The initial editor-to-Core source adapter remains identity-transform-only until that primitive replaces the current double transform. | Generated world geometry and validator replay receive the same physics ticks on every platform. |
+| Source-point construction multiplied an unchecked authored tick by the source-to-physics factor before range validation, so native integer overflow could occur before rejection. | Validate against an explicit source-tick limit before conversion and use overflow-safe comparison bounds. Promote exact authoring/compiler area, orientation, overlap, and line-key products to `BigInt`; keep this work outside per-tick contact. | Migration and editor validation can safely exercise the accepted coordinate limits without platform-dependent wraparound. |
 | Phase 4 must stage polygon data while production still reads rectangles. | Source cuts over once; generation emits an unreachable staged terrain artifact and a bounded exact legacy projection for orthogonal current content. | Phase 5 removes the projection when streaming consumes staged terrain; no runtime toggle is introduced. |
 | Phase 3 moved enemy AABBs into top-level constants so legacy collision and staged capsules share one definition, but the entity editor only parsed inline collider expressions. | Resolve a directly referenced top-level `ColliderAabbDef` initializer and bind edits to that initializer; keep unresolved/indirect shapes non-writable. | Enemy authoring remains operational through the Phase 4 source migration without duplicating capsule/AABB dimensions. |
 
@@ -917,6 +918,8 @@ result.
 | 2026-07-28 / same working revision | Shared exact polygon-source values | Dart VM on Windows | Focused analysis clean; 10/10 model/codec/order/equality tests pass. No prefab/chunk schema or authored JSON changed. |
 | 2026-07-29 / `c182a277` | Core-owned exact source canonicalization seam | Dart VM on Windows | Core analysis clean; 13 focused compiler/canonicalizer tests and all 297 Core package tests pass. Existing geometry/signature goldens are unchanged; no runtime authority or replay contract changed. |
 | 2026-07-29 / `35ea2d08` | Editor-to-Core polygon source adapter | Flutter test VM on Windows | Editor analysis clean; all 197 editor tests pass, including 4 adapter tests and 10 source-model tests. The dependency is one-way, conversion preserves exact identity/integer coordinates, and placement transforms remain pending §12. |
+| 2026-07-29 / `0ee1b750` | Source-coordinate overflow guard | Dart VM on Windows | Focused analysis clean and all 6 terrain numeric tests pass. Maximum accepted source ticks convert exactly; one-unit-over and overflow-sized values reject before multiplication. |
+| 2026-07-29 / `a048ff44` | Exact cross-shape occupied-area overlap | Dart VM and Flutter test VM on Windows | Core analysis clean; 26 focused numeric/canonicalization/overlap/compiler tests and all 304 Core package tests pass. Shared edges and points remain legal, concave/contained/crossing/near-limit overlap is exact, existing geometry/signature goldens are unchanged, and the editor adapter's 4 tests still pass. |
 
 ### 28.1 Baseline Environment And Source Identity
 
