@@ -889,6 +889,8 @@ seam, determinism, or performance contracts.
 
 During implementation:
 
+- [x] document the delivered pre-schema source/canonicalization/overlap/exact
+      placement boundary in `docs/tdd/polygon_terrain_authoring_foundation.md`
 - [ ] create a focused TDD for source schema ownership, transform order,
       migration, generation, identity lineage, diagnostics, and staging
 - [ ] update `docs/tdd/sloped_navigation_and_enemy_terrain.md` only for the
