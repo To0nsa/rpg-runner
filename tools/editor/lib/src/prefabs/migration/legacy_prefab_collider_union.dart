@@ -6,6 +6,7 @@ import 'package:runner_core/collision/terrain/terrain_numeric.dart';
 import '../../terrain_authoring/terrain_source_core_adapter.dart';
 import '../../terrain_authoring/terrain_source_models.dart';
 import '../models/prefab/prefab_collider_def.dart';
+import 'reviewed_legacy_prefab_collision_reauthorings.dart';
 
 /// One stable blocking finding from legacy prefab-collider conversion.
 final class LegacyPrefabColliderUnionIssue
@@ -38,6 +39,8 @@ final class LegacyPrefabColliderUnionResult {
     required Iterable<TerrainSourceShapeDef> shapes,
     required Iterable<LegacyPrefabColliderUnionIssue> issues,
     required this.occupiedAreaHalfPixelSquared,
+    required this.plannedAreaHalfPixelSquared,
+    this.reauthoringPrefabKey,
   }) : shapes = List<TerrainSourceShapeDef>.unmodifiable(shapes),
        issues = List<LegacyPrefabColliderUnionIssue>.unmodifiable(
          List<LegacyPrefabColliderUnionIssue>.of(issues)..sort(),
@@ -48,6 +51,19 @@ final class LegacyPrefabColliderUnionResult {
 
   /// Exact union area in half-pixel ticks squared.
   final BigInt occupiedAreaHalfPixelSquared;
+
+  /// Exact planned polygon area in half-pixel ticks squared.
+  final BigInt plannedAreaHalfPixelSquared;
+
+  /// Prefab key when an explicit reviewed source correction was applied.
+  final String? reauthoringPrefabKey;
+
+  /// Exact difference between the planned polygon and legacy union areas.
+  BigInt get areaDeltaHalfPixelSquared =>
+      plannedAreaHalfPixelSquared - occupiedAreaHalfPixelSquared;
+
+  /// Whether the result includes an explicitly reviewed content correction.
+  bool get isReauthored => reauthoringPrefabKey != null;
 
   bool get canMigrate => issues.isEmpty;
 }
@@ -61,11 +77,13 @@ abstract final class LegacyPrefabColliderUnion {
   static LegacyPrefabColliderUnionResult plan({
     required Iterable<PrefabColliderDef> colliders,
     required String sourcePath,
+    ReviewedLegacyPrefabCollisionReauthoring? reviewedReauthoring,
   }) {
+    final colliderList = colliders.toList(growable: false);
     final issues = <LegacyPrefabColliderUnionIssue>[];
     final rectangles = <_HalfPixelRect>[];
     var colliderIndex = 0;
-    for (final collider in colliders) {
+    for (final collider in colliderList) {
       final rectangle = _toHalfPixelRect(
         collider,
         sourcePath: sourcePath,
@@ -80,6 +98,7 @@ abstract final class LegacyPrefabColliderUnion {
         shapes: const <TerrainSourceShapeDef>[],
         issues: issues,
         occupiedAreaHalfPixelSquared: BigInt.zero,
+        plannedAreaHalfPixelSquared: BigInt.zero,
       );
     }
 
@@ -133,6 +152,7 @@ abstract final class LegacyPrefabColliderUnion {
         shapes: const <TerrainSourceShapeDef>[],
         issues: issues,
         occupiedAreaHalfPixelSquared: occupiedArea,
+        plannedAreaHalfPixelSquared: BigInt.zero,
       );
     }
 
@@ -154,54 +174,129 @@ abstract final class LegacyPrefabColliderUnion {
         shapes: const <TerrainSourceShapeDef>[],
         issues: issues,
         occupiedAreaHalfPixelSquared: occupiedArea,
+        plannedAreaHalfPixelSquared: BigInt.zero,
       );
     }
 
     loops.sort(_compareLoops);
-    if (loops.length > TerrainGeometryLimits.maxShapesPerPrefab) {
+    if (reviewedReauthoring != null &&
+        !reviewedReauthoring.matchesColliders(colliderList)) {
+      issues.add(
+        LegacyPrefabColliderUnionIssue(
+          sourcePath: sourcePath,
+          code: 'legacy_reauthoring_source_drift',
+          message:
+              'Reviewed collision correction for '
+              '${reviewedReauthoring.prefabKey} no longer matches its legacy '
+              'colliders.',
+        ),
+      );
+    }
+    if (reviewedReauthoring != null &&
+        reviewedReauthoring.replacementShapes.length != loops.length) {
+      issues.add(
+        LegacyPrefabColliderUnionIssue(
+          sourcePath: sourcePath,
+          code: 'legacy_reauthoring_component_mismatch',
+          message:
+              'Reviewed collision correction for '
+              '${reviewedReauthoring.prefabKey} changes the number of occupied '
+              'components.',
+        ),
+      );
+    }
+    if (issues.isNotEmpty) {
+      return LegacyPrefabColliderUnionResult(
+        shapes: const <TerrainSourceShapeDef>[],
+        issues: issues,
+        occupiedAreaHalfPixelSquared: occupiedArea,
+        plannedAreaHalfPixelSquared: BigInt.zero,
+      );
+    }
+
+    final candidates =
+        reviewedReauthoring?.replacementShapes ??
+        <TerrainSourceShapeDef>[
+          for (var index = 0; index < loops.length; index += 1)
+            TerrainSourceShapeDef(
+              shapeId: 'collision_${(index + 1).toString().padLeft(3, '0')}',
+              vertices: loops[index],
+            ),
+        ];
+    if (candidates.length > TerrainGeometryLimits.maxShapesPerPrefab) {
       issues.add(
         LegacyPrefabColliderUnionIssue(
           sourcePath: sourcePath,
           code: 'legacy_prefab_shape_limit',
           message:
-              'Rectangle union produces ${loops.length} shapes; the limit is '
+              'Rectangle union produces ${candidates.length} shapes; the limit is '
               '${TerrainGeometryLimits.maxShapesPerPrefab}.',
         ),
       );
     }
 
     final shapes = <TerrainSourceShapeDef>[];
-    for (var index = 0; index < loops.length; index += 1) {
-      final vertices = loops[index];
-      if (vertices.length > TerrainGeometryLimits.maxVerticesPerShape) {
+    for (var index = 0; index < candidates.length; index += 1) {
+      final candidate = candidates[index];
+      if (candidate.vertices.length >
+          TerrainGeometryLimits.maxVerticesPerShape) {
         issues.add(
           LegacyPrefabColliderUnionIssue(
             sourcePath: sourcePath,
             elementIndex: index,
             code: 'legacy_prefab_vertex_limit',
             message:
-                'Union component ${index + 1} has ${vertices.length} vertices; '
+                'Union component ${index + 1} has '
+                '${candidate.vertices.length} vertices; '
                 'the limit is ${TerrainGeometryLimits.maxVerticesPerShape}.',
           ),
         );
         continue;
       }
+      final review = TerrainSourceCoreAdapter.review(
+        shape: candidate,
+        sourcePath: sourcePath,
+        chunkIndex: 0,
+        chunkKey: 'legacy_prefab_migration',
+        requireCanonical: false,
+      );
+      if (review.hasBlockingDiagnostics || review.canonicalVertices == null) {
+        for (final diagnostic in review.diagnostics) {
+          issues.add(
+            LegacyPrefabColliderUnionIssue(
+              sourcePath: sourcePath,
+              elementIndex: diagnostic.elementIndex,
+              code: 'legacy_core_${diagnostic.code}',
+              message: diagnostic.message,
+            ),
+          );
+        }
+        continue;
+      }
       shapes.add(
-        TerrainSourceShapeDef(
-          shapeId: 'collision_${(index + 1).toString().padLeft(3, '0')}',
-          vertices: vertices,
-        ),
+        TerrainSourceCoreAdapter.applyCanonicalVertices(candidate, review),
       );
     }
 
-    if (issues.isEmpty && _shapeAreaHalfPixelSquared(shapes) != occupiedArea) {
-      issues.add(
-        LegacyPrefabColliderUnionIssue(
-          sourcePath: sourcePath,
-          code: 'legacy_union_area_mismatch',
-          message: 'Rectangle union did not preserve exact occupied area.',
-        ),
-      );
+    final plannedArea = _shapeAreaHalfPixelSquared(shapes);
+    if (issues.isEmpty) {
+      final expectedDelta =
+          reviewedReauthoring?.expectedAddedAreaHalfPixelSquared ?? BigInt.zero;
+      if (plannedArea - occupiedArea != expectedDelta) {
+        issues.add(
+          LegacyPrefabColliderUnionIssue(
+            sourcePath: sourcePath,
+            code: reviewedReauthoring == null
+                ? 'legacy_union_area_mismatch'
+                : 'legacy_reauthoring_area_mismatch',
+            message: reviewedReauthoring == null
+                ? 'Rectangle union did not preserve exact occupied area.'
+                : 'Reviewed collision correction for '
+                      '${reviewedReauthoring.prefabKey} does not match its '
+                      'approved area delta.',
+          ),
+        );
+      }
     }
     return LegacyPrefabColliderUnionResult(
       shapes: issues.isEmpty
@@ -209,6 +304,10 @@ abstract final class LegacyPrefabColliderUnion {
           : const <TerrainSourceShapeDef>[],
       issues: issues,
       occupiedAreaHalfPixelSquared: occupiedArea,
+      plannedAreaHalfPixelSquared: plannedArea,
+      reauthoringPrefabKey: issues.isEmpty
+          ? reviewedReauthoring?.prefabKey
+          : null,
     );
   }
 }
@@ -503,37 +602,12 @@ List<TerrainSourceVertexDef>? _traceComponentLoop(
   }
 
   final simplified = _removeCollinear(vertices);
-  final provisional = TerrainSourceShapeDef(
-    shapeId: 'component_${(componentIndex + 1).toString().padLeft(3, '0')}',
-    vertices: simplified.map(
-      (point) =>
-          TerrainSourceVertexDef(xHalfPixels: point.x, yHalfPixels: point.y),
-    ),
-  );
-  final review = TerrainSourceCoreAdapter.review(
-    shape: provisional,
-    sourcePath: sourcePath,
-    chunkIndex: 0,
-    chunkKey: 'legacy_prefab_migration',
-    requireCanonical: false,
-  );
-  if (review.hasBlockingDiagnostics || review.canonicalVertices == null) {
-    for (final diagnostic in review.diagnostics) {
-      issues.add(
-        LegacyPrefabColliderUnionIssue(
-          sourcePath: sourcePath,
-          elementIndex: diagnostic.elementIndex,
-          code: 'legacy_core_${diagnostic.code}',
-          message: diagnostic.message,
-        ),
-      );
-    }
-    return null;
-  }
-  return TerrainSourceCoreAdapter.applyCanonicalVertices(
-    provisional,
-    review,
-  ).vertices;
+  return simplified
+      .map(
+        (point) =>
+            TerrainSourceVertexDef(xHalfPixels: point.x, yHalfPixels: point.y),
+      )
+      .toList(growable: false);
 }
 
 List<_GridPoint> _removeCollinear(List<_GridPoint> vertices) {

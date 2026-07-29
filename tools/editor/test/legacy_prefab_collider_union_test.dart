@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:runner_editor/src/prefabs/migration/legacy_prefab_collider_union.dart';
+import 'package:runner_editor/src/prefabs/migration/reviewed_legacy_prefab_collision_reauthorings.dart';
 import 'package:runner_editor/src/prefabs/models/models.dart';
 import 'package:runner_editor/src/prefabs/store/prefab_store.dart';
 import 'package:runner_editor/src/terrain_authoring/terrain_source_models.dart';
@@ -18,6 +19,9 @@ void main() {
 
     expect(result.canMigrate, isTrue);
     expect(result.occupiedAreaHalfPixelSquared, BigInt.from(60));
+    expect(result.plannedAreaHalfPixelSquared, BigInt.from(60));
+    expect(result.areaDeltaHalfPixelSquared, BigInt.zero);
+    expect(result.isReauthored, isFalse);
     expect(result.shapes.single.shapeId, 'collision_001');
     expect(_vertices(result.shapes.single), const <(int, int)>[
       (-3, -5),
@@ -213,6 +217,100 @@ void main() {
           'Every source edge must be at least one world unit long.',
       'ruin_stone_00: legacy_core_minimum_edge_length '
           'Every source edge must be at least one world unit long.',
+    ]);
+  });
+
+  test('reviewed corrections resolve all repository prefab blockers', () async {
+    final data = await const PrefabStore().load(_repoRootPath());
+    var collisionBearingPrefabs = 0;
+    var automaticallyMigratedPrefabs = 0;
+    var outputShapes = 0;
+    final appliedAreaDeltas = <String, BigInt>{};
+    final correctedVertices = <String, List<(int, int)>>{};
+    final blockers = <String>[];
+
+    for (final prefab in data.prefabs) {
+      final reauthoring =
+          ReviewedLegacyPrefabCollisionReauthorings.forPrefabKey(
+            prefab.prefabKey,
+          );
+      final result = LegacyPrefabColliderUnion.plan(
+        sourcePath: '${PrefabStore.prefabDefsPath}:${prefab.prefabKey}',
+        colliders: prefab.colliders,
+        reviewedReauthoring: reauthoring,
+      );
+      blockers.addAll(
+        result.issues.map(
+          (issue) => '${prefab.prefabKey}: ${issue.code} ${issue.message}',
+        ),
+      );
+      if (prefab.colliders.isNotEmpty) {
+        collisionBearingPrefabs += 1;
+        if (result.canMigrate) automaticallyMigratedPrefabs += 1;
+      }
+      outputShapes += result.shapes.length;
+      if (result.isReauthored) {
+        appliedAreaDeltas[prefab.prefabKey] = result.areaDeltaHalfPixelSquared;
+        correctedVertices[prefab.prefabKey] = _vertices(result.shapes.single);
+      }
+    }
+
+    expect(blockers, isEmpty);
+    expect(collisionBearingPrefabs, 70);
+    expect(automaticallyMigratedPrefabs, 70);
+    expect(outputShapes, 88);
+    expect(appliedAreaDeltas, <String, BigInt>{
+      'dark_menhir_01': BigInt.from(34),
+      'dark_menhir_03': BigInt.from(25),
+      'ruin_stone_00': BigInt.from(36),
+    });
+    expect(correctedVertices, <String, List<(int, int)>>{
+      'dark_menhir_01': <(int, int)>[
+        (-33, -137),
+        (4, -137),
+        (4, -103),
+        (37, -103),
+        (37, -1),
+        (-33, -1),
+      ],
+      'dark_menhir_03': <(int, int)>[
+        (-35, -71),
+        (11, -71),
+        (11, -50),
+        (36, -50),
+        (36, 3),
+        (-35, 3),
+      ],
+      'ruin_stone_00': <(int, int)>[
+        (-20, -253),
+        (-1, -253),
+        (-1, -217),
+        (8, -217),
+        (8, -3),
+        (-20, -3),
+      ],
+    });
+  });
+
+  test('reviewed correction blocks when its legacy collider source drifts', () {
+    final reauthoring = ReviewedLegacyPrefabCollisionReauthorings.forPrefabKey(
+      'dark_menhir_01',
+    )!;
+    final drifted = <PrefabColliderDef>[
+      reauthoring.expectedColliders.first.copyWith(width: 20),
+      reauthoring.expectedColliders.last,
+    ];
+
+    final result = LegacyPrefabColliderUnion.plan(
+      sourcePath: 'test/reauthoring_drift',
+      colliders: drifted,
+      reviewedReauthoring: reauthoring,
+    );
+
+    expect(result.canMigrate, isFalse);
+    expect(result.shapes, isEmpty);
+    expect(result.issues.map((issue) => issue.code), <String>[
+      'legacy_reauthoring_source_drift',
     ]);
   });
 }
