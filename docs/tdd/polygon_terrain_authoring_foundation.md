@@ -28,7 +28,8 @@ The active schema migration, generator, preview, and cutover work remains in
 | Editor-to-Core conversion | editor `TerrainSourceCoreAdapter` | pure-Dart authoring tests; prefab/chunk UI integration is pending |
 | Legacy prefab occupied-area union and reviewed corrections | editor prefab migration domain | aggregate check plan; removal follows verified prefab v3 write |
 | Legacy flat-ground/gap conversion | editor chunk migration domain | aggregate check plan; removal follows verified chunk v2 write |
-| Cross-domain canonical migration report | editor migration domain | read-only tests; strict parser, CLI, fingerprints, and writes remain pending |
+| Cross-domain canonical migration report | editor migration domain | read-only tests; strict legacy parser, CLI, fingerprints, and writes remain pending |
+| Isolated prefab-v3/chunk-v2 target structures | editor migration domain | strict canonical codecs and complete-repository round-trip; normal stores do not consume them yet |
 
 Core has no dependency on editor models, JSON, widgets, or filesystem state.
 The editor depends on Core through a one-way local package dependency and does
@@ -143,9 +144,31 @@ report. The current report contains 99 prefabs, 88 prefab shapes, 8 chunks, and
 `f2a9c639`.
 
 This report is not yet a write authorization. Strict legacy schema parsing,
-source fingerprints, target prefab v3/chunk v2 codecs, revision/generated
-impact decisions, CLI exit behavior, and the multi-file transaction remain
-separate gates. Normal source and runtime behavior are unchanged.
+source fingerprints, revision/generated-impact decisions, CLI exit behavior,
+and the multi-file transaction remain separate gates. Normal source and runtime
+behavior are unchanged.
+
+## Isolated Polygon Target Schemas
+
+`PrefabV3TargetDocument` and `ChunkV2TargetDocument` define the intended output
+shape without changing the normal editor models. Prefab v3 replaces only the
+legacy `colliders` field with anchor-relative `collisionShapes`; chunk v2
+replaces only `groundProfile`/`groundGaps` with direct chunk-local
+`collisionShapes`. Existing identity, revision, lifecycle, visual source,
+dimensions, composition, placement, marker, tag, and ground-band metadata is
+preserved.
+
+`PolygonAuthoringTargetCodec` is intentionally stricter than the current
+compatibility stores. It requires the exact target version and field set,
+canonical list/ID/tag ordering, exact integer fields, half-pixel coordinates,
+known enums, and accepted placement-scale steps. It rejects unknown and legacy
+fields rather than defaulting them. Geometry/topology acceptance remains
+Core-owned and is not duplicated in the structural codec.
+
+All planned current repository output—99 prefab records and 8 chunk files—has
+been encoded, decoded strictly, and re-encoded byte-for-byte in tests. The
+target types remain migration staging: normal `PrefabStore`, `ChunkStore`, UI,
+generator, source JSON, and runtime authority still use their existing paths.
 
 ## Determinism And Validation Evidence
 

@@ -310,10 +310,12 @@ The v3 source shape is:
 }
 ```
 
-- [ ] Add prefab schema v3 and make canonical writes target v3.
+- [x] Add an isolated prefab-v3 target document and strict canonical codec.
+- [ ] Make normal canonical prefab writes target v3 at the single source
+      cutover.
 - [ ] Replace `PrefabDef.colliders` with `collisionShapes` in normal models.
-- [ ] Keep coordinates relative to the existing prefab anchor.
-- [ ] Preserve prefab key, human ID, status, kind, visual source, anchor, tags,
+- [x] Keep staged polygon coordinates relative to the existing prefab anchor.
+- [x] Preserve prefab key, human ID, status, kind, visual source, anchor, tags,
       and revision semantics.
 - [ ] Require at least one collision shape for colliding obstacle/platform
       contracts; decoration behavior stays unchanged.
@@ -356,20 +358,22 @@ Chunk v2 replaces `groundProfile` and `groundGaps` with direct chunk-local
 }
 ```
 
-- [ ] Add chunk schema v2 and make canonical writes target v2.
+- [x] Add an isolated chunk-v2 target document and strict canonical codec.
+- [ ] Make normal canonical chunk writes target v2 at the single source
+      cutover.
 - [ ] Remove `GroundProfileDef` and `GroundGapDef` from normal v2 models.
 - [ ] Remove ground-profile/gap plugin commands, inspector forms, and tests once
       polygon replacements cover them.
-- [ ] Add chunk-local `collisionShapes` with stable IDs.
-- [ ] Preserve chunk key, ID, revision, status, level, tile/grid metadata,
+- [x] Add staged chunk-local `collisionShapes` with stable IDs.
+- [x] Preserve chunk key, ID, revision, status, level, tile/grid metadata,
       assembly group, tags, visual layers, prefab placements, and markers.
-- [ ] Retain `groundBandZIndex` only as visual composition metadata until
+- [x] Retain `groundBandZIndex` only as visual composition metadata until
       Phase 5 replaces the ground rendering path.
-- [ ] Do not force direct polygons to `runtimeGroundTopY`; that field remains a
+- [x] Do not force direct polygons to `runtimeGroundTopY`; that field remains a
       legacy level/default bridge only.
 - [ ] Require every direct and transformed prefab vertex to stay inside closed
       chunk bounds after the one quantization step.
-- [ ] Do not permit per-placement collision-shape overrides.
+- [x] Do not permit per-placement collision-shape overrides in chunk v2.
 - [ ] Bump chunk revision only when chunk-owned canonical source changes;
       changing a referenced prefab bumps the prefab revision/output, not every
       referencing chunk source revision.
@@ -811,7 +815,9 @@ Models/codecs:
 
 - [x] exact integer/half-pixel JSON parsing/rendering
 - [x] malformed/nonfinite/off-grid numeric rejection
-- [ ] schema version and legacy migration-required behavior
+- [x] staged v3/v2 schema versions, canonical round-trip, and strict legacy
+      field rejection
+- [ ] normal-store `migration_required` behavior after source cutover
 - [x] stable shape IDs/list order/equality/copy behavior
 - [x] canonical winding/start and explicit normalization
 
@@ -936,6 +942,7 @@ result.
 | 2026-07-29 / `49247e45` | Reviewed prefab collision corrections | Flutter test VM on Windows | Editor analysis clean; 10 focused planner tests and all 209 editor tests pass. Exact source guards and approved positive area deltas resolve the three minimum-edge records; all 70 collision prefabs / 88 loops pass Core with no authored-source or runtime writes. |
 | 2026-07-29 / `a8eff1e5` | Read-only legacy chunk ground planner | Flutter test VM on Windows | Editor analysis clean and all 217 editor tests pass, including 8 chunk migration tests. Zero/one/multiple/adjacent/full-width pits, invalid bounds/types, nested overlaps, exact area, and current-repository output are covered; 8 chunks produce 9 Core-valid ground shapes. |
 | 2026-07-29 / `e1fa53f1` | Aggregate polygon-authoring check plan and canonical report | Flutter test VM on Windows | Editor analysis clean and all 220 editor tests pass. The complete current plan reports 99 prefabs, 70 collision prefabs, 88 prefab shapes, 8 chunks, 1 legacy gap, 9 ground shapes, 3 reviewed corrections, and 0 blockers. Report fingerprint is `f2a9c639`; input reversal and host path separators do not change it. No CLI, schema, source, or runtime write path is enabled. |
+| 2026-07-29 / `0a7d8a40` | Isolated prefab-v3 and chunk-v2 target documents/codecs | Flutter test VM on Windows | Editor analysis clean; 5 focused target-codec tests and all 225 editor tests pass. The complete 99-prefab/8-chunk planned output strictly round-trips. Legacy versions/fields, unknown fields, noncanonical order, off-grid coordinates, off-step scales, and wrong numeric types reject. Normal stores, source files, and runtime authority remain unchanged. |
 
 ### 28.1 Baseline Environment And Source Identity
 
