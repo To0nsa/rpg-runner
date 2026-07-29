@@ -1,6 +1,7 @@
 import '../chunks/chunk_domain_models.dart';
 import '../prefabs/models/models.dart';
 import '../prefabs/store/prefab_determinism.dart';
+import '../workspace/workspace_file_io.dart';
 import 'polygon_authoring_metadata_codec.dart';
 import 'strict_migration_json.dart';
 
@@ -8,11 +9,13 @@ import 'strict_migration_json.dart';
 final class LegacyPrefabMigrationDocument {
   const LegacyPrefabMigrationDocument({
     required this.sourceSchemaVersion,
+    required this.sourceSha256,
     required this.slices,
     required this.prefabs,
   });
 
   final int sourceSchemaVersion;
+  final String sourceSha256;
   final List<AtlasSliceDef> slices;
   final List<PrefabDef> prefabs;
 
@@ -22,6 +25,17 @@ final class LegacyPrefabMigrationDocument {
     prefabSlices: slices,
     prefabs: prefabs,
   );
+}
+
+/// Strictly parsed legacy chunk input bound to its exact source text.
+final class LegacyChunkMigrationDocument {
+  const LegacyChunkMigrationDocument({
+    required this.sourceSha256,
+    required this.chunk,
+  });
+
+  final String sourceSha256;
+  final LevelChunkDef chunk;
 }
 
 /// Read-only, fail-closed parser for source schemas consumed by cutover.
@@ -87,13 +101,14 @@ abstract final class PolygonAuthoringLegacyCodec {
     }
     return LegacyPrefabMigrationDocument(
       sourceSchemaVersion: schemaVersion,
+      sourceSha256: WorkspaceFileIo.sha256Digest(raw),
       slices: List<AtlasSliceDef>.unmodifiable(slices),
       prefabs: List<PrefabDef>.unmodifiable(prefabs),
     );
   }
 
   /// Parses one chunk-v1 source file without applying runtime authority.
-  static LevelChunkDef decodeChunkV1(
+  static LegacyChunkMigrationDocument decodeChunkV1(
     String raw, {
     String sourcePath = 'chunk.json',
   }) {
@@ -213,7 +228,7 @@ abstract final class PolygonAuthoringLegacyCodec {
       sourcePath: '$sourcePath.groundGaps.gapId',
       caseInsensitive: true,
     );
-    return LevelChunkDef(
+    final chunk = LevelChunkDef(
       schemaVersion: chunkSchemaVersion,
       chunkKey: chunkKey,
       id: StrictMigrationJson.nonEmptyString(
@@ -267,6 +282,10 @@ abstract final class PolygonAuthoringLegacyCodec {
             )
           : 0,
       groundGaps: List<GroundGapDef>.unmodifiable(groundGaps),
+    );
+    return LegacyChunkMigrationDocument(
+      sourceSha256: WorkspaceFileIo.sha256Digest(raw),
+      chunk: chunk,
     );
   }
 }

@@ -12,6 +12,7 @@ import 'package:runner_editor/src/prefabs/models/models.dart';
 import 'package:runner_editor/src/prefabs/store/prefab_store.dart';
 import 'package:runner_editor/src/terrain_authoring/terrain_source_models.dart';
 import 'package:runner_editor/src/workspace/editor_workspace.dart';
+import 'package:runner_editor/src/workspace/workspace_file_io.dart';
 
 void main() {
   test('prefab v3 canonical round-trip preserves polygon source', () {
@@ -241,10 +242,23 @@ void main() {
     final plan = PolygonAuthoringMigrationPlan.build(
       prefabData: prefabData,
       prefabSourcePath: PrefabStore.prefabDefsPath,
+      prefabSourceSha256: WorkspaceFileIo.sha256Digest(
+        File(
+          p.join(root, p.normalize(PrefabStore.prefabDefsPath)),
+        ).readAsStringSync(),
+      ),
       chunks: chunkDocument.chunks,
       chunkSourcePathByKey: <String, String>{
         for (final entry in chunkDocument.baselineByChunkKey.entries)
           entry.key: entry.value.sourcePath,
+      },
+      chunkSourceSha256ByKey: <String, String>{
+        for (final entry in chunkDocument.baselineByChunkKey.entries)
+          entry.key: WorkspaceFileIo.sha256Digest(
+            File(
+              p.join(root, p.normalize(entry.value.sourcePath)),
+            ).readAsStringSync(),
+          ),
       },
     );
     expect(plan.hasBlockers, isFalse);

@@ -53,6 +53,41 @@ final class PolygonAuthoringMigrationIssue
   }
 }
 
+/// Exact legacy source signature captured by one migration check plan.
+final class PolygonAuthoringMigrationSourceFile
+    implements Comparable<PolygonAuthoringMigrationSourceFile> {
+  const PolygonAuthoringMigrationSourceFile({
+    required this.sourceKind,
+    required this.ownerKey,
+    required this.sourcePath,
+    required this.sha256,
+  });
+
+  /// Either `prefabs` or `chunk`; serialized for human-readable review.
+  final String sourceKind;
+  final String ownerKey;
+  final String sourcePath;
+
+  /// SHA-256 of the exact UTF-8 legacy source text used to build the plan.
+  final String sha256;
+
+  Map<String, Object> toJson() => <String, Object>{
+    'sourceKind': sourceKind,
+    'ownerKey': ownerKey,
+    'sourcePath': sourcePath,
+    'sha256': sha256,
+  };
+
+  @override
+  int compareTo(PolygonAuthoringMigrationSourceFile other) {
+    var order = sourcePath.compareTo(other.sourcePath);
+    if (order != 0) return order;
+    order = sourceKind.compareTo(other.sourceKind);
+    if (order != 0) return order;
+    return ownerKey.compareTo(other.ownerKey);
+  }
+}
+
 /// Planned canonical polygon source for one legacy prefab record.
 final class PrefabPolygonMigrationEntry {
   PrefabPolygonMigrationEntry({
@@ -165,21 +200,25 @@ final class PolygonAuthoringMigrationSummary {
 ///
 /// Input order and host path separators do not affect the canonical report.
 /// The plan performs no filesystem I/O and never implies that schema writes are
-/// ready; target codecs, source fingerprints, and write transactions are later
-/// gates.
+/// ready; write transactions and post-write validation remain later gates.
 final class PolygonAuthoringMigrationPlan {
   PolygonAuthoringMigrationPlan._({
+    required Iterable<PolygonAuthoringMigrationSourceFile> sourceFiles,
     required Iterable<PrefabPolygonMigrationEntry> prefabs,
     required Iterable<ChunkGroundPolygonMigrationEntry> chunks,
     required Iterable<PolygonAuthoringMigrationIssue> issues,
     required this.summary,
-  }) : prefabs = List<PrefabPolygonMigrationEntry>.unmodifiable(prefabs),
+  }) : sourceFiles = List<PolygonAuthoringMigrationSourceFile>.unmodifiable(
+         sourceFiles,
+       ),
+       prefabs = List<PrefabPolygonMigrationEntry>.unmodifiable(prefabs),
        chunks = List<ChunkGroundPolygonMigrationEntry>.unmodifiable(chunks),
        issues = List<PolygonAuthoringMigrationIssue>.unmodifiable(issues);
 
   /// Version of the deterministic check-report structure, not source schemas.
-  static const int reportVersion = 1;
+  static const int reportVersion = 2;
 
+  final List<PolygonAuthoringMigrationSourceFile> sourceFiles;
   final List<PrefabPolygonMigrationEntry> prefabs;
   final List<ChunkGroundPolygonMigrationEntry> chunks;
   final List<PolygonAuthoringMigrationIssue> issues;
@@ -192,12 +231,29 @@ final class PolygonAuthoringMigrationPlan {
   factory PolygonAuthoringMigrationPlan.build({
     required PrefabData prefabData,
     required String prefabSourcePath,
+    required String prefabSourceSha256,
     required Iterable<LevelChunkDef> chunks,
     required Map<String, String> chunkSourcePathByKey,
+    required Map<String, String> chunkSourceSha256ByKey,
   }) {
     final issues = <PolygonAuthoringMigrationIssue>[];
+    final sourceFiles = <PolygonAuthoringMigrationSourceFile>[];
     final prefabEntries = <PrefabPolygonMigrationEntry>[];
     final canonicalPrefabSourcePath = _canonicalPath(prefabSourcePath);
+    sourceFiles.add(
+      PolygonAuthoringMigrationSourceFile(
+        sourceKind: 'prefabs',
+        ownerKey: 'prefab_defs',
+        sourcePath: canonicalPrefabSourcePath,
+        sha256: prefabSourceSha256,
+      ),
+    );
+    _validateSourceSha256(
+      prefabSourceSha256,
+      sourcePath: canonicalPrefabSourcePath,
+      ownerKey: 'prefab_defs',
+      issues: issues,
+    );
     final prefabsByKey = _uniquePrefabsByKey(
       prefabData.prefabs,
       sourcePath: canonicalPrefabSourcePath,
@@ -269,6 +325,21 @@ final class PolygonAuthoringMigrationPlan {
           ),
         );
       }
+      final sourceSha256 = chunkSourceSha256ByKey[chunkKey] ?? '';
+      sourceFiles.add(
+        PolygonAuthoringMigrationSourceFile(
+          sourceKind: 'chunk',
+          ownerKey: chunkKey,
+          sourcePath: sourcePath,
+          sha256: sourceSha256,
+        ),
+      );
+      _validateSourceSha256(
+        sourceSha256,
+        sourcePath: sourcePath,
+        ownerKey: chunkKey,
+        issues: issues,
+      );
       final result = LegacyChunkGroundMigration.plan(
         chunk: chunk,
         sourcePath: sourcePath,
@@ -299,6 +370,22 @@ final class PolygonAuthoringMigrationPlan {
       (left, right) => left.prefabKey.compareTo(right.prefabKey),
     );
     chunkEntries.sort((left, right) => left.chunkKey.compareTo(right.chunkKey));
+    sourceFiles.sort();
+    for (var index = 1; index < sourceFiles.length; index += 1) {
+      final previous = sourceFiles[index - 1];
+      final current = sourceFiles[index];
+      if (previous.sourcePath == current.sourcePath) {
+        issues.add(
+          PolygonAuthoringMigrationIssue(
+            sourcePath: current.sourcePath,
+            ownerKey: current.ownerKey,
+            elementIndex: 0,
+            code: 'migration_source_path_duplicate',
+            message: 'Migration source paths must identify one file each.',
+          ),
+        );
+      }
+    }
     issues.sort();
     final summary = PolygonAuthoringMigrationSummary(
       prefabCount: prefabEntries.length,
@@ -333,6 +420,7 @@ final class PolygonAuthoringMigrationPlan {
       blockerCount: issues.length,
     );
     return PolygonAuthoringMigrationPlan._(
+      sourceFiles: sourceFiles,
       prefabs: prefabEntries,
       chunks: chunkEntries,
       issues: issues,
@@ -340,11 +428,69 @@ final class PolygonAuthoringMigrationPlan {
     );
   }
 
+  /// Compares current source signatures with the exact files behind this plan.
+  ///
+  /// Callers compute SHA-256 values from freshly read source text immediately
+  /// before any write. Missing, changed, or ambiguously addressed paths fail
+  /// closed; extra paths outside this plan are ignored.
+  List<PolygonAuthoringMigrationIssue> auditSourceDigests(
+    Map<String, String> currentSha256BySourcePath,
+  ) {
+    final currentByCanonicalPath = <String, Set<String>>{};
+    for (final entry in currentSha256BySourcePath.entries) {
+      currentByCanonicalPath
+          .putIfAbsent(_canonicalPath(entry.key), () => <String>{})
+          .add(entry.value);
+    }
+    final driftIssues = <PolygonAuthoringMigrationIssue>[];
+    for (final source in sourceFiles) {
+      final current = currentByCanonicalPath[source.sourcePath];
+      if (current == null || current.isEmpty) {
+        driftIssues.add(
+          PolygonAuthoringMigrationIssue(
+            sourcePath: source.sourcePath,
+            ownerKey: source.ownerKey,
+            elementIndex: 0,
+            code: 'migration_source_missing',
+            message: 'Migration source no longer exists at its reviewed path.',
+          ),
+        );
+      } else if (current.length != 1) {
+        driftIssues.add(
+          PolygonAuthoringMigrationIssue(
+            sourcePath: source.sourcePath,
+            ownerKey: source.ownerKey,
+            elementIndex: 0,
+            code: 'migration_source_path_ambiguous',
+            message:
+                'Multiple current files resolve to the reviewed source path.',
+          ),
+        );
+      } else if (current.single != source.sha256) {
+        driftIssues.add(
+          PolygonAuthoringMigrationIssue(
+            sourcePath: source.sourcePath,
+            ownerKey: source.ownerKey,
+            elementIndex: 0,
+            code: 'migration_source_drift',
+            message:
+                'Migration source SHA-256 changed after the plan was built.',
+          ),
+        );
+      }
+    }
+    driftIssues.sort();
+    return List<PolygonAuthoringMigrationIssue>.unmodifiable(driftIssues);
+  }
+
   /// Emits stable, reviewable JSON with exact areas encoded as decimal strings.
   String toCanonicalJson() {
     final report = <String, Object>{
       'reportVersion': reportVersion,
       'mode': 'check',
+      'sourceFiles': sourceFiles
+          .map((source) => source.toJson())
+          .toList(growable: false),
       'summary': summary.toJson(),
       'prefabs': prefabs.map((entry) => entry.toJson()).toList(growable: false),
       'chunks': chunks.map((entry) => entry.toJson()).toList(growable: false),
@@ -385,6 +531,35 @@ Map<String, PrefabDef> _uniquePrefabsByKey(
     }
   }
   return unique;
+}
+
+void _validateSourceSha256(
+  String sha256, {
+  required String sourcePath,
+  required String ownerKey,
+  required List<PolygonAuthoringMigrationIssue> issues,
+}) {
+  if (sha256.isEmpty) {
+    issues.add(
+      PolygonAuthoringMigrationIssue(
+        sourcePath: sourcePath,
+        ownerKey: ownerKey,
+        elementIndex: 0,
+        code: 'migration_source_sha256_missing',
+        message: 'Migration source requires an exact SHA-256 signature.',
+      ),
+    );
+  } else if (!RegExp(r'^[0-9a-f]{64}$').hasMatch(sha256)) {
+    issues.add(
+      PolygonAuthoringMigrationIssue(
+        sourcePath: sourcePath,
+        ownerKey: ownerKey,
+        elementIndex: 0,
+        code: 'migration_source_sha256_invalid',
+        message: 'Migration source SHA-256 must be 64 lowercase hex digits.',
+      ),
+    );
+  }
 }
 
 Map<String, LevelChunkDef> _uniqueChunksByKey(

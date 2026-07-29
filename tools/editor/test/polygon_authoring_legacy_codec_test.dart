@@ -36,15 +36,18 @@ void main() {
       final relativePath = p
           .relative(file.path, from: root)
           .replaceAll(r'\', '/');
-      final chunk = PolygonAuthoringLegacyCodec.decodeChunkV1(
+      final document = PolygonAuthoringLegacyCodec.decodeChunkV1(
         file.readAsStringSync(),
         sourcePath: relativePath,
       );
+      final chunk = document.chunk;
+      expect(document.sourceSha256, hasLength(64));
       chunks.add(chunk.chunkKey);
       gapCount += chunk.groundGaps.length;
     }
 
     expect(prefabDocument.sourceSchemaVersion, 2);
+    expect(prefabDocument.sourceSha256, hasLength(64));
     expect(prefabDocument.prefabs, hasLength(99));
     expect(prefabDocument.prefabData.prefabs, same(prefabDocument.prefabs));
     expect(chunks, hasLength(8));

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
 
 import 'editor_workspace.dart';
@@ -33,6 +34,14 @@ final class WorkspaceFileIo {
     }
     return hash.toRadixString(16).padLeft(8, '0');
   }
+
+  /// Returns a SHA-256 digest of the exact UTF-8 source text.
+  ///
+  /// Migration plans use this stronger signature for review and pre-write
+  /// drift checks; the shorter [fingerprint] remains the normal editor-store
+  /// optimistic-concurrency token for compatibility.
+  static String sha256Digest(String input) =>
+      sha256.convert(utf8.encode(input)).toString();
 
   static void atomicWrite(File targetFile, String content) {
     final parent = targetFile.parent;
