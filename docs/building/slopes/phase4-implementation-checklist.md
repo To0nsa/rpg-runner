@@ -1,7 +1,7 @@
 # Slopes Phase 4 - Polygon Authoring, Migration, And Generation Checklist
 
 - Created: July 28, 2026
-- Status: Ready for implementation; no Phase 4 source/schema cutover has begun
+- Status: Implementation in progress; no Phase 4 source/schema cutover has begun
 - Source plan: [plan.md](plan.md)
 - Frozen gameplay decisions:
   [phase0-gameplay-decisions.md](phase0-gameplay-decisions.md)
@@ -249,31 +249,31 @@ generic geometry framework or duplicate the accepted terrain compiler.
 
 ## 9) Canonicalization And Exact Predicates
 
-- [ ] Keep authoritative geometry predicates in Core. Expose a narrow
+- [x] Keep authoritative geometry predicates in Core. Expose a narrow
       pure-Dart validation/normalization result where the accepted compiler's
       current private helpers are needed by editor quick fixes.
 - [ ] Limit editor-owned preflight to schema/identity/draft-state checks and
       translate Core geometry diagnostics instead of reimplementing them.
-- [ ] Implement signed doubled area entirely in integer half-pixel space.
-- [ ] Enforce clockwise winding in Y-down coordinates.
-- [ ] Rotate the loop to the lexicographically smallest complete cyclic
+- [x] Implement signed doubled area entirely in integer half-pixel space.
+- [x] Enforce clockwise winding in Y-down coordinates.
+- [x] Rotate the loop to the lexicographically smallest complete cyclic
       sequence.
-- [ ] Reject a repeated closing vertex and consecutive duplicates.
-- [ ] Reject fewer than three distinct vertices and zero area.
-- [ ] Reject edges shorter than two half-pixel ticks (`1 px`).
-- [ ] Reject area smaller than four half-pixel square units (`1 px²`).
-- [ ] Detect non-adjacent edge intersection, collinear overlap, and point-only
+- [x] Reject a repeated closing vertex and consecutive duplicates.
+- [x] Reject fewer than three distinct vertices and zero area.
+- [x] Reject edges shorter than two half-pixel ticks (`1 px`).
+- [x] Reject area smaller than four half-pixel square units (`1 px²`).
+- [x] Detect non-adjacent edge intersection, collinear overlap, and point-only
       self-contact exactly.
 - [ ] Detect positive-area shape overlap while permitting exact shared
       boundaries.
-- [ ] Treat collinear middle vertices as a normalization diagnostic.
+- [x] Treat collinear middle vertices as a normalization diagnostic.
 - [ ] Provide an explicit undoable Normalize action that can remove collinear
       middle vertices.
 - [ ] Never remove vertices silently during load or save.
 - [ ] New/edit commits may rotate/reverse an otherwise unchanged valid loop to
       canonical winding/start, but load-time noncanonical source must surface a
       stable quick-fix diagnostic rather than rewrite on export.
-- [ ] Sort diagnostics by source path, shape ID, edge/vertex index, then code.
+- [x] Sort diagnostics by source path, shape ID, edge/vertex index, then code.
 
 Test every predicate with negative coordinates, half pixels, shared endpoints,
 shared full edges, concave loops, reversed/rotated loops, and near-limit values.
@@ -436,9 +436,9 @@ pass. Do not truncate shapes, vertices, edges, or diagnostics at a hard limit.
 
 ## 14) Core Compiler Adapter And Preview Authority
 
-- [ ] Add a local path dependency from the editor to pure-Dart `runner_core` or
+- [x] Add a local path dependency from the editor to pure-Dart `runner_core` or
       another existing non-cyclic access path; Core must not depend on editor.
-- [ ] Adapt valid source shapes to `TerrainPolygonInput` with exact identity and
+- [x] Adapt valid source shapes to `TerrainPolygonInput` with exact identity and
       integer coordinates.
 - [ ] Use `TerrainCompiler` for normalization/edge exposure diagnostics in
       preview and final validation.
@@ -803,11 +803,11 @@ counts, allocation/buffer evidence where available, and every gate result.
 
 Models/codecs:
 
-- [ ] exact integer/half-pixel JSON parsing/rendering
-- [ ] malformed/nonfinite/off-grid numeric rejection
+- [x] exact integer/half-pixel JSON parsing/rendering
+- [x] malformed/nonfinite/off-grid numeric rejection
 - [ ] schema version and legacy migration-required behavior
-- [ ] stable shape IDs/list order/equality/copy behavior
-- [ ] canonical winding/start and explicit normalization
+- [x] stable shape IDs/list order/equality/copy behavior
+- [x] canonical winding/start and explicit normalization
 
 Geometry/compiler:
 
@@ -877,7 +877,7 @@ before changing the accepted plan.
 | --- | --- | --- |
 | Current chunk selection draws from tier/group pools and authored runs, so file adjacency does not describe runtime adjacency. | Seam validation enumerates the scheduler's actual possible pair set. | Phase 5 can stitch only combinations already proven compatible without changing procedural pacing. |
 | Prefab geometry changes can affect many chunks while those chunk JSON records remain untouched. | Pending changes report downstream placement/output impact, but only the prefab revision/source changes. | Phase 5 runtime identities must include referenced prefab revision/signature without forcing mass chunk revision churn. |
-| Existing placement scales are decimal tenths; multiplying half-pixel source coordinates with binary doubles would make identity platform-sensitive. | Parse scale into an exact integer rational and quantize once after reflection/scale/translation. | Generated world geometry and validator replay receive the same physics ticks on every platform. |
+| Existing placement scales are decimal tenths; multiplying half-pixel source coordinates with binary doubles would make identity platform-sensitive. | Parse scale into an exact integer rational and quantize once after reflection/scale/translation. The initial editor-to-Core source adapter remains identity-transform-only until that primitive replaces the current double transform. | Generated world geometry and validator replay receive the same physics ticks on every platform. |
 | Phase 4 must stage polygon data while production still reads rectangles. | Source cuts over once; generation emits an unreachable staged terrain artifact and a bounded exact legacy projection for orthogonal current content. | Phase 5 removes the projection when streaming consumes staged terrain; no runtime toggle is introduced. |
 | Phase 3 moved enemy AABBs into top-level constants so legacy collision and staged capsules share one definition, but the entity editor only parsed inline collider expressions. | Resolve a directly referenced top-level `ColliderAabbDef` initializer and bind edits to that initializer; keep unresolved/indirect shapes non-writable. | Enemy authoring remains operational through the Phase 4 source migration without duplicating capsule/AABB dimensions. |
 
@@ -915,6 +915,8 @@ result.
 | --- | --- | --- | --- |
 | 2026-07-28 / `85b5b902342d94589e1b101b76b1ffdf2144405e` | Phase 4 baseline and entity-editor seam repair | Windows NT 10.0.26200.0; Dart 3.11.5; Flutter 3.41.7 stable | Baseline reproduced; editor analysis clean; 180 full editor tests plus 2 no-op characterization tests pass; generator dry-run and 17 generator tests pass. Same-revision Phase 3 evidence supplies 291 Core package tests, 432 root Core tests, and 78 validator tests. |
 | 2026-07-28 / same working revision | Shared exact polygon-source values | Dart VM on Windows | Focused analysis clean; 10/10 model/codec/order/equality tests pass. No prefab/chunk schema or authored JSON changed. |
+| 2026-07-29 / `c182a277` | Core-owned exact source canonicalization seam | Dart VM on Windows | Core analysis clean; 13 focused compiler/canonicalizer tests and all 297 Core package tests pass. Existing geometry/signature goldens are unchanged; no runtime authority or replay contract changed. |
+| 2026-07-29 / `35ea2d08` | Editor-to-Core polygon source adapter | Flutter test VM on Windows | Editor analysis clean; all 197 editor tests pass, including 4 adapter tests and 10 source-model tests. The dependency is one-way, conversion preserves exact identity/integer coordinates, and placement transforms remain pending §12. |
 
 ### 28.1 Baseline Environment And Source Identity
 
