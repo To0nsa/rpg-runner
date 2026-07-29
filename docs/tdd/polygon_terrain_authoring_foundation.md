@@ -26,6 +26,9 @@ The active schema migration, generator, preview, and cutover work remains in
 | Positive-area polygon overlap | `runner_core` `TerrainPolygonOverlap` | `TerrainCompiler`; source-loop entry point is ready for editor owner validation |
 | Exact placement and physics-grid quantization | `runner_core` `TerrainSourceTransform` | `TerrainCompiler`, Core fixtures, and editor adapter |
 | Editor-to-Core conversion | editor `TerrainSourceCoreAdapter` | pure-Dart authoring tests; prefab/chunk UI integration is pending |
+| Legacy prefab occupied-area union and reviewed corrections | editor prefab migration domain | aggregate check plan; removal follows verified prefab v3 write |
+| Legacy flat-ground/gap conversion | editor chunk migration domain | aggregate check plan; removal follows verified chunk v2 write |
+| Cross-domain canonical migration report | editor migration domain | read-only tests; strict parser, CLI, fingerprints, and writes remain pending |
 
 Core has no dependency on editor models, JSON, widgets, or filesystem state.
 The editor depends on Core through a one-way local package dependency and does
@@ -118,6 +121,31 @@ bound to the complete expected collider lists. Any source drift blocks rather
 than applying a stale correction. All 70 collision prefabs and 88 planned
 loops now pass Core. Prefab v3 writing remains pending; existing schema v2
 source and legacy runtime authority are unchanged.
+
+## Legacy Chunk Ground Planner And Aggregate Check Report
+
+The editor also owns a pure flat-ground migration primitive. It validates
+legacy chunk dimensions, flat profile bounds, pit types/bounds, non-overlap,
+Core coordinate limits, and the per-chunk shape limit. Each positive solid span
+between gaps becomes one canonical clockwise `ground_001...` rectangle covering
+`[spanStart, spanEnd] x [topY, chunkHeight]`; a pit is represented only by
+missing coverage. Adjacent gaps create no zero-width shape, a full-width gap
+creates an empty valid ground list, and exact planned area is checked against
+Core's reviewed doubled area.
+
+The cross-domain `PolygonAuthoringMigrationPlan` combines prefab and chunk
+results without filesystem I/O. It canonicalizes path separators, rejects
+missing/duplicate stable owner keys, verifies that every reviewed correction
+still has an owner, and emits stable JSON containing exact decimal-string area
+facts plus the complete planned polygon source. Input order does not affect the
+report. The current report contains 99 prefabs, 88 prefab shapes, 8 chunks, and
+9 ground shapes with zero blockers; its check-report fingerprint is
+`f2a9c639`.
+
+This report is not yet a write authorization. Strict legacy schema parsing,
+source fingerprints, target prefab v3/chunk v2 codecs, revision/generated
+impact decisions, CLI exit behavior, and the multi-file transaction remain
+separate gates. Normal source and runtime behavior are unchanged.
 
 ## Determinism And Validation Evidence
 

@@ -485,16 +485,18 @@ dart run tool/migrate_polygon_authoring.dart --write `
       unsupported topology.
 - [x] Derive `collision_001...` IDs from canonical component order and preserve
       them on repeated runs.
-- [ ] Convert flat chunk ground into finite `[0,width] x [topY,height]`
+- [x] Convert flat chunk ground into finite `[0,width] x [topY,height]`
       coverage minus pit intervals.
-- [ ] Derive `ground_001...` IDs left-to-right/canonical order.
+- [x] Derive `ground_001...` IDs left-to-right/canonical order.
 - [x] Preserve occupied area exactly for automatic unions; require an explicit
       reviewed delta and exact source guard for any approved reauthoring.
 - [ ] Preserve stable prefab/chunk keys and human IDs.
 - [ ] Keep revisions unchanged for representation-only equivalent migration.
-- [ ] Emit sorted automatic conversion, union, disconnected component,
-      blocker, revision, and generated-impact records.
-- [ ] Include before/after canonical source signatures and occupied-area facts.
+- [x] Emit sorted automatic conversion, union, disconnected component,
+      reviewed-reauthoring, and blocker records.
+- [ ] Extend the report with revision and generated-impact records.
+- [x] Include exact legacy/planned occupied-area facts.
+- [ ] Include before/after canonical source signatures.
 - [ ] Make `--check` exit nonzero for blockers or source already differing from
       the planned canonical output.
 - [ ] Make `--write` require a complete blocker-free plan generated from the
@@ -825,9 +827,10 @@ Migration:
 
 - [x] isolated/multi/overlapping/touching/disconnected rectangles
 - [x] hole and point-only ambiguity blockers
-- [ ] flat ground with zero/one/multiple gaps
+- [x] flat ground with zero/one/multiple gaps
 - [x] exact corrected audit counts and zero unclassified blockers
-- [ ] stable report/order/IDs/revisions across repeated checks
+- [x] stable report/order/IDs across repeated and permuted checks
+- [ ] stable revision decisions across repeated checks
 - [ ] write transaction, source-drift abort, rollback, and idempotence
 
 Stores/plugins:
@@ -931,6 +934,8 @@ result.
 | 2026-07-29 / `0e8b0f90` | Editor exact-placement adapter | Flutter test VM on Windows | Editor analysis clean and all 199 editor tests pass, including 6 source/Core adapter tests. The editor bridge accepts integer half-pixel anchor/translation and integer scale tenths; prefab/chunk UI and JSON remain unchanged. |
 | 2026-07-29 / `668cf375` | Read-only legacy prefab collider union planner | Flutter test VM on Windows | Editor analysis clean; 8 focused planner tests and all 207 editor tests pass. Exact Core revalidation accepts 67/70 collision prefabs and 85/88 candidate loops; three minimum-edge blockers are reported without source, schema, or runtime writes. |
 | 2026-07-29 / `49247e45` | Reviewed prefab collision corrections | Flutter test VM on Windows | Editor analysis clean; 10 focused planner tests and all 209 editor tests pass. Exact source guards and approved positive area deltas resolve the three minimum-edge records; all 70 collision prefabs / 88 loops pass Core with no authored-source or runtime writes. |
+| 2026-07-29 / `a8eff1e5` | Read-only legacy chunk ground planner | Flutter test VM on Windows | Editor analysis clean and all 217 editor tests pass, including 8 chunk migration tests. Zero/one/multiple/adjacent/full-width pits, invalid bounds/types, nested overlaps, exact area, and current-repository output are covered; 8 chunks produce 9 Core-valid ground shapes. |
+| 2026-07-29 / `e1fa53f1` | Aggregate polygon-authoring check plan and canonical report | Flutter test VM on Windows | Editor analysis clean and all 220 editor tests pass. The complete current plan reports 99 prefabs, 70 collision prefabs, 88 prefab shapes, 8 chunks, 1 legacy gap, 9 ground shapes, 3 reviewed corrections, and 0 blockers. Report fingerprint is `f2a9c639`; input reversal and host path separators do not change it. No CLI, schema, source, or runtime write path is enabled. |
 
 ### 28.1 Baseline Environment And Source Identity
 
