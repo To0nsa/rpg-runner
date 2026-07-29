@@ -37,6 +37,8 @@ dependencies:
   analyzer: ^8.4.0
   path: ^1.9.1
   file_selector: ^1.1.0
+  runner_core:
+    path: ../../packages/runner_core
 
 dev_dependencies:
   flutter_test:
