@@ -480,6 +480,12 @@ Pop-Location
 
 `--write` is intentionally rejected until §16 is complete.
 
+The checker classifies the repository as one generation before parsing any
+complete document. Prefab v1/v2 plus chunk v1 is the legacy conversion state;
+prefab v3 plus chunk v2 is the current no-op state. Any partial cutover or mix
+among chunk files is a stable blocker, never an invitation to convert the
+remaining files independently.
+
 - [x] Default to read-only `--check`; never infer write from a missing flag.
 - [x] Reject unknown/duplicate CLI flags and unavailable `--write` with usage
       exit code `64` and no source/report side effect.
@@ -512,9 +518,14 @@ Pop-Location
 - [x] Include after-migration canonical target SHA-256 signatures.
 - [x] Make `--check` exit `1` for source, plan, target, drift, or report-write
       blockers.
-- [ ] Decide and implement post-cutover `--check` behavior so current-schema
+- [x] Decide and implement post-cutover `--check` behavior so current-schema
       source reports zero pending migration instead of entering the legacy
       parser.
+- [x] Require current-schema source to pass strict v3/v2 decoding, exact
+      canonical-byte equality, Core-owned canonical geometry review, placement
+      reference validation, and the same fresh SHA-256 drift audit.
+- [x] Reject mixed legacy/current schema generations before returning or
+      writing a partial report.
 - [ ] Make `--write` require a complete blocker-free plan generated from the
       same source fingerprints.
 
@@ -537,7 +548,8 @@ Pop-Location
 - [x] Permit an explicit machine-readable check report only at a
       workspace-relative `.json` path outside `assets/authoring`.
 - [ ] Add the machine-readable write-transaction/rollback artifact.
-- [ ] Re-running `--check` after success must report zero pending migrations.
+- [x] Re-running `--check` after success reports nine validated targets and
+      zero pending migrations without invoking legacy conversion.
 - [ ] Re-running `--write` after success must be a no-op.
 
 The normal editor export remains document-scoped and source-drift guarded. The
@@ -861,7 +873,10 @@ Migration:
       impact records across repeated checks
 - [x] default/explicit check, report-only write, usage/blocker exit codes,
       malformed source, invalid target, and authored-path rejection
-- [ ] write transaction, source-drift abort, rollback, and idempotence
+- [x] post-cutover current-schema no-op, mixed-generation rejection,
+      canonical-byte enforcement, Core geometry re-review, and zero-pending
+      report idempotence
+- [ ] write transaction, source-drift abort, rollback, and write idempotence
 
 Stores/plugins:
 
@@ -973,6 +988,7 @@ result.
 | 2026-07-29 / `7ef9c92d` | Exact source-digest plan binding and drift audit | Flutter test VM on Windows | Editor analysis clean and all 231 editor tests pass. Report v2 contains canonical path plus SHA-256 for the prefab file and all 8 chunks, remains invariant under input reversal/path separators, and has fingerprint `cc2ed2e6`. Missing, malformed, changed, absent, and ambiguously canonicalized signatures fail closed. `crypto` was promoted from transitive to direct editor dependency; no authored JSON, normal store, CLI write, or runtime authority changed. |
 | 2026-07-29 / `c3637865` | Complete read-only repository check and in-memory targets | Flutter test VM on Windows | Focused migration analysis clean and 14 migration/check/target tests pass. The current check strictly builds 9 target files, records 107 unchanged revision decisions and 99 prefab impact records covering 50 placements, rejects unknown placement references, and reports strict target failures without source writes. Readiness report v1 fingerprint is `90fbd996`. |
 | 2026-07-29 / `15b2aa56` + `afa5c7d9` | Pure-Dart model boundary and read-only migration CLI | Dart VM and Flutter test VM on Windows | Plain `dart tool/migrate_polygon_authoring.dart --check` succeeds with 99 prefabs, 8 chunks, and 9 validated targets. Editor analysis is clean and all 241 editor tests pass; root chunk-generator dry-run still validates 8 chunks, 2 levels, and 2 themes. Six command tests cover default/explicit check, report-only output, usage and blocker exit codes, malformed source, invalid target, and authored-path protection. `--write` remains unavailable; authored JSON and runtime authority are unchanged. |
+| 2026-07-30 / `20f04846` + `65fde7f6` | Post-cutover read-only migration idempotence | Dart VM and Flutter test VM on Windows | Editor analysis is clean and all 250 editor tests pass. Legacy v1/v2+v1 still yields nine pending targets and report-v2 fingerprint `14297a48`; a fully current v3+v2 fixture yields the same 107 revision and 99 impact records covering 50 placements, nine byte-identical targets, zero pending files, and fingerprint `4116ae04`. Focused tests reject partial cutover, mixed chunk generations, malformed or byte-noncanonical current source, unsafe Core geometry, unknown prefab references, and source drift. `--write` remains unavailable; authored JSON and runtime authority are unchanged. |
 
 ### 28.1 Baseline Environment And Source Identity
 
