@@ -92,3 +92,67 @@ class PrefabScene extends EditableScene {
   final Map<String, Size> atlasImageSizes;
   final List<String> migrationHints;
 }
+
+/// Resolved whole-pixel visual bounds for one prefab-v3 collision owner.
+@immutable
+class PrefabV3VisualBounds {
+  const PrefabV3VisualBounds({required this.widthPx, required this.heightPx});
+
+  final int widthPx;
+  final int heightPx;
+}
+
+/// Temporary read-only plugin document used to stage prefab-v3 commands.
+///
+/// The normal loader never selects this type while repository source is v2,
+/// and export rejects changed instances. At the single schema cutover it
+/// replaces [PrefabDocument] rather than remaining as a parallel authority.
+@immutable
+class PrefabV3StagingDocument extends AuthoringDocument {
+  PrefabV3StagingDocument({
+    required this.data,
+    required Map<String, PrefabV3VisualBounds> visualBoundsByPrefabKey,
+    required this.prefabBaselineContents,
+    Iterable<String> changedPrefabKeys = const <String>[],
+  }) : visualBoundsByPrefabKey = Map<String, PrefabV3VisualBounds>.unmodifiable(
+         visualBoundsByPrefabKey,
+       ),
+       changedPrefabKeys = List<String>.unmodifiable(
+         changedPrefabKeys.toSet().toList()..sort(),
+       );
+
+  final PrefabV3FileData data;
+  final Map<String, PrefabV3VisualBounds> visualBoundsByPrefabKey;
+  final String? prefabBaselineContents;
+  final List<String> changedPrefabKeys;
+
+  PrefabV3StagingDocument copyWith({
+    PrefabV3FileData? data,
+    Map<String, PrefabV3VisualBounds>? visualBoundsByPrefabKey,
+    String? prefabBaselineContents,
+    bool keepPrefabBaselineContents = true,
+    Iterable<String>? changedPrefabKeys,
+  }) => PrefabV3StagingDocument(
+    data: data ?? this.data,
+    visualBoundsByPrefabKey:
+        visualBoundsByPrefabKey ?? this.visualBoundsByPrefabKey,
+    prefabBaselineContents: keepPrefabBaselineContents
+        ? (prefabBaselineContents ?? this.prefabBaselineContents)
+        : null,
+    changedPrefabKeys: changedPrefabKeys ?? this.changedPrefabKeys,
+  );
+}
+
+/// Read-only scene projection for the staged prefab-v3 plugin document.
+@immutable
+class PrefabV3StagingScene extends EditableScene {
+  PrefabV3StagingScene({
+    required this.data,
+    required Map<String, PrefabV3VisualBounds> visualBoundsByPrefabKey,
+  }) : visualBoundsByPrefabKey = Map<String, PrefabV3VisualBounds>.unmodifiable(
+         visualBoundsByPrefabKey,
+       );
+
+  final PrefabV3FileData data;
+  final Map<String, PrefabV3VisualBounds> visualBoundsByPrefabKey;
+}

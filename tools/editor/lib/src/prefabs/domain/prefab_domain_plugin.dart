@@ -5,9 +5,12 @@ import 'dart:ui' show Size;
 import 'package:path/path.dart' as p;
 
 import '../../domain/authoring_types.dart';
+import '../../terrain_authoring/terrain_polygon_interaction.dart';
 import '../../workspace/editor_workspace.dart';
 import '../models/models.dart';
+import '../store/prefab_v3_file_codec.dart';
 import 'prefab_domain_models.dart';
+import 'prefab_v3_collision_commit.dart';
 import '../store/prefab_store.dart';
 import '../validation/prefab_validation.dart';
 
@@ -28,6 +31,9 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
 
   /// Command kind accepted by [applyEdit] for replacing full prefab data.
   static const String replacePrefabDataCommandKind = 'replace_prefab_data';
+
+  /// Staged command for one accepted shared polygon interaction commit.
+  static const String commitPrefabPolygonCommandKind = 'commit_prefab_polygon';
 
   /// Workspace-relative root scanned for atlas images used by slices.
   static const String _levelAssetsPath = 'assets/images/level';
@@ -91,27 +97,25 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
 
   @override
   List<ValidationIssue> validate(AuthoringDocument document) {
+    if (document is PrefabV3StagingDocument) {
+      return _validateV3Document(document);
+    }
     final prefabDocument = _asPrefabDocument(document);
     final issues = validatePrefabDataIssues(
       data: prefabDocument.data,
       atlasImageSizes: prefabDocument.atlasImageSizes,
     );
-    return issues
-        .map(
-          (issue) => ValidationIssue(
-            severity: switch (issue.severity) {
-              PrefabValidationSeverity.warning => ValidationSeverity.warning,
-              PrefabValidationSeverity.error => ValidationSeverity.error,
-            },
-            code: issue.code,
-            message: issue.message,
-          ),
-        )
-        .toList(growable: false);
+    return issues.map(_toValidationIssue).toList(growable: false);
   }
 
   @override
   EditableScene buildEditableScene(AuthoringDocument document) {
+    if (document is PrefabV3StagingDocument) {
+      return PrefabV3StagingScene(
+        data: document.data,
+        visualBoundsByPrefabKey: document.visualBoundsByPrefabKey,
+      );
+    }
     final prefabDocument = _asPrefabDocument(document);
     return PrefabScene(
       data: prefabDocument.data,
@@ -126,6 +130,9 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
     AuthoringDocument document,
     AuthoringCommand command,
   ) {
+    if (document is PrefabV3StagingDocument) {
+      return _applyV3Edit(document, command);
+    }
     final prefabDocument = _asPrefabDocument(document);
     if (command.kind != replacePrefabDataCommandKind) {
       return prefabDocument;
@@ -145,6 +152,25 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
     EditorWorkspace workspace, {
     required AuthoringDocument document,
   }) async {
+    if (document is PrefabV3StagingDocument) {
+      final pending = describePendingChanges(workspace, document: document);
+      if (!pending.hasChanges) {
+        return ExportResult(
+          applied: false,
+          artifacts: <ExportArtifact>[
+            const ExportArtifact(
+              title: 'prefab_summary.md',
+              content:
+                  '# Prefab Export\n\nchangedFiles: 0\n\nNo prefab-v3 edits detected.',
+            ),
+          ],
+        );
+      }
+      throw StateError(
+        'prefab_v3_source_write_disabled: prefab-v3 export remains locked '
+        'until the Phase 4 migration write gate opens.',
+      );
+    }
     final prefabDocument = _asPrefabDocument(document);
     final blockingIssues = validate(
       prefabDocument,
@@ -189,6 +215,31 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
     EditorWorkspace workspace, {
     required AuthoringDocument document,
   }) {
+    if (document is PrefabV3StagingDocument) {
+      final afterContent = PrefabV3FileCodec.encode(document.data);
+      if (document.prefabBaselineContents == afterContent) {
+        return PendingChanges.empty;
+      }
+      final relativePath = p.normalize(PrefabStore.prefabDefsPath);
+      final write = _PrefabFileWrite(
+        relativePath: relativePath,
+        beforeContent: document.prefabBaselineContents,
+        afterContent: afterContent,
+      );
+      return PendingChanges(
+        changedItemIds: document.changedPrefabKeys,
+        fileDiffs: <PendingFileDiff>[
+          PendingFileDiff(
+            relativePath: relativePath,
+            editCount: _estimateEditCount(
+              beforeContent: write.beforeContent,
+              afterContent: write.afterContent,
+            ),
+            unifiedDiff: _buildUnifiedDiff(write),
+          ),
+        ],
+      );
+    }
     final prefabDocument = _asPrefabDocument(document);
     final canonical = _store.serializeCanonicalFiles(prefabDocument.data);
 
@@ -239,6 +290,85 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
     }
     return document;
   }
+
+  AuthoringDocument _applyV3Edit(
+    PrefabV3StagingDocument document,
+    AuthoringCommand command,
+  ) {
+    if (command.kind != commitPrefabPolygonCommandKind) return document;
+    final prefabKey = command.payload['prefabKey'];
+    final commit = command.payload['commit'];
+    if (prefabKey is! String || commit is! TerrainPolygonInteractionCommit) {
+      return document;
+    }
+    final bounds = document.visualBoundsByPrefabKey[prefabKey];
+    final result = const PrefabV3CollisionCommitPolicy().apply(
+      data: document.data,
+      prefabKey: prefabKey,
+      commit: commit,
+      sourceWidthPx: bounds?.widthPx,
+      sourceHeightPx: bounds?.heightPx,
+      sourcePath: PrefabStore.prefabDefsPath,
+    );
+    if (!result.accepted || !result.changed) return document;
+    return document.copyWith(
+      data: result.data,
+      changedPrefabKeys: <String>{...document.changedPrefabKeys, prefabKey},
+    );
+  }
+
+  List<ValidationIssue> _validateV3Document(PrefabV3StagingDocument document) {
+    final issues = <ValidationIssue>[];
+    for (final prefab in document.data.prefabs) {
+      final bounds = document.visualBoundsByPrefabKey[prefab.prefabKey];
+      if (prefab.kind != PrefabKind.decoration && bounds == null) {
+        issues.add(
+          ValidationIssue(
+            severity: ValidationSeverity.error,
+            code: 'prefab_polygon_visual_bounds_unresolved',
+            message:
+                'Prefab ${prefab.id} visual bounds must resolve before '
+                'collision geometry can be committed.',
+            sourcePath: PrefabStore.prefabDefsPath,
+          ),
+        );
+        continue;
+      }
+      issues.addAll(
+        validatePrefabCollisionShapes(
+          prefabId: prefab.id,
+          prefabKey: prefab.prefabKey,
+          kind: prefab.kind,
+          anchorXPx: prefab.anchorXPx,
+          anchorYPx: prefab.anchorYPx,
+          collisionShapes: prefab.collisionShapes,
+          sourceWidthPx: bounds?.widthPx,
+          sourceHeightPx: bounds?.heightPx,
+          sourcePath: '${PrefabStore.prefabDefsPath}:${prefab.prefabKey}',
+        ).map(_toValidationIssue),
+      );
+    }
+    issues.sort((left, right) {
+      final pathOrder = (left.sourcePath ?? '').compareTo(
+        right.sourcePath ?? '',
+      );
+      if (pathOrder != 0) return pathOrder;
+      final codeOrder = left.code.compareTo(right.code);
+      return codeOrder != 0 ? codeOrder : left.message.compareTo(right.message);
+    });
+    return List<ValidationIssue>.unmodifiable(issues);
+  }
+
+  ValidationIssue _toValidationIssue(PrefabValidationIssue issue) =>
+      ValidationIssue(
+        severity: switch (issue.severity) {
+          PrefabValidationSeverity.warning => ValidationSeverity.warning,
+          PrefabValidationSeverity.error => ValidationSeverity.error,
+        },
+        code: issue.code,
+        message: issue.message,
+        sourcePath: issue.sourcePath,
+      );
 
   /// Compares semantic prefab payloads via canonical serialized output.
   bool _canonicalDataEquals(PrefabData a, PrefabData b) {
