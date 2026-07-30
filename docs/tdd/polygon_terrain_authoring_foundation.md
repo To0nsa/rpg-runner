@@ -31,9 +31,11 @@ The active schema migration, generator, preview, and cutover work remains in
 | Canvas projection and source-loop overlay | editor `TerrainPolygonViewportTransform` / `TerrainPolygonScenePainter` | shared Flutter painter tests; compiler-edge overlay and route wiring are pending |
 | Prefab polygon owner validation | editor `validatePrefabCollisionShapes` | Core compiler plus exact visual-bounds tests; normal `PrefabDef` integration is pending |
 | Immutable prefab-v3 polygon record | editor `PrefabV3Def` | migration target and model-contract tests; normal store/UI integration is pending |
-| Strict prefab-v3 file structure and canonical serialization | editor `PrefabV3FileData` / `PrefabV3FileCodec` | normal prefab layer and delegated migration checks; filesystem store integration is pending |
+| Strict prefab-v3 file structure and canonical serialization | editor `PrefabV3FileData` / `PrefabV3FileCodec` | delegated migration checks and explicit read-only store staging; normal load/save cutover is pending |
+| Retained tile-v2 structure and canonical serialization | editor `PrefabTileFileData` / `PrefabTileFileCodec` | current-source byte round-trip and explicit v3 staging load; normal load/save cutover is pending |
+| Prefab visual-source bounds | editor `PrefabVisualBoundsResolver` | existing v2 validation plus explicit v3 staging load for atlas slices and platform modules |
 | Prefab polygon commit and revision policy | editor `PrefabV3CollisionCommitPolicy` | shared reducer, defensive plugin command, and staged route-coordinator tests; normal page cutover is pending |
-| Prefab-v3 plugin command staging | editor `PrefabV3StagingDocument` / `PrefabDomainPlugin` | typed commit, immutable pending-diff, validation, and hard export-lock tests; loader/page cutover is pending |
+| Prefab-v3 plugin command staging | editor `PrefabV3StagingDocument` / `PrefabDomainPlugin` | explicit strict load, typed commit, immutable pending diff, validation, and hard export lock; normal loader/page cutover is pending |
 | Prefab polygon route-local projection | editor `PrefabPolygonAuthoringController` / `PrefabPolygonSceneSurface` | staged session, painter, pointer, focus, keyboard, rejection, and history tests; normal route selection is pending |
 | Fail-closed authored JSON and retained-metadata parsing | editor neutral domain plus `StrictTerrainSourceCodec` | legacy migration, prefab v3, and chunk-v2 target codecs |
 | Legacy prefab occupied-area union and reviewed corrections | editor prefab migration domain | aggregate check plan; removal follows verified prefab v3 write |
@@ -231,8 +233,26 @@ All planned current repository output—99 prefab records and 8 chunk files—ha
 been encoded, decoded strictly, and re-encoded byte-for-byte in tests. The
 chunk target document/codec remains migration staging. The normal prefab layer
 now owns `PrefabV3Def`, `PrefabV3FileData`, and `PrefabV3FileCodec`, but
-`PrefabStore`, `ChunkStore`, UI, generator, source JSON, and runtime authority
-still use their existing paths.
+normal `PrefabStore.loadFromRepo`/save, `ChunkStore`, UI, generator, source JSON,
+and runtime authority still use their existing paths. `PrefabStore` additionally
+exposes an explicit strict staging load that normal route selection cannot call
+accidentally.
+
+The staging load composes prefab v3 with the unchanged `tile_defs.json` v2
+contract through `PrefabTileFileData` and `PrefabTileFileCodec`; it never sends
+v3 source through rectangle-era `PrefabData` or its compatibility parser. The
+tile codec strictly checks the retained field/type/version/order contract,
+module identities, and unique cell positions, and byte-round-trips the current
+repository tile source. It performs no filesystem writes.
+
+`PrefabVisualBoundsResolver` is the single visual-rectangle rule used by both
+existing v2 validation and v3 staging. Atlas owners use authored slice width and
+height. Platform owners use an integer bounding rectangle over module cells,
+their exact grid positions, and referenced slice dimensions; negative cells
+are supported and missing references fail closed. The explicit plugin loader
+also carries workspace-scoped atlas paths/sizes and both source baselines into
+the staged document/scene. A clean staged export is a no-op and changed export
+remains hard-locked.
 
 ## Prefab Polygon Owner Validation
 
