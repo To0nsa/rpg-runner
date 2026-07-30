@@ -4,13 +4,17 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 
 import '../chunks/chunk_store.dart';
+import '../prefabs/models/models.dart';
 import '../prefabs/store/prefab_store.dart';
+import '../terrain_authoring/terrain_source_core_adapter.dart';
+import '../terrain_authoring/terrain_source_models.dart';
 import '../workspace/editor_workspace.dart';
 import '../workspace/workspace_file_io.dart';
 import 'polygon_authoring_legacy_codec.dart';
 import 'polygon_authoring_migration_plan.dart';
 import 'polygon_authoring_target_codec.dart';
 import 'polygon_authoring_target_models.dart';
+import 'strict_migration_json.dart';
 
 /// One target file validated entirely in memory by a migration check.
 final class PolygonAuthoringMigrationTargetFile {
@@ -94,19 +98,36 @@ final class PolygonAuthoringMigrationImpactRecord {
   };
 }
 
+/// Authored-source generation recognized by the read-only migration check.
+enum PolygonAuthoringMigrationSourceState {
+  legacy('legacy'),
+  current('current');
+
+  const PolygonAuthoringMigrationSourceState(this.jsonValue);
+
+  final String jsonValue;
+}
+
 /// Complete read-only migration readiness check for one repository snapshot.
 ///
-/// Construction reads legacy source, computes a blocker-aware polygon plan,
-/// builds every target file in memory, and requires strict byte-stable target
-/// round trips. It never writes authored source or changes normal stores.
+/// Legacy construction computes a blocker-aware polygon plan and builds every
+/// target in memory. Current construction strictly validates canonical source
+/// and produces byte-identical no-op targets. Mixed generations fail closed.
+/// Neither path writes authored source or changes normal stores.
 final class PolygonAuthoringMigrationCheck {
   PolygonAuthoringMigrationCheck._({
-    required this.plan,
+    required this.sourceState,
+    required this.summary,
+    required Iterable<PolygonAuthoringMigrationSourceFile> sourceFiles,
+    required this.legacyPlan,
     required Iterable<PolygonAuthoringMigrationTargetFile> targetFiles,
     required Iterable<PolygonAuthoringMigrationRevisionRecord> revisionRecords,
     required Iterable<PolygonAuthoringMigrationImpactRecord> impactRecords,
     required Iterable<PolygonAuthoringMigrationIssue> issues,
-  }) : targetFiles = List<PolygonAuthoringMigrationTargetFile>.unmodifiable(
+  }) : sourceFiles = List<PolygonAuthoringMigrationSourceFile>.unmodifiable(
+         sourceFiles,
+       ),
+       targetFiles = List<PolygonAuthoringMigrationTargetFile>.unmodifiable(
          targetFiles,
        ),
        revisionRecords =
@@ -119,9 +140,14 @@ final class PolygonAuthoringMigrationCheck {
        issues = List<PolygonAuthoringMigrationIssue>.unmodifiable(issues);
 
   /// Version of the complete readiness report, independent of source schemas.
-  static const int reportVersion = 1;
+  static const int reportVersion = 2;
 
-  final PolygonAuthoringMigrationPlan plan;
+  final PolygonAuthoringMigrationSourceState sourceState;
+  final PolygonAuthoringMigrationSummary summary;
+  final List<PolygonAuthoringMigrationSourceFile> sourceFiles;
+
+  /// Legacy conversion detail, absent after the repository reaches v3/v2.
+  final PolygonAuthoringMigrationPlan? legacyPlan;
   final List<PolygonAuthoringMigrationTargetFile> targetFiles;
   final List<PolygonAuthoringMigrationRevisionRecord> revisionRecords;
   final List<PolygonAuthoringMigrationImpactRecord> impactRecords;
@@ -130,6 +156,14 @@ final class PolygonAuthoringMigrationCheck {
   final List<PolygonAuthoringMigrationIssue> issues;
 
   bool get hasBlockers => issues.isNotEmpty;
+
+  /// Rechecks freshly read source signatures against this exact snapshot.
+  List<PolygonAuthoringMigrationIssue> auditSourceDigests(
+    Map<String, String> currentSha256BySourcePath,
+  ) => auditPolygonAuthoringSourceDigests(
+    sourceFiles: sourceFiles,
+    currentSha256BySourcePath: currentSha256BySourcePath,
+  );
 
   /// Loads the fixed prefab/chunk migration scope rooted at [workspaceRoot].
   ///
@@ -140,17 +174,20 @@ final class PolygonAuthoringMigrationCheck {
     final workspace = EditorWorkspace(rootPath: workspaceRoot);
     final prefabPath = PrefabStore.prefabDefsPath;
     final prefabRaw = _readRequiredSource(workspace, prefabPath);
-    final LegacyPrefabMigrationDocument prefabDocument;
-    try {
-      prefabDocument = PolygonAuthoringLegacyCodec.decodePrefab(
-        prefabRaw,
-        sourcePath: prefabPath,
-      );
-    } on FormatException catch (error) {
+    final prefabSchemaVersion = _readSchemaVersion(
+      prefabRaw,
+      sourcePath: prefabPath,
+      invalidCode: 'migration_prefab_source_invalid',
+    );
+    if (prefabSchemaVersion != 1 &&
+        prefabSchemaVersion != 2 &&
+        prefabSchemaVersion != polygonPrefabSchemaVersion) {
       throw PolygonAuthoringMigrationCheckException(
-        code: 'migration_prefab_source_invalid',
+        code: 'migration_prefab_schema_unsupported',
         sourcePath: prefabPath,
-        message: error.message,
+        message:
+            'Expected legacy prefab schema 1/2 or current schema '
+            '$polygonPrefabSchemaVersion, found $prefabSchemaVersion.',
       );
     }
 
@@ -161,7 +198,7 @@ final class PolygonAuthoringMigrationCheck {
       throw const PolygonAuthoringMigrationCheckException(
         code: 'migration_chunk_directory_missing',
         sourcePath: ChunkStore.chunksDirectoryPath,
-        message: 'Legacy chunk source directory does not exist.',
+        message: 'Chunk source directory does not exist.',
       );
     }
     final chunkFiles =
@@ -179,11 +216,11 @@ final class PolygonAuthoringMigrationCheck {
       throw const PolygonAuthoringMigrationCheckException(
         code: 'migration_chunk_sources_missing',
         sourcePath: ChunkStore.chunksDirectoryPath,
-        message: 'Legacy migration requires at least one chunk source file.',
+        message: 'Migration check requires at least one chunk source file.',
       );
     }
 
-    final chunkInputs = <_LegacyChunkInput>[];
+    final rawChunkInputs = <_RawChunkInput>[];
     final caseInsensitivePaths = <String, String>{};
     for (final file in chunkFiles) {
       final sourcePath = _workspacePath(workspace, file.path);
@@ -198,32 +235,101 @@ final class PolygonAuthoringMigrationCheck {
       }
       caseInsensitivePaths[pathIdentity] = sourcePath;
       final raw = _readRequiredSource(workspace, sourcePath);
+      final schemaVersion = _readSchemaVersion(
+        raw,
+        sourcePath: sourcePath,
+        invalidCode: 'migration_chunk_source_invalid',
+      );
+      if (schemaVersion != 1 && schemaVersion != polygonChunkSchemaVersion) {
+        throw PolygonAuthoringMigrationCheckException(
+          code: 'migration_chunk_schema_unsupported',
+          sourcePath: sourcePath,
+          message:
+              'Expected legacy chunk schema 1 or current schema '
+              '$polygonChunkSchemaVersion, found $schemaVersion.',
+        );
+      }
+      rawChunkInputs.add(
+        _RawChunkInput(
+          sourcePath: sourcePath,
+          raw: raw,
+          schemaVersion: schemaVersion,
+        ),
+      );
+    }
+
+    final prefabState = prefabSchemaVersion == polygonPrefabSchemaVersion
+        ? PolygonAuthoringMigrationSourceState.current
+        : PolygonAuthoringMigrationSourceState.legacy;
+    final chunkStates = rawChunkInputs
+        .map(
+          (input) => input.schemaVersion == polygonChunkSchemaVersion
+              ? PolygonAuthoringMigrationSourceState.current
+              : PolygonAuthoringMigrationSourceState.legacy,
+        )
+        .toSet();
+    if (chunkStates.length != 1 || chunkStates.single != prefabState) {
+      final chunkVersions =
+          rawChunkInputs.map((input) => input.schemaVersion).toSet().toList()
+            ..sort();
+      throw PolygonAuthoringMigrationCheckException(
+        code: 'migration_mixed_schema_generation',
+        sourcePath: ChunkStore.chunksDirectoryPath,
+        message:
+            'Prefab schema $prefabSchemaVersion and chunk schema(s) '
+            '${chunkVersions.join(', ')} must be entirely legacy or entirely '
+            'current.',
+      );
+    }
+
+    if (prefabState == PolygonAuthoringMigrationSourceState.current) {
+      return _buildCurrent(
+        prefabSourcePath: prefabPath,
+        prefabRaw: prefabRaw,
+        chunkInputs: rawChunkInputs,
+      );
+    }
+
+    final LegacyPrefabMigrationDocument prefabDocument;
+    try {
+      prefabDocument = PolygonAuthoringLegacyCodec.decodePrefab(
+        prefabRaw,
+        sourcePath: prefabPath,
+      );
+    } on FormatException catch (error) {
+      throw PolygonAuthoringMigrationCheckException(
+        code: 'migration_prefab_source_invalid',
+        sourcePath: prefabPath,
+        message: error.message,
+      );
+    }
+    final legacyChunkInputs = <_LegacyChunkInput>[];
+    for (final input in rawChunkInputs) {
       final LegacyChunkMigrationDocument document;
       try {
         document = PolygonAuthoringLegacyCodec.decodeChunkV1(
-          raw,
-          sourcePath: sourcePath,
+          input.raw,
+          sourcePath: input.sourcePath,
         );
       } on FormatException catch (error) {
         throw PolygonAuthoringMigrationCheckException(
           code: 'migration_chunk_source_invalid',
-          sourcePath: sourcePath,
+          sourcePath: input.sourcePath,
           message: error.message,
         );
       }
-      chunkInputs.add(
-        _LegacyChunkInput(sourcePath: sourcePath, document: document),
+      legacyChunkInputs.add(
+        _LegacyChunkInput(sourcePath: input.sourcePath, document: document),
       );
     }
-
-    return _build(
+    return _buildLegacy(
       prefabSourcePath: prefabPath,
       prefabDocument: prefabDocument,
-      chunkInputs: chunkInputs,
+      chunkInputs: legacyChunkInputs,
     );
   }
 
-  static PolygonAuthoringMigrationCheck _build({
+  static PolygonAuthoringMigrationCheck _buildLegacy({
     required String prefabSourcePath,
     required LegacyPrefabMigrationDocument prefabDocument,
     required List<_LegacyChunkInput> chunkInputs,
@@ -326,7 +432,237 @@ final class PolygonAuthoringMigrationCheck {
     );
     issues.sort();
     return PolygonAuthoringMigrationCheck._(
-      plan: plan,
+      sourceState: PolygonAuthoringMigrationSourceState.legacy,
+      summary: plan.summary,
+      sourceFiles: plan.sourceFiles,
+      legacyPlan: plan,
+      targetFiles: targetFiles,
+      revisionRecords: revisionRecords,
+      impactRecords: impactRecords,
+      issues: issues,
+    );
+  }
+
+  static PolygonAuthoringMigrationCheck _buildCurrent({
+    required String prefabSourcePath,
+    required String prefabRaw,
+    required List<_RawChunkInput> chunkInputs,
+  }) {
+    final PrefabV3TargetDocument prefabDocument;
+    final String canonicalPrefabSource;
+    try {
+      prefabDocument = PolygonAuthoringTargetCodec.decodePrefabV3(
+        prefabRaw,
+        sourcePath: prefabSourcePath,
+      );
+      canonicalPrefabSource = PolygonAuthoringTargetCodec.encodePrefabV3(
+        prefabDocument,
+      );
+    } on Object catch (error) {
+      throw PolygonAuthoringMigrationCheckException(
+        code: 'migration_prefab_source_invalid',
+        sourcePath: prefabSourcePath,
+        message: '$error',
+      );
+    }
+    _requireCanonicalCurrentSource(
+      raw: prefabRaw,
+      canonical: canonicalPrefabSource,
+      sourcePath: prefabSourcePath,
+    );
+
+    final currentChunkInputs = <_CurrentChunkInput>[];
+    for (final input in chunkInputs) {
+      final ChunkV2TargetDocument document;
+      final String canonicalSource;
+      try {
+        document = PolygonAuthoringTargetCodec.decodeChunkV2(
+          input.raw,
+          sourcePath: input.sourcePath,
+        );
+        canonicalSource = PolygonAuthoringTargetCodec.encodeChunkV2(document);
+      } on Object catch (error) {
+        throw PolygonAuthoringMigrationCheckException(
+          code: 'migration_chunk_source_invalid',
+          sourcePath: input.sourcePath,
+          message: '$error',
+        );
+      }
+      _requireCanonicalCurrentSource(
+        raw: input.raw,
+        canonical: canonicalSource,
+        sourcePath: input.sourcePath,
+      );
+      currentChunkInputs.add(
+        _CurrentChunkInput(
+          sourcePath: input.sourcePath,
+          raw: input.raw,
+          document: document,
+        ),
+      );
+    }
+
+    final sourceFiles = <PolygonAuthoringMigrationSourceFile>[
+      PolygonAuthoringMigrationSourceFile(
+        sourceKind: 'prefabs',
+        ownerKey: 'prefab_defs',
+        sourcePath: prefabSourcePath,
+        sha256: _sha256(prefabRaw),
+      ),
+      for (final input in currentChunkInputs)
+        PolygonAuthoringMigrationSourceFile(
+          sourceKind: 'chunk',
+          ownerKey: input.document.chunkKey,
+          sourcePath: input.sourcePath,
+          sha256: _sha256(input.raw),
+        ),
+    ]..sort();
+    final issues = <PolygonAuthoringMigrationIssue>[];
+    final prefabKeys = prefabDocument.prefabs
+        .map((prefab) => prefab.prefabKey)
+        .toSet();
+    final chunkKeys = <String>{};
+    final placementsByPrefab = <String, List<String>>{};
+    for (
+      var chunkIndex = 0;
+      chunkIndex < currentChunkInputs.length;
+      chunkIndex++
+    ) {
+      final input = currentChunkInputs[chunkIndex];
+      final chunk = input.document;
+      if (!chunkKeys.add(chunk.chunkKey)) {
+        issues.add(
+          PolygonAuthoringMigrationIssue(
+            sourcePath: input.sourcePath,
+            ownerKey: chunk.chunkKey,
+            elementIndex: 0,
+            code: 'migration_chunk_key_duplicate',
+            message: 'Migration check requires unique chunk keys.',
+          ),
+        );
+      }
+      _appendCurrentGeometryIssues(
+        shapes: chunk.collisionShapes,
+        sourcePath: input.sourcePath,
+        ownerKey: chunk.chunkKey,
+        chunkIndex: chunkIndex,
+        issues: issues,
+      );
+      for (var index = 0; index < chunk.prefabs.length; index++) {
+        final prefabKey = chunk.prefabs[index].resolvedPrefabRef;
+        if (!prefabKeys.contains(prefabKey)) {
+          issues.add(
+            PolygonAuthoringMigrationIssue(
+              sourcePath: input.sourcePath,
+              ownerKey: chunk.chunkKey,
+              elementIndex: index,
+              code: 'migration_unknown_prefab_reference',
+              message: 'Chunk placement references unknown prefab $prefabKey.',
+            ),
+          );
+          continue;
+        }
+        placementsByPrefab
+            .putIfAbsent(prefabKey, () => <String>[])
+            .add(chunk.chunkKey);
+      }
+    }
+    for (final prefab in prefabDocument.prefabs) {
+      _appendCurrentGeometryIssues(
+        shapes: prefab.collisionShapes,
+        sourcePath: prefabSourcePath,
+        ownerKey: prefab.prefabKey,
+        chunkIndex: -1,
+        issues: issues,
+      );
+    }
+
+    final revisionRecords = <PolygonAuthoringMigrationRevisionRecord>[
+      for (final prefab in prefabDocument.prefabs)
+        PolygonAuthoringMigrationRevisionRecord(
+          ownerKind: 'prefab',
+          ownerKey: prefab.prefabKey,
+          beforeRevision: prefab.revision,
+          afterRevision: prefab.revision,
+        ),
+      for (final input in currentChunkInputs)
+        PolygonAuthoringMigrationRevisionRecord(
+          ownerKind: 'chunk',
+          ownerKey: input.document.chunkKey,
+          beforeRevision: input.document.revision,
+          afterRevision: input.document.revision,
+        ),
+    ]..sort(_compareRevisionRecords);
+    final impactRecords = <PolygonAuthoringMigrationImpactRecord>[
+      for (final prefabKey in prefabKeys.toList()..sort())
+        PolygonAuthoringMigrationImpactRecord(
+          prefabKey: prefabKey,
+          referencingChunkKeys: (placementsByPrefab[prefabKey] ?? const [])
+              .toSet(),
+          placementCount: placementsByPrefab[prefabKey]?.length ?? 0,
+        ),
+    ];
+
+    final targetFiles = <PolygonAuthoringMigrationTargetFile>[];
+    if (issues.isEmpty) {
+      targetFiles.add(
+        PolygonAuthoringMigrationTargetFile(
+          sourceKind: 'prefabs',
+          ownerKey: 'prefab_defs',
+          sourcePath: prefabSourcePath,
+          targetSchemaVersion: polygonPrefabSchemaVersion,
+          beforeSha256: _sha256(prefabRaw),
+          afterSha256: _sha256(canonicalPrefabSource),
+          canonicalContents: canonicalPrefabSource,
+        ),
+      );
+      for (final input in currentChunkInputs) {
+        targetFiles.add(
+          PolygonAuthoringMigrationTargetFile(
+            sourceKind: 'chunk',
+            ownerKey: input.document.chunkKey,
+            sourcePath: input.sourcePath,
+            targetSchemaVersion: polygonChunkSchemaVersion,
+            beforeSha256: _sha256(input.raw),
+            afterSha256: _sha256(input.raw),
+            canonicalContents: input.raw,
+          ),
+        );
+      }
+    }
+    targetFiles.sort(
+      (left, right) => left.sourcePath.compareTo(right.sourcePath),
+    );
+    issues.sort();
+    final summary = PolygonAuthoringMigrationSummary(
+      prefabCount: prefabDocument.prefabs.length,
+      collisionPrefabCount: prefabDocument.prefabs
+          .where((prefab) => prefab.collisionShapes.isNotEmpty)
+          .length,
+      decorationPrefabCount: prefabDocument.prefabs
+          .where((prefab) => prefab.kind.jsonValue == 'decoration')
+          .length,
+      multiColliderPrefabCount: prefabDocument.prefabs
+          .where((prefab) => prefab.collisionShapes.length > 1)
+          .length,
+      reauthoredPrefabCount: 0,
+      prefabShapeCount: prefabDocument.prefabs.fold<int>(
+        0,
+        (sum, prefab) => sum + prefab.collisionShapes.length,
+      ),
+      chunkCount: currentChunkInputs.length,
+      legacyGapCount: 0,
+      groundShapeCount: currentChunkInputs.fold<int>(
+        0,
+        (sum, input) => sum + input.document.collisionShapes.length,
+      ),
+      blockerCount: issues.length,
+    );
+    return PolygonAuthoringMigrationCheck._(
+      sourceState: PolygonAuthoringMigrationSourceState.current,
+      summary: summary,
+      sourceFiles: sourceFiles,
+      legacyPlan: null,
       targetFiles: targetFiles,
       revisionRecords: revisionRecords,
       impactRecords: impactRecords,
@@ -341,8 +677,8 @@ final class PolygonAuthoringMigrationCheck {
       (sum, record) => sum + record.placementCount,
     );
     final summary = <String, Object>{
-      ...plan.summary.toJson(),
-      'sourceFileCount': plan.sourceFiles.length,
+      ...this.summary.toJson(),
+      'sourceFileCount': sourceFiles.length,
       'targetFileCount': targetFiles.length,
       'pendingMigrationFileCount': targetFiles
           .where((target) => target.hasPendingChange)
@@ -361,9 +697,10 @@ final class PolygonAuthoringMigrationCheck {
     final report = <String, Object>{
       'reportVersion': reportVersion,
       'mode': 'check',
+      'sourceState': sourceState.jsonValue,
       'status': hasBlockers ? 'blocked' : 'ready',
       'summary': summary,
-      'sourceFiles': plan.sourceFiles
+      'sourceFiles': sourceFiles
           .map((source) => source.toJson())
           .toList(growable: false),
       'targetFiles': targetFiles
@@ -375,19 +712,20 @@ final class PolygonAuthoringMigrationCheck {
       'impactRecords': impactRecords
           .map((record) => record.toJson())
           .toList(growable: false),
-      'prefabs': plan.prefabs
+      'prefabs': (legacyPlan?.prefabs ?? const <PrefabPolygonMigrationEntry>[])
           .map((entry) => entry.toJson())
           .toList(growable: false),
-      'chunks': plan.chunks
-          .map((entry) => entry.toJson())
-          .toList(growable: false),
+      'chunks':
+          (legacyPlan?.chunks ?? const <ChunkGroundPolygonMigrationEntry>[])
+              .map((entry) => entry.toJson())
+              .toList(growable: false),
       'blockers': issues.map((issue) => issue.toJson()).toList(growable: false),
     };
     return '${const JsonEncoder.withIndent('  ').convert(report)}\n';
   }
 }
 
-/// Stable source-loading failure that prevents a complete readiness plan.
+/// Stable source-loading failure that prevents a complete readiness check.
 final class PolygonAuthoringMigrationCheckException implements Exception {
   const PolygonAuthoringMigrationCheckException({
     required this.code,
@@ -509,13 +847,82 @@ void _buildChunkTargets({
   }
 }
 
+int _readSchemaVersion(
+  String raw, {
+  required String sourcePath,
+  required String invalidCode,
+}) {
+  try {
+    final root = StrictMigrationJson.decodeRoot(raw, sourcePath: sourcePath);
+    return StrictMigrationJson.integer(
+      root['schemaVersion'],
+      sourcePath: '$sourcePath.schemaVersion',
+    );
+  } on FormatException catch (error) {
+    throw PolygonAuthoringMigrationCheckException(
+      code: invalidCode,
+      sourcePath: sourcePath,
+      message: error.message,
+    );
+  }
+}
+
+void _requireCanonicalCurrentSource({
+  required String raw,
+  required String canonical,
+  required String sourcePath,
+}) {
+  if (raw == canonical) return;
+  throw PolygonAuthoringMigrationCheckException(
+    code: 'migration_current_source_noncanonical',
+    sourcePath: sourcePath,
+    message:
+        'Current-schema source must already match its canonical byte '
+        'representation.',
+  );
+}
+
+void _appendCurrentGeometryIssues({
+  required Iterable<TerrainSourceShapeDef> shapes,
+  required String sourcePath,
+  required String ownerKey,
+  required int chunkIndex,
+  required List<PolygonAuthoringMigrationIssue> issues,
+}) {
+  var shapeIndex = 0;
+  for (final shape in shapes) {
+    final review = TerrainSourceCoreAdapter.review(
+      shape: shape,
+      sourcePath: '$sourcePath:$ownerKey:${shape.shapeId}',
+      chunkIndex: chunkIndex,
+      chunkKey: ownerKey,
+      requireCanonical: true,
+    );
+    for (final diagnostic in review.diagnostics) {
+      if (!review.hasBlockingDiagnostics && review.isCanonical) continue;
+      issues.add(
+        PolygonAuthoringMigrationIssue(
+          sourcePath: sourcePath,
+          ownerKey: ownerKey,
+          elementIndex: diagnostic.elementIndex,
+          code: 'migration_current_geometry_${diagnostic.code}',
+          message:
+              'Shape ${shape.shapeId} at index $shapeIndex: '
+              '${diagnostic.message}',
+        ),
+      );
+    }
+    shapeIndex++;
+  }
+}
+
 String _readRequiredSource(EditorWorkspace workspace, String sourcePath) {
   final file = File(workspace.resolve(p.normalize(sourcePath)));
   if (!file.existsSync()) {
     throw PolygonAuthoringMigrationCheckException(
       code: 'migration_source_missing',
       sourcePath: sourcePath,
-      message: 'Required legacy migration source does not exist.',
+      message: 'Required migration source does not exist.',
     );
   }
   try {
@@ -524,7 +931,7 @@ String _readRequiredSource(EditorWorkspace workspace, String sourcePath) {
     throw PolygonAuthoringMigrationCheckException(
       code: 'migration_source_read_failed',
       sourcePath: sourcePath,
-      message: 'Unable to read legacy migration source: $error',
+      message: 'Unable to read migration source: $error',
     );
   }
 }
@@ -548,4 +955,28 @@ final class _LegacyChunkInput {
 
   final String sourcePath;
   final LegacyChunkMigrationDocument document;
+}
+
+final class _RawChunkInput {
+  const _RawChunkInput({
+    required this.sourcePath,
+    required this.raw,
+    required this.schemaVersion,
+  });
+
+  final String sourcePath;
+  final String raw;
+  final int schemaVersion;
+}
+
+final class _CurrentChunkInput {
+  const _CurrentChunkInput({
+    required this.sourcePath,
+    required this.raw,
+    required this.document,
+  });
+
+  final String sourcePath;
+  final String raw;
+  final ChunkV2TargetDocument document;
 }

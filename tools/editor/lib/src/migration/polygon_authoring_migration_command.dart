@@ -11,7 +11,7 @@ import 'polygon_authoring_migration_plan.dart';
 
 /// Read-only command adapter for polygon migration readiness checks.
 ///
-/// Exit `0` means a complete blocker-free plan, `1` means source/planning/
+/// Exit `0` means a complete blocker-free check, `1` means source/planning/
 /// target validation failed, and `64` means invalid command usage. The only
 /// optional write is the explicitly requested report artifact; authored source
 /// and staged target contents are never written.
@@ -63,7 +63,7 @@ abstract final class PolygonAuthoringMigrationCommand {
       stderrSink.writeln(
         '[ERROR] ${error.code} ${error.sourcePath}: ${error.message}',
       );
-      stderrSink.writeln('Migration check could not build a complete plan.');
+      stderrSink.writeln('Migration check could not build a complete result.');
       return blockedExitCode;
     } on Object catch (error) {
       stderrSink.writeln('Migration check failed unexpectedly: $error');
@@ -110,8 +110,9 @@ abstract final class PolygonAuthoringMigrationCommand {
     }
 
     stdoutSink.writeln(
-      'Polygon migration check ready: ${check.plan.summary.prefabCount} '
-      'prefab(s), ${check.plan.summary.chunkCount} chunk(s), '
+      'Polygon migration check ready (${check.sourceState.jsonValue}): '
+      '${check.summary.prefabCount} prefab(s), '
+      '${check.summary.chunkCount} chunk(s), '
       '${check.targetFiles.length} validated target file(s).',
     );
     stdoutSink.writeln(
@@ -128,7 +129,7 @@ List<PolygonAuthoringMigrationIssue> _auditCurrentSources(
   PolygonAuthoringMigrationCheck check,
 ) {
   final current = <String, String>{};
-  for (final source in check.plan.sourceFiles) {
+  for (final source in check.sourceFiles) {
     final file = File(workspace.resolve(p.normalize(source.sourcePath)));
     if (!file.existsSync()) continue;
     try {
@@ -139,7 +140,7 @@ List<PolygonAuthoringMigrationIssue> _auditCurrentSources(
       // An unreadable file remains absent so the shared audit fails closed.
     }
   }
-  return check.plan.auditSourceDigests(current);
+  return check.auditSourceDigests(current);
 }
 
 String _validatedReportPath(EditorWorkspace workspace, String rawPath) {

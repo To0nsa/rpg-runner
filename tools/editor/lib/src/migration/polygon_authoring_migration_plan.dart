@@ -53,7 +53,7 @@ final class PolygonAuthoringMigrationIssue
   }
 }
 
-/// Exact legacy source signature captured by one migration check plan.
+/// Exact authored-source signature captured by one migration check.
 final class PolygonAuthoringMigrationSourceFile
     implements Comparable<PolygonAuthoringMigrationSourceFile> {
   const PolygonAuthoringMigrationSourceFile({
@@ -68,7 +68,7 @@ final class PolygonAuthoringMigrationSourceFile
   final String ownerKey;
   final String sourcePath;
 
-  /// SHA-256 of the exact UTF-8 legacy source text used to build the plan.
+  /// SHA-256 of the exact UTF-8 source text used to build the check.
   final String sha256;
 
   Map<String, Object> toJson() => <String, Object>{
@@ -86,6 +86,62 @@ final class PolygonAuthoringMigrationSourceFile
     if (order != 0) return order;
     return ownerKey.compareTo(other.ownerKey);
   }
+}
+
+/// Compares current source signatures with an exact reviewed source snapshot.
+///
+/// Callers compute SHA-256 values from freshly read source text immediately
+/// before any write. Missing, changed, or ambiguously addressed paths fail
+/// closed; extra paths outside [sourceFiles] are ignored.
+List<PolygonAuthoringMigrationIssue> auditPolygonAuthoringSourceDigests({
+  required Iterable<PolygonAuthoringMigrationSourceFile> sourceFiles,
+  required Map<String, String> currentSha256BySourcePath,
+}) {
+  final currentByCanonicalPath = <String, Set<String>>{};
+  for (final entry in currentSha256BySourcePath.entries) {
+    currentByCanonicalPath
+        .putIfAbsent(_canonicalPath(entry.key), () => <String>{})
+        .add(entry.value);
+  }
+  final driftIssues = <PolygonAuthoringMigrationIssue>[];
+  for (final source in sourceFiles) {
+    final current = currentByCanonicalPath[source.sourcePath];
+    if (current == null || current.isEmpty) {
+      driftIssues.add(
+        PolygonAuthoringMigrationIssue(
+          sourcePath: source.sourcePath,
+          ownerKey: source.ownerKey,
+          elementIndex: 0,
+          code: 'migration_source_missing',
+          message: 'Migration source no longer exists at its reviewed path.',
+        ),
+      );
+    } else if (current.length != 1) {
+      driftIssues.add(
+        PolygonAuthoringMigrationIssue(
+          sourcePath: source.sourcePath,
+          ownerKey: source.ownerKey,
+          elementIndex: 0,
+          code: 'migration_source_path_ambiguous',
+          message:
+              'Multiple current files resolve to the reviewed source path.',
+        ),
+      );
+    } else if (current.single != source.sha256) {
+      driftIssues.add(
+        PolygonAuthoringMigrationIssue(
+          sourcePath: source.sourcePath,
+          ownerKey: source.ownerKey,
+          elementIndex: 0,
+          code: 'migration_source_drift',
+          message:
+              'Migration source SHA-256 changed after the check was built.',
+        ),
+      );
+    }
+  }
+  driftIssues.sort();
+  return List<PolygonAuthoringMigrationIssue>.unmodifiable(driftIssues);
 }
 
 /// Planned canonical polygon source for one legacy prefab record.
@@ -435,53 +491,10 @@ final class PolygonAuthoringMigrationPlan {
   /// closed; extra paths outside this plan are ignored.
   List<PolygonAuthoringMigrationIssue> auditSourceDigests(
     Map<String, String> currentSha256BySourcePath,
-  ) {
-    final currentByCanonicalPath = <String, Set<String>>{};
-    for (final entry in currentSha256BySourcePath.entries) {
-      currentByCanonicalPath
-          .putIfAbsent(_canonicalPath(entry.key), () => <String>{})
-          .add(entry.value);
-    }
-    final driftIssues = <PolygonAuthoringMigrationIssue>[];
-    for (final source in sourceFiles) {
-      final current = currentByCanonicalPath[source.sourcePath];
-      if (current == null || current.isEmpty) {
-        driftIssues.add(
-          PolygonAuthoringMigrationIssue(
-            sourcePath: source.sourcePath,
-            ownerKey: source.ownerKey,
-            elementIndex: 0,
-            code: 'migration_source_missing',
-            message: 'Migration source no longer exists at its reviewed path.',
-          ),
-        );
-      } else if (current.length != 1) {
-        driftIssues.add(
-          PolygonAuthoringMigrationIssue(
-            sourcePath: source.sourcePath,
-            ownerKey: source.ownerKey,
-            elementIndex: 0,
-            code: 'migration_source_path_ambiguous',
-            message:
-                'Multiple current files resolve to the reviewed source path.',
-          ),
-        );
-      } else if (current.single != source.sha256) {
-        driftIssues.add(
-          PolygonAuthoringMigrationIssue(
-            sourcePath: source.sourcePath,
-            ownerKey: source.ownerKey,
-            elementIndex: 0,
-            code: 'migration_source_drift',
-            message:
-                'Migration source SHA-256 changed after the plan was built.',
-          ),
-        );
-      }
-    }
-    driftIssues.sort();
-    return List<PolygonAuthoringMigrationIssue>.unmodifiable(driftIssues);
-  }
+  ) => auditPolygonAuthoringSourceDigests(
+    sourceFiles: sourceFiles,
+    currentSha256BySourcePath: currentSha256BySourcePath,
+  );
 
   /// Emits stable, reviewable JSON with exact areas encoded as decimal strings.
   String toCanonicalJson() {

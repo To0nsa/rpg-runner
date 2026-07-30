@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
+import 'package:runner_editor/src/migration/polygon_authoring_migration_check.dart';
 import 'package:runner_editor/src/migration/polygon_authoring_migration_command.dart';
 import 'package:runner_editor/src/prefabs/store/prefab_store.dart';
 import 'package:runner_editor/src/workspace/workspace_file_io.dart';
@@ -54,6 +55,34 @@ void main() {
       expect(report['status'], 'ready');
       expect((report['targetFiles']! as List<Object?>), hasLength(9));
       expect(output.toString(), contains('.tmp${p.separator}migration-check'));
+      expect(_sourceDigests(fixture.path), before);
+    } finally {
+      fixture.deleteSync(recursive: true);
+    }
+  });
+
+  test('current repository succeeds with zero pending source files', () {
+    final fixture = _copyMigrationSources();
+    try {
+      _promoteFixtureToCurrent(fixture.path);
+      final before = _sourceDigests(fixture.path);
+      final output = StringBuffer();
+      final errors = StringBuffer();
+
+      final result = PolygonAuthoringMigrationCommand.run(
+        const <String>['--check'],
+        defaultWorkspaceRoot: fixture.path,
+        output: output,
+        errorOutput: errors,
+      );
+
+      expect(result, PolygonAuthoringMigrationCommand.successExitCode);
+      expect(errors.toString(), isEmpty);
+      expect(output.toString(), contains('ready (current)'));
+      expect(
+        output.toString(),
+        contains('0 source file(s) have a pending representation migration.'),
+      );
       expect(_sourceDigests(fixture.path), before);
     } finally {
       fixture.deleteSync(recursive: true);
@@ -174,6 +203,104 @@ void main() {
       fixture.deleteSync(recursive: true);
     }
   });
+
+  test('mixed schema generation returns one without a partial report', () {
+    final fixture = _copyMigrationSources();
+    try {
+      final legacy = PolygonAuthoringMigrationCheck.fromRepository(
+        fixture.path,
+      );
+      final prefabTarget = legacy.targetFiles.singleWhere(
+        (target) => target.sourceKind == 'prefabs',
+      );
+      File(
+        p.join(fixture.path, p.normalize(prefabTarget.sourcePath)),
+      ).writeAsStringSync(prefabTarget.canonicalContents);
+      final before = _sourceDigests(fixture.path);
+      final errors = StringBuffer();
+
+      final result = PolygonAuthoringMigrationCommand.run(
+        const <String>['--report=.tmp/mixed.json'],
+        defaultWorkspaceRoot: fixture.path,
+        output: StringBuffer(),
+        errorOutput: errors,
+      );
+
+      expect(result, PolygonAuthoringMigrationCommand.blockedExitCode);
+      expect(errors.toString(), contains('migration_mixed_schema_generation'));
+      expect(
+        File(p.join(fixture.path, '.tmp', 'mixed.json')).existsSync(),
+        isFalse,
+      );
+      expect(_sourceDigests(fixture.path), before);
+    } finally {
+      fixture.deleteSync(recursive: true);
+    }
+  });
+
+  test('noncanonical current source returns one without a partial report', () {
+    final fixture = _copyMigrationSources();
+    try {
+      _promoteFixtureToCurrent(fixture.path);
+      final chunkFile = _chunkFiles(fixture.path).first;
+      chunkFile.writeAsStringSync('${chunkFile.readAsStringSync()}\n');
+      final before = _sourceDigests(fixture.path);
+      final errors = StringBuffer();
+
+      final result = PolygonAuthoringMigrationCommand.run(
+        const <String>['--report=.tmp/noncanonical.json'],
+        defaultWorkspaceRoot: fixture.path,
+        output: StringBuffer(),
+        errorOutput: errors,
+      );
+
+      expect(result, PolygonAuthoringMigrationCommand.blockedExitCode);
+      expect(
+        errors.toString(),
+        contains('migration_current_source_noncanonical'),
+      );
+      expect(
+        File(p.join(fixture.path, '.tmp', 'noncanonical.json')).existsSync(),
+        isFalse,
+      );
+      expect(_sourceDigests(fixture.path), before);
+    } finally {
+      fixture.deleteSync(recursive: true);
+    }
+  });
+
+  test('malformed current source returns one without a partial report', () {
+    final fixture = _copyMigrationSources();
+    try {
+      _promoteFixtureToCurrent(fixture.path);
+      final chunkFile = _chunkFiles(fixture.path).first;
+      final root =
+          jsonDecode(chunkFile.readAsStringSync()) as Map<String, Object?>;
+      root.remove('width');
+      chunkFile.writeAsStringSync(_canonicalJson(root));
+      final before = _sourceDigests(fixture.path);
+      final errors = StringBuffer();
+
+      final result = PolygonAuthoringMigrationCommand.run(
+        const <String>['--report=.tmp/malformed-current.json'],
+        defaultWorkspaceRoot: fixture.path,
+        output: StringBuffer(),
+        errorOutput: errors,
+      );
+
+      expect(result, PolygonAuthoringMigrationCommand.blockedExitCode);
+      expect(errors.toString(), contains('migration_chunk_source_invalid'));
+      expect(
+        File(
+          p.join(fixture.path, '.tmp', 'malformed-current.json'),
+        ).existsSync(),
+        isFalse,
+      );
+      expect(_sourceDigests(fixture.path), before);
+    } finally {
+      fixture.deleteSync(recursive: true);
+    }
+  });
 }
 
 Map<String, String> _sourceDigests(String rootPath) {
@@ -207,6 +334,17 @@ Directory _copyMigrationSources() {
     source.copySync(target.path);
   }
   return targetRoot;
+}
+
+void _promoteFixtureToCurrent(String rootPath) {
+  final legacy = PolygonAuthoringMigrationCheck.fromRepository(rootPath);
+  expect(legacy.sourceState, PolygonAuthoringMigrationSourceState.legacy);
+  expect(legacy.hasBlockers, isFalse);
+  for (final target in legacy.targetFiles) {
+    File(
+      p.join(rootPath, p.normalize(target.sourcePath)),
+    ).writeAsStringSync(target.canonicalContents);
+  }
 }
 
 List<File> _chunkFiles(String rootPath) {
