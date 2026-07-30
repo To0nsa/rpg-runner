@@ -32,8 +32,9 @@ The active schema migration, generator, preview, and cutover work remains in
 | Prefab polygon owner validation | editor `validatePrefabCollisionShapes` | Core compiler plus exact visual-bounds tests; normal `PrefabDef` integration is pending |
 | Immutable prefab-v3 polygon record | editor `PrefabV3Def` | migration target and model-contract tests; normal store/UI integration is pending |
 | Strict prefab-v3 file structure and canonical serialization | editor `PrefabV3FileData` / `PrefabV3FileCodec` | normal prefab layer and delegated migration checks; filesystem store integration is pending |
-| Prefab polygon commit and revision policy | editor `PrefabV3CollisionCommitPolicy` | shared reducer and defensive plugin-command tests; page dispatch is pending |
+| Prefab polygon commit and revision policy | editor `PrefabV3CollisionCommitPolicy` | shared reducer, defensive plugin command, and staged route-coordinator tests; normal page cutover is pending |
 | Prefab-v3 plugin command staging | editor `PrefabV3StagingDocument` / `PrefabDomainPlugin` | typed commit, immutable pending-diff, validation, and hard export-lock tests; loader/page cutover is pending |
+| Prefab polygon route-local projection | editor `PrefabPolygonAuthoringController` / `PrefabPolygonSceneSurface` | staged session, painter, pointer, focus, keyboard, rejection, and history tests; normal route selection is pending |
 | Fail-closed authored JSON and retained-metadata parsing | editor neutral domain plus `StrictTerrainSourceCodec` | legacy migration, prefab v3, and chunk-v2 target codecs |
 | Legacy prefab occupied-area union and reviewed corrections | editor prefab migration domain | aggregate check plan; removal follows verified prefab v3 write |
 | Legacy flat-ground/gap conversion | editor chunk migration domain | aggregate check plan; removal follows verified chunk v2 write |
@@ -277,6 +278,23 @@ exporting a changed one fails with `prefab_v3_source_write_disabled` before any
 filesystem mutation. The staging document replaces the v2 `PrefabDocument` at
 cutover and must not survive as a parallel authority.
 
+`PrefabPolygonAuthoringController` proves the route boundary against that
+staging document. It keeps tool, selection, draft, gesture preview, and rejected
+diagnostics local; runs the same owner policy before dispatch; and sends one
+typed plugin command only for an accepted semantic change. It synchronizes
+after session undo/redo by immutable document identity, not every session
+notification, so loading/export flag notifications cannot discard an active
+preview. Undo during an active operation cancels that preview before touching
+committed history.
+
+`PrefabPolygonSceneSurface` projects the controller through the shared scene
+painter and hit test. Primary input is tool-driven; Escape cancels, Delete acts
+on the selected shape/vertex, Ctrl-Z/Ctrl-Shift-Z use session history, and
+Ctrl-drag delegates pan without mutating the document. The viewport transform
+remains display state. The surface and controller require an explicitly staged
+v3 session today; the normal Prefab Creator route still renders and writes its
+v2 rectangle workflow until the single source cutover.
+
 ## Shared Polygon Interaction And Scene Projection
 
 `TerrainPolygonInteractionState` keeps committed owner shapes separate from an
@@ -298,8 +316,11 @@ state machine.
 
 All stored and preview edit coordinates remain integer half-pixel ticks. The
 half-pixel snap preserves each tick; owner-grid snap uses an integer pixel step
-with exact ties away from zero. Scene hit testing alone accepts fractional
-source-space pointer coordinates produced by inverse viewport transforms.
+with exact ties away from zero. Scene hit testing accepts fractional
+source-space pointer coordinates produced by inverse viewport transforms, and
+the shared snap policy divides those fractional values by the final grid step
+before rounding once. This avoids selecting a different owner-grid cell by
+prematurely rounding to the half-pixel grid.
 
 `TerrainPolygonSceneProjection` exposes stable shape order, selected
 edge/vertex indices, gesture-preview identity, and an open draft without
