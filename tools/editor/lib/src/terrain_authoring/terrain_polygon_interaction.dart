@@ -9,6 +9,15 @@ import 'terrain_source_models.dart';
 /// Kind of owner-local polygon element selected by an editor route.
 enum TerrainPolygonSelectionKind { shape, edge, vertex }
 
+/// Shared pointer tool identity used by both polygon-authoring routes.
+enum TerrainPolygonTool {
+  select,
+  createPolygon,
+  moveVertex,
+  translateShape,
+  insertVertex,
+}
+
 /// Stable selection expressed by shape ID and optional geometry index.
 ///
 /// Shape selections have no element index. Edge and vertex selections require
@@ -138,6 +147,7 @@ final class TerrainPolygonInteractionState {
   factory TerrainPolygonInteractionState({
     required Iterable<TerrainSourceShapeDef> shapes,
     TerrainPolygonSelection? selection,
+    TerrainPolygonTool tool = TerrainPolygonTool.select,
   }) {
     final canonicalShapes = canonicalTerrainSourceShapes(shapes);
     if (selection != null && !_selectionExists(canonicalShapes, selection)) {
@@ -150,6 +160,7 @@ final class TerrainPolygonInteractionState {
     return TerrainPolygonInteractionState._(
       shapes: canonicalShapes,
       selection: selection,
+      tool: tool,
       draft: null,
       gesture: null,
     );
@@ -158,12 +169,14 @@ final class TerrainPolygonInteractionState {
   const TerrainPolygonInteractionState._({
     required this.shapes,
     required this.selection,
+    required this.tool,
     required this.draft,
     required this.gesture,
   });
 
   final List<TerrainSourceShapeDef> shapes;
   final TerrainPolygonSelection? selection;
+  final TerrainPolygonTool tool;
   final TerrainPolygonDraft? draft;
   final TerrainPolygonGesture? gesture;
 
@@ -271,6 +284,15 @@ final class TerrainPolygonInteractionReducer {
     return _state(state, selection: selection, replaceSelection: true);
   }
 
+  /// Changes the active pointer tool without touching source or history.
+  TerrainPolygonInteractionState setTool(
+    TerrainPolygonInteractionState state,
+    TerrainPolygonTool tool,
+  ) {
+    if (state.hasActiveOperation || state.tool == tool) return state;
+    return _state(state, tool: tool);
+  }
+
   /// Starts an ordered vertex-click draft with a deterministic shape ID.
   TerrainPolygonInteractionState beginCreatePolygon(
     TerrainPolygonInteractionState state, {
@@ -286,7 +308,12 @@ final class TerrainPolygonInteractionReducer {
       materialKey: materialKey,
       vertices: const <TerrainSourceVertexDef>[],
     );
-    return _state(state, draft: draft, replaceDraft: true);
+    return _state(
+      state,
+      tool: TerrainPolygonTool.createPolygon,
+      draft: draft,
+      replaceDraft: true,
+    );
   }
 
   /// Appends one snapped point while preserving authored click order.
@@ -339,6 +366,7 @@ final class TerrainPolygonInteractionReducer {
       TerrainPolygonSelection.shape(validation.shape!.shapeId),
       diagnostics: validation.diagnostics,
       clearDraft: true,
+      resetTool: true,
     );
   }
 
@@ -355,6 +383,7 @@ final class TerrainPolygonInteractionReducer {
     _requireVertexIndex(shape, vertexIndex);
     return _state(
       state,
+      tool: TerrainPolygonTool.moveVertex,
       selection: TerrainPolygonSelection.vertex(shapeId, vertexIndex),
       replaceSelection: true,
       gesture: TerrainPolygonGesture(
@@ -380,6 +409,7 @@ final class TerrainPolygonInteractionReducer {
     final shape = _requireShape(state.shapes, shapeId);
     return _state(
       state,
+      tool: TerrainPolygonTool.translateShape,
       selection: TerrainPolygonSelection.shape(shapeId),
       replaceSelection: true,
       gesture: TerrainPolygonGesture(
@@ -414,6 +444,7 @@ final class TerrainPolygonInteractionReducer {
     final vertices = shape.vertices.toList()..insert(vertexIndex, vertex);
     return _state(
       state,
+      tool: TerrainPolygonTool.insertVertex,
       selection: TerrainPolygonSelection.vertex(shapeId, vertexIndex),
       replaceSelection: true,
       gesture: TerrainPolygonGesture(
@@ -493,6 +524,7 @@ final class TerrainPolygonInteractionReducer {
         state.shapes,
         state.selection,
         clearGesture: true,
+        resetTool: true,
       );
     }
     final validation = _validateAndCanonicalize(
@@ -518,6 +550,7 @@ final class TerrainPolygonInteractionReducer {
       selection,
       diagnostics: validation.diagnostics,
       clearGesture: true,
+      resetTool: true,
     );
   }
 
@@ -528,6 +561,7 @@ final class TerrainPolygonInteractionReducer {
     if (!state.hasActiveOperation) return state;
     return _state(
       state,
+      tool: TerrainPolygonTool.select,
       draft: null,
       replaceDraft: true,
       gesture: null,
@@ -769,11 +803,13 @@ final class TerrainPolygonInteractionReducer {
     Iterable<TerrainDiagnostic> diagnostics = const <TerrainDiagnostic>[],
     bool clearDraft = false,
     bool clearGesture = false,
+    bool resetTool = false,
   }) {
     final canonicalAfter = canonicalTerrainSourceShapes(afterShapes);
     final next = _state(
       state,
       shapes: canonicalAfter,
+      tool: resetTool ? TerrainPolygonTool.select : state.tool,
       selection: afterSelection,
       replaceSelection: true,
       draft: clearDraft ? null : state.draft,
@@ -849,6 +885,7 @@ final class TerrainPolygonInteractionReducer {
 TerrainPolygonInteractionState _state(
   TerrainPolygonInteractionState source, {
   List<TerrainSourceShapeDef>? shapes,
+  TerrainPolygonTool? tool,
   TerrainPolygonSelection? selection,
   bool replaceSelection = false,
   TerrainPolygonDraft? draft,
@@ -858,6 +895,7 @@ TerrainPolygonInteractionState _state(
 }) => TerrainPolygonInteractionState._(
   shapes: shapes ?? source.shapes,
   selection: replaceSelection ? selection : source.selection,
+  tool: tool ?? source.tool,
   draft: replaceDraft ? draft : source.draft,
   gesture: replaceGesture ? gesture : source.gesture,
 );

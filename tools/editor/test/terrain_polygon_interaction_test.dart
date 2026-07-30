@@ -52,6 +52,38 @@ void main() {
         throwsArgumentError,
       );
     });
+
+    test(
+      'tool changes are local state and active operations own their tool',
+      () {
+        final reducer = _reducer();
+        final initial = TerrainPolygonInteractionState(
+          shapes: <TerrainSourceShapeDef>[_rectangle('collision_001')],
+        );
+        final insertTool = reducer.setTool(
+          initial,
+          TerrainPolygonTool.insertVertex,
+        );
+        final gesture = reducer.beginMoveVertex(
+          insertTool,
+          pointer: 1,
+          shapeId: 'collision_001',
+          vertexIndex: 0,
+          startPointer: initial.shapes.single.vertices.first,
+        );
+        final ignoredSwitch = reducer.setTool(
+          gesture,
+          TerrainPolygonTool.createPolygon,
+        );
+        final cancelled = reducer.cancelActiveOperation(ignoredSwitch);
+
+        expect(initial.tool, TerrainPolygonTool.select);
+        expect(insertTool.tool, TerrainPolygonTool.insertVertex);
+        expect(gesture.tool, TerrainPolygonTool.moveVertex);
+        expect(ignoredSwitch, same(gesture));
+        expect(cancelled.tool, TerrainPolygonTool.select);
+      },
+    );
   });
 
   group('polygon creation', () {
