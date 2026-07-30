@@ -27,7 +27,8 @@ The active schema migration, generator, preview, and cutover work remains in
 | Exact placement and physics-grid quantization | `runner_core` `TerrainSourceTransform` | `TerrainCompiler`, Core fixtures, and editor adapter |
 | Editor-to-Core conversion | editor `TerrainSourceCoreAdapter` | migration checks and shared interaction reducer; prefab/chunk UI integration is pending |
 | Shared polygon interaction state | editor `TerrainPolygonInteractionReducer` | pure-Dart selection/draft/gesture/semantic-edit tests; route wiring is pending |
-| Render projection and source-space hit testing | editor `TerrainPolygonSceneProjection` / `TerrainPolygonSceneHitTest` | framework-neutral scene tests; route painters are pending |
+| Render projection and source-space hit testing | editor `TerrainPolygonSceneProjection` / `TerrainPolygonSceneHitTest` | framework-neutral scene tests; Prefab/Chunk route wiring is pending |
+| Canvas projection and source-loop overlay | editor `TerrainPolygonViewportTransform` / `TerrainPolygonScenePainter` | shared Flutter painter tests; compiler-edge overlay and route wiring are pending |
 | Legacy prefab occupied-area union and reviewed corrections | editor prefab migration domain | aggregate check plan; removal follows verified prefab v3 write |
 | Legacy flat-ground/gap conversion | editor chunk migration domain | aggregate check plan; removal follows verified chunk v2 write |
 | Strict legacy prefab-v1/v2 and chunk-v1 source parsing | editor migration domain | read-only aggregate planner input; compatibility stores are bypassed |
@@ -237,8 +238,20 @@ depending on Flutter. `TerrainPolygonSceneHitTest` uses vertex, edge, then fill
 priority. It chooses the closest feature first and resolves equal distances by
 selected shape, visually topmost canonical shape, local element index, then
 shape ID. These are UI selection rules only; collision geometry remains Core-
-owned. Prefab/Chunk painters, controls, keyboard handling, and plugin/store
-commit wiring remain pending.
+owned.
+
+`TerrainPolygonViewportTransform` maps exact source half-pixel ticks into
+display-only canvas doubles. Its inverse deliberately returns fractional
+source-space pointer coordinates; a semantic edit must still pass those values
+through the reducer's integer snap policy. `TerrainPolygonScenePainter` renders
+solid/one-way source fills and boundaries, vertices, selected edges, gesture
+previews, and open drafts from the shared projection. Projection, transform,
+and style have structural equality so equivalent frames do not repaint.
+
+This painter does not compile geometry and its fills are never collision or
+navigation authority. Collision-edge/normal/lineage diagnostics must come from
+the Core compiler preview adapter. Prefab/Chunk controls, keyboard handling,
+route painter installation, and plugin/store commit wiring remain pending.
 
 ## Determinism And Validation Evidence
 
@@ -256,6 +269,8 @@ The foundation is covered by:
   positive-area duplicate rejection
 - shared render projection plus vertex/edge/fill hit-test priority and
   deterministic tie-breaks
+- exact canvas/source transform, structural repaint, and widget-level source
+  fill/selection/preview/draft painter tests
 - full Core geometry/signature goldens and fresh-process signature tests
 - full editor regression tests
 

@@ -457,8 +457,10 @@ pass. Do not truncate shapes, vertices, edges, or diagnostics at a hard limit.
 - [ ] Keep cheap source-shape diagnostics available while a draft is invalid;
       invoke the full compiler only on a valid/debounced snapshot or gesture
       commit.
-- [ ] Render preview fills from source loops and collision/debug edges from the
-      compiler result; never derive collision back from render triangles.
+- [x] Render shared preview fills, source boundaries, vertices, selections,
+      gesture previews, and open drafts directly from exact source loops.
+- [ ] Render collision/debug edges from the compiler result; never derive
+      collision back from render triangles or source-loop fills.
 - [ ] Display exact edge IDs, tangent/normal, slope angle, collision mode,
       source lineage, and compiler diagnostic on selection.
 - [ ] Optionally display accepted Éloïse/Grojib/Hashash/Derf eligibility using
@@ -587,6 +589,10 @@ Interaction rules:
       revision in both routes
 - [x] a temporarily invalid drag can render local diagnostics, but export and
       gesture commit policy must never silently repair topology
+- [x] project committed shapes, active previews/drafts, and selection into a
+      shared scene painter with structural repaint equality
+- [x] map exact half-pixel source ticks to canvas space one-way; inverse pointer
+      coordinates remain fractional until the reducer applies its snap policy
 - [ ] keyboard delete/undo/redo and focus behavior are tested
 - [ ] wire the shared scene semantics into both Prefab and Chunk routes
 
@@ -992,6 +998,7 @@ result.
 | 2026-07-29 / `15b2aa56` + `afa5c7d9` | Pure-Dart model boundary and read-only migration CLI | Dart VM and Flutter test VM on Windows | Plain `dart tool/migrate_polygon_authoring.dart --check` succeeds with 99 prefabs, 8 chunks, and 9 validated targets. Editor analysis is clean and all 241 editor tests pass; root chunk-generator dry-run still validates 8 chunks, 2 levels, and 2 themes. Six command tests cover default/explicit check, report-only output, usage and blocker exit codes, malformed source, invalid target, and authored-path protection. `--write` remains unavailable; authored JSON and runtime authority are unchanged. |
 | 2026-07-30 / `20f04846` + `65fde7f6` | Post-cutover read-only migration idempotence | Dart VM and Flutter test VM on Windows | Editor analysis is clean and all 250 editor tests pass. Legacy v1/v2+v1 still yields nine pending targets and report-v2 fingerprint `14297a48`; a fully current v3+v2 fixture yields the same 107 revision and 99 impact records covering 50 placements, nine byte-identical targets, zero pending files, and fingerprint `4116ae04`. Focused tests reject partial cutover, mixed chunk generations, malformed or byte-noncanonical current source, unsafe Core geometry, unknown prefab references, and source drift. `--write` remains unavailable; authored JSON and runtime authority are unchanged. |
 | 2026-07-30 / `9ad77ce4` + `5627d069` | Shared polygon interaction state and scene projection | Dart VM and Flutter test VM on Windows | Editor analysis is clean; all 273 editor tests and 23 focused interaction/projection tests pass. The pure reducer covers selection/tool state, ordered drafts, exact half-pixel/owner-grid snap, vertex/shape gestures, provisional edge insertion, cancellation, one before/after history commit, deterministic duplication, metadata edits, explicit Normalize, and Core geometry/overlap rejection. The framework-neutral scene projection exposes draft/preview/selection state; hit tests use closest vertex, edge, then fill with stable selected/topmost/index/ID tie-breaks. Migration check still reports nine legacy pending files and generator dry-run validates 8 chunks, 2 levels, and 2 themes. No route, store, authored JSON, generator output, or runtime authority changed. |
+| 2026-07-30 / `a7ad6a9f` | Shared polygon viewport transform and source-scene painter | Flutter test VM on Windows | Editor analysis is clean and all 278 editor tests pass. Five focused painter tests cover exact half-pixel projection, fractional inverse pointers, invalid transform inputs, structural repaint decisions, solid/one-way styles, selected/preview shapes, and open drafts. The migration check still reports nine legacy pending files without writing source; generator dry-run still validates 8 chunks, 2 levels, and 2 themes. Compiled collision-edge diagnostics and Prefab/Chunk route wiring remain pending. |
 
 ### 28.1 Baseline Environment And Source Identity
 
