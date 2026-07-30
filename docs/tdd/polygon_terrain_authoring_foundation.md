@@ -32,7 +32,8 @@ The active schema migration, generator, preview, and cutover work remains in
 | Prefab polygon owner validation | editor `validatePrefabCollisionShapes` | Core compiler plus exact visual-bounds tests; normal `PrefabDef` integration is pending |
 | Immutable prefab-v3 polygon record | editor `PrefabV3Def` | migration target and model-contract tests; normal store/UI integration is pending |
 | Strict prefab-v3 file structure and canonical serialization | editor `PrefabV3FileData` / `PrefabV3FileCodec` | normal prefab layer and delegated migration checks; filesystem store integration is pending |
-| Prefab polygon commit and revision policy | editor `PrefabV3CollisionCommitPolicy` | shared reducer commit tests; plugin/page dispatch is pending |
+| Prefab polygon commit and revision policy | editor `PrefabV3CollisionCommitPolicy` | shared reducer and defensive plugin-command tests; page dispatch is pending |
+| Prefab-v3 plugin command staging | editor `PrefabV3StagingDocument` / `PrefabDomainPlugin` | typed commit, immutable pending-diff, validation, and hard export-lock tests; loader/page cutover is pending |
 | Fail-closed authored JSON and retained-metadata parsing | editor neutral domain plus `StrictTerrainSourceCodec` | legacy migration, prefab v3, and chunk-v2 target codecs |
 | Legacy prefab occupied-area union and reviewed corrections | editor prefab migration domain | aggregate check plan; removal follows verified prefab v3 write |
 | Legacy flat-ground/gap conversion | editor chunk migration domain | aggregate check plan; removal follows verified chunk v2 write |
@@ -263,9 +264,18 @@ its revision once; non-blocking extent warnings remain attached to the result.
 The generic plugin command API has no rejected-command result channel.
 Therefore temporarily invalid gesture state and policy diagnostics remain in
 the page projection, and the page must dispatch only an accepted policy result.
-The future plugin handler reuses this policy defensively before replacing its
-authoritative document. This keeps invalid drags and empty commits out of
-session undo/redo.
+The plugin handler reuses this policy defensively and returns the original
+document for a stale, invalid, malformed, or no-op command. An accepted command
+creates one immutable document replacement, advances the owner revision once,
+and records the owner key for deterministic pending diffs. This keeps invalid
+drags and empty commits out of session undo/redo.
+
+Before the source cutover, that handler is exercised through the temporary
+`PrefabV3StagingDocument`. The normal loader never constructs this document
+while repository source is v2. A clean staging document exports as a no-op;
+exporting a changed one fails with `prefab_v3_source_write_disabled` before any
+filesystem mutation. The staging document replaces the v2 `PrefabDocument` at
+cutover and must not survive as a parallel authority.
 
 ## Shared Polygon Interaction And Scene Projection
 
