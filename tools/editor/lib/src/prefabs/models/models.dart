@@ -6,6 +6,7 @@ export 'platform/tile_module_cell_def.dart';
 export 'platform/tile_module_def.dart';
 export 'prefab/prefab_collider_def.dart';
 export 'prefab/prefab_def.dart';
+export 'prefab/prefab_v3_def.dart';
 export 'prefab/prefab_visual_source.dart';
 export 'prefab_data.dart';
 export 'shared/prefab_enums.dart';

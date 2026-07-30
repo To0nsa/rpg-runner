@@ -755,7 +755,7 @@ void _buildPrefabTarget({
     final document = PrefabV3TargetDocument(
       slices: prefabDocument.slices,
       prefabs: prefabDocument.prefabs.map(
-        (prefab) => PrefabV3TargetDef.fromLegacy(
+        (prefab) => prefabV3TargetFromLegacy(
           legacy: prefab,
           collisionShapes: entries[prefab.prefabKey]!.collisionShapes,
         ),

@@ -10,67 +10,25 @@ const int polygonPrefabSchemaVersion = 3;
 /// Polygon-authoring chunk source schema staged for the one-time cutover.
 const int polygonChunkSchemaVersion = 2;
 
-/// One prefab-v3 record with polygon collision source instead of AABBs.
-final class PrefabV3TargetDef {
-  PrefabV3TargetDef({
-    required this.prefabKey,
-    required this.id,
-    required this.revision,
-    required this.status,
-    required this.kind,
-    required this.visualSource,
-    required this.anchorXPx,
-    required this.anchorYPx,
-    required Iterable<TerrainSourceShapeDef> collisionShapes,
-    required Iterable<String> tags,
-  }) : collisionShapes = canonicalTerrainSourceShapes(collisionShapes),
-       tags = List<String>.unmodifiable(_canonicalTags(tags));
+/// Migration-facing alias for the normal prefab-v3 polygon record.
+typedef PrefabV3TargetDef = PrefabV3Def;
 
-  final String prefabKey;
-  final String id;
-  final int revision;
-  final PrefabStatus status;
-  final PrefabKind kind;
-  final PrefabVisualSource visualSource;
-
-  /// Existing prefab anchor in whole source pixels.
-  final int anchorXPx;
-  final int anchorYPx;
-
-  /// Canonical prefab-local polygon loops in half-pixel source units.
-  final List<TerrainSourceShapeDef> collisionShapes;
-  final List<String> tags;
-
-  /// Preserves every legacy metadata field while replacing only collision.
-  factory PrefabV3TargetDef.fromLegacy({
-    required LegacyPrefabDef legacy,
-    required Iterable<TerrainSourceShapeDef> collisionShapes,
-  }) => PrefabV3TargetDef(
-    prefabKey: legacy.prefabKey,
-    id: legacy.id,
-    revision: legacy.revision,
-    status: legacy.status,
-    kind: legacy.kind,
-    visualSource: legacy.visualSource,
-    anchorXPx: legacy.anchorXPx,
-    anchorYPx: legacy.anchorYPx,
-    collisionShapes: collisionShapes,
-    tags: legacy.tags,
-  );
-
-  Map<String, Object> toJson() => <String, Object>{
-    'prefabKey': prefabKey,
-    'id': id,
-    'revision': revision,
-    'status': status.jsonValue,
-    'kind': kind.jsonValue,
-    'visualSource': visualSource.toJson(),
-    'anchorXPx': anchorXPx,
-    'anchorYPx': anchorYPx,
-    'collisionShapes': terrainSourceShapesToJson(collisionShapes),
-    'tags': tags,
-  };
-}
+/// Preserves all rectangle-era metadata while replacing only collision source.
+PrefabV3TargetDef prefabV3TargetFromLegacy({
+  required LegacyPrefabDef legacy,
+  required Iterable<TerrainSourceShapeDef> collisionShapes,
+}) => PrefabV3Def(
+  prefabKey: legacy.prefabKey,
+  id: legacy.id,
+  revision: legacy.revision,
+  status: legacy.status,
+  kind: legacy.kind,
+  visualSource: legacy.visualSource,
+  anchorXPx: legacy.anchorXPx,
+  anchorYPx: legacy.anchorYPx,
+  collisionShapes: canonicalTerrainSourceShapes(collisionShapes),
+  tags: _canonicalTags(legacy.tags),
+);
 
 /// Complete staged `prefab_defs.json` v3 payload.
 final class PrefabV3TargetDocument {
@@ -81,7 +39,7 @@ final class PrefabV3TargetDocument {
          PrefabDeterminism.sortSlicesByIdThenSourceRect(slices),
        ),
        prefabs = List<PrefabV3TargetDef>.unmodifiable(
-         List<PrefabV3TargetDef>.of(prefabs)..sort(_comparePrefabs),
+         prefabs.map(_canonicalTargetPrefab).toList()..sort(_comparePrefabs),
        );
 
   final List<AtlasSliceDef> slices;
@@ -201,6 +159,12 @@ final class ChunkV2TargetDocument {
 List<String> _canonicalTags(Iterable<String> tags) {
   return PrefabDeterminism.normalizeTags(tags.toList(growable: false));
 }
+
+PrefabV3TargetDef _canonicalTargetPrefab(PrefabV3TargetDef prefab) =>
+    prefab.copyWith(
+      collisionShapes: canonicalTerrainSourceShapes(prefab.collisionShapes),
+      tags: _canonicalTags(prefab.tags),
+    );
 
 int _comparePrefabs(PrefabV3TargetDef left, PrefabV3TargetDef right) {
   final idOrder = left.id.compareTo(right.id);

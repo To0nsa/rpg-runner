@@ -55,6 +55,35 @@ void main() {
     expect(decoded.prefabs.single.collisionShapes.single, _shape());
   });
 
+  test('prefab v3 target canonicalizes record source for serialization', () {
+    final document = PrefabV3TargetDocument(
+      slices: const <AtlasSliceDef>[],
+      prefabs: <PrefabV3TargetDef>[
+        PrefabV3TargetDef(
+          prefabKey: 'rock',
+          id: 'rock',
+          revision: 1,
+          status: PrefabStatus.active,
+          kind: PrefabKind.obstacle,
+          visualSource: const PrefabVisualSource.atlasSlice('rock'),
+          anchorXPx: 0,
+          anchorYPx: 0,
+          collisionShapes: <TerrainSourceShapeDef>[
+            _shape(shapeId: 'collision_002', xOffset: 20),
+            _shape(),
+          ],
+          tags: const <String>['rock', 'obstacle', 'rock'],
+        ),
+      ],
+    );
+
+    expect(
+      document.prefabs.single.collisionShapes.map((shape) => shape.shapeId),
+      <String>['collision_001', 'collision_002'],
+    );
+    expect(document.prefabs.single.tags, <String>['obstacle', 'rock']);
+  });
+
   test('prefab v3 rejects legacy, unknown, and noncanonical input', () {
     final canonical =
         jsonDecode(
@@ -272,7 +301,7 @@ void main() {
     final prefabTarget = PrefabV3TargetDocument(
       slices: prefabData.prefabSlices,
       prefabs: prefabData.prefabs.map(
-        (prefab) => PrefabV3TargetDef.fromLegacy(
+        (prefab) => prefabV3TargetFromLegacy(
           legacy: prefab,
           collisionShapes: prefabEntries[prefab.prefabKey]!.collisionShapes,
         ),
@@ -309,13 +338,16 @@ void main() {
   });
 }
 
-TerrainSourceShapeDef _shape() => TerrainSourceShapeDef(
-  shapeId: 'collision_001',
-  vertices: const <TerrainSourceVertexDef>[
-    TerrainSourceVertexDef(xHalfPixels: -10, yHalfPixels: -10),
-    TerrainSourceVertexDef(xHalfPixels: 10, yHalfPixels: -10),
-    TerrainSourceVertexDef(xHalfPixels: 10, yHalfPixels: 10),
-    TerrainSourceVertexDef(xHalfPixels: -10, yHalfPixels: 10),
+TerrainSourceShapeDef _shape({
+  String shapeId = 'collision_001',
+  int xOffset = 0,
+}) => TerrainSourceShapeDef(
+  shapeId: shapeId,
+  vertices: <TerrainSourceVertexDef>[
+    TerrainSourceVertexDef(xHalfPixels: xOffset - 10, yHalfPixels: -10),
+    TerrainSourceVertexDef(xHalfPixels: xOffset + 10, yHalfPixels: -10),
+    TerrainSourceVertexDef(xHalfPixels: xOffset + 10, yHalfPixels: 10),
+    TerrainSourceVertexDef(xHalfPixels: xOffset - 10, yHalfPixels: 10),
   ],
 );
 
