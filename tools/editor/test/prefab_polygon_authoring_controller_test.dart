@@ -337,10 +337,17 @@ Future<_Harness> _buildHarness() async {
   );
   final document = PrefabV3StagingDocument(
     data: data,
+    tileData: PrefabTileFileData(
+      tileSlices: const <AtlasSliceDef>[],
+      platformModules: const <TileModuleDef>[],
+    ),
     visualBoundsByPrefabKey: const <String, PrefabV3VisualBounds>{
       'target': PrefabV3VisualBounds(widthPx: 10, heightPx: 10),
     },
+    atlasImagePaths: const <String>[],
+    atlasImageSizes: const <String, Size>{},
     prefabBaselineContents: PrefabV3FileCodec.encode(data),
+    tileBaselineContents: null,
   );
   final session = EditorSessionController(
     pluginRegistry: AuthoringPluginRegistry(

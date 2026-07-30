@@ -10,6 +10,7 @@ import 'package:runner_core/collision/terrain/terrain_source_canonicalizer.dart'
 
 import '../../terrain_authoring/terrain_source_core_adapter.dart';
 import '../../terrain_authoring/terrain_source_models.dart';
+import '../domain/prefab_visual_bounds_resolver.dart';
 import '../models/models.dart';
 
 /// Prefab-domain validation entry points and shared private state.

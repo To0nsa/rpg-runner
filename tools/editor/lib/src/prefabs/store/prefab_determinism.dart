@@ -155,6 +155,26 @@ class PrefabDeterminism {
     return sorted;
   }
 
+  /// Returns module cells in deterministic row/column/slice order.
+  static List<TileModuleCellDef> sortModuleCellsByGridPosition(
+    Iterable<TileModuleCellDef> cells,
+  ) {
+    final sorted = List<TileModuleCellDef>.from(cells)
+      ..sort(compareModuleCellsByGridPosition);
+    return sorted;
+  }
+
+  /// Canonical module-cell order: row, column, then referenced slice ID.
+  static int compareModuleCellsByGridPosition(
+    TileModuleCellDef a,
+    TileModuleCellDef b,
+  ) {
+    final yCompare = a.gridY.compareTo(b.gridY);
+    if (yCompare != 0) return yCompare;
+    final xCompare = a.gridX.compareTo(b.gridX);
+    return xCompare != 0 ? xCompare : a.sliceId.compareTo(b.sliceId);
+  }
+
   /// Total-order comparator for modules.
   ///
   /// Status rank keeps active modules first in canonical exports; subsequent
@@ -377,23 +397,11 @@ class PrefabDeterminism {
     }
 
     for (var i = 0; i < a.length; i += 1) {
-      final cellCompare = _compareModuleCell(a[i], b[i]);
+      final cellCompare = compareModuleCellsByGridPosition(a[i], b[i]);
       if (cellCompare != 0) {
         return cellCompare;
       }
     }
     return 0;
-  }
-
-  static int _compareModuleCell(TileModuleCellDef a, TileModuleCellDef b) {
-    final yCompare = a.gridY.compareTo(b.gridY);
-    if (yCompare != 0) {
-      return yCompare;
-    }
-    final xCompare = a.gridX.compareTo(b.gridX);
-    if (xCompare != 0) {
-      return xCompare;
-    }
-    return a.sliceId.compareTo(b.sliceId);
   }
 }

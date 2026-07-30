@@ -111,33 +111,54 @@ class PrefabV3VisualBounds {
 class PrefabV3StagingDocument extends AuthoringDocument {
   PrefabV3StagingDocument({
     required this.data,
+    required this.tileData,
     required Map<String, PrefabV3VisualBounds> visualBoundsByPrefabKey,
+    required List<String> atlasImagePaths,
+    required Map<String, Size> atlasImageSizes,
     required this.prefabBaselineContents,
+    required this.tileBaselineContents,
     Iterable<String> changedPrefabKeys = const <String>[],
   }) : visualBoundsByPrefabKey = Map<String, PrefabV3VisualBounds>.unmodifiable(
          visualBoundsByPrefabKey,
        ),
+       atlasImagePaths = List<String>.unmodifiable(atlasImagePaths),
+       atlasImageSizes = Map<String, Size>.unmodifiable(atlasImageSizes),
        changedPrefabKeys = List<String>.unmodifiable(
          changedPrefabKeys.toSet().toList()..sort(),
        );
 
   final PrefabV3FileData data;
+  final PrefabTileFileData tileData;
   final Map<String, PrefabV3VisualBounds> visualBoundsByPrefabKey;
+  final List<String> atlasImagePaths;
+  final Map<String, Size> atlasImageSizes;
   final String? prefabBaselineContents;
+  final String? tileBaselineContents;
   final List<String> changedPrefabKeys;
 
   PrefabV3StagingDocument copyWith({
     PrefabV3FileData? data,
+    PrefabTileFileData? tileData,
     Map<String, PrefabV3VisualBounds>? visualBoundsByPrefabKey,
+    List<String>? atlasImagePaths,
+    Map<String, Size>? atlasImageSizes,
     String? prefabBaselineContents,
     bool keepPrefabBaselineContents = true,
+    String? tileBaselineContents,
+    bool keepTileBaselineContents = true,
     Iterable<String>? changedPrefabKeys,
   }) => PrefabV3StagingDocument(
     data: data ?? this.data,
+    tileData: tileData ?? this.tileData,
     visualBoundsByPrefabKey:
         visualBoundsByPrefabKey ?? this.visualBoundsByPrefabKey,
+    atlasImagePaths: atlasImagePaths ?? this.atlasImagePaths,
+    atlasImageSizes: atlasImageSizes ?? this.atlasImageSizes,
     prefabBaselineContents: keepPrefabBaselineContents
         ? (prefabBaselineContents ?? this.prefabBaselineContents)
+        : null,
+    tileBaselineContents: keepTileBaselineContents
+        ? (tileBaselineContents ?? this.tileBaselineContents)
         : null,
     changedPrefabKeys: changedPrefabKeys ?? this.changedPrefabKeys,
   );
@@ -148,11 +169,19 @@ class PrefabV3StagingDocument extends AuthoringDocument {
 class PrefabV3StagingScene extends EditableScene {
   PrefabV3StagingScene({
     required this.data,
+    required this.tileData,
     required Map<String, PrefabV3VisualBounds> visualBoundsByPrefabKey,
+    required List<String> atlasImagePaths,
+    required Map<String, Size> atlasImageSizes,
   }) : visualBoundsByPrefabKey = Map<String, PrefabV3VisualBounds>.unmodifiable(
          visualBoundsByPrefabKey,
-       );
+       ),
+       atlasImagePaths = List<String>.unmodifiable(atlasImagePaths),
+       atlasImageSizes = Map<String, Size>.unmodifiable(atlasImageSizes);
 
   final PrefabV3FileData data;
+  final PrefabTileFileData tileData;
   final Map<String, PrefabV3VisualBounds> visualBoundsByPrefabKey;
+  final List<String> atlasImagePaths;
+  final Map<String, Size> atlasImageSizes;
 }

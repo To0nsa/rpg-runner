@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 
 import 'prefab_determinism.dart';
+import 'prefab_tile_file_codec.dart';
+import 'prefab_v3_file_codec.dart';
 import '../models/models.dart';
 import '../models/shared/model_json_utils.dart';
 
@@ -29,6 +31,17 @@ class PrefabSerializedFiles {
   final String tileContents;
 }
 
+/// Strict read-only prefab-v3 plus retained tile-v2 staging payload.
+class PrefabV3StagingLoadResult {
+  const PrefabV3StagingLoadResult({
+    required this.prefabData,
+    required this.tileData,
+  });
+
+  final PrefabV3FileData prefabData;
+  final PrefabTileFileData tileData;
+}
+
 /// Repository file adapter for prefab authoring data.
 ///
 /// Owns parsing, schema migration, canonical ordering, and paired writes for:
@@ -43,6 +56,37 @@ class PrefabStore {
   static const String tileDefsPath = 'assets/authoring/level/tile_defs.json';
 
   const PrefabStore();
+
+  /// Strictly loads prefab-v3 and retained tile-v2 source without enabling the
+  /// normal loader or any repository write path.
+  Future<PrefabV3StagingLoadResult> loadV3Staging(
+    String workspaceRootPath,
+  ) async {
+    final prefabFile = File(
+      p.normalize(p.join(workspaceRootPath, prefabDefsPath)),
+    );
+    final tileFile = File(p.normalize(p.join(workspaceRootPath, tileDefsPath)));
+    if (!prefabFile.existsSync()) {
+      throw StateError(
+        'prefab_v3_source_missing: expected ${prefabFile.path}.',
+      );
+    }
+    if (!tileFile.existsSync()) {
+      throw StateError(
+        'prefab_tile_source_missing: expected ${tileFile.path}.',
+      );
+    }
+    return PrefabV3StagingLoadResult(
+      prefabData: PrefabV3FileCodec.decode(
+        prefabFile.readAsStringSync(),
+        sourcePath: prefabFile.path,
+      ),
+      tileData: PrefabTileFileCodec.decode(
+        tileFile.readAsStringSync(),
+        sourcePath: tileFile.path,
+      ),
+    );
+  }
 
   /// Loads and normalizes prefab authoring data.
   ///

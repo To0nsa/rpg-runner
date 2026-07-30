@@ -10,6 +10,7 @@ import '../../workspace/editor_workspace.dart';
 import '../models/models.dart';
 import '../store/prefab_v3_file_codec.dart';
 import 'prefab_domain_models.dart';
+import 'prefab_visual_bounds_resolver.dart';
 import 'prefab_v3_collision_commit.dart';
 import '../store/prefab_store.dart';
 import '../validation/prefab_validation.dart';
@@ -52,6 +53,45 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
   @override
   Future<AuthoringDocument> loadFromRepo(EditorWorkspace workspace) async {
     final loadResult = await _store.loadWithReport(workspace.rootPath);
+    final metadata = await _loadWorkspaceMetadata(workspace);
+
+    return PrefabDocument(
+      data: loadResult.data,
+      atlasImagePaths: metadata.atlasImagePaths,
+      atlasImageSizes: metadata.atlasImageSizes,
+      migrationHints: List<String>.unmodifiable(loadResult.migrationHints),
+      prefabBaselineContents: metadata.prefabBaselineContents,
+      tileBaselineContents: metadata.tileBaselineContents,
+    );
+  }
+
+  /// Explicit read-only prefab-v3 load used before the normal schema cutover.
+  ///
+  /// [loadFromRepo] deliberately remains on v2 while repository source is
+  /// legacy. This method requires strict v3/v2 fixture source and returns a
+  /// changed-export-locked staging document.
+  Future<PrefabV3StagingDocument> loadV3StagingFromRepo(
+    EditorWorkspace workspace,
+  ) async {
+    final loadResult = await _store.loadV3Staging(workspace.rootPath);
+    final metadata = await _loadWorkspaceMetadata(workspace);
+    return PrefabV3StagingDocument(
+      data: loadResult.prefabData,
+      tileData: loadResult.tileData,
+      visualBoundsByPrefabKey: PrefabVisualBoundsResolver.resolveAll(
+        prefabData: loadResult.prefabData,
+        tileData: loadResult.tileData,
+      ),
+      atlasImagePaths: metadata.atlasImagePaths,
+      atlasImageSizes: metadata.atlasImageSizes,
+      prefabBaselineContents: metadata.prefabBaselineContents,
+      tileBaselineContents: metadata.tileBaselineContents,
+    );
+  }
+
+  Future<_PrefabWorkspaceMetadata> _loadWorkspaceMetadata(
+    EditorWorkspace workspace,
+  ) async {
     final prefabRelativePath = p.normalize(PrefabStore.prefabDefsPath);
     final tileRelativePath = p.normalize(PrefabStore.tileDefsPath);
     late final String? prefabBaselineContents;
@@ -85,11 +125,9 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
       );
     }
 
-    return PrefabDocument(
-      data: loadResult.data,
-      atlasImagePaths: List<String>.unmodifiable(atlasImagePaths),
-      atlasImageSizes: Map<String, Size>.unmodifiable(atlasImageSizes),
-      migrationHints: List<String>.unmodifiable(loadResult.migrationHints),
+    return _PrefabWorkspaceMetadata(
+      atlasImagePaths: atlasImagePaths,
+      atlasImageSizes: atlasImageSizes,
       prefabBaselineContents: prefabBaselineContents,
       tileBaselineContents: tileBaselineContents,
     );
@@ -113,7 +151,10 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
     if (document is PrefabV3StagingDocument) {
       return PrefabV3StagingScene(
         data: document.data,
+        tileData: document.tileData,
         visualBoundsByPrefabKey: document.visualBoundsByPrefabKey,
+        atlasImagePaths: document.atlasImagePaths,
+        atlasImageSizes: document.atlasImageSizes,
       );
     }
     final prefabDocument = _asPrefabDocument(document);
@@ -634,4 +675,19 @@ class _PrefabFileWrite {
   final String relativePath;
   final String? beforeContent;
   final String afterContent;
+}
+
+class _PrefabWorkspaceMetadata {
+  _PrefabWorkspaceMetadata({
+    required List<String> atlasImagePaths,
+    required Map<String, Size> atlasImageSizes,
+    required this.prefabBaselineContents,
+    required this.tileBaselineContents,
+  }) : atlasImagePaths = List<String>.unmodifiable(atlasImagePaths),
+       atlasImageSizes = Map<String, Size>.unmodifiable(atlasImageSizes);
+
+  final List<String> atlasImagePaths;
+  final Map<String, Size> atlasImageSizes;
+  final String? prefabBaselineContents;
+  final String? tileBaselineContents;
 }

@@ -50,46 +50,14 @@ _SourceGeometry? _geometryForModule(
   TileModuleDef module, {
   required Map<String, AtlasSliceDef> tileSliceById,
 }) {
-  if (module.cells.isEmpty || module.tileSize <= 0) {
-    return null;
-  }
-
-  final tileSize = module.tileSize.toDouble();
-  double? minLeft;
-  double? minTop;
-  double? maxRight;
-  double? maxBottom;
-  for (final cell in module.cells) {
-    final slice = tileSliceById[cell.sliceId];
-    final width = math.max(1, slice?.width ?? module.tileSize).toDouble();
-    final height = math.max(1, slice?.height ?? module.tileSize).toDouble();
-    final left = cell.gridX * tileSize;
-    final top = cell.gridY * tileSize;
-    final right = left + width;
-    final bottom = top + height;
-
-    minLeft = minLeft == null ? left : math.min(minLeft, left);
-    minTop = minTop == null ? top : math.min(minTop, top);
-    maxRight = maxRight == null ? right : math.max(maxRight, right);
-    maxBottom = maxBottom == null ? bottom : math.max(maxBottom, bottom);
-  }
-
-  if (minLeft == null ||
-      minTop == null ||
-      maxRight == null ||
-      maxBottom == null) {
-    return null;
-  }
-
-  final widthPx = (maxRight - minLeft).round();
-  final heightPx = (maxBottom - minTop).round();
-  if (widthPx <= 0 || heightPx <= 0) {
-    return null;
-  }
-
+  final bounds = PrefabVisualBoundsResolver.resolvePlatformModule(
+    module,
+    tileSlicesById: tileSliceById,
+  );
+  if (bounds == null) return null;
   return _SourceGeometry(
-    widthPx: widthPx,
-    heightPx: heightPx,
+    widthPx: bounds.widthPx,
+    heightPx: bounds.heightPx,
     snapUnitPx: module.tileSize,
   );
 }

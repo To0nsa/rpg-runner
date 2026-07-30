@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui' show Size;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_editor/src/domain/authoring_types.dart';
@@ -185,10 +186,17 @@ PrefabV3StagingDocument _document(Iterable<TerrainSourceShapeDef> shapes) {
   );
   return PrefabV3StagingDocument(
     data: data,
+    tileData: PrefabTileFileData(
+      tileSlices: const <AtlasSliceDef>[],
+      platformModules: const <TileModuleDef>[],
+    ),
     visualBoundsByPrefabKey: const <String, PrefabV3VisualBounds>{
       'target': PrefabV3VisualBounds(widthPx: 10, heightPx: 10),
     },
+    atlasImagePaths: const <String>[],
+    atlasImageSizes: const <String, Size>{},
     prefabBaselineContents: PrefabV3FileCodec.encode(data),
+    tileBaselineContents: null,
   );
 }
 
