@@ -1,9 +1,9 @@
 import '../chunks/chunk_domain_models.dart';
-import '../prefabs/models/models.dart';
-import '../terrain_authoring/terrain_source_models.dart';
-import 'polygon_authoring_metadata_codec.dart';
+import '../domain/strict_authoring_json.dart';
+import '../domain/strict_authoring_metadata_codec.dart';
+import '../prefabs/store/prefab_v3_file_codec.dart';
+import '../terrain_authoring/strict_terrain_source_codec.dart';
 import 'polygon_authoring_target_models.dart';
-import 'strict_migration_json.dart';
 
 /// Strict structural codec for staged prefab-v3 and chunk-v2 source.
 ///
@@ -15,45 +15,11 @@ abstract final class PolygonAuthoringTargetCodec {
   static PrefabV3TargetDocument decodePrefabV3(
     String raw, {
     String sourcePath = 'prefab_defs.json',
-  }) {
-    final root = _decodeRoot(raw, sourcePath: sourcePath);
-    _requireKeys(
-      root,
-      sourcePath: sourcePath,
-      allowed: const <String>{'schemaVersion', 'slices', 'prefabs'},
-      required: const <String>{'schemaVersion', 'slices', 'prefabs'},
-    );
-    _requireSchemaVersion(
-      root['schemaVersion'],
-      polygonPrefabSchemaVersion,
-      sourcePath: '$sourcePath.schemaVersion',
-    );
-    final slices = _objectList(
-      root['slices'],
-      sourcePath: '$sourcePath.slices',
-      parse: _decodeSlice,
-    );
-    _requireStrictIdOrder(
-      slices.map((slice) => slice.id),
-      sourcePath: '$sourcePath.slices',
-    );
-    final prefabs = _objectList(
-      root['prefabs'],
-      sourcePath: '$sourcePath.prefabs',
-      parse: _decodePrefab,
-    );
-    _requirePrefabOrder(prefabs, sourcePath: '$sourcePath.prefabs');
-    _requireUniqueStrings(
-      prefabs.map((prefab) => prefab.prefabKey),
-      sourcePath: '$sourcePath.prefabs.prefabKey',
-      caseInsensitive: true,
-    );
-    return PrefabV3TargetDocument(slices: slices, prefabs: prefabs);
-  }
+  }) => PrefabV3FileCodec.decode(raw, sourcePath: sourcePath);
 
   /// Emits the canonical prefab-v3 file representation with a final newline.
   static String encodePrefabV3(PrefabV3TargetDocument document) =>
-      _encode(document.toJson());
+      PrefabV3FileCodec.encode(document);
 
   /// Parses one complete chunk-v2 file without accepting v1 ground fields.
   static ChunkV2TargetDocument decodeChunkV2(
@@ -183,7 +149,7 @@ abstract final class PolygonAuthoringTargetCodec {
               sourcePath: '$sourcePath.groundBandZIndex',
             )
           : 0,
-      collisionShapes: _decodeShapes(
+      collisionShapes: StrictTerrainSourceCodec.decodeShapes(
         root['collisionShapes'],
         sourcePath: '$sourcePath.collisionShapes',
       ),
@@ -193,93 +159,6 @@ abstract final class PolygonAuthoringTargetCodec {
   /// Emits the canonical chunk-v2 file representation with a final newline.
   static String encodeChunkV2(ChunkV2TargetDocument document) =>
       _encode(document.toJson());
-}
-
-AtlasSliceDef _decodeSlice(
-  Map<String, Object?> json, {
-  required String sourcePath,
-}) {
-  return PolygonAuthoringMetadataCodec.decodeSlice(
-    json,
-    sourcePath: sourcePath,
-  );
-}
-
-PrefabV3TargetDef _decodePrefab(
-  Map<String, Object?> json, {
-  required String sourcePath,
-}) {
-  _requireKeys(
-    json,
-    sourcePath: sourcePath,
-    allowed: const <String>{
-      'prefabKey',
-      'id',
-      'revision',
-      'status',
-      'kind',
-      'visualSource',
-      'anchorXPx',
-      'anchorYPx',
-      'collisionShapes',
-      'tags',
-    },
-    required: const <String>{
-      'prefabKey',
-      'id',
-      'revision',
-      'status',
-      'kind',
-      'visualSource',
-      'anchorXPx',
-      'anchorYPx',
-      'collisionShapes',
-      'tags',
-    },
-  );
-  final statusRaw = _enumString(json['status'], const <String>{
-    'active',
-    'deprecated',
-  }, sourcePath: '$sourcePath.status');
-  final kindRaw = _enumString(json['kind'], const <String>{
-    'obstacle',
-    'platform',
-    'decoration',
-  }, sourcePath: '$sourcePath.kind');
-  return PrefabV3TargetDef(
-    prefabKey: _nonEmptyString(
-      json['prefabKey'],
-      sourcePath: '$sourcePath.prefabKey',
-    ),
-    id: _nonEmptyString(json['id'], sourcePath: '$sourcePath.id'),
-    revision: _positiveInt(
-      json['revision'],
-      sourcePath: '$sourcePath.revision',
-    ),
-    status: parsePrefabStatus(statusRaw),
-    kind: parsePrefabKind(kindRaw),
-    visualSource: _decodeVisualSource(
-      json['visualSource'],
-      sourcePath: '$sourcePath.visualSource',
-    ),
-    anchorXPx: _int(json['anchorXPx'], sourcePath: '$sourcePath.anchorXPx'),
-    anchorYPx: _int(json['anchorYPx'], sourcePath: '$sourcePath.anchorYPx'),
-    collisionShapes: _decodeShapes(
-      json['collisionShapes'],
-      sourcePath: '$sourcePath.collisionShapes',
-    ),
-    tags: _canonicalTags(json['tags'], sourcePath: '$sourcePath.tags'),
-  );
-}
-
-PrefabVisualSource _decodeVisualSource(
-  Object? raw, {
-  required String sourcePath,
-}) {
-  return PolygonAuthoringMetadataCodec.decodeVisualSource(
-    raw,
-    sourcePath: sourcePath,
-  );
 }
 
 TileLayerDef _decodeTileLayer(
@@ -312,71 +191,8 @@ PlacedMarkerDef _decodeMarker(
   );
 }
 
-List<TerrainSourceShapeDef> _decodeShapes(
-  Object? raw, {
-  required String sourcePath,
-}) {
-  if (raw is! List<Object?>) {
-    throw FormatException('$sourcePath must be an array.');
-  }
-  final shapes = <TerrainSourceShapeDef>[];
-  for (var index = 0; index < raw.length; index += 1) {
-    final shapePath = '$sourcePath[$index]';
-    final json = _object(raw[index], sourcePath: shapePath);
-    _requireKeys(
-      json,
-      sourcePath: shapePath,
-      allowed: const <String>{
-        'shapeId',
-        'collisionMode',
-        'vertices',
-        'surfaceKind',
-        'materialKey',
-      },
-      required: const <String>{'shapeId', 'collisionMode', 'vertices'},
-    );
-    if (json.containsKey('surfaceKind')) {
-      _nonEmptyString(
-        json['surfaceKind'],
-        sourcePath: '$shapePath.surfaceKind',
-      );
-    }
-    if (json.containsKey('materialKey')) {
-      _nonEmptyString(
-        json['materialKey'],
-        sourcePath: '$shapePath.materialKey',
-      );
-    }
-    final vertices = json['vertices'];
-    if (vertices is! List<Object?>) {
-      throw FormatException('$shapePath.vertices must be an array.');
-    }
-    for (var vertexIndex = 0; vertexIndex < vertices.length; vertexIndex += 1) {
-      _requireKeys(
-        _object(
-          vertices[vertexIndex],
-          sourcePath: '$shapePath.vertices[$vertexIndex]',
-        ),
-        sourcePath: '$shapePath.vertices[$vertexIndex]',
-        allowed: const <String>{'x', 'y'},
-        required: const <String>{'x', 'y'},
-      );
-    }
-    shapes.add(TerrainSourceShapeDef.fromJson(json, sourcePath: shapePath));
-  }
-  _requireStrictIdOrder(
-    shapes.map((shape) => shape.shapeId),
-    sourcePath: sourcePath,
-  );
-  return canonicalTerrainSourceShapes(shapes);
-}
-
 Map<String, Object?> _decodeRoot(String raw, {required String sourcePath}) {
-  return StrictMigrationJson.decodeRoot(raw, sourcePath: sourcePath);
-}
-
-Map<String, Object?> _object(Object? raw, {required String sourcePath}) {
-  return StrictMigrationJson.object(raw, sourcePath: sourcePath);
+  return StrictAuthoringJson.decodeRoot(raw, sourcePath: sourcePath);
 }
 
 List<T> _objectList<T>(
@@ -385,7 +201,7 @@ List<T> _objectList<T>(
   required T Function(Map<String, Object?> json, {required String sourcePath})
   parse,
 }) {
-  return StrictMigrationJson.objectList(
+  return StrictAuthoringJson.objectList(
     raw,
     sourcePath: sourcePath,
     parse: parse,
@@ -398,7 +214,7 @@ void _requireKeys(
   required Set<String> allowed,
   required Set<String> required,
 }) {
-  StrictMigrationJson.requireKeys(
+  StrictAuthoringJson.requireKeys(
     json,
     sourcePath: sourcePath,
     allowed: allowed,
@@ -411,7 +227,7 @@ void _requireSchemaVersion(
   int expected, {
   required String sourcePath,
 }) {
-  StrictMigrationJson.requireSchemaVersion(
+  StrictAuthoringJson.requireSchemaVersion(
     raw,
     expected,
     sourcePath: sourcePath,
@@ -419,7 +235,7 @@ void _requireSchemaVersion(
 }
 
 String _nonEmptyString(Object? raw, {required String sourcePath}) {
-  return StrictMigrationJson.nonEmptyString(raw, sourcePath: sourcePath);
+  return StrictAuthoringJson.nonEmptyString(raw, sourcePath: sourcePath);
 }
 
 String _enumString(
@@ -427,55 +243,26 @@ String _enumString(
   Set<String> accepted, {
   required String sourcePath,
 }) {
-  return StrictMigrationJson.enumString(raw, accepted, sourcePath: sourcePath);
+  return StrictAuthoringJson.enumString(raw, accepted, sourcePath: sourcePath);
 }
 
 int _int(Object? raw, {required String sourcePath}) {
-  return StrictMigrationJson.integer(raw, sourcePath: sourcePath);
+  return StrictAuthoringJson.integer(raw, sourcePath: sourcePath);
 }
 
 int _positiveInt(Object? raw, {required String sourcePath}) {
-  return StrictMigrationJson.positiveInt(raw, sourcePath: sourcePath);
+  return StrictAuthoringJson.positiveInt(raw, sourcePath: sourcePath);
 }
 
 List<String> _canonicalTags(Object? raw, {required String sourcePath}) {
-  return StrictMigrationJson.canonicalTags(raw, sourcePath: sourcePath);
+  return StrictAuthoringJson.canonicalTags(raw, sourcePath: sourcePath);
 }
 
 void _requireStrictIdOrder(
   Iterable<String> values, {
   required String sourcePath,
 }) {
-  StrictMigrationJson.requireStrictStringOrder(values, sourcePath: sourcePath);
-}
-
-void _requireUniqueStrings(
-  Iterable<String> values, {
-  required String sourcePath,
-  required bool caseInsensitive,
-}) {
-  StrictMigrationJson.requireUniqueStrings(
-    values,
-    sourcePath: sourcePath,
-    caseInsensitive: caseInsensitive,
-  );
-}
-
-void _requirePrefabOrder(
-  List<PrefabV3TargetDef> prefabs, {
-  required String sourcePath,
-}) {
-  for (var index = 1; index < prefabs.length; index += 1) {
-    final previous = prefabs[index - 1];
-    final current = prefabs[index];
-    final order = previous.id.compareTo(current.id);
-    if (order > 0 ||
-        (order == 0 && previous.prefabKey.compareTo(current.prefabKey) >= 0)) {
-      throw FormatException(
-        '$sourcePath must be ordered by id then prefabKey without duplicates.',
-      );
-    }
-  }
+  StrictAuthoringJson.requireStrictStringOrder(values, sourcePath: sourcePath);
 }
 
 void _requireComparatorOrder<T>(
@@ -483,11 +270,11 @@ void _requireComparatorOrder<T>(
   int Function(T left, T right) compare, {
   required String sourcePath,
 }) {
-  StrictMigrationJson.requireComparatorOrder(
+  StrictAuthoringJson.requireComparatorOrder(
     values,
     compare,
     sourcePath: sourcePath,
   );
 }
 
-String _encode(Map<String, Object> json) => StrictMigrationJson.encode(json);
+String _encode(Map<String, Object> json) => StrictAuthoringJson.encode(json);

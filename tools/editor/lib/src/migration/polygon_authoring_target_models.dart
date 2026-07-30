@@ -5,13 +5,16 @@ import '../terrain_authoring/terrain_source_models.dart';
 import 'legacy_prefab_models.dart';
 
 /// Polygon-authoring prefab source schema staged for the one-time cutover.
-const int polygonPrefabSchemaVersion = 3;
+const int polygonPrefabSchemaVersion = prefabSchemaVersionV3;
 
 /// Polygon-authoring chunk source schema staged for the one-time cutover.
 const int polygonChunkSchemaVersion = 2;
 
 /// Migration-facing alias for the normal prefab-v3 polygon record.
 typedef PrefabV3TargetDef = PrefabV3Def;
+
+/// Migration-facing alias for the normal prefab-v3 source-file record.
+typedef PrefabV3TargetDocument = PrefabV3FileData;
 
 /// Preserves all rectangle-era metadata while replacing only collision source.
 PrefabV3TargetDef prefabV3TargetFromLegacy({
@@ -29,28 +32,6 @@ PrefabV3TargetDef prefabV3TargetFromLegacy({
   collisionShapes: canonicalTerrainSourceShapes(collisionShapes),
   tags: _canonicalTags(legacy.tags),
 );
-
-/// Complete staged `prefab_defs.json` v3 payload.
-final class PrefabV3TargetDocument {
-  PrefabV3TargetDocument({
-    required Iterable<AtlasSliceDef> slices,
-    required Iterable<PrefabV3TargetDef> prefabs,
-  }) : slices = List<AtlasSliceDef>.unmodifiable(
-         PrefabDeterminism.sortSlicesByIdThenSourceRect(slices),
-       ),
-       prefabs = List<PrefabV3TargetDef>.unmodifiable(
-         prefabs.map(_canonicalTargetPrefab).toList()..sort(_comparePrefabs),
-       );
-
-  final List<AtlasSliceDef> slices;
-  final List<PrefabV3TargetDef> prefabs;
-
-  Map<String, Object> toJson() => <String, Object>{
-    'schemaVersion': polygonPrefabSchemaVersion,
-    'slices': slices.map((slice) => slice.toJson()).toList(growable: false),
-    'prefabs': prefabs.map((prefab) => prefab.toJson()).toList(growable: false),
-  };
-}
 
 /// One complete staged chunk-v2 file with direct chunk-local terrain source.
 final class ChunkV2TargetDocument {
@@ -158,15 +139,4 @@ final class ChunkV2TargetDocument {
 
 List<String> _canonicalTags(Iterable<String> tags) {
   return PrefabDeterminism.normalizeTags(tags.toList(growable: false));
-}
-
-PrefabV3TargetDef _canonicalTargetPrefab(PrefabV3TargetDef prefab) =>
-    prefab.copyWith(
-      collisionShapes: canonicalTerrainSourceShapes(prefab.collisionShapes),
-      tags: _canonicalTags(prefab.tags),
-    );
-
-int _comparePrefabs(PrefabV3TargetDef left, PrefabV3TargetDef right) {
-  final idOrder = left.id.compareTo(right.id);
-  return idOrder != 0 ? idOrder : left.prefabKey.compareTo(right.prefabKey);
 }

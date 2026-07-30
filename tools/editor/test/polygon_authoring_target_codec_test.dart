@@ -55,7 +55,7 @@ void main() {
     expect(decoded.prefabs.single.collisionShapes.single, _shape());
   });
 
-  test('prefab v3 target canonicalizes record source for serialization', () {
+  test('prefab v3 target serialization canonicalizes copied records', () {
     final document = PrefabV3TargetDocument(
       slices: const <AtlasSliceDef>[],
       prefabs: <PrefabV3TargetDef>[
@@ -76,12 +76,20 @@ void main() {
         ),
       ],
     );
+    final canonical = PolygonAuthoringTargetCodec.decodePrefabV3(
+      PolygonAuthoringTargetCodec.encodePrefabV3(document),
+    );
 
     expect(
-      document.prefabs.single.collisionShapes.map((shape) => shape.shapeId),
+      canonical.prefabs.single.collisionShapes.map((shape) => shape.shapeId),
       <String>['collision_001', 'collision_002'],
     );
-    expect(document.prefabs.single.tags, <String>['obstacle', 'rock']);
+    expect(canonical.prefabs.single.tags, <String>['obstacle', 'rock']);
+    expect(
+      document.prefabs.single.collisionShapes.map((shape) => shape.shapeId),
+      <String>['collision_002', 'collision_001'],
+    );
+    expect(document.prefabs.single.tags, <String>['rock', 'obstacle', 'rock']);
   });
 
   test('prefab v3 rejects legacy, unknown, and noncanonical input', () {

@@ -2,12 +2,12 @@ import 'dart:convert';
 
 import '../chunks/chunk_domain_models.dart';
 
-/// Fail-closed JSON primitives shared by polygon migration source codecs.
+/// Fail-closed JSON primitives shared by strict authoring source codecs.
 ///
 /// These helpers validate the authored representation as written. They never
 /// trim, default, reorder, or coerce values, because doing so would hide source
 /// drift before a migration plan is reviewed.
-abstract final class StrictMigrationJson {
+abstract final class StrictAuthoringJson {
   /// Decodes [raw] as one JSON object and reports failures at [sourcePath].
   static Map<String, Object?> decodeRoot(
     String raw, {

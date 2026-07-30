@@ -72,6 +72,24 @@ class PrefabDeterminism {
     return sorted;
   }
 
+  /// Returns prefab-v3 records in canonical user-ID/stable-key order.
+  static List<PrefabV3Def> sortPrefabV3ByIdThenKey(
+    Iterable<PrefabV3Def> prefabs,
+  ) {
+    final sorted = List<PrefabV3Def>.from(prefabs)
+      ..sort(comparePrefabV3ByIdThenKey);
+    return sorted;
+  }
+
+  /// Canonical prefab-v3 file order.
+  ///
+  /// Equal results represent an invalid duplicate identity and are rejected by
+  /// the strict source codec before serialization.
+  static int comparePrefabV3ByIdThenKey(PrefabV3Def a, PrefabV3Def b) {
+    final idCompare = a.id.compareTo(b.id);
+    return idCompare != 0 ? idCompare : a.prefabKey.compareTo(b.prefabKey);
+  }
+
   /// Total-order comparator for prefabs.
   ///
   /// Starts with user-facing identity (`id`, `prefabKey`) and then falls

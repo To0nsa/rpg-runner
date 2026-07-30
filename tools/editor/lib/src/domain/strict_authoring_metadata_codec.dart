@@ -1,6 +1,6 @@
 import '../chunks/chunk_domain_models.dart';
 import '../prefabs/models/models.dart';
-import 'strict_migration_json.dart';
+import 'strict_authoring_json.dart';
 
 /// Strict parser for metadata retained unchanged across polygon schema cutover.
 ///
@@ -12,7 +12,7 @@ abstract final class PolygonAuthoringMetadataCodec {
     Map<String, Object?> json, {
     required String sourcePath,
   }) {
-    StrictMigrationJson.requireKeys(
+    StrictAuthoringJson.requireKeys(
       json,
       sourcePath: sourcePath,
       allowed: const <String>{
@@ -34,26 +34,26 @@ abstract final class PolygonAuthoringMetadataCodec {
       },
     );
     return AtlasSliceDef(
-      id: StrictMigrationJson.nonEmptyString(
+      id: StrictAuthoringJson.nonEmptyString(
         json['id'],
         sourcePath: '$sourcePath.id',
       ),
-      sourceImagePath: StrictMigrationJson.nonEmptyString(
+      sourceImagePath: StrictAuthoringJson.nonEmptyString(
         json['sourceImagePath'],
         sourcePath: '$sourcePath.sourceImagePath',
       ),
-      x: StrictMigrationJson.integer(json['x'], sourcePath: '$sourcePath.x'),
-      y: StrictMigrationJson.integer(json['y'], sourcePath: '$sourcePath.y'),
-      width: StrictMigrationJson.positiveInt(
+      x: StrictAuthoringJson.integer(json['x'], sourcePath: '$sourcePath.x'),
+      y: StrictAuthoringJson.integer(json['y'], sourcePath: '$sourcePath.y'),
+      width: StrictAuthoringJson.positiveInt(
         json['width'],
         sourcePath: '$sourcePath.width',
       ),
-      height: StrictMigrationJson.positiveInt(
+      height: StrictAuthoringJson.positiveInt(
         json['height'],
         sourcePath: '$sourcePath.height',
       ),
       tags: json.containsKey('tags')
-          ? StrictMigrationJson.canonicalTags(
+          ? StrictAuthoringJson.canonicalTags(
               json['tags'],
               sourcePath: '$sourcePath.tags',
             )
@@ -66,33 +66,33 @@ abstract final class PolygonAuthoringMetadataCodec {
     Object? raw, {
     required String sourcePath,
   }) {
-    final json = StrictMigrationJson.object(raw, sourcePath: sourcePath);
-    final type = StrictMigrationJson.enumString(json['type'], const <String>{
+    final json = StrictAuthoringJson.object(raw, sourcePath: sourcePath);
+    final type = StrictAuthoringJson.enumString(json['type'], const <String>{
       'atlas_slice',
       'platform_module',
     }, sourcePath: '$sourcePath.type');
     if (type == 'atlas_slice') {
-      StrictMigrationJson.requireKeys(
+      StrictAuthoringJson.requireKeys(
         json,
         sourcePath: sourcePath,
         allowed: const <String>{'type', 'sliceId'},
         required: const <String>{'type', 'sliceId'},
       );
       return PrefabVisualSource.atlasSlice(
-        StrictMigrationJson.nonEmptyString(
+        StrictAuthoringJson.nonEmptyString(
           json['sliceId'],
           sourcePath: '$sourcePath.sliceId',
         ),
       );
     }
-    StrictMigrationJson.requireKeys(
+    StrictAuthoringJson.requireKeys(
       json,
       sourcePath: sourcePath,
       allowed: const <String>{'type', 'moduleId'},
       required: const <String>{'type', 'moduleId'},
     );
     return PrefabVisualSource.platformModule(
-      StrictMigrationJson.nonEmptyString(
+      StrictAuthoringJson.nonEmptyString(
         json['moduleId'],
         sourcePath: '$sourcePath.moduleId',
       ),
@@ -104,22 +104,22 @@ abstract final class PolygonAuthoringMetadataCodec {
     Map<String, Object?> json, {
     required String sourcePath,
   }) {
-    StrictMigrationJson.requireKeys(
+    StrictAuthoringJson.requireKeys(
       json,
       sourcePath: sourcePath,
       allowed: const <String>{'id', 'kind', 'visible'},
       required: const <String>{'id', 'kind', 'visible'},
     );
     return TileLayerDef(
-      id: StrictMigrationJson.nonEmptyString(
+      id: StrictAuthoringJson.nonEmptyString(
         json['id'],
         sourcePath: '$sourcePath.id',
       ),
-      kind: StrictMigrationJson.nonEmptyString(
+      kind: StrictAuthoringJson.nonEmptyString(
         json['kind'],
         sourcePath: '$sourcePath.kind',
       ),
-      visible: StrictMigrationJson.boolean(
+      visible: StrictAuthoringJson.boolean(
         json['visible'],
         sourcePath: '$sourcePath.visible',
       ),
@@ -131,7 +131,7 @@ abstract final class PolygonAuthoringMetadataCodec {
     Map<String, Object?> json, {
     required String sourcePath,
   }) {
-    StrictMigrationJson.requireKeys(
+    StrictAuthoringJson.requireKeys(
       json,
       sourcePath: sourcePath,
       allowed: const <String>{
@@ -148,40 +148,40 @@ abstract final class PolygonAuthoringMetadataCodec {
       required: const <String>{'prefabId', 'x', 'y', 'zIndex', 'snapToGrid'},
     );
     return PlacedPrefabDef(
-      prefabId: StrictMigrationJson.nonEmptyString(
+      prefabId: StrictAuthoringJson.nonEmptyString(
         json['prefabId'],
         sourcePath: '$sourcePath.prefabId',
       ),
       prefabKey: json.containsKey('prefabKey')
-          ? StrictMigrationJson.nonEmptyString(
+          ? StrictAuthoringJson.nonEmptyString(
               json['prefabKey'],
               sourcePath: '$sourcePath.prefabKey',
             )
           : '',
-      x: StrictMigrationJson.integer(json['x'], sourcePath: '$sourcePath.x'),
-      y: StrictMigrationJson.integer(json['y'], sourcePath: '$sourcePath.y'),
-      zIndex: StrictMigrationJson.integer(
+      x: StrictAuthoringJson.integer(json['x'], sourcePath: '$sourcePath.x'),
+      y: StrictAuthoringJson.integer(json['y'], sourcePath: '$sourcePath.y'),
+      zIndex: StrictAuthoringJson.integer(
         json['zIndex'],
         sourcePath: '$sourcePath.zIndex',
       ),
-      snapToGrid: StrictMigrationJson.boolean(
+      snapToGrid: StrictAuthoringJson.boolean(
         json['snapToGrid'],
         sourcePath: '$sourcePath.snapToGrid',
       ),
       scale: json.containsKey('scale')
-          ? StrictMigrationJson.prefabScale(
+          ? StrictAuthoringJson.prefabScale(
               json['scale'],
               sourcePath: '$sourcePath.scale',
             )
           : defaultPrefabPlacementScale,
       flipX: json.containsKey('flipX')
-          ? StrictMigrationJson.boolean(
+          ? StrictAuthoringJson.boolean(
               json['flipX'],
               sourcePath: '$sourcePath.flipX',
             )
           : false,
       flipY: json.containsKey('flipY')
-          ? StrictMigrationJson.boolean(
+          ? StrictAuthoringJson.boolean(
               json['flipY'],
               sourcePath: '$sourcePath.flipY',
             )
@@ -194,7 +194,7 @@ abstract final class PolygonAuthoringMetadataCodec {
     Map<String, Object?> json, {
     required String sourcePath,
   }) {
-    StrictMigrationJson.requireKeys(
+    StrictAuthoringJson.requireKeys(
       json,
       sourcePath: sourcePath,
       allowed: const <String>{
@@ -214,7 +214,7 @@ abstract final class PolygonAuthoringMetadataCodec {
         'placement',
       },
     );
-    final chancePercent = StrictMigrationJson.integer(
+    final chancePercent = StrictAuthoringJson.integer(
       json['chancePercent'],
       sourcePath: '$sourcePath.chancePercent',
     );
@@ -222,19 +222,19 @@ abstract final class PolygonAuthoringMetadataCodec {
       throw FormatException('$sourcePath.chancePercent must be from 0 to 100.');
     }
     return PlacedMarkerDef(
-      markerId: StrictMigrationJson.nonEmptyString(
+      markerId: StrictAuthoringJson.nonEmptyString(
         json['markerId'],
         sourcePath: '$sourcePath.markerId',
       ),
-      x: StrictMigrationJson.integer(json['x'], sourcePath: '$sourcePath.x'),
-      y: StrictMigrationJson.integer(json['y'], sourcePath: '$sourcePath.y'),
+      x: StrictAuthoringJson.integer(json['x'], sourcePath: '$sourcePath.x'),
+      y: StrictAuthoringJson.integer(json['y'], sourcePath: '$sourcePath.y'),
       chancePercent: chancePercent,
-      salt: StrictMigrationJson.integer(
+      salt: StrictAuthoringJson.integer(
         json['salt'],
         sourcePath: '$sourcePath.salt',
       ),
       placement:
-          StrictMigrationJson.enumString(json['placement'], const <String>{
+          StrictAuthoringJson.enumString(json['placement'], const <String>{
             markerPlacementGround,
             markerPlacementHighestSurfaceAtX,
             markerPlacementObstacleTop,

@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 
 import '../chunks/chunk_store.dart';
+import '../domain/strict_authoring_json.dart';
 import '../prefabs/models/models.dart';
 import '../prefabs/store/prefab_store.dart';
 import '../terrain_authoring/terrain_source_core_adapter.dart';
@@ -14,7 +15,6 @@ import 'polygon_authoring_legacy_codec.dart';
 import 'polygon_authoring_migration_plan.dart';
 import 'polygon_authoring_target_codec.dart';
 import 'polygon_authoring_target_models.dart';
-import 'strict_migration_json.dart';
 
 /// One target file validated entirely in memory by a migration check.
 final class PolygonAuthoringMigrationTargetFile {
@@ -853,8 +853,8 @@ int _readSchemaVersion(
   required String invalidCode,
 }) {
   try {
-    final root = StrictMigrationJson.decodeRoot(raw, sourcePath: sourcePath);
-    return StrictMigrationJson.integer(
+    final root = StrictAuthoringJson.decodeRoot(raw, sourcePath: sourcePath);
+    return StrictAuthoringJson.integer(
       root['schemaVersion'],
       sourcePath: '$sourcePath.schemaVersion',
     );

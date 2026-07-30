@@ -1,10 +1,10 @@
 import '../chunks/chunk_domain_models.dart';
+import '../domain/strict_authoring_json.dart';
+import '../domain/strict_authoring_metadata_codec.dart';
 import '../prefabs/models/models.dart';
 import '../prefabs/store/prefab_determinism.dart';
 import '../workspace/workspace_file_io.dart';
 import 'legacy_prefab_models.dart';
-import 'polygon_authoring_metadata_codec.dart';
-import 'strict_migration_json.dart';
 
 /// Strictly parsed legacy prefab input plus its explicit source schema.
 final class LegacyPrefabMigrationDocument {
@@ -52,14 +52,14 @@ abstract final class PolygonAuthoringLegacyCodec {
     String raw, {
     String sourcePath = 'prefab_defs.json',
   }) {
-    final root = StrictMigrationJson.decodeRoot(raw, sourcePath: sourcePath);
-    StrictMigrationJson.requireKeys(
+    final root = StrictAuthoringJson.decodeRoot(raw, sourcePath: sourcePath);
+    StrictAuthoringJson.requireKeys(
       root,
       sourcePath: sourcePath,
       allowed: const <String>{'schemaVersion', 'slices', 'prefabs'},
       required: const <String>{'schemaVersion', 'slices', 'prefabs'},
     );
-    final schemaVersion = StrictMigrationJson.integer(
+    final schemaVersion = StrictAuthoringJson.integer(
       root['schemaVersion'],
       sourcePath: '$sourcePath.schemaVersion',
     );
@@ -68,12 +68,12 @@ abstract final class PolygonAuthoringLegacyCodec {
         '$sourcePath.schemaVersion must be exactly 1 or 2.',
       );
     }
-    final slices = StrictMigrationJson.objectList(
+    final slices = StrictAuthoringJson.objectList(
       root['slices'],
       sourcePath: '$sourcePath.slices',
       parse: PolygonAuthoringMetadataCodec.decodeSlice,
     );
-    StrictMigrationJson.requireComparatorOrder(
+    StrictAuthoringJson.requireComparatorOrder(
       slices,
       PrefabDeterminism.compareSlicesByIdThenSourceRect,
       sourcePath: '$sourcePath.slices',
@@ -83,18 +83,18 @@ abstract final class PolygonAuthoringLegacyCodec {
             root['prefabs'],
             sourcePath: '$sourcePath.prefabs',
           )
-        : StrictMigrationJson.objectList(
+        : StrictAuthoringJson.objectList(
             root['prefabs'],
             sourcePath: '$sourcePath.prefabs',
             parse: _decodePrefabV2,
           );
     if (schemaVersion == 2) {
-      StrictMigrationJson.requireComparatorOrder(
+      StrictAuthoringJson.requireComparatorOrder(
         prefabs,
         compareLegacyPrefabDefs,
         sourcePath: '$sourcePath.prefabs',
       );
-      StrictMigrationJson.requireUniqueStrings(
+      StrictAuthoringJson.requireUniqueStrings(
         prefabs.map((prefab) => prefab.prefabKey),
         sourcePath: '$sourcePath.prefabs.prefabKey',
         caseInsensitive: true,
@@ -113,8 +113,8 @@ abstract final class PolygonAuthoringLegacyCodec {
     String raw, {
     String sourcePath = 'chunk.json',
   }) {
-    final root = StrictMigrationJson.decodeRoot(raw, sourcePath: sourcePath);
-    StrictMigrationJson.requireKeys(
+    final root = StrictAuthoringJson.decodeRoot(raw, sourcePath: sourcePath);
+    StrictAuthoringJson.requireKeys(
       root,
       sourcePath: sourcePath,
       allowed: const <String>{
@@ -157,12 +157,12 @@ abstract final class PolygonAuthoringLegacyCodec {
         'groundGaps',
       },
     );
-    StrictMigrationJson.requireSchemaVersion(
+    StrictAuthoringJson.requireSchemaVersion(
       root['schemaVersion'],
       chunkSchemaVersion,
       sourcePath: '$sourcePath.schemaVersion',
     );
-    final chunkKey = StrictMigrationJson.nonEmptyString(
+    final chunkKey = StrictAuthoringJson.nonEmptyString(
       root['chunkKey'],
       sourcePath: '$sourcePath.chunkKey',
     );
@@ -171,7 +171,7 @@ abstract final class PolygonAuthoringLegacyCodec {
         '$sourcePath.chunkKey must contain lowercase letters, digits, and underscore.',
       );
     }
-    final assemblyGroupId = StrictMigrationJson.nonEmptyString(
+    final assemblyGroupId = StrictAuthoringJson.nonEmptyString(
       root['assemblyGroupId'],
       sourcePath: '$sourcePath.assemblyGroupId',
     );
@@ -181,31 +181,31 @@ abstract final class PolygonAuthoringLegacyCodec {
         '${stableChunkAssemblyGroupPattern.pattern}.',
       );
     }
-    final tileLayers = StrictMigrationJson.objectList(
+    final tileLayers = StrictAuthoringJson.objectList(
       root['tileLayers'],
       sourcePath: '$sourcePath.tileLayers',
       parse: PolygonAuthoringMetadataCodec.decodeTileLayer,
     );
-    StrictMigrationJson.requireStrictStringOrder(
+    StrictAuthoringJson.requireStrictStringOrder(
       tileLayers.map((layer) => layer.id),
       sourcePath: '$sourcePath.tileLayers',
     );
-    final prefabs = StrictMigrationJson.objectList(
+    final prefabs = StrictAuthoringJson.objectList(
       root['prefabs'],
       sourcePath: '$sourcePath.prefabs',
       parse: PolygonAuthoringMetadataCodec.decodePlacement,
     );
-    StrictMigrationJson.requireComparatorOrder(
+    StrictAuthoringJson.requireComparatorOrder(
       prefabs,
       comparePlacedPrefabsDeterministic,
       sourcePath: '$sourcePath.prefabs',
     );
-    final markers = StrictMigrationJson.objectList(
+    final markers = StrictAuthoringJson.objectList(
       root['markers'],
       sourcePath: '$sourcePath.markers',
       parse: PolygonAuthoringMetadataCodec.decodeMarker,
     );
-    StrictMigrationJson.requireComparatorOrder(
+    StrictAuthoringJson.requireComparatorOrder(
       markers,
       comparePlacedMarkersDeterministic,
       sourcePath: '$sourcePath.markers',
@@ -214,17 +214,17 @@ abstract final class PolygonAuthoringLegacyCodec {
       root['groundProfile'],
       sourcePath: '$sourcePath.groundProfile',
     );
-    final groundGaps = StrictMigrationJson.objectList(
+    final groundGaps = StrictAuthoringJson.objectList(
       root['groundGaps'],
       sourcePath: '$sourcePath.groundGaps',
       parse: _decodeGroundGap,
     );
-    StrictMigrationJson.requireComparatorOrder(
+    StrictAuthoringJson.requireComparatorOrder(
       groundGaps,
       _compareGroundGaps,
       sourcePath: '$sourcePath.groundGaps',
     );
-    StrictMigrationJson.requireUniqueStrings(
+    StrictAuthoringJson.requireUniqueStrings(
       groundGaps.map((gap) => gap.gapId),
       sourcePath: '$sourcePath.groundGaps.gapId',
       caseInsensitive: true,
@@ -232,43 +232,43 @@ abstract final class PolygonAuthoringLegacyCodec {
     final chunk = LevelChunkDef(
       schemaVersion: chunkSchemaVersion,
       chunkKey: chunkKey,
-      id: StrictMigrationJson.nonEmptyString(
+      id: StrictAuthoringJson.nonEmptyString(
         root['id'],
         sourcePath: '$sourcePath.id',
       ),
-      revision: StrictMigrationJson.positiveInt(
+      revision: StrictAuthoringJson.positiveInt(
         root['revision'],
         sourcePath: '$sourcePath.revision',
       ),
-      status: StrictMigrationJson.enumString(root['status'], const <String>{
+      status: StrictAuthoringJson.enumString(root['status'], const <String>{
         chunkStatusActive,
         chunkStatusDeprecated,
       }, sourcePath: '$sourcePath.status'),
-      levelId: StrictMigrationJson.nonEmptyString(
+      levelId: StrictAuthoringJson.nonEmptyString(
         root['levelId'],
         sourcePath: '$sourcePath.levelId',
       ),
-      tileSize: StrictMigrationJson.positiveInt(
+      tileSize: StrictAuthoringJson.positiveInt(
         root['tileSize'],
         sourcePath: '$sourcePath.tileSize',
       ),
-      width: StrictMigrationJson.positiveInt(
+      width: StrictAuthoringJson.positiveInt(
         root['width'],
         sourcePath: '$sourcePath.width',
       ),
-      height: StrictMigrationJson.positiveInt(
+      height: StrictAuthoringJson.positiveInt(
         root['height'],
         sourcePath: '$sourcePath.height',
       ),
       difficulty:
-          StrictMigrationJson.enumString(root['difficulty'], const <String>{
+          StrictAuthoringJson.enumString(root['difficulty'], const <String>{
             chunkDifficultyEarly,
             chunkDifficultyEasy,
             chunkDifficultyNormal,
             chunkDifficultyHard,
           }, sourcePath: '$sourcePath.difficulty'),
       assemblyGroupId: assemblyGroupId,
-      tags: StrictMigrationJson.canonicalTags(
+      tags: StrictAuthoringJson.canonicalTags(
         root['tags'],
         sourcePath: '$sourcePath.tags',
       ),
@@ -277,7 +277,7 @@ abstract final class PolygonAuthoringLegacyCodec {
       markers: List<PlacedMarkerDef>.unmodifiable(markers),
       groundProfile: groundProfile,
       groundBandZIndex: root.containsKey('groundBandZIndex')
-          ? StrictMigrationJson.integer(
+          ? StrictAuthoringJson.integer(
               root['groundBandZIndex'],
               sourcePath: '$sourcePath.groundBandZIndex',
             )
@@ -295,7 +295,7 @@ List<LegacyPrefabDef> _decodePrefabV1List(
   Object? raw, {
   required String sourcePath,
 }) {
-  final parsed = StrictMigrationJson.objectList(
+  final parsed = StrictAuthoringJson.objectList(
     raw,
     sourcePath: sourcePath,
     parse: _decodePrefabV1,
@@ -317,7 +317,7 @@ LegacyPrefabDef _decodePrefabV1(
   Map<String, Object?> json, {
   required String sourcePath,
 }) {
-  StrictMigrationJson.requireKeys(
+  StrictAuthoringJson.requireKeys(
     json,
     sourcePath: sourcePath,
     allowed: const <String>{
@@ -337,7 +337,7 @@ LegacyPrefabDef _decodePrefabV1(
     },
   );
   return LegacyPrefabDef(
-    id: StrictMigrationJson.nonEmptyString(
+    id: StrictAuthoringJson.nonEmptyString(
       json['id'],
       sourcePath: '$sourcePath.id',
     ),
@@ -345,16 +345,16 @@ LegacyPrefabDef _decodePrefabV1(
     status: PrefabStatus.active,
     kind: PrefabKind.obstacle,
     visualSource: PrefabVisualSource.atlasSlice(
-      StrictMigrationJson.nonEmptyString(
+      StrictAuthoringJson.nonEmptyString(
         json['sliceId'],
         sourcePath: '$sourcePath.sliceId',
       ),
     ),
-    anchorXPx: StrictMigrationJson.integer(
+    anchorXPx: StrictAuthoringJson.integer(
       json['anchorXPx'],
       sourcePath: '$sourcePath.anchorXPx',
     ),
-    anchorYPx: StrictMigrationJson.integer(
+    anchorYPx: StrictAuthoringJson.integer(
       json['anchorYPx'],
       sourcePath: '$sourcePath.anchorYPx',
     ),
@@ -363,7 +363,7 @@ LegacyPrefabDef _decodePrefabV1(
       sourcePath: '$sourcePath.colliders',
     ),
     tags: json.containsKey('tags')
-        ? StrictMigrationJson.canonicalTags(
+        ? StrictAuthoringJson.canonicalTags(
             json['tags'],
             sourcePath: '$sourcePath.tags',
           )
@@ -375,7 +375,7 @@ LegacyPrefabDef _decodePrefabV2(
   Map<String, Object?> json, {
   required String sourcePath,
 }) {
-  StrictMigrationJson.requireKeys(
+  StrictAuthoringJson.requireKeys(
     json,
     sourcePath: sourcePath,
     allowed: const <String>{
@@ -403,7 +403,7 @@ LegacyPrefabDef _decodePrefabV2(
       'tags',
     },
   );
-  final prefabKey = StrictMigrationJson.nonEmptyString(
+  final prefabKey = StrictAuthoringJson.nonEmptyString(
     json['prefabKey'],
     sourcePath: '$sourcePath.prefabKey',
   );
@@ -414,22 +414,22 @@ LegacyPrefabDef _decodePrefabV2(
   }
   return LegacyPrefabDef(
     prefabKey: prefabKey,
-    id: StrictMigrationJson.nonEmptyString(
+    id: StrictAuthoringJson.nonEmptyString(
       json['id'],
       sourcePath: '$sourcePath.id',
     ),
-    revision: StrictMigrationJson.positiveInt(
+    revision: StrictAuthoringJson.positiveInt(
       json['revision'],
       sourcePath: '$sourcePath.revision',
     ),
     status: parsePrefabStatus(
-      StrictMigrationJson.enumString(json['status'], const <String>{
+      StrictAuthoringJson.enumString(json['status'], const <String>{
         'active',
         'deprecated',
       }, sourcePath: '$sourcePath.status'),
     ),
     kind: parsePrefabKind(
-      StrictMigrationJson.enumString(json['kind'], const <String>{
+      StrictAuthoringJson.enumString(json['kind'], const <String>{
         'obstacle',
         'platform',
         'decoration',
@@ -439,11 +439,11 @@ LegacyPrefabDef _decodePrefabV2(
       json['visualSource'],
       sourcePath: '$sourcePath.visualSource',
     ),
-    anchorXPx: StrictMigrationJson.integer(
+    anchorXPx: StrictAuthoringJson.integer(
       json['anchorXPx'],
       sourcePath: '$sourcePath.anchorXPx',
     ),
-    anchorYPx: StrictMigrationJson.integer(
+    anchorYPx: StrictAuthoringJson.integer(
       json['anchorYPx'],
       sourcePath: '$sourcePath.anchorYPx',
     ),
@@ -451,7 +451,7 @@ LegacyPrefabDef _decodePrefabV2(
       json['colliders'],
       sourcePath: '$sourcePath.colliders',
     ),
-    tags: StrictMigrationJson.canonicalTags(
+    tags: StrictAuthoringJson.canonicalTags(
       json['tags'],
       sourcePath: '$sourcePath.tags',
     ),
@@ -462,12 +462,12 @@ List<PrefabColliderDef> _decodeColliders(
   Object? raw, {
   required String sourcePath,
 }) {
-  final colliders = StrictMigrationJson.objectList(
+  final colliders = StrictAuthoringJson.objectList(
     raw,
     sourcePath: sourcePath,
     parse: _decodeCollider,
   );
-  StrictMigrationJson.requireComparatorOrder(
+  StrictAuthoringJson.requireComparatorOrder(
     colliders,
     _compareColliders,
     sourcePath: sourcePath,
@@ -479,26 +479,26 @@ PrefabColliderDef _decodeCollider(
   Map<String, Object?> json, {
   required String sourcePath,
 }) {
-  StrictMigrationJson.requireKeys(
+  StrictAuthoringJson.requireKeys(
     json,
     sourcePath: sourcePath,
     allowed: const <String>{'offsetX', 'offsetY', 'width', 'height'},
     required: const <String>{'offsetX', 'offsetY', 'width', 'height'},
   );
   return PrefabColliderDef(
-    offsetX: StrictMigrationJson.integer(
+    offsetX: StrictAuthoringJson.integer(
       json['offsetX'],
       sourcePath: '$sourcePath.offsetX',
     ),
-    offsetY: StrictMigrationJson.integer(
+    offsetY: StrictAuthoringJson.integer(
       json['offsetY'],
       sourcePath: '$sourcePath.offsetY',
     ),
-    width: StrictMigrationJson.positiveInt(
+    width: StrictAuthoringJson.positiveInt(
       json['width'],
       sourcePath: '$sourcePath.width',
     ),
-    height: StrictMigrationJson.positiveInt(
+    height: StrictAuthoringJson.positiveInt(
       json['height'],
       sourcePath: '$sourcePath.height',
     ),
@@ -509,18 +509,18 @@ GroundProfileDef _decodeGroundProfile(
   Object? raw, {
   required String sourcePath,
 }) {
-  final json = StrictMigrationJson.object(raw, sourcePath: sourcePath);
-  StrictMigrationJson.requireKeys(
+  final json = StrictAuthoringJson.object(raw, sourcePath: sourcePath);
+  StrictAuthoringJson.requireKeys(
     json,
     sourcePath: sourcePath,
     allowed: const <String>{'kind', 'topY'},
     required: const <String>{'kind', 'topY'},
   );
   return GroundProfileDef(
-    kind: StrictMigrationJson.enumString(json['kind'], const <String>{
+    kind: StrictAuthoringJson.enumString(json['kind'], const <String>{
       groundProfileKindFlat,
     }, sourcePath: '$sourcePath.kind'),
-    topY: StrictMigrationJson.integer(
+    topY: StrictAuthoringJson.integer(
       json['topY'],
       sourcePath: '$sourcePath.topY',
     ),
@@ -531,22 +531,22 @@ GroundGapDef _decodeGroundGap(
   Map<String, Object?> json, {
   required String sourcePath,
 }) {
-  StrictMigrationJson.requireKeys(
+  StrictAuthoringJson.requireKeys(
     json,
     sourcePath: sourcePath,
     allowed: const <String>{'gapId', 'type', 'x', 'width'},
     required: const <String>{'gapId', 'type', 'x', 'width'},
   );
   return GroundGapDef(
-    gapId: StrictMigrationJson.nonEmptyString(
+    gapId: StrictAuthoringJson.nonEmptyString(
       json['gapId'],
       sourcePath: '$sourcePath.gapId',
     ),
-    type: StrictMigrationJson.enumString(json['type'], const <String>{
+    type: StrictAuthoringJson.enumString(json['type'], const <String>{
       groundGapTypePit,
     }, sourcePath: '$sourcePath.type'),
-    x: StrictMigrationJson.integer(json['x'], sourcePath: '$sourcePath.x'),
-    width: StrictMigrationJson.positiveInt(
+    x: StrictAuthoringJson.integer(json['x'], sourcePath: '$sourcePath.x'),
+    width: StrictAuthoringJson.positiveInt(
       json['width'],
       sourcePath: '$sourcePath.width',
     ),
