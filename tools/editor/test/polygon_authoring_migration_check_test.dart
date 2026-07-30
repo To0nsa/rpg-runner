@@ -92,15 +92,19 @@ void main() {
       );
       expect(check.revisionRecords, hasLength(107));
       expect(check.impactRecords, hasLength(99));
+      expect(
+        check.impactRecords.fold<int>(
+          0,
+          (sum, record) => sum + record.placementCount,
+        ),
+        50,
+      );
       expect(check.auditSourceDigests(_sourceDigests(fixture.path)), isEmpty);
       expect(_sourceDigests(fixture.path), before);
 
       final decoded =
           jsonDecode(check.toCanonicalJson()) as Map<String, Object?>;
-      expect(
-        WorkspaceFileIo.fingerprint(check.toCanonicalJson()),
-        '4116ae04',
-      );
+      expect(WorkspaceFileIo.fingerprint(check.toCanonicalJson()), '4116ae04');
       final summary = decoded['summary']! as Map<String, Object?>;
       expect(decoded['reportVersion'], 2);
       expect(decoded['sourceState'], 'current');
@@ -125,6 +129,34 @@ void main() {
       File(
         p.join(fixture.path, p.normalize(prefabTarget.sourcePath)),
       ).writeAsStringSync(prefabTarget.canonicalContents);
+
+      expect(
+        () => PolygonAuthoringMigrationCheck.fromRepository(fixture.path),
+        throwsA(
+          isA<PolygonAuthoringMigrationCheckException>().having(
+            (error) => error.code,
+            'code',
+            'migration_mixed_schema_generation',
+          ),
+        ),
+      );
+    } finally {
+      fixture.deleteSync(recursive: true);
+    }
+  });
+
+  test('legacy and current chunk files cannot coexist', () {
+    final fixture = _copyMigrationSources();
+    try {
+      final legacy = PolygonAuthoringMigrationCheck.fromRepository(
+        fixture.path,
+      );
+      final chunkTarget = legacy.targetFiles.firstWhere(
+        (target) => target.sourceKind == 'chunk',
+      );
+      File(
+        p.join(fixture.path, p.normalize(chunkTarget.sourcePath)),
+      ).writeAsStringSync(chunkTarget.canonicalContents);
 
       expect(
         () => PolygonAuthoringMigrationCheck.fromRepository(fixture.path),
