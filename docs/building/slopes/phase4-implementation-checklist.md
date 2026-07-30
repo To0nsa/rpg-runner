@@ -270,7 +270,7 @@ generic geometry framework or duplicate the accepted terrain compiler.
 - [x] Detect positive-area shape overlap while permitting exact shared
       boundaries.
 - [x] Treat collinear middle vertices as a normalization diagnostic.
-- [ ] Provide an explicit undoable Normalize action that can remove collinear
+- [x] Provide an explicit undoable Normalize action that can remove collinear
       middle vertices.
 - [ ] Never remove vertices silently during load or save.
 - [ ] New/edit commits may rotate/reverse an otherwise unchanged valid loop to
@@ -562,31 +562,33 @@ scene/domain seams before wiring either route.
 
 Required tools:
 
-- [ ] select shape/vertex/edge
-- [ ] create polygon by ordered vertex clicks
-- [ ] close valid polygon explicitly; Escape cancels the draft
-- [ ] move one vertex
-- [ ] translate one complete shape
-- [ ] insert a vertex on a selected edge
-- [ ] delete a vertex when at least three valid vertices remain
-- [ ] delete/duplicate a shape with deterministic unique ID allocation
-- [ ] edit collision mode and optional metadata
-- [ ] explicit Normalize quick fix
+- [x] select shape/vertex/edge
+- [x] create polygon by ordered vertex clicks
+- [x] close valid polygon explicitly and expose draft/gesture cancellation
+- [x] move one vertex
+- [x] translate one complete shape
+- [x] insert a vertex on a selected edge
+- [x] delete a vertex when at least three valid vertices remain
+- [x] delete/duplicate a shape with deterministic unique ID allocation
+- [x] edit collision mode and optional metadata
+- [x] explicit Normalize quick fix
 
 Interaction rules:
 
 - [ ] preserve shared `Ctrl+drag` pan and `Ctrl+scroll` zoom behavior
 - [ ] primary drag remains tool-driven
 - [ ] expose a visible snap selector: owner grid or exact `0.5 px`
-- [ ] never permit arbitrary non-half-pixel vertex values
+- [x] never permit arbitrary non-half-pixel vertex values
 - [ ] inspector numeric fields accept integer/`.5` text and display exact values
-- [ ] one pointer gesture produces one undo entry, not one entry per event
-- [ ] Escape restores the pre-gesture draft; commit runs validation once
-- [ ] selection and viewport changes do not bump document revision
-- [ ] a temporarily invalid drag can render local diagnostics, but export and
+- [x] one pointer gesture produces one undo entry, not one entry per event
+- [x] cancellation restores committed geometry; commit runs validation once
+- [x] selection changes produce no semantic commit or history entry
+- [ ] wire Escape cancellation and prove viewport changes do not bump document
+      revision in both routes
+- [x] a temporarily invalid drag can render local diagnostics, but export and
       gesture commit policy must never silently repair topology
 - [ ] keyboard delete/undo/redo and focus behavior are tested
-- [ ] scene semantics are shared between Prefab and Chunk routes
+- [ ] wire the shared scene semantics into both Prefab and Chunk routes
 
 Multi-shape selection, boolean authoring operations, rotation, arbitrary scale,
 curves, and holes are not required for the baseline tool.
@@ -989,6 +991,7 @@ result.
 | 2026-07-29 / `c3637865` | Complete read-only repository check and in-memory targets | Flutter test VM on Windows | Focused migration analysis clean and 14 migration/check/target tests pass. The current check strictly builds 9 target files, records 107 unchanged revision decisions and 99 prefab impact records covering 50 placements, rejects unknown placement references, and reports strict target failures without source writes. Readiness report v1 fingerprint is `90fbd996`. |
 | 2026-07-29 / `15b2aa56` + `afa5c7d9` | Pure-Dart model boundary and read-only migration CLI | Dart VM and Flutter test VM on Windows | Plain `dart tool/migrate_polygon_authoring.dart --check` succeeds with 99 prefabs, 8 chunks, and 9 validated targets. Editor analysis is clean and all 241 editor tests pass; root chunk-generator dry-run still validates 8 chunks, 2 levels, and 2 themes. Six command tests cover default/explicit check, report-only output, usage and blocker exit codes, malformed source, invalid target, and authored-path protection. `--write` remains unavailable; authored JSON and runtime authority are unchanged. |
 | 2026-07-30 / `20f04846` + `65fde7f6` | Post-cutover read-only migration idempotence | Dart VM and Flutter test VM on Windows | Editor analysis is clean and all 250 editor tests pass. Legacy v1/v2+v1 still yields nine pending targets and report-v2 fingerprint `14297a48`; a fully current v3+v2 fixture yields the same 107 revision and 99 impact records covering 50 placements, nine byte-identical targets, zero pending files, and fingerprint `4116ae04`. Focused tests reject partial cutover, mixed chunk generations, malformed or byte-noncanonical current source, unsafe Core geometry, unknown prefab references, and source drift. `--write` remains unavailable; authored JSON and runtime authority are unchanged. |
+| 2026-07-30 / `9ad77ce4` + `5627d069` | Shared polygon interaction state and scene projection | Dart VM and Flutter test VM on Windows | Editor analysis is clean; all 273 editor tests and 23 focused interaction/projection tests pass. The pure reducer covers selection/tool state, ordered drafts, exact half-pixel/owner-grid snap, vertex/shape gestures, provisional edge insertion, cancellation, one before/after history commit, deterministic duplication, metadata edits, explicit Normalize, and Core geometry/overlap rejection. The framework-neutral scene projection exposes draft/preview/selection state; hit tests use closest vertex, edge, then fill with stable selected/topmost/index/ID tie-breaks. Migration check still reports nine legacy pending files and generator dry-run validates 8 chunks, 2 levels, and 2 themes. No route, store, authored JSON, generator output, or runtime authority changed. |
 
 ### 28.1 Baseline Environment And Source Identity
 

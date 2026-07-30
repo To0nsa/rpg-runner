@@ -25,7 +25,9 @@ The active schema migration, generator, preview, and cutover work remains in
 | Source validation and canonicalization | `runner_core` `TerrainSourceCanonicalizer` | `TerrainCompiler` and editor adapter |
 | Positive-area polygon overlap | `runner_core` `TerrainPolygonOverlap` | `TerrainCompiler`; source-loop entry point is ready for editor owner validation |
 | Exact placement and physics-grid quantization | `runner_core` `TerrainSourceTransform` | `TerrainCompiler`, Core fixtures, and editor adapter |
-| Editor-to-Core conversion | editor `TerrainSourceCoreAdapter` | pure-Dart authoring tests; prefab/chunk UI integration is pending |
+| Editor-to-Core conversion | editor `TerrainSourceCoreAdapter` | migration checks and shared interaction reducer; prefab/chunk UI integration is pending |
+| Shared polygon interaction state | editor `TerrainPolygonInteractionReducer` | pure-Dart selection/draft/gesture/semantic-edit tests; route wiring is pending |
+| Render projection and source-space hit testing | editor `TerrainPolygonSceneProjection` / `TerrainPolygonSceneHitTest` | framework-neutral scene tests; route painters are pending |
 | Legacy prefab occupied-area union and reviewed corrections | editor prefab migration domain | aggregate check plan; removal follows verified prefab v3 write |
 | Legacy flat-ground/gap conversion | editor chunk migration domain | aggregate check plan; removal follows verified chunk v2 write |
 | Strict legacy prefab-v1/v2 and chunk-v1 source parsing | editor migration domain | read-only aggregate planner input; compatibility stores are bypassed |
@@ -56,8 +58,9 @@ Core reviews each source loop without mutating it. The exact review:
 
 Committed noncanonical source can therefore be diagnosed without being
 silently rewritten. The editor adapter returns a new shape when an explicit
-Normalize/quick-fix flow applies Core's canonical vertices; an undoable UI
-command has not been wired yet.
+Normalize operation applies Core's canonical vertices. The shared interaction
+reducer now exposes that operation as one undoable before/after commit; its
+button and keyboard wiring remain pending in the prefab and chunk routes.
 
 Cross-shape overlap also uses exact integer products. Proper crossings,
 containment, coincident occupied area, and same-interior collinear boundaries
@@ -157,12 +160,16 @@ The plan exposes a pure pre-write audit for freshly computed SHA-256 values.
 Changed, missing, or ambiguously canonicalized paths reject deterministically.
 
 `PolygonAuthoringMigrationCheck` is the read-only repository orchestrator. It
-strictly loads all nine legacy files, validates unknown prefab placement
-references, builds every prefab-v3/chunk-v2 target in memory, and requires each
-target to decode and re-encode byte-for-byte. Readiness report v1 records the
-nine before/after SHA-256 pairs, all 107 unchanged representation-only revision
-decisions, and 99 prefab impact records covering the current 50 chunk
-placements. Its current canonical report fingerprint is `90fbd996`.
+classifies the complete source set before selecting a parser. Prefab v1/v2 plus
+chunk v1 enters legacy planning; prefab v3 plus chunk v2 enters strict current-
+schema validation; every partial or mixed generation fails closed. Legacy mode
+builds all nine targets in memory and requires strict byte-stable target round
+trips. Current mode requires source to already equal its canonical bytes,
+rechecks Core geometry and placement references, and emits the same nine files
+as byte-identical no-op targets. Readiness report v2 records source state, all
+nine before/after SHA-256 pairs, 107 unchanged revision decisions, and 99
+prefab impact records covering 50 placements. The legacy report fingerprint is
+`14297a48`; the equivalent current-state fingerprint is `4116ae04`.
 
 `tool/migrate_polygon_authoring.dart` defaults to check mode. It returns `0`
 for a complete blocker-free readiness plan, `1` for source/plan/target/drift or
@@ -173,10 +180,10 @@ requested workspace-relative `.json` report outside `assets/authoring`;
 immutability annotations use `package:meta` rather than pulling `dart:ui` into
 offline tooling.
 
-This report is still not a source-write authorization. Post-cutover/current-
-schema idempotence, staged generated-artifact impact, transaction staging,
-rollback, and source replacement remain separate gates. Normal source and
-runtime behavior are unchanged.
+This report is still not a source-write authorization. Current-schema
+idempotence is proven, but staged generated-artifact impact, normal editor
+schema support, transaction staging, rollback, and source replacement remain
+separate gates. Normal source and runtime behavior are unchanged.
 
 ## Isolated Polygon Target Schemas
 
@@ -200,6 +207,39 @@ been encoded, decoded strictly, and re-encoded byte-for-byte in tests. The
 target types remain migration staging: normal `PrefabStore`, `ChunkStore`, UI,
 generator, source JSON, and runtime authority still use their existing paths.
 
+## Shared Polygon Interaction And Scene Projection
+
+`TerrainPolygonInteractionState` keeps committed owner shapes separate from an
+open creation draft or pointer-gesture preview. Repeated pointer updates change
+only the preview. A successful Core-reviewed commit returns one immutable
+before/after snapshot for history; rejection keeps the preview and sorted
+diagnostics available; cancellation discards it without reconstructing source.
+Selection and tool changes produce no semantic commit. A no-op gesture never
+canonicalizes loaded geometry implicitly.
+
+The shared reducer provides shape/edge/vertex selection, ordered polygon
+creation, vertex and whole-shape movement, provisional edge insertion,
+vertex/shape deletion, deterministic lowest-free-ID duplication, explicit
+mode/metadata editing, and explicit Core normalization. Semantic geometry
+commits use the Core canonicalizer and exact positive-area overlap predicate.
+Owner-specific bounds, visual intersection, capacity, transformed placement,
+and seam validation stay in the prefab/chunk plugins rather than this shared
+state machine.
+
+All stored and preview edit coordinates remain integer half-pixel ticks. The
+half-pixel snap preserves each tick; owner-grid snap uses an integer pixel step
+with exact ties away from zero. Scene hit testing alone accepts fractional
+source-space pointer coordinates produced by inverse viewport transforms.
+
+`TerrainPolygonSceneProjection` exposes stable shape order, selected
+edge/vertex indices, gesture-preview identity, and an open draft without
+depending on Flutter. `TerrainPolygonSceneHitTest` uses vertex, edge, then fill
+priority. It chooses the closest feature first and resolves equal distances by
+selected shape, visually topmost canonical shape, local element index, then
+shape ID. These are UI selection rules only; collision geometry remains Core-
+owned. Prefab/Chunk painters, controls, keyboard handling, and plugin/store
+commit wiring remain pending.
+
 ## Determinism And Validation Evidence
 
 The foundation is covered by:
@@ -211,6 +251,11 @@ The foundation is covered by:
   winding, and coordinate-limit overlap tests
 - asymmetric anchor/reflection/scale/translation and symmetric rounding tests
 - post-transform short-edge rejection
+- shared polygon selection/draft/gesture cancellation and one-commit history
+- deterministic shape IDs, exact snapping, explicit normalization, and
+  positive-area duplicate rejection
+- shared render projection plus vertex/edge/fill hit-test priority and
+  deterministic tie-breaks
 - full Core geometry/signature goldens and fresh-process signature tests
 - full editor regression tests
 
