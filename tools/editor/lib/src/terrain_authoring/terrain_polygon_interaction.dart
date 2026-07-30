@@ -92,6 +92,33 @@ final class TerrainPolygonSnapPolicy {
   int snapCoordinate(int halfPixels) =>
       _roundToStep(halfPixels, stepHalfPixels);
 
+  /// Snaps a display-derived fractional source coordinate directly to this
+  /// policy's exact integer grid.
+  ///
+  /// Pointer projection is intentionally fractional. Rounding only after
+  /// division by [stepHalfPixels] avoids first rounding to a half-pixel and
+  /// then choosing the wrong owner-grid cell near a midpoint.
+  int snapFractionalCoordinate(double halfPixels) {
+    if (!halfPixels.isFinite) {
+      throw ArgumentError.value(
+        halfPixels,
+        'halfPixels',
+        'Pointer source coordinate must be finite.',
+      );
+    }
+    return _roundFractionalHalfAwayFromZero(halfPixels / stepHalfPixels) *
+        stepHalfPixels;
+  }
+
+  /// Converts one fractional source-space pointer into an authored vertex.
+  TerrainSourceVertexDef snapFractionalVertex({
+    required double xHalfPixels,
+    required double yHalfPixels,
+  }) => TerrainSourceVertexDef(
+    xHalfPixels: snapFractionalCoordinate(xHalfPixels),
+    yHalfPixels: snapFractionalCoordinate(yHalfPixels),
+  );
+
   TerrainSourceVertexDef snapVertex(TerrainSourceVertexDef vertex) =>
       TerrainSourceVertexDef(
         xHalfPixels: snapCoordinate(vertex.xHalfPixels),
@@ -1013,3 +1040,6 @@ int _roundToStep(int value, int step) {
   final snapped = quotient * step;
   return value.isNegative ? -snapped : snapped;
 }
+
+int _roundFractionalHalfAwayFromZero(double value) =>
+    value >= 0 ? (value + 0.5).floor() : (value - 0.5).ceil();

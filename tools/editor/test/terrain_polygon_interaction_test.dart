@@ -15,6 +15,24 @@ void main() {
       expect(const TerrainPolygonSnapPolicy.halfPixel().snapCoordinate(-7), -7);
     });
 
+    test('fractional pointer snapping chooses the nearest exact grid cell', () {
+      final grid = TerrainPolygonSnapPolicy.ownerGridPixels(4);
+      const halfPixel = TerrainPolygonSnapPolicy.halfPixel();
+
+      expect(grid.snapFractionalCoordinate(3.9), 0);
+      expect(grid.snapFractionalCoordinate(4), 8);
+      expect(grid.snapFractionalCoordinate(-3.9), 0);
+      expect(grid.snapFractionalCoordinate(-4), -8);
+      expect(
+        halfPixel.snapFractionalVertex(xHalfPixels: 2.5, yHalfPixels: -2.5),
+        const TerrainSourceVertexDef(xHalfPixels: 3, yHalfPixels: -3),
+      );
+      expect(
+        () => grid.snapFractionalCoordinate(double.nan),
+        throwsArgumentError,
+      );
+    });
+
     test('shape, edge, and vertex selections validate committed indices', () {
       final reducer = _reducer();
       final initial = TerrainPolygonInteractionState(
