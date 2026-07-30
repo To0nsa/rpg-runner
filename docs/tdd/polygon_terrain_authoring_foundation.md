@@ -29,6 +29,7 @@ The active schema migration, generator, preview, and cutover work remains in
 | Shared polygon interaction state | editor `TerrainPolygonInteractionReducer` | pure-Dart selection/draft/gesture/semantic-edit tests; route wiring is pending |
 | Render projection and source-space hit testing | editor `TerrainPolygonSceneProjection` / `TerrainPolygonSceneHitTest` | framework-neutral scene tests; Prefab/Chunk route wiring is pending |
 | Canvas projection and source-loop overlay | editor `TerrainPolygonViewportTransform` / `TerrainPolygonScenePainter` | shared Flutter painter tests; compiler-edge overlay and route wiring are pending |
+| Prefab polygon owner validation | editor `validatePrefabCollisionShapes` | Core compiler plus exact visual-bounds tests; normal `PrefabDef` integration is pending |
 | Legacy prefab occupied-area union and reviewed corrections | editor prefab migration domain | aggregate check plan; removal follows verified prefab v3 write |
 | Legacy flat-ground/gap conversion | editor chunk migration domain | aggregate check plan; removal follows verified chunk v2 write |
 | Strict legacy prefab-v1/v2 and chunk-v1 source parsing | editor migration-owned `LegacyPrefabDef` / chunk-v1 models | read-only aggregate planner input; compatibility stores and normal `PrefabDef` are bypassed |
@@ -214,6 +215,26 @@ All planned current repository output—99 prefab records and 8 chunk files—ha
 been encoded, decoded strictly, and re-encoded byte-for-byte in tests. The
 target types remain migration staging: normal `PrefabStore`, `ChunkStore`, UI,
 generator, source JSON, and runtime authority still use their existing paths.
+
+## Prefab Polygon Owner Validation
+
+`validatePrefabCollisionShapes` is independent of the still-v2 normal
+`PrefabDef`, allowing prefab-v3 rules to be proven before the model/store
+cutover. It requires collision shapes for obstacle/platform owners and forbids
+them for decorations. Each source loop must satisfy Core's canonical authoring
+policy; the full Core compiler then owns occupied-overlap, duplicate identity,
+vertex, shape, and compiled-geometry limits. Exact shared boundaries remain
+legal.
+
+Visual bounds are converted to anchor-relative half-pixel ticks. At least one
+accepted shape must overlap that rectangle in positive area: point or edge
+contact alone is not sufficient. A shape may deliberately extend beyond the
+visual source. Its left/top/right/bottom extent is reported exactly in integer
+or `.5 px` units as a non-blocking warning, and geometry is never clipped.
+Missing or invalid geometry and no positive-area visual intersection remain
+blocking. Prefab validation issues now carry severity and exact
+source/shape/element location; the domain plugin maps warnings without making
+them export blockers.
 
 ## Shared Polygon Interaction And Scene Projection
 
