@@ -32,6 +32,7 @@ The active schema migration, generator, preview, and cutover work remains in
 | Prefab polygon owner validation | editor `validatePrefabCollisionShapes` | Core compiler plus exact visual-bounds tests; normal `PrefabDef` integration is pending |
 | Immutable prefab-v3 polygon record | editor `PrefabV3Def` | migration target and model-contract tests; normal store/UI integration is pending |
 | Strict prefab-v3 file structure and canonical serialization | editor `PrefabV3FileData` / `PrefabV3FileCodec` | normal prefab layer and delegated migration checks; filesystem store integration is pending |
+| Prefab polygon commit and revision policy | editor `PrefabV3CollisionCommitPolicy` | shared reducer commit tests; plugin/page dispatch is pending |
 | Fail-closed authored JSON and retained-metadata parsing | editor neutral domain plus `StrictTerrainSourceCodec` | legacy migration, prefab v3, and chunk-v2 target codecs |
 | Legacy prefab occupied-area union and reviewed corrections | editor prefab migration domain | aggregate check plan; removal follows verified prefab v3 write |
 | Legacy flat-ground/gap conversion | editor chunk migration domain | aggregate check plan; removal follows verified chunk v2 write |
@@ -251,6 +252,21 @@ blocking. Prefab validation issues now carry severity and exact
 source/shape/element location; the domain plugin maps warnings without making
 them export blockers.
 
+`PrefabV3CollisionCommitPolicy` is the owner boundary between a successful
+shared interaction commit and session history. It requires the commit's
+`beforeShapes` to equal the current prefab snapshot, rejects missing owners,
+noncanonical shape order, unresolved colliding visual bounds, and every
+blocking owner issue, and returns the original file-data instance on rejection
+or no-op. An accepted semantic change replaces only that prefab and increments
+its revision once; non-blocking extent warnings remain attached to the result.
+
+The generic plugin command API has no rejected-command result channel.
+Therefore temporarily invalid gesture state and policy diagnostics remain in
+the page projection, and the page must dispatch only an accepted policy result.
+The future plugin handler reuses this policy defensively before replacing its
+authoritative document. This keeps invalid drags and empty commits out of
+session undo/redo.
+
 ## Shared Polygon Interaction And Scene Projection
 
 `TerrainPolygonInteractionState` keeps committed owner shapes separate from an
@@ -318,6 +334,8 @@ The foundation is covered by:
   preserved authored ordering, and target-boundary canonicalization tests
 - strict prefab-v3 file parsing, copy-only canonical serialization, duplicate
   identity rejection, invalid-model refusal, and delegated migration round trips
+- prefab owner commit freshness, canonical order, visual-bound resolution,
+  warning/error handling, no-op identity, and exactly-once revision tests
 - full Core geometry/signature goldens and fresh-process signature tests
 - full editor regression tests
 
