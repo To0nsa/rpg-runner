@@ -4,8 +4,8 @@ import '../chunks/chunk_domain_models.dart';
 import '../chunks/migration/legacy_chunk_ground_migration.dart';
 import '../prefabs/migration/legacy_prefab_collider_union.dart';
 import '../prefabs/migration/reviewed_legacy_prefab_collision_reauthorings.dart';
-import '../prefabs/models/models.dart';
 import '../terrain_authoring/terrain_source_models.dart';
+import 'legacy_prefab_models.dart';
 
 /// Classification of one legacy prefab collision conversion.
 enum PrefabPolygonMigrationKind {
@@ -285,7 +285,7 @@ final class PolygonAuthoringMigrationPlan {
 
   /// Builds one canonical plan without reading or writing repository files.
   factory PolygonAuthoringMigrationPlan.build({
-    required PrefabData prefabData,
+    required LegacyPrefabData prefabData,
     required String prefabSourcePath,
     required String prefabSourceSha256,
     required Iterable<LevelChunkDef> chunks,
@@ -513,16 +513,18 @@ final class PolygonAuthoringMigrationPlan {
   }
 }
 
-Map<String, PrefabDef> _uniquePrefabsByKey(
-  Iterable<PrefabDef> prefabs, {
+Map<String, LegacyPrefabDef> _uniquePrefabsByKey(
+  Iterable<LegacyPrefabDef> prefabs, {
   required String sourcePath,
   required List<PolygonAuthoringMigrationIssue> issues,
 }) {
-  final grouped = <String, List<PrefabDef>>{};
+  final grouped = <String, List<LegacyPrefabDef>>{};
   for (final prefab in prefabs) {
-    grouped.putIfAbsent(prefab.prefabKey, () => <PrefabDef>[]).add(prefab);
+    grouped
+        .putIfAbsent(prefab.prefabKey, () => <LegacyPrefabDef>[])
+        .add(prefab);
   }
-  final unique = <String, PrefabDef>{};
+  final unique = <String, LegacyPrefabDef>{};
   for (final key in grouped.keys.toList()..sort()) {
     final matches = grouped[key]!;
     if (key.isEmpty || matches.length != 1) {
@@ -610,7 +612,7 @@ Map<String, LevelChunkDef> _uniqueChunksByKey(
 }
 
 PrefabPolygonMigrationKind _classifyPrefab(
-  PrefabDef prefab,
+  LegacyPrefabDef prefab,
   LegacyPrefabColliderUnionResult result,
 ) {
   if (prefab.colliders.isEmpty) return PrefabPolygonMigrationKind.decoration;

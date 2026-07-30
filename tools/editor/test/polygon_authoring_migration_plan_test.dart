@@ -6,7 +6,7 @@ import 'package:path/path.dart' as p;
 import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
 import 'package:runner_editor/src/migration/polygon_authoring_legacy_codec.dart';
 import 'package:runner_editor/src/migration/polygon_authoring_migration_plan.dart';
-import 'package:runner_editor/src/prefabs/models/models.dart';
+import 'package:runner_editor/src/migration/legacy_prefab_models.dart';
 import 'package:runner_editor/src/prefabs/store/prefab_store.dart';
 import 'package:runner_editor/src/workspace/workspace_file_io.dart';
 
@@ -159,7 +159,7 @@ final class _RepositoryMigrationFixture {
     required this.chunkSourceSha256ByKey,
   });
 
-  final PrefabData prefabData;
+  final LegacyPrefabData prefabData;
   final String prefabSourceSha256;
   final List<LevelChunkDef> chunks;
   final Map<String, String> chunkSourcePaths;

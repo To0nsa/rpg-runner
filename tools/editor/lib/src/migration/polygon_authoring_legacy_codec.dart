@@ -2,6 +2,7 @@ import '../chunks/chunk_domain_models.dart';
 import '../prefabs/models/models.dart';
 import '../prefabs/store/prefab_determinism.dart';
 import '../workspace/workspace_file_io.dart';
+import 'legacy_prefab_models.dart';
 import 'polygon_authoring_metadata_codec.dart';
 import 'strict_migration_json.dart';
 
@@ -17,10 +18,10 @@ final class LegacyPrefabMigrationDocument {
   final int sourceSchemaVersion;
   final String sourceSha256;
   final List<AtlasSliceDef> slices;
-  final List<PrefabDef> prefabs;
+  final List<LegacyPrefabDef> prefabs;
 
   /// Adapts this prefab-only file to the aggregate migration planner input.
-  PrefabData get prefabData => PrefabData(
+  LegacyPrefabData get prefabData => LegacyPrefabData(
     schemaVersion: sourceSchemaVersion,
     prefabSlices: slices,
     prefabs: prefabs,
@@ -90,7 +91,7 @@ abstract final class PolygonAuthoringLegacyCodec {
     if (schemaVersion == 2) {
       StrictMigrationJson.requireComparatorOrder(
         prefabs,
-        PrefabDeterminism.comparePrefabsByIdThenKey,
+        compareLegacyPrefabDefs,
         sourcePath: '$sourcePath.prefabs',
       );
       StrictMigrationJson.requireUniqueStrings(
@@ -103,7 +104,7 @@ abstract final class PolygonAuthoringLegacyCodec {
       sourceSchemaVersion: schemaVersion,
       sourceSha256: WorkspaceFileIo.sha256Digest(raw),
       slices: List<AtlasSliceDef>.unmodifiable(slices),
-      prefabs: List<PrefabDef>.unmodifiable(prefabs),
+      prefabs: List<LegacyPrefabDef>.unmodifiable(prefabs),
     );
   }
 
@@ -290,14 +291,17 @@ abstract final class PolygonAuthoringLegacyCodec {
   }
 }
 
-List<PrefabDef> _decodePrefabV1List(Object? raw, {required String sourcePath}) {
+List<LegacyPrefabDef> _decodePrefabV1List(
+  Object? raw, {
+  required String sourcePath,
+}) {
   final parsed = StrictMigrationJson.objectList(
     raw,
     sourcePath: sourcePath,
     parse: _decodePrefabV1,
   );
   final usedKeys = <String>{};
-  final promoted = <PrefabDef>[];
+  final promoted = <LegacyPrefabDef>[];
   for (final prefab in parsed) {
     final prefabKey = PrefabDeterminism.allocatePrefabKey(
       id: prefab.id,
@@ -309,7 +313,7 @@ List<PrefabDef> _decodePrefabV1List(Object? raw, {required String sourcePath}) {
   return promoted;
 }
 
-PrefabDef _decodePrefabV1(
+LegacyPrefabDef _decodePrefabV1(
   Map<String, Object?> json, {
   required String sourcePath,
 }) {
@@ -332,7 +336,7 @@ PrefabDef _decodePrefabV1(
       'colliders',
     },
   );
-  return PrefabDef(
+  return LegacyPrefabDef(
     id: StrictMigrationJson.nonEmptyString(
       json['id'],
       sourcePath: '$sourcePath.id',
@@ -367,7 +371,7 @@ PrefabDef _decodePrefabV1(
   );
 }
 
-PrefabDef _decodePrefabV2(
+LegacyPrefabDef _decodePrefabV2(
   Map<String, Object?> json, {
   required String sourcePath,
 }) {
@@ -408,7 +412,7 @@ PrefabDef _decodePrefabV2(
       '$sourcePath.prefabKey must contain lowercase letters, digits, and underscore.',
     );
   }
-  return PrefabDef(
+  return LegacyPrefabDef(
     prefabKey: prefabKey,
     id: StrictMigrationJson.nonEmptyString(
       json['id'],

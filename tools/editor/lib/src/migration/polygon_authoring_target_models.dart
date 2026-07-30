@@ -2,6 +2,7 @@ import '../chunks/chunk_domain_models.dart';
 import '../prefabs/models/models.dart';
 import '../prefabs/store/prefab_determinism.dart';
 import '../terrain_authoring/terrain_source_models.dart';
+import 'legacy_prefab_models.dart';
 
 /// Polygon-authoring prefab source schema staged for the one-time cutover.
 const int polygonPrefabSchemaVersion = 3;
@@ -42,7 +43,7 @@ final class PrefabV3TargetDef {
 
   /// Preserves every legacy metadata field while replacing only collision.
   factory PrefabV3TargetDef.fromLegacy({
-    required PrefabDef legacy,
+    required LegacyPrefabDef legacy,
     required Iterable<TerrainSourceShapeDef> collisionShapes,
   }) => PrefabV3TargetDef(
     prefabKey: legacy.prefabKey,

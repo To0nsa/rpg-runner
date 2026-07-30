@@ -49,7 +49,10 @@ void main() {
     expect(prefabDocument.sourceSchemaVersion, 2);
     expect(prefabDocument.sourceSha256, hasLength(64));
     expect(prefabDocument.prefabs, hasLength(99));
-    expect(prefabDocument.prefabData.prefabs, same(prefabDocument.prefabs));
+    expect(
+      prefabDocument.prefabData.prefabs,
+      orderedEquals(prefabDocument.prefabs),
+    );
     expect(chunks, hasLength(8));
     expect(chunks.toSet(), hasLength(8));
     expect(gapCount, 1);

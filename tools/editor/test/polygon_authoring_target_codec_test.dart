@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
 import 'package:runner_editor/src/chunks/chunk_store.dart';
+import 'package:runner_editor/src/migration/polygon_authoring_legacy_codec.dart';
 import 'package:runner_editor/src/migration/polygon_authoring_migration_plan.dart';
 import 'package:runner_editor/src/migration/polygon_authoring_target_codec.dart';
 import 'package:runner_editor/src/migration/polygon_authoring_target_models.dart';
@@ -235,18 +236,21 @@ void main() {
 
   test('complete repository migration output strictly round-trips', () async {
     final root = _repoRootPath();
-    final prefabData = await const PrefabStore().load(root);
+    final prefabRaw = File(
+      p.join(root, p.normalize(PrefabStore.prefabDefsPath)),
+    ).readAsStringSync();
+    final prefabDocument = PolygonAuthoringLegacyCodec.decodePrefab(
+      prefabRaw,
+      sourcePath: PrefabStore.prefabDefsPath,
+    );
+    final prefabData = prefabDocument.prefabData;
     final chunkDocument = await const ChunkStore().load(
       EditorWorkspace(rootPath: root),
     );
     final plan = PolygonAuthoringMigrationPlan.build(
       prefabData: prefabData,
       prefabSourcePath: PrefabStore.prefabDefsPath,
-      prefabSourceSha256: WorkspaceFileIo.sha256Digest(
-        File(
-          p.join(root, p.normalize(PrefabStore.prefabDefsPath)),
-        ).readAsStringSync(),
-      ),
+      prefabSourceSha256: prefabDocument.sourceSha256,
       chunks: chunkDocument.chunks,
       chunkSourcePathByKey: <String, String>{
         for (final entry in chunkDocument.baselineByChunkKey.entries)
