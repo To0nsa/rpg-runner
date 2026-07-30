@@ -31,11 +31,13 @@ The active schema migration, generator, preview, and cutover work remains in
 | Canvas projection and source-loop overlay | editor `TerrainPolygonViewportTransform` / `TerrainPolygonScenePainter` | shared Flutter painter tests; compiler-edge overlay and route wiring are pending |
 | Prefab polygon owner validation | editor `validatePrefabCollisionShapes` | Core compiler plus exact visual-bounds tests; normal `PrefabDef` integration is pending |
 | Immutable prefab-v3 polygon record | editor `PrefabV3Def` | migration target and model-contract tests; normal store/UI integration is pending |
+| Strict prefab-v3 file structure and canonical serialization | editor `PrefabV3FileData` / `PrefabV3FileCodec` | normal prefab layer and delegated migration checks; filesystem store integration is pending |
+| Fail-closed authored JSON and retained-metadata parsing | editor neutral domain plus `StrictTerrainSourceCodec` | legacy migration, prefab v3, and chunk-v2 target codecs |
 | Legacy prefab occupied-area union and reviewed corrections | editor prefab migration domain | aggregate check plan; removal follows verified prefab v3 write |
 | Legacy flat-ground/gap conversion | editor chunk migration domain | aggregate check plan; removal follows verified chunk v2 write |
 | Strict legacy prefab-v1/v2 and chunk-v1 source parsing | editor migration-owned `LegacyPrefabDef` / chunk-v1 models | read-only aggregate planner input; compatibility stores and normal `PrefabDef` are bypassed |
 | Cross-domain canonical migration report | editor migration domain | read-only CLI, strict in-memory targets, and exact source SHA-256 audit; source writes remain pending |
-| Isolated prefab-v3/chunk-v2 target structures | editor migration domain | strict canonical codecs and complete-repository round-trip; normal stores do not consume them yet |
+| Isolated chunk-v2 target structure | editor migration domain | strict canonical codec and complete-repository round-trip; normal `ChunkStore` does not consume it yet |
 
 Core has no dependency on editor models, JSON, widgets, or filesystem state.
 The editor depends on Core through a one-way local package dependency and does
@@ -199,31 +201,35 @@ separate gates. Normal source and runtime behavior are unchanged.
 ## Polygon Target Schemas And Normal Prefab Record
 
 `PrefabV3Def` is the immutable normal-model record for the intended prefab-v3
-shape. `PrefabV3TargetDocument` reuses it, while `ChunkV2TargetDocument` remains
-an isolated migration target. Prefab v3 replaces only the legacy `colliders`
-field with anchor-relative `collisionShapes`; chunk v2 replaces only
+shape. `PrefabV3FileData` snapshots the complete v3 file payload and is reused
+by the migration target alias, while `ChunkV2TargetDocument` remains an isolated
+migration target. Prefab v3 replaces only the legacy `colliders` field with
+anchor-relative `collisionShapes`; chunk v2 replaces only
 `groundProfile`/`groundGaps` with direct chunk-local `collisionShapes`. Existing
 identity, revision, lifecycle, visual source, dimensions, composition,
 placement, marker, tag, and ground-band metadata is preserved.
 
-The normal record snapshots its lists but deliberately preserves supplied shape
-and tag order. This lets validation diagnose noncanonical authored input instead
-of silently repairing it. The migration target document canonicalizes copied
-records at its serialization boundary, so read-only planned output remains
-deterministic without mutating the source record.
+The normal records snapshot their lists but deliberately preserve supplied
+shape and tag order. This lets validation diagnose noncanonical authored input
+instead of silently repairing it. `PrefabV3FileCodec` sorts and normalizes
+copied records only while encoding, then strictly decodes its own result before
+returning it. Read-only planned output therefore remains deterministic without
+mutating the source record or allowing an invalid enum/source model to escape.
 
-`PolygonAuthoringTargetCodec` is intentionally stricter than the current
-compatibility stores. It requires the exact target version and field set,
-canonical list/ID/tag ordering, exact integer fields, half-pixel coordinates,
-known enums, and accepted placement-scale steps. It rejects unknown and legacy
-fields rather than defaulting them. Geometry/topology acceptance remains
-Core-owned and is not duplicated in the structural codec.
+`PrefabV3FileCodec` is the single prefab-v3 structural authority in the normal
+prefab layer. `PolygonAuthoringTargetCodec` delegates prefab-v3 calls to it and
+retains the isolated chunk-v2 facade. Both require exact target versions and
+field sets, canonical list/ID/tag ordering, exact integer fields, half-pixel
+coordinates, known enums, and accepted placement-scale steps. Unknown and
+legacy fields reject rather than default. Geometry/topology acceptance remains
+Core-owned and is not duplicated in structural codecs.
 
 All planned current repository output—99 prefab records and 8 chunk files—has
 been encoded, decoded strictly, and re-encoded byte-for-byte in tests. The
-target documents/codecs remain migration staging. `PrefabV3Def` is now available
-to normal editor code, but `PrefabStore`, `ChunkStore`, UI, generator, source
-JSON, and runtime authority still use their existing paths.
+chunk target document/codec remains migration staging. The normal prefab layer
+now owns `PrefabV3Def`, `PrefabV3FileData`, and `PrefabV3FileCodec`, but
+`PrefabStore`, `ChunkStore`, UI, generator, source JSON, and runtime authority
+still use their existing paths.
 
 ## Prefab Polygon Owner Validation
 
@@ -310,6 +316,8 @@ The foundation is covered by:
   fill/selection/preview/draft painter tests
 - immutable prefab-v3 snapshots, value equality/copy/revision behavior,
   preserved authored ordering, and target-boundary canonicalization tests
+- strict prefab-v3 file parsing, copy-only canonical serialization, duplicate
+  identity rejection, invalid-model refusal, and delegated migration round trips
 - full Core geometry/signature goldens and fresh-process signature tests
 - full editor regression tests
 
