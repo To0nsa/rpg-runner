@@ -99,7 +99,10 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
     return issues
         .map(
           (issue) => ValidationIssue(
-            severity: ValidationSeverity.error,
+            severity: switch (issue.severity) {
+              PrefabValidationSeverity.warning => ValidationSeverity.warning,
+              PrefabValidationSeverity.error => ValidationSeverity.error,
+            },
             code: issue.code,
             message: issue.message,
           ),
