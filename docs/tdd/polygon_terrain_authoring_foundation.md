@@ -31,7 +31,7 @@ The active schema migration, generator, preview, and cutover work remains in
 | Canvas projection and source-loop overlay | editor `TerrainPolygonViewportTransform` / `TerrainPolygonScenePainter` | shared Flutter painter tests; compiler-edge overlay and route wiring are pending |
 | Legacy prefab occupied-area union and reviewed corrections | editor prefab migration domain | aggregate check plan; removal follows verified prefab v3 write |
 | Legacy flat-ground/gap conversion | editor chunk migration domain | aggregate check plan; removal follows verified chunk v2 write |
-| Strict legacy prefab-v1/v2 and chunk-v1 source parsing | editor migration domain | read-only aggregate planner input; compatibility stores are bypassed |
+| Strict legacy prefab-v1/v2 and chunk-v1 source parsing | editor migration-owned `LegacyPrefabDef` / chunk-v1 models | read-only aggregate planner input; compatibility stores and normal `PrefabDef` are bypassed |
 | Cross-domain canonical migration report | editor migration domain | read-only CLI, strict in-memory targets, and exact source SHA-256 audit; source writes remain pending |
 | Isolated prefab-v3/chunk-v2 target structures | editor migration domain | strict canonical codecs and complete-repository round-trip; normal stores do not consume them yet |
 
@@ -171,6 +171,13 @@ as byte-identical no-op targets. Readiness report v2 records source state, all
 nine before/after SHA-256 pairs, 107 unchanged revision decisions, and 99
 prefab impact records covering 50 placements. The legacy report fingerprint is
 `14297a48`; the equivalent current-state fingerprint is `4116ae04`.
+
+Rectangle-era prefab records used by this path are isolated as
+`LegacyPrefabDef`/`LegacyPrefabData` inside the migration layer. The strict
+codec, migration planner, reviewed union, and v3 target conversion no longer
+depend on normal `PrefabDef`. This preserves the frozen legacy interpretation
+while allowing the normal authoring model to replace `colliders` with polygon
+source without retaining a second editable rectangle authority.
 
 `tool/migrate_polygon_authoring.dart` defaults to check mode. It returns `0`
 for a complete blocker-free readiness plan, `1` for source/plan/target/drift or
