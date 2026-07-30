@@ -30,6 +30,7 @@ The active schema migration, generator, preview, and cutover work remains in
 | Render projection and source-space hit testing | editor `TerrainPolygonSceneProjection` / `TerrainPolygonSceneHitTest` | framework-neutral scene tests; Prefab/Chunk route wiring is pending |
 | Canvas projection and source-loop overlay | editor `TerrainPolygonViewportTransform` / `TerrainPolygonScenePainter` | shared Flutter painter tests; compiler-edge overlay and route wiring are pending |
 | Prefab polygon owner validation | editor `validatePrefabCollisionShapes` | Core compiler plus exact visual-bounds tests; normal `PrefabDef` integration is pending |
+| Immutable prefab-v3 polygon record | editor `PrefabV3Def` | migration target and model-contract tests; normal store/UI integration is pending |
 | Legacy prefab occupied-area union and reviewed corrections | editor prefab migration domain | aggregate check plan; removal follows verified prefab v3 write |
 | Legacy flat-ground/gap conversion | editor chunk migration domain | aggregate check plan; removal follows verified chunk v2 write |
 | Strict legacy prefab-v1/v2 and chunk-v1 source parsing | editor migration-owned `LegacyPrefabDef` / chunk-v1 models | read-only aggregate planner input; compatibility stores and normal `PrefabDef` are bypassed |
@@ -177,8 +178,9 @@ Rectangle-era prefab records used by this path are isolated as
 `LegacyPrefabDef`/`LegacyPrefabData` inside the migration layer. The strict
 codec, migration planner, reviewed union, and v3 target conversion no longer
 depend on normal `PrefabDef`. This preserves the frozen legacy interpretation
-while allowing the normal authoring model to replace `colliders` with polygon
-source without retaining a second editable rectangle authority.
+while the immutable normal `PrefabV3Def` record establishes polygon ownership
+without retaining a second editable rectangle authority. The existing v2
+`PrefabDef`, store, and UI remain active until their single cutover.
 
 `tool/migrate_polygon_authoring.dart` defaults to check mode. It returns `0`
 for a complete blocker-free readiness plan, `1` for source/plan/target/drift or
@@ -194,15 +196,21 @@ idempotence is proven, but staged generated-artifact impact, normal editor
 schema support, transaction staging, rollback, and source replacement remain
 separate gates. Normal source and runtime behavior are unchanged.
 
-## Isolated Polygon Target Schemas
+## Polygon Target Schemas And Normal Prefab Record
 
-`PrefabV3TargetDocument` and `ChunkV2TargetDocument` define the intended output
-shape without changing the normal editor models. Prefab v3 replaces only the
-legacy `colliders` field with anchor-relative `collisionShapes`; chunk v2
-replaces only `groundProfile`/`groundGaps` with direct chunk-local
-`collisionShapes`. Existing identity, revision, lifecycle, visual source,
-dimensions, composition, placement, marker, tag, and ground-band metadata is
-preserved.
+`PrefabV3Def` is the immutable normal-model record for the intended prefab-v3
+shape. `PrefabV3TargetDocument` reuses it, while `ChunkV2TargetDocument` remains
+an isolated migration target. Prefab v3 replaces only the legacy `colliders`
+field with anchor-relative `collisionShapes`; chunk v2 replaces only
+`groundProfile`/`groundGaps` with direct chunk-local `collisionShapes`. Existing
+identity, revision, lifecycle, visual source, dimensions, composition,
+placement, marker, tag, and ground-band metadata is preserved.
+
+The normal record snapshots its lists but deliberately preserves supplied shape
+and tag order. This lets validation diagnose noncanonical authored input instead
+of silently repairing it. The migration target document canonicalizes copied
+records at its serialization boundary, so read-only planned output remains
+deterministic without mutating the source record.
 
 `PolygonAuthoringTargetCodec` is intentionally stricter than the current
 compatibility stores. It requires the exact target version and field set,
@@ -213,8 +221,9 @@ Core-owned and is not duplicated in the structural codec.
 
 All planned current repository output—99 prefab records and 8 chunk files—has
 been encoded, decoded strictly, and re-encoded byte-for-byte in tests. The
-target types remain migration staging: normal `PrefabStore`, `ChunkStore`, UI,
-generator, source JSON, and runtime authority still use their existing paths.
+target documents/codecs remain migration staging. `PrefabV3Def` is now available
+to normal editor code, but `PrefabStore`, `ChunkStore`, UI, generator, source
+JSON, and runtime authority still use their existing paths.
 
 ## Prefab Polygon Owner Validation
 
@@ -299,6 +308,8 @@ The foundation is covered by:
   deterministic tie-breaks
 - exact canvas/source transform, structural repaint, and widget-level source
   fill/selection/preview/draft painter tests
+- immutable prefab-v3 snapshots, value equality/copy/revision behavior,
+  preserved authored ordering, and target-boundary canonicalization tests
 - full Core geometry/signature goldens and fresh-process signature tests
 - full editor regression tests
 
