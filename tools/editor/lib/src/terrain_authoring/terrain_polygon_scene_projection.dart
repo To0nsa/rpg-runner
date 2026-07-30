@@ -22,6 +22,24 @@ final class TerrainPolygonSceneShape {
   final bool isSelected;
   final int? selectedEdgeIndex;
   final int? selectedVertexIndex;
+
+  @override
+  bool operator ==(Object other) =>
+      other is TerrainPolygonSceneShape &&
+      shape == other.shape &&
+      isGesturePreview == other.isGesturePreview &&
+      isSelected == other.isSelected &&
+      selectedEdgeIndex == other.selectedEdgeIndex &&
+      selectedVertexIndex == other.selectedVertexIndex;
+
+  @override
+  int get hashCode => Object.hash(
+    shape,
+    isGesturePreview,
+    isSelected,
+    selectedEdgeIndex,
+    selectedVertexIndex,
+  );
 }
 
 /// Render-facing view of an open creation draft.
@@ -39,6 +57,24 @@ final class TerrainPolygonSceneDraft {
   final TerrainSourceCollisionMode collisionMode;
   final String? surfaceKind;
   final String? materialKey;
+
+  @override
+  bool operator ==(Object other) =>
+      other is TerrainPolygonSceneDraft &&
+      shapeId == other.shapeId &&
+      _listEquals(vertices, other.vertices) &&
+      collisionMode == other.collisionMode &&
+      surfaceKind == other.surfaceKind &&
+      materialKey == other.materialKey;
+
+  @override
+  int get hashCode => Object.hash(
+    shapeId,
+    Object.hashAll(vertices),
+    collisionMode,
+    surfaceKind,
+    materialKey,
+  );
 }
 
 /// Deterministic scene projection shared by prefab and chunk painters.
@@ -88,6 +124,15 @@ final class TerrainPolygonSceneProjection {
 
   final List<TerrainPolygonSceneShape> shapes;
   final TerrainPolygonSceneDraft? draft;
+
+  @override
+  bool operator ==(Object other) =>
+      other is TerrainPolygonSceneProjection &&
+      _listEquals(shapes, other.shapes) &&
+      draft == other.draft;
+
+  @override
+  int get hashCode => Object.hash(Object.hashAll(shapes), draft);
 }
 
 /// UI-only source-space point used by deterministic polygon hit testing.
@@ -100,6 +145,15 @@ final class TerrainPolygonScenePoint {
 
   final double xHalfPixels;
   final double yHalfPixels;
+
+  @override
+  bool operator ==(Object other) =>
+      other is TerrainPolygonScenePoint &&
+      xHalfPixels == other.xHalfPixels &&
+      yHalfPixels == other.yHalfPixels;
+
+  @override
+  int get hashCode => Object.hash(xHalfPixels, yHalfPixels);
 }
 
 /// Shared source-space hit testing for polygon vertices, edges, and fills.
@@ -303,6 +357,15 @@ void _requireRadius(double radius, String name) {
   if (!radius.isFinite || radius < 0) {
     throw ArgumentError.value(radius, name, 'Radius must be finite and >= 0.');
   }
+}
+
+bool _listEquals<T>(List<T> left, List<T> right) {
+  if (identical(left, right)) return true;
+  if (left.length != right.length) return false;
+  for (var index = 0; index < left.length; index++) {
+    if (left[index] != right[index]) return false;
+  }
+  return true;
 }
 
 final class _RankedSceneShape {
