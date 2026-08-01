@@ -26,7 +26,8 @@ The active schema migration, generator, preview, and cutover work remains in
 | Positive-area polygon overlap | `runner_core` `TerrainPolygonOverlap` | `TerrainCompiler`; source-loop entry point is ready for editor owner validation |
 | Exact placement and physics-grid quantization | `runner_core` `TerrainSourceTransform` | `TerrainCompiler`, Core fixtures, and editor adapter |
 | Editor-to-Core conversion | editor `TerrainSourceCoreAdapter` | migration checks and shared interaction reducer; prefab/chunk UI integration is pending |
-| Shared polygon interaction state | editor `TerrainPolygonInteractionReducer` | pure-Dart selection/draft/gesture/semantic-edit tests; route wiring is pending |
+| Shared polygon interaction state | editor `TerrainPolygonInteractionReducer` | pure-Dart selection/draft/gesture/semantic-edit tests; Prefab staging is wired and Chunk route wiring is pending |
+| Exact half-pixel inspector text | editor `TerrainHalfPixelText` / `TerrainPolygonInteractionReducer.editSelectedVertex` | shared exact parser and semantic commit; Prefab staging inspector is wired, Chunk inspector is pending |
 | Render projection and source-space hit testing | editor `TerrainPolygonSceneProjection` / `TerrainPolygonSceneHitTest` | framework-neutral scene tests; Prefab/Chunk route wiring is pending |
 | Canvas projection and source-loop overlay | editor `TerrainPolygonViewportTransform` / `TerrainPolygonScenePainter` | shared Flutter painter tests; compiler-edge overlay and route wiring are pending |
 | Prefab polygon owner validation | editor `validatePrefabCollisionShapes` | Core compiler plus exact visual-bounds tests; normal `PrefabDef` integration is pending |
@@ -344,6 +345,19 @@ the visual-source outline rather than clipped to it. Decoration owners remain
 selectable for inspection but disable collision creation and retain empty
 collision source.
 
+Numeric vertex fields use `TerrainHalfPixelText`, which converts signed
+integer, `.0`, or `.5` pixel strings directly to integer source ticks without a
+floating-point intermediate. Comma decimal input is normalized for editor
+ergonomics; other fractions, malformed text, and values beyond Core's authored
+coordinate range remain field-local errors. A parsed coordinate is an explicit
+numeric override, so it does not pass through the pointer snap selector. The
+shared reducer replaces the selected vertex, re-runs Core canonicalization and
+cross-shape overlap checks, preserves the selected vertex by exact value after
+canonical reordering, and emits at most one semantic commit. The prefab route
+then applies the usual owner visual-bounds and revision policy before session
+history. Rejected geometry leaves both the committed document and typed field
+state unchanged while exposing actionable diagnostics.
+
 The source-apply action is intentionally disabled in the staging chrome.
 Accepted edits still create session pending changes for validation/undo tests,
 but the plugin's changed-staging export lock remains the final defense against
@@ -413,6 +427,8 @@ The foundation is covered by:
 - explicit Prefab staged-scene routing, owner-local draft isolation, visible
   snap selection, exact half-pixel creation, route shortcuts, undo/redo, and
   diagnostic focus
+- exact numeric vertex parsing, canonical formatting, range/fraction rejection,
+  canonical-selection retention, and one-commit owner dispatch
 - anchor-relative atlas and negative-cell platform-module visual projection
 - deterministic shape IDs, exact snapping, explicit normalization, and
   positive-area duplicate rejection

@@ -588,7 +588,7 @@ Interaction rules:
   - [x] Prefab-v3 staging exposes `1 px` owner-grid and exact `0.5 px`
         choices; changing it cancels any active preview without session history.
 - [x] never permit arbitrary non-half-pixel vertex values
-- [ ] inspector numeric fields accept integer/`.5` text and display exact values
+- [x] inspector numeric fields accept integer/`.5` text and display exact values
 - [x] one pointer gesture produces one undo entry, not one entry per event
 - [x] cancellation restores committed geometry; commit runs validation once
 - [x] selection changes produce no semantic commit or history entry
@@ -639,6 +639,10 @@ curves, and holes are not required for the baseline tool.
       exact shape/vertex readout, stable diagnostics focus, atlas/platform
       visual sources, and a visibly disabled source-apply action. Ordinary v2
       loads still select the rectangle page.
+- [x] Route exact numeric vertex edits through the shared reducer and prefab
+      owner policy. Parse integer/`.0`/`.5` text without floating point, retain
+      invalid typed values and diagnostics locally, and commit one accepted
+      vertex replacement as one revision/history entry.
 - [x] Bump revision exactly once per committed semantic edit.
 - [x] Make a drag one pending semantic change even if it has many pointer
       updates.
@@ -1045,6 +1049,7 @@ result.
 | 2026-07-30 / `474c6d98` | Strict read-only prefab-v3 staging loader | Dart VM and Flutter test VM on Windows | Editor analysis is clean and all 318 editor tests pass. Four retained tile-v2 codec tests cover current-source byte round-trip, copy-only canonicalization, strict type/field/order rejection, duplicate module identity, and duplicate cell position. Three fixture tests cover strict prefab-v3/tile-v2 composition, atlas and negative-cell platform bounds, immutable atlas metadata, scene projection, clean pending/export behavior with byte-identical files, legacy-version rejection, and missing-tile failure. The migration and generator guards remain unchanged and read-only. Normal `loadFromRepo`, save, current authored JSON, and runtime authority remain v2/legacy. |
 | 2026-08-01 / `2c480d17` | Anchor-aligned prefab polygon visual-source projection | Flutter test VM on Windows | Editor analysis is clean. Focused tests prove atlas slices use `(-anchorX, -anchorY)` prefab-local placement and negative platform-module cells normalize against complete module bounds before the same anchor transform. Decoded images stay in a workspace-scoped cache; missing images render deterministic fallbacks. No source/store/runtime authority changed. |
 | 2026-08-01 / `01824736` | Explicit prefab-v3 polygon staging workspace | Dart VM and Flutter test VM on Windows | Editor analysis is clean and all 321 editor tests pass. The route test covers explicit scene routing, locked source apply, owner-local draft isolation, route-shortcut cancellation, atlas/module selection, visible `1 px`/`0.5 px` snap, exact odd half-pixel ticks, one revision/undo entry, undo/redo synchronization, stable diagnostic focus, and staged pending owner IDs. Migration check still reports 99 prefabs, 8 chunks, and nine pending targets without writes; generator dry-run still validates 8 chunks, 2 levels, and 2 themes. Ordinary v2 load/save, authored JSON, and runtime authority remain unchanged. |
+| 2026-08-01 / `e3a07975` | Exact numeric polygon vertex editing | Dart VM and Flutter test VM on Windows | Editor analysis is clean and all 325 editor tests pass. Parser tests cover signed integer, `.0`, `.5`, comma-decimal, malformed, fractional, overflow, and canonical formatting cases. Reducer and route tests prove exact odd ticks, invalid-loop rejection, retained vertex selection after canonical ordering, owner-policy dispatch, and one accepted revision increment. Migration check and generator dry-run remain clean and read-only; normal v2 source/runtime authority is unchanged. |
 
 ### 28.1 Baseline Environment And Source Identity
 
