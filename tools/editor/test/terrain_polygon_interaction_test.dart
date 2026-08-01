@@ -383,6 +383,38 @@ void main() {
       expect(accepted.state.shapes.single.vertices, hasLength(3));
     });
 
+    test(
+      'numeric vertex edit commits exact ticks and rejects invalid loops',
+      () {
+        final reducer = _reducer();
+        final initial = TerrainPolygonInteractionState(
+          shapes: <TerrainSourceShapeDef>[_rectangle('collision_001')],
+          selection: TerrainPolygonSelection.vertex('collision_001', 1),
+        );
+
+        final accepted = reducer.editSelectedVertex(
+          initial,
+          vertex: const TerrainSourceVertexDef(xHalfPixels: 21, yHalfPixels: 0),
+        );
+
+        expect(accepted.accepted, isTrue);
+        expect(accepted.commit, isNotNull);
+        expect(
+          accepted.state.selection,
+          TerrainPolygonSelection.vertex('collision_001', 1),
+        );
+        expect(accepted.state.shapes.single.vertices[1].xHalfPixels, 21);
+
+        final rejected = reducer.editSelectedVertex(
+          initial,
+          vertex: const TerrainSourceVertexDef(xHalfPixels: 0, yHalfPixels: 0),
+        );
+        expect(rejected.accepted, isFalse);
+        expect(rejected.commit, isNull);
+        expect(rejected.state, same(initial));
+      },
+    );
+
     test('duplicate uses the lowest free ID and permits shared edges', () {
       final reducer = _reducer();
       final initial = TerrainPolygonInteractionState(

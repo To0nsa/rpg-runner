@@ -126,6 +126,40 @@ void main() {
       obstacle = _prefab(harness.session, 'obstacle');
       expect(obstacle.revision, 2);
 
+      final editedShapeRow = find.byKey(
+        const ValueKey<String>('prefab_polygon_shape_collision_002'),
+      );
+      await tester.ensureVisible(editedShapeRow);
+      await tester.tap(editedShapeRow);
+      await tester.pump();
+      final vertexRow = find.byKey(
+        const ValueKey<String>('prefab_polygon_vertex_collision_002_0'),
+      );
+      await tester.ensureVisible(vertexRow);
+      await tester.tap(vertexRow);
+      await tester.pump();
+      final xField = find.byKey(
+        const ValueKey<String>('prefab_polygon_vertex_x_field'),
+      );
+      final yField = find.byKey(
+        const ValueKey<String>('prefab_polygon_vertex_y_field'),
+      );
+      await tester.ensureVisible(xField);
+      await tester.enterText(xField, '5');
+      await tester.enterText(yField, '5.5');
+      await tester.tap(
+        find.byKey(const ValueKey<String>('prefab_polygon_apply_vertex')),
+      );
+      await tester.pump();
+      obstacle = _prefab(harness.session, 'obstacle');
+      expect(obstacle.revision, 3);
+      final editedVertex = obstacle.collisionShapes
+          .singleWhere((shape) => shape.shapeId == 'collision_002')
+          .vertices
+          .first;
+      expect(editedVertex.xHalfPixels, 10);
+      expect(editedVertex.yHalfPixels, 11);
+
       final diagnostic = find.text(
         'prefab_collision_shape_outside_visual_bounds',
       );

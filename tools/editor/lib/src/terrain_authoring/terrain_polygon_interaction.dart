@@ -596,6 +596,52 @@ final class TerrainPolygonInteractionReducer {
     );
   }
 
+  /// Replaces one selected vertex with an exact numeric half-pixel value.
+  ///
+  /// Numeric inspector values are already exact authored ticks and therefore
+  /// do not pass through the pointer snap policy. The complete candidate shape
+  /// still runs through canonicalization, overlap, and owner commit validation.
+  TerrainPolygonInteractionResult editSelectedVertex(
+    TerrainPolygonInteractionState state, {
+    required TerrainSourceVertexDef vertex,
+  }) {
+    final selection = state.selection;
+    if (state.hasActiveOperation ||
+        selection == null ||
+        selection.kind != TerrainPolygonSelectionKind.vertex) {
+      return _acceptedNoOp(state);
+    }
+    final shape = _requireShape(state.shapes, selection.shapeId);
+    final vertexIndex = selection.elementIndex!;
+    _requireVertexIndex(shape, vertexIndex);
+    final vertices = shape.vertices.toList();
+    if (vertices[vertexIndex] == vertex) return _acceptedNoOp(state);
+    vertices[vertexIndex] = vertex;
+    final candidate = _shapeWithVertices(shape, vertices);
+    final validation = _validateAndCanonicalize(
+      candidate,
+      otherShapes: state.shapes.where(
+        (other) => other.shapeId != candidate.shapeId,
+      ),
+    );
+    final canonical = validation.shape;
+    if (canonical == null) {
+      return _rejected(state, validation.diagnostics);
+    }
+    final canonicalVertexIndex = canonical.vertices.indexOf(vertex);
+    return _commitShapes(
+      state,
+      _replaceShape(state.shapes, canonical),
+      canonicalVertexIndex < 0
+          ? TerrainPolygonSelection.shape(canonical.shapeId)
+          : TerrainPolygonSelection.vertex(
+              canonical.shapeId,
+              canonicalVertexIndex,
+            ),
+      diagnostics: validation.diagnostics,
+    );
+  }
+
   /// Deletes the selected vertex when the result can still be a polygon.
   TerrainPolygonInteractionResult deleteSelectedVertex(
     TerrainPolygonInteractionState state,

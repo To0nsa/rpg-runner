@@ -226,6 +226,14 @@ final class PrefabPolygonAuthoringController extends ChangeNotifier {
     return _applyInteractionResult(result, attemptedState: attemptedState);
   }
 
+  bool editSelectedVertex(TerrainSourceVertexDef vertex) {
+    final attemptedState = _state;
+    return _applyInteractionResult(
+      _reducer.editSelectedVertex(attemptedState, vertex: vertex),
+      attemptedState: attemptedState,
+    );
+  }
+
   bool duplicateSelectedShape({
     required int deltaXHalfPixels,
     required int deltaYHalfPixels,

@@ -6,6 +6,7 @@ import '../../../../prefabs/domain/prefab_domain_models.dart';
 import '../../../../prefabs/models/models.dart';
 import '../../../../prefabs/validation/prefab_validation.dart';
 import '../../../../session/editor_session_controller.dart';
+import '../../../../terrain_authoring/terrain_half_pixel_text.dart';
 import '../../../../terrain_authoring/terrain_polygon_interaction.dart';
 import '../../../../terrain_authoring/terrain_source_models.dart';
 import '../../shared/editor_scene_view_utils.dart';
@@ -439,7 +440,7 @@ class PrefabPolygonStagingWorkspaceState
               ],
             ),
             const SizedBox(height: PrefabEditorUiTokens.controlGap),
-            Text(_vertexList(selectedShape)),
+            _buildVertexInspector(authoring, selectedShape),
           ],
           const Divider(height: 32),
           Text('Diagnostics', style: Theme.of(context).textTheme.titleSmall),
@@ -469,6 +470,64 @@ class PrefabPolygonStagingWorkspaceState
               ),
         ],
       ),
+    );
+  }
+
+  Widget _buildVertexInspector(
+    PrefabPolygonAuthoringController authoring,
+    TerrainSourceShapeDef shape,
+  ) {
+    final selection = authoring.state.selection;
+    final selectedVertexIndex =
+        selection?.shapeId == shape.shapeId &&
+            selection?.kind == TerrainPolygonSelectionKind.vertex
+        ? selection?.elementIndex
+        : null;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text('Vertices', style: Theme.of(context).textTheme.titleSmall),
+        const SizedBox(height: PrefabEditorUiTokens.controlGap),
+        for (final entry in shape.vertices.asMap().entries)
+          ListTile(
+            key: ValueKey<String>(
+              'prefab_polygon_vertex_${shape.shapeId}_${entry.key}',
+            ),
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            selected: entry.key == selectedVertexIndex,
+            onTap: () => authoring.select(
+              TerrainPolygonSelection.vertex(shape.shapeId, entry.key),
+            ),
+            title: Text('v${entry.key}'),
+            trailing: Text(
+              '(${_formatHalfPixels(entry.value.xHalfPixels)}, '
+              '${_formatHalfPixels(entry.value.yHalfPixels)})',
+            ),
+          ),
+        if (selectedVertexIndex != null) ...<Widget>[
+          const SizedBox(height: PrefabEditorUiTokens.controlGap),
+          _VertexCoordinateEditor(
+            key: ValueKey<String>(
+              'prefab_polygon_vertex_editor_${shape.shapeId}_'
+              '${selectedVertexIndex}_'
+              '${shape.vertices[selectedVertexIndex].xHalfPixels}_'
+              '${shape.vertices[selectedVertexIndex].yHalfPixels}',
+            ),
+            shapeId: shape.shapeId,
+            vertexIndex: selectedVertexIndex,
+            vertex: shape.vertices[selectedVertexIndex],
+            onApply: (xHalfPixels, yHalfPixels) {
+              authoring.editSelectedVertex(
+                TerrainSourceVertexDef(
+                  xHalfPixels: xHalfPixels,
+                  yHalfPixels: yHalfPixels,
+                ),
+              );
+            },
+          ),
+        ],
+      ],
     );
   }
 
@@ -688,6 +747,119 @@ class PrefabPolygonStagingWorkspaceState
   }
 }
 
+class _VertexCoordinateEditor extends StatefulWidget {
+  const _VertexCoordinateEditor({
+    super.key,
+    required this.shapeId,
+    required this.vertexIndex,
+    required this.vertex,
+    required this.onApply,
+  });
+
+  final String shapeId;
+  final int vertexIndex;
+  final TerrainSourceVertexDef vertex;
+  final void Function(int xHalfPixels, int yHalfPixels) onApply;
+
+  @override
+  State<_VertexCoordinateEditor> createState() =>
+      _VertexCoordinateEditorState();
+}
+
+class _VertexCoordinateEditorState extends State<_VertexCoordinateEditor> {
+  late final TextEditingController _xController;
+  late final TextEditingController _yController;
+  String? _xError;
+  String? _yError;
+
+  @override
+  void initState() {
+    super.initState();
+    _xController = TextEditingController(
+      text: TerrainHalfPixelText.formatTicks(widget.vertex.xHalfPixels),
+    );
+    _yController = TextEditingController(
+      text: TerrainHalfPixelText.formatTicks(widget.vertex.yHalfPixels),
+    );
+  }
+
+  @override
+  void dispose() {
+    _xController.dispose();
+    _yController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(
+          'Edit ${widget.shapeId} v${widget.vertexIndex}',
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
+        const SizedBox(height: PrefabEditorUiTokens.controlGap),
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: TextField(
+                key: const ValueKey<String>('prefab_polygon_vertex_x_field'),
+                controller: _xController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  signed: true,
+                  decimal: true,
+                ),
+                decoration: InputDecoration(
+                  labelText: 'X (px)',
+                  errorText: _xError,
+                  border: const OutlineInputBorder(),
+                ),
+                onSubmitted: (_) => _apply(),
+              ),
+            ),
+            const SizedBox(width: PrefabEditorUiTokens.controlGap),
+            Expanded(
+              child: TextField(
+                key: const ValueKey<String>('prefab_polygon_vertex_y_field'),
+                controller: _yController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  signed: true,
+                  decimal: true,
+                ),
+                decoration: InputDecoration(
+                  labelText: 'Y (px)',
+                  errorText: _yError,
+                  border: const OutlineInputBorder(),
+                ),
+                onSubmitted: (_) => _apply(),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: PrefabEditorUiTokens.controlGap),
+        FilledButton.icon(
+          key: const ValueKey<String>('prefab_polygon_apply_vertex'),
+          onPressed: _apply,
+          icon: const Icon(Icons.check),
+          label: const Text('Apply exact vertex'),
+        ),
+      ],
+    );
+  }
+
+  void _apply() {
+    final xHalfPixels = TerrainHalfPixelText.tryParseTicks(_xController.text);
+    final yHalfPixels = TerrainHalfPixelText.tryParseTicks(_yController.text);
+    setState(() {
+      _xError = xHalfPixels == null ? 'Use an integer or .5 value.' : null;
+      _yError = yHalfPixels == null ? 'Use an integer or .5 value.' : null;
+    });
+    if (xHalfPixels == null || yHalfPixels == null) return;
+    widget.onApply(xHalfPixels, yHalfPixels);
+  }
+}
+
 int _comparePrefabs(PrefabV3Def left, PrefabV3Def right) {
   final kindOrder = _kindOrder(left.kind).compareTo(_kindOrder(right.kind));
   if (kindOrder != 0) return kindOrder;
@@ -718,17 +890,6 @@ String _shapeExtent(TerrainSourceShapeDef shape) {
       '${_formatHalfPixels(ys.reduce(math.min))}..'
       '${_formatHalfPixels(ys.reduce(math.max))}';
 }
-
-String _vertexList(TerrainSourceShapeDef shape) => shape.vertices
-    .asMap()
-    .entries
-    .map(
-      (entry) =>
-          'v${entry.key}: '
-          '(${_formatHalfPixels(entry.value.xHalfPixels)}, '
-          '${_formatHalfPixels(entry.value.yHalfPixels)})',
-    )
-    .join('\n');
 
 String _formatHalfPixels(int ticks) {
   final magnitude = ticks.abs();
