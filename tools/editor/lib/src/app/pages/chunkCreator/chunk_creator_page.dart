@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../chunks/chunk_domain_models.dart';
+import '../../../chunks/chunk_v2_staging_models.dart';
 import '../../../domain/authoring_types.dart';
 import '../../../prefabs/models/models.dart';
 import '../../../session/editor_session_controller.dart';
@@ -10,6 +11,7 @@ import '../shared/atlas_slice_preview_tile.dart';
 import '../shared/editor_page_local_draft_state.dart';
 import '../shared/editor_scene_view_utils.dart';
 import '../shared/platform_module_preview_tile.dart';
+import 'staging/chunk_polygon_staging_workspace.dart';
 import 'widgets/chunk_scene_view.dart';
 
 class ChunkCreatorPage extends StatefulWidget {
@@ -22,7 +24,10 @@ class ChunkCreatorPage extends StatefulWidget {
 }
 
 class _ChunkCreatorPageState extends State<ChunkCreatorPage>
-    implements EditorPageLocalDraftState {
+    implements
+        EditorPageLocalDraftState,
+        EditorPageSessionShortcutHandler,
+        EditorPageReloadHandler {
   static const String _chunkListDifficultyAll = 'all';
   static const String _chunkListAssemblyGroupFilterAll = 'all';
   static const String _prefabPaletteTagAll = 'all';
@@ -64,6 +69,8 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
   );
   final EditorUiImageCache _prefabPalettePreviewImageCache =
       EditorUiImageCache();
+  final GlobalKey<ChunkPolygonStagingWorkspaceState> _stagingWorkspaceKey =
+      GlobalKey<ChunkPolygonStagingWorkspaceState>();
 
   String? _selectedChunkKey;
   String? _selectedDiffPath;
@@ -98,6 +105,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
   String _chunkListDifficultyFilter = _chunkListDifficultyAll;
   String _prefabPaletteTagFilter = _prefabPaletteTagAll;
   PrefabKind? _prefabPaletteKindFilter;
+  late bool _showingV2Staging;
 
   static const double _spaceXs = 4;
   static const double _spaceSm = 8;
@@ -110,6 +118,10 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
 
   @override
   bool get hasLocalDraftChanges {
+    if (_showingV2Staging) {
+      return _stagingWorkspaceKey.currentState?.hasLocalDraftChanges ??
+          widget.controller.pendingChanges.hasChanges;
+    }
     return _newChunkIdController.text.trim() != _defaultNewChunkId ||
         _newGapXController.text.trim() != _defaultNewGapX ||
         _newGapWidthController.text.trim() != _defaultNewGapWidth ||
@@ -120,15 +132,72 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
   }
 
   @override
+  bool get canHandleUndoSessionShortcut => _showingV2Staging
+      ? (_stagingWorkspaceKey.currentState?.canUndo ??
+            widget.controller.canUndo)
+      : widget.controller.canUndo;
+
+  @override
+  bool get canHandleRedoSessionShortcut => _showingV2Staging
+      ? (_stagingWorkspaceKey.currentState?.canRedo ??
+            widget.controller.canRedo)
+      : widget.controller.canRedo;
+
+  @override
+  bool get canReloadEditorPage =>
+      !_showingV2Staging &&
+      !widget.controller.isLoading &&
+      !widget.controller.isExporting;
+
+  @override
+  bool handleUndoSessionShortcut() {
+    if (_showingV2Staging) {
+      return _stagingWorkspaceKey.currentState?.handleUndoShortcut() ?? false;
+    }
+    if (!widget.controller.canUndo) return false;
+    widget.controller.undo();
+    return true;
+  }
+
+  @override
+  bool handleRedoSessionShortcut() {
+    if (_showingV2Staging) {
+      return _stagingWorkspaceKey.currentState?.handleRedoShortcut() ?? false;
+    }
+    if (!widget.controller.canRedo) return false;
+    widget.controller.redo();
+    return true;
+  }
+
+  @override
+  Future<void> reloadEditorPage() async {
+    if (_showingV2Staging) return;
+    await widget.controller.loadWorkspace();
+  }
+
+  @override
   void initState() {
     super.initState();
+    _showingV2Staging = widget.controller.scene is ChunkV2StagingScene;
+    widget.controller.addListener(_handleControllerRouteChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      widget.controller.loadWorkspace();
+      if (_showingV2Staging) return;
+      unawaited(widget.controller.loadWorkspace());
     });
   }
 
   @override
+  void didUpdateWidget(covariant ChunkCreatorPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller == widget.controller) return;
+    oldWidget.controller.removeListener(_handleControllerRouteChanged);
+    widget.controller.addListener(_handleControllerRouteChanged);
+    _showingV2Staging = widget.controller.scene is ChunkV2StagingScene;
+  }
+
+  @override
   void dispose() {
+    widget.controller.removeListener(_handleControllerRouteChanged);
     _prefabPalettePreviewImageCache.dispose();
     _newChunkIdController.dispose();
     _renameIdController.dispose();
@@ -146,6 +215,12 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
 
   @override
   Widget build(BuildContext context) {
+    if (_showingV2Staging) {
+      return ChunkPolygonStagingWorkspace(
+        key: _stagingWorkspaceKey,
+        controller: widget.controller,
+      );
+    }
     return AnimatedBuilder(
       animation: widget.controller,
       builder: (context, _) {
@@ -225,6 +300,14 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
         );
       },
     );
+  }
+
+  void _handleControllerRouteChanged() {
+    final showingV2Staging = widget.controller.scene is ChunkV2StagingScene;
+    if (showingV2Staging == _showingV2Staging || !mounted) return;
+    setState(() {
+      _showingV2Staging = showingV2Staging;
+    });
   }
 
   Widget _buildControls(ChunkScene? scene) {
