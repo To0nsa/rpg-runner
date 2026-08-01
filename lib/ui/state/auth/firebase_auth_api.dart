@@ -64,6 +64,19 @@ class FirebaseAuthApi implements AuthApi {
     }
   }
 
+  @override
+  Future<AuthSession> reauthenticateForSensitiveOperation() async {
+    final snapshot = await _source.reauthenticatePlayGamesSession();
+    final nowMs = _now().millisecondsSinceEpoch;
+    if (snapshot == null ||
+        !_snapshotSatisfiesPlayGamesAuth(snapshot, nowMs: nowMs)) {
+      throw const PlayGamesAuthRequiredException(
+        'Recent Play Games sign-in is required for this action.',
+      );
+    }
+    return _toSession(snapshot);
+  }
+
   Future<AuthSession> _ensureAuthenticatedSessionInternal() async {
     final now = _now();
     final nowMs = now.millisecondsSinceEpoch;
@@ -127,7 +140,12 @@ class FirebaseAuthApi implements AuthApi {
 
   @override
   Future<AuthLinkResult> linkAuthProvider(AuthLinkProvider provider) async {
-    final current = await ensureAuthenticatedSession();
+    final currentSnapshot = await _readCurrentWithCachedFallback(
+      forceRefresh: false,
+    );
+    final current = currentSnapshot == null
+        ? await ensureAuthenticatedSession()
+        : _toSession(currentSnapshot);
     if (current.isProviderLinked(provider)) {
       return AuthLinkResult(
         provider: provider,
@@ -393,6 +411,9 @@ abstract class FirebaseAuthSessionSource {
 
   Future<FirebaseAuthSessionSnapshot?> tryRestorePlayGamesSession();
 
+  Future<FirebaseAuthSessionSnapshot?> reauthenticatePlayGamesSession() =>
+      tryRestorePlayGamesSession();
+
   Future<FirebaseAuthSessionSnapshot?> linkAuthProvider(
     AuthLinkProvider provider,
   );
@@ -441,6 +462,41 @@ class PluginFirebaseAuthSessionSource implements FirebaseAuthSessionSource {
   @override
   Future<FirebaseAuthSessionSnapshot?> tryRestorePlayGamesSession() async {
     return _tryRestoreWithPlayGames();
+  }
+
+  @override
+  Future<FirebaseAuthSessionSnapshot?> reauthenticatePlayGamesSession() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
+      return null;
+    }
+    try {
+      final user = _loadCurrentUserForProviderLink();
+      if (!_isProviderLinked(user, AuthLinkProvider.playGames)) {
+        return null;
+      }
+      final serverAuthCode = await _playGamesAuthCodeSource
+          .requestServerAuthCode();
+      if (serverAuthCode == null || serverAuthCode.isEmpty) {
+        return null;
+      }
+      final credential = PlayGamesAuthProvider.credential(
+        serverAuthCode: serverAuthCode,
+      );
+      await user.reauthenticateWithCredential(credential);
+      final tokenResult = await user.getIdTokenResult(true);
+      return _toSnapshot(user, tokenResult);
+    } on PlatformException catch (error) {
+      debugPrint(
+        'Play Games reauthentication failed: ${error.code} ${error.message}',
+      );
+      return null;
+    } on FirebaseAuthException catch (error) {
+      debugPrint(
+        'Play Games reauthentication FirebaseAuthException: '
+        '${error.code} ${error.message}',
+      );
+      return null;
+    }
   }
 
   @override
@@ -502,6 +558,10 @@ class PluginFirebaseAuthSessionSource implements FirebaseAuthSessionSource {
     }
 
     try {
+      final current = _auth.currentUser;
+      if (current?.isAnonymous ?? false) {
+        return _linkWithPlayGames();
+      }
       final serverAuthCode = await _playGamesAuthCodeSource
           .requestServerAuthCode();
       if (serverAuthCode == null || serverAuthCode.isEmpty) {

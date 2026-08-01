@@ -25,6 +25,10 @@ import {
   systemAuthorityClock,
 } from "./authority_time.js";
 import {
+  requirePlayGamesCallableUser,
+  requireRecentPlayGamesAuthentication,
+} from "./auth/callable_identity.js";
+import {
   loadOrCreatePlayerProfile,
   updatePlayerProfile,
 } from "./profile/store.js";
@@ -119,10 +123,7 @@ export const loadoutOwnershipLoadCanonicalState = onCall(
       functionName: "loadoutOwnershipLoadCanonicalState",
       request,
     });
-    const uid = request.auth?.uid;
-    if (!uid) {
-      throw new HttpsError("unauthenticated", "Authentication required.");
-    }
+    const uid = requirePlayGamesCallableUser(request.auth);
     const { userId } = parseLoadCanonicalRequest(request.data);
     if (userId !== uid) {
       throw new HttpsError(
@@ -146,10 +147,7 @@ export const loadoutOwnershipExecuteCommand = onCall(
       functionName: "loadoutOwnershipExecuteCommand",
       request,
     });
-    const uid = request.auth?.uid;
-    if (!uid) {
-      throw new HttpsError("unauthenticated", "Authentication required.");
-    }
+    const uid = requirePlayGamesCallableUser(request.auth);
     const { command } = parseExecuteCommandRequest(request.data);
     if (command.userId !== uid) {
       throw new HttpsError(
@@ -177,10 +175,7 @@ export const playerProfileLoad = onCall(
   userCallableAppCheckOptions,
   async (request) => {
     logAppCheckObservation({ functionName: "playerProfileLoad", request });
-    const uid = request.auth?.uid;
-    if (!uid) {
-      throw new HttpsError("unauthenticated", "Authentication required.");
-    }
+    const uid = requirePlayGamesCallableUser(request.auth);
     const { userId } = parseLoadPlayerProfileRequest(request.data);
     if (userId !== uid) {
       throw new HttpsError(
@@ -198,10 +193,7 @@ export const playerProfileUpdate = onCall(
   userCallableAppCheckOptions,
   async (request) => {
     logAppCheckObservation({ functionName: "playerProfileUpdate", request });
-    const uid = request.auth?.uid;
-    if (!uid) {
-      throw new HttpsError("unauthenticated", "Authentication required.");
-    }
+    const uid = requirePlayGamesCallableUser(request.auth);
     const { userId, displayName, namePromptCompleted } =
       parseUpdatePlayerProfileRequest(request.data);
     if (userId !== uid) {
@@ -226,10 +218,11 @@ export const accountDelete = onCall(
   userCallableAppCheckOptions,
   async (request) => {
     logAppCheckObservation({ functionName: "accountDelete", request });
-    const uid = request.auth?.uid;
-    if (!uid) {
-      throw new HttpsError("unauthenticated", "Authentication required.");
-    }
+    const nowMs = captureAuthorityTimeMs(systemAuthorityClock);
+    const uid = requireRecentPlayGamesAuthentication({
+      auth: request.auth,
+      nowMs,
+    });
     const { userId } = parseAccountDeleteRequest(request.data);
     if (userId !== uid) {
       throw new HttpsError(
@@ -240,7 +233,7 @@ export const accountDelete = onCall(
     const result = await requestAccountDeletion({
       db,
       uid,
-      nowMs: captureAuthorityTimeMs(systemAuthorityClock),
+      nowMs,
     });
     return { result };
   },
@@ -250,6 +243,7 @@ export const runBoardsLoadActive = onCall(
   userCallableAppCheckOptions,
   async (request) => {
     logAppCheckObservation({ functionName: "runBoardsLoadActive", request });
+    requirePlayGamesCallableUser(request.auth);
     return handleRunBoardsLoadActive(request, db);
   },
 );
@@ -264,6 +258,7 @@ export const runSessionCreate = onCall(
   },
   async (request) => {
     logAppCheckObservation({ functionName: "runSessionCreate", request });
+    requirePlayGamesCallableUser(request.auth);
     return handleRunSessionCreate(request, db);
   },
 );
@@ -275,6 +270,7 @@ export const runSessionCreateUploadGrant = onCall(
       functionName: "runSessionCreateUploadGrant",
       request,
     });
+    requirePlayGamesCallableUser(request.auth);
     return handleRunSessionCreateUploadGrant(request, db);
   },
 );
@@ -286,6 +282,7 @@ export const runSessionFinalizeUpload = onCall(
       functionName: "runSessionFinalizeUpload",
       request,
     });
+    requirePlayGamesCallableUser(request.auth);
     return handleRunSessionFinalizeUpload(request, db);
   },
 );
@@ -294,6 +291,7 @@ export const runSessionLoadStatus = onCall(
   userCallableAppCheckOptions,
   async (request) => {
     logAppCheckObservation({ functionName: "runSessionLoadStatus", request });
+    requirePlayGamesCallableUser(request.auth);
     return handleRunSessionLoadStatus(request, db);
   },
 );
@@ -405,6 +403,7 @@ export const leaderboardLoadBoard = onCall(
   },
   async (request) => {
     logAppCheckObservation({ functionName: "leaderboardLoadBoard", request });
+    requirePlayGamesCallableUser(request.auth);
     return handleLeaderboardLoadBoard(request, db);
   },
 );
@@ -419,6 +418,7 @@ export const leaderboardLoadMyRank = onCall(
   },
   async (request) => {
     logAppCheckObservation({ functionName: "leaderboardLoadMyRank", request });
+    requirePlayGamesCallableUser(request.auth);
     return handleLeaderboardLoadMyRank(request, db);
   },
 );
@@ -436,6 +436,7 @@ export const leaderboardLoadActiveBoardData = onCall(
       functionName: "leaderboardLoadActiveBoardData",
       request,
     });
+    requirePlayGamesCallableUser(request.auth);
     return handleLeaderboardLoadActiveBoardData(request, db);
   },
 );
@@ -443,8 +444,9 @@ export const leaderboardLoadActiveBoardData = onCall(
 export const ghostLoadManifest = onCall(
   userCallableAppCheckOptions,
   async (request) => {
-  logAppCheckObservation({ functionName: "ghostLoadManifest", request });
-  return handleGhostLoadManifest(request, db);
+    logAppCheckObservation({ functionName: "ghostLoadManifest", request });
+    requirePlayGamesCallableUser(request.auth);
+    return handleGhostLoadManifest(request, db);
   },
 );
 

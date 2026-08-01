@@ -52,6 +52,7 @@ void main() {
     expect(deletionApi.calls.length, 1);
     expect(deletionApi.calls.single.userId, 'u1');
     expect(deletionApi.calls.single.sessionId, 's1');
+    expect(authApi.reauthenticateCalls, 1);
     expect(authApi.clearSessionCalls, 1);
     expect(appState.authSession.userId, isEmpty);
     expect(appState.profile.displayName, isEmpty);
@@ -107,9 +108,16 @@ class _StaticAuthApi implements AuthApi {
   );
 
   int clearSessionCalls = 0;
+  int reauthenticateCalls = 0;
 
   @override
   Future<AuthSession> ensureAuthenticatedSession() async => _session;
+
+  @override
+  Future<AuthSession> reauthenticateForSensitiveOperation() async {
+    reauthenticateCalls += 1;
+    return _session;
+  }
 
   @override
   Future<AuthSession> loadSession() async => _session;

@@ -75,7 +75,11 @@ class FirebaseAccountDeletionApi implements AccountDeletionApi {
   ) {
     final code = error.code;
     final message = error.message;
-    if (_isRequiresRecentLogin(code: code, message: message)) {
+    if (_isRequiresRecentLogin(
+      code: code,
+      message: message,
+      details: error.details,
+    )) {
       return AccountDeletionResult(
         status: AccountDeletionStatus.requiresRecentLogin,
         errorCode: code,
@@ -155,12 +159,17 @@ class FirebaseAccountDeletionApi implements AccountDeletionApi {
   bool _isRequiresRecentLogin({
     required String code,
     required String? message,
+    Object? details,
   }) {
-    if (code == 'requires-recent-login' || code == 'failed-precondition') {
+    if (code == 'requires-recent-login') {
+      return true;
+    }
+    if (details is Map && details['reason'] == 'recent-auth-required') {
       return true;
     }
     final normalizedMessage = message?.toLowerCase() ?? '';
     return normalizedMessage.contains('recent login') ||
+        normalizedMessage.contains('recent authentication') ||
         normalizedMessage.contains('reauthenticate');
   }
 

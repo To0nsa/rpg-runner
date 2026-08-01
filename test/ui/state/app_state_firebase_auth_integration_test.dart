@@ -272,7 +272,7 @@ void main() {
   });
 
   test(
-    'linkAuthProvider throws when Play Games auth is not established',
+    'linkAuthProvider upgrades an anonymous Firebase account in place',
     () async {
       final now = DateTime.utc(2026, 3, 10, 12);
       final anonymous = _snapshot(
@@ -282,14 +282,50 @@ void main() {
         isAnonymous: true,
         linkedProviders: const <AuthLinkProvider>{},
       );
-      final source = _FakeFirebaseAuthSessionSource(current: anonymous);
+      final source = _FakeFirebaseAuthSessionSource(current: anonymous)
+        ..linkedProviderSession = _snapshot(
+          userId: 'anon_u1',
+          token: 'token_linked',
+          now: now,
+        );
       final authApi = FirebaseAuthApi(source: source, now: () => now);
 
-      await expectLater(
-        authApi.linkAuthProvider(AuthLinkProvider.playGames),
-        throwsA(isA<PlayGamesAuthRequiredException>()),
+      final result = await authApi.linkAuthProvider(AuthLinkProvider.playGames);
+
+      expect(result.status, AuthLinkStatus.linked);
+      expect(result.session.userId, 'anon_u1');
+      expect(result.session.isAnonymous, isFalse);
+      expect(
+        result.session.isProviderLinked(AuthLinkProvider.playGames),
+        isTrue,
       );
-      expect(source.linkProviderCalls, 0);
+      expect(source.linkProviderCalls, 1);
+    },
+  );
+
+  test(
+    'reauthenticateForSensitiveOperation requires a fresh Play Games result',
+    () async {
+      final now = DateTime.utc(2026, 3, 10, 12);
+      final source =
+          _FakeFirebaseAuthSessionSource(
+              current: _snapshot(
+                userId: 'u1',
+                token: 'token_current',
+                now: now,
+              ),
+            )
+            ..restoredSession = _snapshot(
+              userId: 'u1',
+              token: 'token_reauthenticated',
+              now: now.add(const Duration(minutes: 1)),
+            );
+      final authApi = FirebaseAuthApi(source: source, now: () => now);
+
+      final session = await authApi.reauthenticateForSensitiveOperation();
+
+      expect(session.userId, 'u1');
+      expect(source.tryRestorePlayGamesSessionCalls, 1);
     },
   );
 
@@ -343,6 +379,7 @@ class _FakeFirebaseAuthSessionSource implements FirebaseAuthSessionSource {
   FirebaseAuthSessionSnapshot? _current;
   FirebaseAuthSessionSnapshot? restoredSession;
   FirebaseAuthSessionSnapshot? restoreSideEffectSession;
+  FirebaseAuthSessionSnapshot? linkedProviderSession;
   final List<FirebaseAuthSessionSnapshot?> _forceRefreshQueue =
       <FirebaseAuthSessionSnapshot?>[];
   Object? readCurrentError;
@@ -400,11 +437,21 @@ class _FakeFirebaseAuthSessionSource implements FirebaseAuthSessionSource {
   }
 
   @override
+  Future<FirebaseAuthSessionSnapshot?> reauthenticatePlayGamesSession() {
+    return tryRestorePlayGamesSession();
+  }
+
+  @override
   Future<FirebaseAuthSessionSnapshot?> linkAuthProvider(
     AuthLinkProvider provider,
   ) async {
     linkProviderCalls += 1;
     lastLinkedProvider = provider;
+    final linked = linkedProviderSession;
+    if (linked != null) {
+      _current = linked;
+      return linked;
+    }
     throw UnsupportedError('$provider is not supported by fake source.');
   }
 

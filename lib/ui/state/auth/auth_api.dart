@@ -117,6 +117,13 @@ abstract class AuthApi {
 
   Future<AuthSession> ensureAuthenticatedSession();
 
+  /// Refreshes the player-authentication event before a destructive action.
+  ///
+  /// Implementations without an interactive provider preserve existing
+  /// behavior by returning the authenticated session.
+  Future<AuthSession> reauthenticateForSensitiveOperation() =>
+      ensureAuthenticatedSession();
+
   Future<AuthLinkResult> linkAuthProvider(AuthLinkProvider provider);
 
   Future<void> clearSession();

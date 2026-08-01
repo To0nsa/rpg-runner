@@ -74,6 +74,25 @@ void main() {
     expect(result.status, AccountDeletionStatus.unsupported);
     expect(result.errorCode, 'unimplemented');
   });
+
+  test(
+    'does not mistake unrelated failed preconditions for reauthentication',
+    () async {
+      final source = _FakeFirebaseAccountDeletionSource()
+        ..error = _TestFirebaseFunctionsException(
+          code: 'failed-precondition',
+          message: 'Deletion is already in progress.',
+        );
+      final api = FirebaseAccountDeletionApi(source: source);
+
+      final result = await api.deleteAccountAndData(
+        userId: 'u1',
+        sessionId: 's1',
+      );
+
+      expect(result.status, AccountDeletionStatus.failed);
+    },
+  );
 }
 
 class _FakeFirebaseAccountDeletionSource

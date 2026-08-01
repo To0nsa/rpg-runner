@@ -91,7 +91,8 @@ final class _AppStateAuthProfileController extends _AppStateController {
   }
 
   Future<AccountDeletionResult> deleteAccountAndData() async {
-    final session = await _ensureAuthSession();
+    final session = await _authApi.reauthenticateForSensitiveOperation();
+    _authSession = session;
     final result = await _accountDeletionApi.deleteAccountAndData(
       userId: session.userId,
       sessionId: session.sessionId,
