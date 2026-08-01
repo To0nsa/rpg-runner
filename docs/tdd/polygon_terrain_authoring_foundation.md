@@ -38,12 +38,12 @@ The active schema migration, generator, preview, and cutover work remains in
 | Prefab polygon commit and revision policy | editor `PrefabV3CollisionCommitPolicy` | shared reducer, defensive plugin command, and staged route-coordinator tests; normal page cutover is pending |
 | Prefab-v3 plugin command staging | editor `PrefabV3StagingDocument` / `PrefabDomainPlugin` | explicit strict load, typed commit, immutable pending diff, validation, and hard export lock; normal loader/page cutover is pending |
 | Prefab polygon route-local projection | editor `PrefabPolygonAuthoringController` / `PrefabPolygonSceneSurface` / `PrefabPolygonStagingWorkspace` | explicit staged-scene routing, owner isolation, visual sources, tools, snap, diagnostics, focus, keyboard, rejection, and history tests; normal v2 loads still select rectangles |
-| Fail-closed authored JSON and retained-metadata parsing | editor neutral domain plus `StrictTerrainSourceCodec` | legacy migration, prefab v3, and chunk-v2 target codecs |
+| Fail-closed authored JSON and retained-metadata parsing | editor neutral domain plus `StrictTerrainSourceCodec` | legacy migration plus normal prefab-v3 and chunk-v2 codecs |
 | Legacy prefab occupied-area union and reviewed corrections | editor prefab migration domain | aggregate check plan; removal follows verified prefab v3 write |
 | Legacy flat-ground/gap conversion | editor chunk migration domain | aggregate check plan; removal follows verified chunk v2 write |
 | Strict legacy prefab-v1/v2 and chunk-v1 source parsing | editor migration-owned `LegacyPrefabDef` / chunk-v1 models | read-only aggregate planner input; compatibility stores and normal `PrefabDef` are bypassed |
 | Cross-domain canonical migration report | editor migration domain | read-only CLI, strict in-memory targets, and exact source SHA-256 audit; source writes remain pending |
-| Isolated chunk-v2 target structure | editor migration domain | strict canonical codec and complete-repository round-trip; normal `ChunkStore` does not consume it yet |
+| Strict chunk-v2 file structure and canonical serialization | editor `ChunkV2FileData` / `ChunkV2FileCodec` | migration facade delegation and complete-repository round-trip; normal `ChunkStore` does not consume it yet |
 
 Core has no dependency on editor models, JSON, widgets, or filesystem state.
 The editor depends on Core through a one-way local package dependency and does
@@ -204,40 +204,43 @@ idempotence is proven, but staged generated-artifact impact, normal editor
 schema support, transaction staging, rollback, and source replacement remain
 separate gates. Normal source and runtime behavior are unchanged.
 
-## Polygon Target Schemas And Normal Prefab Record
+## Polygon Target Schemas And Normal Records
 
 `PrefabV3Def` is the immutable normal-model record for the intended prefab-v3
-shape. `PrefabV3FileData` snapshots the complete v3 file payload and is reused
-by the migration target alias, while `ChunkV2TargetDocument` remains an isolated
-migration target. Prefab v3 replaces only the legacy `colliders` field with
-anchor-relative `collisionShapes`; chunk v2 replaces only
+shape. `PrefabV3FileData` snapshots the complete v3 file payload.
+`ChunkV2FileData` snapshots one complete chunk-v2 file with its retained
+composition metadata and direct polygons. Migration target names are aliases
+for these normal records. Prefab v3 replaces only the legacy `colliders` field
+with anchor-relative `collisionShapes`; chunk v2 replaces only
 `groundProfile`/`groundGaps` with direct chunk-local `collisionShapes`. Existing
 identity, revision, lifecycle, visual source, dimensions, composition,
 placement, marker, tag, and ground-band metadata is preserved.
 
 The normal records snapshot their lists but deliberately preserve supplied
-shape and tag order. This lets validation diagnose noncanonical authored input
-instead of silently repairing it. `PrefabV3FileCodec` sorts and normalizes
-copied records only while encoding, then strictly decodes its own result before
-returning it. Read-only planned output therefore remains deterministic without
-mutating the source record or allowing an invalid enum/source model to escape.
+shape, tag, layer, placement, and marker order. This lets validation diagnose
+noncanonical authored input instead of silently repairing it.
+`PrefabV3FileCodec` and `ChunkV2FileCodec` sort and normalize copied records
+only while encoding, then strictly decode their own result before returning it.
+Read-only planned output therefore remains deterministic without mutating the
+source record or allowing an invalid enum/source model to escape.
 
-`PrefabV3FileCodec` is the single prefab-v3 structural authority in the normal
-prefab layer. `PolygonAuthoringTargetCodec` delegates prefab-v3 calls to it and
-retains the isolated chunk-v2 facade. Both require exact target versions and
-field sets, canonical list/ID/tag ordering, exact integer fields, half-pixel
-coordinates, known enums, and accepted placement-scale steps. Unknown and
-legacy fields reject rather than default. Geometry/topology acceptance remains
-Core-owned and is not duplicated in structural codecs.
+`PrefabV3FileCodec` and `ChunkV2FileCodec` are the single current-schema
+structural authorities in their normal domain layers.
+`PolygonAuthoringTargetCodec` delegates both formats to them and adds no
+compatibility behavior. Both require exact target versions and field sets,
+canonical list/ID/tag ordering, exact integer fields, half-pixel coordinates,
+known enums, and accepted placement-scale steps. Unknown and legacy fields
+reject rather than default. Geometry/topology acceptance remains Core-owned and
+is not duplicated in structural codecs.
 
 All planned current repository output—99 prefab records and 8 chunk files—has
 been encoded, decoded strictly, and re-encoded byte-for-byte in tests. The
-chunk target document/codec remains migration staging. The normal prefab layer
-now owns `PrefabV3Def`, `PrefabV3FileData`, and `PrefabV3FileCodec`, but
-normal `PrefabStore.loadFromRepo`/save, `ChunkStore`, UI, generator, source JSON,
-and runtime authority still use their existing paths. `PrefabStore` additionally
-exposes an explicit strict staging load that normal route selection cannot call
-accidentally.
+normal layers now own both future source structures, but normal
+`PrefabStore.loadFromRepo`/save, `ChunkStore`, UI, generator, source JSON, and
+runtime authority still use their existing legacy paths. `PrefabStore`
+additionally exposes an explicit strict staging load that normal route
+selection cannot call accidentally; an equivalent chunk staging load remains
+pending.
 
 The staging load composes prefab v3 with the unchanged `tile_defs.json` v2
 contract through `PrefabTileFileData` and `PrefabTileFileCodec`; it never sends

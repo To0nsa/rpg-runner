@@ -363,7 +363,8 @@ Chunk v2 replaces `groundProfile` and `groundGaps` with direct chunk-local
 }
 ```
 
-- [x] Add an isolated chunk-v2 target document and strict canonical codec.
+- [x] Add immutable normal-layer `ChunkV2FileData` and one strict canonical
+      `ChunkV2FileCodec`; migration target aliases/facades delegate to them.
 - [ ] Make normal canonical chunk writes target v2 at the single source
       cutover.
 - [ ] Remove `GroundProfileDef` and `GroundGapDef` from normal v2 models.
@@ -1050,6 +1051,7 @@ result.
 | 2026-08-01 / `2c480d17` | Anchor-aligned prefab polygon visual-source projection | Flutter test VM on Windows | Editor analysis is clean. Focused tests prove atlas slices use `(-anchorX, -anchorY)` prefab-local placement and negative platform-module cells normalize against complete module bounds before the same anchor transform. Decoded images stay in a workspace-scoped cache; missing images render deterministic fallbacks. No source/store/runtime authority changed. |
 | 2026-08-01 / `01824736` | Explicit prefab-v3 polygon staging workspace | Dart VM and Flutter test VM on Windows | Editor analysis is clean and all 321 editor tests pass. The route test covers explicit scene routing, locked source apply, owner-local draft isolation, route-shortcut cancellation, atlas/module selection, visible `1 px`/`0.5 px` snap, exact odd half-pixel ticks, one revision/undo entry, undo/redo synchronization, stable diagnostic focus, and staged pending owner IDs. Migration check still reports 99 prefabs, 8 chunks, and nine pending targets without writes; generator dry-run still validates 8 chunks, 2 levels, and 2 themes. Ordinary v2 load/save, authored JSON, and runtime authority remain unchanged. |
 | 2026-08-01 / `e3a07975` | Exact numeric polygon vertex editing | Dart VM and Flutter test VM on Windows | Editor analysis is clean and all 325 editor tests pass. Parser tests cover signed integer, `.0`, `.5`, comma-decimal, malformed, fractional, overflow, and canonical formatting cases. Reducer and route tests prove exact odd ticks, invalid-loop rejection, retained vertex selection after canonical ordering, owner-policy dispatch, and one accepted revision increment. Migration check and generator dry-run remain clean and read-only; normal v2 source/runtime authority is unchanged. |
+| 2026-08-01 / `a0da6638` | Normal strict chunk-v2 file model/codec authority | Dart VM and Flutter test VM on Windows | Editor analysis is clean and all 329 editor tests pass. Four direct normal-layer tests cover immutable author-order snapshots, copy semantics, copy-only canonical tag/layer/placement/marker/shape ordering, retained metadata, byte-stable round trips, strict legacy/unknown/type/order/grid/scale rejection, and invalid-model serialization refusal. Migration aliases/facades now delegate chunk-v2 structure to the normal chunk layer; the read-only check still reports 99 prefabs, 8 chunks, and nine pending targets without writes, while generator dry-run still validates 8 chunks, 2 levels, and 2 themes. `ChunkStore`, live UI, authored JSON, generator input, and runtime authority remain v1. |
 
 ### 28.1 Baseline Environment And Source Identity
 
