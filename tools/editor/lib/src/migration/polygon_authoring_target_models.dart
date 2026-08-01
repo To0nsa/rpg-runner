@@ -1,4 +1,5 @@
 import '../chunks/chunk_domain_models.dart';
+import '../chunks/chunk_v2_file_data.dart';
 import '../prefabs/models/models.dart';
 import '../prefabs/store/prefab_determinism.dart';
 import '../terrain_authoring/terrain_source_models.dart';
@@ -8,7 +9,7 @@ import 'legacy_prefab_models.dart';
 const int polygonPrefabSchemaVersion = prefabSchemaVersionV3;
 
 /// Polygon-authoring chunk source schema staged for the one-time cutover.
-const int polygonChunkSchemaVersion = 2;
+const int polygonChunkSchemaVersion = chunkSchemaVersionV2;
 
 /// Migration-facing alias for the normal prefab-v3 polygon record.
 typedef PrefabV3TargetDef = PrefabV3Def;
@@ -33,109 +34,34 @@ PrefabV3TargetDef prefabV3TargetFromLegacy({
   tags: _canonicalTags(legacy.tags),
 );
 
-/// One complete staged chunk-v2 file with direct chunk-local terrain source.
-final class ChunkV2TargetDocument {
-  ChunkV2TargetDocument({
-    required this.chunkKey,
-    required this.id,
-    required this.revision,
-    required this.status,
-    required this.levelId,
-    required this.tileSize,
-    required this.width,
-    required this.height,
-    required this.difficulty,
-    required this.assemblyGroupId,
-    required Iterable<String> tags,
-    required Iterable<TileLayerDef> tileLayers,
-    required Iterable<PlacedPrefabDef> prefabs,
-    required Iterable<PlacedMarkerDef> markers,
-    required this.groundBandZIndex,
-    required Iterable<TerrainSourceShapeDef> collisionShapes,
-  }) : tags = List<String>.unmodifiable(_canonicalTags(tags)),
-       tileLayers = List<TileLayerDef>.unmodifiable(
-         List<TileLayerDef>.of(tileLayers)
-           ..sort((left, right) => left.id.compareTo(right.id)),
-       ),
-       prefabs = List<PlacedPrefabDef>.unmodifiable(
-         List<PlacedPrefabDef>.of(prefabs)
-           ..sort(comparePlacedPrefabsDeterministic),
-       ),
-       markers = List<PlacedMarkerDef>.unmodifiable(
-         List<PlacedMarkerDef>.of(markers)
-           ..sort(comparePlacedMarkersDeterministic),
-       ),
-       collisionShapes = canonicalTerrainSourceShapes(collisionShapes);
+/// Migration-facing alias for the normal chunk-v2 polygon file record.
+typedef ChunkV2TargetDocument = ChunkV2FileData;
 
-  final String chunkKey;
-  final String id;
-  final int revision;
-  final String status;
-  final String levelId;
-  final int tileSize;
-
-  /// Closed chunk dimensions in whole source pixels.
-  final int width;
-  final int height;
-
-  final String difficulty;
-  final String assemblyGroupId;
-  final List<String> tags;
-  final List<TileLayerDef> tileLayers;
-  final List<PlacedPrefabDef> prefabs;
-  final List<PlacedMarkerDef> markers;
-
-  /// Visual-only ground-band layer retained through the Phase 4 bridge.
-  final int groundBandZIndex;
-
-  /// Canonical direct chunk-local loops in half-pixel source units.
-  final List<TerrainSourceShapeDef> collisionShapes;
-
-  /// Preserves legacy chunk metadata while replacing flat ground and gaps.
-  factory ChunkV2TargetDocument.fromLegacy({
-    required LevelChunkDef legacy,
-    required Iterable<TerrainSourceShapeDef> collisionShapes,
-  }) => ChunkV2TargetDocument(
-    chunkKey: legacy.chunkKey,
-    id: legacy.id,
-    revision: legacy.revision,
-    status: legacy.status,
-    levelId: legacy.levelId,
-    tileSize: legacy.tileSize,
-    width: legacy.width,
-    height: legacy.height,
-    difficulty: legacy.difficulty,
-    assemblyGroupId: legacy.assemblyGroupId,
-    tags: legacy.tags,
-    tileLayers: legacy.tileLayers,
-    prefabs: legacy.prefabs,
-    markers: legacy.markers,
-    groundBandZIndex: legacy.groundBandZIndex,
-    collisionShapes: collisionShapes,
-  );
-
-  Map<String, Object> toJson() => <String, Object>{
-    'schemaVersion': polygonChunkSchemaVersion,
-    'chunkKey': chunkKey,
-    'id': id,
-    'revision': revision,
-    'status': status,
-    'levelId': levelId,
-    'tileSize': tileSize,
-    'width': width,
-    'height': height,
-    'difficulty': difficulty,
-    'assemblyGroupId': assemblyGroupId,
-    'tags': tags,
-    'tileLayers': tileLayers
-        .map((layer) => layer.toJson())
-        .toList(growable: false),
-    'prefabs': prefabs.map((prefab) => prefab.toJson()).toList(growable: false),
-    'markers': markers.map((marker) => marker.toJson()).toList(growable: false),
-    if (groundBandZIndex != 0) 'groundBandZIndex': groundBandZIndex,
-    'collisionShapes': terrainSourceShapesToJson(collisionShapes),
-  };
-}
+/// Preserves legacy chunk metadata while replacing flat ground and gaps.
+ChunkV2TargetDocument chunkV2TargetFromLegacy({
+  required LevelChunkDef legacy,
+  required Iterable<TerrainSourceShapeDef> collisionShapes,
+}) => ChunkV2FileData(
+  chunkKey: legacy.chunkKey,
+  id: legacy.id,
+  revision: legacy.revision,
+  status: legacy.status,
+  levelId: legacy.levelId,
+  tileSize: legacy.tileSize,
+  width: legacy.width,
+  height: legacy.height,
+  difficulty: legacy.difficulty,
+  assemblyGroupId: legacy.assemblyGroupId,
+  tags: _canonicalTags(legacy.tags),
+  tileLayers: List<TileLayerDef>.of(legacy.tileLayers)
+    ..sort((left, right) => left.id.compareTo(right.id)),
+  prefabs: List<PlacedPrefabDef>.of(legacy.prefabs)
+    ..sort(comparePlacedPrefabsDeterministic),
+  markers: List<PlacedMarkerDef>.of(legacy.markers)
+    ..sort(comparePlacedMarkersDeterministic),
+  groundBandZIndex: legacy.groundBandZIndex,
+  collisionShapes: canonicalTerrainSourceShapes(collisionShapes),
+);
 
 List<String> _canonicalTags(Iterable<String> tags) {
   return PrefabDeterminism.normalizeTags(tags.toList(growable: false));

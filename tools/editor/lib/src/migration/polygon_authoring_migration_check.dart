@@ -808,7 +808,7 @@ void _buildChunkTargets({
     final chunk = input.document.chunk;
     try {
       final source = PolygonAuthoringTargetCodec.encodeChunkV2(
-        ChunkV2TargetDocument.fromLegacy(
+        chunkV2TargetFromLegacy(
           legacy: chunk,
           collisionShapes: entries[chunk.chunkKey]!.terrainShapes,
         ),

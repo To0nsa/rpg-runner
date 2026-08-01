@@ -330,7 +330,7 @@ void main() {
     };
     for (final chunk in chunkDocument.chunks) {
       final source = PolygonAuthoringTargetCodec.encodeChunkV2(
-        ChunkV2TargetDocument.fromLegacy(
+        chunkV2TargetFromLegacy(
           legacy: chunk,
           collisionShapes: chunkEntries[chunk.chunkKey]!.terrainShapes,
         ),
