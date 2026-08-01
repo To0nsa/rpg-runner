@@ -606,7 +606,8 @@ Interaction rules:
   - [x] Chunk-v2 staging exposes the same choices and binds them to the
         selected direct chunk owner without changing source on selection.
 - [x] never permit arbitrary non-half-pixel vertex values
-- [x] inspector numeric fields accept integer/`.5` text and display exact values
+- [x] shared inspector numeric fields accept integer/`.5` text and display exact
+      values on both explicit staging routes
 - [x] one pointer gesture produces one undo entry, not one entry per event
 - [x] cancellation restores committed geometry; commit runs validation once
 - [x] selection changes produce no semantic commit or history entry
@@ -696,8 +697,9 @@ curves, and holes are not required for the baseline tool.
       session undo/redo by immutable document identity.
 - [x] Add an explicitly selected chunk-v2 staging workspace with active-level
       owner isolation, all shared polygon tools, owner-grid/half-pixel snap,
-      closed chunk bounds, exact shape/vertex readout, owner diagnostics,
-      session history, and visibly disabled reload/source-apply actions.
+      closed chunk bounds, shared exact shape/vertex editing, retained rejected
+      text, owner diagnostics, session history, and visibly disabled
+      reload/source-apply actions.
 - [x] Keep the ordinary v1 Chunk Creator route and its ground/gap reload/export
       path unchanged until the coordinated source cutover.
 - [x] Make an accepted direct-owner gesture one revision bump and one pending
@@ -1087,6 +1089,7 @@ result.
 | 2026-08-01 / `cdd09292` | Chunk-owned polygon commit and revision policy | Dart VM and Flutter test VM on Windows | Editor analysis is clean and all 343 editor tests pass. Nine new policy/plugin tests cover one accepted direct-owner replacement and revision bump, retained metadata, no-op and stale identity, closed bounds, Core occupied-area overlap, duplicate IDs, canonical shape order, malformed/missing-owner rejection, one canonical pending diff, and the changed-source export lock on an empty filesystem. Document validation and commits now reuse one owner validator. Migration check remains read-only with 99 prefabs, 8 chunks, and nine pending targets; generator dry-run still validates 8 chunks, 2 levels, and 2 themes. Chunk route UI, placement expansion, remaining v2 metadata commands, normal source cutover, generator input, and runtime authority remain unchanged. |
 | 2026-08-01 / `e3565e7e` | Staged Chunk polygon route controller and scene surface | Dart VM and Flutter test VM on Windows | Focused analysis is clean and 16 related tests pass, including six new tests for local multi-update preview, one accepted revision/history entry, exact rejected-owner diagnostics, explicit staging enforcement, shared painter projection, tool-driven selection/drag, Escape, Delete/history, and Ctrl-drag pan without document mutation. Generic diagnostics now retain shape/element identity. Normal v1 loading, source JSON, generator input, and runtime authority remain unchanged. |
 | 2026-08-01 / `603178ee` | Explicit chunk-v2 polygon staging workspace | Dart VM and Flutter test VM on Windows | Editor analysis is clean and all 350 editor tests pass. The route test proves explicit staged type dispatch without a legacy reload, active-level owner filtering/rebinding, a locked shell reload/source-apply boundary, one revisioned direct-owner deletion, pending diff projection, and route-level undo restoration; the complete legacy Chunk Creator suite remains green. Migration check still reports 99 prefabs, 8 chunks, and nine pending targets without writes; generator dry-run still validates 8 chunks, 2 levels, and 2 themes. Placement expansion, normal schema cutover, authored JSON, generator input, and runtime authority remain unchanged. |
+| 2026-08-01 / `5a893dd5` | Shared exact polygon vertex inspector | Dart VM and Flutter test VM on Windows | Editor analysis is clean and all 350 editor tests pass. Prefab and Chunk staging now use one exact coordinate field widget without changing existing Prefab keys/behavior. The expanded Chunk route test covers malformed quarter-pixel rejection before dispatch, accepted odd half-pixel ticks with one revision/pending owner, undo restoration, and an out-of-bounds owner rejection that retains typed text and diagnostic while creating no history. Migration check remains read-only with 99 prefabs, 8 chunks, and nine pending targets; generator dry-run still validates 8 chunks, 2 levels, and 2 themes. Normal v2/v1 source and runtime authority remain unchanged. |
 
 ### 28.1 Baseline Environment And Source Identity
 

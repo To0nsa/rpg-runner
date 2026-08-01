@@ -27,7 +27,7 @@ The active schema migration, generator, preview, and cutover work remains in
 | Exact placement and physics-grid quantization | `runner_core` `TerrainSourceTransform` | `TerrainCompiler`, Core fixtures, and editor adapter |
 | Editor-to-Core conversion | editor `TerrainSourceCoreAdapter` | migration checks, shared interaction reducer, and explicit Prefab/Chunk staging routes |
 | Shared polygon interaction state | editor `TerrainPolygonInteractionReducer` | pure-Dart selection/draft/gesture/semantic-edit tests plus explicit Prefab and Chunk staging routes |
-| Exact half-pixel inspector text | editor `TerrainHalfPixelText` / `TerrainPolygonInteractionReducer.editSelectedVertex` | shared exact parser and semantic commit; Prefab staging inspector is wired, Chunk inspector is pending |
+| Exact half-pixel inspector text | editor `TerrainHalfPixelText` / `TerrainPolygonVertexEditor` / `TerrainPolygonInteractionReducer.editSelectedVertex` | one shared exact field widget and semantic commit path used by both explicit staging routes |
 | Render projection and source-space hit testing | editor `TerrainPolygonSceneProjection` / `TerrainPolygonSceneHitTest` | framework-neutral scene tests and both explicit staging surfaces |
 | Canvas projection and source-loop overlay | editor `TerrainPolygonViewportTransform` / `TerrainPolygonScenePainter` | shared Flutter painter tests and both explicit staging surfaces; compiler-edge overlay is pending |
 | Prefab polygon owner validation | editor `validatePrefabCollisionShapes` | Core compiler plus exact visual-bounds tests; normal `PrefabDef` integration is pending |
@@ -324,6 +324,14 @@ an unfinished preview from leaking across chunks. Ordinary plugin loads still
 return `ChunkDocument`, so v1 ground/gap editing and export remain the only
 normal source path until the coordinated cutover.
 
+The Chunk shape inspector uses the same `TerrainPolygonVertexEditor` as Prefab
+staging. Its integer/`.0`/`.5` parser never sends malformed fractions to the
+controller. A valid coordinate override bypasses pointer snap, enters the
+shared reducer, and then passes through chunk bounds/Core owner validation.
+Rejected out-of-bounds text remains visible with its exact diagnostic and does
+not change revision, pending diffs, or history; an accepted replacement creates
+one owner revision/history entry.
+
 ## Prefab Polygon Owner Validation
 
 `validatePrefabCollisionShapes` is independent of the still-v2 normal
@@ -518,6 +526,9 @@ The foundation is covered by:
 - Chunk staged-scene routing without a legacy reload, active-level owner
   isolation, locked reload/apply, visible snap/tools, one direct-owner edit,
   route-level undo restoration, and unchanged normal v1 route regression tests
+- shared Prefab/Chunk exact-coordinate fields, malformed-fraction rejection,
+  accepted odd half-pixel chunk edits, retained out-of-bounds text/diagnostics,
+  and no history or pending diff for either rejection class
 - prefab owner commit freshness, canonical order, visual-bound resolution,
   warning/error handling, no-op identity, and exactly-once revision tests
 - full Core geometry/signature goldens and fresh-process signature tests
