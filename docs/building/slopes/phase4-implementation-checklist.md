@@ -386,13 +386,18 @@ Chunk v2 replaces `groundProfile` and `groundGaps` with direct chunk-local
 - [x] Require every direct chunk-local vertex to stay inside closed chunk
       bounds and run accepted direct shapes through Core canonical/overlap
       validation.
+- [x] Route staged chunk-local semantic commits through one freshness/order/
+      bounds/Core owner policy and one typed plugin command; rejected and
+      no-op commits preserve immutable document identity.
 - [ ] Expand placements through the one exact transform and require every
       transformed prefab vertex to stay inside closed chunk bounds after the
       one quantization step.
 - [x] Do not permit per-placement collision-shape overrides in chunk v2.
-- [ ] Bump chunk revision only when chunk-owned canonical source changes;
-      changing a referenced prefab bumps the prefab revision/output, not every
-      referencing chunk source revision.
+- [x] Bump a chunk revision exactly once when an accepted canonical direct
+      collision-source commit changes that chunk.
+- [ ] Apply the same revision policy to remaining chunk-v2 metadata/create/
+      duplicate/rename/deprecate commands; changing a referenced prefab bumps
+      the prefab revision/output, not every referencing chunk source revision.
 - [ ] After committed migration, normal `ChunkStore` rejects v1 source with an
       actionable migration issue.
 
@@ -1063,6 +1068,7 @@ result.
 | 2026-08-01 / `e3a07975` | Exact numeric polygon vertex editing | Dart VM and Flutter test VM on Windows | Editor analysis is clean and all 325 editor tests pass. Parser tests cover signed integer, `.0`, `.5`, comma-decimal, malformed, fractional, overflow, and canonical formatting cases. Reducer and route tests prove exact odd ticks, invalid-loop rejection, retained vertex selection after canonical ordering, owner-policy dispatch, and one accepted revision increment. Migration check and generator dry-run remain clean and read-only; normal v2 source/runtime authority is unchanged. |
 | 2026-08-01 / `a0da6638` | Normal strict chunk-v2 file model/codec authority | Dart VM and Flutter test VM on Windows | Editor analysis is clean and all 329 editor tests pass. Four direct normal-layer tests cover immutable author-order snapshots, copy semantics, copy-only canonical tag/layer/placement/marker/shape ordering, retained metadata, byte-stable round trips, strict legacy/unknown/type/order/grid/scale rejection, and invalid-model serialization refusal. Migration aliases/facades now delegate chunk-v2 structure to the normal chunk layer; the read-only check still reports 99 prefabs, 8 chunks, and nine pending targets without writes, while generator dry-run still validates 8 chunks, 2 levels, and 2 themes. `ChunkStore`, live UI, authored JSON, generator input, and runtime authority remain v1. |
 | 2026-08-01 / `d96b6509` | Explicit strict chunk-v2 staging workspace | Dart VM and Flutter test VM on Windows | Editor analysis is clean and all 334 editor tests pass. Five fixture tests prove an all-v2 chunk tree composes with strict prefab-v3/tile-v2 data, immutable source baselines, deterministic active-level scene projection, Core-reviewed direct geometry, closed direct-owner bounds, known prefab references, canonical pending diffs, clean no-op export, and a changed-source lock that preserves every fixture byte. Legacy v1 normal loading remains selected and explicit staging rejects v1/case-colliding sources. The migration check still reports 99 prefabs, 8 chunks, and nine pending targets without writes; generator dry-run still validates 8 chunks, 2 levels, and 2 themes. Placement expansion, chunk polygon commands/UI, normal schema cutover, authored JSON, generator input, and runtime authority remain unchanged. |
+| 2026-08-01 / `cdd09292` | Chunk-owned polygon commit and revision policy | Dart VM and Flutter test VM on Windows | Editor analysis is clean and all 343 editor tests pass. Nine new policy/plugin tests cover one accepted direct-owner replacement and revision bump, retained metadata, no-op and stale identity, closed bounds, Core occupied-area overlap, duplicate IDs, canonical shape order, malformed/missing-owner rejection, one canonical pending diff, and the changed-source export lock on an empty filesystem. Document validation and commits now reuse one owner validator. Migration check remains read-only with 99 prefabs, 8 chunks, and nine pending targets; generator dry-run still validates 8 chunks, 2 levels, and 2 themes. Chunk route UI, placement expansion, remaining v2 metadata commands, normal source cutover, generator input, and runtime authority remain unchanged. |
 
 ### 28.1 Baseline Environment And Source Identity
 

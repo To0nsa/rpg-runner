@@ -44,7 +44,7 @@ The active schema migration, generator, preview, and cutover work remains in
 | Strict legacy prefab-v1/v2 and chunk-v1 source parsing | editor migration-owned `LegacyPrefabDef` / chunk-v1 models | read-only aggregate planner input; compatibility stores and normal `PrefabDef` are bypassed |
 | Cross-domain canonical migration report | editor migration domain | read-only CLI, strict in-memory targets, and exact source SHA-256 audit; source writes remain pending |
 | Strict chunk-v2 file structure and canonical serialization | editor `ChunkV2FileData` / `ChunkV2FileCodec` | migration facade delegation, complete-repository round-trip, and explicit strict store staging; normal load/save cutover is pending |
-| Chunk-v2 plugin staging and direct-owner validation | editor `ChunkV2StagingDocument` / `ChunkDomainPlugin` / `validateChunkV2StagingDocument` | strict future-source composition, active-level scene, Core direct-shape review, bounds/reference diagnostics, immutable pending diffs, and hard export lock; placement expansion/editing/normal cutover are pending |
+| Chunk-v2 plugin staging, direct-owner validation, and commit policy | editor `ChunkV2StagingDocument` / `ChunkV2CollisionCommitPolicy` / `ChunkDomainPlugin` | strict future-source composition, Core direct-shape/bounds validation, freshness/order/revision enforcement, typed commits, immutable pending diffs, and hard export lock; route UI, placement expansion, remaining metadata commands, and normal cutover are pending |
 
 Core has no dependency on editor models, JSON, widgets, or filesystem state.
 The editor depends on Core through a one-way local package dependency and does
@@ -281,6 +281,23 @@ limits. Placement expansion is intentionally not approximated here: exact
 transform, post-quantization bounds, expanded-owner limits, and preview parity
 remain blocking Phase 4 work before normal cutover.
 
+`ChunkV2CollisionCommitPolicy` is the direct-owner boundary between one shared
+interaction commit and staging history. It requires the commit's before-shapes
+to match the current immutable chunk, requires stable canonical shape order,
+and reuses `validateChunkV2CollisionShapes` for closed bounds and Core review.
+Every rejected or no-op attempt returns the original chunk instance. An
+accepted semantic change replaces only `collisionShapes` and increments that
+chunk revision exactly once.
+
+`ChunkDomainPlugin.commitChunkPolygonCommandKind` performs owner lookup and
+accepts only the typed shared commit. It returns the original staging document
+for missing, malformed, stale, invalid, and no-op input; a successful command
+replaces only the addressed chunk, records its key, and produces one canonical
+file diff against the load baseline. The changed-document export lock remains
+the final filesystem defense. Route-local diagnostics and previews will remain
+outside the generic command result, matching the established Prefab staging
+pattern; the Chunk Creator controller/surface is still pending.
+
 ## Prefab Polygon Owner Validation
 
 `validatePrefabCollisionShapes` is independent of the still-v2 normal
@@ -469,6 +486,9 @@ The foundation is covered by:
 - explicit all-v2 chunk-tree loading, immutable future prefab/tile composition,
   active-level scene projection, direct Core geometry/bounds/reference
   validation, canonical pending diffs, and byte-preserving export locks
+- chunk commit freshness, canonical owner order, exact bounds, Core overlap,
+  no-op/rejection identity, exactly-once revision, typed plugin dispatch, and
+  changed-source lock tests
 - prefab owner commit freshness, canonical order, visual-bound resolution,
   warning/error handling, no-op identity, and exactly-once revision tests
 - full Core geometry/signature goldens and fresh-process signature tests
