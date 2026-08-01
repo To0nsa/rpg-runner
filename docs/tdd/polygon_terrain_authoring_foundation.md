@@ -493,10 +493,27 @@ indicator. Expanded issues cannot focus a same-named direct shape. The scene
 also reports direct, expanded, total-shape, and exposed-edge counts against
 Core's hard limits separately.
 
+The optional compiled-edge layer renders `TerrainGeometry.edges` above the
+source-loop painters. It therefore shows Core's actual exposed result after
+collinear splitting, internal-solid cancellation, and one-way filtering; it
+never reconstructs edges from polygon fill. A separate inspection mode routes
+ordinary primary taps to a read-only nearest-segment query while preserving
+Ctrl-drag pan and Ctrl-scroll zoom. Distance ties use canonical
+`TerrainEdgeId` order, and disabling inspection clears only route-local edge
+selection.
+
+Selected edges are highlighted and resolved back through the immutable Core
+geometry and `TerrainTraversalCache`. The inspector shows the canonical edge
+ID, direct or prefab/placement/shape lineage, exact `1/1024 px` endpoints,
+integer tangent and outward-normal components, exact `1/1024 degree` absolute
+slope, collision mode, surface/material, endpoint joins, previous/next IDs, and
+related diagnostics. `TerrainPhysicsText` formats both fixed-point scales as
+terminating decimals with integer arithmetic; display never feeds authority.
+Normal-vector drawing and actor eligibility/navigation overlays remain pending.
+
 The normal chunk-v1 route, prefab-v2 source, authored JSON, generator input,
-and runtime collision authority remain unchanged. Generator parity, compiled
-edge/normal selection, placement editing, scheduler seams, and normal-schema
-cutover remain later Phase 4 gates.
+and runtime collision authority remain unchanged. Generator parity, placement
+editing, scheduler seams, and normal-schema cutover remain later Phase 4 gates.
 
 ## Shared Polygon Interaction And Scene Projection
 
@@ -555,8 +572,8 @@ This painter does not compile geometry and its fills are never collision or
 navigation authority. Collision-edge/normal/lineage diagnostics must come from
 the Core compiler preview adapter. Both explicit staging routes install the
 painter and plugin/session wiring. Normal Prefab/Chunk source cutover and Core
-compiler edge/normal selection overlays remain pending; the placed-polygon
-lineage overlay described above is already available in Chunk staging.
+normal-vector/actor-eligibility overlays remain pending; Core-compiled edge
+selection and placed-polygon lineage are already available in Chunk staging.
 
 ## Determinism And Validation Evidence
 
@@ -610,6 +627,10 @@ The foundation is covered by:
 - a read-only quantized Chunk overlay with locked lineage rows, separate
   direct/expanded shape and exposed-edge capacity counts, and unchanged direct
   polygon interaction/history behavior
+- Core-exposed edge rendering, nearest finite-segment selection, canonical
+  corner ties, exact fixed-point coordinate/angle text, traversal-cache slope,
+  identity/lineage/mode/material/join/adjacency/diagnostic inspection, selected
+  highlighting, and inspection-mode isolation from direct source edits
 - prefab owner commit freshness, canonical order, visual-bound resolution,
   warning/error handling, no-op identity, and exactly-once revision tests
 - full Core geometry/signature goldens and fresh-process signature tests

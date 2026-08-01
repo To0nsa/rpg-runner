@@ -1454,8 +1454,10 @@ records, shared polygon reducer/painter, and explicit locked Prefab/Chunk
 staging workspaces are implemented. Chunk staging now also expands prefab-v3
 collision through the exact Core transform, validates it together with direct
 terrain, and renders the quantized result as a read-only lineage overlay with
-separate capacity evidence. Normal source remains prefab v2/chunk v1;
-scheduler-aware seams, safe source migration, staged generation, and the
-coordinated normal editor cutover remain open. Phase 4 must not select polygon
-terrain in normal production runs before the later streaming/content cutover
-phases.
+separate capacity evidence. Core-exposed edges can also be rendered, selected,
+and inspected for exact identity, geometry, slope, metadata, adjacency, and
+diagnostic facts without editing authority. Normal source remains prefab
+v2/chunk v1; actor/navigation overlays, scheduler-aware seams, safe source
+migration, staged generation, and the coordinated normal editor cutover remain
+open. Phase 4 must not select polygon terrain in normal production runs before
+the later streaming/content cutover phases.
