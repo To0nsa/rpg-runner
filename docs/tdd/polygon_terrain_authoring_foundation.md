@@ -28,6 +28,7 @@ The active schema migration, generator, preview, and cutover work remains in
 | Editor-to-Core conversion | editor `TerrainSourceCoreAdapter` | migration checks, shared interaction reducer, and explicit Prefab/Chunk staging routes |
 | Shared polygon interaction state | editor `TerrainPolygonInteractionReducer` | pure-Dart selection/draft/gesture/semantic-edit tests plus explicit Prefab and Chunk staging routes |
 | Exact half-pixel inspector text | editor `TerrainHalfPixelText` / `TerrainPolygonVertexEditor` / `TerrainPolygonInteractionReducer.editSelectedVertex` | one shared exact field widget and semantic commit path used by both explicit staging routes |
+| Polygon collision metadata dialog | editor `TerrainPolygonMetadataDialog` / `TerrainPolygonInteractionReducer.editSelectedShapeMetadata` | one owner-neutral collision-mode/surface/material dialog used by both explicit staging routes; owner controllers retain commit authority |
 | Render projection and source-space hit testing | editor `TerrainPolygonSceneProjection` / `TerrainPolygonSceneHitTest` | framework-neutral scene tests and both explicit staging surfaces |
 | Canvas projection and source-loop overlay | editor `TerrainPolygonViewportTransform` / `TerrainPolygonScenePainter` | shared Flutter painter tests and both explicit staging surfaces; compiler-edge overlay is pending |
 | Prefab polygon owner validation | editor `validatePrefabCollisionShapes` | Core compiler plus exact visual-bounds tests; normal `PrefabDef` integration is pending |
@@ -332,6 +333,14 @@ Rejected out-of-bounds text remains visible with its exact diagnostic and does
 not change revision, pending diffs, or history; an accepted replacement creates
 one owner revision/history entry.
 
+Collision mode, optional `surfaceKind`, and optional render `materialKey` use
+one shared owner-neutral dialog on both staging routes. Optional text is trimmed
+and empty text becomes `null`; the dialog returns only a value object and never
+mutates the document. Each route sends that value through its controller,
+shared reducer, owner policy, and typed plugin command. The dialog state owns
+its text controllers until the route-removal animation completes, avoiding an
+early-disposal race after `showDialog` resolves.
+
 ## Prefab Polygon Owner Validation
 
 `validatePrefabCollisionShapes` is independent of the still-v2 normal
@@ -529,6 +538,8 @@ The foundation is covered by:
 - shared Prefab/Chunk exact-coordinate fields, malformed-fraction rejection,
   accepted odd half-pixel chunk edits, retained out-of-bounds text/diagnostics,
   and no history or pending diff for either rejection class
+- shared collision metadata dialog lifecycle, trimmed optional fields, one-way
+  mode commit, exactly-once revision/pending projection, and undo restoration
 - prefab owner commit freshness, canonical order, visual-bound resolution,
   warning/error handling, no-op identity, and exactly-once revision tests
 - full Core geometry/signature goldens and fresh-process signature tests
