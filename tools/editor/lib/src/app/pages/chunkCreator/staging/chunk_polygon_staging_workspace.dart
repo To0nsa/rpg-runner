@@ -7,6 +7,7 @@ import '../../../../chunks/chunk_v2_staging_models.dart';
 import '../../../../domain/authoring_types.dart';
 import '../../../../session/editor_session_controller.dart';
 import '../../../../terrain_authoring/terrain_half_pixel_text.dart';
+import '../../../../terrain_authoring/terrain_polygon_duplicate_offset.dart';
 import '../../../../terrain_authoring/terrain_polygon_interaction.dart';
 import '../../../../terrain_authoring/terrain_source_models.dart';
 import '../../shared/editor_scene_view_utils.dart';
@@ -396,10 +397,9 @@ class ChunkPolygonStagingWorkspaceState
               children: <Widget>[
                 OutlinedButton.icon(
                   key: const ValueKey<String>('chunk_polygon_duplicate_shape'),
-                  onPressed: () => authoring.duplicateSelectedShape(
-                    deltaXHalfPixels: 4,
-                    deltaYHalfPixels: 4,
-                  ),
+                  onPressed: authoring.hasActiveOperation
+                      ? null
+                      : () => _duplicateSelectedShape(authoring, selectedShape),
                   icon: const Icon(Icons.copy_outlined),
                   label: const Text('Duplicate'),
                 ),
@@ -530,6 +530,34 @@ class ChunkPolygonStagingWorkspaceState
         materialKey: edit.materialKey,
       );
     }
+  }
+
+  void _duplicateSelectedShape(
+    ChunkPolygonAuthoringController authoring,
+    TerrainSourceShapeDef shape,
+  ) {
+    final chunk = authoring.chunk;
+    final offset = findTerrainPolygonDuplicateOffset(
+      selectedShape: shape,
+      ownerShapes: authoring.state.shapes,
+      snapStepHalfPixels: authoring.snapPolicy.stepHalfPixels,
+      minXHalfPixels: 0,
+      minYHalfPixels: 0,
+      maxXHalfPixels: chunk.width * 2,
+      maxYHalfPixels: chunk.height * 2,
+    );
+    if (offset == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No non-overlapping duplicate fits this chunk.'),
+        ),
+      );
+      return;
+    }
+    authoring.duplicateSelectedShape(
+      deltaXHalfPixels: offset.deltaXHalfPixels,
+      deltaYHalfPixels: offset.deltaYHalfPixels,
+    );
   }
 
   List<ValidationIssue> _ownerIssues(

@@ -202,6 +202,31 @@ void main() {
       expect(forestChunk.collisionShapes.single.materialKey, isNull);
       expect(harness.session.pendingChanges.hasChanges, isFalse);
 
+      final duplicateShape = find.byKey(
+        const ValueKey<String>('chunk_polygon_duplicate_shape'),
+      );
+      await tester.ensureVisible(duplicateShape);
+      await tester.tap(duplicateShape);
+      await tester.pump();
+      forestChunk = _chunk(harness.session, 'forest_chunk');
+      expect(forestChunk.revision, 5);
+      expect(forestChunk.collisionShapes, hasLength(2));
+      final duplicatedShape = forestChunk.collisionShapes.singleWhere(
+        (shape) => shape.shapeId == 'ground_002',
+      );
+      expect(
+        duplicatedShape.vertices,
+        contains(
+          const TerrainSourceVertexDef(xHalfPixels: 102, yHalfPixels: 20),
+        ),
+      );
+      expect(shortcutHandler.handleUndoSessionShortcut(), isTrue);
+      await tester.pump();
+      forestChunk = _chunk(harness.session, 'forest_chunk');
+      expect(forestChunk.revision, 4);
+      expect(forestChunk.collisionShapes, hasLength(1));
+      expect(harness.session.pendingChanges.hasChanges, isFalse);
+
       await tester.tap(
         find.byKey(const ValueKey<String>('chunk_polygon_level_selector')),
       );

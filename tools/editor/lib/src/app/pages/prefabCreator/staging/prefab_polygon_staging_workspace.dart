@@ -6,6 +6,7 @@ import '../../../../prefabs/domain/prefab_domain_models.dart';
 import '../../../../prefabs/models/models.dart';
 import '../../../../prefabs/validation/prefab_validation.dart';
 import '../../../../session/editor_session_controller.dart';
+import '../../../../terrain_authoring/terrain_polygon_duplicate_offset.dart';
 import '../../../../terrain_authoring/terrain_polygon_interaction.dart';
 import '../../../../terrain_authoring/terrain_source_models.dart';
 import '../../shared/editor_scene_view_utils.dart';
@@ -416,10 +417,9 @@ class PrefabPolygonStagingWorkspaceState
               runSpacing: PrefabEditorUiTokens.controlGap,
               children: <Widget>[
                 OutlinedButton.icon(
-                  onPressed: () => authoring.duplicateSelectedShape(
-                    deltaXHalfPixels: 4,
-                    deltaYHalfPixels: 4,
-                  ),
+                  onPressed: authoring.hasActiveOperation
+                      ? null
+                      : () => _duplicateSelectedShape(authoring, selectedShape),
                   icon: const Icon(Icons.copy_outlined),
                   label: const Text('Duplicate'),
                 ),
@@ -550,6 +550,27 @@ class PrefabPolygonStagingWorkspaceState
         materialKey: edit.materialKey,
       );
     }
+  }
+
+  void _duplicateSelectedShape(
+    PrefabPolygonAuthoringController authoring,
+    TerrainSourceShapeDef shape,
+  ) {
+    final offset = findTerrainPolygonDuplicateOffset(
+      selectedShape: shape,
+      ownerShapes: authoring.state.shapes,
+      snapStepHalfPixels: authoring.snapPolicy.stepHalfPixels,
+    );
+    if (offset == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No free duplicate position found.')),
+      );
+      return;
+    }
+    authoring.duplicateSelectedShape(
+      deltaXHalfPixels: offset.deltaXHalfPixels,
+      deltaYHalfPixels: offset.deltaYHalfPixels,
+    );
   }
 
   void _focusIssue(
