@@ -29,6 +29,7 @@ The active schema migration, generator, preview, and cutover work remains in
 | Shared polygon interaction state | editor `TerrainPolygonInteractionReducer` | pure-Dart selection/draft/gesture/semantic-edit tests plus explicit Prefab and Chunk staging routes |
 | Exact half-pixel inspector text | editor `TerrainHalfPixelText` / `TerrainPolygonVertexEditor` / `TerrainPolygonInteractionReducer.editSelectedVertex` | one shared exact field widget and semantic commit path used by both explicit staging routes |
 | Polygon collision metadata dialog | editor `TerrainPolygonMetadataDialog` / `TerrainPolygonInteractionReducer.editSelectedShapeMetadata` | one owner-neutral collision-mode/surface/material dialog used by both explicit staging routes; owner controllers retain commit authority |
+| Polygon duplicate placement default | editor `findTerrainPolygonDuplicateOffset` | deterministic nearest conservative AABB-free, snap-aligned candidate on both explicit staging routes; exact owner validation remains final authority |
 | Render projection and source-space hit testing | editor `TerrainPolygonSceneProjection` / `TerrainPolygonSceneHitTest` | framework-neutral scene tests and both explicit staging surfaces |
 | Canvas projection and source-loop overlay | editor `TerrainPolygonViewportTransform` / `TerrainPolygonScenePainter` | shared Flutter painter tests and both explicit staging surfaces; compiler-edge overlay is pending |
 | Prefab polygon owner validation | editor `validatePrefabCollisionShapes` | Core compiler plus exact visual-bounds tests; normal `PrefabDef` integration is pending |
@@ -468,6 +469,16 @@ Owner-specific bounds, visual intersection, capacity, transformed placement,
 and seam validation stay in the prefab/chunk plugins rather than this shared
 state machine.
 
+The duplicate UI does not use a fixed nudge: that would positively overlap most
+source loops and make the action reject immediately. It derives X/Y candidate
+translations from all current owner AABBs, snaps each candidate outward once to
+the active authoring step, sorts the complete candidate set by stable distance
+and direction rules, and selects the first conservatively non-overlapping
+position. Chunk staging additionally requires the translated bounds to remain
+inside the closed owner rectangle. This search only chooses a useful default;
+the shared reducer and exact Prefab/Chunk owner policy still validate the
+actual translated polygon and allocate its lowest-free stable shape ID.
+
 All stored and preview edit coordinates remain integer half-pixel ticks. The
 half-pixel snap preserves each tick; owner-grid snap uses an integer pixel step
 with exact ties away from zero. Scene hit testing accepts fractional
@@ -540,6 +551,9 @@ The foundation is covered by:
   and no history or pending diff for either rejection class
 - shared collision metadata dialog lifecycle, trimmed optional fields, one-way
   mode commit, exactly-once revision/pending projection, and undo restoration
+- deterministic duplicate placement across owner-order permutations, outward
+  owner-grid snap, occupied/no-space cases, Chunk bounds, stable shape ID,
+  exactly-once revision, and undo restoration
 - prefab owner commit freshness, canonical order, visual-bound resolution,
   warning/error handling, no-op identity, and exactly-once revision tests
 - full Core geometry/signature goldens and fresh-process signature tests
