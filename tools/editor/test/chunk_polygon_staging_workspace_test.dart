@@ -149,6 +149,59 @@ void main() {
       expect(find.text('chunk_collision_shape_out_of_bounds'), findsOneWidget);
       expect(tester.widget<TextField>(xField).controller!.text, '101');
 
+      final editMetadata = find.byKey(
+        const ValueKey<String>('chunk_polygon_edit_metadata'),
+      );
+      await tester.ensureVisible(editMetadata);
+      await tester.tap(editMetadata);
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey<String>('chunk_polygon_metadata_dialog')),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('chunk_polygon_metadata_mode')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('oneWay').last);
+      await tester.enterText(
+        find.byKey(
+          const ValueKey<String>('chunk_polygon_metadata_surface_field'),
+        ),
+        ' moss ',
+      );
+      await tester.enterText(
+        find.byKey(
+          const ValueKey<String>('chunk_polygon_metadata_material_field'),
+        ),
+        ' ground_01 ',
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('chunk_polygon_metadata_apply')),
+      );
+      await tester.pumpAndSettle();
+
+      forestChunk = _chunk(harness.session, 'forest_chunk');
+      final editedShape = forestChunk.collisionShapes.single;
+      expect(forestChunk.revision, 5);
+      expect(editedShape.collisionMode, TerrainSourceCollisionMode.oneWay);
+      expect(editedShape.surfaceKind, 'moss');
+      expect(editedShape.materialKey, 'ground_01');
+      expect(harness.session.pendingChanges.changedItemIds, <String>[
+        'forest_chunk',
+      ]);
+      expect(shortcutHandler.handleUndoSessionShortcut(), isTrue);
+      await tester.pump();
+      forestChunk = _chunk(harness.session, 'forest_chunk');
+      expect(forestChunk.revision, 4);
+      expect(
+        forestChunk.collisionShapes.single.collisionMode,
+        TerrainSourceCollisionMode.solid,
+      );
+      expect(forestChunk.collisionShapes.single.surfaceKind, isNull);
+      expect(forestChunk.collisionShapes.single.materialKey, isNull);
+      expect(harness.session.pendingChanges.hasChanges, isFalse);
+
       await tester.tap(
         find.byKey(const ValueKey<String>('chunk_polygon_level_selector')),
       );

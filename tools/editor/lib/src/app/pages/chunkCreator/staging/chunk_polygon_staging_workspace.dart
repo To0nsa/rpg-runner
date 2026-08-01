@@ -12,6 +12,7 @@ import '../../../../terrain_authoring/terrain_source_models.dart';
 import '../../shared/editor_scene_view_utils.dart';
 import '../../shared/editor_scene_viewport_frame.dart';
 import '../../shared/editor_zoom_controls.dart';
+import '../../shared/terrain_polygon_metadata_dialog.dart';
 import '../../shared/terrain_polygon_scene_painter.dart';
 import '../../shared/terrain_polygon_vertex_editor.dart';
 import 'chunk_polygon_authoring_controller.dart';
@@ -409,6 +410,12 @@ class ChunkPolygonStagingWorkspaceState
                   label: const Text('Normalize'),
                 ),
                 OutlinedButton.icon(
+                  key: const ValueKey<String>('chunk_polygon_edit_metadata'),
+                  onPressed: () => _editMetadata(authoring, selectedShape),
+                  icon: const Icon(Icons.tune),
+                  label: const Text('Metadata'),
+                ),
+                OutlinedButton.icon(
                   key: const ValueKey<String>('chunk_polygon_delete_shape'),
                   onPressed: authoring.deleteSelection,
                   icon: const Icon(Icons.delete_outline),
@@ -505,6 +512,24 @@ class ChunkPolygonStagingWorkspaceState
         ],
       ],
     );
+  }
+
+  Future<void> _editMetadata(
+    ChunkPolygonAuthoringController authoring,
+    TerrainSourceShapeDef shape,
+  ) async {
+    final edit = await showTerrainPolygonMetadataDialog(
+      context,
+      keyPrefix: 'chunk_polygon',
+      shape: shape,
+    );
+    if (edit != null && mounted) {
+      authoring.editSelectedShapeMetadata(
+        collisionMode: edit.collisionMode,
+        surfaceKind: edit.surfaceKind,
+        materialKey: edit.materialKey,
+      );
+    }
   }
 
   List<ValidationIssue> _ownerIssues(

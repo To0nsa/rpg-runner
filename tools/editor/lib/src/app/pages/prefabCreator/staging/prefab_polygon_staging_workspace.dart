@@ -11,8 +11,9 @@ import '../../../../terrain_authoring/terrain_source_models.dart';
 import '../../shared/editor_scene_view_utils.dart';
 import '../../shared/editor_scene_viewport_frame.dart';
 import '../../shared/editor_zoom_controls.dart';
-import '../../shared/terrain_polygon_vertex_editor.dart';
+import '../../shared/terrain_polygon_metadata_dialog.dart';
 import '../../shared/terrain_polygon_scene_painter.dart';
+import '../../shared/terrain_polygon_vertex_editor.dart';
 import '../shared/prefab_polygon_authoring_controller.dart';
 import '../shared/prefab_polygon_scene_surface.dart';
 import '../shared/prefab_polygon_visual_source.dart';
@@ -537,70 +538,18 @@ class PrefabPolygonStagingWorkspaceState
     PrefabPolygonAuthoringController authoring,
     TerrainSourceShapeDef shape,
   ) async {
-    var collisionMode = shape.collisionMode;
-    final surfaceController = TextEditingController(
-      text: shape.surfaceKind ?? '',
+    final edit = await showTerrainPolygonMetadataDialog(
+      context,
+      keyPrefix: 'prefab_polygon',
+      shape: shape,
     );
-    final materialController = TextEditingController(
-      text: shape.materialKey ?? '',
-    );
-    final accepted = await showDialog<bool>(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text('Edit ${shape.shapeId} metadata'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              DropdownButtonFormField<TerrainSourceCollisionMode>(
-                initialValue: collisionMode,
-                decoration: const InputDecoration(labelText: 'Collision mode'),
-                items: TerrainSourceCollisionMode.values
-                    .map(
-                      (mode) => DropdownMenuItem<TerrainSourceCollisionMode>(
-                        value: mode,
-                        child: Text(mode.name),
-                      ),
-                    )
-                    .toList(growable: false),
-                onChanged: (value) {
-                  if (value != null) {
-                    setDialogState(() => collisionMode = value);
-                  }
-                },
-              ),
-              TextField(
-                controller: surfaceController,
-                decoration: const InputDecoration(labelText: 'Surface kind'),
-              ),
-              TextField(
-                controller: materialController,
-                decoration: const InputDecoration(labelText: 'Material key'),
-              ),
-            ],
-          ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Apply'),
-            ),
-          ],
-        ),
-      ),
-    );
-    if (accepted == true && mounted) {
+    if (edit != null && mounted) {
       authoring.editSelectedShapeMetadata(
-        collisionMode: collisionMode,
-        surfaceKind: _nullableText(surfaceController.text),
-        materialKey: _nullableText(materialController.text),
+        collisionMode: edit.collisionMode,
+        surfaceKind: edit.surfaceKind,
+        materialKey: edit.materialKey,
       );
     }
-    surfaceController.dispose();
-    materialController.dispose();
   }
 
   void _focusIssue(
@@ -795,9 +744,4 @@ TerrainSourceShapeDef? _findShape(
     if (shape.shapeId == shapeId) return shape;
   }
   return null;
-}
-
-String? _nullableText(String value) {
-  final normalized = value.trim();
-  return normalized.isEmpty ? null : normalized;
 }
