@@ -43,7 +43,8 @@ The active schema migration, generator, preview, and cutover work remains in
 | Legacy flat-ground/gap conversion | editor chunk migration domain | aggregate check plan; removal follows verified chunk v2 write |
 | Strict legacy prefab-v1/v2 and chunk-v1 source parsing | editor migration-owned `LegacyPrefabDef` / chunk-v1 models | read-only aggregate planner input; compatibility stores and normal `PrefabDef` are bypassed |
 | Cross-domain canonical migration report | editor migration domain | read-only CLI, strict in-memory targets, and exact source SHA-256 audit; source writes remain pending |
-| Strict chunk-v2 file structure and canonical serialization | editor `ChunkV2FileData` / `ChunkV2FileCodec` | migration facade delegation and complete-repository round-trip; normal `ChunkStore` does not consume it yet |
+| Strict chunk-v2 file structure and canonical serialization | editor `ChunkV2FileData` / `ChunkV2FileCodec` | migration facade delegation, complete-repository round-trip, and explicit strict store staging; normal load/save cutover is pending |
+| Chunk-v2 plugin staging and direct-owner validation | editor `ChunkV2StagingDocument` / `ChunkDomainPlugin` / `validateChunkV2StagingDocument` | strict future-source composition, active-level scene, Core direct-shape review, bounds/reference diagnostics, immutable pending diffs, and hard export lock; placement expansion/editing/normal cutover are pending |
 
 Core has no dependency on editor models, JSON, widgets, or filesystem state.
 The editor depends on Core through a one-way local package dependency and does
@@ -239,8 +240,9 @@ normal layers now own both future source structures, but normal
 `PrefabStore.loadFromRepo`/save, `ChunkStore`, UI, generator, source JSON, and
 runtime authority still use their existing legacy paths. `PrefabStore`
 additionally exposes an explicit strict staging load that normal route
-selection cannot call accidentally; an equivalent chunk staging load remains
-pending.
+selection cannot call accidentally. `ChunkStore.loadV2Staging` now provides the
+same explicit separation for an all-v2 chunk tree; ordinary
+`ChunkDomainPlugin.loadFromRepo` still constructs only the v1 document.
 
 The staging load composes prefab v3 with the unchanged `tile_defs.json` v2
 contract through `PrefabTileFileData` and `PrefabTileFileCodec`; it never sends
@@ -257,6 +259,27 @@ are supported and missing references fail closed. The explicit plugin loader
 also carries workspace-scoped atlas paths/sizes and both source baselines into
 the staged document/scene. A clean staged export is a no-op and changed export
 remains hard-locked.
+
+## Chunk-v2 Staging Validation
+
+The chunk staging plugin composes strict prefab-v3/tile-v2 data with every
+strict chunk-v2 file, its workspace-relative path, and its load-time contents.
+The temporary document and scene snapshot all collections, retain a
+deterministic active-level projection, and never pass future records through
+the ground-profile/gap compatibility model. Pending diffs compare canonical v2
+encoding against immutable baselines. A clean export is a no-op; any changed
+file fails with `chunk_v2_source_write_disabled` before filesystem mutation.
+The staging type must replace the v1 document at cutover rather than remain as
+a parallel source authority.
+
+`validateChunkV2StagingDocument` requires stable unique chunk identities,
+complete source baselines, a known active level, and known prefab references.
+Each direct polygon vertex must remain inside the closed chunk rectangle in
+exact half-pixel ticks. Core reviews every loop under the canonical source
+policy and compiles each accepted direct-owner set for exact overlap and hard
+limits. Placement expansion is intentionally not approximated here: exact
+transform, post-quantization bounds, expanded-owner limits, and preview parity
+remain blocking Phase 4 work before normal cutover.
 
 ## Prefab Polygon Owner Validation
 
@@ -443,6 +466,9 @@ The foundation is covered by:
   preserved authored ordering, and target-boundary canonicalization tests
 - strict prefab-v3 file parsing, copy-only canonical serialization, duplicate
   identity rejection, invalid-model refusal, and delegated migration round trips
+- explicit all-v2 chunk-tree loading, immutable future prefab/tile composition,
+  active-level scene projection, direct Core geometry/bounds/reference
+  validation, canonical pending diffs, and byte-preserving export locks
 - prefab owner commit freshness, canonical order, visual-bound resolution,
   warning/error handling, no-op identity, and exactly-once revision tests
 - full Core geometry/signature goldens and fresh-process signature tests

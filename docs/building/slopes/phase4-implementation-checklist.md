@@ -365,6 +365,12 @@ Chunk v2 replaces `groundProfile` and `groundGaps` with direct chunk-local
 
 - [x] Add immutable normal-layer `ChunkV2FileData` and one strict canonical
       `ChunkV2FileCodec`; migration target aliases/facades delegate to them.
+- [x] Add an explicit strict all-v2 `ChunkStore` staging load that retains
+      immutable source paths/baselines and cannot be selected by normal v1
+      loading.
+- [x] Compose staged chunks with strict prefab-v3/tile-v2 dependencies in a
+      temporary document/scene, deterministic active-level projection,
+      pending diffs, clean no-op export, and changed-source export lock.
 - [ ] Make normal canonical chunk writes target v2 at the single source
       cutover.
 - [ ] Remove `GroundProfileDef` and `GroundGapDef` from normal v2 models.
@@ -377,8 +383,12 @@ Chunk v2 replaces `groundProfile` and `groundGaps` with direct chunk-local
       Phase 5 replaces the ground rendering path.
 - [x] Do not force direct polygons to `runtimeGroundTopY`; that field remains a
       legacy level/default bridge only.
-- [ ] Require every direct and transformed prefab vertex to stay inside closed
-      chunk bounds after the one quantization step.
+- [x] Require every direct chunk-local vertex to stay inside closed chunk
+      bounds and run accepted direct shapes through Core canonical/overlap
+      validation.
+- [ ] Expand placements through the one exact transform and require every
+      transformed prefab vertex to stay inside closed chunk bounds after the
+      one quantization step.
 - [x] Do not permit per-placement collision-shape overrides in chunk v2.
 - [ ] Bump chunk revision only when chunk-owned canonical source changes;
       changing a referenced prefab bumps the prefab revision/output, not every
@@ -1052,6 +1062,7 @@ result.
 | 2026-08-01 / `01824736` | Explicit prefab-v3 polygon staging workspace | Dart VM and Flutter test VM on Windows | Editor analysis is clean and all 321 editor tests pass. The route test covers explicit scene routing, locked source apply, owner-local draft isolation, route-shortcut cancellation, atlas/module selection, visible `1 px`/`0.5 px` snap, exact odd half-pixel ticks, one revision/undo entry, undo/redo synchronization, stable diagnostic focus, and staged pending owner IDs. Migration check still reports 99 prefabs, 8 chunks, and nine pending targets without writes; generator dry-run still validates 8 chunks, 2 levels, and 2 themes. Ordinary v2 load/save, authored JSON, and runtime authority remain unchanged. |
 | 2026-08-01 / `e3a07975` | Exact numeric polygon vertex editing | Dart VM and Flutter test VM on Windows | Editor analysis is clean and all 325 editor tests pass. Parser tests cover signed integer, `.0`, `.5`, comma-decimal, malformed, fractional, overflow, and canonical formatting cases. Reducer and route tests prove exact odd ticks, invalid-loop rejection, retained vertex selection after canonical ordering, owner-policy dispatch, and one accepted revision increment. Migration check and generator dry-run remain clean and read-only; normal v2 source/runtime authority is unchanged. |
 | 2026-08-01 / `a0da6638` | Normal strict chunk-v2 file model/codec authority | Dart VM and Flutter test VM on Windows | Editor analysis is clean and all 329 editor tests pass. Four direct normal-layer tests cover immutable author-order snapshots, copy semantics, copy-only canonical tag/layer/placement/marker/shape ordering, retained metadata, byte-stable round trips, strict legacy/unknown/type/order/grid/scale rejection, and invalid-model serialization refusal. Migration aliases/facades now delegate chunk-v2 structure to the normal chunk layer; the read-only check still reports 99 prefabs, 8 chunks, and nine pending targets without writes, while generator dry-run still validates 8 chunks, 2 levels, and 2 themes. `ChunkStore`, live UI, authored JSON, generator input, and runtime authority remain v1. |
+| 2026-08-01 / `d96b6509` | Explicit strict chunk-v2 staging workspace | Dart VM and Flutter test VM on Windows | Editor analysis is clean and all 334 editor tests pass. Five fixture tests prove an all-v2 chunk tree composes with strict prefab-v3/tile-v2 data, immutable source baselines, deterministic active-level scene projection, Core-reviewed direct geometry, closed direct-owner bounds, known prefab references, canonical pending diffs, clean no-op export, and a changed-source lock that preserves every fixture byte. Legacy v1 normal loading remains selected and explicit staging rejects v1/case-colliding sources. The migration check still reports 99 prefabs, 8 chunks, and nine pending targets without writes; generator dry-run still validates 8 chunks, 2 levels, and 2 themes. Placement expansion, chunk polygon commands/UI, normal schema cutover, authored JSON, generator input, and runtime authority remain unchanged. |
 
 ### 28.1 Baseline Environment And Source Identity
 
