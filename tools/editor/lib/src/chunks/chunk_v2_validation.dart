@@ -6,6 +6,7 @@ import '../domain/authoring_types.dart';
 import '../terrain_authoring/terrain_source_core_adapter.dart';
 import '../terrain_authoring/terrain_source_models.dart';
 import 'chunk_domain_models.dart';
+import 'chunk_v2_collision_expansion.dart';
 import 'chunk_v2_file_data.dart';
 import 'chunk_v2_staging_models.dart';
 
@@ -80,10 +81,7 @@ List<ValidationIssue> validateChunkV2CollisionShapes({
   return List<ValidationIssue>.unmodifiable(issues);
 }
 
-/// Validates the strict chunk-v2 staging set without expanding placements.
-///
-/// Direct polygon geometry and overlap remain Core-owned. Prefab placement
-/// transform/expansion is a later staging layer and must pass before cutover.
+/// Validates the strict chunk-v2 staging set including exact prefab expansion.
 List<ValidationIssue> validateChunkV2StagingDocument(
   ChunkV2StagingDocument document,
 ) {
@@ -93,10 +91,6 @@ List<ValidationIssue> validateChunkV2StagingDocument(
   final chunkKeys = <String>{};
   final foldedChunkKeys = <String>{};
   final chunkIds = <String>{};
-  final knownPrefabRefs = <String>{
-    for (final prefab in document.prefabData.prefabs) prefab.prefabKey,
-    for (final prefab in document.prefabData.prefabs) prefab.id,
-  };
 
   if (document.availableLevelIds.isEmpty || document.activeLevelId == null) {
     issues.add(
@@ -172,28 +166,13 @@ List<ValidationIssue> validateChunkV2StagingDocument(
       );
     }
 
-    for (final placement in chunk.prefabs) {
-      if (!knownPrefabRefs.contains(placement.resolvedPrefabRef)) {
-        issues.add(
-          ValidationIssue(
-            severity: ValidationSeverity.error,
-            code: 'unknown_prefab_reference',
-            message:
-                'Chunk ${chunk.chunkKey} references unknown prefab '
-                '${placement.resolvedPrefabRef}.',
-            sourcePath: sourcePath,
-          ),
-        );
-      }
-    }
-
     issues.addAll(
-      validateChunkV2CollisionShapes(
+      expandChunkV2Collision(
         chunk: chunk,
-        collisionShapes: chunk.collisionShapes,
+        prefabs: document.prefabData.prefabs,
         sourcePath: sourcePath ?? chunk.chunkKey,
         chunkIndex: chunkIndex,
-      ),
+      ).issues,
     );
   }
 

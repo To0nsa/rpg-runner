@@ -6,6 +6,7 @@ import '../terrain_authoring/terrain_polygon_interaction.dart';
 import '../workspace/editor_workspace.dart';
 import 'chunk_domain_models.dart';
 import 'chunk_store.dart';
+import 'chunk_v2_collision_expansion.dart';
 import 'chunk_validation.dart';
 import 'chunk_v2_collision_commit.dart';
 import 'chunk_v2_file_codec.dart';
@@ -136,12 +137,23 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
         for (final chunk in chunks)
           chunk.chunkKey: ?document.sourcePathByChunkKey[chunk.chunkKey],
       };
+      final collisionExpansions = <String, ChunkV2CollisionExpansionResult>{};
+      for (var chunkIndex = 0; chunkIndex < chunks.length; chunkIndex += 1) {
+        final chunk = chunks[chunkIndex];
+        collisionExpansions[chunk.chunkKey] = expandChunkV2Collision(
+          chunk: chunk,
+          prefabs: document.prefabData.prefabs,
+          sourcePath: sourcePaths[chunk.chunkKey] ?? chunk.chunkKey,
+          chunkIndex: chunkIndex,
+        );
+      }
       return ChunkV2StagingScene(
         chunks: chunks,
         sourcePathByChunkKey: sourcePaths,
         prefabData: document.prefabData,
         tileData: document.tileData,
         visualBoundsByPrefabKey: document.visualBoundsByPrefabKey,
+        collisionExpansionByChunkKey: collisionExpansions,
         availableLevelIds: document.availableLevelIds,
         activeLevelId: document.activeLevelId,
       );

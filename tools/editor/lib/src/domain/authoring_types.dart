@@ -69,6 +69,7 @@ class ValidationIssue {
     required this.code,
     required this.message,
     this.sourcePath,
+    this.placementKey,
     this.shapeId,
     this.elementIndex,
   });
@@ -77,6 +78,9 @@ class ValidationIssue {
   final String code;
   final String message;
   final String? sourcePath;
+
+  /// Optional stable placed-prefab identity for expanded collision findings.
+  final String? placementKey;
 
   /// Optional polygon owner-local shape identity for diagnostic focus.
   final String? shapeId;

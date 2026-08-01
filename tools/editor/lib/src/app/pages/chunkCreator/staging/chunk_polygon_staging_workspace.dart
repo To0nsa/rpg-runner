@@ -1,7 +1,9 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:runner_core/collision/terrain/terrain_compiler.dart';
 
+import '../../../../chunks/chunk_v2_collision_expansion.dart';
 import '../../../../chunks/chunk_v2_file_data.dart';
 import '../../../../chunks/chunk_v2_staging_models.dart';
 import '../../../../domain/authoring_types.dart';
@@ -16,6 +18,7 @@ import '../../shared/editor_zoom_controls.dart';
 import '../../shared/terrain_polygon_metadata_dialog.dart';
 import '../../shared/terrain_polygon_scene_painter.dart';
 import '../../shared/terrain_polygon_vertex_editor.dart';
+import 'chunk_expanded_collision_overlay_painter.dart';
 import 'chunk_polygon_authoring_controller.dart';
 import 'chunk_polygon_scene_surface.dart';
 
@@ -201,26 +204,34 @@ class ChunkPolygonStagingWorkspaceState
       child: ListView(
         children: <Widget>[
           for (final chunk in chunks)
-            Card(
-              key: ValueKey<String>('chunk_polygon_owner_${chunk.chunkKey}'),
-              clipBehavior: Clip.antiAlias,
-              child: ListTile(
-                selected: chunk.chunkKey == selectedChunk.chunkKey,
-                onTap: () => _selectOwner(chunk.chunkKey),
-                title: Text(chunk.id),
-                subtitle: Text(
-                  '${chunk.difficulty} · ${chunk.width}×${chunk.height} px · '
-                  'rev ${chunk.revision}\n${chunk.status} · '
-                  '${chunk.collisionShapes.length} direct shape(s)',
-                ),
-                isThreeLine: true,
-                trailing: document.changedChunkKeys.contains(chunk.chunkKey)
-                    ? const Tooltip(
-                        message: 'Staged geometry changed',
-                        child: Icon(Icons.circle, size: 12),
-                      )
-                    : null,
-              ),
+            Builder(
+              builder: (context) {
+                final expansion = _expansionFor(chunk.chunkKey)?.expansion;
+                return Card(
+                  key: ValueKey<String>(
+                    'chunk_polygon_owner_${chunk.chunkKey}',
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: ListTile(
+                    selected: chunk.chunkKey == selectedChunk.chunkKey,
+                    onTap: () => _selectOwner(chunk.chunkKey),
+                    title: Text(chunk.id),
+                    subtitle: Text(
+                      '${chunk.difficulty} · ${chunk.width}×${chunk.height} px · '
+                      'rev ${chunk.revision}\n${chunk.status} · '
+                      '${chunk.collisionShapes.length} direct · '
+                      '${expansion?.expandedPrefabShapeCount ?? 0} expanded',
+                    ),
+                    isThreeLine: true,
+                    trailing: document.changedChunkKeys.contains(chunk.chunkKey)
+                        ? const Tooltip(
+                            message: 'Staged geometry changed',
+                            child: Icon(Icons.circle, size: 12),
+                          )
+                        : null,
+                  ),
+                );
+              },
             ),
         ],
       ),
@@ -228,7 +239,7 @@ class ChunkPolygonStagingWorkspaceState
   }
 
   Widget _buildScenePanel(ChunkPolygonAuthoringController authoring) => _Panel(
-    title: 'Direct terrain scene',
+    title: 'Terrain collision scene',
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -284,6 +295,8 @@ class ChunkPolygonStagingWorkspaceState
           ),
         ),
         const SizedBox(height: 8),
+        _buildExpansionSummary(authoring),
+        const SizedBox(height: 8),
         const Text(
           'Primary input follows the selected tool. Ctrl+drag pans, '
           'Ctrl+scroll zooms, Enter closes a draft, and Escape cancels.',
@@ -310,11 +323,29 @@ class ChunkPolygonStagingWorkspaceState
                 child: ChunkPolygonSceneSurface(
                   controller: authoring,
                   transform: transform,
-                  background: CustomPaint(
-                    painter: _ChunkBoundsPainter(
-                      chunk: chunk,
-                      transform: transform,
-                    ),
+                  background: Stack(
+                    fit: StackFit.expand,
+                    children: <Widget>[
+                      CustomPaint(
+                        painter: _ChunkBoundsPainter(
+                          chunk: chunk,
+                          transform: transform,
+                        ),
+                      ),
+                      if (_expansionFor(chunk.chunkKey)?.expansion
+                          case final expansion?)
+                        IgnorePointer(
+                          child: CustomPaint(
+                            key: const ValueKey<String>(
+                              'chunk_expanded_collision_overlay',
+                            ),
+                            painter: ChunkExpandedCollisionOverlayPainter(
+                              expansion: expansion,
+                              transform: transform,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                   onPanDelta: (delta) => setState(() => _pan += delta),
                   onZoomSteps: (steps) {
@@ -426,6 +457,7 @@ class ChunkPolygonStagingWorkspaceState
             const SizedBox(height: 8),
             _buildVertexInspector(authoring, selectedShape),
           ],
+          _buildExpandedPrefabShapes(authoring),
           const Divider(height: 28),
           Text('Diagnostics', style: Theme.of(context).textTheme.titleSmall),
           if (issues.isEmpty)
@@ -448,12 +480,72 @@ class ChunkPolygonStagingWorkspaceState
                 ),
                 title: Text(issue.code),
                 subtitle: Text(issue.message),
-                onTap: issue.shapeId == null
+                onTap: issue.shapeId == null || issue.placementKey != null
                     ? null
                     : () => _focusIssue(authoring, issue),
               ),
         ],
       ),
+    );
+  }
+
+  Widget _buildExpansionSummary(ChunkPolygonAuthoringController authoring) {
+    final result = _expansionFor(authoring.chunkKey);
+    final expansion = result?.expansion;
+    if (expansion == null) {
+      return const Text(
+        'Expanded prefab collision unavailable while expansion has blocking '
+        'source or compiler issues.',
+        key: ValueKey<String>('chunk_collision_expansion_unavailable'),
+        style: TextStyle(color: Color(0xFFFFD166)),
+      );
+    }
+    return Text(
+      '${expansion.directShapeCount} direct + '
+      '${expansion.expandedPrefabShapeCount} expanded = '
+      '${expansion.totalShapeCount}/${TerrainGeometryLimits.maxShapesPerChunk} '
+      'shapes · ${expansion.exposedEdgeCount}/'
+      '${TerrainGeometryLimits.maxExposedEdgesPerChunk} exposed edges',
+      key: const ValueKey<String>('chunk_collision_expansion_summary'),
+    );
+  }
+
+  Widget _buildExpandedPrefabShapes(ChunkPolygonAuthoringController authoring) {
+    final expansion = _expansionFor(authoring.chunkKey)?.expansion;
+    if (expansion == null || expansion.expandedPrefabShapes.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        const Divider(height: 28),
+        Text(
+          'Read-only prefab collision',
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Edit these source shapes in Prefab Creator; chunk placements own '
+          'only their transform.',
+        ),
+        for (final shape in expansion.expandedPrefabShapes)
+          ListTile(
+            key: ValueKey<String>(
+              'chunk_expanded_shape_${shape.placementKey}_${shape.shapeId}',
+            ),
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.lock_outline, size: 18),
+            title: Text('${shape.prefabId} · ${shape.shapeId}'),
+            subtitle: Text(
+              'prefab ${shape.prefabKey} rev ${shape.prefabRevision}\n'
+              'placement ${shape.placementKey} · '
+              '@ (${shape.placementX}, ${shape.placementY}) · '
+              'scale ${(shape.scaleTenths / 10).toStringAsFixed(1)}',
+            ),
+            isThreeLine: true,
+          ),
+      ],
     );
   }
 
@@ -676,6 +768,9 @@ class ChunkPolygonStagingWorkspaceState
     final scene = widget.controller.scene;
     return scene is ChunkV2StagingScene ? scene : null;
   }
+
+  ChunkV2CollisionExpansionResult? _expansionFor(String chunkKey) =>
+      _sceneOrNull?.collisionExpansionByChunkKey[chunkKey];
 
   void _setZoom(double value) {
     final next = EditorSceneViewUtils.snapZoom(

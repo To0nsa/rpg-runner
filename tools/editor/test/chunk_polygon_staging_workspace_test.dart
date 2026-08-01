@@ -51,6 +51,25 @@ void main() {
         find.byKey(const ValueKey<String>('chunk_polygon_owner_meadow_chunk')),
         findsNothing,
       );
+      expect(
+        find.byKey(const ValueKey<String>('chunk_expanded_collision_overlay')),
+        findsOneWidget,
+      );
+      expect(
+        find.text(
+          '1 direct + 1 expanded = 2/512 shapes · 8/4096 exposed edges',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>(
+            'chunk_expanded_shape_prefab_rock|70|10|0_collision_001',
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(find.textContaining('prefab prefab_rock rev 3'), findsOneWidget);
       final lockedApply = tester.widget<FilledButton>(
         find.byKey(const ValueKey<String>('chunk_polygon_apply_locked')),
       );
@@ -89,6 +108,8 @@ void main() {
       expect(harness.session.pendingChanges.hasChanges, isFalse);
       expect(reloadHandler.canReloadEditorPage, isFalse);
 
+      await tester.drag(find.byType(ListView).last, const Offset(0, 1000));
+      await tester.pump();
       await tester.tap(
         find.byKey(const ValueKey<String>('chunk_polygon_shape_ground_001')),
       );
@@ -149,6 +170,8 @@ void main() {
       expect(find.text('chunk_collision_shape_out_of_bounds'), findsOneWidget);
       expect(tester.widget<TextField>(xField).controller!.text, '101');
 
+      await tester.drag(find.byType(ListView).last, const Offset(0, 1000));
+      await tester.pump();
       final editMetadata = find.byKey(
         const ValueKey<String>('chunk_polygon_edit_metadata'),
       );
@@ -202,6 +225,9 @@ void main() {
       expect(forestChunk.collisionShapes.single.materialKey, isNull);
       expect(harness.session.pendingChanges.hasChanges, isFalse);
 
+      await tester.pumpAndSettle();
+      await tester.drag(find.byType(ListView).last, const Offset(0, 1000));
+      await tester.pump();
       final duplicateShape = find.byKey(
         const ValueKey<String>('chunk_polygon_duplicate_shape'),
       );
@@ -257,6 +283,16 @@ Future<_Harness> _buildHarness() async {
     chunkKey: 'forest_chunk',
     levelId: 'forest',
     shapeId: 'ground_001',
+    placements: const <PlacedPrefabDef>[
+      PlacedPrefabDef(
+        prefabId: 'rock',
+        prefabKey: 'prefab_rock',
+        x: 70,
+        y: 10,
+        scale: 0.5,
+        flipX: true,
+      ),
+    ],
   );
   final meadowChunk = _chunkData(
     chunkKey: 'meadow_chunk',
@@ -275,7 +311,30 @@ Future<_Harness> _buildHarness() async {
     },
     prefabData: PrefabV3FileData(
       slices: const <AtlasSliceDef>[],
-      prefabs: const <PrefabV3Def>[],
+      prefabs: <PrefabV3Def>[
+        PrefabV3Def(
+          prefabKey: 'prefab_rock',
+          id: 'rock',
+          revision: 3,
+          status: PrefabStatus.active,
+          kind: PrefabKind.obstacle,
+          visualSource: const PrefabVisualSource.atlasSlice('rock_slice'),
+          anchorXPx: 8,
+          anchorYPx: 12,
+          collisionShapes: <TerrainSourceShapeDef>[
+            TerrainSourceShapeDef(
+              shapeId: 'collision_001',
+              vertices: const <TerrainSourceVertexDef>[
+                TerrainSourceVertexDef(xHalfPixels: 0, yHalfPixels: 0),
+                TerrainSourceVertexDef(xHalfPixels: 10, yHalfPixels: 0),
+                TerrainSourceVertexDef(xHalfPixels: 10, yHalfPixels: 10),
+                TerrainSourceVertexDef(xHalfPixels: 0, yHalfPixels: 10),
+              ],
+            ),
+          ],
+          tags: const <String>[],
+        ),
+      ],
     ),
     tileData: PrefabTileFileData(
       tileSlices: const <AtlasSliceDef>[],
@@ -301,6 +360,7 @@ ChunkV2FileData _chunkData({
   required String chunkKey,
   required String levelId,
   required String shapeId,
+  Iterable<PlacedPrefabDef> placements = const <PlacedPrefabDef>[],
 }) => ChunkV2FileData(
   chunkKey: chunkKey,
   id: chunkKey,
@@ -314,7 +374,7 @@ ChunkV2FileData _chunkData({
   assemblyGroupId: defaultChunkAssemblyGroupId,
   tags: <String>[levelId],
   tileLayers: const <TileLayerDef>[],
-  prefabs: const <PlacedPrefabDef>[],
+  prefabs: placements,
   markers: const <PlacedMarkerDef>[],
   groundBandZIndex: 0,
   collisionShapes: <TerrainSourceShapeDef>[

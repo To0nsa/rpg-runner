@@ -3,6 +3,7 @@ import 'package:meta/meta.dart';
 import '../domain/authoring_types.dart';
 import '../prefabs/domain/prefab_domain_models.dart';
 import '../prefabs/models/models.dart';
+import 'chunk_v2_collision_expansion.dart';
 import 'chunk_v2_file_data.dart';
 
 /// Temporary read-only plugin document for an all-v2 chunk source tree.
@@ -83,6 +84,8 @@ class ChunkV2StagingScene extends EditableScene {
     required this.prefabData,
     required this.tileData,
     required Map<String, PrefabV3VisualBounds> visualBoundsByPrefabKey,
+    required Map<String, ChunkV2CollisionExpansionResult>
+    collisionExpansionByChunkKey,
     required Iterable<String> availableLevelIds,
     required this.activeLevelId,
   }) : chunks = List<ChunkV2FileData>.unmodifiable(chunks),
@@ -92,6 +95,10 @@ class ChunkV2StagingScene extends EditableScene {
        visualBoundsByPrefabKey = Map<String, PrefabV3VisualBounds>.unmodifiable(
          visualBoundsByPrefabKey,
        ),
+       collisionExpansionByChunkKey =
+           Map<String, ChunkV2CollisionExpansionResult>.unmodifiable(
+             collisionExpansionByChunkKey,
+           ),
        availableLevelIds = List<String>.unmodifiable(availableLevelIds);
 
   final List<ChunkV2FileData> chunks;
@@ -99,6 +106,8 @@ class ChunkV2StagingScene extends EditableScene {
   final PrefabV3FileData prefabData;
   final PrefabTileFileData tileData;
   final Map<String, PrefabV3VisualBounds> visualBoundsByPrefabKey;
+  final Map<String, ChunkV2CollisionExpansionResult>
+  collisionExpansionByChunkKey;
   final List<String> availableLevelIds;
   final String? activeLevelId;
 }
