@@ -8,7 +8,8 @@ The app uses Firebase Authentication with this runtime policy:
 
 - Primary boot identity: Play Games-backed Firebase user (Android only).
 - Anonymous Firebase users are not created during bootstrap.
-- Backend authority: Firebase callable functions (`onCall`) using `request.auth.uid`.
+- Backend authority: Firebase callable functions (`onCall`) require both the
+  Firebase `uid` and a linked Google Play Games identity.
 - Firestore client writes/reads for authoritative game data are denied by rules.
 
 Authoritative data access (profile, ownership, runs, boards, ghosts, account delete) goes through callables, not direct Firestore from the app.
@@ -16,7 +17,7 @@ Authoritative data access (profile, ownership, runs, boards, ghosts, account del
 ## 2) Ownership by layer
 
 - Flutter auth adapter: `FirebaseAuthApi`
-  - `lib/ui/state/firebase_auth_api.dart`
+  - `lib/ui/state/auth/firebase_auth_api.dart`
   - Handles session discovery, refresh, Play Games restore, and provider linking.
 - App orchestration: `AppState`
   - `lib/ui/state/app_state.dart`
@@ -24,7 +25,7 @@ Authoritative data access (profile, ownership, runs, boards, ghosts, account del
 - Backend callables:
   - `functions/src/index.ts`
   - `functions/src/*/callable_handlers.ts`
-  - Enforce auth + uid match per request.
+  - Enforce a linked Play Games identity plus uid match per request.
 - Firestore rules:
   - `firestore.rules`
   - Deny client read/write for protected collections.
@@ -33,8 +34,9 @@ Authoritative data access (profile, ownership, runs, boards, ghosts, account del
 
 Boot route flow:
 
-1. `main()` initializes Firebase, activates App Check where the platform is
-   configured, and starts `UiApp`.
+1. `main()` initializes Firebase, activates App Check, and starts `UiApp`.
+   A release build without a production attestation path fails during this
+   step rather than silently continuing without App Check.
 2. `BrandSplashScreen` routes to loader.
 3. `LoaderPage` calls `AppState.bootstrap()`.
 4. `AppState.bootstrap()` calls `_ensureAuthSession()`.
@@ -66,7 +68,19 @@ Important:
 
 - `sessionId` is required by request contracts and passed to callables.
 - Backend authorization authority is still `request.auth.uid`.
-- `sessionId` is currently a request integrity/session-tracking field, not identity authority.
+- `sessionId` is request correlation only: it is neither identity authority
+  nor part of ownership-command idempotency identity. Firebase can refresh an
+  ID token while retrying a durable command, so retries retain their command
+  ID and semantic payload while accepting a new session fingerprint.
+
+### Durable local work is account-scoped
+
+The ownership outbox and replay-submission spool persist the UID that created
+each row. Reads, coalescing, retries, status projection, and removal are
+scoped to that UID. A second player signing in on the same device therefore
+cannot deliver or discard another player's locally queued command or replay.
+Historical unscoped rows are intentionally ignored because their owner cannot
+be established safely.
 
 ## 5) Play Games linking and restore
 
@@ -74,18 +88,23 @@ Play Games integration is Android-only.
 
 - Dart side requests a server auth code through method channel `rpg_runner/play_games_auth`.
 - Android side (`MainActivity.kt`) signs in with Play Games SDK and returns server auth code.
-- Dart exchanges code with `PlayGamesAuthProvider.credential(...)` and links/signs in via Firebase Auth.
+- Dart exchanges code with `PlayGamesAuthProvider.credential(...)` and links
+  or signs in via Firebase Auth. When an existing anonymous Firebase user is
+  upgraded, it uses `linkWithCredential` and preserves that UID.
 
 UI entry point:
 
-- Runtime bootstrap requires Play Games identity, so anonymous-upgrade UI is not part of the normal startup path.
+- Runtime bootstrap requires Play Games identity, so anonymous-upgrade UI is
+  not part of the normal startup path. It remains a safe recovery path for a
+  pre-existing anonymous session.
 
 ## 6) Callable request auth contract (server-side)
 
 Current callable pattern across domains:
 
 1. The Functions v2 callable runtime applies the configured App Check policy.
-2. Require `request.auth?.uid`.
+2. Require `request.auth.uid` and a non-empty
+   `request.auth.token.firebase.identities['playgames.google.com']` value.
 3. Bound, parse, and validate the request payload.
 4. Verify request `userId` equals authenticated `uid`.
 5. Enforce deletion, quota, domain allowlist, and ownership checks.
@@ -99,16 +118,18 @@ This pattern is implemented in:
 
 So even if client sends a forged `userId`, the backend rejects on uid mismatch.
 
-App Check defaults to monitoring. Android and Apple release builds use
-platform attestation; release web requires a configured reCAPTCHA v3 site key;
-the current Windows SDK supports only a registered debug token and therefore
-has no production enforcement path. `APP_CHECK_ROLLOUT_MODE=enforce` makes the
-callable runtime reject missing/invalid tokens before the handler, but Firebase
-Auth and UID authorization remain mandatory afterward. This switch applies
-globally to each callable: it cannot be enabled while an in-scope production
-platform lacks attestation unless that platform is excluded or uses separately
-reviewed endpoints. Platform configuration, debug-token rules, per-UID quotas,
-and rollback are defined in
+App Check defaults to the explicit `monitor` rollout mode; only `monitor` and
+`enforce` are accepted, so a typo fails Functions initialization instead of
+silently relaxing the policy. Android and Apple release builds use platform
+attestation; release web requires a configured reCAPTCHA Enterprise site key;
+Windows, Linux, and Fuchsia have no production attestation provider and their
+release bootstrap fails closed. `APP_CHECK_ROLLOUT_MODE=enforce` makes the
+callable runtime reject missing/invalid tokens before the handler, but Play
+Games identity and UID authorization remain mandatory afterward. This switch
+applies globally to each callable: it cannot be enabled while an in-scope
+production platform lacks attestation unless that platform is excluded or uses
+separately reviewed endpoints. Platform configuration, debug-token rules,
+per-UID quotas, and rollback are defined in
 [`callable_abuse_controls.md`](callable_abuse_controls.md).
 
 For ownership commands, matching the UID is necessary but not sufficient. The
@@ -146,12 +167,17 @@ the removed client-authoritative contract is repairable on the next rename.
 Client flow:
 
 1. `ProfilePage` confirms deletion.
-2. `AppState.deleteAccountAndData()` ensures auth session.
+2. `AppState.deleteAccountAndData()` performs interactive Play Games
+   reauthentication and forces an ID-token refresh.
 3. Calls `accountDelete` callable with `userId` + `sessionId`.
 4. On success, app clears local state and signs out via `AuthApi.clearSession()`.
 
 Server flow (`functions/src/account/delete.ts`):
 
+- The callable requires a linked Play Games identity and an `auth_time` no
+  more than five minutes old. Refreshing an ID token does not reset this
+  timestamp, so stale sessions receive `failed-precondition` with
+  `reason: recent-auth-required` before deletion work starts.
 - Transactionally creates `account_deletion_requests/{uid}` before any
   destructive work.
 - Disables the Auth user and revokes refresh tokens first.
@@ -172,17 +198,19 @@ stages, retention, and inventory rules are in
 ## 9) Failure behavior worth knowing
 
 - Network token-read failures in auth adapter can fall back to cached current user snapshot for resiliency.
-- Most app remote operations re-check auth via `_ensureAuthSession()` each call, so token/session rollover is naturally handled.
+- Most app remote operations re-check auth via `_ensureAuthSession()` each
+  call, so token/session rollover is naturally handled.
 - Account deletion maps backend/platform errors to typed statuses (`requiresRecentLogin`, `unauthorized`, `unsupported`, `failed`).
 
 ## 10) Change checklist for auth-related work
 
 When changing auth behavior or contract, update both sides in one change:
 
-- client auth/session adapter (`lib/ui/state/firebase_auth_api.dart`)
+- client auth/session adapter (`lib/ui/state/auth/firebase_auth_api.dart`)
 - app orchestration (`lib/ui/state/app_state.dart`)
 - callable validators/handlers (`functions/src/**`)
 - Firestore rules if direct-access policy changes (`firestore.rules`)
 - profile page/account-link UX if user-visible flow changes (`lib/ui/pages/profile/profile_page.dart`)
 
-Do not move authorization authority from backend `request.auth.uid` to client-provided fields.
+Do not move authorization authority from backend Firebase claims and
+`request.auth.uid` to client-provided fields.

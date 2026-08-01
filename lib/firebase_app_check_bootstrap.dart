@@ -33,11 +33,9 @@ Future<AppCheckActivationOutcome> activateFirebaseAppCheck() async {
       return AppCheckActivationOutcome.activated;
     }
     if (_webSiteKey.trim().isEmpty) {
-      debugPrint(
-        'Firebase App Check skipped: '
-        'FIREBASE_APP_CHECK_WEB_SITE_KEY is not configured.',
+      throw StateError(
+        'FIREBASE_APP_CHECK_WEB_SITE_KEY is required for release web builds.',
       );
-      return AppCheckActivationOutcome.skippedMissingConfiguration;
     }
     await FirebaseAppCheck.instance.activate(
       providerWeb: ReCaptchaEnterpriseProvider(_webSiteKey.trim()),
@@ -70,14 +68,18 @@ Future<AppCheckActivationOutcome> activateFirebaseAppCheck() async {
       );
       return AppCheckActivationOutcome.activated;
     case TargetPlatform.windows:
-      if (!kDebugMode || _windowsDebugToken.trim().isEmpty) {
+      if (!kDebugMode) {
+        throw UnsupportedError(
+          'Release Windows builds are unsupported because Firebase App Check '
+          'has no production attestation provider.',
+        );
+      }
+      if (_windowsDebugToken.trim().isEmpty) {
         debugPrint(
           'Firebase App Check skipped on Windows: only an explicitly '
           'registered debug token is supported.',
         );
-        return kDebugMode
-            ? AppCheckActivationOutcome.skippedMissingConfiguration
-            : AppCheckActivationOutcome.skippedUnsupported;
+        return AppCheckActivationOutcome.skippedMissingConfiguration;
       }
       await FirebaseAppCheck.instance.activate(
         providerWindows: WindowsDebugProvider(
@@ -87,6 +89,12 @@ Future<AppCheckActivationOutcome> activateFirebaseAppCheck() async {
       return AppCheckActivationOutcome.activated;
     case TargetPlatform.linux:
     case TargetPlatform.fuchsia:
+      if (!kDebugMode) {
+        throw UnsupportedError(
+          'Release ${defaultTargetPlatform.name} builds are unsupported '
+          'because Firebase App Check has no production attestation provider.',
+        );
+      }
       return AppCheckActivationOutcome.skippedUnsupported;
   }
 }

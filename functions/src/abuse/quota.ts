@@ -388,7 +388,16 @@ function validatePolicy(
 export function readAbuseControlMode(
   raw: string | undefined = process.env.ABUSE_CONTROL_MODE,
 ): AbuseControlMode {
-  return raw?.trim().toLowerCase() === "enforce" ? "enforce" : "monitor";
+  const value = raw?.trim().toLowerCase();
+  if (!value || value === "monitor") {
+    return "monitor";
+  }
+  if (value === "enforce") {
+    return "enforce";
+  }
+  throw new Error(
+    "ABUSE_CONTROL_MODE must be either 'monitor' or 'enforce'.",
+  );
 }
 
 function readPositiveInt(raw: string | undefined): number | undefined {

@@ -13,7 +13,16 @@ export interface CallableAppCheckLike {
 export function appCheckRolloutMode(
   raw: string | undefined = process.env.APP_CHECK_ROLLOUT_MODE,
 ): AppCheckRolloutMode {
-  return raw?.trim().toLowerCase() === "enforce" ? "enforce" : "monitor";
+  const value = raw?.trim().toLowerCase();
+  if (!value || value === "monitor") {
+    return "monitor";
+  }
+  if (value === "enforce") {
+    return "enforce";
+  }
+  throw new Error(
+    "APP_CHECK_ROLLOUT_MODE must be either 'monitor' or 'enforce'.",
+  );
 }
 
 export function appCheckCallableOptions(

@@ -47,6 +47,9 @@ All user callable exports set Firebase Functions v2 `enforceAppCheck` from
 - `enforce`: the Functions callable runtime rejects missing or invalid tokens
   before the handler runs.
 
+Any other value is an invalid deployment configuration and throws during
+Functions initialization; it must not silently behave as monitor mode.
+
 `consumeAppCheckToken` remains false. Token consumption requires a separate
 limited-use-token client contract and is not necessary for the current
 callables.
@@ -59,11 +62,10 @@ and before starting `UiApp`:
 | Android | Firebase debug provider; optional registered `FIREBASE_APP_CHECK_DEBUG_TOKEN` | Play Integrity |
 | iOS/macOS | Firebase debug provider; optional registered `FIREBASE_APP_CHECK_DEBUG_TOKEN` | App Attest with DeviceCheck fallback |
 | Web | Firebase web debug provider | reCAPTCHA Enterprise score key using `FIREBASE_APP_CHECK_WEB_SITE_KEY` |
-| Windows | Explicit registered `FIREBASE_APP_CHECK_WINDOWS_DEBUG_TOKEN` only | Unsupported by the current SDK; activation is skipped |
-| Linux/Fuchsia | Unsupported | Unsupported |
+| Windows | Explicit registered `FIREBASE_APP_CHECK_WINDOWS_DEBUG_TOKEN` only | Unsupported; app startup fails closed |
+| Linux/Fuchsia | Unsupported | Unsupported; app startup fails closed |
 
-Release web activation is skipped when its site key is absent so monitoring can
-expose the gap without embedding or inventing a credential. The Functions
+Release web startup fails when its site key is absent. The Functions
 `enforceAppCheck` option is global for each callable, not a client-selectable or
 per-platform switch. Production enforcement must therefore remain off until
 every production platform using these callables has a measured, working
@@ -145,6 +147,8 @@ rejecting. Production uses `enforce`; an exceeded limit returns
 expensive read. Route environment variables can override the defaults.
 Malformed overrides fail closed with `failed-precondition` during enforcement;
 monitor mode logs the configuration error and uses the reviewed default.
+The rollout mode itself accepts only `monitor` or `enforce`; another value is a
+configuration error rather than an implicit monitor-mode fallback.
 
 The quota document contains only the fixed route set and expires after the
 longest active window plus a 24-hour operational margin.

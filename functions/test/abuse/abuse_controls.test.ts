@@ -17,6 +17,7 @@ import {
   defaultAbuseQuotaConfiguration,
   defaultRunActiveSessionsLimit,
   defaultRunActiveUploadGrantsLimit,
+  readAbuseControlMode,
   readOptionalBoundedAbuseLimit,
   resolveAbuseQuotaPolicy,
   type AbuseQuotaPolicy,
@@ -48,7 +49,7 @@ after(async () => {
   await Promise.all(getApps().map((value) => deleteApp(value)));
 });
 
-test("App Check defaults to monitoring and has an explicit enforcement switch", () => {
+test("App Check defaults to monitoring and rejects invalid rollout modes", () => {
   assert.equal(appCheckRolloutMode(undefined), "monitor");
   assert.equal(appCheckRolloutMode("monitor"), "monitor");
   assert.equal(appCheckRolloutMode("enforce"), "enforce");
@@ -60,6 +61,7 @@ test("App Check defaults to monitoring and has an explicit enforcement switch", 
     enforceAppCheck: true,
     consumeAppCheckToken: false,
   });
+  assert.throws(() => appCheckRolloutMode("enabled"), /APP_CHECK_ROLLOUT_MODE/);
 });
 
 test("reviewed production quota defaults resolve for every protected route", () => {
@@ -86,6 +88,9 @@ test("reviewed production quota defaults resolve for every protected route", () 
   }
   assert.equal(defaultRunActiveSessionsLimit, 32);
   assert.equal(defaultRunActiveUploadGrantsLimit, 8);
+  assert.equal(readAbuseControlMode(undefined), "monitor");
+  assert.equal(readAbuseControlMode("enforce"), "enforce");
+  assert.throws(() => readAbuseControlMode("enabled"), /ABUSE_CONTROL_MODE/);
 });
 
 test("payload bounds reject oversized and deeply nested JSON", () => {
