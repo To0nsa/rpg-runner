@@ -450,6 +450,54 @@ Accepted edits still create session pending changes for validation/undo tests,
 but the plugin's changed-staging export lock remains the final defense against
 filesystem mutation. The enabled v2 page and its save behavior are unchanged.
 
+## Chunk Placement Expansion And Read-only Preview
+
+`expandChunkV2Collision` is the single editor-domain projection for staged
+chunk-v2 direct shapes plus resolved prefab-v3 placements. It is pure and
+immutable: it accepts one chunk, the prefab catalog, stable source identity, and
+the deterministic chunk index; it returns either an accepted Core geometry
+bundle plus read-only prefab-shape lineage, or sorted validation issues. It does
+not mutate chunk source, prefab source, revisions, generated data, or runtime
+objects.
+
+Placement selection uses `buildChunkPlacedPrefabSelections`, so every expanded
+shape retains the existing `prefabRef|x|y|ordinal` placement key. Prefab
+references resolve by stable key or retained ID; missing and ambiguous
+references block complete projection. The existing `0.3..3.0` placement scale
+must be finite, in range, and aligned to an exact tenth before it becomes the
+Core transform's integer numerator.
+
+Prefab-v3 collision vertices are already authored relative to the prefab
+anchor. Placement expansion therefore supplies a zero source anchor to
+`TerrainSourceTransform`; `anchorXPx`/`anchorYPx` remain artwork-projection
+metadata and must not be subtracted from collision a second time. Core then
+owns reflection, exact scale, placement translation, one `1/1024 px`
+quantization, transformed canonicalization, occupied-area overlap, shape/vertex
+limits, exposed-edge construction, and edge limits. Direct and expanded shapes
+enter the same compile call, so a placed polygon cannot overlap direct terrain
+or another placement unnoticed.
+
+Every transformed vertex is checked against the chunk's closed bounds in Core
+physics ticks. A bounds issue retains source path, placement key, local shape
+ID, vertex index, and an exact terminating decimal coordinate. Accepted
+compiled geometry is retained when bounds evidence exists so the offending
+shape remains visible; incomplete source resolution or a compiler failure does
+not publish a partial overlay.
+
+`ChunkV2StagingScene` owns the immutable result per active-level chunk. The
+Chunk staging workspace draws accepted expanded prefab loops directly from
+Core's quantized vertices beneath the editable direct-shape painter. This
+overlay is wrapped in `IgnorePointer`, exposes no hit-test/editing API, and lists
+prefab revision, placement key/transform, and local shape lineage with a lock
+indicator. Expanded issues cannot focus a same-named direct shape. The scene
+also reports direct, expanded, total-shape, and exposed-edge counts against
+Core's hard limits separately.
+
+The normal chunk-v1 route, prefab-v2 source, authored JSON, generator input,
+and runtime collision authority remain unchanged. Generator parity, compiled
+edge/normal selection, placement editing, scheduler seams, and normal-schema
+cutover remain later Phase 4 gates.
+
 ## Shared Polygon Interaction And Scene Projection
 
 `TerrainPolygonInteractionState` keeps committed owner shapes separate from an
@@ -507,7 +555,8 @@ This painter does not compile geometry and its fills are never collision or
 navigation authority. Collision-edge/normal/lineage diagnostics must come from
 the Core compiler preview adapter. Both explicit staging routes install the
 painter and plugin/session wiring. Normal Prefab/Chunk source cutover and Core
-compiler edge/normal/lineage overlays remain pending.
+compiler edge/normal selection overlays remain pending; the placed-polygon
+lineage overlay described above is already available in Chunk staging.
 
 ## Determinism And Validation Evidence
 
@@ -554,6 +603,13 @@ The foundation is covered by:
 - deterministic duplicate placement across owner-order permutations, outward
   owner-grid snap, occupied/no-space cases, Chunk bounds, stable shape ID,
   exactly-once revision, and undo restoration
+- exact anchor-relative prefab expansion with reflection/rational scale/
+  translation, stable placement/prefab/shape lineage, combined direct/placed
+  overlap, post-quantization chunk bounds, ambiguous/missing reference and
+  scale rejection, Core prefab-shape capacity, and input-order signature parity
+- a read-only quantized Chunk overlay with locked lineage rows, separate
+  direct/expanded shape and exposed-edge capacity counts, and unchanged direct
+  polygon interaction/history behavior
 - prefab owner commit freshness, canonical order, visual-bound resolution,
   warning/error handling, no-op identity, and exactly-once revision tests
 - full Core geometry/signature goldens and fresh-process signature tests

@@ -1451,8 +1451,11 @@ Phase 4 is in progress under
 The read-only baseline/migration audit, exact half-pixel source model, Core
 canonicalization/overlap/transform seam, strict prefab-v3/chunk-v2 staging
 records, shared polygon reducer/painter, and explicit locked Prefab/Chunk
-staging workspaces are implemented. Normal source remains prefab v2/chunk v1;
-placement expansion, scheduler-aware seams, safe source migration, staged
-generation, and the coordinated normal editor cutover remain open. Phase 4
-must not select polygon terrain in normal production runs before the later
-streaming/content cutover phases.
+staging workspaces are implemented. Chunk staging now also expands prefab-v3
+collision through the exact Core transform, validates it together with direct
+terrain, and renders the quantized result as a read-only lineage overlay with
+separate capacity evidence. Normal source remains prefab v2/chunk v1;
+scheduler-aware seams, safe source migration, staged generation, and the
+coordinated normal editor cutover remain open. Phase 4 must not select polygon
+terrain in normal production runs before the later streaming/content cutover
+phases.

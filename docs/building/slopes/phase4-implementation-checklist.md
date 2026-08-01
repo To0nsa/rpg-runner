@@ -389,7 +389,7 @@ Chunk v2 replaces `groundProfile` and `groundGaps` with direct chunk-local
 - [x] Route staged chunk-local semantic commits through one freshness/order/
       bounds/Core owner policy and one typed plugin command; rejected and
       no-op commits preserve immutable document identity.
-- [ ] Expand placements through the one exact transform and require every
+- [x] Expand placements through the one exact transform and require every
       transformed prefab vertex to stay inside closed chunk bounds after the
       one quantization step.
 - [x] Do not permit per-placement collision-shape overrides in chunk v2.
@@ -410,6 +410,9 @@ Chunk v2 replaces `groundProfile` and `groundGaps` with direct chunk-local
       primitive.
 - [ ] Make both editor preview and root generation call the same primitive.
 - [x] Convert source half-pixel ticks relative to the prefab anchor.
+- [x] Treat prefab-v3 collision loops as already anchor-relative during chunk
+      expansion: pass a zero Core source anchor and do not subtract the visual
+      `anchorXPx`/`anchorYPx` a second time.
 - [x] Apply `flipX` and `flipY` before scale.
 - [x] Represent the existing `0.3-3.0`, `0.1`-step uniform scale as an exact
       integer rational, not binary floating-point identity.
@@ -468,7 +471,7 @@ pass. Do not truncate shapes, vertices, edges, or diagnostics at a hard limit.
       another existing non-cyclic access path; Core must not depend on editor.
 - [x] Adapt valid source shapes to `TerrainPolygonInput` with exact identity and
       integer coordinates.
-- [ ] Use `TerrainCompiler` for normalization/edge exposure diagnostics in
+- [x] Use `TerrainCompiler` for normalization/edge exposure diagnostics in
       preview and final validation.
 - [ ] Put deterministic triangulation in the same pure-Dart Core geometry
       boundary (or another already-shared pure-Dart boundary) so editor,
@@ -488,7 +491,7 @@ pass. Do not truncate shapes, vertices, edges, or diagnostics at a hard limit.
       existing Core profiles; the editor must not define new thresholds.
 - [ ] Build any surface/graph overlay with the accepted Phase 3 extractor and
       profile graph builders; never infer navigation from visual polygon fill.
-- [ ] Keep all preview state read-only with respect to Core/runtime objects.
+- [x] Keep all preview state read-only with respect to Core/runtime objects.
 
 ## 15) Deterministic Migration Tool
 
@@ -678,7 +681,7 @@ curves, and holes are not required for the baseline tool.
 
 - [ ] Replace flat ground profile/gap inspector sections with direct chunk
       collision-shape tools.
-- [ ] Render chunk-local shapes as editable and resolved prefab shapes as
+- [x] Render chunk-local shapes as editable and resolved prefab shapes as
       read-only overlays with source prefab/placement lineage.
 - [ ] Keep prefab instance transform editing at the placement level only.
 - [ ] Provide an action to open the owning prefab workflow for shape edits
@@ -689,7 +692,7 @@ curves, and holes are not required for the baseline tool.
 - [ ] Fill the visible ground preview from direct terrain polygons where
       possible; label it preview-only, not runtime collision authority.
 - [ ] Show transformed/quantized coordinates and chunk-bound violations.
-- [ ] Show source-shape and expanded-shape/edge capacity separately.
+- [x] Show source-shape and expanded-shape/edge capacity separately.
 - [ ] Recompile only affected draft/placement data during interaction, then run
       full chunk validation on gesture commit/export.
 - [ ] Route every semantic edit through `ChunkDomainPlugin` and `ChunkStore`.
@@ -933,7 +936,7 @@ Geometry/compiler:
 - [ ] simple/concave polygons and every invalid topology class
 - [x] shared boundaries versus positive-area overlap
 - [ ] minimum edge/area and hard limits
-- [ ] transform order, reflection, rational scale, quantization
+- [x] transform order, reflection, rational scale, quantization
 - [ ] Core preview/generator signature parity
 
 Migration:
@@ -971,7 +974,7 @@ UI/interactions:
 - [x] one undo entry per gesture and deterministic redo
 - [x] diagnostics focus the exact shape/vertex/edge
 - [x] shared scene control parity on explicit Prefab and Chunk staging routes
-- [ ] read-only expanded prefab overlay in Chunk Creator
+- [x] read-only expanded prefab overlay in Chunk Creator
 - [ ] Core-owned actor eligibility/navigation and marker-placement overlays
 - [ ] preview consumes no marker RNG and preserves source ordering
 - [ ] accessibility labels, keyboard controls, and narrow-window behavior
@@ -1023,6 +1026,7 @@ before changing the accepted plan.
 | `ChunkCreatorPage` normally reloads v1 source after mounting, which would replace an explicitly supplied chunk-v2 staging document before its route-local workspace could bind an owner. | Select the page by staged scene type before the post-frame reload, disable shell reload/source apply for that type, and keep normal v1 load/reload behavior unchanged for every ordinary session. | At cutover, make the v2 document the normal plugin result and remove the temporary staging type/locked branch instead of retaining two route authorities. |
 | A function-local metadata dialog disposed its `TextEditingController`s as soon as `showDialog` returned, but Flutter could still build the route during its exit animation. | Make the shared dialog a stateful route widget and let its State own/dispose both controllers when the widget is actually removed. Return an immutable metadata value; keep all owner mutation outside the dialog. | Future shared authoring dialogs must bind controller lifetime to widget lifetime, especially when route animations outlive the awaited result. |
 | The initial Duplicate buttons translated copies by a fixed 2 px, so any wider polygon retained positive-area overlap with its source and the correct owner policy rejected the action. | Derive snap-aligned candidate offsets from current owner bounds, order them deterministically, choose the nearest conservative AABB-free candidate, and apply closed Chunk bounds before dispatch. Keep exact reducer/owner validation authoritative. | Prefab and Chunk duplication now starts from a useful safe default without introducing boolean geometry, silent overlap repair, or route-specific collision rules. |
+| Prefab-v3 collision loops are stored relative to the prefab anchor, while the generic Core transform can also subtract a source anchor. Passing `anchorXPx`/`anchorYPx` during chunk expansion would therefore shift collision twice even though artwork preview looked correct. | Keep visual-anchor handling in the visual projection. Pass a zero Core source anchor for prefab-v3 collision, then apply reflection, exact scale, and placement translation through the shared transform. Lock the rule with a nonzero-anchor asymmetric fixture. | Generator placement expansion must consume the same anchor-relative schema rule and fixture; it must not copy the artwork-origin calculation into collision compilation. |
 
 Append rows during implementation. Do not silently relax source, compiler,
 seam, determinism, or performance contracts.
@@ -1098,6 +1102,7 @@ result.
 | 2026-08-01 / `5a893dd5` | Shared exact polygon vertex inspector | Dart VM and Flutter test VM on Windows | Editor analysis is clean and all 350 editor tests pass. Prefab and Chunk staging now use one exact coordinate field widget without changing existing Prefab keys/behavior. The expanded Chunk route test covers malformed quarter-pixel rejection before dispatch, accepted odd half-pixel ticks with one revision/pending owner, undo restoration, and an out-of-bounds owner rejection that retains typed text and diagnostic while creating no history. Migration check remains read-only with 99 prefabs, 8 chunks, and nine pending targets; generator dry-run still validates 8 chunks, 2 levels, and 2 themes. Normal v2/v1 source and runtime authority remain unchanged. |
 | 2026-08-01 / `c3be3ed2` | Shared polygon metadata dialog | Dart VM and Flutter test VM on Windows | Editor analysis is clean and all 350 editor tests pass. Prefab and Chunk staging now share one state-owned collision-mode/surface/material dialog. The Chunk route test proves trimmed optional metadata, a `oneWay` semantic commit with exactly one revision/pending owner, undo restoration, and safe text-controller disposal after the dialog exit animation. Migration check remains read-only with 99 prefabs, 8 chunks, and nine pending targets; generator dry-run still validates 8 chunks, 2 levels, and 2 themes. Normal v2/v1 source and runtime authority remain unchanged. |
 | 2026-08-01 / `704e2c67` | Deterministic safe polygon duplicate placement | Dart VM and Flutter test VM on Windows | Editor analysis is clean and all 354 editor tests pass. Four pure tests cover nearest right-side selection, odd half-pixel extent rounding to the owner grid, input-order invariance around occupied candidates, and a closed owner with no free slot. The Chunk route test proves a wide terrain shape duplicates without occupied overlap, stays in bounds, receives the lowest-free ID, changes one revision/pending owner, and restores through undo. Migration check remains read-only with 99 prefabs, 8 chunks, and nine pending targets; generator dry-run still validates 8 chunks, 2 levels, and 2 themes. Normal source and runtime authority remain unchanged. |
+| 2026-08-01 / `561e7353` | Exact staged prefab collision expansion and read-only Chunk overlay | Dart VM and Flutter test VM on Windows | Editor analysis is clean and all 360 editor tests pass. Six pure expansion tests prove anchor-relative collision with a nonzero visual anchor, exact reflection/rational scale/translation, stable placement/prefab/shape lineage, combined direct/placed occupied-overlap rejection, retained post-quantization bounds evidence with exact coordinates, missing/ambiguous reference and off-step scale rejection, Core prefab-shape capacity, and input-order edge-signature parity. The Chunk route test proves the quantized overlay is present, locked and lineage-labelled, reports direct/expanded shape and exposed-edge capacity separately, and leaves direct editing/history intact. Migration check still reports 99 prefabs, 8 chunks, and nine pending targets without writes; generator dry-run still validates 8 chunks, 2 levels, and 2 themes. Normal v1/v2 source, authored JSON, generator input, and runtime authority remain unchanged. |
 
 ### 28.1 Baseline Environment And Source Identity
 
