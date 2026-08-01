@@ -34,9 +34,7 @@ export async function executeOwnershipCommand(args: {
 }): Promise<OwnershipCommandResult> {
   const { db, uid, command } = args;
   const nowMs = args.nowMs ?? Date.now();
-  const payloadHash = sha256Hex(
-    canonicalJsonString(command as unknown as JsonValue),
-  );
+  const payloadHash = ownershipIdempotencyPayloadHash(command);
 
   return db.runTransaction(async (tx) => {
     await assertAccountActiveInTransaction(tx, db, uid);
@@ -160,6 +158,18 @@ export async function executeOwnershipCommand(args: {
     );
     return accepted;
   });
+}
+
+/// Computes the idempotency identity for the semantic ownership write.
+///
+/// `sessionId` identifies the client session that delivered a command. Firebase
+/// refreshes ID tokens during a session, so retrying the same durable command
+/// must not turn that transport detail into an idempotency-key mismatch.
+function ownershipIdempotencyPayloadHash(
+  command: OwnershipCommandEnvelope,
+): string {
+  const { sessionId: _sessionId, ...semanticCommand } = command;
+  return sha256Hex(canonicalJsonString(semanticCommand as JsonValue));
 }
 
 function persistCanonical(args: {

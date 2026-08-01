@@ -586,6 +586,34 @@ test("idempotency replay returns prior result for identical command payload", as
   assert.equal(replay.replayedFromIdempotency, true);
 });
 
+test("idempotency replay survives a refreshed client session", async () => {
+  const first = await executeOwnershipCommand({
+    db,
+    uid,
+    command: setProjectileSpellCommand({
+      expectedRevision: 0,
+      commandId: "cmd_replay_refreshed_session",
+      spellId: "holyBolt",
+      sessionId: "session_before_refresh",
+    }),
+  });
+  const replay = await executeOwnershipCommand({
+    db,
+    uid,
+    command: setProjectileSpellCommand({
+      expectedRevision: 0,
+      commandId: "cmd_replay_refreshed_session",
+      spellId: "holyBolt",
+      sessionId: "session_after_refresh",
+    }),
+  });
+
+  assert.equal(first.rejectedReason, null);
+  assert.equal(replay.rejectedReason, null);
+  assert.equal(replay.replayedFromIdempotency, true);
+  assert.equal(replay.newRevision, 1);
+});
+
 test("idempotency mismatch rejects reused commandId with different payload", async () => {
   await executeOwnershipCommand({
     db,
@@ -1383,11 +1411,12 @@ function setProjectileSpellCommand(args: {
   commandId: string;
   spellId: string;
   userId?: string;
+  sessionId?: string;
 }): OwnershipCommandEnvelope {
   return {
     type: "setProjectileSpell",
     userId: args.userId ?? uid,
-    sessionId,
+    sessionId: args.sessionId ?? sessionId,
     expectedRevision: args.expectedRevision,
     commandId: args.commandId,
     payload: {
