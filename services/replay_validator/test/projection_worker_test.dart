@@ -1,6 +1,7 @@
 import 'package:test/test.dart';
 import 'package:run_protocol/validated_run.dart';
 
+import 'package:replay_validator/src/account_deletion_fence.dart';
 import 'package:replay_validator/src/ghost_publisher.dart';
 import 'package:replay_validator/src/leaderboard_projector.dart';
 import 'package:replay_validator/src/metrics.dart';
@@ -48,6 +49,27 @@ void main() {
       expect(result.status, ProjectionDispatchStatus.completed);
       expect(leaderboard.runSessionIds, <String>['run_board_2']);
       expect(ghosts.runSessionIds, <String>['run_board_2']);
+    },
+  );
+
+  test(
+    'account deletion completes projection without retrying the task',
+    () async {
+      final metrics = _FakeMetrics();
+      final worker = DeterministicProjectionWorker(
+        leaderboardProjector: _FakeLeaderboardProjector(
+          error: const AccountDeletionInProgressException('uid_deleted'),
+        ),
+        ghostPublisher: _FakeGhostPublisher(),
+        metrics: metrics,
+      );
+
+      final result = await worker.projectRunSession(
+        runSessionId: 'run_deleted',
+      );
+
+      expect(result.status, ProjectionDispatchStatus.completed);
+      expect(metrics.phases, contains('projection_skipped_account_deletion'));
     },
   );
 

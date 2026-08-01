@@ -50,6 +50,7 @@ beforeEach(async () => {
       "ghost_runs",
       "leaderboard_ghost_runs",
       "weekly_ghost_runs",
+      "system_maintenance",
       "leaderboard_boards",
       "run_sessions",
       "validated_runs",
@@ -398,9 +399,47 @@ test("repair scan reports bounded backlog health without account identifiers", a
     oldestActiveStage: "disable_auth",
     maxAttemptCount: 400,
     activePageSaturated: true,
+    completedInventoryScannedCount: 0,
+    completedMissingExpiryCount: 0,
+    expiredCompletionEvidenceCount: 0,
+    nonMinimalCompletionCount: 0,
   });
   assert.equal("uid" in result, false);
   assert.equal("requestId" in result, false);
+});
+
+test("completed tombstone inventory reports malformed retention evidence", async () => {
+  const nowMs = requestNowMs + 7 * 60 * 60 * 1000;
+  await Promise.all([
+    db.collection("account_deletion_requests").doc("uid_missing_expiry").set({
+      state: "complete",
+      requestedAtMs: requestNowMs,
+      completedAtMs: requestNowMs + 1,
+      unexpectedDiagnostic: "must be reported",
+    }),
+    db.collection("account_deletion_requests").doc("uid_expired").set({
+      state: "complete",
+      requestedAtMs: requestNowMs,
+      completedAtMs: requestNowMs + 1,
+      expiresAtMs: nowMs,
+    }),
+  ]);
+
+  const result = await processPendingAccountDeletions({
+    db,
+    nowMs,
+    maxRequests: 10,
+  });
+
+  assert.equal(result.completedInventoryScannedCount, 2);
+  assert.equal(result.completedMissingExpiryCount, 1);
+  assert.equal(result.expiredCompletionEvidenceCount, 1);
+  assert.equal(result.nonMinimalCompletionCount, 1);
+  assert.equal(
+    (await db.collection("account_deletion_requests").doc("uid_expired").get())
+      .exists,
+    false,
+  );
 });
 
 test("failure after every deletion stage replays from its durable checkpoint", async () => {

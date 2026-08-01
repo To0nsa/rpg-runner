@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
@@ -30,6 +29,7 @@ import 'haptics/haptics_cue.dart';
 import 'haptics/haptics_service.dart';
 import 'runner_game_ui_state.dart';
 import 'state/app/app_state.dart';
+import 'state/run/local_replay_artifact_store.dart';
 import 'state/run/run_start_remote_exception.dart';
 import 'state/ownership/selection_state.dart';
 import 'state/boards/ghost_replay_cache.dart';
@@ -648,9 +648,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     _runRecorderInitializing = true;
     final generation = ++_runRecorderGeneration;
     try {
-      final spoolDirectory = Directory(
-        '${Directory.systemTemp.path}${Platform.pathSeparator}rpg_runner${Platform.pathSeparator}replay_spool',
-      );
+      final spoolDirectory = defaultReplaySpoolDirectory();
       final recorder = await RunRecorder.create(
         header: RunRecorderHeader(
           runSessionId: _runSessionId,

@@ -11,6 +11,7 @@ import 'package:run_protocol/sort_key.dart';
 import 'package:run_protocol/validated_run.dart';
 import 'package:test/test.dart';
 
+import 'package:replay_validator/src/account_deletion_fence.dart';
 import 'package:replay_validator/src/ghost_publisher.dart';
 import 'package:replay_validator/src/google_api_helpers.dart';
 
@@ -77,6 +78,57 @@ void main() {
       expect(manifest.sourceReplayStorageGeneration, '123');
       expect(manifest.promotedReplayStorageGeneration, '456');
       expect(manifest.replayDigest, 'a' * 64);
+    },
+  );
+
+  test(
+    'removes a newly promoted ghost when deletion fences its manifest',
+    () async {
+      const boardId = 'board_competitive_2026_03_field';
+      const runSessionId = 'run_deleted';
+      final store = _InMemoryGhostPublicationStore(
+        validatedRuns: <String, ValidatedRun>{
+          runSessionId: _validatedRun(
+            runSessionId: runSessionId,
+            uid: 'uid_deleted',
+            boardId: boardId,
+            replayStorageRef:
+                'replay-submissions/pending/uid_deleted/run_deleted/replay.bin.gz',
+          ),
+        },
+        top10EntriesByBoard: <String, List<LeaderboardEntry>>{
+          boardId: <LeaderboardEntry>[
+            _entry(
+              boardId: boardId,
+              runSessionId: runSessionId,
+              uid: 'uid_deleted',
+              score: 1200,
+              distanceMeters: 420,
+              durationSeconds: 120,
+              replayStorageRef:
+                  'replay-submissions/pending/uid_deleted/run_deleted/replay.bin.gz',
+              rank: 1,
+            ),
+          ],
+        },
+      )..upsertError = const AccountDeletionInProgressException('uid_deleted');
+      final objectStore = _InMemoryGhostObjectStore();
+      final publisher = FirestoreGhostPublisher(
+        projectId: 'demo',
+        replayStorageBucket: 'bucket',
+        publicationStore: store,
+        objectStore: objectStore,
+        clockMs: () => 10_000,
+      );
+
+      await expectLater(
+        publisher.updateGhostArtifacts(runSessionId: runSessionId),
+        throwsA(isA<AccountDeletionInProgressException>()),
+      );
+
+      expect(objectStore.deletions, <String>[
+        'ghosts/$boardId/$runSessionId/ghost.bin.gz',
+      ]);
     },
   );
 
@@ -577,6 +629,7 @@ class _InMemoryGhostPublicationStore implements GhostPublicationStore {
   final Map<String, ValidatedRun> validatedRuns;
   final Map<String, List<LeaderboardEntry>> top10EntriesByBoard;
   final Map<String, Map<String, GhostManifestRecord>> manifestsByBoard;
+  Object? upsertError;
 
   @override
   Future<ValidatedRun?> loadValidatedRun({required String runSessionId}) async {
@@ -606,6 +659,10 @@ class _InMemoryGhostPublicationStore implements GhostPublicationStore {
   Future<void> upsertGhostManifest({
     required GhostManifestRecord manifest,
   }) async {
+    final error = upsertError;
+    if (error != null) {
+      throw error;
+    }
     final board =
         manifestsByBoard[manifest.boardId] ?? <String, GhostManifestRecord>{};
     board[manifest.entryId] = manifest;

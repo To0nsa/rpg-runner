@@ -4,6 +4,7 @@ import 'package:run_protocol/replay_digest.dart';
 import 'package:run_protocol/sort_key.dart';
 import 'package:run_protocol/validated_run.dart';
 
+import 'account_deletion_fence.dart';
 import 'firestore_value_codec.dart';
 import 'google_api_helpers.dart';
 
@@ -246,10 +247,17 @@ class FirestoreLeaderboardProjectionStore
   FirestoreLeaderboardProjectionStore({
     required this.projectId,
     required this.apiProvider,
-  });
+    FirestoreAccountDeletionFence? deletionFence,
+  }) : _deletionFence =
+           deletionFence ??
+           FirestoreAccountDeletionFence(
+             projectId: projectId,
+             apiProvider: apiProvider,
+           );
 
   final String projectId;
   final GoogleCloudApiProvider apiProvider;
+  final FirestoreAccountDeletionFence _deletionFence;
 
   String get _databaseRoot => 'projects/$projectId/databases/(default)';
   String _validatedRunDocPath(String runSessionId) =>
@@ -344,19 +352,12 @@ class FirestoreLeaderboardProjectionStore
   Future<PlayerBestWriteResult> replacePlayerBestIfBetter({
     required LeaderboardEntry candidate,
   }) async {
-    final firestoreApi = await apiProvider.firestoreApi();
     final path = _playerBestDocPath(candidate.boardId, candidate.uid);
     for (var attempt = 0; attempt < 5; attempt++) {
-      firestore.Document? existingDocument;
-      try {
-        existingDocument = await firestoreApi.projects.databases.documents.get(
-          path,
-        );
-      } catch (error) {
-        if (!isApiNotFound(error)) {
-          rethrow;
-        }
-      }
+      final transaction = await _deletionFence.begin(
+        uids: <String>[candidate.uid],
+      );
+      final existingDocument = await transaction.get(path);
       final existing = existingDocument == null
           ? null
           : _parseLeaderboardEntry(
@@ -368,13 +369,21 @@ class FirestoreLeaderboardProjectionStore
       }
       final payload = candidate.toJson();
       try {
-        await firestoreApi.projects.databases.documents.patch(
-          firestore.Document(fields: encodeFirestoreFields(payload)),
-          path,
-          updateMask_fieldPaths: payload.keys.toList(growable: false),
-          currentDocument_exists: existingDocument == null ? false : null,
-          currentDocument_updateTime: existingDocument?.updateTime,
-        );
+        await transaction.commit(<firestore.Write>[
+          firestore.Write(
+            update: firestore.Document(
+              name: path,
+              fields: encodeFirestoreFields(payload),
+            ),
+            updateMask: firestore.DocumentMask(
+              fieldPaths: payload.keys.toList(growable: false),
+            ),
+            currentDocument: firestore.Precondition(
+              exists: existingDocument == null ? false : null,
+              updateTime: existingDocument?.updateTime,
+            ),
+          ),
+        ]);
         return PlayerBestWriteResult.improved;
       } catch (error) {
         if (!isApiConflict(error)) {
@@ -461,17 +470,23 @@ class FirestoreLeaderboardProjectionStore
     required bool ghostEligible,
     required int nowMs,
   }) async {
-    final firestoreApi = await apiProvider.firestoreApi();
-    await firestoreApi.projects.databases.documents.patch(
-      firestore.Document(
-        fields: encodeFirestoreFields(<String, Object?>{
-          'ghostEligible': ghostEligible,
-          'updatedAtMs': nowMs,
-        }),
+    final payload = <String, Object?>{
+      'ghostEligible': ghostEligible,
+      'updatedAtMs': nowMs,
+    };
+    final transaction = await _deletionFence.begin(uids: <String>[uid]);
+    await transaction.commit(<firestore.Write>[
+      firestore.Write(
+        update: firestore.Document(
+          name: _playerBestDocPath(boardId, uid),
+          fields: encodeFirestoreFields(payload),
+        ),
+        updateMask: firestore.DocumentMask(
+          fieldPaths: payload.keys.toList(growable: false),
+        ),
+        currentDocument: firestore.Precondition(exists: true),
       ),
-      _playerBestDocPath(boardId, uid),
-      updateMask_fieldPaths: const <String>['ghostEligible', 'updatedAtMs'],
-    );
+    ]);
   }
 
   @override
@@ -481,7 +496,6 @@ class FirestoreLeaderboardProjectionStore
     required int updatedAtMs,
     required Top10ViewSnapshot expected,
   }) async {
-    final firestoreApi = await apiProvider.firestoreApi();
     final payload = <String, Object?>{
       'boardId': boardId,
       'entries': entries.map((e) => e.toJson()).toList(growable: false),
@@ -499,13 +513,24 @@ class FirestoreLeaderboardProjectionStore
       'updatedAtMs': updatedAtMs,
     };
     try {
-      await firestoreApi.projects.databases.documents.patch(
-        firestore.Document(fields: encodeFirestoreFields(payload)),
-        _top10ViewDocPath(boardId),
-        updateMask_fieldPaths: payload.keys.toList(growable: false),
-        currentDocument_exists: expected.exists ? null : false,
-        currentDocument_updateTime: expected.updateTime,
+      final transaction = await _deletionFence.begin(
+        uids: entries.map((entry) => entry.uid),
       );
+      await transaction.commit(<firestore.Write>[
+        firestore.Write(
+          update: firestore.Document(
+            name: _top10ViewDocPath(boardId),
+            fields: encodeFirestoreFields(payload),
+          ),
+          updateMask: firestore.DocumentMask(
+            fieldPaths: payload.keys.toList(growable: false),
+          ),
+          currentDocument: firestore.Precondition(
+            exists: expected.exists ? null : false,
+            updateTime: expected.updateTime,
+          ),
+        ),
+      ]);
       return true;
     } catch (error) {
       if (isApiConflict(error)) {

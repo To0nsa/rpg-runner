@@ -100,6 +100,7 @@ final class _AppStateAuthProfileController extends _AppStateController {
       return result;
     }
 
+    await _discardPersistentAccountState();
     await _authApi.clearSession();
     _selection = SelectionState.defaults;
     _meta = const MetaService().createNew();
@@ -115,6 +116,27 @@ final class _AppStateAuthProfileController extends _AppStateController {
     _warmupStarted = false;
     _notifyListeners();
     return result;
+  }
+
+  Future<void> _discardPersistentAccountState() async {
+    _ownershipFlushTimer?.cancel();
+    _ownershipFlushTimer = null;
+    try {
+      await _ownershipOutboxStore.clear();
+    } catch (error, stackTrace) {
+      debugPrint(
+        'Account-deletion ownership cleanup failed: '
+        '$error\n$stackTrace',
+      );
+    }
+    try {
+      await _runSubmissionCoordinator.discardAllLocalSubmissions();
+    } catch (error, stackTrace) {
+      debugPrint(
+        'Account-deletion replay cleanup failed: '
+        '$error\n$stackTrace',
+      );
+    }
   }
 
   void startWarmup() {

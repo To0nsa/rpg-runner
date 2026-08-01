@@ -28,6 +28,9 @@ const playerBestsCollection = "player_bests";
 const ghostManifestsCollection = "ghost_manifests";
 const boardViewsCollection = "views";
 const top10ViewDocId = "top10";
+const maintenanceCollection = "system_maintenance";
+const completedTombstoneInventoryDocument =
+  "account_deletion_completed_tombstone_inventory";
 
 const replaySubmissionPendingPathPrefix = "replay-submissions/pending";
 const replayValidatedPathPrefix = "replay-submissions/validated";
@@ -123,6 +126,10 @@ export interface AccountDeletionRepairResult {
   oldestActiveStage: AccountDeletionStage | null;
   maxAttemptCount: number;
   activePageSaturated: boolean;
+  completedInventoryScannedCount: number;
+  completedMissingExpiryCount: number;
+  expiredCompletionEvidenceCount: number;
+  nonMinimalCompletionCount: number;
 }
 
 interface AccountDeletionRequestDocument {
@@ -346,6 +353,12 @@ export async function processPendingAccountDeletions(args: {
     throw new Error("maxRequests must be an integer between 1 and 100.");
   }
 
+  const completedInventory = await inspectCompletedTombstones({
+    db: args.db,
+    nowMs,
+    pageSize: maxRequests,
+  });
+
   const expired = await args.db
     .collection(accountDeletionRequestsCollection)
     .where("expiresAtMs", "<=", nowMs)
@@ -417,6 +430,96 @@ export async function processPendingAccountDeletions(args: {
     oldestActiveStage,
     maxAttemptCount,
     activePageSaturated: pending.size > maxRequests,
+    completedInventoryScannedCount: completedInventory.scannedCount,
+    completedMissingExpiryCount: completedInventory.missingExpiryCount,
+    expiredCompletionEvidenceCount: completedInventory.expiredEvidenceCount,
+    nonMinimalCompletionCount: completedInventory.nonMinimalCount,
+  };
+}
+
+interface CompletedTombstoneInventoryResult {
+  scannedCount: number;
+  missingExpiryCount: number;
+  expiredEvidenceCount: number;
+  nonMinimalCount: number;
+}
+
+async function inspectCompletedTombstones(args: {
+  db: Firestore;
+  nowMs: number;
+  pageSize: number;
+}): Promise<CompletedTombstoneInventoryResult> {
+  const maintenanceRef = args.db
+    .collection(maintenanceCollection)
+    .doc(completedTombstoneInventoryDocument);
+  const maintenance = await maintenanceRef.get();
+  const cursor = readOptionalString(maintenance.get("completedCursor"));
+  let query = args.db
+    .collection(accountDeletionRequestsCollection)
+    .where("state", "==", "complete")
+    .orderBy(FieldPath.documentId())
+    .limit(args.pageSize);
+  if (cursor !== null) {
+    query = query.startAfter(cursor);
+  }
+  const page = await query.get();
+  const expectedKeys = new Set([
+    "state",
+    "requestedAtMs",
+    "completedAtMs",
+    "expiresAtMs",
+  ]);
+  let missingExpiryCount = 0;
+  let expiredEvidenceCount = 0;
+  let nonMinimalCount = 0;
+  for (const document of page.docs) {
+    const data = document.data() as AccountDeletionRequestDocument;
+    const expiresAtMs = data.expiresAtMs;
+    if (
+      typeof expiresAtMs !== "number" ||
+      !Number.isSafeInteger(expiresAtMs) ||
+      expiresAtMs <= 0
+    ) {
+      missingExpiryCount += 1;
+    } else if (expiresAtMs <= args.nowMs) {
+      expiredEvidenceCount += 1;
+    }
+    if (Object.keys(data).some((key) => !expectedKeys.has(key))) {
+      nonMinimalCount += 1;
+    }
+  }
+  const nextCursor =
+    page.size === args.pageSize ? page.docs.at(-1)?.id ?? null : null;
+  await maintenanceRef.set(
+    {
+      completedCursor: nextCursor,
+      completedInventoryUpdatedAtMs: args.nowMs,
+      completedInventoryPage: {
+        scannedCount: page.size,
+        missingExpiryCount,
+        expiredEvidenceCount,
+        nonMinimalCount,
+      },
+    },
+    { merge: true },
+  );
+  if (
+    missingExpiryCount > 0 ||
+    expiredEvidenceCount > 0 ||
+    nonMinimalCount > 0
+  ) {
+    logger.error("accountDeletionCompletedTombstoneIntegrity", {
+      scannedCount: page.size,
+      missingExpiryCount,
+      expiredEvidenceCount,
+      nonMinimalCount,
+    });
+  }
+  return {
+    scannedCount: page.size,
+    missingExpiryCount,
+    expiredEvidenceCount,
+    nonMinimalCount,
   };
 }
 

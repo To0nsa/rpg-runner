@@ -1,6 +1,10 @@
 import { FieldPath, type Firestore } from "firebase-admin/firestore";
 
 import {
+  assertAccountActiveInTransaction,
+  isAccountDeletionInProgressError,
+} from "../account/deletion_guard.js";
+import {
   canonicalMergeWriteData,
   canonicalWriteData,
   resolveCanonicalStateForTransaction,
@@ -36,6 +40,7 @@ export interface RewardGrantBackfillResult {
   repairedAppliedCount: number;
   terminalizedRevocationCount: number;
   invariantViolationCount: number;
+  skippedDeletedAccountCount: number;
   nextCursor: string | null;
   completed: boolean;
 }
@@ -63,6 +68,7 @@ export async function backfillLegacyRewardGrantStates(args: {
       repairedAppliedCount: 0,
       terminalizedRevocationCount: 0,
       invariantViolationCount: 0,
+      skippedDeletedAccountCount: 0,
       nextCursor: null,
       completed: false,
     };
@@ -83,6 +89,7 @@ export async function backfillLegacyRewardGrantStates(args: {
       repairedAppliedCount: 0,
       terminalizedRevocationCount: 0,
       invariantViolationCount: 0,
+      skippedDeletedAccountCount: 0,
       nextCursor: null,
       completed: true,
     };
@@ -107,6 +114,7 @@ export async function backfillLegacyRewardGrantStates(args: {
   let repairedAppliedCount = 0;
   let terminalizedRevocationCount = 0;
   let invariantViolationCount = 0;
+  let skippedDeletedAccountCount = 0;
   for (const rewardGrant of page.docs) {
     const outcome = await inspectOrRepairLegacyGrant({
       db: args.db,
@@ -122,6 +130,8 @@ export async function backfillLegacyRewardGrantStates(args: {
       terminalizedRevocationCount += 1;
     } else if (outcome === "invariant_violation") {
       invariantViolationCount += 1;
+    } else if (outcome === "skipped_deleted_account") {
+      skippedDeletedAccountCount += 1;
     }
   }
 
@@ -140,6 +150,7 @@ export async function backfillLegacyRewardGrantStates(args: {
         repairedAppliedCount,
         terminalizedRevocationCount,
         invariantViolationCount,
+        skippedDeletedAccountCount,
       },
     },
     { merge: true },
@@ -153,6 +164,7 @@ export async function backfillLegacyRewardGrantStates(args: {
     repairedAppliedCount,
     terminalizedRevocationCount,
     invariantViolationCount,
+    skippedDeletedAccountCount,
     nextCursor,
     completed,
   };
@@ -177,6 +189,7 @@ async function inspectOrRepairLegacyGrant(args: {
   | "repaired_applied"
   | "terminalized_revocation"
   | "invariant_violation"
+  | "skipped_deleted_account"
 > {
   try {
     return await args.db.runTransaction(async (tx) => {
@@ -200,6 +213,7 @@ async function inspectOrRepairLegacyGrant(args: {
       if (uid === null || boundRunSessionId !== args.runSessionId) {
         return "invariant_violation";
       }
+      await assertAccountActiveInTransaction(tx, args.db, uid);
 
       const resolvedCanonical = await resolveCanonicalStateForTransaction({
         db: args.db,
@@ -247,6 +261,9 @@ async function inspectOrRepairLegacyGrant(args: {
       return "already_applied";
     });
   } catch (error) {
+    if (isAccountDeletionInProgressError(error)) {
+      return "skipped_deleted_account";
+    }
     if (error instanceof RewardGrantInvariantViolationError) {
       return "invariant_violation";
     }

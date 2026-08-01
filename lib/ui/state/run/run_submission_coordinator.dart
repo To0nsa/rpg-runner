@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:run_protocol/run_mode.dart';
 
+import 'local_replay_artifact_store.dart';
 import 'pending_run_submission.dart';
 import 'run_session_api.dart';
 import 'run_start_remote_exception.dart';
@@ -131,6 +132,7 @@ class RunSubmissionCoordinator {
     required RunSessionApi runSessionApi,
     required RunSubmissionSpoolStore spoolStore,
     RunReplayUploader? replayUploader,
+    LocalReplayArtifactStore? localReplayArtifactStore,
     RunSubmissionClock? clock,
     List<Duration>? retryBackoffSchedule,
     this.verificationDelayedThresholdMs =
@@ -138,6 +140,8 @@ class RunSubmissionCoordinator {
   }) : _runSessionApi = runSessionApi,
        _spoolStore = spoolStore,
        _replayUploader = replayUploader ?? HttpRunReplayUploader(),
+       _localReplayArtifactStore =
+           localReplayArtifactStore ?? FileLocalReplayArtifactStore(),
        _clock = clock ?? _defaultClock,
        _retryBackoffSchedule =
            retryBackoffSchedule ?? _defaultRetryBackoffSchedule;
@@ -145,6 +149,7 @@ class RunSubmissionCoordinator {
   final RunSessionApi _runSessionApi;
   final RunSubmissionSpoolStore _spoolStore;
   final RunReplayUploader _replayUploader;
+  final LocalReplayArtifactStore _localReplayArtifactStore;
   final RunSubmissionClock _clock;
   final List<Duration> _retryBackoffSchedule;
   final int verificationDelayedThresholdMs;
@@ -208,6 +213,30 @@ class RunSubmissionCoordinator {
           ),
         )
         .toList(growable: false);
+  }
+
+  /// Removes durable upload metadata and the app-owned recorder spool.
+  ///
+  /// Both cleanup steps are attempted so a missing or locked replay file does
+  /// not leave the submission spool behind after account deletion.
+  Future<void> discardAllLocalSubmissions() async {
+    Object? firstError;
+    StackTrace? firstStackTrace;
+    try {
+      await _spoolStore.clear();
+    } catch (error, stackTrace) {
+      firstError = error;
+      firstStackTrace = stackTrace;
+    }
+    try {
+      await _localReplayArtifactStore.clear();
+    } catch (error, stackTrace) {
+      firstError ??= error;
+      firstStackTrace ??= stackTrace;
+    }
+    if (firstError != null && firstStackTrace != null) {
+      Error.throwWithStackTrace(firstError, firstStackTrace);
+    }
   }
 
   Future<List<RunSubmissionStatus>> processReadySubmissions({

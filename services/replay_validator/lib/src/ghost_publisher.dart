@@ -3,6 +3,7 @@ import 'package:googleapis/storage/v1.dart' as storage;
 import 'package:run_protocol/leaderboard_entry.dart';
 import 'package:run_protocol/validated_run.dart';
 
+import 'account_deletion_fence.dart';
 import 'firestore_value_codec.dart';
 import 'google_api_helpers.dart';
 
@@ -348,28 +349,36 @@ class FirestoreGhostPublisher implements GhostPublisher {
       );
     }
 
-    await _store.upsertGhostManifest(
-      manifest: GhostManifestRecord(
-        boardId: entry.boardId,
-        entryId: entry.entryId,
-        runSessionId: entry.runSessionId,
-        uid: entry.uid,
-        replayStorageRef: destinationPath,
-        sourceReplayStorageRef: sourcePath,
-        sourceReplayStorageGeneration: sourceGeneration,
-        promotedReplayStorageGeneration: promotion.destinationStorageGeneration,
-        replayDigest: replayDigest,
-        score: entry.score,
-        distanceMeters: entry.distanceMeters,
-        durationSeconds: entry.durationSeconds,
-        sortKey: entry.sortKey,
-        rank: entry.rank ?? 0,
-        status: GhostManifestStatus.active,
-        exposed: true,
-        updatedAtMs: nowMs,
-        promotedAtMs: nowMs,
-      ),
-    );
+    try {
+      await _store.upsertGhostManifest(
+        manifest: GhostManifestRecord(
+          boardId: entry.boardId,
+          entryId: entry.entryId,
+          runSessionId: entry.runSessionId,
+          uid: entry.uid,
+          replayStorageRef: destinationPath,
+          sourceReplayStorageRef: sourcePath,
+          sourceReplayStorageGeneration: sourceGeneration,
+          promotedReplayStorageGeneration:
+              promotion.destinationStorageGeneration,
+          replayDigest: replayDigest,
+          score: entry.score,
+          distanceMeters: entry.distanceMeters,
+          durationSeconds: entry.durationSeconds,
+          sortKey: entry.sortKey,
+          rank: entry.rank ?? 0,
+          status: GhostManifestStatus.active,
+          exposed: true,
+          updatedAtMs: nowMs,
+          promotedAtMs: nowMs,
+        ),
+      );
+    } on AccountDeletionInProgressException {
+      if (sourcePath != destinationPath) {
+        await _objectStore.deleteGhostObject(objectPath: destinationPath);
+      }
+      rethrow;
+    }
   }
 }
 
@@ -377,10 +386,17 @@ class FirestoreGhostPublicationStore implements GhostPublicationStore {
   FirestoreGhostPublicationStore({
     required this.projectId,
     required this.apiProvider,
-  });
+    FirestoreAccountDeletionFence? deletionFence,
+  }) : _deletionFence =
+           deletionFence ??
+           FirestoreAccountDeletionFence(
+             projectId: projectId,
+             apiProvider: apiProvider,
+           );
 
   final String projectId;
   final GoogleCloudApiProvider apiProvider;
+  final FirestoreAccountDeletionFence _deletionFence;
 
   String get _databaseRoot => 'projects/$projectId/databases/(default)';
   String _validatedRunDocPath(String runSessionId) =>
@@ -484,7 +500,6 @@ class FirestoreGhostPublicationStore implements GhostPublicationStore {
   Future<void> upsertGhostManifest({
     required GhostManifestRecord manifest,
   }) async {
-    final firestoreApi = await apiProvider.firestoreApi();
     final payload = <String, Object?>{
       'boardId': manifest.boardId,
       'entryId': manifest.entryId,
@@ -510,11 +525,20 @@ class FirestoreGhostPublicationStore implements GhostPublicationStore {
       if (manifest.demotedAtMs != null) 'demotedAtMs': manifest.demotedAtMs,
       if (manifest.expiresAtMs != null) 'expiresAtMs': manifest.expiresAtMs,
     };
-    await firestoreApi.projects.databases.documents.patch(
-      firestore.Document(fields: encodeFirestoreFields(payload)),
-      _ghostManifestDocPath(manifest.boardId, manifest.entryId),
-      updateMask_fieldPaths: payload.keys.toList(growable: false),
+    final transaction = await _deletionFence.begin(
+      uids: <String>[manifest.uid],
     );
+    await transaction.commit(<firestore.Write>[
+      firestore.Write(
+        update: firestore.Document(
+          name: _ghostManifestDocPath(manifest.boardId, manifest.entryId),
+          fields: encodeFirestoreFields(payload),
+        ),
+        updateMask: firestore.DocumentMask(
+          fieldPaths: payload.keys.toList(growable: false),
+        ),
+      ),
+    ]);
   }
 
   @override

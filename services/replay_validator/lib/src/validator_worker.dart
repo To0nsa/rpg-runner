@@ -22,6 +22,7 @@ import 'package:run_protocol/replay_digest.dart';
 import 'package:run_protocol/run_duration.dart';
 import 'package:run_protocol/validated_run.dart';
 
+import 'account_deletion_fence.dart';
 import 'board_repository.dart';
 import 'metrics.dart';
 import 'replay_loader.dart';
@@ -242,6 +243,17 @@ class DeterministicValidatorWorker implements ValidatorWorker {
         attempt: attempt,
       );
       return const ValidationDispatchResult.accepted();
+    } on AccountDeletionInProgressException {
+      await metrics.recordDispatch(
+        runSessionId: normalizedRunSessionId,
+        status: ValidationDispatchStatus.accepted.name,
+        phase: 'validation_skipped_account_deletion',
+        mode: mode,
+        attempt: attempt,
+      );
+      return const ValidationDispatchResult.accepted(
+        message: 'Account deletion is in progress.',
+      );
     } on _ValidationRejectedException catch (rejection) {
       final rejectedRun = _buildRejectedRun(
         session: session,

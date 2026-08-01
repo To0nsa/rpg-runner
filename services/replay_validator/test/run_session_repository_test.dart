@@ -260,6 +260,10 @@ void main() {
       final requests = <http.Request>[];
       final client = MockClient((request) async {
         requests.add(request);
+        final deletionFence = _deletionFenceResponse(request);
+        if (deletionFence != null) {
+          return deletionFence;
+        }
         if (request.method == 'GET' &&
             request.url.path.contains('/run_sessions/')) {
           return _jsonResponse(
@@ -296,7 +300,7 @@ void main() {
         publicMessage: 'Replay was rejected.',
       );
 
-      expect(requests, hasLength(3));
+      expect(requests, hasLength(5));
       final commit = firestore.CommitRequest.fromJson(
         jsonDecode(requests.last.body) as Map<String, Object?>,
       );
@@ -329,6 +333,10 @@ void main() {
       final requests = <http.Request>[];
       final client = MockClient((request) async {
         requests.add(request);
+        final deletionFence = _deletionFenceResponse(request);
+        if (deletionFence != null) {
+          return deletionFence;
+        }
         if (request.method == 'GET' &&
             request.url.path.contains('/run_sessions/')) {
           return _jsonResponse(
@@ -365,7 +373,7 @@ void main() {
         throwsA(isA<StaleValidationLeaseException>()),
       );
 
-      expect(requests, hasLength(3));
+      expect(requests, hasLength(5));
       expect(
         requests.where(
           (request) =>
@@ -402,6 +410,10 @@ void main() {
       final requests = <http.Request>[];
       final client = MockClient((request) async {
         requests.add(request);
+        final deletionFence = _deletionFenceResponse(request);
+        if (deletionFence != null) {
+          return deletionFence;
+        }
         if (request.method == 'GET' &&
             request.url.path.contains('/run_sessions/')) {
           return _jsonResponse(
@@ -441,7 +453,7 @@ void main() {
         validationLeaseToken: 'current-token',
       );
 
-      expect(requests, hasLength(3));
+      expect(requests, hasLength(5));
       final commit = firestore.CommitRequest.fromJson(
         jsonDecode(requests.last.body) as Map<String, Object?>,
       );
@@ -558,6 +570,10 @@ http.Response _failedPreconditionResponse() {
 
 _TestApiProvider _handoffConflictApiProvider() {
   final client = MockClient((request) async {
+    final deletionFence = _deletionFenceResponse(request);
+    if (deletionFence != null) {
+      return deletionFence;
+    }
     if (request.method == 'GET' &&
         request.url.path.contains('/run_sessions/')) {
       return _jsonResponse(
@@ -580,6 +596,26 @@ _TestApiProvider _handoffConflictApiProvider() {
     fail('Unexpected ${request.method} ${request.url}');
   });
   return _TestApiProvider(firestore.FirestoreApi(client));
+}
+
+http.Response? _deletionFenceResponse(http.Request request) {
+  if (request.method == 'POST' &&
+      request.url.path.endsWith('/documents:beginTransaction')) {
+    return _jsonResponse(<String, Object?>{
+      'transaction': 'deletion-fence-transaction',
+    });
+  }
+  if (request.method == 'GET' &&
+      request.url.path.contains('/account_deletion_requests/')) {
+    return _jsonResponse(<String, Object?>{
+      'error': <String, Object?>{
+        'code': 404,
+        'status': 'NOT_FOUND',
+        'message': 'Document was not found.',
+      },
+    }, statusCode: 404);
+  }
+  return null;
 }
 
 firestore.Document _runSessionDocument({

@@ -60,6 +60,11 @@ data operation. Once the document exists:
   transaction that would create data;
 - ownership command, run-session creation, upload-grant, finalize, and
   post-enqueue run-session transactions read the same tombstone before writing;
+- validator terminal handoffs, reward settlement/backfill, validation repair,
+  leaderboard player-best/top-10 projection, and ghost-manifest writes read
+  the tombstone in their write transaction. A concurrent tombstone creation
+  aborts that commit; projection and validation then acknowledge the task as
+  deletion-owned instead of retrying it;
 - Firestore rules deny direct client access to the tombstone and all
   authoritative user collections.
 
@@ -116,9 +121,12 @@ completion.
 
 The callable response status is one of `requested`, `in_progress`,
 `retryable`, or `deleted`. All four mean the server owns the deletion request.
-Flutter clears local state and signs out for any of them. A retryable backend
-page is recovered by the scheduled worker and does not require the deleted
-account to remain authenticated.
+Flutter clears in-memory state, the ownership outbox, run-submission spool,
+and the app-owned replay recorder directory before it signs out for any of
+them. The recorder cleanup is limited to its dedicated temporary directory; it
+does not trust arbitrary replay paths stored in submission metadata. A
+retryable backend page is recovered by the scheduled worker and does not
+require the deleted account to remain authenticated.
 
 ## Scheduling, retention, and operations
 
@@ -145,9 +153,9 @@ Source-controlled production policies under
 - incomplete work at least twelve hours old or at 400 attempts;
 - unexpected scheduled repair runtime errors.
 
-Six hours allows the normal multi-board repeated-reconciliation workflow to
-complete. A threshold change requires updated production-duration evidence and
-this document.
+Twelve hours accommodates the pre-release 15-minute repair cadence and the
+normal multi-board repeated-reconciliation workflow. A threshold change
+requires updated production-duration evidence and this document.
 
 The implemented policy retains the compact completed tombstone for at most 30
 days. The record exists only to keep the deletion barrier fail-closed and to
@@ -157,8 +165,10 @@ or identity-provider data.
 The scheduled worker evaluates expiry every 15 minutes and deletes up to 10
 expired completed records per invocation. Firestore native TTL is not enabled
 because the source-controlled expiry field is integer epoch milliseconds while
-native TTL requires a timestamp. Inventory checks expose missing expiry,
-expired evidence, and non-minimal completions.
+native TTL requires a timestamp. A separate bounded completed-record inventory
+walks document IDs with a durable maintenance cursor, records only aggregate
+counts, and reports missing expiry, expired evidence, and non-minimal
+completions without logging an account identifier.
 
 The engineering privacy review accepted this policy with launch conditions.
 The public privacy policy and external deletion resource must disclose the
@@ -182,6 +192,12 @@ Emulator tests cover:
 - repeated delete requests;
 - already-missing Auth users;
 - final Auth deletion only after reconciliation.
+- asynchronous validation, settlement, projection, and ghost writes are
+  tombstone-fenced and deletion-owned task results do not retry;
+- accepted client deletion clears durable ownership/submission metadata and
+  the app-owned recorder artifacts;
+- completed-tombstone inventory detects missing expiry, expired evidence, and
+  non-minimal records.
 
 Production verification additionally confirmed:
 

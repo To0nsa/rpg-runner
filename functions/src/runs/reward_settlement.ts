@@ -1,6 +1,7 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { isDeepStrictEqual } from "node:util";
 
+import { assertAccountActiveInTransaction } from "../account/deletion_guard.js";
 import {
   canonicalMergeWriteData,
   canonicalWriteData,
@@ -83,8 +84,12 @@ export async function settleAcceptedRunSession(args: {
 
       const session = sessionSnapshot.data() as Record<string, unknown>;
       const state = readRequiredString(session.state, "run session state");
+      if (state !== "validated" && state !== "settlement_pending") {
+        return "not_ready";
+      }
+      const uid = readRequiredString(session.uid, "run session uid");
+      await assertAccountActiveInTransaction(tx, args.db, uid);
       if (state === "validated") {
-        const uid = readRequiredString(session.uid, "run session uid");
         assertAcceptedValidatedRun({
           runSessionId: args.runSessionId,
           uid,
@@ -114,12 +119,8 @@ export async function settleAcceptedRunSession(args: {
         });
         return "already_settled";
       }
-      if (state !== "settlement_pending") {
-        return "not_ready";
-      }
       pendingAgeMs = durationSinceMs(session.settlementPendingAtMs, nowMs);
 
-      const uid = readRequiredString(session.uid, "run session uid");
       assertAcceptedValidatedRun({
         runSessionId: args.runSessionId,
         uid,

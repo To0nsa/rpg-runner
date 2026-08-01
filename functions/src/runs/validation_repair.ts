@@ -5,6 +5,10 @@ import {
 } from "firebase-admin/firestore";
 
 import {
+  assertAccountActiveInTransaction,
+  isAccountDeletionInProgressError,
+} from "../account/deletion_guard.js";
+import {
   createCloudTasksRunValidationTaskDispatcher,
   type RunValidationTaskDispatcher,
 } from "./submission_store.js";
@@ -89,14 +93,23 @@ export async function repairStaleRunValidations(args: {
   let skippedCount = 0;
   let failureCount = 0;
   for (const candidate of candidates) {
-    const prepared = await prepareRepairCandidate({
-      db: args.db,
-      candidate,
-      nowMs,
-      leaseDurationMs,
-      pendingStaleThresholdMs,
-      reenqueueCooldownMs,
-    });
+    let prepared: PreparedValidationRepair | undefined;
+    try {
+      prepared = await prepareRepairCandidate({
+        db: args.db,
+        candidate,
+        nowMs,
+        leaseDurationMs,
+        pendingStaleThresholdMs,
+        reenqueueCooldownMs,
+      });
+    } catch (error) {
+      if (isAccountDeletionInProgressError(error)) {
+        skippedCount += 1;
+        continue;
+      }
+      throw error;
+    }
     if (!prepared) {
       skippedCount += 1;
       continue;
@@ -114,11 +127,17 @@ export async function repairStaleRunValidations(args: {
       }
     } catch {
       failureCount += 1;
-      await makeRepairImmediatelyEligible({
-        db: args.db,
-        prepared,
-        nowMs,
-      });
+      try {
+        await makeRepairImmediatelyEligible({
+          db: args.db,
+          prepared,
+          nowMs,
+        });
+      } catch (makeEligibleError) {
+        if (!isAccountDeletionInProgressError(makeEligibleError)) {
+          throw makeEligibleError;
+        }
+      }
     }
   }
 
@@ -205,6 +224,10 @@ async function prepareRepairCandidate(args: {
       return undefined;
     }
     const data = snapshot.data() as Record<string, unknown>;
+    const uid = stringValue(data.uid);
+    if (uid !== undefined && uid.trim().length > 0) {
+      await assertAccountActiveInTransaction(tx, args.db, uid);
+    }
     const state = stringValue(data.state);
     const leaseExpiresAtMs =
       intValue(data.validationLeaseExpiresAtMs) ??
@@ -278,6 +301,10 @@ async function makeRepairImmediatelyEligible(args: {
       return;
     }
     const data = snapshot.data() as Record<string, unknown>;
+    const uid = stringValue(data.uid);
+    if (uid !== undefined && uid.trim().length > 0) {
+      await assertAccountActiveInTransaction(tx, args.db, uid);
+    }
     if (
       data.state !== "pending_validation" ||
       intValue(data.validationTaskGeneration) !== args.prepared.generation

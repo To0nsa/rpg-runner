@@ -51,6 +51,7 @@ test("off mode performs no inventory or writes", async () => {
     repairedAppliedCount: 0,
     terminalizedRevocationCount: 0,
     invariantViolationCount: 0,
+    skippedDeletedAccountCount: 0,
     nextCursor: null,
     completed: false,
   });

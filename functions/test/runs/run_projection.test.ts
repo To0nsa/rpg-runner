@@ -47,6 +47,7 @@ beforeEach(async () => {
     clearCollection(db, "reward_grants"),
     clearCollection(db, "validated_runs"),
     clearCollection(db, "ownership_profiles"),
+    clearCollection(db, "account_deletion_requests"),
     clearCollection(db, "system_maintenance"),
     clearCollection(db, "leaderboard_boards"),
   ]);
@@ -193,6 +194,42 @@ test("settlement handoff credits gold once and exposes terminal validation toget
     .get();
   assert.equal(grantAfterCanonicalReads.get("appliedAtMs"), nowMs);
   assert.equal(grantAfterCanonicalReads.get("updatedAtMs"), nowMs);
+});
+
+test("settlement does not recreate canonical state after account deletion", async () => {
+  const runSessionId = await seedRunSession(db, uid, "settlement_pending");
+  await db
+    .collection("run_sessions")
+    .doc(runSessionId)
+    .set({ mode: "practice" }, { merge: true });
+  await db.collection("validated_runs").doc(runSessionId).set({
+    runSessionId,
+    uid,
+    mode: "practice",
+    accepted: true,
+    goldEarned: 75,
+  });
+  await seedRewardGrant(db, runSessionId, {
+    uid,
+    mode: "practice",
+    lifecycleState: "settlement_pending",
+    goldAmount: 75,
+  });
+  await db.collection("account_deletion_requests").doc(uid).set({
+    state: "requested",
+    requestedAtMs: nowMs,
+  });
+
+  await assert.rejects(
+    settleAcceptedRunSession({ db, runSessionId, nowMs }),
+    (error: { code?: unknown }) => error.code === "failed-precondition",
+  );
+
+  assert.equal((await db.collection("ownership_profiles").get()).empty, true);
+  assert.equal(
+    (await db.collection("run_sessions").doc(runSessionId).get()).get("state"),
+    "settlement_pending",
+  );
 });
 
 test("immediate settlement dispatch accepts only a run-session id and uses canonical settlement", async () => {

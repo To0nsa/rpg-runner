@@ -4,14 +4,23 @@ import 'package:rpg_runner/ui/state/profile/account_deletion_api.dart';
 import 'package:rpg_runner/ui/state/app/app_state.dart';
 import 'package:rpg_runner/ui/state/auth/auth_api.dart';
 import 'package:rpg_runner/ui/state/ownership/loadout_ownership_api.dart';
+import 'package:rpg_runner/ui/state/ownership/ownership_outbox_store.dart';
 import 'package:rpg_runner/ui/state/ownership/progression_state.dart';
 import 'package:rpg_runner/ui/state/ownership/selection_state.dart';
 import 'package:rpg_runner/ui/state/profile/user_profile.dart';
 import 'package:rpg_runner/ui/state/profile/user_profile_remote_api.dart';
+import 'package:rpg_runner/ui/state/run/local_replay_artifact_store.dart';
+import 'package:rpg_runner/ui/state/run/pending_run_submission.dart';
+import 'package:rpg_runner/ui/state/run/run_session_api.dart';
+import 'package:rpg_runner/ui/state/run/run_submission_coordinator.dart';
+import 'package:rpg_runner/ui/state/run/run_submission_spool_store.dart';
 
 void main() {
   test('deleteAccountAndData clears in-memory state and signs out', () async {
     final authApi = _StaticAuthApi();
+    final ownershipOutbox = _TrackingOwnershipOutboxStore();
+    final submissionSpool = _TrackingSubmissionSpoolStore();
+    final replayArtifacts = _TrackingReplayArtifactStore();
     final deletionApi = _StaticAccountDeletionApi(
       result: const AccountDeletionResult(
         status: AccountDeletionStatus.deleted,
@@ -28,6 +37,12 @@ void main() {
         ),
       ),
       loadoutOwnershipApi: _NoopOwnershipApi(profileId: 'profile_u1'),
+      ownershipOutboxStore: ownershipOutbox,
+      runSubmissionCoordinator: RunSubmissionCoordinator(
+        runSessionApi: const NoopRunSessionApi(),
+        spoolStore: submissionSpool,
+        localReplayArtifactStore: replayArtifacts,
+      ),
     );
 
     await appState.bootstrap(force: true);
@@ -42,6 +57,9 @@ void main() {
     expect(appState.profile.displayName, isEmpty);
     expect(appState.progression.gold, 0);
     expect(appState.isBootstrapped, isFalse);
+    expect(ownershipOutbox.clearCalls, 1);
+    expect(submissionSpool.clearCalls, 1);
+    expect(replayArtifacts.clearCalls, 1);
   });
 
   test(
@@ -236,5 +254,47 @@ class _NoopOwnershipApi implements LoadoutOwnershipApi {
     RefreshStoreCommand command,
   ) async {
     return _accepted();
+  }
+}
+
+class _TrackingOwnershipOutboxStore extends InMemoryOwnershipOutboxStore {
+  int clearCalls = 0;
+
+  @override
+  Future<void> clear() async {
+    clearCalls += 1;
+    await super.clear();
+  }
+}
+
+class _TrackingSubmissionSpoolStore implements RunSubmissionSpoolStore {
+  int clearCalls = 0;
+
+  @override
+  Future<void> clear() async {
+    clearCalls += 1;
+  }
+
+  @override
+  Future<void> upsert({required PendingRunSubmission submission}) async {}
+
+  @override
+  Future<PendingRunSubmission?> load({required String runSessionId}) async =>
+      null;
+
+  @override
+  Future<List<PendingRunSubmission>> loadAll() async =>
+      const <PendingRunSubmission>[];
+
+  @override
+  Future<void> remove({required String runSessionId}) async {}
+}
+
+class _TrackingReplayArtifactStore implements LocalReplayArtifactStore {
+  int clearCalls = 0;
+
+  @override
+  Future<void> clear() async {
+    clearCalls += 1;
   }
 }

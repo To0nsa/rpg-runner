@@ -5,6 +5,7 @@ import 'package:run_protocol/run_ticket.dart';
 import 'package:run_protocol/validated_run.dart';
 import 'package:googleapis/firestore/v1.dart' as firestore;
 
+import 'account_deletion_fence.dart';
 import 'firestore_value_codec.dart';
 import 'google_api_helpers.dart';
 import 'validated_replay_archiver.dart';
@@ -175,8 +176,15 @@ class FirestoreRunSessionRepository implements RunSessionRepository {
     this.validationLeaseDuration = const Duration(minutes: 10),
     int Function()? clockMs,
     String Function()? leaseTokenFactory,
+    FirestoreAccountDeletionFence? deletionFence,
   }) : _clockMs = clockMs ?? _defaultClockMs,
-       _leaseTokenFactory = leaseTokenFactory ?? _defaultLeaseToken {
+       _leaseTokenFactory = leaseTokenFactory ?? _defaultLeaseToken,
+       _deletionFence =
+           deletionFence ??
+           FirestoreAccountDeletionFence(
+             projectId: projectId,
+             apiProvider: apiProvider,
+           ) {
     if (validationLeaseDuration <= Duration.zero) {
       throw ArgumentError.value(
         validationLeaseDuration,
@@ -191,6 +199,7 @@ class FirestoreRunSessionRepository implements RunSessionRepository {
   final Duration validationLeaseDuration;
   final int Function() _clockMs;
   final String Function() _leaseTokenFactory;
+  final FirestoreAccountDeletionFence _deletionFence;
 
   String get _databaseRoot => 'projects/$projectId/databases/(default)';
   String _runSessionDocPath(String runSessionId) =>
@@ -449,44 +458,42 @@ class FirestoreRunSessionRepository implements RunSessionRepository {
     };
 
     try {
-      await firestoreApi.projects.databases.documents.commit(
-        firestore.CommitRequest(
-          writes: <firestore.Write>[
-            firestore.Write(
-              update: firestore.Document(
-                name: validatedRunPath,
-                fields: encodeFirestoreFields(validatedRunPayload),
-              ),
-              currentDocument: firestore.Precondition(exists: false),
-            ),
-            firestore.Write(
-              update: firestore.Document(
-                name: rewardGrantPath,
-                fields: encodeFirestoreFields(rewardGrantPayload),
-              ),
-              updateMask: firestore.DocumentMask(
-                fieldPaths: rewardGrantPayload.keys.toList(growable: false),
-              ),
-              currentDocument: firestore.Precondition(
-                updateTime: rewardGrantUpdateTime,
-              ),
-            ),
-            firestore.Write(
-              update: firestore.Document(
-                name: sessionPath,
-                fields: encodeFirestoreFields(sessionPayload),
-              ),
-              updateMask: firestore.DocumentMask(
-                fieldPaths: sessionPayload.keys.toList(growable: false),
-              ),
-              currentDocument: firestore.Precondition(
-                updateTime: sessionUpdateTime,
-              ),
-            ),
-          ],
-        ),
-        _databaseRoot,
+      final transaction = await _deletionFence.begin(
+        uids: <String>[validatedRun.uid],
       );
+      await transaction.commit(<firestore.Write>[
+        firestore.Write(
+          update: firestore.Document(
+            name: validatedRunPath,
+            fields: encodeFirestoreFields(validatedRunPayload),
+          ),
+          currentDocument: firestore.Precondition(exists: false),
+        ),
+        firestore.Write(
+          update: firestore.Document(
+            name: rewardGrantPath,
+            fields: encodeFirestoreFields(rewardGrantPayload),
+          ),
+          updateMask: firestore.DocumentMask(
+            fieldPaths: rewardGrantPayload.keys.toList(growable: false),
+          ),
+          currentDocument: firestore.Precondition(
+            updateTime: rewardGrantUpdateTime,
+          ),
+        ),
+        firestore.Write(
+          update: firestore.Document(
+            name: sessionPath,
+            fields: encodeFirestoreFields(sessionPayload),
+          ),
+          updateMask: firestore.DocumentMask(
+            fieldPaths: sessionPayload.keys.toList(growable: false),
+          ),
+          currentDocument: firestore.Precondition(
+            updateTime: sessionUpdateTime,
+          ),
+        ),
+      ]);
     } catch (error) {
       if (isApiConflict(error)) {
         throw StaleValidationLeaseException(runSessionId);
@@ -552,8 +559,8 @@ class FirestoreRunSessionRepository implements RunSessionRepository {
       'validationLeaseExpiresAtMs': null,
     };
     await _commitTerminalHandoff(
-      firestoreApi: firestoreApi,
       runSessionId: runSessionId,
+      uid: validatedRun.uid,
       validatedRunPath: validatedRunPath,
       validatedRunPayload: validatedRunPayload,
       rewardGrantPath: rewardGrantPath,
@@ -610,37 +617,35 @@ class FirestoreRunSessionRepository implements RunSessionRepository {
       'validationLeaseExpiresAtMs': null,
     };
     try {
-      await firestoreApi.projects.databases.documents.commit(
-        firestore.CommitRequest(
-          writes: <firestore.Write>[
-            firestore.Write(
-              update: firestore.Document(
-                name: rewardGrantPath,
-                fields: encodeFirestoreFields(rewardGrantPayload),
-              ),
-              updateMask: firestore.DocumentMask(
-                fieldPaths: rewardGrantPayload.keys.toList(growable: false),
-              ),
-              currentDocument: firestore.Precondition(
-                updateTime: rewardGrantUpdateTime,
-              ),
-            ),
-            firestore.Write(
-              update: firestore.Document(
-                name: sessionPath,
-                fields: encodeFirestoreFields(sessionPayload),
-              ),
-              updateMask: firestore.DocumentMask(
-                fieldPaths: sessionPayload.keys.toList(growable: false),
-              ),
-              currentDocument: firestore.Precondition(
-                updateTime: sessionUpdateTime,
-              ),
-            ),
-          ],
-        ),
-        _databaseRoot,
+      final transaction = await _deletionFence.begin(
+        uids: <String>[_requireUid(session['uid'])],
       );
+      await transaction.commit(<firestore.Write>[
+        firestore.Write(
+          update: firestore.Document(
+            name: rewardGrantPath,
+            fields: encodeFirestoreFields(rewardGrantPayload),
+          ),
+          updateMask: firestore.DocumentMask(
+            fieldPaths: rewardGrantPayload.keys.toList(growable: false),
+          ),
+          currentDocument: firestore.Precondition(
+            updateTime: rewardGrantUpdateTime,
+          ),
+        ),
+        firestore.Write(
+          update: firestore.Document(
+            name: sessionPath,
+            fields: encodeFirestoreFields(sessionPayload),
+          ),
+          updateMask: firestore.DocumentMask(
+            fieldPaths: sessionPayload.keys.toList(growable: false),
+          ),
+          currentDocument: firestore.Precondition(
+            updateTime: sessionUpdateTime,
+          ),
+        ),
+      ]);
     } catch (error) {
       if (isApiConflict(error)) {
         throw StaleValidationLeaseException(runSessionId);
@@ -859,8 +864,8 @@ class FirestoreRunSessionRepository implements RunSessionRepository {
   }
 
   Future<void> _commitTerminalHandoff({
-    required firestore.FirestoreApi firestoreApi,
     required String runSessionId,
+    required String uid,
     required String validatedRunPath,
     required Map<String, Object?> validatedRunPayload,
     required String rewardGrantPath,
@@ -871,44 +876,40 @@ class FirestoreRunSessionRepository implements RunSessionRepository {
     required String sessionUpdateTime,
   }) async {
     try {
-      await firestoreApi.projects.databases.documents.commit(
-        firestore.CommitRequest(
-          writes: <firestore.Write>[
-            firestore.Write(
-              update: firestore.Document(
-                name: validatedRunPath,
-                fields: encodeFirestoreFields(validatedRunPayload),
-              ),
-              currentDocument: firestore.Precondition(exists: false),
-            ),
-            firestore.Write(
-              update: firestore.Document(
-                name: rewardGrantPath,
-                fields: encodeFirestoreFields(rewardGrantPayload),
-              ),
-              updateMask: firestore.DocumentMask(
-                fieldPaths: rewardGrantPayload.keys.toList(growable: false),
-              ),
-              currentDocument: firestore.Precondition(
-                updateTime: rewardGrantUpdateTime,
-              ),
-            ),
-            firestore.Write(
-              update: firestore.Document(
-                name: sessionPath,
-                fields: encodeFirestoreFields(sessionPayload),
-              ),
-              updateMask: firestore.DocumentMask(
-                fieldPaths: sessionPayload.keys.toList(growable: false),
-              ),
-              currentDocument: firestore.Precondition(
-                updateTime: sessionUpdateTime,
-              ),
-            ),
-          ],
+      final transaction = await _deletionFence.begin(uids: <String>[uid]);
+      await transaction.commit(<firestore.Write>[
+        firestore.Write(
+          update: firestore.Document(
+            name: validatedRunPath,
+            fields: encodeFirestoreFields(validatedRunPayload),
+          ),
+          currentDocument: firestore.Precondition(exists: false),
         ),
-        _databaseRoot,
-      );
+        firestore.Write(
+          update: firestore.Document(
+            name: rewardGrantPath,
+            fields: encodeFirestoreFields(rewardGrantPayload),
+          ),
+          updateMask: firestore.DocumentMask(
+            fieldPaths: rewardGrantPayload.keys.toList(growable: false),
+          ),
+          currentDocument: firestore.Precondition(
+            updateTime: rewardGrantUpdateTime,
+          ),
+        ),
+        firestore.Write(
+          update: firestore.Document(
+            name: sessionPath,
+            fields: encodeFirestoreFields(sessionPayload),
+          ),
+          updateMask: firestore.DocumentMask(
+            fieldPaths: sessionPayload.keys.toList(growable: false),
+          ),
+          currentDocument: firestore.Precondition(
+            updateTime: sessionUpdateTime,
+          ),
+        ),
+      ]);
     } catch (error) {
       if (isApiConflict(error)) {
         throw StaleValidationLeaseException(runSessionId);
@@ -923,6 +924,13 @@ class FirestoreRunSessionRepository implements RunSessionRepository {
       throw StateError('$label is missing updateTime.');
     }
     return updateTime;
+  }
+
+  String _requireUid(Object? value) {
+    if (value is! String || value.trim().isEmpty) {
+      throw StateError('Run-session uid must be a non-empty string.');
+    }
+    return value.trim();
   }
 
   Future<_OwnedLeaseDocument> _loadOwnedLease({

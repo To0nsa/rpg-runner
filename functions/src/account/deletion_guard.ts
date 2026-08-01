@@ -32,6 +32,19 @@ export function accountDeletionRequestRef(db: Firestore, uid: string) {
   return db.collection(accountDeletionRequestsCollection).doc(uid);
 }
 
+/** Returns whether a worker failure is the expected deletion write barrier. */
+export function isAccountDeletionInProgressError(error: unknown): boolean {
+  if (!(error instanceof HttpsError) || error.code !== "failed-precondition") {
+    return false;
+  }
+  const details = error.details;
+  return (
+    details !== null &&
+    typeof details === "object" &&
+    (details as { reason?: unknown }).reason === "account-deletion-in-progress"
+  );
+}
+
 function throwAccountDeletionInProgress(): never {
   throw new HttpsError(
     "failed-precondition",

@@ -6,6 +6,10 @@ import type {
 import { getStorage } from "firebase-admin/storage";
 
 import {
+  assertAccountActiveInTransaction,
+  isAccountDeletionInProgressError,
+} from "../account/deletion_guard.js";
+import {
   isRunSessionState,
   isTerminalRunSessionState,
   type RunSessionState,
@@ -115,6 +119,7 @@ export interface RunSubmissionCleanupResult {
 }
 
 interface RunSessionDocLike {
+  uid?: unknown;
   state?: unknown;
   createdAtMs?: unknown;
   updatedAtMs?: unknown;
@@ -367,6 +372,17 @@ async function expireRunSessionsPastExpiry(args: {
       ) {
         return false;
       }
+      const uid = optionalTrimmedString(session.uid);
+      if (uid !== null) {
+        try {
+          await assertAccountActiveInTransaction(tx, args.db, uid);
+        } catch (error) {
+          if (isAccountDeletionInProgressError(error)) {
+            return false;
+          }
+          throw error;
+        }
+      }
       const rewardGrantRef = args.db
         .collection(rewardGrantsCollection)
         .doc(doc.id);
@@ -572,6 +588,18 @@ async function terminalizeOrphanedProvisionalGrants(args: {
         updatedAtMs > args.cutoffMs
       ) {
         return false;
+      }
+      const uid = optionalTrimmedString(grant.get("uid"));
+      if (uid === null) {
+        return false;
+      }
+      try {
+        await assertAccountActiveInTransaction(tx, args.db, uid);
+      } catch (error) {
+        if (isAccountDeletionInProgressError(error)) {
+          return false;
+        }
+        throw error;
       }
       const sessionRef = args.db
         .collection(runSessionsCollection)

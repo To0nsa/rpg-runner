@@ -1,3 +1,4 @@
+import 'account_deletion_fence.dart';
 import 'ghost_publisher.dart';
 import 'leaderboard_projector.dart';
 import 'metrics.dart';
@@ -69,6 +70,16 @@ class DeterministicProjectionWorker implements ProjectionWorker {
         durationMs: DateTime.now().millisecondsSinceEpoch - startedAtMs,
       );
       return const ProjectionDispatchResult.completed();
+    } on AccountDeletionInProgressException {
+      await metrics.recordDispatch(
+        runSessionId: normalizedRunSessionId,
+        status: ProjectionDispatchStatus.completed.name,
+        phase: 'projection_skipped_account_deletion',
+        durationMs: DateTime.now().millisecondsSinceEpoch - startedAtMs,
+      );
+      return const ProjectionDispatchResult.completed(
+        message: 'Account deletion is in progress.',
+      );
     } catch (error) {
       await metrics.recordDispatch(
         runSessionId: normalizedRunSessionId,
@@ -104,6 +115,16 @@ class DeterministicProjectionWorker implements ProjectionWorker {
         durationMs: DateTime.now().millisecondsSinceEpoch - startedAtMs,
       );
       return const ProjectionDispatchResult.completed();
+    } on AccountDeletionInProgressException {
+      await metrics.recordDispatch(
+        runSessionId: 'board:$normalizedBoardId',
+        status: ProjectionDispatchStatus.completed.name,
+        phase: 'projection_reconciliation_skipped_account_deletion',
+        durationMs: DateTime.now().millisecondsSinceEpoch - startedAtMs,
+      );
+      return const ProjectionDispatchResult.completed(
+        message: 'Account deletion is in progress.',
+      );
     } catch (error) {
       await metrics.recordDispatch(
         runSessionId: 'board:$normalizedBoardId',

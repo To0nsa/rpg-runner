@@ -8,6 +8,10 @@ import {
 } from "firebase-admin/firestore";
 
 import {
+  assertAccountActiveInTransaction,
+  isAccountDeletionInProgressError,
+} from "../account/deletion_guard.js";
+import {
   settleAcceptedRunSession,
   type AcceptedRunSettlementOutcome,
 } from "./reward_settlement.js";
@@ -75,6 +79,7 @@ export async function repairPendingSettlements(args: {
     | undefined;
 
   const classifiedCount = await classifyPendingPage({
+    db: args.db,
     sessions,
     maintenanceRef,
     cursor: readCursor(maintenance?.classificationCursor),
@@ -107,14 +112,18 @@ export async function repairPendingSettlements(args: {
       session.get("settlementPendingAtMs"),
       nowMs,
     );
-    await session.ref.set(
-      {
+    const attemptRecorded = await updateSettlementRepairSession({
+      db: args.db,
+      runSessionId: session.id,
+      data: {
         settlementRepairAttempts: FieldValue.increment(1),
         settlementRepairLastAttemptAtMs: nowMs,
         settlementRepairLastOutcome: "attempting",
       },
-      { merge: true },
-    );
+    });
+    if (!attemptRecorded) {
+      continue;
+    }
     try {
       const outcome = await settle({
         db: args.db,
@@ -136,10 +145,11 @@ export async function repairPendingSettlements(args: {
           quarantinedCount += 1;
         }
       } else {
-        await session.ref.set(
-          { settlementRepairLastOutcome: outcome },
-          { merge: true },
-        );
+        await updateSettlementRepairSession({
+          db: args.db,
+          runSessionId: session.id,
+          data: { settlementRepairLastOutcome: outcome },
+        });
       }
       if (
         pendingAgeMs !== null &&
@@ -154,14 +164,18 @@ export async function repairPendingSettlements(args: {
         });
       }
     } catch (error) {
+      if (isAccountDeletionInProgressError(error)) {
+        continue;
+      }
       failureCount += 1;
-      await session.ref.set(
-        {
+      await updateSettlementRepairSession({
+        db: args.db,
+        runSessionId: session.id,
+        data: {
           settlementRepairLastOutcome: "infrastructure_failure",
           settlementRepairLastErrorClass: settlementErrorClass(error),
         },
-        { merge: true },
-      );
+      });
       logSettlementMetric({
         event: "settlement_repair_failure",
         runSessionId: session.id,
@@ -243,7 +257,38 @@ export async function repairPendingSettlements(args: {
   };
 }
 
+async function updateSettlementRepairSession(args: {
+  db: Firestore;
+  runSessionId: string;
+  data: Record<string, unknown>;
+}): Promise<boolean> {
+  const sessionRef = args.db
+    .collection(runSessionsCollection)
+    .doc(args.runSessionId);
+  return args.db.runTransaction(async (tx) => {
+    const session = await tx.get(sessionRef);
+    if (!session.exists || session.get("state") !== settlementPendingState) {
+      return false;
+    }
+    const uid = readCursor(session.get("uid"));
+    if (uid === null) {
+      return false;
+    }
+    try {
+      await assertAccountActiveInTransaction(tx, args.db, uid);
+    } catch (error) {
+      if (isAccountDeletionInProgressError(error)) {
+        return false;
+      }
+      throw error;
+    }
+    tx.set(sessionRef, args.data, { merge: true });
+    return true;
+  });
+}
+
 async function classifyPendingPage(args: {
+  db: Firestore;
   sessions: FirebaseFirestore.CollectionReference;
   maintenanceRef: FirebaseFirestore.DocumentReference;
   cursor: string | null;
@@ -263,15 +308,18 @@ async function classifyPendingPage(args: {
     if (session.get("settlementRepairDisposition") !== undefined) {
       continue;
     }
-    await session.ref.set(
-      {
+    const classified = await updateSettlementRepairSession({
+      db: args.db,
+      runSessionId: session.id,
+      data: {
         settlementRepairDisposition: retryableDisposition,
         settlementRepairClassifiedAtMs: args.nowMs,
         settlementRepairAttempts: 0,
       },
-      { merge: true },
-    );
-    classifiedCount += 1;
+    });
+    if (classified) {
+      classifiedCount += 1;
+    }
   }
   const nextCursor =
     page.size === args.batchSize
@@ -323,6 +371,18 @@ async function quarantineSettlementIncident(args: {
       session.get("settlementRepairDisposition") !== retryableDisposition
     ) {
       return false;
+    }
+    const uid = readCursor(session.get("uid"));
+    if (uid === null) {
+      return false;
+    }
+    try {
+      await assertAccountActiveInTransaction(tx, args.db, uid);
+    } catch (error) {
+      if (isAccountDeletionInProgressError(error)) {
+        return false;
+      }
+      throw error;
     }
     tx.set(
       sessionRef,
