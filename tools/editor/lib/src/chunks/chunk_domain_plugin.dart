@@ -1,10 +1,14 @@
 import '../domain/authoring_types.dart';
+import '../prefabs/domain/prefab_visual_bounds_resolver.dart';
 import '../prefabs/models/models.dart';
 import '../prefabs/store/prefab_store.dart';
 import '../workspace/editor_workspace.dart';
 import 'chunk_domain_models.dart';
 import 'chunk_store.dart';
 import 'chunk_validation.dart';
+import 'chunk_v2_file_codec.dart';
+import 'chunk_v2_staging_models.dart';
+import 'chunk_v2_validation.dart';
 
 class ChunkDomainPlugin implements AuthoringDomainPlugin {
   ChunkDomainPlugin({
@@ -50,8 +54,59 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
     return loaded;
   }
 
+  /// Explicit all-v2 staging load used before the normal schema cutover.
+  ///
+  /// The normal [loadFromRepo] path deliberately remains on chunk v1. This
+  /// method also requires strict prefab-v3/tile-v2 source so placement preview
+  /// can later expand one coherent future-source generation.
+  Future<ChunkV2StagingDocument> loadV2StagingFromRepo(
+    EditorWorkspace workspace,
+  ) async {
+    final chunkLoad = await _store.loadV2Staging(workspace);
+    final prefabLoad = await _prefabStore.loadV3Staging(workspace.rootPath);
+    final chunks = chunkLoad.sources.map((source) => source.data).toList()
+      ..sort((left, right) {
+        var order = left.levelId.compareTo(right.levelId);
+        if (order != 0) return order;
+        order = left.id.compareTo(right.id);
+        return order != 0 ? order : left.chunkKey.compareTo(right.chunkKey);
+      });
+    final sourcePathByChunkKey = <String, String>{};
+    final baselineContentsByChunkKey = <String, String>{};
+    for (final source in chunkLoad.sources) {
+      sourcePathByChunkKey[source.data.chunkKey] = source.sourcePath;
+      baselineContentsByChunkKey[source.data.chunkKey] =
+          source.baselineContents;
+    }
+    final availableLevelIds = chunks.map((chunk) => chunk.levelId).toSet()
+      ..removeWhere((levelId) => levelId.isEmpty);
+    final sortedLevelIds = availableLevelIds.toList()..sort();
+    final preferredLevelId = _preferredActiveLevelId;
+    final activeLevelId =
+        preferredLevelId != null && availableLevelIds.contains(preferredLevelId)
+        ? preferredLevelId
+        : (sortedLevelIds.isEmpty ? null : sortedLevelIds.first);
+    _preferredActiveLevelId = activeLevelId;
+    return ChunkV2StagingDocument(
+      chunks: chunks,
+      sourcePathByChunkKey: sourcePathByChunkKey,
+      baselineContentsByChunkKey: baselineContentsByChunkKey,
+      prefabData: prefabLoad.prefabData,
+      tileData: prefabLoad.tileData,
+      visualBoundsByPrefabKey: PrefabVisualBoundsResolver.resolveAll(
+        prefabData: prefabLoad.prefabData,
+        tileData: prefabLoad.tileData,
+      ),
+      availableLevelIds: sortedLevelIds,
+      activeLevelId: activeLevelId,
+    );
+  }
+
   @override
   List<ValidationIssue> validate(AuthoringDocument document) {
+    if (document is ChunkV2StagingDocument) {
+      return validateChunkV2StagingDocument(document);
+    }
     final chunkDocument = _asChunkDocument(document);
     final scoped = _scopeDocumentToActiveLevel(chunkDocument);
     return validateChunkDocument(scoped);
@@ -59,6 +114,32 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
 
   @override
   EditableScene buildEditableScene(AuthoringDocument document) {
+    if (document is ChunkV2StagingDocument) {
+      final activeLevelId = document.activeLevelId;
+      final chunks =
+          document.chunks
+              .where((chunk) => chunk.levelId == activeLevelId)
+              .toList()
+            ..sort((left, right) {
+              final idOrder = left.id.compareTo(right.id);
+              return idOrder != 0
+                  ? idOrder
+                  : left.chunkKey.compareTo(right.chunkKey);
+            });
+      final sourcePaths = <String, String>{
+        for (final chunk in chunks)
+          chunk.chunkKey: ?document.sourcePathByChunkKey[chunk.chunkKey],
+      };
+      return ChunkV2StagingScene(
+        chunks: chunks,
+        sourcePathByChunkKey: sourcePaths,
+        prefabData: document.prefabData,
+        tileData: document.tileData,
+        visualBoundsByPrefabKey: document.visualBoundsByPrefabKey,
+        availableLevelIds: document.availableLevelIds,
+        activeLevelId: document.activeLevelId,
+      );
+    }
     final chunkDocument = _asChunkDocument(document);
     final scopedDocument = _scopeDocumentToActiveLevel(chunkDocument);
     final sortedChunks = List<LevelChunkDef>.from(scopedDocument.chunks)
@@ -90,6 +171,17 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
     AuthoringDocument document,
     AuthoringCommand command,
   ) {
+    if (document is ChunkV2StagingDocument) {
+      if (command.kind != 'set_active_level') return document;
+      final levelId = command.payload['levelId'];
+      if (levelId is! String ||
+          levelId == document.activeLevelId ||
+          !document.availableLevelIds.contains(levelId)) {
+        return document;
+      }
+      _preferredActiveLevelId = levelId;
+      return document.copyWith(activeLevelId: levelId);
+    }
     final chunkDocument = _asChunkDocument(document);
     switch (command.kind) {
       case 'set_active_level':
@@ -146,6 +238,25 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
     EditorWorkspace workspace, {
     required AuthoringDocument document,
   }) async {
+    if (document is ChunkV2StagingDocument) {
+      final pending = describePendingChanges(workspace, document: document);
+      if (!pending.hasChanges) {
+        return ExportResult(
+          applied: false,
+          artifacts: <ExportArtifact>[
+            const ExportArtifact(
+              title: 'chunk_summary.md',
+              content:
+                  '# Chunk Export\n\nchangedChunks: 0\nchangedFiles: 0\n\nNo chunk-v2 edits detected.',
+            ),
+          ],
+        );
+      }
+      throw StateError(
+        'chunk_v2_source_write_disabled: chunk-v2 export remains locked '
+        'until the Phase 4 migration write gate opens.',
+      );
+    }
     final chunkDocument = _asChunkDocument(document);
     final scopedDocument = _scopeDocumentToActiveLevel(chunkDocument);
     final blockingIssues = validateChunkDocument(
@@ -187,6 +298,45 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
     EditorWorkspace workspace, {
     required AuthoringDocument document,
   }) {
+    if (document is ChunkV2StagingDocument) {
+      final writes = <ChunkFileWrite>[];
+      for (final chunk in document.chunks) {
+        final sourcePath = document.sourcePathByChunkKey[chunk.chunkKey];
+        final before = document.baselineContentsByChunkKey[chunk.chunkKey];
+        if (sourcePath == null || before == null) {
+          throw StateError(
+            'chunk_v2_source_baseline_missing: ${chunk.chunkKey}.',
+          );
+        }
+        final after = ChunkV2FileCodec.encode(chunk);
+        if (before == after) continue;
+        writes.add(
+          ChunkFileWrite(
+            chunkKey: chunk.chunkKey,
+            chunkId: chunk.id,
+            relativePath: sourcePath,
+            beforeContent: before,
+            afterContent: after,
+          ),
+        );
+      }
+      writes.sort(
+        (left, right) => left.relativePath.compareTo(right.relativePath),
+      );
+      if (writes.isEmpty) return PendingChanges.empty;
+      return PendingChanges(
+        changedItemIds: writes.map((write) => write.chunkKey).toList(),
+        fileDiffs: writes
+            .map(
+              (write) => PendingFileDiff(
+                relativePath: write.relativePath,
+                editCount: 1,
+                unifiedDiff: _buildUnifiedDiff(write),
+              ),
+            )
+            .toList(growable: false),
+      );
+    }
     final chunkDocument = _asChunkDocument(document);
     final scopedDocument = _scopeDocumentToActiveLevel(chunkDocument);
     final savePlan = _store.buildSavePlan(workspace, document: scopedDocument);

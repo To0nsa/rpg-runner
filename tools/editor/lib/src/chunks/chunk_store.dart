@@ -8,6 +8,29 @@ import '../workspace/editor_workspace.dart';
 import '../workspace/level_context_resolver.dart' as level_context;
 import '../workspace/workspace_file_io.dart';
 import 'chunk_domain_models.dart';
+import 'chunk_v2_file_codec.dart';
+import 'chunk_v2_file_data.dart';
+
+/// One strict chunk-v2 source snapshot retained for read-only staging.
+class ChunkV2StagingSource {
+  const ChunkV2StagingSource({
+    required this.data,
+    required this.sourcePath,
+    required this.baselineContents,
+  });
+
+  final ChunkV2FileData data;
+  final String sourcePath;
+  final String baselineContents;
+}
+
+/// Complete all-v2 chunk source set loaded by the explicit staging path.
+class ChunkV2StagingLoadResult {
+  ChunkV2StagingLoadResult({required Iterable<ChunkV2StagingSource> sources})
+    : sources = List<ChunkV2StagingSource>.unmodifiable(sources);
+
+  final List<ChunkV2StagingSource> sources;
+}
 
 class ChunkStore {
   static const String chunksDirectoryPath = 'assets/authoring/level/chunks';
@@ -22,6 +45,48 @@ class ChunkStore {
       'packages/runner_core/lib/levels/level_world_constants.dart';
 
   const ChunkStore();
+
+  /// Strictly loads an all-v2 chunk source tree without enabling normal load
+  /// selection or any repository write path.
+  Future<ChunkV2StagingLoadResult> loadV2Staging(
+    EditorWorkspace workspace,
+  ) async {
+    final chunkFiles = _listChunkFiles(workspace);
+    if (chunkFiles.isEmpty) {
+      throw StateError(
+        'chunk_v2_source_missing: expected JSON files under '
+        '${workspace.resolve(chunksDirectoryPath)}.',
+      );
+    }
+
+    final sources = <ChunkV2StagingSource>[];
+    final sourcePathByFoldedChunkKey = <String, String>{};
+    for (final file in chunkFiles) {
+      final relativePath = WorkspaceFileIo.toWorkspaceRelativePath(
+        workspace,
+        file.path,
+      );
+      final raw = await file.readAsString();
+      final data = ChunkV2FileCodec.decode(raw, sourcePath: relativePath);
+      final foldedChunkKey = data.chunkKey.toLowerCase();
+      final existingPath = sourcePathByFoldedChunkKey[foldedChunkKey];
+      if (existingPath != null) {
+        throw StateError(
+          'chunk_v2_duplicate_chunk_key: ${data.chunkKey} is owned by both '
+          '$existingPath and $relativePath.',
+        );
+      }
+      sourcePathByFoldedChunkKey[foldedChunkKey] = relativePath;
+      sources.add(
+        ChunkV2StagingSource(
+          data: data,
+          sourcePath: relativePath,
+          baselineContents: raw,
+        ),
+      );
+    }
+    return ChunkV2StagingLoadResult(sources: sources);
+  }
 
   Future<ChunkDocument> load(
     EditorWorkspace workspace, {
