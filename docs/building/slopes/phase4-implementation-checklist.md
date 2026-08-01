@@ -598,17 +598,19 @@ Required tools:
 
 Interaction rules:
 
-- [ ] preserve shared `Ctrl+drag` pan and `Ctrl+scroll` zoom behavior
-- [ ] primary drag remains tool-driven
-- [ ] expose a visible snap selector: owner grid or exact `0.5 px`
+- [x] preserve shared `Ctrl+drag` pan and `Ctrl+scroll` zoom behavior
+- [x] primary drag remains tool-driven
+- [x] expose a visible snap selector: owner grid or exact `0.5 px`
   - [x] Prefab-v3 staging exposes `1 px` owner-grid and exact `0.5 px`
         choices; changing it cancels any active preview without session history.
+  - [x] Chunk-v2 staging exposes the same choices and binds them to the
+        selected direct chunk owner without changing source on selection.
 - [x] never permit arbitrary non-half-pixel vertex values
 - [x] inspector numeric fields accept integer/`.5` text and display exact values
 - [x] one pointer gesture produces one undo entry, not one entry per event
 - [x] cancellation restores committed geometry; commit runs validation once
 - [x] selection changes produce no semantic commit or history entry
-- [ ] wire Escape cancellation and prove viewport changes do not bump document
+- [x] wire Escape cancellation and prove viewport changes do not bump document
       revision in both routes
 - [x] a temporarily invalid drag can render local diagnostics, but export and
       gesture commit policy must never silently repair topology
@@ -616,8 +618,9 @@ Interaction rules:
       shared scene painter with structural repaint equality
 - [x] map exact half-pixel source ticks to canvas space one-way; inverse pointer
       coordinates remain fractional until the reducer applies its snap policy
-- [ ] keyboard delete/undo/redo and focus behavior are tested
-- [ ] wire the shared scene semantics into both Prefab and Chunk routes
+- [x] keyboard delete/undo/redo and focus behavior are tested
+- [x] wire the shared scene semantics into explicit Prefab-v3 and Chunk-v2
+      staging routes; normal source-page replacement remains in Sections 18-19
 
 Multi-shape selection, boolean authoring operations, rotation, arbitrary scale,
 curves, and holes are not required for the baseline tool.
@@ -687,6 +690,18 @@ curves, and holes are not required for the baseline tool.
 - [ ] Route every semantic edit through `ChunkDomainPlugin` and `ChunkStore`.
 - [ ] Preserve source-drift, case-insensitive filename collision, and atomic
       one-file-per-chunk save rules.
+- [x] Stage a Chunk route-local polygon controller and focusable scene surface
+      over the shared reducer/painter. Keep previews and rejected diagnostics
+      owner-local, dispatch only accepted typed plugin commits, and synchronize
+      session undo/redo by immutable document identity.
+- [x] Add an explicitly selected chunk-v2 staging workspace with active-level
+      owner isolation, all shared polygon tools, owner-grid/half-pixel snap,
+      closed chunk bounds, exact shape/vertex readout, owner diagnostics,
+      session history, and visibly disabled reload/source-apply actions.
+- [x] Keep the ordinary v1 Chunk Creator route and its ground/gap reload/export
+      path unchanged until the coordinated source cutover.
+- [x] Make an accepted direct-owner gesture one revision bump and one pending
+      chunk change even when the preview receives multiple pointer updates.
 
 ### 19.1 Placement And Navigation Authoring Diagnostics
 
@@ -944,12 +959,12 @@ Stores/plugins:
 UI/interactions:
 
 - [ ] create/close/cancel polygon
-- [ ] shape/edge/vertex selection
-- [ ] drag vertex/shape with grid and half-pixel snap
+- [x] shape/edge/vertex selection
+- [x] drag vertex/shape with grid and half-pixel snap
 - [ ] insert/delete/duplicate/normalize
-- [ ] one undo entry per gesture and deterministic redo
-- [ ] diagnostics focus the exact shape/vertex/edge
-- [ ] shared scene control parity on Prefab and Chunk routes
+- [x] one undo entry per gesture and deterministic redo
+- [x] diagnostics focus the exact shape/vertex/edge
+- [x] shared scene control parity on explicit Prefab and Chunk staging routes
 - [ ] read-only expanded prefab overlay in Chunk Creator
 - [ ] Core-owned actor eligibility/navigation and marker-placement overlays
 - [ ] preview consumes no marker RNG and preserves source ordering
@@ -999,6 +1014,7 @@ before changing the accepted plan.
 | `EditorSessionController` notifies listeners for loading/export flags as well as document replacements, so blindly resynchronizing a route-local polygon controller on every notification would discard an active preview during a no-op export. | Track the observed document identity and resynchronize local geometry only when that immutable document instance changes; accepted local dispatches update the identity explicitly. | Future live Prefab/Chunk route controllers must keep transient session notifications from resetting selection, tools, drafts, or gestures. |
 | Prefab-v3 still depends on the unchanged tile/module source file, but loading it through rectangle-era `PrefabData` would silently normalize malformed fields and keep legacy prefab parsing in the new path. | Add `PrefabTileFileData` and one strict normal-layer tile-v2 codec. The explicit v3 store loader composes the two strict file payloads directly and never calls the compatibility parser. | At cutover, normal Prefab load/save can adopt these two structural authorities together; the offline migration still owns legacy prefab parsing only. |
 | Platform-module visual bounds were derived privately inside v2 validation, so implementing v3 owner bounds independently would create two geometry rules and could disagree for negative cells or non-tile-sized slices. | Promote one fail-closed `PrefabVisualBoundsResolver` and make existing v2 validation consume it. The v3 loader resolves every atlas/module owner through the same integer calculation. | Prefab scene placement and future Chunk expanded previews must consume this resolver rather than rebuilding module extents in widgets. |
+| `ChunkCreatorPage` normally reloads v1 source after mounting, which would replace an explicitly supplied chunk-v2 staging document before its route-local workspace could bind an owner. | Select the page by staged scene type before the post-frame reload, disable shell reload/source apply for that type, and keep normal v1 load/reload behavior unchanged for every ordinary session. | At cutover, make the v2 document the normal plugin result and remove the temporary staging type/locked branch instead of retaining two route authorities. |
 
 Append rows during implementation. Do not silently relax source, compiler,
 seam, determinism, or performance contracts.
@@ -1069,6 +1085,8 @@ result.
 | 2026-08-01 / `a0da6638` | Normal strict chunk-v2 file model/codec authority | Dart VM and Flutter test VM on Windows | Editor analysis is clean and all 329 editor tests pass. Four direct normal-layer tests cover immutable author-order snapshots, copy semantics, copy-only canonical tag/layer/placement/marker/shape ordering, retained metadata, byte-stable round trips, strict legacy/unknown/type/order/grid/scale rejection, and invalid-model serialization refusal. Migration aliases/facades now delegate chunk-v2 structure to the normal chunk layer; the read-only check still reports 99 prefabs, 8 chunks, and nine pending targets without writes, while generator dry-run still validates 8 chunks, 2 levels, and 2 themes. `ChunkStore`, live UI, authored JSON, generator input, and runtime authority remain v1. |
 | 2026-08-01 / `d96b6509` | Explicit strict chunk-v2 staging workspace | Dart VM and Flutter test VM on Windows | Editor analysis is clean and all 334 editor tests pass. Five fixture tests prove an all-v2 chunk tree composes with strict prefab-v3/tile-v2 data, immutable source baselines, deterministic active-level scene projection, Core-reviewed direct geometry, closed direct-owner bounds, known prefab references, canonical pending diffs, clean no-op export, and a changed-source lock that preserves every fixture byte. Legacy v1 normal loading remains selected and explicit staging rejects v1/case-colliding sources. The migration check still reports 99 prefabs, 8 chunks, and nine pending targets without writes; generator dry-run still validates 8 chunks, 2 levels, and 2 themes. Placement expansion, chunk polygon commands/UI, normal schema cutover, authored JSON, generator input, and runtime authority remain unchanged. |
 | 2026-08-01 / `cdd09292` | Chunk-owned polygon commit and revision policy | Dart VM and Flutter test VM on Windows | Editor analysis is clean and all 343 editor tests pass. Nine new policy/plugin tests cover one accepted direct-owner replacement and revision bump, retained metadata, no-op and stale identity, closed bounds, Core occupied-area overlap, duplicate IDs, canonical shape order, malformed/missing-owner rejection, one canonical pending diff, and the changed-source export lock on an empty filesystem. Document validation and commits now reuse one owner validator. Migration check remains read-only with 99 prefabs, 8 chunks, and nine pending targets; generator dry-run still validates 8 chunks, 2 levels, and 2 themes. Chunk route UI, placement expansion, remaining v2 metadata commands, normal source cutover, generator input, and runtime authority remain unchanged. |
+| 2026-08-01 / `e3565e7e` | Staged Chunk polygon route controller and scene surface | Dart VM and Flutter test VM on Windows | Focused analysis is clean and 16 related tests pass, including six new tests for local multi-update preview, one accepted revision/history entry, exact rejected-owner diagnostics, explicit staging enforcement, shared painter projection, tool-driven selection/drag, Escape, Delete/history, and Ctrl-drag pan without document mutation. Generic diagnostics now retain shape/element identity. Normal v1 loading, source JSON, generator input, and runtime authority remain unchanged. |
+| 2026-08-01 / `603178ee` | Explicit chunk-v2 polygon staging workspace | Dart VM and Flutter test VM on Windows | Editor analysis is clean and all 350 editor tests pass. The route test proves explicit staged type dispatch without a legacy reload, active-level owner filtering/rebinding, a locked shell reload/source-apply boundary, one revisioned direct-owner deletion, pending diff projection, and route-level undo restoration; the complete legacy Chunk Creator suite remains green. Migration check still reports 99 prefabs, 8 chunks, and nine pending targets without writes; generator dry-run still validates 8 chunks, 2 levels, and 2 themes. Placement expansion, normal schema cutover, authored JSON, generator input, and runtime authority remain unchanged. |
 
 ### 28.1 Baseline Environment And Source Identity
 

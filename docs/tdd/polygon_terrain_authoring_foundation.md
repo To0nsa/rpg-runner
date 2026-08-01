@@ -25,11 +25,11 @@ The active schema migration, generator, preview, and cutover work remains in
 | Source validation and canonicalization | `runner_core` `TerrainSourceCanonicalizer` | `TerrainCompiler` and editor adapter |
 | Positive-area polygon overlap | `runner_core` `TerrainPolygonOverlap` | `TerrainCompiler`; source-loop entry point is ready for editor owner validation |
 | Exact placement and physics-grid quantization | `runner_core` `TerrainSourceTransform` | `TerrainCompiler`, Core fixtures, and editor adapter |
-| Editor-to-Core conversion | editor `TerrainSourceCoreAdapter` | migration checks and shared interaction reducer; prefab/chunk UI integration is pending |
-| Shared polygon interaction state | editor `TerrainPolygonInteractionReducer` | pure-Dart selection/draft/gesture/semantic-edit tests; Prefab staging is wired and Chunk route wiring is pending |
+| Editor-to-Core conversion | editor `TerrainSourceCoreAdapter` | migration checks, shared interaction reducer, and explicit Prefab/Chunk staging routes |
+| Shared polygon interaction state | editor `TerrainPolygonInteractionReducer` | pure-Dart selection/draft/gesture/semantic-edit tests plus explicit Prefab and Chunk staging routes |
 | Exact half-pixel inspector text | editor `TerrainHalfPixelText` / `TerrainPolygonInteractionReducer.editSelectedVertex` | shared exact parser and semantic commit; Prefab staging inspector is wired, Chunk inspector is pending |
-| Render projection and source-space hit testing | editor `TerrainPolygonSceneProjection` / `TerrainPolygonSceneHitTest` | framework-neutral scene tests; Prefab/Chunk route wiring is pending |
-| Canvas projection and source-loop overlay | editor `TerrainPolygonViewportTransform` / `TerrainPolygonScenePainter` | shared Flutter painter tests; compiler-edge overlay and route wiring are pending |
+| Render projection and source-space hit testing | editor `TerrainPolygonSceneProjection` / `TerrainPolygonSceneHitTest` | framework-neutral scene tests and both explicit staging surfaces |
+| Canvas projection and source-loop overlay | editor `TerrainPolygonViewportTransform` / `TerrainPolygonScenePainter` | shared Flutter painter tests and both explicit staging surfaces; compiler-edge overlay is pending |
 | Prefab polygon owner validation | editor `validatePrefabCollisionShapes` | Core compiler plus exact visual-bounds tests; normal `PrefabDef` integration is pending |
 | Immutable prefab-v3 polygon record | editor `PrefabV3Def` | migration target and model-contract tests; normal store/UI integration is pending |
 | Strict prefab-v3 file structure and canonical serialization | editor `PrefabV3FileData` / `PrefabV3FileCodec` | delegated migration checks and explicit read-only store staging; normal load/save cutover is pending |
@@ -44,7 +44,8 @@ The active schema migration, generator, preview, and cutover work remains in
 | Strict legacy prefab-v1/v2 and chunk-v1 source parsing | editor migration-owned `LegacyPrefabDef` / chunk-v1 models | read-only aggregate planner input; compatibility stores and normal `PrefabDef` are bypassed |
 | Cross-domain canonical migration report | editor migration domain | read-only CLI, strict in-memory targets, and exact source SHA-256 audit; source writes remain pending |
 | Strict chunk-v2 file structure and canonical serialization | editor `ChunkV2FileData` / `ChunkV2FileCodec` | migration facade delegation, complete-repository round-trip, and explicit strict store staging; normal load/save cutover is pending |
-| Chunk-v2 plugin staging, direct-owner validation, and commit policy | editor `ChunkV2StagingDocument` / `ChunkV2CollisionCommitPolicy` / `ChunkDomainPlugin` | strict future-source composition, Core direct-shape/bounds validation, freshness/order/revision enforcement, typed commits, immutable pending diffs, and hard export lock; route UI, placement expansion, remaining metadata commands, and normal cutover are pending |
+| Chunk-v2 plugin staging, direct-owner validation, and commit policy | editor `ChunkV2StagingDocument` / `ChunkV2CollisionCommitPolicy` / `ChunkDomainPlugin` | strict future-source composition, Core direct-shape/bounds validation, freshness/order/revision enforcement, typed commits, immutable pending diffs, and hard export lock; placement expansion, remaining metadata commands, and normal cutover are pending |
+| Chunk polygon route-local projection | editor `ChunkPolygonAuthoringController` / `ChunkPolygonSceneSurface` / `ChunkPolygonStagingWorkspace` | explicit staged-scene routing, active-level owner isolation, tools, snap, bounds, diagnostics, keyboard, rejection, and history tests; normal v1 loads still select ground/gap authoring |
 
 Core has no dependency on editor models, JSON, widgets, or filesystem state.
 The editor depends on Core through a one-way local package dependency and does
@@ -294,9 +295,34 @@ accepts only the typed shared commit. It returns the original staging document
 for missing, malformed, stale, invalid, and no-op input; a successful command
 replaces only the addressed chunk, records its key, and produces one canonical
 file diff against the load baseline. The changed-document export lock remains
-the final filesystem defense. Route-local diagnostics and previews will remain
+the final filesystem defense. Route-local diagnostics and previews remain
 outside the generic command result, matching the established Prefab staging
-pattern; the Chunk Creator controller/surface is still pending.
+pattern.
+
+`ChunkPolygonAuthoringController` projects exactly one chunk owner over the
+shared reducer. Tool, selection, draft, gesture preview, snap policy, and
+rejected diagnostics remain local. The controller verifies a semantic commit
+through `ChunkV2CollisionCommitPolicy` before dispatching the typed plugin
+command, and synchronizes only when the immutable session document identity
+changes. An active preview receives first refusal on undo, so cancellation
+cannot consume committed session history.
+
+`ChunkPolygonSceneSurface` reuses the shared painter, projection, hit test, and
+focused keyboard contract. Primary input is tool-driven; Escape cancels,
+Delete acts on the current selection, Ctrl-Z/Ctrl-Shift-Z/Ctrl-Y delegate
+history, Ctrl-drag pans, and Ctrl-scroll zooms without mutating source. The
+owner bounds painter is display-only; closed-bound validation remains in the
+chunk owner policy.
+
+When an explicit `ChunkV2StagingScene` is already loaded, `ChunkCreatorPage`
+selects `ChunkPolygonStagingWorkspace` and deliberately skips its normal v1
+post-frame reload. The shell reload/apply path is disabled for that staging
+type, and the workspace's source-apply action is visibly locked. Active-level
+changes still use the plugin command and rebind to the first canonical owner in
+the new scene. Owner changes dispose the old route-local controller, preventing
+an unfinished preview from leaking across chunks. Ordinary plugin loads still
+return `ChunkDocument`, so v1 ground/gap editing and export remain the only
+normal source path until the coordinated cutover.
 
 ## Prefab Polygon Owner Validation
 
@@ -451,9 +477,9 @@ and style have structural equality so equivalent frames do not repaint.
 
 This painter does not compile geometry and its fills are never collision or
 navigation authority. Collision-edge/normal/lineage diagnostics must come from
-the Core compiler preview adapter. The explicit Prefab staging route installs
-the painter and plugin/session wiring; normal Prefab cutover and all Chunk
-polygon-route wiring remain pending.
+the Core compiler preview adapter. Both explicit staging routes install the
+painter and plugin/session wiring. Normal Prefab/Chunk source cutover and Core
+compiler edge/normal/lineage overlays remain pending.
 
 ## Determinism And Validation Evidence
 
@@ -489,6 +515,9 @@ The foundation is covered by:
 - chunk commit freshness, canonical owner order, exact bounds, Core overlap,
   no-op/rejection identity, exactly-once revision, typed plugin dispatch, and
   changed-source lock tests
+- Chunk staged-scene routing without a legacy reload, active-level owner
+  isolation, locked reload/apply, visible snap/tools, one direct-owner edit,
+  route-level undo restoration, and unchanged normal v1 route regression tests
 - prefab owner commit freshness, canonical order, visual-bound resolution,
   warning/error handling, no-op identity, and exactly-once revision tests
 - full Core geometry/signature goldens and fresh-process signature tests

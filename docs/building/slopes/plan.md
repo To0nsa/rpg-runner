@@ -1,7 +1,7 @@
 # Sloped Terrain And Capsule Traversal High-Level Plan
 
 - Date: July 18, 2026
-- Status: Phases 0-3 accepted; Phase 4 implementation checklist is ready
+- Status: Phases 0-3 accepted; Phase 4 implementation is in progress
 - Phase 0 tracker:
   [phase0-implementation-checklist.md](phase0-implementation-checklist.md)
 - Phase 0 evidence:
@@ -1446,12 +1446,13 @@ hard fixture, paired VM allocation profile, compiled product benchmark, and
 full package/root/replay-validator suites pass their frozen gates without
 changing the reviewed scenario hashes or normal legacy construction.
 
-Phase 4 is planned in
+Phase 4 is in progress under
 [phase4-implementation-checklist.md](phase4-implementation-checklist.md).
-Its dependency-ordered implementation begins with a read-only baseline and
-reproduction of the Phase 0 migration audit, then introduces shared exact
-half-pixel polygon source values, prefab v3/chunk v2 schemas, editor polygon
-tools, scheduler-aware seam diagnostics, deterministic migration, and staged
-generated terrain data. Phase 4 consumes the accepted Phase 1-3 contracts and
+The read-only baseline/migration audit, exact half-pixel source model, Core
+canonicalization/overlap/transform seam, strict prefab-v3/chunk-v2 staging
+records, shared polygon reducer/painter, and explicit locked Prefab/Chunk
+staging workspaces are implemented. Normal source remains prefab v2/chunk v1;
+placement expansion, scheduler-aware seams, safe source migration, staged
+generation, and the coordinated normal editor cutover remain open. Phase 4
 must not select polygon terrain in normal production runs before the later
 streaming/content cutover phases.
