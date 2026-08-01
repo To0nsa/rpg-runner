@@ -272,6 +272,30 @@ void main() {
     expect(appState.ownershipSyncStatus.pendingSelectionCount, 0);
   });
 
+  test(
+    'does not deliver prior-account ownership work after a user switch',
+    () async {
+      final ownershipApi = _RecordingOwnershipApi();
+      final outbox = InMemoryOwnershipOutboxStore();
+      final authApi = _MutableAuthApi(userId: 'user_a', sessionId: 'session_a');
+      final appState = AppState(
+        authApi: authApi,
+        loadoutOwnershipApi: ownershipApi,
+        ownershipOutboxStore: outbox,
+      );
+
+      await appState.bootstrap(force: true);
+      await appState.setRunMode(RunMode.competitive);
+      authApi.setSession(userId: 'user_b', sessionId: 'session_b');
+
+      await appState.flushOwnershipEdits(trigger: OwnershipFlushTrigger.manual);
+
+      expect(ownershipApi.setSelectionCalls, 0);
+      expect(await outbox.loadAll(ownerUserId: 'user_a'), hasLength(1));
+      expect(await outbox.loadAll(ownerUserId: 'user_b'), isEmpty);
+    },
+  );
+
   test('max staleness forces delivery before next scheduled attempt', () async {
     final ownershipApi = _RecordingOwnershipApi();
     final outbox = InMemoryOwnershipOutboxStore();
@@ -292,6 +316,7 @@ void main() {
     await appState.bootstrap(force: true);
     await appState.setRunMode(RunMode.competitive);
     final pendingSelection = await outbox.loadByCoalesceKey(
+      ownerUserId: 'user_1',
       coalesceKey: 'selection',
     );
     expect(pendingSelection, isNotNull);
@@ -375,20 +400,32 @@ class _CountingOwnershipOutboxStore implements OwnershipOutboxStore {
 
   @override
   Future<OwnershipPendingCommand?> loadByCoalesceKey({
+    required String ownerUserId,
     required String coalesceKey,
   }) {
-    return _delegate.loadByCoalesceKey(coalesceKey: coalesceKey);
+    return _delegate.loadByCoalesceKey(
+      ownerUserId: ownerUserId,
+      coalesceKey: coalesceKey,
+    );
   }
 
   @override
-  Future<List<OwnershipPendingCommand>> loadAll() async {
+  Future<List<OwnershipPendingCommand>> loadAll({
+    required String ownerUserId,
+  }) async {
     loadAllCalls += 1;
-    return _delegate.loadAll();
+    return _delegate.loadAll(ownerUserId: ownerUserId);
   }
 
   @override
-  Future<void> removeByCoalesceKey({required String coalesceKey}) {
-    return _delegate.removeByCoalesceKey(coalesceKey: coalesceKey);
+  Future<void> removeByCoalesceKey({
+    required String ownerUserId,
+    required String coalesceKey,
+  }) {
+    return _delegate.removeByCoalesceKey(
+      ownerUserId: ownerUserId,
+      coalesceKey: coalesceKey,
+    );
   }
 
   @override
@@ -699,4 +736,43 @@ class _StaticAuthApi implements AuthApi {
 
   @override
   Future<AuthSession> loadSession() async => _session;
+}
+
+class _MutableAuthApi implements AuthApi {
+  _MutableAuthApi({required String userId, required String sessionId})
+    : _session = _sessionFor(userId: userId, sessionId: sessionId);
+
+  AuthSession _session;
+
+  void setSession({required String userId, required String sessionId}) {
+    _session = _sessionFor(userId: userId, sessionId: sessionId);
+  }
+
+  @override
+  Future<void> clearSession() async {}
+
+  @override
+  Future<AuthSession> ensureAuthenticatedSession() async => _session;
+
+  @override
+  Future<AuthLinkResult> linkAuthProvider(AuthLinkProvider provider) async {
+    return AuthLinkResult(
+      provider: provider,
+      status: AuthLinkStatus.alreadyLinked,
+      session: _session,
+    );
+  }
+
+  @override
+  Future<AuthSession> loadSession() async => _session;
+}
+
+AuthSession _sessionFor({required String userId, required String sessionId}) {
+  return AuthSession(
+    userId: userId,
+    sessionId: sessionId,
+    isAnonymous: false,
+    expiresAtMs: 0,
+    linkedProviders: const <AuthLinkProvider>{AuthLinkProvider.playGames},
+  );
 }

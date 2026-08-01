@@ -79,6 +79,7 @@ PendingRunSubmission _pending({
   String? lastErrorCode,
 }) {
   return PendingRunSubmission(
+    ownerUserId: 'uid_test',
     runSessionId: runSessionId,
     runMode: RunMode.practice,
     replayFilePath: '/tmp/$runSessionId.replay.json',

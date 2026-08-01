@@ -176,6 +176,7 @@ class RunSubmissionCoordinator {
   };
 
   Future<PendingRunSubmission> enqueueSubmission({
+    required String userId,
     required String runSessionId,
     required RunMode runMode,
     required String replayFilePath,
@@ -186,6 +187,7 @@ class RunSubmissionCoordinator {
   }) async {
     final nowMs = _clock();
     final pending = PendingRunSubmission(
+      ownerUserId: userId,
       runSessionId: runSessionId,
       runMode: runMode,
       replayFilePath: replayFilePath,
@@ -201,10 +203,13 @@ class RunSubmissionCoordinator {
     return pending;
   }
 
-  Future<List<RunSubmissionStatus>> loadLocalStatuses() async {
+  Future<List<RunSubmissionStatus>> loadLocalStatuses({
+    required String userId,
+  }) async {
     final nowMs = _clock();
     final pendingEntries = await _spoolStore.loadAll();
     return pendingEntries
+        .where((pending) => pending.ownerUserId == userId)
         .map(
           (pending) => RunSubmissionStatus.fromPending(
             pending,
@@ -247,6 +252,9 @@ class RunSubmissionCoordinator {
     final pendingEntries = await _spoolStore.loadAll();
     final statuses = <RunSubmissionStatus>[];
     for (final pending in pendingEntries) {
+      if (pending.ownerUserId != userId) {
+        continue;
+      }
       if (_isRetryDeferred(pending, nowMs)) {
         statuses.add(
           RunSubmissionStatus.fromPending(
@@ -276,6 +284,11 @@ class RunSubmissionCoordinator {
     if (loaded == null) {
       throw StateError(
         'No pending submission was found for runSessionId "$runSessionId".',
+      );
+    }
+    if (loaded.ownerUserId != userId) {
+      throw StateError(
+        'Pending submission "$runSessionId" belongs to another account.',
       );
     }
     var pending = loaded;
@@ -406,6 +419,11 @@ class RunSubmissionCoordinator {
     required String runSessionId,
   }) async {
     final pending = await _spoolStore.load(runSessionId: runSessionId);
+    if (pending != null && pending.ownerUserId != userId) {
+      throw StateError(
+        'Pending submission "$runSessionId" belongs to another account.',
+      );
+    }
     if (pending != null &&
         pending.step != PendingRunSubmissionStep.awaitingServerStatus) {
       return processRunSession(

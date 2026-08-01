@@ -365,6 +365,7 @@ void main() {
     );
     await spoolStore.upsert(
       submission: PendingRunSubmission(
+        ownerUserId: 'u1',
         runSessionId: 'run_pending',
         runMode: RunMode.practice,
         replayFilePath: '/tmp/replay_pending.json',

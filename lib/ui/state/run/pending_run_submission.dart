@@ -28,6 +28,7 @@ enum PendingRunSubmissionStep {
 
 final class PendingRunSubmission {
   const PendingRunSubmission({
+    required this.ownerUserId,
     required this.runSessionId,
     required this.runMode,
     required this.replayFilePath,
@@ -45,7 +46,8 @@ final class PendingRunSubmission {
     this.lastErrorCode,
     this.lastErrorMessage,
     this.provisionalSummary,
-  }) : assert(runSessionId != ''),
+  }) : assert(ownerUserId != ''),
+       assert(runSessionId != ''),
        assert(replayFilePath != ''),
        assert(contentLengthBytes > 0),
        assert(createdAtMs >= 0),
@@ -53,6 +55,8 @@ final class PendingRunSubmission {
        assert(attemptCount >= 0),
        assert(nextAttemptAtMs >= 0);
 
+  /// Firebase UID that owns the run session and local replay artifact.
+  final String ownerUserId;
   final String runSessionId;
   final RunMode runMode;
   final String replayFilePath;
@@ -75,6 +79,7 @@ final class PendingRunSubmission {
       step != PendingRunSubmissionStep.retryScheduled || nextAttemptAtMs <= 0;
 
   PendingRunSubmission copyWith({
+    String? ownerUserId,
     String? runSessionId,
     RunMode? runMode,
     String? replayFilePath,
@@ -94,6 +99,7 @@ final class PendingRunSubmission {
     Object? provisionalSummary = _unset,
   }) {
     return PendingRunSubmission(
+      ownerUserId: ownerUserId ?? this.ownerUserId,
       runSessionId: runSessionId ?? this.runSessionId,
       runMode: runMode ?? this.runMode,
       replayFilePath: replayFilePath ?? this.replayFilePath,
@@ -128,6 +134,7 @@ final class PendingRunSubmission {
 
   Map<String, Object?> toJson() {
     return <String, Object?>{
+      'ownerUserId': ownerUserId,
       'runSessionId': runSessionId,
       'runMode': runMode.name,
       'replayFilePath': replayFilePath,
@@ -153,6 +160,7 @@ final class PendingRunSubmission {
       throw FormatException('pendingRunSubmission must be a JSON object.');
     }
     final json = Map<Object?, Object?>.from(raw);
+    final ownerUserId = _readRequiredString(json, 'ownerUserId');
     final runSessionId = _readRequiredString(json, 'runSessionId');
     final replayFilePath = _readRequiredString(json, 'replayFilePath');
     final canonicalSha256 = _readRequiredString(json, 'canonicalSha256');
@@ -164,6 +172,7 @@ final class PendingRunSubmission {
     final nextAttemptAtMs = _readRequiredInt(json, 'nextAttemptAtMs');
     final rawProvisionalSummary = json['provisionalSummary'];
     return PendingRunSubmission(
+      ownerUserId: ownerUserId,
       runSessionId: runSessionId,
       runMode: RunMode.parse(json['runMode'], fieldName: 'runMode'),
       replayFilePath: replayFilePath,

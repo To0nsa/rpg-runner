@@ -36,6 +36,7 @@ void main() {
       'processRunSession uploads + finalizes and keeps non-terminal pending',
       () async {
         await coordinator.enqueueSubmission(
+          userId: 'uid_1',
           runSessionId: 'run_1',
           runMode: RunMode.practice,
           replayFilePath: '/tmp/run_1.replay.json',
@@ -74,6 +75,7 @@ void main() {
       'a forced close after journaling resumes submission on the next bootstrap',
       () async {
         await coordinator.enqueueSubmission(
+          userId: 'uid_restart',
           runSessionId: 'run_forced_close',
           runMode: RunMode.practice,
           replayFilePath: '/tmp/run_forced_close.replay.json',
@@ -114,10 +116,33 @@ void main() {
       },
     );
 
+    test('does not process a replay journaled by another account', () async {
+      await coordinator.enqueueSubmission(
+        userId: 'uid_a',
+        runSessionId: 'run_owned_by_a',
+        runMode: RunMode.practice,
+        replayFilePath: '/tmp/run_owned_by_a.replay.json',
+        canonicalSha256:
+            'abababababababababababababababababababababababababababababababab',
+        contentLengthBytes: 1024,
+      );
+
+      final statuses = await coordinator.processReadySubmissions(
+        userId: 'uid_b',
+        sessionId: 'session_b',
+      );
+
+      expect(statuses, isEmpty);
+      expect(await spoolStore.load(runSessionId: 'run_owned_by_a'), isNotNull);
+      expect(replayUploader.uploadedRunSessionIds, isEmpty);
+      expect(runSessionApi.finalizeRunSessionIds, isEmpty);
+    });
+
     test(
       'processRunSession removes local spool row for terminal status',
       () async {
         await coordinator.enqueueSubmission(
+          userId: 'uid_2',
           runSessionId: 'run_2',
           runMode: RunMode.practice,
           replayFilePath: '/tmp/run_2.replay.json',
@@ -145,6 +170,7 @@ void main() {
 
     test('processRunSession schedules retry when grant fails', () async {
       await coordinator.enqueueSubmission(
+        userId: 'uid_3',
         runSessionId: 'run_3',
         runMode: RunMode.practice,
         replayFilePath: '/tmp/run_3.replay.json',
@@ -180,6 +206,7 @@ void main() {
       'processRunSession marks non-retryable upload failures terminal',
       () async {
         await coordinator.enqueueSubmission(
+          userId: 'uid_403',
           runSessionId: 'run_403',
           runMode: RunMode.practice,
           replayFilePath: '/tmp/run_403.replay.json',
@@ -211,6 +238,7 @@ void main() {
       'processRunSession awaiting server status does not re-upload replay',
       () async {
         await coordinator.enqueueSubmission(
+          userId: 'uid_await',
           runSessionId: 'run_await',
           runMode: RunMode.practice,
           replayFilePath: '/tmp/run_await.replay.json',
@@ -245,6 +273,7 @@ void main() {
       'refreshRunSessionStatus keeps deferred retry state instead of server uploading',
       () async {
         await coordinator.enqueueSubmission(
+          userId: 'uid_retry',
           runSessionId: 'run_retry',
           runMode: RunMode.practice,
           replayFilePath: '/tmp/run_retry.replay.json',
@@ -284,6 +313,7 @@ void main() {
       'refreshRunSessionStatus removes local spool row when server terminal',
       () async {
         await coordinator.enqueueSubmission(
+          userId: 'uid_4',
           runSessionId: 'run_4',
           runMode: RunMode.practice,
           replayFilePath: '/tmp/run_4.replay.json',

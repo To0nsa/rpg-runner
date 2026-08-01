@@ -32,7 +32,9 @@ final class _AppStateRunSubmissionController extends _AppStateController {
     String contentType = 'application/octet-stream',
     Map<String, Object?>? provisionalSummary,
   }) async {
+    final session = await _ensureAuthSession();
     final pending = await _runSubmissionCoordinator.enqueueSubmission(
+      userId: session.userId,
       runSessionId: runSessionId,
       runMode: runMode,
       replayFilePath: replayFilePath,

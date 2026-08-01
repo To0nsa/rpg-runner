@@ -35,7 +35,8 @@ final class _AppStateOwnershipSyncController extends _AppStateController {
       return;
     }
     await flushOwnershipEdits(trigger: OwnershipFlushTrigger.runStart);
-    await _refreshOwnershipSyncStatusFromOutbox();
+    final session = await _ensureAuthSession();
+    await _refreshOwnershipSyncStatusFromOutbox(ownerUserId: session.userId);
     if (_ownershipSyncStatus.pendingCount > 0) {
       throw const RunStartRemoteException(
         code: 'failed-precondition',
@@ -66,7 +67,9 @@ final class _AppStateOwnershipSyncController extends _AppStateController {
   @override
   Future<void> _enqueueOwnershipCommand(OwnershipPendingCommand command) async {
     await _ownershipOutboxStore.upsertCoalesced(command: command);
-    await _refreshOwnershipSyncStatusFromOutbox();
+    await _refreshOwnershipSyncStatusFromOutbox(
+      ownerUserId: command.ownerUserId,
+    );
     _scheduleOwnershipFlush(policyTier: command.policyTier);
     _notifyListeners();
   }
@@ -94,10 +97,12 @@ final class _AppStateOwnershipSyncController extends _AppStateController {
     );
     _notifyListeners();
     try {
-      AuthSession? session;
+      final session = await _ensureAuthSession();
       while (true) {
         final nowMs = DateTime.now().millisecondsSinceEpoch;
-        final pending = await _ownershipOutboxStore.loadAll();
+        final pending = await _ownershipOutboxStore.loadAll(
+          ownerUserId: session.userId,
+        );
         OwnershipPendingCommand? ready;
         OwnershipPendingCommand? fallbackReady;
         int? earliestNextAttemptAtMs;
@@ -138,10 +143,9 @@ final class _AppStateOwnershipSyncController extends _AppStateController {
           }
           break;
         }
-        session ??= await _ensureAuthSession();
         await _deliverPendingOwnershipCommand(session: session, command: ready);
       }
-      await _refreshOwnershipSyncStatusFromOutbox();
+      await _refreshOwnershipSyncStatusFromOutbox(ownerUserId: session.userId);
     } catch (error) {
       _ownershipSyncStatus = _ownershipSyncStatus.copyWith(
         lastSyncError: 'flush:${trigger.name}:$error',
@@ -188,6 +192,9 @@ final class _AppStateOwnershipSyncController extends _AppStateController {
       if (superseded) {
         return;
       }
+      if (_authSession.userId != session.userId) {
+        return;
+      }
       if (result.rejectedReason == OwnershipRejectedReason.staleRevision) {
         final canonical = await _ownershipApi.loadCanonicalState(
           userId: session.userId,
@@ -200,7 +207,9 @@ final class _AppStateOwnershipSyncController extends _AppStateController {
           ),
         );
         _applyCanonicalState(canonical);
-        await _reconcileSelectionProjectionFromOutbox();
+        await _reconcileSelectionProjectionFromOutbox(
+          ownerUserId: session.userId,
+        );
         _ownershipSyncStatus = _ownershipSyncStatus.copyWith(
           conflictCount: _ownershipSyncStatus.conflictCount + 1,
         );
@@ -210,9 +219,12 @@ final class _AppStateOwnershipSyncController extends _AppStateController {
 
       _applyOwnershipResult(result);
       await _ownershipOutboxStore.removeByCoalesceKey(
+        ownerUserId: command.ownerUserId,
         coalesceKey: command.coalesceKey,
       );
-      await _reconcileSelectionProjectionFromOutbox();
+      await _reconcileSelectionProjectionFromOutbox(
+        ownerUserId: session.userId,
+      );
       _notifyListeners();
     } catch (_) {
       final superseded = await _isPendingCommandSuperseded(
@@ -249,6 +261,7 @@ final class _AppStateOwnershipSyncController extends _AppStateController {
     String? sentPayloadHash,
   }) async {
     final latest = await _ownershipOutboxStore.loadByCoalesceKey(
+      ownerUserId: command.ownerUserId,
       coalesceKey: command.coalesceKey,
     );
     if (latest == null) {
@@ -367,9 +380,13 @@ final class _AppStateOwnershipSyncController extends _AppStateController {
   }
 
   @override
-  Future<void> _refreshOwnershipSyncStatusFromOutbox() async {
+  Future<void> _refreshOwnershipSyncStatusFromOutbox({
+    required String ownerUserId,
+  }) async {
     final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final pending = await _ownershipOutboxStore.loadAll();
+    final pending = await _ownershipOutboxStore.loadAll(
+      ownerUserId: ownerUserId,
+    );
     final pendingSelectionCount = pending
         .where(
           (entry) => entry.policyTier == OwnershipSyncTier.selectionFastSync,

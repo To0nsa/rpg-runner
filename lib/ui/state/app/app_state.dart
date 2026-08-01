@@ -441,14 +441,20 @@ class AppState extends ChangeNotifier {
   Future<void> _enqueueOwnershipCommand(OwnershipPendingCommand command) =>
       _ownershipSyncController._enqueueOwnershipCommand(command);
 
-  Future<void> _refreshOwnershipSyncStatusFromOutbox() =>
-      _ownershipSyncController._refreshOwnershipSyncStatusFromOutbox();
+  Future<void> _refreshOwnershipSyncStatusFromOutbox({
+    required String ownerUserId,
+  }) => _ownershipSyncController._refreshOwnershipSyncStatusFromOutbox(
+    ownerUserId: ownerUserId,
+  );
 
   Future<void> _setSelection(SelectionState nextSelection) =>
       _selectionOwnershipController._setSelection(nextSelection);
 
-  Future<void> _reconcileSelectionProjectionFromOutbox() =>
-      _selectionOwnershipController._reconcileSelectionProjectionFromOutbox();
+  Future<void> _reconcileSelectionProjectionFromOutbox({
+    required String ownerUserId,
+  }) => _selectionOwnershipController._reconcileSelectionProjectionFromOutbox(
+    ownerUserId: ownerUserId,
+  );
 
   Future<void> _resumePendingRunSubmissions() =>
       _runSubmissionController._resumePendingRunSubmissions();
@@ -517,10 +523,16 @@ class AppState extends ChangeNotifier {
 
   Future<AuthSession> _ensureAuthSession() async {
     final session = await _authApi.ensureAuthenticatedSession();
-    if (_authSession.userId != session.userId ||
-        _authSession.sessionId != session.sessionId) {
+    final userChanged = _authSession.userId != session.userId;
+    if (userChanged || _authSession.sessionId != session.sessionId) {
       _clearRunTicketPrefetchState();
       _ownershipSyncStatusUpdatedAtMs = null;
+    }
+    if (userChanged) {
+      _ownershipFlushTimer?.cancel();
+      _ownershipFlushTimer = null;
+      _ownershipSyncStatus = OwnershipSyncStatus.idle;
+      _runSubmissionStatuses.clear();
     }
     _authSession = session;
     return session;

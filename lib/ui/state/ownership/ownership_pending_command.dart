@@ -87,6 +87,7 @@ class OwnershipDeliveryAttempt {
 @immutable
 class OwnershipPendingCommand {
   const OwnershipPendingCommand({
+    required this.ownerUserId,
     required this.coalesceKey,
     required this.commandType,
     required this.policyTier,
@@ -96,6 +97,11 @@ class OwnershipPendingCommand {
     this.deliveryAttempt,
   });
 
+  /// Firebase UID that was active when this local command was created.
+  ///
+  /// This prevents a later sign-in on the same device from delivering the
+  /// prior player's queued state mutation with the new player's credentials.
+  final String ownerUserId;
   final String coalesceKey;
   final OwnershipPendingCommandType commandType;
   final OwnershipSyncTier policyTier;
@@ -105,6 +111,7 @@ class OwnershipPendingCommand {
   final OwnershipDeliveryAttempt? deliveryAttempt;
 
   OwnershipPendingCommand copyWith({
+    String? ownerUserId,
     String? coalesceKey,
     OwnershipPendingCommandType? commandType,
     OwnershipSyncTier? policyTier,
@@ -115,6 +122,7 @@ class OwnershipPendingCommand {
     bool clearDeliveryAttempt = false,
   }) {
     return OwnershipPendingCommand(
+      ownerUserId: ownerUserId ?? this.ownerUserId,
       coalesceKey: coalesceKey ?? this.coalesceKey,
       commandType: commandType ?? this.commandType,
       policyTier: policyTier ?? this.policyTier,
@@ -129,6 +137,7 @@ class OwnershipPendingCommand {
 
   Map<String, Object?> toJson() {
     return <String, Object?>{
+      'ownerUserId': ownerUserId,
       'coalesceKey': coalesceKey,
       'commandType': commandType.name,
       'policyTier': policyTier.name,
@@ -144,6 +153,7 @@ class OwnershipPendingCommand {
       return null;
     }
     final map = Map<String, Object?>.from(raw);
+    final ownerUserId = map['ownerUserId'];
     final coalesceKey = map['coalesceKey'];
     final commandType = _commandTypeFromName(map['commandType']);
     final policyTier = _syncTierFromName(map['policyTier']);
@@ -151,6 +161,9 @@ class OwnershipPendingCommand {
     final createdAtMs = map['createdAtMs'];
     final updatedAtMs = map['updatedAtMs'];
 
+    if (ownerUserId is! String || ownerUserId.trim().isEmpty) {
+      return null;
+    }
     if (coalesceKey is! String || coalesceKey.trim().isEmpty) {
       return null;
     }
@@ -162,13 +175,16 @@ class OwnershipPendingCommand {
     }
 
     return OwnershipPendingCommand(
+      ownerUserId: ownerUserId,
       coalesceKey: coalesceKey,
       commandType: commandType,
       policyTier: policyTier,
       payloadJson: payloadJson,
       createdAtMs: createdAtMs.toInt(),
       updatedAtMs: updatedAtMs.toInt(),
-      deliveryAttempt: OwnershipDeliveryAttempt.fromJson(map['deliveryAttempt']),
+      deliveryAttempt: OwnershipDeliveryAttempt.fromJson(
+        map['deliveryAttempt'],
+      ),
     );
   }
 

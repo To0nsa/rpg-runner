@@ -143,7 +143,8 @@ final class _AppStateAuthProfileController extends _AppStateController {
     if (_warmupStarted) return;
     _warmupStarted = true;
     unawaited(() async {
-      await _refreshOwnershipSyncStatusFromOutbox();
+      final session = await _ensureAuthSession();
+      await _refreshOwnershipSyncStatusFromOutbox(ownerUserId: session.userId);
       _notifyListeners();
     }());
     unawaited(startRunTicketPrefetchForCurrentSelection());

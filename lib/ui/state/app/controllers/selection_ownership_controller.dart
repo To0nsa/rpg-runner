@@ -64,6 +64,7 @@ final class _AppStateSelectionOwnershipController extends _AppStateController {
     required AbilitySlot slot,
     required AbilityKey abilityId,
   }) async {
+    final session = await _ensureAuthSession();
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final currentLoadout = _selection.loadoutFor(characterId);
     final nextLoadout = _withAbilityInLoadout(
@@ -76,6 +77,7 @@ final class _AppStateSelectionOwnershipController extends _AppStateController {
     _notifyListeners();
     await _enqueueOwnershipCommand(
       OwnershipPendingCommand(
+        ownerUserId: session.userId,
         coalesceKey: 'ability:${characterId.name}:${slot.name}',
         commandType: OwnershipPendingCommandType.setAbilitySlot,
         policyTier: OwnershipSyncTier.writeBehind,
@@ -94,6 +96,7 @@ final class _AppStateSelectionOwnershipController extends _AppStateController {
     required PlayerCharacterId characterId,
     required ProjectileId spellId,
   }) async {
+    final session = await _ensureAuthSession();
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final currentLoadout = _selection.loadoutFor(characterId);
     final nextLoadout = _copyLoadout(
@@ -105,6 +108,7 @@ final class _AppStateSelectionOwnershipController extends _AppStateController {
     _notifyListeners();
     await _enqueueOwnershipCommand(
       OwnershipPendingCommand(
+        ownerUserId: session.userId,
         coalesceKey: 'projectile:${characterId.name}',
         commandType: OwnershipPendingCommandType.setProjectileSpell,
         policyTier: OwnershipSyncTier.writeBehind,
@@ -123,6 +127,7 @@ final class _AppStateSelectionOwnershipController extends _AppStateController {
     required GearSlot slot,
     required Object itemId,
   }) async {
+    final session = await _ensureAuthSession();
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final currentLoadout = _selection.loadoutFor(characterId);
     final nextLoadout = _withGearInLoadout(
@@ -143,6 +148,7 @@ final class _AppStateSelectionOwnershipController extends _AppStateController {
     _notifyListeners();
     await _enqueueOwnershipCommand(
       OwnershipPendingCommand(
+        ownerUserId: session.userId,
         coalesceKey: 'gear:${characterId.name}:${slot.name}',
         commandType: OwnershipPendingCommandType.equipGear,
         policyTier: OwnershipSyncTier.writeBehind,
@@ -257,12 +263,14 @@ final class _AppStateSelectionOwnershipController extends _AppStateController {
     if (_selection == nextSelection) {
       return;
     }
+    final session = await _ensureAuthSession();
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     _clearRunTicketPrefetchState();
     _selection = nextSelection;
     _notifyListeners();
     await _enqueueOwnershipCommand(
       OwnershipPendingCommand(
+        ownerUserId: session.userId,
         coalesceKey: 'selection',
         commandType: OwnershipPendingCommandType.setSelection,
         policyTier: OwnershipSyncTier.selectionFastSync,
@@ -274,8 +282,11 @@ final class _AppStateSelectionOwnershipController extends _AppStateController {
   }
 
   @override
-  Future<void> _reconcileSelectionProjectionFromOutbox() async {
+  Future<void> _reconcileSelectionProjectionFromOutbox({
+    required String ownerUserId,
+  }) async {
     final pending = await _ownershipOutboxStore.loadByCoalesceKey(
+      ownerUserId: ownerUserId,
       coalesceKey: 'selection',
     );
     if (pending == null ||

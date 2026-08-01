@@ -129,14 +129,16 @@ abstract base class _AppStateController {
   Future<void> _enqueueOwnershipCommand(OwnershipPendingCommand command) =>
       _app._enqueueOwnershipCommand(command);
 
-  Future<void> _refreshOwnershipSyncStatusFromOutbox() =>
-      _app._refreshOwnershipSyncStatusFromOutbox();
+  Future<void> _refreshOwnershipSyncStatusFromOutbox({
+    required String ownerUserId,
+  }) => _app._refreshOwnershipSyncStatusFromOutbox(ownerUserId: ownerUserId);
 
   Future<void> _setSelection(SelectionState nextSelection) =>
       _app._setSelection(nextSelection);
 
-  Future<void> _reconcileSelectionProjectionFromOutbox() =>
-      _app._reconcileSelectionProjectionFromOutbox();
+  Future<void> _reconcileSelectionProjectionFromOutbox({
+    required String ownerUserId,
+  }) => _app._reconcileSelectionProjectionFromOutbox(ownerUserId: ownerUserId);
 
   Future<void> _resumePendingRunSubmissions() =>
       _app._resumePendingRunSubmissions();

@@ -26,7 +26,7 @@ void main() {
         ),
       );
 
-      final all = await store.loadAll();
+      final all = await store.loadAll(ownerUserId: 'uid_test');
       expect(all, hasLength(1));
       expect(all.single.coalesceKey, 'selection:level');
       expect(all.single.createdAtMs, 100);
@@ -34,27 +34,59 @@ void main() {
       expect(all.single.payloadJson['selectedLevelId'], 'forest');
     });
 
-    test('loadAll accepts wrapped v2 payload and legacy row list', () async {
+    test('drops unscoped legacy rows and reads scoped stored rows', () async {
       final prefs = await SharedPreferences.getInstance();
+      final unscopedLegacyRow = _command(key: 'selection:runMode').toJson()
+        ..remove('ownerUserId');
       await prefs.setString(
         SharedPrefsOwnershipOutboxStore.storageKey,
-        jsonEncode(<Object?>[_command(key: 'selection:runMode').toJson()]),
+        jsonEncode(<Object?>[unscopedLegacyRow]),
       );
 
-      final legacyLoaded = await store.loadAll();
-      expect(legacyLoaded, hasLength(1));
-      expect(legacyLoaded.single.coalesceKey, 'selection:runMode');
+      final legacyLoaded = await store.loadAll(ownerUserId: 'uid_test');
+      expect(legacyLoaded, isEmpty);
 
       await prefs.setString(
         SharedPrefsOwnershipOutboxStore.storageKey,
         jsonEncode(<String, Object?>{
           'version': 2,
-          'entries': <Object?>[_command(key: 'gear:eloise:mainWeapon').toJson()],
+          'entries': <Object?>[
+            _command(key: 'gear:eloise:mainWeapon').toJson(),
+          ],
         }),
       );
-      final wrappedLoaded = await store.loadAll();
+      final wrappedLoaded = await store.loadAll(ownerUserId: 'uid_test');
       expect(wrappedLoaded, hasLength(1));
       expect(wrappedLoaded.single.coalesceKey, 'gear:eloise:mainWeapon');
+    });
+
+    test('keeps same coalesce keys isolated by owner UID', () async {
+      await store.upsertCoalesced(
+        command: _command(
+          ownerUserId: 'uid_a',
+          key: 'selection',
+          payload: <String, Object?>{'selectedLevelId': 'field'},
+        ),
+      );
+      await store.upsertCoalesced(
+        command: _command(
+          ownerUserId: 'uid_b',
+          key: 'selection',
+          payload: <String, Object?>{'selectedLevelId': 'forest'},
+        ),
+      );
+
+      final firstOwner = await store.loadByCoalesceKey(
+        ownerUserId: 'uid_a',
+        coalesceKey: 'selection',
+      );
+      final secondOwner = await store.loadByCoalesceKey(
+        ownerUserId: 'uid_b',
+        coalesceKey: 'selection',
+      );
+
+      expect(firstOwner?.payloadJson['selectedLevelId'], 'field');
+      expect(secondOwner?.payloadJson['selectedLevelId'], 'forest');
     });
 
     test('ignores malformed rows and keeps valid rows', () async {
@@ -70,7 +102,7 @@ void main() {
         }),
       );
 
-      final loaded = await store.loadAll();
+      final loaded = await store.loadAll(ownerUserId: 'uid_test');
       expect(loaded, hasLength(1));
       expect(loaded.single.coalesceKey, 'selection:character');
     });
@@ -79,12 +111,15 @@ void main() {
       await store.upsertCoalesced(command: _command(key: 'a'));
       await store.upsertCoalesced(command: _command(key: 'b'));
 
-      await store.removeByCoalesceKey(coalesceKey: 'a');
-      final afterRemove = await store.loadAll();
+      await store.removeByCoalesceKey(
+        ownerUserId: 'uid_test',
+        coalesceKey: 'a',
+      );
+      final afterRemove = await store.loadAll(ownerUserId: 'uid_test');
       expect(afterRemove.map((e) => e.coalesceKey), ['b']);
 
       await store.clear();
-      final afterClear = await store.loadAll();
+      final afterClear = await store.loadAll(ownerUserId: 'uid_test');
       expect(afterClear, isEmpty);
     });
   });
@@ -92,6 +127,7 @@ void main() {
 
 OwnershipPendingCommand _command({
   required String key,
+  String ownerUserId = 'uid_test',
   int createdAtMs = 100,
   int updatedAtMs = 100,
   Map<String, Object?> payload = const <String, Object?>{
@@ -99,6 +135,7 @@ OwnershipPendingCommand _command({
   },
 }) {
   return OwnershipPendingCommand(
+    ownerUserId: ownerUserId,
     coalesceKey: key,
     commandType: OwnershipPendingCommandType.setSelection,
     policyTier: OwnershipSyncTier.selectionFastSync,

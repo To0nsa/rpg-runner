@@ -18,6 +18,10 @@ List<OwnershipPendingCommand> _sortPendingCommands(
     if (byUpdated != 0) {
       return byUpdated;
     }
+    final byOwner = a.ownerUserId.compareTo(b.ownerUserId);
+    if (byOwner != 0) {
+      return byOwner;
+    }
     return a.coalesceKey.compareTo(b.coalesceKey);
   });
   return sorted;
@@ -27,12 +31,16 @@ abstract class OwnershipOutboxStore {
   Future<void> upsertCoalesced({required OwnershipPendingCommand command});
 
   Future<OwnershipPendingCommand?> loadByCoalesceKey({
+    required String ownerUserId,
     required String coalesceKey,
   });
 
-  Future<List<OwnershipPendingCommand>> loadAll();
+  Future<List<OwnershipPendingCommand>> loadAll({required String ownerUserId});
 
-  Future<void> removeByCoalesceKey({required String coalesceKey});
+  Future<void> removeByCoalesceKey({
+    required String ownerUserId,
+    required String coalesceKey,
+  });
 
   Future<void> replaceAll({required List<OwnershipPendingCommand> commands});
 
@@ -48,28 +56,37 @@ class InMemoryOwnershipOutboxStore implements OwnershipOutboxStore {
   Future<void> upsertCoalesced({
     required OwnershipPendingCommand command,
   }) async {
-    final prior = _byKey[command.coalesceKey];
-    _byKey[command.coalesceKey] = prior == null
+    final storageKey = _entryKey(command.ownerUserId, command.coalesceKey);
+    final prior = _byKey[storageKey];
+    _byKey[storageKey] = prior == null
         ? command
         : command.copyWith(createdAtMs: prior.createdAtMs);
   }
 
   @override
   Future<OwnershipPendingCommand?> loadByCoalesceKey({
+    required String ownerUserId,
     required String coalesceKey,
   }) async {
-    return _byKey[coalesceKey];
+    return _byKey[_entryKey(ownerUserId, coalesceKey)];
   }
 
   @override
-  Future<List<OwnershipPendingCommand>> loadAll() async {
-    final entries = _sortPendingCommands(_byKey.values);
+  Future<List<OwnershipPendingCommand>> loadAll({
+    required String ownerUserId,
+  }) async {
+    final entries = _sortPendingCommands(
+      _byKey.values.where((entry) => entry.ownerUserId == ownerUserId),
+    );
     return List<OwnershipPendingCommand>.unmodifiable(entries);
   }
 
   @override
-  Future<void> removeByCoalesceKey({required String coalesceKey}) async {
-    _byKey.remove(coalesceKey);
+  Future<void> removeByCoalesceKey({
+    required String ownerUserId,
+    required String coalesceKey,
+  }) async {
+    _byKey.remove(_entryKey(ownerUserId, coalesceKey));
   }
 
   @override
@@ -78,7 +95,12 @@ class InMemoryOwnershipOutboxStore implements OwnershipOutboxStore {
   }) async {
     _byKey
       ..clear()
-      ..addEntries(commands.map((entry) => MapEntry(entry.coalesceKey, entry)));
+      ..addEntries(
+        commands.map(
+          (entry) =>
+              MapEntry(_entryKey(entry.ownerUserId, entry.coalesceKey), entry),
+        ),
+      );
   }
 
   @override
@@ -93,7 +115,7 @@ class SharedPrefsOwnershipOutboxStore implements OwnershipOutboxStore {
   }) : _prefsProvider = prefsProvider ?? SharedPreferences.getInstance;
 
   static const String storageKey = 'ui.ownership_outbox.v2';
-  static const int _storageVersion = 2;
+  static const int _storageVersion = 3;
 
   final Future<SharedPreferences> Function() _prefsProvider;
   Future<void> _mutationQueue = Future<void>.value();
@@ -115,10 +137,12 @@ class SharedPrefsOwnershipOutboxStore implements OwnershipOutboxStore {
     return _enqueueMutation(() async {
       final existing = await _readAllEntries(sort: false);
       final byKey = <String, OwnershipPendingCommand>{
-        for (final item in existing) item.coalesceKey: item,
+        for (final item in existing)
+          _entryKey(item.ownerUserId, item.coalesceKey): item,
       };
-      final prior = byKey[command.coalesceKey];
-      byKey[command.coalesceKey] = prior == null
+      final storageKey = _entryKey(command.ownerUserId, command.coalesceKey);
+      final prior = byKey[storageKey];
+      byKey[storageKey] = prior == null
           ? command
           : command.copyWith(createdAtMs: prior.createdAtMs);
       await _writeEntries(byKey.values.toList(growable: false));
@@ -127,11 +151,13 @@ class SharedPrefsOwnershipOutboxStore implements OwnershipOutboxStore {
 
   @override
   Future<OwnershipPendingCommand?> loadByCoalesceKey({
+    required String ownerUserId,
     required String coalesceKey,
   }) async {
     final entries = await _readAllEntries(sort: false);
     for (final entry in entries) {
-      if (entry.coalesceKey == coalesceKey) {
+      if (entry.ownerUserId == ownerUserId &&
+          entry.coalesceKey == coalesceKey) {
         return entry;
       }
     }
@@ -139,8 +165,13 @@ class SharedPrefsOwnershipOutboxStore implements OwnershipOutboxStore {
   }
 
   @override
-  Future<List<OwnershipPendingCommand>> loadAll() async {
-    return _readAllEntries(sort: true);
+  Future<List<OwnershipPendingCommand>> loadAll({
+    required String ownerUserId,
+  }) async {
+    final entries = await _readAllEntries(sort: true);
+    return List<OwnershipPendingCommand>.unmodifiable(
+      entries.where((entry) => entry.ownerUserId == ownerUserId),
+    );
   }
 
   Future<List<OwnershipPendingCommand>> _readAllEntries({
@@ -172,11 +203,18 @@ class SharedPrefsOwnershipOutboxStore implements OwnershipOutboxStore {
   }
 
   @override
-  Future<void> removeByCoalesceKey({required String coalesceKey}) {
+  Future<void> removeByCoalesceKey({
+    required String ownerUserId,
+    required String coalesceKey,
+  }) {
     return _enqueueMutation(() async {
       final existing = await _readAllEntries(sort: false);
       final next = existing
-          .where((entry) => entry.coalesceKey != coalesceKey)
+          .where(
+            (entry) =>
+                entry.ownerUserId != ownerUserId ||
+                entry.coalesceKey != coalesceKey,
+          )
           .toList(growable: false);
       await _writeEntries(next);
     });
@@ -218,3 +256,6 @@ class SharedPrefsOwnershipOutboxStore implements OwnershipOutboxStore {
     return const <Object?>[];
   }
 }
+
+String _entryKey(String ownerUserId, String coalesceKey) =>
+    '$ownerUserId\u0000$coalesceKey';
