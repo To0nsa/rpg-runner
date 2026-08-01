@@ -2,10 +2,12 @@ import '../domain/authoring_types.dart';
 import '../prefabs/domain/prefab_visual_bounds_resolver.dart';
 import '../prefabs/models/models.dart';
 import '../prefabs/store/prefab_store.dart';
+import '../terrain_authoring/terrain_polygon_interaction.dart';
 import '../workspace/editor_workspace.dart';
 import 'chunk_domain_models.dart';
 import 'chunk_store.dart';
 import 'chunk_validation.dart';
+import 'chunk_v2_collision_commit.dart';
 import 'chunk_v2_file_codec.dart';
 import 'chunk_v2_staging_models.dart';
 import 'chunk_v2_validation.dart';
@@ -18,6 +20,10 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
        _prefabStore = prefabStore;
 
   static const String pluginId = 'chunks';
+
+  /// Staged command for one accepted chunk-local polygon interaction commit.
+  static const String commitChunkPolygonCommandKind = 'commit_chunk_polygon';
+
   final ChunkStore _store;
   final PrefabStore _prefabStore;
   String? _preferredActiveLevelId;
@@ -172,15 +178,17 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
     AuthoringCommand command,
   ) {
     if (document is ChunkV2StagingDocument) {
-      if (command.kind != 'set_active_level') return document;
-      final levelId = command.payload['levelId'];
-      if (levelId is! String ||
-          levelId == document.activeLevelId ||
-          !document.availableLevelIds.contains(levelId)) {
-        return document;
+      if (command.kind == 'set_active_level') {
+        final levelId = command.payload['levelId'];
+        if (levelId is! String ||
+            levelId == document.activeLevelId ||
+            !document.availableLevelIds.contains(levelId)) {
+          return document;
+        }
+        _preferredActiveLevelId = levelId;
+        return document.copyWith(activeLevelId: levelId);
       }
-      _preferredActiveLevelId = levelId;
-      return document.copyWith(activeLevelId: levelId);
+      return _applyV2Edit(document, command);
     }
     final chunkDocument = _asChunkDocument(document);
     switch (command.kind) {
@@ -356,6 +364,35 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
     return PendingChanges(
       changedItemIds: savePlan.changedChunkKeys,
       fileDiffs: fileDiffs,
+    );
+  }
+
+  AuthoringDocument _applyV2Edit(
+    ChunkV2StagingDocument document,
+    AuthoringCommand command,
+  ) {
+    if (command.kind != commitChunkPolygonCommandKind) return document;
+    final chunkKey = command.payload['chunkKey'];
+    final commit = command.payload['commit'];
+    if (chunkKey is! String || commit is! TerrainPolygonInteractionCommit) {
+      return document;
+    }
+    final chunkIndex = document.chunks.indexWhere(
+      (chunk) => chunk.chunkKey == chunkKey,
+    );
+    if (chunkIndex < 0) return document;
+    final result = const ChunkV2CollisionCommitPolicy().apply(
+      chunk: document.chunks[chunkIndex],
+      commit: commit,
+      sourcePath: document.sourcePathByChunkKey[chunkKey] ?? chunkKey,
+      chunkIndex: chunkIndex,
+    );
+    if (!result.accepted || !result.changed) return document;
+    final chunks = document.chunks.toList(growable: false);
+    chunks[chunkIndex] = result.chunk;
+    return document.copyWith(
+      chunks: chunks,
+      changedChunkKeys: <String>{...document.changedChunkKeys, chunkKey},
     );
   }
 
