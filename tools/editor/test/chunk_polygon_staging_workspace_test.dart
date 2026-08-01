@@ -90,6 +90,66 @@ void main() {
       expect(reloadHandler.canReloadEditorPage, isFalse);
 
       await tester.tap(
+        find.byKey(const ValueKey<String>('chunk_polygon_shape_ground_001')),
+      );
+      await tester.pump();
+      final firstVertex = find.byKey(
+        const ValueKey<String>('chunk_polygon_vertex_ground_001_0'),
+      );
+      await tester.ensureVisible(firstVertex);
+      await tester.tap(firstVertex);
+      await tester.pump();
+      final xField = find.byKey(
+        const ValueKey<String>('chunk_polygon_vertex_x_field'),
+      );
+      final yField = find.byKey(
+        const ValueKey<String>('chunk_polygon_vertex_y_field'),
+      );
+      final applyVertex = find.byKey(
+        const ValueKey<String>('chunk_polygon_apply_vertex'),
+      );
+      await tester.ensureVisible(xField);
+      await tester.enterText(xField, '12.25');
+      await tester.enterText(yField, '10.5');
+      await tester.tap(applyVertex);
+      await tester.pump();
+
+      expect(find.text('Use an integer or .5 value.'), findsOneWidget);
+      forestChunk = _chunk(harness.session, 'forest_chunk');
+      expect(forestChunk.revision, 4);
+      expect(harness.session.pendingChanges.hasChanges, isFalse);
+
+      await tester.enterText(xField, '12.5');
+      await tester.tap(applyVertex);
+      await tester.pump();
+
+      forestChunk = _chunk(harness.session, 'forest_chunk');
+      expect(forestChunk.revision, 5);
+      expect(
+        forestChunk.collisionShapes.single.vertices,
+        contains(
+          const TerrainSourceVertexDef(xHalfPixels: 25, yHalfPixels: 21),
+        ),
+      );
+      expect(harness.session.pendingChanges.changedItemIds, <String>[
+        'forest_chunk',
+      ]);
+      expect(shortcutHandler.handleUndoSessionShortcut(), isTrue);
+      await tester.pump();
+      forestChunk = _chunk(harness.session, 'forest_chunk');
+      expect(forestChunk.revision, 4);
+      expect(harness.session.pendingChanges.hasChanges, isFalse);
+
+      await tester.enterText(xField, '101');
+      await tester.tap(applyVertex);
+      await tester.pump();
+      forestChunk = _chunk(harness.session, 'forest_chunk');
+      expect(forestChunk.revision, 4);
+      expect(harness.session.pendingChanges.hasChanges, isFalse);
+      expect(find.text('chunk_collision_shape_out_of_bounds'), findsOneWidget);
+      expect(tester.widget<TextField>(xField).controller!.text, '101');
+
+      await tester.tap(
         find.byKey(const ValueKey<String>('chunk_polygon_level_selector')),
       );
       await tester.pumpAndSettle();

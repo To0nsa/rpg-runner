@@ -13,6 +13,7 @@ import '../../shared/editor_scene_view_utils.dart';
 import '../../shared/editor_scene_viewport_frame.dart';
 import '../../shared/editor_zoom_controls.dart';
 import '../../shared/terrain_polygon_scene_painter.dart';
+import '../../shared/terrain_polygon_vertex_editor.dart';
 import 'chunk_polygon_authoring_controller.dart';
 import 'chunk_polygon_scene_surface.dart';
 
@@ -416,29 +417,7 @@ class ChunkPolygonStagingWorkspaceState
               ],
             ),
             const SizedBox(height: 8),
-            Text('Vertices', style: Theme.of(context).textTheme.titleSmall),
-            for (final entry in selectedShape.vertices.asMap().entries)
-              ListTile(
-                key: ValueKey<String>(
-                  'chunk_polygon_vertex_${selectedShape.shapeId}_${entry.key}',
-                ),
-                dense: true,
-                selected:
-                    selection?.kind == TerrainPolygonSelectionKind.vertex &&
-                    selection?.shapeId == selectedShape.shapeId &&
-                    selection?.elementIndex == entry.key,
-                onTap: () => authoring.select(
-                  TerrainPolygonSelection.vertex(
-                    selectedShape.shapeId,
-                    entry.key,
-                  ),
-                ),
-                title: Text('v${entry.key}'),
-                trailing: Text(
-                  '(${TerrainHalfPixelText.formatTicks(entry.value.xHalfPixels)}, '
-                  '${TerrainHalfPixelText.formatTicks(entry.value.yHalfPixels)})',
-                ),
-              ),
+            _buildVertexInspector(authoring, selectedShape),
           ],
           const Divider(height: 28),
           Text('Diagnostics', style: Theme.of(context).textTheme.titleSmall),
@@ -468,6 +447,63 @@ class ChunkPolygonStagingWorkspaceState
               ),
         ],
       ),
+    );
+  }
+
+  Widget _buildVertexInspector(
+    ChunkPolygonAuthoringController authoring,
+    TerrainSourceShapeDef shape,
+  ) {
+    final selection = authoring.state.selection;
+    final selectedVertexIndex =
+        selection?.shapeId == shape.shapeId &&
+            selection?.kind == TerrainPolygonSelectionKind.vertex
+        ? selection?.elementIndex
+        : null;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text('Vertices', style: Theme.of(context).textTheme.titleSmall),
+        for (final entry in shape.vertices.asMap().entries)
+          ListTile(
+            key: ValueKey<String>(
+              'chunk_polygon_vertex_${shape.shapeId}_${entry.key}',
+            ),
+            dense: true,
+            selected: entry.key == selectedVertexIndex,
+            onTap: () => authoring.select(
+              TerrainPolygonSelection.vertex(shape.shapeId, entry.key),
+            ),
+            title: Text('v${entry.key}'),
+            trailing: Text(
+              '(${TerrainHalfPixelText.formatTicks(entry.value.xHalfPixels)}, '
+              '${TerrainHalfPixelText.formatTicks(entry.value.yHalfPixels)})',
+            ),
+          ),
+        if (selectedVertexIndex != null) ...<Widget>[
+          const SizedBox(height: 8),
+          TerrainPolygonVertexEditor(
+            key: ValueKey<String>(
+              'chunk_polygon_vertex_editor_${shape.shapeId}_'
+              '${selectedVertexIndex}_'
+              '${shape.vertices[selectedVertexIndex].xHalfPixels}_'
+              '${shape.vertices[selectedVertexIndex].yHalfPixels}',
+            ),
+            keyPrefix: 'chunk_polygon',
+            shapeId: shape.shapeId,
+            vertexIndex: selectedVertexIndex,
+            vertex: shape.vertices[selectedVertexIndex],
+            onApply: (xHalfPixels, yHalfPixels) {
+              authoring.editSelectedVertex(
+                TerrainSourceVertexDef(
+                  xHalfPixels: xHalfPixels,
+                  yHalfPixels: yHalfPixels,
+                ),
+              );
+            },
+          ),
+        ],
+      ],
     );
   }
 
