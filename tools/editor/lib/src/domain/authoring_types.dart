@@ -69,12 +69,20 @@ class ValidationIssue {
     required this.code,
     required this.message,
     this.sourcePath,
+    this.shapeId,
+    this.elementIndex,
   });
 
   final ValidationSeverity severity;
   final String code;
   final String message;
   final String? sourcePath;
+
+  /// Optional polygon owner-local shape identity for diagnostic focus.
+  final String? shapeId;
+
+  /// Optional source vertex/edge index associated with [shapeId].
+  final int? elementIndex;
 }
 
 /// Human-readable export byproduct (summary, diff, diagnostics, etc.).

@@ -41,6 +41,7 @@ List<ValidationIssue> validateChunkV2CollisionShapes({
               '${outside.length} vertex/vertices outside closed bounds '
               '0..${chunk.width} x 0..${chunk.height} px.',
           sourcePath: sourcePath,
+          shapeId: shape.shapeId,
         ),
       );
     }
@@ -217,4 +218,6 @@ ValidationIssue _issueFromCore(TerrainDiagnostic diagnostic) => ValidationIssue(
   code: diagnostic.code,
   message: diagnostic.message,
   sourcePath: diagnostic.sourcePath,
+  shapeId: diagnostic.shapeId,
+  elementIndex: diagnostic.elementIndex,
 );

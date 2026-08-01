@@ -409,6 +409,8 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
         code: issue.code,
         message: issue.message,
         sourcePath: issue.sourcePath,
+        shapeId: issue.shapeId.isEmpty ? null : issue.shapeId,
+        elementIndex: issue.shapeId.isEmpty ? null : issue.elementIndex,
       );
 
   /// Compares semantic prefab payloads via canonical serialized output.
