@@ -45,7 +45,7 @@ final class PrefabPolygonAuthoringController extends ChangeNotifier {
 
   final EditorSessionController _session;
   final String _prefabKey;
-  final TerrainPolygonSnapPolicy _snapPolicy;
+  TerrainPolygonSnapPolicy _snapPolicy;
   final PrefabV3CollisionCommitPolicy _commitPolicy;
   final TerrainPolygonInteractionReducer _reducer;
 
@@ -73,6 +73,20 @@ final class PrefabPolygonAuthoringController extends ChangeNotifier {
 
   void setTool(TerrainPolygonTool tool) {
     _replaceLocalState(_reducer.setTool(_state, tool));
+  }
+
+  /// Changes the page-local authoring grid without creating session history.
+  ///
+  /// An active preview is cancelled first so a gesture cannot start under one
+  /// grid and commit under another.
+  void setSnapPolicy(TerrainPolygonSnapPolicy snapPolicy) {
+    if (snapPolicy.stepHalfPixels == _snapPolicy.stepHalfPixels) return;
+    if (_state.hasActiveOperation) {
+      _state = _reducer.cancelActiveOperation(_state);
+    }
+    _snapPolicy = snapPolicy;
+    _issues = const <PrefabValidationIssue>[];
+    notifyListeners();
   }
 
   void select(TerrainPolygonSelection? selection) {

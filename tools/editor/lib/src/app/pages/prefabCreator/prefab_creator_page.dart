@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../prefabs/domain/prefab_domain_plugin.dart';
+import '../../../prefabs/domain/prefab_domain_models.dart';
 import '../../../prefabs/models/models.dart';
 import '../../../prefabs/atlas/workspace_scoped_size_cache.dart';
 import '../../../session/editor_session_controller.dart';
@@ -24,6 +25,7 @@ import 'shared/prefab_editor_shell_state.dart';
 import 'shared/prefab_form_state.dart';
 import 'shared/prefab_editor_mutations.dart';
 import 'shared/prefab_editor_workspace_io.dart';
+import 'staging/prefab_polygon_staging_workspace.dart';
 
 class PrefabCreatorPage extends StatefulWidget {
   const PrefabCreatorPage({super.key, required this.controller});
@@ -63,6 +65,8 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
   final ScrollController _atlasHorizontalScrollController = ScrollController();
   final ScrollController _atlasVerticalScrollController = ScrollController();
   final PrefabEditorShellState _shellState = PrefabEditorShellState();
+  final GlobalKey<PrefabPolygonStagingWorkspaceState> _stagingWorkspaceKey =
+      GlobalKey<PrefabPolygonStagingWorkspaceState>();
 
   final WorkspaceScopedSizeCache _atlasImageSizes = WorkspaceScopedSizeCache();
   final AtlasSlicerController _atlasSlicer = const AtlasSlicerController();
@@ -85,26 +89,38 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
   late final PrefabEditorPageDraftCoordinator _draftCoordinator;
   late final PrefabEditorPageSessionCoordinator _sessionCoordinator;
   late final TabController _tabController;
+  late bool _showingV3Staging;
 
   @override
   bool get hasLocalDraftChanges {
+    if (_showingV3Staging) {
+      return _stagingWorkspaceKey.currentState?.hasLocalDraftChanges ??
+          widget.controller.pendingChanges.hasChanges;
+    }
     return _sessionCoordinator.hasSerializedDataChanges() ||
         _draftCoordinator.hasChanges;
   }
 
   @override
-  bool get canHandleUndoSessionShortcut =>
-      _draftCoordinator.canUndo || widget.controller.canUndo;
+  bool get canHandleUndoSessionShortcut => _showingV3Staging
+      ? (_stagingWorkspaceKey.currentState?.canUndo ??
+            widget.controller.canUndo)
+      : _draftCoordinator.canUndo || widget.controller.canUndo;
 
   @override
-  bool get canHandleRedoSessionShortcut =>
-      _draftCoordinator.canRedo || widget.controller.canRedo;
+  bool get canHandleRedoSessionShortcut => _showingV3Staging
+      ? (_stagingWorkspaceKey.currentState?.canRedo ??
+            widget.controller.canRedo)
+      : _draftCoordinator.canRedo || widget.controller.canRedo;
 
   @override
-  bool get canReloadEditorPage => _shellState.canReload;
+  bool get canReloadEditorPage => !_showingV3Staging && _shellState.canReload;
 
   @override
   bool handleUndoSessionShortcut() {
+    if (_showingV3Staging) {
+      return _stagingWorkspaceKey.currentState?.handleUndoShortcut() ?? false;
+    }
     if (_draftCoordinator.undo(context)) {
       return true;
     }
@@ -117,6 +133,9 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
 
   @override
   bool handleRedoSessionShortcut() {
+    if (_showingV3Staging) {
+      return _stagingWorkspaceKey.currentState?.handleRedoShortcut() ?? false;
+    }
     if (_draftCoordinator.redo(context)) {
       return true;
     }
@@ -133,6 +152,8 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
   @override
   void initState() {
     super.initState();
+    _showingV3Staging = widget.controller.scene is PrefabV3StagingScene;
+    widget.controller.addListener(_handleControllerRouteChanged);
     final workspaceRootPath = _readWorkspaceRootPath;
     final PrefabEditorCommitDataChange commitPrefabDataChange =
         _commitPrefabDataChange;
@@ -227,13 +248,24 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
     _draftCoordinator.installListeners();
     _tabController.addListener(_handleEditorTabChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_showingV3Staging) return;
       _ensurePrefabPluginSelection();
       unawaited(_sessionCoordinator.reloadData());
     });
   }
 
   @override
+  void didUpdateWidget(covariant PrefabCreatorPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller == widget.controller) return;
+    oldWidget.controller.removeListener(_handleControllerRouteChanged);
+    widget.controller.addListener(_handleControllerRouteChanged);
+    _showingV3Staging = widget.controller.scene is PrefabV3StagingScene;
+  }
+
+  @override
   void dispose() {
+    widget.controller.removeListener(_handleControllerRouteChanged);
     _draftCoordinator.dispose();
     _tabController.removeListener(_handleEditorTabChanged);
     _tabController.dispose();
@@ -255,6 +287,12 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
 
   @override
   Widget build(BuildContext context) {
+    if (_showingV3Staging) {
+      return PrefabPolygonStagingWorkspace(
+        key: _stagingWorkspaceKey,
+        controller: widget.controller,
+      );
+    }
     return PrefabEditorShellChrome(
       shellState: _shellState,
       tabController: _tabController,
@@ -286,6 +324,14 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
 
   void _updateState(VoidCallback callback) {
     setState(callback);
+  }
+
+  void _handleControllerRouteChanged() {
+    final showingV3Staging = widget.controller.scene is PrefabV3StagingScene;
+    if (showingV3Staging == _showingV3Staging || !mounted) return;
+    setState(() {
+      _showingV3Staging = showingV3Staging;
+    });
   }
 
   void _handleEditorTabChanged() {
