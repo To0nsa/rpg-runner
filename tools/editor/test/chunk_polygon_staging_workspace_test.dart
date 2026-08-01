@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/chunk_creator_page.dart';
+import 'package:runner_editor/src/app/pages/chunkCreator/staging/chunk_compiled_edge_overlay_painter.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_page_local_draft_state.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_plugin.dart';
@@ -70,6 +71,57 @@ void main() {
         findsOneWidget,
       );
       expect(find.textContaining('prefab prefab_rock rev 3'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('chunk_compiled_edge_overlay')),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('chunk_compiled_edge_inspect_toggle'),
+        ),
+      );
+      await tester.pump();
+      final edgeOverlay = find.byKey(
+        const ValueKey<String>('chunk_compiled_edge_overlay'),
+      );
+      final edgePainter =
+          tester.widget<CustomPaint>(edgeOverlay).painter!
+              as ChunkCompiledEdgeOverlayPainter;
+      await tester.tapAt(
+        tester.getTopLeft(edgeOverlay) +
+            edgePainter.transform.origin +
+            Offset(
+              30 * edgePainter.transform.zoom,
+              10 * edgePainter.transform.zoom,
+            ),
+      );
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey<String>('chunk_compiled_edge_inspector')),
+        findsOneWidget,
+      );
+      final selectedEdgePainter =
+          tester.widget<CustomPaint>(edgeOverlay).painter!
+              as ChunkCompiledEdgeOverlayPainter;
+      expect(
+        selectedEdgePainter.selectedEdgeId?.canonicalKey,
+        '0/12:forest_chunk/-/10:ground_001/0/0',
+      );
+      expect(
+        find.text('0/12:forest_chunk/-/10:ground_001/0/0'),
+        findsOneWidget,
+      );
+      expect(find.text('absolute slope 0° (0 units)'), findsOneWidget);
+      expect(find.textContaining('tangent (1024, 0)'), findsOneWidget);
+      expect(find.text('diagnostics none'), findsOneWidget);
+      expect(_chunk(harness.session, 'forest_chunk').revision, 4);
+      expect(harness.session.pendingChanges.hasChanges, isFalse);
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('chunk_compiled_edge_inspect_toggle'),
+        ),
+      );
+      await tester.pump();
       final lockedApply = tester.widget<FilledButton>(
         find.byKey(const ValueKey<String>('chunk_polygon_apply_locked')),
       );

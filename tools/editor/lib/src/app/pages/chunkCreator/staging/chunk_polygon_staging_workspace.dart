@@ -2,8 +2,10 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:runner_core/collision/terrain/terrain_compiler.dart';
+import 'package:runner_core/collision/terrain/terrain_edge_id.dart';
 
 import '../../../../chunks/chunk_v2_collision_expansion.dart';
+import '../../../../chunks/chunk_v2_compiled_edge_inspection.dart';
 import '../../../../chunks/chunk_v2_file_data.dart';
 import '../../../../chunks/chunk_v2_staging_models.dart';
 import '../../../../domain/authoring_types.dart';
@@ -11,6 +13,7 @@ import '../../../../session/editor_session_controller.dart';
 import '../../../../terrain_authoring/terrain_half_pixel_text.dart';
 import '../../../../terrain_authoring/terrain_polygon_duplicate_offset.dart';
 import '../../../../terrain_authoring/terrain_polygon_interaction.dart';
+import '../../../../terrain_authoring/terrain_physics_text.dart';
 import '../../../../terrain_authoring/terrain_source_models.dart';
 import '../../shared/editor_scene_view_utils.dart';
 import '../../shared/editor_scene_viewport_frame.dart';
@@ -18,6 +21,7 @@ import '../../shared/editor_zoom_controls.dart';
 import '../../shared/terrain_polygon_metadata_dialog.dart';
 import '../../shared/terrain_polygon_scene_painter.dart';
 import '../../shared/terrain_polygon_vertex_editor.dart';
+import 'chunk_compiled_edge_overlay_painter.dart';
 import 'chunk_expanded_collision_overlay_painter.dart';
 import 'chunk_polygon_authoring_controller.dart';
 import 'chunk_polygon_scene_surface.dart';
@@ -49,6 +53,9 @@ class ChunkPolygonStagingWorkspaceState
   String? _selectedChunkKey;
   double _zoom = _initialZoom;
   Offset _pan = Offset.zero;
+  bool _showCompiledEdges = true;
+  bool _inspectCompiledEdges = false;
+  TerrainEdgeId? _selectedCompiledEdgeId;
 
   bool get hasLocalDraftChanges =>
       (_authoring?.hasActiveOperation ?? false) ||
@@ -276,6 +283,35 @@ class ChunkPolygonStagingWorkspaceState
                 );
               },
             ),
+            FilterChip(
+              key: const ValueKey<String>('chunk_compiled_edges_toggle'),
+              label: const Text('Compiled edges'),
+              selected: _showCompiledEdges,
+              onSelected: (selected) {
+                setState(() {
+                  _showCompiledEdges = selected;
+                  if (!selected) {
+                    _inspectCompiledEdges = false;
+                    _selectedCompiledEdgeId = null;
+                  }
+                });
+              },
+            ),
+            FilterChip(
+              key: const ValueKey<String>('chunk_compiled_edge_inspect_toggle'),
+              label: const Text('Inspect edges'),
+              selected: _inspectCompiledEdges,
+              onSelected: (selected) {
+                setState(() {
+                  _inspectCompiledEdges = selected;
+                  if (selected) {
+                    _showCompiledEdges = true;
+                  } else {
+                    _selectedCompiledEdgeId = null;
+                  }
+                });
+              },
+            ),
           ],
         ),
         const SizedBox(height: 8),
@@ -289,7 +325,9 @@ class ChunkPolygonStagingWorkspaceState
                   key: ValueKey<String>('chunk_polygon_tool_${tool.name}'),
                   label: Text(_toolLabel(tool)),
                   selected: authoring.state.tool == tool,
-                  onSelected: (_) => authoring.setTool(tool),
+                  onSelected: _inspectCompiledEdges
+                      ? null
+                      : (_) => authoring.setTool(tool),
                 ),
             ],
           ),
@@ -297,9 +335,13 @@ class ChunkPolygonStagingWorkspaceState
         const SizedBox(height: 8),
         _buildExpansionSummary(authoring),
         const SizedBox(height: 8),
-        const Text(
-          'Primary input follows the selected tool. Ctrl+drag pans, '
-          'Ctrl+scroll zooms, Enter closes a draft, and Escape cancels.',
+        Text(
+          _inspectCompiledEdges
+              ? 'Primary input selects the nearest Core-compiled edge. '
+                    'Ctrl+drag pans and Ctrl+scroll zooms.'
+              : 'Primary input follows the selected tool. Ctrl+drag pans, '
+                    'Ctrl+scroll zooms, Enter closes a draft, and Escape '
+                    'cancels.',
         ),
         const SizedBox(height: 8),
         Expanded(
@@ -310,6 +352,7 @@ class ChunkPolygonStagingWorkspaceState
                 math.max(1, constraints.maxHeight),
               );
               final chunk = authoring.chunk;
+              final expansion = _expansionFor(chunk.chunkKey)?.expansion;
               final transform = TerrainPolygonViewportTransform(
                 origin:
                     Offset(
@@ -347,6 +390,22 @@ class ChunkPolygonStagingWorkspaceState
                         ),
                     ],
                   ),
+                  foreground: _showCompiledEdges && expansion != null
+                      ? CustomPaint(
+                          key: const ValueKey<String>(
+                            'chunk_compiled_edge_overlay',
+                          ),
+                          painter: ChunkCompiledEdgeOverlayPainter(
+                            expansion: expansion,
+                            transform: transform,
+                            selectedEdgeId: _selectedCompiledEdgeId,
+                          ),
+                        )
+                      : const SizedBox.shrink(),
+                  onInspectWorldPoint: _inspectCompiledEdges
+                      ? (point) =>
+                            _inspectCompiledEdge(authoring, worldPoint: point)
+                      : null,
                   onPanDelta: (delta) => setState(() => _pan += delta),
                   onZoomSteps: (steps) {
                     _setZoom(_zoom + steps * _zoomStep);
@@ -457,6 +516,7 @@ class ChunkPolygonStagingWorkspaceState
             const SizedBox(height: 8),
             _buildVertexInspector(authoring, selectedShape),
           ],
+          _buildCompiledEdgeInspector(authoring),
           _buildExpandedPrefabShapes(authoring),
           const Divider(height: 28),
           Text('Diagnostics', style: Theme.of(context).textTheme.titleSmall),
@@ -507,6 +567,95 @@ class ChunkPolygonStagingWorkspaceState
       'shapes · ${expansion.exposedEdgeCount}/'
       '${TerrainGeometryLimits.maxExposedEdgesPerChunk} exposed edges',
       key: const ValueKey<String>('chunk_collision_expansion_summary'),
+    );
+  }
+
+  Widget _buildCompiledEdgeInspector(
+    ChunkPolygonAuthoringController authoring,
+  ) {
+    final expansion = _expansionFor(authoring.chunkKey)?.expansion;
+    final inspection = expansion == null
+        ? null
+        : inspectChunkV2CompiledEdge(expansion, _selectedCompiledEdgeId);
+    if (inspection == null) {
+      return _inspectCompiledEdges
+          ? const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Divider(height: 28),
+                Text(
+                  'Select a compiled edge in the scene to inspect exact Core '
+                  'facts.',
+                  key: ValueKey<String>('chunk_compiled_edge_empty_inspector'),
+                ),
+              ],
+            )
+          : const SizedBox.shrink();
+    }
+    final edge = inspection.edge;
+    final placementKey = edge.id.placementKey;
+    ChunkV2ExpandedPrefabShape? placedShape;
+    if (placementKey != null) {
+      for (final shape in expansion!.expandedPrefabShapes) {
+        if (shape.placementKey == placementKey &&
+            shape.shapeId == edge.id.shapeId) {
+          placedShape = shape;
+          break;
+        }
+      }
+    }
+    final lineage = placedShape == null
+        ? 'direct chunk shape ${edge.id.shapeId}'
+        : 'prefab ${placedShape.prefabKey} rev ${placedShape.prefabRevision} · '
+              'placement $placementKey · shape ${edge.id.shapeId}';
+    final relatedIssues = _ownerIssues(authoring)
+        .where(
+          (issue) =>
+              issue.shapeId == edge.id.shapeId &&
+              issue.placementKey == placementKey,
+        )
+        .toList(growable: false);
+    return Column(
+      key: const ValueKey<String>('chunk_compiled_edge_inspector'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        const Divider(height: 28),
+        Text('Compiled edge', style: Theme.of(context).textTheme.titleSmall),
+        const SizedBox(height: 4),
+        SelectableText(edge.id.canonicalKey),
+        Text(lineage),
+        Text(
+          'start (${TerrainPhysicsText.formatTicks(edge.start.xTicks)}, '
+          '${TerrainPhysicsText.formatTicks(edge.start.yTicks)}) px → '
+          'end (${TerrainPhysicsText.formatTicks(edge.end.xTicks)}, '
+          '${TerrainPhysicsText.formatTicks(edge.end.yTicks)}) px',
+        ),
+        Text(
+          'tangent (${edge.tangent.xTicks}, ${edge.tangent.yTicks}) / '
+          '1024 · outward normal (${edge.outwardNormal.xTicks}, '
+          '${edge.outwardNormal.yTicks}) / 1024',
+        ),
+        Text(
+          'absolute slope '
+          '${TerrainPhysicsText.formatSlopeAngleUnits(inspection.absoluteSlopeAngleUnits)}° '
+          '(${inspection.absoluteSlopeAngleUnits} units)',
+        ),
+        Text(
+          'mode ${edge.collisionMode.name} · '
+          'surface ${edge.surfaceKind ?? '—'} · '
+          'material ${edge.materialKey ?? '—'}',
+        ),
+        Text(
+          'joins ${edge.startJoin.name} → ${edge.endJoin.name} · '
+          'previous ${edge.previousId?.canonicalKey ?? '—'} · '
+          'next ${edge.nextId?.canonicalKey ?? '—'}',
+        ),
+        if (relatedIssues.isEmpty)
+          const Text('diagnostics none')
+        else
+          for (final issue in relatedIssues)
+            Text('diagnostic ${issue.code}: ${issue.message}'),
+      ],
     );
   }
 
@@ -740,6 +889,7 @@ class ChunkPolygonStagingWorkspaceState
   void _bindOwner(String chunkKey) {
     _disposeAuthoring();
     _selectedChunkKey = chunkKey;
+    _selectedCompiledEdgeId = null;
     _authoring = ChunkPolygonAuthoringController(
       session: widget.controller,
       chunkKey: chunkKey,
@@ -771,6 +921,21 @@ class ChunkPolygonStagingWorkspaceState
 
   ChunkV2CollisionExpansionResult? _expansionFor(String chunkKey) =>
       _sceneOrNull?.collisionExpansionByChunkKey[chunkKey];
+
+  void _inspectCompiledEdge(
+    ChunkPolygonAuthoringController authoring, {
+    required Offset worldPoint,
+  }) {
+    final expansion = _expansionFor(authoring.chunkKey)?.expansion;
+    if (expansion == null) return;
+    final edgeId = hitTestChunkV2CompiledEdge(
+      expansion: expansion,
+      worldX: worldPoint.dx,
+      worldY: worldPoint.dy,
+      radiusWorld: 8 / _zoom,
+    );
+    setState(() => _selectedCompiledEdgeId = edgeId);
+  }
 
   void _setZoom(double value) {
     final next = EditorSceneViewUtils.snapZoom(

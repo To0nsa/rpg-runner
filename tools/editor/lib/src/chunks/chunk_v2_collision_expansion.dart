@@ -4,10 +4,12 @@ import 'package:runner_core/collision/terrain/terrain_geometry.dart';
 import 'package:runner_core/collision/terrain/terrain_numeric.dart';
 import 'package:runner_core/collision/terrain/terrain_polygon.dart';
 import 'package:runner_core/collision/terrain/terrain_source_canonicalizer.dart';
+import 'package:runner_core/collision/terrain/terrain_traversal_cache.dart';
 
 import '../domain/authoring_types.dart';
 import '../prefabs/models/models.dart';
 import '../terrain_authoring/terrain_source_core_adapter.dart';
+import '../terrain_authoring/terrain_physics_text.dart';
 import 'chunk_domain_models.dart';
 import 'chunk_v2_file_data.dart';
 
@@ -65,12 +67,14 @@ final class ChunkV2CollisionExpansion {
     required Iterable<ChunkV2ExpandedPrefabShape> expandedPrefabShapes,
   }) : expandedPrefabShapes = List<ChunkV2ExpandedPrefabShape>.unmodifiable(
          expandedPrefabShapes,
-       );
+       ),
+       traversalCache = TerrainTraversalCache.fromGeometry(geometry);
 
   final String chunkKey;
   final TerrainGeometry geometry;
   final int directShapeCount;
   final List<ChunkV2ExpandedPrefabShape> expandedPrefabShapes;
+  final TerrainTraversalCache traversalCache;
 
   int get expandedPrefabShapeCount => expandedPrefabShapes.length;
   int get totalShapeCount => geometry.polygons.length;
@@ -288,8 +292,9 @@ ChunkV2CollisionExpansionResult expandChunkV2Collision({
                       '0..${chunk.height} px.'
                 : 'Chunk ${chunk.chunkKey} placement $placementKey shape '
                       '${polygon.identity.shapeId} vertex ${vertex.key} is at '
-                      '(${_formatPhysicsTicks(point.xTicks)}, '
-                      '${_formatPhysicsTicks(point.yTicks)}) px, outside closed '
+                      '(${TerrainPhysicsText.formatTicks(point.xTicks)}, '
+                      '${TerrainPhysicsText.formatTicks(point.yTicks)}) px, '
+                      'outside closed '
                       'bounds 0..${chunk.width} x 0..${chunk.height} px.',
             sourcePath: polygon.sourcePath,
             placementKey: placementKey,
@@ -386,17 +391,4 @@ int _compareIssues(ValidationIssue left, ValidationIssue right) {
   order = (left.elementIndex ?? -1).compareTo(right.elementIndex ?? -1);
   if (order != 0) return order;
   return left.code.compareTo(right.code);
-}
-
-String _formatPhysicsTicks(int ticks) {
-  final magnitude = ticks.abs();
-  final whole = magnitude ~/ terrainPhysicsTicksPerWorldUnit;
-  final remainder = magnitude.remainder(terrainPhysicsTicksPerWorldUnit);
-  final sign = ticks.isNegative ? '-' : '';
-  if (remainder == 0) return '$sign$whole';
-  final decimal = (remainder * 9765625)
-      .toString()
-      .padLeft(10, '0')
-      .replaceFirst(RegExp(r'0+$'), '');
-  return '$sign$whole.$decimal';
 }

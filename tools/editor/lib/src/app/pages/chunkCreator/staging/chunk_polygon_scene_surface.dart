@@ -17,8 +17,10 @@ class ChunkPolygonSceneSurface extends StatefulWidget {
     required this.controller,
     required this.transform,
     this.background = const SizedBox.expand(),
+    this.foreground = const SizedBox.shrink(),
     this.onPanDelta,
     this.onZoomSteps,
+    this.onInspectWorldPoint,
     this.vertexHitRadiusCanvasPx = 10,
     this.edgeHitRadiusCanvasPx = 7,
     this.semanticLabel = 'Chunk collision polygon editor',
@@ -27,8 +29,10 @@ class ChunkPolygonSceneSurface extends StatefulWidget {
   final ChunkPolygonAuthoringController controller;
   final TerrainPolygonViewportTransform transform;
   final Widget background;
+  final Widget foreground;
   final ValueChanged<Offset>? onPanDelta;
   final ValueChanged<int>? onZoomSteps;
+  final ValueChanged<Offset>? onInspectWorldPoint;
   final double vertexHitRadiusCanvasPx;
   final double edgeHitRadiusCanvasPx;
   final String semanticLabel;
@@ -85,6 +89,7 @@ class _ChunkPolygonSceneSurfaceState extends State<ChunkPolygonSceneSurface> {
                     ),
                   ),
                 ),
+                IgnorePointer(child: widget.foreground),
               ],
             ),
           ),
@@ -102,6 +107,11 @@ class _ChunkPolygonSceneSurfaceState extends State<ChunkPolygonSceneSurface> {
       return;
     }
     final point = widget.transform.canvasToSource(event.localPosition);
+    final inspect = widget.onInspectWorldPoint;
+    if (inspect != null) {
+      inspect(Offset(point.xHalfPixels * 0.5, point.yHalfPixels * 0.5));
+      return;
+    }
     final controller = widget.controller;
     if (controller.state.tool == TerrainPolygonTool.createPolygon) {
       if (controller.state.draft == null) controller.beginCreatePolygon();
