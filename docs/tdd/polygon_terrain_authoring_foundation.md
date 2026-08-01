@@ -36,7 +36,7 @@ The active schema migration, generator, preview, and cutover work remains in
 | Prefab visual-source bounds | editor `PrefabVisualBoundsResolver` | existing v2 validation plus explicit v3 staging load for atlas slices and platform modules |
 | Prefab polygon commit and revision policy | editor `PrefabV3CollisionCommitPolicy` | shared reducer, defensive plugin command, and staged route-coordinator tests; normal page cutover is pending |
 | Prefab-v3 plugin command staging | editor `PrefabV3StagingDocument` / `PrefabDomainPlugin` | explicit strict load, typed commit, immutable pending diff, validation, and hard export lock; normal loader/page cutover is pending |
-| Prefab polygon route-local projection | editor `PrefabPolygonAuthoringController` / `PrefabPolygonSceneSurface` | staged session, painter, pointer, focus, keyboard, rejection, and history tests; normal route selection is pending |
+| Prefab polygon route-local projection | editor `PrefabPolygonAuthoringController` / `PrefabPolygonSceneSurface` / `PrefabPolygonStagingWorkspace` | explicit staged-scene routing, owner isolation, visual sources, tools, snap, diagnostics, focus, keyboard, rejection, and history tests; normal v2 loads still select rectangles |
 | Fail-closed authored JSON and retained-metadata parsing | editor neutral domain plus `StrictTerrainSourceCodec` | legacy migration, prefab v3, and chunk-v2 target codecs |
 | Legacy prefab occupied-area union and reviewed corrections | editor prefab migration domain | aggregate check plan; removal follows verified prefab v3 write |
 | Legacy flat-ground/gap conversion | editor chunk migration domain | aggregate check plan; removal follows verified chunk v2 write |
@@ -315,6 +315,40 @@ remains display state. The surface and controller require an explicitly staged
 v3 session today; the normal Prefab Creator route still renders and writes its
 v2 rectangle workflow until the single source cutover.
 
+When such a staged scene is explicitly present, `PrefabCreatorPage` selects
+`PrefabPolygonStagingWorkspace` without running the v2 reload/save coordinator.
+Ordinary plugin loads still return `PrefabDocument`, so this type dispatch does
+not expose a second normal source path. The staging workspace owns prefab
+selection, tool/snap/viewport state, exact shape readout, metadata actions, and
+diagnostic focus. Switching owners disposes the old route-local coordinator,
+which discards any uncommitted preview instead of transferring it to another
+prefab. Route-level shortcuts delegate back to that coordinator so an active
+preview still receives first-refusal cancellation before session undo.
+
+`PrefabPolygonVisualProjection` establishes one visual coordinate rule for the
+staged route. Atlas slices start at `(-anchorXPx, -anchorYPx)`. Platform-module
+cells first normalize against the complete module bounds, including negative
+grid cells and actual slice dimensions, then apply the same anchor-relative
+origin. `PrefabPolygonVisualSource` decodes images in a cache whose lifetime is
+the current workspace widget state, resets that cache on workspace changes,
+and draws deterministic fallback cells for unavailable files. It paints only
+visual evidence, bounds, grid, and anchor beneath the shared collision painter;
+it never derives or mutates collision authority.
+
+The staging page shows `1 px` owner-grid and exact `0.5 px` snap choices. A
+snap-policy change cancels any active preview locally, and the selected policy
+performs the only pointer-to-source rounding. Shape rows sort by stable shape
+ID. Diagnostics retain shape/edge/vertex identity where available and focus the
+corresponding element without creating history. Geometry is painted outside
+the visual-source outline rather than clipped to it. Decoration owners remain
+selectable for inspection but disable collision creation and retain empty
+collision source.
+
+The source-apply action is intentionally disabled in the staging chrome.
+Accepted edits still create session pending changes for validation/undo tests,
+but the plugin's changed-staging export lock remains the final defense against
+filesystem mutation. The enabled v2 page and its save behavior are unchanged.
+
 ## Shared Polygon Interaction And Scene Projection
 
 `TerrainPolygonInteractionState` keeps committed owner shapes separate from an
@@ -360,8 +394,9 @@ and style have structural equality so equivalent frames do not repaint.
 
 This painter does not compile geometry and its fills are never collision or
 navigation authority. Collision-edge/normal/lineage diagnostics must come from
-the Core compiler preview adapter. Prefab/Chunk controls, keyboard handling,
-route painter installation, and plugin/store commit wiring remain pending.
+the Core compiler preview adapter. The explicit Prefab staging route installs
+the painter and plugin/session wiring; normal Prefab cutover and all Chunk
+polygon-route wiring remain pending.
 
 ## Determinism And Validation Evidence
 
@@ -375,6 +410,10 @@ The foundation is covered by:
 - asymmetric anchor/reflection/scale/translation and symmetric rounding tests
 - post-transform short-edge rejection
 - shared polygon selection/draft/gesture cancellation and one-commit history
+- explicit Prefab staged-scene routing, owner-local draft isolation, visible
+  snap selection, exact half-pixel creation, route shortcuts, undo/redo, and
+  diagnostic focus
+- anchor-relative atlas and negative-cell platform-module visual projection
 - deterministic shape IDs, exact snapping, explicit normalization, and
   positive-area duplicate rejection
 - shared render projection plus vertex/edge/fill hit-test priority and

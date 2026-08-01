@@ -585,6 +585,8 @@ Interaction rules:
 - [ ] preserve shared `Ctrl+drag` pan and `Ctrl+scroll` zoom behavior
 - [ ] primary drag remains tool-driven
 - [ ] expose a visible snap selector: owner grid or exact `0.5 px`
+  - [x] Prefab-v3 staging exposes `1 px` owner-grid and exact `0.5 px`
+        choices; changing it cancels any active preview without session history.
 - [x] never permit arbitrary non-half-pixel vertex values
 - [ ] inspector numeric fields accept integer/`.5` text and display exact values
 - [x] one pointer gesture produces one undo entry, not one entry per event
@@ -610,13 +612,13 @@ curves, and holes are not required for the baseline tool.
       layer in obstacle and platform prefab workflows.
 - [ ] Show visual source, anchor, all collision fills, edge modes, vertices,
       and selected-shape diagnostics in prefab-local coordinates.
-- [ ] Keep atlas/platform-module image-size caches workspace-scoped.
+- [x] Keep atlas/platform-module image-size caches workspace-scoped.
 - [ ] Preserve slice/module selection, prefab operations, tags, and status.
-- [ ] Provide shape list ordering by stable ID and focus from diagnostics.
-- [ ] Show exact collision extent beyond visual bounds without clipping.
-- [ ] Keep page-local selection/tool/viewport drafts projected over the
-      plugin-owned `PrefabData` document.
-- [ ] Route every committed geometry edit through `PrefabDomainPlugin` and
+- [x] Provide shape list ordering by stable ID and focus from diagnostics.
+- [x] Show exact collision extent beyond visual bounds without clipping.
+- [x] Keep page-local selection/tool/viewport drafts projected over the
+      plugin-owned prefab document.
+- [x] Route every committed geometry edit through `PrefabDomainPlugin` and
       `PrefabStore`; no page-local JSON write path.
 - [x] Add a prefab-owned polygon commit policy that rejects stale, invalid,
       unordered, or unresolved-bound commits before session history and bumps
@@ -632,12 +634,17 @@ curves, and holes are not required for the baseline tool.
       composes prefab-v3 with retained tile-v2 source, atlas metadata, and one
       shared atlas/module visual-bounds resolver; normal v2 load/save remains
       selected and changed staging export remains locked.
-- [ ] Bump revision exactly once per committed semantic edit.
-- [ ] Make a drag one pending semantic change even if it has many pointer
+- [x] Add an explicitly selected prefab-v3 staging workspace with owner-local
+      draft isolation, all shared polygon tools, session undo/redo, metadata,
+      exact shape/vertex readout, stable diagnostics focus, atlas/platform
+      visual sources, and a visibly disabled source-apply action. Ordinary v2
+      loads still select the rectangle page.
+- [x] Bump revision exactly once per committed semantic edit.
+- [x] Make a drag one pending semantic change even if it has many pointer
       updates.
 - [ ] Preview downstream referencing chunks/placements affected by a prefab
       change without mutating those chunk source revisions.
-- [ ] Keep decoration prefabs with no collision valid and unchanged.
+- [x] Keep decoration prefabs with no collision valid and unchanged.
 
 ## 19) Chunk Creator Polygon Workflow
 
@@ -1036,6 +1043,8 @@ result.
 | 2026-07-30 / `f039cedc` | Read-only prefab-v3 plugin command staging | Dart VM and Flutter test VM on Windows | Editor analysis is clean and all 304 editor tests pass. Four focused plugin tests cover typed accepted commits, revision/pending-diff projection, invalid/stale/malformed/no-op identity, unresolved visual bounds, clean no-op export, and the changed-document source-write lock with an empty temporary filesystem. Migration check still reports 99 prefabs, 8 chunks, and nine pending target files without writes; generator dry-run still validates 8 chunks, 2 levels, and 2 themes. The normal loader, Prefab route, authored JSON, and runtime authority remain v2. |
 | 2026-07-30 / `56334aef` | Staged Prefab polygon route coordinator and scene surface | Dart VM and Flutter test VM on Windows | Editor analysis is clean and all 311 editor tests pass. New focused tests cover direct fractional grid snapping, local multi-update previews, one accepted plugin/session commit and revision bump, owner rejection with immutable diagnostics, active-preview-first undo, session undo/redo resynchronization, transient export notifications, shared painter projection, tool-driven vertex drag, Escape, Delete, Ctrl-Z/Ctrl-Shift-Z, and Ctrl-drag pan without document mutation. Migration check still reports 99 prefabs, 8 chunks, and nine pending target files without writes; generator dry-run still validates 8 chunks, 2 levels, and 2 themes. The surface requires an explicit staging document and is not selected by the normal v2 Prefab Creator route. |
 | 2026-07-30 / `474c6d98` | Strict read-only prefab-v3 staging loader | Dart VM and Flutter test VM on Windows | Editor analysis is clean and all 318 editor tests pass. Four retained tile-v2 codec tests cover current-source byte round-trip, copy-only canonicalization, strict type/field/order rejection, duplicate module identity, and duplicate cell position. Three fixture tests cover strict prefab-v3/tile-v2 composition, atlas and negative-cell platform bounds, immutable atlas metadata, scene projection, clean pending/export behavior with byte-identical files, legacy-version rejection, and missing-tile failure. The migration and generator guards remain unchanged and read-only. Normal `loadFromRepo`, save, current authored JSON, and runtime authority remain v2/legacy. |
+| 2026-08-01 / `2c480d17` | Anchor-aligned prefab polygon visual-source projection | Flutter test VM on Windows | Editor analysis is clean. Focused tests prove atlas slices use `(-anchorX, -anchorY)` prefab-local placement and negative platform-module cells normalize against complete module bounds before the same anchor transform. Decoded images stay in a workspace-scoped cache; missing images render deterministic fallbacks. No source/store/runtime authority changed. |
+| 2026-08-01 / `01824736` | Explicit prefab-v3 polygon staging workspace | Dart VM and Flutter test VM on Windows | Editor analysis is clean and all 321 editor tests pass. The route test covers explicit scene routing, locked source apply, owner-local draft isolation, route-shortcut cancellation, atlas/module selection, visible `1 px`/`0.5 px` snap, exact odd half-pixel ticks, one revision/undo entry, undo/redo synchronization, stable diagnostic focus, and staged pending owner IDs. Migration check still reports 99 prefabs, 8 chunks, and nine pending targets without writes; generator dry-run still validates 8 chunks, 2 levels, and 2 themes. Ordinary v2 load/save, authored JSON, and runtime authority remain unchanged. |
 
 ### 28.1 Baseline Environment And Source Identity
 
