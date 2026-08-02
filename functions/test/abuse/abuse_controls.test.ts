@@ -125,6 +125,20 @@ test("payload bounds reject oversized and deeply nested JSON", () => {
   );
 });
 
+test("payload bounds reject non-JSON objects", () => {
+  const nonJsonValues = [
+    new Date(),
+    new Map([["key", "value"]]),
+    new Set([1]),
+  ];
+  for (const value of nonJsonValues) {
+    assert.throws(
+      () => assertCallablePayloadBounds({ value }),
+      (error: { code?: string }) => error.code === "invalid-argument",
+    );
+  }
+});
+
 test("ownership command IDs have bounded backend-safe format", () => {
   const valid = {
     command: {

@@ -104,6 +104,11 @@ function visitJsonValue(
       return;
     }
 
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null) {
+      throw invalidPayload(`${path} contains a non-JSON object.`);
+    }
+
     const entries = Object.entries(value as Record<string, unknown>);
     if (entries.length > bounds.maxObjectKeys) {
       throw invalidPayload(

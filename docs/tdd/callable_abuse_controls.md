@@ -95,7 +95,9 @@ logic:
 - maximum object-field-name length: 128;
 - maximum total JSON nodes: 512.
 
-Non-finite numbers, non-JSON values, and cyclic structures are rejected.
+Only JSON primitives, arrays, and plain objects are accepted. Non-finite
+numbers, non-JSON values (including `Date`, `Map`, and `Set`), and cyclic
+structures are rejected.
 Ownership command IDs and run-create request IDs are additionally limited to 96
 characters and `[A-Za-z0-9._:-]`, starting with an alphanumeric character.
 
