@@ -1461,7 +1461,13 @@ v2/chunk v1. The opt-in actor layer now shows Éloïse/Grojib/Hashash support
 eligibility, the accepted Grojib/Hashash walk/jump/drop graph views, Unoco
 solid blockers and local-hover candidates, and Derf 15-degree/32-pixel perch
 evidence. It explicitly does not invent a player pathfinding graph or Unoco
-flight graph. Marker-placement diagnostics, scheduler-aware seams, safe source
-migration, staged generation, and the coordinated normal editor cutover remain
-open. Phase 4 must not select polygon terrain in normal production runs before
-the later streaming/content cutover phases.
+flight graph. The marker layer now preserves authored order, stable identity,
+chance, salt, and placement intent while resolving Grojib, Unoco, and Derf
+against exact compiled supports through the Phase 3 query without consuming
+RNG. It separates guaranteed/conditional acceptance and rejection, disabled or
+malformed markers, and Hashash's deferred camera-edge behavior. Marker Y stays
+editor metadata; procedural item candidates are not fabricated, and projectile
+terrain remains explicitly later-phase work. Scheduler-aware seams, safe
+source migration, staged generation, and the coordinated normal editor cutover
+remain open. Phase 4 must not select polygon terrain in normal production runs
+before the later streaming/content cutover phases.

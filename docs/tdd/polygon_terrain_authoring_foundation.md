@@ -31,7 +31,7 @@ The active schema migration, generator, preview, and cutover work remains in
 | Polygon collision metadata dialog | editor `TerrainPolygonMetadataDialog` / `TerrainPolygonInteractionReducer.editSelectedShapeMetadata` | one owner-neutral collision-mode/surface/material dialog used by both explicit staging routes; owner controllers retain commit authority |
 | Polygon duplicate placement default | editor `findTerrainPolygonDuplicateOffset` | deterministic nearest conservative AABB-free, snap-aligned candidate on both explicit staging routes; exact owner validation remains final authority |
 | Render projection and source-space hit testing | editor `TerrainPolygonSceneProjection` / `TerrainPolygonSceneHitTest` | framework-neutral scene tests and both explicit staging surfaces |
-| Canvas projection and source-loop overlay | editor `TerrainPolygonViewportTransform` / `TerrainPolygonScenePainter` | shared Flutter painter tests and both explicit staging surfaces; compiler-edge overlay is pending |
+| Canvas projection and source-loop overlay | editor `TerrainPolygonViewportTransform` / `TerrainPolygonScenePainter` | shared Flutter painter tests and both explicit staging surfaces; Chunk staging layers Core edge, actor-terrain, and marker-placement diagnostics above it |
 | Prefab polygon owner validation | editor `validatePrefabCollisionShapes` | Core compiler plus exact visual-bounds tests; normal `PrefabDef` integration is pending |
 | Immutable prefab-v3 polygon record | editor `PrefabV3Def` | migration target and model-contract tests; normal store/UI integration is pending |
 | Strict prefab-v3 file structure and canonical serialization | editor `PrefabV3FileData` / `PrefabV3FileCodec` | delegated migration checks and explicit read-only store staging; normal load/save cutover is pending |
@@ -47,8 +47,9 @@ The active schema migration, generator, preview, and cutover work remains in
 | Cross-domain canonical migration report | editor migration domain | read-only CLI, strict in-memory targets, and exact source SHA-256 audit; source writes remain pending |
 | Strict chunk-v2 file structure and canonical serialization | editor `ChunkV2FileData` / `ChunkV2FileCodec` | migration facade delegation, complete-repository round-trip, and explicit strict store staging; normal load/save cutover is pending |
 | Chunk-v2 plugin staging, direct-owner validation, and commit policy | editor `ChunkV2StagingDocument` / `ChunkV2CollisionCommitPolicy` / `ChunkDomainPlugin` | strict future-source composition, Core direct-shape/bounds validation, freshness/order/revision enforcement, typed commits, immutable pending diffs, hard export lock, and read-only direct/placed collision expansion; remaining metadata commands and normal cutover are pending |
-| Chunk polygon route-local projection | editor `ChunkPolygonAuthoringController` / `ChunkPolygonSceneSurface` / `ChunkPolygonStagingWorkspace` | explicit staged-scene routing, active-level owner isolation, tools, snap, bounds, diagnostics, keyboard, rejection, history, compiled-edge inspection, and actor-terrain overlays; normal v1 loads still select ground/gap authoring |
+| Chunk polygon route-local projection | editor `ChunkPolygonAuthoringController` / `ChunkPolygonSceneSurface` / `ChunkPolygonStagingWorkspace` | explicit staged-scene routing, active-level owner isolation, tools, snap, bounds, diagnostics, keyboard, rejection, history, compiled-edge inspection, actor-terrain, and marker-placement overlays; normal v1 loads still select ground/gap authoring |
 | Chunk actor terrain projection | editor `ChunkV2ActorTerrainProjection` | Core surface extraction; Éloïse/Grojib/Hashash eligibility; published Grojib/Hashash graphs; Unoco solid/local-hover evidence; Derf 15-degree/32-pixel perch evidence; no player/flight graph or source mutation |
+| Chunk marker contract and placement projection | editor `chunk_v2_marker_contract.dart` / `ChunkV2MarkerPlacementProjection` | immutable level ground context, staged marker validation, exact Phase 3 enemy placement evidence, Hashash deferral, authored-order/stable-key retention, and zero RNG/source mutation |
 
 Core has no dependency on editor models, JSON, widgets, or filesystem state.
 The editor depends on Core through a one-way local package dependency and does
@@ -538,6 +539,49 @@ same canonical lineage. Overlay selection, actor changes, and inspection are
 route-local, consume no RNG, and cannot change a chunk revision, pending diff,
 authored marker, source file, or runtime authority.
 
+The opt-in marker layer reuses that exact actor projection and constructs a
+`TerrainSpawnPlacementResolver` over its version-coherent Core geometry, edge
+index, surface index, and surface-set identity. Explicit chunk-v2 staging also
+loads each referenced level's `groundTopY` through `LevelStore` and snapshots
+it into the immutable document/scene. A chunk with authored markers and no
+finite, Core-quantizable level ground plane fails staged validation;
+marker-free fixtures do not require synthetic level context.
+
+Outcomes remain in original authored marker order. Stable selection keys reuse
+`buildChunkPlacedMarkerSelections`; chance, salt, marker ID, placement string,
+and authored X/Y are copied without normalization or mutation. The projection
+does not roll chance. It classifies 100% and conditional accepted/rejected
+placements separately, keeps 0% markers disabled, reports malformed source
+contracts before Core invocation, and retains Core's typed validity plus its
+canonical integer diagnostic.
+
+Marker X enters the deterministic physics grid; marker Y does not. The latter
+is editor anchor metadata and is intentionally absent from generated
+`SpawnMarker`. Ground intent chooses a direct solid upward surface at marker X
+whose exact Y equals the level ground plane. Highest-surface intent chooses the
+physically highest upward surface before actor filtering. During this locked
+staging bridge, obstacle-top intent chooses the highest solid upward surface
+with placed-prefab lineage, matching the current static-solid content role
+without inventing a new authoring tag. Equal-height candidates use canonical
+edge-ID order.
+
+The selected surface Y produces the historical body candidate from the
+catalog-owned upright capsule and offset. Unoco instead uses Core's default
+150-pixel hover offset; one-way terrain remains excluded from its clearance.
+The request carries the exact intended edge ID and delegates slope, support
+width, same-edge clamp, full-capsule clearance, support point, blocker, and
+final body transform to the accepted Phase 3 resolver. The overlay draws the
+authored anchor, intended support, requested or accepted upright capsule, and
+rejection mark; selection exposes every exact ID, point, slope, clamp, and Core
+diagnostic.
+
+Hashash markers are not resolved at authored X: an accepted runtime roll adds a
+deferred count and later chooses the visible camera-right chunk edge. The
+projection therefore records guaranteed or conditional deferral without a
+placement query or RNG draw. Procedural collectible/restoration candidates
+have no authored marker records and are not fabricated. Projectile terrain is
+explicitly later-phase work and is not previewed.
+
 The normal chunk-v1 route, prefab-v2 source, authored JSON, generator input,
 and runtime collision authority remain unchanged. Generator parity, placement
 editing, scheduler seams, and normal-schema cutover remain later Phase 4 gates.
@@ -663,6 +707,10 @@ The foundation is covered by:
   Grojib/Hashash graph views, Unoco solid/local-hover classification, Derf
   solid/15-degree/32-pixel perch evidence, input-permutation signatures, and an
   opt-in route overlay/inspector that creates no revision or pending diff
+- authored-order marker projection with stable keys/chance/salt, exact
+  ground/highest/obstacle support intent, Grojib/Unoco/Derf Core placement,
+  Derf support-width rejection, Hashash deferral, disabled/malformed outcomes,
+  level-ground validation, zero RNG draws, and no revision or pending diff
 - prefab owner commit freshness, canonical order, visual-bound resolution,
   warning/error handling, no-op identity, and exactly-once revision tests
 - full Core geometry/signature goldens and fresh-process signature tests
