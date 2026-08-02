@@ -454,7 +454,11 @@ class _FakeRunSessionApi implements RunSessionApi {
       objectPath:
           'replay-submissions/pending/$userId/$runSessionId/replay.bin.gz',
       uploadUrl: 'https://upload.invalid/$runSessionId',
-      uploadMethod: 'PUT',
+      uploadMethod: 'POST',
+      uploadFields: const <String, String>{
+        'Content-Type': 'application/octet-stream',
+        'key': 'replay-submissions/pending/test/replay.bin.gz',
+      },
       contentType: 'application/octet-stream',
       maxBytes: 8_388_608,
       expiresAtMs: 9_999_999,
@@ -603,6 +607,9 @@ class _StaticAuthApi implements AuthApi {
 
   @override
   Future<AuthSession> loadSession() async => _session;
+
+  @override
+  Future<AuthSession> reauthenticateForSensitiveOperation() async => _session;
 }
 
 class _StaticOwnershipApi implements LoadoutOwnershipApi {

@@ -325,7 +325,11 @@ function noOpSubmissionDependencies(): RunSubmissionDependencies {
       async issueUploadGrant() {
         return {
           uploadUrl: "https://example.invalid/upload",
-          uploadMethod: "PUT",
+          uploadMethod: "POST",
+          uploadFields: {
+            "Content-Type": "application/octet-stream",
+            key: "replay-submissions/pending/test/replay.bin.gz",
+          },
         } as const;
       },
       async loadMetadata() {

@@ -87,7 +87,8 @@ export interface UploadGrantRecord {
   runSessionId: string;
   objectPath: string;
   uploadUrl: string;
-  uploadMethod: "PUT";
+  uploadMethod: "POST";
+  uploadFields: Record<string, string>;
   contentType: string;
   maxBytes: number;
   expiresAtMs: number;
@@ -95,7 +96,8 @@ export interface UploadGrantRecord {
 
 interface UploadGrantIssueResult {
   uploadUrl: string;
-  uploadMethod: "PUT";
+  uploadMethod: "POST";
+  uploadFields: Record<string, string>;
 }
 
 interface ReplayObjectMetadata {
@@ -108,6 +110,7 @@ export interface ReplaySubmissionObjectStore {
   issueUploadGrant(args: {
     objectPath: string;
     contentType: string;
+    maxBytes: number;
     expiresAtMs: number;
   }): Promise<UploadGrantIssueResult>;
   loadMetadata(args: { objectPath: string }): Promise<ReplayObjectMetadata>;
@@ -281,6 +284,7 @@ export async function createRunSessionUploadGrant(
   const issued = await args.dependencies.objectStore.issueUploadGrant({
     objectPath,
     contentType: replayUploadContentType,
+    maxBytes: replayUploadMaxBytes,
     expiresAtMs: leaseExpiresAtMs,
   });
   return {
@@ -289,6 +293,7 @@ export async function createRunSessionUploadGrant(
       objectPath,
       uploadUrl: issued.uploadUrl,
       uploadMethod: issued.uploadMethod,
+      uploadFields: issued.uploadFields,
       contentType: replayUploadContentType,
       maxBytes: replayUploadMaxBytes,
       expiresAtMs: leaseExpiresAtMs,
@@ -943,19 +948,25 @@ class CloudStorageReplaySubmissionObjectStore
   async issueUploadGrant(args: {
     objectPath: string;
     contentType: string;
+    maxBytes: number;
     expiresAtMs: number;
   }): Promise<UploadGrantIssueResult> {
     const bucket = getStorage().bucket(this.bucketName);
     const file = bucket.file(args.objectPath);
-    const [uploadUrl] = await file.getSignedUrl({
-      version: "v4",
-      action: "write",
+    const [policy] = await file.generateSignedPostPolicyV4({
       expires: args.expiresAtMs,
-      contentType: args.contentType,
+      fields: {
+        "Content-Type": args.contentType,
+      },
+      conditions: [
+        ["eq", "$Content-Type", args.contentType],
+        ["content-length-range", 1, args.maxBytes],
+      ],
     });
     return {
-      uploadUrl,
-      uploadMethod: "PUT",
+      uploadUrl: policy.url,
+      uploadMethod: "POST",
+      uploadFields: policy.fields,
     };
   }
 

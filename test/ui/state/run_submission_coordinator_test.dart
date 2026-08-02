@@ -433,7 +433,11 @@ class _FakeRunSessionApi implements RunSessionApi {
       objectPath:
           'replay-submissions/pending/$userId/$runSessionId/replay.bin.gz',
       uploadUrl: 'https://upload.invalid/$runSessionId',
-      uploadMethod: 'PUT',
+      uploadMethod: 'POST',
+      uploadFields: const <String, String>{
+        'Content-Type': 'application/octet-stream',
+        'key': 'replay-submissions/pending/test/replay.bin.gz',
+      },
       contentType: 'application/octet-stream',
       maxBytes: 8_388_608,
       expiresAtMs: 1_800_000_000_000,

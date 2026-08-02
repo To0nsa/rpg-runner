@@ -16,6 +16,7 @@
     "test:compiled": "node --test \"lib_test/test/**/*.test.js\""
   },
   "dependencies": {
+    "@google-cloud/storage": "^7.21.0",
     "@google-cloud/tasks": "^6.2.3",
     "firebase-admin": "^14.2.0",
     "firebase-functions": "^7.3.0"

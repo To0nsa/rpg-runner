@@ -11,6 +11,7 @@ final class RunUploadGrant {
     required this.objectPath,
     required this.uploadUrl,
     required this.uploadMethod,
+    required this.uploadFields,
     required this.contentType,
     required this.maxBytes,
     required this.expiresAtMs,
@@ -20,6 +21,7 @@ final class RunUploadGrant {
   final String objectPath;
   final String uploadUrl;
   final String uploadMethod;
+  final Map<String, String> uploadFields;
   final String contentType;
   final int maxBytes;
   final int expiresAtMs;
@@ -33,6 +35,7 @@ final class RunUploadGrant {
     final objectPath = json['objectPath'];
     final uploadUrl = json['uploadUrl'];
     final uploadMethod = json['uploadMethod'];
+    final uploadFields = json['uploadFields'];
     final contentType = json['contentType'];
     final maxBytes = json['maxBytes'];
     final expiresAtMs = json['expiresAtMs'];
@@ -45,8 +48,9 @@ final class RunUploadGrant {
     if (uploadUrl is! String || uploadUrl.trim().isEmpty) {
       throw FormatException('runUploadGrant.uploadUrl must be non-empty.');
     }
-    if (uploadMethod is! String || uploadMethod.trim().isEmpty) {
-      throw FormatException('runUploadGrant.uploadMethod must be non-empty.');
+    if (uploadMethod is! String ||
+        uploadMethod.trim().toUpperCase() != 'POST') {
+      throw FormatException('runUploadGrant.uploadMethod must be POST.');
     }
     if (contentType is! String || contentType.trim().isEmpty) {
       throw FormatException('runUploadGrant.contentType must be non-empty.');
@@ -57,17 +61,53 @@ final class RunUploadGrant {
     if (expiresAtMs is! int || expiresAtMs <= 0) {
       throw FormatException('runUploadGrant.expiresAtMs must be > 0.');
     }
+    final fields = _decodeUploadFields(uploadFields);
+    if (fields['Content-Type'] != contentType) {
+      throw FormatException(
+        'runUploadGrant.uploadFields must bind the grant content type.',
+      );
+    }
     return RunUploadGrant(
       runSessionId: runSessionId,
       objectPath: objectPath,
       uploadUrl: uploadUrl,
       uploadMethod: uploadMethod,
+      uploadFields: fields,
       contentType: contentType,
       maxBytes: maxBytes,
       expiresAtMs: expiresAtMs,
     );
   }
 }
+
+Map<String, String> _decodeUploadFields(Object? raw) {
+  if (raw is! Map || raw.isEmpty) {
+    throw FormatException('runUploadGrant.uploadFields must be non-empty.');
+  }
+  final fields = <String, String>{};
+  for (final entry in raw.entries) {
+    if (entry.key is! String || entry.value is! String) {
+      throw FormatException(
+        'runUploadGrant.uploadFields must contain strings.',
+      );
+    }
+    final name = entry.key as String;
+    final value = entry.value as String;
+    if (name.isEmpty ||
+        value.isEmpty ||
+        _containsMultipartLineBreak(name) ||
+        _containsMultipartLineBreak(value)) {
+      throw FormatException(
+        'runUploadGrant.uploadFields contains an invalid form field.',
+      );
+    }
+    fields[name] = value;
+  }
+  return Map<String, String>.unmodifiable(fields);
+}
+
+bool _containsMultipartLineBreak(String value) =>
+    value.contains('\r') || value.contains('\n');
 
 abstract class RunSessionApi {
   Future<RunTicket> createRunSession({

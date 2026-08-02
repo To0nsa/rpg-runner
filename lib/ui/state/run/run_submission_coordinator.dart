@@ -34,7 +34,7 @@ class HttpRunReplayUploader implements RunReplayUploader {
     required int contentLengthBytes,
     required String contentType,
   }) async {
-    if (uploadGrant.uploadMethod.toUpperCase() != 'PUT') {
+    if (uploadGrant.uploadMethod.toUpperCase() != 'POST') {
       throw const RunReplayUploadException(
         code: 'unsupported-upload-method',
         message: 'Replay upload grant method is not supported.',
@@ -54,6 +54,13 @@ class HttpRunReplayUploader implements RunReplayUploader {
             '${uploadGrant.maxBytes}.',
       );
     }
+    if (contentType != uploadGrant.contentType) {
+      throw const RunReplayUploadException(
+        code: 'content-type-mismatch',
+        message: 'Replay content type did not match the upload grant.',
+      );
+    }
+    _validateMultipartFields(uploadGrant);
 
     final replayFile = File(replayFilePath);
     if (!await replayFile.exists()) {
@@ -72,20 +79,46 @@ class HttpRunReplayUploader implements RunReplayUploader {
       );
     }
 
+    final boundary =
+        '----RpgRunnerReplay${DateTime.now().microsecondsSinceEpoch}';
+    final fields = uploadGrant.uploadFields.entries.toList(growable: false);
+    final fieldParts = <List<int>>[
+      for (final field in fields)
+        utf8.encode(
+          '--$boundary\r\n'
+          'Content-Disposition: form-data; name="${field.key}"\r\n'
+          '\r\n'
+          '${field.value}\r\n',
+        ),
+    ];
+    final fileHeader = utf8.encode(
+      '--$boundary\r\n'
+      'Content-Disposition: form-data; name="file"; '
+      'filename="replay.bin.gz"\r\n'
+      'Content-Type: ${uploadGrant.contentType}\r\n'
+      '\r\n',
+    );
+    final closingBoundary = utf8.encode('\r\n--$boundary--\r\n');
+    final requestContentLength =
+        fieldParts.fold<int>(0, (total, part) => total + part.length) +
+        fileHeader.length +
+        contentLengthBytes +
+        closingBoundary.length;
+
     final uploadUri = Uri.parse(uploadGrant.uploadUrl);
-    final request = await _httpClient.openUrl(
-      uploadGrant.uploadMethod,
-      uploadUri,
+    final request = await _httpClient.postUrl(uploadUri);
+    request.headers.contentType = ContentType(
+      'multipart',
+      'form-data',
+      parameters: <String, String>{'boundary': boundary},
     );
-    request.headers.set(
-      HttpHeaders.contentTypeHeader,
-      uploadGrant.contentType.isEmpty ? contentType : uploadGrant.contentType,
-    );
-    request.headers.set(
-      HttpHeaders.contentLengthHeader,
-      contentLengthBytes.toString(),
-    );
+    request.contentLength = requestContentLength;
+    for (final fieldPart in fieldParts) {
+      request.add(fieldPart);
+    }
+    request.add(fileHeader);
     await request.addStream(replayFile.openRead());
+    request.add(closingBoundary);
     final response = await request.close();
     final accepted = response.statusCode >= 200 && response.statusCode < 300;
     if (accepted) {
@@ -107,7 +140,31 @@ class HttpRunReplayUploader implements RunReplayUploader {
       statusCode: response.statusCode,
     );
   }
+
+  void _validateMultipartFields(RunUploadGrant uploadGrant) {
+    if (uploadGrant.uploadFields.isEmpty ||
+        uploadGrant.uploadFields['Content-Type'] != uploadGrant.contentType) {
+      throw const RunReplayUploadException(
+        code: 'invalid-upload-fields',
+        message: 'Replay upload grant did not contain a valid signed form.',
+      );
+    }
+    for (final field in uploadGrant.uploadFields.entries) {
+      if (field.key.isEmpty ||
+          field.value.isEmpty ||
+          _containsFormLineBreak(field.key) ||
+          _containsFormLineBreak(field.value)) {
+        throw const RunReplayUploadException(
+          code: 'invalid-upload-fields',
+          message: 'Replay upload grant did not contain a valid signed form.',
+        );
+      }
+    }
+  }
 }
+
+bool _containsFormLineBreak(String value) =>
+    value.contains('\r') || value.contains('\n');
 
 final class RunReplayUploadException implements Exception {
   const RunReplayUploadException({

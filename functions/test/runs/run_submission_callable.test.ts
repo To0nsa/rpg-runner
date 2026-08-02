@@ -859,12 +859,21 @@ class FakeReplaySubmissionObjectStore {
   async issueUploadGrant(args: {
     objectPath: string;
     contentType: string;
+    maxBytes: number;
     expiresAtMs: number;
-  }): Promise<{ uploadUrl: string; uploadMethod: "PUT" }> {
+  }): Promise<{
+    uploadUrl: string;
+    uploadMethod: "POST";
+    uploadFields: Record<string, string>;
+  }> {
     this.issuedObjectPaths.push(args.objectPath);
     return {
       uploadUrl: `https://upload.invalid/${encodeURIComponent(args.objectPath)}?exp=${args.expiresAtMs}`,
-      uploadMethod: "PUT",
+      uploadMethod: "POST",
+      uploadFields: {
+        "Content-Type": args.contentType,
+        key: args.objectPath,
+      },
     };
   }
 

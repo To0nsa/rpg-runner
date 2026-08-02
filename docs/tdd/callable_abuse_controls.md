@@ -205,10 +205,15 @@ compatibility version.
 - The final create transaction still reads the deletion tombstone and active
   session query before creating the document.
 
-Replay uploads are capped at 8 MiB in the signed grant, the public finalize
-validator, the Storage metadata check, and the persisted uploaded-replay
-contract. Finalize byte quotas are charged before Storage metadata lookup and
-represent attempted replay bytes, including repeated attempts.
+The backend issues a V4 signed Storage `POST` policy, not a signed `PUT` URL.
+It binds the canonical object path and `application/octet-stream` content type,
+and includes a `content-length-range` of 1 through 8 MiB. The callable returns
+the signed form fields; Flutter submits every field before the replay file in a
+multipart form. Storage therefore rejects oversized uploads at the write
+boundary, while the public finalize validator, Storage metadata check, and
+persisted uploaded-replay contract provide defense in depth. Finalize byte
+quotas are charged before Storage metadata lookup and represent attempted
+replay bytes, including repeated attempts.
 
 ## Ownership idempotency retention
 
