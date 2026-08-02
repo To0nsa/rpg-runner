@@ -1457,7 +1457,11 @@ terrain, and renders the quantized result as a read-only lineage overlay with
 separate capacity evidence. Core-exposed edges can also be rendered, selected,
 and inspected for exact identity, geometry, slope, metadata, adjacency, and
 diagnostic facts without editing authority. Normal source remains prefab
-v2/chunk v1; actor/navigation overlays, scheduler-aware seams, safe source
+v2/chunk v1. The opt-in actor layer now shows Éloïse/Grojib/Hashash support
+eligibility, the accepted Grojib/Hashash walk/jump/drop graph views, Unoco
+solid blockers and local-hover candidates, and Derf 15-degree/32-pixel perch
+evidence. It explicitly does not invent a player pathfinding graph or Unoco
+flight graph. Marker-placement diagnostics, scheduler-aware seams, safe source
 migration, staged generation, and the coordinated normal editor cutover remain
 open. Phase 4 must not select polygon terrain in normal production runs before
 the later streaming/content cutover phases.

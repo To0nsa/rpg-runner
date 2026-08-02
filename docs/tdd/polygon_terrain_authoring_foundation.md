@@ -46,8 +46,9 @@ The active schema migration, generator, preview, and cutover work remains in
 | Strict legacy prefab-v1/v2 and chunk-v1 source parsing | editor migration-owned `LegacyPrefabDef` / chunk-v1 models | read-only aggregate planner input; compatibility stores and normal `PrefabDef` are bypassed |
 | Cross-domain canonical migration report | editor migration domain | read-only CLI, strict in-memory targets, and exact source SHA-256 audit; source writes remain pending |
 | Strict chunk-v2 file structure and canonical serialization | editor `ChunkV2FileData` / `ChunkV2FileCodec` | migration facade delegation, complete-repository round-trip, and explicit strict store staging; normal load/save cutover is pending |
-| Chunk-v2 plugin staging, direct-owner validation, and commit policy | editor `ChunkV2StagingDocument` / `ChunkV2CollisionCommitPolicy` / `ChunkDomainPlugin` | strict future-source composition, Core direct-shape/bounds validation, freshness/order/revision enforcement, typed commits, immutable pending diffs, and hard export lock; placement expansion, remaining metadata commands, and normal cutover are pending |
-| Chunk polygon route-local projection | editor `ChunkPolygonAuthoringController` / `ChunkPolygonSceneSurface` / `ChunkPolygonStagingWorkspace` | explicit staged-scene routing, active-level owner isolation, tools, snap, bounds, diagnostics, keyboard, rejection, and history tests; normal v1 loads still select ground/gap authoring |
+| Chunk-v2 plugin staging, direct-owner validation, and commit policy | editor `ChunkV2StagingDocument` / `ChunkV2CollisionCommitPolicy` / `ChunkDomainPlugin` | strict future-source composition, Core direct-shape/bounds validation, freshness/order/revision enforcement, typed commits, immutable pending diffs, hard export lock, and read-only direct/placed collision expansion; remaining metadata commands and normal cutover are pending |
+| Chunk polygon route-local projection | editor `ChunkPolygonAuthoringController` / `ChunkPolygonSceneSurface` / `ChunkPolygonStagingWorkspace` | explicit staged-scene routing, active-level owner isolation, tools, snap, bounds, diagnostics, keyboard, rejection, history, compiled-edge inspection, and actor-terrain overlays; normal v1 loads still select ground/gap authoring |
+| Chunk actor terrain projection | editor `ChunkV2ActorTerrainProjection` | Core surface extraction; Éloïse/Grojib/Hashash eligibility; published Grojib/Hashash graphs; Unoco solid/local-hover evidence; Derf 15-degree/32-pixel perch evidence; no player/flight graph or source mutation |
 
 Core has no dependency on editor models, JSON, widgets, or filesystem state.
 The editor depends on Core through a one-way local package dependency and does
@@ -509,7 +510,33 @@ integer tangent and outward-normal components, exact `1/1024 degree` absolute
 slope, collision mode, surface/material, endpoint joins, previous/next IDs, and
 related diagnostics. `TerrainPhysicsText` formats both fixed-point scales as
 terminating decimals with integer arithmetic; display never feeds authority.
-Normal-vector drawing and actor eligibility/navigation overlays remain pending.
+Normal-vector drawing remains pending.
+
+The opt-in actor-terrain layer builds one immutable
+`ChunkV2ActorTerrainProjection` only for the active staged chunk. It constructs
+Core's `TerrainRuntimeBundle` with the accepted default Phase 3 grounded-enemy
+profiles, so Grojib and Hashash reuse the exact shared `TerrainSurfaceSet`,
+eligibility arrays, and walk/jump/drop graph publications. Éloïse uses the
+accepted 60-degree `TerrainTraversalProfile` against that same surface set but
+has no graph: Core does not own a player pathfinding profile, and the editor
+must not manufacture one.
+
+Unoco's view marks every compiled solid edge as a blocker and every upward
+solid navigation surface as a possible local-hover reference. It ignores
+one-way terrain and constructs no flight graph. Derf's view applies the
+catalog-owned solid/15-degree traversal rule and Core's public
+`derfMinimumSupportSpanTicks` requirement independently. Each qualifying perch
+draws an exact centered 32-pixel horizontal support bracket; the inspector
+reports actual horizontal span, rule outcome, and final perch eligibility.
+
+Grounded actor overlays draw only eligible Core surfaces. Grojib/Hashash graph
+links connect the exact Core-published body-center takeoff and landing points
+and retain walk/jump/drop type; the display line is not a reconstructed motion
+trajectory. Selecting a compiled edge adds actor-specific eligibility,
+outgoing-link counts, blocker/local-hover state, or perch evidence beneath the
+same canonical lineage. Overlay selection, actor changes, and inspection are
+route-local, consume no RNG, and cannot change a chunk revision, pending diff,
+authored marker, source file, or runtime authority.
 
 The normal chunk-v1 route, prefab-v2 source, authored JSON, generator input,
 and runtime collision authority remain unchanged. Generator parity, placement
@@ -572,8 +599,9 @@ This painter does not compile geometry and its fills are never collision or
 navigation authority. Collision-edge/normal/lineage diagnostics must come from
 the Core compiler preview adapter. Both explicit staging routes install the
 painter and plugin/session wiring. Normal Prefab/Chunk source cutover and Core
-normal-vector/actor-eligibility overlays remain pending; Core-compiled edge
-selection and placed-polygon lineage are already available in Chunk staging.
+normal-vector drawing remain pending; Core-compiled edge selection,
+placed-polygon lineage, and actor-terrain eligibility/navigation evidence are
+already available in Chunk staging.
 
 ## Determinism And Validation Evidence
 
@@ -631,6 +659,10 @@ The foundation is covered by:
   corner ties, exact fixed-point coordinate/angle text, traversal-cache slope,
   identity/lineage/mode/material/join/adjacency/diagnostic inspection, selected
   highlighting, and inspection-mode isolation from direct source edits
+- Core-owned Éloïse/Grojib/Hashash surface eligibility, shared-identity
+  Grojib/Hashash graph views, Unoco solid/local-hover classification, Derf
+  solid/15-degree/32-pixel perch evidence, input-permutation signatures, and an
+  opt-in route overlay/inspector that creates no revision or pending diff
 - prefab owner commit freshness, canonical order, visual-bound resolution,
   warning/error handling, no-op identity, and exactly-once revision tests
 - full Core geometry/signature goldens and fresh-process signature tests

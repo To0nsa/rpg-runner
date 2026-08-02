@@ -487,9 +487,9 @@ pass. Do not truncate shapes, vertices, edges, or diagnostics at a hard limit.
       collision back from render triangles or source-loop fills.
 - [x] Display exact edge IDs, tangent/normal, slope angle, collision mode,
       source lineage, and compiler diagnostic on selection.
-- [ ] Optionally display accepted Éloïse/Grojib/Hashash/Derf eligibility using
-      existing Core profiles; the editor must not define new thresholds.
-- [ ] Build any surface/graph overlay with the accepted Phase 3 extractor and
+- [x] Optionally display accepted Éloïse/Grojib/Hashash/Derf eligibility using
+      existing Core profiles; the editor does not define new thresholds.
+- [x] Build the surface/graph overlay with the accepted Phase 3 extractor and
       profile graph builders; never infer navigation from visual polygon fill.
 - [x] Keep all preview state read-only with respect to Core/runtime objects.
 
@@ -714,11 +714,12 @@ curves, and holes are not required for the baseline tool.
 
 ### 19.1 Placement And Navigation Authoring Diagnostics
 
-- [ ] Overlay Éloïse, Grojib, and Hashash eligible surfaces and walk/jump/drop
-      graph edges from accepted Core profiles.
-- [ ] Overlay Unoco solid blockers/local-hover candidates without constructing
+- [x] Overlay Éloïse, Grojib, and Hashash eligible surfaces and the accepted
+      Grojib/Hashash walk/jump/drop graph edges. Éloïse intentionally has no
+      pathfinding graph because Core owns no player graph profile.
+- [x] Overlay Unoco solid blockers/local-hover candidates without constructing
       a flight graph.
-- [ ] Overlay Derf perch eligibility and the independent 32-pixel support span.
+- [x] Overlay Derf perch eligibility and the independent 32-pixel support span.
 - [ ] Resolve existing ground/highest-surface/obstacle-top marker previews
       through the accepted Phase 3 placement query and actor/item policy.
 - [ ] Preserve marker order, chance, salt, and source placement intent; preview
@@ -1028,6 +1029,7 @@ before changing the accepted plan.
 | The initial Duplicate buttons translated copies by a fixed 2 px, so any wider polygon retained positive-area overlap with its source and the correct owner policy rejected the action. | Derive snap-aligned candidate offsets from current owner bounds, order them deterministically, choose the nearest conservative AABB-free candidate, and apply closed Chunk bounds before dispatch. Keep exact reducer/owner validation authoritative. | Prefab and Chunk duplication now starts from a useful safe default without introducing boolean geometry, silent overlap repair, or route-specific collision rules. |
 | Prefab-v3 collision loops are stored relative to the prefab anchor, while the generic Core transform can also subtract a source anchor. Passing `anchorXPx`/`anchorYPx` during chunk expansion would therefore shift collision twice even though artwork preview looked correct. | Keep visual-anchor handling in the visual projection. Pass a zero Core source anchor for prefab-v3 collision, then apply reflection, exact scale, and placement translation through the shared transform. Lock the rule with a nonzero-anchor asymmetric fixture. | Generator placement expansion must consume the same anchor-relative schema rule and fixture; it must not copy the artwork-origin calculation into collision compilation. |
 | Source-loop edges are not the same set as runtime collision edges after collinear splitting, internal-solid cancellation, and one-way filtering. A source-boundary inspector would confidently display edges that Core does not expose. | Paint and select only `TerrainGeometry.edges`. Keep nearest-segment hit testing as a read-only editor selection rule with canonical edge-ID ties, then read slope from `TerrainTraversalCache` and all other facts from the selected Core edge. | Actor eligibility, navigation, seams, and generated debug views must consume the same compiled edges rather than source fill or render triangles. |
+| The Phase 4 overlay wording grouped Éloïse with walk/jump/drop graph evidence, but Phase 3 deliberately publishes graph profiles only for Grojib and Hashash; player movement is command-driven and Core owns no Éloïse pathfinding graph. | Show Éloïse's exact accepted 60-degree support eligibility only. Reuse the immutable Phase 3 runtime bundle for Grojib/Hashash graph views, and label the absent player graph explicitly instead of synthesizing jump/drop reachability in the editor. | A future player pathfinding or grounded-ability feature must first add its own Core-owned profile/query contract; the editor cannot become that gameplay authority by preview convention. |
 
 Append rows during implementation. Do not silently relax source, compiler,
 seam, determinism, or performance contracts.
@@ -1105,6 +1107,7 @@ result.
 | 2026-08-01 / `704e2c67` | Deterministic safe polygon duplicate placement | Dart VM and Flutter test VM on Windows | Editor analysis is clean and all 354 editor tests pass. Four pure tests cover nearest right-side selection, odd half-pixel extent rounding to the owner grid, input-order invariance around occupied candidates, and a closed owner with no free slot. The Chunk route test proves a wide terrain shape duplicates without occupied overlap, stays in bounds, receives the lowest-free ID, changes one revision/pending owner, and restores through undo. Migration check remains read-only with 99 prefabs, 8 chunks, and nine pending targets; generator dry-run still validates 8 chunks, 2 levels, and 2 themes. Normal source and runtime authority remain unchanged. |
 | 2026-08-01 / `561e7353` | Exact staged prefab collision expansion and read-only Chunk overlay | Dart VM and Flutter test VM on Windows | Editor analysis is clean and all 360 editor tests pass. Six pure expansion tests prove anchor-relative collision with a nonzero visual anchor, exact reflection/rational scale/translation, stable placement/prefab/shape lineage, combined direct/placed occupied-overlap rejection, retained post-quantization bounds evidence with exact coordinates, missing/ambiguous reference and off-step scale rejection, Core prefab-shape capacity, and input-order edge-signature parity. The Chunk route test proves the quantized overlay is present, locked and lineage-labelled, reports direct/expanded shape and exposed-edge capacity separately, and leaves direct editing/history intact. Migration check still reports 99 prefabs, 8 chunks, and nine pending targets without writes; generator dry-run still validates 8 chunks, 2 levels, and 2 themes. Normal v1/v2 source, authored JSON, generator input, and runtime authority remain unchanged. |
 | 2026-08-01 / `8e7d7a8b` | Core-compiled edge overlay and exact read-only inspection | Dart VM and Flutter test VM on Windows | Editor analysis is clean and all 364 editor tests pass. Four pure tests cover exact signed physics/slope fixed-point formatting, nearest finite-segment selection, canonical corner ties, no-hit and malformed-input behavior, and Core traversal-cache angle lookup. The Chunk route test proves Core exposed edges render independently of source fills, inspection selects/highlights the canonical direct edge, displays exact ID/tangent/normal/slope/mode/lineage/joins/adjacency/diagnostics, creates no revision or pending change, and returns to normal direct editing when disabled. Migration check remains read-only with 99 prefabs, 8 chunks, and nine pending targets; generator dry-run still validates 8 chunks, 2 levels, and 2 themes. Normal source, generator input, and runtime authority remain unchanged. |
+| 2026-08-02 / `f9818787` | Core-owned actor terrain and navigation diagnostics in Chunk staging | Dart VM and Flutter test VM on Windows | Editor and Core analysis are clean; all 366 editor tests and all 10 focused Derf placement regressions pass. Two new pure projection tests prove Éloïse 60-degree, Grojib 45-degree, Hashash 60-degree, Unoco solid/local-hover, and Derf solid/15-degree/32-pixel evidence, shared Core graph identity, no invented player/flight graph, and signature parity under source permutation. The Chunk route test proves the opt-in five-actor overlay and selected-edge facts create no revision or pending diff. Migration check still reports 99 prefabs, 8 chunks, and nine pending targets without writes; generator dry-run still validates 8 chunks, 2 levels, and 2 themes. Normal source, marker data/RNG, generator input, and runtime authority remain unchanged. |
 
 ### 28.1 Baseline Environment And Source Identity
 
