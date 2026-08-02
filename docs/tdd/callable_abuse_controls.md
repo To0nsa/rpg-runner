@@ -4,9 +4,11 @@
 
 Implemented in source. Production enforcement was verified on July 19, 2026
 for the six routes then covered by the canary. The later-added ownership,
-profile, account-delete, and run-status routes require a monitor canary and
-deployment before they can be represented as production-enforced. App Check
-remains in monitoring mode. The
+profile, account-delete, and run-status routes were deployed in monitor mode
+on August 2, 2026. Their authenticated canary remains blocked on a dedicated
+linked Google Play Games test identity, so those routes must remain in monitor
+mode and must not be represented as production-enforced. App Check remains in
+monitoring mode. The
 production web client has supplied one verified end-to-end reCAPTCHA Enterprise
 attestation. Native cloud/client/device preflight is complete, but release
 platforms remain unmeasured because production identity, signing,
@@ -23,6 +25,8 @@ with native readiness details in the
 [native App Check preflight](../building/functions-audit-remediation/native-app-check-readiness-2026-07-19.md)
 and quota selection and enforcement in the
 [quota rollout record](../building/functions-audit-remediation/quota-selection-and-enforcement-2026-07-19.md).
+The extension deployment and its canary gate are recorded in the
+[August 2 monitor rollout record](../building/functions-audit-remediation/quota-extension-monitor-deployment-2026-08-02.md).
 
 ## Purpose and boundary
 
