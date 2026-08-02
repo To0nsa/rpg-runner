@@ -1489,3 +1489,15 @@ byte-verifies the complete set, and rolls back on failure before cleaning the
 transaction files. Current polygon schema consumption, staged terrain output,
 and editor/generator seam parity remain open Phase 4 gates; the one-time source
 migration keeps its separate drift-recheck and transaction requirements.
+
+A pure-Dart staged compiler now proves the next generator boundary without
+selecting it in normal generation. It strictly parses checked-in prefab-v3 and
+chunk-v2 fixture bytes, requires canonical source, expands exact rational
+placements with prefab revision lineage, delegates polygons/exposed edges to
+Core, and derives exact concave triangle indices from the returned normalized
+loops. The editor independently consumes the same fixture and matches Core
+source/edge plus placement signatures; a triangle signature is also golden.
+This is deliberately fixture-only while repository source remains legacy.
+Live entry-point wiring, the complete parity matrix, scheduler seam fixture,
+staged Dart output, and exact legacy projection stay open for the coordinated
+source cutover.

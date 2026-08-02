@@ -585,6 +585,14 @@ loading and production generation deliberately remain on chunk v1 flat
 ground/gaps until the coordinated Phase 4 schema/generator cutover in the
 slopes plan.
 
+The first root generator compiler fixture now passes the editor's strict
+prefab-v3/chunk-v2 codecs and collision expansion over the same checked-in
+bytes. Editor and generator agree on Core source/edge and exact placement
+lineage signatures for direct concave solid, one-way, metadata, and reflected
+rational-scale prefab geometry. This is a parity foundation only: Chunk Creator
+still loads v1 normally, and the root entry point emits no staged terrain file
+until the coordinated slopes cutover.
+
 ### Phase 6 - Enemy Spawn Marker Authoring Through Editor
 
 Status: Completed on April 11, 2026

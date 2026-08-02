@@ -687,6 +687,49 @@ the migration CLI's pending source-fingerprint recheck and nine-source schema
 transaction. Current polygon-schema parsing, staged polygon/edge/triangle
 output, and consumption of the editor-owned seam golden remain Phase 4 work.
 
+## Strict Staged Generator Compiler Foundation
+
+The repository source is still prefab-v2/chunk-v1, so the live generator cannot
+select current-schema parsing before the coordinated source migration. Two
+focused pure-Dart files now establish that future boundary without adding a
+flag, generated runtime file, or production consumer:
+
+- `polygon_terrain_source.dart` strictly parses prefab-v3 and chunk-v2
+  structures as written, including field sets, exact types, canonical list
+  order, half-pixel coordinates, exact scale tenths, collision metadata, and
+  retained placement fields;
+- `polygon_terrain_compilation.dart` resolves stable prefab references and
+  placement ordinals, applies the accepted anchor-relative Core transform,
+  pre-reviews canonical source, compiles direct and expanded shapes together,
+  enforces closed chunk bounds, and retains prefab key/id/revision lineage.
+
+Parsed coordinates remain generator values until the Core adapter boundary.
+This matters because the canonical JSON number range is intentionally wider
+than Core's safe source range: a structurally valid but physically oversized
+coordinate becomes a stable `chunk_collision_source_value_invalid` or
+`prefab_collision_source_value_invalid` issue instead of escaping as a raw
+range exception. Safe loops are reviewed with `requireCanonical: true` before
+compilation because `TerrainCompiler` normally canonicalizes winding/start for
+runtime safety; generation must diagnose noncanonical current source instead
+of silently rewriting it.
+
+Render triangles are derived only after Core returns normalized polygons.
+Exact BigInt orientation and inclusive containment select the first valid ear
+in surviving canonical-index order. Every result must contain exactly
+`vertexCount - 2` positive triangles whose exact doubled-area sum equals the
+Core polygon. Triangle indices reference that same normalized loop; collision
+edges continue to come exclusively from `TerrainGeometry.edges`.
+
+The shared checked-in fixture contains a concave direct solid, one-way source,
+surface/material metadata, and an exactly scaled/reflected prefab placement.
+Fresh generator parses bind Core `source-v1` and `edges-v1`, exact
+`authoring-placement-v1`, and `authoring-triangles-v1` hashes. The editor's
+existing strict codecs and collision expansion consume the same bytes and
+reproduce the first three hashes. This proves the representative compiler seam
+but not the complete §22 matrix. Normal generator wiring, tile-backed prefab
+owner validation, scheduler seam consumption, staged Dart rendering, legacy
+orthogonal projection, and source cutover remain open.
+
 ## Shared Polygon Interaction And Scene Projection
 
 `TerrainPolygonInteractionState` keeps committed owner shapes separate from an
