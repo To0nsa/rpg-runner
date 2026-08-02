@@ -979,7 +979,9 @@ class ChunkPolygonStagingWorkspaceState
           'Advisory only: source order, chance, and salt are preserved; no '
           'random roll or source mutation occurs. Hashash placement is '
           'deferred by runtime. Procedural collectible/restoration candidates '
-          'have no authored marker records and are not fabricated here.',
+          'have no authored marker records and are not fabricated here. '
+          'Projectile terrain support remains later-phase work and is not '
+          'previewed.',
         ),
         if (projection.outcomes.isEmpty)
           const Padding(

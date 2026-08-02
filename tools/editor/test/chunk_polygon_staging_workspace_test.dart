@@ -191,6 +191,10 @@ void main() {
         find.textContaining('Hashash placement is deferred by runtime'),
         findsOneWidget,
       );
+      expect(
+        find.textContaining('Projectile terrain support remains later-phase'),
+        findsOneWidget,
+      );
       await tester.drag(diagnosticsList, const Offset(0, 2000));
       await tester.pump();
       expect(_chunk(harness.session, 'forest_chunk').revision, 4);
