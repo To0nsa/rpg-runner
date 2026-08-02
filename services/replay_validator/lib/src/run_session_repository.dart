@@ -453,8 +453,7 @@ class FirestoreRunSessionRepository implements RunSessionRepository {
       'message': 'Reward settlement pending.',
       'validationLeaseToken': null,
       'validationLeaseExpiresAtMs': null,
-      if (validatedReplayPayload != null)
-        'validatedReplay': validatedReplayPayload,
+      'validatedReplay': ?validatedReplayPayload,
     };
 
     try {
