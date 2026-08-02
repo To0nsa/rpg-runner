@@ -8,6 +8,7 @@ import '../terrain_authoring/terrain_source_models.dart';
 import 'chunk_domain_models.dart';
 import 'chunk_v2_collision_expansion.dart';
 import 'chunk_v2_file_data.dart';
+import 'chunk_v2_marker_contract.dart';
 import 'chunk_v2_staging_models.dart';
 
 /// Validates one chunk's direct polygon owner with Core geometry authority.
@@ -164,6 +165,46 @@ List<ValidationIssue> validateChunkV2StagingDocument(
           sourcePath: sourcePath,
         ),
       );
+    }
+
+    final hasGroundContext = isChunkV2MarkerGroundContextValid(
+      document.groundTopYByLevelId[chunk.levelId],
+    );
+    if (chunk.markers.isNotEmpty && !hasGroundContext) {
+      final marker = chunk.markers.first;
+      issues.add(
+        ValidationIssue(
+          severity: ValidationSeverity.error,
+          code: 'marker_level_ground_context_missing',
+          message: chunkV2MarkerContractMessage(
+            chunk: chunk,
+            marker: marker,
+            code: 'marker_level_ground_context_missing',
+          ),
+          sourcePath: sourcePath,
+        ),
+      );
+    }
+    for (final marker in chunk.markers) {
+      for (final code in chunkV2MarkerContractCodes(
+        chunk: chunk,
+        marker: marker,
+        hasGroundContext: hasGroundContext,
+        includeGroundContext: false,
+      )) {
+        issues.add(
+          ValidationIssue(
+            severity: ValidationSeverity.error,
+            code: code,
+            message: chunkV2MarkerContractMessage(
+              chunk: chunk,
+              marker: marker,
+              code: code,
+            ),
+            sourcePath: sourcePath,
+          ),
+        );
+      }
     }
 
     issues.addAll(

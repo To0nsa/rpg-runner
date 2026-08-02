@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/chunk_creator_page.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/staging/chunk_actor_terrain_overlay_painter.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/staging/chunk_compiled_edge_overlay_painter.dart';
+import 'package:runner_editor/src/app/pages/chunkCreator/staging/chunk_marker_placement_overlay_painter.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_page_local_draft_state.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_plugin.dart';
@@ -151,6 +152,47 @@ void main() {
         find.textContaining('horizontal span 40 px / 32 px pass'),
         findsOneWidget,
       );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('chunk_marker_placement_toggle')),
+      );
+      await tester.pump();
+      final markerOverlay = find.byKey(
+        const ValueKey<String>('chunk_marker_placement_overlay'),
+      );
+      expect(markerOverlay, findsOneWidget);
+      expect(
+        tester.widget<CustomPaint>(markerOverlay).painter,
+        isA<ChunkMarkerPlacementOverlayPainter>(),
+      );
+      expect(find.textContaining('0 RNG draws'), findsOneWidget);
+      final grojibMarker = find.byKey(
+        const ValueKey<String>('chunk_marker_placement_grojib|30|5|0'),
+      );
+      final diagnosticsList = find.byKey(
+        const ValueKey<String>('chunk_shape_diagnostics_list'),
+      );
+      await tester.drag(diagnosticsList, const Offset(0, -700));
+      await tester.pump();
+      await tester.drag(diagnosticsList, const Offset(0, -300));
+      await tester.pump();
+      await tester.ensureVisible(grojibMarker);
+      await tester.tap(grojibMarker);
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey<String>('chunk_selected_marker_evidence')),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('Core valid · requested body'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('salt 2'), findsOneWidget);
+      expect(
+        find.textContaining('Hashash placement is deferred by runtime'),
+        findsOneWidget,
+      );
+      await tester.drag(diagnosticsList, const Offset(0, 2000));
+      await tester.pump();
       expect(_chunk(harness.session, 'forest_chunk').revision, 4);
       expect(harness.session.pendingChanges.hasChanges, isFalse);
       await tester.tap(
@@ -197,7 +239,7 @@ void main() {
       expect(harness.session.pendingChanges.hasChanges, isFalse);
       expect(reloadHandler.canReloadEditorPage, isFalse);
 
-      await tester.drag(find.byType(ListView).last, const Offset(0, 1000));
+      await tester.drag(diagnosticsList, const Offset(0, 2000));
       await tester.pump();
       await tester.tap(
         find.byKey(const ValueKey<String>('chunk_polygon_shape_ground_001')),
@@ -221,6 +263,11 @@ void main() {
       await tester.ensureVisible(xField);
       await tester.enterText(xField, '12.25');
       await tester.enterText(yField, '10.5');
+      await Scrollable.ensureVisible(
+        tester.element(applyVertex),
+        alignment: 0.5,
+      );
+      await tester.pump();
       await tester.tap(applyVertex);
       await tester.pump();
 
@@ -256,15 +303,21 @@ void main() {
       forestChunk = _chunk(harness.session, 'forest_chunk');
       expect(forestChunk.revision, 4);
       expect(harness.session.pendingChanges.hasChanges, isFalse);
-      expect(find.text('chunk_collision_shape_out_of_bounds'), findsOneWidget);
       expect(tester.widget<TextField>(xField).controller!.text, '101');
+      await tester.drag(diagnosticsList, const Offset(0, -2000));
+      await tester.pump();
+      expect(find.text('chunk_collision_shape_out_of_bounds'), findsOneWidget);
 
-      await tester.drag(find.byType(ListView).last, const Offset(0, 1000));
+      await tester.drag(diagnosticsList, const Offset(0, 2000));
       await tester.pump();
       final editMetadata = find.byKey(
         const ValueKey<String>('chunk_polygon_edit_metadata'),
       );
-      await tester.ensureVisible(editMetadata);
+      await Scrollable.ensureVisible(
+        tester.element(editMetadata),
+        alignment: 0.5,
+      );
+      await tester.pump();
       await tester.tap(editMetadata);
       await tester.pumpAndSettle();
       expect(
@@ -382,6 +435,10 @@ Future<_Harness> _buildHarness() async {
         flipX: true,
       ),
     ],
+    markers: const <PlacedMarkerDef>[
+      PlacedMarkerDef(markerId: 'grojib', x: 30, y: 5, salt: 2),
+      PlacedMarkerDef(markerId: 'hashash', x: 40, y: 5, salt: 3),
+    ],
   );
   final meadowChunk = _chunkData(
     chunkKey: 'meadow_chunk',
@@ -430,6 +487,7 @@ Future<_Harness> _buildHarness() async {
       platformModules: const <TileModuleDef>[],
     ),
     visualBoundsByPrefabKey: const <String, PrefabV3VisualBounds>{},
+    groundTopYByLevelId: const <String, double>{'forest': 10, 'meadow': 10},
     availableLevelIds: const <String>['forest', 'meadow'],
     activeLevelId: 'forest',
   );
@@ -450,6 +508,7 @@ ChunkV2FileData _chunkData({
   required String levelId,
   required String shapeId,
   Iterable<PlacedPrefabDef> placements = const <PlacedPrefabDef>[],
+  Iterable<PlacedMarkerDef> markers = const <PlacedMarkerDef>[],
 }) => ChunkV2FileData(
   chunkKey: chunkKey,
   id: chunkKey,
@@ -464,7 +523,7 @@ ChunkV2FileData _chunkData({
   tags: <String>[levelId],
   tileLayers: const <TileLayerDef>[],
   prefabs: placements,
-  markers: const <PlacedMarkerDef>[],
+  markers: markers,
   groundBandZIndex: 0,
   collisionShapes: <TerrainSourceShapeDef>[
     TerrainSourceShapeDef(

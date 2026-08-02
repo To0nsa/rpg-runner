@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:runner_core/collision/terrain/terrain_compiler.dart';
 import 'package:runner_core/collision/terrain/terrain_edge_id.dart';
+import 'package:runner_core/collision/terrain/terrain_numeric.dart';
 import 'package:runner_core/navigation/terrain_spawn_placement.dart';
 import 'package:runner_core/navigation/types/terrain_surface_graph.dart';
 
@@ -10,6 +11,7 @@ import '../../../../chunks/chunk_v2_actor_terrain_projection.dart';
 import '../../../../chunks/chunk_v2_collision_expansion.dart';
 import '../../../../chunks/chunk_v2_compiled_edge_inspection.dart';
 import '../../../../chunks/chunk_v2_file_data.dart';
+import '../../../../chunks/chunk_v2_marker_placement_projection.dart';
 import '../../../../chunks/chunk_v2_staging_models.dart';
 import '../../../../domain/authoring_types.dart';
 import '../../../../session/editor_session_controller.dart';
@@ -27,6 +29,7 @@ import '../../shared/terrain_polygon_vertex_editor.dart';
 import 'chunk_actor_terrain_overlay_painter.dart';
 import 'chunk_compiled_edge_overlay_painter.dart';
 import 'chunk_expanded_collision_overlay_painter.dart';
+import 'chunk_marker_placement_overlay_painter.dart';
 import 'chunk_polygon_authoring_controller.dart';
 import 'chunk_polygon_scene_surface.dart';
 
@@ -64,6 +67,9 @@ class ChunkPolygonStagingWorkspaceState
   ChunkV2TerrainActor _selectedTerrainActor = ChunkV2TerrainActor.eloise;
   ChunkV2CollisionExpansion? _actorProjectionExpansion;
   ChunkV2ActorTerrainProjection? _actorTerrainProjection;
+  bool _showMarkerPlacements = false;
+  String? _selectedMarkerKey;
+  ChunkV2MarkerPlacementProjection? _markerPlacementProjection;
 
   bool get hasLocalDraftChanges =>
       (_authoring?.hasActiveOperation ?? false) ||
@@ -331,6 +337,21 @@ class ChunkPolygonStagingWorkspaceState
                 });
               },
             ),
+            FilterChip(
+              key: const ValueKey<String>('chunk_marker_placement_toggle'),
+              label: const Text('Marker placement'),
+              selected: _showMarkerPlacements,
+              onSelected: (selected) {
+                setState(() {
+                  _showMarkerPlacements = selected;
+                  if (selected) {
+                    _refreshMarkerPlacementProjection();
+                  } else {
+                    _selectedMarkerKey = null;
+                  }
+                });
+              },
+            ),
             DropdownButton<ChunkV2TerrainActor>(
               key: const ValueKey<String>('chunk_actor_terrain_selector'),
               value: _selectedTerrainActor,
@@ -375,6 +396,10 @@ class ChunkPolygonStagingWorkspaceState
           const SizedBox(height: 4),
           _buildActorTerrainSummary(),
         ],
+        if (_showMarkerPlacements) ...<Widget>[
+          const SizedBox(height: 4),
+          _buildMarkerPlacementSummary(),
+        ],
         const SizedBox(height: 8),
         Text(
           _inspectCompiledEdges
@@ -396,6 +421,9 @@ class ChunkPolygonStagingWorkspaceState
               final expansion = _expansionFor(chunk.chunkKey)?.expansion;
               final actorProjection = _showActorTerrain
                   ? _actorTerrainProjection
+                  : null;
+              final markerProjection = _showMarkerPlacements
+                  ? _markerPlacementProjection
                   : null;
               final transform = TerrainPolygonViewportTransform(
                 origin:
@@ -448,6 +476,17 @@ class ChunkPolygonStagingWorkspaceState
                             transform: transform,
                           ),
                         ),
+                      if (markerProjection != null)
+                        CustomPaint(
+                          key: const ValueKey<String>(
+                            'chunk_marker_placement_overlay',
+                          ),
+                          painter: ChunkMarkerPlacementOverlayPainter(
+                            projection: markerProjection,
+                            transform: transform,
+                            selectedMarkerKey: _selectedMarkerKey,
+                          ),
+                        ),
                       if (_showCompiledEdges && expansion != null)
                         CustomPaint(
                           key: const ValueKey<String>(
@@ -490,6 +529,7 @@ class ChunkPolygonStagingWorkspaceState
     return _Panel(
       title: 'Shapes and diagnostics',
       child: ListView(
+        key: const ValueKey<String>('chunk_shape_diagnostics_list'),
         children: <Widget>[
           Wrap(
             spacing: 8,
@@ -577,6 +617,7 @@ class ChunkPolygonStagingWorkspaceState
           ],
           _buildCompiledEdgeInspector(authoring),
           _buildExpandedPrefabShapes(authoring),
+          if (_showMarkerPlacements) _buildMarkerPlacementInspector(),
           const Divider(height: 28),
           Text('Diagnostics', style: Theme.of(context).textTheme.titleSmall),
           if (issues.isEmpty)
@@ -656,6 +697,44 @@ class ChunkPolygonStagingWorkspaceState
     return Text(
       text,
       key: const ValueKey<String>('chunk_actor_terrain_summary'),
+    );
+  }
+
+  Widget _buildMarkerPlacementSummary() {
+    final projection = _markerPlacementProjection;
+    if (projection == null) {
+      return const Text(
+        'Marker placement evidence is unavailable while accepted compiled '
+        'geometry or level ground context is unavailable.',
+        key: ValueKey<String>('chunk_marker_placement_unavailable'),
+        style: TextStyle(color: Color(0xFFFFD166)),
+      );
+    }
+    var accepted = 0;
+    var rejected = 0;
+    var deferred = 0;
+    var inactive = 0;
+    for (final outcome in projection.outcomes) {
+      switch (outcome.disposition) {
+        case ChunkV2MarkerPlacementDisposition.guaranteedAccepted:
+        case ChunkV2MarkerPlacementDisposition.conditionalAccepted:
+          accepted += 1;
+        case ChunkV2MarkerPlacementDisposition.guaranteedRejected:
+        case ChunkV2MarkerPlacementDisposition.conditionalRejected:
+          rejected += 1;
+        case ChunkV2MarkerPlacementDisposition.deferredGuaranteed:
+        case ChunkV2MarkerPlacementDisposition.deferredConditional:
+          deferred += 1;
+        case ChunkV2MarkerPlacementDisposition.disabled:
+        case ChunkV2MarkerPlacementDisposition.malformed:
+          inactive += 1;
+      }
+    }
+    return Text(
+      '${projection.outcomes.length} authored marker(s) · $accepted accepted · '
+      '$rejected rejected · $deferred deferred · $inactive inactive/malformed '
+      '· 0 RNG draws',
+      key: const ValueKey<String>('chunk_marker_placement_summary'),
     );
   }
 
@@ -871,6 +950,169 @@ class ChunkPolygonStagingWorkspaceState
     );
   }
 
+  Widget _buildMarkerPlacementInspector() {
+    final projection = _markerPlacementProjection;
+    if (projection == null) {
+      return const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Divider(height: 28),
+          Text(
+            'Marker placement diagnostics require accepted compiled geometry '
+            'and a resolved level ground plane.',
+          ),
+        ],
+      );
+    }
+    final selected = projection.outcomeFor(_selectedMarkerKey);
+    return Column(
+      key: const ValueKey<String>('chunk_marker_placement_inspector'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        const Divider(height: 28),
+        Text(
+          'Authored marker placement',
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Advisory only: source order, chance, and salt are preserved; no '
+          'random roll or source mutation occurs. Hashash placement is '
+          'deferred by runtime. Procedural collectible/restoration candidates '
+          'have no authored marker records and are not fabricated here.',
+        ),
+        if (projection.outcomes.isEmpty)
+          const Padding(
+            padding: EdgeInsets.only(top: 8),
+            child: Text('This chunk has no authored enemy markers.'),
+          )
+        else
+          for (final outcome in projection.outcomes)
+            Card(
+              key: ValueKey<String>(
+                'chunk_marker_placement_${outcome.selectionKey}',
+              ),
+              child: ListTile(
+                dense: true,
+                selected: outcome.selectionKey == _selectedMarkerKey,
+                onTap: () =>
+                    setState(() => _selectedMarkerKey = outcome.selectionKey),
+                leading: Icon(_markerDispositionIcon(outcome.disposition)),
+                title: Text(
+                  '#${outcome.sourceIndex + 1} ${outcome.marker.markerId}',
+                ),
+                subtitle: Text(
+                  '${outcome.marker.chancePercent}% · '
+                  '${outcome.marker.placement} · ${outcome.code}',
+                ),
+              ),
+            ),
+        if (selected != null) _buildSelectedMarkerEvidence(selected),
+      ],
+    );
+  }
+
+  Widget _buildSelectedMarkerEvidence(ChunkV2MarkerPlacementOutcome outcome) {
+    final marker = outcome.marker;
+    final profile = outcome.profile;
+    final result = outcome.result;
+    return Column(
+      key: const ValueKey<String>('chunk_selected_marker_evidence'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        const SizedBox(height: 8),
+        Text('Selected marker', style: Theme.of(context).textTheme.titleSmall),
+        SelectableText(outcome.selectionKey),
+        Text(
+          'source order ${outcome.sourceIndex + 1} · authored anchor '
+          '(${marker.x}, ${marker.y}) px · chance ${marker.chancePercent}% · '
+          'salt ${marker.salt}',
+        ),
+        Text(
+          'intent ${marker.placement} · disposition '
+          '${_markerDispositionLabel(outcome.disposition)}',
+        ),
+        Text(outcome.message),
+        if (outcome.malformedCodes.isNotEmpty)
+          Text('contract errors ${outcome.malformedCodes.join(', ')}'),
+        Text(
+          'intended edge '
+          '${outcome.intendedSurface?.id.canonicalKey ?? '—'}',
+        ),
+        if (profile != null)
+          Text(
+            'profile ${profile.diagnosticKey} · capsule radius '
+            '${TerrainPhysicsText.formatTicks(profile.capsule.radiusTicks)} px '
+            '· half-spine '
+            '${TerrainPhysicsText.formatTicks(profile.capsule.verticalHalfSegmentTicks)} px '
+            '· offset '
+            '(${TerrainPhysicsText.formatTicks(profile.capsule.resolvedOffsetXTicks)}, '
+            '${TerrainPhysicsText.formatTicks(profile.capsule.offsetYTicks)}) px',
+          ),
+        if (result != null) ...<Widget>[
+          Text(
+            'Core ${result.validity.name} · requested body '
+            '${_formatPhysicsPoint(result.requestedBodyCenter)} · accepted '
+            'body ${_formatPhysicsPoint(result.bodyCenter)}',
+          ),
+          Text(
+            'support ${result.supportEdgeId?.canonicalKey ?? '—'} · point '
+            '${_formatPhysicsPoint(result.supportPoint)} · blocker '
+            '${result.blockingEdgeId?.canonicalKey ?? '—'}',
+          ),
+          Text(
+            'slope '
+            '${result.absoluteSlopeAngleUnits == null ? '—' : '${TerrainPhysicsText.formatSlopeAngleUnits(result.absoluteSlopeAngleUnits!)}°'} '
+            '· same-support clamp ${result.sameSupportClamped ? 'yes' : 'no'}',
+          ),
+          const SizedBox(height: 4),
+          SelectableText(result.diagnostic),
+        ],
+      ],
+    );
+  }
+
+  IconData _markerDispositionIcon(
+    ChunkV2MarkerPlacementDisposition disposition,
+  ) => switch (disposition) {
+    ChunkV2MarkerPlacementDisposition.guaranteedAccepted =>
+      Icons.check_circle_outline,
+    ChunkV2MarkerPlacementDisposition.conditionalAccepted => Icons.help_outline,
+    ChunkV2MarkerPlacementDisposition.guaranteedRejected =>
+      Icons.cancel_outlined,
+    ChunkV2MarkerPlacementDisposition.conditionalRejected =>
+      Icons.warning_amber_outlined,
+    ChunkV2MarkerPlacementDisposition.disabled => Icons.pause_circle_outline,
+    ChunkV2MarkerPlacementDisposition.deferredGuaranteed ||
+    ChunkV2MarkerPlacementDisposition.deferredConditional =>
+      Icons.schedule_outlined,
+    ChunkV2MarkerPlacementDisposition.malformed => Icons.error_outline,
+  };
+
+  String _markerDispositionLabel(
+    ChunkV2MarkerPlacementDisposition disposition,
+  ) => switch (disposition) {
+    ChunkV2MarkerPlacementDisposition.guaranteedAccepted =>
+      'guaranteed accepted',
+    ChunkV2MarkerPlacementDisposition.conditionalAccepted =>
+      'conditional accepted',
+    ChunkV2MarkerPlacementDisposition.guaranteedRejected =>
+      'required placement rejected',
+    ChunkV2MarkerPlacementDisposition.conditionalRejected =>
+      'conditional placement rejected',
+    ChunkV2MarkerPlacementDisposition.disabled => 'disabled',
+    ChunkV2MarkerPlacementDisposition.deferredGuaranteed =>
+      'guaranteed deferred',
+    ChunkV2MarkerPlacementDisposition.deferredConditional =>
+      'conditional deferred',
+    ChunkV2MarkerPlacementDisposition.malformed => 'malformed',
+  };
+
+  String _formatPhysicsPoint(TerrainPoint? point) => point == null
+      ? '—'
+      : '(${TerrainPhysicsText.formatTicks(point.xTicks)}, '
+            '${TerrainPhysicsText.formatTicks(point.yTicks)}) px';
+
   Widget _buildVertexInspector(
     ChunkPolygonAuthoringController authoring,
     TerrainSourceShapeDef shape,
@@ -1063,14 +1305,19 @@ class ChunkPolygonStagingWorkspaceState
     _disposeAuthoring();
     _selectedChunkKey = chunkKey;
     _selectedCompiledEdgeId = null;
+    _selectedMarkerKey = null;
     _actorProjectionExpansion = null;
     _actorTerrainProjection = null;
+    _markerPlacementProjection = null;
     _authoring = ChunkPolygonAuthoringController(
       session: widget.controller,
       chunkKey: chunkKey,
       snapPolicy: TerrainPolygonSnapPolicy.ownerGridPixels(1),
     )..addListener(_handleAuthoringChanged);
-    if (_showActorTerrain) _refreshActorTerrainProjection();
+    if (_showActorTerrain || _showMarkerPlacements) {
+      _refreshActorTerrainProjection();
+    }
+    if (_showMarkerPlacements) _refreshMarkerPlacementProjection();
   }
 
   void _disposeAuthoring() {
@@ -1084,7 +1331,10 @@ class ChunkPolygonStagingWorkspaceState
   void _handleAuthoringChanged() {
     if (!mounted) return;
     setState(() {
-      if (_showActorTerrain) _refreshActorTerrainProjection();
+      if (_showActorTerrain || _showMarkerPlacements) {
+        _refreshActorTerrainProjection();
+      }
+      if (_showMarkerPlacements) _refreshMarkerPlacementProjection();
     });
   }
 
@@ -1111,6 +1361,26 @@ class ChunkPolygonStagingWorkspaceState
     _actorTerrainProjection = expansion == null
         ? null
         : ChunkV2ActorTerrainProjection.build(expansion);
+  }
+
+  void _refreshMarkerPlacementProjection() {
+    _refreshActorTerrainProjection();
+    final authoring = _authoring;
+    final projection = _actorTerrainProjection;
+    final scene = _sceneOrNull;
+    if (authoring == null || projection == null || scene == null) {
+      _markerPlacementProjection = null;
+      _selectedMarkerKey = null;
+      return;
+    }
+    _markerPlacementProjection = ChunkV2MarkerPlacementProjection.build(
+      chunk: authoring.chunk,
+      actorTerrain: projection,
+      levelGroundTopY: scene.groundTopYByLevelId[authoring.chunk.levelId],
+    );
+    if (_markerPlacementProjection!.outcomeFor(_selectedMarkerKey) == null) {
+      _selectedMarkerKey = null;
+    }
   }
 
   void _inspectCompiledEdge(

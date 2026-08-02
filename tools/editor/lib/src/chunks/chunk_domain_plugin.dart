@@ -1,4 +1,5 @@
 import '../domain/authoring_types.dart';
+import '../levels/level_store.dart';
 import '../prefabs/domain/prefab_visual_bounds_resolver.dart';
 import '../prefabs/models/models.dart';
 import '../prefabs/store/prefab_store.dart';
@@ -17,8 +18,10 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
   ChunkDomainPlugin({
     ChunkStore store = const ChunkStore(),
     PrefabStore prefabStore = const PrefabStore(),
+    LevelStore levelStore = const LevelStore(),
   }) : _store = store,
-       _prefabStore = prefabStore;
+       _prefabStore = prefabStore,
+       _levelStore = levelStore;
 
   static const String pluginId = 'chunks';
 
@@ -27,6 +30,7 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
 
   final ChunkStore _store;
   final PrefabStore _prefabStore;
+  final LevelStore _levelStore;
   String? _preferredActiveLevelId;
 
   @override
@@ -71,6 +75,7 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
   ) async {
     final chunkLoad = await _store.loadV2Staging(workspace);
     final prefabLoad = await _prefabStore.loadV3Staging(workspace.rootPath);
+    final levelLoad = await _levelStore.load(workspace);
     final chunks = chunkLoad.sources.map((source) => source.data).toList()
       ..sort((left, right) {
         var order = left.levelId.compareTo(right.levelId);
@@ -104,6 +109,9 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
         prefabData: prefabLoad.prefabData,
         tileData: prefabLoad.tileData,
       ),
+      groundTopYByLevelId: <String, double>{
+        for (final level in levelLoad.levels) level.levelId: level.groundTopY,
+      },
       availableLevelIds: sortedLevelIds,
       activeLevelId: activeLevelId,
     );
@@ -153,6 +161,7 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
         prefabData: document.prefabData,
         tileData: document.tileData,
         visualBoundsByPrefabKey: document.visualBoundsByPrefabKey,
+        groundTopYByLevelId: document.groundTopYByLevelId,
         collisionExpansionByChunkKey: collisionExpansions,
         availableLevelIds: document.availableLevelIds,
         activeLevelId: document.activeLevelId,

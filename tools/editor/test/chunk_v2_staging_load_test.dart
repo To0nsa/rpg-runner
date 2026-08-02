@@ -9,6 +9,8 @@ import 'package:runner_editor/src/chunks/chunk_store.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_codec.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_data.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_staging_models.dart';
+import 'package:runner_editor/src/levels/level_domain_models.dart';
+import 'package:runner_editor/src/levels/level_store.dart';
 import 'package:runner_editor/src/prefabs/models/models.dart';
 import 'package:runner_editor/src/prefabs/store/prefab_store.dart';
 import 'package:runner_editor/src/prefabs/store/prefab_tile_file_codec.dart';
@@ -42,6 +44,7 @@ void main() {
       expect(document.tileData.platformModules, isEmpty);
       expect(document.availableLevelIds, <String>['forest']);
       expect(document.activeLevelId, 'forest');
+      expect(document.groundTopYByLevelId, <String, double>{'forest': 224});
       expect(document.visualBoundsByPrefabKey, isEmpty);
       expect(plugin.validate(document), isEmpty);
       expect(plugin.buildEditableScene(document), isA<ChunkV2StagingScene>());
@@ -114,12 +117,32 @@ void main() {
         collisionShapes: <TerrainSourceShapeDef>[
           _rectangle('ground', left: -2, right: 20, bottom: 20),
         ],
+        markers: const <PlacedMarkerDef>[
+          PlacedMarkerDef(
+            markerId: 'unknown',
+            x: -1,
+            y: 271,
+            chancePercent: 101,
+            salt: -1,
+            placement: 'unsupported',
+          ),
+        ],
       );
-      final invalid = clean.copyWith(chunks: <ChunkV2FileData>[invalidChunk]);
+      final invalid = clean.copyWith(
+        chunks: <ChunkV2FileData>[invalidChunk],
+        groundTopYByLevelId: const <String, double>{},
+      );
 
       final codes = plugin.validate(invalid).map((issue) => issue.code).toSet();
       expect(codes, contains('chunk_collision_shape_out_of_bounds'));
       expect(codes, contains('unknown_prefab_reference'));
+      expect(codes, contains('unknown_enemy_marker_id'));
+      expect(codes, contains('marker_invalid_placement'));
+      expect(codes, contains('marker_x_out_of_bounds'));
+      expect(codes, contains('marker_y_out_of_bounds'));
+      expect(codes, contains('marker_chance_out_of_range'));
+      expect(codes, contains('marker_salt_negative'));
+      expect(codes, contains('marker_level_ground_context_missing'));
     },
   );
 
@@ -242,6 +265,26 @@ final class _V2Fixture {
             platformModules: const <TileModuleDef>[],
           ),
         ),
+      );
+    File(p.join(root.path, LevelStore.defsPath))
+      ..createSync(recursive: true)
+      ..writeAsStringSync(
+        renderCanonicalLevelDefsJson(const <LevelDef>[
+          LevelDef(
+            levelId: 'forest',
+            revision: 1,
+            displayName: 'Forest',
+            visualThemeId: 'forest',
+            cameraCenterY: 135,
+            groundTopY: 224,
+            earlyPatternChunks: 3,
+            easyPatternChunks: 0,
+            normalPatternChunks: 0,
+            noEnemyChunks: 3,
+            enumOrdinal: 10,
+            status: levelStatusActive,
+          ),
+        ]),
       );
     return _V2Fixture._(root: root, data: data, chunkContents: chunkContents);
   }

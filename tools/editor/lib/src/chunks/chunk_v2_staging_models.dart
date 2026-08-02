@@ -19,6 +19,7 @@ class ChunkV2StagingDocument extends AuthoringDocument {
     required this.prefabData,
     required this.tileData,
     required Map<String, PrefabV3VisualBounds> visualBoundsByPrefabKey,
+    Map<String, double> groundTopYByLevelId = const <String, double>{},
     required Iterable<String> availableLevelIds,
     required this.activeLevelId,
     Iterable<String> changedChunkKeys = const <String>[],
@@ -32,6 +33,9 @@ class ChunkV2StagingDocument extends AuthoringDocument {
        visualBoundsByPrefabKey = Map<String, PrefabV3VisualBounds>.unmodifiable(
          visualBoundsByPrefabKey,
        ),
+       groundTopYByLevelId = Map<String, double>.unmodifiable(
+         groundTopYByLevelId,
+       ),
        availableLevelIds = List<String>.unmodifiable(availableLevelIds),
        changedChunkKeys = List<String>.unmodifiable(
          changedChunkKeys.toSet().toList()..sort(),
@@ -43,6 +47,7 @@ class ChunkV2StagingDocument extends AuthoringDocument {
   final PrefabV3FileData prefabData;
   final PrefabTileFileData tileData;
   final Map<String, PrefabV3VisualBounds> visualBoundsByPrefabKey;
+  final Map<String, double> groundTopYByLevelId;
   final List<String> availableLevelIds;
   final String? activeLevelId;
   final List<String> changedChunkKeys;
@@ -54,6 +59,7 @@ class ChunkV2StagingDocument extends AuthoringDocument {
     PrefabV3FileData? prefabData,
     PrefabTileFileData? tileData,
     Map<String, PrefabV3VisualBounds>? visualBoundsByPrefabKey,
+    Map<String, double>? groundTopYByLevelId,
     Iterable<String>? availableLevelIds,
     String? activeLevelId,
     bool clearActiveLevelId = false,
@@ -67,6 +73,7 @@ class ChunkV2StagingDocument extends AuthoringDocument {
     tileData: tileData ?? this.tileData,
     visualBoundsByPrefabKey:
         visualBoundsByPrefabKey ?? this.visualBoundsByPrefabKey,
+    groundTopYByLevelId: groundTopYByLevelId ?? this.groundTopYByLevelId,
     availableLevelIds: availableLevelIds ?? this.availableLevelIds,
     activeLevelId: clearActiveLevelId
         ? null
@@ -84,6 +91,7 @@ class ChunkV2StagingScene extends EditableScene {
     required this.prefabData,
     required this.tileData,
     required Map<String, PrefabV3VisualBounds> visualBoundsByPrefabKey,
+    Map<String, double> groundTopYByLevelId = const <String, double>{},
     required Map<String, ChunkV2CollisionExpansionResult>
     collisionExpansionByChunkKey,
     required Iterable<String> availableLevelIds,
@@ -94,6 +102,9 @@ class ChunkV2StagingScene extends EditableScene {
        ),
        visualBoundsByPrefabKey = Map<String, PrefabV3VisualBounds>.unmodifiable(
          visualBoundsByPrefabKey,
+       ),
+       groundTopYByLevelId = Map<String, double>.unmodifiable(
+         groundTopYByLevelId,
        ),
        collisionExpansionByChunkKey =
            Map<String, ChunkV2CollisionExpansionResult>.unmodifiable(
@@ -106,6 +117,7 @@ class ChunkV2StagingScene extends EditableScene {
   final PrefabV3FileData prefabData;
   final PrefabTileFileData tileData;
   final Map<String, PrefabV3VisualBounds> visualBoundsByPrefabKey;
+  final Map<String, double> groundTopYByLevelId;
   final Map<String, ChunkV2CollisionExpansionResult>
   collisionExpansionByChunkKey;
   final List<String> availableLevelIds;
