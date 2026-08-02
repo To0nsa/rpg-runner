@@ -135,6 +135,10 @@ class _StaticAuthApi implements AuthApi {
 
   @override
   Future<AuthSession> loadSession() async => _session;
+
+  @override
+  Future<AuthSession> reauthenticateForSensitiveOperation() =>
+      ensureAuthenticatedSession();
 }
 
 class _StaticOwnershipApi implements LoadoutOwnershipApi {

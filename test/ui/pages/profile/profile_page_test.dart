@@ -275,6 +275,10 @@ class _StaticAuthApi implements AuthApi {
   Future<AuthSession> loadSession() async => session;
 
   @override
+  Future<AuthSession> reauthenticateForSensitiveOperation() =>
+      ensureAuthenticatedSession();
+
+  @override
   Future<AuthSession> ensureAuthenticatedSession() async => session;
 
   @override

@@ -736,6 +736,10 @@ class _StaticAuthApi implements AuthApi {
 
   @override
   Future<AuthSession> loadSession() async => _session;
+
+  @override
+  Future<AuthSession> reauthenticateForSensitiveOperation() =>
+      ensureAuthenticatedSession();
 }
 
 class _MutableAuthApi implements AuthApi {
@@ -765,6 +769,10 @@ class _MutableAuthApi implements AuthApi {
 
   @override
   Future<AuthSession> loadSession() async => _session;
+
+  @override
+  Future<AuthSession> reauthenticateForSensitiveOperation() =>
+      ensureAuthenticatedSession();
 }
 
 AuthSession _sessionFor({required String userId, required String sessionId}) {

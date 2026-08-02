@@ -254,6 +254,10 @@ class _QueueAuthApi implements AuthApi {
   Future<AuthSession> loadSession() async => _session;
 
   @override
+  Future<AuthSession> reauthenticateForSensitiveOperation() =>
+      ensureAuthenticatedSession();
+
+  @override
   Future<AuthLinkResult> linkAuthProvider(AuthLinkProvider provider) async {
     return AuthLinkResult(
       provider: provider,
