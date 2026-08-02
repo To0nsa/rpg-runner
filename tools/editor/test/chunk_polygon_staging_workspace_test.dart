@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/chunk_creator_page.dart';
+import 'package:runner_editor/src/app/pages/chunkCreator/staging/chunk_actor_terrain_overlay_painter.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/staging/chunk_compiled_edge_overlay_painter.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_page_local_draft_state.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
@@ -114,6 +115,42 @@ void main() {
       expect(find.text('absolute slope 0° (0 units)'), findsOneWidget);
       expect(find.textContaining('tangent (1024, 0)'), findsOneWidget);
       expect(find.text('diagnostics none'), findsOneWidget);
+      expect(_chunk(harness.session, 'forest_chunk').revision, 4);
+      expect(harness.session.pendingChanges.hasChanges, isFalse);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('chunk_actor_terrain_toggle')),
+      );
+      await tester.pump();
+      final actorOverlay = find.byKey(
+        const ValueKey<String>('chunk_actor_terrain_overlay'),
+      );
+      expect(actorOverlay, findsOneWidget);
+      expect(
+        tester.widget<CustomPaint>(actorOverlay).painter,
+        isA<ChunkActorTerrainOverlayPainter>(),
+      );
+      expect(
+        find.textContaining('player pathfinding graph is not defined'),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('Éloïse: navigation surface yes · eligible yes'),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('chunk_actor_terrain_selector')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Derf').last);
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining('perch-eligible surfaces · 32 px minimum'),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('horizontal span 40 px / 32 px pass'),
+        findsOneWidget,
+      );
       expect(_chunk(harness.session, 'forest_chunk').revision, 4);
       expect(harness.session.pendingChanges.hasChanges, isFalse);
       await tester.tap(

@@ -3,7 +3,10 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:runner_core/collision/terrain/terrain_compiler.dart';
 import 'package:runner_core/collision/terrain/terrain_edge_id.dart';
+import 'package:runner_core/navigation/terrain_spawn_placement.dart';
+import 'package:runner_core/navigation/types/terrain_surface_graph.dart';
 
+import '../../../../chunks/chunk_v2_actor_terrain_projection.dart';
 import '../../../../chunks/chunk_v2_collision_expansion.dart';
 import '../../../../chunks/chunk_v2_compiled_edge_inspection.dart';
 import '../../../../chunks/chunk_v2_file_data.dart';
@@ -21,6 +24,7 @@ import '../../shared/editor_zoom_controls.dart';
 import '../../shared/terrain_polygon_metadata_dialog.dart';
 import '../../shared/terrain_polygon_scene_painter.dart';
 import '../../shared/terrain_polygon_vertex_editor.dart';
+import 'chunk_actor_terrain_overlay_painter.dart';
 import 'chunk_compiled_edge_overlay_painter.dart';
 import 'chunk_expanded_collision_overlay_painter.dart';
 import 'chunk_polygon_authoring_controller.dart';
@@ -56,6 +60,10 @@ class ChunkPolygonStagingWorkspaceState
   bool _showCompiledEdges = true;
   bool _inspectCompiledEdges = false;
   TerrainEdgeId? _selectedCompiledEdgeId;
+  bool _showActorTerrain = false;
+  ChunkV2TerrainActor _selectedTerrainActor = ChunkV2TerrainActor.eloise;
+  ChunkV2CollisionExpansion? _actorProjectionExpansion;
+  ChunkV2ActorTerrainProjection? _actorTerrainProjection;
 
   bool get hasLocalDraftChanges =>
       (_authoring?.hasActiveOperation ?? false) ||
@@ -312,6 +320,35 @@ class ChunkPolygonStagingWorkspaceState
                 });
               },
             ),
+            FilterChip(
+              key: const ValueKey<String>('chunk_actor_terrain_toggle'),
+              label: const Text('Actor terrain'),
+              selected: _showActorTerrain,
+              onSelected: (selected) {
+                setState(() {
+                  _showActorTerrain = selected;
+                  if (selected) _refreshActorTerrainProjection();
+                });
+              },
+            ),
+            DropdownButton<ChunkV2TerrainActor>(
+              key: const ValueKey<String>('chunk_actor_terrain_selector'),
+              value: _selectedTerrainActor,
+              items: ChunkV2TerrainActor.values
+                  .map(
+                    (actor) => DropdownMenuItem<ChunkV2TerrainActor>(
+                      value: actor,
+                      child: Text(_terrainActorLabel(actor)),
+                    ),
+                  )
+                  .toList(growable: false),
+              onChanged: _showActorTerrain
+                  ? (actor) {
+                      if (actor == null) return;
+                      setState(() => _selectedTerrainActor = actor);
+                    }
+                  : null,
+            ),
           ],
         ),
         const SizedBox(height: 8),
@@ -334,6 +371,10 @@ class ChunkPolygonStagingWorkspaceState
         ),
         const SizedBox(height: 8),
         _buildExpansionSummary(authoring),
+        if (_showActorTerrain) ...<Widget>[
+          const SizedBox(height: 4),
+          _buildActorTerrainSummary(),
+        ],
         const SizedBox(height: 8),
         Text(
           _inspectCompiledEdges
@@ -353,6 +394,9 @@ class ChunkPolygonStagingWorkspaceState
               );
               final chunk = authoring.chunk;
               final expansion = _expansionFor(chunk.chunkKey)?.expansion;
+              final actorProjection = _showActorTerrain
+                  ? _actorTerrainProjection
+                  : null;
               final transform = TerrainPolygonViewportTransform(
                 origin:
                     Offset(
@@ -390,8 +434,22 @@ class ChunkPolygonStagingWorkspaceState
                         ),
                     ],
                   ),
-                  foreground: _showCompiledEdges && expansion != null
-                      ? CustomPaint(
+                  foreground: Stack(
+                    fit: StackFit.expand,
+                    children: <Widget>[
+                      if (actorProjection != null)
+                        CustomPaint(
+                          key: const ValueKey<String>(
+                            'chunk_actor_terrain_overlay',
+                          ),
+                          painter: ChunkActorTerrainOverlayPainter(
+                            projection: actorProjection,
+                            actor: _selectedTerrainActor,
+                            transform: transform,
+                          ),
+                        ),
+                      if (_showCompiledEdges && expansion != null)
+                        CustomPaint(
                           key: const ValueKey<String>(
                             'chunk_compiled_edge_overlay',
                           ),
@@ -400,8 +458,9 @@ class ChunkPolygonStagingWorkspaceState
                             transform: transform,
                             selectedEdgeId: _selectedCompiledEdgeId,
                           ),
-                        )
-                      : const SizedBox.shrink(),
+                        ),
+                    ],
+                  ),
                   onInspectWorldPoint: _inspectCompiledEdges
                       ? (point) =>
                             _inspectCompiledEdge(authoring, worldPoint: point)
@@ -570,6 +629,55 @@ class ChunkPolygonStagingWorkspaceState
     );
   }
 
+  Widget _buildActorTerrainSummary() {
+    final projection = _actorTerrainProjection;
+    if (projection == null) {
+      return const Text(
+        'Actor terrain evidence is unavailable while accepted compiled '
+        'geometry is unavailable.',
+        key: ValueKey<String>('chunk_actor_terrain_unavailable'),
+        style: TextStyle(color: Color(0xFFFFD166)),
+      );
+    }
+    final text = switch (_selectedTerrainActor) {
+      ChunkV2TerrainActor.eloise =>
+        '${projection.groundedView(_selectedTerrainActor)!.eligibleSurfaces.length} '
+            'eligible surfaces · player pathfinding graph is not defined',
+      ChunkV2TerrainActor.grojib || ChunkV2TerrainActor.hashash =>
+        _groundedGraphSummary(projection.groundedView(_selectedTerrainActor)!),
+      ChunkV2TerrainActor.unoco =>
+        '${projection.unocoSolidBlockerIds.length} solid blockers · '
+            '${projection.unocoLocalHoverCandidateIds.length} local-hover '
+            'surface candidates · no flight graph',
+      ChunkV2TerrainActor.derf =>
+        '${projection.derfPerches.where((item) => item.perchEligible).length} '
+            'perch-eligible surfaces · 32 px minimum horizontal support span',
+    };
+    return Text(
+      text,
+      key: const ValueKey<String>('chunk_actor_terrain_summary'),
+    );
+  }
+
+  String _groundedGraphSummary(ChunkV2GroundedTerrainView view) {
+    final graph = view.graph!;
+    var walk = 0;
+    var jump = 0;
+    var drop = 0;
+    for (final edge in graph.edges) {
+      switch (edge.kind) {
+        case TerrainSurfaceEdgeKind.walk:
+          walk += 1;
+        case TerrainSurfaceEdgeKind.jump:
+          jump += 1;
+        case TerrainSurfaceEdgeKind.drop:
+          drop += 1;
+      }
+    }
+    return '${view.eligibleSurfaces.length} eligible surfaces · '
+        '$walk walk / $jump jump / $drop drop directed graph edges';
+  }
+
   Widget _buildCompiledEdgeInspector(
     ChunkPolygonAuthoringController authoring,
   ) {
@@ -650,6 +758,8 @@ class ChunkPolygonStagingWorkspaceState
           'previous ${edge.previousId?.canonicalKey ?? '—'} · '
           'next ${edge.nextId?.canonicalKey ?? '—'}',
         ),
+        if (_showActorTerrain && _actorTerrainProjection != null)
+          _buildActorEdgeEvidence(edge.id),
         if (relatedIssues.isEmpty)
           const Text('diagnostics none')
         else
@@ -657,6 +767,69 @@ class ChunkPolygonStagingWorkspaceState
             Text('diagnostic ${issue.code}: ${issue.message}'),
       ],
     );
+  }
+
+  Widget _buildActorEdgeEvidence(TerrainEdgeId edgeId) {
+    final projection = _actorTerrainProjection!;
+    final actorLabel = _terrainActorLabel(_selectedTerrainActor);
+    switch (_selectedTerrainActor) {
+      case ChunkV2TerrainActor.eloise:
+      case ChunkV2TerrainActor.grojib:
+      case ChunkV2TerrainActor.hashash:
+        final view = projection.groundedView(_selectedTerrainActor)!;
+        final surfaceIndex = projection.surfaceSet.indexOfId(edgeId);
+        final graph = view.graph;
+        final outgoing = surfaceIndex == null || graph == null
+            ? const <TerrainSurfaceGraphEdge>[]
+            : graph.edgesFor(surfaceIndex).toList(growable: false);
+        final walk = outgoing
+            .where((edge) => edge.kind == TerrainSurfaceEdgeKind.walk)
+            .length;
+        final jump = outgoing
+            .where((edge) => edge.kind == TerrainSurfaceEdgeKind.jump)
+            .length;
+        final drop = outgoing
+            .where((edge) => edge.kind == TerrainSurfaceEdgeKind.drop)
+            .length;
+        return Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Text(
+            '$actorLabel: navigation surface '
+            '${surfaceIndex == null ? 'no' : 'yes'} · eligible '
+            '${view.isEligible(edgeId) ? 'yes' : 'no'} · max slope '
+            '${TerrainPhysicsText.formatSlopeAngleUnits(view.traversalProfile.maxWalkableSlopeAngleUnits)}°'
+            '${graph == null ? ' · no player graph' : ' · outgoing $walk walk / $jump jump / $drop drop'}',
+            key: const ValueKey<String>('chunk_actor_edge_evidence'),
+          ),
+        );
+      case ChunkV2TerrainActor.unoco:
+        return Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Text(
+            '$actorLabel: solid blocker '
+            '${projection.isUnocoSolidBlocker(edgeId) ? 'yes' : 'no'} · '
+            'local-hover surface candidate '
+            '${projection.isUnocoLocalHoverCandidate(edgeId) ? 'yes' : 'no'} '
+            '· one-way terrain ignored · no flight graph',
+            key: const ValueKey<String>('chunk_actor_edge_evidence'),
+          ),
+        );
+      case ChunkV2TerrainActor.derf:
+        final evidence = projection.derfPerchEvidence(edgeId);
+        return Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Text(
+            '$actorLabel: upward surface ${evidence == null ? 'no' : 'yes'} · '
+            'solid/≤15° ${evidence?.slopeAndModeEligible == true ? 'yes' : 'no'} · '
+            'horizontal span '
+            '${evidence == null ? '—' : '${TerrainPhysicsText.formatTicks(evidence.surface.dxTicks)} px'} '
+            '/ ${TerrainPhysicsText.formatTicks(derfMinimumSupportSpanTicks)} px '
+            '${evidence?.supportSpanEligible == true ? 'pass' : 'fail'} · '
+            'perch ${evidence?.perchEligible == true ? 'eligible' : 'ineligible'}',
+            key: const ValueKey<String>('chunk_actor_edge_evidence'),
+          ),
+        );
+    }
   }
 
   Widget _buildExpandedPrefabShapes(ChunkPolygonAuthoringController authoring) {
@@ -890,11 +1063,14 @@ class ChunkPolygonStagingWorkspaceState
     _disposeAuthoring();
     _selectedChunkKey = chunkKey;
     _selectedCompiledEdgeId = null;
+    _actorProjectionExpansion = null;
+    _actorTerrainProjection = null;
     _authoring = ChunkPolygonAuthoringController(
       session: widget.controller,
       chunkKey: chunkKey,
       snapPolicy: TerrainPolygonSnapPolicy.ownerGridPixels(1),
     )..addListener(_handleAuthoringChanged);
+    if (_showActorTerrain) _refreshActorTerrainProjection();
   }
 
   void _disposeAuthoring() {
@@ -906,7 +1082,10 @@ class ChunkPolygonStagingWorkspaceState
   }
 
   void _handleAuthoringChanged() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    setState(() {
+      if (_showActorTerrain) _refreshActorTerrainProjection();
+    });
   }
 
   ChunkV2StagingDocument? get _documentOrNull {
@@ -921,6 +1100,18 @@ class ChunkPolygonStagingWorkspaceState
 
   ChunkV2CollisionExpansionResult? _expansionFor(String chunkKey) =>
       _sceneOrNull?.collisionExpansionByChunkKey[chunkKey];
+
+  void _refreshActorTerrainProjection() {
+    final chunkKey = _authoring?.chunkKey;
+    final expansion = chunkKey == null
+        ? null
+        : _expansionFor(chunkKey)?.expansion;
+    if (identical(expansion, _actorProjectionExpansion)) return;
+    _actorProjectionExpansion = expansion;
+    _actorTerrainProjection = expansion == null
+        ? null
+        : ChunkV2ActorTerrainProjection.build(expansion);
+  }
 
   void _inspectCompiledEdge(
     ChunkPolygonAuthoringController authoring, {
@@ -1036,4 +1227,12 @@ String _toolLabel(TerrainPolygonTool tool) => switch (tool) {
   TerrainPolygonTool.moveVertex => 'Move vertex',
   TerrainPolygonTool.insertVertex => 'Insert vertex',
   TerrainPolygonTool.translateShape => 'Move shape',
+};
+
+String _terrainActorLabel(ChunkV2TerrainActor actor) => switch (actor) {
+  ChunkV2TerrainActor.eloise => 'Éloïse',
+  ChunkV2TerrainActor.grojib => 'Grojib',
+  ChunkV2TerrainActor.hashash => 'Hashash',
+  ChunkV2TerrainActor.unoco => 'Unoco',
+  ChunkV2TerrainActor.derf => 'Derf',
 };

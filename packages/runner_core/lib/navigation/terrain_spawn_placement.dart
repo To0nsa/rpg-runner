@@ -370,6 +370,10 @@ final class TerrainSpawnPlacementResult {
   bool get accepted => validity == TerrainPlacementValidity.valid;
 }
 
+/// Derf's independent Core-owned horizontal perch-span requirement.
+const int derfMinimumSupportSpanTicks =
+    32 * terrainPhysicsTicksPerWorldUnit;
+
 /// Resolves every Phase 3 enemy/item spawn against one terrain surface set.
 ///
 /// Selection happens before profile filtering, so an invalid intended or
@@ -379,9 +383,6 @@ final class TerrainSpawnPlacementResolver {
   TerrainSpawnPlacementResolver({required TerrainPlacementQuery placementQuery})
     : _placementQuery = placementQuery,
       _terrainBuffer = placementQuery.terrainIndex.createQueryBuffer();
-
-  static const int _derfMinimumSupportSpanTicks =
-      32 * terrainPhysicsTicksPerWorldUnit;
 
   final TerrainPlacementQuery _placementQuery;
   final TerrainQueryBuffer _terrainBuffer;
@@ -454,7 +455,7 @@ final class TerrainSpawnPlacementResolver {
         capsule: profile.capsule,
         traversalProfile: profile.traversalProfile,
         supportRequirement: const TerrainSupportRequirement.groundedSpawn(),
-        minimumSupportSpanTicks: isDerf ? _derfMinimumSupportSpanTicks : 0,
+        minimumSupportSpanTicks: isDerf ? derfMinimumSupportSpanTicks : 0,
         intendedSupportEdgeId: support.id,
         allowSameSupportClamp: request.allowSameSupportClamp,
         oneWayClearancePolicy: isDerf
