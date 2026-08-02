@@ -598,6 +598,13 @@ reserved compiler preview index and is byte-goldened through the shared artifact
 drift plan, but no normal editor, live generator, gameplay, or rendering path
 imports it.
 
+The root compatibility bridge can now project an accepted orthogonal staged
+chunk back to canonical legacy rectangles/gaps without approximating slopes.
+Two repository migration targets reproduce their checked-in collision pixels
+exactly. Six targets remain blocked before projection by 24 Core
+positive-area-overlap diagnostics, so normal Chunk Creator and generation stay
+on v1 while the slopes plan resolves overlapping solid-owner semantics.
+
 ### Phase 6 - Enemy Spawn Marker Authoring Through Editor
 
 Status: Completed on April 11, 2026

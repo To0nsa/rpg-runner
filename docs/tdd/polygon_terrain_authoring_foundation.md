@@ -55,6 +55,7 @@ The active schema migration, generator, preview, and cutover work remains in
 | Strict staged generator source and compilation | root `polygon_terrain_source.dart` / `polygon_terrain_compilation.dart` | prefab-v3/chunk-v2 fixture parsing, Core compilation, placement lineage, and exact triangulation; live entry-point selection is pending |
 | Staged local generated-record contract | `runner_core` `staged_terrain_data.dart` | executable generated fixture only; no gameplay, renderer, replay-validator, or live-generator consumer |
 | Staged Dart terrain rendering | root `polygon_terrain_render.dart` | exact fixture golden and artifact-plan drift tests; future production output path is reserved but not registered |
+| Exact legacy compatibility projection | root `polygon_terrain_legacy_projection.dart` | pure accepted-chunk projection and repository parity characterization only; no live generator/runtime consumer |
 
 Core has no dependency on editor models, JSON, widgets, or filesystem state.
 The editor depends on Core through a one-way local package dependency and does
@@ -764,8 +765,56 @@ artifact drift plan, and remains identical when its compiled chunk input is
 reversed. `UPDATE_POLYGON_TERRAIN_GOLDEN=1` is the explicit fixture-only update
 path; ordinary tests are read-only. This proves the representative compiler and
 render seam but not the complete §22 matrix. Live generator wiring,
-tile-backed prefab owner validation, scheduler seam consumption, legacy
-orthogonal projection, and source cutover remain open.
+tile-backed prefab owner validation, scheduler seam consumption, complete
+repository legacy projection, and source cutover remain open.
+
+## Exact Legacy Compatibility Projection
+
+The temporary compatibility projector consumes only an accepted
+`PolygonTerrainCompiledChunk`; it never parses source independently and cannot
+invent output after a compiler diagnostic. Its authoritative output values are
+integer world pixels plus an exact `BigInt` snapped-solid-union area.
+
+For each accepted orthogonal polygon, coordinate compression classifies exact
+interior cells and emits deterministic width-first, top-to-bottom,
+left-to-right rectangles. The sum of their integer-physics-tick areas must
+equal the source polygon area. Non-ground solid rectangles then reproduce the
+legacy generator's 16-pixel ties-away-from-zero position/dimension snap. Their
+occupied union is decomposed again into canonical non-overlapping rectangles
+and rechecked against exact snapped union area; input and source ordering do not
+affect the result.
+
+Direct shapes named `ground_*` are the migration-owned compatibility marker.
+They project only when each is one solid rectangle whose top equals the level's
+legacy `groundTopY`, whose bottom equals chunk height, and whose horizontal
+endpoints are whole pixels. Merged ground coverage is complemented to produce
+stable `gap_1`, `gap_2`, ... records, and every gap endpoint/width must align to
+the legacy grid. Ground bands do not also become finite solid rectangles
+because the current runtime constructs the ground plane separately and cuts
+these gaps from it.
+
+The bridge rejects every diagonal edge before any bounding approximation,
+requires each one-way owner to decompose to one rectangle, and rejects snapping
+that creates one-way/one-way or one-way/solid positive-area overlap. Solid-only
+snapped overlap is represented by its exact occupied union. This bridge does
+not change the accepted compiler's earlier owner-overlap policy.
+
+Against the in-memory migration targets, two of eight repository chunks compile
+and reproduce their checked-in legacy gap records, solid occupied pixels, and
+one-way top pixels exactly. Six chunks currently stop earlier with 24
+`polygon_area_overlap` diagnostics:
+
+- `forest_early_00`
+- `forest_early_01`
+- `forest_early_02`
+- `forest_early_03`
+- `forest_easy_woodcamp_00`
+- `forest_easy_woodcamp_00_2`
+
+The test goldens this blocker set. It does not weaken overlap validation, omit
+failed owners, or compare fabricated output. Live generator registration must
+remain closed until overlapping solid-owner semantics are reviewed and all
+eight chunks pass both geometry and normal-construction parity.
 
 ## Shared Polygon Interaction And Scene Projection
 

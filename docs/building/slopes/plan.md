@@ -1505,5 +1505,15 @@ strip the compiler's reserved preview index; exact bytes pass the normal
 artifact drift plan and are invariant under reversed chunk input. A production
 import audit keeps the staged contract unreachable. This remains deliberately
 fixture-only while repository source is legacy: live entry-point registration,
-the complete parity matrix, scheduler seam fixture, and exact legacy projection
-stay open for the coordinated source cutover.
+the complete parity matrix, scheduler seam fixture, and production legacy
+projection stay open for the coordinated source cutover.
+
+An isolated exact legacy projector now decomposes accepted orthogonal terrain,
+reproduces current 16-pixel rectangle snapping, derives gaps only from exact
+flat bottom bands, canonicalizes solid occupied unions, and fails closed for
+slopes or unrepresentable one-way collision. It has no live generator/runtime
+consumer. Repository parity is exact for two chunks; six migrated chunks stop
+at 24 accepted-Core positive-area overlap diagnostics before projection. The
+next cutover decision is whether overlapping solid owners are unioned exactly
+with lineage retained or the affected content is reauthored. One-way overlaps
+remain rejected either way.
