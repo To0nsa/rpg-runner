@@ -7,7 +7,9 @@ import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
 import 'package:runner_editor/src/migration/polygon_authoring_legacy_codec.dart';
 import 'package:runner_editor/src/migration/polygon_authoring_migration_plan.dart';
 import 'package:runner_editor/src/migration/legacy_prefab_models.dart';
+import 'package:runner_editor/src/prefabs/models/models.dart';
 import 'package:runner_editor/src/prefabs/store/prefab_store.dart';
+import 'package:runner_editor/src/terrain_authoring/terrain_source_models.dart';
 import 'package:runner_editor/src/workspace/workspace_file_io.dart';
 
 void main() {
@@ -35,7 +37,34 @@ void main() {
     expect((decoded['prefabs']! as List<Object?>), hasLength(99));
     expect((decoded['chunks']! as List<Object?>), hasLength(8));
     expect((decoded['blockers']! as List<Object?>), isEmpty);
-    expect(WorkspaceFileIo.fingerprint(plan.toCanonicalJson()), 'cc2ed2e6');
+    final legacyByKey = <String, LegacyPrefabDef>{
+      for (final prefab in fixture.prefabData.prefabs) prefab.prefabKey: prefab,
+    };
+    final platformEntries = plan.prefabs.where(
+      (entry) => legacyByKey[entry.prefabKey]!.kind == PrefabKind.platform,
+    );
+    expect(platformEntries, hasLength(4));
+    expect(
+      platformEntries
+          .expand((entry) => entry.collisionShapes)
+          .every(
+            (shape) => shape.collisionMode == TerrainSourceCollisionMode.oneWay,
+          ),
+      isTrue,
+    );
+    expect(
+      plan.prefabs
+          .where(
+            (entry) =>
+                legacyByKey[entry.prefabKey]!.kind == PrefabKind.obstacle,
+          )
+          .expand((entry) => entry.collisionShapes)
+          .every(
+            (shape) => shape.collisionMode == TerrainSourceCollisionMode.solid,
+          ),
+      isTrue,
+    );
+    expect(WorkspaceFileIo.fingerprint(plan.toCanonicalJson()), 'd75ba69e');
   });
 
   test('input order and host path separators do not affect report', () async {

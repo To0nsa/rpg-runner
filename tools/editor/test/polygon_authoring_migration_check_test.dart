@@ -69,7 +69,7 @@ void main() {
       expect(summary['revisionChangedCount'], 0);
       expect(summary['downstreamPlacementCount'], 50);
       expect((decoded['blockers']! as List<Object?>), isEmpty);
-      expect(WorkspaceFileIo.fingerprint(report), '14297a48');
+      expect(WorkspaceFileIo.fingerprint(report), '4c1243df');
     },
   );
 
@@ -104,7 +104,7 @@ void main() {
 
       final decoded =
           jsonDecode(check.toCanonicalJson()) as Map<String, Object?>;
-      expect(WorkspaceFileIo.fingerprint(check.toCanonicalJson()), '4116ae04');
+      expect(WorkspaceFileIo.fingerprint(check.toCanonicalJson()), '2da9f6ab');
       final summary = decoded['summary']! as Map<String, Object?>;
       expect(decoded['reportVersion'], 2);
       expect(decoded['sourceState'], 'current');

@@ -5,6 +5,7 @@ import '../chunks/migration/legacy_chunk_ground_migration.dart';
 import '../prefabs/migration/legacy_prefab_collider_union.dart';
 import '../prefabs/migration/reviewed_legacy_prefab_collision_reauthorings.dart';
 import '../terrain_authoring/terrain_source_models.dart';
+import 'legacy_prefab_collision_mode.dart';
 import 'legacy_prefab_models.dart';
 
 /// Classification of one legacy prefab collision conversion.
@@ -335,13 +336,30 @@ final class PolygonAuthoringMigrationPlan {
           ),
         ),
       );
+      var collisionShapes = const <TerrainSourceShapeDef>[];
+      try {
+        collisionShapes = applyLegacyPrefabCollisionMode(
+          prefab: prefab,
+          shapes: result.shapes,
+        );
+      } on ArgumentError catch (error) {
+        issues.add(
+          PolygonAuthoringMigrationIssue(
+            sourcePath: sourcePath,
+            ownerKey: prefabKey,
+            elementIndex: 0,
+            code: 'migration_prefab_collision_kind',
+            message: error.message?.toString() ?? error.toString(),
+          ),
+        );
+      }
       prefabEntries.add(
         PrefabPolygonMigrationEntry(
           prefabKey: prefabKey,
           sourcePath: sourcePath,
           kind: _classifyPrefab(prefab, result),
           legacyColliderCount: prefab.colliders.length,
-          collisionShapes: result.shapes,
+          collisionShapes: collisionShapes,
           legacyAreaHalfPixelSquared: result.occupiedAreaHalfPixelSquared,
           plannedAreaHalfPixelSquared: result.plannedAreaHalfPixelSquared,
         ),

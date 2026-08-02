@@ -3,6 +3,7 @@ import '../chunks/chunk_v2_file_data.dart';
 import '../prefabs/models/models.dart';
 import '../prefabs/store/prefab_determinism.dart';
 import '../terrain_authoring/terrain_source_models.dart';
+import 'legacy_prefab_collision_mode.dart';
 import 'legacy_prefab_models.dart';
 
 /// Polygon-authoring prefab source schema staged for the one-time cutover.
@@ -30,7 +31,10 @@ PrefabV3TargetDef prefabV3TargetFromLegacy({
   visualSource: legacy.visualSource,
   anchorXPx: legacy.anchorXPx,
   anchorYPx: legacy.anchorYPx,
-  collisionShapes: canonicalTerrainSourceShapes(collisionShapes),
+  collisionShapes: applyLegacyPrefabCollisionMode(
+    prefab: legacy,
+    shapes: collisionShapes,
+  ),
   tags: _canonicalTags(legacy.tags),
 );
 

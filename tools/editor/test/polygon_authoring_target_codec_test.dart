@@ -324,6 +324,18 @@ void main() {
       ),
       prefabSource,
     );
+    final decodedPrefabTarget = PolygonAuthoringTargetCodec.decodePrefabV3(
+      prefabSource,
+    );
+    expect(
+      decodedPrefabTarget.prefabs
+          .where((prefab) => prefab.kind == PrefabKind.platform)
+          .expand((prefab) => prefab.collisionShapes)
+          .every(
+            (shape) => shape.collisionMode == TerrainSourceCollisionMode.oneWay,
+          ),
+      isTrue,
+    );
 
     final chunkEntries = <String, ChunkGroundPolygonMigrationEntry>{
       for (final entry in plan.chunks) entry.chunkKey: entry,
