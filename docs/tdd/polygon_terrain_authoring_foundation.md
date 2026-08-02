@@ -671,9 +671,21 @@ a false generated-output diagnostic.
 
 Drift inspection never creates, replaces, or deletes a file and exits nonzero
 when any diagnostic exists. Normal generation writes the same already-rendered
-plan in canonical path order. Atomic multi-file replacement/rollback, current
-polygon-schema parsing, staged polygon/edge/triangle output, and consumption of
-the editor-owned seam golden remain Phase 4 work.
+plan through a rollback-safe multi-file transaction. Canonically equivalent
+absolute target paths are rejected before filesystem access. Each rendered
+byte sequence is flushed to a unique sibling staging file, keeping the rename
+on the target volume; existing targets then move to unique sibling backups.
+After all staged files are installed, the writer re-reads and verifies every
+byte before deleting backups.
+
+Any staging, backup, replacement, or verification failure restores changed
+targets in reverse order and removes transaction files. The surfaced exception
+distinguishes a complete rollback, an incomplete rollback needing manual
+recovery, and cleanup failure after every output was already verified and
+committed. This is the generated-output transaction only: it does not replace
+the migration CLI's pending source-fingerprint recheck and nine-source schema
+transaction. Current polygon-schema parsing, staged polygon/edge/triangle
+output, and consumption of the editor-owned seam golden remain Phase 4 work.
 
 ## Shared Polygon Interaction And Scene Projection
 
