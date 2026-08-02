@@ -507,14 +507,29 @@ async function submitReplay(ticket, replay) {
       grant.expiresAtMs <= Date.now() + 16 * 60 * 1000,
     "Signed upload TTL was outside the expected 15-minute window.",
   );
+  assert(grant.uploadMethod === "POST", "Upload grant was not a signed POST form.");
+  assert(isObject(grant.uploadFields), "Signed POST fields were malformed.");
+  assert(
+    grant.uploadFields["Content-Type"] === grant.contentType,
+    "Signed POST form did not bind the replay content type.",
+  );
 
+  const uploadForm = new FormData();
+  for (const [name, value] of Object.entries(grant.uploadFields)) {
+    assert(
+      typeof value === "string" && value.length > 0,
+      `Signed POST field ${name} was malformed.`,
+    );
+    uploadForm.set(name, value);
+  }
+  uploadForm.append(
+    "file",
+    new Blob([replay.bytes], { type: grant.contentType }),
+    "replay.bin.gz",
+  );
   const upload = await fetch(grant.uploadUrl, {
-    method: "PUT",
-    headers: {
-      "content-type": grant.contentType,
-      "content-length": replay.bytes.length.toString(),
-    },
-    body: replay.bytes,
+    method: grant.uploadMethod,
+    body: uploadForm,
   });
   if (!upload.ok) {
     throw new Error(
