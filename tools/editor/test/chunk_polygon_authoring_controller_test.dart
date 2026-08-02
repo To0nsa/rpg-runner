@@ -11,6 +11,7 @@ import 'package:runner_editor/src/chunks/chunk_domain_plugin.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_codec.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_data.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_staging_models.dart';
+import 'package:runner_editor/src/levels/level_domain_models.dart';
 import 'package:runner_editor/src/domain/authoring_plugin_registry.dart';
 import 'package:runner_editor/src/domain/authoring_types.dart';
 import 'package:runner_editor/src/prefabs/models/models.dart';
@@ -349,6 +350,7 @@ Future<_Harness> _buildHarness() async {
       platformModules: const <TileModuleDef>[],
     ),
     visualBoundsByPrefabKey: const {},
+    levels: const <LevelDef>[_forestLevel],
     availableLevelIds: const <String>['forest'],
     activeLevelId: 'forest',
   );
@@ -399,6 +401,21 @@ ChunkV2FileData _chunk() => ChunkV2FileData(
       ],
     ),
   ],
+);
+
+const LevelDef _forestLevel = LevelDef(
+  levelId: 'forest',
+  revision: 1,
+  displayName: 'Forest',
+  visualThemeId: 'forest',
+  cameraCenterY: 25,
+  groundTopY: 10,
+  earlyPatternChunks: 0,
+  easyPatternChunks: 0,
+  normalPatternChunks: 0,
+  noEnemyChunks: 0,
+  enumOrdinal: 1,
+  status: levelStatusActive,
 );
 
 final class _Harness {

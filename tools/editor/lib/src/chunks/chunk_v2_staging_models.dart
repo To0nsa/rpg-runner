@@ -1,10 +1,12 @@
 import 'package:meta/meta.dart';
 
 import '../domain/authoring_types.dart';
+import '../levels/level_domain_models.dart';
 import '../prefabs/domain/prefab_domain_models.dart';
 import '../prefabs/models/models.dart';
 import 'chunk_v2_collision_expansion.dart';
 import 'chunk_v2_file_data.dart';
+import 'chunk_v2_seam_analysis.dart';
 
 /// Temporary read-only plugin document for an all-v2 chunk source tree.
 ///
@@ -20,6 +22,7 @@ class ChunkV2StagingDocument extends AuthoringDocument {
     required this.tileData,
     required Map<String, PrefabV3VisualBounds> visualBoundsByPrefabKey,
     Map<String, double> groundTopYByLevelId = const <String, double>{},
+    required Iterable<LevelDef> levels,
     required Iterable<String> availableLevelIds,
     required this.activeLevelId,
     Iterable<String> changedChunkKeys = const <String>[],
@@ -36,6 +39,7 @@ class ChunkV2StagingDocument extends AuthoringDocument {
        groundTopYByLevelId = Map<String, double>.unmodifiable(
          groundTopYByLevelId,
        ),
+       levels = List<LevelDef>.unmodifiable(levels),
        availableLevelIds = List<String>.unmodifiable(availableLevelIds),
        changedChunkKeys = List<String>.unmodifiable(
          changedChunkKeys.toSet().toList()..sort(),
@@ -48,6 +52,7 @@ class ChunkV2StagingDocument extends AuthoringDocument {
   final PrefabTileFileData tileData;
   final Map<String, PrefabV3VisualBounds> visualBoundsByPrefabKey;
   final Map<String, double> groundTopYByLevelId;
+  final List<LevelDef> levels;
   final List<String> availableLevelIds;
   final String? activeLevelId;
   final List<String> changedChunkKeys;
@@ -60,6 +65,7 @@ class ChunkV2StagingDocument extends AuthoringDocument {
     PrefabTileFileData? tileData,
     Map<String, PrefabV3VisualBounds>? visualBoundsByPrefabKey,
     Map<String, double>? groundTopYByLevelId,
+    Iterable<LevelDef>? levels,
     Iterable<String>? availableLevelIds,
     String? activeLevelId,
     bool clearActiveLevelId = false,
@@ -74,6 +80,7 @@ class ChunkV2StagingDocument extends AuthoringDocument {
     visualBoundsByPrefabKey:
         visualBoundsByPrefabKey ?? this.visualBoundsByPrefabKey,
     groundTopYByLevelId: groundTopYByLevelId ?? this.groundTopYByLevelId,
+    levels: levels ?? this.levels,
     availableLevelIds: availableLevelIds ?? this.availableLevelIds,
     activeLevelId: clearActiveLevelId
         ? null
@@ -94,6 +101,7 @@ class ChunkV2StagingScene extends EditableScene {
     Map<String, double> groundTopYByLevelId = const <String, double>{},
     required Map<String, ChunkV2CollisionExpansionResult>
     collisionExpansionByChunkKey,
+    required this.seamAnalysis,
     required Iterable<String> availableLevelIds,
     required this.activeLevelId,
   }) : chunks = List<ChunkV2FileData>.unmodifiable(chunks),
@@ -120,6 +128,7 @@ class ChunkV2StagingScene extends EditableScene {
   final Map<String, double> groundTopYByLevelId;
   final Map<String, ChunkV2CollisionExpansionResult>
   collisionExpansionByChunkKey;
+  final ChunkV2SeamAnalysis seamAnalysis;
   final List<String> availableLevelIds;
   final String? activeLevelId;
 }

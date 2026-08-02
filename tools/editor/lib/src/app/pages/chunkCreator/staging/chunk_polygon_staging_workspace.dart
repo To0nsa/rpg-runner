@@ -10,8 +10,10 @@ import 'package:runner_core/navigation/types/terrain_surface_graph.dart';
 import '../../../../chunks/chunk_v2_actor_terrain_projection.dart';
 import '../../../../chunks/chunk_v2_collision_expansion.dart';
 import '../../../../chunks/chunk_v2_compiled_edge_inspection.dart';
+import '../../../../chunks/chunk_domain_models.dart';
 import '../../../../chunks/chunk_v2_file_data.dart';
 import '../../../../chunks/chunk_v2_marker_placement_projection.dart';
+import '../../../../chunks/chunk_v2_seam_analysis.dart';
 import '../../../../chunks/chunk_v2_staging_models.dart';
 import '../../../../domain/authoring_types.dart';
 import '../../../../session/editor_session_controller.dart';
@@ -392,6 +394,8 @@ class ChunkPolygonStagingWorkspaceState
         ),
         const SizedBox(height: 8),
         _buildExpansionSummary(authoring),
+        const SizedBox(height: 4),
+        _buildSeamSummary(authoring),
         if (_showActorTerrain) ...<Widget>[
           const SizedBox(height: 4),
           _buildActorTerrainSummary(),
@@ -617,6 +621,7 @@ class ChunkPolygonStagingWorkspaceState
           ],
           _buildCompiledEdgeInspector(authoring),
           _buildExpandedPrefabShapes(authoring),
+          _buildSeamInspector(authoring),
           if (_showMarkerPlacements) _buildMarkerPlacementInspector(),
           const Divider(height: 28),
           Text('Diagnostics', style: Theme.of(context).textTheme.titleSmall),
@@ -667,6 +672,39 @@ class ChunkPolygonStagingWorkspaceState
       'shapes · ${expansion.exposedEdgeCount}/'
       '${TerrainGeometryLimits.maxExposedEdgesPerChunk} exposed edges',
       key: const ValueKey<String>('chunk_collision_expansion_summary'),
+    );
+  }
+
+  Widget _buildSeamSummary(ChunkPolygonAuthoringController authoring) {
+    final scene = _sceneOrNull;
+    if (scene == null) return const SizedBox.shrink();
+    final seams = scene.seamAnalysis.seamsForChunk(authoring.chunkKey);
+    if (authoring.chunk.status == chunkStatusDeprecated) {
+      return const Text(
+        'Deprecated chunk · excluded from scheduler seam candidates',
+        key: ValueKey<String>('chunk_seam_summary'),
+      );
+    }
+    if (seams.isEmpty) {
+      return const Text(
+        'No resolved scheduler seam candidates',
+        key: ValueKey<String>('chunk_seam_summary'),
+        style: TextStyle(color: Color(0xFFFFD166)),
+      );
+    }
+    final failing = seams.where((seam) => !seam.comparison.isCompatible).length;
+    final neighbors = <String>{
+      for (final seam in seams)
+        seam.transition.leftChunkKey == authoring.chunkKey
+            ? seam.transition.rightChunkKey
+            : seam.transition.leftChunkKey,
+    };
+    return Text(
+      '${neighbors.length} reachable neighbor(s) · ${seams.length} directed '
+      'scheduler seam(s) · ${seams.length - failing} compatible · '
+      '$failing failing',
+      key: const ValueKey<String>('chunk_seam_summary'),
+      style: failing == 0 ? null : const TextStyle(color: Color(0xFFFF7F7F)),
     );
   }
 
@@ -947,6 +985,92 @@ class ChunkPolygonStagingWorkspaceState
             isThreeLine: true,
           ),
       ],
+    );
+  }
+
+  Widget _buildSeamInspector(ChunkPolygonAuthoringController authoring) {
+    final scene = _sceneOrNull;
+    final seams =
+        scene?.seamAnalysis.seamsForChunk(authoring.chunkKey) ??
+        const <ChunkV2ReachableSeam>[];
+    return Column(
+      key: const ValueKey<String>('chunk_seam_inspector'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        const Divider(height: 28),
+        Text(
+          'Reachable chunk seams',
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Read-only scheduler evidence from exact compiled boundaries. '
+          'Material-key differences are retained for Phase 5 but do not block '
+          'this physical seam gate.',
+        ),
+        if (authoring.chunk.status == chunkStatusDeprecated)
+          const Padding(
+            padding: EdgeInsets.only(top: 8),
+            child: Text(
+              'This deprecated chunk is not eligible for runtime selection.',
+            ),
+          )
+        else if (seams.isEmpty)
+          const Padding(
+            padding: EdgeInsets.only(top: 8),
+            child: Text(
+              'No seam comparison is available. Check scheduler pool and '
+              'compiled-geometry diagnostics.',
+            ),
+          )
+        else
+          for (final seam in seams)
+            _buildSeamEvidenceCard(authoring.chunkKey, seam),
+      ],
+    );
+  }
+
+  Widget _buildSeamEvidenceCard(
+    String selectedChunkKey,
+    ChunkV2ReachableSeam seam,
+  ) {
+    final transition = seam.transition;
+    final comparison = seam.comparison;
+    final selectedIsLeft = transition.leftChunkKey == selectedChunkKey;
+    final neighborKey = selectedIsLeft
+        ? transition.rightChunkKey
+        : transition.leftChunkKey;
+    final direction = selectedIsLeft
+        ? 'right → $neighborKey'
+        : '$neighborKey → left';
+    final mismatchCoordinates = comparison.mismatchYTicks
+        .map(TerrainPhysicsText.formatTicks)
+        .join(', ');
+    return Card(
+      key: ValueKey<String>(
+        'chunk_seam_${transition.transitionId}_'
+        '${transition.leftChunkKey}_${transition.rightChunkKey}',
+      ),
+      child: ListTile(
+        dense: true,
+        leading: Icon(
+          comparison.isCompatible
+              ? Icons.link_outlined
+              : Icons.link_off_outlined,
+          color: comparison.isCompatible
+              ? const Color(0xFF8BD3A8)
+              : const Color(0xFFFF7F7F),
+        ),
+        title: Text(
+          '$direction · ${comparison.isCompatible ? 'compatible' : 'failing'}',
+        ),
+        subtitle: Text(
+          '${transition.transitionId}\n${transition.description}'
+          '${comparison.isCompatible ? '' : '\nmismatch y=[$mismatchCoordinates] px'}'
+          '${comparison.materialMismatchVertices.isEmpty ? '' : '\nmaterial evidence at ${comparison.materialMismatchVertices.length} endpoint(s)'}',
+        ),
+        isThreeLine: true,
+      ),
     );
   }
 

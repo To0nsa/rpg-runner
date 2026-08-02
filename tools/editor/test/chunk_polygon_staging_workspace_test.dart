@@ -12,6 +12,7 @@ import 'package:runner_editor/src/chunks/chunk_domain_plugin.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_codec.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_data.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_staging_models.dart';
+import 'package:runner_editor/src/levels/level_domain_models.dart';
 import 'package:runner_editor/src/domain/authoring_plugin_registry.dart';
 import 'package:runner_editor/src/domain/authoring_types.dart';
 import 'package:runner_editor/src/prefabs/domain/prefab_domain_models.dart';
@@ -64,6 +65,28 @@ void main() {
         ),
         findsOneWidget,
       );
+      expect(
+        find.text(
+          '1 reachable neighbor(s) · 1 directed scheduler seam(s) · '
+          '1 compatible · 0 failing',
+        ),
+        findsOneWidget,
+      );
+      final seamInspector = find.byKey(
+        const ValueKey<String>('chunk_seam_inspector'),
+      );
+      final diagnosticsList = find.byKey(
+        const ValueKey<String>('chunk_shape_diagnostics_list'),
+      );
+      await tester.ensureVisible(seamInspector);
+      expect(seamInspector, findsOneWidget);
+      expect(
+        find.textContaining('right → forest_chunk · compatible'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('steady-hard:tier=hard>hard'), findsOneWidget);
+      await tester.drag(diagnosticsList, const Offset(0, 2000));
+      await tester.pump();
       expect(
         find.byKey(
           const ValueKey<String>(
@@ -168,12 +191,11 @@ void main() {
       final grojibMarker = find.byKey(
         const ValueKey<String>('chunk_marker_placement_grojib|30|5|0'),
       );
-      final diagnosticsList = find.byKey(
-        const ValueKey<String>('chunk_shape_diagnostics_list'),
-      );
       await tester.drag(diagnosticsList, const Offset(0, -700));
       await tester.pump();
       await tester.drag(diagnosticsList, const Offset(0, -300));
+      await tester.pump();
+      await tester.drag(diagnosticsList, const Offset(0, -500));
       await tester.pump();
       await tester.ensureVisible(grojibMarker);
       await tester.tap(grojibMarker);
@@ -308,11 +330,15 @@ void main() {
       expect(forestChunk.revision, 4);
       expect(harness.session.pendingChanges.hasChanges, isFalse);
       expect(tester.widget<TextField>(xField).controller!.text, '101');
-      await tester.drag(diagnosticsList, const Offset(0, -2000));
-      await tester.pump();
-      expect(find.text('chunk_collision_shape_out_of_bounds'), findsOneWidget);
+      final outOfBoundsIssue = find.text('chunk_collision_shape_out_of_bounds');
+      await tester.dragUntilVisible(
+        outOfBoundsIssue,
+        diagnosticsList,
+        const Offset(0, -500),
+      );
+      expect(outOfBoundsIssue, findsOneWidget);
 
-      await tester.drag(diagnosticsList, const Offset(0, 2000));
+      await tester.drag(diagnosticsList, const Offset(0, 5000));
       await tester.pump();
       final editMetadata = find.byKey(
         const ValueKey<String>('chunk_polygon_edit_metadata'),
@@ -492,6 +518,7 @@ Future<_Harness> _buildHarness() async {
     ),
     visualBoundsByPrefabKey: const <String, PrefabV3VisualBounds>{},
     groundTopYByLevelId: const <String, double>{'forest': 10, 'meadow': 10},
+    levels: const <LevelDef>[_forestLevel, _meadowLevel],
     availableLevelIds: const <String>['forest', 'meadow'],
     activeLevelId: 'forest',
   );
@@ -506,6 +533,36 @@ Future<_Harness> _buildHarness() async {
   await session.loadWorkspace();
   return _Harness(root: root, session: session, plugin: plugin);
 }
+
+const LevelDef _forestLevel = LevelDef(
+  levelId: 'forest',
+  revision: 1,
+  displayName: 'Forest',
+  visualThemeId: 'forest',
+  cameraCenterY: 25,
+  groundTopY: 10,
+  earlyPatternChunks: 0,
+  easyPatternChunks: 0,
+  normalPatternChunks: 0,
+  noEnemyChunks: 0,
+  enumOrdinal: 1,
+  status: levelStatusActive,
+);
+
+const LevelDef _meadowLevel = LevelDef(
+  levelId: 'meadow',
+  revision: 1,
+  displayName: 'Meadow',
+  visualThemeId: 'meadow',
+  cameraCenterY: 25,
+  groundTopY: 10,
+  earlyPatternChunks: 0,
+  easyPatternChunks: 0,
+  normalPatternChunks: 0,
+  noEnemyChunks: 0,
+  enumOrdinal: 2,
+  status: levelStatusActive,
+);
 
 ChunkV2FileData _chunkData({
   required String chunkKey,

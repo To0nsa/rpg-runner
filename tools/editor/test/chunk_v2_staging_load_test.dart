@@ -44,10 +44,17 @@ void main() {
       expect(document.tileData.platformModules, isEmpty);
       expect(document.availableLevelIds, <String>['forest']);
       expect(document.activeLevelId, 'forest');
+      expect(document.levels.single.levelId, 'forest');
       expect(document.groundTopYByLevelId, <String, double>{'forest': 224});
       expect(document.visualBoundsByPrefabKey, isEmpty);
       expect(plugin.validate(document), isEmpty);
-      expect(plugin.buildEditableScene(document), isA<ChunkV2StagingScene>());
+      final scene = plugin.buildEditableScene(document) as ChunkV2StagingScene;
+      expect(scene.seamAnalysis.transitions, hasLength(3));
+      expect(scene.seamAnalysis.seams, hasLength(3));
+      expect(
+        scene.seamAnalysis.seams.every((seam) => seam.comparison.isCompatible),
+        isTrue,
+      );
       expect(
         plugin
             .describePendingChanges(fixture.workspace, document: document)
@@ -63,6 +70,7 @@ void main() {
       expect(result.artifacts.single.content, contains('changedFiles: 0'));
       expect(fixture.snapshot(), before);
       expect(() => document.chunks.clear(), throwsUnsupportedError);
+      expect(() => document.levels.clear(), throwsUnsupportedError);
       expect(
         () => document.sourcePathByChunkKey.clear(),
         throwsUnsupportedError,

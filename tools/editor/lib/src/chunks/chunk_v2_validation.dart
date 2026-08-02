@@ -9,6 +9,7 @@ import 'chunk_domain_models.dart';
 import 'chunk_v2_collision_expansion.dart';
 import 'chunk_v2_file_data.dart';
 import 'chunk_v2_marker_contract.dart';
+import 'chunk_v2_seam_analysis.dart';
 import 'chunk_v2_staging_models.dart';
 
 /// Validates one chunk's direct polygon owner with Core geometry authority.
@@ -92,6 +93,7 @@ List<ValidationIssue> validateChunkV2StagingDocument(
   final chunkKeys = <String>{};
   final foldedChunkKeys = <String>{};
   final chunkIds = <String>{};
+  final collisionExpansions = <String, ChunkV2CollisionExpansionResult>{};
 
   if (document.availableLevelIds.isEmpty || document.activeLevelId == null) {
     issues.add(
@@ -207,15 +209,24 @@ List<ValidationIssue> validateChunkV2StagingDocument(
       }
     }
 
-    issues.addAll(
-      expandChunkV2Collision(
-        chunk: chunk,
-        prefabs: document.prefabData.prefabs,
-        sourcePath: sourcePath ?? chunk.chunkKey,
-        chunkIndex: chunkIndex,
-      ).issues,
+    final expansion = expandChunkV2Collision(
+      chunk: chunk,
+      prefabs: document.prefabData.prefabs,
+      sourcePath: sourcePath ?? chunk.chunkKey,
+      chunkIndex: chunkIndex,
     );
+    collisionExpansions[chunk.chunkKey] = expansion;
+    issues.addAll(expansion.issues);
   }
+
+  issues.addAll(
+    analyzeChunkV2Seams(
+      chunks: chunks,
+      levels: document.levels,
+      collisionExpansionByChunkKey: collisionExpansions,
+      sourcePathByChunkKey: document.sourcePathByChunkKey,
+    ).issues,
+  );
 
   _sortValidationIssues(issues);
   return List<ValidationIssue>.unmodifiable(issues);

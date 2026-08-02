@@ -11,6 +11,7 @@ import 'chunk_v2_collision_expansion.dart';
 import 'chunk_validation.dart';
 import 'chunk_v2_collision_commit.dart';
 import 'chunk_v2_file_codec.dart';
+import 'chunk_v2_seam_analysis.dart';
 import 'chunk_v2_staging_models.dart';
 import 'chunk_v2_validation.dart';
 
@@ -112,6 +113,7 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
       groundTopYByLevelId: <String, double>{
         for (final level in levelLoad.levels) level.levelId: level.groundTopY,
       },
+      levels: levelLoad.levels,
       availableLevelIds: sortedLevelIds,
       activeLevelId: activeLevelId,
     );
@@ -155,6 +157,14 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
           chunkIndex: chunkIndex,
         );
       }
+      final seamAnalysis = analyzeChunkV2Seams(
+        chunks: chunks,
+        levels: document.levels.where(
+          (level) => level.levelId == document.activeLevelId,
+        ),
+        collisionExpansionByChunkKey: collisionExpansions,
+        sourcePathByChunkKey: document.sourcePathByChunkKey,
+      );
       return ChunkV2StagingScene(
         chunks: chunks,
         sourcePathByChunkKey: sourcePaths,
@@ -163,6 +173,7 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
         visualBoundsByPrefabKey: document.visualBoundsByPrefabKey,
         groundTopYByLevelId: document.groundTopYByLevelId,
         collisionExpansionByChunkKey: collisionExpansions,
+        seamAnalysis: seamAnalysis,
         availableLevelIds: document.availableLevelIds,
         activeLevelId: document.activeLevelId,
       );
