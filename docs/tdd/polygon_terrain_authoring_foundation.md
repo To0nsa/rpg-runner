@@ -12,7 +12,8 @@ Current normal source and runtime behavior remain unchanged:
 - chunk authoring still persists schema v1 `groundProfile` and `groundGaps`
 - normal `GameCore(...)` and replay validation still use legacy rectangle
   motion authority
-- no staged polygon generator output or Flame terrain rendering exists yet
+- a staged Dart renderer and executable fixture exist, but the normal generator
+  still registers only its five legacy outputs and Flame has no terrain consumer
 
 The active schema migration, generator, preview, and cutover work remains in
 [the Phase 4 checklist](../building/slopes/phase4-implementation-checklist.md).
@@ -51,6 +52,9 @@ The active schema migration, generator, preview, and cutover work remains in
 | Chunk actor terrain projection | editor `ChunkV2ActorTerrainProjection` | Core surface extraction; Éloïse/Grojib/Hashash eligibility; published Grojib/Hashash graphs; Unoco solid/local-hover evidence; Derf 15-degree/32-pixel perch evidence; no player/flight graph or source mutation |
 | Chunk marker contract and placement projection | editor `chunk_v2_marker_contract.dart` / `ChunkV2MarkerPlacementProjection` | immutable level ground context, staged marker validation, exact Phase 3 enemy placement evidence, Hashash deferral, authored-order/stable-key retention, and zero RNG/source mutation |
 | Scheduler-aware chunk seam analysis | editor `chunk_v2_seam_analysis.dart` | immutable `LevelDef` snapshot, canonical compiled boundary signatures, runtime-contract adjacency enumeration, global staged validation, and read-only compatible/failing neighbor evidence |
+| Strict staged generator source and compilation | root `polygon_terrain_source.dart` / `polygon_terrain_compilation.dart` | prefab-v3/chunk-v2 fixture parsing, Core compilation, placement lineage, and exact triangulation; live entry-point selection is pending |
+| Staged local generated-record contract | `runner_core` `staged_terrain_data.dart` | executable generated fixture only; no gameplay, renderer, replay-validator, or live-generator consumer |
+| Staged Dart terrain rendering | root `polygon_terrain_render.dart` | exact fixture golden and artifact-plan drift tests; future production output path is reserved but not registered |
 
 Core has no dependency on editor models, JSON, widgets, or filesystem state.
 The editor depends on Core through a one-way local package dependency and does
@@ -684,15 +688,16 @@ distinguishes a complete rollback, an incomplete rollback needing manual
 recovery, and cleanup failure after every output was already verified and
 committed. This is the generated-output transaction only: it does not replace
 the migration CLI's pending source-fingerprint recheck and nine-source schema
-transaction. Current polygon-schema parsing, staged polygon/edge/triangle
-output, and consumption of the editor-owned seam golden remain Phase 4 work.
+transaction. Live polygon-schema selection, production staged-output
+registration, and consumption of the editor-owned seam golden remain Phase 4
+work.
 
-## Strict Staged Generator Compiler Foundation
+## Strict Staged Generator Compiler And Artifact Foundation
 
 The repository source is still prefab-v2/chunk-v1, so the live generator cannot
-select current-schema parsing before the coordinated source migration. Two
+select current-schema parsing before the coordinated source migration. Three
 focused pure-Dart files now establish that future boundary without adding a
-flag, generated runtime file, or production consumer:
+flag, production generated file, or runtime consumer:
 
 - `polygon_terrain_source.dart` strictly parses prefab-v3 and chunk-v2
   structures as written, including field sets, exact types, canonical list
@@ -701,7 +706,9 @@ flag, generated runtime file, or production consumer:
 - `polygon_terrain_compilation.dart` resolves stable prefab references and
   placement ordinals, applies the accepted anchor-relative Core transform,
   pre-reviews canonical source, compiles direct and expanded shapes together,
-  enforces closed chunk bounds, and retains prefab key/id/revision lineage.
+  enforces closed chunk bounds, and retains prefab key/id/revision lineage;
+- `polygon_terrain_render.dart` validates chunk-local compiler identity, sorts
+  every rendered record family, and emits typed staged Dart records in memory.
 
 Parsed coordinates remain generator values until the Core adapter boundary.
 This matters because the canonical JSON number range is intentionally wider
@@ -720,14 +727,40 @@ in surviving canonical-index order. Every result must contain exactly
 Core polygon. Triangle indices reference that same normalized loop; collision
 edges continue to come exclusively from `TerrainGeometry.edges`.
 
+The future output path is
+`packages/runner_core/lib/track/staged_authored_terrain.dart`. Its deliberately
+narrow API is `StagedTerrainArtifactData`, defined in
+`staged_terrain_data.dart`; it cannot be confused with the current
+`ChunkPattern` authority. The artifact is self-describing with artifact and
+compiler geometry versions plus `source-v1`, `edges-v1`,
+`authoring-placement-v1`, and `authoring-triangles-v1` labels and signatures.
+Each chunk record retains source revision/metadata, canonical source vertices
+in half-world-unit ticks, transformed vertices and exposed edges in integer
+physics ticks, collision/render metadata, deterministic triangle indices, and
+exact prefab placement/revision lineage.
+
+Core compilation temporarily uses reserved local instance index zero. The
+renderer accepts only that value and matching chunk keys, then creates local
+source/edge IDs without an instance-index field. Runtime streaming must bind
+the real instance index and geometry version in Phase 5. The checked-in output
+golden contains no `chunkIndex` token, and a production-tree import audit proves
+that normal Core construction, Flutter, and the replay validator cannot select
+either staged record or future output file. The live generator likewise does
+not import the renderer yet; this is a one-way staged boundary, not a runtime
+feature flag.
+
 The shared checked-in fixture contains a concave direct solid, one-way source,
 surface/material metadata, and an exactly scaled/reflected prefab placement.
 Fresh generator parses bind Core `source-v1` and `edges-v1`, exact
 `authoring-placement-v1`, and `authoring-triangles-v1` hashes. The editor's
 existing strict codecs and collision expansion consume the same bytes and
-reproduce the first three hashes. This proves the representative compiler seam
-but not the complete §22 matrix. Normal generator wiring, tile-backed prefab
-owner validation, scheduler seam consumption, staged Dart rendering, legacy
+reproduce the first three hashes. The generated Dart fixture is executable
+typed data, is reproduced byte-for-byte by fresh compiles through the normal
+artifact drift plan, and remains identical when its compiled chunk input is
+reversed. `UPDATE_POLYGON_TERRAIN_GOLDEN=1` is the explicit fixture-only update
+path; ordinary tests are read-only. This proves the representative compiler and
+render seam but not the complete §22 matrix. Live generator wiring,
+tile-backed prefab owner validation, scheduler seam consumption, legacy
 orthogonal projection, and source cutover remain open.
 
 ## Shared Polygon Interaction And Scene Projection

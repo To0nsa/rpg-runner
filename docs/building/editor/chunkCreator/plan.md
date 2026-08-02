@@ -590,8 +590,13 @@ prefab-v3/chunk-v2 codecs and collision expansion over the same checked-in
 bytes. Editor and generator agree on Core source/edge and exact placement
 lineage signatures for direct concave solid, one-way, metadata, and reflected
 rational-scale prefab geometry. This is a parity foundation only: Chunk Creator
-still loads v1 normally, and the root entry point emits no staged terrain file
-until the coordinated slopes cutover.
+still loads v1 normally, and the root entry point emits no production staged
+terrain file until the coordinated slopes cutover. A new executable Dart
+fixture now proves the future local record shape for source/physics loops,
+Core-exposed edges, render triangles, and prefab revision lineage. It strips the
+reserved compiler preview index and is byte-goldened through the shared artifact
+drift plan, but no normal editor, live generator, gameplay, or rendering path
+imports it.
 
 ### Phase 6 - Enemy Spawn Marker Authoring Through Editor
 

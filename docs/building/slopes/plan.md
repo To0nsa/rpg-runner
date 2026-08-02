@@ -1473,10 +1473,10 @@ boundary signatures, enumerates tier fallback/boundary and assembly
 within/between-run transitions, blocks reachable physical mismatches globally,
 and lists compatible/failing directed neighbors without sampling RNG or
 changing content. Its editor-owned `authoring-seams-v1` golden is ready, while
-generator consumption of that fixture, safe source migration, staged
-generation, and the coordinated normal editor cutover remain open. Phase 4
-must not select polygon terrain in normal production runs before the later
-streaming/content cutover phases.
+generator consumption of that fixture, safe source migration, live staged
+output registration, and the coordinated normal editor cutover remain open.
+Phase 4 must not select polygon terrain in normal production runs before the
+later streaming/content cutover phases.
 
 The existing generator entry point now also renders all five current outputs
 into one immutable artifact plan before checking or writing. Its write-free
@@ -1486,9 +1486,10 @@ the generated-drift foundation without changing prefab-v2/chunk-v1 input,
 generated runtime bytes, or collision authority. Normal generation now stages
 all renders beside their targets, backs up existing outputs, installs and
 byte-verifies the complete set, and rolls back on failure before cleaning the
-transaction files. Current polygon schema consumption, staged terrain output,
-and editor/generator seam parity remain open Phase 4 gates; the one-time source
-migration keeps its separate drift-recheck and transaction requirements.
+transaction files. Current polygon schema consumption, live staged terrain
+registration, and editor/generator seam parity remain open Phase 4 gates; the
+one-time source migration keeps its separate drift-recheck and transaction
+requirements.
 
 A pure-Dart staged compiler now proves the next generator boundary without
 selecting it in normal generation. It strictly parses checked-in prefab-v3 and
@@ -1497,7 +1498,12 @@ placements with prefab revision lineage, delegates polygons/exposed edges to
 Core, and derives exact concave triangle indices from the returned normalized
 loops. The editor independently consumes the same fixture and matches Core
 source/edge plus placement signatures; a triangle signature is also golden.
-This is deliberately fixture-only while repository source remains legacy.
-Live entry-point wiring, the complete parity matrix, scheduler seam fixture,
-staged Dart output, and exact legacy projection stay open for the coordinated
-source cutover.
+The same compiled result now renders a narrowly typed, executable Dart artifact
+fixture containing canonical source/physics loops, Core-exposed edges, render
+triangles, placement lineage, and signature versions. Its local identities
+strip the compiler's reserved preview index; exact bytes pass the normal
+artifact drift plan and are invariant under reversed chunk input. A production
+import audit keeps the staged contract unreachable. This remains deliberately
+fixture-only while repository source is legacy: live entry-point registration,
+the complete parity matrix, scheduler seam fixture, and exact legacy projection
+stay open for the coordinated source cutover.

@@ -159,7 +159,7 @@ adapter, generator output, or runtime consumer introduced after July 28, 2026.
       migration tool only after committed source is migrated.
 - [ ] Remove rectangle/ground-gap commands and forms from normal editor paths
       in the same change that installs polygon replacements.
-- [ ] Generate a clearly named staged terrain artifact/API that normal runtime
+- [x] Generate a clearly named staged terrain artifact/API that normal runtime
       construction cannot select accidentally.
 - [ ] Retain only the bounded legacy generated projection needed by the
       existing production runtime until Phase 5 replaces streaming.
@@ -774,14 +774,14 @@ gameplay/content decision.
 
 - [x] Keep `tool/generate_chunk_runtime_data.dart` the single repository
       generation entry point.
-- [ ] Refactor polygon parsing/transform/compile/render steps into focused
+- [x] Refactor polygon parsing/transform/compile/render steps into focused
       testable pure-Dart files rather than growing the monolith further.
 - [ ] Parse only current prefab v3/chunk v2 in normal generation.
 - [x] Expand prefab placements with stable placement/source lineage.
 - [ ] Validate all direct/expanded shapes and scheduler seams before rendering
       any output.
 - [x] Feed exact quantized polygons through the accepted Core compiler.
-- [ ] Generate normalized local polygon loops and precompiled exposed local
+- [x] Generate normalized local polygon loops and precompiled exposed local
       edges with collision/render metadata.
 - [x] Deterministically triangulate each normalized simple polygon during
       generation, never independently inside Flame.
@@ -793,18 +793,18 @@ gameplay/content decision.
       collision/source signatures.
 - [x] Generate source identity lineage: chunk key, placement key when present,
       prefab key/revision, shape ID, and local edge identity.
-- [ ] Preserve runtime chunk index/version binding for Phase 5; do not bake a
+- [x] Preserve runtime chunk index/version binding for Phase 5; do not bake a
       fake streamed chunk index into authoring identities.
-- [ ] If the accepted Core compiler requires an instance chunk index during
+- [x] If the accepted Core compiler requires an instance chunk index during
       local preview, use a reserved internal value, strip it from generated
       local records, and assert it is never serialized as runtime identity.
 - [x] Include deterministic compiler/signature format versions.
-- [ ] Generate collision and render inputs from the same normalized source in
+- [x] Generate collision and render inputs from the same normalized source in
       one pass.
 - [x] Never rebuild collision edges from render triangles.
-- [ ] Keep generated data generated; no hand edits.
-- [ ] Sort all maps/lists explicitly before Dart rendering.
-- [ ] Keep generated numeric output integer/fixed rational where authoritative.
+- [x] Keep generated data generated; no hand edits.
+- [x] Sort all maps/lists explicitly before Dart rendering.
+- [x] Keep generated numeric output integer/fixed rational where authoritative.
 - [ ] Produce the bounded legacy rectangle/gap projection only for migrated
       orthogonal production content until Phase 5 removes that need.
 - [ ] Deterministically decompose orthogonal solid polygon unions into
@@ -837,10 +837,10 @@ and performs no writes. Unexpected-file discovery is restricted to files under
 the generator's declared output roots that carry its ownership marker, so
 unrelated Dart sources are not treated as generated drift. Current prefab-v2,
 chunk-v1, and runtime output contracts are unchanged; staged polygon output
-remains open below.
+registration in the live plan remains open below.
 
-The first current-schema generator foundation now lives in focused pure-Dart
-source/compile files without being selected by the legacy entry point. It
+The current-schema generator foundation now lives in focused pure-Dart
+source/compile/render files without being selected by the legacy entry point. It
 strictly parses prefab v3/chunk v2 fixture source, requires Core-canonical
 loops, expands anchor-relative prefab collision with exact scale tenths and
 stable placement/prefab revision lineage, compiles polygons and exposed edges
@@ -849,9 +849,26 @@ triangle indices from the same normalized Core polygon loops. Exact BigInt ear
 tests require `vertexCount - 2` positive triangles and an area sum identical to
 the polygon. One checked-in shared fixture binds generator and editor
 `source-v1`, `edges-v1`, and `authoring-placement-v1` signatures plus the
-generator's `authoring-triangles-v1` signature. Normal source remains
-prefab-v2/chunk-v1; no staged Dart output file or production consumer exists
-yet.
+generator's `authoring-triangles-v1` signature.
+
+`polygon_terrain_render.dart` now projects an accepted compiled chunk set into
+the narrowly named future `staged_authored_terrain.dart` contract. Immutable
+Core-side staged records retain chunk revision/metadata, canonical half-pixel
+source loops, transformed physics loops, compiler-owned exposed edges,
+triangle indices, placement/prefab revision lineage, and all signature format
+labels. The reserved compiler index is checked and stripped; generated source
+identities contain no streamed chunk index. Chunks and every derived record
+family are sorted explicitly, authoritative numeric fields remain integers,
+and empty, duplicate, or case-colliding chunk sets fail before output.
+
+The checked-in executable Dart fixture is compared byte-for-byte through
+`GeneratedArtifactPlan`, imported as typed data, regenerated from fresh
+compiles, and invariant under reversed chunk input. A construction-import audit
+keeps the staged record/output names unreachable from Core gameplay, Flutter,
+the replay validator, and the live generator. Normal source remains
+prefab-v2/chunk-v1; the live five-output plan does not register a production
+staged terrain file until the coordinated source migration, seam validation,
+and legacy projection are ready.
 
 ## 22) Authoring/Runtime Parity Fixtures
 
@@ -1159,6 +1176,7 @@ result.
 | 2026-08-02 / `f7d14a16` | Exact generated-output dry-run drift gate | Dart VM and Flutter test VM on Windows | Repository analysis is clean; 23 focused level-definition/artifact-plan/generator tests and all 432 root Core tests pass. The real dry-run validates 8 chunks, 2 levels, and 2 themes, then confirms all five committed outputs byte-for-byte. Fixtures cover missing, stale, unexpected owned, invalid-UTF-8 stale, deterministic ordering, plan immutability, no-write behavior, and clean generation-followed-by-check. Generated bytes, prefab-v2/chunk-v1 input, runtime contracts, and collision authority are unchanged. Staged polygon output, seam-fixture consumption, and atomic writes remain open. |
 | 2026-08-02 / `bf7f0554` | Rollback-safe generated-output write transaction | Dart VM and Flutter test VM on Windows | Repository analysis is clean and 24 focused level-definition/artifact-plan/generator tests pass. Success fixtures cover existing and missing targets, exact bytes, and complete temp/backup cleanup; the failure fixture proves a later invalid target restores an earlier original and leaves no transaction files. Canonical alias output paths reject before filesystem access. Real five-file generation followed by dry-run is clean and creates no generated-file diff. Source schemas, generated bytes, runtime contracts, and collision authority are unchanged. |
 | 2026-08-02 / `6de37b6e` | Strict staged polygon terrain compiler foundation | Dart VM and Flutter test VM on Windows | Root and editor analysis are clean; 30 focused level/artifact/generator tests, all 432 root Core tests, and the complete 380-test editor suite pass. Six new generator tests cover strict v3/v2/legacy/unknown/off-grid parsing, fresh-object determinism, unresolved prefab and Core range diagnostics, canonical-source rejection, exact placement lineage, Core polygon/edge compilation, and concave triangle count/area/order goldens. The shared editor fixture reproduces source `ad2ecbb…e635`, edge `20fb3ca9…3351`, and placement `bacff9da…7211`; triangles bind to `c1a71872…07d3`. Migration check remains read-only at 99 prefabs, 8 chunks, and nine pending targets; live dry-run remains clean. No authored source, generated runtime file, normal generator input, or production authority changed. |
+| 2026-08-02 / `a8c45814` | Typed staged terrain Dart artifact boundary | Dart VM and Flutter test VM on Windows | Root, Core-package, and editor analysis are clean; all 34 root tool/generator tests, all 310 Core-package tests, all 432 root Core tests, and the focused editor parity test pass. The executable golden contains 3 canonical source/physics polygons, 13 compiler-owned exposed edges, 10 render triangles, exact placement lineage, and all four reviewed signature labels/hashes. Fresh compilation reproduces its bytes through `GeneratedArtifactPlan`; reversed chunk input is identical; empty/duplicate sets fail; the reserved compiler index is absent from generated local records. A production import audit keeps the staged types/output unreachable. Live dry-run still validates 8 chunks, 2 levels, and 2 themes; migration check remains read-only at 99 prefabs, 8 chunks, and nine pending targets. Normal source, five-output registration, generated production bytes, and collision authority remain unchanged. |
 
 ### 28.1 Baseline Environment And Source Identity
 
