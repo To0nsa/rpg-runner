@@ -146,8 +146,12 @@ closed migration-only catalog of minimal outward replacements. They add 34,
 25, and 36 half-pixel-square ticks (`8.5 px²`, `6.25 px²`, and `9 px²`) and are
 bound to the complete expected collider lists. Any source drift blocks rather
 than applying a stale correction. All 70 collision prefabs and 88 planned
-loops now pass Core. Prefab v3 writing remains pending; existing schema v2
-source and legacy runtime authority are unchanged.
+loops now pass Core. The migration then applies rectangle-era prefab semantics:
+all 66 obstacle owners emit `solid` loops and all 4 platform owners emit
+`oneWay` loops. A decoration or unknown owner with collision fails closed.
+Target conversion reapplies the same rule defensively, so a caller cannot turn
+a platform solid by supplying a default-mode loop. Prefab v3 writing remains
+pending; existing schema v2 source and legacy runtime authority are unchanged.
 
 ## Legacy Chunk Ground Planner And Aggregate Check Report
 
@@ -176,7 +180,7 @@ report-v2 JSON containing all nine source path/SHA-256 records, exact
 decimal-string area facts, and the complete planned polygon source. Input
 order does not affect the report. The current report contains 99 prefabs, 88
 prefab shapes, 8 chunks, and 9 ground shapes with zero blockers; its report
-fingerprint is `cc2ed2e6`.
+fingerprint is `d75ba69e` after binding prefab-kind collision modes.
 
 The plan exposes a pure pre-write audit for freshly computed SHA-256 values.
 Changed, missing, or ambiguously canonicalized paths reject deterministically.
@@ -191,7 +195,7 @@ rechecks Core geometry and placement references, and emits the same nine files
 as byte-identical no-op targets. Readiness report v2 records source state, all
 nine before/after SHA-256 pairs, 107 unchanged revision decisions, and 99
 prefab impact records covering 50 placements. The legacy report fingerprint is
-`14297a48`; the equivalent current-state fingerprint is `4116ae04`.
+`4c1243df`; the equivalent current-state fingerprint is `2da9f6ab`.
 
 Rectangle-era prefab records used by this path are isolated as
 `LegacyPrefabDef`/`LegacyPrefabData` inside the migration layer. The strict
