@@ -1467,7 +1467,13 @@ against exact compiled supports through the Phase 3 query without consuming
 RNG. It separates guaranteed/conditional acceptance and rejection, disabled or
 malformed markers, and Hashash's deferred camera-edge behavior. Marker Y stays
 editor metadata; procedural item candidates are not fabricated, and projectile
-terrain remains explicitly later-phase work. Scheduler-aware seams, safe
-source migration, staged generation, and the coordinated normal editor cutover
-remain open. Phase 4 must not select polygon terrain in normal production runs
-before the later streaming/content cutover phases.
+terrain remains explicitly later-phase work. Scheduler-aware staging now
+snapshots the authored level schedule, derives exact compiled left/right
+boundary signatures, enumerates tier fallback/boundary and assembly
+within/between-run transitions, blocks reachable physical mismatches globally,
+and lists compatible/failing directed neighbors without sampling RNG or
+changing content. Its editor-owned `authoring-seams-v1` golden is ready, while
+generator consumption of that fixture, safe source migration, staged
+generation, and the coordinated normal editor cutover remain open. Phase 4
+must not select polygon terrain in normal production runs before the later
+streaming/content cutover phases.

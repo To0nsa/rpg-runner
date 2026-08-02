@@ -576,6 +576,15 @@ Deferred from Phase 5:
 - jumpability or unsafe-gap overlays tied to character/enemy movement rules
 - level-specific fairness constraints such as min/max widths or clearance rules
 
+Current slopes handoff status (August 2, 2026): the explicit chunk-v2 staging
+workspace can edit direct polygons, expand placed prefab collision through
+Core, inspect compiled edges and actor/marker evidence, and list
+scheduler-reachable compatible/failing seams from exact boundary signatures.
+Global staged validation blocks physical seam mismatches. Normal Chunk Creator
+loading and production generation deliberately remain on chunk v1 flat
+ground/gaps until the coordinated Phase 4 schema/generator cutover in the
+slopes plan.
+
 ### Phase 6 - Enemy Spawn Marker Authoring Through Editor
 
 Status: Completed on April 11, 2026

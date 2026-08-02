@@ -50,6 +50,7 @@ The active schema migration, generator, preview, and cutover work remains in
 | Chunk polygon route-local projection | editor `ChunkPolygonAuthoringController` / `ChunkPolygonSceneSurface` / `ChunkPolygonStagingWorkspace` | explicit staged-scene routing, active-level owner isolation, tools, snap, bounds, diagnostics, keyboard, rejection, history, compiled-edge inspection, actor-terrain, and marker-placement overlays; normal v1 loads still select ground/gap authoring |
 | Chunk actor terrain projection | editor `ChunkV2ActorTerrainProjection` | Core surface extraction; Éloïse/Grojib/Hashash eligibility; published Grojib/Hashash graphs; Unoco solid/local-hover evidence; Derf 15-degree/32-pixel perch evidence; no player/flight graph or source mutation |
 | Chunk marker contract and placement projection | editor `chunk_v2_marker_contract.dart` / `ChunkV2MarkerPlacementProjection` | immutable level ground context, staged marker validation, exact Phase 3 enemy placement evidence, Hashash deferral, authored-order/stable-key retention, and zero RNG/source mutation |
+| Scheduler-aware chunk seam analysis | editor `chunk_v2_seam_analysis.dart` | immutable `LevelDef` snapshot, canonical compiled boundary signatures, runtime-contract adjacency enumeration, global staged validation, and read-only compatible/failing neighbor evidence |
 
 Core has no dependency on editor models, JSON, widgets, or filesystem state.
 The editor depends on Core through a one-way local package dependency and does
@@ -584,7 +585,73 @@ explicitly later-phase work and is not previewed.
 
 The normal chunk-v1 route, prefab-v2 source, authored JSON, generator input,
 and runtime collision authority remain unchanged. Generator parity, placement
-editing, scheduler seams, and normal-schema cutover remain later Phase 4 gates.
+editing, and normal-schema cutover remain later Phase 4 gates.
+
+## Scheduler-Aware Compiled Chunk Seams
+
+Explicit chunk-v2 staging snapshots the complete immutable `LevelDef` records
+loaded by `LevelStore`, rather than reconstructing scheduling from the chunk
+directory. `ChunkV2SeamAnalysis` imports Core's `ChunkPatternTier` fallback
+order directly. Active chunks are grouped by authored tier and, when assembly
+is enabled, the selected segment's `assemblyGroupId`; deprecated owners remain
+visible but are not scheduler candidates.
+
+For levels without assembly, enumeration is structural and constant-size: it
+adds within-window Cartesian pool pairs where a tier contains at least two
+scheduled positions, each boundary between nonempty requested windows, and the
+infinite hard-to-hard tail. Empty requested pools use Core's exact tier
+fallback order. Both directions appear whenever independent pool selection can
+emit both orders.
+
+For authored assembly, a finite state set enumerates every segment/run
+alignment through the early/easy/normal prefix, including variable run
+lengths and tier boundaries inside a run. The hard tail is enumerated
+structurally for every possible within-run transition and every directed
+between-run segment transition, including loop-to-first and non-loop
+last-to-last behavior. A distinct run excludes a same-chunk pair only when
+both positions resolve to the same tier/group pool; changing fallback pools at
+a tier boundary keeps the Cartesian pair set because Core resolves each
+position independently. Every eligible pool used by a distinct segment must
+contain at least its maximum run count. Analysis never samples or consumes
+gameplay RNG and never changes scheduling/content.
+
+Assembly-enabled finite prefixes above 256 chunks fail closed with
+`chunk_v2_scheduler_analysis_capacity_exceeded` instead of allocating
+unbounded state. The structurally complete hard tail is still reported. This
+is an authoring-analysis capacity contract, not a gameplay pacing limit; a
+larger supported window requires a reviewed symbolic implementation or a
+measured bound change.
+
+Each accepted `ChunkV2CollisionExpansion` produces canonical left and right
+`authoring-boundary-v1` evidence from `TerrainGeometry.edges` in integer
+`1/1024 px` ticks. The signature retains ordered compiled edge lineage,
+endpoints, tangent, outward normal, collision mode, surface kind, and material
+key. Its physical profile separately contains merged positive-length vertical
+coverage intervals keyed by collision mode and non-collinear continuation
+endpoints keyed by collision mode, surface kind, and exact Y. A boundary with
+neither fact is explicitly `empty`.
+
+A reachable seam compares the left chunk's right physical profile with the
+right chunk's left profile. Exact coverage or continuation differences block
+with level ID, structural scheduler transition, directed chunk keys/sides,
+both canonical digests/profiles, and sorted exact mismatch coordinates. Equal
+open boundaries are compatible. Surface-kind differences block traversal
+continuity; material-key differences remain retained endpoint evidence for
+Phase 5 rendering and do not block the Phase 4 physical gate.
+
+The global staged validator expands all chunks once and applies every
+scheduler-reachable comparison, so an individually valid owner cannot pass
+while breaking another reachable transition. The active-level scene consumes
+the same immutable result: Chunk Creator summarizes unique neighbors and
+directed seam counts and lists compatible/failing transition cards. These
+views expose no edit, revision, pending-diff, RNG, or scheduling authority.
+
+Sorted reachable transitions form `authoring-seams-v1`; a fixed record and
+SHA-256 digest are golden under reversed input order, and sampled Core assembly
+runs must be subsets of the enumerated set. The §21 staged generator still has
+to consume that fixture before cross-process editor/generator parity can be
+closed. Normal chunk-v1 generation and production runtime selection remain
+unchanged.
 
 ## Shared Polygon Interaction And Scene Projection
 
@@ -711,6 +778,11 @@ The foundation is covered by:
   ground/highest/obstacle support intent, Grojib/Unoco/Derf Core placement,
   Derf support-width rejection, Hashash deferral, disabled/malformed outcomes,
   level-ground validation, zero RNG draws, and no revision or pending diff
+- canonical compiled boundary coverage/continuation signatures, explicit open
+  seams, mode/surface blocking, advisory material evidence, tier fallback and
+  boundary enumeration, assembly within/between runs, distinct pools,
+  Core-scheduler containment, global staged gating, stable adjacency digest,
+  bounded pathological schedules, and read-only neighbor diagnostics
 - prefab owner commit freshness, canonical order, visual-bound resolution,
   warning/error handling, no-op identity, and exactly-once revision tests
 - full Core geometry/signature goldens and fresh-process signature tests

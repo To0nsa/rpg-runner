@@ -737,29 +737,34 @@ curves, and holes are not required for the baseline tool.
 A seam is validated against the transitions the generated level scheduler can
 actually produce, not directory order or an arbitrary editor neighbor.
 
-- [ ] Derive canonical left/right boundary signatures from transformed,
+- [x] Derive canonical left/right boundary signatures from transformed,
       quantized, compiled chunk geometry.
-- [ ] Include ordered boundary vertices/coverage intervals, collision mode, and
+- [x] Include ordered boundary vertices/coverage intervals, collision mode, and
       geometry needed for physical edge cancellation/continuity.
-- [ ] Treat a fully open boundary as an explicit empty signature.
-- [ ] Enumerate every possible adjacent pair within a tier/group pool.
-- [ ] Enumerate transitions at early/easy/normal/hard tier boundaries.
-- [ ] Enumerate within-run and between-run transitions from authored level
+- [x] Treat a fully open boundary as an explicit empty signature.
+- [x] Enumerate every possible adjacent pair within a tier/group pool.
+- [x] Enumerate transitions at early/easy/normal/hard tier boundaries.
+- [x] Enumerate within-run and between-run transitions from authored level
       assembly schedules.
-- [ ] Respect existing distinct-chunk/group eligibility without changing
+- [x] Respect existing distinct-chunk/group eligibility without changing
       selection behavior.
-- [ ] Validate both directions where the scheduler can emit both orders.
-- [ ] Block mismatched physical coverage/vertices that would create an
+- [x] Validate both directions where the scheduler can emit both orders.
+- [x] Block mismatched physical coverage/vertices that would create an
       unintended seam wall, overlap, ledge, or hole.
-- [ ] Report level ID, scheduler transition, left/right chunk keys, side,
+- [x] Report level ID, scheduler transition, left/right chunk keys, side,
       expected/actual signature, and exact mismatch coordinates.
-- [ ] Keep render material-phase mismatch as Phase 5 evidence unless a current
+- [x] Keep render material-phase mismatch as Phase 5 evidence unless a current
       material key makes it unambiguous now.
-- [ ] Show compatible candidate neighbors and failing pairs in Chunk Creator.
-- [ ] Add a workspace/global validation path so a valid individual chunk cannot
+- [x] Show compatible candidate neighbors and failing pairs in Chunk Creator.
+- [x] Add a workspace/global validation path so a valid individual chunk cannot
       be exported while it breaks a reachable level transition.
 - [ ] Golden the reachable adjacency set so validator/editor/generator cannot
       disagree about which seams matter.
+
+The editor now emits and goldens the canonical `authoring-seams-v1` reachable
+adjacency record. The final checkbox remains open until the staged generator
+refactor in §21 consumes that same fixture and proves cross-process parity.
+Normal chunk-v1 generation and runtime selection remain unchanged meanwhile.
 
 Do not add new neighbor metadata or change procedural selection merely to make
 an incompatible chunk pass. Any requested scheduling change is a separate
@@ -858,7 +863,7 @@ diagnostics, and signatures.
 - [ ] Add `authoring-placement-v1` for exact transformed/quantized placement
       records.
 - [ ] Reuse accepted Core `source-v1`/`edges-v1` signatures for compiled facts.
-- [ ] Add `authoring-seams-v1` for sorted reachable adjacency/signature records.
+- [x] Add `authoring-seams-v1` for sorted reachable adjacency/signature records.
 - [ ] Add `authoring-migration-v1` for the sorted migration report.
 - [ ] Add `authoring-triangles-v1` for polygon IDs and deterministic triangle
       index triples.
@@ -988,7 +993,7 @@ Generator/seams:
 - [ ] concave triangulation count, winding, exact area, ordering, and golden
 - [ ] legacy orthogonal decomposition, flat-ground/gap projection, baseline
       collision parity, and diagonal/one-way rejection
-- [ ] all scheduler-reachable within/between pool/run transitions
+- [x] all scheduler-reachable within/between pool/run transitions
 - [ ] dry-run generated drift/missing/unexpected output detection
 - [ ] fresh-process signatures and permutation invariance
 
@@ -1033,6 +1038,10 @@ before changing the accepted plan.
 | `PlacedMarkerDef.y` exists for editor positioning, but generated `SpawnMarker` deliberately omits it and runtime derives body Y from the selected support. Treating the editor anchor as a body transform would produce a new placement authority. | Retain and display authored X/Y, but use only marker X, level `groundTopY`, exact compiled support identity, the catalog capsule, and the Phase 3 placement resolver for physics evidence. Missing level ground context is a blocking staged marker-contract error. | Phase 5 streaming must carry exact support identity while preserving the existing rule that marker Y is not a gameplay transform. |
 | Hashash authored markers consume a roll and contribute a count, but runtime later places each accepted count at the visible camera-right chunk edge; the authored marker X/placement is not a direct body candidate. Procedural item candidates likewise have no authored marker records. | Classify Hashash as guaranteed/conditional deferred without invoking placement or RNG. Do not fabricate collectible/restoration candidates. State explicitly that projectile terrain is later-phase work and not previewed. | Phase 5 may preview deferred Hashash and procedural item candidates only from a scheduler/runtime harness that preserves camera state, candidate loops, attempt counts, and RNG ordering. |
 | Legacy `obstacleTop` searches static solids, while staged polygon source has no general authored semantic saying that an arbitrary direct chunk polygon is an obstacle. | During the locked Phase 4 staging bridge, select the highest solid upward placed-prefab surface at marker X for `obstacleTop`; select direct solid terrain at exact level `groundTopY` for `ground`; select the physically highest upward surface before actor filtering for `highestSurfaceAtX`. Equal heights use canonical edge identity. | Before normal cutover, generated terrain/source semantics must keep this distinction explicit or replace it with a reviewed stable surface classifier; widgets must not infer it from render layers. |
+| A directory neighbor is not a runtime neighbor: tier fallback can skip empty early/easy/normal/hard pools, assembly groups filter each requested tier independently, variable authored runs cross tier boundaries, and distinct selection removes same-chunk pairs only while the resolved pool remains identical. | Snapshot immutable `LevelDef` scheduler data with chunk-v2 staging and enumerate finite tier-window, tier-boundary, within-run, between-run, loop/non-loop hard-tail, group, fallback, direction, and distinct-pool transitions without sampling RNG or changing selection. A differential fixture proves every sampled Core transition is contained. | The §21 generator must consume the same scheduler model and `authoring-seams-v1` fixture rather than reconstructing adjacency from file order. |
+| Physical seam cancellation, traversal stitching, and render material phase do not have the same compatibility key. Core traversal joins require collision mode and `surfaceKind`, while material continuity remains a Phase 5 render concern. | Block exact compiled coverage or continuation-vertex differences keyed by collision mode and surface kind. Retain full edge geometry and `materialKey` in canonical boundary evidence, expose material endpoint differences in the editor, but do not make them a Phase 4 physical blocker. | Phase 5 can promote reviewed material-phase evidence when world-anchored rendering exists without weakening the already-proven collision/navigation seam. |
+| Authored assembly tier windows and run counts currently have no small schema cap, so a malformed but parseable level could make exhaustive finite-window analysis consume unbounded editor time. | Enumerate non-assembly tiers in constant structural time and fail closed above 256 finite pre-hard chunks when assembly is enabled; still enumerate the structurally complete hard tail and report `chunk_v2_scheduler_analysis_capacity_exceeded`. | A future higher authoring limit requires a reviewed symbolic scheduler or measured capacity change, not silently removing the guard. |
+| Deprecated chunk-v2 records remain useful migration/history owners but should not become new scheduler candidates. | Preserve and display deprecated owners while excluding them from active seam pools, matching existing active assembly-count semantics. | The §21 current-schema generator must apply the same status filter; normal legacy generation is deliberately unchanged in this staging slice. |
 
 Append rows during implementation. Do not silently relax source, compiler,
 seam, determinism, or performance contracts.
@@ -1112,6 +1121,7 @@ result.
 | 2026-08-01 / `8e7d7a8b` | Core-compiled edge overlay and exact read-only inspection | Dart VM and Flutter test VM on Windows | Editor analysis is clean and all 364 editor tests pass. Four pure tests cover exact signed physics/slope fixed-point formatting, nearest finite-segment selection, canonical corner ties, no-hit and malformed-input behavior, and Core traversal-cache angle lookup. The Chunk route test proves Core exposed edges render independently of source fills, inspection selects/highlights the canonical direct edge, displays exact ID/tangent/normal/slope/mode/lineage/joins/adjacency/diagnostics, creates no revision or pending change, and returns to normal direct editing when disabled. Migration check remains read-only with 99 prefabs, 8 chunks, and nine pending targets; generator dry-run still validates 8 chunks, 2 levels, and 2 themes. Normal source, generator input, and runtime authority remain unchanged. |
 | 2026-08-02 / `f9818787` | Core-owned actor terrain and navigation diagnostics in Chunk staging | Dart VM and Flutter test VM on Windows | Editor and Core analysis are clean; all 366 editor tests and all 10 focused Derf placement regressions pass. Two new pure projection tests prove Éloïse 60-degree, Grojib 45-degree, Hashash 60-degree, Unoco solid/local-hover, and Derf solid/15-degree/32-pixel evidence, shared Core graph identity, no invented player/flight graph, and signature parity under source permutation. The Chunk route test proves the opt-in five-actor overlay and selected-edge facts create no revision or pending diff. Migration check still reports 99 prefabs, 8 chunks, and nine pending targets without writes; generator dry-run still validates 8 chunks, 2 levels, and 2 themes. Normal source, marker data/RNG, generator input, and runtime authority remain unchanged. |
 | 2026-08-02 / `960cf052` + `3c83c446` | Core-backed authored marker placement diagnostics in Chunk staging | Dart VM and Flutter test VM on Windows | Editor and Core analysis are clean and all 369 editor tests pass. Three pure projection tests cover authored-order/stable-key retention, chance/salt preservation, ground/highest/obstacle source selection, exact Grojib/Unoco/Derf Core outcomes, Derf's 32-pixel rejection, Hashash deferral, disabled markers, malformed contracts, and missing level ground context. Staging validation blocks malformed markers; the route test proves the opt-in overlay, selected capsule/support/blocker/diagnostic evidence, zero RNG/revision/pending changes, and explicit item/projectile dispositions. Migration check still reports 99 prefabs, 8 chunks, and nine pending targets without writes; generator dry-run still validates 8 chunks, 2 levels, and 2 themes. Normal source, generated marker records, RNG, generator input, and runtime authority remain unchanged. |
+| 2026-08-02 / `540d1e9e` | Scheduler-aware compiled chunk seam validation | Dart VM and Flutter test VM on Windows | Editor and Core analysis are clean and all 379 editor tests pass. Ten focused seam tests cover matched slopes, explicit open boundaries, exact interval/endpoint/mode/surface mismatch, advisory material evidence, input-order invariance, tier fallback/boundaries/directions, variable assembled runs, distinct pools, sampled Core-scheduler containment, global mismatch gating, a fixed `authoring-seams-v1` record/digest, and bounded pathological schedules. The staging load snapshots immutable `LevelDef` data; Chunk Creator lists compatible/failing directed neighbors without mutation. Migration check still reports 99 prefabs, 8 chunks, and nine pending targets without writes; generator dry-run still validates 8 chunks, 2 levels, and 2 themes. Normal prefab-v2/chunk-v1 source, generated runtime data, scheduler behavior, and collision authority remain unchanged. Generator consumption of the seam golden remains open in §21. |
 
 ### 28.1 Baseline Environment And Source Identity
 
