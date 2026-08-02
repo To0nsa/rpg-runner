@@ -4,11 +4,11 @@
 
 Implemented in source. Production enforcement was verified on July 19, 2026
 for the six routes then covered by the canary. The later-added ownership,
-profile, account-delete, and run-status routes were deployed in monitor mode
-on August 2, 2026. Their authenticated canary remains blocked on a dedicated
-linked Google Play Games test identity, so those routes must remain in monitor
-mode and must not be represented as production-enforced. App Check remains in
-monitoring mode. The
+profile, account-delete, and run-status routes were promoted from monitor to
+production enforcement on August 2, 2026 by explicit owner direction. Their
+authenticated linked-Google-Play-Games canary has not yet completed, so this
+enforcement is deployment-verified but not end-to-end-canary-verified. App
+Check remains in monitoring mode. The
 production web client has supplied one verified end-to-end reCAPTCHA Enterprise
 attestation. Native cloud/client/device preflight is complete, but release
 platforms remain unmeasured because production identity, signing,

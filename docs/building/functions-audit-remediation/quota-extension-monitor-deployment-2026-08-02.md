@@ -3,33 +3,38 @@
 ## Outcome
 
 The quota extension for canonical ownership reads, profile reads and writes,
-account-deletion requests, and run-status polling is deployed to production in
-`monitor` mode only. It is **not** yet production-enforced.
+account-deletion requests, and run-status polling was first deployed to
+production in `monitor` mode, then promoted to `enforce` on August 2, 2026 by
+explicit owner direction. It is deployment-verified, but it is **not yet
+end-to-end-canary-verified**.
 
-The rollout deliberately stops before enforcement because the current
+The normal rollout gate would stop before enforcement because the current
 production canary creates an anonymous Firebase Auth user while every player
 callable now requires a linked Google Play Games identity. That account was
-correctly rejected before a quota decision or gameplay write. A complete
-authenticated canary is still required before promoting these routes.
+correctly rejected before a quota decision or gameplay write. The owner
+explicitly accepted promotion before a complete authenticated canary; the
+missing canary remains a recorded verification obligation.
 
 ## Deployed scope
 
 Deployment project: `rpg-runner-d7add`  
 Region: `europe-west1`  
-Deployment mode: `ABUSE_CONTROL_MODE=monitor`
+Deployment mode: `ABUSE_CONTROL_MODE=enforce`
 
 | Function | Active revision |
 | --- | --- |
-| `loadoutOwnershipLoadCanonicalState` | `loadoutownershiploadcanonicalstate-00011-hez` |
-| `playerProfileLoad` | `playerprofileload-00011-xav` |
-| `playerProfileUpdate` | `playerprofileupdate-00011-lom` |
-| `accountDelete` | `accountdelete-00016-way` |
-| `runSessionCreate` | `runsessioncreate-00013-zaw` |
-| `runSessionCreateUploadGrant` | `runsessioncreateuploadgrant-00013-cem` |
-| `runSessionLoadStatus` | `runsessionloadstatus-00011-kuw` |
+| `loadoutOwnershipLoadCanonicalState` | `loadoutownershiploadcanonicalstate-00012-max` |
+| `playerProfileLoad` | `playerprofileload-00012-puq` |
+| `playerProfileUpdate` | `playerprofileupdate-00012-feh` |
+| `accountDelete` | `accountdelete-00017-zuw` |
+| `runSessionCreate` | `runsessioncreate-00014-mob` |
+| `runSessionCreateUploadGrant` | `runsessioncreateuploadgrant-00014-miv` |
+| `runSessionLoadStatus` | `runsessionloadstatus-00012-toy` |
 
 All seven Functions reported `ACTIVE` with all traffic on their latest
-revision and `ABUSE_CONTROL_MODE=monitor` after deployment.
+revision and `ABUSE_CONTROL_MODE=enforce` after promotion. No error-severity
+log entry was observed for those revisions in the immediate post-promotion
+window beginning at `2026-08-02T18:50:00Z`.
 
 The rollout includes the signed replay POST contract: upload grants bind the
 content type and a `content-length-range` condition, and clients submit the
@@ -49,16 +54,16 @@ disposable Auth account was subsequently deleted through the privileged
 Identity Platform account API, and an admin lookup confirmed zero remaining
 users for its recorded synthetic UID hash.
 
-## Promotion gate
+## Outstanding canary verification
 
-Do not change these seven Functions to `ABUSE_CONTROL_MODE=enforce` until a
-dedicated, disposable Firebase account linked to Google Play Games has run the
-complete canary. The test session must also be freshly authenticated (within
-five minutes) to exercise the account-deletion path.
+The owner explicitly promoted these seven Functions despite this incomplete
+gate. A dedicated, disposable Firebase account linked to Google Play Games
+must still run the complete canary. The test session must also be freshly
+authenticated (within five minutes) to exercise the account-deletion path.
 
 The current Node canary must be extended to accept that dedicated linked
 identity without treating it as an anonymous signup, with an explicit
-destructive-deletion opt-in. The successful monitor canary must then show all
-eleven quota routes accepted with `wouldReject: false`, including the five new
-routes; only after recording that evidence may the same seven Functions be
-redeployed with `ABUSE_CONTROL_MODE=enforce` and re-verified.
+destructive-deletion opt-in. The subsequent canary must show all eleven quota
+routes accepted, including the five new routes. Any unexpected rejection,
+configuration error, or elevated error log warrants the documented rollback:
+set `ABUSE_CONTROL_MODE=monitor` and redeploy these same seven Functions.
