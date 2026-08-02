@@ -50,6 +50,38 @@ final class GeneratedArtifactDrift
   }
 }
 
+/// Failure raised after a generated-output transaction has attempted rollback.
+final class GeneratedArtifactWriteException implements Exception {
+  const GeneratedArtifactWriteException({
+    required this.cause,
+    required this.rollbackFailures,
+    this.outputsCommitted = false,
+  });
+
+  final Object cause;
+  final List<String> rollbackFailures;
+
+  /// Whether every target was replaced before cleanup failed.
+  final bool outputsCommitted;
+
+  bool get rollbackComplete => !outputsCommitted && rollbackFailures.isEmpty;
+
+  @override
+  String toString() {
+    final state = outputsCommitted
+        ? 'All generated outputs were committed, but transaction cleanup failed.'
+        : rollbackFailures.isEmpty
+        ? 'The generated-output transaction was rolled back.'
+        : 'Generated-output rollback was incomplete.';
+    final rollback = rollbackFailures.isEmpty
+        ? ''
+        : outputsCommitted
+        ? ' Cleanup failures: ${rollbackFailures.join('; ')}.'
+        : ' Rollback failures: ${rollbackFailures.join('; ')}.';
+    return 'GeneratedArtifactWriteException: $cause $state$rollback';
+  }
+}
+
 /// Immutable, canonically ordered plan for generator comparison and writes.
 final class GeneratedArtifactPlan {
   GeneratedArtifactPlan(
@@ -63,16 +95,17 @@ final class GeneratedArtifactPlan {
          List<GeneratedArtifact>.of(artifacts)
            ..sort((left, right) => left.path.compareTo(right.path)),
        ) {
+    final canonicalPaths = <String>{};
     for (var index = 0; index < this.artifacts.length; index += 1) {
       final artifact = this.artifacts[index];
       if (artifact.path.trim().isEmpty) {
         throw ArgumentError.value(artifact.path, 'artifacts', 'Empty path.');
       }
-      if (index > 0 && this.artifacts[index - 1].path == artifact.path) {
+      if (!canonicalPaths.add(_canonicalAbsolutePath(artifact.path))) {
         throw ArgumentError.value(
           artifact.path,
           'artifacts',
-          'Generated output paths must be unique.',
+          'Generated output paths must be canonically unique.',
         );
       }
     }
@@ -155,18 +188,177 @@ final class GeneratedArtifactPlan {
     return List<GeneratedArtifactDrift>.unmodifiable(drift);
   }
 
-  /// Writes the already-rendered artifacts in canonical path order.
+  /// Replaces all outputs as one rollback-safe transaction.
+  ///
+  /// Every complete output is first flushed to a uniquely named sibling file,
+  /// keeping staging and replacement on the target volume. Existing outputs
+  /// move to sibling backups before staged files are installed. Any staging,
+  /// replacement, or verification failure restores all original targets.
   Future<void> writeAll() async {
-    for (final artifact in artifacts) {
-      final file = File(artifact.path);
-      await file.parent.create(recursive: true);
-      await file.writeAsString(artifact.content);
+    final transactionId = _nextTransactionId();
+    final entries = <_GeneratedArtifactTransactionEntry>[
+      for (var index = 0; index < artifacts.length; index += 1)
+        _GeneratedArtifactTransactionEntry(
+          artifact: artifacts[index],
+          transactionId: transactionId,
+          index: index,
+        ),
+    ];
+
+    try {
+      for (final entry in entries) {
+        await entry.target.parent.create(recursive: true);
+        await _requireTransactionPathAvailable(entry.staged);
+        await _requireTransactionPathAvailable(entry.backup);
+        await entry.staged.writeAsBytes(entry.expectedBytes, flush: true);
+      }
+
+      for (final entry in entries) {
+        final targetType = await FileSystemEntity.type(
+          entry.target.path,
+          followLinks: false,
+        );
+        if (targetType == FileSystemEntityType.file) {
+          await entry.target.rename(entry.backup.path);
+          entry.wasBackedUp = true;
+        } else if (targetType != FileSystemEntityType.notFound) {
+          throw FileSystemException(
+            'Generated output target is not a regular file.',
+            entry.target.path,
+          );
+        }
+      }
+
+      for (final entry in entries) {
+        await entry.staged.rename(entry.target.path);
+        entry.wasCommitted = true;
+      }
+
+      for (final entry in entries) {
+        final written = await entry.target.readAsBytes();
+        if (!_bytesEqual(written, entry.expectedBytes)) {
+          throw StateError(
+            'Generated output verification failed for '
+            '${_canonicalDisplayPath(entry.target.path)}.',
+          );
+        }
+      }
+    } on Object catch (error, stackTrace) {
+      final rollbackFailures = await _rollbackTransaction(entries);
+      Error.throwWithStackTrace(
+        GeneratedArtifactWriteException(
+          cause: error,
+          rollbackFailures: List<String>.unmodifiable(rollbackFailures),
+        ),
+        stackTrace,
+      );
+    }
+
+    final cleanupFailures = await _cleanupCommittedTransaction(entries);
+    if (cleanupFailures.isNotEmpty) {
+      throw GeneratedArtifactWriteException(
+        cause: StateError('Could not remove every transaction backup.'),
+        rollbackFailures: List<String>.unmodifiable(cleanupFailures),
+        outputsCommitted: true,
+      );
     }
   }
 }
 
+int _transactionSerial = 0;
+
+String _nextTransactionId() =>
+    '$pid-${DateTime.now().microsecondsSinceEpoch}-${_transactionSerial++}';
+
+final class _GeneratedArtifactTransactionEntry {
+  _GeneratedArtifactTransactionEntry({
+    required GeneratedArtifact artifact,
+    required String transactionId,
+    required int index,
+  }) : target = File(artifact.path),
+       expectedBytes = List<int>.unmodifiable(utf8.encode(artifact.content)),
+       staged = File('${artifact.path}.generator-$transactionId-$index.tmp'),
+       backup = File('${artifact.path}.generator-$transactionId-$index.bak');
+
+  final File target;
+  final List<int> expectedBytes;
+  final File staged;
+  final File backup;
+  bool wasBackedUp = false;
+  bool wasCommitted = false;
+}
+
+Future<void> _requireTransactionPathAvailable(File file) async {
+  final type = await FileSystemEntity.type(file.path, followLinks: false);
+  if (type != FileSystemEntityType.notFound) {
+    throw FileSystemException(
+      'Generated-output transaction path already exists.',
+      file.path,
+    );
+  }
+}
+
+Future<List<String>> _rollbackTransaction(
+  List<_GeneratedArtifactTransactionEntry> entries,
+) async {
+  final failures = <String>[];
+  for (final entry in entries.reversed) {
+    if (entry.wasCommitted) {
+      try {
+        if (await entry.target.exists()) await entry.target.delete();
+      } on Object catch (error) {
+        failures.add(
+          '${_canonicalDisplayPath(entry.target.path)} delete: $error',
+        );
+      }
+    }
+    if (entry.wasBackedUp) {
+      try {
+        if (await entry.target.exists()) {
+          throw StateError('replacement target still exists');
+        }
+        await entry.backup.rename(entry.target.path);
+        entry.wasBackedUp = false;
+      } on Object catch (error) {
+        failures.add(
+          '${_canonicalDisplayPath(entry.target.path)} restore: $error',
+        );
+      }
+    }
+  }
+  for (final entry in entries) {
+    try {
+      if (await entry.staged.exists()) await entry.staged.delete();
+    } on Object catch (error) {
+      failures.add(
+        '${_canonicalDisplayPath(entry.staged.path)} cleanup: $error',
+      );
+    }
+  }
+  return failures;
+}
+
+Future<List<String>> _cleanupCommittedTransaction(
+  List<_GeneratedArtifactTransactionEntry> entries,
+) async {
+  final failures = <String>[];
+  for (final entry in entries) {
+    for (final file in <File>[entry.staged, entry.backup]) {
+      try {
+        if (await file.exists()) await file.delete();
+      } on Object catch (error) {
+        failures.add('${_canonicalDisplayPath(file.path)}: $error');
+      }
+    }
+  }
+  return failures;
+}
+
 String _canonicalAbsolutePath(String path) {
-  final normalized = File(path).absolute.path.replaceAll('\\', '/');
+  final normalized = File(path).absolute.uri
+      .normalizePath()
+      .toFilePath(windows: Platform.isWindows)
+      .replaceAll('\\', '/');
   return Platform.isWindows ? normalized.toLowerCase() : normalized;
 }
 
@@ -179,8 +371,14 @@ bool _bytesEqual(List<int> left, List<int> right) {
 }
 
 String _canonicalDisplayPath(String path) {
-  final normalized = File(path).absolute.path.replaceAll('\\', '/');
-  final root = Directory.current.absolute.path.replaceAll('\\', '/');
+  final normalized = File(path).absolute.uri
+      .normalizePath()
+      .toFilePath(windows: Platform.isWindows)
+      .replaceAll('\\', '/');
+  final root = Directory.current.absolute.uri
+      .normalizePath()
+      .toFilePath(windows: Platform.isWindows)
+      .replaceAll('\\', '/');
   final foldedNormalized = Platform.isWindows
       ? normalized.toLowerCase()
       : normalized;

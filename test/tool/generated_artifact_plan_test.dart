@@ -56,10 +56,11 @@ void main() {
   });
 
   test(
-    'write uses rendered plan and makes the next exact check clean',
+    'atomic write uses rendered plan and makes the next exact check clean',
     () async {
       final root = Directory.systemTemp.createTempSync('generated_plan_write_');
       addTearDown(() => root.deleteSync(recursive: true));
+      File(_path(root, 'z.dart')).writeAsStringSync('old z\n');
       final plan = GeneratedArtifactPlan(<GeneratedArtifact>[
         GeneratedArtifact(path: _path(root, 'z.dart'), content: 'z\n'),
         GeneratedArtifact(path: _path(root, 'nested/a.dart'), content: 'a\n'),
@@ -70,8 +71,55 @@ void main() {
       expect(File(_path(root, 'z.dart')).readAsStringSync(), 'z\n');
       expect(File(_path(root, 'nested/a.dart')).readAsStringSync(), 'a\n');
       expect(await plan.inspectDrift(), isEmpty);
+      expect(
+        root
+            .listSync(recursive: true)
+            .whereType<File>()
+            .map((file) => _displayPath(file.path))
+            .toSet(),
+        <String>{
+          _displayPath(_path(root, 'z.dart')),
+          _displayPath(_path(root, 'nested/a.dart')),
+        },
+      );
     },
   );
+
+  test('write restores every original after a later target fails', () async {
+    final root = Directory.systemTemp.createTempSync(
+      'generated_plan_rollback_',
+    );
+    addTearDown(() => root.deleteSync(recursive: true));
+    final firstPath = _path(root, 'a.dart');
+    final invalidTargetPath = _path(root, 'z.dart');
+    File(firstPath).writeAsStringSync('original a\n');
+    Directory(invalidTargetPath).createSync();
+    final plan = GeneratedArtifactPlan(<GeneratedArtifact>[
+      GeneratedArtifact(path: firstPath, content: 'new a\n'),
+      GeneratedArtifact(path: invalidTargetPath, content: 'new z\n'),
+    ]);
+
+    GeneratedArtifactWriteException? failure;
+    try {
+      await plan.writeAll();
+    } on GeneratedArtifactWriteException catch (error) {
+      failure = error;
+    }
+
+    expect(failure, isNotNull);
+    expect(failure!.outputsCommitted, isFalse);
+    expect(failure.rollbackComplete, isTrue);
+    expect(File(firstPath).readAsStringSync(), 'original a\n');
+    expect(Directory(invalidTargetPath).existsSync(), isTrue);
+    expect(
+      root
+          .listSync(recursive: true)
+          .whereType<File>()
+          .map((file) => _displayPath(file.path))
+          .toList(),
+      <String>[_displayPath(firstPath)],
+    );
+  });
 
   test('empty and duplicate output paths fail before filesystem access', () {
     expect(
@@ -82,7 +130,7 @@ void main() {
     );
     expect(
       () => GeneratedArtifactPlan(const <GeneratedArtifact>[
-        GeneratedArtifact(path: 'same.dart', content: 'a'),
+        GeneratedArtifact(path: 'nested/../same.dart', content: 'a'),
         GeneratedArtifact(path: 'same.dart', content: 'b'),
       ]),
       throwsArgumentError,
