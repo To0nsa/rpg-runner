@@ -98,6 +98,16 @@ The script is idempotent for existing queues and fixes the release policy at:
 - the container runtime user is unprivileged and root build-context ignore
   files include only the service and its local package dependencies
 
+It also tags the accepted revision as `production` and applies the checked-in
+cloud retention policy. The policy keeps that production image plus the five
+most recent replay-validator versions, deletes other replay-validator versions
+after 90 days, and expires Cloud Build `source/` archives after 30 days. Run
+the policy independently after creating a project or changing its buckets:
+
+```powershell
+.\tools\cloud\apply_retention_policies.ps1 -ProjectId "rpg-runner-d7add"
+```
+
 Do not apply only the Cloud Run revision. The Firestore indexes and scheduled
 validation repair are required to recover expired leases and tasks deleted
 after retry exhaustion.

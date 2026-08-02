@@ -19,11 +19,19 @@ import { writeExpiredRunSessionTransition } from "./grant_terminalization.js";
 const runSessionsCollection = "run_sessions";
 const validatedRunsCollection = "validated_runs";
 const rewardGrantsCollection = "reward_grants";
+const leaderboardBoardsCollection = "leaderboard_boards";
+const ghostManifestsCollection = "ghost_manifests";
+const maintenanceCollection = "maintenance";
+const ghostArtifactCleanupCursorDocument = "ghost_artifact_cleanup";
 const replaySubmissionPathPrefix = "replay-submissions/pending/";
 const replayValidatedPathPrefix = "replay-submissions/validated/";
+const ghostArtifactPathPrefix = "ghosts/";
 
 const defaultStalePendingUploadCutoffMs = 48 * 60 * 60 * 1000;
 const defaultStaleValidatedArtifactCutoffMs = 15 * 24 * 60 * 60 * 1000;
+// Gives a new ghost copy and its Firestore manifest two full scheduler cycles
+// to become consistent before an unreferenced object can be reclaimed.
+const defaultStaleGhostArtifactCutoffMs = 48 * 60 * 60 * 1000;
 const defaultTerminalRunSessionRetentionMs = 90 * 24 * 60 * 60 * 1000;
 const defaultValidatedRunRetentionMs = 365 * 24 * 60 * 60 * 1000;
 const defaultRewardGrantRetentionMs = 365 * 24 * 60 * 60 * 1000;
@@ -31,6 +39,8 @@ const defaultOrphanProvisionalGrantGraceMs = 48 * 60 * 60 * 1000;
 const defaultMaxExpiredSessionUpdatesPerRun = 200;
 const defaultMaxPendingUploadDeletesPerRun = 200;
 const defaultMaxValidatedArtifactDeletesPerRun = 200;
+const defaultMaxGhostArtifactDeletesPerRun = 200;
+const defaultMaxGhostArtifactScansPerRun = 200;
 const defaultMaxTerminalRunSessionDeletesPerRun = 200;
 const defaultMaxValidatedRunDeletesPerRun = 200;
 const defaultMaxRewardGrantDeletesPerRun = 200;
@@ -76,9 +86,12 @@ export interface PendingReplayObjectStore {
 export interface RunSubmissionCleanupDependencies {
   pendingReplayObjectStore?: PendingReplayObjectStore;
   validatedReplayObjectStore?: PendingReplayObjectStore;
+  ghostArtifactObjectStore?: PendingReplayObjectStore;
   ghostExposureLookup?: GhostExposureLookup;
+  ghostArtifactReferenceLookup?: GhostArtifactReferenceLookup;
   stalePendingUploadCutoffMs?: number;
   staleValidatedArtifactCutoffMs?: number;
+  staleGhostArtifactCutoffMs?: number;
   terminalRunSessionRetentionMs?: number;
   validatedRunRetentionMs?: number;
   rewardGrantRetentionMs?: number;
@@ -86,6 +99,8 @@ export interface RunSubmissionCleanupDependencies {
   maxExpiredSessionUpdatesPerRun?: number;
   maxPendingUploadDeletesPerRun?: number;
   maxValidatedArtifactDeletesPerRun?: number;
+  maxGhostArtifactDeletesPerRun?: number;
+  maxGhostArtifactScansPerRun?: number;
   maxTerminalRunSessionDeletesPerRun?: number;
   maxValidatedRunDeletesPerRun?: number;
   maxRewardGrantDeletesPerRun?: number;
@@ -116,6 +131,10 @@ export interface RunSubmissionCleanupResult {
   staleValidatedArtifactScannedCount: number;
   staleValidatedArtifactCutoffMs: number;
   validatedArtifactCleanupSkipped: boolean;
+  staleGhostArtifactDeletedCount: number;
+  staleGhostArtifactScannedCount: number;
+  staleGhostArtifactCutoffMs: number;
+  ghostArtifactCleanupSkipped: boolean;
 }
 
 interface RunSessionDocLike {
@@ -137,6 +156,17 @@ export interface GhostExposureLookup {
   isRunSessionGhostExposed(args: { runSessionId: string }): Promise<boolean>;
 }
 
+/**
+ * Resolves whether a ghost Storage object is still named by its manifest.
+ *
+ * The cleanup job treats every referenced artifact as protected, irrespective
+ * of publication status, so a worker retry cannot lose a demoted ghost before
+ * the publisher completes its own grace-period transition.
+ */
+export interface GhostArtifactReferenceLookup {
+  isGhostArtifactReferenced(args: { objectPath: string }): Promise<boolean>;
+}
+
 export function createDefaultRunSubmissionCleanupDependencies(): RunSubmissionCleanupDependencies {
   const bucketName = process.env.REPLAY_STORAGE_BUCKET?.trim();
   const sharedStore = bucketName
@@ -145,8 +175,10 @@ export function createDefaultRunSubmissionCleanupDependencies(): RunSubmissionCl
   return {
     pendingReplayObjectStore: sharedStore,
     validatedReplayObjectStore: sharedStore,
+    ghostArtifactObjectStore: sharedStore,
     stalePendingUploadCutoffMs: defaultStalePendingUploadCutoffMs,
     staleValidatedArtifactCutoffMs: defaultStaleValidatedArtifactCutoffMs,
+    staleGhostArtifactCutoffMs: defaultStaleGhostArtifactCutoffMs,
     terminalRunSessionRetentionMs: defaultTerminalRunSessionRetentionMs,
     validatedRunRetentionMs: defaultValidatedRunRetentionMs,
     rewardGrantRetentionMs: defaultRewardGrantRetentionMs,
@@ -154,6 +186,8 @@ export function createDefaultRunSubmissionCleanupDependencies(): RunSubmissionCl
     maxExpiredSessionUpdatesPerRun: defaultMaxExpiredSessionUpdatesPerRun,
     maxPendingUploadDeletesPerRun: defaultMaxPendingUploadDeletesPerRun,
     maxValidatedArtifactDeletesPerRun: defaultMaxValidatedArtifactDeletesPerRun,
+    maxGhostArtifactDeletesPerRun: defaultMaxGhostArtifactDeletesPerRun,
+    maxGhostArtifactScansPerRun: defaultMaxGhostArtifactScansPerRun,
     maxTerminalRunSessionDeletesPerRun: defaultMaxTerminalRunSessionDeletesPerRun,
     maxValidatedRunDeletesPerRun: defaultMaxValidatedRunDeletesPerRun,
     maxRewardGrantDeletesPerRun: defaultMaxRewardGrantDeletesPerRun,
@@ -174,6 +208,8 @@ export async function runReplaySubmissionCleanup(args: {
   const staleValidatedArtifactCutoffMs =
     dependencies.staleValidatedArtifactCutoffMs ??
     defaultStaleValidatedArtifactCutoffMs;
+  const staleGhostArtifactCutoffMs =
+    dependencies.staleGhostArtifactCutoffMs ?? defaultStaleGhostArtifactCutoffMs;
   const terminalRunSessionRetentionMs =
     dependencies.terminalRunSessionRetentionMs ??
     defaultTerminalRunSessionRetentionMs;
@@ -193,6 +229,12 @@ export async function runReplaySubmissionCleanup(args: {
   const maxValidatedArtifactDeletesPerRun =
     dependencies.maxValidatedArtifactDeletesPerRun ??
     defaultMaxValidatedArtifactDeletesPerRun;
+  const maxGhostArtifactDeletesPerRun =
+    dependencies.maxGhostArtifactDeletesPerRun ??
+    defaultMaxGhostArtifactDeletesPerRun;
+  const maxGhostArtifactScansPerRun =
+    dependencies.maxGhostArtifactScansPerRun ??
+    defaultMaxGhostArtifactScansPerRun;
   const maxTerminalRunSessionDeletesPerRun =
     dependencies.maxTerminalRunSessionDeletesPerRun ??
     defaultMaxTerminalRunSessionDeletesPerRun;
@@ -283,6 +325,27 @@ export async function runReplaySubmissionCleanup(args: {
     staleValidatedArtifactScannedCount = validatedReplayOutcome.scannedCount;
   }
 
+  let staleGhostArtifactDeletedCount = 0;
+  let staleGhostArtifactScannedCount = 0;
+  const ghostArtifactCutoffMs = nowMs - staleGhostArtifactCutoffMs;
+  const ghostArtifactCleanupSkipped = dependencies.ghostArtifactObjectStore == null;
+  if (dependencies.ghostArtifactObjectStore) {
+    const ghostArtifactReferenceLookup =
+      dependencies.ghostArtifactReferenceLookup ??
+      new FirestoreGhostArtifactReferenceLookup(args.db);
+    const ghostArtifactOutcome = await deleteStaleOrphanedGhostArtifacts({
+      db: args.db,
+      objectStore: dependencies.ghostArtifactObjectStore,
+      ghostArtifactReferenceLookup,
+      nowMs,
+      cutoffMs: ghostArtifactCutoffMs,
+      maxDeletes: maxGhostArtifactDeletesPerRun,
+      maxScans: maxGhostArtifactScansPerRun,
+    });
+    staleGhostArtifactDeletedCount = ghostArtifactOutcome.deletedCount;
+    staleGhostArtifactScannedCount = ghostArtifactOutcome.scannedCount;
+  }
+
   return {
     nowMs,
     expiredSessionCount: expiredSessionOutcome.expiredCount,
@@ -309,6 +372,10 @@ export async function runReplaySubmissionCleanup(args: {
     staleValidatedArtifactScannedCount,
     staleValidatedArtifactCutoffMs,
     validatedArtifactCleanupSkipped,
+    staleGhostArtifactDeletedCount,
+    staleGhostArtifactScannedCount,
+    staleGhostArtifactCutoffMs,
+    ghostArtifactCleanupSkipped,
   };
 }
 
@@ -894,6 +961,81 @@ async function deleteStaleValidatedReplayArtifacts(args: {
   return { deletedCount, scannedCount };
 }
 
+async function deleteStaleOrphanedGhostArtifacts(args: {
+  db: Firestore;
+  objectStore: PendingReplayObjectStore;
+  ghostArtifactReferenceLookup: GhostArtifactReferenceLookup;
+  nowMs: number;
+  cutoffMs: number;
+  maxDeletes: number;
+  maxScans: number;
+}): Promise<{ deletedCount: number; scannedCount: number }> {
+  let deletedCount = 0;
+  let scannedCount = 0;
+  const pageToken = await readGhostArtifactCleanupPageToken(args.db);
+  const page = await args.objectStore.listPendingObjects({
+    prefix: ghostArtifactPathPrefix,
+    maxResults: args.maxScans,
+    pageToken,
+  });
+
+  for (const objectInfo of page.objects) {
+    scannedCount += 1;
+    if (
+      objectInfo.updatedAtMs > args.cutoffMs ||
+      !isCanonicalGhostArtifactObjectPath(objectInfo.objectPath)
+    ) {
+      continue;
+    }
+    const isReferenced =
+      await args.ghostArtifactReferenceLookup.isGhostArtifactReferenced({
+        objectPath: objectInfo.objectPath,
+      });
+    if (isReferenced) {
+      continue;
+    }
+    await args.objectStore.deleteObject({ objectPath: objectInfo.objectPath });
+    deletedCount += 1;
+    if (deletedCount >= args.maxDeletes) {
+      break;
+    }
+  }
+
+  await writeGhostArtifactCleanupPageToken({
+    db: args.db,
+    pageToken: page.nextPageToken,
+    nowMs: args.nowMs,
+  });
+  return { deletedCount, scannedCount };
+}
+
+async function readGhostArtifactCleanupPageToken(
+  db: Firestore,
+): Promise<string | undefined> {
+  const snapshot = await db
+    .collection(maintenanceCollection)
+    .doc(ghostArtifactCleanupCursorDocument)
+    .get();
+  const pageToken = snapshot.get("pageToken");
+  return typeof pageToken === "string" && pageToken.trim().length > 0
+    ? pageToken
+    : undefined;
+}
+
+async function writeGhostArtifactCleanupPageToken(args: {
+  db: Firestore;
+  pageToken: string | undefined;
+  nowMs: number;
+}): Promise<void> {
+  await args.db
+    .collection(maintenanceCollection)
+    .doc(ghostArtifactCleanupCursorDocument)
+    .set({
+      pageToken: args.pageToken ?? null,
+      updatedAtMs: args.nowMs,
+    });
+}
+
 function extractRunSessionIdFromValidatedObjectPath(
   objectPath: string,
 ): string | undefined {
@@ -912,6 +1054,20 @@ function extractRunSessionIdFromValidatedObjectPath(
     return undefined;
   }
   return runSessionId.trim();
+}
+
+function isCanonicalGhostArtifactObjectPath(objectPath: string): boolean {
+  return extractGhostArtifactIdentity(objectPath) != null;
+}
+
+function extractGhostArtifactIdentity(
+  objectPath: string,
+): { boardId: string; entryId: string } | undefined {
+  const match = /^ghosts\/([^/]+)\/([^/]+)\/ghost\.bin\.gz$/.exec(objectPath);
+  if (!match) {
+    return undefined;
+  }
+  return { boardId: match[1], entryId: match[2] };
 }
 
 function resolveRunSessionTerminalTimestampMs(
@@ -951,6 +1107,27 @@ class FirestoreGhostExposureLookup implements GhostExposureLookup {
     query = query.where("exposed", "==", true);
     const snapshot = await query.limit(1).get();
     return !snapshot.empty;
+  }
+}
+
+class FirestoreGhostArtifactReferenceLookup
+  implements GhostArtifactReferenceLookup {
+  constructor(private readonly db: Firestore) {}
+
+  async isGhostArtifactReferenced(args: {
+    objectPath: string;
+  }): Promise<boolean> {
+    const identity = extractGhostArtifactIdentity(args.objectPath);
+    if (!identity) {
+      return true;
+    }
+    const manifest = await this.db
+      .collection(leaderboardBoardsCollection)
+      .doc(identity.boardId)
+      .collection(ghostManifestsCollection)
+      .doc(identity.entryId)
+      .get();
+    return manifest.exists && manifest.get("replayStorageRef") === args.objectPath;
   }
 }
 

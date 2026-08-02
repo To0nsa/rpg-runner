@@ -103,6 +103,14 @@ Invoke-Gcloud @(
   "--set-env-vars=$environmentVariables"
 )
 
+# The deployed digest receives the stable production tag only after Cloud Run
+# accepts the revision. Artifact cleanup preserves that tag and the five most
+# recent versions, so an infrequent release cannot be reclaimed by age alone.
+$productionImageUri = "$Region-docker.pkg.dev/$ProjectId/replay/replay-validator:production"
+Invoke-Gcloud @(
+  "artifacts", "docker", "tags", "add", $ImageUri, $productionImageUri
+)
+
 Invoke-Gcloud @(
   "run", "services", "add-iam-policy-binding", $Service,
   "--project=$ProjectId",
@@ -166,3 +174,12 @@ Invoke-Gcloud @(
   "--project=$ProjectId",
   "--location=$Region"
 )
+
+$retentionScript = Join-Path $PSScriptRoot "..\\..\\tools\\cloud\\apply_retention_policies.ps1"
+if (-not (Test-Path -LiteralPath $retentionScript -PathType Leaf)) {
+  throw "Retention policy script is missing: $retentionScript"
+}
+& $retentionScript -ProjectId $ProjectId -Region $Region
+if ($LASTEXITCODE -ne 0) {
+  throw "Retention policy configuration failed."
+}

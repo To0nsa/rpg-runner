@@ -29,6 +29,7 @@ beforeEach(async () => {
   await Promise.all([
     clearCollection(db, "run_sessions"),
     clearCollection(db, "leaderboard_boards"),
+    clearCollection(db, "maintenance"),
     clearCollection(db, "validated_runs"),
     clearCollection(db, "reward_grants"),
   ]);
@@ -190,6 +191,96 @@ test("run cleanup deletes stale validated artifacts only for non-top10 runs", as
     "run_top",
     "run_non_top",
   ]);
+});
+
+test("run cleanup deletes only old, unreferenced canonical ghost artifacts", async () => {
+  const nowMs = 1_000_000;
+  const activePath = "ghosts/board_active/entry_active/ghost.bin.gz";
+  const demotedPath = "ghosts/board_demoted/entry_demoted/ghost.bin.gz";
+  const orphanPath = "ghosts/board_orphan/entry_orphan/ghost.bin.gz";
+  await db
+    .collection("leaderboard_boards")
+    .doc("board_active")
+    .collection("ghost_manifests")
+    .doc("entry_active")
+    .set({ replayStorageRef: activePath, status: "active", exposed: true });
+  await db
+    .collection("leaderboard_boards")
+    .doc("board_demoted")
+    .collection("ghost_manifests")
+    .doc("entry_demoted")
+    .set({ replayStorageRef: demotedPath, status: "demoted", exposed: false });
+  const objectStore = new FakePendingReplayObjectStore([
+    { objectPath: activePath, updatedAtMs: 100_000 },
+    { objectPath: demotedPath, updatedAtMs: 100_000 },
+    { objectPath: orphanPath, updatedAtMs: 100_000 },
+    {
+      objectPath: "ghosts/board_orphan/entry_orphan/not-a-ghost.bin.gz",
+      updatedAtMs: 100_000,
+    },
+    {
+      objectPath: "ghosts/board_fresh/entry_fresh/ghost.bin.gz",
+      updatedAtMs: nowMs - 500,
+    },
+  ]);
+
+  const result = await runReplaySubmissionCleanup({
+    db,
+    nowMs,
+    dependencies: {
+      ghostArtifactObjectStore: objectStore,
+      staleGhostArtifactCutoffMs: 1_000,
+      maxGhostArtifactDeletesPerRun: 10,
+    },
+  });
+
+  assert.equal(result.staleGhostArtifactDeletedCount, 1);
+  assert.equal(result.staleGhostArtifactScannedCount, 5);
+  assert.equal(result.ghostArtifactCleanupSkipped, false);
+  assert.deepEqual(objectStore.deletedObjectPaths, [orphanPath]);
+});
+
+test("run cleanup resumes the ghost artifact scan from its persisted cursor", async () => {
+  const nowMs = 1_000_000;
+  const referencedPath = "ghosts/board_first/entry_first/ghost.bin.gz";
+  const laterOrphanPath = "ghosts/board_later/entry_later/ghost.bin.gz";
+  await db
+    .collection("leaderboard_boards")
+    .doc("board_first")
+    .collection("ghost_manifests")
+    .doc("entry_first")
+    .set({ replayStorageRef: referencedPath, status: "active", exposed: true });
+  const objectStore = new FakePendingReplayObjectStore([
+    { objectPath: referencedPath, updatedAtMs: 100_000 },
+    {
+      objectPath: "ghosts/board_first/entry_first/not-a-ghost.bin.gz",
+      updatedAtMs: 100_000,
+    },
+    { objectPath: laterOrphanPath, updatedAtMs: 100_000 },
+  ]);
+  const dependencies = {
+    ghostArtifactObjectStore: objectStore,
+    staleGhostArtifactCutoffMs: 1_000,
+    maxGhostArtifactDeletesPerRun: 2,
+    maxGhostArtifactScansPerRun: 2,
+  };
+
+  const firstRun = await runReplaySubmissionCleanup({
+    db,
+    nowMs,
+    dependencies,
+  });
+  assert.equal(firstRun.staleGhostArtifactDeletedCount, 0);
+  assert.equal(firstRun.staleGhostArtifactScannedCount, 2);
+
+  const secondRun = await runReplaySubmissionCleanup({
+    db,
+    nowMs: nowMs + 1,
+    dependencies,
+  });
+  assert.equal(secondRun.staleGhostArtifactDeletedCount, 1);
+  assert.equal(secondRun.staleGhostArtifactScannedCount, 1);
+  assert.deepEqual(objectStore.deletedObjectPaths, [laterOrphanPath]);
 });
 
 test("run cleanup deletes terminal run sessions past retention cutoff", async () => {

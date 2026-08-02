@@ -1,0 +1,42 @@
+[
+  {
+    "name": "delete-stale-replay-validator-versions",
+    "action": {
+      "type": "Delete"
+    },
+    "condition": {
+      "tagState": "any",
+      "olderThan": "90d",
+      "packageNamePrefixes": [
+        "replay-validator"
+      ]
+    }
+  },
+  {
+    "name": "keep-production-replay-validator",
+    "action": {
+      "type": "Keep"
+    },
+    "condition": {
+      "tagState": "tagged",
+      "tagPrefixes": [
+        "production"
+      ],
+      "packageNamePrefixes": [
+        "replay-validator"
+      ]
+    }
+  },
+  {
+    "name": "keep-five-recent-replay-validator-versions",
+    "action": {
+      "type": "Keep"
+    },
+    "mostRecentVersions": {
+      "packageNamePrefixes": [
+        "replay-validator"
+      ],
+      "keepCount": 5
+    }
+  }
+]

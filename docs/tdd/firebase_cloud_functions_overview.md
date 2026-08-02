@@ -283,12 +283,15 @@ Why:
 ### `runSubmissionCleanup` (scheduled)
 
 - Exported in `functions/src/index.ts`.
-- Runs periodic cleanup for stale uploads/artifacts and retention windows.
+- Runs periodic cleanup for stale uploads/artifacts, unreferenced canonical
+  ghost objects older than a 48-hour consistency grace period, and retention
+  windows.
 - Uses logic in `functions/src/runs/cleanup.ts`.
 
 Why:
 
-- Prevents unbounded storage/doc growth.
+- Prevents unbounded storage/doc growth without deleting a ghost that is still
+  referenced by an active or demoted manifest.
 - Keeps run submission lifecycle healthy over time.
 
 ### `leaderboardBoardMaintenance` (scheduled)
