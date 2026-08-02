@@ -1477,3 +1477,12 @@ generator consumption of that fixture, safe source migration, staged
 generation, and the coordinated normal editor cutover remain open. Phase 4
 must not select polygon terrain in normal production runs before the later
 streaming/content cutover phases.
+
+The existing generator entry point now also renders all five current outputs
+into one immutable artifact plan before checking or writing. Its write-free
+dry-run compares exact committed bytes and fails with sorted diagnostics for
+missing, stale, unreadable, or unexpected ownership-marked outputs. This closes
+the generated-drift foundation without changing prefab-v2/chunk-v1 input,
+generated runtime bytes, or collision authority. Atomic writes, current polygon
+schema consumption, staged terrain output, and editor/generator seam parity
+remain open Phase 4 gates.

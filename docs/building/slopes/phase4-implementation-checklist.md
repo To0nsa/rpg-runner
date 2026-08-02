@@ -772,7 +772,7 @@ gameplay/content decision.
 
 ## 21) Generator Refactor And Staged Terrain Output
 
-- [ ] Keep `tool/generate_chunk_runtime_data.dart` the single repository
+- [x] Keep `tool/generate_chunk_runtime_data.dart` the single repository
       generation entry point.
 - [ ] Refactor polygon parsing/transform/compile/render steps into focused
       testable pure-Dart files rather than growing the monolith further.
@@ -817,13 +817,24 @@ gameplay/content decision.
 - [ ] Reject runtime-selected diagonal or one-way content that the legacy
       authority cannot express exactly.
 - [ ] Fail rather than approximate a slope into rectangles.
-- [ ] Make `--dry-run` render every output in memory and compare it byte-for-byte
+- [x] Make `--dry-run` render every output in memory and compare it byte-for-byte
       with committed generated files after validation.
-- [ ] Report sorted missing/stale/unexpected output files and exit nonzero on
+- [x] Report sorted missing/stale/unexpected output files and exit nonzero on
       drift.
 
 The staged terrain output should use a narrowly named API/file that cannot be
 mistaken for the current `ChunkPattern` production source.
+
+The existing entry point now renders its five legacy generated outputs into an
+immutable, path-sorted artifact plan before either checking or writing. Dry-run
+compares the UTF-8 render with committed file bytes, reports stable
+`generated_output_missing`, `generated_output_stale`,
+`generated_output_unexpected`, or `generated_output_unreadable` diagnostics,
+and performs no writes. Unexpected-file discovery is restricted to files under
+the generator's declared output roots that carry its ownership marker, so
+unrelated Dart sources are not treated as generated drift. Current prefab-v2,
+chunk-v1, and runtime output contracts are unchanged; staged polygon output
+and atomic multi-file replacement remain open below.
 
 ## 22) Authoring/Runtime Parity Fixtures
 
@@ -994,7 +1005,7 @@ Generator/seams:
 - [ ] legacy orthogonal decomposition, flat-ground/gap projection, baseline
       collision parity, and diagonal/one-way rejection
 - [x] all scheduler-reachable within/between pool/run transitions
-- [ ] dry-run generated drift/missing/unexpected output detection
+- [x] dry-run generated drift/missing/unexpected output detection
 - [ ] fresh-process signatures and permutation invariance
 
 Regression:
@@ -1042,6 +1053,7 @@ before changing the accepted plan.
 | Physical seam cancellation, traversal stitching, and render material phase do not have the same compatibility key. Core traversal joins require collision mode and `surfaceKind`, while material continuity remains a Phase 5 render concern. | Block exact compiled coverage or continuation-vertex differences keyed by collision mode and surface kind. Retain full edge geometry and `materialKey` in canonical boundary evidence, expose material endpoint differences in the editor, but do not make them a Phase 4 physical blocker. | Phase 5 can promote reviewed material-phase evidence when world-anchored rendering exists without weakening the already-proven collision/navigation seam. |
 | Authored assembly tier windows and run counts currently have no small schema cap, so a malformed but parseable level could make exhaustive finite-window analysis consume unbounded editor time. | Enumerate non-assembly tiers in constant structural time and fail closed above 256 finite pre-hard chunks when assembly is enabled; still enumerate the structurally complete hard tail and report `chunk_v2_scheduler_analysis_capacity_exceeded`. | A future higher authoring limit requires a reviewed symbolic scheduler or measured capacity change, not silently removing the guard. |
 | Deprecated chunk-v2 records remain useful migration/history owners but should not become new scheduler candidates. | Preserve and display deprecated owners while excluding them from active seam pools, matching existing active assembly-count semantics. | The §21 current-schema generator must apply the same status filter; normal legacy generation is deliberately unchanged in this staging slice. |
+| The generator's former `--dry-run` returned immediately after source validation, so it could not detect deleted, stale, or orphaned committed outputs. Treating every Dart file below broad output directories as owned would also create false positives. | Render all five expected outputs into one immutable artifact plan, compare exact UTF-8 bytes without writing, and discover unexpected files only by the generator ownership marker. Sort diagnostics by canonical display path and fail nonzero for missing, stale, unexpected, or unreadable expected files. | Every staged terrain artifact must be registered in the same plan and carry the ownership marker. Atomic multi-file replacement and rollback are still required before the source-write gate opens. |
 
 Append rows during implementation. Do not silently relax source, compiler,
 seam, determinism, or performance contracts.
@@ -1122,6 +1134,7 @@ result.
 | 2026-08-02 / `f9818787` | Core-owned actor terrain and navigation diagnostics in Chunk staging | Dart VM and Flutter test VM on Windows | Editor and Core analysis are clean; all 366 editor tests and all 10 focused Derf placement regressions pass. Two new pure projection tests prove Éloïse 60-degree, Grojib 45-degree, Hashash 60-degree, Unoco solid/local-hover, and Derf solid/15-degree/32-pixel evidence, shared Core graph identity, no invented player/flight graph, and signature parity under source permutation. The Chunk route test proves the opt-in five-actor overlay and selected-edge facts create no revision or pending diff. Migration check still reports 99 prefabs, 8 chunks, and nine pending targets without writes; generator dry-run still validates 8 chunks, 2 levels, and 2 themes. Normal source, marker data/RNG, generator input, and runtime authority remain unchanged. |
 | 2026-08-02 / `960cf052` + `3c83c446` | Core-backed authored marker placement diagnostics in Chunk staging | Dart VM and Flutter test VM on Windows | Editor and Core analysis are clean and all 369 editor tests pass. Three pure projection tests cover authored-order/stable-key retention, chance/salt preservation, ground/highest/obstacle source selection, exact Grojib/Unoco/Derf Core outcomes, Derf's 32-pixel rejection, Hashash deferral, disabled markers, malformed contracts, and missing level ground context. Staging validation blocks malformed markers; the route test proves the opt-in overlay, selected capsule/support/blocker/diagnostic evidence, zero RNG/revision/pending changes, and explicit item/projectile dispositions. Migration check still reports 99 prefabs, 8 chunks, and nine pending targets without writes; generator dry-run still validates 8 chunks, 2 levels, and 2 themes. Normal source, generated marker records, RNG, generator input, and runtime authority remain unchanged. |
 | 2026-08-02 / `540d1e9e` | Scheduler-aware compiled chunk seam validation | Dart VM and Flutter test VM on Windows | Editor and Core analysis are clean and all 379 editor tests pass. Ten focused seam tests cover matched slopes, explicit open boundaries, exact interval/endpoint/mode/surface mismatch, advisory material evidence, input-order invariance, tier fallback/boundaries/directions, variable assembled runs, distinct pools, sampled Core-scheduler containment, global mismatch gating, a fixed `authoring-seams-v1` record/digest, and bounded pathological schedules. The staging load snapshots immutable `LevelDef` data; Chunk Creator lists compatible/failing directed neighbors without mutation. Migration check still reports 99 prefabs, 8 chunks, and nine pending targets without writes; generator dry-run still validates 8 chunks, 2 levels, and 2 themes. Normal prefab-v2/chunk-v1 source, generated runtime data, scheduler behavior, and collision authority remain unchanged. Generator consumption of the seam golden remains open in §21. |
+| 2026-08-02 / `f7d14a16` | Exact generated-output dry-run drift gate | Dart VM and Flutter test VM on Windows | Repository analysis is clean; 23 focused level-definition/artifact-plan/generator tests and all 432 root Core tests pass. The real dry-run validates 8 chunks, 2 levels, and 2 themes, then confirms all five committed outputs byte-for-byte. Fixtures cover missing, stale, unexpected owned, invalid-UTF-8 stale, deterministic ordering, plan immutability, no-write behavior, and clean generation-followed-by-check. Generated bytes, prefab-v2/chunk-v1 input, runtime contracts, and collision authority are unchanged. Staged polygon output, seam-fixture consumption, and atomic writes remain open. |
 
 ### 28.1 Baseline Environment And Source Identity
 
