@@ -259,7 +259,7 @@ export async function createRunSession(
     const existing = await tx.get(runSessionRef);
     if (existing.exists) {
       return {
-        replayed: true,
+        outcome: "replayed",
         runTicket: decodeIdempotentRunTicket(
           existing.data(),
           createRequestHash,
@@ -267,7 +267,7 @@ export async function createRunSession(
         activeCount: null,
         activeLimit: null,
         wouldRejectActiveLimit: false,
-      };
+      } as const;
     }
     const activeLimit = readConfiguredActiveSessionLimit();
     const activeSnapshot = await tx.get(
@@ -279,23 +279,22 @@ export async function createRunSession(
     );
     const wouldRejectActiveLimit =
       activeLimit !== undefined && activeSnapshot.size >= activeLimit;
-    if (
-      wouldRejectActiveLimit &&
-      readAbuseControlMode() === "enforce"
-    ) {
-      throw new HttpsError(
-        "resource-exhausted",
-        "Active run session limit exceeded.",
-      );
+    if (wouldRejectActiveLimit && readAbuseControlMode() === "enforce") {
+      return {
+        outcome: "active_limit_rejected",
+        activeCount: activeSnapshot.size,
+        activeLimit: activeLimit ?? null,
+        wouldRejectActiveLimit,
+      } as const;
     }
     tx.create(runSessionRef, runSessionDoc);
     return {
-      replayed: false,
+      outcome: "created",
       runTicket,
       activeCount: activeSnapshot.size,
       activeLimit: activeLimit ?? null,
       wouldRejectActiveLimit,
-    };
+    } as const;
   });
   runSessionWriteMs = Date.now() - runSessionWriteStartMs;
   logger.info("runSessionCreate_active_sessions", {
@@ -305,7 +304,13 @@ export async function createRunSession(
     wouldReject: transactionResult.wouldRejectActiveLimit,
     countCapped: transactionResult.activeCount === activeSessionScanCap,
   });
-  if (transactionResult.replayed) {
+  if (transactionResult.outcome === "active_limit_rejected") {
+    throw new HttpsError(
+      "resource-exhausted",
+      "Active run session limit exceeded.",
+    );
+  }
+  if (transactionResult.outcome === "replayed") {
     logger.info("runSessionCreate_idempotency", {
       outcome: "concurrent_replay",
       runSessionId,

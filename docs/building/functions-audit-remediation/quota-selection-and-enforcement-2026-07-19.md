@@ -125,6 +125,19 @@ The enforcement canary emitted 11 decisions:
 The controlled enforcement canary used synthetic UID hash
 `fb00f59b1754133a`. Its exact UID and tokens were not recorded here.
 
+## Later source coverage
+
+This July 19 evidence covers only the six routes in the tables above. Later
+source changes added quota routes for canonical-state reads, profile reads and
+writes, account-deletion requests, and run-status polling. Those routes must
+be deployed in monitor mode, observed with a complete authenticated canary,
+and then redeployed with enforcement before this historical production record
+can be extended to cover them.
+
+The account-deletion route is deliberately counted even after its deletion
+tombstone exists. This preserves idempotent status recovery for a recently
+authenticated caller while retaining a small per-UID limit.
+
 ## Rollback and remaining operations
 
 The safe rollback is to change `ABUSE_CONTROL_MODE` to `monitor` in the
@@ -139,4 +152,3 @@ next operational item. Organic player distributions should be reviewed after
 launch; a future limit change requires new measurements, source/documentation
 updates, the emulator boundary suite, and a monitor-mode canary before
 enforcement.
-

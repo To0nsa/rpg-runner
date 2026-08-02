@@ -132,6 +132,12 @@ export const loadoutOwnershipLoadCanonicalState = onCall(
       );
     }
     await assertAccountActive(db, uid);
+    await consumeUserQuota({
+      db,
+      uid,
+      route: "ownership_read",
+      nowMs: captureAuthorityTimeMs(systemAuthorityClock),
+    });
     const canonicalState = await loadOrCreateCanonicalState({
       db,
       uid,
@@ -184,6 +190,12 @@ export const playerProfileLoad = onCall(
       );
     }
     await assertAccountActive(db, uid);
+    await consumeUserQuota({
+      db,
+      uid,
+      route: "profile_read",
+      nowMs: captureAuthorityTimeMs(systemAuthorityClock),
+    });
     const profile = await loadOrCreatePlayerProfile({ db, uid });
     return { profile };
   },
@@ -203,10 +215,17 @@ export const playerProfileUpdate = onCall(
       );
     }
     await assertAccountActive(db, uid);
+    const nowMs = captureAuthorityTimeMs(systemAuthorityClock);
+    await consumeUserQuota({
+      db,
+      uid,
+      route: "profile_write",
+      nowMs,
+    });
     const profile = await updatePlayerProfile({
       db,
       uid,
-      nowMs: captureAuthorityTimeMs(systemAuthorityClock),
+      nowMs,
       displayName,
       namePromptCompleted,
     });
@@ -230,6 +249,13 @@ export const accountDelete = onCall(
         "userId does not match auth uid.",
       );
     }
+    await consumeUserQuota({
+      db,
+      uid,
+      route: "account_delete",
+      nowMs,
+      allowAccountDeletionRequest: true,
+    });
     const result = await requestAccountDeletion({
       db,
       uid,

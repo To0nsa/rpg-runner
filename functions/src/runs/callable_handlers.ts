@@ -193,6 +193,7 @@ export async function handleRunSessionFinalizeUpload(
 export async function handleRunSessionLoadStatus(
   request: CallableRequestLike,
   db: Firestore,
+  clock: AuthorityClock = systemAuthorityClock,
 ): Promise<{ submissionStatus: JsonObject }> {
   const uid = request.auth?.uid;
   if (!uid) {
@@ -203,6 +204,12 @@ export async function handleRunSessionLoadStatus(
     throw new HttpsError("permission-denied", "userId does not match auth uid.");
   }
   await assertAccountActive(db, uid);
+  await consumeUserQuota({
+    db,
+    uid,
+    route: "run_status",
+    nowMs: captureAuthorityTimeMs(clock),
+  });
   const result = await loadRunSessionSubmissionStatus({
     db,
     uid,

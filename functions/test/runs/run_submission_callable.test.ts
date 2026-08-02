@@ -426,6 +426,8 @@ test("finalize enqueue failure leaves session uploaded for safe retry", async ()
     db,
   );
   assert.equal(uploaded.submissionStatus.state, "uploaded");
+  const quota = await db.collection("abuse_quota").doc(uid).get();
+  assert.equal(quota.get("counters.run_status_burst.count"), 1);
 
   deps.taskDispatcher.shouldFailEnqueue = false;
   const retried = await handleRunSessionFinalizeUpload(

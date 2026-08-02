@@ -203,10 +203,12 @@ export async function createRunSessionUploadGrant(
         wouldRejectActiveUploadGrantLimit &&
         readAbuseControlMode() === "enforce"
       ) {
-        throw new HttpsError(
-          "resource-exhausted",
-          "Active upload grant limit exceeded.",
-        );
+        return {
+          outcome: "active_limit_rejected",
+          activeUploadGrantCount,
+          activeUploadGrantLimit,
+          wouldRejectActiveUploadGrantLimit,
+        } as const;
       }
     }
     const rewardGrantRef = args.db
@@ -258,9 +260,6 @@ export async function createRunSessionUploadGrant(
       wouldRejectActiveUploadGrantLimit,
     } as const;
   });
-  if (uploadGrantTransaction.outcome === "expired") {
-    throwExpiredBeforeFinalize();
-  }
   logger.info("runUploadGrant_active_grants", {
     mode: readAbuseControlMode(),
     activeCount: uploadGrantTransaction.activeUploadGrantCount,
@@ -269,6 +268,15 @@ export async function createRunSessionUploadGrant(
     countCapped:
       uploadGrantTransaction.activeUploadGrantCount === activeUploadGrantScanCap,
   });
+  if (uploadGrantTransaction.outcome === "expired") {
+    throwExpiredBeforeFinalize();
+  }
+  if (uploadGrantTransaction.outcome === "active_limit_rejected") {
+    throw new HttpsError(
+      "resource-exhausted",
+      "Active upload grant limit exceeded.",
+    );
+  }
 
   const issued = await args.dependencies.objectStore.issueUploadGrant({
     objectPath,

@@ -2,8 +2,11 @@
 
 ## Status
 
-Implemented and deployed on July 19, 2026. Per-UID quotas are enforced with
-reviewed source-controlled defaults. App Check remains in monitoring mode. The
+Implemented in source. Production enforcement was verified on July 19, 2026
+for the six routes then covered by the canary. The later-added ownership,
+profile, account-delete, and run-status routes require a monitor canary and
+deployment before they can be represented as production-enforced. App Check
+remains in monitoring mode. The
 production web client has supplied one verified end-to-end reCAPTCHA Enterprise
 attestation. Native cloud/client/device preflight is complete, but release
 platforms remain unmeasured because production identity, signing,
@@ -109,15 +112,22 @@ tests.
 
 `abuse_quota/{uid}` stores a fixed map of burst and sustained counters for:
 
+- `ownership_read`;
 - `ownership_command`;
+- `profile_read` and `profile_write`;
+- `account_delete`;
 - `run_create`;
 - `upload_grant`;
 - `finalize_replay_bytes`;
+- `run_status`;
 - `leaderboard_read`, including active-board reads;
 - `ghost_url`.
 
 Each decision runs in a Firestore transaction that also checks the
-account-deletion tombstone. Concurrent requests therefore serialize on the UID
+account-deletion tombstone. The sole exception is the `account_delete` route:
+it intentionally continues to count and limit a request after its own
+tombstone exists, so a recently authenticated client can receive the
+idempotent deletion status. Concurrent requests therefore serialize on the UID
 document and cannot all pass the same limit. Rejected attempts are counted so
 monitoring shows attempted load, not only accepted work.
 
@@ -136,17 +146,24 @@ source-controlled defaults are:
 
 | Route | Burst per minute | Sustained per 24 hours |
 | --- | ---: | ---: |
+| `ownership_read` | 120 requests | 5,000 requests |
 | `ownership_command` | 120 requests | 5,000 requests |
+| `profile_read` | 120 requests | 5,000 requests |
+| `profile_write` | 30 requests | 500 requests |
+| `account_delete` | 5 requests | 20 requests |
 | `run_create` | 20 requests | 300 requests |
 | `upload_grant` | 20 requests | 300 requests |
 | `finalize_replay_bytes` | 32 MiB | 1 GiB |
+| `run_status` | 120 requests | 5,000 requests |
 | `leaderboard_read` | 120 requests | 5,000 requests |
 | `ghost_url` | 30 requests | 1,000 requests |
 
 `ABUSE_CONTROL_MODE=monitor` records counters and `wouldReject` signals without
-rejecting. Production uses `enforce`; an exceeded limit returns
-`resource-exhausted` before Storage signing, task dispatch, or the protected
-expensive read. Route environment variables can override the defaults.
+rejecting. The verified July 19 deployment uses `enforce` for the original six
+routes; the added routes must first be monitor-canaryed. An exceeded limit
+returns `resource-exhausted` before Storage signing, task dispatch, or the
+protected expensive read. Route environment variables can override the
+defaults.
 Malformed overrides fail closed with `failed-precondition` during enforcement;
 monitor mode logs the configuration error and uses the reviewed default.
 The rollout mode itself accepts only `monitor` or `enforce`; another value is a
@@ -171,7 +188,9 @@ ABUSE_RUN_ACTIVE_UPLOAD_GRANTS_LIMIT
 Both follow `ABUSE_CONTROL_MODE`. Production defaults are 32 active sessions
 and eight active upload grants. Scans are capped at 256 sessions and 128 active
 upload grants, respectively, and the required composite indexes are in
-`firestore.indexes.json`.
+`firestore.indexes.json`. The transaction returns a rejected decision before
+throwing `resource-exhausted`, so the structured saturation log and its alert
+policy are emitted for enforced rejections as well as monitor-mode signals.
 
 ## Run-create idempotency and replay size
 
@@ -250,7 +269,7 @@ The source-controlled bundle under
 
 - App Check gaps above 20 observations in 15 minutes;
 - any enforced quota rejection or malformed enforcement configuration;
-- active-session or upload-grant saturation;
+- active-session or upload-grant saturation, including enforced rejections;
 - backend 5xx and recognized Firestore transaction contention;
 - a saturated 200-document quota-retention cleanup page;
 - more than 64 replay finalizes, 500 signed-URL attempts, 1,000 replay-bucket

@@ -230,6 +230,43 @@ test("atomic concurrent quota requests cannot exceed enforcement limit", async (
   assert.equal(stored?.counters?.ownership_command_burst?.count, 10);
 });
 
+test("account deletion requests remain rate limited after their tombstone exists", async () => {
+  await db.collection("account_deletion_requests").doc("uid_deleting").set({
+    uid: "uid_deleting",
+    state: "in_progress",
+  });
+
+  await assert.doesNotReject(() =>
+    consumeUserQuota({
+      db,
+      uid: "uid_deleting",
+      route: "account_delete",
+      nowMs: 1_700_000_000_000,
+      allowAccountDeletionRequest: true,
+      policy: policy({
+        route: "account_delete",
+        mode: "enforce",
+        burstLimit: 1,
+        sustainedLimit: 1,
+      }),
+    }),
+  );
+  await assert.rejects(
+    () =>
+      consumeUserQuota({
+        db,
+        uid: "uid_deleting",
+        route: "profile_read",
+        allowAccountDeletionRequest: true,
+        policy: policy({
+          route: "profile_read",
+          mode: "monitor",
+        }),
+      }),
+    /Only the account_delete quota route/,
+  );
+});
+
 test("reviewed run-create burst remains atomic under concurrent load", async () => {
   const quotaPolicy = resolveAbuseQuotaPolicy("run_create", {
     ABUSE_CONTROL_MODE: "enforce",

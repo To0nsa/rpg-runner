@@ -10,10 +10,15 @@ const abuseQuotaCollection = "abuse_quota";
 const defaultRetentionPaddingMs = 24 * 60 * 60 * 1000;
 
 export const abuseQuotaRoutes = [
+  "ownership_read",
   "ownership_command",
+  "profile_read",
+  "profile_write",
+  "account_delete",
   "run_create",
   "upload_grant",
   "finalize_replay_bytes",
+  "run_status",
   "leaderboard_read",
   "ghost_url",
 ] as const;
@@ -49,11 +54,35 @@ const dayMs = 24 * 60 * 60 * 1000;
  * or relax these limits, but malformed enforcement overrides fail closed.
  */
 export const defaultAbuseQuotaConfiguration = {
+  ownership_read: {
+    burstWindowMs: minuteMs,
+    burstLimit: 120,
+    sustainedWindowMs: dayMs,
+    sustainedLimit: 5_000,
+  },
   ownership_command: {
     burstWindowMs: minuteMs,
     burstLimit: 120,
     sustainedWindowMs: dayMs,
     sustainedLimit: 5_000,
+  },
+  profile_read: {
+    burstWindowMs: minuteMs,
+    burstLimit: 120,
+    sustainedWindowMs: dayMs,
+    sustainedLimit: 5_000,
+  },
+  profile_write: {
+    burstWindowMs: minuteMs,
+    burstLimit: 30,
+    sustainedWindowMs: dayMs,
+    sustainedLimit: 500,
+  },
+  account_delete: {
+    burstWindowMs: minuteMs,
+    burstLimit: 5,
+    sustainedWindowMs: dayMs,
+    sustainedLimit: 20,
   },
   run_create: {
     burstWindowMs: minuteMs,
@@ -72,6 +101,12 @@ export const defaultAbuseQuotaConfiguration = {
     burstLimit: 32 * 1024 * 1024,
     sustainedWindowMs: dayMs,
     sustainedLimit: 1024 * 1024 * 1024,
+  },
+  run_status: {
+    burstWindowMs: minuteMs,
+    burstLimit: 120,
+    sustainedWindowMs: dayMs,
+    sustainedLimit: 5_000,
   },
   leaderboard_read: {
     burstWindowMs: minuteMs,
@@ -183,6 +218,7 @@ export async function consumeUserQuota(args: {
   units?: number;
   nowMs?: number;
   policy?: AbuseQuotaPolicy;
+  allowAccountDeletionRequest?: boolean;
 }): Promise<AbuseQuotaDecision> {
   const nowMs = args.nowMs ?? Date.now();
   const units = args.units ?? 1;
@@ -191,10 +227,17 @@ export async function consumeUserQuota(args: {
   }
   const policy = args.policy ?? resolveAbuseQuotaPolicy(args.route);
   validatePolicy(policy, args.route);
+  if (args.allowAccountDeletionRequest && args.route !== "account_delete") {
+    throw new Error(
+      "Only the account_delete quota route may allow a deletion request.",
+    );
+  }
 
   const quotaRef = args.db.collection(abuseQuotaCollection).doc(args.uid);
   const decision = await args.db.runTransaction(async (tx) => {
-    await assertAccountActiveInTransaction(tx, args.db, args.uid);
+    if (!args.allowAccountDeletionRequest) {
+      await assertAccountActiveInTransaction(tx, args.db, args.uid);
+    }
     const snapshot = await tx.get(quotaRef);
     const stored = snapshot.data() as AbuseQuotaDocument | undefined;
     const counters = decodeCounters(stored?.counters);
