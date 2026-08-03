@@ -80,7 +80,7 @@ void main() {
     expect(result.issues.single.code, 'prefab_polygon_commit_stale');
   });
 
-  test('owner validation rejects invalid colliding and decoration edits', () {
+  test('allows cleared collision and rejects decoration collision', () {
     final obstacleShapes = <TerrainSourceShapeDef>[
       _rectangle('collision_001', left: -8, top: -8, right: 8, bottom: 8),
     ];
@@ -111,11 +111,20 @@ void main() {
       sourceHeightPx: 10,
     );
 
-    expect(obstacleResult.accepted, isFalse);
-    expect(obstacleResult.data, same(obstacleData));
+    expect(obstacleResult.accepted, isTrue);
+    expect(obstacleResult.changed, isTrue);
+    final cleared = obstacleResult.data.prefabs.singleWhere(
+      (prefab) => prefab.prefabKey == 'target',
+    );
+    expect(cleared.collisionShapes, isEmpty);
+    expect(cleared.revision, 8);
     expect(
       obstacleResult.issues.map((issue) => issue.code),
       contains('prefab_collision_shape_missing'),
+    );
+    expect(
+      obstacleResult.issues.single.severity,
+      PrefabValidationSeverity.warning,
     );
     expect(decorationResult.accepted, isFalse);
     expect(decorationResult.data, same(decorationData));

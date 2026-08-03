@@ -189,11 +189,25 @@ void main() {
 
     expect(_records(second), _records(first));
   });
+
+  test('empty terrain projects to an exact full-width no-ground gap', () {
+    final result = projectPolygonTerrainToLegacy(
+      compiled: _compile(const <PolygonTerrainShapeSource>[], chunkWidth: 100),
+      legacyGroundTopY: 32,
+    );
+
+    expect(result.issues, isEmpty);
+    expect(result.projection!.rectangles, isEmpty);
+    expect(result.projection!.groundGaps, hasLength(1));
+    expect(result.projection!.groundGaps.single.x, 0);
+    expect(result.projection!.groundGaps.single.width, 100);
+  });
 }
 
 PolygonTerrainCompiledChunk _compile(
-  Iterable<PolygonTerrainShapeSource> shapes,
-) {
+  Iterable<PolygonTerrainShapeSource> shapes, {
+  int chunkWidth = 96,
+}) {
   final chunk = PolygonTerrainChunkSource(
     chunkKey: 'projection_chunk',
     id: 'projection_chunk',
@@ -201,7 +215,7 @@ PolygonTerrainCompiledChunk _compile(
     status: 'active',
     levelId: 'forest',
     tileSize: 16,
-    width: 96,
+    width: chunkWidth,
     height: 64,
     difficulty: 'normal',
     assemblyGroupId: 'default',

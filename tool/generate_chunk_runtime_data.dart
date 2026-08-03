@@ -822,14 +822,6 @@ List<_SolidExport> _buildColliderSolids({
   required bool oneWayTop,
 }) {
   if (prefab.colliders.isEmpty) {
-    issues.add(
-      _ValidationIssue(
-        path: chunkPath,
-        code: 'missing_prefab_colliders',
-        message:
-            'Placed $prefabKind prefab "$prefabKey" must define at least one collider.',
-      ),
-    );
     return const <_SolidExport>[];
   }
 

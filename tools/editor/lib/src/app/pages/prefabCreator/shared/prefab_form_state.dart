@@ -121,7 +121,7 @@ class PrefabFormState {
     _selectedColliderIndex,
   );
 
-  bool get canDeleteSelectedCollider => _colliderDrafts.length > 1;
+  bool get canDeleteSelectedCollider => _colliderDrafts.isNotEmpty;
 
   PrefabFormDraftSnapshot captureDraftSnapshot() {
     _syncSelectedColliderDraftFromControllers();
@@ -274,12 +274,13 @@ class PrefabFormState {
     if (index == null) {
       return 'Select or add a collider first.';
     }
-    if (_colliderDrafts.length <= 1) {
-      return 'Obstacle and platform prefabs must keep at least one collider.';
-    }
     final next = _colliderDrafts.toList(growable: true)..removeAt(index);
     _colliderDrafts = next;
-    _selectedColliderIndex = index >= next.length ? next.length - 1 : index;
+    _selectedColliderIndex = next.isEmpty
+        ? null
+        : index >= next.length
+        ? next.length - 1
+        : index;
     _applySelectedColliderToControllers();
     return null;
   }

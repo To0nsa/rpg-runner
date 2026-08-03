@@ -24,6 +24,67 @@ void main() {
   });
 
   test(
+    'generator preserves visuals while collision authoring is cleared',
+    () async {
+      final fixtureRoot = await Directory.systemTemp.createTemp(
+        'chunk_generator_collision_cleared_',
+      );
+      try {
+        _writePrefabAndTileDefs(fixtureRoot.path, colliderless: true);
+        _writeLevelDefs(fixtureRoot.path);
+        _writeParallaxDefs(fixtureRoot.path);
+        _writeFile(
+          fixtureRoot.path,
+          'assets/authoring/level/chunks/field/chunk_cleared.json',
+          '''
+{
+  "schemaVersion": 1,
+  "chunkKey": "chunk_cleared",
+  "id": "chunk_cleared",
+  "levelId": "field",
+  "difficulty": "easy",
+  "prefabs": [
+    {
+      "prefabId": "grass",
+      "prefabKey": "grass",
+      "x": 160,
+      "y": 160,
+      "zIndex": 0,
+      "snapToGrid": true
+    }
+  ],
+  "groundProfile": {"kind": "flat", "topY": 224},
+  "groundGaps": [
+    {"gapId": "collision_cleared", "type": "pit", "x": 0, "width": 600}
+  ]
+}
+''',
+        );
+
+        final result = await _runGenerate(workingDirectory: fixtureRoot.path);
+        expect(result.exitCode, 0, reason: result.stderr);
+        final output = File(
+          _joinPath(<String>[
+            fixtureRoot.path,
+            'packages',
+            'runner_core',
+            'lib',
+            'track',
+            'authored_chunk_patterns.dart',
+          ]),
+        ).readAsStringSync();
+
+        expect(output, contains("chunkKey: 'chunk_cleared'"));
+        expect(output, contains("gapId: 'collision_cleared'"));
+        expect(output, isNot(contains('SolidRel(')));
+        expect(output, contains('visualSprites: <ChunkVisualSpriteRel>['));
+      } finally {
+        fixtureRoot.deleteSync(recursive: true);
+      }
+    },
+  );
+
+  test(
     'generator dry-run reports every missing output without writing',
     () async {
       final fixtureRoot = await Directory.systemTemp.createTemp(
@@ -787,7 +848,7 @@ Future<ProcessResult> _runGenerate({required String workingDirectory}) {
   ], workingDirectory: workingDirectory);
 }
 
-void _writePrefabAndTileDefs(String rootPath) {
+void _writePrefabAndTileDefs(String rootPath, {bool colliderless = false}) {
   _writeFile(rootPath, 'assets/authoring/level/prefab_defs.json', '''
 {
   "schemaVersion": 2,
@@ -811,9 +872,7 @@ void _writePrefabAndTileDefs(String rootPath) {
       "visualSource": {"type": "atlas_slice", "sliceId": "grass_slice"},
       "anchorXPx": 16,
       "anchorYPx": 16,
-      "colliders": [
-        {"offsetX": 0, "offsetY": 0, "width": 17, "height": 17}
-      ],
+      "colliders": ${colliderless ? '[]' : '[{"offsetX": 0, "offsetY": 0, "width": 17, "height": 17}]'},
       "tags": []
     }
   ]

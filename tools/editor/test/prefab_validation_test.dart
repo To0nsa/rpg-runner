@@ -692,5 +692,11 @@ void main() {
     expect(codes, contains('prefab_kind_invalid'));
     expect(codes, contains('prefab_source_type_invalid'));
     expect(codes, contains('prefab_collider_missing'));
+    expect(
+      issues
+          .singleWhere((issue) => issue.code == 'prefab_collider_missing')
+          .severity,
+      PrefabValidationSeverity.warning,
+    );
   });
 }

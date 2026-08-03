@@ -420,7 +420,9 @@ List<PolygonTerrainLegacyGap> _deriveGroundGaps({
     gapSpans.add(_PixelSpan(cursor, compiled.chunk.width));
   }
   for (final gap in gapSpans) {
-    if (gap.left % gridWorldUnits != 0 || gap.width % gridWorldUnits != 0) {
+    final removesAllGround = gap.left == 0 && gap.width == compiled.chunk.width;
+    if (!removesAllGround &&
+        (gap.left % gridWorldUnits != 0 || gap.width % gridWorldUnits != 0)) {
       issues.add(
         _chunkIssue(
           compiled,

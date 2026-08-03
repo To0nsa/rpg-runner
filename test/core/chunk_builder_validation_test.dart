@@ -28,7 +28,7 @@ void main() {
         chunkWidth: 600.0,
         gridSnap: 16.0,
       ),
-          throwsA(
+      throwsA(
         isA<StateError>().having(
           (error) => error.toString(),
           'message',
@@ -183,6 +183,51 @@ void main() {
             contains('chunkKey=chunk-alpha'),
             contains('chunkIndex=3'),
           ]),
+        ),
+      ),
+    );
+  });
+
+  test('full-width gap removes unsnapped-width ground intentionally', () {
+    const pattern = ChunkPattern(
+      name: 'collision-cleared',
+      chunkKey: 'collision-cleared',
+      groundGaps: <GapRel>[
+        GapRel(x: 0.0, width: 600.0, gapId: 'collision_cleared'),
+      ],
+    );
+
+    final result = buildGroundSegments(
+      pattern,
+      chunkStartX: 1200.0,
+      chunkIndex: 2,
+      groundTopY: 224.0,
+      chunkWidth: 600.0,
+      gridSnap: 16.0,
+    );
+
+    expect(result.segments, isEmpty);
+    expect(result.gaps, hasLength(1));
+    expect(result.gaps.single.minX, 1200.0);
+    expect(result.gaps.single.maxX, 1800.0);
+
+    expect(
+      () => buildGroundSegments(
+        const ChunkPattern(
+          name: 'unsnapped-partial-gap',
+          groundGaps: <GapRel>[GapRel(x: 0.0, width: 599.0, gapId: 'partial')],
+        ),
+        chunkStartX: 0.0,
+        chunkIndex: 0,
+        groundTopY: 224.0,
+        chunkWidth: 600.0,
+        gridSnap: 16.0,
+      ),
+      throwsA(
+        isA<StateError>().having(
+          (error) => error.toString(),
+          'message',
+          contains('Ground gap not snapped to grid'),
         ),
       ),
     );

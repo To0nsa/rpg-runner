@@ -16,10 +16,12 @@ void main() {
   );
 
   test('enforces colliding-kind and decoration shape contracts', () {
+    final colliderless = _validate(const <TerrainSourceShapeDef>[]);
     expect(
-      _validate(const <TerrainSourceShapeDef>[]).map((issue) => issue.code),
+      colliderless.map((issue) => issue.code),
       contains('prefab_collision_shape_missing'),
     );
+    expect(colliderless.single.severity, PrefabValidationSeverity.warning);
     expect(
       _validate(<TerrainSourceShapeDef>[
         _rectangle('collision_001', left: -8, top: -8, right: 8, bottom: 8),

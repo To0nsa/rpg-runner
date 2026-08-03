@@ -188,7 +188,11 @@ GroundBuildResult buildGroundSegments(
         chunkIndex: chunkIndex,
       );
     }
-    if (!_snapped(gap.x, gridSnap) || !_snapped(gap.width, gridSnap)) {
+    final removesAllGround =
+        gap.x.abs() < _validationTolerance &&
+        (gap.width - chunkWidth).abs() < _validationTolerance;
+    if (!removesAllGround &&
+        (!_snapped(gap.x, gridSnap) || !_snapped(gap.width, gridSnap))) {
       _throwChunkValidation(
         'Ground gap not snapped to grid at index $i '
         '(x=${gap.x}, width=${gap.width}, gridSnap=$gridSnap)',

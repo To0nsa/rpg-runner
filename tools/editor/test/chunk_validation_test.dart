@@ -172,6 +172,73 @@ void main() {
     expect(codes, contains('create_chunk_id_collision'));
   });
 
+  test('full-width gap is the valid colliderless ground state', () {
+    const chunk = LevelChunkDef(
+      chunkKey: 'collision_cleared',
+      id: 'collision_cleared',
+      revision: 1,
+      schemaVersion: 1,
+      levelId: 'field',
+      tileSize: 16,
+      width: 600,
+      height: 270,
+      difficulty: chunkDifficultyNormal,
+      groundProfile: GroundProfileDef(kind: groundProfileKindFlat, topY: 224),
+      groundGaps: <GroundGapDef>[
+        GroundGapDef(
+          gapId: 'collision_cleared',
+          type: groundGapTypePit,
+          x: 0,
+          width: 600,
+        ),
+      ],
+    );
+    const document = ChunkDocument(
+      chunks: <LevelChunkDef>[
+        chunk,
+        LevelChunkDef(
+          chunkKey: 'partial_unsnapped',
+          id: 'partial_unsnapped',
+          revision: 1,
+          schemaVersion: 1,
+          levelId: 'field',
+          tileSize: 16,
+          width: 600,
+          height: 270,
+          difficulty: chunkDifficultyNormal,
+          groundProfile: GroundProfileDef(
+            kind: groundProfileKindFlat,
+            topY: 224,
+          ),
+          groundGaps: <GroundGapDef>[
+            GroundGapDef(
+              gapId: 'partial',
+              type: groundGapTypePit,
+              x: 0,
+              width: 599,
+            ),
+          ],
+        ),
+      ],
+      baselineByChunkKey: <String, ChunkSourceBaseline>{},
+      availableLevelIds: <String>['field'],
+      assemblyGroupOptionsByLevelId: <String, List<String>>{
+        'field': <String>['default'],
+      },
+      activeLevelId: 'field',
+      levelOptionSource: 'test',
+      runtimeGridSnap: 16.0,
+      runtimeChunkWidth: 600.0,
+      runtimeGroundTopY: 224,
+    );
+
+    final snapIssues = validateChunkDocument(
+      document,
+    ).where((issue) => issue.code == 'gap_snap_violation').toList();
+    expect(snapIssues, hasLength(1));
+    expect(snapIssues.single.message, contains('partial_unsnapped'));
+  });
+
   test('reports prefab placement identity and snap violations', () {
     const chunk = LevelChunkDef(
       chunkKey: 'chunk_prefab',

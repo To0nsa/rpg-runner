@@ -37,7 +37,9 @@ List<PrefabValidationIssue> validatePrefabCollisionShapes({
     issues.add(
       PrefabValidationIssue(
         code: 'prefab_collision_shape_missing',
-        message: 'Prefab $prefabId must include at least one collision shape.',
+        message:
+            'Prefab $prefabId has no collision shape and remains non-colliding until reauthored.',
+        severity: PrefabValidationSeverity.warning,
         sourcePath: sourcePath,
       ),
     );

@@ -570,8 +570,10 @@ List<ValidationIssue> validateChunkDocument(ChunkDocument document) {
         );
       }
 
-      if (!_isSnapped(gap.x.toDouble(), document.runtimeGridSnap) ||
-          !_isSnapped(gap.width.toDouble(), document.runtimeGridSnap)) {
+      final removesAllGround = gap.x == 0 && gap.width == chunk.width;
+      if (!removesAllGround &&
+          (!_isSnapped(gap.x.toDouble(), document.runtimeGridSnap) ||
+              !_isSnapped(gap.width.toDouble(), document.runtimeGridSnap))) {
         issues.add(
           ValidationIssue(
             severity: ValidationSeverity.error,

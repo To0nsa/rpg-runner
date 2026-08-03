@@ -320,7 +320,9 @@ void _validatePrefabAnchorAndColliders({
     issues.add(
       PrefabValidationIssue(
         code: 'prefab_collider_missing',
-        message: 'Prefab $prefabId must include at least one collider.',
+        message:
+            'Prefab $prefabId has no collider and remains non-colliding until reauthored.',
+        severity: PrefabValidationSeverity.warning,
       ),
     );
     return;
