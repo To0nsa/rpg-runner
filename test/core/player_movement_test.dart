@@ -7,6 +7,8 @@ import 'package:runner_core/ecs/stores/body_store.dart';
 import 'package:runner_core/levels/level_world_constants.dart';
 import 'package:runner_core/players/player_character_registry.dart';
 import 'package:runner_core/players/player_tuning.dart';
+import 'package:runner_core/tuning/core_tuning.dart';
+import 'package:runner_core/tuning/track_tuning.dart';
 
 import '../support/test_player.dart';
 import '../test_tunings.dart';
@@ -77,7 +79,12 @@ void main() {
 
   test('jump buffer triggers on the tick after landing', () {
     final core = GameCore(
-      levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
+      levelDefinition: testFieldLevel(
+        tuning: const CoreTuning(
+          camera: noAutoscrollCameraTuning,
+          track: TrackTuning(enabled: false),
+        ),
+      ),
       playerCharacter: testPlayerCharacter,
       seed: 1,
       tickHz: defaultTickHz,

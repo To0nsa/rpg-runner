@@ -32,7 +32,12 @@ String _snapshotSignature(GameCore core) {
 
 void _runDeterministicLevelScript(GameCore a, GameCore b) {
   const ticks = 120;
-  for (var t = 1; t <= ticks; t += 1) {
+  for (var step = 1; step <= ticks; step += 1) {
+    expect(a.tick, b.tick);
+    expect(a.gameOver, b.gameOver);
+    if (a.gameOver) break;
+
+    final t = a.tick + 1;
     final cmds = <Command>[];
     cmds.add(MoveAxisCommand(tick: t, axis: t <= 60 ? 1.0 : -1.0));
     if (t == 12) cmds.add(const JumpPressedCommand(tick: 12));

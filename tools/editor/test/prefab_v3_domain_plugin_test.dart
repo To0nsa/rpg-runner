@@ -58,7 +58,7 @@ void main() {
   );
 
   test(
-    'invalid, stale, malformed, and no-op staged commands keep identity',
+    'invalid topology, stale, malformed, and no-op commands keep identity',
     () {
       final before = <TerrainSourceShapeDef>[_rectangle(right: 8)];
       final document = _document(before);
@@ -70,7 +70,7 @@ void main() {
             'prefabKey': 'target',
             'commit': _commit(
               before: before,
-              after: const <TerrainSourceShapeDef>[],
+              after: <TerrainSourceShapeDef>[_selfIntersectingShape()],
             ),
           },
         ),
@@ -220,3 +220,13 @@ TerrainSourceShapeDef _rectangle({int left = -8, required int right}) =>
         TerrainSourceVertexDef(xHalfPixels: left, yHalfPixels: 8),
       ],
     );
+
+TerrainSourceShapeDef _selfIntersectingShape() => TerrainSourceShapeDef(
+  shapeId: 'collision_001',
+  vertices: const <TerrainSourceVertexDef>[
+    TerrainSourceVertexDef(xHalfPixels: -8, yHalfPixels: -8),
+    TerrainSourceVertexDef(xHalfPixels: 8, yHalfPixels: 8),
+    TerrainSourceVertexDef(xHalfPixels: 8, yHalfPixels: -8),
+    TerrainSourceVertexDef(xHalfPixels: -8, yHalfPixels: 8),
+  ],
+);
