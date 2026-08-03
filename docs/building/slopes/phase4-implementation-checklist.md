@@ -563,15 +563,15 @@ remaining files independently.
 - [x] Show the exact nine-file target plan with before/after SHA-256 values.
 - [x] Provide a pure, deterministic audit that rejects missing, changed, or
       ambiguously canonicalized source paths against the reviewed SHA-256 set.
-- [ ] Stage temporary files on the same volume.
-- [ ] Recheck every source fingerprint immediately before replacement.
+- [x] Stage temporary files on the same volume.
+- [x] Recheck every source fingerprint immediately before replacement.
 - [x] Recheck every source SHA-256 immediately before emitting a readiness
       result or optional report artifact.
-- [ ] Preserve existing newline/encoding policy and canonical JSON formatting.
-- [ ] Replace files through the repository's safe-write primitives.
-- [ ] If any replacement fails, restore every already-replaced source from the
+- [x] Preserve existing newline/encoding policy and canonical JSON formatting.
+- [x] Replace files through the repository's safe-write primitives.
+- [x] If any replacement fails, restore every already-replaced source from the
       transaction backup and report the failure.
-- [ ] Never leave mixed prefab/chunk schema versions after a failed batch.
+- [x] Never leave mixed prefab/chunk schema versions after a failed batch.
 - [x] Permit an explicit machine-readable check report only at a
       workspace-relative `.json` path outside `assets/authoring`.
 - [ ] Add the machine-readable write-transaction/rollback artifact.
@@ -581,6 +581,27 @@ remaining files independently.
 
 The normal editor export remains document-scoped and source-drift guarded. The
 batch transaction exists only for the one-time schema migration.
+
+`WorkspaceWriteTransaction` now stages exact UTF-8 bytes to unique sibling
+files, rechecks optimistic concurrency through a pre-replacement callback,
+moves every original to a sibling backup, verifies installed bytes, and runs a
+caller-supplied post-install validator while rollback remains possible. A later
+install failure and a post-install validation failure both restore the complete
+original set without transaction debris.
+
+`PolygonAuthoringMigrationTransaction` binds that primitive to one complete
+blocker-free `PolygonAuthoringMigrationCheck`. It verifies source/target path
+and SHA-256 coverage, repeats the source digest audit immediately before any
+move, requires the installed repository to load as one blocker-free canonical
+v3/v2 generation, and returns deterministic machine-readable committed/no-op
+evidence. Reapplying a fresh current-schema check is byte-identical and writes
+nothing.
+
+This is deliberately an unreachable transaction foundation: the CLI still
+rejects `--write`, the repository remains prefab-v2/chunk-v1, and normal stores
+cannot consume a migrated workspace yet. CLI authorization, the external
+rollback-report artifact, and `--write` idempotence stay open until the normal
+editor cutover is ready.
 
 ## 17) Shared Polygon Interaction Model
 
@@ -1220,6 +1241,7 @@ result.
 | 2026-08-03 / `15b5618a` | Explicit collision-cleared authoring state | Dart VM and Flutter test VM on Windows under Docker RAM pressure | Empty obstacle/platform collider lists and prefab-v3 polygon lists are warning-only; deleting the final collider is supported; normal generation preserves visuals with no solids; and an exact full-width gap is the sole legacy grid exception. Twelve focused Core/generator/projector tests pass, as do seven isolated prefab commit tests. A broader 35-test editor run exposed one stale invalid-empty test expectation, which was corrected to use invalid topology. A retry of that single plugin test file timed out before first output after 90 seconds; full analysis and suites remain pending. |
 | 2026-08-03 / `a3b665cb` | Clear all authored static collision for polygon reauthoring | Windows structural audit under Docker RAM pressure | Exact before/after audit proves the only prefab changes are empty collider lists plus revision bumps on the 70 former collision owners; all 99 visuals/kinds/metadata remain. The only chunk changes are one revision bump and one full-width `collision_cleared` gap in each of 8 chunks; all 50 placements and 2 markers remain. Generated patterns contain 8 full-width gaps and zero static solids. Migration classification reports 70 `collisionCleared`, 29 decorations, zero prefab/ground shapes, and zero blockers with plan/legacy/current fingerprints `51630457`, `086d00a8`, and `7f4fc90e`. The generated-asset commit hook passed; full migration/parity/analyzer suites remain pending because of memory pressure. |
 | 2026-08-03 / `8aa880a6` | Collision-reset regression closure | Dart VM and Flutter test VM on Windows with Docker still running | Root, Core-package, editor, and replay-validator analysis are clean. All 385 editor tests, 42 root tool/generator tests, 310 Core-package tests, 433 root Core tests, and 80 replay-validator tests pass. The stale prefab-v3 test now rejects genuinely invalid self-intersecting topology instead of valid final-shape deletion; real-level determinism stops submitting commands once collisionless runs freeze; the jump-buffer unit test disables live track streaming. The read-only migration check validates 99 prefabs, 8 chunks, and nine pending representation targets without writes, and generator dry-run validates 8 chunks, 2 levels, and 2 themes with no drift. |
+| 2026-08-03 / `a0338973` | Guarded polygon migration write transaction foundation | Dart VM and Flutter test VM on Windows with Docker running | Targeted analysis of the two transaction implementations and two focused test files is clean; all 8 focused tests pass. Fixtures prove sibling staging, exact byte verification, final pre-move callback ordering, rollback before moves, rollback after an earlier replacement, rollback after post-install validation, a complete 9-file legacy-to-current conversion in a temporary workspace, repeated current-schema no-op, drift rejection, and transaction-file cleanup. The real read-only CLI check still reports 99 prefabs, 8 chunks, 9 pending targets, and no source write. `--write` remains unavailable. |
 ### 28.1 Baseline Environment And Source Identity
 
 - Starting worktree: dirty with 133 pre-existing entries. The authoring JSON,

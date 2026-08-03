@@ -54,6 +54,7 @@ The active schema migration, generator, preview, and cutover work remains in
 | Legacy flat-ground/gap conversion | editor chunk migration domain | aggregate check plan; removal follows verified chunk v2 write |
 | Strict legacy prefab-v1/v2 and chunk-v1 source parsing | editor migration-owned `LegacyPrefabDef` / chunk-v1 models | read-only aggregate planner input; compatibility stores and normal `PrefabDef` are bypassed |
 | Cross-domain canonical migration report | editor migration domain | read-only CLI, strict in-memory targets, and exact source SHA-256 audit; source writes remain pending |
+| Guarded migration write transaction | editor `WorkspaceWriteTransaction` / `PolygonAuthoringMigrationTransaction` | temporary-workspace tests only; the CLI has no caller and real source remains legacy until normal store cutover |
 | Strict chunk-v2 file structure and canonical serialization | editor `ChunkV2FileData` / `ChunkV2FileCodec` | migration facade delegation, complete-repository round-trip, and explicit strict store staging; normal load/save cutover is pending |
 | Chunk-v2 plugin staging, direct-owner validation, and commit policy | editor `ChunkV2StagingDocument` / `ChunkV2CollisionCommitPolicy` / `ChunkDomainPlugin` | strict future-source composition, Core direct-shape/bounds validation, freshness/order/revision enforcement, typed commits, immutable pending diffs, hard export lock, and read-only direct/placed collision expansion; remaining metadata commands and normal cutover are pending |
 | Chunk polygon route-local projection | editor `ChunkPolygonAuthoringController` / `ChunkPolygonSceneSurface` / `ChunkPolygonStagingWorkspace` | explicit staged-scene routing, active-level owner isolation, tools, snap, bounds, diagnostics, keyboard, rejection, history, compiled-edge inspection, actor-terrain, and marker-placement overlays; normal v1 loads still select ground/gap authoring |
@@ -233,11 +234,39 @@ requested workspace-relative `.json` report outside `assets/authoring`;
 immutability annotations use `package:meta` rather than pulling `dart:ui` into
 offline tooling.
 
-This report is still not a source-write authorization. Current-schema
-idempotence is proven, but staged generated-artifact impact, normal editor
-schema support, transaction staging, rollback, and source replacement remain
-separate gates. The legacy authority remains selected, but its checked-in
-content now intentionally describes an empty static world.
+## Guarded Migration Write Foundation
+
+The editor workspace layer now has one synchronous multi-file transaction for
+the future one-time schema replacement. Every complete UTF-8 output is flushed
+and byte-verified in a unique sibling file. Immediately before any source
+moves, the caller runs its final optimistic-concurrency check. Existing files
+then move to sibling backups, all replacements install and verify, and a
+post-install callback runs while every backup is still recoverable. Failure at
+any staging, move, byte verification, or post-install validation point restores
+the complete original set in reverse order. Cleanup failure after a verified
+commit is reported separately from a successful rollback.
+
+`PolygonAuthoringMigrationTransaction` accepts only a complete blocker-free
+`PolygonAuthoringMigrationCheck`. It requires one target for every reviewed
+source path, binds every before/after SHA-256 to exact canonical bytes, repeats
+the reviewed source audit in the transaction's final pre-move callback, and
+loads the installed files through the strict current-schema checker before
+backups are deleted. Success returns a deterministic report-v1 committed
+record. Applying a fresh current-schema check returns a report-v1 no-op without
+creating transaction files.
+
+This foundation is intentionally not reachable from
+`tool/migrate_polygon_authoring.dart`: `--write` remains a usage error until
+normal Prefab and Chunk stores consume v3/v2, the external rollback artifact is
+defined, and the coordinated source/generator cutover is ready. The checked-in
+authoring files remain prefab-v2/chunk-v1.
+
+The readiness report is still not a source-write authorization. Transaction
+and rollback mechanics are proven in isolated workspaces, but normal editor
+schema support, CLI authorization, the external rollback artifact, staged
+generated-artifact impact, and coordinated source replacement remain separate
+gates. The legacy authority remains selected, but its checked-in content now
+intentionally describes an empty static world.
 
 ## Polygon Target Schemas And Normal Records
 
