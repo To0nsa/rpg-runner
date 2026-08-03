@@ -972,10 +972,14 @@ async function deleteStaleOrphanedGhostArtifacts(args: {
 }): Promise<{ deletedCount: number; scannedCount: number }> {
   let deletedCount = 0;
   let scannedCount = 0;
+  // Request no more objects than this invocation can delete. Advancing an
+  // opaque Storage page token after an early deletion cap would defer the
+  // unprocessed remainder until the cursor wraps.
+  const pageSize = Math.min(args.maxScans, args.maxDeletes);
   const pageToken = await readGhostArtifactCleanupPageToken(args.db);
   const page = await args.objectStore.listPendingObjects({
     prefix: ghostArtifactPathPrefix,
-    maxResults: args.maxScans,
+    maxResults: pageSize,
     pageToken,
   });
 

@@ -283,6 +283,34 @@ test("run cleanup resumes the ghost artifact scan from its persisted cursor", as
   assert.deepEqual(objectStore.deletedObjectPaths, [laterOrphanPath]);
 });
 
+test("run cleanup does not advance past a page when delete capacity is lower", async () => {
+  const nowMs = 1_000_000;
+  const firstPath = "ghosts/board_a/entry_a/ghost.bin.gz";
+  const secondPath = "ghosts/board_b/entry_b/ghost.bin.gz";
+  const thirdPath = "ghosts/board_c/entry_c/ghost.bin.gz";
+  const objectStore = new FakePendingReplayObjectStore([
+    { objectPath: firstPath, updatedAtMs: 100_000 },
+    { objectPath: secondPath, updatedAtMs: 100_000 },
+    { objectPath: thirdPath, updatedAtMs: 100_000 },
+  ]);
+  const dependencies = {
+    ghostArtifactObjectStore: objectStore,
+    staleGhostArtifactCutoffMs: 1_000,
+    maxGhostArtifactDeletesPerRun: 1,
+    maxGhostArtifactScansPerRun: 3,
+  };
+
+  await runReplaySubmissionCleanup({ db, nowMs, dependencies });
+  await runReplaySubmissionCleanup({ db, nowMs: nowMs + 1, dependencies });
+  await runReplaySubmissionCleanup({ db, nowMs: nowMs + 2, dependencies });
+
+  assert.deepEqual(objectStore.deletedObjectPaths, [
+    firstPath,
+    secondPath,
+    thirdPath,
+  ]);
+});
+
 test("run cleanup deletes terminal run sessions past retention cutoff", async () => {
   const nowMs = 500_000;
   await seedRunSession("terminal_old_validated", "validated", nowMs - 100_000);

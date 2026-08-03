@@ -17,6 +17,7 @@ param(
   [string]$ValidationQueue = "replay-validation",
   [string]$ProjectionQueue = "replay-projection",
   [string]$ValidatorServiceAccount = "",
+  [string]$RunControlServiceAccount = "",
   [string]$TaskDispatchServiceAccount = ""
 )
 
@@ -27,9 +28,17 @@ if ([string]::IsNullOrWhiteSpace($ValidatorServiceAccount)) {
   $ValidatorServiceAccount =
     "sa-replay-validator@$ProjectId.iam.gserviceaccount.com"
 }
+if ([string]::IsNullOrWhiteSpace($RunControlServiceAccount)) {
+  $RunControlServiceAccount =
+    "sa-run-control@$ProjectId.iam.gserviceaccount.com"
+}
 if ([string]::IsNullOrWhiteSpace($TaskDispatchServiceAccount)) {
   $TaskDispatchServiceAccount =
     "sa-replay-task-dispatch@$ProjectId.iam.gserviceaccount.com"
+}
+
+if ($ImageUri -notmatch '^[^@\s]+@sha256:[0-9a-f]{64}$') {
+  throw "ImageUri must be an immutable container digest ending in @sha256:<64 hex characters>."
 }
 
 function Invoke-Gcloud {
@@ -39,6 +48,16 @@ function Invoke-Gcloud {
   if ($LASTEXITCODE -ne 0) {
     throw "gcloud command failed: gcloud $($CommandArgs -join ' ')"
   }
+}
+
+function Get-GcloudOutput {
+  param([Parameter(Mandatory = $true)][string[]]$CommandArgs)
+
+  $output = (& gcloud @CommandArgs | Out-String).Trim()
+  if ($LASTEXITCODE -ne 0) {
+    throw "gcloud command failed: gcloud $($CommandArgs -join ' ')"
+  }
+  return $output
 }
 
 function Ensure-Queue {
@@ -77,13 +96,40 @@ $environmentVariables = @(
   "VALIDATOR_MAX_SIMULATION_WALL_TIME_MS=120000"
 ) -join ","
 
-# Grant the validated-artifact prefix before the revision can receive traffic.
-# Source submissions remain read-only under their existing IAM binding.
+# The validator reads immutable source evidence, creates sealed artifacts, and
+# owns the complete ghost object lifecycle. Each binding stays prefix-scoped.
+Invoke-Gcloud @(
+  "storage", "buckets", "add-iam-policy-binding", "gs://$ReplayStorageBucket",
+  "--member=serviceAccount:$ValidatorServiceAccount",
+  "--role=roles/storage.objectViewer",
+  "--condition=expression=resource.name.startsWith('projects/_/buckets/$ReplayStorageBucket/objects/replay-submissions/'),title=ReplaySubmissionEvidenceRead,description=Read replay evidence pinned to a Storage generation"
+)
 Invoke-Gcloud @(
   "storage", "buckets", "add-iam-policy-binding", "gs://$ReplayStorageBucket",
   "--member=serviceAccount:$ValidatorServiceAccount",
   "--role=roles/storage.objectCreator",
   "--condition=expression=resource.name.startsWith('projects/_/buckets/$ReplayStorageBucket/objects/replay-submissions/validated/'),title=ValidatedReplayArtifactsWrite,description=Write sealed validated replay artifacts"
+)
+Invoke-Gcloud @(
+  "storage", "buckets", "add-iam-policy-binding", "gs://$ReplayStorageBucket",
+  "--member=serviceAccount:$ValidatorServiceAccount",
+  "--role=roles/storage.objectUser",
+  "--condition=expression=resource.name.startsWith('projects/_/buckets/$ReplayStorageBucket/objects/ghosts/'),title=GhostArtifactsManage,description=Create verify and delete validator-owned ghost artifacts"
+)
+
+# Storage only evaluates object-list access at the bucket level. The control
+# plane gets bucket-wide listing, while destructive access remains prefix-scoped.
+Invoke-Gcloud @(
+  "storage", "buckets", "add-iam-policy-binding", "gs://$ReplayStorageBucket",
+  "--member=serviceAccount:$RunControlServiceAccount",
+  "--role=roles/storage.objectViewer",
+  "--condition=None"
+)
+Invoke-Gcloud @(
+  "storage", "buckets", "add-iam-policy-binding", "gs://$ReplayStorageBucket",
+  "--member=serviceAccount:$RunControlServiceAccount",
+  "--role=roles/storage.objectUser",
+  "--condition=expression=resource.name.startsWith('projects/_/buckets/$ReplayStorageBucket/objects/replay-submissions/') || resource.name.startsWith('projects/_/buckets/$ReplayStorageBucket/objects/ghosts/'),title=RunControlReplayArtifactManage,description=Delete replay artifacts during cleanup and account deletion"
 )
 
 Invoke-Gcloud @(
@@ -103,9 +149,28 @@ Invoke-Gcloud @(
   "--set-env-vars=$environmentVariables"
 )
 
-# The deployed digest receives the stable production tag only after Cloud Run
-# accepts the revision. Artifact cleanup preserves that tag and the five most
-# recent versions, so an infrequent release cannot be reclaimed by age alone.
+# Resolve the ready revision after deploy and prove it uses the requested
+# immutable digest before assigning the stable retention tag.
+$readyRevision = Get-GcloudOutput @(
+  "run", "services", "describe", $Service,
+  "--project=$ProjectId",
+  "--region=$Region",
+  "--format=value(status.latestReadyRevisionName)"
+)
+if ([string]::IsNullOrWhiteSpace($readyRevision)) {
+  throw "Cloud Run deployment did not report a ready revision."
+}
+$deployedImageDigest = Get-GcloudOutput @(
+  "run", "revisions", "describe", $readyRevision,
+  "--project=$ProjectId",
+  "--region=$Region",
+  "--format=value(status.imageDigest)"
+)
+if ($deployedImageDigest -ne $ImageUri) {
+  throw "Ready revision $readyRevision resolved to $deployedImageDigest instead of $ImageUri."
+}
+
+# Artifact cleanup preserves the accepted digest and five recent versions.
 $productionImageUri = "$Region-docker.pkg.dev/$ProjectId/replay/replay-validator:production"
 Invoke-Gcloud @(
   "artifacts", "docker", "tags", "add", $ImageUri, $productionImageUri

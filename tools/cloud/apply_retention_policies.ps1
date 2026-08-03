@@ -34,11 +34,12 @@ foreach ($policyFile in @($cloudBuildLifecycleFile, $replayArtifactCleanupFile))
 }
 
 # The checked-in lifecycle configuration is authoritative for this build bucket.
-# It expires only completed build-source archives; bucket soft delete remains the
-# seven-day recovery window for a mistaken lifecycle configuration.
+# It expires only completed build-source archives and explicitly preserves the
+# seven-day soft-delete recovery window for a mistaken lifecycle configuration.
 Invoke-Gcloud @(
   "storage", "buckets", "update", "gs://$CloudBuildBucket",
-  "--lifecycle-file=$cloudBuildLifecycleFile"
+  "--lifecycle-file=$cloudBuildLifecycleFile",
+  "--soft-delete-duration=7d"
 )
 
 $artifactCleanupCommand = @(
@@ -49,6 +50,10 @@ $artifactCleanupCommand = @(
 )
 if ($DryRunArtifactCleanup) {
   $artifactCleanupCommand += "--dry-run"
+} else {
+  # Omission preserves a repository's existing dry-run setting. Explicitly
+  # disable it after the review step so the configured policy becomes active.
+  $artifactCleanupCommand += "--no-dry-run"
 }
 Invoke-Gcloud $artifactCleanupCommand
 

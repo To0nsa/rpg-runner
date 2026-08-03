@@ -9,15 +9,18 @@ Registry indefinitely.
 
 The checked-in configuration and apply script live in `tools/cloud/`. They are
 the source of truth for the production project and must be applied after a new
-project, bucket, or Artifact Registry repository is created.
+project, bucket, or Artifact Registry repository is created. The validator
+deployment script also establishes the prefix-scoped Storage access required by
+the validator and the Functions control-plane identity.
 
 ## Cloud Build source archives
 
 `cloudbuild-source-lifecycle.json` deletes only objects beneath `source/` in
 the `${PROJECT_ID}_cloudbuild` bucket when they reach 30 days of age. These
 archives are build inputs that have already been consumed; release source of
-truth remains the Git revision. The bucket's seven-day soft-delete setting is
-the recovery window for an accidental lifecycle-policy change.
+truth remains the Git revision. `apply_retention_policies.ps1` explicitly sets
+the bucket's seven-day soft-delete setting as the recovery window for an
+accidental lifecycle-policy change.
 
 The rule intentionally does not match other prefixes, so Cloud Build logs or
 future project-owned artifacts require an explicit policy change before they
@@ -25,18 +28,20 @@ can be expired.
 
 ## Replay-validator images
 
-`replay-artifact-cleanup.json` applies only to the `replay-validator` package
-in the `replay` Artifact Registry repository:
+`replay-artifact-cleanup.json` applies only to packages beginning with
+`replay-validator` in the `replay` Artifact Registry repository:
 
-- the accepted Cloud Run revision is tagged `production` by
-  `configure_cloud.ps1` and is retained indefinitely;
+- `configure_cloud.ps1` accepts only an immutable image digest, confirms the
+  accepted Cloud Run revision resolved to that digest, then tags it
+  `production`; that version is retained indefinitely;
 - the five most recent versions are retained as rollback candidates;
 - every other version becomes eligible after 90 days.
 
 Artifact Registry keeps any version matching a keep rule even when it also
-matches the deletion rule. The deployment script assigns `production` only
-after Cloud Run accepts the revision; deployments outside that script must add
-the tag before they are considered complete. The Firebase-managed
+matches the deletion rule. Deployments outside the script must tag the exact
+accepted image digest before they are considered complete. `packageNamePrefixes`
+matches package names beginning with `replay-validator`; reserve that prefix in
+the repository or use a separate repository for similarly named packages. The Firebase-managed
 `gcf-artifacts` repository is deliberately out of scope because Functions owns
 its revision/image lifecycle.
 
@@ -59,8 +64,25 @@ An existing manifest protects the object regardless of whether it is active or
 demoted, leaving the ghost publisher's seven-day demotion grace period
 authoritative. Unexpected paths are never removed by this job. Each execution
 scans and deletes at most 200 ghost objects, then persists its opaque Storage
-page cursor in `maintenance/ghost_artifact_cleanup`; Storage deletion is
+page cursor in `maintenance/ghost_artifact_cleanup`; when operations lower the
+delete cap below the scan cap, the scan request is reduced to the delete cap so
+the cursor never advances past unprocessed objects. Storage deletion is
 idempotent.
+
+## Runtime Storage access
+
+`configure_cloud.ps1` applies the operational IAM bindings required by the
+implemented lifecycle:
+
+- `sa-replay-validator` reads `replay-submissions/`, creates sealed
+  `replay-submissions/validated/` artifacts, and manages `ghosts/` objects;
+- `sa-run-control` lists the replay bucket for scheduled cleanup and account
+  deletion, while object mutation is limited to `replay-submissions/` and
+  `ghosts/`.
+
+Cloud Storage evaluates object listing at the bucket rather than object-prefix
+level, so the control-plane identity's read/list binding necessarily covers the
+replay bucket. Its destructive binding remains prefix-scoped.
 
 ## Operations
 
@@ -73,8 +95,9 @@ run on its own:
 
 For an Artifact Registry observation-only rollout, use
 `-DryRunArtifactCleanup`, inspect the repository's cleanup-policy results, and
-then rerun without the switch. The production policy is intended to run live
-after its first inventory review.
+then rerun without the switch. The helper passes `--no-dry-run` for that second
+call so it actively disables any prior dry-run setting. The production policy
+is intended to run live after its first inventory review.
 
 Do not bulk-delete replay-bucket objects by prefix. Use the scheduled cleanup
 or an equivalent manifest-reference audit, because a ghost object's path alone

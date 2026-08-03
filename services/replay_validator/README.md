@@ -53,13 +53,18 @@ Run from repository root (`c:\dev\rpg_runner`):
 
 ```bash
 PROJECT_ID="rpg-runner-d7add"
-IMAGE_URI="europe-west1-docker.pkg.dev/${PROJECT_ID}/replay/replay-validator:$(date +%Y%m%d-%H%M%S)"
+IMAGE_TAG="europe-west1-docker.pkg.dev/${PROJECT_ID}/replay/replay-validator:$(date +%Y%m%d-%H%M%S)"
 
 gcloud builds submit \
   . \
   --project="${PROJECT_ID}" \
   --config=services/replay_validator/cloudbuild.yaml \
-  --substitutions=_IMAGE_URI="${IMAGE_URI}"
+  --substitutions=_IMAGE_URI="${IMAGE_TAG}"
+
+# Deploy only the immutable digest reported by Artifact Registry.
+IMAGE_DIGEST="$(gcloud artifacts docker images describe "${IMAGE_TAG}" \
+  --format='value(image_summary.digest)')"
+IMAGE_URI="${IMAGE_TAG%:*}@${IMAGE_DIGEST}"
 ```
 
 ## Deploy To Cloud Run
@@ -78,7 +83,7 @@ Then run the checked-in service/queue policy from the repository root:
 .\services\replay_validator\configure_cloud.ps1 `
   -ProjectId "rpg-runner-d7add" `
   -ReplayStorageBucket "rpg-runner-replay-euw1-20260312-01" `
-  -ImageUri "europe-west1-docker.pkg.dev/rpg-runner-d7add/replay/replay-validator:<replace-with-built-tag>" `
+  -ImageUri "europe-west1-docker.pkg.dev/rpg-runner-d7add/replay/replay-validator@sha256:<replace-with-64-character-digest>" `
   -SettlementDispatchUrl "https://europe-west1-rpg-runner-d7add.cloudfunctions.net/runSettlementImmediate"
 ```
 
@@ -98,11 +103,13 @@ The script is idempotent for existing queues and fixes the release policy at:
 - the container runtime user is unprivileged and root build-context ignore
   files include only the service and its local package dependencies
 
-It also tags the accepted revision as `production` and applies the checked-in
-cloud retention policy. The policy keeps that production image plus the five
-most recent replay-validator versions, deletes other replay-validator versions
-after 90 days, and expires Cloud Build `source/` archives after 30 days. Run
-the policy independently after creating a project or changing its buckets:
+It accepts only an immutable image digest, verifies that Cloud Run accepted that
+exact digest, tags it as `production`, and applies the checked-in cloud
+retention policy. The policy keeps that production image plus the five most
+recent replay-validator versions, deletes other replay-validator versions after
+90 days, expires Cloud Build `source/` archives after 30 days, and enforces a
+seven-day Cloud Build bucket soft-delete recovery window. Run the policy
+independently after creating a project or changing its buckets:
 
 ```powershell
 .\tools\cloud\apply_retention_policies.ps1 -ProjectId "rpg-runner-d7add"
