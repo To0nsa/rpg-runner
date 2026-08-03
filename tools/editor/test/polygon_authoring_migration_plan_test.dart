@@ -20,14 +20,14 @@ void main() {
     expect(plan.hasBlockers, isFalse);
     expect(plan.summary.toJson(), <String, Object>{
       'prefabCount': 99,
-      'collisionPrefabCount': 70,
+      'collisionPrefabCount': 0,
       'decorationPrefabCount': 29,
-      'multiColliderPrefabCount': 29,
-      'reauthoredPrefabCount': 3,
-      'prefabShapeCount': 88,
+      'multiColliderPrefabCount': 0,
+      'reauthoredPrefabCount': 0,
+      'prefabShapeCount': 0,
       'chunkCount': 8,
-      'legacyGapCount': 1,
-      'groundShapeCount': 9,
+      'legacyGapCount': 8,
+      'groundShapeCount': 0,
       'blockerCount': 0,
     });
     final decoded = jsonDecode(plan.toCanonicalJson()) as Map<String, Object?>;
@@ -44,6 +44,12 @@ void main() {
       (entry) => legacyByKey[entry.prefabKey]!.kind == PrefabKind.platform,
     );
     expect(platformEntries, hasLength(4));
+    expect(
+      plan.prefabs.where(
+        (entry) => entry.kind == PrefabPolygonMigrationKind.collisionCleared,
+      ),
+      hasLength(70),
+    );
     expect(
       platformEntries
           .expand((entry) => entry.collisionShapes)
@@ -64,7 +70,7 @@ void main() {
           ),
       isTrue,
     );
-    expect(WorkspaceFileIo.fingerprint(plan.toCanonicalJson()), 'd75ba69e');
+    expect(WorkspaceFileIo.fingerprint(plan.toCanonicalJson()), '51630457');
   });
 
   test('input order and host path separators do not affect report', () async {

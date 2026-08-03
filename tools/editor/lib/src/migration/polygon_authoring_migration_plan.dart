@@ -4,6 +4,7 @@ import '../chunks/chunk_domain_models.dart';
 import '../chunks/migration/legacy_chunk_ground_migration.dart';
 import '../prefabs/migration/legacy_prefab_collider_union.dart';
 import '../prefabs/migration/reviewed_legacy_prefab_collision_reauthorings.dart';
+import '../prefabs/models/models.dart';
 import '../terrain_authoring/terrain_source_models.dart';
 import 'legacy_prefab_collision_mode.dart';
 import 'legacy_prefab_models.dart';
@@ -11,6 +12,7 @@ import 'legacy_prefab_models.dart';
 /// Classification of one legacy prefab collision conversion.
 enum PrefabPolygonMigrationKind {
   decoration,
+  collisionCleared,
   isolated,
   union,
   disconnected,
@@ -633,7 +635,11 @@ PrefabPolygonMigrationKind _classifyPrefab(
   LegacyPrefabDef prefab,
   LegacyPrefabColliderUnionResult result,
 ) {
-  if (prefab.colliders.isEmpty) return PrefabPolygonMigrationKind.decoration;
+  if (prefab.colliders.isEmpty) {
+    return prefab.kind == PrefabKind.decoration
+        ? PrefabPolygonMigrationKind.decoration
+        : PrefabPolygonMigrationKind.collisionCleared;
+  }
   if (result.isReauthored) {
     return PrefabPolygonMigrationKind.reviewedReauthoring;
   }
@@ -646,6 +652,7 @@ PrefabPolygonMigrationKind _classifyPrefab(
 
 String _prefabKindJson(PrefabPolygonMigrationKind kind) => switch (kind) {
   PrefabPolygonMigrationKind.decoration => 'decoration',
+  PrefabPolygonMigrationKind.collisionCleared => 'collisionCleared',
   PrefabPolygonMigrationKind.isolated => 'isolated',
   PrefabPolygonMigrationKind.union => 'union',
   PrefabPolygonMigrationKind.disconnected => 'disconnected',

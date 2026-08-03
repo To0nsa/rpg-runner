@@ -55,7 +55,7 @@ void main() {
     );
     expect(chunks, hasLength(8));
     expect(chunks.toSet(), hasLength(8));
-    expect(gapCount, 1);
+    expect(gapCount, 8);
   });
 
   test('prefab-v1 promotion is explicit and deterministic', () {

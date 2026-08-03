@@ -69,7 +69,7 @@ void main() {
       expect(summary['revisionChangedCount'], 0);
       expect(summary['downstreamPlacementCount'], 50);
       expect((decoded['blockers']! as List<Object?>), isEmpty);
-      expect(WorkspaceFileIo.fingerprint(report), '4c1243df');
+      expect(WorkspaceFileIo.fingerprint(report), '086d00a8');
     },
   );
 
@@ -104,7 +104,7 @@ void main() {
 
       final decoded =
           jsonDecode(check.toCanonicalJson()) as Map<String, Object?>;
-      expect(WorkspaceFileIo.fingerprint(check.toCanonicalJson()), '2da9f6ab');
+      expect(WorkspaceFileIo.fingerprint(check.toCanonicalJson()), '7f4fc90e');
       final summary = decoded['summary']! as Map<String, Object?>;
       expect(decoded['reportVersion'], 2);
       expect(decoded['sourceState'], 'current');
@@ -199,16 +199,20 @@ void main() {
     final fixture = _copyMigrationSources();
     try {
       _promoteFixtureToCurrent(fixture.path);
-      final chunkFile = _terrainChunkFile(fixture.path);
+      final chunkFile = _firstChunkFile(fixture.path);
       final root =
           jsonDecode(chunkFile.readAsStringSync()) as Map<String, Object?>;
-      final shapes = root['collisionShapes']! as List<Object?>;
-      final shape = shapes.first! as Map<String, Object?>;
-      shape['vertices'] = <Map<String, Object>>[
-        <String, Object>{'x': 0, 'y': 0},
-        <String, Object>{'x': 10, 'y': 10},
-        <String, Object>{'x': 0, 'y': 10},
-        <String, Object>{'x': 10, 'y': 0},
+      root['collisionShapes'] = <Object?>[
+        <String, Object?>{
+          'shapeId': 'invalid_self_intersection',
+          'collisionMode': 'solid',
+          'vertices': <Map<String, Object>>[
+            <String, Object>{'x': 0, 'y': 0},
+            <String, Object>{'x': 10, 'y': 10},
+            <String, Object>{'x': 0, 'y': 10},
+            <String, Object>{'x': 10, 'y': 0},
+          ],
+        },
       ];
       chunkFile.writeAsStringSync(_canonicalJson(root));
 
@@ -367,13 +371,6 @@ List<File> _chunkFiles(String rootPath) {
         ..sort((left, right) => left.path.compareTo(right.path));
   return files;
 }
-
-File _terrainChunkFile(String rootPath) =>
-    _chunkFiles(rootPath).firstWhere((file) {
-      final root = jsonDecode(file.readAsStringSync()) as Map<String, Object?>;
-      final shapes = root['collisionShapes'];
-      return shapes is List<Object?> && shapes.isNotEmpty;
-    });
 
 File _firstChunkFile(String rootPath) {
   final files =

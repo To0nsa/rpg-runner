@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "chunkKey": "field_flat",
   "id": "field_flat",
-  "revision": 1,
+  "revision": 2,
   "status": "active",
   "levelId": "field",
   "tileSize": 16,
@@ -18,5 +18,12 @@
     "kind": "flat",
     "topY": 224
   },
-  "groundGaps": []
+  "groundGaps": [
+    {
+      "gapId": "collision_cleared",
+      "type": "pit",
+      "x": 0,
+      "width": 600
+    }
+  ]
 }

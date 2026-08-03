@@ -14,7 +14,7 @@ import '../../../tool/polygon_terrain_source.dart';
 
 void main() {
   test(
-    'repository projection matches accepted chunks and goldens overlap blockers',
+    'repository collision-cleared projection matches every legacy chunk',
     () {
       final root = _repoRootPath();
       final check = PolygonAuthoringMigrationCheck.fromRepository(root);
@@ -89,22 +89,9 @@ void main() {
           reason: '${chunk.chunkKey} one-way top pixels',
         );
       }
-      expect(projectedChunkCount, 2);
-      expect(compilationFailures, hasLength(24));
-      expect(
-        compilationFailures.every(
-          (failure) => failure.contains(': polygon_area_overlap '),
-        ),
-        isTrue,
-      );
-      expect(blockedChunkKeys, <String>{
-        'forest_early_00',
-        'forest_early_01',
-        'forest_early_02',
-        'forest_early_03',
-        'forest_easy_woodcamp_00',
-        'forest_easy_woodcamp_00_2',
-      });
+      expect(projectedChunkCount, 8);
+      expect(compilationFailures, isEmpty);
+      expect(blockedChunkKeys, isEmpty);
     },
   );
 }

@@ -24,6 +24,7 @@ const List<ChunkPattern> fieldNormalPatterns = <ChunkPattern>[
     solids: <SolidRel>[
     ],
     groundGaps: <GapRel>[
+      GapRel(gapId: 'collision_cleared', x: 0.0, width: 600.0),
     ],
     visualSprites: <ChunkVisualSpriteRel>[
     ],
@@ -43,6 +44,7 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
     solids: <SolidRel>[
     ],
     groundGaps: <GapRel>[
+      GapRel(gapId: 'collision_cleared', x: 0.0, width: 600.0),
     ],
     visualSprites: <ChunkVisualSpriteRel>[
     ],
@@ -54,15 +56,9 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
     chunkKey: 'forest_early_00',
     assemblyGroupId: 'default',
     solids: <SolidRel>[
-      SolidRel(x: 384.0, aboveGroundTop: 128.0, width: 80.0, height: 16.0, sides: SolidRel.sideTop, oneWayTop: true),
-      SolidRel(x: 224.0, aboveGroundTop: 96.0, width: 80.0, height: 16.0, sides: SolidRel.sideTop, oneWayTop: true),
-      SolidRel(x: 112.0, aboveGroundTop: 64.0, width: 48.0, height: 16.0, sides: SolidRel.sideTop, oneWayTop: true),
-      SolidRel(x: 352.0, aboveGroundTop: 80.0, width: 16.0, height: 16.0, sides: SolidRel.sideAll, oneWayTop: false),
-      SolidRel(x: 336.0, aboveGroundTop: 64.0, width: 32.0, height: 64.0, sides: SolidRel.sideAll, oneWayTop: false),
-      SolidRel(x: 352.0, aboveGroundTop: 32.0, width: 16.0, height: 32.0, sides: SolidRel.sideAll, oneWayTop: false),
-      SolidRel(x: 384.0, aboveGroundTop: 16.0, width: 16.0, height: 32.0, sides: SolidRel.sideAll, oneWayTop: false),
     ],
     groundGaps: <GapRel>[
+      GapRel(gapId: 'collision_cleared', x: 0.0, width: 600.0),
     ],
     visualSprites: <ChunkVisualSpriteRel>[
       ChunkVisualSpriteRel(
@@ -182,16 +178,9 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
     chunkKey: 'forest_early_01',
     assemblyGroupId: 'default',
     solids: <SolidRel>[
-      SolidRel(x: 480.0, aboveGroundTop: 64.0, width: 48.0, height: 16.0, sides: SolidRel.sideTop, oneWayTop: true),
-      SolidRel(x: 304.0, aboveGroundTop: 64.0, width: 16.0, height: 16.0, sides: SolidRel.sideAll, oneWayTop: false),
-      SolidRel(x: 288.0, aboveGroundTop: 48.0, width: 32.0, height: 48.0, sides: SolidRel.sideAll, oneWayTop: false),
-      SolidRel(x: 352.0, aboveGroundTop: 80.0, width: 48.0, height: 16.0, sides: SolidRel.sideAll, oneWayTop: false),
-      SolidRel(x: 320.0, aboveGroundTop: 80.0, width: 32.0, height: 16.0, sides: SolidRel.sideAll, oneWayTop: false),
-      SolidRel(x: 336.0, aboveGroundTop: 64.0, width: 16.0, height: 64.0, sides: SolidRel.sideAll, oneWayTop: false),
-      SolidRel(x: 256.0, aboveGroundTop: 16.0, width: 16.0, height: 16.0, sides: SolidRel.sideAll, oneWayTop: false),
-      SolidRel(x: 192.0, aboveGroundTop: 0.0, width: 48.0, height: 16.0, sides: SolidRel.sideAll, oneWayTop: false),
     ],
     groundGaps: <GapRel>[
+      GapRel(gapId: 'collision_cleared', x: 0.0, width: 600.0),
     ],
     visualSprites: <ChunkVisualSpriteRel>[
       ChunkVisualSpriteRel(
@@ -314,14 +303,9 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
     chunkKey: 'forest_early_02',
     assemblyGroupId: 'default',
     solids: <SolidRel>[
-      SolidRel(x: 192.0, aboveGroundTop: 128.0, width: 16.0, height: 16.0, sides: SolidRel.sideTop, oneWayTop: true),
-      SolidRel(x: 448.0, aboveGroundTop: 112.0, width: 48.0, height: 16.0, sides: SolidRel.sideTop, oneWayTop: true),
-      SolidRel(x: 336.0, aboveGroundTop: 80.0, width: 48.0, height: 16.0, sides: SolidRel.sideTop, oneWayTop: true),
-      SolidRel(x: 64.0, aboveGroundTop: 64.0, width: 80.0, height: 16.0, sides: SolidRel.sideTop, oneWayTop: true),
-      SolidRel(x: 240.0, aboveGroundTop: 32.0, width: 48.0, height: 32.0, sides: SolidRel.sideAll, oneWayTop: false),
-      SolidRel(x: 208.0, aboveGroundTop: 32.0, width: 32.0, height: 32.0, sides: SolidRel.sideAll, oneWayTop: false),
     ],
     groundGaps: <GapRel>[
+      GapRel(gapId: 'collision_cleared', x: 0.0, width: 600.0),
     ],
     visualSprites: <ChunkVisualSpriteRel>[
       ChunkVisualSpriteRel(
@@ -429,14 +413,9 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
     chunkKey: 'forest_early_03',
     assemblyGroupId: 'default',
     solids: <SolidRel>[
-      SolidRel(x: 496.0, aboveGroundTop: 96.0, width: 48.0, height: 48.0, sides: SolidRel.sideTop, oneWayTop: true),
-      SolidRel(x: 320.0, aboveGroundTop: 112.0, width: 80.0, height: 32.0, sides: SolidRel.sideAll, oneWayTop: false),
-      SolidRel(x: 224.0, aboveGroundTop: 96.0, width: 176.0, height: 96.0, sides: SolidRel.sideAll, oneWayTop: false),
-      SolidRel(x: 64.0, aboveGroundTop: 32.0, width: 48.0, height: 48.0, sides: SolidRel.sideAll, oneWayTop: false),
-      SolidRel(x: 112.0, aboveGroundTop: 16.0, width: 32.0, height: 16.0, sides: SolidRel.sideAll, oneWayTop: false),
-      SolidRel(x: 48.0, aboveGroundTop: 16.0, width: 16.0, height: 16.0, sides: SolidRel.sideAll, oneWayTop: false),
     ],
     groundGaps: <GapRel>[
+      GapRel(gapId: 'collision_cleared', x: 0.0, width: 600.0),
     ],
     visualSprites: <ChunkVisualSpriteRel>[
       ChunkVisualSpriteRel(
@@ -573,14 +552,9 @@ const List<ChunkPattern> forestEasyPatterns = <ChunkPattern>[
     chunkKey: 'forest_easy_woodcamp_00',
     assemblyGroupId: 'woodcamp',
     solids: <SolidRel>[
-      SolidRel(x: 400.0, aboveGroundTop: 16.0, width: 32.0, height: 16.0, sides: SolidRel.sideAll, oneWayTop: false),
-      SolidRel(x: 400.0, aboveGroundTop: 16.0, width: 32.0, height: 16.0, sides: SolidRel.sideAll, oneWayTop: false),
-      SolidRel(x: 496.0, aboveGroundTop: 16.0, width: 32.0, height: 32.0, sides: SolidRel.sideAll, oneWayTop: false),
-      SolidRel(x: 96.0, aboveGroundTop: 16.0, width: 32.0, height: 32.0, sides: SolidRel.sideAll, oneWayTop: false),
-      SolidRel(x: 240.0, aboveGroundTop: 32.0, width: 64.0, height: 32.0, sides: SolidRel.sideAll, oneWayTop: false),
-      SolidRel(x: 448.0, aboveGroundTop: 0.0, width: 16.0, height: 16.0, sides: SolidRel.sideAll, oneWayTop: false),
     ],
     groundGaps: <GapRel>[
+      GapRel(gapId: 'collision_cleared', x: 0.0, width: 600.0),
     ],
     visualSprites: <ChunkVisualSpriteRel>[
       ChunkVisualSpriteRel(
@@ -681,15 +655,9 @@ const List<ChunkPattern> forestNormalPatterns = <ChunkPattern>[
     chunkKey: 'forest_easy_woodcamp_00_2',
     assemblyGroupId: 'default',
     solids: <SolidRel>[
-      SolidRel(x: 400.0, aboveGroundTop: 16.0, width: 32.0, height: 16.0, sides: SolidRel.sideAll, oneWayTop: false),
-      SolidRel(x: 400.0, aboveGroundTop: 16.0, width: 32.0, height: 16.0, sides: SolidRel.sideAll, oneWayTop: false),
-      SolidRel(x: 496.0, aboveGroundTop: 16.0, width: 32.0, height: 32.0, sides: SolidRel.sideAll, oneWayTop: false),
-      SolidRel(x: 96.0, aboveGroundTop: 16.0, width: 32.0, height: 32.0, sides: SolidRel.sideAll, oneWayTop: false),
-      SolidRel(x: 240.0, aboveGroundTop: 32.0, width: 64.0, height: 32.0, sides: SolidRel.sideAll, oneWayTop: false),
-      SolidRel(x: 448.0, aboveGroundTop: 0.0, width: 16.0, height: 16.0, sides: SolidRel.sideAll, oneWayTop: false),
     ],
     groundGaps: <GapRel>[
-      GapRel(gapId: 'gap_1', x: 32.0, width: 64.0),
+      GapRel(gapId: 'collision_cleared', x: 0.0, width: 600.0),
     ],
     visualSprites: <ChunkVisualSpriteRel>[
       ChunkVisualSpriteRel(

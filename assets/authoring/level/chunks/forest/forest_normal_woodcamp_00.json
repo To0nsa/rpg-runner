@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "chunkKey": "forest_easy_woodcamp_00_2",
   "id": "forest_normal_woodcamp_00",
-  "revision": 6,
+  "revision": 7,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -91,10 +91,10 @@
   },
   "groundGaps": [
     {
-      "gapId": "gap_1",
+      "gapId": "collision_cleared",
       "type": "pit",
-      "x": 32,
-      "width": 64
+      "x": 0,
+      "width": 600
     }
   ]
 }

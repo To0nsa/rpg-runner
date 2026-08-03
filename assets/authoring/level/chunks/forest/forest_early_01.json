@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "chunkKey": "forest_early_01",
   "id": "forest_early_01",
-  "revision": 764,
+  "revision": 765,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -97,5 +97,12 @@
     "kind": "flat",
     "topY": 224
   },
-  "groundGaps": []
+  "groundGaps": [
+    {
+      "gapId": "collision_cleared",
+      "type": "pit",
+      "x": 0,
+      "width": 600
+    }
+  ]
 }

@@ -164,7 +164,7 @@ void main() {
     ]);
   });
 
-  test('repository audit migrates eight chunks into nine shapes', () async {
+  test('repository audit migrates cleared ground into no shapes', () async {
     final workspace = EditorWorkspace(rootPath: _repoRootPath());
     final document = await const ChunkStore().load(workspace);
     var shapeCount = 0;
@@ -185,7 +185,7 @@ void main() {
     }
 
     expect(document.chunks, hasLength(8));
-    expect(shapeCount, 9);
+    expect(shapeCount, 0);
     expect(blockers, isEmpty);
   });
 }

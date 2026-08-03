@@ -436,7 +436,12 @@ List<PolygonTerrainLegacyGap> _deriveGroundGaps({
   return List<PolygonTerrainLegacyGap>.generate(
     gapSpans.length,
     (index) => PolygonTerrainLegacyGap(
-      gapId: 'gap_${index + 1}',
+      gapId:
+          gapSpans.length == 1 &&
+              gapSpans.single.left == 0 &&
+              gapSpans.single.width == compiled.chunk.width
+          ? 'collision_cleared'
+          : 'gap_${index + 1}',
       x: gapSpans[index].left,
       width: gapSpans[index].width,
     ),

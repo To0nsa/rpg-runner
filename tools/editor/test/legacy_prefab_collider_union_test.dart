@@ -164,10 +164,10 @@ void main() {
     expect(result.occupiedAreaHalfPixelSquared, BigInt.from(192));
   });
 
-  test('repository audit isolates minimum-edge migration blockers', () async {
+  test('repository audit observes intentionally cleared colliders', () async {
     final data = await const PrefabStore().load(_repoRootPath());
     var collisionBearingPrefabs = 0;
-    var decorationPrefabs = 0;
+    var colliderlessPrefabs = 0;
     var multiColliderPrefabs = 0;
     var automaticallyMigratedPrefabs = 0;
     var outputShapes = 0;
@@ -186,7 +186,7 @@ void main() {
         ),
       );
       if (prefab.colliders.isEmpty) {
-        decorationPrefabs += 1;
+        colliderlessPrefabs += 1;
       } else {
         collisionBearingPrefabs += 1;
         if (result.canMigrate) automaticallyMigratedPrefabs += 1;
@@ -203,94 +203,62 @@ void main() {
       }
     }
 
-    expect(collisionBearingPrefabs, 70);
-    expect(decorationPrefabs, 29);
-    expect(multiColliderPrefabs, 29);
-    expect(automaticallyMigratedPrefabs, 67);
-    expect(outputShapes, 85);
-    expect(maximumShapes, 3);
-    expect(maximumVertices, 14);
-    expect(blockers, <String>[
-      'dark_menhir_01: legacy_core_minimum_edge_length '
-          'Every source edge must be at least one world unit long.',
-      'dark_menhir_03: legacy_core_minimum_edge_length '
-          'Every source edge must be at least one world unit long.',
-      'ruin_stone_00: legacy_core_minimum_edge_length '
-          'Every source edge must be at least one world unit long.',
-    ]);
-  });
-
-  test('reviewed corrections resolve all repository prefab blockers', () async {
-    final data = await const PrefabStore().load(_repoRootPath());
-    var collisionBearingPrefabs = 0;
-    var automaticallyMigratedPrefabs = 0;
-    var outputShapes = 0;
-    final appliedAreaDeltas = <String, BigInt>{};
-    final correctedVertices = <String, List<(int, int)>>{};
-    final blockers = <String>[];
-
-    for (final prefab in data.prefabs) {
-      final reauthoring =
-          ReviewedLegacyPrefabCollisionReauthorings.forPrefabKey(
-            prefab.prefabKey,
-          );
-      final result = LegacyPrefabColliderUnion.plan(
-        sourcePath: '${PrefabStore.prefabDefsPath}:${prefab.prefabKey}',
-        colliders: prefab.colliders,
-        reviewedReauthoring: reauthoring,
-      );
-      blockers.addAll(
-        result.issues.map(
-          (issue) => '${prefab.prefabKey}: ${issue.code} ${issue.message}',
-        ),
-      );
-      if (prefab.colliders.isNotEmpty) {
-        collisionBearingPrefabs += 1;
-        if (result.canMigrate) automaticallyMigratedPrefabs += 1;
-      }
-      outputShapes += result.shapes.length;
-      if (result.isReauthored) {
-        appliedAreaDeltas[prefab.prefabKey] = result.areaDeltaHalfPixelSquared;
-        correctedVertices[prefab.prefabKey] = _vertices(result.shapes.single);
-      }
-    }
-
+    expect(collisionBearingPrefabs, 0);
+    expect(colliderlessPrefabs, 99);
+    expect(multiColliderPrefabs, 0);
+    expect(automaticallyMigratedPrefabs, 0);
+    expect(outputShapes, 0);
+    expect(maximumShapes, 0);
+    expect(maximumVertices, 0);
     expect(blockers, isEmpty);
-    expect(collisionBearingPrefabs, 70);
-    expect(automaticallyMigratedPrefabs, 70);
-    expect(outputShapes, 88);
-    expect(appliedAreaDeltas, <String, BigInt>{
-      'dark_menhir_01': BigInt.from(34),
-      'dark_menhir_03': BigInt.from(25),
-      'ruin_stone_00': BigInt.from(36),
-    });
-    expect(correctedVertices, <String, List<(int, int)>>{
-      'dark_menhir_01': <(int, int)>[
-        (-33, -137),
-        (4, -137),
-        (4, -103),
-        (37, -103),
-        (37, -1),
-        (-33, -1),
-      ],
-      'dark_menhir_03': <(int, int)>[
-        (-35, -71),
-        (11, -71),
-        (11, -50),
-        (36, -50),
-        (36, 3),
-        (-35, 3),
-      ],
-      'ruin_stone_00': <(int, int)>[
-        (-20, -253),
-        (-1, -253),
-        (-1, -217),
-        (8, -217),
-        (8, -3),
-        (-20, -3),
-      ],
-    });
   });
+
+  test(
+    'reviewed corrections stay inert after repository collision clear',
+    () async {
+      final data = await const PrefabStore().load(_repoRootPath());
+      var collisionBearingPrefabs = 0;
+      var automaticallyMigratedPrefabs = 0;
+      var outputShapes = 0;
+      final appliedAreaDeltas = <String, BigInt>{};
+      final correctedVertices = <String, List<(int, int)>>{};
+      final blockers = <String>[];
+
+      for (final prefab in data.prefabs) {
+        final reauthoring =
+            ReviewedLegacyPrefabCollisionReauthorings.forPrefabKey(
+              prefab.prefabKey,
+            );
+        final result = LegacyPrefabColliderUnion.plan(
+          sourcePath: '${PrefabStore.prefabDefsPath}:${prefab.prefabKey}',
+          colliders: prefab.colliders,
+          reviewedReauthoring: reauthoring,
+        );
+        blockers.addAll(
+          result.issues.map(
+            (issue) => '${prefab.prefabKey}: ${issue.code} ${issue.message}',
+          ),
+        );
+        if (prefab.colliders.isNotEmpty) {
+          collisionBearingPrefabs += 1;
+          if (result.canMigrate) automaticallyMigratedPrefabs += 1;
+        }
+        outputShapes += result.shapes.length;
+        if (result.isReauthored) {
+          appliedAreaDeltas[prefab.prefabKey] =
+              result.areaDeltaHalfPixelSquared;
+          correctedVertices[prefab.prefabKey] = _vertices(result.shapes.single);
+        }
+      }
+
+      expect(blockers, isEmpty);
+      expect(collisionBearingPrefabs, 0);
+      expect(automaticallyMigratedPrefabs, 0);
+      expect(outputShapes, 0);
+      expect(appliedAreaDeltas, isEmpty);
+      expect(correctedVertices, isEmpty);
+    },
+  );
 
   test('reviewed correction blocks when its legacy collider source drifts', () {
     final reauthoring = ReviewedLegacyPrefabCollisionReauthorings.forPrefabKey(

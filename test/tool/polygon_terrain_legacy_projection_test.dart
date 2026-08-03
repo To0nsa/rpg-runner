@@ -199,6 +199,7 @@ void main() {
     expect(result.issues, isEmpty);
     expect(result.projection!.rectangles, isEmpty);
     expect(result.projection!.groundGaps, hasLength(1));
+    expect(result.projection!.groundGaps.single.gapId, 'collision_cleared');
     expect(result.projection!.groundGaps.single.x, 0);
     expect(result.projection!.groundGaps.single.width, 100);
   });
