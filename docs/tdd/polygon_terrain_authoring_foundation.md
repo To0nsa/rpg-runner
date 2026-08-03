@@ -255,18 +255,24 @@ backups are deleted. Success returns a deterministic report-v1 committed
 record. Applying a fresh current-schema check returns a report-v1 no-op without
 creating transaction files.
 
+Failure evidence uses the same report version and stable write-mode envelope.
+It distinguishes `blocked` before replacement, `rolledBack`, `rollbackFailed`,
+and `committedCleanupFailed`. Stable code, message, and canonical source paths
+are serialized; raw exception causes and unique transaction paths are excluded
+so two equivalent failures do not drift by host or process.
+
 This foundation is intentionally not reachable from
 `tool/migrate_polygon_authoring.dart`: `--write` remains a usage error until
-normal Prefab and Chunk stores consume v3/v2, the external rollback artifact is
-defined, and the coordinated source/generator cutover is ready. The checked-in
-authoring files remain prefab-v2/chunk-v1.
+normal Prefab and Chunk stores consume v3/v2, rollback evidence is ready for
+report-file emission, and the coordinated source/generator cutover is ready.
+The checked-in authoring files remain prefab-v2/chunk-v1.
 
 The readiness report is still not a source-write authorization. Transaction
 and rollback mechanics are proven in isolated workspaces, but normal editor
-schema support, CLI authorization, the external rollback artifact, staged
-generated-artifact impact, and coordinated source replacement remain separate
-gates. The legacy authority remains selected, but its checked-in content now
-intentionally describes an empty static world.
+schema support, CLI authorization and report-file emission, staged output
+impact, and coordinated source replacement remain separate gates. The
+legacy authority remains selected, but its checked-in content now intentionally
+describes an empty static world.
 
 ## Polygon Target Schemas And Normal Records
 

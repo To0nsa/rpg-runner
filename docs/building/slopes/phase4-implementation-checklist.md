@@ -574,7 +574,7 @@ remaining files independently.
 - [x] Never leave mixed prefab/chunk schema versions after a failed batch.
 - [x] Permit an explicit machine-readable check report only at a
       workspace-relative `.json` path outside `assets/authoring`.
-- [ ] Add the machine-readable write-transaction/rollback artifact.
+- [x] Add the machine-readable write-transaction/rollback artifact.
 - [x] Re-running `--check` after success reports nine validated targets and
       zero pending migrations without invoking legacy conversion.
 - [ ] Re-running `--write` after success must be a no-op.
@@ -597,11 +597,16 @@ v3/v2 generation, and returns deterministic machine-readable committed/no-op
 evidence. Reapplying a fresh current-schema check is byte-identical and writes
 nothing.
 
+Transaction failures now emit deterministic report-v1 evidence with distinct
+`blocked`, `rolledBack`, `rollbackFailed`, and `committedCleanupFailed` states.
+The report includes stable code/message/path facts and intentionally excludes
+host-specific exception and temporary-path text.
+
 This is deliberately an unreachable transaction foundation: the CLI still
 rejects `--write`, the repository remains prefab-v2/chunk-v1, and normal stores
-cannot consume a migrated workspace yet. CLI authorization, the external
-rollback-report artifact, and `--write` idempotence stay open until the normal
-editor cutover is ready.
+cannot consume a migrated workspace yet. CLI authorization, report-file
+emission, and `--write` idempotence stay open until the normal editor cutover
+is ready.
 
 ## 17) Shared Polygon Interaction Model
 
@@ -1242,6 +1247,7 @@ result.
 | 2026-08-03 / `a3b665cb` | Clear all authored static collision for polygon reauthoring | Windows structural audit under Docker RAM pressure | Exact before/after audit proves the only prefab changes are empty collider lists plus revision bumps on the 70 former collision owners; all 99 visuals/kinds/metadata remain. The only chunk changes are one revision bump and one full-width `collision_cleared` gap in each of 8 chunks; all 50 placements and 2 markers remain. Generated patterns contain 8 full-width gaps and zero static solids. Migration classification reports 70 `collisionCleared`, 29 decorations, zero prefab/ground shapes, and zero blockers with plan/legacy/current fingerprints `51630457`, `086d00a8`, and `7f4fc90e`. The generated-asset commit hook passed; full migration/parity/analyzer suites remain pending because of memory pressure. |
 | 2026-08-03 / `8aa880a6` | Collision-reset regression closure | Dart VM and Flutter test VM on Windows with Docker still running | Root, Core-package, editor, and replay-validator analysis are clean. All 385 editor tests, 42 root tool/generator tests, 310 Core-package tests, 433 root Core tests, and 80 replay-validator tests pass. The stale prefab-v3 test now rejects genuinely invalid self-intersecting topology instead of valid final-shape deletion; real-level determinism stops submitting commands once collisionless runs freeze; the jump-buffer unit test disables live track streaming. The read-only migration check validates 99 prefabs, 8 chunks, and nine pending representation targets without writes, and generator dry-run validates 8 chunks, 2 levels, and 2 themes with no drift. |
 | 2026-08-03 / `a0338973` | Guarded polygon migration write transaction foundation | Dart VM and Flutter test VM on Windows with Docker running | Targeted analysis of the two transaction implementations and two focused test files is clean; all 8 focused tests pass. Fixtures prove sibling staging, exact byte verification, final pre-move callback ordering, rollback before moves, rollback after an earlier replacement, rollback after post-install validation, a complete 9-file legacy-to-current conversion in a temporary workspace, repeated current-schema no-op, drift rejection, and transaction-file cleanup. The real read-only CLI check still reports 99 prefabs, 8 chunks, 9 pending targets, and no source write. `--write` remains unavailable. |
+| 2026-08-03 / `f343336e` | Deterministic migration failure/rollback evidence | Dart VM and Flutter test VM on Windows with Docker running | Targeted analysis is clean and all 4 migration-transaction tests pass. Report-v1 failure evidence distinguishes pre-write blocking, successful rollback, incomplete rollback, and committed-output cleanup failure; source paths are canonical and host-specific cause/temp-path text is excluded. This closes the machine-readable result contract only—CLI report-file emission and `--write` authorization remain disabled. |
 ### 28.1 Baseline Environment And Source Identity
 
 - Starting worktree: dirty with 133 pre-existing entries. The authoring JSON,
