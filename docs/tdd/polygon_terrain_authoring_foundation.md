@@ -6,12 +6,20 @@ The exact polygon-source foundation is implemented in `runner_core` and the
 standalone editor. It is not yet the normal prefab/chunk source contract and
 does not make polygon terrain authoritative in production gameplay.
 
-Current normal source and runtime behavior remain unchanged:
+The normal schema and runtime boundary remain legacy, but the checked-in
+content has entered an explicit collision-reset state:
 
 - prefab authoring still persists schema v2 rectangle `colliders`
 - chunk authoring still persists schema v1 `groundProfile` and `groundGaps`
 - normal `GameCore(...)` and replay validation still use legacy rectangle
   motion authority
+- all 99 prefab records retain visuals, kinds, metadata, and identity, while
+  every collider list is intentionally empty
+- all eight chunks retain their placements and markers, while one full-width
+  `collision_cleared` gap suppresses the legacy ground plane
+- generated production patterns therefore contain no static solids or ground
+  support; player traversal, enemy support/navigation, and terrain-relative
+  marker placement are intentionally unavailable until reauthoring
 - a staged Dart renderer and executable fixture exist, but the normal generator
   still registers only its five legacy outputs and Flame has no terrain consumer
 
@@ -138,8 +146,8 @@ and validation to Core. Disconnected components receive stable canonical IDs
 coverage. Holes, point-only contacts, invalid dimensions, coordinate overflow,
 unsupported topology, and Core shape/vertex/geometry failures are blockers.
 
-The current repository audit produces 88 topological candidate loops from 70
-collision-bearing prefabs. Core accepts 85 loops across 67 prefabs unchanged.
+The pre-reset repository audit produced 88 topological candidate loops from 70
+collision-bearing prefabs. Core accepted 85 loops across 67 prefabs unchanged.
 `dark_menhir_01`, `dark_menhir_03`, and `ruin_stone_00` each produce an exact
 one-source-tick (`0.5 px`) exterior edge below the accepted one-world-unit
 minimum. The accepted resolution keeps the shared geometry rule and provides a
@@ -151,8 +159,11 @@ loops now pass Core. The migration then applies rectangle-era prefab semantics:
 all 66 obstacle owners emit `solid` loops and all 4 platform owners emit
 `oneWay` loops. A decoration or unknown owner with collision fails closed.
 Target conversion reapplies the same rule defensively, so a caller cannot turn
-a platform solid by supplying a default-mode loop. Prefab v3 writing remains
-pending; existing schema v2 source and legacy runtime authority are unchanged.
+a platform solid by supplying a default-mode loop. That audit remains the
+historical migration baseline. The current v2 file intentionally contains zero
+colliders; the 70 former collision owners are classified as
+`collisionCleared`, distinct from the 29 true decoration prefabs. Prefab v3
+writing remains pending.
 
 ## Legacy Chunk Ground Planner And Aggregate Check Report
 
@@ -179,9 +190,15 @@ rejects missing/duplicate stable owner keys or absent/malformed digests,
 verifies that every reviewed correction still has an owner, and emits stable
 report-v2 JSON containing all nine source path/SHA-256 records, exact
 decimal-string area facts, and the complete planned polygon source. Input
-order does not affect the report. The current report contains 99 prefabs, 88
-prefab shapes, 8 chunks, and 9 ground shapes with zero blockers; its report
-fingerprint is `d75ba69e` after binding prefab-kind collision modes.
+order does not affect the report. Before the collision reset, the report
+contained 99 prefabs, 88 prefab shapes, 8 chunks, and 9 ground shapes with zero
+planning blockers; its final pre-reset report fingerprint was `d75ba69e` after
+binding prefab-kind collision modes.
+
+The current reset report contains 99 prefabs (66 obstacles, 4 platforms, and
+29 decorations), zero prefab shapes, 70 explicitly `collisionCleared` owners,
+8 chunks, 8 full-width legacy gaps, and zero ground shapes or blockers. Its
+plan fingerprint is `51630457`.
 
 The plan exposes a pure pre-write audit for freshly computed SHA-256 values.
 Changed, missing, or ambiguously canonicalized paths reject deterministically.
@@ -195,8 +212,9 @@ trips. Current mode requires source to already equal its canonical bytes,
 rechecks Core geometry and placement references, and emits the same nine files
 as byte-identical no-op targets. Readiness report v2 records source state, all
 nine before/after SHA-256 pairs, 107 unchanged revision decisions, and 99
-prefab impact records covering 50 placements. The legacy report fingerprint is
-`4c1243df`; the equivalent current-state fingerprint is `2da9f6ab`.
+prefab impact records covering 50 placements. For the current reset source,
+the legacy readiness fingerprint is `086d00a8` and its equivalent strict
+current-state fingerprint is `7f4fc90e`.
 
 Rectangle-era prefab records used by this path are isolated as
 `LegacyPrefabDef`/`LegacyPrefabData` inside the migration layer. The strict
@@ -218,7 +236,8 @@ offline tooling.
 This report is still not a source-write authorization. Current-schema
 idempotence is proven, but staged generated-artifact impact, normal editor
 schema support, transaction staging, rollback, and source replacement remain
-separate gates. Normal source and runtime behavior are unchanged.
+separate gates. The legacy authority remains selected, but its checked-in
+content now intentionally describes an empty static world.
 
 ## Polygon Target Schemas And Normal Records
 
@@ -592,8 +611,10 @@ placement query or RNG draw. Procedural collectible/restoration candidates
 have no authored marker records and are not fabricated. Projectile terrain is
 explicitly later-phase work and is not previewed.
 
-The normal chunk-v1 route, prefab-v2 source, authored JSON, generator input,
-and runtime collision authority remain unchanged. Generator parity, placement
+When this marker-staging bridge was introduced, the normal chunk-v1 route,
+prefab-v2 source, authored JSON, generator input, and runtime collision
+authority were unchanged. The later collision reset changes authored/runtime
+content, not this marker resolver's ownership. Generator parity, placement
 editing, and normal-schema cutover remain later Phase 4 gates.
 
 ## Scheduler-Aware Compiled Chunk Seams
@@ -799,22 +820,19 @@ that creates one-way/one-way or one-way/solid positive-area overlap. Solid-only
 snapped overlap is represented by its exact occupied union. This bridge does
 not change the accepted compiler's earlier owner-overlap policy.
 
-Against the in-memory migration targets, two of eight repository chunks compile
-and reproduce their checked-in legacy gap records, solid occupied pixels, and
-one-way top pixels exactly. Six chunks currently stop earlier with 24
-`polygon_area_overlap` diagnostics:
+Against the current in-memory migration targets, all eight repository chunks
+compile and project exactly. Each produces the stable full-width
+`collision_cleared` gap with no solids or one-way tops, matching the checked-in
+generated pattern. The former six-chunk/24-overlap blocker set was resolved by
+the explicit content decision to delete the old collision and reauthor it, not
+by weakening overlap validation or unioning independent owners. An exact
+full-chunk gap is the sole legacy grid exception because the chunk width is
+600 pixels; partial gaps remain grid-aligned.
 
-- `forest_early_00`
-- `forest_early_01`
-- `forest_early_02`
-- `forest_early_03`
-- `forest_easy_woodcamp_00`
-- `forest_easy_woodcamp_00_2`
-
-The test goldens this blocker set. It does not weaken overlap validation, omit
-failed owners, or compare fabricated output. Live generator registration must
-remain closed until overlapping solid-owner semantics are reviewed and all
-eight chunks pass both geometry and normal-construction parity.
+This proves only that the intentional empty state is deterministic. Live
+polygon generator registration and playable acceptance remain closed until
+ground, slopes, platforms, obstacles, seams, actor support, enemy navigation,
+and marker placement are reauthored and validated.
 
 ## Shared Polygon Interaction And Scene Projection
 

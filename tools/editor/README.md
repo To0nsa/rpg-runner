@@ -37,6 +37,17 @@ Editor foundations shared across those domains:
 
 ## Polygon Migration Readiness Check
 
+The checked-in level content is currently in an intentional collision-reset
+state for polygon reauthoring. All prefab visuals, kinds, metadata, placements,
+and markers are retained, but obstacle/platform collider lists are empty. Each
+chunk uses one full-width `collision_cleared` gap to express that no legacy
+ground should be generated. Missing prefab collision is therefore a visible,
+non-blocking authoring warning. Partial gaps still obey the normal grid rules.
+
+Until polygons are reauthored and the coordinated source/runtime cutover is
+complete, the repository levels have no static terrain support for players,
+enemies, marker placement, or navigation.
+
 Phase 4 includes a read-only offline check for the planned prefab-v3/chunk-v2
 polygon source migration:
 

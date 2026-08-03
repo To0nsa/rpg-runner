@@ -598,12 +598,19 @@ reserved compiler preview index and is byte-goldened through the shared artifact
 drift plan, but no normal editor, live generator, gameplay, or rendering path
 imports it.
 
-The root compatibility bridge can now project an accepted orthogonal staged
-chunk back to canonical legacy rectangles/gaps without approximating slopes.
-Two repository migration targets reproduce their checked-in collision pixels
-exactly. Six targets remain blocked before projection by 24 Core
-positive-area-overlap diagnostics, so normal Chunk Creator and generation stay
-on v1 while the slopes plan resolves overlapping solid-owner semantics.
+The root compatibility bridge can project an accepted orthogonal staged chunk
+back to canonical legacy rectangles/gaps without approximating slopes. The
+repository has now deliberately cleared old static collision for clean polygon
+reauthoring: all eight chunks encode one full-width `collision_cleared` gap,
+and all placed prefab collider lists are empty. Every migration target compiles
+and projects that empty state exactly with zero overlap blockers; no
+solid-owner union behavior was added.
+
+Chunk visuals, 50 prefab placements, and two markers are preserved, but normal
+runs temporarily have no ground, obstacle, or platform support. Chunk Creator
+must next author polygon ground boundaries, slopes, platforms, and obstacles,
+then close seam, actor-support, enemy-navigation, and marker-placement
+diagnostics before the content is playable again.
 
 ### Phase 6 - Enemy Spawn Marker Authoring Through Editor
 

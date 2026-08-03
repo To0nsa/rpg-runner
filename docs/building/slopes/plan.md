@@ -1511,9 +1511,17 @@ projection stay open for the coordinated source cutover.
 An isolated exact legacy projector now decomposes accepted orthogonal terrain,
 reproduces current 16-pixel rectangle snapping, derives gaps only from exact
 flat bottom bands, canonicalizes solid occupied unions, and fails closed for
-slopes or unrepresentable one-way collision. It has no live generator/runtime
-consumer. Repository parity is exact for two chunks; six migrated chunks stop
-at 24 accepted-Core positive-area overlap diagnostics before projection. The
-next cutover decision is whether overlapping solid owners are unioned exactly
-with lineage retained or the affected content is reauthored. One-way overlaps
-remain rejected either way.
+slopes or unrepresentable one-way collision. It has no separate live runtime
+consumer. The content decision is now explicit reauthoring: every legacy
+prefab collider was deleted, and every chunk uses a full-width
+`collision_cleared` gap. All eight migration targets compile and project this
+empty state exactly with zero overlap blockers; no solid-owner union policy was
+introduced.
+
+All prefab visuals, identities, metadata, 50 chunk placements, and two markers
+remain available as reauthoring context. Normal runs temporarily have no
+static terrain support, so player traversal, enemy support/navigation, and
+terrain-relative marker placement are unavailable. The next content step is
+to author polygon ground boundaries first, then slopes, platforms and
+obstacles, closing seam and actor/navigation diagnostics before restoring
+playable acceptance.

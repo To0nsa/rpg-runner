@@ -14,7 +14,9 @@ This is a portfolio-style game project designed to demonstrate production-minded
 
 ## Current Scope (Implemented)
 
-- 2 playable levels: `forest`, `field`
+- 2 authored level layouts: `forest`, `field`
+- Static level collision is temporarily cleared while terrain is reauthored as
+  polygons, so normal runs are not currently gameplay-complete
 - 2 selectable character definitions
 - 24 authored abilities (mobility, melee, ranged, defense, utility)
 - 2 enemy archetypes (ground + flying)

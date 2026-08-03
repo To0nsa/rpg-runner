@@ -1,7 +1,8 @@
 # Slopes Phase 4 - Polygon Authoring, Migration, And Generation Checklist
 
 - Created: July 28, 2026
-- Status: Implementation in progress; no Phase 4 source/schema cutover has begun
+- Status: Implementation in progress; legacy collision content is cleared for
+  polygon reauthoring, but no Phase 4 schema/runtime cutover has begun
 - Source plan: [plan.md](plan.md)
 - Frozen gameplay decisions:
   [phase0-gameplay-decisions.md](phase0-gameplay-decisions.md)
@@ -117,8 +118,8 @@ Implement these accepted decisions without reopening them:
 
 Migration and new-shape defaults are deliberately conservative:
 
-- every legacy AABB migrates as `solid`
-- prefab kind must not implicitly convert a platform to `oneWay`
+- legacy obstacle AABBs migrate as `solid`; legacy platform AABBs migrate as
+  `oneWay` to preserve their current top-only behavior
 - migration must not invent `surfaceKind` or `materialKey`
 - a newly created shape defaults to `solid` with optional metadata absent
 - changing collision mode or metadata is an explicit undoable edit
@@ -805,15 +806,15 @@ gameplay/content decision.
 - [x] Keep generated data generated; no hand edits.
 - [x] Sort all maps/lists explicitly before Dart rendering.
 - [x] Keep generated numeric output integer/fixed rational where authoritative.
-- [ ] Produce the bounded legacy rectangle/gap projection only for migrated
+- [x] Produce the bounded legacy rectangle/gap projection only for migrated
       orthogonal production content until Phase 5 removes that need.
 - [x] Deterministically decompose orthogonal solid polygon unions into
       non-overlapping canonical rectangles without changing occupied area.
 - [x] Derive legacy flat ground/gaps only when the direct chunk coverage has the
       exact flat representable form.
-- [ ] Prove the projected legacy geometry and current normal-run outcomes match
-      the pre-migration baseline; internal decomposition seams must not become
-      observable contacts.
+- [x] Record the explicit decision to abandon pre-reset collision parity and
+      prove the cleared source projects exactly to the cleared generated
+      authority; no decomposition seams exist in the empty result.
 - [x] Reject runtime-selected diagonal or one-way content that the legacy
       authority cannot express exactly.
 - [x] Fail rather than approximate a slope into rectangles.
@@ -880,13 +881,20 @@ non-rectangular one-way shapes, and snap-created one-way/one-way or
 one-way/solid overlaps fail closed. The projector is not imported by the live
 generator or runtime.
 
-Repository parity currently closes for two of eight migrated chunks: their gap
-records, solid occupied pixels, and one-way top pixels exactly match the
-checked-in `ChunkPattern` baseline. The other six cannot reach projection
-because accepted Core compilation reports 24 `polygon_area_overlap`
-diagnostics. The parity test freezes that count and exact chunk-key set instead
-of weakening Core validation or fabricating compatibility rectangles. Bounded
-production projection and normal-run parity therefore remain open gates.
+The old collider set exposed 24 `polygon_area_overlap` diagnostics across six
+chunks. The accepted resolution was complete content reauthoring, so the 70
+collision-bearing prefab definitions were cleared and all eight chunks now
+encode no ground with a full-width `collision_cleared` gap. Prefab visuals,
+kinds, metadata and stable keys, 50 placements, and two markers remain; the 70
+cleared owners receive one revision bump.
+
+All eight empty migration targets now compile and project exactly to the
+checked-in collision-cleared `ChunkPattern` records: one full-width gap, no
+solid pixels, and no one-way tops. This closes deterministic projection of the
+intentional empty state without relaxing overlap validation or adding a union
+policy. It deliberately does not preserve the pre-reset playable collision
+baseline; polygon content, seam, support/navigation, and normal-run acceptance
+remain open.
 
 ## 22) Authoring/Runtime Parity Fixtures
 
@@ -1054,25 +1062,28 @@ Generator/seams:
 - [ ] unknown prefab/source/scale/bounds diagnostics
 - [ ] staged polygon/edge/lineage output golden
 - [x] concave triangulation count, winding, exact area, ordering, and golden
-- [ ] legacy orthogonal decomposition, flat-ground/gap projection, baseline
-      collision parity, and diagonal/one-way rejection
+- [x] legacy orthogonal decomposition, flat-ground/gap projection,
+      collision-reset parity, and diagonal/one-way rejection
 - [x] all scheduler-reachable within/between pool/run transitions
 - [x] dry-run generated drift/missing/unexpected output detection
 - [x] staged sibling writes, post-write byte verification, rollback, and cleanup
 - [ ] fresh-process signatures and permutation invariance
 
-The legacy-projection unit matrix now covers exact orthogonal decomposition,
+The legacy-projection unit matrix covers exact orthogonal decomposition,
 flat-ground/gap recognition, current 16-pixel snapping, input-order
-invariance, and fail-closed diagonal/one-way cases. The bundled checkbox stays
-open until all eight repository chunks compile and reproduce the legacy
-baseline, including normal construction behavior rather than geometry alone.
+invariance, fail-closed diagonal/one-way cases, and the exact full-chunk
+collision-cleared exception. All eight repository targets are now represented
+by a passing parity fixture. The complete editor, Core, generator, and replay
+validator regressions also accept this intentional empty state while Docker
+continues to run.
 
 Regression:
 
-- [ ] all existing editor domains and route/session tests
-- [ ] full Core package and root Core tests
-- [ ] normal legacy game construction and current run goldens unchanged
-- [ ] replay-validator analysis/tests unchanged
+- [x] all existing editor domains and route/session tests
+- [x] full Core package and root Core tests
+- [x] normal legacy game construction accepts the intentional empty collision
+      state and remains deterministic through the resulting run end
+- [x] replay-validator analysis/tests unchanged
 
 ## 26) Implementation Findings
 
@@ -1116,7 +1127,8 @@ before changing the accepted plan.
 | Replacing generated files sequentially could leave a mixed old/new output set after a later write failed; a single filesystem operation cannot atomically replace files in multiple directories. Alias paths such as `nested/../output.dart` could also target the same file twice. | Reject canonically duplicate absolute paths, flush every render to a unique sibling file, move existing targets to sibling backups, install and re-read every output byte-for-byte, then remove backups. On failure, restore in reverse order and report whether rollback was complete; cleanup failure after a verified commit is distinguished explicitly. | Staged polygon artifacts inherit the transaction automatically when added to the artifact plan. This does not satisfy or replace the migration CLI's source-drift recheck and nine-file schema write transaction. |
 | Current repository source is still prefab-v2/chunk-v1, so selecting strict v3/v2 parsing in the live generator before the coordinated migration would make every normal generation fail. Importing editor code into the root generator would also reverse the editor/tool boundary and pull Flutter-oriented package structure into repository generation. | Add focused pure-Dart staged source and compilation files plus one checked-in v3/v2 fixture. Keep them unreachable from `generate_chunk_runtime_data.dart` until the source transaction is ready, and compare their Core signatures with the editor's existing strict codecs/expansion over the same bytes. | The cutover must wire these functions into the single entry point in the same change as source migration, legacy projection, seam validation, and staged Dart artifact registration; the fixture does not authorize an alternate production flag. |
 | Legacy collider unions defaulted every migrated loop to `solid`, even though the current generator treats platform prefabs as top-only one-way collision. | Apply prefab-kind sidedness after geometric union: 66 repository obstacles are `solid`, 4 platforms are `oneWay`, and colliding decoration/unknown kinds fail closed. Reapply the rule during v3 target construction as a defensive boundary. | The legacy projector and Phase 5 terrain consumer may trust authored collision mode instead of consulting prefab kind again; canonical migration fingerprints intentionally change with the corrected physical contract. |
-| Strict repository compilation rejects 24 positive-area overlaps across six migrated chunks; only two chunks currently reach exact legacy projection. The overlaps arise when independently authored solid terrain owners occupy the same area, including placed obstacles embedded in direct ground. | Keep the accepted overlap diagnostic blocking, freeze the exact failing chunk set/count, and prove gap/solid/one-way parity only for the two accepted chunks. Do not approximate, silently discard owners, or wire the projector live. | Before source cutover, choose whether compilation may perform an exact lineage-preserving union of overlapping `solid` owners or whether the six chunks/prefab placements must be reauthored. Any overlap involving `oneWay` remains semantically ambiguous and must stay rejected. |
+| The pre-reset repository compilation rejected 24 positive-area overlaps across six migrated chunks. The user chose clean reauthoring instead of defining a solid-owner union rule. | Keep overlap diagnostics strict. Delete every authored static collider, preserve visuals/metadata/placements/markers, encode no ground in all eight chunks, and prove the collision-cleared targets project exactly with zero blockers. | Reauthor polygon ground, slopes, platforms, and obstacles before Phase 5/playable acceptance; close enemy support/navigation and marker placement against that new terrain. Any future overlap, especially involving `oneWay`, remains rejected. |
+| Chunk width is 600 pixels, which is not divisible by the legacy 16-pixel gap grid, but the collision reset must express exactly zero ground without changing chunk dimensions. | Permit only the exact `x = 0`, `width = chunkWidth` full-ground-removal gap as a grid exception and project it with stable ID `collision_cleared`. Keep every partial gap on the existing grid. | Chunk v2 represents empty direct terrain without a sentinel; remove the legacy exception with the flat-ground/gap source bridge. |
 | `TerrainCompiler.compile` intentionally canonicalizes safe loop winding/start, which is correct for runtime safety but could hide noncanonical current authoring bytes during generation. | Pre-review every staged input with `TerrainSourceCanonicalizer(requireCanonical: true)` and fail on its stable diagnostics before accepting compiled output. Parsing retains exact authored half-pixel values; Core range failures become staged generator issues rather than raw parser exceptions. | Normal generation can reject authoring drift while still using the accepted compiler as the sole topology/transform/edge authority. An explicit editor Normalize action remains the only path that rewrites a loop. |
 | Render triangulation must not become a second polygon normalization or collision-edge authority. | Ear-clip the already normalized `TerrainGeometry.polygons` loop with exact BigInt orientation/containment. Choose the first surviving canonical vertex ear, retain indices into that same loop, require `n - 2` positive triangles, and compare the exact doubled-area sum before returning output. | Phase 5 rendering consumes these indices; it must never triangulate independently or reconstruct collision edges from triangles. |
 
@@ -1205,7 +1217,9 @@ result.
 | 2026-08-02 / `a8c45814` | Typed staged terrain Dart artifact boundary | Dart VM and Flutter test VM on Windows | Root, Core-package, and editor analysis are clean; all 34 root tool/generator tests, all 310 Core-package tests, all 432 root Core tests, and the focused editor parity test pass. The executable golden contains 3 canonical source/physics polygons, 13 compiler-owned exposed edges, 10 render triangles, exact placement lineage, and all four reviewed signature labels/hashes. Fresh compilation reproduces its bytes through `GeneratedArtifactPlan`; reversed chunk input is identical; empty/duplicate sets fail; the reserved compiler index is absent from generated local records. A production import audit keeps the staged types/output unreachable. Live dry-run still validates 8 chunks, 2 levels, and 2 themes; migration check remains read-only at 99 prefabs, 8 chunks, and nine pending targets. Normal source, five-output registration, generated production bytes, and collision authority remain unchanged. |
 | 2026-08-02 / `b646f320` | Legacy prefab collision-mode preservation | Flutter test VM on Windows | Editor analysis and all 382 editor tests pass. Two focused semantic tests prove obstacle/platform overwrite of an incorrect input mode, geometry/metadata preservation, and fail-closed colliding decoration/unknown owners. Repository plan and strict target tests prove all 66 obstacle prefabs emit `solid` and all 4 platform prefabs emit `oneWay`; canonical plan/legacy/current fingerprints are now `d75ba69e`, `4c1243df`, and `2da9f6ab`. The read-only CLI still reports 99 prefabs, 8 chunks, and nine pending targets without writes. Authored source, live generated bytes, and production collision authority are unchanged. |
 | 2026-08-02 / `5d540e77` | Exact fail-closed legacy terrain projector | Dart VM and Flutter test VM on Windows | Root and editor analysis are clean; all 40 root tool tests and all 383 editor tests pass. Unit fixtures prove exact orthogonal cell decomposition/area, deterministic solid-union rectangles, exact bottom-band gaps, legacy 16-pixel snapping, permutation invariance, and diagonal/non-rectangular or snap-overlapping one-way rejection. Repository parity is exact for two accepted chunks; the test freezes 24 `polygon_area_overlap` blockers across the other six. The migration check remains read-only at 99 prefabs, 8 chunks, and nine pending targets, and live dry-run still validates 8 chunks, 2 levels, and 2 themes. No live generator/runtime import, authored source, generated byte, or production authority changed. |
-
+| 2026-08-03 / `15b5618a` | Explicit collision-cleared authoring state | Dart VM and Flutter test VM on Windows under Docker RAM pressure | Empty obstacle/platform collider lists and prefab-v3 polygon lists are warning-only; deleting the final collider is supported; normal generation preserves visuals with no solids; and an exact full-width gap is the sole legacy grid exception. Twelve focused Core/generator/projector tests pass, as do seven isolated prefab commit tests. A broader 35-test editor run exposed one stale invalid-empty test expectation, which was corrected to use invalid topology. A retry of that single plugin test file timed out before first output after 90 seconds; full analysis and suites remain pending. |
+| 2026-08-03 / `a3b665cb` | Clear all authored static collision for polygon reauthoring | Windows structural audit under Docker RAM pressure | Exact before/after audit proves the only prefab changes are empty collider lists plus revision bumps on the 70 former collision owners; all 99 visuals/kinds/metadata remain. The only chunk changes are one revision bump and one full-width `collision_cleared` gap in each of 8 chunks; all 50 placements and 2 markers remain. Generated patterns contain 8 full-width gaps and zero static solids. Migration classification reports 70 `collisionCleared`, 29 decorations, zero prefab/ground shapes, and zero blockers with plan/legacy/current fingerprints `51630457`, `086d00a8`, and `7f4fc90e`. The generated-asset commit hook passed; full migration/parity/analyzer suites remain pending because of memory pressure. |
+| 2026-08-03 / `8aa880a6` | Collision-reset regression closure | Dart VM and Flutter test VM on Windows with Docker still running | Root, Core-package, editor, and replay-validator analysis are clean. All 385 editor tests, 42 root tool/generator tests, 310 Core-package tests, 433 root Core tests, and 80 replay-validator tests pass. The stale prefab-v3 test now rejects genuinely invalid self-intersecting topology instead of valid final-shape deletion; real-level determinism stops submitting commands once collisionless runs freeze; the jump-buffer unit test disables live track streaming. The read-only migration check validates 99 prefabs, 8 chunks, and nine pending representation targets without writes, and generator dry-run validates 8 chunks, 2 levels, and 2 themes with no drift. |
 ### 28.1 Baseline Environment And Source Identity
 
 - Starting worktree: dirty with 133 pre-existing entries. The authoring JSON,
@@ -1262,7 +1276,8 @@ minimal outward replacements. Their exact positive area deltas are 34, 25, and
 36 half-pixel-square ticks. Each is guarded by the full expected collider list,
 so stale source blocks instead of inheriting an obsolete correction. The final
 read-only prefab result is 70/70 prefabs and 88/88 loops accepted with zero
-unclassified blockers. No authored source or runtime data has been changed.
+unclassified blockers. No authored source or runtime data had been changed at
+this historical baseline point.
 
 ### 28.3 No-op And Removal Baseline
 
@@ -1312,6 +1327,36 @@ Validation evidence:
   `GameCore.terrainMotionHarness(...)` test/tool factory selects staged terrain.
   Replay validation constructs normal `GameCore(...)`.
 
+### 28.5 Current Collision-reset State
+
+On August 3, 2026, the user explicitly chose complete collision deletion and
+later polygon reauthoring instead of preserving or unioning the legacy collider
+layout. The exact structural audit records:
+
+- 99 prefab records: 66 obstacles, 4 platforms, and 29 decorations
+- 70 former collision owners classified as `collisionCleared`; zero collider
+  or planned polygon shapes
+- all visuals, kinds, metadata, stable keys, and decoration revisions retained;
+  only those 70 collision owners receive one revision bump
+- 8 chunks with one full-width `collision_cleared` gap each and zero finite
+  ground shapes
+- all 50 prefab placements and 2 enemy markers retained
+- generated `authored_chunk_patterns.dart` contains zero `SolidRel` records and
+  8 full-width gaps
+- migration plan/legacy/current fingerprints are `51630457`, `086d00a8`, and
+  `7f4fc90e`
+
+This is deliberately not a playable content milestone. Legacy authority is
+still selected, but it now has no static support geometry. Éloïse, grounded
+enemies, navigation graphs, and terrain-relative marker resolution cannot be
+accepted against repository content until polygon terrain is reauthored.
+
+The full regression closure is recorded under `8aa880a6`: analysis is clean in
+every affected Dart package; all editor, generator, Core, and replay-validator
+tests pass; the repository migration check remains read-only and blocker-free;
+and generator dry-run reports no drift. This validates the reset itself but
+does not close the Phase 4 source cutover or polygon reauthoring gates.
+
 Minimum final commands:
 
 ```powershell
@@ -1325,14 +1370,13 @@ Pop-Location
 Push-Location tools/editor
 dart analyze
 flutter test
+dart run tool/migrate_polygon_authoring.dart --check
 flutter drive --profile `
   --driver=test_driver/integration_test.dart `
   --target=integration_test/polygon_interaction_benchmark_test.dart `
   -d windows
 Pop-Location
 
-dart run tool/migrate_polygon_authoring.dart --check `
-  --report=.tmp/slopes-phase4-migration-final.json
 dart run tool/generate_chunk_runtime_data.dart --dry-run
 
 flutter test test/core
