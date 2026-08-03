@@ -91,26 +91,48 @@ void main() {
       chunk.writeAsStringSync('${chunk.readAsStringSync()}\n');
       final drifted = _sourceDigests(fixture.path);
 
-      expect(
-        () => PolygonAuthoringMigrationTransaction.apply(
+      PolygonAuthoringMigrationWriteException? failure;
+      try {
+        PolygonAuthoringMigrationTransaction.apply(
           workspaceRoot: fixture.path,
           check: check,
-        ),
-        throwsA(
-          isA<PolygonAuthoringMigrationWriteException>()
-              .having((error) => error.code, 'code', 'migration_source_drift')
-              .having(
-                (error) => error.rollbackComplete,
-                'rollbackComplete',
-                isNull,
-              ),
-        ),
-      );
+        );
+      } on PolygonAuthoringMigrationWriteException catch (error) {
+        failure = error;
+      }
+
+      expect(failure, isNotNull);
+      expect(failure!.code, 'migration_source_drift');
+      expect(failure.rollbackComplete, isNull);
+      final report =
+          jsonDecode(failure.toCanonicalJson()) as Map<String, Object?>;
+      expect(report['status'], 'blocked');
+      expect(report['sourcePaths'], isEmpty);
+      final detail = report['failure']! as Map<String, Object?>;
+      expect(detail['rollbackAttempted'], isFalse);
+      expect(detail['rollbackComplete'], isFalse);
+      expect(detail['outputsCommitted'], isFalse);
       expect(_sourceDigests(fixture.path), drifted);
       expect(_transactionFiles(fixture), isEmpty);
     } finally {
       fixture.deleteSync(recursive: true);
     }
+  });
+
+  test('rollback artifact is canonical and omits unstable cause text', () {
+    final failure = PolygonAuthoringMigrationWriteException(
+      code: 'migration_write_transaction_failed',
+      message: 'The source transaction failed and attempted recovery.',
+      cause: StateError('host-specific temporary path'),
+      rollbackComplete: true,
+      sourcePaths: const <String>['chunks/b.json', 'chunks/a.json'],
+    );
+
+    final report =
+        jsonDecode(failure.toCanonicalJson()) as Map<String, Object?>;
+    expect(report['status'], 'rolledBack');
+    expect(report['sourcePaths'], <String>['chunks/a.json', 'chunks/b.json']);
+    expect(failure.toCanonicalJson(), isNot(contains('host-specific')));
   });
 }
 

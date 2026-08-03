@@ -77,13 +77,18 @@ final class PolygonAuthoringMigrationWriteResult {
 
 /// Stable failure from the guarded polygon migration write boundary.
 final class PolygonAuthoringMigrationWriteException implements Exception {
-  const PolygonAuthoringMigrationWriteException({
+  PolygonAuthoringMigrationWriteException({
     required this.code,
     required this.message,
     this.cause,
     this.rollbackComplete,
     this.outputsCommitted = false,
-  });
+    Iterable<String> sourcePaths = const <String>[],
+  }) : sourcePaths = List<String>.unmodifiable(
+         sourcePaths.toSet().toList()..sort(),
+       );
+
+  static const int reportVersion = 1;
 
   final String code;
   final String message;
@@ -92,6 +97,37 @@ final class PolygonAuthoringMigrationWriteException implements Exception {
   /// Null when replacement never began, otherwise the transaction result.
   final bool? rollbackComplete;
   final bool outputsCommitted;
+  final List<String> sourcePaths;
+
+  /// Emits stable failure evidence without filesystem-specific cause text.
+  ///
+  /// `blocked` means replacement never began. A transaction failure is
+  /// classified separately as fully rolled back, incompletely rolled back, or
+  /// committed with cleanup failure so automation cannot mistake those states.
+  String toCanonicalJson() {
+    final rollbackAttempted = rollbackComplete != null;
+    final status = outputsCommitted
+        ? 'committedCleanupFailed'
+        : rollbackComplete == true
+        ? 'rolledBack'
+        : rollbackComplete == false
+        ? 'rollbackFailed'
+        : 'blocked';
+    final report = <String, Object>{
+      'reportVersion': reportVersion,
+      'mode': 'write',
+      'status': status,
+      'failure': <String, Object>{
+        'code': code,
+        'message': message,
+        'rollbackAttempted': rollbackAttempted,
+        'rollbackComplete': rollbackComplete ?? false,
+        'outputsCommitted': outputsCommitted,
+      },
+      'sourcePaths': sourcePaths,
+    };
+    return '${const JsonEncoder.withIndent('  ').convert(report)}\n';
+  }
 
   @override
   String toString() {
@@ -126,7 +162,7 @@ abstract final class PolygonAuthoringMigrationTransaction {
 
     if (check.sourceState == PolygonAuthoringMigrationSourceState.current) {
       if (targets.any((target) => target.hasPendingChange)) {
-        throw const PolygonAuthoringMigrationWriteException(
+        throw PolygonAuthoringMigrationWriteException(
           code: 'migration_write_current_pending',
           message:
               'Current-schema source cannot contain pending migration files.',
@@ -140,7 +176,7 @@ abstract final class PolygonAuthoringMigrationTransaction {
     }
 
     if (targets.any((target) => !target.hasPendingChange)) {
-      throw const PolygonAuthoringMigrationWriteException(
+      throw PolygonAuthoringMigrationWriteException(
         code: 'migration_write_legacy_target_not_pending',
         message:
             'Every legacy source must have a current-schema replacement in '
@@ -177,6 +213,7 @@ abstract final class PolygonAuthoringMigrationTransaction {
           cause: error.cause,
           rollbackComplete: error.rollbackComplete,
           outputsCommitted: error.outputsCommitted,
+          sourcePaths: targets.map((target) => target.sourcePath),
         ),
         stackTrace,
       );
@@ -195,14 +232,14 @@ List<PolygonAuthoringMigrationTargetFile> _validateReviewedCheck(
   PolygonAuthoringMigrationCheck check,
 ) {
   if (check.hasBlockers) {
-    throw const PolygonAuthoringMigrationWriteException(
+    throw PolygonAuthoringMigrationWriteException(
       code: 'migration_write_check_blocked',
       message: 'A blocker-bearing migration check cannot authorize writes.',
     );
   }
   if (check.sourceFiles.isEmpty ||
       check.targetFiles.length != check.sourceFiles.length) {
-    throw const PolygonAuthoringMigrationWriteException(
+    throw PolygonAuthoringMigrationWriteException(
       code: 'migration_write_plan_incomplete',
       message:
           'The reviewed source and target sets must be complete and equal.',
@@ -214,7 +251,7 @@ List<PolygonAuthoringMigrationTargetFile> _validateReviewedCheck(
     workspace.resolve(p.normalize(source.sourcePath));
     final key = _canonicalSourcePath(source.sourcePath);
     if (sourcesByPath.containsKey(key)) {
-      throw const PolygonAuthoringMigrationWriteException(
+      throw PolygonAuthoringMigrationWriteException(
         code: 'migration_write_source_path_ambiguous',
         message: 'Reviewed source paths are not canonically unique.',
       );
@@ -230,7 +267,7 @@ List<PolygonAuthoringMigrationTargetFile> _validateReviewedCheck(
     workspace.resolve(p.normalize(target.sourcePath));
     final key = _canonicalSourcePath(target.sourcePath);
     if (!targetPaths.add(key) || sourcesByPath[key] != target.beforeSha256) {
-      throw const PolygonAuthoringMigrationWriteException(
+      throw PolygonAuthoringMigrationWriteException(
         code: 'migration_write_target_unbound',
         message:
             'Every target must bind exactly one reviewed source path and digest.',
@@ -246,7 +283,7 @@ List<PolygonAuthoringMigrationTargetFile> _validateReviewedCheck(
   }
   if (targetPaths.length != sourcesByPath.length ||
       !targetPaths.containsAll(sourcesByPath.keys)) {
-    throw const PolygonAuthoringMigrationWriteException(
+    throw PolygonAuthoringMigrationWriteException(
       code: 'migration_write_target_set_incomplete',
       message: 'The target set does not cover every reviewed source path.',
     );
