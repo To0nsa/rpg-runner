@@ -400,6 +400,10 @@ Chunk v2 replaces `groundProfile` and `groundGaps` with direct chunk-local
       owner chunk-v2 metadata, deprecation status, and `groundBandZIndex`.
       The typed contract cannot mutate source identity, dimensions,
       composition, markers, placements, or polygon geometry.
+- [x] Apply one strict existing-owner composition contract to tile layers,
+      prefab placements, and enemy markers. Require canonical retained-source
+      structure and complete staged placement/marker/seam/geometry validation;
+      the contract cannot mutate identity, metadata, dimensions, or polygons.
 - [ ] Apply the revision and deterministic source-path policy to chunk-v2
       create/duplicate/rename/delete commands; changing a referenced prefab
       bumps the prefab revision/output, not every referencing chunk revision.
@@ -782,10 +786,11 @@ source or enable `--write` until these slices close in order:
    - Reuse existing deterministic allocation, ordering, revision, and no-op
      rules rather than cloning them into route widgets.
    - Landed first: existing-owner Chunk v2 metadata/status/ground-band edits
-     use one immutable before/after contract with stale rejection, strict
-     canonical values, protected composition/geometry fields, and one revision
-     bump. Lifecycle, placements, markers, tile layers, and Prefab v3 parity
-     remain open.
+     and tile-layer/placement/marker composition use immutable before/after
+     contracts with stale rejection, strict canonical values, mutually
+     protected fields, complete candidate validation, and one revision bump.
+     Normal form composition/navigation, lifecycle/path semantics, and Prefab
+     v3 parity remain open.
 2. **Normal validation and pending-change parity.**
    - Run owner validation, expanded prefab collision, marker placement,
      scheduler-reachable seam analysis, and global capacity checks on every
@@ -823,10 +828,10 @@ Current command-gap audit (August 4, 2026):
 | Domain | Normal legacy command surface | Explicit polygon document today | Cutover requirement |
 | --- | --- | --- | --- |
 | Prefab | `replace_prefab_data`, covering prefab/slice/module lifecycle and metadata | `commit_prefab_polygon` only | Add typed v3 operations or one equally strict immutable replacement contract before reusing the normal forms. |
-| Chunk lifecycle | `create_chunk`, `duplicate_chunk`, `rename_chunk`, `deprecate_chunk`, `delete_chunk` | none | Preserve stable `chunkKey`, deterministic IDs/paths, and existing revision semantics. |
+| Chunk lifecycle | `create_chunk`, `duplicate_chunk`, `rename_chunk`, `deprecate_chunk`, `delete_chunk` | write-locked metadata status can deprecate an existing owner; create/duplicate/rename/delete remain absent | Preserve stable `chunkKey`, deterministic IDs/paths, and existing revision semantics. |
 | Chunk metadata | `update_chunk_metadata`, `update_ground_band_z_index`, active-level selection | active-level selection plus write-locked `commit_chunk_v2_metadata` for status, level, difficulty, assembly group, canonical tags, and render-band Z | Existing-owner metadata parity is staged; compose the normal forms and retain the field until Phase 5. |
-| Chunk placements | add/move/replace/settings/remove prefab placement | read-only expanded overlay | Preserve exact placement transforms and open the owner for collision edits. |
-| Chunk markers | add/move/type/settings/remove enemy marker | read-only Core placement diagnostics | Preserve authored order/chance/salt/intent and consume no RNG in authoring. |
+| Chunk placements | add/move/replace/settings/remove prefab placement | read-only expanded overlay plus write-locked strict `commit_chunk_v2_composition` replacement | Existing-owner mutation parity is staged with exact expansion/full validation; compose granular normal forms and open the prefab owner for collision edits. |
+| Chunk markers | add/move/type/settings/remove enemy marker | read-only Core placement diagnostics plus the same write-locked strict composition replacement | Existing-owner mutation parity is staged with canonical order and enemy-marker contracts; compose granular normal forms while preserving zero-RNG authoring. |
 | Removed terrain commands | ground-profile update plus add/update/remove gap | `commit_chunk_polygon` | Delete the legacy commands/forms rather than mapping them to approximate polygons. |
 
 This audit is a technical preservation gate, not a request for new gameplay
@@ -1323,6 +1328,7 @@ result.
 | 2026-08-03 / `a0338973` | Guarded polygon migration write transaction foundation | Dart VM and Flutter test VM on Windows with Docker running | Targeted analysis of the two transaction implementations and two focused test files is clean; all 8 focused tests pass. Fixtures prove sibling staging, exact byte verification, final pre-move callback ordering, rollback before moves, rollback after an earlier replacement, rollback after post-install validation, a complete 9-file legacy-to-current conversion in a temporary workspace, repeated current-schema no-op, drift rejection, and transaction-file cleanup. The real read-only CLI check still reports 99 prefabs, 8 chunks, 9 pending targets, and no source write. `--write` remains unavailable. |
 | 2026-08-03 / `f343336e` | Deterministic migration failure/rollback evidence | Dart VM and Flutter test VM on Windows with Docker running | Targeted analysis is clean and all 4 migration-transaction tests pass. Report-v1 failure evidence distinguishes pre-write blocking, successful rollback, incomplete rollback, and committed-output cleanup failure; source paths are canonical and host-specific cause/temp-path text is excluded. This closes the machine-readable result contract only—CLI report-file emission and `--write` authorization remain disabled. |
 | 2026-08-04 / `9eec2039` | Write-locked Chunk v2 existing-owner metadata commits | Dart VM and Flutter test VM on Windows with Docker running | Targeted analysis of the policy, plugin, and focused test file is clean; all 5 Chunk-v2 plugin tests pass. The immutable before/after contract rejects stale, invalid, unknown, and noncanonical values; accepted status/level/difficulty/assembly-group/tag/ground-band changes preserve identity, dimensions, composition, markers, placements, and polygons while advancing the owner revision exactly once and producing its canonical pending diff. Changed v2 export remains hard-locked, normal v1 loading/source is unchanged, and lifecycle/placement/marker/tile-layer command parity remains open. |
+| 2026-08-04 / `77513d30` | Write-locked Chunk v2 composition commits | Dart VM and Flutter test VM on Windows with Docker running | Targeted policy/plugin/test analysis is clean and all 7 Chunk-v2 plugin tests pass. One immutable before/after contract now covers canonical tile layers, prefab placements, and enemy markers for an existing owner. Accepted changes preserve identity, metadata, dimensions, and polygons, advance the revision once, and produce one pending owner diff; stale/noncanonical/no-op edits, unknown prefab references, invalid enemy markers, and any complete-document placement/marker/seam/geometry blocker preserve document identity. The source-write lock and normal v1 authority remain unchanged; granular route forms and lifecycle paths remain open. |
 ### 28.1 Baseline Environment And Source Identity
 
 - Starting worktree: dirty with 133 pre-existing entries. The authoring JSON,
