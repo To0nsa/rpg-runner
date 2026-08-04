@@ -56,7 +56,7 @@ The active schema migration, generator, preview, and cutover work remains in
 | Cross-domain canonical migration report | editor migration domain | read-only CLI, strict in-memory targets, and exact source SHA-256 audit; source writes remain pending |
 | Guarded migration write transaction | editor `WorkspaceWriteTransaction` / `PolygonAuthoringMigrationTransaction` | temporary-workspace tests only; the CLI has no caller and real source remains legacy until normal store cutover |
 | Strict chunk-v2 file structure and canonical serialization | editor `ChunkV2FileData` / `ChunkV2FileCodec` | migration facade delegation, complete-repository round-trip, and explicit strict store staging; normal load/save cutover is pending |
-| Chunk-v2 plugin staging, direct-owner validation, and commit policy | editor `ChunkV2StagingDocument` / `ChunkV2CollisionCommitPolicy` / `ChunkDomainPlugin` | strict future-source composition, Core direct-shape/bounds validation, freshness/order/revision enforcement, typed commits, immutable pending diffs, hard export lock, and read-only direct/placed collision expansion; remaining metadata commands and normal cutover are pending |
+| Chunk-v2 plugin staging, direct-owner validation, and commit policy | editor `ChunkV2StagingDocument` / `ChunkV2CollisionCommitPolicy` / `ChunkV2MetadataCommitPolicy` / `ChunkDomainPlugin` | strict future-source composition, Core direct-shape/bounds validation, freshness/order/revision enforcement, typed polygon and existing-owner metadata commits, immutable pending diffs, hard export lock, and read-only direct/placed collision expansion; lifecycle/composition commands and normal cutover are pending |
 | Chunk polygon route-local projection | editor `ChunkPolygonAuthoringController` / `ChunkPolygonSceneSurface` / `ChunkPolygonStagingWorkspace` | explicit staged-scene routing, active-level owner isolation, tools, snap, bounds, diagnostics, keyboard, rejection, history, compiled-edge inspection, actor-terrain, and marker-placement overlays; normal v1 loads still select ground/gap authoring |
 | Chunk actor terrain projection | editor `ChunkV2ActorTerrainProjection` | Core surface extraction; Éloïse/Grojib/Hashash eligibility; published Grojib/Hashash graphs; Unoco solid/local-hover evidence; Derf 15-degree/32-pixel perch evidence; no player/flight graph or source mutation |
 | Chunk marker contract and placement projection | editor `chunk_v2_marker_contract.dart` / `ChunkV2MarkerPlacementProjection` | immutable level ground context, staged marker validation, exact Phase 3 enemy placement evidence, Hashash deferral, authored-order/stable-key retention, and zero RNG/source mutation |
@@ -69,6 +69,29 @@ The active schema migration, generator, preview, and cutover work remains in
 Core has no dependency on editor models, JSON, widgets, or filesystem state.
 The editor depends on Core through a one-way local package dependency and does
 not reimplement geometric predicates.
+
+## Chunk V2 Existing-Owner Metadata Contract
+
+`ChunkV2MetadataCommit` carries immutable `before` and `after` snapshots for
+only the metadata fields retained by schema v2: status, level, difficulty,
+assembly group, canonical tags, and `groundBandZIndex`. The plugin resolves the
+owner by stable `chunkKey`; the policy then requires the `before` snapshot to
+equal the current owner and rejects unknown levels/groups, invalid enum values,
+and tags that are not already trimmed, unique, and lexically ordered.
+
+An accepted semantic change creates one replacement owner and increments its
+revision exactly once. A stale, malformed, rejected, or no-op command preserves
+the original document identity, so it cannot enter session history or pending
+changes. The command cannot express changes to chunk key/ID, dimensions, tile
+layers, prefab placements, markers, or collision shapes. Those protected fields
+therefore survive the metadata replacement unchanged rather than being
+reconstructed by a route widget.
+
+This contract remains staging-only. Changed schema-v2 export throws the same
+hard source-write lock as polygon edits, and the normal loader still selects
+legacy chunk-v1 source. Create, duplicate, rename, delete, tile-layer,
+placement, and marker contracts require their own deterministic ownership/path
+semantics before normal route and store cutover.
 
 ## Source Coordinates And Canonicalization
 
@@ -964,6 +987,9 @@ The foundation is covered by:
 - chunk commit freshness, canonical owner order, exact bounds, Core overlap,
   no-op/rejection identity, exactly-once revision, typed plugin dispatch, and
   changed-source lock tests
+- typed Chunk-v2 metadata freshness, strict enum/level/group/tag acceptance,
+  protected composition/geometry fields, exactly-once revision, no-op identity,
+  canonical pending projection, and the unchanged source-write lock
 - Chunk staged-scene routing without a legacy reload, active-level owner
   isolation, locked reload/apply, visible snap/tools, one direct-owner edit,
   route-level undo restoration, and unchanged normal v1 route regression tests

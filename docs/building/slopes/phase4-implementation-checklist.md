@@ -396,9 +396,13 @@ Chunk v2 replaces `groundProfile` and `groundGaps` with direct chunk-local
 - [x] Do not permit per-placement collision-shape overrides in chunk v2.
 - [x] Bump a chunk revision exactly once when an accepted canonical direct
       collision-source commit changes that chunk.
-- [ ] Apply the same revision policy to remaining chunk-v2 metadata/create/
-      duplicate/rename/deprecate commands; changing a referenced prefab bumps
-      the prefab revision/output, not every referencing chunk source revision.
+- [x] Apply the same freshness/no-op/exactly-once revision policy to existing-
+      owner chunk-v2 metadata, deprecation status, and `groundBandZIndex`.
+      The typed contract cannot mutate source identity, dimensions,
+      composition, markers, placements, or polygon geometry.
+- [ ] Apply the revision and deterministic source-path policy to chunk-v2
+      create/duplicate/rename/delete commands; changing a referenced prefab
+      bumps the prefab revision/output, not every referencing chunk revision.
 - [ ] After committed migration, normal `ChunkStore` rejects v1 source with an
       actionable migration issue.
 
@@ -777,6 +781,11 @@ source or enable `--write` until these slices close in order:
      `remove_ground_gap`.
    - Reuse existing deterministic allocation, ordering, revision, and no-op
      rules rather than cloning them into route widgets.
+   - Landed first: existing-owner Chunk v2 metadata/status/ground-band edits
+     use one immutable before/after contract with stale rejection, strict
+     canonical values, protected composition/geometry fields, and one revision
+     bump. Lifecycle, placements, markers, tile layers, and Prefab v3 parity
+     remain open.
 2. **Normal validation and pending-change parity.**
    - Run owner validation, expanded prefab collision, marker placement,
      scheduler-reachable seam analysis, and global capacity checks on every
@@ -815,7 +824,7 @@ Current command-gap audit (August 4, 2026):
 | --- | --- | --- | --- |
 | Prefab | `replace_prefab_data`, covering prefab/slice/module lifecycle and metadata | `commit_prefab_polygon` only | Add typed v3 operations or one equally strict immutable replacement contract before reusing the normal forms. |
 | Chunk lifecycle | `create_chunk`, `duplicate_chunk`, `rename_chunk`, `deprecate_chunk`, `delete_chunk` | none | Preserve stable `chunkKey`, deterministic IDs/paths, and existing revision semantics. |
-| Chunk metadata | `update_chunk_metadata`, `update_ground_band_z_index`, active-level selection | active-level selection only | Preserve all non-flat-ground metadata; keep the render-band field until Phase 5. |
+| Chunk metadata | `update_chunk_metadata`, `update_ground_band_z_index`, active-level selection | active-level selection plus write-locked `commit_chunk_v2_metadata` for status, level, difficulty, assembly group, canonical tags, and render-band Z | Existing-owner metadata parity is staged; compose the normal forms and retain the field until Phase 5. |
 | Chunk placements | add/move/replace/settings/remove prefab placement | read-only expanded overlay | Preserve exact placement transforms and open the owner for collision edits. |
 | Chunk markers | add/move/type/settings/remove enemy marker | read-only Core placement diagnostics | Preserve authored order/chance/salt/intent and consume no RNG in authoring. |
 | Removed terrain commands | ground-profile update plus add/update/remove gap | `commit_chunk_polygon` | Delete the legacy commands/forms rather than mapping them to approximate polygons. |
@@ -1313,6 +1322,7 @@ result.
 | 2026-08-03 / `8aa880a6` | Collision-reset regression closure | Dart VM and Flutter test VM on Windows with Docker still running | Root, Core-package, editor, and replay-validator analysis are clean. All 385 editor tests, 42 root tool/generator tests, 310 Core-package tests, 433 root Core tests, and 80 replay-validator tests pass. The stale prefab-v3 test now rejects genuinely invalid self-intersecting topology instead of valid final-shape deletion; real-level determinism stops submitting commands once collisionless runs freeze; the jump-buffer unit test disables live track streaming. The read-only migration check validates 99 prefabs, 8 chunks, and nine pending representation targets without writes, and generator dry-run validates 8 chunks, 2 levels, and 2 themes with no drift. |
 | 2026-08-03 / `a0338973` | Guarded polygon migration write transaction foundation | Dart VM and Flutter test VM on Windows with Docker running | Targeted analysis of the two transaction implementations and two focused test files is clean; all 8 focused tests pass. Fixtures prove sibling staging, exact byte verification, final pre-move callback ordering, rollback before moves, rollback after an earlier replacement, rollback after post-install validation, a complete 9-file legacy-to-current conversion in a temporary workspace, repeated current-schema no-op, drift rejection, and transaction-file cleanup. The real read-only CLI check still reports 99 prefabs, 8 chunks, 9 pending targets, and no source write. `--write` remains unavailable. |
 | 2026-08-03 / `f343336e` | Deterministic migration failure/rollback evidence | Dart VM and Flutter test VM on Windows with Docker running | Targeted analysis is clean and all 4 migration-transaction tests pass. Report-v1 failure evidence distinguishes pre-write blocking, successful rollback, incomplete rollback, and committed-output cleanup failure; source paths are canonical and host-specific cause/temp-path text is excluded. This closes the machine-readable result contract only—CLI report-file emission and `--write` authorization remain disabled. |
+| 2026-08-04 / `9eec2039` | Write-locked Chunk v2 existing-owner metadata commits | Dart VM and Flutter test VM on Windows with Docker running | Targeted analysis of the policy, plugin, and focused test file is clean; all 5 Chunk-v2 plugin tests pass. The immutable before/after contract rejects stale, invalid, unknown, and noncanonical values; accepted status/level/difficulty/assembly-group/tag/ground-band changes preserve identity, dimensions, composition, markers, placements, and polygons while advancing the owner revision exactly once and producing its canonical pending diff. Changed v2 export remains hard-locked, normal v1 loading/source is unchanged, and lifecycle/placement/marker/tile-layer command parity remains open. |
 ### 28.1 Baseline Environment And Source Identity
 
 - Starting worktree: dirty with 133 pre-existing entries. The authoring JSON,
