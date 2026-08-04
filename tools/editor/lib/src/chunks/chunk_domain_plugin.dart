@@ -10,6 +10,7 @@ import 'chunk_store.dart';
 import 'chunk_v2_collision_expansion.dart';
 import 'chunk_validation.dart';
 import 'chunk_v2_collision_commit.dart';
+import 'chunk_v2_composition_commit.dart';
 import 'chunk_v2_file_codec.dart';
 import 'chunk_v2_file_data.dart';
 import 'chunk_v2_metadata_commit.dart';
@@ -34,6 +35,10 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
   /// Staged command for one existing owner's typed metadata commit.
   static const String commitChunkMetadataCommandKind =
       'commit_chunk_v2_metadata';
+
+  /// Staged command for one existing owner's strict composition replacement.
+  static const String commitChunkCompositionCommandKind =
+      'commit_chunk_v2_composition';
 
   final ChunkStore _store;
   final PrefabStore _prefabStore;
@@ -442,6 +447,17 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
               level.levelId: level.chunkThemeGroups,
           },
           sourcePath: document.sourcePathByChunkKey[chunkKey] ?? chunkKey,
+        );
+        if (!result.accepted || !result.changed) return document;
+        nextChunk = result.chunk;
+        break;
+      case commitChunkCompositionCommandKind:
+        final commit = command.payload['commit'];
+        if (commit is! ChunkV2CompositionCommit) return document;
+        final result = const ChunkV2CompositionCommitPolicy().apply(
+          document: document,
+          chunkIndex: chunkIndex,
+          commit: commit,
         );
         if (!result.accepted || !result.changed) return document;
         nextChunk = result.chunk;

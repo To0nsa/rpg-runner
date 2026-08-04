@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_plugin.dart';
+import 'package:runner_editor/src/chunks/chunk_v2_composition_commit.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_codec.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_data.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_metadata_commit.dart';
@@ -293,6 +294,160 @@ void main() {
       same(document),
     );
   });
+
+  test(
+    'typed composition commit validates retained authoring and protects terrain',
+    () {
+      final plugin = ChunkDomainPlugin();
+      final document = _document(<TerrainSourceShapeDef>[_rectangle(top: 20)]);
+      final before = document.chunks.single;
+      final commit = ChunkV2CompositionCommit(
+        before: ChunkV2CompositionSnapshot.fromChunk(before),
+        after: ChunkV2CompositionSnapshot(
+          tileLayers: const <TileLayerDef>[TileLayerDef(id: 'foreground')],
+          prefabs: const <PlacedPrefabDef>[
+            PlacedPrefabDef(
+              prefabId: 'shrub',
+              prefabKey: 'prefab_shrub',
+              x: 40,
+              y: 20,
+            ),
+          ],
+          markers: const <PlacedMarkerDef>[
+            PlacedMarkerDef(markerId: 'grojib', x: 50, y: 20),
+          ],
+        ),
+      );
+      final policyResult = const ChunkV2CompositionCommitPolicy().apply(
+        document: document,
+        chunkIndex: 0,
+        commit: commit,
+      );
+      expect(
+        policyResult.issues.map((issue) => '${issue.code}: ${issue.message}'),
+        isEmpty,
+      );
+      expect(policyResult.accepted, isTrue);
+      final edited =
+          plugin.applyEdit(
+                document,
+                AuthoringCommand(
+                  kind: ChunkDomainPlugin.commitChunkCompositionCommandKind,
+                  payload: <String, Object?>{
+                    'chunkKey': before.chunkKey,
+                    'commit': commit,
+                  },
+                ),
+              )
+              as ChunkV2StagingDocument;
+
+      final after = edited.chunks.single;
+      expect(after.revision, before.revision + 1);
+      expect(after.tileLayers.single.id, 'foreground');
+      expect(after.prefabs.single.prefabKey, 'prefab_shrub');
+      expect(after.markers.single.markerId, 'grojib');
+      expect(after.chunkKey, before.chunkKey);
+      expect(after.id, before.id);
+      expect(after.status, before.status);
+      expect(after.levelId, before.levelId);
+      expect(after.difficulty, before.difficulty);
+      expect(after.tags, before.tags);
+      expect(after.groundBandZIndex, before.groundBandZIndex);
+      expect(after.collisionShapes, before.collisionShapes);
+      expect(plugin.validate(edited), isEmpty);
+
+      final pending = plugin.describePendingChanges(
+        EditorWorkspace(rootPath: Directory.current.path),
+        document: edited,
+      );
+      expect(pending.changedItemIds, <String>['forest_target']);
+      expect(pending.fileDiffs, hasLength(1));
+      expect(pending.fileDiffs.single.unifiedDiff, contains('prefab_shrub'));
+      expect(pending.fileDiffs.single.unifiedDiff, contains('grojib'));
+    },
+  );
+
+  test('stale noncanonical and invalid composition commits keep identity', () {
+    final plugin = ChunkDomainPlugin();
+    final document = _document(<TerrainSourceShapeDef>[_rectangle(top: 20)]);
+    final current = document.chunks.single;
+    final currentSnapshot = ChunkV2CompositionSnapshot.fromChunk(current);
+
+    AuthoringDocument apply(ChunkV2CompositionCommit commit) =>
+        plugin.applyEdit(
+          document,
+          AuthoringCommand(
+            kind: ChunkDomainPlugin.commitChunkCompositionCommandKind,
+            payload: <String, Object?>{
+              'chunkKey': current.chunkKey,
+              'commit': commit,
+            },
+          ),
+        );
+
+    final stale = ChunkV2CompositionSnapshot(
+      tileLayers: const <TileLayerDef>[TileLayerDef(id: 'stale')],
+      prefabs: current.prefabs,
+      markers: current.markers,
+    );
+    final noncanonical = ChunkV2CompositionSnapshot(
+      tileLayers: const <TileLayerDef>[
+        TileLayerDef(id: 'z'),
+        TileLayerDef(id: 'a'),
+      ],
+      prefabs: current.prefabs,
+      markers: current.markers,
+    );
+    final invalidMarker = ChunkV2CompositionSnapshot(
+      tileLayers: current.tileLayers,
+      prefabs: current.prefabs,
+      markers: const <PlacedMarkerDef>[
+        PlacedMarkerDef(markerId: 'unknown', x: 50, y: 20),
+      ],
+    );
+    final invalidPlacement = ChunkV2CompositionSnapshot(
+      tileLayers: current.tileLayers,
+      prefabs: const <PlacedPrefabDef>[
+        PlacedPrefabDef(prefabId: 'missing', x: 40, y: 20),
+      ],
+      markers: current.markers,
+    );
+
+    expect(
+      apply(ChunkV2CompositionCommit(before: stale, after: noncanonical)),
+      same(document),
+    );
+    expect(
+      apply(
+        ChunkV2CompositionCommit(before: currentSnapshot, after: noncanonical),
+      ),
+      same(document),
+    );
+    expect(
+      apply(
+        ChunkV2CompositionCommit(
+          before: currentSnapshot,
+          after: invalidPlacement,
+        ),
+      ),
+      same(document),
+    );
+    expect(
+      apply(
+        ChunkV2CompositionCommit(before: currentSnapshot, after: invalidMarker),
+      ),
+      same(document),
+    );
+    expect(
+      apply(
+        ChunkV2CompositionCommit(
+          before: currentSnapshot,
+          after: currentSnapshot,
+        ),
+      ),
+      same(document),
+    );
+  });
 }
 
 ChunkV2StagingDocument _document(
@@ -326,13 +481,27 @@ ChunkV2StagingDocument _document(
     },
     prefabData: PrefabV3FileData(
       slices: const <AtlasSliceDef>[],
-      prefabs: const <PrefabV3Def>[],
+      prefabs: <PrefabV3Def>[
+        PrefabV3Def(
+          prefabKey: 'prefab_shrub',
+          id: 'shrub',
+          revision: 1,
+          status: PrefabStatus.active,
+          kind: PrefabKind.decoration,
+          visualSource: const PrefabVisualSource.atlasSlice('shrub_slice'),
+          anchorXPx: 0,
+          anchorYPx: 0,
+          collisionShapes: const <TerrainSourceShapeDef>[],
+          tags: const <String>[],
+        ),
+      ],
     ),
     tileData: PrefabTileFileData(
       tileSlices: const <AtlasSliceDef>[],
       platformModules: const <TileModuleDef>[],
     ),
     visualBoundsByPrefabKey: const {},
+    groundTopYByLevelId: const <String, double>{'forest': 10},
     levels: const <LevelDef>[_forestLevel],
     availableLevelIds: const <String>['forest'],
     activeLevelId: 'forest',
