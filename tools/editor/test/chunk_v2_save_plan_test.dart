@@ -6,7 +6,9 @@ import 'package:runner_editor/src/chunks/chunk_domain_plugin.dart';
 import 'package:runner_editor/src/chunks/chunk_store.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_codec.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_data.dart';
+import 'package:runner_editor/src/chunks/chunk_v2_lifecycle_commit.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_staging_models.dart';
+import 'package:runner_editor/src/domain/authoring_types.dart';
 import 'package:runner_editor/src/levels/level_domain_models.dart';
 import 'package:runner_editor/src/prefabs/models/models.dart';
 import 'package:runner_editor/src/workspace/editor_workspace.dart';
@@ -156,6 +158,215 @@ void main() {
       ),
     );
   });
+
+  test(
+    'v2 lifecycle creates a deprecated owner and unsaved delete is no-op',
+    () {
+      const policy = ChunkV2LifecycleCommitPolicy();
+      final document = _document();
+      final createCommit = ChunkV2LifecycleCommit(
+        before: ChunkV2LifecycleSnapshot.fromDocument(document),
+        operation: const ChunkV2CreateOperation(id: 'forest_created'),
+      );
+      final createdResult = policy.apply(
+        document: document,
+        commit: createCommit,
+      );
+
+      expect(
+        createdResult.issues.map((issue) => '${issue.code}: ${issue.message}'),
+        isEmpty,
+      );
+      expect(createdResult.accepted, isTrue);
+      expect(createdResult.changed, isTrue);
+      final createdDocument = createdResult.document;
+      final created = createdDocument.chunks.singleWhere(
+        (chunk) => chunk.chunkKey != 'forest_original',
+      );
+      expect(created.id, 'forest_created');
+      expect(created.revision, 1);
+      expect(created.status, chunkStatusDeprecated);
+      expect(created.collisionShapes, isEmpty);
+      expect(createdDocument.createdChunkKeys, <String>['forest_created']);
+      expect(
+        createdDocument.sourcePathByChunkKey[created.chunkKey]?.replaceAll(
+          '\\',
+          '/',
+        ),
+        '${ChunkStore.chunksDirectoryPath}/forest/forest_created.json',
+      );
+
+      final dispatched = ChunkDomainPlugin().applyEdit(
+        document,
+        AuthoringCommand(
+          kind: ChunkDomainPlugin.commitChunkLifecycleCommandKind,
+          payload: <String, Object?>{'commit': createCommit},
+        ),
+      );
+      expect(dispatched, isA<ChunkV2StagingDocument>());
+      expect((dispatched as ChunkV2StagingDocument).chunks, hasLength(2));
+
+      final deleteResult = policy.apply(
+        document: createdDocument,
+        commit: ChunkV2LifecycleCommit(
+          before: ChunkV2LifecycleSnapshot.fromDocument(createdDocument),
+          operation: ChunkV2DeleteOperation(chunkKey: created.chunkKey),
+        ),
+      );
+      expect(deleteResult.accepted, isTrue);
+      expect(deleteResult.document.chunks, hasLength(1));
+      expect(deleteResult.document.createdChunkKeys, isEmpty);
+      expect(deleteResult.document.changedChunkKeys, isEmpty);
+      expect(
+        const ChunkStore()
+            .buildV2StagingSavePlan(document: deleteResult.document)
+            .writes,
+        isEmpty,
+      );
+
+      final renamedCreatedResult = policy.apply(
+        document: createdDocument,
+        commit: ChunkV2LifecycleCommit(
+          before: ChunkV2LifecycleSnapshot.fromDocument(createdDocument),
+          operation: const ChunkV2RenameOperation(
+            chunkKey: 'forest_created',
+            nextId: 'forest_created_renamed',
+          ),
+        ),
+      );
+      expect(renamedCreatedResult.accepted, isTrue);
+      expect(
+        renamedCreatedResult.document.sourcePathByChunkKey['forest_created']
+            ?.replaceAll('\\', '/'),
+        '${ChunkStore.chunksDirectoryPath}/forest/'
+        'forest_created_renamed.json',
+      );
+    },
+  );
+
+  test(
+    'v2 lifecycle duplicates, renames, and deletes with exact ownership',
+    () {
+      const policy = ChunkV2LifecycleCommitPolicy();
+      final document = _document();
+      final duplicatedResult = policy.apply(
+        document: document,
+        commit: ChunkV2LifecycleCommit(
+          before: ChunkV2LifecycleSnapshot.fromDocument(document),
+          operation: const ChunkV2DuplicateOperation(
+            sourceChunkKey: 'forest_original',
+          ),
+        ),
+      );
+      expect(duplicatedResult.accepted, isTrue);
+      final duplicate = duplicatedResult.document.chunks.singleWhere(
+        (chunk) => chunk.chunkKey != 'forest_original',
+      );
+      expect(duplicate.id, 'forest_original_copy');
+      expect(duplicate.revision, 1);
+      expect(duplicate.status, chunkStatusActive);
+      expect(duplicate.collisionShapes, document.chunks.single.collisionShapes);
+
+      final renamedResult = policy.apply(
+        document: document,
+        commit: ChunkV2LifecycleCommit(
+          before: ChunkV2LifecycleSnapshot.fromDocument(document),
+          operation: const ChunkV2RenameOperation(
+            chunkKey: 'forest_original',
+            nextId: 'forest_renamed',
+          ),
+        ),
+      );
+      expect(renamedResult.accepted, isTrue);
+      expect(renamedResult.document.chunks.single.chunkKey, 'forest_original');
+      expect(renamedResult.document.chunks.single.id, 'forest_renamed');
+      expect(renamedResult.document.chunks.single.revision, 5);
+      final renameWrite = const ChunkStore()
+          .buildV2StagingSavePlan(document: renamedResult.document)
+          .writes
+          .single;
+      expect(
+        renameWrite.previousRelativePath?.replaceAll('\\', '/'),
+        '${ChunkStore.chunksDirectoryPath}/forest/forest_original.json',
+      );
+      expect(
+        renameWrite.relativePath.replaceAll('\\', '/'),
+        '${ChunkStore.chunksDirectoryPath}/forest/forest_renamed.json',
+      );
+
+      final deletedResult = policy.apply(
+        document: document,
+        commit: ChunkV2LifecycleCommit(
+          before: ChunkV2LifecycleSnapshot.fromDocument(document),
+          operation: const ChunkV2DeleteOperation(chunkKey: 'forest_original'),
+        ),
+      );
+      expect(deletedResult.accepted, isTrue);
+      expect(deletedResult.document.chunks, isEmpty);
+      final deletion = const ChunkStore()
+          .buildV2StagingSavePlan(document: deletedResult.document)
+          .writes
+          .single;
+      expect(deletion.deleteFile, isTrue);
+      expect(deletion.chunkKey, 'forest_original');
+    },
+  );
+
+  test(
+    'v2 lifecycle rejects stale invalid colliding and missing operations',
+    () {
+      const policy = ChunkV2LifecycleCommitPolicy();
+      final document = _document();
+      final snapshot = ChunkV2LifecycleSnapshot.fromDocument(document);
+      final staleDocument = document.copyWith(
+        chunks: <ChunkV2FileData>[document.chunks.single.copyWith(revision: 5)],
+      );
+
+      ChunkV2LifecycleCommitResult apply(
+        ChunkV2StagingDocument target,
+        ChunkV2LifecycleOperation operation,
+      ) => policy.apply(
+        document: target,
+        commit: ChunkV2LifecycleCommit(before: snapshot, operation: operation),
+      );
+
+      expect(
+        apply(
+          staleDocument,
+          const ChunkV2CreateOperation(id: 'forest_created'),
+        ).document,
+        same(staleDocument),
+      );
+      expect(
+        apply(document, const ChunkV2CreateOperation(id: 'Bad ID')).document,
+        same(document),
+      );
+      expect(
+        apply(
+          document,
+          const ChunkV2CreateOperation(id: 'forest_original'),
+        ).document,
+        same(document),
+      );
+      expect(
+        apply(
+          document,
+          const ChunkV2DeleteOperation(chunkKey: 'missing'),
+        ).document,
+        same(document),
+      );
+      final noOp = apply(
+        document,
+        const ChunkV2RenameOperation(
+          chunkKey: 'forest_original',
+          nextId: 'forest_original',
+        ),
+      );
+      expect(noOp.accepted, isTrue);
+      expect(noOp.changed, isFalse);
+      expect(noOp.document, same(document));
+    },
+  );
 }
 
 ChunkV2StagingDocument _document() {

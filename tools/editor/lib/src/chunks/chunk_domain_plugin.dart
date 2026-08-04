@@ -12,6 +12,7 @@ import 'chunk_validation.dart';
 import 'chunk_v2_collision_commit.dart';
 import 'chunk_v2_composition_commit.dart';
 import 'chunk_v2_file_data.dart';
+import 'chunk_v2_lifecycle_commit.dart';
 import 'chunk_v2_metadata_commit.dart';
 import 'chunk_v2_seam_analysis.dart';
 import 'chunk_v2_staging_models.dart';
@@ -38,6 +39,10 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
   /// Staged command for one existing owner's strict composition replacement.
   static const String commitChunkCompositionCommandKind =
       'commit_chunk_v2_composition';
+
+  /// Staged command for one stale-checked lifecycle operation.
+  static const String commitChunkLifecycleCommandKind =
+      'commit_chunk_v2_lifecycle';
 
   final ChunkStore _store;
   final PrefabStore _prefabStore;
@@ -391,6 +396,14 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
     ChunkV2StagingDocument document,
     AuthoringCommand command,
   ) {
+    if (command.kind == commitChunkLifecycleCommandKind) {
+      final commit = command.payload['commit'];
+      if (commit is! ChunkV2LifecycleCommit) return document;
+      final result = ChunkV2LifecycleCommitPolicy(
+        store: _store,
+      ).apply(document: document, commit: commit);
+      return result.accepted && result.changed ? result.document : document;
+    }
     final chunkKey = command.payload['chunkKey'];
     if (chunkKey is! String) return document;
     final chunkIndex = document.chunks.indexWhere(
@@ -399,6 +412,7 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
     if (chunkIndex < 0) return document;
     final chunk = document.chunks[chunkIndex];
     late final ChunkV2FileData nextChunk;
+    Map<String, String>? nextSourcePaths;
     switch (command.kind) {
       case commitChunkPolygonCommandKind:
         final commit = command.payload['commit'];
@@ -427,6 +441,12 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
         );
         if (!result.accepted || !result.changed) return document;
         nextChunk = result.chunk;
+        if (document.createdChunkKeys.contains(chunkKey)) {
+          nextSourcePaths = Map<String, String>.of(
+            document.sourcePathByChunkKey,
+          );
+          nextSourcePaths[chunkKey] = _store.canonicalV2SourcePath(nextChunk);
+        }
         break;
       case commitChunkCompositionCommandKind:
         final commit = command.payload['commit'];
@@ -446,6 +466,7 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
     chunks[chunkIndex] = nextChunk;
     return document.copyWith(
       chunks: chunks,
+      sourcePathByChunkKey: nextSourcePaths,
       changedChunkKeys: <String>{...document.changedChunkKeys, chunkKey},
     );
   }

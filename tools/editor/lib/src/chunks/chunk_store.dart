@@ -325,7 +325,7 @@ class ChunkStore {
       }
 
       final targetPath = isCreated
-          ? _canonicalChunkV2Path(chunk)
+          ? canonicalV2SourcePath(chunk)
           : _resolveV2TargetChunkPath(chunk, sourcePath: safeSourcePath);
       if (isCreated && !p.equals(safeSourcePath, targetPath)) {
         throw StateError(
@@ -780,7 +780,8 @@ class ChunkStore {
     return p.normalize(p.join(chunksDirectoryPath, levelDirectory, fileName));
   }
 
-  String _canonicalChunkV2Path(ChunkV2FileData chunk) => _portableRelativePath(
+  /// Canonical repository-relative source ownership for a chunk-v2 record.
+  String canonicalV2SourcePath(ChunkV2FileData chunk) => _portableRelativePath(
     p.join(
       chunksDirectoryPath,
       _slugify(chunk.levelId),
@@ -794,7 +795,7 @@ class ChunkStore {
   }) {
     final normalizedSourcePath = _portableRelativePath(sourcePath);
     return _isEditorManagedChunkPath(normalizedSourcePath)
-        ? _canonicalChunkV2Path(chunk)
+        ? canonicalV2SourcePath(chunk)
         : normalizedSourcePath;
   }
 
