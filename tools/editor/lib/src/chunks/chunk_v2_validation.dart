@@ -93,7 +93,25 @@ List<ValidationIssue> validateChunkV2StagingDocument(
   final chunkKeys = <String>{};
   final foldedChunkKeys = <String>{};
   final chunkIds = <String>{};
+  final currentChunkKeys = document.chunks
+      .map((chunk) => chunk.chunkKey)
+      .toSet();
+  final createdChunkKeys = document.createdChunkKeys.toSet();
   final collisionExpansions = <String, ChunkV2CollisionExpansionResult>{};
+
+  for (final createdChunkKey in createdChunkKeys) {
+    if (!currentChunkKeys.contains(createdChunkKey)) {
+      issues.add(
+        ValidationIssue(
+          severity: ValidationSeverity.error,
+          code: 'chunk_v2_created_owner_missing',
+          message:
+              'Created chunk owner $createdChunkKey is missing from the '
+              'staged document.',
+        ),
+      );
+    }
+  }
 
   if (document.availableLevelIds.isEmpty || document.activeLevelId == null) {
     issues.add(
@@ -116,14 +134,36 @@ List<ValidationIssue> validateChunkV2StagingDocument(
   for (var chunkIndex = 0; chunkIndex < chunks.length; chunkIndex += 1) {
     final chunk = chunks[chunkIndex];
     final sourcePath = document.sourcePathByChunkKey[chunk.chunkKey];
-    if (sourcePath == null ||
-        document.baselineContentsByChunkKey[chunk.chunkKey] == null) {
+    final baseline = document.baselineContentsByChunkKey[chunk.chunkKey];
+    final isCreated = createdChunkKeys.contains(chunk.chunkKey);
+    if (sourcePath == null) {
+      issues.add(
+        ValidationIssue(
+          severity: ValidationSeverity.error,
+          code: 'chunk_v2_source_path_missing',
+          message:
+              'Chunk ${chunk.chunkKey} is missing its staging source path.',
+        ),
+      );
+    } else if (!isCreated && baseline == null) {
       issues.add(
         ValidationIssue(
           severity: ValidationSeverity.error,
           code: 'chunk_v2_source_baseline_missing',
           message:
               'Chunk ${chunk.chunkKey} is missing its staging source baseline.',
+          sourcePath: sourcePath,
+        ),
+      );
+    }
+    if (isCreated && baseline != null) {
+      issues.add(
+        ValidationIssue(
+          severity: ValidationSeverity.error,
+          code: 'chunk_v2_created_owner_has_baseline',
+          message:
+              'Created chunk ${chunk.chunkKey} must not claim existing source '
+              'baseline bytes.',
           sourcePath: sourcePath,
         ),
       );

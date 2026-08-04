@@ -11,7 +11,6 @@ import 'chunk_v2_collision_expansion.dart';
 import 'chunk_validation.dart';
 import 'chunk_v2_collision_commit.dart';
 import 'chunk_v2_composition_commit.dart';
-import 'chunk_v2_file_codec.dart';
 import 'chunk_v2_file_data.dart';
 import 'chunk_v2_metadata_commit.dart';
 import 'chunk_v2_seam_analysis.dart';
@@ -350,33 +349,11 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
     required AuthoringDocument document,
   }) {
     if (document is ChunkV2StagingDocument) {
-      final writes = <ChunkFileWrite>[];
-      for (final chunk in document.chunks) {
-        final sourcePath = document.sourcePathByChunkKey[chunk.chunkKey];
-        final before = document.baselineContentsByChunkKey[chunk.chunkKey];
-        if (sourcePath == null || before == null) {
-          throw StateError(
-            'chunk_v2_source_baseline_missing: ${chunk.chunkKey}.',
-          );
-        }
-        final after = ChunkV2FileCodec.encode(chunk);
-        if (before == after) continue;
-        writes.add(
-          ChunkFileWrite(
-            chunkKey: chunk.chunkKey,
-            chunkId: chunk.id,
-            relativePath: sourcePath,
-            beforeContent: before,
-            afterContent: after,
-          ),
-        );
-      }
-      writes.sort(
-        (left, right) => left.relativePath.compareTo(right.relativePath),
-      );
+      final savePlan = _store.buildV2StagingSavePlan(document: document);
+      final writes = savePlan.writes;
       if (writes.isEmpty) return PendingChanges.empty;
       return PendingChanges(
-        changedItemIds: writes.map((write) => write.chunkKey).toList(),
+        changedItemIds: savePlan.changedChunkKeys,
         fileDiffs: writes
             .map(
               (write) => PendingFileDiff(
@@ -1755,6 +1732,8 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
 
   String _buildUnifiedDiff(ChunkFileWrite write) {
     final path = write.relativePath.replaceAll('\\', '/');
+    final beforePath = (write.previousRelativePath ?? write.relativePath)
+        .replaceAll('\\', '/');
     final before = write.beforeContent ?? '';
     final after = write.afterContent;
     final beforeLines = _splitLines(before);
@@ -1771,8 +1750,8 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
       return lines.join('\n');
     }
     final lines = <String>[
-      'diff --git a/$path b/$path',
-      '--- a/$path',
+      'diff --git a/$beforePath b/$path',
+      '--- a/$beforePath',
       '+++ b/$path',
       '@@ -1,${beforeLines.length} +1,${afterLines.length} @@',
       ...beforeLines.map((line) => '-$line'),

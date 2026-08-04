@@ -10,6 +10,7 @@ import '../workspace/workspace_file_io.dart';
 import 'chunk_domain_models.dart';
 import 'chunk_v2_file_codec.dart';
 import 'chunk_v2_file_data.dart';
+import 'chunk_v2_staging_models.dart';
 
 /// One strict chunk-v2 source snapshot retained for read-only staging.
 class ChunkV2StagingSource {
@@ -284,6 +285,130 @@ class ChunkStore {
       writes: List<ChunkFileWrite>.unmodifiable(writes),
       changedChunkKeys: List<String>.unmodifiable(
         writes.map((write) => write.chunkKey).toList(growable: false),
+      ),
+    );
+  }
+
+  /// Builds a deterministic, read-only save plan for a staged chunk-v2 tree.
+  ///
+  /// This method performs no filesystem reads or writes. Existing owner bytes
+  /// come exclusively from strict load baselines; new owners must be declared
+  /// explicitly; deleted owners retain their baseline long enough to describe
+  /// removal. Enabling writes remains a separate Phase 4 cutover gate.
+  ChunkSavePlan buildV2StagingSavePlan({
+    required ChunkV2StagingDocument document,
+  }) {
+    final chunks = List<ChunkV2FileData>.of(document.chunks)
+      ..sort(_compareChunkV2ForMemory);
+    final currentChunkKeys = chunks.map((chunk) => chunk.chunkKey).toSet();
+    final createdChunkKeys = document.createdChunkKeys.toSet();
+
+    final writes = <ChunkFileWrite>[];
+    final finalOwnerByFoldedPath = <String, String>{};
+    for (final chunk in chunks) {
+      final isCreated = createdChunkKeys.contains(chunk.chunkKey);
+      final sourcePath = document.sourcePathByChunkKey[chunk.chunkKey];
+      final baseline = document.baselineContentsByChunkKey[chunk.chunkKey];
+      if (sourcePath == null) {
+        throw StateError('chunk_v2_source_path_missing: ${chunk.chunkKey}.');
+      }
+      final safeSourcePath = _requireWorkspaceRelativePath(
+        sourcePath,
+        chunkKey: chunk.chunkKey,
+      );
+      if (isCreated == (baseline != null)) {
+        throw StateError(
+          isCreated
+              ? 'chunk_v2_created_owner_has_baseline: ${chunk.chunkKey}.'
+              : 'chunk_v2_source_baseline_missing: ${chunk.chunkKey}.',
+        );
+      }
+
+      final targetPath = isCreated
+          ? _canonicalChunkV2Path(chunk)
+          : _resolveV2TargetChunkPath(chunk, sourcePath: safeSourcePath);
+      if (isCreated && !p.equals(safeSourcePath, targetPath)) {
+        throw StateError(
+          'chunk_v2_created_owner_path_noncanonical: ${chunk.chunkKey}.',
+        );
+      }
+      final foldedTargetPath = _portableRelativePath(targetPath).toLowerCase();
+      final existingOwner = finalOwnerByFoldedPath[foldedTargetPath];
+      if (existingOwner != null) {
+        throw StateError(
+          'chunk_v2_target_path_collision: $existingOwner and '
+          '${chunk.chunkKey} both target $targetPath.',
+        );
+      }
+      finalOwnerByFoldedPath[foldedTargetPath] = chunk.chunkKey;
+
+      final after = ChunkV2FileCodec.encode(chunk);
+      final previousPath = !isCreated && !p.equals(safeSourcePath, targetPath)
+          ? safeSourcePath
+          : null;
+      if (baseline == after && previousPath == null) continue;
+      writes.add(
+        ChunkFileWrite(
+          chunkKey: chunk.chunkKey,
+          chunkId: chunk.id,
+          relativePath: _portableRelativePath(targetPath),
+          previousRelativePath: previousPath == null
+              ? null
+              : _portableRelativePath(previousPath),
+          beforeContent: baseline,
+          afterContent: after,
+        ),
+      );
+    }
+
+    for (final createdChunkKey in createdChunkKeys) {
+      if (!currentChunkKeys.contains(createdChunkKey)) {
+        throw StateError('chunk_v2_created_owner_missing: $createdChunkKey.');
+      }
+    }
+    for (final entry in document.baselineContentsByChunkKey.entries) {
+      if (currentChunkKeys.contains(entry.key)) continue;
+      final sourcePath = document.sourcePathByChunkKey[entry.key];
+      if (sourcePath == null) {
+        throw StateError('chunk_v2_deleted_owner_path_missing: ${entry.key}.');
+      }
+      final safeSourcePath = _requireWorkspaceRelativePath(
+        sourcePath,
+        chunkKey: entry.key,
+      );
+      final foldedSourcePath = safeSourcePath.toLowerCase();
+      final replacementOwner = finalOwnerByFoldedPath[foldedSourcePath];
+      if (replacementOwner != null) {
+        throw StateError(
+          'chunk_v2_deleted_source_path_reused: ${entry.key} and '
+          '$replacementOwner claim $sourcePath.',
+        );
+      }
+      writes.add(
+        ChunkFileWrite(
+          chunkKey: entry.key,
+          chunkId: entry.key,
+          relativePath: safeSourcePath,
+          beforeContent: entry.value,
+          afterContent: '',
+          deleteFile: true,
+        ),
+      );
+    }
+
+    writes.sort((left, right) {
+      final pathOrder = left.relativePath.compareTo(right.relativePath);
+      return pathOrder != 0
+          ? pathOrder
+          : left.chunkKey.compareTo(right.chunkKey);
+    });
+    _ensureNoCaseInsensitivePathCollision(writes);
+    final changedChunkKeys = writes.map((write) => write.chunkKey).toSet()
+      ..addAll(document.changedChunkKeys);
+    return ChunkSavePlan(
+      writes: List<ChunkFileWrite>.unmodifiable(writes),
+      changedChunkKeys: List<String>.unmodifiable(
+        changedChunkKeys.toList()..sort(),
       ),
     );
   }
@@ -655,6 +780,39 @@ class ChunkStore {
     return p.normalize(p.join(chunksDirectoryPath, levelDirectory, fileName));
   }
 
+  String _canonicalChunkV2Path(ChunkV2FileData chunk) => _portableRelativePath(
+    p.join(
+      chunksDirectoryPath,
+      _slugify(chunk.levelId),
+      '${_slugify(chunk.id)}.json',
+    ),
+  );
+
+  String _resolveV2TargetChunkPath(
+    ChunkV2FileData chunk, {
+    required String sourcePath,
+  }) {
+    final normalizedSourcePath = _portableRelativePath(sourcePath);
+    return _isEditorManagedChunkPath(normalizedSourcePath)
+        ? _canonicalChunkV2Path(chunk)
+        : normalizedSourcePath;
+  }
+
+  String _requireWorkspaceRelativePath(
+    String path, {
+    required String chunkKey,
+  }) {
+    final normalized = _portableRelativePath(path);
+    if (path.trim().isEmpty ||
+        normalized == '.' ||
+        p.isAbsolute(path) ||
+        normalized == '..' ||
+        normalized.startsWith('../')) {
+      throw StateError('chunk_v2_source_path_outside_workspace: $chunkKey.');
+    }
+    return normalized;
+  }
+
   bool _isEditorManagedChunkPath(String relativePath) {
     final normalizedPath = p.normalize(relativePath);
     final normalizedChunksPath = p.normalize(chunksDirectoryPath);
@@ -785,6 +943,16 @@ int _compareChunksForMemory(LevelChunkDef a, LevelChunkDef b) {
   }
   return a.chunkKey.compareTo(b.chunkKey);
 }
+
+int _compareChunkV2ForMemory(ChunkV2FileData a, ChunkV2FileData b) {
+  final levelCompare = a.levelId.compareTo(b.levelId);
+  if (levelCompare != 0) return levelCompare;
+  final idCompare = a.id.compareTo(b.id);
+  return idCompare != 0 ? idCompare : a.chunkKey.compareTo(b.chunkKey);
+}
+
+String _portableRelativePath(String path) =>
+    p.normalize(path).replaceAll('\\', '/');
 
 String _slugify(String raw) {
   final lower = raw.toLowerCase().trim();

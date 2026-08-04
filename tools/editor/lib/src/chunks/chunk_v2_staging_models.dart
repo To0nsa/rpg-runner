@@ -26,6 +26,7 @@ class ChunkV2StagingDocument extends AuthoringDocument {
     required Iterable<String> availableLevelIds,
     required this.activeLevelId,
     Iterable<String> changedChunkKeys = const <String>[],
+    Iterable<String> createdChunkKeys = const <String>[],
   }) : chunks = List<ChunkV2FileData>.unmodifiable(chunks),
        sourcePathByChunkKey = Map<String, String>.unmodifiable(
          sourcePathByChunkKey,
@@ -43,6 +44,9 @@ class ChunkV2StagingDocument extends AuthoringDocument {
        availableLevelIds = List<String>.unmodifiable(availableLevelIds),
        changedChunkKeys = List<String>.unmodifiable(
          changedChunkKeys.toSet().toList()..sort(),
+       ),
+       createdChunkKeys = List<String>.unmodifiable(
+         createdChunkKeys.toSet().toList()..sort(),
        );
 
   final List<ChunkV2FileData> chunks;
@@ -57,6 +61,9 @@ class ChunkV2StagingDocument extends AuthoringDocument {
   final String? activeLevelId;
   final List<String> changedChunkKeys;
 
+  /// Owners created in memory and therefore intentionally lacking baselines.
+  final List<String> createdChunkKeys;
+
   ChunkV2StagingDocument copyWith({
     Iterable<ChunkV2FileData>? chunks,
     Map<String, String>? sourcePathByChunkKey,
@@ -70,6 +77,7 @@ class ChunkV2StagingDocument extends AuthoringDocument {
     String? activeLevelId,
     bool clearActiveLevelId = false,
     Iterable<String>? changedChunkKeys,
+    Iterable<String>? createdChunkKeys,
   }) => ChunkV2StagingDocument(
     chunks: chunks ?? this.chunks,
     sourcePathByChunkKey: sourcePathByChunkKey ?? this.sourcePathByChunkKey,
@@ -86,6 +94,7 @@ class ChunkV2StagingDocument extends AuthoringDocument {
         ? null
         : (activeLevelId ?? this.activeLevelId),
     changedChunkKeys: changedChunkKeys ?? this.changedChunkKeys,
+    createdChunkKeys: createdChunkKeys ?? this.createdChunkKeys,
   );
 }
 
