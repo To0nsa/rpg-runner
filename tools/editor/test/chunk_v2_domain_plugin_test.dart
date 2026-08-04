@@ -5,6 +5,7 @@ import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_plugin.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_codec.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_data.dart';
+import 'package:runner_editor/src/chunks/chunk_v2_metadata_commit.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_staging_models.dart';
 import 'package:runner_editor/src/levels/level_domain_models.dart';
 import 'package:runner_editor/src/domain/authoring_types.dart';
@@ -156,6 +157,142 @@ void main() {
       expect(root.listSync(recursive: true), isEmpty);
     },
   );
+
+  test(
+    'typed metadata commit changes only editable fields and revision once',
+    () {
+      final plugin = ChunkDomainPlugin();
+      final document = _document(<TerrainSourceShapeDef>[_rectangle(top: 20)]);
+      final before = document.chunks.single;
+      final edited =
+          plugin.applyEdit(
+                document,
+                AuthoringCommand(
+                  kind: ChunkDomainPlugin.commitChunkMetadataCommandKind,
+                  payload: <String, Object?>{
+                    'chunkKey': before.chunkKey,
+                    'commit': ChunkV2MetadataCommit(
+                      before: ChunkV2MetadataSnapshot.fromChunk(before),
+                      after: ChunkV2MetadataSnapshot(
+                        status: chunkStatusDeprecated,
+                        levelId: before.levelId,
+                        difficulty: chunkDifficultyHard,
+                        assemblyGroupId: before.assemblyGroupId,
+                        tags: const <String>['boss', 'forest'],
+                        groundBandZIndex: 3,
+                      ),
+                    ),
+                  },
+                ),
+              )
+              as ChunkV2StagingDocument;
+
+      final after = edited.chunks.single;
+      expect(after.revision, before.revision + 1);
+      expect(after.status, chunkStatusDeprecated);
+      expect(after.difficulty, chunkDifficultyHard);
+      expect(after.tags, <String>['boss', 'forest']);
+      expect(after.groundBandZIndex, 3);
+      expect(after.chunkKey, before.chunkKey);
+      expect(after.id, before.id);
+      expect(after.tileSize, before.tileSize);
+      expect(after.width, before.width);
+      expect(after.height, before.height);
+      expect(after.tileLayers, before.tileLayers);
+      expect(after.prefabs, before.prefabs);
+      expect(after.markers, before.markers);
+      expect(after.collisionShapes, before.collisionShapes);
+      expect(edited.changedChunkKeys, <String>['forest_target']);
+
+      final pending = plugin.describePendingChanges(
+        EditorWorkspace(rootPath: Directory.current.path),
+        document: edited,
+      );
+      expect(pending.changedItemIds, <String>['forest_target']);
+      expect(pending.fileDiffs, hasLength(1));
+      expect(
+        pending.fileDiffs.single.relativePath,
+        'chunks/forest_target.json',
+      );
+      expect(
+        pending.fileDiffs.single.unifiedDiff,
+        contains('"status": "deprecated"'),
+      );
+      expect(
+        pending.fileDiffs.single.unifiedDiff,
+        contains('"groundBandZIndex": 3'),
+      );
+    },
+  );
+
+  test('stale noncanonical and invalid metadata commits keep identity', () {
+    final plugin = ChunkDomainPlugin();
+    final document = _document(<TerrainSourceShapeDef>[_rectangle(top: 20)]);
+    final current = document.chunks.single;
+
+    ChunkV2MetadataCommit command({
+      ChunkV2MetadataSnapshot? before,
+      required ChunkV2MetadataSnapshot after,
+    }) => ChunkV2MetadataCommit(
+      before: before ?? ChunkV2MetadataSnapshot.fromChunk(current),
+      after: after,
+    );
+
+    AuthoringDocument apply(ChunkV2MetadataCommit commit) => plugin.applyEdit(
+      document,
+      AuthoringCommand(
+        kind: ChunkDomainPlugin.commitChunkMetadataCommandKind,
+        payload: <String, Object?>{
+          'chunkKey': current.chunkKey,
+          'commit': commit,
+        },
+      ),
+    );
+
+    final validAfter = ChunkV2MetadataSnapshot(
+      status: current.status,
+      levelId: current.levelId,
+      difficulty: chunkDifficultyHard,
+      assemblyGroupId: current.assemblyGroupId,
+      tags: current.tags,
+      groundBandZIndex: current.groundBandZIndex,
+    );
+    final staleBefore = ChunkV2MetadataSnapshot(
+      status: current.status,
+      levelId: current.levelId,
+      difficulty: chunkDifficultyEasy,
+      assemblyGroupId: current.assemblyGroupId,
+      tags: current.tags,
+      groundBandZIndex: current.groundBandZIndex,
+    );
+    final noncanonical = ChunkV2MetadataSnapshot(
+      status: current.status,
+      levelId: current.levelId,
+      difficulty: current.difficulty,
+      assemblyGroupId: current.assemblyGroupId,
+      tags: const <String>['forest', 'boss'],
+      groundBandZIndex: current.groundBandZIndex,
+    );
+    final invalidLevel = ChunkV2MetadataSnapshot(
+      status: current.status,
+      levelId: 'missing',
+      difficulty: current.difficulty,
+      assemblyGroupId: current.assemblyGroupId,
+      tags: current.tags,
+      groundBandZIndex: current.groundBandZIndex,
+    );
+
+    expect(
+      apply(command(before: staleBefore, after: validAfter)),
+      same(document),
+    );
+    expect(apply(command(after: noncanonical)), same(document));
+    expect(apply(command(after: invalidLevel)), same(document));
+    expect(
+      apply(command(after: ChunkV2MetadataSnapshot.fromChunk(current))),
+      same(document),
+    );
+  });
 }
 
 ChunkV2StagingDocument _document(

@@ -11,6 +11,8 @@ import 'chunk_v2_collision_expansion.dart';
 import 'chunk_validation.dart';
 import 'chunk_v2_collision_commit.dart';
 import 'chunk_v2_file_codec.dart';
+import 'chunk_v2_file_data.dart';
+import 'chunk_v2_metadata_commit.dart';
 import 'chunk_v2_seam_analysis.dart';
 import 'chunk_v2_staging_models.dart';
 import 'chunk_v2_validation.dart';
@@ -28,6 +30,10 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
 
   /// Staged command for one accepted chunk-local polygon interaction commit.
   static const String commitChunkPolygonCommandKind = 'commit_chunk_polygon';
+
+  /// Staged command for one existing owner's typed metadata commit.
+  static const String commitChunkMetadataCommandKind =
+      'commit_chunk_v2_metadata';
 
   final ChunkStore _store;
   final PrefabStore _prefabStore;
@@ -403,25 +409,48 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
     ChunkV2StagingDocument document,
     AuthoringCommand command,
   ) {
-    if (command.kind != commitChunkPolygonCommandKind) return document;
     final chunkKey = command.payload['chunkKey'];
-    final commit = command.payload['commit'];
-    if (chunkKey is! String || commit is! TerrainPolygonInteractionCommit) {
-      return document;
-    }
+    if (chunkKey is! String) return document;
     final chunkIndex = document.chunks.indexWhere(
       (chunk) => chunk.chunkKey == chunkKey,
     );
     if (chunkIndex < 0) return document;
-    final result = const ChunkV2CollisionCommitPolicy().apply(
-      chunk: document.chunks[chunkIndex],
-      commit: commit,
-      sourcePath: document.sourcePathByChunkKey[chunkKey] ?? chunkKey,
-      chunkIndex: chunkIndex,
-    );
-    if (!result.accepted || !result.changed) return document;
+    final chunk = document.chunks[chunkIndex];
+    late final ChunkV2FileData nextChunk;
+    switch (command.kind) {
+      case commitChunkPolygonCommandKind:
+        final commit = command.payload['commit'];
+        if (commit is! TerrainPolygonInteractionCommit) return document;
+        final result = const ChunkV2CollisionCommitPolicy().apply(
+          chunk: chunk,
+          commit: commit,
+          sourcePath: document.sourcePathByChunkKey[chunkKey] ?? chunkKey,
+          chunkIndex: chunkIndex,
+        );
+        if (!result.accepted || !result.changed) return document;
+        nextChunk = result.chunk;
+        break;
+      case commitChunkMetadataCommandKind:
+        final commit = command.payload['commit'];
+        if (commit is! ChunkV2MetadataCommit) return document;
+        final result = const ChunkV2MetadataCommitPolicy().apply(
+          chunk: chunk,
+          commit: commit,
+          knownLevelIds: document.availableLevelIds,
+          allowedAssemblyGroupIdsByLevelId: <String, Iterable<String>>{
+            for (final level in document.levels)
+              level.levelId: level.chunkThemeGroups,
+          },
+          sourcePath: document.sourcePathByChunkKey[chunkKey] ?? chunkKey,
+        );
+        if (!result.accepted || !result.changed) return document;
+        nextChunk = result.chunk;
+        break;
+      default:
+        return document;
+    }
     final chunks = document.chunks.toList(growable: false);
-    chunks[chunkIndex] = result.chunk;
+    chunks[chunkIndex] = nextChunk;
     return document.copyWith(
       chunks: chunks,
       changedChunkKeys: <String>{...document.changedChunkKeys, chunkKey},
