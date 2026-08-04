@@ -56,7 +56,7 @@ The active schema migration, generator, preview, and cutover work remains in
 | Cross-domain canonical migration report | editor migration domain | read-only CLI, strict in-memory targets, and exact source SHA-256 audit; source writes remain pending |
 | Guarded migration write transaction | editor `WorkspaceWriteTransaction` / `PolygonAuthoringMigrationTransaction` | temporary-workspace tests only; the CLI has no caller and real source remains legacy until normal store cutover |
 | Strict chunk-v2 file structure, canonical serialization, and ownership planning | editor `ChunkV2FileData` / `ChunkV2FileCodec` / `ChunkStore.buildV2StagingSavePlan` | migration facade delegation, complete-repository round-trip, explicit strict staging, and read-only create/move/delete pending plans; v2 filesystem save and normal cutover are pending |
-| Chunk-v2 plugin staging, direct-owner validation, and commit policy | editor `ChunkV2StagingDocument` / `ChunkV2CollisionCommitPolicy` / `ChunkV2MetadataCommitPolicy` / `ChunkV2CompositionCommitPolicy` / `ChunkDomainPlugin` | strict future-source composition, Core direct-shape/bounds validation, freshness/order/revision enforcement, typed polygon/metadata/composition commits for existing owners, immutable pending diffs, hard export lock, and read-only direct/placed collision expansion; lifecycle paths, granular normal forms, and normal cutover are pending |
+| Chunk-v2 plugin staging, validation, mutation, and lifecycle policy | editor `ChunkV2StagingDocument` / `ChunkV2CollisionCommitPolicy` / `ChunkV2MetadataCommitPolicy` / `ChunkV2CompositionCommitPolicy` / `ChunkV2LifecycleCommitPolicy` / `ChunkDomainPlugin` | strict future-source composition; Core direct/expanded validation; freshness/order/revision enforcement; typed polygon, metadata, composition, and create/duplicate/rename/delete commits; immutable ownership/pending plans; hard export lock; granular normal forms and normal cutover are pending |
 | Chunk polygon route-local projection | editor `ChunkPolygonAuthoringController` / `ChunkPolygonSceneSurface` / `ChunkPolygonStagingWorkspace` | explicit staged-scene routing, active-level owner isolation, tools, snap, bounds, diagnostics, keyboard, rejection, history, compiled-edge inspection, actor-terrain, and marker-placement overlays; normal v1 loads still select ground/gap authoring |
 | Chunk actor terrain projection | editor `ChunkV2ActorTerrainProjection` | Core surface extraction; Éloïse/Grojib/Hashash eligibility; published Grojib/Hashash graphs; Unoco solid/local-hover evidence; Derf 15-degree/32-pixel perch evidence; no player/flight graph or source mutation |
 | Chunk marker contract and placement projection | editor `chunk_v2_marker_contract.dart` / `ChunkV2MarkerPlacementProjection` | immutable level ground context, staged marker validation, exact Phase 3 enemy placement evidence, Hashash deferral, authored-order/stable-key retention, and zero RNG/source mutation |
@@ -143,6 +143,39 @@ delete/reload/create flow over ambiguous same-transaction ownership transfer.
 There is still no v2 save method: final filesystem drift checks, sibling
 staging, byte verification, transaction application, rollback, and reload
 tests remain required before the write lock can move.
+
+## Chunk V2 Lifecycle Contract
+
+`ChunkV2LifecycleCommit` combines a typed create, duplicate, rename, or delete
+operation with an immutable snapshot of current owners, revisions, created
+state, source paths, exact baseline contents, active level, and level
+revision/group tokens. Any intervening owner, metadata/composition/polygon
+revision, ownership, active-level, or relevant level-definition change makes
+the command stale. Rejected, malformed, missing-owner, colliding, and no-op
+operations preserve the original document identity.
+
+Create requires a canonical lowercase stable ID and an existing owner in the
+active level to supply locked tile size and dimensions. It allocates a stable
+key against all current and retained baseline ownership, creates empty
+composition/polygons at revision 1, and deliberately starts deprecated. This
+prevents an unfinished blank chunk from entering scheduler/seam pools. The
+default assembly group is `default` when declared, otherwise the first lexical
+declared group.
+
+Duplicate copies the complete source owner, allocates a fresh ID/key/path,
+resets revision to 1, and starts active because its terrain has already passed
+source validation. Rename preserves `chunkKey`, advances revision exactly once,
+and lets the ownership plan describe a managed file move. This intentionally
+strengthens legacy behavior, where rename changed source bytes without a
+revision bump. A created owner's path is updated directly because it has no old
+baseline; a loaded owner retains its old path as move evidence.
+
+Deleting a loaded owner removes it from the current set while retaining exact
+path/baseline deletion evidence. Deleting a newly created unsaved owner removes
+its provisional ownership and changed key, returning to a clean plan when no
+other edits exist. Every accepted candidate passes complete staged validation
+and the read-only ownership plan before plugin dispatch. None of these commands
+can write source yet.
 
 ## Source Coordinates And Canonicalization
 
@@ -1048,6 +1081,10 @@ The foundation is covered by:
 - read-only Chunk-v2 ownership planning for canonical creation, managed-path
   moves, baseline deletion, portable old/new diffs, missing ownership,
   workspace escape, case-insensitive collision, and deleted-path reuse
+- Chunk-v2 lifecycle snapshot freshness across owners/revisions/source/levels,
+  deprecated blank create, active exact duplicate, stable-key/revisioned rename,
+  loaded deletion, unsaved cancellation, canonical created-owner path refresh,
+  full candidate validation, typed dispatch, and rejection/no-op identity
 - Chunk staged-scene routing without a legacy reload, active-level owner
   isolation, locked reload/apply, visible snap/tools, one direct-owner edit,
   route-level undo restoration, and unchanged normal v1 route regression tests
