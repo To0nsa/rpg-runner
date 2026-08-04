@@ -372,6 +372,10 @@ Chunk v2 replaces `groundProfile` and `groundGaps` with direct chunk-local
 - [x] Compose staged chunks with strict prefab-v3/tile-v2 dependencies in a
       temporary document/scene, deterministic active-level projection,
       pending diffs, clean no-op export, and changed-source export lock.
+- [x] Build a read-only v2 ownership/save plan for baseline-backed owners,
+      explicitly created owners, managed-path moves, and baseline deletions.
+      Require portable workspace-relative paths and reject missing ownership,
+      case-insensitive target collisions, and deleted-path reuse.
 - [ ] Make normal canonical chunk writes target v2 at the single source
       cutover.
 - [ ] Remove `GroundProfileDef` and `GroundGapDef` from normal v2 models.
@@ -802,6 +806,11 @@ source or enable `--write` until these slices close in order:
      path collision checks, sibling staging, byte verification, and rollback.
    - Exercise writes only in temporary all-current fixtures. The checked-in
      v2/v1 source and CLI remain read-only.
+   - Landed first: `ChunkStore` can build a deterministic v2 plan and pending
+     diff for clean/current, create, managed move, and delete states entirely
+     from immutable source baselines. It has no v2 save method yet; drift
+     rechecks, transactional application, reload, and rollback proof remain
+     open.
 4. **Route replacement.**
    - Compose existing prefab/module and chunk metadata/placement/marker forms
      over the v3/v2 plugin documents, replace rectangle/ground-gap controls
@@ -1329,6 +1338,7 @@ result.
 | 2026-08-03 / `f343336e` | Deterministic migration failure/rollback evidence | Dart VM and Flutter test VM on Windows with Docker running | Targeted analysis is clean and all 4 migration-transaction tests pass. Report-v1 failure evidence distinguishes pre-write blocking, successful rollback, incomplete rollback, and committed-output cleanup failure; source paths are canonical and host-specific cause/temp-path text is excluded. This closes the machine-readable result contract only—CLI report-file emission and `--write` authorization remain disabled. |
 | 2026-08-04 / `9eec2039` | Write-locked Chunk v2 existing-owner metadata commits | Dart VM and Flutter test VM on Windows with Docker running | Targeted analysis of the policy, plugin, and focused test file is clean; all 5 Chunk-v2 plugin tests pass. The immutable before/after contract rejects stale, invalid, unknown, and noncanonical values; accepted status/level/difficulty/assembly-group/tag/ground-band changes preserve identity, dimensions, composition, markers, placements, and polygons while advancing the owner revision exactly once and producing its canonical pending diff. Changed v2 export remains hard-locked, normal v1 loading/source is unchanged, and lifecycle/placement/marker/tile-layer command parity remains open. |
 | 2026-08-04 / `77513d30` | Write-locked Chunk v2 composition commits | Dart VM and Flutter test VM on Windows with Docker running | Targeted policy/plugin/test analysis is clean and all 7 Chunk-v2 plugin tests pass. One immutable before/after contract now covers canonical tile layers, prefab placements, and enemy markers for an existing owner. Accepted changes preserve identity, metadata, dimensions, and polygons, advance the revision once, and produce one pending owner diff; stale/noncanonical/no-op edits, unknown prefab references, invalid enemy markers, and any complete-document placement/marker/seam/geometry blocker preserve document identity. The source-write lock and normal v1 authority remain unchanged; granular route forms and lifecycle paths remain open. |
+| 2026-08-04 / `7b42595c` | Read-only Chunk v2 source-ownership/save plan | Dart VM and Flutter test VM on Windows with Docker running | Targeted analysis is clean and all 15 save-plan/plugin/staging-loader tests pass. Staged documents now distinguish explicitly created owners from baseline-backed owners; the deterministic plan covers clean no-op, canonical new files, managed ID/level path moves, and baseline deletions, with portable pending paths and old/new diff headers. Missing baselines/paths, workspace escapes, case-insensitive final-target collisions, and reuse of a pending deleted path fail closed. No v2 save method or filesystem mutation exists, changed export stays locked, and normal v1 source remains authoritative. |
 ### 28.1 Baseline Environment And Source Identity
 
 - Starting worktree: dirty with 133 pre-existing entries. The authoring JSON,

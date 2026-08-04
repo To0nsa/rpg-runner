@@ -55,7 +55,7 @@ The active schema migration, generator, preview, and cutover work remains in
 | Strict legacy prefab-v1/v2 and chunk-v1 source parsing | editor migration-owned `LegacyPrefabDef` / chunk-v1 models | read-only aggregate planner input; compatibility stores and normal `PrefabDef` are bypassed |
 | Cross-domain canonical migration report | editor migration domain | read-only CLI, strict in-memory targets, and exact source SHA-256 audit; source writes remain pending |
 | Guarded migration write transaction | editor `WorkspaceWriteTransaction` / `PolygonAuthoringMigrationTransaction` | temporary-workspace tests only; the CLI has no caller and real source remains legacy until normal store cutover |
-| Strict chunk-v2 file structure and canonical serialization | editor `ChunkV2FileData` / `ChunkV2FileCodec` | migration facade delegation, complete-repository round-trip, and explicit strict store staging; normal load/save cutover is pending |
+| Strict chunk-v2 file structure, canonical serialization, and ownership planning | editor `ChunkV2FileData` / `ChunkV2FileCodec` / `ChunkStore.buildV2StagingSavePlan` | migration facade delegation, complete-repository round-trip, explicit strict staging, and read-only create/move/delete pending plans; v2 filesystem save and normal cutover are pending |
 | Chunk-v2 plugin staging, direct-owner validation, and commit policy | editor `ChunkV2StagingDocument` / `ChunkV2CollisionCommitPolicy` / `ChunkV2MetadataCommitPolicy` / `ChunkV2CompositionCommitPolicy` / `ChunkDomainPlugin` | strict future-source composition, Core direct-shape/bounds validation, freshness/order/revision enforcement, typed polygon/metadata/composition commits for existing owners, immutable pending diffs, hard export lock, and read-only direct/placed collision expansion; lifecycle paths, granular normal forms, and normal cutover are pending |
 | Chunk polygon route-local projection | editor `ChunkPolygonAuthoringController` / `ChunkPolygonSceneSurface` / `ChunkPolygonStagingWorkspace` | explicit staged-scene routing, active-level owner isolation, tools, snap, bounds, diagnostics, keyboard, rejection, history, compiled-edge inspection, actor-terrain, and marker-placement overlays; normal v1 loads still select ground/gap authoring |
 | Chunk actor terrain projection | editor `ChunkV2ActorTerrainProjection` | Core surface extraction; Éloïse/Grojib/Hashash eligibility; published Grojib/Hashash graphs; Unoco solid/local-hover evidence; Derf 15-degree/32-pixel perch evidence; no player/flight graph or source mutation |
@@ -117,6 +117,32 @@ marker, and layer forms without cloning mutation rules into widgets. Those
 normal forms are not composed over the staging document yet. Changed export
 remains hard-locked, and the contract does not add source lifecycle/path
 semantics.
+
+## Chunk V2 Read-Only Source Ownership Plan
+
+`ChunkV2StagingDocument.createdChunkKeys` distinguishes new in-memory owners
+from owners loaded with exact baseline bytes. Every current owner still has one
+workspace-relative source path. A loaded owner must have a baseline; a created
+owner must not. Deleted loaded owners remain in the source-path/baseline maps
+while absent from the current chunk list, which preserves the evidence needed
+to describe deletion without consulting mutable filesystem bytes.
+
+`ChunkStore.buildV2StagingSavePlan` is pure planning. Existing custom source
+paths remain stable, while editor-managed paths follow the canonical
+`assets/authoring/level/chunks/<level>/<id>.json` rule. Therefore a retained
+owner's level or display-ID change is represented as one write with an explicit
+previous path; stable `chunkKey` remains the owner identity. New owners require
+their canonical path, and deleted owners produce an exact baseline-backed
+delete entry. Pending diffs use repository-portable `/` paths and show distinct
+old/new paths for moves.
+
+Planning rejects absent baselines, absent ownership paths, absolute or escaping
+paths, case-insensitive final-path collisions, and reuse of a path still owned
+by a pending deletion. The last rule deliberately favors an explicit two-step
+delete/reload/create flow over ambiguous same-transaction ownership transfer.
+There is still no v2 save method: final filesystem drift checks, sibling
+staging, byte verification, transaction application, rollback, and reload
+tests remain required before the write lock can move.
 
 ## Source Coordinates And Canonicalization
 
@@ -1019,6 +1045,9 @@ The foundation is covered by:
   reference/expansion and enemy-marker validation, complete candidate-document
   blocking, mutually protected metadata/geometry, exactly-once revision,
   pending projection, and no-op/rejection identity
+- read-only Chunk-v2 ownership planning for canonical creation, managed-path
+  moves, baseline deletion, portable old/new diffs, missing ownership,
+  workspace escape, case-insensitive collision, and deleted-path reuse
 - Chunk staged-scene routing without a legacy reload, active-level owner
   isolation, locked reload/apply, visible snap/tools, one direct-owner edit,
   route-level undo restoration, and unchanged normal v1 route regression tests
