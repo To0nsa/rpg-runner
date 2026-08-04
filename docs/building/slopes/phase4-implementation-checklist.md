@@ -759,6 +759,71 @@ curves, and holes are not required for the baseline tool.
 - [x] Record projectile terrain as the existing later-phase disposition; the
       editor must not imply ballistic terrain support is already delivered.
 
+### 19.2 Normal V3/V2 Cutover Execution Slices
+
+The explicit polygon workspaces prove geometry editing but deliberately do not
+yet preserve the complete normal authoring surface. Do not migrate repository
+source or enable `--write` until these slices close in order:
+
+1. **Typed domain mutation parity, still write-locked.**
+   - Prefab v3 must preserve create, duplicate, rename, deprecate/delete,
+     lifecycle status, kind, visual source, anchor, tags, atlas slices, tile
+     slices, and platform modules. Polygon commits remain the only collision
+     mutation; no rectangle compatibility field enters the v3 model.
+   - Chunk v2 must preserve create, duplicate, rename, deprecate/delete,
+     general metadata, `groundBandZIndex`, tile layers, prefab placements,
+     enemy markers, and active-level scope. It intentionally drops only
+     `update_ground_profile`, `add_ground_gap`, `update_ground_gap`, and
+     `remove_ground_gap`.
+   - Reuse existing deterministic allocation, ordering, revision, and no-op
+     rules rather than cloning them into route widgets.
+2. **Normal validation and pending-change parity.**
+   - Run owner validation, expanded prefab collision, marker placement,
+     scheduler-reachable seam analysis, and global capacity checks on every
+     semantic commit/export.
+   - Preserve load-time baselines, changed stable keys, downstream prefab
+     placement impact, and canonical one-file-per-owner diffs.
+3. **Store/export parity without repository migration.**
+   - Add exact v3/v2 save plans, final source-drift checks, case-insensitive
+     path collision checks, sibling staging, byte verification, and rollback.
+   - Exercise writes only in temporary all-current fixtures. The checked-in
+     v2/v1 source and CLI remain read-only.
+4. **Route replacement.**
+   - Compose existing prefab/module and chunk metadata/placement/marker forms
+     over the v3/v2 plugin documents, replace rectangle/ground-gap controls
+     with the proven polygon surfaces, and restore reload/source-apply actions.
+   - Add the owning-prefab navigation action from selected placed collision;
+     never add per-instance vertex overrides.
+5. **Current-schema normal-loader proof.**
+   - In a complete temporary v3/v2 workspace, normal plugin loading—not an
+     explicit staging API—must select polygon documents, support every retained
+     operation, export, reload byte-identically, and preserve session history.
+   - Legacy source must then report one explicit migration-required state; it
+     must not silently select the rectangle/ground-gap page.
+6. **Coordinated repository cutover.**
+   - Register current-schema generator/seam/staged-terrain outputs, run the
+     complete read-only migration and generated-impact gates, enable `--write`
+     with external report emission, replace all nine source files atomically,
+     and immediately regenerate/verify the bounded legacy projection.
+   - Remove `Staging` names, legacy normal models/forms/commands/stores, and the
+     temporary source-write locks in the same cutover. Legacy codecs remain
+     reachable only from the offline migration checker.
+
+Current command-gap audit (August 4, 2026):
+
+| Domain | Normal legacy command surface | Explicit polygon document today | Cutover requirement |
+| --- | --- | --- | --- |
+| Prefab | `replace_prefab_data`, covering prefab/slice/module lifecycle and metadata | `commit_prefab_polygon` only | Add typed v3 operations or one equally strict immutable replacement contract before reusing the normal forms. |
+| Chunk lifecycle | `create_chunk`, `duplicate_chunk`, `rename_chunk`, `deprecate_chunk`, `delete_chunk` | none | Preserve stable `chunkKey`, deterministic IDs/paths, and existing revision semantics. |
+| Chunk metadata | `update_chunk_metadata`, `update_ground_band_z_index`, active-level selection | active-level selection only | Preserve all non-flat-ground metadata; keep the render-band field until Phase 5. |
+| Chunk placements | add/move/replace/settings/remove prefab placement | read-only expanded overlay | Preserve exact placement transforms and open the owner for collision edits. |
+| Chunk markers | add/move/type/settings/remove enemy marker | read-only Core placement diagnostics | Preserve authored order/chance/salt/intent and consume no RNG in authoring. |
+| Removed terrain commands | ground-profile update plus add/update/remove gap | `commit_chunk_polygon` | Delete the legacy commands/forms rather than mapping them to approximate polygons. |
+
+This audit is a technical preservation gate, not a request for new gameplay
+rules. Existing Phase 0-3 player, enemy, navigation, marker, and determinism
+contracts remain authoritative throughout the cutover.
+
 ## 20) Scheduler-Aware Seam Validation
 
 A seam is validated against the transitions the generated level scheduler can
