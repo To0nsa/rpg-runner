@@ -683,6 +683,13 @@ curves, and holes are not required for the baseline tool.
       and selected-shape diagnostics in prefab-local coordinates.
 - [x] Keep atlas/platform-module image-size caches workspace-scoped.
 - [ ] Preserve slice/module selection, prefab operations, tags, and status.
+- [x] Compose retained prefab-owner controls over the explicit v3 staging
+      document: create, edit status/kind/visual source/anchor/tags, duplicate,
+      stable-key-preserving rename, and delete all dispatch typed stale-checked
+      commands. Owner selection survives undo/redo and lifecycle replacement,
+      the zero-owner state can create again, polygon source is preserved, and
+      source apply remains visibly locked. Atlas/tile-slice and platform-module
+      catalog forms remain open under the preceding combined parity item.
 - [x] Provide shape list ordering by stable ID and focus from diagnostics.
 - [x] Show exact collision extent beyond visual bounds without clipping.
 - [x] Keep page-local selection/tool/viewport drafts projected over the
@@ -854,6 +861,13 @@ source or enable `--write` until these slices close in order:
      with the proven polygon surfaces, and restore reload/source-apply actions.
    - Add the owning-prefab navigation action from selected placed collision;
      never add per-instance vertex overrides.
+   - Prefab-v3 staging now composes owner create/edit/duplicate/rename/delete
+     forms over the typed plugin commands, including status, kind, visual
+     source, anchor, and canonical tags. These controls preserve polygon source
+     and session history, resynchronize selection after lifecycle changes and
+     undo/redo, and retain the source-write lock. Retained atlas/tile-slice and
+     platform-module catalog forms, normal route selection, reload, and source
+     apply remain open.
 5. **Current-schema normal-loader proof.**
    - In a complete temporary v3/v2 workspace, normal plugin loading—not an
      explicit staging API—must select polygon documents, support every retained
@@ -873,7 +887,7 @@ Current command-gap audit (August 9, 2026):
 
 | Domain | Normal legacy command surface | Explicit polygon document today | Cutover requirement |
 | --- | --- | --- | --- |
-| Prefab | `replace_prefab_data`, covering prefab/slice/module lifecycle and metadata | Write-locked `commit_prefab_polygon`, `commit_prefab_v3_metadata`, `commit_prefab_v3_lifecycle`, and `commit_prefab_v3_catalog` cover collision, existing-owner metadata, prefab lifecycle, slices, and platform modules | Typed mutation parity is staged with deterministic allocation/order, protected collision fields, complete-source freshness and validation, owner/module revision rules, recomputed visual bounds, reference-safe deletion, canonical two-file pending diffs, and read-only stable-key chunk-placement impact. Compose the granular normal forms; source writes remain disabled. |
+| Prefab | `replace_prefab_data`, covering prefab/slice/module lifecycle and metadata | Write-locked `commit_prefab_polygon`, `commit_prefab_v3_metadata`, `commit_prefab_v3_lifecycle`, and `commit_prefab_v3_catalog` cover collision, existing-owner metadata, prefab lifecycle, slices, and platform modules | Typed mutation parity is staged with deterministic allocation/order, protected collision fields, complete-source freshness and validation, owner/module revision rules, recomputed visual bounds, reference-safe deletion, canonical two-file pending diffs, and read-only stable-key chunk-placement impact. Owner metadata/lifecycle forms are composed in explicit staging; atlas/tile-slice and platform-module catalog forms remain open, and source writes remain disabled. |
 | Chunk lifecycle | `create_chunk`, `duplicate_chunk`, `rename_chunk`, `deprecate_chunk`, `delete_chunk` | write-locked `commit_chunk_v2_lifecycle` covers stale-checked create/duplicate/rename/delete; metadata status covers deprecation | Typed lifecycle parity is staged with stable `chunkKey`, canonical IDs/paths, explicit created/baseline ownership, and reviewed v2 revision/default-status rules; compose the granular normal controls. |
 | Chunk metadata | `update_chunk_metadata`, `update_ground_band_z_index`, active-level selection | active-level selection plus write-locked `commit_chunk_v2_metadata` for status, level, difficulty, assembly group, canonical tags, and render-band Z | Existing-owner metadata parity is staged; compose the normal forms and retain the field until Phase 5. |
 | Chunk placements | add/move/replace/settings/remove prefab placement | read-only expanded overlay plus write-locked strict `commit_chunk_v2_composition` replacement | Existing-owner mutation parity is staged with exact expansion/full validation; compose granular normal forms and open the prefab owner for collision edits. |
@@ -1189,7 +1203,8 @@ Stores/plugins:
 - [ ] load/validate/edit/pending diff/export for prefab v3 and chunk v2
 - [ ] atomic paired prefab/tile writes and one-file chunk writes
 - [ ] route/session/workspace switching with polygon draft state
-- [ ] create/duplicate/rename/deprecate revision semantics
+- [x] create/duplicate/rename/deprecate revision semantics in the explicit
+      write-locked Prefab-v3 and Chunk-v2 documents
 - [x] downstream prefab impact preview without chunk mutation
 - [x] invalid/global-seam issue export gating
 
@@ -1385,6 +1400,7 @@ result.
 | 2026-08-09 / `de67b22b` | Transactional Chunk v2 save/reload proof | Dart VM and Flutter test VM on Windows with Docker running | Targeted store/test analysis is clean; the focused 30-test set covers 7 shared transactions, 11 Chunk-v2 save/lifecycle plans, 7 plugin commits, and 5 strict staging loads. Clean plans are no-ops; managed moves and create/delete batches commit atomically and reload byte-identically; full-tree byte/set drift and stale plans reject before replacement. Post-install verification requires the exact canonical file set and strict v2 decoding. Normal v1 authority and the changed-v2 export lock remain unchanged. |
 | 2026-08-09 / `2fef7eb0` | Complete Prefab v3 catalog validation and downstream impact preview | Dart VM and Flutter test VM on Windows with Docker running | Targeted analysis is clean and all 27 focused plugin/load/controller/projection/route tests pass. One shared validator now covers canonical prefab/tile slice and module ordering, identities, revisions, atlas bounds, cell references/positions, visual-owner references, and polygon-owner rules for both commit and plugin validation. Explicit staging strictly reads all-current Chunk-v2 placements, resolves stable keys with legacy-ID fallback, reports deterministic placement/chunk counts, and previews changed-owner impact without changing chunk bytes or revisions. Paired baselines remain mandatory, changed export stays locked, and normal v2/v1 source is untouched. |
 | 2026-08-09 / `336cf6ab` | Whole-document current-schema commit/export gates | Dart VM and Flutter test VM on Windows with Docker running | Targeted plugin/test analysis is clean and all 46 focused Prefab-v3/Chunk-v2 plugin, strict-load, controller, and route tests pass. Every accepted staged candidate now passes complete document validation and save-plan ownership before session history; tests prove a locally valid chunk polygon edit that breaks a scheduler-reachable seam, metadata edits against invalid global state, and prefab owner edits against an invalid retained module all preserve original identity. Both staging exporters validate before clean/no-op or the changed-source write lock. The Chunk route fixture's synthetic rock was moved away from duplicated direct terrain after the new expansion gate correctly rejected their positive-area overlap. Normal source and write locks remain unchanged. |
+| 2026-08-09 / `052f15dc` | Prefab-v3 owner-form composition in explicit staging | Flutter test VM and Dart analyzer on Windows with Docker running | Full editor analysis is clean and all 27 focused staging-route, polygon-controller, Prefab-v3 plugin, and strict-load tests pass. The route now creates and edits owner status/kind/visual source/anchor/canonical tags, duplicates, preserves stable keys while renaming, deletes with downstream-impact warning, survives zero-owner recreation, and resynchronizes selection across lifecycle commands and undo/redo. The end-to-end widget test proves every metadata/lifecycle operation preserves committed polygon source. Unchanged forms are no-ops, controller disposal follows dialog lifecycle, source apply remains disabled, and normal v2 source/route authority is unchanged. |
 
 ### 28.1 Baseline Environment And Source Identity
 
