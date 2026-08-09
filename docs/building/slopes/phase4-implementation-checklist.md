@@ -822,8 +822,14 @@ source or enable `--write` until these slices close in order:
      module cells/references, visual-owner references, and polygon-owner rules.
      Strict chunk-v2 placement reads produce stable-key impact counts for every
      prefab; the staging route previews affected placements/chunks while
-     preserving all chunk bytes and revisions. Chunk-v2 commit/export parity
-     across every global diagnostic remains open.
+     preserving all chunk bytes and revisions.
+   - Every changed Prefab-v3 and Chunk-v2 staging candidate now crosses its
+     complete document validator plus deterministic save-plan ownership before
+     entering session history. Polygon and metadata edits can no longer bypass
+     expanded prefab collision, marker, capacity, or scheduler-reachable seam
+     blockers; lifecycle/catalog/composition edits retain the same gate.
+     Staging export validates before its clean/no-op result or changed-source
+     write lock, so invalid source cannot masquerade as a successful no-op.
 3. **Store/export parity without repository migration.**
    - Add exact v3/v2 save plans, final source-drift checks, case-insensitive
      path collision checks, sibling staging, byte verification, and rollback.
@@ -1185,7 +1191,7 @@ Stores/plugins:
 - [ ] route/session/workspace switching with polygon draft state
 - [ ] create/duplicate/rename/deprecate revision semantics
 - [x] downstream prefab impact preview without chunk mutation
-- [ ] invalid/global-seam issue export gating
+- [x] invalid/global-seam issue export gating
 
 UI/interactions:
 
@@ -1378,6 +1384,7 @@ result.
 | 2026-08-09 / `52328d1d` | Rollback-safe workspace deletion artifacts | Dart VM and Flutter test VM on Windows with Docker running | Targeted shared-transaction analysis is clean and all 7 transaction tests pass. A deletion now stages no replacement bytes, retains the original as a sibling backup, verifies target absence with the installed set, and restores the deleted file if later post-install validation fails. Existing write ordering, byte verification, drift callback timing, canonical-path rejection, and cleanup behavior remain unchanged. |
 | 2026-08-09 / `de67b22b` | Transactional Chunk v2 save/reload proof | Dart VM and Flutter test VM on Windows with Docker running | Targeted store/test analysis is clean; the focused 30-test set covers 7 shared transactions, 11 Chunk-v2 save/lifecycle plans, 7 plugin commits, and 5 strict staging loads. Clean plans are no-ops; managed moves and create/delete batches commit atomically and reload byte-identically; full-tree byte/set drift and stale plans reject before replacement. Post-install verification requires the exact canonical file set and strict v2 decoding. Normal v1 authority and the changed-v2 export lock remain unchanged. |
 | 2026-08-09 / `2fef7eb0` | Complete Prefab v3 catalog validation and downstream impact preview | Dart VM and Flutter test VM on Windows with Docker running | Targeted analysis is clean and all 27 focused plugin/load/controller/projection/route tests pass. One shared validator now covers canonical prefab/tile slice and module ordering, identities, revisions, atlas bounds, cell references/positions, visual-owner references, and polygon-owner rules for both commit and plugin validation. Explicit staging strictly reads all-current Chunk-v2 placements, resolves stable keys with legacy-ID fallback, reports deterministic placement/chunk counts, and previews changed-owner impact without changing chunk bytes or revisions. Paired baselines remain mandatory, changed export stays locked, and normal v2/v1 source is untouched. |
+| 2026-08-09 / `336cf6ab` | Whole-document current-schema commit/export gates | Dart VM and Flutter test VM on Windows with Docker running | Targeted plugin/test analysis is clean and all 46 focused Prefab-v3/Chunk-v2 plugin, strict-load, controller, and route tests pass. Every accepted staged candidate now passes complete document validation and save-plan ownership before session history; tests prove a locally valid chunk polygon edit that breaks a scheduler-reachable seam, metadata edits against invalid global state, and prefab owner edits against an invalid retained module all preserve original identity. Both staging exporters validate before clean/no-op or the changed-source write lock. The Chunk route fixture's synthetic rock was moved away from duplicated direct terrain after the new expansion gate correctly rejected their positive-area overlap. Normal source and write locks remain unchanged. |
 
 ### 28.1 Baseline Environment And Source Identity
 
