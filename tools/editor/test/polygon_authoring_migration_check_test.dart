@@ -70,6 +70,14 @@ void main() {
       expect(summary['downstreamPlacementCount'], 50);
       expect((decoded['blockers']! as List<Object?>), isEmpty);
       expect(WorkspaceFileIo.fingerprint(report), '086d00a8');
+      expect(
+        check.authoringMigrationSignature(),
+        'c355c5de8af15880881e147a031c054f60642f75f5102d23a2691b97a24d0beb',
+      );
+      expect(
+        check.canonicalAuthoringMigrationRecord(),
+        startsWith('22:authoring-migration-v1|'),
+      );
     },
   );
 
@@ -112,6 +120,35 @@ void main() {
       expect(summary['pendingMigrationFileCount'], 0);
       expect((decoded['prefabs']! as List<Object?>), isEmpty);
       expect((decoded['chunks']! as List<Object?>), isEmpty);
+      expect(
+        check.authoringMigrationSignature(),
+        'd98983c44505bbdbdbe3f1f4482006be9ea67060091613b1b0f8b3b2ca198153',
+      );
+    } finally {
+      fixture.deleteSync(recursive: true);
+    }
+  });
+
+  test('migration signature binds the exact reviewed source bytes', () {
+    final fixture = _copyMigrationSources();
+    try {
+      final baseline = PolygonAuthoringMigrationCheck.fromRepository(
+        fixture.path,
+      );
+      final prefabFile = File(
+        p.join(fixture.path, p.normalize(PrefabStore.prefabDefsPath)),
+      );
+      prefabFile.writeAsStringSync('${prefabFile.readAsStringSync()}\n');
+
+      final changed = PolygonAuthoringMigrationCheck.fromRepository(
+        fixture.path,
+      );
+
+      expect(changed.hasBlockers, isFalse);
+      expect(
+        changed.authoringMigrationSignature(),
+        isNot(baseline.authoringMigrationSignature()),
+      );
     } finally {
       fixture.deleteSync(recursive: true);
     }

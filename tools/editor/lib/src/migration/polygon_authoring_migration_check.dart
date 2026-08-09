@@ -16,6 +16,10 @@ import 'polygon_authoring_migration_plan.dart';
 import 'polygon_authoring_target_codec.dart';
 import 'polygon_authoring_target_models.dart';
 
+/// Canonical signature label for the complete sorted migration readiness report.
+const String polygonAuthoringMigrationSignatureFormat =
+    'authoring-migration-v1';
+
 /// One target file validated entirely in memory by a migration check.
 final class PolygonAuthoringMigrationTargetFile {
   const PolygonAuthoringMigrationTargetFile({
@@ -723,6 +727,16 @@ final class PolygonAuthoringMigrationCheck {
     };
     return '${const JsonEncoder.withIndent('  ').convert(report)}\n';
   }
+
+  /// Length-prefixed record containing the exact canonical readiness report.
+  String canonicalAuthoringMigrationRecord() => _canonicalRecord(<String>[
+    polygonAuthoringMigrationSignatureFormat,
+    toCanonicalJson(),
+  ]);
+
+  /// SHA-256 digest of [canonicalAuthoringMigrationRecord].
+  String authoringMigrationSignature() =>
+      WorkspaceFileIo.sha256Digest(canonicalAuthoringMigrationRecord());
 }
 
 /// Stable source-loading failure that prevents a complete readiness check.
@@ -740,6 +754,9 @@ final class PolygonAuthoringMigrationCheckException implements Exception {
   @override
   String toString() => '$code $sourcePath: $message';
 }
+
+String _canonicalRecord(List<String> fields) =>
+    fields.map((field) => '${utf8.encode(field).length}:$field').join('|');
 
 void _buildPrefabTarget({
   required String prefabSourcePath,
