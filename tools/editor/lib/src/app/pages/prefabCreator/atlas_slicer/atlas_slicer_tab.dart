@@ -177,6 +177,7 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
                 ),
                 const SizedBox(height: PrefabEditorUiTokens.controlGap),
                 TextField(
+                  key: const ValueKey<String>('atlas_slice_id_field'),
                   controller: widget.sliceIdController,
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
@@ -187,6 +188,7 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
                 ),
                 const SizedBox(height: PrefabEditorUiTokens.controlGap),
                 TextField(
+                  key: const ValueKey<String>('atlas_slice_tags_field'),
                   controller: widget.sliceTagsController,
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
@@ -220,6 +222,7 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
                   children: [
                     Expanded(
                       child: TextField(
+                        key: const ValueKey<String>('atlas_selection_x_field'),
                         controller: widget.selectionXController,
                         keyboardType: TextInputType.number,
                         decoration: const InputDecoration(
@@ -235,6 +238,7 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
                     const SizedBox(width: PrefabEditorUiTokens.controlGap),
                     Expanded(
                       child: TextField(
+                        key: const ValueKey<String>('atlas_selection_y_field'),
                         controller: widget.selectionYController,
                         keyboardType: TextInputType.number,
                         decoration: const InputDecoration(
@@ -254,6 +258,7 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
                   children: [
                     Expanded(
                       child: TextField(
+                        key: const ValueKey<String>('atlas_selection_w_field'),
                         controller: widget.selectionWController,
                         keyboardType: TextInputType.number,
                         decoration: const InputDecoration(
@@ -269,6 +274,7 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
                     const SizedBox(width: PrefabEditorUiTokens.controlGap),
                     Expanded(
                       child: TextField(
+                        key: const ValueKey<String>('atlas_selection_h_field'),
                         controller: widget.selectionHController,
                         keyboardType: TextInputType.number,
                         decoration: const InputDecoration(
@@ -295,6 +301,7 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
                 PrefabEditorActionRow(
                   children: [
                     FilledButton.icon(
+                      key: const ValueKey<String>('atlas_slice_save'),
                       onPressed: widget.onSaveSlice,
                       icon: const Icon(Icons.add_box_outlined),
                       label: ValueListenableBuilder<TextEditingValue>(

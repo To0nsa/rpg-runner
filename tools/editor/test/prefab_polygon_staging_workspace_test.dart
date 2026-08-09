@@ -338,6 +338,239 @@ void main() {
       );
     },
   );
+
+  testWidgets(
+    'staging atlas form commits slices and protects local drafts and references',
+    (tester) async {
+      tester.view.physicalSize = const Size(1800, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final harness = await _buildHarness();
+      addTearDown(harness.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData.dark(),
+          home: Scaffold(body: PrefabCreatorPage(controller: harness.session)),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('prefab_v3_view_atlas_slices')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey<String>('atlas_slice_row_decoration_slice')),
+        findsOneWidget,
+      );
+
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('atlas_slice_id_field')),
+        'bonus_slice',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('atlas_slice_tags_field')),
+        'bonus, art, bonus',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('atlas_selection_x_field')),
+        '1',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('atlas_selection_y_field')),
+        '1',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('atlas_selection_w_field')),
+        '6',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('atlas_selection_h_field')),
+        '6',
+      );
+      final saveSlice = find.byKey(const ValueKey<String>('atlas_slice_save'));
+      await tester.ensureVisible(saveSlice);
+      await tester.pump();
+      await tester.tap(saveSlice);
+      await tester.pumpAndSettle();
+
+      var bonus = _slice(harness.session, 'bonus_slice');
+      expect(bonus.sourceImagePath, 'assets/decorations.png');
+      expect((bonus.x, bonus.y, bonus.width, bonus.height), (1, 1, 6, 6));
+      expect(bonus.tags, <String>['art', 'bonus']);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('prefab_polygon_undo_button')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        (harness.session.document! as PrefabV3StagingDocument).data.slices.any(
+          (slice) => slice.id == 'bonus_slice',
+        ),
+        isFalse,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('prefab_polygon_redo_button')),
+      );
+      await tester.pumpAndSettle();
+      expect(_slice(harness.session, 'bonus_slice').width, 6);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('atlas_slice_row_bonus_slice')),
+      );
+      await tester.pump();
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('atlas_selection_w_field')),
+        '7',
+      );
+      await tester.ensureVisible(saveSlice);
+      await tester.pump();
+      await tester.tap(saveSlice);
+      await tester.pumpAndSettle();
+      bonus = _slice(harness.session, 'bonus_slice');
+      expect(bonus.width, 7);
+      expect(bonus.tags, <String>['art', 'bonus']);
+
+      final referencedRow = find.byKey(
+        const ValueKey<String>('atlas_slice_row_decoration_slice'),
+      );
+      await tester.tap(
+        find.descendant(of: referencedRow, matching: find.byTooltip('Delete')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Cannot delete decoration_slice'), findsOneWidget);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('prefab_v3_slice_delete_blocked')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        _slice(harness.session, 'decoration_slice').id,
+        'decoration_slice',
+      );
+
+      final bonusRow = find.byKey(
+        const ValueKey<String>('atlas_slice_row_bonus_slice'),
+      );
+      await tester.tap(
+        find.descendant(of: bonusRow, matching: find.byTooltip('Delete')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('prefab_v3_slice_delete_confirm')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        (harness.session.document! as PrefabV3StagingDocument).data.slices.any(
+          (slice) => slice.id == 'bonus_slice',
+        ),
+        isFalse,
+      );
+
+      await tester.tap(find.byKey(const ValueKey<String>('slice_kind_prefab')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Tile Slice').last);
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey<String>('atlas_slice_row_tile_a')),
+        findsOneWidget,
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('atlas_slice_id_field')),
+        'tile_bonus',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('atlas_selection_x_field')),
+        '0',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('atlas_selection_y_field')),
+        '0',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('atlas_selection_w_field')),
+        '8',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('atlas_selection_h_field')),
+        '8',
+      );
+      await tester.ensureVisible(saveSlice);
+      await tester.pump();
+      await tester.tap(saveSlice);
+      await tester.pumpAndSettle();
+      expect(
+        _slice(harness.session, 'tile_bonus').sourceImagePath,
+        'assets/tiles.png',
+      );
+
+      final tileBonusRow = find.byKey(
+        const ValueKey<String>('atlas_slice_row_tile_bonus'),
+      );
+      await tester.tap(
+        find.descendant(of: tileBonusRow, matching: find.byTooltip('Delete')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('prefab_v3_slice_delete_confirm')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        (harness.session.document! as PrefabV3StagingDocument)
+            .tileData
+            .tileSlices
+            .any((slice) => slice.id == 'tile_bonus'),
+        isFalse,
+      );
+
+      final routeState = tester.state(find.byType(PrefabCreatorPage));
+      final localDraftState = routeState as EditorPageLocalDraftState;
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('atlas_slice_tags_field')),
+        'unsaved',
+      );
+      expect(localDraftState.hasLocalDraftChanges, isTrue);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('prefab_v3_view_owners')),
+      );
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey<String>('atlas_slice_save')),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('prefab_polygon_undo_button')),
+      );
+      await tester.pump();
+      expect(localDraftState.hasLocalDraftChanges, isFalse);
+      expect(
+        tester
+            .widget<TextField>(
+              find.byKey(const ValueKey<String>('atlas_slice_tags_field')),
+            )
+            .controller!
+            .text,
+        isNot('unsaved'),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('prefab_v3_view_owners')),
+      );
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey<String>('prefab_v3_owner_edit')),
+        findsOneWidget,
+      );
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.byKey(const ValueKey<String>('prefab_polygon_apply_locked')),
+            )
+            .onPressed,
+        isNull,
+      );
+    },
+  );
 }
 
 Future<_Harness> _buildHarness() async {
@@ -442,7 +675,11 @@ PrefabV3StagingDocument _stagingDocument() {
       'platform': PrefabV3VisualBounds(widthPx: 16, heightPx: 16),
       'decoration': PrefabV3VisualBounds(widthPx: 12, heightPx: 12),
     },
-    atlasImagePaths: const <String>[],
+    atlasImagePaths: const <String>[
+      'assets/decorations.png',
+      'assets/obstacles.png',
+      'assets/tiles.png',
+    ],
     atlasImageSizes: const <String, Size>{
       'assets/obstacles.png': Size(20, 20),
       'assets/decorations.png': Size(12, 12),
@@ -465,6 +702,14 @@ PrefabV3Def _prefab(EditorSessionController session, String prefabKey) {
   return document.data.prefabs.singleWhere(
     (prefab) => prefab.prefabKey == prefabKey,
   );
+}
+
+AtlasSliceDef _slice(EditorSessionController session, String sliceId) {
+  final document = session.document! as PrefabV3StagingDocument;
+  return <AtlasSliceDef>[
+    ...document.data.slices,
+    ...document.tileData.tileSlices,
+  ].singleWhere((slice) => slice.id == sliceId);
 }
 
 TerrainSourceShapeDef _outsideRectangle() => TerrainSourceShapeDef(
