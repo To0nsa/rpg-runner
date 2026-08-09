@@ -827,6 +827,13 @@ source or enable `--write` until these slices close in order:
      from immutable source baselines. It has no v2 save method yet; drift
      rechecks, transactional application, reload, and rollback proof remain
      open.
+   - `PrefabStore` now builds the exact paired prefab-v3/tile-v2 plan from
+     strict load-time baselines. Its explicit staging proof rechecks both files
+     after staging, installs only changed artifacts through the shared
+     rollback-safe transaction, byte-verifies and strictly decodes the
+     installed pair before cleanup, and reloads byte-identically in temporary
+     all-current fixtures. Normal plugin export and migration writes remain
+     locked.
 4. **Route replacement.**
    - Compose existing prefab/module and chunk metadata/placement/marker forms
      over the v3/v2 plugin documents, replace rectangle/ground-gap controls
@@ -1359,6 +1366,7 @@ result.
 | 2026-08-04 / `fbee0d37` | Write-locked Chunk v2 lifecycle commits | Dart VM and Flutter test VM on Windows with Docker running | Targeted lifecycle/store/plugin analysis is clean and all 18 save-plan/plugin/staging-loader tests pass. One immutable ownership/level snapshot and typed operation family now covers create, duplicate, rename, and delete. Tests prove deprecated blank creation, active revision-1 duplication, stable-key rename with one revision bump and managed move, exact loaded deletion, unsaved create/delete cancellation, created-owner path refresh, typed plugin dispatch, and stale/invalid/colliding/missing/no-op identity. Every accepted candidate passes complete staged validation plus the ownership plan; export remains hard-locked and normal v1 source/routes are unchanged. |
 | 2026-08-09 / `b2a9db0c` | Write-locked Prefab v3 owner mutations | Dart VM and Flutter test VM on Windows with Docker running | Targeted owner-policy/plugin/test analysis is clean; all 8 Prefab-v3 domain tests plus the 3 strict staging-loader tests and route-local staging workspace test pass. Immutable metadata cannot mutate stable identity or polygons; create/duplicate/rename/delete own deterministic keys and revisions; accepted changes recompute visual bounds and rejected stale/invalid/noncanonical/no-op commands preserve document identity. Normal v2 loading/source and changed-v3 export remain locked. |
 | 2026-08-09 / `e3b3e8a1` | Write-locked Prefab v3 visual-catalog mutations | Dart VM and Flutter test VM on Windows with Docker running | Targeted catalog/plugin/test analysis is clean and the final focused set covers 13 Prefab-v3 domain cases, 3 strict staging-load cases, and the route-local staging workspace. Typed prefab/tile slice and platform-module operations use a complete two-file freshness token, canonical ordering, deterministic duplicate IDs, exact module/prefab revision propagation, reference-safe deletion/cascade, recomputed bounds, and portable prefab/tile pending diffs. A tile-only mutation proves changed export remains hard-locked with zero filesystem output; normal v2 authority is unchanged. |
+| 2026-08-09 / `b0eb64e7` | Transactional Prefab v3 save/reload proof | Dart VM and Flutter test VM on Windows with Docker running | Targeted store/plugin/test analysis is clean and all 5 focused save-plan tests pass. Strict paired baselines produce canonical fixed-path plans; clean plans are no-ops; paired and tile-only edits install through the shared rollback-safe workspace transaction and reload byte-identically; source drift, missing/legacy baselines, incomplete plans, and noncanonical outputs fail before replacement. Transaction artifacts are cleaned, the normal plugin remains changed-export locked, and checked-in v2 source is untouched. |
 
 ### 28.1 Baseline Environment And Source Identity
 
