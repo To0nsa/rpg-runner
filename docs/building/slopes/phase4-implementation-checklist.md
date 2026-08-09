@@ -778,6 +778,14 @@ curves, and holes are not required for the baseline tool.
       closed chunk bounds, shared exact shape/vertex editing, retained rejected
       text, owner diagnostics, session history, and visibly disabled
       reload/source-apply actions.
+- [x] Compose retained chunk-owner controls over the explicit v2 staging
+      document: create, edit status/level/difficulty/assembly group/canonical
+      tags/render-band Z, duplicate, stable-key-preserving rename, and delete
+      all dispatch typed stale-checked commands. Identity/dimensions,
+      composition, markers, placements, and polygon source remain protected;
+      selection resynchronizes after lifecycle changes and undo/redo. Deleting
+      a level's final owner leaves level switching and undo recovery available
+      and explains why creation lacks a locked dimension template.
 - [x] Keep the ordinary v1 Chunk Creator route and its ground/gap reload/export
       path unchanged until the coordinated source cutover.
 - [x] Make an accepted direct-owner gesture one revision bump and one pending
@@ -825,11 +833,13 @@ source or enable `--write` until these slices close in order:
      and tile-layer/placement/marker composition use immutable before/after
      contracts with stale rejection, strict canonical values, mutually
      protected fields, complete candidate validation, and one revision bump.
-     Normal form composition/navigation remains open. Prefab-v3 owner metadata,
-     create/duplicate/rename/delete, prefab/tile slices, and platform-module
-     create/update/duplicate/rename/delete are now staged through immutable
-     stale-checked commands; typed Chunk-v2 lifecycle/path semantics remain
-     staged behind the write lock.
+     Chunk owner metadata plus create/duplicate/rename/delete forms now compose
+     those staged policies with active-level selection and undo/redo; granular
+     tile-layer/placement/marker forms and owning-prefab navigation remain open.
+     Prefab-v3 owner metadata, create/duplicate/rename/delete, prefab/tile
+     slices, and platform-module create/update/duplicate/rename/delete are also
+     staged through immutable stale-checked commands. All source writes remain
+     behind the cutover lock.
 2. **Normal validation and pending-change parity.**
    - Run owner validation, expanded prefab collision, marker placement,
      scheduler-reachable seam analysis, and global capacity checks on every
@@ -881,6 +891,12 @@ source or enable `--write` until these slices close in order:
      platform-module forms are also composed over typed catalog commands, with
      reference-safe deletion and guarded local drafts. Normal route selection,
      reload, and source apply remain open.
+   - Chunk-v2 staging now composes active-level owner selection, metadata/status/
+     render-band editing, create/duplicate/stable-key rename/delete, and
+     lifecycle-safe undo/redo over the typed plugin commands. The final-owner
+     empty-level state remains recoverable without inventing dimensions.
+     Tile-layer, placement, marker, and owning-prefab controls plus normal route
+     selection, reload, and source apply remain open.
 5. **Current-schema normal-loader proof.**
    - In a complete temporary v3/v2 workspace, normal plugin loading—not an
      explicit staging API—must select polygon documents, support every retained
@@ -901,8 +917,8 @@ Current command-gap audit (August 9, 2026):
 | Domain | Normal legacy command surface | Explicit polygon document today | Cutover requirement |
 | --- | --- | --- | --- |
 | Prefab | `replace_prefab_data`, covering prefab/slice/module lifecycle and metadata | Write-locked `commit_prefab_polygon`, `commit_prefab_v3_metadata`, `commit_prefab_v3_lifecycle`, and `commit_prefab_v3_catalog` cover collision, existing-owner metadata, prefab lifecycle, slices, and platform modules | Typed mutation and explicit-staging form parity are complete with deterministic allocation/order, protected collision fields, complete-source freshness and validation, owner/module revision rules, recomputed visual bounds, reference-safe deletion, canonical two-file pending diffs, guarded local drafts, visual atlas/module editing, and read-only stable-key chunk-placement impact. Normal loader/route selection, reload/source apply, and source migration remain disabled. |
-| Chunk lifecycle | `create_chunk`, `duplicate_chunk`, `rename_chunk`, `deprecate_chunk`, `delete_chunk` | write-locked `commit_chunk_v2_lifecycle` covers stale-checked create/duplicate/rename/delete; metadata status covers deprecation | Typed lifecycle parity is staged with stable `chunkKey`, canonical IDs/paths, explicit created/baseline ownership, and reviewed v2 revision/default-status rules; compose the granular normal controls. |
-| Chunk metadata | `update_chunk_metadata`, `update_ground_band_z_index`, active-level selection | active-level selection plus write-locked `commit_chunk_v2_metadata` for status, level, difficulty, assembly group, canonical tags, and render-band Z | Existing-owner metadata parity is staged; compose the normal forms and retain the field until Phase 5. |
+| Chunk lifecycle | `create_chunk`, `duplicate_chunk`, `rename_chunk`, `deprecate_chunk`, `delete_chunk` | write-locked `commit_chunk_v2_lifecycle` covers stale-checked create/duplicate/rename/delete; metadata status covers deprecation | Typed lifecycle and explicit-staging form parity are complete with stable `chunkKey`, canonical IDs/paths, explicit created/baseline ownership, reviewed v2 revision/default-status rules, selection resynchronization, and recoverable final-owner deletion. Normal loader/route selection, reload/source apply, and source migration remain disabled. |
+| Chunk metadata | `update_chunk_metadata`, `update_ground_band_z_index`, active-level selection | active-level selection plus write-locked `commit_chunk_v2_metadata` for status, level, difficulty, assembly group, canonical tags, and render-band Z | Existing-owner metadata and explicit-staging form parity are complete with identity/dimensions/composition/marker/placement/polygon protection and one accepted revision bump. Retain render-band Z until Phase 5; normal loader/route selection, reload/source apply, and source migration remain disabled. |
 | Chunk placements | add/move/replace/settings/remove prefab placement | read-only expanded overlay plus write-locked strict `commit_chunk_v2_composition` replacement | Existing-owner mutation parity is staged with exact expansion/full validation; compose granular normal forms and open the prefab owner for collision edits. |
 | Chunk markers | add/move/type/settings/remove enemy marker | read-only Core placement diagnostics plus the same write-locked strict composition replacement | Existing-owner mutation parity is staged with canonical order and enemy-marker contracts; compose granular normal forms while preserving zero-RNG authoring. |
 | Removed terrain commands | ground-profile update plus add/update/remove gap | `commit_chunk_polygon` | Delete the legacy commands/forms rather than mapping them to approximate polygons. |
@@ -1416,6 +1432,7 @@ result.
 | 2026-08-09 / `052f15dc` | Prefab-v3 owner-form composition in explicit staging | Flutter test VM and Dart analyzer on Windows with Docker running | Full editor analysis is clean and all 27 focused staging-route, polygon-controller, Prefab-v3 plugin, and strict-load tests pass. The route now creates and edits owner status/kind/visual source/anchor/canonical tags, duplicates, preserves stable keys while renaming, deletes with downstream-impact warning, survives zero-owner recreation, and resynchronizes selection across lifecycle commands and undo/redo. The end-to-end widget test proves every metadata/lifecycle operation preserves committed polygon source. Unchanged forms are no-ops, controller disposal follows dialog lifecycle, source apply remains disabled, and normal v2 source/route authority is unchanged. |
 | 2026-08-09 / `d25b3003` | Prefab-v3 atlas/tile-slice form composition | Flutter test VM and Dart analyzer on Windows with Docker running | Full editor analysis is clean and all 59 focused Prefab route, legacy-form, polygon-controller, Prefab-v3 plugin, and strict-load tests pass. The retained visual atlas slicer now creates/updates both prefab and tile slices through typed catalog commits, uses domain-canonical tags and atlas bounds, resynchronizes across session undo/redo, confirms unreferenced deletion, and blocks referenced deletion without exposing destructive cascade. Local drafts block workspace switching, normal v2 atlas tests remain green, source apply remains disabled, and checked-in source is unchanged. |
 | 2026-08-09 / `2d3be519` | Prefab-v3 platform-module form composition | Flutter test VM and Dart analyzer on Windows with Docker running | Full editor analysis is clean and all 60 focused Prefab tests pass. The retained module list/form/visual grid now covers deprecated-empty create, update, paint, reactivation, stable reference-cascading rename, deterministic duplicate, reference-safe delete, and session undo/redo through typed catalog commits. Legacy and v3 routes share one pure canonical paint/erase/move/delete reducer; guarded slice/module forms cannot lose drafts through selection, status, cell, delete, or workspace changes. The widget proof preserves referencing prefab polygons, source apply stays disabled, and normal v2 source/route authority is unchanged. |
+| 2026-08-09 / `c54b2b9f` | Chunk-v2 owner-form composition in explicit staging | Flutter test VM and Dart analyzer on Windows with Docker running | Full editor analysis is clean and all 40 focused Chunk route, polygon-controller, lifecycle/save-plan, plugin, strict-load, and legacy-route tests pass. The active-level route now creates deprecated empty owners from locked dimensions; edits status, level, difficulty, assembly group, canonical tags, and render-band Z; duplicates complete owners; preserves stable keys while renaming; and stages loaded or unsaved deletion through typed commands. Widget proofs preserve identity, dimensions, tile layers, placements, enemy markers, and polygons across metadata edits, verify deterministic revisions/defaults, avoid source reloads, and retain undo recovery after deleting a level's final dimension authority. Source apply remains disabled and normal v1 source/route authority is unchanged. |
 
 ### 28.1 Baseline Environment And Source Identity
 
