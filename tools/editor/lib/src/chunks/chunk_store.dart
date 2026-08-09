@@ -7,6 +7,7 @@ import '../domain/authoring_types.dart';
 import '../workspace/editor_workspace.dart';
 import '../workspace/level_context_resolver.dart' as level_context;
 import '../workspace/workspace_file_io.dart';
+import '../workspace/workspace_write_transaction.dart';
 import 'chunk_domain_models.dart';
 import 'chunk_v2_file_codec.dart';
 import 'chunk_v2_file_data.dart';
@@ -31,6 +32,26 @@ class ChunkV2StagingLoadResult {
     : sources = List<ChunkV2StagingSource>.unmodifiable(sources);
 
   final List<ChunkV2StagingSource> sources;
+}
+
+/// Stable failure from the explicit chunk-v2 staging write proof.
+final class ChunkV2StagingSaveException implements Exception {
+  const ChunkV2StagingSaveException({
+    required this.code,
+    required this.message,
+    this.cause,
+    this.rollbackComplete,
+    this.outputsCommitted = false,
+  });
+
+  final String code;
+  final String message;
+  final Object? cause;
+  final bool? rollbackComplete;
+  final bool outputsCommitted;
+
+  @override
+  String toString() => '$code: $message';
 }
 
 class ChunkStore {
@@ -411,6 +432,94 @@ class ChunkStore {
         changedChunkKeys.toList()..sort(),
       ),
     );
+  }
+
+  /// Applies one reviewed chunk-v2 plan in an isolated all-current workspace.
+  ///
+  /// The complete source tree is rechecked after staging. Writes, managed
+  /// moves, and deletions then commit through one rollback-safe transaction;
+  /// installed files are byte-verified and strictly decoded before backups are
+  /// removed. The normal chunk plugin never calls this while its Phase 4 write
+  /// lock is active.
+  void applyV2StagingSavePlan(
+    EditorWorkspace workspace, {
+    required ChunkV2StagingDocument document,
+    required ChunkSavePlan savePlan,
+  }) {
+    final rebuilt = buildV2StagingSavePlan(document: document);
+    if (!_savePlansEqual(rebuilt, savePlan)) {
+      throw const ChunkV2StagingSaveException(
+        code: 'chunk_v2_save_plan_stale',
+        message: 'Chunk-v2 save plan no longer matches the staged document.',
+      );
+    }
+    try {
+      _requireV2SourcesFresh(workspace, document);
+    } on _ChunkV2SaveAbort catch (error) {
+      throw ChunkV2StagingSaveException(
+        code: error.code,
+        message: error.message,
+      );
+    }
+    if (!savePlan.hasChanges) return;
+
+    final finalPaths = _v2FinalPathByChunkKey(
+      document,
+      savePlan,
+    ).values.map((path) => _portableRelativePath(path).toLowerCase()).toSet();
+    final artifacts = <WorkspaceWriteArtifact>[];
+    for (final write in savePlan.writes) {
+      if (write.deleteFile) {
+        artifacts.add(
+          WorkspaceWriteArtifact.delete(
+            path: workspace.resolve(write.relativePath),
+          ),
+        );
+        continue;
+      }
+      artifacts.add(
+        WorkspaceWriteArtifact(
+          path: workspace.resolve(write.relativePath),
+          contents: write.afterContent,
+        ),
+      );
+      final previousPath = write.previousRelativePath;
+      if (previousPath == null ||
+          p.equals(previousPath, write.relativePath) ||
+          finalPaths.contains(
+            _portableRelativePath(previousPath).toLowerCase(),
+          )) {
+        continue;
+      }
+      artifacts.add(
+        WorkspaceWriteArtifact.delete(path: workspace.resolve(previousPath)),
+      );
+    }
+
+    final transaction = WorkspaceWriteTransaction(artifacts);
+    try {
+      transaction.apply(
+        beforeReplace: () => _requireV2SourcesFresh(workspace, document),
+        verifyReplacements: () =>
+            _requireV2PlanInstalled(workspace, document, savePlan),
+      );
+    } on WorkspaceWriteTransactionException catch (error, stackTrace) {
+      final abort = error.cause is _ChunkV2SaveAbort
+          ? error.cause as _ChunkV2SaveAbort
+          : null;
+      Error.throwWithStackTrace(
+        ChunkV2StagingSaveException(
+          code: abort?.code ?? 'chunk_v2_save_transaction_failed',
+          message:
+              abort?.message ??
+              'The chunk-v2 source transaction failed and attempted recovery.',
+          cause: error.cause,
+          rollbackComplete: error.rollbackComplete,
+          outputsCommitted: error.outputsCommitted,
+        ),
+        stackTrace,
+      );
+    }
   }
 
   Future<void> save(
@@ -865,6 +974,122 @@ class ChunkStore {
     }
   }
 
+  void _requireV2SourcesFresh(
+    EditorWorkspace workspace,
+    ChunkV2StagingDocument document,
+  ) {
+    final expectedByFoldedPath = <String, String>{};
+    for (final entry in document.baselineContentsByChunkKey.entries) {
+      final sourcePath = document.sourcePathByChunkKey[entry.key];
+      if (sourcePath == null) {
+        throw _ChunkV2SaveAbort(
+          code: 'chunk_v2_save_baseline_path_missing',
+          message: 'Baseline owner ${entry.key} has no source path.',
+        );
+      }
+      expectedByFoldedPath[_portableRelativePath(sourcePath).toLowerCase()] =
+          entry.value;
+    }
+    final actualFiles = _listChunkFiles(workspace);
+    final actualByFoldedPath = <String, File>{};
+    for (final file in actualFiles) {
+      final relativePath = _portableRelativePath(
+        WorkspaceFileIo.toWorkspaceRelativePath(workspace, file.path),
+      );
+      actualByFoldedPath[relativePath.toLowerCase()] = file;
+    }
+    if (actualByFoldedPath.length != expectedByFoldedPath.length ||
+        !actualByFoldedPath.keys.toSet().containsAll(
+          expectedByFoldedPath.keys,
+        )) {
+      throw const _ChunkV2SaveAbort(
+        code: 'chunk_v2_save_source_set_drift',
+        message:
+            'Chunk source files changed after load; reload before applying '
+            'the save plan.',
+      );
+    }
+    for (final entry in expectedByFoldedPath.entries) {
+      if (actualByFoldedPath[entry.key]!.readAsStringSync() != entry.value) {
+        throw _ChunkV2SaveAbort(
+          code: 'chunk_v2_save_source_drift',
+          message:
+              'Chunk source changed after load at '
+              '${actualByFoldedPath[entry.key]!.path}.',
+        );
+      }
+    }
+  }
+
+  Map<String, String> _v2FinalPathByChunkKey(
+    ChunkV2StagingDocument document,
+    ChunkSavePlan savePlan,
+  ) {
+    final writeByChunkKey = <String, ChunkFileWrite>{
+      for (final write in savePlan.writes)
+        if (!write.deleteFile) write.chunkKey: write,
+    };
+    return <String, String>{
+      for (final chunk in document.chunks)
+        chunk.chunkKey:
+            writeByChunkKey[chunk.chunkKey]?.relativePath ??
+            document.sourcePathByChunkKey[chunk.chunkKey]!,
+    };
+  }
+
+  void _requireV2PlanInstalled(
+    EditorWorkspace workspace,
+    ChunkV2StagingDocument document,
+    ChunkSavePlan savePlan,
+  ) {
+    final chunksByKey = <String, ChunkV2FileData>{
+      for (final chunk in document.chunks) chunk.chunkKey: chunk,
+    };
+    final expectedByFoldedPath = <String, (String, String)>{};
+    for (final entry in _v2FinalPathByChunkKey(document, savePlan).entries) {
+      final path = _portableRelativePath(entry.value);
+      expectedByFoldedPath[path.toLowerCase()] = (
+        path,
+        ChunkV2FileCodec.encode(chunksByKey[entry.key]!),
+      );
+    }
+    final actualByFoldedPath = <String, File>{};
+    for (final file in _listChunkFiles(workspace)) {
+      final relativePath = _portableRelativePath(
+        WorkspaceFileIo.toWorkspaceRelativePath(workspace, file.path),
+      );
+      actualByFoldedPath[relativePath.toLowerCase()] = file;
+    }
+    if (actualByFoldedPath.length != expectedByFoldedPath.length ||
+        !actualByFoldedPath.keys.toSet().containsAll(
+          expectedByFoldedPath.keys,
+        )) {
+      throw const _ChunkV2SaveAbort(
+        code: 'chunk_v2_save_post_validation_failed',
+        message: 'Installed chunk-v2 source set differs from the save plan.',
+      );
+    }
+    for (final entry in expectedByFoldedPath.entries) {
+      final expected = entry.value;
+      final actual = actualByFoldedPath[entry.key]!.readAsStringSync();
+      if (actual != expected.$2) {
+        throw _ChunkV2SaveAbort(
+          code: 'chunk_v2_save_post_validation_failed',
+          message: 'Installed bytes differ for ${expected.$1}.',
+        );
+      }
+      try {
+        ChunkV2FileCodec.decode(actual, sourcePath: expected.$1);
+      } on Object catch (error) {
+        throw _ChunkV2SaveAbort(
+          code: 'chunk_v2_save_post_validation_failed',
+          message: 'Installed source is not strict chunk v2 at ${expected.$1}.',
+          cause: error,
+        );
+      }
+    }
+  }
+
   void _ensureNoCaseInsensitivePathCollision(List<ChunkFileWrite> writes) {
     final seen = <String, ChunkFileWrite>{};
     for (final write in writes) {
@@ -881,6 +1106,47 @@ class ChunkStore {
       );
     }
   }
+}
+
+bool _savePlansEqual(ChunkSavePlan left, ChunkSavePlan right) {
+  if (left.changedChunkKeys.length != right.changedChunkKeys.length ||
+      left.writes.length != right.writes.length) {
+    return false;
+  }
+  for (var index = 0; index < left.changedChunkKeys.length; index += 1) {
+    if (left.changedChunkKeys[index] != right.changedChunkKeys[index]) {
+      return false;
+    }
+  }
+  for (var index = 0; index < left.writes.length; index += 1) {
+    final a = left.writes[index];
+    final b = right.writes[index];
+    if (a.chunkKey != b.chunkKey ||
+        a.chunkId != b.chunkId ||
+        a.relativePath != b.relativePath ||
+        a.previousRelativePath != b.previousRelativePath ||
+        a.beforeContent != b.beforeContent ||
+        a.afterContent != b.afterContent ||
+        a.deleteFile != b.deleteFile) {
+      return false;
+    }
+  }
+  return true;
+}
+
+final class _ChunkV2SaveAbort implements Exception {
+  const _ChunkV2SaveAbort({
+    required this.code,
+    required this.message,
+    this.cause,
+  });
+
+  final String code;
+  final String message;
+  final Object? cause;
+
+  @override
+  String toString() => '$code: $message';
 }
 
 class ChunkSavePlan {

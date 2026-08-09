@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as p;
 import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_plugin.dart';
 import 'package:runner_editor/src/chunks/chunk_store.dart';
@@ -367,6 +368,211 @@ void main() {
       expect(noOp.document, same(document));
     },
   );
+
+  test('v2 transactional save keeps a clean source tree byte-identical', () {
+    const store = ChunkStore();
+    final document = _document();
+    final fixture = _ChunkFixture.create(document);
+    addTearDown(fixture.dispose);
+    final plan = store.buildV2StagingSavePlan(document: document);
+    final before = fixture.snapshot();
+
+    store.applyV2StagingSavePlan(
+      fixture.workspace,
+      document: document,
+      savePlan: plan,
+    );
+
+    expect(plan.hasChanges, isFalse);
+    expect(fixture.snapshot(), before);
+    expect(fixture.transactionFiles, isEmpty);
+  });
+
+  test('v2 managed move applies and reloads byte-identically', () async {
+    const store = ChunkStore();
+    final document = _document();
+    final fixture = _ChunkFixture.create(document);
+    addTearDown(fixture.dispose);
+    final renamed = document.chunks.single.copyWith(
+      id: 'forest_renamed',
+      revision: 5,
+    );
+    final edited = document.copyWith(
+      chunks: <ChunkV2FileData>[renamed],
+      changedChunkKeys: <String>[renamed.chunkKey],
+    );
+    final plan = store.buildV2StagingSavePlan(document: edited);
+
+    store.applyV2StagingSavePlan(
+      fixture.workspace,
+      document: edited,
+      savePlan: plan,
+    );
+
+    final oldFile = File(
+      fixture.workspace.resolve(
+        document.sourcePathByChunkKey[renamed.chunkKey]!,
+      ),
+    );
+    final newFile = File(
+      fixture.workspace.resolve(plan.writes.single.relativePath),
+    );
+    expect(oldFile.existsSync(), isFalse);
+    expect(newFile.readAsStringSync(), ChunkV2FileCodec.encode(renamed));
+    final reloaded = await store.loadV2Staging(fixture.workspace);
+    expect(reloaded.sources, hasLength(1));
+    expect(
+      ChunkV2FileCodec.encode(reloaded.sources.single.data),
+      ChunkV2FileCodec.encode(renamed),
+    );
+    expect(
+      reloaded.sources.single.sourcePath.replaceAll('\\', '/'),
+      '${ChunkStore.chunksDirectoryPath}/forest/forest_renamed.json',
+    );
+    expect(fixture.transactionFiles, isEmpty);
+  });
+
+  test(
+    'v2 create and loaded delete commit as one source-set replacement',
+    () async {
+      const store = ChunkStore();
+      final document = _document();
+      final fixture = _ChunkFixture.create(document);
+      addTearDown(fixture.dispose);
+      final created = document.chunks.single.copyWith(
+        chunkKey: 'forest_created',
+        id: 'forest_created',
+        revision: 1,
+      );
+      final createdPath =
+          '${ChunkStore.chunksDirectoryPath}/forest/forest_created.json';
+      final edited = document.copyWith(
+        chunks: <ChunkV2FileData>[created],
+        sourcePathByChunkKey: <String, String>{
+          ...document.sourcePathByChunkKey,
+          created.chunkKey: createdPath,
+        },
+        createdChunkKeys: <String>[created.chunkKey],
+        changedChunkKeys: <String>[created.chunkKey, 'forest_original'],
+      );
+      final plan = store.buildV2StagingSavePlan(document: edited);
+
+      store.applyV2StagingSavePlan(
+        fixture.workspace,
+        document: edited,
+        savePlan: plan,
+      );
+
+      final reloaded = await store.loadV2Staging(fixture.workspace);
+      expect(reloaded.sources, hasLength(1));
+      expect(reloaded.sources.single.data.chunkKey, 'forest_created');
+      expect(
+        reloaded.sources.single.baselineContents,
+        ChunkV2FileCodec.encode(created),
+      );
+      expect(
+        File(
+          fixture.workspace.resolve(
+            document.sourcePathByChunkKey['forest_original']!,
+          ),
+        ).existsSync(),
+        isFalse,
+      );
+      expect(fixture.transactionFiles, isEmpty);
+    },
+  );
+
+  test('v2 transactional save rejects byte and source-set drift', () {
+    const store = ChunkStore();
+    final document = _document();
+    final changed = document.copyWith(
+      chunks: <ChunkV2FileData>[document.chunks.single.copyWith(revision: 5)],
+      changedChunkKeys: const <String>['forest_original'],
+    );
+
+    final byteFixture = _ChunkFixture.create(document);
+    addTearDown(byteFixture.dispose);
+    final plan = store.buildV2StagingSavePlan(document: changed);
+    final sourceFile = byteFixture.sourceFile('forest_original');
+    const drift = '{"external":"change"}\n';
+    sourceFile.writeAsStringSync(drift);
+    expect(
+      () => store.applyV2StagingSavePlan(
+        byteFixture.workspace,
+        document: changed,
+        savePlan: plan,
+      ),
+      throwsA(
+        isA<ChunkV2StagingSaveException>().having(
+          (error) => error.code,
+          'code',
+          'chunk_v2_save_source_drift',
+        ),
+      ),
+    );
+    expect(sourceFile.readAsStringSync(), drift);
+
+    final setFixture = _ChunkFixture.create(document);
+    addTearDown(setFixture.dispose);
+    File(
+        p.join(
+          setFixture.root.path,
+          ChunkStore.chunksDirectoryPath,
+          'forest',
+          'external.json',
+        ),
+      )
+      ..createSync(recursive: true)
+      ..writeAsStringSync(ChunkV2FileCodec.encode(document.chunks.single));
+    expect(
+      () => store.applyV2StagingSavePlan(
+        setFixture.workspace,
+        document: changed,
+        savePlan: plan,
+      ),
+      throwsA(
+        isA<ChunkV2StagingSaveException>().having(
+          (error) => error.code,
+          'code',
+          'chunk_v2_save_source_set_drift',
+        ),
+      ),
+    );
+    expect(byteFixture.transactionFiles, isEmpty);
+    expect(setFixture.transactionFiles, isEmpty);
+  });
+
+  test('v2 transactional save rejects a plan from another snapshot', () {
+    const store = ChunkStore();
+    final document = _document();
+    final fixture = _ChunkFixture.create(document);
+    addTearDown(fixture.dispose);
+    final first = document.copyWith(
+      chunks: <ChunkV2FileData>[document.chunks.single.copyWith(revision: 5)],
+      changedChunkKeys: const <String>['forest_original'],
+    );
+    final second = document.copyWith(
+      chunks: <ChunkV2FileData>[document.chunks.single.copyWith(revision: 6)],
+      changedChunkKeys: const <String>['forest_original'],
+    );
+    final firstPlan = store.buildV2StagingSavePlan(document: first);
+
+    expect(
+      () => store.applyV2StagingSavePlan(
+        fixture.workspace,
+        document: second,
+        savePlan: firstPlan,
+      ),
+      throwsA(
+        isA<ChunkV2StagingSaveException>().having(
+          (error) => error.code,
+          'code',
+          'chunk_v2_save_plan_stale',
+        ),
+      ),
+    );
+    expect(fixture.transactionFiles, isEmpty);
+  });
 }
 
 ChunkV2StagingDocument _document() {
@@ -426,3 +632,45 @@ const LevelDef _forestLevel = LevelDef(
   enumOrdinal: 1,
   status: levelStatusActive,
 );
+
+final class _ChunkFixture {
+  _ChunkFixture._({required this.root, required this.document});
+
+  factory _ChunkFixture.create(ChunkV2StagingDocument document) {
+    final root = Directory.systemTemp.createTempSync('chunk_v2_save_plan_');
+    final workspace = EditorWorkspace(rootPath: root.path);
+    for (final entry in document.baselineContentsByChunkKey.entries) {
+      final sourcePath = document.sourcePathByChunkKey[entry.key]!;
+      File(workspace.resolve(sourcePath))
+        ..createSync(recursive: true)
+        ..writeAsStringSync(entry.value);
+    }
+    return _ChunkFixture._(root: root, document: document);
+  }
+
+  final Directory root;
+  final ChunkV2StagingDocument document;
+
+  EditorWorkspace get workspace => EditorWorkspace(rootPath: root.path);
+
+  File sourceFile(String chunkKey) =>
+      File(workspace.resolve(document.sourcePathByChunkKey[chunkKey]!));
+
+  List<String> get transactionFiles => root
+      .listSync(recursive: true)
+      .whereType<File>()
+      .map((file) => p.basename(file.path))
+      .where((name) => name.contains('.authoring-'))
+      .toList(growable: false);
+
+  Map<String, List<int>> snapshot() => <String, List<int>>{
+    for (final file
+        in root.listSync(recursive: true).whereType<File>().toList()
+          ..sort((left, right) => left.path.compareTo(right.path)))
+      p.relative(file.path, from: root.path): file.readAsBytesSync(),
+  };
+
+  void dispose() {
+    if (root.existsSync()) root.deleteSync(recursive: true);
+  }
+}
