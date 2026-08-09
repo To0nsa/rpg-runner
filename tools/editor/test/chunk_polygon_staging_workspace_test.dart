@@ -600,6 +600,286 @@ void main() {
     },
   );
 
+  testWidgets(
+    'chunk-v2 composition forms edit canonical layers placements and markers',
+    (tester) async {
+      tester.view.physicalSize = const Size(1800, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final harness = await _buildHarness();
+      addTearDown(harness.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData.dark(),
+          home: Scaffold(body: ChunkCreatorPage(controller: harness.session)),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final original = _chunk(harness.session, 'forest_chunk');
+      await tester.tap(
+        find.byKey(const ValueKey<String>('chunk_v2_view_composition')),
+      );
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey<String>('chunk_v2_composition_workspace')),
+        findsOneWidget,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('chunk_v2_layer_add')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('chunk_v2_layer_id_field')),
+        'background',
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('chunk_v2_layer_dialog_apply')),
+      );
+      await tester.pumpAndSettle();
+      var edited = _chunk(harness.session, 'forest_chunk');
+      expect(edited.revision, 5);
+      expect(edited.tileLayers.single.id, 'background');
+      expect(edited.prefabs, original.prefabs);
+      expect(edited.markers, original.markers);
+      expect(edited.collisionShapes, original.collisionShapes);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('chunk_v2_placement_add')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('chunk_v2_placement_x_field')),
+        '80',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('chunk_v2_placement_y_field')),
+        '10',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('chunk_v2_placement_z_field')),
+        '2',
+      );
+      tester.testTextInput.hide();
+      await tester.pumpAndSettle();
+      final scaleField = find.byKey(
+        const ValueKey<String>('chunk_v2_placement_scale_1.0'),
+      );
+      await tester.ensureVisible(scaleField);
+      await tester.tap(scaleField);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('×0.6').last);
+      final flipYField = find.byKey(
+        const ValueKey<String>('chunk_v2_placement_flip_y_field'),
+      );
+      await Scrollable.ensureVisible(
+        tester.element(flipYField),
+        alignment: 0.5,
+      );
+      await tester.pump();
+      await tester.tap(flipYField);
+      final applyPlacement = find.byKey(
+        const ValueKey<String>('chunk_v2_placement_dialog_apply'),
+      );
+      await tester.pump();
+      await tester.tap(applyPlacement);
+      await tester.pumpAndSettle();
+      edited = _chunk(harness.session, 'forest_chunk');
+      expect(edited.revision, 6);
+      final addedPlacement = edited.prefabs.singleWhere(
+        (placement) => placement.x == 80,
+      );
+      expect(addedPlacement.prefabKey, 'prefab_rock');
+      expect(addedPlacement.zIndex, 2);
+      expect(addedPlacement.scale, 0.6);
+      expect(addedPlacement.flipY, isTrue);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('chunk_v2_marker_add')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('chunk_v2_marker_x_field')),
+        '60',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('chunk_v2_marker_y_field')),
+        '5',
+      );
+      final applyMarker = find.byKey(
+        const ValueKey<String>('chunk_v2_marker_dialog_apply'),
+      );
+      await tester.ensureVisible(applyMarker);
+      await tester.tap(applyMarker);
+      await tester.pumpAndSettle();
+      edited = _chunk(harness.session, 'forest_chunk');
+      expect(edited.revision, 7);
+      expect(
+        edited.markers.any(
+          (marker) =>
+              marker.markerId == 'derf' && marker.x == 60 && marker.y == 5,
+        ),
+        isTrue,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('chunk_v2_layer_edit_background')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('chunk_v2_layer_kind_field')),
+        'backdrop',
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('chunk_v2_layer_visible_field')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('chunk_v2_layer_dialog_apply')),
+      );
+      await tester.pumpAndSettle();
+      edited = _chunk(harness.session, 'forest_chunk');
+      expect(edited.revision, 8);
+      expect(edited.tileLayers.single.kind, 'backdrop');
+      expect(edited.tileLayers.single.visible, isFalse);
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('chunk_v2_placement_edit_prefab_rock|80|10|0'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('chunk_v2_placement_x_field')),
+        '85',
+      );
+      final editPlacementApply = find.byKey(
+        const ValueKey<String>('chunk_v2_placement_dialog_apply'),
+      );
+      await tester.ensureVisible(editPlacementApply);
+      await tester.tap(editPlacementApply);
+      await tester.pumpAndSettle();
+      edited = _chunk(harness.session, 'forest_chunk');
+      expect(edited.revision, 9);
+      expect(edited.prefabs.any((placement) => placement.x == 85), isTrue);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('chunk_v2_marker_edit_derf|60|5|0')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('chunk_v2_marker_chance_field')),
+        '75',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('chunk_v2_marker_salt_field')),
+        '9',
+      );
+      tester.testTextInput.hide();
+      await tester.pumpAndSettle();
+      final editMarkerApply = find.byKey(
+        const ValueKey<String>('chunk_v2_marker_dialog_apply'),
+      );
+      await tester.ensureVisible(editMarkerApply);
+      await tester.tap(editMarkerApply);
+      await tester.pumpAndSettle();
+      edited = _chunk(harness.session, 'forest_chunk');
+      expect(edited.revision, 10);
+      final derf = edited.markers.singleWhere(
+        (marker) => marker.markerId == 'derf',
+      );
+      expect(derf.chancePercent, 75);
+      expect(derf.salt, 9);
+      expect(derf.placement, markerPlacementGround);
+      expect(edited.status, original.status);
+      expect(edited.levelId, original.levelId);
+      expect(edited.tags, original.tags);
+      expect(edited.groundBandZIndex, original.groundBandZIndex);
+      expect(edited.collisionShapes, original.collisionShapes);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('chunk_v2_layer_delete_background')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('chunk_v2_composition_delete_confirm'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(_chunk(harness.session, 'forest_chunk').tileLayers, isEmpty);
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>(
+            'chunk_v2_placement_delete_prefab_rock|85|10|0',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('chunk_v2_composition_delete_confirm'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        _chunk(
+          harness.session,
+          'forest_chunk',
+        ).prefabs.where((placement) => placement.x == 85),
+        isEmpty,
+      );
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('chunk_v2_marker_delete_derf|60|5|0'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('chunk_v2_composition_delete_confirm'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      edited = _chunk(harness.session, 'forest_chunk');
+      expect(
+        edited.markers.where((marker) => marker.markerId == 'derf'),
+        isEmpty,
+      );
+      expect(edited.prefabs, original.prefabs);
+      expect(edited.markers, original.markers);
+      expect(edited.collisionShapes, original.collisionShapes);
+      expect(edited.revision, 13);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('chunk_polygon_undo_button')),
+      );
+      await tester.pump();
+      expect(
+        _chunk(
+          harness.session,
+          'forest_chunk',
+        ).markers.any((marker) => marker.markerId == 'derf'),
+        isTrue,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('chunk_polygon_redo_button')),
+      );
+      await tester.pump();
+      expect(
+        _chunk(
+          harness.session,
+          'forest_chunk',
+        ).markers.any((marker) => marker.markerId == 'derf'),
+        isFalse,
+      );
+      expect(harness.plugin.loadCount, 1);
+    },
+  );
+
   testWidgets('deleting a level final owner keeps undo recovery available', (
     tester,
   ) async {

@@ -37,6 +37,7 @@ import 'chunk_expanded_collision_overlay_painter.dart';
 import 'chunk_marker_placement_overlay_painter.dart';
 import 'chunk_polygon_authoring_controller.dart';
 import 'chunk_polygon_scene_surface.dart';
+import 'chunk_v2_composition_workspace.dart';
 import 'chunk_v2_owner_dialog.dart';
 
 /// Explicit chunk-v2 polygon workspace used before the schema cutover.
@@ -64,6 +65,7 @@ class ChunkPolygonStagingWorkspaceState
 
   ChunkPolygonAuthoringController? _authoring;
   String? _selectedChunkKey;
+  _ChunkV2WorkspaceView _workspaceView = _ChunkV2WorkspaceView.terrain;
   double _zoom = _initialZoom;
   Offset _pan = Offset.zero;
   bool _showCompiledEdges = true;
@@ -153,43 +155,55 @@ class ChunkPolygonStagingWorkspaceState
             _buildHeader(document, scene),
             const SizedBox(height: _gap),
             Expanded(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
-                  SizedBox(
-                    width: 260,
-                    child: _buildOwnerPanel(
-                      document,
-                      scene,
-                      authoring?.chunk,
-                      controlsEnabled:
-                          !(authoring?.hasActiveOperation ?? false),
+              child: _workspaceView == _ChunkV2WorkspaceView.terrain
+                  ? Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: <Widget>[
+                        SizedBox(
+                          width: 260,
+                          child: _buildOwnerPanel(
+                            document,
+                            scene,
+                            authoring?.chunk,
+                            controlsEnabled:
+                                !(authoring?.hasActiveOperation ?? false),
+                          ),
+                        ),
+                        const SizedBox(width: _gap),
+                        Expanded(
+                          child: authoring == null
+                              ? _buildEmptyPanel(
+                                  title: 'Terrain collision scene',
+                                  message:
+                                      'This level has no chunk owner. Undo '
+                                      'the deletion, or switch to a level '
+                                      'that still has a dimension template.',
+                                )
+                              : _buildScenePanel(authoring),
+                        ),
+                        const SizedBox(width: _gap),
+                        SizedBox(
+                          width: 310,
+                          child: authoring == null
+                              ? _buildEmptyPanel(
+                                  title: 'Shapes and diagnostics',
+                                  message:
+                                      'Select or create a chunk owner first.',
+                                )
+                              : _buildShapePanel(authoring, issues),
+                        ),
+                      ],
+                    )
+                  : authoring == null
+                  ? _buildEmptyPanel(
+                      title: 'Chunk composition',
+                      message: 'Select or create a chunk owner first.',
+                    )
+                  : ChunkV2CompositionWorkspace(
+                      controller: widget.controller,
+                      document: document,
+                      chunk: authoring.chunk,
                     ),
-                  ),
-                  const SizedBox(width: _gap),
-                  Expanded(
-                    child: authoring == null
-                        ? _buildEmptyPanel(
-                            title: 'Terrain collision scene',
-                            message:
-                                'This level has no chunk owner. Undo the '
-                                'deletion, or switch to a level that still '
-                                'has a dimension template.',
-                          )
-                        : _buildScenePanel(authoring),
-                  ),
-                  const SizedBox(width: _gap),
-                  SizedBox(
-                    width: 310,
-                    child: authoring == null
-                        ? _buildEmptyPanel(
-                            title: 'Shapes and diagnostics',
-                            message: 'Select or create a chunk owner first.',
-                          )
-                        : _buildShapePanel(authoring, issues),
-                  ),
-                ],
-              ),
             ),
           ],
         ),
@@ -225,6 +239,26 @@ class ChunkPolygonStagingWorkspaceState
                 .toList(growable: false),
             onChanged: _selectLevel,
           ),
+          DropdownButton<String>(
+            key: const ValueKey<String>('chunk_polygon_owner_selector'),
+            value:
+                scene.chunks.any((chunk) => chunk.chunkKey == _selectedChunkKey)
+                ? _selectedChunkKey
+                : null,
+            hint: const Text('No chunk owner'),
+            items:
+                (List<ChunkV2FileData>.of(scene.chunks)..sort(_compareChunks))
+                    .map(
+                      (chunk) => DropdownMenuItem<String>(
+                        value: chunk.chunkKey,
+                        child: Text(chunk.id),
+                      ),
+                    )
+                    .toList(growable: false),
+            onChanged: (chunkKey) {
+              if (chunkKey != null) _selectOwner(chunkKey);
+            },
+          ),
           FilledButton.icon(
             key: const ValueKey<String>('chunk_polygon_apply_locked'),
             onPressed: null,
@@ -257,8 +291,38 @@ class ChunkPolygonStagingWorkspaceState
         'prefab-v3/chunk-v2 cutover.',
         style: TextStyle(color: Color(0xFFFFD166)),
       ),
+      const SizedBox(height: 8),
+      Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: <Widget>[
+          ChoiceChip(
+            key: const ValueKey<String>('chunk_v2_view_terrain'),
+            label: const Text('Owners & terrain collision'),
+            selected: _workspaceView == _ChunkV2WorkspaceView.terrain,
+            onSelected: (_) =>
+                _selectWorkspaceView(_ChunkV2WorkspaceView.terrain),
+          ),
+          ChoiceChip(
+            key: const ValueKey<String>('chunk_v2_view_composition'),
+            label: const Text('Layers, prefabs & markers'),
+            selected: _workspaceView == _ChunkV2WorkspaceView.composition,
+            onSelected: (_) =>
+                _selectWorkspaceView(_ChunkV2WorkspaceView.composition),
+          ),
+        ],
+      ),
     ],
   );
+
+  void _selectWorkspaceView(_ChunkV2WorkspaceView view) {
+    if (view == _workspaceView) return;
+    if (_authoring?.hasActiveOperation ?? false) {
+      _showOwnerSwitchBlocked();
+      return;
+    }
+    setState(() => _workspaceView = view);
+  }
 
   Widget _buildOwnerPanel(
     ChunkV2StagingDocument document,
@@ -1932,6 +1996,8 @@ TerrainSourceShapeDef? _findShape(
   }
   return null;
 }
+
+enum _ChunkV2WorkspaceView { terrain, composition }
 
 int _compareChunks(ChunkV2FileData left, ChunkV2FileData right) {
   final idOrder = left.id.compareTo(right.id);
