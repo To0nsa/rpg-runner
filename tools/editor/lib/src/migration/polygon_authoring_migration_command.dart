@@ -2,9 +2,8 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
-import '../chunks/chunk_store.dart';
-import '../prefabs/store/prefab_store.dart';
 import '../workspace/editor_workspace.dart';
+import '../workspace/repository_authoring_paths.dart';
 import '../workspace/workspace_file_io.dart';
 import 'polygon_authoring_migration_check.dart';
 import 'polygon_authoring_migration_plan.dart';
@@ -168,8 +167,8 @@ String _validatedReportPath(EditorWorkspace workspace, String rawPath) {
     );
   }
   final forbiddenSources = <String>{
-    workspace.resolve(PrefabStore.prefabDefsPath),
-    workspace.resolve(ChunkStore.chunksDirectoryPath),
+    workspace.resolve(RepositoryAuthoringPaths.prefabDefinitions),
+    workspace.resolve(RepositoryAuthoringPaths.chunksDirectory),
   };
   if (forbiddenSources.contains(resolved)) {
     throw ArgumentError.value(

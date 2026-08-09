@@ -3,13 +3,12 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
-import '../chunks/chunk_store.dart';
 import '../domain/strict_authoring_json.dart';
 import '../prefabs/models/models.dart';
-import '../prefabs/store/prefab_store.dart';
 import '../terrain_authoring/terrain_source_core_adapter.dart';
 import '../terrain_authoring/terrain_source_models.dart';
 import '../workspace/editor_workspace.dart';
+import '../workspace/repository_authoring_paths.dart';
 import '../workspace/workspace_file_io.dart';
 import 'polygon_authoring_legacy_codec.dart';
 import 'polygon_authoring_migration_plan.dart';
@@ -176,7 +175,7 @@ final class PolygonAuthoringMigrationCheck {
   /// plan can be mistaken for complete.
   factory PolygonAuthoringMigrationCheck.fromRepository(String workspaceRoot) {
     final workspace = EditorWorkspace(rootPath: workspaceRoot);
-    final prefabPath = PrefabStore.prefabDefsPath;
+    final prefabPath = RepositoryAuthoringPaths.prefabDefinitions;
     final prefabRaw = _readRequiredSource(workspace, prefabPath);
     final prefabSchemaVersion = _readSchemaVersion(
       prefabRaw,
@@ -196,12 +195,12 @@ final class PolygonAuthoringMigrationCheck {
     }
 
     final chunkDirectory = Directory(
-      workspace.resolve(ChunkStore.chunksDirectoryPath),
+      workspace.resolve(RepositoryAuthoringPaths.chunksDirectory),
     );
     if (!chunkDirectory.existsSync()) {
       throw const PolygonAuthoringMigrationCheckException(
         code: 'migration_chunk_directory_missing',
-        sourcePath: ChunkStore.chunksDirectoryPath,
+        sourcePath: RepositoryAuthoringPaths.chunksDirectory,
         message: 'Chunk source directory does not exist.',
       );
     }
@@ -219,7 +218,7 @@ final class PolygonAuthoringMigrationCheck {
     if (chunkFiles.isEmpty) {
       throw const PolygonAuthoringMigrationCheckException(
         code: 'migration_chunk_sources_missing',
-        sourcePath: ChunkStore.chunksDirectoryPath,
+        sourcePath: RepositoryAuthoringPaths.chunksDirectory,
         message: 'Migration check requires at least one chunk source file.',
       );
     }
@@ -278,7 +277,7 @@ final class PolygonAuthoringMigrationCheck {
             ..sort();
       throw PolygonAuthoringMigrationCheckException(
         code: 'migration_mixed_schema_generation',
-        sourcePath: ChunkStore.chunksDirectoryPath,
+        sourcePath: RepositoryAuthoringPaths.chunksDirectory,
         message:
             'Prefab schema $prefabSchemaVersion and chunk schema(s) '
             '${chunkVersions.join(', ')} must be entirely legacy or entirely '

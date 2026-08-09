@@ -301,6 +301,47 @@ void main() {
       fixture.deleteSync(recursive: true);
     }
   });
+
+  test(
+    'standalone Dart entrypoint stays free of Flutter runtime imports',
+    () async {
+      final result = await Process.run(
+        _standaloneDartExecutable(),
+        const <String>['run', 'tool/migrate_polygon_authoring.dart', '--help'],
+        workingDirectory: p.join(_repoRootPath(), 'tools', 'editor'),
+      );
+
+      expect(result.exitCode, 0, reason: result.stderr.toString());
+      expect(result.stderr, isEmpty);
+      expect(result.stdout, contains('--write is intentionally unavailable'));
+    },
+  );
+}
+
+String _standaloneDartExecutable() {
+  final resolved = File(Platform.resolvedExecutable);
+  if (p.basenameWithoutExtension(resolved.path) == 'dart') {
+    return resolved.path;
+  }
+  var directory = resolved.parent;
+  while (true) {
+    final candidate = File(
+      p.join(
+        directory.path,
+        'dart-sdk',
+        'bin',
+        Platform.isWindows ? 'dart.exe' : 'dart',
+      ),
+    );
+    if (candidate.existsSync()) return candidate.path;
+    final parent = directory.parent;
+    if (parent.path == directory.path) break;
+    directory = parent;
+  }
+  throw StateError(
+    'Could not locate the standalone Dart executable from '
+    '${Platform.resolvedExecutable}.',
+  );
 }
 
 Map<String, String> _sourceDigests(String rootPath) {

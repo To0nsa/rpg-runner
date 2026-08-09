@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 import '../domain/authoring_types.dart';
 import '../workspace/editor_workspace.dart';
 import '../workspace/level_context_resolver.dart' as level_context;
+import '../workspace/repository_authoring_paths.dart';
 import '../workspace/workspace_file_io.dart';
 import '../workspace/workspace_write_transaction.dart';
 import 'chunk_domain_models.dart';
@@ -55,7 +56,8 @@ final class ChunkV2StagingSaveException implements Exception {
 }
 
 class ChunkStore {
-  static const String chunksDirectoryPath = 'assets/authoring/level/chunks';
+  static const String chunksDirectoryPath =
+      RepositoryAuthoringPaths.chunksDirectory;
   static const String levelDefsPath = level_context.defaultLevelDefsPath;
   static const String levelIdSourcePath =
       level_context.defaultLevelIdSourcePath;

@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 
 import '../../workspace/workspace_write_transaction.dart';
+import '../../workspace/repository_authoring_paths.dart';
 import 'prefab_determinism.dart';
 import 'prefab_tile_file_codec.dart';
 import 'prefab_v3_file_codec.dart';
@@ -103,7 +104,7 @@ final class PrefabV3StagingSaveException implements Exception {
 class PrefabStore {
   /// Workspace-relative path to prefab slice/prefab definitions.
   static const String prefabDefsPath =
-      'assets/authoring/level/prefab_defs.json';
+      RepositoryAuthoringPaths.prefabDefinitions;
 
   /// Workspace-relative path to tile slice/platform module definitions.
   static const String tileDefsPath = 'assets/authoring/level/tile_defs.json';
