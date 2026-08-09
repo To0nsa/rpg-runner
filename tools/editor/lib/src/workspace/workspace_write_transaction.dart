@@ -5,13 +5,22 @@ import 'package:path/path.dart' as p;
 
 /// One complete file replacement staged by [WorkspaceWriteTransaction].
 final class WorkspaceWriteArtifact {
-  const WorkspaceWriteArtifact({required this.path, required this.contents});
+  const WorkspaceWriteArtifact({required this.path, required this.contents})
+    : deleteFile = false;
+
+  /// Removes [path] while retaining rollback evidence until verification.
+  const WorkspaceWriteArtifact.delete({required this.path})
+    : contents = '',
+      deleteFile = true;
 
   /// Absolute or process-relative target path.
   final String path;
 
   /// Exact UTF-8 text installed at [path].
   final String contents;
+
+  /// Whether the committed state requires [path] to be absent.
+  final bool deleteFile;
 }
 
 /// Failure raised after a multi-file repository write attempted recovery.
@@ -105,11 +114,14 @@ final class WorkspaceWriteTransaction {
 
     try {
       for (final entry in entries) {
-        entry.target.parent.createSync(recursive: true);
+        if (!entry.artifact.deleteFile) {
+          entry.target.parent.createSync(recursive: true);
+        }
         _requireAvailable(entry.staged);
         _requireAvailable(entry.backup);
       }
       for (final entry in entries) {
+        if (entry.artifact.deleteFile) continue;
         entry.staged.writeAsBytesSync(entry.expectedBytes, flush: true);
         _requireExpectedBytes(entry.staged, entry.expectedBytes);
       }
@@ -133,11 +145,26 @@ final class WorkspaceWriteTransaction {
       }
 
       for (final entry in entries) {
-        entry.staged.renameSync(entry.target.path);
+        if (!entry.artifact.deleteFile) {
+          entry.staged.renameSync(entry.target.path);
+        }
         entry.wasCommitted = true;
       }
       for (final entry in entries) {
-        _requireExpectedBytes(entry.target, entry.expectedBytes);
+        if (entry.artifact.deleteFile) {
+          if (FileSystemEntity.typeSync(
+                entry.target.path,
+                followLinks: false,
+              ) !=
+              FileSystemEntityType.notFound) {
+            throw FileSystemException(
+              'Workspace transaction deletion target still exists.',
+              entry.target.path,
+            );
+          }
+        } else {
+          _requireExpectedBytes(entry.target, entry.expectedBytes);
+        }
       }
       verifyReplacements?.call();
     } on Object catch (error, stackTrace) {
@@ -170,7 +197,7 @@ String _nextTransactionId() =>
 
 final class _WorkspaceWriteTransactionEntry {
   _WorkspaceWriteTransactionEntry({
-    required WorkspaceWriteArtifact artifact,
+    required this.artifact,
     required String transactionId,
     required int index,
   }) : target = File(artifact.path),
@@ -178,6 +205,7 @@ final class _WorkspaceWriteTransactionEntry {
        staged = File('${artifact.path}.authoring-$transactionId-$index.tmp'),
        backup = File('${artifact.path}.authoring-$transactionId-$index.bak');
 
+  final WorkspaceWriteArtifact artifact;
   final File target;
   final List<int> expectedBytes;
   final File staged;

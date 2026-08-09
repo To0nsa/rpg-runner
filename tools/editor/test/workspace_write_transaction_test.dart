@@ -139,6 +139,64 @@ void main() {
     }
   });
 
+  test('transaction commits deletions with writes as one verified set', () {
+    final root = Directory.systemTemp.createTempSync('workspace_write_delete_');
+    try {
+      final retained = File(p.join(root.path, 'a.txt'))
+        ..writeAsStringSync('old a');
+      final removed = File(p.join(root.path, 'b.txt'))
+        ..writeAsStringSync('old b');
+
+      WorkspaceWriteTransaction(<WorkspaceWriteArtifact>[
+        WorkspaceWriteArtifact(path: retained.path, contents: 'new a'),
+        WorkspaceWriteArtifact.delete(path: removed.path),
+      ]).apply(
+        verifyReplacements: () {
+          expect(retained.readAsStringSync(), 'new a');
+          expect(removed.existsSync(), isFalse);
+        },
+      );
+
+      expect(retained.readAsStringSync(), 'new a');
+      expect(removed.existsSync(), isFalse);
+      expect(_transactionFiles(root), isEmpty);
+    } finally {
+      root.deleteSync(recursive: true);
+    }
+  });
+
+  test('post-install failure restores a transaction deletion', () {
+    final root = Directory.systemTemp.createTempSync(
+      'workspace_write_delete_rollback_',
+    );
+    try {
+      final retained = File(p.join(root.path, 'a.txt'))
+        ..writeAsStringSync('old a');
+      final removed = File(p.join(root.path, 'b.txt'))
+        ..writeAsStringSync('old b');
+
+      WorkspaceWriteTransactionException? failure;
+      try {
+        WorkspaceWriteTransaction(<WorkspaceWriteArtifact>[
+          WorkspaceWriteArtifact(path: retained.path, contents: 'new a'),
+          WorkspaceWriteArtifact.delete(path: removed.path),
+        ]).apply(
+          verifyReplacements: () => throw StateError('invalid deletion set'),
+        );
+      } on WorkspaceWriteTransactionException catch (error) {
+        failure = error;
+      }
+
+      expect(failure, isNotNull);
+      expect(failure!.rollbackComplete, isTrue);
+      expect(retained.readAsStringSync(), 'old a');
+      expect(removed.readAsStringSync(), 'old b');
+      expect(_transactionFiles(root), isEmpty);
+    } finally {
+      root.deleteSync(recursive: true);
+    }
+  });
+
   test('canonical duplicate targets reject before filesystem access', () {
     final root = Directory.systemTemp.createTempSync(
       'workspace_write_duplicate_',
