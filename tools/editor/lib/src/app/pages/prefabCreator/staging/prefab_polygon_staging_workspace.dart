@@ -26,6 +26,7 @@ import '../shared/ui/prefab_editor_panel_card.dart';
 import '../shared/ui/prefab_editor_three_panel_layout.dart';
 import '../shared/ui/prefab_editor_ui_tokens.dart';
 import 'prefab_v3_atlas_catalog_workspace.dart';
+import 'prefab_v3_module_catalog_workspace.dart';
 import 'prefab_v3_owner_dialog.dart';
 
 /// Explicit prefab-v3 polygon workspace used before the schema cutover.
@@ -54,6 +55,8 @@ class PrefabPolygonStagingWorkspaceState
   PrefabPolygonAuthoringController? _authoring;
   final GlobalKey<PrefabV3AtlasCatalogWorkspaceState> _atlasWorkspaceKey =
       GlobalKey<PrefabV3AtlasCatalogWorkspaceState>();
+  final GlobalKey<PrefabV3ModuleCatalogWorkspaceState> _moduleWorkspaceKey =
+      GlobalKey<PrefabV3ModuleCatalogWorkspaceState>();
   String? _selectedPrefabKey;
   _PrefabV3WorkspaceView _workspaceView = _PrefabV3WorkspaceView.owners;
   double _zoom = _initialZoom;
@@ -62,21 +65,28 @@ class PrefabPolygonStagingWorkspaceState
   bool get hasLocalDraftChanges =>
       (_authoring?.hasActiveOperation ?? false) ||
       (_atlasWorkspaceKey.currentState?.hasLocalDraftChanges ?? false) ||
+      (_moduleWorkspaceKey.currentState?.hasLocalDraftChanges ?? false) ||
       widget.controller.pendingChanges.hasChanges;
 
   bool get canUndo =>
       (_authoring?.hasActiveOperation ?? false) ||
       (_atlasWorkspaceKey.currentState?.hasLocalDraftChanges ?? false) ||
+      (_moduleWorkspaceKey.currentState?.hasLocalDraftChanges ?? false) ||
       widget.controller.canUndo;
 
   bool get canRedo =>
       !(_authoring?.hasActiveOperation ?? false) &&
       !(_atlasWorkspaceKey.currentState?.hasLocalDraftChanges ?? false) &&
+      !(_moduleWorkspaceKey.currentState?.hasLocalDraftChanges ?? false) &&
       widget.controller.canRedo;
 
   bool handleUndoShortcut() {
     if (_workspaceView == _PrefabV3WorkspaceView.atlasSlices &&
         (_atlasWorkspaceKey.currentState?.cancelLocalDraft() ?? false)) {
+      return true;
+    }
+    if (_workspaceView == _PrefabV3WorkspaceView.platformModules &&
+        (_moduleWorkspaceKey.currentState?.cancelLocalDraft() ?? false)) {
       return true;
     }
     final authoring = _authoring;
@@ -92,7 +102,8 @@ class PrefabPolygonStagingWorkspaceState
 
   bool handleRedoShortcut() {
     if ((_authoring?.hasActiveOperation ?? false) ||
-        (_atlasWorkspaceKey.currentState?.hasLocalDraftChanges ?? false)) {
+        (_atlasWorkspaceKey.currentState?.hasLocalDraftChanges ?? false) ||
+        (_moduleWorkspaceKey.currentState?.hasLocalDraftChanges ?? false)) {
       return false;
     }
     if (!widget.controller.canRedo) return false;
@@ -159,6 +170,11 @@ class PrefabPolygonStagingWorkspaceState
                   ownerWorkspace,
                   PrefabV3AtlasCatalogWorkspace(
                     key: _atlasWorkspaceKey,
+                    controller: widget.controller,
+                    document: document,
+                  ),
+                  PrefabV3ModuleCatalogWorkspace(
+                    key: _moduleWorkspaceKey,
                     controller: widget.controller,
                     document: document,
                   ),
@@ -266,6 +282,14 @@ class PrefabPolygonStagingWorkspaceState
               onSelected: (_) =>
                   _selectWorkspaceView(_PrefabV3WorkspaceView.atlasSlices),
             ),
+            ChoiceChip(
+              key: const ValueKey<String>('prefab_v3_view_platform_modules'),
+              label: const Text('Platform modules'),
+              selected:
+                  _workspaceView == _PrefabV3WorkspaceView.platformModules,
+              onSelected: (_) =>
+                  _selectWorkspaceView(_PrefabV3WorkspaceView.platformModules),
+            ),
           ],
         ),
       ],
@@ -284,6 +308,13 @@ class PrefabPolygonStagingWorkspaceState
         (_atlasWorkspaceKey.currentState?.hasLocalDraftChanges ?? false)) {
       _showWorkspaceSwitchBlocked(
         'Apply the slice form or undo its local draft before switching.',
+      );
+      return;
+    }
+    if (_workspaceView == _PrefabV3WorkspaceView.platformModules &&
+        (_moduleWorkspaceKey.currentState?.hasLocalDraftChanges ?? false)) {
+      _showWorkspaceSwitchBlocked(
+        'Apply the module form or undo its local draft before switching.',
       );
       return;
     }
@@ -1142,7 +1173,7 @@ class PrefabPolygonStagingWorkspaceState
   }
 }
 
-enum _PrefabV3WorkspaceView { owners, atlasSlices }
+enum _PrefabV3WorkspaceView { owners, atlasSlices, platformModules }
 
 int _comparePrefabs(PrefabV3Def left, PrefabV3Def right) {
   final kindOrder = _kindOrder(left.kind).compareTo(_kindOrder(right.kind));

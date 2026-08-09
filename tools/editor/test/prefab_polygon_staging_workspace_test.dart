@@ -571,6 +571,229 @@ void main() {
       );
     },
   );
+
+  testWidgets(
+    'staging module form preserves references across retained module workflows',
+    (tester) async {
+      tester.view.physicalSize = const Size(1800, 1200);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final harness = await _buildHarness();
+      addTearDown(harness.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData.dark(),
+          home: Scaffold(body: PrefabCreatorPage(controller: harness.session)),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('prefab_v3_view_platform_modules')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey<String>('platform_module_row_module_a')),
+        findsOneWidget,
+      );
+
+      final moduleARow = find.byKey(
+        const ValueKey<String>('platform_module_row_module_a'),
+      );
+      await tester.tap(
+        find
+            .descendant(of: moduleARow, matching: find.byTooltip('Delete'))
+            .first,
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Cannot delete module_a'), findsOneWidget);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('prefab_v3_module_delete_blocked')),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('platform_module_tile_size_field')),
+        '20',
+      );
+      final upsert = find.byKey(
+        const ValueKey<String>('platform_module_upsert_button'),
+      );
+      await tester.ensureVisible(upsert);
+      await tester.pump();
+      await tester.tap(upsert);
+      await tester.pumpAndSettle();
+      expect(_module(harness.session, 'module_a').revision, 2);
+      expect(_module(harness.session, 'module_a').tileSize, 20);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('prefab_polygon_undo_button')),
+      );
+      await tester.pumpAndSettle();
+      expect(_module(harness.session, 'module_a').revision, 1);
+      expect(_module(harness.session, 'module_a').tileSize, 16);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('prefab_polygon_redo_button')),
+      );
+      await tester.pumpAndSettle();
+      expect(_module(harness.session, 'module_a').revision, 2);
+
+      final platformShapes = _prefab(
+        harness.session,
+        'platform',
+      ).collisionShapes;
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('platform_module_id_field')),
+        'module_main',
+      );
+      final rename = find.byKey(
+        const ValueKey<String>('platform_module_rename_button'),
+      );
+      await tester.ensureVisible(rename);
+      await tester.pump();
+      await tester.tap(rename);
+      await tester.pumpAndSettle();
+      expect(_module(harness.session, 'module_main').revision, 3);
+      final platform = _prefab(harness.session, 'platform');
+      expect(platform.moduleId, 'module_main');
+      expect(platform.revision, 2);
+      expect(platform.collisionShapes, platformShapes);
+
+      final duplicate = find.byKey(
+        const ValueKey<String>('platform_module_duplicate_button'),
+      );
+      await tester.ensureVisible(duplicate);
+      await tester.pump();
+      await tester.tap(duplicate);
+      await tester.pumpAndSettle();
+      expect(_module(harness.session, 'module_main_copy').revision, 1);
+      expect(_module(harness.session, 'module_main_copy').cells, hasLength(1));
+
+      final copyRow = find.byKey(
+        const ValueKey<String>('platform_module_row_module_main_copy'),
+      );
+      await tester.tap(
+        find.descendant(of: copyRow, matching: find.byTooltip('Delete')).first,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('prefab_v3_module_delete_confirm')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        (harness.session.document! as PrefabV3StagingDocument)
+            .tileData
+            .platformModules
+            .any((module) => module.id == 'module_main_copy'),
+        isFalse,
+      );
+
+      final newEmpty = find.byKey(
+        const ValueKey<String>('platform_module_new_empty_button'),
+      );
+      await tester.ensureVisible(newEmpty);
+      await tester.pump();
+      await tester.tap(newEmpty);
+      await tester.pump();
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('platform_module_id_field')),
+        'scratch_module',
+      );
+      await tester.ensureVisible(upsert);
+      await tester.pump();
+      await tester.tap(upsert);
+      await tester.pumpAndSettle();
+      var scratch = _module(harness.session, 'scratch_module');
+      expect(scratch.status, TileModuleStatus.deprecated);
+      expect(scratch.cells, isEmpty);
+
+      final sceneCanvas = find.byKey(
+        const ValueKey<String>('platform_module_scene_canvas'),
+      );
+      await tester.tap(find.byKey(const ValueKey<String>('module_tool_paint')));
+      await tester.pump();
+      await tester.tapAt(tester.getCenter(sceneCanvas));
+      await tester.pumpAndSettle();
+      scratch = _module(harness.session, 'scratch_module');
+      expect(scratch.revision, 2);
+      expect(scratch.cells, hasLength(1));
+
+      final status = find.byKey(
+        const ValueKey<String>('platform_module_status_button'),
+      );
+      await tester.ensureVisible(status);
+      await tester.pump();
+      await tester.tap(status);
+      await tester.pumpAndSettle();
+      scratch = _module(harness.session, 'scratch_module');
+      expect(scratch.revision, 3);
+      expect(scratch.status, TileModuleStatus.active);
+
+      final scratchRow = find.byKey(
+        const ValueKey<String>('platform_module_row_scratch_module'),
+      );
+      await tester.tap(
+        find
+            .descendant(of: scratchRow, matching: find.byTooltip('Delete'))
+            .first,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('prefab_v3_module_delete_confirm')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        (harness.session.document! as PrefabV3StagingDocument)
+            .tileData
+            .platformModules
+            .any((module) => module.id == 'scratch_module'),
+        isFalse,
+      );
+
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('platform_module_tile_size_field')),
+        '24',
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('prefab_v3_view_owners')),
+      );
+      await tester.pump();
+      expect(sceneCanvas, findsOneWidget);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('prefab_polygon_undo_button')),
+      );
+      await tester.pump();
+      expect(
+        tester
+            .widget<TextField>(
+              find.byKey(
+                const ValueKey<String>('platform_module_tile_size_field'),
+              ),
+            )
+            .controller!
+            .text,
+        '20',
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('prefab_v3_view_owners')),
+      );
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey<String>('prefab_v3_owner_edit')),
+        findsOneWidget,
+      );
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.byKey(const ValueKey<String>('prefab_polygon_apply_locked')),
+            )
+            .onPressed,
+        isNull,
+      );
+    },
+  );
 }
 
 Future<_Harness> _buildHarness() async {
@@ -710,6 +933,13 @@ AtlasSliceDef _slice(EditorSessionController session, String sliceId) {
     ...document.data.slices,
     ...document.tileData.tileSlices,
   ].singleWhere((slice) => slice.id == sliceId);
+}
+
+TileModuleDef _module(EditorSessionController session, String moduleId) {
+  final document = session.document! as PrefabV3StagingDocument;
+  return document.tileData.platformModules.singleWhere(
+    (module) => module.id == moduleId,
+  );
 }
 
 TerrainSourceShapeDef _outsideRectangle() => TerrainSourceShapeDef(

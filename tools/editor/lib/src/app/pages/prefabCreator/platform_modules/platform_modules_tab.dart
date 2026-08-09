@@ -272,6 +272,7 @@ class _PlatformModuleInspectorPanel extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 TextField(
+                  key: const ValueKey<String>('platform_module_id_field'),
                   controller: moduleIdController,
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
@@ -280,6 +281,9 @@ class _PlatformModuleInspectorPanel extends StatelessWidget {
                 ),
                 const SizedBox(height: PrefabEditorUiTokens.controlGap),
                 TextField(
+                  key: const ValueKey<String>(
+                    'platform_module_tile_size_field',
+                  ),
                   controller: moduleTileSizeController,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
@@ -320,16 +324,25 @@ class _PlatformModuleInspectorPanel extends StatelessWidget {
                           label: const Text('New Empty Module'),
                         ),
                         OutlinedButton.icon(
+                          key: const ValueKey<String>(
+                            'platform_module_rename_button',
+                          ),
                           onPressed: onRenameSelectedModule,
                           icon: const Icon(Icons.drive_file_rename_outline),
                           label: const Text('Rename'),
                         ),
                         OutlinedButton.icon(
+                          key: const ValueKey<String>(
+                            'platform_module_duplicate_button',
+                          ),
                           onPressed: onDuplicateSelectedModule,
                           icon: const Icon(Icons.copy_outlined),
                           label: const Text('Duplicate'),
                         ),
                         OutlinedButton.icon(
+                          key: const ValueKey<String>(
+                            'platform_module_status_button',
+                          ),
                           onPressed: onToggleDeprecateSelectedModule,
                           icon: Icon(
                             isSelectedDeprecated

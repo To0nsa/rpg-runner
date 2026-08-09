@@ -1,4 +1,5 @@
 import '../../../../prefabs/models/models.dart';
+import 'platform_module_cell_reducer.dart';
 import 'prefab_editor_data_reducer.dart';
 
 class PrefabEditorModuleRenameResult {
@@ -168,11 +169,12 @@ class PrefabEditorMutations {
     required int cellIndex,
   }) {
     final current = _moduleById(data.platformModules, moduleId);
-    if (current == null || cellIndex < 0 || cellIndex >= current.cells.length) {
-      return data;
-    }
-    final nextCells = List<TileModuleCellDef>.from(current.cells)
-      ..removeAt(cellIndex);
+    if (current == null) return data;
+    final nextCells = PlatformModuleCellReducer.deleteAt(
+      current.cells,
+      cellIndex,
+    );
+    if (nextCells == null) return data;
     final nextModule = current.copyWith(
       revision: current.revision + 1,
       cells: nextCells,
@@ -188,36 +190,14 @@ class PrefabEditorMutations {
     required String sliceId,
   }) {
     final current = _moduleById(data.platformModules, moduleId);
-    if (current == null) {
-      return data;
-    }
-    var changed = false;
-    final nextCells = <TileModuleCellDef>[];
-    var found = false;
-    for (final cell in current.cells) {
-      if (cell.gridX == gridX && cell.gridY == gridY) {
-        found = true;
-        if (cell.sliceId == sliceId) {
-          nextCells.add(cell);
-        } else {
-          changed = true;
-          nextCells.add(
-            TileModuleCellDef(sliceId: sliceId, gridX: gridX, gridY: gridY),
-          );
-        }
-      } else {
-        nextCells.add(cell);
-      }
-    }
-    if (!found) {
-      changed = true;
-      nextCells.add(
-        TileModuleCellDef(sliceId: sliceId, gridX: gridX, gridY: gridY),
-      );
-    }
-    if (!changed) {
-      return data;
-    }
+    if (current == null) return data;
+    final nextCells = PlatformModuleCellReducer.paint(
+      current.cells,
+      gridX: gridX,
+      gridY: gridY,
+      sliceId: sliceId,
+    );
+    if (nextCells == null) return data;
     final nextModule = current.copyWith(
       revision: current.revision + 1,
       cells: nextCells,
@@ -232,21 +212,13 @@ class PrefabEditorMutations {
     required int gridY,
   }) {
     final current = _moduleById(data.platformModules, moduleId);
-    if (current == null) {
-      return data;
-    }
-    var removed = false;
-    final nextCells = <TileModuleCellDef>[];
-    for (final cell in current.cells) {
-      if (cell.gridX == gridX && cell.gridY == gridY) {
-        removed = true;
-        continue;
-      }
-      nextCells.add(cell);
-    }
-    if (!removed) {
-      return data;
-    }
+    if (current == null) return data;
+    final nextCells = PlatformModuleCellReducer.erase(
+      current.cells,
+      gridX: gridX,
+      gridY: gridY,
+    );
+    if (nextCells == null) return data;
     final nextModule = current.copyWith(
       revision: current.revision + 1,
       cells: nextCells,
@@ -262,35 +234,16 @@ class PrefabEditorMutations {
     required int targetGridX,
     required int targetGridY,
   }) {
-    if (sourceGridX == targetGridX && sourceGridY == targetGridY) {
-      return data;
-    }
     final current = _moduleById(data.platformModules, moduleId);
-    if (current == null) {
-      return data;
-    }
-    TileModuleCellDef? sourceCell;
-    final nextCells = <TileModuleCellDef>[];
-    for (final cell in current.cells) {
-      if (cell.gridX == sourceGridX && cell.gridY == sourceGridY) {
-        sourceCell ??= cell;
-        continue;
-      }
-      if (cell.gridX == targetGridX && cell.gridY == targetGridY) {
-        continue;
-      }
-      nextCells.add(cell);
-    }
-    if (sourceCell == null) {
-      return data;
-    }
-    nextCells.add(
-      TileModuleCellDef(
-        sliceId: sourceCell.sliceId,
-        gridX: targetGridX,
-        gridY: targetGridY,
-      ),
+    if (current == null) return data;
+    final nextCells = PlatformModuleCellReducer.move(
+      current.cells,
+      sourceGridX: sourceGridX,
+      sourceGridY: sourceGridY,
+      targetGridX: targetGridX,
+      targetGridY: targetGridY,
     );
+    if (nextCells == null) return data;
     final nextModule = current.copyWith(
       revision: current.revision + 1,
       cells: nextCells,

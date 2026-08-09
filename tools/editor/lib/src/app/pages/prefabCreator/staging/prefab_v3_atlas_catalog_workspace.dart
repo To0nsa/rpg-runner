@@ -49,6 +49,7 @@ class PrefabV3AtlasCatalogWorkspaceState
   AtlasSlicerState _atlasState = const AtlasSlicerState();
   String? _selectedPrefabSliceId;
   String? _selectedTileSliceId;
+  int _formEpoch = 0;
   bool _syncingDraft = false;
   bool _hasDraftChanges = false;
 
@@ -110,66 +111,74 @@ class PrefabV3AtlasCatalogWorkspaceState
               'w=${selection.width.toInt()} '
               'h=${selection.height.toInt()}';
 
-    return AtlasSlicerTab(
-      atlasImagePaths: document.atlasImagePaths,
-      selectedAtlasPath: selectedPath,
-      selectedSliceKind: kind,
-      sliceIdController: _idController,
-      sliceTagsController: _tagsController,
-      atlasZoom: _atlasState.zoom,
-      zoomMin: _zoomMin,
-      zoomMax: _zoomMax,
-      zoomStep: _zoomStep,
-      selectionLabel: selectionLabel,
-      selectionXController: _xController,
-      selectionYController: _yController,
-      selectionWController: _widthController,
-      selectionHController: _heightController,
-      atlasSize: selectedPath == null
-          ? null
-          : document.atlasImageSizes[selectedPath],
-      slices: visibleSlices,
-      existingSliceIds: allSlices.map((slice) => slice.id).toSet(),
-      selectedSliceId: selectedId,
-      selectedSlice: selectedSlice,
-      workspaceRootPath: widget.controller.workspacePath,
-      selectionRectInImagePixels: selection,
-      horizontalScrollController: _horizontalScrollController,
-      verticalScrollController: _verticalScrollController,
-      onSelectedAtlasChanged: (path) => _selectAtlas(document, path),
-      onSelectedSliceKindChanged: (nextKind) => _selectKind(document, nextKind),
-      onSelectedSliceChanged: (sliceId) =>
-          _selectSlice(document, kind, sliceId),
-      onAtlasZoomChanged: (zoom) =>
-          setState(() => _atlasState = _atlasState.withZoom(zoom)),
-      onSelectionInputsChanged: () => _applySelectionInputs(document),
-      onSaveSlice: () => _saveSlice(document),
-      onDeleteSlice: (sliceId) => _deleteSlice(document, kind, sliceId),
-      onSelectionDragStart: (localPosition, imageSize) {
-        final start = _slicer.toImagePosition(
-          state: _atlasState,
-          localPosition: localPosition,
-          imageSize: imageSize,
-        );
-        setState(() {
-          _atlasState = _atlasState.withSelection(start, start);
-          _syncSelectionInputs(_slicer.selectionRectInImagePixels(_atlasState));
-          _hasDraftChanges = true;
-        });
-      },
-      onSelectionDragUpdate: (localPosition, imageSize) {
-        final current = _slicer.toImagePosition(
-          state: _atlasState,
-          localPosition: localPosition,
-          imageSize: imageSize,
-        );
-        setState(() {
-          final start = _atlasState.selectionStartImagePx ?? current;
-          _atlasState = _atlasState.withSelection(start, current);
-          _syncSelectionInputs(_slicer.selectionRectInImagePixels(_atlasState));
-          _hasDraftChanges = true;
-        });
-      },
+    return KeyedSubtree(
+      key: ValueKey<String>('prefab_v3_atlas_form_$_formEpoch'),
+      child: AtlasSlicerTab(
+        atlasImagePaths: document.atlasImagePaths,
+        selectedAtlasPath: selectedPath,
+        selectedSliceKind: kind,
+        sliceIdController: _idController,
+        sliceTagsController: _tagsController,
+        atlasZoom: _atlasState.zoom,
+        zoomMin: _zoomMin,
+        zoomMax: _zoomMax,
+        zoomStep: _zoomStep,
+        selectionLabel: selectionLabel,
+        selectionXController: _xController,
+        selectionYController: _yController,
+        selectionWController: _widthController,
+        selectionHController: _heightController,
+        atlasSize: selectedPath == null
+            ? null
+            : document.atlasImageSizes[selectedPath],
+        slices: visibleSlices,
+        existingSliceIds: allSlices.map((slice) => slice.id).toSet(),
+        selectedSliceId: selectedId,
+        selectedSlice: selectedSlice,
+        workspaceRootPath: widget.controller.workspacePath,
+        selectionRectInImagePixels: selection,
+        horizontalScrollController: _horizontalScrollController,
+        verticalScrollController: _verticalScrollController,
+        onSelectedAtlasChanged: (path) => _selectAtlas(document, path),
+        onSelectedSliceKindChanged: (nextKind) =>
+            _selectKind(document, nextKind),
+        onSelectedSliceChanged: (sliceId) =>
+            _selectSlice(document, kind, sliceId),
+        onAtlasZoomChanged: (zoom) =>
+            setState(() => _atlasState = _atlasState.withZoom(zoom)),
+        onSelectionInputsChanged: () => _applySelectionInputs(document),
+        onSaveSlice: () => _saveSlice(document),
+        onDeleteSlice: (sliceId) => _deleteSlice(document, kind, sliceId),
+        onSelectionDragStart: (localPosition, imageSize) {
+          final start = _slicer.toImagePosition(
+            state: _atlasState,
+            localPosition: localPosition,
+            imageSize: imageSize,
+          );
+          setState(() {
+            _atlasState = _atlasState.withSelection(start, start);
+            _syncSelectionInputs(
+              _slicer.selectionRectInImagePixels(_atlasState),
+            );
+            _hasDraftChanges = true;
+          });
+        },
+        onSelectionDragUpdate: (localPosition, imageSize) {
+          final current = _slicer.toImagePosition(
+            state: _atlasState,
+            localPosition: localPosition,
+            imageSize: imageSize,
+          );
+          setState(() {
+            final start = _atlasState.selectionStartImagePx ?? current;
+            _atlasState = _atlasState.withSelection(start, current);
+            _syncSelectionInputs(
+              _slicer.selectionRectInImagePixels(_atlasState),
+            );
+            _hasDraftChanges = true;
+          });
+        },
+      ),
     );
   }
 
@@ -218,6 +227,7 @@ class PrefabV3AtlasCatalogWorkspaceState
   }
 
   void _selectAtlas(PrefabV3StagingDocument document, String? path) {
+    if (!_canNavigateCatalog()) return;
     final slices = _slicesForKind(document, _atlasState.selectedSliceKind);
     final selected = slices
         .where((slice) => slice.sourceImagePath == path)
@@ -230,6 +240,7 @@ class PrefabV3AtlasCatalogWorkspaceState
   }
 
   void _selectKind(PrefabV3StagingDocument document, AtlasSliceKind kind) {
+    if (!_canNavigateCatalog()) return;
     final slices = _slicesForKind(document, kind);
     var selected = _findSlice(slices, _selectedId(kind));
     selected ??= slices.firstOrNull;
@@ -249,6 +260,7 @@ class PrefabV3AtlasCatalogWorkspaceState
     AtlasSliceKind kind,
     String sliceId,
   ) {
+    if (!_canNavigateCatalog()) return;
     final slice = _findSlice(_slicesForKind(document, kind), sliceId);
     if (slice == null) return;
     setState(() {
@@ -346,6 +358,10 @@ class PrefabV3AtlasCatalogWorkspaceState
     AtlasSliceKind kind,
     String sliceId,
   ) async {
+    if (_hasDraftChanges) {
+      _showMessage('Apply or undo the slice form before deleting.');
+      return;
+    }
     final references = kind == AtlasSliceKind.prefab
         ? document.data.prefabs
               .where(
@@ -490,6 +506,13 @@ class PrefabV3AtlasCatalogWorkspaceState
   void _markDraftChanged() {
     if (_syncingDraft || _hasDraftChanges) return;
     setState(() => _hasDraftChanges = true);
+  }
+
+  bool _canNavigateCatalog() {
+    if (!_hasDraftChanges) return true;
+    setState(() => _formEpoch += 1);
+    _showMessage('Apply or undo the slice form before changing selection.');
+    return false;
   }
 
   String? _selectedId(AtlasSliceKind kind) => switch (kind) {
