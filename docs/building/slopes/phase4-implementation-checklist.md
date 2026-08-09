@@ -822,11 +822,12 @@ source or enable `--write` until these slices close in order:
      path collision checks, sibling staging, byte verification, and rollback.
    - Exercise writes only in temporary all-current fixtures. The checked-in
      v2/v1 source and CLI remain read-only.
-   - Landed first: `ChunkStore` can build a deterministic v2 plan and pending
-     diff for clean/current, create, managed move, and delete states entirely
-     from immutable source baselines. It has no v2 save method yet; drift
-     rechecks, transactional application, reload, and rollback proof remain
-     open.
+   - `ChunkStore` builds a deterministic v2 plan and pending diff for
+     clean/current, create, managed move, and delete states entirely from
+     immutable source baselines. Its explicit staging proof rechecks the whole
+     source set after staging, applies writes/moves/deletions through one
+     rollback-safe transaction, strictly verifies the final file set, and
+     reloads byte-identically. Normal plugin export remains locked.
    - `PrefabStore` now builds the exact paired prefab-v3/tile-v2 plan from
      strict load-time baselines. Its explicit staging proof rechecks both files
      after staging, installs only changed artifacts through the shared
@@ -1367,6 +1368,8 @@ result.
 | 2026-08-09 / `b2a9db0c` | Write-locked Prefab v3 owner mutations | Dart VM and Flutter test VM on Windows with Docker running | Targeted owner-policy/plugin/test analysis is clean; all 8 Prefab-v3 domain tests plus the 3 strict staging-loader tests and route-local staging workspace test pass. Immutable metadata cannot mutate stable identity or polygons; create/duplicate/rename/delete own deterministic keys and revisions; accepted changes recompute visual bounds and rejected stale/invalid/noncanonical/no-op commands preserve document identity. Normal v2 loading/source and changed-v3 export remain locked. |
 | 2026-08-09 / `e3b3e8a1` | Write-locked Prefab v3 visual-catalog mutations | Dart VM and Flutter test VM on Windows with Docker running | Targeted catalog/plugin/test analysis is clean and the final focused set covers 13 Prefab-v3 domain cases, 3 strict staging-load cases, and the route-local staging workspace. Typed prefab/tile slice and platform-module operations use a complete two-file freshness token, canonical ordering, deterministic duplicate IDs, exact module/prefab revision propagation, reference-safe deletion/cascade, recomputed bounds, and portable prefab/tile pending diffs. A tile-only mutation proves changed export remains hard-locked with zero filesystem output; normal v2 authority is unchanged. |
 | 2026-08-09 / `b0eb64e7` | Transactional Prefab v3 save/reload proof | Dart VM and Flutter test VM on Windows with Docker running | Targeted store/plugin/test analysis is clean and all 5 focused save-plan tests pass. Strict paired baselines produce canonical fixed-path plans; clean plans are no-ops; paired and tile-only edits install through the shared rollback-safe workspace transaction and reload byte-identically; source drift, missing/legacy baselines, incomplete plans, and noncanonical outputs fail before replacement. Transaction artifacts are cleaned, the normal plugin remains changed-export locked, and checked-in v2 source is untouched. |
+| 2026-08-09 / `52328d1d` | Rollback-safe workspace deletion artifacts | Dart VM and Flutter test VM on Windows with Docker running | Targeted shared-transaction analysis is clean and all 7 transaction tests pass. A deletion now stages no replacement bytes, retains the original as a sibling backup, verifies target absence with the installed set, and restores the deleted file if later post-install validation fails. Existing write ordering, byte verification, drift callback timing, canonical-path rejection, and cleanup behavior remain unchanged. |
+| 2026-08-09 / `de67b22b` | Transactional Chunk v2 save/reload proof | Dart VM and Flutter test VM on Windows with Docker running | Targeted store/test analysis is clean; the focused 30-test set covers 7 shared transactions, 11 Chunk-v2 save/lifecycle plans, 7 plugin commits, and 5 strict staging loads. Clean plans are no-ops; managed moves and create/delete batches commit atomically and reload byte-identically; full-tree byte/set drift and stale plans reject before replacement. Post-install verification requires the exact canonical file set and strict v2 decoding. Normal v1 authority and the changed-v2 export lock remain unchanged. |
 
 ### 28.1 Baseline Environment And Source Identity
 
