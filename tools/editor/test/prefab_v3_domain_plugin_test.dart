@@ -5,9 +5,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_editor/src/domain/authoring_types.dart';
 import 'package:runner_editor/src/prefabs/domain/prefab_domain_models.dart';
 import 'package:runner_editor/src/prefabs/domain/prefab_domain_plugin.dart';
+import 'package:runner_editor/src/prefabs/domain/prefab_v3_catalog_commit.dart';
 import 'package:runner_editor/src/prefabs/domain/prefab_v3_lifecycle_commit.dart';
 import 'package:runner_editor/src/prefabs/domain/prefab_v3_metadata_commit.dart';
 import 'package:runner_editor/src/prefabs/models/models.dart';
+import 'package:runner_editor/src/prefabs/store/prefab_tile_file_codec.dart';
 import 'package:runner_editor/src/prefabs/store/prefab_v3_file_codec.dart';
 import 'package:runner_editor/src/terrain_authoring/terrain_polygon_interaction.dart';
 import 'package:runner_editor/src/terrain_authoring/terrain_source_models.dart';
@@ -425,6 +427,328 @@ void main() {
       same(document),
     );
   });
+
+  test('typed slice mutations recompute bounds and protect references', () {
+    final document = _document(<TerrainSourceShapeDef>[_rectangle(right: 8)]);
+
+    AuthoringDocument apply(
+      PrefabV3StagingDocument source,
+      PrefabV3CatalogOperation operation,
+    ) => plugin.applyEdit(
+      source,
+      AuthoringCommand(
+        kind: PrefabDomainPlugin.commitPrefabV3CatalogCommandKind,
+        payload: <String, Object?>{
+          'commit': PrefabV3CatalogCommit(
+            before: PrefabV3CatalogSnapshot.fromDocument(source),
+            operation: operation,
+          ),
+        },
+      ),
+    );
+
+    final resized =
+        apply(
+              document,
+              const PrefabV3UpsertSliceOperation(
+                kind: AtlasSliceKind.prefab,
+                slice: AtlasSliceDef(
+                  id: 'slice_a',
+                  sourceImagePath: 'assets/images/level/test.png',
+                  x: 0,
+                  y: 0,
+                  width: 12,
+                  height: 10,
+                ),
+              ),
+            )
+            as PrefabV3StagingDocument;
+    expect(resized.visualBoundsByPrefabKey['target']?.widthPx, 12);
+    expect(resized.data.prefabs.single.revision, 4);
+
+    final blockedDelete = apply(
+      resized,
+      const PrefabV3DeleteSliceOperation(
+        kind: AtlasSliceKind.prefab,
+        sliceId: 'slice_a',
+      ),
+    );
+    expect(blockedDelete, same(resized));
+
+    final deleted =
+        apply(
+              resized,
+              const PrefabV3DeleteSliceOperation(
+                kind: AtlasSliceKind.prefab,
+                sliceId: 'slice_a',
+                cascadeReferences: true,
+              ),
+            )
+            as PrefabV3StagingDocument;
+    expect(deleted.data.slices, isEmpty);
+    expect(deleted.data.prefabs, isEmpty);
+    expect(deleted.changedPrefabKeys, <String>['target']);
+  });
+
+  test('typed module lifecycle propagates references and revisions once', () {
+    final document = _catalogDocument();
+
+    PrefabV3StagingDocument apply(
+      PrefabV3StagingDocument source,
+      PrefabV3CatalogOperation operation,
+    ) =>
+        plugin.applyEdit(
+              source,
+              AuthoringCommand(
+                kind: PrefabDomainPlugin.commitPrefabV3CatalogCommandKind,
+                payload: <String, Object?>{
+                  'commit': PrefabV3CatalogCommit(
+                    before: PrefabV3CatalogSnapshot.fromDocument(source),
+                    operation: operation,
+                  ),
+                },
+              ),
+            )
+            as PrefabV3StagingDocument;
+
+    final updated = apply(
+      document,
+      PrefabV3UpdateModuleOperation(
+        moduleId: 'module_a',
+        status: TileModuleStatus.deprecated,
+        tileSize: 16,
+        cells: const <TileModuleCellDef>[
+          TileModuleCellDef(sliceId: 'tile_a', gridX: 0, gridY: 0),
+          TileModuleCellDef(sliceId: 'tile_a', gridX: 1, gridY: 0),
+        ],
+      ),
+    );
+    expect(updated.tileData.platformModules.single.revision, 3);
+    expect(
+      updated.data.prefabs.single.revision,
+      document.data.prefabs.single.revision,
+    );
+    expect(updated.visualBoundsByPrefabKey['platform']?.widthPx, 32);
+
+    final renamed = apply(
+      updated,
+      const PrefabV3RenameModuleOperation(
+        moduleId: 'module_a',
+        nextId: 'module_b',
+      ),
+    );
+    final renamedModule = renamed.tileData.platformModules.single;
+    final referencingPrefab = renamed.data.prefabs.single;
+    expect(renamedModule.id, 'module_b');
+    expect(renamedModule.revision, 4);
+    expect(referencingPrefab.moduleId, 'module_b');
+    expect(referencingPrefab.revision, 8);
+    expect(renamed.changedPrefabKeys, <String>['platform']);
+
+    final duplicated = apply(
+      renamed,
+      const PrefabV3DuplicateModuleOperation(sourceModuleId: 'module_b'),
+    );
+    expect(
+      duplicated.tileData.platformModules
+          .singleWhere((module) => module.id == 'module_b_copy')
+          .revision,
+      1,
+    );
+
+    final created = apply(
+      duplicated,
+      PrefabV3CreateModuleOperation(
+        id: 'module_c',
+        status: TileModuleStatus.active,
+        tileSize: 16,
+        cells: const <TileModuleCellDef>[
+          TileModuleCellDef(sliceId: 'tile_a', gridX: 0, gridY: 0),
+        ],
+      ),
+    );
+    expect(
+      created.tileData.platformModules
+          .singleWhere((module) => module.id == 'module_c')
+          .revision,
+      1,
+    );
+
+    final deleted = apply(
+      created,
+      const PrefabV3DeleteModuleOperation(moduleId: 'module_b_copy'),
+    );
+    expect(
+      deleted.tileData.platformModules.any(
+        (module) => module.id == 'module_b_copy',
+      ),
+      isFalse,
+    );
+
+    final pending = plugin.describePendingChanges(
+      EditorWorkspace(rootPath: Directory.current.path),
+      document: deleted,
+    );
+    expect(pending.fileDiffs, hasLength(2));
+    expect(
+      pending.fileDiffs.map((diff) => diff.relativePath),
+      containsAll(<String>[
+        'assets/authoring/level/prefab_defs.json',
+        'assets/authoring/level/tile_defs.json',
+      ]),
+    );
+  });
+
+  test('catalog commits reject stale noncanonical and referenced deletes', () {
+    final document = _catalogDocument();
+    final before = PrefabV3CatalogSnapshot.fromDocument(document);
+
+    AuthoringDocument apply(PrefabV3CatalogCommit commit) => plugin.applyEdit(
+      document,
+      AuthoringCommand(
+        kind: PrefabDomainPlugin.commitPrefabV3CatalogCommandKind,
+        payload: <String, Object?>{'commit': commit},
+      ),
+    );
+
+    final staleDocument = document.copyWith(
+      tileData: document.tileData.copyWith(
+        platformModules: <TileModuleDef>[
+          document.tileData.platformModules.single.copyWith(revision: 3),
+        ],
+      ),
+    );
+    expect(
+      apply(
+        PrefabV3CatalogCommit(
+          before: PrefabV3CatalogSnapshot.fromDocument(staleDocument),
+          operation: const PrefabV3DeleteModuleOperation(moduleId: 'module_a'),
+        ),
+      ),
+      same(document),
+    );
+    expect(
+      apply(
+        PrefabV3CatalogCommit(
+          before: before,
+          operation: const PrefabV3DeleteModuleOperation(moduleId: 'module_a'),
+        ),
+      ),
+      same(document),
+    );
+    expect(
+      apply(
+        PrefabV3CatalogCommit(
+          before: before,
+          operation: PrefabV3UpdateModuleOperation(
+            moduleId: 'module_a',
+            status: TileModuleStatus.active,
+            tileSize: 16,
+            cells: const <TileModuleCellDef>[
+              TileModuleCellDef(sliceId: 'tile_a', gridX: 1, gridY: 0),
+              TileModuleCellDef(sliceId: 'tile_a', gridX: 0, gridY: 0),
+            ],
+          ),
+        ),
+      ),
+      same(document),
+    );
+    expect(
+      apply(
+        PrefabV3CatalogCommit(
+          before: before,
+          operation: const PrefabV3UpsertSliceOperation(
+            kind: AtlasSliceKind.tile,
+            slice: AtlasSliceDef(
+              id: 'tile_b',
+              sourceImagePath: 'assets/images/level/missing.png',
+              x: 0,
+              y: 0,
+              width: 16,
+              height: 16,
+            ),
+          ),
+        ),
+      ),
+      same(document),
+    );
+  });
+
+  test('tile-slice cascade bumps each affected module exactly once', () {
+    final document = _catalogDocument();
+    final edited =
+        plugin.applyEdit(
+              document,
+              AuthoringCommand(
+                kind: PrefabDomainPlugin.commitPrefabV3CatalogCommandKind,
+                payload: <String, Object?>{
+                  'commit': PrefabV3CatalogCommit(
+                    before: PrefabV3CatalogSnapshot.fromDocument(document),
+                    operation: const PrefabV3DeleteSliceOperation(
+                      kind: AtlasSliceKind.tile,
+                      sliceId: 'tile_a',
+                      cascadeReferences: true,
+                    ),
+                  ),
+                },
+              ),
+            )
+            as PrefabV3StagingDocument;
+
+    expect(edited.tileData.tileSlices.single.id, 'tile_b');
+    expect(edited.tileData.platformModules.single.revision, 3);
+    expect(
+      edited.tileData.platformModules.single.cells.single.sliceId,
+      'tile_b',
+    );
+    expect(edited.data.prefabs.single.revision, 7);
+  });
+
+  test('tile-only staged mutation remains protected by export lock', () async {
+    final root = Directory.systemTemp.createTempSync('prefab_v3_catalog_');
+    addTearDown(() => root.deleteSync(recursive: true));
+    final document = _catalogDocument();
+    final edited = plugin.applyEdit(
+      document,
+      AuthoringCommand(
+        kind: PrefabDomainPlugin.commitPrefabV3CatalogCommandKind,
+        payload: <String, Object?>{
+          'commit': PrefabV3CatalogCommit(
+            before: PrefabV3CatalogSnapshot.fromDocument(document),
+            operation: PrefabV3CreateModuleOperation(
+              id: 'module_c',
+              status: TileModuleStatus.active,
+              tileSize: 16,
+              cells: const <TileModuleCellDef>[
+                TileModuleCellDef(sliceId: 'tile_a', gridX: 0, gridY: 0),
+              ],
+            ),
+          ),
+        },
+      ),
+    );
+    final pending = plugin.describePendingChanges(
+      EditorWorkspace(rootPath: root.path),
+      document: edited,
+    );
+    expect(pending.fileDiffs, hasLength(1));
+    expect(pending.fileDiffs.single.relativePath, contains('tile_defs.json'));
+
+    await expectLater(
+      plugin.exportToRepo(
+        EditorWorkspace(rootPath: root.path),
+        document: edited,
+      ),
+      throwsA(
+        isA<StateError>().having(
+          (error) => error.message,
+          'message',
+          contains('prefab_v3_source_write_disabled'),
+        ),
+      ),
+    );
+    expect(root.listSync(recursive: true), isEmpty);
+  });
 }
 
 PrefabV3StagingDocument _document(Iterable<TerrainSourceShapeDef> shapes) {
@@ -464,9 +788,81 @@ PrefabV3StagingDocument _document(Iterable<TerrainSourceShapeDef> shapes) {
       'target': PrefabV3VisualBounds(widthPx: 10, heightPx: 10),
     },
     atlasImagePaths: const <String>[],
-    atlasImageSizes: const <String, Size>{},
+    atlasImageSizes: const <String, Size>{
+      'assets/images/level/test.png': Size(20, 20),
+    },
     prefabBaselineContents: PrefabV3FileCodec.encode(data),
-    tileBaselineContents: null,
+    tileBaselineContents: PrefabTileFileCodec.encode(
+      PrefabTileFileData(
+        tileSlices: const <AtlasSliceDef>[],
+        platformModules: const <TileModuleDef>[],
+      ),
+    ),
+  );
+}
+
+PrefabV3StagingDocument _catalogDocument() {
+  final data = PrefabV3FileData(
+    slices: const <AtlasSliceDef>[],
+    prefabs: <PrefabV3Def>[
+      PrefabV3Def(
+        prefabKey: 'platform',
+        id: 'platform',
+        revision: 7,
+        status: PrefabStatus.active,
+        kind: PrefabKind.platform,
+        visualSource: const PrefabVisualSource.platformModule('module_a'),
+        anchorXPx: 8,
+        anchorYPx: 8,
+        collisionShapes: <TerrainSourceShapeDef>[_rectangle(right: 8)],
+        tags: const <String>[],
+      ),
+    ],
+  );
+  final tileData = PrefabTileFileData(
+    tileSlices: const <AtlasSliceDef>[
+      AtlasSliceDef(
+        id: 'tile_a',
+        sourceImagePath: 'assets/images/level/test.png',
+        x: 0,
+        y: 0,
+        width: 16,
+        height: 16,
+      ),
+      AtlasSliceDef(
+        id: 'tile_b',
+        sourceImagePath: 'assets/images/level/test.png',
+        x: 16,
+        y: 0,
+        width: 16,
+        height: 16,
+      ),
+    ],
+    platformModules: const <TileModuleDef>[
+      TileModuleDef(
+        id: 'module_a',
+        revision: 2,
+        status: TileModuleStatus.active,
+        tileSize: 16,
+        cells: <TileModuleCellDef>[
+          TileModuleCellDef(sliceId: 'tile_a', gridX: 0, gridY: 0),
+          TileModuleCellDef(sliceId: 'tile_b', gridX: 1, gridY: 0),
+        ],
+      ),
+    ],
+  );
+  return PrefabV3StagingDocument(
+    data: data,
+    tileData: tileData,
+    visualBoundsByPrefabKey: const <String, PrefabV3VisualBounds>{
+      'platform': PrefabV3VisualBounds(widthPx: 16, heightPx: 16),
+    },
+    atlasImagePaths: const <String>['assets/images/level/test.png'],
+    atlasImageSizes: const <String, Size>{
+      'assets/images/level/test.png': Size(64, 32),
+    },
+    prefabBaselineContents: PrefabV3FileCodec.encode(data),
+    tileBaselineContents: PrefabTileFileCodec.encode(tileData),
   );
 }
 

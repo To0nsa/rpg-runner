@@ -8,10 +8,12 @@ import '../../domain/authoring_types.dart';
 import '../../terrain_authoring/terrain_polygon_interaction.dart';
 import '../../workspace/editor_workspace.dart';
 import '../models/models.dart';
+import '../store/prefab_tile_file_codec.dart';
 import '../store/prefab_v3_file_codec.dart';
 import 'prefab_domain_models.dart';
 import 'prefab_visual_bounds_resolver.dart';
 import 'prefab_v3_collision_commit.dart';
+import 'prefab_v3_catalog_commit.dart';
 import 'prefab_v3_lifecycle_commit.dart';
 import 'prefab_v3_metadata_commit.dart';
 import 'prefab_v3_owner_validation.dart';
@@ -46,6 +48,10 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
   /// Staged command for one prefab-v3 create/duplicate/rename/delete commit.
   static const String commitPrefabV3LifecycleCommandKind =
       'commit_prefab_v3_lifecycle';
+
+  /// Staged command for one prefab-v3 slice or retained-module mutation.
+  static const String commitPrefabV3CatalogCommandKind =
+      'commit_prefab_v3_catalog';
 
   /// Workspace-relative root scanned for atlas images used by slices.
   static const String _levelAssetsPath = 'assets/images/level';
@@ -268,28 +274,42 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
     required AuthoringDocument document,
   }) {
     if (document is PrefabV3StagingDocument) {
-      final afterContent = PrefabV3FileCodec.encode(document.data);
-      if (document.prefabBaselineContents == afterContent) {
+      final writes = <_PrefabFileWrite>[
+        _PrefabFileWrite(
+          relativePath: p
+              .normalize(PrefabStore.prefabDefsPath)
+              .replaceAll('\\', '/'),
+          beforeContent: document.prefabBaselineContents,
+          afterContent: PrefabV3FileCodec.encode(document.data),
+        ),
+        _PrefabFileWrite(
+          relativePath: p
+              .normalize(PrefabStore.tileDefsPath)
+              .replaceAll('\\', '/'),
+          beforeContent: document.tileBaselineContents,
+          afterContent: PrefabTileFileCodec.encode(document.tileData),
+        ),
+      ];
+      final changed = writes
+          .where((write) => write.beforeContent != write.afterContent)
+          .toList(growable: false);
+      if (changed.isEmpty) {
         return PendingChanges.empty;
       }
-      final relativePath = p.normalize(PrefabStore.prefabDefsPath);
-      final write = _PrefabFileWrite(
-        relativePath: relativePath,
-        beforeContent: document.prefabBaselineContents,
-        afterContent: afterContent,
-      );
       return PendingChanges(
         changedItemIds: document.changedPrefabKeys,
-        fileDiffs: <PendingFileDiff>[
-          PendingFileDiff(
-            relativePath: relativePath,
-            editCount: _estimateEditCount(
-              beforeContent: write.beforeContent,
-              afterContent: write.afterContent,
-            ),
-            unifiedDiff: _buildUnifiedDiff(write),
-          ),
-        ],
+        fileDiffs: changed
+            .map(
+              (write) => PendingFileDiff(
+                relativePath: write.relativePath,
+                editCount: _estimateEditCount(
+                  beforeContent: write.beforeContent,
+                  afterContent: write.afterContent,
+                ),
+                unifiedDiff: _buildUnifiedDiff(write),
+              ),
+            )
+            .toList(growable: false),
       );
     }
     final prefabDocument = _asPrefabDocument(document);
@@ -364,6 +384,15 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
       final commit = command.payload['commit'];
       if (commit is! PrefabV3LifecycleCommit) return document;
       final result = const PrefabV3LifecycleCommitPolicy().apply(
+        document: document,
+        commit: commit,
+      );
+      return result.accepted && result.changed ? result.document : document;
+    }
+    if (command.kind == commitPrefabV3CatalogCommandKind) {
+      final commit = command.payload['commit'];
+      if (commit is! PrefabV3CatalogCommit) return document;
+      final result = const PrefabV3CatalogCommitPolicy().apply(
         document: document,
         commit: commit,
       );
