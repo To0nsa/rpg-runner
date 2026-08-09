@@ -330,7 +330,7 @@ The v3 source shape is:
       amount without clipping.
 - [ ] Update deterministic comparison, pending diff, duplicate/rename,
       deprecate, and runtime-preview adapters.
-- [ ] Bump a prefab revision only when its canonical collision source or other
+- [x] Bump a prefab revision only when its canonical collision source or other
       existing revision-owned source changes.
 - [ ] Do not bump revision for schema representation alone when occupied
       collision source is exactly equivalent.
@@ -708,6 +708,16 @@ curves, and holes are not required for the baseline tool.
       exact shape/vertex readout, stable diagnostics focus, atlas/platform
       visual sources, and a visibly disabled source-apply action. Ordinary v2
       loads still select the rectangle page.
+- [x] Stage immutable existing-owner metadata and typed create/duplicate/
+      rename/delete policies. Metadata cannot mutate stable identity or polygon
+      source; lifecycle owns deterministic key allocation; accepted owner
+      changes bump exactly once and rejected/no-op candidates preserve document
+      identity.
+- [x] Stage retained prefab/tile slice and platform-module operations behind
+      one complete-source freshness token. Module updates/renames own revision
+      propagation, referenced deletes fail closed unless an explicit safe slice
+      cascade is requested, visual bounds are recomputed, and prefab/tile
+      pending diffs remain source-write locked.
 - [x] Route exact numeric vertex edits through the shared reducer and prefab
       owner policy. Parse integer/`.0`/`.5` text without floating point, retain
       invalid typed values and diagnostics locally, and commit one accepted
@@ -796,9 +806,11 @@ source or enable `--write` until these slices close in order:
      and tile-layer/placement/marker composition use immutable before/after
      contracts with stale rejection, strict canonical values, mutually
      protected fields, complete candidate validation, and one revision bump.
-     Normal form composition/navigation and Prefab v3 parity remain open;
-     typed Chunk-v2 lifecycle/path semantics are now staged behind the write
-     lock.
+     Normal form composition/navigation remains open. Prefab-v3 owner metadata,
+     create/duplicate/rename/delete, prefab/tile slices, and platform-module
+     create/update/duplicate/rename/delete are now staged through immutable
+     stale-checked commands; typed Chunk-v2 lifecycle/path semantics remain
+     staged behind the write lock.
 2. **Normal validation and pending-change parity.**
    - Run owner validation, expanded prefab collision, marker placement,
      scheduler-reachable seam analysis, and global capacity checks on every
@@ -836,11 +848,11 @@ source or enable `--write` until these slices close in order:
      temporary source-write locks in the same cutover. Legacy codecs remain
      reachable only from the offline migration checker.
 
-Current command-gap audit (August 4, 2026):
+Current command-gap audit (August 9, 2026):
 
 | Domain | Normal legacy command surface | Explicit polygon document today | Cutover requirement |
 | --- | --- | --- | --- |
-| Prefab | `replace_prefab_data`, covering prefab/slice/module lifecycle and metadata | `commit_prefab_polygon` only | Add typed v3 operations or one equally strict immutable replacement contract before reusing the normal forms. |
+| Prefab | `replace_prefab_data`, covering prefab/slice/module lifecycle and metadata | Write-locked `commit_prefab_polygon`, `commit_prefab_v3_metadata`, `commit_prefab_v3_lifecycle`, and `commit_prefab_v3_catalog` cover collision, existing-owner metadata, prefab lifecycle, slices, and platform modules | Typed mutation parity is staged with deterministic allocation/order, protected collision fields, complete-source freshness for catalog edits, owner/module revision rules, recomputed visual bounds, reference-safe deletion, and canonical two-file pending diffs. Compose the granular normal forms; source writes remain disabled. |
 | Chunk lifecycle | `create_chunk`, `duplicate_chunk`, `rename_chunk`, `deprecate_chunk`, `delete_chunk` | write-locked `commit_chunk_v2_lifecycle` covers stale-checked create/duplicate/rename/delete; metadata status covers deprecation | Typed lifecycle parity is staged with stable `chunkKey`, canonical IDs/paths, explicit created/baseline ownership, and reviewed v2 revision/default-status rules; compose the granular normal controls. |
 | Chunk metadata | `update_chunk_metadata`, `update_ground_band_z_index`, active-level selection | active-level selection plus write-locked `commit_chunk_v2_metadata` for status, level, difficulty, assembly group, canonical tags, and render-band Z | Existing-owner metadata parity is staged; compose the normal forms and retain the field until Phase 5. |
 | Chunk placements | add/move/replace/settings/remove prefab placement | read-only expanded overlay plus write-locked strict `commit_chunk_v2_composition` replacement | Existing-owner mutation parity is staged with exact expansion/full validation; compose granular normal forms and open the prefab owner for collision edits. |
@@ -1345,6 +1357,9 @@ result.
 | 2026-08-04 / `77513d30` | Write-locked Chunk v2 composition commits | Dart VM and Flutter test VM on Windows with Docker running | Targeted policy/plugin/test analysis is clean and all 7 Chunk-v2 plugin tests pass. One immutable before/after contract now covers canonical tile layers, prefab placements, and enemy markers for an existing owner. Accepted changes preserve identity, metadata, dimensions, and polygons, advance the revision once, and produce one pending owner diff; stale/noncanonical/no-op edits, unknown prefab references, invalid enemy markers, and any complete-document placement/marker/seam/geometry blocker preserve document identity. The source-write lock and normal v1 authority remain unchanged; granular route forms and lifecycle paths remain open. |
 | 2026-08-04 / `7b42595c` | Read-only Chunk v2 source-ownership/save plan | Dart VM and Flutter test VM on Windows with Docker running | Targeted analysis is clean and all 15 save-plan/plugin/staging-loader tests pass. Staged documents now distinguish explicitly created owners from baseline-backed owners; the deterministic plan covers clean no-op, canonical new files, managed ID/level path moves, and baseline deletions, with portable pending paths and old/new diff headers. Missing baselines/paths, workspace escapes, case-insensitive final-target collisions, and reuse of a pending deleted path fail closed. No v2 save method or filesystem mutation exists, changed export stays locked, and normal v1 source remains authoritative. |
 | 2026-08-04 / `fbee0d37` | Write-locked Chunk v2 lifecycle commits | Dart VM and Flutter test VM on Windows with Docker running | Targeted lifecycle/store/plugin analysis is clean and all 18 save-plan/plugin/staging-loader tests pass. One immutable ownership/level snapshot and typed operation family now covers create, duplicate, rename, and delete. Tests prove deprecated blank creation, active revision-1 duplication, stable-key rename with one revision bump and managed move, exact loaded deletion, unsaved create/delete cancellation, created-owner path refresh, typed plugin dispatch, and stale/invalid/colliding/missing/no-op identity. Every accepted candidate passes complete staged validation plus the ownership plan; export remains hard-locked and normal v1 source/routes are unchanged. |
+| 2026-08-09 / `b2a9db0c` | Write-locked Prefab v3 owner mutations | Dart VM and Flutter test VM on Windows with Docker running | Targeted owner-policy/plugin/test analysis is clean; all 8 Prefab-v3 domain tests plus the 3 strict staging-loader tests and route-local staging workspace test pass. Immutable metadata cannot mutate stable identity or polygons; create/duplicate/rename/delete own deterministic keys and revisions; accepted changes recompute visual bounds and rejected stale/invalid/noncanonical/no-op commands preserve document identity. Normal v2 loading/source and changed-v3 export remain locked. |
+| 2026-08-09 / `e3b3e8a1` | Write-locked Prefab v3 visual-catalog mutations | Dart VM and Flutter test VM on Windows with Docker running | Targeted catalog/plugin/test analysis is clean and the final focused set covers 13 Prefab-v3 domain cases, 3 strict staging-load cases, and the route-local staging workspace. Typed prefab/tile slice and platform-module operations use a complete two-file freshness token, canonical ordering, deterministic duplicate IDs, exact module/prefab revision propagation, reference-safe deletion/cascade, recomputed bounds, and portable prefab/tile pending diffs. A tile-only mutation proves changed export remains hard-locked with zero filesystem output; normal v2 authority is unchanged. |
+
 ### 28.1 Baseline Environment And Source Identity
 
 - Starting worktree: dirty with 133 pre-existing entries. The authoring JSON,
