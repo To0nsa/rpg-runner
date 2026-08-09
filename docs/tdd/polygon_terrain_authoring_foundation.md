@@ -900,12 +900,25 @@ The future output path is
 narrow API is `StagedTerrainArtifactData`, defined in
 `staged_terrain_data.dart`; it cannot be confused with the current
 `ChunkPattern` authority. The artifact is self-describing with artifact and
-compiler geometry versions plus `source-v1`, `edges-v1`,
-`authoring-placement-v1`, and `authoring-triangles-v1` labels and signatures.
+compiler geometry versions plus `authoring-polygons-v1`, `source-v1`,
+`edges-v1`, `authoring-placement-v1`, and `authoring-triangles-v1` labels and
+signatures. Adding the authored-source digest advances the disconnected staged
+artifact schema to format version 2.
 Each chunk record retains source revision/metadata, canonical source vertices
 in half-world-unit ticks, transformed vertices and exposed edges in integer
 physics ticks, collision/render metadata, deterministic triangle indices, and
 exact prefab placement/revision lineage.
+
+The shared pure-Dart `authoring-polygons-v1` contract hashes source before
+placement expansion. A UTF-8 length-prefixed record contains the owner domain
+(`chunk` or `prefab`), stable owner key and human ID, positive owner revision,
+stable shape ID, collision mode, optional surface/material metadata, vertex
+count, and every ordered half-pixel integer coordinate. Records sort by owner
+domain, owner key, then shape ID; duplicate owner-local shape identities fail
+closed. One chunk digest includes all direct shapes and every referenced prefab
+owner that contributes collision exactly once. Placement multiplicity and
+transforms are intentionally absent because `authoring-placement-v1` owns
+those facts. An empty source set produces the standard SHA-256 empty digest.
 
 Core compilation temporarily uses reserved local instance index zero. The
 renderer accepts only that value and matching chunk keys, then creates local
@@ -919,10 +932,12 @@ feature flag.
 
 The shared checked-in fixture contains a concave direct solid, one-way source,
 surface/material metadata, and an exactly scaled/reflected prefab placement.
-Fresh generator parses bind Core `source-v1` and `edges-v1`, exact
-`authoring-placement-v1`, and `authoring-triangles-v1` hashes. The editor's
-existing strict codecs and collision expansion consume the same bytes and
-reproduce the first three hashes. The generated Dart fixture is executable
+Fresh generator parses bind exact `authoring-polygons-v1`, Core `source-v1`
+and `edges-v1`, `authoring-placement-v1`, and `authoring-triangles-v1` hashes.
+The editor's strict codecs and collision expansion consume the same bytes and
+reproduce the authored-source, Core source/edge, and placement hashes. Stale
+prefab key/ID/revision evidence fails before the editor can report an authored
+source digest. The generated Dart fixture is executable
 typed data, is reproduced byte-for-byte by fresh compiles through the normal
 artifact drift plan, and remains identical when its compiled chunk input is
 reversed. `UPDATE_POLYGON_TERRAIN_GOLDEN=1` is the explicit fixture-only update

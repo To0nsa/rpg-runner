@@ -1055,13 +1055,15 @@ through `TerrainCompiler`, enforces closed chunk bounds, and derives render
 triangle indices from the same normalized Core polygon loops. Exact BigInt ear
 tests require `vertexCount - 2` positive triangles and an area sum identical to
 the polygon. One checked-in shared fixture binds generator and editor
-`source-v1`, `edges-v1`, and `authoring-placement-v1` signatures plus the
-generator's `authoring-triangles-v1` signature.
+`authoring-polygons-v1`, `source-v1`, `edges-v1`, and
+`authoring-placement-v1` signatures plus the generator's
+`authoring-triangles-v1` signature.
 
 `polygon_terrain_render.dart` now projects an accepted compiled chunk set into
 the narrowly named future `staged_authored_terrain.dart` contract. Immutable
-Core-side staged records retain chunk revision/metadata, canonical half-pixel
-source loops, transformed physics loops, compiler-owned exposed edges,
+Core-side staged records retain chunk revision/metadata, the exact authored
+owner/shape digest, canonical half-pixel source loops, transformed physics
+loops, compiler-owned exposed edges,
 triangle indices, placement/prefab revision lineage, and all signature format
 labels. The reserved compiler index is checked and stripped; generated source
 identities contain no streamed chunk index. Chunks and every derived record
@@ -1135,7 +1137,7 @@ diagnostics, and signatures.
 
 ## 23) Determinism And Golden Signatures
 
-- [ ] Add `authoring-polygons-v1` for canonical owner/shape/vertex/metadata
+- [x] Add `authoring-polygons-v1` for canonical owner/shape/vertex/metadata
       records.
 - [x] Add `authoring-placement-v1` for exact transformed/quantized placement
       records.
@@ -1153,6 +1155,20 @@ diagnostics, and signatures.
 - [ ] Prove Windows/Linux path normalization cannot change source-path ordering.
 - [ ] Never update a reviewed golden merely to hide nondeterminism or semantic
       drift; record the cause in §26 first.
+
+`authoring-polygons-v1` is owned by the pure-Dart Core terrain boundary. Each
+length-prefixed record contains owner domain (`chunk`/`prefab`), stable owner
+key and human ID, positive owner revision, stable shape ID, collision mode,
+optional surface/material metadata, vertex count, and ordered half-pixel
+integer ticks. Records sort by owner domain/key/shape ID and duplicate
+owner-local identities fail closed. Per-chunk signatures include direct chunk
+shapes plus each collision-contributing prefab owner once; placement count and
+transforms remain exclusively in `authoring-placement-v1`. Empty collision
+source has the explicit SHA-256 empty digest. The current shared fixture binds
+Core, the staged generator artifact, and the editor adapter to digest
+`679f918e4180e6192bf6b6285fba332df8c24e7a331b37490628fddb8261e9db`.
+The broader fresh-process, permutation, semantic-normalization, and complete
+mutation matrix remains open.
 
 ## 24) Interaction Performance And Capacity
 
@@ -1446,6 +1462,7 @@ result.
 | 2026-08-09 / `2d3be519` | Prefab-v3 platform-module form composition | Flutter test VM and Dart analyzer on Windows with Docker running | Full editor analysis is clean and all 60 focused Prefab tests pass. The retained module list/form/visual grid now covers deprecated-empty create, update, paint, reactivation, stable reference-cascading rename, deterministic duplicate, reference-safe delete, and session undo/redo through typed catalog commits. Legacy and v3 routes share one pure canonical paint/erase/move/delete reducer; guarded slice/module forms cannot lose drafts through selection, status, cell, delete, or workspace changes. The widget proof preserves referencing prefab polygons, source apply stays disabled, and normal v2 source/route authority is unchanged. |
 | 2026-08-09 / `c54b2b9f` | Chunk-v2 owner-form composition in explicit staging | Flutter test VM and Dart analyzer on Windows with Docker running | Full editor analysis is clean and all 40 focused Chunk route, polygon-controller, lifecycle/save-plan, plugin, strict-load, and legacy-route tests pass. The active-level route now creates deprecated empty owners from locked dimensions; edits status, level, difficulty, assembly group, canonical tags, and render-band Z; duplicates complete owners; preserves stable keys while renaming; and stages loaded or unsaved deletion through typed commands. Widget proofs preserve identity, dimensions, tile layers, placements, enemy markers, and polygons across metadata edits, verify deterministic revisions/defaults, avoid source reloads, and retain undo recovery after deleting a level's final dimension authority. Source apply remains disabled and normal v1 source/route authority is unchanged. |
 | 2026-08-09 / `668b11e9` | Chunk-v2 composition-form parity in explicit staging | Flutter test VM and Dart analyzer on Windows with Docker running | Full editor analysis is clean and all 41 focused Chunk route, polygon-controller, lifecycle/save-plan, plugin, strict-load, and legacy-route tests pass after the final change. A guarded second staging view now creates, edits, and confirms deletion of tile layers, prefab placements, and enemy markers through the one strict composition command. Forms use canonical ordering, active Prefab-v3 owners, exact placement scale steps, Core enemy IDs, marker bounds/chance/salt/intents, and one accepted revision bump. The widget proof covers every form and session undo/redo while preserving owner identity, metadata, dimensions, and polygon source; it performs no reload or source write. Owning-prefab navigation, normal loader/route selection, reload/source apply, and repository migration remain open. |
+| 2026-08-09 / `3d59d746` + `96300954` + `b49eca6c` | Shared `authoring-polygons-v1` editor/generator parity | Dart VM and Flutter test VM on Windows with Docker running | Root, Core-package, and editor analysis are clean. All 313 Core-package tests and all 436 editor tests pass, plus ten focused root current-schema compilation/render tests. One Core contract owns length-prefixed records, canonical ordering, duplicate rejection, empty-set behavior, and SHA-256; mutation tests cover every owner/shape/vertex/collision-metadata field. The generator records direct shapes plus each referenced collision prefab once, emits digest `679f918e…e9db`, and advances the disconnected staged artifact schema to v2. The editor derives the same digest from strict v3/v2 fixture models and an accepted expansion, rejecting stale prefab revision evidence. Live generation registration, authored source, normal routes, and runtime authority remain unchanged. |
 
 ### 28.1 Baseline Environment And Source Identity
 
