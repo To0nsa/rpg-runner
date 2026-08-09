@@ -1143,7 +1143,7 @@ diagnostics, and signatures.
       records.
 - [x] Reuse accepted Core `source-v1`/`edges-v1` signatures for compiled facts.
 - [x] Add `authoring-seams-v1` for sorted reachable adjacency/signature records.
-- [ ] Add `authoring-migration-v1` for the sorted migration report.
+- [x] Add `authoring-migration-v1` for the sorted migration report.
 - [x] Add `authoring-triangles-v1` for polygon IDs and deterministic triangle
       index triples.
 - [ ] Rebuild signatures from fresh objects and fresh Dart processes.
@@ -1169,6 +1169,19 @@ Core, the staged generator artifact, and the editor adapter to digest
 `679f918e4180e6192bf6b6285fba332df8c24e7a331b37490628fddb8261e9db`.
 The broader fresh-process, permutation, semantic-normalization, and complete
 mutation matrix remains open.
+
+`authoring-migration-v1` is owned by the editor migration domain. Its sole
+length-prefixed record contains the format label and the exact canonical
+readiness-report-v2 JSON, so it transitively binds sorted source SHA-256 facts,
+target before/after digests, revision decisions, prefab impacts, planned
+polygon source, and blockers without adding a self-referential field to the
+report. The collision-reset legacy state goldens to
+`c355c5de8af15880881e147a031c054f60642f75f5102d23a2691b97a24d0beb`;
+its equivalent canonical current-schema state goldens to
+`d98983c44505bbdbdbe3f1f4482006be9ea67060091613b1b0f8b3b2ca198153`.
+Changing only reviewed source bytes changes the digest. Existing short FNV
+fingerprints remain compatibility/display evidence, and the CLI report bytes
+and write authorization are unchanged.
 
 ## 24) Interaction Performance And Capacity
 
@@ -1355,6 +1368,7 @@ before changing the accepted plan.
 | Chunk width is 600 pixels, which is not divisible by the legacy 16-pixel gap grid, but the collision reset must express exactly zero ground without changing chunk dimensions. | Permit only the exact `x = 0`, `width = chunkWidth` full-ground-removal gap as a grid exception and project it with stable ID `collision_cleared`. Keep every partial gap on the existing grid. | Chunk v2 represents empty direct terrain without a sentinel; remove the legacy exception with the flat-ground/gap source bridge. |
 | `TerrainCompiler.compile` intentionally canonicalizes safe loop winding/start, which is correct for runtime safety but could hide noncanonical current authoring bytes during generation. | Pre-review every staged input with `TerrainSourceCanonicalizer(requireCanonical: true)` and fail on its stable diagnostics before accepting compiled output. Parsing retains exact authored half-pixel values; Core range failures become staged generator issues rather than raw parser exceptions. | Normal generation can reject authoring drift while still using the accepted compiler as the sole topology/transform/edge authority. An explicit editor Normalize action remains the only path that rewrites a loop. |
 | Render triangulation must not become a second polygon normalization or collision-edge authority. | Ear-clip the already normalized `TerrainGeometry.polygons` loop with exact BigInt orientation/containment. Choose the first surviving canonical vertex ear, retain indices into that same loop, require `n - 2` positive triangles, and compare the exact doubled-area sum before returning output. | Phase 5 rendering consumes these indices; it must never triangulate independently or reconstruct collision edges from triangles. |
+| The standalone migration CLI imported full Prefab/Chunk stores only to reuse two source-path constants. Later staging growth made the Chunk store transitively import Flutter models, so `dart run tool/migrate_polygon_authoring.dart` lost access to `dart:ui` even though migration logic remained pure. | Move the two canonical paths into a Flutter-free `RepositoryAuthoringPaths` contract. Stores retain their public constants as aliases; migration check/command import only the pure path contract. Add a subprocess test that locates the standalone Dart SDK from `flutter_tester` and compiles the real `--help` entrypoint. | Offline migration/generator tools must not import store/plugin graphs for constants. Any future store dependency is caught by the standalone-Dart regression before source-write authorization can rely on a broken checker. |
 
 Append rows during implementation. Do not silently relax source, compiler,
 seam, determinism, or performance contracts.
@@ -1463,6 +1477,8 @@ result.
 | 2026-08-09 / `c54b2b9f` | Chunk-v2 owner-form composition in explicit staging | Flutter test VM and Dart analyzer on Windows with Docker running | Full editor analysis is clean and all 40 focused Chunk route, polygon-controller, lifecycle/save-plan, plugin, strict-load, and legacy-route tests pass. The active-level route now creates deprecated empty owners from locked dimensions; edits status, level, difficulty, assembly group, canonical tags, and render-band Z; duplicates complete owners; preserves stable keys while renaming; and stages loaded or unsaved deletion through typed commands. Widget proofs preserve identity, dimensions, tile layers, placements, enemy markers, and polygons across metadata edits, verify deterministic revisions/defaults, avoid source reloads, and retain undo recovery after deleting a level's final dimension authority. Source apply remains disabled and normal v1 source/route authority is unchanged. |
 | 2026-08-09 / `668b11e9` | Chunk-v2 composition-form parity in explicit staging | Flutter test VM and Dart analyzer on Windows with Docker running | Full editor analysis is clean and all 41 focused Chunk route, polygon-controller, lifecycle/save-plan, plugin, strict-load, and legacy-route tests pass after the final change. A guarded second staging view now creates, edits, and confirms deletion of tile layers, prefab placements, and enemy markers through the one strict composition command. Forms use canonical ordering, active Prefab-v3 owners, exact placement scale steps, Core enemy IDs, marker bounds/chance/salt/intents, and one accepted revision bump. The widget proof covers every form and session undo/redo while preserving owner identity, metadata, dimensions, and polygon source; it performs no reload or source write. Owning-prefab navigation, normal loader/route selection, reload/source apply, and repository migration remain open. |
 | 2026-08-09 / `3d59d746` + `96300954` + `b49eca6c` | Shared `authoring-polygons-v1` editor/generator parity | Dart VM and Flutter test VM on Windows with Docker running | Root, Core-package, and editor analysis are clean. All 313 Core-package tests and all 436 editor tests pass, plus ten focused root current-schema compilation/render tests. One Core contract owns length-prefixed records, canonical ordering, duplicate rejection, empty-set behavior, and SHA-256; mutation tests cover every owner/shape/vertex/collision-metadata field. The generator records direct shapes plus each referenced collision prefab once, emits digest `679f918e…e9db`, and advances the disconnected staged artifact schema to v2. The editor derives the same digest from strict v3/v2 fixture models and an accepted expansion, rejecting stale prefab revision evidence. Live generation registration, authored source, normal routes, and runtime authority remain unchanged. |
+| 2026-08-09 / `edf5d815` | Canonical `authoring-migration-v1` readiness signatures | Dart VM and Flutter test VM on Windows with Docker running | Targeted migration analysis is clean and all 10 repository migration-check tests pass. The signature hashes one length-prefixed format label plus the existing canonical readiness-report-v2 bytes, preserving the reviewed legacy/current short fingerprints while adding stable SHA-256 digests `c355c5de…0beb` and `d98983c4…8153`. A temporary-workspace mutation proves even semantically harmless reviewed source-byte drift changes the digest. Report JSON, CLI output, source files, `--write` authorization, and runtime authority remain unchanged. |
+| 2026-08-10 / `94123b9a` | Restore standalone-Dart migration CLI boundary | Dart VM and Flutter test VM on Windows with Docker running | Full editor analysis is clean and all 438 editor tests pass. Direct `dart run tool/migrate_polygon_authoring.dart --help` and `--check` both succeed; the real check remains legacy-ready with 99 prefabs, 8 chunks, 9 validated pending targets, and zero source writes. One Flutter-free repository-path contract now supplies the existing Prefab/Chunk store aliases and the migration command/check, removing the transitive `dart:ui` dependency. The 21 focused migration command/check tests include a standalone Dart subprocess regression. No path bytes, report bytes/signatures, source, write authorization, or runtime authority changed. |
 
 ### 28.1 Baseline Environment And Source Identity
 

@@ -324,6 +324,20 @@ prefab impact records covering 50 placements. For the current reset source,
 the legacy readiness fingerprint is `086d00a8` and its equivalent strict
 current-state fingerprint is `7f4fc90e`.
 
+The editor migration domain also exposes `authoring-migration-v1` as the
+reviewed SHA-256 contract. Its single UTF-8 length-prefixed record contains the
+format label followed by the exact canonical readiness-report-v2 JSON. The
+digest therefore binds the report's sorted source paths and source SHA-256
+values, target before/after digests, revision decisions, impact records,
+planned polygon source, and blockers without embedding a circular signature
+field in the report. The collision-reset legacy report signs as
+`c355c5de8af15880881e147a031c054f60642f75f5102d23a2691b97a24d0beb`;
+the strict current-schema no-op signs as
+`d98983c44505bbdbdbe3f1f4482006be9ea67060091613b1b0f8b3b2ca198153`.
+Changing only exact source bytes changes the signature. The existing short FNV
+fingerprints remain compatibility/display tokens, and neither canonical JSON
+nor CLI report output changes.
+
 Rectangle-era prefab records used by this path are isolated as
 `LegacyPrefabDef`/`LegacyPrefabData` inside the migration layer. The strict
 codec, migration planner, reviewed union, and v3 target conversion no longer
@@ -340,6 +354,13 @@ requested workspace-relative `.json` report outside `assets/authoring`;
 `--write` is rejected. The command dependency chain is pure Dart: shared model
 immutability annotations use `package:meta` rather than pulling `dart:ui` into
 offline tooling.
+
+Canonical prefab/chunk source paths likewise live in the Flutter-free
+`RepositoryAuthoringPaths` contract. `PrefabStore` and `ChunkStore` retain
+compatibility aliases, while migration code imports no store/plugin graph. A
+subprocess regression compiles the real `--help` entrypoint with the standalone
+Dart SDK, preventing future Flutter-backed store growth from silently
+reintroducing `dart:ui` into the offline checker.
 
 ## Guarded Migration Write Foundation
 
