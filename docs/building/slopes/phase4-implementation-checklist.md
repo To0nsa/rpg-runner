@@ -725,7 +725,7 @@ curves, and holes are not required for the baseline tool.
 - [x] Bump revision exactly once per committed semantic edit.
 - [x] Make a drag one pending semantic change even if it has many pointer
       updates.
-- [ ] Preview downstream referencing chunks/placements affected by a prefab
+- [x] Preview downstream referencing chunks/placements affected by a prefab
       change without mutating those chunk source revisions.
 - [x] Keep decoration prefabs with no collision valid and unchanged.
 
@@ -817,6 +817,13 @@ source or enable `--write` until these slices close in order:
      semantic commit/export.
    - Preserve load-time baselines, changed stable keys, downstream prefab
      placement impact, and canonical one-file-per-owner diffs.
+   - Prefab-v3 staging now validates the complete retained prefab/tile catalog
+     in memory: deterministic ordering, identities/revisions, atlas bounds,
+     module cells/references, visual-owner references, and polygon-owner rules.
+     Strict chunk-v2 placement reads produce stable-key impact counts for every
+     prefab; the staging route previews affected placements/chunks while
+     preserving all chunk bytes and revisions. Chunk-v2 commit/export parity
+     across every global diagnostic remains open.
 3. **Store/export parity without repository migration.**
    - Add exact v3/v2 save plans, final source-drift checks, case-insensitive
      path collision checks, sibling staging, byte verification, and rollback.
@@ -860,7 +867,7 @@ Current command-gap audit (August 9, 2026):
 
 | Domain | Normal legacy command surface | Explicit polygon document today | Cutover requirement |
 | --- | --- | --- | --- |
-| Prefab | `replace_prefab_data`, covering prefab/slice/module lifecycle and metadata | Write-locked `commit_prefab_polygon`, `commit_prefab_v3_metadata`, `commit_prefab_v3_lifecycle`, and `commit_prefab_v3_catalog` cover collision, existing-owner metadata, prefab lifecycle, slices, and platform modules | Typed mutation parity is staged with deterministic allocation/order, protected collision fields, complete-source freshness for catalog edits, owner/module revision rules, recomputed visual bounds, reference-safe deletion, and canonical two-file pending diffs. Compose the granular normal forms; source writes remain disabled. |
+| Prefab | `replace_prefab_data`, covering prefab/slice/module lifecycle and metadata | Write-locked `commit_prefab_polygon`, `commit_prefab_v3_metadata`, `commit_prefab_v3_lifecycle`, and `commit_prefab_v3_catalog` cover collision, existing-owner metadata, prefab lifecycle, slices, and platform modules | Typed mutation parity is staged with deterministic allocation/order, protected collision fields, complete-source freshness and validation, owner/module revision rules, recomputed visual bounds, reference-safe deletion, canonical two-file pending diffs, and read-only stable-key chunk-placement impact. Compose the granular normal forms; source writes remain disabled. |
 | Chunk lifecycle | `create_chunk`, `duplicate_chunk`, `rename_chunk`, `deprecate_chunk`, `delete_chunk` | write-locked `commit_chunk_v2_lifecycle` covers stale-checked create/duplicate/rename/delete; metadata status covers deprecation | Typed lifecycle parity is staged with stable `chunkKey`, canonical IDs/paths, explicit created/baseline ownership, and reviewed v2 revision/default-status rules; compose the granular normal controls. |
 | Chunk metadata | `update_chunk_metadata`, `update_ground_band_z_index`, active-level selection | active-level selection plus write-locked `commit_chunk_v2_metadata` for status, level, difficulty, assembly group, canonical tags, and render-band Z | Existing-owner metadata parity is staged; compose the normal forms and retain the field until Phase 5. |
 | Chunk placements | add/move/replace/settings/remove prefab placement | read-only expanded overlay plus write-locked strict `commit_chunk_v2_composition` replacement | Existing-owner mutation parity is staged with exact expansion/full validation; compose granular normal forms and open the prefab owner for collision edits. |
@@ -1177,7 +1184,7 @@ Stores/plugins:
 - [ ] atomic paired prefab/tile writes and one-file chunk writes
 - [ ] route/session/workspace switching with polygon draft state
 - [ ] create/duplicate/rename/deprecate revision semantics
-- [ ] downstream prefab impact preview without chunk mutation
+- [x] downstream prefab impact preview without chunk mutation
 - [ ] invalid/global-seam issue export gating
 
 UI/interactions:
@@ -1370,6 +1377,7 @@ result.
 | 2026-08-09 / `b0eb64e7` | Transactional Prefab v3 save/reload proof | Dart VM and Flutter test VM on Windows with Docker running | Targeted store/plugin/test analysis is clean and all 5 focused save-plan tests pass. Strict paired baselines produce canonical fixed-path plans; clean plans are no-ops; paired and tile-only edits install through the shared rollback-safe workspace transaction and reload byte-identically; source drift, missing/legacy baselines, incomplete plans, and noncanonical outputs fail before replacement. Transaction artifacts are cleaned, the normal plugin remains changed-export locked, and checked-in v2 source is untouched. |
 | 2026-08-09 / `52328d1d` | Rollback-safe workspace deletion artifacts | Dart VM and Flutter test VM on Windows with Docker running | Targeted shared-transaction analysis is clean and all 7 transaction tests pass. A deletion now stages no replacement bytes, retains the original as a sibling backup, verifies target absence with the installed set, and restores the deleted file if later post-install validation fails. Existing write ordering, byte verification, drift callback timing, canonical-path rejection, and cleanup behavior remain unchanged. |
 | 2026-08-09 / `de67b22b` | Transactional Chunk v2 save/reload proof | Dart VM and Flutter test VM on Windows with Docker running | Targeted store/test analysis is clean; the focused 30-test set covers 7 shared transactions, 11 Chunk-v2 save/lifecycle plans, 7 plugin commits, and 5 strict staging loads. Clean plans are no-ops; managed moves and create/delete batches commit atomically and reload byte-identically; full-tree byte/set drift and stale plans reject before replacement. Post-install verification requires the exact canonical file set and strict v2 decoding. Normal v1 authority and the changed-v2 export lock remain unchanged. |
+| 2026-08-09 / `2fef7eb0` | Complete Prefab v3 catalog validation and downstream impact preview | Dart VM and Flutter test VM on Windows with Docker running | Targeted analysis is clean and all 27 focused plugin/load/controller/projection/route tests pass. One shared validator now covers canonical prefab/tile slice and module ordering, identities, revisions, atlas bounds, cell references/positions, visual-owner references, and polygon-owner rules for both commit and plugin validation. Explicit staging strictly reads all-current Chunk-v2 placements, resolves stable keys with legacy-ID fallback, reports deterministic placement/chunk counts, and previews changed-owner impact without changing chunk bytes or revisions. Paired baselines remain mandatory, changed export stays locked, and normal v2/v1 source is untouched. |
 
 ### 28.1 Baseline Environment And Source Identity
 
