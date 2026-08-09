@@ -8,8 +8,6 @@ import '../../domain/authoring_types.dart';
 import '../../terrain_authoring/terrain_polygon_interaction.dart';
 import '../../workspace/editor_workspace.dart';
 import '../models/models.dart';
-import '../store/prefab_tile_file_codec.dart';
-import '../store/prefab_v3_file_codec.dart';
 import 'prefab_domain_models.dart';
 import 'prefab_visual_bounds_resolver.dart';
 import 'prefab_v3_collision_commit.dart';
@@ -274,24 +272,21 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
     required AuthoringDocument document,
   }) {
     if (document is PrefabV3StagingDocument) {
-      final writes = <_PrefabFileWrite>[
-        _PrefabFileWrite(
-          relativePath: p
-              .normalize(PrefabStore.prefabDefsPath)
-              .replaceAll('\\', '/'),
-          beforeContent: document.prefabBaselineContents,
-          afterContent: PrefabV3FileCodec.encode(document.data),
-        ),
-        _PrefabFileWrite(
-          relativePath: p
-              .normalize(PrefabStore.tileDefsPath)
-              .replaceAll('\\', '/'),
-          beforeContent: document.tileBaselineContents,
-          afterContent: PrefabTileFileCodec.encode(document.tileData),
-        ),
-      ];
-      final changed = writes
-          .where((write) => write.beforeContent != write.afterContent)
+      final plan = _store.buildV3StagingSavePlan(
+        prefabData: document.data,
+        tileData: document.tileData,
+        prefabBaselineContents: document.prefabBaselineContents,
+        tileBaselineContents: document.tileBaselineContents,
+      );
+      final changed = plan.files
+          .where((file) => file.hasChanges)
+          .map(
+            (file) => _PrefabFileWrite(
+              relativePath: file.relativePath,
+              beforeContent: file.beforeContents,
+              afterContent: file.afterContents,
+            ),
+          )
           .toList(growable: false);
       if (changed.isEmpty) {
         return PendingChanges.empty;
