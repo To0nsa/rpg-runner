@@ -90,7 +90,7 @@ void main() {
       expect(
         find.byKey(
           const ValueKey<String>(
-            'chunk_expanded_shape_prefab_rock|70|10|0_collision_001',
+            'chunk_expanded_shape_prefab_rock|95|10|0_collision_001',
           ),
         ),
         findsOneWidget,
@@ -459,7 +459,7 @@ Future<_Harness> _buildHarness() async {
       PlacedPrefabDef(
         prefabId: 'rock',
         prefabKey: 'prefab_rock',
-        x: 70,
+        x: 95,
         y: 10,
         scale: 0.5,
         flipX: true,

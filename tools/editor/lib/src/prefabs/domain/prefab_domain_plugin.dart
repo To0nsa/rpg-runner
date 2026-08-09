@@ -259,6 +259,15 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
     required AuthoringDocument document,
   }) async {
     if (document is PrefabV3StagingDocument) {
+      final blockingIssues = _validateV3Document(
+        document,
+      ).where((issue) => issue.severity == ValidationSeverity.error).toList();
+      if (blockingIssues.isNotEmpty) {
+        throw StateError(
+          'Cannot export prefab-v3 staging while validation has '
+          '${blockingIssues.length} blocking issue(s).',
+        );
+      }
       final pending = describePendingChanges(workspace, document: document);
       if (!pending.hasChanges) {
         return ExportResult(
@@ -423,7 +432,9 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
         prefabKey: prefabKey,
         commit: commit,
       );
-      return result.accepted && result.changed ? result.document : document;
+      return result.accepted && result.changed
+          ? _validatedV3CandidateOrOriginal(document, result.document)
+          : document;
     }
     if (command.kind == commitPrefabV3LifecycleCommandKind) {
       final commit = command.payload['commit'];
@@ -432,7 +443,9 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
         document: document,
         commit: commit,
       );
-      return result.accepted && result.changed ? result.document : document;
+      return result.accepted && result.changed
+          ? _validatedV3CandidateOrOriginal(document, result.document)
+          : document;
     }
     if (command.kind == commitPrefabV3CatalogCommandKind) {
       final commit = command.payload['commit'];
@@ -441,7 +454,9 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
         document: document,
         commit: commit,
       );
-      return result.accepted && result.changed ? result.document : document;
+      return result.accepted && result.changed
+          ? _validatedV3CandidateOrOriginal(document, result.document)
+          : document;
     }
     if (command.kind != commitPrefabPolygonCommandKind) return document;
     final prefabKey = command.payload['prefabKey'];
@@ -459,10 +474,32 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
       sourcePath: PrefabStore.prefabDefsPath,
     );
     if (!result.accepted || !result.changed) return document;
-    return document.copyWith(
+    final candidate = document.copyWith(
       data: result.data,
       changedPrefabKeys: <String>{...document.changedPrefabKeys, prefabKey},
     );
+    return _validatedV3CandidateOrOriginal(document, candidate);
+  }
+
+  PrefabV3StagingDocument _validatedV3CandidateOrOriginal(
+    PrefabV3StagingDocument original,
+    PrefabV3StagingDocument candidate,
+  ) {
+    final hasBlockingIssue = _validateV3Document(
+      candidate,
+    ).any((issue) => issue.severity == ValidationSeverity.error);
+    if (hasBlockingIssue) return original;
+    try {
+      _store.buildV3StagingSavePlan(
+        prefabData: candidate.data,
+        tileData: candidate.tileData,
+        prefabBaselineContents: candidate.prefabBaselineContents,
+        tileBaselineContents: candidate.tileBaselineContents,
+      );
+    } on PrefabV3StagingSaveException {
+      return original;
+    }
+    return candidate;
   }
 
   List<ValidationIssue> _validateV3Document(PrefabV3StagingDocument document) {

@@ -194,6 +194,105 @@ void main() {
     expect(codes, contains('prefab_v3_module_tile_slice_missing'));
   });
 
+  test(
+    'every staged semantic candidate and export crosses full validation',
+    () async {
+      final beforeShapes = <TerrainSourceShapeDef>[_rectangle(right: 8)];
+      final valid = _document(beforeShapes);
+      final invalidTileData = PrefabTileFileData(
+        tileSlices: const <AtlasSliceDef>[],
+        platformModules: const <TileModuleDef>[
+          TileModuleDef(
+            id: 'unused',
+            tileSize: 16,
+            cells: <TileModuleCellDef>[],
+          ),
+        ],
+      );
+      final invalid = valid.copyWith(
+        tileData: invalidTileData,
+        tileBaselineContents: PrefabTileFileCodec.encode(invalidTileData),
+      );
+      expect(
+        plugin.validate(invalid).map((issue) => issue.code),
+        contains('prefab_v3_module_cells_missing'),
+      );
+
+      final polygonEdit = plugin.applyEdit(
+        invalid,
+        AuthoringCommand(
+          kind: PrefabDomainPlugin.commitPrefabPolygonCommandKind,
+          payload: <String, Object?>{
+            'prefabKey': 'target',
+            'commit': _commit(
+              before: beforeShapes,
+              after: <TerrainSourceShapeDef>[_rectangle(right: 10)],
+            ),
+          },
+        ),
+      );
+      final owner = invalid.data.prefabs.single;
+      final metadataEdit = plugin.applyEdit(
+        invalid,
+        AuthoringCommand(
+          kind: PrefabDomainPlugin.commitPrefabV3MetadataCommandKind,
+          payload: <String, Object?>{
+            'prefabKey': owner.prefabKey,
+            'commit': PrefabV3MetadataCommit(
+              before: PrefabV3MetadataSnapshot.fromPrefab(owner),
+              after: PrefabV3MetadataSnapshot(
+                status: PrefabStatus.deprecated,
+                kind: owner.kind,
+                visualSource: owner.visualSource,
+                anchorXPx: owner.anchorXPx,
+                anchorYPx: owner.anchorYPx,
+                tags: owner.tags,
+              ),
+            ),
+          },
+        ),
+      );
+      final lifecycleEdit = plugin.applyEdit(
+        invalid,
+        AuthoringCommand(
+          kind: PrefabDomainPlugin.commitPrefabV3LifecycleCommandKind,
+          payload: <String, Object?>{
+            'commit': PrefabV3LifecycleCommit(
+              before: PrefabV3LifecycleSnapshot.fromDocument(invalid),
+              operation: const PrefabV3RenameOperation(
+                prefabKey: 'target',
+                nextId: 'renamed_target',
+              ),
+            ),
+          },
+        ),
+      );
+
+      expect(polygonEdit, same(invalid));
+      expect(metadataEdit, same(invalid));
+      expect(lifecycleEdit, same(invalid));
+
+      final root = Directory.systemTemp.createTempSync(
+        'prefab_v3_validation_gate_',
+      );
+      addTearDown(() => root.deleteSync(recursive: true));
+      await expectLater(
+        plugin.exportToRepo(
+          EditorWorkspace(rootPath: root.path),
+          document: invalid,
+        ),
+        throwsA(
+          isA<StateError>().having(
+            (error) => error.message,
+            'message',
+            contains('Cannot export prefab-v3 staging while validation has'),
+          ),
+        ),
+      );
+      expect(root.listSync(recursive: true), isEmpty);
+    },
+  );
+
   test('typed metadata changes only owner metadata and revision once', () {
     final document = _document(<TerrainSourceShapeDef>[_rectangle(right: 8)]);
     final before = document.data.prefabs.single;

@@ -294,6 +294,15 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
     required AuthoringDocument document,
   }) async {
     if (document is ChunkV2StagingDocument) {
+      final blockingIssues = validateChunkV2StagingDocument(
+        document,
+      ).where((issue) => issue.severity == ValidationSeverity.error).toList();
+      if (blockingIssues.isNotEmpty) {
+        throw StateError(
+          'Cannot export chunk-v2 staging while validation has '
+          '${blockingIssues.length} blocking issue(s).',
+        );
+      }
       final pending = describePendingChanges(workspace, document: document);
       if (!pending.hasChanges) {
         return ExportResult(
@@ -464,11 +473,28 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
     }
     final chunks = document.chunks.toList(growable: false);
     chunks[chunkIndex] = nextChunk;
-    return document.copyWith(
+    final candidate = document.copyWith(
       chunks: chunks,
       sourcePathByChunkKey: nextSourcePaths,
       changedChunkKeys: <String>{...document.changedChunkKeys, chunkKey},
     );
+    return _validatedV2CandidateOrOriginal(document, candidate);
+  }
+
+  ChunkV2StagingDocument _validatedV2CandidateOrOriginal(
+    ChunkV2StagingDocument original,
+    ChunkV2StagingDocument candidate,
+  ) {
+    final hasBlockingIssue = validateChunkV2StagingDocument(
+      candidate,
+    ).any((issue) => issue.severity == ValidationSeverity.error);
+    if (hasBlockingIssue) return original;
+    try {
+      _store.buildV2StagingSavePlan(document: candidate);
+    } on StateError {
+      return original;
+    }
+    return candidate;
   }
 
   ChunkDocument _setActiveLevel(

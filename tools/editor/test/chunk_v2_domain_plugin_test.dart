@@ -160,6 +160,81 @@ void main() {
   );
 
   test(
+    'polygon metadata and export cross complete staging validation',
+    () async {
+      final plugin = ChunkDomainPlugin();
+      final valid = _seamDocument(leftTop: 20, rightTop: 20);
+      expect(plugin.validate(valid), isEmpty);
+
+      final left = valid.chunks.singleWhere((chunk) => chunk.chunkKey == 'low');
+      final polygonEdit = plugin.applyEdit(
+        valid,
+        AuthoringCommand(
+          kind: ChunkDomainPlugin.commitChunkPolygonCommandKind,
+          payload: <String, Object?>{
+            'chunkKey': left.chunkKey,
+            'commit': _commit(
+              before: left.collisionShapes,
+              after: <TerrainSourceShapeDef>[_rectangle(top: 24)],
+            ),
+          },
+        ),
+      );
+      expect(polygonEdit, same(valid));
+
+      final invalid = _seamDocument(leftTop: 20, rightTop: 24);
+      expect(
+        plugin.validate(invalid).map((issue) => issue.code),
+        contains('chunk_v2_reachable_seam_mismatch'),
+      );
+      final invalidLeft = invalid.chunks.singleWhere(
+        (chunk) => chunk.chunkKey == 'low',
+      );
+      final currentMetadata = ChunkV2MetadataSnapshot.fromChunk(invalidLeft);
+      final metadataEdit = plugin.applyEdit(
+        invalid,
+        AuthoringCommand(
+          kind: ChunkDomainPlugin.commitChunkMetadataCommandKind,
+          payload: <String, Object?>{
+            'chunkKey': invalidLeft.chunkKey,
+            'commit': ChunkV2MetadataCommit(
+              before: currentMetadata,
+              after: ChunkV2MetadataSnapshot(
+                status: currentMetadata.status,
+                levelId: currentMetadata.levelId,
+                difficulty: currentMetadata.difficulty,
+                assemblyGroupId: currentMetadata.assemblyGroupId,
+                tags: currentMetadata.tags,
+                groundBandZIndex: 2,
+              ),
+            ),
+          },
+        ),
+      );
+      expect(metadataEdit, same(invalid));
+
+      final root = Directory.systemTemp.createTempSync(
+        'chunk_v2_validation_gate_',
+      );
+      addTearDown(() => root.deleteSync(recursive: true));
+      await expectLater(
+        plugin.exportToRepo(
+          EditorWorkspace(rootPath: root.path),
+          document: invalid,
+        ),
+        throwsA(
+          isA<StateError>().having(
+            (error) => error.message,
+            'message',
+            contains('Cannot export chunk-v2 staging while validation has'),
+          ),
+        ),
+      );
+      expect(root.listSync(recursive: true), isEmpty);
+    },
+  );
+
+  test(
     'typed metadata commit changes only editable fields and revision once',
     () {
       final plugin = ChunkDomainPlugin();
@@ -508,6 +583,69 @@ ChunkV2StagingDocument _document(
   );
 }
 
+ChunkV2StagingDocument _seamDocument({
+  required int leftTop,
+  required int rightTop,
+}) {
+  ChunkV2FileData chunk({
+    required String chunkKey,
+    required String difficulty,
+    required int top,
+  }) => ChunkV2FileData(
+    chunkKey: chunkKey,
+    id: chunkKey,
+    revision: 1,
+    status: chunkStatusActive,
+    levelId: 'forest',
+    tileSize: 16,
+    width: 100,
+    height: 50,
+    difficulty: difficulty,
+    assemblyGroupId: defaultChunkAssemblyGroupId,
+    tags: const <String>[],
+    tileLayers: const <TileLayerDef>[],
+    prefabs: const <PlacedPrefabDef>[],
+    markers: const <PlacedMarkerDef>[],
+    groundBandZIndex: 0,
+    collisionShapes: <TerrainSourceShapeDef>[_rectangle(top: top)],
+  );
+
+  final low = chunk(
+    chunkKey: 'low',
+    difficulty: chunkDifficultyEarly,
+    top: leftTop,
+  );
+  final high = chunk(
+    chunkKey: 'high',
+    difficulty: chunkDifficultyEasy,
+    top: rightTop,
+  );
+  return ChunkV2StagingDocument(
+    chunks: <ChunkV2FileData>[low, high],
+    sourcePathByChunkKey: const <String, String>{
+      'low': 'chunks/low.json',
+      'high': 'chunks/high.json',
+    },
+    baselineContentsByChunkKey: <String, String>{
+      'low': ChunkV2FileCodec.encode(low),
+      'high': ChunkV2FileCodec.encode(high),
+    },
+    prefabData: PrefabV3FileData(
+      slices: const <AtlasSliceDef>[],
+      prefabs: const <PrefabV3Def>[],
+    ),
+    tileData: PrefabTileFileData(
+      tileSlices: const <AtlasSliceDef>[],
+      platformModules: const <TileModuleDef>[],
+    ),
+    visualBoundsByPrefabKey: const {},
+    groundTopYByLevelId: const <String, double>{'forest': 10},
+    levels: const <LevelDef>[_seamLevel],
+    availableLevelIds: const <String>['forest'],
+    activeLevelId: 'forest',
+  );
+}
+
 const LevelDef _forestLevel = LevelDef(
   levelId: 'forest',
   revision: 1,
@@ -516,6 +654,21 @@ const LevelDef _forestLevel = LevelDef(
   cameraCenterY: 25,
   groundTopY: 10,
   earlyPatternChunks: 0,
+  easyPatternChunks: 0,
+  normalPatternChunks: 0,
+  noEnemyChunks: 0,
+  enumOrdinal: 1,
+  status: levelStatusActive,
+);
+
+const LevelDef _seamLevel = LevelDef(
+  levelId: 'forest',
+  revision: 1,
+  displayName: 'Forest',
+  visualThemeId: 'forest',
+  cameraCenterY: 25,
+  groundTopY: 10,
+  earlyPatternChunks: 1,
   easyPatternChunks: 0,
   normalPatternChunks: 0,
   noEnemyChunks: 0,
