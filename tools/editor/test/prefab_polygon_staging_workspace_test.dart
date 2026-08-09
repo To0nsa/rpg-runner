@@ -188,6 +188,156 @@ void main() {
       expect(harness.session.exportError, isNull);
     },
   );
+
+  testWidgets(
+    'staging owner forms preserve polygons across metadata and lifecycle edits',
+    (tester) async {
+      tester.view.physicalSize = const Size(1800, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final harness = await _buildHarness();
+      addTearDown(harness.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData.dark(),
+          home: Scaffold(body: PrefabCreatorPage(controller: harness.session)),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final originalShapes = _prefab(
+        harness.session,
+        'obstacle',
+      ).collisionShapes;
+      await tester.tap(
+        find.byKey(const ValueKey<String>('prefab_v3_owner_edit')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('prefab_v3_owner_status_field')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('deprecated').last);
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('prefab_v3_owner_anchor_x_field')),
+        '9',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('prefab_v3_owner_tags_field')),
+        'test, boss, test',
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('prefab_v3_owner_dialog_apply')),
+      );
+      await tester.pumpAndSettle();
+
+      var obstacle = _prefab(harness.session, 'obstacle');
+      expect(obstacle.revision, 2);
+      expect(obstacle.status, PrefabStatus.deprecated);
+      expect(obstacle.anchorXPx, 9);
+      expect(obstacle.tags, <String>['boss', 'test']);
+      expect(obstacle.collisionShapes, originalShapes);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('prefab_polygon_undo_button')),
+      );
+      await tester.pump();
+      obstacle = _prefab(harness.session, 'obstacle');
+      expect(obstacle.revision, 1);
+      expect(obstacle.status, PrefabStatus.active);
+      expect(obstacle.collisionShapes, originalShapes);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('prefab_polygon_redo_button')),
+      );
+      await tester.pump();
+      expect(_prefab(harness.session, 'obstacle').revision, 2);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('prefab_v3_owner_rename')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('prefab_v3_rename_id_field')),
+        'obstacle_renamed',
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('prefab_v3_rename_apply')),
+      );
+      await tester.pumpAndSettle();
+      obstacle = _prefab(harness.session, 'obstacle');
+      expect(obstacle.id, 'obstacle_renamed');
+      expect(obstacle.revision, 3);
+      expect(obstacle.collisionShapes, originalShapes);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('prefab_v3_owner_duplicate')),
+      );
+      await tester.pump();
+      final duplicate = _prefab(harness.session, 'obstacle_renamed_copy');
+      expect(duplicate.id, 'obstacle_renamed_copy');
+      expect(duplicate.revision, 1);
+      expect(duplicate.status, PrefabStatus.active);
+      expect(duplicate.collisionShapes, originalShapes);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('prefab_v3_owner_delete')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('prefab_v3_owner_delete_confirm')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        (harness.session.document! as PrefabV3StagingDocument).data.prefabs.any(
+          (prefab) => prefab.prefabKey == 'obstacle_renamed_copy',
+        ),
+        isFalse,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('prefab_v3_owner_create')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('prefab_v3_owner_id_field')),
+        'flower',
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('prefab_v3_owner_kind_obstacle')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('decoration').last);
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('prefab_v3_owner_tags_field')),
+        'flora, art, flora',
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('prefab_v3_owner_dialog_apply')),
+      );
+      await tester.pumpAndSettle();
+
+      final flower = _prefab(harness.session, 'flower');
+      expect(flower.id, 'flower');
+      expect(flower.revision, 1);
+      expect(flower.kind, PrefabKind.decoration);
+      expect(flower.sliceId, 'decoration_slice');
+      expect(flower.anchorXPx, 6);
+      expect(flower.anchorYPx, 6);
+      expect(flower.tags, <String>['art', 'flora']);
+      expect(flower.collisionShapes, isEmpty);
+      expect(find.text('Save Definitions'), findsNothing);
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.byKey(const ValueKey<String>('prefab_polygon_apply_locked')),
+            )
+            .onPressed,
+        isNull,
+      );
+    },
+  );
 }
 
 Future<_Harness> _buildHarness() async {

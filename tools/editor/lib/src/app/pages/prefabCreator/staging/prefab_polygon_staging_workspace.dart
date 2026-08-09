@@ -2,7 +2,11 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../../../domain/authoring_types.dart';
 import '../../../../prefabs/domain/prefab_domain_models.dart';
+import '../../../../prefabs/domain/prefab_domain_plugin.dart';
+import '../../../../prefabs/domain/prefab_v3_lifecycle_commit.dart';
+import '../../../../prefabs/domain/prefab_v3_metadata_commit.dart';
 import '../../../../prefabs/models/models.dart';
 import '../../../../prefabs/validation/prefab_validation.dart';
 import '../../../../session/editor_session_controller.dart';
@@ -21,6 +25,7 @@ import '../shared/prefab_polygon_visual_source.dart';
 import '../shared/ui/prefab_editor_panel_card.dart';
 import '../shared/ui/prefab_editor_three_panel_layout.dart';
 import '../shared/ui/prefab_editor_ui_tokens.dart';
+import 'prefab_v3_owner_dialog.dart';
 
 /// Explicit prefab-v3 polygon workspace used before the schema cutover.
 ///
@@ -60,9 +65,25 @@ class PrefabPolygonStagingWorkspaceState
   bool get canRedo =>
       !(_authoring?.hasActiveOperation ?? false) && widget.controller.canRedo;
 
-  bool handleUndoShortcut() => _authoring?.undo() ?? false;
+  bool handleUndoShortcut() {
+    final authoring = _authoring;
+    if (authoring?.hasActiveOperation ?? false) {
+      authoring!.cancelActiveOperation();
+      return true;
+    }
+    if (!widget.controller.canUndo) return false;
+    widget.controller.undo();
+    _syncOwnerAfterSessionMutation();
+    return true;
+  }
 
-  bool handleRedoShortcut() => _authoring?.redo() ?? false;
+  bool handleRedoShortcut() {
+    if (_authoring?.hasActiveOperation ?? false) return false;
+    if (!widget.controller.canRedo) return false;
+    widget.controller.redo();
+    _syncOwnerAfterSessionMutation();
+    return true;
+  }
 
   @override
   void initState() {
@@ -89,13 +110,15 @@ class PrefabPolygonStagingWorkspaceState
   Widget build(BuildContext context) {
     final document = _documentOrNull;
     final authoring = _authoring;
-    if (document == null || authoring == null) {
+    if (document == null) {
       return const Center(
         child: Text('Prefab-v3 staging scene is no longer loaded.'),
       );
     }
-    final prefab = authoring.prefab;
-    final issues = _ownerIssues(document, prefab, authoring.issues);
+    final prefab = authoring?.prefab;
+    final issues = prefab == null
+        ? const <PrefabValidationIssue>[]
+        : _ownerIssues(document, prefab, authoring!.issues);
 
     return Card(
       key: const ValueKey<String>('prefab_polygon_staging_workspace'),
@@ -107,11 +130,13 @@ class PrefabPolygonStagingWorkspaceState
             _buildHeader(document, authoring),
             const SizedBox(height: PrefabEditorUiTokens.sectionGap),
             Expanded(
-              child: PrefabEditorThreePanelLayout(
-                inspector: _buildOwnerPanel(document, prefab),
-                scene: _buildScenePanel(document, prefab, authoring),
-                display: _buildShapePanel(authoring, issues),
-              ),
+              child: prefab == null || authoring == null
+                  ? _buildEmptyOwnerState(document)
+                  : PrefabEditorThreePanelLayout(
+                      inspector: _buildOwnerPanel(document, prefab, authoring),
+                      scene: _buildScenePanel(document, prefab, authoring),
+                      display: _buildShapePanel(authoring, issues),
+                    ),
             ),
           ],
         ),
@@ -121,7 +146,7 @@ class PrefabPolygonStagingWorkspaceState
 
   Widget _buildHeader(
     PrefabV3StagingDocument document,
-    PrefabPolygonAuthoringController authoring,
+    PrefabPolygonAuthoringController? authoring,
   ) {
     final changedCount = document.changedPrefabKeys.length;
     final changedKeys = document.changedPrefabKeys.toSet();
@@ -157,8 +182,9 @@ class PrefabPolygonStagingWorkspaceState
             OutlinedButton.icon(
               key: const ValueKey<String>('prefab_polygon_undo_button'),
               onPressed:
-                  authoring.hasActiveOperation || widget.controller.canUndo
-                  ? authoring.undo
+                  (authoring?.hasActiveOperation ?? false) ||
+                      widget.controller.canUndo
+                  ? handleUndoShortcut
                   : null,
               icon: const Icon(Icons.undo),
               label: const Text('Undo'),
@@ -166,9 +192,10 @@ class PrefabPolygonStagingWorkspaceState
             OutlinedButton.icon(
               key: const ValueKey<String>('prefab_polygon_redo_button'),
               onPressed:
-                  authoring.hasActiveOperation || !widget.controller.canRedo
+                  (authoring?.hasActiveOperation ?? false) ||
+                      !widget.controller.canRedo
                   ? null
-                  : authoring.redo,
+                  : handleRedoShortcut,
               icon: const Icon(Icons.redo),
               label: const Text('Redo'),
             ),
@@ -200,6 +227,7 @@ class PrefabPolygonStagingWorkspaceState
   Widget _buildOwnerPanel(
     PrefabV3StagingDocument document,
     PrefabV3Def selectedPrefab,
+    PrefabPolygonAuthoringController authoring,
   ) {
     final prefabs = List<PrefabV3Def>.of(document.data.prefabs)
       ..sort(_comparePrefabs);
@@ -207,7 +235,14 @@ class PrefabPolygonStagingWorkspaceState
       title: 'Prefab owners',
       scrollable: true,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
+          _buildOwnerActions(
+            document,
+            selectedPrefab: selectedPrefab,
+            controlsEnabled: !authoring.hasActiveOperation,
+          ),
+          const Divider(height: 28),
           for (final prefab in prefabs)
             Builder(
               builder: (context) {
@@ -249,6 +284,83 @@ class PrefabPolygonStagingWorkspaceState
             ),
         ],
       ),
+    );
+  }
+
+  Widget _buildEmptyOwnerState(PrefabV3StagingDocument document) {
+    return PrefabEditorPanelCard(
+      title: 'Prefab owners',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          _buildOwnerActions(
+            document,
+            selectedPrefab: null,
+            controlsEnabled: true,
+          ),
+          const SizedBox(height: PrefabEditorUiTokens.sectionGap),
+          const Text(
+            'No prefab owners remain. Create one from a retained atlas slice '
+            'or platform module.',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOwnerActions(
+    PrefabV3StagingDocument document, {
+    required PrefabV3Def? selectedPrefab,
+    required bool controlsEnabled,
+  }) {
+    final canCreate =
+        document.data.slices.isNotEmpty ||
+        document.tileData.platformModules.isNotEmpty;
+    return Wrap(
+      spacing: PrefabEditorUiTokens.controlGap,
+      runSpacing: PrefabEditorUiTokens.controlGap,
+      children: <Widget>[
+        FilledButton.icon(
+          key: const ValueKey<String>('prefab_v3_owner_create'),
+          onPressed: controlsEnabled && canCreate
+              ? () => _createOwner(document)
+              : null,
+          icon: const Icon(Icons.add),
+          label: const Text('New'),
+        ),
+        OutlinedButton.icon(
+          key: const ValueKey<String>('prefab_v3_owner_edit'),
+          onPressed: controlsEnabled && selectedPrefab != null
+              ? () => _editOwner(document, selectedPrefab)
+              : null,
+          icon: const Icon(Icons.tune),
+          label: const Text('Edit'),
+        ),
+        OutlinedButton.icon(
+          key: const ValueKey<String>('prefab_v3_owner_duplicate'),
+          onPressed: controlsEnabled && selectedPrefab != null
+              ? () => _duplicateOwner(document, selectedPrefab)
+              : null,
+          icon: const Icon(Icons.copy_outlined),
+          label: const Text('Duplicate'),
+        ),
+        OutlinedButton.icon(
+          key: const ValueKey<String>('prefab_v3_owner_rename'),
+          onPressed: controlsEnabled && selectedPrefab != null
+              ? () => _renameOwner(document, selectedPrefab)
+              : null,
+          icon: const Icon(Icons.drive_file_rename_outline),
+          label: const Text('Rename'),
+        ),
+        OutlinedButton.icon(
+          key: const ValueKey<String>('prefab_v3_owner_delete'),
+          onPressed: controlsEnabled && selectedPrefab != null
+              ? () => _deleteOwner(document, selectedPrefab)
+              : null,
+          icon: const Icon(Icons.delete_outline),
+          label: const Text('Delete'),
+        ),
+      ],
     );
   }
 
@@ -682,19 +794,226 @@ class PrefabPolygonStagingWorkspaceState
     return unique;
   }
 
+  Future<void> _createOwner(PrefabV3StagingDocument document) async {
+    final edit = await showPrefabV3OwnerDialog(context, document: document);
+    if (edit == null || !mounted) return;
+    final beforeKeys = document.data.prefabs
+        .map((prefab) => prefab.prefabKey)
+        .toSet();
+    final next = _dispatchLifecycle(
+      document,
+      PrefabV3CreateOperation(
+        id: edit.id!,
+        kind: edit.kind,
+        visualSource: edit.visualSource,
+        anchorXPx: edit.anchorXPx,
+        anchorYPx: edit.anchorYPx,
+        tags: edit.tags,
+      ),
+    );
+    if (next == null) return;
+    final createdKeys = next.data.prefabs
+        .map((prefab) => prefab.prefabKey)
+        .where((key) => !beforeKeys.contains(key))
+        .toList(growable: false);
+    _syncOwnerAfterSessionMutation(preferredPrefabKey: createdKeys.firstOrNull);
+  }
+
+  Future<void> _editOwner(
+    PrefabV3StagingDocument document,
+    PrefabV3Def prefab,
+  ) async {
+    final edit = await showPrefabV3OwnerDialog(
+      context,
+      document: document,
+      prefab: prefab,
+    );
+    if (edit == null || !mounted) return;
+    final before = PrefabV3MetadataSnapshot.fromPrefab(prefab);
+    final after = PrefabV3MetadataSnapshot(
+      status: edit.status,
+      kind: edit.kind,
+      visualSource: edit.visualSource,
+      anchorXPx: edit.anchorXPx,
+      anchorYPx: edit.anchorYPx,
+      tags: edit.tags,
+    );
+    if (before == after) return;
+    final beforeDocument = widget.controller.document;
+    widget.controller.applyCommand(
+      AuthoringCommand(
+        kind: PrefabDomainPlugin.commitPrefabV3MetadataCommandKind,
+        payload: <String, Object?>{
+          'prefabKey': prefab.prefabKey,
+          'commit': PrefabV3MetadataCommit(before: before, after: after),
+        },
+      ),
+    );
+    if (identical(widget.controller.document, beforeDocument)) {
+      _showOwnerMutationRejected();
+      return;
+    }
+    _syncOwnerAfterSessionMutation(preferredPrefabKey: prefab.prefabKey);
+  }
+
+  void _duplicateOwner(PrefabV3StagingDocument document, PrefabV3Def prefab) {
+    final beforeKeys = document.data.prefabs
+        .map((owner) => owner.prefabKey)
+        .toSet();
+    final next = _dispatchLifecycle(
+      document,
+      PrefabV3DuplicateOperation(sourcePrefabKey: prefab.prefabKey),
+    );
+    if (next == null) return;
+    final duplicateKeys = next.data.prefabs
+        .map((owner) => owner.prefabKey)
+        .where((key) => !beforeKeys.contains(key))
+        .toList(growable: false);
+    _syncOwnerAfterSessionMutation(
+      preferredPrefabKey: duplicateKeys.firstOrNull,
+    );
+  }
+
+  Future<void> _renameOwner(
+    PrefabV3StagingDocument document,
+    PrefabV3Def prefab,
+  ) async {
+    final nextId = await showPrefabV3RenameDialog(
+      context,
+      document: document,
+      prefab: prefab,
+    );
+    if (nextId == null || !mounted || nextId == prefab.id) return;
+    final next = _dispatchLifecycle(
+      document,
+      PrefabV3RenameOperation(prefabKey: prefab.prefabKey, nextId: nextId),
+    );
+    if (next != null) {
+      _syncOwnerAfterSessionMutation(preferredPrefabKey: prefab.prefabKey);
+    }
+  }
+
+  Future<void> _deleteOwner(
+    PrefabV3StagingDocument document,
+    PrefabV3Def prefab,
+  ) async {
+    final impact = document.downstreamImpacts
+        .where((entry) => entry.prefabKey == prefab.prefabKey)
+        .firstOrNull;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Delete ${prefab.id}?'),
+        content: Text(
+          'This removes the prefab owner and its polygon source. '
+          '${impact?.placementCount ?? 0} placement(s) in '
+          '${impact?.referencingChunkKeys.length ?? 0} chunk(s) currently '
+          'reference this stable key; those chunks are not mutated.',
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            key: const ValueKey<String>('prefab_v3_owner_delete_confirm'),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete owner'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final next = _dispatchLifecycle(
+      document,
+      PrefabV3DeleteOperation(prefabKey: prefab.prefabKey),
+    );
+    if (next != null) _syncOwnerAfterSessionMutation();
+  }
+
+  PrefabV3StagingDocument? _dispatchLifecycle(
+    PrefabV3StagingDocument document,
+    PrefabV3LifecycleOperation operation,
+  ) {
+    final beforeDocument = widget.controller.document;
+    widget.controller.applyCommand(
+      AuthoringCommand(
+        kind: PrefabDomainPlugin.commitPrefabV3LifecycleCommandKind,
+        payload: <String, Object?>{
+          'commit': PrefabV3LifecycleCommit(
+            before: PrefabV3LifecycleSnapshot.fromDocument(document),
+            operation: operation,
+          ),
+        },
+      ),
+    );
+    final next = widget.controller.document;
+    if (identical(next, beforeDocument) || next is! PrefabV3StagingDocument) {
+      _showOwnerMutationRejected();
+      return null;
+    }
+    return next;
+  }
+
+  void _showOwnerMutationRejected() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Prefab change was rejected. Review validation diagnostics and '
+          'retry from the current owner state.',
+        ),
+      ),
+    );
+  }
+
+  void _syncOwnerAfterSessionMutation({String? preferredPrefabKey}) {
+    if (!mounted) return;
+    final document = _documentOrNull;
+    if (document == null) return;
+    final keys = document.data.prefabs
+        .map((prefab) => prefab.prefabKey)
+        .toSet();
+    String? nextKey;
+    if (preferredPrefabKey != null && keys.contains(preferredPrefabKey)) {
+      nextKey = preferredPrefabKey;
+    } else if (_selectedPrefabKey != null &&
+        keys.contains(_selectedPrefabKey)) {
+      nextKey = _selectedPrefabKey;
+    } else {
+      nextKey = _preferredOwnerKey(document);
+    }
+    if (nextKey == null) {
+      _disposeAuthoring();
+      setState(() => _selectedPrefabKey = null);
+      return;
+    }
+    if (_authoring?.prefabKey == nextKey) {
+      setState(() {});
+      return;
+    }
+    setState(() {
+      _bindOwner(nextKey!);
+      _resetViewportValues();
+    });
+  }
+
   void _selectInitialOwner() {
     final document = _documentOrNull;
-    if (document == null || document.data.prefabs.isEmpty) return;
+    if (document == null) return;
+    final prefabKey = _preferredOwnerKey(document);
+    if (prefabKey != null) _bindOwner(prefabKey);
+  }
+
+  String? _preferredOwnerKey(PrefabV3StagingDocument document) {
+    if (document.data.prefabs.isEmpty) return null;
     final prefabs = List<PrefabV3Def>.of(document.data.prefabs)
       ..sort(_comparePrefabs);
-    final preferred = prefabs.where(
-      (prefab) => prefab.kind != PrefabKind.decoration,
-    );
-    _bindOwner(
-      preferred.isNotEmpty
-          ? preferred.first.prefabKey
-          : prefabs.first.prefabKey,
-    );
+    return prefabs
+            .where((prefab) => prefab.kind != PrefabKind.decoration)
+            .firstOrNull
+            ?.prefabKey ??
+        prefabs.first.prefabKey;
   }
 
   void _selectOwner(String prefabKey) {
