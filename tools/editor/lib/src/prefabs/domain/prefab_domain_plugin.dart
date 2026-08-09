@@ -12,6 +12,9 @@ import '../store/prefab_v3_file_codec.dart';
 import 'prefab_domain_models.dart';
 import 'prefab_visual_bounds_resolver.dart';
 import 'prefab_v3_collision_commit.dart';
+import 'prefab_v3_lifecycle_commit.dart';
+import 'prefab_v3_metadata_commit.dart';
+import 'prefab_v3_owner_validation.dart';
 import '../store/prefab_store.dart';
 import '../validation/prefab_validation.dart';
 
@@ -35,6 +38,14 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
 
   /// Staged command for one accepted shared polygon interaction commit.
   static const String commitPrefabPolygonCommandKind = 'commit_prefab_polygon';
+
+  /// Staged command for one existing-owner prefab-v3 metadata commit.
+  static const String commitPrefabV3MetadataCommandKind =
+      'commit_prefab_v3_metadata';
+
+  /// Staged command for one prefab-v3 create/duplicate/rename/delete commit.
+  static const String commitPrefabV3LifecycleCommandKind =
+      'commit_prefab_v3_lifecycle';
 
   /// Workspace-relative root scanned for atlas images used by slices.
   static const String _levelAssetsPath = 'assets/images/level';
@@ -336,6 +347,28 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
     PrefabV3StagingDocument document,
     AuthoringCommand command,
   ) {
+    if (command.kind == commitPrefabV3MetadataCommandKind) {
+      final prefabKey = command.payload['prefabKey'];
+      final commit = command.payload['commit'];
+      if (prefabKey is! String || commit is! PrefabV3MetadataCommit) {
+        return document;
+      }
+      final result = const PrefabV3MetadataCommitPolicy().apply(
+        document: document,
+        prefabKey: prefabKey,
+        commit: commit,
+      );
+      return result.accepted && result.changed ? result.document : document;
+    }
+    if (command.kind == commitPrefabV3LifecycleCommandKind) {
+      final commit = command.payload['commit'];
+      if (commit is! PrefabV3LifecycleCommit) return document;
+      final result = const PrefabV3LifecycleCommitPolicy().apply(
+        document: document,
+        commit: commit,
+      );
+      return result.accepted && result.changed ? result.document : document;
+    }
     if (command.kind != commitPrefabPolygonCommandKind) return document;
     final prefabKey = command.payload['prefabKey'];
     final commit = command.payload['commit'];
@@ -362,30 +395,13 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
     final issues = <ValidationIssue>[];
     for (final prefab in document.data.prefabs) {
       final bounds = document.visualBoundsByPrefabKey[prefab.prefabKey];
-      if (prefab.kind != PrefabKind.decoration && bounds == null) {
-        issues.add(
-          ValidationIssue(
-            severity: ValidationSeverity.error,
-            code: 'prefab_polygon_visual_bounds_unresolved',
-            message:
-                'Prefab ${prefab.id} visual bounds must resolve before '
-                'collision geometry can be committed.',
-            sourcePath: PrefabStore.prefabDefsPath,
-          ),
-        );
-        continue;
-      }
       issues.addAll(
-        validatePrefabCollisionShapes(
-          prefabId: prefab.id,
-          prefabKey: prefab.prefabKey,
-          kind: prefab.kind,
-          anchorXPx: prefab.anchorXPx,
-          anchorYPx: prefab.anchorYPx,
-          collisionShapes: prefab.collisionShapes,
-          sourceWidthPx: bounds?.widthPx,
-          sourceHeightPx: bounds?.heightPx,
-          sourcePath: '${PrefabStore.prefabDefsPath}:${prefab.prefabKey}',
+        validatePrefabV3Owner(
+          prefabData: document.data,
+          tileData: document.tileData,
+          prefab: prefab,
+          visualBounds: bounds,
+          sourcePath: PrefabStore.prefabDefsPath,
         ).map(_toValidationIssue),
       );
     }
