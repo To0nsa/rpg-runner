@@ -22,6 +22,10 @@ void main() {
     expect(compiled.triangles, hasLength(golden['triangleCount']! as int));
     expect(compiled.geometry.sourceSignature(), golden['sourceSignature']);
     expect(compiled.geometry.edgeSignature(), golden['edgeSignature']);
+    expect(
+      compiled.authoringPolygonSignature(),
+      golden['authoringPolygonSignature'],
+    );
     expect(compiled.placementSignature(), golden['placementSignature']);
     expect(compiled.triangleSignature(), golden['triangleSignature']);
 
@@ -47,6 +51,7 @@ void main() {
     );
     expect(second.placementRecords(), first.placementRecords());
     expect(second.triangleRecords(), first.triangleRecords());
+    expect(second.authoringPolygonRecords(), first.authoringPolygonRecords());
   });
 
   test('strict parsers reject legacy, unknown, and off-grid source', () {

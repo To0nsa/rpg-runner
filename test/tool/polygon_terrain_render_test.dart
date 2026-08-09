@@ -38,8 +38,12 @@ void main() {
         isEmpty,
       );
       expect(first.content, isNot(contains('chunkIndex')));
-      expect(first.content, contains('formatVersion: 1'));
+      expect(first.content, contains('formatVersion: 2'));
       expect(first.content, contains('compilerGeometryVersion: 1'));
+      expect(
+        first.content,
+        contains('authoringPolygonSignatureFormat: "authoring-polygons-v1"'),
+      );
       expect(first.content, contains('sourceSignatureFormat: "source-v1"'));
       expect(first.content, contains('edgeSignatureFormat: "edges-v1"'));
       expect(

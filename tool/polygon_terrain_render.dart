@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:runner_core/collision/terrain/terrain_authoring_polygon_signature.dart';
 import 'package:runner_core/collision/terrain/terrain_edge.dart';
 import 'package:runner_core/collision/terrain/terrain_edge_id.dart';
 import 'package:runner_core/collision/terrain/terrain_polygon.dart';
@@ -77,6 +78,10 @@ String renderStagedPolygonTerrainDart(
     )
     ..line('  formatVersion: $stagedTerrainArtifactFormatVersion,')
     ..line('  compilerGeometryVersion: ${geometryVersions.single},')
+    ..line(
+      '  authoringPolygonSignatureFormat: '
+      '${_string(terrainAuthoringPolygonSignatureFormat)},',
+    )
     ..line('  sourceSignatureFormat: ${_string(_sourceSignatureFormat)},')
     ..line('  edgeSignatureFormat: ${_string(_edgeSignatureFormat)},')
     ..line('  placementSignatureFormat: ${_string(_placementSignatureFormat)},')
@@ -218,6 +223,10 @@ void _writeChunk(
     ..line('$prefix  height: ${chunk.height},')
     ..line('$prefix  difficulty: ${_string(chunk.difficulty)},')
     ..line('$prefix  assemblyGroupId: ${_string(chunk.assemblyGroupId)},')
+    ..line(
+      '$prefix  authoringPolygonSignature: '
+      '${_string(compiled.authoringPolygonSignature())},',
+    )
     ..line(
       '$prefix  sourceSignature: '
       '${_string(compiled.geometry.sourceSignature())},',

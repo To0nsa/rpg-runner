@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
+import 'package:runner_core/collision/terrain/terrain_authoring_polygon_signature.dart';
 import 'package:runner_core/collision/terrain/terrain_compiler.dart';
 import 'package:runner_core/collision/terrain/terrain_geometry.dart';
 import 'package:runner_core/collision/terrain/terrain_numeric.dart';
@@ -119,17 +120,25 @@ final class PolygonTerrainCompiledChunk {
   PolygonTerrainCompiledChunk({
     required this.chunk,
     required this.geometry,
+    required Iterable<TerrainAuthoringPolygonRecord> authoringPolygons,
     required Iterable<PolygonTerrainPlacementLineage> placementLineage,
     required Iterable<PolygonTerrainTriangle> triangles,
-  }) : placementLineage = List<PolygonTerrainPlacementLineage>.unmodifiable(
+  }) : authoringPolygons = List<TerrainAuthoringPolygonRecord>.unmodifiable(
+         List<TerrainAuthoringPolygonRecord>.of(authoringPolygons)..sort(),
+       ),
+       placementLineage = List<PolygonTerrainPlacementLineage>.unmodifiable(
          placementLineage,
        ),
        triangles = List<PolygonTerrainTriangle>.unmodifiable(triangles);
 
   final PolygonTerrainChunkSource chunk;
   final TerrainGeometry geometry;
+  final List<TerrainAuthoringPolygonRecord> authoringPolygons;
   final List<PolygonTerrainPlacementLineage> placementLineage;
   final List<PolygonTerrainTriangle> triangles;
+
+  List<String> authoringPolygonRecords() =>
+      canonicalTerrainAuthoringPolygonRecords(authoringPolygons);
 
   List<String> placementRecords() => List<String>.unmodifiable(
     placementLineage.map((lineage) => lineage.canonicalRecord()),
@@ -142,6 +151,9 @@ final class PolygonTerrainCompiledChunk {
   String placementSignature() => _signature(placementRecords());
 
   String triangleSignature() => _signature(triangleRecords());
+
+  String authoringPolygonSignature() =>
+      terrainAuthoringPolygonSignature(authoringPolygons);
 }
 
 /// Deterministic compile result; issues never coexist with fabricated output.
@@ -168,6 +180,7 @@ PolygonTerrainCompilationResult compilePolygonTerrainChunk({
   final placementByPath = <String, String>{};
   final placementLineage = <PolygonTerrainPlacementLineage>[];
   final prefabRefs = _indexPrefabReferences(prefabSources.prefabs);
+  final referencedPrefabs = <String, PolygonTerrainPrefabSource>{};
 
   for (final shape in chunk.collisionShapes) {
     final shapePath = '$sourcePath#direct=${shape.shapeId}';
@@ -223,6 +236,7 @@ PolygonTerrainCompilationResult compilePolygonTerrainChunk({
       continue;
     }
     final prefab = candidates.single;
+    referencedPrefabs[prefab.prefabKey] = prefab;
     final transform = TerrainSourceTransform(
       reflectX: placement.flipX,
       reflectY: placement.flipY,
@@ -378,16 +392,56 @@ PolygonTerrainCompilationResult compilePolygonTerrainChunk({
     order = left.second.compareTo(right.second);
     return order != 0 ? order : left.third.compareTo(right.third);
   });
+  final authoringPolygons = <TerrainAuthoringPolygonRecord>[
+    for (final shape in chunk.collisionShapes)
+      _authoringPolygonRecord(
+        ownerKind: TerrainAuthoringPolygonOwnerKind.chunk,
+        ownerKey: chunk.chunkKey,
+        ownerId: chunk.id,
+        ownerRevision: chunk.revision,
+        shape: shape,
+      ),
+    for (final prefab in referencedPrefabs.values)
+      for (final shape in prefab.collisionShapes)
+        _authoringPolygonRecord(
+          ownerKind: TerrainAuthoringPolygonOwnerKind.prefab,
+          ownerKey: prefab.prefabKey,
+          ownerId: prefab.id,
+          ownerRevision: prefab.revision,
+          shape: shape,
+        ),
+  ];
   return PolygonTerrainCompilationResult(
     compiled: PolygonTerrainCompiledChunk(
       chunk: chunk,
       geometry: geometry,
+      authoringPolygons: authoringPolygons,
       placementLineage: placementLineage,
       triangles: triangles,
     ),
     issues: const <PolygonTerrainGenerationIssue>[],
   );
 }
+
+TerrainAuthoringPolygonRecord _authoringPolygonRecord({
+  required TerrainAuthoringPolygonOwnerKind ownerKind,
+  required String ownerKey,
+  required String ownerId,
+  required int ownerRevision,
+  required PolygonTerrainShapeSource shape,
+}) => TerrainAuthoringPolygonRecord(
+  ownerKind: ownerKind,
+  ownerKey: ownerKey,
+  ownerId: ownerId,
+  ownerRevision: ownerRevision,
+  shapeId: shape.shapeId,
+  vertices: shape.vertices.map(
+    (vertex) => SourceTerrainPoint(vertex.xHalfPixels, vertex.yHalfPixels),
+  ),
+  collisionMode: shape.collisionMode,
+  surfaceKind: shape.surfaceKind,
+  materialKey: shape.materialKey,
+);
 
 TerrainPolygonInput _polygonInput({
   required String chunkKey,

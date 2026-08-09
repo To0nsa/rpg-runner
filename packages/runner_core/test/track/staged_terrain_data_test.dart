@@ -66,6 +66,7 @@ void main() {
       height: 100,
       difficulty: 'normal',
       assemblyGroupId: 'default',
+      authoringPolygonSignature: 'authoring-polygons',
       sourceSignature: 'source',
       edgeSignature: 'edges',
       placementSignature: 'placements',
@@ -86,6 +87,7 @@ void main() {
     final artifact = StagedTerrainArtifactData(
       formatVersion: stagedTerrainArtifactFormatVersion,
       compilerGeometryVersion: 1,
+      authoringPolygonSignatureFormat: 'authoring-polygons-v1',
       sourceSignatureFormat: 'source-v1',
       edgeSignatureFormat: 'edges-v1',
       placementSignatureFormat: 'authoring-placement-v1',
