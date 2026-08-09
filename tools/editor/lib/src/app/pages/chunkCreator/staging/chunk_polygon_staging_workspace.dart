@@ -11,8 +11,11 @@ import '../../../../chunks/chunk_v2_actor_terrain_projection.dart';
 import '../../../../chunks/chunk_v2_collision_expansion.dart';
 import '../../../../chunks/chunk_v2_compiled_edge_inspection.dart';
 import '../../../../chunks/chunk_domain_models.dart';
+import '../../../../chunks/chunk_domain_plugin.dart';
 import '../../../../chunks/chunk_v2_file_data.dart';
+import '../../../../chunks/chunk_v2_lifecycle_commit.dart';
 import '../../../../chunks/chunk_v2_marker_placement_projection.dart';
+import '../../../../chunks/chunk_v2_metadata_commit.dart';
 import '../../../../chunks/chunk_v2_seam_analysis.dart';
 import '../../../../chunks/chunk_v2_staging_models.dart';
 import '../../../../domain/authoring_types.dart';
@@ -34,6 +37,7 @@ import 'chunk_expanded_collision_overlay_painter.dart';
 import 'chunk_marker_placement_overlay_painter.dart';
 import 'chunk_polygon_authoring_controller.dart';
 import 'chunk_polygon_scene_surface.dart';
+import 'chunk_v2_owner_dialog.dart';
 
 /// Explicit chunk-v2 polygon workspace used before the schema cutover.
 ///
@@ -83,9 +87,27 @@ class ChunkPolygonStagingWorkspaceState
   bool get canRedo =>
       !(_authoring?.hasActiveOperation ?? false) && widget.controller.canRedo;
 
-  bool handleUndoShortcut() => _authoring?.undo() ?? false;
+  bool handleUndoShortcut() {
+    final authoring = _authoring;
+    if (authoring?.hasActiveOperation ?? false) {
+      authoring!.cancelActiveOperation();
+      return true;
+    }
+    if (!widget.controller.canUndo) return false;
+    widget.controller.undo();
+    _syncOwnerAfterSessionMutation();
+    return true;
+  }
 
-  bool handleRedoShortcut() => _authoring?.redo() ?? false;
+  bool handleRedoShortcut() {
+    if ((_authoring?.hasActiveOperation ?? false) ||
+        !widget.controller.canRedo) {
+      return false;
+    }
+    widget.controller.redo();
+    _syncOwnerAfterSessionMutation();
+    return true;
+  }
 
   @override
   void initState() {
@@ -113,12 +135,14 @@ class ChunkPolygonStagingWorkspaceState
     final document = _documentOrNull;
     final scene = _sceneOrNull;
     final authoring = _authoring;
-    if (document == null || scene == null || authoring == null) {
+    if (document == null || scene == null) {
       return const Center(
         child: Text('Chunk-v2 staging scene is no longer loaded.'),
       );
     }
-    final issues = _ownerIssues(authoring);
+    final issues = authoring == null
+        ? const <ValidationIssue>[]
+        : _ownerIssues(authoring);
     return Card(
       key: const ValueKey<String>('chunk_polygon_staging_workspace'),
       child: Padding(
@@ -126,7 +150,7 @@ class ChunkPolygonStagingWorkspaceState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            _buildHeader(document, scene, authoring),
+            _buildHeader(document, scene),
             const SizedBox(height: _gap),
             Expanded(
               child: Row(
@@ -134,14 +158,35 @@ class ChunkPolygonStagingWorkspaceState
                 children: <Widget>[
                   SizedBox(
                     width: 260,
-                    child: _buildOwnerPanel(document, scene, authoring.chunk),
+                    child: _buildOwnerPanel(
+                      document,
+                      scene,
+                      authoring?.chunk,
+                      controlsEnabled:
+                          !(authoring?.hasActiveOperation ?? false),
+                    ),
                   ),
                   const SizedBox(width: _gap),
-                  Expanded(child: _buildScenePanel(authoring)),
+                  Expanded(
+                    child: authoring == null
+                        ? _buildEmptyPanel(
+                            title: 'Terrain collision scene',
+                            message:
+                                'This level has no chunk owner. Undo the '
+                                'deletion, or switch to a level that still '
+                                'has a dimension template.',
+                          )
+                        : _buildScenePanel(authoring),
+                  ),
                   const SizedBox(width: _gap),
                   SizedBox(
                     width: 310,
-                    child: _buildShapePanel(authoring, issues),
+                    child: authoring == null
+                        ? _buildEmptyPanel(
+                            title: 'Shapes and diagnostics',
+                            message: 'Select or create a chunk owner first.',
+                          )
+                        : _buildShapePanel(authoring, issues),
                   ),
                 ],
               ),
@@ -155,7 +200,6 @@ class ChunkPolygonStagingWorkspaceState
   Widget _buildHeader(
     ChunkV2StagingDocument document,
     ChunkV2StagingScene scene,
-    ChunkPolygonAuthoringController authoring,
   ) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: <Widget>[
@@ -189,19 +233,19 @@ class ChunkPolygonStagingWorkspaceState
           ),
           OutlinedButton.icon(
             key: const ValueKey<String>('chunk_polygon_undo_button'),
-            onPressed: canUndo ? authoring.undo : null,
+            onPressed: canUndo ? handleUndoShortcut : null,
             icon: const Icon(Icons.undo),
             label: const Text('Undo'),
           ),
           OutlinedButton.icon(
             key: const ValueKey<String>('chunk_polygon_redo_button'),
-            onPressed: canRedo ? authoring.redo : null,
+            onPressed: canRedo ? handleRedoShortcut : null,
             icon: const Icon(Icons.redo),
             label: const Text('Redo'),
           ),
           Text(
             document.changedChunkKeys.isEmpty
-                ? 'No staged geometry changes'
+                ? 'No staged chunk changes'
                 : '${document.changedChunkKeys.length} staged chunk change(s)',
           ),
         ],
@@ -219,13 +263,26 @@ class ChunkPolygonStagingWorkspaceState
   Widget _buildOwnerPanel(
     ChunkV2StagingDocument document,
     ChunkV2StagingScene scene,
-    ChunkV2FileData selectedChunk,
-  ) {
+    ChunkV2FileData? selectedChunk, {
+    required bool controlsEnabled,
+  }) {
     final chunks = List<ChunkV2FileData>.of(scene.chunks)..sort(_compareChunks);
     return _Panel(
       title: 'Chunk owners',
       child: ListView(
         children: <Widget>[
+          _buildOwnerActions(
+            document,
+            scene,
+            selectedChunk: selectedChunk,
+            controlsEnabled: controlsEnabled,
+          ),
+          const Divider(height: 28),
+          if (chunks.isEmpty)
+            const Text(
+              'No chunk owners remain in this level. Creation requires one '
+              'existing owner to provide locked tile size and dimensions.',
+            ),
           for (final chunk in chunks)
             Builder(
               builder: (context) {
@@ -236,7 +293,7 @@ class ChunkPolygonStagingWorkspaceState
                   ),
                   clipBehavior: Clip.antiAlias,
                   child: ListTile(
-                    selected: chunk.chunkKey == selectedChunk.chunkKey,
+                    selected: chunk.chunkKey == selectedChunk?.chunkKey,
                     onTap: () => _selectOwner(chunk.chunkKey),
                     title: Text(chunk.id),
                     subtitle: Text(
@@ -260,6 +317,71 @@ class ChunkPolygonStagingWorkspaceState
       ),
     );
   }
+
+  Widget _buildOwnerActions(
+    ChunkV2StagingDocument document,
+    ChunkV2StagingScene scene, {
+    required ChunkV2FileData? selectedChunk,
+    required bool controlsEnabled,
+  }) {
+    final canCreate = controlsEnabled && scene.chunks.isNotEmpty;
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: <Widget>[
+        Tooltip(
+          message: scene.chunks.isEmpty
+              ? 'Creation needs an existing owner in this level to provide '
+                    'locked dimensions.'
+              : 'Create an empty deprecated owner.',
+          child: FilledButton.icon(
+            key: const ValueKey<String>('chunk_v2_owner_create'),
+            onPressed: canCreate ? () => _createOwner(document) : null,
+            icon: const Icon(Icons.add),
+            label: const Text('New'),
+          ),
+        ),
+        OutlinedButton.icon(
+          key: const ValueKey<String>('chunk_v2_owner_edit'),
+          onPressed: controlsEnabled && selectedChunk != null
+              ? () => _editOwner(document, selectedChunk)
+              : null,
+          icon: const Icon(Icons.tune),
+          label: const Text('Edit'),
+        ),
+        OutlinedButton.icon(
+          key: const ValueKey<String>('chunk_v2_owner_duplicate'),
+          onPressed: controlsEnabled && selectedChunk != null
+              ? () => _duplicateOwner(document, selectedChunk)
+              : null,
+          icon: const Icon(Icons.copy_outlined),
+          label: const Text('Duplicate'),
+        ),
+        OutlinedButton.icon(
+          key: const ValueKey<String>('chunk_v2_owner_rename'),
+          onPressed: controlsEnabled && selectedChunk != null
+              ? () => _renameOwner(document, selectedChunk)
+              : null,
+          icon: const Icon(Icons.drive_file_rename_outline),
+          label: const Text('Rename'),
+        ),
+        OutlinedButton.icon(
+          key: const ValueKey<String>('chunk_v2_owner_delete'),
+          onPressed: controlsEnabled && selectedChunk != null
+              ? () => _deleteOwner(document, scene, selectedChunk)
+              : null,
+          icon: const Icon(Icons.delete_outline),
+          label: const Text('Delete'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmptyPanel({required String title, required String message}) =>
+      _Panel(
+        title: title,
+        child: Center(child: Text(message)),
+      );
 
   Widget _buildScenePanel(ChunkPolygonAuthoringController authoring) => _Panel(
     title: 'Terrain collision scene',
@@ -1395,6 +1517,192 @@ class ChunkPolygonStagingWorkspaceState
     }
   }
 
+  Future<void> _createOwner(ChunkV2StagingDocument document) async {
+    final id = await showChunkV2CreateDialog(context, document: document);
+    if (id == null || !mounted) return;
+    final beforeKeys = document.chunks.map((chunk) => chunk.chunkKey).toSet();
+    final next = _dispatchLifecycle(document, ChunkV2CreateOperation(id: id));
+    if (next == null) return;
+    final createdKeys = next.chunks
+        .map((chunk) => chunk.chunkKey)
+        .where((key) => !beforeKeys.contains(key))
+        .toList(growable: false);
+    _syncOwnerAfterSessionMutation(preferredChunkKey: createdKeys.firstOrNull);
+  }
+
+  Future<void> _editOwner(
+    ChunkV2StagingDocument document,
+    ChunkV2FileData chunk,
+  ) async {
+    final edit = await showChunkV2OwnerDialog(
+      context,
+      document: document,
+      chunk: chunk,
+    );
+    if (edit == null || !mounted) return;
+    final before = ChunkV2MetadataSnapshot.fromChunk(chunk);
+    final after = ChunkV2MetadataSnapshot(
+      status: edit.status,
+      levelId: edit.levelId,
+      difficulty: edit.difficulty,
+      assemblyGroupId: edit.assemblyGroupId,
+      tags: edit.tags,
+      groundBandZIndex: edit.groundBandZIndex,
+    );
+    if (before == after) return;
+    final beforeDocument = widget.controller.document;
+    widget.controller.applyCommand(
+      AuthoringCommand(
+        kind: ChunkDomainPlugin.commitChunkMetadataCommandKind,
+        payload: <String, Object?>{
+          'chunkKey': chunk.chunkKey,
+          'commit': ChunkV2MetadataCommit(before: before, after: after),
+        },
+      ),
+    );
+    if (identical(widget.controller.document, beforeDocument)) {
+      _showOwnerMutationRejected();
+      return;
+    }
+    _syncOwnerAfterSessionMutation(preferredChunkKey: chunk.chunkKey);
+  }
+
+  void _duplicateOwner(ChunkV2StagingDocument document, ChunkV2FileData chunk) {
+    final beforeKeys = document.chunks.map((owner) => owner.chunkKey).toSet();
+    final next = _dispatchLifecycle(
+      document,
+      ChunkV2DuplicateOperation(sourceChunkKey: chunk.chunkKey),
+    );
+    if (next == null) return;
+    final duplicateKeys = next.chunks
+        .map((owner) => owner.chunkKey)
+        .where((key) => !beforeKeys.contains(key))
+        .toList(growable: false);
+    _syncOwnerAfterSessionMutation(
+      preferredChunkKey: duplicateKeys.firstOrNull,
+    );
+  }
+
+  Future<void> _renameOwner(
+    ChunkV2StagingDocument document,
+    ChunkV2FileData chunk,
+  ) async {
+    final nextId = await showChunkV2RenameDialog(
+      context,
+      document: document,
+      chunk: chunk,
+    );
+    if (nextId == null || !mounted || nextId == chunk.id) return;
+    final next = _dispatchLifecycle(
+      document,
+      ChunkV2RenameOperation(chunkKey: chunk.chunkKey, nextId: nextId),
+    );
+    if (next != null) {
+      _syncOwnerAfterSessionMutation(preferredChunkKey: chunk.chunkKey);
+    }
+  }
+
+  Future<void> _deleteOwner(
+    ChunkV2StagingDocument document,
+    ChunkV2StagingScene scene,
+    ChunkV2FileData chunk,
+  ) async {
+    final removesDimensionAuthority = scene.chunks.length == 1;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Delete ${chunk.id}?'),
+        content: Text(
+          'This stages deletion of the chunk owner and all of its tile '
+          'layers, prefab placements, enemy markers, and collision polygons.'
+          '${removesDimensionAuthority ? '\n\nThis is the final owner in the active level. New owners cannot be created there until this deletion is undone because no locked dimension template will remain.' : ''}',
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            key: const ValueKey<String>('chunk_v2_owner_delete_confirm'),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete owner'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final next = _dispatchLifecycle(
+      document,
+      ChunkV2DeleteOperation(chunkKey: chunk.chunkKey),
+    );
+    if (next != null) _syncOwnerAfterSessionMutation();
+  }
+
+  ChunkV2StagingDocument? _dispatchLifecycle(
+    ChunkV2StagingDocument document,
+    ChunkV2LifecycleOperation operation,
+  ) {
+    final beforeDocument = widget.controller.document;
+    widget.controller.applyCommand(
+      AuthoringCommand(
+        kind: ChunkDomainPlugin.commitChunkLifecycleCommandKind,
+        payload: <String, Object?>{
+          'commit': ChunkV2LifecycleCommit(
+            before: ChunkV2LifecycleSnapshot.fromDocument(document),
+            operation: operation,
+          ),
+        },
+      ),
+    );
+    final next = widget.controller.document;
+    if (identical(next, beforeDocument) || next is! ChunkV2StagingDocument) {
+      _showOwnerMutationRejected();
+      return null;
+    }
+    return next;
+  }
+
+  void _showOwnerMutationRejected() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Chunk change was rejected. Review validation diagnostics and '
+          'retry from the current owner state.',
+        ),
+      ),
+    );
+  }
+
+  void _syncOwnerAfterSessionMutation({String? preferredChunkKey}) {
+    if (!mounted) return;
+    final scene = _sceneOrNull;
+    if (scene == null) return;
+    final chunks = List<ChunkV2FileData>.of(scene.chunks)..sort(_compareChunks);
+    final keys = chunks.map((chunk) => chunk.chunkKey).toSet();
+    String? nextKey;
+    if (preferredChunkKey != null && keys.contains(preferredChunkKey)) {
+      nextKey = preferredChunkKey;
+    } else if (_selectedChunkKey != null && keys.contains(_selectedChunkKey)) {
+      nextKey = _selectedChunkKey;
+    } else {
+      nextKey = chunks.firstOrNull?.chunkKey;
+    }
+    if (nextKey == null) {
+      _disposeAuthoring();
+      setState(() => _selectedChunkKey = null);
+      return;
+    }
+    if (_authoring?.chunkKey == nextKey) {
+      setState(() {});
+      return;
+    }
+    setState(() {
+      _bindOwner(nextKey!);
+      _resetViewportValues();
+    });
+  }
+
   void _selectInitialOwner() {
     final scene = _sceneOrNull;
     if (scene == null || scene.chunks.isEmpty) return;
@@ -1404,6 +1712,10 @@ class ChunkPolygonStagingWorkspaceState
 
   void _selectOwner(String chunkKey) {
     if (chunkKey == _selectedChunkKey) return;
+    if (_authoring?.hasActiveOperation ?? false) {
+      _showOwnerSwitchBlocked();
+      return;
+    }
     setState(() {
       _bindOwner(chunkKey);
       _resetViewportValues();
@@ -1412,19 +1724,28 @@ class ChunkPolygonStagingWorkspaceState
 
   void _selectLevel(String? levelId) {
     if (levelId == null || levelId == _sceneOrNull?.activeLevelId) return;
+    if (_authoring?.hasActiveOperation ?? false) {
+      _showOwnerSwitchBlocked();
+      return;
+    }
     widget.controller.applyCommand(
       AuthoringCommand(
         kind: 'set_active_level',
         payload: <String, Object?>{'levelId': levelId},
       ),
     );
-    final scene = _sceneOrNull;
-    if (scene == null || scene.chunks.isEmpty) return;
-    final chunks = List<ChunkV2FileData>.of(scene.chunks)..sort(_compareChunks);
-    setState(() {
-      _bindOwner(chunks.first.chunkKey);
-      _resetViewportValues();
-    });
+    _syncOwnerAfterSessionMutation();
+  }
+
+  void _showOwnerSwitchBlocked() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Finish or cancel the active polygon operation before switching '
+          'owners or levels.',
+        ),
+      ),
+    );
   }
 
   void _bindOwner(String chunkKey) {

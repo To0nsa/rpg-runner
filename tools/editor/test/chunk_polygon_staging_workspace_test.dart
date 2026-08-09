@@ -447,6 +447,215 @@ void main() {
       expect(harness.plugin.loadCount, 1);
     },
   );
+
+  testWidgets(
+    'chunk-v2 owner forms preserve non-owned fields across typed lifecycle edits',
+    (tester) async {
+      tester.view.physicalSize = const Size(1800, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final harness = await _buildHarness();
+      addTearDown(harness.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData.dark(),
+          home: Scaffold(body: ChunkCreatorPage(controller: harness.session)),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final original = _chunk(harness.session, 'forest_chunk');
+      await tester.tap(
+        find.byKey(const ValueKey<String>('chunk_v2_owner_edit')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('chunk_v2_owner_status_active')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(chunkStatusDeprecated).last);
+      final difficultyField = find.byKey(
+        const ValueKey<String>('chunk_v2_owner_difficulty_normal'),
+      );
+      await tester.ensureVisible(difficultyField);
+      await tester.pump();
+      await tester.tap(difficultyField);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(chunkDifficultyHard).last);
+      final tagsField = find.byKey(
+        const ValueKey<String>('chunk_v2_owner_tags_field'),
+      );
+      await tester.ensureVisible(tagsField);
+      await tester.enterText(tagsField, ' zeta, forest, alpha, alpha ');
+      final groundBandField = find.byKey(
+        const ValueKey<String>('chunk_v2_owner_ground_band_z_field'),
+      );
+      await tester.ensureVisible(groundBandField);
+      await tester.enterText(groundBandField, '-3');
+      final applyMetadata = find.byKey(
+        const ValueKey<String>('chunk_v2_owner_dialog_apply'),
+      );
+      await tester.ensureVisible(applyMetadata);
+      await tester.tap(applyMetadata);
+      await tester.pumpAndSettle();
+
+      var edited = _chunk(harness.session, 'forest_chunk');
+      expect(edited.revision, 5);
+      expect(edited.status, chunkStatusDeprecated);
+      expect(edited.difficulty, chunkDifficultyHard);
+      expect(edited.tags, <String>['alpha', 'forest', 'zeta']);
+      expect(edited.groundBandZIndex, -3);
+      expect(edited.chunkKey, original.chunkKey);
+      expect(edited.tileSize, original.tileSize);
+      expect(edited.width, original.width);
+      expect(edited.height, original.height);
+      expect(edited.tileLayers, original.tileLayers);
+      expect(edited.prefabs, original.prefabs);
+      expect(edited.markers, original.markers);
+      expect(edited.collisionShapes, original.collisionShapes);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('chunk_polygon_undo_button')),
+      );
+      await tester.pump();
+      expect(_chunk(harness.session, 'forest_chunk').revision, 4);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('chunk_polygon_redo_button')),
+      );
+      await tester.pump();
+      expect(_chunk(harness.session, 'forest_chunk').revision, 5);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('chunk_v2_owner_rename')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('chunk_v2_rename_id_field')),
+        'forest_renamed',
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('chunk_v2_rename_apply')),
+      );
+      await tester.pumpAndSettle();
+      edited = _chunk(harness.session, 'forest_chunk');
+      expect(edited.id, 'forest_renamed');
+      expect(edited.chunkKey, 'forest_chunk');
+      expect(edited.revision, 6);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('chunk_v2_owner_duplicate')),
+      );
+      await tester.pump();
+      final duplicate = _chunk(harness.session, 'forest_renamed_copy');
+      expect(duplicate.id, 'forest_renamed_copy');
+      expect(duplicate.revision, 1);
+      expect(duplicate.status, chunkStatusActive);
+      expect(duplicate.levelId, edited.levelId);
+      expect(duplicate.tileLayers, edited.tileLayers);
+      expect(duplicate.prefabs, edited.prefabs);
+      expect(duplicate.markers, edited.markers);
+      expect(duplicate.collisionShapes, edited.collisionShapes);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('chunk_v2_owner_create')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('chunk_v2_create_id_field')),
+        'forest_empty',
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('chunk_v2_create_apply')),
+      );
+      await tester.pumpAndSettle();
+      final created = _chunk(harness.session, 'forest_empty');
+      expect(created.revision, 1);
+      expect(created.status, chunkStatusDeprecated);
+      expect(created.levelId, 'forest');
+      expect(created.tileSize, original.tileSize);
+      expect(created.width, original.width);
+      expect(created.height, original.height);
+      expect(created.tileLayers, isEmpty);
+      expect(created.prefabs, isEmpty);
+      expect(created.markers, isEmpty);
+      expect(created.collisionShapes, isEmpty);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('chunk_v2_owner_delete')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('chunk_v2_owner_delete_confirm')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        (harness.session.document! as ChunkV2StagingDocument).chunks.where(
+          (chunk) => chunk.chunkKey == 'forest_empty',
+        ),
+        isEmpty,
+      );
+      expect(harness.plugin.loadCount, 1);
+    },
+  );
+
+  testWidgets('deleting a level final owner keeps undo recovery available', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1800, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final harness = await _buildHarness();
+    addTearDown(harness.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.dark(),
+        home: Scaffold(body: ChunkCreatorPage(controller: harness.session)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('chunk_v2_owner_delete')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.textContaining('final owner in the active level'), findsOne);
+    await tester.tap(
+      find.byKey(const ValueKey<String>('chunk_v2_owner_delete_confirm')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('No chunk owners remain in this level'),
+      findsOneWidget,
+    );
+    final createButton = tester.widget<FilledButton>(
+      find.byKey(const ValueKey<String>('chunk_v2_owner_create')),
+    );
+    expect(createButton.onPressed, isNull);
+    expect(
+      tester
+          .widget<OutlinedButton>(
+            find.byKey(const ValueKey<String>('chunk_polygon_undo_button')),
+          )
+          .onPressed,
+      isNotNull,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('chunk_polygon_undo_button')),
+    );
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey<String>('chunk_polygon_owner_forest_chunk')),
+      findsOneWidget,
+    );
+    expect(_chunk(harness.session, 'forest_chunk').revision, 4);
+    expect(harness.session.pendingChanges.hasChanges, isFalse);
+  });
 }
 
 Future<_Harness> _buildHarness() async {
