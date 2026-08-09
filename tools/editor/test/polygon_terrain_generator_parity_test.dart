@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:runner_editor/src/chunks/chunk_v2_authoring_polygon_signature.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_collision_expansion.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_codec.dart';
 import 'package:runner_editor/src/prefabs/store/prefab_v3_file_codec.dart';
@@ -37,7 +38,43 @@ void main() {
     expect(expansion.geometry.edges, hasLength(golden['edgeCount']! as int));
     expect(expansion.geometry.sourceSignature(), golden['sourceSignature']);
     expect(expansion.geometry.edgeSignature(), golden['edgeSignature']);
+    expect(
+      chunkV2AuthoringPolygonSignature(
+        chunk: chunk,
+        prefabs: prefabs.prefabs,
+        expansion: expansion,
+      ),
+      golden['authoringPolygonSignature'],
+    );
     expect(_placementSignature(expansion), golden['placementSignature']);
+  });
+
+  test('editor polygon signature rejects stale accepted prefab evidence', () {
+    final prefabs = PrefabV3FileCodec.decode(
+      _fixture('prefab_defs.json'),
+      sourcePath: 'prefab_defs.json',
+    );
+    final chunk = ChunkV2FileCodec.decode(
+      _fixture('chunk.json'),
+      sourcePath: _chunkSourcePath,
+    );
+    final expansion = expandChunkV2Collision(
+      chunk: chunk,
+      prefabs: prefabs.prefabs,
+      sourcePath: _chunkSourcePath,
+    ).expansion!;
+    final stalePrefabs = prefabs.prefabs
+        .map((prefab) => prefab.copyWith(revision: prefab.revision + 1))
+        .toList(growable: false);
+
+    expect(
+      () => chunkV2AuthoringPolygonSignature(
+        chunk: chunk,
+        prefabs: stalePrefabs,
+        expansion: expansion,
+      ),
+      throwsStateError,
+    );
   });
 }
 
