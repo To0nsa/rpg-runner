@@ -4,6 +4,7 @@ import 'dart:ui' show Size;
 
 import 'package:path/path.dart' as p;
 
+import '../../chunks/chunk_store.dart';
 import '../../domain/authoring_types.dart';
 import '../../terrain_authoring/terrain_polygon_interaction.dart';
 import '../../workspace/editor_workspace.dart';
@@ -12,9 +13,9 @@ import 'prefab_domain_models.dart';
 import 'prefab_visual_bounds_resolver.dart';
 import 'prefab_v3_collision_commit.dart';
 import 'prefab_v3_catalog_commit.dart';
+import 'prefab_v3_catalog_validation.dart';
 import 'prefab_v3_lifecycle_commit.dart';
 import 'prefab_v3_metadata_commit.dart';
-import 'prefab_v3_owner_validation.dart';
 import '../store/prefab_store.dart';
 import '../validation/prefab_validation.dart';
 
@@ -90,6 +91,10 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
   ) async {
     final loadResult = await _store.loadV3Staging(workspace.rootPath);
     final metadata = await _loadWorkspaceMetadata(workspace);
+    final downstreamImpacts = await _loadV3DownstreamImpacts(
+      workspace,
+      loadResult.prefabData,
+    );
     return PrefabV3StagingDocument(
       data: loadResult.prefabData,
       tileData: loadResult.tileData,
@@ -101,7 +106,51 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
       atlasImageSizes: metadata.atlasImageSizes,
       prefabBaselineContents: metadata.prefabBaselineContents,
       tileBaselineContents: metadata.tileBaselineContents,
+      downstreamImpacts: downstreamImpacts,
     );
+  }
+
+  Future<List<PrefabV3DownstreamImpact>> _loadV3DownstreamImpacts(
+    EditorWorkspace workspace,
+    PrefabV3FileData prefabData,
+  ) async {
+    final placementChunksByPrefabKey = <String, List<String>>{
+      for (final prefab in prefabData.prefabs) prefab.prefabKey: <String>[],
+    };
+    final placementCountByPrefabKey = <String, int>{
+      for (final prefab in prefabData.prefabs) prefab.prefabKey: 0,
+    };
+    final chunkDirectory = Directory(
+      workspace.resolve(ChunkStore.chunksDirectoryPath),
+    );
+    if (chunkDirectory.existsSync()) {
+      final chunks = await const ChunkStore().loadV2Staging(workspace);
+      final prefabKeyById = <String, String>{
+        for (final prefab in prefabData.prefabs) prefab.id: prefab.prefabKey,
+      };
+      for (final source in chunks.sources) {
+        for (final placement in source.data.prefabs) {
+          final prefabKey = placement.prefabKey.isNotEmpty
+              ? placement.prefabKey
+              : prefabKeyById[placement.prefabId];
+          if (prefabKey == null ||
+              !placementCountByPrefabKey.containsKey(prefabKey)) {
+            continue;
+          }
+          placementCountByPrefabKey[prefabKey] =
+              placementCountByPrefabKey[prefabKey]! + 1;
+          placementChunksByPrefabKey[prefabKey]!.add(source.data.chunkKey);
+        }
+      }
+    }
+    return <PrefabV3DownstreamImpact>[
+      for (final prefab in prefabData.prefabs)
+        PrefabV3DownstreamImpact(
+          prefabKey: prefab.prefabKey,
+          referencingChunkKeys: placementChunksByPrefabKey[prefab.prefabKey]!,
+          placementCount: placementCountByPrefabKey[prefab.prefabKey]!,
+        ),
+    ];
   }
 
   Future<_PrefabWorkspaceMetadata> _loadWorkspaceMetadata(
@@ -170,6 +219,7 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
         visualBoundsByPrefabKey: document.visualBoundsByPrefabKey,
         atlasImagePaths: document.atlasImagePaths,
         atlasImageSizes: document.atlasImageSizes,
+        downstreamImpacts: document.downstreamImpacts,
       );
     }
     final prefabDocument = _asPrefabDocument(document);
@@ -416,19 +466,9 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
   }
 
   List<ValidationIssue> _validateV3Document(PrefabV3StagingDocument document) {
-    final issues = <ValidationIssue>[];
-    for (final prefab in document.data.prefabs) {
-      final bounds = document.visualBoundsByPrefabKey[prefab.prefabKey];
-      issues.addAll(
-        validatePrefabV3Owner(
-          prefabData: document.data,
-          tileData: document.tileData,
-          prefab: prefab,
-          visualBounds: bounds,
-          sourcePath: PrefabStore.prefabDefsPath,
-        ).map(_toValidationIssue),
-      );
-    }
+    final issues = validatePrefabV3CatalogDocument(
+      document,
+    ).map(_toValidationIssue).toList(growable: false);
     issues.sort((left, right) {
       final pathOrder = (left.sourcePath ?? '').compareTo(
         right.sourcePath ?? '',

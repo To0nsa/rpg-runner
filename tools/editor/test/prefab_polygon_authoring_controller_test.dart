@@ -11,6 +11,7 @@ import 'package:runner_editor/src/domain/authoring_types.dart';
 import 'package:runner_editor/src/prefabs/domain/prefab_domain_models.dart';
 import 'package:runner_editor/src/prefabs/domain/prefab_domain_plugin.dart';
 import 'package:runner_editor/src/prefabs/models/models.dart';
+import 'package:runner_editor/src/prefabs/store/prefab_tile_file_codec.dart';
 import 'package:runner_editor/src/prefabs/store/prefab_v3_file_codec.dart';
 import 'package:runner_editor/src/prefabs/validation/prefab_validation.dart';
 import 'package:runner_editor/src/session/editor_session_controller.dart';
@@ -319,7 +320,16 @@ Widget _surfaceApp({
 Future<_Harness> _buildHarness() async {
   final root = Directory.systemTemp.createTempSync('prefab_polygon_route_');
   final data = PrefabV3FileData(
-    slices: const <AtlasSliceDef>[],
+    slices: const <AtlasSliceDef>[
+      AtlasSliceDef(
+        id: 'slice_a',
+        sourceImagePath: 'assets/images/level/test.png',
+        x: 0,
+        y: 0,
+        width: 10,
+        height: 10,
+      ),
+    ],
     prefabs: <PrefabV3Def>[
       PrefabV3Def(
         prefabKey: 'target',
@@ -335,19 +345,22 @@ Future<_Harness> _buildHarness() async {
       ),
     ],
   );
+  final tileData = PrefabTileFileData(
+    tileSlices: const <AtlasSliceDef>[],
+    platformModules: const <TileModuleDef>[],
+  );
   final document = PrefabV3StagingDocument(
     data: data,
-    tileData: PrefabTileFileData(
-      tileSlices: const <AtlasSliceDef>[],
-      platformModules: const <TileModuleDef>[],
-    ),
+    tileData: tileData,
     visualBoundsByPrefabKey: const <String, PrefabV3VisualBounds>{
       'target': PrefabV3VisualBounds(widthPx: 10, heightPx: 10),
     },
     atlasImagePaths: const <String>[],
-    atlasImageSizes: const <String, Size>{},
+    atlasImageSizes: const <String, Size>{
+      'assets/images/level/test.png': Size(10, 10),
+    },
     prefabBaselineContents: PrefabV3FileCodec.encode(data),
-    tileBaselineContents: null,
+    tileBaselineContents: PrefabTileFileCodec.encode(tileData),
   );
   final session = EditorSessionController(
     pluginRegistry: AuthoringPluginRegistry(

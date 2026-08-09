@@ -124,6 +124,18 @@ class PrefabPolygonStagingWorkspaceState
     PrefabPolygonAuthoringController authoring,
   ) {
     final changedCount = document.changedPrefabKeys.length;
+    final changedKeys = document.changedPrefabKeys.toSet();
+    final affectedImpacts = document.downstreamImpacts
+        .where((impact) => changedKeys.contains(impact.prefabKey))
+        .toList(growable: false);
+    final affectedPlacementCount = affectedImpacts.fold<int>(
+      0,
+      (total, impact) => total + impact.placementCount,
+    );
+    final affectedChunkCount = affectedImpacts
+        .expand((impact) => impact.referencingChunkKeys)
+        .toSet()
+        .length;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -162,9 +174,16 @@ class PrefabPolygonStagingWorkspaceState
             ),
             Text(
               changedCount == 0
-                  ? 'No staged geometry changes'
+                  ? 'No staged prefab changes'
                   : '$changedCount staged prefab change(s)',
             ),
+            if (changedCount > 0)
+              Text(
+                key: const ValueKey<String>('prefab_polygon_downstream_impact'),
+                '$affectedPlacementCount placement(s) in '
+                '$affectedChunkCount chunk(s) affected; chunk revisions stay '
+                'unchanged.',
+              ),
           ],
         ),
         const SizedBox(height: PrefabEditorUiTokens.controlGap),
@@ -190,30 +209,43 @@ class PrefabPolygonStagingWorkspaceState
       child: Column(
         children: <Widget>[
           for (final prefab in prefabs)
-            Card(
-              key: ValueKey<String>('prefab_polygon_owner_${prefab.prefabKey}'),
-              margin: const EdgeInsets.only(
-                bottom: PrefabEditorUiTokens.controlGap,
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: ListTile(
-                selected: prefab.prefabKey == selectedPrefab.prefabKey,
-                onTap: () => _selectOwner(prefab.prefabKey),
-                title: Text(prefab.id),
-                subtitle: Text(
-                  '${prefab.kind.jsonValue} · rev ${prefab.revision} · '
-                  '${prefab.visualSource.type.jsonValue}:'
-                  '${prefab.sourceRefId}\n${prefab.status.jsonValue}'
-                  '${prefab.tags.isEmpty ? '' : ' · ${prefab.tags.join(', ')}'}',
-                ),
-                isThreeLine: true,
-                trailing: document.changedPrefabKeys.contains(prefab.prefabKey)
-                    ? const Tooltip(
-                        message: 'Staged geometry changed',
-                        child: Icon(Icons.circle, size: 12),
-                      )
-                    : null,
-              ),
+            Builder(
+              builder: (context) {
+                final impact = document.downstreamImpacts
+                    .where((entry) => entry.prefabKey == prefab.prefabKey)
+                    .firstOrNull;
+                return Card(
+                  key: ValueKey<String>(
+                    'prefab_polygon_owner_${prefab.prefabKey}',
+                  ),
+                  margin: const EdgeInsets.only(
+                    bottom: PrefabEditorUiTokens.controlGap,
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: ListTile(
+                    selected: prefab.prefabKey == selectedPrefab.prefabKey,
+                    onTap: () => _selectOwner(prefab.prefabKey),
+                    title: Text(prefab.id),
+                    subtitle: Text(
+                      '${prefab.kind.jsonValue} · rev ${prefab.revision} · '
+                      '${prefab.visualSource.type.jsonValue}:'
+                      '${prefab.sourceRefId}\n${prefab.status.jsonValue}'
+                      '${prefab.tags.isEmpty ? '' : ' · ${prefab.tags.join(', ')}'}'
+                      '\n${impact?.placementCount ?? 0} downstream '
+                      'placement(s) in '
+                      '${impact?.referencingChunkKeys.length ?? 0} chunk(s)',
+                    ),
+                    isThreeLine: true,
+                    trailing:
+                        document.changedPrefabKeys.contains(prefab.prefabKey)
+                        ? const Tooltip(
+                            message: 'Staged prefab changed',
+                            child: Icon(Icons.circle, size: 12),
+                          )
+                        : null,
+                  ),
+                );
+              },
             ),
         ],
       ),

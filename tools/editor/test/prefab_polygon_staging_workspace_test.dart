@@ -9,6 +9,7 @@ import 'package:runner_editor/src/domain/authoring_types.dart';
 import 'package:runner_editor/src/prefabs/domain/prefab_domain_models.dart';
 import 'package:runner_editor/src/prefabs/domain/prefab_domain_plugin.dart';
 import 'package:runner_editor/src/prefabs/models/models.dart';
+import 'package:runner_editor/src/prefabs/store/prefab_tile_file_codec.dart';
 import 'package:runner_editor/src/prefabs/store/prefab_v3_file_codec.dart';
 import 'package:runner_editor/src/session/editor_session_controller.dart';
 import 'package:runner_editor/src/terrain_authoring/terrain_source_models.dart';
@@ -110,6 +111,11 @@ void main() {
             .xHalfPixels,
         11,
       );
+      final impactText = tester.widget<Text>(
+        find.byKey(const ValueKey<String>('prefab_polygon_downstream_impact')),
+      );
+      expect(impactText.data, contains('3 placement(s) in 2 chunk(s)'));
+      expect(impactText.data, contains('chunk revisions stay unchanged'));
 
       await tester.tap(
         find.byKey(const ValueKey<String>('prefab_polygon_undo_button')),
@@ -202,14 +208,6 @@ PrefabV3StagingDocument _stagingDocument() {
   final data = PrefabV3FileData(
     slices: const <AtlasSliceDef>[
       AtlasSliceDef(
-        id: 'obstacle_slice',
-        sourceImagePath: 'assets/obstacles.png',
-        x: 0,
-        y: 0,
-        width: 20,
-        height: 20,
-      ),
-      AtlasSliceDef(
         id: 'decoration_slice',
         sourceImagePath: 'assets/decorations.png',
         x: 0,
@@ -217,8 +215,28 @@ PrefabV3StagingDocument _stagingDocument() {
         width: 12,
         height: 12,
       ),
+      AtlasSliceDef(
+        id: 'obstacle_slice',
+        sourceImagePath: 'assets/obstacles.png',
+        x: 0,
+        y: 0,
+        width: 20,
+        height: 20,
+      ),
     ],
     prefabs: <PrefabV3Def>[
+      PrefabV3Def(
+        prefabKey: 'decoration',
+        id: 'decoration',
+        revision: 1,
+        status: PrefabStatus.active,
+        kind: PrefabKind.decoration,
+        visualSource: const PrefabVisualSource.atlasSlice('decoration_slice'),
+        anchorXPx: 6,
+        anchorYPx: 6,
+        collisionShapes: const <TerrainSourceShapeDef>[],
+        tags: const <String>[],
+      ),
       PrefabV3Def(
         prefabKey: 'obstacle',
         id: 'obstacle',
@@ -243,52 +261,52 @@ PrefabV3StagingDocument _stagingDocument() {
         collisionShapes: <TerrainSourceShapeDef>[_smallRectangle()],
         tags: const <String>[],
       ),
-      PrefabV3Def(
-        prefabKey: 'decoration',
-        id: 'decoration',
-        revision: 1,
-        status: PrefabStatus.active,
-        kind: PrefabKind.decoration,
-        visualSource: const PrefabVisualSource.atlasSlice('decoration_slice'),
-        anchorXPx: 6,
-        anchorYPx: 6,
-        collisionShapes: const <TerrainSourceShapeDef>[],
-        tags: const <String>[],
+    ],
+  );
+  final tileData = PrefabTileFileData(
+    tileSlices: const <AtlasSliceDef>[
+      AtlasSliceDef(
+        id: 'tile_a',
+        sourceImagePath: 'assets/tiles.png',
+        x: 0,
+        y: 0,
+        width: 16,
+        height: 16,
+      ),
+    ],
+    platformModules: const <TileModuleDef>[
+      TileModuleDef(
+        id: 'module_a',
+        tileSize: 16,
+        cells: <TileModuleCellDef>[
+          TileModuleCellDef(sliceId: 'tile_a', gridX: 0, gridY: 0),
+        ],
       ),
     ],
   );
   return PrefabV3StagingDocument(
     data: data,
-    tileData: PrefabTileFileData(
-      tileSlices: const <AtlasSliceDef>[
-        AtlasSliceDef(
-          id: 'tile_a',
-          sourceImagePath: 'assets/tiles.png',
-          x: 0,
-          y: 0,
-          width: 16,
-          height: 16,
-        ),
-      ],
-      platformModules: const <TileModuleDef>[
-        TileModuleDef(
-          id: 'module_a',
-          tileSize: 16,
-          cells: <TileModuleCellDef>[
-            TileModuleCellDef(sliceId: 'tile_a', gridX: 0, gridY: 0),
-          ],
-        ),
-      ],
-    ),
+    tileData: tileData,
     visualBoundsByPrefabKey: const <String, PrefabV3VisualBounds>{
       'obstacle': PrefabV3VisualBounds(widthPx: 20, heightPx: 20),
       'platform': PrefabV3VisualBounds(widthPx: 16, heightPx: 16),
       'decoration': PrefabV3VisualBounds(widthPx: 12, heightPx: 12),
     },
     atlasImagePaths: const <String>[],
-    atlasImageSizes: const <String, Size>{},
+    atlasImageSizes: const <String, Size>{
+      'assets/obstacles.png': Size(20, 20),
+      'assets/decorations.png': Size(12, 12),
+      'assets/tiles.png': Size(16, 16),
+    },
     prefabBaselineContents: PrefabV3FileCodec.encode(data),
-    tileBaselineContents: null,
+    tileBaselineContents: PrefabTileFileCodec.encode(tileData),
+    downstreamImpacts: <PrefabV3DownstreamImpact>[
+      PrefabV3DownstreamImpact(
+        prefabKey: 'obstacle',
+        referencingChunkKeys: const <String>['forest_a', 'forest_b'],
+        placementCount: 3,
+      ),
+    ],
   );
 }
 

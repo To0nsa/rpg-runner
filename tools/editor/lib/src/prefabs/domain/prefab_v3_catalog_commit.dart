@@ -7,7 +7,7 @@ import '../store/prefab_v3_file_codec.dart';
 import '../validation/prefab_validation.dart';
 import 'prefab_domain_models.dart';
 import 'prefab_visual_bounds_resolver.dart';
-import 'prefab_v3_owner_validation.dart';
+import 'prefab_v3_catalog_validation.dart';
 
 /// Complete canonical source token for stale-checked catalog mutations.
 @immutable
@@ -221,7 +221,7 @@ final class PrefabV3CatalogCommitPolicy {
     }
 
     final next = candidate as PrefabV3StagingDocument;
-    final issues = _validateCandidate(next);
+    final issues = validatePrefabV3CatalogDocument(next);
     if (issues.any(
       (issue) => issue.severity == PrefabValidationSeverity.error,
     )) {
@@ -575,72 +575,6 @@ final class PrefabV3CatalogCommitPolicy {
       },
     );
   }
-}
-
-List<PrefabValidationIssue> _validateCandidate(
-  PrefabV3StagingDocument document,
-) {
-  final issues = <PrefabValidationIssue>[];
-  final allSliceIds = <String>{};
-  for (final slice in <AtlasSliceDef>[
-    ...document.data.slices,
-    ...document.tileData.tileSlices,
-  ]) {
-    final normalized = slice.id.toLowerCase();
-    if (!allSliceIds.add(normalized)) {
-      issues.add(
-        PrefabValidationIssue(
-          code: 'prefab_v3_slice_id_collision',
-          message: 'Slice id ${slice.id} is already owned.',
-        ),
-      );
-    }
-  }
-  final tileSliceIds = document.tileData.tileSlices
-      .map((slice) => slice.id)
-      .toSet();
-  for (final module in document.tileData.platformModules) {
-    final positions = <(int, int)>{};
-    for (final cell in module.cells) {
-      if (!tileSliceIds.contains(cell.sliceId)) {
-        issues.add(
-          PrefabValidationIssue(
-            code: 'prefab_v3_module_tile_slice_missing',
-            message:
-                'Module ${module.id} references missing tile slice '
-                '${cell.sliceId}.',
-          ),
-        );
-      }
-      if (!positions.add((cell.gridX, cell.gridY))) {
-        issues.add(
-          PrefabValidationIssue(
-            code: 'prefab_v3_module_cell_duplicate',
-            message:
-                'Module ${module.id} contains duplicate grid position '
-                '(${cell.gridX},${cell.gridY}).',
-          ),
-        );
-      }
-    }
-  }
-  for (final prefab in document.data.prefabs) {
-    issues.addAll(
-      validatePrefabV3Owner(
-        prefabData: document.data,
-        tileData: document.tileData,
-        prefab: prefab,
-        visualBounds: document.visualBoundsByPrefabKey[prefab.prefabKey],
-      ),
-    );
-  }
-  issues.sort((left, right) {
-    final pathOrder = left.sourcePath.compareTo(right.sourcePath);
-    if (pathOrder != 0) return pathOrder;
-    final codeOrder = left.code.compareTo(right.code);
-    return codeOrder != 0 ? codeOrder : left.message.compareTo(right.message);
-  });
-  return List<PrefabValidationIssue>.unmodifiable(issues);
 }
 
 _CatalogRejection? _sliceIssue(

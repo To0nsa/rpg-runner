@@ -169,6 +169,31 @@ void main() {
     expect(issues.single.code, 'prefab_polygon_visual_bounds_unresolved');
   });
 
+  test('staged validation covers retained tile catalog invariants', () {
+    final source = _catalogDocument();
+    final module = source.tileData.platformModules.single;
+    final invalid = source.copyWith(
+      tileData: PrefabTileFileData(
+        tileSlices: source.tileData.tileSlices,
+        platformModules: <TileModuleDef>[
+          module.copyWith(
+            cells: const <TileModuleCellDef>[
+              TileModuleCellDef(sliceId: 'missing_tile', gridX: 0, gridY: 0),
+            ],
+          ),
+        ],
+      ),
+      atlasImageSizes: const <String, Size>{
+        'assets/images/level/test.png': Size(8, 8),
+      },
+    );
+
+    final codes = plugin.validate(invalid).map((issue) => issue.code).toSet();
+
+    expect(codes, contains('prefab_v3_tile_slice_out_of_bounds'));
+    expect(codes, contains('prefab_v3_module_tile_slice_missing'));
+  });
+
   test('typed metadata changes only owner metadata and revision once', () {
     final document = _document(<TerrainSourceShapeDef>[_rectangle(right: 8)]);
     final before = document.data.prefabs.single;

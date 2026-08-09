@@ -102,6 +102,22 @@ class PrefabV3VisualBounds {
   final int heightPx;
 }
 
+/// Read-only chunk-placement impact for one stable prefab key.
+@immutable
+final class PrefabV3DownstreamImpact {
+  PrefabV3DownstreamImpact({
+    required this.prefabKey,
+    required Iterable<String> referencingChunkKeys,
+    required this.placementCount,
+  }) : referencingChunkKeys = List<String>.unmodifiable(
+         referencingChunkKeys.toSet().toList()..sort(),
+       );
+
+  final String prefabKey;
+  final List<String> referencingChunkKeys;
+  final int placementCount;
+}
+
 /// Temporary read-only plugin document used to stage prefab-v3 commands.
 ///
 /// The normal loader never selects this type while repository source is v2,
@@ -118,6 +134,8 @@ class PrefabV3StagingDocument extends AuthoringDocument {
     required this.prefabBaselineContents,
     required this.tileBaselineContents,
     Iterable<String> changedPrefabKeys = const <String>[],
+    Iterable<PrefabV3DownstreamImpact> downstreamImpacts =
+        const <PrefabV3DownstreamImpact>[],
   }) : visualBoundsByPrefabKey = Map<String, PrefabV3VisualBounds>.unmodifiable(
          visualBoundsByPrefabKey,
        ),
@@ -125,6 +143,10 @@ class PrefabV3StagingDocument extends AuthoringDocument {
        atlasImageSizes = Map<String, Size>.unmodifiable(atlasImageSizes),
        changedPrefabKeys = List<String>.unmodifiable(
          changedPrefabKeys.toSet().toList()..sort(),
+       ),
+       downstreamImpacts = List<PrefabV3DownstreamImpact>.unmodifiable(
+         List<PrefabV3DownstreamImpact>.of(downstreamImpacts)
+           ..sort((left, right) => left.prefabKey.compareTo(right.prefabKey)),
        );
 
   final PrefabV3FileData data;
@@ -135,6 +157,7 @@ class PrefabV3StagingDocument extends AuthoringDocument {
   final String? prefabBaselineContents;
   final String? tileBaselineContents;
   final List<String> changedPrefabKeys;
+  final List<PrefabV3DownstreamImpact> downstreamImpacts;
 
   PrefabV3StagingDocument copyWith({
     PrefabV3FileData? data,
@@ -147,6 +170,7 @@ class PrefabV3StagingDocument extends AuthoringDocument {
     String? tileBaselineContents,
     bool keepTileBaselineContents = true,
     Iterable<String>? changedPrefabKeys,
+    Iterable<PrefabV3DownstreamImpact>? downstreamImpacts,
   }) => PrefabV3StagingDocument(
     data: data ?? this.data,
     tileData: tileData ?? this.tileData,
@@ -161,6 +185,7 @@ class PrefabV3StagingDocument extends AuthoringDocument {
         ? (tileBaselineContents ?? this.tileBaselineContents)
         : null,
     changedPrefabKeys: changedPrefabKeys ?? this.changedPrefabKeys,
+    downstreamImpacts: downstreamImpacts ?? this.downstreamImpacts,
   );
 }
 
@@ -173,15 +198,22 @@ class PrefabV3StagingScene extends EditableScene {
     required Map<String, PrefabV3VisualBounds> visualBoundsByPrefabKey,
     required List<String> atlasImagePaths,
     required Map<String, Size> atlasImageSizes,
+    Iterable<PrefabV3DownstreamImpact> downstreamImpacts =
+        const <PrefabV3DownstreamImpact>[],
   }) : visualBoundsByPrefabKey = Map<String, PrefabV3VisualBounds>.unmodifiable(
          visualBoundsByPrefabKey,
        ),
        atlasImagePaths = List<String>.unmodifiable(atlasImagePaths),
-       atlasImageSizes = Map<String, Size>.unmodifiable(atlasImageSizes);
+       atlasImageSizes = Map<String, Size>.unmodifiable(atlasImageSizes),
+       downstreamImpacts = List<PrefabV3DownstreamImpact>.unmodifiable(
+         List<PrefabV3DownstreamImpact>.of(downstreamImpacts)
+           ..sort((left, right) => left.prefabKey.compareTo(right.prefabKey)),
+       );
 
   final PrefabV3FileData data;
   final PrefabTileFileData tileData;
   final Map<String, PrefabV3VisualBounds> visualBoundsByPrefabKey;
   final List<String> atlasImagePaths;
   final Map<String, Size> atlasImageSizes;
+  final List<PrefabV3DownstreamImpact> downstreamImpacts;
 }

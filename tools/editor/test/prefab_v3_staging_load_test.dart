@@ -4,6 +4,10 @@ import 'dart:ui' show Size;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
+import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
+import 'package:runner_editor/src/chunks/chunk_store.dart';
+import 'package:runner_editor/src/chunks/chunk_v2_file_codec.dart';
+import 'package:runner_editor/src/chunks/chunk_v2_file_data.dart';
 import 'package:runner_editor/src/prefabs/domain/prefab_domain_models.dart';
 import 'package:runner_editor/src/prefabs/domain/prefab_domain_plugin.dart';
 import 'package:runner_editor/src/prefabs/models/models.dart';
@@ -48,6 +52,17 @@ void main() {
       );
       expect(document.prefabBaselineContents, fixture.prefabContents);
       expect(document.tileBaselineContents, fixture.tileContents);
+      expect(
+        document.downstreamImpacts.map((impact) => impact.prefabKey),
+        <String>['obstacle', 'platform'],
+      );
+      expect(
+        document.downstreamImpacts.every(
+          (impact) =>
+              impact.placementCount == 0 && impact.referencingChunkKeys.isEmpty,
+        ),
+        isTrue,
+      );
       expect(plugin.validate(document), isEmpty);
 
       final scene = plugin.buildEditableScene(document);
@@ -66,6 +81,72 @@ void main() {
         () => document.atlasImagePaths.add('external.png'),
         throwsUnsupportedError,
       );
+    },
+  );
+
+  test(
+    'staging load reports deterministic downstream placement impact without writes',
+    () async {
+      final fixture = _Fixture.create();
+      addTearDown(fixture.dispose);
+      fixture.writeChunk(
+        _chunk(
+          chunkKey: 'forest_b',
+          revision: 8,
+          prefabs: const <PlacedPrefabDef>[
+            PlacedPrefabDef(
+              prefabId: 'obstacle',
+              prefabKey: 'obstacle',
+              x: 20,
+              y: 0,
+            ),
+            PlacedPrefabDef(prefabId: 'platform', x: 40, y: 0),
+          ],
+        ),
+      );
+      fixture.writeChunk(
+        _chunk(
+          chunkKey: 'forest_a',
+          revision: 3,
+          prefabs: const <PlacedPrefabDef>[
+            PlacedPrefabDef(
+              prefabId: 'renamed_obstacle',
+              prefabKey: 'obstacle',
+              x: 0,
+              y: 0,
+            ),
+            PlacedPrefabDef(prefabId: 'obstacle', x: 10, y: 0),
+          ],
+        ),
+      );
+      final before = fixture.snapshot();
+
+      final document = await plugin.loadV3StagingFromRepo(fixture.workspace);
+
+      expect(document.downstreamImpacts, hasLength(2));
+      expect(
+        document.downstreamImpacts.first,
+        isA<PrefabV3DownstreamImpact>()
+            .having((impact) => impact.prefabKey, 'prefabKey', 'obstacle')
+            .having((impact) => impact.placementCount, 'placementCount', 3)
+            .having(
+              (impact) => impact.referencingChunkKeys,
+              'referencingChunkKeys',
+              <String>['forest_a', 'forest_b'],
+            ),
+      );
+      expect(
+        document.downstreamImpacts.last,
+        isA<PrefabV3DownstreamImpact>()
+            .having((impact) => impact.prefabKey, 'prefabKey', 'platform')
+            .having((impact) => impact.placementCount, 'placementCount', 1)
+            .having(
+              (impact) => impact.referencingChunkKeys,
+              'referencingChunkKeys',
+              <String>['forest_b'],
+            ),
+      );
+      expect(fixture.snapshot(), before);
     },
   );
 
@@ -222,6 +303,19 @@ final class _Fixture {
   File get prefabFile => File(p.join(root.path, PrefabStore.prefabDefsPath));
   File get tileFile => File(p.join(root.path, PrefabStore.tileDefsPath));
 
+  void writeChunk(ChunkV2FileData chunk) {
+    File(
+        p.join(
+          root.path,
+          ChunkStore.chunksDirectoryPath,
+          chunk.levelId,
+          '${chunk.chunkKey}.json',
+        ),
+      )
+      ..createSync(recursive: true)
+      ..writeAsStringSync(ChunkV2FileCodec.encode(chunk));
+  }
+
   Map<String, List<int>> snapshot() => <String, List<int>>{
     for (final file
         in root.listSync(recursive: true).whereType<File>().toList()
@@ -233,6 +327,29 @@ final class _Fixture {
     if (root.existsSync()) root.deleteSync(recursive: true);
   }
 }
+
+ChunkV2FileData _chunk({
+  required String chunkKey,
+  required int revision,
+  required List<PlacedPrefabDef> prefabs,
+}) => ChunkV2FileData(
+  chunkKey: chunkKey,
+  id: chunkKey,
+  revision: revision,
+  status: chunkStatusActive,
+  levelId: 'forest',
+  tileSize: 16,
+  width: 100,
+  height: 50,
+  difficulty: chunkDifficultyNormal,
+  assemblyGroupId: defaultChunkAssemblyGroupId,
+  tags: const <String>['forest'],
+  tileLayers: const <TileLayerDef>[],
+  prefabs: prefabs,
+  markers: const <PlacedMarkerDef>[],
+  groundBandZIndex: 0,
+  collisionShapes: const <TerrainSourceShapeDef>[],
+);
 
 TerrainSourceShapeDef _rectangle(String shapeId) => TerrainSourceShapeDef(
   shapeId: shapeId,
