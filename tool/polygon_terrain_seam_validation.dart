@@ -1,34 +1,12 @@
+import 'package:runner_core/collision/terrain/terrain_authoring_issue.dart';
 import 'package:runner_core/collision/terrain/terrain_authoring_seam_signature.dart';
 import 'package:runner_core/collision/terrain/terrain_boundary_signature.dart';
 
 import 'polygon_terrain_compilation.dart';
 import 'polygon_terrain_seam_manifest.dart';
 
-/// One stable blocking staged-generator seam diagnostic.
-final class PolygonTerrainSeamValidationIssue
-    implements Comparable<PolygonTerrainSeamValidationIssue> {
-  const PolygonTerrainSeamValidationIssue({
-    required this.code,
-    required this.message,
-    required this.sourcePath,
-    this.transition,
-  });
-
-  final String code;
-  final String message;
-  final String sourcePath;
-  final TerrainAuthoringSeamTransition? transition;
-
-  @override
-  int compareTo(PolygonTerrainSeamValidationIssue other) {
-    var order = sourcePath.compareTo(other.sourcePath);
-    if (order != 0) return order;
-    order = (transition?.canonicalRecord ?? '').compareTo(
-      other.transition?.canonicalRecord ?? '',
-    );
-    return order != 0 ? order : code.compareTo(other.code);
-  }
-}
+/// Generator-facing seam issues use Core's portable authoring envelope.
+typedef PolygonTerrainSeamValidationIssue = TerrainAuthoringIssue;
 
 /// One checked scheduler transition and its exact Core boundary comparison.
 final class PolygonTerrainValidatedSeam {
@@ -64,9 +42,7 @@ final class PolygonTerrainSeamValidationResult {
   PolygonTerrainSeamValidationResult({
     required this.batch,
     required Iterable<PolygonTerrainSeamValidationIssue> issues,
-  }) : issues = List<PolygonTerrainSeamValidationIssue>.unmodifiable(
-         List<PolygonTerrainSeamValidationIssue>.of(issues)..sort(),
-       );
+  }) : issues = canonicalTerrainAuthoringIssues(issues);
 
   final PolygonTerrainValidatedBatch? batch;
   final List<PolygonTerrainSeamValidationIssue> issues;
@@ -86,10 +62,11 @@ PolygonTerrainSeamValidationResult validatePolygonTerrainSeams({
     final key = compiled.chunk.chunkKey;
     if (chunkByKey.containsKey(key)) {
       issues.add(
-        PolygonTerrainSeamValidationIssue(
+        _seamIssue(
           code: 'staged_seam_chunk_duplicate',
           message: 'Duplicate compiled chunk key $key.',
           sourcePath: manifest.sourcePath,
+          ownerKey: key,
         ),
       );
       continue;
@@ -98,10 +75,11 @@ PolygonTerrainSeamValidationResult validatePolygonTerrainSeams({
     final previous = foldedKey[folded];
     if (previous != null) {
       issues.add(
-        PolygonTerrainSeamValidationIssue(
+        _seamIssue(
           code: 'staged_seam_chunk_case_collision',
           message: 'Compiled chunk key $key case-collides with $previous.',
           sourcePath: manifest.sourcePath,
+          ownerKey: key,
         ),
       );
       continue;
@@ -119,33 +97,43 @@ PolygonTerrainSeamValidationResult validatePolygonTerrainSeams({
       if (right == null) transition.rightChunkKey,
     }.toList()..sort();
     if (missing.isNotEmpty) {
-      issues.add(
-        PolygonTerrainSeamValidationIssue(
-          code: 'staged_seam_chunk_missing',
-          message:
-              '${transition.canonicalRecord} references missing compiled '
-              'chunk(s): ${missing.join(', ')}.',
-          sourcePath: manifest.sourcePath,
-          transition: transition,
-        ),
-      );
+      for (final missingKey in missing) {
+        issues.add(
+          _seamIssue(
+            code: 'staged_seam_chunk_missing',
+            message:
+                '${transition.canonicalRecord} references missing compiled '
+                'chunk $missingKey.',
+            sourcePath: manifest.sourcePath,
+            ownerKey: missingKey,
+          ),
+        );
+      }
       continue;
     }
     final resolvedLeft = left!;
     final resolvedRight = right!;
-    if (resolvedLeft.chunk.levelId != transition.levelId ||
-        resolvedRight.chunk.levelId != transition.levelId) {
-      issues.add(
-        PolygonTerrainSeamValidationIssue(
-          code: 'staged_seam_level_mismatch',
-          message:
-              '${transition.canonicalRecord} belongs to level '
-              '${transition.levelId}, but compiled owners are '
-              '${resolvedLeft.chunk.levelId}/${resolvedRight.chunk.levelId}.',
-          sourcePath: manifest.sourcePath,
-          transition: transition,
-        ),
-      );
+    final wrongLevelOwners = <String, PolygonTerrainCompiledChunk>{
+      if (resolvedLeft.chunk.levelId != transition.levelId)
+        resolvedLeft.chunk.chunkKey: resolvedLeft,
+      if (resolvedRight.chunk.levelId != transition.levelId)
+        resolvedRight.chunk.chunkKey: resolvedRight,
+    }.values;
+    if (wrongLevelOwners.isNotEmpty) {
+      for (final compiled in wrongLevelOwners) {
+        issues.add(
+          _seamIssue(
+            code: 'staged_seam_level_mismatch',
+            message:
+                '${transition.canonicalRecord} belongs to level '
+                '${transition.levelId}, but compiled Chunk '
+                '${compiled.chunk.chunkKey} belongs to '
+                '${compiled.chunk.levelId}.',
+            sourcePath: manifest.sourcePath,
+            ownerKey: compiled.chunk.chunkKey,
+          ),
+        );
+      }
       continue;
     }
 
@@ -173,7 +161,7 @@ PolygonTerrainSeamValidationResult validatePolygonTerrainSeams({
     );
     if (!comparison.isCompatible) {
       issues.add(
-        PolygonTerrainSeamValidationIssue(
+        _seamIssue(
           code: 'staged_reachable_seam_mismatch',
           message:
               '${transition.canonicalRecord} has incompatible compiled '
@@ -182,7 +170,7 @@ PolygonTerrainSeamValidationResult validatePolygonTerrainSeams({
               '${leftBoundary.digest} ${leftBoundary.physicalRecord}; left '
               '${rightBoundary.digest} ${rightBoundary.physicalRecord}.',
           sourcePath: manifest.sourcePath,
-          transition: transition,
+          ownerKey: transition.rightChunkKey,
         ),
       );
     }
@@ -200,6 +188,22 @@ PolygonTerrainSeamValidationResult validatePolygonTerrainSeams({
     issues: const <PolygonTerrainSeamValidationIssue>[],
   );
 }
+
+PolygonTerrainSeamValidationIssue _seamIssue({
+  required String code,
+  required String message,
+  required String sourcePath,
+  required String ownerKey,
+}) => TerrainAuthoringIssue(
+  severity: TerrainAuthoringIssueSeverity.error,
+  code: code,
+  message: message,
+  sourcePath: sourcePath,
+  ownerKey: ownerKey,
+  placementKey: null,
+  shapeId: null,
+  elementIndex: null,
+);
 
 int _compareChunks(
   PolygonTerrainCompiledChunk left,

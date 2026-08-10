@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:runner_core/collision/terrain/terrain_authoring_issue.dart';
 import 'package:runner_core/collision/terrain/terrain_authoring_seam_signature.dart';
 import 'package:runner_core/collision/terrain/terrain_polygon.dart';
 
@@ -55,6 +56,7 @@ void main() {
     expect(result.issues.single.message, contains('40960, 49152, 102400'));
     expect(result.issues.single.message, contains('right'));
     expect(result.issues.single.message, contains('left'));
+    _expectIssueEnvelope(result.issues.single, ownerKey: 'high');
   });
 
   test('blocks missing chunks and wrong level ownership before comparison', () {
@@ -67,6 +69,7 @@ void main() {
     expect(missing.batch, isNull);
     expect(missing.issues.single.code, 'staged_seam_chunk_missing');
     expect(missing.issues.single.message, contains('missing'));
+    _expectIssueEnvelope(missing.issues.single, ownerKey: 'missing');
 
     final wrongLevel = validatePolygonTerrainSeams(
       chunks: <PolygonTerrainCompiledChunk>[
@@ -79,7 +82,26 @@ void main() {
     );
     expect(wrongLevel.batch, isNull);
     expect(wrongLevel.issues.single.code, 'staged_seam_level_mismatch');
-    expect(wrongLevel.issues.single.message, contains('forest/cave'));
+    expect(wrongLevel.issues.single.message, contains('belongs to cave'));
+    _expectIssueEnvelope(wrongLevel.issues.single, ownerKey: 'b');
+  });
+
+  test('reports each missing seam owner in canonical owner order', () {
+    final result = validatePolygonTerrainSeams(
+      chunks: const <PolygonTerrainCompiledChunk>[],
+      manifest: _manifest(<TerrainAuthoringSeamTransition>[
+        _transition(left: 'z_missing', right: 'a_missing'),
+      ]),
+    );
+
+    expect(result.batch, isNull);
+    expect(
+      result.issues.map((issue) => (issue.code, issue.ownerKey)),
+      <(String, String)>[
+        ('staged_seam_chunk_missing', 'a_missing'),
+        ('staged_seam_chunk_missing', 'z_missing'),
+      ],
+    );
   });
 
   test('blocks duplicate and case-colliding compiled chunk identities', () {
@@ -90,6 +112,7 @@ void main() {
     );
     expect(duplicate.batch, isNull);
     expect(duplicate.issues.single.code, 'staged_seam_chunk_duplicate');
+    _expectIssueEnvelope(duplicate.issues.single, ownerKey: 'a');
 
     final collision = validatePolygonTerrainSeams(
       chunks: <PolygonTerrainCompiledChunk>[a, _compiled('A', topY: 40)],
@@ -97,7 +120,20 @@ void main() {
     );
     expect(collision.batch, isNull);
     expect(collision.issues.single.code, 'staged_seam_chunk_case_collision');
+    _expectIssueEnvelope(collision.issues.single, ownerKey: 'a');
   });
+}
+
+void _expectIssueEnvelope(
+  PolygonTerrainSeamValidationIssue issue, {
+  required String ownerKey,
+}) {
+  expect(issue.severity, TerrainAuthoringIssueSeverity.error);
+  expect(issue.sourcePath, 'fixtures/reachable_seams.json');
+  expect(issue.ownerKey, ownerKey);
+  expect(issue.placementKey, isNull);
+  expect(issue.shapeId, isNull);
+  expect(issue.elementIndex, isNull);
 }
 
 PolygonTerrainSeamManifest _manifest(
