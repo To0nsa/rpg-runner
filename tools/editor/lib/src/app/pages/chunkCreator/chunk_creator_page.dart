@@ -152,9 +152,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
 
   @override
   bool get canReloadEditorPage =>
-      !_showingV2Staging &&
-      !widget.controller.isLoading &&
-      !widget.controller.isExporting;
+      !widget.controller.isLoading && !widget.controller.isExporting;
 
   @override
   bool handleUndoSessionShortcut() {
@@ -178,7 +176,6 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
 
   @override
   Future<void> reloadEditorPage() async {
-    if (_showingV2Staging) return;
     await widget.controller.loadWorkspace();
   }
 

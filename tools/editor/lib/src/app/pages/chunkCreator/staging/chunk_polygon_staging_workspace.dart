@@ -144,12 +144,13 @@ class ChunkPolygonStagingWorkspaceState
   Widget build(BuildContext context) {
     final document = _documentOrNull;
     final scene = _sceneOrNull;
-    final authoring = _authoring;
     if (document == null || scene == null) {
       return const Center(
         child: Text('Chunk-v2 staging scene is no longer loaded.'),
       );
     }
+    _reconcileReloadedOwner(scene);
+    final authoring = _authoring;
     final issues = authoring == null
         ? const <ValidationIssue>[]
         : _ownerIssues(authoring);
@@ -1794,6 +1795,22 @@ class ChunkPolygonStagingWorkspaceState
     if (scene == null || scene.chunks.isEmpty) return;
     final chunks = List<ChunkV2FileData>.of(scene.chunks)..sort(_compareChunks);
     _bindOwner(chunks.first.chunkKey);
+  }
+
+  void _reconcileReloadedOwner(ChunkV2StagingScene scene) {
+    final selectedKey = _selectedChunkKey;
+    if (selectedKey != null &&
+        scene.chunks.any((chunk) => chunk.chunkKey == selectedKey)) {
+      return;
+    }
+    _disposeAuthoring();
+    _selectedChunkKey = null;
+    final chunks = List<ChunkV2FileData>.of(scene.chunks)..sort(_compareChunks);
+    final nextKey = chunks.firstOrNull?.chunkKey;
+    if (nextKey != null) {
+      _bindOwner(nextKey);
+      _resetViewportValues();
+    }
   }
 
   void _selectOwner(String chunkKey) {

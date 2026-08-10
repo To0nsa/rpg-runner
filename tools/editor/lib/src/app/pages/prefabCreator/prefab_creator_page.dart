@@ -121,7 +121,9 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
       : _draftCoordinator.canRedo || widget.controller.canRedo;
 
   @override
-  bool get canReloadEditorPage => !_showingV3Staging && _shellState.canReload;
+  bool get canReloadEditorPage => _showingV3Staging
+      ? !widget.controller.isLoading && !widget.controller.isExporting
+      : _shellState.canReload;
 
   @override
   bool handleUndoSessionShortcut() {
@@ -154,7 +156,13 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
   }
 
   @override
-  Future<void> reloadEditorPage() => _sessionCoordinator.reloadData();
+  Future<void> reloadEditorPage() async {
+    if (_showingV3Staging) {
+      await widget.controller.loadWorkspace();
+      return;
+    }
+    await _sessionCoordinator.reloadData();
+  }
 
   @override
   void initState() {

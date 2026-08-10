@@ -263,7 +263,7 @@ void main() {
       expect(forestChunk.revision, 4);
       expect(forestChunk.collisionShapes, hasLength(1));
       expect(harness.session.pendingChanges.hasChanges, isFalse);
-      expect(reloadHandler.canReloadEditorPage, isFalse);
+      expect(reloadHandler.canReloadEditorPage, isTrue);
 
       await tester.drag(diagnosticsList, const Offset(0, 2000));
       await tester.pump();

@@ -152,12 +152,13 @@ class PrefabPolygonStagingWorkspaceState
   @override
   Widget build(BuildContext context) {
     final document = _documentOrNull;
-    final authoring = _authoring;
     if (document == null) {
       return const Center(
         child: Text('Prefab-v3 staging scene is no longer loaded.'),
       );
     }
+    _reconcileReloadedOwner(document);
+    final authoring = _authoring;
     final prefab = authoring?.prefab;
     final issues = prefab == null
         ? const <PrefabValidationIssue>[]
@@ -1122,6 +1123,23 @@ class PrefabPolygonStagingWorkspaceState
     if (document == null) return;
     final prefabKey = _preferredOwnerKey(document);
     if (prefabKey != null) _bindOwner(prefabKey);
+  }
+
+  void _reconcileReloadedOwner(PrefabV3StagingDocument document) {
+    final selectedKey = _selectedPrefabKey;
+    if (selectedKey != null &&
+        document.data.prefabs.any(
+          (prefab) => prefab.prefabKey == selectedKey,
+        )) {
+      return;
+    }
+    _disposeAuthoring();
+    _selectedPrefabKey = null;
+    final nextKey = _preferredOwnerKey(document);
+    if (nextKey != null) {
+      _bindOwner(nextKey);
+      _resetViewportValues();
+    }
   }
 
   String? _preferredOwnerKey(PrefabV3StagingDocument document) {

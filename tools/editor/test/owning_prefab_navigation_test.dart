@@ -111,6 +111,21 @@ void main() {
         isFalse,
       );
       expect(fixture.chunk.revision, 1);
+
+      final reloadButton = tester.widget<FilledButton>(
+        find.byKey(const ValueKey<String>('reload_editor_page_button')),
+      );
+      expect(reloadButton.onPressed, isNotNull);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('reload_editor_page_button')),
+      );
+      await tester.pumpAndSettle();
+      expect(prefabPlugin.stagingLoadCount, 1);
+      expect(prefabPlugin.normalLoadCount, 1);
+      expect(
+        find.byKey(const ValueKey<String>('prefab_polygon_staging_workspace')),
+        findsOneWidget,
+      );
     },
   );
 }
