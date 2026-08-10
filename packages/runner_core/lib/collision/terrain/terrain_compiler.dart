@@ -89,7 +89,7 @@ class TerrainCompiler {
       if (count > TerrainGeometryLimits.maxExposedEdgesPerChunk) {
         diagnostics.add(
           TerrainDiagnostic(
-            sourcePath: edge.id.chunkKey,
+            sourcePath: edge.sourcePath,
             shapeId: edge.id.shapeId,
             elementIndex: edge.id.localEdgeIndex,
             code: 'edge_limit',
@@ -280,6 +280,7 @@ List<_RawEdge> _emitRawEdges(List<TerrainPolygon> polygons) {
       edges.add(
         _RawEdge(
           id: polygon.identity.edgeId(i),
+          sourcePath: polygon.sourcePath,
           start: start,
           end: end,
           collisionMode: polygon.collisionMode,
@@ -588,6 +589,7 @@ TerrainDiagnostic _diagnostic(
 class _RawEdge {
   const _RawEdge({
     required this.id,
+    required this.sourcePath,
     required this.start,
     required this.end,
     required this.collisionMode,
@@ -596,6 +598,7 @@ class _RawEdge {
   });
 
   final TerrainEdgeId id;
+  final String sourcePath;
   final TerrainPoint start;
   final TerrainPoint end;
   final TerrainCollisionMode collisionMode;
@@ -608,6 +611,7 @@ class _RawEdge {
     required TerrainPoint end,
   }) => _RawEdge(
     id: id,
+    sourcePath: sourcePath,
     start: start,
     end: end,
     collisionMode: collisionMode,

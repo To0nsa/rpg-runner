@@ -268,6 +268,9 @@ void main() {
           _strip64(64),
         ], geometryVersion: 1),
         'edge_limit',
+        expectedSourcePath: 'limits/strip_064',
+        expectedShapeId: 'strip_064',
+        expectedElementIndex: 0,
       );
     },
   );
@@ -299,12 +302,13 @@ TerrainPolygonInput _triangle(int index, {String? placementKey}) {
 
 TerrainPolygonInput _strip64(int index) {
   final originX = index * 40.0;
+  final suffix = index.toString().padLeft(3, '0');
   return TerrainPolygonInput.fromWorld(
-    sourcePath: 'limits/strip_$index',
+    sourcePath: 'limits/strip_$suffix',
     identity: TerrainSourceIdentity(
       chunkIndex: 0,
       chunkKey: 'limits',
-      shapeId: 'strip_$index',
+      shapeId: 'strip_$suffix',
     ),
     vertices: <(double, double)>[
       for (var x = 0; x < 32; x++) (originX + x, x.isEven ? 0 : 1),
@@ -313,14 +317,26 @@ TerrainPolygonInput _strip64(int index) {
   );
 }
 
-void _expectValidationCode(void Function() operation, String code) {
+void _expectValidationCode(
+  void Function() operation,
+  String code, {
+  String? expectedSourcePath,
+  String? expectedShapeId,
+  int? expectedElementIndex,
+}) {
   try {
     operation();
     fail('Expected terrain validation code $code.');
   } on TerrainValidationException catch (error) {
-    expect(
-      error.diagnostics.map((diagnostic) => diagnostic.code),
-      contains(code),
+    final diagnostic = error.diagnostics.singleWhere(
+      (candidate) => candidate.code == code,
     );
+    if (expectedSourcePath != null) {
+      expect(diagnostic.sourcePath, expectedSourcePath);
+    }
+    if (expectedShapeId != null) expect(diagnostic.shapeId, expectedShapeId);
+    if (expectedElementIndex != null) {
+      expect(diagnostic.elementIndex, expectedElementIndex);
+    }
   }
 }
