@@ -404,7 +404,6 @@ class _StaticGhostApi implements GhostApi {
   @override
   Future<GhostManifest> loadManifest({
     required String userId,
-    required String sessionId,
     required String boardId,
     required String entryId,
   }) async {

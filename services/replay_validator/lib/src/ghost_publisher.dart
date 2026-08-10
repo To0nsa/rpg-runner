@@ -528,6 +528,9 @@ class FirestoreGhostPublicationStore implements GhostPublicationStore {
       if (manifest.demotedAtMs != null) 'demotedAtMs': manifest.demotedAtMs,
       if (manifest.expiresAtMs != null) 'expiresAtMs': manifest.expiresAtMs,
     };
+    final clearedLifecycleFields = manifest.status == GhostManifestStatus.active
+        ? const <String>['demotedAtMs', 'expiresAtMs']
+        : const <String>[];
     final transaction = await _deletionFence.begin(
       uids: <String>[manifest.uid],
     );
@@ -538,7 +541,13 @@ class FirestoreGhostPublicationStore implements GhostPublicationStore {
           fields: encodeFirestoreFields(payload),
         ),
         updateMask: firestore.DocumentMask(
-          fieldPaths: payload.keys.toList(growable: false),
+          // Firestore deletes fields named by the mask that are absent from the
+          // document. This clears stale demotion metadata when a ghost returns
+          // to the active set before its grace period expires.
+          fieldPaths: <String>{
+            ...payload.keys,
+            ...clearedLifecycleFields,
+          }.toList(growable: false),
         ),
       ),
     ]);

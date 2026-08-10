@@ -11,6 +11,7 @@ import 'package:rpg_runner/ui/state/boards/ghost_replay_cache.dart';
 import 'package:rpg_runner/ui/state/ownership/loadout_ownership_api.dart';
 import 'package:rpg_runner/ui/state/ownership/progression_state.dart';
 import 'package:rpg_runner/ui/state/ownership/selection_state.dart';
+import 'package:rpg_runner/ui/state/run/run_start_remote_exception.dart';
 import 'package:run_protocol/replay_blob.dart';
 
 void main() {
@@ -31,7 +32,6 @@ void main() {
       );
 
       expect(ghostApi.lastUserId, 'u1');
-      expect(ghostApi.lastSessionId, 's1');
       expect(ghostApi.lastBoardId, 'board_1');
       expect(ghostApi.lastEntryId, 'entry_1');
       expect(manifest.boardId, 'board_1');
@@ -63,28 +63,42 @@ void main() {
       expect(bootstrap.replayBlob.runSessionId, 'run_1');
     },
   );
+
+  test('loadGhostManifest rejects a mismatched manifest identity', () async {
+    final ghostApi = _RecordingGhostApi()..returnedBoardId = 'board_other';
+    final appState = AppState(
+      authApi: _StaticAuthApi.authenticated(),
+      loadoutOwnershipApi: _StaticOwnershipApi(),
+      ghostApi: ghostApi,
+    );
+    await appState.bootstrap(force: true);
+
+    await expectLater(
+      () => appState.loadGhostManifest(boardId: 'board_1', entryId: 'entry_1'),
+      throwsA(isA<RunStartRemoteException>()),
+    );
+  });
 }
 
 class _RecordingGhostApi implements GhostApi {
   String? lastUserId;
-  String? lastSessionId;
   String? lastBoardId;
   String? lastEntryId;
+  String returnedBoardId = 'board_1';
+  String returnedEntryId = 'entry_1';
 
   @override
   Future<GhostManifest> loadManifest({
     required String userId,
-    required String sessionId,
     required String boardId,
     required String entryId,
   }) async {
     lastUserId = userId;
-    lastSessionId = sessionId;
     lastBoardId = boardId;
     lastEntryId = entryId;
-    return const GhostManifest(
-      boardId: 'board_1',
-      entryId: 'entry_1',
+    return GhostManifest(
+      boardId: returnedBoardId,
+      entryId: returnedEntryId,
       runSessionId: 'run_1',
       uid: 'u1',
       replayStorageRef: 'ghosts/board_1/entry_1/ghost.bin.gz',

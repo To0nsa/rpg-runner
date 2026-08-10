@@ -155,7 +155,11 @@ class FileGhostReplayCache implements GhostReplayCache {
         cachedAtMs: _clockMs(),
       );
     } catch (_) {
-      await cacheFile.delete();
+      try {
+        await cacheFile.delete();
+      } catch (_) {
+        // A later verified write may still replace this unusable cache entry.
+      }
       return null;
     }
   }

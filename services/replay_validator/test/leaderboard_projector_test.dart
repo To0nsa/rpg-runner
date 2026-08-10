@@ -160,9 +160,12 @@ void main() {
         playerBestsByBoard: <String, Map<String, LeaderboardEntry>>{
           boardId: <String, LeaderboardEntry>{entry.uid: entry},
         },
-        activeGhostEntryIdsByBoard: <String, Set<String>>{
-          boardId: <String>{runSessionId},
-        },
+        activeGhostManifestsByBoard:
+            <String, Map<String, ActiveGhostManifestEvidence>>{
+              boardId: <String, ActiveGhostManifestEvidence>{
+                runSessionId: _activeGhostManifestEvidenceFor(entry),
+              },
+            },
       );
       final projector = FirestoreLeaderboardProjector(
         projectId: 'demo-project',
@@ -175,10 +178,56 @@ void main() {
       expect(store.top10Views[boardId]!.single.ghostEligible, isTrue);
       expect(store.top10Views[boardId]!.single.ghostAvailable, isTrue);
 
-      store.activeGhostEntryIdsByBoard[boardId] = <String>{};
+      store.activeGhostManifestsByBoard[boardId] =
+          <String, ActiveGhostManifestEvidence>{};
       await projector.reconcileBoard(boardId: boardId);
 
       expect(store.top10Views[boardId]!.single.ghostEligible, isTrue);
+      expect(store.top10Views[boardId]!.single.ghostAvailable, isFalse);
+    },
+  );
+
+  test(
+    'top10 ignores active ghosts whose evidence differs from player best',
+    () async {
+      const boardId = 'board_ghost_mismatch';
+      const runSessionId = 'run_available';
+      final entry = _entry(
+        boardId: boardId,
+        runSessionId: runSessionId,
+        uid: 'uid_player',
+        displayName: 'Player One',
+        score: 1200,
+        distanceMeters: 400,
+        durationSeconds: 100,
+        updatedAtMs: 1000,
+      );
+      final mismatchedEvidence = _activeGhostManifestEvidenceFor(
+        _copyEntry(
+          entry,
+          replayDigest:
+              'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+        ),
+      );
+      final store = _InMemoryLeaderboardProjectionStore(
+        playerBestsByBoard: <String, Map<String, LeaderboardEntry>>{
+          boardId: <String, LeaderboardEntry>{entry.uid: entry},
+        },
+        activeGhostManifestsByBoard:
+            <String, Map<String, ActiveGhostManifestEvidence>>{
+              boardId: <String, ActiveGhostManifestEvidence>{
+                runSessionId: mismatchedEvidence,
+              },
+            },
+      );
+      final projector = FirestoreLeaderboardProjector(
+        projectId: 'demo-project',
+        store: store,
+        clockMs: () => 8000,
+      );
+
+      await projector.reconcileBoard(boardId: boardId);
+
       expect(store.top10Views[boardId]!.single.ghostAvailable, isFalse);
     },
   );
@@ -375,7 +424,28 @@ LeaderboardEntry _entry({
     ),
     ghostEligible: ghostEligible,
     ghostAvailable: ghostAvailable,
+    replayStorageRef:
+        'replay-submissions/validated/$runSessionId/replay.bin.gz',
+    replayStorageGeneration: '123',
+    replayDigest:
+        'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
     updatedAtMs: updatedAtMs,
+  );
+}
+
+ActiveGhostManifestEvidence _activeGhostManifestEvidenceFor(
+  LeaderboardEntry entry,
+) {
+  return ActiveGhostManifestEvidence(
+    boardId: entry.boardId,
+    entryId: entry.entryId,
+    runSessionId: entry.runSessionId,
+    uid: entry.uid,
+    replayStorageRef: 'ghosts/${entry.boardId}/${entry.entryId}/ghost.bin.gz',
+    sourceReplayStorageRef: entry.replayStorageRef!,
+    sourceReplayStorageGeneration: entry.replayStorageGeneration!,
+    promotedReplayStorageGeneration: '456',
+    replayDigest: entry.replayDigest!,
   );
 }
 
@@ -385,6 +455,7 @@ LeaderboardEntry _copyEntry(
   bool? ghostAvailable,
   int? updatedAtMs,
   int? rank,
+  String? replayDigest,
 }) {
   return LeaderboardEntry(
     boardId: source.boardId,
@@ -401,7 +472,7 @@ LeaderboardEntry _copyEntry(
     ghostAvailable: ghostAvailable ?? source.ghostAvailable,
     replayStorageRef: source.replayStorageRef,
     replayStorageGeneration: source.replayStorageGeneration,
-    replayDigest: source.replayDigest,
+    replayDigest: replayDigest ?? source.replayDigest,
     updatedAtMs: updatedAtMs ?? source.updatedAtMs,
     rank: rank ?? source.rank,
   );
@@ -415,7 +486,8 @@ class _InMemoryLeaderboardProjectionStore
     Map<String, String>? characterIds,
     Map<String, Map<String, LeaderboardEntry>>? playerBestsByBoard,
     Map<String, List<LeaderboardEntry>>? top10Views,
-    Map<String, Set<String>>? activeGhostEntryIdsByBoard,
+    Map<String, Map<String, ActiveGhostManifestEvidence>>?
+    activeGhostManifestsByBoard,
     this.top10WriteConflictsRemaining = 0,
     this.top10WriteFailuresRemaining = 0,
   }) : validatedRuns = validatedRuns ?? <String, ValidatedRun>{},
@@ -424,15 +496,17 @@ class _InMemoryLeaderboardProjectionStore
        playerBestsByBoard =
            playerBestsByBoard ?? <String, Map<String, LeaderboardEntry>>{},
        top10Views = top10Views ?? <String, List<LeaderboardEntry>>{},
-       activeGhostEntryIdsByBoard =
-           activeGhostEntryIdsByBoard ?? <String, Set<String>>{};
+       activeGhostManifestsByBoard =
+           activeGhostManifestsByBoard ??
+           <String, Map<String, ActiveGhostManifestEvidence>>{};
 
   final Map<String, ValidatedRun> validatedRuns;
   final Map<String, String> displayNames;
   final Map<String, String> characterIds;
   final Map<String, Map<String, LeaderboardEntry>> playerBestsByBoard;
   final Map<String, List<LeaderboardEntry>> top10Views;
-  final Map<String, Set<String>> activeGhostEntryIdsByBoard;
+  final Map<String, Map<String, ActiveGhostManifestEvidence>>
+  activeGhostManifestsByBoard;
 
   final List<LeaderboardEntry> upsertedEntries = <LeaderboardEntry>[];
   final List<String> top10Writes = <String>[];
@@ -502,10 +576,12 @@ class _InMemoryLeaderboardProjectionStore
   }
 
   @override
-  Future<Set<String>> loadActiveGhostEntryIds({
+  Future<Map<String, ActiveGhostManifestEvidence>> loadActiveGhostManifests({
     required String boardId,
-  }) async =>
-      Set<String>.from(activeGhostEntryIdsByBoard[boardId] ?? const <String>{});
+  }) async => Map<String, ActiveGhostManifestEvidence>.from(
+    activeGhostManifestsByBoard[boardId] ??
+        const <String, ActiveGhostManifestEvidence>{},
+  );
 
   @override
   Future<void> setPlayerBestGhostEligible({

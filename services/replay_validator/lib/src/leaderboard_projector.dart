@@ -48,8 +48,13 @@ abstract class LeaderboardProjectionStore {
     required int limit,
   });
 
-  /// Entry IDs with a currently active, exposed ghost manifest on [boardId].
-  Future<Set<String>> loadActiveGhostEntryIds({required String boardId});
+  /// Verified active ghost-manifest evidence keyed by leaderboard entry ID.
+  ///
+  /// Entries must be matched against the current player-best evidence before
+  /// they are surfaced as available to clients.
+  Future<Map<String, ActiveGhostManifestEvidence>> loadActiveGhostManifests({
+    required String boardId,
+  });
 
   Future<void> setPlayerBestGhostEligible({
     required String boardId,
@@ -64,6 +69,46 @@ abstract class LeaderboardProjectionStore {
     required int updatedAtMs,
     required Top10ViewSnapshot expected,
   });
+}
+
+/// The immutable evidence that makes an active ghost eligible for projection.
+///
+/// This is intentionally narrower than the callable response: projection only
+/// needs the fields that bind a promoted object to the current leaderboard row.
+final class ActiveGhostManifestEvidence {
+  const ActiveGhostManifestEvidence({
+    required this.boardId,
+    required this.entryId,
+    required this.runSessionId,
+    required this.uid,
+    required this.replayStorageRef,
+    required this.sourceReplayStorageRef,
+    required this.sourceReplayStorageGeneration,
+    required this.promotedReplayStorageGeneration,
+    required this.replayDigest,
+  });
+
+  final String boardId;
+  final String entryId;
+  final String runSessionId;
+  final String uid;
+  final String replayStorageRef;
+  final String sourceReplayStorageRef;
+  final String sourceReplayStorageGeneration;
+  final String promotedReplayStorageGeneration;
+  final String replayDigest;
+
+  /// Whether this publication is the promoted copy of [entry]'s current replay
+  /// evidence, rather than merely another active manifest with the same ID.
+  bool matchesEntry(LeaderboardEntry entry) {
+    return boardId == entry.boardId &&
+        entryId == entry.entryId &&
+        runSessionId == entry.runSessionId &&
+        uid == entry.uid &&
+        sourceReplayStorageRef == entry.replayStorageRef &&
+        sourceReplayStorageGeneration == entry.replayStorageGeneration &&
+        replayDigest == entry.replayDigest;
+  }
 }
 
 enum PlayerBestWriteResult { improved, unchanged }
@@ -181,7 +226,7 @@ class FirestoreLeaderboardProjector implements LeaderboardProjector {
         boardId: boardId,
         limit: 10,
       );
-      final activeGhostEntryIds = await _store.loadActiveGhostEntryIds(
+      final activeGhostManifests = await _store.loadActiveGhostManifests(
         boardId: boardId,
       );
 
@@ -201,7 +246,9 @@ class FirestoreLeaderboardProjector implements LeaderboardProjector {
           durationSeconds: parsed.durationSeconds,
           sortKey: parsed.sortKey,
           ghostEligible: true,
-          ghostAvailable: activeGhostEntryIds.contains(parsed.entryId),
+          ghostAvailable:
+              activeGhostManifests[parsed.entryId]?.matchesEntry(parsed) ??
+              false,
           replayStorageRef: parsed.replayStorageRef,
           replayStorageGeneration: parsed.replayStorageGeneration,
           replayDigest: parsed.replayDigest,
@@ -279,6 +326,8 @@ class FirestoreLeaderboardProjectionStore
       '$_databaseRoot/documents/leaderboard_boards/$boardId/views/top10';
   String _boardParentDocPath(String boardId) =>
       '$_databaseRoot/documents/leaderboard_boards/$boardId';
+  String _ghostManifestDocPath(String boardId, String entryId) =>
+      '${_boardParentDocPath(boardId)}/ghost_manifests/$entryId';
 
   @override
   Future<ValidatedRun?> loadValidatedRun({required String runSessionId}) async {
@@ -471,9 +520,11 @@ class FirestoreLeaderboardProjectionStore
   }
 
   @override
-  Future<Set<String>> loadActiveGhostEntryIds({required String boardId}) async {
+  Future<Map<String, ActiveGhostManifestEvidence>> loadActiveGhostManifests({
+    required String boardId,
+  }) async {
     final firestoreApi = await apiProvider.firestoreApi();
-    final entryIds = <String>{};
+    final manifestsByEntryId = <String, ActiveGhostManifestEvidence>{};
     String? pageToken;
     do {
       final listed = await firestoreApi.projects.databases.documents.list(
@@ -485,16 +536,18 @@ class FirestoreLeaderboardProjectionStore
       final documents = listed.documents ?? const <firestore.Document>[];
       for (final document in documents) {
         final decoded = decodeFirestoreFields(document.fields);
-        final entryId = _nonEmptyString(decoded['entryId']);
-        if (entryId != null &&
-            decoded['status'] == 'active' &&
-            decoded['exposed'] == true) {
-          entryIds.add(entryId);
+        final evidence = _activeGhostManifestEvidence(
+          boardId: boardId,
+          raw: decoded,
+        );
+        if (evidence != null &&
+            document.name == _ghostManifestDocPath(boardId, evidence.entryId)) {
+          manifestsByEntryId[evidence.entryId] = evidence;
         }
       }
       pageToken = _nonEmptyString(listed.nextPageToken);
     } while (pageToken != null);
-    return entryIds;
+    return manifestsByEntryId;
   }
 
   @override
@@ -599,4 +652,66 @@ String? _nonEmptyString(Object? value) {
     return null;
   }
   return trimmed;
+}
+
+ActiveGhostManifestEvidence? _activeGhostManifestEvidence({
+  required String boardId,
+  required Map<String, Object?> raw,
+}) {
+  if (raw['status'] != 'active' || raw['exposed'] != true) {
+    return null;
+  }
+  final manifestBoardId = _nonEmptyString(raw['boardId']);
+  final entryId = _nonEmptyString(raw['entryId']);
+  final runSessionId = _nonEmptyString(raw['runSessionId']);
+  final uid = _nonEmptyString(raw['uid']);
+  final replayStorageRef = _nonEmptyString(raw['replayStorageRef']);
+  final sourceReplayStorageRef = _nonEmptyString(raw['sourceReplayStorageRef']);
+  final sourceReplayStorageGeneration = _positiveGeneration(
+    raw['sourceReplayStorageGeneration'],
+  );
+  final promotedReplayStorageGeneration = _positiveGeneration(
+    raw['promotedReplayStorageGeneration'],
+  );
+  final replayDigest = _sha256Digest(raw['replayDigest']);
+  if (manifestBoardId == null ||
+      manifestBoardId != boardId ||
+      entryId == null ||
+      runSessionId == null ||
+      uid == null ||
+      replayStorageRef == null ||
+      !replayStorageRef.startsWith('ghosts/') ||
+      sourceReplayStorageRef == null ||
+      sourceReplayStorageGeneration == null ||
+      promotedReplayStorageGeneration == null ||
+      replayDigest == null) {
+    return null;
+  }
+  return ActiveGhostManifestEvidence(
+    boardId: manifestBoardId,
+    entryId: entryId,
+    runSessionId: runSessionId,
+    uid: uid,
+    replayStorageRef: replayStorageRef,
+    sourceReplayStorageRef: sourceReplayStorageRef,
+    sourceReplayStorageGeneration: sourceReplayStorageGeneration,
+    promotedReplayStorageGeneration: promotedReplayStorageGeneration,
+    replayDigest: replayDigest,
+  );
+}
+
+String? _positiveGeneration(Object? value) {
+  final parsed = _nonEmptyString(value);
+  if (parsed == null || !RegExp(r'^[1-9][0-9]*$').hasMatch(parsed)) {
+    return null;
+  }
+  return parsed;
+}
+
+String? _sha256Digest(Object? value) {
+  final parsed = _nonEmptyString(value);
+  if (parsed == null || !RegExp(r'^[a-f0-9]{64}$').hasMatch(parsed)) {
+    return null;
+  }
+  return parsed;
 }

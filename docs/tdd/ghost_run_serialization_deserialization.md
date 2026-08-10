@@ -14,7 +14,8 @@ Ghost flow uses two distinct serialized payloads:
 The preceding leaderboard row is a separate `LeaderboardEntry` protocol value.
 Its `ghostEligible` field identifies a top-10 publication candidate, while its
 backward-compatible `ghostAvailable` field is false when absent and becomes
-true only after the worker has observed a matching active/exposed manifest.
+true only after the worker has observed an active/exposed manifest whose
+identity and source replay evidence match that leaderboard entry.
 The client enables `VS Ghost` only from `ghostAvailable`; the manifest remains
 the authoritative download and policy payload.
 
@@ -22,7 +23,7 @@ the authoritative download and policy payload.
 
 ## 2) Replay blob format (`ReplayBlobV1`)
 
-Source of truth: [packages/run_protocol/lib/replay_blob.dart](packages/run_protocol/lib/replay_blob.dart).
+Source of truth: [replay_blob.dart](../../packages/run_protocol/lib/replay_blob.dart).
 
 Top-level fields:
 - `replayVersion` (int, currently `1`)
@@ -53,8 +54,8 @@ values. Serialization returns detached JSON maps, so callers cannot mutate a
 replay's covered payload after its digest is generated.
 
 Source:
-- [packages/run_protocol/lib/codecs/canonical_json_codec.dart](packages/run_protocol/lib/codecs/canonical_json_codec.dart)
-- [packages/run_protocol/lib/replay_digest.dart](packages/run_protocol/lib/replay_digest.dart)
+- [canonical_json_codec.dart](../../packages/run_protocol/lib/codecs/canonical_json_codec.dart)
+- [replay_digest.dart](../../packages/run_protocol/lib/replay_digest.dart)
 
 On read, `ReplayBlobV1.fromJson(..., verifyDigest: true)` recomputes and rejects mismatches.
 
@@ -82,7 +83,7 @@ Invariant: `hv` may only set bits that are present in `hm`.
 
 ## 3) Replay serialization on client (recording side)
 
-Recorder source: [lib/game/replay/run_recorder.dart](lib/game/replay/run_recorder.dart).
+Recorder source: [run_recorder.dart](../../lib/game/replay/run_recorder.dart).
 
 Write path:
 1. During run, command frames are quantized and appended as canonical NDJSON lines (`*.frames.ndjson`).
@@ -100,13 +101,12 @@ Important distinction:
 ## 4) Ghost manifest serialization (backend callable)
 
 Callable contract:
-- request parser: [functions/src/ghosts/validators.ts](functions/src/ghosts/validators.ts)
-- handler: [functions/src/ghosts/callable_handlers.ts](functions/src/ghosts/callable_handlers.ts)
-- store decode: [functions/src/ghosts/store.ts](functions/src/ghosts/store.ts)
+- request parser: [validators.ts](../../functions/src/ghosts/validators.ts)
+- handler: [callable_handlers.ts](../../functions/src/ghosts/callable_handlers.ts)
+- store decode: [store.ts](../../functions/src/ghosts/store.ts)
 
 Request JSON keys:
 - `userId`
-- `sessionId`
 - `boardId`
 - `entryId`
 
@@ -122,6 +122,7 @@ Manifest fields returned to client:
 
 Backend eligibility gate before serialization:
 - Firestore manifest must be `status == "active"` and `exposed == true`.
+- Stored `boardId` and `entryId` must equal the requested document identity.
 - `replayStorageRef` must start with `ghosts/`.
 - The signed URL includes the immutable `promotedReplayStorageGeneration`, so it cannot resolve a newer generation at the same object path.
 
@@ -130,7 +131,7 @@ Backend eligibility gate before serialization:
 ## 5) Ghost manifest persistence schema (Firestore)
 
 Write path from validator service:
-- [services/replay_validator/lib/src/ghost_publisher.dart](services/replay_validator/lib/src/ghost_publisher.dart)
+- [ghost_publisher.dart](../../services/replay_validator/lib/src/ghost_publisher.dart)
 
 Manifest document path:
 - `leaderboard_boards/{boardId}/ghost_manifests/{entryId}`
@@ -145,19 +146,21 @@ Upserted fields:
 
 Promotion writes `status=active, exposed=true`.
 Demotion writes `status=demoted, exposed=false`.
+Reactivating a demoted manifest clears `demotedAtMs` and `expiresAtMs`.
 
 ---
 
 ## 6) Ghost replay deserialization on client
 
 Client decode path:
-- manifest model: [lib/ui/state/ghost_api.dart](lib/ui/state/ghost_api.dart)
-- callable adapter: [lib/ui/state/firebase_ghost_api.dart](lib/ui/state/firebase_ghost_api.dart)
-- cache/decoder: [lib/ui/state/ghost_replay_cache.dart](lib/ui/state/ghost_replay_cache.dart)
+- manifest model: [ghost_api.dart](../../lib/ui/state/boards/ghost_api.dart)
+- callable adapter: [firebase_ghost_api.dart](../../lib/ui/state/boards/firebase_ghost_api.dart)
+- cache/decoder: [ghost_replay_cache.dart](../../lib/ui/state/boards/ghost_replay_cache.dart)
 
 Deserialization sequence:
 1. Parse callable response map.
 2. Parse `GhostManifest.fromJson(...)` with strict required fields.
+   The returned `boardId` and `entryId` must match the requested ghost entry.
 3. Try the versioned local cache first; URL freshness is required only on a cache miss.
 4. Validate URL freshness (`downloadUrlExpiresAtMs > now`) and download bytes when no cache entry is usable.
 5. Detect gzip by magic bytes `1f 8b`; if gzip, decompress.
@@ -168,13 +171,14 @@ Deserialization sequence:
    - `replayBlob.runSessionId == manifest.runSessionId`
    - `replayBlob.boardId == manifest.boardId`
 
-If cached file fails decode/validation, cache entry is deleted and treated as miss.
+If a cached file fails decode/validation, deletion is best-effort and the entry
+is treated as a miss.
 
 ---
 
 ## 7) Cache file serialization details
 
-Cache implementation: [lib/ui/state/ghost_replay_cache.dart](lib/ui/state/ghost_replay_cache.dart).
+Cache implementation: [ghost_replay_cache.dart](../../lib/ui/state/boards/ghost_replay_cache.dart).
 
 Directory:
 - `<systemTemp>/rpg_runner/ghost_cache`
@@ -195,7 +199,7 @@ Pruning behavior:
 ## 8) Playback deserialization boundary
 
 Playback constructor:
-- [lib/game/replay/ghost_playback_runner.dart](lib/game/replay/ghost_playback_runner.dart)
+- [ghost_playback_runner.dart](../../lib/game/replay/ghost_playback_runner.dart)
 
 `GhostPlaybackRunner.fromReplayBlob(...)` maps serialized strings/objects to runtime objects:
 - enum names (`levelId`, `playerCharacterId`) -> typed enums

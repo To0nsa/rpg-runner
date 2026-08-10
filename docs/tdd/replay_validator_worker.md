@@ -216,7 +216,8 @@ and an update-time precondition for the top-10 materialized view. A duplicate
 task always resumes top-10 refresh even when the candidate is already the
 stored best. After ghost publication/reconciliation, it refreshes the view
 again so `ghostAvailable` is true only for a current active/exposed manifest
-and is cleared on demotion. `runProjectionReconciliation` independently pages
+whose identity and source replay evidence match the leaderboard entry, and is
+cleared on demotion. `runProjectionReconciliation` independently pages
 through boards every 15 minutes and sends board reconciliation tasks, so
 convergence does not depend on a new score.
 

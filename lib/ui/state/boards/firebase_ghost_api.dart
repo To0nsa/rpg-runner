@@ -13,14 +13,12 @@ class FirebaseGhostApi implements GhostApi {
   @override
   Future<GhostManifest> loadManifest({
     required String userId,
-    required String sessionId,
     required String boardId,
     required String entryId,
   }) async {
     try {
       final response = await _source.loadManifest(
         userId: userId,
-        sessionId: sessionId,
         boardId: boardId,
         entryId: entryId,
       );
@@ -72,7 +70,6 @@ class FirebaseGhostApi implements GhostApi {
 abstract class FirebaseGhostSource {
   Future<Map<String, dynamic>> loadManifest({
     required String userId,
-    required String sessionId,
     required String boardId,
     required String entryId,
   });
@@ -90,14 +87,12 @@ class PluginFirebaseGhostSource implements FirebaseGhostSource {
   @override
   Future<Map<String, dynamic>> loadManifest({
     required String userId,
-    required String sessionId,
     required String boardId,
     required String entryId,
   }) async {
     final callable = _functions.httpsCallable(loadManifestCallableName);
     final result = await callable.call(<String, Object?>{
       'userId': userId,
-      'sessionId': sessionId,
       'boardId': boardId,
       'entryId': entryId,
     });

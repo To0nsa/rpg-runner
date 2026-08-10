@@ -117,18 +117,18 @@ Inside `prepareRunStartDescriptor(...)`:
 
 ## 3.4 Ghost manifest load (callable)
 
-Client calls `ghostLoadManifest` with `userId/sessionId/boardId/entryId`.
+Client calls `ghostLoadManifest` with `userId/boardId/entryId`.
 
 Backend handler:
 1. Requires authenticated callable context.
 2. Validates `userId == auth.uid`.
 3. Rejects account deletion in progress and consumes the per-user `ghost_url` quota before signing.
-4. Treats the required `sessionId` as request correlation only; Firebase auth remains the identity authority.
-5. Loads manifest from:
+4. Loads manifest from:
    - `leaderboard_boards/{boardId}/ghost_manifests/{entryId}`
-6. Requires manifest state:
+5. Requires manifest state:
    - `status == "active"`
    - `exposed == true`
+6. Requires the manifest's stored `boardId` and `entryId` to match the requested document identity.
 7. Requires storage path to be under `ghosts/` prefix.
 8. Signs a short-lived download URL (TTL 15 minutes) pinned to the manifest's `promotedReplayStorageGeneration`.
 9. Returns manifest + signed URL + expiry.

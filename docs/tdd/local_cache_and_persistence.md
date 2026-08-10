@@ -110,7 +110,7 @@ Note:
 
 Implementation:
 
-- `lib/ui/state/ghost_replay_cache.dart`
+- `lib/ui/state/boards/ghost_replay_cache.dart`
 
 Directory:
 

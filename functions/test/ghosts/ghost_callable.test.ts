@@ -43,7 +43,6 @@ test("handleGhostLoadManifest rejects unauthenticated requests", async () => {
           {
             data: {
               userId: "uid_1",
-              sessionId: "session_1",
               boardId: "board_1",
               entryId: "entry_1",
             },
@@ -64,7 +63,6 @@ test("handleGhostLoadManifest rejects userId/auth uid mismatch", async () => {
             auth: { uid: "uid_auth" },
             data: {
               userId: "uid_other",
-              sessionId: "session_1",
               boardId: "board_1",
               entryId: "entry_1",
             },
@@ -93,7 +91,6 @@ test("authorized ghost loads report missing Storage configuration", async () => 
             auth: { uid: "uid_1" },
             data: {
               userId: "uid_1",
-              sessionId: "session_1",
               boardId: "board_1",
               entryId: "entry_1",
             },
@@ -120,7 +117,6 @@ test("loads active exposed ghost manifest with signed download URL", async () =>
       auth: { uid: "uid_1" },
       data: {
         userId: "uid_1",
-        sessionId: "session_1",
         boardId: "board_1",
         entryId: "entry_1",
       },
@@ -169,7 +165,6 @@ test("ghost quota rejects before a second signed URL is created", async () => {
     auth: { uid: "uid_quota" },
     data: {
       userId: "uid_quota",
-      sessionId: "session_1",
       boardId: "board_quota",
       entryId: "entry_quota",
     },
@@ -184,6 +179,34 @@ test("ghost quota rejects before a second signed URL is created", async () => {
   } finally {
     restoreEnv(previous);
   }
+});
+
+test("rejects a manifest whose stored identity disagrees with its document path", async () => {
+  await seedManifest(db, {
+    boardId: "board_1",
+    entryId: "entry_1",
+    manifestBoardId: "board_other",
+    replayStorageRef: "ghosts/board_1/entry_1/ghost.bin.gz",
+    status: "active",
+    exposed: true,
+  });
+
+  await assert.rejects(
+    () =>
+      handleGhostLoadManifest(
+        {
+          auth: { uid: "uid_1" },
+          data: {
+            userId: "uid_1",
+            boardId: "board_1",
+            entryId: "entry_1",
+          },
+        },
+        db,
+        new _RecordingGhostDownloadUrlSigner(),
+      ),
+    (error: { code?: string }) => error.code === "failed-precondition",
+  );
 });
 
 test("rejects demoted or hidden ghost manifests", async () => {
@@ -202,7 +225,6 @@ test("rejects demoted or hidden ghost manifests", async () => {
           auth: { uid: "uid_1" },
           data: {
             userId: "uid_1",
-            sessionId: "session_1",
             boardId: "board_1",
             entryId: "entry_demoted",
           },
@@ -231,7 +253,6 @@ test("rejects active manifest replay path outside ghosts prefix", async () => {
           auth: { uid: "uid_1" },
           data: {
             userId: "uid_1",
-            sessionId: "session_1",
             boardId: "board_1",
             entryId: "entry_bad",
           },
@@ -248,6 +269,8 @@ async function seedManifest(
   args: {
     boardId: string;
     entryId: string;
+    manifestBoardId?: string;
+    manifestEntryId?: string;
     replayStorageRef: string;
     status: "active" | "demoted";
     exposed: boolean;
@@ -262,9 +285,9 @@ async function seedManifest(
     .collection("ghost_manifests")
     .doc(args.entryId)
     .set({
-      boardId: args.boardId,
-      entryId: args.entryId,
-      runSessionId: `run_${args.entryId}`,
+      boardId: args.manifestBoardId ?? args.boardId,
+      entryId: args.manifestEntryId ?? args.entryId,
+      runSessionId: `run_${args.manifestEntryId ?? args.entryId}`,
       uid: "uid_1",
       replayStorageRef: args.replayStorageRef,
       sourceReplayStorageRef:

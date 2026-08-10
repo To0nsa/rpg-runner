@@ -56,9 +56,17 @@ export async function loadGhostManifest(args: {
       `ghost manifest ${args.boardId}/${args.entryId} is not active.`,
     );
   }
+  const boardId = readRequiredString(parsed.boardId, "ghostManifest.boardId");
+  const entryId = readRequiredString(parsed.entryId, "ghostManifest.entryId");
+  if (boardId !== args.boardId || entryId !== args.entryId) {
+    throw new HttpsError(
+      "failed-precondition",
+      `ghost manifest ${args.boardId}/${args.entryId} has inconsistent identity fields.`,
+    );
+  }
   return {
-    boardId: readRequiredString(parsed.boardId, "ghostManifest.boardId"),
-    entryId: readRequiredString(parsed.entryId, "ghostManifest.entryId"),
+    boardId,
+    entryId,
     runSessionId: readRequiredString(
       parsed.runSessionId,
       "ghostManifest.runSessionId",

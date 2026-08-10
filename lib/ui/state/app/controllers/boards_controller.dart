@@ -63,12 +63,18 @@ final class _AppStateBoardsController extends _AppStateController {
     required String entryId,
   }) async {
     final session = await _ensureAuthSession();
-    return _ghostApi.loadManifest(
+    final manifest = await _ghostApi.loadManifest(
       userId: session.userId,
-      sessionId: session.sessionId,
       boardId: boardId,
       entryId: entryId,
     );
+    if (manifest.boardId != boardId || manifest.entryId != entryId) {
+      throw const RunStartRemoteException(
+        code: 'invalid-response',
+        message: 'Ghost manifest identity does not match the requested entry.',
+      );
+    }
+    return manifest;
   }
 
   @override

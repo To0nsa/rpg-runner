@@ -28,6 +28,16 @@ void main() {
       throwsA(isA<FormatException>()),
     );
   });
+
+  test('rejects a replay reference outside the ghost publication prefix', () {
+    final malformedPath = _manifestJson()
+      ..['replayStorageRef'] = 'replay-submissions/run_1/replay.json';
+
+    expect(
+      () => GhostManifest.fromJson(malformedPath),
+      throwsA(isA<FormatException>()),
+    );
+  });
 }
 
 Map<String, Object?> _manifestJson() => <String, Object?>{

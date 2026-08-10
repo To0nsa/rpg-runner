@@ -216,6 +216,71 @@ void main() {
   );
 
   test(
+    'reactivating a demoted ghost clears its demotion retention metadata',
+    () async {
+      const boardId = 'board_competitive_2026_03_field';
+      const runSessionId = 'run_reactivated';
+      final entry = _entry(
+        boardId: boardId,
+        runSessionId: runSessionId,
+        uid: 'uid_1',
+        score: 1200,
+        distanceMeters: 420,
+        durationSeconds: 120,
+        replayStorageRef:
+            'replay-submissions/pending/uid_1/$runSessionId/replay.bin.gz',
+        rank: 1,
+      );
+      final store = _InMemoryGhostPublicationStore(
+        top10EntriesByBoard: <String, List<LeaderboardEntry>>{
+          boardId: <LeaderboardEntry>[entry],
+        },
+        manifestsByBoard: <String, Map<String, GhostManifestRecord>>{
+          boardId: <String, GhostManifestRecord>{
+            runSessionId: GhostManifestRecord(
+              boardId: boardId,
+              entryId: runSessionId,
+              runSessionId: runSessionId,
+              uid: 'uid_1',
+              replayStorageRef: 'ghosts/$boardId/$runSessionId/ghost.bin.gz',
+              sourceReplayStorageRef: entry.replayStorageRef!,
+              sourceReplayStorageGeneration: '123',
+              promotedReplayStorageGeneration: '456',
+              replayDigest: 'a' * 64,
+              score: entry.score,
+              distanceMeters: entry.distanceMeters,
+              durationSeconds: entry.durationSeconds,
+              sortKey: entry.sortKey,
+              rank: 1,
+              status: GhostManifestStatus.demoted,
+              exposed: false,
+              updatedAtMs: 1,
+              promotedAtMs: 1,
+              demotedAtMs: 2,
+              expiresAtMs: 3,
+            ),
+          },
+        },
+      );
+      final publisher = FirestoreGhostPublisher(
+        projectId: 'demo',
+        replayStorageBucket: 'bucket',
+        publicationStore: store,
+        objectStore: _InMemoryGhostObjectStore(),
+        clockMs: () => 10_000,
+      );
+
+      await publisher.reconcileBoard(boardId: boardId);
+
+      final reactivated = store.manifestsByBoard[boardId]![runSessionId]!;
+      expect(reactivated.status, GhostManifestStatus.active);
+      expect(reactivated.exposed, isTrue);
+      expect(reactivated.demotedAtMs, isNull);
+      expect(reactivated.expiresAtMs, isNull);
+    },
+  );
+
+  test(
     'reconciliation accepts a pinned active ghost after source cleanup',
     () async {
       const boardId = 'board_competitive_2026_03_field';
@@ -486,7 +551,7 @@ void main() {
   });
 
   test(
-    'leaderboard projection store reads active exposed ghost IDs across pages',
+    'leaderboard projection store returns only integrity-complete active ghosts across pages',
     () async {
       final requestedPageTokens = <String?>[];
       final client = MockClient((request) async {
@@ -497,7 +562,7 @@ void main() {
             'documents': <Object?>[
               _manifestDocumentJson(
                 entryId: pageToken == null ? 'run_active' : 'run_hidden',
-                exposed: pageToken == null,
+                includeIntegrity: pageToken == null,
               ),
             ],
             if (pageToken == null) 'nextPageToken': 'page-2',
@@ -511,9 +576,14 @@ void main() {
         apiProvider: _FirestoreApiProvider(firestore.FirestoreApi(client)),
       );
 
-      final entryIds = await store.loadActiveGhostEntryIds(boardId: 'board_1');
+      final manifests = await store.loadActiveGhostManifests(
+        boardId: 'board_1',
+      );
 
-      expect(entryIds, <String>{'run_active'});
+      expect(manifests.keys.toSet(), <String>{'run_active'});
+      expect(manifests['run_active']?.sourceReplayStorageGeneration, '123');
+      expect(manifests['run_active']?.promotedReplayStorageGeneration, '456');
+      expect(manifests['run_active']?.replayDigest, 'a' * 64);
       expect(requestedPageTokens, <String?>[null, 'page-2']);
     },
   );
@@ -555,6 +625,7 @@ Map<String, Object?> _manifestDocumentJson({
   required String entryId,
   String status = 'active',
   bool exposed = true,
+  bool includeIntegrity = true,
 }) {
   Map<String, Object?> stringValue(String value) => <String, Object?>{
     'stringValue': value,
@@ -575,6 +646,10 @@ Map<String, Object?> _manifestDocumentJson({
       'sourceReplayStorageRef': stringValue(
         'replay-submissions/pending/uid_1/$entryId/replay.bin.gz',
       ),
+      if (includeIntegrity) 'sourceReplayStorageGeneration': stringValue('123'),
+      if (includeIntegrity)
+        'promotedReplayStorageGeneration': stringValue('456'),
+      if (includeIntegrity) 'replayDigest': stringValue('a' * 64),
       'score': integerValue(1000),
       'distanceMeters': integerValue(400),
       'durationSeconds': integerValue(120),

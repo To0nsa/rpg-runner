@@ -55,6 +55,11 @@ final class GhostManifest {
     final runSessionId = _readRequiredString(json, 'runSessionId');
     final uid = _readRequiredString(json, 'uid');
     final replayStorageRef = _readRequiredString(json, 'replayStorageRef');
+    if (!replayStorageRef.startsWith('ghosts/')) {
+      throw const FormatException(
+        'ghostManifest.replayStorageRef must be under ghosts/.',
+      );
+    }
     final sourceReplayStorageRef = _readRequiredString(
       json,
       'sourceReplayStorageRef',
@@ -148,7 +153,6 @@ final class GhostManifest {
 abstract class GhostApi {
   Future<GhostManifest> loadManifest({
     required String userId,
-    required String sessionId,
     required String boardId,
     required String entryId,
   });
@@ -160,7 +164,6 @@ class NoopGhostApi implements GhostApi {
   @override
   Future<GhostManifest> loadManifest({
     required String userId,
-    required String sessionId,
     required String boardId,
     required String entryId,
   }) {
