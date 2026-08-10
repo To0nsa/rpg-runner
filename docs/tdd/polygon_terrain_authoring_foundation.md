@@ -720,9 +720,11 @@ expansion emit `prefab_shape_soft_target_exceeded`,
 `chunk_exposed_edge_soft_target_exceeded` only when the matching count is
 strictly greater than its target. Each warning retains its Prefab/Chunk owner
 and shape where applicable; a referenced Prefab is reported once per Chunk
-validation rather than once per placement. Warnings preserve accepted source,
-commits, compiled geometry, and overlays. There is deliberately no soft
-combined-shapes-per-Chunk warning because Phase 0 accepted no such target.
+validation rather than once per placement. The Prefab domain plugin preserves
+that owner when adapting its issue into generic editor validation. Warnings
+preserve accepted source, commits, compiled geometry, and overlays. There is
+deliberately no soft combined-shapes-per-Chunk warning because Phase 0 accepted
+no such target.
 
 The optional compiled-edge layer renders `TerrainGeometry.edges` above the
 source-loop painters. It therefore shows Core's actual exposed result after

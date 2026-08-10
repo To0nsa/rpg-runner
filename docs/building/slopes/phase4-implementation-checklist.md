@@ -485,7 +485,9 @@ more than 24 vertices per polygon, or more than 1,024 compiled exposed edges
 per Chunk emits an owner-aware warning. Exact-target content stays quiet,
 one-over content retains accepted geometry and commit/preview availability,
 and the existing 64/64/4,096 hard failures are unchanged. Phase 0 defines no
-soft target for combined shapes per Chunk, so Phase 4 does not invent one.
+soft target for combined shapes per Chunk, so Phase 4 does not invent one. The
+Prefab plugin conversion preserves the warning's owner key into generic editor
+validation instead of reducing it to path/message evidence.
 
 Blocking categories:
 
@@ -1647,6 +1649,7 @@ result.
 | 2026-08-10 / `c964baf3` | Owner-aware staged generated-output drift | Dart and Flutter test VMs on Windows with Docker running | Root analysis is clean and all 72 tool/generator tests pass. One read-only staged-output gate combines fresh-compile semantic verification with `GeneratedArtifactPlan` byte inspection. A real missing output becomes blocking `generated_output_missing` with the canonical generated path as source/owner and no accepted artifact; the generic plan continues to own all missing/stale/unexpected/unreadable detection and transaction behavior. The clean reviewed artifact still passes exact bytes and signatures. Golden bytes/hash, existing five-output dry-run behavior, authored source, live registration, and runtime authority are unchanged. |
 | 2026-08-10 / `4535836f` | Owner-aware migration issue adapters | Dart and Flutter test VMs on Windows with Docker running | Full editor analysis is clean and all 444 tests pass. Legacy plans, complete readiness checks, fresh source-digest audits, source-loading exceptions, and guarded write exceptions expose immutable canonically sorted `TerrainAuthoringIssue` views with explicit blocking severity. Decoded blockers retain owner/element; undecoded file failures use their path; file-bound write failures expand per path; transaction-wide failures use `migration/write`. Existing report JSON/fingerprints/signatures, CLI output, write authorization/rollback semantics, source bytes, and runtime authority are unchanged. |
 | 2026-08-10 / `e84b1b9c` + `5608b995` | Terrain authoring soft-capacity diagnostics | Dart and Flutter test VMs on Windows with Docker running | Core and editor analysis are clean; all 330 Core-package tests and all 450 editor tests pass. Exact 16-shape, 24-vertex, and 1,024-edge fixtures remain warning-free; 17, 25, and 1,025 emit owner-aware warnings while accepted Prefab/Chunk commits and compiled overlays remain available. Hard limits, source bytes, generated artifacts, live schema selection, and runtime authority are unchanged. |
+| 2026-08-10 / `fd84e465` | Prefab plugin diagnostic owner retention | Dart and Flutter test VMs on Windows with Docker running | Editor analysis is clean and all 16 focused Prefab-v3 plugin tests pass. A 17-shape staged Prefab warning retains owner `target` through `PrefabValidationIssue` to generic `ValidationIssue`; severity, source path, and non-blocking behavior are unchanged. |
 
 ### 28.1 Baseline Environment And Source Identity
 
