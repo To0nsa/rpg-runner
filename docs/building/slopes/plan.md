@@ -1542,11 +1542,14 @@ matrices in addition to reference/range/scale/bounds coverage. Malformed
 source, invalid stable IDs, noncanonical or unsafe loops, occupied overlap, and
 post-transform collapse all fail without partial output and retain canonical
 lineage/order. Core's portable `TerrainAuthoringIssue` now gives strict staged
-prefab/chunk parsing, compilation, and Chunk-v2 collision preview one explicit
-severity/owner/lineage envelope without depending on editor types. The final
-diagnostic gate remains open until seam/output-drift, migration, remaining
-editor domains, and normal export/cutover boundaries use it and the outstanding
-major diagnostic fixtures pass. Hard-capacity evidence is now complete at and
+prefab/chunk parsing, compilation, Chunk-v2 collision preview, and staged seam
+validation one explicit severity/owner/lineage envelope without depending on
+editor types. Seam set/reference/level faults own each offending Chunk; a
+directed physical mismatch owns the entered/right Chunk and retains the full
+transition/boundary evidence. The final diagnostic gate remains open until
+output-drift, migration, remaining editor domains, and normal export/cutover
+boundaries use it and the outstanding major diagnostic fixtures pass.
+Hard-capacity evidence is now complete at and
 one unit beyond 64 vertices, 64 placed-Prefab shapes, 512 combined Chunk
 shapes, and 4,096 exposed edges; failures retain the responsible Chunk or
 Prefab owner and never publish truncated geometry. Invalid-loop topology is
@@ -1562,7 +1565,7 @@ metadata, and authored/source/edge/placement/triangle signatures. Mismatches
 use the shared owner-aware blocking envelope and return no artifact. Exact
 payload bytes remain the existing generated-artifact plan's responsibility,
 so the verifier does not create a second geometry serializer. The broad
-diagnostic gate remains open for seam/output-drift, migration, remaining editor
+diagnostic gate remains open for output-drift, migration, remaining editor
 domains, and normal export/cutover integration.
 
 An isolated exact legacy projector now decomposes accepted orthogonal terrain,

@@ -32,7 +32,7 @@ The active schema migration, generator, preview, and cutover work remains in
 | --- | --- | --- |
 | Exact half-pixel source vertex and shape values | `tools/editor/lib/src/terrain_authoring/terrain_source_models.dart` | editor model/codec tests and the Core adapter |
 | Source validation and canonicalization | `runner_core` `TerrainSourceCanonicalizer` | `TerrainCompiler` and editor adapter |
-| Portable terrain-authoring issue envelope | `runner_core` `TerrainAuthoringIssue` | staged generator raw-source/compile boundary and editor Chunk-v2 collision expansion; seam/output-drift/migration and remaining editor-domain adapters are pending |
+| Portable terrain-authoring issue envelope | `runner_core` `TerrainAuthoringIssue` | staged generator raw-source/compile, seam validation, typed artifact verification, and editor Chunk-v2 collision expansion; output-drift/migration and remaining editor-domain adapters are pending |
 | Positive-area polygon overlap | `runner_core` `TerrainPolygonOverlap` | `TerrainCompiler`; source-loop entry point is ready for editor owner validation |
 | Exact placement and physics-grid quantization | `runner_core` `TerrainSourceTransform` | `TerrainCompiler`, Core fixtures, and editor adapter |
 | Editor-to-Core conversion | editor `TerrainSourceCoreAdapter` | migration checks, shared interaction reducer, and explicit Prefab/Chunk staging routes |
@@ -1003,7 +1003,12 @@ chunk identities are missing, duplicate, case-colliding, assigned to the wrong
 level, or physically incompatible at a reachable transition. The shared Core
 `authoring-boundary-v1` primitive derives exact coverage, continuation, edge,
 mode, surface, and material evidence; coverage/mode/surface mismatches block,
-while material differences remain advisory. After that gate, the renderer
+while material differences remain advisory. Seam blockers use
+`TerrainAuthoringIssue`: identity/reference/level findings own each offending
+Chunk, and a directed physical mismatch owns the entered/right Chunk while its
+message retains the transition plus both exact boundary records. Missing or
+wrong-level pairs emit one issue per owner and never an ownerless aggregate.
+After that gate, the renderer
 accepts only reserved local instance index zero and matching chunk keys, then
 creates local source/edge IDs without an instance-index field. Runtime streaming must bind
 the real instance index and geometry version in Phase 5. The checked-in output
@@ -1129,9 +1134,9 @@ which now preserves optional `ownerKey`; direct and placement-source findings
 own the Chunk, while expanded-shape findings own the Prefab.
 
 This is still not the universal user-facing boundary required for cutover.
-Seam/output-drift, migration, other editor validation domains, and normal
-export/load entry points retain their existing contracts and must be adapted
-without importing JSON, filesystem, or editor types into Core.
+Output-drift, migration, other editor validation domains, and normal export/
+load entry points retain their existing contracts and must be adapted without
+importing JSON, filesystem, or editor types into Core.
 
 ## Exact Legacy Compatibility Projection
 
