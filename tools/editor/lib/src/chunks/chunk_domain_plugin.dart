@@ -16,7 +16,7 @@ import 'chunk_v2_file_data.dart';
 import 'chunk_v2_lifecycle_commit.dart';
 import 'chunk_v2_metadata_commit.dart';
 import 'chunk_v2_seam_analysis.dart';
-import 'chunk_v2_staging_models.dart';
+import 'chunk_v2_models.dart';
 import 'chunk_v2_validation.dart';
 
 class ChunkDomainPlugin implements AuthoringDomainPlugin {
@@ -56,7 +56,7 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
   @override
   Future<AuthoringDocument> loadFromRepo(EditorWorkspace workspace) async {
     return switch (_store.detectSourceGeneration(workspace)) {
-      ChunkSourceGeneration.currentV2 => loadV2StagingFromRepo(workspace),
+      ChunkSourceGeneration.currentV2 => loadV2FromRepo(workspace),
       ChunkSourceGeneration.legacyV1 =>
         const PolygonAuthoringMigrationRequiredDocument(
           domain: PolygonAuthoringMigrationDomain.chunks,
@@ -70,16 +70,14 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
     };
   }
 
-  /// Strict all-v2 load shared by normal selection and explicit staging.
+  /// Strict all-v2 load shared by normal selection and owner navigation.
   ///
   /// This also requires strict prefab-v3/tile-v2 source so placement preview
   /// expands one coherent future-source generation. Normal legacy/missing
   /// source resolves to the migration-required document.
-  Future<ChunkV2StagingDocument> loadV2StagingFromRepo(
-    EditorWorkspace workspace,
-  ) async {
-    final chunkLoad = await _store.loadV2Staging(workspace);
-    final prefabLoad = await _prefabStore.loadV3Staging(workspace.rootPath);
+  Future<ChunkV2Document> loadV2FromRepo(EditorWorkspace workspace) async {
+    final chunkLoad = await _store.loadV2(workspace);
+    final prefabLoad = await _prefabStore.loadV3(workspace.rootPath);
     final levelLoad = await _levelStore.load(workspace);
     final chunks = chunkLoad.sources.map((source) => source.data).toList()
       ..sort((left, right) {
@@ -104,7 +102,7 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
         ? preferredLevelId
         : (sortedLevelIds.isEmpty ? null : sortedLevelIds.first);
     _preferredActiveLevelId = activeLevelId;
-    return ChunkV2StagingDocument(
+    return ChunkV2Document(
       chunks: chunks,
       sourcePathByChunkKey: sourcePathByChunkKey,
       baselineContentsByChunkKey: baselineContentsByChunkKey,
@@ -130,8 +128,8 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
         _requireChunkMigration(document).toValidationIssue(),
       ];
     }
-    if (document is ChunkV2StagingDocument) {
-      return validateChunkV2StagingDocument(document);
+    if (document is ChunkV2Document) {
+      return validateChunkV2Document(document);
     }
     final chunkDocument = _asChunkDocument(document);
     final scoped = _scopeDocumentToActiveLevel(chunkDocument);
@@ -143,7 +141,7 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
     if (document is PolygonAuthoringMigrationRequiredDocument) {
       return _requireChunkMigration(document).toScene();
     }
-    if (document is ChunkV2StagingDocument) {
+    if (document is ChunkV2Document) {
       final activeLevelId = document.activeLevelId;
       final chunks =
           document.chunks
@@ -177,7 +175,7 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
         collisionExpansionByChunkKey: collisionExpansions,
         sourcePathByChunkKey: document.sourcePathByChunkKey,
       );
-      return ChunkV2StagingScene(
+      return ChunkV2Scene(
         chunks: chunks,
         sourcePathByChunkKey: sourcePaths,
         prefabData: document.prefabData,
@@ -225,7 +223,7 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
       _requireChunkMigration(document);
       return document;
     }
-    if (document is ChunkV2StagingDocument) {
+    if (document is ChunkV2Document) {
       if (command.kind == 'set_active_level') {
         final levelId = command.payload['levelId'];
         if (levelId is! String ||
@@ -300,13 +298,13 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
         'polygon_authoring_migration_required: ${migration.message}',
       );
     }
-    if (document is ChunkV2StagingDocument) {
-      final blockingIssues = validateChunkV2StagingDocument(
+    if (document is ChunkV2Document) {
+      final blockingIssues = validateChunkV2Document(
         document,
       ).where((issue) => issue.severity == ValidationSeverity.error).toList();
       if (blockingIssues.isNotEmpty) {
         throw StateError(
-          'Cannot export chunk-v2 staging while validation has '
+          'Cannot export chunk-v2 while validation has '
           '${blockingIssues.length} blocking issue(s).',
         );
       }
@@ -323,12 +321,8 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
           ],
         );
       }
-      final savePlan = _store.buildV2StagingSavePlan(document: document);
-      _store.applyV2StagingSavePlan(
-        workspace,
-        document: document,
-        savePlan: savePlan,
-      );
+      final savePlan = _store.buildV2SavePlan(document: document);
+      _store.applyV2SavePlan(workspace, document: document, savePlan: savePlan);
       return ExportResult(
         applied: true,
         artifacts: <ExportArtifact>[
@@ -384,8 +378,8 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
       _requireChunkMigration(document);
       return PendingChanges.empty;
     }
-    if (document is ChunkV2StagingDocument) {
-      final savePlan = _store.buildV2StagingSavePlan(document: document);
+    if (document is ChunkV2Document) {
+      final savePlan = _store.buildV2SavePlan(document: document);
       final writes = savePlan.writes;
       if (writes.isEmpty) return PendingChanges.empty;
       return PendingChanges(
@@ -424,7 +418,7 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
   }
 
   AuthoringDocument _applyV2Edit(
-    ChunkV2StagingDocument document,
+    ChunkV2Document document,
     AuthoringCommand command,
   ) {
     if (command.kind == commitChunkLifecycleCommandKind) {
@@ -503,16 +497,16 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
     return _validatedV2CandidateOrOriginal(document, candidate);
   }
 
-  ChunkV2StagingDocument _validatedV2CandidateOrOriginal(
-    ChunkV2StagingDocument original,
-    ChunkV2StagingDocument candidate,
+  ChunkV2Document _validatedV2CandidateOrOriginal(
+    ChunkV2Document original,
+    ChunkV2Document candidate,
   ) {
-    final hasBlockingIssue = validateChunkV2StagingDocument(
+    final hasBlockingIssue = validateChunkV2Document(
       candidate,
     ).any((issue) => issue.severity == ValidationSeverity.error);
     if (hasBlockingIssue) return original;
     try {
-      _store.buildV2StagingSavePlan(document: candidate);
+      _store.buildV2SavePlan(document: candidate);
     } on StateError {
       return original;
     }

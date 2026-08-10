@@ -32,11 +32,11 @@ import 'prefab_v3_owner_dialog.dart';
 /// Explicit prefab-v3 polygon workspace used before the schema cutover.
 ///
 /// Legacy source still loads the v2 rectangle workflow. Current v3 source and
-/// explicit owner navigation select this page through [PrefabV3StagingScene].
+/// explicit owner navigation select this page through [PrefabV3Scene].
 /// Source apply is available only for already-current files and cannot migrate
 /// legacy source.
-class PrefabPolygonStagingWorkspace extends StatefulWidget {
-  const PrefabPolygonStagingWorkspace({
+class PrefabPolygonWorkspace extends StatefulWidget {
+  const PrefabPolygonWorkspace({
     super.key,
     required this.controller,
     this.initialPrefabKey,
@@ -48,13 +48,11 @@ class PrefabPolygonStagingWorkspace extends StatefulWidget {
   final String? initialPrefabKey;
 
   @override
-  State<PrefabPolygonStagingWorkspace> createState() =>
-      PrefabPolygonStagingWorkspaceState();
+  State<PrefabPolygonWorkspace> createState() => PrefabPolygonWorkspaceState();
 }
 
 /// Shortcut and local-draft contract exposed to the containing editor route.
-class PrefabPolygonStagingWorkspaceState
-    extends State<PrefabPolygonStagingWorkspace> {
+class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
   static const double _initialZoom = 4;
   static const double _minZoom = 0.5;
   static const double _maxZoom = 12;
@@ -127,7 +125,7 @@ class PrefabPolygonStagingWorkspaceState
   }
 
   @override
-  void didUpdateWidget(covariant PrefabPolygonStagingWorkspace oldWidget) {
+  void didUpdateWidget(covariant PrefabPolygonWorkspace oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.controller != widget.controller) {
       _disposeAuthoring();
@@ -155,7 +153,7 @@ class PrefabPolygonStagingWorkspaceState
     final document = _documentOrNull;
     if (document == null) {
       return const Center(
-        child: Text('Prefab-v3 staging scene is no longer loaded.'),
+        child: Text('Prefab-v3 current scene is no longer loaded.'),
       );
     }
     _reconcileReloadedOwner(document);
@@ -173,7 +171,7 @@ class PrefabPolygonStagingWorkspaceState
           );
 
     return Card(
-      key: const ValueKey<String>('prefab_polygon_staging_workspace'),
+      key: const ValueKey<String>('prefab_polygon_workspace'),
       child: Padding(
         padding: PrefabEditorUiTokens.panelInsets,
         child: Column(
@@ -206,7 +204,7 @@ class PrefabPolygonStagingWorkspaceState
   }
 
   Widget _buildHeader(
-    PrefabV3StagingDocument document,
+    PrefabV3Document document,
     PrefabPolygonAuthoringController? authoring,
   ) {
     final changedCount = document.changedPrefabKeys.length;
@@ -232,7 +230,7 @@ class PrefabPolygonStagingWorkspaceState
           children: <Widget>[
             const Chip(
               avatar: Icon(Icons.science_outlined, size: 18),
-              label: Text('Prefab v3 polygon staging'),
+              label: Text('Prefab v3 polygon authoring'),
             ),
             FilledButton.icon(
               key: const ValueKey<String>('prefab_polygon_apply_source'),
@@ -396,7 +394,7 @@ class PrefabPolygonStagingWorkspaceState
   }
 
   Widget _buildOwnerPanel(
-    PrefabV3StagingDocument document,
+    PrefabV3Document document,
     PrefabV3Def selectedPrefab,
     PrefabPolygonAuthoringController authoring,
   ) {
@@ -458,7 +456,7 @@ class PrefabPolygonStagingWorkspaceState
     );
   }
 
-  Widget _buildEmptyOwnerState(PrefabV3StagingDocument document) {
+  Widget _buildEmptyOwnerState(PrefabV3Document document) {
     return PrefabEditorPanelCard(
       title: 'Prefab owners',
       child: Column(
@@ -480,7 +478,7 @@ class PrefabPolygonStagingWorkspaceState
   }
 
   Widget _buildOwnerActions(
-    PrefabV3StagingDocument document, {
+    PrefabV3Document document, {
     required PrefabV3Def? selectedPrefab,
     required bool controlsEnabled,
   }) {
@@ -536,7 +534,7 @@ class PrefabPolygonStagingWorkspaceState
   }
 
   Widget _buildScenePanel(
-    PrefabV3StagingDocument document,
+    PrefabV3Document document,
     PrefabV3Def prefab,
     PrefabPolygonAuthoringController authoring,
   ) {
@@ -923,7 +921,7 @@ class PrefabPolygonStagingWorkspaceState
   }
 
   List<PrefabValidationIssue> _ownerIssues(
-    PrefabV3StagingDocument document,
+    PrefabV3Document document,
     PrefabV3Def prefab,
     Iterable<PrefabValidationIssue> localIssues,
   ) {
@@ -965,7 +963,7 @@ class PrefabPolygonStagingWorkspaceState
     return unique;
   }
 
-  Future<void> _createOwner(PrefabV3StagingDocument document) async {
+  Future<void> _createOwner(PrefabV3Document document) async {
     final edit = await showPrefabV3OwnerDialog(context, document: document);
     if (edit == null || !mounted) return;
     final beforeKeys = document.data.prefabs
@@ -990,10 +988,7 @@ class PrefabPolygonStagingWorkspaceState
     _syncOwnerAfterSessionMutation(preferredPrefabKey: createdKeys.firstOrNull);
   }
 
-  Future<void> _editOwner(
-    PrefabV3StagingDocument document,
-    PrefabV3Def prefab,
-  ) async {
+  Future<void> _editOwner(PrefabV3Document document, PrefabV3Def prefab) async {
     final edit = await showPrefabV3OwnerDialog(
       context,
       document: document,
@@ -1027,7 +1022,7 @@ class PrefabPolygonStagingWorkspaceState
     _syncOwnerAfterSessionMutation(preferredPrefabKey: prefab.prefabKey);
   }
 
-  void _duplicateOwner(PrefabV3StagingDocument document, PrefabV3Def prefab) {
+  void _duplicateOwner(PrefabV3Document document, PrefabV3Def prefab) {
     final beforeKeys = document.data.prefabs
         .map((owner) => owner.prefabKey)
         .toSet();
@@ -1046,7 +1041,7 @@ class PrefabPolygonStagingWorkspaceState
   }
 
   Future<void> _renameOwner(
-    PrefabV3StagingDocument document,
+    PrefabV3Document document,
     PrefabV3Def prefab,
   ) async {
     final nextId = await showPrefabV3RenameDialog(
@@ -1065,7 +1060,7 @@ class PrefabPolygonStagingWorkspaceState
   }
 
   Future<void> _deleteOwner(
-    PrefabV3StagingDocument document,
+    PrefabV3Document document,
     PrefabV3Def prefab,
   ) async {
     final impact = document.downstreamImpacts
@@ -1102,8 +1097,8 @@ class PrefabPolygonStagingWorkspaceState
     if (next != null) _syncOwnerAfterSessionMutation();
   }
 
-  PrefabV3StagingDocument? _dispatchLifecycle(
-    PrefabV3StagingDocument document,
+  PrefabV3Document? _dispatchLifecycle(
+    PrefabV3Document document,
     PrefabV3LifecycleOperation operation,
   ) {
     final beforeDocument = widget.controller.document;
@@ -1119,7 +1114,7 @@ class PrefabPolygonStagingWorkspaceState
       ),
     );
     final next = widget.controller.document;
-    if (identical(next, beforeDocument) || next is! PrefabV3StagingDocument) {
+    if (identical(next, beforeDocument) || next is! PrefabV3Document) {
       _showOwnerMutationRejected();
       return null;
     }
@@ -1176,7 +1171,7 @@ class PrefabPolygonStagingWorkspaceState
     if (prefabKey != null) _bindOwner(prefabKey);
   }
 
-  void _reconcileReloadedOwner(PrefabV3StagingDocument document) {
+  void _reconcileReloadedOwner(PrefabV3Document document) {
     final selectedKey = _selectedPrefabKey;
     if (selectedKey != null &&
         document.data.prefabs.any(
@@ -1193,7 +1188,7 @@ class PrefabPolygonStagingWorkspaceState
     }
   }
 
-  String? _preferredOwnerKey(PrefabV3StagingDocument document) {
+  String? _preferredOwnerKey(PrefabV3Document document) {
     final requestedKey = _requestedOwnerKey(document);
     if (requestedKey != null) return requestedKey;
     if (document.data.prefabs.isEmpty) return null;
@@ -1206,7 +1201,7 @@ class PrefabPolygonStagingWorkspaceState
         prefabs.first.prefabKey;
   }
 
-  String? _requestedOwnerKey(PrefabV3StagingDocument? document) {
+  String? _requestedOwnerKey(PrefabV3Document? document) {
     if (document == null) return null;
     final requestedKey = widget.initialPrefabKey?.trim();
     if (requestedKey == null || requestedKey.isEmpty) return null;
@@ -1247,9 +1242,9 @@ class PrefabPolygonStagingWorkspaceState
     if (mounted) setState(() {});
   }
 
-  PrefabV3StagingDocument? get _documentOrNull {
+  PrefabV3Document? get _documentOrNull {
     final document = widget.controller.document;
-    return document is PrefabV3StagingDocument ? document : null;
+    return document is PrefabV3Document ? document : null;
   }
 
   void _setZoom(double value) {

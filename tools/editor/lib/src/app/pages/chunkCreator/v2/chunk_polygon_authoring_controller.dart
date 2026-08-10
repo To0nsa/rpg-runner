@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../../../../chunks/chunk_domain_plugin.dart';
 import '../../../../chunks/chunk_v2_collision_commit.dart';
 import '../../../../chunks/chunk_v2_file_data.dart';
-import '../../../../chunks/chunk_v2_staging_models.dart';
+import '../../../../chunks/chunk_v2_models.dart';
 import '../../../../domain/authoring_types.dart';
 import '../../../../session/editor_session_controller.dart';
 import '../../../../terrain_authoring/terrain_polygon_interaction.dart';
@@ -14,7 +14,7 @@ import '../../../../terrain_authoring/terrain_source_models.dart';
 ///
 /// Drafts, gestures, selection, tools, and rejection diagnostics remain local.
 /// Only an accepted owner-reviewed semantic commit reaches session history.
-/// Construction requires the explicit chunk-v2 staging document, so normal
+/// Construction requires the explicit chunk-v2 current document, so normal
 /// chunk-v1 sessions cannot activate this controller before source cutover.
 final class ChunkPolygonAuthoringController extends ChangeNotifier {
   ChunkPolygonAuthoringController({
@@ -300,14 +300,14 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
     }
 
     final document = _session.document;
-    if (document is! ChunkV2StagingDocument) {
+    if (document is! ChunkV2Document) {
       _rejectLocally(
         attemptedState,
         const ValidationIssue(
           severity: ValidationSeverity.error,
-          code: 'chunk_polygon_staging_document_unavailable',
+          code: 'chunk_polygon_document_unavailable',
           message:
-              'The chunk-v2 staging document is no longer loaded; reload '
+              'The chunk-v2 current document is no longer loaded; reload '
               'before committing collision geometry.',
         ),
       );
@@ -423,7 +423,7 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
     final document = _session.document;
     if (identical(document, _observedDocument)) return;
     _observedDocument = document;
-    if (document is! ChunkV2StagingDocument) return;
+    if (document is! ChunkV2Document) return;
     final owner = _findChunk(document, _chunkKey);
     if (owner == null) return;
     _state = _stateFromShapes(
@@ -466,9 +466,9 @@ ChunkV2FileData _requireChunk(
   String chunkKey,
 ) {
   final document = session.document;
-  if (document is! ChunkV2StagingDocument) {
+  if (document is! ChunkV2Document) {
     throw StateError(
-      'Chunk polygon authoring requires a loaded ChunkV2StagingDocument.',
+      'Chunk polygon authoring requires a loaded ChunkV2Document.',
     );
   }
   final chunk = _findChunk(document, chunkKey);
@@ -480,9 +480,9 @@ ChunkV2FileData _requireChunk(
 
 String _requireSourcePath(EditorSessionController session, String chunkKey) {
   final document = session.document;
-  if (document is! ChunkV2StagingDocument) {
+  if (document is! ChunkV2Document) {
     throw StateError(
-      'Chunk polygon authoring requires a loaded ChunkV2StagingDocument.',
+      'Chunk polygon authoring requires a loaded ChunkV2Document.',
     );
   }
   final sourcePath = document.sourcePathByChunkKey[chunkKey];
@@ -492,7 +492,7 @@ String _requireSourcePath(EditorSessionController session, String chunkKey) {
   return sourcePath;
 }
 
-ChunkV2FileData? _findChunk(ChunkV2StagingDocument document, String chunkKey) {
+ChunkV2FileData? _findChunk(ChunkV2Document document, String chunkKey) {
   for (final chunk in document.chunks) {
     if (chunk.chunkKey == chunkKey) return chunk;
   }

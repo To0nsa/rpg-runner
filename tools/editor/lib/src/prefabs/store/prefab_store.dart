@@ -34,11 +34,8 @@ class PrefabSerializedFiles {
 }
 
 /// Strict prefab-v3 plus retained tile-v2 load payload.
-class PrefabV3StagingLoadResult {
-  const PrefabV3StagingLoadResult({
-    required this.prefabData,
-    required this.tileData,
-  });
+class PrefabV3LoadResult {
+  const PrefabV3LoadResult({required this.prefabData, required this.tileData});
 
   final PrefabV3FileData prefabData;
   final PrefabTileFileData tileData;
@@ -47,9 +44,9 @@ class PrefabV3StagingLoadResult {
 /// Schema family selected from the authoritative prefab source version.
 enum PrefabSourceGeneration { missing, legacyV2, currentV3 }
 
-/// One canonical fixed-path replacement in a prefab-v3 staging save plan.
-final class PrefabV3StagingSaveFile {
-  const PrefabV3StagingSaveFile({
+/// One canonical fixed-path replacement in a prefab-v3 save plan.
+final class PrefabV3SaveFile {
+  const PrefabV3SaveFile({
     required this.relativePath,
     required this.beforeContents,
     required this.afterContents,
@@ -66,22 +63,22 @@ final class PrefabV3StagingSaveFile {
 ///
 /// Both load-time baselines remain present even when only one file changes so
 /// the apply boundary can reject drift across the logical source pair.
-final class PrefabV3StagingSavePlan {
-  PrefabV3StagingSavePlan(Iterable<PrefabV3StagingSaveFile> files)
-    : files = List<PrefabV3StagingSaveFile>.unmodifiable(
-        List<PrefabV3StagingSaveFile>.of(files)..sort(
+final class PrefabV3SavePlan {
+  PrefabV3SavePlan(Iterable<PrefabV3SaveFile> files)
+    : files = List<PrefabV3SaveFile>.unmodifiable(
+        List<PrefabV3SaveFile>.of(files)..sort(
           (left, right) => left.relativePath.compareTo(right.relativePath),
         ),
       );
 
-  final List<PrefabV3StagingSaveFile> files;
+  final List<PrefabV3SaveFile> files;
 
   bool get hasChanges => files.any((file) => file.hasChanges);
 }
 
-/// Stable failure from the explicit prefab-v3 staging write proof.
-final class PrefabV3StagingSaveException implements Exception {
-  const PrefabV3StagingSaveException({
+/// Stable failure from the explicit prefab-v3 write proof.
+final class PrefabV3SaveException implements Exception {
+  const PrefabV3SaveException({
     required this.code,
     required this.message,
     this.cause,
@@ -153,9 +150,7 @@ class PrefabStore {
   /// This remains the explicit loader used by cross-route owner navigation;
   /// normal loading also selects it when [detectSourceGeneration] reports v3.
   /// Repository write authority is unaffected by selection.
-  Future<PrefabV3StagingLoadResult> loadV3Staging(
-    String workspaceRootPath,
-  ) async {
+  Future<PrefabV3LoadResult> loadV3(String workspaceRootPath) async {
     final prefabFile = File(
       p.normalize(p.join(workspaceRootPath, prefabDefsPath)),
     );
@@ -170,7 +165,7 @@ class PrefabStore {
         'prefab_tile_source_missing: expected ${tileFile.path}.',
       );
     }
-    return PrefabV3StagingLoadResult(
+    return PrefabV3LoadResult(
       prefabData: PrefabV3FileCodec.decode(
         prefabFile.readAsStringSync(),
         sourcePath: prefabFile.path,
@@ -184,16 +179,16 @@ class PrefabStore {
 
   /// Builds the exact paired current-schema save plan without filesystem I/O.
   ///
-  /// Baselines must be strict prefab-v3/tile-v2 source loaded by the staging
+  /// Baselines must be strict prefab-v3/tile-v2 source loaded by the current
   /// path. This method canonicalizes only the proposed outputs; it never writes.
-  PrefabV3StagingSavePlan buildV3StagingSavePlan({
+  PrefabV3SavePlan buildV3SavePlan({
     required PrefabV3FileData prefabData,
     required PrefabTileFileData tileData,
     required String? prefabBaselineContents,
     required String? tileBaselineContents,
   }) {
     if (prefabBaselineContents == null || tileBaselineContents == null) {
-      throw const PrefabV3StagingSaveException(
+      throw const PrefabV3SaveException(
         code: 'prefab_v3_save_baseline_missing',
         message:
             'Prefab-v3 save planning requires both load-time source baselines.',
@@ -209,20 +204,20 @@ class PrefabStore {
         sourcePath: tileDefsPath,
       );
     } on Object catch (error) {
-      throw PrefabV3StagingSaveException(
+      throw PrefabV3SaveException(
         code: 'prefab_v3_save_baseline_invalid',
         message:
             'Prefab-v3 save baselines must be strict current-schema source.',
         cause: error,
       );
     }
-    return PrefabV3StagingSavePlan(<PrefabV3StagingSaveFile>[
-      PrefabV3StagingSaveFile(
+    return PrefabV3SavePlan(<PrefabV3SaveFile>[
+      PrefabV3SaveFile(
         relativePath: prefabDefsPath,
         beforeContents: prefabBaselineContents,
         afterContents: PrefabV3FileCodec.encode(prefabData),
       ),
-      PrefabV3StagingSaveFile(
+      PrefabV3SaveFile(
         relativePath: tileDefsPath,
         beforeContents: tileBaselineContents,
         afterContents: PrefabTileFileCodec.encode(tileData),
@@ -236,18 +231,15 @@ class PrefabStore {
   /// document; it cannot migrate legacy source. Both baselines are rechecked
   /// after files are staged and installed bytes are strictly decoded before
   /// backups are removed.
-  void applyV3StagingSavePlan(
+  void applyV3SavePlan(
     String workspaceRootPath, {
-    required PrefabV3StagingSavePlan plan,
+    required PrefabV3SavePlan plan,
   }) {
     _requireV3PlanShape(plan);
     try {
       _requireV3PlanFresh(workspaceRootPath, plan);
     } on _PrefabV3SaveAbort catch (error) {
-      throw PrefabV3StagingSaveException(
-        code: error.code,
-        message: error.message,
-      );
+      throw PrefabV3SaveException(code: error.code, message: error.message);
     }
     if (!plan.hasChanges) return;
 
@@ -272,7 +264,7 @@ class PrefabStore {
           ? error.cause as _PrefabV3SaveAbort
           : null;
       Error.throwWithStackTrace(
-        PrefabV3StagingSaveException(
+        PrefabV3SaveException(
           code: abort?.code ?? 'prefab_v3_save_transaction_failed',
           message:
               abort?.message ??
@@ -737,8 +729,8 @@ class PrefabStore {
   }
 }
 
-void _requireV3PlanShape(PrefabV3StagingSavePlan plan) {
-  final byPath = <String, PrefabV3StagingSaveFile>{
+void _requireV3PlanShape(PrefabV3SavePlan plan) {
+  final byPath = <String, PrefabV3SaveFile>{
     for (final file in plan.files) file.relativePath: file,
   };
   const requiredPaths = <String>{
@@ -747,7 +739,7 @@ void _requireV3PlanShape(PrefabV3StagingSavePlan plan) {
   };
   if (plan.files.length != requiredPaths.length ||
       !byPath.keys.toSet().containsAll(requiredPaths)) {
-    throw const PrefabV3StagingSaveException(
+    throw const PrefabV3SaveException(
       code: 'prefab_v3_save_plan_invalid',
       message:
           'Prefab-v3 save plan must contain exactly the fixed prefab/tile pair.',
@@ -769,7 +761,7 @@ void _requireV3PlanShape(PrefabV3StagingSavePlan plan) {
       throw const FormatException('Save-plan outputs are not canonical.');
     }
   } on Object catch (error) {
-    throw PrefabV3StagingSaveException(
+    throw PrefabV3SaveException(
       code: 'prefab_v3_save_plan_output_invalid',
       message: 'Prefab-v3 save plan outputs must decode as current schemas.',
       cause: error,
@@ -777,10 +769,7 @@ void _requireV3PlanShape(PrefabV3StagingSavePlan plan) {
   }
 }
 
-void _requireV3PlanFresh(
-  String workspaceRootPath,
-  PrefabV3StagingSavePlan plan,
-) {
+void _requireV3PlanFresh(String workspaceRootPath, PrefabV3SavePlan plan) {
   for (final planned in plan.files) {
     final file = File(
       p.normalize(p.join(workspaceRootPath, planned.relativePath)),
@@ -797,10 +786,7 @@ void _requireV3PlanFresh(
   }
 }
 
-void _requireV3PlanInstalled(
-  String workspaceRootPath,
-  PrefabV3StagingSavePlan plan,
-) {
+void _requireV3PlanInstalled(String workspaceRootPath, PrefabV3SavePlan plan) {
   final actualByPath = <String, String>{};
   for (final planned in plan.files) {
     final file = File(

@@ -31,7 +31,7 @@ final class PrefabV3OwnerDialogResult {
 /// Opens the retained Prefab-v3 owner form without exposing collision fields.
 Future<PrefabV3OwnerDialogResult?> showPrefabV3OwnerDialog(
   BuildContext context, {
-  required PrefabV3StagingDocument document,
+  required PrefabV3Document document,
   PrefabV3Def? prefab,
 }) => showDialog<PrefabV3OwnerDialogResult>(
   context: context,
@@ -42,7 +42,7 @@ Future<PrefabV3OwnerDialogResult?> showPrefabV3OwnerDialog(
 /// Opens the stable-key-preserving human-ID rename form.
 Future<String?> showPrefabV3RenameDialog(
   BuildContext context, {
-  required PrefabV3StagingDocument document,
+  required PrefabV3Document document,
   required PrefabV3Def prefab,
 }) => showDialog<String>(
   context: context,
@@ -53,7 +53,7 @@ Future<String?> showPrefabV3RenameDialog(
 final class _PrefabV3RenameDialog extends StatefulWidget {
   const _PrefabV3RenameDialog({required this.document, required this.prefab});
 
-  final PrefabV3StagingDocument document;
+  final PrefabV3Document document;
   final PrefabV3Def prefab;
 
   @override
@@ -123,7 +123,7 @@ final class _PrefabV3RenameDialogState extends State<_PrefabV3RenameDialog> {
 final class _PrefabV3OwnerDialog extends StatefulWidget {
   const _PrefabV3OwnerDialog({required this.document, this.prefab});
 
-  final PrefabV3StagingDocument document;
+  final PrefabV3Document document;
   final PrefabV3Def? prefab;
 
   @override
@@ -446,7 +446,7 @@ final class _PrefabV3OwnerDialogState extends State<_PrefabV3OwnerDialog> {
 }
 
 List<PrefabKind> _resolveAvailableKinds(
-  PrefabV3StagingDocument document,
+  PrefabV3Document document,
   PrefabV3Def? prefab,
 ) {
   final hasAtlas = document.data.slices.isNotEmpty;
@@ -468,7 +468,7 @@ List<PrefabKind> _resolveAvailableKinds(
 
 String? _validOwnerId(
   String raw, {
-  required PrefabV3StagingDocument document,
+  required PrefabV3Document document,
   String? exceptPrefabKey,
 }) {
   final id = raw.trim();

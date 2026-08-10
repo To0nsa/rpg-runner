@@ -981,8 +981,9 @@ order:
 The first bullet of slice 6 landed in `e2c06137`: explicit `--write` committed
 all nine current-schema files, a repeated write was a no-op, and the single
 generator now emits the staged artifact plus an exact legacy projection. The
-second bullet is the active cleanup slice; temporary `Staging` type names and
-test-only compatibility surfaces must not survive Phase 4 acceptance.
+temporary `Staging` type/route names were removed immediately afterward.
+Test-only compatibility surfaces remain the active cleanup slice and must not
+survive Phase 4 acceptance.
 
 Current command-gap audit (August 11, 2026):
 
@@ -1530,7 +1531,7 @@ before changing the accepted plan.
 | A normal authoring record must preserve malformed/noncanonical input for diagnostics, while a migration target must emit deterministic canonical bytes. | `PrefabV3Def` and `PrefabV3FileData` snapshot supplied order without rewriting it; `PrefabV3FileCodec` canonicalizes copied records only while encoding. | The future strict v3 store can diagnose source order before save, while migration output and revision comparisons stay deterministic. |
 | Leaving prefab-v3 parsing inside the migration layer after promoting the normal model would create two structural authorities before store cutover. | Promote strict JSON/retained-metadata primitives to the neutral authoring domain and make the normal `PrefabV3FileCodec` the only v3 parser/serializer; the migration facade delegates to it. | `PrefabStore` can adopt the proven codec without importing migration code, while chunk-v2 migration parsing remains isolated until its own normal-store promotion. |
 | `AuthoringDomainPlugin.applyEdit` returns only the next document and has no rejected-command diagnostic channel; putting a temporarily invalid drag into the document would create an invalid undo entry. | Keep gesture previews and their diagnostics page-local. Pass only a shared reducer commit to `PrefabV3CollisionCommitPolicy`; it verifies the before snapshot, owner rules, canonical order, resolved visual bounds, and revision before a plugin command is dispatched. | Prefab route wiring must display rejected policy issues without calling `applyEdit`; the plugin reuses the same policy as a defensive authority check for accepted commands. |
-| The original live prefab loader constructed a v2 `PrefabDocument`, but plugin command, pending-diff, and export semantics needed proof before current-source writes opened. | Add a temporary `PrefabV3StagingDocument`, prove the typed command/store boundary in isolated current fixtures, then make generation-aware normal loading select it only for strict v3 source. | Legacy/missing source now returns the shared no-data migration state; changed current source applies transactionally. Cutover removes the staging name and compatibility type. |
+| The original live prefab loader constructed a v2 `PrefabDocument`, but plugin command, pending-diff, and export semantics needed proof before current-source writes opened. | Add a temporary `PrefabV3StagingDocument`, prove the typed command/store boundary in isolated current fixtures, then make generation-aware normal loading select it only for strict v3 source. | Legacy/missing source now returns the shared no-data migration state; changed current source applies transactionally. The cutover removed the staging name; compatibility-type deletion is the remaining cleanup. |
 | Inverse viewport projection yields fractional half-pixel coordinates, and rounding to a half-pixel before applying a coarser owner grid can select the wrong cell near the grid midpoint. | Add one shared snap-policy entry point that divides the fractional coordinate by the final exact grid step and rounds ties away from zero only once. | Prefab and Chunk pointer adapters must call the shared fractional snap rather than layering route-local rounding over integer snapping. |
 | `EditorSessionController` notifies listeners for loading/export flags as well as document replacements, so blindly resynchronizing a route-local polygon controller on every notification would discard an active preview during a no-op export. | Track the observed document identity and resynchronize local geometry only when that immutable document instance changes; accepted local dispatches update the identity explicitly. | Normal Prefab/Chunk route controllers now preserve selection, tools, drafts, and gestures across transient notifications. |
 | Prefab-v3 still depends on the unchanged tile/module source file, but loading it through rectangle-era `PrefabData` would silently normalize malformed fields and keep legacy prefab parsing in the new path. | Add `PrefabTileFileData` and one strict normal-layer tile-v2 codec. The v3 store loader composes the two strict file payloads directly and never calls the compatibility parser. | Normal current Prefab load/save adopts both structural authorities together; the offline migration alone owns legacy prefab parsing. |
@@ -1773,7 +1774,7 @@ this historical baseline point.
 Before `e2c06137`, `phase4_authoring_baseline_test.dart` proved that checked-in
 Prefab-v2 and Chunk-v1 source loaded as the shared fail-closed migration scene,
 not an editable compatibility document. After cutover, the same baseline loads
-the real `PrefabV3StagingDocument` and `ChunkV2StagingDocument`, produces no
+the real `PrefabV3Document` and `ChunkV2Document`, produces no
 pending source diff, accepts every Chunk, and reports only the intentional
 non-blocking missing-collision warnings for the 70 cleared Prefabs. Dedicated
 legacy/missing fixtures still prove blocking `polygon_authoring_migration_required`,

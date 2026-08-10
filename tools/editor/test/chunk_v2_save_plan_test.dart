@@ -8,7 +8,7 @@ import 'package:runner_editor/src/chunks/chunk_store.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_codec.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_data.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_lifecycle_commit.dart';
-import 'package:runner_editor/src/chunks/chunk_v2_staging_models.dart';
+import 'package:runner_editor/src/chunks/chunk_v2_models.dart';
 import 'package:runner_editor/src/domain/authoring_types.dart';
 import 'package:runner_editor/src/levels/level_domain_models.dart';
 import 'package:runner_editor/src/prefabs/models/models.dart';
@@ -21,7 +21,7 @@ void main() {
       const store = ChunkStore();
       final document = _document();
 
-      expect(store.buildV2StagingSavePlan(document: document).writes, isEmpty);
+      expect(store.buildV2SavePlan(document: document).writes, isEmpty);
 
       final renamed = document.chunks.single.copyWith(
         id: 'forest_renamed',
@@ -31,7 +31,7 @@ void main() {
         chunks: <ChunkV2FileData>[renamed],
         changedChunkKeys: <String>[renamed.chunkKey],
       );
-      final plan = store.buildV2StagingSavePlan(document: edited);
+      final plan = store.buildV2SavePlan(document: edited);
 
       expect(plan.writes, hasLength(1));
       expect(plan.changedChunkKeys, <String>['forest_original']);
@@ -80,7 +80,7 @@ void main() {
       createdChunkKeys: <String>[created.chunkKey],
       changedChunkKeys: <String>[created.chunkKey, 'forest_original'],
     );
-    final plan = store.buildV2StagingSavePlan(document: edited);
+    final plan = store.buildV2SavePlan(document: edited);
 
     expect(plan.writes, hasLength(2));
     final creation = plan.writes.singleWhere(
@@ -103,7 +103,7 @@ void main() {
     final existing = document.chunks.single;
 
     expect(
-      () => store.buildV2StagingSavePlan(
+      () => store.buildV2SavePlan(
         document: document.copyWith(
           baselineContentsByChunkKey: const <String, String>{},
         ),
@@ -118,7 +118,7 @@ void main() {
     );
 
     expect(
-      () => store.buildV2StagingSavePlan(
+      () => store.buildV2SavePlan(
         document: document.copyWith(
           sourcePathByChunkKey: const <String, String>{
             'forest_original': '../outside.json',
@@ -140,7 +140,7 @@ void main() {
     );
     final reusedPath = document.sourcePathByChunkKey[existing.chunkKey]!;
     expect(
-      () => store.buildV2StagingSavePlan(
+      () => store.buildV2SavePlan(
         document: document.copyWith(
           chunks: <ChunkV2FileData>[replacement],
           sourcePathByChunkKey: <String, String>{
@@ -204,8 +204,8 @@ void main() {
           payload: <String, Object?>{'commit': createCommit},
         ),
       );
-      expect(dispatched, isA<ChunkV2StagingDocument>());
-      expect((dispatched as ChunkV2StagingDocument).chunks, hasLength(2));
+      expect(dispatched, isA<ChunkV2Document>());
+      expect((dispatched as ChunkV2Document).chunks, hasLength(2));
 
       final deleteResult = policy.apply(
         document: createdDocument,
@@ -220,7 +220,7 @@ void main() {
       expect(deleteResult.document.changedChunkKeys, isEmpty);
       expect(
         const ChunkStore()
-            .buildV2StagingSavePlan(document: deleteResult.document)
+            .buildV2SavePlan(document: deleteResult.document)
             .writes,
         isEmpty,
       );
@@ -283,7 +283,7 @@ void main() {
       expect(renamedResult.document.chunks.single.id, 'forest_renamed');
       expect(renamedResult.document.chunks.single.revision, 5);
       final renameWrite = const ChunkStore()
-          .buildV2StagingSavePlan(document: renamedResult.document)
+          .buildV2SavePlan(document: renamedResult.document)
           .writes
           .single;
       expect(
@@ -305,7 +305,7 @@ void main() {
       expect(deletedResult.accepted, isTrue);
       expect(deletedResult.document.chunks, isEmpty);
       final deletion = const ChunkStore()
-          .buildV2StagingSavePlan(document: deletedResult.document)
+          .buildV2SavePlan(document: deletedResult.document)
           .writes
           .single;
       expect(deletion.deleteFile, isTrue);
@@ -324,7 +324,7 @@ void main() {
       );
 
       ChunkV2LifecycleCommitResult apply(
-        ChunkV2StagingDocument target,
+        ChunkV2Document target,
         ChunkV2LifecycleOperation operation,
       ) => policy.apply(
         document: target,
@@ -374,10 +374,10 @@ void main() {
     final document = _document();
     final fixture = _ChunkFixture.create(document);
     addTearDown(fixture.dispose);
-    final plan = store.buildV2StagingSavePlan(document: document);
+    final plan = store.buildV2SavePlan(document: document);
     final before = fixture.snapshot();
 
-    store.applyV2StagingSavePlan(
+    store.applyV2SavePlan(
       fixture.workspace,
       document: document,
       savePlan: plan,
@@ -401,13 +401,9 @@ void main() {
       chunks: <ChunkV2FileData>[renamed],
       changedChunkKeys: <String>[renamed.chunkKey],
     );
-    final plan = store.buildV2StagingSavePlan(document: edited);
+    final plan = store.buildV2SavePlan(document: edited);
 
-    store.applyV2StagingSavePlan(
-      fixture.workspace,
-      document: edited,
-      savePlan: plan,
-    );
+    store.applyV2SavePlan(fixture.workspace, document: edited, savePlan: plan);
 
     final oldFile = File(
       fixture.workspace.resolve(
@@ -419,7 +415,7 @@ void main() {
     );
     expect(oldFile.existsSync(), isFalse);
     expect(newFile.readAsStringSync(), ChunkV2FileCodec.encode(renamed));
-    final reloaded = await store.loadV2Staging(fixture.workspace);
+    final reloaded = await store.loadV2(fixture.workspace);
     expect(reloaded.sources, hasLength(1));
     expect(
       ChunkV2FileCodec.encode(reloaded.sources.single.data),
@@ -455,15 +451,15 @@ void main() {
         createdChunkKeys: <String>[created.chunkKey],
         changedChunkKeys: <String>[created.chunkKey, 'forest_original'],
       );
-      final plan = store.buildV2StagingSavePlan(document: edited);
+      final plan = store.buildV2SavePlan(document: edited);
 
-      store.applyV2StagingSavePlan(
+      store.applyV2SavePlan(
         fixture.workspace,
         document: edited,
         savePlan: plan,
       );
 
-      final reloaded = await store.loadV2Staging(fixture.workspace);
+      final reloaded = await store.loadV2(fixture.workspace);
       expect(reloaded.sources, hasLength(1));
       expect(reloaded.sources.single.data.chunkKey, 'forest_created');
       expect(
@@ -492,18 +488,18 @@ void main() {
 
     final byteFixture = _ChunkFixture.create(document);
     addTearDown(byteFixture.dispose);
-    final plan = store.buildV2StagingSavePlan(document: changed);
+    final plan = store.buildV2SavePlan(document: changed);
     final sourceFile = byteFixture.sourceFile('forest_original');
     const drift = '{"external":"change"}\n';
     sourceFile.writeAsStringSync(drift);
     expect(
-      () => store.applyV2StagingSavePlan(
+      () => store.applyV2SavePlan(
         byteFixture.workspace,
         document: changed,
         savePlan: plan,
       ),
       throwsA(
-        isA<ChunkV2StagingSaveException>().having(
+        isA<ChunkV2SaveException>().having(
           (error) => error.code,
           'code',
           'chunk_v2_save_source_drift',
@@ -525,13 +521,13 @@ void main() {
       ..createSync(recursive: true)
       ..writeAsStringSync(ChunkV2FileCodec.encode(document.chunks.single));
     expect(
-      () => store.applyV2StagingSavePlan(
+      () => store.applyV2SavePlan(
         setFixture.workspace,
         document: changed,
         savePlan: plan,
       ),
       throwsA(
-        isA<ChunkV2StagingSaveException>().having(
+        isA<ChunkV2SaveException>().having(
           (error) => error.code,
           'code',
           'chunk_v2_save_source_set_drift',
@@ -555,16 +551,16 @@ void main() {
       chunks: <ChunkV2FileData>[document.chunks.single.copyWith(revision: 6)],
       changedChunkKeys: const <String>['forest_original'],
     );
-    final firstPlan = store.buildV2StagingSavePlan(document: first);
+    final firstPlan = store.buildV2SavePlan(document: first);
 
     expect(
-      () => store.applyV2StagingSavePlan(
+      () => store.applyV2SavePlan(
         fixture.workspace,
         document: second,
         savePlan: firstPlan,
       ),
       throwsA(
-        isA<ChunkV2StagingSaveException>().having(
+        isA<ChunkV2SaveException>().having(
           (error) => error.code,
           'code',
           'chunk_v2_save_plan_stale',
@@ -575,7 +571,7 @@ void main() {
   });
 }
 
-ChunkV2StagingDocument _document() {
+ChunkV2Document _document() {
   final chunk = ChunkV2FileData(
     chunkKey: 'forest_original',
     id: 'forest_original',
@@ -596,7 +592,7 @@ ChunkV2StagingDocument _document() {
   );
   final sourcePath =
       '${ChunkStore.chunksDirectoryPath}/forest/forest_original.json';
-  return ChunkV2StagingDocument(
+  return ChunkV2Document(
     chunks: <ChunkV2FileData>[chunk],
     sourcePathByChunkKey: <String, String>{chunk.chunkKey: sourcePath},
     baselineContentsByChunkKey: <String, String>{
@@ -636,7 +632,7 @@ const LevelDef _forestLevel = LevelDef(
 final class _ChunkFixture {
   _ChunkFixture._({required this.root, required this.document});
 
-  factory _ChunkFixture.create(ChunkV2StagingDocument document) {
+  factory _ChunkFixture.create(ChunkV2Document document) {
     final root = Directory.systemTemp.createTempSync('chunk_v2_save_plan_');
     final workspace = EditorWorkspace(rootPath: root.path);
     for (final entry in document.baselineContentsByChunkKey.entries) {
@@ -649,7 +645,7 @@ final class _ChunkFixture {
   }
 
   final Directory root;
-  final ChunkV2StagingDocument document;
+  final ChunkV2Document document;
 
   EditorWorkspace get workspace => EditorWorkspace(rootPath: root.path);
 

@@ -12,7 +12,7 @@ import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_collision_expansion.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_data.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_seam_analysis.dart';
-import 'package:runner_editor/src/chunks/chunk_v2_staging_models.dart';
+import 'package:runner_editor/src/chunks/chunk_v2_models.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_validation.dart';
 import 'package:runner_editor/src/levels/level_domain_models.dart';
 import 'package:runner_editor/src/prefabs/models/models.dart';
@@ -473,7 +473,7 @@ forest|tier=easy>hard:boundary|easy>normal''');
       expect(mismatch.message, contains('actual/left'));
     });
 
-    test('global staging validation blocks a reachable mismatch', () {
+    test('global current validation blocks a reachable mismatch', () {
       final low = _chunk(
         'low',
         difficulty: chunkDifficultyEarly,
@@ -484,7 +484,7 @@ forest|tier=easy>hard:boundary|easy>normal''');
         difficulty: chunkDifficultyEasy,
         collisionShapes: <TerrainSourceShapeDef>[_sourceGround('ground', 48)],
       );
-      final document = ChunkV2StagingDocument(
+      final document = ChunkV2Document(
         chunks: <ChunkV2FileData>[low, high],
         sourcePathByChunkKey: const <String, String>{
           'low': 'chunks/low.json',
@@ -508,7 +508,7 @@ forest|tier=easy>hard:boundary|easy>normal''');
         activeLevelId: 'forest',
       );
 
-      final issues = validateChunkV2StagingDocument(document);
+      final issues = validateChunkV2Document(document);
 
       expect(
         issues.where(

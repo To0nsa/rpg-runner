@@ -17,7 +17,7 @@ import '../../../../terrain_authoring/terrain_source_models.dart';
 /// Selection, tools, drafts, gesture previews, and rejected diagnostics remain
 /// local. Only an accepted owner-reviewed semantic commit is dispatched to the
 /// plugin/session boundary, producing one undo entry and one revision bump.
-/// The controller currently requires the explicit prefab-v3 staging document;
+/// The controller currently requires the explicit prefab-v3 current document;
 /// the normal v2 loader cannot activate it before the schema cutover.
 final class PrefabPolygonAuthoringController extends ChangeNotifier {
   PrefabPolygonAuthoringController({
@@ -66,7 +66,7 @@ final class PrefabPolygonAuthoringController extends ChangeNotifier {
 
   PrefabV3VisualBounds? get visualBounds {
     final document = _session.document;
-    return document is PrefabV3StagingDocument
+    return document is PrefabV3Document
         ? document.visualBoundsByPrefabKey[_prefabKey]
         : null;
   }
@@ -318,13 +318,13 @@ final class PrefabPolygonAuthoringController extends ChangeNotifier {
     }
 
     final document = _session.document;
-    if (document is! PrefabV3StagingDocument) {
+    if (document is! PrefabV3Document) {
       _rejectLocally(
         attemptedState,
         const PrefabValidationIssue(
-          code: 'prefab_polygon_staging_document_unavailable',
+          code: 'prefab_polygon_document_unavailable',
           message:
-              'The prefab-v3 staging document is no longer loaded; reload '
+              'The prefab-v3 current document is no longer loaded; reload '
               'before committing collision geometry.',
           sourcePath: PrefabStore.prefabDefsPath,
         ),
@@ -431,7 +431,7 @@ final class PrefabPolygonAuthoringController extends ChangeNotifier {
     final document = _session.document;
     if (identical(document, _observedDocument)) return;
     _observedDocument = document;
-    if (document is! PrefabV3StagingDocument) return;
+    if (document is! PrefabV3Document) return;
     final owner = _findPrefab(document.data, _prefabKey);
     if (owner == null) return;
     _state = _stateFromShapes(
@@ -471,9 +471,9 @@ final class PrefabPolygonAuthoringController extends ChangeNotifier {
 
 PrefabV3Def _requirePrefab(EditorSessionController session, String prefabKey) {
   final document = session.document;
-  if (document is! PrefabV3StagingDocument) {
+  if (document is! PrefabV3Document) {
     throw StateError(
-      'Prefab polygon authoring requires a loaded PrefabV3StagingDocument.',
+      'Prefab polygon authoring requires a loaded PrefabV3Document.',
     );
   }
   final prefab = _findPrefab(document.data, prefabKey);

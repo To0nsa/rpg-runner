@@ -113,12 +113,12 @@ PrefabV3Def _prefab({
   tags: const <String>[],
 );
 
-PrefabV3StagingDocument _document({
+PrefabV3Document _document({
   required PrefabV3Def prefab,
   required PrefabV3VisualBounds bounds,
   Iterable<AtlasSliceDef> slices = const <AtlasSliceDef>[],
   PrefabTileFileData? tileData,
-}) => PrefabV3StagingDocument(
+}) => PrefabV3Document(
   data: PrefabV3FileData(slices: slices, prefabs: <PrefabV3Def>[prefab]),
   tileData:
       tileData ??

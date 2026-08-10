@@ -8,7 +8,7 @@ import 'package:runner_editor/src/chunks/chunk_domain_plugin.dart';
 import 'package:runner_editor/src/chunks/chunk_store.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_codec.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_data.dart';
-import 'package:runner_editor/src/chunks/chunk_v2_staging_models.dart';
+import 'package:runner_editor/src/chunks/chunk_v2_models.dart';
 import 'package:runner_editor/src/terrain_authoring/polygon_authoring_migration_required.dart';
 import 'package:runner_editor/src/levels/level_domain_models.dart';
 import 'package:runner_editor/src/levels/level_store.dart';
@@ -33,9 +33,9 @@ void main() {
     );
     final document = await plugin.loadFromRepo(fixture.workspace);
 
-    expect(document, isA<ChunkV2StagingDocument>());
+    expect(document, isA<ChunkV2Document>());
     expect(plugin.validate(document), isEmpty);
-    expect(plugin.buildEditableScene(document), isA<ChunkV2StagingScene>());
+    expect(plugin.buildEditableScene(document), isA<ChunkV2Scene>());
     expect(
       plugin
           .describePendingChanges(fixture.workspace, document: document)
@@ -45,14 +45,14 @@ void main() {
   });
 
   test(
-    'explicit staging load composes strict future source and stays read-only',
+    'explicit current load composes strict future source and stays read-only',
     () async {
       final fixture = _V2Fixture.create();
       addTearDown(fixture.dispose);
       final plugin = ChunkDomainPlugin();
       final before = fixture.snapshot();
 
-      final storeLoad = await store.loadV2Staging(fixture.workspace);
+      final storeLoad = await store.loadV2(fixture.workspace);
       expect(storeLoad.sources, hasLength(1));
       expect(storeLoad.sources.single.data.chunkKey, 'forest_test');
       expect(
@@ -61,7 +61,7 @@ void main() {
       );
       expect(storeLoad.sources.single.baselineContents, fixture.chunkContents);
 
-      final document = await plugin.loadV2StagingFromRepo(fixture.workspace);
+      final document = await plugin.loadV2FromRepo(fixture.workspace);
       expect(document.chunks, hasLength(1));
       expect(document.prefabData.prefabs, isEmpty);
       expect(document.tileData.platformModules, isEmpty);
@@ -71,7 +71,7 @@ void main() {
       expect(document.groundTopYByLevelId, <String, double>{'forest': 224});
       expect(document.visualBoundsByPrefabKey, isEmpty);
       expect(plugin.validate(document), isEmpty);
-      final scene = plugin.buildEditableScene(document) as ChunkV2StagingScene;
+      final scene = plugin.buildEditableScene(document) as ChunkV2Scene;
       expect(scene.seamAnalysis.transitions, hasLength(3));
       expect(scene.seamAnalysis.seams, hasLength(3));
       expect(
@@ -105,7 +105,7 @@ void main() {
     final fixture = _V2Fixture.create();
     addTearDown(fixture.dispose);
     final plugin = ChunkDomainPlugin();
-    final clean = await plugin.loadV2StagingFromRepo(fixture.workspace);
+    final clean = await plugin.loadV2FromRepo(fixture.workspace);
     final changedChunk = clean.chunks.single.copyWith(revision: 2);
     final changed = clean.copyWith(
       chunks: <ChunkV2FileData>[changedChunk],
@@ -131,17 +131,17 @@ void main() {
       ChunkV2FileCodec.encode(changedChunk),
     );
     final reloaded = await plugin.loadFromRepo(fixture.workspace);
-    expect(reloaded, isA<ChunkV2StagingDocument>());
-    expect((reloaded as ChunkV2StagingDocument).chunks.single.revision, 2);
+    expect(reloaded, isA<ChunkV2Document>());
+    expect((reloaded as ChunkV2Document).chunks.single.revision, 2);
   });
 
   test(
-    'staging validation reports direct bounds and prefab references',
+    'current validation reports direct bounds and prefab references',
     () async {
       final fixture = _V2Fixture.create();
       addTearDown(fixture.dispose);
       final plugin = ChunkDomainPlugin();
-      final clean = await plugin.loadV2StagingFromRepo(fixture.workspace);
+      final clean = await plugin.loadV2FromRepo(fixture.workspace);
       final invalidChunk = clean.chunks.single.copyWith(
         prefabs: const <PlacedPrefabDef>[
           PlacedPrefabDef(prefabId: 'missing', x: 20, y: 20),
@@ -179,7 +179,7 @@ void main() {
   );
 
   test(
-    'normal load blocks legacy source and explicit staging rejects chunk v1',
+    'normal load blocks legacy source and current loading rejects chunk v1',
     () async {
       final root = Directory.systemTemp.createTempSync('chunk_v1_normal_load_');
       addTearDown(() => root.deleteSync(recursive: true));
@@ -203,13 +203,13 @@ void main() {
       expect(migration.domain, PolygonAuthoringMigrationDomain.chunks);
       expect(migration.reason, PolygonAuthoringMigrationReason.legacySource);
       await expectLater(
-        store.loadV2Staging(workspace),
+        store.loadV2(workspace),
         throwsA(isA<FormatException>()),
       );
     },
   );
 
-  test('strict staging rejects case-colliding chunk keys', () async {
+  test('strict current loading rejects case-colliding chunk keys', () async {
     final fixture = _V2Fixture.create();
     addTearDown(fixture.dispose);
     final duplicate = fixture.data.copyWith(
@@ -228,7 +228,7 @@ void main() {
       ..writeAsStringSync(ChunkV2FileCodec.encode(duplicate));
 
     await expectLater(
-      store.loadV2Staging(fixture.workspace),
+      store.loadV2(fixture.workspace),
       throwsA(
         isA<StateError>().having(
           (error) => error.message,
@@ -275,7 +275,7 @@ final class _V2Fixture {
   });
 
   factory _V2Fixture.create() {
-    final root = Directory.systemTemp.createTempSync('chunk_v2_staging_');
+    final root = Directory.systemTemp.createTempSync('chunk_v2_current_');
     final data = ChunkV2FileData(
       chunkKey: 'forest_test',
       id: 'forest_test',

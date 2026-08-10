@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:runner_editor/src/chunks/chunk_domain_plugin.dart';
-import 'package:runner_editor/src/chunks/chunk_v2_staging_models.dart';
+import 'package:runner_editor/src/chunks/chunk_v2_models.dart';
 import 'package:runner_editor/src/domain/authoring_types.dart';
 import 'package:runner_editor/src/prefabs/domain/prefab_domain_plugin.dart';
 import 'package:runner_editor/src/prefabs/domain/prefab_domain_models.dart';
@@ -16,7 +16,7 @@ void main() {
     const plugin = PrefabDomainPlugin();
     final document = await plugin.loadFromRepo(workspace);
 
-    expect(document, isA<PrefabV3StagingDocument>());
+    expect(document, isA<PrefabV3Document>());
     final pending = plugin.describePendingChanges(
       workspace,
       document: document,
@@ -36,7 +36,7 @@ void main() {
     final plugin = ChunkDomainPlugin();
     final document = await plugin.loadFromRepo(workspace);
 
-    expect(document, isA<ChunkV2StagingDocument>());
+    expect(document, isA<ChunkV2Document>());
     final pending = plugin.describePendingChanges(
       workspace,
       document: document,

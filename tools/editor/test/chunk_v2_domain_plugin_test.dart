@@ -8,7 +8,7 @@ import 'package:runner_editor/src/chunks/chunk_v2_composition_commit.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_codec.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_data.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_metadata_commit.dart';
-import 'package:runner_editor/src/chunks/chunk_v2_staging_models.dart';
+import 'package:runner_editor/src/chunks/chunk_v2_models.dart';
 import 'package:runner_editor/src/levels/level_domain_models.dart';
 import 'package:runner_editor/src/domain/authoring_types.dart';
 import 'package:runner_editor/src/prefabs/models/models.dart';
@@ -35,8 +35,8 @@ void main() {
       ),
     );
 
-    expect(edited, isA<ChunkV2StagingDocument>());
-    final next = edited as ChunkV2StagingDocument;
+    expect(edited, isA<ChunkV2Document>());
+    final next = edited as ChunkV2Document;
     expect(next, isNot(same(document)));
     expect(document.chunks.single.revision, 4);
     expect(next.chunks.single.revision, 5);
@@ -147,7 +147,7 @@ void main() {
         document: changed,
       ),
       throwsA(
-        isA<ChunkV2StagingSaveException>().having(
+        isA<ChunkV2SaveException>().having(
           (error) => error.code,
           'code',
           'chunk_v2_save_source_set_drift',
@@ -158,7 +158,7 @@ void main() {
   });
 
   test(
-    'polygon metadata and export cross complete staging validation',
+    'polygon metadata and export cross complete current validation',
     () async {
       final plugin = ChunkDomainPlugin();
       final valid = _seamDocument(leftTop: 20, rightTop: 20);
@@ -224,7 +224,7 @@ void main() {
           isA<StateError>().having(
             (error) => error.message,
             'message',
-            contains('Cannot export chunk-v2 staging while validation has'),
+            contains('Cannot export chunk-v2 while validation has'),
           ),
         ),
       );
@@ -259,7 +259,7 @@ void main() {
                   },
                 ),
               )
-              as ChunkV2StagingDocument;
+              as ChunkV2Document;
 
       final after = edited.chunks.single;
       expect(after.revision, before.revision + 1);
@@ -412,7 +412,7 @@ void main() {
                   },
                 ),
               )
-              as ChunkV2StagingDocument;
+              as ChunkV2Document;
 
       final after = edited.chunks.single;
       expect(after.revision, before.revision + 1);
@@ -523,9 +523,7 @@ void main() {
   });
 }
 
-ChunkV2StagingDocument _document(
-  Iterable<TerrainSourceShapeDef> collisionShapes,
-) {
+ChunkV2Document _document(Iterable<TerrainSourceShapeDef> collisionShapes) {
   final chunk = ChunkV2FileData(
     chunkKey: 'forest_target',
     id: 'forest_target',
@@ -544,7 +542,7 @@ ChunkV2StagingDocument _document(
     groundBandZIndex: 0,
     collisionShapes: collisionShapes,
   );
-  return ChunkV2StagingDocument(
+  return ChunkV2Document(
     chunks: <ChunkV2FileData>[chunk],
     sourcePathByChunkKey: const <String, String>{
       'forest_target': 'chunks/forest_target.json',
@@ -581,10 +579,7 @@ ChunkV2StagingDocument _document(
   );
 }
 
-ChunkV2StagingDocument _seamDocument({
-  required int leftTop,
-  required int rightTop,
-}) {
+ChunkV2Document _seamDocument({required int leftTop, required int rightTop}) {
   ChunkV2FileData chunk({
     required String chunkKey,
     required String difficulty,
@@ -618,7 +613,7 @@ ChunkV2StagingDocument _seamDocument({
     difficulty: chunkDifficultyEasy,
     top: rightTop,
   );
-  return ChunkV2StagingDocument(
+  return ChunkV2Document(
     chunks: <ChunkV2FileData>[low, high],
     sourcePathByChunkKey: const <String, String>{
       'low': 'chunks/low.json',

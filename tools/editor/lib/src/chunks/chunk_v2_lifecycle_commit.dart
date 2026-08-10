@@ -4,7 +4,7 @@ import '../domain/authoring_types.dart';
 import 'chunk_domain_models.dart';
 import 'chunk_store.dart';
 import 'chunk_v2_file_data.dart';
-import 'chunk_v2_staging_models.dart';
+import 'chunk_v2_models.dart';
 import 'chunk_v2_validation.dart';
 
 /// Immutable optimistic-concurrency snapshot for chunk-v2 lifecycle edits.
@@ -19,9 +19,7 @@ final class ChunkV2LifecycleSnapshot {
        _sources = List<_ChunkV2LifecycleSource>.unmodifiable(sources),
        _levelTokens = List<String>.unmodifiable(levelTokens);
 
-  factory ChunkV2LifecycleSnapshot.fromDocument(
-    ChunkV2StagingDocument document,
-  ) {
+  factory ChunkV2LifecycleSnapshot.fromDocument(ChunkV2Document document) {
     final created = document.createdChunkKeys.toSet();
     final owners =
         document.chunks
@@ -133,7 +131,7 @@ final class ChunkV2LifecycleCommitResult {
     Iterable<ValidationIssue> issues = const <ValidationIssue>[],
   }) : issues = List<ValidationIssue>.unmodifiable(issues);
 
-  final ChunkV2StagingDocument document;
+  final ChunkV2Document document;
   final bool accepted;
   final bool changed;
   final List<ValidationIssue> issues;
@@ -147,7 +145,7 @@ final class ChunkV2LifecycleCommitPolicy {
   final ChunkStore _store;
 
   ChunkV2LifecycleCommitResult apply({
-    required ChunkV2StagingDocument document,
+    required ChunkV2Document document,
     required ChunkV2LifecycleCommit commit,
   }) {
     final current = ChunkV2LifecycleSnapshot.fromDocument(document);
@@ -186,8 +184,8 @@ final class ChunkV2LifecycleCommitPolicy {
       );
     }
 
-    final next = candidate as ChunkV2StagingDocument;
-    final issues = validateChunkV2StagingDocument(next);
+    final next = candidate as ChunkV2Document;
+    final issues = validateChunkV2Document(next);
     if (issues.any((issue) => issue.severity == ValidationSeverity.error)) {
       return ChunkV2LifecycleCommitResult(
         document: document,
@@ -197,7 +195,7 @@ final class ChunkV2LifecycleCommitPolicy {
       );
     }
     try {
-      _store.buildV2StagingSavePlan(document: next);
+      _store.buildV2SavePlan(document: next);
     } on StateError catch (error) {
       return _rejected(
         document,
@@ -213,10 +211,7 @@ final class ChunkV2LifecycleCommitPolicy {
     );
   }
 
-  Object _create(
-    ChunkV2StagingDocument document,
-    ChunkV2CreateOperation operation,
-  ) {
+  Object _create(ChunkV2Document document, ChunkV2CreateOperation operation) {
     final idIssue = _idIssue(document, operation.id);
     if (idIssue != null) return idIssue;
     final activeLevelId = document.activeLevelId;
@@ -275,7 +270,7 @@ final class ChunkV2LifecycleCommitPolicy {
   }
 
   Object _duplicate(
-    ChunkV2StagingDocument document,
+    ChunkV2Document document,
     ChunkV2DuplicateOperation operation,
   ) {
     final source = document.chunks
@@ -306,10 +301,7 @@ final class ChunkV2LifecycleCommitPolicy {
     );
   }
 
-  Object _rename(
-    ChunkV2StagingDocument document,
-    ChunkV2RenameOperation operation,
-  ) {
+  Object _rename(ChunkV2Document document, ChunkV2RenameOperation operation) {
     final index = document.chunks.indexWhere(
       (chunk) => chunk.chunkKey == operation.chunkKey,
     );
@@ -349,10 +341,7 @@ final class ChunkV2LifecycleCommitPolicy {
     );
   }
 
-  Object _delete(
-    ChunkV2StagingDocument document,
-    ChunkV2DeleteOperation operation,
-  ) {
+  Object _delete(ChunkV2Document document, ChunkV2DeleteOperation operation) {
     final current = document.chunks
         .where((chunk) => chunk.chunkKey == operation.chunkKey)
         .firstOrNull;
@@ -390,8 +379,8 @@ final class ChunkV2LifecycleCommitPolicy {
     );
   }
 
-  ChunkV2StagingDocument _addCreatedOwner(
-    ChunkV2StagingDocument document,
+  ChunkV2Document _addCreatedOwner(
+    ChunkV2Document document,
     ChunkV2FileData chunk,
   ) {
     final sourcePaths = Map<String, String>.of(document.sourcePathByChunkKey);
@@ -406,7 +395,7 @@ final class ChunkV2LifecycleCommitPolicy {
 }
 
 _LifecycleRejection? _idIssue(
-  ChunkV2StagingDocument document,
+  ChunkV2Document document,
   String id, {
   String? exceptChunkKey,
 }) {
@@ -432,7 +421,7 @@ _LifecycleRejection? _idIssue(
   return null;
 }
 
-String _allocateCopyId(ChunkV2StagingDocument document, String sourceId) {
+String _allocateCopyId(ChunkV2Document document, String sourceId) {
   final existingIds = document.chunks.map((chunk) => chunk.id).toSet();
   final base = '${sourceId}_copy';
   if (!existingIds.contains(base)) return base;
@@ -483,7 +472,7 @@ bool _snapshotsEqual(
 }
 
 ChunkV2LifecycleCommitResult _rejected(
-  ChunkV2StagingDocument document, {
+  ChunkV2Document document, {
   required String code,
   required String message,
   String? chunkKey,

@@ -96,10 +96,11 @@ void main() {
       goldenFixture: 'migration_golden.json',
       chunkSourcePath: _migrationChunkSourcePath,
     );
-    final expandedIdentities = expansion.expandedPrefabShapes
-        .map((shape) => '${shape.placementKey}:${shape.shapeId}')
-        .toList(growable: false)
-      ..sort();
+    final expandedIdentities =
+        expansion.expandedPrefabShapes
+            .map((shape) => '${shape.placementKey}:${shape.shapeId}')
+            .toList(growable: false)
+          ..sort();
     expect(expandedIdentities, <String>[
       'prefab_migration_concave|100|20|0:collision_001',
       'prefab_migration_disconnected|220|40|0:collision_001',

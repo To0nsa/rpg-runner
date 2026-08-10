@@ -7,7 +7,7 @@ import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_plugin.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_codec.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_data.dart';
-import 'package:runner_editor/src/chunks/chunk_v2_staging_models.dart';
+import 'package:runner_editor/src/chunks/chunk_v2_models.dart';
 import 'package:runner_editor/src/domain/authoring_plugin_registry.dart';
 import 'package:runner_editor/src/domain/authoring_types.dart';
 import 'package:runner_editor/src/entities/entity_domain_plugin.dart';
@@ -82,10 +82,10 @@ void main() {
 
       expect(controller.selectedPluginId, PrefabDomainPlugin.pluginId);
       expect(controller.document, same(fixture.prefabDocument));
-      expect(prefabPlugin.stagingLoadCount, 1);
+      expect(prefabPlugin.loadCount, 1);
       expect(prefabPlugin.normalLoadCount, 0);
       expect(
-        find.byKey(const ValueKey<String>('prefab_polygon_staging_workspace')),
+        find.byKey(const ValueKey<String>('prefab_polygon_workspace')),
         findsOneWidget,
       );
       final targetOwner = find.byKey(
@@ -120,10 +120,10 @@ void main() {
         find.byKey(const ValueKey<String>('reload_editor_page_button')),
       );
       await tester.pumpAndSettle();
-      expect(prefabPlugin.stagingLoadCount, 1);
+      expect(prefabPlugin.loadCount, 1);
       expect(prefabPlugin.normalLoadCount, 1);
       expect(
-        find.byKey(const ValueKey<String>('prefab_polygon_staging_workspace')),
+        find.byKey(const ValueKey<String>('prefab_polygon_workspace')),
         findsOneWidget,
       );
     },
@@ -187,7 +187,7 @@ _NavigationFixture _navigationFixture() {
     tileSlices: const <AtlasSliceDef>[],
     platformModules: const <TileModuleDef>[],
   );
-  final prefabDocument = PrefabV3StagingDocument(
+  final prefabDocument = PrefabV3Document(
     data: prefabData,
     tileData: tileData,
     visualBoundsByPrefabKey: const <String, PrefabV3VisualBounds>{
@@ -224,7 +224,7 @@ _NavigationFixture _navigationFixture() {
     groundBandZIndex: 0,
     collisionShapes: const <TerrainSourceShapeDef>[],
   );
-  final chunkDocument = ChunkV2StagingDocument(
+  final chunkDocument = ChunkV2Document(
     chunks: <ChunkV2FileData>[chunk],
     sourcePathByChunkKey: const <String, String>{
       'forest_chunk': 'chunks/forest_chunk.json',
@@ -279,23 +279,21 @@ final class _NavigationFixture {
     required this.chunk,
   });
 
-  final PrefabV3StagingDocument prefabDocument;
-  final ChunkV2StagingDocument chunkDocument;
+  final PrefabV3Document prefabDocument;
+  final ChunkV2Document chunkDocument;
   final ChunkV2FileData chunk;
 }
 
 final class _NavigationPrefabPlugin extends PrefabDomainPlugin {
   _NavigationPrefabPlugin(this.document);
 
-  final PrefabV3StagingDocument document;
-  int stagingLoadCount = 0;
+  final PrefabV3Document document;
+  int loadCount = 0;
   int normalLoadCount = 0;
 
   @override
-  Future<PrefabV3StagingDocument> loadV3StagingFromRepo(
-    EditorWorkspace workspace,
-  ) async {
-    stagingLoadCount += 1;
+  Future<PrefabV3Document> loadV3FromRepo(EditorWorkspace workspace) async {
+    loadCount += 1;
     return document;
   }
 
@@ -309,7 +307,7 @@ final class _NavigationPrefabPlugin extends PrefabDomainPlugin {
 final class _NavigationChunkPlugin implements AuthoringDomainPlugin {
   const _NavigationChunkPlugin(this.document);
 
-  final ChunkV2StagingDocument document;
+  final ChunkV2Document document;
   static final ChunkDomainPlugin _delegate = ChunkDomainPlugin();
 
   @override

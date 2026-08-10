@@ -4,7 +4,7 @@ import '../../../../chunks/chunk_domain_models.dart';
 import '../../../../chunks/chunk_domain_plugin.dart';
 import '../../../../chunks/chunk_v2_composition_commit.dart';
 import '../../../../chunks/chunk_v2_file_data.dart';
-import '../../../../chunks/chunk_v2_staging_models.dart';
+import '../../../../chunks/chunk_v2_models.dart';
 import '../../../../domain/authoring_types.dart';
 import '../../../../prefabs/models/models.dart';
 import '../../../../session/editor_session_controller.dart';
@@ -24,7 +24,7 @@ class ChunkV2CompositionWorkspace extends StatelessWidget {
   });
 
   final EditorSessionController controller;
-  final ChunkV2StagingDocument document;
+  final ChunkV2Document document;
   final ChunkV2FileData chunk;
 
   @override

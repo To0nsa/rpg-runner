@@ -208,7 +208,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
             '${plugin.runtimeType} is registered.',
           );
         }
-        final document = await plugin.loadV3StagingFromRepo(workspace);
+        final document = await plugin.loadV3FromRepo(workspace);
         final containsOwner = document.data.prefabs.any(
           (prefab) => prefab.prefabKey == targetPrefabKey,
         );

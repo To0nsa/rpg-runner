@@ -21,12 +21,11 @@ final class PrefabV3LifecycleSnapshot {
     required this.tileContents,
   });
 
-  factory PrefabV3LifecycleSnapshot.fromDocument(
-    PrefabV3StagingDocument document,
-  ) => PrefabV3LifecycleSnapshot._(
-    prefabContents: PrefabV3FileCodec.encode(document.data),
-    tileContents: PrefabTileFileCodec.encode(document.tileData),
-  );
+  factory PrefabV3LifecycleSnapshot.fromDocument(PrefabV3Document document) =>
+      PrefabV3LifecycleSnapshot._(
+        prefabContents: PrefabV3FileCodec.encode(document.data),
+        tileContents: PrefabTileFileCodec.encode(document.tileData),
+      );
 
   final String prefabContents;
   final String tileContents;
@@ -119,7 +118,7 @@ final class PrefabV3LifecycleCommitResult {
     Iterable<PrefabValidationIssue> issues = const <PrefabValidationIssue>[],
   }) : issues = List<PrefabValidationIssue>.unmodifiable(issues);
 
-  final PrefabV3StagingDocument document;
+  final PrefabV3Document document;
   final bool accepted;
   final bool changed;
   final List<PrefabValidationIssue> issues;
@@ -130,7 +129,7 @@ final class PrefabV3LifecycleCommitPolicy {
   const PrefabV3LifecycleCommitPolicy();
 
   PrefabV3LifecycleCommitResult apply({
-    required PrefabV3StagingDocument document,
+    required PrefabV3Document document,
     required PrefabV3LifecycleCommit commit,
   }) {
     if (PrefabV3LifecycleSnapshot.fromDocument(document) != commit.before) {
@@ -167,7 +166,7 @@ final class PrefabV3LifecycleCommitPolicy {
       );
     }
 
-    final next = candidate as PrefabV3StagingDocument;
+    final next = candidate as PrefabV3Document;
     final currentByKey = <String, PrefabV3Def>{
       for (final prefab in document.data.prefabs) prefab.prefabKey: prefab,
     };
@@ -205,10 +204,7 @@ final class PrefabV3LifecycleCommitPolicy {
     );
   }
 
-  Object _create(
-    PrefabV3StagingDocument document,
-    PrefabV3CreateOperation operation,
-  ) {
+  Object _create(PrefabV3Document document, PrefabV3CreateOperation operation) {
     final idIssue = _idIssue(document, operation.id);
     if (idIssue != null) return idIssue;
     if (!_stringListsEqual(
@@ -247,7 +243,7 @@ final class PrefabV3LifecycleCommitPolicy {
   }
 
   Object _duplicate(
-    PrefabV3StagingDocument document,
+    PrefabV3Document document,
     PrefabV3DuplicateOperation operation,
   ) {
     final source = document.data.prefabs
@@ -281,10 +277,7 @@ final class PrefabV3LifecycleCommitPolicy {
     ], changedKey: key);
   }
 
-  Object _rename(
-    PrefabV3StagingDocument document,
-    PrefabV3RenameOperation operation,
-  ) {
+  Object _rename(PrefabV3Document document, PrefabV3RenameOperation operation) {
     final index = document.data.prefabs.indexWhere(
       (prefab) => prefab.prefabKey == operation.prefabKey,
     );
@@ -310,10 +303,7 @@ final class PrefabV3LifecycleCommitPolicy {
     return _replaceOwners(document, prefabs, changedKey: operation.prefabKey);
   }
 
-  Object _delete(
-    PrefabV3StagingDocument document,
-    PrefabV3DeleteOperation operation,
-  ) {
+  Object _delete(PrefabV3Document document, PrefabV3DeleteOperation operation) {
     if (!document.data.prefabs.any(
       (prefab) => prefab.prefabKey == operation.prefabKey,
     )) {
@@ -331,8 +321,8 @@ final class PrefabV3LifecycleCommitPolicy {
     );
   }
 
-  PrefabV3StagingDocument _replaceOwners(
-    PrefabV3StagingDocument document,
+  PrefabV3Document _replaceOwners(
+    PrefabV3Document document,
     Iterable<PrefabV3Def> prefabs, {
     required String changedKey,
   }) {
@@ -351,7 +341,7 @@ final class PrefabV3LifecycleCommitPolicy {
 }
 
 _LifecycleRejection? _idIssue(
-  PrefabV3StagingDocument document,
+  PrefabV3Document document,
   String id, {
   String? exceptPrefabKey,
 }) {
@@ -375,7 +365,7 @@ _LifecycleRejection? _idIssue(
   return null;
 }
 
-String _allocateCopyId(PrefabV3StagingDocument document, String sourceId) {
+String _allocateCopyId(PrefabV3Document document, String sourceId) {
   final existingIds = document.data.prefabs
       .map((prefab) => prefab.id.toLowerCase())
       .toSet();
@@ -389,7 +379,7 @@ String _allocateCopyId(PrefabV3StagingDocument document, String sourceId) {
 }
 
 PrefabV3LifecycleCommitResult _rejected(
-  PrefabV3StagingDocument document, {
+  PrefabV3Document document, {
   required String code,
   required String message,
 }) => PrefabV3LifecycleCommitResult(

@@ -37,7 +37,7 @@ final class PrefabPolygonVisualProjection {
   }) : tiles = List<PrefabPolygonVisualTile>.unmodifiable(tiles);
 
   factory PrefabPolygonVisualProjection.fromDocument({
-    required PrefabV3StagingDocument document,
+    required PrefabV3Document document,
     required PrefabV3Def prefab,
   }) {
     final resolvedBounds = document.visualBoundsByPrefabKey[prefab.prefabKey];

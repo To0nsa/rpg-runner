@@ -49,7 +49,7 @@ class EditorHomeRoute {
 ///
 /// Domain pages can request a guarded transition without owning route or
 /// plugin-session state. The optional prefab key is consumed only by the
-/// Prefab-v3 staging surface as its initial stable owner selection.
+/// Prefab-v3 surface as its initial stable owner selection.
 @immutable
 class EditorHomeRouteNavigation {
   const EditorHomeRouteNavigation({

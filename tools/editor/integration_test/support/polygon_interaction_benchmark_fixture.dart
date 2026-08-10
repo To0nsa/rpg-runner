@@ -5,7 +5,7 @@ import 'package:runner_editor/src/chunks/chunk_v2_collision_expansion.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_codec.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_data.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_seam_analysis.dart';
-import 'package:runner_editor/src/chunks/chunk_v2_staging_models.dart';
+import 'package:runner_editor/src/chunks/chunk_v2_models.dart';
 import 'package:runner_editor/src/domain/authoring_plugin_registry.dart';
 import 'package:runner_editor/src/domain/authoring_types.dart';
 import 'package:runner_editor/src/levels/level_domain_models.dart';
@@ -38,7 +38,7 @@ final class PolygonInteractionBenchmarkFixture {
   static const int placedPrefabCount = 43;
   static const int compiledEdgeCount = 256;
 
-  final ChunkV2StagingDocument document;
+  final ChunkV2Document document;
   final ChunkV2FileData mainChunk;
   final ChunkV2CollisionExpansion mainExpansion;
   final ChunkV2SeamAnalysis seamAnalysis;
@@ -90,7 +90,7 @@ final class PolygonInteractionBenchmarkFixture {
       collisionExpansionByChunkKey: expansions,
       sourcePathByChunkKey: sourcePaths,
     );
-    final document = ChunkV2StagingDocument(
+    final document = ChunkV2Document(
       chunks: chunks,
       sourcePathByChunkKey: sourcePaths,
       baselineContentsByChunkKey: <String, String>{
@@ -155,7 +155,7 @@ final class PolygonInteractionBenchmarkSession {
 final class PolygonInteractionBenchmarkPlugin implements AuthoringDomainPlugin {
   PolygonInteractionBenchmarkPlugin(this.document);
 
-  final ChunkV2StagingDocument document;
+  final ChunkV2Document document;
   final ChunkDomainPlugin _delegate = ChunkDomainPlugin();
   int loadCount = 0;
 

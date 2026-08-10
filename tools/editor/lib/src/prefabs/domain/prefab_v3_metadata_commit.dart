@@ -79,7 +79,7 @@ final class PrefabV3MetadataCommitResult {
     Iterable<PrefabValidationIssue> issues = const <PrefabValidationIssue>[],
   }) : issues = List<PrefabValidationIssue>.unmodifiable(issues);
 
-  final PrefabV3StagingDocument document;
+  final PrefabV3Document document;
   final bool accepted;
   final bool changed;
   final List<PrefabValidationIssue> issues;
@@ -90,7 +90,7 @@ final class PrefabV3MetadataCommitPolicy {
   const PrefabV3MetadataCommitPolicy();
 
   PrefabV3MetadataCommitResult apply({
-    required PrefabV3StagingDocument document,
+    required PrefabV3Document document,
     required String prefabKey,
     required PrefabV3MetadataCommit commit,
   }) {
@@ -180,7 +180,7 @@ final class PrefabV3MetadataCommitPolicy {
 }
 
 PrefabV3MetadataCommitResult _rejected(
-  PrefabV3StagingDocument document, {
+  PrefabV3Document document, {
   required String code,
   required String message,
 }) => PrefabV3MetadataCommitResult(

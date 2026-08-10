@@ -70,7 +70,7 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
   @override
   Future<AuthoringDocument> loadFromRepo(EditorWorkspace workspace) async {
     return switch (_store.detectSourceGeneration(workspace.rootPath)) {
-      PrefabSourceGeneration.currentV3 => loadV3StagingFromRepo(workspace),
+      PrefabSourceGeneration.currentV3 => loadV3FromRepo(workspace),
       PrefabSourceGeneration.legacyV2 =>
         const PolygonAuthoringMigrationRequiredDocument(
           domain: PolygonAuthoringMigrationDomain.prefabs,
@@ -89,16 +89,14 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
   /// This method requires strict v3/tile-v2 source. Normal legacy/missing
   /// source resolves to the migration-required document; no migration write is
   /// performed here.
-  Future<PrefabV3StagingDocument> loadV3StagingFromRepo(
-    EditorWorkspace workspace,
-  ) async {
-    final loadResult = await _store.loadV3Staging(workspace.rootPath);
+  Future<PrefabV3Document> loadV3FromRepo(EditorWorkspace workspace) async {
+    final loadResult = await _store.loadV3(workspace.rootPath);
     final metadata = await _loadWorkspaceMetadata(workspace);
     final downstreamImpacts = await _loadV3DownstreamImpacts(
       workspace,
       loadResult.prefabData,
     );
-    return PrefabV3StagingDocument(
+    return PrefabV3Document(
       data: loadResult.prefabData,
       tileData: loadResult.tileData,
       visualBoundsByPrefabKey: PrefabVisualBoundsResolver.resolveAll(
@@ -127,7 +125,7 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
       workspace.resolve(ChunkStore.chunksDirectoryPath),
     );
     if (chunkDirectory.existsSync()) {
-      final chunks = await const ChunkStore().loadV2Staging(workspace);
+      final chunks = await const ChunkStore().loadV2(workspace);
       final prefabKeyById = <String, String>{
         for (final prefab in prefabData.prefabs) prefab.id: prefab.prefabKey,
       };
@@ -207,7 +205,7 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
         _requirePrefabMigration(document).toValidationIssue(),
       ];
     }
-    if (document is PrefabV3StagingDocument) {
+    if (document is PrefabV3Document) {
       return _validateV3Document(document);
     }
     final prefabDocument = _asPrefabDocument(document);
@@ -223,8 +221,8 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
     if (document is PolygonAuthoringMigrationRequiredDocument) {
       return _requirePrefabMigration(document).toScene();
     }
-    if (document is PrefabV3StagingDocument) {
-      return PrefabV3StagingScene(
+    if (document is PrefabV3Document) {
+      return PrefabV3Scene(
         data: document.data,
         tileData: document.tileData,
         visualBoundsByPrefabKey: document.visualBoundsByPrefabKey,
@@ -251,7 +249,7 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
       _requirePrefabMigration(document);
       return document;
     }
-    if (document is PrefabV3StagingDocument) {
+    if (document is PrefabV3Document) {
       return _applyV3Edit(document, command);
     }
     final prefabDocument = _asPrefabDocument(document);
@@ -279,13 +277,13 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
         'polygon_authoring_migration_required: ${migration.message}',
       );
     }
-    if (document is PrefabV3StagingDocument) {
+    if (document is PrefabV3Document) {
       final blockingIssues = _validateV3Document(
         document,
       ).where((issue) => issue.severity == ValidationSeverity.error).toList();
       if (blockingIssues.isNotEmpty) {
         throw StateError(
-          'Cannot export prefab-v3 staging while validation has '
+          'Cannot export prefab-v3 while validation has '
           '${blockingIssues.length} blocking issue(s).',
         );
       }
@@ -302,13 +300,13 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
           ],
         );
       }
-      final plan = _store.buildV3StagingSavePlan(
+      final plan = _store.buildV3SavePlan(
         prefabData: document.data,
         tileData: document.tileData,
         prefabBaselineContents: document.prefabBaselineContents,
         tileBaselineContents: document.tileBaselineContents,
       );
-      _store.applyV3StagingSavePlan(workspace.rootPath, plan: plan);
+      _store.applyV3SavePlan(workspace.rootPath, plan: plan);
       return ExportResult(
         applied: true,
         artifacts: <ExportArtifact>[
@@ -367,8 +365,8 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
       _requirePrefabMigration(document);
       return PendingChanges.empty;
     }
-    if (document is PrefabV3StagingDocument) {
-      final plan = _store.buildV3StagingSavePlan(
+    if (document is PrefabV3Document) {
+      final plan = _store.buildV3SavePlan(
         prefabData: document.data,
         tileData: document.tileData,
         prefabBaselineContents: document.prefabBaselineContents,
@@ -467,7 +465,7 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
   }
 
   AuthoringDocument _applyV3Edit(
-    PrefabV3StagingDocument document,
+    PrefabV3Document document,
     AuthoringCommand command,
   ) {
     if (command.kind == commitPrefabV3MetadataCommandKind) {
@@ -530,28 +528,28 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
     return _validatedV3CandidateOrOriginal(document, candidate);
   }
 
-  PrefabV3StagingDocument _validatedV3CandidateOrOriginal(
-    PrefabV3StagingDocument original,
-    PrefabV3StagingDocument candidate,
+  PrefabV3Document _validatedV3CandidateOrOriginal(
+    PrefabV3Document original,
+    PrefabV3Document candidate,
   ) {
     final hasBlockingIssue = _validateV3Document(
       candidate,
     ).any((issue) => issue.severity == ValidationSeverity.error);
     if (hasBlockingIssue) return original;
     try {
-      _store.buildV3StagingSavePlan(
+      _store.buildV3SavePlan(
         prefabData: candidate.data,
         tileData: candidate.tileData,
         prefabBaselineContents: candidate.prefabBaselineContents,
         tileBaselineContents: candidate.tileBaselineContents,
       );
-    } on PrefabV3StagingSaveException {
+    } on PrefabV3SaveException {
       return original;
     }
     return candidate;
   }
 
-  List<ValidationIssue> _validateV3Document(PrefabV3StagingDocument document) {
+  List<ValidationIssue> _validateV3Document(PrefabV3Document document) {
     final issues = validatePrefabV3CatalogDocument(
       document,
     ).map(_toValidationIssue).toList(growable: false);

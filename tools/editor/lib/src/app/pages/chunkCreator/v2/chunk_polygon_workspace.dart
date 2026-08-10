@@ -17,7 +17,7 @@ import '../../../../chunks/chunk_v2_lifecycle_commit.dart';
 import '../../../../chunks/chunk_v2_marker_placement_projection.dart';
 import '../../../../chunks/chunk_v2_metadata_commit.dart';
 import '../../../../chunks/chunk_v2_seam_analysis.dart';
-import '../../../../chunks/chunk_v2_staging_models.dart';
+import '../../../../chunks/chunk_v2_models.dart';
 import '../../../../domain/authoring_types.dart';
 import '../../../../session/editor_session_controller.dart';
 import '../../../../terrain_authoring/terrain_half_pixel_text.dart';
@@ -46,8 +46,8 @@ import 'chunk_v2_owner_dialog.dart';
 /// selects this workspace through the normal plugin loader; explicit fixtures
 /// can also stage it directly. Source apply can update only an already-current
 /// tree and cannot perform the legacy migration.
-class ChunkPolygonStagingWorkspace extends StatefulWidget {
-  const ChunkPolygonStagingWorkspace({
+class ChunkPolygonWorkspace extends StatefulWidget {
+  const ChunkPolygonWorkspace({
     super.key,
     required this.controller,
     this.onOpenOwningPrefab,
@@ -59,12 +59,10 @@ class ChunkPolygonStagingWorkspace extends StatefulWidget {
   final ValueChanged<String>? onOpenOwningPrefab;
 
   @override
-  State<ChunkPolygonStagingWorkspace> createState() =>
-      ChunkPolygonStagingWorkspaceState();
+  State<ChunkPolygonWorkspace> createState() => ChunkPolygonWorkspaceState();
 }
 
-class ChunkPolygonStagingWorkspaceState
-    extends State<ChunkPolygonStagingWorkspace> {
+class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
   static const double _initialZoom = 1;
   static const double _minZoom = 0.25;
   static const double _maxZoom = 8;
@@ -126,7 +124,7 @@ class ChunkPolygonStagingWorkspaceState
   }
 
   @override
-  void didUpdateWidget(covariant ChunkPolygonStagingWorkspace oldWidget) {
+  void didUpdateWidget(covariant ChunkPolygonWorkspace oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.controller == widget.controller) return;
     _disposeAuthoring();
@@ -146,7 +144,7 @@ class ChunkPolygonStagingWorkspaceState
     final scene = _sceneOrNull;
     if (document == null || scene == null) {
       return const Center(
-        child: Text('Chunk-v2 staging scene is no longer loaded.'),
+        child: Text('Chunk-v2 current scene is no longer loaded.'),
       );
     }
     _reconcileReloadedOwner(scene);
@@ -155,7 +153,7 @@ class ChunkPolygonStagingWorkspaceState
         ? const <ValidationIssue>[]
         : _ownerIssues(authoring);
     return Card(
-      key: const ValueKey<String>('chunk_polygon_staging_workspace'),
+      key: const ValueKey<String>('chunk_polygon_workspace'),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -220,10 +218,7 @@ class ChunkPolygonStagingWorkspaceState
     );
   }
 
-  Widget _buildHeader(
-    ChunkV2StagingDocument document,
-    ChunkV2StagingScene scene,
-  ) => Column(
+  Widget _buildHeader(ChunkV2Document document, ChunkV2Scene scene) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: <Widget>[
       Wrap(
@@ -233,7 +228,7 @@ class ChunkPolygonStagingWorkspaceState
         children: <Widget>[
           const Chip(
             avatar: Icon(Icons.science_outlined, size: 18),
-            label: Text('Chunk v2 polygon staging'),
+            label: Text('Chunk v2 polygon authoring'),
           ),
           DropdownButton<String>(
             key: const ValueKey<String>('chunk_polygon_level_selector'),
@@ -378,8 +373,8 @@ class ChunkPolygonStagingWorkspaceState
   }
 
   Widget _buildOwnerPanel(
-    ChunkV2StagingDocument document,
-    ChunkV2StagingScene scene,
+    ChunkV2Document document,
+    ChunkV2Scene scene,
     ChunkV2FileData? selectedChunk, {
     required bool controlsEnabled,
   }) {
@@ -436,8 +431,8 @@ class ChunkPolygonStagingWorkspaceState
   }
 
   Widget _buildOwnerActions(
-    ChunkV2StagingDocument document,
-    ChunkV2StagingScene scene, {
+    ChunkV2Document document,
+    ChunkV2Scene scene, {
     required ChunkV2FileData? selectedChunk,
     required bool controlsEnabled,
   }) {
@@ -1648,7 +1643,7 @@ class ChunkPolygonStagingWorkspaceState
     }
   }
 
-  Future<void> _createOwner(ChunkV2StagingDocument document) async {
+  Future<void> _createOwner(ChunkV2Document document) async {
     final id = await showChunkV2CreateDialog(context, document: document);
     if (id == null || !mounted) return;
     final beforeKeys = document.chunks.map((chunk) => chunk.chunkKey).toSet();
@@ -1662,7 +1657,7 @@ class ChunkPolygonStagingWorkspaceState
   }
 
   Future<void> _editOwner(
-    ChunkV2StagingDocument document,
+    ChunkV2Document document,
     ChunkV2FileData chunk,
   ) async {
     final edit = await showChunkV2OwnerDialog(
@@ -1698,7 +1693,7 @@ class ChunkPolygonStagingWorkspaceState
     _syncOwnerAfterSessionMutation(preferredChunkKey: chunk.chunkKey);
   }
 
-  void _duplicateOwner(ChunkV2StagingDocument document, ChunkV2FileData chunk) {
+  void _duplicateOwner(ChunkV2Document document, ChunkV2FileData chunk) {
     final beforeKeys = document.chunks.map((owner) => owner.chunkKey).toSet();
     final next = _dispatchLifecycle(
       document,
@@ -1715,7 +1710,7 @@ class ChunkPolygonStagingWorkspaceState
   }
 
   Future<void> _renameOwner(
-    ChunkV2StagingDocument document,
+    ChunkV2Document document,
     ChunkV2FileData chunk,
   ) async {
     final nextId = await showChunkV2RenameDialog(
@@ -1734,8 +1729,8 @@ class ChunkPolygonStagingWorkspaceState
   }
 
   Future<void> _deleteOwner(
-    ChunkV2StagingDocument document,
-    ChunkV2StagingScene scene,
+    ChunkV2Document document,
+    ChunkV2Scene scene,
     ChunkV2FileData chunk,
   ) async {
     final removesDimensionAuthority = scene.chunks.length == 1;
@@ -1769,8 +1764,8 @@ class ChunkPolygonStagingWorkspaceState
     if (next != null) _syncOwnerAfterSessionMutation();
   }
 
-  ChunkV2StagingDocument? _dispatchLifecycle(
-    ChunkV2StagingDocument document,
+  ChunkV2Document? _dispatchLifecycle(
+    ChunkV2Document document,
     ChunkV2LifecycleOperation operation,
   ) {
     final beforeDocument = widget.controller.document;
@@ -1786,7 +1781,7 @@ class ChunkPolygonStagingWorkspaceState
       ),
     );
     final next = widget.controller.document;
-    if (identical(next, beforeDocument) || next is! ChunkV2StagingDocument) {
+    if (identical(next, beforeDocument) || next is! ChunkV2Document) {
       _showOwnerMutationRejected();
       return null;
     }
@@ -1841,7 +1836,7 @@ class ChunkPolygonStagingWorkspaceState
     _bindOwner(chunks.first.chunkKey);
   }
 
-  void _reconcileReloadedOwner(ChunkV2StagingScene scene) {
+  void _reconcileReloadedOwner(ChunkV2Scene scene) {
     final selectedKey = _selectedChunkKey;
     if (selectedKey != null &&
         scene.chunks.any((chunk) => chunk.chunkKey == selectedKey)) {
@@ -1932,14 +1927,14 @@ class ChunkPolygonStagingWorkspaceState
     });
   }
 
-  ChunkV2StagingDocument? get _documentOrNull {
+  ChunkV2Document? get _documentOrNull {
     final document = widget.controller.document;
-    return document is ChunkV2StagingDocument ? document : null;
+    return document is ChunkV2Document ? document : null;
   }
 
-  ChunkV2StagingScene? get _sceneOrNull {
+  ChunkV2Scene? get _sceneOrNull {
     final scene = widget.controller.scene;
-    return scene is ChunkV2StagingScene ? scene : null;
+    return scene is ChunkV2Scene ? scene : null;
   }
 
   ChunkV2CollisionExpansionResult? _expansionFor(String chunkKey) =>

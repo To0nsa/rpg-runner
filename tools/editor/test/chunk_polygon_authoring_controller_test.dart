@@ -3,14 +3,14 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:runner_editor/src/app/pages/chunkCreator/staging/chunk_polygon_authoring_controller.dart';
-import 'package:runner_editor/src/app/pages/chunkCreator/staging/chunk_polygon_scene_surface.dart';
+import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_polygon_authoring_controller.dart';
+import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_polygon_scene_surface.dart';
 import 'package:runner_editor/src/app/pages/shared/terrain_polygon_scene_painter.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_plugin.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_codec.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_data.dart';
-import 'package:runner_editor/src/chunks/chunk_v2_staging_models.dart';
+import 'package:runner_editor/src/chunks/chunk_v2_models.dart';
 import 'package:runner_editor/src/levels/level_domain_models.dart';
 import 'package:runner_editor/src/domain/authoring_plugin_registry.dart';
 import 'package:runner_editor/src/domain/authoring_types.dart';
@@ -161,7 +161,7 @@ void main() {
         isA<StateError>().having(
           (error) => error.message,
           'message',
-          contains('ChunkV2StagingDocument'),
+          contains('ChunkV2Document'),
         ),
       ),
     );
@@ -333,7 +333,7 @@ Widget _surfaceApp({
 Future<_Harness> _buildHarness() async {
   final root = Directory.systemTemp.createTempSync('chunk_polygon_route_');
   final chunk = _chunk();
-  final document = ChunkV2StagingDocument(
+  final document = ChunkV2Document(
     chunks: <ChunkV2FileData>[chunk],
     sourcePathByChunkKey: const <String, String>{
       'forest_target': 'chunks/forest_target.json',
@@ -356,7 +356,7 @@ Future<_Harness> _buildHarness() async {
   );
   final session = EditorSessionController(
     pluginRegistry: AuthoringPluginRegistry(
-      plugins: <AuthoringDomainPlugin>[_StagingChunkPlugin(document)],
+      plugins: <AuthoringDomainPlugin>[_ChunkPlugin(document)],
     ),
     initialPluginId: ChunkDomainPlugin.pluginId,
     initialWorkspacePath: root.path,
@@ -425,10 +425,10 @@ final class _Harness {
   final ChunkPolygonAuthoringController authoring;
 }
 
-final class _StagingChunkPlugin implements AuthoringDomainPlugin {
-  _StagingChunkPlugin(this.document);
+final class _ChunkPlugin implements AuthoringDomainPlugin {
+  _ChunkPlugin(this.document);
 
-  final ChunkV2StagingDocument document;
+  final ChunkV2Document document;
   final ChunkDomainPlugin _delegate = ChunkDomainPlugin();
 
   @override

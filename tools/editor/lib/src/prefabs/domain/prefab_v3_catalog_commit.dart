@@ -17,12 +17,11 @@ final class PrefabV3CatalogSnapshot {
     required this.tileContents,
   });
 
-  factory PrefabV3CatalogSnapshot.fromDocument(
-    PrefabV3StagingDocument document,
-  ) => PrefabV3CatalogSnapshot._(
-    prefabContents: PrefabV3FileCodec.encode(document.data),
-    tileContents: PrefabTileFileCodec.encode(document.tileData),
-  );
+  factory PrefabV3CatalogSnapshot.fromDocument(PrefabV3Document document) =>
+      PrefabV3CatalogSnapshot._(
+        prefabContents: PrefabV3FileCodec.encode(document.data),
+        tileContents: PrefabTileFileCodec.encode(document.tileData),
+      );
 
   final String prefabContents;
   final String tileContents;
@@ -151,7 +150,7 @@ final class PrefabV3CatalogCommitResult {
     Iterable<PrefabValidationIssue> issues = const <PrefabValidationIssue>[],
   }) : issues = List<PrefabValidationIssue>.unmodifiable(issues);
 
-  final PrefabV3StagingDocument document;
+  final PrefabV3Document document;
   final bool accepted;
   final bool changed;
   final List<PrefabValidationIssue> issues;
@@ -162,7 +161,7 @@ final class PrefabV3CatalogCommitPolicy {
   const PrefabV3CatalogCommitPolicy();
 
   PrefabV3CatalogCommitResult apply({
-    required PrefabV3StagingDocument document,
+    required PrefabV3Document document,
     required PrefabV3CatalogCommit commit,
   }) {
     if (PrefabV3CatalogSnapshot.fromDocument(document) != commit.before) {
@@ -220,7 +219,7 @@ final class PrefabV3CatalogCommitPolicy {
       );
     }
 
-    final next = candidate as PrefabV3StagingDocument;
+    final next = candidate as PrefabV3Document;
     final issues = validatePrefabV3CatalogDocument(next);
     if (issues.any(
       (issue) => issue.severity == PrefabValidationSeverity.error,
@@ -241,7 +240,7 @@ final class PrefabV3CatalogCommitPolicy {
   }
 
   Object _upsertSlice(
-    PrefabV3StagingDocument document,
+    PrefabV3Document document,
     PrefabV3UpsertSliceOperation operation,
   ) {
     final sliceIssue = _sliceIssue(document, operation.slice);
@@ -273,7 +272,7 @@ final class PrefabV3CatalogCommitPolicy {
   }
 
   Object _deleteSlice(
-    PrefabV3StagingDocument document,
+    PrefabV3Document document,
     PrefabV3DeleteSliceOperation operation,
   ) {
     final current = operation.kind == AtlasSliceKind.prefab
@@ -352,7 +351,7 @@ final class PrefabV3CatalogCommitPolicy {
   }
 
   Object _createModule(
-    PrefabV3StagingDocument document,
+    PrefabV3Document document,
     PrefabV3CreateModuleOperation operation,
   ) {
     final idIssue = _moduleIdIssue(document, operation.id);
@@ -383,7 +382,7 @@ final class PrefabV3CatalogCommitPolicy {
   }
 
   Object _updateModule(
-    PrefabV3StagingDocument document,
+    PrefabV3Document document,
     PrefabV3UpdateModuleOperation operation,
   ) {
     final index = document.tileData.platformModules.indexWhere(
@@ -427,7 +426,7 @@ final class PrefabV3CatalogCommitPolicy {
   }
 
   Object _duplicateModule(
-    PrefabV3StagingDocument document,
+    PrefabV3Document document,
     PrefabV3DuplicateModuleOperation operation,
   ) {
     final source = document.tileData.platformModules
@@ -466,7 +465,7 @@ final class PrefabV3CatalogCommitPolicy {
   }
 
   Object _renameModule(
-    PrefabV3StagingDocument document,
+    PrefabV3Document document,
     PrefabV3RenameModuleOperation operation,
   ) {
     final index = document.tileData.platformModules.indexWhere(
@@ -518,7 +517,7 @@ final class PrefabV3CatalogCommitPolicy {
   }
 
   Object _deleteModule(
-    PrefabV3StagingDocument document,
+    PrefabV3Document document,
     PrefabV3DeleteModuleOperation operation,
   ) {
     if (!document.tileData.platformModules.any(
@@ -554,8 +553,8 @@ final class PrefabV3CatalogCommitPolicy {
     );
   }
 
-  PrefabV3StagingDocument _withCatalog(
-    PrefabV3StagingDocument document, {
+  PrefabV3Document _withCatalog(
+    PrefabV3Document document, {
     PrefabV3FileData? data,
     PrefabTileFileData? tileData,
     Iterable<String> changedPrefabKeys = const <String>[],
@@ -577,10 +576,7 @@ final class PrefabV3CatalogCommitPolicy {
   }
 }
 
-_CatalogRejection? _sliceIssue(
-  PrefabV3StagingDocument document,
-  AtlasSliceDef slice,
-) {
+_CatalogRejection? _sliceIssue(PrefabV3Document document, AtlasSliceDef slice) {
   if (slice.id.isEmpty || slice.id != slice.id.trim()) {
     return const _CatalogRejection(
       code: 'prefab_v3_slice_id_invalid',
@@ -636,7 +632,7 @@ _CatalogRejection? _sliceIssue(
 }
 
 _CatalogRejection? _moduleIdIssue(
-  PrefabV3StagingDocument document,
+  PrefabV3Document document,
   String id, {
   String? exceptModuleId,
 }) {
@@ -660,7 +656,7 @@ _CatalogRejection? _moduleIdIssue(
 }
 
 _CatalogRejection? _moduleStructureIssue(
-  PrefabV3StagingDocument document, {
+  PrefabV3Document document, {
   required String id,
   required TileModuleStatus status,
   required int tileSize,
@@ -703,7 +699,7 @@ _CatalogRejection? _moduleStructureIssue(
 }
 
 PrefabV3CatalogCommitResult _rejected(
-  PrefabV3StagingDocument document, {
+  PrefabV3Document document, {
   required String code,
   required String message,
 }) => PrefabV3CatalogCommitResult(

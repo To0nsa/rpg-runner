@@ -5,7 +5,7 @@ import '../domain/strict_authoring_json.dart';
 import '../domain/strict_authoring_metadata_codec.dart';
 import 'chunk_domain_models.dart';
 import 'chunk_v2_file_data.dart';
-import 'chunk_v2_staging_models.dart';
+import 'chunk_v2_models.dart';
 import 'chunk_v2_validation.dart';
 
 /// Immutable composition fields retained by one chunk-v2 owner.
@@ -68,7 +68,7 @@ final class ChunkV2CompositionCommitPolicy {
   const ChunkV2CompositionCommitPolicy();
 
   ChunkV2CompositionCommitResult apply({
-    required ChunkV2StagingDocument document,
+    required ChunkV2Document document,
     required int chunkIndex,
     required ChunkV2CompositionCommit commit,
   }) {
@@ -115,9 +115,7 @@ final class ChunkV2CompositionCommitPolicy {
     );
     final chunks = document.chunks.toList(growable: false);
     chunks[chunkIndex] = nextChunk;
-    final issues = validateChunkV2StagingDocument(
-      document.copyWith(chunks: chunks),
-    );
+    final issues = validateChunkV2Document(document.copyWith(chunks: chunks));
     if (issues.any((issue) => issue.severity == ValidationSeverity.error)) {
       return ChunkV2CompositionCommitResult(
         chunk: chunk,

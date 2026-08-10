@@ -16,7 +16,7 @@ import 'package:runner_editor/src/terrain_authoring/terrain_source_models.dart';
 import 'package:runner_editor/src/workspace/editor_workspace.dart';
 
 void main() {
-  testWidgets('staging route honors a requested stable prefab owner', (
+  testWidgets('current route honors a requested stable prefab owner', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(1800, 1000);
@@ -51,181 +51,178 @@ void main() {
     expect(harness.session.pendingChanges.hasChanges, isFalse);
   });
 
-  testWidgets(
-    'explicit staging route isolates owners and commits half-pixel polygons',
-    (tester) async {
-      tester.view.physicalSize = const Size(1800, 1000);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
+  testWidgets('current route isolates owners and commits half-pixel polygons', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1800, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
 
-      final harness = await _buildHarness();
-      addTearDown(harness.dispose);
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: ThemeData.dark(),
-          home: Scaffold(body: PrefabCreatorPage(controller: harness.session)),
-        ),
-      );
-      await tester.pumpAndSettle();
+    final harness = await _buildHarness();
+    addTearDown(harness.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.dark(),
+        home: Scaffold(body: PrefabCreatorPage(controller: harness.session)),
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      expect(
-        find.byKey(const ValueKey<String>('prefab_polygon_staging_workspace')),
-        findsOneWidget,
-      );
-      expect(find.text('Save Definitions'), findsNothing);
-      final applySource = tester.widget<FilledButton>(
-        find.byKey(const ValueKey<String>('prefab_polygon_apply_source')),
-      );
-      expect(applySource.onPressed, isNull);
+    expect(
+      find.byKey(const ValueKey<String>('prefab_polygon_workspace')),
+      findsOneWidget,
+    );
+    expect(find.text('Save Definitions'), findsNothing);
+    final applySource = tester.widget<FilledButton>(
+      find.byKey(const ValueKey<String>('prefab_polygon_apply_source')),
+    );
+    expect(applySource.onPressed, isNull);
 
-      final closeDraftFinder = find.byKey(
-        const ValueKey<String>('prefab_polygon_close_draft'),
-      );
-      expect(tester.widget<OutlinedButton>(closeDraftFinder).onPressed, isNull);
-      await tester.tap(
-        find.byKey(const ValueKey<String>('prefab_polygon_new_shape')),
-      );
-      await tester.pump();
-      expect(
-        tester.widget<OutlinedButton>(closeDraftFinder).onPressed,
-        isNotNull,
-      );
-      final routeState = tester.state(find.byType(PrefabCreatorPage));
-      final localDraftState = routeState as EditorPageLocalDraftState;
-      final shortcutHandler = routeState as EditorPageSessionShortcutHandler;
-      expect(localDraftState.hasLocalDraftChanges, isTrue);
-      expect(shortcutHandler.canHandleUndoSessionShortcut, isTrue);
-      expect(shortcutHandler.handleUndoSessionShortcut(), isTrue);
-      await tester.pump();
-      expect(tester.widget<OutlinedButton>(closeDraftFinder).onPressed, isNull);
-      expect(harness.session.canUndo, isFalse);
+    final closeDraftFinder = find.byKey(
+      const ValueKey<String>('prefab_polygon_close_draft'),
+    );
+    expect(tester.widget<OutlinedButton>(closeDraftFinder).onPressed, isNull);
+    await tester.tap(
+      find.byKey(const ValueKey<String>('prefab_polygon_new_shape')),
+    );
+    await tester.pump();
+    expect(
+      tester.widget<OutlinedButton>(closeDraftFinder).onPressed,
+      isNotNull,
+    );
+    final routeState = tester.state(find.byType(PrefabCreatorPage));
+    final localDraftState = routeState as EditorPageLocalDraftState;
+    final shortcutHandler = routeState as EditorPageSessionShortcutHandler;
+    expect(localDraftState.hasLocalDraftChanges, isTrue);
+    expect(shortcutHandler.canHandleUndoSessionShortcut, isTrue);
+    expect(shortcutHandler.handleUndoSessionShortcut(), isTrue);
+    await tester.pump();
+    expect(tester.widget<OutlinedButton>(closeDraftFinder).onPressed, isNull);
+    expect(harness.session.canUndo, isFalse);
 
-      await tester.tap(
-        find.byKey(const ValueKey<String>('prefab_polygon_new_shape')),
-      );
-      await tester.pump();
+    await tester.tap(
+      find.byKey(const ValueKey<String>('prefab_polygon_new_shape')),
+    );
+    await tester.pump();
 
-      await tester.tap(
-        find.byKey(const ValueKey<String>('prefab_polygon_owner_platform')),
-      );
-      await tester.pump();
-      expect(tester.widget<OutlinedButton>(closeDraftFinder).onPressed, isNull);
-      expect(find.textContaining('platform_module:module_a'), findsOneWidget);
+    await tester.tap(
+      find.byKey(const ValueKey<String>('prefab_polygon_owner_platform')),
+    );
+    await tester.pump();
+    expect(tester.widget<OutlinedButton>(closeDraftFinder).onPressed, isNull);
+    expect(find.textContaining('platform_module:module_a'), findsOneWidget);
 
-      await tester.tap(
-        find.byKey(const ValueKey<String>('prefab_polygon_owner_obstacle')),
-      );
-      await tester.pump();
-      await tester.tap(find.text('0.5 px'));
-      await tester.pump();
-      await tester.tap(
-        find.byKey(const ValueKey<String>('prefab_polygon_new_shape')),
-      );
-      await tester.pump();
+    await tester.tap(
+      find.byKey(const ValueKey<String>('prefab_polygon_owner_obstacle')),
+    );
+    await tester.pump();
+    await tester.tap(find.text('0.5 px'));
+    await tester.pump();
+    await tester.tap(
+      find.byKey(const ValueKey<String>('prefab_polygon_new_shape')),
+    );
+    await tester.pump();
 
-      final surface = find.byKey(
-        const ValueKey<String>('prefab_polygon_scene_surface'),
-      );
-      final center = tester.getCenter(surface);
-      await tester.tapAt(center + const Offset(22, 22));
-      await tester.tapAt(center + const Offset(34, 22));
-      await tester.tapAt(center + const Offset(22, 34));
-      await tester.pump();
-      await tester.tap(closeDraftFinder);
-      await tester.pump();
+    final surface = find.byKey(
+      const ValueKey<String>('prefab_polygon_scene_surface'),
+    );
+    final center = tester.getCenter(surface);
+    await tester.tapAt(center + const Offset(22, 22));
+    await tester.tapAt(center + const Offset(34, 22));
+    await tester.tapAt(center + const Offset(22, 34));
+    await tester.pump();
+    await tester.tap(closeDraftFinder);
+    await tester.pump();
 
-      var obstacle = _prefab(harness.session, 'obstacle');
-      expect(obstacle.revision, 2);
-      expect(obstacle.collisionShapes, hasLength(2));
-      expect(
-        obstacle.collisionShapes
-            .singleWhere((shape) => shape.shapeId == 'collision_002')
-            .vertices
-            .first
-            .xHalfPixels,
-        11,
-      );
-      final impactText = tester.widget<Text>(
-        find.byKey(const ValueKey<String>('prefab_polygon_downstream_impact')),
-      );
-      expect(impactText.data, contains('3 placement(s) in 2 chunk(s)'));
-      expect(impactText.data, contains('chunk revisions stay unchanged'));
-
-      await tester.tap(
-        find.byKey(const ValueKey<String>('prefab_polygon_undo_button')),
-      );
-      await tester.pump();
-      obstacle = _prefab(harness.session, 'obstacle');
-      expect(obstacle.revision, 1);
-      expect(obstacle.collisionShapes, hasLength(1));
-
-      await tester.tap(
-        find.byKey(const ValueKey<String>('prefab_polygon_redo_button')),
-      );
-      await tester.pump();
-      obstacle = _prefab(harness.session, 'obstacle');
-      expect(obstacle.revision, 2);
-
-      final editedShapeRow = find.byKey(
-        const ValueKey<String>('prefab_polygon_shape_collision_002'),
-      );
-      await tester.ensureVisible(editedShapeRow);
-      await tester.tap(editedShapeRow);
-      await tester.pump();
-      final vertexRow = find.byKey(
-        const ValueKey<String>('prefab_polygon_vertex_collision_002_0'),
-      );
-      await tester.ensureVisible(vertexRow);
-      await tester.tap(vertexRow);
-      await tester.pump();
-      final xField = find.byKey(
-        const ValueKey<String>('prefab_polygon_vertex_x_field'),
-      );
-      final yField = find.byKey(
-        const ValueKey<String>('prefab_polygon_vertex_y_field'),
-      );
-      await tester.ensureVisible(xField);
-      await tester.enterText(xField, '5');
-      await tester.enterText(yField, '5.5');
-      await tester.tap(
-        find.byKey(const ValueKey<String>('prefab_polygon_apply_vertex')),
-      );
-      await tester.pump();
-      obstacle = _prefab(harness.session, 'obstacle');
-      expect(obstacle.revision, 3);
-      final editedVertex = obstacle.collisionShapes
+    var obstacle = _prefab(harness.session, 'obstacle');
+    expect(obstacle.revision, 2);
+    expect(obstacle.collisionShapes, hasLength(2));
+    expect(
+      obstacle.collisionShapes
           .singleWhere((shape) => shape.shapeId == 'collision_002')
           .vertices
-          .first;
-      expect(editedVertex.xHalfPixels, 10);
-      expect(editedVertex.yHalfPixels, 11);
+          .first
+          .xHalfPixels,
+      11,
+    );
+    final impactText = tester.widget<Text>(
+      find.byKey(const ValueKey<String>('prefab_polygon_downstream_impact')),
+    );
+    expect(impactText.data, contains('3 placement(s) in 2 chunk(s)'));
+    expect(impactText.data, contains('chunk revisions stay unchanged'));
 
-      final diagnostic = find.text(
-        'prefab_collision_shape_outside_visual_bounds',
-      );
-      await tester.ensureVisible(diagnostic);
-      await tester.tap(diagnostic);
-      await tester.pump();
-      final shapeTile = tester.widget<ListTile>(
-        find.descendant(
-          of: find.byKey(
-            const ValueKey<String>('prefab_polygon_shape_collision_001'),
-          ),
-          matching: find.byType(ListTile),
+    await tester.tap(
+      find.byKey(const ValueKey<String>('prefab_polygon_undo_button')),
+    );
+    await tester.pump();
+    obstacle = _prefab(harness.session, 'obstacle');
+    expect(obstacle.revision, 1);
+    expect(obstacle.collisionShapes, hasLength(1));
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('prefab_polygon_redo_button')),
+    );
+    await tester.pump();
+    obstacle = _prefab(harness.session, 'obstacle');
+    expect(obstacle.revision, 2);
+
+    final editedShapeRow = find.byKey(
+      const ValueKey<String>('prefab_polygon_shape_collision_002'),
+    );
+    await tester.ensureVisible(editedShapeRow);
+    await tester.tap(editedShapeRow);
+    await tester.pump();
+    final vertexRow = find.byKey(
+      const ValueKey<String>('prefab_polygon_vertex_collision_002_0'),
+    );
+    await tester.ensureVisible(vertexRow);
+    await tester.tap(vertexRow);
+    await tester.pump();
+    final xField = find.byKey(
+      const ValueKey<String>('prefab_polygon_vertex_x_field'),
+    );
+    final yField = find.byKey(
+      const ValueKey<String>('prefab_polygon_vertex_y_field'),
+    );
+    await tester.ensureVisible(xField);
+    await tester.enterText(xField, '5');
+    await tester.enterText(yField, '5.5');
+    await tester.tap(
+      find.byKey(const ValueKey<String>('prefab_polygon_apply_vertex')),
+    );
+    await tester.pump();
+    obstacle = _prefab(harness.session, 'obstacle');
+    expect(obstacle.revision, 3);
+    final editedVertex = obstacle.collisionShapes
+        .singleWhere((shape) => shape.shapeId == 'collision_002')
+        .vertices
+        .first;
+    expect(editedVertex.xHalfPixels, 10);
+    expect(editedVertex.yHalfPixels, 11);
+
+    final diagnostic = find.text(
+      'prefab_collision_shape_outside_visual_bounds',
+    );
+    await tester.ensureVisible(diagnostic);
+    await tester.tap(diagnostic);
+    await tester.pump();
+    final shapeTile = tester.widget<ListTile>(
+      find.descendant(
+        of: find.byKey(
+          const ValueKey<String>('prefab_polygon_shape_collision_001'),
         ),
-      );
-      expect(shapeTile.selected, isTrue);
+        matching: find.byType(ListTile),
+      ),
+    );
+    expect(shapeTile.selected, isTrue);
 
-      expect(harness.session.pendingChanges.changedItemIds, <String>[
-        'obstacle',
-      ]);
-      expect(harness.session.exportError, isNull);
-    },
-  );
+    expect(harness.session.pendingChanges.changedItemIds, <String>['obstacle']);
+    expect(harness.session.exportError, isNull);
+  });
 
   testWidgets(
-    'staging owner forms preserve polygons across metadata and lifecycle edits',
+    'current owner forms preserve polygons across metadata and lifecycle edits',
     (tester) async {
       tester.view.physicalSize = const Size(1800, 1000);
       tester.view.devicePixelRatio = 1;
@@ -325,7 +322,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(
-        (harness.session.document! as PrefabV3StagingDocument).data.prefabs.any(
+        (harness.session.document! as PrefabV3Document).data.prefabs.any(
           (prefab) => prefab.prefabKey == 'obstacle_renamed_copy',
         ),
         isFalse,
@@ -382,7 +379,7 @@ void main() {
   );
 
   testWidgets(
-    'staging atlas form commits slices and protects local drafts and references',
+    'current atlas form commits slices and protects local drafts and references',
     (tester) async {
       tester.view.physicalSize = const Size(1800, 1000);
       tester.view.devicePixelRatio = 1;
@@ -448,7 +445,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(
-        (harness.session.document! as PrefabV3StagingDocument).data.slices.any(
+        (harness.session.document! as PrefabV3Document).data.slices.any(
           (slice) => slice.id == 'bonus_slice',
         ),
         isFalse,
@@ -504,7 +501,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(
-        (harness.session.document! as PrefabV3StagingDocument).data.slices.any(
+        (harness.session.document! as PrefabV3Document).data.slices.any(
           (slice) => slice.id == 'bonus_slice',
         ),
         isFalse,
@@ -559,10 +556,9 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(
-        (harness.session.document! as PrefabV3StagingDocument)
-            .tileData
-            .tileSlices
-            .any((slice) => slice.id == 'tile_bonus'),
+        (harness.session.document! as PrefabV3Document).tileData.tileSlices.any(
+          (slice) => slice.id == 'tile_bonus',
+        ),
         isFalse,
       );
 
@@ -615,7 +611,7 @@ void main() {
   );
 
   testWidgets(
-    'staging module form preserves references across retained module workflows',
+    'current module form preserves references across retained module workflows',
     (tester) async {
       tester.view.physicalSize = const Size(1800, 1200);
       tester.view.devicePixelRatio = 1;
@@ -725,9 +721,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(
-        (harness.session.document! as PrefabV3StagingDocument)
-            .tileData
-            .platformModules
+        (harness.session.document! as PrefabV3Document).tileData.platformModules
             .any((module) => module.id == 'module_main_copy'),
         isFalse,
       );
@@ -787,9 +781,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(
-        (harness.session.document! as PrefabV3StagingDocument)
-            .tileData
-            .platformModules
+        (harness.session.document! as PrefabV3Document).tileData.platformModules
             .any((module) => module.id == 'scratch_module'),
         isFalse,
       );
@@ -840,10 +832,10 @@ void main() {
 
 Future<_Harness> _buildHarness() async {
   final root = Directory.systemTemp.createTempSync('prefab_stage_page_');
-  final document = _stagingDocument();
+  final document = _currentDocument();
   final session = EditorSessionController(
     pluginRegistry: AuthoringPluginRegistry(
-      plugins: <AuthoringDomainPlugin>[_StagingPrefabPlugin(document)],
+      plugins: <AuthoringDomainPlugin>[_PrefabPlugin(document)],
     ),
     initialPluginId: PrefabDomainPlugin.pluginId,
     initialWorkspacePath: root.path,
@@ -852,7 +844,7 @@ Future<_Harness> _buildHarness() async {
   return _Harness(root: root, session: session);
 }
 
-PrefabV3StagingDocument _stagingDocument() {
+PrefabV3Document _currentDocument() {
   final data = PrefabV3FileData(
     slices: const <AtlasSliceDef>[
       AtlasSliceDef(
@@ -932,7 +924,7 @@ PrefabV3StagingDocument _stagingDocument() {
       ),
     ],
   );
-  return PrefabV3StagingDocument(
+  return PrefabV3Document(
     data: data,
     tileData: tileData,
     visualBoundsByPrefabKey: const <String, PrefabV3VisualBounds>{
@@ -963,14 +955,14 @@ PrefabV3StagingDocument _stagingDocument() {
 }
 
 PrefabV3Def _prefab(EditorSessionController session, String prefabKey) {
-  final document = session.document! as PrefabV3StagingDocument;
+  final document = session.document! as PrefabV3Document;
   return document.data.prefabs.singleWhere(
     (prefab) => prefab.prefabKey == prefabKey,
   );
 }
 
 AtlasSliceDef _slice(EditorSessionController session, String sliceId) {
-  final document = session.document! as PrefabV3StagingDocument;
+  final document = session.document! as PrefabV3Document;
   return <AtlasSliceDef>[
     ...document.data.slices,
     ...document.tileData.tileSlices,
@@ -978,7 +970,7 @@ AtlasSliceDef _slice(EditorSessionController session, String sliceId) {
 }
 
 TileModuleDef _module(EditorSessionController session, String moduleId) {
-  final document = session.document! as PrefabV3StagingDocument;
+  final document = session.document! as PrefabV3Document;
   return document.tileData.platformModules.singleWhere(
     (module) => module.id == moduleId,
   );
@@ -1016,10 +1008,10 @@ final class _Harness {
   }
 }
 
-final class _StagingPrefabPlugin implements AuthoringDomainPlugin {
-  const _StagingPrefabPlugin(this.document);
+final class _PrefabPlugin implements AuthoringDomainPlugin {
+  const _PrefabPlugin(this.document);
 
-  final PrefabV3StagingDocument document;
+  final PrefabV3Document document;
   static const PrefabDomainPlugin _delegate = PrefabDomainPlugin();
 
   @override

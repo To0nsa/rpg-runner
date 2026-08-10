@@ -12,11 +12,11 @@ import '../workspace/workspace_write_transaction.dart';
 import 'chunk_domain_models.dart';
 import 'chunk_v2_file_codec.dart';
 import 'chunk_v2_file_data.dart';
-import 'chunk_v2_staging_models.dart';
+import 'chunk_v2_models.dart';
 
 /// One strict chunk-v2 source snapshot retained for current-schema editing.
-class ChunkV2StagingSource {
-  const ChunkV2StagingSource({
+class ChunkV2Source {
+  const ChunkV2Source({
     required this.data,
     required this.sourcePath,
     required this.baselineContents,
@@ -27,20 +27,20 @@ class ChunkV2StagingSource {
   final String baselineContents;
 }
 
-/// Complete all-v2 chunk source set loaded by the explicit staging path.
-class ChunkV2StagingLoadResult {
-  ChunkV2StagingLoadResult({required Iterable<ChunkV2StagingSource> sources})
-    : sources = List<ChunkV2StagingSource>.unmodifiable(sources);
+/// Complete all-v2 chunk source set loaded by the current source path.
+class ChunkV2LoadResult {
+  ChunkV2LoadResult({required Iterable<ChunkV2Source> sources})
+    : sources = List<ChunkV2Source>.unmodifiable(sources);
 
-  final List<ChunkV2StagingSource> sources;
+  final List<ChunkV2Source> sources;
 }
 
 /// Schema family shared by every chunk file in one authoring workspace.
 enum ChunkSourceGeneration { missing, legacyV1, currentV2 }
 
-/// Stable failure from the explicit chunk-v2 staging write proof.
-final class ChunkV2StagingSaveException implements Exception {
-  const ChunkV2StagingSaveException({
+/// Stable failure from the explicit chunk-v2 write proof.
+final class ChunkV2SaveException implements Exception {
+  const ChunkV2SaveException({
     required this.code,
     required this.message,
     this.cause,
@@ -126,9 +126,7 @@ class ChunkStore {
   /// Normal loading selects this path only after [detectSourceGeneration]
   /// proves that every source file is v2. Repository writes remain controlled
   /// by the separate export cutover gate.
-  Future<ChunkV2StagingLoadResult> loadV2Staging(
-    EditorWorkspace workspace,
-  ) async {
+  Future<ChunkV2LoadResult> loadV2(EditorWorkspace workspace) async {
     final chunkFiles = _listChunkFiles(workspace);
     if (chunkFiles.isEmpty) {
       throw StateError(
@@ -137,7 +135,7 @@ class ChunkStore {
       );
     }
 
-    final sources = <ChunkV2StagingSource>[];
+    final sources = <ChunkV2Source>[];
     final sourcePathByFoldedChunkKey = <String, String>{};
     for (final file in chunkFiles) {
       final relativePath = WorkspaceFileIo.toWorkspaceRelativePath(
@@ -156,14 +154,14 @@ class ChunkStore {
       }
       sourcePathByFoldedChunkKey[foldedChunkKey] = relativePath;
       sources.add(
-        ChunkV2StagingSource(
+        ChunkV2Source(
           data: data,
           sourcePath: relativePath,
           baselineContents: raw,
         ),
       );
     }
-    return ChunkV2StagingLoadResult(sources: sources);
+    return ChunkV2LoadResult(sources: sources);
   }
 
   Future<ChunkDocument> load(
@@ -372,9 +370,7 @@ class ChunkStore {
   /// come exclusively from strict load baselines; new owners must be declared
   /// explicitly; deleted owners retain their baseline long enough to describe
   /// removal. Enabling writes remains a separate Phase 4 cutover gate.
-  ChunkSavePlan buildV2StagingSavePlan({
-    required ChunkV2StagingDocument document,
-  }) {
+  ChunkSavePlan buildV2SavePlan({required ChunkV2Document document}) {
     final chunks = List<ChunkV2FileData>.of(document.chunks)
       ..sort(_compareChunkV2ForMemory);
     final currentChunkKeys = chunks.map((chunk) => chunk.chunkKey).toSet();
@@ -497,14 +493,14 @@ class ChunkStore {
   /// installed files are byte-verified and strictly decoded before backups are
   /// removed. Normal plugin export reaches this only after schema detection has
   /// selected a complete v2 tree; it cannot migrate legacy source.
-  void applyV2StagingSavePlan(
+  void applyV2SavePlan(
     EditorWorkspace workspace, {
-    required ChunkV2StagingDocument document,
+    required ChunkV2Document document,
     required ChunkSavePlan savePlan,
   }) {
-    final rebuilt = buildV2StagingSavePlan(document: document);
+    final rebuilt = buildV2SavePlan(document: document);
     if (!_savePlansEqual(rebuilt, savePlan)) {
-      throw const ChunkV2StagingSaveException(
+      throw const ChunkV2SaveException(
         code: 'chunk_v2_save_plan_stale',
         message: 'Chunk-v2 save plan no longer matches the staged document.',
       );
@@ -512,10 +508,7 @@ class ChunkStore {
     try {
       _requireV2SourcesFresh(workspace, document);
     } on _ChunkV2SaveAbort catch (error) {
-      throw ChunkV2StagingSaveException(
-        code: error.code,
-        message: error.message,
-      );
+      throw ChunkV2SaveException(code: error.code, message: error.message);
     }
     if (!savePlan.hasChanges) return;
 
@@ -564,7 +557,7 @@ class ChunkStore {
           ? error.cause as _ChunkV2SaveAbort
           : null;
       Error.throwWithStackTrace(
-        ChunkV2StagingSaveException(
+        ChunkV2SaveException(
           code: abort?.code ?? 'chunk_v2_save_transaction_failed',
           message:
               abort?.message ??
@@ -1032,7 +1025,7 @@ class ChunkStore {
 
   void _requireV2SourcesFresh(
     EditorWorkspace workspace,
-    ChunkV2StagingDocument document,
+    ChunkV2Document document,
   ) {
     final expectedByFoldedPath = <String, String>{};
     for (final entry in document.baselineContentsByChunkKey.entries) {
@@ -1078,7 +1071,7 @@ class ChunkStore {
   }
 
   Map<String, String> _v2FinalPathByChunkKey(
-    ChunkV2StagingDocument document,
+    ChunkV2Document document,
     ChunkSavePlan savePlan,
   ) {
     final writeByChunkKey = <String, ChunkFileWrite>{
@@ -1095,7 +1088,7 @@ class ChunkStore {
 
   void _requireV2PlanInstalled(
     EditorWorkspace workspace,
-    ChunkV2StagingDocument document,
+    ChunkV2Document document,
     ChunkSavePlan savePlan,
   ) {
     final chunksByKey = <String, ChunkV2FileData>{

@@ -15,8 +15,8 @@ void main() {
     () async {
       final fixture = _Fixture.create();
       addTearDown(fixture.dispose);
-      final loaded = await store.loadV3Staging(fixture.root.path);
-      final plan = store.buildV3StagingSavePlan(
+      final loaded = await store.loadV3(fixture.root.path);
+      final plan = store.buildV3SavePlan(
         prefabData: loaded.prefabData,
         tileData: loaded.tileData,
         prefabBaselineContents: fixture.prefabFile.readAsStringSync(),
@@ -29,7 +29,7 @@ void main() {
         PrefabStore.tileDefsPath,
       ]);
       final before = fixture.snapshot();
-      store.applyV3StagingSavePlan(fixture.root.path, plan: plan);
+      store.applyV3SavePlan(fixture.root.path, plan: plan);
       expect(fixture.snapshot(), before);
     },
   );
@@ -37,7 +37,7 @@ void main() {
   test('paired changes apply atomically and reload byte-identically', () async {
     final fixture = _Fixture.create();
     addTearDown(fixture.dispose);
-    final loaded = await store.loadV3Staging(fixture.root.path);
+    final loaded = await store.loadV3(fixture.root.path);
     final prefab = loaded.prefabData.prefabs.single;
     final module = loaded.tileData.platformModules.single;
     final nextPrefabData = loaded.prefabData.copyWith(
@@ -53,7 +53,7 @@ void main() {
         ),
       ],
     );
-    final plan = store.buildV3StagingSavePlan(
+    final plan = store.buildV3SavePlan(
       prefabData: nextPrefabData,
       tileData: nextTileData,
       prefabBaselineContents: fixture.prefabFile.readAsStringSync(),
@@ -61,7 +61,7 @@ void main() {
     );
 
     expect(plan.files.where((file) => file.hasChanges), hasLength(2));
-    store.applyV3StagingSavePlan(fixture.root.path, plan: plan);
+    store.applyV3SavePlan(fixture.root.path, plan: plan);
 
     expect(
       fixture.prefabFile.readAsStringSync(),
@@ -71,7 +71,7 @@ void main() {
       fixture.tileFile.readAsStringSync(),
       PrefabTileFileCodec.encode(nextTileData),
     );
-    final reloaded = await store.loadV3Staging(fixture.root.path);
+    final reloaded = await store.loadV3(fixture.root.path);
     expect(
       PrefabV3FileCodec.encode(reloaded.prefabData),
       PrefabV3FileCodec.encode(nextPrefabData),
@@ -80,7 +80,7 @@ void main() {
       PrefabTileFileCodec.encode(reloaded.tileData),
       PrefabTileFileCodec.encode(nextTileData),
     );
-    final noOp = store.buildV3StagingSavePlan(
+    final noOp = store.buildV3SavePlan(
       prefabData: reloaded.prefabData,
       tileData: reloaded.tileData,
       prefabBaselineContents: fixture.prefabFile.readAsStringSync(),
@@ -95,7 +95,7 @@ void main() {
     () async {
       final fixture = _Fixture.create();
       addTearDown(fixture.dispose);
-      final loaded = await store.loadV3Staging(fixture.root.path);
+      final loaded = await store.loadV3(fixture.root.path);
       final prefabBefore = fixture.prefabFile.readAsBytesSync();
       final module = loaded.tileData.platformModules.single;
       final nextTileData = loaded.tileData.copyWith(
@@ -106,7 +106,7 @@ void main() {
           ),
         ],
       );
-      final plan = store.buildV3StagingSavePlan(
+      final plan = store.buildV3SavePlan(
         prefabData: loaded.prefabData,
         tileData: nextTileData,
         prefabBaselineContents: fixture.prefabFile.readAsStringSync(),
@@ -117,7 +117,7 @@ void main() {
         plan.files.where((file) => file.hasChanges).single.relativePath,
         PrefabStore.tileDefsPath,
       );
-      store.applyV3StagingSavePlan(fixture.root.path, plan: plan);
+      store.applyV3SavePlan(fixture.root.path, plan: plan);
       expect(fixture.prefabFile.readAsBytesSync(), prefabBefore);
       expect(
         fixture.tileFile.readAsStringSync(),
@@ -132,9 +132,9 @@ void main() {
     () async {
       final fixture = _Fixture.create();
       addTearDown(fixture.dispose);
-      final loaded = await store.loadV3Staging(fixture.root.path);
+      final loaded = await store.loadV3(fixture.root.path);
       final prefab = loaded.prefabData.prefabs.single;
-      final plan = store.buildV3StagingSavePlan(
+      final plan = store.buildV3SavePlan(
         prefabData: loaded.prefabData.copyWith(
           prefabs: <PrefabV3Def>[
             prefab.copyWith(revision: prefab.revision + 1),
@@ -149,9 +149,9 @@ void main() {
       final tileBefore = fixture.tileFile.readAsBytesSync();
 
       expect(
-        () => store.applyV3StagingSavePlan(fixture.root.path, plan: plan),
+        () => store.applyV3SavePlan(fixture.root.path, plan: plan),
         throwsA(
-          isA<PrefabV3StagingSaveException>().having(
+          isA<PrefabV3SaveException>().having(
             (error) => error.code,
             'code',
             'prefab_v3_save_source_drift',
@@ -169,14 +169,14 @@ void main() {
     addTearDown(fixture.dispose);
 
     expect(
-      () => store.buildV3StagingSavePlan(
+      () => store.buildV3SavePlan(
         prefabData: fixture.prefabData,
         tileData: fixture.tileData,
         prefabBaselineContents: null,
         tileBaselineContents: fixture.tileFile.readAsStringSync(),
       ),
       throwsA(
-        isA<PrefabV3StagingSaveException>().having(
+        isA<PrefabV3SaveException>().having(
           (error) => error.code,
           'code',
           'prefab_v3_save_baseline_missing',
@@ -184,39 +184,39 @@ void main() {
       ),
     );
     expect(
-      () => store.buildV3StagingSavePlan(
+      () => store.buildV3SavePlan(
         prefabData: fixture.prefabData,
         tileData: fixture.tileData,
         prefabBaselineContents: '{"schemaVersion":2}\n',
         tileBaselineContents: fixture.tileFile.readAsStringSync(),
       ),
       throwsA(
-        isA<PrefabV3StagingSaveException>().having(
+        isA<PrefabV3SaveException>().having(
           (error) => error.code,
           'code',
           'prefab_v3_save_baseline_invalid',
         ),
       ),
     );
-    final incomplete = PrefabV3StagingSavePlan(<PrefabV3StagingSaveFile>[
-      PrefabV3StagingSaveFile(
+    final incomplete = PrefabV3SavePlan(<PrefabV3SaveFile>[
+      PrefabV3SaveFile(
         relativePath: PrefabStore.prefabDefsPath,
         beforeContents: fixture.prefabFile.readAsStringSync(),
         afterContents: fixture.prefabFile.readAsStringSync(),
       ),
     ]);
     expect(
-      () => store.applyV3StagingSavePlan(fixture.root.path, plan: incomplete),
+      () => store.applyV3SavePlan(fixture.root.path, plan: incomplete),
       throwsA(
-        isA<PrefabV3StagingSaveException>().having(
+        isA<PrefabV3SaveException>().having(
           (error) => error.code,
           'code',
           'prefab_v3_save_plan_invalid',
         ),
       ),
     );
-    final noncanonical = PrefabV3StagingSavePlan(<PrefabV3StagingSaveFile>[
-      PrefabV3StagingSaveFile(
+    final noncanonical = PrefabV3SavePlan(<PrefabV3SaveFile>[
+      PrefabV3SaveFile(
         relativePath: PrefabStore.prefabDefsPath,
         beforeContents: fixture.prefabFile.readAsStringSync(),
         afterContents: fixture.prefabFile
@@ -224,16 +224,16 @@ void main() {
             .replaceAll(RegExp(r'\s+'), ' ')
             .trim(),
       ),
-      PrefabV3StagingSaveFile(
+      PrefabV3SaveFile(
         relativePath: PrefabStore.tileDefsPath,
         beforeContents: fixture.tileFile.readAsStringSync(),
         afterContents: fixture.tileFile.readAsStringSync(),
       ),
     ]);
     expect(
-      () => store.applyV3StagingSavePlan(fixture.root.path, plan: noncanonical),
+      () => store.applyV3SavePlan(fixture.root.path, plan: noncanonical),
       throwsA(
-        isA<PrefabV3StagingSaveException>().having(
+        isA<PrefabV3SaveException>().having(
           (error) => error.code,
           'code',
           'prefab_v3_save_plan_output_invalid',

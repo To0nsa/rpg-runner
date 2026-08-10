@@ -27,7 +27,7 @@ void main() {
       final document = _document(before);
 
       expect(plugin.validate(document), isEmpty);
-      expect(plugin.buildEditableScene(document), isA<PrefabV3StagingScene>());
+      expect(plugin.buildEditableScene(document), isA<PrefabV3Scene>());
       final edited = plugin.applyEdit(
         document,
         AuthoringCommand(
@@ -39,8 +39,8 @@ void main() {
         ),
       );
 
-      expect(edited, isA<PrefabV3StagingDocument>());
-      final next = edited as PrefabV3StagingDocument;
+      expect(edited, isA<PrefabV3Document>());
+      final next = edited as PrefabV3Document;
       expect(next, isNot(same(document)));
       expect(document.data.prefabs.single.revision, 4);
       expect(next.data.prefabs.single.revision, 5);
@@ -152,7 +152,7 @@ void main() {
         await expectLater(
           plugin.exportToRepo(workspace, document: changed),
           throwsA(
-            isA<PrefabV3StagingSaveException>().having(
+            isA<PrefabV3SaveException>().having(
               (error) => error.code,
               'code',
               'prefab_v3_save_source_drift',
@@ -306,7 +306,7 @@ void main() {
           isA<StateError>().having(
             (error) => error.message,
             'message',
-            contains('Cannot export prefab-v3 staging while validation has'),
+            contains('Cannot export prefab-v3 while validation has'),
           ),
         ),
       );
@@ -338,7 +338,7 @@ void main() {
                 },
               ),
             )
-            as PrefabV3StagingDocument;
+            as PrefabV3Document;
 
     final after = edited.data.prefabs.single;
     expect(after.prefabKey, before.prefabKey);
@@ -417,8 +417,8 @@ void main() {
     () {
       final document = _document(<TerrainSourceShapeDef>[_rectangle(right: 8)]);
 
-      PrefabV3StagingDocument apply(
-        PrefabV3StagingDocument source,
+      PrefabV3Document apply(
+        PrefabV3Document source,
         PrefabV3LifecycleOperation operation,
       ) =>
           plugin.applyEdit(
@@ -433,7 +433,7 @@ void main() {
                   },
                 ),
               )
-              as PrefabV3StagingDocument;
+              as PrefabV3Document;
 
       final created = apply(
         document,
@@ -577,7 +577,7 @@ void main() {
     final document = _document(<TerrainSourceShapeDef>[_rectangle(right: 8)]);
 
     AuthoringDocument apply(
-      PrefabV3StagingDocument source,
+      PrefabV3Document source,
       PrefabV3CatalogOperation operation,
     ) => plugin.applyEdit(
       source,
@@ -607,7 +607,7 @@ void main() {
                 ),
               ),
             )
-            as PrefabV3StagingDocument;
+            as PrefabV3Document;
     expect(resized.visualBoundsByPrefabKey['target']?.widthPx, 12);
     expect(resized.data.prefabs.single.revision, 4);
 
@@ -629,7 +629,7 @@ void main() {
                 cascadeReferences: true,
               ),
             )
-            as PrefabV3StagingDocument;
+            as PrefabV3Document;
     expect(deleted.data.slices, isEmpty);
     expect(deleted.data.prefabs, isEmpty);
     expect(deleted.changedPrefabKeys, <String>['target']);
@@ -638,8 +638,8 @@ void main() {
   test('typed module lifecycle propagates references and revisions once', () {
     final document = _catalogDocument();
 
-    PrefabV3StagingDocument apply(
-      PrefabV3StagingDocument source,
+    PrefabV3Document apply(
+      PrefabV3Document source,
       PrefabV3CatalogOperation operation,
     ) =>
         plugin.applyEdit(
@@ -654,7 +654,7 @@ void main() {
                 },
               ),
             )
-            as PrefabV3StagingDocument;
+            as PrefabV3Document;
 
     final updated = apply(
       document,
@@ -838,7 +838,7 @@ void main() {
                 },
               ),
             )
-            as PrefabV3StagingDocument;
+            as PrefabV3Document;
 
     expect(edited.tileData.tileSlices.single.id, 'tile_b');
     expect(edited.tileData.platformModules.single.revision, 3);
@@ -885,7 +885,7 @@ void main() {
         document: edited,
       ),
       throwsA(
-        isA<PrefabV3StagingSaveException>().having(
+        isA<PrefabV3SaveException>().having(
           (error) => error.code,
           'code',
           'prefab_v3_save_source_drift',
@@ -896,7 +896,7 @@ void main() {
   });
 }
 
-PrefabV3StagingDocument _document(Iterable<TerrainSourceShapeDef> shapes) {
+PrefabV3Document _document(Iterable<TerrainSourceShapeDef> shapes) {
   final data = PrefabV3FileData(
     slices: const <AtlasSliceDef>[
       AtlasSliceDef(
@@ -923,7 +923,7 @@ PrefabV3StagingDocument _document(Iterable<TerrainSourceShapeDef> shapes) {
       ),
     ],
   );
-  return PrefabV3StagingDocument(
+  return PrefabV3Document(
     data: data,
     tileData: PrefabTileFileData(
       tileSlices: const <AtlasSliceDef>[],
@@ -946,7 +946,7 @@ PrefabV3StagingDocument _document(Iterable<TerrainSourceShapeDef> shapes) {
   );
 }
 
-PrefabV3StagingDocument _catalogDocument() {
+PrefabV3Document _catalogDocument() {
   final data = PrefabV3FileData(
     slices: const <AtlasSliceDef>[],
     prefabs: <PrefabV3Def>[
@@ -996,7 +996,7 @@ PrefabV3StagingDocument _catalogDocument() {
       ),
     ],
   );
-  return PrefabV3StagingDocument(
+  return PrefabV3Document(
     data: data,
     tileData: tileData,
     visualBoundsByPrefabKey: const <String, PrefabV3VisualBounds>{

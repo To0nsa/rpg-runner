@@ -7,7 +7,7 @@ import 'platform/tile_module_def.dart';
 ///
 /// Prefab collision source moves to prefab schema v3, while tile slices and
 /// platform modules remain in their existing file. This record lets the v3
-/// staging loader consume that file without routing through rectangle-era
+/// current loader consume that file without routing through rectangle-era
 /// [PrefabData].
 @immutable
 final class PrefabTileFileData {

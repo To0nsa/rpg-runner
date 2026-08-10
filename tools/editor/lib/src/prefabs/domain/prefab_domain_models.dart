@@ -123,10 +123,10 @@ final class PrefabV3DownstreamImpact {
 /// The normal loader selects this only for strict v3 source; legacy or missing
 /// source becomes a migration-required document with no editable prefab data.
 /// Export can update already-current source but cannot migrate legacy files.
-/// The coordinated cutover removes the temporary `Staging` name.
+/// This is the normal Prefab-v3 authoring document.
 @immutable
-class PrefabV3StagingDocument extends AuthoringDocument {
-  PrefabV3StagingDocument({
+class PrefabV3Document extends AuthoringDocument {
+  PrefabV3Document({
     required this.data,
     required this.tileData,
     required Map<String, PrefabV3VisualBounds> visualBoundsByPrefabKey,
@@ -160,7 +160,7 @@ class PrefabV3StagingDocument extends AuthoringDocument {
   final List<String> changedPrefabKeys;
   final List<PrefabV3DownstreamImpact> downstreamImpacts;
 
-  PrefabV3StagingDocument copyWith({
+  PrefabV3Document copyWith({
     PrefabV3FileData? data,
     PrefabTileFileData? tileData,
     Map<String, PrefabV3VisualBounds>? visualBoundsByPrefabKey,
@@ -172,7 +172,7 @@ class PrefabV3StagingDocument extends AuthoringDocument {
     bool keepTileBaselineContents = true,
     Iterable<String>? changedPrefabKeys,
     Iterable<PrefabV3DownstreamImpact>? downstreamImpacts,
-  }) => PrefabV3StagingDocument(
+  }) => PrefabV3Document(
     data: data ?? this.data,
     tileData: tileData ?? this.tileData,
     visualBoundsByPrefabKey:
@@ -192,8 +192,8 @@ class PrefabV3StagingDocument extends AuthoringDocument {
 
 /// Read-only scene projection for the staged prefab-v3 plugin document.
 @immutable
-class PrefabV3StagingScene extends EditableScene {
-  PrefabV3StagingScene({
+class PrefabV3Scene extends EditableScene {
+  PrefabV3Scene({
     required this.data,
     required this.tileData,
     required Map<String, PrefabV3VisualBounds> visualBoundsByPrefabKey,

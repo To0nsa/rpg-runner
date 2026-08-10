@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../chunks/chunk_domain_models.dart';
-import '../../../chunks/chunk_v2_staging_models.dart';
+import '../../../chunks/chunk_v2_models.dart';
 import '../../../domain/authoring_types.dart';
 import '../../../prefabs/models/models.dart';
 import '../../../session/editor_session_controller.dart';
@@ -13,7 +13,7 @@ import '../shared/editor_page_local_draft_state.dart';
 import '../shared/editor_scene_view_utils.dart';
 import '../shared/platform_module_preview_tile.dart';
 import '../shared/polygon_authoring_migration_required_workspace.dart';
-import 'staging/chunk_polygon_staging_workspace.dart';
+import 'v2/chunk_polygon_workspace.dart';
 import 'widgets/chunk_scene_view.dart';
 
 class ChunkCreatorPage extends StatefulWidget {
@@ -78,8 +78,8 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
   );
   final EditorUiImageCache _prefabPalettePreviewImageCache =
       EditorUiImageCache();
-  final GlobalKey<ChunkPolygonStagingWorkspaceState> _stagingWorkspaceKey =
-      GlobalKey<ChunkPolygonStagingWorkspaceState>();
+  final GlobalKey<ChunkPolygonWorkspaceState> _workspaceKey =
+      GlobalKey<ChunkPolygonWorkspaceState>();
 
   String? _selectedChunkKey;
   String? _selectedDiffPath;
@@ -114,7 +114,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
   String _chunkListDifficultyFilter = _chunkListDifficultyAll;
   String _prefabPaletteTagFilter = _prefabPaletteTagAll;
   PrefabKind? _prefabPaletteKindFilter;
-  late bool _showingV2Staging;
+  late bool _showingV2;
   late bool _showingMigrationRequired;
 
   static const double _spaceXs = 4;
@@ -129,8 +129,8 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
   @override
   bool get hasLocalDraftChanges {
     if (_showingMigrationRequired) return false;
-    if (_showingV2Staging) {
-      return _stagingWorkspaceKey.currentState?.hasLocalDraftChanges ??
+    if (_showingV2) {
+      return _workspaceKey.currentState?.hasLocalDraftChanges ??
           widget.controller.pendingChanges.hasChanges;
     }
     return _newChunkIdController.text.trim() != _defaultNewChunkId ||
@@ -145,18 +145,16 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
   @override
   bool get canHandleUndoSessionShortcut {
     if (_showingMigrationRequired) return false;
-    return _showingV2Staging
-        ? (_stagingWorkspaceKey.currentState?.canUndo ??
-              widget.controller.canUndo)
+    return _showingV2
+        ? (_workspaceKey.currentState?.canUndo ?? widget.controller.canUndo)
         : widget.controller.canUndo;
   }
 
   @override
   bool get canHandleRedoSessionShortcut {
     if (_showingMigrationRequired) return false;
-    return _showingV2Staging
-        ? (_stagingWorkspaceKey.currentState?.canRedo ??
-              widget.controller.canRedo)
+    return _showingV2
+        ? (_workspaceKey.currentState?.canRedo ?? widget.controller.canRedo)
         : widget.controller.canRedo;
   }
 
@@ -167,8 +165,8 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
   @override
   bool handleUndoSessionShortcut() {
     if (_showingMigrationRequired) return false;
-    if (_showingV2Staging) {
-      return _stagingWorkspaceKey.currentState?.handleUndoShortcut() ?? false;
+    if (_showingV2) {
+      return _workspaceKey.currentState?.handleUndoShortcut() ?? false;
     }
     if (!widget.controller.canUndo) return false;
     widget.controller.undo();
@@ -178,8 +176,8 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
   @override
   bool handleRedoSessionShortcut() {
     if (_showingMigrationRequired) return false;
-    if (_showingV2Staging) {
-      return _stagingWorkspaceKey.currentState?.handleRedoShortcut() ?? false;
+    if (_showingV2) {
+      return _workspaceKey.currentState?.handleRedoShortcut() ?? false;
     }
     if (!widget.controller.canRedo) return false;
     widget.controller.redo();
@@ -200,12 +198,12 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
   @override
   void initState() {
     super.initState();
-    _showingV2Staging = widget.controller.scene is ChunkV2StagingScene;
+    _showingV2 = widget.controller.scene is ChunkV2Scene;
     _showingMigrationRequired =
         widget.controller.scene is PolygonAuthoringMigrationRequiredScene;
     widget.controller.addListener(_handleControllerRouteChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_showingMigrationRequired || _showingV2Staging) return;
+      if (_showingMigrationRequired || _showingV2) return;
       unawaited(widget.controller.loadWorkspace());
     });
   }
@@ -216,7 +214,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
     if (oldWidget.controller == widget.controller) return;
     oldWidget.controller.removeListener(_handleControllerRouteChanged);
     widget.controller.addListener(_handleControllerRouteChanged);
-    _showingV2Staging = widget.controller.scene is ChunkV2StagingScene;
+    _showingV2 = widget.controller.scene is ChunkV2Scene;
     _showingMigrationRequired =
         widget.controller.scene is PolygonAuthoringMigrationRequiredScene;
   }
@@ -246,9 +244,9 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
         controller: widget.controller,
       );
     }
-    if (_showingV2Staging) {
-      return ChunkPolygonStagingWorkspace(
-        key: _stagingWorkspaceKey,
+    if (_showingV2) {
+      return ChunkPolygonWorkspace(
+        key: _workspaceKey,
         controller: widget.controller,
         onOpenOwningPrefab: widget.onOpenOwningPrefab,
       );
@@ -335,16 +333,16 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
   }
 
   void _handleControllerRouteChanged() {
-    final showingV2Staging = widget.controller.scene is ChunkV2StagingScene;
+    final showingV2 = widget.controller.scene is ChunkV2Scene;
     final showingMigrationRequired =
         widget.controller.scene is PolygonAuthoringMigrationRequiredScene;
-    if ((showingV2Staging == _showingV2Staging &&
+    if ((showingV2 == _showingV2 &&
             showingMigrationRequired == _showingMigrationRequired) ||
         !mounted) {
       return;
     }
     setState(() {
-      _showingV2Staging = showingV2Staging;
+      _showingV2 = showingV2;
       _showingMigrationRequired = showingMigrationRequired;
     });
   }

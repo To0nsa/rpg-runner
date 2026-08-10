@@ -12,7 +12,7 @@ import 'chunk_v2_collision_expansion.dart';
 import 'chunk_v2_file_data.dart';
 import 'chunk_v2_marker_contract.dart';
 import 'chunk_v2_seam_analysis.dart';
-import 'chunk_v2_staging_models.dart';
+import 'chunk_v2_models.dart';
 
 /// Validates one chunk's direct polygon owner with Core geometry authority.
 ///
@@ -100,10 +100,8 @@ List<ValidationIssue> validateChunkV2CollisionShapes({
   return List<ValidationIssue>.unmodifiable(issues);
 }
 
-/// Validates the strict chunk-v2 staging set including exact prefab expansion.
-List<ValidationIssue> validateChunkV2StagingDocument(
-  ChunkV2StagingDocument document,
-) {
+/// Validates the strict chunk-v2 set including exact prefab expansion.
+List<ValidationIssue> validateChunkV2Document(ChunkV2Document document) {
   final issues = <ValidationIssue>[];
   final chunks = List.of(document.chunks)
     ..sort((left, right) => left.chunkKey.compareTo(right.chunkKey));
@@ -135,7 +133,7 @@ List<ValidationIssue> validateChunkV2StagingDocument(
       const ValidationIssue(
         severity: ValidationSeverity.error,
         code: 'chunk_v2_active_level_missing',
-        message: 'Chunk-v2 staging requires at least one active level.',
+        message: 'Chunk-v2 requires at least one active level.',
       ),
     );
   } else if (!document.availableLevelIds.contains(document.activeLevelId)) {
@@ -159,7 +157,7 @@ List<ValidationIssue> validateChunkV2StagingDocument(
           severity: ValidationSeverity.error,
           code: 'chunk_v2_source_path_missing',
           message:
-              'Chunk ${chunk.chunkKey} is missing its staging source path.',
+              'Chunk ${chunk.chunkKey} is missing its current source path.',
         ),
       );
     } else if (!isCreated && baseline == null) {
@@ -168,7 +166,7 @@ List<ValidationIssue> validateChunkV2StagingDocument(
           severity: ValidationSeverity.error,
           code: 'chunk_v2_source_baseline_missing',
           message:
-              'Chunk ${chunk.chunkKey} is missing its staging source baseline.',
+              'Chunk ${chunk.chunkKey} is missing its current source baseline.',
           sourcePath: sourcePath,
         ),
       );

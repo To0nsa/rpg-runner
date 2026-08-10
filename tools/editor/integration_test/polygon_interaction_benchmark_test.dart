@@ -5,9 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/chunk_creator_page.dart';
-import 'package:runner_editor/src/app/pages/chunkCreator/staging/chunk_polygon_authoring_controller.dart';
-import 'package:runner_editor/src/app/pages/chunkCreator/staging/chunk_polygon_scene_surface.dart';
-import 'package:runner_editor/src/chunks/chunk_v2_staging_models.dart';
+import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_polygon_authoring_controller.dart';
+import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_polygon_scene_surface.dart';
+import 'package:runner_editor/src/chunks/chunk_v2_models.dart';
 import 'package:runner_editor/src/terrain_authoring/terrain_polygon_interaction.dart';
 
 import 'support/polygon_interaction_benchmark_fixture.dart';
@@ -37,7 +37,7 @@ void main() {
     );
     addTearDown(session.dispose);
     final documentBefore = session.controller.document!;
-    final chunkListBefore = (documentBefore as ChunkV2StagingDocument).chunks;
+    final chunkListBefore = (documentBefore as ChunkV2Document).chunks;
     final mainChunkBefore = chunkListBefore.firstWhere(
       (chunk) =>
           chunk.chunkKey == PolygonInteractionBenchmarkFixture.mainChunkKey,
@@ -94,7 +94,7 @@ void main() {
     );
 
     final documentAfter = session.controller.document!;
-    final chunkListAfter = (documentAfter as ChunkV2StagingDocument).chunks;
+    final chunkListAfter = (documentAfter as ChunkV2Document).chunks;
     final mainChunkAfter = chunkListAfter.firstWhere(
       (chunk) =>
           chunk.chunkKey == PolygonInteractionBenchmarkFixture.mainChunkKey,

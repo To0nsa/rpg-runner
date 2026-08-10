@@ -22,7 +22,7 @@ class PrefabV3AtlasCatalogWorkspace extends StatefulWidget {
   });
 
   final EditorSessionController controller;
-  final PrefabV3StagingDocument document;
+  final PrefabV3Document document;
 
   @override
   State<PrefabV3AtlasCatalogWorkspace> createState() =>
@@ -191,7 +191,7 @@ class PrefabV3AtlasCatalogWorkspaceState
     _heightController,
   ];
 
-  void _initialize(PrefabV3StagingDocument document) {
+  void _initialize(PrefabV3Document document) {
     _selectedPrefabSliceId = document.data.slices.firstOrNull?.id;
     _selectedTileSliceId = document.tileData.tileSlices.firstOrNull?.id;
     final selected = _findSlice(document.data.slices, _selectedPrefabSliceId);
@@ -201,7 +201,7 @@ class PrefabV3AtlasCatalogWorkspaceState
     _syncSelectedDraft(document);
   }
 
-  void _reconcile(PrefabV3StagingDocument document) {
+  void _reconcile(PrefabV3Document document) {
     _selectedPrefabSliceId = _retainedOrFirstId(
       document.data.slices,
       _selectedPrefabSliceId,
@@ -226,7 +226,7 @@ class PrefabV3AtlasCatalogWorkspaceState
     _syncSelectedDraft(document);
   }
 
-  void _selectAtlas(PrefabV3StagingDocument document, String? path) {
+  void _selectAtlas(PrefabV3Document document, String? path) {
     if (!_canNavigateCatalog()) return;
     final slices = _slicesForKind(document, _atlasState.selectedSliceKind);
     final selected = slices
@@ -239,7 +239,7 @@ class PrefabV3AtlasCatalogWorkspaceState
     });
   }
 
-  void _selectKind(PrefabV3StagingDocument document, AtlasSliceKind kind) {
+  void _selectKind(PrefabV3Document document, AtlasSliceKind kind) {
     if (!_canNavigateCatalog()) return;
     final slices = _slicesForKind(document, kind);
     var selected = _findSlice(slices, _selectedId(kind));
@@ -256,7 +256,7 @@ class PrefabV3AtlasCatalogWorkspaceState
   }
 
   void _selectSlice(
-    PrefabV3StagingDocument document,
+    PrefabV3Document document,
     AtlasSliceKind kind,
     String sliceId,
   ) {
@@ -270,7 +270,7 @@ class PrefabV3AtlasCatalogWorkspaceState
     });
   }
 
-  void _applySelectionInputs(PrefabV3StagingDocument document) {
+  void _applySelectionInputs(PrefabV3Document document) {
     _hasDraftChanges = true;
     final path = _atlasState.selectedAtlasPath;
     final size = path == null ? null : document.atlasImageSizes[path];
@@ -287,7 +287,7 @@ class PrefabV3AtlasCatalogWorkspaceState
     }
   }
 
-  void _saveSlice(PrefabV3StagingDocument document) {
+  void _saveSlice(PrefabV3Document document) {
     final id = _idController.text;
     if (id.isEmpty || id != id.trim()) {
       _showMessage(
@@ -354,7 +354,7 @@ class PrefabV3AtlasCatalogWorkspaceState
   }
 
   Future<void> _deleteSlice(
-    PrefabV3StagingDocument document,
+    PrefabV3Document document,
     AtlasSliceKind kind,
     String sliceId,
   ) async {
@@ -383,7 +383,7 @@ class PrefabV3AtlasCatalogWorkspaceState
           content: Text(
             'Update or remove these references first: '
             '${references.join(', ')}. Automatic cascade is intentionally '
-            'not exposed by this staging form.',
+            'not exposed by this current form.',
           ),
           actions: <Widget>[
             FilledButton(
@@ -432,8 +432,8 @@ class PrefabV3AtlasCatalogWorkspaceState
     });
   }
 
-  PrefabV3StagingDocument? _dispatch(
-    PrefabV3StagingDocument document,
+  PrefabV3Document? _dispatch(
+    PrefabV3Document document,
     PrefabV3CatalogOperation operation,
   ) {
     final beforeDocument = widget.controller.document;
@@ -449,7 +449,7 @@ class PrefabV3AtlasCatalogWorkspaceState
       ),
     );
     final next = widget.controller.document;
-    if (identical(next, beforeDocument) || next is! PrefabV3StagingDocument) {
+    if (identical(next, beforeDocument) || next is! PrefabV3Document) {
       _showMessage(
         'Slice change was rejected. Review validation diagnostics and retry '
         'from the current catalog state.',
@@ -459,7 +459,7 @@ class PrefabV3AtlasCatalogWorkspaceState
     return next;
   }
 
-  void _syncSelectedDraft(PrefabV3StagingDocument document) {
+  void _syncSelectedDraft(PrefabV3Document document) {
     _syncDraft(
       _findSlice(
         _slicesForKind(document, _atlasState.selectedSliceKind),
@@ -538,7 +538,7 @@ class PrefabV3AtlasCatalogWorkspaceState
 }
 
 List<AtlasSliceDef> _slicesForKind(
-  PrefabV3StagingDocument document,
+  PrefabV3Document document,
   AtlasSliceKind kind,
 ) => switch (kind) {
   AtlasSliceKind.prefab => document.data.slices,

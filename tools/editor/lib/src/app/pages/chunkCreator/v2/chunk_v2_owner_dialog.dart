@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../chunks/chunk_domain_models.dart';
 import '../../../../chunks/chunk_v2_file_data.dart';
-import '../../../../chunks/chunk_v2_staging_models.dart';
+import '../../../../chunks/chunk_v2_models.dart';
 
 /// Validated editable metadata returned by the Chunk-v2 owner form.
 ///
@@ -30,7 +30,7 @@ final class ChunkV2OwnerDialogResult {
 /// Opens the retained Chunk-v2 metadata form for one existing owner.
 Future<ChunkV2OwnerDialogResult?> showChunkV2OwnerDialog(
   BuildContext context, {
-  required ChunkV2StagingDocument document,
+  required ChunkV2Document document,
   required ChunkV2FileData chunk,
 }) => showDialog<ChunkV2OwnerDialogResult>(
   context: context,
@@ -40,7 +40,7 @@ Future<ChunkV2OwnerDialogResult?> showChunkV2OwnerDialog(
 /// Opens the create form accepted by the staged lifecycle policy.
 Future<String?> showChunkV2CreateDialog(
   BuildContext context, {
-  required ChunkV2StagingDocument document,
+  required ChunkV2Document document,
 }) => showDialog<String>(
   context: context,
   builder: (context) => _ChunkV2IdDialog(
@@ -58,7 +58,7 @@ Future<String?> showChunkV2CreateDialog(
 /// Opens the stable-key-preserving human-ID rename form.
 Future<String?> showChunkV2RenameDialog(
   BuildContext context, {
-  required ChunkV2StagingDocument document,
+  required ChunkV2Document document,
   required ChunkV2FileData chunk,
 }) => showDialog<String>(
   context: context,
@@ -84,7 +84,7 @@ final class _ChunkV2IdDialog extends StatefulWidget {
     this.chunk,
   });
 
-  final ChunkV2StagingDocument document;
+  final ChunkV2Document document;
   final ChunkV2FileData? chunk;
   final String title;
   final String applyLabel;
@@ -163,7 +163,7 @@ final class _ChunkV2IdDialogState extends State<_ChunkV2IdDialog> {
 final class _ChunkV2OwnerDialog extends StatefulWidget {
   const _ChunkV2OwnerDialog({required this.document, required this.chunk});
 
-  final ChunkV2StagingDocument document;
+  final ChunkV2Document document;
   final ChunkV2FileData chunk;
 
   @override
@@ -379,7 +379,7 @@ final class _ChunkV2OwnerDialogState extends State<_ChunkV2OwnerDialog> {
   }
 }
 
-List<String> _assemblyGroups(ChunkV2StagingDocument document, String levelId) {
+List<String> _assemblyGroups(ChunkV2Document document, String levelId) {
   final groups = document.levels
       .where((level) => level.levelId == levelId)
       .firstOrNull
@@ -405,7 +405,7 @@ List<String> _canonicalTags(Iterable<String> tags) {
 
 String? _validOwnerId(
   String raw, {
-  required ChunkV2StagingDocument document,
+  required ChunkV2Document document,
   String? exceptChunkKey,
 }) {
   final id = raw.trim();

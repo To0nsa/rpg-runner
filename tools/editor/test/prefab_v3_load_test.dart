@@ -31,9 +31,9 @@ void main() {
     );
     final document = await plugin.loadFromRepo(fixture.workspace);
 
-    expect(document, isA<PrefabV3StagingDocument>());
+    expect(document, isA<PrefabV3Document>());
     expect(plugin.validate(document), isEmpty);
-    expect(plugin.buildEditableScene(document), isA<PrefabV3StagingScene>());
+    expect(plugin.buildEditableScene(document), isA<PrefabV3Scene>());
     expect(
       plugin
           .describePendingChanges(fixture.workspace, document: document)
@@ -43,12 +43,12 @@ void main() {
   });
 
   test(
-    'explicit staging load strictly composes prefab, tile, bounds, and atlas metadata',
+    'explicit current load strictly composes prefab, tile, bounds, and atlas metadata',
     () async {
       final fixture = _Fixture.create();
       addTearDown(fixture.dispose);
 
-      final document = await plugin.loadV3StagingFromRepo(fixture.workspace);
+      final document = await plugin.loadV3FromRepo(fixture.workspace);
 
       expect(document.data.prefabs, hasLength(2));
       expect(document.tileData.platformModules.single.id, 'module_a');
@@ -87,11 +87,11 @@ void main() {
       expect(plugin.validate(document), isEmpty);
 
       final scene = plugin.buildEditableScene(document);
-      expect(scene, isA<PrefabV3StagingScene>());
-      final stagingScene = scene as PrefabV3StagingScene;
-      expect(stagingScene.tileData.platformModules.single.id, 'module_a');
-      expect(stagingScene.atlasImagePaths, document.atlasImagePaths);
-      expect(stagingScene.atlasImageSizes, document.atlasImageSizes);
+      expect(scene, isA<PrefabV3Scene>());
+      final currentScene = scene as PrefabV3Scene;
+      expect(currentScene.tileData.platformModules.single.id, 'module_a');
+      expect(currentScene.atlasImagePaths, document.atlasImagePaths);
+      expect(currentScene.atlasImageSizes, document.atlasImageSizes);
       expect(
         plugin
             .describePendingChanges(fixture.workspace, document: document)
@@ -106,7 +106,7 @@ void main() {
   );
 
   test(
-    'staging load reports deterministic downstream placement impact without writes',
+    'current load reports deterministic downstream placement impact without writes',
     () async {
       final fixture = _Fixture.create();
       addTearDown(fixture.dispose);
@@ -142,7 +142,7 @@ void main() {
       );
       final before = fixture.snapshot();
 
-      final document = await plugin.loadV3StagingFromRepo(fixture.workspace);
+      final document = await plugin.loadV3FromRepo(fixture.workspace);
 
       expect(document.downstreamImpacts, hasLength(2));
       expect(
@@ -171,12 +171,12 @@ void main() {
     },
   );
 
-  test('staging load and clean export never mutate fixture source', () async {
+  test('current load and clean export never mutate fixture source', () async {
     final fixture = _Fixture.create();
     addTearDown(fixture.dispose);
     final before = fixture.snapshot();
 
-    final document = await plugin.loadV3StagingFromRepo(fixture.workspace);
+    final document = await plugin.loadV3FromRepo(fixture.workspace);
     final result = await plugin.exportToRepo(
       fixture.workspace,
       document: document,
@@ -190,7 +190,7 @@ void main() {
     final fixture = _Fixture.create();
     addTearDown(fixture.dispose);
     final loaded = await plugin.loadFromRepo(fixture.workspace);
-    final document = loaded as PrefabV3StagingDocument;
+    final document = loaded as PrefabV3Document;
     final target = document.data.prefabs.first;
     final editedTarget = target.copyWith(
       revision: target.revision + 1,
@@ -214,15 +214,14 @@ void main() {
       PrefabV3FileCodec.encode(changed.data),
     );
     final reloaded = await plugin.loadFromRepo(fixture.workspace);
-    expect(reloaded, isA<PrefabV3StagingDocument>());
-    expect(
-      (reloaded as PrefabV3StagingDocument).data.prefabs.first.tags,
-      <String>['exported'],
-    );
+    expect(reloaded, isA<PrefabV3Document>());
+    expect((reloaded as PrefabV3Document).data.prefabs.first.tags, <String>[
+      'exported',
+    ]);
   });
 
   test(
-    'staging store rejects legacy prefab source and a missing tile file',
+    'current store rejects legacy prefab source and a missing tile file',
     () async {
       final fixture = _Fixture.create();
       addTearDown(fixture.dispose);
@@ -233,15 +232,12 @@ void main() {
         ),
       );
 
-      await expectLater(
-        store.loadV3Staging(fixture.root.path),
-        throwsFormatException,
-      );
+      await expectLater(store.loadV3(fixture.root.path), throwsFormatException);
 
       fixture.prefabFile.writeAsStringSync(fixture.prefabContents);
       fixture.tileFile.deleteSync();
       await expectLater(
-        store.loadV3Staging(fixture.root.path),
+        store.loadV3(fixture.root.path),
         throwsA(
           isA<StateError>().having(
             (error) => error.message,
@@ -284,7 +280,7 @@ final class _Fixture {
   });
 
   factory _Fixture.create() {
-    final root = Directory.systemTemp.createTempSync('prefab_v3_staging_load_');
+    final root = Directory.systemTemp.createTempSync('prefab_v3_current_load_');
     final prefabData = PrefabV3FileData(
       slices: const <AtlasSliceDef>[
         AtlasSliceDef(

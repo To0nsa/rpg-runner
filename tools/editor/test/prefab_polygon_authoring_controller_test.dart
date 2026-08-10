@@ -157,7 +157,7 @@ void main() {
         isA<StateError>().having(
           (error) => error.message,
           'message',
-          contains('PrefabV3StagingDocument'),
+          contains('PrefabV3Document'),
         ),
       ),
     );
@@ -349,7 +349,7 @@ Future<_Harness> _buildHarness() async {
     tileSlices: const <AtlasSliceDef>[],
     platformModules: const <TileModuleDef>[],
   );
-  final document = PrefabV3StagingDocument(
+  final document = PrefabV3Document(
     data: data,
     tileData: tileData,
     visualBoundsByPrefabKey: const <String, PrefabV3VisualBounds>{
@@ -364,7 +364,7 @@ Future<_Harness> _buildHarness() async {
   );
   final session = EditorSessionController(
     pluginRegistry: AuthoringPluginRegistry(
-      plugins: <AuthoringDomainPlugin>[_StagingPrefabPlugin(document)],
+      plugins: <AuthoringDomainPlugin>[_PrefabPlugin(document)],
     ),
     initialPluginId: PrefabDomainPlugin.pluginId,
     initialWorkspacePath: root.path,
@@ -399,10 +399,10 @@ final class _Harness {
   final PrefabPolygonAuthoringController authoring;
 }
 
-final class _StagingPrefabPlugin implements AuthoringDomainPlugin {
-  const _StagingPrefabPlugin(this.document);
+final class _PrefabPlugin implements AuthoringDomainPlugin {
+  const _PrefabPlugin(this.document);
 
-  final PrefabV3StagingDocument document;
+  final PrefabV3Document document;
   static const PrefabDomainPlugin _delegate = PrefabDomainPlugin();
 
   @override

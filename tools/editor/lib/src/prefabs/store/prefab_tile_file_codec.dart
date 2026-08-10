@@ -5,7 +5,7 @@ import 'prefab_determinism.dart';
 
 /// Strict codec for the retained `tile_defs.json` schema-v2 contract.
 ///
-/// It is used by prefab-v3 staging so that malformed tile/module source cannot
+/// It is used by prefab-v3 so that malformed tile/module source cannot
 /// be silently normalized by the rectangle-era compatibility store. It owns no
 /// filesystem I/O and does not enable repository writes.
 abstract final class PrefabTileFileCodec {

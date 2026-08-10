@@ -22,7 +22,7 @@ class PrefabV3ModuleCatalogWorkspace extends StatefulWidget {
   });
 
   final EditorSessionController controller;
-  final PrefabV3StagingDocument document;
+  final PrefabV3Document document;
 
   @override
   State<PrefabV3ModuleCatalogWorkspace> createState() =>
@@ -117,13 +117,13 @@ class PrefabV3ModuleCatalogWorkspaceState
     );
   }
 
-  void _initialize(PrefabV3StagingDocument document) {
+  void _initialize(PrefabV3Document document) {
     _selectedModuleId = document.tileData.platformModules.firstOrNull?.id;
     _selectedTileSliceId = document.tileData.tileSlices.firstOrNull?.id;
     _syncForm(_selectedModule(document));
   }
 
-  void _reconcile(PrefabV3StagingDocument document) {
+  void _reconcile(PrefabV3Document document) {
     if (_findModule(document, _selectedModuleId) == null) {
       _selectedModuleId = document.tileData.platformModules.firstOrNull?.id;
     }
@@ -135,7 +135,7 @@ class PrefabV3ModuleCatalogWorkspaceState
     _syncForm(_selectedModule(document));
   }
 
-  void _selectModule(PrefabV3StagingDocument document, String? id) {
+  void _selectModule(PrefabV3Document document, String? id) {
     if (_hasDraftChanges && id != _selectedModuleId) {
       _showMessage('Apply or undo the module form before selecting another.');
       return;
@@ -165,7 +165,7 @@ class PrefabV3ModuleCatalogWorkspaceState
     });
   }
 
-  void _upsert(PrefabV3StagingDocument document) {
+  void _upsert(PrefabV3Document document) {
     final id = _validatedId();
     if (id == null) return;
     final tileSize = _validatedTileSize();
@@ -196,7 +196,7 @@ class PrefabV3ModuleCatalogWorkspaceState
     });
   }
 
-  void _rename(PrefabV3StagingDocument document) {
+  void _rename(PrefabV3Document document) {
     final selected = _selectedModule(document);
     if (selected == null) {
       _showMessage('Select a module before renaming.');
@@ -223,7 +223,7 @@ class PrefabV3ModuleCatalogWorkspaceState
     });
   }
 
-  void _duplicate(PrefabV3StagingDocument document) {
+  void _duplicate(PrefabV3Document document) {
     final selected = _selectedModule(document);
     if (selected == null) {
       _showMessage('Select a module before duplicating.');
@@ -266,7 +266,7 @@ class PrefabV3ModuleCatalogWorkspaceState
     });
   }
 
-  void _toggleStatus(PrefabV3StagingDocument document) {
+  void _toggleStatus(PrefabV3Document document) {
     final selected = _selectedModule(document);
     if (selected == null) {
       _showMessage('Select a module before changing its status.');
@@ -295,7 +295,7 @@ class PrefabV3ModuleCatalogWorkspaceState
   }
 
   void _paintCell(
-    PrefabV3StagingDocument document, {
+    PrefabV3Document document, {
     required int gridX,
     required int gridY,
     required String sliceId,
@@ -313,7 +313,7 @@ class PrefabV3ModuleCatalogWorkspaceState
   }
 
   void _eraseCell(
-    PrefabV3StagingDocument document, {
+    PrefabV3Document document, {
     required int gridX,
     required int gridY,
   }) {
@@ -329,7 +329,7 @@ class PrefabV3ModuleCatalogWorkspaceState
   }
 
   void _moveCell(
-    PrefabV3StagingDocument document, {
+    PrefabV3Document document, {
     required int sourceX,
     required int sourceY,
     required int targetX,
@@ -349,7 +349,7 @@ class PrefabV3ModuleCatalogWorkspaceState
   }
 
   void _deleteCell(
-    PrefabV3StagingDocument document, {
+    PrefabV3Document document, {
     required String moduleId,
     required int cellIndex,
   }) {
@@ -367,7 +367,7 @@ class PrefabV3ModuleCatalogWorkspaceState
   }
 
   void _commitCells(
-    PrefabV3StagingDocument document,
+    PrefabV3Document document,
     TileModuleDef module,
     List<TileModuleCellDef> cells,
   ) {
@@ -380,7 +380,7 @@ class PrefabV3ModuleCatalogWorkspaceState
     if (next != null) setState(() => _syncForm(_selectedModule(next)));
   }
 
-  TileModuleDef? _moduleForCellEdit(PrefabV3StagingDocument document) {
+  TileModuleDef? _moduleForCellEdit(PrefabV3Document document) {
     if (_hasDraftChanges) {
       _showMessage('Apply or undo the module form before editing cells.');
       return null;
@@ -390,8 +390,8 @@ class PrefabV3ModuleCatalogWorkspaceState
     return selected;
   }
 
-  PrefabV3StagingDocument? _updateModule(
-    PrefabV3StagingDocument document,
+  PrefabV3Document? _updateModule(
+    PrefabV3Document document,
     TileModuleDef module, {
     required TileModuleStatus status,
     required Iterable<TileModuleCellDef> cells,
@@ -405,10 +405,7 @@ class PrefabV3ModuleCatalogWorkspaceState
     ),
   );
 
-  Future<void> _deleteModule(
-    PrefabV3StagingDocument document,
-    String moduleId,
-  ) async {
+  Future<void> _deleteModule(PrefabV3Document document, String moduleId) async {
     if (_hasDraftChanges) {
       _showMessage('Apply or undo the module form before deleting.');
       return;
@@ -471,8 +468,8 @@ class PrefabV3ModuleCatalogWorkspaceState
     });
   }
 
-  PrefabV3StagingDocument? _dispatch(
-    PrefabV3StagingDocument document,
+  PrefabV3Document? _dispatch(
+    PrefabV3Document document,
     PrefabV3CatalogOperation operation,
   ) {
     final beforeDocument = widget.controller.document;
@@ -488,7 +485,7 @@ class PrefabV3ModuleCatalogWorkspaceState
       ),
     );
     final next = widget.controller.document;
-    if (identical(next, beforeDocument) || next is! PrefabV3StagingDocument) {
+    if (identical(next, beforeDocument) || next is! PrefabV3Document) {
       _showMessage(
         'Module change was rejected. Review validation diagnostics and retry '
         'from the current catalog state.',
@@ -521,7 +518,7 @@ class PrefabV3ModuleCatalogWorkspaceState
   bool _tileSizeMatches(TileModuleDef module) =>
       int.tryParse(_tileSizeController.text.trim()) == module.tileSize;
 
-  TileModuleDef? _selectedModule(PrefabV3StagingDocument document) =>
+  TileModuleDef? _selectedModule(PrefabV3Document document) =>
       _findModule(document, _selectedModuleId);
 
   void _syncForm(TileModuleDef? module) {
@@ -548,7 +545,7 @@ class PrefabV3ModuleCatalogWorkspaceState
   }
 }
 
-TileModuleDef? _findModule(PrefabV3StagingDocument document, String? moduleId) {
+TileModuleDef? _findModule(PrefabV3Document document, String? moduleId) {
   if (moduleId == null) return null;
   for (final module in document.tileData.platformModules) {
     if (module.id == moduleId) return module;

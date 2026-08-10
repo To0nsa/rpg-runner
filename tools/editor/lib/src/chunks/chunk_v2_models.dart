@@ -14,8 +14,8 @@ import 'chunk_v2_seam_analysis.dart';
 /// prefab dependencies are current. Export can update that current tree but
 /// cannot migrate a legacy or mixed source generation.
 @immutable
-class ChunkV2StagingDocument extends AuthoringDocument {
-  ChunkV2StagingDocument({
+class ChunkV2Document extends AuthoringDocument {
+  ChunkV2Document({
     required Iterable<ChunkV2FileData> chunks,
     required Map<String, String> sourcePathByChunkKey,
     required Map<String, String> baselineContentsByChunkKey,
@@ -65,7 +65,7 @@ class ChunkV2StagingDocument extends AuthoringDocument {
   /// Owners created in memory and therefore intentionally lacking baselines.
   final List<String> createdChunkKeys;
 
-  ChunkV2StagingDocument copyWith({
+  ChunkV2Document copyWith({
     Iterable<ChunkV2FileData>? chunks,
     Map<String, String>? sourcePathByChunkKey,
     Map<String, String>? baselineContentsByChunkKey,
@@ -79,7 +79,7 @@ class ChunkV2StagingDocument extends AuthoringDocument {
     bool clearActiveLevelId = false,
     Iterable<String>? changedChunkKeys,
     Iterable<String>? createdChunkKeys,
-  }) => ChunkV2StagingDocument(
+  }) => ChunkV2Document(
     chunks: chunks ?? this.chunks,
     sourcePathByChunkKey: sourcePathByChunkKey ?? this.sourcePathByChunkKey,
     baselineContentsByChunkKey:
@@ -101,8 +101,8 @@ class ChunkV2StagingDocument extends AuthoringDocument {
 
 /// Read-only scene projection for the staged chunk-v2 plugin document.
 @immutable
-class ChunkV2StagingScene extends EditableScene {
-  ChunkV2StagingScene({
+class ChunkV2Scene extends EditableScene {
+  ChunkV2Scene({
     required Iterable<ChunkV2FileData> chunks,
     required Map<String, String> sourcePathByChunkKey,
     required this.prefabData,

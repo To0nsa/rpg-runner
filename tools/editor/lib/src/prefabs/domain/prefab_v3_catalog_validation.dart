@@ -16,7 +16,7 @@ const String _tileSourcePath = 'assets/authoring/level/tile_defs.json';
 /// atlas bounds, module-cell references, visual-owner references, and polygon
 /// owner rules.
 List<PrefabValidationIssue> validatePrefabV3CatalogDocument(
-  PrefabV3StagingDocument document,
+  PrefabV3Document document,
 ) {
   final issues = <PrefabValidationIssue>[];
   _validateSliceList(
@@ -230,7 +230,7 @@ void _validateSliceList({
 }
 
 void _validateModules(
-  PrefabV3StagingDocument document,
+  PrefabV3Document document,
   List<PrefabValidationIssue> issues,
 ) {
   final modules = document.tileData.platformModules;
