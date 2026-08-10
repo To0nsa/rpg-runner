@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
+import 'package:runner_core/collision/terrain/terrain_authoring_issue.dart';
 
 import '../domain/strict_authoring_json.dart';
 import '../prefabs/models/models.dart';
@@ -160,12 +161,23 @@ final class PolygonAuthoringMigrationCheck {
 
   bool get hasBlockers => issues.isNotEmpty;
 
+  /// Shared owner-aware view; report/signature bytes continue to use [issues].
+  List<TerrainAuthoringIssue> get terrainAuthoringIssues =>
+      terrainAuthoringMigrationIssues(issues);
+
   /// Rechecks freshly read source signatures against this exact snapshot.
   List<PolygonAuthoringMigrationIssue> auditSourceDigests(
     Map<String, String> currentSha256BySourcePath,
   ) => auditPolygonAuthoringSourceDigests(
     sourceFiles: sourceFiles,
     currentSha256BySourcePath: currentSha256BySourcePath,
+  );
+
+  /// Shared blocking-envelope view of a fresh source-digest audit.
+  List<TerrainAuthoringIssue> auditSourceDigestAuthoringIssues(
+    Map<String, String> currentSha256BySourcePath,
+  ) => terrainAuthoringMigrationIssues(
+    auditSourceDigests(currentSha256BySourcePath),
   );
 
   /// Loads the fixed prefab/chunk migration scope rooted at [workspaceRoot].
@@ -749,6 +761,19 @@ final class PolygonAuthoringMigrationCheckException implements Exception {
   final String code;
   final String sourcePath;
   final String message;
+
+  /// File-level failures use the source path as owner because no record owner
+  /// could be decoded before the readiness check aborted.
+  TerrainAuthoringIssue toTerrainAuthoringIssue() => TerrainAuthoringIssue(
+    severity: TerrainAuthoringIssueSeverity.error,
+    code: code,
+    message: message,
+    sourcePath: sourcePath,
+    ownerKey: sourcePath,
+    placementKey: null,
+    shapeId: null,
+    elementIndex: null,
+  );
 
   @override
   String toString() => '$code $sourcePath: $message';

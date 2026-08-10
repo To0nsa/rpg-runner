@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
+import 'package:runner_core/collision/terrain/terrain_authoring_issue.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
 import 'package:runner_editor/src/migration/polygon_authoring_legacy_codec.dart';
 import 'package:runner_editor/src/migration/polygon_authoring_migration_plan.dart';
@@ -128,6 +129,20 @@ void main() {
         ]),
       );
       expect(plan.summary.blockerCount, 3);
+      final sharedIssues = plan.terrainAuthoringIssues;
+      expect(sharedIssues, hasLength(plan.issues.length));
+      for (var index = 0; index < plan.issues.length; index += 1) {
+        final legacy = plan.issues[index];
+        final shared = sharedIssues[index];
+        expect(shared.severity, TerrainAuthoringIssueSeverity.error);
+        expect(shared.code, legacy.code);
+        expect(shared.message, legacy.message);
+        expect(shared.sourcePath, legacy.sourcePath);
+        expect(shared.ownerKey, legacy.ownerKey);
+        expect(shared.elementIndex, legacy.elementIndex);
+        expect(shared.placementKey, isNull);
+        expect(shared.shapeId, isNull);
+      }
     },
   );
 
@@ -144,6 +159,11 @@ void main() {
       plan.auditSourceDigests(changed).map((issue) => issue.code),
       <String>['migration_source_drift'],
     );
+    final sharedChanged = plan.auditSourceDigestAuthoringIssues(changed).single;
+    expect(sharedChanged.severity, TerrainAuthoringIssueSeverity.error);
+    expect(sharedChanged.code, 'migration_source_drift');
+    expect(sharedChanged.ownerKey, 'prefab_defs');
+    expect(sharedChanged.sourcePath, PrefabStore.prefabDefsPath);
 
     final missing = Map<String, String>.from(current)
       ..remove(fixture.chunkSourcePaths[fixture.chunks.first.chunkKey]);

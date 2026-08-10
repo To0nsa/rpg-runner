@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
+import 'package:runner_core/collision/terrain/terrain_authoring_issue.dart';
 import 'package:runner_editor/src/migration/polygon_authoring_migration_check.dart';
 import 'package:runner_editor/src/migration/polygon_authoring_target_codec.dart';
 import 'package:runner_editor/src/prefabs/store/prefab_store.dart';
@@ -261,6 +262,13 @@ void main() {
         check.issues.map((issue) => issue.code),
         contains('migration_current_geometry_self_intersection'),
       );
+      final shared = check.terrainAuthoringIssues.singleWhere(
+        (issue) => issue.code == 'migration_current_geometry_self_intersection',
+      );
+      expect(shared.severity, TerrainAuthoringIssueSeverity.error);
+      expect(shared.ownerKey, isNotEmpty);
+      expect(shared.sourcePath, isNotEmpty);
+      expect(shared.elementIndex, isNotNull);
     } finally {
       fixture.deleteSync(recursive: true);
     }
@@ -326,22 +334,25 @@ void main() {
       root['width'] = 600.0;
       chunkFile.writeAsStringSync(jsonEncode(root));
 
-      expect(
-        () => PolygonAuthoringMigrationCheck.fromRepository(fixture.path),
-        throwsA(
-          isA<PolygonAuthoringMigrationCheckException>()
-              .having(
-                (error) => error.code,
-                'code',
-                'migration_chunk_source_invalid',
-              )
-              .having(
-                (error) => error.message,
-                'message',
-                contains('width must be an integer'),
-              ),
-        ),
-      );
+      PolygonAuthoringMigrationCheckException? failure;
+      try {
+        PolygonAuthoringMigrationCheck.fromRepository(fixture.path);
+      } on PolygonAuthoringMigrationCheckException catch (error) {
+        failure = error;
+      }
+
+      expect(failure, isNotNull);
+      expect(failure!.code, 'migration_chunk_source_invalid');
+      expect(failure.message, contains('width must be an integer'));
+      final shared = failure.toTerrainAuthoringIssue();
+      expect(shared.severity, TerrainAuthoringIssueSeverity.error);
+      expect(shared.code, failure.code);
+      expect(shared.message, failure.message);
+      expect(shared.sourcePath, failure.sourcePath);
+      expect(shared.ownerKey, failure.sourcePath);
+      expect(shared.placementKey, isNull);
+      expect(shared.shapeId, isNull);
+      expect(shared.elementIndex, isNull);
     } finally {
       fixture.deleteSync(recursive: true);
     }

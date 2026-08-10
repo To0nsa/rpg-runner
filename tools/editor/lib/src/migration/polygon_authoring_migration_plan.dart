@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:runner_core/collision/terrain/terrain_authoring_issue.dart';
+
 import '../chunks/chunk_domain_models.dart';
 import '../chunks/migration/legacy_chunk_ground_migration.dart';
 import '../prefabs/migration/legacy_prefab_collider_union.dart';
@@ -36,6 +38,19 @@ final class PolygonAuthoringMigrationIssue
   final String code;
   final String message;
 
+  /// Adds explicit blocking severity and optional terrain lineage without
+  /// changing the stable migration report representation.
+  TerrainAuthoringIssue toTerrainAuthoringIssue() => TerrainAuthoringIssue(
+    severity: TerrainAuthoringIssueSeverity.error,
+    code: code,
+    message: message,
+    sourcePath: sourcePath,
+    ownerKey: ownerKey,
+    placementKey: null,
+    shapeId: null,
+    elementIndex: elementIndex,
+  );
+
   Map<String, Object> toJson() => <String, Object>{
     'sourcePath': sourcePath,
     'ownerKey': ownerKey,
@@ -55,6 +70,13 @@ final class PolygonAuthoringMigrationIssue
     return code.compareTo(other.code);
   }
 }
+
+/// Adapts migration blockers to Core's immutable canonical issue envelope.
+List<TerrainAuthoringIssue> terrainAuthoringMigrationIssues(
+  Iterable<PolygonAuthoringMigrationIssue> issues,
+) => canonicalTerrainAuthoringIssues(
+  issues.map((issue) => issue.toTerrainAuthoringIssue()),
+);
 
 /// Exact authored-source signature captured by one migration check.
 final class PolygonAuthoringMigrationSourceFile
@@ -286,6 +308,10 @@ final class PolygonAuthoringMigrationPlan {
   /// Whether any condition prevents a later migration write from proceeding.
   bool get hasBlockers => issues.isNotEmpty;
 
+  /// Shared owner-aware view; canonical report bytes continue to use [issues].
+  List<TerrainAuthoringIssue> get terrainAuthoringIssues =>
+      terrainAuthoringMigrationIssues(issues);
+
   /// Builds one canonical plan without reading or writing repository files.
   factory PolygonAuthoringMigrationPlan.build({
     required LegacyPrefabData prefabData,
@@ -514,6 +540,13 @@ final class PolygonAuthoringMigrationPlan {
   ) => auditPolygonAuthoringSourceDigests(
     sourceFiles: sourceFiles,
     currentSha256BySourcePath: currentSha256BySourcePath,
+  );
+
+  /// Shared blocking-envelope view of a fresh source-digest audit.
+  List<TerrainAuthoringIssue> auditSourceDigestAuthoringIssues(
+    Map<String, String> currentSha256BySourcePath,
+  ) => terrainAuthoringMigrationIssues(
+    auditSourceDigests(currentSha256BySourcePath),
   );
 
   /// Emits stable, reviewable JSON with exact areas encoded as decimal strings.

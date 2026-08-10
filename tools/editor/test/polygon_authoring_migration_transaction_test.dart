@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
+import 'package:runner_core/collision/terrain/terrain_authoring_issue.dart';
 import 'package:runner_editor/src/migration/polygon_authoring_migration_check.dart';
 import 'package:runner_editor/src/migration/polygon_authoring_migration_transaction.dart';
 import 'package:runner_editor/src/prefabs/store/prefab_store.dart';
@@ -112,6 +113,11 @@ void main() {
       expect(detail['rollbackAttempted'], isFalse);
       expect(detail['rollbackComplete'], isFalse);
       expect(detail['outputsCommitted'], isFalse);
+      final shared = failure.toTerrainAuthoringIssues().single;
+      expect(shared.severity, TerrainAuthoringIssueSeverity.error);
+      expect(shared.code, 'migration_source_drift');
+      expect(shared.sourcePath, 'migration/write');
+      expect(shared.ownerKey, 'migration/write');
       expect(_sourceDigests(fixture.path), drifted);
       expect(_transactionFiles(fixture), isEmpty);
     } finally {
@@ -133,6 +139,49 @@ void main() {
     expect(report['status'], 'rolledBack');
     expect(report['sourcePaths'], <String>['chunks/a.json', 'chunks/b.json']);
     expect(failure.toCanonicalJson(), isNot(contains('host-specific')));
+    expect(
+      failure.toTerrainAuthoringIssues().map(
+        (issue) => (
+          issue.severity,
+          issue.code,
+          issue.sourcePath,
+          issue.ownerKey,
+          issue.placementKey,
+          issue.shapeId,
+          issue.elementIndex,
+        ),
+      ),
+      <
+        (
+          TerrainAuthoringIssueSeverity,
+          String,
+          String,
+          String,
+          String?,
+          String?,
+          int?,
+        )
+      >[
+        (
+          TerrainAuthoringIssueSeverity.error,
+          'migration_write_transaction_failed',
+          'chunks/a.json',
+          'chunks/a.json',
+          null,
+          null,
+          null,
+        ),
+        (
+          TerrainAuthoringIssueSeverity.error,
+          'migration_write_transaction_failed',
+          'chunks/b.json',
+          'chunks/b.json',
+          null,
+          null,
+          null,
+        ),
+      ],
+    );
   });
 }
 

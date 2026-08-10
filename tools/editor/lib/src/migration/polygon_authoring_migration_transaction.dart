@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
+import 'package:runner_core/collision/terrain/terrain_authoring_issue.dart';
 
 import '../workspace/editor_workspace.dart';
 import '../workspace/workspace_file_io.dart';
@@ -98,6 +99,30 @@ final class PolygonAuthoringMigrationWriteException implements Exception {
   final bool? rollbackComplete;
   final bool outputsCommitted;
   final List<String> sourcePaths;
+
+  /// Shared blocking-envelope view without changing canonical failure JSON.
+  ///
+  /// Transaction-wide failures use `migration/write` when no individual file
+  /// survived into the exception's stable source-path evidence.
+  List<TerrainAuthoringIssue> toTerrainAuthoringIssues() {
+    final owners = sourcePaths.isEmpty
+        ? const <String>['migration/write']
+        : sourcePaths;
+    return canonicalTerrainAuthoringIssues(
+      owners.map(
+        (owner) => TerrainAuthoringIssue(
+          severity: TerrainAuthoringIssueSeverity.error,
+          code: code,
+          message: message,
+          sourcePath: owner,
+          ownerKey: owner,
+          placementKey: null,
+          shapeId: null,
+          elementIndex: null,
+        ),
+      ),
+    );
+  }
 
   /// Emits stable failure evidence without filesystem-specific cause text.
   ///
