@@ -839,12 +839,22 @@ the same immutable result: Chunk Creator summarizes unique neighbors and
 directed seam counts and lists compatible/failing transition cards. These
 views expose no edit, revision, pending-diff, RNG, or scheduling authority.
 
-Sorted reachable transitions form `authoring-seams-v1`; a fixed record and
-SHA-256 digest are golden under reversed input order, and sampled Core assembly
-runs must be subsets of the enumerated set. The §21 staged generator still has
-to consume that fixture before cross-process editor/generator parity can be
-closed. Normal chunk-v1 generation and production runtime selection remain
-unchanged.
+Sorted reachable transitions form `authoring-seams-v1`. The pure-Dart Core
+boundary owns the immutable transition record, total order, duplicate
+rejection, canonical set record, and SHA-256 so the editor and generator do not
+implement separate hashes. The editor maps its scheduler result through that
+contract and compares it with the checked-in eight-transition
+`reachable_seams.json` golden. Sampled Core assembly runs remain required to be
+subsets of the enumerated set.
+
+The staged generator's strict manifest decoder consumes those same fixture
+bytes and recalculates the exact record and digest
+`9681ffb17f61812ec63f1522f9da99340fd1a3ba05b0103f7d8a5f0ffd76393b`.
+Unknown/missing schema fields, duplicate transitions, delimiter-ambiguous
+identities, canonical-record drift, and digest drift fail closed. This proves
+cross-process adjacency-set parity; it does not yet validate compiled left/right
+boundary geometry before staged rendering. Normal chunk-v1 generation and
+production runtime selection remain unchanged.
 
 ## Generated Artifact Plan And Dry-Run Drift Gate
 
@@ -964,8 +974,9 @@ artifact drift plan, and remains identical when its compiled chunk input is
 reversed. `UPDATE_POLYGON_TERRAIN_GOLDEN=1` is the explicit fixture-only update
 path; ordinary tests are read-only. This proves the representative compiler and
 render seam but not the complete §22 matrix. Live generator wiring,
-tile-backed prefab owner validation, scheduler seam consumption, complete
-repository legacy projection, and source cutover remain open.
+tile-backed prefab owner validation, compiled scheduler seam comparison before
+rendering, complete repository legacy projection, and source cutover remain
+open.
 
 ## Exact Legacy Compatibility Projection
 
