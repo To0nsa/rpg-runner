@@ -91,13 +91,16 @@ terrain at runtime.
 
 ## Explicit Polygon Workspace Navigation
 
-When an all-current fixture explicitly loads the write-locked Chunk-v2 polygon
-workspace, each read-only expanded prefab collision exposes **Open prefab**.
+When an all-current workspace loads the Chunk-v2 polygon workflow, each
+read-only expanded prefab collision exposes **Open prefab**.
 The action goes through the editor shell's unsaved-work guard, loads the
 Prefab-v3 staging document, and selects the exact stable source owner for shape
 editing. Chunk placements continue to own transforms only; the editor does not
 create per-instance polygon overrides.
 
-This is cutover preparation, not normal schema selection. Checked-in legacy
-source still opens the Prefab-v2 and Chunk-v1 workflows, and changed Prefab-v3
-or Chunk-v2 staging documents still cannot be written to repository source.
+Normal loading now detects strict Prefab-v3 and complete Chunk-v2 source and
+selects these polygon workflows. Changed current documents can be applied only
+through their confirmed, source-drift-guarded transactional stores, then are
+reloaded from the exact installed bytes. Checked-in legacy source still opens
+the Prefab-v2 and Chunk-v1 workflows; the one-time migration command and live
+polygon runtime authority remain unavailable.

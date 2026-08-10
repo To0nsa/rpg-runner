@@ -94,12 +94,13 @@ Chunk route is now a functional composition workspace skeleton:
 
 - `tools/editor/lib/src/app/pages/chunkCreator/chunk_creator_page.dart`
 
-Slope Phase 4 also provides an explicit write-locked Chunk-v2 polygon staging
-workspace and a deterministic Windows profile benchmark for its real pointer
-surface. The reviewed benchmark fixture renders 16 direct shapes plus expanded
-Prefab collision at exactly 256 Core edges and measures vertex/whole-shape
-drag without reloading or replacing repository source. Normal checked-in Chunk
-source remains v1 until the coordinated polygon migration.
+Slope Phase 4 also provides a Chunk-v2 polygon workspace and a deterministic
+Windows profile benchmark for its real pointer surface. The reviewed benchmark
+fixture renders 16 direct shapes plus expanded Prefab collision at exactly 256
+Core edges and measures vertex/whole-shape drag without reloading or replacing
+repository source. Strict current Chunk-v2 source now loads and saves through
+that workflow; normal checked-in Chunk source remains v1 until the coordinated
+polygon migration.
 
 Parallax route now exists as a dedicated theme-authoring workflow:
 
@@ -597,8 +598,11 @@ the Prefab-v3 polygon workspace. The editor shell applies the same unsaved-work
 guard as a normal route switch, loads and validates the explicit Prefab-v3
 document before changing the active plugin, and selects the requested owner.
 Failure preserves the current Chunk-v2 session and history; the action never
-creates per-instance vertices. This does not select current schemas in normal
-loaders or unlock either staging export path.
+creates per-instance vertices. Normal loaders now select strict Prefab-v3 and
+complete Chunk-v2 sources when the repository is already current, and their
+confirmed export actions apply through source-drift-guarded transactional
+stores. Checked-in legacy sources and the migration/runtime cutover remain
+unchanged.
 
 The first root generator compiler fixture now passes the editor's strict
 prefab-v3/chunk-v2 codecs and collision expansion over the same checked-in
