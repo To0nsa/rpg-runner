@@ -526,6 +526,7 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
         code: issue.code,
         message: issue.message,
         sourcePath: issue.sourcePath,
+        ownerKey: issue.ownerKey,
         shapeId: issue.shapeId.isEmpty ? null : issue.shapeId,
         elementIndex: issue.shapeId.isEmpty ? null : issue.elementIndex,
       );

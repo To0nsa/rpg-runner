@@ -169,6 +169,17 @@ void main() {
     expect(issues.single.code, 'prefab_polygon_visual_bounds_unresolved');
   });
 
+  test('staged validation preserves polygon warning ownership', () {
+    final issues = plugin.validate(_document(_capacityShapes(17)));
+
+    final warning = issues.singleWhere(
+      (issue) => issue.code == 'prefab_shape_soft_target_exceeded',
+    );
+    expect(warning.severity, ValidationSeverity.warning);
+    expect(warning.ownerKey, 'target');
+    expect(warning.sourcePath, contains('prefab_defs.json:target'));
+  });
+
   test('staged validation covers retained tile catalog invariants', () {
     final source = _catalogDocument();
     final module = source.tileData.platformModules.single;
@@ -1020,3 +1031,29 @@ TerrainSourceShapeDef _selfIntersectingShape() => TerrainSourceShapeDef(
     TerrainSourceVertexDef(xHalfPixels: -8, yHalfPixels: 8),
   ],
 );
+
+List<TerrainSourceShapeDef> _capacityShapes(int count) =>
+    <TerrainSourceShapeDef>[
+      for (var index = 0; index < count; index += 1)
+        TerrainSourceShapeDef(
+          shapeId: 'collision_${index.toString().padLeft(3, '0')}',
+          vertices: <TerrainSourceVertexDef>[
+            TerrainSourceVertexDef(
+              xHalfPixels: -10 + (index % 5) * 4,
+              yHalfPixels: -10 + (index ~/ 5) * 4,
+            ),
+            TerrainSourceVertexDef(
+              xHalfPixels: -6 + (index % 5) * 4,
+              yHalfPixels: -10 + (index ~/ 5) * 4,
+            ),
+            TerrainSourceVertexDef(
+              xHalfPixels: -6 + (index % 5) * 4,
+              yHalfPixels: -6 + (index ~/ 5) * 4,
+            ),
+            TerrainSourceVertexDef(
+              xHalfPixels: -10 + (index % 5) * 4,
+              yHalfPixels: -6 + (index ~/ 5) * 4,
+            ),
+          ],
+        ),
+    ];
