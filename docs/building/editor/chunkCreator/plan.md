@@ -592,6 +592,14 @@ loading and production generation deliberately remain on chunk v1 flat
 ground/gaps until the coordinated Phase 4 schema/generator cutover in the
 slopes plan.
 
+The staged expanded-collision list now opens its exact stable source owner in
+the Prefab-v3 polygon workspace. The editor shell applies the same unsaved-work
+guard as a normal route switch, loads and validates the explicit Prefab-v3
+document before changing the active plugin, and selects the requested owner.
+Failure preserves the current Chunk-v2 session and history; the action never
+creates per-instance vertices. This does not select current schemas in normal
+loaders or unlock either staging export path.
+
 The first root generator compiler fixture now passes the editor's strict
 prefab-v3/chunk-v2 codecs and collision expansion over the same checked-in
 bytes. Editor and generator agree on Core source/edge and exact placement

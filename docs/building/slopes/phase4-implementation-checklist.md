@@ -797,7 +797,7 @@ curves, and holes are not required for the baseline tool.
 - [x] Keep prefab instance transform editing at the placement level only; the
       staged form can replace the prefab owner and edit translation, layer,
       snap, exact supported scale, and reflection, but never prefab vertices.
-- [ ] Provide an action to open the owning prefab workflow for shape edits
+- [x] Provide an action to open the owning prefab workflow for shape edits
       instead of creating per-instance overrides.
 - [ ] Preserve chunk create/duplicate/rename/deprecate, metadata, prefabs,
       markers, visual layers, level scope, and pending diff behavior.
@@ -884,7 +884,9 @@ source or enable `--write` until these slices close in order:
      Chunk owner metadata plus create/duplicate/rename/delete forms now compose
      those staged policies with active-level selection and undo/redo. Granular
      tile-layer/placement/marker forms now compose the strict composition
-     replacement; owning-prefab navigation remains open.
+     replacement. Each expanded placed collision can now open its exact stable
+     Prefab-v3 owner through the shell discard guard without adding instance
+     geometry.
      Prefab-v3 owner metadata, create/duplicate/rename/delete, prefab/tile
      slices, and platform-module create/update/duplicate/rename/delete are also
      staged through immutable stale-checked commands. All source writes remain
@@ -946,8 +948,9 @@ source or enable `--write` until these slices close in order:
      empty-level state remains recoverable without inventing dimensions. A
      second retained view now composes canonical tile-layer, prefab-placement,
      and enemy-marker create/edit/delete forms over the strict composition
-     command. Owning-prefab navigation plus normal route selection, reload, and
-     source apply remain open.
+     command. Owning-prefab navigation now atomically loads the explicit
+     Prefab-v3 document and selects the requested stable owner; normal route
+     selection, reload, and source apply remain open.
 5. **Current-schema normal-loader proof.**
    - In a complete temporary v3/v2 workspace, normal plugin loading—not an
      explicit staging API—must select polygon documents, support every retained
@@ -971,7 +974,7 @@ Current command-gap audit (August 9, 2026):
 | Chunk lifecycle | `create_chunk`, `duplicate_chunk`, `rename_chunk`, `deprecate_chunk`, `delete_chunk` | write-locked `commit_chunk_v2_lifecycle` covers stale-checked create/duplicate/rename/delete; metadata status covers deprecation | Typed lifecycle and explicit-staging form parity are complete with stable `chunkKey`, canonical IDs/paths, explicit created/baseline ownership, reviewed v2 revision/default-status rules, selection resynchronization, and recoverable final-owner deletion. Normal loader/route selection, reload/source apply, and source migration remain disabled. |
 | Chunk metadata | `update_chunk_metadata`, `update_ground_band_z_index`, active-level selection | active-level selection plus write-locked `commit_chunk_v2_metadata` for status, level, difficulty, assembly group, canonical tags, and render-band Z | Existing-owner metadata and explicit-staging form parity are complete with identity/dimensions/composition/marker/placement/polygon protection and one accepted revision bump. Retain render-band Z until Phase 5; normal loader/route selection, reload/source apply, and source migration remain disabled. |
 | Chunk tile layers | retained tile-layer source | write-locked strict `commit_chunk_v2_composition` replacement | Explicit-staging create/edit/delete form parity is complete with non-empty retained fields, unique IDs, canonical order, and visibility state. Normal loader/route selection, reload/source apply, and source migration remain disabled. |
-| Chunk placements | add/move/replace/settings/remove prefab placement | read-only expanded overlay plus write-locked strict `commit_chunk_v2_composition` replacement | Existing-owner mutation and explicit-staging form parity are complete with active-owner replacement, translation/Z/snap/exact scale/reflection, canonical order, exact expansion/full validation, and no per-instance vertex override. Owning-prefab navigation and normal cutover remain open. |
+| Chunk placements | add/move/replace/settings/remove prefab placement | read-only expanded overlay plus write-locked strict `commit_chunk_v2_composition` replacement | Existing-owner mutation and explicit-staging form parity are complete with active-owner replacement, translation/Z/snap/exact scale/reflection, canonical order, exact expansion/full validation, no per-instance vertex override, and guarded navigation to the exact Prefab-v3 owner. Normal cutover remains open. |
 | Chunk markers | add/move/type/settings/remove enemy marker | read-only Core placement diagnostics plus the same write-locked strict composition replacement | Existing-owner mutation and explicit-staging form parity are complete with canonical order, Core enemy IDs, bounds/chance/salt/intent contracts, zero-RNG authoring, and advisory placement projection. Normal loader/route selection, reload/source apply, and source migration remain disabled. |
 | Removed terrain commands | ground-profile update plus add/update/remove gap | `commit_chunk_polygon` | Delete the legacy commands/forms rather than mapping them to approximate polygons. |
 
@@ -1678,6 +1681,7 @@ result.
 | 2026-08-10 / `fd84e465` | Prefab plugin diagnostic owner retention | Dart and Flutter test VMs on Windows with Docker running | Editor analysis is clean and all 16 focused Prefab-v3 plugin tests pass. A 17-shape staged Prefab warning retains owner `target` through `PrefabValidationIssue` to generic `ValidationIssue`; severity, source path, and non-blocking behavior are unchanged. |
 | 2026-08-10 / `7145d9b6` + `80a890f6` | Staged generated-artifact migration impacts | Dart VM and Flutter test VM on Windows with Docker running | Root, Core-package, and editor analysis are clean; all 331 Core-package tests, all 72 root tool/generator tests, and all 452 editor tests pass. One Core constant owns the future staged output path. Readiness report v3 emits eight immutable canonically ordered Chunk impact records covering all 50 placements, with shared path/artifact format, Chunk identity/source, sorted referenced Prefab keys, and placement count; equivalent legacy/current source emits identical records. Current legacy/current FNV fingerprints are `f74fa5f0` and `12475a2a`, with `authoring-migration-v1` SHA-256 values `561d49b2…2597` and `3264cf7a…15d`. No artifact is generated, registered, selected, or written; `--write` and runtime authority remain unchanged. |
 | 2026-08-10 / `2c6c7cb5` + `2a9a2ded` + `0b9c95c3` | Windows profile polygon-interaction benchmark and no-op stability | Windows Flutter profile/debug VMs with Docker running | Full editor analysis is clean and all 453 normal editor tests pass; the Windows debug device regression and clean-revision profile drive both pass. The deterministic 600 x 270 fixture freezes 16 direct shapes, one 24-vertex shape, 43 expanded Prefab shapes, 256 compiled edges, 12 compatible seams, and authored/source/edge/seam signatures `11957741…2ae0`, `9c7a7088…5725`, `dfcdc193…7271`, and `fa7a0aa0…6355`. Across 600 measured frames per mode after 120 warmups, vertex p95/p99 is `201/262 us`, shape is `210/277 us`, build p99 is `7.864/7.359 ms`, and no input or engine budget is missed. Source document/list/Chunk identities remain unchanged, with one plugin load and zero generator runs. The compact JSON reports revision `0b9c95c3`, `dirty: false`, and every gate passing. All 39 focused Prefab-v3/Chunk-v2 save-plan and migration check/command tests also pass; the standalone real migration check remains zero-write legacy-ready and normal generator dry-run is clean. |
+| 2026-08-10 / `51093934` + `a76cd659` | Guarded owning-prefab navigation | Flutter test VM and Dart analyzer on Windows with Docker running | Full editor analysis is clean and the fail-fast full rerun passes all 458 editor tests; an initial concurrent full run completed 457 tests with one non-reproduced failure under memory pressure. Focused session tests prove atomic success and failure preservation. Chunk/Prefab/shell tests prove exact stable-owner dispatch, unchanged Chunk revision and pending state, explicit Prefab-v3 loading exactly once, zero normal legacy Prefab loads, and requested-owner selection. The action crosses the existing unsaved-work guard and never creates per-instance geometry. Normal v3/v2 schema selection, staging source writes, authored JSON, generated data, and runtime authority remain unchanged. |
 
 ### 28.1 Baseline Environment And Source Identity
 

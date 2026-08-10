@@ -88,3 +88,16 @@ the Git revision/dirty state, fixture signatures, interaction and frame
 percentiles, missed-input counts, source-identity evidence, and each gate. The
 benchmark is test-only: it cannot write authoring source or select staged
 terrain at runtime.
+
+## Explicit Polygon Workspace Navigation
+
+When an all-current fixture explicitly loads the write-locked Chunk-v2 polygon
+workspace, each read-only expanded prefab collision exposes **Open prefab**.
+The action goes through the editor shell's unsaved-work guard, loads the
+Prefab-v3 staging document, and selects the exact stable source owner for shape
+editing. Chunk placements continue to own transforms only; the editor does not
+create per-instance polygon overrides.
+
+This is cutover preparation, not normal schema selection. Checked-in legacy
+source still opens the Prefab-v2 and Chunk-v1 workflows, and changed Prefab-v3
+or Chunk-v2 staging documents still cannot be written to repository source.
