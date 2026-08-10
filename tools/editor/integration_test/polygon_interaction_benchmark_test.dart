@@ -152,7 +152,9 @@ void main() {
       'noInteractionDiagnosticTruncation': fullGeometryVisible,
     };
     final allGatesPass = gates.values.every((passed) => passed);
-    final frameTiming = binding.reportData?['frameTiming'];
+    final frameTiming = _summarizeFrameTiming(
+      binding.reportData?['frameTiming'],
+    );
     binding.reportData = <String, dynamic>{
       'reportVersion': 1,
       'benchmark': 'polygon-interaction-v1',
@@ -234,4 +236,29 @@ Map<String, num> _summarizeMicros(List<int> samples) {
 int _nearestRank(List<int> sorted, double percentile) {
   final index = (sorted.length * percentile).ceil() - 1;
   return sorted[index.clamp(0, sorted.length - 1)];
+}
+
+Map<String, dynamic> _summarizeFrameTiming(Object? raw) {
+  if (raw is! Map<String, dynamic>) {
+    throw StateError('Flutter frame timing summary is unavailable.');
+  }
+  List<int> samples(String key) {
+    final values = raw[key];
+    if (values is! List<dynamic>) {
+      throw StateError('Flutter frame timing field $key is unavailable.');
+    }
+    return values
+        .map((value) => (value as num).round())
+        .toList(growable: false);
+  }
+
+  return <String, dynamic>{
+    'frameCount': raw['frame_count'],
+    'buildMicros': _summarizeMicros(samples('frame_build_times')),
+    'rasterMicros': _summarizeMicros(samples('frame_rasterizer_times')),
+    'missedBuildBudgetCount': raw['missed_frame_build_budget_count'],
+    'missedRasterBudgetCount': raw['missed_frame_rasterizer_budget_count'],
+    'newGenerationGcCount': raw['new_gen_gc_count'],
+    'oldGenerationGcCount': raw['old_gen_gc_count'],
+  };
 }
