@@ -32,7 +32,7 @@ The active schema migration, generator, preview, and cutover work remains in
 | --- | --- | --- |
 | Exact half-pixel source vertex and shape values | `tools/editor/lib/src/terrain_authoring/terrain_source_models.dart` | editor model/codec tests and the Core adapter |
 | Source validation and canonicalization | `runner_core` `TerrainSourceCanonicalizer` | `TerrainCompiler` and editor adapter |
-| Portable terrain-authoring issue envelope | `runner_core` `TerrainAuthoringIssue` | staged generator raw-source/compile, seam validation, typed artifact/output-drift verification, and editor Chunk-v2 collision expansion; migration and remaining editor-domain adapters are pending |
+| Portable terrain-authoring issue envelope | `runner_core` `TerrainAuthoringIssue` | staged generator raw-source/compile, seam validation, typed artifact/output-drift verification, migration plan/check/write adapters, and editor Chunk-v2 collision expansion; remaining editor-domain adapters are pending |
 | Positive-area polygon overlap | `runner_core` `TerrainPolygonOverlap` | `TerrainCompiler`; source-loop entry point is ready for editor owner validation |
 | Exact placement and physics-grid quantization | `runner_core` `TerrainSourceTransform` | `TerrainCompiler`, Core fixtures, and editor adapter |
 | Editor-to-Core conversion | editor `TerrainSourceCoreAdapter` | migration checks, shared interaction reducer, and explicit Prefab/Chunk staging routes |
@@ -339,6 +339,14 @@ Changing only exact source bytes changes the signature. The existing short FNV
 fingerprints remain compatibility/display tokens, and neither canonical JSON
 nor CLI report output changes.
 
+Migration retains its report-specific issue types and also exposes a shared
+blocking-envelope view. Plan/check blockers and source-digest audits preserve
+their source, decoded owner, element, code, and message while adding explicit
+error severity and null placement/shape lineage. A source-loading exception
+that aborts before owner decoding uses its canonical source path as owner.
+These adapters are excluded from report JSON and `authoring-migration-v1`, so
+diagnostic unification cannot silently revise reviewed readiness evidence.
+
 Rectangle-era prefab records used by this path are isolated as
 `LegacyPrefabDef`/`LegacyPrefabData` inside the migration layer. The strict
 codec, migration planner, reviewed union, and v3 target conversion no longer
@@ -389,6 +397,10 @@ It distinguishes `blocked` before replacement, `rolledBack`, `rollbackFailed`,
 and `committedCleanupFailed`. Stable code, message, and canonical source paths
 are serialized; raw exception causes and unique transaction paths are excluded
 so two equivalent failures do not drift by host or process.
+The parallel terrain-authoring view emits one blocking issue per retained
+source path; transaction-wide failures without file evidence use the stable
+`migration/write` source and owner. It does not change rollback or report
+semantics.
 
 This foundation is intentionally not reachable from
 `tool/migrate_polygon_authoring.dart`: `--write` remains a usage error until
@@ -1138,8 +1150,8 @@ which now preserves optional `ownerKey`; direct and placement-source findings
 own the Chunk, while expanded-shape findings own the Prefab.
 
 This is still not the universal user-facing boundary required for cutover.
-Migration, other editor validation domains, and normal export/load entry points
-retain their existing contracts and must be adapted without importing JSON,
+Other editor validation domains and normal export/load entry points retain
+their existing contracts and must be adapted without importing JSON,
 filesystem, or editor types into Core.
 
 ## Exact Legacy Compatibility Projection
