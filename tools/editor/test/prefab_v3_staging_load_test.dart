@@ -21,6 +21,27 @@ void main() {
   const store = PrefabStore();
   const plugin = PrefabDomainPlugin();
 
+  test('normal plugin load selects strict prefab-v3 source', () async {
+    final fixture = _Fixture.create();
+    addTearDown(fixture.dispose);
+
+    expect(
+      store.detectSourceGeneration(fixture.root.path),
+      PrefabSourceGeneration.currentV3,
+    );
+    final document = await plugin.loadFromRepo(fixture.workspace);
+
+    expect(document, isA<PrefabV3StagingDocument>());
+    expect(plugin.validate(document), isEmpty);
+    expect(plugin.buildEditableScene(document), isA<PrefabV3StagingScene>());
+    expect(
+      plugin
+          .describePendingChanges(fixture.workspace, document: document)
+          .hasChanges,
+      isFalse,
+    );
+  });
+
   test(
     'explicit staging load strictly composes prefab, tile, bounds, and atlas metadata',
     () async {
@@ -196,6 +217,28 @@ void main() {
       );
     },
   );
+
+  test('normal generation detection rejects unsupported prefab schemas', () {
+    final fixture = _Fixture.create();
+    addTearDown(fixture.dispose);
+    fixture.prefabFile.writeAsStringSync(
+      fixture.prefabContents.replaceFirst(
+        '"schemaVersion": 3',
+        '"schemaVersion": 4',
+      ),
+    );
+
+    expect(
+      () => store.detectSourceGeneration(fixture.root.path),
+      throwsA(
+        isA<FormatException>().having(
+          (error) => error.message,
+          'message',
+          contains('Unsupported prefab schemaVersion 4'),
+        ),
+      ),
+    );
+  });
 }
 
 final class _Fixture {

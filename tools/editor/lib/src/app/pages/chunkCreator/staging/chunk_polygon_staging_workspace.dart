@@ -42,9 +42,10 @@ import 'chunk_v2_owner_dialog.dart';
 
 /// Explicit chunk-v2 polygon workspace used before the schema cutover.
 ///
-/// Normal Chunk Creator sessions still load and write chunk v1. This workspace
-/// is selected only for an already-staged v2 scene and exposes no source-write
-/// action while the coordinated migration gate remains closed.
+/// Legacy source still loads the chunk-v1 workflow. A complete current v2 tree
+/// selects this workspace through the normal plugin loader; explicit fixtures
+/// can also stage it directly. Source writes remain locked until the
+/// coordinated migration gate opens.
 class ChunkPolygonStagingWorkspace extends StatefulWidget {
   const ChunkPolygonStagingWorkspace({
     super.key,

@@ -54,6 +54,10 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
 
   @override
   Future<AuthoringDocument> loadFromRepo(EditorWorkspace workspace) async {
+    if (_store.detectSourceGeneration(workspace) ==
+        ChunkSourceGeneration.currentV2) {
+      return loadV2StagingFromRepo(workspace);
+    }
     var loaded = await _store.load(
       workspace,
       preferredActiveLevelId: _preferredActiveLevelId,
@@ -81,11 +85,11 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
     return loaded;
   }
 
-  /// Explicit all-v2 staging load used before the normal schema cutover.
+  /// Strict all-v2 load shared by normal selection and explicit staging.
   ///
-  /// The normal [loadFromRepo] path deliberately remains on chunk v1. This
-  /// method also requires strict prefab-v3/tile-v2 source so placement preview
-  /// can later expand one coherent future-source generation.
+  /// This also requires strict prefab-v3/tile-v2 source so placement preview
+  /// expands one coherent future-source generation. Changed exports remain
+  /// locked until the coordinated repository cutover.
   Future<ChunkV2StagingDocument> loadV2StagingFromRepo(
     EditorWorkspace workspace,
   ) async {

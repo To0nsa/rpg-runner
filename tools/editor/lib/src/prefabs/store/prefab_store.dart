@@ -44,6 +44,9 @@ class PrefabV3StagingLoadResult {
   final PrefabTileFileData tileData;
 }
 
+/// Schema family selected from the authoritative prefab source version.
+enum PrefabSourceGeneration { legacyV2, currentV3 }
+
 /// One canonical fixed-path replacement in a prefab-v3 staging save plan.
 final class PrefabV3StagingSaveFile {
   const PrefabV3StagingSaveFile({
@@ -111,8 +114,44 @@ class PrefabStore {
 
   const PrefabStore();
 
-  /// Strictly loads prefab-v3 and retained tile-v2 source without enabling the
-  /// normal loader or any repository write path.
+  /// Selects the normal prefab document family without decoding either model.
+  ///
+  /// Missing source preserves the legacy empty-workspace behavior. Existing
+  /// source must declare an exact supported integer version; malformed or
+  /// future versions fail instead of falling back to rectangle authoring.
+  PrefabSourceGeneration detectSourceGeneration(String workspaceRootPath) {
+    final prefabFile = File(
+      p.normalize(p.join(workspaceRootPath, prefabDefsPath)),
+    );
+    if (!prefabFile.existsSync()) {
+      return PrefabSourceGeneration.legacyV2;
+    }
+    final parsed = _parseJsonMap(
+      prefabFile.readAsStringSync(),
+      sourcePath: prefabFile.path,
+    );
+    final schemaVersion = parsed['schemaVersion'];
+    if (schemaVersion is! int) {
+      throw FormatException(
+        'Malformed schemaVersion in ${prefabFile.path}: expected an integer.',
+      );
+    }
+    return switch (schemaVersion) {
+      prefabSchemaVersionV1 ||
+      prefabSchemaVersionV2 => PrefabSourceGeneration.legacyV2,
+      prefabSchemaVersionV3 => PrefabSourceGeneration.currentV3,
+      _ => throw FormatException(
+        'Unsupported prefab schemaVersion $schemaVersion in '
+        '${prefabFile.path}.',
+      ),
+    };
+  }
+
+  /// Strictly loads prefab-v3 and retained tile-v2 source.
+  ///
+  /// This remains the explicit loader used by cross-route owner navigation;
+  /// normal loading also selects it when [detectSourceGeneration] reports v3.
+  /// Repository write authority is unaffected by selection.
   Future<PrefabV3StagingLoadResult> loadV3Staging(
     String workspaceRootPath,
   ) async {

@@ -21,6 +21,28 @@ import 'package:runner_editor/src/workspace/editor_workspace.dart';
 void main() {
   const store = ChunkStore();
 
+  test('normal plugin load selects a complete strict chunk-v2 tree', () async {
+    final fixture = _V2Fixture.create();
+    addTearDown(fixture.dispose);
+    final plugin = ChunkDomainPlugin();
+
+    expect(
+      store.detectSourceGeneration(fixture.workspace),
+      ChunkSourceGeneration.currentV2,
+    );
+    final document = await plugin.loadFromRepo(fixture.workspace);
+
+    expect(document, isA<ChunkV2StagingDocument>());
+    expect(plugin.validate(document), isEmpty);
+    expect(plugin.buildEditableScene(document), isA<ChunkV2StagingScene>());
+    expect(
+      plugin
+          .describePendingChanges(fixture.workspace, document: document)
+          .hasChanges,
+      isFalse,
+    );
+  });
+
   test(
     'explicit staging load composes strict future source and stays read-only',
     () async {
@@ -208,6 +230,33 @@ void main() {
           (error) => error.message,
           'message',
           contains('chunk_v2_duplicate_chunk_key'),
+        ),
+      ),
+    );
+  });
+
+  test('normal generation detection rejects a mixed chunk tree', () async {
+    final fixture = _V2Fixture.create();
+    addTearDown(fixture.dispose);
+    final legacyFile = File(
+      p.join(
+        fixture.root.path,
+        ChunkStore.chunksDirectoryPath,
+        'forest',
+        'legacy.json',
+      ),
+    )..createSync(recursive: true);
+    legacyFile.writeAsStringSync(
+      '${const JsonEncoder.withIndent('  ').convert(_legacyChunkJson())}\n',
+    );
+
+    await expectLater(
+      ChunkDomainPlugin().loadFromRepo(fixture.workspace),
+      throwsA(
+        isA<StateError>().having(
+          (error) => error.message,
+          'message',
+          contains('chunk_mixed_schema_generation'),
         ),
       ),
     );

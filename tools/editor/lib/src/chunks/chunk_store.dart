@@ -35,6 +35,9 @@ class ChunkV2StagingLoadResult {
   final List<ChunkV2StagingSource> sources;
 }
 
+/// Schema family shared by every chunk file in one authoring workspace.
+enum ChunkSourceGeneration { legacyV1, currentV2 }
+
 /// Stable failure from the explicit chunk-v2 staging write proof.
 final class ChunkV2StagingSaveException implements Exception {
   const ChunkV2StagingSaveException({
@@ -70,8 +73,59 @@ class ChunkStore {
 
   const ChunkStore();
 
-  /// Strictly loads an all-v2 chunk source tree without enabling normal load
-  /// selection or any repository write path.
+  /// Selects the normal chunk document family from the complete source tree.
+  ///
+  /// Every file must declare the same exact supported integer version. A mixed,
+  /// malformed, or future tree fails before either codec can partially load it;
+  /// an absent directory preserves the legacy empty-workspace behavior.
+  ChunkSourceGeneration detectSourceGeneration(EditorWorkspace workspace) {
+    final chunkFiles = _listChunkFiles(workspace);
+    if (chunkFiles.isEmpty) {
+      return ChunkSourceGeneration.legacyV1;
+    }
+    ChunkSourceGeneration? detected;
+    for (final file in chunkFiles) {
+      final relativePath = WorkspaceFileIo.toWorkspaceRelativePath(
+        workspace,
+        file.path,
+      );
+      final raw = file.readAsStringSync();
+      final parsed = _parseJsonMap(raw);
+      if (parsed == null) {
+        throw FormatException(
+          'Malformed chunk JSON in $relativePath: expected an object.',
+        );
+      }
+      final schemaVersion = parsed['schemaVersion'];
+      if (schemaVersion is! int) {
+        throw FormatException(
+          'Malformed schemaVersion in $relativePath: expected an integer.',
+        );
+      }
+      final generation = switch (schemaVersion) {
+        chunkSchemaVersion => ChunkSourceGeneration.legacyV1,
+        chunkSchemaVersionV2 => ChunkSourceGeneration.currentV2,
+        _ => throw FormatException(
+          'Unsupported chunk schemaVersion $schemaVersion in $relativePath.',
+        ),
+      };
+      final previous = detected;
+      if (previous != null && previous != generation) {
+        throw StateError(
+          'chunk_mixed_schema_generation: expected ${previous.name}, but '
+          '$relativePath declares ${generation.name}.',
+        );
+      }
+      detected = generation;
+    }
+    return detected!;
+  }
+
+  /// Strictly loads an all-v2 chunk source tree.
+  ///
+  /// Normal loading selects this path only after [detectSourceGeneration]
+  /// proves that every source file is v2. Repository writes remain controlled
+  /// by the separate export cutover gate.
   Future<ChunkV2StagingLoadResult> loadV2Staging(
     EditorWorkspace workspace,
   ) async {

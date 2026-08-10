@@ -68,6 +68,10 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
 
   @override
   Future<AuthoringDocument> loadFromRepo(EditorWorkspace workspace) async {
+    if (_store.detectSourceGeneration(workspace.rootPath) ==
+        PrefabSourceGeneration.currentV3) {
+      return loadV3StagingFromRepo(workspace);
+    }
     final loadResult = await _store.loadWithReport(workspace.rootPath);
     final metadata = await _loadWorkspaceMetadata(workspace);
 
@@ -81,11 +85,11 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
     );
   }
 
-  /// Explicit read-only prefab-v3 load used before the normal schema cutover.
+  /// Strict prefab-v3 load shared by normal selection and owner navigation.
   ///
-  /// [loadFromRepo] deliberately remains on v2 while repository source is
-  /// legacy. This method requires strict v3/v2 fixture source and returns a
-  /// changed-export-locked staging document.
+  /// This method requires strict v3/tile-v2 source and returns a
+  /// changed-export-locked document. Legacy source remains on the v2 document
+  /// until the coordinated migration-required route replacement.
   Future<PrefabV3StagingDocument> loadV3StagingFromRepo(
     EditorWorkspace workspace,
   ) async {

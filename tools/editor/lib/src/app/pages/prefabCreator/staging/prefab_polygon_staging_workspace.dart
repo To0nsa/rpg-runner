@@ -31,9 +31,9 @@ import 'prefab_v3_owner_dialog.dart';
 
 /// Explicit prefab-v3 polygon workspace used before the schema cutover.
 ///
-/// The normal Prefab Creator still loads and writes v2 rectangles. This page is
-/// selected only when the session already contains [PrefabV3StagingScene], and
-/// deliberately exposes no source-write action while staging export is locked.
+/// Legacy source still loads the v2 rectangle workflow. Current v3 source and
+/// explicit owner navigation select this page through [PrefabV3StagingScene].
+/// It exposes no source-write action while staging export remains locked.
 class PrefabPolygonStagingWorkspace extends StatefulWidget {
   const PrefabPolygonStagingWorkspace({
     super.key,
