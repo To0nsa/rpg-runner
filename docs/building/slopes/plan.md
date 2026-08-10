@@ -1541,9 +1541,12 @@ Staged generator diagnostics now have exact structural and Core-topology
 matrices in addition to reference/range/scale/bounds coverage. Malformed
 source, invalid stable IDs, noncanonical or unsafe loops, occupied overlap, and
 post-transform collapse all fail without partial output and retain canonical
-lineage/order. The final diagnostic gate remains open until strict parser,
-Core, editor-owner, seam, and output-drift failures share one explicit
-user-facing severity/owner envelope at the validation boundary.
+lineage/order. Core's portable `TerrainAuthoringIssue` now gives strict staged
+prefab/chunk parsing, compilation, and Chunk-v2 collision preview one explicit
+severity/owner/lineage envelope without depending on editor types. The final
+diagnostic gate remains open until seam/output-drift, migration, remaining
+editor domains, and normal export/cutover boundaries use it and the outstanding
+major diagnostic fixtures pass.
 
 An isolated exact legacy projector now decomposes accepted orthogonal terrain,
 reproduces current 16-pixel rectangle snapping, derives gaps only from exact

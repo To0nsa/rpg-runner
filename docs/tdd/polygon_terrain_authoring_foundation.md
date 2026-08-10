@@ -32,6 +32,7 @@ The active schema migration, generator, preview, and cutover work remains in
 | --- | --- | --- |
 | Exact half-pixel source vertex and shape values | `tools/editor/lib/src/terrain_authoring/terrain_source_models.dart` | editor model/codec tests and the Core adapter |
 | Source validation and canonicalization | `runner_core` `TerrainSourceCanonicalizer` | `TerrainCompiler` and editor adapter |
+| Portable terrain-authoring issue envelope | `runner_core` `TerrainAuthoringIssue` | staged generator raw-source/compile boundary and editor Chunk-v2 collision expansion; seam/output-drift/migration and remaining editor-domain adapters are pending |
 | Positive-area polygon overlap | `runner_core` `TerrainPolygonOverlap` | `TerrainCompiler`; source-loop entry point is ready for editor owner validation |
 | Exact placement and physics-grid quantization | `runner_core` `TerrainSourceTransform` | `TerrainCompiler`, Core fixtures, and editor adapter |
 | Editor-to-Core conversion | editor `TerrainSourceCoreAdapter` | migration checks, shared interaction reducer, and explicit Prefab/Chunk staging routes |
@@ -1076,14 +1077,25 @@ post-transform minimum-edge collapse. Stable shape IDs are lowercase by
 grammar; a case variant therefore fails parsing, while an exact duplicate
 fails canonical list ordering.
 
-This is not yet one universal user-facing diagnostic envelope. Strict codecs
-throw path-rich `FormatException`s, Core owns geometry diagnostics and derives
-blocking status by code, the staged generator exposes only blocking issues,
-and editor domains add their own severity/owner context. Before normal export
-or generator cutover, those layer-specific failures must be normalized at the
-validation boundary into explicit severity, owner, shape/element, stable code,
-and actionable message fields. Core must not import editor diagnostic types to
-achieve that normalization.
+Core now owns the portable `TerrainAuthoringIssue` boundary: explicit warning
+or error severity, stable code/message, canonical source path, owner key, and
+optional placement/shape/element lineage with deterministic immutable sorting.
+Its `fromCore` adapter derives severity through the established blocking-code
+predicate without replacing focused `TerrainDiagnostic` inside geometry.
+
+The staged generator raw-source entry catches strict prefab and chunk
+`FormatException`s independently, emits stable file-level codes, and uses the
+canonical path as owner only when parsing failed before a repository owner
+could be decoded. All later staged compilation findings use decoded Chunk or
+Prefab ownership. The editor Chunk-v2 collision adapter constructs the same
+strict envelope and then maps it into the broader plugin `ValidationIssue`,
+which now preserves optional `ownerKey`; direct and placement-source findings
+own the Chunk, while expanded-shape findings own the Prefab.
+
+This is still not the universal user-facing boundary required for cutover.
+Seam/output-drift, migration, other editor validation domains, and normal
+export/load entry points retain their existing contracts and must be adapted
+without importing JSON, filesystem, or editor types into Core.
 
 ## Exact Legacy Compatibility Projection
 
