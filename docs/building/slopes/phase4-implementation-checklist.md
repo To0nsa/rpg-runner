@@ -1,9 +1,8 @@
 # Slopes Phase 4 - Polygon Authoring, Migration, And Generation Checklist
 
 - Created: July 28, 2026
-- Status: Automated acceptance is clean; cross-platform transformed-tick
-  parity and one manual non-developer workflow/usability pass remain before
-  Phase 4 sign-off
+- Status: Automated acceptance complete; one manual non-developer
+  workflow/usability pass remains before Phase 4 sign-off
 - Source plan: [plan.md](plan.md)
 - Frozen gameplay decisions:
   [phase0-gameplay-decisions.md](phase0-gameplay-decisions.md)
@@ -448,7 +447,7 @@ Chunk v2 replaces `groundProfile` and `groundGaps` with direct chunk-local
 - [x] Recanonicalize transformed winding/start after an odd reflection.
 - [x] Preserve local shape/vertex lineage through placement and compilation.
 - [x] Prove flip/scale/translation order with asymmetric half-pixel fixtures.
-- [ ] Prove identical transformed ticks across editor preview, generator, Core,
+- [x] Prove identical transformed ticks across editor preview, generator, Core,
       Windows/Linux, JIT/AOT, and fresh processes.
 - [x] Treat a post-transform degenerate/short edge as blocking, even when the
       untransformed source was valid.
@@ -456,9 +455,10 @@ Chunk v2 replaces `groundProfile` and `groundGaps` with direct chunk-local
 One function/adapter owns this transform. The Chunk scene, validation,
 migration report, and generator must not each reimplement it.
 
-Windows VM/profile and fresh-process parity are covered. A matching Linux
-JIT/AOT execution remains an external acceptance gate; the Windows result is
-not treated as evidence for an unexecuted platform.
+The reviewed signature probe executes with official Dart 3.11.5 on Windows
+x64 and WSL2 Linux x64 in both JIT and compiled AOT forms. All four executions
+emit byte-identical polygon/source/edge/placement/triangle/seam/artifact
+records; the exact transformed-placement digest is `bacff9da…b7211`.
 
 ## 13) Validation And Diagnostic Contract
 
@@ -1723,6 +1723,7 @@ result.
 | 2026-08-11 / `747cc7e3` + `cd9c32a2` | Current-name promotion and normal compatibility removal | Flutter test VM and Dart analyzer on Windows with Docker running | Public route/type names no longer use the temporary `Staging` label. Normal Prefab/Chunk routes, plugins, stores, models, forms, commands, validation, and previews are current-schema only; 28,782 compatibility lines and their obsolete tests were removed. Legacy Prefab collider and Chunk-v1 ground/gap models/codecs remain only under offline migration paths. Normal stores perform generation detection solely to select current data or the fail-closed migration-required scene. Editor analysis is clean, the owning-Prefab lifecycle regression passes, and the low-memory `--concurrency=1 --fail-fast` full suite passes all 353 retained editor tests. Authored source, generated outputs, and runtime authority are unchanged. |
 | 2026-08-11 / `fb9bb76b` | Phase 4 automated acceptance rerun | Dart and Flutter test/profile VMs on Windows with Docker running | Root, Core-package, editor, and replay-validator analysis are clean. All 334 Core-package tests, 353 editor tests, 433 root Core integration tests, 75 root tool/generator tests, and 84 replay-validator tests pass under low-memory sequential execution. The real migration check reports current source with 99 Prefabs, 8 Chunks, 9 validated targets, and zero pending representation migrations; the generator dry-run validates 8 Chunks, 2 levels, and 2 parallax themes with no drift. The Windows profile benchmark passes all gates across 1,200 measured interaction frames: vertex p95/p99 `179/238 us`, shape p95/p99 `206/270 us`, build p99 `7.633/10.955 ms`, zero missed input or engine-budget misses, one repository load, zero generator runs, and unchanged source identities. Its report is intentionally `dirty: true` only because the user-owned Firebase hosting cache remained modified and unstaged. `git diff --check` is clean for owned changes. The separate non-developer usability pass remains manual. |
 | 2026-08-11 / `9f79f40e` | Polygon-workspace usability closure | Flutter test VM and Dart analyzer on Windows with Docker running | Editor analysis is clean, all 28 focused responsive/semantics/controller/workspace tests pass, and the low-memory full editor suite passes all 359 tests. Prefab and Chunk polygon routes retain the three authoring panels at narrow widths through keyboard/semantics-aware tabs; both collision surfaces expose explicit semantics labels. Chunk composition displays a deterministic bottom-to-top visual stack using `groundBandZIndex`, ground-before-prefab tie ordering, and canonical placement order. Direct polygon fill is explicitly labeled authoring-only rather than collision/navigation authority. The only remaining acceptance evidence is Linux JIT/AOT transformed-tick parity and the manual non-developer workflow pass. |
+| 2026-08-11 / `b97b01b8` | Cross-platform transformed-tick parity | Official Dart 3.11.5 stable on Windows x64 and WSL2 Ubuntu Linux x64; JIT and compiled AOT | Four independent executions of `polygon-terrain-signature-probe-v1` emit byte-identical JSON. The result matches every reviewed polygon/source/edge/placement/triangle/seam/staged-artifact digest; exact transformed placement remains `bacff9da393aaa89d3947024dc25de3eaec17f77561c217af1af9a75143b7211`. The Linux SDK and both compiled probes were temporary and removed after comparison; Docker was not used. Only the manual non-developer usability pass remains. |
 
 ### 28.1 Baseline Environment And Source Identity
 
@@ -1943,7 +1944,7 @@ Phase 4 is complete only when:
       seams block export with actionable diagnostics
 - [x] editor preview, generator, generated records, and Core compiler parity
       signatures agree
-- [ ] transformed placement ticks match on Windows/Linux and JIT/AOT
+- [x] transformed placement ticks match on Windows/Linux and JIT/AOT
 - [x] staged polygon/edge/triangle/lineage output is deterministic and
       unreachable from normal production construction
 - [x] legacy generated projection is exact, bounded, documented, and rejects
