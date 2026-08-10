@@ -1066,6 +1066,25 @@ sort by source path, placement, shape, element, then code and cannot coexist
 with a compiled product. This generator matrix does not replace the editor and
 migration diagnostic inventory.
 
+The staged matrix also passes strict structural failures through their exact
+source paths and freezes Core topology translation without fabricating partial
+output. Covered topology includes repeated closing and consecutive duplicate
+vertices (including their complete ordered related diagnostics), too-few
+vertices, collinear middle vertices, minimum area/edge, noncanonical start and
+winding, self-intersection, positive-area cross-shape overlap, and
+post-transform minimum-edge collapse. Stable shape IDs are lowercase by
+grammar; a case variant therefore fails parsing, while an exact duplicate
+fails canonical list ordering.
+
+This is not yet one universal user-facing diagnostic envelope. Strict codecs
+throw path-rich `FormatException`s, Core owns geometry diagnostics and derives
+blocking status by code, the staged generator exposes only blocking issues,
+and editor domains add their own severity/owner context. Before normal export
+or generator cutover, those layer-specific failures must be normalized at the
+validation boundary into explicit severity, owner, shape/element, stable code,
+and actionable message fields. Core must not import editor diagnostic types to
+achieve that normalization.
+
 ## Exact Legacy Compatibility Projection
 
 The temporary compatibility projector consumes only an accepted

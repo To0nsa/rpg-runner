@@ -454,28 +454,28 @@ optional vertex/edge index, and an actionable message.
 
 Blocking categories:
 
-- [ ] malformed schema/value/enum/half-pixel coordinate
-- [ ] missing/duplicate/case-colliding shape ID
-- [ ] repeated closing or consecutive duplicate vertex
-- [ ] noncanonical winding/start requiring explicit repair
-- [ ] too few distinct vertices, zero/small area, or short edge
+- [x] malformed schema/value/enum/half-pixel coordinate
+- [x] missing/duplicate/case-colliding shape ID
+- [x] repeated closing or consecutive duplicate vertex
+- [x] noncanonical winding/start requiring explicit repair
+- [x] too few distinct vertices, zero/small area, or short edge
 - [ ] self-intersection, self-touch ambiguity, or collinear edge overlap
-- [ ] positive-area overlap between shapes
+- [x] positive-area overlap between shapes
 - [ ] unsupported hole/disconnected loop in one shape
-- [ ] prefab visual-source intersection contract failure
-- [ ] post-transform degeneracy or chunk-bounds overflow
-- [ ] unknown prefab/revision/source reference
+- [x] prefab visual-source intersection contract failure
+- [x] post-transform degeneracy or chunk-bounds overflow
+- [x] unknown prefab/revision/source reference
 - [ ] owner shape/vertex/expanded-edge limit overflow
 - [ ] Core compiler error or source/compiled signature mismatch
-- [ ] scheduler-reachable seam incompatibility
-- [ ] generated output drift in validation mode
+- [x] scheduler-reachable seam incompatibility
+- [x] generated output drift in validation mode
 
 Non-blocking categories:
 
-- [ ] intentional collision extent beyond visual bounds
-- [ ] collinear middle vertex with explicit Normalize quick fix
-- [ ] optional metadata absent
-- [ ] material reference deferred until the Phase 5 material catalog exists
+- [x] intentional collision extent beyond visual bounds
+- [x] collinear middle vertex with explicit Normalize quick fix
+- [x] optional metadata absent
+- [x] material reference deferred until the Phase 5 material catalog exists
 - [ ] content near a soft capacity/performance target
 
 Do not downgrade geometry or seam correctness to a warning to make migration
@@ -1389,6 +1389,19 @@ bounds produces the complete canonically sorted issue list and no compiled
 product. These tests bind the generator boundary only; they do not close the
 broader blocking-diagnostic inventory in §13.
 
+The expanded staged matrix now also freezes strict malformed/missing/enum/
+half-pixel/shape-ID failures and exact Core topology mappings for repeated
+closing vertices, consecutive duplicates, too-few vertices, collinearity,
+minimum area/edge, noncanonical start/winding, self-intersection, occupied
+overlap, and post-transform minimum-edge collapse. Every compiled-path case
+returns no product and retains exact source, placement, shape, element, code,
+and canonical issue order. Lowercase-only stable shape IDs make a case-only
+collision structurally unrepresentable: uppercase variants fail the ID grammar
+and exact duplicates fail strict ordering. The broad §13/§22 gate remains open
+because strict parse exceptions and compiled issues do not yet share one
+explicit severity/owner-key envelope, and self-touch/hole plus complete
+generator-facing capacity/signature-mismatch evidence remain incomplete.
+
 The legacy-projection unit matrix covers exact orthogonal decomposition,
 flat-ground/gap recognition, current 16-pixel snapping, input-order
 invariance, fail-closed diagonal/one-way cases, and the exact full-chunk
@@ -1455,6 +1468,8 @@ before changing the accepted plan.
 | The standalone migration CLI imported full Prefab/Chunk stores only to reuse two source-path constants. Later staging growth made the Chunk store transitively import Flutter models, so `dart run tool/migrate_polygon_authoring.dart` lost access to `dart:ui` even though migration logic remained pure. | Move the two canonical paths into a Flutter-free `RepositoryAuthoringPaths` contract. Stores retain their public constants as aliases; migration check/command import only the pure path contract. Add a subprocess test that locates the standalone Dart SDK from `flutter_tester` and compiles the real `--help` entrypoint. | Offline migration/generator tools must not import store/plugin graphs for constants. Any future store dependency is caught by the standalone-Dart regression before source-write authorization can rely on a broken checker. |
 | Placement-lineage and triangle signatures were canonical only while callers happened to preserve parser order, and Core source identity retained host-specific path separators. | Make the immutable compiled chunk own canonical sorting and duplicate-identity rejection for both derived record families. Normalize generator source paths to safe workspace-relative `/` identities before compilation, then bind all signature families and exact rendered bytes in a standalone-Dart probe with permutation and one-field mutation tests. | Live generator cutover must derive every source identity through the same canonical helper and must not use filesystem-native path spelling as authored or runtime identity. |
 | Extending the original staged artifact fixture with transform extrema and terrain-topology cases would change already-reviewed artifact bytes for coverage unrelated to that fixture's render contract. | Add a second independent canonical Prefab-v3/Chunk-v2 fixture and signature golden for transform/terrain parity; keep the original artifact fixture byte-identical. | Future parity coverage must extend the fixture whose contract it changes, or add another focused fixture, instead of silently rewriting an established golden. |
+| The §13 prose describes one diagnostic envelope with explicit severity and owner key, but strict current-schema parsing still throws path-rich `FormatException`s while Core and staged-generator issues use different fields and infer blocking severity from context. | Keep the broad diagnostic gate open. Freeze the existing structural messages and compiled lineage separately, then add one normalized validation-boundary envelope before user-facing cutover rather than adding editor concepts to Core geometry. | Normal editor export and the coordinated generator cutover must surface strict parse, owner validation, Core compile, seam, and output-drift failures through the same actionable envelope without weakening their layer-specific authorities. |
+| Stable polygon shape IDs are lowercase by grammar, so two accepted IDs cannot differ only by case. | Reject uppercase/mixed-case IDs at strict parsing, reject exact duplicates through canonical ordering, and test both paths instead of adding a redundant case-folded accepted-ID map. | Normal v3/v2 stores and migration output must retain the lowercase stable-ID grammar; a future grammar expansion would require an explicit case-collision rule and migration. |
 
 Append rows during implementation. Do not silently relax source, compiler,
 seam, determinism, or performance contracts.
@@ -1572,6 +1587,7 @@ result.
 | 2026-08-10 / `a3b0504b` | Core-owned deterministic terrain triangulation | Dart VM and Flutter test VM on Windows with Docker running | Root, Core-package, and editor analysis are clean; all 325 Core-package tests, all 58 root tool/generator tests, and all 439 editor tests pass. Core's exact first-ear triangulator and shared `authoring-triangles-v1` contract replace the generator-private algorithm/serializer. Convex/concave order, all rotations/reversed windings after compiler normalization, malformed-product rejection, immutable output, record ordering, duplicate rejection, and empty digest are explicit. Editor strict model round-trips and Core preview reproduce the generator's triangle digest `c1a71872…07d3`; staged artifact bytes/hash remain unchanged. Authored source, live registration, collision/runtime authority, and replay behavior are unchanged. |
 | 2026-08-10 / `017cd01a` | Transform and terrain feature parity fixture | Dart VM and Flutter test VM on Windows with Docker running | Root and editor analysis are clean; all 59 root tool/generator tests and all 440 editor tests pass. Exact canonical source covers odd half-pixel ticks, X-only reflection at `0.3`, Y-only reflection at `3.0`, one-quantization output, a flat-to-slope edge, finite pit coverage, and cross-shape internal solid-edge cancellation. Generator and editor agree on six polygons, 21 exposed edges, 14 triangles, and source/edge/authored/placement/triangle digests `6e5e8bbf…fe8`, `ed707fc7…d31`, `60ca88ca…c3f`, `4f07473d…1c2`, and `41ee501d…f36`. The original reviewed artifact bytes, authored source, live registration, and runtime authority are unchanged. |
 | 2026-08-10 / `80c3cf98` | Migration-origin authoring/runtime parity fixture | Dart VM and Flutter test VM on Windows with Docker running | Root and editor analysis are clean; all 60 root tool/generator tests and all 441 editor tests pass. The real legacy prefab union planner produces the fixture's isolated odd rectangle, concave overlapping-rectangle union, and two disconnected components exactly; reversed collider input preserves canonical loops and derived IDs. Generator and editor agree on four polygons, 20 exposed edges, 12 triangles, and source/edge/authored/placement/triangle digests `8b70a09b…bd96`, `1e605569…a1c6`, `355242dd…b57c`, `edc8b921…780f`, and `fcdff387…0ec5`. Existing fixture families, authored source, live registration, and runtime authority are unchanged. |
+| 2026-08-10 / `7b427390` | Staged structural/topology diagnostic matrix | Dart VM on Windows with Docker running | Root analysis is clean and all 63 root tool/generator tests pass. Strict parsing freezes malformed JSON, missing schema/shape fields, invalid collision mode, off-grid coordinates, lowercase ID grammar, and duplicate IDs. Core mapping freezes complete ordered diagnostics for repeated closing/consecutive duplicate vertices, too-few vertices, minimum area/edge, collinearity, noncanonical start/winding, self-intersection, occupied overlap, and transformed minimum-edge collapse with exact source/placement/shape/element lineage and no compiled product. Editor source was unchanged; the preceding 441-test editor result remains applicable. Authored source, fixture signatures, generated bytes, and runtime authority are unchanged. |
 
 ### 28.1 Baseline Environment And Source Identity
 
