@@ -1,0 +1,55 @@
+{
+  "format": "authoring-seams-v1",
+  "transitions": [
+    {
+      "levelId": "forest",
+      "transitionId": "steady-hard:tier=hard>hard",
+      "leftChunkKey": "normal",
+      "rightChunkKey": "normal"
+    },
+    {
+      "levelId": "forest",
+      "transitionId": "tier=early:within-window",
+      "leftChunkKey": "early_a",
+      "rightChunkKey": "early_a"
+    },
+    {
+      "levelId": "forest",
+      "transitionId": "tier=early:within-window",
+      "leftChunkKey": "early_a",
+      "rightChunkKey": "early_b"
+    },
+    {
+      "levelId": "forest",
+      "transitionId": "tier=early:within-window",
+      "leftChunkKey": "early_b",
+      "rightChunkKey": "early_a"
+    },
+    {
+      "levelId": "forest",
+      "transitionId": "tier=early:within-window",
+      "leftChunkKey": "early_b",
+      "rightChunkKey": "early_b"
+    },
+    {
+      "levelId": "forest",
+      "transitionId": "tier=early>easy:boundary",
+      "leftChunkKey": "early_a",
+      "rightChunkKey": "easy"
+    },
+    {
+      "levelId": "forest",
+      "transitionId": "tier=early>easy:boundary",
+      "leftChunkKey": "early_b",
+      "rightChunkKey": "easy"
+    },
+    {
+      "levelId": "forest",
+      "transitionId": "tier=easy>hard:boundary",
+      "leftChunkKey": "easy",
+      "rightChunkKey": "normal"
+    }
+  ],
+  "reachableAdjacencyRecord": "authoring-seams-v1\nforest|steady-hard:tier=hard>hard|normal>normal\nforest|tier=early:within-window|early_a>early_a\nforest|tier=early:within-window|early_a>early_b\nforest|tier=early:within-window|early_b>early_a\nforest|tier=early:within-window|early_b>early_b\nforest|tier=early>easy:boundary|early_a>easy\nforest|tier=early>easy:boundary|early_b>easy\nforest|tier=easy>hard:boundary|easy>normal",
+  "reachableAdjacencyDigest": "9681ffb17f61812ec63f1522f9da99340fd1a3ba05b0103f7d8a5f0ffd76393b"
+}

@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_core/collision/terrain/terrain_compiler.dart';
 import 'package:runner_core/collision/terrain/terrain_geometry.dart';
@@ -260,6 +263,25 @@ forest|tier=easy>hard:boundary|easy>normal''');
         expect(
           analysis.reachableAdjacencyDigest,
           '9681ffb17f61812ec63f1522f9da99340fd1a3ba05b0103f7d8a5f0ffd76393b',
+        );
+        final golden =
+            jsonDecode(_sharedSeamGolden().readAsStringSync())
+                as Map<String, Object?>;
+        expect(
+          analysis.reachableAdjacencyRecord,
+          golden['reachableAdjacencyRecord'],
+        );
+        expect(
+          analysis.reachableAdjacencyDigest,
+          golden['reachableAdjacencyDigest'],
+        );
+        expect(
+          analysis.transitions.map((item) => item.canonicalRecord),
+          (golden['transitions']! as List<Object?>).map((item) {
+            final value = item! as Map<String, Object?>;
+            return '${value['levelId']}|${value['transitionId']}|'
+                '${value['leftChunkKey']}>${value['rightChunkKey']}';
+          }),
         );
 
         final reversed = analyzeChunkV2Seams(
@@ -531,6 +553,20 @@ forest|tier=easy>hard:boundary|easy>normal''');
       );
     });
   });
+}
+
+File _sharedSeamGolden() {
+  final candidates = <File>[
+    File('../../test/fixtures/polygon_terrain_generator/reachable_seams.json'),
+    File('test/fixtures/polygon_terrain_generator/reachable_seams.json'),
+  ];
+  return candidates.firstWhere(
+    (candidate) => candidate.existsSync(),
+    orElse: () => throw StateError(
+      'Cannot locate the shared polygon terrain seam golden from '
+      '${Directory.current.path}.',
+    ),
+  );
 }
 
 ChunkV2BoundarySignature _signature({

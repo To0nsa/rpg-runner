@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
 import 'package:meta/meta.dart';
+import 'package:runner_core/collision/terrain/terrain_authoring_seam_signature.dart';
 import 'package:runner_core/collision/terrain/terrain_edge.dart';
 import 'package:runner_core/collision/terrain/terrain_geometry.dart';
 import 'package:runner_core/collision/terrain/terrain_numeric.dart';
@@ -237,8 +238,15 @@ final class ChunkV2ReachableTransition {
   final String leftChunkKey;
   final String rightChunkKey;
 
-  String get canonicalRecord =>
-      '$levelId|$transitionId|$leftChunkKey>$rightChunkKey';
+  TerrainAuthoringSeamTransition get authoringTransition =>
+      TerrainAuthoringSeamTransition(
+        levelId: levelId,
+        transitionId: transitionId,
+        leftChunkKey: leftChunkKey,
+        rightChunkKey: rightChunkKey,
+      );
+
+  String get canonicalRecord => authoringTransition.canonicalRecord;
 }
 
 /// One scheduler-reachable seam and its compiled physical comparison.
@@ -267,18 +275,11 @@ final class ChunkV2SeamAnalysis {
        transitions = List.unmodifiable(transitions),
        seams = List.unmodifiable(seams),
        issues = List.unmodifiable(issues) {
-    final records =
-        this.transitions
-            .map((transition) => transition.canonicalRecord)
-            .toList()
-          ..sort();
-    reachableAdjacencyRecord = <String>[
-      'authoring-seams-v1',
-      ...records,
-    ].join('\n');
-    reachableAdjacencyDigest = sha256
-        .convert(utf8.encode(reachableAdjacencyRecord))
-        .toString();
+    final signature = TerrainAuthoringSeamSignature(
+      this.transitions.map((transition) => transition.authoringTransition),
+    );
+    reachableAdjacencyRecord = signature.canonicalRecord;
+    reachableAdjacencyDigest = signature.digest;
   }
 
   final Map<String, ChunkV2BoundarySignature> leftSignaturesByChunkKey;
