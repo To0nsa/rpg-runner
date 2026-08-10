@@ -1547,8 +1547,8 @@ validation one explicit severity/owner/lineage envelope without depending on
 editor types. Seam set/reference/level faults own each offending Chunk; a
 directed physical mismatch owns the entered/right Chunk and retains the full
 transition/boundary evidence. The final diagnostic gate remains open until
-output-drift, migration, remaining editor domains, and normal export/cutover
-boundaries use it and the outstanding major diagnostic fixtures pass.
+migration, remaining editor domains, and normal export/cutover boundaries use
+it and the outstanding major diagnostic fixtures pass.
 Hard-capacity evidence is now complete at and
 one unit beyond 64 vertices, 64 placed-Prefab shapes, 512 combined Chunk
 shapes, and 4,096 exposed edges; failures retain the responsible Chunk or
@@ -1564,9 +1564,12 @@ all signature formats, reachable-seam digest, exact Chunk membership/source
 metadata, and authored/source/edge/placement/triangle signatures. Mismatches
 use the shared owner-aware blocking envelope and return no artifact. Exact
 payload bytes remain the existing generated-artifact plan's responsibility,
-so the verifier does not create a second geometry serializer. The broad
-diagnostic gate remains open for output-drift, migration, remaining editor
-domains, and normal export/cutover integration.
+so the verifier does not create a second geometry serializer. A composed
+read-only staged-output gate now adapts the plan's missing/stale/unexpected/
+unreadable findings into the shared blocking envelope using the generated path
+as source and owner; semantic or byte drift returns no artifact. The broad
+diagnostic gate remains open for migration, remaining editor domains, and
+normal export/cutover integration.
 
 An isolated exact legacy projector now decomposes accepted orthogonal terrain,
 reproduces current 16-pixel rectangle snapping, derives gaps only from exact

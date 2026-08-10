@@ -32,7 +32,7 @@ The active schema migration, generator, preview, and cutover work remains in
 | --- | --- | --- |
 | Exact half-pixel source vertex and shape values | `tools/editor/lib/src/terrain_authoring/terrain_source_models.dart` | editor model/codec tests and the Core adapter |
 | Source validation and canonicalization | `runner_core` `TerrainSourceCanonicalizer` | `TerrainCompiler` and editor adapter |
-| Portable terrain-authoring issue envelope | `runner_core` `TerrainAuthoringIssue` | staged generator raw-source/compile, seam validation, typed artifact verification, and editor Chunk-v2 collision expansion; output-drift/migration and remaining editor-domain adapters are pending |
+| Portable terrain-authoring issue envelope | `runner_core` `TerrainAuthoringIssue` | staged generator raw-source/compile, seam validation, typed artifact/output-drift verification, and editor Chunk-v2 collision expansion; migration and remaining editor-domain adapters are pending |
 | Positive-area polygon overlap | `runner_core` `TerrainPolygonOverlap` | `TerrainCompiler`; source-loop entry point is ready for editor owner validation |
 | Exact placement and physics-grid quantization | `runner_core` `TerrainSourceTransform` | `TerrainCompiler`, Core fixtures, and editor adapter |
 | Editor-to-Core conversion | editor `TerrainSourceCoreAdapter` | migration checks, shared interaction reducer, and explicit Prefab/Chunk staging routes |
@@ -983,7 +983,11 @@ shared `TerrainAuthoringIssue` severity/owner envelope; a Chunk-local mismatch
 owns that Chunk, while an artifact-global mismatch owns the canonical output
 path. Any issue makes the returned artifact null. `GeneratedArtifactPlan`
 continues to own exact rendered payload-byte validation, avoiding a second
-polygon/edge serialization authority; live cutover must apply both gates.
+polygon/edge serialization authority. The read-only
+`validateStagedPolygonTerrainOutput` composition applies both gates, converts
+missing/stale/unexpected/unreadable output findings to the shared blocking
+envelope with the generated path as source and owner, and returns the complete
+canonical issue set with no artifact if either side fails.
 
 The shared pure-Dart `authoring-polygons-v1` contract hashes source before
 placement expansion. A UTF-8 length-prefixed record contains the owner domain
@@ -1134,9 +1138,9 @@ which now preserves optional `ownerKey`; direct and placement-source findings
 own the Chunk, while expanded-shape findings own the Prefab.
 
 This is still not the universal user-facing boundary required for cutover.
-Output-drift, migration, other editor validation domains, and normal export/
-load entry points retain their existing contracts and must be adapted without
-importing JSON, filesystem, or editor types into Core.
+Migration, other editor validation domains, and normal export/load entry points
+retain their existing contracts and must be adapted without importing JSON,
+filesystem, or editor types into Core.
 
 ## Exact Legacy Compatibility Projection
 
