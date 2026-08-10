@@ -1088,6 +1088,16 @@ post-transform minimum-edge collapse. Stable shape IDs are lowercase by
 grammar; a case variant therefore fails parsing, while an exact duplicate
 fails canonical list ordering.
 
+One authored shape remains exactly one simple loop. The exact non-adjacent
+segment predicate also rejects point self-touch and positive-length collinear
+self-overlap. A bridged inner ring used to simulate a hole, or a zero-width
+bridge used to join disconnected interiors, necessarily enters that same
+blocking `self_intersection` path; it never reaches normalization,
+triangulation, or partial preview geometry. Valid disconnected occupied regions
+are authored as separate stable-ID shapes, as proven by the migration-origin
+parity fixture. Generator and Chunk-editor adapter tests preserve the same
+Chunk owner, shape, element, code, and related collinear findings.
+
 Core now owns the portable `TerrainAuthoringIssue` boundary: explicit warning
 or error severity, stable code/message, canonical source path, owner key, and
 optional placement/shape/element lineage with deterministic immutable sorting.

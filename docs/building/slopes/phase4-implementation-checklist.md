@@ -470,9 +470,9 @@ Blocking categories:
 - [x] repeated closing or consecutive duplicate vertex
 - [x] noncanonical winding/start requiring explicit repair
 - [x] too few distinct vertices, zero/small area, or short edge
-- [ ] self-intersection, self-touch ambiguity, or collinear edge overlap
+- [x] self-intersection, self-touch ambiguity, or collinear edge overlap
 - [x] positive-area overlap between shapes
-- [ ] unsupported hole/disconnected loop in one shape
+- [x] unsupported hole/disconnected loop in one shape
 - [x] prefab visual-source intersection contract failure
 - [x] post-transform degeneracy or chunk-bounds overflow
 - [x] unknown prefab/revision/source reference
@@ -1330,7 +1330,7 @@ Models/codecs:
 
 Geometry/compiler:
 
-- [ ] simple/concave polygons and every invalid topology class
+- [x] simple/concave polygons and every invalid topology class
 - [x] shared boundaries versus positive-area overlap
 - [x] minimum edge/area and hard limits
 - [x] transform order, reflection, rational scale, quantization
@@ -1411,8 +1411,9 @@ collision structurally unrepresentable: uppercase variants fail the ID grammar
 and exact duplicates fail strict ordering. The broad §13/§22 gate remains open
 because seam/output-drift, migration, remaining editor domains, and normal
 export/cutover boundaries do not yet share the new explicit
-severity/owner-key envelope. Self-touch/hole plus complete generator-facing
-capacity/signature-mismatch evidence also remain incomplete.
+severity/owner-key envelope. Complete generator-facing source/compiled
+signature-mismatch evidence also remains incomplete; topology and hard-capacity
+coverage are now complete.
 
 The legacy-projection unit matrix covers exact orthogonal decomposition,
 flat-ground/gap recognition, current 16-pixel snapping, input-order
@@ -1483,6 +1484,7 @@ before changing the accepted plan.
 | The §13 prose describes one diagnostic envelope with explicit severity and owner key, but strict current-schema parsing still throws path-rich `FormatException`s while Core and staged-generator issues use different fields and infer blocking severity from context. | Add pure-Dart Core `TerrainAuthoringIssue` as the portable envelope and Core-diagnostic adapter. Normalize strict prefab/chunk parse failures at the staged generator raw-source boundary, use the envelope throughout staged compilation, and preserve its owner key through Chunk-v2 collision `ValidationIssue`. Keep the broad gate open for unadapted domains rather than adding JSON/editor/filesystem concepts to Core. | Normal editor export and the coordinated generator cutover must still route seam, output-drift, migration, and remaining editor-domain failures through the same actionable envelope without weakening their layer-specific authorities. |
 | Stable polygon shape IDs are lowercase by grammar, so two accepted IDs cannot differ only by case. | Reject uppercase/mixed-case IDs at strict parsing, reject exact duplicates through canonical ordering, and test both paths instead of adding a redundant case-folded accepted-ID map. | Normal v3/v2 stores and migration output must retain the lowercase stable-ID grammar; a future grammar expansion would require an explicit case-collision rule and migration. |
 | The Core `edge_limit` diagnostic retained shape/placement identity in `TerrainEdgeId` but replaced the source path with the chunk key, so an adapter could not resolve the overflowing expanded edge back to its Prefab owner. | Carry the immutable polygon source path through the compiler-private raw-edge split/cancellation pipeline and emit it unchanged on `edge_limit`. Lock the 4,097th edge to its exact Prefab/placement/shape/element owner in Core, generator, and editor tests. | Phase 5 runtime edge data remains unchanged; authoring can focus the actual owner instead of presenting a chunk-level fallback for an expanded-Prefab capacity failure. |
+| Current terrain source intentionally represents one simple loop per shape; adding hole/ring fields or a second contour interpretation would create unplanned compiler and editor semantics. | Keep the simple-loop schema. Exact non-adjacent segment intersection already rejects point self-touch and collinear self-overlap. A bridged inner ring or zero-width connection used to encode a hole/disconnected interior necessarily self-touches/overlaps and is rejected through the established blocking `self_intersection` path; disconnected valid solids remain separate shapes. | Phase 5 receives only simple normalized loops. Any future native hole support requires an explicit schema/compiler/triangulation migration rather than treating a bridge encoding as valid content. |
 
 Append rows during implementation. Do not silently relax source, compiler,
 seam, determinism, or performance contracts.
@@ -1607,6 +1609,7 @@ result.
 | 2026-08-10 / `718d76c5` | Exact Core edge-limit source lineage | Dart VM on Windows with Docker running | Core-package analysis is clean and all 328 tests pass. The compiler-private raw edge now retains its polygon source path through splitting; the 4,097th exposed edge reports `limits/strip_064`, shape `strip_064`, and local edge 0 instead of substituting the chunk key. Limits, compiled geometry, edge IDs/signatures, and runtime records are unchanged. |
 | 2026-08-10 / `818fed8a` | Staged generator hard-limit matrix | Dart and Flutter test VMs on Windows with Docker running | Root analysis is clean and all 66 tool tests pass. Exact at-limit fixtures accept 64 vertices, 64 placed-Prefab shapes, 512 Chunk shapes, and 4,096 exposed edges. Each one-over fixture emits only `vertex_limit`, `prefab_shape_limit`, `chunk_shape_limit`, or `edge_limit`, retains exact owner/placement/shape/element lineage, and returns no compiled product. The 4,097-edge case combines one direct one-way edge with an at-limit expanded Prefab, proving Prefab ownership. |
 | 2026-08-10 / `9daafb0d` | Editor expanded-edge capacity ownership | Dart and Flutter test VMs on Windows with Docker running | Editor analysis is clean and all 443 tests pass. Chunk-v2 collision expansion reproduces the exact 4,097-edge staged case and maps `edge_limit` to `prefab_rock`, placement `prefab_rock|0|0|0`, `collision_063`, edge 63, and the complete source path. No expansion, source, revision, generated artifact, or runtime authority is published or changed. |
+| 2026-08-10 / `b6645e33` | Unsupported single-loop topology matrix | Dart and Flutter test VMs on Windows with Docker running | Core, root, and editor analysis are clean; all 329 Core-package tests, 66 root tool tests, and 444 editor tests pass. Exact fixtures cover a non-adjacent point self-touch, positive-length collinear self-overlap, and a bridged inner ring that attempts to encode a hole/disconnected interior. Core and both adapters retain established `self_intersection` plus related collinear diagnostics, exact Chunk ownership/shape lineage, and no partial geometry. Valid disconnected solids remain separate-shape fixture coverage. |
 
 ### 28.1 Baseline Environment And Source Identity
 

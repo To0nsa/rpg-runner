@@ -1549,7 +1549,10 @@ editor domains, and normal export/cutover boundaries use it and the outstanding
 major diagnostic fixtures pass. Hard-capacity evidence is now complete at and
 one unit beyond 64 vertices, 64 placed-Prefab shapes, 512 combined Chunk
 shapes, and 4,096 exposed edges; failures retain the responsible Chunk or
-Prefab owner and never publish truncated geometry.
+Prefab owner and never publish truncated geometry. Invalid-loop topology is
+also complete: crossing, point self-touch, collinear self-overlap, and bridged
+hole/disconnected encodings all block before geometry publication, while valid
+disconnected solids remain separate shapes.
 
 An isolated exact legacy projector now decomposes accepted orthogonal terrain,
 reproduces current 16-pixel rectangle snapping, derives gaps only from exact
