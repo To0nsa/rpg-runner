@@ -210,17 +210,20 @@ void main() {
       ),
       throwsA(_formatMessage(contains('unknown field groundProfile'))),
     );
-    expect(
-      () => decodePolygonTerrainChunk(
-        _mutated(chunk, (root) {
-          final placement =
-              (root['prefabs']! as List<Object?>).first!
-                  as Map<String, Object?>;
-          placement['scale'] = 0.35;
-        }),
-      ),
-      throwsA(_formatMessage(contains('0.3-3.0 scale in 0.1 steps'))),
-    );
+    for (final invalidScale in <Object>[0.2, 0.35, 3.1]) {
+      expect(
+        () => decodePolygonTerrainChunk(
+          _mutated(chunk, (root) {
+            final placement =
+                (root['prefabs']! as List<Object?>).first!
+                    as Map<String, Object?>;
+            placement['scale'] = invalidScale;
+          }),
+        ),
+        throwsA(_formatMessage(contains('0.3-3.0 scale in 0.1 steps'))),
+        reason: '$invalidScale',
+      );
+    }
     expect(
       () => decodePolygonTerrainChunk(
         _mutated(chunk, (root) {
@@ -256,6 +259,56 @@ void main() {
     expect(result.issues.single.placementKey, 'prefab_ramp|60|20|0');
   });
 
+  test('ambiguous prefab reference is stable across catalog order', () {
+    final prefabJson = _json('prefab_defs.json');
+    final prefabs = decodePolygonTerrainPrefabs(
+      _mutated(prefabJson, (root) {
+        final source =
+            (root['prefabs']! as List<Object?>).single! as Map<String, Object?>;
+        final alias = jsonDecode(jsonEncode(source)) as Map<String, Object?>;
+        alias['prefabKey'] = 'prefab_second';
+        alias['id'] = 'prefab_ramp';
+        root['prefabs'] = <Object?>[alias, source];
+      }),
+    );
+    final chunk = decodePolygonTerrainChunk(
+      _fixture('chunk.json'),
+      sourcePath: _chunkSourcePath,
+    );
+
+    List<(String, String, String?, String?)> compileWith(
+      Iterable<PolygonTerrainPrefabSource> catalog,
+    ) {
+      final result = compilePolygonTerrainChunk(
+        chunk: chunk,
+        prefabSources: PolygonTerrainPrefabSourceSet(catalog),
+        sourcePath: _chunkSourcePath,
+      );
+      expect(result.compiled, isNull);
+      return result.issues
+          .map(
+            (issue) => (
+              issue.code,
+              issue.sourcePath,
+              issue.placementKey,
+              issue.shapeId,
+            ),
+          )
+          .toList(growable: false);
+    }
+
+    final forward = compileWith(prefabs.prefabs);
+    expect(compileWith(prefabs.prefabs.reversed), forward);
+    expect(forward, <(String, String, String?, String?)>[
+      (
+        'ambiguous_prefab_reference',
+        '$_chunkSourcePath#placement=prefab_ramp|60|20|0',
+        'prefab_ramp|60|20|0',
+        null,
+      ),
+    ]);
+  });
+
   test('Core source-range rejection is a stable generation issue', () {
     final chunkJson = _json('chunk.json');
     final oversized = decodePolygonTerrainChunk(
@@ -284,6 +337,114 @@ void main() {
     );
     expect(issue.shapeId, 'ground');
     expect(issue.sourcePath, '$_chunkSourcePath#direct=ground');
+  });
+
+  test('prefab source-range rejection retains placement lineage', () {
+    final prefabJson = _json('prefab_defs.json');
+    final oversized = decodePolygonTerrainPrefabs(
+      _mutated(prefabJson, (root) {
+        final prefab =
+            (root['prefabs']! as List<Object?>).single! as Map<String, Object?>;
+        final shape =
+            (prefab['collisionShapes']! as List<Object?>).single!
+                as Map<String, Object?>;
+        final vertex =
+            (shape['vertices']! as List<Object?>).first!
+                as Map<String, Object?>;
+        vertex['x'] = 1 << 40;
+      }),
+      sourcePath: 'prefab_defs.json',
+    );
+    final chunk = decodePolygonTerrainChunk(
+      _fixture('chunk.json'),
+      sourcePath: _chunkSourcePath,
+    );
+
+    final result = compilePolygonTerrainChunk(
+      chunk: chunk,
+      prefabSources: oversized,
+      sourcePath: _chunkSourcePath,
+    );
+
+    expect(result.compiled, isNull);
+    final issue = result.issues.singleWhere(
+      (candidate) => candidate.code == 'prefab_collision_source_value_invalid',
+    );
+    expect(issue.placementKey, 'prefab_ramp|60|20|0');
+    expect(issue.shapeId, 'collision_001');
+    expect(
+      issue.sourcePath,
+      '$_chunkSourcePath#placement=prefab_ramp|60|20|0'
+      '#prefab=prefab_ramp#shape=collision_001',
+    );
+  });
+
+  test('direct and expanded bounds issues are exact and sorted', () {
+    final chunkJson = _json('chunk.json');
+    final outOfBounds = decodePolygonTerrainChunk(
+      _mutated(chunkJson, (root) {
+        final placement =
+            (root['prefabs']! as List<Object?>).single! as Map<String, Object?>;
+        placement['x'] = 110;
+        final platform =
+            (root['collisionShapes']! as List<Object?>)[1]!
+                as Map<String, Object?>;
+        final vertices = platform['vertices']! as List<Object?>;
+        for (final index in <int>[1, 2]) {
+          (vertices[index]! as Map<String, Object?>)['x'] = 101;
+        }
+      }),
+      sourcePath: _chunkSourcePath,
+    );
+    final prefabs = decodePolygonTerrainPrefabs(_fixture('prefab_defs.json'));
+
+    final result = compilePolygonTerrainChunk(
+      chunk: outOfBounds,
+      prefabSources: prefabs,
+      sourcePath: _chunkSourcePath,
+    );
+
+    expect(result.compiled, isNull);
+    expect(
+      result.issues
+          .map(
+            (issue) => (
+              issue.code,
+              issue.placementKey,
+              issue.shapeId,
+              issue.elementIndex,
+            ),
+          )
+          .toList(growable: false),
+      <(String, String?, String?, int?)>[
+        ('chunk_collision_shape_out_of_bounds', null, 'platform', 1),
+        ('chunk_collision_shape_out_of_bounds', null, 'platform', 2),
+        (
+          'expanded_prefab_vertex_out_of_bounds',
+          'prefab_ramp|110|20|0',
+          'collision_001',
+          0,
+        ),
+        (
+          'expanded_prefab_vertex_out_of_bounds',
+          'prefab_ramp|110|20|0',
+          'collision_001',
+          1,
+        ),
+        (
+          'expanded_prefab_vertex_out_of_bounds',
+          'prefab_ramp|110|20|0',
+          'collision_001',
+          2,
+        ),
+        (
+          'expanded_prefab_vertex_out_of_bounds',
+          'prefab_ramp|110|20|0',
+          'collision_001',
+          3,
+        ),
+      ],
+    );
   });
 
   test('noncanonical source is rejected instead of normalized silently', () {
