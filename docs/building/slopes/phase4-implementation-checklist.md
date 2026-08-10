@@ -1023,15 +1023,17 @@ actually produce, not directory order or an arbitrary editor neighbor.
 - [x] Golden the reachable adjacency set so validator/editor/generator cannot
       disagree about which seams matter.
 
-The pure-Dart Core boundary now owns the canonical `authoring-seams-v1`
-transition record, sort, duplicate rejection, and SHA-256. The editor maps its
-exact scheduler enumeration through that contract, while the staged generator
-strictly decodes the same checked-in eight-transition golden and verifies its
-derived record/digest (`9681ffb1…93b`). Ambiguous delimiter-bearing identities,
-duplicate transitions, schema drift, record drift, and digest drift fail
-closed. Section 21 now carries that verified transition set through the shared
-Core compiled-boundary comparator before it can construct a renderable staged
-batch. Normal chunk-v1 generation and runtime selection remain unchanged.
+The pure-Dart Core boundary now owns finite scheduler reachability plus the
+canonical `authoring-seams-v1` transition record, sort, duplicate rejection,
+and SHA-256. The editor supplies source-neutral level/chunk metadata to that
+single enumerator, while the staged generator's fixture decoder still verifies
+the same checked-in eight-transition golden and derived record/digest
+(`9681ffb1…93b`). Ambiguous delimiter-bearing identities, duplicate
+transitions, schema drift, record drift, and digest drift fail closed. Section
+21 carries an enumerated transition set through the shared Core
+compiled-boundary comparator before it can construct a renderable staged batch.
+Live production registration remains part of the coordinated source cutover;
+normal chunk-v1 generation and runtime selection are unchanged.
 
 Do not add new neighbor metadata or change procedural selection merely to make
 an incompatible chunk pass. Any requested scheduling change is a separate
@@ -1697,6 +1699,7 @@ result.
 | 2026-08-10 / `51093934` + `a76cd659` | Guarded owning-prefab navigation | Flutter test VM and Dart analyzer on Windows with Docker running | Full editor analysis is clean and the fail-fast full rerun passes all 458 editor tests; an initial concurrent full run completed 457 tests with one non-reproduced failure under memory pressure. Focused session tests prove atomic success and failure preservation. Chunk/Prefab/shell tests prove exact stable-owner dispatch, unchanged Chunk revision and pending state, explicit Prefab-v3 loading exactly once, zero normal legacy Prefab loads, and requested-owner selection. The action crosses the existing unsaved-work guard and never creates per-instance geometry. Normal v3/v2 schema selection, staging source writes, authored JSON, generated data, and runtime authority remain unchanged. |
 | 2026-08-11 / `8f3350be` + `d466040f` + `6edb2e59` | Current-schema normal loading, reload, and atomic source apply | Flutter test VM and Dart analyzer on Windows with Docker running | Full editor analysis is clean and the low-memory `--concurrency=1 --fail-fast` run passes all 463 editor tests. An earlier default-concurrency run passed 258 tests before the standalone migration-entrypoint test exceeded its 30-second timeout under memory pressure; that complete 12-test file then passed alone before the full low-memory rerun. Normal loaders select strict Prefab-v3 and complete all-v2 Chunk source, reject unsupported or mixed generations, and preserve legacy empty/v2+v1 behavior. Guarded reload re-enters the normal loader. Changed current documents require confirmation, reject transient catalog drafts, cross complete validation and final source-drift checks, apply through the existing rollback-safe store transactions, and reload the exact installed bytes. Checked-in authored source remains Prefab-v2/Chunk-v1; migration `--write`, generated production data, and runtime authority remain unchanged. |
 | 2026-08-11 / `0e114ee1` | Fail-closed legacy/missing normal editor routes | Flutter test VM and Dart analyzer on Windows with Docker running | Full editor analysis is clean and the low-memory `--concurrency=1 --fail-fast` run passes all 468 editor tests. Prefab and Chunk generation detection distinguish missing from legacy source, while both states produce one immutable migration-required document/scene containing no editable compatibility data. Validation reports blocking `polygon_authoring_migration_required`; commands are identity no-ops, pending changes are empty, and export fails before filesystem access. The shared route shows detected/required source, the read-only readiness command, and an atomic recheck that preserves the blocking scene on failure. Real-plugin widget tests prove normal checked-in Prefab-v2/Chunk-v1 loading exposes neither rectangle nor ground/gap controls; retained legacy UI tests use explicit test-only compatibility loaders. Authored source bytes, migration `--write`, generated production data, and runtime authority remain unchanged. |
+| 2026-08-11 / `d6cb0012` | Core-owned scheduler reachability enumeration | Dart and Flutter test VMs on Windows with Docker running | Core and editor analysis are clean. Three new Core contract tests and all 10 existing editor seam tests pass. The source-neutral Core boundary now owns tier fallback, finite tier windows, assembly within/between-run transitions, distinct selection, deprecated-owner exclusion, loop/hard-tail behavior, sorted blockers, and the 256-chunk safety bound. The editor's duplicate enumerator was deleted and its thin adapter preserves the exact reviewed `authoring-seams-v1` digest `9681ffb1…93b`, existing issue codes, compiled-boundary comparisons, and sampled scheduler containment. The live generator can now derive production reachability without importing editor code; authored source, generated outputs, migration `--write`, and runtime authority remain unchanged. |
 
 ### 28.1 Baseline Environment And Source Identity
 

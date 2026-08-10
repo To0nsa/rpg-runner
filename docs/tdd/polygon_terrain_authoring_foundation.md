@@ -895,10 +895,12 @@ directed seam counts and lists compatible/failing transition cards. These
 views expose no edit, revision, pending-diff, RNG, or scheduling authority.
 
 Sorted reachable transitions form `authoring-seams-v1`. The pure-Dart Core
-boundary owns the immutable transition record, total order, duplicate
-rejection, canonical set record, and SHA-256 so the editor and generator do not
-implement separate hashes. The editor maps its scheduler result through that
-contract and compares it with the checked-in eight-transition
+boundary owns both finite scheduler reachability and the immutable transition
+record, total order, duplicate rejection, canonical set record, and SHA-256.
+Its source-neutral level/chunk inputs cover tier fallback, assembly runs,
+distinct selection, deprecated-owner exclusion, loop behavior, and the bounded
+hard tail. The editor adapts its immutable domain models into that boundary and
+compares the result with the checked-in eight-transition
 `reachable_seams.json` golden. Sampled Core assembly runs remain required to be
 subsets of the enumerated set.
 
@@ -910,7 +912,10 @@ identities, canonical-record drift, and digest drift fail closed. This proves
 cross-process adjacency-set parity. The staged generator then resolves every
 transition against the shared Core compiled-boundary comparator before it can
 construct the renderer's accepted batch, as detailed below. Normal chunk-v1
-generation and production runtime selection remain unchanged.
+generation and production runtime selection remain unchanged. The live
+current-schema generator can now consume the same enumerator during the
+coordinated source cutover without importing editor code or duplicating
+scheduler logic.
 
 ## Generated Artifact Plan And Dry-Run Drift Gate
 
