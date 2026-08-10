@@ -1514,6 +1514,16 @@ the seam format/digest. Live entry-point registration, the complete parity
 matrix, and production legacy projection stay open for the coordinated source
 cutover.
 
+A standalone pure-Dart probe now rebuilds every staged signature family and
+the exact rendered artifact in fresh processes. Caller-order permutations,
+every normalized loop rotation/winding, one-field record mutations, duplicate
+derived identities, and Windows/POSIX source-path spellings are locked by
+tests; the complete staged artifact hashes to `434ae70a…ca84`. The equivalent
+migration check also reproduces canonical report bytes and
+`authoring-migration-v1` `c355c5de…0beb` in separate Dart processes. This
+closes the staged determinism gate without registering the artifact in live
+generation or changing source/runtime authority.
+
 An isolated exact legacy projector now decomposes accepted orthogonal terrain,
 reproduces current 16-pixel rectangle snapping, derives gaps only from exact
 flat bottom bands, canonicalizes solid occupied unions, and fails closed for

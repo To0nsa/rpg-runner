@@ -1165,13 +1165,13 @@ diagnostics, and signatures.
 - [x] Add `authoring-migration-v1` for the sorted migration report.
 - [x] Add `authoring-triangles-v1` for polygon IDs and deterministic triangle
       index triples.
-- [ ] Rebuild signatures from fresh objects and fresh Dart processes.
-- [ ] Reverse input file/map/shape order and prove canonical equality.
-- [ ] Rotate/reverse equivalent valid loops and prove explicit normalization
+- [x] Rebuild signatures from fresh objects and fresh Dart processes.
+- [x] Reverse input file/map/shape order and prove canonical equality.
+- [x] Rotate/reverse equivalent valid loops and prove explicit normalization
       reaches the same signature.
-- [ ] Mutate one coordinate, mode, metadata field, placement transform,
+- [x] Mutate one coordinate, mode, metadata field, placement transform,
       reachable seam, or source identity and prove the relevant digest changes.
-- [ ] Prove Windows/Linux path normalization cannot change source-path ordering.
+- [x] Prove Windows/Linux path normalization cannot change source-path ordering.
 - [ ] Never update a reviewed golden merely to hide nondeterminism or semantic
       drift; record the cause in §26 first.
 
@@ -1186,8 +1186,21 @@ transforms remain exclusively in `authoring-placement-v1`. Empty collision
 source has the explicit SHA-256 empty digest. The current shared fixture binds
 Core, the staged generator artifact, and the editor adapter to digest
 `679f918e4180e6192bf6b6285fba332df8c24e7a331b37490628fddb8261e9db`.
-The broader fresh-process, permutation, semantic-normalization, and complete
-mutation matrix remains open.
+The pure-Dart `polygon-terrain-signature-probe-v1` rebuilds this contract plus
+Core source/edge, placement, triangle, reachable-seam, isolated-seam, and exact
+staged-artifact hashes from fresh objects. Two standalone Dart processes must
+match the in-process records byte-for-byte. The staged artifact's reviewed
+UTF-8 digest is
+`434ae70aa2c2d89b81886589aa6a3734de864f41d1f5fc2d32cb643897f8ca84`.
+Compiled chunks snapshot and canonically sort placement lineage and triangle
+records, reject duplicate derived identities, and therefore cannot inherit
+caller collection order. Core loop rotation/reversal tests assert both source
+and edge signature equality after explicit normalization, while mutation
+matrices bind every placement, triangle, seam-transition, and authored polygon
+field to the relevant digest. Generator source identities use canonical
+workspace-relative `/` paths and reject absolute, dot-segment, empty-segment,
+drive-prefixed, or otherwise ambiguous spellings; Windows and POSIX separator
+spellings therefore produce identical records and ordering.
 
 `authoring-migration-v1` is owned by the editor migration domain. Its sole
 length-prefixed record contains the format label and the exact canonical
@@ -1200,7 +1213,9 @@ its equivalent canonical current-schema state goldens to
 `d98983c44505bbdbdbe3f1f4482006be9ea67060091613b1b0f8b3b2ca198153`.
 Changing only reviewed source bytes changes the digest. Existing short FNV
 fingerprints remain compatibility/display evidence, and the CLI report bytes
-and write authorization are unchanged.
+and write authorization are unchanged. Two standalone migration-check Dart
+processes over the same temporary workspace must emit byte-identical canonical
+reports and reproduce the reviewed legacy digest above.
 
 ## 24) Interaction Performance And Capacity
 
@@ -1315,14 +1330,14 @@ Generator/seams:
 
 - [x] current-schema strict parsing
 - [ ] unknown prefab/source/scale/bounds diagnostics
-- [ ] staged polygon/edge/lineage output golden
+- [x] staged polygon/edge/lineage output golden
 - [x] concave triangulation count, winding, exact area, ordering, and golden
 - [x] legacy orthogonal decomposition, flat-ground/gap projection,
       collision-reset parity, and diagonal/one-way rejection
 - [x] all scheduler-reachable within/between pool/run transitions
 - [x] dry-run generated drift/missing/unexpected output detection
 - [x] staged sibling writes, post-write byte verification, rollback, and cleanup
-- [ ] fresh-process signatures and permutation invariance
+- [x] fresh-process signatures and permutation invariance
 
 The legacy-projection unit matrix covers exact orthogonal decomposition,
 flat-ground/gap recognition, current 16-pixel snapping, input-order
@@ -1388,6 +1403,7 @@ before changing the accepted plan.
 | `TerrainCompiler.compile` intentionally canonicalizes safe loop winding/start, which is correct for runtime safety but could hide noncanonical current authoring bytes during generation. | Pre-review every staged input with `TerrainSourceCanonicalizer(requireCanonical: true)` and fail on its stable diagnostics before accepting compiled output. Parsing retains exact authored half-pixel values; Core range failures become staged generator issues rather than raw parser exceptions. | Normal generation can reject authoring drift while still using the accepted compiler as the sole topology/transform/edge authority. An explicit editor Normalize action remains the only path that rewrites a loop. |
 | Render triangulation must not become a second polygon normalization or collision-edge authority. | Ear-clip the already normalized `TerrainGeometry.polygons` loop with exact BigInt orientation/containment. Choose the first surviving canonical vertex ear, retain indices into that same loop, require `n - 2` positive triangles, and compare the exact doubled-area sum before returning output. | Phase 5 rendering consumes these indices; it must never triangulate independently or reconstruct collision edges from triangles. |
 | The standalone migration CLI imported full Prefab/Chunk stores only to reuse two source-path constants. Later staging growth made the Chunk store transitively import Flutter models, so `dart run tool/migrate_polygon_authoring.dart` lost access to `dart:ui` even though migration logic remained pure. | Move the two canonical paths into a Flutter-free `RepositoryAuthoringPaths` contract. Stores retain their public constants as aliases; migration check/command import only the pure path contract. Add a subprocess test that locates the standalone Dart SDK from `flutter_tester` and compiles the real `--help` entrypoint. | Offline migration/generator tools must not import store/plugin graphs for constants. Any future store dependency is caught by the standalone-Dart regression before source-write authorization can rely on a broken checker. |
+| Placement-lineage and triangle signatures were canonical only while callers happened to preserve parser order, and Core source identity retained host-specific path separators. | Make the immutable compiled chunk own canonical sorting and duplicate-identity rejection for both derived record families. Normalize generator source paths to safe workspace-relative `/` identities before compilation, then bind all signature families and exact rendered bytes in a standalone-Dart probe with permutation and one-field mutation tests. | Live generator cutover must derive every source identity through the same canonical helper and must not use filesystem-native path spelling as authored or runtime identity. |
 
 Append rows during implementation. Do not silently relax source, compiler,
 seam, determinism, or performance contracts.
@@ -1500,6 +1516,7 @@ result.
 | 2026-08-10 / `94123b9a` | Restore standalone-Dart migration CLI boundary | Dart VM and Flutter test VM on Windows with Docker running | Full editor analysis is clean and all 438 editor tests pass. Direct `dart run tool/migrate_polygon_authoring.dart --help` and `--check` both succeed; the real check remains legacy-ready with 99 prefabs, 8 chunks, 9 validated pending targets, and zero source writes. One Flutter-free repository-path contract now supplies the existing Prefab/Chunk store aliases and the migration command/check, removing the transitive `dart:ui` dependency. The 21 focused migration command/check tests include a standalone Dart subprocess regression. No path bytes, report bytes/signatures, source, write authorization, or runtime authority changed. |
 | 2026-08-10 / `fd543b63` | Shared scheduler seam signature and generator golden | Dart VM and Flutter test VM on Windows with Docker running | Root, Core-package, and editor analysis are clean. Three Core contract tests, two staged-generator manifest tests, and all ten editor seam tests pass. Core now owns the immutable sorted `authoring-seams-v1` transition set and digest; duplicate or delimiter-ambiguous identities fail closed. The strict generator manifest decoder consumes the exact editor eight-transition golden, recalculates record/digest `9681ffb1…93b`, and rejects schema or derived-field drift. The editor no longer implements the hash separately. Compiled-boundary validation before staged rendering remains open; live generator registration, source, scheduler behavior, and runtime authority are unchanged. |
 | 2026-08-10 / `e3309704` | Shared compiled-boundary gate for staged terrain output | Dart VM and Flutter test VM on Windows with Docker running | Root, Core-package, and editor analysis are clean; all 319 Core-package tests, all 438 editor tests, and all 48 root tool/generator tests pass. Core now owns unchanged `authoring-boundary-v1` derivation/comparison. Four staged-generator seam tests cover compatible directed pairs, canonical chunk order, exact mismatch ticks/digests/profiles, missing chunks, wrong level, duplicate and case-colliding keys; material evidence remains advisory through the Core matrix. The renderer accepts only a privately constructed validated batch and emits `authoring-seams-v1` format/digest evidence, advancing only the disconnected staged fixture schema to v3. Live current-schema registration, authored source, normal generation bytes, scheduler behavior, and runtime authority remain unchanged. |
+| 2026-08-10 / `7ba0b636` | Fresh-process staged signature determinism | Dart VM and Flutter test VM on Windows with Docker running | Root, Core-package, and editor analysis are clean; all 320 Core-package tests, all 439 editor tests, and all 55 root tool/generator tests pass. Two standalone generator-probe processes reproduce every reviewed signature and exact staged artifact SHA-256 `434ae70a…ca84`; two standalone migration checks reproduce canonical report bytes and `authoring-migration-v1` `c355c5de…0beb`. Reversed caller collections, every valid loop rotation/winding, Windows/POSIX source spelling, and one-field polygon/placement/triangle/seam/source mutations are explicit. The compiled product owns placement/triangle sorting and duplicate rejection. Authored source, live output registration, generated production bytes, and runtime authority are unchanged. |
 
 ### 28.1 Baseline Environment And Source Identity
 

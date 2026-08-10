@@ -992,6 +992,29 @@ render seam but not the complete §22 matrix. Live generator wiring,
 tile-backed prefab owner validation, complete repository legacy projection,
 and source cutover remain open.
 
+The immutable compiled product, rather than its callers, owns canonical
+placement-lineage and triangle ordering and rejects duplicate derived
+identities. Generator source paths are canonical workspace-relative identities:
+backslashes normalize to `/`, while absolute paths, drive prefixes, empty or
+dot segments, and ambiguous colon spellings fail closed. Consequently Windows
+and POSIX spellings cannot alter Core source records, signatures, or sorting.
+
+The pure-Dart `polygon-terrain-signature-probe-v1` reconstructs the complete
+fixture from source bytes and emits the authored polygon, Core source/edge,
+placement, triangle, reachable-seam, isolated-seam, and exact rendered-artifact
+SHA-256 values. Tests compare the in-process result with two fresh standalone
+Dart processes; the complete artifact bytes bind to
+`434ae70aa2c2d89b81886589aa6a3734de864f41d1f5fc2d32cb643897f8ca84`.
+Permutation tests reverse caller collections, Core tests assert signature
+equality for every cyclic rotation and reversed winding after explicit
+normalization, and mutation matrices cover every signed record field. The
+editor migration command receives the same fresh-process treatment: two
+standalone checks over one temporary workspace emit byte-identical canonical
+reports and reproduce `authoring-migration-v1`
+`c355c5de8af15880881e147a031c054f60642f75f5102d23a2691b97a24d0beb`.
+These probes close staged determinism; they do not authorize live output
+registration or source migration.
+
 ## Exact Legacy Compatibility Projection
 
 The temporary compatibility projector consumes only an accepted
