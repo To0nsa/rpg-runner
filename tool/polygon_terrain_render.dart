@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:runner_core/collision/terrain/terrain_authoring_polygon_signature.dart';
 import 'package:runner_core/collision/terrain/terrain_authoring_seam_signature.dart';
+import 'package:runner_core/collision/terrain/terrain_authoring_triangle_signature.dart';
 import 'package:runner_core/collision/terrain/terrain_edge.dart';
 import 'package:runner_core/collision/terrain/terrain_edge_id.dart';
 import 'package:runner_core/collision/terrain/terrain_polygon.dart';
@@ -18,7 +19,6 @@ const String _generatorOwnershipMarker =
 const String _sourceSignatureFormat = 'source-v1';
 const String _edgeSignatureFormat = 'edges-v1';
 const String _placementSignatureFormat = 'authoring-placement-v1';
-const String _triangleSignatureFormat = 'authoring-triangles-v1';
 const int _reservedCompilerChunkIndex = 0;
 
 /// Renders accepted current-schema chunks as one future generated artifact.
@@ -82,7 +82,10 @@ String renderStagedPolygonTerrainDart(PolygonTerrainValidatedBatch batch) {
     ..line('  sourceSignatureFormat: ${_string(_sourceSignatureFormat)},')
     ..line('  edgeSignatureFormat: ${_string(_edgeSignatureFormat)},')
     ..line('  placementSignatureFormat: ${_string(_placementSignatureFormat)},')
-    ..line('  triangleSignatureFormat: ${_string(_triangleSignatureFormat)},')
+    ..line(
+      '  triangleSignatureFormat: '
+      '${_string(terrainAuthoringTriangleSignatureFormat)},',
+    )
     ..line('  chunks: <StagedTerrainChunkData>[');
   for (final compiled in ordered) {
     _writeChunk(writer, compiled, 4);

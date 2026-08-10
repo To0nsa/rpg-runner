@@ -2,11 +2,13 @@ import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
 import 'package:runner_core/collision/terrain/terrain_authoring_polygon_signature.dart';
+import 'package:runner_core/collision/terrain/terrain_authoring_triangle_signature.dart';
 import 'package:runner_core/collision/terrain/terrain_compiler.dart';
 import 'package:runner_core/collision/terrain/terrain_geometry.dart';
 import 'package:runner_core/collision/terrain/terrain_numeric.dart';
 import 'package:runner_core/collision/terrain/terrain_polygon.dart';
 import 'package:runner_core/collision/terrain/terrain_source_canonicalizer.dart';
+import 'package:runner_core/collision/terrain/terrain_triangulator.dart';
 
 import 'polygon_terrain_source.dart';
 
@@ -95,49 +97,8 @@ final class PolygonTerrainPlacementLineage
   ]);
 }
 
-/// One exact triangle referencing a Core-normalized polygon loop.
-final class PolygonTerrainTriangle
-    implements Comparable<PolygonTerrainTriangle> {
-  const PolygonTerrainTriangle({
-    required this.chunkKey,
-    required this.placementKey,
-    required this.shapeId,
-    required this.first,
-    required this.second,
-    required this.third,
-  });
-
-  final String chunkKey;
-  final String? placementKey;
-  final String shapeId;
-  final int first;
-  final int second;
-  final int third;
-
-  @override
-  int compareTo(PolygonTerrainTriangle other) {
-    var order = chunkKey.compareTo(other.chunkKey);
-    if (order != 0) return order;
-    order = _compareNullable(placementKey, other.placementKey);
-    if (order != 0) return order;
-    order = shapeId.compareTo(other.shapeId);
-    if (order != 0) return order;
-    order = first.compareTo(other.first);
-    if (order != 0) return order;
-    order = second.compareTo(other.second);
-    return order != 0 ? order : third.compareTo(other.third);
-  }
-
-  String canonicalRecord() => _canonicalRecord(<String>[
-    'authoring-triangles-v1',
-    chunkKey,
-    placementKey ?? '',
-    shapeId,
-    first.toString(),
-    second.toString(),
-    third.toString(),
-  ]);
-}
+/// Generator-facing name for Core's shared render-triangle record contract.
+typedef PolygonTerrainTriangle = TerrainAuthoringTriangleRecord;
 
 /// Accepted local staged terrain for one chunk-v2 source file.
 final class PolygonTerrainCompiledChunk {
@@ -176,13 +137,12 @@ final class PolygonTerrainCompiledChunk {
     placementLineage.map((lineage) => lineage.canonicalRecord()),
   );
 
-  List<String> triangleRecords() => List<String>.unmodifiable(
-    triangles.map((triangle) => triangle.canonicalRecord()),
-  );
+  List<String> triangleRecords() =>
+      canonicalTerrainAuthoringTriangleRecords(triangles);
 
   String placementSignature() => _signature(placementRecords());
 
-  String triangleSignature() => _signature(triangleRecords());
+  String triangleSignature() => terrainAuthoringTriangleSignature(triangles);
 
   String authoringPolygonSignature() =>
       terrainAuthoringPolygonSignature(authoringPolygons);
@@ -411,7 +371,20 @@ PolygonTerrainCompilationResult compilePolygonTerrainChunk({
   });
   final triangles = <PolygonTerrainTriangle>[];
   for (final polygon in geometry.polygons) {
-    triangles.addAll(_triangulate(polygon));
+    triangles.addAll(
+      const TerrainTriangulator()
+          .triangulate(polygon)
+          .map(
+            (triangle) => PolygonTerrainTriangle(
+              chunkKey: polygon.identity.chunkKey,
+              placementKey: polygon.identity.placementKey,
+              shapeId: polygon.identity.shapeId,
+              first: triangle.first,
+              second: triangle.second,
+              third: triangle.third,
+            ),
+          ),
+    );
   }
   triangles.sort((left, right) {
     var order = left.chunkKey.compareTo(right.chunkKey);
@@ -511,134 +484,11 @@ Map<String, List<PolygonTerrainPrefabSource>> _indexPrefabReferences(
   return result;
 }
 
-List<PolygonTerrainTriangle> _triangulate(TerrainPolygon polygon) {
-  final vertices = polygon.vertices;
-  if (vertices.length < 3) {
-    throw StateError('Core returned a polygon with fewer than three vertices.');
-  }
-  final remaining = <int>[
-    for (var index = 0; index < vertices.length; index += 1) index,
-  ];
-  final triangles = <PolygonTerrainTriangle>[];
-  while (remaining.length > 3) {
-    var earPosition = -1;
-    for (var position = 0; position < remaining.length; position += 1) {
-      final previous = remaining[(position - 1) % remaining.length];
-      final current = remaining[position];
-      final next = remaining[(position + 1) % remaining.length];
-      if (_cross(vertices[previous], vertices[current], vertices[next]) <=
-          BigInt.zero) {
-        continue;
-      }
-      var containsVertex = false;
-      for (final candidate in remaining) {
-        if (candidate == previous ||
-            candidate == current ||
-            candidate == next) {
-          continue;
-        }
-        if (_insideTriangle(
-          vertices[candidate],
-          vertices[previous],
-          vertices[current],
-          vertices[next],
-        )) {
-          containsVertex = true;
-          break;
-        }
-      }
-      if (!containsVertex) {
-        earPosition = position;
-        break;
-      }
-    }
-    if (earPosition < 0) {
-      throw StateError(
-        'Could not triangulate ${polygon.sourcePath}:${polygon.identity.shapeId}.',
-      );
-    }
-    final previous = remaining[(earPosition - 1) % remaining.length];
-    final current = remaining[earPosition];
-    final next = remaining[(earPosition + 1) % remaining.length];
-    triangles.add(_triangle(polygon, previous, current, next));
-    remaining.removeAt(earPosition);
-  }
-  triangles.add(_triangle(polygon, remaining[0], remaining[1], remaining[2]));
-
-  final expectedArea = _polygonArea(vertices);
-  final triangleArea = triangles.fold<BigInt>(BigInt.zero, (sum, triangle) {
-    return sum +
-        _cross(
-          vertices[triangle.first],
-          vertices[triangle.second],
-          vertices[triangle.third],
-        );
-  });
-  if (triangles.length != vertices.length - 2 ||
-      expectedArea <= BigInt.zero ||
-      triangleArea != expectedArea) {
-    throw StateError(
-      'Triangulation area/count mismatch for '
-      '${polygon.sourcePath}:${polygon.identity.shapeId}.',
-    );
-  }
-  return triangles;
-}
-
-PolygonTerrainTriangle _triangle(
-  TerrainPolygon polygon,
-  int first,
-  int second,
-  int third,
-) => PolygonTerrainTriangle(
-  chunkKey: polygon.identity.chunkKey,
-  placementKey: polygon.identity.placementKey,
-  shapeId: polygon.identity.shapeId,
-  first: first,
-  second: second,
-  third: third,
-);
-
-bool _insideTriangle(
-  TerrainPoint point,
-  TerrainPoint first,
-  TerrainPoint second,
-  TerrainPoint third,
-) =>
-    _cross(first, second, point) >= BigInt.zero &&
-    _cross(second, third, point) >= BigInt.zero &&
-    _cross(third, first, point) >= BigInt.zero;
-
-BigInt _polygonArea(List<TerrainPoint> vertices) {
-  var area = BigInt.zero;
-  for (var index = 0; index < vertices.length; index += 1) {
-    final current = vertices[index];
-    final next = vertices[(index + 1) % vertices.length];
-    area +=
-        BigInt.from(current.xTicks) * BigInt.from(next.yTicks) -
-        BigInt.from(next.xTicks) * BigInt.from(current.yTicks);
-  }
-  return area;
-}
-
-BigInt _cross(TerrainPoint first, TerrainPoint second, TerrainPoint third) =>
-    BigInt.from(second.xTicks - first.xTicks) *
-        BigInt.from(third.yTicks - first.yTicks) -
-    BigInt.from(second.yTicks - first.yTicks) *
-        BigInt.from(third.xTicks - first.xTicks);
-
 String _canonicalRecord(List<String> fields) =>
     fields.map((field) => '${utf8.encode(field).length}:$field').join('|');
 
 String _signature(Iterable<String> records) =>
     sha256.convert(utf8.encode(records.join('\n'))).toString();
-
-int _compareNullable(String? left, String? right) {
-  if (identical(left, right)) return 0;
-  if (left == null) return -1;
-  if (right == null) return 1;
-  return left.compareTo(right);
-}
 
 void _rejectDuplicateComparable<T extends Comparable<T>>(
   List<T> records,

@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:runner_core/collision/terrain/terrain_authoring_triangle_signature.dart';
+import 'package:runner_core/collision/terrain/terrain_triangulator.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_authoring_polygon_signature.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_collision_expansion.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_codec.dart';
@@ -22,6 +24,17 @@ void main() {
       sourcePath: _chunkSourcePath,
     );
     final golden = jsonDecode(_fixture('golden.json')) as Map<String, Object?>;
+    final canonicalPrefabs = PrefabV3FileCodec.encode(prefabs);
+    final canonicalChunk = ChunkV2FileCodec.encode(chunk);
+
+    expect(
+      PrefabV3FileCodec.encode(PrefabV3FileCodec.decode(canonicalPrefabs)),
+      canonicalPrefabs,
+    );
+    expect(
+      ChunkV2FileCodec.encode(ChunkV2FileCodec.decode(canonicalChunk)),
+      canonicalChunk,
+    );
 
     final result = expandChunkV2Collision(
       chunk: chunk,
@@ -47,6 +60,7 @@ void main() {
       golden['authoringPolygonSignature'],
     );
     expect(_placementSignature(expansion), golden['placementSignature']);
+    expect(_triangleSignature(expansion), golden['triangleSignature']);
   });
 
   test('editor polygon signature rejects stale accepted prefab evidence', () {
@@ -105,6 +119,22 @@ String _placementSignature(ChunkV2CollisionExpansion expansion) {
       ]),
   ];
   return sha256.convert(utf8.encode(records.join('\n'))).toString();
+}
+
+String _triangleSignature(ChunkV2CollisionExpansion expansion) {
+  final triangles = <TerrainAuthoringTriangleRecord>[
+    for (final polygon in expansion.geometry.polygons)
+      for (final triangle in const TerrainTriangulator().triangulate(polygon))
+        TerrainAuthoringTriangleRecord(
+          chunkKey: polygon.identity.chunkKey,
+          placementKey: polygon.identity.placementKey,
+          shapeId: polygon.identity.shapeId,
+          first: triangle.first,
+          second: triangle.second,
+          third: triangle.third,
+        ),
+  ];
+  return terrainAuthoringTriangleSignature(triangles);
 }
 
 String _canonicalRecord(List<String> fields) =>
