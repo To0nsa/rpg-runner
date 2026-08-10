@@ -9,6 +9,7 @@ import '../../tool/polygon_terrain_source.dart';
 const String _fixtureDirectory = 'test/fixtures/polygon_terrain_generator';
 const String _chunkSourcePath = 'chunks/forest/fixture_chunk.json';
 const String _transformChunkSourcePath = 'chunks/forest/transform_chunk.json';
+const String _migrationChunkSourcePath = 'chunks/forest/migration_chunk.json';
 
 void main() {
   test('strict current-schema fixture compiles through Core exactly', () {
@@ -146,6 +147,45 @@ void main() {
       );
     },
   );
+
+  test('legacy prefab migration fixture compiles through Core exactly', () {
+    final compiled = _compileMigrationFixture();
+    final golden = _golden('migration_golden.json');
+
+    expect(
+      compiled.geometry.polygons,
+      hasLength(golden['polygonCount']! as int),
+    );
+    expect(compiled.geometry.edges, hasLength(golden['edgeCount']! as int));
+    expect(compiled.triangles, hasLength(golden['triangleCount']! as int));
+    expect(
+      <String, String>{
+        'sourceSignature': compiled.geometry.sourceSignature(),
+        'edgeSignature': compiled.geometry.edgeSignature(),
+        'authoringPolygonSignature': compiled.authoringPolygonSignature(),
+        'placementSignature': compiled.placementSignature(),
+        'triangleSignature': compiled.triangleSignature(),
+      },
+      <String, Object?>{
+        'sourceSignature': golden['sourceSignature'],
+        'edgeSignature': golden['edgeSignature'],
+        'authoringPolygonSignature': golden['authoringPolygonSignature'],
+        'placementSignature': golden['placementSignature'],
+        'triangleSignature': golden['triangleSignature'],
+      },
+    );
+    expect(
+      compiled.placementLineage
+          .map((lineage) => '${lineage.placementKey}:${lineage.shapeId}')
+          .toList(growable: false),
+      <String>[
+        'prefab_migration_concave|100|20|0:collision_001',
+        'prefab_migration_disconnected|220|40|0:collision_001',
+        'prefab_migration_disconnected|220|40|0:collision_002',
+        'prefab_migration_rectangle|30|30|0:collision_001',
+      ],
+    );
+  });
 
   test('fresh parses reproduce records and signatures', () {
     final first = _compileFixture();
@@ -619,6 +659,25 @@ PolygonTerrainCompiledChunk _compileTransformFixture() {
     chunk: chunk,
     prefabSources: prefabs,
     sourcePath: _transformChunkSourcePath,
+  );
+  expect(result.issues, isEmpty);
+  expect(result.compiled, isNotNull);
+  return result.compiled!;
+}
+
+PolygonTerrainCompiledChunk _compileMigrationFixture() {
+  final prefabs = decodePolygonTerrainPrefabs(
+    _fixture('migration_prefab_defs.json'),
+    sourcePath: 'migration_prefab_defs.json',
+  );
+  final chunk = decodePolygonTerrainChunk(
+    _fixture('migration_chunk.json'),
+    sourcePath: _migrationChunkSourcePath,
+  );
+  final result = compilePolygonTerrainChunk(
+    chunk: chunk,
+    prefabSources: prefabs,
+    sourcePath: _migrationChunkSourcePath,
   );
   expect(result.issues, isEmpty);
   expect(result.compiled, isNotNull);

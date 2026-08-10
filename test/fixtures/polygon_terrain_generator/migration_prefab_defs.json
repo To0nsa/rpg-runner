@@ -1,0 +1,173 @@
+{
+  "schemaVersion": 3,
+  "slices": [
+    {
+      "id": "migration_slice",
+      "sourceImagePath": "assets/images/level/props/migration.png",
+      "x": 0,
+      "y": 0,
+      "width": 64,
+      "height": 64
+    }
+  ],
+  "prefabs": [
+    {
+      "prefabKey": "prefab_migration_concave",
+      "id": "migration_concave",
+      "revision": 1,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "migration_slice"
+      },
+      "anchorXPx": 0,
+      "anchorYPx": 0,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 32,
+              "y": 0
+            },
+            {
+              "x": 32,
+              "y": 16
+            },
+            {
+              "x": 48,
+              "y": 16
+            },
+            {
+              "x": 48,
+              "y": 48
+            },
+            {
+              "x": 16,
+              "y": 48
+            },
+            {
+              "x": 16,
+              "y": 32
+            },
+            {
+              "x": 0,
+              "y": 32
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "migration"
+      ]
+    },
+    {
+      "prefabKey": "prefab_migration_disconnected",
+      "id": "migration_disconnected",
+      "revision": 1,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "migration_slice"
+      },
+      "anchorXPx": 16,
+      "anchorYPx": 16,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -12,
+              "y": -2
+            },
+            {
+              "x": -8,
+              "y": -2
+            },
+            {
+              "x": -8,
+              "y": 2
+            },
+            {
+              "x": -12,
+              "y": 2
+            }
+          ]
+        },
+        {
+          "shapeId": "collision_002",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": 8,
+              "y": -2
+            },
+            {
+              "x": 12,
+              "y": -2
+            },
+            {
+              "x": 12,
+              "y": 2
+            },
+            {
+              "x": 8,
+              "y": 2
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "migration"
+      ]
+    },
+    {
+      "prefabKey": "prefab_migration_rectangle",
+      "id": "migration_rectangle",
+      "revision": 1,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "migration_slice"
+      },
+      "anchorXPx": 16,
+      "anchorYPx": 16,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -1.5,
+              "y": -2.5
+            },
+            {
+              "x": 1.5,
+              "y": -2.5
+            },
+            {
+              "x": 1.5,
+              "y": 2.5
+            },
+            {
+              "x": -1.5,
+              "y": 2.5
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "migration"
+      ]
+    }
+  ]
+}

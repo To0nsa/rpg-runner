@@ -8,11 +8,14 @@ import 'package:runner_core/collision/terrain/terrain_triangulator.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_authoring_polygon_signature.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_collision_expansion.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_codec.dart';
+import 'package:runner_editor/src/prefabs/migration/legacy_prefab_collider_union.dart';
+import 'package:runner_editor/src/prefabs/models/models.dart';
 import 'package:runner_editor/src/prefabs/store/prefab_v3_file_codec.dart';
 
 const String _fixtureDirectory = 'test/fixtures/polygon_terrain_generator';
 const String _chunkSourcePath = 'chunks/forest/fixture_chunk.json';
 const String _transformChunkSourcePath = 'chunks/forest/transform_chunk.json';
+const String _migrationChunkSourcePath = 'chunks/forest/migration_chunk.json';
 
 void main() {
   test('editor compile matches staged generator fixture signatures', () {
@@ -47,6 +50,62 @@ void main() {
         ('prefab_asymmetric|80|50|0', 30, false, true),
       ],
     );
+  });
+
+  test('legacy union output matches migration parity fixture', () {
+    final prefabSource = _fixture('migration_prefab_defs.json');
+    final prefabs = PrefabV3FileCodec.decode(
+      prefabSource,
+      sourcePath: 'migration_prefab_defs.json',
+    );
+    const collidersByPrefabKey = <String, List<PrefabColliderDef>>{
+      'prefab_migration_concave': <PrefabColliderDef>[
+        PrefabColliderDef(offsetX: 16, offsetY: 16, width: 32, height: 32),
+        PrefabColliderDef(offsetX: 32, offsetY: 32, width: 32, height: 32),
+      ],
+      'prefab_migration_disconnected': <PrefabColliderDef>[
+        PrefabColliderDef(offsetX: 10, offsetY: 0, width: 4, height: 4),
+        PrefabColliderDef(offsetX: -10, offsetY: 0, width: 4, height: 4),
+      ],
+      'prefab_migration_rectangle': <PrefabColliderDef>[
+        PrefabColliderDef(offsetX: 0, offsetY: 0, width: 3, height: 5),
+      ],
+    };
+
+    for (final entry in collidersByPrefabKey.entries) {
+      final planned = LegacyPrefabColliderUnion.plan(
+        sourcePath: 'migration_fixture:${entry.key}',
+        colliders: entry.value,
+      );
+      final reversed = LegacyPrefabColliderUnion.plan(
+        sourcePath: 'migration_fixture:${entry.key}',
+        colliders: entry.value.reversed,
+      );
+      final prefab = prefabs.prefabs.singleWhere(
+        (candidate) => candidate.prefabKey == entry.key,
+      );
+
+      expect(planned.issues, isEmpty, reason: entry.key);
+      expect(planned.shapes, prefab.collisionShapes, reason: entry.key);
+      expect(reversed.shapes, planned.shapes, reason: entry.key);
+    }
+
+    final expansion = _expectFixtureParity(
+      prefabFixture: 'migration_prefab_defs.json',
+      chunkFixture: 'migration_chunk.json',
+      goldenFixture: 'migration_golden.json',
+      chunkSourcePath: _migrationChunkSourcePath,
+    );
+    final expandedIdentities = expansion.expandedPrefabShapes
+        .map((shape) => '${shape.placementKey}:${shape.shapeId}')
+        .toList(growable: false)
+      ..sort();
+    expect(expandedIdentities, <String>[
+      'prefab_migration_concave|100|20|0:collision_001',
+      'prefab_migration_disconnected|220|40|0:collision_001',
+      'prefab_migration_disconnected|220|40|0:collision_002',
+      'prefab_migration_rectangle|30|30|0:collision_001',
+    ]);
   });
 
   test('editor polygon signature rejects stale accepted prefab evidence', () {
