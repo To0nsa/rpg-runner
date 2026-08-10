@@ -1015,6 +1015,17 @@ reports and reproduce `authoring-migration-v1`
 These probes close staged determinism; they do not authorize live output
 registration or source migration.
 
+The staged compilation failure contract is also explicit. Unknown references
+and key/ID aliases that resolve to multiple prefabs produce stable placement
+issues and no geometry, independent of prefab catalog order. Strict parsing
+rejects placement scale outside `0.3-3.0` or off its `0.1` step. Both direct
+Chunk and prefab-local source-range failures preserve source/shape/placement
+lineage, while post-transform bounds checks enumerate every offending direct
+or expanded vertex against the closed Chunk rectangle. Mixed bounds failures
+sort by source path, placement, shape, element, then code and cannot coexist
+with a compiled product. This generator matrix does not replace the editor and
+migration diagnostic inventory.
+
 ## Exact Legacy Compatibility Projection
 
 The temporary compatibility projector consumes only an accepted

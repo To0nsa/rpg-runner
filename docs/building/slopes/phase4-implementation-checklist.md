@@ -1329,7 +1329,7 @@ UI/interactions:
 Generator/seams:
 
 - [x] current-schema strict parsing
-- [ ] unknown prefab/source/scale/bounds diagnostics
+- [x] unknown prefab/source/scale/bounds diagnostics
 - [x] staged polygon/edge/lineage output golden
 - [x] concave triangulation count, winding, exact area, ordering, and golden
 - [x] legacy orthogonal decomposition, flat-ground/gap projection,
@@ -1338,6 +1338,16 @@ Generator/seams:
 - [x] dry-run generated drift/missing/unexpected output detection
 - [x] staged sibling writes, post-write byte verification, rollback, and cleanup
 - [x] fresh-process signatures and permutation invariance
+
+The staged compiler diagnostic fixture proves unknown and cross-key/ID
+ambiguous prefab resolution without fabricated output, with identical evidence
+under reversed catalog order. Direct chunk and expanded prefab source-range
+failures retain exact source, shape, and placement lineage. Invalid scale below
+`0.3`, above `3.0`, or off the `0.1` step fails during strict parsing. A single
+fixture with both direct and transformed prefab vertices outside closed Chunk
+bounds produces the complete canonically sorted issue list and no compiled
+product. These tests bind the generator boundary only; they do not close the
+broader blocking-diagnostic inventory in §13.
 
 The legacy-projection unit matrix covers exact orthogonal decomposition,
 flat-ground/gap recognition, current 16-pixel snapping, input-order
@@ -1517,6 +1527,7 @@ result.
 | 2026-08-10 / `fd543b63` | Shared scheduler seam signature and generator golden | Dart VM and Flutter test VM on Windows with Docker running | Root, Core-package, and editor analysis are clean. Three Core contract tests, two staged-generator manifest tests, and all ten editor seam tests pass. Core now owns the immutable sorted `authoring-seams-v1` transition set and digest; duplicate or delimiter-ambiguous identities fail closed. The strict generator manifest decoder consumes the exact editor eight-transition golden, recalculates record/digest `9681ffb1…93b`, and rejects schema or derived-field drift. The editor no longer implements the hash separately. Compiled-boundary validation before staged rendering remains open; live generator registration, source, scheduler behavior, and runtime authority are unchanged. |
 | 2026-08-10 / `e3309704` | Shared compiled-boundary gate for staged terrain output | Dart VM and Flutter test VM on Windows with Docker running | Root, Core-package, and editor analysis are clean; all 319 Core-package tests, all 438 editor tests, and all 48 root tool/generator tests pass. Core now owns unchanged `authoring-boundary-v1` derivation/comparison. Four staged-generator seam tests cover compatible directed pairs, canonical chunk order, exact mismatch ticks/digests/profiles, missing chunks, wrong level, duplicate and case-colliding keys; material evidence remains advisory through the Core matrix. The renderer accepts only a privately constructed validated batch and emits `authoring-seams-v1` format/digest evidence, advancing only the disconnected staged fixture schema to v3. Live current-schema registration, authored source, normal generation bytes, scheduler behavior, and runtime authority remain unchanged. |
 | 2026-08-10 / `7ba0b636` | Fresh-process staged signature determinism | Dart VM and Flutter test VM on Windows with Docker running | Root, Core-package, and editor analysis are clean; all 320 Core-package tests, all 439 editor tests, and all 55 root tool/generator tests pass. Two standalone generator-probe processes reproduce every reviewed signature and exact staged artifact SHA-256 `434ae70a…ca84`; two standalone migration checks reproduce canonical report bytes and `authoring-migration-v1` `c355c5de…0beb`. Reversed caller collections, every valid loop rotation/winding, Windows/POSIX source spelling, and one-field polygon/placement/triangle/seam/source mutations are explicit. The compiled product owns placement/triangle sorting and duplicate rejection. Authored source, live output registration, generated production bytes, and runtime authority are unchanged. |
+| 2026-08-10 / `c31bdd82` | Staged generator blocking-diagnostic matrix | Dart VM and Flutter test VM on Windows with Docker running | Targeted analysis is clean and all 58 root tool/generator tests pass. Strict scale diagnostics cover below-minimum, above-maximum, and off-step values. Unknown and ambiguous prefab references, direct and prefab source-range failures, and simultaneous direct/expanded Chunk-bounds failures return no compiled product while retaining exact source/placement/shape/element lineage and canonical issue ordering; reversed prefab catalog input is identical. Reviewed fixture records, signatures, artifact bytes, authored source, and live runtime authority are unchanged. |
 
 ### 28.1 Baseline Environment And Source Identity
 
