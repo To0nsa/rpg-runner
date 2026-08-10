@@ -2,11 +2,14 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:runner_core/collision/terrain/terrain_authoring_issue.dart';
 import 'package:runner_core/collision/terrain/terrain_authoring_seam_signature.dart';
+import 'package:runner_core/track/staged_terrain_data.dart';
 
 import '../fixtures/polygon_terrain_generator/staged_authored_terrain.g.dart'
     as golden;
 import '../../tool/generated_artifact_plan.dart';
+import '../../tool/polygon_terrain_artifact_validation.dart';
 import '../../tool/polygon_terrain_compilation.dart';
 import '../../tool/polygon_terrain_render.dart';
 import '../../tool/polygon_terrain_seam_manifest.dart';
@@ -90,6 +93,214 @@ void main() {
         _validated(<PolygonTerrainCompiledChunk>[earlier, later]),
       ),
     );
+  });
+
+  test('typed staged artifact matches fresh compiled signature contract', () {
+    final result = validateStagedPolygonTerrainArtifact(
+      expected: _validated(<PolygonTerrainCompiledChunk>[_compileFixture()]),
+      artifact: golden.stagedAuthoredTerrain,
+      sourcePath: _goldenPath,
+    );
+
+    expect(result.issues, isEmpty);
+    expect(result.artifact, same(golden.stagedAuthoredTerrain));
+  });
+
+  test('typed staged artifact rejects every stale per-chunk signature', () {
+    final expected = _validated(<PolygonTerrainCompiledChunk>[
+      _compileFixture(),
+    ]);
+    final source = golden.stagedAuthoredTerrain.chunks.single;
+    final cases =
+        <(String, StagedTerrainChunkData Function(StagedTerrainChunkData))>[
+          (
+            'authoring_polygon_signature_mismatch',
+            (chunk) =>
+                _copyChunk(chunk, authoringPolygonSignature: 'stale-authoring'),
+          ),
+          (
+            'source_signature_mismatch',
+            (chunk) => _copyChunk(chunk, sourceSignature: 'stale-source'),
+          ),
+          (
+            'edge_signature_mismatch',
+            (chunk) => _copyChunk(chunk, edgeSignature: 'stale-edge'),
+          ),
+          (
+            'placement_signature_mismatch',
+            (chunk) => _copyChunk(chunk, placementSignature: 'stale-placement'),
+          ),
+          (
+            'triangle_signature_mismatch',
+            (chunk) => _copyChunk(chunk, triangleSignature: 'stale-triangle'),
+          ),
+        ];
+
+    for (final entry in cases) {
+      final result = validateStagedPolygonTerrainArtifact(
+        expected: expected,
+        artifact: _copyArtifact(
+          golden.stagedAuthoredTerrain,
+          chunks: <StagedTerrainChunkData>[entry.$2(source)],
+        ),
+        sourcePath: _goldenPath,
+      );
+
+      expect(result.artifact, isNull, reason: entry.$1);
+      expect(result.issues, hasLength(1), reason: entry.$1);
+      final issue = result.issues.single;
+      expect(issue.severity, TerrainAuthoringIssueSeverity.error);
+      expect(issue.code, entry.$1);
+      expect(issue.sourcePath, _goldenPath);
+      expect(issue.ownerKey, 'fixture_chunk');
+      expect(issue.placementKey, isNull);
+      expect(issue.shapeId, isNull);
+      expect(issue.elementIndex, isNull);
+      expect(issue.message, contains('expected'));
+      expect(issue.message, contains('found'));
+    }
+  });
+
+  test('typed staged artifact rejects version and signature format drift', () {
+    final expected = _validated(<PolygonTerrainCompiledChunk>[
+      _compileFixture(),
+    ]);
+    final source = golden.stagedAuthoredTerrain;
+    final cases =
+        <
+          (
+            String,
+            StagedTerrainArtifactData Function(StagedTerrainArtifactData),
+          )
+        >[
+          (
+            'staged_artifact_format_mismatch',
+            (artifact) => _copyArtifact(
+              artifact,
+              chunks: artifact.chunks,
+              formatVersion: 99,
+            ),
+          ),
+          (
+            'staged_compiler_geometry_version_mismatch',
+            (artifact) => _copyArtifact(
+              artifact,
+              chunks: artifact.chunks,
+              compilerGeometryVersion: 99,
+            ),
+          ),
+          (
+            'authoring_polygon_signature_format_mismatch',
+            (artifact) => _copyArtifact(
+              artifact,
+              chunks: artifact.chunks,
+              authoringPolygonSignatureFormat: 'stale-authoring-format',
+            ),
+          ),
+          (
+            'authoring_seam_signature_format_mismatch',
+            (artifact) => _copyArtifact(
+              artifact,
+              chunks: artifact.chunks,
+              authoringSeamSignatureFormat: 'stale-seam-format',
+            ),
+          ),
+          (
+            'authoring_seam_signature_mismatch',
+            (artifact) => _copyArtifact(
+              artifact,
+              chunks: artifact.chunks,
+              authoringSeamSignature: 'stale-seam',
+            ),
+          ),
+          (
+            'source_signature_format_mismatch',
+            (artifact) => _copyArtifact(
+              artifact,
+              chunks: artifact.chunks,
+              sourceSignatureFormat: 'stale-source-format',
+            ),
+          ),
+          (
+            'edge_signature_format_mismatch',
+            (artifact) => _copyArtifact(
+              artifact,
+              chunks: artifact.chunks,
+              edgeSignatureFormat: 'stale-edge-format',
+            ),
+          ),
+          (
+            'placement_signature_format_mismatch',
+            (artifact) => _copyArtifact(
+              artifact,
+              chunks: artifact.chunks,
+              placementSignatureFormat: 'stale-placement-format',
+            ),
+          ),
+          (
+            'triangle_signature_format_mismatch',
+            (artifact) => _copyArtifact(
+              artifact,
+              chunks: artifact.chunks,
+              triangleSignatureFormat: 'stale-triangle-format',
+            ),
+          ),
+        ];
+
+    for (final entry in cases) {
+      final result = validateStagedPolygonTerrainArtifact(
+        expected: expected,
+        artifact: entry.$2(source),
+        sourcePath: _goldenPath,
+      );
+
+      expect(result.artifact, isNull, reason: entry.$1);
+      expect(result.issues.map((issue) => issue.code), <String>[
+        entry.$1,
+      ], reason: entry.$1);
+      expect(result.issues.single.ownerKey, _goldenPath);
+    }
+  });
+
+  test('typed staged artifact rejects chunk-set and metadata drift', () {
+    final expected = _validated(<PolygonTerrainCompiledChunk>[
+      _compileFixture(),
+    ]);
+    final source = golden.stagedAuthoredTerrain;
+    final chunk = source.chunks.single;
+    final cases = <(String, StagedTerrainArtifactData)>[
+      (
+        'staged_artifact_chunk_missing',
+        _copyArtifact(source, chunks: const <StagedTerrainChunkData>[]),
+      ),
+      (
+        'staged_artifact_chunk_duplicate',
+        _copyArtifact(source, chunks: <StagedTerrainChunkData>[chunk, chunk]),
+      ),
+      (
+        'staged_chunk_metadata_mismatch',
+        _copyArtifact(
+          source,
+          chunks: <StagedTerrainChunkData>[
+            _copyChunk(chunk, revision: chunk.revision + 1),
+          ],
+        ),
+      ),
+    ];
+
+    for (final entry in cases) {
+      final result = validateStagedPolygonTerrainArtifact(
+        expected: expected,
+        artifact: entry.$2,
+        sourcePath: _goldenPath,
+      );
+
+      expect(result.artifact, isNull, reason: entry.$1);
+      expect(result.issues.map((issue) => issue.code), <String>[
+        entry.$1,
+      ], reason: entry.$1);
+      expect(result.issues.single.ownerKey, 'fixture_chunk');
+    }
   });
 
   test('validated render boundary rejects empty and duplicate chunk sets', () {
@@ -184,3 +395,65 @@ PolygonTerrainCompiledChunk _compileFixture({String? chunkKey}) {
   expect(result.issues, isEmpty);
   return result.compiled!;
 }
+
+StagedTerrainArtifactData _copyArtifact(
+  StagedTerrainArtifactData source, {
+  required Iterable<StagedTerrainChunkData> chunks,
+  int? formatVersion,
+  int? compilerGeometryVersion,
+  String? authoringPolygonSignatureFormat,
+  String? authoringSeamSignatureFormat,
+  String? authoringSeamSignature,
+  String? sourceSignatureFormat,
+  String? edgeSignatureFormat,
+  String? placementSignatureFormat,
+  String? triangleSignatureFormat,
+}) => StagedTerrainArtifactData(
+  formatVersion: formatVersion ?? source.formatVersion,
+  compilerGeometryVersion:
+      compilerGeometryVersion ?? source.compilerGeometryVersion,
+  authoringPolygonSignatureFormat:
+      authoringPolygonSignatureFormat ?? source.authoringPolygonSignatureFormat,
+  authoringSeamSignatureFormat:
+      authoringSeamSignatureFormat ?? source.authoringSeamSignatureFormat,
+  authoringSeamSignature:
+      authoringSeamSignature ?? source.authoringSeamSignature,
+  sourceSignatureFormat: sourceSignatureFormat ?? source.sourceSignatureFormat,
+  edgeSignatureFormat: edgeSignatureFormat ?? source.edgeSignatureFormat,
+  placementSignatureFormat:
+      placementSignatureFormat ?? source.placementSignatureFormat,
+  triangleSignatureFormat:
+      triangleSignatureFormat ?? source.triangleSignatureFormat,
+  chunks: chunks,
+);
+
+StagedTerrainChunkData _copyChunk(
+  StagedTerrainChunkData source, {
+  int? revision,
+  String? authoringPolygonSignature,
+  String? sourceSignature,
+  String? edgeSignature,
+  String? placementSignature,
+  String? triangleSignature,
+}) => StagedTerrainChunkData(
+  chunkKey: source.chunkKey,
+  id: source.id,
+  revision: revision ?? source.revision,
+  status: source.status,
+  levelId: source.levelId,
+  tileSize: source.tileSize,
+  width: source.width,
+  height: source.height,
+  difficulty: source.difficulty,
+  assemblyGroupId: source.assemblyGroupId,
+  authoringPolygonSignature:
+      authoringPolygonSignature ?? source.authoringPolygonSignature,
+  sourceSignature: sourceSignature ?? source.sourceSignature,
+  edgeSignature: edgeSignature ?? source.edgeSignature,
+  placementSignature: placementSignature ?? source.placementSignature,
+  triangleSignature: triangleSignature ?? source.triangleSignature,
+  polygons: source.polygons,
+  edges: source.edges,
+  triangles: source.triangles,
+  placementLineage: source.placementLineage,
+);
