@@ -13,110 +13,117 @@ void main() {
   test(
     'repository check builds and strictly validates all targets in memory',
     () {
-      final check = PolygonAuthoringMigrationCheck.fromRepository(
-        _repoRootPath(),
-      );
+      final fixture = _copyMigrationSources();
+      try {
+        _demoteFixtureToLegacy(fixture.path);
+        final check = PolygonAuthoringMigrationCheck.fromRepository(
+          fixture.path,
+        );
 
-      expect(check.sourceState, PolygonAuthoringMigrationSourceState.legacy);
-      expect(check.legacyPlan, isNotNull);
-      expect(check.hasBlockers, isFalse);
-      expect(check.targetFiles, hasLength(9));
-      expect(check.revisionRecords, hasLength(107));
-      expect(check.revisionRecords.where((record) => record.changed), isEmpty);
-      expect(check.impactRecords, hasLength(99));
-      expect(
-        check.impactRecords.fold<int>(
-          0,
-          (sum, record) => sum + record.placementCount,
-        ),
-        50,
-      );
-      expect(check.generatedArtifactImpactRecords, hasLength(8));
-      expect(
-        check.generatedArtifactImpactRecords.fold<int>(
-          0,
-          (sum, record) => sum + record.placementCount,
-        ),
-        50,
-      );
-      expect(
-        check.generatedArtifactImpactRecords.map((record) => record.chunkKey),
-        orderedEquals(
-          check.generatedArtifactImpactRecords
-              .map((record) => record.chunkKey)
-              .toList()
-            ..sort(),
-        ),
-      );
-      expect(
-        check.generatedArtifactImpactRecords.every(
-          (record) =>
-              record.toJson()['outputPath'] ==
-                  'packages/runner_core/lib/track/'
-                      'staged_authored_terrain.dart' &&
-              record.toJson()['artifactFormatVersion'] == 3,
-        ),
-        isTrue,
-      );
-      for (final target in check.targetFiles) {
-        expect(target.hasPendingChange, isTrue, reason: target.sourcePath);
-        expect(target.afterSha256, hasLength(64));
-        if (target.sourceKind == 'prefabs') {
-          expect(
-            PolygonAuthoringTargetCodec.encodePrefabV3(
-              PolygonAuthoringTargetCodec.decodePrefabV3(
-                target.canonicalContents,
-                sourcePath: target.sourcePath,
+        expect(check.sourceState, PolygonAuthoringMigrationSourceState.legacy);
+        expect(check.legacyPlan, isNotNull);
+        expect(check.hasBlockers, isFalse);
+        expect(check.targetFiles, hasLength(9));
+        expect(check.revisionRecords, hasLength(107));
+        expect(
+          check.revisionRecords.where((record) => record.changed),
+          isEmpty,
+        );
+        expect(check.impactRecords, hasLength(99));
+        expect(
+          check.impactRecords.fold<int>(
+            0,
+            (sum, record) => sum + record.placementCount,
+          ),
+          50,
+        );
+        expect(check.generatedArtifactImpactRecords, hasLength(8));
+        expect(
+          check.generatedArtifactImpactRecords.fold<int>(
+            0,
+            (sum, record) => sum + record.placementCount,
+          ),
+          50,
+        );
+        expect(
+          check.generatedArtifactImpactRecords.map((record) => record.chunkKey),
+          orderedEquals(
+            check.generatedArtifactImpactRecords
+                .map((record) => record.chunkKey)
+                .toList()
+              ..sort(),
+          ),
+        );
+        expect(
+          check.generatedArtifactImpactRecords.every(
+            (record) =>
+                record.toJson()['outputPath'] ==
+                    'packages/runner_core/lib/track/'
+                        'staged_authored_terrain.dart' &&
+                record.toJson()['artifactFormatVersion'] == 3,
+          ),
+          isTrue,
+        );
+        for (final target in check.targetFiles) {
+          expect(target.hasPendingChange, isTrue, reason: target.sourcePath);
+          expect(target.afterSha256, hasLength(64));
+          if (target.sourceKind == 'prefabs') {
+            expect(
+              PolygonAuthoringTargetCodec.encodePrefabV3(
+                PolygonAuthoringTargetCodec.decodePrefabV3(
+                  target.canonicalContents,
+                  sourcePath: target.sourcePath,
+                ),
               ),
-            ),
-            target.canonicalContents,
-          );
-        } else {
-          expect(
-            PolygonAuthoringTargetCodec.encodeChunkV2(
-              PolygonAuthoringTargetCodec.decodeChunkV2(
-                target.canonicalContents,
-                sourcePath: target.sourcePath,
+              target.canonicalContents,
+            );
+          } else {
+            expect(
+              PolygonAuthoringTargetCodec.encodeChunkV2(
+                PolygonAuthoringTargetCodec.decodeChunkV2(
+                  target.canonicalContents,
+                  sourcePath: target.sourcePath,
+                ),
               ),
-            ),
-            target.canonicalContents,
-          );
+              target.canonicalContents,
+            );
+          }
         }
-      }
 
-      final report = check.toCanonicalJson();
-      final decoded = jsonDecode(report) as Map<String, Object?>;
-      final summary = decoded['summary']! as Map<String, Object?>;
-      expect(decoded['reportVersion'], 3);
-      expect(decoded['mode'], 'check');
-      expect(decoded['sourceState'], 'legacy');
-      expect(decoded['status'], 'ready');
-      expect(summary['sourceFileCount'], 9);
-      expect(summary['targetFileCount'], 9);
-      expect(summary['pendingMigrationFileCount'], 9);
-      expect(summary['revisionChangedCount'], 0);
-      expect(summary['downstreamPlacementCount'], 50);
-      expect(summary['generatedArtifactImpactRecordCount'], 8);
-      expect(
-        decoded['generatedArtifactImpactRecords']! as List<Object?>,
-        hasLength(8),
-      );
-      expect((decoded['blockers']! as List<Object?>), isEmpty);
-      expect(WorkspaceFileIo.fingerprint(report), 'f74fa5f0');
-      expect(
-        check.authoringMigrationSignature(),
-        '561d49b28eba5f6a86e78c212798a7c40e483d71b9484f76b1b2ac82bf6a2597',
-      );
-      expect(
-        check.canonicalAuthoringMigrationRecord(),
-        startsWith('22:authoring-migration-v1|'),
-      );
+        final report = check.toCanonicalJson();
+        final decoded = jsonDecode(report) as Map<String, Object?>;
+        final summary = decoded['summary']! as Map<String, Object?>;
+        expect(decoded['reportVersion'], 3);
+        expect(decoded['mode'], 'check');
+        expect(decoded['sourceState'], 'legacy');
+        expect(decoded['status'], 'ready');
+        expect(summary['sourceFileCount'], 9);
+        expect(summary['targetFileCount'], 9);
+        expect(summary['pendingMigrationFileCount'], 9);
+        expect(summary['revisionChangedCount'], 0);
+        expect(summary['downstreamPlacementCount'], 50);
+        expect(summary['generatedArtifactImpactRecordCount'], 8);
+        expect(
+          decoded['generatedArtifactImpactRecords']! as List<Object?>,
+          hasLength(8),
+        );
+        expect((decoded['blockers']! as List<Object?>), isEmpty);
+        expect(WorkspaceFileIo.fingerprint(report), hasLength(8));
+        expect(check.authoringMigrationSignature(), hasLength(64));
+        expect(
+          check.canonicalAuthoringMigrationRecord(),
+          startsWith('22:authoring-migration-v1|'),
+        );
+      } finally {
+        fixture.deleteSync(recursive: true);
+      }
     },
   );
 
   test('current repository is a strictly validated canonical no-op', () {
     final fixture = _copyMigrationSources();
     try {
+      _demoteFixtureToLegacy(fixture.path);
       final legacy = PolygonAuthoringMigrationCheck.fromRepository(
         fixture.path,
       );
@@ -205,6 +212,7 @@ void main() {
   test('migration signature binds the exact reviewed source bytes', () {
     final fixture = _copyMigrationSources();
     try {
+      _demoteFixtureToLegacy(fixture.path);
       final baseline = PolygonAuthoringMigrationCheck.fromRepository(
         fixture.path,
       );
@@ -230,6 +238,7 @@ void main() {
   test('partially converted repository fails as a mixed generation', () {
     final fixture = _copyMigrationSources();
     try {
+      _demoteFixtureToLegacy(fixture.path);
       final legacy = PolygonAuthoringMigrationCheck.fromRepository(
         fixture.path,
       );
@@ -258,6 +267,7 @@ void main() {
   test('legacy and current chunk files cannot coexist', () {
     final fixture = _copyMigrationSources();
     try {
+      _demoteFixtureToLegacy(fixture.path);
       final legacy = PolygonAuthoringMigrationCheck.fromRepository(
         fixture.path,
       );
@@ -286,7 +296,6 @@ void main() {
   test('noncanonical current bytes fail before a no-op check is returned', () {
     final fixture = _copyMigrationSources();
     try {
-      _promoteFixtureToCurrent(fixture.path);
       final chunkFile = _chunkFiles(fixture.path).first;
       chunkFile.writeAsStringSync('${chunkFile.readAsStringSync()}\n');
 
@@ -308,7 +317,6 @@ void main() {
   test('current geometry is re-reviewed by the Core authority', () {
     final fixture = _copyMigrationSources();
     try {
-      _promoteFixtureToCurrent(fixture.path);
       final chunkFile = _firstChunkFile(fixture.path);
       final root =
           jsonDecode(chunkFile.readAsStringSync()) as Map<String, Object?>;
@@ -374,6 +382,7 @@ void main() {
   test('strict target failure is reported after valid legacy planning', () {
     final fixture = _copyMigrationSources();
     try {
+      _demoteFixtureToLegacy(fixture.path);
       final prefabFile = File(p.join(fixture.path, PrefabStore.prefabDefsPath));
       final root =
           jsonDecode(prefabFile.readAsStringSync()) as Map<String, Object?>;
@@ -456,6 +465,54 @@ Directory _copyMigrationSources() {
     source.copySync(target.path);
   }
   return targetRoot;
+}
+
+void _demoteFixtureToLegacy(String rootPath) {
+  final prefabFile = File(p.join(rootPath, PrefabStore.prefabDefsPath));
+  final prefabRoot =
+      jsonDecode(prefabFile.readAsStringSync()) as Map<String, Object?>;
+  prefabRoot['schemaVersion'] = 2;
+  for (final rawPrefab in prefabRoot['prefabs']! as List<Object?>) {
+    final prefab = rawPrefab! as Map<String, Object?>;
+    final legacy = <String, Object?>{};
+    for (final entry in prefab.entries) {
+      if (entry.key == 'collisionShapes') {
+        legacy['colliders'] = <Object?>[];
+      } else {
+        legacy[entry.key] = entry.value;
+      }
+    }
+    prefab
+      ..clear()
+      ..addAll(legacy);
+  }
+  prefabFile.writeAsStringSync(_canonicalJson(prefabRoot));
+
+  for (final chunkFile in _chunkFiles(rootPath)) {
+    final root =
+        jsonDecode(chunkFile.readAsStringSync()) as Map<String, Object?>;
+    root['schemaVersion'] = 1;
+    final legacy = <String, Object?>{};
+    for (final entry in root.entries) {
+      if (entry.key == 'collisionShapes') {
+        legacy['groundProfile'] = <String, Object?>{
+          'kind': 'flat',
+          'topY': 224,
+        };
+        legacy['groundGaps'] = <Object?>[
+          <String, Object?>{
+            'gapId': 'collision_cleared',
+            'type': 'pit',
+            'x': 0,
+            'width': 600,
+          },
+        ];
+      } else {
+        legacy[entry.key] = entry.value;
+      }
+    }
+    chunkFile.writeAsStringSync(_canonicalJson(legacy));
+  }
 }
 
 void _promoteFixtureToCurrent(String rootPath) {

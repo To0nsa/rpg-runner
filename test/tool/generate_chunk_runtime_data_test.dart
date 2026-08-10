@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -30,10 +31,10 @@ void main() {
         'chunk_generator_collision_cleared_',
       );
       try {
-        _writePrefabAndTileDefs(fixtureRoot.path, colliderless: true);
+        _writePrefabAndTileDefs(fixtureRoot.path);
         _writeLevelDefs(fixtureRoot.path);
         _writeParallaxDefs(fixtureRoot.path);
-        _writeFile(
+        _writeCurrentChunkFixture(
           fixtureRoot.path,
           'assets/authoring/level/chunks/field/chunk_cleared.json',
           '''
@@ -98,11 +99,11 @@ void main() {
         expect(result.exitCode, 1);
         expect(
           'generated_output_missing'.allMatches(result.stderr as String),
-          hasLength(5),
+          hasLength(6),
         );
         expect(
           result.stderr,
-          contains('Generated output drift found in 5 file(s).'),
+          contains('Generated output drift found in 6 file(s).'),
         );
         expect(
           File(
@@ -209,7 +210,7 @@ void main() {
         _writePrefabAndTileDefs(fixtureRoot.path);
         _writeLevelDefs(fixtureRoot.path);
         _writeParallaxDefs(fixtureRoot.path);
-        _writeFile(
+        _writeCurrentChunkFixture(
           fixtureRoot.path,
           'assets/authoring/level/chunks/field/chunk_bad.json',
           '''
@@ -229,7 +230,8 @@ void main() {
         expect(second.exitCode, 1);
         expect(second.stderr, first.stderr);
         expect(second.stdout, first.stdout);
-        expect(first.stderr, contains('missing_id'));
+        expect(first.stderr, contains('chunk_source_invalid'));
+        expect(first.stderr, contains('is missing field id'));
       } finally {
         fixtureRoot.deleteSync(recursive: true);
       }
@@ -244,7 +246,7 @@ void main() {
       _writePrefabAndTileDefs(fixtureRoot.path);
       _writeLevelDefs(fixtureRoot.path);
       _writeParallaxDefs(fixtureRoot.path);
-      _writeFile(
+      _writeCurrentChunkFixture(
         fixtureRoot.path,
         'assets/authoring/level/chunks/field/chunk_bad_scale_range.json',
         '''
@@ -271,7 +273,8 @@ void main() {
 
       final result = await _runDryRun(workingDirectory: fixtureRoot.path);
       expect(result.exitCode, 1);
-      expect(result.stderr, contains('prefab_scale_out_of_range'));
+      expect(result.stderr, contains('chunk_source_invalid'));
+      expect(result.stderr, contains('accepted 0.3-3.0 scale in 0.1 steps'));
     } finally {
       fixtureRoot.deleteSync(recursive: true);
     }
@@ -285,7 +288,7 @@ void main() {
       _writePrefabAndTileDefs(fixtureRoot.path);
       _writeLevelDefs(fixtureRoot.path);
       _writeParallaxDefs(fixtureRoot.path);
-      _writeFile(
+      _writeCurrentChunkFixture(
         fixtureRoot.path,
         'assets/authoring/level/chunks/field/chunk_bad_scale_step.json',
         '''
@@ -312,7 +315,8 @@ void main() {
 
       final result = await _runDryRun(workingDirectory: fixtureRoot.path);
       expect(result.exitCode, 1);
-      expect(result.stderr, contains('prefab_scale_step_violation'));
+      expect(result.stderr, contains('chunk_source_invalid'));
+      expect(result.stderr, contains('accepted 0.3-3.0 scale in 0.1 steps'));
     } finally {
       fixtureRoot.deleteSync(recursive: true);
     }
@@ -326,7 +330,7 @@ void main() {
       _writePrefabAndTileDefs(fixtureRoot.path);
       _writeLevelDefs(fixtureRoot.path);
       _writeParallaxDefs(fixtureRoot.path);
-      _writeFile(
+      _writeCurrentChunkFixture(
         fixtureRoot.path,
         'assets/authoring/level/chunks/field/chunk_ok.json',
         '''
@@ -389,12 +393,23 @@ void main() {
       expect(output, contains('EnemyId.derf'));
       expect(output, isNot(contains('PlatformRel(')));
       expect(output, isNot(contains('ObstacleRel(')));
-      expect(
-        output,
-        contains(
-          'SolidRel(x: 64.0, aboveGroundTop: 160.0, width: 32.0, height: 32.0, sides: SolidRel.sideTop, oneWayTop: true)',
-        ),
+      expect(output, contains("gapId: 'collision_cleared'"));
+
+      final stagedOutputFile = File(
+        _joinPath(<String>[
+          fixtureRoot.path,
+          'packages',
+          'runner_core',
+          'lib',
+          'track',
+          'staged_authored_terrain.dart',
+        ]),
       );
+      expect(stagedOutputFile.existsSync(), isTrue);
+      final stagedOutput = stagedOutputFile.readAsStringSync();
+      expect(stagedOutput, contains('StagedTerrainArtifactData('));
+      expect(stagedOutput, contains('authoringSeamSignatureFormat'));
+      expect(stagedOutput, contains('chunkKey: "chunk_ok"'));
 
       final levelIdOutputFile = File(
         _joinPath(<String>[
@@ -470,19 +485,17 @@ void main() {
     }
   });
 
-  test(
-    'generator preserves multiple prefab colliders as separate solids',
-    () async {
-      final fixtureRoot = await Directory.systemTemp.createTemp(
-        'chunk_generator_multi_collider_',
-      );
-      try {
-        _writeFile(
-          fixtureRoot.path,
-          'assets/authoring/level/prefab_defs.json',
-          '''
+  test('generator projects multiple prefab polygons as separate solids', () async {
+    final fixtureRoot = await Directory.systemTemp.createTemp(
+      'chunk_generator_multi_collider_',
+    );
+    try {
+      _writeFile(
+        fixtureRoot.path,
+        'assets/authoring/level/prefab_defs.json',
+        '''
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "slices": [
     {
       "id": "rock_slice",
@@ -503,33 +516,47 @@ void main() {
       "visualSource": {"type": "atlas_slice", "sliceId": "rock_slice"},
       "anchorXPx": 16,
       "anchorYPx": 16,
-      "colliders": [
-        {"offsetX": -16, "offsetY": -16, "width": 32, "height": 32},
-        {"offsetX": 32, "offsetY": -48, "width": 32, "height": 32}
+      "collisionShapes": [
+        {
+          "shapeId": "left",
+          "collisionMode": "solid",
+          "vertices": [
+            {"x": -32, "y": -32},
+            {"x": 0, "y": -32},
+            {"x": 0, "y": 0},
+            {"x": -32, "y": 0}
+          ]
+        },
+        {
+          "shapeId": "right",
+          "collisionMode": "solid",
+          "vertices": [
+            {"x": 16, "y": -64},
+            {"x": 48, "y": -64},
+            {"x": 48, "y": -32},
+            {"x": 16, "y": -32}
+          ]
+        }
       ],
       "tags": []
     }
   ]
 }
 ''',
-        );
-        _writeFile(
-          fixtureRoot.path,
-          'assets/authoring/level/tile_defs.json',
-          '''
+      );
+      _writeFile(fixtureRoot.path, 'assets/authoring/level/tile_defs.json', '''
 {
   "schemaVersion": 2,
   "tileSlices": [],
   "platformModules": []
 }
-''',
-        );
-        _writeLevelDefs(fixtureRoot.path);
-        _writeParallaxDefs(fixtureRoot.path);
-        _writeFile(
-          fixtureRoot.path,
-          'assets/authoring/level/chunks/field/chunk_multi.json',
-          '''
+''');
+      _writeLevelDefs(fixtureRoot.path);
+      _writeParallaxDefs(fixtureRoot.path);
+      _writeCurrentChunkFixture(
+        fixtureRoot.path,
+        'assets/authoring/level/chunks/field/chunk_multi.json',
+        '''
 {
   "schemaVersion": 1,
   "chunkKey": "chunk_multi",
@@ -550,43 +577,42 @@ void main() {
   ]
 }
 ''',
-        );
+      );
 
-        final result = await _runGenerate(workingDirectory: fixtureRoot.path);
-        expect(result.exitCode, 0, reason: result.stderr);
+      final result = await _runGenerate(workingDirectory: fixtureRoot.path);
+      expect(result.exitCode, 0, reason: result.stderr);
 
-        final output = File(
-          _joinPath(<String>[
-            fixtureRoot.path,
-            'packages',
-            'runner_core',
-            'lib',
-            'track',
-            'authored_chunk_patterns.dart',
-          ]),
-        ).readAsStringSync();
+      final output = File(
+        _joinPath(<String>[
+          fixtureRoot.path,
+          'packages',
+          'runner_core',
+          'lib',
+          'track',
+          'authored_chunk_patterns.dart',
+        ]),
+      ).readAsStringSync();
 
-        expect(output, contains('chunk_multi'));
-        expect(
-          output,
-          contains(
-            'SolidRel(x: 128.0, aboveGroundTop: 64.0, width: 32.0, height: 32.0, sides: SolidRel.sideAll, oneWayTop: false)',
-          ),
-        );
-        expect(
-          output,
-          contains(
-            'SolidRel(x: 80.0, aboveGroundTop: 96.0, width: 32.0, height: 32.0, sides: SolidRel.sideAll, oneWayTop: false)',
-          ),
-        );
-      } finally {
-        fixtureRoot.deleteSync(recursive: true);
-      }
-    },
-  );
+      expect(output, contains('chunk_multi'));
+      expect(
+        output,
+        contains(
+          'SolidRel(x: 128.0, aboveGroundTop: 64.0, width: 32.0, height: 32.0, sides: SolidRel.sideAll, oneWayTop: false)',
+        ),
+      );
+      expect(
+        output,
+        contains(
+          'SolidRel(x: 80.0, aboveGroundTop: 96.0, width: 32.0, height: 32.0, sides: SolidRel.sideAll, oneWayTop: false)',
+        ),
+      );
+    } finally {
+      fixtureRoot.deleteSync(recursive: true);
+    }
+  });
 
   test(
-    'generator preserves platform multi-collider scale and flip into one-way solids',
+    'generator projects scaled flipped one-way prefab polygons exactly',
     () async {
       final fixtureRoot = await Directory.systemTemp.createTemp(
         'chunk_generator_platform_flip_scale_',
@@ -597,7 +623,7 @@ void main() {
           'assets/authoring/level/prefab_defs.json',
           '''
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "slices": [
     {
       "id": "bridge_slice",
@@ -618,9 +644,27 @@ void main() {
       "visualSource": {"type": "atlas_slice", "sliceId": "bridge_slice"},
       "anchorXPx": 16,
       "anchorYPx": 16,
-      "colliders": [
-        {"offsetX": -16, "offsetY": -16, "width": 32, "height": 32},
-        {"offsetX": 16, "offsetY": -32, "width": 32, "height": 32}
+      "collisionShapes": [
+        {
+          "shapeId": "first",
+          "collisionMode": "oneWay",
+          "vertices": [
+            {"x": -32, "y": -32},
+            {"x": 0, "y": -32},
+            {"x": 0, "y": 0},
+            {"x": -32, "y": 0}
+          ]
+        },
+        {
+          "shapeId": "second",
+          "collisionMode": "oneWay",
+          "vertices": [
+            {"x": 0, "y": -48},
+            {"x": 32, "y": -48},
+            {"x": 32, "y": -16},
+            {"x": 0, "y": -16}
+          ]
+        }
       ],
       "tags": []
     }
@@ -641,7 +685,7 @@ void main() {
         );
         _writeLevelDefs(fixtureRoot.path);
         _writeParallaxDefs(fixtureRoot.path);
-        _writeFile(
+        _writeCurrentChunkFixture(
           fixtureRoot.path,
           'assets/authoring/level/chunks/field/chunk_platform_flip_scale.json',
           '''
@@ -710,7 +754,7 @@ void main() {
       _writePrefabAndTileDefs(fixtureRoot.path);
       _writeLevelDefsWithAssembly(fixtureRoot.path);
       _writeParallaxDefs(fixtureRoot.path);
-      _writeFile(
+      _writeCurrentChunkFixture(
         fixtureRoot.path,
         'assets/authoring/level/chunks/field/chunk_ok.json',
         '''
@@ -784,7 +828,7 @@ void main() {
         _writePrefabAndTileDefs(fixtureRoot.path);
         _writeLevelDefs(fixtureRoot.path);
         _writeParallaxDefs(fixtureRoot.path);
-        _writeFile(
+        _writeCurrentChunkFixture(
           fixtureRoot.path,
           'assets/authoring/level/chunks/field/chunk_bad.json',
           '''
@@ -812,7 +856,10 @@ void _writeValidSmokeFixture(String rootPath) {
   _writePrefabAndTileDefs(rootPath);
   _writeLevelDefs(rootPath);
   _writeParallaxDefs(rootPath);
-  _writeFile(rootPath, 'assets/authoring/level/chunks/field/chunk_ok.json', '''
+  _writeCurrentChunkFixture(
+    rootPath,
+    'assets/authoring/level/chunks/field/chunk_ok.json',
+    '''
 {
   "schemaVersion": 1,
   "chunkKey": "chunk_ok",
@@ -820,7 +867,8 @@ void _writeValidSmokeFixture(String rootPath) {
   "levelId": "field",
   "difficulty": "easy"
 }
-''');
+''',
+  );
 }
 
 Future<ProcessResult> _runDryRun({required String workingDirectory}) {
@@ -848,10 +896,10 @@ Future<ProcessResult> _runGenerate({required String workingDirectory}) {
   ], workingDirectory: workingDirectory);
 }
 
-void _writePrefabAndTileDefs(String rootPath, {bool colliderless = false}) {
+void _writePrefabAndTileDefs(String rootPath) {
   _writeFile(rootPath, 'assets/authoring/level/prefab_defs.json', '''
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "slices": [
     {
       "id": "grass_slice",
@@ -872,7 +920,7 @@ void _writePrefabAndTileDefs(String rootPath, {bool colliderless = false}) {
       "visualSource": {"type": "atlas_slice", "sliceId": "grass_slice"},
       "anchorXPx": 16,
       "anchorYPx": 16,
-      "colliders": ${colliderless ? '[]' : '[{"offsetX": 0, "offsetY": 0, "width": 17, "height": 17}]'},
+      "collisionShapes": [],
       "tags": []
     }
   ]
@@ -1080,6 +1128,33 @@ String _resolveDartExecutable() {
     }
   }
   return 'dart';
+}
+
+void _writeCurrentChunkFixture(
+  String rootPath,
+  String relativePath,
+  String legacyContent,
+) {
+  final decoded = jsonDecode(legacyContent) as Map<String, Object?>;
+  decoded['schemaVersion'] = 2;
+  decoded.putIfAbsent('revision', () => 1);
+  decoded.putIfAbsent('status', () => 'active');
+  decoded.putIfAbsent('tileSize', () => 16);
+  decoded.putIfAbsent('width', () => 600);
+  decoded.putIfAbsent('height', () => 270);
+  decoded.putIfAbsent('assemblyGroupId', () => 'default');
+  decoded.putIfAbsent('tags', () => <Object?>[]);
+  decoded.putIfAbsent('tileLayers', () => <Object?>[]);
+  decoded.putIfAbsent('prefabs', () => <Object?>[]);
+  decoded.putIfAbsent('markers', () => <Object?>[]);
+  decoded.putIfAbsent('collisionShapes', () => <Object?>[]);
+  decoded.remove('groundProfile');
+  decoded.remove('groundGaps');
+  _writeFile(
+    rootPath,
+    relativePath,
+    '${const JsonEncoder.withIndent('  ').convert(decoded)}\n',
+  );
 }
 
 void _writeFile(String rootPath, String relativePath, String content) {

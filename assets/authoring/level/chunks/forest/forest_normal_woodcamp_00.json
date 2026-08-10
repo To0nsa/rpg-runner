@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "chunkKey": "forest_easy_woodcamp_00_2",
   "id": "forest_normal_woodcamp_00",
   "revision": 7,
@@ -85,16 +85,5 @@
       "placement": "ground"
     }
   ],
-  "groundProfile": {
-    "kind": "flat",
-    "topY": 224
-  },
-  "groundGaps": [
-    {
-      "gapId": "collision_cleared",
-      "type": "pit",
-      "x": 0,
-      "width": 600
-    }
-  ]
+  "collisionShapes": []
 }

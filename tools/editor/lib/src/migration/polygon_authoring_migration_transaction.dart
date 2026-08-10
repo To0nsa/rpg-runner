@@ -167,8 +167,8 @@ final class PolygonAuthoringMigrationWriteException implements Exception {
 /// immediately before replacement. Installed v3/v2 source is then parsed and
 /// validated while all legacy backups still exist. Any drift, I/O, byte, or
 /// post-write validation failure restores the complete legacy source set.
-/// This API intentionally has no CLI caller until the normal editor cutover is
-/// ready to consume current schemas.
+/// The migration CLI exposes this boundary only through explicit `--write`
+/// mode with a required external report path.
 abstract final class PolygonAuthoringMigrationTransaction {
   static PolygonAuthoringMigrationWriteResult apply({
     required String workspaceRoot,

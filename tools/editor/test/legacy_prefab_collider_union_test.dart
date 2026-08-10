@@ -1,11 +1,7 @@
-import 'dart:io';
-
 import 'package:flutter_test/flutter_test.dart';
-import 'package:path/path.dart' as p;
 import 'package:runner_editor/src/prefabs/migration/legacy_prefab_collider_union.dart';
 import 'package:runner_editor/src/prefabs/migration/reviewed_legacy_prefab_collision_reauthorings.dart';
 import 'package:runner_editor/src/prefabs/models/models.dart';
-import 'package:runner_editor/src/prefabs/store/prefab_store.dart';
 import 'package:runner_editor/src/terrain_authoring/terrain_source_models.dart';
 
 void main() {
@@ -164,102 +160,6 @@ void main() {
     expect(result.occupiedAreaHalfPixelSquared, BigInt.from(192));
   });
 
-  test('repository audit observes intentionally cleared colliders', () async {
-    final data = await const PrefabStore().load(_repoRootPath());
-    var collisionBearingPrefabs = 0;
-    var colliderlessPrefabs = 0;
-    var multiColliderPrefabs = 0;
-    var automaticallyMigratedPrefabs = 0;
-    var outputShapes = 0;
-    var maximumShapes = 0;
-    var maximumVertices = 0;
-    final blockers = <String>[];
-
-    for (final prefab in data.prefabs) {
-      final result = LegacyPrefabColliderUnion.plan(
-        sourcePath: '${PrefabStore.prefabDefsPath}:${prefab.prefabKey}',
-        colliders: prefab.colliders,
-      );
-      blockers.addAll(
-        result.issues.map(
-          (issue) => '${prefab.prefabKey}: ${issue.code} ${issue.message}',
-        ),
-      );
-      if (prefab.colliders.isEmpty) {
-        colliderlessPrefabs += 1;
-      } else {
-        collisionBearingPrefabs += 1;
-        if (result.canMigrate) automaticallyMigratedPrefabs += 1;
-      }
-      if (prefab.colliders.length > 1) multiColliderPrefabs += 1;
-      outputShapes += result.shapes.length;
-      if (result.shapes.length > maximumShapes) {
-        maximumShapes = result.shapes.length;
-      }
-      for (final shape in result.shapes) {
-        if (shape.vertices.length > maximumVertices) {
-          maximumVertices = shape.vertices.length;
-        }
-      }
-    }
-
-    expect(collisionBearingPrefabs, 0);
-    expect(colliderlessPrefabs, 99);
-    expect(multiColliderPrefabs, 0);
-    expect(automaticallyMigratedPrefabs, 0);
-    expect(outputShapes, 0);
-    expect(maximumShapes, 0);
-    expect(maximumVertices, 0);
-    expect(blockers, isEmpty);
-  });
-
-  test(
-    'reviewed corrections stay inert after repository collision clear',
-    () async {
-      final data = await const PrefabStore().load(_repoRootPath());
-      var collisionBearingPrefabs = 0;
-      var automaticallyMigratedPrefabs = 0;
-      var outputShapes = 0;
-      final appliedAreaDeltas = <String, BigInt>{};
-      final correctedVertices = <String, List<(int, int)>>{};
-      final blockers = <String>[];
-
-      for (final prefab in data.prefabs) {
-        final reauthoring =
-            ReviewedLegacyPrefabCollisionReauthorings.forPrefabKey(
-              prefab.prefabKey,
-            );
-        final result = LegacyPrefabColliderUnion.plan(
-          sourcePath: '${PrefabStore.prefabDefsPath}:${prefab.prefabKey}',
-          colliders: prefab.colliders,
-          reviewedReauthoring: reauthoring,
-        );
-        blockers.addAll(
-          result.issues.map(
-            (issue) => '${prefab.prefabKey}: ${issue.code} ${issue.message}',
-          ),
-        );
-        if (prefab.colliders.isNotEmpty) {
-          collisionBearingPrefabs += 1;
-          if (result.canMigrate) automaticallyMigratedPrefabs += 1;
-        }
-        outputShapes += result.shapes.length;
-        if (result.isReauthored) {
-          appliedAreaDeltas[prefab.prefabKey] =
-              result.areaDeltaHalfPixelSquared;
-          correctedVertices[prefab.prefabKey] = _vertices(result.shapes.single);
-        }
-      }
-
-      expect(blockers, isEmpty);
-      expect(collisionBearingPrefabs, 0);
-      expect(automaticallyMigratedPrefabs, 0);
-      expect(outputShapes, 0);
-      expect(appliedAreaDeltas, isEmpty);
-      expect(correctedVertices, isEmpty);
-    },
-  );
-
   test('reviewed correction blocks when its legacy collider source drifts', () {
     final reauthoring = ReviewedLegacyPrefabCollisionReauthorings.forPrefabKey(
       'dark_menhir_01',
@@ -286,12 +186,3 @@ void main() {
 List<(int, int)> _vertices(TerrainSourceShapeDef shape) => shape.vertices
     .map((vertex) => (vertex.xHalfPixels, vertex.yHalfPixels))
     .toList(growable: false);
-
-String _repoRootPath() {
-  final cwd = p.normalize(Directory.current.path);
-  if (p.basename(cwd).toLowerCase() == 'editor' &&
-      p.basename(p.dirname(cwd)).toLowerCase() == 'tools') {
-    return p.normalize(p.join(cwd, '..', '..'));
-  }
-  return cwd;
-}

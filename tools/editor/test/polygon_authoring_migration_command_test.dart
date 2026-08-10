@@ -64,7 +64,6 @@ void main() {
   test('current repository succeeds with zero pending source files', () {
     final fixture = _copyMigrationSources();
     try {
-      _promoteFixtureToCurrent(fixture.path);
       final before = _sourceDigests(fixture.path);
       final output = StringBuffer();
       final errors = StringBuffer();
@@ -84,6 +83,62 @@ void main() {
         contains('0 source file(s) have a pending representation migration.'),
       );
       expect(_sourceDigests(fixture.path), before);
+    } finally {
+      fixture.deleteSync(recursive: true);
+    }
+  });
+
+  test('write commits all sources and repeated write is a reported no-op', () {
+    final fixture = _copyMigrationSources();
+    try {
+      _demoteFixtureToLegacy(fixture.path);
+      final output = StringBuffer();
+      final errors = StringBuffer();
+      final first = PolygonAuthoringMigrationCommand.run(
+        const <String>['--write', '--report=.tmp/migration-write.json'],
+        defaultWorkspaceRoot: fixture.path,
+        output: output,
+        errorOutput: errors,
+      );
+
+      expect(first, PolygonAuthoringMigrationCommand.successExitCode);
+      expect(errors.toString(), isEmpty);
+      expect(output.toString(), contains('write committed'));
+      final reportFile = File(
+        p.join(fixture.path, '.tmp', 'migration-write.json'),
+      );
+      final committed =
+          jsonDecode(reportFile.readAsStringSync()) as Map<String, Object?>;
+      expect(committed['mode'], 'write');
+      expect(committed['status'], 'committed');
+      expect(
+        (committed['summary']! as Map<String, Object?>)['changedFileCount'],
+        9,
+      );
+      final current = PolygonAuthoringMigrationCheck.fromRepository(
+        fixture.path,
+      );
+      expect(current.sourceState, PolygonAuthoringMigrationSourceState.current);
+      expect(
+        current.targetFiles.every((target) => !target.hasPendingChange),
+        isTrue,
+      );
+      final afterFirst = _sourceDigests(fixture.path);
+
+      final secondOutput = StringBuffer();
+      final second = PolygonAuthoringMigrationCommand.run(
+        const <String>['--write', '--report=.tmp/migration-write.json'],
+        defaultWorkspaceRoot: fixture.path,
+        output: secondOutput,
+        errorOutput: StringBuffer(),
+      );
+      final noOp =
+          jsonDecode(reportFile.readAsStringSync()) as Map<String, Object?>;
+      expect(second, PolygonAuthoringMigrationCommand.successExitCode);
+      expect(secondOutput.toString(), contains('write noOp'));
+      expect(noOp['status'], 'noOp');
+      expect((noOp['summary']! as Map<String, Object?>)['changedFileCount'], 0);
+      expect(_sourceDigests(fixture.path), afterFirst);
     } finally {
       fixture.deleteSync(recursive: true);
     }
@@ -143,6 +198,7 @@ void main() {
   test('blocking target validation returns one and records blocker report', () {
     final fixture = _copyMigrationSources();
     try {
+      _demoteFixtureToLegacy(fixture.path);
       final prefabFile = File(p.join(fixture.path, PrefabStore.prefabDefsPath));
       final root =
           jsonDecode(prefabFile.readAsStringSync()) as Map<String, Object?>;
@@ -207,6 +263,7 @@ void main() {
   test('mixed schema generation returns one without a partial report', () {
     final fixture = _copyMigrationSources();
     try {
+      _demoteFixtureToLegacy(fixture.path);
       final legacy = PolygonAuthoringMigrationCheck.fromRepository(
         fixture.path,
       );
@@ -241,7 +298,6 @@ void main() {
   test('noncanonical current source returns one without a partial report', () {
     final fixture = _copyMigrationSources();
     try {
-      _promoteFixtureToCurrent(fixture.path);
       final chunkFile = _chunkFiles(fixture.path).first;
       chunkFile.writeAsStringSync('${chunkFile.readAsStringSync()}\n');
       final before = _sourceDigests(fixture.path);
@@ -272,7 +328,6 @@ void main() {
   test('malformed current source returns one without a partial report', () {
     final fixture = _copyMigrationSources();
     try {
-      _promoteFixtureToCurrent(fixture.path);
       final chunkFile = _chunkFiles(fixture.path).first;
       final root =
           jsonDecode(chunkFile.readAsStringSync()) as Map<String, Object?>;
@@ -313,7 +368,7 @@ void main() {
 
       expect(result.exitCode, 0, reason: result.stderr.toString());
       expect(result.stderr, isEmpty);
-      expect(result.stdout, contains('--write is intentionally unavailable'));
+      expect(result.stdout, contains('--write requires an external --report'));
     },
   );
 
@@ -348,7 +403,7 @@ void main() {
       ]);
       expect(
         WorkspaceFileIo.sha256Digest(record),
-        '561d49b28eba5f6a86e78c212798a7c40e483d71b9484f76b1b2ac82bf6a2597',
+        '3264cf7a0d276f851bcd19eb98c63a5d35aa473fdc5dcdeb82b21cee642dc15d',
       );
       expect(_sourceDigests(fixture.path), before);
     } finally {
@@ -416,14 +471,51 @@ Directory _copyMigrationSources() {
   return targetRoot;
 }
 
-void _promoteFixtureToCurrent(String rootPath) {
-  final legacy = PolygonAuthoringMigrationCheck.fromRepository(rootPath);
-  expect(legacy.sourceState, PolygonAuthoringMigrationSourceState.legacy);
-  expect(legacy.hasBlockers, isFalse);
-  for (final target in legacy.targetFiles) {
-    File(
-      p.join(rootPath, p.normalize(target.sourcePath)),
-    ).writeAsStringSync(target.canonicalContents);
+void _demoteFixtureToLegacy(String rootPath) {
+  final prefabFile = File(p.join(rootPath, PrefabStore.prefabDefsPath));
+  final prefabRoot =
+      jsonDecode(prefabFile.readAsStringSync()) as Map<String, Object?>;
+  prefabRoot['schemaVersion'] = 2;
+  for (final rawPrefab in prefabRoot['prefabs']! as List<Object?>) {
+    final prefab = rawPrefab! as Map<String, Object?>;
+    final legacy = <String, Object?>{};
+    for (final entry in prefab.entries) {
+      if (entry.key == 'collisionShapes') {
+        legacy['colliders'] = <Object?>[];
+      } else {
+        legacy[entry.key] = entry.value;
+      }
+    }
+    prefab
+      ..clear()
+      ..addAll(legacy);
+  }
+  prefabFile.writeAsStringSync(_canonicalJson(prefabRoot));
+
+  for (final chunkFile in _chunkFiles(rootPath)) {
+    final root =
+        jsonDecode(chunkFile.readAsStringSync()) as Map<String, Object?>;
+    root['schemaVersion'] = 1;
+    final legacy = <String, Object?>{};
+    for (final entry in root.entries) {
+      if (entry.key == 'collisionShapes') {
+        legacy['groundProfile'] = <String, Object?>{
+          'kind': 'flat',
+          'topY': 224,
+        };
+        legacy['groundGaps'] = <Object?>[
+          <String, Object?>{
+            'gapId': 'collision_cleared',
+            'type': 'pit',
+            'x': 0,
+            'width': 600,
+          },
+        ];
+      } else {
+        legacy[entry.key] = entry.value;
+      }
+    }
+    chunkFile.writeAsStringSync(_canonicalJson(legacy));
   }
 }
 

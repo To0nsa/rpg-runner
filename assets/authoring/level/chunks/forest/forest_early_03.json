@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "chunkKey": "forest_early_03",
   "id": "forest_early_03",
   "revision": 656,
@@ -103,16 +103,5 @@
     }
   ],
   "markers": [],
-  "groundProfile": {
-    "kind": "flat",
-    "topY": 224
-  },
-  "groundGaps": [
-    {
-      "gapId": "collision_cleared",
-      "type": "pit",
-      "x": 0,
-      "width": 600
-    }
-  ]
+  "collisionShapes": []
 }

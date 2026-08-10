@@ -233,7 +233,7 @@ Future<_RepositoryMigrationFixture> _loadRepositoryFixture() async {
     p.join(root, p.normalize(PrefabStore.prefabDefsPath)),
   ).readAsStringSync();
   final prefabDocument = PolygonAuthoringLegacyCodec.decodePrefab(
-    prefabRaw,
+    _demotePrefabSource(prefabRaw),
     sourcePath: PrefabStore.prefabDefsPath,
   );
   final chunkFiles =
@@ -247,7 +247,7 @@ Future<_RepositoryMigrationFixture> _loadRepositoryFixture() async {
   for (final file in chunkFiles) {
     final sourcePath = p.relative(file.path, from: root).replaceAll(r'\', '/');
     final document = PolygonAuthoringLegacyCodec.decodeChunkV1(
-      file.readAsStringSync(),
+      _demoteChunkSource(file.readAsStringSync()),
       sourcePath: sourcePath,
     );
     chunks.add(document.chunk);
@@ -262,6 +262,51 @@ Future<_RepositoryMigrationFixture> _loadRepositoryFixture() async {
     chunkSourceSha256ByKey: chunkSourceSha256ByKey,
   );
 }
+
+String _demotePrefabSource(String currentSource) {
+  final root = jsonDecode(currentSource) as Map<String, Object?>;
+  root['schemaVersion'] = 2;
+  for (final rawPrefab in root['prefabs']! as List<Object?>) {
+    final prefab = rawPrefab! as Map<String, Object?>;
+    final legacy = <String, Object?>{};
+    for (final entry in prefab.entries) {
+      if (entry.key == 'collisionShapes') {
+        legacy['colliders'] = <Object?>[];
+      } else {
+        legacy[entry.key] = entry.value;
+      }
+    }
+    prefab
+      ..clear()
+      ..addAll(legacy);
+  }
+  return _canonicalJson(root);
+}
+
+String _demoteChunkSource(String currentSource) {
+  final root = jsonDecode(currentSource) as Map<String, Object?>;
+  root['schemaVersion'] = 1;
+  final legacy = <String, Object?>{};
+  for (final entry in root.entries) {
+    if (entry.key == 'collisionShapes') {
+      legacy['groundProfile'] = <String, Object?>{'kind': 'flat', 'topY': 224};
+      legacy['groundGaps'] = <Object?>[
+        <String, Object?>{
+          'gapId': 'collision_cleared',
+          'type': 'pit',
+          'x': 0,
+          'width': 600,
+        },
+      ];
+    } else {
+      legacy[entry.key] = entry.value;
+    }
+  }
+  return _canonicalJson(legacy);
+}
+
+String _canonicalJson(Map<String, Object?> json) =>
+    '${const JsonEncoder.withIndent('  ').convert(json)}\n';
 
 PolygonAuthoringMigrationPlan _buildPlan(_RepositoryMigrationFixture fixture) =>
     PolygonAuthoringMigrationPlan.build(

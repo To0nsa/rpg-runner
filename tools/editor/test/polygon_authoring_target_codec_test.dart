@@ -4,16 +4,11 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
-import 'package:runner_editor/src/chunks/chunk_store.dart';
-import 'package:runner_editor/src/migration/polygon_authoring_legacy_codec.dart';
-import 'package:runner_editor/src/migration/polygon_authoring_migration_plan.dart';
 import 'package:runner_editor/src/migration/polygon_authoring_target_codec.dart';
 import 'package:runner_editor/src/migration/polygon_authoring_target_models.dart';
 import 'package:runner_editor/src/prefabs/models/models.dart';
 import 'package:runner_editor/src/prefabs/store/prefab_store.dart';
 import 'package:runner_editor/src/terrain_authoring/terrain_source_models.dart';
-import 'package:runner_editor/src/workspace/editor_workspace.dart';
-import 'package:runner_editor/src/workspace/workspace_file_io.dart';
 
 void main() {
   test('prefab v3 canonical round-trip preserves polygon source', () {
@@ -271,90 +266,45 @@ void main() {
     );
   });
 
-  test('complete repository migration output strictly round-trips', () async {
+  test('current repository polygon sources strictly round-trip', () {
     final root = _repoRootPath();
     final prefabRaw = File(
       p.join(root, p.normalize(PrefabStore.prefabDefsPath)),
     ).readAsStringSync();
-    final prefabDocument = PolygonAuthoringLegacyCodec.decodePrefab(
+    final prefabTarget = PolygonAuthoringTargetCodec.decodePrefabV3(
       prefabRaw,
       sourcePath: PrefabStore.prefabDefsPath,
     );
-    final prefabData = prefabDocument.prefabData;
-    final chunkDocument = await const ChunkStore().load(
-      EditorWorkspace(rootPath: root),
-    );
-    final plan = PolygonAuthoringMigrationPlan.build(
-      prefabData: prefabData,
-      prefabSourcePath: PrefabStore.prefabDefsPath,
-      prefabSourceSha256: prefabDocument.sourceSha256,
-      chunks: chunkDocument.chunks,
-      chunkSourcePathByKey: <String, String>{
-        for (final entry in chunkDocument.baselineByChunkKey.entries)
-          entry.key: entry.value.sourcePath,
-      },
-      chunkSourceSha256ByKey: <String, String>{
-        for (final entry in chunkDocument.baselineByChunkKey.entries)
-          entry.key: WorkspaceFileIo.sha256Digest(
-            File(
-              p.join(root, p.normalize(entry.value.sourcePath)),
-            ).readAsStringSync(),
-          ),
-      },
-    );
-    expect(plan.hasBlockers, isFalse);
-    final prefabEntries = <String, PrefabPolygonMigrationEntry>{
-      for (final entry in plan.prefabs) entry.prefabKey: entry,
-    };
-    final prefabTarget = PrefabV3TargetDocument(
-      slices: prefabData.prefabSlices,
-      prefabs: prefabData.prefabs.map(
-        (prefab) => prefabV3TargetFromLegacy(
-          legacy: prefab,
-          collisionShapes: prefabEntries[prefab.prefabKey]!.collisionShapes,
-        ),
-      ),
-    );
-    final prefabSource = PolygonAuthoringTargetCodec.encodePrefabV3(
-      prefabTarget,
-    );
+    expect(PolygonAuthoringTargetCodec.encodePrefabV3(prefabTarget), prefabRaw);
     expect(
-      PolygonAuthoringTargetCodec.encodePrefabV3(
-        PolygonAuthoringTargetCodec.decodePrefabV3(prefabSource),
-      ),
-      prefabSource,
-    );
-    final decodedPrefabTarget = PolygonAuthoringTargetCodec.decodePrefabV3(
-      prefabSource,
-    );
-    expect(
-      decodedPrefabTarget.prefabs
-          .where((prefab) => prefab.kind == PrefabKind.platform)
-          .expand((prefab) => prefab.collisionShapes)
-          .every(
-            (shape) => shape.collisionMode == TerrainSourceCollisionMode.oneWay,
-          ),
-      isTrue,
+      prefabTarget.prefabs.expand((prefab) => prefab.collisionShapes),
+      isEmpty,
     );
 
-    final chunkEntries = <String, ChunkGroundPolygonMigrationEntry>{
-      for (final entry in plan.chunks) entry.chunkKey: entry,
-    };
-    for (final chunk in chunkDocument.chunks) {
-      final source = PolygonAuthoringTargetCodec.encodeChunkV2(
-        chunkV2TargetFromLegacy(
-          legacy: chunk,
-          collisionShapes: chunkEntries[chunk.chunkKey]!.terrainShapes,
-        ),
+    final chunkFiles =
+        Directory(p.join(root, 'assets', 'authoring', 'level', 'chunks'))
+            .listSync(recursive: true)
+            .whereType<File>()
+            .where((file) => p.extension(file.path).toLowerCase() == '.json')
+            .toList(growable: false)
+          ..sort((left, right) => left.path.compareTo(right.path));
+    for (final file in chunkFiles) {
+      final sourcePath = p
+          .relative(file.path, from: root)
+          .replaceAll(r'\', '/');
+      final source = file.readAsStringSync();
+      final target = PolygonAuthoringTargetCodec.decodeChunkV2(
+        source,
+        sourcePath: sourcePath,
       );
       expect(
-        PolygonAuthoringTargetCodec.encodeChunkV2(
-          PolygonAuthoringTargetCodec.decodeChunkV2(source),
-        ),
+        PolygonAuthoringTargetCodec.encodeChunkV2(target),
         source,
-        reason: chunk.chunkKey,
+        reason: sourcePath,
       );
+      expect(target.collisionShapes, isEmpty, reason: sourcePath);
     }
+    expect(chunkFiles, hasLength(8));
   });
 }
 

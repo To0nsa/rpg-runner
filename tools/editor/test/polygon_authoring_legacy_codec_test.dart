@@ -7,7 +7,7 @@ import 'package:runner_editor/src/migration/polygon_authoring_legacy_codec.dart'
 import 'package:runner_editor/src/prefabs/models/models.dart';
 
 void main() {
-  test('all repository prefab-v2 and chunk-v1 sources parse strictly', () {
+  test('offline legacy codec rejects current repository sources', () {
     final root = _repoRootPath();
     final prefabPath = p.join(
       root,
@@ -16,9 +16,12 @@ void main() {
       'level',
       'prefab_defs.json',
     );
-    final prefabDocument = PolygonAuthoringLegacyCodec.decodePrefab(
-      File(prefabPath).readAsStringSync(),
-      sourcePath: 'assets/authoring/level/prefab_defs.json',
+    expect(
+      () => PolygonAuthoringLegacyCodec.decodePrefab(
+        File(prefabPath).readAsStringSync(),
+        sourcePath: 'assets/authoring/level/prefab_defs.json',
+      ),
+      throwsA(_formatMessage(contains('must be exactly 1 or 2'))),
     );
     final chunkDirectory = Directory(
       p.join(root, 'assets', 'authoring', 'level', 'chunks'),
@@ -30,32 +33,19 @@ void main() {
             .where((file) => p.extension(file.path).toLowerCase() == '.json')
             .toList(growable: false)
           ..sort((left, right) => left.path.compareTo(right.path));
-    final chunks = <String>[];
-    var gapCount = 0;
     for (final file in chunkFiles) {
       final relativePath = p
           .relative(file.path, from: root)
           .replaceAll(r'\', '/');
-      final document = PolygonAuthoringLegacyCodec.decodeChunkV1(
-        file.readAsStringSync(),
-        sourcePath: relativePath,
+      expect(
+        () => PolygonAuthoringLegacyCodec.decodeChunkV1(
+          file.readAsStringSync(),
+          sourcePath: relativePath,
+        ),
+        throwsA(_formatMessage(contains('unknown field collisionShapes'))),
       );
-      final chunk = document.chunk;
-      expect(document.sourceSha256, hasLength(64));
-      chunks.add(chunk.chunkKey);
-      gapCount += chunk.groundGaps.length;
     }
-
-    expect(prefabDocument.sourceSchemaVersion, 2);
-    expect(prefabDocument.sourceSha256, hasLength(64));
-    expect(prefabDocument.prefabs, hasLength(99));
-    expect(
-      prefabDocument.prefabData.prefabs,
-      orderedEquals(prefabDocument.prefabs),
-    );
-    expect(chunks, hasLength(8));
-    expect(chunks.toSet(), hasLength(8));
-    expect(gapCount, 8);
+    expect(chunkFiles, hasLength(8));
   });
 
   test('prefab-v1 promotion is explicit and deterministic', () {

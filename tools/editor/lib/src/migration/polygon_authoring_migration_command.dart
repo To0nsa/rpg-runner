@@ -7,13 +7,12 @@ import '../workspace/repository_authoring_paths.dart';
 import '../workspace/workspace_file_io.dart';
 import 'polygon_authoring_migration_check.dart';
 import 'polygon_authoring_migration_plan.dart';
+import 'polygon_authoring_migration_transaction.dart';
 
-/// Read-only command adapter for polygon migration readiness checks.
+/// Command adapter for polygon migration readiness and guarded source writes.
 ///
 /// Exit `0` means a complete blocker-free check, `1` means source/planning/
-/// target validation failed, and `64` means invalid command usage. The only
-/// optional write is the explicitly requested report artifact; authored source
-/// and staged target contents are never written.
+/// target/write validation failed, and `64` means invalid command usage.
 abstract final class PolygonAuthoringMigrationCommand {
   static const int successExitCode = 0;
   static const int blockedExitCode = 1;
@@ -45,6 +44,12 @@ abstract final class PolygonAuthoringMigrationCommand {
     final workspaceRoot =
         parsed.workspaceRoot ?? defaultWorkspaceRoot ?? _defaultWorkspaceRoot();
     final workspace = EditorWorkspace(rootPath: workspaceRoot);
+    if (parsed.mode == _MigrationCommandMode.write &&
+        parsed.reportPath == null) {
+      stderrSink.writeln('--write requires --report=<path.json>.');
+      _writeUsage(stderrSink);
+      return usageExitCode;
+    }
     final String? reportPath;
     try {
       reportPath = parsed.reportPath == null
@@ -81,6 +86,50 @@ abstract final class PolygonAuthoringMigrationCommand {
         'issue(s).',
       );
       return blockedExitCode;
+    }
+
+    if (parsed.mode == _MigrationCommandMode.write) {
+      try {
+        final result = PolygonAuthoringMigrationTransaction.apply(
+          workspaceRoot: workspace.rootPath,
+          check: check,
+        );
+        try {
+          WorkspaceFileIo.atomicWrite(
+            File(reportPath!),
+            result.toCanonicalJson(),
+          );
+        } on Object catch (error) {
+          stderrSink.writeln(
+            'Migration source ${result.status.jsonValue}, but the write '
+            'report could not be recorded: $error',
+          );
+          return blockedExitCode;
+        }
+        stdoutSink.writeln(
+          'Wrote migration result to '
+          '${WorkspaceFileIo.toWorkspaceRelativePath(workspace, reportPath)}.',
+        );
+        stdoutSink.writeln(
+          'Polygon migration write ${result.status.jsonValue}: '
+          '${result.files.where((file) => file.changed).length} changed source '
+          'file(s), ${result.files.length} verified source file(s).',
+        );
+        return successExitCode;
+      } on PolygonAuthoringMigrationWriteException catch (error) {
+        try {
+          WorkspaceFileIo.atomicWrite(
+            File(reportPath!),
+            error.toCanonicalJson(),
+          );
+        } on Object catch (reportError) {
+          stderrSink.writeln(
+            'Unable to write migration failure report: $reportError',
+          );
+        }
+        stderrSink.writeln('[ERROR] ${error.code}: ${error.message}');
+        return blockedExitCode;
+      }
     }
 
     if (reportPath != null) {
@@ -186,20 +235,22 @@ _MigrationCommandArguments _parseArguments(List<String> arguments) {
   }
   String? reportPath;
   String? workspaceRoot;
-  var checkSeen = false;
+  _MigrationCommandMode? mode;
   for (final argument in arguments) {
     if (argument == '--check') {
-      if (checkSeen) {
+      if (mode != null) {
         return const _MigrationCommandArguments(
-          error: 'Duplicate argument: --check',
+          error: 'Choose exactly one of --check or --write.',
         );
       }
-      checkSeen = true;
+      mode = _MigrationCommandMode.check;
     } else if (argument == '--write') {
-      return const _MigrationCommandArguments(
-        error:
-            '--write is not enabled; the migration transaction gate is still pending.',
-      );
+      if (mode != null) {
+        return const _MigrationCommandArguments(
+          error: 'Choose exactly one of --check or --write.',
+        );
+      }
+      mode = _MigrationCommandMode.write;
     } else if (argument.startsWith('--report=')) {
       if (reportPath != null) {
         return const _MigrationCommandArguments(
@@ -224,6 +275,7 @@ _MigrationCommandArguments _parseArguments(List<String> arguments) {
     }
   }
   return _MigrationCommandArguments(
+    mode: mode ?? _MigrationCommandMode.check,
     reportPath: reportPath,
     workspaceRoot: workspaceRoot,
   );
@@ -242,23 +294,27 @@ void _writeUsage(StringSink sink) {
   sink.writeln('Usage:');
   sink.writeln(
     '  dart run tool/migrate_polygon_authoring.dart '
-    '[--check] [--report=<path.json>] [--repo-root=<path>]',
+    '[--check | --write] [--report=<path.json>] [--repo-root=<path>]',
   );
   sink.writeln('');
   sink.writeln('No mode defaults to read-only --check.');
-  sink.writeln('--write is intentionally unavailable in this phase.');
+  sink.writeln('--write requires an external --report path.');
 }
+
+enum _MigrationCommandMode { check, write }
 
 final class _MigrationCommandArguments {
   const _MigrationCommandArguments({
     this.helpRequested = false,
     this.error,
+    this.mode = _MigrationCommandMode.check,
     this.reportPath,
     this.workspaceRoot,
   });
 
   final bool helpRequested;
   final String? error;
+  final _MigrationCommandMode mode;
   final String? reportPath;
   final String? workspaceRoot;
 }

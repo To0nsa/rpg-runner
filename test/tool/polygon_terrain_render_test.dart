@@ -374,9 +374,9 @@ void main() {
     for (final rootPath in productionRoots) {
       for (final entity in Directory(rootPath).listSync(recursive: true)) {
         if (entity is! File || !entity.path.endsWith('.dart')) continue;
-        if (entity.path
-            .replaceAll('\\', '/')
-            .endsWith('/track/staged_terrain_data.dart')) {
+        final normalizedPath = entity.path.replaceAll('\\', '/');
+        if (normalizedPath.endsWith('/track/staged_terrain_data.dart') ||
+            normalizedPath.endsWith('/track/staged_authored_terrain.dart')) {
           continue;
         }
         final source = entity.readAsStringSync();
@@ -391,7 +391,8 @@ void main() {
     final liveGenerator = File(
       'tool/generate_chunk_runtime_data.dart',
     ).readAsStringSync();
-    expect(liveGenerator, isNot(contains('polygon_terrain_render.dart')));
+    expect(liveGenerator, contains('polygon_terrain_render.dart'));
+    expect(liveGenerator, contains('buildStagedPolygonTerrainArtifact'));
     expect(liveGenerator, isNot(contains('staged_authored_terrain.dart')));
   });
 }

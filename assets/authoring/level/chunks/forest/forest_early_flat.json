@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "chunkKey": "forest_earlt_flat",
   "id": "forest_early_flat",
   "revision": 3,
@@ -14,16 +14,5 @@
   "tileLayers": [],
   "prefabs": [],
   "markers": [],
-  "groundProfile": {
-    "kind": "flat",
-    "topY": 224
-  },
-  "groundGaps": [
-    {
-      "gapId": "collision_cleared",
-      "type": "pit",
-      "x": 0,
-      "width": 600
-    }
-  ]
+  "collisionShapes": []
 }

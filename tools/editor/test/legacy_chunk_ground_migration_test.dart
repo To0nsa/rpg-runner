@@ -1,12 +1,7 @@
-import 'dart:io';
-
 import 'package:flutter_test/flutter_test.dart';
-import 'package:path/path.dart' as p;
 import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
-import 'package:runner_editor/src/chunks/chunk_store.dart';
 import 'package:runner_editor/src/chunks/migration/legacy_chunk_ground_migration.dart';
 import 'package:runner_editor/src/terrain_authoring/terrain_source_models.dart';
-import 'package:runner_editor/src/workspace/editor_workspace.dart';
 
 void main() {
   test('flat ground without gaps becomes one finite solid polygon', () {
@@ -163,31 +158,6 @@ void main() {
       'legacy_ground_gap_overlap',
     ]);
   });
-
-  test('repository audit migrates cleared ground into no shapes', () async {
-    final workspace = EditorWorkspace(rootPath: _repoRootPath());
-    final document = await const ChunkStore().load(workspace);
-    var shapeCount = 0;
-    final blockers = <String>[];
-    for (final chunk in document.chunks) {
-      final sourcePath =
-          document.baselineByChunkKey[chunk.chunkKey]!.sourcePath;
-      final result = LegacyChunkGroundMigration.plan(
-        chunk: chunk,
-        sourcePath: sourcePath,
-      );
-      shapeCount += result.shapes.length;
-      blockers.addAll(
-        result.issues.map(
-          (issue) => '${chunk.chunkKey}: ${issue.code} ${issue.message}',
-        ),
-      );
-    }
-
-    expect(document.chunks, hasLength(8));
-    expect(shapeCount, 0);
-    expect(blockers, isEmpty);
-  });
 }
 
 LevelChunkDef _chunk({
@@ -212,12 +182,3 @@ LevelChunkDef _chunk({
 List<(int, int)> _vertices(TerrainSourceShapeDef shape) => shape.vertices
     .map((vertex) => (vertex.xHalfPixels, vertex.yHalfPixels))
     .toList(growable: false);
-
-String _repoRootPath() {
-  final cwd = p.normalize(Directory.current.path);
-  if (p.basename(cwd).toLowerCase() == 'editor' &&
-      p.basename(p.dirname(cwd)).toLowerCase() == 'tools') {
-    return p.normalize(p.join(cwd, '..', '..'));
-  }
-  return cwd;
-}

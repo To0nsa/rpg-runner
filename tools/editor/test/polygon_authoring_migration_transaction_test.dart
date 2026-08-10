@@ -13,6 +13,7 @@ void main() {
   test('reviewed legacy batch installs one validated current generation', () {
     final fixture = _copyMigrationSources();
     try {
+      _demoteFixtureToLegacy(fixture.path);
       final legacy = PolygonAuthoringMigrationCheck.fromRepository(
         fixture.path,
       );
@@ -58,6 +59,7 @@ void main() {
   test('reapplying a fresh current check is a byte-identical no-op', () {
     final fixture = _copyMigrationSources();
     try {
+      _demoteFixtureToLegacy(fixture.path);
       final legacy = PolygonAuthoringMigrationCheck.fromRepository(
         fixture.path,
       );
@@ -217,6 +219,57 @@ Directory _copyMigrationSources() {
   }
   return targetRoot;
 }
+
+void _demoteFixtureToLegacy(String rootPath) {
+  final prefabFile = File(p.join(rootPath, PrefabStore.prefabDefsPath));
+  final prefabRoot =
+      jsonDecode(prefabFile.readAsStringSync()) as Map<String, Object?>;
+  prefabRoot['schemaVersion'] = 2;
+  for (final rawPrefab in prefabRoot['prefabs']! as List<Object?>) {
+    final prefab = rawPrefab! as Map<String, Object?>;
+    final legacy = <String, Object?>{};
+    for (final entry in prefab.entries) {
+      if (entry.key == 'collisionShapes') {
+        legacy['colliders'] = <Object?>[];
+      } else {
+        legacy[entry.key] = entry.value;
+      }
+    }
+    prefab
+      ..clear()
+      ..addAll(legacy);
+  }
+  prefabFile.writeAsStringSync(_canonicalJson(prefabRoot));
+
+  for (final chunkFile in _chunkFiles(rootPath)) {
+    final root =
+        jsonDecode(chunkFile.readAsStringSync()) as Map<String, Object?>;
+    root['schemaVersion'] = 1;
+    final legacy = <String, Object?>{};
+    for (final entry in root.entries) {
+      if (entry.key == 'collisionShapes') {
+        legacy['groundProfile'] = <String, Object?>{
+          'kind': 'flat',
+          'topY': 224,
+        };
+        legacy['groundGaps'] = <Object?>[
+          <String, Object?>{
+            'gapId': 'collision_cleared',
+            'type': 'pit',
+            'x': 0,
+            'width': 600,
+          },
+        ];
+      } else {
+        legacy[entry.key] = entry.value;
+      }
+    }
+    chunkFile.writeAsStringSync(_canonicalJson(legacy));
+  }
+}
+
+String _canonicalJson(Map<String, Object?> json) =>
+    '${const JsonEncoder.withIndent('  ').convert(json)}\n';
 
 List<File> _chunkFiles(String rootPath) {
   final files =
