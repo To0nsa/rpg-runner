@@ -208,6 +208,60 @@ void main() {
     );
   });
 
+  test('retains expanded-prefab ownership for the edge hard limit', () {
+    final oneWayExtra = TerrainSourceShapeDef(
+      shapeId: 'extra_edge',
+      collisionMode: TerrainSourceCollisionMode.oneWay,
+      vertices: const <TerrainSourceVertexDef>[
+        TerrainSourceVertexDef(xHalfPixels: 5600, yHalfPixels: 40),
+        TerrainSourceVertexDef(xHalfPixels: 5620, yHalfPixels: 40),
+        TerrainSourceVertexDef(xHalfPixels: 5620, yHalfPixels: 60),
+        TerrainSourceVertexDef(xHalfPixels: 5600, yHalfPixels: 60),
+      ],
+    );
+    final result = expandChunkV2Collision(
+      chunk: _chunk(
+        width: 3000,
+        height: 50,
+        directShapes: <TerrainSourceShapeDef>[oneWayExtra],
+        placements: const <PlacedPrefabDef>[
+          PlacedPrefabDef(
+            prefabId: 'rock',
+            prefabKey: 'prefab_rock',
+            x: 0,
+            y: 0,
+          ),
+        ],
+      ),
+      prefabs: <PrefabV3Def>[
+        _prefab(
+          shapes: <TerrainSourceShapeDef>[
+            for (var index = 0; index < 64; index += 1)
+              _strip(
+                'collision_${index.toString().padLeft(3, '0')}',
+                originXHalfPixels: index * 80,
+              ),
+          ],
+        ),
+      ],
+      sourcePath: 'chunks/forest/test.json',
+    );
+
+    expect(result.expansion, isNull);
+    final issue = result.issues.singleWhere(
+      (candidate) => candidate.code == 'edge_limit',
+    );
+    expect(issue.ownerKey, 'prefab_rock');
+    expect(issue.placementKey, 'prefab_rock|0|0|0');
+    expect(issue.shapeId, 'collision_063');
+    expect(issue.elementIndex, 63);
+    expect(
+      issue.sourcePath,
+      'chunks/forest/test.json#placement=prefab_rock|0|0|0'
+      '#prefab=prefab_rock#shape=collision_063',
+    );
+  });
+
   test('assigns direct bounds findings to the chunk owner', () {
     final result = expandChunkV2Collision(
       chunk: _chunk(
@@ -332,5 +386,24 @@ TerrainSourceShapeDef _rectangle(
     TerrainSourceVertexDef(xHalfPixels: right, yHalfPixels: top),
     TerrainSourceVertexDef(xHalfPixels: right, yHalfPixels: bottom),
     TerrainSourceVertexDef(xHalfPixels: left, yHalfPixels: bottom),
+  ],
+);
+
+TerrainSourceShapeDef _strip(
+  String shapeId, {
+  required int originXHalfPixels,
+}) => TerrainSourceShapeDef(
+  shapeId: shapeId,
+  vertices: <TerrainSourceVertexDef>[
+    for (var x = 0; x < 32; x += 1)
+      TerrainSourceVertexDef(
+        xHalfPixels: originXHalfPixels + x * 2,
+        yHalfPixels: x.isEven ? 0 : 2,
+      ),
+    for (var x = 31; x >= 0; x -= 1)
+      TerrainSourceVertexDef(
+        xHalfPixels: originXHalfPixels + x * 2,
+        yHalfPixels: x.isEven ? 20 : 22,
+      ),
   ],
 );
