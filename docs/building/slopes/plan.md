@@ -1556,6 +1556,13 @@ Prefab owner and never publish truncated geometry. Invalid-loop topology is
 also complete: crossing, point self-touch, collinear self-overlap, and bridged
 hole/disconnected encodings all block before geometry publication, while valid
 disconnected solids remain separate shapes.
+The complementary soft-capacity path is also implemented. Core names the
+accepted 16-shape-per-Prefab, 24-vertex-per-polygon, and 1,024-exposed-edge-per-
+Chunk targets, while the editor warns only above each target and preserves the
+valid commit and compiled preview. These authoring warnings retain Prefab,
+Chunk, and shape ownership and do not alter the existing hard compiler limits.
+No combined-shapes-per-Chunk soft warning exists because no such Phase 0 target
+was accepted.
 
 The remaining generator-facing source/compiled mismatch is now fail-closed at
 the typed staged-artifact boundary. Before future selection, the artifact is

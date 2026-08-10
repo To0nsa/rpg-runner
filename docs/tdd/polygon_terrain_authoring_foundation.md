@@ -32,7 +32,7 @@ The active schema migration, generator, preview, and cutover work remains in
 | --- | --- | --- |
 | Exact half-pixel source vertex and shape values | `tools/editor/lib/src/terrain_authoring/terrain_source_models.dart` | editor model/codec tests and the Core adapter |
 | Source validation and canonicalization | `runner_core` `TerrainSourceCanonicalizer` | `TerrainCompiler` and editor adapter |
-| Portable terrain-authoring issue envelope | `runner_core` `TerrainAuthoringIssue` | staged generator raw-source/compile, seam validation, typed artifact/output-drift verification, migration plan/check/write adapters, and editor Chunk-v2 collision expansion; remaining editor-domain adapters are pending |
+| Portable terrain-authoring issue envelope | `runner_core` `TerrainAuthoringIssue` | staged generator raw-source/compile, seam validation, typed artifact/output-drift verification, migration plan/check/write adapters, editor Prefab/Chunk polygon validation, and Chunk-v2 collision expansion; remaining editor-domain adapters are pending |
 | Positive-area polygon overlap | `runner_core` `TerrainPolygonOverlap` | `TerrainCompiler`; source-loop entry point is ready for editor owner validation |
 | Exact placement and physics-grid quantization | `runner_core` `TerrainSourceTransform` | `TerrainCompiler`, Core fixtures, and editor adapter |
 | Editor-to-Core conversion | editor `TerrainSourceCoreAdapter` | migration checks, shared interaction reducer, and explicit Prefab/Chunk staging routes |
@@ -710,6 +710,19 @@ index, and source path through both the staged generator and editor adapter.
 Core's private raw-edge representation carries source path through collinear
 splitting and internal-edge cancellation solely for this diagnostic; runtime
 `TerrainEdge` and signatures do not change.
+
+Soft authoring capacity is a separate, non-blocking contract. Core publishes
+the frozen targets of 16 shapes per Prefab, 24 vertices per polygon, and 1,024
+compiled exposed edges per Chunk without applying them inside
+`TerrainCompiler`. Prefab validation, direct Chunk commits, and complete Chunk
+expansion emit `prefab_shape_soft_target_exceeded`,
+`polygon_vertex_soft_target_exceeded`, or
+`chunk_exposed_edge_soft_target_exceeded` only when the matching count is
+strictly greater than its target. Each warning retains its Prefab/Chunk owner
+and shape where applicable; a referenced Prefab is reported once per Chunk
+validation rather than once per placement. Warnings preserve accepted source,
+commits, compiled geometry, and overlays. There is deliberately no soft
+combined-shapes-per-Chunk warning because Phase 0 accepted no such target.
 
 The optional compiled-edge layer renders `TerrainGeometry.edges` above the
 source-loop painters. It therefore shows Core's actual exposed result after

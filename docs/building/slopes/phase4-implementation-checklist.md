@@ -479,6 +479,13 @@ stale, unexpected, or unreadable findings into the same blocking envelope,
 using the generated path as source and owner, and suppresses the artifact when
 either semantic or byte validation fails. Remaining editor-wide/export paths
 are still outside the universal boundary.
+The three frozen authoring soft targets are now named in Core and consumed by
+the editor without becoming compiler gates: more than 16 shapes per Prefab,
+more than 24 vertices per polygon, or more than 1,024 compiled exposed edges
+per Chunk emits an owner-aware warning. Exact-target content stays quiet,
+one-over content retains accepted geometry and commit/preview availability,
+and the existing 64/64/4,096 hard failures are unchanged. Phase 0 defines no
+soft target for combined shapes per Chunk, so Phase 4 does not invent one.
 
 Blocking categories:
 
@@ -504,7 +511,7 @@ Non-blocking categories:
 - [x] collinear middle vertex with explicit Normalize quick fix
 - [x] optional metadata absent
 - [x] material reference deferred until the Phase 5 material catalog exists
-- [ ] content near a soft capacity/performance target
+- [x] content near a soft capacity/performance target
 
 Do not downgrade geometry or seam correctness to a warning to make migration
 pass. Do not truncate shapes, vertices, edges, or diagnostics at a hard limit.
@@ -1509,6 +1516,7 @@ before changing the accepted plan.
 | Staged seam validation carried transition evidence but had no explicit severity or repository owner, leaving a major export blocker outside the shared issue contract. | Alias seam findings to `TerrainAuthoringIssue`. Assign set/reference/level faults to each offending Chunk, and assign a directed physical mismatch to the entered/right Chunk while retaining the full transition and both boundary records in the message. | UI focus and export reporting can use one owner-aware contract. Missing or wrong-level pairs emit one issue per owner; no invalid seam set produces a renderable batch. |
 | Exact generated-output drift already had stable codes and rollback-safe byte authority, but its generic finding lacked explicit severity/owner and was separate from semantic staged-artifact acceptance. | Keep `GeneratedArtifactPlan` generic and compose it at the polygon boundary. Adapt each missing/stale/unexpected/unreadable finding to `TerrainAuthoringIssue` with the canonical generated path as source and owner; combine all drift and semantic findings before artifact selection. | Live cutover calls one read-only staged-output gate. Any semantic or byte issue returns no artifact, while the existing transaction utility and five-output generator behavior remain unchanged. |
 | Migration readiness reports and guarded write failures already had stable codes/source evidence, and their canonical JSON/signatures are reviewed compatibility artifacts that must not gain new fields merely to align UI diagnostics. | Preserve `PolygonAuthoringMigrationIssue`, check exceptions, and write exceptions as their report authorities. Add explicit conversion to `TerrainAuthoringIssue`: decoded blockers retain owner/element, file-level pre-check failures use the source path as owner, file-bound write failures emit one issue per path, and transaction-wide failures use `migration/write`. | Normal export/cutover can consume one issue envelope without changing report v2, write-report v1, `authoring-migration-v1`, CLI output, or source-write authorization. |
+| Phase 0 freezes soft authoring targets for Prefab shapes, polygon vertices, and compiled Chunk edges, but only hard limits for combined Chunk shapes. Treating equality as “near capacity” would also contradict the accepted `<=` targets. | Publish the three soft values as a Core-owned authoring contract and warn only at one over: 17 shapes, 25 vertices, or 1,025 exposed edges. Keep the warnings editor-only, owner-aware, and non-blocking; do not invent a combined-shape warning. | Normal source cutover can reuse the same warnings without changing compiler/runtime acceptance. Any new soft metric needs an explicit measured budget rather than deriving one from a hard cap. |
 
 Append rows during implementation. Do not silently relax source, compiler,
 seam, determinism, or performance contracts.
@@ -1638,6 +1646,7 @@ result.
 | 2026-08-10 / `8c4a70d7` | Owner-aware staged seam diagnostics | Dart and Flutter test VMs on Windows with Docker running | Root analysis is clean and all 71 tool/generator tests pass. Duplicate/case-colliding compiled identities, every missing owner, wrong-level owners, and exact reachable-boundary mismatch now use the shared blocking envelope and return no validated batch. The directed mismatch belongs to the entered/right Chunk; missing owners sort canonically and are never collapsed into an ownerless aggregate. Codes, transition/boundary evidence, compatible batches, seam digests, artifact bytes, source, and runtime authority remain unchanged. |
 | 2026-08-10 / `c964baf3` | Owner-aware staged generated-output drift | Dart and Flutter test VMs on Windows with Docker running | Root analysis is clean and all 72 tool/generator tests pass. One read-only staged-output gate combines fresh-compile semantic verification with `GeneratedArtifactPlan` byte inspection. A real missing output becomes blocking `generated_output_missing` with the canonical generated path as source/owner and no accepted artifact; the generic plan continues to own all missing/stale/unexpected/unreadable detection and transaction behavior. The clean reviewed artifact still passes exact bytes and signatures. Golden bytes/hash, existing five-output dry-run behavior, authored source, live registration, and runtime authority are unchanged. |
 | 2026-08-10 / `4535836f` | Owner-aware migration issue adapters | Dart and Flutter test VMs on Windows with Docker running | Full editor analysis is clean and all 444 tests pass. Legacy plans, complete readiness checks, fresh source-digest audits, source-loading exceptions, and guarded write exceptions expose immutable canonically sorted `TerrainAuthoringIssue` views with explicit blocking severity. Decoded blockers retain owner/element; undecoded file failures use their path; file-bound write failures expand per path; transaction-wide failures use `migration/write`. Existing report JSON/fingerprints/signatures, CLI output, write authorization/rollback semantics, source bytes, and runtime authority are unchanged. |
+| 2026-08-10 / `e84b1b9c` + `5608b995` | Terrain authoring soft-capacity diagnostics | Dart and Flutter test VMs on Windows with Docker running | Core and editor analysis are clean; all 330 Core-package tests and all 450 editor tests pass. Exact 16-shape, 24-vertex, and 1,024-edge fixtures remain warning-free; 17, 25, and 1,025 emit owner-aware warnings while accepted Prefab/Chunk commits and compiled overlays remain available. Hard limits, source bytes, generated artifacts, live schema selection, and runtime authority are unchanged. |
 
 ### 28.1 Baseline Environment And Source Identity
 
