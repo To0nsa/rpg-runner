@@ -40,8 +40,28 @@ class EditorHomeRoute {
   final Widget Function({
     required GlobalKey key,
     required EditorSessionController controller,
+    required EditorHomeRouteNavigation navigation,
   })
   buildPage;
+}
+
+/// Shell-owned navigation capabilities exposed to domain route pages.
+///
+/// Domain pages can request a guarded transition without owning route or
+/// plugin-session state. The optional prefab key is consumed only by the
+/// Prefab-v3 staging surface as its initial stable owner selection.
+@immutable
+class EditorHomeRouteNavigation {
+  const EditorHomeRouteNavigation({
+    this.initialPrefabKey,
+    this.onOpenOwningPrefab,
+  });
+
+  /// Stable Prefab-v3 owner to select after a successful guarded transition.
+  final String? initialPrefabKey;
+
+  /// Requests shell-owned navigation to a placed collision's source owner.
+  final ValueChanged<String>? onOpenOwningPrefab;
 }
 
 const String entitiesRouteId = 'entities';
@@ -90,6 +110,7 @@ final List<EditorHomeRoute> homeRoutes = <EditorHomeRoute>[
 Widget _buildEntitiesPage({
   required GlobalKey key,
   required EditorSessionController controller,
+  required EditorHomeRouteNavigation navigation,
 }) {
   return EntitiesEditorPage(key: key, controller: controller);
 }
@@ -97,20 +118,31 @@ Widget _buildEntitiesPage({
 Widget _buildPrefabCreatorPage({
   required GlobalKey key,
   required EditorSessionController controller,
+  required EditorHomeRouteNavigation navigation,
 }) {
-  return PrefabCreatorPage(key: key, controller: controller);
+  return PrefabCreatorPage(
+    key: key,
+    controller: controller,
+    initialStagedPrefabKey: navigation.initialPrefabKey,
+  );
 }
 
 Widget _buildChunkCreatorPage({
   required GlobalKey key,
   required EditorSessionController controller,
+  required EditorHomeRouteNavigation navigation,
 }) {
-  return ChunkCreatorPage(key: key, controller: controller);
+  return ChunkCreatorPage(
+    key: key,
+    controller: controller,
+    onOpenOwningPrefab: navigation.onOpenOwningPrefab,
+  );
 }
 
 Widget _buildLevelCreatorPage({
   required GlobalKey key,
   required EditorSessionController controller,
+  required EditorHomeRouteNavigation navigation,
 }) {
   return LevelCreatorPage(key: key, controller: controller);
 }
@@ -118,6 +150,7 @@ Widget _buildLevelCreatorPage({
 Widget _buildParallaxEditorPage({
   required GlobalKey key,
   required EditorSessionController controller,
+  required EditorHomeRouteNavigation navigation,
 }) {
   return ParallaxEditorPage(key: key, controller: controller);
 }

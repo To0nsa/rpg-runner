@@ -28,9 +28,16 @@ import 'shared/prefab_editor_workspace_io.dart';
 import 'staging/prefab_polygon_staging_workspace.dart';
 
 class PrefabCreatorPage extends StatefulWidget {
-  const PrefabCreatorPage({super.key, required this.controller});
+  const PrefabCreatorPage({
+    super.key,
+    required this.controller,
+    this.initialStagedPrefabKey,
+  });
 
   final EditorSessionController controller;
+
+  /// Stable owner requested by guarded Chunk-v2 collision navigation.
+  final String? initialStagedPrefabKey;
 
   @override
   State<PrefabCreatorPage> createState() => _PrefabCreatorPageState();
@@ -291,6 +298,7 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
       return PrefabPolygonStagingWorkspace(
         key: _stagingWorkspaceKey,
         controller: widget.controller,
+        initialPrefabKey: widget.initialStagedPrefabKey,
       );
     }
     return PrefabEditorShellChrome(

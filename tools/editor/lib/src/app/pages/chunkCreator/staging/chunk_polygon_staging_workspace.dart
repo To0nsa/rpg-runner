@@ -46,9 +46,16 @@ import 'chunk_v2_owner_dialog.dart';
 /// is selected only for an already-staged v2 scene and exposes no source-write
 /// action while the coordinated migration gate remains closed.
 class ChunkPolygonStagingWorkspace extends StatefulWidget {
-  const ChunkPolygonStagingWorkspace({super.key, required this.controller});
+  const ChunkPolygonStagingWorkspace({
+    super.key,
+    required this.controller,
+    this.onOpenOwningPrefab,
+  });
 
   final EditorSessionController controller;
+
+  /// Opens a read-only expanded shape's stable owner outside this workspace.
+  final ValueChanged<String>? onOpenOwningPrefab;
 
   @override
   State<ChunkPolygonStagingWorkspace> createState() =>
@@ -1169,6 +1176,20 @@ class ChunkPolygonStagingWorkspaceState
               'scale ${(shape.scaleTenths / 10).toStringAsFixed(1)}',
             ),
             isThreeLine: true,
+            trailing: widget.onOpenOwningPrefab == null
+                ? null
+                : OutlinedButton.icon(
+                    key: ValueKey<String>(
+                      'chunk_open_prefab_${shape.placementKey}_${shape.shapeId}',
+                    ),
+                    onPressed:
+                        widget.controller.isLoading ||
+                            widget.controller.isExporting
+                        ? null
+                        : () => widget.onOpenOwningPrefab!(shape.prefabKey),
+                    icon: const Icon(Icons.open_in_new, size: 18),
+                    label: const Text('Open prefab'),
+                  ),
           ),
       ],
     );

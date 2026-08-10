@@ -448,6 +448,54 @@ void main() {
     },
   );
 
+  testWidgets('expanded collision opens its exact owning prefab', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1800, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final harness = await _buildHarness();
+    addTearDown(harness.dispose);
+    final openedPrefabKeys = <String>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.dark(),
+        home: Scaffold(
+          body: ChunkCreatorPage(
+            controller: harness.session,
+            onOpenOwningPrefab: openedPrefabKeys.add,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final diagnosticsList = find.byKey(
+      const ValueKey<String>('chunk_shape_diagnostics_list'),
+    );
+    final openOwner = find.byKey(
+      const ValueKey<String>(
+        'chunk_open_prefab_prefab_rock|95|10|0_collision_001',
+      ),
+    );
+    await tester.scrollUntilVisible(
+      openOwner,
+      400,
+      scrollable: find.descendant(
+        of: diagnosticsList,
+        matching: find.byType(Scrollable),
+      ),
+    );
+    await tester.tap(openOwner);
+    await tester.pump();
+
+    expect(openedPrefabKeys, <String>['prefab_rock']);
+    expect(_chunk(harness.session, 'forest_chunk').revision, 4);
+    expect(harness.session.pendingChanges.hasChanges, isFalse);
+  });
+
   testWidgets(
     'chunk-v2 owner forms preserve non-owned fields across typed lifecycle edits',
     (tester) async {

@@ -35,9 +35,16 @@ import 'prefab_v3_owner_dialog.dart';
 /// selected only when the session already contains [PrefabV3StagingScene], and
 /// deliberately exposes no source-write action while staging export is locked.
 class PrefabPolygonStagingWorkspace extends StatefulWidget {
-  const PrefabPolygonStagingWorkspace({super.key, required this.controller});
+  const PrefabPolygonStagingWorkspace({
+    super.key,
+    required this.controller,
+    this.initialPrefabKey,
+  });
 
   final EditorSessionController controller;
+
+  /// Stable owner to prefer over the workspace's deterministic default.
+  final String? initialPrefabKey;
 
   @override
   State<PrefabPolygonStagingWorkspace> createState() =>
@@ -121,10 +128,19 @@ class PrefabPolygonStagingWorkspaceState
   @override
   void didUpdateWidget(covariant PrefabPolygonStagingWorkspace oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.controller == widget.controller) return;
-    _disposeAuthoring();
-    _selectedPrefabKey = null;
-    _selectInitialOwner();
+    if (oldWidget.controller != widget.controller) {
+      _disposeAuthoring();
+      _selectedPrefabKey = null;
+      _selectInitialOwner();
+      return;
+    }
+    if (oldWidget.initialPrefabKey != widget.initialPrefabKey) {
+      final targetKey = _requestedOwnerKey(_documentOrNull);
+      if (targetKey != null && targetKey != _selectedPrefabKey) {
+        _bindOwner(targetKey);
+        _resetViewportValues();
+      }
+    }
   }
 
   @override
@@ -1109,6 +1125,8 @@ class PrefabPolygonStagingWorkspaceState
   }
 
   String? _preferredOwnerKey(PrefabV3StagingDocument document) {
+    final requestedKey = _requestedOwnerKey(document);
+    if (requestedKey != null) return requestedKey;
     if (document.data.prefabs.isEmpty) return null;
     final prefabs = List<PrefabV3Def>.of(document.data.prefabs)
       ..sort(_comparePrefabs);
@@ -1117,6 +1135,17 @@ class PrefabPolygonStagingWorkspaceState
             .firstOrNull
             ?.prefabKey ??
         prefabs.first.prefabKey;
+  }
+
+  String? _requestedOwnerKey(PrefabV3StagingDocument? document) {
+    if (document == null) return null;
+    final requestedKey = widget.initialPrefabKey?.trim();
+    if (requestedKey == null || requestedKey.isEmpty) return null;
+    return document.data.prefabs.any(
+          (prefab) => prefab.prefabKey == requestedKey,
+        )
+        ? requestedKey
+        : null;
   }
 
   void _selectOwner(String prefabKey) {

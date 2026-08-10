@@ -15,9 +15,16 @@ import 'staging/chunk_polygon_staging_workspace.dart';
 import 'widgets/chunk_scene_view.dart';
 
 class ChunkCreatorPage extends StatefulWidget {
-  const ChunkCreatorPage({super.key, required this.controller});
+  const ChunkCreatorPage({
+    super.key,
+    required this.controller,
+    this.onOpenOwningPrefab,
+  });
 
   final EditorSessionController controller;
+
+  /// Delegates placed-collision source navigation to the owning app shell.
+  final ValueChanged<String>? onOpenOwningPrefab;
 
   @override
   State<ChunkCreatorPage> createState() => _ChunkCreatorPageState();
@@ -219,6 +226,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
       return ChunkPolygonStagingWorkspace(
         key: _stagingWorkspaceKey,
         controller: widget.controller,
+        onOpenOwningPrefab: widget.onOpenOwningPrefab,
       );
     }
     return AnimatedBuilder(

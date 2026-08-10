@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:ui' show AppExitResponse;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../prefabs/domain/prefab_domain_plugin.dart';
 import '../../../session/editor_session_controller.dart';
 import '../shared/editor_page_local_draft_state.dart';
 import 'home_routes.dart';
@@ -47,6 +49,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
   // keep them serialized so the shell never stacks competing dialogs.
   bool _isShowingDiscardDialog = false;
   String _selectedRouteId = entitiesRouteId;
+  String? _initialStagedPrefabKey;
 
   @override
   void initState() {
@@ -136,7 +139,15 @@ class _EditorHomePageState extends State<EditorHomePage> {
 
   Widget _buildSelectedRoutePage() {
     final routeBinding = _selectedRouteBinding;
-    return routeBinding.buildPage(widget.controller);
+    return routeBinding.buildPage(
+      widget.controller,
+      navigation: EditorHomeRouteNavigation(
+        initialPrefabKey: _initialStagedPrefabKey,
+        onOpenOwningPrefab: (prefabKey) {
+          unawaited(_handleOpenOwningPrefabRequested(prefabKey));
+        },
+      ),
+    );
   }
 
   // `homeRoutes` is authoritative, so route/plugin drift is a configuration
@@ -170,8 +181,65 @@ class _EditorHomePageState extends State<EditorHomePage> {
     }
     setState(() {
       _selectedRouteId = routeId;
+      _initialStagedPrefabKey = null;
     });
     _syncPluginForRoute(routeId);
+  }
+
+  Future<void> _handleOpenOwningPrefabRequested(String prefabKey) async {
+    final targetPrefabKey = prefabKey.trim();
+    if (targetPrefabKey.isEmpty || widget.controller.isLoading) {
+      return;
+    }
+    final canLeave = await _confirmDiscardPendingChanges(
+      promptLine: 'Open Prefab Creator without saving this chunk?',
+      confirmLabel: 'Discard and open prefab',
+    );
+    if (!mounted || !canLeave) {
+      return;
+    }
+
+    final loaded = await widget.controller.loadWorkspaceForPlugin(
+      pluginId: PrefabDomainPlugin.pluginId,
+      loadDocument: (plugin, workspace) async {
+        if (plugin is! PrefabDomainPlugin) {
+          throw StateError(
+            'Owning-prefab navigation requires PrefabDomainPlugin, but '
+            '${plugin.runtimeType} is registered.',
+          );
+        }
+        final document = await plugin.loadV3StagingFromRepo(workspace);
+        final containsOwner = document.data.prefabs.any(
+          (prefab) => prefab.prefabKey == targetPrefabKey,
+        );
+        if (!containsOwner) {
+          throw StateError(
+            'Prefab-v3 owner "$targetPrefabKey" no longer exists on disk.',
+          );
+        }
+        return document;
+      },
+    );
+    if (!mounted) {
+      return;
+    }
+    if (!loaded) {
+      final detail = widget.controller.loadError;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            detail == null
+                ? 'Prefab-v3 owner could not be opened.'
+                : 'Prefab-v3 owner could not be opened: $detail',
+          ),
+        ),
+      );
+      return;
+    }
+    setState(() {
+      _initialStagedPrefabKey = targetPrefabKey;
+      _selectedRouteId = prefabCreatorRouteId;
+    });
   }
 
   bool get _canApplyWorkspacePathDraft {
@@ -527,8 +595,15 @@ class _EditorHomeRouteBinding {
 
   BuildContext? get currentContext => pageKey.currentContext;
 
-  Widget buildPage(EditorSessionController controller) {
-    return route.buildPage(key: pageKey, controller: controller);
+  Widget buildPage(
+    EditorSessionController controller, {
+    required EditorHomeRouteNavigation navigation,
+  }) {
+    return route.buildPage(
+      key: pageKey,
+      controller: controller,
+      navigation: navigation,
+    );
   }
 }
 

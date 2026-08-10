@@ -16,6 +16,41 @@ import 'package:runner_editor/src/terrain_authoring/terrain_source_models.dart';
 import 'package:runner_editor/src/workspace/editor_workspace.dart';
 
 void main() {
+  testWidgets('staging route honors a requested stable prefab owner', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1800, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final harness = await _buildHarness();
+    addTearDown(harness.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.dark(),
+        home: Scaffold(
+          body: PrefabCreatorPage(
+            controller: harness.session,
+            initialStagedPrefabKey: 'platform',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final requestedOwner = find.byKey(
+      const ValueKey<String>('prefab_polygon_owner_platform'),
+    );
+    final requestedOwnerTile = find.descendant(
+      of: requestedOwner,
+      matching: find.byType(ListTile),
+    );
+    expect(tester.widget<ListTile>(requestedOwnerTile).selected, isTrue);
+    expect(find.textContaining('platform_module:module_a'), findsOneWidget);
+    expect(harness.session.pendingChanges.hasChanges, isFalse);
+  });
+
   testWidgets(
     'explicit staging route isolates owners and commits half-pixel polygons',
     (tester) async {
