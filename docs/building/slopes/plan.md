@@ -1474,9 +1474,10 @@ within/between-run transitions, blocks reachable physical mismatches globally,
 and lists compatible/failing directed neighbors without sampling RNG or
 changing content. Core now owns the `authoring-seams-v1` record/signature, and
 the editor plus staged generator verify the same checked-in reachable-adjacency
-golden. Generator-side compiled boundary comparison, safe source migration,
-live staged output registration, and the coordinated normal editor cutover
-remain open.
+golden. Core also owns the compiled boundary comparison, and staged rendering
+accepts only a batch that has passed every manifest transition. Safe source
+migration, live staged output registration, and the coordinated normal editor
+cutover remain open.
 Phase 4 must not select polygon terrain in normal production runs before the
 later streaming/content cutover phases.
 
@@ -1489,9 +1490,9 @@ generated runtime bytes, or collision authority. Normal generation now stages
 all renders beside their targets, backs up existing outputs, installs and
 byte-verifies the complete set, and rolls back on failure before cleaning the
 transaction files. Current polygon schema consumption, live staged terrain
-registration, and compiled seam validation before rendering remain open
-Phase 4 gates; the one-time source migration keeps its separate drift-recheck
-and transaction requirements.
+registration, and normal current-schema selection remain open Phase 4 gates;
+the one-time source migration keeps its separate drift-recheck and transaction
+requirements.
 
 A pure-Dart staged compiler now proves the next generator boundary without
 selecting it in normal generation. It strictly parses checked-in prefab-v3 and
@@ -1506,9 +1507,12 @@ triangles, placement lineage, and signature versions. Its local identities
 strip the compiler's reserved preview index; exact bytes pass the normal
 artifact drift plan and are invariant under reversed chunk input. A production
 import audit keeps the staged contract unreachable. This remains deliberately
-fixture-only while repository source is legacy: live entry-point registration,
-the complete parity matrix, compiled scheduler seam comparison, and production
-legacy projection stay open for the coordinated source cutover.
+fixture-only while repository source is legacy. The generator now consumes the
+shared adjacency manifest, compares exact Core-owned compiled boundaries, and
+can render only a privately constructed validated batch; the artifact records
+the seam format/digest. Live entry-point registration, the complete parity
+matrix, and production legacy projection stay open for the coordinated source
+cutover.
 
 An isolated exact legacy projector now decomposes accepted orthogonal terrain,
 reproduces current 16-pixel rectangle snapping, derives gaps only from exact

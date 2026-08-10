@@ -852,9 +852,10 @@ bytes and recalculates the exact record and digest
 `9681ffb17f61812ec63f1522f9da99340fd1a3ba05b0103f7d8a5f0ffd76393b`.
 Unknown/missing schema fields, duplicate transitions, delimiter-ambiguous
 identities, canonical-record drift, and digest drift fail closed. This proves
-cross-process adjacency-set parity; it does not yet validate compiled left/right
-boundary geometry before staged rendering. Normal chunk-v1 generation and
-production runtime selection remain unchanged.
+cross-process adjacency-set parity. The staged generator then resolves every
+transition against the shared Core compiled-boundary comparator before it can
+construct the renderer's accepted batch, as detailed below. Normal chunk-v1
+generation and production runtime selection remain unchanged.
 
 ## Generated Artifact Plan And Dry-Run Drift Gate
 
@@ -887,14 +888,14 @@ distinguishes a complete rollback, an incomplete rollback needing manual
 recovery, and cleanup failure after every output was already verified and
 committed. This is the generated-output transaction only: it does not replace
 the migration CLI's pending source-fingerprint recheck and nine-source schema
-transaction. Live polygon-schema selection, production staged-output
-registration, and consumption of the editor-owned seam golden remain Phase 4
-work.
+transaction. Live polygon-schema selection and production staged-output
+registration remain Phase 4 work; staged seam-manifest consumption and
+compiled-boundary gating are now delivered below.
 
 ## Strict Staged Generator Compiler And Artifact Foundation
 
 The repository source is still prefab-v2/chunk-v1, so the live generator cannot
-select current-schema parsing before the coordinated source migration. Three
+select current-schema parsing before the coordinated source migration. Five
 focused pure-Dart files now establish that future boundary without adding a
 flag, production generated file, or runtime consumer:
 
@@ -906,8 +907,14 @@ flag, production generated file, or runtime consumer:
   placement ordinals, applies the accepted anchor-relative Core transform,
   pre-reviews canonical source, compiles direct and expanded shapes together,
   enforces closed chunk bounds, and retains prefab key/id/revision lineage;
+- `polygon_terrain_seam_manifest.dart` strictly decodes the shared scheduler
+  adjacency golden and recalculates its Core-owned record/digest;
+- `polygon_terrain_seam_validation.dart` resolves every directed transition to
+  compiled chunks, checks level ownership, and compares exact Core-owned
+  right/left boundary evidence before constructing a renderable batch;
 - `polygon_terrain_render.dart` validates chunk-local compiler identity, sorts
-  every rendered record family, and emits typed staged Dart records in memory.
+  every rendered record family, accepts only that validated batch, and emits
+  typed staged Dart records in memory.
 
 Parsed coordinates remain generator values until the Core adapter boundary.
 This matters because the canonical JSON number range is intentionally wider
@@ -932,9 +939,10 @@ narrow API is `StagedTerrainArtifactData`, defined in
 `staged_terrain_data.dart`; it cannot be confused with the current
 `ChunkPattern` authority. The artifact is self-describing with artifact and
 compiler geometry versions plus `authoring-polygons-v1`, `source-v1`,
-`edges-v1`, `authoring-placement-v1`, and `authoring-triangles-v1` labels and
-signatures. Adding the authored-source digest advances the disconnected staged
-artifact schema to format version 2.
+`edges-v1`, `authoring-placement-v1`, `authoring-triangles-v1`, and
+`authoring-seams-v1` labels and signatures. Adding the authored-source digest
+advanced the disconnected staged artifact schema to format version 2; adding
+the validated reachable-adjacency digest advances it to format version 3.
 Each chunk record retains source revision/metadata, canonical source vertices
 in half-world-unit ticks, transformed vertices and exposed edges in integer
 physics ticks, collision/render metadata, deterministic triangle indices, and
@@ -952,8 +960,15 @@ transforms are intentionally absent because `authoring-placement-v1` owns
 those facts. An empty source set produces the standard SHA-256 empty digest.
 
 Core compilation temporarily uses reserved local instance index zero. The
-renderer accepts only that value and matching chunk keys, then creates local
-source/edge IDs without an instance-index field. Runtime streaming must bind
+renderer accepts only a `PolygonTerrainValidatedBatch`. That type has a private
+constructor owned by the seam validator, which returns no batch when compiled
+chunk identities are missing, duplicate, case-colliding, assigned to the wrong
+level, or physically incompatible at a reachable transition. The shared Core
+`authoring-boundary-v1` primitive derives exact coverage, continuation, edge,
+mode, surface, and material evidence; coverage/mode/surface mismatches block,
+while material differences remain advisory. After that gate, the renderer
+accepts only reserved local instance index zero and matching chunk keys, then
+creates local source/edge IDs without an instance-index field. Runtime streaming must bind
 the real instance index and geometry version in Phase 5. The checked-in output
 golden contains no `chunkIndex` token, and a production-tree import audit proves
 that normal Core construction, Flutter, and the replay validator cannot select
@@ -974,9 +989,8 @@ artifact drift plan, and remains identical when its compiled chunk input is
 reversed. `UPDATE_POLYGON_TERRAIN_GOLDEN=1` is the explicit fixture-only update
 path; ordinary tests are read-only. This proves the representative compiler and
 render seam but not the complete §22 matrix. Live generator wiring,
-tile-backed prefab owner validation, compiled scheduler seam comparison before
-rendering, complete repository legacy projection, and source cutover remain
-open.
+tile-backed prefab owner validation, complete repository legacy projection,
+and source cutover remain open.
 
 ## Exact Legacy Compatibility Projection
 

@@ -974,10 +974,9 @@ exact scheduler enumeration through that contract, while the staged generator
 strictly decodes the same checked-in eight-transition golden and verifies its
 derived record/digest (`9681ffb1…93b`). Ambiguous delimiter-bearing identities,
 duplicate transitions, schema drift, record drift, and digest drift fail
-closed. This closes adjacency-set parity only: §21 still requires the staged
-generator to compare compiled boundary geometry for every supplied transition
-before rendering. Normal chunk-v1 generation and runtime selection remain
-unchanged meanwhile.
+closed. Section 21 now carries that verified transition set through the shared
+Core compiled-boundary comparator before it can construct a renderable staged
+batch. Normal chunk-v1 generation and runtime selection remain unchanged.
 
 Do not add new neighbor metadata or change procedural selection merely to make
 an incompatible chunk pass. Any requested scheduling change is a separate
@@ -991,7 +990,7 @@ gameplay/content decision.
       testable pure-Dart files rather than growing the monolith further.
 - [ ] Parse only current prefab v3/chunk v2 in normal generation.
 - [x] Expand prefab placements with stable placement/source lineage.
-- [ ] Validate all direct/expanded shapes and scheduler seams before rendering
+- [x] Validate all direct/expanded shapes and scheduler seams before rendering
       any output.
 - [x] Feed exact quantized polygons through the accepted Core compiler.
 - [x] Generate normalized local polygon loops and precompiled exposed local
@@ -1064,16 +1063,28 @@ the polygon. Checked-in shared fixtures bind generator and editor
 `authoring-polygons-v1`, `source-v1`, `edges-v1`, and
 `authoring-placement-v1` signatures plus the generator's
 `authoring-triangles-v1` signature, and bind both processes to the exact
-`authoring-seams-v1` reachable transition set. Physical staged-generator seam
-comparison before rendering remains open.
+`authoring-seams-v1` reachable transition set.
 
-`polygon_terrain_render.dart` now projects an accepted compiled chunk set into
+Core now also owns `authoring-boundary-v1` derivation and physical comparison,
+replacing the editor-local implementation without changing its record or
+diagnostics. The staged generator validates every manifest transition against
+the compiled left/right boundaries. Missing, duplicate, or case-colliding
+chunks, wrong level ownership, and exact coverage/continuation mismatches
+produce sorted blocking issues and no renderable batch. Material differences
+remain advisory evidence. `polygon_terrain_render.dart` accepts only the
+validator's privately constructed batch, so callers cannot render raw compiled
+chunks while bypassing this gate.
+
+`polygon_terrain_render.dart` now projects an accepted validated chunk set into
 the narrowly named future `staged_authored_terrain.dart` contract. Immutable
 Core-side staged records retain chunk revision/metadata, the exact authored
 owner/shape digest, canonical half-pixel source loops, transformed physics
 loops, compiler-owned exposed edges,
 triangle indices, placement/prefab revision lineage, and all signature format
-labels. The reserved compiler index is checked and stripped; generated source
+labels. The artifact additionally retains `authoring-seams-v1` plus its exact
+reachable-adjacency digest; this advances only the disconnected staged artifact
+schema from format 2 to 3. The reserved compiler index is checked and stripped;
+generated source
 identities contain no streamed chunk index. Chunks and every derived record
 family are sorted explicitly, authoritative numeric fields remain integers,
 and empty, duplicate, or case-colliding chunk sets fail before output.
@@ -1084,8 +1095,8 @@ compiles, and invariant under reversed chunk input. A construction-import audit
 keeps the staged record/output names unreachable from Core gameplay, Flutter,
 the replay validator, and the live generator. Normal source remains
 prefab-v2/chunk-v1; the live five-output plan does not register a production
-staged terrain file until the coordinated source migration, seam validation,
-and legacy projection are ready.
+staged terrain file until the coordinated source migration and legacy
+projection are ready.
 
 `polygon_terrain_legacy_projection.dart` now provides the isolated exact
 compatibility primitive. It cell-decomposes accepted orthogonal polygons with
@@ -1128,7 +1139,7 @@ Create small checked-in fixtures that cover:
 - [ ] minimum/maximum rational placement scale
 - [ ] internal shared-edge cancellation
 - [ ] cross-shape exact shared boundary
-- [ ] allowed cross-chunk seam pair
+- [x] allowed cross-chunk seam pair
 - [ ] every major blocking diagnostic
 
 For each valid fixture, compare:
@@ -1365,7 +1376,7 @@ before changing the accepted plan.
 | Hashash authored markers consume a roll and contribute a count, but runtime later places each accepted count at the visible camera-right chunk edge; the authored marker X/placement is not a direct body candidate. Procedural item candidates likewise have no authored marker records. | Classify Hashash as guaranteed/conditional deferred without invoking placement or RNG. Do not fabricate collectible/restoration candidates. State explicitly that projectile terrain is later-phase work and not previewed. | Phase 5 may preview deferred Hashash and procedural item candidates only from a scheduler/runtime harness that preserves camera state, candidate loops, attempt counts, and RNG ordering. |
 | Legacy `obstacleTop` searches static solids, while staged polygon source has no general authored semantic saying that an arbitrary direct chunk polygon is an obstacle. | During the locked Phase 4 staging bridge, select the highest solid upward placed-prefab surface at marker X for `obstacleTop`; select direct solid terrain at exact level `groundTopY` for `ground`; select the physically highest upward surface before actor filtering for `highestSurfaceAtX`. Equal heights use canonical edge identity. | Before normal cutover, generated terrain/source semantics must keep this distinction explicit or replace it with a reviewed stable surface classifier; widgets must not infer it from render layers. |
 | A directory neighbor is not a runtime neighbor: tier fallback can skip empty early/easy/normal/hard pools, assembly groups filter each requested tier independently, variable authored runs cross tier boundaries, and distinct selection removes same-chunk pairs only while the resolved pool remains identical. | Snapshot immutable `LevelDef` scheduler data with chunk-v2 staging and enumerate finite tier-window, tier-boundary, within-run, between-run, loop/non-loop hard-tail, group, fallback, direction, and distinct-pool transitions without sampling RNG or changing selection. A differential fixture proves every sampled Core transition is contained. Core owns the canonical `authoring-seams-v1` record/signature, and editor plus staged generator verify the same checked-in transition golden. | The §21 generator must consume that verified manifest to compare actual compiled boundaries before rendering; it must not reconstruct adjacency from file order. |
-| Physical seam cancellation, traversal stitching, and render material phase do not have the same compatibility key. Core traversal joins require collision mode and `surfaceKind`, while material continuity remains a Phase 5 render concern. | Block exact compiled coverage or continuation-vertex differences keyed by collision mode and surface kind. Retain full edge geometry and `materialKey` in canonical boundary evidence, expose material endpoint differences in the editor, but do not make them a Phase 4 physical blocker. | Phase 5 can promote reviewed material-phase evidence when world-anchored rendering exists without weakening the already-proven collision/navigation seam. |
+| Physical seam cancellation, traversal stitching, and render material phase do not have the same compatibility key. Core traversal joins require collision mode and `surfaceKind`, while material continuity remains a Phase 5 render concern. | Core owns exact compiled boundary derivation/comparison. Block coverage or continuation-vertex differences keyed by collision mode and surface kind in both editor and staged generator. Retain full edge geometry and `materialKey` in canonical evidence, but do not make material differences a Phase 4 physical blocker. The renderer accepts only a privately constructed seam-validated batch. | Phase 5 can promote reviewed material-phase evidence when world-anchored rendering exists without weakening the already-proven collision/navigation seam. |
 | Authored assembly tier windows and run counts currently have no small schema cap, so a malformed but parseable level could make exhaustive finite-window analysis consume unbounded editor time. | Enumerate non-assembly tiers in constant structural time and fail closed above 256 finite pre-hard chunks when assembly is enabled; still enumerate the structurally complete hard tail and report `chunk_v2_scheduler_analysis_capacity_exceeded`. | A future higher authoring limit requires a reviewed symbolic scheduler or measured capacity change, not silently removing the guard. |
 | Deprecated chunk-v2 records remain useful migration/history owners but should not become new scheduler candidates. | Preserve and display deprecated owners while excluding them from active seam pools, matching existing active assembly-count semantics. | The §21 current-schema generator must apply the same status filter; normal legacy generation is deliberately unchanged in this staging slice. |
 | The generator's former `--dry-run` returned immediately after source validation, so it could not detect deleted, stale, or orphaned committed outputs. Treating every Dart file below broad output directories as owned would also create false positives. | Render all five expected outputs into one immutable artifact plan, compare exact UTF-8 bytes without writing, and discover unexpected files only by the generator ownership marker. Sort diagnostics by canonical display path and fail nonzero for missing, stale, unexpected, or unreadable expected files. | Every staged terrain artifact must be registered in the same plan and carry the ownership marker. The one-time source migration retains its separate source-fingerprint and transaction gates. |
@@ -1389,7 +1400,7 @@ During implementation:
       placement boundary in `docs/tdd/polygon_terrain_authoring_foundation.md`
 - [ ] create a focused TDD for source schema ownership, transform order,
       migration, generation, identity lineage, diagnostics, and staging
-- [ ] update `docs/tdd/sloped_navigation_and_enemy_terrain.md` only for the
+- [x] update `docs/tdd/sloped_navigation_and_enemy_terrain.md` only for the
       delivered generated-data boundary, not production cutover claims
 - [ ] update `tools/editor/README.md` with the user-visible polygon workflow,
       controls, validation, migration prerequisite, and limitations
@@ -1488,6 +1499,7 @@ result.
 | 2026-08-09 / `edf5d815` | Canonical `authoring-migration-v1` readiness signatures | Dart VM and Flutter test VM on Windows with Docker running | Targeted migration analysis is clean and all 10 repository migration-check tests pass. The signature hashes one length-prefixed format label plus the existing canonical readiness-report-v2 bytes, preserving the reviewed legacy/current short fingerprints while adding stable SHA-256 digests `c355c5de…0beb` and `d98983c4…8153`. A temporary-workspace mutation proves even semantically harmless reviewed source-byte drift changes the digest. Report JSON, CLI output, source files, `--write` authorization, and runtime authority remain unchanged. |
 | 2026-08-10 / `94123b9a` | Restore standalone-Dart migration CLI boundary | Dart VM and Flutter test VM on Windows with Docker running | Full editor analysis is clean and all 438 editor tests pass. Direct `dart run tool/migrate_polygon_authoring.dart --help` and `--check` both succeed; the real check remains legacy-ready with 99 prefabs, 8 chunks, 9 validated pending targets, and zero source writes. One Flutter-free repository-path contract now supplies the existing Prefab/Chunk store aliases and the migration command/check, removing the transitive `dart:ui` dependency. The 21 focused migration command/check tests include a standalone Dart subprocess regression. No path bytes, report bytes/signatures, source, write authorization, or runtime authority changed. |
 | 2026-08-10 / `fd543b63` | Shared scheduler seam signature and generator golden | Dart VM and Flutter test VM on Windows with Docker running | Root, Core-package, and editor analysis are clean. Three Core contract tests, two staged-generator manifest tests, and all ten editor seam tests pass. Core now owns the immutable sorted `authoring-seams-v1` transition set and digest; duplicate or delimiter-ambiguous identities fail closed. The strict generator manifest decoder consumes the exact editor eight-transition golden, recalculates record/digest `9681ffb1…93b`, and rejects schema or derived-field drift. The editor no longer implements the hash separately. Compiled-boundary validation before staged rendering remains open; live generator registration, source, scheduler behavior, and runtime authority are unchanged. |
+| 2026-08-10 / `e3309704` | Shared compiled-boundary gate for staged terrain output | Dart VM and Flutter test VM on Windows with Docker running | Root, Core-package, and editor analysis are clean; all 319 Core-package tests, all 438 editor tests, and all 48 root tool/generator tests pass. Core now owns unchanged `authoring-boundary-v1` derivation/comparison. Four staged-generator seam tests cover compatible directed pairs, canonical chunk order, exact mismatch ticks/digests/profiles, missing chunks, wrong level, duplicate and case-colliding keys; material evidence remains advisory through the Core matrix. The renderer accepts only a privately constructed validated batch and emits `authoring-seams-v1` format/digest evidence, advancing only the disconnected staged fixture schema to v3. Live current-schema registration, authored source, normal generation bytes, scheduler behavior, and runtime authority remain unchanged. |
 
 ### 28.1 Baseline Environment And Source Identity
 

@@ -752,6 +752,23 @@ growth delta is zero, matched-flat overhead is `-0.02%`, and every strict gate
 passes. The paired 500-iteration VM trials report zero tracked controller
 allocations and `0.0` allocations per solve.
 
+## Phase 4 Generated Seam Boundary
+
+Phase 4 generation now reuses a Core-owned compiled-boundary primitive before
+any staged polygon artifact can be rendered. The generator consumes the exact
+`authoring-seams-v1` directed adjacency manifest, resolves both chunk owners and
+their level, and compares right/left coverage and continuation vertices using
+the same collision-mode and `surfaceKind` compatibility facts as the editor.
+Missing, duplicate, case-colliding, wrong-level, or physically incompatible
+chunks produce blocking diagnostics and no renderable batch. `materialKey`
+differences remain retained advisory evidence for the later render seam.
+
+The disconnected staged artifact records the reachable-adjacency format and
+digest so Phase 5 can bind its generated geometry to the reviewed scheduler
+set. This is generated-data validation only: normal prefab-v2/chunk-v1
+generation, terrain streaming, navigation publication, `GameCore` authority,
+and replay construction remain unchanged.
+
 ## Reviewed Phase 3 Scenario Signatures
 
 `enemy-terrain-run-v1` is a Core-owned canonical record format backed by the
