@@ -98,9 +98,8 @@ Slope Phase 4 also provides a Chunk-v2 polygon workspace and a deterministic
 Windows profile benchmark for its real pointer surface. The reviewed benchmark
 fixture renders 16 direct shapes plus expanded Prefab collision at exactly 256
 Core edges and measures vertex/whole-shape drag without reloading or replacing
-repository source. Strict current Chunk-v2 source now loads and saves through
-that workflow; normal checked-in Chunk source remains v1 until the coordinated
-polygon migration.
+repository source. Checked-in Chunk-v2 source now loads and saves through that
+workflow; its collision lists are intentionally empty pending reauthoring.
 
 Parallax route now exists as a dedicated theme-authoring workflow:
 
@@ -584,15 +583,13 @@ Deferred from Phase 5:
 - jumpability or unsafe-gap overlays tied to character/enemy movement rules
 - level-specific fairness constraints such as min/max widths or clearance rules
 
-Current slopes handoff status (August 2, 2026): the explicit chunk-v2 staging
+Current slopes handoff status (August 11, 2026): the Chunk-v2 polygon
 workspace can edit direct polygons, expand placed prefab collision through
 Core, inspect compiled edges and actor/marker evidence, and list
 scheduler-reachable compatible/failing seams from exact boundary signatures.
-Global staged validation blocks physical seam mismatches. Normal Chunk Creator
-loading now blocks checked-in chunk-v1 source behind the shared no-data
-migration-required workspace; production generation deliberately remains on
-chunk-v1 flat ground/gaps until the coordinated Phase 4 schema/generator
-cutover in the slopes plan.
+Global validation blocks physical seam mismatches. Normal Chunk Creator now
+loads the checked-in Chunk-v2 source; legacy/missing fixtures still enter the
+shared no-data migration-required workspace.
 
 The staged expanded-collision list now opens its exact stable source owner in
 the Prefab-v3 polygon workspace. The editor shell applies the same unsaved-work
@@ -602,29 +599,27 @@ Failure preserves the current Chunk-v2 session and history; the action never
 creates per-instance vertices. Normal loaders now select strict Prefab-v3 and
 complete Chunk-v2 sources when the repository is already current, and their
 confirmed export actions apply through source-drift-guarded transactional
-stores. Checked-in legacy sources and the migration/runtime cutover remain
-unchanged on disk, but they no longer expose compatibility editing or export
-through normal Prefab/Chunk plugin routes.
+stores. The checked-in source migration is complete, while runtime terrain
+authority remains deferred and compatibility code is being removed.
 
 The first root generator compiler fixture now passes the editor's strict
 prefab-v3/chunk-v2 codecs and collision expansion over the same checked-in
 bytes. Editor and generator agree on Core source/edge and exact placement
 lineage signatures for direct concave solid, one-way, metadata, and reflected
-rational-scale prefab geometry. This is a parity foundation only: Chunk Creator
-still loads v1 normally, and the root entry point emits no production staged
-terrain file until the coordinated slopes cutover. A new executable Dart
-fixture now proves the future local record shape for source/physics loops,
+rational-scale prefab geometry. The root entry point now emits the registered,
+runtime-unreachable staged terrain file. The executable Dart fixture proves
+the local record shape for source/physics loops,
 Core-exposed edges, render triangles, and prefab revision lineage. It strips the
 reserved compiler preview index and is byte-goldened through the shared artifact
-drift plan, but no normal editor, live generator, gameplay, or rendering path
-imports it.
+drift plan; no gameplay or rendering path imports it.
 
 The root compatibility bridge can project an accepted orthogonal staged chunk
 back to canonical legacy rectangles/gaps without approximating slopes. The
-repository has now deliberately cleared old static collision for clean polygon
-reauthoring: all eight chunks encode one full-width `collision_cleared` gap,
-and all placed prefab collider lists are empty. Every migration target compiles
-and projects that empty state exactly with zero overlap blockers; no
+repository has deliberately cleared old static collision for clean polygon
+reauthoring: all eight current chunks have empty direct collision, all Prefab
+collision lists are empty, and the legacy projection emits one full-width
+`collision_cleared` gap per Chunk. Every current target compiles and projects
+that empty state exactly with zero overlap blockers; no
 solid-owner union behavior was added.
 
 Chunk visuals, 50 prefab placements, and two markers are preserved, but normal

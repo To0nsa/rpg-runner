@@ -1,8 +1,9 @@
 # Slopes Phase 4 - Polygon Authoring, Migration, And Generation Checklist
 
 - Created: July 28, 2026
-- Status: Implementation in progress; legacy collision content is cleared for
-  polygon reauthoring, but no Phase 4 schema/runtime cutover has begun
+- Status: Implementation in progress; repository authoring and generation now
+  use polygon schemas, while compatibility-name/normal-path cleanup remains
+  before Phase 4 acceptance
 - Source plan: [plan.md](plan.md)
 - Frozen gameplay decisions:
   [phase0-gameplay-decisions.md](phase0-gameplay-decisions.md)
@@ -152,25 +153,25 @@ adapter, generator output, or runtime consumer introduced after July 28, 2026.
 
 ## 5) Staging And Compatibility Boundary
 
-- [ ] Keep normal `GameCore`, `TrackStreamer`, replay validation, and board
+- [x] Keep normal `GameCore`, `TrackStreamer`, replay validation, and board
       issuance on the accepted legacy production authority throughout Phase 4.
-- [ ] Cut repository source to polygon schemas in one migration; do not leave
+- [x] Cut repository source to polygon schemas in one migration; do not leave
       normal editor writes capable of emitting both rectangles and polygons.
 - [ ] Keep legacy v1/v2 prefab and v1 chunk parsing inside the offline
       migration tool only after committed source is migrated.
-- [ ] Remove rectangle/ground-gap commands and forms from normal editor paths
+- [x] Remove rectangle/ground-gap commands and forms from normal editor paths
       in the same change that installs polygon replacements.
 - [x] Generate a clearly named staged terrain artifact/API that normal runtime
       construction cannot select accidentally.
-- [ ] Retain only the bounded legacy generated projection needed by the
+- [x] Retain only the bounded legacy generated projection needed by the
       existing production runtime until Phase 5 replaces streaming.
-- [ ] Reject non-orthogonal production content if it cannot be represented by
+- [x] Reject non-orthogonal production content if it cannot be represented by
       that temporary projection; interactive slope acceptance uses a fixture
       workspace or non-runtime-selected fixture content until Phase 5 consumes
       staged terrain.
 - [ ] Record the exact staged artifact and legacy projection removal points in
       the Phase 5/6 checklists.
-- [ ] Add a construction test proving normal levels still select legacy world
+- [x] Add a construction test proving normal levels still select legacy world
       motion after generation changes.
 
 This temporary generated bridge is not a per-level runtime switch. There is
@@ -612,7 +613,7 @@ remaining files independently.
       reference validation, and the same fresh SHA-256 drift audit.
 - [x] Reject mixed legacy/current schema generations before returning or
       writing a partial report.
-- [ ] Make `--write` require a complete blocker-free plan generated from the
+- [x] Make `--write` require a complete blocker-free plan generated from the
       same source fingerprints.
 
 ## 16) Migration Write Transaction And Recovery
@@ -636,7 +637,7 @@ remaining files independently.
 - [x] Add the machine-readable write-transaction/rollback artifact.
 - [x] Re-running `--check` after success reports nine validated targets and
       zero pending migrations without invoking legacy conversion.
-- [ ] Re-running `--write` after success must be a no-op.
+- [x] Re-running `--write` after success must be a no-op.
 
 The normal editor export remains document-scoped and source-drift guarded. The
 batch transaction exists only for the one-time schema migration.
@@ -661,11 +662,10 @@ Transaction failures now emit deterministic report-v1 evidence with distinct
 The report includes stable code/message/path facts and intentionally excludes
 host-specific exception and temporary-path text.
 
-This is deliberately an unreachable transaction foundation: the CLI still
-rejects `--write`, the repository remains prefab-v2/chunk-v1, and normal stores
-cannot consume a migrated workspace yet. CLI authorization, report-file
-emission, and `--write` idempotence stay open until the normal editor cutover
-is ready.
+The CLI now exposes this transaction only through explicit `--write` with a
+required external JSON report path. The real cutover committed all nine files,
+strictly reloaded the installed v3/v2 generation, and a second write returned
+deterministic no-op evidence without changing source bytes.
 
 ## 17) Shared Polygon Interaction Model
 
@@ -867,9 +867,9 @@ curves, and holes are not required for the baseline tool.
 
 ### 19.2 Normal V3/V2 Cutover Execution Slices
 
-The polygon workspaces now preserve the retained authoring surface and can
-load/apply source that is already current. Do not migrate repository source or
-enable migration `--write` until the remaining slices close in order:
+The polygon workspaces preserve the retained authoring surface and now
+load/apply the checked-in current source. The cutover followed these slices in
+order:
 
 1. **Typed domain mutation parity.**
    - Prefab v3 must preserve create, duplicate, rename, deprecate/delete,
@@ -978,6 +978,12 @@ enable migration `--write` until the remaining slices close in order:
      temporary generation-selection bridges in the same cutover. Legacy codecs
      remain reachable only from the offline migration checker.
 
+The first bullet of slice 6 landed in `e2c06137`: explicit `--write` committed
+all nine current-schema files, a repeated write was a no-op, and the single
+generator now emits the staged artifact plus an exact legacy projection. The
+second bullet is the active cleanup slice; temporary `Staging` type names and
+test-only compatibility surfaces must not survive Phase 4 acceptance.
+
 Current command-gap audit (August 11, 2026):
 
 | Domain | Normal legacy command surface | Explicit polygon document today | Cutover requirement |
@@ -1032,8 +1038,8 @@ the same checked-in eight-transition golden and derived record/digest
 transitions, schema drift, record drift, and digest drift fail closed. Section
 21 carries an enumerated transition set through the shared Core
 compiled-boundary comparator before it can construct a renderable staged batch.
-Live production registration remains part of the coordinated source cutover;
-normal chunk-v1 generation and runtime selection are unchanged.
+The live generator now derives this transition set from current source and
+registers the staged output. Normal runtime selection remains unchanged.
 
 Do not add new neighbor metadata or change procedural selection merely to make
 an incompatible chunk pass. Any requested scheduling change is a separate
@@ -1045,7 +1051,7 @@ gameplay/content decision.
       generation entry point.
 - [x] Refactor polygon parsing/transform/compile/render steps into focused
       testable pure-Dart files rather than growing the monolith further.
-- [ ] Parse only current prefab v3/chunk v2 in normal generation.
+- [x] Parse only current prefab v3/chunk v2 in normal generation.
 - [x] Expand prefab placements with stable placement/source lineage.
 - [x] Validate all direct/expanded shapes and scheduler seams before rendering
       any output.
@@ -1097,20 +1103,20 @@ gameplay/content decision.
 The staged terrain output should use a narrowly named API/file that cannot be
 mistaken for the current `ChunkPattern` production source.
 
-The existing entry point now renders its five legacy generated outputs into an
+The existing entry point now renders all six generated outputs into an
 immutable, path-sorted artifact plan before either checking or writing. Dry-run
 compares the UTF-8 render with committed file bytes, reports stable
 `generated_output_missing`, `generated_output_stale`,
 `generated_output_unexpected`, or `generated_output_unreadable` diagnostics,
 and performs no writes. Unexpected-file discovery is restricted to files under
 the generator's declared output roots that carry its ownership marker, so
-unrelated Dart sources are not treated as generated drift. Current prefab-v2,
-chunk-v1, and runtime output contracts are unchanged; staged polygon output
-registration in the live plan remains open below.
+unrelated Dart sources are not treated as generated drift. The current v3/v2
+source feeds both the staged terrain output and the bounded legacy runtime
+projection in one validated plan.
 
-The current-schema generator foundation now lives in focused pure-Dart
-source/compile/render files without being selected by the legacy entry point. It
-strictly parses prefab v3/chunk v2 fixture source, requires Core-canonical
+The current-schema generator lives in focused pure-Dart source/compile/render
+files selected by the single repository entry point. It strictly parses prefab
+v3/chunk v2 source, requires Core-canonical
 loops, expands anchor-relative prefab collision with exact scale tenths and
 stable placement/prefab revision lineage, compiles polygons and exposed edges
 through `TerrainCompiler`, enforces closed chunk bounds, and derives render
@@ -1150,20 +1156,19 @@ The checked-in executable Dart fixture is compared byte-for-byte through
 `GeneratedArtifactPlan`, imported as typed data, regenerated from fresh
 compiles, and invariant under reversed chunk input. A construction-import audit
 keeps the staged record/output names unreachable from Core gameplay, Flutter,
-the replay validator, and the live generator. Normal source remains
-prefab-v2/chunk-v1; the live five-output plan does not register a production
-staged terrain file until the coordinated source migration and legacy
-projection are ready.
+and the replay validator. The live six-output plan registers
+`staged_authored_terrain.dart`, but no runtime construction path imports or
+selects it.
 
-`polygon_terrain_legacy_projection.dart` now provides the isolated exact
+`polygon_terrain_legacy_projection.dart` provides the isolated exact
 compatibility primitive. It cell-decomposes accepted orthogonal polygons with
 integer predicates, verifies exact occupied area, reproduces the current
 16-pixel rectangle snap, unions snapped solid rectangles into deterministic
 non-overlapping records, recognizes only exact direct `ground_*` bottom bands,
 and derives canonical grid-aligned gaps from their complement. Diagonal edges,
 non-rectangular one-way shapes, and snap-created one-way/one-way or
-one-way/solid overlaps fail closed. The projector is not imported by the live
-generator or runtime.
+one-way/solid overlaps fail closed. The live generator calls it only to build
+the bounded legacy `ChunkPattern` projection; runtime code does not import it.
 
 The old collider set exposed 24 `polygon_area_overlap` diagnostics across six
 chunks. The accepted resolution was complete content reauthoring, so the 70
@@ -1376,10 +1381,10 @@ compact ignored report is `.tmp/slopes_phase4_polygon_interaction.json`.
 The adjacent no-op gate is covered by the current-schema Prefab paired-save and
 Chunk one-file save-plan fixtures, including byte-identical transactional
 reloads; canonical legacy/current migration checks and fresh-process
-`authoring-migration-v1`; and the normal five-output generator artifact plan.
-A fresh focused run passes all 39 save/migration tests, the real standalone
-migration check remains a zero-write legacy-ready plan with nine pending
-representation files, and normal generator `--dry-run` reports no drift.
+`authoring-migration-v1`; and the normal six-output generator artifact plan.
+After cutover, the standalone migration check reports current source with zero
+pending representation files, repeated `--write` is a no-op, and normal
+generator `--dry-run` reports no drift.
 
 ## 25) Required Test Matrix
 
@@ -1389,9 +1394,10 @@ Models/codecs:
 - [x] malformed/nonfinite/off-grid numeric rejection
 - [x] staged v3/v2 schema versions, canonical round-trip, and strict legacy
       field rejection
-- [x] strict prefab-v1/v2 and chunk-v1 parsing of the complete repository
-      without normal-store defaults or normalization
-- [ ] normal-store `migration_required` behavior after source cutover
+- [x] strict prefab-v1/v2 and chunk-v1 parsing of explicit repository-derived
+      legacy fixtures without normal-store defaults or normalization
+- [x] normal-store `migration_required` behavior for legacy/missing fixtures
+      after source cutover
 - [x] stable shape IDs/list order/equality/copy behavior
 - [x] canonical winding/start and explicit normalization
 
@@ -1418,7 +1424,7 @@ Migration:
 - [x] post-cutover current-schema no-op, mixed-generation rejection,
       canonical-byte enforcement, Core geometry re-review, and zero-pending
       report idempotence
-- [ ] write transaction, source-drift abort, rollback, and write idempotence
+- [x] write transaction, source-drift abort, rollback, and write idempotence
 
 Stores/plugins:
 
@@ -1545,7 +1551,7 @@ before changing the accepted plan.
 | Deprecated chunk-v2 records remain useful migration/history owners but should not become new scheduler candidates. | Preserve and display deprecated owners while excluding them from active seam pools, matching existing active assembly-count semantics. | The §21 current-schema generator must apply the same status filter; normal legacy generation is deliberately unchanged in this staging slice. |
 | The generator's former `--dry-run` returned immediately after source validation, so it could not detect deleted, stale, or orphaned committed outputs. Treating every Dart file below broad output directories as owned would also create false positives. | Render all five expected outputs into one immutable artifact plan, compare exact UTF-8 bytes without writing, and discover unexpected files only by the generator ownership marker. Sort diagnostics by canonical display path and fail nonzero for missing, stale, unexpected, or unreadable expected files. | Every staged terrain artifact must be registered in the same plan and carry the ownership marker. The one-time source migration retains its separate source-fingerprint and transaction gates. |
 | Replacing generated files sequentially could leave a mixed old/new output set after a later write failed; a single filesystem operation cannot atomically replace files in multiple directories. Alias paths such as `nested/../output.dart` could also target the same file twice. | Reject canonically duplicate absolute paths, flush every render to a unique sibling file, move existing targets to sibling backups, install and re-read every output byte-for-byte, then remove backups. On failure, restore in reverse order and report whether rollback was complete; cleanup failure after a verified commit is distinguished explicitly. | Staged polygon artifacts inherit the transaction automatically when added to the artifact plan. This does not satisfy or replace the migration CLI's source-drift recheck and nine-file schema write transaction. |
-| Current repository source is still prefab-v2/chunk-v1, so selecting strict v3/v2 parsing in the live generator before the coordinated migration would make every normal generation fail. Importing editor code into the root generator would also reverse the editor/tool boundary and pull Flutter-oriented package structure into repository generation. | Add focused pure-Dart staged source and compilation files plus one checked-in v3/v2 fixture. Keep them unreachable from `generate_chunk_runtime_data.dart` until the source transaction is ready, and compare their Core signatures with the editor's existing strict codecs/expansion over the same bytes. | The cutover must wire these functions into the single entry point in the same change as source migration, legacy projection, seam validation, and staged Dart artifact registration; the fixture does not authorize an alternate production flag. |
+| Before cutover the repository source was prefab-v2/chunk-v1, so selecting strict v3/v2 parsing in the live generator early would have made every normal generation fail. Importing editor code into the root generator would also reverse the editor/tool boundary and pull Flutter-oriented package structure into repository generation. | Add focused pure-Dart staged source and compilation files plus one checked-in v3/v2 fixture. Keep them unreachable from `generate_chunk_runtime_data.dart` until the source transaction is ready, and compare their Core signatures with the editor's existing strict codecs/expansion over the same bytes. | The completed cutover wired these functions into the single entry point with source migration, legacy projection, seam validation, and staged Dart artifact registration; no alternate production flag exists. |
 | Legacy collider unions defaulted every migrated loop to `solid`, even though the current generator treats platform prefabs as top-only one-way collision. | Apply prefab-kind sidedness after geometric union: 66 repository obstacles are `solid`, 4 platforms are `oneWay`, and colliding decoration/unknown kinds fail closed. Reapply the rule during v3 target construction as a defensive boundary. | The legacy projector and Phase 5 terrain consumer may trust authored collision mode instead of consulting prefab kind again; canonical migration fingerprints intentionally change with the corrected physical contract. |
 | The pre-reset repository compilation rejected 24 positive-area overlaps across six migrated chunks. The user chose clean reauthoring instead of defining a solid-owner union rule. | Keep overlap diagnostics strict. Delete every authored static collider, preserve visuals/metadata/placements/markers, encode no ground in all eight chunks, and prove the collision-cleared targets project exactly with zero blockers. | Reauthor polygon ground, slopes, platforms, and obstacles before Phase 5/playable acceptance; close enemy support/navigation and marker placement against that new terrain. Any future overlap, especially involving `oneWay`, remains rejected. |
 | Chunk width is 600 pixels, which is not divisible by the legacy 16-pixel gap grid, but the collision reset must express exactly zero ground without changing chunk dimensions. | Permit only the exact `x = 0`, `width = chunkWidth` full-ground-removal gap as a grid exception and project it with stable ID `collision_cleared`. Keep every partial gap on the existing grid. | Chunk v2 represents empty direct terrain without a sentinel; remove the legacy exception with the flat-ground/gap source bridge. |
@@ -1560,7 +1566,7 @@ before changing the accepted plan.
 | Current terrain source intentionally represents one simple loop per shape; adding hole/ring fields or a second contour interpretation would create unplanned compiler and editor semantics. | Keep the simple-loop schema. Exact non-adjacent segment intersection already rejects point self-touch and collinear self-overlap. A bridged inner ring or zero-width connection used to encode a hole/disconnected interior necessarily self-touches/overlaps and is rejected through the established blocking `self_intersection` path; disconnected valid solids remain separate shapes. | Phase 5 receives only simple normalized loops. Any future native hole support requires an explicit schema/compiler/triangulation migration rather than treating a bridge encoding as valid content. |
 | The generated Dart artifact retained self-declared signature strings, but its typed import was only count-checked; byte drift found stale output without providing the source/compiled mismatch category or Chunk owner. | Compare the typed artifact with the fresh seam-validated compile before it can be selected. Validate global versions/formats/seam digest, exact Chunk set and source metadata, and all five per-Chunk signatures through the shared blocking envelope. Keep exact record bytes under the existing artifact-plan authority instead of adding another serializer. | Live cutover must run this semantic gate together with exact generated-output drift validation. Neither gate substitutes for the other, and any issue suppresses the staged artifact. |
 | Staged seam validation carried transition evidence but had no explicit severity or repository owner, leaving a major export blocker outside the shared issue contract. | Alias seam findings to `TerrainAuthoringIssue`. Assign set/reference/level faults to each offending Chunk, and assign a directed physical mismatch to the entered/right Chunk while retaining the full transition and both boundary records in the message. | UI focus and export reporting can use one owner-aware contract. Missing or wrong-level pairs emit one issue per owner; no invalid seam set produces a renderable batch. |
-| Exact generated-output drift already had stable codes and rollback-safe byte authority, but its generic finding lacked explicit severity/owner and was separate from semantic staged-artifact acceptance. | Keep `GeneratedArtifactPlan` generic and compose it at the polygon boundary. Adapt each missing/stale/unexpected/unreadable finding to `TerrainAuthoringIssue` with the canonical generated path as source and owner; combine all drift and semantic findings before artifact selection. | Live cutover calls one read-only staged-output gate. Any semantic or byte issue returns no artifact, while the existing transaction utility and five-output generator behavior remain unchanged. |
+| Exact generated-output drift already had stable codes and rollback-safe byte authority, but its generic finding lacked explicit severity/owner and was separate from semantic staged-artifact acceptance. | Keep `GeneratedArtifactPlan` generic and compose it at the polygon boundary. Adapt each missing/stale/unexpected/unreadable finding to `TerrainAuthoringIssue` with the canonical generated path as source and owner; combine all drift and semantic findings before artifact selection. | Live generation calls one read-only staged-output gate. Any semantic or byte issue returns no artifact, while the existing transaction utility now installs the complete six-output plan. |
 | Migration readiness reports and guarded write failures already had stable codes/source evidence, and their canonical JSON/signatures must not gain fields merely to align UI diagnostics. | Preserve `PolygonAuthoringMigrationIssue`, check exceptions, and write exceptions as their report authorities. Add explicit conversion to `TerrainAuthoringIssue`: decoded blockers retain owner/element, file-level pre-check failures use the source path as owner, file-bound write failures emit one issue per path, and transaction-wide failures use `migration/write`. That adapter left report v2 unchanged; the later generated-impact contract deliberately advanced readiness to v3. | Normal export/cutover can consume one issue envelope without coupling UI diagnostics to report shape. Write-report v1, CLI write behavior, rollback, and source-write authorization remain separate contracts. |
 | Phase 0 freezes soft authoring targets for Prefab shapes, polygon vertices, and compiled Chunk edges, but only hard limits for combined Chunk shapes. Treating equality as “near capacity” would also contradict the accepted `<=` targets. | Publish the three soft values as a Core-owned authoring contract and warn only at one over: 17 shapes, 25 vertices, or 1,025 exposed edges. Keep the warnings editor-only, owner-aware, and non-blocking; do not invent a combined-shape warning. | Normal source cutover can reuse the same warnings without changing compiler/runtime acceptance. Any new soft metric needs an explicit measured budget rather than deriving one from a hard cap. |
 
@@ -1573,20 +1579,20 @@ During implementation:
 
 - [x] document the delivered pre-schema source/canonicalization/overlap/exact
       placement boundary in `docs/tdd/polygon_terrain_authoring_foundation.md`
-- [ ] create a focused TDD for source schema ownership, transform order,
+- [x] create a focused TDD for source schema ownership, transform order,
       migration, generation, identity lineage, diagnostics, and staging
 - [x] update `docs/tdd/sloped_navigation_and_enemy_terrain.md` only for the
       delivered generated-data boundary, not production cutover claims
-- [ ] update `tools/editor/README.md` with the user-visible polygon workflow,
+- [x] update `tools/editor/README.md` with the user-visible polygon workflow,
       controls, validation, migration prerequisite, and limitations
-- [ ] update `docs/building/editor/chunkCreator/plan.md` and relevant open
+- [x] update `docs/building/editor/chunkCreator/plan.md` and relevant open
       checklist status where ground/gap/collider authoring is replaced
-- [ ] update root/editor/Core `AGENTS.md` only if actual ownership or working
+- [x] update root/editor/Core `AGENTS.md` only if actual ownership or working
       rules change
 - [ ] keep Phase 5 streaming/rendering and Phase 6 direct cutover work in their
       future building checklists
 - [ ] update schema examples and generator commands after names are final
-- [ ] document every temporary staged/legacy artifact and exact removal phase
+- [x] document every temporary staged/legacy artifact and exact removal phase
 
 No player-facing GDD update is required for a behavior-preserving authoring
 phase unless implementation discovers and accepts a gameplay/content rule.
@@ -1700,6 +1706,8 @@ result.
 | 2026-08-11 / `8f3350be` + `d466040f` + `6edb2e59` | Current-schema normal loading, reload, and atomic source apply | Flutter test VM and Dart analyzer on Windows with Docker running | Full editor analysis is clean and the low-memory `--concurrency=1 --fail-fast` run passes all 463 editor tests. An earlier default-concurrency run passed 258 tests before the standalone migration-entrypoint test exceeded its 30-second timeout under memory pressure; that complete 12-test file then passed alone before the full low-memory rerun. Normal loaders select strict Prefab-v3 and complete all-v2 Chunk source, reject unsupported or mixed generations, and preserve legacy empty/v2+v1 behavior. Guarded reload re-enters the normal loader. Changed current documents require confirmation, reject transient catalog drafts, cross complete validation and final source-drift checks, apply through the existing rollback-safe store transactions, and reload the exact installed bytes. Checked-in authored source remains Prefab-v2/Chunk-v1; migration `--write`, generated production data, and runtime authority remain unchanged. |
 | 2026-08-11 / `0e114ee1` | Fail-closed legacy/missing normal editor routes | Flutter test VM and Dart analyzer on Windows with Docker running | Full editor analysis is clean and the low-memory `--concurrency=1 --fail-fast` run passes all 468 editor tests. Prefab and Chunk generation detection distinguish missing from legacy source, while both states produce one immutable migration-required document/scene containing no editable compatibility data. Validation reports blocking `polygon_authoring_migration_required`; commands are identity no-ops, pending changes are empty, and export fails before filesystem access. The shared route shows detected/required source, the read-only readiness command, and an atomic recheck that preserves the blocking scene on failure. Real-plugin widget tests prove normal checked-in Prefab-v2/Chunk-v1 loading exposes neither rectangle nor ground/gap controls; retained legacy UI tests use explicit test-only compatibility loaders. Authored source bytes, migration `--write`, generated production data, and runtime authority remain unchanged. |
 | 2026-08-11 / `d6cb0012` | Core-owned scheduler reachability enumeration | Dart and Flutter test VMs on Windows with Docker running | Core and editor analysis are clean. Three new Core contract tests and all 10 existing editor seam tests pass. The source-neutral Core boundary now owns tier fallback, finite tier windows, assembly within/between-run transitions, distinct selection, deprecated-owner exclusion, loop/hard-tail behavior, sorted blockers, and the 256-chunk safety bound. The editor's duplicate enumerator was deleted and its thin adapter preserves the exact reviewed `authoring-seams-v1` digest `9681ffb1…93b`, existing issue codes, compiled-boundary comparisons, and sampled scheduler containment. The live generator can now derive production reachability without importing editor code; authored source, generated outputs, migration `--write`, and runtime authority remain unchanged. |
+| 2026-08-11 / `536bfd4f` | Current-source repository generation plan | Dart VM on Windows with Docker running | Three focused tests pass. One fail-closed operation strictly parses Prefab-v3 and Chunk-v2, compiles through Core, derives scheduler reachability, validates every seam, renders staged terrain, and projects the same accepted batch into exact legacy records. Empty terrain succeeds, a reachable mismatch blocks, and diagonal legacy-incompatible content rejects rather than approximating. No source or production output changed in this step. |
+| 2026-08-11 / `e2c06137` | Coordinated polygon authoring-source cutover | Dart and Flutter test VMs on Windows with Docker running | The guarded CLI committed all nine source files as Prefab-v3/Chunk-v2 and a repeated write was a no-op; current readiness reports 99 Prefabs, 8 Chunks, 9 validated targets, and zero pending migrations with `authoring-migration-v1` `3264cf7a…15d`. The single generator now strictly consumes current source, validates Core compilation and scheduler seams, emits `staged_authored_terrain.dart`, and derives the exact legacy projection. All five pre-existing production outputs are byte-identical across the migration rehearsal; the real six-output dry-run is clean. Root, Core, and editor analysis are clean; all 75 root tool/generator tests and 96 focused editor cutover/legacy-isolation tests pass. Runtime construction still cannot import/select staged terrain. |
 
 ### 28.1 Baseline Environment And Source Identity
 
@@ -1762,16 +1770,15 @@ this historical baseline point.
 
 ### 28.3 Migration Gate And Removal Baseline
 
-`phase4_authoring_baseline_test.dart` proves that checked-in Prefab-v2 and
-Chunk-v1 source loads as the shared
-`PolygonAuthoringMigrationRequiredDocument`, not an editable compatibility
-document. Both plugins report blocking
-`polygon_authoring_migration_required`, expose `PendingChanges.empty`, and
-reject export before filesystem access. Dedicated route tests prove Prefab
-rectangle controls, Chunk ground/gap controls, and legacy apply actions are not
-rendered. Missing source is classified separately from legacy but uses the same
-fail-closed state. Legacy compatibility forms/stores remain only for explicit
-removal coverage until the coordinated cutover.
+Before `e2c06137`, `phase4_authoring_baseline_test.dart` proved that checked-in
+Prefab-v2 and Chunk-v1 source loaded as the shared fail-closed migration scene,
+not an editable compatibility document. After cutover, the same baseline loads
+the real `PrefabV3StagingDocument` and `ChunkV2StagingDocument`, produces no
+pending source diff, accepts every Chunk, and reports only the intentional
+non-blocking missing-collision warnings for the 70 cleared Prefabs. Dedicated
+legacy/missing fixtures still prove blocking `polygon_authoring_migration_required`,
+empty pending changes, command identity, and export refusal. Legacy
+compatibility forms/stores remain only for the active removal slice.
 
 Legacy controls recorded for replacement are:
 
@@ -1819,29 +1826,52 @@ On August 3, 2026, the user explicitly chose complete collision deletion and
 later polygon reauthoring instead of preserving or unioning the legacy collider
 layout. The exact structural audit records:
 
-- 99 prefab records: 66 obstacles, 4 platforms, and 29 decorations
-- 70 former collision owners classified as `collisionCleared`; zero collider
-  or planned polygon shapes
+- 99 Prefab-v3 records: 66 obstacles, 4 platforms, and 29 decorations
+- 70 former collision owners retain the migration classification
+  `collisionCleared`; all 99 current `collisionShapes` lists are empty
 - all visuals, kinds, metadata, stable keys, and decoration revisions retained;
   only those 70 collision owners receive one revision bump
-- 8 chunks with one full-width `collision_cleared` gap each and zero finite
-  ground shapes
+- 8 Chunk-v2 files with empty direct `collisionShapes`; the compatibility
+  generator projects each one to a full-width `collision_cleared` gap
 - all 50 prefab placements and 2 enemy markers retained
 - generated `authored_chunk_patterns.dart` contains zero `SolidRel` records and
   8 full-width gaps
 - migration plan/legacy/current fingerprints are `51630457`, `f74fa5f0`, and
   `12475a2a`
 
-This is deliberately not a playable content milestone. Legacy authority is
-still selected, but it now has no static support geometry. Éloïse, grounded
+This is deliberately not a playable content milestone. Legacy runtime
+authority is still selected, while both the current staged artifact and its
+compatibility projection have no static support geometry. Éloïse, grounded
 enemies, navigation graphs, and terrain-relative marker resolution cannot be
 accepted against repository content until polygon terrain is reauthored.
 
-The full regression closure is recorded under `8aa880a6`: analysis is clean in
-every affected Dart package; all editor, generator, Core, and replay-validator
-tests pass; the repository migration check remains read-only and blocker-free;
-and generator dry-run reports no drift. This validates the reset itself but
-does not close the Phase 4 source cutover or polygon reauthoring gates.
+The reset regression closure is recorded under `8aa880a6`; the later source
+cutover is recorded under `e2c06137`. Current readiness is blocker-free and
+zero-pending, and generator dry-run reports no drift. Polygon reauthoring and
+runtime terrain authority remain later work.
+
+### 28.6 Current Schema And Generated Identity
+
+The committed current source and newly registered staged output have these
+post-cutover SHA-256 values:
+
+| Current artifact | SHA-256 |
+| --- | --- |
+| `assets/authoring/level/prefab_defs.json` | `F4DE5F4B52479FC14EEFFB7F1D6F8C1965B9FB171AD719CE2F5A707EC7548688` |
+| `chunks/field/field_flat.json` | `1150ED19E3309C4C25410EC224FE8B41A4A31869E1CA741EB83B9F62202E0C9B` |
+| `chunks/forest/forest_early_00.json` | `C66914D03785C99737C553EF91337B06C3F3FD51BEC7DBD1FFA0C0DD266012CE` |
+| `chunks/forest/forest_early_01.json` | `110847B7E007F3C97BF5B84300525BF2CD2CFFEA3170F9A813CB4CF55015DEE2` |
+| `chunks/forest/forest_early_02.json` | `14C7C1EB673B94EB1A0E0D6B395AEDD53498303E7851AC34EB0DA8BFEA09B844` |
+| `chunks/forest/forest_early_03.json` | `4DBD5DC2C2EE740EC1F7D157D15FCB38900FB41721927E1734C7DC96E2BAE3F1` |
+| `chunks/forest/forest_early_flat.json` | `51BF9488C5D50B69C9F8DEE9A2765FB134B5AA626AD5BFCAF465414DD5B6FEF3` |
+| `chunks/forest/forest_easy_woodcamp_00.json` | `9C103E99662966C483507376A0039A77F8284ED3B7C6B170BA75FE6D1BFABDA5` |
+| `chunks/forest/forest_normal_woodcamp_00.json` | `3ED517F2C347E7CCA293ED29CC25F4EA27B65F315AB357192818560A167381D1` |
+| `packages/runner_core/lib/track/staged_authored_terrain.dart` | `8F8D3B455A66351B6B215140D4C421944F3804AD323AF2558E20891BABD8F87F` |
+
+The staged artifact binds seam digest `7878b7f1…dbdf3`; all per-Chunk terrain
+signatures are the standard empty SHA-256 because collision was intentionally
+cleared. A repository migration rehearsal proved the five pre-existing
+generated outputs byte-identical before committing the real source change.
 
 Minimum final commands:
 
@@ -1882,24 +1912,24 @@ seam, parity, golden, and normal-construction test introduced by this phase.
 
 Phase 4 is complete only when:
 
-- [ ] the complete baseline and Phase 0 migration audit are reproduced
-- [ ] prefab v3/chunk v2 are the only normal authoring write formats
-- [ ] committed authoring source contains no rectangle collider, flat-profile,
+- [x] the complete baseline and Phase 0 migration audit are reproduced
+- [x] prefab v3/chunk v2 are the only normal authoring write formats
+- [x] committed authoring source contains no rectangle collider, flat-profile,
       or gap source fields
-- [ ] the migration check is blocker-free or every blocker is explicitly
+- [x] the migration check is blocker-free or every blocker is explicitly
       reviewed and reauthored
-- [ ] repeated migration check/write is deterministic and idempotent
+- [x] repeated migration check/write is deterministic and idempotent
 - [ ] a non-developer can complete polygon creation/edit/diagnostic/export
       workflows without hand-editing JSON or Dart
-- [ ] invalid polygons, expanded placements, limits, and scheduler-reachable
+- [x] invalid polygons, expanded placements, limits, and scheduler-reachable
       seams block export with actionable diagnostics
-- [ ] editor preview, generator, generated records, and Core compiler parity
+- [x] editor preview, generator, generated records, and Core compiler parity
       signatures agree
-- [ ] staged polygon/edge/triangle/lineage output is deterministic and
+- [x] staged polygon/edge/triangle/lineage output is deterministic and
       unreachable from normal production construction
-- [ ] legacy generated projection is exact, bounded, documented, and rejects
+- [x] legacy generated projection is exact, bounded, documented, and rejects
       non-orthogonal approximation
-- [ ] no normal editor/store path writes legacy source fields
+- [x] no normal editor/store path writes legacy source fields
 - [ ] no duplicate geometry, transform, validation, or persistence authority
       exists across Prefab and Chunk routes
 - [x] no-op save, dry-run generation, and fresh-process goldens are stable
@@ -1907,7 +1937,7 @@ Phase 4 is complete only when:
 - [x] polygon interaction p95/p99 and missed-input gates pass
 - [ ] full editor/Core/root/validator analysis and tests pass
 - [ ] documentation and the implementation findings ledger are current
-- [ ] normal production levels and replay validation still use legacy authority
+- [x] normal production levels and replay validation still use legacy authority
 
 Passing a polygon widget demo or migrating only one fixture is not Phase 4
 completion. The entire repository source, generator boundary, editor workflow,

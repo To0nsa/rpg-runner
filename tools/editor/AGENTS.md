@@ -178,8 +178,10 @@ maintainability concerns.
 - source-of-truth files:
   - `assets/authoring/level/prefab_defs.json`
   - `assets/authoring/level/tile_defs.json`
-- persist through `PrefabStore` so canonical ordering, migration defaults, and
-  atomic paired writes stay consistent
+- `prefab_defs.json` uses strict schema v3 polygon `collisionShapes`; legacy
+  Prefab parsing belongs to the explicit offline polygon migration command
+- persist through `PrefabStore` so canonical ordering and atomic paired writes
+  stay consistent
 - page-local form and scene state may stay in `prefabCreator/**`, but
   load/validate/export contracts still flow through the prefab plugin/store path
 - validation is structural and contract-oriented; keep obstacle/platform
@@ -191,6 +193,8 @@ maintainability concerns.
   `tools/editor/lib/src/app/pages/chunkCreator/chunk_creator_page.dart`
 - plugin: `ChunkDomainPlugin`
 - source-of-truth directory: `assets/authoring/level/chunks/*.json`
+- checked-in chunks use strict schema v2 direct polygon `collisionShapes`;
+  legacy flat-profile/gap parsing belongs to offline migration only
 - keep one-chunk-per-file semantics, stable `chunkKey`, deterministic save-plan
   output, source-drift checks, and case-insensitive path-collision protection
 

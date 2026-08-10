@@ -2,34 +2,32 @@
 
 ## Status And Authority Boundary
 
-The exact polygon-source foundation is implemented in `runner_core` and the
-standalone editor. Prefab-v3 and complete Chunk-v2 trees are now the normal
-editable editor contract when source is already current. The checked-in source
-is still legacy and therefore opens one fail-closed migration-required scene;
-polygon terrain is not yet authoritative in production gameplay.
+The exact polygon-source foundation is implemented in `runner_core`, the root
+generator, and the standalone editor. Checked-in authoring now uses Prefab-v3
+and complete Chunk-v2 trees. Polygon terrain is generated but remains
+unreachable from production gameplay construction.
 
-The checked-in source and runtime boundary remain legacy, while normal editor
-schema selection is generation-aware. The committed content has entered an
-explicit collision-reset state:
+The source boundary is current while the runtime boundary remains legacy. The
+committed content is an explicit collision-reset state:
 
-- prefab authoring still persists schema v2 rectangle `colliders`
-- chunk authoring still persists schema v1 `groundProfile` and `groundGaps`
+- prefab authoring persists schema v3 `collisionShapes`
+- chunk authoring persists schema v2 direct `collisionShapes`
 - normal Prefab/Chunk plugin loads expose no legacy editable data, commands,
   pending diffs, or export; the shared migration route provides only a
   read-only readiness command and atomic source recheck
 - normal `GameCore(...)` and replay validation still use legacy rectangle
   motion authority
 - all 99 prefab records retain visuals, kinds, metadata, and identity, while
-  every collider list is intentionally empty
-- all eight chunks retain their placements and markers, while one full-width
-  `collision_cleared` gap suppresses the legacy ground plane
-- generated production patterns therefore contain no static solids or ground
-  support; player traversal, enemy support/navigation, and terrain-relative
-  marker placement are intentionally unavailable until reauthoring
-- a staged Dart renderer and executable fixture exist, but the normal generator
-  still registers only its five legacy outputs and Flame has no terrain consumer
+  every polygon list is intentionally empty
+- all eight chunks retain their placements and markers with empty direct
+  terrain; the generator derives one full-width `collision_cleared` legacy gap
+- both staged terrain and production compatibility patterns therefore contain
+  no static support; player traversal, enemy support/navigation, and
+  terrain-relative marker placement are unavailable until reauthoring
+- the normal generator registers the staged Dart artifact as its sixth output,
+  while Flame and normal Core/replay construction have no terrain consumer
 
-The active schema migration, generator, preview, and cutover work remains in
+The active compatibility cleanup and Phase 4 acceptance work remains in
 [the Phase 4 checklist](../building/slopes/phase4-implementation-checklist.md).
 
 ## Ownership
@@ -54,25 +52,25 @@ The active schema migration, generator, preview, and cutover work remains in
 | Retained tile-v2 structure and canonical serialization | editor `PrefabTileFileData` / `PrefabTileFileCodec` | current-source byte round-trip plus normal v3 paired load/save |
 | Prefab visual-source bounds | editor `PrefabVisualBoundsResolver` | retained v2 compatibility validation plus normal v3 atlas-slice/platform-module loading |
 | Prefab polygon commit and revision policy | editor `PrefabV3CollisionCommitPolicy` | shared reducer, defensive plugin command, and normal current-schema route tests |
-| Prefab-v3 plugin document | editor `PrefabV3StagingDocument` / `PrefabDomainPlugin` | normal strict current-source selection, typed commits, immutable pending diffs, complete validation, transactional apply, and exact reload; the temporary type name remains until coordinated source cutover |
+| Prefab-v3 plugin document | editor `PrefabV3StagingDocument` / `PrefabDomainPlugin` | normal strict current-source selection, typed commits, immutable pending diffs, complete validation, transactional apply, and exact reload; the temporary type name remains in the active post-cutover cleanup |
 | Prefab polygon route-local projection | editor `PrefabPolygonAuthoringController` / `PrefabPolygonSceneSurface` / `PrefabPolygonStagingWorkspace` | normal strict-v3 routing, owner isolation, visual sources, tools, snap, diagnostics, focus, keyboard, rejection, and history; legacy/missing source selects no rectangle workflow |
 | Legacy/missing editor source gate | editor `PolygonAuthoringMigrationRequiredDocument` / `PolygonAuthoringMigrationRequiredScene` | shared fail-closed Prefab/Chunk route, blocking validation, command/export refusal, read-only readiness command, and atomic source recheck |
 | Fail-closed authored JSON and retained-metadata parsing | editor neutral domain plus `StrictTerrainSourceCodec` | legacy migration plus normal prefab-v3 and chunk-v2 codecs |
 | Legacy prefab occupied-area union and reviewed corrections | editor prefab migration domain | aggregate check plan; removal follows verified prefab v3 write |
 | Legacy flat-ground/gap conversion | editor chunk migration domain | aggregate check plan; removal follows verified chunk v2 write |
 | Strict legacy prefab-v1/v2 and chunk-v1 source parsing | editor migration-owned `LegacyPrefabDef` / chunk-v1 models | read-only aggregate planner input; compatibility stores and normal `PrefabDef` are bypassed |
-| Cross-domain canonical migration report | editor migration domain | read-only CLI, strict in-memory targets, and exact source SHA-256 audit; source writes remain pending |
-| Guarded migration write transaction | editor `WorkspaceWriteTransaction` / `PolygonAuthoringMigrationTransaction` | temporary-workspace tests only; the CLI has no write caller and real source remains legacy until coordinated source cutover |
+| Cross-domain canonical migration report | editor migration domain | read-only checks, explicit externally reported writes, strict in-memory targets, and exact source SHA-256 audit |
+| Guarded migration write transaction | editor `WorkspaceWriteTransaction` / `PolygonAuthoringMigrationTransaction` | explicit CLI `--write`, rollback/no-op evidence, and the completed nine-file source cutover |
 | Strict chunk-v2 file structure, canonical serialization, and ownership planning | editor `ChunkV2FileData` / `ChunkV2FileCodec` / `ChunkStore.buildV2StagingSavePlan` | migration facade delegation plus normal complete-current-tree load, pending plans, rollback-safe apply, and exact reload |
-| Chunk-v2 plugin validation, mutation, and lifecycle policy | editor `ChunkV2StagingDocument` / `ChunkV2CollisionCommitPolicy` / `ChunkV2MetadataCommitPolicy` / `ChunkV2CompositionCommitPolicy` / `ChunkV2LifecycleCommitPolicy` / `ChunkDomainPlugin` | normal strict current-source composition; complete Core/editor validation; freshness/order/revision enforcement; typed polygon, metadata, composition, lifecycle commits; transactional export; temporary type name retained until cutover |
+| Chunk-v2 plugin validation, mutation, and lifecycle policy | editor `ChunkV2StagingDocument` / `ChunkV2CollisionCommitPolicy` / `ChunkV2MetadataCommitPolicy` / `ChunkV2CompositionCommitPolicy` / `ChunkV2LifecycleCommitPolicy` / `ChunkDomainPlugin` | normal strict current-source composition; complete Core/editor validation; freshness/order/revision enforcement; typed polygon, metadata, composition, lifecycle commits; transactional export; temporary type name retained in post-cutover cleanup |
 | Chunk polygon route-local projection | editor `ChunkPolygonAuthoringController` / `ChunkPolygonSceneSurface` / `ChunkPolygonStagingWorkspace` | normal complete-v2 routing, active-level owner isolation, tools, snap, bounds, diagnostics, keyboard, rejection, history, compiled-edge inspection, actor-terrain, and marker-placement overlays; legacy/missing source selects no ground/gap workflow |
 | Chunk actor terrain projection | editor `ChunkV2ActorTerrainProjection` | Core surface extraction; Éloïse/Grojib/Hashash eligibility; published Grojib/Hashash graphs; Unoco solid/local-hover evidence; Derf 15-degree/32-pixel perch evidence; no player/flight graph or source mutation |
 | Chunk marker contract and placement projection | editor `chunk_v2_marker_contract.dart` / `ChunkV2MarkerPlacementProjection` | immutable level ground context, staged marker validation, exact Phase 3 enemy placement evidence, Hashash deferral, authored-order/stable-key retention, and zero RNG/source mutation |
 | Scheduler-aware chunk seam analysis | editor `chunk_v2_seam_analysis.dart` | immutable `LevelDef` snapshot, canonical compiled boundary signatures, runtime-contract adjacency enumeration, global staged validation, and read-only compatible/failing neighbor evidence |
-| Strict staged generator source and compilation | root `polygon_terrain_source.dart` / `polygon_terrain_compilation.dart` | prefab-v3/chunk-v2 fixture parsing, Core compilation, placement lineage, and exact triangulation; live entry-point selection is pending |
-| Staged local generated-record contract | `runner_core` `staged_terrain_data.dart` | executable generated fixture only; no gameplay, renderer, replay-validator, or live-generator consumer |
-| Staged Dart terrain rendering and signature verification | root `polygon_terrain_render.dart` / `polygon_terrain_artifact_validation.dart` | exact fixture golden, artifact-plan byte drift, and owner-aware typed artifact/fresh-compile signature checks; future production output path is reserved but not registered |
-| Exact legacy compatibility projection | root `polygon_terrain_legacy_projection.dart` | pure accepted-chunk projection and repository parity characterization only; no live generator/runtime consumer |
+| Strict staged generator source and compilation | root `polygon_terrain_source.dart` / `polygon_terrain_compilation.dart` | live Prefab-v3/Chunk-v2 parsing, Core compilation, placement lineage, and exact triangulation |
+| Staged local generated-record contract | `runner_core` `staged_terrain_data.dart` | live generated artifact only; no gameplay, Flame, or replay-validator consumer |
+| Staged Dart terrain rendering and signature verification | root `polygon_terrain_render.dart` / `polygon_terrain_artifact_validation.dart` | registered sixth output, artifact-plan byte drift, and owner-aware typed artifact/fresh-compile signature checks |
+| Exact legacy compatibility projection | root `polygon_terrain_legacy_projection.dart` | live generator-only projection from the accepted polygon batch to the temporary production `ChunkPattern` authority |
 
 Core has no dependency on editor models, JSON, widgets, or filesystem state.
 The editor depends on Core through a one-way local package dependency and does
@@ -205,8 +203,8 @@ Core reviews each source loop without mutating it. The exact review:
 Committed noncanonical source can therefore be diagnosed without being
 silently rewritten. The editor adapter returns a new shape when an explicit
 Normalize operation applies Core's canonical vertices. The shared interaction
-reducer now exposes that operation as one undoable before/after commit; its
-button and keyboard wiring remain pending in the prefab and chunk routes.
+reducer exposes that operation as one undoable before/after commit, and both
+current Prefab and Chunk workspaces expose the action.
 
 Cross-shape overlap also uses exact integer products. Proper crossings,
 containment, coincident occupied area, and same-interior collinear boundaries
@@ -237,9 +235,9 @@ rejects a placement that collapses area or makes any edge shorter than one
 world unit.
 
 The editor adapter accepts anchor and translation in integer half-pixel ticks
-and scale as integer tenths. Existing editor placement JSON still stores a
-`double`; converting that legacy field and the root generator to this exact
-boundary is pending Phase 4 work.
+and scale as integer tenths. Chunk-v2 JSON retains the user-facing decimal
+scale, while strict parsing converts only accepted `0.1` steps to the exact
+integer-tenths Core boundary used by both editor preview and generation.
 
 ## Read-only Legacy Prefab Union Planner
 
@@ -275,10 +273,9 @@ all 66 obstacle owners emit `solid` loops and all 4 platform owners emit
 `oneWay` loops. A decoration or unknown owner with collision fails closed.
 Target conversion reapplies the same rule defensively, so a caller cannot turn
 a platform solid by supplying a default-mode loop. That audit remains the
-historical migration baseline. The current v2 file intentionally contains zero
-colliders; the 70 former collision owners are classified as
-`collisionCleared`, distinct from the 29 true decoration prefabs. Prefab v3
-writing remains pending.
+historical migration baseline. The current v3 file intentionally contains zero
+collision shapes; the migration report retains 70 former collision owners as
+`collisionCleared`, distinct from the 29 true decoration prefabs.
 
 ## Legacy Chunk Ground Planner And Aggregate Check Report
 
@@ -349,8 +346,9 @@ report signs as
 the strict current-schema no-op signs as
 `3264cf7a0d276f851bcd19eb98c63a5d35aa473fdc5dcdeb82b21cee642dc15d`.
 Changing only exact source bytes changes the signature. The existing short FNV
-fingerprints remain compatibility/display tokens. The CLI emits the new
-canonical report; source-write authorization remains disabled.
+fingerprints remain compatibility/display tokens. The CLI emits the canonical
+report. Explicit `--write` requires an external JSON report path and the same
+complete blocker-free fingerprint-bound plan.
 
 Migration retains its report-specific issue types and also exposes a shared
 blocking-envelope view. Plan/check blockers and source-digest audits preserve
@@ -365,17 +363,19 @@ Rectangle-era prefab records used by this path are isolated as
 codec, migration planner, reviewed union, and v3 target conversion no longer
 depend on normal `PrefabDef`. This preserves the frozen legacy interpretation
 while the immutable normal `PrefabV3Def` record establishes polygon ownership
-without retaining a second editable rectangle authority. The existing v2
-`PrefabDef`, store, and UI remain active until their single cutover.
+without retaining a second editable rectangle authority. Compatibility records
+remain only in the active cleanup/test surface and are not selected by normal
+current-source loading.
 
 `tool/migrate_polygon_authoring.dart` defaults to check mode. It returns `0`
 for a complete blocker-free readiness plan, `1` for source/plan/target/drift or
 report-write failure, and `64` for invalid usage. Immediately before reporting,
 it rereads and rehashes every source. The only optional write is an explicitly
-requested workspace-relative `.json` report outside `assets/authoring`;
-`--write` is rejected. The command dependency chain is pure Dart: shared model
-immutability annotations use `package:meta` rather than pulling `dart:ui` into
-offline tooling.
+requested workspace-relative `.json` report outside `assets/authoring`.
+`--write` requires such a report path, applies the guarded transaction, and
+records committed, no-op, or stable failure evidence. The command dependency
+chain is pure Dart: shared model immutability annotations use `package:meta`
+rather than pulling `dart:ui` into offline tooling.
 
 Canonical prefab/chunk source paths likewise live in the Flutter-free
 `RepositoryAuthoringPaths` contract. `PrefabStore` and `ChunkStore` retain
@@ -415,18 +415,12 @@ source path; transaction-wide failures without file evidence use the stable
 `migration/write` source and owner. It does not change rollback or report
 semantics.
 
-This foundation is intentionally not reachable from
-`tool/migrate_polygon_authoring.dart`: `--write` remains a usage error until
-normal Prefab and Chunk stores consume v3/v2, rollback evidence is ready for
-report-file emission, and the coordinated source/generator cutover is ready.
-The checked-in authoring files remain prefab-v2/chunk-v1.
-
-The readiness report is still not a source-write authorization. Transaction
-and rollback mechanics are proven in isolated workspaces, but normal editor
-schema support, CLI authorization and report-file emission, staged output
-impact, and coordinated source replacement remain separate gates. The
-legacy authority remains selected, but its checked-in content now intentionally
-describes an empty static world.
+The migration command reaches this boundary only through explicit `--write`
+with a required external report path. The completed source cutover installed
+all nine current files and strictly reloaded them before backup cleanup; a
+fresh repeated write is a byte-preserving no-op. Ordinary `--check` remains
+read-only. Runtime legacy authority remains selected, while current source and
+staged output intentionally describe an empty static world.
 
 ## Polygon Target Schemas And Normal Records
 
@@ -463,8 +457,8 @@ normal editor layers own both current source structures. Normal plugin loading
 selects strict Prefab-v3 or a complete Chunk-v2 tree, and changed current source
 applies transactionally and reloads byte-identically. Legacy or missing source
 selects the shared migration-required document without decoding editable
-compatibility data. The generator, checked-in source JSON, and runtime authority
-remain legacy until the coordinated migration.
+compatibility data. The generator and checked-in source JSON are current;
+runtime collision authority remains legacy until Phase 5.
 
 The staging load composes prefab v3 with the unchanged `tile_defs.json` v2
 contract through `PrefabTileFileData` and `PrefabTileFileCodec`; it never sends
@@ -601,12 +595,12 @@ drags and empty commits out of session undo/redo.
 
 The handler is exercised through the temporarily named
 `PrefabV3StagingDocument`. Normal loading constructs it only after strict v3
-generation detection; checked-in v2 or missing source instead constructs the
+generation detection; legacy v2 or missing source instead constructs the
 shared migration-required document. Clean export is a no-op. Changed current
 source crosses complete validation and the paired source-drift-guarded,
 rollback-safe store transaction, then reloads the installed bytes. The
-`Staging` name is removed at coordinated source cutover and must not survive as
-a parallel authority.
+`Staging` name remains a temporary post-cutover cleanup item and must not
+survive Phase 4 as a parallel authority.
 
 `PrefabPolygonAuthoringController` proves the route boundary against that
 staging document. It keeps tool, selection, draft, gesture preview, and rejected
@@ -829,11 +823,10 @@ placement query or RNG draw. Procedural collectible/restoration candidates
 have no authored marker records and are not fabricated. Projectile terrain is
 explicitly later-phase work and is not previewed.
 
-When this marker-staging bridge was introduced, the normal chunk-v1 route,
-prefab-v2 source, authored JSON, generator input, and runtime collision
-authority were unchanged. The later collision reset changes authored/runtime
-content, not this marker resolver's ownership. Generator parity, placement
-editing, and normal-schema cutover remain later Phase 4 gates.
+When this marker-staging bridge was introduced, source and runtime authority
+were unchanged. The later collision reset and v3/v2 source cutover change
+authored/generated content, not this marker resolver's ownership. Generator
+parity and placement editing now retain the same zero-RNG marker contract.
 
 ## Scheduler-Aware Compiled Chunk Seams
 
@@ -911,19 +904,18 @@ Unknown/missing schema fields, duplicate transitions, delimiter-ambiguous
 identities, canonical-record drift, and digest drift fail closed. This proves
 cross-process adjacency-set parity. The staged generator then resolves every
 transition against the shared Core compiled-boundary comparator before it can
-construct the renderer's accepted batch, as detailed below. Normal chunk-v1
-generation and production runtime selection remain unchanged. The live
-current-schema generator can now consume the same enumerator during the
-coordinated source cutover without importing editor code or duplicating
-scheduler logic.
+construct the renderer's accepted batch, as detailed below. The live
+current-schema generator consumes the same enumerator without importing editor
+code or duplicating scheduler logic. Production runtime selection remains
+unchanged.
 
 ## Generated Artifact Plan And Dry-Run Drift Gate
 
 `tool/generate_chunk_runtime_data.dart` remains the single repository
-generation entry point. After legacy source validation, it renders all five
-existing Dart outputs completely in memory and snapshots them in one immutable
-artifact plan sorted by path. This refactor does not change prefab-v2/chunk-v1
-input, generated record shape, or generated bytes.
+generation entry point. After strict current-source compilation and seam
+validation, it renders all six Dart outputs completely in memory and snapshots
+them in one immutable artifact plan sorted by path. Five outputs retain their
+production record shape; the sixth is the unreachable staged terrain artifact.
 
 Dry-run compares each rendered UTF-8 byte sequence with the corresponding file
 bytes. It emits stable, path-sorted diagnostics for missing, stale, or
@@ -948,16 +940,14 @@ distinguishes a complete rollback, an incomplete rollback needing manual
 recovery, and cleanup failure after every output was already verified and
 committed. This is the generated-output transaction only: it does not replace
 the migration CLI's pending source-fingerprint recheck and nine-source schema
-transaction. Live polygon-schema selection and production staged-output
-registration remain Phase 4 work; staged seam-manifest consumption and
-compiled-boundary gating are now delivered below.
+transaction. Polygon-schema selection, staged-output registration,
+seam-manifest consumption, and compiled-boundary gating are now delivered.
 
 ## Strict Staged Generator Compiler And Artifact Foundation
 
-The repository source is still prefab-v2/chunk-v1, so the live generator cannot
-select current-schema parsing before the coordinated source migration. Six
-focused pure-Dart files now establish that future boundary without adding a
-flag, production generated file, or runtime consumer:
+The live generator selects the current Prefab-v3/Chunk-v2 repository source.
+Six focused pure-Dart files implement that boundary without adding an alternate
+flag or runtime consumer:
 
 - `polygon_terrain_source.dart` strictly parses prefab-v3 and chunk-v2
   structures as written, including field sets, exact types, canonical list
@@ -1006,11 +996,11 @@ records; the editor parity adapter calls the same triangulator and signature
 function. Neither consumer reimplements ear selection or triangle
 serialization.
 
-The future output path is owned by Core's
+The staged output path is owned by Core's
 `stagedTerrainArtifactRepositoryPath` constant as
 `packages/runner_core/lib/track/staged_authored_terrain.dart`. Offline migration
-and generation share that workspace-relative identity; declaring it neither
-registers a generated output nor selects it at runtime. Its deliberately narrow
+and generation share that workspace-relative identity. It is registered in the
+generator plan but remains unselected at runtime. Its deliberately narrow
 API is `StagedTerrainArtifactData`, defined in `staged_terrain_data.dart`; it
 cannot be confused with the current `ChunkPattern` authority. The artifact is
 self-describing with artifact and
@@ -1069,9 +1059,9 @@ creates local source/edge IDs without an instance-index field. Runtime streaming
 the real instance index and geometry version in Phase 5. The checked-in output
 golden contains no `chunkIndex` token, and a production-tree import audit proves
 that normal Core construction, Flutter, and the replay validator cannot select
-either staged record or future output file. The live generator likewise does
-not import the renderer yet; this is a one-way staged boundary, not a runtime
-feature flag.
+the staged records or output file. The live generator is the only production
+importer of the renderer; this remains a one-way generation boundary, not a
+runtime feature flag.
 
 The shared checked-in fixture contains a concave direct solid, one-way source,
 surface/material metadata, and an exactly scaled/reflected prefab placement.
@@ -1086,9 +1076,9 @@ is reproduced byte-for-byte by fresh compiles through the normal artifact
 drift plan, and remains identical when its compiled chunk input is reversed.
 `UPDATE_POLYGON_TERRAIN_GOLDEN=1` is the explicit fixture-only update path;
 ordinary tests are read-only. This proves the representative compiler and
-render seam but not the complete §22 matrix. Live generator wiring,
-tile-backed prefab owner validation, complete repository legacy projection,
-and source cutover remain open.
+render seam. Live generator wiring, tile-backed Prefab owner validation,
+complete repository legacy projection, and source cutover are now delivered;
+content reauthoring remains open.
 
 A second checked-in fixture isolates transform extrema and terrain-topology
 parity from the reviewed Dart artifact golden. Its canonical prefab source has
@@ -1139,8 +1129,8 @@ editor migration command receives the same fresh-process treatment: two
 standalone checks over one temporary workspace emit byte-identical canonical
 reports and reproduce `authoring-migration-v1`
 `561d49b28eba5f6a86e78c212798a7c40e483d71b9484f76b1b2ac82bf6a2597`.
-These probes close staged determinism; they do not authorize live output
-registration or source migration.
+These probes closed staged determinism before live output registration and
+source migration were enabled through the guarded cutover.
 
 The staged compilation failure contract is also explicit. Unknown references
 and key/ID aliases that resolve to multiple prefabs produce stable placement
@@ -1294,8 +1284,8 @@ and style have structural equality so equivalent frames do not repaint.
 This painter does not compile geometry and its fills are never collision or
 navigation authority. Collision-edge/normal/lineage diagnostics must come from
 the Core compiler preview adapter. Both explicit staging routes install the
-painter and plugin/session wiring. Normal Prefab/Chunk source cutover and Core
-normal-vector drawing remain pending; Core-compiled edge selection,
+painter and plugin/session wiring. The normal Prefab/Chunk source cutover is
+complete; Core normal-vector drawing remains pending. Core-compiled edge selection,
 placed-polygon lineage, and actor-terrain eligibility/navigation evidence are
 already available in Chunk staging.
 

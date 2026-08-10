@@ -17,11 +17,12 @@ flutter run -d windows
 Implemented authoring domains:
 
 - entity collider/source-bound authoring for players, enemies, and projectiles
-- prefab (obstacle/platform/decoration), tile-slice, and platform-module
-  authoring, including tagged atlas/tile slices and searchable slice selection
-- chunk authoring with scene-based prefab composition, shared pan/zoom/grid
-  controls, prefab flip toggles, rendered floor/gap visualization, and
-  metadata/ground editing
+- prefab (obstacle/platform/decoration), tile-slice, platform-module, and exact
+  half-pixel polygon-collision authoring, including tagged atlas/tile slices
+  and searchable slice selection
+- chunk authoring with direct terrain polygons, expanded placed-Prefab
+  collision, actor/navigation/marker diagnostics, scene-based composition,
+  shared pan/zoom/grid controls, and Prefab transform editing
 - level metadata authoring with list/inspector editing, lifecycle controls,
   assembly segment sequencing, render-theme run validation, pending diff
   preview, and direct-write export
@@ -35,21 +36,20 @@ Editor foundations shared across those domains:
 - undo/redo history for entity edits, chunk edits, and committed prefab/module edits
 - shared pan/zoom scene controls, inspector forms, and deterministic export summaries
 
-## Polygon Migration Readiness Check
+## Polygon Source Migration Command
 
 The checked-in level content is currently in an intentional collision-reset
 state for polygon reauthoring. All prefab visuals, kinds, metadata, placements,
-and markers are retained, but obstacle/platform collider lists are empty. Each
-chunk uses one full-width `collision_cleared` gap to express that no legacy
-ground should be generated. Missing prefab collision is therefore a visible,
-non-blocking authoring warning. Partial gaps still obey the normal grid rules.
+and markers are retained, but Prefab-v3 and Chunk-v2 `collisionShapes` lists
+are empty. The generator projects each empty Chunk to one full-width
+`collision_cleared` compatibility gap. Missing Prefab collision is therefore a
+visible, non-blocking authoring warning.
 
-Until polygons are reauthored and the coordinated source/runtime cutover is
-complete, the repository levels have no static terrain support for players,
-enemies, marker placement, or navigation.
+Until polygons are reauthored and runtime terrain authority is delivered, the
+repository levels have no static terrain support for players, enemies, marker
+placement, or navigation.
 
-Phase 4 includes a read-only offline check for the planned prefab-v3/chunk-v2
-polygon source migration:
+Phase 4 includes an offline check for Prefab-v3/Chunk-v2 polygon source:
 
 ```bash
 cd tools/editor
@@ -57,16 +57,21 @@ dart run tool/migrate_polygon_authoring.dart --check \
   --report=.tmp/slopes-phase4-migration.json
 ```
 
-Omitting `--check` still runs check mode. The command strictly parses the
-legacy prefab/chunk files, builds and round-trips all target files in memory,
-records before/after SHA-256 values plus revision and placement-impact facts,
-and rechecks source digests before reporting. The optional report must be a
-workspace-relative `.json` path outside `assets/authoring`.
+Omitting `--check` still runs check mode. The command detects a complete legacy
+or current generation, strictly parses it, builds and round-trips all target
+files in memory, records before/after SHA-256 values plus revision and
+placement-impact facts, and rechecks source digests before reporting. The
+optional report must be a workspace-relative `.json` path outside
+`assets/authoring`. Checked-in source now reports current with nine validated
+targets and zero pending representation migrations.
 
 Exit codes are `0` for a blocker-free readiness plan, `1` for a source,
 planning, target-validation, drift, or report failure, and `64` for invalid
-arguments. `--write` is intentionally unavailable: the command cannot modify
-authored source or activate polygon collision at runtime.
+arguments. Explicit `--write` is retained for a complete blocker-free legacy
+workspace and requires `--report=<external-path.json>`; it uses the guarded
+nine-file transaction and emits committed/no-op/failure evidence. Re-running it
+against current source is a no-op. Source migration does not activate polygon
+collision at runtime.
 
 ## Polygon Interaction Profile Benchmark
 
@@ -105,5 +110,5 @@ reloaded from the exact installed bytes. Legacy or missing source opens one
 shared migration-required workspace with no editable data, pending diff, or
 export path. It shows the read-only readiness command and can atomically
 recheck source after an external migration; it never exposes Prefab-v2
-rectangle or Chunk-v1 ground/gap controls. The one-time migration `--write`
-command and live polygon runtime authority remain unavailable.
+rectangle or Chunk-v1 ground/gap controls. The one-time migration command is
+complete; live polygon runtime authority remains unavailable.
