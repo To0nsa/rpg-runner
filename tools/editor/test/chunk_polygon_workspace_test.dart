@@ -60,6 +60,10 @@ void main() {
         findsOneWidget,
       );
       expect(
+        find.byKey(const ValueKey<String>('chunk_polygon_source_fill_notice')),
+        findsOneWidget,
+      );
+      expect(
         find.text(
           '1 direct + 1 expanded = 2/512 shapes · 8/4096 exposed edges',
         ),
@@ -463,6 +467,38 @@ void main() {
     },
   );
 
+  testWidgets('current chunk workspace remains usable at a narrow width', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(900, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final harness = await _buildHarness();
+    addTearDown(harness.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.dark(),
+        home: Scaffold(body: ChunkCreatorPage(controller: harness.session)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey<String>('editor_three_panel_narrow')),
+      findsOneWidget,
+    );
+    await tester.tap(find.widgetWithText(Tab, 'Shapes'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey<String>('chunk_shape_diagnostics_list')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('expanded collision opens its exact owning prefab', (
     tester,
   ) async {
@@ -690,6 +726,23 @@ void main() {
         find.byKey(const ValueKey<String>('chunk_v2_composition_workspace')),
         findsOneWidget,
       );
+      final groundStackEntry = find.byKey(
+        const ValueKey<String>('chunk_visual_stack_ground'),
+      );
+      final initialPrefabStackEntry = find.byKey(
+        const ValueKey<String>('chunk_visual_stack_prefab_prefab_rock|95|10|0'),
+      );
+      expect(
+        find.byKey(const ValueKey<String>('chunk_visual_stack_preview')),
+        findsOneWidget,
+      );
+      expect(groundStackEntry, findsOneWidget);
+      expect(initialPrefabStackEntry, findsOneWidget);
+      expect(find.text('Ground polygons · z=0 · 1 shape(s)'), findsOneWidget);
+      expect(
+        tester.getTopLeft(groundStackEntry).dx,
+        lessThan(tester.getTopLeft(initialPrefabStackEntry).dx),
+      );
 
       await tester.tap(
         find.byKey(const ValueKey<String>('chunk_v2_layer_add')),
@@ -759,6 +812,14 @@ void main() {
       expect(addedPlacement.zIndex, 2);
       expect(addedPlacement.scale, 0.6);
       expect(addedPlacement.flipY, isTrue);
+      final addedPrefabStackEntry = find.byKey(
+        const ValueKey<String>('chunk_visual_stack_prefab_prefab_rock|80|10|0'),
+      );
+      expect(addedPrefabStackEntry, findsOneWidget);
+      expect(
+        tester.getTopLeft(initialPrefabStackEntry).dx,
+        lessThan(tester.getTopLeft(addedPrefabStackEntry).dx),
+      );
 
       await tester.tap(
         find.byKey(const ValueKey<String>('chunk_v2_marker_add')),

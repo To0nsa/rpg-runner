@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 
+import '../../../shared/editor_three_panel_layout.dart';
 import 'prefab_editor_ui_tokens.dart';
 
 /// Shared `1:2:1` shell used by prefab-editor tabs.
@@ -16,16 +17,13 @@ class PrefabEditorThreePanelLayout extends StatelessWidget {
   final Widget display;
 
   @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Expanded(flex: 1, child: inspector),
-        const SizedBox(width: PrefabEditorUiTokens.panelGap),
-        Expanded(flex: 2, child: scene),
-        const SizedBox(width: PrefabEditorUiTokens.panelGap),
-        Expanded(flex: 1, child: display),
-      ],
-    );
-  }
+  Widget build(BuildContext context) => EditorThreePanelLayout(
+    firstLabel: 'Owners',
+    secondLabel: 'Scene',
+    thirdLabel: 'Shapes',
+    first: inspector,
+    second: scene,
+    third: display,
+    gap: PrefabEditorUiTokens.panelGap,
+  );
 }

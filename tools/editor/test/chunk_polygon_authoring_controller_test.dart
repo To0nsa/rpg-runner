@@ -167,6 +167,28 @@ void main() {
     );
   });
 
+  testWidgets('scene surface exposes its collision-editor semantics label', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    final harness = await _buildHarness();
+    await tester.pumpWidget(
+      _surfaceApp(
+        controller: harness.authoring,
+        transform: TerrainPolygonViewportTransform(
+          origin: Offset.zero,
+          zoom: 1,
+        ),
+      ),
+    );
+
+    expect(
+      find.bySemanticsLabel('Chunk collision polygon editor'),
+      findsOneWidget,
+    );
+    semantics.dispose();
+  });
+
   testWidgets(
     'scene surface selects previews commits and cancels with Escape',
     (tester) async {

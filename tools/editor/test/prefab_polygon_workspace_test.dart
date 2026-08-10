@@ -51,6 +51,38 @@ void main() {
     expect(harness.session.pendingChanges.hasChanges, isFalse);
   });
 
+  testWidgets('current prefab workspace remains usable at a narrow width', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(900, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final harness = await _buildHarness();
+    addTearDown(harness.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.dark(),
+        home: Scaffold(body: PrefabCreatorPage(controller: harness.session)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey<String>('editor_three_panel_narrow')),
+      findsOneWidget,
+    );
+    await tester.tap(find.widgetWithText(Tab, 'Shapes'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey<String>('prefab_polygon_new_shape')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('current route isolates owners and commits half-pixel polygons', (
     tester,
   ) async {

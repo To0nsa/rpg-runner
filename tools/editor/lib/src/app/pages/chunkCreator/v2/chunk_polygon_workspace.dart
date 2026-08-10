@@ -26,6 +26,7 @@ import '../../../../terrain_authoring/terrain_polygon_interaction.dart';
 import '../../../../terrain_authoring/terrain_physics_text.dart';
 import '../../../../terrain_authoring/terrain_source_models.dart';
 import '../../shared/editor_scene_view_utils.dart';
+import '../../shared/editor_three_panel_layout.dart';
 import '../../shared/editor_scene_viewport_frame.dart';
 import '../../shared/editor_zoom_controls.dart';
 import '../../shared/terrain_polygon_metadata_dialog.dart';
@@ -162,43 +163,33 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
             const SizedBox(height: _gap),
             Expanded(
               child: _workspaceView == _ChunkV2WorkspaceView.terrain
-                  ? Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: <Widget>[
-                        SizedBox(
-                          width: 260,
-                          child: _buildOwnerPanel(
-                            document,
-                            scene,
-                            authoring?.chunk,
-                            controlsEnabled:
-                                !(authoring?.hasActiveOperation ?? false),
-                          ),
-                        ),
-                        const SizedBox(width: _gap),
-                        Expanded(
-                          child: authoring == null
-                              ? _buildEmptyPanel(
-                                  title: 'Terrain collision scene',
-                                  message:
-                                      'This level has no chunk owner. Undo '
-                                      'the deletion, or switch to a level '
-                                      'that still has a dimension template.',
-                                )
-                              : _buildScenePanel(authoring),
-                        ),
-                        const SizedBox(width: _gap),
-                        SizedBox(
-                          width: 310,
-                          child: authoring == null
-                              ? _buildEmptyPanel(
-                                  title: 'Shapes and diagnostics',
-                                  message:
-                                      'Select or create a chunk owner first.',
-                                )
-                              : _buildShapePanel(authoring, issues),
-                        ),
-                      ],
+                  ? EditorThreePanelLayout(
+                      firstLabel: 'Chunks',
+                      secondLabel: 'Terrain',
+                      thirdLabel: 'Shapes',
+                      first: _buildOwnerPanel(
+                        document,
+                        scene,
+                        authoring?.chunk,
+                        controlsEnabled:
+                            !(authoring?.hasActiveOperation ?? false),
+                      ),
+                      second: authoring == null
+                          ? _buildEmptyPanel(
+                              title: 'Terrain collision scene',
+                              message:
+                                  'This level has no chunk owner. Undo the '
+                                  'deletion, or switch to a level that still '
+                                  'has a dimension template.',
+                            )
+                          : _buildScenePanel(authoring),
+                      third: authoring == null
+                          ? _buildEmptyPanel(
+                              title: 'Shapes and diagnostics',
+                              message: 'Select or create a chunk owner first.',
+                            )
+                          : _buildShapePanel(authoring, issues),
+                      gap: _gap,
                     )
                   : authoring == null
                   ? _buildEmptyPanel(
@@ -627,6 +618,12 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
         ),
         const SizedBox(height: 8),
         _buildExpansionSummary(authoring),
+        const SizedBox(height: 4),
+        const Text(
+          'Direct terrain polygons are filled as an authoring preview only; '
+          'Core-compiled edges remain collision and navigation evidence.',
+          key: ValueKey<String>('chunk_polygon_source_fill_notice'),
+        ),
         const SizedBox(height: 4),
         _buildSeamSummary(authoring),
         if (_showActorTerrain) ...<Widget>[

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 
 import '../../../../chunks/chunk_domain_models.dart';
 import '../../../../chunks/chunk_domain_plugin.dart';
@@ -8,6 +9,7 @@ import '../../../../chunks/chunk_v2_models.dart';
 import '../../../../domain/authoring_types.dart';
 import '../../../../prefabs/models/models.dart';
 import '../../../../session/editor_session_controller.dart';
+import '../../shared/editor_three_panel_layout.dart';
 import 'chunk_v2_composition_dialog.dart';
 
 /// Retained visual-composition forms for one current Chunk-v2 owner.
@@ -28,17 +30,91 @@ class ChunkV2CompositionWorkspace extends StatelessWidget {
   final ChunkV2FileData chunk;
 
   @override
-  Widget build(BuildContext context) => Row(
+  Widget build(BuildContext context) => Column(
     key: const ValueKey<String>('chunk_v2_composition_workspace'),
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: <Widget>[
-      Expanded(child: _buildTileLayers(context)),
-      const SizedBox(width: 12),
-      Expanded(child: _buildPlacements(context)),
-      const SizedBox(width: 12),
-      Expanded(child: _buildMarkers(context)),
+      _buildVisualStackPreview(context),
+      const SizedBox(height: 12),
+      Expanded(
+        child: EditorThreePanelLayout(
+          firstLabel: 'Layers',
+          secondLabel: 'Prefabs',
+          thirdLabel: 'Markers',
+          first: _buildTileLayers(context),
+          second: _buildPlacements(context),
+          third: _buildMarkers(context),
+          firstFlex: 1,
+          secondFlex: 1,
+          thirdFlex: 1,
+          initialNarrowIndex: 0,
+          minimumWideWidth: 900,
+        ),
+      ),
     ],
   );
+
+  Widget _buildVisualStackPreview(BuildContext context) {
+    final placements = buildChunkPlacedPrefabSelections(chunk.prefabs);
+    final entries = <_ChunkVisualStackEntry>[
+      _ChunkVisualStackEntry.ground(
+        zIndex: chunk.groundBandZIndex,
+        shapeCount: chunk.collisionShapes.length,
+      ),
+      for (var index = 0; index < placements.length; index += 1)
+        _ChunkVisualStackEntry.prefab(
+          placementKey: placements[index].selectionKey,
+          label: _prefabLabel(placements[index].prefab),
+          zIndex: placements[index].prefab.zIndex,
+          tieOrder: index,
+        ),
+    ]..sort(_compareVisualStackEntries);
+    return Card(
+      key: const ValueKey<String>('chunk_visual_stack_preview'),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              'Visual stack preview · bottom → top',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            const Text(
+              'Preview only: polygon fill and prefab visual order are not '
+              'runtime collision authority.',
+            ),
+            const SizedBox(height: 6),
+            SizedBox(
+              height: 34,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: entries.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 6),
+                itemBuilder: (context, index) {
+                  final entry = entries[index];
+                  return Semantics(
+                    sortKey: OrdinalSortKey(index.toDouble()),
+                    label: entry.semanticLabel,
+                    child: Chip(
+                      key: ValueKey<String>(entry.widgetKey),
+                      avatar: Icon(
+                        entry.isGround
+                            ? Icons.landscape_outlined
+                            : Icons.image_outlined,
+                        size: 17,
+                      ),
+                      label: Text(entry.displayLabel),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _buildTileLayers(BuildContext context) => _CompositionPanel(
     title: 'Tile layers',
@@ -465,3 +541,65 @@ bool _markersEqual(PlacedMarkerDef left, PlacedMarkerDef right) =>
     left.chancePercent == right.chancePercent &&
     left.salt == right.salt &&
     left.placement == right.placement;
+
+final class _ChunkVisualStackEntry {
+  const _ChunkVisualStackEntry._({
+    required this.widgetKey,
+    required this.label,
+    required this.zIndex,
+    required this.isGround,
+    required this.shapeCount,
+    required this.tieOrder,
+  });
+
+  const _ChunkVisualStackEntry.ground({
+    required int zIndex,
+    required int shapeCount,
+  }) : this._(
+         widgetKey: 'chunk_visual_stack_ground',
+         label: 'Ground polygons',
+         zIndex: zIndex,
+         isGround: true,
+         shapeCount: shapeCount,
+         tieOrder: -1,
+       );
+
+  const _ChunkVisualStackEntry.prefab({
+    required String placementKey,
+    required String label,
+    required int zIndex,
+    required int tieOrder,
+  }) : this._(
+         widgetKey: 'chunk_visual_stack_prefab_$placementKey',
+         label: label,
+         zIndex: zIndex,
+         isGround: false,
+         shapeCount: 0,
+         tieOrder: tieOrder,
+       );
+
+  final String widgetKey;
+  final String label;
+  final int zIndex;
+  final bool isGround;
+  final int shapeCount;
+  final int tieOrder;
+
+  String get displayLabel => isGround
+      ? '$label · z=$zIndex · $shapeCount shape(s)'
+      : '$label · z=$zIndex';
+
+  String get semanticLabel => isGround
+      ? '$label at visual z index $zIndex with $shapeCount direct shapes'
+      : '$label prefab at visual z index $zIndex';
+}
+
+int _compareVisualStackEntries(
+  _ChunkVisualStackEntry left,
+  _ChunkVisualStackEntry right,
+) {
+  final zCompare = left.zIndex.compareTo(right.zIndex);
+  if (zCompare != 0) return zCompare;
+  if (left.isGround != right.isGround) return left.isGround ? -1 : 1;
+  return left.tieOrder.compareTo(right.tieOrder);
+}
