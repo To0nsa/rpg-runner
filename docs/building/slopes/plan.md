@@ -1554,6 +1554,17 @@ also complete: crossing, point self-touch, collinear self-overlap, and bridged
 hole/disconnected encodings all block before geometry publication, while valid
 disconnected solids remain separate shapes.
 
+The remaining generator-facing source/compiled mismatch is now fail-closed at
+the typed staged-artifact boundary. Before future selection, the artifact is
+compared with a fresh seam-validated compile for artifact/compiler versions,
+all signature formats, reachable-seam digest, exact Chunk membership/source
+metadata, and authored/source/edge/placement/triangle signatures. Mismatches
+use the shared owner-aware blocking envelope and return no artifact. Exact
+payload bytes remain the existing generated-artifact plan's responsibility,
+so the verifier does not create a second geometry serializer. The broad
+diagnostic gate remains open for seam/output-drift, migration, remaining editor
+domains, and normal export/cutover integration.
+
 An isolated exact legacy projector now decomposes accepted orthogonal terrain,
 reproduces current 16-pixel rectangle snapping, derives gaps only from exact
 flat bottom bands, canonicalizes solid occupied unions, and fails closed for

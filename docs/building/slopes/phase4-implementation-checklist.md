@@ -462,6 +462,12 @@ decoded. Chunk-v2 collision expansion maps the same envelope into editor
 the Chunk, while expanded-shape failures own the referenced Prefab. Seam,
 generated-output drift, migration, and the remaining editor-wide validation
 paths still need this boundary before the broad diagnostic gate can close.
+The typed staged-artifact verifier now compares artifact/compiler versions,
+every signature-format label, the reachable-seam digest, exact Chunk
+membership/metadata, and all five per-Chunk source/compiled signatures against
+a fresh seam-validated compile. Any mismatch uses the shared blocking envelope
+and suppresses artifact selection. Exact generated payload bytes remain owned
+by `GeneratedArtifactPlan`, so this adds no second polygon/edge serializer.
 
 Blocking categories:
 
@@ -477,7 +483,7 @@ Blocking categories:
 - [x] post-transform degeneracy or chunk-bounds overflow
 - [x] unknown prefab/revision/source reference
 - [x] owner shape/vertex/expanded-edge limit overflow
-- [ ] Core compiler error or source/compiled signature mismatch
+- [x] Core compiler error or source/compiled signature mismatch
 - [x] scheduler-reachable seam incompatibility
 - [x] generated output drift in validation mode
 
@@ -1411,9 +1417,12 @@ collision structurally unrepresentable: uppercase variants fail the ID grammar
 and exact duplicates fail strict ordering. The broad §13/§22 gate remains open
 because seam/output-drift, migration, remaining editor domains, and normal
 export/cutover boundaries do not yet share the new explicit
-severity/owner-key envelope. Complete generator-facing source/compiled
-signature-mismatch evidence also remains incomplete; topology and hard-capacity
-coverage are now complete.
+severity/owner-key envelope. Generator-facing source/compiled mismatch evidence
+is now complete: the imported typed artifact is compared with its fresh
+seam-validated compile for schema/compiler versions, all signature formats,
+reachable-seam digest, Chunk membership/metadata, and authored/source/edge/
+placement/triangle signatures; every mismatch returns no accepted artifact.
+Topology and hard-capacity coverage are also complete.
 
 The legacy-projection unit matrix covers exact orthogonal decomposition,
 flat-ground/gap recognition, current 16-pixel snapping, input-order
@@ -1485,6 +1494,7 @@ before changing the accepted plan.
 | Stable polygon shape IDs are lowercase by grammar, so two accepted IDs cannot differ only by case. | Reject uppercase/mixed-case IDs at strict parsing, reject exact duplicates through canonical ordering, and test both paths instead of adding a redundant case-folded accepted-ID map. | Normal v3/v2 stores and migration output must retain the lowercase stable-ID grammar; a future grammar expansion would require an explicit case-collision rule and migration. |
 | The Core `edge_limit` diagnostic retained shape/placement identity in `TerrainEdgeId` but replaced the source path with the chunk key, so an adapter could not resolve the overflowing expanded edge back to its Prefab owner. | Carry the immutable polygon source path through the compiler-private raw-edge split/cancellation pipeline and emit it unchanged on `edge_limit`. Lock the 4,097th edge to its exact Prefab/placement/shape/element owner in Core, generator, and editor tests. | Phase 5 runtime edge data remains unchanged; authoring can focus the actual owner instead of presenting a chunk-level fallback for an expanded-Prefab capacity failure. |
 | Current terrain source intentionally represents one simple loop per shape; adding hole/ring fields or a second contour interpretation would create unplanned compiler and editor semantics. | Keep the simple-loop schema. Exact non-adjacent segment intersection already rejects point self-touch and collinear self-overlap. A bridged inner ring or zero-width connection used to encode a hole/disconnected interior necessarily self-touches/overlaps and is rejected through the established blocking `self_intersection` path; disconnected valid solids remain separate shapes. | Phase 5 receives only simple normalized loops. Any future native hole support requires an explicit schema/compiler/triangulation migration rather than treating a bridge encoding as valid content. |
+| The generated Dart artifact retained self-declared signature strings, but its typed import was only count-checked; byte drift found stale output without providing the source/compiled mismatch category or Chunk owner. | Compare the typed artifact with the fresh seam-validated compile before it can be selected. Validate global versions/formats/seam digest, exact Chunk set and source metadata, and all five per-Chunk signatures through the shared blocking envelope. Keep exact record bytes under the existing artifact-plan authority instead of adding another serializer. | Live cutover must run this semantic gate together with exact generated-output drift validation. Neither gate substitutes for the other, and any issue suppresses the staged artifact. |
 
 Append rows during implementation. Do not silently relax source, compiler,
 seam, determinism, or performance contracts.
@@ -1610,6 +1620,7 @@ result.
 | 2026-08-10 / `818fed8a` | Staged generator hard-limit matrix | Dart and Flutter test VMs on Windows with Docker running | Root analysis is clean and all 66 tool tests pass. Exact at-limit fixtures accept 64 vertices, 64 placed-Prefab shapes, 512 Chunk shapes, and 4,096 exposed edges. Each one-over fixture emits only `vertex_limit`, `prefab_shape_limit`, `chunk_shape_limit`, or `edge_limit`, retains exact owner/placement/shape/element lineage, and returns no compiled product. The 4,097-edge case combines one direct one-way edge with an at-limit expanded Prefab, proving Prefab ownership. |
 | 2026-08-10 / `9daafb0d` | Editor expanded-edge capacity ownership | Dart and Flutter test VMs on Windows with Docker running | Editor analysis is clean and all 443 tests pass. Chunk-v2 collision expansion reproduces the exact 4,097-edge staged case and maps `edge_limit` to `prefab_rock`, placement `prefab_rock|0|0|0`, `collision_063`, edge 63, and the complete source path. No expansion, source, revision, generated artifact, or runtime authority is published or changed. |
 | 2026-08-10 / `b6645e33` | Unsupported single-loop topology matrix | Dart and Flutter test VMs on Windows with Docker running | Core, root, and editor analysis are clean; all 329 Core-package tests, 66 root tool tests, and 444 editor tests pass. Exact fixtures cover a non-adjacent point self-touch, positive-length collinear self-overlap, and a bridged inner ring that attempts to encode a hole/disconnected interior. Core and both adapters retain established `self_intersection` plus related collinear diagnostics, exact Chunk ownership/shape lineage, and no partial geometry. Valid disconnected solids remain separate-shape fixture coverage. |
+| 2026-08-10 / `94a193c0` | Typed staged-artifact signature verification | Dart and Flutter test VMs on Windows with Docker running | Root analysis is clean and all 70 tool/generator tests pass. The verifier accepts only the checked-in typed artifact whose schema/compiler versions, six signature-format labels, seam digest, Chunk membership/metadata, and five per-Chunk signatures match a fresh seam-validated compile. Mutation matrices reject every stale signature/version/format, missing or duplicate Chunk, and metadata drift through the owner-aware blocking envelope with no accepted artifact. Existing artifact-plan byte validation remains the sole exact payload serializer; golden bytes/hash, authored source, live registration, and runtime authority are unchanged. |
 
 ### 28.1 Baseline Environment And Source Identity
 

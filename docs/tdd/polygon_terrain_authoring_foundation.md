@@ -64,7 +64,7 @@ The active schema migration, generator, preview, and cutover work remains in
 | Scheduler-aware chunk seam analysis | editor `chunk_v2_seam_analysis.dart` | immutable `LevelDef` snapshot, canonical compiled boundary signatures, runtime-contract adjacency enumeration, global staged validation, and read-only compatible/failing neighbor evidence |
 | Strict staged generator source and compilation | root `polygon_terrain_source.dart` / `polygon_terrain_compilation.dart` | prefab-v3/chunk-v2 fixture parsing, Core compilation, placement lineage, and exact triangulation; live entry-point selection is pending |
 | Staged local generated-record contract | `runner_core` `staged_terrain_data.dart` | executable generated fixture only; no gameplay, renderer, replay-validator, or live-generator consumer |
-| Staged Dart terrain rendering | root `polygon_terrain_render.dart` | exact fixture golden and artifact-plan drift tests; future production output path is reserved but not registered |
+| Staged Dart terrain rendering and signature verification | root `polygon_terrain_render.dart` / `polygon_terrain_artifact_validation.dart` | exact fixture golden, artifact-plan byte drift, and owner-aware typed artifact/fresh-compile signature checks; future production output path is reserved but not registered |
 | Exact legacy compatibility projection | root `polygon_terrain_legacy_projection.dart` | pure accepted-chunk projection and repository parity characterization only; no live generator/runtime consumer |
 
 Core has no dependency on editor models, JSON, widgets, or filesystem state.
@@ -907,7 +907,7 @@ compiled-boundary gating are now delivered below.
 ## Strict Staged Generator Compiler And Artifact Foundation
 
 The repository source is still prefab-v2/chunk-v1, so the live generator cannot
-select current-schema parsing before the coordinated source migration. Five
+select current-schema parsing before the coordinated source migration. Six
 focused pure-Dart files now establish that future boundary without adding a
 flag, production generated file, or runtime consumer:
 
@@ -926,7 +926,10 @@ flag, production generated file, or runtime consumer:
   right/left boundary evidence before constructing a renderable batch;
 - `polygon_terrain_render.dart` validates chunk-local compiler identity, sorts
   every rendered record family, accepts only that validated batch, and emits
-  typed staged Dart records in memory.
+  typed staged Dart records in memory;
+- `polygon_terrain_artifact_validation.dart` compares a typed artifact with the
+  fresh seam-validated compile and returns no selectable artifact on any
+  version, format, seam, Chunk membership/metadata, or signature mismatch.
 
 Parsed coordinates remain generator values until the Core adapter boundary.
 This matters because the canonical JSON number range is intentionally wider
@@ -969,6 +972,18 @@ Each chunk record retains source revision/metadata, canonical source vertices
 in half-world-unit ticks, transformed vertices and exposed edges in integer
 physics ticks, collision/render metadata, deterministic triangle indices, and
 exact prefab placement/revision lineage.
+
+The artifact's declared values are not trusted merely because its Dart types
+construct successfully. `validateStagedPolygonTerrainArtifact` compares the
+artifact/compiler versions, all six signature-format labels, the exact
+reachable-seam digest, canonical Chunk membership and source metadata, plus
+the authored-polygon, Core source, Core edge, placement, and triangle
+signatures for every Chunk against a fresh accepted batch. Findings use the
+shared `TerrainAuthoringIssue` severity/owner envelope; a Chunk-local mismatch
+owns that Chunk, while an artifact-global mismatch owns the canonical output
+path. Any issue makes the returned artifact null. `GeneratedArtifactPlan`
+continues to own exact rendered payload-byte validation, avoiding a second
+polygon/edge serialization authority; live cutover must apply both gates.
 
 The shared pure-Dart `authoring-polygons-v1` contract hashes source before
 placement expansion. A UTF-8 length-prefixed record contains the owner domain
