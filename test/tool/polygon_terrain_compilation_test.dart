@@ -680,6 +680,234 @@ void main() {
     );
   });
 
+  test(
+    'chunk-shape and vertex hard limits accept boundary and reject one over',
+    () {
+      final chunkBoundary = _compileCapacityFixture(
+        directShapes: <Map<String, Object?>>[
+          for (var index = 0; index < 512; index += 1)
+            _shapeJson(
+              'shape_${index.toString().padLeft(3, '0')}',
+              <(num, num)>[
+                (index * 4, 0),
+                (index * 4 + 2, 0),
+                (index * 4 + 2, 2),
+                (index * 4, 2),
+              ],
+            ),
+        ],
+        width: 2200,
+      );
+      expect(chunkBoundary.issues, isEmpty);
+      expect(chunkBoundary.compiled!.geometry.polygons, hasLength(512));
+
+      final chunkOver = _compileCapacityFixture(
+        directShapes: <Map<String, Object?>>[
+          for (var index = 0; index < 513; index += 1)
+            _shapeJson(
+              'shape_${index.toString().padLeft(3, '0')}',
+              <(num, num)>[
+                (index * 4, 0),
+                (index * 4 + 2, 0),
+                (index * 4 + 2, 2),
+                (index * 4, 2),
+              ],
+            ),
+        ],
+        width: 2200,
+      );
+      expect(chunkOver.compiled, isNull);
+      expect(
+        chunkOver.issues
+            .map(
+              (issue) => (
+                issue.code,
+                issue.sourcePath,
+                issue.ownerKey,
+                issue.placementKey,
+                issue.shapeId,
+                issue.elementIndex,
+              ),
+            )
+            .toList(growable: false),
+        <(String, String, String, String?, String?, int?)>[
+          (
+            'chunk_shape_limit',
+            '$_chunkSourcePath#direct=shape_512',
+            'fixture_chunk',
+            null,
+            'shape_512',
+            513,
+          ),
+        ],
+      );
+
+      final vertexBoundary = _compileCapacityFixture(
+        directShapes: <Map<String, Object?>>[
+          _shapeJson('strip', _stripVertices()),
+        ],
+      );
+      expect(vertexBoundary.issues, isEmpty);
+      expect(
+        vertexBoundary.compiled!.geometry.polygons.single.vertices,
+        hasLength(64),
+      );
+
+      final vertexOver = _compileCapacityFixture(
+        directShapes: <Map<String, Object?>>[
+          _shapeJson(
+            'strip',
+            _stripVertices(topVertexCount: 33, bottomVertexCount: 32),
+          ),
+        ],
+      );
+      expect(vertexOver.compiled, isNull);
+      expect(
+        vertexOver.issues
+            .map(
+              (issue) => (
+                issue.code,
+                issue.sourcePath,
+                issue.ownerKey,
+                issue.placementKey,
+                issue.shapeId,
+                issue.elementIndex,
+              ),
+            )
+            .toList(growable: false),
+        <(String, String, String, String?, String?, int?)>[
+          (
+            'vertex_limit',
+            '$_chunkSourcePath#direct=strip',
+            'fixture_chunk',
+            null,
+            'strip',
+            65,
+          ),
+        ],
+      );
+    },
+  );
+
+  test(
+    'prefab-shape and expanded-edge hard limits retain prefab ownership',
+    () {
+      List<Map<String, Object?>> rectangleShapes(int count) =>
+          <Map<String, Object?>>[
+            for (var index = 0; index < count; index += 1)
+              _shapeJson(
+                'collision_${index.toString().padLeft(3, '0')}',
+                <(num, num)>[
+                  (index * 4, 0),
+                  (index * 4 + 2, 0),
+                  (index * 4 + 2, 2),
+                  (index * 4, 2),
+                ],
+              ),
+          ];
+
+      final prefabBoundary = _compileCapacityFixture(
+        directShapes: const <Map<String, Object?>>[],
+        prefabShapes: rectangleShapes(64),
+        width: 3000,
+      );
+      expect(prefabBoundary.issues, isEmpty);
+      expect(prefabBoundary.compiled!.geometry.polygons, hasLength(64));
+
+      final prefabOver = _compileCapacityFixture(
+        directShapes: const <Map<String, Object?>>[],
+        prefabShapes: rectangleShapes(65),
+        width: 3000,
+      );
+      expect(prefabOver.compiled, isNull);
+      expect(
+        prefabOver.issues
+            .map(
+              (issue) => (
+                issue.code,
+                issue.sourcePath,
+                issue.ownerKey,
+                issue.placementKey,
+                issue.shapeId,
+                issue.elementIndex,
+              ),
+            )
+            .toList(growable: false),
+        <(String, String, String, String?, String?, int?)>[
+          (
+            'prefab_shape_limit',
+            '$_chunkSourcePath#placement=prefab_ramp|0|0|0'
+                '#prefab=prefab_ramp#shape=collision_064',
+            'prefab_ramp',
+            'prefab_ramp|0|0|0',
+            'collision_064',
+            65,
+          ),
+        ],
+      );
+
+      final edgeBoundary = _compileCapacityFixture(
+        directShapes: const <Map<String, Object?>>[],
+        prefabShapes: <Map<String, Object?>>[
+          for (var index = 0; index < 64; index += 1)
+            _shapeJson(
+              'collision_${index.toString().padLeft(3, '0')}',
+              _stripVertices(originX: index * 40),
+            ),
+        ],
+        width: 3000,
+        height: 50,
+      );
+      expect(edgeBoundary.issues, isEmpty);
+      expect(edgeBoundary.compiled!.geometry.edges, hasLength(4096));
+
+      final oneWayExtra = _shapeJson('extra_edge', const <(num, num)>[
+        (2800, 20),
+        (2810, 20),
+        (2810, 30),
+        (2800, 30),
+      ])..['collisionMode'] = 'oneWay';
+      final edgeOver = _compileCapacityFixture(
+        directShapes: <Map<String, Object?>>[oneWayExtra],
+        prefabShapes: <Map<String, Object?>>[
+          for (var index = 0; index < 64; index += 1)
+            _shapeJson(
+              'collision_${index.toString().padLeft(3, '0')}',
+              _stripVertices(originX: index * 40),
+            ),
+        ],
+        width: 3000,
+        height: 50,
+      );
+      expect(edgeOver.compiled, isNull);
+      expect(
+        edgeOver.issues
+            .map(
+              (issue) => (
+                issue.code,
+                issue.sourcePath,
+                issue.ownerKey,
+                issue.placementKey,
+                issue.shapeId,
+                issue.elementIndex,
+              ),
+            )
+            .toList(growable: false),
+        <(String, String, String, String?, String?, int?)>[
+          (
+            'edge_limit',
+            '$_chunkSourcePath#placement=prefab_ramp|0|0|0'
+                '#prefab=prefab_ramp#shape=collision_063',
+            'prefab_ramp',
+            'prefab_ramp|0|0|0',
+            'collision_063',
+            63,
+          ),
+        ],
+      );
+    },
+  );
+
   test('post-transform degeneracy retains exact placement lineage', () {
     final prefabJson = _json('prefab_defs.json');
     final prefabs = decodePolygonTerrainPrefabs(
@@ -1096,6 +1324,56 @@ Map<String, Object?> _shapeJson(String shapeId, List<(num, num)> vertices) =>
           <String, Object?>{'x': vertex.$1, 'y': vertex.$2},
       ],
     };
+
+List<(num, num)> _stripVertices({
+  int originX = 0,
+  int topVertexCount = 32,
+  int bottomVertexCount = 32,
+}) => <(num, num)>[
+  for (var x = 0; x < topVertexCount; x += 1) (originX + x, x.isEven ? 0 : 1),
+  for (var x = bottomVertexCount - 1; x >= 0; x -= 1)
+    (originX + x, x.isEven ? 10 : 11),
+];
+
+PolygonTerrainCompilationResult _compileCapacityFixture({
+  required List<Map<String, Object?>> directShapes,
+  List<Map<String, Object?>>? prefabShapes,
+  int width = 100,
+  int height = 100,
+}) {
+  final prefabs = decodePolygonTerrainPrefabs(
+    _mutated(_json('prefab_defs.json'), (root) {
+      final prefab =
+          (root['prefabs']! as List<Object?>).single! as Map<String, Object?>;
+      prefab['collisionShapes'] = prefabShapes ?? <Object?>[];
+    }),
+    sourcePath: 'prefab_defs.json',
+  );
+  final chunk = decodePolygonTerrainChunk(
+    _mutated(_json('chunk.json'), (root) {
+      root['width'] = width;
+      root['height'] = height;
+      root['collisionShapes'] = directShapes;
+      if (prefabShapes == null) {
+        root['prefabs'] = <Object?>[];
+      } else {
+        final placement =
+            (root['prefabs']! as List<Object?>).single! as Map<String, Object?>;
+        placement['x'] = 0;
+        placement['y'] = 0;
+        placement['scale'] = 1;
+        placement['flipX'] = false;
+        placement['flipY'] = false;
+      }
+    }),
+    sourcePath: _chunkSourcePath,
+  );
+  return compilePolygonTerrainChunk(
+    chunk: chunk,
+    prefabSources: prefabs,
+    sourcePath: _chunkSourcePath,
+  );
+}
 
 PolygonTerrainPlacementLineage _lineage(
   PolygonTerrainPlacementLineage source, {
