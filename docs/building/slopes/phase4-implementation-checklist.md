@@ -1,9 +1,9 @@
 # Slopes Phase 4 - Polygon Authoring, Migration, And Generation Checklist
 
 - Created: July 28, 2026
-- Status: Implementation in progress; repository authoring, generation, and
-  normal editor paths now use polygon schemas, with final broad acceptance
-  validation remaining
+- Status: Automated acceptance is clean; cross-platform transformed-tick
+  parity and one manual non-developer workflow/usability pass remain before
+  Phase 4 sign-off
 - Source plan: [plan.md](plan.md)
 - Frozen gameplay decisions:
   [phase0-gameplay-decisions.md](phase0-gameplay-decisions.md)
@@ -250,7 +250,7 @@ editor state and thin Core adapters:
       an unordered list.
 - [x] Equality/pending-diff logic compares exact integers and metadata.
 - [x] Models remain independent of Flutter widgets and filesystem writes.
-- [ ] Prefab and chunk domains compose this model rather than copying it.
+- [x] Prefab and chunk domains compose this model rather than copying it.
 
 Prefer placing these values in a small shared editor domain folder and using
 Core's existing `TerrainPolygonInput` through an adapter. Do not create a new
@@ -261,7 +261,7 @@ generic geometry framework or duplicate the accepted terrain compiler.
 - [x] Keep authoritative geometry predicates in Core. Expose a narrow
       pure-Dart validation/normalization result where the accepted compiler's
       current private helpers are needed by editor quick fixes.
-- [ ] Limit editor-owned preflight to schema/identity/draft-state checks and
+- [x] Limit editor-owned preflight to schema/identity/draft-state checks and
       translate Core geometry diagnostics instead of reimplementing them.
 - [x] Implement signed doubled area entirely in integer half-pixel space.
 - [x] Enforce clockwise winding in Y-down coordinates.
@@ -278,8 +278,8 @@ generic geometry framework or duplicate the accepted terrain compiler.
 - [x] Treat collinear middle vertices as a normalization diagnostic.
 - [x] Provide an explicit undoable Normalize action that can remove collinear
       middle vertices.
-- [ ] Never remove vertices silently during load or save.
-- [ ] New/edit commits may rotate/reverse an otherwise unchanged valid loop to
+- [x] Never remove vertices silently during load or save.
+- [x] New/edit commits may rotate/reverse an otherwise unchanged valid loop to
       canonical winding/start, but load-time noncanonical source must surface a
       stable quick-fix diagnostic rather than rewrite on export.
 - [x] Sort diagnostics by source path, shape ID, edge/vertex index, then code.
@@ -386,8 +386,8 @@ Chunk v2 replaces `groundProfile` and `groundGaps` with direct chunk-local
       case-insensitive target collisions, and deleted-path reuse.
 - [x] Make normal canonical chunk writes target v2; legacy/missing normal loads
       expose no editable or writable Chunk document.
-- [ ] Remove `GroundProfileDef` and `GroundGapDef` from normal v2 models.
-- [ ] Remove ground-profile/gap plugin commands, inspector forms, and tests once
+- [x] Remove `GroundProfileDef` and `GroundGapDef` from normal v2 models.
+- [x] Remove ground-profile/gap plugin commands, inspector forms, and tests once
       polygon replacements cover them.
 - [x] Add staged chunk-local `collisionShapes` with stable IDs.
 - [x] Preserve chunk key, ID, revision, status, level, tile/grid metadata,
@@ -433,7 +433,7 @@ Chunk v2 replaces `groundProfile` and `groundGaps` with direct chunk-local
       exact scale numerator/denominator, translation, and emits physics ticks.
 - [x] Keep JSON parsing, editor selection, and UI state outside that Core
       primitive.
-- [ ] Make both editor preview and root generation call the same primitive.
+- [x] Make both editor preview and root generation call the same primitive.
 - [x] Convert source half-pixel ticks relative to the prefab anchor.
 - [x] Treat prefab-v3 collision loops as already anchor-relative during chunk
       expansion: pass a zero Core source anchor and do not subtract the visual
@@ -455,6 +455,10 @@ Chunk v2 replaces `groundProfile` and `groundGaps` with direct chunk-local
 
 One function/adapter owns this transform. The Chunk scene, validation,
 migration report, and generator must not each reimplement it.
+
+Windows VM/profile and fresh-process parity are covered. A matching Linux
+JIT/AOT execution remains an external acceptance gate; the Windows result is
+not treated as evidence for an unexecuted platform.
 
 ## 13) Validation And Diagnostic Contract
 
@@ -540,9 +544,9 @@ pass. Do not truncate shapes, vertices, edges, or diagnostics at a hard limit.
 - [x] Put deterministic triangulation in the same pure-Dart Core geometry
       boundary (or another already-shared pure-Dart boundary) so editor,
       generator, and later renderer data cannot drift.
-- [ ] Do not copy compiler seam cancellation, outward-normal, adjacency, or
+- [x] Do not copy compiler seam cancellation, outward-normal, adjacency, or
       edge-order logic into editor widgets.
-- [ ] Keep cheap source-shape diagnostics available while a draft is invalid;
+- [x] Keep cheap source-shape diagnostics available while a draft is invalid;
       invoke the full compiler only on a valid/debounced snapshot or gesture
       commit.
 - [x] Render shared preview fills, source boundaries, vertices, selections,
@@ -810,12 +814,12 @@ curves, and holes are not required for the baseline tool.
       instead of creating per-instance overrides.
 - [x] Preserve chunk create/duplicate/rename/deprecate, metadata, prefabs,
       markers, visual layers, level scope, and pending diff behavior.
-- [ ] Preserve `groundBandZIndex` preview until Phase 5 replaces its renderer.
-- [ ] Fill the visible ground preview from direct terrain polygons where
+- [x] Preserve `groundBandZIndex` preview until Phase 5 replaces its renderer.
+- [x] Fill the visible ground preview from direct terrain polygons where
       possible; label it preview-only, not runtime collision authority.
 - [x] Show transformed/quantized coordinates and chunk-bound violations.
 - [x] Show source-shape and expanded-shape/edge capacity separately.
-- [ ] Recompile only affected draft/placement data during interaction, then run
+- [x] Recompile only affected draft/placement data during interaction, then run
       full chunk validation on gesture commit/export.
 - [x] Route every semantic edit through `ChunkDomainPlugin` and `ChunkStore`.
 - [x] Preserve source-drift, case-insensitive filename collision, and atomic
@@ -1211,7 +1215,7 @@ Create small checked-in fixtures that cover:
 - [x] internal shared-edge cancellation
 - [x] cross-shape exact shared boundary
 - [x] allowed cross-chunk seam pair
-- [ ] every major blocking diagnostic
+- [x] every major blocking diagnostic
 
 For each valid fixture, compare:
 
@@ -1273,7 +1277,7 @@ gate remains open in this section.
 - [x] Mutate one coordinate, mode, metadata field, placement transform,
       reachable seam, or source identity and prove the relevant digest changes.
 - [x] Prove Windows/Linux path normalization cannot change source-path ordering.
-- [ ] Never update a reviewed golden merely to hide nondeterminism or semantic
+- [x] Never update a reviewed golden merely to hide nondeterminism or semantic
       drift; record the cause in §26 first.
 
 `authoring-polygons-v1` is owned by the pure-Dart Core terrain boundary. Each
@@ -1447,17 +1451,17 @@ Stores/plugins:
 
 UI/interactions:
 
-- [ ] create/close/cancel polygon
+- [x] create/close/cancel polygon
 - [x] shape/edge/vertex selection
 - [x] drag vertex/shape with grid and half-pixel snap
-- [ ] insert/delete/duplicate/normalize
+- [x] insert/delete/duplicate/normalize
 - [x] one undo entry per gesture and deterministic redo
 - [x] diagnostics focus the exact shape/vertex/edge
 - [x] shared scene control parity on explicit Prefab and Chunk staging routes
 - [x] read-only expanded prefab overlay in Chunk Creator
 - [x] Core-owned actor eligibility/navigation and marker-placement overlays
 - [x] preview consumes no marker RNG and preserves source ordering
-- [ ] accessibility labels, keyboard controls, and narrow-window behavior
+- [x] accessibility labels, keyboard controls, and narrow-window behavior
 
 Generator/seams:
 
@@ -1479,8 +1483,7 @@ failures retain exact source, shape, and placement lineage. Invalid scale below
 `0.3`, above `3.0`, or off the `0.1` step fails during strict parsing. A single
 fixture with both direct and transformed prefab vertices outside closed Chunk
 bounds produces the complete canonically sorted issue list and no compiled
-product. These tests bind the generator boundary only; they do not close the
-broader blocking-diagnostic inventory in §13.
+product.
 
 The expanded staged matrix now also freezes strict malformed/missing/enum/
 half-pixel/shape-ID failures and exact Core topology mappings for repeated
@@ -1490,11 +1493,11 @@ overlap, and post-transform minimum-edge collapse. Every compiled-path case
 returns no product and retains exact source, placement, shape, element, code,
 and canonical issue order. Lowercase-only stable shape IDs make a case-only
 collision structurally unrepresentable: uppercase variants fail the ID grammar
-and exact duplicates fail strict ordering. The broad §13/§22 gate remains open
-because remaining editor domains and normal
-export/cutover boundaries do not yet share the new explicit
-severity/owner-key envelope. Generator-facing source/compiled mismatch evidence
-is now complete: the imported typed artifact is compared with its fresh
+and exact duplicates fail strict ordering. Normal Prefab-v3 and Chunk-v2 owner
+validation, plugin dispatch, pending diagnostics, and export gating now retain
+the explicit severity/source/owner/shape/element evidence, closing the broad
+§13/§22 diagnostic inventory. Generator-facing source/compiled mismatch
+evidence is also complete: the imported typed artifact is compared with its fresh
 seam-validated compile for schema/compiler versions, all signature formats,
 reachable-seam digest, Chunk membership/metadata, and authored/source/edge/
 placement/triangle signatures; every mismatch returns no accepted artifact.
@@ -1598,9 +1601,9 @@ During implementation:
       checklist status where ground/gap/collider authoring is replaced
 - [x] update root/editor/Core `AGENTS.md` only if actual ownership or working
       rules change
-- [ ] keep Phase 5 streaming/rendering and Phase 6 direct cutover work in their
+- [x] keep Phase 5 streaming/rendering and Phase 6 direct cutover work in their
       future building checklists
-- [ ] update schema examples and generator commands after names are final
+- [x] update schema examples and generator commands after names are final
 - [x] document every temporary staged/legacy artifact and exact removal phase
 
 No player-facing GDD update is required for a behavior-preserving authoring
@@ -1718,6 +1721,8 @@ result.
 | 2026-08-11 / `536bfd4f` | Current-source repository generation plan | Dart VM on Windows with Docker running | Three focused tests pass. One fail-closed operation strictly parses Prefab-v3 and Chunk-v2, compiles through Core, derives scheduler reachability, validates every seam, renders staged terrain, and projects the same accepted batch into exact legacy records. Empty terrain succeeds, a reachable mismatch blocks, and diagonal legacy-incompatible content rejects rather than approximating. No source or production output changed in this step. |
 | 2026-08-11 / `e2c06137` | Coordinated polygon authoring-source cutover | Dart and Flutter test VMs on Windows with Docker running | The guarded CLI committed all nine source files as Prefab-v3/Chunk-v2 and a repeated write was a no-op; current readiness reports 99 Prefabs, 8 Chunks, 9 validated targets, and zero pending migrations with `authoring-migration-v1` `3264cf7a…15d`. The single generator now strictly consumes current source, validates Core compilation and scheduler seams, emits `staged_authored_terrain.dart`, and derives the exact legacy projection. All five pre-existing production outputs are byte-identical across the migration rehearsal; the real six-output dry-run is clean. Root, Core, and editor analysis are clean; all 75 root tool/generator tests and 96 focused editor cutover/legacy-isolation tests pass. Runtime construction still cannot import/select staged terrain. |
 | 2026-08-11 / `747cc7e3` + `cd9c32a2` | Current-name promotion and normal compatibility removal | Flutter test VM and Dart analyzer on Windows with Docker running | Public route/type names no longer use the temporary `Staging` label. Normal Prefab/Chunk routes, plugins, stores, models, forms, commands, validation, and previews are current-schema only; 28,782 compatibility lines and their obsolete tests were removed. Legacy Prefab collider and Chunk-v1 ground/gap models/codecs remain only under offline migration paths. Normal stores perform generation detection solely to select current data or the fail-closed migration-required scene. Editor analysis is clean, the owning-Prefab lifecycle regression passes, and the low-memory `--concurrency=1 --fail-fast` full suite passes all 353 retained editor tests. Authored source, generated outputs, and runtime authority are unchanged. |
+| 2026-08-11 / `fb9bb76b` | Phase 4 automated acceptance rerun | Dart and Flutter test/profile VMs on Windows with Docker running | Root, Core-package, editor, and replay-validator analysis are clean. All 334 Core-package tests, 353 editor tests, 433 root Core integration tests, 75 root tool/generator tests, and 84 replay-validator tests pass under low-memory sequential execution. The real migration check reports current source with 99 Prefabs, 8 Chunks, 9 validated targets, and zero pending representation migrations; the generator dry-run validates 8 Chunks, 2 levels, and 2 parallax themes with no drift. The Windows profile benchmark passes all gates across 1,200 measured interaction frames: vertex p95/p99 `179/238 us`, shape p95/p99 `206/270 us`, build p99 `7.633/10.955 ms`, zero missed input or engine-budget misses, one repository load, zero generator runs, and unchanged source identities. Its report is intentionally `dirty: true` only because the user-owned Firebase hosting cache remained modified and unstaged. `git diff --check` is clean for owned changes. The separate non-developer usability pass remains manual. |
+| 2026-08-11 / `9f79f40e` | Polygon-workspace usability closure | Flutter test VM and Dart analyzer on Windows with Docker running | Editor analysis is clean, all 28 focused responsive/semantics/controller/workspace tests pass, and the low-memory full editor suite passes all 359 tests. Prefab and Chunk polygon routes retain the three authoring panels at narrow widths through keyboard/semantics-aware tabs; both collision surfaces expose explicit semantics labels. Chunk composition displays a deterministic bottom-to-top visual stack using `groundBandZIndex`, ground-before-prefab tie ordering, and canonical placement order. Direct polygon fill is explicitly labeled authoring-only rather than collision/navigation authority. The only remaining acceptance evidence is Linux JIT/AOT transformed-tick parity and the manual non-developer workflow pass. |
 
 ### 28.1 Baseline Environment And Source Identity
 
@@ -1938,6 +1943,7 @@ Phase 4 is complete only when:
       seams block export with actionable diagnostics
 - [x] editor preview, generator, generated records, and Core compiler parity
       signatures agree
+- [ ] transformed placement ticks match on Windows/Linux and JIT/AOT
 - [x] staged polygon/edge/triangle/lineage output is deterministic and
       unreachable from normal production construction
 - [x] legacy generated projection is exact, bounded, documented, and rejects
@@ -1948,7 +1954,7 @@ Phase 4 is complete only when:
 - [x] no-op save, dry-run generation, and fresh-process goldens are stable
 - [x] hard authoring limits do not truncate or hang
 - [x] polygon interaction p95/p99 and missed-input gates pass
-- [ ] full editor/Core/root/validator analysis and tests pass
+- [x] full editor/Core/root/validator analysis and tests pass
 - [x] documentation and the implementation findings ledger are current
 - [x] normal production levels and replay validation still use legacy authority
 
