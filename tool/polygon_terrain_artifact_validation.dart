@@ -4,6 +4,7 @@ import 'package:runner_core/collision/terrain/terrain_authoring_seam_signature.d
 import 'package:runner_core/collision/terrain/terrain_authoring_triangle_signature.dart';
 import 'package:runner_core/track/staged_terrain_data.dart';
 
+import 'generated_artifact_plan.dart';
 import 'polygon_terrain_compilation.dart';
 import 'polygon_terrain_render.dart';
 import 'polygon_terrain_seam_validation.dart';
@@ -24,6 +25,45 @@ final class PolygonTerrainArtifactValidationResult {
 
   /// Canonically ordered blocking mismatches with artifact/chunk ownership.
   final List<PolygonTerrainGenerationIssue> issues;
+}
+
+/// Applies semantic artifact checks and exact generated-output drift inspection
+/// as one read-only, fail-closed selection gate.
+///
+/// Drift remains detected by [GeneratedArtifactPlan]; this adapter adds the
+/// shared blocking severity and generated-file ownership needed by terrain
+/// authoring consumers. All semantic and byte-drift findings are returned in
+/// canonical order even when either side already failed.
+Future<PolygonTerrainArtifactValidationResult>
+validateStagedPolygonTerrainOutput({
+  required PolygonTerrainValidatedBatch expected,
+  required StagedTerrainArtifactData artifact,
+  required GeneratedArtifactPlan outputPlan,
+  required String sourcePath,
+}) async {
+  final semantic = validateStagedPolygonTerrainArtifact(
+    expected: expected,
+    artifact: artifact,
+    sourcePath: sourcePath,
+  );
+  final issues = <PolygonTerrainGenerationIssue>[
+    ...semantic.issues,
+    for (final drift in await outputPlan.inspectDrift())
+      TerrainAuthoringIssue(
+        severity: TerrainAuthoringIssueSeverity.error,
+        code: drift.code,
+        message: drift.message,
+        sourcePath: drift.path,
+        ownerKey: drift.path,
+        placementKey: null,
+        shapeId: null,
+        elementIndex: null,
+      ),
+  ];
+  return PolygonTerrainArtifactValidationResult._(
+    artifact: issues.isEmpty ? artifact : null,
+    issues: issues,
+  );
 }
 
 /// Verifies staged metadata and signatures against fresh Core compilation and
