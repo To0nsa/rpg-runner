@@ -67,3 +67,24 @@ Exit codes are `0` for a blocker-free readiness plan, `1` for a source,
 planning, target-validation, drift, or report failure, and `64` for invalid
 arguments. `--write` is intentionally unavailable: the command cannot modify
 authored source or activate polygon collision at runtime.
+
+## Polygon Interaction Profile Benchmark
+
+The Phase 4 polygon staging surface has a deterministic Windows profile
+benchmark for vertex and whole-shape drag. It uses 120 warmup and 600 measured
+frames per mode against the reviewed 16-shape/256-edge fixture:
+
+```powershell
+cd tools/editor
+flutter drive --profile `
+  --driver=test_driver/integration_test.dart `
+  --target=integration_test/polygon_interaction_benchmark_test.dart `
+  -d windows
+```
+
+The driver writes the compact report to
+`.tmp/slopes_phase4_polygon_interaction.json` at repository root. It records
+the Git revision/dirty state, fixture signatures, interaction and frame
+percentiles, missed-input counts, source-identity evidence, and each gate. The
+benchmark is test-only: it cannot write authoring source or select staged
+terrain at runtime.

@@ -1285,6 +1285,27 @@ normal-vector drawing remain pending; Core-compiled edge selection,
 placed-polygon lineage, and actor-terrain eligibility/navigation evidence are
 already available in Chunk staging.
 
+The Phase 4 interaction acceptance harness is test-only and drives that real
+Chunk staging surface on Windows in Flutter profile mode. Its stable
+`phase4-polygon-soft-budget-v1` fixture has a 600 x 270 active Chunk, 16 direct
+shapes, one 24-vertex selected shape, 43 expanded Prefab shapes, 256 compiled
+edges, and 12 compatible scheduler-reachable seams. Exact authored/source/edge/
+seam signatures are frozen by a normal unit test before timing begins. Vertex
+and whole-shape movement each receive 120 warmup and 600 measured pointer
+frames. The JSON result contains repository identity, dirty state, runtime,
+p50/p95/p99/max interaction and compact build/raster timings, missed-input and
+engine-budget counts, affected geometry, and every gate result.
+
+Pointer updates remain owner-local preview mutations: they do not dispatch a
+plugin command, reload the repository, run generation, or replace the session
+source document, complete Chunk list, or active Chunk. Flutter GC counts remain
+diagnostic rather than being mislabeled as source-model allocations. The
+accepted `0b9c95c3` profile records vertex p95/p99 `201/262 us`, whole-shape
+`210/277 us`, build p99 `7.864/7.359 ms`, zero missed inputs, and zero missed
+build/raster budgets. The ignored compact artifact is
+`.tmp/slopes_phase4_polygon_interaction.json`; live authoring source and runtime
+authority are not part of the benchmark.
+
 ## Determinism And Validation Evidence
 
 The foundation is covered by:
@@ -1309,6 +1330,9 @@ The foundation is covered by:
   deterministic tie-breaks
 - exact canvas/source transform, structural repaint, and widget-level source
   fill/selection/preview/draft painter tests
+- a deterministic Windows profile fixture and real pointer trace for vertex and
+  whole-shape p50/p95/p99/max, compact Flutter build/raster timing, missed-input
+  detection, complete-overlay counts, and unchanged workspace source identity
 - immutable prefab-v3 snapshots, value equality/copy/revision behavior,
   preserved authored ordering, and target-boundary canonicalization tests
 - strict prefab-v3 file parsing, copy-only canonical serialization, duplicate

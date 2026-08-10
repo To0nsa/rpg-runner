@@ -1320,12 +1320,12 @@ Hard authoring fixtures:
 
 Frozen gates:
 
-- [ ] vertex/shape drag update p95 `<=8 ms`
-- [ ] drag update p99 `<=16.67 ms`
-- [ ] no missed-input burst in the profile interaction trace
-- [ ] no full repository reload or full generator run per pointer event
-- [ ] no source model allocation proportional to total workspace per drag
-- [ ] no interaction-time query/diagnostic truncation
+- [x] vertex/shape drag update p95 `<=8 ms`
+- [x] drag update p99 `<=16.67 ms`
+- [x] no missed-input burst in the profile interaction trace
+- [x] no full repository reload or full generator run per pointer event
+- [x] no source model allocation proportional to total workspace per drag
+- [x] no interaction-time query/diagnostic truncation
 - [x] hard-limit fixtures validate deterministically without hanging
 - [x] one-unit-over fixtures fail with the expected stable diagnostic
 - [ ] no-op save/migration/generation remains byte/signature deterministic
@@ -1344,6 +1344,17 @@ Pop-Location
 The JSON report records revision, dirty flag, OS/runtime, fixture/signatures,
 warmup, samples, p50/p95/p99/max, missed-input count, affected shape/edge
 counts, allocation/buffer evidence where available, and every gate result.
+
+The committed `phase4-polygon-soft-budget-v1` fixture uses one active
+600 x 270 Chunk with 16 direct shapes, a 24-vertex selected shape, 43 resolved
+Prefab shapes, exactly 256 Core-compiled edges, and 12 scheduler-reachable
+compatible seams. The Windows profile run at `0b9c95c3` records 120 warmup and
+600 measured frames independently for vertex and whole-shape drag. Vertex
+p95/p99 is `201/262 us`; shape p95/p99 is `210/277 us`; both have zero missed
+inputs. Build p99 is `7.864/7.359 ms`, with zero missed build/raster budgets.
+The source document, complete Chunk list, and active Chunk retain identity for
+every pointer update; the plugin loads once and no generator is reachable. The
+compact ignored report is `.tmp/slopes_phase4_polygon_interaction.json`.
 
 ## 25) Required Test Matrix
 
@@ -1479,6 +1490,7 @@ before changing the accepted plan.
 | Source-point construction multiplied an unchecked authored tick by the source-to-physics factor before range validation, so native integer overflow could occur before rejection. | Validate against an explicit source-tick limit before conversion and use overflow-safe comparison bounds. Promote exact authoring/compiler area, orientation, overlap, and line-key products to `BigInt`; keep this work outside per-tick contact. | Migration and editor validation can safely exercise the accepted coordinate limits without platform-dependent wraparound. |
 | Phase 4 must stage polygon data while production still reads rectangles. | Source cuts over once; generation emits an unreachable staged terrain artifact and a bounded exact legacy projection for orthogonal current content. | Phase 5 removes the projection when streaming consumes staged terrain; no runtime toggle is introduced. |
 | The future staged terrain output is one repository file, but migration review needs to show which Chunk dependencies will change before level-seam compilation can produce final artifact bytes. | Core owns the single staged output path. Readiness report v3 emits one canonical impact record per Chunk with that path and artifact format, the Chunk key/source path, sorted referenced Prefab keys, and exact placement count. Legacy and equivalent current source emit identical records. | The generated-impact records are dependency evidence, not byte authority. The seam-validated generator and staged-output gate must still calculate and verify the exact artifact during cutover. |
+| Flutter's frame-timing helper emits raw per-frame arrays and the paced pointer trace produces separate input/build frames; treating those arrays or global GC activity as the owner-local source-allocation gate would make the report large and conflate unrelated Flutter work. | Profile vertex and whole-shape drag separately through the real Windows pointer surface. Compact engine timings to sample count plus p50/p95/p99/max, retain GC counts as diagnostics, and prove the drag path leaves the source document, complete Chunk list, and active Chunk identities unchanged while rendering all 256 edges. | Future editor benchmarks reuse this report schema and distinguish source-model replacement from general framework allocation. A dedicated heap profile is still required before claiming zero global UI allocations. |
 | Phase 3 moved enemy AABBs into top-level constants so legacy collision and staged capsules share one definition, but the entity editor only parsed inline collider expressions. | Resolve a directly referenced top-level `ColliderAabbDef` initializer and bind edits to that initializer; keep unresolved/indirect shapes non-writable. | Enemy authoring remains operational through the Phase 4 source migration without duplicating capsule/AABB dimensions. |
 | The earlier Phase 0 topology audit did not run the accepted one-world-unit minimum-edge predicate. Exact Core revalidation finds `0.5 px` exterior edges in `dark_menhir_01`, `dark_menhir_03`, and `ruin_stone_00`; 67/70 collision prefabs and 85/88 candidate loops pass unchanged. | Keep the global rule. Apply reviewed minimal outward corrections adding 34, 25, and 36 half-pixel-square ticks, guarded by exact expected collider lists. | All 70 prefabs / 88 loops now plan successfully with zero unclassified blockers. The correction catalog is migration-only and is removed after verified v3 source write; production source/runtime remain unchanged meanwhile. |
 | Normal editor stores intentionally normalize compatibility input, so using them for migration checks could hide malformed legacy fields or bind a report to different semantics than the reviewed bytes. | Add a separate read-only legacy codec with exact prefab-v1/v2 and chunk-v1 fields/types/order, explicit v1 promotion, and SHA-256 of the parsed UTF-8 text. Report v2 records all nine source digests and exposes a pure canonical-path drift audit. | The future CLI must build from these strict documents and call the digest audit immediately before replacement; normal store behavior remains unchanged until cutover. |
@@ -1657,6 +1669,7 @@ result.
 | 2026-08-10 / `e84b1b9c` + `5608b995` | Terrain authoring soft-capacity diagnostics | Dart and Flutter test VMs on Windows with Docker running | Core and editor analysis are clean; all 330 Core-package tests and all 450 editor tests pass. Exact 16-shape, 24-vertex, and 1,024-edge fixtures remain warning-free; 17, 25, and 1,025 emit owner-aware warnings while accepted Prefab/Chunk commits and compiled overlays remain available. Hard limits, source bytes, generated artifacts, live schema selection, and runtime authority are unchanged. |
 | 2026-08-10 / `fd84e465` | Prefab plugin diagnostic owner retention | Dart and Flutter test VMs on Windows with Docker running | Editor analysis is clean and all 16 focused Prefab-v3 plugin tests pass. A 17-shape staged Prefab warning retains owner `target` through `PrefabValidationIssue` to generic `ValidationIssue`; severity, source path, and non-blocking behavior are unchanged. |
 | 2026-08-10 / `7145d9b6` + `80a890f6` | Staged generated-artifact migration impacts | Dart VM and Flutter test VM on Windows with Docker running | Root, Core-package, and editor analysis are clean; all 331 Core-package tests, all 72 root tool/generator tests, and all 452 editor tests pass. One Core constant owns the future staged output path. Readiness report v3 emits eight immutable canonically ordered Chunk impact records covering all 50 placements, with shared path/artifact format, Chunk identity/source, sorted referenced Prefab keys, and placement count; equivalent legacy/current source emits identical records. Current legacy/current FNV fingerprints are `f74fa5f0` and `12475a2a`, with `authoring-migration-v1` SHA-256 values `561d49b2…2597` and `3264cf7a…15d`. No artifact is generated, registered, selected, or written; `--write` and runtime authority remain unchanged. |
+| 2026-08-10 / `2c6c7cb5` + `2a9a2ded` + `0b9c95c3` | Windows profile polygon-interaction benchmark | Windows Flutter profile/debug VMs with Docker running | Full editor analysis is clean and all 453 normal editor tests pass; the Windows debug device regression and clean-revision profile drive both pass. The deterministic 600 x 270 fixture freezes 16 direct shapes, one 24-vertex shape, 43 expanded Prefab shapes, 256 compiled edges, 12 compatible seams, and authored/source/edge/seam signatures `11957741…2ae0`, `9c7a7088…5725`, `dfcdc193…7271`, and `fa7a0aa0…6355`. Across 600 measured frames per mode after 120 warmups, vertex p95/p99 is `201/262 us`, shape is `210/277 us`, build p99 is `7.864/7.359 ms`, and no input or engine budget is missed. Source document/list/Chunk identities remain unchanged, with one plugin load and zero generator runs. The compact JSON reports revision `0b9c95c3`, `dirty: false`, and every gate passing. |
 
 ### 28.1 Baseline Environment And Source Identity
 
@@ -1856,7 +1869,7 @@ Phase 4 is complete only when:
       exists across Prefab and Chunk routes
 - [ ] no-op save, dry-run generation, and fresh-process goldens are stable
 - [x] hard authoring limits do not truncate or hang
-- [ ] polygon interaction p95/p99 and missed-input gates pass
+- [x] polygon interaction p95/p99 and missed-input gates pass
 - [ ] full editor/Core/root/validator analysis and tests pass
 - [ ] documentation and the implementation findings ledger are current
 - [ ] normal production levels and replay validation still use legacy authority

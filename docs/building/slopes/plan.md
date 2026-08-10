@@ -1564,6 +1564,17 @@ Chunk, and shape ownership and do not alter the existing hard compiler limits.
 No combined-shapes-per-Chunk soft warning exists because no such Phase 0 target
 was accepted.
 
+The editor interaction performance gate is also implemented on the real
+Windows Chunk staging surface. A deterministic 600 x 270 fixture combines 16
+direct shapes, one 24-vertex selected shape, 43 expanded Prefab shapes, 256
+compiled edges, and 12 compatible reachable seams. After 120 warmups, 600
+profile samples per mode report vertex p95/p99 `201/262 us` and whole-shape
+`210/277 us`; build p99 is `7.864/7.359 ms`, with zero missed input, build, or
+raster budgets. Pointer updates leave the session source document, complete
+Chunk list, and active Chunk identities unchanged and trigger neither reload
+nor generation. The compact JSON includes clean revision/runtime/signature
+evidence without changing authored source or runtime selection.
+
 The remaining generator-facing source/compiled mismatch is now fail-closed at
 the typed staged-artifact boundary. Before future selection, the artifact is
 compared with a fresh seam-validated compile for artifact/compiler versions,

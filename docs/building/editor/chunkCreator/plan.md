@@ -94,6 +94,13 @@ Chunk route is now a functional composition workspace skeleton:
 
 - `tools/editor/lib/src/app/pages/chunkCreator/chunk_creator_page.dart`
 
+Slope Phase 4 also provides an explicit write-locked Chunk-v2 polygon staging
+workspace and a deterministic Windows profile benchmark for its real pointer
+surface. The reviewed benchmark fixture renders 16 direct shapes plus expanded
+Prefab collision at exactly 256 Core edges and measures vertex/whole-shape
+drag without reloading or replacing repository source. Normal checked-in Chunk
+source remains v1 until the coordinated polygon migration.
+
 Parallax route now exists as a dedicated theme-authoring workflow:
 
 - `tools/editor/lib/src/app/pages/parallaxEditor/parallax_editor_page.dart`
