@@ -1533,7 +1533,7 @@ every normalized loop rotation/winding, one-field record mutations, duplicate
 derived identities, and Windows/POSIX source-path spellings are locked by
 tests; the complete staged artifact hashes to `434ae70a…ca84`. The equivalent
 migration check also reproduces canonical report bytes and
-`authoring-migration-v1` `c355c5de…0beb` in separate Dart processes. This
+`authoring-migration-v1` `561d49b2…2597` in separate Dart processes. This
 closes the staged determinism gate without registering the artifact in live
 generation or changing source/runtime authority.
 
@@ -1583,9 +1583,12 @@ artifacts. Plans, complete checks, source-digest audits, pre-check exceptions,
 and guarded write exceptions adapt their existing stable evidence to explicit
 blocking severity and ownership. Decoded blockers retain owner/element;
 file-level failures use their canonical path, and transaction-wide failures
-use `migration/write`. Readiness-report v2, write-report v1,
-`authoring-migration-v1`, CLI output, rollback behavior, and write authorization
-remain unchanged.
+use `migration/write`. Readiness-report v3 now also publishes eight canonical
+Chunk-scoped generated-artifact impact records covering all 50 placements. The
+records bind the shared staged output path/format, Chunk source, sorted Prefab
+references, and placement count without claiming final artifact bytes before
+seam-validated generation. Write-report v1, rollback behavior, write
+authorization, and live runtime selection remain unchanged.
 
 An isolated exact legacy projector now decomposes accepted orthogonal terrain,
 reproduces current 16-pixel rectangle snapping, derives gaps only from exact

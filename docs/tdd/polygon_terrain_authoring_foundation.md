@@ -319,25 +319,32 @@ schema validation; every partial or mixed generation fails closed. Legacy mode
 builds all nine targets in memory and requires strict byte-stable target round
 trips. Current mode requires source to already equal its canonical bytes,
 rechecks Core geometry and placement references, and emits the same nine files
-as byte-identical no-op targets. Readiness report v2 records source state, all
-nine before/after SHA-256 pairs, 107 unchanged revision decisions, and 99
-prefab impact records covering 50 placements. For the current reset source,
-the legacy readiness fingerprint is `086d00a8` and its equivalent strict
-current-state fingerprint is `7f4fc90e`.
+as byte-identical no-op targets. Readiness report v3 records source state, all
+nine before/after SHA-256 pairs, 107 unchanged revision decisions, 99 Prefab
+impact records covering 50 placements, and eight generated-artifact impact
+records covering the same placements by owning Chunk. Each generated record
+binds the shared staged output path and artifact format version, canonical Chunk
+key/source path, sorted referenced Prefab keys, and exact placement count.
+Legacy and equivalent current source produce identical records. They describe
+dependencies only; final artifact bytes remain owned by seam-validated staged
+generation and its output gate. For the current reset source, the legacy
+readiness fingerprint is `f74fa5f0` and its equivalent strict current-state
+fingerprint is `12475a2a`.
 
 The editor migration domain also exposes `authoring-migration-v1` as the
 reviewed SHA-256 contract. Its single UTF-8 length-prefixed record contains the
-format label followed by the exact canonical readiness-report-v2 JSON. The
+format label followed by the exact canonical readiness-report-v3 JSON. The
 digest therefore binds the report's sorted source paths and source SHA-256
 values, target before/after digests, revision decisions, impact records,
-planned polygon source, and blockers without embedding a circular signature
-field in the report. The collision-reset legacy report signs as
-`c355c5de8af15880881e147a031c054f60642f75f5102d23a2691b97a24d0beb`;
+generated-artifact impacts, planned polygon source, and blockers without
+embedding a circular signature field in the report. The collision-reset legacy
+report signs as
+`561d49b28eba5f6a86e78c212798a7c40e483d71b9484f76b1b2ac82bf6a2597`;
 the strict current-schema no-op signs as
-`d98983c44505bbdbdbe3f1f4482006be9ea67060091613b1b0f8b3b2ca198153`.
+`3264cf7a0d276f851bcd19eb98c63a5d35aa473fdc5dcdeb82b21cee642dc15d`.
 Changing only exact source bytes changes the signature. The existing short FNV
-fingerprints remain compatibility/display tokens, and neither canonical JSON
-nor CLI report output changes.
+fingerprints remain compatibility/display tokens. The CLI emits the new
+canonical report; source-write authorization remains disabled.
 
 Migration retains its report-specific issue types and also exposes a shared
 blocking-envelope view. Plan/check blockers and source-digest audits preserve
@@ -985,11 +992,14 @@ records; the editor parity adapter calls the same triangulator and signature
 function. Neither consumer reimplements ear selection or triangle
 serialization.
 
-The future output path is
-`packages/runner_core/lib/track/staged_authored_terrain.dart`. Its deliberately
-narrow API is `StagedTerrainArtifactData`, defined in
-`staged_terrain_data.dart`; it cannot be confused with the current
-`ChunkPattern` authority. The artifact is self-describing with artifact and
+The future output path is owned by Core's
+`stagedTerrainArtifactRepositoryPath` constant as
+`packages/runner_core/lib/track/staged_authored_terrain.dart`. Offline migration
+and generation share that workspace-relative identity; declaring it neither
+registers a generated output nor selects it at runtime. Its deliberately narrow
+API is `StagedTerrainArtifactData`, defined in `staged_terrain_data.dart`; it
+cannot be confused with the current `ChunkPattern` authority. The artifact is
+self-describing with artifact and
 compiler geometry versions plus `authoring-polygons-v1`, `source-v1`,
 `edges-v1`, `authoring-placement-v1`, `authoring-triangles-v1`, and
 `authoring-seams-v1` labels and signatures. Adding the authored-source digest
@@ -1114,7 +1124,7 @@ normalization, and mutation matrices cover every signed record field. The
 editor migration command receives the same fresh-process treatment: two
 standalone checks over one temporary workspace emit byte-identical canonical
 reports and reproduce `authoring-migration-v1`
-`c355c5de8af15880881e147a031c054f60642f75f5102d23a2691b97a24d0beb`.
+`561d49b28eba5f6a86e78c212798a7c40e483d71b9484f76b1b2ac82bf6a2597`.
 These probes close staged determinism; they do not authorize live output
 registration or source migration.
 

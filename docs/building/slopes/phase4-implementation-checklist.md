@@ -465,9 +465,11 @@ missing, and wrong-level findings own each offending Chunk; a directed physical
 mismatch owns the entered/right Chunk while retaining both boundary digests and
 the transition record in its message. Migration planning, complete checks,
 source-digest audits, pre-check failures, and guarded write failures now expose
-the same blocking envelope without changing their canonical JSON/signatures or
-CLI output. The remaining editor-wide validation and normal export/cutover
-paths still need this boundary before the broad diagnostic gate can close.
+the same blocking envelope as a separate view; those adapters add nothing to
+canonical JSON or CLI output. Readiness later advances to report v3 solely for
+the explicit generated-artifact impact contract. The remaining editor-wide
+validation and normal export/cutover paths still need this boundary before the
+broad diagnostic gate can close.
 The typed staged-artifact verifier now compares artifact/compiler versions,
 every signature-format label, the reachable-seam digest, exact Chunk
 membership/metadata, and all five per-Chunk source/compiled signatures against
@@ -591,9 +593,10 @@ remaining files independently.
       reviewed-reauthoring, and blocker records.
 - [x] Extend the report with all 107 revision decisions and 99 deterministic
       prefab downstream-impact records covering all 50 placements.
-- [ ] Add staged generated-artifact impact records once generator output exists.
+- [x] Add staged generated-artifact impact records once generator output exists.
 - [x] Include exact legacy/planned occupied-area facts.
-- [x] Include exact before-source paths and SHA-256 signatures in report v2.
+- [x] Include exact before-source paths and SHA-256 signatures introduced in
+      report v2 and retained in report v3.
 - [x] Include after-migration canonical target SHA-256 signatures.
 - [x] Make `--check` exit `1` for source, plan, target, drift, or report-write
       blockers.
@@ -1281,18 +1284,20 @@ the reviewed digest remains
 
 `authoring-migration-v1` is owned by the editor migration domain. Its sole
 length-prefixed record contains the format label and the exact canonical
-readiness-report-v2 JSON, so it transitively binds sorted source SHA-256 facts,
-target before/after digests, revision decisions, prefab impacts, planned
-polygon source, and blockers without adding a self-referential field to the
-report. The collision-reset legacy state goldens to
-`c355c5de8af15880881e147a031c054f60642f75f5102d23a2691b97a24d0beb`;
+readiness-report-v3 JSON, so it transitively binds sorted source SHA-256 facts,
+target before/after digests, revision decisions, prefab impacts, staged
+generated-artifact impacts, planned polygon source, and blockers without adding
+a self-referential field to the report. The collision-reset legacy state
+goldens to
+`561d49b28eba5f6a86e78c212798a7c40e483d71b9484f76b1b2ac82bf6a2597`;
 its equivalent canonical current-schema state goldens to
-`d98983c44505bbdbdbe3f1f4482006be9ea67060091613b1b0f8b3b2ca198153`.
+`3264cf7a0d276f851bcd19eb98c63a5d35aa473fdc5dcdeb82b21cee642dc15d`.
 Changing only reviewed source bytes changes the digest. Existing short FNV
-fingerprints remain compatibility/display evidence, and the CLI report bytes
-and write authorization are unchanged. Two standalone migration-check Dart
-processes over the same temporary workspace must emit byte-identical canonical
-reports and reproduce the reviewed legacy digest above.
+fingerprints remain compatibility/display evidence. The CLI now emits the
+canonical report-v3 bytes; write authorization is unchanged. Two standalone
+migration-check Dart processes over the same temporary workspace must emit
+byte-identical canonical reports and reproduce the reviewed legacy digest
+above.
 
 ## 24) Interaction Performance And Capacity
 
@@ -1473,6 +1478,7 @@ before changing the accepted plan.
 | Existing placement scales are decimal tenths; multiplying half-pixel source coordinates with binary doubles would make identity platform-sensitive. | Parse scale into an exact integer rational and quantize once after reflection/scale/translation. The initial editor-to-Core source adapter remains identity-transform-only until that primitive replaces the current double transform. | Generated world geometry and validator replay receive the same physics ticks on every platform. |
 | Source-point construction multiplied an unchecked authored tick by the source-to-physics factor before range validation, so native integer overflow could occur before rejection. | Validate against an explicit source-tick limit before conversion and use overflow-safe comparison bounds. Promote exact authoring/compiler area, orientation, overlap, and line-key products to `BigInt`; keep this work outside per-tick contact. | Migration and editor validation can safely exercise the accepted coordinate limits without platform-dependent wraparound. |
 | Phase 4 must stage polygon data while production still reads rectangles. | Source cuts over once; generation emits an unreachable staged terrain artifact and a bounded exact legacy projection for orthogonal current content. | Phase 5 removes the projection when streaming consumes staged terrain; no runtime toggle is introduced. |
+| The future staged terrain output is one repository file, but migration review needs to show which Chunk dependencies will change before level-seam compilation can produce final artifact bytes. | Core owns the single staged output path. Readiness report v3 emits one canonical impact record per Chunk with that path and artifact format, the Chunk key/source path, sorted referenced Prefab keys, and exact placement count. Legacy and equivalent current source emit identical records. | The generated-impact records are dependency evidence, not byte authority. The seam-validated generator and staged-output gate must still calculate and verify the exact artifact during cutover. |
 | Phase 3 moved enemy AABBs into top-level constants so legacy collision and staged capsules share one definition, but the entity editor only parsed inline collider expressions. | Resolve a directly referenced top-level `ColliderAabbDef` initializer and bind edits to that initializer; keep unresolved/indirect shapes non-writable. | Enemy authoring remains operational through the Phase 4 source migration without duplicating capsule/AABB dimensions. |
 | The earlier Phase 0 topology audit did not run the accepted one-world-unit minimum-edge predicate. Exact Core revalidation finds `0.5 px` exterior edges in `dark_menhir_01`, `dark_menhir_03`, and `ruin_stone_00`; 67/70 collision prefabs and 85/88 candidate loops pass unchanged. | Keep the global rule. Apply reviewed minimal outward corrections adding 34, 25, and 36 half-pixel-square ticks, guarded by exact expected collider lists. | All 70 prefabs / 88 loops now plan successfully with zero unclassified blockers. The correction catalog is migration-only and is removed after verified v3 source write; production source/runtime remain unchanged meanwhile. |
 | Normal editor stores intentionally normalize compatibility input, so using them for migration checks could hide malformed legacy fields or bind a report to different semantics than the reviewed bytes. | Add a separate read-only legacy codec with exact prefab-v1/v2 and chunk-v1 fields/types/order, explicit v1 promotion, and SHA-256 of the parsed UTF-8 text. Report v2 records all nine source digests and exposes a pure canonical-path drift audit. | The future CLI must build from these strict documents and call the digest audit immediately before replacement; normal store behavior remains unchanged until cutover. |
@@ -1517,7 +1523,7 @@ before changing the accepted plan.
 | The generated Dart artifact retained self-declared signature strings, but its typed import was only count-checked; byte drift found stale output without providing the source/compiled mismatch category or Chunk owner. | Compare the typed artifact with the fresh seam-validated compile before it can be selected. Validate global versions/formats/seam digest, exact Chunk set and source metadata, and all five per-Chunk signatures through the shared blocking envelope. Keep exact record bytes under the existing artifact-plan authority instead of adding another serializer. | Live cutover must run this semantic gate together with exact generated-output drift validation. Neither gate substitutes for the other, and any issue suppresses the staged artifact. |
 | Staged seam validation carried transition evidence but had no explicit severity or repository owner, leaving a major export blocker outside the shared issue contract. | Alias seam findings to `TerrainAuthoringIssue`. Assign set/reference/level faults to each offending Chunk, and assign a directed physical mismatch to the entered/right Chunk while retaining the full transition and both boundary records in the message. | UI focus and export reporting can use one owner-aware contract. Missing or wrong-level pairs emit one issue per owner; no invalid seam set produces a renderable batch. |
 | Exact generated-output drift already had stable codes and rollback-safe byte authority, but its generic finding lacked explicit severity/owner and was separate from semantic staged-artifact acceptance. | Keep `GeneratedArtifactPlan` generic and compose it at the polygon boundary. Adapt each missing/stale/unexpected/unreadable finding to `TerrainAuthoringIssue` with the canonical generated path as source and owner; combine all drift and semantic findings before artifact selection. | Live cutover calls one read-only staged-output gate. Any semantic or byte issue returns no artifact, while the existing transaction utility and five-output generator behavior remain unchanged. |
-| Migration readiness reports and guarded write failures already had stable codes/source evidence, and their canonical JSON/signatures are reviewed compatibility artifacts that must not gain new fields merely to align UI diagnostics. | Preserve `PolygonAuthoringMigrationIssue`, check exceptions, and write exceptions as their report authorities. Add explicit conversion to `TerrainAuthoringIssue`: decoded blockers retain owner/element, file-level pre-check failures use the source path as owner, file-bound write failures emit one issue per path, and transaction-wide failures use `migration/write`. | Normal export/cutover can consume one issue envelope without changing report v2, write-report v1, `authoring-migration-v1`, CLI output, or source-write authorization. |
+| Migration readiness reports and guarded write failures already had stable codes/source evidence, and their canonical JSON/signatures must not gain fields merely to align UI diagnostics. | Preserve `PolygonAuthoringMigrationIssue`, check exceptions, and write exceptions as their report authorities. Add explicit conversion to `TerrainAuthoringIssue`: decoded blockers retain owner/element, file-level pre-check failures use the source path as owner, file-bound write failures emit one issue per path, and transaction-wide failures use `migration/write`. That adapter left report v2 unchanged; the later generated-impact contract deliberately advanced readiness to v3. | Normal export/cutover can consume one issue envelope without coupling UI diagnostics to report shape. Write-report v1, CLI write behavior, rollback, and source-write authorization remain separate contracts. |
 | Phase 0 freezes soft authoring targets for Prefab shapes, polygon vertices, and compiled Chunk edges, but only hard limits for combined Chunk shapes. Treating equality as “near capacity” would also contradict the accepted `<=` targets. | Publish the three soft values as a Core-owned authoring contract and warn only at one over: 17 shapes, 25 vertices, or 1,025 exposed edges. Keep the warnings editor-only, owner-aware, and non-blocking; do not invent a combined-shape warning. | Normal source cutover can reuse the same warnings without changing compiler/runtime acceptance. Any new soft metric needs an explicit measured budget rather than deriving one from a hard cap. |
 
 Append rows during implementation. Do not silently relax source, compiler,
@@ -1650,6 +1656,7 @@ result.
 | 2026-08-10 / `4535836f` | Owner-aware migration issue adapters | Dart and Flutter test VMs on Windows with Docker running | Full editor analysis is clean and all 444 tests pass. Legacy plans, complete readiness checks, fresh source-digest audits, source-loading exceptions, and guarded write exceptions expose immutable canonically sorted `TerrainAuthoringIssue` views with explicit blocking severity. Decoded blockers retain owner/element; undecoded file failures use their path; file-bound write failures expand per path; transaction-wide failures use `migration/write`. Existing report JSON/fingerprints/signatures, CLI output, write authorization/rollback semantics, source bytes, and runtime authority are unchanged. |
 | 2026-08-10 / `e84b1b9c` + `5608b995` | Terrain authoring soft-capacity diagnostics | Dart and Flutter test VMs on Windows with Docker running | Core and editor analysis are clean; all 330 Core-package tests and all 450 editor tests pass. Exact 16-shape, 24-vertex, and 1,024-edge fixtures remain warning-free; 17, 25, and 1,025 emit owner-aware warnings while accepted Prefab/Chunk commits and compiled overlays remain available. Hard limits, source bytes, generated artifacts, live schema selection, and runtime authority are unchanged. |
 | 2026-08-10 / `fd84e465` | Prefab plugin diagnostic owner retention | Dart and Flutter test VMs on Windows with Docker running | Editor analysis is clean and all 16 focused Prefab-v3 plugin tests pass. A 17-shape staged Prefab warning retains owner `target` through `PrefabValidationIssue` to generic `ValidationIssue`; severity, source path, and non-blocking behavior are unchanged. |
+| 2026-08-10 / `7145d9b6` + `80a890f6` | Staged generated-artifact migration impacts | Dart VM and Flutter test VM on Windows with Docker running | Root, Core-package, and editor analysis are clean; all 331 Core-package tests, all 72 root tool/generator tests, and all 452 editor tests pass. One Core constant owns the future staged output path. Readiness report v3 emits eight immutable canonically ordered Chunk impact records covering all 50 placements, with shared path/artifact format, Chunk identity/source, sorted referenced Prefab keys, and placement count; equivalent legacy/current source emits identical records. Current legacy/current FNV fingerprints are `f74fa5f0` and `12475a2a`, with `authoring-migration-v1` SHA-256 values `561d49b2…2597` and `3264cf7a…15d`. No artifact is generated, registered, selected, or written; `--write` and runtime authority remain unchanged. |
 
 ### 28.1 Baseline Environment And Source Identity
 
@@ -1774,8 +1781,8 @@ layout. The exact structural audit records:
 - all 50 prefab placements and 2 enemy markers retained
 - generated `authored_chunk_patterns.dart` contains zero `SolidRel` records and
   8 full-width gaps
-- migration plan/legacy/current fingerprints are `51630457`, `086d00a8`, and
-  `7f4fc90e`
+- migration plan/legacy/current fingerprints are `51630457`, `f74fa5f0`, and
+  `12475a2a`
 
 This is deliberately not a playable content milestone. Legacy authority is
 still selected, but it now has no static support geometry. Éloïse, grounded
