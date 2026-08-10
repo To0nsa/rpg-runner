@@ -3,7 +3,9 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 import 'package:runner_core/collision/terrain/terrain_authoring_issue.dart';
+import 'package:runner_core/track/staged_terrain_data.dart';
 
+import '../chunks/chunk_domain_models.dart';
 import '../domain/strict_authoring_json.dart';
 import '../prefabs/models/models.dart';
 import '../terrain_authoring/terrain_source_core_adapter.dart';
@@ -102,6 +104,35 @@ final class PolygonAuthoringMigrationImpactRecord {
   };
 }
 
+/// One Chunk record affected inside the future staged terrain artifact.
+final class PolygonAuthoringGeneratedArtifactImpactRecord {
+  PolygonAuthoringGeneratedArtifactImpactRecord({
+    required this.chunkKey,
+    required this.chunkSourcePath,
+    required Iterable<String> referencedPrefabKeys,
+    required this.placementCount,
+  }) : referencedPrefabKeys = List<String>.unmodifiable(
+         referencedPrefabKeys.toSet().toList()..sort(),
+       );
+
+  static const String artifactKind = 'stagedTerrainChunk';
+
+  final String chunkKey;
+  final String chunkSourcePath;
+  final List<String> referencedPrefabKeys;
+  final int placementCount;
+
+  Map<String, Object> toJson() => <String, Object>{
+    'artifactKind': artifactKind,
+    'outputPath': stagedTerrainArtifactRepositoryPath,
+    'artifactFormatVersion': stagedTerrainArtifactFormatVersion,
+    'chunkKey': chunkKey,
+    'chunkSourcePath': chunkSourcePath,
+    'referencedPrefabKeys': referencedPrefabKeys,
+    'placementCount': placementCount,
+  };
+}
+
 /// Authored-source generation recognized by the read-only migration check.
 enum PolygonAuthoringMigrationSourceState {
   legacy('legacy'),
@@ -127,6 +158,8 @@ final class PolygonAuthoringMigrationCheck {
     required Iterable<PolygonAuthoringMigrationTargetFile> targetFiles,
     required Iterable<PolygonAuthoringMigrationRevisionRecord> revisionRecords,
     required Iterable<PolygonAuthoringMigrationImpactRecord> impactRecords,
+    required Iterable<PolygonAuthoringGeneratedArtifactImpactRecord>
+    generatedArtifactImpactRecords,
     required Iterable<PolygonAuthoringMigrationIssue> issues,
   }) : sourceFiles = List<PolygonAuthoringMigrationSourceFile>.unmodifiable(
          sourceFiles,
@@ -141,10 +174,14 @@ final class PolygonAuthoringMigrationCheck {
        impactRecords = List<PolygonAuthoringMigrationImpactRecord>.unmodifiable(
          impactRecords,
        ),
+       generatedArtifactImpactRecords =
+           List<PolygonAuthoringGeneratedArtifactImpactRecord>.unmodifiable(
+             generatedArtifactImpactRecords,
+           ),
        issues = List<PolygonAuthoringMigrationIssue>.unmodifiable(issues);
 
   /// Version of the complete readiness report, independent of source schemas.
-  static const int reportVersion = 2;
+  static const int reportVersion = 3;
 
   final PolygonAuthoringMigrationSourceState sourceState;
   final PolygonAuthoringMigrationSummary summary;
@@ -155,6 +192,8 @@ final class PolygonAuthoringMigrationCheck {
   final List<PolygonAuthoringMigrationTargetFile> targetFiles;
   final List<PolygonAuthoringMigrationRevisionRecord> revisionRecords;
   final List<PolygonAuthoringMigrationImpactRecord> impactRecords;
+  final List<PolygonAuthoringGeneratedArtifactImpactRecord>
+  generatedArtifactImpactRecords;
 
   /// Sorted union of plan and in-memory target-validation blockers.
   final List<PolygonAuthoringMigrationIssue> issues;
@@ -425,6 +464,21 @@ final class PolygonAuthoringMigrationCheck {
           placementCount: placementsByPrefab[prefabKey]?.length ?? 0,
         ),
     ];
+    final generatedArtifactImpactRecords =
+        _buildGeneratedArtifactImpactRecords(<
+          ({
+            String chunkKey,
+            String sourcePath,
+            Iterable<PlacedPrefabDef> placements,
+          })
+        >[
+          for (final input in chunkInputs)
+            (
+              chunkKey: input.document.chunk.chunkKey,
+              sourcePath: input.sourcePath,
+              placements: input.document.chunk.prefabs,
+            ),
+        ]);
 
     final targetFiles = <PolygonAuthoringMigrationTargetFile>[];
     if (issues.isEmpty) {
@@ -454,6 +508,7 @@ final class PolygonAuthoringMigrationCheck {
       targetFiles: targetFiles,
       revisionRecords: revisionRecords,
       impactRecords: impactRecords,
+      generatedArtifactImpactRecords: generatedArtifactImpactRecords,
       issues: issues,
     );
   }
@@ -617,6 +672,21 @@ final class PolygonAuthoringMigrationCheck {
           placementCount: placementsByPrefab[prefabKey]?.length ?? 0,
         ),
     ];
+    final generatedArtifactImpactRecords =
+        _buildGeneratedArtifactImpactRecords(<
+          ({
+            String chunkKey,
+            String sourcePath,
+            Iterable<PlacedPrefabDef> placements,
+          })
+        >[
+          for (final input in currentChunkInputs)
+            (
+              chunkKey: input.document.chunkKey,
+              sourcePath: input.sourcePath,
+              placements: input.document.prefabs,
+            ),
+        ]);
 
     final targetFiles = <PolygonAuthoringMigrationTargetFile>[];
     if (issues.isEmpty) {
@@ -681,6 +751,7 @@ final class PolygonAuthoringMigrationCheck {
       targetFiles: targetFiles,
       revisionRecords: revisionRecords,
       impactRecords: impactRecords,
+      generatedArtifactImpactRecords: generatedArtifactImpactRecords,
       issues: issues,
     );
   }
@@ -707,6 +778,8 @@ final class PolygonAuthoringMigrationCheck {
           .where((record) => record.placementCount > 0)
           .length,
       'downstreamPlacementCount': placementCount,
+      'generatedArtifactImpactRecordCount':
+          generatedArtifactImpactRecords.length,
       'blockerCount': issues.length,
     };
     final report = <String, Object>{
@@ -725,6 +798,9 @@ final class PolygonAuthoringMigrationCheck {
           .map((record) => record.toJson())
           .toList(growable: false),
       'impactRecords': impactRecords
+          .map((record) => record.toJson())
+          .toList(growable: false),
+      'generatedArtifactImpactRecords': generatedArtifactImpactRecords
           .map((record) => record.toJson())
           .toList(growable: false),
       'prefabs': (legacyPlan?.prefabs ?? const <PrefabPolygonMigrationEntry>[])
@@ -982,6 +1058,33 @@ String _workspacePath(EditorWorkspace workspace, String absolutePath) => p
     .replaceAll(r'\', '/');
 
 String _sha256(String source) => WorkspaceFileIo.sha256Digest(source);
+
+List<PolygonAuthoringGeneratedArtifactImpactRecord>
+_buildGeneratedArtifactImpactRecords(
+  Iterable<
+    ({String chunkKey, String sourcePath, Iterable<PlacedPrefabDef> placements})
+  >
+  chunks,
+) {
+  final records = <PolygonAuthoringGeneratedArtifactImpactRecord>[
+    for (final chunk in chunks)
+      PolygonAuthoringGeneratedArtifactImpactRecord(
+        chunkKey: chunk.chunkKey,
+        chunkSourcePath: chunk.sourcePath,
+        referencedPrefabKeys: chunk.placements.map(
+          (placement) => placement.resolvedPrefabRef,
+        ),
+        placementCount: chunk.placements.length,
+      ),
+  ];
+  records.sort((left, right) {
+    final keyOrder = left.chunkKey.compareTo(right.chunkKey);
+    return keyOrder != 0
+        ? keyOrder
+        : left.chunkSourcePath.compareTo(right.chunkSourcePath);
+  });
+  return records;
+}
 
 int _compareRevisionRecords(
   PolygonAuthoringMigrationRevisionRecord left,
