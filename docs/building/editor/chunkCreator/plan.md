@@ -589,9 +589,10 @@ workspace can edit direct polygons, expand placed prefab collision through
 Core, inspect compiled edges and actor/marker evidence, and list
 scheduler-reachable compatible/failing seams from exact boundary signatures.
 Global staged validation blocks physical seam mismatches. Normal Chunk Creator
-loading and production generation deliberately remain on chunk v1 flat
-ground/gaps until the coordinated Phase 4 schema/generator cutover in the
-slopes plan.
+loading now blocks checked-in chunk-v1 source behind the shared no-data
+migration-required workspace; production generation deliberately remains on
+chunk-v1 flat ground/gaps until the coordinated Phase 4 schema/generator
+cutover in the slopes plan.
 
 The staged expanded-collision list now opens its exact stable source owner in
 the Prefab-v3 polygon workspace. The editor shell applies the same unsaved-work
@@ -602,7 +603,8 @@ creates per-instance vertices. Normal loaders now select strict Prefab-v3 and
 complete Chunk-v2 sources when the repository is already current, and their
 confirmed export actions apply through source-drift-guarded transactional
 stores. Checked-in legacy sources and the migration/runtime cutover remain
-unchanged.
+unchanged on disk, but they no longer expose compatibility editing or export
+through normal Prefab/Chunk plugin routes.
 
 The first root generator compiler fixture now passes the editor's strict
 prefab-v3/chunk-v2 codecs and collision expansion over the same checked-in

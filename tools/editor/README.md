@@ -101,6 +101,9 @@ create per-instance polygon overrides.
 Normal loading now detects strict Prefab-v3 and complete Chunk-v2 source and
 selects these polygon workflows. Changed current documents can be applied only
 through their confirmed, source-drift-guarded transactional stores, then are
-reloaded from the exact installed bytes. Checked-in legacy source still opens
-the Prefab-v2 and Chunk-v1 workflows; the one-time migration command and live
-polygon runtime authority remain unavailable.
+reloaded from the exact installed bytes. Legacy or missing source opens one
+shared migration-required workspace with no editable data, pending diff, or
+export path. It shows the read-only readiness command and can atomically
+recheck source after an external migration; it never exposes Prefab-v2
+rectangle or Chunk-v1 ground/gap controls. The one-time migration `--write`
+command and live polygon runtime authority remain unavailable.

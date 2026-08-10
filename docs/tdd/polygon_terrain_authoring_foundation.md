@@ -3,14 +3,20 @@
 ## Status And Authority Boundary
 
 The exact polygon-source foundation is implemented in `runner_core` and the
-standalone editor. It is not yet the normal prefab/chunk source contract and
-does not make polygon terrain authoritative in production gameplay.
+standalone editor. Prefab-v3 and complete Chunk-v2 trees are now the normal
+editable editor contract when source is already current. The checked-in source
+is still legacy and therefore opens one fail-closed migration-required scene;
+polygon terrain is not yet authoritative in production gameplay.
 
-The normal schema and runtime boundary remain legacy, but the checked-in
-content has entered an explicit collision-reset state:
+The checked-in source and runtime boundary remain legacy, while normal editor
+schema selection is generation-aware. The committed content has entered an
+explicit collision-reset state:
 
 - prefab authoring still persists schema v2 rectangle `colliders`
 - chunk authoring still persists schema v1 `groundProfile` and `groundGaps`
+- normal Prefab/Chunk plugin loads expose no legacy editable data, commands,
+  pending diffs, or export; the shared migration route provides only a
+  read-only readiness command and atomic source recheck
 - normal `GameCore(...)` and replay validation still use legacy rectangle
   motion authority
 - all 99 prefab records retain visuals, kinds, metadata, and identity, while
@@ -32,33 +38,34 @@ The active schema migration, generator, preview, and cutover work remains in
 | --- | --- | --- |
 | Exact half-pixel source vertex and shape values | `tools/editor/lib/src/terrain_authoring/terrain_source_models.dart` | editor model/codec tests and the Core adapter |
 | Source validation and canonicalization | `runner_core` `TerrainSourceCanonicalizer` | `TerrainCompiler` and editor adapter |
-| Portable terrain-authoring issue envelope | `runner_core` `TerrainAuthoringIssue` | staged generator raw-source/compile, seam validation, typed artifact/output-drift verification, migration plan/check/write adapters, editor Prefab/Chunk polygon validation, and Chunk-v2 collision expansion; remaining editor-domain adapters are pending |
-| Positive-area polygon overlap | `runner_core` `TerrainPolygonOverlap` | `TerrainCompiler`; source-loop entry point is ready for editor owner validation |
+| Portable terrain-authoring issue envelope | `runner_core` `TerrainAuthoringIssue` | staged generator raw-source/compile, seam validation, typed artifact/output-drift verification, migration plan/check/write adapters, editor Prefab/Chunk polygon validation, and Chunk-v2 collision expansion |
+| Positive-area polygon overlap | `runner_core` `TerrainPolygonOverlap` | `TerrainCompiler` and editor owner validation |
 | Exact placement and physics-grid quantization | `runner_core` `TerrainSourceTransform` | `TerrainCompiler`, Core fixtures, and editor adapter |
-| Editor-to-Core conversion | editor `TerrainSourceCoreAdapter` | migration checks, shared interaction reducer, and explicit Prefab/Chunk staging routes |
-| Shared polygon interaction state | editor `TerrainPolygonInteractionReducer` | pure-Dart selection/draft/gesture/semantic-edit tests plus explicit Prefab and Chunk staging routes |
-| Exact half-pixel inspector text | editor `TerrainHalfPixelText` / `TerrainPolygonVertexEditor` / `TerrainPolygonInteractionReducer.editSelectedVertex` | one shared exact field widget and semantic commit path used by both explicit staging routes |
-| Polygon collision metadata dialog | editor `TerrainPolygonMetadataDialog` / `TerrainPolygonInteractionReducer.editSelectedShapeMetadata` | one owner-neutral collision-mode/surface/material dialog used by both explicit staging routes; owner controllers retain commit authority |
-| Polygon duplicate placement default | editor `findTerrainPolygonDuplicateOffset` | deterministic nearest conservative AABB-free, snap-aligned candidate on both explicit staging routes; exact owner validation remains final authority |
+| Editor-to-Core conversion | editor `TerrainSourceCoreAdapter` | migration checks, shared interaction reducer, and normal current-schema Prefab/Chunk routes |
+| Shared polygon interaction state | editor `TerrainPolygonInteractionReducer` | pure-Dart selection/draft/gesture/semantic-edit tests plus normal current-schema Prefab and Chunk routes |
+| Exact half-pixel inspector text | editor `TerrainHalfPixelText` / `TerrainPolygonVertexEditor` / `TerrainPolygonInteractionReducer.editSelectedVertex` | one shared exact field widget and semantic commit path used by both current-schema routes |
+| Polygon collision metadata dialog | editor `TerrainPolygonMetadataDialog` / `TerrainPolygonInteractionReducer.editSelectedShapeMetadata` | one owner-neutral collision-mode/surface/material dialog used by both current-schema routes; owner controllers retain commit authority |
+| Polygon duplicate placement default | editor `findTerrainPolygonDuplicateOffset` | deterministic nearest conservative AABB-free, snap-aligned candidate on both current-schema routes; exact owner validation remains final authority |
 | Render projection and source-space hit testing | editor `TerrainPolygonSceneProjection` / `TerrainPolygonSceneHitTest` | framework-neutral scene tests and both explicit staging surfaces |
 | Canvas projection and source-loop overlay | editor `TerrainPolygonViewportTransform` / `TerrainPolygonScenePainter` | shared Flutter painter tests and both explicit staging surfaces; Chunk staging layers Core edge, actor-terrain, and marker-placement diagnostics above it |
-| Prefab polygon owner validation | editor `validatePrefabCollisionShapes` | Core compiler plus exact visual-bounds tests; normal `PrefabDef` integration is pending |
-| Immutable prefab-v3 polygon record | editor `PrefabV3Def` | migration target and model-contract tests; normal store/UI integration is pending |
-| Strict prefab-v3 file structure and canonical serialization | editor `PrefabV3FileData` / `PrefabV3FileCodec` | delegated migration checks and explicit read-only store staging; normal load/save cutover is pending |
-| Retained tile-v2 structure and canonical serialization | editor `PrefabTileFileData` / `PrefabTileFileCodec` | current-source byte round-trip and explicit v3 staging load; normal load/save cutover is pending |
-| Prefab visual-source bounds | editor `PrefabVisualBoundsResolver` | existing v2 validation plus explicit v3 staging load for atlas slices and platform modules |
-| Prefab polygon commit and revision policy | editor `PrefabV3CollisionCommitPolicy` | shared reducer, defensive plugin command, and staged route-coordinator tests; normal page cutover is pending |
-| Prefab-v3 plugin command staging | editor `PrefabV3StagingDocument` / `PrefabDomainPlugin` | explicit strict load, typed commit, immutable pending diff, validation, and hard export lock; normal loader/page cutover is pending |
-| Prefab polygon route-local projection | editor `PrefabPolygonAuthoringController` / `PrefabPolygonSceneSurface` / `PrefabPolygonStagingWorkspace` | explicit staged-scene routing, owner isolation, visual sources, tools, snap, diagnostics, focus, keyboard, rejection, and history tests; normal v2 loads still select rectangles |
+| Prefab polygon owner validation | editor `validatePrefabCollisionShapes` | Core compiler, exact visual-bounds tests, and normal current-schema Prefab commits/export |
+| Immutable prefab-v3 polygon record | editor `PrefabV3Def` | migration target, normal current-schema store/plugin/UI, and model-contract tests |
+| Strict prefab-v3 file structure and canonical serialization | editor `PrefabV3FileData` / `PrefabV3FileCodec` | delegated migration checks plus normal current-source load, transactional save, and exact reload |
+| Retained tile-v2 structure and canonical serialization | editor `PrefabTileFileData` / `PrefabTileFileCodec` | current-source byte round-trip plus normal v3 paired load/save |
+| Prefab visual-source bounds | editor `PrefabVisualBoundsResolver` | retained v2 compatibility validation plus normal v3 atlas-slice/platform-module loading |
+| Prefab polygon commit and revision policy | editor `PrefabV3CollisionCommitPolicy` | shared reducer, defensive plugin command, and normal current-schema route tests |
+| Prefab-v3 plugin document | editor `PrefabV3StagingDocument` / `PrefabDomainPlugin` | normal strict current-source selection, typed commits, immutable pending diffs, complete validation, transactional apply, and exact reload; the temporary type name remains until coordinated source cutover |
+| Prefab polygon route-local projection | editor `PrefabPolygonAuthoringController` / `PrefabPolygonSceneSurface` / `PrefabPolygonStagingWorkspace` | normal strict-v3 routing, owner isolation, visual sources, tools, snap, diagnostics, focus, keyboard, rejection, and history; legacy/missing source selects no rectangle workflow |
+| Legacy/missing editor source gate | editor `PolygonAuthoringMigrationRequiredDocument` / `PolygonAuthoringMigrationRequiredScene` | shared fail-closed Prefab/Chunk route, blocking validation, command/export refusal, read-only readiness command, and atomic source recheck |
 | Fail-closed authored JSON and retained-metadata parsing | editor neutral domain plus `StrictTerrainSourceCodec` | legacy migration plus normal prefab-v3 and chunk-v2 codecs |
 | Legacy prefab occupied-area union and reviewed corrections | editor prefab migration domain | aggregate check plan; removal follows verified prefab v3 write |
 | Legacy flat-ground/gap conversion | editor chunk migration domain | aggregate check plan; removal follows verified chunk v2 write |
 | Strict legacy prefab-v1/v2 and chunk-v1 source parsing | editor migration-owned `LegacyPrefabDef` / chunk-v1 models | read-only aggregate planner input; compatibility stores and normal `PrefabDef` are bypassed |
 | Cross-domain canonical migration report | editor migration domain | read-only CLI, strict in-memory targets, and exact source SHA-256 audit; source writes remain pending |
-| Guarded migration write transaction | editor `WorkspaceWriteTransaction` / `PolygonAuthoringMigrationTransaction` | temporary-workspace tests only; the CLI has no caller and real source remains legacy until normal store cutover |
-| Strict chunk-v2 file structure, canonical serialization, and ownership planning | editor `ChunkV2FileData` / `ChunkV2FileCodec` / `ChunkStore.buildV2StagingSavePlan` | migration facade delegation, complete-repository round-trip, explicit strict staging, and read-only create/move/delete pending plans; v2 filesystem save and normal cutover are pending |
-| Chunk-v2 plugin staging, validation, mutation, and lifecycle policy | editor `ChunkV2StagingDocument` / `ChunkV2CollisionCommitPolicy` / `ChunkV2MetadataCommitPolicy` / `ChunkV2CompositionCommitPolicy` / `ChunkV2LifecycleCommitPolicy` / `ChunkDomainPlugin` | strict future-source composition; Core direct/expanded validation; freshness/order/revision enforcement; typed polygon, metadata, composition, and create/duplicate/rename/delete commits; immutable ownership/pending plans; hard export lock; granular normal forms and normal cutover are pending |
-| Chunk polygon route-local projection | editor `ChunkPolygonAuthoringController` / `ChunkPolygonSceneSurface` / `ChunkPolygonStagingWorkspace` | explicit staged-scene routing, active-level owner isolation, tools, snap, bounds, diagnostics, keyboard, rejection, history, compiled-edge inspection, actor-terrain, and marker-placement overlays; normal v1 loads still select ground/gap authoring |
+| Guarded migration write transaction | editor `WorkspaceWriteTransaction` / `PolygonAuthoringMigrationTransaction` | temporary-workspace tests only; the CLI has no write caller and real source remains legacy until coordinated source cutover |
+| Strict chunk-v2 file structure, canonical serialization, and ownership planning | editor `ChunkV2FileData` / `ChunkV2FileCodec` / `ChunkStore.buildV2StagingSavePlan` | migration facade delegation plus normal complete-current-tree load, pending plans, rollback-safe apply, and exact reload |
+| Chunk-v2 plugin validation, mutation, and lifecycle policy | editor `ChunkV2StagingDocument` / `ChunkV2CollisionCommitPolicy` / `ChunkV2MetadataCommitPolicy` / `ChunkV2CompositionCommitPolicy` / `ChunkV2LifecycleCommitPolicy` / `ChunkDomainPlugin` | normal strict current-source composition; complete Core/editor validation; freshness/order/revision enforcement; typed polygon, metadata, composition, lifecycle commits; transactional export; temporary type name retained until cutover |
+| Chunk polygon route-local projection | editor `ChunkPolygonAuthoringController` / `ChunkPolygonSceneSurface` / `ChunkPolygonStagingWorkspace` | normal complete-v2 routing, active-level owner isolation, tools, snap, bounds, diagnostics, keyboard, rejection, history, compiled-edge inspection, actor-terrain, and marker-placement overlays; legacy/missing source selects no ground/gap workflow |
 | Chunk actor terrain projection | editor `ChunkV2ActorTerrainProjection` | Core surface extraction; Éloïse/Grojib/Hashash eligibility; published Grojib/Hashash graphs; Unoco solid/local-hover evidence; Derf 15-degree/32-pixel perch evidence; no player/flight graph or source mutation |
 | Chunk marker contract and placement projection | editor `chunk_v2_marker_contract.dart` / `ChunkV2MarkerPlacementProjection` | immutable level ground context, staged marker validation, exact Phase 3 enemy placement evidence, Hashash deferral, authored-order/stable-key retention, and zero RNG/source mutation |
 | Scheduler-aware chunk seam analysis | editor `chunk_v2_seam_analysis.dart` | immutable `LevelDef` snapshot, canonical compiled boundary signatures, runtime-contract adjacency enumeration, global staged validation, and read-only compatible/failing neighbor evidence |
@@ -88,11 +95,10 @@ layers, prefab placements, markers, or collision shapes. Those protected fields
 therefore survive the metadata replacement unchanged rather than being
 reconstructed by a route widget.
 
-This contract remains staging-only. Changed schema-v2 export throws the same
-hard source-write lock as polygon edits, and the normal loader still selects
-legacy chunk-v1 source. Create, duplicate, rename, delete, tile-layer,
-placement, and marker contracts require their own deterministic ownership/path
-semantics before normal route and store cutover.
+This contract is part of the normal complete-v2 workflow. Changed current
+source crosses the same complete validation, ownership plan, drift audit, and
+rollback-safe transaction as polygon edits. Legacy or missing Chunk source
+resolves to the migration-required document before any v1 command can run.
 
 ## Chunk V2 Existing-Owner Composition Contract
 
@@ -113,13 +119,12 @@ seam analysis, and Core-owned hard limits outside route widgets. Any blocking
 diagnostic returns the original owner and document identity; warnings may
 accompany an accepted commit.
 
-The single contract is intended to back the existing granular placement,
-marker, and layer forms without cloning mutation rules into widgets. Those
-normal forms are not composed over the staging document yet. Changed export
-remains hard-locked, and the contract does not add source lifecycle/path
-semantics.
+The single contract backs the granular placement, marker, and layer forms
+without cloning mutation rules into widgets. Changed current source crosses
+complete validation and the transactional Chunk store; lifecycle/path
+semantics remain owned by their separate typed contract.
 
-## Chunk V2 Read-Only Source Ownership Plan
+## Chunk V2 Source Ownership Plan
 
 `ChunkV2StagingDocument.createdChunkKeys` distinguishes new in-memory owners
 from owners loaded with exact baseline bytes. Every current owner still has one
@@ -141,9 +146,10 @@ Planning rejects absent baselines, absent ownership paths, absolute or escaping
 paths, case-insensitive final-path collisions, and reuse of a path still owned
 by a pending deletion. The last rule deliberately favors an explicit two-step
 delete/reload/create flow over ambiguous same-transaction ownership transfer.
-There is still no v2 save method: final filesystem drift checks, sibling
-staging, byte verification, transaction application, rollback, and reload
-tests remain required before the write lock can move.
+`ChunkStore.applyV2StagingSavePlan` rechecks the complete source set after
+sibling staging, applies writes/moves/deletions through one rollback-safe
+transaction, verifies the exact final file set and strict v2 bytes, and then
+lets the session reload the installed source.
 
 ## Chunk V2 Lifecycle Contract
 
@@ -174,9 +180,9 @@ baseline; a loaded owner retains its old path as move evidence.
 Deleting a loaded owner removes it from the current set while retaining exact
 path/baseline deletion evidence. Deleting a newly created unsaved owner removes
 its provisional ownership and changed key, returning to a clean plan when no
-other edits exist. Every accepted candidate passes complete staged validation
-and the read-only ownership plan before plugin dispatch. None of these commands
-can write source yet.
+other edits exist. Every accepted candidate passes complete current-document
+validation and the ownership plan before plugin dispatch. Confirmed export can
+write only against the strict current-source baselines.
 
 ## Source Coordinates And Canonicalization
 
@@ -453,13 +459,12 @@ is not duplicated in structural codecs.
 
 All planned current repository output—99 prefab records and 8 chunk files—has
 been encoded, decoded strictly, and re-encoded byte-for-byte in tests. The
-normal layers now own both future source structures, but normal
-`PrefabStore.loadFromRepo`/save, `ChunkStore`, UI, generator, source JSON, and
-runtime authority still use their existing legacy paths. `PrefabStore`
-additionally exposes an explicit strict staging load that normal route
-selection cannot call accidentally. `ChunkStore.loadV2Staging` now provides the
-same explicit separation for an all-v2 chunk tree; ordinary
-`ChunkDomainPlugin.loadFromRepo` still constructs only the v1 document.
+normal editor layers own both current source structures. Normal plugin loading
+selects strict Prefab-v3 or a complete Chunk-v2 tree, and changed current source
+applies transactionally and reloads byte-identically. Legacy or missing source
+selects the shared migration-required document without decoding editable
+compatibility data. The generator, checked-in source JSON, and runtime authority
+remain legacy until the coordinated migration.
 
 The staging load composes prefab v3 with the unchanged `tile_defs.json` v2
 contract through `PrefabTileFileData` and `PrefabTileFileCodec`; it never sends
@@ -469,37 +474,38 @@ module identities, and unique cell positions, and byte-round-trips the current
 repository tile source. It performs no filesystem writes.
 
 `PrefabVisualBoundsResolver` is the single visual-rectangle rule used by both
-existing v2 validation and v3 staging. Atlas owners use authored slice width and
-height. Platform owners use an integer bounding rectangle over module cells,
-their exact grid positions, and referenced slice dimensions; negative cells
-are supported and missing references fail closed. The explicit plugin loader
+retained v2 compatibility validation and the v3 workflow. Atlas owners use
+authored slice width and height. Platform owners use an integer bounding
+rectangle over module cells, their exact grid positions, and referenced slice
+dimensions; negative cells
+are supported and missing references fail closed. The strict plugin loader
 also carries workspace-scoped atlas paths/sizes and both source baselines into
-the staged document/scene. A clean staged export is a no-op and changed export
-remains hard-locked.
+the current document/scene. A clean export is a no-op; changed current source
+uses the paired transactional apply path.
 
-## Chunk-v2 Staging Validation
+## Chunk-v2 Current-Schema Validation
 
-The chunk staging plugin composes strict prefab-v3/tile-v2 data with every
-strict chunk-v2 file, its workspace-relative path, and its load-time contents.
+The chunk current-schema plugin composes strict prefab-v3/tile-v2 data with
+every strict chunk-v2 file, its workspace-relative path, and its load-time
+contents.
 The temporary document and scene snapshot all collections, retain a
 deterministic active-level projection, and never pass future records through
 the ground-profile/gap compatibility model. Pending diffs compare canonical v2
-encoding against immutable baselines. A clean export is a no-op; any changed
-file fails with `chunk_v2_source_write_disabled` before filesystem mutation.
-The staging type must replace the v1 document at cutover rather than remain as
-a parallel source authority.
+encoding against immutable baselines. A clean export is a no-op; changed files
+cross complete validation, final whole-tree drift checks, rollback-safe apply,
+and exact reload. The temporary `Staging` type name is removed at cutover.
 
 `validateChunkV2StagingDocument` requires stable unique chunk identities,
 complete source baselines, a known active level, and known prefab references.
 Each direct polygon vertex must remain inside the closed chunk rectangle in
 exact half-pixel ticks. Core reviews every loop under the canonical source
 policy and compiles each accepted direct-owner set for exact overlap and hard
-limits. Placement expansion is intentionally not approximated here: exact
-transform, post-quantization bounds, expanded-owner limits, and preview parity
-remain blocking Phase 4 work before normal cutover.
+limits. Exact placement expansion, transform, post-quantization bounds,
+expanded-owner limits, preview parity, marker rules, and scheduler-reachable
+seams are part of the same blocking document validation.
 
 `ChunkV2CollisionCommitPolicy` is the direct-owner boundary between one shared
-interaction commit and staging history. It requires the commit's before-shapes
+interaction commit and session history. It requires the commit's before-shapes
 to match the current immutable chunk, requires stable canonical shape order,
 and reuses `validateChunkV2CollisionShapes` for closed bounds and Core review.
 Every rejected or no-op attempt returns the original chunk instance. An
@@ -510,9 +516,9 @@ chunk revision exactly once.
 accepts only the typed shared commit. It returns the original staging document
 for missing, malformed, stale, invalid, and no-op input; a successful command
 replaces only the addressed chunk, records its key, and produces one canonical
-file diff against the load baseline. The changed-document export lock remains
-the final filesystem defense. Route-local diagnostics and previews remain
-outside the generic command result, matching the established Prefab staging
+file diff against the load baseline. Complete validation plus the transactional
+store remain the final filesystem defense. Route-local diagnostics and previews
+remain outside the generic command result, matching the established Prefab
 pattern.
 
 `ChunkPolygonAuthoringController` projects exactly one chunk owner over the
@@ -530,15 +536,15 @@ history, Ctrl-drag pans, and Ctrl-scroll zooms without mutating source. The
 owner bounds painter is display-only; closed-bound validation remains in the
 chunk owner policy.
 
-When an explicit `ChunkV2StagingScene` is already loaded, `ChunkCreatorPage`
-selects `ChunkPolygonStagingWorkspace` and deliberately skips its normal v1
-post-frame reload. The shell reload/apply path is disabled for that staging
-type, and the workspace's source-apply action is visibly locked. Active-level
-changes still use the plugin command and rebind to the first canonical owner in
-the new scene. Owner changes dispose the old route-local controller, preventing
-an unfinished preview from leaking across chunks. Ordinary plugin loads still
-return `ChunkDocument`, so v1 ground/gap editing and export remain the only
-normal source path until the coordinated cutover.
+When a normal strict `ChunkV2StagingScene` is loaded, `ChunkCreatorPage`
+selects `ChunkPolygonStagingWorkspace` and skips the retained v1 coordinator.
+Reload and confirmed current-source apply route through the normal session and
+transactional store. Active-level changes still use the plugin command and
+rebind to the first canonical owner in the new scene. Owner changes dispose the
+old route-local controller, preventing
+an unfinished preview from leaking across chunks. Legacy or missing plugin
+loads return the shared migration-required state, so v1 ground/gap editing and
+export are not normal source paths.
 
 The Chunk shape inspector uses the same `TerrainPolygonVertexEditor` as Prefab
 staging. Its integer/`.0`/`.5` parser never sends malformed fractions to the
@@ -558,9 +564,9 @@ early-disposal race after `showDialog` resolves.
 
 ## Prefab Polygon Owner Validation
 
-`validatePrefabCollisionShapes` is independent of the still-v2 normal
-`PrefabDef`, allowing prefab-v3 rules to be proven before the model/store
-cutover. It requires collision shapes for obstacle/platform owners and forbids
+`validatePrefabCollisionShapes` is independent of the retained compatibility
+`PrefabDef`, allowing one rule set to serve normal Prefab-v3 authoring and the
+migration target. It requires collision shapes for obstacle/platform owners and forbids
 them for decorations. Each source loop must satisfy Core's canonical authoring
 policy; the full Core compiler then owns occupied-overlap, duplicate identity,
 vertex, shape, and compiled-geometry limits. Exact shared boundaries remain
@@ -593,12 +599,14 @@ creates one immutable document replacement, advances the owner revision once,
 and records the owner key for deterministic pending diffs. This keeps invalid
 drags and empty commits out of session undo/redo.
 
-Before the source cutover, that handler is exercised through the temporary
-`PrefabV3StagingDocument`. The normal loader never constructs this document
-while repository source is v2. A clean staging document exports as a no-op;
-exporting a changed one fails with `prefab_v3_source_write_disabled` before any
-filesystem mutation. The staging document replaces the v2 `PrefabDocument` at
-cutover and must not survive as a parallel authority.
+The handler is exercised through the temporarily named
+`PrefabV3StagingDocument`. Normal loading constructs it only after strict v3
+generation detection; checked-in v2 or missing source instead constructs the
+shared migration-required document. Clean export is a no-op. Changed current
+source crosses complete validation and the paired source-drift-guarded,
+rollback-safe store transaction, then reloads the installed bytes. The
+`Staging` name is removed at coordinated source cutover and must not survive as
+a parallel authority.
 
 `PrefabPolygonAuthoringController` proves the route boundary against that
 staging document. It keeps tool, selection, draft, gesture preview, and rejected
@@ -613,14 +621,15 @@ committed history.
 painter and hit test. Primary input is tool-driven; Escape cancels, Delete acts
 on the selected shape/vertex, Ctrl-Z/Ctrl-Shift-Z use session history, and
 Ctrl-drag delegates pan without mutating the document. The viewport transform
-remains display state. The surface and controller require an explicitly staged
-v3 session today; the normal Prefab Creator route still renders and writes its
-v2 rectangle workflow until the single source cutover.
+remains display state. Normal Prefab loading selects this surface for strict v3
+source. Legacy or missing source exposes only the migration-required workspace
+and cannot render or write the v2 rectangle workflow.
 
-When such a staged scene is explicitly present, `PrefabCreatorPage` selects
+When the strict current scene is present, `PrefabCreatorPage` selects
 `PrefabPolygonStagingWorkspace` without running the v2 reload/save coordinator.
-Ordinary plugin loads still return `PrefabDocument`, so this type dispatch does
-not expose a second normal source path. The staging workspace owns prefab
+The normal plugin returns the current document or the no-data migration state;
+the retained `PrefabDocument` is reachable only from explicit compatibility
+tests until removal. The polygon workspace owns prefab
 selection, tool/snap/viewport state, exact shape readout, metadata actions, and
 diagnostic focus. Switching owners disposes the old route-local coordinator,
 which discards any uncommitted preview instead of transferring it to another
@@ -659,10 +668,10 @@ then applies the usual owner visual-bounds and revision policy before session
 history. Rejected geometry leaves both the committed document and typed field
 state unchanged while exposing actionable diagnostics.
 
-The source-apply action is intentionally disabled in the staging chrome.
-Accepted edits still create session pending changes for validation/undo tests,
-but the plugin's changed-staging export lock remains the final defense against
-filesystem mutation. The enabled v2 page and its save behavior are unchanged.
+The source-apply action is enabled only for committed current-schema changes
+with no transient catalog draft. Confirmation routes through complete plugin
+validation, the paired drift-guarded transaction, and exact reload. Legacy or
+missing source cannot reach this chrome or its export boundary.
 
 ## Chunk Placement Expansion And Read-only Preview
 
@@ -1337,29 +1346,29 @@ The foundation is covered by:
   preserved authored ordering, and target-boundary canonicalization tests
 - strict prefab-v3 file parsing, copy-only canonical serialization, duplicate
   identity rejection, invalid-model refusal, and delegated migration round trips
-- explicit all-v2 chunk-tree loading, immutable future prefab/tile composition,
+- normal all-v2 chunk-tree loading, immutable prefab/tile composition,
   active-level scene projection, direct Core geometry/bounds/reference
-  validation, canonical pending diffs, and byte-preserving export locks
+  validation, canonical pending diffs, transactional apply, and exact reload
 - chunk commit freshness, canonical owner order, exact bounds, Core overlap,
   no-op/rejection identity, exactly-once revision, typed plugin dispatch, and
-  changed-source lock tests
+  current-source apply tests
 - typed Chunk-v2 metadata freshness, strict enum/level/group/tag acceptance,
   protected composition/geometry fields, exactly-once revision, no-op identity,
-  canonical pending projection, and the unchanged source-write lock
+  canonical pending projection, and transactional source apply
 - typed Chunk-v2 composition freshness and canonical structure, exact prefab
   reference/expansion and enemy-marker validation, complete candidate-document
   blocking, mutually protected metadata/geometry, exactly-once revision,
   pending projection, and no-op/rejection identity
-- read-only Chunk-v2 ownership planning for canonical creation, managed-path
+- Chunk-v2 ownership planning for canonical creation, managed-path
   moves, baseline deletion, portable old/new diffs, missing ownership,
   workspace escape, case-insensitive collision, and deleted-path reuse
 - Chunk-v2 lifecycle snapshot freshness across owners/revisions/source/levels,
   deprecated blank create, active exact duplicate, stable-key/revisioned rename,
   loaded deletion, unsaved cancellation, canonical created-owner path refresh,
   full candidate validation, typed dispatch, and rejection/no-op identity
-- Chunk staged-scene routing without a legacy reload, active-level owner
-  isolation, locked reload/apply, visible snap/tools, one direct-owner edit,
-  route-level undo restoration, and unchanged normal v1 route regression tests
+- Chunk current-scene routing without a legacy reload, active-level owner
+  isolation, guarded reload/apply, visible snap/tools, one direct-owner edit,
+  route-level undo restoration, and fail-closed legacy route tests
 - shared Prefab/Chunk exact-coordinate fields, malformed-fraction rejection,
   accepted odd half-pixel chunk edits, retained out-of-bounds text/diagnostics,
   and no history or pending diff for either rejection class
