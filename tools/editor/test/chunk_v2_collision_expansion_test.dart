@@ -94,6 +94,7 @@ void main() {
         (issue) => issue.code == 'polygon_area_overlap',
       );
       expect(overlap.placementKey, 'prefab_rock|10|10|0');
+      expect(overlap.ownerKey, 'prefab_rock');
       expect(overlap.shapeId, 'collision_001');
     },
   );
@@ -135,6 +136,7 @@ void main() {
     expect(
       outside.every(
         (issue) =>
+            issue.ownerKey == 'prefab_rock' &&
             issue.placementKey == 'prefab_rock|19|19|0' &&
             issue.shapeId == 'collision_001' &&
             issue.elementIndex != null,
@@ -164,6 +166,10 @@ void main() {
       'ambiguous_prefab_reference',
       'invalid_prefab_placement_scale',
     });
+    expect(
+      result.issues.every((issue) => issue.ownerKey == 'forest_test'),
+      isTrue,
+    );
   });
 
   test('delegates placed-prefab shape capacity to Core', () {
@@ -195,8 +201,37 @@ void main() {
 
     expect(result.expansion, isNull);
     expect(
-      result.issues.map((issue) => issue.code),
-      contains('prefab_shape_limit'),
+      result.issues
+          .singleWhere((issue) => issue.code == 'prefab_shape_limit')
+          .ownerKey,
+      'prefab_rock',
+    );
+  });
+
+  test('assigns direct bounds findings to the chunk owner', () {
+    final result = expandChunkV2Collision(
+      chunk: _chunk(
+        width: 10,
+        height: 10,
+        directShapes: <TerrainSourceShapeDef>[
+          _rectangle('ground', left: 0, top: 0, right: 24, bottom: 16),
+        ],
+      ),
+      prefabs: const <PrefabV3Def>[],
+      sourcePath: 'chunks/forest/test.json',
+    );
+
+    expect(result.expansion, isNotNull);
+    final outside = result.issues.where(
+      (issue) => issue.code == 'chunk_collision_shape_out_of_bounds',
+    );
+    expect(outside, isNotEmpty);
+    expect(
+      outside.every(
+        (issue) =>
+            issue.ownerKey == 'forest_test' && issue.placementKey == null,
+      ),
+      isTrue,
     );
   });
 

@@ -61,7 +61,9 @@ enum ValidationSeverity { info, warning, error }
 ///
 /// [code] should remain stable for a specific issue type so UI/tests can match
 /// without parsing [message]. [sourcePath] is optional and points to the file
-/// most closely associated with the issue when known.
+/// most closely associated with the issue when known. [ownerKey] identifies
+/// the repository object that must be edited to resolve the issue when the
+/// validating domain has a stable owner identity.
 @immutable
 class ValidationIssue {
   const ValidationIssue({
@@ -69,6 +71,7 @@ class ValidationIssue {
     required this.code,
     required this.message,
     this.sourcePath,
+    this.ownerKey,
     this.placementKey,
     this.shapeId,
     this.elementIndex,
@@ -78,6 +81,9 @@ class ValidationIssue {
   final String code;
   final String message;
   final String? sourcePath;
+
+  /// Optional stable key of the source object that owns this finding.
+  final String? ownerKey;
 
   /// Optional stable placed-prefab identity for expanded collision findings.
   final String? placementKey;

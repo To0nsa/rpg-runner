@@ -1,9 +1,9 @@
 import 'package:meta/meta.dart';
+import 'package:runner_core/collision/terrain/terrain_authoring_issue.dart';
 import 'package:runner_core/collision/terrain/terrain_compiler.dart';
 import 'package:runner_core/collision/terrain/terrain_geometry.dart';
 import 'package:runner_core/collision/terrain/terrain_numeric.dart';
 import 'package:runner_core/collision/terrain/terrain_polygon.dart';
-import 'package:runner_core/collision/terrain/terrain_source_canonicalizer.dart';
 import 'package:runner_core/collision/terrain/terrain_traversal_cache.dart';
 
 import '../domain/authoring_types.dart';
@@ -112,6 +112,7 @@ ChunkV2CollisionExpansionResult expandChunkV2Collision({
 }) {
   final issues = <ValidationIssue>[];
   final inputs = <TerrainPolygonInput>[];
+  final ownerBySourcePath = <String, String>{};
   final placementBySourcePath = <String, String>{};
   final prefabByPlacementKey = <String, PrefabV3Def>{};
   final placementByKey = <String, PlacedPrefabDef>{};
@@ -120,6 +121,7 @@ ChunkV2CollisionExpansionResult expandChunkV2Collision({
 
   for (final shape in chunk.collisionShapes) {
     final shapePath = '$sourcePath#direct=${shape.shapeId}';
+    ownerBySourcePath[shapePath] = chunk.chunkKey;
     try {
       inputs.add(
         TerrainSourceCoreAdapter.toPolygonInput(
@@ -132,11 +134,11 @@ ChunkV2CollisionExpansionResult expandChunkV2Collision({
     } on ArgumentError catch (error) {
       sourceComplete = false;
       issues.add(
-        ValidationIssue(
-          severity: ValidationSeverity.error,
+        _errorIssue(
           code: 'chunk_collision_source_value_invalid',
           message: 'Chunk ${chunk.chunkKey} shape ${shape.shapeId}: $error',
           sourcePath: shapePath,
+          ownerKey: chunk.chunkKey,
           shapeId: shape.shapeId,
         ),
       );
@@ -151,13 +153,13 @@ ChunkV2CollisionExpansionResult expandChunkV2Collision({
     if (candidates == null || candidates.isEmpty) {
       sourceComplete = false;
       issues.add(
-        ValidationIssue(
-          severity: ValidationSeverity.error,
+        _errorIssue(
           code: 'unknown_prefab_reference',
           message:
               'Chunk ${chunk.chunkKey} placement $placementKey references '
               'unknown prefab ${placement.resolvedPrefabRef}.',
           sourcePath: placementPath,
+          ownerKey: chunk.chunkKey,
           placementKey: placementKey,
         ),
       );
@@ -166,13 +168,13 @@ ChunkV2CollisionExpansionResult expandChunkV2Collision({
     if (candidates.length != 1) {
       sourceComplete = false;
       issues.add(
-        ValidationIssue(
-          severity: ValidationSeverity.error,
+        _errorIssue(
           code: 'ambiguous_prefab_reference',
           message:
               'Chunk ${chunk.chunkKey} placement $placementKey resolves '
               '${placement.resolvedPrefabRef} to more than one prefab.',
           sourcePath: placementPath,
+          ownerKey: chunk.chunkKey,
           placementKey: placementKey,
         ),
       );
@@ -183,13 +185,13 @@ ChunkV2CollisionExpansionResult expandChunkV2Collision({
         !isPrefabPlacementScaleStepAligned(placement.scale)) {
       sourceComplete = false;
       issues.add(
-        ValidationIssue(
-          severity: ValidationSeverity.error,
+        _errorIssue(
           code: 'invalid_prefab_placement_scale',
           message:
               'Chunk ${chunk.chunkKey} placement $placementKey scale must be '
               '0.3..3.0 in exact 0.1 steps.',
           sourcePath: placementPath,
+          ownerKey: chunk.chunkKey,
           placementKey: placementKey,
         ),
       );
@@ -213,6 +215,7 @@ ChunkV2CollisionExpansionResult expandChunkV2Collision({
     for (final shape in prefab.collisionShapes) {
       final shapePath =
           '$placementPath#prefab=${prefab.prefabKey}#shape=${shape.shapeId}';
+      ownerBySourcePath[shapePath] = prefab.prefabKey;
       placementBySourcePath[shapePath] = placementKey;
       try {
         inputs.add(
@@ -228,12 +231,12 @@ ChunkV2CollisionExpansionResult expandChunkV2Collision({
       } on ArgumentError catch (error) {
         sourceComplete = false;
         issues.add(
-          ValidationIssue(
-            severity: ValidationSeverity.error,
+          _errorIssue(
             code: 'prefab_collision_source_value_invalid',
             message:
                 'Prefab ${prefab.prefabKey} shape ${shape.shapeId}: $error',
             sourcePath: shapePath,
+            ownerKey: prefab.prefabKey,
             placementKey: placementKey,
             shapeId: shape.shapeId,
           ),
@@ -250,17 +253,18 @@ ChunkV2CollisionExpansionResult expandChunkV2Collision({
       error.diagnostics.map(
         (diagnostic) => _issueFromCore(
           diagnostic,
+          ownerKey: ownerBySourcePath[diagnostic.sourcePath] ?? chunk.chunkKey,
           placementKey: placementBySourcePath[diagnostic.sourcePath],
         ),
       ),
     );
   } on ArgumentError catch (error) {
     issues.add(
-      ValidationIssue(
-        severity: ValidationSeverity.error,
+      _errorIssue(
         code: 'chunk_collision_transform_invalid',
         message: 'Chunk ${chunk.chunkKey} collision transform failed: $error',
         sourcePath: sourcePath,
+        ownerKey: chunk.chunkKey,
       ),
     );
   }
@@ -279,9 +283,11 @@ ChunkV2CollisionExpansionResult expandChunkV2Collision({
             point.yTicks <= maxY) {
           continue;
         }
+        final ownerKey = placementKey == null
+            ? chunk.chunkKey
+            : prefabByPlacementKey[placementKey]?.prefabKey ?? chunk.chunkKey;
         issues.add(
-          ValidationIssue(
-            severity: ValidationSeverity.error,
+          _errorIssue(
             code: placementKey == null
                 ? 'chunk_collision_shape_out_of_bounds'
                 : 'expanded_prefab_vertex_out_of_bounds',
@@ -297,6 +303,7 @@ ChunkV2CollisionExpansionResult expandChunkV2Collision({
                       'outside closed '
                       'bounds 0..${chunk.width} x 0..${chunk.height} px.',
             sourcePath: polygon.sourcePath,
+            ownerKey: ownerKey,
             placementKey: placementKey,
             shapeId: polygon.identity.shapeId,
             elementIndex: vertex.key,
@@ -333,6 +340,7 @@ ChunkV2CollisionExpansionResult expandChunkV2Collision({
       geometry.diagnostics.map(
         (diagnostic) => _issueFromCore(
           diagnostic,
+          ownerKey: ownerBySourcePath[diagnostic.sourcePath] ?? chunk.chunkKey,
           placementKey: placementBySourcePath[diagnostic.sourcePath],
         ),
       ),
@@ -368,21 +376,56 @@ Map<String, List<PrefabV3Def>> _indexPrefabReferences(
 
 ValidationIssue _issueFromCore(
   TerrainDiagnostic diagnostic, {
+  required String ownerKey,
   String? placementKey,
-}) => ValidationIssue(
-  severity: terrainDiagnosticIsBlocking(diagnostic)
-      ? ValidationSeverity.error
-      : ValidationSeverity.warning,
-  code: diagnostic.code,
-  message: diagnostic.message,
-  sourcePath: diagnostic.sourcePath,
-  placementKey: placementKey,
-  shapeId: diagnostic.shapeId,
-  elementIndex: diagnostic.elementIndex,
+}) => _validationIssueFromTerrain(
+  TerrainAuthoringIssue.fromCore(
+    diagnostic: diagnostic,
+    ownerKey: ownerKey,
+    placementKey: placementKey,
+  ),
 );
+
+ValidationIssue _errorIssue({
+  required String code,
+  required String message,
+  required String sourcePath,
+  required String ownerKey,
+  String? placementKey,
+  String? shapeId,
+  int? elementIndex,
+}) => _validationIssueFromTerrain(
+  TerrainAuthoringIssue(
+    severity: TerrainAuthoringIssueSeverity.error,
+    code: code,
+    message: message,
+    sourcePath: sourcePath,
+    ownerKey: ownerKey,
+    placementKey: placementKey,
+    shapeId: shapeId,
+    elementIndex: elementIndex,
+  ),
+);
+
+ValidationIssue _validationIssueFromTerrain(TerrainAuthoringIssue issue) =>
+    ValidationIssue(
+      severity: switch (issue.severity) {
+        TerrainAuthoringIssueSeverity.warning => ValidationSeverity.warning,
+        TerrainAuthoringIssueSeverity.error => ValidationSeverity.error,
+      },
+      code: issue.code,
+      message: issue.message,
+      sourcePath: issue.sourcePath,
+      ownerKey: issue.ownerKey,
+      placementKey: issue.placementKey,
+      shapeId: issue.shapeId,
+      elementIndex: issue.elementIndex,
+    );
 
 int _compareIssues(ValidationIssue left, ValidationIssue right) {
   var order = (left.sourcePath ?? '').compareTo(right.sourcePath ?? '');
+  if (order != 0) return order;
+  order = (left.ownerKey ?? '').compareTo(right.ownerKey ?? '');
   if (order != 0) return order;
   order = (left.placementKey ?? '').compareTo(right.placementKey ?? '');
   if (order != 0) return order;
@@ -390,5 +433,8 @@ int _compareIssues(ValidationIssue left, ValidationIssue right) {
   if (order != 0) return order;
   order = (left.elementIndex ?? -1).compareTo(right.elementIndex ?? -1);
   if (order != 0) return order;
-  return left.code.compareTo(right.code);
+  order = left.code.compareTo(right.code);
+  return order != 0
+      ? order
+      : left.severity.index.compareTo(right.severity.index);
 }
