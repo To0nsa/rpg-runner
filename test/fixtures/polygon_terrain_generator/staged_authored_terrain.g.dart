@@ -7,9 +7,11 @@ library;
 import 'package:runner_core/track/staged_terrain_data.dart';
 
 final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactData(
-  formatVersion: 2,
+  formatVersion: 3,
   compilerGeometryVersion: 1,
   authoringPolygonSignatureFormat: "authoring-polygons-v1",
+  authoringSeamSignatureFormat: "authoring-seams-v1",
+  authoringSeamSignature: "c11c965911bb3990c762fc8babb016240b06309c1ecaf7c39b8007b8049f08ab",
   sourceSignatureFormat: "source-v1",
   edgeSignatureFormat: "edges-v1",
   placementSignatureFormat: "authoring-placement-v1",

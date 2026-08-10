@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:runner_core/collision/terrain/terrain_authoring_polygon_signature.dart';
+import 'package:runner_core/collision/terrain/terrain_authoring_seam_signature.dart';
 import 'package:runner_core/collision/terrain/terrain_edge.dart';
 import 'package:runner_core/collision/terrain/terrain_edge_id.dart';
 import 'package:runner_core/collision/terrain/terrain_polygon.dart';
@@ -8,6 +9,7 @@ import 'package:runner_core/track/staged_terrain_data.dart';
 
 import 'generated_artifact_plan.dart';
 import 'polygon_terrain_compilation.dart';
+import 'polygon_terrain_seam_validation.dart';
 
 const String stagedPolygonTerrainOutputPath =
     'packages/runner_core/lib/track/staged_authored_terrain.dart';
@@ -24,28 +26,18 @@ const int _reservedCompilerChunkIndex = 0;
 /// The live generator does not register this artifact until the coordinated
 /// prefab-v3/chunk-v2 source cutover. No empty placeholder is emitted.
 GeneratedArtifact buildStagedPolygonTerrainArtifact({
-  required Iterable<PolygonTerrainCompiledChunk> chunks,
+  required PolygonTerrainValidatedBatch batch,
   String outputPath = stagedPolygonTerrainOutputPath,
 }) => GeneratedArtifact(
   path: outputPath,
-  content: renderStagedPolygonTerrainDart(chunks),
+  content: renderStagedPolygonTerrainDart(batch),
 );
 
 /// Produces deterministic Dart records without a streamed chunk instance ID.
-String renderStagedPolygonTerrainDart(
-  Iterable<PolygonTerrainCompiledChunk> chunks,
-) {
-  final ordered = List<PolygonTerrainCompiledChunk>.of(chunks)
-    ..sort((left, right) {
-      var order = left.chunk.chunkKey.compareTo(right.chunk.chunkKey);
-      if (order != 0) return order;
-      order = left.chunk.id.compareTo(right.chunk.id);
-      return order != 0
-          ? order
-          : left.chunk.revision.compareTo(right.chunk.revision);
-    });
+String renderStagedPolygonTerrainDart(PolygonTerrainValidatedBatch batch) {
+  final ordered = batch.chunks;
   if (ordered.isEmpty) {
-    throw ArgumentError.value(chunks, 'chunks', 'Must not be empty.');
+    throw ArgumentError.value(batch, 'batch', 'Must contain chunks.');
   }
   _validateChunkKeys(ordered);
 
@@ -82,6 +74,11 @@ String renderStagedPolygonTerrainDart(
       '  authoringPolygonSignatureFormat: '
       '${_string(terrainAuthoringPolygonSignatureFormat)},',
     )
+    ..line(
+      '  authoringSeamSignatureFormat: '
+      '${_string(terrainAuthoringSeamSignatureFormat)},',
+    )
+    ..line('  authoringSeamSignature: ${_string(batch.seamSignature.digest)},')
     ..line('  sourceSignatureFormat: ${_string(_sourceSignatureFormat)},')
     ..line('  edgeSignatureFormat: ${_string(_edgeSignatureFormat)},')
     ..line('  placementSignatureFormat: ${_string(_placementSignatureFormat)},')

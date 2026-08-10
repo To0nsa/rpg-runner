@@ -1,12 +1,7 @@
-import 'dart:convert';
-
-import 'package:crypto/crypto.dart';
 import 'package:meta/meta.dart';
 import 'package:runner_core/collision/terrain/terrain_authoring_seam_signature.dart';
-import 'package:runner_core/collision/terrain/terrain_edge.dart';
+import 'package:runner_core/collision/terrain/terrain_boundary_signature.dart';
 import 'package:runner_core/collision/terrain/terrain_geometry.dart';
-import 'package:runner_core/collision/terrain/terrain_numeric.dart';
-import 'package:runner_core/collision/terrain/terrain_polygon.dart';
 import 'package:runner_core/track/chunk_pattern_source.dart';
 
 import '../domain/authoring_types.dart';
@@ -18,208 +13,11 @@ import 'chunk_v2_file_data.dart';
 
 const int _maxAssemblyFiniteWindowChunks = 256;
 
-/// Side of a chunk-local compiled boundary.
-enum ChunkV2BoundarySide { left, right }
-
-/// One normalized positive-length interval occupied on a chunk boundary.
-@immutable
-final class ChunkV2BoundaryInterval
-    implements Comparable<ChunkV2BoundaryInterval> {
-  const ChunkV2BoundaryInterval({
-    required this.collisionMode,
-    required this.minYTicks,
-    required this.maxYTicks,
-  });
-
-  final TerrainCollisionMode collisionMode;
-  final int minYTicks;
-  final int maxYTicks;
-
-  String get canonicalRecord => '${collisionMode.name}:$minYTicks..$maxYTicks';
-
-  @override
-  int compareTo(ChunkV2BoundaryInterval other) {
-    var order = collisionMode.index.compareTo(other.collisionMode.index);
-    if (order != 0) return order;
-    order = minYTicks.compareTo(other.minYTicks);
-    return order != 0 ? order : maxYTicks.compareTo(other.maxYTicks);
-  }
-
-  @override
-  bool operator ==(Object other) =>
-      other is ChunkV2BoundaryInterval &&
-      collisionMode == other.collisionMode &&
-      minYTicks == other.minYTicks &&
-      maxYTicks == other.maxYTicks;
-
-  @override
-  int get hashCode => Object.hash(collisionMode, minYTicks, maxYTicks);
-}
-
-/// One boundary endpoint that must find compatible cross-chunk continuation.
-@immutable
-final class ChunkV2BoundaryVertex implements Comparable<ChunkV2BoundaryVertex> {
-  const ChunkV2BoundaryVertex({
-    required this.collisionMode,
-    required this.surfaceKind,
-    required this.yTicks,
-  });
-
-  final TerrainCollisionMode collisionMode;
-  final String? surfaceKind;
-  final int yTicks;
-
-  String get canonicalRecord =>
-      '${collisionMode.name}:${surfaceKind ?? ''}:$yTicks';
-
-  @override
-  int compareTo(ChunkV2BoundaryVertex other) {
-    var order = collisionMode.index.compareTo(other.collisionMode.index);
-    if (order != 0) return order;
-    order = (surfaceKind ?? '').compareTo(other.surfaceKind ?? '');
-    return order != 0 ? order : yTicks.compareTo(other.yTicks);
-  }
-
-  @override
-  bool operator ==(Object other) =>
-      other is ChunkV2BoundaryVertex &&
-      collisionMode == other.collisionMode &&
-      surfaceKind == other.surfaceKind &&
-      yTicks == other.yTicks;
-
-  @override
-  int get hashCode => Object.hash(collisionMode, surfaceKind, yTicks);
-}
-
-/// Canonical evidence for one side of accepted compiled chunk geometry.
-///
-/// Physical compatibility uses normalized [coverageIntervals] and
-/// [continuationVertices]. [edgeRecords] preserve exact compiled geometry and
-/// material metadata for diagnostics without making render material phase a
-/// Phase 4 blocking rule.
-@immutable
-final class ChunkV2BoundarySignature {
-  ChunkV2BoundarySignature({
-    required this.chunkKey,
-    required this.side,
-    required Iterable<ChunkV2BoundaryInterval> coverageIntervals,
-    required Iterable<ChunkV2BoundaryVertex> continuationVertices,
-    required Iterable<String> edgeRecords,
-    required Map<ChunkV2BoundaryVertex, Iterable<String?>> materialKeysByVertex,
-  }) : coverageIntervals = List<ChunkV2BoundaryInterval>.unmodifiable(
-         List<ChunkV2BoundaryInterval>.of(coverageIntervals)..sort(),
-       ),
-       continuationVertices = List<ChunkV2BoundaryVertex>.unmodifiable(
-         List<ChunkV2BoundaryVertex>.of(continuationVertices)..sort(),
-       ),
-       edgeRecords = List<String>.unmodifiable(
-         List<String>.of(edgeRecords)..sort(),
-       ),
-       materialKeysByVertex =
-           Map<ChunkV2BoundaryVertex, List<String?>>.unmodifiable(<
-             ChunkV2BoundaryVertex,
-             List<String?>
-           >{
-             for (final entry in materialKeysByVertex.entries)
-               entry.key: List<String?>.unmodifiable(
-                 entry.value.toSet().toList()
-                   ..sort((left, right) => (left ?? '').compareTo(right ?? '')),
-               ),
-           }) {
-    final canonical = <String>[
-      'authoring-boundary-v1',
-      'side=${side.name}',
-      if (isEmpty) 'empty',
-      for (final interval in this.coverageIntervals)
-        'coverage=${interval.canonicalRecord}',
-      for (final vertex in this.continuationVertices)
-        'vertex=${vertex.canonicalRecord}',
-      for (final record in this.edgeRecords) 'edge=$record',
-    ].join('\n');
-    canonicalRecord = canonical;
-    digest = sha256.convert(utf8.encode(canonical)).toString();
-  }
-
-  final String chunkKey;
-  final ChunkV2BoundarySide side;
-  final List<ChunkV2BoundaryInterval> coverageIntervals;
-  final List<ChunkV2BoundaryVertex> continuationVertices;
-  final List<String> edgeRecords;
-  final Map<ChunkV2BoundaryVertex, List<String?>> materialKeysByVertex;
-  late final String canonicalRecord;
-  late final String digest;
-
-  bool get isEmpty => coverageIntervals.isEmpty && continuationVertices.isEmpty;
-
-  String get physicalRecord => <String>[
-    if (isEmpty) 'empty',
-    for (final interval in coverageIntervals)
-      'coverage=${interval.canonicalRecord}',
-    for (final vertex in continuationVertices)
-      'vertex=${vertex.canonicalRecord}',
-  ].join(';');
-}
-
-/// Exact physical comparison of a right boundary against a left boundary.
-@immutable
-final class ChunkV2BoundaryComparison {
-  ChunkV2BoundaryComparison({
-    required this.left,
-    required this.right,
-    required Iterable<ChunkV2BoundaryInterval> leftOnlyIntervals,
-    required Iterable<ChunkV2BoundaryInterval> rightOnlyIntervals,
-    required Iterable<ChunkV2BoundaryVertex> leftOnlyVertices,
-    required Iterable<ChunkV2BoundaryVertex> rightOnlyVertices,
-    required Iterable<ChunkV2BoundaryVertex> materialMismatchVertices,
-  }) : leftOnlyIntervals = List<ChunkV2BoundaryInterval>.unmodifiable(
-         leftOnlyIntervals,
-       ),
-       rightOnlyIntervals = List<ChunkV2BoundaryInterval>.unmodifiable(
-         rightOnlyIntervals,
-       ),
-       leftOnlyVertices = List<ChunkV2BoundaryVertex>.unmodifiable(
-         leftOnlyVertices,
-       ),
-       rightOnlyVertices = List<ChunkV2BoundaryVertex>.unmodifiable(
-         rightOnlyVertices,
-       ),
-       materialMismatchVertices = List<ChunkV2BoundaryVertex>.unmodifiable(
-         materialMismatchVertices,
-       );
-
-  final ChunkV2BoundarySignature left;
-  final ChunkV2BoundarySignature right;
-  final List<ChunkV2BoundaryInterval> leftOnlyIntervals;
-  final List<ChunkV2BoundaryInterval> rightOnlyIntervals;
-  final List<ChunkV2BoundaryVertex> leftOnlyVertices;
-  final List<ChunkV2BoundaryVertex> rightOnlyVertices;
-  final List<ChunkV2BoundaryVertex> materialMismatchVertices;
-
-  bool get isCompatible =>
-      leftOnlyIntervals.isEmpty &&
-      rightOnlyIntervals.isEmpty &&
-      leftOnlyVertices.isEmpty &&
-      rightOnlyVertices.isEmpty;
-
-  List<int> get mismatchYTicks {
-    final values = <int>{};
-    for (final interval in <ChunkV2BoundaryInterval>[
-      ...leftOnlyIntervals,
-      ...rightOnlyIntervals,
-    ]) {
-      values
-        ..add(interval.minYTicks)
-        ..add(interval.maxYTicks);
-    }
-    for (final vertex in <ChunkV2BoundaryVertex>[
-      ...leftOnlyVertices,
-      ...rightOnlyVertices,
-    ]) {
-      values.add(vertex.yTicks);
-    }
-    return List<int>.unmodifiable(values.toList()..sort());
-  }
-}
+typedef ChunkV2BoundarySide = TerrainBoundarySide;
+typedef ChunkV2BoundaryInterval = TerrainBoundaryInterval;
+typedef ChunkV2BoundaryVertex = TerrainBoundaryVertex;
+typedef ChunkV2BoundarySignature = TerrainBoundarySignature;
+typedef ChunkV2BoundaryComparison = TerrainBoundaryComparison;
 
 /// Structural scheduler provenance for one directed reachable chunk pair.
 @immutable
@@ -306,99 +104,18 @@ ChunkV2BoundarySignature buildChunkV2BoundarySignature({
   required int chunkWidth,
   required TerrainGeometry geometry,
   required ChunkV2BoundarySide side,
-}) {
-  final boundaryXTicks = switch (side) {
-    ChunkV2BoundarySide.left => 0,
-    ChunkV2BoundarySide.right => chunkWidth * terrainPhysicsTicksPerWorldUnit,
-  };
-  final rawIntervals = <ChunkV2BoundaryInterval>[];
-  final vertices = <ChunkV2BoundaryVertex>{};
-  final edgeRecords = <String>[];
-  final materialKeys = <ChunkV2BoundaryVertex, Set<String?>>{};
-
-  for (final edge in geometry.edges) {
-    final startOnBoundary = edge.start.xTicks == boundaryXTicks;
-    final endOnBoundary = edge.end.xTicks == boundaryXTicks;
-    if (!startOnBoundary && !endOnBoundary) continue;
-
-    edgeRecords.add(_boundaryEdgeRecord(edge));
-    if (startOnBoundary && endOnBoundary) {
-      final minY = edge.start.yTicks < edge.end.yTicks
-          ? edge.start.yTicks
-          : edge.end.yTicks;
-      final maxY = edge.start.yTicks > edge.end.yTicks
-          ? edge.start.yTicks
-          : edge.end.yTicks;
-      if (minY != maxY) {
-        rawIntervals.add(
-          ChunkV2BoundaryInterval(
-            collisionMode: edge.collisionMode,
-            minYTicks: minY,
-            maxYTicks: maxY,
-          ),
-        );
-      }
-      continue;
-    }
-
-    final point = startOnBoundary ? edge.start : edge.end;
-    final vertex = ChunkV2BoundaryVertex(
-      collisionMode: edge.collisionMode,
-      surfaceKind: edge.surfaceKind,
-      yTicks: point.yTicks,
-    );
-    vertices.add(vertex);
-    materialKeys.putIfAbsent(vertex, () => <String?>{}).add(edge.materialKey);
-  }
-
-  return ChunkV2BoundarySignature(
-    chunkKey: chunkKey,
-    side: side,
-    coverageIntervals: _mergeBoundaryIntervals(rawIntervals),
-    continuationVertices: vertices,
-    edgeRecords: edgeRecords,
-    materialKeysByVertex: materialKeys,
-  );
-}
+}) => buildTerrainBoundarySignature(
+  chunkKey: chunkKey,
+  chunkWidth: chunkWidth,
+  geometry: geometry,
+  side: side,
+);
 
 /// Compares the right side of [left] with the left side of [right].
 ChunkV2BoundaryComparison compareChunkV2Boundaries({
   required ChunkV2BoundarySignature left,
   required ChunkV2BoundarySignature right,
-}) {
-  if (left.side != ChunkV2BoundarySide.right ||
-      right.side != ChunkV2BoundarySide.left) {
-    throw ArgumentError('Seams require a right signature followed by a left.');
-  }
-  final leftIntervals = left.coverageIntervals.toSet();
-  final rightIntervals = right.coverageIntervals.toSet();
-  final leftVertices = left.continuationVertices.toSet();
-  final rightVertices = right.continuationVertices.toSet();
-  final sharedVertices = leftVertices.intersection(rightVertices).toList()
-    ..sort();
-  final materialMismatches = sharedVertices
-      .where((vertex) {
-        final leftMaterials =
-            left.materialKeysByVertex[vertex] ?? const <String?>[];
-        final rightMaterials =
-            right.materialKeysByVertex[vertex] ?? const <String?>[];
-        return !_nullableStringListsEqual(leftMaterials, rightMaterials);
-      })
-      .toList(growable: false);
-
-  return ChunkV2BoundaryComparison(
-    left: left,
-    right: right,
-    leftOnlyIntervals: (leftIntervals.difference(rightIntervals).toList()
-      ..sort()),
-    rightOnlyIntervals: (rightIntervals.difference(leftIntervals).toList()
-      ..sort()),
-    leftOnlyVertices: (leftVertices.difference(rightVertices).toList()..sort()),
-    rightOnlyVertices: (rightVertices.difference(leftVertices).toList()
-      ..sort()),
-    materialMismatchVertices: materialMismatches,
-  );
-}
+}) => compareTerrainBoundaries(left: left, right: right);
 
 /// Enumerates scheduler-reachable directed pairs and validates their seams.
 ChunkV2SeamAnalysis analyzeChunkV2Seams({
@@ -902,52 +619,6 @@ ChunkPatternTier? _tierFromDifficulty(String difficulty) =>
       chunkDifficultyHard => ChunkPatternTier.hard,
       _ => null,
     };
-
-List<ChunkV2BoundaryInterval> _mergeBoundaryIntervals(
-  Iterable<ChunkV2BoundaryInterval> source,
-) {
-  final ordered = List<ChunkV2BoundaryInterval>.of(source)..sort();
-  final merged = <ChunkV2BoundaryInterval>[];
-  for (final interval in ordered) {
-    if (merged.isEmpty) {
-      merged.add(interval);
-      continue;
-    }
-    final previous = merged.last;
-    if (previous.collisionMode == interval.collisionMode &&
-        interval.minYTicks <= previous.maxYTicks) {
-      merged[merged.length - 1] = ChunkV2BoundaryInterval(
-        collisionMode: previous.collisionMode,
-        minYTicks: previous.minYTicks,
-        maxYTicks: interval.maxYTicks > previous.maxYTicks
-            ? interval.maxYTicks
-            : previous.maxYTicks,
-      );
-    } else {
-      merged.add(interval);
-    }
-  }
-  return merged;
-}
-
-String _boundaryEdgeRecord(TerrainEdge edge) => <String>[
-  edge.id.canonicalKey,
-  '${edge.start.xTicks},${edge.start.yTicks}',
-  '${edge.end.xTicks},${edge.end.yTicks}',
-  '${edge.tangent.xTicks},${edge.tangent.yTicks}',
-  '${edge.outwardNormal.xTicks},${edge.outwardNormal.yTicks}',
-  edge.collisionMode.name,
-  edge.surfaceKind ?? '',
-  edge.materialKey ?? '',
-].join('|');
-
-bool _nullableStringListsEqual(List<String?> left, List<String?> right) {
-  if (left.length != right.length) return false;
-  for (var index = 0; index < left.length; index += 1) {
-    if (left[index] != right[index]) return false;
-  }
-  return true;
-}
 
 List<ChunkV2ReachableTransition> _deduplicateTransitions(
   Iterable<ChunkV2ReachableTransition> source,

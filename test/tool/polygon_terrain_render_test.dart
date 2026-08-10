@@ -2,12 +2,15 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:runner_core/collision/terrain/terrain_authoring_seam_signature.dart';
 
 import '../fixtures/polygon_terrain_generator/staged_authored_terrain.g.dart'
     as golden;
 import '../../tool/generated_artifact_plan.dart';
 import '../../tool/polygon_terrain_compilation.dart';
 import '../../tool/polygon_terrain_render.dart';
+import '../../tool/polygon_terrain_seam_manifest.dart';
+import '../../tool/polygon_terrain_seam_validation.dart';
 import '../../tool/polygon_terrain_source.dart';
 
 const String _fixtureDirectory = 'test/fixtures/polygon_terrain_generator';
@@ -19,11 +22,11 @@ void main() {
     'staged Dart render is exact, local, and drift-plan compatible',
     () async {
       final first = buildStagedPolygonTerrainArtifact(
-        chunks: <PolygonTerrainCompiledChunk>[_compileFixture()],
+        batch: _validated(<PolygonTerrainCompiledChunk>[_compileFixture()]),
         outputPath: _goldenPath,
       );
       final second = buildStagedPolygonTerrainArtifact(
-        chunks: <PolygonTerrainCompiledChunk>[_compileFixture()],
+        batch: _validated(<PolygonTerrainCompiledChunk>[_compileFixture()]),
         outputPath: _goldenPath,
       );
 
@@ -38,11 +41,22 @@ void main() {
         isEmpty,
       );
       expect(first.content, isNot(contains('chunkIndex')));
-      expect(first.content, contains('formatVersion: 2'));
+      expect(first.content, contains('formatVersion: 3'));
       expect(first.content, contains('compilerGeometryVersion: 1'));
       expect(
         first.content,
         contains('authoringPolygonSignatureFormat: "authoring-polygons-v1"'),
+      );
+      expect(
+        first.content,
+        contains('authoringSeamSignatureFormat: "authoring-seams-v1"'),
+      );
+      expect(
+        first.content,
+        contains(
+          'authoringSeamSignature: '
+          '"c11c965911bb3990c762fc8babb016240b06309c1ecaf7c39b8007b8049f08ab"',
+        ),
       );
       expect(first.content, contains('sourceSignatureFormat: "source-v1"'));
       expect(first.content, contains('edgeSignatureFormat: "edges-v1"'));
@@ -69,32 +83,32 @@ void main() {
     final later = _compileFixture(chunkKey: 'z_fixture');
 
     expect(
-      renderStagedPolygonTerrainDart(<PolygonTerrainCompiledChunk>[
-        later,
-        earlier,
-      ]),
-      renderStagedPolygonTerrainDart(<PolygonTerrainCompiledChunk>[
-        earlier,
-        later,
-      ]),
+      renderStagedPolygonTerrainDart(
+        _validated(<PolygonTerrainCompiledChunk>[later, earlier]),
+      ),
+      renderStagedPolygonTerrainDart(
+        _validated(<PolygonTerrainCompiledChunk>[earlier, later]),
+      ),
     );
   });
 
-  test('staged renderer rejects empty and duplicate chunk sets', () {
+  test('validated render boundary rejects empty and duplicate chunk sets', () {
     final compiled = _compileFixture();
 
     expect(
-      () =>
-          renderStagedPolygonTerrainDart(const <PolygonTerrainCompiledChunk>[]),
+      () => renderStagedPolygonTerrainDart(
+        _validated(const <PolygonTerrainCompiledChunk>[]),
+      ),
       throwsArgumentError,
     );
-    expect(
-      () => renderStagedPolygonTerrainDart(<PolygonTerrainCompiledChunk>[
-        compiled,
-        compiled,
-      ]),
-      throwsArgumentError,
+    final duplicate = validatePolygonTerrainSeams(
+      chunks: <PolygonTerrainCompiledChunk>[compiled, compiled],
+      manifest: _emptySeamManifest(),
     );
+    expect(duplicate.batch, isNull);
+    expect(duplicate.issues.map((issue) => issue.code), <String>[
+      'staged_seam_chunk_duplicate',
+    ]);
   });
 
   test('staged records remain unreachable from production construction', () {
@@ -128,6 +142,22 @@ void main() {
     expect(liveGenerator, isNot(contains('staged_authored_terrain.dart')));
   });
 }
+
+PolygonTerrainValidatedBatch _validated(
+  Iterable<PolygonTerrainCompiledChunk> chunks,
+) {
+  final result = validatePolygonTerrainSeams(
+    chunks: chunks,
+    manifest: _emptySeamManifest(),
+  );
+  expect(result.issues, isEmpty);
+  return result.batch!;
+}
+
+PolygonTerrainSeamManifest _emptySeamManifest() => PolygonTerrainSeamManifest(
+  signature: TerrainAuthoringSeamSignature(const []),
+  sourcePath: 'fixture:isolated-compiler',
+);
 
 PolygonTerrainCompiledChunk _compileFixture({String? chunkKey}) {
   final prefabs = decodePolygonTerrainPrefabs(

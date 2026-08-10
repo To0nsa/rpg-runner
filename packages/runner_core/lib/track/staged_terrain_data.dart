@@ -2,7 +2,7 @@
 library;
 
 /// Schema version of [StagedTerrainArtifactData].
-const int stagedTerrainArtifactFormatVersion = 2;
+const int stagedTerrainArtifactFormatVersion = 3;
 
 /// Collision behavior retained without depending on compiler implementation
 /// enums in generated data.
@@ -287,6 +287,8 @@ final class StagedTerrainArtifactData {
     required this.formatVersion,
     required this.compilerGeometryVersion,
     required this.authoringPolygonSignatureFormat,
+    required this.authoringSeamSignatureFormat,
+    required this.authoringSeamSignature,
     required this.sourceSignatureFormat,
     required this.edgeSignatureFormat,
     required this.placementSignatureFormat,
@@ -297,6 +299,8 @@ final class StagedTerrainArtifactData {
   final int formatVersion;
   final int compilerGeometryVersion;
   final String authoringPolygonSignatureFormat;
+  final String authoringSeamSignatureFormat;
+  final String authoringSeamSignature;
   final String sourceSignatureFormat;
   final String edgeSignatureFormat;
   final String placementSignatureFormat;

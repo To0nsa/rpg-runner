@@ -88,6 +88,8 @@ void main() {
       formatVersion: stagedTerrainArtifactFormatVersion,
       compilerGeometryVersion: 1,
       authoringPolygonSignatureFormat: 'authoring-polygons-v1',
+      authoringSeamSignatureFormat: 'authoring-seams-v1',
+      authoringSeamSignature: 'seams',
       sourceSignatureFormat: 'source-v1',
       edgeSignatureFormat: 'edges-v1',
       placementSignatureFormat: 'authoring-placement-v1',
