@@ -18,6 +18,8 @@
   [phase2-implementation-checklist.md](phase2-implementation-checklist.md)
 - Accepted enemy/navigation foundation:
   [phase3-implementation-checklist.md](phase3-implementation-checklist.md)
+- Manual usability pass:
+  [phase4-manual-usability-pass.md](phase4-manual-usability-pass.md)
 
 ## 1) Goal And Exit Outcome
 
@@ -1938,8 +1940,9 @@ Phase 4 is complete only when:
 - [x] the migration check is blocker-free or every blocker is explicitly
       reviewed and reauthored
 - [x] repeated migration check/write is deterministic and idempotent
-- [ ] a non-developer can complete polygon creation/edit/diagnostic/export
-      workflows without hand-editing JSON or Dart
+- [ ] a non-developer can complete the
+      [manual usability pass](phase4-manual-usability-pass.md), including
+      polygon creation/edit/diagnostic/export without hand-editing JSON or Dart
 - [x] invalid polygons, expanded placements, limits, and scheduler-reachable
       seams block export with actionable diagnostics
 - [x] editor preview, generator, generated records, and Core compiler parity

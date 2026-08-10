@@ -95,6 +95,25 @@ percentiles, missed-input counts, source-identity evidence, and each gate. The
 benchmark is test-only: it cannot write authoring source or select the future
 terrain artifact at runtime.
 
+## Polygon Controls
+
+Prefab and Chunk polygon scenes share the same controls:
+
+- select **Create**, then primary-click to append snapped vertices
+- press Enter or choose **Close draft** to validate and close a polygon
+- press Escape or choose **Cancel** to discard the active draft/gesture
+- use **Select**, **Move vertex**, **Insert vertex**, or **Move shape** before
+  primary-clicking or dragging the corresponding scene element
+- press Delete/Backspace to delete the current selection
+- use Ctrl+Z to undo and Ctrl+Y or Ctrl+Shift+Z to redo
+- use Ctrl+drag to pan and Ctrl+wheel to zoom
+- use **Normalize** explicitly to apply canonical winding/start and remove
+  diagnosed collinear middle vertices
+
+Rejected edits retain their draft/gesture and show diagnostics; they do not
+enter session history. **Apply current source** is the only normal file-write
+action and always requires confirmation.
+
 ## Polygon Workspace Navigation
 
 When an all-current workspace loads the Chunk-v2 polygon workflow, each
@@ -113,3 +132,13 @@ export path. It shows the read-only readiness command and can atomically
 recheck source after an external migration; it never exposes Prefab-v2
 rectangle or Chunk-v1 ground/gap controls. The one-time migration command is
 complete; live polygon runtime authority remains unavailable.
+
+The release-signoff walkthrough uses a disposable Git worktree so a
+non-developer can exercise diagnostics, editing, apply/reload, narrow-window,
+and keyboard behavior without changing the main workspace. See the
+[Phase 4 manual polygon usability pass](../../docs/building/slopes/phase4-manual-usability-pass.md).
+
+The release-signoff walkthrough uses a disposable Git worktree so a
+non-developer can exercise diagnostics, editing, apply/reload, narrow-window,
+and keyboard behavior without changing the main workspace. See the
+[Phase 4 manual polygon usability pass](../../docs/building/slopes/phase4-manual-usability-pass.md).
