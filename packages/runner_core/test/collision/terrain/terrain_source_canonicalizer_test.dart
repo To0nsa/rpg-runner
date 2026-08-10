@@ -142,6 +142,59 @@ void main() {
     }
   });
 
+  test('rejects self-touch, collinear overlap, and hole-bridge loops', () {
+    final cases = <String, List<(int, int)>>{
+      'self_touch': const <(int, int)>[
+        (0, 0),
+        (16, 0),
+        (8, 8),
+        (16, 16),
+        (0, 16),
+        (8, 8),
+      ],
+      'collinear_overlap': const <(int, int)>[
+        (0, 0),
+        (16, 0),
+        (4, 0),
+        (12, 0),
+        (12, 12),
+        (0, 12),
+      ],
+      'hole_bridge': const <(int, int)>[
+        (0, 0),
+        (24, 0),
+        (24, 24),
+        (0, 24),
+        (0, 16),
+        (8, 16),
+        (8, 8),
+        (16, 8),
+        (16, 16),
+        (8, 16),
+        (0, 16),
+      ],
+    };
+
+    for (final entry in cases.entries) {
+      final input = _input(entry.key, entry.value);
+      final review = canonicalizer.review(input, requireCanonical: true);
+
+      expect(review.hasBlockingDiagnostics, isTrue, reason: entry.key);
+      expect(review.canonicalVertices, isNull, reason: entry.key);
+      expect(
+        review.diagnostics.map((diagnostic) => diagnostic.code),
+        contains('self_intersection'),
+        reason: entry.key,
+      );
+      expect(
+        () =>
+            compiler.compile(<TerrainPolygonInput>[input], geometryVersion: 1),
+        throwsA(isA<TerrainValidationException>()),
+        reason: entry.key,
+      );
+    }
+  });
+
   test('compiler still accepts rotations without source-authoring policy', () {
     final rotated = _input('runtime', const <(int, int)>[
       (20, 10),

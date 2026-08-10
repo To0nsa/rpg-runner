@@ -99,6 +99,75 @@ void main() {
     },
   );
 
+  test('rejects unsupported single-loop topology with chunk ownership', () {
+    final cases = <String, List<(int, int)>>{
+      'self_touch': const <(int, int)>[
+        (0, 0),
+        (16, 0),
+        (8, 8),
+        (16, 16),
+        (0, 16),
+        (8, 8),
+      ],
+      'collinear_overlap': const <(int, int)>[
+        (0, 0),
+        (16, 0),
+        (4, 0),
+        (12, 0),
+        (12, 12),
+        (0, 12),
+      ],
+      'hole_bridge': const <(int, int)>[
+        (0, 0),
+        (24, 0),
+        (24, 24),
+        (0, 24),
+        (0, 16),
+        (8, 16),
+        (8, 8),
+        (16, 8),
+        (16, 16),
+        (8, 16),
+        (0, 16),
+      ],
+    };
+
+    for (final entry in cases.entries) {
+      final result = expandChunkV2Collision(
+        chunk: _chunk(
+          directShapes: <TerrainSourceShapeDef>[
+            TerrainSourceShapeDef(
+              shapeId: entry.key,
+              vertices: <TerrainSourceVertexDef>[
+                for (final vertex in entry.value)
+                  TerrainSourceVertexDef(
+                    xHalfPixels: vertex.$1,
+                    yHalfPixels: vertex.$2,
+                  ),
+              ],
+            ),
+          ],
+        ),
+        prefabs: const <PrefabV3Def>[],
+        sourcePath: 'chunks/forest/test.json',
+      );
+
+      expect(result.expansion, isNull, reason: entry.key);
+      final issue = result.issues.singleWhere(
+        (candidate) => candidate.code == 'self_intersection',
+      );
+      expect(issue.ownerKey, 'forest_test', reason: entry.key);
+      expect(issue.placementKey, isNull, reason: entry.key);
+      expect(issue.shapeId, entry.key, reason: entry.key);
+      expect(issue.elementIndex, 0, reason: entry.key);
+      expect(
+        issue.sourcePath,
+        'chunks/forest/test.json#direct=${entry.key}',
+        reason: entry.key,
+      );
+    }
+  });
+
   test('retains quantized geometry while reporting exact bounds lineage', () {
     final result = expandChunkV2Collision(
       chunk: _chunk(

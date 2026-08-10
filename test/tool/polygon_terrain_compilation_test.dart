@@ -607,6 +607,51 @@ void main() {
             vertices: const <(num, num)>[(0, 0), (5, 5), (0, 5), (4, 0)],
             issues: const <(String, int)>[('self_intersection', 0)],
           ),
+          'self_touch': (
+            vertices: const <(num, num)>[
+              (0, 0),
+              (8, 0),
+              (4, 4),
+              (8, 8),
+              (0, 8),
+              (4, 4),
+            ],
+            issues: const <(String, int)>[('self_intersection', 0)],
+          ),
+          'collinear_overlap': (
+            vertices: const <(num, num)>[
+              (0, 0),
+              (8, 0),
+              (2, 0),
+              (6, 0),
+              (6, 6),
+              (0, 6),
+            ],
+            issues: const <(String, int)>[
+              ('self_intersection', 0),
+              ('collinear_middle_vertex', 1),
+              ('collinear_middle_vertex', 2),
+            ],
+          ),
+          'hole_bridge': (
+            vertices: const <(num, num)>[
+              (0, 0),
+              (12, 0),
+              (12, 12),
+              (0, 12),
+              (0, 8),
+              (4, 8),
+              (4, 4),
+              (8, 4),
+              (8, 8),
+              (4, 8),
+              (0, 8),
+            ],
+            issues: const <(String, int)>[
+              ('self_intersection', 0),
+              ('collinear_middle_vertex', 9),
+            ],
+          ),
           'short_edge': (
             vertices: const <(num, num)>[(0, 0), (0.5, 0), (2, 5), (0, 5)],
             issues: const <(String, int)>[('minimum_edge_length', 0)],
