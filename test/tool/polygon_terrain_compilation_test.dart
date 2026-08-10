@@ -390,6 +390,266 @@ void main() {
     );
   });
 
+  test('strict chunk parser rejects the structural diagnostic matrix', () {
+    void expectChunkFailure(
+      void Function(Map<String, Object?> root) mutate,
+      String message,
+    ) {
+      expect(
+        () => decodePolygonTerrainChunk(
+          _mutated(_json('chunk.json'), mutate),
+          sourcePath: _chunkSourcePath,
+        ),
+        throwsA(_formatMessage(contains(message))),
+      );
+    }
+
+    expect(
+      () => decodePolygonTerrainChunk('{', sourcePath: _chunkSourcePath),
+      throwsA(_formatMessage(contains('$_chunkSourcePath is malformed JSON:'))),
+    );
+    expectChunkFailure(
+      (root) => root.remove('schemaVersion'),
+      '$_chunkSourcePath is missing field schemaVersion.',
+    );
+    expectChunkFailure((root) {
+      _firstCollisionShape(root).remove('collisionMode');
+    }, '$_chunkSourcePath.collisionShapes[0] is missing field collisionMode.');
+    expectChunkFailure(
+      (root) {
+        _firstCollisionShape(root)['collisionMode'] = 'ghost';
+      },
+      '$_chunkSourcePath.collisionShapes[0].collisionMode must be one of oneWay, solid.',
+    );
+    expectChunkFailure(
+      (root) {
+        _firstVertex(root)['x'] = 0.25;
+      },
+      '$_chunkSourcePath.collisionShapes[0].vertices[0].x must be divisible exactly by 0.5.',
+    );
+    expectChunkFailure((root) {
+      _firstCollisionShape(root).remove('shapeId');
+    }, '$_chunkSourcePath.collisionShapes[0] is missing field shapeId.');
+    expectChunkFailure(
+      (root) {
+        _firstCollisionShape(root)['shapeId'] = 'Ground';
+      },
+      '$_chunkSourcePath.collisionShapes[0].shapeId must match ^[a-z][a-z0-9_]*\$.',
+    );
+    expectChunkFailure(
+      (root) {
+        final shape = _firstCollisionShape(root);
+        root['collisionShapes'] = <Object?>[
+          shape,
+          jsonDecode(jsonEncode(shape)) as Map<String, Object?>,
+        ];
+      },
+      '$_chunkSourcePath.collisionShapes must be strictly ordered with no duplicates.',
+    );
+  });
+
+  test('Core topology failures retain exact staged diagnostic lineage', () {
+    PolygonTerrainCompilationResult compileShapes(
+      List<Map<String, Object?>> shapes,
+    ) {
+      final chunk = decodePolygonTerrainChunk(
+        _mutated(_json('chunk.json'), (root) {
+          root['prefabs'] = <Object?>[];
+          root['collisionShapes'] = shapes;
+        }),
+        sourcePath: _chunkSourcePath,
+      );
+      return compilePolygonTerrainChunk(
+        chunk: chunk,
+        prefabSources: PolygonTerrainPrefabSourceSet(
+          const <PolygonTerrainPrefabSource>[],
+        ),
+        sourcePath: _chunkSourcePath,
+      );
+    }
+
+    final cases =
+        <String, ({List<(num, num)> vertices, List<(String, int)> issues})>{
+          'collinear': (
+            vertices: const <(num, num)>[
+              (0, 0),
+              (5, 0),
+              (10, 0),
+              (10, 10),
+              (0, 10),
+            ],
+            issues: const <(String, int)>[('collinear_middle_vertex', 1)],
+          ),
+          'consecutive_duplicate': (
+            vertices: const <(num, num)>[(0, 0), (5, 0), (5, 0), (0, 5)],
+            issues: const <(String, int)>[
+              ('self_intersection', 0),
+              ('collinear_middle_vertex', 1),
+              ('minimum_edge_length', 1),
+              ('collinear_middle_vertex', 2),
+              ('consecutive_duplicate', 2),
+            ],
+          ),
+          'minimum_area': (
+            vertices: const <(num, num)>[(0, 0), (1, 0), (0, 1)],
+            issues: const <(String, int)>[('minimum_area', 0)],
+          ),
+          'noncanonical_start': (
+            vertices: const <(num, num)>[(10, 0), (10, 10), (0, 10), (0, 0)],
+            issues: const <(String, int)>[('noncanonical_start', 3)],
+          ),
+          'noncanonical_winding': (
+            vertices: const <(num, num)>[(0, 10), (10, 10), (10, 0), (0, 0)],
+            issues: const <(String, int)>[('noncanonical_winding', 0)],
+          ),
+          'repeated_closing': (
+            vertices: const <(num, num)>[(0, 0), (5, 0), (0, 5), (0, 0)],
+            issues: const <(String, int)>[
+              ('collinear_middle_vertex', 0),
+              ('self_intersection', 0),
+              ('collinear_middle_vertex', 3),
+              ('minimum_edge_length', 3),
+              ('repeated_closing_vertex', 3),
+            ],
+          ),
+          'self_intersection': (
+            vertices: const <(num, num)>[(0, 0), (5, 5), (0, 5), (4, 0)],
+            issues: const <(String, int)>[('self_intersection', 0)],
+          ),
+          'short_edge': (
+            vertices: const <(num, num)>[(0, 0), (0.5, 0), (2, 5), (0, 5)],
+            issues: const <(String, int)>[('minimum_edge_length', 0)],
+          ),
+          'too_few_vertices': (
+            vertices: const <(num, num)>[(0, 0), (5, 0)],
+            issues: const <(String, int)>[('too_few_vertices', 0)],
+          ),
+        };
+
+    for (final entry in cases.entries) {
+      final result = compileShapes(<Map<String, Object?>>[
+        _shapeJson(entry.key, entry.value.vertices),
+      ]);
+      expect(result.compiled, isNull, reason: entry.key);
+      expect(
+        result.issues
+            .map((issue) => (issue.code, issue.elementIndex))
+            .toList(growable: false),
+        entry.value.issues,
+        reason: entry.key,
+      );
+      expect(
+        result.issues.every(
+          (issue) =>
+              issue.sourcePath == '$_chunkSourcePath#direct=${entry.key}' &&
+              issue.placementKey == null &&
+              issue.shapeId == entry.key,
+        ),
+        isTrue,
+        reason: entry.key,
+      );
+    }
+
+    final overlap = compileShapes(<Map<String, Object?>>[
+      _shapeJson('overlap_left', const <(num, num)>[
+        (0, 0),
+        (10, 0),
+        (10, 10),
+        (0, 10),
+      ]),
+      _shapeJson('overlap_right', const <(num, num)>[
+        (5, 0),
+        (15, 0),
+        (15, 10),
+        (5, 10),
+      ]),
+    ]);
+    expect(overlap.compiled, isNull);
+    expect(
+      overlap.issues
+          .map(
+            (issue) => (
+              issue.code,
+              issue.sourcePath,
+              issue.placementKey,
+              issue.shapeId,
+              issue.elementIndex,
+            ),
+          )
+          .toList(growable: false),
+      <(String, String, String?, String?, int?)>[
+        (
+          'polygon_area_overlap',
+          '$_chunkSourcePath#direct=overlap_right',
+          null,
+          'overlap_right',
+          0,
+        ),
+      ],
+    );
+  });
+
+  test('post-transform degeneracy retains exact placement lineage', () {
+    final prefabJson = _json('prefab_defs.json');
+    final prefabs = decodePolygonTerrainPrefabs(
+      _mutated(prefabJson, (root) {
+        final prefab =
+            (root['prefabs']! as List<Object?>).single! as Map<String, Object?>;
+        final shape =
+            (prefab['collisionShapes']! as List<Object?>).single!
+                as Map<String, Object?>;
+        shape['vertices'] = <Object?>[
+          <String, Object?>{'x': 0, 'y': 0},
+          <String, Object?>{'x': 1, 'y': 0},
+          <String, Object?>{'x': 1, 'y': 1},
+          <String, Object?>{'x': 0, 'y': 1},
+        ];
+      }),
+      sourcePath: 'prefab_defs.json',
+    );
+    final chunk = decodePolygonTerrainChunk(
+      _mutated(_json('chunk.json'), (root) {
+        final placement =
+            (root['prefabs']! as List<Object?>).single! as Map<String, Object?>;
+        placement['scale'] = 0.3;
+        root['collisionShapes'] = <Object?>[];
+      }),
+      sourcePath: _chunkSourcePath,
+    );
+
+    final result = compilePolygonTerrainChunk(
+      chunk: chunk,
+      prefabSources: prefabs,
+      sourcePath: _chunkSourcePath,
+    );
+
+    expect(result.compiled, isNull);
+    expect(
+      result.issues
+          .map(
+            (issue) => (
+              issue.code,
+              issue.sourcePath,
+              issue.placementKey,
+              issue.shapeId,
+              issue.elementIndex,
+            ),
+          )
+          .toList(growable: false),
+      <(String, String, String?, String?, int?)>[
+        for (var edgeIndex = 0; edgeIndex < 4; edgeIndex += 1)
+          (
+            'transform_minimum_edge_length',
+            '$_chunkSourcePath#placement=prefab_ramp|60|20|0'
+                '#prefab=prefab_ramp#shape=collision_001',
+            'prefab_ramp|60|20|0',
+            'collision_001',
+            edgeIndex,
+          ),
+      ],
+    );
+  });
+
   test('unresolved placement fails without fabricated geometry', () {
     final chunk = decodePolygonTerrainChunk(
       _fixture('chunk.json'),
@@ -704,6 +964,23 @@ String _mutated(
 
 Matcher _formatMessage(Matcher message) =>
     isA<FormatException>().having((error) => error.message, 'message', message);
+
+Map<String, Object?> _firstCollisionShape(Map<String, Object?> root) =>
+    (root['collisionShapes']! as List<Object?>).first! as Map<String, Object?>;
+
+Map<String, Object?> _firstVertex(Map<String, Object?> root) =>
+    (_firstCollisionShape(root)['vertices']! as List<Object?>).first!
+        as Map<String, Object?>;
+
+Map<String, Object?> _shapeJson(String shapeId, List<(num, num)> vertices) =>
+    <String, Object?>{
+      'shapeId': shapeId,
+      'collisionMode': 'solid',
+      'vertices': <Object?>[
+        for (final vertex in vertices)
+          <String, Object?>{'x': vertex.$1, 'y': vertex.$2},
+      ],
+    };
 
 PolygonTerrainPlacementLineage _lineage(
   PolygonTerrainPlacementLineage source, {
