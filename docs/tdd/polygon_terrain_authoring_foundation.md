@@ -1019,6 +1019,19 @@ internal solid edge. Both consumers agree on six polygons, 21 exposed edges,
 and `41ee501d…f36` (triangles). The original staged artifact and its reviewed
 SHA-256 remain byte-identical.
 
+The migration-origin fixture begins one stage earlier. Its four Prefab-v3
+shapes must equal `LegacyPrefabColliderUnion.plan` output for an isolated
+odd-sized rectangle, the concave occupied union of two overlapping rectangles,
+and two edge-disconnected components. Reversing each legacy collider list must
+produce the same loops and preserve the canonical `collision_001` and
+`collision_002` component IDs. The strict Prefab-v3 and Chunk-v2 codecs then
+round-trip those source bytes exactly, and editor expansion plus staged
+generator compilation agree on four polygons, 20 exposed edges, 12 triangles,
+and signatures `8b70a09b…bd96` (source), `1e605569…a1c6` (edges),
+`355242dd…b57c` (authored polygons), `edc8b921…780f` (placements), and
+`fcdff387…0ec5` (triangles). This fixture does not depend on the now-cleared
+repository colliders and does not authorize a migration write.
+
 The immutable compiled product, rather than its callers, owns canonical
 placement-lineage and triangle ordering and rejects duplicate derived
 identities. Generator source paths are canonical workspace-relative identities:

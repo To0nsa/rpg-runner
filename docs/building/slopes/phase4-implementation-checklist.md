@@ -1127,9 +1127,9 @@ remain open.
 
 Create small checked-in fixtures that cover:
 
-- [ ] one prefab-local rectangle migrated to a polygon
-- [ ] concave union of overlapping/touching rectangles
-- [ ] disconnected union components and derived IDs
+- [x] one prefab-local rectangle migrated to a polygon
+- [x] concave union of overlapping/touching rectangles
+- [x] disconnected union components and derived IDs
 - [x] direct chunk slope and flat-to-slope seam
 - [x] pit/open boundary and finite ground coverage
 - [x] solid and one-way shapes
@@ -1170,8 +1170,19 @@ internal edge cancels. Generator and editor reproduce source
 `6e5e8bbf…fe8`, edge `ed707fc7…d31`, authored polygon `60ca88ca…c3f`,
 placement `4f07473d…1c2`, and triangle `41ee501d…f36` signatures for six
 polygons, 21 exposed edges, and 14 triangles. The original reviewed artifact
-fixture and its bytes remain unchanged. The unmarked migration and diagnostic
-cases still require their own cross-stage evidence.
+fixture and its bytes remain unchanged.
+
+The migration-origin fixture binds the real `LegacyPrefabColliderUnion`
+planner to the same cross-stage contract. It covers an isolated odd-sized
+rectangle, the concave union of two overlapping rectangles, and two
+edge-disconnected components. Reversing every legacy collider list preserves
+the exact planned loops and `collision_001`/`collision_002` derived IDs; those
+loops equal the canonical Prefab-v3 source before editor and generator compile
+them. Both consumers reproduce four polygons, 20 exposed edges, 12 triangles,
+and source `8b70a09b…bd96`, edge `1e605569…a1c6`, authored polygon
+`355242dd…b57c`, placement `edc8b921…780f`, and triangle
+`fcdff387…0ec5` signatures. Only the broad major-blocking-diagnostic fixture
+gate remains open in this section.
 
 ## 23) Determinism And Golden Signatures
 
@@ -1560,6 +1571,7 @@ result.
 | 2026-08-10 / `c31bdd82` | Staged generator blocking-diagnostic matrix | Dart VM and Flutter test VM on Windows with Docker running | Targeted analysis is clean and all 58 root tool/generator tests pass. Strict scale diagnostics cover below-minimum, above-maximum, and off-step values. Unknown and ambiguous prefab references, direct and prefab source-range failures, and simultaneous direct/expanded Chunk-bounds failures return no compiled product while retaining exact source/placement/shape/element lineage and canonical issue ordering; reversed prefab catalog input is identical. Reviewed fixture records, signatures, artifact bytes, authored source, and live runtime authority are unchanged. |
 | 2026-08-10 / `a3b0504b` | Core-owned deterministic terrain triangulation | Dart VM and Flutter test VM on Windows with Docker running | Root, Core-package, and editor analysis are clean; all 325 Core-package tests, all 58 root tool/generator tests, and all 439 editor tests pass. Core's exact first-ear triangulator and shared `authoring-triangles-v1` contract replace the generator-private algorithm/serializer. Convex/concave order, all rotations/reversed windings after compiler normalization, malformed-product rejection, immutable output, record ordering, duplicate rejection, and empty digest are explicit. Editor strict model round-trips and Core preview reproduce the generator's triangle digest `c1a71872…07d3`; staged artifact bytes/hash remain unchanged. Authored source, live registration, collision/runtime authority, and replay behavior are unchanged. |
 | 2026-08-10 / `017cd01a` | Transform and terrain feature parity fixture | Dart VM and Flutter test VM on Windows with Docker running | Root and editor analysis are clean; all 59 root tool/generator tests and all 440 editor tests pass. Exact canonical source covers odd half-pixel ticks, X-only reflection at `0.3`, Y-only reflection at `3.0`, one-quantization output, a flat-to-slope edge, finite pit coverage, and cross-shape internal solid-edge cancellation. Generator and editor agree on six polygons, 21 exposed edges, 14 triangles, and source/edge/authored/placement/triangle digests `6e5e8bbf…fe8`, `ed707fc7…d31`, `60ca88ca…c3f`, `4f07473d…1c2`, and `41ee501d…f36`. The original reviewed artifact bytes, authored source, live registration, and runtime authority are unchanged. |
+| 2026-08-10 / `80c3cf98` | Migration-origin authoring/runtime parity fixture | Dart VM and Flutter test VM on Windows with Docker running | Root and editor analysis are clean; all 60 root tool/generator tests and all 441 editor tests pass. The real legacy prefab union planner produces the fixture's isolated odd rectangle, concave overlapping-rectangle union, and two disconnected components exactly; reversed collider input preserves canonical loops and derived IDs. Generator and editor agree on four polygons, 20 exposed edges, 12 triangles, and source/edge/authored/placement/triangle digests `8b70a09b…bd96`, `1e605569…a1c6`, `355242dd…b57c`, `edc8b921…780f`, and `fcdff387…0ec5`. Existing fixture families, authored source, live registration, and runtime authority are unchanged. |
 
 ### 28.1 Baseline Environment And Source Identity
 

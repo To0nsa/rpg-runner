@@ -1509,6 +1509,11 @@ single-step quantization, a flat-to-slope boundary, finite pit coverage, and
 cross-shape internal-edge cancellation across generator and editor. It leaves
 the original reviewed artifact bytes unchanged and does not select staged data
 in live generation.
+A separate migration-origin fixture proves that the real legacy rectangle
+union planner feeds the same pipeline for an isolated rectangle, a concave
+overlapping union, and disconnected components with stable derived IDs under
+reversed collider order. It is isolated test evidence and does not restore
+deleted repository colliders or enable migration writes.
 The same compiled result now renders a narrowly typed, executable Dart artifact
 fixture containing canonical source/physics loops, Core-exposed edges, render
 triangles, placement lineage, and signature versions. Its local identities
