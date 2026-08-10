@@ -54,6 +54,146 @@ void main() {
     expect(second.authoringPolygonRecords(), first.authoringPolygonRecords());
   });
 
+  test('compiled product signatures ignore caller collection order', () {
+    final compiled = _compileFixture();
+    final permuted = PolygonTerrainCompiledChunk(
+      chunk: compiled.chunk,
+      geometry: compiled.geometry,
+      authoringPolygons: compiled.authoringPolygons.reversed,
+      placementLineage: compiled.placementLineage.reversed,
+      triangles: compiled.triangles.reversed,
+    );
+
+    expect(
+      permuted.authoringPolygonRecords(),
+      compiled.authoringPolygonRecords(),
+    );
+    expect(permuted.placementRecords(), compiled.placementRecords());
+    expect(permuted.triangleRecords(), compiled.triangleRecords());
+    expect(
+      permuted.authoringPolygonSignature(),
+      compiled.authoringPolygonSignature(),
+    );
+    expect(permuted.placementSignature(), compiled.placementSignature());
+    expect(permuted.triangleSignature(), compiled.triangleSignature());
+  });
+
+  test('compiled product rejects duplicate derived identities', () {
+    final compiled = _compileFixture();
+    expect(
+      () => PolygonTerrainCompiledChunk(
+        chunk: compiled.chunk,
+        geometry: compiled.geometry,
+        authoringPolygons: compiled.authoringPolygons,
+        placementLineage: <PolygonTerrainPlacementLineage>[
+          compiled.placementLineage.single,
+          compiled.placementLineage.single,
+        ],
+        triangles: compiled.triangles,
+      ),
+      throwsArgumentError,
+    );
+    expect(
+      () => PolygonTerrainCompiledChunk(
+        chunk: compiled.chunk,
+        geometry: compiled.geometry,
+        authoringPolygons: compiled.authoringPolygons,
+        placementLineage: compiled.placementLineage,
+        triangles: <PolygonTerrainTriangle>[
+          compiled.triangles.first,
+          compiled.triangles.first,
+        ],
+      ),
+      throwsArgumentError,
+    );
+  });
+
+  test('source identity is host-separator invariant and traversal-safe', () {
+    final forward = _compileFixture();
+    final windows = _compileFixture(
+      sourcePath: r'chunks\forest\fixture_chunk.json',
+    );
+
+    expect(
+      windows.geometry.canonicalSourceRecords(),
+      forward.geometry.canonicalSourceRecords(),
+    );
+    expect(
+      windows.geometry.canonicalEdgeRecords(),
+      forward.geometry.canonicalEdgeRecords(),
+    );
+    expect(
+      windows.geometry.sourceSignature(),
+      forward.geometry.sourceSignature(),
+    );
+    expect(windows.geometry.edgeSignature(), forward.geometry.edgeSignature());
+
+    for (final invalid in const <String>[
+      '',
+      '/chunks/forest/chunk.json',
+      'chunks//forest/chunk.json',
+      'chunks/../forest/chunk.json',
+      r'C:\chunks\forest\chunk.json',
+    ]) {
+      expect(
+        () => compilePolygonTerrainChunk(
+          chunk: forward.chunk,
+          prefabSources: PolygonTerrainPrefabSourceSet(
+            const <PolygonTerrainPrefabSource>[],
+          ),
+          sourcePath: invalid,
+        ),
+        throwsArgumentError,
+        reason: invalid,
+      );
+    }
+  });
+
+  test('every placement-lineage field participates in its signature', () {
+    final compiled = _compileFixture();
+    final baselineRecord = compiled.placementLineage.single;
+    final baseline = compiled.placementSignature();
+    final mutations = <PolygonTerrainPlacementLineage>[
+      _lineage(baselineRecord, chunkKey: 'other_chunk'),
+      _lineage(baselineRecord, placementKey: 'other|0|0|0'),
+      _lineage(baselineRecord, prefabKey: 'prefab_other'),
+      _lineage(baselineRecord, prefabId: 'other'),
+      _lineage(baselineRecord, prefabRevision: 4),
+      _lineage(baselineRecord, shapeId: 'other_shape'),
+      _lineage(baselineRecord, placementX: 61),
+      _lineage(baselineRecord, placementY: 21),
+      _lineage(baselineRecord, scaleTenths: 6),
+      _lineage(baselineRecord, flipX: !baselineRecord.flipX),
+      _lineage(baselineRecord, flipY: !baselineRecord.flipY),
+    ];
+
+    for (final mutation in mutations) {
+      expect(_placementSignatureWith(compiled, mutation), isNot(baseline));
+    }
+  });
+
+  test('every triangle identity/index field participates in its signature', () {
+    final compiled = _compileFixture();
+    final baselineRecord = compiled.triangles.first;
+    final baseline = _triangleSignatureWith(compiled, baselineRecord);
+    final mutations = <PolygonTerrainTriangle>[
+      _triangle(baselineRecord, chunkKey: 'other_chunk'),
+      _triangle(
+        baselineRecord,
+        placementKey: baselineRecord.placementKey == null ? 'placed' : null,
+        replacePlacementKey: true,
+      ),
+      _triangle(baselineRecord, shapeId: 'other_shape'),
+      _triangle(baselineRecord, first: baselineRecord.first + 1),
+      _triangle(baselineRecord, second: baselineRecord.second + 1),
+      _triangle(baselineRecord, third: baselineRecord.third + 1),
+    ];
+
+    for (final mutation in mutations) {
+      expect(_triangleSignatureWith(compiled, mutation), isNot(baseline));
+    }
+  });
+
   test('strict parsers reject legacy, unknown, and off-grid source', () {
     final prefab = _json('prefab_defs.json');
     final chunk = _json('chunk.json');
@@ -174,7 +314,9 @@ void main() {
   });
 }
 
-PolygonTerrainCompiledChunk _compileFixture() {
+PolygonTerrainCompiledChunk _compileFixture({
+  String sourcePath = _chunkSourcePath,
+}) {
   final prefabs = decodePolygonTerrainPrefabs(
     _fixture('prefab_defs.json'),
     sourcePath: 'prefab_defs.json',
@@ -186,7 +328,7 @@ PolygonTerrainCompiledChunk _compileFixture() {
   final result = compilePolygonTerrainChunk(
     chunk: chunk,
     prefabSources: prefabs,
-    sourcePath: _chunkSourcePath,
+    sourcePath: sourcePath,
   );
   expect(result.issues, isEmpty);
   expect(result.compiled, isNotNull);
@@ -213,3 +355,70 @@ String _mutated(
 
 Matcher _formatMessage(Matcher message) =>
     isA<FormatException>().having((error) => error.message, 'message', message);
+
+PolygonTerrainPlacementLineage _lineage(
+  PolygonTerrainPlacementLineage source, {
+  String? chunkKey,
+  String? placementKey,
+  String? prefabKey,
+  String? prefabId,
+  int? prefabRevision,
+  String? shapeId,
+  int? placementX,
+  int? placementY,
+  int? scaleTenths,
+  bool? flipX,
+  bool? flipY,
+}) => PolygonTerrainPlacementLineage(
+  chunkKey: chunkKey ?? source.chunkKey,
+  placementKey: placementKey ?? source.placementKey,
+  prefabKey: prefabKey ?? source.prefabKey,
+  prefabId: prefabId ?? source.prefabId,
+  prefabRevision: prefabRevision ?? source.prefabRevision,
+  shapeId: shapeId ?? source.shapeId,
+  placementX: placementX ?? source.placementX,
+  placementY: placementY ?? source.placementY,
+  scaleTenths: scaleTenths ?? source.scaleTenths,
+  flipX: flipX ?? source.flipX,
+  flipY: flipY ?? source.flipY,
+);
+
+PolygonTerrainTriangle _triangle(
+  PolygonTerrainTriangle source, {
+  String? chunkKey,
+  String? placementKey,
+  bool replacePlacementKey = false,
+  String? shapeId,
+  int? first,
+  int? second,
+  int? third,
+}) => PolygonTerrainTriangle(
+  chunkKey: chunkKey ?? source.chunkKey,
+  placementKey: replacePlacementKey ? placementKey : source.placementKey,
+  shapeId: shapeId ?? source.shapeId,
+  first: first ?? source.first,
+  second: second ?? source.second,
+  third: third ?? source.third,
+);
+
+String _placementSignatureWith(
+  PolygonTerrainCompiledChunk source,
+  PolygonTerrainPlacementLineage lineage,
+) => PolygonTerrainCompiledChunk(
+  chunk: source.chunk,
+  geometry: source.geometry,
+  authoringPolygons: source.authoringPolygons,
+  placementLineage: <PolygonTerrainPlacementLineage>[lineage],
+  triangles: source.triangles,
+).placementSignature();
+
+String _triangleSignatureWith(
+  PolygonTerrainCompiledChunk source,
+  PolygonTerrainTriangle triangle,
+) => PolygonTerrainCompiledChunk(
+  chunk: source.chunk,
+  geometry: source.geometry,
+  authoringPolygons: source.authoringPolygons,
+  placementLineage: source.placementLineage,
+  triangles: <PolygonTerrainTriangle>[triangle],
+).triangleSignature();

@@ -32,6 +32,8 @@ void main() {
               geometry.canonicalEdgeRecords(),
               canonical.canonicalEdgeRecords(),
             );
+            expect(geometry.sourceSignature(), canonical.sourceSignature());
+            expect(geometry.edgeSignature(), canonical.edgeSignature());
           }
         }
       },

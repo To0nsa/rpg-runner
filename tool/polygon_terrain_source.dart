@@ -11,6 +11,33 @@ const int _maxExactHalfPixelTicks = (1 << 52) - 1;
 
 final RegExp _stableShapeId = RegExp(r'^[a-z][a-z0-9_]*$');
 
+/// Converts a workspace-relative source path to platform-neutral `/` form.
+///
+/// Traversal, absolute, empty-segment, and drive-qualified paths fail closed
+/// so two host spellings cannot alias one generated source identity.
+String canonicalPolygonTerrainSourcePath(String sourcePath) {
+  if (sourcePath.isEmpty) {
+    throw ArgumentError.value(sourcePath, 'sourcePath', 'Must not be empty.');
+  }
+  final normalized = sourcePath.replaceAll('\\', '/');
+  final segments = normalized.split('/');
+  if (normalized.startsWith('/') ||
+      segments.any(
+        (segment) =>
+            segment.isEmpty ||
+            segment == '.' ||
+            segment == '..' ||
+            segment.contains(':'),
+      )) {
+    throw ArgumentError.value(
+      sourcePath,
+      'sourcePath',
+      'Must be a canonical workspace-relative path.',
+    );
+  }
+  return segments.join('/');
+}
+
 /// Exact parsed vertex retained before Core range and topology validation.
 final class PolygonTerrainSourcePoint {
   const PolygonTerrainSourcePoint({

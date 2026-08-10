@@ -63,6 +63,37 @@ forest|steady-hard:tier=hard>hard|b>a''');
       'c11c965911bb3990c762fc8babb016240b06309c1ecaf7c39b8007b8049f08ab',
     );
   });
+
+  test('every scheduler adjacency fact participates in the digest', () {
+    final baseline = TerrainAuthoringSeamSignature(
+      <TerrainAuthoringSeamTransition>[_transition(left: 'a', right: 'b')],
+    ).digest;
+    final mutations = <TerrainAuthoringSeamTransition>[
+      TerrainAuthoringSeamTransition(
+        levelId: 'cave',
+        transitionId: 'steady-hard:tier=hard>hard',
+        leftChunkKey: 'a',
+        rightChunkKey: 'b',
+      ),
+      TerrainAuthoringSeamTransition(
+        levelId: 'forest',
+        transitionId: 'tier=normal>hard:boundary',
+        leftChunkKey: 'a',
+        rightChunkKey: 'b',
+      ),
+      _transition(left: 'other', right: 'b'),
+      _transition(left: 'a', right: 'other'),
+    ];
+
+    for (final mutation in mutations) {
+      expect(
+        TerrainAuthoringSeamSignature(<TerrainAuthoringSeamTransition>[
+          mutation,
+        ]).digest,
+        isNot(baseline),
+      );
+    }
+  });
 }
 
 TerrainAuthoringSeamTransition _transition({

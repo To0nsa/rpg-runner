@@ -204,9 +204,8 @@ void _writeChunk(
     });
   final edges = compiled.geometry.edges.toList()
     ..sort((left, right) => left.id.compareTo(right.id));
-  final triangles = compiled.triangles.toList()..sort(_compareTriangles);
-  final placementLineage = compiled.placementLineage.toList()
-    ..sort(_comparePlacementLineage);
+  final triangles = compiled.triangles.toList()..sort();
+  final placementLineage = compiled.placementLineage.toList()..sort();
   final prefix = ' ' * indent;
   writer
     ..line('${prefix}StagedTerrainChunkData(')
@@ -435,32 +434,6 @@ void _writeNullableEdgeId(
   _writeEdgeId(writer, field, id, indent);
 }
 
-int _compareTriangles(
-  PolygonTerrainTriangle left,
-  PolygonTerrainTriangle right,
-) {
-  var order = left.chunkKey.compareTo(right.chunkKey);
-  if (order != 0) return order;
-  order = _compareNullable(left.placementKey, right.placementKey);
-  if (order != 0) return order;
-  order = left.shapeId.compareTo(right.shapeId);
-  if (order != 0) return order;
-  order = left.first.compareTo(right.first);
-  if (order != 0) return order;
-  order = left.second.compareTo(right.second);
-  return order != 0 ? order : left.third.compareTo(right.third);
-}
-
-int _comparePlacementLineage(
-  PolygonTerrainPlacementLineage left,
-  PolygonTerrainPlacementLineage right,
-) {
-  var order = left.chunkKey.compareTo(right.chunkKey);
-  if (order != 0) return order;
-  order = left.placementKey.compareTo(right.placementKey);
-  return order != 0 ? order : left.shapeId.compareTo(right.shapeId);
-}
-
 String _collisionMode(TerrainCollisionMode mode) => switch (mode) {
   TerrainCollisionMode.solid => 'StagedTerrainCollisionMode.solid',
   TerrainCollisionMode.oneWay => 'StagedTerrainCollisionMode.oneWay',
@@ -478,13 +451,6 @@ String _string(String value) => jsonEncode(value);
 
 String _nullableString(String? value) =>
     value == null ? 'null' : _string(value);
-
-int _compareNullable(String? left, String? right) {
-  if (identical(left, right)) return 0;
-  if (left == null) return -1;
-  if (right == null) return 1;
-  return left.compareTo(right);
-}
 
 final class _DartWriter {
   final StringBuffer _buffer = StringBuffer();

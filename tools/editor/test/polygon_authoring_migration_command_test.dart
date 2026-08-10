@@ -316,6 +316,45 @@ void main() {
       expect(result.stdout, contains('--write is intentionally unavailable'));
     },
   );
+
+  test('two standalone Dart checks reproduce migration report signature', () {
+    final fixture = _copyMigrationSources();
+    try {
+      final before = _sourceDigests(fixture.path);
+      final reports = <String>[];
+      for (final name in const <String>['first', 'second']) {
+        final result = Process.runSync(
+          _standaloneDartExecutable(),
+          <String>[
+            'run',
+            'tool/migrate_polygon_authoring.dart',
+            '--check',
+            '--repo-root=${fixture.path}',
+            '--report=.tmp/$name.json',
+          ],
+          workingDirectory: p.join(_repoRootPath(), 'tools', 'editor'),
+        );
+        expect(result.exitCode, 0, reason: result.stderr.toString());
+        expect(result.stderr, isEmpty);
+        reports.add(
+          File(p.join(fixture.path, '.tmp', '$name.json')).readAsStringSync(),
+        );
+      }
+
+      expect(reports[1], reports[0]);
+      final record = _lengthPrefixedRecord(<String>[
+        polygonAuthoringMigrationSignatureFormat,
+        reports.first,
+      ]);
+      expect(
+        WorkspaceFileIo.sha256Digest(record),
+        'c355c5de8af15880881e147a031c054f60642f75f5102d23a2691b97a24d0beb',
+      );
+      expect(_sourceDigests(fixture.path), before);
+    } finally {
+      fixture.deleteSync(recursive: true);
+    }
+  });
 }
 
 String _standaloneDartExecutable() {
@@ -401,6 +440,9 @@ List<File> _chunkFiles(String rootPath) {
 
 String _canonicalJson(Map<String, Object?> json) =>
     '${const JsonEncoder.withIndent('  ').convert(json)}\n';
+
+String _lengthPrefixedRecord(List<String> fields) =>
+    fields.map((field) => '${utf8.encode(field).length}:$field').join('|');
 
 String _repoRootPath() {
   final cwd = p.normalize(Directory.current.path);

@@ -43,7 +43,8 @@ final class PolygonTerrainGenerationIssue
 }
 
 /// Stable prefab placement lineage retained beside compiled local geometry.
-final class PolygonTerrainPlacementLineage {
+final class PolygonTerrainPlacementLineage
+    implements Comparable<PolygonTerrainPlacementLineage> {
   const PolygonTerrainPlacementLineage({
     required this.chunkKey,
     required this.placementKey,
@@ -70,6 +71,14 @@ final class PolygonTerrainPlacementLineage {
   final bool flipX;
   final bool flipY;
 
+  @override
+  int compareTo(PolygonTerrainPlacementLineage other) {
+    var order = chunkKey.compareTo(other.chunkKey);
+    if (order != 0) return order;
+    order = placementKey.compareTo(other.placementKey);
+    return order != 0 ? order : shapeId.compareTo(other.shapeId);
+  }
+
   String canonicalRecord() => _canonicalRecord(<String>[
     'authoring-placement-v1',
     chunkKey,
@@ -87,7 +96,8 @@ final class PolygonTerrainPlacementLineage {
 }
 
 /// One exact triangle referencing a Core-normalized polygon loop.
-final class PolygonTerrainTriangle {
+final class PolygonTerrainTriangle
+    implements Comparable<PolygonTerrainTriangle> {
   const PolygonTerrainTriangle({
     required this.chunkKey,
     required this.placementKey,
@@ -103,6 +113,20 @@ final class PolygonTerrainTriangle {
   final int first;
   final int second;
   final int third;
+
+  @override
+  int compareTo(PolygonTerrainTriangle other) {
+    var order = chunkKey.compareTo(other.chunkKey);
+    if (order != 0) return order;
+    order = _compareNullable(placementKey, other.placementKey);
+    if (order != 0) return order;
+    order = shapeId.compareTo(other.shapeId);
+    if (order != 0) return order;
+    order = first.compareTo(other.first);
+    if (order != 0) return order;
+    order = second.compareTo(other.second);
+    return order != 0 ? order : third.compareTo(other.third);
+  }
 
   String canonicalRecord() => _canonicalRecord(<String>[
     'authoring-triangles-v1',
@@ -127,9 +151,17 @@ final class PolygonTerrainCompiledChunk {
          List<TerrainAuthoringPolygonRecord>.of(authoringPolygons)..sort(),
        ),
        placementLineage = List<PolygonTerrainPlacementLineage>.unmodifiable(
-         placementLineage,
+         List<PolygonTerrainPlacementLineage>.of(placementLineage)..sort(),
        ),
-       triangles = List<PolygonTerrainTriangle>.unmodifiable(triangles);
+       triangles = List<PolygonTerrainTriangle>.unmodifiable(
+         List<PolygonTerrainTriangle>.of(triangles)..sort(),
+       ) {
+    _rejectDuplicateComparable(
+      this.placementLineage,
+      'placement lineage identity',
+    );
+    _rejectDuplicateComparable(this.triangles, 'triangle identity');
+  }
 
   final PolygonTerrainChunkSource chunk;
   final TerrainGeometry geometry;
@@ -175,6 +207,7 @@ PolygonTerrainCompilationResult compilePolygonTerrainChunk({
   required PolygonTerrainPrefabSourceSet prefabSources,
   required String sourcePath,
 }) {
+  sourcePath = canonicalPolygonTerrainSourcePath(sourcePath);
   final issues = <PolygonTerrainGenerationIssue>[];
   final inputs = <TerrainPolygonInput>[];
   final placementByPath = <String, String>{};
@@ -599,3 +632,21 @@ String _canonicalRecord(List<String> fields) =>
 
 String _signature(Iterable<String> records) =>
     sha256.convert(utf8.encode(records.join('\n'))).toString();
+
+int _compareNullable(String? left, String? right) {
+  if (identical(left, right)) return 0;
+  if (left == null) return -1;
+  if (right == null) return 1;
+  return left.compareTo(right);
+}
+
+void _rejectDuplicateComparable<T extends Comparable<T>>(
+  List<T> records,
+  String description,
+) {
+  for (var index = 1; index < records.length; index += 1) {
+    if (records[index - 1].compareTo(records[index]) == 0) {
+      throw ArgumentError('Duplicate staged $description at index $index.');
+    }
+  }
+}
