@@ -1497,10 +1497,12 @@ requirements.
 A pure-Dart staged compiler now proves the next generator boundary without
 selecting it in normal generation. It strictly parses checked-in prefab-v3 and
 chunk-v2 fixture bytes, requires canonical source, expands exact rational
-placements with prefab revision lineage, delegates polygons/exposed edges to
-Core, and derives exact concave triangle indices from the returned normalized
-loops. The editor independently consumes the same fixture and matches Core
-source/edge plus placement signatures; a triangle signature is also golden.
+placements with prefab revision lineage, and delegates polygons, exposed
+edges, and deterministic concave triangulation to Core. Core owns the exact
+first-ear algorithm plus the `authoring-triangles-v1` record/signature; the
+generator no longer carries a private geometry or serialization copy. The
+editor independently round-trips the same Prefab-v3/Chunk-v2 fixture and
+matches authored polygon, Core source/edge, placement, and triangle signatures.
 The same compiled result now renders a narrowly typed, executable Dart artifact
 fixture containing canonical source/physics loops, Core-exposed edges, render
 triangles, placement lineage, and signature versions. Its local identities

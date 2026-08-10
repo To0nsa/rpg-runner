@@ -926,12 +926,22 @@ compilation because `TerrainCompiler` normally canonicalizes winding/start for
 runtime safety; generation must diagnose noncanonical current source instead
 of silently rewriting it.
 
-Render triangles are derived only after Core returns normalized polygons.
-Exact BigInt orientation and inclusive containment select the first valid ear
-in surviving canonical-index order. Every result must contain exactly
-`vertexCount - 2` positive triangles whose exact doubled-area sum equals the
-Core polygon. Triangle indices reference that same normalized loop; collision
-edges continue to come exclusively from `TerrainGeometry.edges`.
+Core's `TerrainTriangulator` derives render triangles only from normalized
+`TerrainPolygon` products. Exact BigInt orientation and inclusive containment
+select the first valid ear in surviving canonical-index order. Every result
+must contain exactly `vertexCount - 2` positive triangles whose exact
+doubled-area sum equals the Core polygon. Triangle indices reference that same
+normalized loop; collision edges continue to come exclusively from
+`TerrainGeometry.edges`. Malformed or noncanonical compiled input fails rather
+than producing partial triangles.
+
+Core also owns the immutable `authoring-triangles-v1` record and SHA-256
+contract. Records bind chunk, optional placement, shape, and the three
+canonical-loop indices, sort by that identity, and reject exact duplicates.
+The root generator maps Core triangle indices directly into these shared
+records; the editor parity adapter calls the same triangulator and signature
+function. Neither consumer reimplements ear selection or triangle
+serialization.
 
 The future output path is
 `packages/runner_core/lib/track/staged_authored_terrain.dart`. Its deliberately
@@ -980,14 +990,15 @@ The shared checked-in fixture contains a concave direct solid, one-way source,
 surface/material metadata, and an exactly scaled/reflected prefab placement.
 Fresh generator parses bind exact `authoring-polygons-v1`, Core `source-v1`
 and `edges-v1`, `authoring-placement-v1`, and `authoring-triangles-v1` hashes.
-The editor's strict codecs and collision expansion consume the same bytes and
-reproduce the authored-source, Core source/edge, and placement hashes. Stale
-prefab key/ID/revision evidence fails before the editor can report an authored
-source digest. The generated Dart fixture is executable
-typed data, is reproduced byte-for-byte by fresh compiles through the normal
-artifact drift plan, and remains identical when its compiled chunk input is
-reversed. `UPDATE_POLYGON_TERRAIN_GOLDEN=1` is the explicit fixture-only update
-path; ordinary tests are read-only. This proves the representative compiler and
+The editor's strict codecs and collision expansion consume the same bytes,
+round-trip stable canonical Prefab-v3/Chunk-v2 JSON, and reproduce the
+authored-source, Core source/edge, placement, and Core-owned triangle hashes.
+Stale prefab key/ID/revision evidence fails before the editor can report an
+authored source digest. The generated Dart fixture is executable typed data,
+is reproduced byte-for-byte by fresh compiles through the normal artifact
+drift plan, and remains identical when its compiled chunk input is reversed.
+`UPDATE_POLYGON_TERRAIN_GOLDEN=1` is the explicit fixture-only update path;
+ordinary tests are read-only. This proves the representative compiler and
 render seam but not the complete §22 matrix. Live generator wiring,
 tile-backed prefab owner validation, complete repository legacy projection,
 and source cutover remain open.

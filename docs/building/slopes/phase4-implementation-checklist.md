@@ -489,7 +489,7 @@ pass. Do not truncate shapes, vertices, edges, or diagnostics at a hard limit.
       integer coordinates.
 - [x] Use `TerrainCompiler` for normalization/edge exposure diagnostics in
       preview and final validation.
-- [ ] Put deterministic triangulation in the same pure-Dart Core geometry
+- [x] Put deterministic triangulation in the same pure-Dart Core geometry
       boundary (or another already-shared pure-Dart boundary) so editor,
       generator, and later renderer data cannot drift.
 - [ ] Do not copy compiler seam cancellation, outward-normal, adjacency, or
@@ -1132,8 +1132,8 @@ Create small checked-in fixtures that cover:
 - [ ] disconnected union components and derived IDs
 - [ ] direct chunk slope and flat-to-slope seam
 - [ ] pit/open boundary and finite ground coverage
-- [ ] solid and one-way shapes
-- [ ] optional surface/material metadata
+- [x] solid and one-way shapes
+- [x] optional surface/material metadata
 - [ ] half-pixel coordinates
 - [ ] asymmetric X/Y reflection
 - [ ] minimum/maximum rational placement scale
@@ -1153,6 +1153,16 @@ For each valid fixture, compare:
 
 All six must agree on exact integers, IDs, ordering, modes, metadata,
 diagnostics, and signatures.
+
+The representative shared fixture now crosses all six stages for one concave
+direct solid, one direct one-way polygon, retained surface/material metadata,
+and one exactly transformed prefab polygon. Prefab-v3 and Chunk-v2 editor
+models encode/decode to stable canonical JSON; the editor Core adapter and the
+strict generator reproduce `authoring-polygons-v1`, `source-v1`, `edges-v1`,
+`authoring-placement-v1`, and Core-owned `authoring-triangles-v1`. The emitted
+local records and typed Dart artifact remain exact. This closes only the two
+checked fixture capabilities above; the unmarked geometry/migration cases
+still require their own cross-stage evidence.
 
 ## 23) Determinism And Golden Signatures
 
@@ -1201,6 +1211,16 @@ field to the relevant digest. Generator source identities use canonical
 workspace-relative `/` paths and reject absolute, dot-segment, empty-segment,
 drive-prefixed, or otherwise ambiguous spellings; Windows and POSIX separator
 spellings therefore produce identical records and ordering.
+
+`authoring-triangles-v1` is also owned by the pure-Dart Core terrain boundary.
+`TerrainTriangulator` consumes only the compiler-normalized clockwise physics
+loop, chooses the first valid ear in surviving canonical-index order with exact
+`BigInt` predicates, and proves `n - 2` positive triangles plus exact doubled
+area before returning immutable indices. The shared triangle record sorts by
+chunk/placement/shape/index identity and rejects exact duplicates. Generator
+and editor parity use the same triangulator and record/signature functions;
+the reviewed digest remains
+`c1a718727f1a6c2f17cd4498b367a1a96989b4d3f5f455096e3e243bc5bc07d3`.
 
 `authoring-migration-v1` is owned by the editor migration domain. Its sole
 length-prefixed record contains the format label and the exact canonical
@@ -1283,7 +1303,7 @@ Geometry/compiler:
 - [x] shared boundaries versus positive-area overlap
 - [ ] minimum edge/area and hard limits
 - [x] transform order, reflection, rational scale, quantization
-- [ ] Core preview/generator signature parity
+- [x] Core preview/generator signature parity
 
 Migration:
 
@@ -1411,7 +1431,7 @@ before changing the accepted plan.
 | The pre-reset repository compilation rejected 24 positive-area overlaps across six migrated chunks. The user chose clean reauthoring instead of defining a solid-owner union rule. | Keep overlap diagnostics strict. Delete every authored static collider, preserve visuals/metadata/placements/markers, encode no ground in all eight chunks, and prove the collision-cleared targets project exactly with zero blockers. | Reauthor polygon ground, slopes, platforms, and obstacles before Phase 5/playable acceptance; close enemy support/navigation and marker placement against that new terrain. Any future overlap, especially involving `oneWay`, remains rejected. |
 | Chunk width is 600 pixels, which is not divisible by the legacy 16-pixel gap grid, but the collision reset must express exactly zero ground without changing chunk dimensions. | Permit only the exact `x = 0`, `width = chunkWidth` full-ground-removal gap as a grid exception and project it with stable ID `collision_cleared`. Keep every partial gap on the existing grid. | Chunk v2 represents empty direct terrain without a sentinel; remove the legacy exception with the flat-ground/gap source bridge. |
 | `TerrainCompiler.compile` intentionally canonicalizes safe loop winding/start, which is correct for runtime safety but could hide noncanonical current authoring bytes during generation. | Pre-review every staged input with `TerrainSourceCanonicalizer(requireCanonical: true)` and fail on its stable diagnostics before accepting compiled output. Parsing retains exact authored half-pixel values; Core range failures become staged generator issues rather than raw parser exceptions. | Normal generation can reject authoring drift while still using the accepted compiler as the sole topology/transform/edge authority. An explicit editor Normalize action remains the only path that rewrites a loop. |
-| Render triangulation must not become a second polygon normalization or collision-edge authority. | Ear-clip the already normalized `TerrainGeometry.polygons` loop with exact BigInt orientation/containment. Choose the first surviving canonical vertex ear, retain indices into that same loop, require `n - 2` positive triangles, and compare the exact doubled-area sum before returning output. | Phase 5 rendering consumes these indices; it must never triangulate independently or reconstruct collision edges from triangles. |
+| Render triangulation must not become a second polygon normalization or collision-edge authority. | Core owns `TerrainTriangulator` and the `authoring-triangles-v1` record/signature. Ear-clip only the normalized `TerrainGeometry.polygons` loop with exact BigInt orientation/containment, choose the first surviving canonical vertex ear, retain indices into that loop, require `n - 2` positive triangles, and prove exact doubled area. Generator and editor consume the same Core contracts. | Phase 5 rendering consumes these indices; it must never triangulate independently or reconstruct collision edges from triangles. |
 | The standalone migration CLI imported full Prefab/Chunk stores only to reuse two source-path constants. Later staging growth made the Chunk store transitively import Flutter models, so `dart run tool/migrate_polygon_authoring.dart` lost access to `dart:ui` even though migration logic remained pure. | Move the two canonical paths into a Flutter-free `RepositoryAuthoringPaths` contract. Stores retain their public constants as aliases; migration check/command import only the pure path contract. Add a subprocess test that locates the standalone Dart SDK from `flutter_tester` and compiles the real `--help` entrypoint. | Offline migration/generator tools must not import store/plugin graphs for constants. Any future store dependency is caught by the standalone-Dart regression before source-write authorization can rely on a broken checker. |
 | Placement-lineage and triangle signatures were canonical only while callers happened to preserve parser order, and Core source identity retained host-specific path separators. | Make the immutable compiled chunk own canonical sorting and duplicate-identity rejection for both derived record families. Normalize generator source paths to safe workspace-relative `/` identities before compilation, then bind all signature families and exact rendered bytes in a standalone-Dart probe with permutation and one-field mutation tests. | Live generator cutover must derive every source identity through the same canonical helper and must not use filesystem-native path spelling as authored or runtime identity. |
 
@@ -1528,6 +1548,7 @@ result.
 | 2026-08-10 / `e3309704` | Shared compiled-boundary gate for staged terrain output | Dart VM and Flutter test VM on Windows with Docker running | Root, Core-package, and editor analysis are clean; all 319 Core-package tests, all 438 editor tests, and all 48 root tool/generator tests pass. Core now owns unchanged `authoring-boundary-v1` derivation/comparison. Four staged-generator seam tests cover compatible directed pairs, canonical chunk order, exact mismatch ticks/digests/profiles, missing chunks, wrong level, duplicate and case-colliding keys; material evidence remains advisory through the Core matrix. The renderer accepts only a privately constructed validated batch and emits `authoring-seams-v1` format/digest evidence, advancing only the disconnected staged fixture schema to v3. Live current-schema registration, authored source, normal generation bytes, scheduler behavior, and runtime authority remain unchanged. |
 | 2026-08-10 / `7ba0b636` | Fresh-process staged signature determinism | Dart VM and Flutter test VM on Windows with Docker running | Root, Core-package, and editor analysis are clean; all 320 Core-package tests, all 439 editor tests, and all 55 root tool/generator tests pass. Two standalone generator-probe processes reproduce every reviewed signature and exact staged artifact SHA-256 `434ae70a…ca84`; two standalone migration checks reproduce canonical report bytes and `authoring-migration-v1` `c355c5de…0beb`. Reversed caller collections, every valid loop rotation/winding, Windows/POSIX source spelling, and one-field polygon/placement/triangle/seam/source mutations are explicit. The compiled product owns placement/triangle sorting and duplicate rejection. Authored source, live output registration, generated production bytes, and runtime authority are unchanged. |
 | 2026-08-10 / `c31bdd82` | Staged generator blocking-diagnostic matrix | Dart VM and Flutter test VM on Windows with Docker running | Targeted analysis is clean and all 58 root tool/generator tests pass. Strict scale diagnostics cover below-minimum, above-maximum, and off-step values. Unknown and ambiguous prefab references, direct and prefab source-range failures, and simultaneous direct/expanded Chunk-bounds failures return no compiled product while retaining exact source/placement/shape/element lineage and canonical issue ordering; reversed prefab catalog input is identical. Reviewed fixture records, signatures, artifact bytes, authored source, and live runtime authority are unchanged. |
+| 2026-08-10 / `a3b0504b` | Core-owned deterministic terrain triangulation | Dart VM and Flutter test VM on Windows with Docker running | Root, Core-package, and editor analysis are clean; all 325 Core-package tests, all 58 root tool/generator tests, and all 439 editor tests pass. Core's exact first-ear triangulator and shared `authoring-triangles-v1` contract replace the generator-private algorithm/serializer. Convex/concave order, all rotations/reversed windings after compiler normalization, malformed-product rejection, immutable output, record ordering, duplicate rejection, and empty digest are explicit. Editor strict model round-trips and Core preview reproduce the generator's triangle digest `c1a71872…07d3`; staged artifact bytes/hash remain unchanged. Authored source, live registration, collision/runtime authority, and replay behavior are unchanged. |
 
 ### 28.1 Baseline Environment And Source Identity
 
