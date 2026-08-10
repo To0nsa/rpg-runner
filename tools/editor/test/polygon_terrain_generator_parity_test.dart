@@ -12,55 +12,41 @@ import 'package:runner_editor/src/prefabs/store/prefab_v3_file_codec.dart';
 
 const String _fixtureDirectory = 'test/fixtures/polygon_terrain_generator';
 const String _chunkSourcePath = 'chunks/forest/fixture_chunk.json';
+const String _transformChunkSourcePath = 'chunks/forest/transform_chunk.json';
 
 void main() {
   test('editor compile matches staged generator fixture signatures', () {
-    final prefabs = PrefabV3FileCodec.decode(
-      _fixture('prefab_defs.json'),
-      sourcePath: 'prefab_defs.json',
+    _expectFixtureParity(
+      prefabFixture: 'prefab_defs.json',
+      chunkFixture: 'chunk.json',
+      goldenFixture: 'golden.json',
+      chunkSourcePath: _chunkSourcePath,
     );
-    final chunk = ChunkV2FileCodec.decode(
-      _fixture('chunk.json'),
-      sourcePath: _chunkSourcePath,
-    );
-    final golden = jsonDecode(_fixture('golden.json')) as Map<String, Object?>;
-    final canonicalPrefabs = PrefabV3FileCodec.encode(prefabs);
-    final canonicalChunk = ChunkV2FileCodec.encode(chunk);
+  });
 
-    expect(
-      PrefabV3FileCodec.encode(PrefabV3FileCodec.decode(canonicalPrefabs)),
-      canonicalPrefabs,
+  test('editor matches transform and terrain feature fixture signatures', () {
+    final expansion = _expectFixtureParity(
+      prefabFixture: 'transform_prefab_defs.json',
+      chunkFixture: 'transform_chunk.json',
+      goldenFixture: 'transform_golden.json',
+      chunkSourcePath: _transformChunkSourcePath,
     );
     expect(
-      ChunkV2FileCodec.encode(ChunkV2FileCodec.decode(canonicalChunk)),
-      canonicalChunk,
+      expansion.expandedPrefabShapes
+          .map(
+            (shape) => (
+              shape.placementKey,
+              shape.scaleTenths,
+              shape.flipX,
+              shape.flipY,
+            ),
+          )
+          .toList(growable: false),
+      <(String, int, bool, bool)>[
+        ('prefab_asymmetric|30|30|0', 3, true, false),
+        ('prefab_asymmetric|80|50|0', 30, false, true),
+      ],
     );
-
-    final result = expandChunkV2Collision(
-      chunk: chunk,
-      prefabs: prefabs.prefabs,
-      sourcePath: _chunkSourcePath,
-    );
-
-    expect(result.issues, isEmpty);
-    final expansion = result.expansion!;
-    expect(
-      expansion.geometry.polygons,
-      hasLength(golden['polygonCount']! as int),
-    );
-    expect(expansion.geometry.edges, hasLength(golden['edgeCount']! as int));
-    expect(expansion.geometry.sourceSignature(), golden['sourceSignature']);
-    expect(expansion.geometry.edgeSignature(), golden['edgeSignature']);
-    expect(
-      chunkV2AuthoringPolygonSignature(
-        chunk: chunk,
-        prefabs: prefabs.prefabs,
-        expansion: expansion,
-      ),
-      golden['authoringPolygonSignature'],
-    );
-    expect(_placementSignature(expansion), golden['placementSignature']);
-    expect(_triangleSignature(expansion), golden['triangleSignature']);
   });
 
   test('editor polygon signature rejects stale accepted prefab evidence', () {
@@ -90,6 +76,65 @@ void main() {
       throwsStateError,
     );
   });
+}
+
+ChunkV2CollisionExpansion _expectFixtureParity({
+  required String prefabFixture,
+  required String chunkFixture,
+  required String goldenFixture,
+  required String chunkSourcePath,
+}) {
+  final prefabSource = _fixture(prefabFixture);
+  final chunkSource = _fixture(chunkFixture);
+  final prefabs = PrefabV3FileCodec.decode(
+    prefabSource,
+    sourcePath: prefabFixture,
+  );
+  final chunk = ChunkV2FileCodec.decode(
+    chunkSource,
+    sourcePath: chunkSourcePath,
+  );
+  final golden = jsonDecode(_fixture(goldenFixture)) as Map<String, Object?>;
+  final canonicalPrefabs = PrefabV3FileCodec.encode(prefabs);
+  final canonicalChunk = ChunkV2FileCodec.encode(chunk);
+
+  expect(canonicalPrefabs, prefabSource);
+  expect(canonicalChunk, chunkSource);
+  expect(
+    PrefabV3FileCodec.encode(PrefabV3FileCodec.decode(canonicalPrefabs)),
+    canonicalPrefabs,
+  );
+  expect(
+    ChunkV2FileCodec.encode(ChunkV2FileCodec.decode(canonicalChunk)),
+    canonicalChunk,
+  );
+
+  final result = expandChunkV2Collision(
+    chunk: chunk,
+    prefabs: prefabs.prefabs,
+    sourcePath: chunkSourcePath,
+  );
+
+  expect(result.issues, isEmpty);
+  final expansion = result.expansion!;
+  expect(
+    expansion.geometry.polygons,
+    hasLength(golden['polygonCount']! as int),
+  );
+  expect(expansion.geometry.edges, hasLength(golden['edgeCount']! as int));
+  expect(expansion.geometry.sourceSignature(), golden['sourceSignature']);
+  expect(expansion.geometry.edgeSignature(), golden['edgeSignature']);
+  expect(
+    chunkV2AuthoringPolygonSignature(
+      chunk: chunk,
+      prefabs: prefabs.prefabs,
+      expansion: expansion,
+    ),
+    golden['authoringPolygonSignature'],
+  );
+  expect(_placementSignature(expansion), golden['placementSignature']);
+  expect(_triangleSignature(expansion), golden['triangleSignature']);
+  return expansion;
 }
 
 String _placementSignature(ChunkV2CollisionExpansion expansion) {

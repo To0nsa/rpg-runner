@@ -1,0 +1,10 @@
+{
+  "sourceSignature": "6e5e8bbfe8c4cd0187617589929805cb6d164dbed4f0670f2a411d0ee2281fe8",
+  "edgeSignature": "ed707fc751f17e9000ca9265ff8d23a65118573c4afc37fce433ca048618fd31",
+  "authoringPolygonSignature": "60ca88caa4c60630aba155ad34944c2995aa63da5254ce788e9ea378fda54c3f",
+  "placementSignature": "4f07473d799fad265bf8f86e6dec1a2c6ed377fa2e3e57d842c3071f49a171c2",
+  "triangleSignature": "41ee501d791c55e5c539acd0a54f221cdd7900f88dcdd674d0d7a1aae83c2f36",
+  "polygonCount": 6,
+  "edgeCount": 21,
+  "triangleCount": 14
+}

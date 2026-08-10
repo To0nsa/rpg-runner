@@ -8,6 +8,7 @@ import '../../tool/polygon_terrain_source.dart';
 
 const String _fixtureDirectory = 'test/fixtures/polygon_terrain_generator';
 const String _chunkSourcePath = 'chunks/forest/fixture_chunk.json';
+const String _transformChunkSourcePath = 'chunks/forest/transform_chunk.json';
 
 void main() {
   test('strict current-schema fixture compiles through Core exactly', () {
@@ -20,14 +21,22 @@ void main() {
     );
     expect(compiled.geometry.edges, hasLength(golden['edgeCount']! as int));
     expect(compiled.triangles, hasLength(golden['triangleCount']! as int));
-    expect(compiled.geometry.sourceSignature(), golden['sourceSignature']);
-    expect(compiled.geometry.edgeSignature(), golden['edgeSignature']);
     expect(
-      compiled.authoringPolygonSignature(),
-      golden['authoringPolygonSignature'],
+      <String, String>{
+        'sourceSignature': compiled.geometry.sourceSignature(),
+        'edgeSignature': compiled.geometry.edgeSignature(),
+        'authoringPolygonSignature': compiled.authoringPolygonSignature(),
+        'placementSignature': compiled.placementSignature(),
+        'triangleSignature': compiled.triangleSignature(),
+      },
+      <String, Object?>{
+        'sourceSignature': golden['sourceSignature'],
+        'edgeSignature': golden['edgeSignature'],
+        'authoringPolygonSignature': golden['authoringPolygonSignature'],
+        'placementSignature': golden['placementSignature'],
+        'triangleSignature': golden['triangleSignature'],
+      },
     );
-    expect(compiled.placementSignature(), golden['placementSignature']);
-    expect(compiled.triangleSignature(), golden['triangleSignature']);
 
     final lineage = compiled.placementLineage.single;
     expect(lineage.placementKey, 'prefab_ramp|60|20|0');
@@ -36,6 +45,107 @@ void main() {
     expect(lineage.scaleTenths, 5);
     expect(lineage.flipX, isTrue);
   });
+
+  test(
+    'transform and terrain feature fixture compiles through Core exactly',
+    () {
+      final compiled = _compileTransformFixture();
+      final golden = _golden('transform_golden.json');
+
+      expect(
+        compiled.geometry.polygons,
+        hasLength(golden['polygonCount']! as int),
+      );
+      expect(compiled.geometry.edges, hasLength(golden['edgeCount']! as int));
+      expect(compiled.triangles, hasLength(golden['triangleCount']! as int));
+      expect(
+        <String, String>{
+          'sourceSignature': compiled.geometry.sourceSignature(),
+          'edgeSignature': compiled.geometry.edgeSignature(),
+          'authoringPolygonSignature': compiled.authoringPolygonSignature(),
+          'placementSignature': compiled.placementSignature(),
+          'triangleSignature': compiled.triangleSignature(),
+        },
+        <String, Object?>{
+          'sourceSignature': golden['sourceSignature'],
+          'edgeSignature': golden['edgeSignature'],
+          'authoringPolygonSignature': golden['authoringPolygonSignature'],
+          'placementSignature': golden['placementSignature'],
+          'triangleSignature': golden['triangleSignature'],
+        },
+      );
+
+      expect(
+        compiled.placementLineage
+            .map(
+              (lineage) => (
+                lineage.placementKey,
+                lineage.scaleTenths,
+                lineage.flipX,
+                lineage.flipY,
+              ),
+            )
+            .toList(growable: false),
+        <(String, int, bool, bool)>[
+          ('prefab_asymmetric|30|30|0', 3, true, false),
+          ('prefab_asymmetric|80|50|0', 30, false, true),
+        ],
+      );
+      expect(
+        <String, Set<(int, int)>>{
+          for (final polygon in compiled.geometry.polygons)
+            ?polygon.identity.placementKey: polygon.vertices
+                .map((vertex) => (vertex.xTicks, vertex.yTicks))
+                .toSet(),
+        },
+        <String, Set<(int, int)>>{
+          'prefab_asymmetric|30|30|0': <(int, int)>{
+            (29184, 30259),
+            (31488, 30259),
+            (31488, 31334),
+            (29184, 31334),
+          },
+          'prefab_asymmetric|80|50|0': <(int, int)>{
+            (74240, 45056),
+            (97280, 45056),
+            (97280, 55808),
+            (74240, 55808),
+          },
+        },
+      );
+      expect(
+        compiled.geometry.polygons
+            .expand((polygon) => polygon.sourceVertices)
+            .any((vertex) => vertex.xTicks.isOdd || vertex.yTicks.isOdd),
+        isTrue,
+      );
+      expect(
+        compiled.geometry.edges.any(
+          (edge) =>
+              edge.start.xTicks == 102400 &&
+              edge.end.xTicks == 102400 &&
+              <int>{
+                edge.start.yTicks,
+                edge.end.yTicks,
+              }.containsAll(const <int>{82432, 133120}),
+        ),
+        isFalse,
+        reason:
+            'The exact shared solid boundary must be internal and cancelled.',
+      );
+      expect(
+        compiled.geometry.edges.any(
+          (edge) =>
+              edge.start.xTicks == 20480 &&
+              edge.start.yTicks == 102400 &&
+              edge.end.xTicks == 61952 &&
+              edge.end.yTicks == 82432,
+        ),
+        isTrue,
+        reason: 'The reviewed flat-to-slope edge must survive compilation.',
+      );
+    },
+  );
 
   test('fresh parses reproduce records and signatures', () {
     final first = _compileFixture();
@@ -496,8 +606,27 @@ PolygonTerrainCompiledChunk _compileFixture({
   return result.compiled!;
 }
 
-Map<String, Object?> _golden() =>
-    jsonDecode(_fixture('golden.json')) as Map<String, Object?>;
+PolygonTerrainCompiledChunk _compileTransformFixture() {
+  final prefabs = decodePolygonTerrainPrefabs(
+    _fixture('transform_prefab_defs.json'),
+    sourcePath: 'transform_prefab_defs.json',
+  );
+  final chunk = decodePolygonTerrainChunk(
+    _fixture('transform_chunk.json'),
+    sourcePath: _transformChunkSourcePath,
+  );
+  final result = compilePolygonTerrainChunk(
+    chunk: chunk,
+    prefabSources: prefabs,
+    sourcePath: _transformChunkSourcePath,
+  );
+  expect(result.issues, isEmpty);
+  expect(result.compiled, isNotNull);
+  return result.compiled!;
+}
+
+Map<String, Object?> _golden([String name = 'golden.json']) =>
+    jsonDecode(_fixture(name)) as Map<String, Object?>;
 
 String _fixture(String name) =>
     File('$_fixtureDirectory/$name').readAsStringSync();

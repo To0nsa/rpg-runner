@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 3,
+  "slices": [
+    {
+      "id": "asymmetric_slice",
+      "sourceImagePath": "assets/images/level/props/asymmetric.png",
+      "x": 0,
+      "y": 0,
+      "width": 16,
+      "height": 16
+    }
+  ],
+  "prefabs": [
+    {
+      "prefabKey": "prefab_asymmetric",
+      "id": "asymmetric",
+      "revision": 2,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "asymmetric_slice"
+      },
+      "anchorXPx": 3,
+      "anchorYPx": 5,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -2.5,
+              "y": -1.5
+            },
+            {
+              "x": 5,
+              "y": -1.5
+            },
+            {
+              "x": 5,
+              "y": 2
+            },
+            {
+              "x": -2.5,
+              "y": 2
+            }
+          ],
+          "surfaceKind": "stone",
+          "materialKey": "asymmetric_stone"
+        }
+      ],
+      "tags": [
+        "terrain"
+      ]
+    }
+  ]
+}
