@@ -4,6 +4,14 @@ library;
 /// Schema version of [StagedTerrainArtifactData].
 const int stagedTerrainArtifactFormatVersion = 3;
 
+/// Workspace-relative output owned by the staged terrain artifact contract.
+///
+/// Offline migration and generation tools share this identity so readiness
+/// reports cannot drift from the generator's eventual output destination.
+/// Declaring the path has no file-system or runtime-selection side effect.
+const String stagedTerrainArtifactRepositoryPath =
+    'packages/runner_core/lib/track/staged_authored_terrain.dart';
+
 /// Collision behavior retained without depending on compiler implementation
 /// enums in generated data.
 enum StagedTerrainCollisionMode { solid, oneWay }

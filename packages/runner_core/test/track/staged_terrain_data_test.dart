@@ -2,6 +2,13 @@ import 'package:runner_core/track/staged_terrain_data.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('staged artifact contract freezes its repository output identity', () {
+    expect(
+      stagedTerrainArtifactRepositoryPath,
+      'packages/runner_core/lib/track/staged_authored_terrain.dart',
+    );
+  });
+
   test('staged identities are local, validated, and totally ordered', () {
     final direct = StagedTerrainSourceId(chunkKey: 'chunk', shapeId: 'ground');
     final placed = StagedTerrainSourceId(
