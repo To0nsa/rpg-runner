@@ -1546,7 +1546,10 @@ prefab/chunk parsing, compilation, and Chunk-v2 collision preview one explicit
 severity/owner/lineage envelope without depending on editor types. The final
 diagnostic gate remains open until seam/output-drift, migration, remaining
 editor domains, and normal export/cutover boundaries use it and the outstanding
-major diagnostic fixtures pass.
+major diagnostic fixtures pass. Hard-capacity evidence is now complete at and
+one unit beyond 64 vertices, 64 placed-Prefab shapes, 512 combined Chunk
+shapes, and 4,096 exposed edges; failures retain the responsible Chunk or
+Prefab owner and never publish truncated geometry.
 
 An isolated exact legacy projector now decomposes accepted orthogonal terrain,
 reproduces current 16-pixel rectangle snapping, derives gaps only from exact

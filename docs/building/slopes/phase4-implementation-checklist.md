@@ -476,7 +476,7 @@ Blocking categories:
 - [x] prefab visual-source intersection contract failure
 - [x] post-transform degeneracy or chunk-bounds overflow
 - [x] unknown prefab/revision/source reference
-- [ ] owner shape/vertex/expanded-edge limit overflow
+- [x] owner shape/vertex/expanded-edge limit overflow
 - [ ] Core compiler error or source/compiled signature mismatch
 - [x] scheduler-reachable seam incompatibility
 - [x] generated output drift in validation mode
@@ -1295,8 +1295,8 @@ Frozen gates:
 - [ ] no full repository reload or full generator run per pointer event
 - [ ] no source model allocation proportional to total workspace per drag
 - [ ] no interaction-time query/diagnostic truncation
-- [ ] hard-limit fixtures validate deterministically without hanging
-- [ ] one-unit-over fixtures fail with the expected stable diagnostic
+- [x] hard-limit fixtures validate deterministically without hanging
+- [x] one-unit-over fixtures fail with the expected stable diagnostic
 - [ ] no-op save/migration/generation remains byte/signature deterministic
 
 Use the frozen profile-mode Windows command:
@@ -1332,7 +1332,7 @@ Geometry/compiler:
 
 - [ ] simple/concave polygons and every invalid topology class
 - [x] shared boundaries versus positive-area overlap
-- [ ] minimum edge/area and hard limits
+- [x] minimum edge/area and hard limits
 - [x] transform order, reflection, rational scale, quantization
 - [x] Core preview/generator signature parity
 
@@ -1482,6 +1482,7 @@ before changing the accepted plan.
 | Extending the original staged artifact fixture with transform extrema and terrain-topology cases would change already-reviewed artifact bytes for coverage unrelated to that fixture's render contract. | Add a second independent canonical Prefab-v3/Chunk-v2 fixture and signature golden for transform/terrain parity; keep the original artifact fixture byte-identical. | Future parity coverage must extend the fixture whose contract it changes, or add another focused fixture, instead of silently rewriting an established golden. |
 | The §13 prose describes one diagnostic envelope with explicit severity and owner key, but strict current-schema parsing still throws path-rich `FormatException`s while Core and staged-generator issues use different fields and infer blocking severity from context. | Add pure-Dart Core `TerrainAuthoringIssue` as the portable envelope and Core-diagnostic adapter. Normalize strict prefab/chunk parse failures at the staged generator raw-source boundary, use the envelope throughout staged compilation, and preserve its owner key through Chunk-v2 collision `ValidationIssue`. Keep the broad gate open for unadapted domains rather than adding JSON/editor/filesystem concepts to Core. | Normal editor export and the coordinated generator cutover must still route seam, output-drift, migration, and remaining editor-domain failures through the same actionable envelope without weakening their layer-specific authorities. |
 | Stable polygon shape IDs are lowercase by grammar, so two accepted IDs cannot differ only by case. | Reject uppercase/mixed-case IDs at strict parsing, reject exact duplicates through canonical ordering, and test both paths instead of adding a redundant case-folded accepted-ID map. | Normal v3/v2 stores and migration output must retain the lowercase stable-ID grammar; a future grammar expansion would require an explicit case-collision rule and migration. |
+| The Core `edge_limit` diagnostic retained shape/placement identity in `TerrainEdgeId` but replaced the source path with the chunk key, so an adapter could not resolve the overflowing expanded edge back to its Prefab owner. | Carry the immutable polygon source path through the compiler-private raw-edge split/cancellation pipeline and emit it unchanged on `edge_limit`. Lock the 4,097th edge to its exact Prefab/placement/shape/element owner in Core, generator, and editor tests. | Phase 5 runtime edge data remains unchanged; authoring can focus the actual owner instead of presenting a chunk-level fallback for an expanded-Prefab capacity failure. |
 
 Append rows during implementation. Do not silently relax source, compiler,
 seam, determinism, or performance contracts.
@@ -1603,6 +1604,9 @@ result.
 | 2026-08-10 / `3a61654d` | Core terrain-authoring issue envelope | Dart VM on Windows with Docker running | Core-package analysis is clean and all 328 tests pass. The immutable pure-Dart contract validates required identity, derives blocking severity from existing Core diagnostics, retains source/owner/placement/shape/element lineage, and returns an immutable canonical order across every field except display message. Core gains no JSON, filesystem, or editor dependency. |
 | 2026-08-10 / `9979e03f` | Staged-generator issue normalization | Dart and Flutter test VMs on Windows with Docker running | Root analysis is clean and all 64 root tool tests pass. Valid raw source compiles to the identical reviewed records/signatures as the decoded entry point. Independent malformed prefab and chunk inputs become sorted `prefab_source_invalid`/`chunk_source_invalid` errors; reference, Core, transform, and bounds findings use the same owner-aware envelope with exact chunk-versus-prefab ownership and no partial output. Live generator registration, generated bytes, authored source, and runtime authority are unchanged. |
 | 2026-08-10 / `8e96d57d` | Editor terrain-diagnostic ownership bridge | Dart and Flutter test VMs on Windows with Docker running | Editor analysis is clean and all 442 tests pass. Generic `ValidationIssue` now optionally retains an owner key, while Chunk-v2 collision expansion routes every terrain finding through the strict shared envelope. Focused proofs bind direct and placement-source failures to `forest_test`, expanded/Core failures to `prefab_rock`, and preserve canonical severity/lineage ordering. Normal source selection, export locks, generated data, and runtime authority are unchanged. |
+| 2026-08-10 / `718d76c5` | Exact Core edge-limit source lineage | Dart VM on Windows with Docker running | Core-package analysis is clean and all 328 tests pass. The compiler-private raw edge now retains its polygon source path through splitting; the 4,097th exposed edge reports `limits/strip_064`, shape `strip_064`, and local edge 0 instead of substituting the chunk key. Limits, compiled geometry, edge IDs/signatures, and runtime records are unchanged. |
+| 2026-08-10 / `818fed8a` | Staged generator hard-limit matrix | Dart and Flutter test VMs on Windows with Docker running | Root analysis is clean and all 66 tool tests pass. Exact at-limit fixtures accept 64 vertices, 64 placed-Prefab shapes, 512 Chunk shapes, and 4,096 exposed edges. Each one-over fixture emits only `vertex_limit`, `prefab_shape_limit`, `chunk_shape_limit`, or `edge_limit`, retains exact owner/placement/shape/element lineage, and returns no compiled product. The 4,097-edge case combines one direct one-way edge with an at-limit expanded Prefab, proving Prefab ownership. |
+| 2026-08-10 / `9daafb0d` | Editor expanded-edge capacity ownership | Dart and Flutter test VMs on Windows with Docker running | Editor analysis is clean and all 443 tests pass. Chunk-v2 collision expansion reproduces the exact 4,097-edge staged case and maps `edge_limit` to `prefab_rock`, placement `prefab_rock|0|0|0`, `collision_063`, edge 63, and the complete source path. No expansion, source, revision, generated artifact, or runtime authority is published or changed. |
 
 ### 28.1 Baseline Environment And Source Identity
 
@@ -1801,7 +1805,7 @@ Phase 4 is complete only when:
 - [ ] no duplicate geometry, transform, validation, or persistence authority
       exists across Prefab and Chunk routes
 - [ ] no-op save, dry-run generation, and fresh-process goldens are stable
-- [ ] hard authoring limits do not truncate or hang
+- [x] hard authoring limits do not truncate or hang
 - [ ] polygon interaction p95/p99 and missed-input gates pass
 - [ ] full editor/Core/root/validator analysis and tests pass
 - [ ] documentation and the implementation findings ledger are current

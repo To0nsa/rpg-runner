@@ -688,6 +688,17 @@ indicator. Expanded issues cannot focus a same-named direct shape. The scene
 also reports direct, expanded, total-shape, and exposed-edge counts against
 Core's hard limits separately.
 
+At-limit authoring fixtures now accept 64 vertices per shape, 64 shapes per
+placed Prefab, 512 combined shapes per Chunk, and 4,096 exposed edges. Exact
+one-over fixtures fail without a partial geometry product and preserve the
+responsible owner. In particular, the 4,097-edge fixture contributes one
+direct one-way edge beside an otherwise at-limit expanded Prefab, so the
+limiting edge is proven to retain Prefab key, placement key, shape ID, edge
+index, and source path through both the staged generator and editor adapter.
+Core's private raw-edge representation carries source path through collinear
+splitting and internal-edge cancellation solely for this diagnostic; runtime
+`TerrainEdge` and signatures do not change.
+
 The optional compiled-edge layer renders `TerrainGeometry.edges` above the
 source-loop painters. It therefore shows Core's actual exposed result after
 collinear splitting, internal-solid cancellation, and one-way filtering; it
