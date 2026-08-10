@@ -7,10 +7,12 @@ import '../../../chunks/chunk_v2_staging_models.dart';
 import '../../../domain/authoring_types.dart';
 import '../../../prefabs/models/models.dart';
 import '../../../session/editor_session_controller.dart';
+import '../../../terrain_authoring/polygon_authoring_migration_required.dart';
 import '../shared/atlas_slice_preview_tile.dart';
 import '../shared/editor_page_local_draft_state.dart';
 import '../shared/editor_scene_view_utils.dart';
 import '../shared/platform_module_preview_tile.dart';
+import '../shared/polygon_authoring_migration_required_workspace.dart';
 import 'staging/chunk_polygon_staging_workspace.dart';
 import 'widgets/chunk_scene_view.dart';
 
@@ -113,6 +115,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
   String _prefabPaletteTagFilter = _prefabPaletteTagAll;
   PrefabKind? _prefabPaletteKindFilter;
   late bool _showingV2Staging;
+  late bool _showingMigrationRequired;
 
   static const double _spaceXs = 4;
   static const double _spaceSm = 8;
@@ -125,6 +128,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
 
   @override
   bool get hasLocalDraftChanges {
+    if (_showingMigrationRequired) return false;
     if (_showingV2Staging) {
       return _stagingWorkspaceKey.currentState?.hasLocalDraftChanges ??
           widget.controller.pendingChanges.hasChanges;
@@ -139,16 +143,22 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
   }
 
   @override
-  bool get canHandleUndoSessionShortcut => _showingV2Staging
-      ? (_stagingWorkspaceKey.currentState?.canUndo ??
-            widget.controller.canUndo)
-      : widget.controller.canUndo;
+  bool get canHandleUndoSessionShortcut {
+    if (_showingMigrationRequired) return false;
+    return _showingV2Staging
+        ? (_stagingWorkspaceKey.currentState?.canUndo ??
+              widget.controller.canUndo)
+        : widget.controller.canUndo;
+  }
 
   @override
-  bool get canHandleRedoSessionShortcut => _showingV2Staging
-      ? (_stagingWorkspaceKey.currentState?.canRedo ??
-            widget.controller.canRedo)
-      : widget.controller.canRedo;
+  bool get canHandleRedoSessionShortcut {
+    if (_showingMigrationRequired) return false;
+    return _showingV2Staging
+        ? (_stagingWorkspaceKey.currentState?.canRedo ??
+              widget.controller.canRedo)
+        : widget.controller.canRedo;
+  }
 
   @override
   bool get canReloadEditorPage =>
@@ -156,6 +166,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
 
   @override
   bool handleUndoSessionShortcut() {
+    if (_showingMigrationRequired) return false;
     if (_showingV2Staging) {
       return _stagingWorkspaceKey.currentState?.handleUndoShortcut() ?? false;
     }
@@ -166,6 +177,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
 
   @override
   bool handleRedoSessionShortcut() {
+    if (_showingMigrationRequired) return false;
     if (_showingV2Staging) {
       return _stagingWorkspaceKey.currentState?.handleRedoShortcut() ?? false;
     }
@@ -176,6 +188,12 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
 
   @override
   Future<void> reloadEditorPage() async {
+    if (_showingMigrationRequired) {
+      await PolygonAuthoringMigrationRequiredWorkspace.recheckSource(
+        widget.controller,
+      );
+      return;
+    }
     await widget.controller.loadWorkspace();
   }
 
@@ -183,9 +201,11 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
   void initState() {
     super.initState();
     _showingV2Staging = widget.controller.scene is ChunkV2StagingScene;
+    _showingMigrationRequired =
+        widget.controller.scene is PolygonAuthoringMigrationRequiredScene;
     widget.controller.addListener(_handleControllerRouteChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_showingV2Staging) return;
+      if (_showingMigrationRequired || _showingV2Staging) return;
       unawaited(widget.controller.loadWorkspace());
     });
   }
@@ -197,6 +217,8 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
     oldWidget.controller.removeListener(_handleControllerRouteChanged);
     widget.controller.addListener(_handleControllerRouteChanged);
     _showingV2Staging = widget.controller.scene is ChunkV2StagingScene;
+    _showingMigrationRequired =
+        widget.controller.scene is PolygonAuthoringMigrationRequiredScene;
   }
 
   @override
@@ -219,6 +241,11 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
 
   @override
   Widget build(BuildContext context) {
+    if (_showingMigrationRequired) {
+      return PolygonAuthoringMigrationRequiredWorkspace(
+        controller: widget.controller,
+      );
+    }
     if (_showingV2Staging) {
       return ChunkPolygonStagingWorkspace(
         key: _stagingWorkspaceKey,
@@ -309,9 +336,16 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
 
   void _handleControllerRouteChanged() {
     final showingV2Staging = widget.controller.scene is ChunkV2StagingScene;
-    if (showingV2Staging == _showingV2Staging || !mounted) return;
+    final showingMigrationRequired =
+        widget.controller.scene is PolygonAuthoringMigrationRequiredScene;
+    if ((showingV2Staging == _showingV2Staging &&
+            showingMigrationRequired == _showingMigrationRequired) ||
+        !mounted) {
+      return;
+    }
     setState(() {
       _showingV2Staging = showingV2Staging;
+      _showingMigrationRequired = showingMigrationRequired;
     });
   }
 

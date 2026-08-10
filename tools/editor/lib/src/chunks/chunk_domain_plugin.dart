@@ -4,6 +4,7 @@ import '../prefabs/domain/prefab_visual_bounds_resolver.dart';
 import '../prefabs/models/models.dart';
 import '../prefabs/store/prefab_store.dart';
 import '../terrain_authoring/terrain_polygon_interaction.dart';
+import '../terrain_authoring/polygon_authoring_migration_required.dart';
 import '../workspace/editor_workspace.dart';
 import 'chunk_domain_models.dart';
 import 'chunk_store.dart';
@@ -54,42 +55,26 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
 
   @override
   Future<AuthoringDocument> loadFromRepo(EditorWorkspace workspace) async {
-    if (_store.detectSourceGeneration(workspace) ==
-        ChunkSourceGeneration.currentV2) {
-      return loadV2StagingFromRepo(workspace);
-    }
-    var loaded = await _store.load(
-      workspace,
-      preferredActiveLevelId: _preferredActiveLevelId,
-    );
-    try {
-      loaded = loaded.copyWith(
-        prefabData: await _prefabStore.load(workspace.rootPath),
-      );
-    } on Object catch (error) {
-      final nextLoadIssues = List<ValidationIssue>.from(loaded.loadIssues)
-        ..add(
-          ValidationIssue(
-            severity: ValidationSeverity.error,
-            code: 'prefab_catalog_load_failed',
-            message: 'Failed to load prefab catalog for chunk editing: $error',
-            sourcePath: PrefabStore.prefabDefsPath,
-          ),
-        );
-      loaded = loaded.copyWith(
-        prefabData: const PrefabData(),
-        loadIssues: List<ValidationIssue>.unmodifiable(nextLoadIssues),
-      );
-    }
-    _preferredActiveLevelId = loaded.activeLevelId;
-    return loaded;
+    return switch (_store.detectSourceGeneration(workspace)) {
+      ChunkSourceGeneration.currentV2 => loadV2StagingFromRepo(workspace),
+      ChunkSourceGeneration.legacyV1 =>
+        const PolygonAuthoringMigrationRequiredDocument(
+          domain: PolygonAuthoringMigrationDomain.chunks,
+          reason: PolygonAuthoringMigrationReason.legacySource,
+        ),
+      ChunkSourceGeneration.missing =>
+        const PolygonAuthoringMigrationRequiredDocument(
+          domain: PolygonAuthoringMigrationDomain.chunks,
+          reason: PolygonAuthoringMigrationReason.sourceMissing,
+        ),
+    };
   }
 
   /// Strict all-v2 load shared by normal selection and explicit staging.
   ///
   /// This also requires strict prefab-v3/tile-v2 source so placement preview
-  /// expands one coherent future-source generation. Changed exports remain
-  /// locked until the coordinated repository cutover.
+  /// expands one coherent future-source generation. Normal legacy/missing
+  /// source resolves to the migration-required document.
   Future<ChunkV2StagingDocument> loadV2StagingFromRepo(
     EditorWorkspace workspace,
   ) async {
@@ -140,6 +125,11 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
 
   @override
   List<ValidationIssue> validate(AuthoringDocument document) {
+    if (document is PolygonAuthoringMigrationRequiredDocument) {
+      return <ValidationIssue>[
+        _requireChunkMigration(document).toValidationIssue(),
+      ];
+    }
     if (document is ChunkV2StagingDocument) {
       return validateChunkV2StagingDocument(document);
     }
@@ -150,6 +140,9 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
 
   @override
   EditableScene buildEditableScene(AuthoringDocument document) {
+    if (document is PolygonAuthoringMigrationRequiredDocument) {
+      return _requireChunkMigration(document).toScene();
+    }
     if (document is ChunkV2StagingDocument) {
       final activeLevelId = document.activeLevelId;
       final chunks =
@@ -228,6 +221,10 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
     AuthoringDocument document,
     AuthoringCommand command,
   ) {
+    if (document is PolygonAuthoringMigrationRequiredDocument) {
+      _requireChunkMigration(document);
+      return document;
+    }
     if (document is ChunkV2StagingDocument) {
       if (command.kind == 'set_active_level') {
         final levelId = command.payload['levelId'];
@@ -297,6 +294,12 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
     EditorWorkspace workspace, {
     required AuthoringDocument document,
   }) async {
+    if (document is PolygonAuthoringMigrationRequiredDocument) {
+      final migration = _requireChunkMigration(document);
+      throw StateError(
+        'polygon_authoring_migration_required: ${migration.message}',
+      );
+    }
     if (document is ChunkV2StagingDocument) {
       final blockingIssues = validateChunkV2StagingDocument(
         document,
@@ -377,6 +380,10 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
     EditorWorkspace workspace, {
     required AuthoringDocument document,
   }) {
+    if (document is PolygonAuthoringMigrationRequiredDocument) {
+      _requireChunkMigration(document);
+      return PendingChanges.empty;
+    }
     if (document is ChunkV2StagingDocument) {
       final savePlan = _store.buildV2StagingSavePlan(document: document);
       final writes = savePlan.writes;
@@ -1893,6 +1900,18 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
       return const <String>[defaultChunkAssemblyGroupId];
     }
     return configured;
+  }
+
+  PolygonAuthoringMigrationRequiredDocument _requireChunkMigration(
+    PolygonAuthoringMigrationRequiredDocument document,
+  ) {
+    if (document.domain != PolygonAuthoringMigrationDomain.chunks) {
+      throw StateError(
+        'ChunkDomainPlugin received migration state for '
+        '${document.domain.pluginId}.',
+      );
+    }
+    return document;
   }
 
   ChunkDocument _asChunkDocument(AuthoringDocument document) {

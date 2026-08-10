@@ -36,7 +36,7 @@ class ChunkV2StagingLoadResult {
 }
 
 /// Schema family shared by every chunk file in one authoring workspace.
-enum ChunkSourceGeneration { legacyV1, currentV2 }
+enum ChunkSourceGeneration { missing, legacyV1, currentV2 }
 
 /// Stable failure from the explicit chunk-v2 staging write proof.
 final class ChunkV2StagingSaveException implements Exception {
@@ -76,12 +76,12 @@ class ChunkStore {
   /// Selects the normal chunk document family from the complete source tree.
   ///
   /// Every file must declare the same exact supported integer version. A mixed,
-  /// malformed, or future tree fails before either codec can partially load it;
-  /// an absent directory preserves the legacy empty-workspace behavior.
+  /// malformed, or future tree fails before either codec can partially load it.
+  /// An absent source set is reported separately from a legacy generation.
   ChunkSourceGeneration detectSourceGeneration(EditorWorkspace workspace) {
     final chunkFiles = _listChunkFiles(workspace);
     if (chunkFiles.isEmpty) {
-      return ChunkSourceGeneration.legacyV1;
+      return ChunkSourceGeneration.missing;
     }
     ChunkSourceGeneration? detected;
     for (final file in chunkFiles) {

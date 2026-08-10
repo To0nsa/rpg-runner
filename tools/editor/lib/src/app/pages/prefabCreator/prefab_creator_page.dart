@@ -6,7 +6,9 @@ import '../../../prefabs/domain/prefab_domain_models.dart';
 import '../../../prefabs/models/models.dart';
 import '../../../prefabs/atlas/workspace_scoped_size_cache.dart';
 import '../../../session/editor_session_controller.dart';
+import '../../../terrain_authoring/polygon_authoring_migration_required.dart';
 import '../shared/editor_page_local_draft_state.dart';
+import '../shared/polygon_authoring_migration_required_workspace.dart';
 import 'atlas_slicer/atlas_slicer_controller.dart';
 import 'atlas_slicer/atlas_slicer_page_coordinator.dart';
 import 'platform_modules/platform_module_controller.dart';
@@ -97,9 +99,11 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
   late final PrefabEditorPageSessionCoordinator _sessionCoordinator;
   late final TabController _tabController;
   late bool _showingV3Staging;
+  late bool _showingMigrationRequired;
 
   @override
   bool get hasLocalDraftChanges {
+    if (_showingMigrationRequired) return false;
     if (_showingV3Staging) {
       return _stagingWorkspaceKey.currentState?.hasLocalDraftChanges ??
           widget.controller.pendingChanges.hasChanges;
@@ -109,24 +113,34 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
   }
 
   @override
-  bool get canHandleUndoSessionShortcut => _showingV3Staging
-      ? (_stagingWorkspaceKey.currentState?.canUndo ??
-            widget.controller.canUndo)
-      : _draftCoordinator.canUndo || widget.controller.canUndo;
+  bool get canHandleUndoSessionShortcut {
+    if (_showingMigrationRequired) return false;
+    return _showingV3Staging
+        ? (_stagingWorkspaceKey.currentState?.canUndo ??
+              widget.controller.canUndo)
+        : _draftCoordinator.canUndo || widget.controller.canUndo;
+  }
 
   @override
-  bool get canHandleRedoSessionShortcut => _showingV3Staging
-      ? (_stagingWorkspaceKey.currentState?.canRedo ??
-            widget.controller.canRedo)
-      : _draftCoordinator.canRedo || widget.controller.canRedo;
+  bool get canHandleRedoSessionShortcut {
+    if (_showingMigrationRequired) return false;
+    return _showingV3Staging
+        ? (_stagingWorkspaceKey.currentState?.canRedo ??
+              widget.controller.canRedo)
+        : _draftCoordinator.canRedo || widget.controller.canRedo;
+  }
 
   @override
-  bool get canReloadEditorPage => _showingV3Staging
-      ? !widget.controller.isLoading && !widget.controller.isExporting
-      : _shellState.canReload;
+  bool get canReloadEditorPage {
+    if (_showingMigrationRequired || _showingV3Staging) {
+      return !widget.controller.isLoading && !widget.controller.isExporting;
+    }
+    return _shellState.canReload;
+  }
 
   @override
   bool handleUndoSessionShortcut() {
+    if (_showingMigrationRequired) return false;
     if (_showingV3Staging) {
       return _stagingWorkspaceKey.currentState?.handleUndoShortcut() ?? false;
     }
@@ -142,6 +156,7 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
 
   @override
   bool handleRedoSessionShortcut() {
+    if (_showingMigrationRequired) return false;
     if (_showingV3Staging) {
       return _stagingWorkspaceKey.currentState?.handleRedoShortcut() ?? false;
     }
@@ -157,6 +172,12 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
 
   @override
   Future<void> reloadEditorPage() async {
+    if (_showingMigrationRequired) {
+      await PolygonAuthoringMigrationRequiredWorkspace.recheckSource(
+        widget.controller,
+      );
+      return;
+    }
     if (_showingV3Staging) {
       await widget.controller.loadWorkspace();
       return;
@@ -168,6 +189,8 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
   void initState() {
     super.initState();
     _showingV3Staging = widget.controller.scene is PrefabV3StagingScene;
+    _showingMigrationRequired =
+        widget.controller.scene is PolygonAuthoringMigrationRequiredScene;
     widget.controller.addListener(_handleControllerRouteChanged);
     final workspaceRootPath = _readWorkspaceRootPath;
     final PrefabEditorCommitDataChange commitPrefabDataChange =
@@ -263,7 +286,7 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
     _draftCoordinator.installListeners();
     _tabController.addListener(_handleEditorTabChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_showingV3Staging) return;
+      if (_showingMigrationRequired || _showingV3Staging) return;
       _ensurePrefabPluginSelection();
       unawaited(_sessionCoordinator.reloadData());
     });
@@ -276,6 +299,8 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
     oldWidget.controller.removeListener(_handleControllerRouteChanged);
     widget.controller.addListener(_handleControllerRouteChanged);
     _showingV3Staging = widget.controller.scene is PrefabV3StagingScene;
+    _showingMigrationRequired =
+        widget.controller.scene is PolygonAuthoringMigrationRequiredScene;
   }
 
   @override
@@ -302,6 +327,11 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
 
   @override
   Widget build(BuildContext context) {
+    if (_showingMigrationRequired) {
+      return PolygonAuthoringMigrationRequiredWorkspace(
+        controller: widget.controller,
+      );
+    }
     if (_showingV3Staging) {
       return PrefabPolygonStagingWorkspace(
         key: _stagingWorkspaceKey,
@@ -344,9 +374,16 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
 
   void _handleControllerRouteChanged() {
     final showingV3Staging = widget.controller.scene is PrefabV3StagingScene;
-    if (showingV3Staging == _showingV3Staging || !mounted) return;
+    final showingMigrationRequired =
+        widget.controller.scene is PolygonAuthoringMigrationRequiredScene;
+    if ((showingV3Staging == _showingV3Staging &&
+            showingMigrationRequired == _showingMigrationRequired) ||
+        !mounted) {
+      return;
+    }
     setState(() {
       _showingV3Staging = showingV3Staging;
+      _showingMigrationRequired = showingMigrationRequired;
     });
   }
 

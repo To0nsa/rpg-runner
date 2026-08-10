@@ -6,19 +6,20 @@ import 'package:path/path.dart' as p;
 
 import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_plugin.dart';
+import 'package:runner_editor/src/chunks/chunk_store.dart';
 import 'package:runner_editor/src/domain/authoring_types.dart';
 import 'package:runner_editor/src/workspace/editor_workspace.dart';
 
 void main() {
   test(
-    'plugin load/build scene scopes chunks to active level context',
+    'legacy compatibility document/build scopes chunks to active level context',
     () async {
       final fixtureRoot = await _createFixtureWorkspace();
       try {
         final workspace = EditorWorkspace(rootPath: fixtureRoot.path);
         final plugin = ChunkDomainPlugin();
 
-        final loaded = await plugin.loadFromRepo(workspace) as ChunkDocument;
+        final loaded = await const ChunkStore().load(workspace);
         final scene = plugin.buildEditableScene(loaded) as ChunkScene;
 
         expect(scene.availableLevelIds, <String>['field', 'forest']);
@@ -77,13 +78,13 @@ void main() {
   );
 
   test(
-    'plugin pending changes and export direct write are deterministic',
+    'legacy compatibility pending changes and export remain deterministic',
     () async {
       final fixtureRoot = await _createFixtureWorkspace();
       try {
         final workspace = EditorWorkspace(rootPath: fixtureRoot.path);
         final plugin = ChunkDomainPlugin();
-        final loaded = await plugin.loadFromRepo(workspace) as ChunkDocument;
+        final loaded = await const ChunkStore().load(workspace);
 
         final edited =
             plugin.applyEdit(
@@ -145,7 +146,7 @@ void main() {
     try {
       final workspace = EditorWorkspace(rootPath: fixtureRoot.path);
       final plugin = ChunkDomainPlugin();
-      final loaded = await plugin.loadFromRepo(workspace) as ChunkDocument;
+      final loaded = await const ChunkStore().load(workspace);
 
       final edited =
           plugin.applyEdit(
@@ -185,7 +186,7 @@ void main() {
     try {
       final workspace = EditorWorkspace(rootPath: fixtureRoot.path);
       final plugin = ChunkDomainPlugin();
-      final loaded = await plugin.loadFromRepo(workspace) as ChunkDocument;
+      final loaded = await const ChunkStore().load(workspace);
 
       final added =
           plugin.applyEdit(

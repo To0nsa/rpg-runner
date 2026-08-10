@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 
 import '../../chunks/chunk_store.dart';
 import '../../domain/authoring_types.dart';
+import '../../terrain_authoring/polygon_authoring_migration_required.dart';
 import '../../terrain_authoring/terrain_polygon_interaction.dart';
 import '../../workspace/editor_workspace.dart';
 import '../models/models.dart';
@@ -68,28 +69,26 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
 
   @override
   Future<AuthoringDocument> loadFromRepo(EditorWorkspace workspace) async {
-    if (_store.detectSourceGeneration(workspace.rootPath) ==
-        PrefabSourceGeneration.currentV3) {
-      return loadV3StagingFromRepo(workspace);
-    }
-    final loadResult = await _store.loadWithReport(workspace.rootPath);
-    final metadata = await _loadWorkspaceMetadata(workspace);
-
-    return PrefabDocument(
-      data: loadResult.data,
-      atlasImagePaths: metadata.atlasImagePaths,
-      atlasImageSizes: metadata.atlasImageSizes,
-      migrationHints: List<String>.unmodifiable(loadResult.migrationHints),
-      prefabBaselineContents: metadata.prefabBaselineContents,
-      tileBaselineContents: metadata.tileBaselineContents,
-    );
+    return switch (_store.detectSourceGeneration(workspace.rootPath)) {
+      PrefabSourceGeneration.currentV3 => loadV3StagingFromRepo(workspace),
+      PrefabSourceGeneration.legacyV2 =>
+        const PolygonAuthoringMigrationRequiredDocument(
+          domain: PolygonAuthoringMigrationDomain.prefabs,
+          reason: PolygonAuthoringMigrationReason.legacySource,
+        ),
+      PrefabSourceGeneration.missing =>
+        const PolygonAuthoringMigrationRequiredDocument(
+          domain: PolygonAuthoringMigrationDomain.prefabs,
+          reason: PolygonAuthoringMigrationReason.sourceMissing,
+        ),
+    };
   }
 
   /// Strict prefab-v3 load shared by normal selection and owner navigation.
   ///
-  /// This method requires strict v3/tile-v2 source. Legacy source remains on
-  /// the v2 document until the coordinated migration-required route
-  /// replacement; no migration write is performed here.
+  /// This method requires strict v3/tile-v2 source. Normal legacy/missing
+  /// source resolves to the migration-required document; no migration write is
+  /// performed here.
   Future<PrefabV3StagingDocument> loadV3StagingFromRepo(
     EditorWorkspace workspace,
   ) async {
@@ -203,6 +202,11 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
 
   @override
   List<ValidationIssue> validate(AuthoringDocument document) {
+    if (document is PolygonAuthoringMigrationRequiredDocument) {
+      return <ValidationIssue>[
+        _requirePrefabMigration(document).toValidationIssue(),
+      ];
+    }
     if (document is PrefabV3StagingDocument) {
       return _validateV3Document(document);
     }
@@ -216,6 +220,9 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
 
   @override
   EditableScene buildEditableScene(AuthoringDocument document) {
+    if (document is PolygonAuthoringMigrationRequiredDocument) {
+      return _requirePrefabMigration(document).toScene();
+    }
     if (document is PrefabV3StagingDocument) {
       return PrefabV3StagingScene(
         data: document.data,
@@ -240,6 +247,10 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
     AuthoringDocument document,
     AuthoringCommand command,
   ) {
+    if (document is PolygonAuthoringMigrationRequiredDocument) {
+      _requirePrefabMigration(document);
+      return document;
+    }
     if (document is PrefabV3StagingDocument) {
       return _applyV3Edit(document, command);
     }
@@ -262,6 +273,12 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
     EditorWorkspace workspace, {
     required AuthoringDocument document,
   }) async {
+    if (document is PolygonAuthoringMigrationRequiredDocument) {
+      final migration = _requirePrefabMigration(document);
+      throw StateError(
+        'polygon_authoring_migration_required: ${migration.message}',
+      );
+    }
     if (document is PrefabV3StagingDocument) {
       final blockingIssues = _validateV3Document(
         document,
@@ -346,6 +363,10 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
     EditorWorkspace workspace, {
     required AuthoringDocument document,
   }) {
+    if (document is PolygonAuthoringMigrationRequiredDocument) {
+      _requirePrefabMigration(document);
+      return PendingChanges.empty;
+    }
     if (document is PrefabV3StagingDocument) {
       final plan = _store.buildV3StagingSavePlan(
         prefabData: document.data,
@@ -421,6 +442,18 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
         .toList(growable: false);
 
     return PendingChanges(fileDiffs: fileDiffs);
+  }
+
+  PolygonAuthoringMigrationRequiredDocument _requirePrefabMigration(
+    PolygonAuthoringMigrationRequiredDocument document,
+  ) {
+    if (document.domain != PolygonAuthoringMigrationDomain.prefabs) {
+      throw StateError(
+        'PrefabDomainPlugin received migration state for '
+        '${document.domain.pluginId}.',
+      );
+    }
+    return document;
   }
 
   PrefabDocument _asPrefabDocument(AuthoringDocument document) {

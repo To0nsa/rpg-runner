@@ -120,10 +120,10 @@ final class PrefabV3DownstreamImpact {
 
 /// Temporary plugin document used for prefab-v3 commands.
 ///
-/// The normal loader selects this only for strict v3 source; legacy v2 remains
-/// on [PrefabDocument]. Export can update already-current source but cannot
-/// migrate legacy files. The coordinated cutover removes the temporary
-/// `Staging` name rather than retaining parallel authorities.
+/// The normal loader selects this only for strict v3 source; legacy or missing
+/// source becomes a migration-required document with no editable prefab data.
+/// Export can update already-current source but cannot migrate legacy files.
+/// The coordinated cutover removes the temporary `Staging` name.
 @immutable
 class PrefabV3StagingDocument extends AuthoringDocument {
   PrefabV3StagingDocument({

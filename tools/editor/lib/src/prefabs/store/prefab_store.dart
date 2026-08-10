@@ -45,7 +45,7 @@ class PrefabV3StagingLoadResult {
 }
 
 /// Schema family selected from the authoritative prefab source version.
-enum PrefabSourceGeneration { legacyV2, currentV3 }
+enum PrefabSourceGeneration { missing, legacyV2, currentV3 }
 
 /// One canonical fixed-path replacement in a prefab-v3 staging save plan.
 final class PrefabV3StagingSaveFile {
@@ -116,15 +116,16 @@ class PrefabStore {
 
   /// Selects the normal prefab document family without decoding either model.
   ///
-  /// Missing source preserves the legacy empty-workspace behavior. Existing
-  /// source must declare an exact supported integer version; malformed or
-  /// future versions fail instead of falling back to rectangle authoring.
+  /// Missing source is distinct from legacy source so the normal plugin can
+  /// report an accurate blocked initialization state. Existing source must
+  /// declare an exact supported integer version; malformed or future versions
+  /// fail instead of falling back to rectangle authoring.
   PrefabSourceGeneration detectSourceGeneration(String workspaceRootPath) {
     final prefabFile = File(
       p.normalize(p.join(workspaceRootPath, prefabDefsPath)),
     );
     if (!prefabFile.existsSync()) {
-      return PrefabSourceGeneration.legacyV2;
+      return PrefabSourceGeneration.missing;
     }
     final parsed = _parseJsonMap(
       prefabFile.readAsStringSync(),

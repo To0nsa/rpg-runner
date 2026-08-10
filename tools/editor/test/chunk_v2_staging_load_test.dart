@@ -9,6 +9,7 @@ import 'package:runner_editor/src/chunks/chunk_store.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_codec.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_data.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_staging_models.dart';
+import 'package:runner_editor/src/terrain_authoring/polygon_authoring_migration_required.dart';
 import 'package:runner_editor/src/levels/level_domain_models.dart';
 import 'package:runner_editor/src/levels/level_store.dart';
 import 'package:runner_editor/src/prefabs/models/models.dart';
@@ -178,7 +179,7 @@ void main() {
   );
 
   test(
-    'normal load remains legacy and explicit staging rejects chunk v1',
+    'normal load blocks legacy source and explicit staging rejects chunk v1',
     () async {
       final root = Directory.systemTemp.createTempSync('chunk_v1_normal_load_');
       addTearDown(() => root.deleteSync(recursive: true));
@@ -197,8 +198,10 @@ void main() {
       final plugin = ChunkDomainPlugin();
 
       final normal = await plugin.loadFromRepo(workspace);
-      expect(normal, isA<ChunkDocument>());
-      expect((normal as ChunkDocument).chunks.single.schemaVersion, 1);
+      expect(normal, isA<PolygonAuthoringMigrationRequiredDocument>());
+      final migration = normal as PolygonAuthoringMigrationRequiredDocument;
+      expect(migration.domain, PolygonAuthoringMigrationDomain.chunks);
+      expect(migration.reason, PolygonAuthoringMigrationReason.legacySource);
       await expectLater(
         store.loadV2Staging(workspace),
         throwsA(isA<FormatException>()),

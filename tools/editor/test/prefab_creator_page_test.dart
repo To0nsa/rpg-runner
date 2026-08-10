@@ -11,7 +11,9 @@ import 'package:runner_editor/src/domain/authoring_types.dart';
 import 'package:runner_editor/src/prefabs/domain/prefab_domain_models.dart';
 import 'package:runner_editor/src/prefabs/domain/prefab_domain_plugin.dart';
 import 'package:runner_editor/src/prefabs/models/models.dart';
+import 'package:runner_editor/src/prefabs/store/prefab_store.dart';
 import 'package:runner_editor/src/session/editor_session_controller.dart';
+import 'package:runner_editor/src/workspace/editor_workspace.dart';
 
 void main() {
   testWidgets(
@@ -754,9 +756,9 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('anchor=(0,0) colliders=2'), findsOneWidget);
-      final savedPrefab = _prefabScene(controller).data.prefabs.singleWhere(
-        (prefab) => prefab.id == 'multi_box',
-      );
+      final savedPrefab = _prefabScene(
+        controller,
+      ).data.prefabs.singleWhere((prefab) => prefab.id == 'multi_box');
       expect(savedPrefab.colliders, hasLength(2));
       expect(savedPrefab.colliders[0].width, 18);
       expect(savedPrefab.colliders[1].offsetX, 24);
@@ -990,20 +992,17 @@ void main() {
       'obstacle_box',
     );
 
-      await _ensureVisibleAndTap(
-        tester,
-        find.byKey(const ValueKey<String>('obstacle_prefab_upsert_button')),
-      );
+    await _ensureVisibleAndTap(
+      tester,
+      find.byKey(const ValueKey<String>('obstacle_prefab_upsert_button')),
+    );
 
-      expect(find.text('Creating new obstacle prefab'), findsOneWidget);
-      expect(find.text('Create Prefab'), findsOneWidget);
-      expect(find.text('Update Prefab'), findsNothing);
-      expect(_textFieldValueByLabel(tester, 'Atlas Slice'), isEmpty);
-      expect(_textFieldValueByLabel(tester, 'Prefab ID'), isEmpty);
-      expect(
-        _textFieldValueByLabel(tester, 'Tags (comma separated)'),
-        isEmpty,
-      );
+    expect(find.text('Creating new obstacle prefab'), findsOneWidget);
+    expect(find.text('Create Prefab'), findsOneWidget);
+    expect(find.text('Update Prefab'), findsNothing);
+    expect(_textFieldValueByLabel(tester, 'Atlas Slice'), isEmpty);
+    expect(_textFieldValueByLabel(tester, 'Prefab ID'), isEmpty);
+    expect(_textFieldValueByLabel(tester, 'Tags (comma separated)'), isEmpty);
   });
 
   testWidgets('decoration create flow writes collider-free prefab data', (
@@ -1938,7 +1937,7 @@ Future<EditorSessionController> _pumpPrefabCreatorPage(
 }) async {
   final controller = EditorSessionController(
     pluginRegistry: AuthoringPluginRegistry(
-      plugins: const <AuthoringDomainPlugin>[PrefabDomainPlugin()],
+      plugins: const <AuthoringDomainPlugin>[_LegacyPrefabPageTestPlugin()],
     ),
     initialPluginId: PrefabDomainPlugin.pluginId,
     initialWorkspacePath: workspacePath,
@@ -1972,6 +1971,54 @@ Future<EditorSessionController> _pumpPrefabCreatorPage(
   }
 
   return controller;
+}
+
+/// Keeps legacy form tests independent from normal production route selection.
+class _LegacyPrefabPageTestPlugin extends PrefabDomainPlugin {
+  const _LegacyPrefabPageTestPlugin();
+
+  @override
+  Future<AuthoringDocument> loadFromRepo(EditorWorkspace workspace) async {
+    final result = await const PrefabStore().loadWithReport(workspace.rootPath);
+    final atlasImagePaths = _atlasImagePaths(workspace);
+    return PrefabDocument(
+      data: result.data,
+      atlasImagePaths: atlasImagePaths,
+      atlasImageSizes: <String, Size>{
+        for (final path in atlasImagePaths) path: const Size(64, 64),
+      },
+      migrationHints: result.migrationHints,
+      prefabBaselineContents: _readIfPresent(
+        workspace.resolve(PrefabStore.prefabDefsPath),
+      ),
+      tileBaselineContents: _readIfPresent(
+        workspace.resolve(PrefabStore.tileDefsPath),
+      ),
+    );
+  }
+
+  static String? _readIfPresent(String path) {
+    final file = File(path);
+    return file.existsSync() ? file.readAsStringSync() : null;
+  }
+
+  static List<String> _atlasImagePaths(EditorWorkspace workspace) {
+    final root = Directory(workspace.resolve('assets/images/level'));
+    if (!root.existsSync()) return const <String>[];
+    final paths =
+        root
+            .listSync(recursive: true, followLinks: false)
+            .whereType<File>()
+            .where((file) => p.extension(file.path).toLowerCase() == '.png')
+            .map(
+              (file) => p
+                  .relative(file.path, from: workspace.rootPath)
+                  .replaceAll('\\', '/'),
+            )
+            .toList()
+          ..sort();
+    return paths;
+  }
 }
 
 Directory _createPrefabAuthoringFixture({int extraPrefabSliceCount = 0}) {
@@ -2219,8 +2266,12 @@ Future<void> _ensureVisibleAndTap(WidgetTester tester, Finder finder) async {
 }
 
 void _loadObstaclePrefabIntoForm(WidgetTester tester, String prefabId) {
-  final tab = tester.widget<ObstaclePrefabsTab>(find.byType(ObstaclePrefabsTab));
-  final prefab = tab.obstaclePrefabs.singleWhere((candidate) => candidate.id == prefabId);
+  final tab = tester.widget<ObstaclePrefabsTab>(
+    find.byType(ObstaclePrefabsTab),
+  );
+  final prefab = tab.obstaclePrefabs.singleWhere(
+    (candidate) => candidate.id == prefabId,
+  );
   tab.onLoadPrefab(prefab);
 }
 
