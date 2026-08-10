@@ -1328,7 +1328,7 @@ Frozen gates:
 - [x] no interaction-time query/diagnostic truncation
 - [x] hard-limit fixtures validate deterministically without hanging
 - [x] one-unit-over fixtures fail with the expected stable diagnostic
-- [ ] no-op save/migration/generation remains byte/signature deterministic
+- [x] no-op save/migration/generation remains byte/signature deterministic
 
 Use the frozen profile-mode Windows command:
 
@@ -1355,6 +1355,14 @@ inputs. Build p99 is `7.864/7.359 ms`, with zero missed build/raster budgets.
 The source document, complete Chunk list, and active Chunk retain identity for
 every pointer update; the plugin loads once and no generator is reachable. The
 compact ignored report is `.tmp/slopes_phase4_polygon_interaction.json`.
+
+The adjacent no-op gate is covered by the current-schema Prefab paired-save and
+Chunk one-file save-plan fixtures, including byte-identical transactional
+reloads; canonical legacy/current migration checks and fresh-process
+`authoring-migration-v1`; and the normal five-output generator artifact plan.
+A fresh focused run passes all 39 save/migration tests, the real standalone
+migration check remains a zero-write legacy-ready plan with nine pending
+representation files, and normal generator `--dry-run` reports no drift.
 
 ## 25) Required Test Matrix
 
@@ -1669,7 +1677,7 @@ result.
 | 2026-08-10 / `e84b1b9c` + `5608b995` | Terrain authoring soft-capacity diagnostics | Dart and Flutter test VMs on Windows with Docker running | Core and editor analysis are clean; all 330 Core-package tests and all 450 editor tests pass. Exact 16-shape, 24-vertex, and 1,024-edge fixtures remain warning-free; 17, 25, and 1,025 emit owner-aware warnings while accepted Prefab/Chunk commits and compiled overlays remain available. Hard limits, source bytes, generated artifacts, live schema selection, and runtime authority are unchanged. |
 | 2026-08-10 / `fd84e465` | Prefab plugin diagnostic owner retention | Dart and Flutter test VMs on Windows with Docker running | Editor analysis is clean and all 16 focused Prefab-v3 plugin tests pass. A 17-shape staged Prefab warning retains owner `target` through `PrefabValidationIssue` to generic `ValidationIssue`; severity, source path, and non-blocking behavior are unchanged. |
 | 2026-08-10 / `7145d9b6` + `80a890f6` | Staged generated-artifact migration impacts | Dart VM and Flutter test VM on Windows with Docker running | Root, Core-package, and editor analysis are clean; all 331 Core-package tests, all 72 root tool/generator tests, and all 452 editor tests pass. One Core constant owns the future staged output path. Readiness report v3 emits eight immutable canonically ordered Chunk impact records covering all 50 placements, with shared path/artifact format, Chunk identity/source, sorted referenced Prefab keys, and placement count; equivalent legacy/current source emits identical records. Current legacy/current FNV fingerprints are `f74fa5f0` and `12475a2a`, with `authoring-migration-v1` SHA-256 values `561d49b2…2597` and `3264cf7a…15d`. No artifact is generated, registered, selected, or written; `--write` and runtime authority remain unchanged. |
-| 2026-08-10 / `2c6c7cb5` + `2a9a2ded` + `0b9c95c3` | Windows profile polygon-interaction benchmark | Windows Flutter profile/debug VMs with Docker running | Full editor analysis is clean and all 453 normal editor tests pass; the Windows debug device regression and clean-revision profile drive both pass. The deterministic 600 x 270 fixture freezes 16 direct shapes, one 24-vertex shape, 43 expanded Prefab shapes, 256 compiled edges, 12 compatible seams, and authored/source/edge/seam signatures `11957741…2ae0`, `9c7a7088…5725`, `dfcdc193…7271`, and `fa7a0aa0…6355`. Across 600 measured frames per mode after 120 warmups, vertex p95/p99 is `201/262 us`, shape is `210/277 us`, build p99 is `7.864/7.359 ms`, and no input or engine budget is missed. Source document/list/Chunk identities remain unchanged, with one plugin load and zero generator runs. The compact JSON reports revision `0b9c95c3`, `dirty: false`, and every gate passing. |
+| 2026-08-10 / `2c6c7cb5` + `2a9a2ded` + `0b9c95c3` | Windows profile polygon-interaction benchmark and no-op stability | Windows Flutter profile/debug VMs with Docker running | Full editor analysis is clean and all 453 normal editor tests pass; the Windows debug device regression and clean-revision profile drive both pass. The deterministic 600 x 270 fixture freezes 16 direct shapes, one 24-vertex shape, 43 expanded Prefab shapes, 256 compiled edges, 12 compatible seams, and authored/source/edge/seam signatures `11957741…2ae0`, `9c7a7088…5725`, `dfcdc193…7271`, and `fa7a0aa0…6355`. Across 600 measured frames per mode after 120 warmups, vertex p95/p99 is `201/262 us`, shape is `210/277 us`, build p99 is `7.864/7.359 ms`, and no input or engine budget is missed. Source document/list/Chunk identities remain unchanged, with one plugin load and zero generator runs. The compact JSON reports revision `0b9c95c3`, `dirty: false`, and every gate passing. All 39 focused Prefab-v3/Chunk-v2 save-plan and migration check/command tests also pass; the standalone real migration check remains zero-write legacy-ready and normal generator dry-run is clean. |
 
 ### 28.1 Baseline Environment And Source Identity
 
@@ -1867,7 +1875,7 @@ Phase 4 is complete only when:
 - [ ] no normal editor/store path writes legacy source fields
 - [ ] no duplicate geometry, transform, validation, or persistence authority
       exists across Prefab and Chunk routes
-- [ ] no-op save, dry-run generation, and fresh-process goldens are stable
+- [x] no-op save, dry-run generation, and fresh-process goldens are stable
 - [x] hard authoring limits do not truncate or hang
 - [x] polygon interaction p95/p99 and missed-input gates pass
 - [ ] full editor/Core/root/validator analysis and tests pass
