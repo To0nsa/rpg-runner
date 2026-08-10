@@ -276,6 +276,7 @@ function decodeLeaderboardEntry(
     ),
     sortKey: readRequiredString(raw.sortKey, "leaderboardEntry.sortKey"),
     ghostEligible: readBool(raw.ghostEligible) ?? false,
+    ghostAvailable: readBool(raw.ghostAvailable) ?? false,
     updatedAtMs: readRequiredInt(raw.updatedAtMs, "leaderboardEntry.updatedAtMs"),
   };
   const replayStorageRef = readString(raw.replayStorageRef);

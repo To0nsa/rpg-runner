@@ -90,6 +90,10 @@ class _RecordingGhostApi implements GhostApi {
       replayStorageRef: 'ghosts/board_1/entry_1/ghost.bin.gz',
       sourceReplayStorageRef:
           'replay-submissions/pending/u1/run_1/replay.bin.gz',
+      sourceReplayStorageGeneration: '123',
+      promotedReplayStorageGeneration: '456',
+      replayDigest:
+          'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       downloadUrl: 'https://example.test/ghosts/board_1/entry_1/ghost.bin.gz',
       downloadUrlExpiresAtMs: 9999999999999,
       score: 1000,

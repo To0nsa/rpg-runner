@@ -8,6 +8,9 @@ final class GhostManifest {
     required this.uid,
     required this.replayStorageRef,
     required this.sourceReplayStorageRef,
+    required this.sourceReplayStorageGeneration,
+    required this.promotedReplayStorageGeneration,
+    required this.replayDigest,
     required this.downloadUrl,
     required this.downloadUrlExpiresAtMs,
     required this.score,
@@ -24,6 +27,15 @@ final class GhostManifest {
   final String uid;
   final String replayStorageRef;
   final String sourceReplayStorageRef;
+
+  /// Immutable source generation used to produce the promoted ghost object.
+  final String sourceReplayStorageGeneration;
+
+  /// Exact promoted Storage generation named by the signed download URL.
+  final String promotedReplayStorageGeneration;
+
+  /// Canonical replay SHA-256 expected for the promoted ghost bytes.
+  final String replayDigest;
   final String downloadUrl;
   final int downloadUrlExpiresAtMs;
   final int score;
@@ -47,6 +59,15 @@ final class GhostManifest {
       json,
       'sourceReplayStorageRef',
     );
+    final sourceReplayStorageGeneration = _readRequiredGeneration(
+      json,
+      'sourceReplayStorageGeneration',
+    );
+    final promotedReplayStorageGeneration = _readRequiredGeneration(
+      json,
+      'promotedReplayStorageGeneration',
+    );
+    final replayDigest = _readRequiredReplayDigest(json, 'replayDigest');
     final downloadUrl = _readRequiredString(json, 'downloadUrl');
     final downloadUrlExpiresAtMs = _readRequiredInt(
       json,
@@ -65,6 +86,9 @@ final class GhostManifest {
       uid: uid,
       replayStorageRef: replayStorageRef,
       sourceReplayStorageRef: sourceReplayStorageRef,
+      sourceReplayStorageGeneration: sourceReplayStorageGeneration,
+      promotedReplayStorageGeneration: promotedReplayStorageGeneration,
+      replayDigest: replayDigest,
       downloadUrl: downloadUrl,
       downloadUrlExpiresAtMs: downloadUrlExpiresAtMs,
       score: score,
@@ -92,6 +116,32 @@ final class GhostManifest {
       );
     }
     return raw;
+  }
+
+  static String _readRequiredGeneration(
+    Map<Object?, Object?> json,
+    String key,
+  ) {
+    final value = _readRequiredString(json, key);
+    if (!RegExp(r'^[1-9][0-9]*$').hasMatch(value)) {
+      throw FormatException(
+        'ghostManifest.$key must be a positive integer string.',
+      );
+    }
+    return value;
+  }
+
+  static String _readRequiredReplayDigest(
+    Map<Object?, Object?> json,
+    String key,
+  ) {
+    final value = _readRequiredString(json, key);
+    if (!RegExp(r'^[a-f0-9]{64}$').hasMatch(value)) {
+      throw FormatException(
+        'ghostManifest.$key must be a lower-case SHA-256 digest.',
+      );
+    }
+    return value;
   }
 }
 

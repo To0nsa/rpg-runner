@@ -14,6 +14,7 @@ import 'package:test/test.dart';
 import 'package:replay_validator/src/account_deletion_fence.dart';
 import 'package:replay_validator/src/ghost_publisher.dart';
 import 'package:replay_validator/src/google_api_helpers.dart';
+import 'package:replay_validator/src/leaderboard_projector.dart';
 
 void main() {
   test(
@@ -56,7 +57,10 @@ void main() {
         clockMs: () => 10_000,
       );
 
-      await publisher.updateGhostArtifacts(runSessionId: runSessionId);
+      expect(
+        await publisher.updateGhostArtifacts(runSessionId: runSessionId),
+        boardId,
+      );
 
       expect(objectStore.promotions, hasLength(1));
       expect(
@@ -480,6 +484,39 @@ void main() {
     ]);
     expect(requestedPageTokens, <String?>[null, 'page-2']);
   });
+
+  test(
+    'leaderboard projection store reads active exposed ghost IDs across pages',
+    () async {
+      final requestedPageTokens = <String?>[];
+      final client = MockClient((request) async {
+        final pageToken = request.url.queryParameters['pageToken'];
+        requestedPageTokens.add(pageToken);
+        return http.Response(
+          jsonEncode(<String, Object?>{
+            'documents': <Object?>[
+              _manifestDocumentJson(
+                entryId: pageToken == null ? 'run_active' : 'run_hidden',
+                exposed: pageToken == null,
+              ),
+            ],
+            if (pageToken == null) 'nextPageToken': 'page-2',
+          }),
+          200,
+          headers: const <String, String>{'content-type': 'application/json'},
+        );
+      });
+      final store = FirestoreLeaderboardProjectionStore(
+        projectId: 'demo',
+        apiProvider: _FirestoreApiProvider(firestore.FirestoreApi(client)),
+      );
+
+      final entryIds = await store.loadActiveGhostEntryIds(boardId: 'board_1');
+
+      expect(entryIds, <String>{'run_active'});
+      expect(requestedPageTokens, <String?>[null, 'page-2']);
+    },
+  );
 }
 
 GhostManifestRecord _activeManifest({
@@ -514,7 +551,11 @@ GhostManifestRecord _activeManifest({
   );
 }
 
-Map<String, Object?> _manifestDocumentJson({required String entryId}) {
+Map<String, Object?> _manifestDocumentJson({
+  required String entryId,
+  String status = 'active',
+  bool exposed = true,
+}) {
   Map<String, Object?> stringValue(String value) => <String, Object?>{
     'stringValue': value,
   };
@@ -539,8 +580,8 @@ Map<String, Object?> _manifestDocumentJson({required String entryId}) {
       'durationSeconds': integerValue(120),
       'sortKey': stringValue('0001:$entryId'),
       'rank': integerValue(1),
-      'status': stringValue('active'),
-      'exposed': <String, Object?>{'booleanValue': true},
+      'status': stringValue(status),
+      'exposed': <String, Object?>{'booleanValue': exposed},
       'updatedAtMs': integerValue(1),
     },
   };

@@ -48,6 +48,9 @@ abstract class LeaderboardProjectionStore {
     required int limit,
   });
 
+  /// Entry IDs with a currently active, exposed ghost manifest on [boardId].
+  Future<Set<String>> loadActiveGhostEntryIds({required String boardId});
+
   Future<void> setPlayerBestGhostEligible({
     required String boardId,
     required String uid,
@@ -178,6 +181,9 @@ class FirestoreLeaderboardProjector implements LeaderboardProjector {
         boardId: boardId,
         limit: 10,
       );
+      final activeGhostEntryIds = await _store.loadActiveGhostEntryIds(
+        boardId: boardId,
+      );
 
       final topEntries = <LeaderboardEntry>[];
       final topUids = <String>{};
@@ -195,6 +201,7 @@ class FirestoreLeaderboardProjector implements LeaderboardProjector {
           durationSeconds: parsed.durationSeconds,
           sortKey: parsed.sortKey,
           ghostEligible: true,
+          ghostAvailable: activeGhostEntryIds.contains(parsed.entryId),
           replayStorageRef: parsed.replayStorageRef,
           replayStorageGeneration: parsed.replayStorageGeneration,
           replayDigest: parsed.replayDigest,
@@ -464,6 +471,33 @@ class FirestoreLeaderboardProjectionStore
   }
 
   @override
+  Future<Set<String>> loadActiveGhostEntryIds({required String boardId}) async {
+    final firestoreApi = await apiProvider.firestoreApi();
+    final entryIds = <String>{};
+    String? pageToken;
+    do {
+      final listed = await firestoreApi.projects.databases.documents.list(
+        _boardParentDocPath(boardId),
+        'ghost_manifests',
+        pageSize: 100,
+        pageToken: pageToken,
+      );
+      final documents = listed.documents ?? const <firestore.Document>[];
+      for (final document in documents) {
+        final decoded = decodeFirestoreFields(document.fields);
+        final entryId = _nonEmptyString(decoded['entryId']);
+        if (entryId != null &&
+            decoded['status'] == 'active' &&
+            decoded['exposed'] == true) {
+          entryIds.add(entryId);
+        }
+      }
+      pageToken = _nonEmptyString(listed.nextPageToken);
+    } while (pageToken != null);
+    return entryIds;
+  }
+
+  @override
   Future<void> setPlayerBestGhostEligible({
     required String boardId,
     required String uid,
@@ -556,8 +590,8 @@ LeaderboardEntry? _parseLeaderboardEntry(Object? raw) {
 
 int _defaultClockMs() => DateTime.now().millisecondsSinceEpoch;
 
-String? _nonEmptyString(String? value) {
-  if (value == null) {
+String? _nonEmptyString(Object? value) {
+  if (value is! String) {
     return null;
   }
   final trimmed = value.trim();

@@ -167,6 +167,12 @@ class FileGhostReplayCache implements GhostReplayCache {
     final jsonBytes = _maybeDecompressGzip(bytes);
     final decoded = jsonDecode(utf8.decode(jsonBytes));
     final replayBlob = ReplayBlobV1.fromJson(decoded, verifyDigest: true);
+    if (replayBlob.canonicalSha256 != manifest.replayDigest) {
+      throw const RunStartRemoteException(
+        code: 'failed-precondition',
+        message: 'Ghost replay digest does not match manifest.',
+      );
+    }
     if (replayBlob.runSessionId != manifest.runSessionId) {
       throw const RunStartRemoteException(
         code: 'failed-precondition',
@@ -226,6 +232,7 @@ String _cacheFileName(GhostManifest manifest) {
   final prefix = _cacheFilePrefix(manifest.boardId, manifest.entryId);
   final keyRaw =
       '${manifest.boardId}|${manifest.entryId}|${manifest.runSessionId}|'
+      '${manifest.promotedReplayStorageGeneration}|${manifest.replayDigest}|'
       '${manifest.updatedAtMs}';
   final encodedKey = base64Url.encode(utf8.encode(keyRaw)).replaceAll('=', '');
   return '${prefix}_$encodedKey.replay.json';

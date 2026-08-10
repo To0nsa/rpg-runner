@@ -118,13 +118,13 @@ Directory:
 
 File naming:
 
-- `ghost_<boardId_entryId>_<encodedKey>.replay.json`
+- `ghost_<boardId_entryId>_<encodedKey>.replay.json`, where the encoded key includes the promoted Storage generation and replay digest.
 
 How used:
 
 - When opening ghost playback, app checks local cache first.
 - If absent/invalid, downloads from signed URL and writes cache file.
-- Cache is validated against manifest (`runSessionId`, `boardId`).
+- Cache is validated against manifest (`canonicalSha256`, `runSessionId`, `boardId`).
 - Superseded cache files for same entry are pruned.
 
 Why:

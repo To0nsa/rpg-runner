@@ -21,6 +21,12 @@ The protocol package is the shared wire/value-contract layer for those steps.
 Backend authority remains in `functions/src` and
 `services/replay_validator/lib`.
 
+`LeaderboardEntry.ghostEligible` is an internal candidate signal. Its optional
+wire field `ghostAvailable` is the client-facing projection of a currently
+active, exposed ghost manifest; entries serialized before the field was added
+decode it as `false`. UI must gate ghost starts on `ghostAvailable`, while the
+manifest callable remains the final authorization and lifecycle check.
+
 ## JSON and value semantics
 
 All protocol JSON contains only JSON-compatible values: null, booleans, finite

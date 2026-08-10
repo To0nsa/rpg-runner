@@ -271,11 +271,11 @@ Why:
 
 - Client adapter: `lib/ui/state/firebase_ghost_api.dart`
 - Called when loading a ghost entry from leaderboard context.
-- Returns ghost manifest + signed short-lived download URL.
+- Returns the active manifest, including replay digest and Storage generation lineage, plus a short-lived URL signed for that exact promoted object generation.
 
 Why:
 
-- Keeps ghost artifact paths private behind callable auth checks.
+- Keeps ghost artifact paths private behind callable auth, account-deletion, and quota checks.
 - Enforces URL TTL/signing policy centrally.
 
 ## 4) Scheduled backend maintenance functions (not directly called by app)

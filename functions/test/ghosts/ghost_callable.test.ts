@@ -145,6 +145,7 @@ test("loads active exposed ghost manifest with signed download URL", async () =>
   );
   assert.ok(response.ghostManifest.downloadUrlExpiresAtMs > Date.now());
   assert.equal(signer.lastObjectPath, "ghosts/board_1/entry_1/ghost.bin.gz");
+  assert.equal(signer.lastStorageGeneration, "456");
 });
 
 test("ghost quota rejects before a second signed URL is created", async () => {
@@ -305,14 +306,17 @@ async function withoutReplayStorageBucket(
 
 class _RecordingGhostDownloadUrlSigner implements GhostDownloadUrlSigner {
   lastObjectPath?: string;
+  lastStorageGeneration?: string;
   callCount = 0;
 
   async signDownloadUrl(args: {
     objectPath: string;
+    storageGeneration: string;
     expiresAtMs: number;
   }): Promise<string> {
     this.callCount += 1;
     this.lastObjectPath = args.objectPath;
+    this.lastStorageGeneration = args.storageGeneration;
     return `https://example.test/${args.objectPath}`;
   }
 }

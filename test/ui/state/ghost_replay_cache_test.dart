@@ -31,6 +31,7 @@ void main() {
       entryId: 'entry_1',
       runSessionId: 'run_1',
       expiresAtMs: 10_000,
+      replayDigest: replayBlob.canonicalSha256,
     );
 
     final first = await cache.loadReplay(manifest: manifest);
@@ -66,6 +67,7 @@ void main() {
           entryId: 'entry_1',
           runSessionId: 'run_1',
           expiresAtMs: 10_000,
+          replayDigest: replayBlob.canonicalSha256,
         ),
       ),
       throwsA(
@@ -96,6 +98,7 @@ void main() {
           entryId: 'entry_1',
           runSessionId: 'run_1',
           expiresAtMs: 9_999,
+          replayDigest: _testReplayDigest,
         ),
       ),
       throwsA(
@@ -104,6 +107,49 @@ void main() {
           'code',
           'failed-precondition',
         ),
+      ),
+    );
+  });
+
+  test('rejects replay whose digest does not match manifest', () async {
+    final cacheDir = await Directory.systemTemp.createTemp(
+      'ghost-cache-digest-mismatch-',
+    );
+    addTearDown(() => cacheDir.delete(recursive: true));
+    final replayBlob = _buildReplayBlob(
+      boardId: 'board_1',
+      runSessionId: 'run_1',
+    );
+    final cache = FileGhostReplayCache(
+      cacheDirectory: cacheDir,
+      downloader: _FakeGhostReplayDownloader(
+        payload: utf8.encode(jsonEncode(replayBlob.toJson())),
+      ),
+      clockMs: () => 1234,
+    );
+
+    await expectLater(
+      () => cache.loadReplay(
+        manifest: _manifest(
+          boardId: 'board_1',
+          entryId: 'entry_1',
+          runSessionId: 'run_1',
+          expiresAtMs: 10_000,
+          replayDigest: _testReplayDigest,
+        ),
+      ),
+      throwsA(
+        isA<RunStartRemoteException>()
+            .having(
+              (RunStartRemoteException e) => e.code,
+              'code',
+              'failed-precondition',
+            )
+            .having(
+              (RunStartRemoteException e) => e.message,
+              'message',
+              'Ghost replay digest does not match manifest.',
+            ),
       ),
     );
   });
@@ -149,11 +195,15 @@ ReplayBlobV1 _buildReplayBlob({
   );
 }
 
+const _testReplayDigest =
+    'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+
 GhostManifest _manifest({
   required String boardId,
   required String entryId,
   required String runSessionId,
   required int expiresAtMs,
+  required String replayDigest,
 }) {
   return GhostManifest(
     boardId: boardId,
@@ -163,6 +213,9 @@ GhostManifest _manifest({
     replayStorageRef: 'ghosts/$boardId/$entryId/ghost.bin.gz',
     sourceReplayStorageRef:
         'replay-submissions/pending/uid_1/$runSessionId/replay.bin.gz',
+    sourceReplayStorageGeneration: '123',
+    promotedReplayStorageGeneration: '456',
+    replayDigest: replayDigest,
     downloadUrl: 'https://example.test/ghosts/$boardId/$entryId/ghost.bin.gz',
     downloadUrlExpiresAtMs: expiresAtMs,
     score: 1200,

@@ -189,6 +189,48 @@ test("load board returns ranked top entries from player_bests", async () => {
   assert.equal(topEntries[1]?.rank, 2);
   assert.equal(topEntries[2]?.uid, "uid_3");
   assert.equal(topEntries[2]?.rank, 3);
+  assert.equal(topEntries[0]?.ghostAvailable, false);
+});
+
+test("load board exposes published ghost availability from the top10 view", async () => {
+  await seedBoardWithEntries(db);
+  const boardRef = db.collection("leaderboard_boards").doc("board_competitive_1");
+  await boardRef.collection("views").doc("top10").set({
+    boardId: "board_competitive_1",
+    entries: [
+      {
+        ...leaderboardEntryDoc({
+          boardId: "board_competitive_1",
+          uid: "uid_1",
+          sortKey: "0000010000:0000000400:0000000120:entry_1",
+          score: 10000,
+          distanceMeters: 400,
+          durationSeconds: 120,
+          entryId: "entry_1",
+        }),
+        ghostEligible: true,
+        ghostAvailable: true,
+        rank: 1,
+      },
+    ],
+    updatedAtMs: 1700000000001,
+  });
+
+  const response = await handleLeaderboardLoadBoard(
+    {
+      auth: { uid: "uid_1" },
+      data: {
+        userId: "uid_1",
+        sessionId: "session_1",
+        boardId: "board_competitive_1",
+      },
+    },
+    db,
+  );
+
+  assert.equal(response.board.topEntries.length, 1);
+  assert.equal(response.board.topEntries[0]?.ghostEligible, true);
+  assert.equal(response.board.topEntries[0]?.ghostAvailable, true);
 });
 
 test("load my rank returns exact rank and total players", async () => {

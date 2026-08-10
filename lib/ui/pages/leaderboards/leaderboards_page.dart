@@ -345,7 +345,7 @@ class _OnlineLeaderboardListState extends State<_OnlineLeaderboardList> {
       return;
     }
     final entryId = entry.entryId.trim();
-    if (!entry.ghostEligible || entryId.isEmpty) {
+    if (!entry.ghostAvailable || entryId.isEmpty) {
       return;
     }
     setState(() => _startingGhostEntryId = entryId);
@@ -486,7 +486,7 @@ class _OnlineLeaderboardListState extends State<_OnlineLeaderboardList> {
                             _startingGhostEntryId == sourceEntryId;
                         final enabled =
                             _startingGhostEntryId == null &&
-                            source.ghostEligible &&
+                            source.ghostAvailable &&
                             sourceEntryId.isNotEmpty;
                         if (isStarting) {
                           return SizedBox(
@@ -501,7 +501,7 @@ class _OnlineLeaderboardListState extends State<_OnlineLeaderboardList> {
                         return IconButton(
                           iconSize: 18,
                           visualDensity: VisualDensity.compact,
-                          tooltip: source.ghostEligible
+                          tooltip: source.ghostAvailable
                               ? 'Race this ghost.'
                               : 'Ghost unavailable for this run.',
                           onPressed: enabled

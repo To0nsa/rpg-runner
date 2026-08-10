@@ -929,6 +929,10 @@ class _RecordingGhostManifestApi implements GhostApi {
       replayStorageRef: 'ghosts/$boardId/$entryId/ghost.bin.gz',
       sourceReplayStorageRef:
           'replay-submissions/pending/u_ghost/run_ghost_recording/replay.bin.gz',
+      sourceReplayStorageGeneration: '123',
+      promotedReplayStorageGeneration: '456',
+      replayDigest:
+          'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       downloadUrl: 'https://example.test/ghost.bin.gz',
       downloadUrlExpiresAtMs: DateTime.now().millisecondsSinceEpoch + 60000,
       score: 1000,
@@ -998,6 +1002,10 @@ class _SingleGhostManifestApi implements GhostApi {
       replayStorageRef: 'ghosts/$boardId/$entryId/ghost.bin.gz',
       sourceReplayStorageRef:
           'replay-submissions/pending/u_ghost/run_ghost_1/replay.bin.gz',
+      sourceReplayStorageGeneration: '123',
+      promotedReplayStorageGeneration: '456',
+      replayDigest:
+          'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       downloadUrl: 'https://example.test/ghost.bin.gz',
       downloadUrlExpiresAtMs: DateTime.now().millisecondsSinceEpoch + 60000,
       score: 1000,

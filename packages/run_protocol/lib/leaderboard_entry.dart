@@ -15,6 +15,7 @@ final class LeaderboardEntry {
     required this.sortKey,
     required this.ghostEligible,
     required this.updatedAtMs,
+    this.ghostAvailable = false,
     this.replayStorageRef,
     this.replayStorageGeneration,
     this.replayDigest,
@@ -70,7 +71,15 @@ final class LeaderboardEntry {
   final int distanceMeters;
   final int durationSeconds;
   final String sortKey;
+
+  /// Whether this entry is currently among the server's ghost candidates.
   final bool ghostEligible;
+
+  /// Whether a current active, exposed ghost manifest is available for this
+  /// entry.
+  ///
+  /// Older serialized leaderboard entries omit this field and decode as false.
+  final bool ghostAvailable;
   final String? replayStorageRef;
 
   /// Immutable source generation used when promoting this entry as a ghost.
@@ -94,6 +103,7 @@ final class LeaderboardEntry {
       'durationSeconds': durationSeconds,
       'sortKey': sortKey,
       'ghostEligible': ghostEligible,
+      'ghostAvailable': ghostAvailable,
       if (replayStorageRef != null) 'replayStorageRef': replayStorageRef,
       if (replayStorageGeneration != null)
         'replayStorageGeneration': replayStorageGeneration,
@@ -117,6 +127,7 @@ final class LeaderboardEntry {
       durationSeconds: readRequiredInt(json, 'durationSeconds'),
       sortKey: readRequiredString(json, 'sortKey'),
       ghostEligible: readRequiredBool(json, 'ghostEligible'),
+      ghostAvailable: readOptionalBool(json, 'ghostAvailable') ?? false,
       replayStorageRef: readOptionalString(json, 'replayStorageRef'),
       replayStorageGeneration: readOptionalString(
         json,

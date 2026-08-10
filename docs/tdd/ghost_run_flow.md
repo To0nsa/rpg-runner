@@ -23,7 +23,7 @@ Not included:
 
 A ghost run is a **read-only deterministic replay** of a previously validated leaderboard run.
 
-- It is represented by a replay blob (`ReplayBlobV1`) and associated ghost manifest metadata.
+- It is represented by a replay blob (`ReplayBlobV1`) and associated ghost manifest metadata, including the published replay digest and promoted Storage generation.
 - It is rendered as a separate, translucent ghost layer in Flame.
 - It never becomes gameplay authority for the player’s live run.
 
@@ -37,7 +37,7 @@ Core idea:
 
 ### A) Security and fairness
 
-Ghost fetches are auth-gated callable requests. The backend verifies auth identity and only returns manifests marked active/exposed.
+Ghost fetches are auth-gated callable requests. The backend verifies auth identity, account state, and request quota, and only returns manifests marked active/exposed.
 
 Why:
 - Prevents unauthenticated scraping of replay artifacts.
@@ -61,7 +61,7 @@ Why:
 
 ### D) Performance and resilience
 
-Client uses temp-file cache and validates replay integrity + manifest matching before use.
+Client uses a temp-file cache and validates replay integrity + manifest matching before use. Every start still loads a fresh manifest; the cache avoids a repeat replay-artifact download, not the authenticated manifest request.
 
 Why:
 - Repeated ghost starts do not always require network.
@@ -75,21 +75,27 @@ Why:
 
 1. A submitted run is validated by replay validator worker.
 2. For board modes, validator projects leaderboard state.
-3. Top entries are marked ghost-eligible and top10 view is refreshed.
-4. Ghost publisher promotes replay artifacts to ghost storage path and upserts ghost manifests.
+3. The refreshed top10 view marks its entries `ghostEligible: true` and
+   `ghostAvailable: false` until publication completes.
+4. Ghost publisher promotes replay artifacts to ghost storage path and upserts
+   active/exposed manifests.
+5. A second top10 refresh materializes `ghostAvailable: true` only for entries
+   with a current active/exposed manifest; it clears the flag after demotion.
 
 Key details:
 - Candidate leaderboard entries start with `ghostEligible: false` then top10 refresh marks top entries as `ghostEligible: true`.
 - Promoted ghost object path is canonicalized as:
   - `ghosts/<boardId>/<entryId>/ghost.bin.gz`
 - Ghost manifest status/exposure drives client visibility:
-  - active + exposed => available
-  - demoted / not exposed => not available
+- active + exposed => available
+- demoted / not exposed => not available
+
+`ghostEligible` is a leaderboard candidate signal, not a manifest-availability guarantee. `ghostAvailable` is the client-facing availability projection and is true only after a matching active/exposed manifest has been published. The UI enables `VS Ghost` only for `ghostAvailable` entries, so an unavailable candidate never creates a run ticket. The manifest callable remains the final policy check because the row can become stale after it was loaded.
 
 ## 3.2 Player starts “VS Ghost” (client UI)
 
 1. Leaderboards page shows a trailing `VS Ghost` action only when:
-   - `entry.ghostEligible == true`
+   - `entry.ghostAvailable == true`
    - `entry.entryId` is non-empty
 2. On tap:
    - UI aligns app selection to target run mode + level.
@@ -98,9 +104,9 @@ Key details:
 ## 3.3 Run start descriptor + ghost bootstrap
 
 Inside `prepareRunStartDescriptor(...)`:
-1. Ensures auth session.
-2. Forces canonical ownership/state refresh from backend.
-3. Creates a run session ticket (`runSessionCreate`).
+1. Ensures pending ownership edits are synchronized; a recently confirmed sync can fast-return without a canonical read.
+2. Ensures auth session.
+3. Consumes a valid prefetched run ticket when available, otherwise creates a run session ticket (`runSessionCreate`).
 4. If board-bound and `ghostEntryId` exists:
    - calls `loadGhostReplayBootstrap(boardId, entryId)`.
 
@@ -116,31 +122,34 @@ Client calls `ghostLoadManifest` with `userId/sessionId/boardId/entryId`.
 Backend handler:
 1. Requires authenticated callable context.
 2. Validates `userId == auth.uid`.
-3. Loads manifest from:
+3. Rejects account deletion in progress and consumes the per-user `ghost_url` quota before signing.
+4. Treats the required `sessionId` as request correlation only; Firebase auth remains the identity authority.
+5. Loads manifest from:
    - `leaderboard_boards/{boardId}/ghost_manifests/{entryId}`
-4. Requires manifest state:
+6. Requires manifest state:
    - `status == "active"`
    - `exposed == true`
-5. Requires storage path to be under `ghosts/` prefix.
-6. Signs short-lived download URL (TTL 15 minutes).
-7. Returns manifest + signed URL + expiry.
+7. Requires storage path to be under `ghosts/` prefix.
+8. Signs a short-lived download URL (TTL 15 minutes) pinned to the manifest's `promotedReplayStorageGeneration`.
+9. Returns manifest + signed URL + expiry.
 
 ## 3.5 Replay cache + validation (client)
 
 `FileGhostReplayCache` behavior:
 1. Cache directory: system temp under `rpg_runner/ghost_cache`.
-2. Cache key includes board/entry/runSession/updated timestamp.
+2. Cache key includes board/entry/runSession, promoted Storage generation, replay digest, and updated timestamp.
 3. Attempts to read existing cached file first.
 4. If cache miss:
    - validates download URL is not already expired,
    - downloads bytes,
    - optionally gzip-decompresses,
    - parses `ReplayBlobV1` with digest verification,
+   - verifies replay canonical digest matches manifest `replayDigest`,
    - verifies replay `runSessionId` and `boardId` match manifest,
    - writes bytes to cache,
    - prunes superseded cache files for same board+entry.
 
-Failure behavior: invalid data is rejected; bad cached files are deleted and re-fetched.
+Failure behavior: invalid data is rejected; bad cached files are deleted and re-fetched. A valid cache entry may still be used after the newly returned download URL expires, because URL freshness is only required when a download is needed.
 
 ## 3.6 In-run playback + rendering
 
@@ -182,6 +191,7 @@ What is intentionally **not** rendered from ghost data:
 Used by leaderboards page to decide if ghost action is available:
 - `entryId`
 - `ghostEligible`
+- `ghostAvailable` (the active/exposed manifest projection used to enable the action)
 - rank/score/distance/duration metadata
 
 ## 4.2 Ghost manifest
@@ -189,6 +199,8 @@ Used by leaderboards page to decide if ghost action is available:
 Carries publication + download metadata:
 - identity: `boardId`, `entryId`, `runSessionId`, `uid`
 - storage refs: `replayStorageRef`, `sourceReplayStorageRef`
+- storage lineage: `sourceReplayStorageGeneration`, `promotedReplayStorageGeneration`
+- replay integrity: `replayDigest` (the expected `ReplayBlobV1.canonicalSha256`)
 - signed fetch: `downloadUrl`, `downloadUrlExpiresAtMs`
 - leaderboard context: `score`, `distanceMeters`, `durationSeconds`, `sortKey`, `rank`, `updatedAtMs`
 
@@ -205,11 +217,12 @@ Client-side run attachment:
 
 Trusted server responsibilities:
 - Manifest availability (`active` + `exposed`)
-- Signed URL issuance
+- Generation-pinned signed URL issuance
 - Path restriction (`ghosts/`)
+- Account-deletion and quota gates
 
 Client responsibilities:
-- Verify replay digest
+- Verify replay self-digest and compare it to manifest `replayDigest`
 - Verify replay identifiers against manifest (`runSessionId`, `boardId`)
 - Treat ghost as render-only signal
 
@@ -226,7 +239,7 @@ Ghost publisher:
 - promotes top entries to active/exposed manifests,
 - demotes previous manifests leaving top set,
 - sets demoted manifests non-exposed,
-- eventually deletes demoted ghost objects/manifests after grace period (default 7 days).
+- deletes demoted ghost objects/manifests after their grace period (default 7 days) during a later board reconciliation.
 
 ### Cleanup safety
 
@@ -241,7 +254,8 @@ Why:
 
 Common fail-closed cases:
 - Ghost not active/exposed anymore => manifest load behaves as unavailable.
-- URL already expired before fetch => start blocked.
+- A top10 candidate remains `ghostAvailable: false` until its manifest is active/exposed, so the action is disabled and no ghost run ticket is created.
+- URL already expired before a cache miss => start blocked; a valid cache entry does not need the URL.
 - Replay decode/digest mismatch => start blocked (or cache invalidated + retry path).
 - Board/run mismatch between manifest and replay => start blocked.
 - Ghost playback init/runtime failure => ghost layer is cleared/disabled; live run remains playable.
@@ -253,7 +267,7 @@ UI behavior:
 
 ## 8) Practical debugging checklist
 
-1. Verify board entry has `ghostEligible: true` and valid `entryId`.
+1. Verify board entry has `ghostEligible: true`, `ghostAvailable: true`, and a valid `entryId`.
 2. Verify callable auth context exists and `userId` matches auth uid.
 3. Verify manifest doc exists and is `active + exposed`.
 4. Verify manifest `replayStorageRef` under `ghosts/`.

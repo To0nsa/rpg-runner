@@ -214,9 +214,11 @@ retention policy; an active ghost is instead pinned by its independently durable
 Leaderboard projection uses conditional compare-and-replace for player best
 and an update-time precondition for the top-10 materialized view. A duplicate
 task always resumes top-10 refresh even when the candidate is already the
-stored best. `runProjectionReconciliation` independently pages through boards
-every 15 minutes and sends board reconciliation tasks, so convergence does not
-depend on a new score.
+stored best. After ghost publication/reconciliation, it refreshes the view
+again so `ghostAvailable` is true only for a current active/exposed manifest
+and is cleared on demotion. `runProjectionReconciliation` independently pages
+through boards every 15 minutes and sends board reconciliation tasks, so
+convergence does not depend on a new score.
 
 Ghost reconciliation derives exposure from the current top 10, including an
 empty top 10, and pages through every prior manifest. Promotion copies the
@@ -413,8 +415,10 @@ production notification channel and are reconciled idempotently by
 Ghost availability depends on accepted board-mode validation.
 
 Only after validator acceptance does the independent projection pipeline:
-- project leaderboard top entries (`ghostEligible` updates), and
-- publish/refresh ghost manifests via `GhostPublisher`.
+- project leaderboard top entries (`ghostEligible` candidate updates),
+- publish/refresh ghost manifests via `GhostPublisher`, and
+- materialize `ghostAvailable` from active/exposed manifests in the final
+  top-10 refresh.
 
 So ghost runs are downstream of validator success, not client-side upload success.
 When an active manifest's source lineage, digest, and promoted ghost generation

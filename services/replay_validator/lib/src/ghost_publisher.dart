@@ -10,7 +10,8 @@ import 'google_api_helpers.dart';
 const Duration _defaultDemotionGrace = Duration(days: 7);
 
 abstract class GhostPublisher {
-  Future<void> updateGhostArtifacts({
+  /// Reconciles ghost artifacts and returns the affected board when one exists.
+  Future<String?> updateGhostArtifacts({
     required String runSessionId,
     ValidatedRun? validatedRun,
   });
@@ -20,10 +21,10 @@ abstract class GhostPublisher {
 
 class NoopGhostPublisher implements GhostPublisher {
   @override
-  Future<void> updateGhostArtifacts({
+  Future<String?> updateGhostArtifacts({
     required String runSessionId,
     ValidatedRun? validatedRun,
-  }) async {}
+  }) async => null;
 
   @override
   Future<void> reconcileBoard({required String boardId}) async {}
@@ -148,7 +149,7 @@ class FirestoreGhostPublisher implements GhostPublisher {
   final Duration _demotionGrace;
 
   @override
-  Future<void> updateGhostArtifacts({
+  Future<String?> updateGhostArtifacts({
     required String runSessionId,
     ValidatedRun? validatedRun,
   }) async {
@@ -163,10 +164,12 @@ class FirestoreGhostPublisher implements GhostPublisher {
         !resolvedValidatedRun.accepted ||
         !resolvedValidatedRun.mode.requiresBoard ||
         resolvedValidatedRun.boardId == null) {
-      return;
+      return null;
     }
 
-    await reconcileBoard(boardId: resolvedValidatedRun.boardId!);
+    final boardId = resolvedValidatedRun.boardId!;
+    await reconcileBoard(boardId: boardId);
+    return boardId;
   }
 
   @override

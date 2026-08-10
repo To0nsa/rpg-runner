@@ -92,6 +92,15 @@ bool readRequiredBool(Map<String, Object?> json, String key) {
   return raw;
 }
 
+bool? readOptionalBool(Map<String, Object?> json, String key) {
+  final raw = json[key];
+  if (raw == null) return null;
+  if (raw is! bool) {
+    throw FormatException('$key must be a bool when set.');
+  }
+  return raw;
+}
+
 Map<String, Object?> readRequiredObject(Map<String, Object?> json, String key) {
   return asObjectMap(json[key], fieldName: key);
 }

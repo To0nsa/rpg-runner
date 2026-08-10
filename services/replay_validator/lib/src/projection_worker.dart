@@ -60,9 +60,12 @@ class DeterministicProjectionWorker implements ProjectionWorker {
       await leaderboardProjector.projectValidatedRun(
         runSessionId: normalizedRunSessionId,
       );
-      await ghostPublisher.updateGhostArtifacts(
+      final ghostBoardId = await ghostPublisher.updateGhostArtifacts(
         runSessionId: normalizedRunSessionId,
       );
+      if (ghostBoardId != null) {
+        await leaderboardProjector.reconcileBoard(boardId: ghostBoardId);
+      }
       await metrics.recordDispatch(
         runSessionId: normalizedRunSessionId,
         status: ProjectionDispatchStatus.completed.name,
@@ -108,6 +111,7 @@ class DeterministicProjectionWorker implements ProjectionWorker {
     try {
       await leaderboardProjector.reconcileBoard(boardId: normalizedBoardId);
       await ghostPublisher.reconcileBoard(boardId: normalizedBoardId);
+      await leaderboardProjector.reconcileBoard(boardId: normalizedBoardId);
       await metrics.recordDispatch(
         runSessionId: 'board:$normalizedBoardId',
         status: ProjectionDispatchStatus.completed.name,

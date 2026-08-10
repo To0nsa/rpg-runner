@@ -57,6 +57,36 @@ void main() {
     expect(appState.ownershipSyncStatus.pendingCount, 0);
     expect(appState.selection.selectedRunMode, RunMode.competitive);
   });
+
+  testWidgets('ghost start stays disabled until the ghost is published', (
+    tester,
+  ) async {
+    final ownershipApi = _RecordingOwnershipApi();
+    final appState = AppState(
+      authApi: const _StaticAuthApi(),
+      loadoutOwnershipApi: ownershipApi,
+      runBoardsApi: const _StaticRunBoardsApi(),
+      leaderboardApi: const _StaticLeaderboardApi(ghostAvailable: false),
+      runSessionApi: const _StaticRunSessionApi(),
+      ghostApi: const _StaticGhostApi(),
+      ghostReplayCache: const _StaticGhostReplayCache(),
+    );
+    await appState.bootstrap(force: true);
+
+    await tester.pumpWidget(_TestApp(appState: appState));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('COMPETITIVE'));
+    await tester.pumpAndSettle();
+
+    final button = tester.widget<IconButton>(
+      find.widgetWithIcon(IconButton, Icons.play_arrow_rounded),
+    );
+    expect(button.onPressed, isNull);
+    await tester.tap(find.byIcon(Icons.play_arrow_rounded));
+    await tester.pumpAndSettle();
+    expect(find.text('run-route-marker'), findsNothing);
+    expect(ownershipApi.setSelectionCalls, 0);
+  });
 }
 
 class _TestApp extends StatelessWidget {
@@ -223,7 +253,9 @@ class _StaticRunBoardsApi implements RunBoardsApi {
 }
 
 class _StaticLeaderboardApi implements LeaderboardApi {
-  const _StaticLeaderboardApi();
+  const _StaticLeaderboardApi({this.ghostAvailable = true});
+
+  final bool ghostAvailable;
 
   @override
   Future<OnlineLeaderboardBoardData> loadActiveBoardData({
@@ -268,6 +300,7 @@ class _StaticLeaderboardApi implements LeaderboardApi {
           durationSeconds: 89,
           sortKey: '0001:0001:0089:entry_1',
           ghostEligible: true,
+          ghostAvailable: ghostAvailable,
           updatedAtMs: 1,
           rank: 1,
         ),
@@ -382,6 +415,10 @@ class _StaticGhostApi implements GhostApi {
       uid: 'u_top',
       replayStorageRef: 'ghosts/$boardId/$entryId/ghost.bin.gz',
       sourceReplayStorageRef: 'replays/source.bin.gz',
+      sourceReplayStorageGeneration: '123',
+      promotedReplayStorageGeneration: '456',
+      replayDigest:
+          'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       downloadUrl: 'https://example.test/ghost.bin.gz',
       downloadUrlExpiresAtMs: 999999999999,
       score: 1234,

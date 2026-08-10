@@ -11,6 +11,13 @@ Ghost flow uses two distinct serialized payloads:
 2. **Replay blob payload** (`ReplayBlobV1` JSON, optionally gzip-compressed bytes)
    - Full deterministic command stream + run/ticket binding fields.
 
+The preceding leaderboard row is a separate `LeaderboardEntry` protocol value.
+Its `ghostEligible` field identifies a top-10 publication candidate, while its
+backward-compatible `ghostAvailable` field is false when absent and becomes
+true only after the worker has observed a matching active/exposed manifest.
+The client enables `VS Ghost` only from `ghostAvailable`; the manifest remains
+the authoritative download and policy payload.
+
 ---
 
 ## 2) Replay blob format (`ReplayBlobV1`)
@@ -109,12 +116,14 @@ Response JSON shape:
 Manifest fields returned to client:
 - `boardId`, `entryId`, `runSessionId`, `uid`
 - `replayStorageRef`, `sourceReplayStorageRef`
+- `sourceReplayStorageGeneration`, `promotedReplayStorageGeneration`, `replayDigest`
 - `score`, `distanceMeters`, `durationSeconds`, `sortKey`, `rank`, `updatedAtMs`
 - `downloadUrl`, `downloadUrlExpiresAtMs` (added by callable signer)
 
 Backend eligibility gate before serialization:
 - Firestore manifest must be `status == "active"` and `exposed == true`.
 - `replayStorageRef` must start with `ghosts/`.
+- The signed URL includes the immutable `promotedReplayStorageGeneration`, so it cannot resolve a newer generation at the same object path.
 
 ---
 
@@ -129,6 +138,8 @@ Manifest document path:
 Upserted fields:
 - identity: `boardId`, `entryId`, `runSessionId`, `uid`
 - storage refs: `replayStorageRef`, `sourceReplayStorageRef`
+- storage lineage: `sourceReplayStorageGeneration`, `promotedReplayStorageGeneration`
+- replay integrity: `replayDigest`
 - leaderboard fields: `score`, `distanceMeters`, `durationSeconds`, `sortKey`, `rank`
 - lifecycle fields: `status`, `exposed`, `updatedAtMs`, optional `promotedAtMs`, `demotedAtMs`, `expiresAtMs`
 
@@ -147,12 +158,13 @@ Client decode path:
 Deserialization sequence:
 1. Parse callable response map.
 2. Parse `GhostManifest.fromJson(...)` with strict required fields.
-3. Validate URL freshness (`downloadUrlExpiresAtMs > now`).
-4. Download bytes (or read cached bytes).
+3. Try the versioned local cache first; URL freshness is required only on a cache miss.
+4. Validate URL freshness (`downloadUrlExpiresAtMs > now`) and download bytes when no cache entry is usable.
 5. Detect gzip by magic bytes `1f 8b`; if gzip, decompress.
 6. UTF-8 decode + JSON parse.
 7. Parse `ReplayBlobV1.fromJson(..., verifyDigest: true)`.
 8. Enforce manifest/replay binding equality:
+   - `replayBlob.canonicalSha256 == manifest.replayDigest`
    - `replayBlob.runSessionId == manifest.runSessionId`
    - `replayBlob.boardId == manifest.boardId`
 
@@ -169,7 +181,7 @@ Directory:
 
 Filename derivation:
 - prefix from sanitized `boardId_entryId`
-- encoded suffix from `boardId|entryId|runSessionId|updatedAtMs` (base64url, no `=`)
+- encoded suffix from `boardId|entryId|runSessionId|promotedReplayStorageGeneration|replayDigest|updatedAtMs` (base64url, no `=`)
 - final suffix: `.replay.json`
 
 Note:
@@ -219,6 +231,6 @@ All fail closed; ghost bootstrap is not attached if decoding/validation fails.
 
 ## Related docs
 
-- [docs/tdd/ghost_run_flow_what_how_why.md](docs/tdd/ghost_run_flow_what_how_why.md)
-- [docs/tdd/replay_validator_worker.md](docs/tdd/replay_validator_worker.md)
-- [docs/tdd/local_cache_and_persistence.md](docs/tdd/local_cache_and_persistence.md)
+- [Ghost run flow](ghost_run_flow.md)
+- [Replay validator worker](replay_validator_worker.md)
+- [Local cache and persistence](local_cache_and_persistence.md)

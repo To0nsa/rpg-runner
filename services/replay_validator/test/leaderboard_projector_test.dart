@@ -130,6 +130,7 @@ void main() {
       expect(top10[0].runSessionId, 'run_improved');
       expect(top10[0].rank, 1);
       expect(top10[0].ghostEligible, isTrue);
+      expect(top10[0].ghostAvailable, isFalse);
       expect(top10[1].uid, 'uid_rival');
       expect(top10[1].rank, 2);
       expect(store.playerBestsByBoard[boardId]![uid]!.ghostEligible, isTrue);
@@ -137,6 +138,48 @@ void main() {
         store.playerBestsByBoard[boardId]!['uid_rival']!.ghostEligible,
         isTrue,
       );
+    },
+  );
+
+  test(
+    'top10 ghost availability follows active exposed manifest state',
+    () async {
+      const boardId = 'board_ghost_availability';
+      const runSessionId = 'run_available';
+      final entry = _entry(
+        boardId: boardId,
+        runSessionId: runSessionId,
+        uid: 'uid_player',
+        displayName: 'Player One',
+        score: 1200,
+        distanceMeters: 400,
+        durationSeconds: 100,
+        updatedAtMs: 1000,
+      );
+      final store = _InMemoryLeaderboardProjectionStore(
+        playerBestsByBoard: <String, Map<String, LeaderboardEntry>>{
+          boardId: <String, LeaderboardEntry>{entry.uid: entry},
+        },
+        activeGhostEntryIdsByBoard: <String, Set<String>>{
+          boardId: <String>{runSessionId},
+        },
+      );
+      final projector = FirestoreLeaderboardProjector(
+        projectId: 'demo-project',
+        store: store,
+        clockMs: () => 8000,
+      );
+
+      await projector.reconcileBoard(boardId: boardId);
+
+      expect(store.top10Views[boardId]!.single.ghostEligible, isTrue);
+      expect(store.top10Views[boardId]!.single.ghostAvailable, isTrue);
+
+      store.activeGhostEntryIdsByBoard[boardId] = <String>{};
+      await projector.reconcileBoard(boardId: boardId);
+
+      expect(store.top10Views[boardId]!.single.ghostEligible, isTrue);
+      expect(store.top10Views[boardId]!.single.ghostAvailable, isFalse);
     },
   );
 
@@ -312,6 +355,7 @@ LeaderboardEntry _entry({
   required int durationSeconds,
   required int updatedAtMs,
   bool ghostEligible = false,
+  bool ghostAvailable = false,
 }) {
   return LeaderboardEntry(
     boardId: boardId,
@@ -330,6 +374,7 @@ LeaderboardEntry _entry({
       entryId: runSessionId,
     ),
     ghostEligible: ghostEligible,
+    ghostAvailable: ghostAvailable,
     updatedAtMs: updatedAtMs,
   );
 }
@@ -337,6 +382,7 @@ LeaderboardEntry _entry({
 LeaderboardEntry _copyEntry(
   LeaderboardEntry source, {
   bool? ghostEligible,
+  bool? ghostAvailable,
   int? updatedAtMs,
   int? rank,
 }) {
@@ -352,6 +398,7 @@ LeaderboardEntry _copyEntry(
     durationSeconds: source.durationSeconds,
     sortKey: source.sortKey,
     ghostEligible: ghostEligible ?? source.ghostEligible,
+    ghostAvailable: ghostAvailable ?? source.ghostAvailable,
     replayStorageRef: source.replayStorageRef,
     replayStorageGeneration: source.replayStorageGeneration,
     replayDigest: source.replayDigest,
@@ -368,6 +415,7 @@ class _InMemoryLeaderboardProjectionStore
     Map<String, String>? characterIds,
     Map<String, Map<String, LeaderboardEntry>>? playerBestsByBoard,
     Map<String, List<LeaderboardEntry>>? top10Views,
+    Map<String, Set<String>>? activeGhostEntryIdsByBoard,
     this.top10WriteConflictsRemaining = 0,
     this.top10WriteFailuresRemaining = 0,
   }) : validatedRuns = validatedRuns ?? <String, ValidatedRun>{},
@@ -375,13 +423,16 @@ class _InMemoryLeaderboardProjectionStore
        characterIds = characterIds ?? <String, String>{},
        playerBestsByBoard =
            playerBestsByBoard ?? <String, Map<String, LeaderboardEntry>>{},
-       top10Views = top10Views ?? <String, List<LeaderboardEntry>>{};
+       top10Views = top10Views ?? <String, List<LeaderboardEntry>>{},
+       activeGhostEntryIdsByBoard =
+           activeGhostEntryIdsByBoard ?? <String, Set<String>>{};
 
   final Map<String, ValidatedRun> validatedRuns;
   final Map<String, String> displayNames;
   final Map<String, String> characterIds;
   final Map<String, Map<String, LeaderboardEntry>> playerBestsByBoard;
   final Map<String, List<LeaderboardEntry>> top10Views;
+  final Map<String, Set<String>> activeGhostEntryIdsByBoard;
 
   final List<LeaderboardEntry> upsertedEntries = <LeaderboardEntry>[];
   final List<String> top10Writes = <String>[];
@@ -449,6 +500,12 @@ class _InMemoryLeaderboardProjectionStore
     }
     return values.sublist(0, limit);
   }
+
+  @override
+  Future<Set<String>> loadActiveGhostEntryIds({
+    required String boardId,
+  }) async =>
+      Set<String>.from(activeGhostEntryIdsByBoard[boardId] ?? const <String>{});
 
   @override
   Future<void> setPlayerBestGhostEligible({

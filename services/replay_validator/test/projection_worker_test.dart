@@ -35,7 +35,7 @@ void main() {
     'projection completes only after leaderboard and ghost publication finish',
     () async {
       final leaderboard = _FakeLeaderboardProjector();
-      final ghosts = _FakeGhostPublisher();
+      final ghosts = _FakeGhostPublisher(boardIdForUpdate: 'board_2');
       final worker = DeterministicProjectionWorker(
         leaderboardProjector: leaderboard,
         ghostPublisher: ghosts,
@@ -49,6 +49,7 @@ void main() {
       expect(result.status, ProjectionDispatchStatus.completed);
       expect(leaderboard.runSessionIds, <String>['run_board_2']);
       expect(ghosts.runSessionIds, <String>['run_board_2']);
+      expect(leaderboard.boardIds, <String>['board_2']);
     },
   );
 
@@ -85,7 +86,7 @@ void main() {
     final result = await worker.reconcileBoard(boardId: 'board_1');
 
     expect(result.status, ProjectionDispatchStatus.completed);
-    expect(leaderboard.boardIds, <String>['board_1']);
+    expect(leaderboard.boardIds, <String>['board_1', 'board_1']);
     expect(ghosts.boardIds, <String>['board_1']);
   });
 }
@@ -119,15 +120,19 @@ class _FakeLeaderboardProjector implements LeaderboardProjector {
 }
 
 class _FakeGhostPublisher implements GhostPublisher {
+  _FakeGhostPublisher({this.boardIdForUpdate});
+
+  final String? boardIdForUpdate;
   final List<String> runSessionIds = <String>[];
   final List<String> boardIds = <String>[];
 
   @override
-  Future<void> updateGhostArtifacts({
+  Future<String?> updateGhostArtifacts({
     required String runSessionId,
     ValidatedRun? validatedRun,
   }) async {
     runSessionIds.add(runSessionId);
+    return boardIdForUpdate;
   }
 
   @override

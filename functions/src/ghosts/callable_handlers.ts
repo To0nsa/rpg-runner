@@ -21,6 +21,7 @@ const defaultGhostDownloadUrlTtlMs = 15 * 60 * 1000;
 export interface GhostDownloadUrlSigner {
   signDownloadUrl(args: {
     objectPath: string;
+    storageGeneration: string;
     expiresAtMs: number;
   }): Promise<string>;
 }
@@ -30,6 +31,7 @@ class FirebaseStorageGhostDownloadUrlSigner implements GhostDownloadUrlSigner {
 
   async signDownloadUrl(args: {
     objectPath: string;
+    storageGeneration: string;
     expiresAtMs: number;
   }): Promise<string> {
     const [downloadUrl] = await getStorage()
@@ -39,6 +41,9 @@ class FirebaseStorageGhostDownloadUrlSigner implements GhostDownloadUrlSigner {
         version: "v4",
         action: "read",
         expires: args.expiresAtMs,
+        // Keep the grant bound to the immutable promotion recorded by the
+        // manifest rather than whichever generation later occupies this path.
+        queryParams: { generation: args.storageGeneration },
       });
     return downloadUrl;
   }
@@ -95,6 +100,7 @@ export async function handleGhostLoadManifest(
     downloadUrlSigner ?? createDefaultGhostDownloadUrlSigner();
   const downloadUrl = await resolvedDownloadUrlSigner.signDownloadUrl({
     objectPath: ghostManifest.replayStorageRef,
+    storageGeneration: ghostManifest.promotedReplayStorageGeneration,
     expiresAtMs: downloadUrlExpiresAtMs,
   });
   return {
