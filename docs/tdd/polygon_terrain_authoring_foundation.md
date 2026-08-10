@@ -1003,6 +1003,22 @@ render seam but not the complete §22 matrix. Live generator wiring,
 tile-backed prefab owner validation, complete repository legacy projection,
 and source cutover remain open.
 
+A second checked-in fixture isolates transform extrema and terrain-topology
+parity from the reviewed Dart artifact golden. Its canonical prefab source has
+odd half-pixel ticks. One placement applies X-only reflection at the exact
+minimum scale `0.3`; another applies Y-only reflection at the exact maximum
+scale `3.0`. Generator tests freeze the exact physics vertices produced by the
+single Core quantization step, while editor strict codecs reproduce the source
+bytes exactly and the editor expansion reports the same placement lineage.
+Direct terrain contains a flat-to-slope boundary, finite solid ground on both
+sides of an open pit, and two shapes sharing the exact `x = 100`,
+`y = 80.5..130` boundary. Core retains the slope edge and cancels that shared
+internal solid edge. Both consumers agree on six polygons, 21 exposed edges,
+14 triangles, and signatures `6e5e8bbf…fe8` (source), `ed707fc7…d31`
+(edges), `60ca88ca…c3f` (authored polygons), `4f07473d…1c2` (placements),
+and `41ee501d…f36` (triangles). The original staged artifact and its reviewed
+SHA-256 remain byte-identical.
+
 The immutable compiled product, rather than its callers, owns canonical
 placement-lineage and triangle ordering and rejects duplicate derived
 identities. Generator source paths are canonical workspace-relative identities:

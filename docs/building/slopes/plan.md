@@ -1503,6 +1503,12 @@ first-ear algorithm plus the `authoring-triangles-v1` record/signature; the
 generator no longer carries a private geometry or serialization copy. The
 editor independently round-trips the same Prefab-v3/Chunk-v2 fixture and
 matches authored polygon, Core source/edge, placement, and triangle signatures.
+An independent transform/terrain parity fixture now locks odd half-pixel
+source, X-only and Y-only reflection at the exact `0.3`/`3.0` scale limits,
+single-step quantization, a flat-to-slope boundary, finite pit coverage, and
+cross-shape internal-edge cancellation across generator and editor. It leaves
+the original reviewed artifact bytes unchanged and does not select staged data
+in live generation.
 The same compiled result now renders a narrowly typed, executable Dart artifact
 fixture containing canonical source/physics loops, Core-exposed edges, render
 triangles, placement lineage, and signature versions. Its local identities
