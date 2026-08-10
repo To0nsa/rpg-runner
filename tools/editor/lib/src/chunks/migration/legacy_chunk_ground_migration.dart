@@ -3,7 +3,7 @@ import 'package:runner_core/collision/terrain/terrain_numeric.dart';
 
 import '../../terrain_authoring/terrain_source_core_adapter.dart';
 import '../../terrain_authoring/terrain_source_models.dart';
-import '../chunk_domain_models.dart';
+import 'legacy_chunk_models.dart';
 
 /// One stable blocking finding from legacy flat-ground conversion.
 final class LegacyChunkGroundMigrationIssue

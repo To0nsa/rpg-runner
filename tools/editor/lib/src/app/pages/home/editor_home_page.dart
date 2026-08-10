@@ -49,7 +49,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
   // keep them serialized so the shell never stacks competing dialogs.
   bool _isShowingDiscardDialog = false;
   String _selectedRouteId = entitiesRouteId;
-  String? _initialStagedPrefabKey;
+  String? _initialPrefabKey;
 
   @override
   void initState() {
@@ -142,7 +142,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
     return routeBinding.buildPage(
       widget.controller,
       navigation: EditorHomeRouteNavigation(
-        initialPrefabKey: _initialStagedPrefabKey,
+        initialPrefabKey: _initialPrefabKey,
         onOpenOwningPrefab: (prefabKey) {
           unawaited(_handleOpenOwningPrefabRequested(prefabKey));
         },
@@ -181,7 +181,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
     }
     setState(() {
       _selectedRouteId = routeId;
-      _initialStagedPrefabKey = null;
+      _initialPrefabKey = null;
     });
     _syncPluginForRoute(routeId);
   }
@@ -237,7 +237,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
       return;
     }
     setState(() {
-      _initialStagedPrefabKey = targetPrefabKey;
+      _initialPrefabKey = targetPrefabKey;
       _selectedRouteId = prefabCreatorRouteId;
     });
   }

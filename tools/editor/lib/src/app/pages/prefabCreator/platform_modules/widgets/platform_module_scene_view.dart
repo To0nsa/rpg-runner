@@ -14,8 +14,6 @@ import '../../../shared/scene_input_utils.dart';
 import '../../shared/ui/prefab_editor_choice_chip_group.dart';
 import '../../shared/ui/prefab_editor_scene_controls.dart';
 import '../../shared/ui/prefab_editor_ui_tokens.dart';
-import '../../shared/prefab_overlay_interaction.dart';
-import '../../shared/prefab_scene_values.dart';
 
 part 'platform_module_scene_models.dart';
 
@@ -47,8 +45,6 @@ class PlatformModuleSceneView extends StatefulWidget {
     required this.onEraseCell,
     required this.onMoveCell,
     this.allowModuleEditing = true,
-    this.overlayValues,
-    this.onOverlayValuesChanged,
   });
 
   final String workspaceRootPath;
@@ -67,8 +63,6 @@ class PlatformModuleSceneView extends StatefulWidget {
   )
   onMoveCell;
   final bool allowModuleEditing;
-  final PrefabSceneValues? overlayValues;
-  final ValueChanged<PrefabSceneValues>? onOverlayValuesChanged;
 
   @override
   State<PlatformModuleSceneView> createState() =>
@@ -91,7 +85,6 @@ class _PlatformModuleSceneViewState extends State<PlatformModuleSceneView> {
   bool _ctrlPanActive = false;
   int? _activePointer;
   String? _lastAppliedCellKey;
-  PrefabOverlayDragState? _overlayDragState;
   _ModuleCellDragState? _moduleCellDragState;
 
   @override
@@ -212,8 +205,6 @@ class _PlatformModuleSceneViewState extends State<PlatformModuleSceneView> {
             loadedImageCount: _imageCache.loadedImageCount,
             geometry: geometry,
             selectedTileSliceId: widget.selectedTileSliceId,
-            overlayValues: widget.overlayValues,
-            activeOverlayHandle: _overlayDragState?.handle,
             movePreview: _buildMovePreview(),
           ),
         ),
@@ -248,9 +239,6 @@ class _PlatformModuleSceneViewState extends State<PlatformModuleSceneView> {
     if (_ctrlPanActive) {
       return;
     }
-    if (_tryStartOverlayDrag(event, geometry)) {
-      return;
-    }
     if (!widget.allowModuleEditing) {
       return;
     }
@@ -275,23 +263,6 @@ class _PlatformModuleSceneViewState extends State<PlatformModuleSceneView> {
         vertical: _verticalScrollController,
         pointerDelta: event.delta,
       );
-      return;
-    }
-    final overlayDrag = _overlayDragState;
-    if (overlayDrag != null) {
-      if (!SceneInputUtils.isPrimaryButtonPressed(event.buttons)) {
-        _resetPointerState();
-        return;
-      }
-      final onOverlayValuesChanged = widget.onOverlayValuesChanged;
-      if (onOverlayValuesChanged != null) {
-        onOverlayValuesChanged(
-          PrefabOverlayInteraction.valuesFromDrag(
-            drag: overlayDrag,
-            currentLocal: event.localPosition,
-          ),
-        );
-      }
       return;
     }
     if (!widget.allowModuleEditing) {
@@ -323,14 +294,12 @@ class _PlatformModuleSceneViewState extends State<PlatformModuleSceneView> {
   }
 
   void _resetPointerState() {
-    final hadOverlayDrag = _overlayDragState != null;
     final hadModuleCellDrag = _moduleCellDragState != null;
     _ctrlPanActive = false;
     _activePointer = null;
     _lastAppliedCellKey = null;
-    _overlayDragState = null;
     _moduleCellDragState = null;
-    if (hadOverlayDrag || hadModuleCellDrag) {
+    if (hadModuleCellDrag) {
       setState(() {});
     }
   }
@@ -464,71 +433,6 @@ class _PlatformModuleSceneViewState extends State<PlatformModuleSceneView> {
         targetGridY: targetGridY,
       );
     });
-  }
-
-  bool _tryStartOverlayDrag(
-    PointerDownEvent event,
-    _ModuleSceneGeometry geometry,
-  ) {
-    final values = widget.overlayValues;
-    final onOverlayValuesChanged = widget.onOverlayValuesChanged;
-    final moduleBounds = geometry.moduleBoundsWorld;
-    if (values == null ||
-        onOverlayValuesChanged == null ||
-        moduleBounds == null) {
-      return false;
-    }
-    final handleGeometry = PrefabOverlayHandleGeometry.fromValues(
-      values: values,
-      anchorCanvasBase: geometry.canvasFromWorld(moduleBounds.topLeft),
-      zoom: geometry.zoom,
-    );
-    final colliderIndex = PrefabOverlayHitTest.hitTestColliderIndex(
-      point: event.localPosition,
-      geometry: handleGeometry,
-    );
-    if (colliderIndex != null &&
-        colliderIndex != values.normalizedSelectedColliderIndex) {
-      onOverlayValuesChanged(
-        PrefabOverlayInteraction.valuesWithSelectedCollider(
-          values: values,
-          selectedColliderIndex: colliderIndex,
-        ),
-      );
-      return true;
-    }
-    final handle = PrefabOverlayHitTest.hitTestHandle(
-      point: event.localPosition,
-      geometry: handleGeometry,
-      anchorHandleHitRadius: 10,
-      colliderHandleHitRadius: 12,
-    );
-    if (handle != null) {
-      final boundsWidth = moduleBounds.width.round().clamp(1, 99999);
-      final boundsHeight = moduleBounds.height.round().clamp(1, 99999);
-      setState(() {
-        _overlayDragState = PrefabOverlayDragState(
-          pointer: event.pointer,
-          handle: handle,
-          startLocal: event.localPosition,
-          startValues: values,
-          zoom: geometry.zoom,
-          boundsWidthPx: boundsWidth,
-          boundsHeightPx: boundsHeight,
-        );
-      });
-      return true;
-    }
-    if (colliderIndex == null) {
-      return false;
-    }
-    onOverlayValuesChanged(
-      PrefabOverlayInteraction.valuesWithSelectedCollider(
-        values: values,
-        selectedColliderIndex: colliderIndex,
-      ),
-    );
-    return true;
   }
 
   void _ensureAllSourceImagesLoaded() {

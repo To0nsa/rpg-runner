@@ -1,4 +1,5 @@
 import '../chunks/chunk_domain_models.dart';
+import '../chunks/migration/legacy_chunk_models.dart';
 import '../chunks/chunk_v2_file_data.dart';
 import '../prefabs/models/models.dart';
 import '../prefabs/store/prefab_determinism.dart';
@@ -6,10 +7,10 @@ import '../terrain_authoring/terrain_source_models.dart';
 import 'legacy_prefab_collision_mode.dart';
 import 'legacy_prefab_models.dart';
 
-/// Polygon-authoring prefab source schema staged for the one-time cutover.
+/// Prefab-v3 target schema produced by the offline one-time migration.
 const int polygonPrefabSchemaVersion = prefabSchemaVersionV3;
 
-/// Polygon-authoring chunk source schema staged for the one-time cutover.
+/// Chunk-v2 target schema produced by the offline one-time migration.
 const int polygonChunkSchemaVersion = chunkSchemaVersionV2;
 
 /// Migration-facing alias for the normal prefab-v3 polygon record.

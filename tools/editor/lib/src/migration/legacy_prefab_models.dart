@@ -1,4 +1,5 @@
 import '../prefabs/models/models.dart';
+import 'legacy_prefab_collider_def.dart';
 
 /// Rectangle-era prefab payload retained only by the one-time migration path.
 ///

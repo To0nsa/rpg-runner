@@ -4,7 +4,7 @@ import 'strict_authoring_json.dart';
 
 /// Strict parser for metadata retained unchanged across polygon schema cutover.
 ///
-/// Keeping these parsers shared prevents the legacy reader and staged target
+/// Keeping these parsers shared prevents the legacy reader and current target
 /// reader from disagreeing about fields that the migration only copies.
 abstract final class PolygonAuthoringMetadataCodec {
   /// Parses one atlas slice without applying model defaults.

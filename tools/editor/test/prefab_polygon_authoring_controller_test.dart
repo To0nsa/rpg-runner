@@ -139,7 +139,7 @@ void main() {
     },
   );
 
-  test('controller requires an explicit staged prefab-v3 session', () {
+  test('controller requires a current prefab-v3 session', () {
     final session = EditorSessionController(
       pluginRegistry: AuthoringPluginRegistry(
         plugins: const <AuthoringDomainPlugin>[PrefabDomainPlugin()],

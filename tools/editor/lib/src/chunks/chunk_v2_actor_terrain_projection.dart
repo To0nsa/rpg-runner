@@ -14,7 +14,7 @@ import 'package:runner_core/navigation/types/terrain_surface_graph.dart';
 
 import 'chunk_v2_collision_expansion.dart';
 
-/// Actor policies exposed by the staged Chunk terrain diagnostic overlay.
+/// Actor policies exposed by the Chunk terrain diagnostic overlay.
 enum ChunkV2TerrainActor { eloise, grojib, hashash, unoco, derf }
 
 /// One grounded actor's exact Core surface-eligibility and graph publication.

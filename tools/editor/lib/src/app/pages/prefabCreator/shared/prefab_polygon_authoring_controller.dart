@@ -17,8 +17,8 @@ import '../../../../terrain_authoring/terrain_source_models.dart';
 /// Selection, tools, drafts, gesture previews, and rejected diagnostics remain
 /// local. Only an accepted owner-reviewed semantic commit is dispatched to the
 /// plugin/session boundary, producing one undo entry and one revision bump.
-/// The controller currently requires the explicit prefab-v3 current document;
-/// the normal v2 loader cannot activate it before the schema cutover.
+/// The controller requires the current Prefab-v3 document; fail-closed legacy
+/// or missing-source sessions cannot activate polygon authoring.
 final class PrefabPolygonAuthoringController extends ChangeNotifier {
   PrefabPolygonAuthoringController({
     required EditorSessionController session,
@@ -479,7 +479,7 @@ PrefabV3Def _requirePrefab(EditorSessionController session, String prefabKey) {
   final prefab = _findPrefab(document.data, prefabKey);
   if (prefab == null) {
     throw StateError(
-      'Prefab $prefabKey does not exist in the staged document.',
+      'Prefab $prefabKey does not exist in the current document.',
     );
   }
   return prefab;

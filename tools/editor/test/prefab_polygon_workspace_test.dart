@@ -32,7 +32,7 @@ void main() {
         home: Scaffold(
           body: PrefabCreatorPage(
             controller: harness.session,
-            initialStagedPrefabKey: 'platform',
+            initialPrefabKey: 'platform',
           ),
         ),
       ),

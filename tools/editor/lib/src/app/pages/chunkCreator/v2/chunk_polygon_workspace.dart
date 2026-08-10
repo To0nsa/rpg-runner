@@ -40,12 +40,11 @@ import 'chunk_polygon_scene_surface.dart';
 import 'chunk_v2_composition_workspace.dart';
 import 'chunk_v2_owner_dialog.dart';
 
-/// Explicit chunk-v2 polygon workspace used before the schema cutover.
+/// Normal chunk-v2 polygon authoring workspace.
 ///
-/// Legacy source still loads the chunk-v1 workflow. A complete current v2 tree
-/// selects this workspace through the normal plugin loader; explicit fixtures
-/// can also stage it directly. Source apply can update only an already-current
-/// tree and cannot perform the legacy migration.
+/// A complete current v2 tree selects this workspace through the normal plugin
+/// loader. Legacy, mixed, or missing source instead opens the fail-closed
+/// migration-required workspace. Source apply cannot perform migration.
 class ChunkPolygonWorkspace extends StatefulWidget {
   const ChunkPolygonWorkspace({
     super.key,
@@ -289,8 +288,8 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
           ),
           Text(
             document.changedChunkKeys.isEmpty
-                ? 'No staged chunk changes'
-                : '${document.changedChunkKeys.length} staged chunk change(s)',
+                ? 'No pending chunk changes'
+                : '${document.changedChunkKeys.length} pending chunk change(s)',
           ),
         ],
       ),
@@ -417,7 +416,7 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
                     isThreeLine: true,
                     trailing: document.changedChunkKeys.contains(chunk.chunkKey)
                         ? const Tooltip(
-                            message: 'Staged geometry changed',
+                            message: 'Pending geometry changed',
                             child: Icon(Icons.circle, size: 12),
                           )
                         : null,

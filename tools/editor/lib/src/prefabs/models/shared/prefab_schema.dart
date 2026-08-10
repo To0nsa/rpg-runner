@@ -2,11 +2,10 @@
 /// contracts and tile module revisions.
 const int prefabSchemaVersionV1 = 1;
 
-/// Current schema introduced by the prefab/tile split and richer metadata.
+/// Rectangle-era prefab schema; still current for retained tile data.
 const int prefabSchemaVersionV2 = 2;
 
-/// Polygon-collision prefab schema staged for the Phase 4 source cutover.
+/// Current polygon-collision prefab schema.
 const int prefabSchemaVersionV3 = 3;
 
-/// Rectangle-era writes remain authoritative until the single source cutover.
-const int currentPrefabSchemaVersion = prefabSchemaVersionV2;
+const int currentPrefabSchemaVersion = prefabSchemaVersionV3;

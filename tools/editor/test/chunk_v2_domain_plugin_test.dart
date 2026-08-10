@@ -17,7 +17,7 @@ import 'package:runner_editor/src/terrain_authoring/terrain_source_models.dart';
 import 'package:runner_editor/src/workspace/editor_workspace.dart';
 
 void main() {
-  test('staged command commits once and builds one canonical pending diff', () {
+  test('current command commits once and builds one canonical pending diff', () {
     final plugin = ChunkDomainPlugin();
     final before = <TerrainSourceShapeDef>[_rectangle(top: 20)];
     final after = <TerrainSourceShapeDef>[_rectangle(top: 18)];
@@ -122,7 +122,7 @@ void main() {
     },
   );
 
-  test('typed staged edit rejects an absent current source tree', () async {
+  test('typed current edit rejects an absent current source tree', () async {
     final root = Directory.systemTemp.createTempSync('chunk_v2_plugin_');
     addTearDown(() => root.deleteSync(recursive: true));
     final plugin = ChunkDomainPlugin();

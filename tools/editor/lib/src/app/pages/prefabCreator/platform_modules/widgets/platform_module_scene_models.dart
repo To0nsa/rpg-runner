@@ -228,8 +228,6 @@ class _PlatformModuleScenePainter extends CustomPainter {
     required this.loadedImageCount,
     required this.geometry,
     required this.selectedTileSliceId,
-    required this.overlayValues,
-    required this.activeOverlayHandle,
     required this.movePreview,
   });
 
@@ -240,8 +238,6 @@ class _PlatformModuleScenePainter extends CustomPainter {
   final int loadedImageCount;
   final _ModuleSceneGeometry geometry;
   final String? selectedTileSliceId;
-  final PrefabSceneValues? overlayValues;
-  final PrefabOverlayHandleType? activeOverlayHandle;
   final _PlatformModuleSceneMovePreview? movePreview;
 
   @override
@@ -321,8 +317,6 @@ class _PlatformModuleScenePainter extends CustomPainter {
       }
     }
     _paintMovePreviewCell(canvas);
-
-    _paintAnchorColliderOverlay(canvas);
   }
 
   bool _isMovePreviewSourceCell(TileModuleCellDef cell) {
@@ -388,24 +382,6 @@ class _PlatformModuleScenePainter extends CustomPainter {
     );
   }
 
-  void _paintAnchorColliderOverlay(Canvas canvas) {
-    final values = overlayValues;
-    final moduleBounds = geometry.moduleBoundsWorld;
-    if (values == null || moduleBounds == null) {
-      return;
-    }
-    final overlayGeometry = PrefabOverlayHandleGeometry.fromValues(
-      values: values,
-      anchorCanvasBase: geometry.canvasFromWorld(moduleBounds.topLeft),
-      zoom: geometry.zoom,
-    );
-    PrefabOverlayPainter.paint(
-      canvas: canvas,
-      geometry: overlayGeometry,
-      activeHandle: activeOverlayHandle,
-    );
-  }
-
   ui.Image? _resolveSliceImage(AtlasSliceDef slice) {
     final absolutePath = p.normalize(
       p.join(workspaceRootPath, slice.sourceImagePath),
@@ -427,8 +403,6 @@ class _PlatformModuleScenePainter extends CustomPainter {
     return oldDelegate.module != module ||
         oldDelegate.geometry.zoom != geometry.zoom ||
         oldDelegate.selectedTileSliceId != selectedTileSliceId ||
-        oldDelegate.overlayValues != overlayValues ||
-        oldDelegate.activeOverlayHandle != activeOverlayHandle ||
         oldDelegate.movePreview != movePreview ||
         oldDelegate.tileSlicesById.length != tileSlicesById.length ||
         oldDelegate.loadedImageCount != loadedImageCount;

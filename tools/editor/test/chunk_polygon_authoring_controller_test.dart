@@ -142,7 +142,7 @@ void main() {
     },
   );
 
-  test('controller requires an explicit staged chunk-v2 session', () {
+  test('controller requires a current chunk-v2 session', () {
     final session = EditorSessionController(
       pluginRegistry: AuthoringPluginRegistry(
         plugins: <AuthoringDomainPlugin>[ChunkDomainPlugin()],

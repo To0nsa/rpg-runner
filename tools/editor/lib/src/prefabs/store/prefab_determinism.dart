@@ -65,13 +65,6 @@ class PrefabDeterminism {
     return _compareStringLists(a.tags, b.tags);
   }
 
-  /// Returns prefabs sorted with [comparePrefabsByIdThenKey].
-  static List<PrefabDef> sortPrefabsByIdThenKey(Iterable<PrefabDef> prefabs) {
-    final sorted = List<PrefabDef>.from(prefabs)
-      ..sort(comparePrefabsByIdThenKey);
-    return sorted;
-  }
-
   /// Returns prefab-v3 records in canonical user-ID/stable-key order.
   static List<PrefabV3Def> sortPrefabV3ByIdThenKey(
     Iterable<PrefabV3Def> prefabs,
@@ -88,62 +81,6 @@ class PrefabDeterminism {
   static int comparePrefabV3ByIdThenKey(PrefabV3Def a, PrefabV3Def b) {
     final idCompare = a.id.compareTo(b.id);
     return idCompare != 0 ? idCompare : a.prefabKey.compareTo(b.prefabKey);
-  }
-
-  /// Total-order comparator for prefabs.
-  ///
-  /// Starts with user-facing identity (`id`, `prefabKey`) and then falls
-  /// through every remaining field so `List.sort` never sees distinct prefabs
-  /// as equal.
-  static int comparePrefabsByIdThenKey(PrefabDef a, PrefabDef b) {
-    final idCompare = a.id.compareTo(b.id);
-    if (idCompare != 0) {
-      return idCompare;
-    }
-    final keyCompare = a.prefabKey.compareTo(b.prefabKey);
-    if (keyCompare != 0) {
-      return keyCompare;
-    }
-
-    final revisionCompare = a.revision.compareTo(b.revision);
-    if (revisionCompare != 0) {
-      return revisionCompare;
-    }
-
-    final statusCompare = a.status.index.compareTo(b.status.index);
-    if (statusCompare != 0) {
-      return statusCompare;
-    }
-
-    final kindCompare = a.kind.index.compareTo(b.kind.index);
-    if (kindCompare != 0) {
-      return kindCompare;
-    }
-
-    final sourceCompare = _comparePrefabVisualSource(
-      a.visualSource,
-      b.visualSource,
-    );
-    if (sourceCompare != 0) {
-      return sourceCompare;
-    }
-
-    final anchorXCompare = a.anchorXPx.compareTo(b.anchorXPx);
-    if (anchorXCompare != 0) {
-      return anchorXCompare;
-    }
-
-    final anchorYCompare = a.anchorYPx.compareTo(b.anchorYPx);
-    if (anchorYCompare != 0) {
-      return anchorYCompare;
-    }
-
-    final tagsCompare = _compareStringLists(a.tags, b.tags);
-    if (tagsCompare != 0) {
-      return tagsCompare;
-    }
-
-    return _compareColliderLists(a.colliders, b.colliders);
   }
 
   /// Returns modules sorted with [compareModulesByStatusIdRevision].
@@ -228,29 +165,6 @@ class PrefabDeterminism {
     return status;
   }
 
-  /// Canonical collider ordering for deterministic serialization.
-  static List<PrefabColliderDef> sortColliders(
-    Iterable<PrefabColliderDef> colliders,
-  ) {
-    final sorted = List<PrefabColliderDef>.from(colliders)
-      ..sort((a, b) {
-        final offsetYCompare = a.offsetY.compareTo(b.offsetY);
-        if (offsetYCompare != 0) {
-          return offsetYCompare;
-        }
-        final offsetXCompare = a.offsetX.compareTo(b.offsetX);
-        if (offsetXCompare != 0) {
-          return offsetXCompare;
-        }
-        final widthCompare = a.width.compareTo(b.width);
-        if (widthCompare != 0) {
-          return widthCompare;
-        }
-        return a.height.compareTo(b.height);
-      });
-    return sorted;
-  }
-
   /// Canonical cell ordering by grid position, then tile slice id.
   static List<TileModuleCellDef> sortModuleCellsByGridThenSlice(
     Iterable<TileModuleCellDef> cells,
@@ -323,21 +237,6 @@ class PrefabDeterminism {
     return candidate;
   }
 
-  static int _comparePrefabVisualSource(
-    PrefabVisualSource a,
-    PrefabVisualSource b,
-  ) {
-    final typeCompare = a.type.index.compareTo(b.type.index);
-    if (typeCompare != 0) {
-      return typeCompare;
-    }
-    final sliceCompare = a.sliceId.compareTo(b.sliceId);
-    if (sliceCompare != 0) {
-      return sliceCompare;
-    }
-    return a.moduleId.compareTo(b.moduleId);
-  }
-
   static int _compareStringLists(List<String> a, List<String> b) {
     final lengthCompare = a.length.compareTo(b.length);
     if (lengthCompare != 0) {
@@ -351,40 +250,6 @@ class PrefabDeterminism {
       }
     }
     return 0;
-  }
-
-  static int _compareColliderLists(
-    List<PrefabColliderDef> a,
-    List<PrefabColliderDef> b,
-  ) {
-    final lengthCompare = a.length.compareTo(b.length);
-    if (lengthCompare != 0) {
-      return lengthCompare;
-    }
-
-    for (var i = 0; i < a.length; i += 1) {
-      final colliderCompare = _compareCollider(a[i], b[i]);
-      if (colliderCompare != 0) {
-        return colliderCompare;
-      }
-    }
-    return 0;
-  }
-
-  static int _compareCollider(PrefabColliderDef a, PrefabColliderDef b) {
-    final offsetYCompare = a.offsetY.compareTo(b.offsetY);
-    if (offsetYCompare != 0) {
-      return offsetYCompare;
-    }
-    final offsetXCompare = a.offsetX.compareTo(b.offsetX);
-    if (offsetXCompare != 0) {
-      return offsetXCompare;
-    }
-    final widthCompare = a.width.compareTo(b.width);
-    if (widthCompare != 0) {
-      return widthCompare;
-    }
-    return a.height.compareTo(b.height);
   }
 
   static int _compareModuleCellLists(

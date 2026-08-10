@@ -8,8 +8,6 @@ import 'chunk_v2_collision_expansion.dart';
 import 'chunk_v2_file_data.dart';
 import 'chunk_v2_seam_analysis.dart';
 
-/// Temporary plugin document for an all-v2 chunk source tree.
-///
 /// Normal loading selects this only when every chunk is strict v2 and its
 /// prefab dependencies are current. Export can update that current tree but
 /// cannot migrate a legacy or mixed source generation.
@@ -99,7 +97,7 @@ class ChunkV2Document extends AuthoringDocument {
   );
 }
 
-/// Read-only scene projection for the staged chunk-v2 plugin document.
+/// Read-only scene projection for the current chunk-v2 plugin document.
 @immutable
 class ChunkV2Scene extends EditableScene {
   ChunkV2Scene({

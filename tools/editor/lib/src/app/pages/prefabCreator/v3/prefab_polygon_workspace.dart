@@ -29,12 +29,11 @@ import 'prefab_v3_atlas_catalog_workspace.dart';
 import 'prefab_v3_module_catalog_workspace.dart';
 import 'prefab_v3_owner_dialog.dart';
 
-/// Explicit prefab-v3 polygon workspace used before the schema cutover.
+/// Normal prefab-v3 polygon authoring workspace.
 ///
-/// Legacy source still loads the v2 rectangle workflow. Current v3 source and
-/// explicit owner navigation select this page through [PrefabV3Scene].
-/// Source apply is available only for already-current files and cannot migrate
-/// legacy source.
+/// Current v3 source and explicit owner navigation select this page through
+/// [PrefabV3Scene]. Legacy or missing source opens the fail-closed migration
+/// workspace; source apply cannot perform migration.
 class PrefabPolygonWorkspace extends StatefulWidget {
   const PrefabPolygonWorkspace({
     super.key,
@@ -272,8 +271,8 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
             ),
             Text(
               changedCount == 0
-                  ? 'No staged prefab changes'
-                  : '$changedCount staged prefab change(s)',
+                  ? 'No pending prefab changes'
+                  : '$changedCount pending prefab change(s)',
             ),
             if (changedCount > 0)
               Text(
@@ -443,7 +442,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
                     trailing:
                         document.changedPrefabKeys.contains(prefab.prefabKey)
                         ? const Tooltip(
-                            message: 'Staged prefab changed',
+                            message: 'Pending prefab changed',
                             child: Icon(Icons.circle, size: 12),
                           )
                         : null,

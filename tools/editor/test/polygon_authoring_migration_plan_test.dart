@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:runner_core/collision/terrain/terrain_authoring_issue.dart';
-import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
+import 'package:runner_editor/src/chunks/migration/legacy_chunk_models.dart';
 import 'package:runner_editor/src/migration/polygon_authoring_legacy_codec.dart';
 import 'package:runner_editor/src/migration/polygon_authoring_migration_plan.dart';
 import 'package:runner_editor/src/migration/legacy_prefab_models.dart';

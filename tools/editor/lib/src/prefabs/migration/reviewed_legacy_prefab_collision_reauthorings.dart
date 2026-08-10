@@ -1,5 +1,5 @@
 import '../../terrain_authoring/terrain_source_models.dart';
-import '../models/prefab/prefab_collider_def.dart';
+import '../../migration/legacy_prefab_collider_def.dart';
 
 /// One explicitly reviewed replacement for legacy collider geometry that
 /// cannot satisfy the accepted polygon contract unchanged.

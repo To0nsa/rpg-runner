@@ -10,7 +10,7 @@ import '../../../../prefabs/models/models.dart';
 import '../../../../session/editor_session_controller.dart';
 import 'chunk_v2_composition_dialog.dart';
 
-/// Retained visual-composition forms for one explicitly staged Chunk-v2 owner.
+/// Retained visual-composition forms for one current Chunk-v2 owner.
 ///
 /// Each accepted action replaces the three canonical composition lists through
 /// one typed plugin command. Identity, metadata, dimensions, and polygons are

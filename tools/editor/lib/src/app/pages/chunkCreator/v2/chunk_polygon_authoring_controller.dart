@@ -320,7 +320,7 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
         ValidationIssue(
           severity: ValidationSeverity.error,
           code: 'chunk_polygon_owner_missing',
-          message: 'Chunk $_chunkKey no longer exists in the staged document.',
+          message: 'Chunk $_chunkKey no longer exists in the current document.',
           sourcePath: document.sourcePathByChunkKey[_chunkKey],
         ),
       );
@@ -473,7 +473,7 @@ ChunkV2FileData _requireChunk(
   }
   final chunk = _findChunk(document, chunkKey);
   if (chunk == null) {
-    throw StateError('Chunk $chunkKey does not exist in the staged document.');
+    throw StateError('Chunk $chunkKey does not exist in the current document.');
   }
   return chunk;
 }
@@ -487,7 +487,7 @@ String _requireSourcePath(EditorSessionController session, String chunkKey) {
   }
   final sourcePath = document.sourcePathByChunkKey[chunkKey];
   if (sourcePath == null || sourcePath.isEmpty) {
-    throw StateError('Chunk $chunkKey has no staged source path.');
+    throw StateError('Chunk $chunkKey has no current source path.');
   }
   return sourcePath;
 }

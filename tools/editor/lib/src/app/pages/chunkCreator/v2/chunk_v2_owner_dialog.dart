@@ -37,7 +37,7 @@ Future<ChunkV2OwnerDialogResult?> showChunkV2OwnerDialog(
   builder: (context) => _ChunkV2OwnerDialog(document: document, chunk: chunk),
 );
 
-/// Opens the create form accepted by the staged lifecycle policy.
+/// Opens the create form accepted by the current lifecycle policy.
 Future<String?> showChunkV2CreateDialog(
   BuildContext context, {
   required ChunkV2Document document,

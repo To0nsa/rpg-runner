@@ -1,16 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../../../prefabs/models/models.dart';
-import '../shared/prefab_editor_mutations.dart';
+import '../../../../prefabs/models/atlas/atlas_slice_kind.dart';
 
-/// Atlas-slicer-specific geometry and slice-list mutations live here so the
-/// prefab page shell can compose this workflow without another `part` seam.
+/// Atlas-slicer geometry shared by the current prefab-v3 catalog workspace.
 class AtlasSlicerController {
-  const AtlasSlicerController({
-    PrefabEditorMutations mutations = const PrefabEditorMutations(),
-  }) : _mutations = mutations;
-
-  final PrefabEditorMutations _mutations;
+  const AtlasSlicerController();
 
   Offset toImagePosition({
     required AtlasSlicerState state,
@@ -39,46 +33,6 @@ class AtlasSlicerController {
       return null;
     }
     return Rect.fromLTWH(left, top, width, height);
-  }
-
-  List<AtlasSliceDef> slicesForKind(PrefabData data, AtlasSliceKind kind) {
-    switch (kind) {
-      case AtlasSliceKind.prefab:
-        return data.prefabSlices;
-      case AtlasSliceKind.tile:
-        return data.tileSlices;
-    }
-  }
-
-  AtlasSliceDef? findSliceById({
-    required PrefabData data,
-    required AtlasSliceKind kind,
-    required String? sliceId,
-  }) {
-    if (sliceId == null || sliceId.isEmpty) {
-      return null;
-    }
-    for (final slice in slicesForKind(data, kind)) {
-      if (slice.id == sliceId) {
-        return slice;
-      }
-    }
-    return null;
-  }
-
-  List<AtlasSliceDef> slicesForKindAndSource({
-    required PrefabData data,
-    required AtlasSliceKind kind,
-    required String? sourceImagePath,
-  }) {
-    final selectedSource = sourceImagePath?.trim();
-    if (selectedSource == null || selectedSource.isEmpty) {
-      return const <AtlasSliceDef>[];
-    }
-    final allSlices = slicesForKind(data, kind);
-    return allSlices
-        .where((slice) => slice.sourceImagePath.trim() == selectedSource)
-        .toList(growable: false);
   }
 
   AtlasSlicerSelectionInputResult clampedSelectionFromInputs({
@@ -185,88 +139,6 @@ class AtlasSlicerController {
       error: null,
     );
   }
-
-  AtlasSlicerSliceMutationResult upsertSlice({
-    required PrefabData data,
-    required AtlasSlicerState state,
-    required String id,
-    required Rect selection,
-    required List<String> tags,
-  }) {
-    final selectedAtlasPath = state.selectedAtlasPath;
-    if (selectedAtlasPath == null) {
-      throw StateError('Cannot save slice without a selected atlas path.');
-    }
-    final previous = findSliceById(
-      data: data,
-      kind: state.selectedSliceKind,
-      sliceId: id,
-    );
-    final newSlice = AtlasSliceDef(
-      id: id,
-      sourceImagePath: selectedAtlasPath,
-      x: selection.left.toInt(),
-      y: selection.top.toInt(),
-      width: selection.width.toInt(),
-      height: selection.height.toInt(),
-      tags: tags,
-    );
-    final nextData = _mutations.upsertSlice(
-      data: data,
-      kind: state.selectedSliceKind,
-      slice: newSlice,
-    );
-    return AtlasSlicerSliceMutationResult(
-      data: nextData,
-      selectedPrefabSliceId: state.selectedSliceKind == AtlasSliceKind.prefab
-          ? newSlice.id
-          : null,
-      selectedTileSliceId: state.selectedSliceKind == AtlasSliceKind.tile
-          ? newSlice.id
-          : null,
-      statusMessage:
-          '${previous == null ? 'Created' : 'Updated'} '
-          '${state.selectedSliceKind.name} slice "$id".',
-    );
-  }
-
-  AtlasSlicerSliceMutationResult deleteSlice({
-    required PrefabData data,
-    required AtlasSliceKind kind,
-    required String sliceId,
-    required String? currentPrefabSliceId,
-    required String? currentTileSliceId,
-  }) {
-    final nextData = _mutations.deleteSlice(
-      data: data,
-      kind: kind,
-      sliceId: sliceId,
-    );
-    var nextPrefabSliceId = currentPrefabSliceId;
-    var nextTileSliceId = currentTileSliceId;
-    switch (kind) {
-      case AtlasSliceKind.prefab:
-        if (currentPrefabSliceId == sliceId) {
-          nextPrefabSliceId = nextData.prefabSlices.isEmpty
-              ? null
-              : nextData.prefabSlices.first.id;
-        }
-        break;
-      case AtlasSliceKind.tile:
-        if (currentTileSliceId == sliceId) {
-          nextTileSliceId = nextData.tileSlices.isEmpty
-              ? null
-              : nextData.tileSlices.first.id;
-        }
-        break;
-    }
-    return AtlasSlicerSliceMutationResult(
-      data: nextData,
-      selectedPrefabSliceId: nextPrefabSliceId,
-      selectedTileSliceId: nextTileSliceId,
-      statusMessage: 'Deleted $kind slice "$sliceId".',
-    );
-  }
 }
 
 @immutable
@@ -346,18 +218,4 @@ class AtlasSlicerSelectionInputResult {
 
   final Rect? rect;
   final String? error;
-}
-
-class AtlasSlicerSliceMutationResult {
-  const AtlasSlicerSliceMutationResult({
-    required this.data,
-    required this.selectedPrefabSliceId,
-    required this.selectedTileSliceId,
-    required this.statusMessage,
-  });
-
-  final PrefabData data;
-  final String? selectedPrefabSliceId;
-  final String? selectedTileSliceId;
-  final String statusMessage;
 }

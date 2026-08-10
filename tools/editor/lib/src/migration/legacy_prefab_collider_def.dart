@@ -1,0 +1,44 @@
+import 'package:meta/meta.dart';
+
+/// Rectangle collider retained only for offline prefab-source migration.
+@immutable
+class PrefabColliderDef {
+  const PrefabColliderDef({
+    required this.offsetX,
+    required this.offsetY,
+    required this.width,
+    required this.height,
+  });
+
+  final int offsetX;
+  final int offsetY;
+  final int width;
+  final int height;
+
+  PrefabColliderDef copyWith({
+    int? offsetX,
+    int? offsetY,
+    int? width,
+    int? height,
+  }) => PrefabColliderDef(
+    offsetX: offsetX ?? this.offsetX,
+    offsetY: offsetY ?? this.offsetY,
+    width: width ?? this.width,
+    height: height ?? this.height,
+  );
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'offsetX': offsetX,
+    'offsetY': offsetY,
+    'width': width,
+    'height': height,
+  };
+
+  static PrefabColliderDef fromJson(Map<String, Object?> json) =>
+      PrefabColliderDef(
+        offsetX: (json['offsetX'] as num?)?.toInt() ?? 0,
+        offsetY: (json['offsetY'] as num?)?.toInt() ?? 0,
+        width: (json['width'] as num?)?.toInt() ?? 0,
+        height: (json['height'] as num?)?.toInt() ?? 0,
+      );
+}

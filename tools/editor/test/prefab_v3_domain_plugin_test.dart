@@ -20,7 +20,7 @@ void main() {
   const plugin = PrefabDomainPlugin();
 
   test(
-    'staged command commits through owner policy and builds pending diff',
+    'current command commits through owner policy and builds pending diff',
     () {
       final before = <TerrainSourceShapeDef>[_rectangle(right: 8)];
       final after = <TerrainSourceShapeDef>[_rectangle(right: 10)];
@@ -119,7 +119,7 @@ void main() {
   );
 
   test(
-    'staged export is a no-op when clean and rejects missing source',
+    'current export is a no-op when clean and rejects missing source',
     () async {
       final root = Directory.systemTemp.createTempSync('prefab_v3_plugin_');
       try {
@@ -166,7 +166,7 @@ void main() {
     },
   );
 
-  test('staged validation reports unresolved visual owner bounds', () {
+  test('current validation reports unresolved visual owner bounds', () {
     final source = _document(<TerrainSourceShapeDef>[_rectangle(right: 8)]);
     final unresolved = source.copyWith(
       visualBoundsByPrefabKey: const <String, PrefabV3VisualBounds>{},
@@ -179,7 +179,7 @@ void main() {
     expect(issues.single.code, 'prefab_polygon_visual_bounds_unresolved');
   });
 
-  test('staged validation preserves polygon warning ownership', () {
+  test('current validation preserves polygon warning ownership', () {
     final issues = plugin.validate(_document(_capacityShapes(17)));
 
     final warning = issues.singleWhere(
@@ -190,7 +190,7 @@ void main() {
     expect(warning.sourcePath, contains('prefab_defs.json:target'));
   });
 
-  test('staged validation covers retained tile catalog invariants', () {
+  test('current validation covers retained tile catalog invariants', () {
     final source = _catalogDocument();
     final module = source.tileData.platformModules.single;
     final invalid = source.copyWith(
@@ -216,7 +216,7 @@ void main() {
   });
 
   test(
-    'every staged semantic candidate and export crosses full validation',
+    'every current semantic candidate and export crosses full validation',
     () async {
       final beforeShapes = <TerrainSourceShapeDef>[_rectangle(right: 8)];
       final valid = _document(beforeShapes);
@@ -849,7 +849,7 @@ void main() {
     expect(edited.data.prefabs.single.revision, 7);
   });
 
-  test('tile-only staged mutation rejects an absent source baseline', () async {
+  test('tile-only current mutation rejects an absent source baseline', () async {
     final root = Directory.systemTemp.createTempSync('prefab_v3_catalog_');
     addTearDown(() => root.deleteSync(recursive: true));
     final document = _catalogDocument();

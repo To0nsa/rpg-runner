@@ -58,7 +58,7 @@ final class ChunkV2ExpandedPrefabShape {
   final String? materialKey;
 }
 
-/// Accepted Core compilation for one staged chunk-v2 collision owner.
+/// Accepted Core compilation for one current chunk-v2 collision owner.
 @immutable
 final class ChunkV2CollisionExpansion {
   ChunkV2CollisionExpansion({

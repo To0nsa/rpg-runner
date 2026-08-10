@@ -122,7 +122,7 @@ List<ValidationIssue> validateChunkV2Document(ChunkV2Document document) {
           code: 'chunk_v2_created_owner_missing',
           message:
               'Created chunk owner $createdChunkKey is missing from the '
-              'staged document.',
+              'current document.',
         ),
       );
     }

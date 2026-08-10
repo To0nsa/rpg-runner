@@ -35,21 +35,18 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
 
   static const String pluginId = 'prefabs';
 
-  /// Command kind accepted by [applyEdit] for replacing full prefab data.
-  static const String replacePrefabDataCommandKind = 'replace_prefab_data';
-
-  /// Staged command for one accepted shared polygon interaction commit.
+  /// Current command for one accepted shared polygon interaction commit.
   static const String commitPrefabPolygonCommandKind = 'commit_prefab_polygon';
 
-  /// Staged command for one existing-owner prefab-v3 metadata commit.
+  /// Current command for one existing-owner prefab-v3 metadata commit.
   static const String commitPrefabV3MetadataCommandKind =
       'commit_prefab_v3_metadata';
 
-  /// Staged command for one prefab-v3 create/duplicate/rename/delete commit.
+  /// Current command for one prefab-v3 create/duplicate/rename/delete commit.
   static const String commitPrefabV3LifecycleCommandKind =
       'commit_prefab_v3_lifecycle';
 
-  /// Staged command for one prefab-v3 slice or retained-module mutation.
+  /// Current command for one prefab-v3 slice or retained-module mutation.
   static const String commitPrefabV3CatalogCommandKind =
       'commit_prefab_v3_catalog';
 
@@ -208,12 +205,7 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
     if (document is PrefabV3Document) {
       return _validateV3Document(document);
     }
-    final prefabDocument = _asPrefabDocument(document);
-    final issues = validatePrefabDataIssues(
-      data: prefabDocument.data,
-      atlasImageSizes: prefabDocument.atlasImageSizes,
-    );
-    return issues.map(_toValidationIssue).toList(growable: false);
+    throw _unexpectedDocument(document);
   }
 
   @override
@@ -231,13 +223,7 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
         downstreamImpacts: document.downstreamImpacts,
       );
     }
-    final prefabDocument = _asPrefabDocument(document);
-    return PrefabScene(
-      data: prefabDocument.data,
-      atlasImagePaths: prefabDocument.atlasImagePaths,
-      atlasImageSizes: prefabDocument.atlasImageSizes,
-      migrationHints: prefabDocument.migrationHints,
-    );
+    throw _unexpectedDocument(document);
   }
 
   @override
@@ -252,18 +238,7 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
     if (document is PrefabV3Document) {
       return _applyV3Edit(document, command);
     }
-    final prefabDocument = _asPrefabDocument(document);
-    if (command.kind != replacePrefabDataCommandKind) {
-      return prefabDocument;
-    }
-    final rawData = command.payload['data'];
-    if (rawData is! PrefabData) {
-      return prefabDocument;
-    }
-    if (_canonicalDataEquals(prefabDocument.data, rawData)) {
-      return prefabDocument;
-    }
-    return prefabDocument.copyWith(data: rawData, migrationHints: const []);
+    throw _unexpectedDocument(document);
   }
 
   @override
@@ -277,77 +252,43 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
         'polygon_authoring_migration_required: ${migration.message}',
       );
     }
-    if (document is PrefabV3Document) {
-      final blockingIssues = _validateV3Document(
-        document,
-      ).where((issue) => issue.severity == ValidationSeverity.error).toList();
-      if (blockingIssues.isNotEmpty) {
-        throw StateError(
-          'Cannot export prefab-v3 while validation has '
-          '${blockingIssues.length} blocking issue(s).',
-        );
-      }
-      final pending = describePendingChanges(workspace, document: document);
-      if (!pending.hasChanges) {
-        return ExportResult(
-          applied: false,
-          artifacts: <ExportArtifact>[
-            const ExportArtifact(
-              title: 'prefab_summary.md',
-              content:
-                  '# Prefab Export\n\nchangedFiles: 0\n\nNo prefab-v3 edits detected.',
-            ),
-          ],
-        );
-      }
-      final plan = _store.buildV3SavePlan(
-        prefabData: document.data,
-        tileData: document.tileData,
-        prefabBaselineContents: document.prefabBaselineContents,
-        tileBaselineContents: document.tileBaselineContents,
-      );
-      _store.applyV3SavePlan(workspace.rootPath, plan: plan);
-      return ExportResult(
-        applied: true,
-        artifacts: <ExportArtifact>[
-          ExportArtifact(
-            title: 'prefab_summary.md',
-            content: _buildSummary(pending.fileDiffs),
-          ),
-        ],
-      );
-    }
-    final prefabDocument = _asPrefabDocument(document);
-    final blockingIssues = validate(
-      prefabDocument,
+    if (document is! PrefabV3Document) throw _unexpectedDocument(document);
+    final blockingIssues = _validateV3Document(
+      document,
     ).where((issue) => issue.severity == ValidationSeverity.error).toList();
     if (blockingIssues.isNotEmpty) {
       throw StateError(
-        'Cannot export prefabs while validation has '
+        'Cannot export prefab-v3 while validation has '
         '${blockingIssues.length} blocking issue(s).',
       );
     }
-
-    final pending = describePendingChanges(workspace, document: prefabDocument);
+    final pending = describePendingChanges(workspace, document: document);
     if (!pending.hasChanges) {
       return ExportResult(
         applied: false,
         artifacts: <ExportArtifact>[
-          ExportArtifact(
+          const ExportArtifact(
             title: 'prefab_summary.md',
             content:
-                '# Prefab Export\n\nchangedFiles: 0\n\nNo prefab/tile edits detected.',
+                '# Prefab Export\n\nchangedFiles: 0\n\nNo prefab-v3 edits detected.',
           ),
         ],
       );
     }
-
-    await _store.save(workspace.rootPath, data: prefabDocument.data);
-    final summary = _buildSummary(pending.fileDiffs);
+    final plan = _store.buildV3SavePlan(
+      prefabData: document.data,
+      tileData: document.tileData,
+      prefabBaselineContents: document.prefabBaselineContents,
+      tileBaselineContents: document.tileBaselineContents,
+    );
+    _store.applyV3SavePlan(workspace.rootPath, plan: plan);
     return ExportResult(
       applied: true,
       artifacts: <ExportArtifact>[
-        ExportArtifact(title: 'prefab_summary.md', content: summary),
+        ExportArtifact(
+          title: 'prefab_summary.md',
+          content: _buildSummary(pending.fileDiffs),
+        ),
       ],
     );
   }
@@ -355,8 +296,8 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
   @override
   /// Builds deterministic pending file diffs against load-time baselines.
   ///
-  /// Baseline content comes from [PrefabDocument] instead of re-reading files,
-  /// so this path avoids synchronous disk I/O during editor interactions.
+  /// Baseline content comes from the current document instead of re-reading
+  /// files, so this path avoids disk I/O during editor interactions.
   PendingChanges describePendingChanges(
     EditorWorkspace workspace, {
     required AuthoringDocument document,
@@ -365,81 +306,41 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
       _requirePrefabMigration(document);
       return PendingChanges.empty;
     }
-    if (document is PrefabV3Document) {
-      final plan = _store.buildV3SavePlan(
-        prefabData: document.data,
-        tileData: document.tileData,
-        prefabBaselineContents: document.prefabBaselineContents,
-        tileBaselineContents: document.tileBaselineContents,
-      );
-      final changed = plan.files
-          .where((file) => file.hasChanges)
-          .map(
-            (file) => _PrefabFileWrite(
-              relativePath: file.relativePath,
-              beforeContent: file.beforeContents,
-              afterContent: file.afterContents,
-            ),
-          )
-          .toList(growable: false);
-      if (changed.isEmpty) {
-        return PendingChanges.empty;
-      }
-      return PendingChanges(
-        changedItemIds: document.changedPrefabKeys,
-        fileDiffs: changed
-            .map(
-              (write) => PendingFileDiff(
-                relativePath: write.relativePath,
-                editCount: _estimateEditCount(
-                  beforeContent: write.beforeContent,
-                  afterContent: write.afterContent,
-                ),
-                unifiedDiff: _buildUnifiedDiff(write),
-              ),
-            )
-            .toList(growable: false),
-      );
-    }
-    final prefabDocument = _asPrefabDocument(document);
-    final canonical = _store.serializeCanonicalFiles(prefabDocument.data);
-
-    final prefabRelativePath = p.normalize(PrefabStore.prefabDefsPath);
-    final tileRelativePath = p.normalize(PrefabStore.tileDefsPath);
-    final writes = <_PrefabFileWrite>[
-      _PrefabFileWrite(
-        relativePath: prefabRelativePath,
-        beforeContent: prefabDocument.prefabBaselineContents,
-        afterContent: canonical.prefabContents,
-      ),
-      _PrefabFileWrite(
-        relativePath: tileRelativePath,
-        beforeContent: prefabDocument.tileBaselineContents,
-        afterContent: canonical.tileContents,
-      ),
-    ];
-
-    final changed = writes
-        .where((write) => write.beforeContent != write.afterContent)
+    if (document is! PrefabV3Document) throw _unexpectedDocument(document);
+    final plan = _store.buildV3SavePlan(
+      prefabData: document.data,
+      tileData: document.tileData,
+      prefabBaselineContents: document.prefabBaselineContents,
+      tileBaselineContents: document.tileBaselineContents,
+    );
+    final changed = plan.files
+        .where((file) => file.hasChanges)
+        .map(
+          (file) => _PrefabFileWrite(
+            relativePath: file.relativePath,
+            beforeContent: file.beforeContents,
+            afterContent: file.afterContents,
+          ),
+        )
         .toList(growable: false);
     if (changed.isEmpty) {
       return PendingChanges.empty;
     }
-
-    final fileDiffs = changed
-        .map(
-          (write) => PendingFileDiff(
-            relativePath: write.relativePath,
-            editCount: _estimateEditCount(
-              beforeContent: write.beforeContent,
-              afterContent: write.afterContent,
+    return PendingChanges(
+      changedItemIds: document.changedPrefabKeys,
+      fileDiffs: changed
+          .map(
+            (write) => PendingFileDiff(
+              relativePath: write.relativePath,
+              editCount: _estimateEditCount(
+                beforeContent: write.beforeContent,
+                afterContent: write.afterContent,
+              ),
+              unifiedDiff: _buildUnifiedDiff(write),
             ),
-            unifiedDiff: _buildUnifiedDiff(write),
-          ),
-        )
-        .toList(growable: false);
-
-    return PendingChanges(fileDiffs: fileDiffs);
+          )
+          .toList(growable: false),
+    );
   }
 
   PolygonAuthoringMigrationRequiredDocument _requirePrefabMigration(
@@ -454,15 +355,10 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
     return document;
   }
 
-  PrefabDocument _asPrefabDocument(AuthoringDocument document) {
-    if (document is! PrefabDocument) {
-      throw StateError(
-        'PrefabDomainPlugin expected PrefabDocument but got '
-        '${document.runtimeType}.',
-      );
-    }
-    return document;
-  }
+  StateError _unexpectedDocument(AuthoringDocument document) => StateError(
+    'PrefabDomainPlugin expected PrefabV3Document but got '
+    '${document.runtimeType}.',
+  );
 
   AuthoringDocument _applyV3Edit(
     PrefabV3Document document,
@@ -577,14 +473,6 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
         shapeId: issue.shapeId.isEmpty ? null : issue.shapeId,
         elementIndex: issue.shapeId.isEmpty ? null : issue.elementIndex,
       );
-
-  /// Compares semantic prefab payloads via canonical serialized output.
-  bool _canonicalDataEquals(PrefabData a, PrefabData b) {
-    final encodedA = _store.serializeCanonicalFiles(a);
-    final encodedB = _store.serializeCanonicalFiles(b);
-    return encodedA.prefabContents == encodedB.prefabContents &&
-        encodedA.tileContents == encodedB.tileContents;
-  }
 
   /// Reads a file when present and returns null for missing paths.
   Future<String?> _readIfExistsAsync(String absolutePath) async {

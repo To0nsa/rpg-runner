@@ -123,7 +123,7 @@ Widget _buildPrefabCreatorPage({
   return PrefabCreatorPage(
     key: key,
     controller: controller,
-    initialStagedPrefabKey: navigation.initialPrefabKey,
+    initialPrefabKey: navigation.initialPrefabKey,
   );
 }
 

@@ -1,10 +1,12 @@
 import '../chunks/chunk_domain_models.dart';
+import '../chunks/migration/legacy_chunk_models.dart';
 import '../domain/strict_authoring_json.dart';
 import '../domain/strict_authoring_metadata_codec.dart';
 import '../prefabs/models/models.dart';
 import '../prefabs/store/prefab_determinism.dart';
 import '../workspace/workspace_file_io.dart';
 import 'legacy_prefab_models.dart';
+import 'legacy_prefab_collider_def.dart';
 
 /// Strictly parsed legacy prefab input plus its explicit source schema.
 final class LegacyPrefabMigrationDocument {
@@ -41,11 +43,11 @@ final class LegacyChunkMigrationDocument {
 
 /// Read-only, fail-closed parser for source schemas consumed by cutover.
 ///
-/// The normal editor stores intentionally support compatibility defaults. This
-/// codec does not: only documented prefab-v1/v2 and chunk-v1 fields are
-/// accepted, with exact JSON types and canonical v2/v1 ordering. Prefab-v1
-/// lifecycle/key defaults are promoted explicitly after its source shape has
-/// passed strict validation.
+/// Normal editor stores accept only current Prefab-v3/Chunk-v2 source. This
+/// offline codec is the remaining reader for documented prefab-v1/v2 and
+/// chunk-v1 fields, with exact JSON types and canonical v2/v1 ordering.
+/// Prefab-v1 lifecycle/key defaults are promoted explicitly only after strict
+/// source validation.
 abstract final class PolygonAuthoringLegacyCodec {
   /// Parses one legacy prefab-v1 or prefab-v2 source file.
   static LegacyPrefabMigrationDocument decodePrefab(
@@ -159,7 +161,7 @@ abstract final class PolygonAuthoringLegacyCodec {
     );
     StrictAuthoringJson.requireSchemaVersion(
       root['schemaVersion'],
-      chunkSchemaVersion,
+      legacyChunkSchemaVersion,
       sourcePath: '$sourcePath.schemaVersion',
     );
     final chunkKey = StrictAuthoringJson.nonEmptyString(
@@ -230,7 +232,7 @@ abstract final class PolygonAuthoringLegacyCodec {
       caseInsensitive: true,
     );
     final chunk = LevelChunkDef(
-      schemaVersion: chunkSchemaVersion,
+      schemaVersion: legacyChunkSchemaVersion,
       chunkKey: chunkKey,
       id: StrictAuthoringJson.nonEmptyString(
         root['id'],

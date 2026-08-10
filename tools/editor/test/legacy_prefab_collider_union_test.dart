@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_editor/src/prefabs/migration/legacy_prefab_collider_union.dart';
 import 'package:runner_editor/src/prefabs/migration/reviewed_legacy_prefab_collision_reauthorings.dart';
-import 'package:runner_editor/src/prefabs/models/models.dart';
+import 'package:runner_editor/src/migration/legacy_prefab_collider_def.dart';
 import 'package:runner_editor/src/terrain_authoring/terrain_source_models.dart';
 
 void main() {

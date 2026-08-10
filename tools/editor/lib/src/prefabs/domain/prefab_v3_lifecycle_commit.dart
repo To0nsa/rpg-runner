@@ -89,7 +89,7 @@ final class PrefabV3RenameOperation extends PrefabV3LifecycleOperation {
   final String nextId;
 }
 
-/// Removes one prefab owner from the staged catalog.
+/// Removes one prefab owner from the current catalog.
 @immutable
 final class PrefabV3DeleteOperation extends PrefabV3LifecycleOperation {
   const PrefabV3DeleteOperation({required this.prefabKey});

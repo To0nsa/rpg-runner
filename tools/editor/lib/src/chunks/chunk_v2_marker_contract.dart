@@ -17,7 +17,7 @@ bool isChunkV2MarkerGroundContextValid(double? value) {
   }
 }
 
-/// Stable semantic contract violations for one staged enemy marker.
+/// Stable semantic contract violations for one current enemy marker.
 List<String> chunkV2MarkerContractCodes({
   required ChunkV2FileData chunk,
   required PlacedMarkerDef marker,

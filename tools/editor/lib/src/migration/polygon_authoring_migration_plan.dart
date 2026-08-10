@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:runner_core/collision/terrain/terrain_authoring_issue.dart';
 
-import '../chunks/chunk_domain_models.dart';
+import '../chunks/migration/legacy_chunk_models.dart';
 import '../chunks/migration/legacy_chunk_ground_migration.dart';
 import '../prefabs/migration/legacy_prefab_collider_union.dart';
 import '../prefabs/migration/reviewed_legacy_prefab_collision_reauthorings.dart';

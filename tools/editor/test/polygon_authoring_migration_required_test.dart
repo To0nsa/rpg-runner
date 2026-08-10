@@ -34,7 +34,7 @@ void main() {
     expect(
       plugin.applyEdit(
         document,
-        AuthoringCommand(kind: PrefabDomainPlugin.replacePrefabDataCommandKind),
+        AuthoringCommand(kind: 'ignored_while_migration_required'),
       ),
       same(document),
     );

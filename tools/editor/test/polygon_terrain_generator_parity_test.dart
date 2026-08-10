@@ -8,8 +8,8 @@ import 'package:runner_core/collision/terrain/terrain_triangulator.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_authoring_polygon_signature.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_collision_expansion.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_codec.dart';
+import 'package:runner_editor/src/migration/legacy_prefab_collider_def.dart';
 import 'package:runner_editor/src/prefabs/migration/legacy_prefab_collider_union.dart';
-import 'package:runner_editor/src/prefabs/models/models.dart';
 import 'package:runner_editor/src/prefabs/store/prefab_v3_file_codec.dart';
 
 const String _fixtureDirectory = 'test/fixtures/polygon_terrain_generator';

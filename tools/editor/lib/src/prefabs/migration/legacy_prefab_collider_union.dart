@@ -5,7 +5,7 @@ import 'package:runner_core/collision/terrain/terrain_numeric.dart';
 
 import '../../terrain_authoring/terrain_source_core_adapter.dart';
 import '../../terrain_authoring/terrain_source_models.dart';
-import '../models/prefab/prefab_collider_def.dart';
+import '../../migration/legacy_prefab_collider_def.dart';
 import 'reviewed_legacy_prefab_collision_reauthorings.dart';
 
 /// One stable blocking finding from legacy prefab-collider conversion.
