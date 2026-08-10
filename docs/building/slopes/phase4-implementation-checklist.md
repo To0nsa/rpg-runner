@@ -1,9 +1,9 @@
 # Slopes Phase 4 - Polygon Authoring, Migration, And Generation Checklist
 
 - Created: July 28, 2026
-- Status: Implementation in progress; repository authoring and generation now
-  use polygon schemas, while compatibility-name/normal-path cleanup remains
-  before Phase 4 acceptance
+- Status: Implementation in progress; repository authoring, generation, and
+  normal editor paths now use polygon schemas, with final broad acceptance
+  validation remaining
 - Source plan: [plan.md](plan.md)
 - Frozen gameplay decisions:
   [phase0-gameplay-decisions.md](phase0-gameplay-decisions.md)
@@ -157,7 +157,7 @@ adapter, generator output, or runtime consumer introduced after July 28, 2026.
       issuance on the accepted legacy production authority throughout Phase 4.
 - [x] Cut repository source to polygon schemas in one migration; do not leave
       normal editor writes capable of emitting both rectangles and polygons.
-- [ ] Keep legacy v1/v2 prefab and v1 chunk parsing inside the offline
+- [x] Keep legacy v1/v2 prefab and v1 chunk parsing inside the offline
       migration tool only after committed source is migrated.
 - [x] Remove rectangle/ground-gap commands and forms from normal editor paths
       in the same change that installs polygon replacements.
@@ -169,13 +169,17 @@ adapter, generator output, or runtime consumer introduced after July 28, 2026.
       that temporary projection; interactive slope acceptance uses a fixture
       workspace or non-runtime-selected fixture content until Phase 5 consumes
       staged terrain.
-- [ ] Record the exact staged artifact and legacy projection removal points in
+- [x] Record the exact staged artifact and legacy projection removal points in
       the Phase 5/6 checklists.
 - [x] Add a construction test proving normal levels still select legacy world
       motion after generation changes.
 
 This temporary generated bridge is not a per-level runtime switch. There is
 one unchanged production authority and one unreachable staged terrain artifact.
+Phase 5 replaces the `staged_authored_terrain.dart` staging name/registration
+when streamed terrain becomes a real runtime input. Phase 6 removes
+`polygon_terrain_legacy_projection.dart` and the projected legacy pattern
+output after direct edge/capsule authority is accepted.
 
 ## 6) Implementation Order
 
@@ -888,28 +892,28 @@ order:
      contracts with stale rejection, strict canonical values, mutually
      protected fields, complete candidate validation, and one revision bump.
      Chunk owner metadata plus create/duplicate/rename/delete forms now compose
-     those staged policies with active-level selection and undo/redo. Granular
+     those current policies with active-level selection and undo/redo. Granular
      tile-layer/placement/marker forms now compose the strict composition
      replacement. Each expanded placed collision can now open its exact stable
      Prefab-v3 owner through the shell discard guard without adding instance
      geometry.
      Prefab-v3 owner metadata, create/duplicate/rename/delete, prefab/tile
      slices, and platform-module create/update/duplicate/rename/delete are also
-     staged through immutable stale-checked commands. Their normal export path
-     now applies only to source already detected and strictly loaded as v3/v2.
+     committed through immutable stale-checked commands. Their normal export
+     path applies only to source already detected and strictly loaded as v3/v2.
 2. **Normal validation and pending-change parity.**
    - Run owner validation, expanded prefab collision, marker placement,
      scheduler-reachable seam analysis, and global capacity checks on every
      semantic commit/export.
    - Preserve load-time baselines, changed stable keys, downstream prefab
      placement impact, and canonical one-file-per-owner diffs.
-   - Prefab-v3 staging now validates the complete retained prefab/tile catalog
+   - Prefab-v3 authoring validates the complete retained prefab/tile catalog
      in memory: deterministic ordering, identities/revisions, atlas bounds,
      module cells/references, visual-owner references, and polygon-owner rules.
      Strict chunk-v2 placement reads produce stable-key impact counts for every
-     prefab; the staging route previews affected placements/chunks while
+     prefab; the current route previews affected placements/chunks while
      preserving all chunk bytes and revisions.
-   - Every changed Prefab-v3 and Chunk-v2 staging candidate now crosses its
+   - Every changed Prefab-v3 and Chunk-v2 candidate now crosses its
      complete document validator plus deterministic save-plan ownership before
      entering session history. Polygon and metadata edits can no longer bypass
      expanded prefab collision, marker, capacity, or scheduler-reachable seam
@@ -941,7 +945,7 @@ order:
      with the proven polygon surfaces, and restore reload/source-apply actions.
    - Add the owning-prefab navigation action from selected placed collision;
      never add per-instance vertex overrides.
-   - Prefab-v3 staging now composes owner create/edit/duplicate/rename/delete
+   - Prefab-v3 authoring composes owner create/edit/duplicate/rename/delete
      forms over the typed plugin commands, including status, kind, visual
      source, anchor, and canonical tags. These controls preserve polygon source
      and session history and resynchronize selection after lifecycle changes
@@ -950,7 +954,7 @@ order:
      reference-safe deletion and guarded local drafts. Normal loading selects
      this route for strict v3 source; reload and confirmed source apply use the
      normal session/store path.
-   - Chunk-v2 staging now composes active-level owner selection, metadata/status/
+   - Chunk-v2 authoring composes active-level owner selection, metadata/status/
      render-band editing, create/duplicate/stable-key rename/delete, and
      lifecycle-safe undo/redo over the typed plugin commands. The final-owner
      empty-level state remains recoverable without inventing dimensions. A
@@ -981,21 +985,25 @@ order:
 The first bullet of slice 6 landed in `e2c06137`: explicit `--write` committed
 all nine current-schema files, a repeated write was a no-op, and the single
 generator now emits the staged artifact plus an exact legacy projection. The
-temporary `Staging` type/route names were removed immediately afterward.
-Test-only compatibility surfaces remain the active cleanup slice and must not
-survive Phase 4 acceptance.
+temporary `Staging` type/route names were removed in `747cc7e3`. Commit
+`cd9c32a2` then removed the normal rectangle documents, forms, coordinators,
+commands, validators, stores, runtime adapters, and their compatibility tests.
+Generation detection remains in each normal store only as a fail-closed gate:
+it selects current source or the no-data migration-required scene and never
+decodes legacy data. Legacy models/codecs are now imported only by offline
+migration code and migration-focused tests.
 
 Current command-gap audit (August 11, 2026):
 
-| Domain | Normal legacy command surface | Explicit polygon document today | Cutover requirement |
+| Domain | Removed legacy command surface | Current polygon document | Cutover result |
 | --- | --- | --- | --- |
-| Prefab | `replace_prefab_data`, covering prefab/slice/module lifecycle and metadata | `commit_prefab_polygon`, `commit_prefab_v3_metadata`, `commit_prefab_v3_lifecycle`, and `commit_prefab_v3_catalog` cover collision, existing-owner metadata, prefab lifecycle, slices, and platform modules | Typed mutation/form parity, normal v3 selection, guarded reload, and transactional source apply are complete with deterministic allocation/order, full validation, canonical two-file diffs, drift checks, rollback, and exact reload. Legacy/missing source now selects the shared no-data migration state; the compatibility command is unreachable from normal loading and remains only for removal tests. |
-| Chunk lifecycle | `create_chunk`, `duplicate_chunk`, `rename_chunk`, `deprecate_chunk`, `delete_chunk` | `commit_chunk_v2_lifecycle` covers stale-checked create/duplicate/rename/delete; metadata status covers deprecation | Typed lifecycle/form parity, normal complete-v2 selection, guarded reload, and transactional source apply are complete with stable identity/path ownership and recoverable final-owner deletion. Legacy/missing source now selects the shared no-data migration state; compatibility commands are unreachable from normal loading. |
-| Chunk metadata | `update_chunk_metadata`, `update_ground_band_z_index`, active-level selection | active-level selection plus `commit_chunk_v2_metadata` for status, level, difficulty, assembly group, canonical tags, and render-band Z | Existing-owner mutation/form parity and current-schema persistence are complete with protected identity/dimensions/composition/polygon fields and one accepted revision bump. Retain render-band Z until Phase 5; legacy compatibility removal remains for cutover. |
-| Chunk tile layers | retained tile-layer source | strict `commit_chunk_v2_composition` replacement | Current-schema create/edit/delete, canonical ordering, validation, persistence, and exact reload are complete. Legacy compatibility removal remains for cutover. |
-| Chunk placements | add/move/replace/settings/remove prefab placement | read-only expanded overlay plus strict `commit_chunk_v2_composition` replacement | Current-schema mutation, validation, persistence, exact expansion, and guarded navigation to the exact Prefab-v3 owner are complete; no per-instance vertex override exists. Legacy compatibility removal remains for cutover. |
-| Chunk markers | add/move/type/settings/remove enemy marker | read-only Core placement diagnostics plus the same strict composition replacement | Current-schema mutation, validation, persistence, Core enemy IDs, bounds/chance/salt/intent contracts, zero-RNG authoring, and advisory placement projection are complete. Legacy compatibility removal remains for cutover. |
-| Removed terrain commands | ground-profile update plus add/update/remove gap | `commit_chunk_polygon` | Delete the legacy commands/forms rather than mapping them to approximate polygons. |
+| Prefab | `replace_prefab_data`, rectangle Prefab models/forms/coordinators/stores | `commit_prefab_polygon`, `commit_prefab_v3_metadata`, `commit_prefab_v3_lifecycle`, and `commit_prefab_v3_catalog` | Complete: normal v3 selection, retained mutation parity, guarded reload, full validation, deterministic two-file diffs, rollback-safe apply, and exact reload. Legacy/missing source selects the no-data migration state. |
+| Chunk lifecycle | `create_chunk`, `duplicate_chunk`, `rename_chunk`, `deprecate_chunk`, `delete_chunk` | `commit_chunk_v2_lifecycle`; metadata status covers deprecation | Complete: stable identity/path ownership, normal complete-v2 selection, guarded reload/apply, and recoverable final-owner deletion. |
+| Chunk metadata | `update_chunk_metadata`, `update_ground_band_z_index`, active-level selection | active-level selection plus `commit_chunk_v2_metadata` | Complete: protected fields, current persistence, and one accepted revision bump. Render-band Z remains until Phase 5 because it is current visual metadata. |
+| Chunk tile layers | rectangle-era aggregate replacement | strict `commit_chunk_v2_composition` | Complete: current create/edit/delete, canonical ordering, validation, persistence, and exact reload. |
+| Chunk placements | rectangle preview/runtime adapter and legacy placement commands | read-only expanded overlay plus strict `commit_chunk_v2_composition` | Complete: exact expansion, validation, persistence, and guarded navigation to the exact Prefab-v3 owner; no per-instance vertex override exists. |
+| Chunk markers | legacy aggregate marker commands | Core placement diagnostics plus strict `commit_chunk_v2_composition` | Complete: Core enemy IDs, bounds/chance/salt/intent contracts, zero-RNG authoring, and advisory placement projection. |
+| Removed terrain commands | ground-profile update plus add/update/remove gap | `commit_chunk_polygon` | Complete: the legacy commands/forms were deleted rather than approximated as polygons. |
 
 This audit is a technical preservation gate, not a request for new gameplay
 rules. Existing Phase 0-3 player, enemy, navigation, marker, and determinism
@@ -1709,6 +1717,7 @@ result.
 | 2026-08-11 / `d6cb0012` | Core-owned scheduler reachability enumeration | Dart and Flutter test VMs on Windows with Docker running | Core and editor analysis are clean. Three new Core contract tests and all 10 existing editor seam tests pass. The source-neutral Core boundary now owns tier fallback, finite tier windows, assembly within/between-run transitions, distinct selection, deprecated-owner exclusion, loop/hard-tail behavior, sorted blockers, and the 256-chunk safety bound. The editor's duplicate enumerator was deleted and its thin adapter preserves the exact reviewed `authoring-seams-v1` digest `9681ffb1…93b`, existing issue codes, compiled-boundary comparisons, and sampled scheduler containment. The live generator can now derive production reachability without importing editor code; authored source, generated outputs, migration `--write`, and runtime authority remain unchanged. |
 | 2026-08-11 / `536bfd4f` | Current-source repository generation plan | Dart VM on Windows with Docker running | Three focused tests pass. One fail-closed operation strictly parses Prefab-v3 and Chunk-v2, compiles through Core, derives scheduler reachability, validates every seam, renders staged terrain, and projects the same accepted batch into exact legacy records. Empty terrain succeeds, a reachable mismatch blocks, and diagonal legacy-incompatible content rejects rather than approximating. No source or production output changed in this step. |
 | 2026-08-11 / `e2c06137` | Coordinated polygon authoring-source cutover | Dart and Flutter test VMs on Windows with Docker running | The guarded CLI committed all nine source files as Prefab-v3/Chunk-v2 and a repeated write was a no-op; current readiness reports 99 Prefabs, 8 Chunks, 9 validated targets, and zero pending migrations with `authoring-migration-v1` `3264cf7a…15d`. The single generator now strictly consumes current source, validates Core compilation and scheduler seams, emits `staged_authored_terrain.dart`, and derives the exact legacy projection. All five pre-existing production outputs are byte-identical across the migration rehearsal; the real six-output dry-run is clean. Root, Core, and editor analysis are clean; all 75 root tool/generator tests and 96 focused editor cutover/legacy-isolation tests pass. Runtime construction still cannot import/select staged terrain. |
+| 2026-08-11 / `747cc7e3` + `cd9c32a2` | Current-name promotion and normal compatibility removal | Flutter test VM and Dart analyzer on Windows with Docker running | Public route/type names no longer use the temporary `Staging` label. Normal Prefab/Chunk routes, plugins, stores, models, forms, commands, validation, and previews are current-schema only; 28,782 compatibility lines and their obsolete tests were removed. Legacy Prefab collider and Chunk-v1 ground/gap models/codecs remain only under offline migration paths. Normal stores perform generation detection solely to select current data or the fail-closed migration-required scene. Editor analysis is clean, the owning-Prefab lifecycle regression passes, and the low-memory `--concurrency=1 --fail-fast` full suite passes all 353 retained editor tests. Authored source, generated outputs, and runtime authority are unchanged. |
 
 ### 28.1 Baseline Environment And Source Identity
 
@@ -1778,10 +1787,13 @@ the real `PrefabV3Document` and `ChunkV2Document`, produces no
 pending source diff, accepts every Chunk, and reports only the intentional
 non-blocking missing-collision warnings for the 70 cleared Prefabs. Dedicated
 legacy/missing fixtures still prove blocking `polygon_authoring_migration_required`,
-empty pending changes, command identity, and export refusal. Legacy
-compatibility forms/stores remain only for the active removal slice.
+empty pending changes, command identity, and export refusal. Commit `cd9c32a2`
+removed the normal legacy documents/forms/commands/stores and moved the
+remaining Prefab collider and Chunk-v1 ground/gap models under migration-owned
+paths. The normal stores retain only strict generation detection so they can
+fail closed without decoding legacy source.
 
-Legacy controls recorded for replacement are:
+Legacy controls removed in that commit were:
 
 - Prefab rectangle state/forms in `prefab_form_state.dart`, obstacle/platform
   tabs and output panels, plus coordinator add/duplicate/delete mutations
@@ -1931,13 +1943,13 @@ Phase 4 is complete only when:
 - [x] legacy generated projection is exact, bounded, documented, and rejects
       non-orthogonal approximation
 - [x] no normal editor/store path writes legacy source fields
-- [ ] no duplicate geometry, transform, validation, or persistence authority
+- [x] no duplicate geometry, transform, validation, or persistence authority
       exists across Prefab and Chunk routes
 - [x] no-op save, dry-run generation, and fresh-process goldens are stable
 - [x] hard authoring limits do not truncate or hang
 - [x] polygon interaction p95/p99 and missed-input gates pass
 - [ ] full editor/Core/root/validator analysis and tests pass
-- [ ] documentation and the implementation findings ledger are current
+- [x] documentation and the implementation findings ledger are current
 - [x] normal production levels and replay validation still use legacy authority
 
 Passing a polygon widget demo or migrating only one fixture is not Phase 4

@@ -36,7 +36,7 @@ Editor foundations shared across those domains:
 - undo/redo history for entity edits, chunk edits, and committed prefab/module edits
 - shared pan/zoom scene controls, inspector forms, and deterministic export summaries
 
-## Polygon Source Migration Command
+## Polygon Source And Offline Migration
 
 The checked-in level content is currently in an intentional collision-reset
 state for polygon reauthoring. All prefab visuals, kinds, metadata, placements,
@@ -49,7 +49,8 @@ Until polygons are reauthored and runtime terrain authority is delivered, the
 repository levels have no static terrain support for players, enemies, marker
 placement, or navigation.
 
-Phase 4 includes an offline check for Prefab-v3/Chunk-v2 polygon source:
+The normal editor accepts only current Prefab-v3/Chunk-v2 source. Legacy
+Prefab-v1/v2 and Chunk-v1 parsing is isolated to this offline check command:
 
 ```bash
 cd tools/editor
@@ -75,7 +76,7 @@ collision at runtime.
 
 ## Polygon Interaction Profile Benchmark
 
-The Phase 4 polygon staging surface has a deterministic Windows profile
+The Phase 4 polygon authoring surface has a deterministic Windows profile
 benchmark for vertex and whole-shape drag. It uses 120 warmup and 600 measured
 frames per mode against the reviewed 16-shape/256-edge fixture:
 
@@ -91,15 +92,15 @@ The driver writes the compact report to
 `.tmp/slopes_phase4_polygon_interaction.json` at repository root. It records
 the Git revision/dirty state, fixture signatures, interaction and frame
 percentiles, missed-input counts, source-identity evidence, and each gate. The
-benchmark is test-only: it cannot write authoring source or select staged
-terrain at runtime.
+benchmark is test-only: it cannot write authoring source or select the future
+terrain artifact at runtime.
 
-## Explicit Polygon Workspace Navigation
+## Polygon Workspace Navigation
 
 When an all-current workspace loads the Chunk-v2 polygon workflow, each
 read-only expanded prefab collision exposes **Open prefab**.
 The action goes through the editor shell's unsaved-work guard, loads the
-Prefab-v3 staging document, and selects the exact stable source owner for shape
+current Prefab-v3 document, and selects the exact stable source owner for shape
 editing. Chunk placements continue to own transforms only; the editor does not
 create per-instance polygon overrides.
 

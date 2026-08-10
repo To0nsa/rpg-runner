@@ -1110,6 +1110,8 @@ Gate:
 Scope:
 
 - replace streamed solids/ground segments/gaps with terrain geometry
+- promote `staged_authored_terrain.dart` into the real streamed-terrain input
+  and remove its temporary staging name/registration boundary
 - stitch/cull chunk edges and rebuild indexes/graphs
 - replace ground, foreground mask, and collision-debug rendering
 - update initial/entity/item spawn placement and fall-death bounds
@@ -1130,6 +1132,9 @@ Scope:
   level/prefab content for production
 - run all player/enemy/content acceptance scenarios
 - switch Core production authority to edges/capsules
+- remove `polygon_terrain_legacy_projection.dart` and stop generating the
+  projected legacy `authored_chunk_patterns.dart` terrain records after the
+  direct authority cutover is accepted
 - remove `StaticSolid`, horizontal-ground, legacy gap, and temporary adapter
   paths that are no longer required
 - remove stale tests/snapshots/debug APIs and replace them with final contracts
