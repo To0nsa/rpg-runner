@@ -1,8 +1,10 @@
+import 'package:runner_core/collision/terrain/terrain_authoring_issue.dart';
 import 'package:runner_core/collision/terrain/terrain_compiler.dart';
 import 'package:runner_core/collision/terrain/terrain_polygon.dart';
 import 'package:runner_core/collision/terrain/terrain_source_canonicalizer.dart';
 
 import '../domain/authoring_types.dart';
+import '../terrain_authoring/terrain_authoring_capacity_issues.dart';
 import '../terrain_authoring/terrain_source_core_adapter.dart';
 import '../terrain_authoring/terrain_source_models.dart';
 import 'chunk_domain_models.dart';
@@ -27,6 +29,16 @@ List<ValidationIssue> validateChunkV2CollisionShapes({
   var coreGeometryAccepted = true;
   for (final shape in shapes) {
     final shapePath = '$sourcePath:${shape.shapeId}';
+    final capacityIssue = polygonVertexSoftTargetIssue(
+      ownerLabel: 'Chunk ${chunk.chunkKey}',
+      shapeId: shape.shapeId,
+      vertexCount: shape.vertices.length,
+      sourcePath: shapePath,
+      ownerKey: chunk.chunkKey,
+    );
+    if (capacityIssue != null) {
+      issues.add(_validationIssueFromTerrain(capacityIssue));
+    }
     final outside = shape.vertices.where(
       (vertex) =>
           vertex.xHalfPixels < 0 ||
@@ -44,6 +56,7 @@ List<ValidationIssue> validateChunkV2CollisionShapes({
               '${outside.length} vertex/vertices outside closed bounds '
               '0..${chunk.width} x 0..${chunk.height} px.',
           sourcePath: sourcePath,
+          ownerKey: chunk.chunkKey,
           shapeId: shape.shapeId,
         ),
       );
@@ -56,7 +69,7 @@ List<ValidationIssue> validateChunkV2CollisionShapes({
       requireCanonical: true,
     );
     for (final diagnostic in review.diagnostics) {
-      issues.add(_issueFromCore(diagnostic));
+      issues.add(_issueFromCore(diagnostic, ownerKey: chunk.chunkKey));
       if (terrainDiagnosticIsBlocking(diagnostic)) {
         coreGeometryAccepted = false;
       }
@@ -76,7 +89,11 @@ List<ValidationIssue> validateChunkV2CollisionShapes({
         geometryVersion: 1,
       );
     } on TerrainValidationException catch (error) {
-      issues.addAll(error.diagnostics.map(_issueFromCore));
+      issues.addAll(
+        error.diagnostics.map(
+          (diagnostic) => _issueFromCore(diagnostic, ownerKey: chunk.chunkKey),
+        ),
+      );
     }
   }
   _sortValidationIssues(issues);
@@ -282,13 +299,28 @@ void _sortValidationIssues(List<ValidationIssue> issues) {
   });
 }
 
-ValidationIssue _issueFromCore(TerrainDiagnostic diagnostic) => ValidationIssue(
-  severity: terrainDiagnosticIsBlocking(diagnostic)
-      ? ValidationSeverity.error
-      : ValidationSeverity.warning,
-  code: diagnostic.code,
-  message: diagnostic.message,
-  sourcePath: diagnostic.sourcePath,
-  shapeId: diagnostic.shapeId,
-  elementIndex: diagnostic.elementIndex,
+ValidationIssue _issueFromCore(
+  TerrainDiagnostic diagnostic, {
+  required String ownerKey,
+}) => _validationIssueFromTerrain(
+  TerrainAuthoringIssue.fromCore(
+    diagnostic: diagnostic,
+    ownerKey: ownerKey,
+    placementKey: null,
+  ),
 );
+
+ValidationIssue _validationIssueFromTerrain(TerrainAuthoringIssue issue) =>
+    ValidationIssue(
+      severity: switch (issue.severity) {
+        TerrainAuthoringIssueSeverity.warning => ValidationSeverity.warning,
+        TerrainAuthoringIssueSeverity.error => ValidationSeverity.error,
+      },
+      code: issue.code,
+      message: issue.message,
+      sourcePath: issue.sourcePath,
+      ownerKey: issue.ownerKey,
+      placementKey: issue.placementKey,
+      shapeId: issue.shapeId,
+      elementIndex: issue.elementIndex,
+    );

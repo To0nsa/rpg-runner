@@ -6,6 +6,10 @@ int _compareIssues(PrefabValidationIssue a, PrefabValidationIssue b) {
   if (sourcePathCompare != 0) {
     return sourcePathCompare;
   }
+  final ownerKeyCompare = (a.ownerKey ?? '').compareTo(b.ownerKey ?? '');
+  if (ownerKeyCompare != 0) {
+    return ownerKeyCompare;
+  }
   final shapeIdCompare = a.shapeId.compareTo(b.shapeId);
   if (shapeIdCompare != 0) {
     return shapeIdCompare;

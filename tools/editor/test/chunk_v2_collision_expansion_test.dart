@@ -1,8 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:runner_core/collision/terrain/terrain_authoring_capacity.dart';
 import 'package:runner_core/collision/terrain/terrain_numeric.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_collision_expansion.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_data.dart';
+import 'package:runner_editor/src/domain/authoring_types.dart';
 import 'package:runner_editor/src/prefabs/models/models.dart';
 import 'package:runner_editor/src/terrain_authoring/terrain_source_models.dart';
 
@@ -358,6 +360,205 @@ void main() {
     );
   });
 
+  test('keeps exact source soft targets warning-free', () {
+    final result = expandChunkV2Collision(
+      chunk: _chunk(
+        width: 1000,
+        height: 100,
+        directShapes: <TerrainSourceShapeDef>[
+          _strip(
+            'direct',
+            originXHalfPixels: 1000,
+            originYHalfPixels: 100,
+            vertexCount: TerrainAuthoringCapacityTargets.verticesPerShape,
+          ),
+        ],
+        placements: const <PlacedPrefabDef>[
+          PlacedPrefabDef(
+            prefabId: 'rock',
+            prefabKey: 'prefab_rock',
+            x: 0,
+            y: 0,
+          ),
+        ],
+      ),
+      prefabs: <PrefabV3Def>[
+        _prefab(
+          shapes: <TerrainSourceShapeDef>[
+            for (
+              var index = 0;
+              index < TerrainAuthoringCapacityTargets.shapesPerPrefab;
+              index += 1
+            )
+              _rectangle(
+                'collision_${index.toString().padLeft(3, '0')}',
+                left: index * 8,
+                top: 0,
+                right: index * 8 + 4,
+                bottom: 4,
+              ),
+          ],
+        ),
+      ],
+      sourcePath: 'chunks/forest/test.json',
+    );
+
+    expect(result.expansion, isNotNull);
+    expect(result.hasBlockingIssues, isFalse);
+    expect(
+      result.issues.map((issue) => issue.code),
+      isNot(
+        anyOf(
+          contains('prefab_shape_soft_target_exceeded'),
+          contains('polygon_vertex_soft_target_exceeded'),
+        ),
+      ),
+    );
+  });
+
+  test('warns above source soft targets without blocking expansion', () {
+    final result = expandChunkV2Collision(
+      chunk: _chunk(
+        width: 1000,
+        height: 100,
+        directShapes: <TerrainSourceShapeDef>[
+          _strip(
+            'direct',
+            originXHalfPixels: 1000,
+            originYHalfPixels: 100,
+            vertexCount: TerrainAuthoringCapacityTargets.verticesPerShape + 1,
+          ),
+        ],
+        placements: const <PlacedPrefabDef>[
+          PlacedPrefabDef(
+            prefabId: 'rock',
+            prefabKey: 'prefab_rock',
+            x: 0,
+            y: 0,
+          ),
+        ],
+      ),
+      prefabs: <PrefabV3Def>[
+        _prefab(
+          shapes: <TerrainSourceShapeDef>[
+            _strip(
+              'collision_000',
+              originXHalfPixels: 0,
+              vertexCount: TerrainAuthoringCapacityTargets.verticesPerShape + 1,
+            ),
+            for (
+              var index = 1;
+              index <= TerrainAuthoringCapacityTargets.shapesPerPrefab;
+              index += 1
+            )
+              _rectangle(
+                'collision_${index.toString().padLeft(3, '0')}',
+                left: 80 + index * 8,
+                top: 0,
+                right: 84 + index * 8,
+                bottom: 4,
+              ),
+          ],
+        ),
+      ],
+      sourcePath: 'chunks/forest/test.json',
+    );
+
+    expect(result.expansion, isNotNull);
+    expect(result.hasBlockingIssues, isFalse);
+    final warnings = result.issues.where(
+      (issue) =>
+          issue.code == 'prefab_shape_soft_target_exceeded' ||
+          issue.code == 'polygon_vertex_soft_target_exceeded',
+    );
+    expect(warnings, hasLength(3));
+    expect(
+      warnings.every((issue) => issue.severity == ValidationSeverity.warning),
+      isTrue,
+    );
+    final direct = warnings.singleWhere(
+      (issue) => issue.ownerKey == 'forest_test',
+    );
+    expect(direct.shapeId, 'direct');
+    expect(direct.placementKey, isNull);
+    expect(direct.sourcePath, endsWith('#direct=direct'));
+    final prefabWarnings = warnings.where(
+      (issue) => issue.ownerKey == 'prefab_rock',
+    );
+    expect(prefabWarnings, hasLength(2));
+    expect(prefabWarnings.every((issue) => issue.placementKey == null), isTrue);
+  });
+
+  test('warns only above the exposed-edge authoring target', () {
+    final prefab = _prefab(
+      shapes: <TerrainSourceShapeDef>[
+        for (var index = 0; index < 16; index += 1)
+          _strip(
+            'collision_${index.toString().padLeft(3, '0')}',
+            originXHalfPixels: index * 80,
+          ),
+      ],
+    );
+    const placement = PlacedPrefabDef(
+      prefabId: 'rock',
+      prefabKey: 'prefab_rock',
+      x: 0,
+      y: 0,
+    );
+    final atTarget = expandChunkV2Collision(
+      chunk: _chunk(
+        width: 3000,
+        height: 50,
+        placements: const <PlacedPrefabDef>[placement],
+      ),
+      prefabs: <PrefabV3Def>[prefab],
+      sourcePath: 'chunks/forest/test.json',
+    );
+    final aboveTarget = expandChunkV2Collision(
+      chunk: _chunk(
+        width: 3000,
+        height: 50,
+        placements: const <PlacedPrefabDef>[placement],
+        directShapes: <TerrainSourceShapeDef>[
+          TerrainSourceShapeDef(
+            shapeId: 'extra_edge',
+            collisionMode: TerrainSourceCollisionMode.oneWay,
+            vertices: const <TerrainSourceVertexDef>[
+              TerrainSourceVertexDef(xHalfPixels: 5600, yHalfPixels: 40),
+              TerrainSourceVertexDef(xHalfPixels: 5620, yHalfPixels: 40),
+              TerrainSourceVertexDef(xHalfPixels: 5620, yHalfPixels: 60),
+              TerrainSourceVertexDef(xHalfPixels: 5600, yHalfPixels: 60),
+            ],
+          ),
+        ],
+      ),
+      prefabs: <PrefabV3Def>[prefab],
+      sourcePath: 'chunks/forest/test.json',
+    );
+
+    expect(
+      atTarget.expansion!.exposedEdgeCount,
+      TerrainAuthoringCapacityTargets.exposedEdgesPerChunk,
+    );
+    expect(
+      atTarget.issues.map((issue) => issue.code),
+      isNot(contains('chunk_exposed_edge_soft_target_exceeded')),
+    );
+    expect(
+      aboveTarget.expansion!.exposedEdgeCount,
+      TerrainAuthoringCapacityTargets.exposedEdgesPerChunk + 1,
+    );
+    expect(aboveTarget.hasBlockingIssues, isFalse);
+    final warning = aboveTarget.issues.singleWhere(
+      (issue) => issue.code == 'chunk_exposed_edge_soft_target_exceeded',
+    );
+    expect(warning.severity, ValidationSeverity.warning);
+    expect(warning.ownerKey, 'forest_test');
+    expect(warning.placementKey, isNull);
+    expect(warning.shapeId, isNull);
+    expect(warning.message, contains('1025 exposed edges'));
+  });
+
   test('is deterministic when prefab and placement input order changes', () {
     final prefabA = _prefab(prefabKey: 'prefab_a', id: 'a');
     final prefabB = _prefab(prefabKey: 'prefab_b', id: 'b');
@@ -461,18 +662,24 @@ TerrainSourceShapeDef _rectangle(
 TerrainSourceShapeDef _strip(
   String shapeId, {
   required int originXHalfPixels,
-}) => TerrainSourceShapeDef(
-  shapeId: shapeId,
-  vertices: <TerrainSourceVertexDef>[
-    for (var x = 0; x < 32; x += 1)
-      TerrainSourceVertexDef(
-        xHalfPixels: originXHalfPixels + x * 2,
-        yHalfPixels: x.isEven ? 0 : 2,
-      ),
-    for (var x = 31; x >= 0; x -= 1)
-      TerrainSourceVertexDef(
-        xHalfPixels: originXHalfPixels + x * 2,
-        yHalfPixels: x.isEven ? 20 : 22,
-      ),
-  ],
-);
+  int originYHalfPixels = 0,
+  int vertexCount = 64,
+}) {
+  final topCount = (vertexCount + 1) ~/ 2;
+  final bottomCount = vertexCount - topCount;
+  return TerrainSourceShapeDef(
+    shapeId: shapeId,
+    vertices: <TerrainSourceVertexDef>[
+      for (var x = 0; x < topCount; x += 1)
+        TerrainSourceVertexDef(
+          xHalfPixels: originXHalfPixels + x * 2,
+          yHalfPixels: originYHalfPixels + (x.isEven ? 0 : 2),
+        ),
+      for (var x = bottomCount - 1; x >= 0; x -= 1)
+        TerrainSourceVertexDef(
+          xHalfPixels: originXHalfPixels + x * 2,
+          yHalfPixels: originYHalfPixels + (x.isEven ? 20 : 22),
+        ),
+    ],
+  );
+}

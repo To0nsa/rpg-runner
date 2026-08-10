@@ -27,6 +27,7 @@ List<PrefabValidationIssue> validatePrefabCollisionShapes({
           message:
               'Prefab $prefabId is decoration and must not include collision shapes.',
           sourcePath: sourcePath,
+          ownerKey: prefabKey,
         ),
       );
     }
@@ -41,9 +42,32 @@ List<PrefabValidationIssue> validatePrefabCollisionShapes({
             'Prefab $prefabId has no collision shape and remains non-colliding until reauthored.',
         severity: PrefabValidationSeverity.warning,
         sourcePath: sourcePath,
+        ownerKey: prefabKey,
       ),
     );
     return _sortedPolygonIssues(issues);
+  }
+
+  final shapeCapacityIssue = prefabShapeSoftTargetIssue(
+    prefabLabel: prefabId,
+    shapeCount: shapes.length,
+    sourcePath: sourcePath,
+    ownerKey: prefabKey,
+  );
+  if (shapeCapacityIssue != null) {
+    issues.add(_prefabIssueFromTerrain(shapeCapacityIssue));
+  }
+  for (final shape in shapes) {
+    final vertexCapacityIssue = polygonVertexSoftTargetIssue(
+      ownerLabel: 'Prefab $prefabId',
+      shapeId: shape.shapeId,
+      vertexCount: shape.vertices.length,
+      sourcePath: '$sourcePath:${shape.shapeId}',
+      ownerKey: prefabKey,
+    );
+    if (vertexCapacityIssue != null) {
+      issues.add(_prefabIssueFromTerrain(vertexCapacityIssue));
+    }
   }
 
   var sourceGeometryAccepted = true;
@@ -57,7 +81,7 @@ List<PrefabValidationIssue> validatePrefabCollisionShapes({
       requireCanonical: true,
     );
     for (final diagnostic in review.diagnostics) {
-      issues.add(_issueFromCore(diagnostic));
+      issues.add(_issueFromCore(diagnostic, ownerKey: prefabKey));
       if (terrainDiagnosticIsBlocking(diagnostic)) {
         sourceGeometryAccepted = false;
       }
@@ -79,7 +103,11 @@ List<PrefabValidationIssue> validatePrefabCollisionShapes({
         geometryVersion: 1,
       );
     } on TerrainValidationException catch (error) {
-      issues.addAll(error.diagnostics.map(_issueFromCore));
+      issues.addAll(
+        error.diagnostics.map(
+          (diagnostic) => _issueFromCore(diagnostic, ownerKey: prefabKey),
+        ),
+      );
       sourceGeometryAccepted = false;
     }
   }
@@ -104,6 +132,7 @@ List<PrefabValidationIssue> validatePrefabCollisionShapes({
             'Prefab $prefabId resolved non-positive visual bounds '
             '${widthPx}x$heightPx.',
         sourcePath: sourcePath,
+        ownerKey: prefabKey,
       ),
     );
     return _sortedPolygonIssues(issues);
@@ -130,6 +159,7 @@ List<PrefabValidationIssue> validatePrefabCollisionShapes({
               'bounds by ${extent.describe()}; the geometry is preserved.',
           severity: PrefabValidationSeverity.warning,
           sourcePath: sourcePath,
+          ownerKey: prefabKey,
           shapeId: shape.shapeId,
         ),
       );
@@ -143,22 +173,37 @@ List<PrefabValidationIssue> validatePrefabCollisionShapes({
             'Prefab $prefabId must have at least one collision shape with '
             'positive-area intersection with its visual source.',
         sourcePath: sourcePath,
+        ownerKey: prefabKey,
       ),
     );
   }
   return _sortedPolygonIssues(issues);
 }
 
-PrefabValidationIssue _issueFromCore(TerrainDiagnostic diagnostic) =>
+PrefabValidationIssue _issueFromCore(
+  TerrainDiagnostic diagnostic, {
+  required String ownerKey,
+}) => _prefabIssueFromTerrain(
+  TerrainAuthoringIssue.fromCore(
+    diagnostic: diagnostic,
+    ownerKey: ownerKey,
+    placementKey: null,
+  ),
+);
+
+PrefabValidationIssue _prefabIssueFromTerrain(TerrainAuthoringIssue issue) =>
     PrefabValidationIssue(
-      code: diagnostic.code,
-      message: diagnostic.message,
-      severity: terrainDiagnosticIsBlocking(diagnostic)
-          ? PrefabValidationSeverity.error
-          : PrefabValidationSeverity.warning,
-      sourcePath: diagnostic.sourcePath,
-      shapeId: diagnostic.shapeId,
-      elementIndex: diagnostic.elementIndex,
+      code: issue.code,
+      message: issue.message,
+      severity: switch (issue.severity) {
+        TerrainAuthoringIssueSeverity.warning =>
+          PrefabValidationSeverity.warning,
+        TerrainAuthoringIssueSeverity.error => PrefabValidationSeverity.error,
+      },
+      sourcePath: issue.sourcePath,
+      ownerKey: issue.ownerKey,
+      shapeId: issue.shapeId ?? '',
+      elementIndex: issue.elementIndex ?? 0,
     );
 
 bool _shapeIntersectsBounds(

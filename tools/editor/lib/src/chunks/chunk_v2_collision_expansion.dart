@@ -8,6 +8,7 @@ import 'package:runner_core/collision/terrain/terrain_traversal_cache.dart';
 
 import '../domain/authoring_types.dart';
 import '../prefabs/models/models.dart';
+import '../terrain_authoring/terrain_authoring_capacity_issues.dart';
 import '../terrain_authoring/terrain_source_core_adapter.dart';
 import '../terrain_authoring/terrain_physics_text.dart';
 import 'chunk_domain_models.dart';
@@ -116,12 +117,23 @@ ChunkV2CollisionExpansionResult expandChunkV2Collision({
   final placementBySourcePath = <String, String>{};
   final prefabByPlacementKey = <String, PrefabV3Def>{};
   final placementByKey = <String, PlacedPrefabDef>{};
+  final capacityCheckedPrefabKeys = <String>{};
   final prefabRefs = _indexPrefabReferences(prefabs);
   var sourceComplete = true;
 
   for (final shape in chunk.collisionShapes) {
     final shapePath = '$sourcePath#direct=${shape.shapeId}';
     ownerBySourcePath[shapePath] = chunk.chunkKey;
+    final capacityIssue = polygonVertexSoftTargetIssue(
+      ownerLabel: 'Chunk ${chunk.chunkKey}',
+      shapeId: shape.shapeId,
+      vertexCount: shape.vertices.length,
+      sourcePath: shapePath,
+      ownerKey: chunk.chunkKey,
+    );
+    if (capacityIssue != null) {
+      issues.add(_validationIssueFromTerrain(capacityIssue));
+    }
     try {
       inputs.add(
         TerrainSourceCoreAdapter.toPolygonInput(
@@ -199,6 +211,30 @@ ChunkV2CollisionExpansionResult expandChunkV2Collision({
     }
 
     final prefab = candidates.single;
+    if (capacityCheckedPrefabKeys.add(prefab.prefabKey)) {
+      final prefabPath = '$sourcePath#prefab=${prefab.prefabKey}';
+      final shapeCapacityIssue = prefabShapeSoftTargetIssue(
+        prefabLabel: prefab.prefabKey,
+        shapeCount: prefab.collisionShapes.length,
+        sourcePath: prefabPath,
+        ownerKey: prefab.prefabKey,
+      );
+      if (shapeCapacityIssue != null) {
+        issues.add(_validationIssueFromTerrain(shapeCapacityIssue));
+      }
+      for (final shape in prefab.collisionShapes) {
+        final vertexCapacityIssue = polygonVertexSoftTargetIssue(
+          ownerLabel: 'Prefab ${prefab.prefabKey}',
+          shapeId: shape.shapeId,
+          vertexCount: shape.vertices.length,
+          sourcePath: '$prefabPath#shape=${shape.shapeId}',
+          ownerKey: prefab.prefabKey,
+        );
+        if (vertexCapacityIssue != null) {
+          issues.add(_validationIssueFromTerrain(vertexCapacityIssue));
+        }
+      }
+    }
     final scaleTenths = (canonicalPrefabPlacementScale(placement.scale) * 10)
         .round();
     final transform = TerrainSourceCoreAdapter.placementTransform(
@@ -345,6 +381,16 @@ ChunkV2CollisionExpansionResult expandChunkV2Collision({
         ),
       ),
     );
+    final edgeCapacityIssue = sourceComplete
+        ? chunkExposedEdgeSoftTargetIssue(
+            chunkKey: chunk.chunkKey,
+            exposedEdgeCount: geometry.edges.length,
+            sourcePath: sourcePath,
+          )
+        : null;
+    if (edgeCapacityIssue != null) {
+      issues.add(_validationIssueFromTerrain(edgeCapacityIssue));
+    }
   }
 
   return ChunkV2CollisionExpansionResult(

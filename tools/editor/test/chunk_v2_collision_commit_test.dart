@@ -1,7 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:runner_core/collision/terrain/terrain_authoring_capacity.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_collision_commit.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_data.dart';
+import 'package:runner_editor/src/domain/authoring_types.dart';
 import 'package:runner_editor/src/terrain_authoring/terrain_polygon_interaction.dart';
 import 'package:runner_editor/src/terrain_authoring/terrain_source_models.dart';
 
@@ -115,6 +117,34 @@ void main() {
     );
   });
 
+  test('vertex soft-target warning does not reject a chunk commit', () {
+    final before = <TerrainSourceShapeDef>[
+      _rectangle('ground', left: 0, top: 20, right: 200, bottom: 100),
+    ];
+    final after = <TerrainSourceShapeDef>[
+      _strip(
+        'ground',
+        vertexCount: TerrainAuthoringCapacityTargets.verticesPerShape + 1,
+      ),
+    ];
+
+    final result = policy.apply(
+      chunk: _chunk(before),
+      commit: _commit(before: before, after: after),
+      sourcePath: 'chunks/target.json',
+    );
+
+    expect(result.accepted, isTrue);
+    expect(result.changed, isTrue);
+    final warning = result.issues.singleWhere(
+      (issue) => issue.code == 'polygon_vertex_soft_target_exceeded',
+    );
+    expect(warning.severity, ValidationSeverity.warning);
+    expect(warning.ownerKey, 'forest_target');
+    expect(warning.shapeId, 'ground');
+    expect(warning.message, contains('25 vertices'));
+  });
+
   test('invalid identity and noncanonical order reject deterministically', () {
     final before = <TerrainSourceShapeDef>[
       _rectangle('ground', left: 0, top: 20, right: 200, bottom: 100),
@@ -196,3 +226,23 @@ TerrainSourceShapeDef _rectangle(
     TerrainSourceVertexDef(xHalfPixels: left, yHalfPixels: bottom),
   ],
 );
+
+TerrainSourceShapeDef _strip(String shapeId, {required int vertexCount}) {
+  final topCount = (vertexCount + 1) ~/ 2;
+  final bottomCount = vertexCount - topCount;
+  return TerrainSourceShapeDef(
+    shapeId: shapeId,
+    vertices: <TerrainSourceVertexDef>[
+      for (var x = 0; x < topCount; x += 1)
+        TerrainSourceVertexDef(
+          xHalfPixels: x * 2,
+          yHalfPixels: 20 + (x.isEven ? 0 : 2),
+        ),
+      for (var x = bottomCount - 1; x >= 0; x -= 1)
+        TerrainSourceVertexDef(
+          xHalfPixels: x * 2,
+          yHalfPixels: 40 + (x.isEven ? 0 : 2),
+        ),
+    ],
+  );
+}

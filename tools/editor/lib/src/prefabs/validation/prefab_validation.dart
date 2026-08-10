@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:ui' show Size;
 
 import 'package:path/path.dart' as p;
+import 'package:runner_core/collision/terrain/terrain_authoring_issue.dart';
 import 'package:runner_core/collision/terrain/terrain_compiler.dart';
 import 'package:runner_core/collision/terrain/terrain_numeric.dart';
 import 'package:runner_core/collision/terrain/terrain_polygon.dart';
@@ -9,6 +10,7 @@ import 'package:runner_core/collision/terrain/terrain_polygon_overlap.dart';
 import 'package:runner_core/collision/terrain/terrain_source_canonicalizer.dart';
 
 import '../../terrain_authoring/terrain_source_core_adapter.dart';
+import '../../terrain_authoring/terrain_authoring_capacity_issues.dart';
 import '../../terrain_authoring/terrain_source_models.dart';
 import '../domain/prefab_visual_bounds_resolver.dart';
 import '../models/models.dart';
@@ -35,6 +37,7 @@ class PrefabValidationIssue {
     required this.message,
     this.severity = PrefabValidationSeverity.error,
     this.sourcePath = '',
+    this.ownerKey,
     this.shapeId = '',
     this.elementIndex = 0,
   });
@@ -43,6 +46,7 @@ class PrefabValidationIssue {
   final String message;
   final PrefabValidationSeverity severity;
   final String sourcePath;
+  final String? ownerKey;
   final String shapeId;
   final int elementIndex;
 }
