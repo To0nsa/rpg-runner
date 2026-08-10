@@ -227,10 +227,10 @@ void main() {
         ),
       );
       await tester.pump();
-      final lockedApply = tester.widget<FilledButton>(
-        find.byKey(const ValueKey<String>('chunk_polygon_apply_locked')),
+      final applySource = tester.widget<FilledButton>(
+        find.byKey(const ValueKey<String>('chunk_polygon_apply_source')),
       );
-      expect(lockedApply.onPressed, isNull);
+      expect(applySource.onPressed, isNull);
 
       await tester.tap(
         find.byKey(const ValueKey<String>('chunk_polygon_shape_ground_001')),
@@ -249,6 +249,21 @@ void main() {
       expect(harness.session.pendingChanges.changedItemIds, <String>[
         'forest_chunk',
       ]);
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.byKey(const ValueKey<String>('chunk_polygon_apply_source')),
+            )
+            .onPressed,
+        isNotNull,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('chunk_polygon_apply_source')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Apply Chunk-v2 Changes'), findsOneWidget);
+      await tester.tap(find.widgetWithText(TextButton, 'Cancel').last);
+      await tester.pumpAndSettle();
 
       final routeState = tester.state(find.byType(ChunkCreatorPage));
       final localDraftState = routeState as EditorPageLocalDraftState;

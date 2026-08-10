@@ -9,6 +9,7 @@ import 'package:runner_editor/src/prefabs/domain/prefab_v3_catalog_commit.dart';
 import 'package:runner_editor/src/prefabs/domain/prefab_v3_lifecycle_commit.dart';
 import 'package:runner_editor/src/prefabs/domain/prefab_v3_metadata_commit.dart';
 import 'package:runner_editor/src/prefabs/models/models.dart';
+import 'package:runner_editor/src/prefabs/store/prefab_store.dart';
 import 'package:runner_editor/src/prefabs/store/prefab_tile_file_codec.dart';
 import 'package:runner_editor/src/prefabs/store/prefab_v3_file_codec.dart';
 import 'package:runner_editor/src/terrain_authoring/terrain_polygon_interaction.dart';
@@ -117,44 +118,53 @@ void main() {
     },
   );
 
-  test('staged export is a no-op when clean and locked when changed', () async {
-    final root = Directory.systemTemp.createTempSync('prefab_v3_plugin_');
-    try {
-      final before = <TerrainSourceShapeDef>[_rectangle(right: 8)];
-      final clean = _document(before);
-      final workspace = EditorWorkspace(rootPath: root.path);
-      final cleanResult = await plugin.exportToRepo(workspace, document: clean);
-      expect(cleanResult.applied, isFalse);
-      expect(cleanResult.artifacts.single.content, contains('changedFiles: 0'));
+  test(
+    'staged export is a no-op when clean and rejects missing source',
+    () async {
+      final root = Directory.systemTemp.createTempSync('prefab_v3_plugin_');
+      try {
+        final before = <TerrainSourceShapeDef>[_rectangle(right: 8)];
+        final clean = _document(before);
+        final workspace = EditorWorkspace(rootPath: root.path);
+        final cleanResult = await plugin.exportToRepo(
+          workspace,
+          document: clean,
+        );
+        expect(cleanResult.applied, isFalse);
+        expect(
+          cleanResult.artifacts.single.content,
+          contains('changedFiles: 0'),
+        );
 
-      final changed = plugin.applyEdit(
-        clean,
-        AuthoringCommand(
-          kind: PrefabDomainPlugin.commitPrefabPolygonCommandKind,
-          payload: <String, Object?>{
-            'prefabKey': 'target',
-            'commit': _commit(
-              before: before,
-              after: <TerrainSourceShapeDef>[_rectangle(right: 10)],
-            ),
-          },
-        ),
-      );
-      await expectLater(
-        plugin.exportToRepo(workspace, document: changed),
-        throwsA(
-          isA<StateError>().having(
-            (error) => error.message,
-            'message',
-            contains('prefab_v3_source_write_disabled'),
+        final changed = plugin.applyEdit(
+          clean,
+          AuthoringCommand(
+            kind: PrefabDomainPlugin.commitPrefabPolygonCommandKind,
+            payload: <String, Object?>{
+              'prefabKey': 'target',
+              'commit': _commit(
+                before: before,
+                after: <TerrainSourceShapeDef>[_rectangle(right: 10)],
+              ),
+            },
           ),
-        ),
-      );
-      expect(root.listSync(recursive: true), isEmpty);
-    } finally {
-      root.deleteSync(recursive: true);
-    }
-  });
+        );
+        await expectLater(
+          plugin.exportToRepo(workspace, document: changed),
+          throwsA(
+            isA<PrefabV3StagingSaveException>().having(
+              (error) => error.code,
+              'code',
+              'prefab_v3_save_source_drift',
+            ),
+          ),
+        );
+        expect(root.listSync(recursive: true), isEmpty);
+      } finally {
+        root.deleteSync(recursive: true);
+      }
+    },
+  );
 
   test('staged validation reports unresolved visual owner bounds', () {
     final source = _document(<TerrainSourceShapeDef>[_rectangle(right: 8)]);
@@ -839,7 +849,7 @@ void main() {
     expect(edited.data.prefabs.single.revision, 7);
   });
 
-  test('tile-only staged mutation remains protected by export lock', () async {
+  test('tile-only staged mutation rejects an absent source baseline', () async {
     final root = Directory.systemTemp.createTempSync('prefab_v3_catalog_');
     addTearDown(() => root.deleteSync(recursive: true));
     final document = _catalogDocument();
@@ -875,10 +885,10 @@ void main() {
         document: edited,
       ),
       throwsA(
-        isA<StateError>().having(
-          (error) => error.message,
-          'message',
-          contains('prefab_v3_source_write_disabled'),
+        isA<PrefabV3StagingSaveException>().having(
+          (error) => error.code,
+          'code',
+          'prefab_v3_save_source_drift',
         ),
       ),
     );

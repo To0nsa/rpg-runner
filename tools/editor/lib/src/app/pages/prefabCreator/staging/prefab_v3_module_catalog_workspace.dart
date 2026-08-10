@@ -10,7 +10,7 @@ import '../platform_modules/platform_modules_tab.dart';
 import '../platform_modules/widgets/platform_module_scene_view.dart';
 import '../shared/platform_module_cell_reducer.dart';
 
-/// Adapts the retained platform-module UI to write-locked Prefab-v3 commands.
+/// Adapts the retained platform-module UI to typed Prefab-v3 commands.
 ///
 /// The route keeps selection/tools/form drafts local while every module or cell
 /// mutation crosses the stale-checked catalog command as one semantic commit.

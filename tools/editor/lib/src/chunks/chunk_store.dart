@@ -14,7 +14,7 @@ import 'chunk_v2_file_codec.dart';
 import 'chunk_v2_file_data.dart';
 import 'chunk_v2_staging_models.dart';
 
-/// One strict chunk-v2 source snapshot retained for read-only staging.
+/// One strict chunk-v2 source snapshot retained for current-schema editing.
 class ChunkV2StagingSource {
   const ChunkV2StagingSource({
     required this.data,
@@ -490,13 +490,13 @@ class ChunkStore {
     );
   }
 
-  /// Applies one reviewed chunk-v2 plan in an isolated all-current workspace.
+  /// Applies one reviewed chunk-v2 plan to an all-current workspace.
   ///
   /// The complete source tree is rechecked after staging. Writes, managed
   /// moves, and deletions then commit through one rollback-safe transaction;
   /// installed files are byte-verified and strictly decoded before backups are
-  /// removed. The normal chunk plugin never calls this while its Phase 4 write
-  /// lock is active.
+  /// removed. Normal plugin export reaches this only after schema detection has
+  /// selected a complete v2 tree; it cannot migrate legacy source.
   void applyV2StagingSavePlan(
     EditorWorkspace workspace, {
     required ChunkV2StagingDocument document,

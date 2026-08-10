@@ -44,8 +44,8 @@ import 'chunk_v2_owner_dialog.dart';
 ///
 /// Legacy source still loads the chunk-v1 workflow. A complete current v2 tree
 /// selects this workspace through the normal plugin loader; explicit fixtures
-/// can also stage it directly. Source writes remain locked until the
-/// coordinated migration gate opens.
+/// can also stage it directly. Source apply can update only an already-current
+/// tree and cannot perform the legacy migration.
 class ChunkPolygonStagingWorkspace extends StatefulWidget {
   const ChunkPolygonStagingWorkspace({
     super.key,
@@ -269,10 +269,16 @@ class ChunkPolygonStagingWorkspaceState
             },
           ),
           FilledButton.icon(
-            key: const ValueKey<String>('chunk_polygon_apply_locked'),
-            onPressed: null,
-            icon: Icon(Icons.lock_outline),
-            label: Text('Apply source (cutover locked)'),
+            key: const ValueKey<String>('chunk_polygon_apply_source'),
+            onPressed:
+                widget.controller.pendingChanges.hasChanges &&
+                    !(_authoring?.hasActiveOperation ?? false) &&
+                    !widget.controller.isLoading &&
+                    !widget.controller.isExporting
+                ? _confirmAndApplyToFiles
+                : null,
+            icon: const Icon(Icons.save_outlined),
+            label: const Text('Apply current source'),
           ),
           OutlinedButton.icon(
             key: const ValueKey<String>('chunk_polygon_undo_button'),
@@ -295,9 +301,9 @@ class ChunkPolygonStagingWorkspaceState
       ),
       const SizedBox(height: 8),
       const Text(
-        'Read-only migration workspace: session history and validation are '
-        'active, but repository writes remain disabled until the coordinated '
-        'prefab-v3/chunk-v2 cutover.',
+        'Current-schema workspace: apply rechecks the complete chunk source '
+        'set and commits it atomically. Legacy migration and runtime terrain '
+        'activation remain separate cutover steps.',
         style: TextStyle(color: Color(0xFFFFD166)),
       ),
       const SizedBox(height: 8),
@@ -331,6 +337,44 @@ class ChunkPolygonStagingWorkspaceState
       return;
     }
     setState(() => _workspaceView = view);
+  }
+
+  Future<void> _confirmAndApplyToFiles() async {
+    final pendingChanges = widget.controller.pendingChanges;
+    if (!pendingChanges.hasChanges) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Apply Chunk-v2 Changes'),
+        content: Text(
+          'Write ${pendingChanges.changedItemIds.length} chunk change(s) '
+          'across ${pendingChanges.fileDiffs.length} current-schema file(s)?',
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Apply'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    await widget.controller.exportDirectWrite();
+    if (!mounted) return;
+    final error = widget.controller.exportError;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          error == null
+              ? 'Chunk-v2 changes applied.'
+              : 'Chunk-v2 apply failed: $error',
+        ),
+      ),
+    );
   }
 
   Widget _buildOwnerPanel(

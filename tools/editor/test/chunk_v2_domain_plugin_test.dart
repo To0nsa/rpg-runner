@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_plugin.dart';
+import 'package:runner_editor/src/chunks/chunk_store.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_composition_commit.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_codec.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_data.dart';
@@ -121,43 +122,40 @@ void main() {
     },
   );
 
-  test(
-    'typed staged edit remains protected by the source-write lock',
-    () async {
-      final root = Directory.systemTemp.createTempSync('chunk_v2_plugin_');
-      addTearDown(() => root.deleteSync(recursive: true));
-      final plugin = ChunkDomainPlugin();
-      final before = <TerrainSourceShapeDef>[_rectangle(top: 20)];
-      final changed = plugin.applyEdit(
-        _document(before),
-        AuthoringCommand(
-          kind: ChunkDomainPlugin.commitChunkPolygonCommandKind,
-          payload: <String, Object?>{
-            'chunkKey': 'forest_target',
-            'commit': _commit(
-              before: before,
-              after: <TerrainSourceShapeDef>[_rectangle(top: 18)],
-            ),
-          },
-        ),
-      );
-
-      await expectLater(
-        plugin.exportToRepo(
-          EditorWorkspace(rootPath: root.path),
-          document: changed,
-        ),
-        throwsA(
-          isA<StateError>().having(
-            (error) => error.message,
-            'message',
-            contains('chunk_v2_source_write_disabled'),
+  test('typed staged edit rejects an absent current source tree', () async {
+    final root = Directory.systemTemp.createTempSync('chunk_v2_plugin_');
+    addTearDown(() => root.deleteSync(recursive: true));
+    final plugin = ChunkDomainPlugin();
+    final before = <TerrainSourceShapeDef>[_rectangle(top: 20)];
+    final changed = plugin.applyEdit(
+      _document(before),
+      AuthoringCommand(
+        kind: ChunkDomainPlugin.commitChunkPolygonCommandKind,
+        payload: <String, Object?>{
+          'chunkKey': 'forest_target',
+          'commit': _commit(
+            before: before,
+            after: <TerrainSourceShapeDef>[_rectangle(top: 18)],
           ),
+        },
+      ),
+    );
+
+    await expectLater(
+      plugin.exportToRepo(
+        EditorWorkspace(rootPath: root.path),
+        document: changed,
+      ),
+      throwsA(
+        isA<ChunkV2StagingSaveException>().having(
+          (error) => error.code,
+          'code',
+          'chunk_v2_save_source_set_drift',
         ),
-      );
-      expect(root.listSync(recursive: true), isEmpty);
-    },
-  );
+      ),
+    );
+    expect(root.listSync(recursive: true), isEmpty);
+  });
 
   test(
     'polygon metadata and export cross complete staging validation',

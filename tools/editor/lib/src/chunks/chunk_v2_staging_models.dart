@@ -8,10 +8,11 @@ import 'chunk_v2_collision_expansion.dart';
 import 'chunk_v2_file_data.dart';
 import 'chunk_v2_seam_analysis.dart';
 
-/// Temporary read-only plugin document for an all-v2 chunk source tree.
+/// Temporary plugin document for an all-v2 chunk source tree.
 ///
-/// Normal repository loading remains on the legacy chunk document until the
-/// one Phase 4 schema cutover. Changed staging documents cannot be exported.
+/// Normal loading selects this only when every chunk is strict v2 and its
+/// prefab dependencies are current. Export can update that current tree but
+/// cannot migrate a legacy or mixed source generation.
 @immutable
 class ChunkV2StagingDocument extends AuthoringDocument {
   ChunkV2StagingDocument({

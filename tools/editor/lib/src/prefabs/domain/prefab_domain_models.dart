@@ -118,11 +118,12 @@ final class PrefabV3DownstreamImpact {
   final int placementCount;
 }
 
-/// Temporary read-only plugin document used to stage prefab-v3 commands.
+/// Temporary plugin document used for prefab-v3 commands.
 ///
-/// The normal loader never selects this type while repository source is v2,
-/// and export rejects changed instances. At the single schema cutover it
-/// replaces [PrefabDocument] rather than remaining as a parallel authority.
+/// The normal loader selects this only for strict v3 source; legacy v2 remains
+/// on [PrefabDocument]. Export can update already-current source but cannot
+/// migrate legacy files. The coordinated cutover removes the temporary
+/// `Staging` name rather than retaining parallel authorities.
 @immutable
 class PrefabV3StagingDocument extends AuthoringDocument {
   PrefabV3StagingDocument({

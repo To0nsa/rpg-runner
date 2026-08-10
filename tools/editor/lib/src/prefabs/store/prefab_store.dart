@@ -33,7 +33,7 @@ class PrefabSerializedFiles {
   final String tileContents;
 }
 
-/// Strict read-only prefab-v3 plus retained tile-v2 staging payload.
+/// Strict prefab-v3 plus retained tile-v2 load payload.
 class PrefabV3StagingLoadResult {
   const PrefabV3StagingLoadResult({
     required this.prefabData,
@@ -231,11 +231,10 @@ class PrefabStore {
 
   /// Applies one reviewed current-schema plan as a rollback-safe transaction.
   ///
-  /// The checked-in editor plugin never calls this method while the Phase 4
-  /// write lock is active. It exists to prove exact save/reload behavior in
-  /// isolated all-current workspaces. Both baselines are rechecked after files
-  /// are staged and installed bytes are strictly decoded before backups are
-  /// removed.
+  /// Normal plugin export calls this only for an already-current v3/tile-v2
+  /// document; it cannot migrate legacy source. Both baselines are rechecked
+  /// after files are staged and installed bytes are strictly decoded before
+  /// backups are removed.
   void applyV3StagingSavePlan(
     String workspaceRootPath, {
     required PrefabV3StagingSavePlan plan,

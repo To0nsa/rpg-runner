@@ -186,6 +186,41 @@ void main() {
     expect(fixture.snapshot(), before);
   });
 
+  test('changed normal prefab-v3 export applies and reloads exactly', () async {
+    final fixture = _Fixture.create();
+    addTearDown(fixture.dispose);
+    final loaded = await plugin.loadFromRepo(fixture.workspace);
+    final document = loaded as PrefabV3StagingDocument;
+    final target = document.data.prefabs.first;
+    final editedTarget = target.copyWith(
+      revision: target.revision + 1,
+      tags: const <String>['exported'],
+    );
+    final changed = document.copyWith(
+      data: document.data.copyWith(
+        prefabs: <PrefabV3Def>[editedTarget, ...document.data.prefabs.skip(1)],
+      ),
+      changedPrefabKeys: <String>[target.prefabKey],
+    );
+
+    final result = await plugin.exportToRepo(
+      fixture.workspace,
+      document: changed,
+    );
+
+    expect(result.applied, isTrue);
+    expect(
+      fixture.prefabFile.readAsStringSync(),
+      PrefabV3FileCodec.encode(changed.data),
+    );
+    final reloaded = await plugin.loadFromRepo(fixture.workspace);
+    expect(reloaded, isA<PrefabV3StagingDocument>());
+    expect(
+      (reloaded as PrefabV3StagingDocument).data.prefabs.first.tags,
+      <String>['exported'],
+    );
+  });
+
   test(
     'staging store rejects legacy prefab source and a missing tile file',
     () async {

@@ -74,10 +74,10 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Save Definitions'), findsNothing);
-      final lockedApply = tester.widget<FilledButton>(
-        find.byKey(const ValueKey<String>('prefab_polygon_apply_locked')),
+      final applySource = tester.widget<FilledButton>(
+        find.byKey(const ValueKey<String>('prefab_polygon_apply_source')),
       );
-      expect(lockedApply.onPressed, isNull);
+      expect(applySource.onPressed, isNull);
 
       final closeDraftFinder = find.byKey(
         const ValueKey<String>('prefab_polygon_close_draft'),
@@ -366,11 +366,18 @@ void main() {
       expect(
         tester
             .widget<FilledButton>(
-              find.byKey(const ValueKey<String>('prefab_polygon_apply_locked')),
+              find.byKey(const ValueKey<String>('prefab_polygon_apply_source')),
             )
             .onPressed,
-        isNull,
+        isNotNull,
       );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('prefab_polygon_apply_source')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Apply Prefab-v3 Changes'), findsOneWidget);
+      await tester.tap(find.widgetWithText(TextButton, 'Cancel').last);
+      await tester.pumpAndSettle();
     },
   );
 
@@ -599,7 +606,7 @@ void main() {
       expect(
         tester
             .widget<FilledButton>(
-              find.byKey(const ValueKey<String>('prefab_polygon_apply_locked')),
+              find.byKey(const ValueKey<String>('prefab_polygon_apply_source')),
             )
             .onPressed,
         isNull,
@@ -822,10 +829,10 @@ void main() {
       expect(
         tester
             .widget<FilledButton>(
-              find.byKey(const ValueKey<String>('prefab_polygon_apply_locked')),
+              find.byKey(const ValueKey<String>('prefab_polygon_apply_source')),
             )
             .onPressed,
-        isNull,
+        isNotNull,
       );
     },
   );

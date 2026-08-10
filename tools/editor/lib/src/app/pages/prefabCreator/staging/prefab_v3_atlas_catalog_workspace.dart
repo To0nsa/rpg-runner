@@ -10,7 +10,7 @@ import '../../../../session/editor_session_controller.dart';
 import '../atlas_slicer/atlas_slicer_controller.dart';
 import '../atlas_slicer/atlas_slicer_tab.dart';
 
-/// Adapts the retained atlas-slicer UI to write-locked Prefab-v3 commands.
+/// Adapts the retained atlas-slicer UI to typed Prefab-v3 commands.
 ///
 /// Selection and form drafts remain local. Only a validated slice upsert or an
 /// explicitly confirmed unreferenced delete crosses the plugin/session seam.

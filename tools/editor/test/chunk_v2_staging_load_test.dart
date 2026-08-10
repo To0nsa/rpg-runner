@@ -100,7 +100,7 @@ void main() {
     },
   );
 
-  test('changed staging export fails before any filesystem mutation', () async {
+  test('changed normal chunk-v2 export applies and reloads exactly', () async {
     final fixture = _V2Fixture.create();
     addTearDown(fixture.dispose);
     final plugin = ChunkDomainPlugin();
@@ -110,8 +110,6 @@ void main() {
       chunks: <ChunkV2FileData>[changedChunk],
       changedChunkKeys: const <String>['forest_test'],
     );
-    final before = fixture.snapshot();
-
     final pending = plugin.describePendingChanges(
       fixture.workspace,
       document: changed,
@@ -120,17 +118,20 @@ void main() {
     expect(pending.fileDiffs, hasLength(1));
     expect(pending.fileDiffs.single.unifiedDiff, contains('"revision": 2'));
 
-    await expectLater(
-      plugin.exportToRepo(fixture.workspace, document: changed),
-      throwsA(
-        isA<StateError>().having(
-          (error) => error.message,
-          'message',
-          contains('chunk_v2_source_write_disabled'),
-        ),
-      ),
+    final result = await plugin.exportToRepo(
+      fixture.workspace,
+      document: changed,
     );
-    expect(fixture.snapshot(), before);
+    expect(result.applied, isTrue);
+    expect(
+      File(
+        fixture.workspace.resolve(clean.sourcePathByChunkKey['forest_test']!),
+      ).readAsStringSync(),
+      ChunkV2FileCodec.encode(changedChunk),
+    );
+    final reloaded = await plugin.loadFromRepo(fixture.workspace);
+    expect(reloaded, isA<ChunkV2StagingDocument>());
+    expect((reloaded as ChunkV2StagingDocument).chunks.single.revision, 2);
   });
 
   test(

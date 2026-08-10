@@ -87,9 +87,9 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
 
   /// Strict prefab-v3 load shared by normal selection and owner navigation.
   ///
-  /// This method requires strict v3/tile-v2 source and returns a
-  /// changed-export-locked document. Legacy source remains on the v2 document
-  /// until the coordinated migration-required route replacement.
+  /// This method requires strict v3/tile-v2 source. Legacy source remains on
+  /// the v2 document until the coordinated migration-required route
+  /// replacement; no migration write is performed here.
   Future<PrefabV3StagingDocument> loadV3StagingFromRepo(
     EditorWorkspace workspace,
   ) async {
@@ -285,9 +285,21 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
           ],
         );
       }
-      throw StateError(
-        'prefab_v3_source_write_disabled: prefab-v3 export remains locked '
-        'until the Phase 4 migration write gate opens.',
+      final plan = _store.buildV3StagingSavePlan(
+        prefabData: document.data,
+        tileData: document.tileData,
+        prefabBaselineContents: document.prefabBaselineContents,
+        tileBaselineContents: document.tileBaselineContents,
+      );
+      _store.applyV3StagingSavePlan(workspace.rootPath, plan: plan);
+      return ExportResult(
+        applied: true,
+        artifacts: <ExportArtifact>[
+          ExportArtifact(
+            title: 'prefab_summary.md',
+            content: _buildSummary(pending.fileDiffs),
+          ),
+        ],
       );
     }
     final prefabDocument = _asPrefabDocument(document);

@@ -33,7 +33,8 @@ import 'prefab_v3_owner_dialog.dart';
 ///
 /// Legacy source still loads the v2 rectangle workflow. Current v3 source and
 /// explicit owner navigation select this page through [PrefabV3StagingScene].
-/// It exposes no source-write action while staging export remains locked.
+/// Source apply is available only for already-current files and cannot migrate
+/// legacy source.
 class PrefabPolygonStagingWorkspace extends StatefulWidget {
   const PrefabPolygonStagingWorkspace({
     super.key,
@@ -234,10 +235,22 @@ class PrefabPolygonStagingWorkspaceState
               label: Text('Prefab v3 polygon staging'),
             ),
             FilledButton.icon(
-              key: const ValueKey<String>('prefab_polygon_apply_locked'),
-              onPressed: null,
-              icon: const Icon(Icons.lock_outline),
-              label: const Text('Apply source (cutover locked)'),
+              key: const ValueKey<String>('prefab_polygon_apply_source'),
+              onPressed:
+                  widget.controller.pendingChanges.hasChanges &&
+                      !(authoring?.hasActiveOperation ?? false) &&
+                      !(_atlasWorkspaceKey.currentState?.hasLocalDraftChanges ??
+                          false) &&
+                      !(_moduleWorkspaceKey
+                              .currentState
+                              ?.hasLocalDraftChanges ??
+                          false) &&
+                      !widget.controller.isLoading &&
+                      !widget.controller.isExporting
+                  ? _confirmAndApplyToFiles
+                  : null,
+              icon: const Icon(Icons.save_outlined),
+              label: const Text('Apply current source'),
             ),
             OutlinedButton.icon(
               key: const ValueKey<String>('prefab_polygon_undo_button'),
@@ -275,9 +288,9 @@ class PrefabPolygonStagingWorkspaceState
         ),
         const SizedBox(height: PrefabEditorUiTokens.controlGap),
         const Text(
-          'Read-only migration workspace: edits participate in session history '
-          'and validation, but repository writes remain disabled until the '
-          'coordinated prefab-v3/chunk-v2 cutover.',
+          'Current-schema workspace: apply rechecks both source baselines and '
+          'commits the prefab/tile pair atomically. Legacy migration and '
+          'runtime terrain activation remain separate cutover steps.',
           style: TextStyle(color: Color(0xFFFFD166)),
         ),
         const SizedBox(height: PrefabEditorUiTokens.controlGap),
@@ -342,6 +355,44 @@ class PrefabPolygonStagingWorkspaceState
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _confirmAndApplyToFiles() async {
+    final pendingChanges = widget.controller.pendingChanges;
+    if (!pendingChanges.hasChanges) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Apply Prefab-v3 Changes'),
+        content: Text(
+          'Write ${pendingChanges.changedItemIds.length} prefab change(s) '
+          'across ${pendingChanges.fileDiffs.length} current-schema file(s)?',
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Apply'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    await widget.controller.exportDirectWrite();
+    if (!mounted) return;
+    final error = widget.controller.exportError;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          error == null
+              ? 'Prefab-v3 changes applied.'
+              : 'Prefab-v3 apply failed: $error',
+        ),
+      ),
+    );
   }
 
   Widget _buildOwnerPanel(

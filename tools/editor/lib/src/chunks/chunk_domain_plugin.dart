@@ -320,9 +320,20 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
           ],
         );
       }
-      throw StateError(
-        'chunk_v2_source_write_disabled: chunk-v2 export remains locked '
-        'until the Phase 4 migration write gate opens.',
+      final savePlan = _store.buildV2StagingSavePlan(document: document);
+      _store.applyV2StagingSavePlan(
+        workspace,
+        document: document,
+        savePlan: savePlan,
+      );
+      return ExportResult(
+        applied: true,
+        artifacts: <ExportArtifact>[
+          ExportArtifact(
+            title: 'chunk_summary.md',
+            content: _buildSummary(savePlan),
+          ),
+        ],
       );
     }
     final chunkDocument = _asChunkDocument(document);

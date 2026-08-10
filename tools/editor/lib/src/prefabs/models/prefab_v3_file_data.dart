@@ -7,7 +7,8 @@ import 'prefab/prefab_v3_def.dart';
 ///
 /// This record snapshots source order without normalizing it. Strict decoding
 /// diagnoses noncanonical files, while the codec owns canonical serialization.
-/// It is a read-only staging seam until `PrefabStore` cuts over from v2.
+/// Normal loading selects it only for strict v3 source; legacy v2 keeps its
+/// separate model until the coordinated migration.
 @immutable
 final class PrefabV3FileData {
   PrefabV3FileData({
