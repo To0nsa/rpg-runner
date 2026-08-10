@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:runner_core/collision/terrain/terrain_authoring_issue.dart';
 
 import '../../tool/polygon_terrain_compilation.dart';
 import '../../tool/polygon_terrain_source.dart';
@@ -203,6 +204,96 @@ void main() {
     expect(second.triangleRecords(), first.triangleRecords());
     expect(second.authoringPolygonRecords(), first.authoringPolygonRecords());
   });
+
+  test(
+    'source-text boundary preserves success and normalizes parse errors',
+    () {
+      final direct = _compileFixture();
+      final wrapped = compilePolygonTerrainSourceText(
+        prefabSource: _fixture('prefab_defs.json'),
+        prefabSourcePath: 'prefab_defs.json',
+        chunkSource: _fixture('chunk.json'),
+        chunkSourcePath: _chunkSourcePath,
+      );
+
+      expect(wrapped.issues, isEmpty);
+      expect(wrapped.compiled, isNotNull);
+      expect(
+        wrapped.compiled!.geometry.canonicalSourceRecords(),
+        direct.geometry.canonicalSourceRecords(),
+      );
+      expect(
+        wrapped.compiled!.geometry.canonicalEdgeRecords(),
+        direct.geometry.canonicalEdgeRecords(),
+      );
+      expect(wrapped.compiled!.placementRecords(), direct.placementRecords());
+      expect(wrapped.compiled!.triangleRecords(), direct.triangleRecords());
+      expect(
+        wrapped.compiled!.authoringPolygonRecords(),
+        direct.authoringPolygonRecords(),
+      );
+
+      final invalid = compilePolygonTerrainSourceText(
+        prefabSource: '{',
+        prefabSourcePath: 'prefab_defs.json',
+        chunkSource: _mutated(_json('chunk.json'), (root) {
+          _firstCollisionShape(root)['collisionMode'] = 'ghost';
+        }),
+        chunkSourcePath: _chunkSourcePath,
+      );
+      expect(invalid.compiled, isNull);
+      expect(
+        invalid.issues
+            .map(
+              (issue) => (
+                issue.severity,
+                issue.code,
+                issue.sourcePath,
+                issue.ownerKey,
+                issue.placementKey,
+                issue.shapeId,
+                issue.elementIndex,
+              ),
+            )
+            .toList(growable: false),
+        <
+          (
+            TerrainAuthoringIssueSeverity,
+            String,
+            String,
+            String,
+            String?,
+            String?,
+            int?,
+          )
+        >[
+          (
+            TerrainAuthoringIssueSeverity.error,
+            'chunk_source_invalid',
+            _chunkSourcePath,
+            _chunkSourcePath,
+            null,
+            null,
+            null,
+          ),
+          (
+            TerrainAuthoringIssueSeverity.error,
+            'prefab_source_invalid',
+            'prefab_defs.json',
+            'prefab_defs.json',
+            null,
+            null,
+            null,
+          ),
+        ],
+      );
+      expect(
+        invalid.issues.first.message,
+        contains('collisionMode must be one of oneWay, solid'),
+      );
+      expect(invalid.issues.last.message, contains('is malformed JSON'));
+    },
+  );
 
   test('compiled product signatures ignore caller collection order', () {
     final compiled = _compileFixture();
@@ -819,36 +910,60 @@ void main() {
       result.issues
           .map(
             (issue) => (
+              issue.severity,
               issue.code,
+              issue.ownerKey,
               issue.placementKey,
               issue.shapeId,
               issue.elementIndex,
             ),
           )
           .toList(growable: false),
-      <(String, String?, String?, int?)>[
-        ('chunk_collision_shape_out_of_bounds', null, 'platform', 1),
-        ('chunk_collision_shape_out_of_bounds', null, 'platform', 2),
+      <(TerrainAuthoringIssueSeverity, String, String, String?, String?, int?)>[
         (
+          TerrainAuthoringIssueSeverity.error,
+          'chunk_collision_shape_out_of_bounds',
+          'fixture_chunk',
+          null,
+          'platform',
+          1,
+        ),
+        (
+          TerrainAuthoringIssueSeverity.error,
+          'chunk_collision_shape_out_of_bounds',
+          'fixture_chunk',
+          null,
+          'platform',
+          2,
+        ),
+        (
+          TerrainAuthoringIssueSeverity.error,
           'expanded_prefab_vertex_out_of_bounds',
+          'prefab_ramp',
           'prefab_ramp|110|20|0',
           'collision_001',
           0,
         ),
         (
+          TerrainAuthoringIssueSeverity.error,
           'expanded_prefab_vertex_out_of_bounds',
+          'prefab_ramp',
           'prefab_ramp|110|20|0',
           'collision_001',
           1,
         ),
         (
+          TerrainAuthoringIssueSeverity.error,
           'expanded_prefab_vertex_out_of_bounds',
+          'prefab_ramp',
           'prefab_ramp|110|20|0',
           'collision_001',
           2,
         ),
         (
+          TerrainAuthoringIssueSeverity.error,
           'expanded_prefab_vertex_out_of_bounds',
+          'prefab_ramp',
           'prefab_ramp|110|20|0',
           'collision_001',
           3,

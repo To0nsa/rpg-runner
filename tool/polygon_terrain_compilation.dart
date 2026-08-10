@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
+import 'package:runner_core/collision/terrain/terrain_authoring_issue.dart';
 import 'package:runner_core/collision/terrain/terrain_authoring_polygon_signature.dart';
 import 'package:runner_core/collision/terrain/terrain_authoring_triangle_signature.dart';
 import 'package:runner_core/collision/terrain/terrain_compiler.dart';
@@ -12,37 +13,8 @@ import 'package:runner_core/collision/terrain/terrain_triangulator.dart';
 
 import 'polygon_terrain_source.dart';
 
-/// One stable blocking staged-generator diagnostic.
-final class PolygonTerrainGenerationIssue
-    implements Comparable<PolygonTerrainGenerationIssue> {
-  const PolygonTerrainGenerationIssue({
-    required this.code,
-    required this.message,
-    required this.sourcePath,
-    this.placementKey,
-    this.shapeId,
-    this.elementIndex,
-  });
-
-  final String code;
-  final String message;
-  final String sourcePath;
-  final String? placementKey;
-  final String? shapeId;
-  final int? elementIndex;
-
-  @override
-  int compareTo(PolygonTerrainGenerationIssue other) {
-    var order = sourcePath.compareTo(other.sourcePath);
-    if (order != 0) return order;
-    order = (placementKey ?? '').compareTo(other.placementKey ?? '');
-    if (order != 0) return order;
-    order = (shapeId ?? '').compareTo(other.shapeId ?? '');
-    if (order != 0) return order;
-    order = (elementIndex ?? -1).compareTo(other.elementIndex ?? -1);
-    return order != 0 ? order : code.compareTo(other.code);
-  }
-}
+/// Generator-facing name for Core's portable terrain-authoring issue envelope.
+typedef PolygonTerrainGenerationIssue = TerrainAuthoringIssue;
 
 /// Stable prefab placement lineage retained beside compiled local geometry.
 final class PolygonTerrainPlacementLineage
@@ -153,12 +125,63 @@ final class PolygonTerrainCompilationResult {
   PolygonTerrainCompilationResult({
     required this.compiled,
     required Iterable<PolygonTerrainGenerationIssue> issues,
-  }) : issues = List<PolygonTerrainGenerationIssue>.unmodifiable(
-         List<PolygonTerrainGenerationIssue>.of(issues)..sort(),
-       );
+  }) : issues = canonicalTerrainAuthoringIssues(issues);
 
   final PolygonTerrainCompiledChunk? compiled;
   final List<PolygonTerrainGenerationIssue> issues;
+}
+
+/// Strictly parses and compiles one current-schema terrain source pair.
+///
+/// File-level parse failures cannot reliably expose an authored owner key, so
+/// their canonical workspace-relative file identity becomes the owner key.
+/// Successfully parsed geometry delegates to [compilePolygonTerrainChunk].
+PolygonTerrainCompilationResult compilePolygonTerrainSourceText({
+  required String prefabSource,
+  required String prefabSourcePath,
+  required String chunkSource,
+  required String chunkSourcePath,
+}) {
+  prefabSourcePath = canonicalPolygonTerrainSourcePath(prefabSourcePath);
+  chunkSourcePath = canonicalPolygonTerrainSourcePath(chunkSourcePath);
+  final issues = <PolygonTerrainGenerationIssue>[];
+  PolygonTerrainPrefabSourceSet? prefabs;
+  PolygonTerrainChunkSource? chunk;
+  try {
+    prefabs = decodePolygonTerrainPrefabs(
+      prefabSource,
+      sourcePath: prefabSourcePath,
+    );
+  } on FormatException catch (error) {
+    issues.add(
+      _errorIssue(
+        code: 'prefab_source_invalid',
+        message: error.message.toString(),
+        sourcePath: prefabSourcePath,
+        ownerKey: prefabSourcePath,
+      ),
+    );
+  }
+  try {
+    chunk = decodePolygonTerrainChunk(chunkSource, sourcePath: chunkSourcePath);
+  } on FormatException catch (error) {
+    issues.add(
+      _errorIssue(
+        code: 'chunk_source_invalid',
+        message: error.message.toString(),
+        sourcePath: chunkSourcePath,
+        ownerKey: chunkSourcePath,
+      ),
+    );
+  }
+  if (prefabs == null || chunk == null) {
+    return PolygonTerrainCompilationResult(compiled: null, issues: issues);
+  }
+  return compilePolygonTerrainChunk(
+    chunk: chunk,
+    prefabSources: prefabs,
+    sourcePath: chunkSourcePath,
+  );
 }
 
 /// Expands current-schema collision and delegates all geometry to Core.
@@ -171,12 +194,14 @@ PolygonTerrainCompilationResult compilePolygonTerrainChunk({
   final issues = <PolygonTerrainGenerationIssue>[];
   final inputs = <TerrainPolygonInput>[];
   final placementByPath = <String, String>{};
+  final ownerByPath = <String, String>{};
   final placementLineage = <PolygonTerrainPlacementLineage>[];
   final prefabRefs = _indexPrefabReferences(prefabSources.prefabs);
   final referencedPrefabs = <String, PolygonTerrainPrefabSource>{};
 
   for (final shape in chunk.collisionShapes) {
     final shapePath = '$sourcePath#direct=${shape.shapeId}';
+    ownerByPath[shapePath] = chunk.chunkKey;
     try {
       inputs.add(
         _polygonInput(
@@ -187,10 +212,11 @@ PolygonTerrainCompilationResult compilePolygonTerrainChunk({
       );
     } on ArgumentError catch (error) {
       issues.add(
-        PolygonTerrainGenerationIssue(
+        _errorIssue(
           code: 'chunk_collision_source_value_invalid',
           message: error.toString(),
           sourcePath: shapePath,
+          ownerKey: chunk.chunkKey,
           shapeId: shape.shapeId,
         ),
       );
@@ -204,12 +230,13 @@ PolygonTerrainCompilationResult compilePolygonTerrainChunk({
     final candidates = prefabRefs[placement.resolvedPrefabRef];
     if (candidates == null || candidates.isEmpty) {
       issues.add(
-        PolygonTerrainGenerationIssue(
+        _errorIssue(
           code: 'unknown_prefab_reference',
           message:
               'Chunk ${chunk.chunkKey} placement $placementKey references '
               'unknown prefab ${placement.resolvedPrefabRef}.',
           sourcePath: placementPath,
+          ownerKey: chunk.chunkKey,
           placementKey: placementKey,
         ),
       );
@@ -217,12 +244,13 @@ PolygonTerrainCompilationResult compilePolygonTerrainChunk({
     }
     if (candidates.length != 1) {
       issues.add(
-        PolygonTerrainGenerationIssue(
+        _errorIssue(
           code: 'ambiguous_prefab_reference',
           message:
               'Chunk ${chunk.chunkKey} placement $placementKey resolves '
               '${placement.resolvedPrefabRef} to more than one prefab.',
           sourcePath: placementPath,
+          ownerKey: chunk.chunkKey,
           placementKey: placementKey,
         ),
       );
@@ -242,6 +270,7 @@ PolygonTerrainCompilationResult compilePolygonTerrainChunk({
       final shapePath =
           '$placementPath#prefab=${prefab.prefabKey}#shape=${shape.shapeId}';
       placementByPath[shapePath] = placementKey;
+      ownerByPath[shapePath] = prefab.prefabKey;
       try {
         inputs.add(
           _polygonInput(
@@ -269,10 +298,11 @@ PolygonTerrainCompilationResult compilePolygonTerrainChunk({
         );
       } on ArgumentError catch (error) {
         issues.add(
-          PolygonTerrainGenerationIssue(
+          _errorIssue(
             code: 'prefab_collision_source_value_invalid',
             message: error.toString(),
             sourcePath: shapePath,
+            ownerKey: prefab.prefabKey,
             placementKey: placementKey,
             shapeId: shape.shapeId,
           ),
@@ -290,13 +320,10 @@ PolygonTerrainCompilationResult compilePolygonTerrainChunk({
     );
     for (final diagnostic in review.diagnostics) {
       issues.add(
-        PolygonTerrainGenerationIssue(
-          code: diagnostic.code,
-          message: diagnostic.message,
-          sourcePath: diagnostic.sourcePath,
+        TerrainAuthoringIssue.fromCore(
+          diagnostic: diagnostic,
+          ownerKey: ownerByPath[diagnostic.sourcePath] ?? chunk.chunkKey,
           placementKey: placementByPath[diagnostic.sourcePath],
-          shapeId: diagnostic.shapeId,
-          elementIndex: diagnostic.elementIndex,
         ),
       );
       if (terrainDiagnosticIsBlocking(diagnostic)) {
@@ -310,22 +337,20 @@ PolygonTerrainCompilationResult compilePolygonTerrainChunk({
     } on TerrainValidationException catch (error) {
       issues.addAll(
         error.diagnostics.map(
-          (diagnostic) => PolygonTerrainGenerationIssue(
-            code: diagnostic.code,
-            message: diagnostic.message,
-            sourcePath: diagnostic.sourcePath,
+          (diagnostic) => TerrainAuthoringIssue.fromCore(
+            diagnostic: diagnostic,
+            ownerKey: ownerByPath[diagnostic.sourcePath] ?? chunk.chunkKey,
             placementKey: placementByPath[diagnostic.sourcePath],
-            shapeId: diagnostic.shapeId,
-            elementIndex: diagnostic.elementIndex,
           ),
         ),
       );
     } on ArgumentError catch (error) {
       issues.add(
-        PolygonTerrainGenerationIssue(
+        _errorIssue(
           code: 'terrain_transform_invalid',
           message: error.toString(),
           sourcePath: sourcePath,
+          ownerKey: chunk.chunkKey,
         ),
       );
     }
@@ -344,7 +369,7 @@ PolygonTerrainCompilationResult compilePolygonTerrainChunk({
           continue;
         }
         issues.add(
-          PolygonTerrainGenerationIssue(
+          _errorIssue(
             code: polygon.identity.placementKey == null
                 ? 'chunk_collision_shape_out_of_bounds'
                 : 'expanded_prefab_vertex_out_of_bounds',
@@ -352,6 +377,7 @@ PolygonTerrainCompilationResult compilePolygonTerrainChunk({
                 'Transformed vertex is outside closed chunk bounds '
                 '0..${chunk.width} x 0..${chunk.height} px.',
             sourcePath: polygon.sourcePath,
+            ownerKey: ownerByPath[polygon.sourcePath] ?? chunk.chunkKey,
             placementKey: polygon.identity.placementKey,
             shapeId: polygon.identity.shapeId,
             elementIndex: vertex.key,
@@ -489,6 +515,25 @@ String _canonicalRecord(List<String> fields) =>
 
 String _signature(Iterable<String> records) =>
     sha256.convert(utf8.encode(records.join('\n'))).toString();
+
+PolygonTerrainGenerationIssue _errorIssue({
+  required String code,
+  required String message,
+  required String sourcePath,
+  required String ownerKey,
+  String? placementKey,
+  String? shapeId,
+  int? elementIndex,
+}) => TerrainAuthoringIssue(
+  severity: TerrainAuthoringIssueSeverity.error,
+  code: code,
+  message: message,
+  sourcePath: sourcePath,
+  ownerKey: ownerKey,
+  placementKey: placementKey,
+  shapeId: shapeId,
+  elementIndex: elementIndex,
+);
 
 void _rejectDuplicateComparable<T extends Comparable<T>>(
   List<T> records,
