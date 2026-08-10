@@ -57,7 +57,8 @@ class EditorSessionController extends ChangeNotifier {
   /// Current workspace root path used for the next load/export.
   String get workspacePath => _workspacePath;
 
-  /// True while [loadWorkspace] is resolving the current plugin document.
+  /// True while a normal reload or guarded plugin transition is resolving a
+  /// repository document.
   bool get isLoading => _isLoading;
 
   /// True while [exportDirectWrite] is running plugin-owned repository writes.
@@ -184,6 +185,59 @@ class EditorSessionController extends ChangeNotifier {
           context: ErrorDescription('while loading editor workspace'),
         ),
       );
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Atomically loads a repository document for another registered plugin.
+  ///
+  /// This is reserved for guarded cross-domain navigation that needs a
+  /// plugin-owned loader other than [AuthoringDomainPlugin.loadFromRepo]. The
+  /// active plugin, document, scene, pending changes, and history change only
+  /// after [loadDocument] and the target plugin projections all succeed. A
+  /// failure leaves the current session editable and returns `false`.
+  Future<bool> loadWorkspaceForPlugin({
+    required String pluginId,
+    required Future<AuthoringDocument> Function(
+      AuthoringDomainPlugin plugin,
+      EditorWorkspace workspace,
+    )
+    loadDocument,
+  }) async {
+    if (_isLoading || _isExporting) {
+      return false;
+    }
+    _isLoading = true;
+    _loadError = null;
+    _exportError = null;
+    notifyListeners();
+
+    try {
+      final workspace = EditorWorkspace(rootPath: _workspacePath);
+      final plugin = _pluginRegistry.requireById(pluginId);
+      final document = await loadDocument(plugin, workspace);
+      _applyDocumentState(
+        plugin: plugin,
+        document: document,
+        workspace: workspace,
+        clearHistory: true,
+      );
+      _selectedPluginId = pluginId;
+      return true;
+    } catch (error, stackTrace) {
+      _loadError = '$error';
+      FlutterError.reportError(
+        FlutterErrorDetails(
+          exception: error,
+          stack: stackTrace,
+          context: ErrorDescription(
+            'while loading a cross-plugin editor workspace',
+          ),
+        ),
+      );
+      return false;
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -338,18 +392,27 @@ class EditorSessionController extends ChangeNotifier {
     EditorWorkspace? workspace,
     bool clearHistory = false,
   }) {
-    if (workspace != null) {
-      _workspace = workspace;
-    }
+    final nextWorkspace = workspace ?? _workspace;
+    final nextIssues = plugin.validate(document);
+    final nextScene = plugin.buildEditableScene(document);
+    final nextPending = nextWorkspace == null
+        ? (changes: PendingChanges.empty, error: null)
+        : _describePendingChanges(
+            plugin,
+            workspace: nextWorkspace,
+            document: document,
+          );
     // Document, issues, scene, and pending changes are a single derived
     // snapshot; update them together so listeners never observe a mixed state.
+    _workspace = nextWorkspace;
     _document = document;
-    _setIssues(plugin.validate(document));
-    _scene = plugin.buildEditableScene(document);
+    _setIssues(nextIssues);
+    _scene = nextScene;
     if (clearHistory) {
       _clearHistory();
     }
-    _refreshPendingChanges(plugin);
+    _pendingChanges = nextPending.changes;
+    _pendingChangesError = nextPending.error;
     _lastExportResult = null;
     _exportError = null;
   }
@@ -385,30 +448,20 @@ class EditorSessionController extends ChangeNotifier {
     _clearHistory();
   }
 
-  /// Recomputes pending item/file deltas for the current document.
-  ///
-  /// This is intentionally isolated from the rest of [_applyDocumentState] so a
-  /// pending-diff failure does not tear down an otherwise usable loaded scene.
-  void _refreshPendingChanges(AuthoringDomainPlugin plugin) {
-    final workspace = _workspace;
-    final document = _document;
-    if (workspace == null || document == null) {
-      _pendingChanges = PendingChanges.empty;
-      _pendingChangesError = null;
-      return;
-    }
-
+  ({PendingChanges changes, String? error}) _describePendingChanges(
+    AuthoringDomainPlugin plugin, {
+    required EditorWorkspace workspace,
+    required AuthoringDocument document,
+  }) {
     try {
       // Pending-change computation is auxiliary UI state; on failure, keep the
       // loaded document usable and surface the error separately.
-      _pendingChanges = plugin.describePendingChanges(
+      final pendingChanges = plugin.describePendingChanges(
         workspace,
         document: document,
       );
-      _pendingChangesError = null;
+      return (changes: pendingChanges, error: null);
     } catch (error, stackTrace) {
-      _pendingChanges = PendingChanges.empty;
-      _pendingChangesError = '$error';
       FlutterError.reportError(
         FlutterErrorDetails(
           exception: error,
@@ -418,6 +471,7 @@ class EditorSessionController extends ChangeNotifier {
           ),
         ),
       );
+      return (changes: PendingChanges.empty, error: '$error');
     }
   }
 }

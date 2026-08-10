@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -165,6 +166,102 @@ void main() {
     },
   );
 
+  test('guarded plugin load installs the target session atomically', () async {
+    final fixtureRoot = await Directory.systemTemp.createTemp(
+      'editor_session_controller_guarded_load_',
+    );
+    addTearDown(() {
+      if (fixtureRoot.existsSync()) {
+        fixtureRoot.deleteSync(recursive: true);
+      }
+    });
+
+    final sourcePlugin = _RecordingPlugin(id: 'recording_a');
+    final targetPlugin = _RecordingPlugin(id: 'recording_b');
+    final controller = EditorSessionController(
+      pluginRegistry: AuthoringPluginRegistry(
+        plugins: <AuthoringDomainPlugin>[sourcePlugin, targetPlugin],
+      ),
+      initialPluginId: sourcePlugin.id,
+      initialWorkspacePath: fixtureRoot.path,
+    );
+    await controller.loadWorkspace();
+    controller.applyCommand(AuthoringCommand(kind: 'mutate'));
+    expect(controller.canUndo, isTrue);
+
+    final targetDocument = const _RecordingDocument(revision: 7);
+    final loadCompleter = Completer<AuthoringDocument>();
+    final transition = controller.loadWorkspaceForPlugin(
+      pluginId: targetPlugin.id,
+      loadDocument: (plugin, workspace) {
+        expect(plugin, same(targetPlugin));
+        expect(
+          workspace.rootPath,
+          EditorWorkspace(rootPath: fixtureRoot.path).rootPath,
+        );
+        return loadCompleter.future;
+      },
+    );
+
+    expect(controller.isLoading, isTrue);
+    expect(controller.selectedPluginId, sourcePlugin.id);
+    expect((controller.document! as _RecordingDocument).revision, 1);
+
+    loadCompleter.complete(targetDocument);
+    expect(await transition, isTrue);
+
+    expect(controller.isLoading, isFalse);
+    expect(controller.loadError, isNull);
+    expect(controller.selectedPluginId, targetPlugin.id);
+    expect(controller.document, same(targetDocument));
+    expect((controller.scene! as _RecordingScene).revision, 7);
+    expect(controller.canUndo, isFalse);
+    expect(controller.canRedo, isFalse);
+    expect(targetPlugin.loadCallCount, 0);
+  });
+
+  test('failed guarded plugin load preserves the current session', () async {
+    final fixtureRoot = await Directory.systemTemp.createTemp(
+      'editor_session_controller_guarded_load_failure_',
+    );
+    final previousOnError = FlutterError.onError;
+    final reportedErrors = <FlutterErrorDetails>[];
+    addTearDown(() {
+      FlutterError.onError = previousOnError;
+      if (fixtureRoot.existsSync()) {
+        fixtureRoot.deleteSync(recursive: true);
+      }
+    });
+    FlutterError.onError = reportedErrors.add;
+
+    final sourcePlugin = _RecordingPlugin(id: 'recording_a');
+    final targetPlugin = _RecordingPlugin(id: 'recording_b');
+    final controller = EditorSessionController(
+      pluginRegistry: AuthoringPluginRegistry(
+        plugins: <AuthoringDomainPlugin>[sourcePlugin, targetPlugin],
+      ),
+      initialPluginId: sourcePlugin.id,
+      initialWorkspacePath: fixtureRoot.path,
+    );
+    await controller.loadWorkspace();
+    controller.applyCommand(AuthoringCommand(kind: 'mutate'));
+    final sourceDocument = controller.document;
+    final sourceScene = controller.scene;
+
+    final loaded = await controller.loadWorkspaceForPlugin(
+      pluginId: targetPlugin.id,
+      loadDocument: (_, _) async => throw StateError('guarded load failure'),
+    );
+
+    expect(loaded, isFalse);
+    expect(controller.selectedPluginId, sourcePlugin.id);
+    expect(controller.document, same(sourceDocument));
+    expect(controller.scene, same(sourceScene));
+    expect(controller.canUndo, isTrue);
+    expect(controller.loadError, contains('guarded load failure'));
+    expect(reportedErrors, hasLength(1));
+  });
+
   test('issues are exposed as an immutable snapshot', () async {
     final fixtureRoot = await Directory.systemTemp.createTemp(
       'editor_session_controller_issues_',
@@ -228,6 +325,7 @@ class _RecordingPlugin implements AuthoringDomainPlugin {
 
   bool failLoads = false;
   bool failExports = false;
+  int loadCallCount = 0;
   final List<ValidationIssue> validationIssues;
 
   @override
@@ -272,6 +370,7 @@ class _RecordingPlugin implements AuthoringDomainPlugin {
 
   @override
   Future<AuthoringDocument> loadFromRepo(EditorWorkspace workspace) async {
+    loadCallCount += 1;
     if (failLoads) {
       throw StateError('forced load failure');
     }
