@@ -785,6 +785,14 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
                 onPressed: draft == null ? null : authoring.closePolygon,
                 child: const Text('Close draft'),
               ),
+              OutlinedButton.icon(
+                key: const ValueKey<String>('chunk_polygon_normalize_draft'),
+                onPressed: draft == null
+                    ? null
+                    : authoring.normalizeSelectedShape,
+                icon: const Icon(Icons.auto_fix_high),
+                label: const Text('Normalize draft'),
+              ),
               OutlinedButton(
                 onPressed: authoring.hasActiveOperation
                     ? authoring.cancelActiveOperation

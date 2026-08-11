@@ -496,6 +496,15 @@ void main() {
       find.byKey(const ValueKey<String>('chunk_shape_diagnostics_list')),
       findsOneWidget,
     );
+    final normalizeDraft = find.byKey(
+      const ValueKey<String>('chunk_polygon_normalize_draft'),
+    );
+    expect(tester.widget<OutlinedButton>(normalizeDraft).onPressed, isNull);
+    await tester.tap(
+      find.byKey(const ValueKey<String>('chunk_polygon_new_shape')),
+    );
+    await tester.pump();
+    expect(tester.widget<OutlinedButton>(normalizeDraft).onPressed, isNotNull);
     expect(tester.takeException(), isNull);
   });
 
