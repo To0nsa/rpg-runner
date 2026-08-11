@@ -99,11 +99,16 @@ terrain artifact at runtime.
 
 Prefab and Chunk polygon scenes share the same controls:
 
-- select **Create**, then primary-click to append snapped vertices
-- press Enter or choose **Close draft** to validate and close a polygon
+- choose **New polygon**, then primary-click to append snapped draft vertices
+- while a draft is open, **Move vertex** and **Insert vertex** edit that draft;
+  **Select**, **Create**, and **Move shape** remain disabled
+- Undo and Redo traverse draft vertex placement, movement, and insertion locally
+  without changing source history
+- press Enter or choose **Save** to normalize, validate, and commit the complete
+  draft as one source-history edit
 - press Escape or choose **Cancel** to discard the active draft/gesture
-- use **Select**, **Move vertex**, **Insert vertex**, or **Move shape** before
-  primary-clicking or dragging the corresponding scene element
+- outside creation, use **Select**, **Move vertex**, **Insert vertex**, or
+  **Move shape** before primary-clicking or dragging the corresponding element
 - the chosen edit tool remains active after a completed gesture, so consecutive
   vertices, edges, or shapes can be edited without selecting the tool again
 - press Delete/Backspace to delete the current selection
@@ -113,12 +118,11 @@ Prefab and Chunk polygon scenes share the same controls:
   diagnosed collinear middle vertices
 
 Rejected edits retain their draft/gesture and show diagnostics; they do not
-enter session history. If the only problem is an aligned middle vertex,
-**Normalize** applies the visible draft/gesture, removes that redundant vertex,
-and creates one undoable edit. Selecting a different tool instead discards the
-uncommitted draft/gesture and switches tools. **Apply current source** remains
-disabled until the preview is resolved and is the only normal file-write action;
-it always requires confirmation.
+enter source history. Draft **Save** removes redundant aligned middle vertices
+before the single commit. For a rejected committed-shape gesture, **Normalize**
+applies the visible preview or selecting another tool discards that preview.
+**Apply current source** remains disabled until local work is resolved and is
+the only normal file-write action; it always requires confirmation.
 
 ## Polygon Workspace Navigation
 
