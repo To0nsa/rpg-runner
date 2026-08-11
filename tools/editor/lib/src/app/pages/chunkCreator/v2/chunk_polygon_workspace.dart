@@ -89,31 +89,23 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
       (_authoring?.hasActiveOperation ?? false) ||
       widget.controller.pendingChanges.hasChanges;
 
-  bool get canUndo =>
-      (_authoring?.hasActiveOperation ?? false) || widget.controller.canUndo;
+  bool get canUndo => _authoring?.canUndo ?? widget.controller.canUndo;
 
-  bool get canRedo =>
-      !(_authoring?.hasActiveOperation ?? false) && widget.controller.canRedo;
+  bool get canRedo => _authoring?.canRedo ?? widget.controller.canRedo;
 
   bool handleUndoShortcut() {
     final authoring = _authoring;
-    if (authoring?.hasActiveOperation ?? false) {
-      authoring!.cancelActiveOperation();
-      return true;
-    }
+    if (authoring != null) return authoring.undo();
     if (!widget.controller.canUndo) return false;
     widget.controller.undo();
-    _syncOwnerAfterSessionMutation();
     return true;
   }
 
   bool handleRedoShortcut() {
-    if ((_authoring?.hasActiveOperation ?? false) ||
-        !widget.controller.canRedo) {
-      return false;
-    }
+    final authoring = _authoring;
+    if (authoring != null) return authoring.redo();
+    if (!widget.controller.canRedo) return false;
     widget.controller.redo();
-    _syncOwnerAfterSessionMutation();
     return true;
   }
 
@@ -609,7 +601,11 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
                   key: ValueKey<String>('chunk_polygon_tool_${tool.name}'),
                   label: Text(_toolLabel(tool)),
                   selected: authoring.state.tool == tool,
-                  onSelected: _inspectCompiledEdges
+                  onSelected:
+                      _inspectCompiledEdges ||
+                          (authoring.state.draft != null &&
+                              tool != TerrainPolygonTool.moveVertex &&
+                              tool != TerrainPolygonTool.insertVertex)
                       ? null
                       : (_) => authoring.setTool(tool),
                 ),
@@ -640,7 +636,7 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
               ? 'Primary input selects the nearest Core-compiled edge. '
                     'Ctrl+drag pans and Ctrl+scroll zooms.'
               : 'Primary input follows the selected tool. Ctrl+drag pans, '
-                    'Ctrl+scroll zooms, Enter closes a draft, and Escape '
+                    'Ctrl+scroll zooms, Enter saves a draft, and Escape '
                     'cancels.',
         ),
         const SizedBox(height: 8),
@@ -780,20 +776,14 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
                 icon: const Icon(Icons.add),
                 label: const Text('New polygon'),
               ),
-              OutlinedButton(
-                key: const ValueKey<String>('chunk_polygon_close_draft'),
-                onPressed: draft == null ? null : authoring.closePolygon,
-                child: const Text('Close draft'),
-              ),
               OutlinedButton.icon(
-                key: const ValueKey<String>('chunk_polygon_normalize_draft'),
-                onPressed: draft == null
-                    ? null
-                    : authoring.normalizeSelectedShape,
-                icon: const Icon(Icons.auto_fix_high),
-                label: const Text('Normalize draft'),
+                key: const ValueKey<String>('chunk_polygon_save_draft'),
+                onPressed: draft == null ? null : authoring.saveDraft,
+                icon: const Icon(Icons.save_outlined),
+                label: const Text('Save'),
               ),
               OutlinedButton(
+                key: const ValueKey<String>('chunk_polygon_cancel_draft'),
                 onPressed: authoring.hasActiveOperation
                     ? authoring.cancelActiveOperation
                     : null,

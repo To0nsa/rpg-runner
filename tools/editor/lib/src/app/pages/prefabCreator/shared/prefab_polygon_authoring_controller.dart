@@ -61,6 +61,17 @@ final class PrefabPolygonAuthoringController extends ChangeNotifier {
   List<PrefabValidationIssue> get issues => _issues;
   TerrainPolygonSnapPolicy get snapPolicy => _snapPolicy;
   bool get hasActiveOperation => _state.hasActiveOperation;
+  bool get canUndo {
+    if (_state.gesture != null) return true;
+    if (_state.draft != null) return _state.canUndoDraftVertexEdit;
+    return _session.canUndo;
+  }
+
+  bool get canRedo {
+    if (_state.gesture != null) return false;
+    if (_state.draft != null) return _state.canRedoDraftVertexEdit;
+    return _session.canRedo;
+  }
 
   PrefabV3Def get prefab => _requirePrefab(_session, _prefabKey);
 
@@ -135,12 +146,63 @@ final class PrefabPolygonAuthoringController extends ChangeNotifier {
     );
   }
 
-  bool closePolygon() {
+  bool saveDraft() {
     final attemptedState = _state;
     return _applyInteractionResult(
-      _reducer.closePolygon(attemptedState),
+      _reducer.saveDraft(attemptedState),
       attemptedState: attemptedState,
     );
+  }
+
+  bool beginDraftGesture({
+    required int pointer,
+    required TerrainPolygonScenePoint point,
+    required double vertexRadiusHalfPixels,
+    required double edgeRadiusHalfPixels,
+  }) {
+    if (_state.draft == null || _state.gesture != null) return false;
+    final sourcePoint = _snapPoint(point);
+    var next = _state;
+    switch (_state.tool) {
+      case TerrainPolygonTool.moveVertex:
+        final vertexIndex = TerrainPolygonSceneHitTest.hitTestDraftVertex(
+          projection: sceneProjection,
+          point: point,
+          radiusHalfPixels: vertexRadiusHalfPixels,
+        );
+        if (vertexIndex != null) {
+          next = _reducer.beginMoveDraftVertex(
+            _state,
+            pointer: pointer,
+            vertexIndex: vertexIndex,
+            startPointer: sourcePoint,
+          );
+        }
+        break;
+      case TerrainPolygonTool.insertVertex:
+        final edgeIndex = TerrainPolygonSceneHitTest.hitTestDraftEdge(
+          projection: sceneProjection,
+          point: point,
+          radiusHalfPixels: edgeRadiusHalfPixels,
+        );
+        if (edgeIndex != null) {
+          next = _reducer.beginInsertDraftVertex(
+            _state,
+            pointer: pointer,
+            edgeIndex: edgeIndex,
+            rawVertex: sourcePoint,
+            snap: const TerrainPolygonSnapPolicy.halfPixel(),
+          );
+        }
+        break;
+      case TerrainPolygonTool.select:
+      case TerrainPolygonTool.createPolygon:
+      case TerrainPolygonTool.translateShape:
+        break;
+    }
+    final started = !identical(next, _state);
+    _replaceLocalState(next);
+    return started;
   }
 
   bool beginGesture({
@@ -277,9 +339,15 @@ final class PrefabPolygonAuthoringController extends ChangeNotifier {
   /// Gives an active draft/gesture first refusal; otherwise undoes one session
   /// document commit and synchronizes the local projection.
   bool undo() {
-    if (_state.hasActiveOperation) {
+    if (_state.gesture != null) {
       cancelActiveOperation();
       return true;
+    }
+    if (_state.draft != null) {
+      final next = _reducer.undoDraftVertexEdit(_state);
+      final changed = !identical(next, _state);
+      _replaceLocalState(next);
+      return changed;
     }
     if (!_session.canUndo) return false;
     _session.undo();
@@ -287,7 +355,14 @@ final class PrefabPolygonAuthoringController extends ChangeNotifier {
   }
 
   bool redo() {
-    if (_state.hasActiveOperation || !_session.canRedo) return false;
+    if (_state.gesture != null) return false;
+    if (_state.draft != null) {
+      final next = _reducer.redoDraftVertexEdit(_state);
+      final changed = !identical(next, _state);
+      _replaceLocalState(next);
+      return changed;
+    }
+    if (!_session.canRedo) return false;
     _session.redo();
     return true;
   }
@@ -311,10 +386,11 @@ final class PrefabPolygonAuthoringController extends ChangeNotifier {
 
     final commit = result.commit;
     if (commit == null) {
+      final stateChanged = !identical(result.state, attemptedState);
       _state = result.state;
       _issues = _interactionIssues(result, accepted: true);
       notifyListeners();
-      return false;
+      return stateChanged;
     }
 
     final document = _session.document;

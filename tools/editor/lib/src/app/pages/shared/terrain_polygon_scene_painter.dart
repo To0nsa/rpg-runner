@@ -250,12 +250,13 @@ final class TerrainPolygonScenePainter extends CustomPainter {
         ..strokeJoin = StrokeJoin.round
         ..style = PaintingStyle.stroke,
     );
-    for (final point in points) {
+    for (var index = 0; index < points.length; index++) {
+      final selected = draft.selectedVertexIndex == index;
       canvas.drawCircle(
-        point,
-        style.selectedVertexRadius,
+        points[index],
+        selected ? style.selectedVertexRadius : style.vertexRadius,
         Paint()
-          ..color = style.draftStroke
+          ..color = selected ? style.selectedVertexFill : style.draftStroke
           ..style = PaintingStyle.fill,
       );
     }

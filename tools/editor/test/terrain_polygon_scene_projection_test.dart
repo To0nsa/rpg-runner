@@ -69,10 +69,92 @@ void main() {
         projection.draft!.vertices.single,
         const TerrainSourceVertexDef(xHalfPixels: 40, yHalfPixels: 4),
       );
+      expect(projection.draft!.isGesturePreview, isFalse);
+      expect(projection.draft!.selectedVertexIndex, isNull);
+    });
+
+    test('projects a draft vertex gesture without changing draft source', () {
+      final reducer = _reducer();
+      var state = TerrainPolygonInteractionState(
+        shapes: const <TerrainSourceShapeDef>[],
+      );
+      state = reducer.beginCreatePolygon(state);
+      state = reducer.addDraftVertex(
+        state,
+        rawVertex: const TerrainSourceVertexDef(xHalfPixels: 0, yHalfPixels: 0),
+        snap: const TerrainPolygonSnapPolicy.halfPixel(),
+      );
+      state = reducer.beginMoveDraftVertex(
+        state,
+        pointer: 4,
+        vertexIndex: 0,
+        startPointer: state.draft!.vertices.single,
+      );
+      state = reducer.updateGesture(
+        state,
+        pointer: 4,
+        currentPointer: const TerrainSourceVertexDef(
+          xHalfPixels: 8,
+          yHalfPixels: 4,
+        ),
+        snap: const TerrainPolygonSnapPolicy.halfPixel(),
+      );
+
+      final projection = TerrainPolygonSceneProjection.fromInteraction(state);
+
+      expect(state.draft!.vertices.single.xHalfPixels, 0);
+      expect(projection.draft!.vertices.single.xHalfPixels, 8);
+      expect(projection.draft!.isGesturePreview, isTrue);
+      expect(projection.draft!.selectedVertexIndex, 0);
     });
   });
 
   group('source-space hit testing', () {
+    test('draft hit testing uses vertices and open edges only', () {
+      final reducer = _reducer();
+      var state = TerrainPolygonInteractionState(
+        shapes: const <TerrainSourceShapeDef>[],
+      );
+      state = reducer.beginCreatePolygon(state);
+      for (final vertex in const <TerrainSourceVertexDef>[
+        TerrainSourceVertexDef(xHalfPixels: 0, yHalfPixels: 0),
+        TerrainSourceVertexDef(xHalfPixels: 20, yHalfPixels: 0),
+        TerrainSourceVertexDef(xHalfPixels: 20, yHalfPixels: 20),
+      ]) {
+        state = reducer.addDraftVertex(
+          state,
+          rawVertex: vertex,
+          snap: const TerrainPolygonSnapPolicy.halfPixel(),
+        );
+      }
+      final projection = TerrainPolygonSceneProjection.fromInteraction(state);
+
+      expect(
+        TerrainPolygonSceneHitTest.hitTestDraftVertex(
+          projection: projection,
+          point: const TerrainPolygonScenePoint(1, 0),
+          radiusHalfPixels: 2,
+        ),
+        0,
+      );
+      expect(
+        TerrainPolygonSceneHitTest.hitTestDraftEdge(
+          projection: projection,
+          point: const TerrainPolygonScenePoint(10, 1),
+          radiusHalfPixels: 2,
+        ),
+        0,
+      );
+      expect(
+        TerrainPolygonSceneHitTest.hitTestDraftEdge(
+          projection: projection,
+          point: const TerrainPolygonScenePoint(10, 10),
+          radiusHalfPixels: 0.5,
+        ),
+        isNull,
+      );
+    });
+
     test('uses vertex then edge then fill priority', () {
       final projection = _projection(<TerrainSourceShapeDef>[
         _rectangle('shape_a'),

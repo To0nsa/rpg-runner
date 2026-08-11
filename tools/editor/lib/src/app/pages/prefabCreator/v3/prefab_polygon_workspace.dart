@@ -74,16 +74,14 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
       widget.controller.pendingChanges.hasChanges;
 
   bool get canUndo =>
-      (_authoring?.hasActiveOperation ?? false) ||
       (_atlasWorkspaceKey.currentState?.hasLocalDraftChanges ?? false) ||
       (_moduleWorkspaceKey.currentState?.hasLocalDraftChanges ?? false) ||
-      widget.controller.canUndo;
+      (_authoring?.canUndo ?? widget.controller.canUndo);
 
   bool get canRedo =>
-      !(_authoring?.hasActiveOperation ?? false) &&
       !(_atlasWorkspaceKey.currentState?.hasLocalDraftChanges ?? false) &&
       !(_moduleWorkspaceKey.currentState?.hasLocalDraftChanges ?? false) &&
-      widget.controller.canRedo;
+      (_authoring?.canRedo ?? widget.controller.canRedo);
 
   bool handleUndoShortcut() {
     if (_workspaceView == _PrefabV3WorkspaceView.atlasSlices &&
@@ -95,25 +93,21 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
       return true;
     }
     final authoring = _authoring;
-    if (authoring?.hasActiveOperation ?? false) {
-      authoring!.cancelActiveOperation();
-      return true;
-    }
+    if (authoring != null) return authoring.undo();
     if (!widget.controller.canUndo) return false;
     widget.controller.undo();
-    _syncOwnerAfterSessionMutation();
     return true;
   }
 
   bool handleRedoShortcut() {
-    if ((_authoring?.hasActiveOperation ?? false) ||
-        (_atlasWorkspaceKey.currentState?.hasLocalDraftChanges ?? false) ||
+    if ((_atlasWorkspaceKey.currentState?.hasLocalDraftChanges ?? false) ||
         (_moduleWorkspaceKey.currentState?.hasLocalDraftChanges ?? false)) {
       return false;
     }
+    final authoring = _authoring;
+    if (authoring != null) return authoring.redo();
     if (!widget.controller.canRedo) return false;
     widget.controller.redo();
-    _syncOwnerAfterSessionMutation();
     return true;
   }
 
@@ -596,7 +590,11 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
                     label: Text(_toolLabel(tool)),
                     selected: authoring.state.tool == tool,
                     onSelected:
-                        !canEditCollision && tool != TerrainPolygonTool.select
+                        (!canEditCollision &&
+                                tool != TerrainPolygonTool.select) ||
+                            (authoring.state.draft != null &&
+                                tool != TerrainPolygonTool.moveVertex &&
+                                tool != TerrainPolygonTool.insertVertex)
                         ? null
                         : (_) => authoring.setTool(tool),
                   ),
@@ -612,7 +610,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
           else
             const Text(
               'Primary input follows the selected tool. Ctrl+drag pans, '
-              'Ctrl+scroll zooms, Enter closes a draft, and Escape cancels.',
+              'Ctrl+scroll zooms, Enter saves a draft, and Escape cancels.',
             ),
           const SizedBox(height: PrefabEditorUiTokens.controlGap),
           Expanded(
@@ -686,20 +684,14 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
                 icon: const Icon(Icons.add),
                 label: const Text('New polygon'),
               ),
-              OutlinedButton(
-                key: const ValueKey<String>('prefab_polygon_close_draft'),
-                onPressed: draft == null ? null : authoring.closePolygon,
-                child: const Text('Close draft'),
-              ),
               OutlinedButton.icon(
-                key: const ValueKey<String>('prefab_polygon_normalize_draft'),
-                onPressed: draft == null
-                    ? null
-                    : authoring.normalizeSelectedShape,
-                icon: const Icon(Icons.auto_fix_high),
-                label: const Text('Normalize draft'),
+                key: const ValueKey<String>('prefab_polygon_save_draft'),
+                onPressed: draft == null ? null : authoring.saveDraft,
+                icon: const Icon(Icons.save_outlined),
+                label: const Text('Save'),
               ),
               OutlinedButton(
+                key: const ValueKey<String>('prefab_polygon_cancel_draft'),
                 onPressed: !authoring.hasActiveOperation
                     ? null
                     : authoring.cancelActiveOperation,

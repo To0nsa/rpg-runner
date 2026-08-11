@@ -292,6 +292,63 @@ void main() {
     },
   );
 
+  testWidgets('scene surface moves and inserts open-draft vertices locally', (
+    tester,
+  ) async {
+    final harness = await _buildHarness();
+    final controller = harness.authoring;
+    final transform = TerrainPolygonViewportTransform(
+      origin: const Offset(10, 10),
+      zoom: 2,
+    );
+    controller.beginCreatePolygon();
+    for (final point in const <TerrainPolygonScenePoint>[
+      TerrainPolygonScenePoint(120, 20),
+      TerrainPolygonScenePoint(160, 20),
+      TerrainPolygonScenePoint(160, 60),
+    ]) {
+      controller.addDraftVertex(point);
+    }
+    controller.setTool(TerrainPolygonTool.moveVertex);
+
+    await tester.pumpWidget(
+      _surfaceApp(controller: controller, transform: transform),
+    );
+    final topLeft = tester.getTopLeft(
+      find.byKey(const ValueKey<String>('chunk_polygon_scene_surface')),
+    );
+    final vertexCanvas = transform.sourceVertexToCanvas(
+      const TerrainSourceVertexDef(xHalfPixels: 160, yHalfPixels: 20),
+    );
+    final move = await tester.startGesture(topLeft + vertexCanvas);
+    await move.moveTo(topLeft + vertexCanvas + const Offset(4, 0));
+    await move.up();
+    await tester.pump();
+
+    expect(controller.state.draft!.vertices[1].xHalfPixels, 164);
+    expect(controller.undo(), isTrue);
+    expect(controller.state.draft!.vertices[1].xHalfPixels, 160);
+    expect(controller.redo(), isTrue);
+    expect(controller.state.draft!.vertices[1].xHalfPixels, 164);
+
+    controller.setTool(TerrainPolygonTool.insertVertex);
+    final edgeCanvas = transform.sourceVertexToCanvas(
+      const TerrainSourceVertexDef(xHalfPixels: 140, yHalfPixels: 20),
+    );
+    final insert = await tester.startGesture(topLeft + edgeCanvas);
+    await insert.moveTo(topLeft + edgeCanvas + const Offset(0, -4));
+    await insert.up();
+    await tester.pump();
+
+    expect(controller.state.draft!.vertices, hasLength(4));
+    expect(
+      controller.state.draft!.vertices[1],
+      const TerrainSourceVertexDef(xHalfPixels: 140, yHalfPixels: 16),
+    );
+    expect(harness.session.canUndo, isFalse);
+    expect(controller.chunk.revision, 4);
+  });
+
   testWidgets('focused Delete and Ctrl shortcuts use session history', (
     tester,
   ) async {

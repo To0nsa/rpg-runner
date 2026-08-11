@@ -71,7 +71,7 @@ void main() {
       );
     });
 
-    test('tool switches cancel uncommitted gestures and polygon drafts', () {
+    test('draft context permits only vertex editing tools', () {
       final reducer = _reducer();
       final initial = TerrainPolygonInteractionState(
         shapes: <TerrainSourceShapeDef>[_rectangle('collision_001')],
@@ -96,6 +96,10 @@ void main() {
         draft,
         TerrainPolygonTool.moveVertex,
       );
+      final ignoredDraftSelect = reducer.setTool(
+        switchedDraft,
+        TerrainPolygonTool.select,
+      );
 
       expect(initial.tool, TerrainPolygonTool.select);
       expect(insertTool.tool, TerrainPolygonTool.insertVertex);
@@ -104,13 +108,13 @@ void main() {
       expect(switched.gesture, isNull);
       expect(switched.visibleShapes, initial.shapes);
       expect(switchedDraft.tool, TerrainPolygonTool.moveVertex);
-      expect(switchedDraft.draft, isNull);
-      expect(switchedDraft.visibleShapes, initial.shapes);
+      expect(switchedDraft.draft, same(draft.draft));
+      expect(ignoredDraftSelect, same(switchedDraft));
     });
   });
 
   group('polygon creation', () {
-    test('ordered clicks close as one canonical Core-reviewed commit', () {
+    test('ordered clicks save as one canonical Core-reviewed commit', () {
       final reducer = _reducer();
       var state = TerrainPolygonInteractionState(
         shapes: const <TerrainSourceShapeDef>[],
@@ -129,7 +133,7 @@ void main() {
         );
       }
 
-      final result = reducer.closePolygon(state);
+      final result = reducer.saveDraft(state);
 
       expect(result.accepted, isTrue);
       expect(result.diagnostics, isEmpty);
@@ -157,7 +161,7 @@ void main() {
       );
     });
 
-    test('invalid close retains the draft and Escape cancels it', () {
+    test('invalid Save retains the draft and Escape cancels it', () {
       final reducer = _reducer();
       final initial = TerrainPolygonInteractionState(
         shapes: <TerrainSourceShapeDef>[_rectangle('collision_001')],
@@ -173,7 +177,7 @@ void main() {
         snap: const TerrainPolygonSnapPolicy.halfPixel(),
       );
 
-      final rejected = reducer.closePolygon(state);
+      final rejected = reducer.saveDraft(state);
       final cancelled = reducer.cancelActiveOperation(rejected.state);
 
       expect(rejected.accepted, isFalse);
@@ -184,7 +188,114 @@ void main() {
       expect(rejected.state.draft, isNotNull);
       expect(cancelled.draft, isNull);
       expect(cancelled.shapes, initial.shapes);
-      expect(cancelled.selection, initial.selection);
+      expect(cancelled.selection, isNull);
+    });
+
+    test('draft vertex edits undo and redo locally before one Save commit', () {
+      final reducer = _reducer();
+      var state = TerrainPolygonInteractionState(
+        shapes: const <TerrainSourceShapeDef>[],
+      );
+      state = reducer.beginCreatePolygon(state);
+      for (final vertex in const <TerrainSourceVertexDef>[
+        TerrainSourceVertexDef(xHalfPixels: 0, yHalfPixels: 0),
+        TerrainSourceVertexDef(xHalfPixels: 20, yHalfPixels: 0),
+        TerrainSourceVertexDef(xHalfPixels: 20, yHalfPixels: 20),
+        TerrainSourceVertexDef(xHalfPixels: 0, yHalfPixels: 20),
+      ]) {
+        state = reducer.addDraftVertex(
+          state,
+          rawVertex: vertex,
+          snap: const TerrainPolygonSnapPolicy.halfPixel(),
+        );
+      }
+
+      final undone = reducer.undoDraftVertexEdit(state);
+      final redone = reducer.redoDraftVertexEdit(undone);
+      final saved = reducer.saveDraft(redone);
+
+      expect(state.draft!.vertices, hasLength(4));
+      expect(undone.draft!.vertices, hasLength(3));
+      expect(undone.canRedoDraftVertexEdit, isTrue);
+      expect(redone.draft!.vertices, state.draft!.vertices);
+      expect(saved.accepted, isTrue);
+      expect(saved.commit, isNotNull);
+      expect(saved.commit!.beforeShapes, isEmpty);
+      expect(saved.commit!.afterShapes, hasLength(1));
+    });
+
+    test('draft vertices support local move and open-edge insertion', () {
+      final reducer = _reducer();
+      var state = TerrainPolygonInteractionState(
+        shapes: const <TerrainSourceShapeDef>[],
+      );
+      state = reducer.beginCreatePolygon(state);
+      for (final vertex in const <TerrainSourceVertexDef>[
+        TerrainSourceVertexDef(xHalfPixels: 0, yHalfPixels: 0),
+        TerrainSourceVertexDef(xHalfPixels: 20, yHalfPixels: 0),
+        TerrainSourceVertexDef(xHalfPixels: 20, yHalfPixels: 20),
+      ]) {
+        state = reducer.addDraftVertex(
+          state,
+          rawVertex: vertex,
+          snap: const TerrainPolygonSnapPolicy.halfPixel(),
+        );
+      }
+      state = reducer.setTool(state, TerrainPolygonTool.moveVertex);
+      state = reducer.beginMoveDraftVertex(
+        state,
+        pointer: 21,
+        vertexIndex: 1,
+        startPointer: state.draft!.vertices[1],
+      );
+      state = reducer.updateGesture(
+        state,
+        pointer: 21,
+        currentPointer: const TerrainSourceVertexDef(
+          xHalfPixels: 24,
+          yHalfPixels: 0,
+        ),
+        snap: const TerrainPolygonSnapPolicy.halfPixel(),
+      );
+      final moved = reducer.commitGesture(state, pointer: 21).state;
+
+      expect(moved.draft!.vertices[1].xHalfPixels, 24);
+      expect(
+        reducer.undoDraftVertexEdit(moved).draft!.vertices[1].xHalfPixels,
+        20,
+      );
+
+      state = reducer.setTool(moved, TerrainPolygonTool.insertVertex);
+      state = reducer.beginInsertDraftVertex(
+        state,
+        pointer: 22,
+        edgeIndex: 0,
+        rawVertex: const TerrainSourceVertexDef(
+          xHalfPixels: 12,
+          yHalfPixels: 0,
+        ),
+        snap: const TerrainPolygonSnapPolicy.halfPixel(),
+      );
+      state = reducer.updateGesture(
+        state,
+        pointer: 22,
+        currentPointer: const TerrainSourceVertexDef(
+          xHalfPixels: 12,
+          yHalfPixels: -4,
+        ),
+        snap: const TerrainPolygonSnapPolicy.halfPixel(),
+      );
+      final inserted = reducer.commitGesture(state, pointer: 22).state;
+
+      expect(inserted.draft!.vertices, hasLength(4));
+      expect(
+        inserted.draft!.vertices[1],
+        const TerrainSourceVertexDef(xHalfPixels: 12, yHalfPixels: -4),
+      );
+      expect(
+        reducer.undoDraftVertexEdit(inserted).draft!.vertices,
+        hasLength(3),
+      );
     });
   });
 
@@ -572,7 +683,7 @@ void main() {
       );
     });
 
-    test('Normalize closes a rejected collinear polygon draft', () {
+    test('Save normalizes and closes a collinear polygon draft', () {
       final reducer = _reducer();
       var state = TerrainPolygonInteractionState(
         shapes: const <TerrainSourceShapeDef>[],
@@ -592,22 +703,15 @@ void main() {
         );
       }
 
-      final rejected = reducer.closePolygon(state);
-      final normalized = reducer.normalizeSelectedShape(rejected.state);
+      final saved = reducer.saveDraft(state);
 
-      expect(rejected.accepted, isFalse);
-      expect(rejected.state.draft, isNotNull);
+      expect(saved.accepted, isTrue);
+      expect(saved.commit, isNotNull);
+      expect(saved.state.draft, isNull);
+      expect(saved.state.tool, TerrainPolygonTool.select);
+      expect(saved.state.shapes.single.vertices, hasLength(4));
       expect(
-        rejected.diagnostics.map((diagnostic) => diagnostic.code),
-        contains('collinear_middle_vertex'),
-      );
-      expect(normalized.accepted, isTrue);
-      expect(normalized.commit, isNotNull);
-      expect(normalized.state.draft, isNull);
-      expect(normalized.state.tool, TerrainPolygonTool.select);
-      expect(normalized.state.shapes.single.vertices, hasLength(4));
-      expect(
-        normalized.diagnostics.map((diagnostic) => diagnostic.code),
+        saved.diagnostics.map((diagnostic) => diagnostic.code),
         contains('normalized_collinear_vertex'),
       );
     });

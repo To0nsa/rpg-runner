@@ -496,15 +496,41 @@ void main() {
       find.byKey(const ValueKey<String>('chunk_shape_diagnostics_list')),
       findsOneWidget,
     );
-    final normalizeDraft = find.byKey(
-      const ValueKey<String>('chunk_polygon_normalize_draft'),
+    final saveDraft = find.byKey(
+      const ValueKey<String>('chunk_polygon_save_draft'),
     );
-    expect(tester.widget<OutlinedButton>(normalizeDraft).onPressed, isNull);
+    expect(tester.widget<OutlinedButton>(saveDraft).onPressed, isNull);
     await tester.tap(
       find.byKey(const ValueKey<String>('chunk_polygon_new_shape')),
     );
     await tester.pump();
-    expect(tester.widget<OutlinedButton>(normalizeDraft).onPressed, isNotNull);
+    expect(tester.widget<OutlinedButton>(saveDraft).onPressed, isNotNull);
+    await tester.tap(find.widgetWithText(Tab, 'Terrain'));
+    await tester.pumpAndSettle();
+    for (final tool in const <String>[
+      'select',
+      'createPolygon',
+      'translateShape',
+    ]) {
+      expect(
+        tester
+            .widget<ChoiceChip>(
+              find.byKey(ValueKey<String>('chunk_polygon_tool_$tool')),
+            )
+            .onSelected,
+        isNull,
+      );
+    }
+    for (final tool in const <String>['moveVertex', 'insertVertex']) {
+      expect(
+        tester
+            .widget<ChoiceChip>(
+              find.byKey(ValueKey<String>('chunk_polygon_tool_$tool')),
+            )
+            .onSelected,
+        isNotNull,
+      );
+    }
     expect(tester.takeException(), isNull);
   });
 

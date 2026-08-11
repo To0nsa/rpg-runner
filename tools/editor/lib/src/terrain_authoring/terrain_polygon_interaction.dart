@@ -134,13 +134,24 @@ final class TerrainPolygonDraft {
     required this.surfaceKind,
     required this.materialKey,
     required Iterable<TerrainSourceVertexDef> vertices,
-  }) : vertices = List<TerrainSourceVertexDef>.unmodifiable(vertices);
+    Iterable<Iterable<TerrainSourceVertexDef>> undoVertexSnapshots =
+        const <List<TerrainSourceVertexDef>>[],
+    Iterable<Iterable<TerrainSourceVertexDef>> redoVertexSnapshots =
+        const <List<TerrainSourceVertexDef>>[],
+  }) : vertices = List<TerrainSourceVertexDef>.unmodifiable(vertices),
+       undoVertexSnapshots = _freezeVertexSnapshots(undoVertexSnapshots),
+       redoVertexSnapshots = _freezeVertexSnapshots(redoVertexSnapshots);
 
   final String shapeId;
   final TerrainSourceCollisionMode collisionMode;
   final String? surfaceKind;
   final String? materialKey;
   final List<TerrainSourceVertexDef> vertices;
+  final List<List<TerrainSourceVertexDef>> undoVertexSnapshots;
+  final List<List<TerrainSourceVertexDef>> redoVertexSnapshots;
+
+  bool get canUndoVertexEdit => undoVertexSnapshots.isNotEmpty;
+  bool get canRedoVertexEdit => redoVertexSnapshots.isNotEmpty;
 }
 
 /// Active pointer gesture whose preview has not entered undo history yet.
@@ -208,6 +219,8 @@ final class TerrainPolygonInteractionState {
   final TerrainPolygonGesture? gesture;
 
   bool get hasActiveOperation => draft != null || gesture != null;
+  bool get canUndoDraftVertexEdit => draft?.canUndoVertexEdit ?? false;
+  bool get canRedoDraftVertexEdit => draft?.canRedoVertexEdit ?? false;
 
   List<TerrainSourceShapeDef> get visibleShapes {
     final activeGesture = gesture;
@@ -313,18 +326,30 @@ final class TerrainPolygonInteractionReducer {
 
   /// Changes the active pointer tool without touching source or history.
   ///
-  /// Switching tools abandons any uncommitted gesture preview or open polygon
-  /// draft. The committed source and history remain unchanged.
+  /// An open creation draft permits only vertex-level editing tools. Switching
+  /// between them preserves the draft and cancels only an active pointer
+  /// preview. Other creation-context tools remain unavailable until Save or
+  /// Cancel ends the draft.
   TerrainPolygonInteractionState setTool(
     TerrainPolygonInteractionState state,
     TerrainPolygonTool tool,
   ) {
     if (state.tool == tool) return state;
+    if (state.draft != null) {
+      if (tool != TerrainPolygonTool.moveVertex &&
+          tool != TerrainPolygonTool.insertVertex) {
+        return state;
+      }
+      return _state(
+        state,
+        tool: tool,
+        gesture: null,
+        replaceGesture: state.gesture != null,
+      );
+    }
     return _state(
       state,
       tool: tool,
-      draft: null,
-      replaceDraft: state.draft != null,
       gesture: null,
       replaceGesture: state.gesture != null,
     );
@@ -348,6 +373,8 @@ final class TerrainPolygonInteractionReducer {
     return _state(
       state,
       tool: TerrainPolygonTool.createPolygon,
+      selection: null,
+      replaceSelection: true,
       draft: draft,
       replaceDraft: true,
     );
@@ -361,49 +388,137 @@ final class TerrainPolygonInteractionReducer {
   }) {
     final draft = state.draft;
     if (draft == null || state.gesture != null) return state;
+    final nextVertices = <TerrainSourceVertexDef>[
+      ...draft.vertices,
+      snap.snapVertex(rawVertex),
+    ];
     return _state(
       state,
-      draft: TerrainPolygonDraft(
-        shapeId: draft.shapeId,
-        collisionMode: draft.collisionMode,
-        surfaceKind: draft.surfaceKind,
-        materialKey: draft.materialKey,
-        vertices: <TerrainSourceVertexDef>[
-          ...draft.vertices,
-          snap.snapVertex(rawVertex),
-        ],
-      ),
+      draft: _recordDraftVertices(draft, nextVertices),
       replaceDraft: true,
     );
   }
 
-  /// Validates and commits a complete draft through Core geometry authority.
-  TerrainPolygonInteractionResult closePolygon(
+  /// Restores the draft snapshot before its last vertex-level edit.
+  TerrainPolygonInteractionState undoDraftVertexEdit(
     TerrainPolygonInteractionState state,
   ) {
     final draft = state.draft;
-    if (draft == null || state.gesture != null) return _acceptedNoOp(state);
-    final candidate = TerrainSourceShapeDef(
-      shapeId: draft.shapeId,
-      vertices: draft.vertices,
-      collisionMode: draft.collisionMode,
-      surfaceKind: draft.surfaceKind,
-      materialKey: draft.materialKey,
-    );
-    final validation = _validateAndCanonicalize(
-      candidate,
-      otherShapes: state.shapes,
-    );
-    if (validation.shape == null) {
-      return _rejected(state, validation.diagnostics);
+    if (draft == null || state.gesture != null || !draft.canUndoVertexEdit) {
+      return state;
     }
-    return _commitShapes(
+    final undo = draft.undoVertexSnapshots;
+    return _state(
       state,
-      <TerrainSourceShapeDef>[...state.shapes, validation.shape!],
-      TerrainPolygonSelection.shape(validation.shape!.shapeId),
-      diagnostics: validation.diagnostics,
-      clearDraft: true,
-      resetTool: true,
+      draft: _draftWithHistory(
+        draft,
+        vertices: undo.last,
+        undoVertexSnapshots: undo.take(undo.length - 1),
+        redoVertexSnapshots: <List<TerrainSourceVertexDef>>[
+          ...draft.redoVertexSnapshots,
+          draft.vertices,
+        ],
+      ),
+      replaceDraft: true,
+      selection: null,
+      replaceSelection: true,
+    );
+  }
+
+  /// Reapplies the next locally undone draft vertex edit.
+  TerrainPolygonInteractionState redoDraftVertexEdit(
+    TerrainPolygonInteractionState state,
+  ) {
+    final draft = state.draft;
+    if (draft == null || state.gesture != null || !draft.canRedoVertexEdit) {
+      return state;
+    }
+    final redo = draft.redoVertexSnapshots;
+    return _state(
+      state,
+      draft: _draftWithHistory(
+        draft,
+        vertices: redo.last,
+        undoVertexSnapshots: <List<TerrainSourceVertexDef>>[
+          ...draft.undoVertexSnapshots,
+          draft.vertices,
+        ],
+        redoVertexSnapshots: redo.take(redo.length - 1),
+      ),
+      replaceDraft: true,
+      selection: null,
+      replaceSelection: true,
+    );
+  }
+
+  /// Saves one draft as a normalized Core-reviewed source commit.
+  ///
+  /// Save is the explicit permission to remove redundant collinear middle
+  /// vertices. Every other blocking diagnostic retains the editable draft.
+  TerrainPolygonInteractionResult saveDraft(
+    TerrainPolygonInteractionState state,
+  ) {
+    if (state.draft == null || state.gesture != null) {
+      return _acceptedNoOp(state);
+    }
+    return normalizeSelectedShape(state);
+  }
+
+  /// Starts a local vertex drag against the open creation draft.
+  TerrainPolygonInteractionState beginMoveDraftVertex(
+    TerrainPolygonInteractionState state, {
+    required int pointer,
+    required int vertexIndex,
+    required TerrainSourceVertexDef startPointer,
+  }) {
+    final draft = state.draft;
+    if (draft == null || state.gesture != null) return state;
+    final shape = _draftAsShape(draft);
+    _requireVertexIndex(shape, vertexIndex);
+    return _state(
+      state,
+      tool: TerrainPolygonTool.moveVertex,
+      gesture: TerrainPolygonGesture(
+        pointer: pointer,
+        kind: TerrainPolygonGestureKind.moveVertex,
+        originalShape: shape,
+        previewShape: shape,
+        startPointer: startPointer,
+        activeVertexIndex: vertexIndex,
+      ),
+      replaceGesture: true,
+    );
+  }
+
+  /// Inserts and optionally drags one local vertex on an open draft edge.
+  TerrainPolygonInteractionState beginInsertDraftVertex(
+    TerrainPolygonInteractionState state, {
+    required int pointer,
+    required int edgeIndex,
+    required TerrainSourceVertexDef rawVertex,
+    required TerrainPolygonSnapPolicy snap,
+  }) {
+    final draft = state.draft;
+    if (draft == null || state.gesture != null) return state;
+    if (edgeIndex < 0 || edgeIndex >= draft.vertices.length - 1) {
+      return state;
+    }
+    final shape = _draftAsShape(draft);
+    final vertex = snap.snapVertex(rawVertex);
+    final vertexIndex = edgeIndex + 1;
+    final vertices = shape.vertices.toList()..insert(vertexIndex, vertex);
+    return _state(
+      state,
+      tool: TerrainPolygonTool.insertVertex,
+      gesture: TerrainPolygonGesture(
+        pointer: pointer,
+        kind: TerrainPolygonGestureKind.insertVertex,
+        originalShape: shape,
+        previewShape: _shapeWithVertices(shape, vertices),
+        startPointer: vertex,
+        activeVertexIndex: vertexIndex,
+      ),
+      replaceGesture: true,
     );
   }
 
@@ -504,7 +619,7 @@ final class TerrainPolygonInteractionReducer {
     required TerrainPolygonSnapPolicy snap,
   }) {
     final gesture = state.gesture;
-    if (gesture == null || gesture.pointer != pointer || state.draft != null) {
+    if (gesture == null || gesture.pointer != pointer) {
       return state;
     }
     final TerrainSourceShapeDef preview;
@@ -552,8 +667,34 @@ final class TerrainPolygonInteractionReducer {
     required int pointer,
   }) {
     final gesture = state.gesture;
-    if (gesture == null || gesture.pointer != pointer || state.draft != null) {
+    if (gesture == null || gesture.pointer != pointer) {
       return _acceptedNoOp(state);
+    }
+    final draft = state.draft;
+    if (draft != null) {
+      if (gesture.originalShape.shapeId != draft.shapeId) {
+        return _acceptedNoOp(state);
+      }
+      if (gesture.previewShape == gesture.originalShape) {
+        return TerrainPolygonInteractionResult(
+          state: _state(state, gesture: null, replaceGesture: true),
+          accepted: true,
+          commit: null,
+          diagnostics: const <TerrainDiagnostic>[],
+        );
+      }
+      return TerrainPolygonInteractionResult(
+        state: _state(
+          state,
+          draft: _recordDraftVertices(draft, gesture.previewShape.vertices),
+          replaceDraft: true,
+          gesture: null,
+          replaceGesture: true,
+        ),
+        accepted: true,
+        commit: null,
+        diagnostics: const <TerrainDiagnostic>[],
+      );
     }
     if (gesture.previewShape == gesture.originalShape) {
       return _commitShapes(
@@ -594,13 +735,21 @@ final class TerrainPolygonInteractionReducer {
     TerrainPolygonInteractionState state,
   ) {
     if (!state.hasActiveOperation) return state;
+    if (state.gesture != null) {
+      return _state(
+        state,
+        tool: state.draft == null ? TerrainPolygonTool.select : state.tool,
+        gesture: null,
+        replaceGesture: true,
+      );
+    }
     return _state(
       state,
       tool: TerrainPolygonTool.select,
+      selection: null,
+      replaceSelection: true,
       draft: null,
       replaceDraft: true,
-      gesture: null,
-      replaceGesture: true,
     );
   }
 
@@ -1002,6 +1151,49 @@ TerrainPolygonInteractionState _state(
   draft: replaceDraft ? draft : source.draft,
   gesture: replaceGesture ? gesture : source.gesture,
 );
+
+List<List<TerrainSourceVertexDef>> _freezeVertexSnapshots(
+  Iterable<Iterable<TerrainSourceVertexDef>> snapshots,
+) => List<List<TerrainSourceVertexDef>>.unmodifiable(
+  snapshots.map(List<TerrainSourceVertexDef>.unmodifiable),
+);
+
+TerrainPolygonDraft _recordDraftVertices(
+  TerrainPolygonDraft draft,
+  Iterable<TerrainSourceVertexDef> vertices,
+) => _draftWithHistory(
+  draft,
+  vertices: vertices,
+  undoVertexSnapshots: <List<TerrainSourceVertexDef>>[
+    ...draft.undoVertexSnapshots,
+    draft.vertices,
+  ],
+  redoVertexSnapshots: const <List<TerrainSourceVertexDef>>[],
+);
+
+TerrainPolygonDraft _draftWithHistory(
+  TerrainPolygonDraft source, {
+  required Iterable<TerrainSourceVertexDef> vertices,
+  required Iterable<Iterable<TerrainSourceVertexDef>> undoVertexSnapshots,
+  required Iterable<Iterable<TerrainSourceVertexDef>> redoVertexSnapshots,
+}) => TerrainPolygonDraft(
+  shapeId: source.shapeId,
+  collisionMode: source.collisionMode,
+  surfaceKind: source.surfaceKind,
+  materialKey: source.materialKey,
+  vertices: vertices,
+  undoVertexSnapshots: undoVertexSnapshots,
+  redoVertexSnapshots: redoVertexSnapshots,
+);
+
+TerrainSourceShapeDef _draftAsShape(TerrainPolygonDraft draft) =>
+    TerrainSourceShapeDef(
+      shapeId: draft.shapeId,
+      vertices: draft.vertices,
+      collisionMode: draft.collisionMode,
+      surfaceKind: draft.surfaceKind,
+      materialKey: draft.materialKey,
+    );
 
 TerrainSourceShapeDef _requireShape(
   Iterable<TerrainSourceShapeDef> shapes,

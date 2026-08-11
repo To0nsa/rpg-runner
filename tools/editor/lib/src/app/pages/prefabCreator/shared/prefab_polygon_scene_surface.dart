@@ -105,8 +105,25 @@ class _PrefabPolygonSceneSurfaceState extends State<PrefabPolygonSceneSurface> {
 
     final point = widget.transform.canvasToSource(event.localPosition);
     final controller = widget.controller;
+    if (controller.state.draft != null) {
+      if (controller.state.tool == TerrainPolygonTool.createPolygon) {
+        controller.addDraftVertex(point);
+      } else if (controller.beginDraftGesture(
+        pointer: event.pointer,
+        point: point,
+        vertexRadiusHalfPixels: widget.transform.canvasRadiusToSourceHalfPixels(
+          widget.vertexHitRadiusCanvasPx,
+        ),
+        edgeRadiusHalfPixels: widget.transform.canvasRadiusToSourceHalfPixels(
+          widget.edgeHitRadiusCanvasPx,
+        ),
+      )) {
+        _gesturePointer = event.pointer;
+      }
+      return;
+    }
     if (controller.state.tool == TerrainPolygonTool.createPolygon) {
-      if (controller.state.draft == null) controller.beginCreatePolygon();
+      controller.beginCreatePolygon();
       controller.addDraftVertex(point);
       return;
     }
@@ -173,7 +190,7 @@ class _PrefabPolygonSceneSurfaceState extends State<PrefabPolygonSceneSurface> {
     }
     if (event.logicalKey == LogicalKeyboardKey.enter &&
         controller.state.draft != null) {
-      controller.closePolygon();
+      controller.saveDraft();
       return KeyEventResult.handled;
     }
     if (event.logicalKey == LogicalKeyboardKey.delete ||

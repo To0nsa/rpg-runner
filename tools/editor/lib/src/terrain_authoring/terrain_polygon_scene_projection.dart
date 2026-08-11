@@ -50,6 +50,8 @@ final class TerrainPolygonSceneDraft {
     required this.collisionMode,
     required this.surfaceKind,
     required this.materialKey,
+    required this.isGesturePreview,
+    required this.selectedVertexIndex,
   });
 
   final String shapeId;
@@ -57,6 +59,8 @@ final class TerrainPolygonSceneDraft {
   final TerrainSourceCollisionMode collisionMode;
   final String? surfaceKind;
   final String? materialKey;
+  final bool isGesturePreview;
+  final int? selectedVertexIndex;
 
   @override
   bool operator ==(Object other) =>
@@ -65,7 +69,9 @@ final class TerrainPolygonSceneDraft {
       _listEquals(vertices, other.vertices) &&
       collisionMode == other.collisionMode &&
       surfaceKind == other.surfaceKind &&
-      materialKey == other.materialKey;
+      materialKey == other.materialKey &&
+      isGesturePreview == other.isGesturePreview &&
+      selectedVertexIndex == other.selectedVertexIndex;
 
   @override
   int get hashCode => Object.hash(
@@ -74,6 +80,8 @@ final class TerrainPolygonSceneDraft {
     collisionMode,
     surfaceKind,
     materialKey,
+    isGesturePreview,
+    selectedVertexIndex,
   );
 }
 
@@ -108,16 +116,24 @@ final class TerrainPolygonSceneProjection {
         ),
     ];
     final sourceDraft = state.draft;
+    final draftGesture =
+        sourceDraft != null &&
+            state.gesture?.originalShape.shapeId == sourceDraft.shapeId
+        ? state.gesture
+        : null;
     return TerrainPolygonSceneProjection._(
       shapes: shapes,
       draft: sourceDraft == null
           ? null
           : TerrainPolygonSceneDraft(
               shapeId: sourceDraft.shapeId,
-              vertices: sourceDraft.vertices,
+              vertices:
+                  draftGesture?.previewShape.vertices ?? sourceDraft.vertices,
               collisionMode: sourceDraft.collisionMode,
               surfaceKind: sourceDraft.surfaceKind,
               materialKey: sourceDraft.materialKey,
+              isGesturePreview: draftGesture != null,
+              selectedVertexIndex: draftGesture?.activeVertexIndex,
             ),
     );
   }
@@ -194,6 +210,64 @@ abstract final class TerrainPolygonSceneHitTest {
       }
     }
     return null;
+  }
+
+  static int? hitTestDraftVertex({
+    required TerrainPolygonSceneProjection projection,
+    required TerrainPolygonScenePoint point,
+    required double radiusHalfPixels,
+  }) {
+    _requireFinitePoint(point);
+    _requireRadius(radiusHalfPixels, 'radiusHalfPixels');
+    final vertices = projection.draft?.vertices;
+    if (vertices == null) return null;
+    final maximumDistanceSquared = radiusHalfPixels * radiusHalfPixels;
+    int? bestIndex;
+    var bestDistanceSquared = double.infinity;
+    for (var index = 0; index < vertices.length; index++) {
+      final vertex = vertices[index];
+      final distanceSquared = _distanceSquared(
+        point.xHalfPixels,
+        point.yHalfPixels,
+        vertex.xHalfPixels.toDouble(),
+        vertex.yHalfPixels.toDouble(),
+      );
+      if (distanceSquared > maximumDistanceSquared ||
+          distanceSquared >= bestDistanceSquared) {
+        continue;
+      }
+      bestIndex = index;
+      bestDistanceSquared = distanceSquared;
+    }
+    return bestIndex;
+  }
+
+  static int? hitTestDraftEdge({
+    required TerrainPolygonSceneProjection projection,
+    required TerrainPolygonScenePoint point,
+    required double radiusHalfPixels,
+  }) {
+    _requireFinitePoint(point);
+    _requireRadius(radiusHalfPixels, 'radiusHalfPixels');
+    final vertices = projection.draft?.vertices;
+    if (vertices == null || vertices.length < 2) return null;
+    final maximumDistanceSquared = radiusHalfPixels * radiusHalfPixels;
+    int? bestIndex;
+    var bestDistanceSquared = double.infinity;
+    for (var index = 0; index < vertices.length - 1; index++) {
+      final distanceSquared = _distanceToSegmentSquared(
+        point,
+        vertices[index],
+        vertices[index + 1],
+      );
+      if (distanceSquared > maximumDistanceSquared ||
+          distanceSquared >= bestDistanceSquared) {
+        continue;
+      }
+      bestIndex = index;
+      bestDistanceSquared = distanceSquared;
+    }
+    return bestIndex;
   }
 }
 

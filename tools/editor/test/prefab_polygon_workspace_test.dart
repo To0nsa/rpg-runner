@@ -80,15 +80,65 @@ void main() {
       find.byKey(const ValueKey<String>('prefab_polygon_new_shape')),
       findsOneWidget,
     );
-    final normalizeDraft = find.byKey(
-      const ValueKey<String>('prefab_polygon_normalize_draft'),
+    final saveDraft = find.byKey(
+      const ValueKey<String>('prefab_polygon_save_draft'),
     );
-    expect(tester.widget<OutlinedButton>(normalizeDraft).onPressed, isNull);
+    expect(tester.widget<OutlinedButton>(saveDraft).onPressed, isNull);
     await tester.tap(
       find.byKey(const ValueKey<String>('prefab_polygon_new_shape')),
     );
     await tester.pump();
-    expect(tester.widget<OutlinedButton>(normalizeDraft).onPressed, isNotNull);
+    expect(tester.widget<OutlinedButton>(saveDraft).onPressed, isNotNull);
+    await tester.tap(find.widgetWithText(Tab, 'Scene'));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<ChoiceChip>(
+            find.byKey(const ValueKey<String>('prefab_polygon_tool_select')),
+          )
+          .onSelected,
+      isNull,
+    );
+    expect(
+      tester
+          .widget<ChoiceChip>(
+            find.byKey(
+              const ValueKey<String>('prefab_polygon_tool_createPolygon'),
+            ),
+          )
+          .onSelected,
+      isNull,
+    );
+    expect(
+      tester
+          .widget<ChoiceChip>(
+            find.byKey(
+              const ValueKey<String>('prefab_polygon_tool_translateShape'),
+            ),
+          )
+          .onSelected,
+      isNull,
+    );
+    expect(
+      tester
+          .widget<ChoiceChip>(
+            find.byKey(
+              const ValueKey<String>('prefab_polygon_tool_moveVertex'),
+            ),
+          )
+          .onSelected,
+      isNotNull,
+    );
+    expect(
+      tester
+          .widget<ChoiceChip>(
+            find.byKey(
+              const ValueKey<String>('prefab_polygon_tool_insertVertex'),
+            ),
+          )
+          .onSelected,
+      isNotNull,
+    );
     expect(tester.takeException(), isNull);
   });
 
@@ -120,18 +170,20 @@ void main() {
     );
     expect(applySource.onPressed, isNull);
 
-    final closeDraftFinder = find.byKey(
-      const ValueKey<String>('prefab_polygon_close_draft'),
+    final saveDraftFinder = find.byKey(
+      const ValueKey<String>('prefab_polygon_save_draft'),
     );
-    expect(tester.widget<OutlinedButton>(closeDraftFinder).onPressed, isNull);
+    expect(tester.widget<OutlinedButton>(saveDraftFinder).onPressed, isNull);
     await tester.tap(
       find.byKey(const ValueKey<String>('prefab_polygon_new_shape')),
     );
     await tester.pump();
-    expect(
-      tester.widget<OutlinedButton>(closeDraftFinder).onPressed,
-      isNotNull,
+    expect(tester.widget<OutlinedButton>(saveDraftFinder).onPressed, isNotNull);
+    final surface = find.byKey(
+      const ValueKey<String>('prefab_polygon_scene_surface'),
     );
+    await tester.tapAt(tester.getCenter(surface));
+    await tester.pump();
     final routeState = tester.state(find.byType(PrefabCreatorPage));
     final localDraftState = routeState as EditorPageLocalDraftState;
     final shortcutHandler = routeState as EditorPageSessionShortcutHandler;
@@ -139,8 +191,17 @@ void main() {
     expect(shortcutHandler.canHandleUndoSessionShortcut, isTrue);
     expect(shortcutHandler.handleUndoSessionShortcut(), isTrue);
     await tester.pump();
-    expect(tester.widget<OutlinedButton>(closeDraftFinder).onPressed, isNull);
+    expect(tester.widget<OutlinedButton>(saveDraftFinder).onPressed, isNotNull);
+    expect(shortcutHandler.canHandleRedoSessionShortcut, isTrue);
+    expect(shortcutHandler.handleRedoSessionShortcut(), isTrue);
+    await tester.pump();
     expect(harness.session.canUndo, isFalse);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('prefab_polygon_cancel_draft')),
+    );
+    await tester.pump();
+    expect(tester.widget<OutlinedButton>(saveDraftFinder).onPressed, isNull);
 
     await tester.tap(
       find.byKey(const ValueKey<String>('prefab_polygon_new_shape')),
@@ -151,7 +212,7 @@ void main() {
       find.byKey(const ValueKey<String>('prefab_polygon_owner_platform')),
     );
     await tester.pump();
-    expect(tester.widget<OutlinedButton>(closeDraftFinder).onPressed, isNull);
+    expect(tester.widget<OutlinedButton>(saveDraftFinder).onPressed, isNull);
     expect(find.textContaining('platform_module:module_a'), findsOneWidget);
 
     await tester.tap(
@@ -165,15 +226,12 @@ void main() {
     );
     await tester.pump();
 
-    final surface = find.byKey(
-      const ValueKey<String>('prefab_polygon_scene_surface'),
-    );
     final center = tester.getCenter(surface);
     await tester.tapAt(center + const Offset(22, 22));
     await tester.tapAt(center + const Offset(34, 22));
     await tester.tapAt(center + const Offset(22, 34));
     await tester.pump();
-    await tester.tap(closeDraftFinder);
+    await tester.tap(saveDraftFinder);
     await tester.pump();
 
     var obstacle = _prefab(harness.session, 'obstacle');
