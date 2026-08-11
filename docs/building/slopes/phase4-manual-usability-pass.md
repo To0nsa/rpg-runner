@@ -74,9 +74,11 @@ diagnostic, and can recover without reloading the workspace.
    both the scene and inspector.
 4. Run Normalize and confirm the redundant collinear vertex is removed as an
    explicit edit.
-5. Exercise Move vertex, Insert vertex, Delete, Move shape, and Duplicate. Undo
-   after any experiment that would overlap or leave the visual bounds; no
-   rejected operation may corrupt the last accepted shape.
+5. Exercise Move vertex on two different vertices consecutively without
+   reselecting the tool, then exercise Insert vertex, Delete, Move shape, and
+   Duplicate. Each chosen edit tool must remain active after a completed
+   gesture. Undo after any experiment that would overlap or leave the visual
+   bounds; no rejected operation may corrupt the last accepted shape.
 6. Exercise Undo and Redo from both the visible buttons and the documented
    keyboard shortcuts.
 7. Set or clear optional collision metadata and verify that rendering metadata
@@ -99,8 +101,10 @@ opened manually.
    navigation evidence.
 5. Inspect one compiled edge and confirm its stable ID, tangent/normal, slope,
    collision mode, and source lineage are readable.
-6. Move and insert a vertex, then use Undo/Redo. Confirm expanded Prefab shapes
-   remain read-only.
+6. Move two different vertices consecutively without reselecting Move vertex,
+   insert a vertex, then use Undo/Redo. Confirm the chosen edit tool remains
+   active after each completed gesture and expanded Prefab shapes remain
+   read-only.
 7. Open Chunk composition. Confirm the visual stack identifies ground polygons,
    their `groundBandZIndex`, and bottom-to-top ordering separately from runtime
    collision authority.

@@ -104,6 +104,8 @@ Prefab and Chunk polygon scenes share the same controls:
 - press Escape or choose **Cancel** to discard the active draft/gesture
 - use **Select**, **Move vertex**, **Insert vertex**, or **Move shape** before
   primary-clicking or dragging the corresponding scene element
+- the chosen edit tool remains active after a completed gesture, so consecutive
+  vertices, edges, or shapes can be edited without selecting the tool again
 - press Delete/Backspace to delete the current selection
 - use Ctrl+Z to undo and Ctrl+Y or Ctrl+Shift+Z to redo
 - use Ctrl+drag to pan and Ctrl+wheel to zoom
