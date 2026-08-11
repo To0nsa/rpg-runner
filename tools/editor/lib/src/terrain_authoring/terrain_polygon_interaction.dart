@@ -312,12 +312,20 @@ final class TerrainPolygonInteractionReducer {
   }
 
   /// Changes the active pointer tool without touching source or history.
+  ///
+  /// Switching tools abandons an uncommitted gesture preview. Open polygon
+  /// drafts remain protected until they are explicitly closed or cancelled.
   TerrainPolygonInteractionState setTool(
     TerrainPolygonInteractionState state,
     TerrainPolygonTool tool,
   ) {
-    if (state.hasActiveOperation || state.tool == tool) return state;
-    return _state(state, tool: tool);
+    if (state.draft != null || state.tool == tool) return state;
+    return _state(
+      state,
+      tool: tool,
+      gesture: null,
+      replaceGesture: state.gesture != null,
+    );
   }
 
   /// Starts an ordered vertex-click draft with a deterministic shape ID.
@@ -756,14 +764,19 @@ final class TerrainPolygonInteractionReducer {
   }
 
   /// Explicitly applies Core winding/start and collinear normalization.
+  ///
+  /// A rejected gesture remains preview-only, but Normalize may explicitly
+  /// accept its visible geometry after Core removes collinear middle vertices.
   TerrainPolygonInteractionResult normalizeSelectedShape(
     TerrainPolygonInteractionState state,
   ) {
     final selection = state.selection;
-    if (state.hasActiveOperation || selection == null) {
+    if (state.draft != null || selection == null) {
       return _acceptedNoOp(state);
     }
-    final shape = _requireShape(state.shapes, selection.shapeId);
+    final gesture = state.gesture;
+    final shape =
+        gesture?.previewShape ?? _requireShape(state.shapes, selection.shapeId);
     final review = TerrainSourceCoreAdapter.review(
       shape: shape,
       sourcePath: _shapeSourcePath(shape.shapeId),
@@ -793,6 +806,7 @@ final class TerrainPolygonInteractionReducer {
       _replaceShape(state.shapes, normalized),
       TerrainPolygonSelection.shape(normalized.shapeId),
       diagnostics: review.diagnostics,
+      clearGesture: gesture != null,
     );
   }
 

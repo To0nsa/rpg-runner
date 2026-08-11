@@ -135,12 +135,53 @@ void main() {
         throwsUnsupportedError,
       );
 
-      controller.cancelActiveOperation();
+      controller.setTool(TerrainPolygonTool.select);
       expect(controller.hasActiveOperation, isFalse);
+      expect(controller.state.tool, TerrainPolygonTool.select);
       expect(controller.state.visibleShapes, controller.state.shapes);
       expect(controller.issues, isEmpty);
     },
   );
+
+  test('rejected collinear preview normalizes as one source commit', () async {
+    final harness = await _buildHarness(shape: _pentagon());
+    final controller = harness.authoring;
+    final session = harness.session;
+
+    controller.select(TerrainPolygonSelection.vertex('ground_001', 1));
+    controller.setTool(TerrainPolygonTool.moveVertex);
+    expect(
+      controller.beginGesture(
+        pointer: 17,
+        point: const TerrainPolygonScenePoint(60, 16),
+      ),
+      isTrue,
+    );
+    controller.updateGesture(
+      pointer: 17,
+      point: const TerrainPolygonScenePoint(60, 20),
+    );
+
+    expect(controller.commitGesture(17), isFalse);
+    expect(controller.hasActiveOperation, isTrue);
+    expect(controller.chunk.revision, 4);
+    expect(session.canUndo, isFalse);
+    expect(
+      controller.issues.map((issue) => issue.code),
+      contains('collinear_middle_vertex'),
+    );
+
+    expect(controller.normalizeSelectedShape(), isTrue);
+    expect(controller.hasActiveOperation, isFalse);
+    expect(controller.chunk.revision, 5);
+    expect(controller.chunk.collisionShapes.single.vertices, hasLength(4));
+    expect(session.canUndo, isTrue);
+    expect(session.pendingChanges.changedItemIds, <String>['forest_target']);
+    expect(
+      controller.issues.map((issue) => issue.code),
+      contains('normalized_collinear_vertex'),
+    );
+  });
 
   test('controller requires a current chunk-v2 session', () {
     final session = EditorSessionController(
@@ -356,9 +397,9 @@ Widget _surfaceApp({
   ),
 );
 
-Future<_Harness> _buildHarness() async {
+Future<_Harness> _buildHarness({TerrainSourceShapeDef? shape}) async {
   final root = Directory.systemTemp.createTempSync('chunk_polygon_route_');
-  final chunk = _chunk();
+  final chunk = _chunk(shape: shape);
   final document = ChunkV2Document(
     chunks: <ChunkV2FileData>[chunk],
     sourcePathByChunkKey: const <String, String>{
@@ -400,7 +441,7 @@ Future<_Harness> _buildHarness() async {
   return _Harness(session: session, authoring: authoring);
 }
 
-ChunkV2FileData _chunk() => ChunkV2FileData(
+ChunkV2FileData _chunk({TerrainSourceShapeDef? shape}) => ChunkV2FileData(
   chunkKey: 'forest_target',
   id: 'forest_target',
   revision: 4,
@@ -417,15 +458,27 @@ ChunkV2FileData _chunk() => ChunkV2FileData(
   markers: const <PlacedMarkerDef>[],
   groundBandZIndex: 0,
   collisionShapes: <TerrainSourceShapeDef>[
-    TerrainSourceShapeDef(
-      shapeId: 'ground_001',
-      vertices: const <TerrainSourceVertexDef>[
-        TerrainSourceVertexDef(xHalfPixels: 20, yHalfPixels: 20),
-        TerrainSourceVertexDef(xHalfPixels: 100, yHalfPixels: 20),
-        TerrainSourceVertexDef(xHalfPixels: 100, yHalfPixels: 80),
-        TerrainSourceVertexDef(xHalfPixels: 20, yHalfPixels: 80),
-      ],
-    ),
+    shape ??
+        TerrainSourceShapeDef(
+          shapeId: 'ground_001',
+          vertices: const <TerrainSourceVertexDef>[
+            TerrainSourceVertexDef(xHalfPixels: 20, yHalfPixels: 20),
+            TerrainSourceVertexDef(xHalfPixels: 100, yHalfPixels: 20),
+            TerrainSourceVertexDef(xHalfPixels: 100, yHalfPixels: 80),
+            TerrainSourceVertexDef(xHalfPixels: 20, yHalfPixels: 80),
+          ],
+        ),
+  ],
+);
+
+TerrainSourceShapeDef _pentagon() => TerrainSourceShapeDef(
+  shapeId: 'ground_001',
+  vertices: const <TerrainSourceVertexDef>[
+    TerrainSourceVertexDef(xHalfPixels: 20, yHalfPixels: 20),
+    TerrainSourceVertexDef(xHalfPixels: 60, yHalfPixels: 16),
+    TerrainSourceVertexDef(xHalfPixels: 100, yHalfPixels: 20),
+    TerrainSourceVertexDef(xHalfPixels: 100, yHalfPixels: 80),
+    TerrainSourceVertexDef(xHalfPixels: 20, yHalfPixels: 80),
   ],
 );
 

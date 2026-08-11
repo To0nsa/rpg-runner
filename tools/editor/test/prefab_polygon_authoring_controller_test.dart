@@ -132,12 +132,53 @@ void main() {
         throwsUnsupportedError,
       );
 
-      controller.cancelActiveOperation();
+      controller.setTool(TerrainPolygonTool.select);
       expect(controller.hasActiveOperation, isFalse);
+      expect(controller.state.tool, TerrainPolygonTool.select);
       expect(controller.state.visibleShapes, controller.state.shapes);
       expect(controller.issues, isEmpty);
     },
   );
+
+  test('rejected collinear preview normalizes as one source commit', () async {
+    final harness = await _buildHarness(shape: _pentagon());
+    final controller = harness.authoring;
+    final session = harness.session;
+
+    controller.select(TerrainPolygonSelection.vertex('collision_001', 1));
+    controller.setTool(TerrainPolygonTool.moveVertex);
+    expect(
+      controller.beginGesture(
+        pointer: 17,
+        point: const TerrainPolygonScenePoint(0, -6),
+      ),
+      isTrue,
+    );
+    controller.updateGesture(
+      pointer: 17,
+      point: const TerrainPolygonScenePoint(0, -8),
+    );
+
+    expect(controller.commitGesture(17), isFalse);
+    expect(controller.hasActiveOperation, isTrue);
+    expect(controller.prefab.revision, 4);
+    expect(session.canUndo, isFalse);
+    expect(
+      controller.issues.map((issue) => issue.code),
+      contains('collinear_middle_vertex'),
+    );
+
+    expect(controller.normalizeSelectedShape(), isTrue);
+    expect(controller.hasActiveOperation, isFalse);
+    expect(controller.prefab.revision, 5);
+    expect(controller.prefab.collisionShapes.single.vertices, hasLength(4));
+    expect(session.canUndo, isTrue);
+    expect(session.pendingChanges.changedItemIds, <String>['target']);
+    expect(
+      controller.issues.map((issue) => issue.code),
+      contains('normalized_collinear_vertex'),
+    );
+  });
 
   test('controller requires a current prefab-v3 session', () {
     final session = EditorSessionController(
@@ -343,7 +384,7 @@ Widget _surfaceApp({
   ),
 );
 
-Future<_Harness> _buildHarness() async {
+Future<_Harness> _buildHarness({TerrainSourceShapeDef? shape}) async {
   final root = Directory.systemTemp.createTempSync('prefab_polygon_route_');
   final data = PrefabV3FileData(
     slices: const <AtlasSliceDef>[
@@ -366,7 +407,7 @@ Future<_Harness> _buildHarness() async {
         visualSource: const PrefabVisualSource.atlasSlice('slice_a'),
         anchorXPx: 5,
         anchorYPx: 5,
-        collisionShapes: <TerrainSourceShapeDef>[_rectangle()],
+        collisionShapes: <TerrainSourceShapeDef>[shape ?? _rectangle()],
         tags: const <String>['test'],
       ),
     ],
@@ -412,6 +453,17 @@ TerrainSourceShapeDef _rectangle() => TerrainSourceShapeDef(
   shapeId: 'collision_001',
   vertices: const <TerrainSourceVertexDef>[
     TerrainSourceVertexDef(xHalfPixels: -8, yHalfPixels: -8),
+    TerrainSourceVertexDef(xHalfPixels: 8, yHalfPixels: -8),
+    TerrainSourceVertexDef(xHalfPixels: 8, yHalfPixels: 8),
+    TerrainSourceVertexDef(xHalfPixels: -8, yHalfPixels: 8),
+  ],
+);
+
+TerrainSourceShapeDef _pentagon() => TerrainSourceShapeDef(
+  shapeId: 'collision_001',
+  vertices: const <TerrainSourceVertexDef>[
+    TerrainSourceVertexDef(xHalfPixels: -8, yHalfPixels: -8),
+    TerrainSourceVertexDef(xHalfPixels: 0, yHalfPixels: -6),
     TerrainSourceVertexDef(xHalfPixels: 8, yHalfPixels: -8),
     TerrainSourceVertexDef(xHalfPixels: 8, yHalfPixels: 8),
     TerrainSourceVertexDef(xHalfPixels: -8, yHalfPixels: 8),

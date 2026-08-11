@@ -71,37 +71,40 @@ void main() {
       );
     });
 
-    test(
-      'tool changes are local state and active operations own their tool',
-      () {
-        final reducer = _reducer();
-        final initial = TerrainPolygonInteractionState(
-          shapes: <TerrainSourceShapeDef>[_rectangle('collision_001')],
-        );
-        final insertTool = reducer.setTool(
-          initial,
-          TerrainPolygonTool.insertVertex,
-        );
-        final gesture = reducer.beginMoveVertex(
-          insertTool,
-          pointer: 1,
-          shapeId: 'collision_001',
-          vertexIndex: 0,
-          startPointer: initial.shapes.single.vertices.first,
-        );
-        final ignoredSwitch = reducer.setTool(
-          gesture,
-          TerrainPolygonTool.createPolygon,
-        );
-        final cancelled = reducer.cancelActiveOperation(ignoredSwitch);
+    test('tool switches cancel gestures but preserve open polygon drafts', () {
+      final reducer = _reducer();
+      final initial = TerrainPolygonInteractionState(
+        shapes: <TerrainSourceShapeDef>[_rectangle('collision_001')],
+      );
+      final insertTool = reducer.setTool(
+        initial,
+        TerrainPolygonTool.insertVertex,
+      );
+      final gesture = reducer.beginMoveVertex(
+        insertTool,
+        pointer: 1,
+        shapeId: 'collision_001',
+        vertexIndex: 0,
+        startPointer: initial.shapes.single.vertices.first,
+      );
+      final switched = reducer.setTool(
+        gesture,
+        TerrainPolygonTool.createPolygon,
+      );
+      final draft = reducer.beginCreatePolygon(initial);
+      final ignoredDraftSwitch = reducer.setTool(
+        draft,
+        TerrainPolygonTool.moveVertex,
+      );
 
-        expect(initial.tool, TerrainPolygonTool.select);
-        expect(insertTool.tool, TerrainPolygonTool.insertVertex);
-        expect(gesture.tool, TerrainPolygonTool.moveVertex);
-        expect(ignoredSwitch, same(gesture));
-        expect(cancelled.tool, TerrainPolygonTool.select);
-      },
-    );
+      expect(initial.tool, TerrainPolygonTool.select);
+      expect(insertTool.tool, TerrainPolygonTool.insertVertex);
+      expect(gesture.tool, TerrainPolygonTool.moveVertex);
+      expect(switched.tool, TerrainPolygonTool.createPolygon);
+      expect(switched.gesture, isNull);
+      expect(switched.visibleShapes, initial.shapes);
+      expect(ignoredDraftSwitch, same(draft));
+    });
   });
 
   group('polygon creation', () {
@@ -515,6 +518,54 @@ void main() {
       expect(result.state.shapes.single.vertices, hasLength(4));
       expect(
         result.diagnostics.map((diagnostic) => diagnostic.code),
+        contains('normalized_collinear_vertex'),
+      );
+    });
+
+    test('Normalize commits a rejected collinear gesture preview', () {
+      final reducer = _reducer();
+      final shape = _shape('collision_001', const <TerrainSourceVertexDef>[
+        TerrainSourceVertexDef(xHalfPixels: 0, yHalfPixels: 0),
+        TerrainSourceVertexDef(xHalfPixels: 10, yHalfPixels: -10),
+        TerrainSourceVertexDef(xHalfPixels: 20, yHalfPixels: 0),
+        TerrainSourceVertexDef(xHalfPixels: 20, yHalfPixels: 20),
+        TerrainSourceVertexDef(xHalfPixels: 0, yHalfPixels: 20),
+      ]);
+      final initial = TerrainPolygonInteractionState(
+        shapes: <TerrainSourceShapeDef>[shape],
+      );
+      var state = reducer.beginMoveVertex(
+        initial,
+        pointer: 11,
+        shapeId: shape.shapeId,
+        vertexIndex: 1,
+        startPointer: shape.vertices[1],
+      );
+      state = reducer.updateGesture(
+        state,
+        pointer: 11,
+        currentPointer: const TerrainSourceVertexDef(
+          xHalfPixels: 10,
+          yHalfPixels: 0,
+        ),
+        snap: const TerrainPolygonSnapPolicy.halfPixel(),
+      );
+
+      final rejected = reducer.commitGesture(state, pointer: 11);
+      final normalized = reducer.normalizeSelectedShape(rejected.state);
+
+      expect(rejected.accepted, isFalse);
+      expect(rejected.state.gesture, isNotNull);
+      expect(
+        rejected.diagnostics.map((diagnostic) => diagnostic.code),
+        contains('collinear_middle_vertex'),
+      );
+      expect(normalized.accepted, isTrue);
+      expect(normalized.commit, isNotNull);
+      expect(normalized.state.gesture, isNull);
+      expect(normalized.state.shapes.single.vertices, hasLength(4));
+      expect(
+        normalized.diagnostics.map((diagnostic) => diagnostic.code),
         contains('normalized_collinear_vertex'),
       );
     });
