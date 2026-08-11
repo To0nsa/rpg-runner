@@ -71,7 +71,7 @@ void main() {
       );
     });
 
-    test('tool switches cancel gestures but preserve open polygon drafts', () {
+    test('tool switches cancel uncommitted gestures and polygon drafts', () {
       final reducer = _reducer();
       final initial = TerrainPolygonInteractionState(
         shapes: <TerrainSourceShapeDef>[_rectangle('collision_001')],
@@ -92,7 +92,7 @@ void main() {
         TerrainPolygonTool.createPolygon,
       );
       final draft = reducer.beginCreatePolygon(initial);
-      final ignoredDraftSwitch = reducer.setTool(
+      final switchedDraft = reducer.setTool(
         draft,
         TerrainPolygonTool.moveVertex,
       );
@@ -103,7 +103,9 @@ void main() {
       expect(switched.tool, TerrainPolygonTool.createPolygon);
       expect(switched.gesture, isNull);
       expect(switched.visibleShapes, initial.shapes);
-      expect(ignoredDraftSwitch, same(draft));
+      expect(switchedDraft.tool, TerrainPolygonTool.moveVertex);
+      expect(switchedDraft.draft, isNull);
+      expect(switchedDraft.visibleShapes, initial.shapes);
     });
   });
 
@@ -563,6 +565,46 @@ void main() {
       expect(normalized.accepted, isTrue);
       expect(normalized.commit, isNotNull);
       expect(normalized.state.gesture, isNull);
+      expect(normalized.state.shapes.single.vertices, hasLength(4));
+      expect(
+        normalized.diagnostics.map((diagnostic) => diagnostic.code),
+        contains('normalized_collinear_vertex'),
+      );
+    });
+
+    test('Normalize closes a rejected collinear polygon draft', () {
+      final reducer = _reducer();
+      var state = TerrainPolygonInteractionState(
+        shapes: const <TerrainSourceShapeDef>[],
+      );
+      state = reducer.beginCreatePolygon(state);
+      for (final vertex in const <TerrainSourceVertexDef>[
+        TerrainSourceVertexDef(xHalfPixels: 0, yHalfPixels: 0),
+        TerrainSourceVertexDef(xHalfPixels: 10, yHalfPixels: 0),
+        TerrainSourceVertexDef(xHalfPixels: 20, yHalfPixels: 0),
+        TerrainSourceVertexDef(xHalfPixels: 20, yHalfPixels: 20),
+        TerrainSourceVertexDef(xHalfPixels: 0, yHalfPixels: 20),
+      ]) {
+        state = reducer.addDraftVertex(
+          state,
+          rawVertex: vertex,
+          snap: const TerrainPolygonSnapPolicy.halfPixel(),
+        );
+      }
+
+      final rejected = reducer.closePolygon(state);
+      final normalized = reducer.normalizeSelectedShape(rejected.state);
+
+      expect(rejected.accepted, isFalse);
+      expect(rejected.state.draft, isNotNull);
+      expect(
+        rejected.diagnostics.map((diagnostic) => diagnostic.code),
+        contains('collinear_middle_vertex'),
+      );
+      expect(normalized.accepted, isTrue);
+      expect(normalized.commit, isNotNull);
+      expect(normalized.state.draft, isNull);
+      expect(normalized.state.tool, TerrainPolygonTool.select);
       expect(normalized.state.shapes.single.vertices, hasLength(4));
       expect(
         normalized.diagnostics.map((diagnostic) => diagnostic.code),

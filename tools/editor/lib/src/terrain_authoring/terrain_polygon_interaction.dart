@@ -313,16 +313,18 @@ final class TerrainPolygonInteractionReducer {
 
   /// Changes the active pointer tool without touching source or history.
   ///
-  /// Switching tools abandons an uncommitted gesture preview. Open polygon
-  /// drafts remain protected until they are explicitly closed or cancelled.
+  /// Switching tools abandons any uncommitted gesture preview or open polygon
+  /// draft. The committed source and history remain unchanged.
   TerrainPolygonInteractionState setTool(
     TerrainPolygonInteractionState state,
     TerrainPolygonTool tool,
   ) {
-    if (state.draft != null || state.tool == tool) return state;
+    if (state.tool == tool) return state;
     return _state(
       state,
       tool: tool,
+      draft: null,
+      replaceDraft: state.draft != null,
       gesture: null,
       replaceGesture: state.gesture != null,
     );
@@ -765,18 +767,28 @@ final class TerrainPolygonInteractionReducer {
 
   /// Explicitly applies Core winding/start and collinear normalization.
   ///
-  /// A rejected gesture remains preview-only, but Normalize may explicitly
-  /// accept its visible geometry after Core removes collinear middle vertices.
+  /// A rejected draft or gesture remains preview-only, but Normalize may
+  /// explicitly accept its visible geometry after Core removes collinear
+  /// middle vertices.
   TerrainPolygonInteractionResult normalizeSelectedShape(
     TerrainPolygonInteractionState state,
   ) {
+    final draft = state.draft;
     final selection = state.selection;
-    if (state.draft != null || selection == null) {
+    if (draft == null && selection == null) {
       return _acceptedNoOp(state);
     }
     final gesture = state.gesture;
-    final shape =
-        gesture?.previewShape ?? _requireShape(state.shapes, selection.shapeId);
+    final shape = draft != null
+        ? TerrainSourceShapeDef(
+            shapeId: draft.shapeId,
+            vertices: draft.vertices,
+            collisionMode: draft.collisionMode,
+            surfaceKind: draft.surfaceKind,
+            materialKey: draft.materialKey,
+          )
+        : gesture?.previewShape ??
+              _requireShape(state.shapes, selection!.shapeId);
     final review = TerrainSourceCoreAdapter.review(
       shape: shape,
       sourcePath: _shapeSourcePath(shape.shapeId),
@@ -793,7 +805,9 @@ final class TerrainPolygonInteractionReducer {
     );
     final overlapDiagnostics = _overlapDiagnostics(
       normalized,
-      state.shapes.where((candidate) => candidate.shapeId != shape.shapeId),
+      state.shapes.where(
+        (candidate) => candidate.shapeId != normalized.shapeId,
+      ),
     );
     if (overlapDiagnostics.isNotEmpty) {
       return _rejected(state, <TerrainDiagnostic>[
@@ -803,10 +817,14 @@ final class TerrainPolygonInteractionReducer {
     }
     return _commitShapes(
       state,
-      _replaceShape(state.shapes, normalized),
+      draft != null
+          ? <TerrainSourceShapeDef>[...state.shapes, normalized]
+          : _replaceShape(state.shapes, normalized),
       TerrainPolygonSelection.shape(normalized.shapeId),
       diagnostics: review.diagnostics,
+      clearDraft: draft != null,
       clearGesture: gesture != null,
+      resetTool: draft != null,
     );
   }
 
