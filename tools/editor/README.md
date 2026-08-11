@@ -113,8 +113,12 @@ Prefab and Chunk polygon scenes share the same controls:
   diagnosed collinear middle vertices
 
 Rejected edits retain their draft/gesture and show diagnostics; they do not
-enter session history. **Apply current source** is the only normal file-write
-action and always requires confirmation.
+enter session history. If the only problem is an aligned middle vertex,
+**Normalize** applies the visible draft/gesture, removes that redundant vertex,
+and creates one undoable edit. Selecting a different tool instead discards the
+uncommitted draft/gesture and switches tools. **Apply current source** remains
+disabled until the preview is resolved and is the only normal file-write action;
+it always requires confirmation.
 
 ## Polygon Workspace Navigation
 

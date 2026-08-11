@@ -66,24 +66,32 @@ diagnostic, and can recover without reloading the workspace.
 
 ## B) Complete The Prefab Workflow
 
-1. Create a valid collision polygon inside the visible `anvil_00` sprite. Use
-   five vertices with one middle vertex on a straight edge so Normalize has
-   meaningful work to perform.
-2. Close the polygon and confirm it appears in the owner list and scene.
-3. Select the shape, one edge, and one vertex. Confirm selection is visible in
+1. Draw a collision polygon inside the visible `anvil_00` sprite using five
+   vertices with one middle vertex on a straight edge.
+2. Try to close it. Confirm `collinear_middle_vertex` explains why the draft
+   remains provisional and **Apply current source** remains unavailable.
+3. Choose **Normalize**. Confirm the redundant vertex is removed, the polygon
+   closes, and the result appears in the owner list and scene as one undoable
+   edit.
+4. Select the shape, one edge, and one vertex. Confirm selection is visible in
    both the scene and inspector.
-4. Run Normalize and confirm the redundant collinear vertex is removed as an
-   explicit edit.
-5. Exercise Move vertex on two different vertices consecutively without
+5. Insert a non-collinear vertex, then move it back onto its original edge.
+   Confirm the aligned preview remains visible with the same diagnostic. Choose
+   **Normalize** and confirm it removes the redundant vertex as one undoable
+   edit.
+6. Begin another rejected move, then choose a different tool. Confirm the
+   uncommitted preview is discarded, the last committed polygon is restored,
+   and the requested tool becomes active.
+7. Exercise Move vertex on two different vertices consecutively without
    reselecting the tool, then exercise Insert vertex, Delete, Move shape, and
    Duplicate. Each chosen edit tool must remain active after a completed
    gesture. Undo after any experiment that would overlap or leave the visual
    bounds; no rejected operation may corrupt the last accepted shape.
-6. Exercise Undo and Redo from both the visible buttons and the documented
+8. Exercise Undo and Redo from both the visible buttons and the documented
    keyboard shortcuts.
-7. Set or clear optional collision metadata and verify that rendering metadata
+9. Set or clear optional collision metadata and verify that rendering metadata
    does not change the collision-mode label.
-8. Choose **Apply current source**, review the confirmation, apply, reload, and
+10. Choose **Apply current source**, review the confirmation, apply, reload, and
    confirm the exact polygon and metadata remain present.
 
 Pass when one valid Prefab-v3 shape survives apply/reload, each accepted gesture
@@ -101,14 +109,17 @@ opened manually.
    navigation evidence.
 5. Inspect one compiled edge and confirm its stable ID, tangent/normal, slope,
    collision mode, and source lineage are readable.
-6. Move two different vertices consecutively without reselecting Move vertex,
-   insert a vertex, then use Undo/Redo. Confirm the chosen edit tool remains
-   active after each completed gesture and expanded Prefab shapes remain
-   read-only.
-7. Open Chunk composition. Confirm the visual stack identifies ground polygons,
+6. Insert a non-collinear vertex, move it back onto its original edge, and use
+   **Normalize** to commit the aligned preview. Then start another rejected
+   move and choose a different tool to discard it. Confirm no invalid preview
+   enters history and expanded Prefab shapes remain read-only.
+7. Move two different vertices consecutively without reselecting Move vertex,
+   then use Undo/Redo. Confirm the chosen edit tool remains active after each
+   completed gesture.
+8. Open Chunk composition. Confirm the visual stack identifies ground polygons,
    their `groundBandZIndex`, and bottom-to-top ordering separately from runtime
    collision authority.
-8. Choose **Apply current source**, review the confirmation, apply, reload, and
+9. Choose **Apply current source**, review the confirmation, apply, reload, and
    confirm the direct shape remains present.
 
 Pass when the changed Chunk survives apply/reload, seam/bounds diagnostics stay
