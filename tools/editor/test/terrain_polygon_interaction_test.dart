@@ -217,6 +217,7 @@ void main() {
       expect(result.commit!.beforeShapes, initial.shapes);
       expect(result.commit!.afterShapes.single.vertices[1].xHalfPixels, 24);
       expect(result.state.gesture, isNull);
+      expect(result.state.tool, TerrainPolygonTool.moveVertex);
       expect(result.state.selection!.kind, TerrainPolygonSelectionKind.vertex);
     });
 
@@ -310,6 +311,7 @@ void main() {
       expect(result.accepted, isTrue);
       expect(result.commit, isNull);
       expect(result.state.gesture, isNull);
+      expect(result.state.tool, TerrainPolygonTool.translateShape);
       expect(result.state.shapes.single.vertices, rotated.vertices);
     });
 
@@ -349,6 +351,7 @@ void main() {
 
         expect(result.accepted, isTrue);
         expect(result.state.shapes.single.vertices, hasLength(5));
+        expect(result.state.tool, TerrainPolygonTool.insertVertex);
         expect(result.commit, isNotNull);
       },
     );

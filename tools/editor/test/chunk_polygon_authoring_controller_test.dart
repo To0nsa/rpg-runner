@@ -224,16 +224,16 @@ void main() {
       await tester.pump();
       expect(controller.chunk.revision, 5);
       expect(controller.hasActiveOperation, isFalse);
+      expect(controller.state.tool, TerrainPolygonTool.moveVertex);
 
-      controller.setTool(TerrainPolygonTool.moveVertex);
-      final movedVertexCanvas = transform.sourceVertexToCanvas(
-        const TerrainSourceVertexDef(xHalfPixels: 104, yHalfPixels: 20),
+      final otherVertexCanvas = transform.sourceVertexToCanvas(
+        const TerrainSourceVertexDef(xHalfPixels: 100, yHalfPixels: 80),
       );
       final cancelledDrag = await tester.startGesture(
-        topLeft + movedVertexCanvas,
+        topLeft + otherVertexCanvas,
       );
       await cancelledDrag.moveTo(
-        topLeft + movedVertexCanvas + const Offset(4, 0),
+        topLeft + otherVertexCanvas + const Offset(4, 0),
       );
       await tester.pump();
       expect(controller.hasActiveOperation, isTrue);
@@ -244,6 +244,10 @@ void main() {
       expect(controller.hasActiveOperation, isFalse);
       expect(controller.chunk.revision, 5);
       expect(controller.state.shapes.single.vertices[1].xHalfPixels, 104);
+      expect(
+        controller.state.shapes.single.vertices[2],
+        const TerrainSourceVertexDef(xHalfPixels: 100, yHalfPixels: 80),
+      );
     },
   );
 

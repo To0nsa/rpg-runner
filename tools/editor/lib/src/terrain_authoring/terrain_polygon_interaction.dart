@@ -551,7 +551,6 @@ final class TerrainPolygonInteractionReducer {
         state.shapes,
         state.selection,
         clearGesture: true,
-        resetTool: true,
       );
     }
     final validation = _validateAndCanonicalize(
@@ -577,7 +576,6 @@ final class TerrainPolygonInteractionReducer {
       selection,
       diagnostics: validation.diagnostics,
       clearGesture: true,
-      resetTool: true,
     );
   }
 

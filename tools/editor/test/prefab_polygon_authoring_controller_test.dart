@@ -216,12 +216,12 @@ void main() {
       await tester.pump();
       expect(controller.prefab.revision, 5);
       expect(controller.hasActiveOperation, isFalse);
+      expect(controller.state.tool, TerrainPolygonTool.moveVertex);
 
-      controller.setTool(TerrainPolygonTool.moveVertex);
       final cancelledDrag = await tester.startGesture(
-        topLeft + const Offset(120, 84),
+        topLeft + const Offset(116, 116),
       );
-      await cancelledDrag.moveTo(topLeft + const Offset(124, 84));
+      await cancelledDrag.moveTo(topLeft + const Offset(120, 116));
       await tester.pump();
       expect(controller.hasActiveOperation, isTrue);
 
@@ -232,6 +232,10 @@ void main() {
       expect(controller.hasActiveOperation, isFalse);
       expect(controller.prefab.revision, 5);
       expect(controller.state.shapes.single.vertices[1].xHalfPixels, 10);
+      expect(
+        controller.state.shapes.single.vertices[2],
+        const TerrainSourceVertexDef(xHalfPixels: 8, yHalfPixels: 8),
+      );
     },
   );
 
