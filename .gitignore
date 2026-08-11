@@ -93,6 +93,8 @@ web/build/
 # =========================
 # (Intentionally not ignoring assets/)
 resources/
+!tools/editor/windows/runner/resources/
+!tools/editor/windows/runner/resources/app_icon.ico
 
 # =========================
 # Misc
