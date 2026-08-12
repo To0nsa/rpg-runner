@@ -1164,7 +1164,7 @@
     {
       "prefabKey": "anvil_00",
       "id": "anvil_00",
-      "revision": 2,
+      "revision": 3,
       "status": "active",
       "kind": "obstacle",
       "visualSource": {
@@ -1173,7 +1173,30 @@
       },
       "anchorXPx": 30,
       "anchorYPx": 30,
-      "collisionShapes": [],
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -24,
+              "y": -19
+            },
+            {
+              "x": 17,
+              "y": -19
+            },
+            {
+              "x": 17,
+              "y": -1
+            },
+            {
+              "x": -24,
+              "y": -1
+            }
+          ]
+        }
+      ],
       "tags": [
         "anvil"
       ]
