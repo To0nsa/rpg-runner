@@ -58,7 +58,7 @@ order; the contract below records the dependencies that must survive changes.
 
 | Order | Contractual phase | Dependency |
 | --- | --- | --- |
-| 1 | Stream/cull track, replace the complete staged render candidate when selection changes, publish any complete harness terrain bundle, and prepare motion | No consumer may observe a partial candidate or mixed terrain/index/surface/graph versions; AI receives validated prior support. |
+| 1 | Stream/cull track, build the complete staged candidate, publish any queued terrain bundle, place the captured enemy/item batch, and prepare motion | No placement or motion consumer may observe a partial candidate or mixed terrain/index/surface/graph versions; AI receives validated prior support. |
 | 2 | Decrement timers and refresh control locks, ability phases, and hold/charge state | Input activation must observe current timer, ability, and control state. |
 | 3 | Resolve AI, ability activation, jump, movement, mobility, gravity, and collision | Intent is composed before every terrain-owned dynamic actor is integrated exactly once. |
 | 4 | Update distance, camera, and terminal fall conditions | Camera-dependent culling, pickups, and run termination use final motion state. |
@@ -76,12 +76,14 @@ Both owners follow the same ordering seam; the terrain-only publication step is
 a no-op for legacy ownership:
 
 1. after world generation, atomically publish any fully built terrain bundle
-   and its matching immutable render snapshot, capture/invalidate prior
-   support against its version, and audit exactly-once ownership;
-2. let AI, jump, ordinary movement, mobility/teleport state, external velocity,
+   and its matching immutable render snapshot;
+2. resolve captured enemy markers and procedural items through that published
+   placement query, then capture/invalidate prior support against its version
+   and audit exactly-once ownership;
+3. let AI, jump, ordinary movement, mobility/teleport state, external velocity,
    and gravity compose motion;
-3. integrate exactly once;
-4. publish final transform/support/resolved motion before distance, death,
+4. integrate exactly once;
+5. publish final transform/support/resolved motion before distance, death,
    camera, pickup broad phase, animation, and snapshots consume it.
 
 Between preparation and integration, terrain-owned AI/locomotion consumers
@@ -98,7 +100,8 @@ replays, saved state, UI, or remote configuration. See the terrain controller
 TDD for the staged boundary and direct-cutover requirements.
 
 A harness replacement is built completely before queueing and becomes visible
-only at the next preparation boundary. It cannot be queued mid-integration,
+at the next explicit world-publication/preparation boundary. It cannot be
+queued mid-integration,
 and motion rejects support from any version other than the published bundle.
 Normal `TrackManager` collision/graph publication remains legacy pending the
 direct authority cutover. Streaming-enabled normal and replay construction do
@@ -109,15 +112,20 @@ is public at this stage; it does not yet change simulation outcomes. A custom
 legacy-only selection with no authored `chunkKey` publishes no staged snapshot
 and never substitutes an unrelated generated record.
 
-Track streaming and procedural item generation retain their established Phase
-1/prewarm order. Marker rolls remain keyed by seed, chunk, marker index, and
-salt. Collectible/restoration count draws, candidate draws, salts, snapping,
-spacing, and attempt limits are unchanged. The selected world-motion authority
-validates each already-created candidate through a mutation-free placement
-request that consumes no RNG. Legacy authority commits the historical
-rectangle candidate exactly; terrain-harness rejection consumes the existing
-marker request or item attempt and never draws a replacement. Therefore an
-invalid placement cannot shift any later marker roll or candidate sequence.
+Startup resolves the scheduler's initial selection before spawning the player
+or any other ECS entity. `TrackManager` adopts that exact prewarmed streamer;
+it never selects the opening chunks again. At startup and on later stream
+changes, marker requests are captured in authored order, the matching complete
+terrain candidate is built/published, then enemies are applied before
+collectibles/restoration items as before. Marker rolls remain keyed by seed,
+chunk, marker index, and salt. Collectible/restoration count draws, candidate
+draws, salts, snapping, spacing, and attempt limits are unchanged. The selected
+world-motion authority validates each already-created candidate through a
+mutation-free placement request that consumes no RNG. Legacy authority commits
+the historical rectangle candidate exactly; terrain rejection consumes the
+existing marker request or item attempt and never draws a replacement.
+Therefore an invalid placement cannot shift any later marker roll or candidate
+sequence.
 
 Player death may enter a death-animation freeze: only animation advances until
 the terminal `RunEndedEvent` is emitted. Any terminal end freezes normal

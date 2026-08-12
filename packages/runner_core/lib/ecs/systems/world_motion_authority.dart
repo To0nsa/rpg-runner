@@ -51,6 +51,13 @@ abstract interface class WorldMotionAuthority {
   /// Latest canonical spawn-placement record, or `null` before any request.
   String? get lastSpawnPlacementDiagnostic;
 
+  /// Publishes any complete queued world replacement before spawn placement.
+  ///
+  /// Legacy motion has no publication. Terrain motion swaps collision,
+  /// navigation, placement, and render data through one reference so entities
+  /// selected with a streamed chunk cannot be placed against stale geometry.
+  void publishPendingWorld();
+
   void initializePlayer(
     EcsWorld world, {
     required EntityId player,
@@ -280,6 +287,9 @@ class LegacyWorldMotionAuthority implements WorldMotionAuthority {
 
   @override
   String? get lastSpawnPlacementDiagnostic => _lastSpawnPlacementDiagnostic;
+
+  @override
+  void publishPendingWorld() {}
 
   @override
   void initializePlayer(
@@ -603,6 +613,11 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
   String? get lastSpawnPlacementDiagnostic => _lastSpawnPlacementDiagnostic;
 
   @override
+  void publishPendingWorld() {
+    _publishPendingTerrainBundle();
+  }
+
+  @override
   void initializePlayer(
     EcsWorld world, {
     required EntityId player,
@@ -713,6 +728,8 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
     _refreshOrderedBodies(world);
     _preflightBodies(world, player: player, allowInitialization: true);
     _auditPrepare(currentTick);
+    // Direct authority users may still prepare without a separate streaming
+    // phase. GameCore publishes explicitly before placing streamed entities.
     _publishPendingTerrainBundle();
     _initializePendingEnemyStores(world);
 

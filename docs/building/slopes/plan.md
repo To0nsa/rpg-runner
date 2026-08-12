@@ -1,8 +1,8 @@
 # Sloped Terrain And Capsule Traversal High-Level Plan
 
 - Date: July 18, 2026
-- Status: Phases 0-3 accepted; Phase 4 current-schema cutover is committed and
-  compatibility cleanup/acceptance is in progress
+- Status: Phases 0-4 accepted; Phase 5 streamed runtime/render integration is
+  in progress while production collision remains legacy pending Phase 6
 - Phase 0 tracker:
   [phase0-implementation-checklist.md](phase0-implementation-checklist.md)
 - Phase 0 evidence:
@@ -1623,9 +1623,17 @@ empty state exactly with zero overlap blockers; no solid-owner union policy was
 introduced.
 
 All prefab visuals, identities, metadata, 50 chunk placements, and two markers
-remain available as reauthoring context. Normal runs temporarily have no
-static terrain support, so player traversal, enemy support/navigation, and
-terrain-relative marker placement are unavailable. The next content step is
-to author polygon ground boundaries first, then slopes, platforms and
-obstacles, closing seam and actor/navigation diagnostics before restoring
-playable acceptance.
+remain available. The seven Forest chunks and `field_flat` now carry canonical
+full-width `ground` / `grass_dirt` polygons, and the temporary legacy
+projection restores continuous playable support during integration.
+
+Phase 5 now admits the generated artifact against the scheduler's exact active
+selection, builds one collision/navigation/render candidate per geometry
+change, removes compatible opposing seam faces, and exposes Core-owned
+polygons, triangles, and diagnostic edges to Flame. Flame renders the staged
+world-phased material and suppresses its legacy ground layers whenever that
+snapshot is present. Startup selects and builds the opening terrain before ECS
+spawn, while later stream changes publish their complete world before captured
+enemy/item placement and motion preparation. Production movement and legacy
+navigation remain on the rectangle projection until the remaining terrain
+consumer, ballistic, full-run, and Phase 6 direct-cutover gates pass.

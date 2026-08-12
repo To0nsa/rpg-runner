@@ -110,7 +110,7 @@ import 'track/chunk_pattern.dart' show SpawnPlacementMode;
 import 'track/staged_authored_terrain.dart';
 import 'track/staged_terrain_catalog.dart';
 import 'track/staged_terrain_stream_candidate.dart';
-import 'track/track_streamer.dart' show EnemySpawnRequestSource;
+import 'track/track_streamer.dart';
 import 'weapons/weapon_catalog.dart';
 import 'stats/character_stats_resolver.dart';
 import 'stats/resolved_stats_cache.dart';
@@ -299,27 +299,10 @@ class GameCore {
       ),
       simulationTicksPerSecond: tickHz,
     );
-    final terrainGeometry = _terrainHarnessGeometry;
-    _stagedTerrainCatalog = terrainGeometry == null && _trackTuning.enabled
-        ? StagedTerrainArtifactCatalog(artifact: stagedAuthoredTerrain)
-        : null;
-    _worldMotionAuthority = terrainGeometry == null
-        ? LegacyWorldMotionAuthority()
-        : TerrainMultiBodyWorldMotionAuthority(
-            geometry: terrainGeometry,
-            playerProfile: _playerArchetype.terrainTraversalProfile,
-            enemyCatalog: _enemyCatalog,
-            groundEnemyGraphProfiles: _groundEnemyTerrainGraphProfiles,
-          );
 
-    // ─── Initialize ECS world and entity factory ───
-    _world = EcsWorld(seed: seed);
-    _entityFactory = EntityFactory(_world);
-
-    // ─── Initialize all ECS systems ───
-    _initializeSystems();
-
-    // ─── Initialize autoscrolling camera ───
+    // The scheduler's initial selection is pure track state. Resolve it before
+    // spawning ECS entities so the complete terrain candidate is available to
+    // the eventual production authority and initial-player placement.
     _cameraTuning = CameraTuningDerived.from(
       levelDefinition.tuning.camera,
       movement: _movement,
@@ -336,6 +319,52 @@ class GameCore {
         speedX: 0.0,
       ),
     );
+
+    final terrainGeometry = _terrainHarnessGeometry;
+    _stagedTerrainCatalog = terrainGeometry == null && _trackTuning.enabled
+        ? StagedTerrainArtifactCatalog(artifact: stagedAuthoredTerrain)
+        : null;
+    TrackStreamer? prewarmedTrackStreamer;
+    var initialEnemySpawns = const <SpawnEnemyRequest>[];
+    var initialSpawnedChunks = const <TrackSpawnedChunk>[];
+    if (_trackTuning.enabled) {
+      prewarmedTrackStreamer = TrackStreamer(
+        seed: seed,
+        tuning: _trackTuning,
+        groundTopY: levelDefinition.groundTopY,
+        patternSource: levelDefinition.chunkPatternSource,
+        earlyPatternChunks: levelDefinition.earlyPatternChunks,
+        easyPatternChunks: levelDefinition.easyPatternChunks,
+        normalPatternChunks: levelDefinition.normalPatternChunks,
+        noEnemyChunks: levelDefinition.noEnemyChunks,
+      );
+      final pendingEnemies = <SpawnEnemyRequest>[];
+      final initialStep = prewarmedTrackStreamer.step(
+        cameraLeft: _camera.left(),
+        cameraRight: _camera.right(),
+        spawnEnemy: pendingEnemies.add,
+      );
+      initialEnemySpawns = List<SpawnEnemyRequest>.unmodifiable(pendingEnemies);
+      initialSpawnedChunks = initialStep.spawnedChunks;
+      if (initialStep.changed) {
+        _replaceStagedTerrainCandidate(prewarmedTrackStreamer.activeChunks);
+      }
+    }
+    _worldMotionAuthority = terrainGeometry == null
+        ? LegacyWorldMotionAuthority()
+        : TerrainMultiBodyWorldMotionAuthority(
+            geometry: terrainGeometry,
+            playerProfile: _playerArchetype.terrainTraversalProfile,
+            enemyCatalog: _enemyCatalog,
+            groundEnemyGraphProfiles: _groundEnemyTerrainGraphProfiles,
+          );
+
+    // ─── Initialize ECS world and entity factory ───
+    _world = EcsWorld(seed: seed);
+    _entityFactory = EntityFactory(_world);
+
+    // ─── Initialize all ECS systems ───
+    _initializeSystems();
 
     // ─── Initialize spawn service (needs ECS + catalogs) ───
     _spawnService = SpawnService(
@@ -370,14 +399,23 @@ class GameCore {
       spawnService: _spawnService,
       groundTopY: effectiveGroundTopY,
       chunkPatternSource: levelDefinition.chunkPatternSource,
+      trackStreamer: prewarmedTrackStreamer,
       earlyPatternChunks: levelDefinition.earlyPatternChunks,
       easyPatternChunks: levelDefinition.easyPatternChunks,
       normalPatternChunks: levelDefinition.normalPatternChunks,
       noEnemyChunks: levelDefinition.noEnemyChunks,
     );
 
-    // Build the startup streamed world without advancing gameplay time so the
-    // ready overlay can render the authoritative initial terrain immediately.
+    // The matching scheduler geometry and terrain candidate are now available;
+    // apply the captured ECS mutations in their historical enemy-before-item
+    // order without re-running selection or RNG.
+    _spawnTrackEntities(
+      enemyRequests: initialEnemySpawns,
+      spawnedChunks: initialSpawnedChunks,
+    );
+
+    // Build startup animation state without advancing gameplay time so the
+    // ready overlay can render the authoritative initial world immediately.
     _prewarmInitialWorld();
 
     // ─── Initialize snapshot builder (needs player entity ID) ───
@@ -408,7 +446,6 @@ class GameCore {
   /// state the first live gameplay tick would otherwise create lazily.
   void _prewarmInitialWorld() {
     if (gameOver) return;
-    _stepTrackManager();
     _animSystem.step(
       _world,
       player: _player,
@@ -616,8 +653,8 @@ class GameCore {
   /// Spawns the player entity at the start of a run.
   ///
   /// The player is positioned at [TrackTuning.playerStartX], standing on the
-  /// ground. This must be called before [TrackManager] is created because
-  /// track manager callbacks reference the player entity.
+  /// selected world. The pure scheduler prewarm has already completed, but
+  /// captured enemy/item mutations wait until the player and manager exist.
   void _spawnPlayer(double groundTopY) {
     _playerSpawnStartTick = tick;
     _playerDeathPhase = DeathPhase.none;
@@ -1310,7 +1347,12 @@ class GameCore {
     final effectiveGroundTopY = _levelDefinition.groundTopY;
 
     // ─── Phase 1: World generation ───
-    _stepTrackManager();
+    final pendingTrackSpawns = _stepTrackManager();
+    _worldMotionAuthority.publishPendingWorld();
+    _spawnTrackEntities(
+      enemyRequests: pendingTrackSpawns.enemyRequests,
+      spawnedChunks: pendingTrackSpawns.spawnedChunks,
+    );
     _worldMotionAuthority.prepareTick(
       _world,
       player: _player,
@@ -1606,111 +1648,145 @@ class GameCore {
     _lifetimeSystem.step(_world);
   }
 
-  /// Steps the track manager and handles enemy spawning callbacks.
+  /// Steps track selection and returns ECS mutations for deferred placement.
   ///
-  /// This is extracted from [stepOneTick] to keep the main loop readable.
-  void _stepTrackManager() {
+  /// The matching legacy projection and staged candidate are both complete
+  /// before the returned enemy/item batch may mutate the world.
+  ({
+    List<SpawnEnemyRequest> enemyRequests,
+    List<TrackSpawnedChunk> spawnedChunks,
+  })
+  _stepTrackManager() {
+    final enemyRequests = <SpawnEnemyRequest>[];
     final result = _trackManager.step(
       currentTick: tick,
       cameraLeft: _camera.left(),
       cameraRight: _camera.right(),
-      spawnEnemy: (request) {
-        final enemyId = request.enemyId;
-        final x = request.x;
-        final surfaceTopY = request.surfaceTopY;
-        final archetype = _enemyCatalog.get(enemyId);
-        final legacyBodyY = enemyId == EnemyId.unocoDemon
-            ? surfaceTopY - _unocoDemonTuning.base.unocoDemonHoverOffsetY
-            : surfaceTopY -
-                  (archetype.collider.offsetY + archetype.collider.halfY);
-        final supportSelection =
-            request.source == EnemySpawnRequestSource.deferredHashashEdge
-            ? TerrainSpawnSupportSelection.deferredEdge
-            : switch (request.placement) {
-                SpawnPlacementMode.ground =>
-                  TerrainSpawnSupportSelection.ground,
-                SpawnPlacementMode.highestSurfaceAtX =>
-                  TerrainSpawnSupportSelection.highestSurfaceAtX,
-                SpawnPlacementMode.obstacleTop =>
-                  TerrainSpawnSupportSelection.obstacleTop,
-              };
-        final placement = _worldMotionAuthority.resolveSpawnPlacement(
-          TerrainSpawnPlacementRequest(
-            profile: TerrainEnemySpawnPlacementProfile.fromCatalog(
-              catalog: _enemyCatalog,
-              enemyId: enemyId,
-              facing: Facing.left,
-            ),
-            desiredBodyCenter: TerrainPoint(
-              physicsCoordinateToTicks(x, name: 'enemySpawnX'),
-              physicsCoordinateToTicks(legacyBodyY, name: 'enemySpawnY'),
-            ),
-            supportSelection: supportSelection,
-            requestedSupportYTicks: physicsCoordinateToTicks(
-              surfaceTopY,
-              name: 'enemySpawnSupportY',
-            ),
-            intendedSourceAvailable:
-                request.source == EnemySpawnRequestSource.deferredHashashEdge ||
-                request.placement == SpawnPlacementMode.ground ||
-                request.intendedSurfaceResolved,
-            allowSameSupportClamp:
-                enemyId != EnemyId.unocoDemon &&
-                request.source != EnemySpawnRequestSource.deferredHashashEdge,
-          ),
-        );
-        if (!placement.accepted) return;
-        final body = placement.bodyCenter!;
-        final bodyX = body.xTicks / terrainPhysicsTicksPerWorldUnit;
-        final bodyY = body.yTicks / terrainPhysicsTicksPerWorldUnit;
+      spawnEnemy: enemyRequests.add,
+    );
+    if (result.geometryChanged) {
+      _replaceStagedTerrainCandidate(_trackManager.activeChunks);
+      final authority = _worldMotionAuthority;
+      final candidate = _stagedTerrainCandidate;
+      if (authority is TerrainMultiBodyWorldMotionAuthority &&
+          candidate != null) {
+        authority.queueStagedTerrainCandidate(candidate);
+      }
+    }
+    return (
+      enemyRequests: List<SpawnEnemyRequest>.unmodifiable(enemyRequests),
+      spawnedChunks: result.spawnedChunks,
+    );
+  }
 
-        switch (enemyId) {
-          case EnemyId.unocoDemon:
-            _spawnService.spawnUnocoDemon(
-              spawnX: bodyX,
-              groundTopY: surfaceTopY,
-              spawnBodyY: bodyY,
-            );
-          case EnemyId.grojib:
-            _spawnService.spawnGroundEnemy(
-              spawnX: bodyX,
-              groundTopY: surfaceTopY,
-              spawnBodyY: bodyY,
-            );
-          case EnemyId.hashash:
-            _spawnService.spawnGroundEnemy(
-              enemyId: EnemyId.hashash,
-              spawnX: bodyX,
-              groundTopY: surfaceTopY,
-              spawnBodyY: bodyY,
-              spawnTick: tick,
-            );
-          case EnemyId.derf:
-            _spawnService.spawnGroundEnemy(
-              enemyId: EnemyId.derf,
-              spawnX: bodyX,
-              groundTopY: surfaceTopY,
-              spawnBodyY: bodyY,
-            );
-        }
-      },
+  void _replaceStagedTerrainCandidate(
+    List<ActiveTrackChunkSnapshot> activeChunks,
+  ) {
+    final catalog = _stagedTerrainCatalog;
+    if (catalog == null) return;
+    if (activeChunks.any((chunk) => chunk.chunkKey == null)) {
+      _stagedTerrainCandidate = null;
+      return;
+    }
+    _stagedTerrainCandidate = const StagedTerrainStreamCandidateBuilder().build(
+      catalog: catalog,
+      activeChunks: activeChunks,
+      geometryVersion: _nextStagedTerrainGeometryVersion,
+      groundEnemyProfiles: _groundEnemyTerrainGraphProfiles,
+    );
+    _nextStagedTerrainGeometryVersion += 1;
+  }
+
+  /// Applies captured track mutations after their terrain publication exists.
+  void _spawnTrackEntities({
+    required List<SpawnEnemyRequest> enemyRequests,
+    required List<TrackSpawnedChunk> spawnedChunks,
+  }) {
+    for (final request in enemyRequests) {
+      _spawnTrackEnemy(request);
+    }
+    _trackManager.spawnItemsForChunks(
+      chunks: spawnedChunks,
       lowestResourceStat: _lowestResourceStat,
     );
-    final catalog = _stagedTerrainCatalog;
-    if (catalog != null && result.geometryChanged) {
-      final activeChunks = _trackManager.activeChunks;
-      if (activeChunks.any((chunk) => chunk.chunkKey == null)) {
-        _stagedTerrainCandidate = null;
-        return;
-      }
-      _stagedTerrainCandidate = const StagedTerrainStreamCandidateBuilder()
-          .build(
-            catalog: catalog,
-            activeChunks: activeChunks,
-            geometryVersion: _nextStagedTerrainGeometryVersion,
-            groundEnemyProfiles: _groundEnemyTerrainGraphProfiles,
-          );
-      _nextStagedTerrainGeometryVersion += 1;
+  }
+
+  void _spawnTrackEnemy(SpawnEnemyRequest request) {
+    final enemyId = request.enemyId;
+    final x = request.x;
+    final surfaceTopY = request.surfaceTopY;
+    final archetype = _enemyCatalog.get(enemyId);
+    final legacyBodyY = enemyId == EnemyId.unocoDemon
+        ? surfaceTopY - _unocoDemonTuning.base.unocoDemonHoverOffsetY
+        : surfaceTopY - (archetype.collider.offsetY + archetype.collider.halfY);
+    final supportSelection =
+        request.source == EnemySpawnRequestSource.deferredHashashEdge
+        ? TerrainSpawnSupportSelection.deferredEdge
+        : switch (request.placement) {
+            SpawnPlacementMode.ground => TerrainSpawnSupportSelection.ground,
+            SpawnPlacementMode.highestSurfaceAtX =>
+              TerrainSpawnSupportSelection.highestSurfaceAtX,
+            SpawnPlacementMode.obstacleTop =>
+              TerrainSpawnSupportSelection.obstacleTop,
+          };
+    final placement = _worldMotionAuthority.resolveSpawnPlacement(
+      TerrainSpawnPlacementRequest(
+        profile: TerrainEnemySpawnPlacementProfile.fromCatalog(
+          catalog: _enemyCatalog,
+          enemyId: enemyId,
+          facing: Facing.left,
+        ),
+        desiredBodyCenter: TerrainPoint(
+          physicsCoordinateToTicks(x, name: 'enemySpawnX'),
+          physicsCoordinateToTicks(legacyBodyY, name: 'enemySpawnY'),
+        ),
+        supportSelection: supportSelection,
+        requestedSupportYTicks: physicsCoordinateToTicks(
+          surfaceTopY,
+          name: 'enemySpawnSupportY',
+        ),
+        intendedSourceAvailable:
+            request.source == EnemySpawnRequestSource.deferredHashashEdge ||
+            request.placement == SpawnPlacementMode.ground ||
+            request.intendedSurfaceResolved,
+        allowSameSupportClamp:
+            enemyId != EnemyId.unocoDemon &&
+            request.source != EnemySpawnRequestSource.deferredHashashEdge,
+      ),
+    );
+    if (!placement.accepted) return;
+    final body = placement.bodyCenter!;
+    final bodyX = body.xTicks / terrainPhysicsTicksPerWorldUnit;
+    final bodyY = body.yTicks / terrainPhysicsTicksPerWorldUnit;
+
+    switch (enemyId) {
+      case EnemyId.unocoDemon:
+        _spawnService.spawnUnocoDemon(
+          spawnX: bodyX,
+          groundTopY: surfaceTopY,
+          spawnBodyY: bodyY,
+        );
+      case EnemyId.grojib:
+        _spawnService.spawnGroundEnemy(
+          spawnX: bodyX,
+          groundTopY: surfaceTopY,
+          spawnBodyY: bodyY,
+        );
+      case EnemyId.hashash:
+        _spawnService.spawnGroundEnemy(
+          enemyId: EnemyId.hashash,
+          spawnX: bodyX,
+          groundTopY: surfaceTopY,
+          spawnBodyY: bodyY,
+          spawnTick: tick,
+        );
+      case EnemyId.derf:
+        _spawnService.spawnGroundEnemy(
+          enemyId: EnemyId.derf,
+          spawnX: bodyX,
+          groundTopY: surfaceTopY,
+          spawnBodyY: bodyY,
+        );
     }
   }
 

@@ -120,6 +120,15 @@ workflow except where an already-public Core output needs a read-only consumer.
       and bottom edges across chunk identities with smooth/connected join
       evidence, so collision, navigation, diagnostics, and rendering do not
       retain hidden vertical walls at streamed seams.
+- [x] Startup now performs the scheduler's deterministic initial selection and
+      builds its complete staged candidate before the player or any other ECS
+      entity is spawned. `TrackManager` adopts that exact prewarmed streamer;
+      it does not reselect opening chunks or change player/entity ID order.
+- [x] Streamed enemy requests and new-chunk item work are captured without ECS
+      mutation. Core completes and publishes the matching terrain world first,
+      then applies enemies followed by collectibles/restoration items, and only
+      then prepares prior support for AI and motion. Marker/item RNG and legacy
+      placement outcomes remain unchanged.
 
 ## 3) Implementation Order
 
@@ -179,7 +188,8 @@ workflow except where an already-public Core output needs a read-only consumer.
 - [x] Flame uses Core-owned triangles/edges and does not duplicate geometry,
       material-phase, or collision authority
 - [ ] initial player, enemy, marker, collectible, restoration, cull, and
-      fall-death policies have explicit terrain-backed coverage
+      fall-death policies have explicit terrain-backed coverage (startup and
+      publication ordering are covered; normal authority selection remains)
 - [ ] representative full runs match deterministic Core/replay outcomes and
       remain inside the accepted runtime budgets
 - [ ] legacy runtime authority remains available until Phase 6's direct

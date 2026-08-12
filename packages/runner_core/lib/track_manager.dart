@@ -10,7 +10,8 @@
 /// - **Track streaming**: [TrackStreamer] spawns/culls chunks based on camera.
 /// - **Collision geometry**: Merges base geometry with streamed chunks.
 /// - **Surface graph**: Rebuilds navigation data when geometry changes.
-/// - **Item spawning**: Delegates to [SpawnService] for new chunks.
+/// - **Deferred item spawning**: Applies a selected batch only after GameCore's
+///   terrain-publication barrier.
 ///
 /// ## Geometry Lifecycle
 ///
@@ -26,6 +27,8 @@
 /// SurfaceGraphBuilder.build() (navigation)
 ///        ↓
 /// SpawnService + enemy navigation systems receive new graphs
+///        ↓
+/// GameCore publishes matching terrain and applies captured spawns
 /// ```
 ///
 /// ## Chunk Spawning Flow
@@ -33,8 +36,9 @@
 /// When a new chunk enters the horizon:
 /// 1. [TrackStreamer] generates platforms and enemy spawn points.
 /// 2. [TrackManager] merges the new solids into collision geometry.
-/// 3. Collectibles and restoration items are placed via [SpawnService].
-/// 4. Surface graph is rebuilt so enemies can navigate new platforms.
+/// 3. The matching legacy graph and staged terrain candidate are completed.
+/// 4. GameCore publishes terrain, then places enemies and items via
+///    [SpawnService].
 library;
 
 import 'collision/static_world_geometry_index.dart';
@@ -70,13 +74,22 @@ typedef SpawnEnemyCallback = void Function(SpawnEnemyRequest request);
 ///
 /// Used by [GameCore] to decide whether to update render snapshots.
 class TrackStepResult {
-  const TrackStepResult({required this.geometryChanged});
+  const TrackStepResult({
+    required this.geometryChanged,
+    this.spawnedChunks = const <TrackSpawnedChunk>[],
+  });
 
   /// Whether static geometry was updated this step.
   ///
   /// When true, collision indices, surface graphs, and render snapshots
   /// have all been regenerated.
   final bool geometryChanged;
+
+  /// Newly selected chunks whose procedural items have not been spawned yet.
+  ///
+  /// [GameCore] consumes this batch only after the matching terrain publication
+  /// is available, so placement never observes geometry from another selection.
+  final List<TrackSpawnedChunk> spawnedChunks;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -90,7 +103,7 @@ class TrackStepResult {
 /// - Merges base level geometry with dynamically streamed platforms.
 /// - Rebuilds [StaticWorldGeometryIndex] for collision detection.
 /// - Rebuilds [SurfaceGraph] for enemy pathfinding.
-/// - Triggers collectible/item spawning for new chunks.
+/// - Returns new chunks for collectible/item placement after publication.
 ///
 /// Usage:
 /// ```dart
@@ -99,8 +112,7 @@ class TrackStepResult {
 ///   currentTick: tick,
 ///   cameraLeft: cam.left,
 ///   cameraRight: cam.right,
-///   spawnEnemy: (id, x) => spawner.spawn(id, x),
-///   lowestResourceStat: () => player.lowestStat,
+///   spawnEnemy: pendingEnemies.add,
 /// );
 /// if (result.geometryChanged) {
 ///   // Update render snapshots
@@ -121,6 +133,7 @@ class TrackManager {
   /// - [spawnService]: Entity spawner (receives surface graph updates).
   /// - [groundTopY]: Y coordinate of the ground surface (for spawning).
   /// - [chunkPatternSource]: Deterministic tiered chunk pattern source.
+  /// - [trackStreamer]: Optional scheduler state already selected at startup.
   /// - [earlyPatternChunks]: Number of chunks requesting the `early` tier.
   /// - [easyPatternChunks]: Number of chunks after the opening window requesting `easy`.
   /// - [normalPatternChunks]: Number of chunks after the easy window requesting `normal`.
@@ -138,6 +151,7 @@ class TrackManager {
     required SpawnService spawnService,
     required double groundTopY,
     required ChunkPatternSource chunkPatternSource,
+    TrackStreamer? trackStreamer,
     int earlyPatternChunks = defaultEarlyPatternChunks,
     int easyPatternChunks = defaultEasyPatternChunks,
     int normalPatternChunks = defaultNormalPatternChunks,
@@ -155,19 +169,23 @@ class TrackManager {
        _enemyNavigationSystem = enemyNavigationSystem,
        _groundEnemyLocomotionSystem = groundEnemyLocomotionSystem,
        _spawnService = spawnService,
+       _trackStreamer = trackStreamer,
        _chunkPatternSource = chunkPatternSource,
        _earlyPatternChunks = earlyPatternChunks,
        _easyPatternChunks = easyPatternChunks,
        _normalPatternChunks = normalPatternChunks,
        _noEnemyChunks = noEnemyChunks {
-    // Initialize geometry state from base level.
-    _staticGeometry = baseGeometry;
-    _staticIndex = StaticWorldGeometryIndex.from(baseGeometry);
-    _staticSolidsSnapshot = _buildStaticSolidsSnapshot(baseGeometry);
-    _groundSurfacesSnapshot = _buildGroundSurfacesSnapshot(_staticIndex);
+    if (!_trackTuning.enabled && _trackStreamer != null) {
+      throw ArgumentError.value(
+        _trackStreamer,
+        'trackStreamer',
+        'A prewarmed streamer requires enabled track tuning.',
+      );
+    }
 
-    // Create track streamer if procedural generation is enabled.
-    if (_trackTuning.enabled) {
+    // Create a track streamer unless the caller already performed the initial
+    // deterministic selection before ECS entities were spawned.
+    if (_trackTuning.enabled && _trackStreamer == null) {
       _trackStreamer = TrackStreamer(
         seed: seed,
         tuning: _trackTuning,
@@ -178,6 +196,23 @@ class TrackManager {
         normalPatternChunks: _normalPatternChunks,
         noEnemyChunks: _noEnemyChunks,
       );
+    }
+
+    // Initialize every legacy read model from the same already-selected
+    // streamer state. This is a compatibility projection while polygon terrain
+    // remains staged; it must not re-run chunk selection.
+    final streamer = _trackStreamer;
+    _staticGeometry = streamer == null
+        ? baseGeometry
+        : _combinedLegacyGeometry(streamer);
+    _staticIndex = StaticWorldGeometryIndex.from(_staticGeometry);
+    _staticSolidsSnapshot = _buildStaticSolidsSnapshot(_staticGeometry);
+    _groundSurfacesSnapshot = _buildGroundSurfacesSnapshot(_staticIndex);
+    if (streamer != null) {
+      _staticPrefabSpritesSnapshot =
+          List<StaticPrefabSpriteSnapshot>.unmodifiable(
+            streamer.dynamicVisualSprites.map(_toStaticPrefabSpriteSnapshot),
+          );
     }
 
     // Build initial surface graph for enemy navigation.
@@ -280,15 +315,12 @@ class TrackManager {
   /// Parameters:
   /// - [cameraLeft], [cameraRight]: Camera X bounds for horizon calculation.
   /// - [spawnEnemy]: Callback invoked for each enemy spawn point in new chunks.
-  /// - [lowestResourceStat]: Returns player's lowest resource for item type selection.
-  ///
   /// Returns a [TrackStepResult] indicating whether geometry changed.
   TrackStepResult step({
     required int currentTick,
     required double cameraLeft,
     required double cameraRight,
     required SpawnEnemyCallback spawnEnemy,
-    required RestorationStat Function() lowestResourceStat,
   }) {
     final streamer = _trackStreamer;
     if (streamer == null) {
@@ -309,65 +341,57 @@ class TrackManager {
     }
 
     // ─── Merge base geometry with streamed chunks ───
-    final combinedSolids = <StaticSolid>[
-      ..._baseGeometry.solids,
-      ...streamer.dynamicSolids,
-    ];
-    final combinedSegments = <StaticGroundSegment>[
-      ..._baseGeometry.groundSegments,
-      ...streamer.dynamicGroundSegments,
-    ];
-    final combinedGaps = <StaticGroundGap>[
-      ..._baseGeometry.groundGaps,
-      ...streamer.dynamicGroundGaps,
-    ];
     _staticPrefabSpritesSnapshot =
         List<StaticPrefabSpriteSnapshot>.unmodifiable(
           streamer.dynamicVisualSprites.map(_toStaticPrefabSpriteSnapshot),
         );
 
     // Apply the new combined geometry (rebuilds index, snapshots, nav graph).
-    _setStaticGeometry(
-      StaticWorldGeometry(
-        groundPlane: _baseGeometry.groundPlane,
-        groundSegments: List<StaticGroundSegment>.unmodifiable(
-          combinedSegments,
-        ),
-        solids: List<StaticSolid>.unmodifiable(combinedSolids),
-        groundGaps: List<StaticGroundGap>.unmodifiable(combinedGaps),
-      ),
+    _setStaticGeometry(_combinedLegacyGeometry(streamer));
+
+    return TrackStepResult(
+      geometryChanged: true,
+      spawnedChunks: result.spawnedChunks,
     );
+  }
 
-    // ─── Spawn items for newly created chunks ───
-    if (result.spawnedChunks.isNotEmpty) {
-      // Convert geometry to spawn-friendly format (avoids import cycles).
-      final solidsForSpawn = _staticGeometry.solids
-          .map((s) => (minX: s.minX, maxX: s.maxX, minY: s.minY, maxY: s.maxY))
-          .toList();
+  /// Spawns procedural items for an already-selected chunk batch.
+  ///
+  /// Chunk selection and all keyed RNG remain in their historical order. The
+  /// caller controls only when placement mutates the ECS, allowing a complete
+  /// terrain publication to become visible first.
+  void spawnItemsForChunks({
+    required Iterable<TrackSpawnedChunk> chunks,
+    required RestorationStat Function() lowestResourceStat,
+  }) {
+    final solidsForSpawn = _staticGeometry.solids
+        .map(
+          (solid) => (
+            minX: solid.minX,
+            maxX: solid.maxX,
+            minY: solid.minY,
+            maxY: solid.maxY,
+          ),
+        )
+        .toList(growable: false);
 
-      for (final chunk in result.spawnedChunks) {
-        // Spawn collectibles if enabled.
-        if (_collectibleTuning.enabled) {
-          _spawnService.spawnCollectiblesForChunk(
-            chunkIndex: chunk.index,
-            chunkStartX: chunk.startX,
-            solids: solidsForSpawn,
-          );
-        }
-
-        // Spawn restoration items if enabled.
-        if (_restorationItemTuning.enabled) {
-          _spawnService.spawnRestorationItemForChunk(
-            chunkIndex: chunk.index,
-            chunkStartX: chunk.startX,
-            solids: solidsForSpawn,
-            lowestResourceStat: lowestResourceStat,
-          );
-        }
+    for (final chunk in chunks) {
+      if (_collectibleTuning.enabled) {
+        _spawnService.spawnCollectiblesForChunk(
+          chunkIndex: chunk.index,
+          chunkStartX: chunk.startX,
+          solids: solidsForSpawn,
+        );
+      }
+      if (_restorationItemTuning.enabled) {
+        _spawnService.spawnRestorationItemForChunk(
+          chunkIndex: chunk.index,
+          chunkStartX: chunk.startX,
+          solids: solidsForSpawn,
+          lowestResourceStat: lowestResourceStat,
+        );
       }
     }
-
-    return const TrackStepResult(geometryChanged: true);
   }
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -384,6 +408,26 @@ class TrackManager {
     _staticSolidsSnapshot = _buildStaticSolidsSnapshot(geometry);
     _groundSurfacesSnapshot = _buildGroundSurfacesSnapshot(_staticIndex);
     _rebuildSurfaceGraph();
+  }
+
+  StaticWorldGeometry _combinedLegacyGeometry(TrackStreamer streamer) {
+    return StaticWorldGeometry(
+      groundPlane: _baseGeometry.groundPlane,
+      groundSegments: List<StaticGroundSegment>.unmodifiable(
+        <StaticGroundSegment>[
+          ..._baseGeometry.groundSegments,
+          ...streamer.dynamicGroundSegments,
+        ],
+      ),
+      solids: List<StaticSolid>.unmodifiable(<StaticSolid>[
+        ..._baseGeometry.solids,
+        ...streamer.dynamicSolids,
+      ]),
+      groundGaps: List<StaticGroundGap>.unmodifiable(<StaticGroundGap>[
+        ..._baseGeometry.groundGaps,
+        ...streamer.dynamicGroundGaps,
+      ]),
+    );
   }
 
   /// Rebuilds the navigation surface graph and distributes it to consumers.

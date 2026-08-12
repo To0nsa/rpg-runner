@@ -18,10 +18,12 @@ import 'package:runner_core/ecs/world.dart';
 import 'package:runner_core/enemies/enemy_id.dart';
 import 'package:runner_core/enemies/death_behavior.dart';
 import 'package:runner_core/enemies/enemy_catalog.dart';
+import 'package:runner_core/navigation/terrain_spawn_placement.dart';
 import 'package:runner_core/players/characters/eloise.dart';
 import 'package:runner_core/players/player_catalog.dart';
 import 'package:runner_core/players/player_tuning.dart';
 import 'package:runner_core/projectiles/projectile_id.dart';
+import 'package:runner_core/snapshots/enums.dart';
 import 'package:runner_core/tuning/physics_tuning.dart';
 import 'package:test/test.dart';
 
@@ -373,6 +375,51 @@ void main() {
         }
       },
     );
+
+    test('queued world publishes before spawn placement and preparation', () {
+      final harness = _terrainHarness();
+      final request = TerrainSpawnPlacementRequest(
+        profile: TerrainEnemySpawnPlacementProfile.fromCatalog(
+          catalog: const EnemyCatalog(),
+          enemyId: EnemyId.grojib,
+          facing: Facing.left,
+        ),
+        desiredBodyCenter: TerrainPoint(
+          150 * terrainPhysicsTicksPerWorldUnit,
+          0,
+        ),
+        supportSelection: TerrainSpawnSupportSelection.highestSurfaceAtX,
+      );
+
+      final oldPlacement = harness.authority.resolveSpawnPlacement(request);
+      expect(oldPlacement.geometryVersion, 1);
+      expect(
+        oldPlacement.supportPoint!.yTicks,
+        100 * terrainPhysicsTicksPerWorldUnit,
+      );
+
+      harness.authority.queueTerrainGeometryReplacement(
+        _terrainGeometry(version: 2, topY: 200),
+      );
+      harness.authority.publishPendingWorld();
+
+      final newPlacement = harness.authority.resolveSpawnPlacement(request);
+      expect(harness.authority.terrainGeometryVersion, 2);
+      expect(newPlacement.geometryVersion, 2);
+      expect(
+        newPlacement.supportPoint!.yTicks,
+        200 * terrainPhysicsTicksPerWorldUnit,
+      );
+
+      final grojib = _spawnEnemy(harness.world, EnemyId.grojib, x: 150);
+      harness.authority.prepareTick(
+        harness.world,
+        player: harness.player,
+        currentTick: 1,
+      );
+      expect(harness.world.worldContactCapsule.has(grojib), isTrue);
+      expect(harness.world.terrainContact.has(grojib), isTrue);
+    });
 
     test('airborne active-edge state is culled before replacement AI', () {
       final harness = _terrainHarness();
@@ -891,43 +938,46 @@ int _spawnEnemy(
   return entity;
 }
 
-TerrainGeometry _terrainGeometry({bool sloped = false, int version = 1}) =>
-    const TerrainCompiler().compile(
-      sloped
-          ? <TerrainPolygonInput>[
-              TerrainPolygonInput.fromWorld(
-                sourcePath: 'test/slope',
-                identity: TerrainSourceIdentity(
-                  chunkIndex: 0,
-                  chunkKey: 'test',
-                  shapeId: 'slope',
-                ),
-                vertices: <(double, double)>[
-                  (0, 300),
-                  (112, 106),
-                  (250, 400),
-                  (0, 400),
-                ],
-              ),
-            ]
-          : <TerrainPolygonInput>[
-              TerrainPolygonInput.fromWorld(
-                sourcePath: 'test/floor',
-                identity: TerrainSourceIdentity(
-                  chunkIndex: 0,
-                  chunkKey: 'test',
-                  shapeId: 'floor',
-                ),
-                vertices: <(double, double)>[
-                  (0, 100),
-                  (300, 100),
-                  (300, 140),
-                  (0, 140),
-                ],
-              ),
+TerrainGeometry _terrainGeometry({
+  bool sloped = false,
+  int version = 1,
+  double topY = 100,
+}) => const TerrainCompiler().compile(
+  sloped
+      ? <TerrainPolygonInput>[
+          TerrainPolygonInput.fromWorld(
+            sourcePath: 'test/slope',
+            identity: TerrainSourceIdentity(
+              chunkIndex: 0,
+              chunkKey: 'test',
+              shapeId: 'slope',
+            ),
+            vertices: <(double, double)>[
+              (0, 300),
+              (112, 106),
+              (250, 400),
+              (0, 400),
             ],
-      geometryVersion: version,
-    );
+          ),
+        ]
+      : <TerrainPolygonInput>[
+          TerrainPolygonInput.fromWorld(
+            sourcePath: 'test/floor',
+            identity: TerrainSourceIdentity(
+              chunkIndex: 0,
+              chunkKey: 'test',
+              shapeId: 'floor',
+            ),
+            vertices: <(double, double)>[
+              (0, topY),
+              (300, topY),
+              (300, topY + 40),
+              (0, topY + 40),
+            ],
+          ),
+        ],
+  geometryVersion: version,
+);
 
 final StaticWorldGeometryIndex _legacyWorld = StaticWorldGeometryIndex.from(
   const StaticWorldGeometry(groundPlane: StaticGroundPlane(topY: 100)),
