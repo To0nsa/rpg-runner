@@ -150,8 +150,6 @@ String _snapshotDigest(GameStateSnapshot s) {
     'stamina=${s.hud.stamina.toStringAsFixed(6)}',
     'collectibles=${s.hud.collectibles}',
     'collectibleScore=${s.hud.collectibleScore}',
-    'solids=${s.staticSolids.length}',
-    'groundSurfaces=${s.groundSurfaces.length}',
     'ents=${s.entities.length}',
     'paused=${s.paused}',
     'gameOver=${s.gameOver}',
@@ -227,7 +225,10 @@ void main() {
       a.finalizeResult.replayBlob.canonicalSha256,
       b.finalizeResult.replayBlob.canonicalSha256,
     );
-    expect(a.finalizeResult.streamDigestSha256, b.finalizeResult.streamDigestSha256);
+    expect(
+      a.finalizeResult.streamDigestSha256,
+      b.finalizeResult.streamDigestSha256,
+    );
     expect(
       a.finalizeResult.replayBlob.commandStream.length,
       b.finalizeResult.replayBlob.commandStream.length,
@@ -235,7 +236,9 @@ void main() {
   });
 
   test('replayed result equals live canonical result', () async {
-    final dir = await Directory.systemTemp.createTemp('replay-recorder-replay-');
+    final dir = await Directory.systemTemp.createTemp(
+      'replay-recorder-replay-',
+    );
     addTearDown(() async {
       if (await dir.exists()) {
         await dir.delete(recursive: true);
@@ -291,7 +294,10 @@ void main() {
       tickHz: replayCore.tickHz,
     );
 
-    expect(_snapshotDigest(replayCore.buildSnapshot()), recorded.liveSnapshotDigest);
+    expect(
+      _snapshotDigest(replayCore.buildSnapshot()),
+      recorded.liveSnapshotDigest,
+    );
     expect(replayRunEnded.tick, recorded.liveRunEnded.tick);
     expect(
       replayRunEnded.distance,

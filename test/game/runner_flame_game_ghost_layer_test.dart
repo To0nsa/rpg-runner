@@ -244,8 +244,6 @@ GameStateSnapshot _copySnapshot(
     camera: base.camera,
     hud: base.hud,
     entities: entities,
-    staticSolids: base.staticSolids,
-    groundSurfaces: base.groundSurfaces,
     staticPrefabSprites: base.staticPrefabSprites,
     stagedTerrainRenderSnapshot: base.stagedTerrainRenderSnapshot,
   );

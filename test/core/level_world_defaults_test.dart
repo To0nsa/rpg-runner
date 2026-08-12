@@ -68,8 +68,6 @@ void main() {
       expect(core.staticWorldGeometry.groundPlane, isNotNull);
       expect(core.staticWorldGeometry.groundPlane!.topY, customGroundTopY);
       expect(level.groundTopY, customGroundTopY);
-      expect(snapshot.groundSurfaces, isNotEmpty);
-      expect(snapshot.groundSurfaces.first.topY, customGroundTopY);
       expect(snapshot.camera.centerY, customCameraCenterY);
     },
   );
@@ -128,12 +126,6 @@ void main() {
     final sb = b.buildSnapshot();
     expect(sa.visualThemeId, 'field');
     expect(sb.visualThemeId, 'forest');
-    expect(sa.groundSurfaces.length, sb.groundSurfaces.length);
-    for (var i = 0; i < sa.groundSurfaces.length; i += 1) {
-      expect(sa.groundSurfaces[i].minX, sb.groundSurfaces[i].minX);
-      expect(sa.groundSurfaces[i].maxX, sb.groundSurfaces[i].maxX);
-      expect(sa.groundSurfaces[i].topY, sb.groundSurfaces[i].topY);
-    }
     expect(a.playerPosX, closeTo(b.playerPosX, 1e-9));
     expect(a.playerPosY, closeTo(b.playerPosY, 1e-9));
     expect(a.playerVelX, closeTo(b.playerVelX, 1e-9));

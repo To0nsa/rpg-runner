@@ -23,8 +23,6 @@ String _snapshotDigest(GameCore core) {
     'stamina=${s.hud.stamina.toStringAsFixed(6)}',
     'collectibles=${s.hud.collectibles}',
     'collectibleScore=${s.hud.collectibleScore}',
-    'solids=${s.staticSolids.length}',
-    'groundSurfaces=${s.groundSurfaces.length}',
     'ents=${s.entities.length}',
     'paused=${s.paused}',
     'gameOver=${s.gameOver}',
@@ -151,11 +149,14 @@ void main() {
     );
   });
 
-  test('same seed + same commands => stable score/distance/duration/tick (forest)', () {
-    _runDeterminismScenario(
-      seed: 42,
-      level: LevelRegistry.byId(LevelId.forest),
-      playerCharacter: playerCharacter,
-    );
-  });
+  test(
+    'same seed + same commands => stable score/distance/duration/tick (forest)',
+    () {
+      _runDeterminismScenario(
+        seed: 42,
+        level: LevelRegistry.byId(LevelId.forest),
+        playerCharacter: playerCharacter,
+      );
+    },
+  );
 }

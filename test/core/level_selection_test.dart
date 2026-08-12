@@ -25,8 +25,6 @@ String _snapshotSignature(GameCore core) {
     s.hud.mana.toStringAsFixed(6),
     s.hud.stamina.toStringAsFixed(6),
     '${s.entities.length}',
-    '${s.staticSolids.length}',
-    '${s.groundSurfaces.length}',
   ].join('|');
 }
 
@@ -83,8 +81,6 @@ void main() {
     expect(forest.levelId, LevelId.forest);
     expect(forest.visualThemeId, 'forest');
     expect(forest.camera.centerY, forestLevel.cameraCenterY);
-    expect(forest.staticSolids, isEmpty);
-    expect(forest.groundSurfaces, isEmpty);
     expect(forest.stagedTerrainRenderSnapshot, isNotNull);
 
     final fieldLevel = LevelRegistry.byId(LevelId.field);
@@ -96,8 +92,6 @@ void main() {
     expect(field.levelId, LevelId.field);
     expect(field.visualThemeId, 'field');
     expect(field.camera.centerY, fieldLevel.cameraCenterY);
-    expect(field.staticSolids, isEmpty);
-    expect(field.groundSurfaces, isEmpty);
     expect(field.stagedTerrainRenderSnapshot, isNotNull);
   });
 

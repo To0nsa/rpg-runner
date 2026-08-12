@@ -5,7 +5,6 @@ import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/snapshots/entity_render_snapshot.dart';
 import 'package:runner_core/snapshots/enums.dart';
 import 'package:runner_core/snapshots/static_prefab_sprite_snapshot.dart';
-import 'package:runner_core/snapshots/static_solid_snapshot.dart';
 
 import '../components/static_prefab_sprite_component.dart';
 import '../components/player/player_view.dart';
@@ -14,7 +13,6 @@ import '../components/pickups/pickup_render_registry.dart';
 import '../components/projectiles/projectile_render_registry.dart';
 import '../components/sprite_anim/deterministic_anim_view.dart';
 import '../components/sprite_anim/sprite_anim_set.dart';
-import '../debug/render_debug_flags.dart';
 import '../game_controller.dart';
 import '../spatial/world_view_transform.dart';
 import '../tuning/combat_feedback_tuning.dart';
@@ -53,9 +51,6 @@ class LiveWorldSyncSystem {
       const <_StaticPrefabSpriteKey>[];
   List<StaticPrefabSpriteSnapshot>? _lastStaticPrefabSpritesSnapshot;
 
-  final List<RectangleComponent> _staticSolids = <RectangleComponent>[];
-  List<StaticSolidSnapshot>? _lastStaticSolidsSnapshot;
-
   final Map<int, DeterministicAnimView> _projectileAnimViews =
       <int, DeterministicAnimView>{};
   final Map<int, DeterministicAnimView> _pickupAnimViews =
@@ -86,9 +81,6 @@ class LiveWorldSyncSystem {
 
   bool get hasTriggerHitboxes => _hitboxes.isNotEmpty;
 
-  bool get _drawStaticSolids =>
-      RenderDebugFlags.canUseRenderDebug && RenderDebugFlags.drawStaticSolids;
-
   void mountPlayer(SpriteAnimSet playerAnimations) {
     _player = PlayerView(
       animationSet: playerAnimations,
@@ -96,31 +88,6 @@ class LiveWorldSyncSystem {
       feedbackTuning: _combatFeedbackTuning,
     )..priority = priorityPlayer;
     world.add(_player);
-  }
-
-  void mountStaticSolids(List<StaticSolidSnapshot> solids) {
-    if (!_drawStaticSolids) {
-      _lastStaticSolidsSnapshot = solids;
-      return;
-    }
-    if (solids.isEmpty) {
-      return;
-    }
-    _lastStaticSolidsSnapshot = solids;
-
-    for (final solid in solids) {
-      final color = solid.oneWayTop
-          ? const Color(0x6648BB78)
-          : const Color(0x668B5CF6);
-
-      final rect = RectangleComponent(
-        position: Vector2(solid.minX, solid.minY),
-        size: Vector2(solid.maxX - solid.minX, solid.maxY - solid.minY),
-        paint: Paint()..color = color,
-      )..priority = priorityStaticSolids;
-      _staticSolids.add(rect);
-      world.add(rect);
-    }
   }
 
   void mountStaticPrefabSprites(List<StaticPrefabSpriteSnapshot> sprites) {
@@ -156,7 +123,7 @@ class LiveWorldSyncSystem {
         size: Vector2(sprite.width, sprite.height),
         flipX: sprite.flipX,
         flipY: sprite.flipY,
-      )..priority = priorityStaticSolids + sprite.zIndex;
+      )..priority = priorityStaticPrefabs + sprite.zIndex;
       _staticPrefabSpritesByKey[key] = view;
       world.add(view);
     }
@@ -198,56 +165,6 @@ class LiveWorldSyncSystem {
       view.position.setValues(
         math.snapWorldToPixelsInViewX(sprite.x, transform),
         math.snapWorldToPixelsInViewY(sprite.y, transform),
-      );
-    }
-  }
-
-  void syncStaticSolids(List<StaticSolidSnapshot> solids) {
-    if (!_drawStaticSolids) {
-      _lastStaticSolidsSnapshot = solids;
-      if (_staticSolids.isNotEmpty) {
-        for (final view in _staticSolids) {
-          view.removeFromParent();
-        }
-        _staticSolids.clear();
-      }
-      return;
-    }
-    if (identical(solids, _lastStaticSolidsSnapshot)) {
-      return;
-    }
-    _lastStaticSolidsSnapshot = solids;
-
-    for (final view in _staticSolids) {
-      view.removeFromParent();
-    }
-    _staticSolids.clear();
-
-    mountStaticSolids(solids);
-  }
-
-  void snapStaticSolids(
-    List<StaticSolidSnapshot> solids, {
-    required Vector2 cameraCenter,
-    required int virtualWidth,
-    required int virtualHeight,
-  }) {
-    if (solids.isEmpty || _staticSolids.length != solids.length) {
-      return;
-    }
-    final transform = WorldViewTransform(
-      cameraCenterX: cameraCenter.x,
-      cameraCenterY: cameraCenter.y,
-      viewWidth: virtualWidth.toDouble(),
-      viewHeight: virtualHeight.toDouble(),
-    );
-
-    for (var i = 0; i < solids.length; i++) {
-      final solid = solids[i];
-      final view = _staticSolids[i];
-      view.position.setValues(
-        math.snapWorldToPixelsInViewX(solid.minX, transform),
-        math.snapWorldToPixelsInViewY(solid.minY, transform),
       );
     }
   }

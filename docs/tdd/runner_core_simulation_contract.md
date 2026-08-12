@@ -158,19 +158,19 @@ events through `GameCore.drainEvents`.
 
 Streaming-enabled normal and replay construction expose the selected staged
 candidate's `StagedTerrainRenderSnapshot` and use its matching collision,
-support, placement, and graph bundle. Track-disabled legacy fixtures and a
-custom source with an anonymous active chunk leave it null. The isolated
-terrain harness may queue a fully constructed staged candidate;
+support, placement, and graph bundle. Track-disabled fixtures and a custom
+source with an anonymous active chunk leave it null. The isolated terrain
+harness may queue a fully constructed staged candidate;
 its exact collision/navigation bundle and render snapshot become visible
 together only at the next preparation boundary. This read-only snapshot output
 does not alter commands, replay serialization, or simulation outcomes.
 
-Normal streaming does not build or publish the former rectangle collision
-index, horizontal navigation graphs, `staticSolids`, or `groundSurfaces` render
-snapshots. `TrackManager` retains scheduler selection and authored prefab
-visual sprites only. Those legacy read models remain temporarily available for
-track-disabled/custom synthetic tests during the dependency-ordered Phase 6
-cleanup and are never consulted by production terrain placement or motion.
+`GameStateSnapshot` has one terrain-render contract: the staged polygon
+snapshot paired with its runtime bundle. The former `staticSolids` and
+`groundSurfaces` fields and all Flame fallback consumers are deleted.
+`TrackManager` retains scheduler selection and authored prefab visual sprites;
+its internal legacy read models remain temporarily available only to
+track-disabled synthetic tests during the dependency-ordered Phase 6 cleanup.
 
 Any snapshot/event shape or semantic change requires consumer updates in the
 same change. If replay acceptance, score, or terminal outcome changes, the

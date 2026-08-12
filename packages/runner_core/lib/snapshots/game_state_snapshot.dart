@@ -8,11 +8,9 @@ import '../levels/level_id.dart';
 import 'camera_snapshot.dart';
 import 'entity_render_snapshot.dart';
 import 'enums.dart';
-import 'ground_surface_snapshot.dart';
 import 'player_hud_snapshot.dart';
 import 'staged_terrain_render_snapshot.dart';
 import 'static_prefab_sprite_snapshot.dart';
-import 'static_solid_snapshot.dart';
 
 /// Complete game state snapshot at a specific simulation tick.
 ///
@@ -31,8 +29,6 @@ class GameStateSnapshot {
     required this.camera,
     required this.hud,
     required this.entities,
-    required this.staticSolids,
-    required this.groundSurfaces,
     required this.staticPrefabSprites,
     this.stagedTerrainRenderSnapshot,
   });
@@ -73,12 +69,6 @@ class GameStateSnapshot {
   /// Render-only entity list for the current tick.
   final List<EntityRenderSnapshot> entities;
 
-  /// Render-only static collision geometry (platforms/obstacles) for this run.
-  final List<StaticSolidSnapshot> staticSolids;
-
-  /// Render-only walkable ground surfaces for this run.
-  final List<GroundSurfaceSnapshot> groundSurfaces;
-
   /// Render-only authored prefab visual sprites for static streamed chunks.
   final List<StaticPrefabSpriteSnapshot> staticPrefabSprites;
 
@@ -87,7 +77,6 @@ class GameStateSnapshot {
   /// Normal streaming publishes it from the complete staged candidate selected
   /// by the scheduler. A terrain harness sets it only when a complete staged
   /// collision/navigation/render publication has crossed a tick boundary.
-  /// Synthetic track-disabled legacy fixtures leave it `null`.
   final StagedTerrainRenderSnapshot? stagedTerrainRenderSnapshot;
 
   /// Returns the player entity snapshot, or `null` if not found.

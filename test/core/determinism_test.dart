@@ -21,8 +21,6 @@ String _digest(GameCore core) {
     'stamina=${s.hud.stamina.toStringAsFixed(6)}',
     'collectibles=${s.hud.collectibles}',
     'collectibleScore=${s.hud.collectibleScore}',
-    'solids=${s.staticSolids.length}',
-    'groundSurfaces=${s.groundSurfaces.length}',
     'ents=${s.entities.length}',
     'paused=${s.paused}',
     'gameOver=${s.gameOver}',

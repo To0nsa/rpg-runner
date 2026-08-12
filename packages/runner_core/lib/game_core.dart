@@ -2125,7 +2125,7 @@ class GameCore {
   /// The snapshot contains everything needed to render a single frame:
   /// - Entity positions, velocities, and animations
   /// - Player HUD data (HP, mana, stamina, cooldowns)
-  /// - Static geometry (platforms, ground surfaces, ground gaps)
+  /// - Published polygon terrain and authored static sprites
   /// - Camera position
   ///
   /// Snapshots are immutable and safe to pass to async render code.
@@ -2147,8 +2147,6 @@ class GameCore {
       ),
       collectibles: collectibles,
       collectibleScore: collectibleScore,
-      staticSolids: _trackManager.staticSolidsSnapshot,
-      groundSurfaces: _trackManager.groundSurfacesSnapshot,
       staticPrefabSprites: _trackManager.staticPrefabSpritesSnapshot,
       stagedTerrainRenderSnapshot:
           _worldMotionAuthority.terrainRenderSnapshot ??

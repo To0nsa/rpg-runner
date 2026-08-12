@@ -564,7 +564,7 @@ void main() {
     () {
       const groundTopY = 220.0;
       const geometry = StaticWorldGeometry(
-        groundPlane: const StaticGroundPlane(topY: groundTopY),
+        groundPlane: StaticGroundPlane(topY: groundTopY),
         solids: <StaticSolid>[
           StaticSolid(
             minX: 224,

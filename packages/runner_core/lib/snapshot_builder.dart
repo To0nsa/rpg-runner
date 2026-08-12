@@ -34,11 +34,9 @@ import 'snapshots/enums.dart';
 import 'snapshots/camera_snapshot.dart';
 import 'snapshots/entity_render_snapshot.dart';
 import 'snapshots/game_state_snapshot.dart';
-import 'snapshots/ground_surface_snapshot.dart';
 import 'snapshots/player_hud_snapshot.dart';
 import 'snapshots/staged_terrain_render_snapshot.dart';
 import 'snapshots/static_prefab_sprite_snapshot.dart';
-import 'snapshots/static_solid_snapshot.dart';
 import 'players/player_tuning.dart';
 import 'util/vec2.dart';
 import 'abilities/ability_catalog.dart';
@@ -128,7 +126,7 @@ class SnapshotBuilder {
   /// - Player state (position, velocity, animation, facing direction)
   /// - HUD data (HP, mana, stamina, cooldowns, affordability)
   /// - All entity render snapshots (player, enemies, projectiles, pickups)
-  /// - Static geometry (platforms, ground gaps)
+  /// - Polygon terrain and static authored sprites
   ///
   /// Parameters:
   /// - [tick]: Current simulation tick number.
@@ -142,8 +140,6 @@ class SnapshotBuilder {
   /// - [camera]: Camera framing (world-space center + viewport dimensions).
   /// - [collectibles]: Number of collectibles picked up this run.
   /// - [collectibleScore]: Total score from collectibles.
-  /// - [staticSolids]: Pre-built list of platform snapshots.
-  /// - [groundSurfaces]: Pre-built list of walkable ground surface snapshots.
   /// - [staticPrefabSprites]: Pre-built list of static prefab visual sprites.
   /// - [stagedTerrainRenderSnapshot]: Optional compiler-owned terrain render
   ///   data from the same terrain publication as collision and navigation.
@@ -159,8 +155,6 @@ class SnapshotBuilder {
     required CameraSnapshot camera,
     required int collectibles,
     required int collectibleScore,
-    required List<StaticSolidSnapshot> staticSolids,
-    required List<GroundSurfaceSnapshot> groundSurfaces,
     required List<StaticPrefabSpriteSnapshot> staticPrefabSprites,
     StagedTerrainRenderSnapshot? stagedTerrainRenderSnapshot,
   }) {
@@ -496,8 +490,6 @@ class SnapshotBuilder {
         abilityJumpId: loadoutDef.abilityJumpId,
       ),
       entities: entities,
-      staticSolids: staticSolids,
-      groundSurfaces: groundSurfaces,
       staticPrefabSprites: staticPrefabSprites,
       stagedTerrainRenderSnapshot: stagedTerrainRenderSnapshot,
     );

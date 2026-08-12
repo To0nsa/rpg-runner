@@ -9,39 +9,6 @@ import 'package:runner_core/players/player_character_registry.dart';
 
 import '../support/test_player.dart';
 
-void _expectSolidsEqual(GameCore a, GameCore b) {
-  final sa = a.buildSnapshot().staticSolids;
-  final sb = b.buildSnapshot().staticSolids;
-  expect(sb.length, sa.length);
-
-  for (var i = 0; i < sa.length; i += 1) {
-    final x = sa[i];
-    final y = sb[i];
-    expect(y.minX, x.minX);
-    expect(y.minY, x.minY);
-    expect(y.maxX, x.maxX);
-    expect(y.maxY, x.maxY);
-    expect(y.sides, x.sides);
-    expect(y.oneWayTop, x.oneWayTop);
-  }
-}
-
-void _expectGroundSurfacesEqual(GameCore a, GameCore b) {
-  final sa = a.buildSnapshot().groundSurfaces;
-  final sb = b.buildSnapshot().groundSurfaces;
-  expect(sb.length, sa.length);
-
-  for (var i = 0; i < sa.length; i += 1) {
-    final x = sa[i];
-    final y = sb[i];
-    expect(y.minX, x.minX);
-    expect(y.maxX, x.maxX);
-    expect(y.topY, x.topY);
-    expect(y.chunkIndex, x.chunkIndex);
-    expect(y.localSegmentIndex, x.localSegmentIndex);
-  }
-}
-
 void _expectStagedTerrainEqual(GameCore a, GameCore b) {
   final left = a.buildSnapshot().stagedTerrainRenderSnapshot;
   final right = b.buildSnapshot().stagedTerrainRenderSnapshot;
@@ -104,7 +71,7 @@ void main() {
     // Always move right so the player stays in view and the camera keeps advancing.
     const ticks =
         1800; // ~30 seconds at 60Hz (enough to trigger multiple spawn/cull cycles).
-    var maxSolids = 0;
+    var maxTerrainPolygons = 0;
 
     for (var t = 1; t <= ticks; t += 1) {
       final cmds = <Command>[MoveAxisCommand(tick: t, axis: 1.0)];
@@ -114,13 +81,15 @@ void main() {
       b.stepOneTick();
 
       if (t % 20 == 0) {
-        _expectSolidsEqual(a, b);
-        _expectGroundSurfacesEqual(a, b);
         _expectStagedTerrainEqual(a, b);
       }
 
-      final solids = a.buildSnapshot().staticSolids.length;
-      if (solids > maxSolids) maxSolids = solids;
+      final polygons = a
+          .buildSnapshot()
+          .stagedTerrainRenderSnapshot!
+          .polygons
+          .length;
+      if (polygons > maxTerrainPolygons) maxTerrainPolygons = polygons;
 
       expect(a.gameOver, isFalse);
       expect(b.gameOver, isFalse);
@@ -128,6 +97,6 @@ void main() {
 
     // Culling keeps the streamed world bounded (does not grow without limit).
     // This threshold is intentionally loose; it only exists to catch “no cull” regressions.
-    expect(maxSolids, lessThan(120));
+    expect(maxTerrainPolygons, lessThan(120));
   });
 }

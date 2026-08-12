@@ -1,11 +1,8 @@
 import '../tuning/player_render_tuning.dart';
 
 const int priorityBackgroundParallax = -30;
-const int priorityTemporaryFloorMask = -25;
-const int priorityGroundTiles = -20;
 const int priorityStagedTerrain = -20;
-const int priorityForegroundParallax = -10;
-const int priorityStaticSolids = -5;
+const int priorityStaticPrefabs = -5;
 const int priorityGhostEntities = -4;
 const int priorityPlayer = -3;
 const int priorityEnemies = -2;

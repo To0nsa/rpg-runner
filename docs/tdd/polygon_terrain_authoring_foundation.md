@@ -38,8 +38,8 @@ adapters:
   diagnostics without reconstructing them from polygon loops
 - Flame caches Core's exact loops and triangle indices, applies the centralized
   `grass_dirt` fill/surface/foreground material, and consumes upward-facing
-  compiler edges for surface strips; legacy ground visuals and the temporary
-  floor mask yield whenever that staged snapshot exists
+  compiler edges for surface strips; the legacy ground bands, rectangle debug
+  views, and temporary floor mask are deleted
 
 Final Phase 4 acceptance work remains tracked in
 [the Phase 4 checklist](../building/slopes/phase4-implementation-checklist.md).
@@ -1053,13 +1053,13 @@ canonical issue set with no artifact if either side fails.
 
 ### Runtime Render Consumption
 
-`GameCore` constructs one `StagedTerrainStreamCandidate` only after the legacy
+`GameCore` constructs one `StagedTerrainStreamCandidate` after the deterministic
 scheduler changes its active selection. The candidate binds those exact chunk
 indices/origins, builds one geometry/runtime bundle, and pairs it with one
-immutable `StagedTerrainRenderSnapshot`. Normal collision does not consume the
-bundle yet; the snapshot is nevertheless a complete projection of that same
-candidate rather than a renderer-specific reconstruction. Anonymous custom
-legacy chunks publish no candidate and never borrow another chunk's geometry.
+immutable `StagedTerrainRenderSnapshot`. Normal collision, navigation,
+placement, and rendering consume that same bundle/candidate rather than a
+renderer-specific reconstruction. Anonymous custom chunks publish no candidate
+and never borrow another chunk's geometry.
 
 World binding also performs the compiled union operation that cannot exist in
 chunk-local generated records. Exact reversed faces with matching collision
@@ -1081,10 +1081,10 @@ The `grass_dirt` registry entry owns `fill.png`, `surface.png`,
 `foreground.png`, and the reserved left/right cap paths under
 `assets/images/terrain/grass_dirt/`. Endpoint cap drawing remains deferred
 until cross-chunk join semantics can distinguish a real cliff from a streamed
-chunk seam. While a staged snapshot is present, the old `GroundSurface`,
-`GroundBandParallaxForeground`, and `TemporaryFloorMask` components draw
-nothing, preventing doubled ground and horizontal masks across future slopes
-or gaps.
+chunk seam. `StagedTerrain` is the only terrain renderer: the old
+`GroundSurface`, `GroundBandParallaxForeground`, `TemporaryFloorMask`, and
+static-solid debug rectangle paths are deleted, and their obsolete snapshot
+fields no longer cross the Core/Game boundary.
 
 The shared pure-Dart `authoring-polygons-v1` contract hashes source before
 placement expansion. A UTF-8 length-prefixed record contains the owner domain

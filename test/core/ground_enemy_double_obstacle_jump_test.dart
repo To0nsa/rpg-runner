@@ -32,7 +32,7 @@ void main() {
     const playerX = 366.0;
 
     const geometry = StaticWorldGeometry(
-      groundPlane: const StaticGroundPlane(topY: groundTopY),
+      groundPlane: StaticGroundPlane(topY: groundTopY),
       groundSegments: <StaticGroundSegment>[
         StaticGroundSegment(
           minX: 0,

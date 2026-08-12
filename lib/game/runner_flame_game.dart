@@ -12,8 +12,6 @@ import 'package:runner_core/snapshots/game_state_snapshot.dart';
 import 'package:run_protocol/replay_blob.dart';
 
 import 'components/aim_ray.dart';
-import 'components/ground_band_parallax_foreground.dart';
-import 'components/ground_surface.dart';
 import 'components/pixel_parallax_backdrop.dart';
 import 'components/player/player_animations.dart';
 import 'components/staged_terrain.dart';
@@ -22,7 +20,6 @@ import 'components/enemies/enemy_render_registry.dart';
 import 'components/pickups/pickup_render_registry.dart';
 import 'components/projectiles/projectile_render_registry.dart';
 import 'components/spell_impacts/spell_impact_render_registry.dart';
-import 'components/temporary_floor_mask.dart';
 import 'debug/debug_aabb_overlay.dart';
 import 'debug/render_debug_flags.dart';
 import 'game_controller.dart';
@@ -34,7 +31,6 @@ import 'runner_flame/ghost_layer_system.dart';
 import 'runner_flame/live_world_sync_system.dart';
 import 'runner_flame/load_state.dart';
 import 'runner_flame/render_constants.dart';
-import 'spatial/world_view_transform.dart';
 import 'themes/parallax_theme_registry.dart';
 import 'tuning/combat_feedback_tuning.dart';
 import 'util/math_util.dart' as math;
@@ -139,9 +135,6 @@ class RunnerFlameGame extends FlameGame {
   final Vector2 _cameraCenterScratch = Vector2.zero();
 
   PixelParallaxBackdrop? _backgroundParallax;
-  GroundSurface? _groundSurface;
-  GroundBandParallaxForeground? _foregroundParallax;
-  TemporaryFloorMask? _floorMask;
   StagedTerrain? _stagedTerrain;
   String? _appliedVisualThemeId;
 
@@ -158,12 +151,6 @@ class RunnerFlameGame extends FlameGame {
 
     _setLoadState(RunLoadPhase.themeResolved, 0.15);
 
-    _floorMask = TemporaryFloorMask(
-      controller: controller,
-      virtualWidth: virtualWidth,
-      virtualHeight: virtualHeight,
-    )..priority = priorityTemporaryFloorMask;
-    camera.backdrop.add(_floorMask!);
     _stagedTerrain = StagedTerrain(
       controller: controller,
       virtualWidth: virtualWidth,
@@ -213,7 +200,6 @@ class RunnerFlameGame extends FlameGame {
       )..priority = priorityMeleeAimRay,
     );
 
-    _liveWorldSync.mountStaticSolids(controller.snapshot.staticSolids);
     _liveWorldSync.mountStaticPrefabSprites(
       controller.snapshot.staticPrefabSprites,
     );
@@ -260,13 +246,6 @@ class RunnerFlameGame extends FlameGame {
     );
     camera.viewfinder.position = _cameraCenterScratch;
 
-    _liveWorldSync.syncStaticSolids(currSnapshot.staticSolids);
-    _liveWorldSync.snapStaticSolids(
-      currSnapshot.staticSolids,
-      cameraCenter: _cameraCenterScratch,
-      virtualWidth: virtualWidth,
-      virtualHeight: virtualHeight,
-    );
     _liveWorldSync.syncStaticPrefabSprites(currSnapshot.staticPrefabSprites);
     _liveWorldSync.snapStaticPrefabSprites(
       currSnapshot.staticPrefabSprites,
@@ -468,30 +447,6 @@ class RunnerFlameGame extends FlameGame {
     _ghostLayer.disableLayer(reasonCode, details: details);
   }
 
-  /// Bottom anchor for parallax layers, aligned to the visible ground top.
-  double _parallaxLayerBottomAnchorY() {
-    final surfaces = controller.snapshot.groundSurfaces;
-    if (surfaces.isEmpty) {
-      return virtualHeight.toDouble();
-    }
-
-    var floorTopY = surfaces.first.topY;
-    for (final surface in surfaces) {
-      if (surface.topY > floorTopY) {
-        floorTopY = surface.topY;
-      }
-    }
-
-    final cameraCenter = camera.viewfinder.position;
-    final transform = WorldViewTransform(
-      cameraCenterX: cameraCenter.x,
-      cameraCenterY: cameraCenter.y,
-      viewWidth: virtualWidth.toDouble(),
-      viewHeight: virtualHeight.toDouble(),
-    );
-    return math.roundToPixels(transform.worldToViewY(floorTopY));
-  }
-
   void _applyRenderTheme(String? visualThemeId) {
     if (_appliedVisualThemeId == visualThemeId) {
       return;
@@ -500,10 +455,6 @@ class RunnerFlameGame extends FlameGame {
 
     _backgroundParallax?.removeFromParent();
     _backgroundParallax = null;
-    _groundSurface?.removeFromParent();
-    _groundSurface = null;
-    _foregroundParallax?.removeFromParent();
-    _foregroundParallax = null;
 
     final theme = ParallaxThemeRegistry.maybeForParallaxThemeId(visualThemeId);
     if (theme == null) {
@@ -515,27 +466,9 @@ class RunnerFlameGame extends FlameGame {
       virtualHeight: virtualHeight,
       snapScrollToPixels: false,
       layers: theme.backgroundLayers,
-      layerBottomAnchorYProvider: _parallaxLayerBottomAnchorY,
+      layerBottomAnchorYProvider: () => virtualHeight.toDouble(),
     )..priority = priorityBackgroundParallax;
     camera.backdrop.add(_backgroundParallax!);
-
-    _groundSurface = GroundSurface(
-      assetPath: theme.groundMaterialAssetPath,
-      controller: controller,
-      virtualWidth: virtualWidth,
-      virtualHeight: virtualHeight,
-    )..priority = priorityGroundTiles;
-    camera.backdrop.add(_groundSurface!);
-
-    _foregroundParallax = GroundBandParallaxForeground(
-      controller: controller,
-      virtualWidth: virtualWidth,
-      virtualHeight: virtualHeight,
-      layers: theme.foregroundLayers,
-      bandFillDepthProvider: () => _groundSurface?.materialHeight ?? 0.0,
-      snapScrollToPixels: false,
-    )..priority = priorityForegroundParallax;
-    camera.backdrop.add(_foregroundParallax!);
   }
 
   @visibleForTesting
@@ -543,12 +476,6 @@ class RunnerFlameGame extends FlameGame {
 
   @visibleForTesting
   bool get debugHasBackgroundParallax => _backgroundParallax != null;
-
-  @visibleForTesting
-  bool get debugHasGroundSurface => _groundSurface != null;
-
-  @visibleForTesting
-  bool get debugHasForegroundParallax => _foregroundParallax != null;
 
   @visibleForTesting
   bool get debugHasStagedTerrain => _stagedTerrain != null;
