@@ -1,10 +1,20 @@
 import 'package:replay_validator/src/replay_simulation.dart';
 import 'package:run_protocol/replay_blob.dart';
 import 'package:runner_core/commands/command.dart';
+import 'package:runner_core/combat/faction.dart';
+import 'package:runner_core/ecs/hit/hit_resolver.dart';
+import 'package:runner_core/ecs/spatial/broadphase_grid.dart';
+import 'package:runner_core/ecs/spatial/grid_index_2d.dart';
+import 'package:runner_core/ecs/stores/collider_aabb_store.dart';
+import 'package:runner_core/ecs/stores/faction_store.dart';
+import 'package:runner_core/ecs/stores/health_store.dart';
+import 'package:runner_core/ecs/stores/world_contact_capsule_store.dart';
+import 'package:runner_core/ecs/world.dart';
 import 'package:runner_core/game_core.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/levels/level_registry.dart';
 import 'package:runner_core/players/player_character_registry.dart';
+import 'package:runner_core/tuning/spatial_grid_tuning.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -79,6 +89,47 @@ void main() {
         ),
       ),
     );
+  });
+
+  test('validator-linked Core rejects a target AABB-corner-only contact', () {
+    final world = EcsWorld();
+    final owner = world.createEntity();
+    world.transform.add(owner, posX: 0, posY: 0, velX: 0, velY: 0);
+    world.faction.add(owner, const FactionDef(faction: Faction.player));
+
+    final target = world.createEntity();
+    const collider = ColliderAabbDef(halfX: 2, halfY: 6);
+    world.transform.add(target, posX: 3.9, posY: 11.9, velX: 0, velY: 0);
+    world.colliderAabb.add(target, collider);
+    world.worldContactCapsule.add(
+      target,
+      WorldContactCapsuleDef.fromAabb(collider),
+    );
+    world.health.add(
+      target,
+      const HealthDef(hp: 100, hpMax: 100, regenPerSecond100: 0),
+    );
+    world.faction.add(target, const FactionDef(faction: Faction.enemy));
+
+    final broadphase = BroadphaseGrid(
+      index: GridIndex2D(
+        cellSize: const SpatialGridTuning().broadphaseCellSize,
+      ),
+    )..rebuild(world);
+    final overlaps = <int>[];
+    HitResolver().collectOrderedOverlapsCapsule(
+      broadphase: broadphase,
+      ax: 0,
+      ay: -4,
+      bx: 0,
+      by: 4,
+      radius: 2,
+      owner: owner,
+      sourceFaction: Faction.player,
+      outTargetIndices: overlaps,
+    );
+
+    expect(overlaps, isEmpty);
   });
 }
 

@@ -256,9 +256,11 @@ class EntityInspectorPanel extends StatelessWidget {
     }
     return switch (preview.axis) {
       EntityColliderCapsuleAxis.vertical =>
-        'halfX is radius; halfY − halfX is the vertical half-spine.',
+        'halfX is radius; halfY − halfX is the vertical half-spine. '
+            'offsetX mirrors with facing.',
       EntityColliderCapsuleAxis.horizontal =>
-        'halfX is the horizontal half-spine; halfY is radius.',
+        'halfX is the horizontal half-spine; halfY is radius. The scene '
+            'shows the canonical horizontal orientation.',
     };
   }
 }

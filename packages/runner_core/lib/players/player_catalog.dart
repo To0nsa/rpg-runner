@@ -76,11 +76,11 @@ class PlayerCatalog {
   /// for velocity limits.
   final BodyDef bodyTemplate;
 
-  /// Player broad-phase/combat AABB size (full extents) in world units.
+  /// Player authored collider size (full extents) in world units.
   ///
   /// Core uses center-based AABBs, so `halfX = width * 0.5` and
-  /// `halfY = height * 0.5`. Static-terrain contact uses the catalog-derived
-  /// capsule; this AABB remains authoritative for broad phase and combat.
+  /// `halfY = height * 0.5`. Core derives the authoritative terrain/combat
+  /// capsule from these values and uses its enclosing AABB for broad phase.
   final double colliderWidth;
   final double colliderHeight;
 

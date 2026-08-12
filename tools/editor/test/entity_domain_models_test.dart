@@ -133,4 +133,21 @@ void main() {
       isNull,
     );
   });
+
+  test('actor circle preview mirrors only its facing offset', () {
+    final right = EntityColliderPreview.tryFrom(
+      entry.copyWith(halfX: 10, halfY: 10, offsetX: 1.25, offsetY: 2),
+    )!;
+    final left = EntityColliderPreview.tryFrom(
+      entry.copyWith(halfX: 10, halfY: 10, offsetX: 1.25, offsetY: 2),
+      facingSign: -1,
+    )!;
+
+    expect(right.halfSegment, 0);
+    expect(left.halfSegment, 0);
+    expect(right.offsetX, 1.25);
+    expect(left.offsetX, -1.25);
+    expect(left.offsetY, right.offsetY);
+    expect(left.radius, right.radius);
+  });
 }

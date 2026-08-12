@@ -125,4 +125,37 @@ void main() {
       isFalse,
     );
   });
+
+  test('very small and large finite capsules keep inclusive boundaries', () {
+    expect(
+      capsulesOverlap(
+        firstAx: 0,
+        firstAy: 0,
+        firstBx: 1e-9,
+        firstBy: 0,
+        firstRadius: 1e-9,
+        secondAx: 3e-9,
+        secondAy: 0,
+        secondBx: 4e-9,
+        secondBy: 0,
+        secondRadius: 1e-9,
+      ),
+      isTrue,
+    );
+    expect(
+      capsulesOverlap(
+        firstAx: -1e9,
+        firstAy: 0,
+        firstBx: 1e9,
+        firstBy: 0,
+        firstRadius: 1e6,
+        secondAx: -1e9,
+        secondAy: 2e6,
+        secondBx: 1e9,
+        secondBy: 2e6,
+        secondRadius: 1e6,
+      ),
+      isTrue,
+    );
+  });
 }

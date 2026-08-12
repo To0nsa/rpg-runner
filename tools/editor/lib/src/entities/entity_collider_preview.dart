@@ -22,7 +22,13 @@ class EntityColliderPreview {
   });
 
   /// Returns null when the entry cannot produce a valid runtime capsule.
-  static EntityColliderPreview? tryFrom(EntityEntry entry) {
+  ///
+  /// A negative [facingSign] mirrors an actor's authored horizontal offset,
+  /// matching Core's art-facing convention.
+  static EntityColliderPreview? tryFrom(
+    EntityEntry entry, {
+    int facingSign = 1,
+  }) {
     if (!entry.halfX.isFinite ||
         !entry.halfY.isFinite ||
         !entry.offsetX.isFinite ||
@@ -56,7 +62,7 @@ class EntityColliderPreview {
       axis: EntityColliderCapsuleAxis.vertical,
       radius: capsule.radiusTicks / scale,
       halfSegment: capsule.verticalHalfSegmentTicks / scale,
-      offsetX: capsule.offsetXTicks / scale,
+      offsetX: capsule.offsetXTicks * (facingSign < 0 ? -1 : 1) / scale,
       offsetY: capsule.offsetYTicks / scale,
     );
   }

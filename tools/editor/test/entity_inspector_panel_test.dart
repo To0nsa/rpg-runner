@@ -15,7 +15,10 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.text('halfX is radius; halfY − halfX is the vertical half-spine.'),
+      find.text(
+        'halfX is radius; halfY − halfX is the vertical half-spine. '
+        'offsetX mirrors with facing.',
+      ),
       findsOneWidget,
     );
   });
@@ -30,7 +33,23 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.text('halfX is the horizontal half-spine; halfY is radius.'),
+      find.text(
+        'halfX is the horizontal half-spine; halfY is radius. The scene '
+        'shows the canonical horizontal orientation.',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('invalid actor capsule is explicit in the inspector', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _inspector(_entry(EntityType.enemy).copyWith(halfX: 12, halfY: 10)),
+    );
+
+    expect(
+      find.text('Invalid capsule dimensions. Actors require halfY ≥ halfX.'),
       findsOneWidget,
     );
   });

@@ -8,10 +8,12 @@ import 'package:runner_core/ecs/hit/hit_resolver.dart';
 import 'package:runner_core/ecs/spatial/broadphase_grid.dart';
 import 'package:runner_core/ecs/spatial/grid_index_2d.dart';
 import 'package:runner_core/ecs/stores/collider_aabb_store.dart';
+import 'package:runner_core/ecs/stores/death_state_store.dart';
 import 'package:runner_core/ecs/stores/faction_store.dart';
 import 'package:runner_core/ecs/stores/health_store.dart';
 import 'package:runner_core/ecs/stores/world_contact_capsule_store.dart';
 import 'package:runner_core/ecs/world.dart';
+import 'package:runner_core/enemies/death_behavior.dart';
 import 'package:runner_core/snapshots/enums.dart';
 import 'package:runner_core/tuning/spatial_grid_tuning.dart';
 
@@ -195,6 +197,46 @@ void main() {
     expect(targets.halfY.single, 6);
     expect(targets.capsuleAy.single, -3);
     expect(targets.capsuleBy.single, 5);
+    expect(
+      targets.centerX.single - targets.halfX.single,
+      targets.capsuleAx.single - targets.capsuleRadius.single,
+    );
+    expect(
+      targets.centerY.single - targets.halfY.single,
+      targets.capsuleAy.single - targets.capsuleRadius.single,
+    );
+    expect(
+      targets.centerY.single + targets.halfY.single,
+      targets.capsuleBy.single + targets.capsuleRadius.single,
+    );
+
+    final movementIndex = world.movement.indexOf(target);
+    world.movement.facing[movementIndex] = Facing.right;
+    final rightFacingTargets = _broadphase(world).targets;
+    expect(rightFacingTargets.centerX.single, closeTo(20 + 307 / 1024, 1e-12));
+    expect(rightFacingTargets.centerY.single, targets.centerY.single);
+    expect(
+      rightFacingTargets.capsuleRadius.single,
+      targets.capsuleRadius.single,
+    );
+  });
+
+  test('dead and removed damageable actors leave the rebuilt cache', () {
+    final world = EcsWorld();
+    final dead = _addTarget(world, x: 0);
+    final removed = _addTarget(world, x: 10);
+    attachMissingCombatCapsules(world);
+    final broadphase = _broadphase(world);
+    expect(broadphase.targets.length, 2);
+
+    world.deathState.add(
+      dead,
+      const DeathStateDef(phase: DeathPhase.deathAnim),
+    );
+    world.destroyEntity(removed);
+    broadphase.rebuild(world);
+
+    expect(broadphase.targets, isEmpty);
   });
 }
 

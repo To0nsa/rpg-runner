@@ -46,7 +46,8 @@ class ProjectileEntityDef {
 
 /// Immutable metadata for active projectiles.
 ///
-/// Combines with `Transform` (for position) and `ColliderAabb` (for hit detection).
+/// Combines with `Transform` for position and `ColliderAabb` values for the
+/// projectile's direction-oriented attack-capsule dimensions.
 class ProjectileStore extends SparseSet {
   final List<ProjectileId> projectileId = <ProjectileId>[];
   final List<Faction> faction = <Faction>[];

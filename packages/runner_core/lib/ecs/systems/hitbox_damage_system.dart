@@ -84,8 +84,8 @@ class HitboxDamageSystem {
       // Ensure buffer is clear before collection (safety measure).
       _overlaps.clear();
 
-      // Query the spatial grid for potential overlaps.
-      // This handles the geometric check (Capsule vs Target Bounds) and Faction check.
+      // Query the spatial grid, then confirm attack capsule versus target
+      // capsule and apply faction filtering.
       _resolver.collectOrderedOverlapsCapsule(
         broadphase: broadphase,
         ax: ax,
@@ -105,7 +105,8 @@ class HitboxDamageSystem {
         final target = broadphase.targets.entities[ti];
 
         // "Hit Once" Check: Has this specific hitbox entity already struck this specific target entity?
-        if (hitPolicy != HitPolicy.everyTick && world.hitOnce.hasHit(hb, target)) {
+        if (hitPolicy != HitPolicy.everyTick &&
+            world.hitOnce.hasHit(hb, target)) {
           continue;
         }
 
