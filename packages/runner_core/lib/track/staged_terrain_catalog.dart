@@ -1,6 +1,9 @@
 /// Deterministic lookup and runtime-instance binding for staged terrain data.
 library;
 
+import '../collision/terrain/terrain_authoring_polygon_signature.dart';
+import '../collision/terrain/terrain_authoring_seam_signature.dart';
+import '../collision/terrain/terrain_authoring_triangle_signature.dart';
 import '../collision/terrain/terrain_polygon.dart';
 import 'staged_terrain_data.dart';
 
@@ -22,13 +25,49 @@ final class StagedTerrainArtifactCatalog {
         'Expected staged terrain format $stagedTerrainArtifactFormatVersion.',
       );
     }
-    if (artifact.compilerGeometryVersion < 0) {
+    if (artifact.compilerGeometryVersion !=
+        stagedTerrainCompilerGeometryVersion) {
       throw ArgumentError.value(
         artifact.compilerGeometryVersion,
         'artifact.compilerGeometryVersion',
-        'Must be non-negative.',
+        'Expected staged terrain compiler geometry version '
+            '$stagedTerrainCompilerGeometryVersion.',
       );
     }
+    _requireFormat(
+      artifact.authoringPolygonSignatureFormat,
+      terrainAuthoringPolygonSignatureFormat,
+      'artifact.authoringPolygonSignatureFormat',
+    );
+    _requireFormat(
+      artifact.authoringSeamSignatureFormat,
+      terrainAuthoringSeamSignatureFormat,
+      'artifact.authoringSeamSignatureFormat',
+    );
+    _requireDigest(
+      artifact.authoringSeamSignature,
+      'artifact.authoringSeamSignature',
+    );
+    _requireFormat(
+      artifact.sourceSignatureFormat,
+      stagedTerrainSourceSignatureFormat,
+      'artifact.sourceSignatureFormat',
+    );
+    _requireFormat(
+      artifact.edgeSignatureFormat,
+      stagedTerrainEdgeSignatureFormat,
+      'artifact.edgeSignatureFormat',
+    );
+    _requireFormat(
+      artifact.placementSignatureFormat,
+      stagedTerrainPlacementSignatureFormat,
+      'artifact.placementSignatureFormat',
+    );
+    _requireFormat(
+      artifact.triangleSignatureFormat,
+      terrainAuthoringTriangleSignatureFormat,
+      'artifact.triangleSignatureFormat',
+    );
 
     final chunksByKey = <String, StagedTerrainChunkData>{};
     String? previousKey;
@@ -132,17 +171,110 @@ final class StagedTerrainArtifactCatalog {
     }
     final sourceIds = <StagedTerrainSourceId>{};
     for (final polygon in chunk.polygons) {
-      if (polygon.id.chunkKey != chunk.chunkKey || !sourceIds.add(polygon.id)) {
+      if (polygon.sourcePath.isEmpty ||
+          polygon.id.chunkKey != chunk.chunkKey ||
+          !sourceIds.add(polygon.id)) {
         throw ArgumentError.value(
           polygon,
           'artifact.chunks',
-          'Staged polygon identities must be unique and belong to '
+          'Staged polygons require a source path and unique identities that '
+              'belong to chunk ${chunk.chunkKey}.',
+        );
+      }
+    }
+
+    final edgeIds = <StagedTerrainEdgeId>{};
+    for (final edge in chunk.edges) {
+      if (!sourceIds.contains(edge.id.sourceId) || !edgeIds.add(edge.id)) {
+        throw ArgumentError.value(
+          edge,
+          'artifact.chunks',
+          'Staged edges must have unique IDs owned by a polygon in '
               'chunk ${chunk.chunkKey}.',
         );
       }
     }
+    for (final edge in chunk.edges) {
+      if ((edge.previousId != null && !edgeIds.contains(edge.previousId)) ||
+          (edge.nextId != null && !edgeIds.contains(edge.nextId))) {
+        throw ArgumentError.value(
+          edge,
+          'artifact.chunks',
+          'Staged edge adjacency must reference an edge in chunk '
+              '${chunk.chunkKey}.',
+        );
+      }
+    }
+
+    final triangleRecords = <(StagedTerrainSourceId, int, int, int)>{};
+    for (final triangle in chunk.triangles) {
+      final key = (
+        triangle.sourceId,
+        triangle.first,
+        triangle.second,
+        triangle.third,
+      );
+      if (!sourceIds.contains(triangle.sourceId) || !triangleRecords.add(key)) {
+        throw ArgumentError.value(
+          triangle,
+          'artifact.chunks',
+          'Staged triangles must be unique and owned by a polygon in '
+              'chunk ${chunk.chunkKey}.',
+        );
+      }
+    }
+
+    final placedSourceIds = <StagedTerrainSourceId>{};
+    for (final lineage in chunk.placementLineage) {
+      final sourceId = lineage.sourceId;
+      if (sourceId.placementKey == null ||
+          !sourceIds.contains(sourceId) ||
+          !placedSourceIds.add(sourceId)) {
+        throw ArgumentError.value(
+          lineage,
+          'artifact.chunks',
+          'Placement lineage must uniquely reference a placed polygon in '
+              'chunk ${chunk.chunkKey}.',
+        );
+      }
+    }
+    for (final sourceId in sourceIds) {
+      if (sourceId.placementKey != null &&
+          !placedSourceIds.contains(sourceId)) {
+        throw ArgumentError.value(
+          sourceId,
+          'artifact.chunks',
+          'Placed polygon ${sourceId.shapeId} is missing placement lineage.',
+        );
+      }
+    }
+
+    _requireDigest(
+      chunk.authoringPolygonSignature,
+      'chunk.authoringPolygonSignature',
+    );
+    _requireDigest(chunk.sourceSignature, 'chunk.sourceSignature');
+    _requireDigest(chunk.edgeSignature, 'chunk.edgeSignature');
+    _requireDigest(chunk.placementSignature, 'chunk.placementSignature');
+    _requireDigest(chunk.triangleSignature, 'chunk.triangleSignature');
   }
 }
+
+void _requireFormat(String actual, String expected, String name) {
+  if (actual == expected) return;
+  throw ArgumentError.value(actual, name, 'Expected format $expected.');
+}
+
+void _requireDigest(String value, String name) {
+  if (_sha256DigestPattern.hasMatch(value)) return;
+  throw ArgumentError.value(
+    value,
+    name,
+    'Must be a lowercase SHA-256 hexadecimal digest.',
+  );
+}
+
+final RegExp _sha256DigestPattern = RegExp(r'^[0-9a-f]{64}$');
 
 /// One staged chunk selected at a specific streamed world position.
 ///

@@ -4,6 +4,9 @@ import 'package:runner_core/track/staged_terrain_data.dart';
 import 'package:runner_core/track/staged_terrain_world_geometry.dart';
 import 'package:test/test.dart';
 
+const _digest =
+    'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
+
 void main() {
   test('the checked-in generated artifact remains catalog-admissible', () {
     final catalog = StagedTerrainArtifactCatalog(
@@ -83,6 +86,15 @@ void main() {
     expect(
       () => StagedTerrainArtifactCatalog(
         artifact: _artifact(
+          compilerGeometryVersion: 2,
+          chunks: <StagedTerrainChunkData>[],
+        ),
+      ),
+      throwsArgumentError,
+    );
+    expect(
+      () => StagedTerrainArtifactCatalog(
+        artifact: _artifact(
           chunks: <StagedTerrainChunkData>[_chunk('zeta'), _chunk('alpha')],
         ),
       ),
@@ -100,6 +112,47 @@ void main() {
       () => StagedTerrainArtifactCatalog(
         artifact: _artifact(
           chunks: <StagedTerrainChunkData>[_chunk('alpha', revision: 0)],
+        ),
+      ),
+      throwsArgumentError,
+    );
+    expect(
+      () => StagedTerrainArtifactCatalog(
+        artifact: _artifact(
+          sourceSignatureFormat: 'source-v2',
+          chunks: <StagedTerrainChunkData>[],
+        ),
+      ),
+      throwsArgumentError,
+    );
+    expect(
+      () => StagedTerrainArtifactCatalog(
+        artifact: _artifact(
+          authoringSeamSignature: 'not-a-digest',
+          chunks: <StagedTerrainChunkData>[],
+        ),
+      ),
+      throwsArgumentError,
+    );
+    expect(
+      () => StagedTerrainArtifactCatalog(
+        artifact: _artifact(
+          chunks: <StagedTerrainChunkData>[
+            _chunk(
+              'alpha',
+              triangles: <StagedTerrainTriangleData>[
+                StagedTerrainTriangleData(
+                  sourceId: StagedTerrainSourceId(
+                    chunkKey: 'alpha',
+                    shapeId: 'foreign',
+                  ),
+                  first: 0,
+                  second: 1,
+                  third: 2,
+                ),
+              ],
+            ),
+          ],
         ),
       ),
       throwsArgumentError,
@@ -144,42 +197,49 @@ void main() {
 
 StagedTerrainArtifactData _artifact({
   int formatVersion = stagedTerrainArtifactFormatVersion,
+  int compilerGeometryVersion = stagedTerrainCompilerGeometryVersion,
+  String sourceSignatureFormat = 'source-v1',
+  String authoringSeamSignature = _digest,
   required List<StagedTerrainChunkData> chunks,
 }) => StagedTerrainArtifactData(
   formatVersion: formatVersion,
-  compilerGeometryVersion: 1,
+  compilerGeometryVersion: compilerGeometryVersion,
   authoringPolygonSignatureFormat: 'authoring-polygons-v1',
   authoringSeamSignatureFormat: 'authoring-seams-v1',
-  authoringSeamSignature: 'seams',
-  sourceSignatureFormat: 'source-v1',
+  authoringSeamSignature: authoringSeamSignature,
+  sourceSignatureFormat: sourceSignatureFormat,
   edgeSignatureFormat: 'edges-v1',
   placementSignatureFormat: 'authoring-placement-v1',
   triangleSignatureFormat: 'authoring-triangles-v1',
   chunks: chunks,
 );
 
-StagedTerrainChunkData _chunk(String chunkKey, {int revision = 1}) =>
-    StagedTerrainChunkData(
-      chunkKey: chunkKey,
-      id: chunkKey,
-      revision: revision,
-      status: 'active',
-      levelId: 'field',
-      tileSize: 16,
-      width: 600,
-      height: 270,
-      difficulty: 'normal',
-      assemblyGroupId: 'default',
-      authoringPolygonSignature: 'authoring',
-      sourceSignature: 'source',
-      edgeSignature: 'edges',
-      placementSignature: 'placements',
-      triangleSignature: 'triangles',
-      polygons: <StagedTerrainPolygonData>[_polygon(chunkKey)],
-      edges: const <StagedTerrainEdgeData>[],
-      triangles: const <StagedTerrainTriangleData>[],
-      placementLineage: const <StagedTerrainPlacementLineageData>[],
-    );
+StagedTerrainChunkData _chunk(
+  String chunkKey, {
+  int revision = 1,
+  List<StagedTerrainTriangleData> triangles =
+      const <StagedTerrainTriangleData>[],
+}) => StagedTerrainChunkData(
+  chunkKey: chunkKey,
+  id: chunkKey,
+  revision: revision,
+  status: 'active',
+  levelId: 'field',
+  tileSize: 16,
+  width: 600,
+  height: 270,
+  difficulty: 'normal',
+  assemblyGroupId: 'default',
+  authoringPolygonSignature: _digest,
+  sourceSignature: _digest,
+  edgeSignature: _digest,
+  placementSignature: _digest,
+  triangleSignature: _digest,
+  polygons: <StagedTerrainPolygonData>[_polygon(chunkKey)],
+  edges: const <StagedTerrainEdgeData>[],
+  triangles: triangles,
+  placementLineage: const <StagedTerrainPlacementLineageData>[],
+);
 
 StagedTerrainPolygonData _polygon(String chunkKey) => StagedTerrainPolygonData(
   sourcePath: 'assets/authoring/level/chunks/$chunkKey.json#direct=ground',

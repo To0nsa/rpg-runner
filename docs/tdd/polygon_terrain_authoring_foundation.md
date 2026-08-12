@@ -8,7 +8,8 @@ and complete Chunk-v2 trees. Polygon terrain is generated but remains
 unreachable from production gameplay construction.
 
 The source boundary is current while the runtime boundary remains legacy. The
-committed content is an explicit collision-reset state:
+committed content retains the collision-reset baseline while initial polygon
+reauthoring is underway:
 
 - prefab authoring persists schema v3 `collisionShapes`
 - chunk authoring persists schema v2 direct `collisionShapes`
@@ -17,13 +18,15 @@ committed content is an explicit collision-reset state:
   read-only readiness command and atomic source recheck
 - normal `GameCore(...)` and replay validation still use legacy rectangle
   motion authority
-- all 99 prefab records retain visuals, kinds, metadata, and identity, while
-  every polygon list is intentionally empty
-- all eight chunks retain their placements and markers with empty direct
-  terrain; the generator derives one full-width `collision_cleared` legacy gap
-- both staged terrain and production compatibility patterns therefore contain
-  no static support; player traversal, enemy support/navigation, and
-  terrain-relative marker placement are unavailable until reauthoring
+- all 99 prefab records retain visuals, kinds, metadata, and identity;
+  `anvil_00` has one authored collision polygon while the remaining reset
+  owners remain empty for authoring
+- all eight chunks retain their placements and markers; `field_flat` has one
+  direct `solid_001` polygon while the seven forest chunks remain empty
+- staged terrain contains that `field_flat` polygon, and the legacy
+  compatibility projection retains its representable orthogonal static solid;
+  this is authoring evidence, not direct polygon runtime authority or a
+  playable-terrain acceptance result
 - the normal generator registers the staged Dart artifact as its sixth output,
   while Flame and normal Core/replay construction have no terrain consumer
 
@@ -967,6 +970,13 @@ flag or runtime consumer:
 - `polygon_terrain_artifact_validation.dart` compares a typed artifact with the
   fresh seam-validated compile and returns no selectable artifact on any
   version, format, seam, Chunk membership/metadata, or signature mismatch.
+
+Before a staged artifact can bind a scheduler selection, Core's
+`StagedTerrainArtifactCatalog` independently checks the accepted compiler and
+signature-format versions, lowercase SHA-256 digest shape, canonical chunk-key
+order, and polygon/edge/triangle/placement-lineage membership. This is a
+structural runtime guard, not a second compiler: fresh semantic source and seam
+validation remain generator-owned.
 
 Parsed coordinates remain generator values until the Core adapter boundary.
 This matters because the canonical JSON number range is intentionally wider

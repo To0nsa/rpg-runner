@@ -143,19 +143,19 @@ PolygonTerrainArtifactValidationResult validateStagedPolygonTerrainArtifact({
   globalMismatch(
     code: 'source_signature_format_mismatch',
     label: 'Source signature format',
-    expectedValue: polygonTerrainSourceSignatureFormat,
+    expectedValue: stagedTerrainSourceSignatureFormat,
     actualValue: artifact.sourceSignatureFormat,
   );
   globalMismatch(
     code: 'edge_signature_format_mismatch',
     label: 'Edge signature format',
-    expectedValue: polygonTerrainEdgeSignatureFormat,
+    expectedValue: stagedTerrainEdgeSignatureFormat,
     actualValue: artifact.edgeSignatureFormat,
   );
   globalMismatch(
     code: 'placement_signature_format_mismatch',
     label: 'Placement signature format',
-    expectedValue: polygonTerrainPlacementSignatureFormat,
+    expectedValue: stagedTerrainPlacementSignatureFormat,
     actualValue: artifact.placementSignatureFormat,
   );
   globalMismatch(

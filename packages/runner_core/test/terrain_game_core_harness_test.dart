@@ -22,6 +22,9 @@ import 'package:runner_core/tuning/track_tuning.dart';
 import 'package:runner_core/navigation/terrain_runtime_bundle.dart';
 import 'package:test/test.dart';
 
+const _stagedTerrainTestDigest =
+    'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
+
 void main() {
   test('normal construction keeps legacy spawn and integration behavior', () {
     final core = GameCore(
@@ -1311,7 +1314,7 @@ StagedTerrainStreamCandidate _stagedTerrainHarnessCandidate() {
       compilerGeometryVersion: 1,
       authoringPolygonSignatureFormat: 'authoring-polygons-v1',
       authoringSeamSignatureFormat: 'authoring-seams-v1',
-      authoringSeamSignature: 'terrain-harness-seams',
+      authoringSeamSignature: _stagedTerrainTestDigest,
       sourceSignatureFormat: 'source-v1',
       edgeSignatureFormat: 'edges-v1',
       placementSignatureFormat: 'authoring-placement-v1',
@@ -1328,11 +1331,11 @@ StagedTerrainStreamCandidate _stagedTerrainHarnessCandidate() {
           height: 270,
           difficulty: 'normal',
           assemblyGroupId: 'default',
-          authoringPolygonSignature: 'authoring',
-          sourceSignature: 'source',
-          edgeSignature: 'edges',
-          placementSignature: 'placements',
-          triangleSignature: 'triangles',
+          authoringPolygonSignature: _stagedTerrainTestDigest,
+          sourceSignature: _stagedTerrainTestDigest,
+          edgeSignature: _stagedTerrainTestDigest,
+          placementSignature: _stagedTerrainTestDigest,
+          triangleSignature: _stagedTerrainTestDigest,
           polygons: <StagedTerrainPolygonData>[
             StagedTerrainPolygonData(
               sourcePath: 'test/staged-terrain-harness#ground',

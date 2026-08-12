@@ -38,7 +38,8 @@ workflow except where an already-public Core output needs a read-only consumer.
 ## 2.1 Delivered Foundation
 
 - [x] `StagedTerrainArtifactCatalog` admits only the expected generated format,
-      canonical unique chunk keys, and structurally valid chunk metadata. It
+      compiler/signature-format versions, SHA-256 digest shape, canonical
+      unique chunk keys, and structurally valid local geometry lineage. It
       binds a selected chunk key to an instance index and exact world-origin
       physics tick without importing generated terrain into normal `GameCore`
       construction. The binding rejects missing chunks and foreign or absent

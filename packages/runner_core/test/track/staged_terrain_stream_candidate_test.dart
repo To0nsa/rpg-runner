@@ -8,6 +8,9 @@ import 'package:runner_core/track/track_streamer.dart';
 import 'package:runner_core/tuning/track_tuning.dart';
 import 'package:test/test.dart';
 
+const _digest =
+    'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
+
 void main() {
   test(
     'builds collision navigation and render outputs from one geometry object',
@@ -61,7 +64,7 @@ StagedTerrainArtifactData _artifact(List<StagedTerrainChunkData> chunks) =>
       compilerGeometryVersion: 1,
       authoringPolygonSignatureFormat: 'authoring-polygons-v1',
       authoringSeamSignatureFormat: 'authoring-seams-v1',
-      authoringSeamSignature: 'seams',
+      authoringSeamSignature: _digest,
       sourceSignatureFormat: 'source-v1',
       edgeSignatureFormat: 'edges-v1',
       placementSignatureFormat: 'authoring-placement-v1',
@@ -80,11 +83,11 @@ StagedTerrainChunkData _chunk(String chunkKey) => StagedTerrainChunkData(
   height: 270,
   difficulty: 'normal',
   assemblyGroupId: 'default',
-  authoringPolygonSignature: 'authoring',
-  sourceSignature: 'source',
-  edgeSignature: 'edges',
-  placementSignature: 'placements',
-  triangleSignature: 'triangles',
+  authoringPolygonSignature: _digest,
+  sourceSignature: _digest,
+  edgeSignature: _digest,
+  placementSignature: _digest,
+  triangleSignature: _digest,
   polygons: const <StagedTerrainPolygonData>[],
   edges: const <StagedTerrainEdgeData>[],
   triangles: const <StagedTerrainTriangleData>[],

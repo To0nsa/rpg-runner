@@ -4,6 +4,21 @@ library;
 /// Schema version of [StagedTerrainArtifactData].
 const int stagedTerrainArtifactFormatVersion = 3;
 
+/// Terrain compiler output version accepted by the staged runtime boundary.
+///
+/// The generator and runtime must advance this together whenever compiled
+/// geometry semantics change, so a stale artifact cannot be admitted.
+const int stagedTerrainCompilerGeometryVersion = 1;
+
+/// Canonical source-record signature format retained in staged terrain data.
+const String stagedTerrainSourceSignatureFormat = 'source-v1';
+
+/// Canonical exposed-edge signature format retained in staged terrain data.
+const String stagedTerrainEdgeSignatureFormat = 'edges-v1';
+
+/// Canonical placed-Prefab lineage signature format retained in staged data.
+const String stagedTerrainPlacementSignatureFormat = 'authoring-placement-v1';
+
 /// Workspace-relative output owned by the staged terrain artifact contract.
 ///
 /// Offline migration and generation tools share this identity so readiness

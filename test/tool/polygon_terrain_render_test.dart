@@ -375,8 +375,7 @@ void main() {
       for (final entity in Directory(rootPath).listSync(recursive: true)) {
         if (entity is! File || !entity.path.endsWith('.dart')) continue;
         final normalizedPath = entity.path.replaceAll('\\', '/');
-        if (normalizedPath.endsWith('/track/staged_terrain_data.dart') ||
-            normalizedPath.endsWith('/track/staged_authored_terrain.dart')) {
+        if (normalizedPath.contains('/track/staged_')) {
           continue;
         }
         final source = entity.readAsStringSync();
