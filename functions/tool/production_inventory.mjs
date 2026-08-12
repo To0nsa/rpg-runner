@@ -591,13 +591,41 @@ async function inventoryRuns(
     "validating",
     "settlement_pending",
   ]);
+  const activeSessions = runSessions.filter((doc) =>
+    activeStates.has(asString(doc.data.state)),
+  );
   const activeGameCompatVersionCounts = countBy(
-    runSessions.filter((doc) => activeStates.has(asString(doc.data.state))),
+    activeSessions,
     (doc) =>
       (isObject(doc.data.runTicket) &&
         asString(doc.data.runTicket.gameCompatVersion)) ||
       "<missing>",
   );
+  const activeExpiryByGameCompatVersion = {};
+  for (const session of activeSessions) {
+    const ticket = session.data.runTicket;
+    const gameCompatVersion =
+      (isObject(ticket) && asString(ticket.gameCompatVersion)) || "<missing>";
+    const summary = activeExpiryByGameCompatVersion[gameCompatVersion] ?? {
+      sessionCount: 0,
+      validExpiryCount: 0,
+      minExpiryAtMs: null,
+      maxExpiryAtMs: null,
+    };
+    summary.sessionCount += 1;
+    if (Number.isSafeInteger(session.data.expiresAtMs)) {
+      summary.validExpiryCount += 1;
+      summary.minExpiryAtMs =
+        summary.minExpiryAtMs == null
+          ? session.data.expiresAtMs
+          : Math.min(summary.minExpiryAtMs, session.data.expiresAtMs);
+      summary.maxExpiryAtMs =
+        summary.maxExpiryAtMs == null
+          ? session.data.expiresAtMs
+          : Math.max(summary.maxExpiryAtMs, session.data.expiresAtMs);
+    }
+    activeExpiryByGameCompatVersion[gameCompatVersion] = summary;
+  }
   const grantStateCounts = countBy(
     rewardGrants,
     (doc) => asString(doc.data.lifecycleState) ?? "<missing>",
@@ -763,6 +791,25 @@ async function inventoryRuns(
     gameCompatVersionCounts: sortRecord(gameCompatVersionCounts),
     activeGameCompatVersionCounts: sortRecord(
       activeGameCompatVersionCounts,
+    ),
+    activeExpiryByGameCompatVersion: Object.fromEntries(
+      Object.entries(activeExpiryByGameCompatVersion)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([gameCompatVersion, summary]) => [
+          gameCompatVersion,
+          {
+            sessionCount: summary.sessionCount,
+            validExpiryCount: summary.validExpiryCount,
+            minExpiryAt:
+              summary.minExpiryAtMs == null
+                ? null
+                : new Date(summary.minExpiryAtMs).toISOString(),
+            maxExpiryAt:
+              summary.maxExpiryAtMs == null
+                ? null
+                : new Date(summary.maxExpiryAtMs).toISOString(),
+          },
+        ]),
     ),
     identityMismatchCount,
     invalidTicketTimeCount,

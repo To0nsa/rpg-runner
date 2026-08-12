@@ -307,6 +307,10 @@ Why:
   allowlist resolved from `RUN_SUPPORTED_GAME_COMPAT_VERSIONS`. The Phase 7
   default is `2026.08.0,2026.03.0`; `2026.03.0` is removed only after the
   24-hour ticket drain and active-session audit complete.
+- The read-only production inventory groups active sessions by game
+  compatibility and reports their valid minimum/maximum expiry timestamps. It
+  exposes no session or player identity and gives retirement operators an
+  exact drain horizon.
 - Missing-board fallback provisions the requested supported compatibility
   partition instead of silently using the current default.
 

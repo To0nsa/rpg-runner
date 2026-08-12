@@ -1,8 +1,8 @@
 # Sloped Terrain And Capsule Traversal High-Level Plan
 
 - Date: July 18, 2026
-- Status: Phases 0-6 accepted; Phase 7 local compatibility preparation is in
-  progress
+- Status: Phases 0-6 accepted; Phase 7 production rollout is active and the
+  old-version ticket drain is in progress
 - Phase 0 tracker:
   [phase0-implementation-checklist.md](phase0-implementation-checklist.md)
 - Phase 0 evidence:
