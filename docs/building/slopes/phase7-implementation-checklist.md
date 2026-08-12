@@ -106,6 +106,7 @@ a signed upload grant and uploads immutable fixture bytes directly.
 The removal audit is repeatable and fail-closed:
 
 ```powershell
+corepack pnpm --dir functions build
 node functions/tool/production_inventory.mjs `
   --project rpg-runner-d7add `
   --retiring-game-compat 2026.03.0 `
