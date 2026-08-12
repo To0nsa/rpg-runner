@@ -310,7 +310,10 @@ Why:
 - The read-only production inventory groups active sessions by game
   compatibility and reports their valid minimum/maximum expiry timestamps. It
   exposes no session or player identity and gives retirement operators an
-  exact drain horizon.
+  exact drain horizon. Its optional compatibility-retirement gate stays false
+  until the 24-hour interval has elapsed, no active session remains, every
+  issuance timestamp is assessable, and no matching ticket was observed after
+  the operator-recorded cutoff.
 - Missing-board fallback provisions the requested supported compatibility
   partition instead of silently using the current default.
 

@@ -103,6 +103,20 @@ Auth deletion, and an independent zero-residue verifier. Its deletion request
 is backdated past the quiet period only because the operator mode never issues
 a signed upload grant and uploads immutable fixture bytes directly.
 
+The removal audit is repeatable and fail-closed:
+
+```powershell
+node functions/tool/production_inventory.mjs `
+  --project rpg-runner-d7add `
+  --retiring-game-compat 2026.03.0 `
+  --issuance-cutoff-at 2026-08-12T14:32:29Z
+```
+
+Its `compatibilityRetirement.readyForRemoval` result becomes true only after
+the full 24-hour lifetime, with zero active sessions and no observed retired
+ticket issued after the recorded cutoff. Any unassessable issuance timestamp
+also blocks removal.
+
 ## 4) Rollback Contract
 
 Before new issuance starts, retain the previous client artifact, Functions

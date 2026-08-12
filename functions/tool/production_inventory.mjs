@@ -6,6 +6,7 @@ import { createHash } from "node:crypto";
 const args = parseArgs(process.argv.slice(2));
 const projectId = requireArg(args, "project");
 const nowMs = parsePositiveInteger(args.get("now-ms")) ?? Date.now();
+const retirementArgs = parseRetirementArgs(args);
 const accessToken = readAccessToken();
 const firestoreRoot =
   `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}` +
@@ -93,6 +94,13 @@ const report = {
   abuseQuota: inventoryExpiry(abuseQuota, nowMs),
   maintenance: inventoryMaintenance(maintenance),
 };
+if (retirementArgs != null) {
+  report.compatibilityRetirement = inventoryCompatibilityRetirement({
+    runSessions,
+    observedAtMs: nowMs,
+    ...retirementArgs,
+  });
+}
 
 console.log(JSON.stringify(report, null, 2));
 
@@ -131,6 +139,26 @@ function parsePositiveInteger(value) {
     throw new Error(`Expected a positive safe integer, got "${value}".`);
   }
   return parsed;
+}
+
+function parseRetirementArgs(parsed) {
+  const gameCompatVersion = parsed.get("retiring-game-compat")?.trim();
+  const issuanceCutoffAt = parsed.get("issuance-cutoff-at")?.trim();
+  if (!gameCompatVersion && !issuanceCutoffAt) {
+    return null;
+  }
+  if (!gameCompatVersion || !issuanceCutoffAt) {
+    throw new Error(
+      "--retiring-game-compat and --issuance-cutoff-at must be supplied together.",
+    );
+  }
+  const issuanceCutoffAtMs = Date.parse(issuanceCutoffAt);
+  if (!Number.isSafeInteger(issuanceCutoffAtMs) || issuanceCutoffAtMs <= 0) {
+    throw new Error(
+      `--issuance-cutoff-at must be a valid positive timestamp, got "${issuanceCutoffAt}".`,
+    );
+  }
+  return { gameCompatVersion, issuanceCutoffAtMs };
 }
 
 function readAccessToken() {
@@ -851,6 +879,73 @@ async function inventoryRuns(
     grantUidMismatchCount,
     staleSettlementPendingCount,
     quarantinedSettlementCount,
+  };
+}
+
+function inventoryCompatibilityRetirement({
+  runSessions,
+  observedAtMs,
+  gameCompatVersion,
+  issuanceCutoffAtMs,
+}) {
+  const maxTicketLifetimeMs = 24 * 60 * 60 * 1000;
+  const earliestRemovalAtMs = issuanceCutoffAtMs + maxTicketLifetimeMs;
+  const activeStates = new Set([
+    "issued",
+    "uploading",
+    "uploaded",
+    "pending_validation",
+    "validating",
+    "settlement_pending",
+  ]);
+  const matchingSessions = runSessions.filter(
+    (session) =>
+      isObject(session.data.runTicket) &&
+      asString(session.data.runTicket.gameCompatVersion) === gameCompatVersion,
+  );
+  const activeSessions = matchingSessions.filter((session) =>
+    activeStates.has(asString(session.data.state)),
+  );
+  const issuedAtValues = matchingSessions
+    .map((session) => session.data.runTicket.issuedAtMs)
+    .filter((issuedAtMs) => Number.isSafeInteger(issuedAtMs));
+  const issuedAfterCutoffCount = issuedAtValues.filter(
+    (issuedAtMs) => issuedAtMs > issuanceCutoffAtMs,
+  ).length;
+  const intervalElapsed = observedAtMs >= earliestRemovalAtMs;
+  const blockers = [];
+  if (!intervalElapsed) {
+    blockers.push("ticket_lifetime_not_elapsed");
+  }
+  if (activeSessions.length > 0) {
+    blockers.push("active_sessions_remain");
+  }
+  if (issuedAfterCutoffCount > 0) {
+    blockers.push("issuance_after_recorded_cutoff");
+  }
+  if (issuedAtValues.length !== matchingSessions.length) {
+    blockers.push("unassessable_issued_at_evidence");
+  }
+  return {
+    gameCompatVersion,
+    issuanceCutoffAt: new Date(issuanceCutoffAtMs).toISOString(),
+    maxTicketLifetimeMs,
+    earliestRemovalAt: new Date(earliestRemovalAtMs).toISOString(),
+    intervalElapsed,
+    observedSessionCount: matchingSessions.length,
+    activeSessionCount: activeSessions.length,
+    activeSessionStateCounts: countBy(
+      activeSessions,
+      (session) => asString(session.data.state) ?? "<missing>",
+    ),
+    issuedAfterCutoffCount,
+    invalidIssuedAtCount: matchingSessions.length - issuedAtValues.length,
+    observedLatestIssuedAt:
+      issuedAtValues.length === 0
+        ? null
+        : new Date(Math.max(...issuedAtValues)).toISOString(),
+    readyForRemoval: blockers.length === 0,
+    blockers,
   };
 }
 
