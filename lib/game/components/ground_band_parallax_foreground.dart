@@ -10,10 +10,10 @@ import '../util/math_util.dart';
 import 'ground_surface_layout.dart';
 import 'pixel_parallax_backdrop.dart';
 
-/// Renders parallax foreground layers clipped to ground surface bands.
+/// Renders legacy parallax foreground layers clipped to ground surface bands.
 ///
-/// This keeps foreground coverage aligned with authoritative Core ground spans,
-/// so foreground and floor share the same gaps.
+/// This keeps fallback foreground coverage aligned with authoritative Core
+/// ground spans. It yields when staged polygon terrain is available.
 class GroundBandParallaxForeground extends Component
     with HasGameReference<FlameGame> {
   GroundBandParallaxForeground({
@@ -86,6 +86,8 @@ class GroundBandParallaxForeground extends Component
   void render(ui.Canvas canvas) {
     super.render(canvas);
     if (!_assetsReady) return;
+
+    if (controller.snapshot.stagedTerrainRenderSnapshot != null) return;
 
     if (layers.isEmpty) return;
     final surfaces = controller.snapshot.groundSurfaces;

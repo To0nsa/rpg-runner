@@ -6,7 +6,6 @@ import 'package:runner_core/track/staged_terrain_data.dart';
 
 import 'generated_artifact_plan.dart';
 import 'polygon_terrain_compilation.dart';
-import 'polygon_terrain_render.dart';
 import 'polygon_terrain_seam_validation.dart';
 import 'polygon_terrain_source.dart';
 

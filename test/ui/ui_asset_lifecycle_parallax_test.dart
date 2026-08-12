@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_core/levels/level_assembly.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/levels/level_registry.dart';
+import 'package:runner_core/players/player_character_registry.dart';
 import 'package:rpg_runner/ui/assets/ui_asset_lifecycle.dart';
 
 void main() {
@@ -18,7 +19,6 @@ void main() {
       'assets/images/parallax/forest/Forest Layer 02.png',
       'assets/images/parallax/forest/Forest Layer 03.png',
       'assets/images/parallax/forest/Forest Layer 04.png',
-      'assets/images/parallax/forest/Forest Layer 05.png',
     ]);
   });
 
@@ -65,5 +65,15 @@ void main() {
       ),
       <String>['field'],
     );
+  });
+
+  test('run-start warmup includes staged terrain material layers', () {
+    final paths = UiAssetLifecycle.collectRunStartImagePathsForCharacter(
+      PlayerCharacterRegistry.eloise.id,
+    );
+
+    expect(paths, contains('terrain/grass_dirt/fill.png'));
+    expect(paths, contains('terrain/grass_dirt/surface.png'));
+    expect(paths, contains('terrain/grass_dirt/foreground.png'));
   });
 }

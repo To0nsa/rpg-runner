@@ -9,12 +9,12 @@ import '../spatial/world_view_transform.dart';
 import '../util/math_util.dart';
 import 'ground_surface_layout.dart';
 
-/// Renders Core-authored ground surfaces using a tiled texture material.
+/// Renders legacy Core ground surfaces using a tiled texture material.
 ///
-/// This component consumes `snapshot.groundSurfaces` and aligns the visual top
-/// edge to authoritative surface `topY`. Collision/geometry remains Core-owned.
-class GroundSurface extends Component
-    with HasGameReference<FlameGame> {
+/// This compatibility component yields completely when a staged terrain
+/// snapshot is present. Otherwise it consumes `snapshot.groundSurfaces` and
+/// aligns the visual top edge to authoritative surface `topY`.
+class GroundSurface extends Component with HasGameReference<FlameGame> {
   GroundSurface({
     required this.assetPath,
     required this.controller,
@@ -74,6 +74,8 @@ class GroundSurface extends Component
   void render(ui.Canvas canvas) {
     super.render(canvas);
     if (!_assetsReady) return;
+
+    if (controller.snapshot.stagedTerrainRenderSnapshot != null) return;
 
     final surfaces = controller.snapshot.groundSurfaces;
     if (surfaces.isEmpty) return;

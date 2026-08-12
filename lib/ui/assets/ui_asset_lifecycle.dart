@@ -19,6 +19,7 @@ import 'package:runner_core/snapshots/entity_render_snapshot.dart';
 import 'package:runner_core/snapshots/enums.dart';
 import '../../game/components/player/player_animations.dart';
 import '../../game/themes/parallax_theme_registry.dart';
+import '../../game/themes/terrain_material_registry.dart';
 import 'asset_scopes.dart';
 import 'lru_cache.dart';
 
@@ -126,7 +127,10 @@ class UiAssetLifecycle {
     required BuildContext context,
   }) async {
     try {
-      final layers = await getParallaxLayers(visualThemeId, scope: AssetScope.hub);
+      final layers = await getParallaxLayers(
+        visualThemeId,
+        scope: AssetScope.hub,
+      );
       if (!context.mounted) return;
       await Future.wait([
         getIdle(characterId, scope: AssetScope.hub),
@@ -242,16 +246,17 @@ class UiAssetLifecycle {
   }) async {
     try {
       final level = LevelRegistry.byId(levelId);
-      final runVisualThemeIds = reachableRunVisualThemeIdsForLevelDefinition(level);
-      final resolvedParallaxLayers = await Future.wait(
-        <Future<List<AssetImage>>>[
-          for (final visualThemeId in runVisualThemeIds)
-            getParallaxLayers(visualThemeId, scope: AssetScope.run),
-        ],
+      final runVisualThemeIds = reachableRunVisualThemeIdsForLevelDefinition(
+        level,
       );
+      final resolvedParallaxLayers =
+          await Future.wait(<Future<List<AssetImage>>>[
+            for (final visualThemeId in runVisualThemeIds)
+              getParallaxLayers(visualThemeId, scope: AssetScope.run),
+          ]);
       if (!context.mounted) return;
 
-      final relPaths = _collectRunStartImagePaths(characterId: characterId);
+      final relPaths = collectRunStartImagePathsForCharacter(characterId);
 
       final futures = <Future<void>>[
         getIdle(characterId, scope: AssetScope.run).then((_) {}),
@@ -284,9 +289,10 @@ class UiAssetLifecycle {
     return ordered.toList(growable: false);
   }
 
-  static Set<String> _collectRunStartImagePaths({
-    required PlayerCharacterId characterId,
-  }) {
+  @visibleForTesting
+  static Set<String> collectRunStartImagePathsForCharacter(
+    PlayerCharacterId characterId,
+  ) {
     final paths = <String>{};
 
     void addFromRenderAnim(RenderAnimSetDefinition renderAnim) {
@@ -326,6 +332,12 @@ class UiAssetLifecycle {
     for (final impactId in SpellImpactId.values) {
       if (impactId == SpellImpactId.unknown) continue;
       addFromRenderAnim(spellImpactCatalog.get(impactId));
+    }
+
+    for (final material in TerrainMaterialRegistry.byKey.values) {
+      paths.add(material.fillAssetPath);
+      paths.add(material.surfaceAssetPath);
+      paths.add(material.foregroundAssetPath);
     }
 
     return paths;

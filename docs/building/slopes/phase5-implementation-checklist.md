@@ -110,6 +110,11 @@ workflow except where an already-public Core output needs a read-only consumer.
       diagnostic edges while legacy collision remains active for Phase 6.
       Anonymous custom legacy chunks publish no staged candidate and never
       fall back to unrelated generated geometry.
+- [x] Flame maps `grass_dirt` through one render-only material registry and
+      caches meshes from Core's exact world-space loops and triangle indices.
+      It tiles fill in world phase and draws surface/foreground art only along
+      Core's upward-facing exposed edges. Legacy ground, foreground bands, and
+      the temporary floor mask yield whenever staged terrain is present.
 
 ## 3) Implementation Order
 
@@ -162,11 +167,11 @@ workflow except where an already-public Core output needs a read-only consumer.
       ordering, and bundle signature for identical selected chunks
 - [ ] one atomic publication updates collision, support/navigation, placement,
       render snapshots, and debug evidence together at a tick boundary
-- [ ] source edge lineage survives world binding and is available in diagnostic
+- [x] source edge lineage survives world binding and is available in diagnostic
       and debug outputs without per-tick allocation
-- [ ] every scheduler-reachable neighboring pair is physically stitched or
+- [x] every scheduler-reachable neighboring pair is physically stitched or
       intentionally exposed without a collision, navigation, or render seam
-- [ ] Flame uses Core-owned triangles/edges and does not duplicate geometry,
+- [x] Flame uses Core-owned triangles/edges and does not duplicate geometry,
       material-phase, or collision authority
 - [ ] initial player, enemy, marker, collectible, restoration, cull, and
       fall-death policies have explicit terrain-backed coverage

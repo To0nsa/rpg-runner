@@ -3,13 +3,12 @@
 ## Status And Authority Boundary
 
 The exact polygon-source foundation is implemented in `runner_core`, the root
-generator, and the standalone editor. Checked-in authoring now uses Prefab-v3
-and complete Chunk-v2 trees. Polygon terrain is generated but remains
-unreachable from production gameplay construction.
+generator, standalone editor, and Flame renderer. Checked-in authoring now uses
+Prefab-v3 and complete Chunk-v2 trees. Polygon terrain drives normal render
+snapshots but remains non-authoritative for production gameplay collision.
 
-The source boundary is current while the runtime boundary remains legacy. The
-committed content retains the collision-reset baseline while initial polygon
-reauthoring is underway:
+The source boundary and normal render handoff are current while the gameplay
+motion boundary remains legacy:
 
 - prefab authoring persists schema v3 `collisionShapes`
 - chunk authoring persists schema v2 direct `collisionShapes`
@@ -28,16 +27,19 @@ reauthoring is underway:
   with identical boundary coverage
 - staged terrain contains all eight Chunk polygons, while the legacy
   compatibility projection retains the representable flat-ground behavior;
-  direct polygon runtime authority and Flame material rendering remain Phase 5
-  integration work
+  direct polygon gameplay authority remains Phase 5/6 integration work
 - the normal generator registers the staged Dart artifact as its sixth output;
   normal Core/replay construction now admits it and publishes a complete
   render candidate whenever the existing scheduler selection changes, while
-  collision remains legacy and Flame consumption is still pending; the
+  collision remains legacy and Flame consumes that candidate directly; the
   isolated terrain harness may publish an admitted staged candidate's
   immutable Core render snapshot alongside its collision/navigation bundle;
   that snapshot retains exact source-lineage collision edges for later render
   diagnostics without reconstructing them from polygon loops
+- Flame caches Core's exact loops and triangle indices, applies the centralized
+  `grass_dirt` fill/surface/foreground material, and consumes upward-facing
+  compiler edges for surface strips; legacy ground visuals and the temporary
+  floor mask yield whenever that staged snapshot exists
 
 Final Phase 4 acceptance work remains tracked in
 [the Phase 4 checklist](../building/slopes/phase4-implementation-checklist.md).
@@ -1018,9 +1020,11 @@ The staged output path is owned by Core's
 `stagedTerrainArtifactRepositoryPath` constant as
 `packages/runner_core/lib/track/staged_authored_terrain.dart`. Offline migration
 and generation share that workspace-relative identity. It is registered in the
-generator plan but remains unselected at runtime. Its deliberately narrow
-API is `StagedTerrainArtifactData`, defined in `staged_terrain_data.dart`; it
-cannot be confused with the current `ChunkPattern` authority. The artifact is
+generator plan. Normal Core admits it only for scheduler binding and complete
+render-candidate publication; gameplay collision still uses the compatibility
+projection. Its deliberately narrow API is `StagedTerrainArtifactData`,
+defined in `staged_terrain_data.dart`; it cannot be confused with the current
+`ChunkPattern` scheduler authority. The artifact is
 self-describing with artifact and
 compiler geometry versions plus `authoring-polygons-v1`, `source-v1`,
 `edges-v1`, `authoring-placement-v1`, `authoring-triangles-v1`, and
@@ -1047,6 +1051,33 @@ polygon/edge serialization authority. The read-only
 missing/stale/unexpected/unreadable output findings to the shared blocking
 envelope with the generated path as source and owner, and returns the complete
 canonical issue set with no artifact if either side fails.
+
+### Runtime Render Consumption
+
+`GameCore` constructs one `StagedTerrainStreamCandidate` only after the legacy
+scheduler changes its active selection. The candidate binds those exact chunk
+indices/origins, builds one geometry/runtime bundle, and pairs it with one
+immutable `StagedTerrainRenderSnapshot`. Normal collision does not consume the
+bundle yet; the snapshot is nevertheless a complete projection of that same
+candidate rather than a renderer-specific reconstruction. Anonymous custom
+legacy chunks publish no candidate and never borrow another chunk's geometry.
+
+Flame's `StagedTerrain` component converts physics ticks to world units once
+per geometry version and creates `ui.Vertices` with the supplied Core triangle
+indices. It never triangulates, normalizes, stitches, or infers polygon edges.
+Fill texture phase is world anchored. Surface and foreground images follow only
+the exact upward-facing `TerrainEdge` records retained in the snapshot. A null
+material is collision-only and not drawn; an unknown non-null material fails
+through `TerrainMaterialRegistry` instead of selecting a visual fallback.
+
+The `grass_dirt` registry entry owns `fill.png`, `surface.png`,
+`foreground.png`, and the reserved left/right cap paths under
+`assets/images/terrain/grass_dirt/`. Endpoint cap drawing remains deferred
+until cross-chunk join semantics can distinguish a real cliff from a streamed
+chunk seam. While a staged snapshot is present, the old `GroundSurface`,
+`GroundBandParallaxForeground`, and `TemporaryFloorMask` components draw
+nothing, preventing doubled ground and horizontal masks across future slopes
+or gaps.
 
 The shared pure-Dart `authoring-polygons-v1` contract hashes source before
 placement expansion. A UTF-8 length-prefixed record contains the owner domain

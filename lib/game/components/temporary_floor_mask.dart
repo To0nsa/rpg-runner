@@ -6,12 +6,11 @@ import '../game_controller.dart';
 import '../spatial/world_view_transform.dart';
 import '../util/math_util.dart' as math;
 
-/// Temporary black backdrop mask from floor level downward.
+/// Temporary legacy black backdrop mask from floor level downward.
 ///
-/// Keep this local and disposable: delete this component and its mount call
-/// when no longer needed.
-class TemporaryFloorMask extends Component
-    with HasGameReference<FlameGame> {
+/// Staged polygon terrain suppresses this mask so it cannot cover polygon gaps
+/// or slopes. Keep it only for anonymous legacy sources during cutover.
+class TemporaryFloorMask extends Component with HasGameReference<FlameGame> {
   TemporaryFloorMask({
     required this.controller,
     required this.virtualWidth,
@@ -27,6 +26,8 @@ class TemporaryFloorMask extends Component
   @override
   void render(Canvas canvas) {
     super.render(canvas);
+
+    if (controller.snapshot.stagedTerrainRenderSnapshot != null) return;
 
     final surfaces = controller.snapshot.groundSurfaces;
     if (surfaces.isEmpty) {

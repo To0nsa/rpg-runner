@@ -16,6 +16,7 @@ import 'components/ground_band_parallax_foreground.dart';
 import 'components/ground_surface.dart';
 import 'components/pixel_parallax_backdrop.dart';
 import 'components/player/player_animations.dart';
+import 'components/staged_terrain.dart';
 import 'components/sprite_anim/sprite_anim_set.dart';
 import 'components/enemies/enemy_render_registry.dart';
 import 'components/pickups/pickup_render_registry.dart';
@@ -141,6 +142,7 @@ class RunnerFlameGame extends FlameGame {
   GroundSurface? _groundSurface;
   GroundBandParallaxForeground? _foregroundParallax;
   TemporaryFloorMask? _floorMask;
+  StagedTerrain? _stagedTerrain;
   String? _appliedVisualThemeId;
 
   @override
@@ -162,6 +164,12 @@ class RunnerFlameGame extends FlameGame {
       virtualHeight: virtualHeight,
     )..priority = priorityTemporaryFloorMask;
     camera.backdrop.add(_floorMask!);
+    _stagedTerrain = StagedTerrain(
+      controller: controller,
+      virtualWidth: virtualWidth,
+      virtualHeight: virtualHeight,
+    )..priority = priorityStagedTerrain;
+    camera.backdrop.add(_stagedTerrain!);
     _applyRenderTheme(controller.snapshot.visualThemeId);
     _setLoadState(RunLoadPhase.parallaxMounted, 0.35);
 
@@ -541,4 +549,7 @@ class RunnerFlameGame extends FlameGame {
 
   @visibleForTesting
   bool get debugHasForegroundParallax => _foregroundParallax != null;
+
+  @visibleForTesting
+  bool get debugHasStagedTerrain => _stagedTerrain != null;
 }
