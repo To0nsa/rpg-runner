@@ -313,7 +313,9 @@ Why:
   exact drain horizon. Its optional compatibility-retirement gate stays false
   until the 24-hour interval has elapsed, no active session remains, every
   issuance timestamp is assessable, and no matching ticket was observed after
-  the operator-recorded cutoff.
+  the operator-recorded cutoff. Board inventory reports status counts per
+  compatibility partition so a later disable operation can preserve closed
+  history and target only the intended partition.
 - Missing-board fallback provisions the requested supported compatibility
   partition instead of silently using the current default.
 

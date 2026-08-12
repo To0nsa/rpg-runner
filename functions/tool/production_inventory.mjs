@@ -462,6 +462,19 @@ async function inventoryBoards(boards, observedAtMs) {
     boards,
     (board) => asString(board.data.gameCompatVersion) ?? "<missing>",
   );
+  const statusCounts = countBy(
+    boards,
+    (board) => asString(board.data.status) ?? "<missing>",
+  );
+  const statusCountsByGameCompatVersion = {};
+  for (const board of boards) {
+    const gameCompatVersion =
+      asString(board.data.gameCompatVersion) ?? "<missing>";
+    const status = asString(board.data.status) ?? "<missing>";
+    const counts = statusCountsByGameCompatVersion[gameCompatVersion] ?? {};
+    counts[status] = (counts[status] ?? 0) + 1;
+    statusCountsByGameCompatVersion[gameCompatVersion] = counts;
+  }
   const activeNowGameCompatVersionCounts = {};
 
   for (const board of boards) {
@@ -573,6 +586,15 @@ async function inventoryBoards(boards, observedAtMs) {
     upcomingCount,
     expiredCount,
     gameCompatVersionCounts: sortRecord(gameCompatVersionCounts),
+    statusCounts,
+    statusCountsByGameCompatVersion: Object.fromEntries(
+      Object.entries(statusCountsByGameCompatVersion)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([gameCompatVersion, counts]) => [
+          gameCompatVersion,
+          sortRecord(counts),
+        ]),
+    ),
     activeNowGameCompatVersionCounts: sortRecord(
       activeNowGameCompatVersionCounts,
     ),
