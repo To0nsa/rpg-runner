@@ -136,6 +136,7 @@ flutter:
     - assets/images/parallax/dark-forest/
     - assets/images/parallax/field/
     - assets/images/parallax/forest/
+    - assets/images/terrain/grass_dirt/
     - assets/images/ui/weaponsIcon/
     - assets/images/weapons/oneHandedSwords/
     - assets/images/weapons/throwingWeapons/
