@@ -613,20 +613,19 @@ Core-exposed edges, render triangles, and prefab revision lineage. It strips the
 reserved compiler preview index and is byte-goldened through the shared artifact
 drift plan; no gameplay or rendering path imports it.
 
-The root compatibility bridge can project an accepted orthogonal staged chunk
-back to canonical legacy rectangles/gaps without approximating slopes. The
-repository has deliberately cleared old static collision for clean polygon
-reauthoring: all eight current chunks have empty direct collision, all Prefab
-collision lists are empty, and the legacy projection emits one full-width
-`collision_cleared` gap per Chunk. Every current target compiles and projects
-that empty state exactly with zero overlap blockers; no
-solid-owner union behavior was added.
+The root compatibility bridge can project accepted orthogonal staged chunks
+back to canonical legacy rectangles/gaps without approximating slopes. Clean
+polygon reauthoring now retains `field_flat`'s direct solid and gives all seven
+Forest chunks one continuous flat ground polygon. All Forest boundaries share
+the established 224px seam height, so every scheduler-reachable pair validates
+while the compatibility projection restores continuous legacy ground. Prefab
+collision remains deliberately sparse and no solid-owner union behavior was
+added.
 
-Chunk visuals, 50 prefab placements, and two markers are preserved, but normal
-runs temporarily have no ground, obstacle, or platform support. Chunk Creator
-must next author polygon ground boundaries, slopes, platforms, and obstacles,
-then close seam, actor-support, enemy-navigation, and marker-placement
-diagnostics before the content is playable again.
+Chunk visuals, all 50 prefab placements, and both markers are preserved.
+Phase 5 can therefore connect normal streaming/rendering without deleting the
+Forest level; authored slopes, platforms, obstacles, and their complete actor
+and marker acceptance remain subsequent content work.
 
 ### Phase 6 - Enemy Spawn Marker Authoring Through Editor
 

@@ -45,7 +45,6 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
     solids: <SolidRel>[
     ],
     groundGaps: <GapRel>[
-      GapRel(gapId: 'collision_cleared', x: 0.0, width: 600.0),
     ],
     visualSprites: <ChunkVisualSpriteRel>[
     ],
@@ -59,7 +58,6 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
     solids: <SolidRel>[
     ],
     groundGaps: <GapRel>[
-      GapRel(gapId: 'collision_cleared', x: 0.0, width: 600.0),
     ],
     visualSprites: <ChunkVisualSpriteRel>[
       ChunkVisualSpriteRel(
@@ -181,7 +179,6 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
     solids: <SolidRel>[
     ],
     groundGaps: <GapRel>[
-      GapRel(gapId: 'collision_cleared', x: 0.0, width: 600.0),
     ],
     visualSprites: <ChunkVisualSpriteRel>[
       ChunkVisualSpriteRel(
@@ -306,7 +303,6 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
     solids: <SolidRel>[
     ],
     groundGaps: <GapRel>[
-      GapRel(gapId: 'collision_cleared', x: 0.0, width: 600.0),
     ],
     visualSprites: <ChunkVisualSpriteRel>[
       ChunkVisualSpriteRel(
@@ -416,7 +412,6 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
     solids: <SolidRel>[
     ],
     groundGaps: <GapRel>[
-      GapRel(gapId: 'collision_cleared', x: 0.0, width: 600.0),
     ],
     visualSprites: <ChunkVisualSpriteRel>[
       ChunkVisualSpriteRel(
@@ -555,7 +550,6 @@ const List<ChunkPattern> forestEasyPatterns = <ChunkPattern>[
     solids: <SolidRel>[
     ],
     groundGaps: <GapRel>[
-      GapRel(gapId: 'collision_cleared', x: 0.0, width: 600.0),
     ],
     visualSprites: <ChunkVisualSpriteRel>[
       ChunkVisualSpriteRel(
@@ -658,7 +652,6 @@ const List<ChunkPattern> forestNormalPatterns = <ChunkPattern>[
     solids: <SolidRel>[
     ],
     groundGaps: <GapRel>[
-      GapRel(gapId: 'collision_cleared', x: 0.0, width: 600.0),
     ],
     visualSprites: <ChunkVisualSpriteRel>[
       ChunkVisualSpriteRel(

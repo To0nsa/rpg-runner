@@ -12,10 +12,10 @@ input for normal Core construction. One immutable, versioned runtime bundle
 must then feed collision, support/navigation, spawn placement, rendering, and
 debug evidence for every active chunk.
 
-Phase 5 may establish and test the runtime handoff while current repository
-terrain is collision-cleared. It must not claim a playable-terrain result,
-switch replay compatibility, or remove the legacy authority until Phase 6's
-reauthored content and direct-cutover gates are satisfied.
+Phase 5 now establishes and tests the runtime handoff against reauthored flat
+Forest ground plus the retained `field_flat` direct polygon. It must not switch
+replay compatibility or remove the legacy authority until Phase 6's broader
+slope-content and direct-cutover gates are satisfied.
 
 The work must not modify the Prefab Creator or Chunk Creator polygon authoring
 workflow except where an already-public Core output needs a read-only consumer.
@@ -95,6 +95,11 @@ workflow except where an already-public Core output needs a read-only consumer.
       `TerrainEdge` objects from its collision geometry. Edge IDs preserve
       chunk, placement, and shape lineage for a future Flame debug overlay;
       no render consumer may reconstruct boundaries from polygon fills.
+- [x] All seven Forest chunks retain their visuals, 50 repository placements,
+      and two enemy markers while adding one canonical `ground_001` polygon at
+      the established 224px ground line. Every polygon carries `ground` /
+      `grass_dirt` metadata, all scheduler-reachable seams validate, and the
+      temporary legacy projection restores the former continuous flat ground.
 
 ## 3) Implementation Order
 
@@ -125,15 +130,17 @@ workflow except where an already-public Core output needs a read-only consumer.
 
 ## 4) Parallel-Work Guardrails
 
-- Do not edit `tools/editor/**` or authoring JSON while the manual usability
-  pass is being polished or executed.
+- Keep the manual usability route and editor implementation stable while
+  runtime integration proceeds. Content reauthoring must pass the same strict
+  current-source, seam, and generator-drift gates before commit.
 - Do not import the staged artifact from normal `GameCore`, Flutter, or replay
   validator construction until the admission, binding, and atomic-publication
   tests have passed.
 - Preserve `authored_chunk_patterns.dart` and the exact legacy projection as
   the active production authority until Phase 6 explicitly removes them.
-- Treat the current collision-cleared terrain state as a valid infrastructure
-  fixture, not as evidence that runtime collision/spawning is playable.
+- Treat the reauthored flat Forest bands as cutover-enabling content, not as
+  final slope-level design or evidence that every runtime placement policy is
+  already accepted.
 - Keep replay protocol/version, backend ticket/board changes, and production
   deployment work in Phase 7.
 

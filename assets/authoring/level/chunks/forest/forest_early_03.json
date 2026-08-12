@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_early_03",
   "id": "forest_early_03",
-  "revision": 656,
+  "revision": 657,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -103,5 +103,30 @@
     }
   ],
   "markers": [],
-  "collisionShapes": []
+  "collisionShapes": [
+    {
+      "shapeId": "ground_001",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 0,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 270
+        },
+        {
+          "x": 0,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    }
+  ]
 }

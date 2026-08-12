@@ -38,17 +38,19 @@ Editor foundations shared across those domains:
 
 ## Polygon Source And Offline Migration
 
-The checked-in source includes initial reauthored examples: `anvil_00` has one
-Prefab collision polygon and `field_flat` has one direct `solid_001` Chunk
-polygon. Other collision-reset owners remain available for authoring. Missing
-Prefab collision is therefore a visible, non-blocking authoring warning.
+The checked-in source includes `anvil_00` with one Prefab collision polygon,
+`field_flat` with one direct `solid_001` Chunk polygon, and all seven Forest
+chunks with a continuous `ground_001` polygon carrying `ground` /
+`grass_dirt` metadata. Other collision-reset Prefab owners remain available
+for authoring. Missing Prefab collision is therefore a visible, non-blocking
+authoring warning.
 
 The generator compiles every source polygon into the staged terrain artifact.
 Until Phase 5/6 direct terrain authority, normal gameplay still selects the
-legacy runtime path: empty Chunks project to a full-width `collision_cleared`
-compatibility gap, while representable orthogonal direct solids such as
-`field_flat` project to legacy static solids. Neither path yet provides direct
-polygon collision, material fill, or foreground-mask rendering in the game.
+legacy runtime path: representable flat ground/direct solids project to the
+legacy ground/static-solid model. Direct polygon collision, material fill, and
+foreground-mask rendering are being connected through the Phase 5 runtime
+handoff.
 
 The normal editor accepts only current Prefab-v3/Chunk-v2 source. Legacy
 Prefab-v1/v2 and Chunk-v1 parsing is isolated to this offline check command:

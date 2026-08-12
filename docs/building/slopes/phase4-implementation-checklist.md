@@ -1887,20 +1887,20 @@ post-cutover SHA-256 values:
 | --- | --- |
 | `assets/authoring/level/prefab_defs.json` | `682FEBC82FCF774D15481A9D583BA4CBD9C1AA6DC8E32CA16C9676B19C3627B5` |
 | `chunks/field/field_flat.json` | `50D55FE900260D9087C4B61223567E12C216E384E696BDDC8601F83EB64B4CA8` |
-| `chunks/forest/forest_early_00.json` | `C66914D03785C99737C553EF91337B06C3F3FD51BEC7DBD1FFA0C0DD266012CE` |
-| `chunks/forest/forest_early_01.json` | `110847B7E007F3C97BF5B84300525BF2CD2CFFEA3170F9A813CB4CF55015DEE2` |
-| `chunks/forest/forest_early_02.json` | `14C7C1EB673B94EB1A0E0D6B395AEDD53498303E7851AC34EB0DA8BFEA09B844` |
-| `chunks/forest/forest_early_03.json` | `4DBD5DC2C2EE740EC1F7D157D15FCB38900FB41721927E1734C7DC96E2BAE3F1` |
-| `chunks/forest/forest_early_flat.json` | `51BF9488C5D50B69C9F8DEE9A2765FB134B5AA626AD5BFCAF465414DD5B6FEF3` |
-| `chunks/forest/forest_easy_woodcamp_00.json` | `9C103E99662966C483507376A0039A77F8284ED3B7C6B170BA75FE6D1BFABDA5` |
-| `chunks/forest/forest_normal_woodcamp_00.json` | `3ED517F2C347E7CCA293ED29CC25F4EA27B65F315AB357192818560A167381D1` |
-| `packages/runner_core/lib/track/staged_authored_terrain.dart` | `3607F6D16DC57AAD3794BE68DBB38B6696CD3B3512656474159342DD2BB52983` |
+| `chunks/forest/forest_early_00.json` | `46177FA9FABCBCEB763B00281D19755BC983383A0D9354A7CF3E54F2164ABF6D` |
+| `chunks/forest/forest_early_01.json` | `F530A452161065774CF1420A9E4800A7712D27F2A46B3625447FCD2A46F55A62` |
+| `chunks/forest/forest_early_02.json` | `230475C8A2EB15417D73A83C296F1CA2EA67FFFA680358817334B2042EF18885` |
+| `chunks/forest/forest_early_03.json` | `18E1F92979DB7CEFDA9227D43A34125A97B9065AF564C35320847A0645AC65EC` |
+| `chunks/forest/forest_early_flat.json` | `BA724A2C3AB008E0EB98DA912B20B262F200D2DFBF022E346581E0D231F649D5` |
+| `chunks/forest/forest_easy_woodcamp_00.json` | `0BBCFCAAF0EAF0923F1537F31E659DE8177664513F503A810AC7F727697DDB35` |
+| `chunks/forest/forest_normal_woodcamp_00.json` | `F1960B694765D86C1B41F4A76FBA34699B5036E4731546568A79F26885CF10B8` |
+| `packages/runner_core/lib/track/staged_authored_terrain.dart` | `2B6084A1BD17CA3C21F5767991D121CB1153F32FE7B155B27187F242EBFD69C1` |
 
-The staged artifact binds seam digest `7878b7f1…dbdf3`. `field_flat` now stages
-direct `solid_001` with source signature `3e3582da…0b2d`; the seven forest
-Chunks retain the standard empty terrain signature. A repository migration
-rehearsal proved the five pre-existing generated outputs byte-identical before
-committing the real source change.
+The staged artifact still binds seam digest `7878b7f1…dbdf3`. `field_flat`
+stages direct `solid_001`; subsequent Phase 5 reauthoring gives every Forest
+Chunk one seam-compatible `ground_001` polygon with `ground` / `grass_dirt`
+metadata. Generator dry-run and the current-source migration check remain
+blocker-free after that content update.
 
 Minimum final commands:
 

@@ -31,10 +31,31 @@ void main() {
     );
 
     expect(catalog.chunksByKey, hasLength(stagedAuthoredTerrain.chunks.length));
-    expect(geometry.polygons, hasLength(1));
-    expect(geometry.polygons.single.identity.chunkKey, 'field_flat');
-    expect(geometry.polygons.single.identity.shapeId, 'solid_001');
-    expect(geometry.edges, hasLength(4));
+    expect(geometry.polygons, hasLength(8));
+    expect(geometry.edges, hasLength(32));
+    expect(
+      geometry.polygons.map((polygon) => polygon.identity.chunkKey).toSet(),
+      stagedAuthoredTerrain.chunks.map((chunk) => chunk.chunkKey).toSet(),
+    );
+    expect(
+      geometry.polygons
+          .singleWhere((polygon) => polygon.identity.chunkKey == 'field_flat')
+          .identity
+          .shapeId,
+      'solid_001',
+    );
+    final forestPolygons = geometry.polygons.where(
+      (polygon) => polygon.identity.chunkKey != 'field_flat',
+    );
+    expect(
+      forestPolygons.every(
+        (polygon) =>
+            polygon.identity.shapeId == 'ground_001' &&
+            polygon.surfaceKind == 'ground' &&
+            polygon.materialKey == 'grass_dirt',
+      ),
+      isTrue,
+    );
   });
 
   test(

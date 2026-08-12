@@ -22,11 +22,15 @@ reauthoring is underway:
   `anvil_00` has one authored collision polygon while the remaining reset
   owners remain empty for authoring
 - all eight chunks retain their placements and markers; `field_flat` has one
-  direct `solid_001` polygon while the seven forest chunks remain empty
-- staged terrain contains that `field_flat` polygon, and the legacy
-  compatibility projection retains its representable orthogonal static solid;
-  this is authoring evidence, not direct polygon runtime authority or a
-  playable-terrain acceptance result
+  direct `solid_001` polygon and every Forest chunk has one continuous
+  `ground_001` polygon at the established 224px ground line
+- every Forest ground polygon carries `surfaceKind: ground` and
+  `materialKey: grass_dirt`; all reachable Forest seam combinations compile
+  with identical boundary coverage
+- staged terrain contains all eight Chunk polygons, while the legacy
+  compatibility projection retains the representable flat-ground behavior;
+  direct polygon runtime authority and Flame material rendering remain Phase 5
+  integration work
 - the normal generator registers the staged Dart artifact as its sixth output,
   while Flame and normal Core/replay construction have no terrain consumer;
   the isolated terrain harness may publish an admitted staged candidate's

@@ -14,7 +14,7 @@ import '../../../tool/polygon_terrain_source.dart';
 
 void main() {
   test(
-    'repository collision-cleared projection matches every legacy chunk',
+    'repository polygon projection matches every legacy chunk',
     () {
       final root = _repoRootPath();
       final check = PolygonAuthoringMigrationCheck.fromRepository(root);

@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "forest_earlt_flat",
   "id": "forest_early_flat",
-  "revision": 3,
+  "revision": 4,
   "status": "active",
   "levelId": "forest",
   "tileSize": 16,
@@ -14,5 +14,30 @@
   "tileLayers": [],
   "prefabs": [],
   "markers": [],
-  "collisionShapes": []
+  "collisionShapes": [
+    {
+      "shapeId": "ground_001",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 0,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 224
+        },
+        {
+          "x": 600,
+          "y": 270
+        },
+        {
+          "x": 0,
+          "y": 270
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
+    }
+  ]
 }
