@@ -19,6 +19,19 @@ enum TerrainPolygonTool {
   insertVertex,
 }
 
+/// Shared scene-toolbar order for direct polygon editing.
+///
+/// Rectangle drafts start from the Shapes and diagnostics action instead, so
+/// the scene toolbar stays focused on selecting and editing one active shape.
+const List<TerrainPolygonTool> terrainPolygonSceneToolbarTools =
+    <TerrainPolygonTool>[
+      TerrainPolygonTool.select,
+      TerrainPolygonTool.translateShape,
+      TerrainPolygonTool.createPolygon,
+      TerrainPolygonTool.moveVertex,
+      TerrainPolygonTool.insertVertex,
+    ];
+
 /// Stable selection expressed by shape ID and optional geometry index.
 ///
 /// Shape selections have no element index. Edge and vertex selections require

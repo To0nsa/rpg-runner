@@ -596,7 +596,7 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
           child: Wrap(
             spacing: 8,
             children: <Widget>[
-              for (final tool in TerrainPolygonTool.values)
+              for (final tool in terrainPolygonSceneToolbarTools)
                 ChoiceChip(
                   key: ValueKey<String>('chunk_polygon_tool_${tool.name}'),
                   label: Text(_toolLabel(tool)),
@@ -604,9 +604,7 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
                   onSelected:
                       _inspectCompiledEdges ||
                           (authoring.state.draft == null &&
-                              (tool == TerrainPolygonTool.createPolygon ||
-                                  tool ==
-                                      TerrainPolygonTool.createRectangle)) ||
+                              tool == TerrainPolygonTool.createPolygon) ||
                           (authoring.state.draft != null &&
                               tool != TerrainPolygonTool.createPolygon &&
                               tool != TerrainPolygonTool.moveVertex &&
@@ -2097,7 +2095,7 @@ int _compareChunks(ChunkV2FileData left, ChunkV2FileData right) {
 }
 
 String _toolLabel(TerrainPolygonTool tool) => switch (tool) {
-  TerrainPolygonTool.select => 'Select',
+  TerrainPolygonTool.select => 'Select shape',
   TerrainPolygonTool.createPolygon => 'Place vertex',
   TerrainPolygonTool.createRectangle => 'Rectangle',
   TerrainPolygonTool.moveVertex => 'Move vertex',

@@ -73,7 +73,7 @@ diagnostic, and can recover without reloading the workspace.
    and Redo it. Confirm each keyboard command changes exactly that one draft
    vertex and session/source Undo remains untouched.
 2. Before saving, confirm **Place vertex**, **Move vertex**, and **Insert vertex**
-   are available, while **Select**, **Rectangle**, and **Move shape** are
+   are available, while **Select shape** and **Move shape** are
    disabled. Switch back to **Place vertex** after moving one draft vertex and
    inserting another on an open draft edge, then exercise Undo/Redo for all
    three edits.

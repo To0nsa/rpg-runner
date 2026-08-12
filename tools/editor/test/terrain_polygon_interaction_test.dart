@@ -4,6 +4,16 @@ import 'package:runner_editor/src/terrain_authoring/terrain_polygon_scene_projec
 import 'package:runner_editor/src/terrain_authoring/terrain_source_models.dart';
 
 void main() {
+  test('scene toolbar order keeps shape selection and movement together', () {
+    expect(terrainPolygonSceneToolbarTools, const <TerrainPolygonTool>[
+      TerrainPolygonTool.select,
+      TerrainPolygonTool.translateShape,
+      TerrainPolygonTool.createPolygon,
+      TerrainPolygonTool.moveVertex,
+      TerrainPolygonTool.insertVertex,
+    ]);
+  });
+
   group('snap and selection', () {
     test('owner-grid snapping is exact and resolves ties away from zero', () {
       final snap = TerrainPolygonSnapPolicy.ownerGridPixels(4);

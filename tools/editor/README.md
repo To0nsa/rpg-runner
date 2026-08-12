@@ -104,7 +104,7 @@ Prefab and Chunk polygon scenes share the same controls:
 - use **New rectangle** in Shapes and diagnostics, then drag across opposite
   corners to create an editable four-vertex polygon draft
 - while a draft is open, **Place vertex**, **Move vertex**, and **Insert vertex**
-  edit that draft; **Select**, **Rectangle**, and **Move shape** remain disabled
+  edit that draft; **Select shape** and **Move shape** remain disabled
 - with no saved collision shape and no open draft, **Move vertex**, **Move
   shape**, and **Insert vertex** are disabled
 - Undo and Redo traverse draft vertex placement, movement, and insertion locally
@@ -112,7 +112,7 @@ Prefab and Chunk polygon scenes share the same controls:
 - press Enter or choose **Save** to normalize, validate, and commit the complete
   draft as one source-history edit
 - press Escape or choose **Cancel** to discard the active draft/gesture
-- outside creation, use **Select**, **Move vertex**, **Insert vertex**, or
+- outside creation, use **Select shape**, **Move vertex**, **Insert vertex**, or
   **Move shape** before primary-clicking or dragging the corresponding element
 - the chosen edit tool remains active after a completed gesture, so consecutive
   vertices, edges, or shapes can be edited without selecting the tool again

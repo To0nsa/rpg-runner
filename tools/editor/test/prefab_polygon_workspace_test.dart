@@ -91,7 +91,11 @@ void main() {
     expect(tester.widget<OutlinedButton>(saveDraft).onPressed, isNull);
     await tester.tap(find.widgetWithText(Tab, 'Scene'));
     await tester.pumpAndSettle();
-    for (final tool in const <String>['createPolygon', 'createRectangle']) {
+    expect(
+      find.byKey(const ValueKey<String>('prefab_polygon_tool_createRectangle')),
+      findsNothing,
+    );
+    for (final tool in const <String>['createPolygon']) {
       expect(
         tester
             .widget<ChoiceChip>(
@@ -131,14 +135,8 @@ void main() {
     );
     expect(find.text('Place vertex'), findsOneWidget);
     expect(
-      tester
-          .widget<ChoiceChip>(
-            find.byKey(
-              const ValueKey<String>('prefab_polygon_tool_createRectangle'),
-            ),
-          )
-          .onSelected,
-      isNull,
+      find.byKey(const ValueKey<String>('prefab_polygon_tool_createRectangle')),
+      findsNothing,
     );
     expect(
       tester

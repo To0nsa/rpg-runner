@@ -507,7 +507,11 @@ void main() {
     expect(tester.widget<OutlinedButton>(saveDraft).onPressed, isNull);
     await tester.tap(find.widgetWithText(Tab, 'Terrain'));
     await tester.pumpAndSettle();
-    for (final tool in const <String>['createPolygon', 'createRectangle']) {
+    expect(
+      find.byKey(const ValueKey<String>('chunk_polygon_tool_createRectangle')),
+      findsNothing,
+    );
+    for (final tool in const <String>['createPolygon']) {
       expect(
         tester
             .widget<ChoiceChip>(
@@ -527,11 +531,7 @@ void main() {
     expect(tester.widget<OutlinedButton>(newRectangle).onPressed, isNull);
     await tester.tap(find.widgetWithText(Tab, 'Terrain'));
     await tester.pumpAndSettle();
-    for (final tool in const <String>[
-      'select',
-      'createRectangle',
-      'translateShape',
-    ]) {
+    for (final tool in const <String>['select', 'translateShape']) {
       expect(
         tester
             .widget<ChoiceChip>(
@@ -541,6 +541,10 @@ void main() {
         isNull,
       );
     }
+    expect(
+      find.byKey(const ValueKey<String>('chunk_polygon_tool_createRectangle')),
+      findsNothing,
+    );
     for (final tool in const <String>[
       'createPolygon',
       'moveVertex',

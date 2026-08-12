@@ -585,7 +585,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
             child: Wrap(
               spacing: PrefabEditorUiTokens.controlGap,
               children: <Widget>[
-                for (final tool in TerrainPolygonTool.values)
+                for (final tool in terrainPolygonSceneToolbarTools)
                   ChoiceChip(
                     key: ValueKey<String>('prefab_polygon_tool_${tool.name}'),
                     label: Text(_toolLabel(tool)),
@@ -594,9 +594,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
                         (!canEditCollision &&
                                 tool != TerrainPolygonTool.select) ||
                             (authoring.state.draft == null &&
-                                (tool == TerrainPolygonTool.createPolygon ||
-                                    tool ==
-                                        TerrainPolygonTool.createRectangle)) ||
+                                tool == TerrainPolygonTool.createPolygon) ||
                             (authoring.state.draft == null &&
                                 !hasCommittedCollisionShapes &&
                                 (tool == TerrainPolygonTool.moveVertex ||
@@ -1311,7 +1309,7 @@ int _kindOrder(PrefabKind kind) => switch (kind) {
 };
 
 String _toolLabel(TerrainPolygonTool tool) => switch (tool) {
-  TerrainPolygonTool.select => 'Select',
+  TerrainPolygonTool.select => 'Select shape',
   TerrainPolygonTool.createPolygon => 'Place vertex',
   TerrainPolygonTool.createRectangle => 'Rectangle',
   TerrainPolygonTool.moveVertex => 'Move vertex',
