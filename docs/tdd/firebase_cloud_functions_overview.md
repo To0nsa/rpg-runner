@@ -318,6 +318,9 @@ Why:
   never assumed to belong to another partition. Board inventory reports status
   counts per compatibility partition so a later disable operation can preserve
   closed history and target only the intended partition.
+- The same PII-free inventory reports total and active board/session counts by
+  ruleset, so a hard ruleset cutover can prove that no retired ranked ticket is
+  still active without exposing session or player identity.
 - Active-board reads and missing-board fallback select the configured ruleset,
   score, and ghost tuple as well as game compatibility. A coexisting active
   `rules-v1` board is not returned or exposed by `rules-v2` session and

@@ -166,22 +166,42 @@ the derived AABB.
 
 ## Phase 7 — Validate locally
 
-- [ ] `dart format` all changed Dart files.
-- [ ] `dart analyze packages/runner_core`.
-- [ ] From `packages/runner_core`, run `dart test`.
-- [ ] Run focused root combat tests before the full root Core suite.
-- [ ] Run `flutter test test/core`.
-- [ ] From `tools/editor`, run `dart analyze` and `flutter test`.
-- [ ] From `services/replay_validator`, run `dart analyze` and `dart test test`.
-- [ ] Compile the replay-validator executable.
-- [ ] Run the replay benchmark for Field and Forest with
+- [x] `dart format` all changed Dart files.
+- [x] `dart analyze packages/runner_core`.
+- [x] From `packages/runner_core`, run `dart test`.
+- [x] Run focused root combat tests before the full root Core suite.
+- [x] Run `flutter test test/core`.
+- [ ] From `tools/editor`, run `dart analyze` and `flutter test`. Focused entity
+      analysis/tests and the editor-page overflow regression pass; the dirty
+      workspace's full suite has three unrelated polygon migration-signature
+      failures after 384 passing tests, and analysis has one unrelated
+      unnecessary-import info.
+- [x] From `services/replay_validator`, run `dart analyze` and `dart test test`.
+- [x] Run the Functions build and full Firebase emulator suite.
+- [x] Compile the replay-validator executable.
+- [x] Run the replay benchmark for Field and Forest with
   `benchmark --ticks=36000 --strict`.
-- [ ] Compare allocation/performance evidence with the Phase 0 baseline and
+- [x] Compare allocation/performance evidence with the Phase 0 baseline and
   investigate any regression before rollout.
-- [ ] Inspect `git diff --check` and confirm generated files were not edited by
+- [x] Inspect `git diff --check` and confirm generated files were not edited by
   hand.
 
 Gate: all relevant checks pass from one commit before deployment begins.
+
+Local evidence on `97904b8d` plus the documented implementation commits:
+
+- Core analyzer: clean; Core package `370/370`; root Core `356/356`.
+- Replay validator analyzer: clean; validator `89/89`.
+- Functions TypeScript build: clean; emulator suite `194/194`.
+- Editor capsule-focused tests: `12/12`; inspector overflow regression and
+  targeted entity analysis pass.
+- AOT replay benchmark, 36,000 ticks per level, `--strict`: first run Field
+  `0.463496 s` / `1294.51x`, Forest `0.541751 s` / `1107.52x`; repeat Field
+  `0.436399 s` / `1374.89x`, Forest `0.677832 s` / `885.18x`. Deterministic
+  outcomes and all gates passed. This no-enemy fixture does not execute combat;
+  the spread while concurrent Flutter/editor work was active is host-load
+  variance rather than capsule-loop evidence. The combat-specific seeded and
+  full-suite tests remain the behavior gate.
 
 ## Phase 8 — Cut over ranked rules safely
 
@@ -205,6 +225,16 @@ Gate: all relevant checks pass from one commit before deployment begins.
 
 Gate: ranked client simulation and replay validation agree under `rules-v2`
 with no old-session ambiguity.
+
+Read-only production audit at `2026-08-12T19:26:30Z`:
+
+- 43 boards are `rules-v1`; six are in the current active windows.
+- No expected current/next `rules-v2` board exists yet.
+- One active ranked `rules-v1` session remains on game compatibility
+  `2026.08.0`; its expiry is `2026-08-13T18:46:03.863Z`.
+- Deployment is intentionally withheld: the new validator rejects `rules-v1`,
+  so deploying before that session drains or is explicitly closed would reject
+  valid in-flight evidence.
 
 ## Phase 9 — Close the plan
 

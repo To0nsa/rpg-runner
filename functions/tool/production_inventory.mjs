@@ -462,6 +462,13 @@ async function inventoryBoards(boards, observedAtMs) {
     boards,
     (board) => asString(board.data.gameCompatVersion) ?? "<missing>",
   );
+  const rulesetVersionCounts = countBy(
+    boards,
+    (board) =>
+      (isObject(board.data.boardKey) &&
+        asString(board.data.boardKey.rulesetVersion)) ||
+      "<missing>",
+  );
   const statusCounts = countBy(
     boards,
     (board) => asString(board.data.status) ?? "<missing>",
@@ -476,6 +483,7 @@ async function inventoryBoards(boards, observedAtMs) {
     statusCountsByGameCompatVersion[gameCompatVersion] = counts;
   }
   const activeNowGameCompatVersionCounts = {};
+  const activeNowRulesetVersionCounts = {};
 
   for (const board of boards) {
     const mode = asString(board.data.mode);
@@ -548,6 +556,8 @@ async function inventoryBoards(boards, observedAtMs) {
       activeNowCount += 1;
       activeNowGameCompatVersionCounts[gameCompatVersion] =
         (activeNowGameCompatVersionCounts[gameCompatVersion] ?? 0) + 1;
+      activeNowRulesetVersionCounts[rulesetVersion] =
+        (activeNowRulesetVersionCounts[rulesetVersion] ?? 0) + 1;
     }
   }
 
@@ -586,6 +596,7 @@ async function inventoryBoards(boards, observedAtMs) {
     upcomingCount,
     expiredCount,
     gameCompatVersionCounts: sortRecord(gameCompatVersionCounts),
+    rulesetVersionCounts: sortRecord(rulesetVersionCounts),
     statusCounts,
     statusCountsByGameCompatVersion: Object.fromEntries(
       Object.entries(statusCountsByGameCompatVersion)
@@ -598,6 +609,7 @@ async function inventoryBoards(boards, observedAtMs) {
     activeNowGameCompatVersionCounts: sortRecord(
       activeNowGameCompatVersionCounts,
     ),
+    activeNowRulesetVersionCounts: sortRecord(activeNowRulesetVersionCounts),
     expectedCurrentAndNextCount: expectedIds.size,
     missingExpectedCurrentOrNextCount: [...expectedIds].filter(
       (id) => !actualIds.has(id),
@@ -635,6 +647,13 @@ async function inventoryRuns(
         asString(doc.data.runTicket.gameCompatVersion)) ||
       "<missing>",
   );
+  const rulesetVersionCounts = countBy(
+    runSessions,
+    (doc) =>
+      (isObject(doc.data.runTicket) &&
+        asString(doc.data.runTicket.rulesetVersion)) ||
+      "<boardless>",
+  );
   const activeStates = new Set([
     "issued",
     "uploading",
@@ -652,6 +671,13 @@ async function inventoryRuns(
       (isObject(doc.data.runTicket) &&
         asString(doc.data.runTicket.gameCompatVersion)) ||
       "<missing>",
+  );
+  const activeRulesetVersionCounts = countBy(
+    activeSessions,
+    (doc) =>
+      (isObject(doc.data.runTicket) &&
+        asString(doc.data.runTicket.rulesetVersion)) ||
+      "<boardless>",
   );
   const activeExpiryByGameCompatVersion = {};
   for (const session of activeSessions) {
@@ -841,9 +867,11 @@ async function inventoryRuns(
     sessionCount: runSessions.length,
     sessionStateCounts: stateCounts,
     gameCompatVersionCounts: sortRecord(gameCompatVersionCounts),
+    rulesetVersionCounts: sortRecord(rulesetVersionCounts),
     activeGameCompatVersionCounts: sortRecord(
       activeGameCompatVersionCounts,
     ),
+    activeRulesetVersionCounts: sortRecord(activeRulesetVersionCounts),
     activeExpiryByGameCompatVersion: Object.fromEntries(
       Object.entries(activeExpiryByGameCompatVersion)
         .sort(([left], [right]) => left.localeCompare(right))
