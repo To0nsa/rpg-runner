@@ -417,16 +417,22 @@ async function inventoryBoards(boards, observedAtMs) {
     resolveWindowForMode,
     weeklyWindowBoundsFromId,
   } = await import(new URL("../lib/boards/windowing.js", import.meta.url));
-  const { buildManagedBoardId } = await import(
+  const { buildManagedBoardId, resolveBoardProvisioningConfig } = await import(
     new URL("../lib/boards/provisioning.js", import.meta.url)
   );
   let malformedCount = 0;
   let idMismatchCount = 0;
+  let legacyIdCount = 0;
   let keyMismatchCount = 0;
   let windowMismatchCount = 0;
   let activeNowCount = 0;
   let upcomingCount = 0;
   let expiredCount = 0;
+  const gameCompatVersionCounts = countBy(
+    boards,
+    (board) => asString(board.data.gameCompatVersion) ?? "<missing>",
+  );
+  const activeNowGameCompatVersionCounts = {};
 
   for (const board of boards) {
     const mode = asString(board.data.mode);
@@ -434,10 +440,19 @@ async function inventoryBoards(boards, observedAtMs) {
     const windowId = asString(board.data.windowId);
     const opensAtMs = board.data.opensAtMs;
     const closesAtMs = board.data.closesAtMs;
+    const key = board.data.boardKey;
+    const rulesetVersion = isObject(key) ? asString(key.rulesetVersion) : null;
+    const scoreVersion = isObject(key) ? asString(key.scoreVersion) : null;
+    const gameCompatVersion = asString(board.data.gameCompatVersion);
+    const ghostVersion = asString(board.data.ghostVersion);
     if (
       !["competitive", "weekly"].includes(mode) ||
       !levelId ||
       !windowId ||
+      !rulesetVersion ||
+      !scoreVersion ||
+      !gameCompatVersion ||
+      !ghostVersion ||
       !Number.isSafeInteger(opensAtMs) ||
       !Number.isSafeInteger(closesAtMs) ||
       closesAtMs <= opensAtMs
@@ -445,11 +460,21 @@ async function inventoryBoards(boards, observedAtMs) {
       malformedCount += 1;
       continue;
     }
-    const expectedId = buildManagedBoardId({ mode, levelId, windowId });
-    if (board.id !== expectedId || board.data.boardId !== expectedId) {
+    const expectedId = buildManagedBoardId({
+      mode,
+      levelId,
+      windowId,
+      rulesetVersion,
+      scoreVersion,
+      gameCompatVersion,
+      ghostVersion,
+    });
+    const legacyId = buildLegacyManagedBoardId({ mode, levelId, windowId });
+    if (board.id === legacyId && board.data.boardId === legacyId) {
+      legacyIdCount += 1;
+    } else if (board.id !== expectedId || board.data.boardId !== expectedId) {
       idMismatchCount += 1;
     }
-    const key = board.data.boardKey;
     if (
       !isObject(key) ||
       key.mode !== mode ||
@@ -478,9 +503,12 @@ async function inventoryBoards(boards, observedAtMs) {
       expiredCount += 1;
     } else {
       activeNowCount += 1;
+      activeNowGameCompatVersionCounts[gameCompatVersion] =
+        (activeNowGameCompatVersionCounts[gameCompatVersion] ?? 0) + 1;
     }
   }
 
+  const provisioningConfig = resolveBoardProvisioningConfig();
   const expectedIds = new Set();
   for (const mode of ["competitive", "weekly"]) {
     const levels = mode === "competitive" ? ["field", "forest"] : ["field"];
@@ -493,6 +521,10 @@ async function inventoryBoards(boards, observedAtMs) {
             mode,
             levelId,
             windowId: window.windowId,
+            rulesetVersion: provisioningConfig.rulesetVersion,
+            scoreVersion: provisioningConfig.scoreVersion,
+            gameCompatVersion: provisioningConfig.gameCompatVersion,
+            ghostVersion: provisioningConfig.ghostVersion,
           }),
         );
       }
@@ -504,16 +536,29 @@ async function inventoryBoards(boards, observedAtMs) {
     boardCount: boards.length,
     malformedCount,
     idMismatchCount,
+    legacyIdCount,
     keyMismatchCount,
     windowMismatchCount,
     activeNowCount,
     upcomingCount,
     expiredCount,
+    gameCompatVersionCounts: sortRecord(gameCompatVersionCounts),
+    activeNowGameCompatVersionCounts: sortRecord(
+      activeNowGameCompatVersionCounts,
+    ),
     expectedCurrentAndNextCount: expectedIds.size,
     missingExpectedCurrentOrNextCount: [...expectedIds].filter(
       (id) => !actualIds.has(id),
     ).length,
   };
+}
+
+function buildLegacyManagedBoardId({ mode, levelId, windowId }) {
+  const sanitize = (value) => {
+    const token = value.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+    return token.length === 0 ? "unknown" : token;
+  };
+  return `board_${mode}_${sanitize(windowId)}_${sanitize(levelId)}`;
 }
 
 async function inventoryRuns(
@@ -531,6 +576,28 @@ async function inventoryRuns(
   const runById = new Map(runSessions.map((doc) => [doc.id, doc]));
   const grantById = new Map(rewardGrants.map((doc) => [doc.id, doc]));
   const stateCounts = countBy(runSessions, (doc) => asString(doc.data.state) ?? "<missing>");
+  const gameCompatVersionCounts = countBy(
+    runSessions,
+    (doc) =>
+      (isObject(doc.data.runTicket) &&
+        asString(doc.data.runTicket.gameCompatVersion)) ||
+      "<missing>",
+  );
+  const activeStates = new Set([
+    "issued",
+    "uploading",
+    "uploaded",
+    "pending_validation",
+    "validating",
+    "settlement_pending",
+  ]);
+  const activeGameCompatVersionCounts = countBy(
+    runSessions.filter((doc) => activeStates.has(asString(doc.data.state))),
+    (doc) =>
+      (isObject(doc.data.runTicket) &&
+        asString(doc.data.runTicket.gameCompatVersion)) ||
+      "<missing>",
+  );
   const grantStateCounts = countBy(
     rewardGrants,
     (doc) => asString(doc.data.lifecycleState) ?? "<missing>",
@@ -693,6 +760,10 @@ async function inventoryRuns(
   return {
     sessionCount: runSessions.length,
     sessionStateCounts: stateCounts,
+    gameCompatVersionCounts: sortRecord(gameCompatVersionCounts),
+    activeGameCompatVersionCounts: sortRecord(
+      activeGameCompatVersionCounts,
+    ),
     identityMismatchCount,
     invalidTicketTimeCount,
     futureTicketCount,
@@ -908,6 +979,12 @@ function countBy(values, keyOf) {
     Object.entries(counts).sort(([left], [right]) =>
       left.localeCompare(right),
     ),
+  );
+}
+
+function sortRecord(record) {
+  return Object.fromEntries(
+    Object.entries(record).sort(([left], [right]) => left.localeCompare(right)),
   );
 }
 
