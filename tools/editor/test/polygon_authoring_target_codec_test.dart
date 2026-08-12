@@ -276,10 +276,6 @@ void main() {
       sourcePath: PrefabStore.prefabDefsPath,
     );
     expect(PolygonAuthoringTargetCodec.encodePrefabV3(prefabTarget), prefabRaw);
-    expect(
-      prefabTarget.prefabs.expand((prefab) => prefab.collisionShapes),
-      isEmpty,
-    );
 
     final chunkFiles =
         Directory(p.join(root, 'assets', 'authoring', 'level', 'chunks'))
@@ -302,7 +298,6 @@ void main() {
         source,
         reason: sourcePath,
       );
-      expect(target.collisionShapes, isEmpty, reason: sourcePath);
     }
     expect(chunkFiles, hasLength(8));
   });

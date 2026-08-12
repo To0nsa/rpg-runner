@@ -22,6 +22,27 @@ import 'package:runner_editor/src/terrain_authoring/terrain_source_models.dart';
 import 'package:runner_editor/src/workspace/editor_workspace.dart';
 
 void main() {
+  test('new direct chunk shapes use the solid ID family', () async {
+    final harness = await _buildHarness();
+    final controller = harness.authoring;
+
+    controller.beginCreatePolygon();
+    expect(controller.state.draft!.shapeId, 'solid_001');
+    for (final point in const <TerrainPolygonScenePoint>[
+      TerrainPolygonScenePoint(120, 20),
+      TerrainPolygonScenePoint(140, 20),
+      TerrainPolygonScenePoint(140, 40),
+    ]) {
+      controller.addDraftVertex(point);
+    }
+
+    expect(controller.saveDraft(), isTrue);
+    expect(
+      controller.chunk.collisionShapes.map((shape) => shape.shapeId),
+      containsAll(<String>['ground_001', 'solid_001']),
+    );
+  });
+
   test(
     'preview stays local and one accepted gesture creates one session edit',
     () async {

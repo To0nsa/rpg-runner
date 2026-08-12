@@ -12,6 +12,11 @@ performance tests cannot: can a person who did not implement polygon
 authoring complete the normal Prefab-v3 and Chunk-v2 workflows without editing
 JSON or Dart?
 
+It validates authoring and deterministic source round-tripping, not the final
+player-facing terrain renderer. The scene's polygon fill is authoring evidence;
+runtime polygon collision, material fill, and foreground masks are Phase 5/6
+work.
+
 The tester must not receive step-by-step help while operating a control. They
 may use this document and the labels/instructions visible in the editor. If a
 maintainer has to explain an unlabeled action, record that as a usability
@@ -114,12 +119,15 @@ opened manually.
 1. Open the Chunk Creator, select the `field` level and `field_flat` owner.
 2. Repeat the two-vertex invalid-Save check, then cancel it.
 3. Create a small orthogonal solid draft fully inside the Chunk bounds and away
-   from both horizontal Chunk seams. Undo/Redo one placed vertex, move another,
-   and insert one on an open edge. Confirm each keyboard command changes only
-   one draft vertex and these remain local draft edits.
+   from both horizontal Chunk seams, with its top at or above the `field`
+   level's 224px ground line. Undo/Redo one placed vertex, move another, and
+   insert one on an open edge. Confirm each keyboard command changes only one
+   draft vertex and these remain local draft edits.
 4. Confirm Place vertex, Move vertex, and Insert vertex remain available during
    creation, then choose **Save** and verify exactly one source-history entry
-   is created.
+   is created. Confirm the saved direct shape uses a `solid_` ID; `ground_`
+   remains reserved for migrated bottom-band terrain while the legacy bridge is
+   active.
 5. Choose **New rectangle**, drag between two opposite corners within the Chunk
    bounds, and confirm a closed four-vertex draft appears. Cancel it and
    confirm the saved direct polygon remains unchanged.

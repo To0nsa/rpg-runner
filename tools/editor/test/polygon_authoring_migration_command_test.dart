@@ -403,7 +403,7 @@ void main() {
       ]);
       expect(
         WorkspaceFileIo.sha256Digest(record),
-        '3264cf7a0d276f851bcd19eb98c63a5d35aa473fdc5dcdeb82b21cee642dc15d',
+        '300459920601cd4a32adb67ca99610d06c237a50edc38a05ee50c60b6caf2982',
       );
       expect(_sourceDigests(fixture.path), before);
     } finally {

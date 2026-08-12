@@ -970,7 +970,10 @@ final class TerrainPolygonInteractionReducer {
     }
     final source = _requireShape(state.shapes, selection.shapeId);
     final duplicate = TerrainSourceShapeDef(
-      shapeId: _allocateShapeId(state.shapes),
+      shapeId: _allocateShapeId(
+        state.shapes,
+        prefix: _sourceShapeIdPrefix(source.shapeId),
+      ),
       vertices: source.vertices.map(
         (vertex) => TerrainSourceVertexDef(
           xHalfPixels: vertex.xHalfPixels + deltaXHalfPixels,
@@ -1217,13 +1220,28 @@ final class TerrainPolygonInteractionReducer {
     diagnostics: diagnostics,
   );
 
-  String _allocateShapeId(Iterable<TerrainSourceShapeDef> shapes) {
+  String _allocateShapeId(
+    Iterable<TerrainSourceShapeDef> shapes, {
+    String? prefix,
+  }) {
     final used = shapes.map((shape) => shape.shapeId.toLowerCase()).toSet();
+    final resolvedPrefix = prefix ?? shapeIdPrefix;
     for (var ordinal = 1; ; ordinal++) {
       final candidate =
-          '${shapeIdPrefix}_${ordinal.toString().padLeft(3, '0')}';
+          '${resolvedPrefix}_${ordinal.toString().padLeft(3, '0')}';
       if (!used.contains(candidate.toLowerCase())) return candidate;
     }
+  }
+
+  String _sourceShapeIdPrefix(String shapeId) {
+    final separator = shapeId.lastIndexOf('_');
+    if (separator <= 0 || separator == shapeId.length - 1) {
+      return shapeIdPrefix;
+    }
+    final suffix = shapeId.substring(separator + 1);
+    return int.tryParse(suffix) == null
+        ? shapeIdPrefix
+        : shapeId.substring(0, separator);
   }
 
   String _shapeSourcePath(String shapeId) => '$sourcePath:$ownerKey:$shapeId';
