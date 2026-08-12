@@ -148,9 +148,10 @@ class TrackManager {
        _restorationItemTuning = restorationItemTuning,
        _baseGeometry = baseGeometry,
        _surfaceGraphBuilder = surfaceGraphBuilder,
-       _enemyJumpTemplatesById = Map<EnemyId, JumpReachabilityTemplate>.unmodifiable(
-         enemyJumpTemplatesById,
-       ),
+       _enemyJumpTemplatesById =
+           Map<EnemyId, JumpReachabilityTemplate>.unmodifiable(
+             enemyJumpTemplatesById,
+           ),
        _enemyNavigationSystem = enemyNavigationSystem,
        _groundEnemyLocomotionSystem = groundEnemyLocomotionSystem,
        _spawnService = spawnService,
@@ -249,6 +250,10 @@ class TrackManager {
   /// Immutable snapshot of authored static prefab visual sprites.
   List<StaticPrefabSpriteSnapshot> get staticPrefabSpritesSnapshot =>
       _staticPrefabSpritesSnapshot;
+
+  /// Current canonical scheduler selections for staged terrain binding.
+  List<ActiveTrackChunkSnapshot> get activeChunks =>
+      _trackStreamer?.activeChunks ?? const <ActiveTrackChunkSnapshot>[];
 
   /// Resolves the effective render theme id.
   ///
@@ -419,7 +424,8 @@ class TrackManager {
     );
 
     final graphsByEnemy = <EnemyId, SurfaceGraph>{
-      for (final entry in graphResultsByEnemy.entries) entry.key: entry.value.graph,
+      for (final entry in graphResultsByEnemy.entries)
+        entry.key: entry.value.graph,
     };
 
     // Distribute per-enemy graphs to the AI systems. All graph variants share

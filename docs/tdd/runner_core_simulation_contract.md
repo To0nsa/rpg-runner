@@ -58,7 +58,7 @@ order; the contract below records the dependencies that must survive changes.
 
 | Order | Contractual phase | Dependency |
 | --- | --- | --- |
-| 1 | Stream/cull track, publish any complete harness terrain bundle, and prepare motion | No consumer may observe mixed terrain/index/surface/graph versions; AI receives validated prior support. |
+| 1 | Stream/cull track, replace the complete staged render candidate when selection changes, publish any complete harness terrain bundle, and prepare motion | No consumer may observe a partial candidate or mixed terrain/index/surface/graph versions; AI receives validated prior support. |
 | 2 | Decrement timers and refresh control locks, ability phases, and hold/charge state | Input activation must observe current timer, ability, and control state. |
 | 3 | Resolve AI, ability activation, jump, movement, mobility, gravity, and collision | Intent is composed before every terrain-owned dynamic actor is integrated exactly once. |
 | 4 | Update distance, camera, and terminal fall conditions | Camera-dependent culling, pickups, and run termination use final motion state. |
@@ -100,8 +100,14 @@ TDD for the staged boundary and direct-cutover requirements.
 A harness replacement is built completely before queueing and becomes visible
 only at the next preparation boundary. It cannot be queued mid-integration,
 and motion rejects support from any version other than the published bundle.
-Normal `TrackManager` graph publication and replay construction remain legacy
-through Phase 3.
+Normal `TrackManager` collision/graph publication remains legacy pending the
+direct authority cutover. Streaming-enabled normal and replay construction do
+admit the generated staged artifact, bind the scheduler's exact active chunk
+selection, and replace one complete collision/navigation/render candidate
+after each spawn/cull rebuild. Only that candidate's immutable render snapshot
+is public at this stage; it does not yet change simulation outcomes. A custom
+legacy-only selection with no authored `chunkKey` publishes no staged snapshot
+and never substitutes an unrelated generated record.
 
 Track streaming and procedural item generation retain their established Phase
 1/prewarm order. Marker rolls remain keyed by seed, chunk, marker index, and
@@ -129,12 +135,14 @@ events through `GameCore.drainEvents`.
 - `RunEndedEvent` is the terminal gameplay result used by client flow and
   replay validation.
 
-The normal legacy world reports no staged terrain render data. The isolated
-terrain harness may queue a fully constructed staged candidate; its exact
-collision/navigation bundle and its `StagedTerrainRenderSnapshot` become
-visible together only at the next preparation boundary. This read-only
-snapshot output does not alter commands, replay serialization, or normal
-runtime selection.
+Streaming-enabled normal and replay construction expose the selected staged
+candidate's `StagedTerrainRenderSnapshot`; track-disabled legacy fixtures leave
+it null. A legacy-only custom source with an anonymous active chunk also leaves
+it null. Normal motion still uses the legacy collision and graph projection.
+The isolated terrain harness may queue a fully constructed staged candidate;
+its exact collision/navigation bundle and render snapshot become visible
+together only at the next preparation boundary. This read-only snapshot output
+does not alter commands, replay serialization, or simulation outcomes.
 
 Any snapshot/event shape or semantic change requires consumer updates in the
 same change. If replay acceptance, score, or terminal outcome changes, the

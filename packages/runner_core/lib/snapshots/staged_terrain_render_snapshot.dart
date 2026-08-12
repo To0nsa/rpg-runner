@@ -54,9 +54,10 @@ final class StagedTerrainPolygonRenderSnapshot {
 
 /// Complete immutable render candidate sharing one Core geometry version.
 ///
-/// This remains separate from [GameStateSnapshot] until the Phase 5 streamer
-/// replaces legacy runtime geometry. Its [geometryVersion] must match the
-/// collision/support/navigation bundle selected for the same tick boundary.
+/// [GameStateSnapshot] exposes this whole object for normal staged rendering
+/// and terrain-harness publication. Its [geometryVersion] matches the
+/// candidate's collision/support/navigation bundle even while normal gameplay
+/// still uses the legacy motion authority during cutover.
 final class StagedTerrainRenderSnapshot {
   StagedTerrainRenderSnapshot({
     required this.geometryVersion,

@@ -88,6 +88,7 @@ import 'navigation/surface_navigator.dart';
 import 'navigation/surface_pathfinder.dart';
 import 'navigation/terrain_runtime_bundle.dart';
 import 'navigation/terrain_spawn_placement.dart';
+import 'navigation/types/terrain_surface_graph.dart';
 import 'navigation/utils/jump_template.dart';
 import 'navigation/utils/standability.dart';
 import 'navigation/utils/trajectory_predictor.dart';
@@ -106,6 +107,8 @@ import 'spawn_service.dart';
 import 'progression/run_rewards.dart';
 import 'track_manager.dart';
 import 'track/chunk_pattern.dart' show SpawnPlacementMode;
+import 'track/staged_authored_terrain.dart';
+import 'track/staged_terrain_catalog.dart';
 import 'track/staged_terrain_stream_candidate.dart';
 import 'track/track_streamer.dart' show EnemySpawnRequestSource;
 import 'weapons/weapon_catalog.dart';
@@ -287,22 +290,26 @@ class GameCore {
       EnemyId.grojib: _buildGroundEnemyJumpTemplate(EnemyId.grojib),
       EnemyId.hashash: _buildGroundEnemyJumpTemplate(EnemyId.hashash),
     };
+    _groundEnemyTerrainGraphProfiles = buildGroundEnemyTerrainGraphProfiles(
+      enemyCatalog: _enemyCatalog,
+      jumpTemplatesById: _groundEnemyJumpTemplatesById,
+      locomotionSpeedTicksPerSecond: physicsCoordinateToTicks(
+        _groundEnemyTuning.locomotion.speedX,
+        name: 'groundEnemyLocomotionSpeed',
+      ),
+      simulationTicksPerSecond: tickHz,
+    );
     final terrainGeometry = _terrainHarnessGeometry;
+    _stagedTerrainCatalog = terrainGeometry == null && _trackTuning.enabled
+        ? StagedTerrainArtifactCatalog(artifact: stagedAuthoredTerrain)
+        : null;
     _worldMotionAuthority = terrainGeometry == null
         ? LegacyWorldMotionAuthority()
         : TerrainMultiBodyWorldMotionAuthority(
             geometry: terrainGeometry,
             playerProfile: _playerArchetype.terrainTraversalProfile,
             enemyCatalog: _enemyCatalog,
-            groundEnemyGraphProfiles: buildGroundEnemyTerrainGraphProfiles(
-              enemyCatalog: _enemyCatalog,
-              jumpTemplatesById: _groundEnemyJumpTemplatesById,
-              locomotionSpeedTicksPerSecond: physicsCoordinateToTicks(
-                _groundEnemyTuning.locomotion.speedX,
-                name: 'groundEnemyLocomotionSpeed',
-              ),
-              simulationTicksPerSecond: tickHz,
-            ),
+            groundEnemyGraphProfiles: _groundEnemyTerrainGraphProfiles,
           );
 
     // ─── Initialize ECS world and entity factory ───
@@ -816,6 +823,8 @@ class GameCore {
   late final SurfaceGraphBuilder _surfaceGraphBuilder;
   late final Map<EnemyId, JumpReachabilityTemplate>
   _groundEnemyJumpTemplatesById;
+  late final List<TerrainSurfaceGraphBuildProfile>
+  _groundEnemyTerrainGraphProfiles;
   late final SurfacePathfinder _surfacePathfinder;
   late final SurfaceNavigator _surfaceNavigator;
   late final AbilityActivationSystem _abilityActivationSystem;
@@ -837,6 +846,11 @@ class GameCore {
 
   /// Track streaming, geometry lifecycle, navigation updates.
   late final TrackManager _trackManager;
+
+  /// Admitted generated terrain selected by the normal legacy scheduler.
+  late final StagedTerrainArtifactCatalog? _stagedTerrainCatalog;
+  StagedTerrainStreamCandidate? _stagedTerrainCandidate;
+  int _nextStagedTerrainGeometryVersion = 1;
 
   /// ECS → render snapshot conversion.
   late SnapshotBuilder _snapshotBuilder;
@@ -1596,7 +1610,7 @@ class GameCore {
   ///
   /// This is extracted from [stepOneTick] to keep the main loop readable.
   void _stepTrackManager() {
-    _trackManager.step(
+    final result = _trackManager.step(
       currentTick: tick,
       cameraLeft: _camera.left(),
       cameraRight: _camera.right(),
@@ -1682,6 +1696,22 @@ class GameCore {
       },
       lowestResourceStat: _lowestResourceStat,
     );
+    final catalog = _stagedTerrainCatalog;
+    if (catalog != null && result.geometryChanged) {
+      final activeChunks = _trackManager.activeChunks;
+      if (activeChunks.any((chunk) => chunk.chunkKey == null)) {
+        _stagedTerrainCandidate = null;
+        return;
+      }
+      _stagedTerrainCandidate = const StagedTerrainStreamCandidateBuilder()
+          .build(
+            catalog: catalog,
+            activeChunks: activeChunks,
+            geometryVersion: _nextStagedTerrainGeometryVersion,
+            groundEnemyProfiles: _groundEnemyTerrainGraphProfiles,
+          );
+      _nextStagedTerrainGeometryVersion += 1;
+    }
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -1983,7 +2013,9 @@ class GameCore {
       staticSolids: _trackManager.staticSolidsSnapshot,
       groundSurfaces: _trackManager.groundSurfacesSnapshot,
       staticPrefabSprites: _trackManager.staticPrefabSpritesSnapshot,
-      stagedTerrainRenderSnapshot: _worldMotionAuthority.terrainRenderSnapshot,
+      stagedTerrainRenderSnapshot:
+          _worldMotionAuthority.terrainRenderSnapshot ??
+          _stagedTerrainCandidate?.renderSnapshot,
     );
   }
 }

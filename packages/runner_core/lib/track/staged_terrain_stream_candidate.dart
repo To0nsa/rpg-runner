@@ -16,8 +16,9 @@ import 'track_streamer.dart';
 ///
 /// [runtimeBundle] and [renderSnapshot] share the exact [geometry] object and
 /// [geometryVersion]. The class has no tick scheduling or gameplay side
-/// effect; a future `TrackManager` integration must replace this whole
-/// candidate through one tick-boundary reference write.
+/// effect. Normal streaming replaces this whole candidate whenever the legacy
+/// scheduler's active selection changes; terrain authority publication retains
+/// the same whole-candidate boundary.
 final class StagedTerrainStreamCandidate {
   StagedTerrainStreamCandidate._({
     required this.bindings,
@@ -62,9 +63,9 @@ final class StagedTerrainStreamCandidateBuilder {
 
   /// Assembles all consumer outputs from the real active scheduler selection.
   ///
-  /// No result is installed into `TrackManager`, `GameCore`, or a renderer.
   /// Errors from admission, binding, geometry, graphs, or generated triangles
-  /// prevent creation of the entire candidate.
+  /// prevent creation of the entire candidate before `GameCore` can publish
+  /// its render snapshot or a terrain authority can consume its bundle.
   StagedTerrainStreamCandidate build({
     required StagedTerrainArtifactCatalog catalog,
     required Iterable<ActiveTrackChunkSnapshot> activeChunks,

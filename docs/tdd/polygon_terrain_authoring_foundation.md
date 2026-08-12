@@ -30,9 +30,11 @@ reauthoring is underway:
   compatibility projection retains the representable flat-ground behavior;
   direct polygon runtime authority and Flame material rendering remain Phase 5
   integration work
-- the normal generator registers the staged Dart artifact as its sixth output,
-  while Flame and normal Core/replay construction have no terrain consumer;
-  the isolated terrain harness may publish an admitted staged candidate's
+- the normal generator registers the staged Dart artifact as its sixth output;
+  normal Core/replay construction now admits it and publishes a complete
+  render candidate whenever the existing scheduler selection changes, while
+  collision remains legacy and Flame consumption is still pending; the
+  isolated terrain harness may publish an admitted staged candidate's
   immutable Core render snapshot alongside its collision/navigation bundle;
   that snapshot retains exact source-lineage collision edges for later render
   diagnostics without reconstructing them from polygon loops

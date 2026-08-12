@@ -42,6 +42,35 @@ void _expectGroundSurfacesEqual(GameCore a, GameCore b) {
   }
 }
 
+void _expectStagedTerrainEqual(GameCore a, GameCore b) {
+  final left = a.buildSnapshot().stagedTerrainRenderSnapshot;
+  final right = b.buildSnapshot().stagedTerrainRenderSnapshot;
+  expect(left, isNotNull);
+  expect(right, isNotNull);
+  expect(right!.geometryVersion, left!.geometryVersion);
+  expect(right.polygons.length, left.polygons.length);
+  expect(right.edges.length, left.edges.length);
+  for (var index = 0; index < left.polygons.length; index += 1) {
+    final expected = left.polygons[index];
+    final actual = right.polygons[index];
+    expect(actual.sourceId, expected.sourceId);
+    expect(actual.vertices, expected.vertices);
+    expect(actual.triangles.length, expected.triangles.length);
+    for (
+      var triangleIndex = 0;
+      triangleIndex < expected.triangles.length;
+      triangleIndex += 1
+    ) {
+      final expectedTriangle = expected.triangles[triangleIndex];
+      final actualTriangle = actual.triangles[triangleIndex];
+      expect(actualTriangle.first, expectedTriangle.first);
+      expect(actualTriangle.second, expectedTriangle.second);
+      expect(actualTriangle.third, expectedTriangle.third);
+    }
+    expect(actual.materialKey, expected.materialKey);
+  }
+}
+
 void main() {
   test('track streaming is deterministic and stays bounded (culling)', () {
     const seed = 12345;
@@ -69,6 +98,8 @@ void main() {
       seed: seed,
       playerCharacter: playerCharacter,
     );
+    _expectStagedTerrainEqual(a, b);
+    expect(a.buildSnapshot().stagedTerrainRenderSnapshot!.polygons, isNotEmpty);
 
     // Always move right so the player stays in view and the camera keeps advancing.
     const ticks =
@@ -85,6 +116,7 @@ void main() {
       if (t % 20 == 0) {
         _expectSolidsEqual(a, b);
         _expectGroundSurfacesEqual(a, b);
+        _expectStagedTerrainEqual(a, b);
       }
 
       final solids = a.buildSnapshot().staticSolids.length;

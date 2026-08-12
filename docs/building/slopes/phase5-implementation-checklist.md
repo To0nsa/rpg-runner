@@ -1,6 +1,6 @@
 # Slopes Phase 5 - Streaming, Rendering, And Runtime Integration Checklist
 
-- Status: Foundation in progress; normal runtime remains legacy
+- Status: Normal render handoff integrated; collision authority remains legacy
 - Source plan: [plan.md](plan.md)
 - Prerequisite: Phase 4 current-schema cutover and its recorded
   [manual usability pass](phase4-manual-usability-pass.md)
@@ -103,6 +103,13 @@ workflow except where an already-public Core output needs a read-only consumer.
 - [x] `field_flat` replaces the temporary manual floating rectangle with the
       same canonical full-width `ground_001` band, so every currently
       schedulable chunk has continuous baseline support for runtime cutover.
+- [x] Normal streaming admits the generated artifact once, binds the existing
+      scheduler's exact active selection after every spawn/cull rebuild, and
+      atomically replaces one complete staged candidate. `GameStateSnapshot`
+      now exposes that candidate's compiler-owned polygons, triangles, and
+      diagnostic edges while legacy collision remains active for Phase 6.
+      Anonymous custom legacy chunks publish no staged candidate and never
+      fall back to unrelated generated geometry.
 
 ## 3) Implementation Order
 

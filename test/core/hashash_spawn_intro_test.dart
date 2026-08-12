@@ -48,6 +48,7 @@ void main() {
           .toList();
 
       expect(snapshot.tick, 0);
+      expect(snapshot.stagedTerrainRenderSnapshot, isNull);
       expect(hashash.length, 1);
       expect(hashash.single.pos.x, closeTo(600.0, 1e-9));
       expect(hashash.single.anim, AnimKey.spawn);
