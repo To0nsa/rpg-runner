@@ -89,9 +89,11 @@ Out of scope:
 - moving/rotating/deformable/destructible terrain
 - curves, splines, holes, non-uniform scale, or arbitrary placement rotation
 - per-instance prefab vertex overrides in the Chunk Creator
-- actor/entity collider authoring changes; world-contact capsules continue to
-  derive from the accepted entity AABB source while combat bounds remain AABB
-- combat/pickup/trigger collider migration from AABBs
+- actor/entity collider authoring changes; this Phase 4 scope kept the accepted
+  entity AABB source. The later capsule-target combat migration now previews
+  its derived runtime capsule without adding a second authoring schema
+- combat/pickup/trigger collider migration from AABBs in this Phase 4 scope;
+  actor combat was subsequently migrated by the capsule-target combat plan
 - replay protocol/version issuance and deployment rollout
 
 The editor may preview accepted Core geometry and actor slope eligibility, but

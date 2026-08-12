@@ -57,8 +57,9 @@ At Phase 2 acceptance:
   and snap pipeline
 - one-way, endpoint, corner, seam, and slope-limit rules are deterministic
 - Éloïse and Éloïse WIP pass the accepted player scenario matrix
-- derived AABBs remain exact for combat, pickups, broad phase, culling, and
-  render bounds
+- derived AABBs remain exact for pickups, broad phase, culling, and render
+  bounds; the later combat migration keeps that AABB only for candidate lookup
+  and confirms actor targets with the capsule
 - jump, dash/roll, knockback, distance, camera, death, animation, projectile,
   targeting, snapshot, and replay implications have executable evidence or an
   explicit later-phase disposition
@@ -292,8 +293,9 @@ derived AABB half extents = (10.3, 23.0)
       without accumulating the authored offset into body position.
 - [x] Validate finite offsets, positive radius, non-negative half-segment, and
       checked physics-grid conversion in release mode.
-- [x] Make the AABB a named derived broad-phase/combat bound, not an
-      authoritative terrain-contact shape.
+- [x] Make the AABB a named derived broad-phase bound, not an authoritative
+      terrain-contact or combat narrow-phase shape. (Combat target confirmation
+      was migrated to the capsule after this Phase 2 milestone.)
 - [x] Derive the AABB from the capsule in one place and prove exact equality to
       the existing player catalog values.
 - [x] Keep separately authored ability hitboxes and projectile/pickup AABBs
@@ -733,7 +735,8 @@ Freeze the Phase 2 harness order:
 | camera | reads final player transform; vertical mode behavior remains authored |
 | pit death | harness uses absolute `killPlaneY`, never terrain height under player |
 | behind-camera death | keeps the derived AABB right-bound rule |
-| pickups/combat broad phase | keeps derived AABB overlap |
+| pickups | keeps derived AABB overlap |
+| combat broad phase | indexes the capsule's tight AABB; exact target confirmation uses the capsule |
 | caster/melee/projectile origin | preserves explicit offsets and derived-AABB fallback |
 | projectile world collision | remains on its classified legacy policy; never capsule-routed accidentally |
 | animation | final support selects ground/air; locomotion loop uses resolved support distance |
@@ -903,7 +906,9 @@ explicitly non-applicable until a real player ground-target ability exists.
 
 ## 18) Projectile, Combat, Pickup, And Ability Audit
 
-- [x] Prove the capsule-derived AABB remains the player combat/trigger bound.
+- [x] Prove the capsule-derived AABB remains the player combat/trigger bound at
+      the Phase 2 boundary. The later capsule-target migration narrowed this to
+      combat broad phase plus unchanged trigger behavior.
 - [x] Prove broad-phase target ordering is unchanged.
 - [x] Prove melee, projectile, and hitbox origin fallback values are unchanged.
 - [x] Prove pickup and restoration overlap behavior is unchanged on equivalent

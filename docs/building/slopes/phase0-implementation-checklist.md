@@ -109,8 +109,9 @@ requires updating and re-accepting the source plan:
 - [x] Runtime static-world collision is performed against compiled terrain
       edges/segments.
 - [x] Player and world-colliding actors use upright kinematic capsules.
-- [x] Derived AABBs remain available for broad phase, combat overlap, triggers,
-      culling, and debug use where appropriate.
+- [x] Derived AABBs remain available for broad phase, triggers, culling, and
+      debug use where appropriate. Phase 0's AABB combat-overlap baseline was
+      subsequently replaced by capsule target confirmation.
 - [x] Collision, support lookup, navigation, spawning, and rendering derive from
       one canonical geometry source.
 - [x] The final production migration is a direct authority cutover with legacy

@@ -96,8 +96,10 @@ grounded state. Derf's traversal object exists for common clearance and slope
 eligibility queries, not dynamic motion.
 
 Facing mirrors only capsule `offsetX`. Radius, vertical spine, `offsetY`, and
-derived AABB extents remain unchanged. Combat, pickup, broad-phase, culling,
-and rendering continue to consume the catalog AABB.
+derived AABB extents remain unchanged. Actor combat uses the capsule as its
+exact target shape; its tight derived AABB is only the combat broad-phase
+enclosure. Pickups, culling, projectile-terrain collision, and rendering keep
+their explicit AABB behavior.
 
 ## Canonical Shared Surface Set
 

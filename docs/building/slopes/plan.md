@@ -70,8 +70,9 @@ After this plan is implemented:
   from those polygons
 - player and world-colliding enemy bodies use upright capsule colliders for
   static-world contact
-- AABBs remain available as derived broad-phase, combat-overlap, culling, and
-  renderer-debug bounds where an AABB is still the correct representation
+- AABBs remain available as derived broad-phase, culling, and renderer-debug
+  bounds where an AABB is still the correct representation; actor combat
+  confirms broad-phase candidates against the same authoritative capsule
 - player and ground enemies traverse allowed slopes without jitter, corner
   snagging, unwanted airborne ticks, or discontinuities at chunk seams
 - steep surfaces behave as walls according to explicit movement profiles
@@ -786,8 +787,9 @@ Review all AI/combat decisions that derive:
 - reachable landing point
 - teleport destination
 
-Combat overlap may continue using derived AABBs where intended, but terrain
-placement and path feasibility must use capsule/edge geometry.
+Combat candidate lookup may use the capsule's tight derived AABB, but actor hit
+confirmation uses attack-capsule versus target-capsule geometry. Terrain
+placement and path feasibility continue to use capsule/edge geometry.
 
 ## 11) Streaming, Spawning, Pickups, And Death Bounds
 

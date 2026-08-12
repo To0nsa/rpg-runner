@@ -67,6 +67,20 @@ order; the contract below records the dependencies that must survive changes.
 | 7 | Resolve projectile/hitbox/mobility/world hits, then status and damage | Damage middleware changes queued damage before application; reactive effects follow applied damage. |
 | 8 | Apply queued statuses and visual cues, process deaths, regen, animation, and cleanup | Death is resolved before regen/cleanup; animation reflects final gameplay state for the tick. |
 
+Combat spatial lookup has a two-stage deterministic contract. During phase 5,
+`DamageableTargetCache` requires every live damageable actor to have faction,
+transform, authored collider, and `WorldContactCapsuleStore` state. It resolves
+the facing-aware quantized capsule once and derives the spatial-grid AABB from
+those exact endpoints and radius. Missing capsule state is an invalid world
+composition and fails rather than falling back to a rectangle.
+
+During phase 7, melee/area hitboxes, projectiles, and mobility impacts query
+that AABB grid only for candidates. `HitResolver` preserves stable entity-ID
+ordering and owner/faction filters, then confirms attack capsule versus target
+capsule. Tangency is inclusive; overlap limited to an enclosing AABB corner is
+not a hit. This shape change does not move a phase or change hit-once,
+piercing, source-attribution, status, or damage-queue ordering.
+
 Every `GameCore` construction owns polygon terrain. Normal streamed
 construction performs the scheduler prewarm, installs the multi-body capsule
 authority from that exact admitted candidate before player placement, and

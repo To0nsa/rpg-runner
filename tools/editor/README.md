@@ -16,7 +16,8 @@ flutter run -d windows
 
 Implemented authoring domains:
 
-- entity collider/source-bound authoring for players, enemies, and projectiles
+- entity collider/source-bound authoring for players, enemies, and projectiles,
+  with runtime-faithful capsule and broad-phase previews
 - prefab (obstacle/platform/decoration), tile-slice, platform-module, and exact
   half-pixel polygon-collision authoring, including tagged atlas/tile slices
   and searchable slice selection
@@ -36,6 +37,24 @@ Editor foundations shared across those domains:
 - undo/redo history for entity edits, chunk edits, and committed prefab/module edits
 - shared pan/zoom scene controls, inspector forms, and deterministic export summaries
 
+## Entity Collider Preview
+
+The entity scene presents combat geometry using the runtime field meanings:
+
+- players and enemies show their upright capsule as the primary outline and
+  its tight enclosing broad-phase AABB as the secondary outline;
+- for actors, `halfX` is capsule radius and `halfY - halfX` is the vertical
+  half-spine; `offsetX` mirrors with facing;
+- projectiles show a canonical horizontal preview of their runtime
+  direction-oriented capsule, where `halfX` is half-spine and `halfY` is
+  radius;
+- actor `halfY < halfX`, non-positive dimensions, and non-finite values are
+  invalid and block export rather than previewing a different runtime shape.
+
+Actor previews call Core's quantized AABB-to-capsule derivation. The editor
+still writes the existing catalog-bound size and offset fields; it does not
+introduce an independent combat-hurtbox schema.
+
 ## Polygon Source And Offline Migration
 
 The checked-in source includes `anvil_00` with one Prefab collision polygon,
@@ -45,11 +64,10 @@ for authoring. Missing Prefab collision is therefore a visible, non-blocking
 authoring warning.
 
 The generator compiles every source polygon into the staged terrain artifact.
-Until Phase 5/6 direct terrain authority, normal gameplay still selects the
-legacy runtime path: representable flat ground/direct solids project to the
-legacy ground/static-solid model. Direct polygon collision, material fill, and
-foreground-mask rendering are being connected through the Phase 5 runtime
-handoff.
+Normal gameplay and replay validation consume that admitted polygon artifact
+through the direct terrain authority. Collision, navigation, placement, and
+render publication share the same streamed candidate; there is no selectable
+legacy rectangle-terrain runtime path.
 
 The normal editor accepts only current Prefab-v3/Chunk-v2 source. Legacy
 Prefab-v1/v2 and Chunk-v1 parsing is isolated to this offline check command:

@@ -342,7 +342,8 @@ See `docs/gdd/combat/status/status_system_design.md`.
 | Store | Purpose |
 |---|---|
 | `TransformStore` | World position/velocity source for hitbox and projectile overlap checks |
-| `ColliderAabbStore` | Collider extents/offsets for spatial hit tests and spawn offsets |
+| `ColliderAabbStore` | Authored collider dimensions plus explicit pickup, culling, spawn-offset, and projectile-terrain AABB behavior |
+| `WorldContactCapsuleStore` | Quantized, facing-aware actor capsule used for exact terrain contact and combat target contact |
 | `CollisionStateStore` | World-collision state used for projectile terrain/wall despawn |
 | `FactionStore` | Friend-or-foe routing for hit filtering (friendly-fire prevention) |
 | `ProjectileStore` | Active projectile damage payload + owner/faction metadata |
@@ -379,6 +380,39 @@ See `docs/gdd/combat/status/status_system_design.md`.
 | `SurfaceNavStateStore` | Ground-enemy path state over traversable surfaces for deterministic pursuit |
 | `GroundEnemyChaseOffsetStore` | Deterministic per-enemy chase offset/speed variation to reduce enemy stacking |
 | `FlyingEnemySteeringStore` | Deterministic hover/steering state for airborne enemies during combat positioning |
+
+## Combat Contact Geometry
+
+Actor damage contact uses a broad phase followed by an exact narrow phase:
+
+```text
+target capsule -> tight enclosing AABB -> spatial-grid candidates
+attack capsule --------------------------> exact capsule/capsule confirmation
+```
+
+The spatial grid is conservative acceleration only. Its AABB is derived from
+the same quantized, facing-aware target capsule used by the narrow phase, so it
+cannot omit a real contact. An attack that overlaps only an empty corner of
+that rectangle does not land. Capsule tangency does land.
+
+Current damaging shapes are:
+
+| Producer | Attack shape | Target shape |
+|---|---|---|
+| Melee/area hitbox | Direction-oriented capsule (`halfX` spine, `halfY` radius) | Upright actor capsule |
+| Projectile | Travel-direction capsule (`halfX` spine, `halfY` radius) | Upright actor capsule |
+| Mobility impact | Source actor's upright capsule | Upright actor capsule |
+
+`WorldContactCapsuleStore` is the single player/enemy hurt-shape source. The
+capsule is derived from the existing catalog fields: `halfX` is its radius and
+`halfY - halfX` is its vertical half-spine. The authored horizontal offset is
+mirrored with actor facing. A live damageable actor without this capsule is an
+invalid Core composition; combat does not silently substitute an AABB.
+
+Candidate indices are sorted by stable entity ID before exact confirmation.
+Owner and allied-faction exclusion, hit-once policies, piercing limits,
+mobility hit policies, damage attribution, and queue order remain independent
+of the spatial representation.
 
 ## Combat Tick Order
 

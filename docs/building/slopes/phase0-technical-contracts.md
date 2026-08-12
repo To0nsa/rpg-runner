@@ -318,9 +318,11 @@ tuning, not hidden solver exceptions.
 - Derf: kinematic upright capsule used for clearance and overlap, not
   integrated motion
 - ballistic projectiles: one integration owner with an authored swept circle
-  world shape; derived AABB remains combat/render broad phase
+  world shape; derived AABB remains terrain/render broad phase
 - non-physics projectiles: no implicit terrain contact
-- pickups, restoration items, combat hitboxes, and triggers: AABB overlap only
+- pickups, restoration items, and triggers: AABB overlap only
+- combat hitboxes/projectiles: authored direction-oriented attack capsules;
+  target confirmation uses the actor's upright capsule after broad phase
 
 Invalid negative dimensions, non-finite values, or an AABB narrower than zero
 are blocking definition errors. A capsule with zero half-segment is a circle.

@@ -52,10 +52,13 @@ offset = (-0.3, 1.0) world units
 derived AABB half extents = (10.3, 23.0) world units
 ```
 
-The capsule is authoritative only for terrain contact. Existing combat,
-pickup, broad-phase, culling, and render consumers keep the exact derived AABB.
-A facing reversal is included in the next capsule sweep through the retained
-tick-start capsule center; it is not an unchecked shape teleport.
+The capsule is authoritative for terrain contact and actor combat target
+contact. Combat broad phase indexes the tight AABB derived from that same
+quantized, facing-aware capsule, then confirms candidates with exact
+capsule/capsule overlap. Pickups, culling, projectile-terrain collision, and
+render/debug consumers keep their explicit AABB behavior. A facing reversal is
+included in the next capsule sweep through the retained tick-start capsule
+center; it is not an unchecked shape teleport.
 
 `TerrainTraversalProfile` is actor-neutral data. It owns enable/kinematic and
 side-collision policy, the inclusive walkable slope threshold, signed speed

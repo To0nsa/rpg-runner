@@ -9,6 +9,11 @@
 - Technical contracts:
   [phase0-technical-contracts.md](phase0-technical-contracts.md)
 
+This is the pre-slope, pre-capsule-combat baseline inventory. Its AABB combat
+rows describe behavior at that milestone; current actor hit confirmation uses
+those bounds only for broad-phase candidates and confirms against the target
+capsule.
+
 ## 1) Evidence Rules
 
 This document records the current implementation and the intended migration

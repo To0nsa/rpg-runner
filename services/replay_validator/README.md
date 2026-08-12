@@ -55,12 +55,17 @@ level, verifies the final deterministic outcome, and emits a JSON report.
 Before compatible issuance, Phase 7 reruns the same compiled command in the
 one-CPU/512 MiB container and records its report.
 
-The Phase 7 validator accepts current game compatibility `2026.08.0` and
-draining `2026.03.0`; replay/command format `1`, `rules-v1`, `score-v1`, and
-`ghost-v1` remain unchanged. Both game labels run the same current Core and
-polygon-terrain path. Remove the draining label only in a separate deployment
-after old issuance has stopped for at least 24 hours and no old-version active
-session remains.
+The current validator build accepts game compatibility `2026.08.0` and the
+draining `2026.03.0`; replay/command format `1`, `rules-v2`, `score-v1`, and
+`ghost-v1` are the supported ranked tuple. `rules-v2` owns capsule target
+narrow-phase combat. The retired `rules-v1` is rejected because this repository
+does not ship a historical AABB-combat simulator beside current Core.
+
+Do not deploy this hard-cutover validator until ranked `rules-v1` issuance is
+paused, every issued/pending session and validation task is drained or
+explicitly closed, and the matching Functions/client build is ready. Remove
+the draining game-compatibility label only in a separate deployment after its
+own 24-hour issuance drain and active-session audit.
 
 ## Build Container Image
 

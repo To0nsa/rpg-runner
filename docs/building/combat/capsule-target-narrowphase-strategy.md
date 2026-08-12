@@ -1,6 +1,7 @@
 # Capsule Target Combat Narrow Phase Strategy
 
-Status: proposed and ready for implementation; no runtime behavior has changed.
+Status: implemented and validated locally; production ranked drain and deploy
+remain pending.
 
 Companion checklist:
 [capsule-target-narrowphase-implementation-checklist.md](capsule-target-narrowphase-implementation-checklist.md)
@@ -24,17 +25,18 @@ can change which attacks land and therefore can change health, deaths, score,
 and run outcome. Ranked rollout must use `rules-v2`; `score-v1` may remain if
 the score formula itself is unchanged.
 
-## Problem
+## Pre-cutover problem
 
-The runtime already gives the player and current enemies upright capsules for
-polygon-terrain contact. Combat does not currently use those target shapes:
+Before this implementation, the runtime already gave the player and current
+enemies upright capsules for polygon-terrain contact, but combat did not use
+those target shapes:
 
-- `BroadphaseGrid` caches damageable target AABBs.
-- melee/area hitboxes and projectiles query with capsule-shaped attacks but
-  confirm against target AABBs;
-- mobility impacts confirm source AABB against target AABB;
+- `BroadphaseGrid` cached damageable target AABBs.
+- melee/area hitboxes and projectiles queried with capsule-shaped attacks but
+  confirmed against target AABBs;
+- mobility impacts confirmed source AABB against target AABB;
 - the target AABB is the capsule's enclosing rectangle, so its four empty
-  corner regions can currently receive damage.
+  corner regions could receive damage.
 
 The existing `capsuleIntersectsAabb` helper expands the rectangle on each axis
 and performs a segment/rectangle test. That is conservative at the expanded
@@ -203,22 +205,25 @@ path:
 6. reopen ranked session issuance and verify validation, projection, and ghost
    publication on the new board identity.
 
+Repository implementation now defaults board provisioning to `rules-v2`,
+selects the complete configured ruleset/score/ghost tuple for session and
+leaderboard reads, and makes the validator accept only `rules-v2`. These code
+changes do not themselves pause production issuance, drain sessions, provision
+live boards, or deploy artifacts; those external operations remain gated by
+the checklist.
+
 Old `rules-v1` ghosts and leaderboard entries must not be exposed as
 `rules-v2` results. If product requirements demand continued validation or
 playback of old sessions, implementation must stop and introduce a separately
 reviewed version-dispatch strategy before rollout.
 
-## Documentation impact when implemented
+## Documentation impact
 
-- Update `docs/tdd/terrain_capsule_controller.md` and
-  `docs/tdd/sloped_navigation_and_enemy_terrain.md`; both currently state that
-  combat continues to consume the derived AABB.
-- Update `docs/tdd/runner_core_simulation_contract.md` with the target capsule
-  invariant and unchanged phase ordering.
-- Update `docs/gdd/combat/combat_system_design.md` with broad-phase versus
-  narrow-phase ownership and tangency behavior.
-- Update `tools/editor/README.md` for capsule visualization and field meaning.
-- Update replay-validator deployment documentation for the `rules-v2` cutover.
+The implementation updates the terrain/navigation TDDs, Core simulation
+contract, combat GDD, editor guide, Functions board documentation, and replay
+validator deployment/runbook documentation. Those documents now distinguish
+the derived broad-phase AABB from exact capsule target confirmation and record
+the pending external `rules-v2` cutover gates.
 
 ## Completion criteria
 
