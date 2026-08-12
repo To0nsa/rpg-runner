@@ -377,12 +377,7 @@ void main() {
       expect(harness.session.pendingChanges.hasChanges, isFalse);
       expect(tester.widget<TextField>(xField).controller!.text, '101');
       final outOfBoundsIssue = find.text('chunk_collision_shape_out_of_bounds');
-      await tester.dragUntilVisible(
-        outOfBoundsIssue,
-        diagnosticsList,
-        const Offset(0, -500),
-      );
-      expect(outOfBoundsIssue, findsOneWidget);
+      expect(outOfBoundsIssue, findsNothing);
 
       await tester.drag(diagnosticsList, const Offset(0, 5000));
       await tester.pump();

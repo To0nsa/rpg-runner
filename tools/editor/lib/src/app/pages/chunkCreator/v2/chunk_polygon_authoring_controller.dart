@@ -256,7 +256,7 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
       _reducer.updateGesture(
         _state,
         pointer: pointer,
-        currentPointer: _snapPoint(point),
+        currentPointer: _boundedGesturePoint(point),
         snap: const TerrainPolygonSnapPolicy.halfPixel(),
       ),
     );
@@ -294,7 +294,7 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
   bool editSelectedVertex(TerrainSourceVertexDef vertex) {
     final attemptedState = _state;
     return _applyInteractionResult(
-      _reducer.editSelectedVertex(attemptedState, vertex: vertex),
+      _reducer.editSelectedVertex(attemptedState, vertex: _boundVertex(vertex)),
       attemptedState: attemptedState,
     );
   }
@@ -369,9 +369,53 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
   }
 
   TerrainSourceVertexDef _snapPoint(TerrainPolygonScenePoint point) =>
-      _snapPolicy.snapFractionalVertex(
-        xHalfPixels: point.xHalfPixels,
-        yHalfPixels: point.yHalfPixels,
+      _boundVertex(
+        _snapPolicy.snapFractionalVertex(
+          xHalfPixels: point.xHalfPixels,
+          yHalfPixels: point.yHalfPixels,
+        ),
+      );
+
+  /// Keeps all chunk-local authoring input within the closed owner rectangle.
+  ///
+  /// Shared polygon interaction deliberately has no owner bounds because it
+  /// also serves Prefabs. Chunk input clamps before entering that reducer, so
+  /// drafts stay editable at the edge instead of producing a later rejected
+  /// commit. Whole-shape translation additionally constrains its delta because
+  /// a pointer inside the chunk can still shift an entire polygon outside it.
+  TerrainSourceVertexDef _boundedGesturePoint(TerrainPolygonScenePoint point) {
+    final bounded = _snapPoint(point);
+    final gesture = _state.gesture;
+    if (gesture?.kind != TerrainPolygonGestureKind.translateShape) {
+      return bounded;
+    }
+    final original = gesture!.originalShape;
+    final xBounds = _translationBounds(
+      original.vertices.map((vertex) => vertex.xHalfPixels),
+      maximum: chunk.width * 2,
+    );
+    final yBounds = _translationBounds(
+      original.vertices.map((vertex) => vertex.yHalfPixels),
+      maximum: chunk.height * 2,
+    );
+    final desiredDeltaX =
+        bounded.xHalfPixels - gesture.startPointer.xHalfPixels;
+    final desiredDeltaY =
+        bounded.yHalfPixels - gesture.startPointer.yHalfPixels;
+    return TerrainSourceVertexDef(
+      xHalfPixels:
+          gesture.startPointer.xHalfPixels +
+          _clampInt(desiredDeltaX, xBounds.$1, xBounds.$2),
+      yHalfPixels:
+          gesture.startPointer.yHalfPixels +
+          _clampInt(desiredDeltaY, yBounds.$1, yBounds.$2),
+    );
+  }
+
+  TerrainSourceVertexDef _boundVertex(TerrainSourceVertexDef vertex) =>
+      TerrainSourceVertexDef(
+        xHalfPixels: _clampInt(vertex.xHalfPixels, 0, chunk.width * 2),
+        yHalfPixels: _clampInt(vertex.yHalfPixels, 0, chunk.height * 2),
       );
 
   bool _applyInteractionResult(
@@ -553,6 +597,36 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
     _session.removeListener(_handleSessionChanged);
     super.dispose();
   }
+}
+
+/// Inclusive delta range that keeps every [coordinates] value within
+/// `0..maximum` after translation.
+(int, int) _translationBounds(
+  Iterable<int> coordinates, {
+  required int maximum,
+}) {
+  final values = coordinates.toList(growable: false);
+  if (values.isEmpty) {
+    throw ArgumentError.value(coordinates, 'coordinates', 'Must not be empty.');
+  }
+  var minimumCoordinate = values.first;
+  var maximumCoordinate = values.first;
+  for (final coordinate in values.skip(1)) {
+    if (coordinate < minimumCoordinate) minimumCoordinate = coordinate;
+    if (coordinate > maximumCoordinate) maximumCoordinate = coordinate;
+  }
+  return (-minimumCoordinate, maximum - maximumCoordinate);
+}
+
+int _clampInt(int value, int minimum, int maximum) {
+  if (minimum > maximum) {
+    throw ArgumentError.value(
+      maximum,
+      'maximum',
+      'Must be greater than or equal to minimum.',
+    );
+  }
+  return value.clamp(minimum, maximum).toInt();
 }
 
 ChunkV2FileData _requireChunk(

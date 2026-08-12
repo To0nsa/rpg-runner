@@ -99,6 +99,13 @@ editable overlays. Missing preview assets or an unresolved theme leave the
 authoring surface usable; they neither change Chunk validation nor permit an
 editor export to alter parallax or terrain source.
 
+Chunk-local pointer and typed-vertex input clamp to the closed source bounds
+`0..width × 0..height` before it reaches shared polygon interaction. During a
+whole-shape drag, the route constrains the translation delta against every
+vertex of the original shape, so the pointer cannot shift any part of the
+shape beyond the owning Chunk. Prefab authoring intentionally keeps its own
+owner-specific bounds policy.
+
 ## Chunk V2 Existing-Owner Metadata Contract
 
 `ChunkV2MetadataCommit` carries immutable `before` and `after` snapshots for

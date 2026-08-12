@@ -111,58 +111,121 @@ void main() {
   );
 
   test(
-    'owner rejection preserves preview and exact diagnostics outside history',
+    'chunk authoring clamps all direct geometry input to owner bounds',
     () async {
       final harness = await _buildHarness();
       final controller = harness.authoring;
       final session = harness.session;
-      final loadedDocument = session.document;
 
-      controller.select(TerrainPolygonSelection.shape('ground_001'));
-      controller.setTool(TerrainPolygonTool.translateShape);
+      controller.beginCreatePolygon();
+      controller.addDraftVertex(const TerrainPolygonScenePoint(-20, -10));
+      controller.addDraftVertex(const TerrainPolygonScenePoint(240, -10));
+      controller.addDraftVertex(const TerrainPolygonScenePoint(240, 120));
+      expect(controller.state.draft!.vertices, const <TerrainSourceVertexDef>[
+        TerrainSourceVertexDef(xHalfPixels: 0, yHalfPixels: 0),
+        TerrainSourceVertexDef(xHalfPixels: 200, yHalfPixels: 0),
+        TerrainSourceVertexDef(xHalfPixels: 200, yHalfPixels: 100),
+      ]);
+      controller.cancelActiveOperation();
+
+      controller.setTool(TerrainPolygonTool.createRectangle);
+      expect(
+        controller.beginCreateRectangle(
+          pointer: 1,
+          point: const TerrainPolygonScenePoint(-20, -10),
+        ),
+        isTrue,
+      );
+      controller.updateGesture(
+        pointer: 1,
+        point: const TerrainPolygonScenePoint(240, 120),
+      );
+      expect(controller.commitGesture(1), isTrue);
+      expect(controller.state.draft!.vertices, const <TerrainSourceVertexDef>[
+        TerrainSourceVertexDef(xHalfPixels: 0, yHalfPixels: 0),
+        TerrainSourceVertexDef(xHalfPixels: 200, yHalfPixels: 0),
+        TerrainSourceVertexDef(xHalfPixels: 200, yHalfPixels: 100),
+        TerrainSourceVertexDef(xHalfPixels: 0, yHalfPixels: 100),
+      ]);
+      controller.cancelActiveOperation();
+
+      controller.select(TerrainPolygonSelection.vertex('ground_001', 1));
+      controller.setTool(TerrainPolygonTool.moveVertex);
+      expect(
+        controller.beginGesture(
+          pointer: 2,
+          point: const TerrainPolygonScenePoint(100, 20),
+        ),
+        isTrue,
+      );
+      controller.updateGesture(
+        pointer: 2,
+        point: const TerrainPolygonScenePoint(240, 20),
+      );
+      expect(
+        controller.state.visibleShapes.single.vertices[1],
+        const TerrainSourceVertexDef(xHalfPixels: 200, yHalfPixels: 20),
+      );
+      controller.cancelActiveOperation();
+      expect(session.pendingChanges.hasChanges, isFalse);
+
+      controller.select(TerrainPolygonSelection.edge('ground_001', 0));
+      controller.setTool(TerrainPolygonTool.insertVertex);
       expect(
         controller.beginGesture(
           pointer: 3,
-          point: const TerrainPolygonScenePoint(0, 0),
+          point: const TerrainPolygonScenePoint(60, 20),
         ),
         isTrue,
       );
       controller.updateGesture(
         pointer: 3,
-        point: const TerrainPolygonScenePoint(200, 0),
-      );
-
-      expect(controller.commitGesture(3), isFalse);
-      expect(session.document, same(loadedDocument));
-      expect(session.canUndo, isFalse);
-      expect(controller.hasActiveOperation, isTrue);
-      expect(
-        controller.state.visibleShapes.single.vertices.first.xHalfPixels,
-        220,
+        point: const TerrainPolygonScenePoint(240, -10),
       );
       expect(
-        controller.issues.map((issue) => issue.code),
-        contains('chunk_collision_shape_out_of_bounds'),
+        controller.state.visibleShapes.single.vertices[1],
+        const TerrainSourceVertexDef(xHalfPixels: 200, yHalfPixels: 0),
       );
-      expect(controller.issues.single.shapeId, 'ground_001');
-      expect(
-        () => controller.issues.add(
-          const ValidationIssue(
-            severity: ValidationSeverity.error,
-            code: 'external_mutation',
-            message: 'must not be accepted',
-          ),
-        ),
-        throwsUnsupportedError,
-      );
-
-      controller.setTool(TerrainPolygonTool.select);
-      expect(controller.hasActiveOperation, isFalse);
-      expect(controller.state.tool, TerrainPolygonTool.select);
-      expect(controller.state.visibleShapes, controller.state.shapes);
-      expect(controller.issues, isEmpty);
+      controller.cancelActiveOperation();
     },
   );
+
+  test('whole-shape movement stops at the chunk boundary', () async {
+    final harness = await _buildHarness();
+    final controller = harness.authoring;
+    final session = harness.session;
+    final loadedDocument = session.document;
+
+    controller.select(TerrainPolygonSelection.shape('ground_001'));
+    controller.setTool(TerrainPolygonTool.translateShape);
+    expect(
+      controller.beginGesture(
+        pointer: 3,
+        point: const TerrainPolygonScenePoint(0, 0),
+      ),
+      isTrue,
+    );
+    controller.updateGesture(
+      pointer: 3,
+      point: const TerrainPolygonScenePoint(200, 0),
+    );
+
+    expect(controller.hasActiveOperation, isTrue);
+    expect(
+      controller.state.visibleShapes.single.vertices.first.xHalfPixels,
+      120,
+    );
+    expect(
+      controller.state.visibleShapes.single.vertices.map(
+        (vertex) => vertex.xHalfPixels,
+      ),
+      everyElement(inInclusiveRange(0, 200)),
+    );
+    controller.cancelActiveOperation();
+    expect(session.document, same(loadedDocument));
+    expect(controller.hasActiveOperation, isFalse);
+    expect(controller.issues, isEmpty);
+  });
 
   test('rejected collinear preview normalizes as one source commit', () async {
     final harness = await _buildHarness(shape: _pentagon());
