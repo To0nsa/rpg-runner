@@ -78,6 +78,10 @@ workflow except where an already-public Core output needs a read-only consumer.
       geometry-version agreement between collision/navigation and render data,
       while remaining entirely unselected by normal `TrackManager` or
       `GameCore` construction.
+- [x] A streamed-candidate regression culls an initial `field_flat` selection,
+      rebuilds it from the same scheduler seed, and proves identical
+      world-edge IDs/order/signature and render source ordering. Later repeated
+      selections retain distinct streamed chunk indices.
 - [x] A terrain-harness integration test builds a staged floor candidate and
       passes its exact geometry to the existing isolated Core authority. It
       proves player support/movement and render triangles can share the staged
