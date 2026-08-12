@@ -180,6 +180,7 @@ class GameCore {
          accessoryCatalog: accessoryCatalog,
          equippedLoadoutOverride: equippedLoadoutOverride,
          terrainHarnessGeometry: null,
+         stagedTerrainStreamHarness: false,
        );
 
   /// Creates the isolated Phase 3 multi-body terrain integration harness.
@@ -214,6 +215,42 @@ class GameCore {
       accessoryCatalog: accessoryCatalog,
       equippedLoadoutOverride: equippedLoadoutOverride,
       terrainHarnessGeometry: terrainGeometry,
+      stagedTerrainStreamHarness: false,
+    );
+  }
+
+  /// Creates the Phase 5 harness over the normal deterministic chunk stream.
+  ///
+  /// The normal scheduler and generated staged artifact are unchanged, but the
+  /// terrain authority consumes each complete candidate. This remains a
+  /// test/tool boundary and is never selected by normal or replay construction.
+  factory GameCore.stagedTerrainStreamHarness({
+    required int seed,
+    int runId = 0,
+    int tickHz = defaultTickHz,
+    required LevelDefinition levelDefinition,
+    required PlayerCharacterDefinition playerCharacter,
+    EquippedLoadoutDef? equippedLoadoutOverride,
+    ProjectileCatalog projectileCatalog = const ProjectileCatalog(),
+    SpellBookCatalog spellBookCatalog = const SpellBookCatalog(),
+    EnemyCatalog enemyCatalog = const EnemyCatalog(),
+    WeaponCatalog weaponCatalog = const WeaponCatalog(),
+    AccessoryCatalog accessoryCatalog = const AccessoryCatalog(),
+  }) {
+    return GameCore._fromLevel(
+      seed: seed,
+      runId: runId,
+      tickHz: tickHz,
+      levelDefinition: levelDefinition,
+      projectileCatalog: projectileCatalog,
+      spellBookCatalog: spellBookCatalog,
+      enemyCatalog: enemyCatalog,
+      playerCharacter: playerCharacter,
+      weaponCatalog: weaponCatalog,
+      accessoryCatalog: accessoryCatalog,
+      equippedLoadoutOverride: equippedLoadoutOverride,
+      terrainHarnessGeometry: null,
+      stagedTerrainStreamHarness: true,
     );
   }
 
@@ -230,6 +267,7 @@ class GameCore {
     required AccessoryCatalog accessoryCatalog,
     required EquippedLoadoutDef? equippedLoadoutOverride,
     required TerrainGeometry? terrainHarnessGeometry,
+    required bool stagedTerrainStreamHarness,
   }) : _levelDefinition = levelDefinition,
        _movement = MovementTuningDerived.from(
          playerCharacter.tuning.movement,
@@ -275,6 +313,7 @@ class GameCore {
        ),
        _equippedLoadoutOverride = equippedLoadoutOverride,
        _terrainHarnessGeometry = terrainHarnessGeometry,
+       _stagedTerrainStreamHarness = stagedTerrainStreamHarness,
        _scoreTuning = levelDefinition.tuning.score,
        _trackTuning = levelDefinition.tuning.track,
        _collectibleTuning = levelDefinition.tuning.collectible,
@@ -284,6 +323,11 @@ class GameCore {
 
   /// Common initialization shared by all constructors.
   void _initializeWorld(LevelDefinition levelDefinition) {
+    if (_stagedTerrainStreamHarness && !_trackTuning.enabled) {
+      throw ArgumentError(
+        'The staged terrain stream harness requires enabled track streaming.',
+      );
+    }
     _playerArchetype = PlayerCatalogDerived.from(
       _playerCharacter.catalog,
       movement: _movement,
@@ -353,14 +397,25 @@ class GameCore {
         _replaceStagedTerrainCandidate(prewarmedTrackStreamer.activeChunks);
       }
     }
-    _worldMotionAuthority = terrainGeometry == null
-        ? LegacyWorldMotionAuthority()
-        : TerrainMultiBodyWorldMotionAuthority(
+    final stagedCandidate = _stagedTerrainCandidate;
+    _worldMotionAuthority = terrainGeometry != null
+        ? TerrainMultiBodyWorldMotionAuthority(
             geometry: terrainGeometry,
             playerProfile: _playerArchetype.terrainTraversalProfile,
             enemyCatalog: _enemyCatalog,
             groundEnemyGraphProfiles: _groundEnemyTerrainGraphProfiles,
-          );
+          )
+        : _stagedTerrainStreamHarness
+        ? TerrainMultiBodyWorldMotionAuthority.fromStagedCandidate(
+            candidate:
+                stagedCandidate ??
+                (throw StateError(
+                  'Initial streamed terrain candidate was not built.',
+                )),
+            playerProfile: _playerArchetype.terrainTraversalProfile,
+            enemyCatalog: _enemyCatalog,
+          )
+        : LegacyWorldMotionAuthority();
 
     // ─── Initialize ECS world and entity factory ───
     _world = EcsWorld(seed: seed);
@@ -828,6 +883,7 @@ class GameCore {
   late final ResolvedStatsCache _resolvedStatsCache;
   final EquippedLoadoutDef? _equippedLoadoutOverride;
   final TerrainGeometry? _terrainHarnessGeometry;
+  final bool _stagedTerrainStreamHarness;
   late final PlayerArchetype _playerArchetype;
 
   // ─── ECS Core ───

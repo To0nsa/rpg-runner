@@ -267,6 +267,13 @@ carried into `GroundEnemyLocomotionSystem`, so terrain routing does not create
 a second locomotion implementation. Legacy authority continues to select the
 legacy graph system until Phase 6.
 
+The explicit `GameCore.stagedTerrainStreamHarness` additionally exercises this
+same authority and navigation path with the normal deterministic scheduler.
+Its opening candidate is already the authority publication when the player is
+placed; later candidate versions publish before captured enemy/item placement
+and AI preparation. This is a test/tool constructor, not authored level,
+replay, save, UI, or remote configuration.
+
 Enemy intent and navigation run before the current tick's motion result exists,
 so Phase 3 AI must deliberately read the previous tick's validated support.
 Post-motion animation, snapshots, and other presentation consumers read the

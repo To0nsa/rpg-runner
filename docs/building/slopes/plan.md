@@ -1640,5 +1640,8 @@ index with existing collision-flag and same-tick-despawn semantics. Production
 movement and navigation remain on the rectangle projection, while the explicit
 terrain harness now routes Grojib/Hashash pursuit, fallback, airborne target
 prediction, and planned-jump timing through the exact published terrain graph
-views. Full-run and Phase 6 direct-cutover gates remain before production
-authority selection changes.
+views. A separate streamed harness now proves deterministic startup and
+spawn/cull republication over two matching 900-tick Field runs without making
+the path selectable by normal or replay construction. Broader representative
+full-run and Phase 6 direct-cutover gates remain before production authority
+selection changes.

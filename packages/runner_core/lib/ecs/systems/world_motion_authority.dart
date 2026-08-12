@@ -479,6 +479,39 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
     );
   }
 
+  /// Creates the explicit streamed-terrain harness from one admitted candidate.
+  ///
+  /// Collision, navigation, placement, and rendering retain the candidate's
+  /// exact runtime objects from the first player placement onward.
+  factory TerrainMultiBodyWorldMotionAuthority.fromStagedCandidate({
+    required StagedTerrainStreamCandidate candidate,
+    required TerrainTraversalProfile playerProfile,
+    EnemyCatalog enemyCatalog = const EnemyCatalog(),
+  }) {
+    final grojib = enemyCatalog.terrainContactProfile(EnemyId.grojib);
+    final hashash = enemyCatalog.terrainContactProfile(EnemyId.hashash);
+    final unoco = enemyCatalog.terrainContactProfile(EnemyId.unocoDemon);
+    final derf = enemyCatalog.terrainContactProfile(EnemyId.derf);
+    final graphProfiles = candidate.runtimeBundle.graphProfiles;
+    final publication = _TerrainAuthorityPublication.fromRuntimeBundle(
+      runtimeBundle: candidate.runtimeBundle,
+      terrainRenderSnapshot: candidate.renderSnapshot,
+      playerProfile: playerProfile,
+      grojibProfile: grojib,
+      hashashProfile: hashash,
+      unocoProfile: unoco,
+    );
+    return TerrainMultiBodyWorldMotionAuthority._(
+      publication: publication,
+      graphProfiles: graphProfiles,
+      playerProfile: playerProfile,
+      grojibProfile: grojib,
+      hashashProfile: hashash,
+      unocoProfile: unoco,
+      derfProfile: derf,
+    );
+  }
+
   TerrainMultiBodyWorldMotionAuthority._({
     required _TerrainAuthorityPublication publication,
     required List<TerrainSurfaceGraphBuildProfile> graphProfiles,

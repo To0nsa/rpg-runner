@@ -142,6 +142,13 @@ workflow except where an already-public Core output needs a read-only consumer.
       fallback stays finite, and planned jump timing is forwarded through the
       existing locomotion intent contract. Normal/replay construction still
       selects the legacy navigator.
+- [x] `GameCore.stagedTerrainStreamHarness` is an explicit test/tool boundary
+      that starts terrain authority from the scheduler's exact prewarmed
+      candidate before player placement, then consumes every normal spawn/cull
+      candidate through the atomic publication barrier. Two independent
+      900-tick `field_flat` runs match geometry versions, polygon/edge order,
+      support identity, and grounded survival across multiple rebuilds. The
+      normal constructor and replay validator remain legacy-owned.
 
 ## 3) Implementation Order
 
@@ -190,7 +197,7 @@ workflow except where an already-public Core output needs a read-only consumer.
 
 - [ ] generated staged terrain is admitted only when format, compiler,
       signature, source membership, and reachable-seam evidence all match
-- [ ] streamed chunk spawn/cull/re-add produces the same world-space edge IDs,
+- [x] streamed chunk spawn/cull/re-add produces the same world-space edge IDs,
       ordering, and bundle signature for identical selected chunks
 - [x] one atomic publication updates collision, support/navigation, placement,
       render snapshots, and debug evidence together at a tick boundary

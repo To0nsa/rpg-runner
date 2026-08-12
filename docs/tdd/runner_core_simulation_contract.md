@@ -71,6 +71,11 @@ World-motion ownership is selected once when `GameCore` is constructed. The
 normal constructor installs the legacy rectangle collision adapter. The
 test/tool-only `GameCore.terrainMotionHarness` factory installs the staged
 multi-body capsule authority against caller-supplied immutable terrain.
+`GameCore.stagedTerrainStreamHarness` is the Phase 5 full-stream test boundary:
+it performs the normal scheduler prewarm, constructs terrain authority from
+that exact admitted candidate before player placement, and atomically consumes
+later spawn/cull candidates. Neither harness is reachable from normal/replay
+construction or a serialized run option.
 
 Both owners follow the same ordering seam; the terrain-only publication step is
 a no-op for legacy ownership:
