@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_editor/src/terrain_authoring/terrain_polygon_interaction.dart';
+import 'package:runner_editor/src/terrain_authoring/terrain_polygon_scene_projection.dart';
 import 'package:runner_editor/src/terrain_authoring/terrain_source_models.dart';
 
 void main() {
@@ -114,6 +115,98 @@ void main() {
   });
 
   group('polygon creation', () {
+    test('dragged rectangles stay editable locally until Save', () {
+      final reducer = _reducer();
+      var state = TerrainPolygonInteractionState(
+        shapes: const <TerrainSourceShapeDef>[],
+      );
+      state = reducer.beginCreateRectangle(
+        state,
+        pointer: 1,
+        startPointer: const TerrainSourceVertexDef(
+          xHalfPixels: 4,
+          yHalfPixels: 6,
+        ),
+      );
+      state = reducer.updateGesture(
+        state,
+        pointer: 1,
+        currentPointer: const TerrainSourceVertexDef(
+          xHalfPixels: 24,
+          yHalfPixels: 18,
+        ),
+        snap: const TerrainPolygonSnapPolicy.halfPixel(),
+      );
+
+      final drafted = reducer.commitGesture(state, pointer: 1);
+
+      expect(drafted.accepted, isTrue);
+      expect(drafted.commit, isNull);
+      expect(drafted.state.tool, TerrainPolygonTool.moveVertex);
+      expect(drafted.state.draft!.isClosed, isTrue);
+      expect(drafted.state.draft!.vertices, const <TerrainSourceVertexDef>[
+        TerrainSourceVertexDef(xHalfPixels: 4, yHalfPixels: 6),
+        TerrainSourceVertexDef(xHalfPixels: 24, yHalfPixels: 6),
+        TerrainSourceVertexDef(xHalfPixels: 24, yHalfPixels: 18),
+        TerrainSourceVertexDef(xHalfPixels: 4, yHalfPixels: 18),
+      ]);
+      expect(drafted.state.canUndoDraftVertexEdit, isTrue);
+      expect(
+        TerrainPolygonSceneHitTest.hitTestDraftEdge(
+          projection: TerrainPolygonSceneProjection.fromInteraction(
+            drafted.state,
+          ),
+          point: const TerrainPolygonScenePoint(4, 12),
+          radiusHalfPixels: 1,
+        ),
+        3,
+      );
+
+      final inserted = reducer.beginInsertDraftVertex(
+        drafted.state,
+        pointer: 2,
+        edgeIndex: 3,
+        rawVertex: const TerrainSourceVertexDef(
+          xHalfPixels: 4,
+          yHalfPixels: 12,
+        ),
+        snap: const TerrainPolygonSnapPolicy.halfPixel(),
+      );
+      expect(inserted.gesture!.activeVertexIndex, 4);
+
+      final saved = reducer.saveDraft(drafted.state);
+      expect(saved.accepted, isTrue);
+      expect(saved.commit, isNotNull);
+      expect(saved.state.draft, isNull);
+      expect(saved.state.shapes.single.vertices, hasLength(4));
+    });
+
+    test('a collapsed rectangle drag remains ready to retry', () {
+      final reducer = _reducer();
+      final started = reducer.beginCreateRectangle(
+        TerrainPolygonInteractionState(
+          shapes: const <TerrainSourceShapeDef>[],
+          tool: TerrainPolygonTool.createRectangle,
+        ),
+        pointer: 1,
+        startPointer: const TerrainSourceVertexDef(
+          xHalfPixels: 4,
+          yHalfPixels: 6,
+        ),
+      );
+
+      final released = reducer.commitGesture(started, pointer: 1);
+
+      expect(released.accepted, isTrue);
+      expect(released.commit, isNull);
+      expect(released.state.draft, isNull);
+      expect(released.state.tool, TerrainPolygonTool.createRectangle);
+      expect(
+        reducer.cancelActiveOperation(released.state).tool,
+        TerrainPolygonTool.select,
+      );
+    });
+
     test('ordered clicks save as one canonical Core-reviewed commit', () {
       final reducer = _reducer();
       var state = TerrainPolygonInteractionState(

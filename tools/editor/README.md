@@ -100,6 +100,8 @@ terrain artifact at runtime.
 Prefab and Chunk polygon scenes share the same controls:
 
 - choose **New polygon**, then primary-click to append snapped draft vertices
+- choose **New rectangle**, then drag across opposite corners to create an
+  editable four-vertex polygon draft
 - while a draft is open, **Move vertex** and **Insert vertex** edit that draft;
   **Select**, **Create**, and **Move shape** remain disabled
 - Undo and Redo traverse draft vertex placement, movement, and insertion locally

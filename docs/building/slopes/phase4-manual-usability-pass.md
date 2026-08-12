@@ -67,8 +67,9 @@ diagnostic, and can recover without reloading the workspace.
 ## B) Complete The Prefab Workflow
 
 1. Choose **New polygon** and place five vertices inside the visible `anvil_00`
-   sprite. Place one vertex badly, Undo it, and Redo it. Confirm only that draft
-   vertex changes and session/source Undo remains untouched.
+   sprite. Place one vertex badly, Undo it once, and Redo it. Confirm each
+   keyboard command changes exactly that one draft vertex and session/source
+   Undo remains untouched.
 2. Before saving, confirm **Move vertex** and **Insert vertex** are available,
    while **Select**, **Create**, and **Move shape** are disabled. Move one draft
    vertex and insert another on an open draft edge, then exercise Undo/Redo for
@@ -77,25 +78,28 @@ diagnostic, and can recover without reloading the workspace.
    Confirm Save removes the redundant vertex, closes the draft, and creates one
    source-history entry. No separate Close or Normalize Draft control may be
    present.
-4. Select the saved shape, one edge, and one vertex. Confirm selection is
+4. Choose **New rectangle**, drag between two opposite corners inside the
+   sprite, and confirm a closed four-vertex draft appears. Cancel it and
+   confirm the saved polygon remains unchanged.
+5. Select the saved shape, one edge, and one vertex. Confirm selection is
    visible in both the scene and inspector.
-5. On the saved shape, insert a non-collinear vertex, then move it back onto its
+6. On the saved shape, insert a non-collinear vertex, then move it back onto its
    original edge. Confirm the aligned preview remains visible with the same
    diagnostic. Choose **Normalize** and confirm it removes the redundant vertex
    as one undoable edit.
-6. Begin another rejected saved-shape move, then choose a different tool.
+7. Begin another rejected saved-shape move, then choose a different tool.
    Confirm the uncommitted preview is discarded, the last committed polygon is
    restored, and the requested tool becomes active.
-7. Exercise Move vertex on two different vertices consecutively without
+8. Exercise Move vertex on two different vertices consecutively without
    reselecting the tool, then exercise Insert vertex, Delete, Move shape, and
    Duplicate. Each chosen edit tool must remain active after a completed
    gesture. Undo after any experiment that would overlap or leave the visual
    bounds; no rejected operation may corrupt the last accepted shape.
-8. Exercise Undo and Redo from both the visible buttons and the documented
+9. Exercise Undo and Redo from both the visible buttons and the documented
    keyboard shortcuts.
-9. Set or clear optional collision metadata and verify that rendering metadata
+10. Set or clear optional collision metadata and verify that rendering metadata
    does not change the collision-mode label.
-10. Choose **Apply current source**, review the confirmation, apply, reload, and
+11. Choose **Apply current source**, review the confirmation, apply, reload, and
    confirm the exact polygon and metadata remain present.
 
 Pass when one valid Prefab-v3 shape survives apply/reload, each accepted gesture
@@ -108,25 +112,29 @@ opened manually.
 2. Repeat the two-vertex invalid-Save check, then cancel it.
 3. Create a small orthogonal solid draft fully inside the Chunk bounds and away
    from both horizontal Chunk seams. Undo/Redo one placed vertex, move another,
-   and insert one on an open edge. Confirm these remain local draft edits.
+   and insert one on an open edge. Confirm each keyboard command changes only
+   one draft vertex and these remain local draft edits.
 4. Confirm only Move vertex and Insert vertex remain available during creation,
    then choose **Save** and verify exactly one source-history entry is created.
-5. Confirm the direct polygon is visibly filled and the scene states that the
+5. Choose **New rectangle**, drag between two opposite corners within the Chunk
+   bounds, and confirm a closed four-vertex draft appears. Cancel it and
+   confirm the saved direct polygon remains unchanged.
+6. Confirm the direct polygon is visibly filled and the scene states that the
    fill is authoring-only while Core-compiled edges remain collision and
    navigation evidence.
-6. Inspect one compiled edge and confirm its stable ID, tangent/normal, slope,
+7. Inspect one compiled edge and confirm its stable ID, tangent/normal, slope,
    collision mode, and source lineage are readable.
-7. Insert a non-collinear vertex, move it back onto its original edge, and use
+8. Insert a non-collinear vertex, move it back onto its original edge, and use
    **Normalize** to commit the aligned preview. Then start another rejected
    move and choose a different tool to discard it. Confirm no invalid preview
    enters history and expanded Prefab shapes remain read-only.
-8. Move two different vertices consecutively without reselecting Move vertex,
+9. Move two different vertices consecutively without reselecting Move vertex,
    then use Undo/Redo. Confirm the chosen edit tool remains active after each
    completed gesture.
-9. Open Chunk composition. Confirm the visual stack identifies ground polygons,
+10. Open Chunk composition. Confirm the visual stack identifies ground polygons,
    their `groundBandZIndex`, and bottom-to-top ordering separately from runtime
    collision authority.
-10. Choose **Apply current source**, review the confirmation, apply, reload, and
+11. Choose **Apply current source**, review the confirmation, apply, reload, and
    confirm the direct shape remains present.
 
 Pass when the changed Chunk survives apply/reload, seam/bounds diagnostics stay

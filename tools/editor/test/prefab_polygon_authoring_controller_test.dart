@@ -226,6 +226,53 @@ void main() {
     semantics.dispose();
   });
 
+  testWidgets('scene surface drags a rectangle into a local draft', (
+    tester,
+  ) async {
+    final harness = await _buildHarness();
+    final controller = harness.authoring;
+    final transform = TerrainPolygonViewportTransform(
+      origin: const Offset(100, 100),
+      zoom: 4,
+    );
+    controller.setTool(TerrainPolygonTool.createRectangle);
+    await tester.pumpWidget(
+      _surfaceApp(controller: controller, transform: transform),
+    );
+    final topLeft = tester.getTopLeft(
+      find.byKey(const ValueKey<String>('prefab_polygon_scene_surface')),
+    );
+    final start = transform.sourceVertexToCanvas(
+      const TerrainSourceVertexDef(xHalfPixels: 20, yHalfPixels: 20),
+    );
+    final end = transform.sourceVertexToCanvas(
+      const TerrainSourceVertexDef(xHalfPixels: 40, yHalfPixels: 40),
+    );
+
+    final drag = await tester.startGesture(topLeft + start);
+    await drag.moveTo(topLeft + end);
+    await tester.pump();
+
+    expect(controller.state.draft!.isClosed, isTrue);
+    expect(
+      controller.sceneProjection.draft!.vertices,
+      const <TerrainSourceVertexDef>[
+        TerrainSourceVertexDef(xHalfPixels: 20, yHalfPixels: 20),
+        TerrainSourceVertexDef(xHalfPixels: 40, yHalfPixels: 20),
+        TerrainSourceVertexDef(xHalfPixels: 40, yHalfPixels: 40),
+        TerrainSourceVertexDef(xHalfPixels: 20, yHalfPixels: 40),
+      ],
+    );
+    expect(harness.session.canUndo, isFalse);
+
+    await drag.up();
+    await tester.pump();
+    expect(controller.state.gesture, isNull);
+    expect(controller.state.draft, isNotNull);
+    expect(controller.state.tool, TerrainPolygonTool.moveVertex);
+    expect(harness.session.canUndo, isFalse);
+  });
+
   testWidgets(
     'scene surface selects, previews, commits, and cancels with Escape',
     (tester) async {
@@ -344,6 +391,10 @@ void main() {
   ) async {
     final harness = await _buildHarness();
     final controller = harness.authoring;
+    _registerShellUndoRedoShortcuts(
+      undo: controller.undo,
+      redo: controller.redo,
+    );
     final transform = TerrainPolygonViewportTransform(
       origin: const Offset(100, 100),
       zoom: 4,
@@ -384,6 +435,52 @@ void main() {
     expect(controller.prefab.revision, 5);
     expect(controller.state.shapes.single.vertices, hasLength(3));
   });
+
+  testWidgets(
+    'shell Ctrl shortcuts undo and redo one open-draft vertex edit at a time',
+    (tester) async {
+      final harness = await _buildHarness();
+      final controller = harness.authoring;
+      _registerShellUndoRedoShortcuts(
+        undo: controller.undo,
+        redo: controller.redo,
+      );
+      controller.beginCreatePolygon();
+      for (final point in const <TerrainPolygonScenePoint>[
+        TerrainPolygonScenePoint(0, 0),
+        TerrainPolygonScenePoint(20, 0),
+        TerrainPolygonScenePoint(20, 20),
+        TerrainPolygonScenePoint(0, 20),
+      ]) {
+        controller.addDraftVertex(point);
+      }
+      controller.setTool(TerrainPolygonTool.moveVertex);
+
+      await tester.pumpWidget(
+        _surfaceApp(
+          controller: controller,
+          transform: TerrainPolygonViewportTransform(
+            origin: const Offset(100, 100),
+            zoom: 4,
+          ),
+        ),
+      );
+
+      await _pressCtrlShortcut(tester, LogicalKeyboardKey.keyZ);
+      expect(controller.state.draft!.vertices, hasLength(3));
+      expect(
+        controller.state.draft!.vertices.last,
+        const TerrainSourceVertexDef(xHalfPixels: 20, yHalfPixels: 20),
+      );
+
+      await _pressCtrlShortcut(tester, LogicalKeyboardKey.keyY);
+      expect(controller.state.draft!.vertices, hasLength(4));
+
+      await _pressCtrlShortcut(tester, LogicalKeyboardKey.keyZ);
+      await _pressCtrlShiftShortcut(tester, LogicalKeyboardKey.keyZ);
+      expect(controller.state.draft!.vertices, hasLength(4));
+    },
+  );
 
   testWidgets('Ctrl drag pans without changing polygon document state', (
     tester,
@@ -442,6 +539,47 @@ Widget _surfaceApp({
     ),
   ),
 );
+
+void _registerShellUndoRedoShortcuts({
+  required bool Function() undo,
+  required bool Function() redo,
+}) {
+  bool handleKeyEvent(KeyEvent event) {
+    if (event is! KeyDownEvent || !HardwareKeyboard.instance.isControlPressed) {
+      return false;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.keyZ) {
+      return HardwareKeyboard.instance.isShiftPressed ? redo() : undo();
+    }
+    if (event.logicalKey == LogicalKeyboardKey.keyY) return redo();
+    return false;
+  }
+
+  HardwareKeyboard.instance.addHandler(handleKeyEvent);
+  addTearDown(() => HardwareKeyboard.instance.removeHandler(handleKeyEvent));
+}
+
+Future<void> _pressCtrlShortcut(
+  WidgetTester tester,
+  LogicalKeyboardKey key,
+) async {
+  await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+  await tester.sendKeyEvent(key);
+  await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+  await tester.pump();
+}
+
+Future<void> _pressCtrlShiftShortcut(
+  WidgetTester tester,
+  LogicalKeyboardKey key,
+) async {
+  await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+  await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+  await tester.sendKeyEvent(key);
+  await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+  await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+  await tester.pump();
+}
 
 Future<_Harness> _buildHarness({TerrainSourceShapeDef? shape}) async {
   final root = Directory.systemTemp.createTempSync('prefab_polygon_route_');

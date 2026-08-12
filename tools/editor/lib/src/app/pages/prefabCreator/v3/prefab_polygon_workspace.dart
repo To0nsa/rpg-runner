@@ -608,9 +608,13 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
               'can be inspected but collision tools are disabled.',
             )
           else
-            const Text(
-              'Primary input follows the selected tool. Ctrl+drag pans, '
-              'Ctrl+scroll zooms, Enter saves a draft, and Escape cancels.',
+            Text(
+              authoring.state.tool == TerrainPolygonTool.createRectangle
+                  ? 'Drag across opposite corners to draw a rectangle draft. '
+                        'Enter saves it and Escape cancels.'
+                  : 'Primary input follows the selected tool. Ctrl+drag pans, '
+                        'Ctrl+scroll zooms, Enter saves a draft, and Escape '
+                        'cancels.',
             ),
           const SizedBox(height: PrefabEditorUiTokens.controlGap),
           Expanded(
@@ -685,6 +689,17 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
                 label: const Text('New polygon'),
               ),
               OutlinedButton.icon(
+                key: const ValueKey<String>('prefab_polygon_new_rectangle'),
+                onPressed:
+                    authoring.prefab.kind == PrefabKind.decoration ||
+                        draft != null
+                    ? null
+                    : () =>
+                          authoring.setTool(TerrainPolygonTool.createRectangle),
+                icon: const Icon(Icons.crop_square),
+                label: const Text('New rectangle'),
+              ),
+              OutlinedButton.icon(
                 key: const ValueKey<String>('prefab_polygon_save_draft'),
                 onPressed: draft == null ? null : authoring.saveDraft,
                 icon: const Icon(Icons.save_outlined),
@@ -692,7 +707,10 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
               ),
               OutlinedButton(
                 key: const ValueKey<String>('prefab_polygon_cancel_draft'),
-                onPressed: !authoring.hasActiveOperation
+                onPressed:
+                    !authoring.hasActiveOperation &&
+                        authoring.state.tool !=
+                            TerrainPolygonTool.createRectangle
                     ? null
                     : authoring.cancelActiveOperation,
                 child: const Text('Cancel'),
@@ -1284,6 +1302,7 @@ int _kindOrder(PrefabKind kind) => switch (kind) {
 String _toolLabel(TerrainPolygonTool tool) => switch (tool) {
   TerrainPolygonTool.select => 'Select',
   TerrainPolygonTool.createPolygon => 'Create',
+  TerrainPolygonTool.createRectangle => 'Rectangle',
   TerrainPolygonTool.moveVertex => 'Move vertex',
   TerrainPolygonTool.translateShape => 'Move shape',
   TerrainPolygonTool.insertVertex => 'Insert vertex',

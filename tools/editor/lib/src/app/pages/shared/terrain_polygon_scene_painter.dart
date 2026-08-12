@@ -150,7 +150,7 @@ final class TerrainPolygonSceneStyle {
   );
 }
 
-/// Shared painter for polygon fills, boundaries, vertices, and open drafts.
+/// Shared painter for polygon fills, boundaries, vertices, and creation drafts.
 ///
 /// It renders source loops only. Compiled collision-edge diagnostics remain a
 /// separate overlay supplied by the future Core compiler preview adapter; this
@@ -242,7 +242,7 @@ final class TerrainPolygonScenePainter extends CustomPainter {
         .map(transform.sourceVertexToCanvas)
         .toList(growable: false);
     canvas.drawPath(
-      _path(points, close: false),
+      _path(points, close: draft.isClosed),
       Paint()
         ..color = style.draftStroke
         ..strokeWidth = style.selectedOutlineWidth

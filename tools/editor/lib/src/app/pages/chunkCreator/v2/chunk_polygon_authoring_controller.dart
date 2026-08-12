@@ -122,6 +122,20 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
     );
   }
 
+  bool beginCreateRectangle({
+    required int pointer,
+    required TerrainPolygonScenePoint point,
+  }) {
+    final next = _reducer.beginCreateRectangle(
+      _state,
+      pointer: pointer,
+      startPointer: _snapPoint(point),
+    );
+    final started = !identical(next, _state);
+    _replaceLocalState(next);
+    return started;
+  }
+
   void addDraftVertex(TerrainPolygonScenePoint point) {
     _replaceLocalState(
       _reducer.addDraftVertex(
@@ -183,6 +197,7 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
         break;
       case TerrainPolygonTool.select:
       case TerrainPolygonTool.createPolygon:
+      case TerrainPolygonTool.createRectangle:
       case TerrainPolygonTool.translateShape:
         break;
     }

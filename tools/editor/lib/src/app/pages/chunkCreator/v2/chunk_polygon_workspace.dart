@@ -635,6 +635,9 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
           _inspectCompiledEdges
               ? 'Primary input selects the nearest Core-compiled edge. '
                     'Ctrl+drag pans and Ctrl+scroll zooms.'
+              : authoring.state.tool == TerrainPolygonTool.createRectangle
+              ? 'Drag across opposite corners to draw a rectangle draft. '
+                    'Enter saves it and Escape cancels.'
               : 'Primary input follows the selected tool. Ctrl+drag pans, '
                     'Ctrl+scroll zooms, Enter saves a draft, and Escape '
                     'cancels.',
@@ -777,6 +780,15 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
                 label: const Text('New polygon'),
               ),
               OutlinedButton.icon(
+                key: const ValueKey<String>('chunk_polygon_new_rectangle'),
+                onPressed: draft != null
+                    ? null
+                    : () =>
+                          authoring.setTool(TerrainPolygonTool.createRectangle),
+                icon: const Icon(Icons.crop_square),
+                label: const Text('New rectangle'),
+              ),
+              OutlinedButton.icon(
                 key: const ValueKey<String>('chunk_polygon_save_draft'),
                 onPressed: draft == null ? null : authoring.saveDraft,
                 icon: const Icon(Icons.save_outlined),
@@ -784,7 +796,10 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
               ),
               OutlinedButton(
                 key: const ValueKey<String>('chunk_polygon_cancel_draft'),
-                onPressed: authoring.hasActiveOperation
+                onPressed:
+                    authoring.hasActiveOperation ||
+                        authoring.state.tool ==
+                            TerrainPolygonTool.createRectangle
                     ? authoring.cancelActiveOperation
                     : null,
                 child: const Text('Cancel'),
@@ -2079,6 +2094,7 @@ int _compareChunks(ChunkV2FileData left, ChunkV2FileData right) {
 String _toolLabel(TerrainPolygonTool tool) => switch (tool) {
   TerrainPolygonTool.select => 'Select',
   TerrainPolygonTool.createPolygon => 'Create',
+  TerrainPolygonTool.createRectangle => 'Rectangle',
   TerrainPolygonTool.moveVertex => 'Move vertex',
   TerrainPolygonTool.insertVertex => 'Insert vertex',
   TerrainPolygonTool.translateShape => 'Move shape',

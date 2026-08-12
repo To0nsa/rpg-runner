@@ -496,6 +496,11 @@ void main() {
       find.byKey(const ValueKey<String>('chunk_shape_diagnostics_list')),
       findsOneWidget,
     );
+    final newRectangle = find.byKey(
+      const ValueKey<String>('chunk_polygon_new_rectangle'),
+    );
+    expect(newRectangle, findsOneWidget);
+    expect(tester.widget<OutlinedButton>(newRectangle).onPressed, isNotNull);
     final saveDraft = find.byKey(
       const ValueKey<String>('chunk_polygon_save_draft'),
     );
@@ -505,11 +510,13 @@ void main() {
     );
     await tester.pump();
     expect(tester.widget<OutlinedButton>(saveDraft).onPressed, isNotNull);
+    expect(tester.widget<OutlinedButton>(newRectangle).onPressed, isNull);
     await tester.tap(find.widgetWithText(Tab, 'Terrain'));
     await tester.pumpAndSettle();
     for (final tool in const <String>[
       'select',
       'createPolygon',
+      'createRectangle',
       'translateShape',
     ]) {
       expect(

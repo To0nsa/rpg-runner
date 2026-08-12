@@ -105,6 +105,11 @@ class _PrefabPolygonSceneSurfaceState extends State<PrefabPolygonSceneSurface> {
 
     final point = widget.transform.canvasToSource(event.localPosition);
     final controller = widget.controller;
+    if (controller.state.tool == TerrainPolygonTool.createRectangle &&
+        controller.beginCreateRectangle(pointer: event.pointer, point: point)) {
+      _gesturePointer = event.pointer;
+      return;
+    }
     if (controller.state.draft != null) {
       if (controller.state.tool == TerrainPolygonTool.createPolygon) {
         controller.addDraftVertex(point);
@@ -196,22 +201,6 @@ class _PrefabPolygonSceneSurfaceState extends State<PrefabPolygonSceneSurface> {
     if (event.logicalKey == LogicalKeyboardKey.delete ||
         event.logicalKey == LogicalKeyboardKey.backspace) {
       controller.deleteSelection();
-      return KeyEventResult.handled;
-    }
-    if (!HardwareKeyboard.instance.isControlPressed) {
-      return KeyEventResult.ignored;
-    }
-    if (event.logicalKey == LogicalKeyboardKey.keyZ) {
-      if (HardwareKeyboard.instance.isShiftPressed) {
-        controller.redo();
-      } else {
-        if (controller.hasActiveOperation) _gesturePointer = null;
-        controller.undo();
-      }
-      return KeyEventResult.handled;
-    }
-    if (event.logicalKey == LogicalKeyboardKey.keyY) {
-      controller.redo();
       return KeyEventResult.handled;
     }
     return KeyEventResult.ignored;

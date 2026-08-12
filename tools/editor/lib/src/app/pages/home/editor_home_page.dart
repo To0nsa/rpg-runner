@@ -446,7 +446,9 @@ class _EditorHomePageState extends State<EditorHomePage> {
       return false;
     }
     if (event.logicalKey == LogicalKeyboardKey.keyZ) {
-      return _handleUndoShortcut();
+      return HardwareKeyboard.instance.isShiftPressed
+          ? _handleRedoShortcut()
+          : _handleUndoShortcut();
     }
     if (event.logicalKey == LogicalKeyboardKey.keyY) {
       return _handleRedoShortcut();

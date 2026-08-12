@@ -13,6 +13,7 @@ enum TerrainPolygonSelectionKind { shape, edge, vertex }
 enum TerrainPolygonTool {
   select,
   createPolygon,
+  createRectangle,
   moveVertex,
   translateShape,
   insertVertex,
@@ -134,6 +135,7 @@ final class TerrainPolygonDraft {
     required this.surfaceKind,
     required this.materialKey,
     required Iterable<TerrainSourceVertexDef> vertices,
+    this.isClosed = false,
     Iterable<Iterable<TerrainSourceVertexDef>> undoVertexSnapshots =
         const <List<TerrainSourceVertexDef>>[],
     Iterable<Iterable<TerrainSourceVertexDef>> redoVertexSnapshots =
@@ -147,6 +149,7 @@ final class TerrainPolygonDraft {
   final String? surfaceKind;
   final String? materialKey;
   final List<TerrainSourceVertexDef> vertices;
+  final bool isClosed;
   final List<List<TerrainSourceVertexDef>> undoVertexSnapshots;
   final List<List<TerrainSourceVertexDef>> redoVertexSnapshots;
 
@@ -155,7 +158,12 @@ final class TerrainPolygonDraft {
 }
 
 /// Active pointer gesture whose preview has not entered undo history yet.
-enum TerrainPolygonGestureKind { moveVertex, translateShape, insertVertex }
+enum TerrainPolygonGestureKind {
+  createRectangle,
+  moveVertex,
+  translateShape,
+  insertVertex,
+}
 
 /// Immutable gesture preview derived from one committed source shape.
 final class TerrainPolygonGesture {
@@ -380,6 +388,47 @@ final class TerrainPolygonInteractionReducer {
     );
   }
 
+  /// Starts an axis-aligned rectangle draft from one dragged corner.
+  ///
+  /// The resulting four vertices stay local until Save, so the rectangle uses
+  /// the same validation and one-commit boundary as freeform polygons.
+  TerrainPolygonInteractionState beginCreateRectangle(
+    TerrainPolygonInteractionState state, {
+    required int pointer,
+    required TerrainSourceVertexDef startPointer,
+    TerrainSourceCollisionMode collisionMode = TerrainSourceCollisionMode.solid,
+    String? surfaceKind,
+    String? materialKey,
+  }) {
+    if (state.hasActiveOperation) return state;
+    final draft = TerrainPolygonDraft(
+      shapeId: _allocateShapeId(state.shapes),
+      collisionMode: collisionMode,
+      surfaceKind: surfaceKind,
+      materialKey: materialKey,
+      vertices: const <TerrainSourceVertexDef>[],
+      isClosed: true,
+    );
+    final source = _draftAsShape(draft);
+    return _state(
+      state,
+      tool: TerrainPolygonTool.createRectangle,
+      selection: null,
+      replaceSelection: true,
+      draft: draft,
+      replaceDraft: true,
+      gesture: TerrainPolygonGesture(
+        pointer: pointer,
+        kind: TerrainPolygonGestureKind.createRectangle,
+        originalShape: source,
+        previewShape: _rectangleFromCorners(source, startPointer, startPointer),
+        startPointer: startPointer,
+        activeVertexIndex: null,
+      ),
+      replaceGesture: true,
+    );
+  }
+
   /// Appends one snapped point while preserving authored click order.
   TerrainPolygonInteractionState addDraftVertex(
     TerrainPolygonInteractionState state, {
@@ -500,12 +549,17 @@ final class TerrainPolygonInteractionReducer {
   }) {
     final draft = state.draft;
     if (draft == null || state.gesture != null) return state;
-    if (edgeIndex < 0 || edgeIndex >= draft.vertices.length - 1) {
+    final edgeCount = draft.isClosed
+        ? draft.vertices.length
+        : draft.vertices.length - 1;
+    if (edgeIndex < 0 || edgeIndex >= edgeCount) {
       return state;
     }
     final shape = _draftAsShape(draft);
     final vertex = snap.snapVertex(rawVertex);
-    final vertexIndex = edgeIndex + 1;
+    final vertexIndex = edgeIndex == draft.vertices.length - 1
+        ? draft.vertices.length
+        : edgeIndex + 1;
     final vertices = shape.vertices.toList()..insert(vertexIndex, vertex);
     return _state(
       state,
@@ -624,6 +678,12 @@ final class TerrainPolygonInteractionReducer {
     }
     final TerrainSourceShapeDef preview;
     switch (gesture.kind) {
+      case TerrainPolygonGestureKind.createRectangle:
+        preview = _rectangleFromCorners(
+          gesture.originalShape,
+          gesture.startPointer,
+          snap.snapVertex(currentPointer),
+        );
       case TerrainPolygonGestureKind.moveVertex:
       case TerrainPolygonGestureKind.insertVertex:
         final vertexIndex = gesture.activeVertexIndex!;
@@ -675,6 +735,21 @@ final class TerrainPolygonInteractionReducer {
       if (gesture.originalShape.shapeId != draft.shapeId) {
         return _acceptedNoOp(state);
       }
+      if (gesture.kind == TerrainPolygonGestureKind.createRectangle &&
+          _rectangleHasNoArea(gesture.previewShape)) {
+        return TerrainPolygonInteractionResult(
+          state: _state(
+            state,
+            draft: null,
+            replaceDraft: true,
+            gesture: null,
+            replaceGesture: true,
+          ),
+          accepted: true,
+          commit: null,
+          diagnostics: const <TerrainDiagnostic>[],
+        );
+      }
       if (gesture.previewShape == gesture.originalShape) {
         return TerrainPolygonInteractionResult(
           state: _state(state, gesture: null, replaceGesture: true),
@@ -690,6 +765,9 @@ final class TerrainPolygonInteractionReducer {
           replaceDraft: true,
           gesture: null,
           replaceGesture: true,
+          tool: gesture.kind == TerrainPolygonGestureKind.createRectangle
+              ? TerrainPolygonTool.moveVertex
+              : state.tool,
         ),
         accepted: true,
         commit: null,
@@ -730,12 +808,28 @@ final class TerrainPolygonInteractionReducer {
     );
   }
 
-  /// Cancels a draft or gesture and restores the committed visible snapshot.
+  /// Cancels a draft, gesture, or armed rectangle tool without changing source.
   TerrainPolygonInteractionState cancelActiveOperation(
     TerrainPolygonInteractionState state,
   ) {
-    if (!state.hasActiveOperation) return state;
+    if (!state.hasActiveOperation) {
+      return state.tool == TerrainPolygonTool.createRectangle
+          ? _state(state, tool: TerrainPolygonTool.select)
+          : state;
+    }
     if (state.gesture != null) {
+      if (state.gesture!.kind == TerrainPolygonGestureKind.createRectangle) {
+        return _state(
+          state,
+          tool: TerrainPolygonTool.select,
+          selection: null,
+          replaceSelection: true,
+          draft: null,
+          replaceDraft: true,
+          gesture: null,
+          replaceGesture: true,
+        );
+      }
       return _state(
         state,
         tool: state.draft == null ? TerrainPolygonTool.select : state.tool,
@@ -1182,6 +1276,7 @@ TerrainPolygonDraft _draftWithHistory(
   surfaceKind: source.surfaceKind,
   materialKey: source.materialKey,
   vertices: vertices,
+  isClosed: source.isClosed,
   undoVertexSnapshots: undoVertexSnapshots,
   redoVertexSnapshots: redoVertexSnapshots,
 );
@@ -1194,6 +1289,36 @@ TerrainSourceShapeDef _draftAsShape(TerrainPolygonDraft draft) =>
       surfaceKind: draft.surfaceKind,
       materialKey: draft.materialKey,
     );
+
+TerrainSourceShapeDef _rectangleFromCorners(
+  TerrainSourceShapeDef source,
+  TerrainSourceVertexDef start,
+  TerrainSourceVertexDef end,
+) => TerrainSourceShapeDef(
+  shapeId: source.shapeId,
+  collisionMode: source.collisionMode,
+  surfaceKind: source.surfaceKind,
+  materialKey: source.materialKey,
+  vertices: <TerrainSourceVertexDef>[
+    start,
+    TerrainSourceVertexDef(
+      xHalfPixels: end.xHalfPixels,
+      yHalfPixels: start.yHalfPixels,
+    ),
+    end,
+    TerrainSourceVertexDef(
+      xHalfPixels: start.xHalfPixels,
+      yHalfPixels: end.yHalfPixels,
+    ),
+  ],
+);
+
+bool _rectangleHasNoArea(TerrainSourceShapeDef rectangle) {
+  final first = rectangle.vertices.first;
+  final opposite = rectangle.vertices[2];
+  return first.xHalfPixels == opposite.xHalfPixels ||
+      first.yHalfPixels == opposite.yHalfPixels;
+}
 
 TerrainSourceShapeDef _requireShape(
   Iterable<TerrainSourceShapeDef> shapes,

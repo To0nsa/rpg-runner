@@ -537,7 +537,9 @@ void main() {
     expect(controller.selectedPluginId, EntityDomainPlugin.pluginId);
   });
 
-  testWidgets('ctrl+z and ctrl+y drive session undo and redo', (tester) async {
+  testWidgets('ctrl+z, ctrl+y, and ctrl+shift+z drive session undo and redo', (
+    tester,
+  ) async {
     await tester.binding.setSurfaceSize(const Size(1800, 1200));
     addTearDown(() async {
       await tester.binding.setSurfaceSize(null);
@@ -562,6 +564,16 @@ void main() {
 
     controller.applyCommand(AuthoringCommand(kind: 'mark_dirty'));
     await tester.pumpAndSettle();
+
+    expect(controller.pendingChanges.hasChanges, isTrue);
+    expect(controller.canUndo, isTrue);
+
+    await _pressCtrlShortcut(tester, LogicalKeyboardKey.keyZ);
+
+    expect(controller.pendingChanges.hasChanges, isFalse);
+    expect(controller.canRedo, isTrue);
+
+    await _pressCtrlShiftShortcut(tester, LogicalKeyboardKey.keyZ);
 
     expect(controller.pendingChanges.hasChanges, isTrue);
     expect(controller.canUndo, isTrue);
@@ -999,6 +1011,19 @@ Future<void> _pressCtrlShortcut(
   await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
   await tester.sendKeyDownEvent(key);
   await tester.sendKeyUpEvent(key);
+  await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+  await tester.pumpAndSettle();
+}
+
+Future<void> _pressCtrlShiftShortcut(
+  WidgetTester tester,
+  LogicalKeyboardKey key,
+) async {
+  await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+  await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+  await tester.sendKeyDownEvent(key);
+  await tester.sendKeyUpEvent(key);
+  await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
   await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
   await tester.pumpAndSettle();
 }

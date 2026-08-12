@@ -42,7 +42,7 @@ final class TerrainPolygonSceneShape {
   );
 }
 
-/// Render-facing view of an open creation draft.
+/// Render-facing view of a local polygon creation draft.
 final class TerrainPolygonSceneDraft {
   const TerrainPolygonSceneDraft({
     required this.shapeId,
@@ -50,6 +50,7 @@ final class TerrainPolygonSceneDraft {
     required this.collisionMode,
     required this.surfaceKind,
     required this.materialKey,
+    required this.isClosed,
     required this.isGesturePreview,
     required this.selectedVertexIndex,
   });
@@ -59,6 +60,7 @@ final class TerrainPolygonSceneDraft {
   final TerrainSourceCollisionMode collisionMode;
   final String? surfaceKind;
   final String? materialKey;
+  final bool isClosed;
   final bool isGesturePreview;
   final int? selectedVertexIndex;
 
@@ -70,6 +72,7 @@ final class TerrainPolygonSceneDraft {
       collisionMode == other.collisionMode &&
       surfaceKind == other.surfaceKind &&
       materialKey == other.materialKey &&
+      isClosed == other.isClosed &&
       isGesturePreview == other.isGesturePreview &&
       selectedVertexIndex == other.selectedVertexIndex;
 
@@ -80,6 +83,7 @@ final class TerrainPolygonSceneDraft {
     collisionMode,
     surfaceKind,
     materialKey,
+    isClosed,
     isGesturePreview,
     selectedVertexIndex,
   );
@@ -132,6 +136,7 @@ final class TerrainPolygonSceneProjection {
               collisionMode: sourceDraft.collisionMode,
               surfaceKind: sourceDraft.surfaceKind,
               materialKey: sourceDraft.materialKey,
+              isClosed: sourceDraft.isClosed,
               isGesturePreview: draftGesture != null,
               selectedVertexIndex: draftGesture?.activeVertexIndex,
             ),
@@ -249,16 +254,18 @@ abstract final class TerrainPolygonSceneHitTest {
   }) {
     _requireFinitePoint(point);
     _requireRadius(radiusHalfPixels, 'radiusHalfPixels');
-    final vertices = projection.draft?.vertices;
+    final draft = projection.draft;
+    final vertices = draft?.vertices;
     if (vertices == null || vertices.length < 2) return null;
     final maximumDistanceSquared = radiusHalfPixels * radiusHalfPixels;
+    final edgeCount = draft!.isClosed ? vertices.length : vertices.length - 1;
     int? bestIndex;
     var bestDistanceSquared = double.infinity;
-    for (var index = 0; index < vertices.length - 1; index++) {
+    for (var index = 0; index < edgeCount; index++) {
       final distanceSquared = _distanceToSegmentSquared(
         point,
         vertices[index],
-        vertices[index + 1],
+        vertices[(index + 1) % vertices.length],
       );
       if (distanceSquared > maximumDistanceSquared ||
           distanceSquared >= bestDistanceSquared) {
