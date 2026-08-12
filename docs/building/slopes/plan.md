@@ -21,6 +21,8 @@
   [phase3-implementation-checklist.md](phase3-implementation-checklist.md)
 - Phase 4 implementation checklist:
   [phase4-implementation-checklist.md](phase4-implementation-checklist.md)
+- Phase 5 implementation checklist:
+  [phase5-implementation-checklist.md](phase5-implementation-checklist.md)
 
 Related plans and contracts:
 
@@ -1106,6 +1108,9 @@ Gate:
 - all committed content migrates or has an explicit blocking reauthor list
 
 ### Phase 5 - Streaming, Rendering, And Full Runtime Integration
+
+Detailed tracker:
+[phase5-implementation-checklist.md](phase5-implementation-checklist.md)
 
 Scope:
 

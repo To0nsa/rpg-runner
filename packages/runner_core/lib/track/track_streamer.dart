@@ -68,6 +68,37 @@ class TrackSpawnedChunk {
   final String? chunkKey;
 }
 
+/// Immutable selection identity for one currently streamed chunk.
+///
+/// This is read-only scheduling evidence. It deliberately exposes neither
+/// legacy collision lists nor mutable pattern data, so a future terrain
+/// publication can bind the scheduler's exact active selection without
+/// re-running pattern choice or making a second streaming authority.
+class ActiveTrackChunkSnapshot {
+  const ActiveTrackChunkSnapshot({
+    required this.index,
+    required this.startX,
+    required this.endX,
+    required this.patternName,
+    required this.chunkKey,
+  });
+
+  /// Deterministic sequential streamed instance index.
+  final int index;
+
+  /// Inclusive world-X start in world units.
+  final double startX;
+
+  /// Exclusive world-X end in world units.
+  final double endX;
+
+  /// Selected legacy pattern name retained for diagnostics.
+  final String patternName;
+
+  /// Stable authored chunk key, or null for a legacy pattern without one.
+  final String? chunkKey;
+}
+
 /// Result of a single [TrackStreamer.step] call.
 class TrackStreamStepResult {
   const TrackStreamStepResult({
@@ -138,6 +169,8 @@ class TrackStreamer {
   List<StaticGroundGap> _dynamicGroundGaps = const <StaticGroundGap>[];
   List<ChunkVisualSpriteWorld> _dynamicVisualSprites =
       const <ChunkVisualSpriteWorld>[];
+  List<ActiveTrackChunkSnapshot> _activeChunksSnapshot =
+      const <ActiveTrackChunkSnapshot>[];
 
   /// Current streamed solids (excluding any caller-provided base solids).
   List<StaticSolid> get dynamicSolids => _dynamicSolids;
@@ -151,6 +184,14 @@ class TrackStreamer {
   /// Current streamed visual sprites for chunk prefab rendering.
   List<ChunkVisualSpriteWorld> get dynamicVisualSprites =>
       _dynamicVisualSprites;
+
+  /// Current scheduler selections in canonical streamed-index order.
+  ///
+  /// The list changes only with the same spawn/cull rebuild that updates the
+  /// legacy dynamic geometry lists. Consumers must treat missing [chunkKey]
+  /// as incompatible with staged-terrain binding rather than selecting a
+  /// fallback record.
+  List<ActiveTrackChunkSnapshot> get activeChunks => _activeChunksSnapshot;
 
   /// Advances chunk streaming based on the current camera bounds.
   ///
@@ -253,6 +294,8 @@ class TrackStreamer {
           index: chunkIndex,
           startX: startX,
           endX: endX,
+          patternName: pattern.name,
+          chunkKey: pattern.chunkKey,
           solids: solids,
           groundSegments: ground.segments,
           groundGaps: ground.gaps,
@@ -293,11 +336,21 @@ class TrackStreamer {
       final rebuiltGroundSegments = <StaticGroundSegment>[];
       final rebuiltGroundGaps = <StaticGroundGap>[];
       final rebuiltVisualSprites = <ChunkVisualSpriteWorld>[];
+      final rebuiltActiveChunks = <ActiveTrackChunkSnapshot>[];
       for (final c in _active) {
         rebuilt.addAll(c.solids);
         rebuiltGroundSegments.addAll(c.groundSegments);
         rebuiltGroundGaps.addAll(c.groundGaps);
         rebuiltVisualSprites.addAll(c.visualSprites);
+        rebuiltActiveChunks.add(
+          ActiveTrackChunkSnapshot(
+            index: c.index,
+            startX: c.startX,
+            endX: c.endX,
+            patternName: c.patternName,
+            chunkKey: c.chunkKey,
+          ),
+        );
       }
       _dynamicSolids = List<StaticSolid>.unmodifiable(rebuilt);
       _dynamicGroundSegments = List<StaticGroundSegment>.unmodifiable(
@@ -308,6 +361,9 @@ class TrackStreamer {
       );
       _dynamicVisualSprites = List<ChunkVisualSpriteWorld>.unmodifiable(
         rebuiltVisualSprites,
+      );
+      _activeChunksSnapshot = List<ActiveTrackChunkSnapshot>.unmodifiable(
+        rebuiltActiveChunks,
       );
     }
 
@@ -556,6 +612,8 @@ class _ActiveChunk {
     required this.index,
     required this.startX,
     required this.endX,
+    required this.patternName,
+    required this.chunkKey,
     required this.solids,
     required this.groundSegments,
     required this.groundGaps,
@@ -571,6 +629,12 @@ class _ActiveChunk {
 
   /// World X where chunk ends (startX + chunkWidth).
   final double endX;
+
+  /// Selected legacy pattern name retained for read-only diagnostics.
+  final String patternName;
+
+  /// Stable authored chunk identity, if the legacy source provides one.
+  final String? chunkKey;
 
   /// Platforms and obstacles in this chunk.
   final List<StaticSolid> solids;

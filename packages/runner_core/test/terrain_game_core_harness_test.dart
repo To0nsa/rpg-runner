@@ -12,9 +12,14 @@ import 'package:runner_core/players/characters/eloise.dart';
 import 'package:runner_core/players/characters/eloise_wip.dart';
 import 'package:runner_core/snapshots/enums.dart';
 import 'package:runner_core/track/chunk_pattern_source.dart';
+import 'package:runner_core/track/staged_terrain_catalog.dart';
+import 'package:runner_core/track/staged_terrain_data.dart';
+import 'package:runner_core/track/staged_terrain_stream_candidate.dart';
+import 'package:runner_core/track/track_streamer.dart';
 import 'package:runner_core/tuning/camera_tuning.dart';
 import 'package:runner_core/tuning/core_tuning.dart';
 import 'package:runner_core/tuning/track_tuning.dart';
+import 'package:runner_core/navigation/terrain_runtime_bundle.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -52,6 +57,29 @@ void main() {
       expect(core.playerGrounded, isTrue);
       expect(core.playerPosX, greaterThan(startX));
       expect(core.distance, closeTo(core.playerPosX - startX, 1 / 1024));
+    },
+  );
+
+  test(
+    'staged stream candidate geometry drives the isolated terrain authority',
+    () {
+      final candidate = _stagedTerrainHarnessCandidate();
+      final core = GameCore.terrainMotionHarness(
+        seed: 71,
+        levelDefinition: _level(),
+        playerCharacter: eloiseCharacter,
+        terrainGeometry: candidate.geometry,
+      );
+
+      expect(candidate.renderSnapshot.polygons, hasLength(1));
+      expect(core.playerGrounded, isTrue);
+      final startX = core.playerPosX;
+      core.applyCommands(const [MoveAxisCommand(tick: 1, axis: 1)]);
+      core.stepOneTick();
+
+      expect(core.playerGrounded, isTrue);
+      expect(core.playerPosX, greaterThan(startX));
+      expect(core.buildTerrainPlayerDebugSnapshot()!.geometryVersion, 1);
     },
   );
 
@@ -1273,6 +1301,113 @@ TerrainGeometry _terrain({int version = 1}) => const TerrainCompiler().compile([
     vertices: [(0, 300), (1000, 300), (1000, 500), (0, 500)],
   ),
 ], geometryVersion: version);
+
+StagedTerrainStreamCandidate _stagedTerrainHarnessCandidate() {
+  const chunkKey = 'terrain_harness';
+  final sourceId = StagedTerrainSourceId(chunkKey: chunkKey, shapeId: 'ground');
+  final catalog = StagedTerrainArtifactCatalog(
+    artifact: StagedTerrainArtifactData(
+      formatVersion: stagedTerrainArtifactFormatVersion,
+      compilerGeometryVersion: 1,
+      authoringPolygonSignatureFormat: 'authoring-polygons-v1',
+      authoringSeamSignatureFormat: 'authoring-seams-v1',
+      authoringSeamSignature: 'terrain-harness-seams',
+      sourceSignatureFormat: 'source-v1',
+      edgeSignatureFormat: 'edges-v1',
+      placementSignatureFormat: 'authoring-placement-v1',
+      triangleSignatureFormat: 'authoring-triangles-v1',
+      chunks: <StagedTerrainChunkData>[
+        StagedTerrainChunkData(
+          chunkKey: chunkKey,
+          id: chunkKey,
+          revision: 1,
+          status: 'active',
+          levelId: 'field',
+          tileSize: 16,
+          width: 600,
+          height: 270,
+          difficulty: 'normal',
+          assemblyGroupId: 'default',
+          authoringPolygonSignature: 'authoring',
+          sourceSignature: 'source',
+          edgeSignature: 'edges',
+          placementSignature: 'placements',
+          triangleSignature: 'triangles',
+          polygons: <StagedTerrainPolygonData>[
+            StagedTerrainPolygonData(
+              sourcePath: 'test/staged-terrain-harness#ground',
+              id: sourceId,
+              sourceVertices: const <StagedTerrainPoint>[
+                StagedTerrainPoint(0, 600),
+                StagedTerrainPoint(1200, 600),
+                StagedTerrainPoint(1200, 1000),
+                StagedTerrainPoint(0, 1000),
+              ],
+              vertices: const <StagedTerrainPoint>[
+                StagedTerrainPoint(0, 307200),
+                StagedTerrainPoint(614400, 307200),
+                StagedTerrainPoint(614400, 512000),
+                StagedTerrainPoint(0, 512000),
+              ],
+              collisionMode: StagedTerrainCollisionMode.solid,
+              surfaceKind: 'ground',
+              materialKey: 'earth',
+            ),
+          ],
+          edges: <StagedTerrainEdgeData>[
+            StagedTerrainEdgeData(
+              id: StagedTerrainEdgeId(
+                sourceId: sourceId,
+                localEdgeIndex: 0,
+                subEdgeIndex: 0,
+              ),
+              start: const StagedTerrainPoint(0, 307200),
+              end: const StagedTerrainPoint(614400, 307200),
+              tangent: const StagedTerrainPoint(1024, 0),
+              outwardNormal: const StagedTerrainPoint(0, -1024),
+              collisionMode: StagedTerrainCollisionMode.solid,
+              surfaceKind: 'ground',
+              materialKey: 'earth',
+              previousId: null,
+              nextId: null,
+              startJoin: StagedTerrainVertexJoin.exposed,
+              endJoin: StagedTerrainVertexJoin.exposed,
+            ),
+          ],
+          triangles: <StagedTerrainTriangleData>[
+            StagedTerrainTriangleData(
+              sourceId: sourceId,
+              first: 0,
+              second: 1,
+              third: 2,
+            ),
+            StagedTerrainTriangleData(
+              sourceId: sourceId,
+              first: 0,
+              second: 2,
+              third: 3,
+            ),
+          ],
+          placementLineage: const <StagedTerrainPlacementLineageData>[],
+        ),
+      ],
+    ),
+  );
+  return const StagedTerrainStreamCandidateBuilder().build(
+    catalog: catalog,
+    activeChunks: const <ActiveTrackChunkSnapshot>[
+      ActiveTrackChunkSnapshot(
+        index: 0,
+        startX: 0,
+        endX: 600,
+        patternName: chunkKey,
+        chunkKey: chunkKey,
+      ),
+    ],
+    geometryVersion: 1,
+    groundEnemyProfiles: buildDefaultGroundEnemyTerrainGraphProfiles(),
+  );
+}
 
 TerrainGeometry _slopeTerrain() => const TerrainCompiler().compile([
   TerrainPolygonInput.fromWorld(
