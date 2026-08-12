@@ -16,10 +16,17 @@ class ParallaxPreviewView extends StatefulWidget {
     super.key,
     required this.workspaceRootPath,
     required this.theme,
+    this.onApplyPreviewYOffset,
   });
 
   final String workspaceRootPath;
   final ParallaxThemeDef? theme;
+
+  /// Applies the current shared preview offset to every authored layer.
+  ///
+  /// Returns whether the domain accepted the draft edit, so the preview only
+  /// clears its temporary offset after a successful application.
+  final bool Function(double previewYOffset)? onApplyPreviewYOffset;
 
   @override
   State<ParallaxPreviewView> createState() => _ParallaxPreviewViewState();
@@ -140,6 +147,16 @@ class _ParallaxPreviewViewState extends State<ParallaxPreviewView> {
                   },
                   icon: const Icon(Icons.vertical_align_center),
                   label: const Text('Reset Y Offset'),
+                ),
+                FilledButton.icon(
+                  onPressed:
+                      _previewYOffset == 0 ||
+                          theme.layers.isEmpty ||
+                          widget.onApplyPreviewYOffset == null
+                      ? null
+                      : _applyPreviewYOffsetToAllLayers,
+                  icon: const Icon(Icons.save_alt),
+                  label: const Text('Apply Y Offset to All Layers'),
                 ),
                 Chip(
                   avatar: const Icon(Icons.swap_horiz, size: 16),
@@ -295,6 +312,17 @@ class _ParallaxPreviewViewState extends State<ParallaxPreviewView> {
     }
     setState(() {
       _zoom = next;
+    });
+  }
+
+  void _applyPreviewYOffsetToAllLayers() {
+    final applied =
+        widget.onApplyPreviewYOffset?.call(_previewYOffset) ?? false;
+    if (!applied) {
+      return;
+    }
+    setState(() {
+      _previewYOffset = 0.0;
     });
   }
 

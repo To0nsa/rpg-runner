@@ -404,8 +404,45 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
           ParallaxPreviewView(
             workspaceRootPath: scene.workspaceRootPath,
             theme: scene.activeTheme,
+            onApplyPreviewYOffset: _applyPreviewYOffsetToAllLayers,
           ),
     );
+  }
+
+  bool _applyPreviewYOffsetToAllLayers(double previewYOffset) {
+    final scene = widget.controller.scene;
+    final activeTheme = scene is ParallaxScene ? scene.activeTheme : null;
+    if (activeTheme == null ||
+        activeTheme.layers.isEmpty ||
+        previewYOffset == 0) {
+      return false;
+    }
+    if (hasLocalDraftChanges) {
+      _showSnackBar('Apply or discard the selected layer draft first.');
+      return false;
+    }
+
+    final previousRevision = activeTheme.revision;
+    widget.controller.applyCommand(
+      AuthoringCommand(
+        kind: 'offset_active_theme_y_offsets',
+        payload: <String, Object?>{'yOffsetDelta': previewYOffset},
+      ),
+    );
+    final updatedScene = widget.controller.scene;
+    final updatedTheme = updatedScene is ParallaxScene
+        ? updatedScene.activeTheme
+        : null;
+    if (updatedTheme == null || updatedTheme.revision != previousRevision + 1) {
+      return false;
+    }
+    final selectedLayer = _selectedLayer(updatedTheme);
+    if (selectedLayer != null) {
+      setState(() {
+        _syncLayerInspector(selectedLayer);
+      });
+    }
+    return true;
   }
 
   Widget _buildInspectorPane(ParallaxScene scene) {

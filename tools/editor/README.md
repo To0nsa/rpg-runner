@@ -30,7 +30,8 @@ Implemented authoring domains:
   preview, and direct-write export
 - parallax theme authoring scoped by active level, with ordered layer editing,
   deterministic save output, validation, and preview pan/zoom plus temporary
-  all-layer Y-offset simulation
+  all-layer Y-offset simulation that can be applied as one undoable authored
+  layer edit
 
 Editor foundations shared across those domains:
 

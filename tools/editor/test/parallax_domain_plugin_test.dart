@@ -186,4 +186,103 @@ void main() {
       root.deleteSync(recursive: true);
     }
   });
+
+  test('applying a preview offset shifts every active-theme layer once', () {
+    final plugin = ParallaxDomainPlugin();
+    const document = ParallaxDefsDocument(
+      workspaceRootPath: '.',
+      themes: <ParallaxThemeDef>[
+        ParallaxThemeDef(
+          parallaxThemeId: 'field',
+          revision: 4,
+          layers: <ParallaxLayerDef>[
+            ParallaxLayerDef(
+              layerKey: 'field_bg',
+              assetPath: 'assets/images/parallax/field/bg.png',
+              group: parallaxGroupBackground,
+              parallaxFactor: 0.2,
+              zOrder: 10,
+              opacity: 1,
+              yOffset: -16,
+            ),
+            ParallaxLayerDef(
+              layerKey: 'field_fg',
+              assetPath: 'assets/images/parallax/field/fg.png',
+              group: parallaxGroupForeground,
+              parallaxFactor: 1,
+              zOrder: 10,
+              opacity: 1,
+              yOffset: 32,
+            ),
+          ],
+        ),
+      ],
+      baseline: null,
+      availableLevelIds: <String>['field'],
+      activeLevelId: 'field',
+      levelOptionSource: 'test',
+      parallaxThemeIdByLevelId: <String, String>{'field': 'field'},
+    );
+
+    final shifted =
+        plugin.applyEdit(
+              document,
+              AuthoringCommand(
+                kind: 'offset_active_theme_y_offsets',
+                payload: <String, Object?>{'yOffsetDelta': 64},
+              ),
+            )
+            as ParallaxDefsDocument;
+
+    expect(shifted.themes.single.revision, 5);
+    expect(shifted.themes.single.layers.map((layer) => layer.yOffset), <double>[
+      48,
+      96,
+    ]);
+  });
+
+  test('preview offset does not apply when it exceeds a layer range', () {
+    final plugin = ParallaxDomainPlugin();
+    const document = ParallaxDefsDocument(
+      workspaceRootPath: '.',
+      themes: <ParallaxThemeDef>[
+        ParallaxThemeDef(
+          parallaxThemeId: 'field',
+          revision: 1,
+          layers: <ParallaxLayerDef>[
+            ParallaxLayerDef(
+              layerKey: 'field_bg',
+              assetPath: 'assets/images/parallax/field/bg.png',
+              group: parallaxGroupBackground,
+              parallaxFactor: 0.2,
+              zOrder: 10,
+              opacity: 1,
+              yOffset: maxAbsYOffset,
+            ),
+          ],
+        ),
+      ],
+      baseline: null,
+      availableLevelIds: <String>['field'],
+      activeLevelId: 'field',
+      levelOptionSource: 'test',
+      parallaxThemeIdByLevelId: <String, String>{'field': 'field'},
+    );
+
+    final rejected =
+        plugin.applyEdit(
+              document,
+              AuthoringCommand(
+                kind: 'offset_active_theme_y_offsets',
+                payload: <String, Object?>{'yOffsetDelta': 1},
+              ),
+            )
+            as ParallaxDefsDocument;
+
+    expect(rejected.themes.single, document.themes.single);
+    expect(
+      rejected.operationIssues.single.code,
+      'offset_active_theme_y_offsets_out_of_range',
+    );
+  });
 }

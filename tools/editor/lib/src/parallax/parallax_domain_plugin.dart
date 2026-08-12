@@ -78,6 +78,8 @@ class ParallaxDomainPlugin implements AuthoringDomainPlugin {
         return _removeLayer(parallaxDocument, command.payload);
       case 'update_layer':
         return _updateLayer(parallaxDocument, command.payload);
+      case 'offset_active_theme_y_offsets':
+        return _offsetActiveThemeYOffsets(parallaxDocument, command.payload);
       case 'reorder_layer':
         return _reorderLayer(parallaxDocument, command.payload);
       default:
@@ -410,6 +412,57 @@ class ParallaxDomainPlugin implements AuthoringDomainPlugin {
     );
   }
 
+  ParallaxDefsDocument _offsetActiveThemeYOffsets(
+    ParallaxDefsDocument document,
+    Map<String, Object?> payload,
+  ) {
+    document = _clearOperationIssuesIfNeeded(document);
+    final activeTheme = _requireActiveTheme(document);
+    final yOffsetDelta = _finiteDouble(payload['yOffsetDelta']);
+    if (activeTheme == null ||
+        activeTheme.layers.isEmpty ||
+        yOffsetDelta == null ||
+        yOffsetDelta == 0) {
+      return _withOperationIssue(
+        document,
+        code: 'offset_active_theme_y_offsets_invalid_payload',
+        message:
+            'Applying a preview Y offset requires an active theme with at '
+            'least one layer and a non-zero finite yOffsetDelta.',
+      );
+    }
+
+    for (final layer in activeTheme.layers) {
+      final nextYOffset = layer.yOffset + yOffsetDelta;
+      if (!nextYOffset.isFinite || nextYOffset.abs() > maxAbsYOffset) {
+        return _withOperationIssue(
+          document,
+          code: 'offset_active_theme_y_offsets_out_of_range',
+          message:
+              'Applying yOffsetDelta ${formatCanonicalParallaxNumber(yOffsetDelta)} '
+              'would move layer "${layer.layerKey}" outside the supported '
+              'range of -$maxAbsYOffset to $maxAbsYOffset.',
+        );
+      }
+    }
+
+    final nextTheme = activeTheme
+        .copyWith(
+          layers: activeTheme.layers
+              .map(
+                (layer) =>
+                    layer.copyWith(yOffset: layer.yOffset + yOffsetDelta),
+              )
+              .toList(growable: false),
+        )
+        .normalized();
+    return _replaceTheme(
+      document,
+      parallaxThemeId: activeTheme.parallaxThemeId,
+      nextTheme: _bumpThemeRevision(nextTheme, fromTheme: activeTheme),
+    );
+  }
+
   ParallaxDefsDocument _reorderLayer(
     ParallaxDefsDocument document,
     Map<String, Object?> payload,
@@ -656,6 +709,19 @@ double _doubleOrDefault(Object? raw, {required double fallback}) {
     }
   }
   return fallback;
+}
+
+double? _finiteDouble(Object? raw) {
+  if (raw is num && raw.isFinite) {
+    return raw.toDouble();
+  }
+  if (raw is String) {
+    final parsed = double.tryParse(raw.trim().replaceAll(',', '.'));
+    if (parsed != null && parsed.isFinite) {
+      return parsed;
+    }
+  }
+  return null;
 }
 
 ParallaxThemeDef _bumpThemeRevision(

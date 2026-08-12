@@ -8,15 +8,20 @@ void main() {
   testWidgets('preview offset shifts every layer without editing theme data', (
     tester,
   ) async {
+    double? appliedYOffset;
     await tester.pumpWidget(
-      const MaterialApp(
+      MaterialApp(
         home: Scaffold(
           body: SizedBox(
             width: 1200,
             height: 800,
             child: ParallaxPreviewView(
               workspaceRootPath: '.',
-              theme: ParallaxThemeDef(
+              onApplyPreviewYOffset: (value) {
+                appliedYOffset = value;
+                return true;
+              },
+              theme: const ParallaxThemeDef(
                 parallaxThemeId: 'field',
                 revision: 1,
                 layers: <ParallaxLayerDef>[
@@ -47,6 +52,14 @@ void main() {
     await tester.pump();
 
     expect(find.text('previewYOffset=64'), findsOneWidget);
+    await tester.tap(find.text('Apply Y Offset to All Layers'));
+    await tester.pump();
+
+    expect(appliedYOffset, 64);
+    expect(find.text('previewYOffset=0'), findsOneWidget);
+
+    offsetSlider.onChanged!(64);
+    await tester.pump();
     await tester.tap(find.text('Reset Y Offset'));
     await tester.pump();
 

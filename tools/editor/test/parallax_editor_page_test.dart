@@ -30,14 +30,7 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
-        home: Scaffold(
-          body: ParallaxEditorPage(
-            controller: controller,
-            previewBuilder: ({required workspaceRootPath, required theme}) {
-              return const SizedBox.expand();
-            },
-          ),
-        ),
+        home: Scaffold(body: ParallaxEditorPage(controller: controller)),
       ),
     );
     await _flush(tester);
@@ -84,6 +77,27 @@ void main() {
     await _flush(tester);
     scene = controller.scene as ParallaxScene;
     expect(scene.activeTheme?.layers.length, 2);
+
+    final previewOffsetSlider = tester.widget<Slider>(
+      find.byKey(const ValueKey<String>('parallax_preview_y_offset')),
+    );
+    previewOffsetSlider.onChanged!(64);
+    await _flush(tester);
+    await tester.tap(find.text('Apply Y Offset to All Layers'));
+    await _flush(tester);
+
+    scene = controller.scene as ParallaxScene;
+    expect(scene.activeTheme?.layers.map((layer) => layer.yOffset), <double>[
+      64,
+      64,
+    ]);
+    expect(
+      tester
+          .widget<TextField>(_textFieldByLabel('yOffset').first)
+          .controller
+          ?.text,
+      '64',
+    );
 
     expect(controller.pendingChanges.hasChanges, isTrue);
   });
