@@ -21,10 +21,6 @@ const List<ChunkPattern> fieldNormalPatterns = <ChunkPattern>[
     name: 'field_flat',
     chunkKey: 'field_flat',
     assemblyGroupId: 'default',
-    solids: <SolidRel>[
-    ],
-    groundGaps: <GapRel>[
-    ],
     visualSprites: <ChunkVisualSpriteRel>[
     ],
     spawnMarkers: <SpawnMarker>[
@@ -40,10 +36,6 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
     name: 'forest_early_flat',
     chunkKey: 'forest_earlt_flat',
     assemblyGroupId: 'default',
-    solids: <SolidRel>[
-    ],
-    groundGaps: <GapRel>[
-    ],
     visualSprites: <ChunkVisualSpriteRel>[
     ],
     spawnMarkers: <SpawnMarker>[
@@ -53,10 +45,6 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
     name: 'forest_early_00',
     chunkKey: 'forest_early_00',
     assemblyGroupId: 'default',
-    solids: <SolidRel>[
-    ],
-    groundGaps: <GapRel>[
-    ],
     visualSprites: <ChunkVisualSpriteRel>[
       ChunkVisualSpriteRel(
         assetPath: 'level/tileset/TX Tileset Ground.png',
@@ -174,10 +162,6 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
     name: 'forest_early_01',
     chunkKey: 'forest_early_01',
     assemblyGroupId: 'default',
-    solids: <SolidRel>[
-    ],
-    groundGaps: <GapRel>[
-    ],
     visualSprites: <ChunkVisualSpriteRel>[
       ChunkVisualSpriteRel(
         assetPath: 'level/props/Enviroment.png',
@@ -298,10 +282,6 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
     name: 'forest_early_02',
     chunkKey: 'forest_early_02',
     assemblyGroupId: 'default',
-    solids: <SolidRel>[
-    ],
-    groundGaps: <GapRel>[
-    ],
     visualSprites: <ChunkVisualSpriteRel>[
       ChunkVisualSpriteRel(
         assetPath: 'level/tileset/TX Tileset Ground.png',
@@ -407,10 +387,6 @@ const List<ChunkPattern> forestEarlyPatterns = <ChunkPattern>[
     name: 'forest_early_03',
     chunkKey: 'forest_early_03',
     assemblyGroupId: 'default',
-    solids: <SolidRel>[
-    ],
-    groundGaps: <GapRel>[
-    ],
     visualSprites: <ChunkVisualSpriteRel>[
       ChunkVisualSpriteRel(
         assetPath: 'level/tileset/TX Tileset Ground.png',
@@ -545,10 +521,6 @@ const List<ChunkPattern> forestEasyPatterns = <ChunkPattern>[
     name: 'forest_easy_woodcamp_00',
     chunkKey: 'forest_easy_woodcamp_00',
     assemblyGroupId: 'woodcamp',
-    solids: <SolidRel>[
-    ],
-    groundGaps: <GapRel>[
-    ],
     visualSprites: <ChunkVisualSpriteRel>[
       ChunkVisualSpriteRel(
         assetPath: 'level/tileset/Decor.png',
@@ -647,10 +619,6 @@ const List<ChunkPattern> forestNormalPatterns = <ChunkPattern>[
     name: 'forest_normal_woodcamp_00',
     chunkKey: 'forest_easy_woodcamp_00_2',
     assemblyGroupId: 'default',
-    solids: <SolidRel>[
-    ],
-    groundGaps: <GapRel>[
-    ],
     visualSprites: <ChunkVisualSpriteRel>[
       ChunkVisualSpriteRel(
         assetPath: 'level/tileset/Decor.png',

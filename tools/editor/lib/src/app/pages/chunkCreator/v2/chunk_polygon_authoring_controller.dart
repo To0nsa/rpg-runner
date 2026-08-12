@@ -28,8 +28,8 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
        _chunkKey = chunkKey,
        _snapPolicy = snapPolicy,
        _commitPolicy = commitPolicy,
-       // `ground_` is reserved by the temporary legacy projection for migrated
-       // bottom-band terrain; direct editor shapes must remain ordinary solids.
+       // Keep newly drawn general-purpose solids distinct from the explicit
+       // `ground_` identities used by authored terrain bands.
        _reducer = TerrainPolygonInteractionReducer(
          sourcePath: _requireSourcePath(session, chunkKey),
          ownerKey: chunkKey,

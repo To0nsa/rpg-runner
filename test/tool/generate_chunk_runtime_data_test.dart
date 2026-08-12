@@ -76,7 +76,7 @@ void main() {
         ).readAsStringSync();
 
         expect(output, contains("chunkKey: 'chunk_cleared'"));
-        expect(output, contains("gapId: 'collision_cleared'"));
+        expect(output, isNot(contains('GapRel(')));
         expect(output, isNot(contains('SolidRel(')));
         expect(output, contains('visualSprites: <ChunkVisualSpriteRel>['));
       } finally {
@@ -385,7 +385,7 @@ void main() {
       final output = outputFile.readAsStringSync();
       expect(output, contains('fieldEasyPatterns'));
       expect(output, contains('authoredChunkPatternSourcesByLevel'));
-      expect(output, contains('solids: <SolidRel>['));
+      expect(output, isNot(contains('SolidRel(')));
       expect(output, contains('visualSprites: <ChunkVisualSpriteRel>['));
       expect(output, contains('x: 56.0'));
       expect(output, contains('width: 48.0'));
@@ -393,7 +393,7 @@ void main() {
       expect(output, contains('EnemyId.derf'));
       expect(output, isNot(contains('PlatformRel(')));
       expect(output, isNot(contains('ObstacleRel(')));
-      expect(output, contains("gapId: 'collision_cleared'"));
+      expect(output, isNot(contains('GapRel(')));
 
       final stagedOutputFile = File(
         _joinPath(<String>[
@@ -485,15 +485,17 @@ void main() {
     }
   });
 
-  test('generator projects multiple prefab polygons as separate solids', () async {
-    final fixtureRoot = await Directory.systemTemp.createTemp(
-      'chunk_generator_multi_collider_',
-    );
-    try {
-      _writeFile(
-        fixtureRoot.path,
-        'assets/authoring/level/prefab_defs.json',
-        '''
+  test(
+    'generator stages multiple prefab polygons without legacy solids',
+    () async {
+      final fixtureRoot = await Directory.systemTemp.createTemp(
+        'chunk_generator_multi_collider_',
+      );
+      try {
+        _writeFile(
+          fixtureRoot.path,
+          'assets/authoring/level/prefab_defs.json',
+          '''
 {
   "schemaVersion": 3,
   "slices": [
@@ -543,20 +545,24 @@ void main() {
   ]
 }
 ''',
-      );
-      _writeFile(fixtureRoot.path, 'assets/authoring/level/tile_defs.json', '''
+        );
+        _writeFile(
+          fixtureRoot.path,
+          'assets/authoring/level/tile_defs.json',
+          '''
 {
   "schemaVersion": 2,
   "tileSlices": [],
   "platformModules": []
 }
-''');
-      _writeLevelDefs(fixtureRoot.path);
-      _writeParallaxDefs(fixtureRoot.path);
-      _writeCurrentChunkFixture(
-        fixtureRoot.path,
-        'assets/authoring/level/chunks/field/chunk_multi.json',
-        '''
+''',
+        );
+        _writeLevelDefs(fixtureRoot.path);
+        _writeParallaxDefs(fixtureRoot.path);
+        _writeCurrentChunkFixture(
+          fixtureRoot.path,
+          'assets/authoring/level/chunks/field/chunk_multi.json',
+          '''
 {
   "schemaVersion": 1,
   "chunkKey": "chunk_multi",
@@ -577,42 +583,45 @@ void main() {
   ]
 }
 ''',
-      );
+        );
 
-      final result = await _runGenerate(workingDirectory: fixtureRoot.path);
-      expect(result.exitCode, 0, reason: result.stderr);
+        final result = await _runGenerate(workingDirectory: fixtureRoot.path);
+        expect(result.exitCode, 0, reason: result.stderr);
 
-      final output = File(
-        _joinPath(<String>[
-          fixtureRoot.path,
-          'packages',
-          'runner_core',
-          'lib',
-          'track',
-          'authored_chunk_patterns.dart',
-        ]),
-      ).readAsStringSync();
+        final output = File(
+          _joinPath(<String>[
+            fixtureRoot.path,
+            'packages',
+            'runner_core',
+            'lib',
+            'track',
+            'authored_chunk_patterns.dart',
+          ]),
+        ).readAsStringSync();
 
-      expect(output, contains('chunk_multi'));
-      expect(
-        output,
-        contains(
-          'SolidRel(x: 128.0, aboveGroundTop: 64.0, width: 32.0, height: 32.0, sides: SolidRel.sideAll, oneWayTop: false)',
-        ),
-      );
-      expect(
-        output,
-        contains(
-          'SolidRel(x: 80.0, aboveGroundTop: 96.0, width: 32.0, height: 32.0, sides: SolidRel.sideAll, oneWayTop: false)',
-        ),
-      );
-    } finally {
-      fixtureRoot.deleteSync(recursive: true);
-    }
-  });
+        final stagedOutput = File(
+          _joinPath(<String>[
+            fixtureRoot.path,
+            'packages',
+            'runner_core',
+            'lib',
+            'track',
+            'staged_authored_terrain.dart',
+          ]),
+        ).readAsStringSync();
+
+        expect(output, contains('chunk_multi'));
+        expect(output, isNot(contains('SolidRel(')));
+        expect(stagedOutput, contains('shapeId: "left"'));
+        expect(stagedOutput, contains('shapeId: "right"'));
+      } finally {
+        fixtureRoot.deleteSync(recursive: true);
+      }
+    },
+  );
 
   test(
-    'generator projects scaled flipped one-way prefab polygons exactly',
+    'generator stages scaled flipped one-way polygons without projection',
     () async {
       final fixtureRoot = await Directory.systemTemp.createTemp(
         'chunk_generator_platform_flip_scale_',
@@ -727,18 +736,24 @@ void main() {
           ]),
         ).readAsStringSync();
 
+        final stagedOutput = File(
+          _joinPath(<String>[
+            fixtureRoot.path,
+            'packages',
+            'runner_core',
+            'lib',
+            'track',
+            'staged_authored_terrain.dart',
+          ]),
+        ).readAsStringSync();
+
         expect(output, contains('chunk_platform_flip_scale'));
+        expect(output, isNot(contains('SolidRel(')));
+        expect(stagedOutput, contains('shapeId: "first"'));
+        expect(stagedOutput, contains('shapeId: "second"'));
         expect(
-          output,
-          contains(
-            'SolidRel(x: 160.0, aboveGroundTop: 64.0, width: 64.0, height: 64.0, sides: SolidRel.sideTop, oneWayTop: true)',
-          ),
-        );
-        expect(
-          output,
-          contains(
-            'SolidRel(x: 96.0, aboveGroundTop: 32.0, width: 64.0, height: 64.0, sides: SolidRel.sideTop, oneWayTop: true)',
-          ),
+          'StagedTerrainCollisionMode.oneWay'.allMatches(stagedOutput).length,
+          greaterThanOrEqualTo(2),
         );
       } finally {
         fixtureRoot.deleteSync(recursive: true);

@@ -4,37 +4,29 @@ import '../../tool/level_definition_generation.dart';
 import '../../tool/polygon_terrain_repository_generation.dart';
 
 void main() {
-  test(
-    'builds one seam-validated batch and exact cleared legacy projection',
-    () {
-      final result = buildPolygonTerrainRepository(
-        prefabSourcePath: 'assets/authoring/level/prefab_defs.json',
-        prefabContents: _emptyPrefabs,
-        chunkInputs: <PolygonTerrainRepositoryChunkInput>[
-          const PolygonTerrainRepositoryChunkInput(
-            sourcePath: 'assets/authoring/level/chunks/forest/empty.json',
-            contents: _emptyChunk,
-          ),
-        ],
-        levels: <LevelDefinitionSource>[_level()],
-        schedulerSourcePath: 'assets/authoring/level/level_defs.json',
-      );
+  test('builds one seam-validated polygon batch', () {
+    final result = buildPolygonTerrainRepository(
+      prefabSourcePath: 'assets/authoring/level/prefab_defs.json',
+      prefabContents: _emptyPrefabs,
+      chunkInputs: <PolygonTerrainRepositoryChunkInput>[
+        const PolygonTerrainRepositoryChunkInput(
+          sourcePath: 'assets/authoring/level/chunks/forest/empty.json',
+          contents: _emptyChunk,
+        ),
+      ],
+      levels: <LevelDefinitionSource>[_level()],
+      schedulerSourcePath: 'assets/authoring/level/level_defs.json',
+    );
 
-      expect(result.issues, isEmpty);
-      expect(result.validatedBatch, isNotNull);
-      expect(result.chunks, hasLength(1));
-      expect(result.chunks.single.compiled.geometry.polygons, isEmpty);
-      expect(result.chunks.single.legacyProjection.rectangles, isEmpty);
-      expect(
-        result.chunks.single.legacyProjection.groundGaps.single.gapId,
-        'collision_cleared',
-      );
-      expect(
-        result.validatedBatch!.seamSignature.canonicalRecord,
-        'authoring-seams-v1\nforest|steady-hard:tier=hard>hard|empty>empty',
-      );
-    },
-  );
+    expect(result.issues, isEmpty);
+    expect(result.validatedBatch, isNotNull);
+    expect(result.chunks, hasLength(1));
+    expect(result.chunks.single.compiled.geometry.polygons, isEmpty);
+    expect(
+      result.validatedBatch!.seamSignature.canonicalRecord,
+      'authoring-seams-v1\nforest|steady-hard:tier=hard>hard|empty>empty',
+    );
+  });
 
   test('blocks a scheduler-reachable compiled boundary mismatch', () {
     final result = buildPolygonTerrainRepository(
@@ -62,30 +54,25 @@ void main() {
     );
   });
 
-  test(
-    'rejects a diagonal that the temporary legacy bridge cannot express',
-    () {
-      final result = buildPolygonTerrainRepository(
-        prefabSourcePath: 'assets/authoring/level/prefab_defs.json',
-        prefabContents: _emptyPrefabs,
-        chunkInputs: <PolygonTerrainRepositoryChunkInput>[
-          const PolygonTerrainRepositoryChunkInput(
-            sourcePath: 'assets/authoring/level/chunks/forest/slope.json',
-            contents: _internalSlopeChunk,
-          ),
-        ],
-        levels: <LevelDefinitionSource>[_level()],
-        schedulerSourcePath: 'assets/authoring/level/level_defs.json',
-      );
+  test('accepts polygon terrain without a rectangle projection', () {
+    final result = buildPolygonTerrainRepository(
+      prefabSourcePath: 'assets/authoring/level/prefab_defs.json',
+      prefabContents: _emptyPrefabs,
+      chunkInputs: <PolygonTerrainRepositoryChunkInput>[
+        const PolygonTerrainRepositoryChunkInput(
+          sourcePath: 'assets/authoring/level/chunks/forest/slope.json',
+          contents: _internalSlopeChunk,
+        ),
+      ],
+      levels: <LevelDefinitionSource>[_level()],
+      schedulerSourcePath: 'assets/authoring/level/level_defs.json',
+    );
 
-      expect(result.validatedBatch, isNull);
-      expect(result.chunks, isEmpty);
-      expect(
-        result.issues.map((issue) => issue.code),
-      contains('legacy_diagonal_edge'),
-      );
-    },
-  );
+    expect(result.issues, isEmpty);
+    expect(result.validatedBatch, isNotNull);
+    expect(result.chunks, hasLength(1));
+    expect(result.chunks.single.compiled.geometry.polygons, hasLength(1));
+  });
 }
 
 LevelDefinitionSource _level({int earlyPatternChunks = 0}) =>

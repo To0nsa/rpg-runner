@@ -7,8 +7,9 @@ generator, standalone editor, and Flame renderer. Checked-in authoring now uses
 Prefab-v3 and complete Chunk-v2 trees. Polygon terrain drives normal gameplay
 collision, navigation, placement, and render snapshots.
 
-The source and streamed gameplay handoff are current while Phase 6 removes the
-temporary legacy projection and synthetic-fixture adapters:
+The source and streamed gameplay handoff are current. The legacy generator
+projection is deleted while Phase 6 continues removing synthetic-fixture
+adapters:
 
 - prefab authoring persists schema v3 `collisionShapes`
 - chunk authoring persists schema v2 direct `collisionShapes`
@@ -25,9 +26,8 @@ temporary legacy projection and synthetic-fixture adapters:
 - every ground polygon carries `surfaceKind: ground` and
   `materialKey: grass_dirt`; all reachable scheduler seam combinations compile
   with identical boundary coverage
-- staged terrain contains all eight Chunk polygons; the legacy compatibility
-  projection remains generated only until Phase 6 deletes its obsolete
-  runtime consumers
+- staged terrain contains all eight Chunk polygons; generated scheduler data
+  contains no rectangle solids or ground gaps
 - the normal generator registers the staged Dart artifact as its sixth output;
   normal Core/replay construction admits it and publishes a complete
   collision/navigation/placement/render candidate whenever the existing
@@ -82,9 +82,8 @@ Final Phase 4 acceptance work remains tracked in
 | Chunk marker contract and placement projection | editor `chunk_v2_marker_contract.dart` / `ChunkV2MarkerPlacementProjection` | immutable level ground context, staged marker validation, exact Phase 3 enemy placement evidence, Hashash deferral, authored-order/stable-key retention, and zero RNG/source mutation |
 | Scheduler-aware chunk seam analysis | editor `chunk_v2_seam_analysis.dart` | immutable `LevelDef` snapshot, canonical compiled boundary signatures, runtime-contract adjacency enumeration, global staged validation, and read-only compatible/failing neighbor evidence |
 | Strict staged generator source and compilation | root `polygon_terrain_source.dart` / `polygon_terrain_compilation.dart` | live Prefab-v3/Chunk-v2 parsing, Core compilation, placement lineage, and exact triangulation |
-| Staged local generated-record contract | `runner_core` `staged_terrain_data.dart` | live generated artifact only; no gameplay, Flame, or replay-validator consumer |
+| Staged local generated-record contract | `runner_core` `staged_terrain_data.dart` | live generated artifact consumed by normal/replay Core through strict catalog/binding; Flame consumes only its Core snapshot projection |
 | Staged Dart terrain rendering and signature verification | root `polygon_terrain_render.dart` / `polygon_terrain_artifact_validation.dart` | registered sixth output, artifact-plan byte drift, and owner-aware typed artifact/fresh-compile signature checks |
-| Exact legacy compatibility projection | root `polygon_terrain_legacy_projection.dart` | live generator-only projection from the accepted polygon batch to the temporary production `ChunkPattern` authority |
 
 Core has no dependency on editor models, JSON, widgets, or filesystem state.
 The editor depends on Core through a one-way local package dependency and does
@@ -1133,9 +1132,10 @@ is reproduced byte-for-byte by fresh compiles through the normal artifact
 drift plan, and remains identical when its compiled chunk input is reversed.
 `UPDATE_POLYGON_TERRAIN_GOLDEN=1` is the explicit fixture-only update path;
 ordinary tests are read-only. This proves the representative compiler and
-render seam. Live generator wiring, tile-backed Prefab owner validation,
-complete repository legacy projection, and source cutover are now delivered;
-content reauthoring remains open.
+render seam. Live generator wiring, tile-backed Prefab owner validation, source
+cutover, and direct polygon runtime authority are delivered. The former exact
+rectangle projection and its parity tests are deleted; scheduler output now
+retains only Chunk identity/assembly, markers, and visual sprites.
 
 A second checked-in fixture isolates transform extrema and terrain-topology
 parity from the reviewed Dart artifact golden. Its canonical prefab source has

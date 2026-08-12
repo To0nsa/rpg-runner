@@ -4,7 +4,6 @@ import 'package:runner_core/track/chunk_pattern_source.dart';
 
 import 'level_definition_generation.dart';
 import 'polygon_terrain_compilation.dart';
-import 'polygon_terrain_legacy_projection.dart';
 import 'polygon_terrain_seam_manifest.dart';
 import 'polygon_terrain_seam_validation.dart';
 import 'polygon_terrain_source.dart';
@@ -20,19 +19,17 @@ final class PolygonTerrainRepositoryChunkInput {
   final String contents;
 }
 
-/// One fully accepted Chunk and its temporary exact legacy projection.
+/// One fully accepted Chunk and its compiled polygon terrain.
 final class PolygonTerrainRepositoryChunk {
   const PolygonTerrainRepositoryChunk({
     required this.sourcePath,
     required this.source,
     required this.compiled,
-    required this.legacyProjection,
   });
 
   final String sourcePath;
   final PolygonTerrainChunkSource source;
   final PolygonTerrainCompiledChunk compiled;
-  final PolygonTerrainLegacyProjection legacyProjection;
 }
 
 /// Fail-closed repository terrain generation result.
@@ -52,9 +49,9 @@ final class PolygonTerrainRepositoryGenerationResult {
 /// Builds the complete current-schema terrain products used by generation.
 ///
 /// Source decoding, Core compilation, scheduler reachability, compiled seam
-/// validation, staged rendering eligibility, and the bounded Phase 4 legacy
-/// projection are one fail-closed operation. No partial product is returned
-/// when any source, scheduler, geometry, seam, or projection blocker exists.
+/// validation and staged rendering eligibility are one fail-closed operation.
+/// No partial product is returned when any source, scheduler, geometry, or seam
+/// blocker exists.
 PolygonTerrainRepositoryGenerationResult buildPolygonTerrainRepository({
   required String prefabSourcePath,
   required String prefabContents,
@@ -155,68 +152,6 @@ PolygonTerrainRepositoryGenerationResult buildPolygonTerrainRepository({
   final batch = seamResult.batch;
   if (issues.isNotEmpty || batch == null) return _failure(issues);
 
-  final levelById = <String, LevelDefinitionSource>{
-    for (final level in orderedLevels) level.levelId: level,
-  };
-  final projectionByChunkKey = <String, PolygonTerrainLegacyProjection>{};
-  final sourcePathByChunkKey = <String, String>{
-    for (final item in parsed) item.source.chunkKey: item.sourcePath,
-  };
-  for (final item in batch.chunks) {
-    final level = levelById[item.chunk.levelId];
-    final sourcePath = sourcePathByChunkKey[item.chunk.chunkKey]!;
-    if (level == null) {
-      issues.add(
-        _issue(
-          code: 'terrain_authoring_level_missing',
-          message:
-              'Chunk ${item.chunk.chunkKey} references missing level '
-              '${item.chunk.levelId}.',
-          sourcePath: sourcePath,
-          ownerKey: item.chunk.chunkKey,
-        ),
-      );
-      continue;
-    }
-    if (!level.groundTopY.isFinite ||
-        level.groundTopY != level.groundTopY.truncateToDouble()) {
-      issues.add(
-        _issue(
-          code: 'legacy_ground_top_not_integer',
-          message:
-              'Level ${level.levelId} groundTopY must be an integer while the '
-              'Phase 4 legacy projection remains active.',
-          sourcePath: schedulerSourcePath,
-          ownerKey: level.levelId,
-        ),
-      );
-      continue;
-    }
-    final projection = projectPolygonTerrainToLegacy(
-      compiled: item,
-      legacyGroundTopY: level.groundTopY.toInt(),
-    );
-    for (final issue in projection.issues) {
-      issues.add(
-        _issue(
-          code: issue.code,
-          message: issue.message,
-          sourcePath: sourcePath,
-          ownerKey: issue.chunkKey,
-          placementKey: issue.placementKey,
-          shapeId: issue.shapeId.isEmpty ? null : issue.shapeId,
-          elementIndex: issue.elementIndex,
-        ),
-      );
-    }
-    if (projection.projection case final accepted?) {
-      projectionByChunkKey[item.chunk.chunkKey] = accepted;
-    }
-  }
-  if (issues.isNotEmpty || projectionByChunkKey.length != batch.chunks.length) {
-    return _failure(issues);
-  }
-
   final parsedByKey =
       <String, ({String sourcePath, PolygonTerrainChunkSource source})>{
         for (final item in parsed) item.source.chunkKey: item,
@@ -228,7 +163,6 @@ PolygonTerrainRepositoryGenerationResult buildPolygonTerrainRepository({
           sourcePath: parsedByKey[item.chunk.chunkKey]!.sourcePath,
           source: parsedByKey[item.chunk.chunkKey]!.source,
           compiled: item,
-          legacyProjection: projectionByChunkKey[item.chunk.chunkKey]!,
         ),
     ],
     validatedBatch: batch,

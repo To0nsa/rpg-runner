@@ -1,12 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:runner_core/collision/terrain/terrain_polygon.dart';
-
 import 'generated_artifact_plan.dart';
 import 'level_definition_generation.dart';
 import 'parallax_theme_generation.dart';
-import 'polygon_terrain_legacy_projection.dart';
 import 'polygon_terrain_render.dart';
 import 'polygon_terrain_repository_generation.dart';
 
@@ -311,7 +308,6 @@ _ChunkParseResult _parseCurrentChunkExport(
     chunk,
     issues,
     prefabRegistry: prefabRegistry,
-    legacyProjection: terrain.legacyProjection,
   );
   return _ChunkParseResult(
     identity: _ChunkIdentity(
@@ -540,26 +536,8 @@ _ChunkExportData _buildChunkExportData(
   _ChunkJson chunk,
   List<_ValidationIssue> issues, {
   required _PrefabRegistry prefabRegistry,
-  required PolygonTerrainLegacyProjection legacyProjection,
 }) {
-  final solids = <_SolidExport>[
-    for (final rectangle in legacyProjection.rectangles)
-      _SolidExport(
-        x: rectangle.x,
-        aboveGroundTop: legacyProjection.groundTopY - rectangle.topY,
-        width: rectangle.width,
-        height: rectangle.height,
-        sides: rectangle.collisionMode == TerrainCollisionMode.oneWay
-            ? _SolidExport.sideTop
-            : _SolidExport.sideAll,
-        oneWayTop: rectangle.collisionMode == TerrainCollisionMode.oneWay,
-      ),
-  ];
   final visualSprites = <_VisualSpriteExport>[];
-  final groundGaps = <_GroundGapExport>[
-    for (final gap in legacyProjection.groundGaps)
-      _GroundGapExport(gapId: gap.gapId, x: gap.x, width: gap.width),
-  ];
   final markers = <_MarkerExport>[];
 
   for (final marker in chunk.markers) {
@@ -657,8 +635,6 @@ _ChunkExportData _buildChunkExportData(
     chunkKey: chunk.chunkKey,
     name: chunk.id,
     assemblyGroupId: chunk.assemblyGroupId,
-    solids: solids,
-    groundGaps: groundGaps,
     visualSprites: visualSprites,
     spawnMarkers: markers,
   );
@@ -982,28 +958,6 @@ void _writePatternList(
       ..writeln("    chunkKey: '${_escape(chunk.chunkKey)}',")
       ..writeln("    assemblyGroupId: '${_escape(chunk.assemblyGroupId)}',");
 
-    buffer.writeln('    solids: <SolidRel>[');
-    for (final solid in chunk.solids) {
-      buffer.writeln(
-        '      SolidRel(x: ${solid.x.toDouble()}, aboveGroundTop: ${solid.aboveGroundTop.toDouble()}, width: ${solid.width.toDouble()}, height: ${solid.height.toDouble()}, sides: ${_solidSidesExpression(solid.sides)}, oneWayTop: ${solid.oneWayTop}),',
-      );
-    }
-    buffer.writeln('    ],');
-
-    buffer.writeln('    groundGaps: <GapRel>[');
-    for (final gap in chunk.groundGaps) {
-      if (gap.gapId.isEmpty) {
-        buffer.writeln(
-          '      GapRel(x: ${gap.x.toDouble()}, width: ${gap.width.toDouble()}),',
-        );
-      } else {
-        buffer.writeln(
-          "      GapRel(gapId: '${_escape(gap.gapId)}', x: ${gap.x.toDouble()}, width: ${gap.width.toDouble()}),",
-        );
-      }
-    }
-    buffer.writeln('    ],');
-
     buffer.writeln('    visualSprites: <ChunkVisualSpriteRel>[');
     for (final sprite in chunk.visualSprites) {
       buffer
@@ -1078,33 +1032,6 @@ String _toUpperCamelIdentifier(String raw) {
 
 String _escape(String raw) {
   return raw.replaceAll('\\', '\\\\').replaceAll("'", "\\'");
-}
-
-String _solidSidesExpression(int sides) {
-  if (sides == _SolidExport.sideNone) {
-    return 'SolidRel.sideNone';
-  }
-  if (sides == _SolidExport.sideAll) {
-    return 'SolidRel.sideAll';
-  }
-
-  final parts = <String>[];
-  if ((sides & _SolidExport.sideTop) != 0) {
-    parts.add('SolidRel.sideTop');
-  }
-  if ((sides & _SolidExport.sideBottom) != 0) {
-    parts.add('SolidRel.sideBottom');
-  }
-  if ((sides & _SolidExport.sideLeft) != 0) {
-    parts.add('SolidRel.sideLeft');
-  }
-  if ((sides & _SolidExport.sideRight) != 0) {
-    parts.add('SolidRel.sideRight');
-  }
-  if (parts.isEmpty) {
-    return '$sides';
-  }
-  return parts.join(' | ');
 }
 
 void _collectDuplicateIdentityIssues(
@@ -1402,8 +1329,6 @@ class _ChunkExportData {
     required this.chunkKey,
     required this.name,
     required this.assemblyGroupId,
-    required this.solids,
-    required this.groundGaps,
     required this.visualSprites,
     required this.spawnMarkers,
   });
@@ -1414,47 +1339,8 @@ class _ChunkExportData {
   final String chunkKey;
   final String name;
   final String assemblyGroupId;
-  final List<_SolidExport> solids;
-  final List<_GroundGapExport> groundGaps;
   final List<_VisualSpriteExport> visualSprites;
   final List<_MarkerExport> spawnMarkers;
-}
-
-class _SolidExport {
-  const _SolidExport({
-    required this.x,
-    required this.aboveGroundTop,
-    required this.width,
-    required this.height,
-    required this.sides,
-    required this.oneWayTop,
-  });
-
-  final int x;
-  final int aboveGroundTop;
-  final int width;
-  final int height;
-  final int sides;
-  final bool oneWayTop;
-
-  static const int sideNone = 0;
-  static const int sideTop = 1 << 0;
-  static const int sideBottom = 1 << 1;
-  static const int sideLeft = 1 << 2;
-  static const int sideRight = 1 << 3;
-  static const int sideAll = sideTop | sideBottom | sideLeft | sideRight;
-}
-
-class _GroundGapExport {
-  const _GroundGapExport({
-    required this.gapId,
-    required this.x,
-    required this.width,
-  });
-
-  final String gapId;
-  final int x;
-  final int width;
 }
 
 class _VisualSpriteExport {

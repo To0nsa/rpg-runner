@@ -76,7 +76,7 @@ small commits, but the completed phase must not retain a runtime dual path.
       terrain authority
 - [x] no production system reads legacy `StaticSolid`, horizontal-ground, or
       ground-gap collision as gameplay authority
-- [ ] the generator emits no projected legacy terrain records
+- [x] the generator emits no projected legacy terrain records
 - [ ] `polygon_terrain_legacy_projection.dart`, its temporary tests, and stale
       migration-only runtime bridges are deleted
 - [ ] the test/tool-only terrain authority selectors are deleted after normal
@@ -126,3 +126,4 @@ generated membership, and any compatibility/version disposition before Phase 7.
 | --- | --- | --- |
 | 2026-08-12 / Phase 6 working head | Direct normal/replay construction switch | Normal registered Field and Forest streams install `TerrainMultiBodyWorldMotionAuthority` from the exact prewarmed candidate before player placement; later candidates publish atomically. The separate staged-stream factory is removed, manual harness mutations reject normal construction, all 369 package tests and 433 root Core tests pass, root/package analysis is clean, and all 84 replay-validator tests pass. Determinism covers both production levels and paired 1,800-tick streams. Updated movement expectations record canonical terrain spawn quantization and the previously accepted grounded vertical-mobility tangent rule. |
 | 2026-08-12 / Phase 6 working head | Remove production rectangle read models | Normal streaming no longer constructs legacy collision indexes, horizontal surface graphs/navigators, or static-solid/ground-surface snapshots. `TrackManager` retains only deterministic scheduler state and prefab visuals before Core publishes terrain. Synthetic track-disabled/custom fixtures remain isolated for later migration. All 369 package and 433 root Core tests pass; focused Flame terrain coverage also passes. |
+| 2026-08-12 / Phase 6 working head | Delete generated collision projection | Repository generation now ends at seam-validated polygon compilation and staged rendering. `authored_chunk_patterns.dart` retains Chunk identity, assembly, markers, and prefab sprites but emits no `SolidRel` or `GapRel`. The 790-line rectangle projector and its root/editor parity suites are deleted; diagonal and transformed one-way fixtures are accepted and verified in staged output. Root/editor/Core analysis and all 68 root tool tests pass, and the real 8-Chunk/2-level/2-theme dry-run has zero drift. |
