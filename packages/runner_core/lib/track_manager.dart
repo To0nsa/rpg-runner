@@ -1,15 +1,14 @@
 /// Track streaming and geometry lifecycle management.
 ///
 /// This module handles the procedural generation of track chunks as the
-/// player progresses, maintaining both collision geometry and navigation
-/// data for enemy AI.
+/// player progresses. Polygon terrain owns production collision/navigation;
+/// temporary synthetic fixtures may still request legacy read models.
 ///
 /// ## Architecture
 ///
 /// [TrackManager] is owned by [GameCore] and orchestrates:
 /// - **Track streaming**: [TrackStreamer] spawns/culls chunks based on camera.
-/// - **Collision geometry**: Merges base geometry with streamed chunks.
-/// - **Surface graph**: Rebuilds navigation data when geometry changes.
+/// - **Legacy fixture geometry**: Optionally merges rectangle test data.
 /// - **Deferred item spawning**: Applies a selected batch only after GameCore's
 ///   terrain-publication barrier.
 ///
@@ -20,24 +19,19 @@
 ///        ↓
 /// TrackStreamer.step() detects chunk spawn/cull needed
 ///        ↓
-/// TrackManager merges base + dynamic geometry
+/// TrackManager publishes selection and prefab visuals
 ///        ↓
-/// StaticWorldGeometryIndex rebuilt (collision)
+/// GameCore builds/publishes matching polygon terrain
 ///        ↓
-/// SurfaceGraphBuilder.build() (navigation)
-///        ↓
-/// SpawnService + enemy navigation systems receive new graphs
-///        ↓
-/// GameCore publishes matching terrain and applies captured spawns
+/// GameCore applies captured spawns
 /// ```
 ///
 /// ## Chunk Spawning Flow
 ///
 /// When a new chunk enters the horizon:
 /// 1. [TrackStreamer] generates platforms and enemy spawn points.
-/// 2. [TrackManager] merges the new solids into collision geometry.
-/// 3. The matching legacy graph and staged terrain candidate are completed.
-/// 4. GameCore publishes terrain, then places enemies and items via
+/// 2. GameCore completes the matching staged terrain candidate.
+/// 3. GameCore publishes terrain, then places enemies and items via
 ///    [SpawnService].
 library;
 
@@ -96,13 +90,11 @@ class TrackStepResult {
 // TrackManager
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Manages track streaming, collision geometry, and navigation graph updates.
+/// Manages track streaming and deferred spawn/visual batches.
 ///
 /// Responsibilities:
 /// - Steps [TrackStreamer] each tick to spawn/cull chunks.
-/// - Merges base level geometry with dynamically streamed platforms.
-/// - Rebuilds [StaticWorldGeometryIndex] for collision detection.
-/// - Rebuilds [SurfaceGraph] for enemy pathfinding.
+/// - Optionally maintains legacy geometry/graphs for synthetic fixtures.
 /// - Returns new chunks for collectible/item placement after publication.
 ///
 /// Usage:
@@ -144,11 +136,12 @@ class TrackManager {
     required CollectibleTuning collectibleTuning,
     required RestorationItemTuning restorationItemTuning,
     required StaticWorldGeometry baseGeometry,
-    required SurfaceGraphBuilder surfaceGraphBuilder,
+    required SurfaceGraphBuilder? surfaceGraphBuilder,
     required Map<EnemyId, JumpReachabilityTemplate> enemyJumpTemplatesById,
-    required EnemyNavigationSystem enemyNavigationSystem,
+    required EnemyNavigationSystem? enemyNavigationSystem,
     required GroundEnemyLocomotionSystem groundEnemyLocomotionSystem,
     required SpawnService spawnService,
+    required bool legacyReadModelsEnabled,
     required double groundTopY,
     required ChunkPatternSource chunkPatternSource,
     TrackStreamer? trackStreamer,
@@ -169,6 +162,7 @@ class TrackManager {
        _enemyNavigationSystem = enemyNavigationSystem,
        _groundEnemyLocomotionSystem = groundEnemyLocomotionSystem,
        _spawnService = spawnService,
+       _legacyReadModelsEnabled = legacyReadModelsEnabled,
        _trackStreamer = trackStreamer,
        _chunkPatternSource = chunkPatternSource,
        _earlyPatternChunks = earlyPatternChunks,
@@ -180,6 +174,12 @@ class TrackManager {
         _trackStreamer,
         'trackStreamer',
         'A prewarmed streamer requires enabled track tuning.',
+      );
+    }
+    if (_legacyReadModelsEnabled &&
+        (_surfaceGraphBuilder == null || _enemyNavigationSystem == null)) {
+      throw ArgumentError(
+        'Legacy read models require their rectangle graph dependencies.',
       );
     }
 
@@ -198,11 +198,13 @@ class TrackManager {
       );
     }
 
-    // Initialize every legacy read model from the same already-selected
-    // streamer state. This is a compatibility projection while polygon terrain
-    // remains staged; it must not re-run chunk selection.
+    // Synthetic fixtures retain the old read models until their Phase 6 test
+    // migration. Normal streamed runs publish no rectangle collision/graph
+    // projection and do not pay its rebuild cost.
     final streamer = _trackStreamer;
-    _staticGeometry = streamer == null
+    _staticGeometry = !_legacyReadModelsEnabled
+        ? const StaticWorldGeometry()
+        : streamer == null
         ? baseGeometry
         : _combinedLegacyGeometry(streamer);
     _staticIndex = StaticWorldGeometryIndex.from(_staticGeometry);
@@ -215,8 +217,9 @@ class TrackManager {
           );
     }
 
-    // Build initial surface graph for enemy navigation.
-    _rebuildSurfaceGraph();
+    if (_legacyReadModelsEnabled) {
+      _rebuildSurfaceGraph();
+    }
   }
 
   // ─── Dependencies ───
@@ -224,11 +227,12 @@ class TrackManager {
   final CollectibleTuning _collectibleTuning;
   final RestorationItemTuning _restorationItemTuning;
   final StaticWorldGeometry _baseGeometry;
-  final SurfaceGraphBuilder _surfaceGraphBuilder;
+  final SurfaceGraphBuilder? _surfaceGraphBuilder;
   final Map<EnemyId, JumpReachabilityTemplate> _enemyJumpTemplatesById;
-  final EnemyNavigationSystem _enemyNavigationSystem;
+  final EnemyNavigationSystem? _enemyNavigationSystem;
   final GroundEnemyLocomotionSystem _groundEnemyLocomotionSystem;
   final SpawnService _spawnService;
+  final bool _legacyReadModelsEnabled;
   final ChunkPatternSource _chunkPatternSource;
   final int _earlyPatternChunks;
   final int _easyPatternChunks;
@@ -263,22 +267,19 @@ class TrackManager {
   // Public API
   // ───────────────────────────────────────────────────────────────────────────
 
-  /// Current static world geometry (base + streamed chunks).
+  /// Current legacy fixture geometry.
   ///
-  /// Used by physics systems for collision resolution.
+  /// Normal streamed production runs return an empty model because polygon
+  /// terrain owns collision, navigation, and rendering.
   StaticWorldGeometry get staticGeometry => _staticGeometry;
 
-  /// Spatial index for efficient collision queries.
-  ///
-  /// Rebuilt whenever geometry changes.
+  /// Legacy fixture spatial index; empty for normal streamed production runs.
   StaticWorldGeometryIndex get staticIndex => _staticIndex;
 
-  /// Immutable snapshot of static solids for rendering.
-  ///
-  /// Contains platform AABBs, side masks, and one-way flags.
+  /// Legacy fixture solid snapshots; empty when staged terrain is published.
   List<StaticSolidSnapshot> get staticSolidsSnapshot => _staticSolidsSnapshot;
 
-  /// Immutable snapshot of walkable ground surfaces for rendering.
+  /// Legacy fixture ground snapshots; empty when staged terrain is published.
   List<GroundSurfaceSnapshot> get groundSurfacesSnapshot =>
       _groundSurfacesSnapshot;
 
@@ -346,8 +347,10 @@ class TrackManager {
           streamer.dynamicVisualSprites.map(_toStaticPrefabSpriteSnapshot),
         );
 
-    // Apply the new combined geometry (rebuilds index, snapshots, nav graph).
-    _setStaticGeometry(_combinedLegacyGeometry(streamer));
+    if (_legacyReadModelsEnabled) {
+      // Synthetic fixture compatibility only.
+      _setStaticGeometry(_combinedLegacyGeometry(streamer));
+    }
 
     return TrackStepResult(
       geometryChanged: true,
@@ -364,16 +367,19 @@ class TrackManager {
     required Iterable<TrackSpawnedChunk> chunks,
     required RestorationStat Function() lowestResourceStat,
   }) {
-    final solidsForSpawn = _staticGeometry.solids
-        .map(
-          (solid) => (
-            minX: solid.minX,
-            maxX: solid.maxX,
-            minY: solid.minY,
-            maxY: solid.maxY,
-          ),
-        )
-        .toList(growable: false);
+    final List<({double minX, double maxX, double minY, double maxY})>
+    solidsForSpawn = !_legacyReadModelsEnabled
+        ? const <({double minX, double maxX, double minY, double maxY})>[]
+        : _staticGeometry.solids
+              .map(
+                (solid) => (
+                  minX: solid.minX,
+                  maxX: solid.maxX,
+                  minY: solid.minY,
+                  maxY: solid.maxY,
+                ),
+              )
+              .toList(growable: false);
 
     for (final chunk in chunks) {
       if (_collectibleTuning.enabled) {
@@ -444,7 +450,7 @@ class TrackManager {
     final graphResultsByEnemy = <EnemyId, SurfaceGraphBuildResult>{};
     SurfaceGraphBuildResult? primaryResult;
     for (final entry in _enemyJumpTemplatesById.entries) {
-      final result = _surfaceGraphBuilder.build(
+      final result = _surfaceGraphBuilder!.build(
         geometry: _staticGeometry,
         jumpTemplate: entry.value,
       );
@@ -474,7 +480,7 @@ class TrackManager {
 
     // Distribute per-enemy graphs to the AI systems. All graph variants share
     // identical surface IDs/order; only the edge sets differ by enemy profile.
-    _enemyNavigationSystem.setSurfaceGraphs(
+    _enemyNavigationSystem!.setSurfaceGraphs(
       graphsByEnemy: graphsByEnemy,
       spatialIndex: sharedResult.spatialIndex,
       graphVersion: _surfaceGraphVersion,

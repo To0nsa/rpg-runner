@@ -74,7 +74,7 @@ small commits, but the completed phase must not retain a runtime dual path.
 
 - [ ] no normal or replay construction can instantiate legacy rectangle
       terrain authority
-- [ ] no production system reads legacy `StaticSolid`, horizontal-ground, or
+- [x] no production system reads legacy `StaticSolid`, horizontal-ground, or
       ground-gap collision as gameplay authority
 - [ ] the generator emits no projected legacy terrain records
 - [ ] `polygon_terrain_legacy_projection.dart`, its temporary tests, and stale
@@ -125,3 +125,4 @@ generated membership, and any compatibility/version disposition before Phase 7.
 | Date / revision | Slice | Result |
 | --- | --- | --- |
 | 2026-08-12 / Phase 6 working head | Direct normal/replay construction switch | Normal registered Field and Forest streams install `TerrainMultiBodyWorldMotionAuthority` from the exact prewarmed candidate before player placement; later candidates publish atomically. The separate staged-stream factory is removed, manual harness mutations reject normal construction, all 369 package tests and 433 root Core tests pass, root/package analysis is clean, and all 84 replay-validator tests pass. Determinism covers both production levels and paired 1,800-tick streams. Updated movement expectations record canonical terrain spawn quantization and the previously accepted grounded vertical-mobility tangent rule. |
+| 2026-08-12 / Phase 6 working head | Remove production rectangle read models | Normal streaming no longer constructs legacy collision indexes, horizontal surface graphs/navigators, or static-solid/ground-surface snapshots. `TrackManager` retains only deterministic scheduler state and prefab visuals before Core publishes terrain. Synthetic track-disabled/custom fixtures remain isolated for later migration. All 369 package and 433 root Core tests pass; focused Flame terrain coverage also passes. |

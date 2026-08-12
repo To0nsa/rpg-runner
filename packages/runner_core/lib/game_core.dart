@@ -407,6 +407,7 @@ class GameCore {
       enemyNavigationSystem: _enemyNavigationSystem,
       groundEnemyLocomotionSystem: _groundEnemyLocomotionSystem,
       spawnService: _spawnService,
+      legacyReadModelsEnabled: !_worldMotionAuthority.usesTerrainPlayer,
       groundTopY: effectiveGroundTopY,
       chunkPatternSource: levelDefinition.chunkPatternSource,
       trackStreamer: prewarmedTrackStreamer,
@@ -593,36 +594,42 @@ class GameCore {
     _meleeStrikeSystem = MeleeStrikeSystem();
 
     // Navigation infrastructure.
-    _surfaceGraphBuilder = SurfaceGraphBuilder(
-      surfaceGrid: GridIndex2D(cellSize: _spatialGridTuning.broadphaseCellSize),
-      takeoffSampleMaxStep: _navigationTuning.takeoffSampleMaxStep,
-    );
-    _surfacePathfinder = SurfacePathfinder(
-      maxExpandedNodes: _navigationTuning.maxExpandedNodes,
-      runSpeedX: _groundEnemyTuning.locomotion.speedX,
-      edgePenaltySeconds: _navigationTuning.edgePenaltySeconds,
-    );
-    _surfaceNavigator = SurfaceNavigator(
-      pathfinder: _surfacePathfinder,
-      repathCooldownTicks: _navigationTuning.repathCooldownTicks,
-      surfaceEps: _navigationTuning.surfaceEps,
-      takeoffEps: max(
-        _navigationTuning.takeoffEpsMin,
-        _groundEnemyTuning.locomotion.stopDistanceX,
-      ),
-    );
-
-    _enemyNavigationSystem = EnemyNavigationSystem(
-      surfaceNavigator: _surfaceNavigator,
-      trajectoryPredictor: TrajectoryPredictor(
-        gravityY: _physicsTuning.gravityY,
-        dtSeconds: _movement.dtSeconds,
-        maxTicks: 120,
-      ),
-      chaseTargetDelayTicks:
-          _groundEnemyTuning.navigation.chaseTargetDelayTicks,
-    );
     final terrainAuthority = _worldMotionAuthority;
+    if (terrainAuthority is! TerrainMultiBodyWorldMotionAuthority) {
+      _surfaceGraphBuilder = SurfaceGraphBuilder(
+        surfaceGrid: GridIndex2D(
+          cellSize: _spatialGridTuning.broadphaseCellSize,
+        ),
+        takeoffSampleMaxStep: _navigationTuning.takeoffSampleMaxStep,
+      );
+      final surfacePathfinder = SurfacePathfinder(
+        maxExpandedNodes: _navigationTuning.maxExpandedNodes,
+        runSpeedX: _groundEnemyTuning.locomotion.speedX,
+        edgePenaltySeconds: _navigationTuning.edgePenaltySeconds,
+      );
+      final surfaceNavigator = SurfaceNavigator(
+        pathfinder: surfacePathfinder,
+        repathCooldownTicks: _navigationTuning.repathCooldownTicks,
+        surfaceEps: _navigationTuning.surfaceEps,
+        takeoffEps: max(
+          _navigationTuning.takeoffEpsMin,
+          _groundEnemyTuning.locomotion.stopDistanceX,
+        ),
+      );
+      _enemyNavigationSystem = EnemyNavigationSystem(
+        surfaceNavigator: surfaceNavigator,
+        trajectoryPredictor: TrajectoryPredictor(
+          gravityY: _physicsTuning.gravityY,
+          dtSeconds: _movement.dtSeconds,
+          maxTicks: 120,
+        ),
+        chaseTargetDelayTicks:
+            _groundEnemyTuning.navigation.chaseTargetDelayTicks,
+      );
+    } else {
+      _surfaceGraphBuilder = null;
+      _enemyNavigationSystem = null;
+    }
     _terrainEnemyNavigationSystem =
         terrainAuthority is TerrainMultiBodyWorldMotionAuthority
         ? TerrainEnemyNavigationSystem(
@@ -884,7 +891,7 @@ class GameCore {
   late final HealthDespawnSystem _healthDespawnSystem;
   late final EnemyDeathStateSystem _enemyDeathStateSystem;
   late final DeathDespawnSystem _deathDespawnSystem;
-  late EnemyNavigationSystem _enemyNavigationSystem;
+  late final EnemyNavigationSystem? _enemyNavigationSystem;
   late final TerrainEnemyNavigationSystem? _terrainEnemyNavigationSystem;
   late EnemyEngagementSystem _enemyEngagementSystem;
   late HashashTeleportAmbushSystem _hashashTeleportAmbushSystem;
@@ -894,13 +901,11 @@ class GameCore {
   late EnemyCastSystem _enemyCastSystem;
   late FlyingEnemyMeleeSystem _flyingEnemyMeleeSystem;
   late EnemyMeleeSystem _enemyMeleeSystem;
-  late final SurfaceGraphBuilder _surfaceGraphBuilder;
+  late final SurfaceGraphBuilder? _surfaceGraphBuilder;
   late final Map<EnemyId, JumpReachabilityTemplate>
   _groundEnemyJumpTemplatesById;
   late final List<TerrainSurfaceGraphBuildProfile>
   _groundEnemyTerrainGraphProfiles;
-  late final SurfacePathfinder _surfacePathfinder;
-  late final SurfaceNavigator _surfaceNavigator;
   late final AbilityActivationSystem _abilityActivationSystem;
   late final SelfAbilitySystem _selfAbilitySystem;
   late final MeleeStrikeSystem _meleeStrikeSystem;
@@ -1439,7 +1444,7 @@ class GameCore {
     );
     final terrainNavigation = _terrainEnemyNavigationSystem;
     if (terrainNavigation == null) {
-      _enemyNavigationSystem.step(_world, player: _player, currentTick: tick);
+      _enemyNavigationSystem!.step(_world, player: _player, currentTick: tick);
     } else {
       terrainNavigation.step(_world, player: _player, currentTick: tick);
     }

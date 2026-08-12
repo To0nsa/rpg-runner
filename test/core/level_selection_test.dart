@@ -83,7 +83,9 @@ void main() {
     expect(forest.levelId, LevelId.forest);
     expect(forest.visualThemeId, 'forest');
     expect(forest.camera.centerY, forestLevel.cameraCenterY);
-    expect(forest.groundSurfaces.first.topY, forestLevel.groundTopY);
+    expect(forest.staticSolids, isEmpty);
+    expect(forest.groundSurfaces, isEmpty);
+    expect(forest.stagedTerrainRenderSnapshot, isNotNull);
 
     final fieldLevel = LevelRegistry.byId(LevelId.field);
     final field = GameCore(
@@ -94,7 +96,9 @@ void main() {
     expect(field.levelId, LevelId.field);
     expect(field.visualThemeId, 'field');
     expect(field.camera.centerY, fieldLevel.cameraCenterY);
-    expect(field.groundSurfaces.first.topY, fieldLevel.groundTopY);
+    expect(field.staticSolids, isEmpty);
+    expect(field.groundSurfaces, isEmpty);
+    expect(field.stagedTerrainRenderSnapshot, isNotNull);
   });
 
   test('field level baseline remains deterministic', () {
