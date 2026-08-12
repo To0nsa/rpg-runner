@@ -27,74 +27,81 @@ void main() {
     expect(distanceUnitsToMeters(149.9), 2);
   });
 
-  test('accepted 30 Hz practice replay creates a settlement handoff', () async {
-    final replayBlob = ReplayBlobV1.withComputedDigest(
-      runSessionId: 'run_accepted',
-      tickHz: 30,
-      seed: 1234,
-      levelId: 'field',
-      playerCharacterId: 'eloise',
-      loadoutSnapshot: _defaultLoadoutSnapshot(),
-      totalTicks: 0,
-      commandStream: const <ReplayCommandFrameV1>[],
-    );
-    final replayBytes = utf8.encode(jsonEncode(replayBlob.toJson()));
-    final session = _session(
-      runSessionId: replayBlob.runSessionId,
-      mode: RunMode.practice,
-      seed: replayBlob.seed,
-      digest: replayBlob.canonicalSha256,
-      contentLengthBytes: replayBytes.length,
-      validationAttempt: 1,
-      tickHz: replayBlob.tickHz,
-    );
-    final repo = _FakeRunSessionRepository(
-      leaseResult: RunSessionLeaseAcquireResult(
-        status: RunSessionLeaseStatus.acquired,
-        session: session,
-      ),
-    );
-    final loader = _FakeReplayLoader(
-      bytesByRunSession: <String, List<int>>{
-        replayBlob.runSessionId: replayBytes,
-      },
-    );
-    final metrics = _FakeValidatorMetrics();
-    final settlementDispatcher = _FakeSettlementDispatcher();
-    final archiver = _FakeValidatedReplayArchiver();
-    final worker = DeterministicValidatorWorker(
-      replayLoader: loader,
-      boardRepository: _FakeBoardRepository(),
-      runSessionRepository: repo,
-      metrics: metrics,
-      settlementDispatcher: settlementDispatcher,
-      validatedReplayArchiver: archiver,
-      clockMs: () => 10_000,
-    );
+  test(
+    'accepted current-compat 30 Hz practice replay creates a settlement handoff',
+    () async {
+      final replayBlob = ReplayBlobV1.withComputedDigest(
+        runSessionId: 'run_accepted',
+        tickHz: 30,
+        seed: 1234,
+        levelId: 'field',
+        playerCharacterId: 'eloise',
+        loadoutSnapshot: _defaultLoadoutSnapshot(),
+        totalTicks: 0,
+        commandStream: const <ReplayCommandFrameV1>[],
+      );
+      final replayBytes = utf8.encode(jsonEncode(replayBlob.toJson()));
+      final session = _session(
+        runSessionId: replayBlob.runSessionId,
+        mode: RunMode.practice,
+        seed: replayBlob.seed,
+        digest: replayBlob.canonicalSha256,
+        contentLengthBytes: replayBytes.length,
+        validationAttempt: 1,
+        tickHz: replayBlob.tickHz,
+        gameCompatVersion: '2026.08.0',
+      );
+      final repo = _FakeRunSessionRepository(
+        leaseResult: RunSessionLeaseAcquireResult(
+          status: RunSessionLeaseStatus.acquired,
+          session: session,
+        ),
+      );
+      final loader = _FakeReplayLoader(
+        bytesByRunSession: <String, List<int>>{
+          replayBlob.runSessionId: replayBytes,
+        },
+      );
+      final metrics = _FakeValidatorMetrics();
+      final settlementDispatcher = _FakeSettlementDispatcher();
+      final archiver = _FakeValidatedReplayArchiver();
+      final worker = DeterministicValidatorWorker(
+        replayLoader: loader,
+        boardRepository: _FakeBoardRepository(),
+        runSessionRepository: repo,
+        metrics: metrics,
+        settlementDispatcher: settlementDispatcher,
+        validatedReplayArchiver: archiver,
+        clockMs: () => 10_000,
+      );
 
-    final result = await worker.validateRunSession(
-      runSessionId: replayBlob.runSessionId,
-    );
+      final result = await worker.validateRunSession(
+        runSessionId: replayBlob.runSessionId,
+      );
 
-    expect(result.status, ValidationDispatchStatus.accepted);
-    expect(repo.acceptedSettlementHandoffs, hasLength(1));
-    expect(repo.acceptedSettlementHandoffs.single.accepted, isTrue);
-    expect(
-      repo.acceptedSettlementHandoffs.single.replayStorageRef,
-      'replay-submissions/validated/${replayBlob.runSessionId}.bin.gz',
-    );
-    expect(
-      repo.acceptedSettlementHandoffs.single.replayStorageGeneration,
-      '456',
-    );
-    expect(archiver.runSessionIds, <String>[replayBlob.runSessionId]);
-    expect(settlementDispatcher.runSessionIds, <String>[
-      replayBlob.runSessionId,
-    ]);
-    expect(repo.persistedValidatedRuns, isEmpty);
-    expect(repo.terminalWrites, isEmpty);
-    expect(metrics.records.last.status, ValidationDispatchStatus.accepted.name);
-  });
+      expect(result.status, ValidationDispatchStatus.accepted);
+      expect(repo.acceptedSettlementHandoffs, hasLength(1));
+      expect(repo.acceptedSettlementHandoffs.single.accepted, isTrue);
+      expect(
+        repo.acceptedSettlementHandoffs.single.replayStorageRef,
+        'replay-submissions/validated/${replayBlob.runSessionId}.bin.gz',
+      );
+      expect(
+        repo.acceptedSettlementHandoffs.single.replayStorageGeneration,
+        '456',
+      );
+      expect(archiver.runSessionIds, <String>[replayBlob.runSessionId]);
+      expect(settlementDispatcher.runSessionIds, <String>[
+        replayBlob.runSessionId,
+      ]);
+      expect(repo.persistedValidatedRuns, isEmpty);
+      expect(repo.terminalWrites, isEmpty);
+      expect(
+        metrics.records.last.status,
+        ValidationDispatchStatus.accepted.name,
+      );
+    },
+  );
 
   test(
     'accepted ranked replay uses immutable ticket board data after board deletion',

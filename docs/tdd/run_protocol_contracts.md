@@ -87,6 +87,21 @@ snapshot/digest, and compatibility tuple. The validator recomputes the loadout
 digest and compares canonical JSON snapshots rather than trusting client
 claims.
 
+The polygon-terrain cutover is issued as game compatibility `2026.08.0`.
+During its bounded rollout, Functions and the validator also accept draining
+`2026.03.0` tickets for at most the existing 24-hour ticket lifetime. Both
+labels use the current Core; compatibility acceptance never selects a terrain
+implementation. Practice and ranked creation reject any version outside the
+backend allowlist before a run-session document is issued.
+
+Managed ranked-board IDs bind mode, level, window, ruleset, score, game
+compatibility, and ghost version. This permits old and new compatibility
+partitions to coexist in one window. Active-board resolution filters by the
+requested game compatibility before enforcing that exactly one active board
+exists. Leaderboard entries, views, and ghost manifests remain descendants of
+that versioned `boardId`, so historical projections are not merged across the
+cutover.
+
 ## Compatibility and testing
 
 Do not rename existing wire keys or change replay canonicalization without an

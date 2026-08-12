@@ -5,10 +5,12 @@ import { deleteApp, getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 
 import {
+  buildManagedBoardId,
   ensureManagedBoardForModeLevel,
   ensureManagedLeaderboardBoards,
   type BoardProvisioningConfig,
 } from "../../src/boards/provisioning.js";
+import { loadActiveBoardManifest } from "../../src/boards/store.js";
 import {
   resolveCompetitiveWindow,
   resolveWeeklyWindow,
@@ -31,7 +33,7 @@ const db = getFirestore(app);
 const config: BoardProvisioningConfig = {
   competitiveLevelIds: ["field", "forest"],
   weeklyLevelId: "field",
-  gameCompatVersion: "2026.03.0",
+  gameCompatVersion: "2026.08.0",
   rulesetVersion: "rules-v1",
   scoreVersion: "score-v1",
   ghostVersion: "ghost-v1",
@@ -136,6 +138,96 @@ test("ensureManagedBoardForModeLevel is idempotent", async () => {
   assert.equal(second.existingCount, 1);
 });
 
+test("same-window boards coexist across compatibility versions", async () => {
+  const nowMs = Date.UTC(2026, 2, 14, 12, 0, 0, 0);
+  const drainingConfig: BoardProvisioningConfig = {
+    ...config,
+    gameCompatVersion: "2026.03.0",
+  };
+
+  const draining = await ensureManagedBoardForModeLevel({
+    db,
+    mode: "competitive",
+    levelId: "field",
+    nowMs,
+    config: drainingConfig,
+    includeNextWindows: false,
+  });
+  const current = await ensureManagedBoardForModeLevel({
+    db,
+    mode: "competitive",
+    levelId: "field",
+    nowMs,
+    config,
+    includeNextWindows: false,
+  });
+  const currentReplay = await ensureManagedBoardForModeLevel({
+    db,
+    mode: "competitive",
+    levelId: "field",
+    nowMs,
+    config,
+    includeNextWindows: false,
+  });
+
+  assert.equal(draining.createdCount, 1);
+  assert.equal(current.createdCount, 1);
+  assert.equal(currentReplay.existingCount, 1);
+
+  const window = resolveCompetitiveWindow(nowMs);
+  const drainingId = buildManagedBoardId({
+    mode: "competitive",
+    levelId: "field",
+    windowId: window.windowId,
+    rulesetVersion: drainingConfig.rulesetVersion,
+    scoreVersion: drainingConfig.scoreVersion,
+    gameCompatVersion: drainingConfig.gameCompatVersion,
+    ghostVersion: drainingConfig.ghostVersion,
+  });
+  const currentId = buildManagedBoardId({
+    mode: "competitive",
+    levelId: "field",
+    windowId: window.windowId,
+    rulesetVersion: config.rulesetVersion,
+    scoreVersion: config.scoreVersion,
+    gameCompatVersion: config.gameCompatVersion,
+    ghostVersion: config.ghostVersion,
+  });
+  assert.notEqual(currentId, drainingId);
+  assert.equal(
+    currentId,
+    "board_competitive_2026_03_field_rules_v1_score_v1_2026_08_0_ghost_v1",
+  );
+
+  const boards = await db.collection("leaderboard_boards").get();
+  assert.equal(boards.size, 2);
+  assert.equal(
+    (await db.collection("leaderboard_boards").doc(drainingId).get()).exists,
+    true,
+  );
+  assert.equal(
+    (await db.collection("leaderboard_boards").doc(currentId).get()).exists,
+    true,
+  );
+
+  const loadedDraining = await loadActiveBoardManifest({
+    db,
+    mode: "competitive",
+    levelId: "field",
+    gameCompatVersion: drainingConfig.gameCompatVersion,
+    nowMs,
+  });
+  const loadedCurrent = await loadActiveBoardManifest({
+    db,
+    mode: "competitive",
+    levelId: "field",
+    gameCompatVersion: config.gameCompatVersion,
+    nowMs,
+  });
+  assert.equal(loadedDraining.boardId, drainingId);
+  assert.equal(loadedCurrent.boardId, currentId);
+});
+
 test("ensureManagedBoardForModeLevel skips unmanaged weekly level", async () => {
   const nowMs = Date.UTC(2026, 2, 14, 12, 0, 0, 0);
   const result = await ensureManagedBoardForModeLevel({
@@ -173,7 +265,7 @@ async function assertBoardExists(args: {
   const doc = snapshot.docs[0]!;
   assert.equal(doc.get("status"), "active");
   assert.equal(doc.get("tickHz"), 60);
-  assert.equal(doc.get("gameCompatVersion"), "2026.03.0");
+  assert.equal(doc.get("gameCompatVersion"), "2026.08.0");
   assert.equal(doc.get("boardKey.mode"), args.mode);
   assert.equal(doc.get("boardKey.levelId"), args.levelId);
   assert.equal(doc.get("boardKey.windowId"), args.windowId);

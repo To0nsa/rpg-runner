@@ -129,7 +129,7 @@ test("public run and board callables reject client authority time", async () => 
   }
 });
 
-test("handleRunBoardsLoadActive rejects game compatibility mismatch", async () => {
+test("handleRunBoardsLoadActive rejects unsupported game compatibility", async () => {
   const nowMs = Date.UTC(2026, 2, 12, 12, 0, 0, 0);
   const window = resolveCompetitiveWindow(nowMs);
   await db.collection("leaderboard_boards").doc("board_compat").set({
@@ -144,7 +144,7 @@ test("handleRunBoardsLoadActive rejects game compatibility mismatch", async () =
       rulesetVersion: "rules-v1",
       scoreVersion: "score-v1",
     },
-    gameCompatVersion: "build-2026-03-11",
+    gameCompatVersion: "2026.08.0",
     ghostVersion: "ghost-v1",
     tickHz: 60,
     seed: 1111,
@@ -158,7 +158,7 @@ test("handleRunBoardsLoadActive rejects game compatibility mismatch", async () =
       handleRunBoardsLoadActive(
         callableRequest(
           validBoardLoadPayload({
-            gameCompatVersion: "build-2026-03-12",
+            gameCompatVersion: "2099.01.0",
           }),
           uid,
         ),
@@ -167,7 +167,7 @@ test("handleRunBoardsLoadActive rejects game compatibility mismatch", async () =
       ),
     (error: { code?: string; message?: string }) =>
       error.code === "failed-precondition" &&
-      (error.message ?? "").includes("gameCompatVersion"),
+      (error.message ?? "").includes("Unsupported gameCompatVersion"),
   );
 });
 
@@ -265,7 +265,7 @@ function validRunSessionPayload(
     clientRequestId: "run_request_1",
     mode: "practice",
     levelId: "field",
-    gameCompatVersion: "build-2026-03-12",
+    gameCompatVersion: "2026.08.0",
     ...overrides,
   };
 }
@@ -278,7 +278,7 @@ function validBoardLoadPayload(
     sessionId: "session_1",
     mode: "competitive",
     levelId: "field",
-    gameCompatVersion: "build-2026-03-12",
+    gameCompatVersion: "2026.08.0",
     ...overrides,
   };
 }

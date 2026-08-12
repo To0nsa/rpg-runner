@@ -132,6 +132,16 @@ jobs:
             http://localhost:18083/tasks/project)" = "400"
           grep -q '"error":"invalid_request"' /tmp/project.json
 
+      - name: Benchmark final image at release limits
+        run: >-
+          docker run --rm
+          --cpus=1
+          --memory=512m
+          "$REPLAY_VALIDATOR_IMAGE"
+          benchmark
+          --ticks=36000
+          --strict
+
       - name: Reject Critical or High image vulnerabilities
         run: >-
           docker run --rm

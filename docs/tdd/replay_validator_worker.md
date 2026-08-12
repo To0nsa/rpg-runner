@@ -102,12 +102,18 @@ replay was finalized before expiry.
   substitutes the latest object at that path.
 - Ticket `uid` and `runSessionId` must match the stored session.
 - The canonical loadout digest is recomputed from the ticket snapshot.
-- The currently supported compatibility tuple is:
-  - game compatibility: `2026.03.0`
+- The Phase 7 drain compatibility tuple is:
+  - current game compatibility: `2026.08.0`
+  - draining game compatibility: `2026.03.0`
   - replay/command encoding: `1` / `1`
   - ruleset: `rules-v1`
   - score: `score-v1`
   - ghost: `ghost-v1`
+- Both game-compatibility labels execute the same current normal `GameCore`
+  constructor and polygon-terrain authority. The old label is a bounded ticket
+  drain, not a legacy simulation path. It remains accepted until old issuance
+  has stopped for at least the 24-hour ticket lifetime and the active-session
+  audit is empty.
 - A ranked ticket carries the board window captured at issuance. Validation
   uses that immutable ticket snapshot, so later board closure or deletion does
   not reinterpret an already issued run.

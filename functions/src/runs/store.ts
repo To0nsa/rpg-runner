@@ -10,7 +10,10 @@ import {
   readAbuseControlMode,
   readOptionalBoundedAbuseLimit,
 } from "../abuse/quota.js";
-import { ensureManagedBoardForModeLevel } from "../boards/provisioning.js";
+import {
+  ensureManagedBoardForModeLevel,
+  resolveBoardProvisioningConfigForGameCompatVersion,
+} from "../boards/provisioning.js";
 import { loadActiveBoardManifest } from "../boards/store.js";
 import { loadOrCreateCanonicalState } from "../ownership/canonical_store.js";
 import { normalizeAuthorizedLoadout } from "../ownership/loadout_authorization.js";
@@ -21,6 +24,7 @@ import {
   runModeRequiresBoard,
   type RunModeValue,
 } from "./mode.js";
+import { assertSupportedGameCompatVersion } from "./compatibility.js";
 
 const runSessionsCollection = "run_sessions";
 const runSessionIssuedState = "issued";
@@ -43,6 +47,7 @@ interface CreateRunSessionArgs {
   mode: RunModeValue;
   levelId: string;
   gameCompatVersion: string;
+  supportedGameCompatVersions?: ReadonlySet<string>;
   nowMs?: number;
 }
 
@@ -60,6 +65,10 @@ export interface CreateRunSessionResult {
 export async function createRunSession(
   args: CreateRunSessionArgs,
 ): Promise<CreateRunSessionResult> {
+  assertSupportedGameCompatVersion(
+    args.gameCompatVersion,
+    args.supportedGameCompatVersions,
+  );
   const nowMs = args.nowMs ?? Date.now();
   const clientRequestId = args.clientRequestId ?? randomUUID();
   const createRequestHash = sha256Hex(
@@ -413,6 +422,9 @@ async function loadBoardManifestWithProvisioningFallback(args: {
     mode: args.mode,
     levelId: args.levelId,
     nowMs: args.nowMs,
+    config: resolveBoardProvisioningConfigForGameCompatVersion(
+      args.gameCompatVersion,
+    ),
     includeNextWindows: false,
   });
 

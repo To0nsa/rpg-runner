@@ -299,6 +299,16 @@ Why:
 - Exported in `functions/src/index.ts`.
 - Ensures managed leaderboard boards/windows exist.
 - Uses logic in `functions/src/boards/provisioning.ts`.
+- Defaults new boards to current game compatibility `2026.08.0`. A managed
+  board ID binds mode, level, window, ruleset, score, game compatibility, and
+  ghost version, so rollout partitions can coexist without sharing
+  leaderboard/ghost descendants.
+- Active-board and run-session callables accept only the compatibility
+  allowlist resolved from `RUN_SUPPORTED_GAME_COMPAT_VERSIONS`. The Phase 7
+  default is `2026.08.0,2026.03.0`; `2026.03.0` is removed only after the
+  24-hour ticket drain and active-session audit complete.
+- Missing-board fallback provisions the requested supported compatibility
+  partition instead of silently using the current default.
 
 Why:
 

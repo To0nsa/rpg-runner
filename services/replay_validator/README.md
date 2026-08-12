@@ -55,6 +55,13 @@ level, verifies the final deterministic outcome, and emits a JSON report.
 Before compatible issuance, Phase 7 reruns the same compiled command in the
 one-CPU/512 MiB container and records its report.
 
+The Phase 7 validator accepts current game compatibility `2026.08.0` and
+draining `2026.03.0`; replay/command format `1`, `rules-v1`, `score-v1`, and
+`ghost-v1` remain unchanged. Both game labels run the same current Core and
+polygon-terrain path. Remove the draining label only in a separate deployment
+after old issuance has stopped for at least 24 hours and no old-version active
+session remains.
+
 ## Build Container Image
 
 Run from repository root (`c:\dev\rpg_runner`):
@@ -77,15 +84,19 @@ IMAGE_URI="${IMAGE_TAG%:*}@${IMAGE_DIGEST}"
 
 ## Deploy To Cloud Run
 
-Deploy the paired Functions repair/settlement surfaces and required Firestore
-indexes first:
+For a new environment, deploy the paired Functions repair/settlement surfaces
+and required Firestore indexes first:
 
 ```powershell
 firebase deploy --project rpg-runner-d7add `
   --only "firestore:indexes,functions:runValidationRepair,functions:runSettlementOnHandoff,functions:runSettlementRepair,functions:runSettlementImmediate,functions:runProjectionOnAccepted,functions:runProjectionReconciliation"
 ```
 
-Then run the checked-in service/queue policy from the repository root:
+Then run the checked-in service/queue policy from the repository root.
+For the Phase 7 compatibility cutover in an environment where those paired
+surfaces are already deployed, deploy the dual-compatible validator before the
+Functions/client revision that can issue `2026.08.0`; this guarantees every
+new ticket is accepted from its first issuance:
 
 ```powershell
 .\services\replay_validator\configure_cloud.ps1 `

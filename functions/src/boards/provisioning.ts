@@ -1,6 +1,7 @@
 import type { Firestore } from "firebase-admin/firestore";
 
 import { sha256Hex } from "../ownership/hash.js";
+import { currentGameCompatVersion } from "../runs/compatibility.js";
 import { type BoardStatus } from "./contracts.js";
 import { resolveWindowForMode, type ResolvedWindow } from "./windowing.js";
 
@@ -9,7 +10,6 @@ const rankedModes = ["competitive", "weekly"] as const;
 export type RankedBoardMode = (typeof rankedModes)[number];
 
 const defaultManagedLevelIds = ["field", "forest"];
-const defaultGameCompatVersion = "2026.03.0";
 const defaultRulesetVersion = "rules-v1";
 const defaultScoreVersion = "score-v1";
 const defaultGhostVersion = "ghost-v1";
@@ -57,6 +57,10 @@ export function buildManagedBoardId(args: {
   mode: RankedBoardMode;
   levelId: string;
   windowId: string;
+  rulesetVersion: string;
+  scoreVersion: string;
+  gameCompatVersion: string;
+  ghostVersion: string;
 }): string {
   return buildBoardId(args);
 }
@@ -77,7 +81,7 @@ export function resolveBoardProvisioningConfig(
     weeklyLevelId,
     gameCompatVersion: readStringOrDefault(
       env.RUN_BOARD_GAME_COMPAT_VERSION,
-      defaultGameCompatVersion,
+      currentGameCompatVersion,
     ),
     rulesetVersion: readStringOrDefault(
       env.RUN_BOARD_RULESET_VERSION,
@@ -97,6 +101,16 @@ export function resolveBoardProvisioningConfig(
       defaultSeedNamespace,
     ),
     status: readBoardStatusOrDefault(env.RUN_BOARD_STATUS, defaultBoardStatus),
+  };
+}
+
+export function resolveBoardProvisioningConfigForGameCompatVersion(
+  gameCompatVersion: string,
+  env: NodeJS.ProcessEnv = process.env,
+): BoardProvisioningConfig {
+  return {
+    ...resolveBoardProvisioningConfig(env),
+    gameCompatVersion,
   };
 }
 
@@ -223,9 +237,15 @@ async function ensureBoardForWindow(args: {
     .where("mode", "==", args.mode)
     .where("levelId", "==", args.levelId)
     .where("windowId", "==", args.window.windowId)
-    .limit(1)
     .get();
-  if (!existingSnapshot.empty) {
+  const matchingBoardExists = existingSnapshot.docs.some(
+    (doc) =>
+      doc.get("boardKey.rulesetVersion") === args.config.rulesetVersion &&
+      doc.get("boardKey.scoreVersion") === args.config.scoreVersion &&
+      doc.get("gameCompatVersion") === args.config.gameCompatVersion &&
+      doc.get("ghostVersion") === args.config.ghostVersion,
+  );
+  if (matchingBoardExists) {
     return false;
   }
 
@@ -233,6 +253,10 @@ async function ensureBoardForWindow(args: {
     mode: args.mode,
     levelId: args.levelId,
     windowId: args.window.windowId,
+    rulesetVersion: args.config.rulesetVersion,
+    scoreVersion: args.config.scoreVersion,
+    gameCompatVersion: args.config.gameCompatVersion,
+    ghostVersion: args.config.ghostVersion,
   });
   const boardDoc = {
     boardId,
@@ -302,10 +326,27 @@ function buildBoardId(args: {
   mode: RankedBoardMode;
   levelId: string;
   windowId: string;
+  rulesetVersion: string;
+  scoreVersion: string;
+  gameCompatVersion: string;
+  ghostVersion: string;
 }): string {
   const windowToken = sanitizeIdPart(args.windowId.toLowerCase());
   const levelToken = sanitizeIdPart(args.levelId.toLowerCase());
-  return `board_${args.mode}_${windowToken}_${levelToken}`;
+  const rulesetToken = sanitizeIdPart(args.rulesetVersion.toLowerCase());
+  const scoreToken = sanitizeIdPart(args.scoreVersion.toLowerCase());
+  const compatToken = sanitizeIdPart(args.gameCompatVersion.toLowerCase());
+  const ghostToken = sanitizeIdPart(args.ghostVersion.toLowerCase());
+  return [
+    "board",
+    args.mode,
+    windowToken,
+    levelToken,
+    rulesetToken,
+    scoreToken,
+    compatToken,
+    ghostToken,
+  ].join("_");
 }
 
 function sanitizeIdPart(value: string): string {

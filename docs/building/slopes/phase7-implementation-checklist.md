@@ -35,22 +35,22 @@ The compatibility disposition is:
 
 ## 2) Repository Preparation
 
-- [ ] centralize the backend current and draining compatibility versions
-- [ ] reject unsupported versions before issuing both practice and ranked
+- [x] centralize the backend current and draining compatibility versions
+- [x] reject unsupported versions before issuing both practice and ranked
       tickets
-- [ ] make managed board identity include ruleset, score, game compatibility,
+- [x] make managed board identity include ruleset, score, game compatibility,
       and ghost versions so same-window old/new boards can coexist
-- [ ] make ranked fallback provisioning use the requested supported game
+- [x] make ranked fallback provisioning use the requested supported game
       compatibility version
-- [ ] make active-board lookup select only the requested compatibility
+- [x] make active-board lookup select only the requested compatibility
       partition and reject ambiguity inside that partition
-- [ ] update the client default to `2026.08.0`
-- [ ] configure the validator to accept `2026.08.0` and draining `2026.03.0`
-- [ ] add same-window board coexistence, unsupported practice/ranked issuance,
+- [x] update the client default to `2026.08.0`
+- [x] configure the validator to accept `2026.08.0` and draining `2026.03.0`
+- [x] add same-window board coexistence, unsupported practice/ranked issuance,
       and dual validator acceptance coverage
-- [ ] add the strict replay benchmark to the release-image CI path under one
+- [x] add the strict replay benchmark to the release-image CI path under one
       CPU and 512 MiB
-- [ ] update rollout, protocol, validator, and operations documentation
+- [x] update rollout, protocol, validator, and operations documentation
 
 ## 3) Ordered Deployment Runbook
 
@@ -127,3 +127,4 @@ existing ticket/board compatibility tuple.
 | Date / revision | Slice | Result |
 | --- | --- | --- |
 | 2026-08-12 / Phase 7 working head | Compatibility inventory | Phase 6 is accepted locally. Inventory found that managed board IDs and provisioning uniqueness omitted compatibility versions, so an old same-window board could block new-board creation. Practice issuance also accepted arbitrary client compatibility strings until validator rejection. The local cutover therefore starts by partitioning board identity and enforcing a bounded backend allowlist before any deployment. |
+| 2026-08-12 / Phase 7 working head | Local dual-version implementation | The client and board default advance to `2026.08.0`; Functions centrally allow current plus draining `2026.03.0`, reject other practice/ranked and active-board requests, provision the requested supported partition, and bind managed IDs to the full version tuple. The validator accepts both labels through one current Core path. Same-window lookup/provisioning and both acceptance/rejection directions are covered; all 188 Functions emulator tests, all 85 validator tests, and 41 focused client tests pass. The release-image workflow now runs the strict benchmark with one CPU and 512 MiB. |

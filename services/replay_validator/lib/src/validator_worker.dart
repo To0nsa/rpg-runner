@@ -116,7 +116,10 @@ class DeterministicValidatorWorker implements ValidatorWorker {
 
   static const Duration _ticketValidity = Duration(hours: 24);
   static const Duration _allowedAuthorityClockSkew = Duration(minutes: 5);
-  static const Set<String> _supportedGameCompatVersions = <String>{'2026.03.0'};
+  static const Set<String> _supportedGameCompatVersions = <String>{
+    '2026.08.0',
+    '2026.03.0',
+  };
   static const Set<String> _supportedRulesetVersions = <String>{'rules-v1'};
   static const Set<String> _supportedScoreVersions = <String>{'score-v1'};
   static const Set<String> _supportedGhostVersions = <String>{'ghost-v1'};

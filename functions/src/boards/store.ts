@@ -5,7 +5,6 @@ import type {
 } from "firebase-admin/firestore";
 
 import type { JsonObject } from "../ownership/contracts.js";
-import { buildManagedBoardId, type RankedBoardMode } from "./provisioning.js";
 import {
   resolveWindowForMode,
   competitiveWindowBoundsFromId,
@@ -30,41 +29,22 @@ export async function loadActiveBoardManifest(
   const nowMs = args.nowMs ?? Date.now();
   const resolvedWindow = resolveWindowForMode(args.mode, nowMs);
 
-  const managedBoardId = buildManagedBoardId({
-    mode: args.mode as RankedBoardMode,
-    levelId: args.levelId,
-    windowId: resolvedWindow.windowId,
-  });
-  const managedDocSnapshot = await args.db
-    .collection(leaderboardBoardsCollection)
-    .doc(managedBoardId)
-    .get();
-  if (managedDocSnapshot.exists) {
-    const board = decodeBoardManifestDocument(
-      managedDocSnapshot as QueryDocumentSnapshot,
-    );
-    return validateActiveBoardForRequest({
-      board,
-      mode: args.mode,
-      levelId: args.levelId,
-      gameCompatVersion: args.gameCompatVersion,
-      nowMs,
-      windowId: resolvedWindow.windowId,
-    });
-  }
-
   const boardSnapshot = await args.db
     .collection(leaderboardBoardsCollection)
     .where("mode", "==", args.mode)
     .where("levelId", "==", args.levelId)
     .where("windowId", "==", resolvedWindow.windowId)
     .get();
-  const candidates = boardSnapshot.docs.map(decodeBoardManifestDocument);
+  const candidates = boardSnapshot.docs
+    .map(decodeBoardManifestDocument)
+    .filter(
+      (value) => value.gameCompatVersion === args.gameCompatVersion,
+    );
 
   if (candidates.length === 0) {
     throw new HttpsError(
       "failed-precondition",
-      `No board found for ${args.mode}/${args.levelId}/${resolvedWindow.windowId}.`,
+      `No board found for ${args.mode}/${args.levelId}/${resolvedWindow.windowId}/${args.gameCompatVersion}.`,
     );
   }
 
@@ -72,7 +52,7 @@ export async function loadActiveBoardManifest(
   if (activeBoards.length > 1) {
     throw new HttpsError(
       "failed-precondition",
-      `Multiple active boards found for ${args.mode}/${args.levelId}/${resolvedWindow.windowId}.`,
+      `Multiple active boards found for ${args.mode}/${args.levelId}/${resolvedWindow.windowId}/${args.gameCompatVersion}.`,
     );
   }
 

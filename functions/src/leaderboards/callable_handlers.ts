@@ -8,8 +8,12 @@ import {
   systemAuthorityClock,
   type AuthorityClock,
 } from "../authority_time.js";
-import { ensureManagedBoardForModeLevel } from "../boards/provisioning.js";
+import {
+  ensureManagedBoardForModeLevel,
+  resolveBoardProvisioningConfigForGameCompatVersion,
+} from "../boards/provisioning.js";
 import { loadActiveBoardManifest, toBoardManifestJson } from "../boards/store.js";
+import { assertSupportedGameCompatVersion } from "../runs/compatibility.js";
 import {
   type LeaderboardBoardResult,
   type LeaderboardBoardWithMyRankResult,
@@ -102,6 +106,7 @@ export async function handleLeaderboardLoadActiveBoardData(
   if (userId !== uid) {
     throw new HttpsError("permission-denied", "userId does not match auth uid.");
   }
+  assertSupportedGameCompatVersion(gameCompatVersion);
   await assertAccountActive(db, uid);
   const nowMs = captureAuthorityTimeMs(clock);
   await consumeUserQuota({
@@ -150,6 +155,9 @@ async function loadActiveBoardManifestWithProvisioningFallback(args: {
     mode: args.mode,
     levelId: args.levelId,
     nowMs: args.nowMs,
+    config: resolveBoardProvisioningConfigForGameCompatVersion(
+      args.gameCompatVersion,
+    ),
     includeNextWindows: false,
   });
 
