@@ -20,6 +20,7 @@ export interface CompatibilityRetirementAssessment {
   observedSessionCount: number;
   activeSessionCount: number;
   activeSessionStateCounts: Readonly<Record<string, number>>;
+  invalidGameCompatVersionCount: number;
   invalidSessionStateCount: number;
   issuedAfterCutoffCount: number;
   invalidIssuedAtCount: number;
@@ -49,8 +50,14 @@ export function assessCompatibilityRetirement(args: {
 
   const earliestRemovalAtMs =
     args.issuanceCutoffAtMs + maximumRunTicketLifetimeMs;
+  requirePositiveSafeInteger(earliestRemovalAtMs, "earliestRemovalAtMs");
+  const invalidGameCompatVersionCount = args.sessions.filter(
+    (session) =>
+      session.gameCompatVersion == null ||
+      session.gameCompatVersion.trim().length === 0,
+  ).length;
   const matchingSessions = args.sessions.filter(
-    (session) => session.gameCompatVersion === gameCompatVersion,
+    (session) => session.gameCompatVersion?.trim() === gameCompatVersion,
   );
   const activeSessions = matchingSessions.filter(
     (session) =>
@@ -95,6 +102,9 @@ export function assessCompatibilityRetirement(args: {
   if (invalidSessionStateCount > 0) {
     blockers.push("unassessable_session_state_evidence");
   }
+  if (invalidGameCompatVersionCount > 0) {
+    blockers.push("unassessable_game_compat_evidence");
+  }
 
   return {
     gameCompatVersion,
@@ -109,6 +119,7 @@ export function assessCompatibilityRetirement(args: {
         left.localeCompare(right),
       ),
     ),
+    invalidGameCompatVersionCount,
     invalidSessionStateCount,
     issuedAfterCutoffCount,
     invalidIssuedAtCount,

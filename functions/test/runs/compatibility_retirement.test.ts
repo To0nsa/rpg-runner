@@ -41,6 +41,7 @@ test("post-cutoff issuance and malformed evidence fail closed", () => {
       session("expired", cutoffAtMs + 1),
       session("validated", null),
       session("future_state", cutoffAtMs - 1),
+      session("expired", cutoffAtMs - 2, null),
     ],
     observedAtMs: cutoffAtMs + maximumRunTicketLifetimeMs,
     gameCompatVersion: "2026.03.0",
@@ -51,10 +52,12 @@ test("post-cutoff issuance and malformed evidence fail closed", () => {
   assert.equal(result.issuedAfterCutoffCount, 1);
   assert.equal(result.invalidIssuedAtCount, 1);
   assert.equal(result.invalidSessionStateCount, 1);
+  assert.equal(result.invalidGameCompatVersionCount, 1);
   assert.deepEqual(result.blockers, [
     "issuance_after_recorded_cutoff",
     "unassessable_issued_at_evidence",
     "unassessable_session_state_evidence",
+    "unassessable_game_compat_evidence",
   ]);
 });
 
@@ -80,7 +83,7 @@ test("retirement is ready only with elapsed, inactive, pre-cutoff evidence", () 
 function session(
   state: string,
   issuedAtMs: number | null,
-  gameCompatVersion = "2026.03.0",
+  gameCompatVersion: string | null = "2026.03.0",
 ): CompatibilityRetirementSessionEvidence {
   return { gameCompatVersion, state, issuedAtMs };
 }
