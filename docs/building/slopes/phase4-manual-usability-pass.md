@@ -40,10 +40,12 @@ Launching from that `tools\editor` directory selects the disposable worktree
 root automatically. Confirm the workspace shown in the editor contains
 `rpg_runner_phase4_usability` before applying any file change.
 
-The chosen Prefab owner below, `anvil_00`, is active, collision-capable, and not
-placed by current Chunks. This keeps its test geometry from creating unrelated
-placement failures. The worktree begins from the intentional collision-reset
-content state.
+The chosen Prefab owner below, `barrel_01`, is active, collision-capable, and
+not placed by current Chunks. It intentionally has no authored collision shape,
+while the committed `anvil_00` example does. This keeps the empty-owner checks
+repeatable without deleting the retained authored example or creating unrelated
+placement failures. The committed `field_flat` Chunk likewise retains its
+`solid_001` example; the Chunk steps add a second disposable direct shape.
 
 ## Tester Record
 
@@ -58,7 +60,7 @@ Complete this before starting:
 
 ## A) Discover And Reject Invalid Prefab Geometry
 
-1. Open the Prefab Creator and select `anvil_00`.
+1. Open the Prefab Creator and select `barrel_01`.
 2. Find the collision scene and Shapes panel using only visible navigation.
 3. Start a new polygon, place only two distinct vertices, and choose **Save**.
 4. Confirm that `too_few_vertices` explains that at least three distinct
@@ -71,7 +73,7 @@ diagnostic, and can recover without reloading the workspace.
 
 ## B) Complete The Prefab Workflow
 
-1. On a collider-free obstacle such as `anvil_00`, confirm **Move vertex**,
+1. On the collider-free `barrel_01` obstacle, confirm **Move vertex**,
    **Move shape**, and **Insert vertex** are disabled while **New polygon** and
    **New rectangle** remain available. Choose **New polygon** and place five
    vertices inside the visible sprite. Place one vertex badly, Undo it once,
@@ -118,11 +120,11 @@ opened manually.
 
 1. Open the Chunk Creator, select the `field` level and `field_flat` owner.
 2. Repeat the two-vertex invalid-Save check, then cancel it.
-3. Create a small orthogonal solid draft fully inside the Chunk bounds and away
-   from both horizontal Chunk seams, with its top at or above the `field`
-   level's 224px ground line. Undo/Redo one placed vertex, move another, and
-   insert one on an open edge. Confirm each keyboard command changes only one
-   draft vertex and these remain local draft edits.
+3. Create a second small orthogonal solid draft fully inside the Chunk bounds
+   and away from both horizontal Chunk seams, with its top at or above the
+   `field` level's 224px ground line. Undo/Redo one placed vertex, move another,
+   and insert one on an open edge. Confirm each keyboard command changes only
+   one draft vertex and these remain local draft edits.
 4. Confirm Place vertex, Move vertex, and Insert vertex remain available during
    creation, then choose **Save** and verify exactly one source-history entry
    is created. Confirm the saved direct shape uses a `solid_` ID; `ground_`
