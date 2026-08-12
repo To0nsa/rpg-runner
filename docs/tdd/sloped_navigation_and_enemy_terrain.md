@@ -503,6 +503,13 @@ Normal streamed `GameCore(...)` and replay validation use the runtime bundle's
 polygon geometry and graph views. Only `GameCore.terrainMotionHarness` exposes
 manual queue operations; calling them on normal construction fails explicitly.
 
+The pre-terrain horizontal surface extractor, spatial index, graph builder,
+trajectory predictor, pathfinder, navigator, and enemy navigation system are
+deleted. Terrain navigation writes complete active-jump traversal details into
+the shared intent store, so ground locomotion never looks up a second graph.
+Procedural item placement likewise queries the published terrain bundle
+directly and receives no rectangle solid list.
+
 ## Unoco Flying Contact, Hover, And Clearance
 
 Unoco keeps its existing randomized `60-180`-world-unit hover-height and

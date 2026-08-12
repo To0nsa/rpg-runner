@@ -2,8 +2,6 @@ import 'package:runner_core/ecs/entity_id.dart';
 
 import '../../combat/control_lock.dart';
 import '../../collision/terrain/terrain_numeric.dart';
-import '../../enemies/enemy_id.dart';
-import '../../navigation/types/surface_graph.dart';
 import '../../snapshots/enums.dart';
 import '../../tuning/ground_enemy_tuning.dart';
 import '../../util/double_math.dart';
@@ -18,26 +16,7 @@ class GroundEnemyLocomotionSystem {
 
   final GroundEnemyTuningDerived groundEnemyTuning;
 
-  Map<EnemyId, SurfaceGraph> _surfaceGraphsByEnemy = <EnemyId, SurfaceGraph>{};
-  SurfaceGraph? _defaultSurfaceGraph;
   final _ActiveJumpTraversal _activeJumpScratch = _ActiveJumpTraversal();
-
-  void setSurfaceGraph({required SurfaceGraph graph}) {
-    setSurfaceGraphs(
-      graphsByEnemy: <EnemyId, SurfaceGraph>{
-        for (final enemyId in groundNavigatingEnemyIds) enemyId: graph,
-      },
-    );
-  }
-
-  void setSurfaceGraphs({required Map<EnemyId, SurfaceGraph> graphsByEnemy}) {
-    _surfaceGraphsByEnemy = Map<EnemyId, SurfaceGraph>.unmodifiable(
-      graphsByEnemy,
-    );
-    _defaultSurfaceGraph = graphsByEnemy.isEmpty
-        ? null
-        : graphsByEnemy.values.first;
-  }
 
   /// Applies locomotion for all ground enemies.
   void step(
@@ -116,10 +95,8 @@ class GroundEnemyLocomotionSystem {
       final ex = world.transform.posX[enemyTi];
       _applyGroundEnemyLocomotion(
         world,
-        enemyId: world.enemy.enemyId[enemyIndex],
         enemyIndex: enemyIndex,
         enemyTi: enemyTi,
-        navIndex: navIndex,
         navIntentIndex: i,
         engagementIndex: engagementIndex,
         lockFacingToPlayer: lockFacingToPlayer,
@@ -133,10 +110,8 @@ class GroundEnemyLocomotionSystem {
 
   void _applyGroundEnemyLocomotion(
     EcsWorld world, {
-    required EnemyId enemyId,
     required int enemyIndex,
     required int enemyTi,
-    required int navIndex,
     required int navIntentIndex,
     required int engagementIndex,
     required bool lockFacingToPlayer,
@@ -178,7 +153,6 @@ class GroundEnemyLocomotionSystem {
       world,
       enemyIndex: enemyIndex,
       enemyTi: enemyTi,
-      navIndex: navIndex,
       navIntentIndex: navIntentIndex,
       ex: ex,
       desiredX: desiredX,
@@ -194,7 +168,6 @@ class GroundEnemyLocomotionSystem {
       lockFacingToPlayer: lockFacingToPlayer,
       grounded: grounded,
       dtSeconds: dtSeconds,
-      graph: _surfaceGraphsByEnemy[enemyId] ?? _defaultSurfaceGraph,
       playerX: playerX,
     );
   }
@@ -203,7 +176,6 @@ class GroundEnemyLocomotionSystem {
     EcsWorld world, {
     required int enemyIndex,
     required int enemyTi,
-    required int navIndex,
     required int navIntentIndex,
     required double ex,
     required double desiredX,
@@ -219,7 +191,6 @@ class GroundEnemyLocomotionSystem {
     required bool lockFacingToPlayer,
     required bool grounded,
     required double dtSeconds,
-    required SurfaceGraph? graph,
     required double playerX,
   }) {
     final tuning = groundEnemyTuning;
@@ -227,9 +198,7 @@ class GroundEnemyLocomotionSystem {
     final terrainGrounded = grounded && world.terrainContact.has(enemy);
     final activeJumpTraversal = _activeJumpTraversal(
       world,
-      navIndex: navIndex,
       navIntentIndex: navIntentIndex,
-      graph: graph,
     );
     final modIndex = world.statModifier.tryIndexOf(enemy);
     final moveSpeedMul = modIndex == null
@@ -482,9 +451,7 @@ class GroundEnemyLocomotionSystem {
 
   _ActiveJumpTraversal? _activeJumpTraversal(
     EcsWorld world, {
-    required int navIndex,
     required int navIntentIndex,
-    required SurfaceGraph? graph,
   }) {
     final intents = world.navIntent;
     if (intents.hasActiveJumpTraversal[navIntentIndex]) {
@@ -495,19 +462,7 @@ class GroundEnemyLocomotionSystem {
         travelTicks: intents.activeJumpTravelTicks[navIntentIndex],
       );
     }
-    if (graph == null) return null;
-    final activeEdgeIndex = world.surfaceNav.activeEdgeIndex[navIndex];
-    if (activeEdgeIndex < 0 || activeEdgeIndex >= graph.edges.length) {
-      return null;
-    }
-    final edge = graph.edges[activeEdgeIndex];
-    if (edge.kind != SurfaceEdgeKind.jump) return null;
-    return _activeJumpScratch.set(
-      takeoffX: edge.takeoffX,
-      landingX: edge.landingX,
-      commitDirX: edge.commitDirX,
-      travelTicks: edge.travelTicks,
-    );
+    return null;
   }
 
   int _resolveEdgeCommitDirX(

@@ -8,7 +8,7 @@ library;
 
 import 'ecs/stores/restoration_item_store.dart' show RestorationStat;
 import 'snapshots/static_prefab_sprite_snapshot.dart';
-import 'spawn_service.dart' hide StaticSolid;
+import 'spawn_service.dart';
 import 'track/chunk_pattern_defaults.dart';
 import 'track/chunk_pattern_source.dart';
 import 'track/track_streamer.dart';
@@ -154,21 +154,17 @@ class TrackManager {
     required Iterable<TrackSpawnedChunk> chunks,
     required RestorationStat Function() lowestResourceStat,
   }) {
-    const noLegacySolids =
-        <({double minX, double maxX, double minY, double maxY})>[];
     for (final chunk in chunks) {
       if (_collectibleTuning.enabled) {
         _spawnService.spawnCollectiblesForChunk(
           chunkIndex: chunk.index,
           chunkStartX: chunk.startX,
-          solids: noLegacySolids,
         );
       }
       if (_restorationItemTuning.enabled) {
         _spawnService.spawnRestorationItemForChunk(
           chunkIndex: chunk.index,
           chunkStartX: chunk.startX,
-          solids: noLegacySolids,
           lowestResourceStat: lowestResourceStat,
         );
       }

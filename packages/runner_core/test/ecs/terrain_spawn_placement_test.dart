@@ -463,7 +463,6 @@ void main() {
         harness.service.spawnCollectiblesForChunk(
           chunkIndex: 0,
           chunkStartX: 0,
-          solids: const <StaticSolid>[],
         );
 
         expect(harness.world.collectible.denseEntities, hasLength(1));
@@ -487,7 +486,6 @@ void main() {
         exhausted.service.spawnCollectiblesForChunk(
           chunkIndex: 0,
           chunkStartX: 0,
-          solids: const <StaticSolid>[],
         );
         expect(exhausted.world.collectible.denseEntities, isEmpty);
       },
@@ -510,7 +508,6 @@ void main() {
       harness.service.spawnRestorationItemForChunk(
         chunkIndex: 0,
         chunkStartX: 0,
-        solids: const <StaticSolid>[],
         lowestResourceStat: () => RestorationStat.health,
       );
 

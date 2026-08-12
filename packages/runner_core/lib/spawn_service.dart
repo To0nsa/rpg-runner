@@ -27,10 +27,9 @@
 /// For collectibles and restoration items:
 /// 1. Compute valid X range (chunk bounds minus edge margins).
 /// 2. Generate random X, snap to grid.
-/// 3. Query the [SurfaceGraph] for the highest platform at that X.
-/// 4. Place item above the surface with clearance.
-/// 5. Reject if overlapping solids or existing entities.
-/// 6. Retry up to `maxAttempts` times.
+/// 3. Ask the polygon-terrain placement authority for support and clearance.
+/// 4. Reject invalid or occupied candidates.
+/// 5. Retry up to `maxAttempts` times.
 library;
 
 import 'abilities/ability_catalog.dart';
@@ -50,10 +49,7 @@ import 'ecs/systems/world_motion_authority.dart';
 import 'ecs/world.dart';
 import 'enemies/enemy_catalog.dart';
 import 'enemies/enemy_id.dart';
-import 'navigation/types/nav_tolerances.dart';
-import 'navigation/types/surface_graph.dart';
 import 'navigation/terrain_spawn_placement.dart';
-import 'navigation/utils/surface_spatial_index.dart';
 import 'snapshots/enums.dart';
 import 'tuning/collectible_tuning.dart';
 import 'tuning/flying_enemy_tuning.dart';
@@ -92,7 +88,6 @@ const int _restorationSpawnSalt = 0xA57A11;
 /// Usage:
 /// ```dart
 /// final spawner = SpawnService(world: ..., seed: 42, ...);
-/// spawner.setSurfaceGraph(graph: navGraph, spatialIndex: index);
 /// spawner.spawnUnocoDemon(spawnX: 500, groundTopY: 0);
 /// spawner.spawnCollectiblesForChunk(chunkIndex: 3, ...);
 /// ```
@@ -170,49 +165,6 @@ class SpawnService {
 
   /// X positions of collectibles spawned in the current chunk (for spacing).
   final List<double> _collectibleSpawnXs = <double>[];
-
-  /// Surface indices returned by spatial queries.
-  final List<int> _surfaceQueryCandidates = <int>[];
-
-  // ─── Surface graph state (updated by TrackManager) ───
-  SurfaceGraph? _surfaceGraph;
-  SurfaceSpatialIndex? _surfaceSpatialIndex;
-  double _surfaceMinY = 0.0;
-  double _surfaceMaxY = 0.0;
-
-  // ───────────────────────────────────────────────────────────────────────────
-  // Surface Graph Management
-  // ───────────────────────────────────────────────────────────────────────────
-
-  /// Updates the navigation surface graph for item placement queries.
-  ///
-  /// Called by [TrackManager] whenever the track geometry changes.
-  /// The surface graph provides platform positions for placing items
-  /// "on top of" surfaces rather than floating in mid-air.
-  ///
-  /// Also caches the Y-axis bounds for efficient spatial queries.
-  void setSurfaceGraph({
-    required SurfaceGraph? graph,
-    required SurfaceSpatialIndex? spatialIndex,
-  }) {
-    _surfaceGraph = graph;
-    _surfaceSpatialIndex = spatialIndex;
-    _surfaceMinY = 0.0;
-    _surfaceMaxY = 0.0;
-
-    // Pre-compute Y bounds to avoid repeated iteration during queries.
-    if (graph != null && graph.surfaces.isNotEmpty) {
-      var minY = graph.surfaces.first.yTop;
-      var maxY = minY;
-      for (var i = 1; i < graph.surfaces.length; i += 1) {
-        final y = graph.surfaces[i].yTop;
-        if (y < minY) minY = y;
-        if (y > maxY) maxY = y;
-      }
-      _surfaceMinY = minY;
-      _surfaceMaxY = maxY;
-    }
-  }
 
   // ───────────────────────────────────────────────────────────────────────────
   // Enemy Spawning
@@ -407,7 +359,6 @@ class SpawnService {
   void spawnCollectiblesForChunk({
     required int chunkIndex,
     required double chunkStartX,
-    required List<StaticSolid> solids,
   }) {
     final tuning = _collectibleTuning;
 
@@ -415,13 +366,6 @@ class SpawnService {
     if (!tuning.enabled) return;
     if (chunkIndex < tuning.spawnStartChunkIndex) return;
     if (tuning.maxPerChunk <= 0) return;
-
-    final graph = _surfaceGraph;
-    final spatialIndex = _surfaceSpatialIndex;
-    if (!_worldMotionAuthority.usesTerrainPlayer &&
-        (graph == null || spatialIndex == null || graph.surfaces.isEmpty)) {
-      return;
-    }
 
     // ─── Compute valid X range ───
     final minX = chunkStartX + tuning.chunkEdgeMarginX;
@@ -438,7 +382,6 @@ class SpawnService {
 
     // ─── Spawn loop with rejection sampling ───
     _collectibleSpawnXs.clear();
-    final halfSize = tuning.collectibleSize * 0.5;
     final maxAttempts = tuning.maxAttemptsPerChunk;
 
     for (
@@ -464,38 +407,14 @@ class SpawnService {
         if (!spaced) continue;
       }
 
-      // Resolve the historical candidate before the selected authority decides
-      // whether legacy rectangles or polygon terrain owns placement.
-      final surfaceY = _highestSurfaceYAtX(x);
-      if (!_worldMotionAuthority.usesTerrainPlayer && surfaceY == null) {
-        continue;
-      }
-      final legacyCenterY = surfaceY == null
-          ? 0.0
-          : surfaceY - tuning.surfaceClearanceY - halfSize;
-
-      if (!_worldMotionAuthority.usesTerrainPlayer &&
-          _overlapsAnySolid(
-            centerX: x,
-            centerY: legacyCenterY,
-            halfSize: halfSize,
-            margin: tuning.noSpawnMargin,
-            solids: solids,
-          )) {
-        continue;
-      }
-
       final placement = _worldMotionAuthority.resolveSpawnPlacement(
         TerrainSpawnPlacementRequest(
           profile: _collectiblePlacementProfile,
           desiredBodyCenter: TerrainPoint(
             physicsCoordinateToTicks(x, name: 'collectibleSpawnX'),
-            physicsCoordinateToTicks(legacyCenterY, name: 'collectibleSpawnY'),
+            0,
           ),
           supportSelection: TerrainSpawnSupportSelection.highestSurfaceAtX,
-          requestedSupportYTicks: surfaceY == null
-              ? null
-              : physicsCoordinateToTicks(surfaceY, name: 'collectibleSupportY'),
         ),
       );
       if (!placement.accepted) continue;
@@ -520,7 +439,6 @@ class SpawnService {
   void spawnRestorationItemForChunk({
     required int chunkIndex,
     required double chunkStartX,
-    required List<StaticSolid> solids,
     required RestorationStat Function() lowestResourceStat,
   }) {
     final tuning = _restorationItemTuning;
@@ -534,13 +452,6 @@ class SpawnService {
     final phase =
         seedFrom(_seed, _restorationPhaseSalt) % tuning.spawnEveryChunks;
     if ((chunkIndex - phase) % tuning.spawnEveryChunks != 0) return;
-
-    final graph = _surfaceGraph;
-    final spatialIndex = _surfaceSpatialIndex;
-    if (!_worldMotionAuthority.usesTerrainPlayer &&
-        (graph == null || spatialIndex == null || graph.surfaces.isEmpty)) {
-      return;
-    }
 
     // ─── Compute valid X range ───
     final minX = chunkStartX + tuning.chunkEdgeMarginX;
@@ -561,36 +472,14 @@ class SpawnService {
       x = _snapToGrid(x, _trackTuning.gridSnap);
       if (x < minX || x > maxX) continue;
 
-      final surfaceY = _highestSurfaceYAtX(x);
-      if (!_worldMotionAuthority.usesTerrainPlayer && surfaceY == null) {
-        continue;
-      }
-      final legacyCenterY = surfaceY == null
-          ? 0.0
-          : surfaceY - tuning.surfaceClearanceY - halfSize;
-
-      if (!_worldMotionAuthority.usesTerrainPlayer &&
-          _overlapsAnySolid(
-            centerX: x,
-            centerY: legacyCenterY,
-            halfSize: halfSize,
-            margin: tuning.noSpawnMargin,
-            solids: solids,
-          )) {
-        continue;
-      }
-
       final placement = _worldMotionAuthority.resolveSpawnPlacement(
         TerrainSpawnPlacementRequest(
           profile: _restorationPlacementProfile,
           desiredBodyCenter: TerrainPoint(
             physicsCoordinateToTicks(x, name: 'restorationSpawnX'),
-            physicsCoordinateToTicks(legacyCenterY, name: 'restorationSpawnY'),
+            0,
           ),
           supportSelection: TerrainSpawnSupportSelection.highestSurfaceAtX,
-          requestedSupportYTicks: surfaceY == null
-              ? null
-              : physicsCoordinateToTicks(surfaceY, name: 'restorationSupportY'),
         ),
       );
       if (!placement.accepted) continue;
@@ -625,85 +514,6 @@ class SpawnService {
   double _snapToGrid(double x, double grid) {
     if (grid <= 0) return x;
     return (x / grid).roundToDouble() * grid;
-  }
-
-  /// Returns the Y coordinate of the highest surface at [x], or null if none.
-  ///
-  /// Uses the [SurfaceSpatialIndex] for efficient lookup, then filters
-  /// candidates to find the topmost platform. Ties are broken by surface ID
-  /// for determinism.
-  double? _highestSurfaceYAtX(double x) {
-    final graph = _surfaceGraph;
-    final spatialIndex = _surfaceSpatialIndex;
-    if (graph == null || spatialIndex == null || graph.surfaces.isEmpty) {
-      return null;
-    }
-
-    // Query all surfaces that might contain X.
-    final minY = _surfaceMinY - navSpatialEps;
-    final maxY = _surfaceMaxY + navSpatialEps;
-    _surfaceQueryCandidates.clear();
-    spatialIndex.queryAabb(
-      minX: x - navSpatialEps,
-      minY: minY,
-      maxX: x + navSpatialEps,
-      maxY: maxY,
-      outSurfaceIndices: _surfaceQueryCandidates,
-    );
-
-    // Find highest (smallest Y in screen coords) surface containing X.
-    double? bestY;
-    int? bestId;
-    for (final i in _surfaceQueryCandidates) {
-      final s = graph.surfaces[i];
-      if (x < s.xMin - navGeomEps || x > s.xMax + navGeomEps) continue;
-
-      // Prefer lower Y (higher on screen). Break ties by ID for determinism.
-      if (bestY == null || s.yTop < bestY - navTieEps) {
-        bestY = s.yTop;
-        bestId = s.id;
-      } else if ((s.yTop - bestY).abs() <= navTieEps && s.id < bestId!) {
-        bestY = s.yTop;
-        bestId = s.id;
-      }
-    }
-
-    return bestY;
-  }
-
-  /// Checks if an AABB centered at ([centerX], [centerY]) overlaps any solid.
-  ///
-  /// The AABB is expanded by [margin] to prevent items from spawning too
-  /// close to platform edges.
-  bool _overlapsAnySolid({
-    required double centerX,
-    required double centerY,
-    required double halfSize,
-    required double margin,
-    required List<StaticSolid> solids,
-  }) {
-    if (solids.isEmpty) return false;
-
-    // Expand bounds by half-size and margin.
-    final minX = centerX - halfSize - margin;
-    final maxX = centerX + halfSize + margin;
-    final minY = centerY - halfSize - margin;
-    final maxY = centerY + halfSize + margin;
-
-    for (final solid in solids) {
-      final overlaps = aabbOverlapsMinMax(
-        aMinX: minX,
-        aMaxX: maxX,
-        aMinY: minY,
-        aMaxY: maxY,
-        bMinX: solid.minX,
-        bMaxX: solid.maxX,
-        bMinY: solid.minY,
-        bMaxY: solid.maxY,
-      );
-      if (overlaps) return true;
-    }
-    return false;
   }
 
   /// Checks if an AABB overlaps any existing collectible entity.
@@ -779,4 +589,3 @@ class SpawnService {
 ///
 /// Used by [SpawnService] for overlap rejection during item placement.
 /// Re-exported here to avoid circular imports with collision module.
-typedef StaticSolid = ({double minX, double maxX, double minY, double maxY});
