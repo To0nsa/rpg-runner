@@ -21,6 +21,7 @@ import {
   readState,
   refreshAnonymousAccount,
   requireArg,
+  runSchedulerJob,
   shortHash,
   writeState,
 } from "./replay_drill_support.mjs";
@@ -45,6 +46,9 @@ switch (command) {
   case "prepare":
     await prepare();
     break;
+  case "prepare-admin":
+    await prepare({ adminBootstrap: true });
+    break;
   case "exercise-compatibility":
     await exerciseGroup("compatibility");
     break;
@@ -53,6 +57,9 @@ switch (command) {
     break;
   case "exercise-simulation":
     await exerciseGroup("simulation");
+    break;
+  case "verify-projection":
+    await verifyProjection();
     break;
   case "grace-start":
     await graceStart();
@@ -76,7 +83,7 @@ switch (command) {
     throw new Error(`Unsupported --command "${command}".`);
 }
 
-async function prepare() {
+async function prepare({ adminBootstrap = false } = {}) {
   let existing = null;
   try {
     existing = await readState(statePath);
@@ -103,6 +110,7 @@ async function prepare() {
     uidHash: shortHash(auth.localId),
     refreshToken: auth.refreshToken,
     sessionId,
+    bootstrap: adminBootstrap ? "admin" : "callable",
     createdAt: new Date().toISOString(),
     phase: "account_created",
     fixtures: [],
@@ -111,68 +119,15 @@ async function prepare() {
   await writeState(statePath, state);
 
   try {
-    await callFunction({
-      projectId,
-      region,
-      idToken: auth.idToken,
-      functionName: "playerProfileLoad",
-      data: { userId: auth.localId, sessionId },
-    });
-    const canonicalLoad = await callFunction({
-      projectId,
-      region,
-      idToken: auth.idToken,
-      functionName: "loadoutOwnershipLoadCanonicalState",
-      data: { userId: auth.localId, sessionId },
-    });
-    assert(
-      isObject(canonicalLoad.canonicalState),
-      "Canonical ownership response was malformed.",
-    );
-    let canonical = canonicalLoad.canonicalState;
-
-    const practiceTemplate = await createTicket({
-      auth,
-      sessionId,
-      mode: "practice",
-      suffix: "practice-template",
-    });
-
-    const selection = structuredClone(canonical.selection);
-    selection.runMode = "competitive";
-    selection.runType = "competitive";
-    const selectionResult = await callFunction({
-      projectId,
-      region,
-      idToken: auth.idToken,
-      functionName: "loadoutOwnershipExecuteCommand",
-      data: {
-        command: {
-          type: "setSelection",
-          userId: auth.localId,
-          sessionId,
-          expectedRevision: canonical.revision,
-          commandId: `${drillId}.selection`,
-          payload: { selection },
-        },
-      },
-    });
-    assert(
-      selectionResult.result?.rejectedReason === null,
-      "Competitive selection was rejected.",
-    );
-    canonical = selectionResult.result.canonicalState;
-    assert(isObject(canonical), "Competitive canonical state was malformed.");
-
-    const competitiveTemplate = await createTicket({
-      auth,
-      sessionId,
-      mode: "competitive",
-      suffix: "competitive-template",
-    });
+    const templates = adminBootstrap
+      ? await createAdminTemplates({ auth, drillId })
+      : await createCallableTemplates({ auth, sessionId, drillId });
+    const { practiceTemplate, competitiveTemplate } = templates;
     state = {
       ...state,
       phase: "templates_created",
+      unsupportedIssuanceRejected:
+        templates.unsupportedIssuanceRejected ?? false,
       templateRunSessionIds: [
         practiceTemplate.runSessionId,
         competitiveTemplate.runSessionId,
@@ -229,6 +184,175 @@ async function prepare() {
     await writeState(statePath, state);
     throw error;
   }
+}
+
+async function createCallableTemplates({ auth, sessionId, drillId }) {
+  await callFunction({
+    projectId,
+    region,
+    idToken: auth.idToken,
+    functionName: "playerProfileLoad",
+    data: { userId: auth.localId, sessionId },
+  });
+  const canonicalLoad = await callFunction({
+    projectId,
+    region,
+    idToken: auth.idToken,
+    functionName: "loadoutOwnershipLoadCanonicalState",
+    data: { userId: auth.localId, sessionId },
+  });
+  assert(
+    isObject(canonicalLoad.canonicalState),
+    "Canonical ownership response was malformed.",
+  );
+  let canonical = canonicalLoad.canonicalState;
+  const practiceTemplate = await createTicket({
+    auth,
+    sessionId,
+    mode: "practice",
+    suffix: "practice-template",
+  });
+
+  const selection = structuredClone(canonical.selection);
+  selection.runMode = "competitive";
+  selection.runType = "competitive";
+  const selectionResult = await callFunction({
+    projectId,
+    region,
+    idToken: auth.idToken,
+    functionName: "loadoutOwnershipExecuteCommand",
+    data: {
+      command: {
+        type: "setSelection",
+        userId: auth.localId,
+        sessionId,
+        expectedRevision: canonical.revision,
+        commandId: `${drillId}.selection`,
+        payload: { selection },
+      },
+    },
+  });
+  assert(
+    selectionResult.result?.rejectedReason === null,
+    "Competitive selection was rejected.",
+  );
+  canonical = selectionResult.result.canonicalState;
+  assert(isObject(canonical), "Competitive canonical state was malformed.");
+
+  const competitiveTemplate = await createTicket({
+    auth,
+    sessionId,
+    mode: "competitive",
+    suffix: "competitive-template",
+  });
+  return { practiceTemplate, competitiveTemplate };
+}
+
+async function createAdminTemplates({ auth, drillId }) {
+  const nowMs = Date.now();
+  const { starterCanonicalDocument } = await import(
+    new URL("../lib/ownership/defaults.js", import.meta.url)
+  );
+  const { assertSupportedGameCompatVersion } = await import(
+    new URL("../lib/runs/compatibility.js", import.meta.url)
+  );
+  const canonical = starterCanonicalDocument(auth.localId, "main");
+  const selection = canonical.selection;
+  const loadoutSnapshot = structuredClone(
+    selection.loadoutsByCharacter[selection.characterId],
+  );
+  const displayName = `Rv${shortHash(drillId).slice(0, 10)}`;
+  const displayNameNormalized = displayName.toLowerCase();
+  await firestore.commit([
+    documentWrite(`ownership_profiles/${auth.localId}__main`, canonical),
+    documentWrite(`player_profiles/${auth.localId}`, {
+      uid: auth.localId,
+      displayName,
+      displayNameNormalized,
+      displayNameLastChangedAtMs: 0,
+      namePromptCompleted: true,
+      createdAtMs: nowMs,
+      updatedAtMs: nowMs,
+    }),
+    documentWrite(`display_name_index/${displayNameNormalized}`, {
+      uid: auth.localId,
+      displayName,
+      displayNameNormalized,
+      updatedAtMs: nowMs,
+    }),
+  ]);
+
+  const ticketBase = {
+    uid: auth.localId,
+    tickHz: 60,
+    gameCompatVersion: currentGameCompatVersion,
+    levelId: "field",
+    playerCharacterId: selection.characterId,
+    loadoutSnapshot,
+    loadoutDigest: canonicalSha256(loadoutSnapshot),
+    issuedAtMs: nowMs,
+    expiresAtMs: nowMs + 24 * 60 * 60 * 1000,
+  };
+  const practiceTemplate = {
+    ...ticketBase,
+    runSessionId: `template-practice-${randomBytes(8).toString("hex")}`,
+    mode: "practice",
+    seed: randomSeed(),
+    singleUseNonce: `${drillId}-practice-template`,
+  };
+  const boards = (await firestore.queryCollection("leaderboard_boards", {
+    allDescendants: false,
+  })).filter(
+    (board) =>
+      board.data.boardKey?.mode === "competitive" &&
+      board.data.boardKey?.levelId === "field" &&
+      board.data.gameCompatVersion === currentGameCompatVersion &&
+      board.data.status === "active" &&
+      board.data.opensAtMs <= nowMs &&
+      board.data.closesAtMs > nowMs,
+  );
+  assert(
+    boards.length === 1,
+    `Expected one active current competitive Field board, found ${boards.length}.`,
+  );
+  const board = boards[0];
+  const competitiveTemplate = {
+    ...ticketBase,
+    runSessionId: `template-competitive-${randomBytes(8).toString("hex")}`,
+    mode: "competitive",
+    boardId: board.id,
+    boardKey: structuredClone(board.data.boardKey),
+    seed: board.data.seed,
+    tickHz: board.data.tickHz,
+    rulesetVersion: board.data.boardKey.rulesetVersion,
+    scoreVersion: board.data.boardKey.scoreVersion,
+    ghostVersion: board.data.ghostVersion,
+    boardOpensAtMs: board.data.opensAtMs,
+    boardClosesAtMs: board.data.closesAtMs,
+    singleUseNonce: `${drillId}-competitive-template`,
+  };
+
+  let unsupportedIssuanceRejected = false;
+  try {
+    assertSupportedGameCompatVersion("retired-game-v0");
+  } catch (error) {
+    unsupportedIssuanceRejected =
+      error?.code === "failed-precondition" &&
+      String(error?.message).includes("Unsupported gameCompatVersion");
+  }
+  assert(
+    unsupportedIssuanceRejected,
+    "Admin bootstrap did not reject retired compatibility issuance.",
+  );
+  return {
+    practiceTemplate,
+    competitiveTemplate,
+    unsupportedIssuanceRejected,
+  };
+}
+
+function randomSeed() {
+  return randomBytes(4).readUInt32BE() & 0x7fffffff || 1;
 }
 
 async function createTicket({ auth, sessionId, mode, suffix }) {
@@ -638,6 +762,116 @@ async function exerciseGroup(group) {
   );
 }
 
+async function verifyProjection() {
+  const targetUrl = requireArg(args, "target-url");
+  const state = await readState(statePath);
+  requirePreparedState(state);
+  const fixture = state.fixtures.find(
+    (entry) => entry.scenario === "compat_current_supported",
+  );
+  assert(fixture, "Current-version compatibility fixture is missing.");
+  const deadline = Date.now() + 90 * 1000;
+  let evidence;
+  while (Date.now() < deadline) {
+    const session = await firestore.get(`run_sessions/${fixture.runSessionId}`);
+    const boardId = session.data.boardId;
+    const [grant, validated, best, ghosts, view] = await Promise.all([
+      firestore.get(`reward_grants/${fixture.runSessionId}`),
+      firestore.get(`validated_runs/${fixture.runSessionId}`),
+      firestore.get(
+        `leaderboard_boards/${boardId}/player_bests/${state.uid}`,
+        { missingOk: true },
+      ),
+      firestore.queryCollection("ghost_manifests"),
+      firestore.get(`leaderboard_boards/${boardId}/views/top10`, {
+        missingOk: true,
+      }),
+    ]);
+    const ghost = ghosts.find(
+      (candidate) =>
+        candidate.data.uid === state.uid &&
+        candidate.data.runSessionId === fixture.runSessionId,
+    );
+    const viewEntry = view?.data.entries?.find(
+      (entry) =>
+        entry.uid === state.uid && entry.runSessionId === fixture.runSessionId,
+    );
+    if (
+      session.data.state === "validated" &&
+      grant.data.lifecycleState === "validated_settled" &&
+      validated.data.accepted === true &&
+      best?.data.runSessionId === fixture.runSessionId &&
+      ghost?.data.status === "active" &&
+      ghost.data.exposed === true &&
+      viewEntry
+    ) {
+      evidence = { session, grant, validated, best, ghost, viewEntry };
+      break;
+    }
+    await delay(1000);
+  }
+  assert(evidence, "Current-version reward/projection/ghost evidence timed out.");
+
+  const identityToken = readGcloudIdentityToken();
+  const retry = await invokePrivateService({
+    baseUrl: targetUrl,
+    path: "/tasks/validate",
+    data: { runSessionId: fixture.runSessionId },
+    identityToken,
+  });
+  assert(
+    retry.status === 200 || retry.status === 202,
+    `Validated replay retry returned HTTP ${retry.status}.`,
+  );
+  const [sessionAfter, grantAfter, bestAfter, ghostsAfter] = await Promise.all([
+    firestore.get(`run_sessions/${fixture.runSessionId}`),
+    firestore.get(`reward_grants/${fixture.runSessionId}`),
+    firestore.get(
+      `leaderboard_boards/${evidence.session.data.boardId}/player_bests/${state.uid}`,
+    ),
+    firestore.queryCollection("ghost_manifests"),
+  ]);
+  const ghostAfter = ghostsAfter.find(
+    (candidate) =>
+      candidate.data.uid === state.uid &&
+      candidate.data.runSessionId === fixture.runSessionId,
+  );
+  assert(sessionAfter.data.state === "validated", "Retry changed session state.");
+  assert(
+    grantAfter.data.lifecycleState === "validated_settled",
+    "Retry changed reward state.",
+  );
+  assert(
+    bestAfter.data.runSessionId === evidence.best.data.runSessionId,
+    "Retry changed the player-best source.",
+  );
+  assert(
+    ghostAfter?.data.replayDigest === evidence.ghost.data.replayDigest,
+    "Retry changed the ghost artifact identity.",
+  );
+  state.projectionVerifiedAt = new Date().toISOString();
+  state.projectionRetryStatus = retry.status;
+  state.phase = "projection_verified";
+  await writeState(statePath, state);
+  console.log(
+    JSON.stringify(
+      {
+        command,
+        runSessionHash: fixture.runSessionHash,
+        boardIdHash: shortHash(evidence.session.data.boardId),
+        sessionState: sessionAfter.data.state,
+        rewardState: grantAfter.data.lifecycleState,
+        leaderboardProjected: true,
+        ghostPublished: true,
+        validatorRetryStatus: retry.status,
+        idempotent: true,
+      },
+      null,
+      2,
+    ),
+  );
+}
+
 async function graceStart() {
   const targetUrl = requireArg(args, "target-url");
   const graceWindowMs = parsePositiveInteger(
@@ -931,7 +1165,16 @@ async function resetFixtures() {
 
 async function requestCleanup() {
   const state = await readState(statePath);
-  assert(state.uid && state.refreshToken, "Cleanup credentials are unavailable.");
+  assert(state.uid, "Cleanup UID is unavailable.");
+  if (state.bootstrap === "admin") {
+    if (isPreFixtureAdminFailure(state)) {
+      await requestPreFixtureAdminCleanup(state);
+      return;
+    }
+    await requestAdminCleanup(state);
+    return;
+  }
+  assert(state.refreshToken, "Cleanup credentials are unavailable.");
   const apiKey = await readFirebaseWebApiKey();
   const refreshed = await refreshAnonymousAccount(apiKey, state.refreshToken);
   let cleanupStatus;
@@ -971,6 +1214,128 @@ async function requestCleanup() {
         command,
         uidHash: state.uidHash,
         status: cleanupStatus,
+        credentialScrubbed: true,
+      },
+      null,
+      2,
+    ),
+  );
+}
+
+function isPreFixtureAdminFailure(state) {
+  return (
+    state.phase === "prepare_failed" &&
+    (state.templateRunSessionIds?.length ?? 0) === 0 &&
+    (state.fixtures?.length ?? 0) === 0 &&
+    state.prepareError ===
+      "Admin bootstrap did not reject retired compatibility issuance."
+  );
+}
+
+async function requestPreFixtureAdminCleanup(state) {
+  assert(state.refreshToken, "Cleanup credentials are unavailable.");
+  const displayNameNormalized =
+    `rv${shortHash(state.drillId).slice(0, 10)}`.toLowerCase();
+  await Promise.all([
+    firestore.delete(`ownership_profiles/${state.uid}__main`),
+    firestore.delete(`player_profiles/${state.uid}`),
+    firestore.delete(`display_name_index/${displayNameNormalized}`),
+  ]);
+  const apiKey = await readFirebaseWebApiKey();
+  const refreshed = await refreshAnonymousAccount(apiKey, state.refreshToken);
+  await deleteFirebaseAccount(apiKey, refreshed.idToken);
+  state.refreshToken = null;
+  state.cleanupRequestedAt = new Date().toISOString();
+  state.cleanupRequestStatus = "auth_only_deleted";
+  state.cleanupStage = "pre_fixture_direct";
+  state.phase = "cleanup_requested";
+  await writeState(statePath, state);
+  console.log(
+    JSON.stringify(
+      {
+        command,
+        uidHash: state.uidHash,
+        status: state.cleanupRequestStatus,
+        stage: state.cleanupStage,
+        credentialScrubbed: true,
+      },
+      null,
+      2,
+    ),
+  );
+}
+
+async function requestAdminCleanup(state) {
+  const deletionPath = `account_deletion_requests/${state.uid}`;
+  let deletion = await firestore.get(deletionPath, { missingOk: true });
+  if (!deletion) {
+    const requestedAtMs = Date.now() - 16 * 60 * 1000;
+    await firestore.set(deletionPath, {
+      uid: state.uid,
+      state: "requested",
+      stage: "disable_auth",
+      pass: 1,
+      finalPass: false,
+      passDeletedCount: 0,
+      boardCursor: null,
+      requestedAtMs,
+      updatedAtMs: requestedAtMs,
+      attemptCount: 0,
+      deleted: {},
+    });
+  }
+  let processedStages = 0;
+  for (let attempt = 0; attempt < 80; attempt += 1) {
+    deletion = await firestore.get(deletionPath);
+    if (deletion.data.state === "complete") {
+      break;
+    }
+    if (deletion.data.state === "retryable") {
+      throw new Error(
+        `Admin cleanup became retryable at ${deletion.data.stage}: ` +
+          `${deletion.data.lastErrorClass ?? "unknown"}.`,
+      );
+    }
+    const previousUpdateTime = deletion.updateTime;
+    await runSchedulerJob({
+      projectId,
+      location: region,
+      jobName: `firebase-schedule-accountDeletionRepair-${region}`,
+    });
+    processedStages += 1;
+    const updateDeadline = Date.now() + 30 * 1000;
+    do {
+      await delay(250);
+      deletion = await firestore.get(deletionPath);
+    } while (
+      (deletion.updateTime === previousUpdateTime ||
+        typeof deletion.data.leaseToken === "string") &&
+      Date.now() < updateDeadline
+    );
+    assert(
+      deletion.updateTime !== previousUpdateTime &&
+        typeof deletion.data.leaseToken !== "string",
+      "Account deletion worker did not commit its stage within 30 seconds.",
+    );
+  }
+  deletion = await firestore.get(deletionPath);
+  const cleanupComplete = deletion.data.state === "complete";
+  state.refreshToken = null;
+  state.cleanupRequestedAt ??= new Date().toISOString();
+  state.cleanupRequestStatus = cleanupComplete ? "deleted" : "in_progress";
+  state.cleanupStage = cleanupComplete
+    ? "complete"
+    : deletion.data.stage ?? "unknown";
+  state.phase = cleanupComplete ? "cleanup_requested" : "cleanup_waiting";
+  await writeState(statePath, state);
+  console.log(
+    JSON.stringify(
+      {
+        command,
+        uidHash: state.uidHash,
+        status: state.cleanupRequestStatus,
+        stage: state.cleanupStage,
+        processedStages,
         credentialScrubbed: true,
       },
       null,

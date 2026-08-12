@@ -118,6 +118,32 @@ function runGcloud(args) {
   return execFileSync("gcloud", args, { encoding: "utf8" });
 }
 
+export async function runSchedulerJob({
+  projectId,
+  location,
+  jobName,
+  accessToken = readGcloudAccessToken(),
+}) {
+  const response = await fetch(
+    `https://cloudscheduler.googleapis.com/v1/projects/${encodeURIComponent(projectId)}` +
+      `/locations/${encodeURIComponent(location)}/jobs/${encodeURIComponent(jobName)}:run`,
+    {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+        "content-type": "application/json",
+      },
+      body: "{}",
+    },
+  );
+  if (!response.ok) {
+    throw new Error(
+      `Cloud Scheduler run ${jobName} failed (${response.status}): ` +
+        `${(await response.text()).slice(0, 500)}`,
+    );
+  }
+}
+
 export async function readFirebaseWebApiKey() {
   const supplied = process.env.FIREBASE_WEB_API_KEY?.trim();
   if (supplied) {

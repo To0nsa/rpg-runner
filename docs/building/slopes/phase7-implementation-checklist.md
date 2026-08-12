@@ -1,6 +1,6 @@
 # Slopes Phase 7 - Compatibility Rollout And Production Verification Checklist
 
-- Status: Local compatibility preparation in progress
+- Status: Production rollout active; old-version ticket drain in progress
 - Source plan: [plan.md](plan.md)
 - Prerequisite: accepted
   [Phase 6 direct authority cutover](phase6-implementation-checklist.md)
@@ -90,6 +90,19 @@ The safe production sequence is intentionally asymmetric:
     separate reviewed commit/deployment, then prove a stable unsupported-version
     rejection and repeat the projection/monitoring checks.
 
+The release drill's normal `prepare` command intentionally remains subject to
+the linked Google Play Games callable policy. For an automated production
+validator canary, `prepare-admin` is an explicit operator-only mode: it creates
+a disposable anonymous Auth identity, writes only isolated canonical/profile
+shells and protocol fixtures through operator credentials, and binds the
+competitive fixture to the one active current-version board. It does not mint
+or impersonate a Play Games identity and therefore does not claim to test that
+callable authentication boundary. Cleanup uses the deployed resumable account
+deletion worker, including board scans, late-write detection, final passes,
+Auth deletion, and an independent zero-residue verifier. Its deletion request
+is backdated past the quiet period only because the operator mode never issues
+a signed upload grant and uploads immutable fixture bytes directly.
+
 ## 4) Rollback Contract
 
 Before new issuance starts, retain the previous client artifact, Functions
@@ -108,19 +121,19 @@ existing ticket/board compatibility tuple.
 
 ## 5) Acceptance Evidence
 
-- [ ] local analyzers and relevant Flutter/Core/protocol/editor/Functions/
+- [x] local analyzers and relevant Flutter/Core/protocol/editor/Functions/
       validator tests pass
-- [ ] generated content dry-run reports zero drift
+- [x] generated content dry-run reports zero drift
 - [x] exact release-container benchmark passes at one CPU and 512 MiB
-- [ ] staging/live Core and validator results match the accepted golden runs
-- [ ] no unsupported ticket can be issued or validated
-- [ ] old and new same-window boards coexist without lookup ambiguity
-- [ ] rewards, leaderboard order, and ghost publication are idempotent and
+- [x] staging/live Core and validator results match the accepted golden runs
+- [x] no unsupported ticket can be issued or validated
+- [x] old and new same-window boards coexist without lookup ambiguity
+- [x] rewards, leaderboard order, and ghost publication are idempotent and
       partitioned by board/version
 - [ ] old-version active-session count reaches zero after the recorded cutoff
 - [ ] collision/navigation/validator latency and rejection metrics remain
       inside the accepted budgets
-- [ ] rollback artifacts and commands are verified before old support removal
+- [x] rollback artifacts and commands are verified before old support removal
 
 ## 6) Progress Evidence
 
@@ -130,3 +143,9 @@ existing ticket/board compatibility tuple.
 | 2026-08-12 / Phase 7 working head | Local dual-version implementation | The client and board default advance to `2026.08.0`; Functions centrally allow current plus draining `2026.03.0`, reject other practice/ranked and active-board requests, provision the requested supported partition, and bind managed IDs to the full version tuple. The validator accepts both labels through one current Core path. Same-window lookup/provisioning and both acceptance/rejection directions are covered; all 188 Functions emulator tests, all 85 validator tests, and 41 focused client tests pass. The release-image workflow now runs the strict benchmark with one CPU and 512 MiB. |
 | 2026-08-12 14:15 UTC / pre-deployment production | Read-only compatibility baseline | Production has 37 legacy-ID boards, all `2026.03.0`: three current, three upcoming, and 31 expired. It has 37 sessions: 21 validated, nine expired, and seven uploading; all use `2026.03.0`, so old validator support must remain. All 21 grants are settled, two player bests/two ghosts are source-valid, and no stale settlement, terminal-evidence, loadout, identity, or board-window issuance mismatch is present. The two historical validated sessions missing immutable board-window fields both match their canonical board and predate the hardened contract. Current/next `2026.08.0` board count is zero of six before rollout. |
 | 2026-08-12 14:19 UTC / `af8a17d7` | Constrained release-container benchmark | Cloud Build `f78781b4-574c-4baa-9761-0876d2d832c8` produced immutable digest `sha256:93dff13c…35f989`. Cloud Run Job execution `replay-validator-phase7-benchmark-577zw` ran that exact digest with one CPU, 512 MiB, no retries, and the strict 36,000-tick gate. Field completed in 0.408197 seconds (1,469.88x real time) and Forest in 0.658831 seconds (910.70x); both ended at geometry version 190 with their deterministic outcomes and every strict gate true. |
+| 2026-08-12 14:22-14:32 UTC / `af8a17d7` + `e4237e95` | Ordered production cutover | Dual-compatible validator revision `replay-validator-00031-pds` was deployed first. Firestore indexes and the four version-aware Functions then deployed as `runsessioncreate-00015-nup`, `runboardsloadactive-00013-dop`, `leaderboardloadactiveboarddata-00014-nul`, and `leaderboardboardmaintenance-00010-hiy`. Maintenance created all six current/next `2026.08.0` boards with zero identity/window mismatch while preserving 37 old boards. Flutter web initially exposed a JavaScript exact-integer portability failure in the pathfinder sentinel; `e4237e95` replaced it with the maximum JS-safe value without changing reachable navigation scores, passed focused Core tests and the release web build, and Hosting version `91b3cd82f4a00884` went live at 14:32:29 UTC. The served `main.dart.js` hash exactly matched the local release bundle and contains `2026.08.0`. |
+| 2026-08-12 14:37-14:42 UTC / `d552240e` | Exact client/Core validator parity | Cloud Build `14bd359c-239c-46ec-a4e0-b822cd85b19e` rebuilt the validator after the JS-safe Core correction as digest `sha256:6f32cf5b…272d9`. Job execution `replay-validator-phase7-benchmark-zfwp5` ran that exact digest at one CPU/512 MiB: Field 0.395722 seconds (1,516.22x), Forest 0.572208 seconds (1,048.57x), geometry version 190, deterministic results, and every strict gate true. Revision `replay-validator-00032-x4p` now serves 100%; `/live` and `/ready` return 200 and its configured image is the exact digest. |
+| 2026-08-12 / `d552240e` | Full local release matrix | Root, Core package, protocol, and editor analyzers are clean. All 742 root Flutter tests, 370 Core-package tests, 44 protocol tests, 377 editor tests, 188 Functions emulator tests, and 85 replay-validator tests pass. The real generator dry-run validates eight Chunks, two levels, and two parallax themes with zero drift; the release web build also passes. |
+| 2026-08-12 15:07-15:31 UTC / production `replay-validator-00032-x4p` | Current-version compatibility and projection canary | The operator-only disposable drill prepared 16 isolated fixtures and exercised all nine compatibility cases against the private live service. `2026.08.0` was accepted with HTTP 202, settled to `validated_settled`, became the current-board player best, published an active ghost, and appeared in the materialized top view. A repeated validation returned HTTP 202 with the same session, grant, best source, and ghost digest. Retired game compatibility was rejected as `game_compat_version_unsupported`; ticket identity/loadout, retired board versions, board binding, and board-window failures all reached their exact terminal reasons with revoked grants. The deployed deletion worker detected a late projection, performed an additional final pass, deleted Auth, and the independent verifier found zero residual Firestore or Storage data for the successful canary and both failed pre-fixture bootstrap attempts. |
+| 2026-08-12 15:33 UTC / post-canary production | Drain and integrity inventory | Production returned to 37 sessions, 21 grants, two player bests, and two ghosts; all source/identity/window/loadout/terminal/settlement/projection integrity counters remain zero. The six `2026.08.0` boards coexist with 37 old boards without ambiguity. One old uploading ticket expired during the rollout, leaving six active `2026.03.0` uploading sessions, so draining support remains mandatory. All 13 retained deletion records are compact and complete with no active/retryable deletion. Three pre-existing old-version projection tasks still retry and keep the monitoring acceptance item open while they are diagnosed. |
+| 2026-08-12 / pre-removal rollback inventory | Retained rollback points | Pre-rollout rollback artifacts remain available: validator `replay-validator-00030-r4j` at `sha256:47a93735…ff96805`; Functions `runsessioncreate-00014-mob`, `runboardsloadactive-00012-yir`, `leaderboardloadactiveboarddata-00013-nek`, and `leaderboardboardmaintenance-00009-dok`; Hosting version `75f7614e000153f1`; and the 14:15 UTC board/session inventory. Rollback routes traffic/releases to those retained artifacts, stops new-version issuance, and disables rather than deletes new boards while leaving the dual validator available for any already-issued `2026.08.0` ticket. |
