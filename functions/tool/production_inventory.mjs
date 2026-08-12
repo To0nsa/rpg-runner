@@ -3,6 +3,8 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 
+import { assessCompatibilityRetirement } from "../lib/runs/compatibility_retirement.js";
+
 const args = parseArgs(process.argv.slice(2));
 const projectId = requireArg(args, "project");
 const nowMs = parsePositiveInteger(args.get("now-ms")) ?? Date.now();
@@ -888,64 +890,36 @@ function inventoryCompatibilityRetirement({
   gameCompatVersion,
   issuanceCutoffAtMs,
 }) {
-  const maxTicketLifetimeMs = 24 * 60 * 60 * 1000;
-  const earliestRemovalAtMs = issuanceCutoffAtMs + maxTicketLifetimeMs;
-  const activeStates = new Set([
-    "issued",
-    "uploading",
-    "uploaded",
-    "pending_validation",
-    "validating",
-    "settlement_pending",
-  ]);
-  const matchingSessions = runSessions.filter(
-    (session) =>
-      isObject(session.data.runTicket) &&
-      asString(session.data.runTicket.gameCompatVersion) === gameCompatVersion,
-  );
-  const activeSessions = matchingSessions.filter((session) =>
-    activeStates.has(asString(session.data.state)),
-  );
-  const issuedAtValues = matchingSessions
-    .map((session) => session.data.runTicket.issuedAtMs)
-    .filter((issuedAtMs) => Number.isSafeInteger(issuedAtMs));
-  const issuedAfterCutoffCount = issuedAtValues.filter(
-    (issuedAtMs) => issuedAtMs > issuanceCutoffAtMs,
-  ).length;
-  const intervalElapsed = observedAtMs >= earliestRemovalAtMs;
-  const blockers = [];
-  if (!intervalElapsed) {
-    blockers.push("ticket_lifetime_not_elapsed");
-  }
-  if (activeSessions.length > 0) {
-    blockers.push("active_sessions_remain");
-  }
-  if (issuedAfterCutoffCount > 0) {
-    blockers.push("issuance_after_recorded_cutoff");
-  }
-  if (issuedAtValues.length !== matchingSessions.length) {
-    blockers.push("unassessable_issued_at_evidence");
-  }
-  return {
+  const assessment = assessCompatibilityRetirement({
+    sessions: runSessions.map((session) => {
+      const ticket = session.data.runTicket;
+      const issuedAtMs = isObject(ticket) ? ticket.issuedAtMs : null;
+      return {
+        gameCompatVersion: isObject(ticket)
+          ? asString(ticket.gameCompatVersion)
+          : null,
+        state: asString(session.data.state),
+        issuedAtMs: Number.isSafeInteger(issuedAtMs) ? issuedAtMs : null,
+      };
+    }),
+    observedAtMs,
     gameCompatVersion,
-    issuanceCutoffAt: new Date(issuanceCutoffAtMs).toISOString(),
-    maxTicketLifetimeMs,
+    issuanceCutoffAtMs,
+  });
+  const {
+    issuanceCutoffAtMs: assessedCutoffAtMs,
+    earliestRemovalAtMs,
+    observedLatestIssuedAtMs,
+    ...publicAssessment
+  } = assessment;
+  return {
+    ...publicAssessment,
+    issuanceCutoffAt: new Date(assessedCutoffAtMs).toISOString(),
     earliestRemovalAt: new Date(earliestRemovalAtMs).toISOString(),
-    intervalElapsed,
-    observedSessionCount: matchingSessions.length,
-    activeSessionCount: activeSessions.length,
-    activeSessionStateCounts: countBy(
-      activeSessions,
-      (session) => asString(session.data.state) ?? "<missing>",
-    ),
-    issuedAfterCutoffCount,
-    invalidIssuedAtCount: matchingSessions.length - issuedAtValues.length,
     observedLatestIssuedAt:
-      issuedAtValues.length === 0
+      observedLatestIssuedAtMs == null
         ? null
-        : new Date(Math.max(...issuedAtValues)).toISOString(),
-    readyForRemoval: blockers.length === 0,
-    blockers,
+        : new Date(observedLatestIssuedAtMs).toISOString(),
   };
 }
 
