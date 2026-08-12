@@ -8,11 +8,13 @@ import 'package:runner_core/combat/damage_type.dart';
 import 'package:runner_core/combat/faction.dart';
 import 'package:runner_core/ecs/entity_factory.dart';
 import 'package:runner_core/ecs/stores/body_store.dart';
+import 'package:runner_core/ecs/stores/collider_aabb_store.dart';
 import 'package:runner_core/ecs/stores/enemies/enemy_store.dart';
 import 'package:runner_core/ecs/stores/death_state_store.dart';
 import 'package:runner_core/ecs/stores/projectile_store.dart';
 import 'package:runner_core/ecs/systems/gravity_system.dart';
 import 'package:runner_core/ecs/systems/player_movement_system.dart';
+import 'package:runner_core/ecs/systems/projectile_world_collision_system.dart';
 import 'package:runner_core/ecs/systems/world_motion_authority.dart';
 import 'package:runner_core/ecs/world.dart';
 import 'package:runner_core/enemies/enemy_id.dart';
@@ -634,10 +636,25 @@ void main() {
       expect(harness.world.collision.grounded[collisionIndex], isFalse);
     });
 
-    test('enabled ballistic projectiles remain an explicit hard failure', () {
+    test('ballistic projectile sweeps terrain and despawns the same tick', () {
       final harness = _terrainHarness();
       final projectile = harness.world.createEntity();
-      harness.world.body.add(projectile, const BodyDef());
+      harness.world.transform.add(
+        projectile,
+        posX: 150,
+        posY: 20,
+        velX: 0,
+        velY: 6000,
+      );
+      harness.world.body.add(
+        projectile,
+        const BodyDef(sideMask: BodyDef.sideLeft | BodyDef.sideRight),
+      );
+      harness.world.colliderAabb.add(
+        projectile,
+        const ColliderAabbDef(halfX: 5, halfY: 5),
+      );
+      harness.world.collision.add(projectile);
       harness.world.projectile.add(
         projectile,
         const ProjectileEntityDef(
@@ -653,20 +670,25 @@ void main() {
         ),
       );
 
-      expect(
-        () => harness.authority.prepareTick(
-          harness.world,
-          player: harness.player,
-          currentTick: 1,
-        ),
-        throwsA(
-          isA<TerrainUnsupportedBodyError>().having(
-            (error) => error.disposition,
-            'disposition',
-            TerrainBodyDisposition.ballisticProjectileUnsupported,
-          ),
-        ),
+      harness.authority.prepareTick(
+        harness.world,
+        player: harness.player,
+        currentTick: 1,
       );
+      _stepAuthority(harness, currentTick: 1);
+
+      final transformIndex = harness.world.transform.indexOf(projectile);
+      final collisionIndex = harness.world.collision.indexOf(projectile);
+      expect(
+        harness.world.transform.posY[transformIndex],
+        closeTo(95, 1 / 1024),
+      );
+      expect(harness.world.transform.velY[transformIndex], closeTo(0, 1e-9));
+      expect(harness.world.collision.grounded[collisionIndex], isTrue);
+      expect(harness.authority.lastIntegratedBallisticProjectileCount, 1);
+
+      ProjectileWorldCollisionSystem().step(harness.world);
+      expect(harness.world.projectile.has(projectile), isFalse);
     });
 
     test('later-phase body policies have explicit typed dispositions', () {
@@ -731,7 +753,7 @@ void main() {
           entity: projectile,
           terrainPlayer: player,
         ),
-        TerrainBodyDisposition.ballisticProjectileUnsupported,
+        TerrainBodyDisposition.terrainBallisticProjectile,
       );
     });
 

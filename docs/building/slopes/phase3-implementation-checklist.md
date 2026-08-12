@@ -799,7 +799,7 @@ For every row, add executable evidence or an explicit later-phase disposition.
 | player target prediction | previous support or authoritative sloped landing | `terrain_surface_navigator_test.dart` and `terrain_trajectory_predictor_test.dart`. ECS production targeting remains legacy until Phase 5. |
 | snapshots/debug | Core-authored support/path/contact only; no Flame authority | `terrain_game_core_harness_test.dart` covers immutable Core terrain debug and final snapshot support/animation. |
 | replay validator | normal legacy construction unchanged in Phase 3 | `services/replay_validator/test/validator_worker_test.dart`; validator calls normal `GameCore(...)`, and no replay contract selects the harness. |
-| ballistic projectiles | explicit later-phase rejection in terrain harness | `world_motion_authority_test.dart` expects `ballisticProjectileUnsupported`; projectile terrain cutover remains Phase 5. |
+| ballistic projectiles | Phase 3 deferred; Phase 5 now owns a continuous terrain AABB sweep | `terrain_aabb_segment_sweep_test.dart`, `terrain_ballistic_projectile_system_test.dart`, and `world_motion_authority_test.dart` cover high-speed solid/one-way contact and same-tick despawn without an actor-capsule substitution. |
 
 Frozen high-level tick order:
 
@@ -822,8 +822,8 @@ The ordering seam is exercised by
 grounded state, the test publishes an airborne final motion state, and
 animation must select `fall`. The mixed-policy audit in
 `world_motion_authority_test.dart` dispatches player, Grojib, Hashash, and
-Unoco exactly once while Derf remains kinematic and unsupported ballistics
-remain rejected.
+Unoco exactly once while Derf remains kinematic. Phase 5 later added explicit
+ballistic AABB ownership without changing those actor policies.
 
 ## 23) Deterministic Signatures And Scenario Matrix
 

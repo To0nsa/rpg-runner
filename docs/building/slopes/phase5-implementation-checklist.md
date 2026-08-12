@@ -129,6 +129,12 @@ workflow except where an already-public Core output needs a read-only consumer.
       then applies enemies followed by collectibles/restoration items, and only
       then prepares prior support for AI and motion. Marker/item RNG and legacy
       placement outcomes remain unchanged.
+- [x] Physics-driven projectiles keep their existing collider AABB and gravity
+      phase under terrain authority. A reusable continuous SAT sweep queries
+      the published 2D edge index, filters solid and one-way approach sides,
+      resolves the earliest contact by time then canonical edge ID, writes the
+      existing directional flags, and preserves same-tick
+      `ProjectileWorldCollisionSystem` despawn ownership.
 
 ## 3) Implementation Order
 

@@ -229,7 +229,11 @@ The Phase 3 harness now attaches and dispatches the catalog-owned policies:
 - Grojib and Hashash are grounded dynamic capsules
 - Unoco Demon is a support-free flying capsule blocked by solid terrain
 - Derf receives its capsule/profile but remains excluded from per-tick motion
-- ballistic projectiles remain an explicit unsupported disposition
+- ballistic projectiles retain their authored AABB rather than borrowing an
+  actor capsule. A continuous AABB/finite-edge SAT sweep runs in the same
+  world-motion phase after gravity, respects solid/one-way sidedness, writes
+  the existing collision flags, and leaves same-tick destruction to
+  `ProjectileWorldCollisionSystem`
 
 Phase 3 now has catalog-owned enemy shapes/policies, canonical walkable edge
 chains, a deterministic shared surface index, and one complete-capsule

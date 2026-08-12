@@ -30,6 +30,7 @@ import '../entity_id.dart';
 import '../stores/world_contact_capsule_store.dart';
 import '../world.dart';
 import 'collision_system.dart';
+import 'terrain_ballistic_projectile_system.dart';
 
 /// One integration owner for dynamic-body movement during a Core tick.
 ///
@@ -189,8 +190,8 @@ enum TerrainBodyDisposition {
   terrainGroundedEnemy,
   terrainFlyingEnemy,
   kinematicPlacementEnemy,
+  terrainBallisticProjectile,
   disabledIgnored,
-  ballisticProjectileUnsupported,
   otherKinematicIgnored,
   unsupportedDynamicBody,
 }
@@ -246,7 +247,7 @@ TerrainBodyDisposition terrainBodyDisposition(
   }
   final projectileIndex = world.projectile.tryIndexOf(entity);
   if (projectileIndex != null && world.projectile.usePhysics[projectileIndex]) {
-    return TerrainBodyDisposition.ballisticProjectileUnsupported;
+    return TerrainBodyDisposition.terrainBallisticProjectile;
   }
   final enemyIndex = world.enemy.tryIndexOf(entity);
   if (enemyIndex != null) {
@@ -521,9 +522,15 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
   _TerrainMotionScratch get _grojibScratch => _publication.grojibScratch;
   _TerrainMotionScratch get _hashashScratch => _publication.hashashScratch;
   _TerrainMotionScratch get _unocoScratch => _publication.unocoScratch;
+  TerrainBallisticProjectileSystem get _ballisticProjectileSystem =>
+      _publication.ballisticProjectileSystem;
 
   /// Number of enabled dynamic terrain bodies solved by the latest [step].
   int lastIntegratedBodyCount = 0;
+
+  /// Number of enabled ballistic projectile AABBs integrated by the latest tick.
+  int get lastIntegratedBallisticProjectileCount =>
+      _ballisticProjectileSystem.lastIntegratedProjectileCount;
 
   @override
   bool get usesTerrainPlayer => true;
@@ -815,6 +822,7 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
             progressionTicks / terrainPhysicsTicksPerWorldUnit;
       }
     }
+    _ballisticProjectileSystem.step(world, movement);
     return playerDistanceDelta;
   }
 
@@ -1581,6 +1589,31 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
         continue;
       }
 
+      final projectileIndex = world.projectile.tryIndexOf(entity);
+      if (projectileIndex != null &&
+          world.projectile.usePhysics[projectileIndex]) {
+        final bodyIndex = world.body.indexOf(entity);
+        if (!world.body.enabled[bodyIndex]) continue;
+        if (world.body.isKinematic[bodyIndex]) {
+          throw TerrainBodyStoreError(
+            entity: entity,
+            reason: 'a ballistic projectile cannot be kinematic',
+          );
+        }
+        final complete =
+            world.transform.has(entity) &&
+            world.colliderAabb.has(entity) &&
+            world.collision.has(entity);
+        if (!complete) {
+          throw TerrainBodyStoreError(
+            entity: entity,
+            reason:
+                'ballistic projectile transform/collider/collision stores are missing',
+          );
+        }
+        continue;
+      }
+
       final enemyIndex = world.enemy.tryIndexOf(entity);
       if (enemyIndex != null) {
         _requireActorBaseStores(world, entity);
@@ -1961,6 +1994,9 @@ final class _TerrainAuthorityPublication {
         placementQuery: placementQuery,
       ),
       flightSurfaceBuffer: bundle.surfaceIndex.createQueryBuffer(),
+      ballisticProjectileSystem: TerrainBallisticProjectileSystem(
+        edgeIndex: bundle.edgeIndex,
+      ),
       playerScratch: scratchFor(
         playerProfile,
         EnemyTerrainMotionKind.groundedDynamic,
@@ -1985,6 +2021,7 @@ final class _TerrainAuthorityPublication {
     required this.placementQuery,
     required this.spawnPlacementResolver,
     required this.flightSurfaceBuffer,
+    required this.ballisticProjectileSystem,
     required this.playerScratch,
     required this.grojibScratch,
     required this.hashashScratch,
@@ -1998,6 +2035,7 @@ final class _TerrainAuthorityPublication {
   final TerrainPlacementQuery placementQuery;
   final TerrainSpawnPlacementResolver spawnPlacementResolver;
   final TerrainSurfaceQueryBuffer flightSurfaceBuffer;
+  final TerrainBallisticProjectileSystem ballisticProjectileSystem;
   final _TerrainMotionScratch playerScratch;
   final _TerrainMotionScratch grojibScratch;
   final _TerrainMotionScratch hashashScratch;

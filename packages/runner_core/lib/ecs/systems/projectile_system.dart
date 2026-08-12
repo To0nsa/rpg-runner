@@ -22,13 +22,13 @@ class ProjectileSystem {
     final count = projectiles.denseEntities.length;
     for (var pi = 0; pi < count; pi += 1) {
       final e = projectiles.denseEntities[pi];
-      
+
       final ti = transforms.tryIndexOf(e);
       if (ti == null) continue;
 
-      // Physics-driven projectiles (ballistic) are moved by the main physics
-      // pipeline (GravitySystem + CollisionSystem). We only keep direction
-      // in sync with velocity for hitbox orientation / rendering.
+      // Physics-driven projectiles (ballistic) are moved by the selected world
+      // authority after GravitySystem. We only keep direction in sync with
+      // resolved velocity for hitbox orientation / rendering.
       if (projectiles.usePhysics[pi]) {
         final vx = transforms.velX[ti];
         final vy = transforms.velY[ti];

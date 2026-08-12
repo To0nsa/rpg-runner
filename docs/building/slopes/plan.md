@@ -1634,6 +1634,8 @@ polygons, triangles, and diagnostic edges to Flame. Flame renders the staged
 world-phased material and suppresses its legacy ground layers whenever that
 snapshot is present. Startup selects and builds the opening terrain before ECS
 spawn, while later stream changes publish their complete world before captured
-enemy/item placement and motion preparation. Production movement and legacy
-navigation remain on the rectangle projection until the remaining terrain
-consumer, ballistic, full-run, and Phase 6 direct-cutover gates pass.
+enemy/item placement and motion preparation. Ballistic projectiles now retain
+their AABB shape under terrain authority and continuously sweep the same edge
+index with existing collision-flag and same-tick-despawn semantics. Production
+movement and legacy navigation remain on the rectangle projection until the
+remaining terrain consumers, full-run, and Phase 6 direct-cutover gates pass.

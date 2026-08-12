@@ -94,8 +94,10 @@ intent into one support-distance solve. Accepted jump launch explicitly clears
 prior support so the same tick remains world-space. Animation and ground-impact
 death read final support only after integration.
 
-The terrain harness rejects unsupported enabled dynamic bodies and never falls
-back to rectangle collision. It is not selected by authored level data,
+The terrain harness rejects unknown enabled dynamic bodies and never falls
+back to rectangle collision. Catalog-owned actors use their capsule policies;
+physics-driven projectiles use a distinct continuous AABB terrain sweep in the
+same motion phase. The harness is not selected by authored level data,
 replays, saved state, UI, or remote configuration. See the terrain controller
 TDD for the staged boundary and direct-cutover requirements.
 
