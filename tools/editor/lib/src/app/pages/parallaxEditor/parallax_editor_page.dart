@@ -404,17 +404,15 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
           ParallaxPreviewView(
             workspaceRootPath: scene.workspaceRootPath,
             theme: scene.activeTheme,
-            onApplyPreviewYOffset: _applyPreviewYOffsetToAllLayers,
+            onSetAllLayerYOffsets: _setAllLayerYOffsets,
           ),
     );
   }
 
-  bool _applyPreviewYOffsetToAllLayers(double previewYOffset) {
+  bool _setAllLayerYOffsets(double yOffset) {
     final scene = widget.controller.scene;
     final activeTheme = scene is ParallaxScene ? scene.activeTheme : null;
-    if (activeTheme == null ||
-        activeTheme.layers.isEmpty ||
-        previewYOffset == 0) {
+    if (activeTheme == null || activeTheme.layers.isEmpty) {
       return false;
     }
     if (hasLocalDraftChanges) {
@@ -425,8 +423,8 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
     final previousRevision = activeTheme.revision;
     widget.controller.applyCommand(
       AuthoringCommand(
-        kind: 'offset_active_theme_y_offsets',
-        payload: <String, Object?>{'yOffsetDelta': previewYOffset},
+        kind: 'set_active_theme_y_offsets',
+        payload: <String, Object?>{'yOffset': yOffset},
       ),
     );
     final updatedScene = widget.controller.scene;

@@ -1114,6 +1114,14 @@ published terrain snapshot and `TerrainMaterialRegistry`. The parallax
 authoring schema is v2 and contains only theme identity/revision plus ordered
 background or foreground layer definitions.
 
+The dedicated parallax editor previews an authored layer `yOffset` against the
+bottom of its game viewport: `0` means that layer's image bottom aligns with
+the viewport bottom. Its shared numeric Y-offset control can temporarily
+override every displayed layer with one absolute value, then commits that exact
+value to every active-theme layer in one revisioned, undoable edit. It is not a
+delta and does not use a chunk-bottom anchor, because parallax rendering is
+viewport anchored rather than terrain anchored.
+
 The shared pure-Dart `authoring-polygons-v1` contract hashes source before
 placement expansion. A UTF-8 length-prefixed record contains the owner domain
 (`chunk` or `prefab`), stable owner key and human ID, positive owner revision,

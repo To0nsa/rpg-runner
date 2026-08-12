@@ -5,10 +5,10 @@ import 'package:runner_editor/src/app/pages/parallaxEditor/widgets/parallax_prev
 import 'package:runner_editor/src/parallax/parallax_domain_models.dart';
 
 void main() {
-  testWidgets('preview offset shifts every layer without editing theme data', (
+  testWidgets('shared Y offset previews and saves an absolute layer value', (
     tester,
   ) async {
-    double? appliedYOffset;
+    final appliedYOffsets = <double>[];
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -17,8 +17,8 @@ void main() {
             height: 800,
             child: ParallaxPreviewView(
               workspaceRootPath: '.',
-              onApplyPreviewYOffset: (value) {
-                appliedYOffset = value;
+              onSetAllLayerYOffsets: (value) {
+                appliedYOffsets.add(value);
                 return true;
               },
               theme: const ParallaxThemeDef(
@@ -43,26 +43,28 @@ void main() {
       ),
     );
 
-    expect(find.text('previewYOffset=0'), findsOneWidget);
+    expect(find.text('sharedYOffset=24'), findsOneWidget);
 
-    final offsetSlider = tester.widget<Slider>(
-      find.byKey(const ValueKey<String>('parallax_preview_y_offset')),
+    final yOffsetField = find.byKey(
+      const ValueKey<String>('parallax_preview_y_offset'),
     );
-    offsetSlider.onChanged!(64);
+    await tester.enterText(yOffsetField, '64');
     await tester.pump();
 
-    expect(find.text('previewYOffset=64'), findsOneWidget);
-    await tester.tap(find.text('Apply Y Offset to All Layers'));
+    expect(find.text('sharedYOffset=64'), findsOneWidget);
+    await tester.tap(find.text('Set Y Offset on All Layers'));
     await tester.pump();
 
-    expect(appliedYOffset, 64);
-    expect(find.text('previewYOffset=0'), findsOneWidget);
+    expect(appliedYOffsets, <double>[64]);
+    expect(find.text('sharedYOffset=64'), findsOneWidget);
 
-    offsetSlider.onChanged!(64);
-    await tester.pump();
-    await tester.tap(find.text('Reset Y Offset'));
+    await tester.tap(find.text('Set Y Offset to 0'));
     await tester.pump();
 
-    expect(find.text('previewYOffset=0'), findsOneWidget);
+    expect(find.text('sharedYOffset=0'), findsOneWidget);
+    await tester.tap(find.text('Set Y Offset on All Layers'));
+    await tester.pump();
+
+    expect(appliedYOffsets, <double>[64, 0]);
   });
 }

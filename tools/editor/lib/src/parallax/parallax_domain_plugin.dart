@@ -78,8 +78,8 @@ class ParallaxDomainPlugin implements AuthoringDomainPlugin {
         return _removeLayer(parallaxDocument, command.payload);
       case 'update_layer':
         return _updateLayer(parallaxDocument, command.payload);
-      case 'offset_active_theme_y_offsets':
-        return _offsetActiveThemeYOffsets(parallaxDocument, command.payload);
+      case 'set_active_theme_y_offsets':
+        return _setActiveThemeYOffsets(parallaxDocument, command.payload);
       case 'reorder_layer':
         return _reorderLayer(parallaxDocument, command.payload);
       default:
@@ -412,47 +412,40 @@ class ParallaxDomainPlugin implements AuthoringDomainPlugin {
     );
   }
 
-  ParallaxDefsDocument _offsetActiveThemeYOffsets(
+  ParallaxDefsDocument _setActiveThemeYOffsets(
     ParallaxDefsDocument document,
     Map<String, Object?> payload,
   ) {
     document = _clearOperationIssuesIfNeeded(document);
     final activeTheme = _requireActiveTheme(document);
-    final yOffsetDelta = _finiteDouble(payload['yOffsetDelta']);
-    if (activeTheme == null ||
-        activeTheme.layers.isEmpty ||
-        yOffsetDelta == null ||
-        yOffsetDelta == 0) {
+    final yOffset = _finiteDouble(payload['yOffset']);
+    if (activeTheme == null || activeTheme.layers.isEmpty || yOffset == null) {
       return _withOperationIssue(
         document,
-        code: 'offset_active_theme_y_offsets_invalid_payload',
+        code: 'set_active_theme_y_offsets_invalid_payload',
         message:
-            'Applying a preview Y offset requires an active theme with at '
-            'least one layer and a non-zero finite yOffsetDelta.',
+            'Setting a shared Y offset requires an active theme with at '
+            'least one layer and a finite yOffset.',
       );
     }
 
-    for (final layer in activeTheme.layers) {
-      final nextYOffset = layer.yOffset + yOffsetDelta;
-      if (!nextYOffset.isFinite || nextYOffset.abs() > maxAbsYOffset) {
-        return _withOperationIssue(
-          document,
-          code: 'offset_active_theme_y_offsets_out_of_range',
-          message:
-              'Applying yOffsetDelta ${formatCanonicalParallaxNumber(yOffsetDelta)} '
-              'would move layer "${layer.layerKey}" outside the supported '
-              'range of -$maxAbsYOffset to $maxAbsYOffset.',
-        );
-      }
+    if (yOffset.abs() > maxAbsYOffset) {
+      return _withOperationIssue(
+        document,
+        code: 'set_active_theme_y_offsets_out_of_range',
+        message:
+            'yOffset ${formatCanonicalParallaxNumber(yOffset)} is outside '
+            'the supported range of -$maxAbsYOffset to $maxAbsYOffset.',
+      );
+    }
+    if (activeTheme.layers.every((layer) => layer.yOffset == yOffset)) {
+      return document;
     }
 
     final nextTheme = activeTheme
         .copyWith(
           layers: activeTheme.layers
-              .map(
-                (layer) =>
-                    layer.copyWith(yOffset: layer.yOffset + yOffsetDelta),
-              )
+              .map((layer) => layer.copyWith(yOffset: yOffset))
               .toList(growable: false),
         )
         .normalized();

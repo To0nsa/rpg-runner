@@ -16,17 +16,16 @@ class ParallaxPreviewView extends StatefulWidget {
     super.key,
     required this.workspaceRootPath,
     required this.theme,
-    this.onApplyPreviewYOffset,
+    this.onSetAllLayerYOffsets,
   });
 
   final String workspaceRootPath;
   final ParallaxThemeDef? theme;
 
-  /// Applies the current shared preview offset to every authored layer.
+  /// Sets every authored layer to the shared preview Y offset.
   ///
-  /// Returns whether the domain accepted the draft edit, so the preview only
-  /// clears its temporary offset after a successful application.
-  final bool Function(double previewYOffset)? onApplyPreviewYOffset;
+  /// Returns whether the domain accepted the authored edit.
+  final bool Function(double yOffset)? onSetAllLayerYOffsets;
 
   @override
   State<ParallaxPreviewView> createState() => _ParallaxPreviewViewState();
@@ -38,12 +37,13 @@ class _ParallaxPreviewViewState extends State<ParallaxPreviewView> {
   static const double _zoomStep = 0.1;
   static const double _minCameraX = -2048.0;
   static const double _maxCameraX = 2048.0;
-  static const double _previewYOffsetStep = 16.0;
-
   final EditorUiImageCache _imageCache = EditorUiImageCache();
+  final TextEditingController _sharedYOffsetController =
+      TextEditingController();
   double _zoom = 1.0;
   double _cameraX = 0.0;
-  double _previewYOffset = 0.0;
+  double? _sharedYOffset;
+  String? _sharedYOffsetError;
   bool _ctrlPanActive = false;
   int? _activePointer;
   int _loadGeneration = 0;
@@ -51,6 +51,7 @@ class _ParallaxPreviewViewState extends State<ParallaxPreviewView> {
   @override
   void initState() {
     super.initState();
+    _syncSharedYOffset(widget.theme);
     _ensureImagesLoaded();
   }
 
@@ -59,12 +60,16 @@ class _ParallaxPreviewViewState extends State<ParallaxPreviewView> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.workspaceRootPath != widget.workspaceRootPath ||
         oldWidget.theme != widget.theme) {
+      if (!_hasUnsavedSharedYOffset()) {
+        _syncSharedYOffset(widget.theme);
+      }
       _ensureImagesLoaded();
     }
   }
 
   @override
   void dispose() {
+    _sharedYOffsetController.dispose();
     _imageCache.dispose();
     super.dispose();
   }
@@ -113,21 +118,19 @@ class _ParallaxPreviewViewState extends State<ParallaxPreviewView> {
                 ),
                 SizedBox(
                   width: 240,
-                  child: Slider(
+                  child: TextField(
                     key: const ValueKey<String>('parallax_preview_y_offset'),
-                    value: _previewYOffset
-                        .clamp(-maxAbsYOffset, maxAbsYOffset)
-                        .toDouble(),
-                    min: -maxAbsYOffset,
-                    max: maxAbsYOffset,
-                    divisions: ((maxAbsYOffset * 2) / _previewYOffsetStep)
-                        .round(),
-                    label: 'Preview Y offset ${_previewYOffset.round()}',
-                    onChanged: (value) {
-                      setState(() {
-                        _previewYOffset = value;
-                      });
-                    },
+                    controller: _sharedYOffsetController,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                      signed: true,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: 'Y Offset (All Layers)',
+                      helperText: '0 = viewport bottom',
+                      errorText: _sharedYOffsetError,
+                    ),
+                    onChanged: _setSharedYOffsetFromText,
                   ),
                 ),
                 OutlinedButton.icon(
@@ -141,22 +144,24 @@ class _ParallaxPreviewViewState extends State<ParallaxPreviewView> {
                 ),
                 OutlinedButton.icon(
                   onPressed: () {
-                    setState(() {
-                      _previewYOffset = 0.0;
-                    });
+                    _setSharedYOffset(0.0);
                   },
-                  icon: const Icon(Icons.vertical_align_center),
-                  label: const Text('Reset Y Offset'),
+                  icon: const Icon(Icons.vertical_align_bottom),
+                  label: const Text('Set Y Offset to 0'),
                 ),
                 FilledButton.icon(
                   onPressed:
-                      _previewYOffset == 0 ||
+                      _sharedYOffset == null ||
+                          _sharedYOffsetError != null ||
                           theme.layers.isEmpty ||
-                          widget.onApplyPreviewYOffset == null
+                          theme.layers.every(
+                            (layer) => layer.yOffset == _sharedYOffset,
+                          ) ||
+                          widget.onSetAllLayerYOffsets == null
                       ? null
-                      : _applyPreviewYOffsetToAllLayers,
+                      : _setAllLayerYOffsets,
                   icon: const Icon(Icons.save_alt),
-                  label: const Text('Apply Y Offset to All Layers'),
+                  label: const Text('Set Y Offset on All Layers'),
                 ),
                 Chip(
                   avatar: const Icon(Icons.swap_horiz, size: 16),
@@ -164,7 +169,11 @@ class _ParallaxPreviewViewState extends State<ParallaxPreviewView> {
                 ),
                 Chip(
                   avatar: const Icon(Icons.swap_vert, size: 16),
-                  label: Text('previewYOffset=${_previewYOffset.round()}'),
+                  label: Text(
+                    _sharedYOffset == null
+                        ? 'authored yOffsets'
+                        : 'sharedYOffset=${_formatYOffset(_sharedYOffset!)}',
+                  ),
                 ),
               ],
             ),
@@ -189,7 +198,7 @@ class _ParallaxPreviewViewState extends State<ParallaxPreviewView> {
                           theme: theme,
                           zoom: _zoom,
                           cameraX: _cameraX,
-                          previewYOffset: _previewYOffset,
+                          sharedYOffset: _sharedYOffset,
                         ),
                       ),
                     ),
@@ -315,15 +324,51 @@ class _ParallaxPreviewViewState extends State<ParallaxPreviewView> {
     });
   }
 
-  void _applyPreviewYOffsetToAllLayers() {
-    final applied =
-        widget.onApplyPreviewYOffset?.call(_previewYOffset) ?? false;
-    if (!applied) {
+  void _setSharedYOffsetFromText(String value) {
+    final parsed = double.tryParse(value.trim());
+    setState(() {
+      _sharedYOffset = parsed;
+      _sharedYOffsetError = switch (parsed) {
+        null => 'Enter a number.',
+        final number when !number.isFinite => 'Enter a finite number.',
+        final number when number.abs() > maxAbsYOffset =>
+          'Use a value from -$maxAbsYOffset to $maxAbsYOffset.',
+        _ => null,
+      };
+    });
+  }
+
+  void _setSharedYOffset(double value) {
+    _sharedYOffsetController.text = _formatYOffset(value);
+    _setSharedYOffsetFromText(_sharedYOffsetController.text);
+  }
+
+  void _setAllLayerYOffsets() {
+    final yOffset = _sharedYOffset;
+    if (yOffset == null || _sharedYOffsetError != null) {
       return;
     }
-    setState(() {
-      _previewYOffset = 0.0;
-    });
+    widget.onSetAllLayerYOffsets?.call(yOffset);
+  }
+
+  void _syncSharedYOffset(ParallaxThemeDef? theme) {
+    final yOffset = _commonYOffset(theme);
+    _sharedYOffset = yOffset;
+    _sharedYOffsetError = null;
+    _sharedYOffsetController.text = yOffset == null
+        ? ''
+        : _formatYOffset(yOffset);
+  }
+
+  bool _hasUnsavedSharedYOffset() {
+    final authoredYOffset = _commonYOffset(widget.theme);
+    return _sharedYOffset != authoredYOffset ||
+        _sharedYOffsetController.text !=
+            (authoredYOffset == null ? '' : _formatYOffset(authoredYOffset));
+  }
+
+  String _formatYOffset(double value) {
+    return formatCanonicalParallaxNumber(value);
   }
 
   String _absolutePath(String relativePath) {
@@ -339,7 +384,7 @@ class _ParallaxPreviewPainter extends CustomPainter {
     required this.theme,
     required this.zoom,
     required this.cameraX,
-    required this.previewYOffset,
+    required this.sharedYOffset,
   });
 
   final String workspaceRootPath;
@@ -348,7 +393,7 @@ class _ParallaxPreviewPainter extends CustomPainter {
   final ParallaxThemeDef theme;
   final double zoom;
   final double cameraX;
-  final double previewYOffset;
+  final double? sharedYOffset;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -414,10 +459,8 @@ class _ParallaxPreviewPainter extends CustomPainter {
       );
       final scroll = cameraX * parallaxFactor * zoom;
       final startX = _positiveMod(-scroll, tileWidth);
-      final topY =
-          bottomAnchorY -
-          tileHeight +
-          ((layer.yOffset + previewYOffset) * zoom);
+      final yOffset = sharedYOffset ?? layer.yOffset;
+      final topY = bottomAnchorY - tileHeight + (yOffset * zoom);
       final paint = Paint()
         ..filterQuality = FilterQuality.none
         ..color = Color.fromRGBO(
@@ -455,9 +498,18 @@ class _ParallaxPreviewPainter extends CustomPainter {
     return oldDelegate.theme != theme ||
         oldDelegate.zoom != zoom ||
         oldDelegate.cameraX != cameraX ||
-        oldDelegate.previewYOffset != previewYOffset ||
+        oldDelegate.sharedYOffset != sharedYOffset ||
         oldDelegate.loadedImageCount != loadedImageCount;
   }
+}
+
+double? _commonYOffset(ParallaxThemeDef? theme) {
+  final layers = theme?.layers;
+  if (layers == null || layers.isEmpty) {
+    return null;
+  }
+  final yOffset = layers.first.yOffset;
+  return layers.every((layer) => layer.yOffset == yOffset) ? yOffset : null;
 }
 
 double _positiveMod(double value, double modulus) {

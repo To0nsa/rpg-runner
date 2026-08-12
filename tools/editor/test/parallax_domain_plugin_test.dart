@@ -187,7 +187,7 @@ void main() {
     }
   });
 
-  test('applying a preview offset shifts every active-theme layer once', () {
+  test('setting a shared Y offset replaces every active-theme layer value', () {
     final plugin = ParallaxDomainPlugin();
     const document = ParallaxDefsDocument(
       workspaceRootPath: '.',
@@ -224,65 +224,68 @@ void main() {
       parallaxThemeIdByLevelId: <String, String>{'field': 'field'},
     );
 
-    final shifted =
+    final updated =
         plugin.applyEdit(
               document,
               AuthoringCommand(
-                kind: 'offset_active_theme_y_offsets',
-                payload: <String, Object?>{'yOffsetDelta': 64},
+                kind: 'set_active_theme_y_offsets',
+                payload: <String, Object?>{'yOffset': 0},
               ),
             )
             as ParallaxDefsDocument;
 
-    expect(shifted.themes.single.revision, 5);
-    expect(shifted.themes.single.layers.map((layer) => layer.yOffset), <double>[
-      48,
-      96,
+    expect(updated.themes.single.revision, 5);
+    expect(updated.themes.single.layers.map((layer) => layer.yOffset), <double>[
+      0,
+      0,
     ]);
   });
 
-  test('preview offset does not apply when it exceeds a layer range', () {
-    final plugin = ParallaxDomainPlugin();
-    const document = ParallaxDefsDocument(
-      workspaceRootPath: '.',
-      themes: <ParallaxThemeDef>[
-        ParallaxThemeDef(
-          parallaxThemeId: 'field',
-          revision: 1,
-          layers: <ParallaxLayerDef>[
-            ParallaxLayerDef(
-              layerKey: 'field_bg',
-              assetPath: 'assets/images/parallax/field/bg.png',
-              group: parallaxGroupBackground,
-              parallaxFactor: 0.2,
-              zOrder: 10,
-              opacity: 1,
-              yOffset: maxAbsYOffset,
-            ),
-          ],
-        ),
-      ],
-      baseline: null,
-      availableLevelIds: <String>['field'],
-      activeLevelId: 'field',
-      levelOptionSource: 'test',
-      parallaxThemeIdByLevelId: <String, String>{'field': 'field'},
-    );
-
-    final rejected =
-        plugin.applyEdit(
-              document,
-              AuthoringCommand(
-                kind: 'offset_active_theme_y_offsets',
-                payload: <String, Object?>{'yOffsetDelta': 1},
+  test(
+    'shared Y offset does not apply when it exceeds the supported range',
+    () {
+      final plugin = ParallaxDomainPlugin();
+      const document = ParallaxDefsDocument(
+        workspaceRootPath: '.',
+        themes: <ParallaxThemeDef>[
+          ParallaxThemeDef(
+            parallaxThemeId: 'field',
+            revision: 1,
+            layers: <ParallaxLayerDef>[
+              ParallaxLayerDef(
+                layerKey: 'field_bg',
+                assetPath: 'assets/images/parallax/field/bg.png',
+                group: parallaxGroupBackground,
+                parallaxFactor: 0.2,
+                zOrder: 10,
+                opacity: 1,
+                yOffset: maxAbsYOffset,
               ),
-            )
-            as ParallaxDefsDocument;
+            ],
+          ),
+        ],
+        baseline: null,
+        availableLevelIds: <String>['field'],
+        activeLevelId: 'field',
+        levelOptionSource: 'test',
+        parallaxThemeIdByLevelId: <String, String>{'field': 'field'},
+      );
 
-    expect(rejected.themes.single, document.themes.single);
-    expect(
-      rejected.operationIssues.single.code,
-      'offset_active_theme_y_offsets_out_of_range',
-    );
-  });
+      final rejected =
+          plugin.applyEdit(
+                document,
+                AuthoringCommand(
+                  kind: 'set_active_theme_y_offsets',
+                  payload: <String, Object?>{'yOffset': maxAbsYOffset + 1},
+                ),
+              )
+              as ParallaxDefsDocument;
+
+      expect(rejected.themes.single, document.themes.single);
+      expect(
+        rejected.operationIssues.single.code,
+        'set_active_theme_y_offsets_out_of_range',
+      );
+    },
+  );
 }

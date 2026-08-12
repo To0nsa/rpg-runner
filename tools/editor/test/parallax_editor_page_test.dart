@@ -78,12 +78,12 @@ void main() {
     scene = controller.scene as ParallaxScene;
     expect(scene.activeTheme?.layers.length, 2);
 
-    final previewOffsetSlider = tester.widget<Slider>(
+    await tester.enterText(
       find.byKey(const ValueKey<String>('parallax_preview_y_offset')),
+      '64',
     );
-    previewOffsetSlider.onChanged!(64);
     await _flush(tester);
-    await tester.tap(find.text('Apply Y Offset to All Layers'));
+    await tester.tap(find.text('Set Y Offset on All Layers'));
     await _flush(tester);
 
     scene = controller.scene as ParallaxScene;
