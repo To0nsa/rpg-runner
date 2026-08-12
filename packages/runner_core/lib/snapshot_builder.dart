@@ -36,6 +36,7 @@ import 'snapshots/entity_render_snapshot.dart';
 import 'snapshots/game_state_snapshot.dart';
 import 'snapshots/ground_surface_snapshot.dart';
 import 'snapshots/player_hud_snapshot.dart';
+import 'snapshots/staged_terrain_render_snapshot.dart';
 import 'snapshots/static_prefab_sprite_snapshot.dart';
 import 'snapshots/static_solid_snapshot.dart';
 import 'players/player_tuning.dart';
@@ -144,6 +145,8 @@ class SnapshotBuilder {
   /// - [staticSolids]: Pre-built list of platform snapshots.
   /// - [groundSurfaces]: Pre-built list of walkable ground surface snapshots.
   /// - [staticPrefabSprites]: Pre-built list of static prefab visual sprites.
+  /// - [stagedTerrainRenderSnapshot]: Optional compiler-owned terrain render
+  ///   data from the same terrain publication as collision and navigation.
   GameStateSnapshot build({
     required int tick,
     required int runId,
@@ -159,6 +162,7 @@ class SnapshotBuilder {
     required List<StaticSolidSnapshot> staticSolids,
     required List<GroundSurfaceSnapshot> groundSurfaces,
     required List<StaticPrefabSpriteSnapshot> staticPrefabSprites,
+    StagedTerrainRenderSnapshot? stagedTerrainRenderSnapshot,
   }) {
     // ─── Query player component indices ───
     final mi = world.movement.indexOf(player);
@@ -495,6 +499,7 @@ class SnapshotBuilder {
       staticSolids: staticSolids,
       groundSurfaces: groundSurfaces,
       staticPrefabSprites: staticPrefabSprites,
+      stagedTerrainRenderSnapshot: stagedTerrainRenderSnapshot,
     );
   }
 

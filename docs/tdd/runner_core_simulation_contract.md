@@ -75,9 +75,9 @@ multi-body capsule authority against caller-supplied immutable terrain.
 Both owners follow the same ordering seam; the terrain-only publication step is
 a no-op for legacy ownership:
 
-1. after world generation, atomically publish any fully built terrain bundle,
-   capture/invalidate prior support against its version, and audit exactly-once
-   ownership;
+1. after world generation, atomically publish any fully built terrain bundle
+   and its matching immutable render snapshot, capture/invalidate prior
+   support against its version, and audit exactly-once ownership;
 2. let AI, jump, ordinary movement, mobility/teleport state, external velocity,
    and gravity compose motion;
 3. integrate exactly once;
@@ -128,6 +128,13 @@ events through `GameCore.drainEvents`.
   produce effects from them but must not resolve gameplay outcomes.
 - `RunEndedEvent` is the terminal gameplay result used by client flow and
   replay validation.
+
+The normal legacy world reports no staged terrain render data. The isolated
+terrain harness may queue a fully constructed staged candidate; its exact
+collision/navigation bundle and its `StagedTerrainRenderSnapshot` become
+visible together only at the next preparation boundary. This read-only
+snapshot output does not alter commands, replay serialization, or normal
+runtime selection.
 
 Any snapshot/event shape or semantic change requires consumer updates in the
 same change. If replay acceptance, score, or terminal outcome changes, the

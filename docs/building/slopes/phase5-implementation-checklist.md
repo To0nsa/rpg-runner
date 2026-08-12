@@ -86,6 +86,11 @@ workflow except where an already-public Core output needs a read-only consumer.
       passes its exact geometry to the existing isolated Core authority. It
       proves player support/movement and render triangles can share the staged
       geometry without selecting it for normal game or replay construction.
+- [x] The terrain harness can queue a complete staged candidate and publishes
+      its exact runtime bundle and immutable render snapshot together at the
+      next preparation boundary. `GameStateSnapshot` carries that read-only
+      data only for the harness; normal game and replay construction still
+      publish no staged terrain.
 
 ## 3) Implementation Order
 

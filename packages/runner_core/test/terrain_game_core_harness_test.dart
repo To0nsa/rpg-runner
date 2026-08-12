@@ -35,6 +35,7 @@ void main() {
 
     expect(core.playerPosY, 276);
     expect(core.playerGrounded, isTrue);
+    expect(core.buildSnapshot().stagedTerrainRenderSnapshot, isNull);
     core.applyCommands(const [MoveAxisCommand(tick: 1, axis: 1)]);
     core.stepOneTick();
     expect(core.playerGrounded, isTrue);
@@ -83,6 +84,37 @@ void main() {
       expect(core.playerGrounded, isTrue);
       expect(core.playerPosX, greaterThan(startX));
       expect(core.buildTerrainPlayerDebugSnapshot()!.geometryVersion, 1);
+    },
+  );
+
+  test(
+    'staged candidate atomically publishes its bundle and render snapshot',
+    () {
+      final candidate = _stagedTerrainHarnessCandidate(geometryVersion: 2);
+      final core = GameCore.terrainMotionHarness(
+        seed: 72,
+        levelDefinition: _level(),
+        playerCharacter: eloiseCharacter,
+        terrainGeometry: _terrain(),
+      );
+
+      expect(core.buildSnapshot().stagedTerrainRenderSnapshot, isNull);
+      core.queueTerrainHarnessStagedCandidate(candidate);
+      expect(core.buildSnapshot().stagedTerrainRenderSnapshot, isNull);
+
+      core.applyCommands(const <Command>[]);
+      core.stepOneTick();
+
+      final snapshot = core.buildSnapshot();
+      expect(
+        identical(
+          snapshot.stagedTerrainRenderSnapshot,
+          candidate.renderSnapshot,
+        ),
+        isTrue,
+      );
+      expect(snapshot.stagedTerrainRenderSnapshot!.geometryVersion, 2);
+      expect(core.buildTerrainPlayerDebugSnapshot()!.geometryVersion, 2);
     },
   );
 
@@ -1305,7 +1337,9 @@ TerrainGeometry _terrain({int version = 1}) => const TerrainCompiler().compile([
   ),
 ], geometryVersion: version);
 
-StagedTerrainStreamCandidate _stagedTerrainHarnessCandidate() {
+StagedTerrainStreamCandidate _stagedTerrainHarnessCandidate({
+  int geometryVersion = 1,
+}) {
   const chunkKey = 'terrain_harness';
   final sourceId = StagedTerrainSourceId(chunkKey: chunkKey, shapeId: 'ground');
   final catalog = StagedTerrainArtifactCatalog(
@@ -1407,7 +1441,7 @@ StagedTerrainStreamCandidate _stagedTerrainHarnessCandidate() {
         chunkKey: chunkKey,
       ),
     ],
-    geometryVersion: 1,
+    geometryVersion: geometryVersion,
     groundEnemyProfiles: buildDefaultGroundEnemyTerrainGraphProfiles(),
   );
 }

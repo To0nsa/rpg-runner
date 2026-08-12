@@ -34,24 +34,14 @@ void main() {
         base,
         tick: base.tick + 1,
         entities: <EntityRenderSnapshot>[
-          _entity(
-            id: 101,
-            kind: EntityKind.player,
-            x: 10,
-            y: 20,
-          ),
+          _entity(id: 101, kind: EntityKind.player, x: 10, y: 20),
         ],
       );
       final snapshot = _copySnapshot(
         base,
         tick: base.tick + 2,
         entities: <EntityRenderSnapshot>[
-          _entity(
-            id: 101,
-            kind: EntityKind.player,
-            x: 30,
-            y: 20,
-          ),
+          _entity(id: 101, kind: EntityKind.player, x: 30, y: 20),
         ],
       );
 
@@ -126,63 +116,66 @@ void main() {
     }
   });
 
-  test('ghost layer disable logs context and prevents further ghost rendering', () async {
-    final harness = _buildHarness();
-    final image = await _singlePixelImage();
-    final animSet = _buildAnimSet(image);
-    final base = harness.controller.snapshot;
-    final snapshot = _copySnapshot(
-      base,
-      tick: base.tick + 1,
-      entities: <EntityRenderSnapshot>[
-        _entity(id: 301, kind: EntityKind.player, x: 16, y: 18),
-      ],
-    );
-    final logs = <String>[];
-    final previousDebugPrint = debugPrint;
-    debugPrint = (String? message, {int? wrapWidth}) {
-      if (message != null) {
-        logs.add(message);
+  test(
+    'ghost layer disable logs context and prevents further ghost rendering',
+    () async {
+      final harness = _buildHarness();
+      final image = await _singlePixelImage();
+      final animSet = _buildAnimSet(image);
+      final base = harness.controller.snapshot;
+      final snapshot = _copySnapshot(
+        base,
+        tick: base.tick + 1,
+        entities: <EntityRenderSnapshot>[
+          _entity(id: 301, kind: EntityKind.player, x: 16, y: 18),
+        ],
+      );
+      final logs = <String>[];
+      final previousDebugPrint = debugPrint;
+      debugPrint = (String? message, {int? wrapWidth}) {
+        if (message != null) {
+          logs.add(message);
+        }
+      };
+
+      try {
+        harness.game.debugSetGhostRenderStateForTest(
+          snapshot: snapshot,
+          prevSnapshot: null,
+          replayBlob: _ghostReplayBlob(levelId: LevelId.field),
+          playerAnimSet: animSet,
+        );
+        harness.game.debugDisableGhostLayerForTest(
+          'test-disable',
+          details: 'simulated failure',
+        );
+
+        expect(harness.game.debugGhostLayerDisabled, isTrue);
+        expect(harness.game.debugGhostLayerDisableReason, 'test-disable');
+        expect(
+          logs.any(
+            (line) =>
+                line.contains('Ghost layer disabled: reason=test-disable') &&
+                line.contains('runId=') &&
+                line.contains('tick=') &&
+                line.contains('replayRunSessionId=ghost_run_1') &&
+                line.contains('replayBoardId=board_1') &&
+                line.contains('details=simulated failure'),
+          ),
+          isTrue,
+        );
+
+        harness.game.debugSyncGhostLayerForTest(cameraCenter: Vector2.zero());
+        expect(harness.game.debugHasGhostPlayerView, isFalse);
+        expect(harness.game.debugGhostEnemyCount, 0);
+        expect(harness.game.debugGhostProjectileCount, 0);
+      } finally {
+        debugPrint = previousDebugPrint;
+        image.dispose();
+        harness.dispose();
       }
-    };
-
-    try {
-      harness.game.debugSetGhostRenderStateForTest(
-        snapshot: snapshot,
-        prevSnapshot: null,
-        replayBlob: _ghostReplayBlob(levelId: LevelId.field),
-        playerAnimSet: animSet,
-      );
-      harness.game.debugDisableGhostLayerForTest(
-        'test-disable',
-        details: 'simulated failure',
-      );
-
-      expect(harness.game.debugGhostLayerDisabled, isTrue);
-      expect(harness.game.debugGhostLayerDisableReason, 'test-disable');
-      expect(
-        logs.any(
-          (line) =>
-              line.contains('Ghost layer disabled: reason=test-disable') &&
-              line.contains('runId=') &&
-              line.contains('tick=') &&
-              line.contains('replayRunSessionId=ghost_run_1') &&
-              line.contains('replayBoardId=board_1') &&
-              line.contains('details=simulated failure'),
-        ),
-        isTrue,
-      );
-
-      harness.game.debugSyncGhostLayerForTest(cameraCenter: Vector2.zero());
-      expect(harness.game.debugHasGhostPlayerView, isFalse);
-      expect(harness.game.debugGhostEnemyCount, 0);
-      expect(harness.game.debugGhostProjectileCount, 0);
-    } finally {
-      debugPrint = previousDebugPrint;
-      image.dispose();
-      harness.dispose();
-    }
-  });
+    },
+  );
 }
 
 class _Harness {
@@ -215,7 +208,9 @@ _Harness _buildHarness() {
   );
   final controller = GameController(core: core);
   final input = RunnerInputRouter(controller: controller);
-  final projectileAim = ValueNotifier<AimPreviewState>(AimPreviewState.inactive);
+  final projectileAim = ValueNotifier<AimPreviewState>(
+    AimPreviewState.inactive,
+  );
   final meleeAim = ValueNotifier<AimPreviewState>(AimPreviewState.inactive);
   final game = RunnerFlameGame(
     controller: controller,
@@ -252,6 +247,7 @@ GameStateSnapshot _copySnapshot(
     staticSolids: base.staticSolids,
     groundSurfaces: base.groundSurfaces,
     staticPrefabSprites: base.staticPrefabSprites,
+    stagedTerrainRenderSnapshot: base.stagedTerrainRenderSnapshot,
   );
 }
 

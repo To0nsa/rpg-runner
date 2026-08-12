@@ -106,6 +106,7 @@ import 'spawn_service.dart';
 import 'progression/run_rewards.dart';
 import 'track_manager.dart';
 import 'track/chunk_pattern.dart' show SpawnPlacementMode;
+import 'track/staged_terrain_stream_candidate.dart';
 import 'track/track_streamer.dart' show EnemySpawnRequestSource;
 import 'weapons/weapon_catalog.dart';
 import 'stats/character_stats_resolver.dart';
@@ -961,6 +962,24 @@ class GameCore {
       );
     }
     authority.queueTerrainGeometryReplacement(geometry);
+  }
+
+  /// Queues one complete staged terrain candidate for the terrain harness.
+  ///
+  /// The existing scheduler/binder/compiler must build [candidate] first. At
+  /// the next preparation boundary Core publishes its exact collision,
+  /// navigation, placement, and render objects together. Normal and replay
+  /// construction reject this test/tooling-only path.
+  void queueTerrainHarnessStagedCandidate(
+    StagedTerrainStreamCandidate candidate,
+  ) {
+    final authority = _worldMotionAuthority;
+    if (authority is! TerrainMultiBodyWorldMotionAuthority) {
+      throw StateError(
+        'Staged terrain publication requires terrain-harness construction.',
+      );
+    }
+    authority.queueStagedTerrainCandidate(candidate);
   }
 
   /// Builds an immutable terrain diagnostic snapshot on demand.
@@ -1964,6 +1983,7 @@ class GameCore {
       staticSolids: _trackManager.staticSolidsSnapshot,
       groundSurfaces: _trackManager.groundSurfacesSnapshot,
       staticPrefabSprites: _trackManager.staticPrefabSpritesSnapshot,
+      stagedTerrainRenderSnapshot: _worldMotionAuthority.terrainRenderSnapshot,
     );
   }
 }

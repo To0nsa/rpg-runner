@@ -10,6 +10,7 @@ import 'entity_render_snapshot.dart';
 import 'enums.dart';
 import 'ground_surface_snapshot.dart';
 import 'player_hud_snapshot.dart';
+import 'staged_terrain_render_snapshot.dart';
 import 'static_prefab_sprite_snapshot.dart';
 import 'static_solid_snapshot.dart';
 
@@ -33,6 +34,7 @@ class GameStateSnapshot {
     required this.staticSolids,
     required this.groundSurfaces,
     required this.staticPrefabSprites,
+    this.stagedTerrainRenderSnapshot,
   });
 
   /// Current simulation tick.
@@ -79,6 +81,13 @@ class GameStateSnapshot {
 
   /// Render-only authored prefab visual sprites for static streamed chunks.
   final List<StaticPrefabSpriteSnapshot> staticPrefabSprites;
+
+  /// Compiler-owned terrain fill data published with the active terrain bundle.
+  ///
+  /// This is `null` for the normal legacy world. The terrain harness sets it
+  /// only when a complete staged collision/navigation/render publication has
+  /// crossed a tick boundary.
+  final StagedTerrainRenderSnapshot? stagedTerrainRenderSnapshot;
 
   /// Returns the player entity snapshot, or `null` if not found.
   ///

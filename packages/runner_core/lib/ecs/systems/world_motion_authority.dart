@@ -24,6 +24,8 @@ import '../../navigation/terrain_surface_query_buffer.dart';
 import '../../navigation/types/surface_id.dart';
 import '../../navigation/types/terrain_surface_graph.dart';
 import '../../snapshots/enums.dart';
+import '../../snapshots/staged_terrain_render_snapshot.dart';
+import '../../track/staged_terrain_stream_candidate.dart';
 import '../entity_id.dart';
 import '../stores/world_contact_capsule_store.dart';
 import '../world.dart';
@@ -38,6 +40,11 @@ abstract interface class WorldMotionAuthority {
   bool get usesTerrainPlayer;
 
   int? get terrainGeometryVersion;
+
+  /// Immutable terrain fill data from the same published runtime bundle.
+  ///
+  /// Legacy motion does not own staged terrain and returns `null`.
+  StagedTerrainRenderSnapshot? get terrainRenderSnapshot;
 
   bool get initialPlayerGrounded;
 
@@ -264,6 +271,9 @@ class LegacyWorldMotionAuthority implements WorldMotionAuthority {
 
   @override
   int? get terrainGeometryVersion => null;
+
+  @override
+  StagedTerrainRenderSnapshot? get terrainRenderSnapshot => null;
 
   @override
   bool get initialPlayerGrounded => true;
@@ -514,29 +524,17 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
   /// Complete terrain bundle visible to collision and navigation consumers.
   TerrainRuntimeBundle get terrainRuntimeBundle => _publication.bundle;
 
+  @override
+  StagedTerrainRenderSnapshot? get terrainRenderSnapshot =>
+      _publication.terrainRenderSnapshot;
+
   /// Builds and queues a complete replacement for the next tick boundary.
   ///
   /// Construction is synchronous and cannot expose a partial bundle. The
   /// queued publication becomes visible at the start of the next successful
   /// [prepareTick], before stale support and paths are inspected by AI.
   void queueTerrainGeometryReplacement(TerrainGeometry geometry) {
-    if (_preparedTick >= 0 && _integratedTick != _preparedTick) {
-      throw StateError(
-        'Terrain geometry cannot be queued between prepareTick and step.',
-      );
-    }
-    if (_pendingPublication != null) {
-      throw StateError(
-        'A terrain geometry replacement is already queued for publication.',
-      );
-    }
-    if (geometry.version <= _publication.bundle.version) {
-      throw ArgumentError.value(
-        geometry.version,
-        'geometry.version',
-        'Replacement versions must increase monotonically.',
-      );
-    }
+    _validateReplacementVersion(geometry.version);
 
     // Build every derived structure before assigning the pending reference.
     final replacement = _TerrainAuthorityPublication.build(
@@ -548,6 +546,54 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
       unocoProfile: _unocoProfile,
     );
     _pendingPublication = replacement;
+  }
+
+  /// Queues an already-built staged candidate and its matching render snapshot.
+  ///
+  /// The caller owns admission and construction. This authority retains the
+  /// candidate's exact runtime bundle so collision, support/navigation,
+  /// placement, and Core's render output all switch through one pending
+  /// reference.
+  void queueStagedTerrainCandidate(StagedTerrainStreamCandidate candidate) {
+    if (!identical(candidate.runtimeBundle.geometry, candidate.geometry) ||
+        candidate.renderSnapshot.geometryVersion !=
+            candidate.geometry.version) {
+      throw ArgumentError.value(
+        candidate,
+        'candidate',
+        'Collision, navigation, and render data must share one geometry.',
+      );
+    }
+    _validateReplacementVersion(candidate.runtimeBundle.version);
+    final replacement = _TerrainAuthorityPublication.fromRuntimeBundle(
+      runtimeBundle: candidate.runtimeBundle,
+      terrainRenderSnapshot: candidate.renderSnapshot,
+      playerProfile: _playerProfile,
+      grojibProfile: _grojibProfile,
+      hashashProfile: _hashashProfile,
+      unocoProfile: _unocoProfile,
+    );
+    _pendingPublication = replacement;
+  }
+
+  void _validateReplacementVersion(int version) {
+    if (_preparedTick >= 0 && _integratedTick != _preparedTick) {
+      throw StateError(
+        'Terrain geometry cannot be queued between prepareTick and step.',
+      );
+    }
+    if (_pendingPublication != null) {
+      throw StateError(
+        'A terrain geometry replacement is already queued for publication.',
+      );
+    }
+    if (version <= _publication.bundle.version) {
+      throw ArgumentError.value(
+        version,
+        'geometry.version',
+        'Replacement versions must increase monotonically.',
+      );
+    }
   }
 
   @override
@@ -1835,6 +1881,32 @@ final class _TerrainAuthorityPublication {
       geometry: geometry,
       groundEnemyProfiles: graphProfiles,
     );
+    return _TerrainAuthorityPublication.fromRuntimeBundle(
+      runtimeBundle: bundle,
+      playerProfile: playerProfile,
+      grojibProfile: grojibProfile,
+      hashashProfile: hashashProfile,
+      unocoProfile: unocoProfile,
+    );
+  }
+
+  factory _TerrainAuthorityPublication.fromRuntimeBundle({
+    required TerrainRuntimeBundle runtimeBundle,
+    StagedTerrainRenderSnapshot? terrainRenderSnapshot,
+    required TerrainTraversalProfile playerProfile,
+    required EnemyTerrainContactProfile grojibProfile,
+    required EnemyTerrainContactProfile hashashProfile,
+    required EnemyTerrainContactProfile unocoProfile,
+  }) {
+    if (terrainRenderSnapshot != null &&
+        terrainRenderSnapshot.geometryVersion != runtimeBundle.version) {
+      throw ArgumentError.value(
+        terrainRenderSnapshot.geometryVersion,
+        'terrainRenderSnapshot.geometryVersion',
+        'Must match the terrain runtime bundle version.',
+      );
+    }
+    final bundle = runtimeBundle;
     final placementQuery = TerrainPlacementQuery(
       geometry: bundle.geometry,
       terrainIndex: bundle.edgeIndex,
@@ -1864,6 +1936,7 @@ final class _TerrainAuthorityPublication {
 
     return _TerrainAuthorityPublication._(
       bundle: bundle,
+      terrainRenderSnapshot: terrainRenderSnapshot,
       minimumGeometryY: minimumGeometryY,
       maximumGeometryY: maximumGeometryY,
       placementQuery: placementQuery,
@@ -1889,6 +1962,7 @@ final class _TerrainAuthorityPublication {
 
   const _TerrainAuthorityPublication._({
     required this.bundle,
+    required this.terrainRenderSnapshot,
     required this.minimumGeometryY,
     required this.maximumGeometryY,
     required this.placementQuery,
@@ -1901,6 +1975,7 @@ final class _TerrainAuthorityPublication {
   });
 
   final TerrainRuntimeBundle bundle;
+  final StagedTerrainRenderSnapshot? terrainRenderSnapshot;
   final int minimumGeometryY;
   final int maximumGeometryY;
   final TerrainPlacementQuery placementQuery;
