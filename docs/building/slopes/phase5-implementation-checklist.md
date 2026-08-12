@@ -1,6 +1,6 @@
 # Slopes Phase 5 - Streaming, Rendering, And Runtime Integration Checklist
 
-- Status: Normal render handoff integrated; collision authority remains legacy
+- Status: Accepted; direct production authority cutover begins in Phase 6
 - Source plan: [plan.md](plan.md)
 - Prerequisite: Phase 4 current-schema cutover and its recorded
   [manual usability pass](phase4-manual-usability-pass.md)
@@ -158,6 +158,12 @@ workflow except where an already-public Core output needs a read-only consumer.
       5,000 distance, and stay within the published strict Phase 2 benchmark
       gates. The unchanged legacy replay path remains covered by the complete
       replay-validator suite.
+- [x] Artifact admission is fail-closed across its two owning boundaries. The
+      generator compares fresh current source with exact format/compiler
+      versions, Chunk membership and metadata, all five per-Chunk semantic
+      signatures, the scheduler-reachable seam digest, and exact rendered
+      bytes. The runtime catalog then rejects malformed records, foreign source
+      lineage, and missing scheduler-selected Chunk keys before publication.
 
 ## 3) Implementation Order
 
@@ -204,7 +210,7 @@ workflow except where an already-public Core output needs a read-only consumer.
 
 ## 5) Acceptance Evidence
 
-- [ ] generated staged terrain is admitted only when format, compiler,
+- [x] generated staged terrain is admitted only when format, compiler,
       signature, source membership, and reachable-seam evidence all match
 - [x] streamed chunk spawn/cull/re-add produces the same world-space edge IDs,
       ordering, and bundle signature for identical selected chunks
@@ -221,9 +227,14 @@ workflow except where an already-public Core output needs a read-only consumer.
       publication ordering are covered; normal authority selection remains)
 - [x] representative full runs match deterministic Core/replay outcomes and
       remain inside the accepted runtime budgets
-- [ ] legacy runtime authority remains available until Phase 6's direct
+- [x] legacy runtime authority remains available until Phase 6's direct
       cutover, then has an explicit deletion/migration plan rather than a
       runtime toggle
+
+The direct construction switch and dependency-ordered legacy deletion are
+frozen in the [Phase 6 implementation checklist](phase6-implementation-checklist.md).
+There is no serialized option, remote flag, or production fallback that can
+select between authorities.
 
 ## 6) Validation
 
@@ -253,7 +264,8 @@ seam-stitching, placement, renderer parity, and performance evidence for each
 published runtime boundary.
 
 The 2026-08-12 full validation pass completed with 369 `runner_core` tests,
-433 root Core tests, 17 game-renderer tests, 84 replay-validator tests, clean
+433 root Core tests, 17 game-renderer tests, 84 replay-validator tests, 27
+focused artifact/generator tests, and clean
 root/package/service analysis, and a drift-free 8-chunk/2-level/2-theme
 generation check. The strict benchmark passed every controller, candidate,
 full-harness, overhead, and allocation gate; its observed full-harness p99 was

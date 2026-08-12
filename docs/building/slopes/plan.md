@@ -1,8 +1,8 @@
 # Sloped Terrain And Capsule Traversal High-Level Plan
 
 - Date: July 18, 2026
-- Status: Phases 0-4 accepted; Phase 5 streamed runtime/render integration is
-  in progress while production collision remains legacy pending Phase 6
+- Status: Phases 0-5 accepted; Phase 6 direct production authority cutover is
+  in progress
 - Phase 0 tracker:
   [phase0-implementation-checklist.md](phase0-implementation-checklist.md)
 - Phase 0 evidence:
@@ -23,6 +23,8 @@
   [phase4-implementation-checklist.md](phase4-implementation-checklist.md)
 - Phase 5 implementation checklist:
   [phase5-implementation-checklist.md](phase5-implementation-checklist.md)
+- Phase 6 implementation checklist:
+  [phase6-implementation-checklist.md](phase6-implementation-checklist.md)
 
 Related plans and contracts:
 
@@ -1640,9 +1642,11 @@ index with existing collision-flag and same-tick-despawn semantics. Production
 movement and navigation remain on the rectangle projection, while the explicit
 terrain harness now routes Grojib/Hashash pursuit, fallback, airborne target
 prediction, and planned-jump timing through the exact published terrain graph
-views. A separate streamed harness now proves deterministic startup and
-spawn/cull republication over two matching 900-tick Field runs, then covers
-terrain-backed Forest markers, both pickup policies, and fall death across
-eight seeds without making the path selectable by normal or replay
-construction. Broader representative full-run and Phase 6 direct-cutover
-gates remain before production authority selection changes.
+views. A separate streamed harness proves deterministic startup and spawn/cull
+republication over two matching 900-tick Field runs, then covers terrain-backed
+Forest markers, both pickup policies, and fall death across eight seeds without
+making the path selectable by normal or replay construction. Paired 1,800-tick
+Field and Forest command runs remain identical through repeated publication,
+survive beyond 5,000 distance, and pass every strict runtime budget. Phase 5 is
+accepted; Phase 6 now owns the one-way production construction switch and the
+dependency-ordered removal of the legacy projection and collision authority.

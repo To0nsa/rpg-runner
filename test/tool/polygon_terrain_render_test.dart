@@ -364,7 +364,7 @@ void main() {
     ]);
   });
 
-  test('staged records remain unreachable from production construction', () {
+  test('staged records enter production code only through Core boundary', () {
     const productionRoots = <String>[
       'packages/runner_core/lib',
       'lib',
@@ -386,7 +386,7 @@ void main() {
       }
     }
 
-    expect(imports, isEmpty);
+    expect(imports, <String>['packages/runner_core/lib/game_core.dart']);
     final liveGenerator = File(
       'tool/generate_chunk_runtime_data.dart',
     ).readAsStringSync();
