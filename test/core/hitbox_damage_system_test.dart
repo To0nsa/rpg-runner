@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/combat_test_support.dart';
+
 import 'package:runner_core/combat/faction.dart';
 import 'package:runner_core/ecs/stores/body_store.dart';
 import 'package:runner_core/ecs/stores/collider_aabb_store.dart';
@@ -80,6 +82,7 @@ void main() {
       const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
     );
     world.faction.add(enemy, const FactionDef(faction: Faction.enemy));
+    attachMissingCombatCapsules(world);
 
     final playerInputIndex = world.playerInput.indexOf(player);
     world.playerInput.strikePressed[playerInputIndex] = true;

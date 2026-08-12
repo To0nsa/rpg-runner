@@ -3,67 +3,126 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_core/ecs/hit/capsule_hit_utils.dart';
 
 void main() {
-  test('capsule intersects AABB along a horizontal segment', () {
-    final hit = capsuleIntersectsAabb(
-      ax: 0,
-      ay: 0,
-      bx: 10,
-      by: 0,
-      radius: 1,
-      minX: 4,
-      minY: -1,
-      maxX: 6,
-      maxY: 1,
+  test('crossing capsule spines overlap', () {
+    expect(
+      capsulesOverlap(
+        firstAx: -5,
+        firstAy: 0,
+        firstBx: 5,
+        firstBy: 0,
+        firstRadius: 1,
+        secondAx: 0,
+        secondAy: -5,
+        secondBx: 0,
+        secondBy: 5,
+        secondRadius: 1,
+      ),
+      isTrue,
     );
-
-    expect(hit, isTrue);
   });
 
-  test('capsule intersects AABB along a vertical segment', () {
-    final hit = capsuleIntersectsAabb(
-      ax: 0,
-      ay: 0,
-      bx: 0,
-      by: 10,
-      radius: 0.5,
-      minX: -0.5,
-      minY: 4.5,
-      maxX: 0.5,
-      maxY: 5.5,
+  test('parallel capsules separated beyond their radii miss', () {
+    expect(
+      capsulesOverlap(
+        firstAx: 0,
+        firstAy: 0,
+        firstBx: 10,
+        firstBy: 0,
+        firstRadius: 1,
+        secondAx: 0,
+        secondAy: 2.01,
+        secondBx: 10,
+        secondBy: 2.01,
+        secondRadius: 1,
+      ),
+      isFalse,
     );
-
-    expect(hit, isTrue);
   });
 
-  test('capsule misses AABB when diagonal is far away', () {
-    final hit = capsuleIntersectsAabb(
-      ax: 0,
-      ay: 0,
-      bx: 10,
-      by: 10,
-      radius: 0.5,
-      minX: 9.5,
-      minY: -0.5,
-      maxX: 10.5,
-      maxY: 0.5,
+  test('capsule tangency counts as contact', () {
+    expect(
+      capsulesOverlap(
+        firstAx: 0,
+        firstAy: 0,
+        firstBx: 10,
+        firstBy: 0,
+        firstRadius: 1,
+        secondAx: 0,
+        secondAy: 2,
+        secondBx: 10,
+        secondBy: 2,
+        secondRadius: 1,
+      ),
+      isTrue,
     );
-
-    expect(hit, isFalse);
   });
 
-  test('capsule intersects AABB when diagonal passes through', () {
-    final hit = capsuleIntersectsAabb(
-      ax: 0,
-      ay: 0,
-      bx: 10,
-      by: 10,
-      radius: 0.5,
-      minX: 4.5,
-      minY: 4.5,
-      maxX: 5.5,
-      maxY: 5.5,
+  test('endpoint contact is detected', () {
+    expect(
+      capsulesOverlap(
+        firstAx: 0,
+        firstAy: 0,
+        firstBx: 4,
+        firstBy: 0,
+        firstRadius: 1,
+        secondAx: 6,
+        secondAy: 0,
+        secondBx: 10,
+        secondBy: 0,
+        secondRadius: 1,
+      ),
+      isTrue,
     );
+  });
 
-    expect(hit, isTrue);
+  test('circle-circle and circle-segment degeneracies are supported', () {
+    expect(
+      capsulesOverlap(
+        firstAx: 0,
+        firstAy: 0,
+        firstBx: 0,
+        firstBy: 0,
+        firstRadius: 1,
+        secondAx: 2,
+        secondAy: 0,
+        secondBx: 2,
+        secondBy: 0,
+        secondRadius: 1,
+      ),
+      isTrue,
+    );
+    expect(
+      capsulesOverlap(
+        firstAx: 0,
+        firstAy: 3.01,
+        firstBx: 0,
+        firstBy: 3.01,
+        firstRadius: 1,
+        secondAx: -4,
+        secondAy: 0,
+        secondBx: 4,
+        secondBy: 0,
+        secondRadius: 2,
+      ),
+      isFalse,
+    );
+  });
+
+  test('overlapping enclosing AABB corners do not imply capsule contact', () {
+    expect(
+      capsulesOverlap(
+        firstAx: 0,
+        firstAy: -4,
+        firstBx: 0,
+        firstBy: 4,
+        firstRadius: 2,
+        secondAx: 3.9,
+        secondAy: 7.9,
+        secondBx: 3.9,
+        secondBy: 15.9,
+        secondRadius: 2,
+      ),
+      isFalse,
+    );
   });
 }

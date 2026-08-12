@@ -5,10 +5,9 @@ import 'collider_aabb_store.dart';
 
 /// Authored upright capsule definition compiled once into physics-grid ticks.
 ///
-/// The authored values remain available so broad-phase and combat AABBs can be
-/// derived without changing existing catalog dimensions. Terrain contact uses
-/// only the checked tick values exposed by this definition and stored in
-/// [WorldContactCapsuleStore].
+/// The authored values remain available so enclosing AABBs can be derived
+/// without changing existing catalog dimensions. Terrain and actor combat use
+/// the checked tick values stored in [WorldContactCapsuleStore].
 class WorldContactCapsuleDef {
   factory WorldContactCapsuleDef({
     required double radius,
@@ -97,7 +96,7 @@ class WorldContactCapsuleDef {
   /// Authored vertical offset quantized to authoritative physics ticks.
   final int offsetYTicks;
 
-  /// Exact authored broad-phase/combat bound derived from this capsule.
+  /// Exact authored enclosing AABB derived from this capsule.
   ColliderAabbDef get derivedAabb => ColliderAabbDef(
     halfX: radius,
     halfY: radius + verticalHalfSegment,

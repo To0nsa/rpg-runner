@@ -13,12 +13,16 @@ double colliderEffectiveOffsetX(
 }) {
   final authoredOffsetX = world.colliderAabb.offsetX[colliderIndex];
   if (authoredOffsetX == 0.0) return authoredOffsetX;
-
-  if (_isFacingMirrored(world, entity)) {
-    return -authoredOffsetX;
-  }
-  return authoredOffsetX;
+  return authoredOffsetX * colliderFacingSign(world, entity);
 }
+
+/// Returns `-1` when authored horizontal shape offsets must be mirrored.
+///
+/// Player and enemy catalogs author offsets relative to their art-facing
+/// direction. Consumers of another actor shape, such as the combat capsule,
+/// must use the same sign to keep all derived bounds centered together.
+int colliderFacingSign(EcsWorld world, EntityId entity) =>
+    _isFacingMirrored(world, entity) ? -1 : 1;
 
 /// Returns the world-space collider center X for [entity].
 double colliderCenterX(

@@ -16,6 +16,8 @@ import 'package:runner_core/projectiles/projectile_catalog.dart';
 import 'package:runner_core/snapshots/enums.dart';
 import 'package:runner_core/tuning/flying_enemy_tuning.dart';
 
+import 'support/combat_test_support.dart';
+
 void main() {
   test(
     'derf cast writes target-point intent, impact remains world-anchored, and damage source is spellImpact',
@@ -71,7 +73,10 @@ void main() {
         world.targetPointIntent.abilityId[intentIndex],
         equals('derf.fire_explosion'),
       );
-      expect(world.targetPointIntent.sourceKind[intentIndex], DeathSourceKind.spellImpact);
+      expect(
+        world.targetPointIntent.sourceKind[intentIndex],
+        DeathSourceKind.spellImpact,
+      );
 
       final executeTick = world.targetPointIntent.tick[intentIndex];
       final targetX = world.targetPointIntent.targetX[intentIndex];
@@ -105,23 +110,31 @@ void main() {
       world.transform.posY[derfTransformIndex] += 120.0;
       HitboxFollowOwnerSystem().step(world);
 
-      expect(world.transform.posX[hitboxTransformIndex], closeTo(anchoredX, 1e-9));
-      expect(world.transform.posY[hitboxTransformIndex], closeTo(anchoredY, 1e-9));
+      expect(
+        world.transform.posX[hitboxTransformIndex],
+        closeTo(anchoredX, 1e-9),
+      );
+      expect(
+        world.transform.posY[hitboxTransformIndex],
+        closeTo(anchoredY, 1e-9),
+      );
 
+      attachMissingCombatCapsules(world);
       final broadphase = BroadphaseGrid(index: GridIndex2D(cellSize: 64.0));
       broadphase.rebuild(world);
-      HitboxDamageSystem(enemyCatalog: enemyCatalog).step(
-        world,
-        broadphase,
-        currentTick: executeTick,
-      );
-      DamageSystem(invulnerabilityTicksOnHit: 0, rngSeed: 123).step(
-        world,
-        currentTick: executeTick,
-      );
+      HitboxDamageSystem(
+        enemyCatalog: enemyCatalog,
+      ).step(world, broadphase, currentTick: executeTick);
+      DamageSystem(
+        invulnerabilityTicksOnHit: 0,
+        rngSeed: 123,
+      ).step(world, currentTick: executeTick);
 
       final lastDamageIndex = world.lastDamage.indexOf(player);
-      expect(world.lastDamage.kind[lastDamageIndex], DeathSourceKind.spellImpact);
+      expect(
+        world.lastDamage.kind[lastDamageIndex],
+        DeathSourceKind.spellImpact,
+      );
     },
   );
 }

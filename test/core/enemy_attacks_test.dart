@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/combat_test_support.dart';
+
 import 'package:runner_core/combat/faction.dart';
 import 'package:runner_core/combat/control_lock.dart';
 import 'package:runner_core/ecs/stores/body_store.dart';
@@ -362,7 +364,9 @@ void main() {
         ),
       );
 
-      final castAbility = AbilityCatalog.shared.resolve('unoco.fire_bolt_cast')!;
+      final castAbility = AbilityCatalog.shared.resolve(
+        'unoco.fire_bolt_cast',
+      )!;
       final fireBolt = const ProjectileCatalog().get(ProjectileId.fireBolt);
       final castCost = castAbility.resolveCostForWeaponType(
         fireBolt.weaponType,
@@ -487,7 +491,9 @@ void main() {
         ),
       );
 
-      final castAbility = AbilityCatalog.shared.resolve('unoco.fire_bolt_cast')!;
+      final castAbility = AbilityCatalog.shared.resolve(
+        'unoco.fire_bolt_cast',
+      )!;
       final fireBolt = const ProjectileCatalog().get(ProjectileId.fireBolt);
       final castCost = castAbility.resolveCostForWeaponType(
         fireBolt.weaponType,
@@ -666,6 +672,7 @@ void main() {
     expect(p, isNotNull);
 
     final damage = DamageSystem(invulnerabilityTicksOnHit: 0, rngSeed: 1);
+    attachMissingCombatCapsules(world);
     final broadphase = BroadphaseGrid(
       index: GridIndex2D(
         cellSize: const SpatialGridTuning().broadphaseCellSize,
@@ -731,6 +738,7 @@ void main() {
     final system = EnemyMeleeSystem(groundEnemyTuning: groundEnemyTuning);
 
     final damage = DamageSystem(invulnerabilityTicksOnHit: 0, rngSeed: 1);
+    attachMissingCombatCapsules(world);
     final broadphase = BroadphaseGrid(
       index: GridIndex2D(
         cellSize: const SpatialGridTuning().broadphaseCellSize,
@@ -858,6 +866,7 @@ void main() {
     final cooldown = CooldownSystem();
     final phase = ActiveAbilityPhaseSystem();
     final damage = DamageSystem(invulnerabilityTicksOnHit: 0, rngSeed: 1);
+    attachMissingCombatCapsules(world);
     final broadphase = BroadphaseGrid(
       index: GridIndex2D(
         cellSize: const SpatialGridTuning().broadphaseCellSize,
@@ -960,6 +969,7 @@ void main() {
     final cooldown = CooldownSystem();
     final phase = ActiveAbilityPhaseSystem();
     final damage = DamageSystem(invulnerabilityTicksOnHit: 0, rngSeed: 1);
+    attachMissingCombatCapsules(world);
     final broadphase = BroadphaseGrid(
       index: GridIndex2D(
         cellSize: const SpatialGridTuning().broadphaseCellSize,
@@ -1082,6 +1092,7 @@ void main() {
     final phase = ActiveAbilityPhaseSystem();
     final status = StatusSystem(tickHz: 60);
     final damage = DamageSystem(invulnerabilityTicksOnHit: 0, rngSeed: 1);
+    attachMissingCombatCapsules(world);
     final broadphase = BroadphaseGrid(
       index: GridIndex2D(
         cellSize: const SpatialGridTuning().broadphaseCellSize,

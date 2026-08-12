@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/combat_test_support.dart';
+
 import 'package:runner_core/combat/damage_type.dart';
 import 'package:runner_core/combat/faction.dart';
 import 'package:runner_core/ecs/spatial/broadphase_grid.dart';
@@ -81,6 +83,7 @@ void main() {
     );
     expect(projectileItem, isNotNull);
 
+    attachMissingCombatCapsules(world);
     final broadphase = BroadphaseGrid(
       index: GridIndex2D(
         cellSize: const SpatialGridTuning().broadphaseCellSize,
@@ -143,6 +146,7 @@ void main() {
     );
     world.hitOnce.add(hitbox);
 
+    attachMissingCombatCapsules(world);
     final broadphase = BroadphaseGrid(
       index: GridIndex2D(
         cellSize: const SpatialGridTuning().broadphaseCellSize,
@@ -220,6 +224,7 @@ void main() {
     );
     world.hitOnce.add(hitbox);
 
+    attachMissingCombatCapsules(world);
     final broadphase = BroadphaseGrid(
       index: GridIndex2D(
         cellSize: const SpatialGridTuning().broadphaseCellSize,

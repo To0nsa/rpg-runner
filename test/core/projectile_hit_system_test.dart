@@ -22,6 +22,7 @@ import 'package:runner_core/enemies/death_behavior.dart';
 import 'package:runner_core/ecs/stores/death_state_store.dart';
 
 import 'test_spawns.dart';
+import 'support/combat_test_support.dart';
 import 'package:runner_core/ecs/entity_factory.dart';
 
 void main() {
@@ -101,6 +102,7 @@ void main() {
         gravityScale: projectileDef.gravityScale,
       );
 
+      attachMissingCombatCapsules(world);
       final broadphase = BroadphaseGrid(
         index: GridIndex2D(
           cellSize: const SpatialGridTuning().broadphaseCellSize,
@@ -181,6 +183,7 @@ void main() {
     expect(projectile, isNotNull);
 
     final damage = DamageSystem(invulnerabilityTicksOnHit: 0, rngSeed: 1);
+    attachMissingCombatCapsules(world);
     final broadphase = BroadphaseGrid(
       index: GridIndex2D(
         cellSize: const SpatialGridTuning().broadphaseCellSize,

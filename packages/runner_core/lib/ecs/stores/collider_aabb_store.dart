@@ -1,7 +1,7 @@
 import '../entity_id.dart';
 import '../sparse_set.dart';
 
-/// AABB broad-phase, combat, trigger, and render-debug bound for an entity.
+/// AABB broad-phase, trigger, and render-debug bound for an entity.
 ///
 /// Representation is center-based for stability:
 /// - `Transform.pos` is treated as the entity center
@@ -9,8 +9,8 @@ import '../sparse_set.dart';
 /// - extents are half-sizes in world units (virtual pixels)
 ///
 /// When an actor has an authoritative world-contact capsule, this AABB remains
-/// the derived broad-phase, combat/trigger, culling, and render-debug bound; it
-/// is not used to classify polygon terrain contact.
+/// the derived broad-phase, trigger, culling, and render-debug bound. Exact
+/// actor combat and polygon-terrain contact use the actor capsule instead.
 class ColliderAabbDef {
   const ColliderAabbDef({
     required this.halfX,

@@ -1,4 +1,5 @@
 import '../../combat/faction.dart';
+import '../../collision/terrain/terrain_numeric.dart';
 import '../collider_aabb_utils.dart';
 import '../entity_id.dart';
 import '../world.dart';
@@ -21,7 +22,8 @@ bool areAllies(Faction a, Faction b) => a == b;
 /// A target is included if it has:
 /// - `HealthStore` (source list)
 /// - `FactionStore` (for friendly-fire filtering)
-/// - `TransformStore` + `ColliderAabbStore` (for overlap tests)
+/// - `TransformStore` + `ColliderAabbStore` (for non-combat consumers)
+/// - `WorldContactCapsuleStore` (for combat bounds and narrow phase)
 ///
 /// Determinism: preserves `HealthStore.denseEntities` iteration order.
 class DamageableTargetCache {
@@ -36,6 +38,17 @@ class DamageableTargetCache {
   final List<double> centerY = <double>[];
   final List<double> halfX = <double>[];
   final List<double> halfY = <double>[];
+
+  /// World-space upper target-capsule spine endpoint.
+  final List<double> capsuleAx = <double>[];
+  final List<double> capsuleAy = <double>[];
+
+  /// World-space lower target-capsule spine endpoint.
+  final List<double> capsuleBx = <double>[];
+  final List<double> capsuleBy = <double>[];
+
+  /// Target-capsule radius in world units.
+  final List<double> capsuleRadius = <double>[];
 
   int get length => entities.length;
   bool get isEmpty => entities.isEmpty;
@@ -52,6 +65,11 @@ class DamageableTargetCache {
     centerY.clear();
     halfX.clear();
     halfY.clear();
+    capsuleAx.clear();
+    capsuleAy.clear();
+    capsuleBx.clear();
+    capsuleBy.clear();
+    capsuleRadius.clear();
 
     final health = world.health;
     if (health.denseEntities.isEmpty) return;
@@ -70,28 +88,41 @@ class DamageableTargetCache {
       if (ti == null) continue;
       final aabbi = world.colliderAabb.tryIndexOf(e);
       if (aabbi == null) continue;
+      final capsuleIndex = world.worldContactCapsule.tryIndexOf(e);
+      if (capsuleIndex == null) {
+        throw StateError(
+          'Damageable combat target $e has no WorldContactCapsuleStore entry.',
+        );
+      }
 
-      // 4. Pre-calculate world-space AABB to save work during hit tests.
-      // (Transform Pos + Collider Offset)
-      final cx = colliderCenterX(
-        world,
-        entity: e,
-        transformIndex: ti,
-        colliderIndex: aabbi,
-      );
-      final cy = colliderCenterY(
-        world,
-        transformIndex: ti,
-        colliderIndex: aabbi,
-      );
+      final scale = terrainPhysicsTicksPerWorldUnit.toDouble();
+      final radius =
+          world.worldContactCapsule.radiusTicks[capsuleIndex] / scale;
+      final verticalHalfSegment =
+          world.worldContactCapsule.verticalHalfSegmentTicks[capsuleIndex] /
+          scale;
+      final cx =
+          world.transform.posX[ti] +
+          world.worldContactCapsule.offsetXTicks[capsuleIndex] *
+              colliderFacingSign(world, e) /
+              scale;
+      final cy =
+          world.transform.posY[ti] +
+          world.worldContactCapsule.offsetYTicks[capsuleIndex] / scale;
 
-      // 5. Commit valid target to cache.
+      // The spatial grid indexes these tight bounds, while combat confirmation
+      // uses the matching capsule values cached beside them.
       entities.add(e);
       factions.add(world.faction.faction[fi]);
       centerX.add(cx);
       centerY.add(cy);
-      halfX.add(world.colliderAabb.halfX[aabbi]);
-      halfY.add(world.colliderAabb.halfY[aabbi]);
+      halfX.add(radius);
+      halfY.add(radius + verticalHalfSegment);
+      capsuleAx.add(cx);
+      capsuleAy.add(cy - verticalHalfSegment);
+      capsuleBx.add(cx);
+      capsuleBy.add(cy + verticalHalfSegment);
+      capsuleRadius.add(radius);
     }
   }
 }

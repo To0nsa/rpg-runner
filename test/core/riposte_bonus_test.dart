@@ -11,59 +11,68 @@ import 'package:runner_core/ecs/stores/hitbox_store.dart';
 import 'package:runner_core/ecs/systems/hitbox_damage_system.dart';
 import 'package:runner_core/ecs/world.dart';
 
+import 'support/combat_test_support.dart';
+
 void main() {
-  test('Riposte bonus applies only when a melee hit lands (and is then consumed)', () {
-    final world = EcsWorld();
+  test(
+    'Riposte bonus applies only when a melee hit lands (and is then consumed)',
+    () {
+      final world = EcsWorld();
 
-    final attacker = world.createEntity();
-    world.health.add(
-      attacker,
-      const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
-    );
-    world.faction.add(attacker, const FactionDef(faction: Faction.player));
-    world.transform.add(attacker, posX: 0, posY: 0, velX: 0, velY: 0);
-    world.colliderAabb.add(attacker, const ColliderAabbDef(halfX: 1, halfY: 1));
+      final attacker = world.createEntity();
+      world.health.add(
+        attacker,
+        const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
+      );
+      world.faction.add(attacker, const FactionDef(faction: Faction.player));
+      world.transform.add(attacker, posX: 0, posY: 0, velX: 0, velY: 0);
+      world.colliderAabb.add(
+        attacker,
+        const ColliderAabbDef(halfX: 1, halfY: 1),
+      );
 
-    final target = world.createEntity();
-    world.health.add(
-      target,
-      const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
-    );
-    world.faction.add(target, const FactionDef(faction: Faction.enemy));
-    world.transform.add(target, posX: 0, posY: 0, velX: 0, velY: 0);
-    world.colliderAabb.add(target, const ColliderAabbDef(halfX: 1, halfY: 1));
+      final target = world.createEntity();
+      world.health.add(
+        target,
+        const HealthDef(hp: 10000, hpMax: 10000, regenPerSecond100: 0),
+      );
+      world.faction.add(target, const FactionDef(faction: Faction.enemy));
+      world.transform.add(target, posX: 0, posY: 0, velX: 0, velY: 0);
+      world.colliderAabb.add(target, const ColliderAabbDef(halfX: 1, halfY: 1));
 
-    world.riposte.grant(attacker, expiresAtTick: 60, bonusBp: 10000);
+      world.riposte.grant(attacker, expiresAtTick: 60, bonusBp: 10000);
 
-    final hitbox = world.createEntity();
-    world.transform.add(hitbox, posX: 0, posY: 0, velX: 0, velY: 0);
-    world.hitbox.add(
-      hitbox,
-      HitboxDef(
-        owner: attacker,
-        faction: Faction.player,
-        damage100: 1000,
-        damageType: DamageType.physical,
-        halfX: 1.0,
-        halfY: 1.0,
-        offsetX: 0.0,
-        offsetY: 0.0,
-        dirX: 1.0,
-        dirY: 0.0,
-      ),
-    );
-    world.hitOnce.add(hitbox);
+      final hitbox = world.createEntity();
+      world.transform.add(hitbox, posX: 0, posY: 0, velX: 0, velY: 0);
+      world.hitbox.add(
+        hitbox,
+        HitboxDef(
+          owner: attacker,
+          faction: Faction.player,
+          damage100: 1000,
+          damageType: DamageType.physical,
+          halfX: 1.0,
+          halfY: 1.0,
+          offsetX: 0.0,
+          offsetY: 0.0,
+          dirX: 1.0,
+          dirY: 0.0,
+        ),
+      );
+      world.hitOnce.add(hitbox);
 
-    final broadphase = BroadphaseGrid(index: GridIndex2D(cellSize: 64));
-    broadphase.rebuild(world);
+      attachMissingCombatCapsules(world);
+      final broadphase = BroadphaseGrid(index: GridIndex2D(cellSize: 64));
+      broadphase.rebuild(world);
 
-    HitboxDamageSystem().step(world, broadphase, currentTick: 0);
+      HitboxDamageSystem().step(world, broadphase, currentTick: 0);
 
-    expect(world.damageQueue.length, equals(1));
-    expect(world.damageQueue.target.single, equals(target));
-    expect(world.damageQueue.amount100.single, equals(2000));
-    expect(world.riposte.has(attacker), isFalse);
-  });
+      expect(world.damageQueue.length, equals(1));
+      expect(world.damageQueue.target.single, equals(target));
+      expect(world.damageQueue.amount100.single, equals(2000));
+      expect(world.riposte.has(attacker), isFalse);
+    },
+  );
 
   test('Riposte bonus is not consumed on misses', () {
     final world = EcsWorld();
@@ -107,6 +116,7 @@ void main() {
     );
     world.hitOnce.add(hitbox);
 
+    attachMissingCombatCapsules(world);
     final broadphase = BroadphaseGrid(index: GridIndex2D(cellSize: 64));
     broadphase.rebuild(world);
 

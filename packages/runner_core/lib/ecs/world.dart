@@ -156,16 +156,16 @@ class EcsWorld {
   /// Physics properties like mass, friction, and restitution.
   late final BodyStore body = _register(BodyStore());
 
-  /// AABB for broad phase, combat/triggers, culling, and projectile terrain.
+  /// AABB for broad phase, triggers, culling, and projectile terrain.
   ///
   /// A terrain-integrated actor's [worldContactCapsule] is authoritative for
-  /// static terrain; this exact derived AABB remains its non-terrain bound.
+  /// static terrain and combat; its enclosing AABB remains the spatial bound.
   late final ColliderAabbStore colliderAabb = _register(ColliderAabbStore());
 
   /// Runtime state of collisions (e.g., is grounded, wall contact).
   late final CollisionStateStore collision = _register(CollisionStateStore());
 
-  /// Upright capsule used only by the staged terrain-motion authority.
+  /// Upright capsule used by terrain motion and actor combat narrow phase.
   late final WorldContactCapsuleStore worldContactCapsule = _register(
     WorldContactCapsuleStore(),
   );

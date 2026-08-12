@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'dart:math' as math;
 
+import 'support/combat_test_support.dart';
+
 import 'package:runner_core/abilities/ability_catalog.dart';
 import 'package:runner_core/abilities/ability_def.dart';
 import 'package:runner_core/accessories/accessory_catalog.dart';
@@ -259,8 +261,8 @@ void main() {
           projectileSlotSpellId: ProjectileId.fireBolt,
         ),
       );
-      final baseDamageAfterGlobal = (ability.baseDamage *
-              (10000 + resolvedStats.globalPowerBonusBp)) ~/
+      final baseDamageAfterGlobal =
+          (ability.baseDamage * (10000 + resolvedStats.globalPowerBonusBp)) ~/
           10000;
 
       expect(tap.damage100, (baseDamageAfterGlobal * 8200) ~/ 10000);
@@ -407,6 +409,7 @@ void main() {
       maxPierceHits: 2,
     );
 
+    attachMissingCombatCapsules(world);
     final broadphase = BroadphaseGrid(
       index: GridIndex2D(
         cellSize: const SpatialGridTuning().broadphaseCellSize,
@@ -477,6 +480,7 @@ void main() {
         maxPierceHits: 3,
       );
 
+      attachMissingCombatCapsules(world);
       final broadphase = BroadphaseGrid(
         index: GridIndex2D(
           cellSize: const SpatialGridTuning().broadphaseCellSize,

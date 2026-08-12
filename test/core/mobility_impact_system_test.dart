@@ -21,6 +21,8 @@ import 'package:runner_core/events/game_event.dart';
 import 'package:runner_core/snapshots/enums.dart';
 import 'package:runner_core/tuning/spatial_grid_tuning.dart';
 
+import 'support/combat_test_support.dart';
+
 void main() {
   test('roll contact queues stun once per target during one activation', () {
     final world = EcsWorld();
@@ -30,6 +32,7 @@ void main() {
     final impactSystem = MobilityImpactSystem(
       abilities: const AbilityCatalog(),
     );
+    attachMissingCombatCapsules(world);
     final broadphase = BroadphaseGrid(
       index: GridIndex2D(
         cellSize: const SpatialGridTuning().broadphaseCellSize,
@@ -81,6 +84,7 @@ void main() {
     final impactSystem = MobilityImpactSystem(
       abilities: const AbilityCatalog(),
     );
+    attachMissingCombatCapsules(world);
     final broadphase = BroadphaseGrid(
       index: GridIndex2D(
         cellSize: const SpatialGridTuning().broadphaseCellSize,
@@ -140,6 +144,7 @@ void main() {
     final impactSystem = MobilityImpactSystem(
       abilities: const AbilityCatalog(),
     );
+    attachMissingCombatCapsules(world);
     final broadphase = BroadphaseGrid(
       index: GridIndex2D(
         cellSize: const SpatialGridTuning().broadphaseCellSize,
@@ -178,6 +183,7 @@ void main() {
     final impactSystem = MobilityImpactSystem(
       abilities: const _TestAbilities(),
     );
+    attachMissingCombatCapsules(world);
     final broadphase = BroadphaseGrid(
       index: GridIndex2D(
         cellSize: const SpatialGridTuning().broadphaseCellSize,

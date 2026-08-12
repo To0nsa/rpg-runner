@@ -1,5 +1,6 @@
 import '../../abilities/ability_catalog.dart';
 import '../../abilities/ability_def.dart';
+import '../../collision/terrain/terrain_numeric.dart';
 import '../../combat/damage.dart';
 import '../../combat/status/status.dart';
 import '../../events/game_event.dart';
@@ -32,7 +33,7 @@ class MobilityImpactSystem {
 
     final factions = world.faction;
     final transforms = world.transform;
-    final colliders = world.colliderAabb;
+    final capsules = world.worldContactCapsule;
 
     for (var i = 0; i < active.denseEntities.length; i += 1) {
       final source = active.denseEntities[i];
@@ -54,31 +55,32 @@ class MobilityImpactSystem {
 
       final sourceFactionIndex = factions.tryIndexOf(source);
       final sourceTransformIndex = transforms.tryIndexOf(source);
-      final sourceColliderIndex = colliders.tryIndexOf(source);
+      final sourceCapsuleIndex = capsules.tryIndexOf(source);
       if (sourceFactionIndex == null ||
           sourceTransformIndex == null ||
-          sourceColliderIndex == null) {
+          sourceCapsuleIndex == null) {
         continue;
       }
 
-      final sourceCenterX = colliderCenterX(
-        world,
-        entity: source,
-        transformIndex: sourceTransformIndex,
-        colliderIndex: sourceColliderIndex,
-      );
+      final scale = terrainPhysicsTicksPerWorldUnit.toDouble();
+      final sourceCenterX =
+          transforms.posX[sourceTransformIndex] +
+          capsules.offsetXTicks[sourceCapsuleIndex] *
+              colliderFacingSign(world, source) /
+              scale;
       final sourceCenterY =
           transforms.posY[sourceTransformIndex] +
-          colliders.offsetY[sourceColliderIndex];
-      final sourceHalfX = colliders.halfX[sourceColliderIndex];
-      final sourceHalfY = colliders.halfY[sourceColliderIndex];
+          capsules.offsetYTicks[sourceCapsuleIndex] / scale;
+      final sourceHalfSegment =
+          capsules.verticalHalfSegmentTicks[sourceCapsuleIndex] / scale;
 
-      _resolver.collectOrderedOverlapsCenters(
+      _resolver.collectOrderedOverlapsCapsule(
         broadphase: broadphase,
-        centerX: sourceCenterX,
-        centerY: sourceCenterY,
-        halfX: sourceHalfX,
-        halfY: sourceHalfY,
+        ax: sourceCenterX,
+        ay: sourceCenterY - sourceHalfSegment,
+        bx: sourceCenterX,
+        by: sourceCenterY + sourceHalfSegment,
+        radius: capsules.radiusTicks[sourceCapsuleIndex] / scale,
         owner: source,
         sourceFaction: factions.faction[sourceFactionIndex],
         outTargetIndices: _overlaps,

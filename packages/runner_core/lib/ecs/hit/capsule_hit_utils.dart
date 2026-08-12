@@ -1,100 +1,106 @@
 import 'dart:math' as math;
 
-const double _segmentEps = 1e-12;
+const double _degenerateSegmentLengthSquared = 1e-24;
 
-/// Checks if a capsule (line segment + radius) intersects an Axis-Aligned Bounding Box (AABB).
+/// Returns whether two finite-segment capsules overlap or touch.
 ///
-/// The capsule is defined by start point ([ax], [ay]), end point ([bx], [by]),
-/// and [radius]. The AABB is defined by min/max coordinates.
-///
-/// This works by padding the AABB by the capsule radius and performing a segment-to-box
-/// intersection test.
-bool capsuleIntersectsAabb({
-  required double ax,
-  required double ay,
-  required double bx,
-  required double by,
-  required double radius,
-  required double minX,
-  required double minY,
-  required double maxX,
-  required double maxY,
+/// Coordinates and radii use world units. A zero-length segment represents a
+/// circle. The calculation is allocation-free and treats exact tangency as a
+/// hit so all combat delivery paths share one boundary rule.
+bool capsulesOverlap({
+  required double firstAx,
+  required double firstAy,
+  required double firstBx,
+  required double firstBy,
+  required double firstRadius,
+  required double secondAx,
+  required double secondAy,
+  required double secondBx,
+  required double secondBy,
+  required double secondRadius,
 }) {
-  final r = radius < 0 ? 0.0 : radius;
-  // Expanding the AABB by the radius allows us to treat the capsule as a simple
-  // line segment against the larger box.
-  return _segmentIntersectsAabb(
-    ax: ax,
-    ay: ay,
-    bx: bx,
-    by: by,
-    minX: minX - r,
-    minY: minY - r,
-    maxX: maxX + r,
-    maxY: maxY + r,
-  );
+  final radiusSum = math.max(0.0, firstRadius) + math.max(0.0, secondRadius);
+  return segmentDistanceSquared(
+        firstAx: firstAx,
+        firstAy: firstAy,
+        firstBx: firstBx,
+        firstBy: firstBy,
+        secondAx: secondAx,
+        secondAy: secondAy,
+        secondBx: secondBx,
+        secondBy: secondBy,
+      ) <=
+      radiusSum * radiusSum;
 }
 
-/// Core segment-AABB intersection test using slab method logic.
+/// Returns the squared minimum distance between two finite segments.
 ///
-/// Checks if the line segment from A to B intersects the given AABB.
-bool _segmentIntersectsAabb({
-  required double ax,
-  required double ay,
-  required double bx,
-  required double by,
-  required double minX,
-  required double minY,
-  required double maxX,
-  required double maxY,
+/// Coordinates use world units. Degenerate point/segment and point/point cases
+/// are handled explicitly, and no temporary geometry objects are allocated.
+double segmentDistanceSquared({
+  required double firstAx,
+  required double firstAy,
+  required double firstBx,
+  required double firstBy,
+  required double secondAx,
+  required double secondAy,
+  required double secondBx,
+  required double secondBy,
 }) {
-  final dx = bx - ax;
-  final dy = by - ay;
-  var t0 = 0.0;
-  var t1 = 1.0;
+  final firstDx = firstBx - firstAx;
+  final firstDy = firstBy - firstAy;
+  final secondDx = secondBx - secondAx;
+  final secondDy = secondBy - secondAy;
+  final originDx = firstAx - secondAx;
+  final originDy = firstAy - secondAy;
 
-  // --- X-axis slab test ---
-  if (dx.abs() < _segmentEps) {
-    // Segment is parallel to Y-axis. If X is outside, no intersection.
-    if (ax < minX || ax > maxX) return false;
-  } else {
-    // Compute intersection times (t) with X-planes.
-    final inv = 1.0 / dx;
-    var tNear = (minX - ax) * inv;
-    var tFar = (maxX - ax) * inv;
-    if (tNear > tFar) {
-      final tmp = tNear;
-      tNear = tFar;
-      tFar = tmp;
-    }
-    // Narrow the valid segment range [t0, t1].
-    t0 = math.max(t0, tNear);
-    t1 = math.min(t1, tFar);
-    // If range becomes invalid, segment missed.
-    if (t0 > t1) return false;
+  final firstLengthSquared = firstDx * firstDx + firstDy * firstDy;
+  final secondLengthSquared = secondDx * secondDx + secondDy * secondDy;
+  final secondOriginDot = secondDx * originDx + secondDy * originDy;
+
+  double firstT;
+  double secondT;
+  if (firstLengthSquared <= _degenerateSegmentLengthSquared &&
+      secondLengthSquared <= _degenerateSegmentLengthSquared) {
+    return originDx * originDx + originDy * originDy;
   }
 
-  // --- Y-axis slab test ---
-  if (dy.abs() < _segmentEps) {
-    // Segment is parallel to X-axis. If Y is outside, no intersection.
-    if (ay < minY || ay > maxY) return false;
+  if (firstLengthSquared <= _degenerateSegmentLengthSquared) {
+    firstT = 0.0;
+    secondT = (secondOriginDot / secondLengthSquared).clamp(0.0, 1.0);
   } else {
-    // Compute intersection times (t) with Y-planes.
-    final inv = 1.0 / dy;
-    var tNear = (minY - ay) * inv;
-    var tFar = (maxY - ay) * inv;
-    if (tNear > tFar) {
-      final tmp = tNear;
-      tNear = tFar;
-      tFar = tmp;
+    final firstOriginDot = firstDx * originDx + firstDy * originDy;
+    if (secondLengthSquared <= _degenerateSegmentLengthSquared) {
+      secondT = 0.0;
+      firstT = (-firstOriginDot / firstLengthSquared).clamp(0.0, 1.0);
+    } else {
+      final directionsDot = firstDx * secondDx + firstDy * secondDy;
+      final denominator =
+          firstLengthSquared * secondLengthSquared -
+          directionsDot * directionsDot;
+      firstT = denominator.abs() > _degenerateSegmentLengthSquared
+          ? ((directionsDot * secondOriginDot -
+                        firstOriginDot * secondLengthSquared) /
+                    denominator)
+                .clamp(0.0, 1.0)
+          : 0.0;
+      secondT =
+          (directionsDot * firstT + secondOriginDot) / secondLengthSquared;
+
+      if (secondT < 0.0) {
+        secondT = 0.0;
+        firstT = (-firstOriginDot / firstLengthSquared).clamp(0.0, 1.0);
+      } else if (secondT > 1.0) {
+        secondT = 1.0;
+        firstT = ((directionsDot - firstOriginDot) / firstLengthSquared).clamp(
+          0.0,
+          1.0,
+        );
+      }
     }
-    // Further narrow the valid segment range.
-    t0 = math.max(t0, tNear);
-    t1 = math.min(t1, tFar);
-    // If range becomes invalid, segment missed.
-    if (t0 > t1) return false;
   }
 
-  // Intersection confirmed if we survived both slab tests.
-  return true;
+  final separationX = originDx + firstDx * firstT - secondDx * secondT;
+  final separationY = originDy + firstDy * firstT - secondDy * secondT;
+  return separationX * separationX + separationY * separationY;
 }
