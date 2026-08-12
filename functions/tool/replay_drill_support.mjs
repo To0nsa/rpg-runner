@@ -198,6 +198,23 @@ export async function refreshAnonymousAccount(apiKey, refreshToken) {
   };
 }
 
+export async function deleteFirebaseAccount(apiKey, idToken) {
+  const response = await fetch(
+    `https://identitytoolkit.googleapis.com/v1/accounts:delete?key=${encodeURIComponent(apiKey)}`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ idToken }),
+    },
+  );
+  const body = await readJson(response);
+  if (!response.ok) {
+    throw new Error(
+      `Firebase Auth account deletion failed (${response.status}): ${safeBody(body)}`,
+    );
+  }
+}
+
 export async function callFunction({
   projectId,
   region,

@@ -10,6 +10,7 @@ import {
   canonicalSha256,
   createAnonymousAccount,
   delay,
+  deleteFirebaseAccount,
   invokePrivateService,
   isObject,
   optionalArg,
@@ -36,6 +37,9 @@ const statePath = optionalArg(
 );
 const firestore = new FirestoreRest({ projectId });
 const storage = new StorageRest({ bucket });
+const { currentGameCompatVersion } = await import(
+  new URL("../lib/runs/compatibility.js", import.meta.url)
+);
 
 switch (command) {
   case "prepare":
@@ -239,7 +243,7 @@ async function createTicket({ auth, sessionId, mode, suffix }) {
       clientRequestId: `${suffix}-${randomBytes(8).toString("hex")}`,
       mode,
       levelId: "field",
-      gameCompatVersion: "2026.03.0",
+      gameCompatVersion: currentGameCompatVersion,
     },
   });
   assert(isObject(result.runTicket), `${mode} template ticket was malformed.`);
@@ -930,17 +934,35 @@ async function requestCleanup() {
   assert(state.uid && state.refreshToken, "Cleanup credentials are unavailable.");
   const apiKey = await readFirebaseWebApiKey();
   const refreshed = await refreshAnonymousAccount(apiKey, state.refreshToken);
-  const response = await callFunction({
-    projectId,
-    region,
-    idToken: refreshed.idToken,
-    functionName: "accountDelete",
-    data: { userId: state.uid, sessionId: state.sessionId },
-  });
-  assert(isObject(response.result), "Account deletion response was malformed.");
+  let cleanupStatus;
+  try {
+    const response = await callFunction({
+      projectId,
+      region,
+      idToken: refreshed.idToken,
+      functionName: "accountDelete",
+      data: { userId: state.uid, sessionId: state.sessionId },
+    });
+    assert(
+      isObject(response.result),
+      "Account deletion response was malformed.",
+    );
+    cleanupStatus = response.result.status;
+  } catch (error) {
+    if (
+      state.phase !== "prepare_failed" ||
+      (state.templateRunSessionIds?.length ?? 0) !== 0 ||
+      (state.fixtures?.length ?? 0) !== 0 ||
+      !String(error).includes("linked Google Play Games identity")
+    ) {
+      throw error;
+    }
+    await deleteFirebaseAccount(apiKey, refreshed.idToken);
+    cleanupStatus = "auth_only_deleted";
+  }
   state.refreshToken = null;
   state.cleanupRequestedAt = new Date().toISOString();
-  state.cleanupRequestStatus = response.result.status;
+  state.cleanupRequestStatus = cleanupStatus;
   state.phase = "cleanup_requested";
   await writeState(statePath, state);
   console.log(
@@ -948,7 +970,7 @@ async function requestCleanup() {
       {
         command,
         uidHash: state.uidHash,
-        status: response.result.status,
+        status: cleanupStatus,
         credentialScrubbed: true,
       },
       null,
@@ -1024,8 +1046,9 @@ async function verifyClean() {
     ...pendingObjects.map(() => `pending_object/${state.uidHash}`),
     ...validatedObjects.map(() => `validated_object/${state.uidHash}`),
   );
+  const authOnlyCleanup = state.cleanupRequestStatus === "auth_only_deleted";
   assert(
-    deletion?.data.state === "complete",
+    deletion?.data.state === "complete" || (authOnlyCleanup && deletion === null),
     `Deletion state is ${deletion?.data.state ?? "missing"}.`,
   );
   assert(residual.length === 0, `Residual drill data: ${residual.join(", ")}`);
@@ -1037,7 +1060,7 @@ async function verifyClean() {
       {
         command,
         uidHash: state.uidHash,
-        deletionState: deletion.data.state,
+        deletionState: deletion?.data.state ?? "auth_only_deleted",
         residualCount: 0,
         verifiedAt: state.cleanupVerifiedAt,
       },
