@@ -34,9 +34,10 @@ import 'terrain_ballistic_projectile_system.dart';
 
 /// One integration owner for dynamic-body movement during a Core tick.
 ///
-/// Normal GameCore construction uses [LegacyWorldMotionAuthority]. The
-/// narrowly scoped terrain harness uses [TerrainMultiBodyWorldMotionAuthority]
-/// and rejects unsupported dynamic bodies rather than mixing authorities.
+/// Normal streamed GameCore construction uses
+/// [TerrainMultiBodyWorldMotionAuthority]. Synthetic track-disabled fixtures
+/// may temporarily use [LegacyWorldMotionAuthority] during the Phase 6
+/// dependency-ordered deletion; no production option selects between them.
 abstract interface class WorldMotionAuthority {
   bool get usesTerrainPlayer;
 
@@ -479,7 +480,7 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
     );
   }
 
-  /// Creates the explicit streamed-terrain harness from one admitted candidate.
+  /// Creates streamed-terrain authority from one admitted candidate.
   ///
   /// Collision, navigation, placement, and rendering retain the candidate's
   /// exact runtime objects from the first player placement onward.

@@ -26,7 +26,7 @@ const _stagedTerrainTestDigest =
     'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
 
 void main() {
-  test('normal construction keeps legacy spawn and integration behavior', () {
+  test('track-disabled fixture keeps legacy integration behavior', () {
     final core = GameCore(
       seed: 7,
       levelDefinition: _level(),

@@ -67,15 +67,14 @@ order; the contract below records the dependencies that must survive changes.
 | 7 | Resolve projectile/hitbox/mobility/world hits, then status and damage | Damage middleware changes queued damage before application; reactive effects follow applied damage. |
 | 8 | Apply queued statuses and visual cues, process deaths, regen, animation, and cleanup | Death is resolved before regen/cleanup; animation reflects final gameplay state for the tick. |
 
-World-motion ownership is selected once when `GameCore` is constructed. The
-normal constructor installs the legacy rectangle collision adapter. The
-test/tool-only `GameCore.terrainMotionHarness` factory installs the staged
-multi-body capsule authority against caller-supplied immutable terrain.
-`GameCore.stagedTerrainStreamHarness` is the Phase 5 full-stream test boundary:
-it performs the normal scheduler prewarm, constructs terrain authority from
-that exact admitted candidate before player placement, and atomically consumes
-later spawn/cull candidates. Neither harness is reachable from normal/replay
-construction or a serialized run option.
+World-motion ownership is selected once when `GameCore` is constructed. Normal
+streamed construction performs the scheduler prewarm, installs the multi-body
+capsule authority from that exact admitted candidate before player placement,
+and atomically consumes later spawn/cull candidates. Replay validation inherits
+the same path without a serialized authority option. The test/tool-only
+`GameCore.terrainMotionHarness` factory remains available for focused synthetic
+geometry, while track-disabled legacy fixtures are temporary Phase 6 cleanup
+targets rather than a production selection mode.
 
 Both owners follow the same ordering seam; the terrain-only publication step is
 a no-op for legacy ownership:
@@ -99,33 +98,32 @@ intent into one support-distance solve. Accepted jump launch explicitly clears
 prior support so the same tick remains world-space. Animation and ground-impact
 death read final support only after integration.
 
-The terrain-only enemy navigation adapter obtains its graph and placement
+The terrain enemy navigation adapter obtains its graph and placement
 query from the same published runtime bundle. Bundle-version changes clear all
 per-entity surface/path/active-edge state before AI; airborne player targeting
 uses the terrain capsule trajectory predictor. Its output remains the existing
 navigation-intent contract, including finite fallback bounds and active jump
-timing consumed by the shared ground-enemy locomotion system. Legacy authority
-continues to select the legacy rectangle navigator.
+timing consumed by the shared ground-enemy locomotion system. Normal Field and
+Forest streams select this adapter from their published terrain authority.
 
-The terrain harness rejects unknown enabled dynamic bodies and never falls
+Terrain authority rejects unknown enabled dynamic bodies and never falls
 back to rectangle collision. Catalog-owned actors use their capsule policies;
 physics-driven projectiles use a distinct continuous AABB terrain sweep in the
-same motion phase. The harness is not selected by authored level data,
-replays, saved state, UI, or remote configuration. See the terrain controller
-TDD for the staged boundary and direct-cutover requirements.
+same motion phase. No replay field, saved state, UI, or remote configuration
+selects terrain versus legacy behavior. See the terrain controller TDD for the
+staged boundary and remaining legacy-deletion requirements.
 
 A harness replacement is built completely before queueing and becomes visible
 at the next explicit world-publication/preparation boundary. It cannot be
 queued mid-integration,
 and motion rejects support from any version other than the published bundle.
-Normal `TrackManager` collision/graph publication remains legacy pending the
-direct authority cutover. Streaming-enabled normal and replay construction do
-admit the generated staged artifact, bind the scheduler's exact active chunk
-selection, and replace one complete collision/navigation/render candidate
-after each spawn/cull rebuild. Only that candidate's immutable render snapshot
-is public at this stage; it does not yet change simulation outcomes. A custom
-legacy-only selection with no authored `chunkKey` publishes no staged snapshot
-and never substitutes an unrelated generated record.
+Streaming-enabled normal and replay construction admit the generated staged
+artifact, bind the scheduler's exact active chunk selection, and replace one
+complete collision/navigation/render candidate after each spawn/cull rebuild.
+The candidate owns simulation and rendering together. A synthetic custom
+selection with no authored `chunkKey` publishes no staged snapshot and remains
+on the temporary track-disabled/custom-fixture cleanup path; it never
+substitutes an unrelated generated record.
 
 Startup resolves the scheduler's initial selection before spawning the player
 or any other ECS entity. `TrackManager` adopts that exact prewarmed streamer;
@@ -159,10 +157,10 @@ events through `GameCore.drainEvents`.
   replay validation.
 
 Streaming-enabled normal and replay construction expose the selected staged
-candidate's `StagedTerrainRenderSnapshot`; track-disabled legacy fixtures leave
-it null. A legacy-only custom source with an anonymous active chunk also leaves
-it null. Normal motion still uses the legacy collision and graph projection.
-The isolated terrain harness may queue a fully constructed staged candidate;
+candidate's `StagedTerrainRenderSnapshot` and use its matching collision,
+support, placement, and graph bundle. Track-disabled legacy fixtures and a
+custom source with an anonymous active chunk leave it null. The isolated
+terrain harness may queue a fully constructed staged candidate;
 its exact collision/navigation bundle and render snapshot become visible
 together only at the next preparation boundary. This read-only snapshot output
 does not alter commands, replay serialization, or simulation outcomes.

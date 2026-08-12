@@ -1,4 +1,5 @@
 import 'package:runner_core/commands/command.dart';
+import 'package:runner_core/collision/terrain/terrain_geometry.dart';
 import 'package:runner_core/game_core.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/levels/level_registry.dart';
@@ -8,8 +9,8 @@ import 'package:runner_core/snapshots/enums.dart';
 import 'package:test/test.dart';
 
 void main() {
-  test('stream harness republishes one deterministic terrain world', () {
-    GameCore build() => GameCore.stagedTerrainStreamHarness(
+  test('normal stream republishes one deterministic terrain world', () {
+    GameCore build() => GameCore(
       seed: 9127,
       levelDefinition: LevelRegistry.byId(
         LevelId.field,
@@ -22,6 +23,12 @@ void main() {
     final initialVersion = _expectSameTerrainWorld(first, second);
     expect(initialVersion, 1);
     expect(first.playerGrounded, isTrue);
+    expect(
+      () => first.queueTerrainHarnessGeometryReplacement(
+        TerrainGeometry(version: 2, polygons: const [], edges: const []),
+      ),
+      throwsStateError,
+    );
 
     for (var nextTick = 1; nextTick <= 900; nextTick++) {
       final commands = <Command>[MoveAxisCommand(tick: nextTick, axis: 1)];
@@ -52,7 +59,7 @@ void main() {
     );
 
     for (var seed = 0; seed < 8; seed++) {
-      final core = GameCore.stagedTerrainStreamHarness(
+      final core = GameCore(
         seed: seed,
         levelDefinition: level,
         playerCharacter: PlayerCharacterRegistry.eloise,
@@ -88,8 +95,8 @@ void main() {
     expect(restorationCount, greaterThan(0));
   });
 
-  test('stream harness retains the terrain fall-death policy', () {
-    final core = GameCore.stagedTerrainStreamHarness(
+  test('normal stream retains the terrain fall-death policy', () {
+    final core = GameCore(
       seed: 19,
       levelDefinition: LevelRegistry.byId(LevelId.field),
       playerCharacter: PlayerCharacterRegistry.eloise,
@@ -105,7 +112,7 @@ void main() {
 
   for (final levelId in <LevelId>[LevelId.field, LevelId.forest]) {
     test('$levelId long command run stays deterministic', () {
-      GameCore build() => GameCore.stagedTerrainStreamHarness(
+      GameCore build() => GameCore(
         seed: 4401,
         levelDefinition: LevelRegistry.byId(
           levelId,

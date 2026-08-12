@@ -4,19 +4,19 @@
 
 The exact polygon-source foundation is implemented in `runner_core`, the root
 generator, standalone editor, and Flame renderer. Checked-in authoring now uses
-Prefab-v3 and complete Chunk-v2 trees. Polygon terrain drives normal render
-snapshots but remains non-authoritative for production gameplay collision.
+Prefab-v3 and complete Chunk-v2 trees. Polygon terrain drives normal gameplay
+collision, navigation, placement, and render snapshots.
 
-The source boundary and normal render handoff are current while the gameplay
-motion boundary remains legacy:
+The source and streamed gameplay handoff are current while Phase 6 removes the
+temporary legacy projection and synthetic-fixture adapters:
 
 - prefab authoring persists schema v3 `collisionShapes`
 - chunk authoring persists schema v2 direct `collisionShapes`
 - normal Prefab/Chunk plugin loads expose no legacy editable data, commands,
   pending diffs, or export; the shared migration route provides only a
   read-only readiness command and atomic source recheck
-- normal `GameCore(...)` and replay validation still use legacy rectangle
-  motion authority
+- normal streamed `GameCore(...)` and replay validation use the same admitted
+  polygon terrain authority
 - all 99 prefab records retain visuals, kinds, metadata, and identity;
   `anvil_00` has one authored collision polygon while the remaining reset
   owners remain empty for authoring
@@ -25,13 +25,13 @@ motion boundary remains legacy:
 - every ground polygon carries `surfaceKind: ground` and
   `materialKey: grass_dirt`; all reachable scheduler seam combinations compile
   with identical boundary coverage
-- staged terrain contains all eight Chunk polygons, while the legacy
-  compatibility projection retains the representable flat-ground behavior;
-  direct polygon gameplay authority remains Phase 5/6 integration work
+- staged terrain contains all eight Chunk polygons; the legacy compatibility
+  projection remains generated only until Phase 6 deletes its obsolete
+  runtime consumers
 - the normal generator registers the staged Dart artifact as its sixth output;
-  normal Core/replay construction now admits it and publishes a complete
-  render candidate whenever the existing scheduler selection changes, while
-  collision remains legacy and Flame consumes that candidate directly; the
+  normal Core/replay construction admits it and publishes a complete
+  collision/navigation/placement/render candidate whenever the existing
+  scheduler selection changes; Flame consumes that candidate directly; the
   isolated terrain harness may publish an admitted staged candidate's
   immutable Core render snapshot alongside its collision/navigation bundle;
   that snapshot retains exact source-lineage collision edges for later render

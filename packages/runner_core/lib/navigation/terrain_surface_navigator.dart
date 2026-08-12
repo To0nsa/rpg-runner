@@ -142,8 +142,8 @@ class TerrainSurfaceNavIntent {
 /// Deterministic runtime controller for polygon-terrain surface graphs.
 ///
 /// Terrain world-motion authority selects this controller through the ECS
-/// navigation adapter. Normal production levels continue to use the legacy
-/// rectangle navigator until the Phase 6 authority cutover.
+/// navigation adapter. Normal streamed production levels use it with the
+/// graph views published in their current runtime bundle.
 class TerrainSurfaceNavigator {
   TerrainSurfaceNavigator({
     required this.pathfinder,

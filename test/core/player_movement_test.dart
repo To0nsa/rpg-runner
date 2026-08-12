@@ -66,7 +66,9 @@ void main() {
         defaultLevelGroundTopYInt.toDouble() -
         (catalog.colliderOffsetY + catalog.colliderHalfY);
 
-    expect(core.playerPosY, closeTo(floorY, 1e-9));
+    // Production terrain owns spawn placement and publishes its quantized
+    // capsule center rather than the legacy AABB-derived body coordinate.
+    expect(core.playerPosY, closeTo(floorY - 0.0625, 1e-9));
     expect(core.playerGrounded, isTrue);
 
     _tick(core, jumpPressed: true);
@@ -149,10 +151,10 @@ void main() {
 
     expect(core.playerVelX, closeTo(550, 1e-9));
     expect(core.playerVelY, closeTo(0, 1e-9));
-    expect(core.playerPosY, closeTo(floorY, 1e-9));
+    expect(core.playerPosY, closeTo(floorY - 0.0625, 1e-9));
   });
 
-  test('roll mobility commits vertical dash on vertical-only aim', () {
+  test('grounded vertical roll follows the facing surface tangent', () {
     final base = PlayerCharacterRegistry.eloise;
     final core = GameCore(
       levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
@@ -169,8 +171,9 @@ void main() {
     ]);
     core.stepOneTick();
 
-    expect(core.playerVelX.abs(), lessThan(1e-6));
-    expect(core.playerVelY, lessThan(0));
+    expect(core.playerVelX, closeTo(400, 1 / 1024));
+    expect(core.playerVelY, closeTo(0, 1 / 1024));
+    expect(core.playerGrounded, isTrue);
   });
 
   test('ground jump spends stamina (2) and not mana', () {
@@ -393,7 +396,7 @@ void main() {
     final floorY =
         defaultLevelGroundTopYInt.toDouble() -
         (catalog.colliderOffsetY + catalog.colliderHalfY);
-    expect(core.playerPosY, closeTo(floorY, 1e-9));
+    expect(core.playerPosY, closeTo(floorY - 0.0625, 1e-9));
     expect(core.playerGrounded, isTrue);
     final initialHud = core.buildSnapshot().hud;
 

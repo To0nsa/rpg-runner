@@ -54,18 +54,18 @@ small commits, but the completed phase must not retain a runtime dual path.
 
 ## 3) Content And Runtime Acceptance
 
-- [ ] all eight current Chunks compile from current source with exact semantic
+- [x] all eight current Chunks compile from current source with exact semantic
       signatures, reachable seams, and zero generated drift
-- [ ] normal Field and Forest construction uses the staged terrain authority
+- [x] normal Field and Forest construction uses the staged terrain authority
       before initial player/entity placement
-- [ ] replay validation constructs the identical terrain authority and matches
+- [x] replay validation constructs the identical terrain authority and matches
       deterministic live Core outcomes
 - [ ] player, Grojib, Hashash, Unoco, Derf, ballistic projectile, marker,
       collectible, restoration, cull/re-add, and fall-death policies pass on
       normal construction
 - [ ] Flame renders only Core-published polygon terrain with stable material
       phase and no visible/physical streamed seams
-- [ ] scheduler selection, RNG consumption, entity ID/order, and authored
+- [x] scheduler selection, RNG consumption, entity ID/order, and authored
       placement outcomes remain deterministic
 - [ ] representative Field and Forest runs pass accepted controller,
       full-harness, allocation, and replay-validation budgets
@@ -119,3 +119,9 @@ corepack pnpm --dir functions test
 
 Record exact test counts, deterministic references, benchmark percentiles,
 generated membership, and any compatibility/version disposition before Phase 7.
+
+## 6) Progress Evidence
+
+| Date / revision | Slice | Result |
+| --- | --- | --- |
+| 2026-08-12 / Phase 6 working head | Direct normal/replay construction switch | Normal registered Field and Forest streams install `TerrainMultiBodyWorldMotionAuthority` from the exact prewarmed candidate before player placement; later candidates publish atomically. The separate staged-stream factory is removed, manual harness mutations reject normal construction, all 369 package tests and 433 root Core tests pass, root/package analysis is clean, and all 84 replay-validator tests pass. Determinism covers both production levels and paired 1,800-tick streams. Updated movement expectations record canonical terrain spawn quantization and the previously accepted grounded vertical-mobility tangent rule. |

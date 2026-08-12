@@ -4,10 +4,11 @@
 
 Grojib and Hashash slope traversal, Hashash terrain-safe ambush placement,
 Unoco flying-terrain traversal, Derf terrain-safe obstacle-top placement, and
-shared terrain-safe enemy/item spawning are implemented in the isolated Phase
-3 polygon-terrain harness. Repository-backed production levels and replay
-validation still use the legacy flat/rectangle authority until the later
-terrain cutover phases.
+shared terrain-safe enemy/item spawning are implemented on the polygon-terrain
+authority used by repository-backed Field and Forest runs. Replay validation
+constructs the same Core path. The currently authored production ground is
+flat; these rules also govern later slope/platform content without another
+authority switch.
 
 ## Grounded Enemy Rules
 

@@ -29,9 +29,10 @@ remain upright and retain their existing visual priority over the ground.
   must never look like a cliff. They will be enabled only with reliable
   cross-chunk join evidence.
 
-## Cutover Boundary
+## Runtime Boundary
 
-This visual pass is implemented, but normal gameplay still uses the legacy
-flat-ground collision projection. Slope, platform, obstacle, and gap content
-will be introduced only alongside the direct polygon-authority validation in
-the active slopes plan.
+Normal Field and Forest gameplay now uses the same authored polygons for
+collision, support/navigation, placement, and rendering. The current polygons
+remain deliberately flat, so slope, platform, obstacle, and gap shapes can be
+introduced as reviewed content changes without another terrain-authority
+switch.

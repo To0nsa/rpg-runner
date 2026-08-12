@@ -85,9 +85,9 @@ class GameStateSnapshot {
   /// Compiler-owned terrain fill data published with the active terrain bundle.
   ///
   /// Normal streaming publishes it from the complete staged candidate selected
-  /// by the legacy scheduler. The terrain harness sets it only when a complete
-  /// staged collision/navigation/render publication has crossed a tick
-  /// boundary. Track-disabled legacy fixtures leave it `null`.
+  /// by the scheduler. A terrain harness sets it only when a complete staged
+  /// collision/navigation/render publication has crossed a tick boundary.
+  /// Synthetic track-disabled legacy fixtures leave it `null`.
   final StagedTerrainRenderSnapshot? stagedTerrainRenderSnapshot;
 
   /// Returns the player entity snapshot, or `null` if not found.

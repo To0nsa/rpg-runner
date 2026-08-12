@@ -180,7 +180,6 @@ class GameCore {
          accessoryCatalog: accessoryCatalog,
          equippedLoadoutOverride: equippedLoadoutOverride,
          terrainHarnessGeometry: null,
-         stagedTerrainStreamHarness: false,
        );
 
   /// Creates the isolated Phase 3 multi-body terrain integration harness.
@@ -215,42 +214,6 @@ class GameCore {
       accessoryCatalog: accessoryCatalog,
       equippedLoadoutOverride: equippedLoadoutOverride,
       terrainHarnessGeometry: terrainGeometry,
-      stagedTerrainStreamHarness: false,
-    );
-  }
-
-  /// Creates the Phase 5 harness over the normal deterministic chunk stream.
-  ///
-  /// The normal scheduler and generated staged artifact are unchanged, but the
-  /// terrain authority consumes each complete candidate. This remains a
-  /// test/tool boundary and is never selected by normal or replay construction.
-  factory GameCore.stagedTerrainStreamHarness({
-    required int seed,
-    int runId = 0,
-    int tickHz = defaultTickHz,
-    required LevelDefinition levelDefinition,
-    required PlayerCharacterDefinition playerCharacter,
-    EquippedLoadoutDef? equippedLoadoutOverride,
-    ProjectileCatalog projectileCatalog = const ProjectileCatalog(),
-    SpellBookCatalog spellBookCatalog = const SpellBookCatalog(),
-    EnemyCatalog enemyCatalog = const EnemyCatalog(),
-    WeaponCatalog weaponCatalog = const WeaponCatalog(),
-    AccessoryCatalog accessoryCatalog = const AccessoryCatalog(),
-  }) {
-    return GameCore._fromLevel(
-      seed: seed,
-      runId: runId,
-      tickHz: tickHz,
-      levelDefinition: levelDefinition,
-      projectileCatalog: projectileCatalog,
-      spellBookCatalog: spellBookCatalog,
-      enemyCatalog: enemyCatalog,
-      playerCharacter: playerCharacter,
-      weaponCatalog: weaponCatalog,
-      accessoryCatalog: accessoryCatalog,
-      equippedLoadoutOverride: equippedLoadoutOverride,
-      terrainHarnessGeometry: null,
-      stagedTerrainStreamHarness: true,
     );
   }
 
@@ -267,7 +230,6 @@ class GameCore {
     required AccessoryCatalog accessoryCatalog,
     required EquippedLoadoutDef? equippedLoadoutOverride,
     required TerrainGeometry? terrainHarnessGeometry,
-    required bool stagedTerrainStreamHarness,
   }) : _levelDefinition = levelDefinition,
        _movement = MovementTuningDerived.from(
          playerCharacter.tuning.movement,
@@ -313,7 +275,6 @@ class GameCore {
        ),
        _equippedLoadoutOverride = equippedLoadoutOverride,
        _terrainHarnessGeometry = terrainHarnessGeometry,
-       _stagedTerrainStreamHarness = stagedTerrainStreamHarness,
        _scoreTuning = levelDefinition.tuning.score,
        _trackTuning = levelDefinition.tuning.track,
        _collectibleTuning = levelDefinition.tuning.collectible,
@@ -323,11 +284,6 @@ class GameCore {
 
   /// Common initialization shared by all constructors.
   void _initializeWorld(LevelDefinition levelDefinition) {
-    if (_stagedTerrainStreamHarness && !_trackTuning.enabled) {
-      throw ArgumentError(
-        'The staged terrain stream harness requires enabled track streaming.',
-      );
-    }
     _playerArchetype = PlayerCatalogDerived.from(
       _playerCharacter.catalog,
       movement: _movement,
@@ -405,13 +361,9 @@ class GameCore {
             enemyCatalog: _enemyCatalog,
             groundEnemyGraphProfiles: _groundEnemyTerrainGraphProfiles,
           )
-        : _stagedTerrainStreamHarness
+        : stagedCandidate != null
         ? TerrainMultiBodyWorldMotionAuthority.fromStagedCandidate(
-            candidate:
-                stagedCandidate ??
-                (throw StateError(
-                  'Initial streamed terrain candidate was not built.',
-                )),
+            candidate: stagedCandidate,
             playerProfile: _playerArchetype.terrainTraversalProfile,
             enemyCatalog: _enemyCatalog,
           )
@@ -883,7 +835,6 @@ class GameCore {
   late final ResolvedStatsCache _resolvedStatsCache;
   final EquippedLoadoutDef? _equippedLoadoutOverride;
   final TerrainGeometry? _terrainHarnessGeometry;
-  final bool _stagedTerrainStreamHarness;
   late final PlayerArchetype _playerArchetype;
 
   // ─── ECS Core ───
@@ -970,7 +921,7 @@ class GameCore {
   /// Track streaming, geometry lifecycle, navigation updates.
   late final TrackManager _trackManager;
 
-  /// Admitted generated terrain selected by the normal legacy scheduler.
+  /// Admitted generated terrain selected by the deterministic scheduler.
   late final StagedTerrainArtifactCatalog? _stagedTerrainCatalog;
   StagedTerrainStreamCandidate? _stagedTerrainCandidate;
   int _nextStagedTerrainGeometryVersion = 1;
@@ -1082,16 +1033,20 @@ class GameCore {
 
   /// Stable diagnostic for the latest enemy or item placement attempt.
   ///
-  /// This is intended for authoring tools and terrain-harness tests. It stays
+  /// This is intended for authoring tools and terrain integration tests. It stays
   /// `null` until a terrain-dependent spawn candidate is processed.
   String? get lastSpawnPlacementDiagnostic =>
       _worldMotionAuthority.lastSpawnPlacementDiagnostic;
 
   /// Queues a complete terrain-harness replacement for the next Core tick.
   ///
-  /// Normal and replay construction keep the legacy rectangle world and
-  /// reject this test/tooling-only mutation explicitly.
+  /// Normal and replay construction reject this test/tooling-only mutation.
   void queueTerrainHarnessGeometryReplacement(TerrainGeometry geometry) {
+    if (_terrainHarnessGeometry == null) {
+      throw StateError(
+        'Terrain geometry replacement requires terrain-harness construction.',
+      );
+    }
     final authority = _worldMotionAuthority;
     if (authority is! TerrainMultiBodyWorldMotionAuthority) {
       throw StateError(
@@ -1106,10 +1061,15 @@ class GameCore {
   /// The existing scheduler/binder/compiler must build [candidate] first. At
   /// the next preparation boundary Core publishes its exact collision,
   /// navigation, placement, and render objects together. Normal and replay
-  /// construction reject this test/tooling-only path.
+  /// construction reject this test/tooling-only mutation.
   void queueTerrainHarnessStagedCandidate(
     StagedTerrainStreamCandidate candidate,
   ) {
+    if (_terrainHarnessGeometry == null) {
+      throw StateError(
+        'Staged terrain publication requires terrain-harness construction.',
+      );
+    }
     final authority = _worldMotionAuthority;
     if (authority is! TerrainMultiBodyWorldMotionAuthority) {
       throw StateError(
@@ -1121,8 +1081,9 @@ class GameCore {
 
   /// Builds an immutable terrain diagnostic snapshot on demand.
   ///
-  /// Returns `null` for the normal legacy world-motion path. This method is
-  /// intended for tests and tooling; normal ticks do not allocate snapshots.
+  /// Returns `null` only when the selected test fixture has no terrain
+  /// authority. This method is intended for tests and tooling; normal ticks do
+  /// not allocate snapshots.
   TerrainPlayerDebugSnapshot? buildTerrainPlayerDebugSnapshot() {
     final geometryVersion = _worldMotionAuthority.terrainGeometryVersion;
     final terrainIndex = _world.terrainContact.tryIndexOf(_player);

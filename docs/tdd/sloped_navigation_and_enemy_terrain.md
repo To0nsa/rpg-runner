@@ -21,19 +21,17 @@ implemented in `runner_core`:
 - one immutable runtime bundle publishes geometry, both spatial indexes, the
   shared surface set, and Grojib/Hashash graph views at a tick boundary
 
-This is not a production terrain cutover. `GameCore(...)` and replay validation
-still construct `LegacyWorldMotionAuthority`. The Phase 3 terrain harness now
-dispatches the player and migrated enemies through explicit catalog policies;
-unsupported dynamic bodies and ballistic projectiles fail without a rectangle
-fallback. The new graph/navigation/placement systems remain isolated from
-normal production construction. Phase 3 signatures, allocation evidence, and
-performance gates are complete; production polygon streaming and cutover
-remain later-phase work.
+Normal streamed `GameCore(...)` and replay validation now construct
+`TerrainMultiBodyWorldMotionAuthority` from the scheduler's admitted candidate.
+The player and migrated enemies dispatch through explicit catalog policies;
+unsupported dynamic bodies fail without a rectangle fallback and ballistic
+projectiles use the terrain AABB sweep. The earlier Phase 3 harness remains for
+synthetic geometry tests while Phase 6 removes the temporary legacy fixture
+path.
 
-The existing horizontal `WalkSurface` graph remains the normal production
-navigation representation until the isolated Phase 3 graph is complete. New
-polygon navigation work must use `TerrainNavigationSurface`; it must not add a
-second polygon-node identity or pack `TerrainEdgeId` into an integer.
+`TerrainNavigationSurface` is the normal production navigation representation
+for streamed terrain. New polygon navigation work must not add a second
+polygon-node identity or pack `TerrainEdgeId` into an integer.
 
 ## Baseline Compatibility Evidence
 
@@ -47,7 +45,7 @@ The implementation baseline was clean revision `9eea5cfd` on Windows
 | Hashash deferred spawn and teleport/ambush timing | `track_streamer_hashash_deferred_spawn_test.dart`, `hashash_spawn_intro_test.dart`, and `hashash_teleport_ambush_test.dart` |
 | Derf obstacle-top placement, facing, cast origin, and target | `track_streamer_spawn_placement_test.dart` and `target_point_impact_system_test.dart` |
 | Graph ordering, A* tie behavior, and graph-version invalidation | `surface_graph_builder_test.dart`, `surface_pathfinder_test.dart`, and `surface_navigator_graph_version_test.dart` |
-| Normal/replay construction remains legacy | `game_core.dart` selects legacy when no harness geometry is supplied; `validator_worker.dart` invokes that normal constructor |
+| Normal/replay construction uses streamed terrain | `game_core.dart` installs the admitted candidate before placement; `validator_worker.dart` invokes that same normal constructor |
 
 The characterized legacy Hashash ambush has no terrain-placement failure path: after
 teleport-out it unconditionally writes the predicted player point plus
@@ -500,9 +498,9 @@ version has identical signatures while still invalidating version-local state.
 Adding or culling a surface rebuilds both graph views from the new shared set,
 so removed nodes and adjacency cannot survive publication.
 
-Normal `GameCore(...)`, `TrackManager`, and replay validation still use legacy
-rectangle geometry and graphs. Only `GameCore.terrainMotionHarness` exposes
-the queue operation; calling it on normal construction fails explicitly.
+Normal streamed `GameCore(...)` and replay validation use the runtime bundle's
+polygon geometry and graph views. Only `GameCore.terrainMotionHarness` exposes
+manual queue operations; calling them on normal construction fails explicitly.
 
 ## Unoco Flying Contact, Hover, And Clearance
 
