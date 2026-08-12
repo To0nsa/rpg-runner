@@ -38,6 +38,7 @@ import 'chunk_expanded_collision_overlay_painter.dart';
 import 'chunk_marker_placement_overlay_painter.dart';
 import 'chunk_polygon_authoring_controller.dart';
 import 'chunk_polygon_scene_surface.dart';
+import 'chunk_polygon_visual_source.dart';
 import 'chunk_v2_composition_workspace.dart';
 import 'chunk_v2_owner_dialog.dart';
 
@@ -174,7 +175,7 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
                                   'deletion, or switch to a level that still '
                                   'has a dimension template.',
                             )
-                          : _buildScenePanel(authoring),
+                          : _buildScenePanel(scene, authoring),
                       third: authoring == null
                           ? _buildEmptyPanel(
                               title: 'Shapes and diagnostics',
@@ -477,7 +478,10 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
         child: Center(child: Text(message)),
       );
 
-  Widget _buildScenePanel(ChunkPolygonAuthoringController authoring) => _Panel(
+  Widget _buildScenePanel(
+    ChunkV2Scene scene,
+    ChunkPolygonAuthoringController authoring,
+  ) => _Panel(
     title: 'Terrain collision scene',
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -661,6 +665,18 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
               final markerProjection = _showMarkerPlacements
                   ? _markerPlacementProjection
                   : null;
+              final visualProjection = ChunkPolygonVisualProjection.fromChunk(
+                chunk: chunk,
+                prefabData: scene.prefabData,
+                tileData: scene.tileData,
+                visualBoundsByPrefabKey: scene.visualBoundsByPrefabKey,
+              );
+              final belowTerrainVisuals = visualProjection
+                  .belowTerrain(chunk.groundBandZIndex)
+                  .toList(growable: false);
+              final atOrAboveTerrainVisuals = visualProjection
+                  .atOrAboveTerrain(chunk.groundBandZIndex)
+                  .toList(growable: false);
               final transform = TerrainPolygonViewportTransform(
                 origin:
                     Offset(
@@ -683,6 +699,15 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
                           transform: transform,
                         ),
                       ),
+                      if (belowTerrainVisuals.isNotEmpty)
+                        ChunkPolygonVisualSource(
+                          key: const ValueKey<String>(
+                            'chunk_polygon_visual_below_terrain',
+                          ),
+                          workspaceRootPath: widget.controller.workspacePath,
+                          placements: belowTerrainVisuals,
+                          transform: transform,
+                        ),
                       if (_expansionFor(chunk.chunkKey)?.expansion
                           case final expansion?)
                         IgnorePointer(
@@ -701,6 +726,15 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
                   foreground: Stack(
                     fit: StackFit.expand,
                     children: <Widget>[
+                      if (atOrAboveTerrainVisuals.isNotEmpty)
+                        ChunkPolygonVisualSource(
+                          key: const ValueKey<String>(
+                            'chunk_polygon_visual_at_or_above_terrain',
+                          ),
+                          workspaceRootPath: widget.controller.workspacePath,
+                          placements: atOrAboveTerrainVisuals,
+                          transform: transform,
+                        ),
                       if (actorProjection != null)
                         CustomPaint(
                           key: const ValueKey<String>(

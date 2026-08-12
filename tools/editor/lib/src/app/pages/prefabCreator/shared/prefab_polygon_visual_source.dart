@@ -39,8 +39,24 @@ final class PrefabPolygonVisualProjection {
   factory PrefabPolygonVisualProjection.fromDocument({
     required PrefabV3Document document,
     required PrefabV3Def prefab,
+  }) => PrefabPolygonVisualProjection.fromData(
+    prefabData: document.data,
+    tileData: document.tileData,
+    visualBoundsByPrefabKey: document.visualBoundsByPrefabKey,
+    prefab: prefab,
+  );
+
+  /// Projects a prefab's visual source from the supplied current-schema data.
+  ///
+  /// The output remains prefab-local, with its origin at the authored anchor,
+  /// so callers can place it into any scene without redefining module bounds.
+  factory PrefabPolygonVisualProjection.fromData({
+    required PrefabV3FileData prefabData,
+    required PrefabTileFileData tileData,
+    required Map<String, PrefabV3VisualBounds> visualBoundsByPrefabKey,
+    required PrefabV3Def prefab,
   }) {
-    final resolvedBounds = document.visualBoundsByPrefabKey[prefab.prefabKey];
+    final resolvedBounds = visualBoundsByPrefabKey[prefab.prefabKey];
     final visualBoundsPx = Rect.fromLTWH(
       -prefab.anchorXPx.toDouble(),
       -prefab.anchorYPx.toDouble(),
@@ -49,7 +65,7 @@ final class PrefabPolygonVisualProjection {
     );
 
     if (prefab.usesAtlasSlice) {
-      final slice = _findSlice(document.data.slices, prefab.sliceId);
+      final slice = _findSlice(prefabData.slices, prefab.sliceId);
       return PrefabPolygonVisualProjection(
         visualBoundsPx: visualBoundsPx,
         tiles: <PrefabPolygonVisualTile>[
@@ -62,10 +78,7 @@ final class PrefabPolygonVisualProjection {
       );
     }
 
-    final module = _findModule(
-      document.tileData.platformModules,
-      prefab.moduleId,
-    );
+    final module = _findModule(tileData.platformModules, prefab.moduleId);
     if (module == null || module.cells.isEmpty) {
       return PrefabPolygonVisualProjection(
         visualBoundsPx: visualBoundsPx,
@@ -74,7 +87,7 @@ final class PrefabPolygonVisualProjection {
     }
 
     final slicesById = <String, AtlasSliceDef>{
-      for (final slice in document.tileData.tileSlices) slice.id: slice,
+      for (final slice in tileData.tileSlices) slice.id: slice,
     };
     Rect? moduleBounds;
     final sourceRects = <Rect>[];

@@ -60,6 +60,12 @@ void main() {
         findsOneWidget,
       );
       expect(
+        find.byKey(
+          const ValueKey<String>('chunk_polygon_visual_at_or_above_terrain'),
+        ),
+        findsOneWidget,
+      );
+      expect(
         find.byKey(const ValueKey<String>('chunk_polygon_source_fill_notice')),
         findsOneWidget,
       );
