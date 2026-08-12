@@ -1,3 +1,4 @@
+import 'package:runner_core/collision/terrain/terrain_edge.dart';
 import 'package:runner_core/track/staged_terrain_catalog.dart';
 import 'package:runner_core/track/staged_terrain_data.dart';
 import 'package:runner_core/track/staged_terrain_world_geometry.dart';
@@ -64,6 +65,52 @@ void main() {
     expect(geometry.edges.map((edge) => edge.start.xTicks), <int>[2048, 8192]);
   });
 
+  test('removes opposing seam faces and reconnects smooth neighbors', () {
+    final catalog = StagedTerrainArtifactCatalog(
+      artifact: _artifact(<StagedTerrainChunkData>[
+        _rectangleChunk('left'),
+        _rectangleChunk('right'),
+      ]),
+    );
+
+    final geometry = builder.build(
+      bindings: <StagedTerrainChunkBinding>[
+        catalog.bind(chunkKey: 'left', chunkIndex: 0, worldOriginXTicks: 0),
+        catalog.bind(chunkKey: 'right', chunkIndex: 1, worldOriginXTicks: 1024),
+      ],
+      geometryVersion: 2,
+    );
+
+    expect(geometry.edges, hasLength(6));
+    expect(
+      geometry.edges.where(
+        (edge) => edge.start.xTicks == 1024 && edge.end.xTicks == 1024,
+      ),
+      isEmpty,
+    );
+    final leftTop = geometry.edges.singleWhere(
+      (edge) => edge.id.chunkIndex == 0 && edge.id.localEdgeIndex == 0,
+    );
+    final rightTop = geometry.edges.singleWhere(
+      (edge) => edge.id.chunkIndex == 1 && edge.id.localEdgeIndex == 0,
+    );
+    expect(leftTop.nextId, rightTop.id);
+    expect(leftTop.endJoin, TerrainVertexJoin.smooth);
+    expect(rightTop.previousId, leftTop.id);
+    expect(rightTop.startJoin, TerrainVertexJoin.smooth);
+
+    final leftBottom = geometry.edges.singleWhere(
+      (edge) => edge.id.chunkIndex == 0 && edge.id.localEdgeIndex == 2,
+    );
+    final rightBottom = geometry.edges.singleWhere(
+      (edge) => edge.id.chunkIndex == 1 && edge.id.localEdgeIndex == 2,
+    );
+    expect(rightBottom.nextId, leftBottom.id);
+    expect(rightBottom.endJoin, TerrainVertexJoin.smooth);
+    expect(leftBottom.previousId, rightBottom.id);
+    expect(leftBottom.startJoin, TerrainVertexJoin.smooth);
+  });
+
   test('fails closed for duplicate instances and malformed records', () {
     final catalog = StagedTerrainArtifactCatalog(
       artifact: _artifact(<StagedTerrainChunkData>[_chunk('field_flat')]),
@@ -102,6 +149,101 @@ void main() {
       throwsArgumentError,
     );
   });
+}
+
+StagedTerrainChunkData _rectangleChunk(String chunkKey) {
+  final sourceId = StagedTerrainSourceId(chunkKey: chunkKey, shapeId: 'ground');
+  const vertices = <StagedTerrainPoint>[
+    StagedTerrainPoint(0, 0),
+    StagedTerrainPoint(1024, 0),
+    StagedTerrainPoint(1024, 1024),
+    StagedTerrainPoint(0, 1024),
+  ];
+  StagedTerrainEdgeId id(int index) => StagedTerrainEdgeId(
+    sourceId: sourceId,
+    localEdgeIndex: index,
+    subEdgeIndex: 0,
+  );
+  StagedTerrainEdgeData edge(
+    int index,
+    StagedTerrainPoint start,
+    StagedTerrainPoint end,
+    StagedTerrainPoint tangent,
+    StagedTerrainPoint normal,
+  ) => StagedTerrainEdgeData(
+    id: id(index),
+    start: start,
+    end: end,
+    tangent: tangent,
+    outwardNormal: normal,
+    collisionMode: StagedTerrainCollisionMode.solid,
+    surfaceKind: 'ground',
+    materialKey: 'earth',
+    previousId: id((index + 3) % 4),
+    nextId: id((index + 1) % 4),
+    startJoin: StagedTerrainVertexJoin.connected,
+    endJoin: StagedTerrainVertexJoin.connected,
+  );
+  return StagedTerrainChunkData(
+    chunkKey: chunkKey,
+    id: chunkKey,
+    revision: 1,
+    status: 'active',
+    levelId: 'field',
+    tileSize: 16,
+    width: 1,
+    height: 1,
+    difficulty: 'normal',
+    assemblyGroupId: 'default',
+    authoringPolygonSignature: _digest,
+    sourceSignature: _digest,
+    edgeSignature: _digest,
+    placementSignature: _digest,
+    triangleSignature: _digest,
+    polygons: <StagedTerrainPolygonData>[
+      StagedTerrainPolygonData(
+        sourcePath: 'test/$chunkKey',
+        id: sourceId,
+        sourceVertices: vertices,
+        vertices: vertices,
+        collisionMode: StagedTerrainCollisionMode.solid,
+        surfaceKind: 'ground',
+        materialKey: 'earth',
+      ),
+    ],
+    edges: <StagedTerrainEdgeData>[
+      edge(
+        0,
+        vertices[0],
+        vertices[1],
+        const StagedTerrainPoint(1024, 0),
+        const StagedTerrainPoint(0, -1024),
+      ),
+      edge(
+        1,
+        vertices[1],
+        vertices[2],
+        const StagedTerrainPoint(0, 1024),
+        const StagedTerrainPoint(1024, 0),
+      ),
+      edge(
+        2,
+        vertices[2],
+        vertices[3],
+        const StagedTerrainPoint(-1024, 0),
+        const StagedTerrainPoint(0, 1024),
+      ),
+      edge(
+        3,
+        vertices[3],
+        vertices[0],
+        const StagedTerrainPoint(0, -1024),
+        const StagedTerrainPoint(-1024, 0),
+      ),
+    ],
+    triangles: const <StagedTerrainTriangleData>[],
+    placementLineage: const <StagedTerrainPlacementLineageData>[],
+  );
 }
 
 StagedTerrainArtifactData _artifact(List<StagedTerrainChunkData> chunks) =>

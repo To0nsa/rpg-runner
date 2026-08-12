@@ -32,7 +32,7 @@ void main() {
 
     expect(catalog.chunksByKey, hasLength(stagedAuthoredTerrain.chunks.length));
     expect(geometry.polygons, hasLength(8));
-    expect(geometry.edges, hasLength(32));
+    expect(geometry.edges, hasLength(18));
     expect(
       geometry.polygons.map((polygon) => polygon.identity.chunkKey).toSet(),
       stagedAuthoredTerrain.chunks.map((chunk) => chunk.chunkKey).toSet(),

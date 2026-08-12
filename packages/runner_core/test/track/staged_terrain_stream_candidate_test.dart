@@ -97,7 +97,7 @@ void main() {
       );
 
       expect(original.geometry.edges, hasLength(4));
-      expect(afterCull.geometry.edges, hasLength(8));
+      expect(afterCull.geometry.edges, hasLength(6));
       expect(
         afterCull.geometry.edges.every(
           (edge) =>

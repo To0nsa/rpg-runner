@@ -1062,6 +1062,14 @@ bundle yet; the snapshot is nevertheless a complete projection of that same
 candidate rather than a renderer-specific reconstruction. Anonymous custom
 legacy chunks publish no candidate and never borrow another chunk's geometry.
 
+World binding also performs the compiled union operation that cannot exist in
+chunk-local generated records. Exact reversed faces with matching collision
+mode and surface kind are removed as internal seam faces. The retained
+neighbors reconnect through their original edge IDs; equal tangents become
+smooth joins and other valid turns become connected joins. Material differences
+remain render metadata and do not prevent physical cancellation. Same-directed,
+third, or physically incompatible coincident edges fail the whole candidate.
+
 Flame's `StagedTerrain` component converts physics ticks to world units once
 per geometry version and creates `ui.Vertices` with the supplied Core triangle
 indices. It never triangulates, normalizes, stitches, or infers polygon edges.

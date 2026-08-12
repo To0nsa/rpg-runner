@@ -49,20 +49,124 @@ final class StagedTerrainWorldGeometryBuilder {
     }
 
     final polygons = <TerrainPolygon>[];
-    final edges = <TerrainEdge>[];
+    final localEdges = <TerrainEdge>[];
     for (final binding in orderedBindings) {
       for (final polygon in binding.chunk.polygons) {
         polygons.add(_buildPolygon(binding, polygon));
       }
       for (final edge in binding.chunk.edges) {
-        edges.add(_buildEdge(binding, edge));
+        localEdges.add(_buildEdge(binding, edge));
       }
     }
+    final edges = _stitchEdges(localEdges);
     return TerrainGeometry(
       version: geometryVersion,
       polygons: polygons,
       edges: edges,
     );
+  }
+
+  /// Removes exact opposing chunk-boundary faces and reconnects their loops.
+  ///
+  /// The offline seam gate already proves compatible boundary coverage. This
+  /// runtime step performs the remaining union operation after world binding:
+  /// two reversed faces with the same physical semantics are internal and
+  /// must not remain collision or render edges. Retained neighboring faces
+  /// keep their original IDs and receive cross-chunk adjacency.
+  List<TerrainEdge> _stitchEdges(List<TerrainEdge> edges) {
+    final firstBySegment = <_UndirectedTerrainSegment, TerrainEdge>{};
+    final removedPairById = <TerrainEdgeId, TerrainEdge>{};
+    for (final edge in edges) {
+      final segment = _UndirectedTerrainSegment(edge.start, edge.end);
+      final first = firstBySegment[segment];
+      if (first == null) {
+        firstBySegment[segment] = edge;
+        continue;
+      }
+      if (removedPairById.containsKey(first.id)) {
+        throw StateError(
+          'More than two staged edges occupy world segment $segment.',
+        );
+      }
+      if (first.start != edge.end || first.end != edge.start) {
+        throw StateError(
+          'Staged edges ${first.id} and ${edge.id} duplicate world segment '
+          '$segment without opposing direction.',
+        );
+      }
+      if (first.collisionMode != edge.collisionMode ||
+          first.surfaceKind != edge.surfaceKind) {
+        throw StateError(
+          'Staged edges ${first.id} and ${edge.id} have incompatible physical '
+          'semantics on internal world segment $segment.',
+        );
+      }
+      removedPairById[first.id] = edge;
+      removedPairById[edge.id] = first;
+    }
+    if (removedPairById.isEmpty) {
+      return List<TerrainEdge>.unmodifiable(edges);
+    }
+
+    final edgesById = <TerrainEdgeId, TerrainEdge>{
+      for (final edge in edges) edge.id: edge,
+    };
+    TerrainEdgeId? reconnectPrevious(TerrainEdge edge) {
+      final removed = edge.previousId;
+      if (removed == null || !removedPairById.containsKey(removed)) {
+        return removed;
+      }
+      return removedPairById[removed]!.previousId;
+    }
+
+    TerrainEdgeId? reconnectNext(TerrainEdge edge) {
+      final removed = edge.nextId;
+      if (removed == null || !removedPairById.containsKey(removed)) {
+        return removed;
+      }
+      return removedPairById[removed]!.nextId;
+    }
+
+    TerrainVertexJoin joinFor(TerrainEdge edge, TerrainEdgeId? adjacentId) {
+      if (adjacentId == null) return TerrainVertexJoin.exposed;
+      final adjacent = edgesById[adjacentId];
+      if (adjacent == null || removedPairById.containsKey(adjacentId)) {
+        throw StateError(
+          'Staged seam reconnection for ${edge.id} targets unavailable edge '
+          '$adjacentId.',
+        );
+      }
+      return adjacent.tangent == edge.tangent
+          ? TerrainVertexJoin.smooth
+          : TerrainVertexJoin.connected;
+    }
+
+    final stitched = <TerrainEdge>[];
+    for (final edge in edges) {
+      if (removedPairById.containsKey(edge.id)) continue;
+      final previousId = reconnectPrevious(edge);
+      final nextId = reconnectNext(edge);
+      stitched.add(
+        TerrainEdge(
+          id: edge.id,
+          start: edge.start,
+          end: edge.end,
+          tangent: edge.tangent,
+          outwardNormal: edge.outwardNormal,
+          collisionMode: edge.collisionMode,
+          surfaceKind: edge.surfaceKind,
+          materialKey: edge.materialKey,
+          previousId: previousId,
+          nextId: nextId,
+          startJoin: previousId == edge.previousId
+              ? edge.startJoin
+              : joinFor(edge, previousId),
+          endJoin: nextId == edge.nextId ? edge.endJoin : joinFor(edge, nextId),
+          bounds: edge.bounds,
+        ),
+      );
+    }
+    return List<TerrainEdge>.unmodifiable(stitched);
   }
 
   TerrainPolygon _buildPolygon(
@@ -156,6 +260,27 @@ final class StagedTerrainWorldGeometryBuilder {
     StagedTerrainVertexJoin.connected => TerrainVertexJoin.connected,
     StagedTerrainVertexJoin.smooth => TerrainVertexJoin.smooth,
   };
+}
+
+final class _UndirectedTerrainSegment {
+  _UndirectedTerrainSegment(TerrainPoint first, TerrainPoint second)
+    : start = first.compareTo(second) <= 0 ? first : second,
+      end = first.compareTo(second) <= 0 ? second : first;
+
+  final TerrainPoint start;
+  final TerrainPoint end;
+
+  @override
+  bool operator ==(Object other) =>
+      other is _UndirectedTerrainSegment &&
+      start == other.start &&
+      end == other.end;
+
+  @override
+  int get hashCode => Object.hash(start, end);
+
+  @override
+  String toString() => '$start->$end';
 }
 
 void _requireNonEmpty(String value, String name) {

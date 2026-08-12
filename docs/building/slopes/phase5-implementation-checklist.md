@@ -115,6 +115,11 @@ workflow except where an already-public Core output needs a read-only consumer.
       It tiles fill in world phase and draws surface/foreground art only along
       Core's upward-facing exposed edges. Legacy ground, foreground bands, and
       the temporary floor mask yield whenever staged terrain is present.
+- [x] World binding removes exact reversed internal faces where adjacent
+      chunks share compatible seam coverage. It reconnects the retained top
+      and bottom edges across chunk identities with smooth/connected join
+      evidence, so collision, navigation, diagnostics, and rendering do not
+      retain hidden vertical walls at streamed seams.
 
 ## 3) Implementation Order
 
