@@ -1753,7 +1753,7 @@ class GameCore {
     final x = request.x;
     final fallbackSupportY = request.fallbackSupportY;
     final archetype = _enemyCatalog.get(enemyId);
-    final legacyBodyY = enemyId == EnemyId.unocoDemon
+    final desiredBodyY = enemyId == EnemyId.unocoDemon
         ? fallbackSupportY - _unocoDemonTuning.base.unocoDemonHoverOffsetY
         : fallbackSupportY -
               (archetype.collider.offsetY + archetype.collider.halfY);
@@ -1776,7 +1776,7 @@ class GameCore {
         ),
         desiredBodyCenter: TerrainPoint(
           physicsCoordinateToTicks(x, name: 'enemySpawnX'),
-          physicsCoordinateToTicks(legacyBodyY, name: 'enemySpawnY'),
+          physicsCoordinateToTicks(desiredBodyY, name: 'enemySpawnY'),
         ),
         supportSelection: supportSelection,
         requestedSupportYTicks:

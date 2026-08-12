@@ -59,7 +59,7 @@ class EcsQueries {
   /// [BodyStore], and [CollisionStateStore].
   ///
   /// This query finds all physical objects that can collide. It is used by the
-  /// [CollisionSystem] to resolve physics interactions.
+  /// the terrain motion authority to resolve physics interactions.
   static void forColliders(EcsWorld world, ColliderQueryFn fn) {
     // Drive iteration with the ColliderAabbStore.
     final aabb = world.colliderAabb;

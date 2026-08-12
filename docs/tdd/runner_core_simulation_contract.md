@@ -171,6 +171,11 @@ snapshot paired with its runtime bundle. The former `staticSolids` and
 sprites, and deferred item batches. It has no collision geometry, spatial
 index, horizontal surface graph, or legacy terrain snapshots.
 
+The former `LegacyWorldMotionAuthority`, rectangle `CollisionSystem`,
+`StaticWorldGeometry`/index, and horizontal navigation stack are deleted.
+Actor systems that need placement or clearance receive the terrain authority
+explicitly; construction cannot fall back when it is omitted.
+
 Any snapshot/event shape or semantic change requires consumer updates in the
 same change. If replay acceptance, score, or terminal outcome changes, the
 validator must replay and assert the new behavior rather than infer it from UI.

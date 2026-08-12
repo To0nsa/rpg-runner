@@ -40,7 +40,7 @@ class ProjectileEntityDef {
   final int maxPierceHits;
 
   /// If true, this projectile is moved by core physics (GravitySystem +
-  /// CollisionSystem) rather than [ProjectileSystem].
+  /// terrain motion authority) rather than [ProjectileSystem].
   final bool usePhysics;
 }
 

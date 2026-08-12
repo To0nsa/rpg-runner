@@ -188,11 +188,11 @@ final class TerrainItemSpawnPlacementProfile
   String get diagnosticKey => 'item:${itemKind.name}';
 }
 
-/// Immutable request for the shared legacy/terrain spawn-placement boundary.
+/// Immutable request for the polygon-terrain spawn-placement boundary.
 ///
 /// Coordinates use authoritative 1/1024-world-unit physics ticks. The desired
-/// Y is the historical candidate used by legacy authority; supported terrain
-/// profiles derive their accepted Y from the selected polygon edge instead.
+/// Y is an input candidate; supported profiles derive their accepted Y from
+/// the selected polygon edge instead.
 final class TerrainSpawnPlacementRequest {
   /// Creates a validated placement request without querying world geometry.
   factory TerrainSpawnPlacementRequest({
@@ -251,19 +251,19 @@ final class TerrainSpawnPlacementRequest {
   /// Complete actor/item shape and terrain-eligibility policy.
   final TerrainSpawnPlacementProfile profile;
 
-  /// Historical candidate retained exactly by legacy authority.
+  /// Requested body candidate before terrain projection.
   final TerrainPoint desiredBodyCenter;
 
   /// Authored source-selection intent that terrain authority must preserve.
   final TerrainSpawnSupportSelection supportSelection;
 
-  /// Optional legacy support-height bridge when no exact edge ID is supplied.
+  /// Optional support-height binding when no exact edge ID is supplied.
   ///
   /// Runtime ground and obstacle selection use terrain semantics when this is
   /// absent. Deferred edge placement remains height-bound.
   final int? requestedSupportYTicks;
 
-  /// Exact intended polygon edge; this bypasses legacy height matching.
+  /// Exact intended polygon edge; this bypasses height matching.
   final TerrainEdgeId? intendedSupportEdgeId;
 
   /// Whether the authored source actually resolved instead of using fallback Y.
@@ -303,32 +303,6 @@ final class TerrainSpawnPlacementResult {
          intendedSupportEdgeId: intendedSupportEdgeId,
        );
 
-  /// Preserves the historical candidate exactly under rectangle authority.
-  factory TerrainSpawnPlacementResult.legacyAccepted(
-    TerrainSpawnPlacementRequest request,
-  ) => TerrainSpawnPlacementResult._(
-    profileKey: request.profile.diagnosticKey,
-    supportSelection: request.supportSelection,
-    validity: TerrainPlacementValidity.valid,
-    geometryVersion: null,
-    requestedBodyCenter: request.desiredBodyCenter,
-    bodyCenter: request.desiredBodyCenter,
-    supportPoint: request.requestedSupportYTicks == null
-        ? null
-        : TerrainPoint(
-            request.desiredBodyCenter.xTicks,
-            request.requestedSupportYTicks!,
-          ),
-    supportEdgeId: null,
-    blockingEdgeId: null,
-    absoluteSlopeAngleUnits:
-        request.supportSelection == TerrainSpawnSupportSelection.none
-        ? null
-        : 0,
-    sameSupportClamped: false,
-    intendedSupportEdgeId: request.intendedSupportEdgeId,
-  );
-
   /// Stable actor/item key included in [diagnostic].
   final String profileKey;
 
@@ -338,8 +312,8 @@ final class TerrainSpawnPlacementResult {
   /// Typed acceptance or terminal rejection reason.
   final TerrainPlacementValidity validity;
 
-  /// Polygon geometry version, or `null` for legacy rectangle authority.
-  final int? geometryVersion;
+  /// Published polygon geometry version.
+  final int geometryVersion;
 
   /// Original body candidate before support projection or clamping.
   final TerrainPoint requestedBodyCenter;
@@ -784,7 +758,7 @@ String _spawnPlacementDiagnostic({
   required String profileKey,
   required TerrainSpawnSupportSelection supportSelection,
   required TerrainPlacementValidity validity,
-  required int? geometryVersion,
+  required int geometryVersion,
   required TerrainPoint requestedBodyCenter,
   required TerrainPoint? bodyCenter,
   required TerrainPoint? supportPoint,
@@ -798,7 +772,7 @@ String _spawnPlacementDiagnostic({
     '|profile=$profileKey'
     '|selection=${supportSelection.name}'
     '|validity=${validity.name}'
-    '|geometry=${geometryVersion ?? 'legacy'}'
+    '|geometry=$geometryVersion'
     '|requested=${requestedBodyCenter.xTicks},${requestedBodyCenter.yTicks}'
     '|body=${bodyCenter?.xTicks ?? '-'},${bodyCenter?.yTicks ?? '-'}'
     '|intended=${intendedSupportEdgeId?.canonicalKey ?? '-'}'

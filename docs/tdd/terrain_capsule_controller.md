@@ -339,5 +339,5 @@ At the direct production cutover:
 - live and replay-validator compatibility must be issued together,
 - the `terrainMotionHarness` geometry-injection seam remains test/tool-only and
   must not become a runtime selector;
-- remaining rectangle-only test helpers and their legacy motion adapter must be
-  deleted after their focused unit coverage is migrated.
+- the deleted rectangle collision, static-world model, and legacy motion
+  adapter must not be reintroduced as test conveniences.

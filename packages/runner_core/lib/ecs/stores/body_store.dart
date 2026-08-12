@@ -37,7 +37,7 @@ class BodyDef {
   final bool ignoreCeilings;
 
   /// If true, collision should resolve only top contacts (platformer-style).
-  /// Used by `CollisionSystem` (later milestone).
+  /// Used by the terrain motion authority.
   final bool topOnlyGround;
 
   /// Scale applied to global/tuning gravity (1.0 = normal gravity).
@@ -47,7 +47,7 @@ class BodyDef {
   final double maxVelX;
   final double maxVelY;
 
-  /// Horizontal collision sides bitmask (used by `CollisionSystem` later).
+  /// Horizontal collision sides bitmask retained by actor policy.
   final int sideMask;
 
   static const int sideNone = 0;

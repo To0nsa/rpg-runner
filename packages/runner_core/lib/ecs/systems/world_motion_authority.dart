@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 
-import '../../collision/static_world_geometry_index.dart';
 import '../../collision/terrain/terrain_capsule_controller.dart';
 import '../../collision/terrain/terrain_controller_diagnostic.dart';
 import '../../collision/terrain/terrain_edge_id.dart';
@@ -29,23 +28,17 @@ import '../../track/staged_terrain_stream_candidate.dart';
 import '../entity_id.dart';
 import '../stores/world_contact_capsule_store.dart';
 import '../world.dart';
-import 'collision_system.dart';
 import 'terrain_ballistic_projectile_system.dart';
 
 /// One integration owner for dynamic-body movement during a Core tick.
 ///
-/// Normal streamed GameCore construction uses
-/// [TerrainMultiBodyWorldMotionAuthority]. Synthetic track-disabled fixtures
-/// may temporarily use [LegacyWorldMotionAuthority] during the Phase 6
-/// dependency-ordered deletion; no production option selects between them.
+/// Every GameCore construction uses [TerrainMultiBodyWorldMotionAuthority].
 abstract interface class WorldMotionAuthority {
-  bool get usesTerrainPlayer;
-
   int? get terrainGeometryVersion;
 
   /// Immutable terrain fill data from the same published runtime bundle.
   ///
-  /// Legacy motion does not own staged terrain and returns `null`.
+  /// Direct synthetic terrain has no staged render artifact and returns null.
   StagedTerrainRenderSnapshot? get terrainRenderSnapshot;
 
   bool get initialPlayerGrounded;
@@ -55,8 +48,8 @@ abstract interface class WorldMotionAuthority {
 
   /// Publishes any complete queued world replacement before spawn placement.
   ///
-  /// Legacy motion has no publication. Terrain motion swaps collision,
-  /// navigation, placement, and render data through one reference so entities
+  /// Terrain motion swaps collision, navigation, placement, and render data
+  /// through one reference so entities
   /// selected with a streamed chunk cannot be placed against stale geometry.
   void publishPendingWorld();
 
@@ -109,8 +102,7 @@ abstract interface class WorldMotionAuthority {
 
   /// Resolves one enemy or item candidate through the selected world authority.
   ///
-  /// Legacy construction preserves the requested historical candidate.
-  /// Terrain construction validates the explicit actor/item profile, intended
+  /// Validates the explicit actor/item profile, intended
   /// support, and full clearance without mutating the ECS or consuming RNG.
   TerrainSpawnPlacementResult resolveSpawnPlacement(
     TerrainSpawnPlacementRequest request,
@@ -267,182 +259,6 @@ TerrainBodyDisposition terrainBodyDisposition(
   return TerrainBodyDisposition.unsupportedDynamicBody;
 }
 
-/// Adapter preserving the pre-slopes rectangle integration path exactly.
-class LegacyWorldMotionAuthority implements WorldMotionAuthority {
-  LegacyWorldMotionAuthority({StaticWorldGeometryIndex? staticWorld})
-    : _staticWorld =
-          staticWorld ??
-          StaticWorldGeometryIndex.from(const StaticWorldGeometry());
-
-  final StaticWorldGeometryIndex _staticWorld;
-  final CollisionSystem _collision = CollisionSystem();
-  int _preparedTick = -1;
-  int _integratedTick = -1;
-  String? _lastSpawnPlacementDiagnostic;
-
-  @override
-  bool get usesTerrainPlayer => false;
-
-  @override
-  int? get terrainGeometryVersion => null;
-
-  @override
-  StagedTerrainRenderSnapshot? get terrainRenderSnapshot => null;
-
-  @override
-  bool get initialPlayerGrounded => true;
-
-  @override
-  String? get lastSpawnPlacementDiagnostic => _lastSpawnPlacementDiagnostic;
-
-  @override
-  void publishPendingWorld() {}
-
-  @override
-  void initializePlayer(
-    EcsWorld world, {
-    required EntityId player,
-    required PlayerArchetype archetype,
-  }) {}
-
-  @override
-  void prepareTick(
-    EcsWorld world, {
-    required EntityId player,
-    required int currentTick,
-  }) {
-    _auditPrepare(currentTick);
-  }
-
-  @override
-  double step(
-    EcsWorld world, {
-    required EntityId player,
-    required MovementTuningDerived movement,
-    required bool fixedPointPilotEnabled,
-    required int fixedPointSubpixelScale,
-    required int currentTick,
-  }) {
-    _auditIntegrate(currentTick);
-    _collision.step(
-      world,
-      movement,
-      staticWorld: _staticWorld,
-      fixedPointPilotEnabled: fixedPointPilotEnabled,
-      fixedPointSubpixelScale: fixedPointSubpixelScale,
-    );
-    final transformIndex = world.transform.indexOf(player);
-    return math.max(0.0, world.transform.velX[transformIndex]) *
-        movement.dtSeconds;
-  }
-
-  @override
-  bool playerGrounded(EcsWorld world, EntityId player) {
-    final collisionIndex = world.collision.indexOf(player);
-    return world.collision.grounded[collisionIndex];
-  }
-
-  @override
-  WorldBodyPlacementOrigin beginBodyTeleport(EcsWorld world, EntityId entity) =>
-      _currentPlacementOrigin(world, entity);
-
-  @override
-  bool tryCommitBodyTeleport(
-    EcsWorld world,
-    EntityId entity, {
-    required double bodyX,
-    required double bodyY,
-    required Facing facing,
-  }) {
-    _writeBodyPlacement(
-      world,
-      entity,
-      bodyX: bodyX,
-      bodyY: bodyY,
-      facing: facing,
-    );
-    return true;
-  }
-
-  @override
-  void cancelBodyTeleport(
-    EcsWorld world,
-    EntityId entity,
-    WorldBodyPlacementOrigin origin,
-  ) {
-    _writeBodyPlacement(
-      world,
-      entity,
-      bodyX: origin.bodyX,
-      bodyY: origin.bodyY,
-      facing: origin.facing,
-    );
-  }
-
-  @override
-  TerrainSpawnPlacementResult resolveSpawnPlacement(
-    TerrainSpawnPlacementRequest request,
-  ) {
-    final result = TerrainSpawnPlacementResult.legacyAccepted(request);
-    _lastSpawnPlacementDiagnostic = result.diagnostic;
-    return result;
-  }
-
-  @override
-  double? flyingTerrainReferenceY(EcsWorld world, EntityId entity) => null;
-
-  @override
-  void resolveFlyingClearanceSteering(
-    EcsWorld world,
-    EntityId entity, {
-    required double directVelocityX,
-    required double directVelocityY,
-    required double targetBodyX,
-    required double targetBodyY,
-    required int blockerNormalXTicks,
-    required int blockerNormalYTicks,
-    required int previewTicks,
-    required int tickHz,
-    required FlyingClearanceSteeringOutput out,
-  }) {
-    out.setDirect(directVelocityX, directVelocityY);
-  }
-
-  @override
-  void beforeExternalBodyVelocity(
-    EcsWorld world,
-    EntityId entity, {
-    required double velocityY,
-  }) {}
-
-  @override
-  void beforeBodyMotionStops(EcsWorld world, EntityId entity) {}
-
-  void _auditPrepare(int currentTick) {
-    if (_preparedTick >= 0 && _integratedTick != _preparedTick) {
-      throw StateError(
-        'World motion prepared tick $_preparedTick but did not integrate it.',
-      );
-    }
-    if (_preparedTick == currentTick) {
-      throw StateError('World motion prepared tick $currentTick twice.');
-    }
-    _preparedTick = currentTick;
-  }
-
-  void _auditIntegrate(int currentTick) {
-    if (_preparedTick != currentTick) {
-      throw StateError(
-        'World motion tick $currentTick was not prepared exactly once.',
-      );
-    }
-    if (_integratedTick == currentTick) {
-      throw StateError('World motion integrated tick $currentTick twice.');
-    }
-    _integratedTick = currentTick;
-  }
-}
-
 /// Isolated Phase 3 terrain dispatcher for the player and migrated enemies.
 ///
 /// The dispatcher preflights every body before mutating tick state, prepares
@@ -569,9 +385,6 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
   /// Number of enabled ballistic projectile AABBs integrated by the latest tick.
   int get lastIntegratedBallisticProjectileCount =>
       _ballisticProjectileSystem.lastIntegratedProjectileCount;
-
-  @override
-  bool get usesTerrainPlayer => true;
 
   @override
   int get terrainGeometryVersion => _publication.bundle.version;

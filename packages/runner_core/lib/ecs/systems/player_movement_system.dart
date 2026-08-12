@@ -17,7 +17,7 @@ import '../world.dart';
 ///
 /// PlayerMovementSystem writes movement velocities only (input/dash/clamps).
 /// Dash initiation is handled by [MobilitySystem].
-/// Position integration and collision resolution are handled by CollisionSystem.
+/// Position integration and collision resolution are handled by terrain motion.
 ///
 /// **Responsibilities**:
 /// *   Update movement state timers (dash + facing locks).

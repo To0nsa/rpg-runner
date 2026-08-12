@@ -14,9 +14,8 @@ import 'world_motion_authority.dart';
 class FlyingEnemyLocomotionSystem {
   FlyingEnemyLocomotionSystem({
     required this.unocoDemonTuning,
-    WorldMotionAuthority? worldMotionAuthority,
-  }) : _worldMotionAuthority =
-           worldMotionAuthority ?? LegacyWorldMotionAuthority();
+    required WorldMotionAuthority worldMotionAuthority,
+  }) : _worldMotionAuthority = worldMotionAuthority;
 
   final UnocoDemonTuningDerived unocoDemonTuning;
   final WorldMotionAuthority _worldMotionAuthority;

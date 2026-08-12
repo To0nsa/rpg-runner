@@ -20,12 +20,11 @@ class HashashTeleportAmbushSystem {
     this.ambushAbilityId = 'hashash.ambush',
     this.ambushRightOffsetX = 36.0,
     this.ambushDropHeightY = 36.0,
-    WorldMotionAuthority? worldMotionAuthority,
+    required WorldMotionAuthority worldMotionAuthority,
   }) : assert(tickHz > 0, 'tickHz must be > 0.'),
        assert(ambushRightOffsetX >= 0.0, 'ambushRightOffsetX must be >= 0.'),
        assert(ambushDropHeightY >= 0.0, 'ambushDropHeightY must be >= 0.'),
-       _worldMotionAuthority =
-           worldMotionAuthority ?? LegacyWorldMotionAuthority();
+       _worldMotionAuthority = worldMotionAuthority;
 
   static const int _ambushLockMask = LockFlag.allExceptStun;
 

@@ -4,7 +4,7 @@ import '../world.dart';
 /// Despawns physics-driven projectiles that collided with the static world.
 ///
 /// This is intended for ballistic projectiles (arrows, thrown axes) that use
-/// [BodyStore] + [CollisionSystem] for ground/wall collision. When a collision
+/// [BodyStore] + terrain motion for ground/wall collision. When a collision
 /// occurs, the projectile is removed immediately (same tick).
 class ProjectileWorldCollisionSystem {
   final List<EntityId> _toDespawn = <EntityId>[];
@@ -37,4 +37,3 @@ class ProjectileWorldCollisionSystem {
     }
   }
 }
-

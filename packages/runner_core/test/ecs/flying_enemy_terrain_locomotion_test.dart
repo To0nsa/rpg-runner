@@ -83,35 +83,6 @@ void main() {
         expect(planeFallback.enemyVelocityY, greaterThan(0));
       },
     );
-
-    test('terrain lookup does not consume or reorder hover RNG', () {
-      final terrain = _Harness.create(
-        geometry: _flatTerrain,
-        enemyX: 100,
-        enemyY: 350,
-        playerX: 600,
-        groundTopY: 500,
-      );
-      final legacy = _Harness.create(
-        geometry: _flatTerrain,
-        enemyX: 100,
-        enemyY: 350,
-        playerX: 600,
-        groundTopY: 500,
-        injectTerrainSteering: false,
-      );
-
-      terrain.stepLocomotion();
-      legacy.stepLocomotion();
-
-      expect(terrain.rngState, legacy.rngState);
-      expect(terrain.desiredRange, legacy.desiredRange);
-      expect(terrain.desiredRangeHoldLeftS, legacy.desiredRangeHoldLeftS);
-      expect(terrain.flightTargetAboveGround, legacy.flightTargetAboveGround);
-      expect(terrain.flightTargetHoldLeftS, legacy.flightTargetHoldLeftS);
-      expect(terrain.enemyVelocityX, legacy.enemyVelocityX);
-      expect(terrain.enemyVelocityY, legacy.enemyVelocityY);
-    });
   });
 
   group('Unoco terrain collision', () {
@@ -270,7 +241,6 @@ class _Harness {
     required double playerX,
     double playerY = 100,
     double groundTopY = 1000,
-    bool injectTerrainSteering = true,
     UnocoDemonTuning tuning = const UnocoDemonTuning(),
   }) {
     final world = EcsWorld(seed: 424242);
@@ -333,7 +303,7 @@ class _Harness {
       movement: movement,
       locomotion: FlyingEnemyLocomotionSystem(
         unocoDemonTuning: UnocoDemonTuningDerived.from(tuning, tickHz: _tickHz),
-        worldMotionAuthority: injectTerrainSteering ? authority : null,
+        worldMotionAuthority: authority,
       ),
       groundTopY: groundTopY,
     );

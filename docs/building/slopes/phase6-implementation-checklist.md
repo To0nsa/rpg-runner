@@ -83,11 +83,11 @@ small commits, but the completed phase must not retain a runtime dual path.
 - [x] `ChunkPattern` contains no `SolidRel` / `GapRel` compatibility payload,
       and the unused `chunk_builder.dart` projection plus its validation suite
       are deleted
-- [ ] `polygon_terrain_legacy_projection.dart`, its temporary tests, and stale
+- [x] `polygon_terrain_legacy_projection.dart`, its temporary tests, and stale
       migration-only runtime bridges are deleted
-- [ ] the test/tool-only terrain authority selectors are deleted after normal
+- [x] the test/tool-only terrain authority selectors are deleted after normal
       construction owns their coverage
-- [ ] repository import/construction audits find one polygon terrain authority
+- [x] repository import/construction audits find one polygon terrain authority
       and no fallback or runtime toggle
 - [ ] documentation describes the final ownership and the remaining Phase 7
       compatibility rollout accurately
@@ -138,3 +138,4 @@ generated membership, and any compatibility/version disposition before Phase 7.
 | 2026-08-12 / Phase 6 working head | Delete legacy terrain render contract | `GameStateSnapshot` no longer carries `staticSolids` or `groundSurfaces`; `SnapshotBuilder`, deterministic consumers, recorder/ghost copies, and streaming assertions use the polygon publication directly. Flame's ground-band, foreground-band, floor-mask, rectangle-debug synchronization, and layout components/tests are deleted, leaving `StagedTerrain` as the only terrain renderer. Root analysis, all 370 package tests, all 424 root Core tests, and all 17 Game tests pass. |
 | 2026-08-12 / Phase 6 working head | Remove GameCore legacy fallback and TrackManager read models | Every `GameCore` now installs `TerrainMultiBodyWorldMotionAuthority`: admitted staged geometry for enabled streams, explicit geometry for the test harness, and a deterministic flat polygon for track-disabled synthetic fixtures. Missing streaming `chunkKey` admission fails closed. `LevelDefinition` carries a scalar ground reference instead of `StaticWorldGeometry`; generated registries emit that scalar. `TrackManager` now owns only selection, prefab visuals, and deferred item batches, and the world-motion step no longer accepts a legacy static-world index. Three obsolete rectangle GameCore collision suites are deleted in favor of terrain controller/harness coverage. Root and package analysis are clean; all 370 package tests, 417 root Core tests, 68 tool tests, and 84 replay-validator tests pass, and the real 8-Chunk/2-level/2-theme dry-run has zero drift. |
 | 2026-08-12 / Phase 6 working head | Delete horizontal navigation compatibility stack | The rectangle `SurfaceExtractor`, graph builder/types/index, trajectory predictor, pathfinder, navigator, and `EnemyNavigationSystem` are deleted with their obsolete suites. Ground locomotion consumes the complete terrain navigation intent directly, while collectible/restoration placement queries polygon terrain without a legacy surface graph or rectangle overlap list. Root/package analysis is clean; all 369 package tests and 359 root Core tests pass. |
+| 2026-08-12 / Phase 6 working head | Delete legacy motion and static-world collision | `LegacyWorldMotionAuthority`, `CollisionSystem`, `StaticWorldGeometry`, its index, and all ground/solid/gap rectangle types are deleted. Hashash teleport and flying locomotion require an explicit terrain authority; spawn-placement results always carry a polygon geometry version. Production import/construction audit finds no legacy authority, static-world type, rectangle collision system, fallback, or runtime toggle. Root/package analysis is clean; all 368 package tests and 349 root Core tests pass. |
