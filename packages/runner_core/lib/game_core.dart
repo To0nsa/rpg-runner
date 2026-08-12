@@ -178,11 +178,11 @@ class GameCore {
          terrainHarnessGeometry: null,
        );
 
-  /// Creates the isolated Phase 3 multi-body terrain integration harness.
+  /// Creates the explicit multi-body terrain integration harness.
   ///
   /// This is a test/tool construction boundary, not a level or replay option.
   /// Known player/enemy actors and ballistic projectiles use explicit terrain
-  /// policies; unknown dynamic bodies fail without a legacy fallback.
+  /// policies; unknown dynamic bodies fail without an alternate fallback.
   factory GameCore.terrainMotionHarness({
     required int seed,
     int runId = 0,
@@ -1305,7 +1305,7 @@ class GameCore {
   /// 6. **Player movement**: Apply horizontal input to velocity.
   /// 7. **Mobility execution**: Apply dash/roll state.
   /// 8. **Gravity**: Apply gravitational acceleration.
-  /// 9. **Collision**: Resolve against static world geometry.
+  /// 9. **World motion**: Resolve every admitted body against polygon terrain.
   /// 10. **Death checks**: Detect fall-into-gap and fell-behind-camera.
   /// 11. **Camera update**: Advance autoscroll position.
   /// 12. **Pickups**: Process collectible and restoration item collection.
@@ -1665,8 +1665,8 @@ class GameCore {
 
   /// Steps track selection and returns ECS mutations for deferred placement.
   ///
-  /// The matching legacy projection and staged candidate are both complete
-  /// before the returned enemy/item batch may mutate the world.
+  /// The matching polygon candidate is complete before the returned
+  /// enemy/item batch may mutate the world.
   ({
     List<SpawnEnemyRequest> enemyRequests,
     List<TrackSpawnedChunk> spawnedChunks,
@@ -1964,7 +1964,7 @@ class GameCore {
 
     return bottomY >
         _levelDefinition.resolveKillPlaneY(
-          legacyGapOffsetY: _trackTuning.gapKillOffsetY,
+          fallbackOffsetY: _trackTuning.gapKillOffsetY,
         );
   }
 

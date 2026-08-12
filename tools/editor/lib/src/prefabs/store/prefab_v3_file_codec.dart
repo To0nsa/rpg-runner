@@ -8,8 +8,8 @@ import 'prefab_determinism.dart';
 /// Strict normal-layer codec for one `prefab_defs.json` schema-v3 file.
 ///
 /// It owns the single prefab-v3 structural interpretation used by both the
-/// future normal store and the read-only migration checker. It performs no
-/// filesystem I/O and does not enable the Phase 4 source write.
+/// normal store and the read-only migration checker. It performs no filesystem
+/// I/O; transactional stores own source writes.
 abstract final class PrefabV3FileCodec {
   /// Parses canonical schema-v3 source without legacy defaults or coercion.
   static PrefabV3FileData decode(

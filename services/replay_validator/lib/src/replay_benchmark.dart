@@ -39,7 +39,7 @@ int runReplayBenchmark(List<String> args) {
     'benchmark': 'replay-validator-terrain-stream-v1',
     'revision':
         _gitOutput(<String>['rev-parse', '--short', 'HEAD']) ?? 'unavailable',
-    'dirty': gitStatus == null ? null : gitStatus.isNotEmpty,
+    'dirty': gitStatus?.isNotEmpty,
     'os': Platform.operatingSystem,
     'osVersion': Platform.operatingSystemVersion,
     'dartVersion': Platform.version,

@@ -156,7 +156,7 @@ class EcsWorld {
   /// Physics properties like mass, friction, and restitution.
   late final BodyStore body = _register(BodyStore());
 
-  /// AABB for broad phase, combat/triggers, culling, and legacy world contact.
+  /// AABB for broad phase, combat/triggers, culling, and projectile terrain.
   ///
   /// A terrain-integrated actor's [worldContactCapsule] is authoritative for
   /// static terrain; this exact derived AABB remains its non-terrain bound.

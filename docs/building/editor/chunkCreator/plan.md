@@ -583,49 +583,22 @@ Deferred from Phase 5:
 - jumpability or unsafe-gap overlays tied to character/enemy movement rules
 - level-specific fairness constraints such as min/max widths or clearance rules
 
-Current slopes handoff status (August 11, 2026): the Chunk-v2 polygon
-workspace can edit direct polygons, expand placed prefab collision through
-Core, inspect compiled edges and actor/marker evidence, and list
-scheduler-reachable compatible/failing seams from exact boundary signatures.
-Global validation blocks physical seam mismatches. Normal Chunk Creator now
-loads the checked-in Chunk-v2 source; legacy/missing fixtures still enter the
-shared no-data migration-required workspace.
+Current slopes handoff status (August 12, 2026): the Chunk-v2 polygon workspace
+edits direct shapes, expands placed Prefab-v3 collision through Core, inspects
+compiled edges and actor/marker evidence, and blocks scheduler-reachable seam
+mismatches. Prefab owner navigation, unsaved-work guards, transactional source
+application, current-schema reload, read-only legacy migration, and centralized
+polygon undo/redo are all active normal workflows.
 
-The staged expanded-collision list now opens its exact stable source owner in
-the Prefab-v3 polygon workspace. The editor shell applies the same unsaved-work
-guard as a normal route switch, loads and validates the explicit Prefab-v3
-document before changing the active plugin, and selects the requested owner.
-Failure preserves the current Chunk-v2 session and history; the action never
-creates per-instance vertices. Normal loaders now select strict Prefab-v3 and
-complete Chunk-v2 sources when the repository is already current, and their
-confirmed export actions apply through source-drift-guarded transactional
-stores. The checked-in source migration is complete, while runtime terrain
-authority remains deferred and compatibility code is being removed.
-
-The first root generator compiler fixture now passes the editor's strict
-prefab-v3/chunk-v2 codecs and collision expansion over the same checked-in
-bytes. Editor and generator agree on Core source/edge and exact placement
-lineage signatures for direct concave solid, one-way, metadata, and reflected
-rational-scale prefab geometry. The root entry point now emits the registered,
-runtime-unreachable staged terrain file. The executable Dart fixture proves
-the local record shape for source/physics loops,
-Core-exposed edges, render triangles, and prefab revision lineage. It strips the
-reserved compiler preview index and is byte-goldened through the shared artifact
-drift plan; no gameplay or rendering path imports it.
-
-The root compatibility bridge can project accepted orthogonal staged chunks
-back to canonical legacy rectangles/gaps without approximating slopes. Clean
-polygon reauthoring now retains `field_flat`'s direct solid and gives all seven
-Forest chunks one continuous flat ground polygon. All Forest boundaries share
-the established 224px seam height, so every scheduler-reachable pair validates
-while the compatibility projection restores continuous legacy ground. Prefab
-collision remains deliberately sparse and no solid-owner union behavior was
-added.
-
-Chunk visuals, all 50 prefab placements, and both markers are preserved.
-Phase 5 can therefore connect normal streaming/rendering without deleting the
-Forest level; authored slopes, platforms, obstacles, and their complete actor
-and marker acceptance remain subsequent content work.
+The root generator consumes the same strict Prefab-v3/Chunk-v2 source and emits
+the admitted polygon artifact with exact source, edge, triangle, placement, and
+seam signatures. All eight current Chunks own continuous ground polygons; the
+Forest woodcamp additionally owns a solid obstacle perch and Derf marker. Normal
+and replay Core use that artifact for collision, navigation, placement, and
+Flame rendering. The rectangle projector and all runtime rectangle terrain
+adapters are deleted, so editor output reaches gameplay through one geometry
+authority. Further slope/platform design is ordinary content authoring, not a
+runtime migration dependency.
 
 ### Phase 6 - Enemy Spawn Marker Authoring Through Editor
 

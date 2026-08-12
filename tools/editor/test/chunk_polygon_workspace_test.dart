@@ -218,7 +218,7 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.textContaining('Projectile terrain support remains later-phase'),
+        find.textContaining('runtime ballistic projectiles sweep'),
         findsOneWidget,
       );
       await tester.drag(diagnosticsList, const Offset(0, 2000));

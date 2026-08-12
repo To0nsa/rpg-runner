@@ -25,9 +25,9 @@ Normal streamed `GameCore(...)` and replay validation now construct
 `TerrainMultiBodyWorldMotionAuthority` from the scheduler's admitted candidate.
 The player and migrated enemies dispatch through explicit catalog policies;
 unsupported dynamic bodies fail without a rectangle fallback and ballistic
-projectiles use the terrain AABB sweep. The earlier Phase 3 harness remains for
-synthetic geometry tests while Phase 6 removes the temporary legacy fixture
-path.
+projectiles use the terrain AABB sweep. The explicit
+`GameCore.terrainMotionHarness` remains a test/tool boundary for synthetic
+geometry; normal and replay construction cannot select another authority.
 
 `TerrainNavigationSurface` is the normal production navigation representation
 for streamed terrain. New polygon navigation work must not add a second
@@ -47,11 +47,12 @@ The implementation baseline was clean revision `9eea5cfd` on Windows
 | Graph ordering, A* tie behavior, and graph-version invalidation | `surface_graph_builder_test.dart`, `surface_pathfinder_test.dart`, and `surface_navigator_graph_version_test.dart` |
 | Normal/replay construction uses streamed terrain | `game_core.dart` installs the admitted candidate before placement; `validator_worker.dart` invokes that same normal constructor |
 
-The characterized legacy Hashash ambush has no terrain-placement failure path: after
-teleport-out it unconditionally writes the predicted player point plus
-`(+36, -36)`, queues the strike, and schedules the authored recovery/cooldown.
-The terrain harness now adds primary/mirrored/cancel validation while preserving
-those timings; the legacy authority still accepts the primary point exactly.
+The originally characterized Hashash ambush had no terrain-placement failure
+path: after teleport-out it unconditionally wrote the predicted player point
+plus `(+36, -36)`, queued the strike, and scheduled the authored
+recovery/cooldown. Terrain placement added primary/mirrored/cancel validation
+while preserving those timings; the baseline accepted the primary point
+exactly.
 The deferred-spawn test also fixes Unoco/Hashash marker ordering and counts for
 the same stream.
 
@@ -601,12 +602,11 @@ lineage before normal `GameCore` applies placement.
 ## Grounded Enemy Terrain Locomotion
 
 Grojib and Hashash consume prepared terrain support in normal construction.
-`WorldSupportView` is the staged read boundary for navigation, locomotion,
-animation, render snapshots, and ground-impact death: a terrain-owned actor reads
-`TerrainContactStateStore`, while a legacy actor continues to read
-`CollisionStore`. This matters because `prepareTick` intentionally resets the
-legacy compatibility flags after retaining authoritative prior support and
-before AI executes.
+`WorldSupportView` is the single read boundary for navigation, locomotion,
+animation, render snapshots, and ground-impact death. It exposes retained prior
+support before integration and final `TerrainContactStateStore` support after
+integration. Consumers do not read reset contact-store fields directly between
+`prepareTick` and motion, and there is no rectangle-support branch.
 
 Navigation and engagement continue to author world-X targets. Chase offsets,
 melee stand-off, arrival slowing, engagement state speed, status speed, move
@@ -630,7 +630,7 @@ policy. The controller removes velocity only along an entering contact normal;
 it does not invent a bounce, slope impulse, or rectangle fallback.
 
 An accepted enemy jump is an explicit mode boundary. Locomotion clears retained
-terrain and compatibility support before writing the existing world-X
+terrain support before writing the existing world-X
 jump-edge snap/commit velocity and world-up launch velocity. The authority
 therefore emits a `worldSpace` request for that tick with no grounded snap.
 Airborne jump/drop commit and off-course recovery remain the existing
@@ -655,8 +655,8 @@ Hashash ambush no longer writes an unchecked transform in the terrain harness.
 `WorldMotionAuthority` owns a small transactional placement lifecycle:
 
 1. `beginBodyTeleport` retains the last valid body position and capsule-facing
-   state, then clears support, legacy grounded compatibility, resolved motion,
-   and every retained surface path reference
+   state, then clears support, resolved motion, and every retained surface path
+   reference
 2. `tryCommitBodyTeleport` validates an exact body point with the Hashash
    capsule and traversal profile; one-way faces are ignored because the
    ambush is clearance-only and airborne
@@ -752,8 +752,10 @@ The benchmark is compiled before acceptance so timings come from product AOT
 rather than JIT development mode. The separate VM-service allocation profile
 uses paired baseline/solve trials on the exact 1,280-edge controller hot loop
 and attributes tracked `_Double`/`_Mint` deltas through allocation traces.
-Production terrain streaming and ECS terrain-graph cutover remain later-phase
-work; Phase 3 must not silently select this bundle from normal authored levels.
+At this Phase 3 acceptance boundary, production terrain streaming and the ECS
+terrain-graph cutover deliberately remained later-phase work; normal authored
+levels could not yet select this bundle. Phases 5 and 6 subsequently completed
+that direct cutover without changing this historical benchmark reference.
 
 The accepted July 28 report on Windows `10.0.26200` with Dart `3.11.5` records
 Grojib/Hashash graph-build p99 of `2.713/1.803 ms`, combined-bundle p99 of
@@ -775,11 +777,11 @@ Missing, duplicate, case-colliding, wrong-level, or physically incompatible
 chunks produce blocking diagnostics and no renderable batch. `materialKey`
 differences remain retained advisory evidence for the later render seam.
 
-The disconnected staged artifact records the reachable-adjacency format and
-digest so Phase 5 can bind its generated geometry to the reviewed scheduler
-set. This is generated-data validation only: normal prefab-v2/chunk-v1
-generation, terrain streaming, navigation publication, `GameCore` authority,
-and replay construction remain unchanged.
+At the Phase 4 boundary, the then-disconnected staged artifact recorded the
+reachable-adjacency format and digest so Phase 5 could bind generated geometry
+to the reviewed scheduler set. That slice changed generated-data validation
+only; current Prefab-v3/Chunk-v2 generation, terrain streaming, navigation,
+normal `GameCore`, and replay construction now consume the admitted artifact.
 
 ## Reviewed Phase 3 Scenario Signatures
 

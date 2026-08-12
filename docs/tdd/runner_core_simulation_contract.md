@@ -109,8 +109,10 @@ Terrain authority rejects unknown enabled dynamic bodies and never falls
 back to rectangle collision. Catalog-owned actors use their capsule policies;
 physics-driven projectiles use a distinct continuous AABB terrain sweep in the
 same motion phase. No replay field, saved state, UI, remote configuration, or
-test-level tuning selects a second collision authority. See the terrain
-controller TDD for the staged boundary and remaining test-support cleanup.
+test-level tuning selects a second collision authority. The retained
+`Staged*` type/file names identify the generated artifact format and publication
+snapshot; they do not represent a selectable runtime mode. See the terrain
+controller TDD for the authority and test-harness boundaries.
 
 A harness replacement is built completely before queueing and becomes visible
 at the next explicit world-publication/preparation boundary. It cannot be

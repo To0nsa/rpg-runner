@@ -21,7 +21,7 @@ enum ChunkV2TerrainActor { eloise, grojib, hashash, unoco, derf }
 ///
 /// Éloïse intentionally has no graph: Core owns a player traversal profile,
 /// but no player pathfinding profile. Grojib and Hashash retain the two exact
-/// Phase 3 graph views built by [TerrainRuntimeBundle].
+/// Runtime graph views built by [TerrainRuntimeBundle].
 @immutable
 final class ChunkV2GroundedTerrainView {
   ChunkV2GroundedTerrainView({

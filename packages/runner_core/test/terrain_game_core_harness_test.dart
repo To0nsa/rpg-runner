@@ -394,12 +394,12 @@ void main() {
   });
 
   test(
-    'absolute kill plane overrides the legacy ground-relative threshold',
+    'absolute kill plane overrides the default ground-relative threshold',
     () {
-      final legacyLevel = _level(groundTopY: 1000);
-      expect(legacyLevel.resolveKillPlaneY(legacyGapOffsetY: 400), 1400);
+      final fallbackLevel = _level(groundTopY: 1000);
+      expect(fallbackLevel.resolveKillPlaneY(fallbackOffsetY: 400), 1400);
       final absoluteLevel = _level(groundTopY: 1000, killPlaneY: 480);
-      expect(absoluteLevel.resolveKillPlaneY(legacyGapOffsetY: 400), 480);
+      expect(absoluteLevel.resolveKillPlaneY(fallbackOffsetY: 400), 480);
 
       final core = GameCore.terrainMotionHarness(
         seed: 17,

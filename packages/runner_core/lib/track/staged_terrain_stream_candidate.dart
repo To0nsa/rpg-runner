@@ -1,4 +1,4 @@
-/// Composes one inactive, atomically publishable staged terrain candidate.
+/// Composes one complete, atomically publishable terrain candidate.
 library;
 
 import '../collision/terrain/terrain_geometry.dart';
@@ -16,9 +16,10 @@ import 'track_streamer.dart';
 ///
 /// [runtimeBundle] and [renderSnapshot] share the exact [geometry] object and
 /// [geometryVersion]. The class has no tick scheduling or gameplay side
-/// effect. Normal streaming replaces this whole candidate whenever the legacy
+/// effect. Normal streaming replaces this whole candidate whenever the
 /// scheduler's active selection changes; terrain authority publication retains
-/// the same whole-candidate boundary.
+/// the same atomic boundary. The `Staged` type prefix is the retained artifact
+/// format name, not a non-production authority state.
 final class StagedTerrainStreamCandidate {
   StagedTerrainStreamCandidate._({
     required this.bindings,
@@ -27,7 +28,7 @@ final class StagedTerrainStreamCandidate {
     required this.renderSnapshot,
   });
 
-  /// Canonically ordered staged records selected by the existing scheduler.
+  /// Canonically ordered generated records selected by the scheduler.
   final List<StagedTerrainChunkBinding> bindings;
 
   /// One world-space collision source shared by every other candidate output.
@@ -40,7 +41,7 @@ final class StagedTerrainStreamCandidate {
   final StagedTerrainRenderSnapshot renderSnapshot;
 }
 
-/// Builds a complete staged terrain candidate without selecting it at runtime.
+/// Builds a complete terrain candidate from a selected runtime stream.
 final class StagedTerrainStreamCandidateBuilder {
   const StagedTerrainStreamCandidateBuilder({
     StagedTerrainStreamBindingBuilder streamBindingBuilder =

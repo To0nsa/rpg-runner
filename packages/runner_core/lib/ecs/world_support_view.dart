@@ -2,11 +2,12 @@ import '../collision/terrain/terrain_edge_id.dart';
 import 'entity_id.dart';
 import 'world.dart';
 
-/// Read-only staged facade over terrain support and legacy collision flags.
+/// Read-only facade over terrain support and generic collision projections.
 ///
-/// An entity with [EcsWorld.terrainContact] is terrain-integrated; every other
-/// entity keeps reading [EcsWorld.collision]. Supplying [geometryVersion]
-/// rejects stale terrain support without mutating ECS state.
+/// Normal dynamic actors carry [EcsWorld.terrainContact]. Kinematic actors and
+/// isolated ECS fixtures may expose only [EcsWorld.collision]; those flags are
+/// per-entity state, not a second static-world geometry authority. Supplying
+/// [geometryVersion] rejects stale terrain support without mutating ECS state.
 class WorldSupportView {
   const WorldSupportView(this.world);
 

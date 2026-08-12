@@ -1173,10 +1173,10 @@ class StubValidatorWorker implements ValidatorWorker {
       runSessionId: runSessionId,
       status: ValidationDispatchStatus.notImplemented.name,
       phase: 'dispatch',
-      message: 'Validator algorithm implementation lands in Phase 4.',
+      message: 'Stub validator worker does not execute validation.',
     );
     return const ValidationDispatchResult.notImplemented(
-      message: 'Validator algorithm implementation lands in Phase 4.',
+      message: 'Stub validator worker does not execute validation.',
     );
   }
 }

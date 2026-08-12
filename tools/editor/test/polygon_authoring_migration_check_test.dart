@@ -165,7 +165,7 @@ void main() {
 
       final decoded =
           jsonDecode(check.toCanonicalJson()) as Map<String, Object?>;
-      expect(WorkspaceFileIo.fingerprint(check.toCanonicalJson()), '34582b3f');
+      expect(WorkspaceFileIo.fingerprint(check.toCanonicalJson()), '5f61d299');
       final summary = decoded['summary']! as Map<String, Object?>;
       expect(decoded['reportVersion'], 3);
       expect(decoded['sourceState'], 'current');
@@ -175,7 +175,7 @@ void main() {
       expect((decoded['chunks']! as List<Object?>), isEmpty);
       expect(
         check.authoringMigrationSignature(),
-        '765bce9f891a0305483a4495ac194fd2ca1b33b84034eb9f84835c17c701df88',
+        '59f64bf9032a08af6830b0345cbdb17609b8ad6f0cf251e0c8991c8241844932',
       );
     } finally {
       fixture.deleteSync(recursive: true);

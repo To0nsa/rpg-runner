@@ -390,46 +390,52 @@ Combat and combat-adjacent ordering inside `GameCore.stepOneTick`:
 4. `ActiveAbilityPhaseSystem.step`
 5. `AbilityChargeTrackingSystem.step`
 6. `HoldAbilitySystem.step`
-7. `EnemyNavigationSystem.step`
-8. `EnemyEngagementSystem.step`
-9. `GroundEnemyLocomotionSystem.step`
-10. `FlyingEnemyLocomotionSystem.step`
-11. `AbilityActivationSystem.step` (player input -> intent commit)
-12. `JumpSystem.step`
-13. `MovementSystem.step`
-14. `MobilitySystem.step`
-15. `GravitySystem.step`
-16. `CollisionSystem.step`
-17. `BroadphaseGrid.rebuild`
-18. `ProjectileSystem.step` (moves already-active projectiles)
-19. `EnemyCastSystem.step`
-20. `EnemyMeleeSystem.step`
-21. `SelfAbilitySystem.step`
-22. `MeleeStrikeSystem.step`
-23. `ProjectileLaunchSystem.step`
-24. `HitboxFollowOwnerSystem.step`
-25. `ProjectileHitSystem.step`
-26. `HitboxDamageSystem.step`
-27. `MobilityImpactSystem.step`
-28. `ProjectileWorldCollisionSystem.step`
-29. `EntityVisualCueCoalescer.resetForTick`
-30. `StatusSystem.tickExisting`
-31. `DamageMiddlewareSystem.step`
-32. `DamageSystem.step`
-33. `ReactiveProcSystem.step`
-34. `PlayerImpactFeedbackGate.flushTick`
-35. `StatusSystem.applyQueued`
-36. `EntityVisualCueCoalescer.emit`
-37. `EnemyCullSystem.step`
-38. `EnemyDeathStateSystem.step`
-39. `DeathDespawnSystem.step`
-40. `HealthDespawnSystem.step`
-41. `ResourceRegenSystem.step` (only when player survives combat/death checks)
-42. `AnimSystem.step`
-43. `LifetimeSystem.step`
+7. `HashashTeleportAmbushSystem.step`
+8. `TerrainEnemyNavigationSystem.step`
+9. `EnemyEngagementSystem.step`
+10. `FlyingEnemyCombatModeSystem.step`
+11. `GroundEnemyLocomotionSystem.step`
+12. `FlyingEnemyLocomotionSystem.step`
+13. `AbilityActivationSystem.step` (player input -> intent commit)
+14. `JumpSystem.step`
+15. `MovementSystem.step`
+16. `MobilitySystem.step`
+17. `GravitySystem.step`
+18. `TerrainMultiBodyWorldMotionAuthority.step`
+19. `BroadphaseGrid.rebuild`
+20. `ProjectileSystem.step` (moves already-active non-ballistic projectiles)
+21. `EnemyCastSystem.step`
+22. `FlyingEnemyMeleeSystem.step`
+23. `EnemyMeleeSystem.step`
+24. `SelfAbilitySystem.step`
+25. `MeleeStrikeSystem.step`
+26. `ProjectileLaunchSystem.step`
+27. `TargetPointImpactSystem.step`
+28. `HitboxFollowOwnerSystem.step`
+29. `ProjectileHitSystem.step`
+30. `HitboxDamageSystem.step`
+31. `MobilityImpactSystem.step`
+32. `ProjectileWorldCollisionSystem.step`
+33. `EntityVisualCueCoalescer.resetForTick`
+34. `StatusSystem.tickExisting`
+35. `DamageMiddlewareSystem.step`
+36. `DamageSystem.step`
+37. `ReactiveProcSystem.step`
+38. `PlayerImpactFeedbackGate.flushTick`
+39. `StatusSystem.applyQueued`
+40. `EntityVisualCueCoalescer.emit`
+41. `EnemyCullSystem.step`
+42. `EnemyDeathStateSystem.step`
+43. `DeathDespawnSystem.step`
+44. `HealthDespawnSystem.step`
+45. `ResourceRegenSystem.step` (only when player survives combat/death checks)
+46. `AnimSystem.step`
+47. `LifetimeSystem.step`
 
 Notes:
-- Run-ending checks for `fellIntoGap` and `fellBehindCamera` happen before broadphase/hit resolution; when triggered, later combat phases do not run.
+- Run-ending checks for the terrain fall threshold (`fellIntoGap`) and the
+  camera threshold (`fellBehindCamera`) happen before broadphase/hit resolution;
+  when triggered, later combat phases do not run.
 - If paused/game-over, `stepOneTick` returns early with no gameplay updates.
 - During death-animation freeze ticks, only animation advances; combat systems do not run.
 - Player mobility/jump presses still preempt queued/active combat intents before mobility/jump commit in `AbilityActivationSystem`.

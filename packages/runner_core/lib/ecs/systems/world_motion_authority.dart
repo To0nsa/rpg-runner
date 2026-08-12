@@ -176,7 +176,7 @@ final class FlyingClearanceSteeringOutput {
   }
 }
 
-/// Explicit Phase 3 disposition for every body in the terrain harness.
+/// Explicit terrain-motion disposition for every body.
 enum TerrainBodyDisposition {
   terrainPlayer,
   terrainGroundedEnemy,
@@ -188,12 +188,12 @@ enum TerrainBodyDisposition {
   unsupportedDynamicBody,
 }
 
-/// Typed failure used instead of silently falling back to rectangle motion.
+/// Typed failure for a body without a supported terrain-motion disposition.
 final class TerrainUnsupportedBodyError extends StateError {
   TerrainUnsupportedBodyError({required this.entity, required this.disposition})
     : super(
-        'Phase 3 terrain motion rejected body $entity '
-        '(${disposition.name}); no legacy collision fallback is permitted.',
+        'Terrain motion rejected body $entity (${disposition.name}); every '
+        'dynamic body requires an explicit terrain disposition.',
       );
 
   final EntityId entity;
@@ -203,7 +203,7 @@ final class TerrainUnsupportedBodyError extends StateError {
 /// A known actor has a missing, partial, or policy-incompatible terrain store.
 final class TerrainBodyStoreError extends StateError {
   TerrainBodyStoreError({required this.entity, required String reason})
-    : super('Phase 3 terrain body $entity is invalid: $reason');
+    : super('Terrain body $entity is invalid: $reason');
 
   final EntityId entity;
 }
@@ -224,7 +224,7 @@ final class TerrainStaleRuntimeStateError extends StateError {
   final int bundleVersion;
 }
 
-/// Classifies a body under the Phase 3 terrain-harness policy.
+/// Classifies a body under the authoritative terrain-motion policy.
 TerrainBodyDisposition terrainBodyDisposition(
   EcsWorld world, {
   required EntityId entity,
@@ -259,11 +259,13 @@ TerrainBodyDisposition terrainBodyDisposition(
   return TerrainBodyDisposition.unsupportedDynamicBody;
 }
 
-/// Isolated Phase 3 terrain dispatcher for the player and migrated enemies.
+/// Authoritative terrain dispatcher for the player, enemies, and projectiles.
 ///
 /// The dispatcher preflights every body before mutating tick state, prepares
 /// prior support before AI, and integrates enabled dynamic terrain actors once
-/// in canonical entity order. Normal levels do not construct this authority.
+/// in canonical entity order. Normal and replay construction use this
+/// authority; the explicit harness supplies synthetic geometry to the same
+/// implementation.
 class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
   factory TerrainMultiBodyWorldMotionAuthority({
     required TerrainGeometry geometry,

@@ -79,8 +79,8 @@ class PlayerCatalog {
   /// Player broad-phase/combat AABB size (full extents) in world units.
   ///
   /// Core uses center-based AABBs, so `halfX = width * 0.5` and
-  /// `halfY = height * 0.5`. Normal levels also use it for legacy static-world
-  /// contact; the terrain harness derives the same bounds from its capsule.
+  /// `halfY = height * 0.5`. Static-terrain contact uses the catalog-derived
+  /// capsule; this AABB remains authoritative for broad phase and combat.
   final double colliderWidth;
   final double colliderHeight;
 
@@ -193,13 +193,13 @@ class PlayerCatalogDerived {
       sideMask: base.bodyTemplate.sideMask,
     );
 
-    final legacyCollider = ColliderAabbDef(
+    final combatCollider = ColliderAabbDef(
       halfX: base.colliderHalfX,
       halfY: base.colliderHalfY,
       offsetX: base.colliderOffsetX,
       offsetY: base.colliderOffsetY,
     );
-    final worldContactCapsule = WorldContactCapsuleDef.fromAabb(legacyCollider);
+    final worldContactCapsule = WorldContactCapsuleDef.fromAabb(combatCollider);
     final collider = worldContactCapsule.derivedAabb;
     final terrainTraversalProfile = createEloiseTerrainTraversalProfile(
       enabled: body.enabled,

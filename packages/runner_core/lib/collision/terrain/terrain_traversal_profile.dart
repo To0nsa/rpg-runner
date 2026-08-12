@@ -193,7 +193,7 @@ class TerrainTraversalProfile {
   }
 }
 
-/// Frozen Phase 2 Éloïse traversal policy.
+/// Accepted Éloïse traversal policy.
 TerrainTraversalProfile createEloiseTerrainTraversalProfile({
   required bool enabled,
   required bool isKinematic,

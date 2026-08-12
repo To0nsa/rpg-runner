@@ -1,6 +1,6 @@
 # Slopes Phase 6 - Content Migration And Direct Authority Cutover Checklist
 
-- Status: In progress
+- Status: Accepted on August 12, 2026
 - Source plan: [plan.md](plan.md)
 - Prerequisite: accepted
   [Phase 5 runtime integration](phase5-implementation-checklist.md)
@@ -89,10 +89,39 @@ small commits, but the completed phase must not retain a runtime dual path.
       construction owns their coverage
 - [x] repository import/construction audits find one polygon terrain authority
       and no fallback or runtime toggle
-- [ ] documentation describes the final ownership and the remaining Phase 7
+- [x] documentation describes the final ownership and the remaining Phase 7
       compatibility rollout accurately
 
-## 5) Validation
+## 5) Final Ownership And Phase 7 Boundary
+
+The accepted production chain is one-way:
+
+1. Prefab-v3 and Chunk-v2 JSON own canonical polygon source and marker intent.
+2. `generate_chunk_runtime_data.dart` validates source, scheduler reachability,
+   compiled seams, lineage, and signatures before writing the generated
+   terrain artifact.
+3. `TrackStreamer` owns deterministic Chunk selection, spawn intent, culling,
+   and prefab visuals; it constructs no collision projection.
+4. Normal and replay `GameCore` admit the selected generated polygons into one
+   atomic runtime bundle before placement.
+5. `TerrainMultiBodyWorldMotionAuthority` owns dynamic terrain integration;
+   terrain navigation and placement read the same bundle, while snapshots give
+   Flame the same polygon publication.
+6. The replay validator invokes the normal Core constructor and the shared
+   replay loop, so it has no independent collision implementation.
+
+The retained `Staged*` type and file names identify the generated artifact and
+publication format. They are not a feature flag, fallback, or second runtime
+mode. `GameCore.terrainMotionHarness` is the only geometry-injection boundary
+and remains test/tool-only.
+
+Phase 7 owns compatibility/version issuance, new board provisioning,
+outstanding-session drain/expiry, coordinated client/backend/content/validator
+deployment, the one-CPU/512 MiB release-container benchmark, live replay and
+projection verification, monitoring, and rollback. No Phase 7 operation may
+reintroduce a terrain-authority selector.
+
+## 6) Validation
 
 Run focused tests after each dependency step, then the full cutover matrix:
 
@@ -131,7 +160,7 @@ corepack pnpm --dir functions test
 Record exact test counts, deterministic references, benchmark percentiles,
 generated membership, and any compatibility/version disposition before Phase 7.
 
-## 6) Progress Evidence
+## 7) Progress Evidence
 
 | Date / revision | Slice | Result |
 | --- | --- | --- |
@@ -146,3 +175,4 @@ generated membership, and any compatibility/version disposition before Phase 7.
 | 2026-08-12 / Phase 6 working head | Delete legacy motion and static-world collision | `LegacyWorldMotionAuthority`, `CollisionSystem`, `StaticWorldGeometry`, its index, and all ground/solid/gap rectangle types are deleted. Hashash teleport and flying locomotion require an explicit terrain authority; spawn-placement results always carry a polygon geometry version. Production import/construction audit finds no legacy authority, static-world type, rectangle collision system, fallback, or runtime toggle. Root/package analysis is clean; all 368 package tests and 349 root Core tests pass. |
 | 2026-08-12 / Phase 6 working head | Close normal-construction actor/content acceptance | The Forest easy woodcamp now owns a reviewed 64-by-32-pixel solid perch and a Derf obstacle-top marker, bringing production content through Derf's strict placement path. A normal-construction matrix admits Grojib, Hashash, Unoco, and Derf against the same generated terrain candidate; a custom ballistic Acid Bolt proves terrain-owned integration. Existing normal tests cover player support, authored markers, collectible/restoration placement, fall death, and deterministic Field/Forest runs. The root streaming test proves the initial chunk instances are culled and later Field instances retain the authored key/shape identity. Root/package analysis is clean, all 370 package tests pass, 17 focused renderer/generator/stream tests pass, and the 8-Chunk/2-level/2-theme dry-run has zero drift. |
 | 2026-08-12 / Phase 6 working head | Close local performance and replay budgets | The strict 1,280-edge controller/full-harness benchmark passes with combined controller p95/p99 of 50/71 microseconds, flat/slope full-harness p99 of 240/89 microseconds, -31.67% matched-flat slope overhead, and zero buffer growth. VM allocation profiling passes two 10,000-iteration trial pairs with zero attributed steady-state controller allocations. The validator server now shares `runReplaySimulation` between production and its compiled benchmark command; its 36,000-tick Field/Forest runs finish deterministically at geometry version 190 in 0.361/0.483 seconds (1,663x/1,242x real time) on Windows x64. Service analysis, all 85 tests, and AOT compilation pass. The required one-CPU/512 MiB release-container rerun and production observations remain Phase 7 gates. |
+| 2026-08-12 / Phase 6 accepted head | Final ownership, documentation, and full matrix | Live Core/editor/generator/validator comments, UI copy, TDD, GDD, README, and plans now describe one admitted polygon authority. The generated header and its reviewed fixture advance to artifact byte signature `f5756448…2c99`; geometry signatures are unchanged. The Forest content revision advances the read-only migration plan/report/signatures to `adec0222`, `5f61d299`, `59f64bf9…4932`, and standalone `f8061814…8782`, with current/ready status and zero pending files. Root, Core, editor, and validator analysis are clean; all 742 root Flutter, 370 Core-package, 377 editor, 85 validator, 186 Functions, and 68 generator/tool tests pass. The validator server compiles, Functions builds, and the 8-Chunk/2-level/2-theme dry-run has zero drift. A root profile-page test now injects in-memory/no-op cleanup collaborators so its platform-close assertion waits on the intended boundary instead of production filesystem/shared-state cleanup; production behavior is unchanged. |

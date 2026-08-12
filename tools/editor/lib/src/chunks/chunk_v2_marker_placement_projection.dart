@@ -69,7 +69,7 @@ final class ChunkV2MarkerPlacementOutcome {
       disposition == ChunkV2MarkerPlacementDisposition.deferredConditional;
 }
 
-/// Read-only Phase 3 placement evidence for a current chunk's authored markers.
+/// Read-only terrain-placement evidence for a current chunk's authored markers.
 @immutable
 final class ChunkV2MarkerPlacementProjection {
   factory ChunkV2MarkerPlacementProjection.build({

@@ -7,13 +7,12 @@ import '../navigation/types/terrain_surface_graph.dart';
 import 'staged_terrain_catalog.dart';
 import 'staged_terrain_world_geometry.dart';
 
-/// Produces the complete Phase 3 terrain bundle needed for one future
-/// tick-boundary publication.
+/// Produces the complete terrain bundle for one tick-boundary publication.
 ///
 /// It first builds world-space geometry, then derives collision indexing,
 /// support lookup, and both ground-enemy graph views before returning. This
-/// adapter neither schedules a publication nor imports generated terrain into
-/// normal Core construction; the future streamer owns those decisions.
+/// adapter does not schedule publication; normal Core's admitted stream
+/// candidate owns that decision.
 final class StagedTerrainRuntimeBundleBuilder {
   const StagedTerrainRuntimeBundleBuilder({
     StagedTerrainWorldGeometryBuilder worldGeometryBuilder =
@@ -24,7 +23,7 @@ final class StagedTerrainRuntimeBundleBuilder {
 
   /// Builds all geometry-derived runtime structures synchronously.
   ///
-  /// [geometryVersion] must be assigned by the eventual owner of atomic
+  /// [geometryVersion] must be assigned by the owner of atomic
   /// publication. [groundEnemyProfiles] are explicit so this boundary cannot
   /// invent locomotion or jump tuning while assembling generated terrain.
   TerrainRuntimeBundle build({

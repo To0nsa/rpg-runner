@@ -55,7 +55,7 @@ String renderStagedPolygonTerrainDart(PolygonTerrainValidatedBatch batch) {
     ..line('/// GENERATED FILE. DO NOT EDIT BY HAND.')
     ..line('///')
     ..line('/// $_generatorOwnershipMarker from canonical prefab-v3/chunk-v2')
-    ..line('/// polygon source. This staged artifact is not runtime authority.')
+    ..line('/// polygon source. Core admits it as runtime terrain authority.')
     ..line('library;')
     ..line()
     ..line("import 'package:runner_core/track/staged_terrain_data.dart';")

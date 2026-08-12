@@ -47,7 +47,7 @@ class GroundEnemyLocomotionSystem {
           world.transform.velY[enemyTi] = 0.0;
         }
         _writeLocomotionReferenceSpeed(world, enemy, 0.0);
-        // Keep velY for legacy and terrain-airborne falling.
+        // Keep velY for terrain-airborne falling.
         continue;
       }
 

@@ -64,13 +64,13 @@ class LevelDefinition {
 
   /// Optional absolute world-space Y at which the player's bottom dies.
   ///
-  /// Omitted legacy levels continue to resolve their threshold from
-  /// `groundTopY + TrackTuning.gapKillOffsetY`.
+  /// Levels without an explicit value resolve their threshold from the ground
+  /// reference plus the track fall offset.
   final double? killPlaneY;
 
   /// Resolves the absolute player-bottom kill plane for this level.
-  double resolveKillPlaneY({required double legacyGapOffsetY}) =>
-      killPlaneY ?? groundTopY + legacyGapOffsetY;
+  double resolveKillPlaneY({required double fallbackOffsetY}) =>
+      killPlaneY ?? groundTopY + fallbackOffsetY;
 
   /// Pattern pool used for procedural chunk generation.
   final ChunkPatternSource _baseChunkPatternSource;

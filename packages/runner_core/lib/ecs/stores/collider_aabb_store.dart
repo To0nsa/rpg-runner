@@ -1,7 +1,7 @@
 import '../entity_id.dart';
 import '../sparse_set.dart';
 
-/// AABB broad-phase/combat bound and legacy world collider for an entity.
+/// AABB broad-phase, combat, trigger, and render-debug bound for an entity.
 ///
 /// Representation is center-based for stability:
 /// - `Transform.pos` is treated as the entity center

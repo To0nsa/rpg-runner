@@ -45,7 +45,9 @@ void main() {
           isA<StateError>().having(
             (error) => error.message,
             'message',
-            contains('no legacy collision fallback is permitted'),
+            contains(
+              'every dynamic body requires an explicit terrain disposition',
+            ),
           ),
         ),
       );

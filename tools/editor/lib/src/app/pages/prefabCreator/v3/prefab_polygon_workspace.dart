@@ -280,8 +280,8 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
         const SizedBox(height: PrefabEditorUiTokens.controlGap),
         const Text(
           'Current-schema workspace: apply rechecks both source baselines and '
-          'commits the prefab/tile pair atomically. Legacy migration and '
-          'runtime terrain activation remain separate cutover steps.',
+          'commits the prefab/tile pair atomically. Legacy migration stays '
+          'read-only; runtime terrain updates after generated outputs refresh.',
           style: TextStyle(color: Color(0xFFFFD166)),
         ),
         const SizedBox(height: PrefabEditorUiTokens.controlGap),

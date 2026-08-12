@@ -8,8 +8,8 @@ Prefab-v3 and complete Chunk-v2 trees. Polygon terrain drives normal gameplay
 collision, navigation, placement, and render snapshots.
 
 The source and streamed gameplay handoff are current. The legacy generator
-projection is deleted while Phase 6 continues removing synthetic-fixture
-adapters:
+projection, rectangle runtime authority, and migration-only adapters are
+deleted:
 
 - prefab authoring persists schema v3 `collisionShapes`
 - chunk authoring persists schema v2 direct `collisionShapes`
@@ -433,8 +433,10 @@ The migration command reaches this boundary only through explicit `--write`
 with a required external report path. The completed source cutover installed
 all nine current files and strictly reloaded them before backup cleanup; a
 fresh repeated write is a byte-preserving no-op. Ordinary `--check` remains
-read-only. Runtime legacy authority remains selected, while current source and
-staged output intentionally describe an empty static world.
+read-only. At the migration checkpoint the old runtime authority remained
+selected while the just-installed source described intentionally sparse
+terrain; the later content pass and Phase 6 direct cutover replaced that
+temporary state.
 
 ## Polygon Target Schemas And Normal Records
 
@@ -472,7 +474,7 @@ selects strict Prefab-v3 or a complete Chunk-v2 tree, and changed current source
 applies transactionally and reloads byte-identically. Legacy or missing source
 selects the shared migration-required document without decoding editable
 compatibility data. The generator and checked-in source JSON are current;
-runtime collision authority remains legacy until Phase 5.
+normal and replay collision consume the admitted polygon artifact.
 
 The current load composes prefab v3 with the unchanged `tile_defs.json` v2
 contract through `PrefabTileFileData` and `PrefabTileFileCodec`; it never sends
@@ -833,8 +835,9 @@ Hashash markers are not resolved at authored X: an accepted runtime roll adds a
 deferred count and later chooses the visible camera-right chunk edge. The
 projection therefore records guaranteed or conditional deferral without a
 placement query or RNG draw. Procedural collectible/restoration candidates
-have no authored marker records and are not fabricated. Projectile terrain is
-explicitly later-phase work and is not previewed.
+have no authored marker records and are not fabricated. Projectile motion is
+not a marker-placement concern and is not previewed here; runtime ballistic
+projectiles sweep the admitted terrain edge index.
 
 When this marker-staging bridge was introduced, source and runtime authority
 were unchanged. The later collision reset and v3/v2 source cutover change
@@ -919,8 +922,8 @@ cross-process adjacency-set parity. The staged generator then resolves every
 transition against the shared Core compiled-boundary comparator before it can
 construct the renderer's accepted batch, as detailed below. The live
 current-schema generator consumes the same enumerator without importing editor
-code or duplicating scheduler logic. Production runtime selection remains
-unchanged.
+code or duplicating scheduler logic. Runtime scheduling consumes the generated
+catalog and does not execute this offline enumeration or spend gameplay RNG.
 
 ## Generated Artifact Plan And Dry-Run Drift Gate
 
@@ -928,7 +931,8 @@ unchanged.
 generation entry point. After strict current-source compilation and seam
 validation, it renders all six Dart outputs completely in memory and snapshots
 them in one immutable artifact plan sorted by path. Five outputs retain their
-production record shape; the sixth is the unreachable staged terrain artifact.
+established record shape; the sixth is the generated polygon artifact admitted
+by normal and replay Core construction.
 
 Dry-run compares each rendered UTF-8 byte sequence with the corresponding file
 bytes. It emits stable, path-sorted diagnostics for missing, stale, or
@@ -960,7 +964,7 @@ seam-manifest consumption, and compiled-boundary gating are now delivered.
 
 The live generator selects the current Prefab-v3/Chunk-v2 repository source.
 Six focused pure-Dart files implement that boundary without adding an alternate
-flag or runtime consumer:
+compiler or runtime-selection flag:
 
 - `polygon_terrain_source.dart` strictly parses prefab-v3 and chunk-v2
   structures as written, including field sets, exact types, canonical list
@@ -1020,16 +1024,17 @@ The staged output path is owned by Core's
 `stagedTerrainArtifactRepositoryPath` constant as
 `packages/runner_core/lib/track/staged_authored_terrain.dart`. Offline migration
 and generation share that workspace-relative identity. It is registered in the
-generator plan. Normal Core admits it only for scheduler binding and complete
-render-candidate publication; gameplay collision still uses the compatibility
-projection. Its deliberately narrow API is `StagedTerrainArtifactData`,
-defined in `staged_terrain_data.dart`; it cannot be confused with the current
-`ChunkPattern` scheduler authority. The artifact is
-self-describing with artifact and
+generator plan. Normal and replay Core admit it for scheduler binding, atomic
+collision/navigation publication, placement, and rendering. Its deliberately
+narrow API is `StagedTerrainArtifactData`, defined in
+`staged_terrain_data.dart`; `ChunkPattern` remains scheduler identity and spawn
+intent only. The retained `Staged*` names describe the generated artifact and
+publication format, not a disconnected or selectable runtime mode. The
+artifact is self-describing with artifact and
 compiler geometry versions plus `authoring-polygons-v1`, `source-v1`,
 `edges-v1`, `authoring-placement-v1`, `authoring-triangles-v1`, and
 `authoring-seams-v1` labels and signatures. Adding the authored-source digest
-advanced the disconnected staged artifact schema to format version 2; adding
+advanced the generated artifact schema to format version 2; adding
 the validated reachable-adjacency digest advances it to format version 3.
 Each chunk record retains source revision/metadata, canonical source vertices
 in half-world-unit ticks, transformed vertices and exposed edges in integer

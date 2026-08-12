@@ -26,8 +26,9 @@ abstract final class TerrainGeometryLimits {
 
 /// Deterministically validates, canonicalizes, and compiles terrain polygons.
 ///
-/// This compiler is pure and has no production authority in Phase 1. Invalid
-/// input throws [TerrainValidationException] before any geometry is returned.
+/// This compiler is pure: callers decide when an accepted result is published.
+/// Invalid input throws [TerrainValidationException] before any geometry is
+/// returned.
 class TerrainCompiler {
   const TerrainCompiler();
 

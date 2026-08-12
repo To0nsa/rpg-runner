@@ -7,7 +7,7 @@ import 'chunk_v2_file_data.dart';
 
 /// Strict normal-layer codec for one chunk-schema-v2 polygon source file.
 ///
-/// It performs no filesystem I/O and does not enable the Phase 4 source write.
+/// It performs no filesystem I/O; transactional stores own source writes.
 /// Unknown, missing, legacy, wrong-type, off-grid, and noncanonical values fail
 /// closed. Geometry acceptance remains a separate Core-owned validation gate.
 abstract final class ChunkV2FileCodec {

@@ -63,11 +63,12 @@ class PlayerArchetype {
 
   /// Upright terrain-contact shape derived from [collider].
   ///
-  /// Normal GameCore spawning keeps legacy AABB authority during Phase 2; the
-  /// isolated terrain-motion harness attaches this definition explicitly.
+  /// Normal and replay GameCore spawning attach this definition for the sole
+  /// terrain motion authority. The explicit harness uses it for injected
+  /// geometry as well.
   final WorldContactCapsuleDef worldContactCapsule;
 
-  /// Actor policy used only when staged terrain motion owns integration.
+  /// Actor policy used by terrain motion and placement.
   final TerrainTraversalProfile terrainTraversalProfile;
 
   /// Physics body configuration (gravity, kinematic flags, velocity clamps).

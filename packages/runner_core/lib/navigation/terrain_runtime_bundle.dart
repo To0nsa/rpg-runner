@@ -134,9 +134,8 @@ final class TerrainRuntimeBundle {
 
 /// Builds the two canonical ground-enemy graph profiles from runtime tuning.
 ///
-/// The supplied jump templates remain the same templates used by the legacy
-/// TrackManager during Phase 3. This keeps graph reachability aligned without
-/// making the isolated terrain bundle authoritative for production levels.
+/// The supplied jump templates are the catalog/tuning-derived templates shared
+/// by normal locomotion and replay validation.
 List<TerrainSurfaceGraphBuildProfile> buildGroundEnemyTerrainGraphProfiles({
   required EnemyCatalog enemyCatalog,
   required Map<EnemyId, JumpReachabilityTemplate> jumpTemplatesById,

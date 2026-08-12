@@ -3,8 +3,9 @@ import '../sparse_set.dart';
 
 /// Per-tick collision results for an entity.
 ///
-/// This compatibility projection is reset and published by terrain motion.
-/// These flags track *physical* collision (blocking), not combat hits.
+/// Terrain motion resets and publishes these directional convenience flags.
+/// They describe *physical* blocking, not combat hits, and do not select or
+/// duplicate terrain authority.
 class CollisionStateStore extends SparseSet {
   final List<bool> grounded = <bool>[];
   final List<bool> hitCeiling = <bool>[];

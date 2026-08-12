@@ -33,8 +33,8 @@ class SpawnEnemyRequest {
   /// Historical flat-ground Y used only to seed the desired body transform.
   ///
   /// Polygon terrain resolves the actual support from [placement]. This value
-  /// remains deterministic input for flying placement and isolated legacy
-  /// fixtures that do not publish terrain.
+  /// remains deterministic input for flying placement and scheduler-only
+  /// fixtures that do not resolve placement.
   final double fallbackSupportY;
   final EnemySpawnRequestSource source;
 
@@ -60,16 +60,15 @@ class TrackSpawnedChunk {
   /// Pattern identifier used to generate this chunk.
   final String patternName;
 
-  /// Stable authored identity key for this chunk (optional during migration).
+  /// Stable authored identity key, or null in scheduler-only fixtures.
   final String? chunkKey;
 }
 
 /// Immutable selection identity for one currently streamed chunk.
 ///
-/// This is read-only scheduling evidence. It deliberately exposes neither
-/// legacy collision lists nor mutable pattern data, so a future terrain
-/// publication can bind the scheduler's exact active selection without
-/// re-running pattern choice or making a second streaming authority.
+/// This is read-only scheduling evidence. It deliberately exposes no collision
+/// list or mutable pattern data; polygon publication binds this exact active
+/// selection without re-running pattern choice.
 class ActiveTrackChunkSnapshot {
   const ActiveTrackChunkSnapshot({
     required this.index,
@@ -88,10 +87,10 @@ class ActiveTrackChunkSnapshot {
   /// Exclusive world-X end in world units.
   final double endX;
 
-  /// Selected legacy pattern name retained for diagnostics.
+  /// Selected authored pattern name retained for diagnostics.
   final String patternName;
 
-  /// Stable authored chunk key, or null for a legacy pattern without one.
+  /// Stable authored chunk key, or null in scheduler-only fixtures.
   final String? chunkKey;
 }
 
@@ -172,7 +171,7 @@ class TrackStreamer {
   ///
   /// The list changes only with the same spawn/cull rebuild that updates visual
   /// metadata. Consumers must treat missing [chunkKey] as incompatible with
-  /// staged-terrain binding rather than selecting a fallback record.
+  /// polygon-terrain binding rather than selecting a fallback record.
   List<ActiveTrackChunkSnapshot> get activeChunks => _activeChunksSnapshot;
 
   /// Advances chunk streaming based on the current camera bounds.
@@ -428,10 +427,10 @@ class _ActiveChunk {
   /// World X where chunk ends (startX + chunkWidth).
   final double endX;
 
-  /// Selected legacy pattern name retained for read-only diagnostics.
+  /// Selected authored pattern name retained for read-only diagnostics.
   final String patternName;
 
-  /// Stable authored chunk identity, if the legacy source provides one.
+  /// Stable authored chunk identity, if the fixture provides one.
   final String? chunkKey;
 
   /// Render sprites for authored prefab visuals in this chunk.

@@ -1,16 +1,16 @@
-/// Binds existing scheduler selections to admitted staged terrain records.
+/// Binds scheduler selections to admitted generated terrain records.
 library;
 
 import '../collision/terrain/terrain_numeric.dart';
 import 'staged_terrain_catalog.dart';
 import 'track_streamer.dart';
 
-/// Creates staged-terrain bindings from the active legacy scheduler snapshot.
+/// Creates terrain bindings from the active scheduler snapshot.
 ///
-/// This is a fail-closed bridge, not a second chunk selector. The scheduler
+/// This is a fail-closed adapter, not a second chunk selector. The scheduler
 /// remains responsible for active chunk order and world intervals; this adapter
 /// only checks that each selected key has compatible generated local geometry
-/// before it can be included in a future atomic terrain publication.
+/// before it can be included in the next atomic terrain publication.
 final class StagedTerrainStreamBindingBuilder {
   const StagedTerrainStreamBindingBuilder();
 

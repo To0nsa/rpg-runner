@@ -1,8 +1,7 @@
 # Sloped Terrain And Capsule Traversal High-Level Plan
 
 - Date: July 18, 2026
-- Status: Phases 0-5 accepted; Phase 6 direct production authority cutover is
-  in progress
+- Status: Phases 0-6 accepted; Phase 7 compatibility rollout is next
 - Phase 0 tracker:
   [phase0-implementation-checklist.md](phase0-implementation-checklist.md)
 - Phase 0 evidence:
@@ -133,7 +132,7 @@ support state.
 
 ### 3.3 Navigation and enemies
 
-Current navigation assumes:
+The original rectangle-terrain baseline assumed:
 
 - a `WalkSurface` is a horizontal X interval at one `yTop`
 - top faces are extracted from AABB solids
@@ -143,7 +142,7 @@ Current navigation assumes:
 - runtime navigation locates an entity from its bottom Y and AABB half-width
 - per-enemy graphs share identical surface IDs/order while edge sets may vary
 
-Current enemy behavior also depends on flat/AABB geometry through:
+The original enemy baseline also depended on flat/AABB geometry through:
 
 - `EnemyNavigationSystem`
 - `GroundEnemyLocomotionSystem`
@@ -157,17 +156,17 @@ Current enemy behavior also depends on flat/AABB geometry through:
 
 ### 3.4 Streaming, spawning, and rendering
 
-Current chunk streaming rebuilds flattened lists of:
+The original chunk streamer rebuilt flattened lists of:
 
 - static solids
 - horizontal ground segments
 - ground gaps
 - visual sprites
 
-`TrackManager` then rebuilds collision indexes, renderer snapshots, and
+`TrackManager` then rebuilt collision indexes, renderer snapshots, and
 navigation graphs from those lists.
 
-Current ground rendering consumes horizontal surface bands. Static collision
+The original ground renderer consumed horizontal surface bands. Static collision
 debug rendering consumes rectangles. Both must change before sloped collision
 can have reliable visual parity.
 
@@ -1459,9 +1458,12 @@ hard fixture, paired VM allocation profile, compiled product benchmark, and
 full package/root/replay-validator suites pass their frozen gates without
 changing the reviewed scenario hashes or normal legacy construction.
 
-Phase 4 is in progress under
+### Historical Phase 4 Implementation Record
+
+The accepted Phase 4 record is preserved in
 [phase4-implementation-checklist.md](phase4-implementation-checklist.md).
-The read-only baseline/migration audit, exact half-pixel source model, Core
+At that checkpoint, the read-only baseline/migration audit, exact half-pixel
+source model, Core
 canonicalization/overlap/transform seam, strict prefab-v3/chunk-v2 staging
 records, shared polygon reducer/painter, and explicit locked Prefab/Chunk
 staging workspaces are implemented. Chunk staging now also expands prefab-v3
@@ -1490,9 +1492,8 @@ the editor plus staged generator verify the same checked-in reachable-adjacency
 golden. Core also owns the compiled boundary comparison, and staged rendering
 accepts only a batch that has passed every manifest transition. Safe source
 migration, live staged output registration, and the coordinated normal editor
-cutover remain open.
-Phase 4 must not select polygon terrain in normal production runs before the
-later streaming/content cutover phases.
+cutover were still open. The Phase 4 gate prohibited selecting polygon terrain
+in normal production runs before the later streaming/content cutover phases.
 
 The existing generator entry point now also renders all five current outputs
 into one immutable artifact plan before checking or writing. Its write-free
@@ -1629,24 +1630,23 @@ remain available. The seven Forest chunks and `field_flat` now carry canonical
 full-width `ground` / `grass_dirt` polygons, and the temporary legacy
 projection restores continuous playable support during integration.
 
-Phase 5 now admits the generated artifact against the scheduler's exact active
-selection, builds one collision/navigation/render candidate per geometry
-change, removes compatible opposing seam faces, and exposes Core-owned
-polygons, triangles, and diagnostic edges to Flame. Flame renders the staged
-world-phased material and suppresses its legacy ground layers whenever that
-snapshot is present. Startup selects and builds the opening terrain before ECS
-spawn, while later stream changes publish their complete world before captured
-enemy/item placement and motion preparation. Ballistic projectiles now retain
-their AABB shape under terrain authority and continuously sweep the same edge
-index with existing collision-flag and same-tick-despawn semantics. Production
-movement and navigation remain on the rectangle projection, while the explicit
-terrain harness now routes Grojib/Hashash pursuit, fallback, airborne target
-prediction, and planned-jump timing through the exact published terrain graph
-views. A separate streamed harness proves deterministic startup and spawn/cull
-republication over two matching 900-tick Field runs, then covers terrain-backed
-Forest markers, both pickup policies, and fall death across eight seeds without
-making the path selectable by normal or replay construction. Paired 1,800-tick
-Field and Forest command runs remain identical through repeated publication,
-survive beyond 5,000 distance, and pass every strict runtime budget. Phase 5 is
-accepted; Phase 6 now owns the one-way production construction switch and the
-dependency-ordered removal of the legacy projection and collision authority.
+At Phase 5 acceptance, the generated artifact was admitted against the
+scheduler's exact active selection, one collision/navigation/render candidate
+was built per geometry change, compatible opposing seam faces were removed,
+and Core-owned polygons, triangles, and diagnostic edges reached Flame. That
+phase deliberately left normal movement/navigation on the rectangle projection
+while its explicit harness proved the new authority, projectile sweep, spawn,
+streaming, renderer, determinism, and local performance contracts.
+
+Phase 6 completed the direct switch. Normal and replay `GameCore` construction
+now publish the admitted polygon candidate before placement and use
+`TerrainMultiBodyWorldMotionAuthority` for every dynamic terrain policy.
+`TrackStreamer` retains deterministic selection, spawn intent, and prefab
+visuals only. The rectangle generator projection, static-world collision,
+horizontal navigation stack, compatibility snapshots/rendering, fallback
+authority, and temporary runtime selectors are deleted. The Forest woodcamp
+adds a production obstacle-top/Derf placement path, Field/Forest normal runs
+cover every actor and placement policy, and compiled validator benchmarks prove
+deterministic 36,000-tick replay throughput locally. Phase 7 owns only the
+versioned compatibility rollout, constrained release-container rerun,
+deployment, live parity checks, monitoring, and rollback readiness.

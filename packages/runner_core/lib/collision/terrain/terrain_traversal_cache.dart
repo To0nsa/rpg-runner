@@ -20,7 +20,7 @@ class TerrainTraversalEdgeData {
 /// Immutable canonical-order slope cache tied to one geometry version.
 ///
 /// It is derived beside geometry publication and is deliberately excluded from
-/// stable Phase 1 edge identity and `edges-v1` signatures.
+/// stable edge identity and `edges-v1` signatures.
 class TerrainTraversalCache {
   factory TerrainTraversalCache.fromGeometry(TerrainGeometry geometry) {
     final entries = <TerrainTraversalEdgeData>[

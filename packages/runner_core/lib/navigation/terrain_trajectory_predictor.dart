@@ -70,9 +70,8 @@ final class TerrainLandingPrediction {
 /// Fixed-tick full-capsule landing prediction over polygon terrain.
 ///
 /// One instance is bound to a traversal/support policy and owns mutable query
-/// scratch, so it must not be used concurrently. It is intentionally isolated
-/// from the legacy rectangle predictor until the later enemy integration
-/// section switches the Phase 3 harness.
+/// scratch, so it must not be used concurrently. Ground-enemy navigation uses
+/// this predictor against the currently published terrain bundle.
 class TerrainTrajectoryPredictor {
   TerrainTrajectoryPredictor({
     required this.placementQuery,

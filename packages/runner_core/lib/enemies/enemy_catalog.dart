@@ -697,7 +697,7 @@ class EnemyCatalog {
     }
   }
 
-  /// Returns the explicit Phase 3 polygon-terrain policy for [id].
+  /// Returns the explicit polygon-terrain policy for [id].
   ///
   /// The returned profile is catalog-owned and initialized once. The
   /// exhaustive switch makes adding an enemy without choosing a terrain

@@ -27,7 +27,7 @@ class TerrainContactDecision {
   }
 }
 
-/// Gameplay filtering and classification layered over Phase 1 geometry.
+/// Gameplay filtering and classification layered over compiled terrain.
 ///
 /// This policy owns solid/one-way sidedness, support thresholds, endpoint
 /// filtering, and actor side masks. It does not mutate ECS or geometry.

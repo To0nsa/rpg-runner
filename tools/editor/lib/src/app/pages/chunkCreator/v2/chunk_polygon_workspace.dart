@@ -279,8 +279,8 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
       const SizedBox(height: 8),
       const Text(
         'Current-schema workspace: apply rechecks the complete chunk source '
-        'set and commits it atomically. Legacy migration and runtime terrain '
-        'activation remain separate cutover steps.',
+        'set and commits it atomically. Legacy migration stays read-only; '
+        'runtime terrain updates after the generated outputs are refreshed.',
         style: TextStyle(color: Color(0xFFFFD166)),
       ),
       const SizedBox(height: 8),
@@ -1265,7 +1265,7 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
         const SizedBox(height: 4),
         const Text(
           'Read-only scheduler evidence from exact compiled boundaries. '
-          'Material-key differences are retained for Phase 5 but do not block '
+          'Material-key differences are retained as advisory evidence and do not block '
           'this physical seam gate.',
         ),
         if (authoring.chunk.status == chunkStatusDeprecated)
@@ -1364,8 +1364,8 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
           'random roll or source mutation occurs. Hashash placement is '
           'deferred by runtime. Procedural collectible/restoration candidates '
           'have no authored marker records and are not fabricated here. '
-          'Projectile terrain support remains later-phase work and is not '
-          'previewed.',
+          'Projectile motion is outside this marker preview; runtime ballistic '
+          'projectiles sweep the admitted terrain.',
         ),
         if (projection.outcomes.isEmpty)
           const Padding(

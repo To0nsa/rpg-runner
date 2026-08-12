@@ -3,7 +3,7 @@ import 'package:meta/meta.dart';
 import '../terrain_authoring/terrain_source_models.dart';
 import 'chunk_domain_models.dart';
 
-/// Polygon-authoring chunk source schema promoted for the Phase 4 cutover.
+/// Current polygon-authoring chunk source schema.
 const int chunkSchemaVersionV2 = 2;
 
 /// Immutable normal-layer representation of one chunk-schema-v2 source file.
@@ -57,7 +57,7 @@ final class ChunkV2FileData {
   final List<PlacedPrefabDef> prefabs;
   final List<PlacedMarkerDef> markers;
 
-  /// Visual-only ground-band layer retained through the Phase 4 bridge.
+  /// Visual-composition z-index retained by the editor source contract.
   final int groundBandZIndex;
 
   /// Direct chunk-local loops in exact half-pixel source ticks.

@@ -13,6 +13,7 @@ import 'package:rpg_runner/ui/state/app/app_state.dart';
 import 'package:rpg_runner/ui/state/auth/auth_api.dart';
 import 'package:rpg_runner/ui/state/ownership/loadout_ownership_api.dart';
 import 'package:rpg_runner/ui/state/run/pending_run_submission.dart';
+import 'package:rpg_runner/ui/state/run/local_replay_artifact_store.dart';
 import 'package:rpg_runner/ui/state/ownership/progression_state.dart';
 import 'package:rpg_runner/ui/state/run/run_session_api.dart';
 import 'package:rpg_runner/ui/state/run/run_submission_coordinator.dart';
@@ -171,6 +172,11 @@ void main() {
       authApi: authApi,
       accountDeletionApi: deletionApi,
       loadoutOwnershipApi: _NoopOwnershipApi(),
+      runSubmissionCoordinator: RunSubmissionCoordinator(
+        runSessionApi: const NoopRunSessionApi(),
+        spoolStore: _InMemorySpoolStore(),
+        localReplayArtifactStore: const _NoopLocalReplayArtifactStore(),
+      ),
     );
 
     final platformCalls = <MethodCall>[];
@@ -191,13 +197,18 @@ void main() {
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
     await tester.tap(_dialogButton('Delete account'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
+    for (var attempt = 0; attempt < 100; attempt += 1) {
+      if (platformCalls.any((call) => call.method == 'SystemNavigator.pop')) {
+        break;
+      }
+      await tester.pump(const Duration(milliseconds: 20));
+    }
 
     expect(deletionApi.calls, 1);
     expect(
       platformCalls.any((call) => call.method == 'SystemNavigator.pop'),
       isTrue,
+      reason: 'Observed platform methods: $platformCalls',
     );
   });
 
@@ -438,6 +449,13 @@ class _InMemorySpoolStore implements RunSubmissionSpoolStore {
   Future<void> upsert({required PendingRunSubmission submission}) async {
     _entries[submission.runSessionId] = submission;
   }
+}
+
+class _NoopLocalReplayArtifactStore implements LocalReplayArtifactStore {
+  const _NoopLocalReplayArtifactStore();
+
+  @override
+  Future<void> clear() async {}
 }
 
 class _StaticAccountDeletionApi implements AccountDeletionApi {

@@ -349,7 +349,7 @@ final class TerrainSpawnPlacementResult {
 /// Derf's independent Core-owned horizontal perch-span requirement.
 const int derfMinimumSupportSpanTicks = 32 * terrainPhysicsTicksPerWorldUnit;
 
-/// Resolves every Phase 3 enemy/item spawn against one terrain surface set.
+/// Resolves every terrain-backed enemy/item spawn against one surface set.
 ///
 /// Selection happens before profile filtering, so an invalid intended or
 /// highest surface is terminal and never redirects a spawn to lower terrain.

@@ -1,4 +1,4 @@
-/// Immutable render data derived from staged terrain geometry.
+/// Immutable render data derived from the published terrain geometry.
 library;
 
 import '../collision/terrain/terrain_edge.dart';
@@ -54,10 +54,9 @@ final class StagedTerrainPolygonRenderSnapshot {
 
 /// Complete immutable render candidate sharing one Core geometry version.
 ///
-/// [GameStateSnapshot] exposes this whole object for normal staged rendering
-/// and terrain-harness publication. Its [geometryVersion] matches the
-/// candidate's collision/support/navigation bundle even while normal gameplay
-/// still uses the legacy motion authority during cutover.
+/// [GameStateSnapshot] exposes this whole object for normal rendering and
+/// terrain-harness publication. Its [geometryVersion] matches the exact
+/// collision/support/navigation bundle used by normal gameplay.
 final class StagedTerrainRenderSnapshot {
   StagedTerrainRenderSnapshot({
     required this.geometryVersion,
@@ -71,7 +70,7 @@ final class StagedTerrainRenderSnapshot {
   /// Version of the exact terrain geometry that produced [polygons].
   final int geometryVersion;
 
-  /// Canonically ordered staged terrain fill polygons.
+  /// Canonically ordered terrain fill polygons.
   final List<StagedTerrainPolygonRenderSnapshot> polygons;
 
   /// Canonically ordered exposed collision edges for render diagnostics.

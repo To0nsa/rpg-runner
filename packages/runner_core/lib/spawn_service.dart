@@ -585,7 +585,6 @@ class SpawnService {
 // Supporting Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Axis-aligned bounding box for static world geometry.
+/// Axis-aligned bounding box used for placement-overlap rejection.
 ///
 /// Used by [SpawnService] for overlap rejection during item placement.
-/// Re-exported here to avoid circular imports with collision module.

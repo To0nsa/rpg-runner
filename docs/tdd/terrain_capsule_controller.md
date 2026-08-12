@@ -251,7 +251,7 @@ items combine Éloïse-eligible support with complete upright-AABB clearance.
 Placement remains outside per-tick motion and consumes no RNG. Atomic streaming
 publication stays on the same `TerrainEdgeId` and geometry-version contracts.
 
-Under terrain authority, `TerrainEnemyNavigationSystem` reads that exact
+Under the sole terrain authority, `TerrainEnemyNavigationSystem` reads that exact
 runtime bundle after the publication/preparation barrier. Grojib and Hashash
 retain separate graph views over one shared surface set; component-owned
 terrain navigator state invalidates every version-local index, path, and
@@ -259,18 +259,19 @@ active edge when the bundle changes. The adapter resolves prior enemy/player
 support, predicts an airborne player's first valid capsule landing, and writes
 the existing `NavIntentStore`. Finite no-plan ranges and active jump timing are
 carried into `GroundEnemyLocomotionSystem`, so terrain routing does not create
-a second locomotion implementation. Legacy authority continues to select the
-legacy graph system until Phase 6.
+a second locomotion implementation. Normal and replay construction always use
+this graph path.
 
-Normal streamed `GameCore` construction additionally exercises this
-same authority and navigation path with the normal deterministic scheduler.
+Normal streamed `GameCore` construction exercises this same authority and
+navigation path with the normal deterministic scheduler.
 Its opening candidate is already the authority publication when the player is
 placed; later candidate versions publish before captured enemy/item placement
-and AI preparation. This is a test/tool constructor, not authored level,
-replay, save, UI, or remote configuration.
+and AI preparation. Only `GameCore.terrainMotionHarness` accepts injected
+geometry, and that constructor is a test/tool boundary—not an authored level,
+replay, save, UI, or remote configuration option.
 
 Enemy intent and navigation run before the current tick's motion result exists,
-so Phase 3 AI must deliberately read the previous tick's validated support.
+so AI deliberately reads the previous tick's validated support.
 Post-motion animation, snapshots, and other presentation consumers read the
 new final support.
 
@@ -325,19 +326,22 @@ The paired VM profile tracks `_Double`, `_Mint`, terrain/capsule objects,
 records, and wrapper capsules. It reports zero tracked hot-loop instances,
 `0.0` allocations per solve, and no runner-core allocation callsites. Small VM
 service/JIT-only `_Double` deltas are reported separately and count as hot-loop
-allocations whenever trace sampling resolves a runner-core callsite. This
-accepts the isolated controller authority; it does not authorize production
-cutover before the remaining content, editor, replay, and rollout phases.
+allocations whenever trace sampling resolves a runner-core callsite. At the
+Phase 2 boundary this accepted the isolated controller authority without
+authorizing production cutover. Phases 3 through 6 subsequently completed the
+enemy, content, editor, replay, and direct-authority work while retaining these
+benchmark references.
 
-## Removal And Cutover
+## Direct Cutover Invariants
 
-At the direct production cutover:
+After the Phase 6 direct production cutover:
 
-- normal Core construction must select the terrain authority,
-- enemies and other dynamic policies must already be migrated,
-- authored/streamed polygon geometry must be the shared source,
-- live and replay-validator compatibility must be issued together,
+- normal and replay Core construction select the terrain authority,
+- enemies and other dynamic policies carry explicit terrain policies,
+- authored/streamed polygon geometry is the shared source,
 - the `terrainMotionHarness` geometry-injection seam remains test/tool-only and
-  must not become a runtime selector;
+  must not become a runtime selector,
 - the deleted rectangle collision, static-world model, and legacy motion
-  adapter must not be reintroduced as test conveniences.
+  adapter must not be reintroduced as test conveniences, and
+- Phase 7 must deploy matching client, backend compatibility configuration,
+  generated content, and replay validator while draining incompatible sessions.

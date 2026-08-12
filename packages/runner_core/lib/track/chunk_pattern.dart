@@ -20,7 +20,10 @@ class ChunkPattern {
   /// Human-readable identifier for debugging/logging.
   final String name;
 
-  /// Stable chunk identity key (optional during migration from legacy patterns).
+  /// Stable authored chunk identity key.
+  ///
+  /// It may be absent in scheduler-only fixtures; streaming `GameCore`
+  /// construction rejects a selected chunk without an admitted key.
   final String? chunkKey;
 
   /// Authored assembly membership key used by level segment scheduling.
@@ -33,7 +36,7 @@ class ChunkPattern {
   final List<ChunkVisualSpriteRel> visualSprites;
 }
 
-/// Default chunk assembly group used by legacy-authored chunks.
+/// Default chunk assembly group used when source omits explicit sequencing.
 const String defaultChunkAssemblyGroupId = 'default';
 
 /// Chunk-relative visual sprite entry used by runtime renderer.
