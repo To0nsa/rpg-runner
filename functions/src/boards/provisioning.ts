@@ -10,7 +10,7 @@ const rankedModes = ["competitive", "weekly"] as const;
 export type RankedBoardMode = (typeof rankedModes)[number];
 
 const defaultManagedLevelIds = ["field", "forest"];
-const defaultRulesetVersion = "rules-v1";
+const defaultRulesetVersion = "rules-v2";
 const defaultScoreVersion = "score-v1";
 const defaultGhostVersion = "ghost-v1";
 const defaultTickHz = 60;

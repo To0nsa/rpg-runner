@@ -232,8 +232,17 @@ async function loadBoardManifestWithProvisioningFallback(args: {
   gameCompatVersion: string;
   nowMs: number;
 }) {
+  const config = resolveBoardProvisioningConfigForGameCompatVersion(
+    args.gameCompatVersion,
+  );
+  const loadArgs = {
+    ...args,
+    rulesetVersion: config.rulesetVersion,
+    scoreVersion: config.scoreVersion,
+    ghostVersion: config.ghostVersion,
+  };
   try {
-    return await loadActiveBoardManifest(args);
+    return await loadActiveBoardManifest(loadArgs);
   } catch (error) {
     if (!isMissingBoardError(error)) {
       throw error;
@@ -245,13 +254,11 @@ async function loadBoardManifestWithProvisioningFallback(args: {
     mode: args.mode,
     levelId: args.levelId,
     nowMs: args.nowMs,
-    config: resolveBoardProvisioningConfigForGameCompatVersion(
-      args.gameCompatVersion,
-    ),
+    config,
     includeNextWindows: false,
   });
 
-  return loadActiveBoardManifest(args);
+  return loadActiveBoardManifest(loadArgs);
 }
 
 function isMissingBoardError(error: unknown): boolean {

@@ -63,7 +63,7 @@ async function prepare() {
     mode: "competitive",
     levelId: "field",
     windowId: drillId,
-    rulesetVersion: "rules-v1",
+    rulesetVersion: "rules-v2",
     scoreVersion: "score-v1",
   };
   const nowMs = Date.now();

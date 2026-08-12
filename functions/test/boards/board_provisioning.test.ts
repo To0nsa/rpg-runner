@@ -8,6 +8,7 @@ import {
   buildManagedBoardId,
   ensureManagedBoardForModeLevel,
   ensureManagedLeaderboardBoards,
+  resolveBoardProvisioningConfig,
   type BoardProvisioningConfig,
 } from "../../src/boards/provisioning.js";
 import { loadActiveBoardManifest } from "../../src/boards/store.js";
@@ -34,7 +35,7 @@ const config: BoardProvisioningConfig = {
   competitiveLevelIds: ["field", "forest"],
   weeklyLevelId: "field",
   gameCompatVersion: "2026.08.0",
-  rulesetVersion: "rules-v1",
+  rulesetVersion: "rules-v2",
   scoreVersion: "score-v1",
   ghostVersion: "ghost-v1",
   tickHz: 60,
@@ -48,6 +49,10 @@ beforeEach(async () => {
 
 after(async () => {
   await Promise.all(getApps().map((value) => deleteApp(value)));
+});
+
+test("default provisioning config issues the capsule-combat ruleset", () => {
+  assert.equal(resolveBoardProvisioningConfig({}).rulesetVersion, "rules-v2");
 });
 
 test("ensureManagedLeaderboardBoards provisions competitive all-levels and weekly featured-level", async () => {
@@ -138,6 +143,44 @@ test("ensureManagedBoardForModeLevel is idempotent", async () => {
   assert.equal(second.existingCount, 1);
 });
 
+test("rules-v2 selection ignores a coexisting active rules-v1 board", async () => {
+  const nowMs = Date.UTC(2026, 2, 14, 12, 0, 0, 0);
+  const retiredConfig: BoardProvisioningConfig = {
+    ...config,
+    rulesetVersion: "rules-v1",
+  };
+  await ensureManagedBoardForModeLevel({
+    db,
+    mode: "competitive",
+    levelId: "field",
+    nowMs,
+    config: retiredConfig,
+    includeNextWindows: false,
+  });
+  await ensureManagedBoardForModeLevel({
+    db,
+    mode: "competitive",
+    levelId: "field",
+    nowMs,
+    config,
+    includeNextWindows: false,
+  });
+
+  const loaded = await loadActiveBoardManifest({
+    db,
+    mode: "competitive",
+    levelId: "field",
+    gameCompatVersion: config.gameCompatVersion,
+    rulesetVersion: config.rulesetVersion,
+    scoreVersion: config.scoreVersion,
+    ghostVersion: config.ghostVersion,
+    nowMs,
+  });
+
+  assert.equal(loaded.boardKey.rulesetVersion, "rules-v2");
+  assert.match(loaded.boardId, /rules_v2/);
+});
+
 test("same-window boards coexist across compatibility versions", async () => {
   const nowMs = Date.UTC(2026, 2, 14, 12, 0, 0, 0);
   const drainingConfig: BoardProvisioningConfig = {
@@ -196,7 +239,7 @@ test("same-window boards coexist across compatibility versions", async () => {
   assert.notEqual(currentId, drainingId);
   assert.equal(
     currentId,
-    "board_competitive_2026_03_field_rules_v1_score_v1_2026_08_0_ghost_v1",
+    "board_competitive_2026_03_field_rules_v2_score_v1_2026_08_0_ghost_v1",
   );
 
   const boards = await db.collection("leaderboard_boards").get();

@@ -110,7 +110,7 @@ void main() {
         mode: RunMode.competitive,
         levelId: 'field',
         windowId: '2026-07',
-        rulesetVersion: 'rules-v1',
+        rulesetVersion: 'rules-v2',
         scoreVersion: 'score-v1',
       );
       final replayBlob = ReplayBlobV1.withComputedDigest(
@@ -274,6 +274,12 @@ void main() {
           String? ghostVersion,
         })
       >[
+        (
+          name: 'retired_ruleset',
+          rulesetVersion: 'rules-v1',
+          scoreVersion: null,
+          ghostVersion: null,
+        ),
         (
           name: 'ruleset',
           rulesetVersion: 'rules-v999',
@@ -1238,7 +1244,7 @@ ValidatorRunSession _session({
           mode: mode,
           levelId: 'field',
           windowId: '2026-07',
-          rulesetVersion: rulesetVersion ?? 'rules-v1',
+          rulesetVersion: rulesetVersion ?? 'rules-v2',
           scoreVersion: scoreVersion ?? 'score-v1',
         )
       : null;
@@ -1254,7 +1260,7 @@ ValidatorRunSession _session({
       seed: seed,
       tickHz: tickHz,
       gameCompatVersion: gameCompatVersion,
-      rulesetVersion: mode.requiresBoard ? rulesetVersion ?? 'rules-v1' : null,
+      rulesetVersion: mode.requiresBoard ? rulesetVersion ?? 'rules-v2' : null,
       scoreVersion: mode.requiresBoard ? scoreVersion ?? 'score-v1' : null,
       ghostVersion: mode.requiresBoard ? ghostVersion ?? 'ghost-v1' : null,
       boardOpensAtMs: mode.requiresBoard

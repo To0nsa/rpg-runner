@@ -20,6 +20,9 @@ interface LoadActiveBoardArgs {
   mode: "competitive" | "weekly";
   levelId: string;
   gameCompatVersion: string;
+  rulesetVersion?: string;
+  scoreVersion?: string;
+  ghostVersion?: string;
   nowMs?: number;
 }
 
@@ -38,13 +41,20 @@ export async function loadActiveBoardManifest(
   const candidates = boardSnapshot.docs
     .map(decodeBoardManifestDocument)
     .filter(
-      (value) => value.gameCompatVersion === args.gameCompatVersion,
+      (value) =>
+        value.gameCompatVersion === args.gameCompatVersion &&
+        (args.rulesetVersion === undefined ||
+          value.boardKey.rulesetVersion === args.rulesetVersion) &&
+        (args.scoreVersion === undefined ||
+          value.boardKey.scoreVersion === args.scoreVersion) &&
+        (args.ghostVersion === undefined ||
+          value.ghostVersion === args.ghostVersion),
     );
 
   if (candidates.length === 0) {
     throw new HttpsError(
       "failed-precondition",
-      `No board found for ${args.mode}/${args.levelId}/${resolvedWindow.windowId}/${args.gameCompatVersion}.`,
+      `No board found for ${args.mode}/${args.levelId}/${resolvedWindow.windowId}/${args.gameCompatVersion}/${args.rulesetVersion ?? "any-ruleset"}.`,
     );
   }
 

@@ -120,7 +120,7 @@ class DeterministicValidatorWorker implements ValidatorWorker {
     '2026.08.0',
     '2026.03.0',
   };
-  static const Set<String> _supportedRulesetVersions = <String>{'rules-v1'};
+  static const Set<String> _supportedRulesetVersions = <String>{'rules-v2'};
   static const Set<String> _supportedScoreVersions = <String>{'score-v1'};
   static const Set<String> _supportedGhostVersions = <String>{'ghost-v1'};
 
