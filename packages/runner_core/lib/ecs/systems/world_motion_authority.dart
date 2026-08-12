@@ -81,7 +81,6 @@ abstract interface class WorldMotionAuthority {
     EcsWorld world, {
     required EntityId player,
     required MovementTuningDerived movement,
-    required StaticWorldGeometryIndex legacyStaticWorld,
     required bool fixedPointPilotEnabled,
     required int fixedPointSubpixelScale,
     required int currentTick,
@@ -270,6 +269,12 @@ TerrainBodyDisposition terrainBodyDisposition(
 
 /// Adapter preserving the pre-slopes rectangle integration path exactly.
 class LegacyWorldMotionAuthority implements WorldMotionAuthority {
+  LegacyWorldMotionAuthority({StaticWorldGeometryIndex? staticWorld})
+    : _staticWorld =
+          staticWorld ??
+          StaticWorldGeometryIndex.from(const StaticWorldGeometry());
+
+  final StaticWorldGeometryIndex _staticWorld;
   final CollisionSystem _collision = CollisionSystem();
   int _preparedTick = -1;
   int _integratedTick = -1;
@@ -314,7 +319,6 @@ class LegacyWorldMotionAuthority implements WorldMotionAuthority {
     EcsWorld world, {
     required EntityId player,
     required MovementTuningDerived movement,
-    required StaticWorldGeometryIndex legacyStaticWorld,
     required bool fixedPointPilotEnabled,
     required int fixedPointSubpixelScale,
     required int currentTick,
@@ -323,7 +327,7 @@ class LegacyWorldMotionAuthority implements WorldMotionAuthority {
     _collision.step(
       world,
       movement,
-      staticWorld: legacyStaticWorld,
+      staticWorld: _staticWorld,
       fixedPointPilotEnabled: fixedPointPilotEnabled,
       fixedPointSubpixelScale: fixedPointSubpixelScale,
     );
@@ -813,7 +817,6 @@ class TerrainMultiBodyWorldMotionAuthority implements WorldMotionAuthority {
     EcsWorld world, {
     required EntityId player,
     required MovementTuningDerived movement,
-    required StaticWorldGeometryIndex legacyStaticWorld,
     required bool fixedPointPilotEnabled,
     required int fixedPointSubpixelScale,
     required int currentTick,

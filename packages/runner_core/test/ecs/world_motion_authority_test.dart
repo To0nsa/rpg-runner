@@ -1,4 +1,3 @@
-import 'package:runner_core/collision/static_world_geometry_index.dart';
 import 'package:runner_core/collision/terrain/terrain_compiler.dart';
 import 'package:runner_core/collision/terrain/terrain_geometry.dart';
 import 'package:runner_core/collision/terrain/terrain_numeric.dart';
@@ -101,7 +100,6 @@ void main() {
         doubled.world,
         player: doubled.player,
         movement: doubled.movement,
-        legacyStaticWorld: _legacyWorld,
         fixedPointPilotEnabled: false,
         fixedPointSubpixelScale: 1024,
         currentTick: 1,
@@ -111,7 +109,6 @@ void main() {
           doubled.world,
           player: doubled.player,
           movement: doubled.movement,
-          legacyStaticWorld: _legacyWorld,
           fixedPointPilotEnabled: false,
           fixedPointSubpixelScale: 1024,
           currentTick: 1,
@@ -782,7 +779,6 @@ void main() {
             harness.world,
             player: harness.player,
             movement: harness.movement,
-            legacyStaticWorld: _legacyWorld,
             fixedPointPilotEnabled: false,
             fixedPointSubpixelScale: 1024,
             currentTick: 1,
@@ -839,7 +835,6 @@ void main() {
             harness.world,
             player: harness.player,
             movement: harness.movement,
-            legacyStaticWorld: _legacyWorld,
             fixedPointPilotEnabled: false,
             fixedPointSubpixelScale: 1024,
             currentTick: 1,
@@ -922,7 +917,6 @@ double _stepAuthority(
   harness.world,
   player: harness.player,
   movement: harness.movement,
-  legacyStaticWorld: _legacyWorld,
   fixedPointPilotEnabled: false,
   fixedPointSubpixelScale: 1024,
   currentTick: currentTick,
@@ -999,8 +993,4 @@ TerrainGeometry _terrainGeometry({
           ),
         ],
   geometryVersion: version,
-);
-
-final StaticWorldGeometryIndex _legacyWorld = StaticWorldGeometryIndex.from(
-  const StaticWorldGeometry(groundPlane: StaticGroundPlane(topY: 100)),
 );

@@ -67,17 +67,16 @@ order; the contract below records the dependencies that must survive changes.
 | 7 | Resolve projectile/hitbox/mobility/world hits, then status and damage | Damage middleware changes queued damage before application; reactive effects follow applied damage. |
 | 8 | Apply queued statuses and visual cues, process deaths, regen, animation, and cleanup | Death is resolved before regen/cleanup; animation reflects final gameplay state for the tick. |
 
-World-motion ownership is selected once when `GameCore` is constructed. Normal
-streamed construction performs the scheduler prewarm, installs the multi-body
-capsule authority from that exact admitted candidate before player placement,
-and atomically consumes later spawn/cull candidates. Replay validation inherits
-the same path without a serialized authority option. The test/tool-only
-`GameCore.terrainMotionHarness` factory remains available for focused synthetic
-geometry, while track-disabled legacy fixtures are temporary Phase 6 cleanup
-targets rather than a production selection mode.
+Every `GameCore` construction owns polygon terrain. Normal streamed
+construction performs the scheduler prewarm, installs the multi-body capsule
+authority from that exact admitted candidate before player placement, and
+atomically consumes later spawn/cull candidates. Replay validation inherits the
+same path without a serialized authority option. Track-disabled synthetic
+fixtures compile one deterministic flat polygon at the level's authored ground
+reference. The test/tool-only `GameCore.terrainMotionHarness` factory remains
+available only to inject focused polygon geometry.
 
-Both owners follow the same ordering seam; the terrain-only publication step is
-a no-op for legacy ownership:
+All construction paths follow the same ordering seam:
 
 1. after world generation, atomically publish any fully built terrain bundle
    and its matching immutable render snapshot;
@@ -92,7 +91,7 @@ a no-op for legacy ownership:
 
 Between preparation and integration, terrain-owned AI/locomotion consumers
 read prior support through `WorldSupportView`; they must not read the reset
-legacy compatibility flags directly. Grounded enemy tuning resolves to one
+compatibility flags directly. Grounded enemy tuning resolves to one
 signed scalar surface speed before gravity, and the authority converts that
 intent into one support-distance solve. Accepted jump launch explicitly clears
 prior support so the same tick remains world-space. Animation and ground-impact
@@ -109,9 +108,9 @@ Forest streams select this adapter from their published terrain authority.
 Terrain authority rejects unknown enabled dynamic bodies and never falls
 back to rectangle collision. Catalog-owned actors use their capsule policies;
 physics-driven projectiles use a distinct continuous AABB terrain sweep in the
-same motion phase. No replay field, saved state, UI, or remote configuration
-selects terrain versus legacy behavior. See the terrain controller TDD for the
-staged boundary and remaining legacy-deletion requirements.
+same motion phase. No replay field, saved state, UI, remote configuration, or
+test-level tuning selects a second collision authority. See the terrain
+controller TDD for the staged boundary and remaining test-support cleanup.
 
 A harness replacement is built completely before queueing and becomes visible
 at the next explicit world-publication/preparation boundary. It cannot be
@@ -120,10 +119,11 @@ and motion rejects support from any version other than the published bundle.
 Streaming-enabled normal and replay construction admit the generated staged
 artifact, bind the scheduler's exact active chunk selection, and replace one
 complete collision/navigation/render candidate after each spawn/cull rebuild.
-The candidate owns simulation and rendering together. A synthetic custom
-selection with no authored `chunkKey` publishes no staged snapshot and remains
-on the temporary track-disabled/custom-fixture cleanup path; it never
-substitutes an unrelated generated record.
+The candidate owns simulation and rendering together. A streaming selection
+with no admitted authored `chunkKey` fails construction or publication; it
+never substitutes an unrelated generated record. Track-disabled synthetic
+terrain has no staged render artifact because it exists only as a Core test
+fixture.
 
 Startup resolves the scheduler's initial selection before spawning the player
 or any other ECS entity. `TrackManager` adopts that exact prewarmed streamer;
@@ -132,11 +132,10 @@ changes, marker requests are captured in authored order, the matching complete
 terrain candidate is built/published, then enemies are applied before
 collectibles/restoration items as before. Marker rolls remain keyed by seed,
 chunk, marker index, and salt. Collectible/restoration count draws, candidate
-draws, salts, snapping, spacing, and attempt limits are unchanged. The selected
-world-motion authority validates each already-created candidate through a
-mutation-free placement request that consumes no RNG. Legacy authority commits
-the historical rectangle candidate exactly; terrain rejection consumes the
-existing marker request or item attempt and never draws a replacement.
+draws, salts, snapping, spacing, and attempt limits are unchanged. The terrain
+authority validates each already-created candidate through a mutation-free
+placement request that consumes no RNG. Terrain rejection consumes the existing
+marker request or item attempt and never draws a replacement.
 Therefore an invalid placement cannot shift any later marker roll or candidate
 sequence.
 
@@ -158,9 +157,9 @@ events through `GameCore.drainEvents`.
 
 Streaming-enabled normal and replay construction expose the selected staged
 candidate's `StagedTerrainRenderSnapshot` and use its matching collision,
-support, placement, and graph bundle. Track-disabled fixtures and a custom
-source with an anonymous active chunk leave it null. The isolated terrain
-harness may queue a fully constructed staged candidate;
+support, placement, and graph bundle. Track-disabled fixtures use direct
+polygon geometry and therefore leave the staged render artifact null. The
+isolated terrain harness may queue a fully constructed staged candidate;
 its exact collision/navigation bundle and render snapshot become visible
 together only at the next preparation boundary. This read-only snapshot output
 does not alter commands, replay serialization, or simulation outcomes.
@@ -168,9 +167,9 @@ does not alter commands, replay serialization, or simulation outcomes.
 `GameStateSnapshot` has one terrain-render contract: the staged polygon
 snapshot paired with its runtime bundle. The former `staticSolids` and
 `groundSurfaces` fields and all Flame fallback consumers are deleted.
-`TrackManager` retains scheduler selection and authored prefab visual sprites;
-its internal legacy read models remain temporarily available only to
-track-disabled synthetic tests during the dependency-ordered Phase 6 cleanup.
+`TrackManager` retains only scheduler selection, authored prefab visual
+sprites, and deferred item batches. It has no collision geometry, spatial
+index, horizontal surface graph, or legacy terrain snapshots.
 
 Any snapshot/event shape or semantic change requires consumer updates in the
 same change. If replay acceptance, score, or terminal outcome changes, the

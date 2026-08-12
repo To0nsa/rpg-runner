@@ -12,10 +12,11 @@ import 'package:runner_core/track/chunk_pattern_source.dart';
 
 void main() {
   test(
-    'hashash teleports in at the camera-right chunk edge during prewarm',
+    'hashash teleports at the camera-right terrain boundary during prewarm',
     () {
       const pattern = ChunkPattern(
         name: 'hashash-only',
+        chunkKey: 'field_flat',
         spawnMarkers: <SpawnMarker>[
           SpawnMarker(
             enemyId: EnemyId.hashash,
@@ -48,9 +49,11 @@ void main() {
           .toList();
 
       expect(snapshot.tick, 0);
-      expect(snapshot.stagedTerrainRenderSnapshot, isNull);
+      expect(snapshot.stagedTerrainRenderSnapshot, isNotNull);
       expect(hashash.length, 1);
-      expect(hashash.single.pos.x, closeTo(600.0, 1e-9));
+      // Polygon placement keeps the full enemy capsule inside the admitted
+      // support instead of intersecting the open chunk boundary.
+      expect(hashash.single.pos.x, closeTo(587.0, 1e-9));
       expect(hashash.single.anim, AnimKey.spawn);
       expect(hashash.single.animFrame, 0);
       expect(hashash.single.statusVisualMask, EntityStatusVisualMask.none);

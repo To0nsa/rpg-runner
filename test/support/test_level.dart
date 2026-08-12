@@ -1,4 +1,3 @@
-import 'package:runner_core/collision/static_world_geometry.dart';
 import 'package:runner_core/levels/level_definition.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/levels/level_registry.dart';
@@ -13,23 +12,13 @@ const PlayerCharacterDefinition testPlayerCharacter =
 LevelDefinition testLevel({
   LevelId id = LevelId.field,
   CoreTuning? tuning,
-  StaticWorldGeometry? staticWorldGeometry,
+  double? groundTopY,
 }) {
   final base = LevelRegistry.byId(id);
-  return base.copyWith(
-    tuning: tuning,
-    staticWorldGeometry: staticWorldGeometry,
-  );
+  return base.copyWith(tuning: tuning, groundTopY: groundTopY);
 }
 
 /// Field-level convenience wrapper used by most tests.
-LevelDefinition testFieldLevel({
-  CoreTuning? tuning,
-  StaticWorldGeometry? staticWorldGeometry,
-}) {
-  return testLevel(
-    id: LevelId.field,
-    tuning: tuning,
-    staticWorldGeometry: staticWorldGeometry,
-  );
+LevelDefinition testFieldLevel({CoreTuning? tuning, double? groundTopY}) {
+  return testLevel(id: LevelId.field, tuning: tuning, groundTopY: groundTopY);
 }

@@ -1,4 +1,3 @@
-import 'package:runner_core/collision/static_world_geometry_index.dart';
 import 'package:runner_core/collision/terrain/terrain_compiler.dart';
 import 'package:runner_core/collision/terrain/terrain_geometry.dart';
 import 'package:runner_core/collision/terrain/terrain_numeric.dart';
@@ -385,7 +384,6 @@ class _Harness {
       world,
       player: player,
       movement: movement,
-      legacyStaticWorld: _legacyWorld,
       fixedPointPilotEnabled: false,
       fixedPointSubpixelScale: terrainPhysicsTicksPerWorldUnit,
       currentTick: _tick,
@@ -596,6 +594,3 @@ final TerrainGeometry _detourTerrain = const TerrainCompiler().compile(
 
 const int _tickHz = 60;
 const double _playerSpawnX = 2100;
-final StaticWorldGeometryIndex _legacyWorld = StaticWorldGeometryIndex.from(
-  const StaticWorldGeometry(groundPlane: StaticGroundPlane(topY: 2000)),
-);

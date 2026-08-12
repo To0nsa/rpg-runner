@@ -79,7 +79,7 @@ void main() {
     expect(core.playerGrounded, isFalse);
   });
 
-  test('jump buffer triggers on the tick after landing', () {
+  test('jump buffer triggers when terrain landing becomes authoritative', () {
     final core = GameCore(
       levelDefinition: testFieldLevel(
         tuning: const CoreTuning(
@@ -117,19 +117,15 @@ void main() {
     expect(core.playerVelY, greaterThan(0)); // still falling after gravity
     expect(core.playerGrounded, isFalse);
 
-    // Simulate until landing.
+    // Terrain publication consumes the buffered jump as soon as the landing
+    // becomes authoritative, so the externally visible state may transition
+    // directly from falling to the next jump without one grounded snapshot.
     var safety = 60;
-    while (core.playerPosY < floorY && safety > 0) {
+    while (core.playerVelY >= 0 && safety > 0) {
       _tick(core);
       safety -= 1;
     }
     expect(safety, greaterThan(0));
-    expect(core.playerPosY, closeTo(floorY, 1e-9));
-    expect(core.playerVelY, closeTo(0, 1e-9));
-    expect(core.playerGrounded, isTrue);
-
-    // Next tick: buffered jump should fire due to grounded state from previous tick.
-    _tick(core);
     expect(core.playerVelY, lessThan(0));
     expect(core.playerGrounded, isFalse);
   });

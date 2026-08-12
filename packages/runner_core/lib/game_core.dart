@@ -18,9 +18,10 @@ import 'combat/middleware/parry_middleware.dart';
 import 'combat/middleware/ward_middleware.dart';
 import 'combat/damage_type.dart';
 import 'combat/status/status.dart';
-import 'collision/static_world_geometry_index.dart';
+import 'collision/terrain/terrain_compiler.dart';
 import 'collision/terrain/terrain_geometry.dart';
 import 'collision/terrain/terrain_numeric.dart';
+import 'collision/terrain/terrain_polygon.dart';
 import 'commands/command.dart';
 import 'contracts/render_contract.dart';
 import 'ecs/collider_aabb_utils.dart';
@@ -44,7 +45,6 @@ import 'ecs/systems/flying_enemy_combat_mode_system.dart';
 import 'ecs/systems/flying_enemy_locomotion_system.dart';
 import 'ecs/systems/flying_enemy_melee_system.dart';
 import 'ecs/systems/ground_enemy_locomotion_system.dart';
-import 'ecs/systems/enemy_navigation_system.dart';
 import 'ecs/systems/terrain_enemy_navigation_system.dart';
 import 'ecs/systems/gravity_system.dart';
 import 'ecs/systems/hashash_teleport_ambush_system.dart';
@@ -84,9 +84,6 @@ import 'events/entity_visual_cue_coalescer.dart';
 import 'events/player_impact_feedback_gate.dart';
 import 'levels/level_definition.dart';
 import 'levels/level_id.dart';
-import 'navigation/surface_graph_builder.dart';
-import 'navigation/surface_navigator.dart';
-import 'navigation/surface_pathfinder.dart';
 import 'navigation/terrain_runtime_bundle.dart';
 import 'navigation/terrain_spawn_placement.dart';
 import 'navigation/terrain_surface_navigator.dart';
@@ -94,7 +91,6 @@ import 'navigation/terrain_surface_pathfinder.dart';
 import 'navigation/types/terrain_surface_graph.dart';
 import 'navigation/utils/jump_template.dart';
 import 'navigation/utils/standability.dart';
-import 'navigation/utils/trajectory_predictor.dart';
 import 'players/player_catalog.dart';
 import 'players/player_archetype.dart';
 import 'players/player_character_definition.dart';
@@ -354,6 +350,9 @@ class GameCore {
       }
     }
     final stagedCandidate = _stagedTerrainCandidate;
+    final syntheticTerrainGeometry = !_trackTuning.enabled
+        ? _buildSyntheticFlatTerrain(levelDefinition.groundTopY)
+        : null;
     _worldMotionAuthority = terrainGeometry != null
         ? TerrainMultiBodyWorldMotionAuthority(
             geometry: terrainGeometry,
@@ -367,7 +366,16 @@ class GameCore {
             playerProfile: _playerArchetype.terrainTraversalProfile,
             enemyCatalog: _enemyCatalog,
           )
-        : LegacyWorldMotionAuthority();
+        : syntheticTerrainGeometry != null
+        ? TerrainMultiBodyWorldMotionAuthority(
+            geometry: syntheticTerrainGeometry,
+            playerProfile: _playerArchetype.terrainTraversalProfile,
+            enemyCatalog: _enemyCatalog,
+            groundEnemyGraphProfiles: _groundEnemyTerrainGraphProfiles,
+          )
+        : throw StateError(
+            'Enabled track content must resolve to admitted polygon terrain.',
+          );
 
     // ─── Initialize ECS world and entity factory ───
     _world = EcsWorld(seed: seed);
@@ -401,13 +409,7 @@ class GameCore {
       trackTuning: _trackTuning,
       collectibleTuning: _collectibleTuning,
       restorationItemTuning: _restorationItemTuning,
-      baseGeometry: levelDefinition.staticWorldGeometry,
-      surfaceGraphBuilder: _surfaceGraphBuilder,
-      enemyJumpTemplatesById: _groundEnemyJumpTemplatesById,
-      enemyNavigationSystem: _enemyNavigationSystem,
-      groundEnemyLocomotionSystem: _groundEnemyLocomotionSystem,
       spawnService: _spawnService,
-      legacyReadModelsEnabled: !_worldMotionAuthority.usesTerrainPlayer,
       groundTopY: effectiveGroundTopY,
       chunkPatternSource: levelDefinition.chunkPatternSource,
       trackStreamer: prewarmedTrackStreamer,
@@ -594,67 +596,30 @@ class GameCore {
     _meleeStrikeSystem = MeleeStrikeSystem();
 
     // Navigation infrastructure.
-    final terrainAuthority = _worldMotionAuthority;
-    if (terrainAuthority is! TerrainMultiBodyWorldMotionAuthority) {
-      _surfaceGraphBuilder = SurfaceGraphBuilder(
-        surfaceGrid: GridIndex2D(
-          cellSize: _spatialGridTuning.broadphaseCellSize,
+    final terrainAuthority =
+        _worldMotionAuthority as TerrainMultiBodyWorldMotionAuthority;
+    _terrainEnemyNavigationSystem = TerrainEnemyNavigationSystem(
+      runtimeBundle: () => terrainAuthority.terrainRuntimeBundle,
+      navigator: TerrainSurfaceNavigator(
+        pathfinder: TerrainSurfacePathfinder(
+          maxExpandedNodes: _navigationTuning.maxExpandedNodes,
+          edgePenaltyCostUnits:
+              (_navigationTuning.edgePenaltySeconds *
+                      terrainNavigationCostUnitsPerSecond)
+                  .round(),
         ),
-        takeoffSampleMaxStep: _navigationTuning.takeoffSampleMaxStep,
-      );
-      final surfacePathfinder = SurfacePathfinder(
-        maxExpandedNodes: _navigationTuning.maxExpandedNodes,
-        runSpeedX: _groundEnemyTuning.locomotion.speedX,
-        edgePenaltySeconds: _navigationTuning.edgePenaltySeconds,
-      );
-      final surfaceNavigator = SurfaceNavigator(
-        pathfinder: surfacePathfinder,
         repathCooldownTicks: _navigationTuning.repathCooldownTicks,
-        surfaceEps: _navigationTuning.surfaceEps,
-        takeoffEps: max(
-          _navigationTuning.takeoffEpsMin,
-          _groundEnemyTuning.locomotion.stopDistanceX,
+        takeoffToleranceTicks: physicsCoordinateToTicks(
+          max(
+            _navigationTuning.takeoffEpsMin,
+            _groundEnemyTuning.locomotion.stopDistanceX,
+          ),
+          name: 'terrainNavigationTakeoffTolerance',
         ),
-      );
-      _enemyNavigationSystem = EnemyNavigationSystem(
-        surfaceNavigator: surfaceNavigator,
-        trajectoryPredictor: TrajectoryPredictor(
-          gravityY: _physicsTuning.gravityY,
-          dtSeconds: _movement.dtSeconds,
-          maxTicks: 120,
-        ),
-        chaseTargetDelayTicks:
-            _groundEnemyTuning.navigation.chaseTargetDelayTicks,
-      );
-    } else {
-      _surfaceGraphBuilder = null;
-      _enemyNavigationSystem = null;
-    }
-    _terrainEnemyNavigationSystem =
-        terrainAuthority is TerrainMultiBodyWorldMotionAuthority
-        ? TerrainEnemyNavigationSystem(
-            runtimeBundle: () => terrainAuthority.terrainRuntimeBundle,
-            navigator: TerrainSurfaceNavigator(
-              pathfinder: TerrainSurfacePathfinder(
-                maxExpandedNodes: _navigationTuning.maxExpandedNodes,
-                edgePenaltyCostUnits:
-                    (_navigationTuning.edgePenaltySeconds *
-                            terrainNavigationCostUnitsPerSecond)
-                        .round(),
-              ),
-              repathCooldownTicks: _navigationTuning.repathCooldownTicks,
-              takeoffToleranceTicks: physicsCoordinateToTicks(
-                max(
-                  _navigationTuning.takeoffEpsMin,
-                  _groundEnemyTuning.locomotion.stopDistanceX,
-                ),
-                name: 'terrainNavigationTakeoffTolerance',
-              ),
-            ),
-            physics: _physicsTuning,
-            dtSeconds: _movement.dtSeconds,
-          )
-        : null;
+      ),
+      physics: _physicsTuning,
+      dtSeconds: _movement.dtSeconds,
+    );
     _enemyEngagementSystem = EnemyEngagementSystem(
       groundEnemyTuning: _groundEnemyTuning,
       enemyCatalog: _enemyCatalog,
@@ -891,8 +856,7 @@ class GameCore {
   late final HealthDespawnSystem _healthDespawnSystem;
   late final EnemyDeathStateSystem _enemyDeathStateSystem;
   late final DeathDespawnSystem _deathDespawnSystem;
-  late final EnemyNavigationSystem? _enemyNavigationSystem;
-  late final TerrainEnemyNavigationSystem? _terrainEnemyNavigationSystem;
+  late final TerrainEnemyNavigationSystem _terrainEnemyNavigationSystem;
   late EnemyEngagementSystem _enemyEngagementSystem;
   late HashashTeleportAmbushSystem _hashashTeleportAmbushSystem;
   late GroundEnemyLocomotionSystem _groundEnemyLocomotionSystem;
@@ -901,7 +865,6 @@ class GameCore {
   late EnemyCastSystem _enemyCastSystem;
   late FlyingEnemyMeleeSystem _flyingEnemyMeleeSystem;
   late EnemyMeleeSystem _enemyMeleeSystem;
-  late final SurfaceGraphBuilder? _surfaceGraphBuilder;
   late final Map<EnemyId, JumpReachabilityTemplate>
   _groundEnemyJumpTemplatesById;
   late final List<TerrainSurfaceGraphBuildProfile>
@@ -992,9 +955,6 @@ class GameCore {
 
   /// Enemy catalog for render-side animation loading.
   EnemyCatalog get enemyCatalog => _enemyCatalog;
-
-  /// Current static world geometry (base + streamed chunks).
-  StaticWorldGeometry get staticWorldGeometry => _trackManager.staticGeometry;
 
   /// Player X position in world coordinates.
   double get playerPosX =>
@@ -1442,12 +1402,11 @@ class GameCore {
       player: _player,
       currentTick: tick,
     );
-    final terrainNavigation = _terrainEnemyNavigationSystem;
-    if (terrainNavigation == null) {
-      _enemyNavigationSystem!.step(_world, player: _player, currentTick: tick);
-    } else {
-      terrainNavigation.step(_world, player: _player, currentTick: tick);
-    }
+    _terrainEnemyNavigationSystem.step(
+      _world,
+      player: _player,
+      currentTick: tick,
+    );
     _enemyEngagementSystem.step(_world, player: _player, currentTick: tick);
     _flyingEnemyCombatModeSystem.step(_world);
     _groundEnemyLocomotionSystem.step(
@@ -1479,7 +1438,6 @@ class GameCore {
       _world,
       player: _player,
       movement: _movement,
-      legacyStaticWorld: _trackManager.staticIndex,
       fixedPointPilotEnabled: _physicsTuning.fixedPointPilot.enabled,
       fixedPointSubpixelScale: _physicsTuning.fixedPointPilot.subpixelScale,
       currentTick: tick,
@@ -1716,12 +1674,11 @@ class GameCore {
   _stepTrackManager() {
     final enemyRequests = <SpawnEnemyRequest>[];
     final result = _trackManager.step(
-      currentTick: tick,
       cameraLeft: _camera.left(),
       cameraRight: _camera.right(),
       spawnEnemy: enemyRequests.add,
     );
-    if (result.geometryChanged) {
+    if (result.selectionChanged) {
       _replaceStagedTerrainCandidate(_trackManager.activeChunks);
       final authority = _worldMotionAuthority;
       final candidate = _stagedTerrainCandidate;
@@ -1742,8 +1699,10 @@ class GameCore {
     final catalog = _stagedTerrainCatalog;
     if (catalog == null) return;
     if (activeChunks.any((chunk) => chunk.chunkKey == null)) {
-      _stagedTerrainCandidate = null;
-      return;
+      throw StateError(
+        'Enabled track content must identify every chunk with an admitted '
+        'polygon-terrain key.',
+      );
     }
     _stagedTerrainCandidate = const StagedTerrainStreamCandidateBuilder().build(
       catalog: catalog,
@@ -1752,6 +1711,27 @@ class GameCore {
       groundEnemyProfiles: _groundEnemyTerrainGraphProfiles,
     );
     _nextStagedTerrainGeometryVersion += 1;
+  }
+
+  static TerrainGeometry _buildSyntheticFlatTerrain(double groundTopY) {
+    const extent = 1000000.0;
+    return const TerrainCompiler().compile(<TerrainPolygonInput>[
+      TerrainPolygonInput.fromWorld(
+        sourcePath: 'synthetic/track-disabled-flat-ground',
+        identity: TerrainSourceIdentity(
+          chunkIndex: -1,
+          chunkKey: 'synthetic_flat_ground',
+          shapeId: 'ground',
+        ),
+        vertices: <(double, double)>[
+          (-extent, groundTopY),
+          (extent, groundTopY),
+          (extent, groundTopY + extent),
+          (-extent, groundTopY + extent),
+        ],
+        surfaceKind: 'ground',
+      ),
+    ], geometryVersion: 1);
   }
 
   /// Applies captured track mutations after their terrain publication exists.
@@ -1806,9 +1786,7 @@ class GameCore {
                 name: 'enemySpawnSupportY',
               )
             : null,
-        allowSameSupportClamp:
-            enemyId != EnemyId.unocoDemon &&
-            request.source != EnemySpawnRequestSource.deferredHashashEdge,
+        allowSameSupportClamp: enemyId != EnemyId.unocoDemon,
       ),
     );
     if (!placement.accepted) return;

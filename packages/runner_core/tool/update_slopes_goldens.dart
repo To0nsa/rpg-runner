@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:runner_core/collision/static_world_geometry.dart';
 import 'package:runner_core/collision/terrain/capsule_segment_kernel.dart';
 import 'package:runner_core/collision/terrain/terrain_compiler.dart';
 import 'package:runner_core/collision/terrain/terrain_edge_index.dart';
@@ -80,9 +79,7 @@ void main(List<String> args) {
     levelDefinition: LevelDefinition(
       id: LevelId.field,
       chunkPatternSource: const ChunkPatternListSource(easyPatterns: []),
-      staticWorldGeometry: const StaticWorldGeometry(
-        groundPlane: StaticGroundPlane(topY: 700),
-      ),
+      groundTopY: 700,
       tuning: const CoreTuning(track: TrackTuning(enabled: false)),
       killPlaneY: 1000,
     ),

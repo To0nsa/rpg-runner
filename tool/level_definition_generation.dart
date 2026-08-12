@@ -737,7 +737,6 @@ String renderLevelRegistryDartOutput(List<LevelDefinitionSource> levels) {
     ..writeln('/// Registry for core level definitions.')
     ..writeln('library;')
     ..writeln()
-    ..writeln("import '../collision/static_world_geometry.dart';")
     ..writeln("import '../track/authored_chunk_patterns.dart';")
     ..writeln("import '../track/chunk_pattern_source.dart';")
     ..writeln(hasAssembly ? "import 'level_assembly.dart';" : '')
@@ -751,19 +750,6 @@ String renderLevelRegistryDartOutput(List<LevelDefinitionSource> levels) {
     )
     ..writeln();
 
-  for (final level in enumOrderedLevels) {
-    final geometryVariable = '_${level.levelId}BaseGeometry';
-    buffer
-      ..writeln(
-        'const StaticWorldGeometry $geometryVariable = StaticWorldGeometry(',
-      )
-      ..writeln(
-        '  groundPlane: StaticGroundPlane(topY: ${_formatDartDouble(level.groundTopY)}),',
-      )
-      ..writeln(');')
-      ..writeln();
-  }
-
   buffer
     ..writeln('/// Resolves level definitions by stable [LevelId].')
     ..writeln('class LevelRegistry {')
@@ -774,7 +760,6 @@ String renderLevelRegistryDartOutput(List<LevelDefinitionSource> levels) {
     ..writeln('    switch (id) {');
 
   for (final level in enumOrderedLevels) {
-    final geometryVariable = '_${level.levelId}BaseGeometry';
     buffer
       ..writeln('      case LevelId.${level.levelId}:')
       ..writeln('        return LevelDefinition(')
@@ -787,7 +772,7 @@ String renderLevelRegistryDartOutput(List<LevelDefinitionSource> levels) {
       ..writeln(
         '          cameraCenterY: ${_formatDartDouble(level.cameraCenterY)},',
       )
-      ..writeln('          staticWorldGeometry: $geometryVariable,')
+      ..writeln('          groundTopY: ${_formatDartDouble(level.groundTopY)},')
       ..writeln('          earlyPatternChunks: ${level.earlyPatternChunks},')
       ..writeln('          easyPatternChunks: ${level.easyPatternChunks},')
       ..writeln('          normalPatternChunks: ${level.normalPatternChunks},')

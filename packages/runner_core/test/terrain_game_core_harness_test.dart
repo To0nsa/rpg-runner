@@ -1,4 +1,3 @@
-import 'package:runner_core/collision/static_world_geometry.dart';
 import 'package:runner_core/collision/terrain/terrain_compiler.dart';
 import 'package:runner_core/collision/terrain/terrain_geometry.dart';
 import 'package:runner_core/collision/terrain/terrain_numeric.dart';
@@ -26,20 +25,21 @@ const _stagedTerrainTestDigest =
     'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
 
 void main() {
-  test('track-disabled fixture keeps legacy integration behavior', () {
+  test('track-disabled fixture uses deterministic polygon terrain', () {
     final core = GameCore(
       seed: 7,
       levelDefinition: _level(),
       playerCharacter: eloiseCharacter,
     );
 
-    expect(core.playerPosY, 276);
+    expect(core.playerPosY, closeTo(276, 0.1));
     expect(core.playerGrounded, isTrue);
+    expect(core.buildTerrainPlayerDebugSnapshot(), isNotNull);
     expect(core.buildSnapshot().stagedTerrainRenderSnapshot, isNull);
     core.applyCommands(const [MoveAxisCommand(tick: 1, axis: 1)]);
     core.stepOneTick();
     expect(core.playerGrounded, isTrue);
-    expect(core.distance, closeTo(core.playerVelX / 60, 1e-9));
+    expect(core.distance, closeTo(core.playerVelX / 60, 1 / 1024));
   });
 
   test(
@@ -366,12 +366,12 @@ void main() {
   });
 
   test('terrain debug snapshot is on-demand, quantized, and immutable', () {
-    final legacy = GameCore(
+    final syntheticTerrain = GameCore(
       seed: 16,
       levelDefinition: _level(),
       playerCharacter: eloiseCharacter,
     );
-    expect(legacy.buildTerrainPlayerDebugSnapshot(), isNull);
+    expect(syntheticTerrain.buildTerrainPlayerDebugSnapshot(), isNotNull);
 
     final terrain = GameCore.terrainMotionHarness(
       seed: 16,
@@ -1308,9 +1308,7 @@ LevelDefinition _level({
   id: LevelId.field,
   chunkPatternSource: const ChunkPatternListSource(easyPatterns: []),
   cameraCenterY: cameraCenterY,
-  staticWorldGeometry: StaticWorldGeometry(
-    groundPlane: StaticGroundPlane(topY: groundTopY),
-  ),
+  groundTopY: groundTopY,
   tuning: CoreTuning(
     camera: CameraTuning(
       speedLagMulX: 0,

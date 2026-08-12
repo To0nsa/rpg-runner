@@ -417,11 +417,11 @@ ticks, candidates, cells, and query-buffer growth for later performance gates.
 
 ## Multi-Body World-Motion Authority
 
-`TerrainMultiBodyWorldMotionAuthority` is the single motion owner in normal
-streamed `GameCore` and replay construction. The terrain selection is immutable
-at Core construction and is not replay data or a runtime toggle. Synthetic
-track-disabled fixtures retain the isolated legacy adapter only while their
-Phase 6 tests are migrated.
+`TerrainMultiBodyWorldMotionAuthority` is the single motion owner in normal,
+replay, and track-disabled `GameCore` construction. The terrain selection is
+immutable at Core construction and is not replay data or a runtime toggle.
+Track-disabled fixtures compile a deterministic flat polygon and do not retain
+a rectangle collision path.
 
 Before mutating tick state, `prepareTick` builds a reusable ascending-entity-ID
 body view and preflights the whole view. Known enemies with no terrain stores

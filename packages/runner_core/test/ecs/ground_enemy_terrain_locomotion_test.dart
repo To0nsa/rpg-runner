@@ -1,4 +1,3 @@
-import 'package:runner_core/collision/static_world_geometry_index.dart';
 import 'package:runner_core/collision/terrain/terrain_compiler.dart';
 import 'package:runner_core/collision/terrain/terrain_geometry.dart';
 import 'package:runner_core/collision/terrain/terrain_motion_request.dart';
@@ -641,17 +640,12 @@ final class _Harness {
       world,
       player: player,
       movement: movement,
-      legacyStaticWorld: _legacyWorld,
       fixedPointPilotEnabled: false,
       fixedPointSubpixelScale: terrainPhysicsTicksPerWorldUnit,
       currentTick: _tick,
     );
   }
 }
-
-final StaticWorldGeometryIndex _legacyWorld = StaticWorldGeometryIndex.from(
-  const StaticWorldGeometry(groundPlane: StaticGroundPlane(topY: 1200)),
-);
 
 final TerrainGeometry _flatTerrain = const TerrainCompiler().compile([
   TerrainPolygonInput.fromWorld(

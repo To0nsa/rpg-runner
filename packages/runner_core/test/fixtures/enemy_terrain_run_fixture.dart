@@ -1,5 +1,4 @@
 import 'package:runner_core/abilities/ability_catalog.dart';
-import 'package:runner_core/collision/static_world_geometry_index.dart';
 import 'package:runner_core/collision/terrain/terrain_compiler.dart';
 import 'package:runner_core/collision/terrain/terrain_edge_id.dart';
 import 'package:runner_core/collision/terrain/terrain_geometry.dart';
@@ -1618,7 +1617,6 @@ final class _FlyingHarness {
       world,
       player: player,
       movement: movement,
-      legacyStaticWorld: _legacyWorld,
       fixedPointPilotEnabled: false,
       fixedPointSubpixelScale: terrainPhysicsTicksPerWorldUnit,
       currentTick: tick,
@@ -1926,7 +1924,6 @@ final class _MixedEnemyHarness {
         world,
         player: player,
         movement: movement,
-        legacyStaticWorld: _legacyWorld,
         fixedPointPilotEnabled: false,
         fixedPointSubpixelScale: terrainPhysicsTicksPerWorldUnit,
         currentTick: tick,
@@ -2139,7 +2136,6 @@ final class _MotionHarness {
       world,
       player: player,
       movement: movement,
-      legacyStaticWorld: _legacyWorld,
       fixedPointPilotEnabled: false,
       fixedPointSubpixelScale: terrainPhysicsTicksPerWorldUnit,
       currentTick: tick,
@@ -2351,7 +2347,3 @@ int _ticks(double value) => physicsCoordinateToTicks(value, name: 'fixture');
 void _ensure(bool condition, String message) {
   if (!condition) throw StateError(message);
 }
-
-final StaticWorldGeometryIndex _legacyWorld = StaticWorldGeometryIndex.from(
-  const StaticWorldGeometry(groundPlane: StaticGroundPlane(topY: 2000)),
-);

@@ -1,5 +1,4 @@
 import 'package:runner_core/abilities/ability_catalog.dart';
-import 'package:runner_core/collision/static_world_geometry.dart';
 import 'package:runner_core/collision/terrain/terrain_compiler.dart';
 import 'package:runner_core/collision/terrain/terrain_geometry.dart';
 import 'package:runner_core/collision/terrain/terrain_numeric.dart';
@@ -466,9 +465,7 @@ LevelDefinition _streamedLevel(ChunkPattern pattern) => LevelDefinition(
     easyPatterns: <ChunkPattern>[pattern],
     hardPatterns: <ChunkPattern>[pattern],
   ),
-  staticWorldGeometry: const StaticWorldGeometry(
-    groundPlane: StaticGroundPlane(topY: 300),
-  ),
+  groundTopY: 300,
   tuning: const CoreTuning(
     track: TrackTuning(
       enabled: true,

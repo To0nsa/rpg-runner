@@ -160,18 +160,31 @@ void main() {
     'snapshot visualThemeId remains level-scoped with authored assembly',
     () {
       final level = LevelRegistry.byId(LevelId.field).copyWith(
-        tuning: const CoreTuning(
-          camera: CameraTuning(),
-          track: TrackTuning(chunkWidth: 301.0),
-        ),
+        tuning: const CoreTuning(camera: CameraTuning(), track: TrackTuning()),
         chunkPatternSource: const ChunkPatternListSource(
           earlyPatterns: <ChunkPattern>[
-            ChunkPattern(name: 'forest_chunk', assemblyGroupId: 'forest_group'),
-            ChunkPattern(name: 'none_chunk', assemblyGroupId: 'none_group'),
+            ChunkPattern(
+              name: 'forest_chunk',
+              chunkKey: 'field_flat',
+              assemblyGroupId: 'forest_group',
+            ),
+            ChunkPattern(
+              name: 'none_chunk',
+              chunkKey: 'field_flat',
+              assemblyGroupId: 'none_group',
+            ),
           ],
           easyPatterns: <ChunkPattern>[
-            ChunkPattern(name: 'forest_chunk', assemblyGroupId: 'forest_group'),
-            ChunkPattern(name: 'none_chunk', assemblyGroupId: 'none_group'),
+            ChunkPattern(
+              name: 'forest_chunk',
+              chunkKey: 'field_flat',
+              assemblyGroupId: 'forest_group',
+            ),
+            ChunkPattern(
+              name: 'none_chunk',
+              chunkKey: 'field_flat',
+              assemblyGroupId: 'none_group',
+            ),
           ],
         ),
         earlyPatternChunks: 999,

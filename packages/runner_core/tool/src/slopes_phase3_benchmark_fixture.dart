@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 
-import 'package:runner_core/collision/static_world_geometry_index.dart';
 import 'package:runner_core/collision/terrain/terrain_capsule_controller.dart';
 import 'package:runner_core/collision/terrain/terrain_compiler.dart';
 import 'package:runner_core/collision/terrain/terrain_edge.dart';
@@ -854,7 +853,6 @@ final class SlopesPhase3MixedEnemyHarness {
       world,
       player: player,
       movement: movement,
-      legacyStaticWorld: _legacyWorld,
       fixedPointPilotEnabled: false,
       fixedPointSubpixelScale: terrainPhysicsTicksPerWorldUnit,
       currentTick: tick,
@@ -872,10 +870,6 @@ PlayerArchetype _playerArchetype(MovementTuningDerived movement) =>
 TerrainTraversalProfile buildSlopesPhase3PlayerProfile() => _playerArchetype(
   MovementTuningDerived.from(eloiseCharacter.tuning.movement, tickHz: 60),
 ).terrainTraversalProfile;
-
-final StaticWorldGeometryIndex _legacyWorld = StaticWorldGeometryIndex.from(
-  const StaticWorldGeometry(groundPlane: StaticGroundPlane(topY: 2000)),
-);
 
 int _roundedDivide(int numerator, int denominator) {
   final negative = (numerator < 0) != (denominator < 0);

@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:runner_core/collision/static_world_geometry.dart';
 import 'package:runner_core/collision/terrain/terrain_compiler.dart';
 import 'package:runner_core/collision/terrain/terrain_numeric.dart';
 import 'package:runner_core/collision/terrain/terrain_polygon.dart';
@@ -208,9 +207,7 @@ _runFixture({
 final LevelDefinition _level = LevelDefinition(
   id: LevelId.field,
   chunkPatternSource: const ChunkPatternListSource(easyPatterns: []),
-  staticWorldGeometry: const StaticWorldGeometry(
-    groundPlane: StaticGroundPlane(topY: 700),
-  ),
+  groundTopY: 700,
   tuning: const CoreTuning(track: TrackTuning(enabled: false)),
   killPlaneY: 1000,
 );

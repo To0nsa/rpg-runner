@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:runner_core/collision/static_world_geometry.dart';
 import 'package:runner_core/levels/level_assembly.dart';
 import 'package:runner_core/levels/level_definition.dart';
 import 'package:runner_core/levels/level_id.dart';
@@ -16,27 +15,25 @@ import 'package:runner_core/tuning/track_tuning.dart';
 import '../test_tunings.dart';
 
 void main() {
-  test('level definition derives groundTopY from static ground plane', () {
+  test('level definition retains its authored ground reference', () {
     final level = LevelDefinition(
       id: LevelId.field,
       chunkPatternSource: defaultChunkPatternSource,
       cameraCenterY: 120,
-      staticWorldGeometry: const StaticWorldGeometry(
-        groundPlane: StaticGroundPlane(topY: 210),
-      ),
+      groundTopY: 210,
     );
 
     expect(level.groundTopY, 210);
   });
 
-  test('level definition requires a non-null ground plane', () {
+  test('level definition requires a finite ground reference', () {
     expect(
       () => LevelDefinition(
         id: LevelId.field,
         chunkPatternSource: defaultChunkPatternSource,
-        staticWorldGeometry: const StaticWorldGeometry(),
+        groundTopY: double.nan,
       ),
-      throwsA(anyOf(isA<AssertionError>(), isA<StateError>())),
+      throwsA(anyOf(isA<AssertionError>(), isA<ArgumentError>())),
     );
   });
 
@@ -49,9 +46,7 @@ void main() {
         id: LevelId.field,
         chunkPatternSource: defaultChunkPatternSource,
         cameraCenterY: customCameraCenterY,
-        staticWorldGeometry: const StaticWorldGeometry(
-          groundPlane: StaticGroundPlane(topY: customGroundTopY),
-        ),
+        groundTopY: customGroundTopY,
         tuning: CoreTuning(
           camera: noAutoscrollCameraTuning,
           track: TrackTuning(enabled: false),
@@ -65,9 +60,9 @@ void main() {
       );
       final snapshot = core.buildSnapshot();
 
-      expect(core.staticWorldGeometry.groundPlane, isNotNull);
-      expect(core.staticWorldGeometry.groundPlane!.topY, customGroundTopY);
       expect(level.groundTopY, customGroundTopY);
+      expect(core.playerGrounded, isTrue);
+      expect(core.buildTerrainPlayerDebugSnapshot(), isNotNull);
       expect(snapshot.camera.centerY, customCameraCenterY);
     },
   );
@@ -75,14 +70,11 @@ void main() {
   test('visualThemeId changes do not affect collision or geometry framing', () {
     const groundTopY = 214.0;
     const cameraCenterY = 122.0;
-    const geometry = StaticWorldGeometry(
-      groundPlane: StaticGroundPlane(topY: groundTopY),
-    );
     final fieldTheme = LevelDefinition(
       id: LevelId.field,
       chunkPatternSource: defaultChunkPatternSource,
       cameraCenterY: cameraCenterY,
-      staticWorldGeometry: geometry,
+      groundTopY: groundTopY,
       visualThemeId: 'field',
       tuning: const CoreTuning(
         camera: noAutoscrollCameraTuning,
@@ -93,7 +85,7 @@ void main() {
       id: LevelId.field,
       chunkPatternSource: defaultChunkPatternSource,
       cameraCenterY: cameraCenterY,
-      staticWorldGeometry: geometry,
+      groundTopY: groundTopY,
       visualThemeId: 'forest',
       tuning: const CoreTuning(
         camera: noAutoscrollCameraTuning,
@@ -175,9 +167,7 @@ void main() {
           ),
           assembly: initialAssembly,
         ),
-        staticWorldGeometry: const StaticWorldGeometry(
-          groundPlane: StaticGroundPlane(topY: 224),
-        ),
+        groundTopY: 224,
       );
 
       expect(level.assembly?.segments.single.segmentId, 'forest_run');

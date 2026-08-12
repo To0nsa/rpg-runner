@@ -1,7 +1,6 @@
 /// Data-first definition of a level configuration (Core-only).
 library;
 
-import '../collision/static_world_geometry.dart';
 import '../track/chunk_pattern_defaults.dart';
 import '../track/chunk_pattern_source.dart';
 import '../tuning/core_tuning.dart';
@@ -16,7 +15,7 @@ class LevelDefinition {
   LevelDefinition({
     required this.id,
     required ChunkPatternSource chunkPatternSource,
-    required this.staticWorldGeometry,
+    required this.groundTopY,
     this.tuning = const CoreTuning(),
     this.cameraCenterY = defaultLevelCameraCenterY,
     this.killPlaneY,
@@ -39,14 +38,9 @@ class LevelDefinition {
          assembly: assembly,
        ),
        assert(killPlaneY == null || killPlaneY.isFinite),
-       assert(
-         staticWorldGeometry.groundPlane != null,
-         'LevelDefinition.staticWorldGeometry.groundPlane must be set',
-       ) {
-    if (staticWorldGeometry.groundPlane == null) {
-      throw StateError(
-        'LevelDefinition($id) requires staticWorldGeometry.groundPlane',
-      );
+       assert(groundTopY.isFinite) {
+    if (!groundTopY.isFinite) {
+      throw ArgumentError.value(groundTopY, 'groundTopY', 'Must be finite.');
     }
     if (killPlaneY != null && !killPlaneY!.isFinite) {
       throw ArgumentError.value(killPlaneY, 'killPlaneY', 'Must be finite.');
@@ -59,8 +53,11 @@ class LevelDefinition {
   /// Core tuning overrides for this level.
   final CoreTuning tuning;
 
-  /// Base collision geometry for the level (ground + fixed platforms).
-  final StaticWorldGeometry staticWorldGeometry;
+  /// Authoritative world-space ground reference for spawning and framing.
+  ///
+  /// Production collision comes from admitted polygon terrain; this scalar is
+  /// not a collision shape.
+  final double groundTopY;
 
   /// World-space camera center Y for snapshot/render framing.
   final double cameraCenterY;
@@ -74,12 +71,6 @@ class LevelDefinition {
   /// Resolves the absolute player-bottom kill plane for this level.
   double resolveKillPlaneY({required double legacyGapOffsetY}) =>
       killPlaneY ?? groundTopY + legacyGapOffsetY;
-
-  /// Authoritative world-space ground top Y for gameplay and spawning.
-  ///
-  /// This is derived from [staticWorldGeometry.groundPlane] and is guaranteed
-  /// to exist by constructor validation.
-  double get groundTopY => staticWorldGeometry.groundPlane!.topY;
 
   /// Pattern pool used for procedural chunk generation.
   final ChunkPatternSource _baseChunkPatternSource;
@@ -119,7 +110,7 @@ class LevelDefinition {
     CoreTuning? tuning,
     double? cameraCenterY,
     double? killPlaneY,
-    StaticWorldGeometry? staticWorldGeometry,
+    double? groundTopY,
     ChunkPatternSource? chunkPatternSource,
     int? earlyPatternChunks,
     int? easyPatternChunks,
@@ -134,7 +125,7 @@ class LevelDefinition {
       tuning: tuning ?? this.tuning,
       cameraCenterY: cameraCenterY ?? this.cameraCenterY,
       killPlaneY: killPlaneY ?? this.killPlaneY,
-      staticWorldGeometry: staticWorldGeometry ?? this.staticWorldGeometry,
+      groundTopY: groundTopY ?? this.groundTopY,
       earlyPatternChunks: earlyPatternChunks ?? this.earlyPatternChunks,
       easyPatternChunks: easyPatternChunks ?? this.easyPatternChunks,
       normalPatternChunks: normalPatternChunks ?? this.normalPatternChunks,

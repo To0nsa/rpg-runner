@@ -108,7 +108,7 @@ void main() {
         id: baseLevel.id,
         chunkPatternSource: baseLevel.chunkPatternSource,
         cameraCenterY: baseLevel.cameraCenterY,
-        staticWorldGeometry: baseLevel.staticWorldGeometry,
+        groundTopY: baseLevel.groundTopY,
         earlyPatternChunks: baseLevel.earlyPatternChunks,
         noEnemyChunks: baseLevel.noEnemyChunks,
         visualThemeId: baseLevel.visualThemeId,

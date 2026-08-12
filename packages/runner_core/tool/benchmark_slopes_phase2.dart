@@ -4,7 +4,6 @@ import 'dart:io';
 import 'dart:isolate';
 import 'dart:math' as math;
 
-import 'package:runner_core/collision/static_world_geometry.dart';
 import 'package:runner_core/collision/terrain/terrain_capsule_controller.dart';
 import 'package:runner_core/collision/terrain/terrain_compiler.dart';
 import 'package:runner_core/collision/terrain/terrain_edge.dart';
@@ -996,9 +995,7 @@ TerrainGeometry _harnessGeometry({required bool sloped}) {
 LevelDefinition _benchmarkLevel() => LevelDefinition(
   id: LevelId.field,
   chunkPatternSource: const ChunkPatternListSource(easyPatterns: []),
-  staticWorldGeometry: const StaticWorldGeometry(
-    groundPlane: StaticGroundPlane(topY: 6000),
-  ),
+  groundTopY: 6000,
   tuning: const CoreTuning(
     camera: CameraTuning(speedLagMulX: 0, followThresholdRatio: 1),
     track: TrackTuning(enabled: false, playerStartX: 300),

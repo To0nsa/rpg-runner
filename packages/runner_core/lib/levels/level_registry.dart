@@ -5,7 +5,6 @@
 /// Registry for core level definitions.
 library;
 
-import '../collision/static_world_geometry.dart';
 import '../track/authored_chunk_patterns.dart';
 import '../track/chunk_pattern_source.dart';
 
@@ -15,14 +14,6 @@ import 'level_id.dart';
 /// Default runtime-authored chunk pattern source.
 final ChunkPatternSource defaultChunkPatternSource =
     authoredChunkPatternSourceForLevel(LevelId.field.name);
-
-const StaticWorldGeometry _forestBaseGeometry = StaticWorldGeometry(
-  groundPlane: StaticGroundPlane(topY: 224.0),
-);
-
-const StaticWorldGeometry _fieldBaseGeometry = StaticWorldGeometry(
-  groundPlane: StaticGroundPlane(topY: 224.0),
-);
 
 /// Resolves level definitions by stable [LevelId].
 class LevelRegistry {
@@ -38,7 +29,7 @@ class LevelRegistry {
             LevelId.forest.name,
           ),
           cameraCenterY: 135.0,
-          staticWorldGeometry: _forestBaseGeometry,
+          groundTopY: 224.0,
           earlyPatternChunks: 3,
           easyPatternChunks: 10,
           normalPatternChunks: 15,
@@ -52,7 +43,7 @@ class LevelRegistry {
             LevelId.field.name,
           ),
           cameraCenterY: 135.0,
-          staticWorldGeometry: _fieldBaseGeometry,
+          groundTopY: 224.0,
           earlyPatternChunks: 3,
           easyPatternChunks: 0,
           normalPatternChunks: 0,

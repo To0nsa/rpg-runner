@@ -2,25 +2,22 @@
 
 ## Status And Authority Boundary
 
-The deterministic terrain geometry and upright-capsule controller are
-implemented in `packages/runner_core`, but polygon terrain is not yet the
-authority for normal repository-backed runs.
-
-There are currently two construction-time world-motion owners:
+The deterministic terrain geometry and upright-capsule controller are the
+single world-motion authority for every `GameCore` construction.
 
 | Construction path | Motion owner | Intended use |
 | --- | --- | --- |
-| `GameCore(...)` | `LegacyWorldMotionAuthority` | Normal game and replay execution |
-| `GameCore.terrainMotionHarness(...)` | `TerrainMultiBodyWorldMotionAuthority` | Phase 2/3 tests and benchmarks only |
+| `GameCore(...)` | `TerrainMultiBodyWorldMotionAuthority` | Normal game, replay, and track-disabled synthetic execution |
+| `GameCore.terrainMotionHarness(...)` | `TerrainMultiBodyWorldMotionAuthority` | Focused polygon tests and benchmarks |
 
-The selection is immutable after Core construction. It is not level data,
-saved data, replay data, UI state, or remote configuration. The terrain
-harness integrates the player, Grojib, Hashash, and Unoco through explicit
+The authority is immutable after Core construction. It is not level data,
+saved data, replay data, UI state, or remote configuration. Core integrates the
+player, Grojib, Hashash, and Unoco through explicit
 profiles, keeps Derf kinematic, and rejects unsupported dynamic or ballistic
 bodies rather than falling back to rectangle collision. Grounded-enemy and
 Unoco terrain locomotion plus the shared terrain-safe enemy/item placement
-boundary are implemented only in that harness; atomic streaming publication,
-authored-content, and production replay cutovers remain later work.
+boundary. Normal streamed content is admitted from generated artifacts and
+publishes collision, navigation, placement, and rendering atomically.
 The implemented Phase 3 profile/surface/index foundation is documented in
 [sloped_navigation_and_enemy_terrain.md](sloped_navigation_and_enemy_terrain.md).
 
@@ -156,8 +153,7 @@ The terrain harness adds four focused stores/facades:
 - `TerrainContactStateStore` for final support, blockers, history, and
   diagnostics
 - `ResolvedMotionStore` for requested and accepted per-tick movement
-- `WorldSupportView` for consumers that must read terrain support in the
-  harness and legacy collision flags everywhere else
+- `WorldSupportView` for consumers that read authoritative terrain support
 
 `TerrainMultiBodyWorldMotionAuthority.prepareTick` preflights every body and
 captures prior valid support before AI, jump, movement, mobility, and gravity.
@@ -165,12 +161,11 @@ Its `step` integrates each enabled dynamic terrain body exactly once in entity
 ID order after those systems compose velocity. Final support and resolved
 motion then drive distance, death/camera checks, snapshots, and animation.
 
-Terrain-harness distance uses positive accepted body X progression and does not
+Core distance uses positive accepted body X progression and does not
 count movement requested into a wall. Grounded locomotion animation advances
 from accepted distance along support, with a continuous `0.75x` to `1.50x`
 playback clamp. Recovery, snap, and vertical step legs do not advance that
-phase. Normal `GameCore` runs keep their historical distance and collision
-semantics.
+phase.
 
 `GameCore.setPlayerPosXYUnsafeForTest` is the only unchecked position mutation.
 Its name exposes that it skips destination clearance, and it clears support,
@@ -189,7 +184,7 @@ solve. Disabled or kinematic terrain bodies clear support and do not move.
 ## Diagnostics And Determinism
 
 `GameCore.buildTerrainPlayerDebugSnapshot()` builds an immutable diagnostic
-record only on demand and returns `null` on the legacy path. Normal ticks do not
+record only on demand. Every `GameCore` path can produce it; normal ticks do not
 allocate debug snapshots.
 
 Phase 2 adds two versioned deterministic signatures without changing Phase 1
@@ -342,5 +337,7 @@ At the direct production cutover:
 - enemies and other dynamic policies must already be migrated,
 - authored/streamed polygon geometry must be the shared source,
 - live and replay-validator compatibility must be issued together,
-- the temporary `terrainMotionHarness` selection seam and legacy motion adapter
-  must be removed rather than retained as runtime alternatives.
+- the `terrainMotionHarness` geometry-injection seam remains test/tool-only and
+  must not become a runtime selector;
+- remaining rectangle-only test helpers and their legacy motion adapter must be
+  deleted after their focused unit coverage is migrated.
