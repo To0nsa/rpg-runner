@@ -327,11 +327,13 @@ edge indices into a caller-owned path list. Node-sized cost, predecessor,
 open-set, and reconstruction storage is retained across searches and isolated
 with generation stamps. Search is bounded by the configured expansion count.
 
-All comparison and cost math is integer-only. The graph's signed commit
-direction provides the optional first-pass horizontal preference; failure of
-that restricted pass permits one unrestricted retry. Priority order is lower
-`f`, lower `g`, then canonical `TerrainEdgeId`. Equal-cost predecessor updates
-use canonical predecessor and edge order. Airborne transitions add
+All comparison and cost math is integer-only. Unreached nodes use the maximum
+JavaScript-safe integer sentinel so VM, AOT, Wasm, and dart2js preserve the
+same exact priority ordering. The graph's signed commit direction provides the
+optional first-pass horizontal preference; failure of that restricted pass
+permits one unrestricted retry. Priority order is lower `f`, lower `g`, then
+canonical `TerrainEdgeId`. Equal-cost predecessor updates use canonical
+predecessor and edge order. Airborne transitions add
 distance-along-source approach cost, every transition uses its signed graph
 cost, and the final transition adds distance-along-destination cost to the
 exact target body X. The midpoint horizontal-time heuristic divides by the

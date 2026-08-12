@@ -20,6 +20,10 @@ class TerrainSurfacePathfinder {
   final int maxExpandedNodes;
   final int edgePenaltyCostUnits;
 
+  // Maximum exactly representable integer on every supported Dart target,
+  // including dart2js. Authored navigation costs remain many orders below it.
+  static const int _unreachedScore = 0x1fffffffffffff;
+
   final List<int> _gScore = <int>[];
   final List<int> _fScore = <int>[];
   final List<int> _cameFromEdge = <int>[];
@@ -279,8 +283,8 @@ class TerrainSurfacePathfinder {
   void _touch(int index) {
     if (_nodeGeneration[index] == _searchGeneration) return;
     _nodeGeneration[index] = _searchGeneration;
-    _gScore[index] = 0x7fffffffffffffff;
-    _fScore[index] = 0x7fffffffffffffff;
+    _gScore[index] = _unreachedScore;
+    _fScore[index] = _unreachedScore;
     _cameFromEdge[index] = -1;
     _cameFromNode[index] = -1;
     _openStamp[index] = 0;
