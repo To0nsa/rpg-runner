@@ -392,6 +392,19 @@ void main() {
       controller.state.draft!.vertices[1],
       const TerrainSourceVertexDef(xHalfPixels: 140, yHalfPixels: 16),
     );
+
+    controller.setTool(TerrainPolygonTool.createPolygon);
+    final appendedVertexCanvas = transform.sourceVertexToCanvas(
+      const TerrainSourceVertexDef(xHalfPixels: 120, yHalfPixels: 60),
+    );
+    await tester.tapAt(topLeft + appendedVertexCanvas);
+    await tester.pump();
+
+    expect(controller.state.draft!.vertices, hasLength(5));
+    expect(
+      controller.state.draft!.vertices.last,
+      const TerrainSourceVertexDef(xHalfPixels: 120, yHalfPixels: 60),
+    );
     expect(harness.session.canUndo, isFalse);
     expect(controller.chunk.revision, 4);
   });

@@ -592,7 +592,12 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
                     onSelected:
                         (!canEditCollision &&
                                 tool != TerrainPolygonTool.select) ||
+                            (authoring.state.draft == null &&
+                                (tool == TerrainPolygonTool.createPolygon ||
+                                    tool ==
+                                        TerrainPolygonTool.createRectangle)) ||
                             (authoring.state.draft != null &&
+                                tool != TerrainPolygonTool.createPolygon &&
                                 tool != TerrainPolygonTool.moveVertex &&
                                 tool != TerrainPolygonTool.insertVertex)
                         ? null
@@ -1301,7 +1306,7 @@ int _kindOrder(PrefabKind kind) => switch (kind) {
 
 String _toolLabel(TerrainPolygonTool tool) => switch (tool) {
   TerrainPolygonTool.select => 'Select',
-  TerrainPolygonTool.createPolygon => 'Create',
+  TerrainPolygonTool.createPolygon => 'Place vertex',
   TerrainPolygonTool.createRectangle => 'Rectangle',
   TerrainPolygonTool.moveVertex => 'Move vertex',
   TerrainPolygonTool.translateShape => 'Move shape',

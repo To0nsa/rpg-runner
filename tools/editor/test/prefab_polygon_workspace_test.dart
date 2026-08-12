@@ -89,6 +89,20 @@ void main() {
       const ValueKey<String>('prefab_polygon_save_draft'),
     );
     expect(tester.widget<OutlinedButton>(saveDraft).onPressed, isNull);
+    await tester.tap(find.widgetWithText(Tab, 'Scene'));
+    await tester.pumpAndSettle();
+    for (final tool in const <String>['createPolygon', 'createRectangle']) {
+      expect(
+        tester
+            .widget<ChoiceChip>(
+              find.byKey(ValueKey<String>('prefab_polygon_tool_$tool')),
+            )
+            .onSelected,
+        isNull,
+      );
+    }
+    await tester.tap(find.widgetWithText(Tab, 'Shapes'));
+    await tester.pumpAndSettle();
     await tester.tap(
       find.byKey(const ValueKey<String>('prefab_polygon_new_shape')),
     );
@@ -113,8 +127,9 @@ void main() {
             ),
           )
           .onSelected,
-      isNull,
+      isNotNull,
     );
+    expect(find.text('Place vertex'), findsOneWidget);
     expect(
       tester
           .widget<ChoiceChip>(

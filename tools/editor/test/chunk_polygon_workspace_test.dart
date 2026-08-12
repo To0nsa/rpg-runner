@@ -505,6 +505,20 @@ void main() {
       const ValueKey<String>('chunk_polygon_save_draft'),
     );
     expect(tester.widget<OutlinedButton>(saveDraft).onPressed, isNull);
+    await tester.tap(find.widgetWithText(Tab, 'Terrain'));
+    await tester.pumpAndSettle();
+    for (final tool in const <String>['createPolygon', 'createRectangle']) {
+      expect(
+        tester
+            .widget<ChoiceChip>(
+              find.byKey(ValueKey<String>('chunk_polygon_tool_$tool')),
+            )
+            .onSelected,
+        isNull,
+      );
+    }
+    await tester.tap(find.widgetWithText(Tab, 'Shapes'));
+    await tester.pumpAndSettle();
     await tester.tap(
       find.byKey(const ValueKey<String>('chunk_polygon_new_shape')),
     );
@@ -515,7 +529,6 @@ void main() {
     await tester.pumpAndSettle();
     for (final tool in const <String>[
       'select',
-      'createPolygon',
       'createRectangle',
       'translateShape',
     ]) {
@@ -528,7 +541,11 @@ void main() {
         isNull,
       );
     }
-    for (final tool in const <String>['moveVertex', 'insertVertex']) {
+    for (final tool in const <String>[
+      'createPolygon',
+      'moveVertex',
+      'insertVertex',
+    ]) {
       expect(
         tester
             .widget<ChoiceChip>(
@@ -538,6 +555,7 @@ void main() {
         isNotNull,
       );
     }
+    expect(find.text('Place vertex'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

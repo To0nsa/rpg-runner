@@ -97,8 +97,12 @@ void main() {
         draft,
         TerrainPolygonTool.moveVertex,
       );
-      final ignoredDraftSelect = reducer.setTool(
+      final resumedDraftPlacement = reducer.setTool(
         switchedDraft,
+        TerrainPolygonTool.createPolygon,
+      );
+      final ignoredDraftSelect = reducer.setTool(
+        resumedDraftPlacement,
         TerrainPolygonTool.select,
       );
 
@@ -110,7 +114,9 @@ void main() {
       expect(switched.visibleShapes, initial.shapes);
       expect(switchedDraft.tool, TerrainPolygonTool.moveVertex);
       expect(switchedDraft.draft, same(draft.draft));
-      expect(ignoredDraftSelect, same(switchedDraft));
+      expect(resumedDraftPlacement.tool, TerrainPolygonTool.createPolygon);
+      expect(resumedDraftPlacement.draft, same(draft.draft));
+      expect(ignoredDraftSelect, same(resumedDraftPlacement));
     });
   });
 

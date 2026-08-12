@@ -334,17 +334,18 @@ final class TerrainPolygonInteractionReducer {
 
   /// Changes the active pointer tool without touching source or history.
   ///
-  /// An open creation draft permits only vertex-level editing tools. Switching
-  /// between them preserves the draft and cancels only an active pointer
-  /// preview. Other creation-context tools remain unavailable until Save or
-  /// Cancel ends the draft.
+  /// An open creation draft permits adding, moving, and inserting vertices.
+  /// Switching between those tools preserves the draft and cancels only an
+  /// active pointer preview. Other creation-context tools remain unavailable
+  /// until Save or Cancel ends the draft.
   TerrainPolygonInteractionState setTool(
     TerrainPolygonInteractionState state,
     TerrainPolygonTool tool,
   ) {
     if (state.tool == tool) return state;
     if (state.draft != null) {
-      if (tool != TerrainPolygonTool.moveVertex &&
+      if (tool != TerrainPolygonTool.createPolygon &&
+          tool != TerrainPolygonTool.moveVertex &&
           tool != TerrainPolygonTool.insertVertex) {
         return state;
       }

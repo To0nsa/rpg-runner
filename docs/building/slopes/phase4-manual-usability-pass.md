@@ -70,10 +70,11 @@ diagnostic, and can recover without reloading the workspace.
    sprite. Place one vertex badly, Undo it once, and Redo it. Confirm each
    keyboard command changes exactly that one draft vertex and session/source
    Undo remains untouched.
-2. Before saving, confirm **Move vertex** and **Insert vertex** are available,
-   while **Select**, **Create**, and **Move shape** are disabled. Move one draft
-   vertex and insert another on an open draft edge, then exercise Undo/Redo for
-   both edits.
+2. Before saving, confirm **Place vertex**, **Move vertex**, and **Insert vertex**
+   are available, while **Select**, **Rectangle**, and **Move shape** are
+   disabled. Switch back to **Place vertex** after moving one draft vertex and
+   inserting another on an open draft edge, then exercise Undo/Redo for all
+   three edits.
 3. Leave one middle draft vertex aligned with its neighbors and choose **Save**.
    Confirm Save removes the redundant vertex, closes the draft, and creates one
    source-history entry. No separate Close or Normalize Draft control may be
@@ -114,8 +115,9 @@ opened manually.
    from both horizontal Chunk seams. Undo/Redo one placed vertex, move another,
    and insert one on an open edge. Confirm each keyboard command changes only
    one draft vertex and these remain local draft edits.
-4. Confirm only Move vertex and Insert vertex remain available during creation,
-   then choose **Save** and verify exactly one source-history entry is created.
+4. Confirm Place vertex, Move vertex, and Insert vertex remain available during
+   creation, then choose **Save** and verify exactly one source-history entry
+   is created.
 5. Choose **New rectangle**, drag between two opposite corners within the Chunk
    bounds, and confirm a closed four-vertex draft appears. Cancel it and
    confirm the saved direct polygon remains unchanged.

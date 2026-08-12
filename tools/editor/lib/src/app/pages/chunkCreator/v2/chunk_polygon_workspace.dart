@@ -603,7 +603,12 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
                   selected: authoring.state.tool == tool,
                   onSelected:
                       _inspectCompiledEdges ||
+                          (authoring.state.draft == null &&
+                              (tool == TerrainPolygonTool.createPolygon ||
+                                  tool ==
+                                      TerrainPolygonTool.createRectangle)) ||
                           (authoring.state.draft != null &&
+                              tool != TerrainPolygonTool.createPolygon &&
                               tool != TerrainPolygonTool.moveVertex &&
                               tool != TerrainPolygonTool.insertVertex)
                       ? null
@@ -2093,7 +2098,7 @@ int _compareChunks(ChunkV2FileData left, ChunkV2FileData right) {
 
 String _toolLabel(TerrainPolygonTool tool) => switch (tool) {
   TerrainPolygonTool.select => 'Select',
-  TerrainPolygonTool.createPolygon => 'Create',
+  TerrainPolygonTool.createPolygon => 'Place vertex',
   TerrainPolygonTool.createRectangle => 'Rectangle',
   TerrainPolygonTool.moveVertex => 'Move vertex',
   TerrainPolygonTool.insertVertex => 'Insert vertex',
