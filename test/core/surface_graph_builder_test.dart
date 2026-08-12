@@ -9,8 +9,6 @@ import 'package:runner_core/navigation/utils/standability.dart';
 import 'package:runner_core/navigation/surface_extractor.dart';
 import 'package:runner_core/navigation/types/surface_graph.dart';
 import 'package:runner_core/navigation/surface_graph_builder.dart';
-import 'package:runner_core/track/chunk_builder.dart';
-import 'package:runner_core/track/chunk_pattern.dart';
 
 JumpReachabilityTemplate _template() {
   const profile = JumpProfile(
@@ -564,67 +562,47 @@ void main() {
   test(
     'high-platform-over-obstacle emits left-ground jump edge onto obstacle top',
     () {
-      const pattern = ChunkPattern(
-        name: 'high-platform-over-obstacle',
-        solids: <SolidRel>[
-          SolidRel(
-            x: 224.0,
-            aboveGroundTop: 112.0,
-            width: 192.0,
-            height: 16.0,
-            sides: SolidRel.sideTop,
-            oneWayTop: true,
-          ),
-          SolidRel(
-            x: 128.0,
-            aboveGroundTop: 64.0,
-            width: 48.0,
-            height: 64.0,
-            sides: SolidRel.sideAll,
-          ),
-        ],
-        groundGaps: <GapRel>[GapRel(x: 176.0, width: 96.0)],
-        spawnMarkers: <SpawnMarker>[
-          SpawnMarker(
-            enemyId: EnemyId.derf,
-            x: 152.0,
-            chancePercent: 100,
-            salt: 0x13,
-            placement: SpawnPlacementMode.obstacleTop,
-          ),
-          SpawnMarker(
-            enemyId: EnemyId.hashash,
-            x: 320.0,
-            chancePercent: 22,
-            salt: 0x03,
-          ),
-        ],
-      );
       const groundTopY = 220.0;
-      const chunkWidth = 600.0;
-      const gridSnap = 16.0;
-
-      final solids = buildSolids(
-        pattern,
-        chunkStartX: 0.0,
-        chunkIndex: 0,
-        groundTopY: groundTopY,
-        chunkWidth: chunkWidth,
-        gridSnap: gridSnap,
-      );
-      final ground = buildGroundSegments(
-        pattern,
-        chunkStartX: 0.0,
-        chunkIndex: 0,
-        groundTopY: groundTopY,
-        chunkWidth: chunkWidth,
-        gridSnap: gridSnap,
-      );
-      final geometry = StaticWorldGeometry(
+      const geometry = StaticWorldGeometry(
         groundPlane: const StaticGroundPlane(topY: groundTopY),
-        solids: List<StaticSolid>.unmodifiable(solids),
-        groundSegments: List<StaticGroundSegment>.unmodifiable(ground.segments),
-        groundGaps: List<StaticGroundGap>.unmodifiable(ground.gaps),
+        solids: <StaticSolid>[
+          StaticSolid(
+            minX: 224,
+            minY: 108,
+            maxX: 416,
+            maxY: 124,
+            sides: StaticSolid.sideTop,
+            oneWayTop: true,
+            chunkIndex: 0,
+            localSolidIndex: 0,
+          ),
+          StaticSolid(
+            minX: 128,
+            minY: 156,
+            maxX: 176,
+            maxY: 220,
+            sides: StaticSolid.sideAll,
+            chunkIndex: 0,
+            localSolidIndex: 1,
+          ),
+        ],
+        groundSegments: <StaticGroundSegment>[
+          StaticGroundSegment(
+            minX: 0,
+            maxX: 176,
+            topY: groundTopY,
+            chunkIndex: 0,
+            localSegmentIndex: 0,
+          ),
+          StaticGroundSegment(
+            minX: 272,
+            maxX: 600,
+            topY: groundTopY,
+            chunkIndex: 0,
+            localSegmentIndex: 1,
+          ),
+        ],
+        groundGaps: <StaticGroundGap>[StaticGroundGap(minX: 176, maxX: 272)],
       );
 
       const enemyCatalog = EnemyCatalog();
@@ -725,24 +703,28 @@ void main() {
     }
 
     final builder = SurfaceGraphBuilder(surfaceGrid: GridIndex2D(cellSize: 64));
-    final grojibGraph = builder.build(
-      geometry: geometry,
-      jumpTemplate: buildTemplate(
-        grojib.collider.halfX,
-        grojib.collider.halfY,
-        grojib.body.ignoreCeilings,
-        grojib.body.sideMask,
-      ),
-    ).graph;
-    final hashashGraph = builder.build(
-      geometry: geometry,
-      jumpTemplate: buildTemplate(
-        hashash.collider.halfX,
-        hashash.collider.halfY,
-        hashash.body.ignoreCeilings,
-        hashash.body.sideMask,
-      ),
-    ).graph;
+    final grojibGraph = builder
+        .build(
+          geometry: geometry,
+          jumpTemplate: buildTemplate(
+            grojib.collider.halfX,
+            grojib.collider.halfY,
+            grojib.body.ignoreCeilings,
+            grojib.body.sideMask,
+          ),
+        )
+        .graph;
+    final hashashGraph = builder
+        .build(
+          geometry: geometry,
+          jumpTemplate: buildTemplate(
+            hashash.collider.halfX,
+            hashash.collider.halfY,
+            hashash.body.ignoreCeilings,
+            hashash.body.sideMask,
+          ),
+        )
+        .graph;
 
     final grojibLeftGroundIndex = _indexForSurface(
       grojibGraph,
@@ -770,7 +752,11 @@ void main() {
     );
 
     expect(
-      _hasJumpEdgeTo(grojibGraph, grojibLeftGroundIndex, grojibObstacleTopIndex),
+      _hasJumpEdgeTo(
+        grojibGraph,
+        grojibLeftGroundIndex,
+        grojibObstacleTopIndex,
+      ),
       isFalse,
     );
     expect(

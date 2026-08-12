@@ -80,6 +80,9 @@ small commits, but the completed phase must not retain a runtime dual path.
 - [x] `TrackStreamer` constructs no rectangle solids, ground segments, gaps,
       or pre-resolved marker surfaces; it publishes only selection, spawn
       intent, and prefab visuals
+- [x] `ChunkPattern` contains no `SolidRel` / `GapRel` compatibility payload,
+      and the unused `chunk_builder.dart` projection plus its validation suite
+      are deleted
 - [ ] `polygon_terrain_legacy_projection.dart`, its temporary tests, and stale
       migration-only runtime bridges are deleted
 - [ ] the test/tool-only terrain authority selectors are deleted after normal
@@ -131,3 +134,4 @@ generated membership, and any compatibility/version disposition before Phase 7.
 | 2026-08-12 / Phase 6 working head | Remove production rectangle read models | Normal streaming no longer constructs legacy collision indexes, horizontal surface graphs/navigators, or static-solid/ground-surface snapshots. `TrackManager` retains only deterministic scheduler state and prefab visuals before Core publishes terrain. Synthetic track-disabled/custom fixtures remain isolated for later migration. All 369 package and 433 root Core tests pass; focused Flame terrain coverage also passes. |
 | 2026-08-12 / Phase 6 working head | Delete generated collision projection | Repository generation now ends at seam-validated polygon compilation and staged rendering. `authored_chunk_patterns.dart` retains Chunk identity, assembly, markers, and prefab sprites but emits no `SolidRel` or `GapRel`. The 790-line rectangle projector and its root/editor parity suites are deleted; diagonal and transformed one-way fixtures are accepted and verified in staged output. Root/editor/Core analysis and all 68 root tool tests pass, and the real 8-Chunk/2-level/2-theme dry-run has zero drift. |
 | 2026-08-12 / Phase 6 working head | Remove streamed rectangle construction | `TrackStreamer` now performs only deterministic Chunk selection/culling, marker rolls, deferred-Hashash scheduling, and prefab-visual publication. It never calls `chunk_builder.dart` or materializes `StaticSolid`, ground-segment, or gap lists. Normal marker support is resolved from polygon terrain semantics/provenance (`ground`, placed-Prefab/`obstacle`, or physically highest); only deferred Hashash retains its exact support-height binding. All 370 package tests and 432 root Core tests pass and package analysis is clean. |
+| 2026-08-12 / Phase 6 working head | Delete obsolete Chunk rectangle payload | `ChunkPattern` now contains only scheduler identity/assembly, enemy markers, and prefab visuals. The dead `SolidRel` / `GapRel` types, `chunk_builder.dart`, and its rectangle validation suite are deleted. Two legacy navigation fixtures that used the builder now declare their isolated fixed geometry directly; focused tests and package analysis pass. |

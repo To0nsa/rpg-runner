@@ -22,59 +22,46 @@ import 'package:runner_core/navigation/surface_pathfinder.dart';
 import 'package:runner_core/navigation/utils/jump_template.dart';
 import 'package:runner_core/players/player_tuning.dart';
 import 'package:runner_core/snapshots/enums.dart';
-import 'package:runner_core/track/chunk_builder.dart';
-import 'package:runner_core/track/chunk_pattern.dart';
 import 'package:runner_core/tuning/ground_enemy_tuning.dart';
 import 'package:runner_core/tuning/physics_tuning.dart';
 
 void main() {
   test('ground enemy clears double-block obstacle sequence', () {
-    const pattern = ChunkPattern(
-      name: 'double-blocks',
-      solids: <SolidRel>[
-        SolidRel(
-          x: 160.0,
-          aboveGroundTop: 48.0,
-          width: 32.0,
-          height: 48.0,
-          sides: SolidRel.sideAll,
-        ),
-        SolidRel(
-          x: 288.0,
-          aboveGroundTop: 64.0,
-          width: 48.0,
-          height: 64.0,
-          sides: SolidRel.sideAll,
-        ),
-      ],
-    );
     const groundTopY = 220.0;
-    const chunkWidth = 600.0;
-    const gridSnap = 16.0;
     const secondObstacleMaxX = 336.0;
     const playerX = 366.0;
 
-    final solids = buildSolids(
-      pattern,
-      chunkStartX: 0.0,
-      chunkIndex: 0,
-      groundTopY: groundTopY,
-      chunkWidth: chunkWidth,
-      gridSnap: gridSnap,
-    );
-    final ground = buildGroundSegments(
-      pattern,
-      chunkStartX: 0.0,
-      chunkIndex: 0,
-      groundTopY: groundTopY,
-      chunkWidth: chunkWidth,
-      gridSnap: gridSnap,
-    );
-    final geometry = StaticWorldGeometry(
+    const geometry = StaticWorldGeometry(
       groundPlane: const StaticGroundPlane(topY: groundTopY),
-      groundSegments: List<StaticGroundSegment>.unmodifiable(ground.segments),
-      groundGaps: List<StaticGroundGap>.unmodifiable(ground.gaps),
-      solids: List<StaticSolid>.unmodifiable(solids),
+      groundSegments: <StaticGroundSegment>[
+        StaticGroundSegment(
+          minX: 0,
+          maxX: 600,
+          topY: groundTopY,
+          chunkIndex: 0,
+          localSegmentIndex: 0,
+        ),
+      ],
+      solids: <StaticSolid>[
+        StaticSolid(
+          minX: 160,
+          minY: 172,
+          maxX: 192,
+          maxY: 220,
+          sides: StaticSolid.sideAll,
+          chunkIndex: 0,
+          localSolidIndex: 0,
+        ),
+        StaticSolid(
+          minX: 288,
+          minY: 156,
+          maxX: 336,
+          maxY: 220,
+          sides: StaticSolid.sideAll,
+          chunkIndex: 0,
+          localSolidIndex: 1,
+        ),
+      ],
     );
 
     final world = EcsWorld();
