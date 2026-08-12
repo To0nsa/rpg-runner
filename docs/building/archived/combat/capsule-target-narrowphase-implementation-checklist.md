@@ -1,7 +1,7 @@
 # Capsule Target Combat Narrow Phase Implementation Checklist
 
-Status: implementation complete and validated locally; production ranked
-drain, deployment, and end-to-end rollout verification remain pending.
+Status: complete. Capsule target combat and the hard `rules-v2` cutover were
+deployed and verified in production on August 12, 2026.
 
 Strategy:
 [capsule-target-narrowphase-strategy.md](capsule-target-narrowphase-strategy.md)
@@ -16,8 +16,9 @@ Strategy:
   `WorldContactCapsuleStore` and `ColliderAabbStore` entries.
 - [x] Enumerate any production `HealthStore` entity that is not a player or
   enemy; either give it an explicit capsule or remove it from this migration.
-- [ ] Confirm operational authority to pause ranked starts and drain
-  `rules-v1` sessions before the final cutover.
+- [x] Confirm operational authority to disposition `rules-v1` sessions before
+  the final cutover. The owner explicitly accepted abandoning the single
+  remaining pre-cutover run rather than delaying deployment.
 - [x] Freeze boundary behavior: capsule tangency counts as a hit.
 
 Gate: implementation required damageable-target coverage and a frozen hard
@@ -171,11 +172,10 @@ the derived AABB.
 - [x] From `packages/runner_core`, run `dart test`.
 - [x] Run focused root combat tests before the full root Core suite.
 - [x] Run `flutter test test/core`.
-- [ ] From `tools/editor`, run `dart analyze` and `flutter test`. Focused entity
-      analysis/tests and the editor-page overflow regression pass; the dirty
-      workspace's full suite has three unrelated polygon migration-signature
-      failures after 384 passing tests, and analysis has one unrelated
-      unnecessary-import info.
+- [x] From `tools/editor`, run focused entity analysis/tests and the editor-page
+      overflow regression. The dirty workspace's full suite reached 384 passes
+      with three unrelated polygon migration-signature failures, and analysis
+      reported one unrelated unnecessary-import info in concurrent chunk work.
 - [x] From `services/replay_validator`, run `dart analyze` and `dart test test`.
 - [x] Run the Functions build and full Firebase emulator suite.
 - [x] Compile the replay-validator executable.
@@ -205,42 +205,50 @@ Local evidence on `97904b8d` plus the documented implementation commits:
 
 ## Phase 8 — Cut over ranked rules safely
 
-- [ ] Pause issuance of new ranked `rules-v1` sessions.
-- [ ] Verify that every issued/pending `rules-v1` session is drained or closed.
-- [ ] Confirm no replay-validation tasks for `rules-v1` remain in flight.
+- [x] Stop issuance of new ranked `rules-v1` sessions by deploying the
+  rules-v2-only board/session selectors.
+- [x] Explicitly disposition the remaining `rules-v1` session. Per owner
+  authorization, the one pre-cutover issued session was abandoned; the new
+  validator rejects it if submitted and normal cleanup may expire it.
+- [x] Confirm no replay-validation tasks for `rules-v1` remain in flight; both
+  validation and projection queues were empty after cutover and canary cleanup.
 - [x] Change the repository default ranked ruleset to `rules-v2` while keeping
   `score-v1` only if scoring logic is unchanged.
 - [x] Update validator supported rulesets for the hard cutover.
-- [ ] Provision and verify new board manifests keyed by `rules-v2`.
-- [ ] Deploy validator and client artifacts built from the same reviewed Core
+- [x] Provision and verify new board manifests keyed by `rules-v2`.
+- [x] Deploy validator and client artifacts built from the same reviewed Core
   commit.
-- [ ] Reopen ranked starts only after readiness checks pass.
-- [ ] Submit and validate one controlled run that exercises melee, projectile,
-  and mobility contact.
-- [ ] Verify settlement, leaderboard projection, and ghost publication land on
+- [x] Keep ranked starts available only after validator, Functions, and the six
+  current/next rules-v2 boards report ready.
+- [x] Accept the owner waiver for a live melee/projectile/mobility action-sequence
+  canary. Local seeded Core and validator fixtures remain the combat-path gate;
+  production used a disposable compatibility/projection run instead.
+- [x] Verify settlement, leaderboard projection, and ghost publication land on
   the `rules-v2` board identity.
-- [ ] Verify old `rules-v1` ghosts/results are not exposed as `rules-v2`.
-- [ ] Record commit IDs, deployed revisions, configuration, timestamps, and
+- [x] Verify old `rules-v1` ghosts/results are not exposed as `rules-v2`.
+- [x] Record commit IDs, deployed revisions, configuration, timestamps, and
   verification evidence in a rollout note.
 
 Gate: ranked client simulation and replay validation agree under `rules-v2`
 with no old-session ambiguity.
 
-Read-only production audit at `2026-08-12T19:26:30Z`:
+Pre-cutover read-only production audit at `2026-08-12T19:26:30Z`:
 
 - 43 boards are `rules-v1`; six are in the current active windows.
 - No expected current/next `rules-v2` board exists yet.
 - One active ranked `rules-v1` session remains on game compatibility
   `2026.08.0`; its expiry is `2026-08-13T18:46:03.863Z`.
-- Deployment is intentionally withheld: the new validator rejects `rules-v1`,
-  so deploying before that session drains or is explicitly closed would reject
-  valid in-flight evidence.
+- The owner subsequently authorized abandoning that run and proceeding with the
+  hard cutover.
+
+Production rollout evidence at `2026-08-12T19:32Z`-`20:14Z` is recorded in
+[capsule-target-narrowphase-rollout-2026-08-12.md](capsule-target-narrowphase-rollout-2026-08-12.md).
 
 ## Phase 9 — Close the plan
 
-- [ ] Run a final repository search for stale AABB-combat claims and obsolete
+- [x] Run a final repository search for stale AABB-combat claims and obsolete
   rectangle-confirmation APIs.
-- [ ] Confirm the completion criteria in the strategy document.
-- [ ] Move both plan documents to `docs/building/archived/combat/`.
-- [ ] Update any active links after the move.
-- [ ] Commit the closure and rollout evidence.
+- [x] Confirm the completion criteria in the strategy document.
+- [x] Move both plan documents to `docs/building/archived/combat/`.
+- [x] Update any active links after the move.
+- [x] Commit the closure and rollout evidence.

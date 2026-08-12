@@ -205,12 +205,12 @@ path:
 6. reopen ranked session issuance and verify validation, projection, and ghost
    publication on the new board identity.
 
-Repository implementation now defaults board provisioning to `rules-v2`,
-selects the complete configured ruleset/score/ghost tuple for session and
-leaderboard reads, and makes the validator accept only `rules-v2`. These code
-changes do not themselves pause production issuance, drain sessions, provision
-live boards, or deploy artifacts; those external operations remain gated by
-the checklist.
+Repository implementation defaults board provisioning to `rules-v2`, selects
+the complete configured ruleset/score/ghost tuple for session and leaderboard
+reads, and makes the validator accept only `rules-v2`. Production completed the
+hard cutover on August 12, 2026. The owner explicitly abandoned the one
+remaining pre-cutover `rules-v1` session instead of retaining the historical
+AABB simulator or delaying deployment.
 
 Old `rules-v1` ghosts and leaderboard entries must not be exposed as
 `rules-v2` results. If product requirements demand continued validation or
@@ -221,9 +221,10 @@ reviewed version-dispatch strategy before rollout.
 
 The implementation updates the terrain/navigation TDDs, Core simulation
 contract, combat GDD, editor guide, Functions board documentation, and replay
-validator deployment/runbook documentation. Those documents now distinguish
-the derived broad-phase AABB from exact capsule target confirmation and record
-the pending external `rules-v2` cutover gates.
+validator deployment/runbook documentation. Those documents distinguish the
+derived broad-phase AABB from exact capsule target confirmation. The archived
+implementation checklist and rollout note hold the completed production
+cutover evidence.
 
 ## Completion criteria
 
