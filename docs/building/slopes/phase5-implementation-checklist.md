@@ -152,6 +152,12 @@ workflow except where an already-public Core output needs a read-only consumer.
       grounded markers, collectibles, restoration items, and the streamed
       fall-death rule. The normal constructor and replay validator remain
       legacy-owned.
+- [x] Paired 1,800-tick command runs over both reauthored Field and Forest
+      streams remain deterministic through repeated publication rebuilds,
+      preserve render/support identity at every sampled boundary, survive past
+      5,000 distance, and stay within the published strict Phase 2 benchmark
+      gates. The unchanged legacy replay path remains covered by the complete
+      replay-validator suite.
 
 ## 3) Implementation Order
 
@@ -213,7 +219,7 @@ workflow except where an already-public Core output needs a read-only consumer.
 - [x] initial player, enemy, marker, collectible, restoration, cull, and
       fall-death policies have explicit terrain-backed coverage (startup and
       publication ordering are covered; normal authority selection remains)
-- [ ] representative full runs match deterministic Core/replay outcomes and
+- [x] representative full runs match deterministic Core/replay outcomes and
       remain inside the accepted runtime budgets
 - [ ] legacy runtime authority remains available until Phase 6's direct
       cutover, then has an explicit deletion/migration plan rather than a
@@ -233,6 +239,8 @@ Pop-Location
 flutter test test/core
 flutter test test/game
 dart run tool/generate_chunk_runtime_data.dart --dry-run
+dart run tool/benchmark_slopes_phase2.dart --strict `
+  --warmup=1000 --iterations=5000 --harness-iterations=5000
 
 Push-Location services/replay_validator
 dart analyze
@@ -243,3 +251,11 @@ Pop-Location
 Also retain focused fresh-process signature, chunk spawn/cull/rebuild,
 seam-stitching, placement, renderer parity, and performance evidence for each
 published runtime boundary.
+
+The 2026-08-12 full validation pass completed with 369 `runner_core` tests,
+433 root Core tests, 17 game-renderer tests, 84 replay-validator tests, clean
+root/package/service analysis, and a drift-free 8-chunk/2-level/2-theme
+generation check. The strict benchmark passed every controller, candidate,
+full-harness, overhead, and allocation gate; its observed full-harness p99 was
+112 microseconds for flat terrain and 58 microseconds for slope terrain, with
+zero post-warmup buffer growth.

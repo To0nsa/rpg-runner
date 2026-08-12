@@ -102,6 +102,42 @@ void main() {
     expect(core.gameOver, isTrue);
     expect(core.playerGrounded, isFalse);
   });
+
+  for (final levelId in <LevelId>[LevelId.field, LevelId.forest]) {
+    test('$levelId long command run stays deterministic', () {
+      GameCore build() => GameCore.stagedTerrainStreamHarness(
+        seed: 4401,
+        levelDefinition: LevelRegistry.byId(
+          levelId,
+        ).copyWith(noEnemyChunks: 9999),
+        playerCharacter: PlayerCharacterRegistry.eloise,
+      );
+      final first = build();
+      final second = build();
+
+      for (var nextTick = 1; nextTick <= 1800; nextTick++) {
+        final commands = <Command>[
+          MoveAxisCommand(tick: nextTick, axis: 1),
+          if (nextTick % 60 == 0) JumpPressedCommand(tick: nextTick),
+        ];
+        first.applyCommands(commands);
+        second.applyCommands(commands);
+        first.stepOneTick();
+        second.stepOneTick();
+        expect(first.gameOver, isFalse, reason: 'first tick $nextTick');
+        expect(second.gameOver, isFalse, reason: 'second tick $nextTick');
+        if (nextTick % 60 == 0) {
+          expect(second.playerPosX, first.playerPosX);
+          expect(second.playerPosY, first.playerPosY);
+          expect(second.playerGrounded, first.playerGrounded);
+          _expectSameTerrainWorld(first, second);
+        }
+      }
+
+      expect(first.distance, greaterThan(5000));
+      expect(second.distance, first.distance);
+    });
+  }
 }
 
 bool _isGroundedEntity(EntityRenderSnapshot entity) => entity.grounded;
