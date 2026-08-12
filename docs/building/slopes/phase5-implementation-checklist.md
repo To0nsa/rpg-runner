@@ -148,7 +148,10 @@ workflow except where an already-public Core output needs a read-only consumer.
       candidate through the atomic publication barrier. Two independent
       900-tick `field_flat` runs match geometry versions, polygon/edge order,
       support identity, and grounded survival across multiple rebuilds. The
-      normal constructor and replay validator remain legacy-owned.
+      same harness covers eight deterministic Forest seeds with terrain-placed
+      grounded markers, collectibles, restoration items, and the streamed
+      fall-death rule. The normal constructor and replay validator remain
+      legacy-owned.
 
 ## 3) Implementation Order
 
@@ -207,7 +210,7 @@ workflow except where an already-public Core output needs a read-only consumer.
       intentionally exposed without a collision, navigation, or render seam
 - [x] Flame uses Core-owned triangles/edges and does not duplicate geometry,
       material-phase, or collision authority
-- [ ] initial player, enemy, marker, collectible, restoration, cull, and
+- [x] initial player, enemy, marker, collectible, restoration, cull, and
       fall-death policies have explicit terrain-backed coverage (startup and
       publication ordering are covered; normal authority selection remains)
 - [ ] representative full runs match deterministic Core/replay outcomes and
