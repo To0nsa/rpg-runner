@@ -43,6 +43,8 @@ gameplay implementation.
 - `lib/src/projection_worker.dart`: independent leaderboard/ghost projection
   after an accepted validated run
 - `lib/src/replay_loader.dart`: Cloud Storage replay loading
+- `lib/src/replay_simulation.dart`: shared protocol-frame to Core tick loop
+- `lib/src/replay_benchmark.dart`: local/compiled Field and Forest throughput gate
 - `lib/src/run_session_repository.dart`: Firestore run-session lease/status
   repository
 - `lib/src/leaderboard_projector.dart`: leaderboard projection writes
@@ -136,6 +138,8 @@ Minimum checks from `services/replay_validator/`:
 
 - `dart analyze`
 - `dart test test`
+- compile the server and run `benchmark --ticks=36000 --strict` when replay
+  simulation or terrain outcomes change
 
 For deployment-sensitive changes, also verify the executable still compiles:
 

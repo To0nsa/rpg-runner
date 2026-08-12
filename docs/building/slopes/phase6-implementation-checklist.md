@@ -67,7 +67,7 @@ small commits, but the completed phase must not retain a runtime dual path.
       phase and no visible/physical streamed seams
 - [x] scheduler selection, RNG consumption, entity ID/order, and authored
       placement outcomes remain deterministic
-- [ ] representative Field and Forest runs pass accepted controller,
+- [x] representative Field and Forest runs pass accepted controller,
       full-harness, allocation, and replay-validation budgets
 
 ## 4) Legacy Deletion Acceptance
@@ -108,6 +108,8 @@ Pop-Location
 Push-Location services\replay_validator
 dart analyze
 dart test test
+dart compile exe bin\server.dart -o ..\..\.tmp\replay_validator_server.exe
+..\..\.tmp\replay_validator_server.exe benchmark --ticks=36000 --strict
 Pop-Location
 
 Push-Location tools\editor
@@ -118,6 +120,9 @@ Pop-Location
 dart run tool\generate_chunk_runtime_data.dart --dry-run
 dart run tool\benchmark_slopes_phase2.dart --strict `
   --warmup=1000 --iterations=5000 --harness-iterations=5000
+dart --observe=0 run tool\benchmark_slopes_phase2.dart --allocation-profile `
+  --strict --warmup=1000 --iterations=5000 --harness-iterations=5000 `
+  --allocation-iterations=10000
 
 corepack pnpm --dir functions build
 corepack pnpm --dir functions test
@@ -140,3 +145,4 @@ generated membership, and any compatibility/version disposition before Phase 7.
 | 2026-08-12 / Phase 6 working head | Delete horizontal navigation compatibility stack | The rectangle `SurfaceExtractor`, graph builder/types/index, trajectory predictor, pathfinder, navigator, and `EnemyNavigationSystem` are deleted with their obsolete suites. Ground locomotion consumes the complete terrain navigation intent directly, while collectible/restoration placement queries polygon terrain without a legacy surface graph or rectangle overlap list. Root/package analysis is clean; all 369 package tests and 359 root Core tests pass. |
 | 2026-08-12 / Phase 6 working head | Delete legacy motion and static-world collision | `LegacyWorldMotionAuthority`, `CollisionSystem`, `StaticWorldGeometry`, its index, and all ground/solid/gap rectangle types are deleted. Hashash teleport and flying locomotion require an explicit terrain authority; spawn-placement results always carry a polygon geometry version. Production import/construction audit finds no legacy authority, static-world type, rectangle collision system, fallback, or runtime toggle. Root/package analysis is clean; all 368 package tests and 349 root Core tests pass. |
 | 2026-08-12 / Phase 6 working head | Close normal-construction actor/content acceptance | The Forest easy woodcamp now owns a reviewed 64-by-32-pixel solid perch and a Derf obstacle-top marker, bringing production content through Derf's strict placement path. A normal-construction matrix admits Grojib, Hashash, Unoco, and Derf against the same generated terrain candidate; a custom ballistic Acid Bolt proves terrain-owned integration. Existing normal tests cover player support, authored markers, collectible/restoration placement, fall death, and deterministic Field/Forest runs. The root streaming test proves the initial chunk instances are culled and later Field instances retain the authored key/shape identity. Root/package analysis is clean, all 370 package tests pass, 17 focused renderer/generator/stream tests pass, and the 8-Chunk/2-level/2-theme dry-run has zero drift. |
+| 2026-08-12 / Phase 6 working head | Close local performance and replay budgets | The strict 1,280-edge controller/full-harness benchmark passes with combined controller p95/p99 of 50/71 microseconds, flat/slope full-harness p99 of 240/89 microseconds, -31.67% matched-flat slope overhead, and zero buffer growth. VM allocation profiling passes two 10,000-iteration trial pairs with zero attributed steady-state controller allocations. The validator server now shares `runReplaySimulation` between production and its compiled benchmark command; its 36,000-tick Field/Forest runs finish deterministically at geometry version 190 in 0.361/0.483 seconds (1,663x/1,242x real time) on Windows x64. Service analysis, all 85 tests, and AOT compilation pass. The required one-CPU/512 MiB release-container rerun and production observations remain Phase 7 gates. |

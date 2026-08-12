@@ -159,7 +159,8 @@ Checks include:
 
 ## 4.7 Deterministic simulation replay
 
-Worker reconstructs `GameCore` from ticket data and replays command frames tick-by-tick:
+Worker reconstructs `GameCore` from ticket data and passes it to the shared
+`runReplaySimulation` loop. That loop replays command frames tick-by-tick:
 - maps each frame only to its matching next simulation tick, then calls
   `core.applyCommands(...)`; Core rejects stale or future command ticks
 - `core.stepOneTick()`
@@ -177,6 +178,24 @@ From terminal event it computes authoritative result:
 - stats payload
 
 Outputs `ValidatedRun(accepted: true, ...)`.
+
+## 4.8 Replay throughput gate
+
+The server executable accepts a non-HTTP `benchmark` subcommand. It uses the
+same `runReplaySimulation` function as `DeterministicValidatorWorker`, records
+deterministic no-enemy command streams for the normal generated Field and
+Forest terrain, then replays 36,000 ticks per level through fresh normal
+`GameCore` construction. Auto-scroll is disabled only for this bounded fixture
+so the simulation measures the complete ten-minute stream instead of ending at
+the normal runner pressure limit.
+
+The JSON report includes revision/dirty state, runtime/OS, tick and command
+counts, elapsed time, real-time multiple, final distance/geometry version, and
+deterministic-outcome gates. The local hard gates are at least 2x real time and
+less than 300 seconds for each 36,000-tick level. Phase 7 must rerun the same
+compiled binary inside the release container with one CPU and 512 MiB before
+issuing compatible sessions; local results do not replace that deployment
+evidence.
 
 ---
 

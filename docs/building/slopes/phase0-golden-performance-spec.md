@@ -445,12 +445,15 @@ docker build -f services/replay_validator/Dockerfile `
   -t replay-validator:slopes-benchmark .
 docker run --rm --cpus=1 --memory=512m `
   replay-validator:slopes-benchmark benchmark `
-  --fixture=slopes_golden_v1 --ticks=36000
+  --ticks=36000 --strict
 ```
 
-The compiled validator may expose the benchmark through a separate test binary
-instead of the production server command, but the container resource limits,
-fixture, and output schema must remain identical.
+The production server binary owns that subcommand and shares its replay loop
+with `DeterministicValidatorWorker`. It records and replays normal generated
+Field and Forest streams under a bounded no-enemy/no-autoscroll fixture, emits
+per-level deterministic-outcome and throughput gates, and never starts HTTP
+serving in benchmark mode. The container resource limits and output schema must
+remain identical through Phase 7 verification.
 
 Editor acceptance:
 

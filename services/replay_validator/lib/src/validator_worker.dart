@@ -1,11 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:runner_core/abilities/ability_def.dart';
 import 'package:runner_core/accessories/accessory_id.dart';
-import 'package:runner_core/commands/command.dart';
 import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
-import 'package:runner_core/events/game_event.dart';
 import 'package:runner_core/game_core.dart';
 import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/levels/level_registry.dart';
@@ -26,6 +23,7 @@ import 'account_deletion_fence.dart';
 import 'board_repository.dart';
 import 'metrics.dart';
 import 'replay_loader.dart';
+import 'replay_simulation.dart';
 import 'replay_validation_limits.dart';
 import 'run_session_repository.dart';
 import 'settlement_dispatcher.dart';
@@ -957,31 +955,20 @@ class DeterministicValidatorWorker implements ValidatorWorker {
       equippedLoadoutOverride: loadout,
     );
 
-    final frameByTick = <int, ReplayCommandFrameV1>{
-      for (final frame in replayBlob.commandStream) frame.tick: frame,
-    };
-    RunEndedEvent? runEnded;
-    for (var tick = 1; tick <= replayBlob.totalTicks; tick += 1) {
-      if (tick == 1 || tick % 256 == 0) {
-        _throwIfSimulationDeadlineExceeded(simulationStartedAtMicros);
-      }
-      final frame = frameByTick[tick];
-      final commands = frame == null
-          ? const <Command>[]
-          : _commandsFromReplayFrame(frame);
-      core.applyCommands(commands);
-      core.stepOneTick();
-      runEnded = _extractRunEnded(core.drainEvents()) ?? runEnded;
-      if (runEnded != null && core.gameOver) {
-        break;
-      }
-    }
+    final simulation = runReplaySimulation(
+      core: core,
+      totalTicks: replayBlob.totalTicks,
+      commandStream: replayBlob.commandStream,
+      onCheckpoint: (_) =>
+          _throwIfSimulationDeadlineExceeded(simulationStartedAtMicros),
+    );
+    var runEnded = simulation.runEnded;
 
     if (runEnded == null) {
       if (!core.gameOver) {
         core.giveUp();
       }
-      runEnded = _extractRunEnded(core.drainEvents()) ?? runEnded;
+      runEnded = latestRunEndedEvent(core.drainEvents()) ?? runEnded;
     }
     if (runEnded == null) {
       throw const _ValidationRejectedException(
@@ -1035,60 +1022,6 @@ class DeterministicValidatorWorker implements ValidatorWorker {
         message: 'Replay simulation exceeded the validation time limit.',
       );
     }
-  }
-
-  RunEndedEvent? _extractRunEnded(List<GameEvent> events) {
-    RunEndedEvent? result;
-    for (final event in events) {
-      if (event is RunEndedEvent) {
-        result = event;
-      }
-    }
-    return result;
-  }
-
-  List<Command> _commandsFromReplayFrame(ReplayCommandFrameV1 frame) {
-    final out = <Command>[];
-    final tick = frame.tick;
-    final moveAxis = frame.moveAxis;
-    if (moveAxis != null && moveAxis != 0) {
-      out.add(MoveAxisCommand(tick: tick, axis: moveAxis));
-    }
-    final aimDirX = frame.aimDirX;
-    final aimDirY = frame.aimDirY;
-    if (aimDirX != null && aimDirY != null) {
-      out.add(AimDirCommand(tick: tick, x: aimDirX, y: aimDirY));
-    }
-    if (frame.jumpPressed) {
-      out.add(JumpPressedCommand(tick: tick));
-    }
-    if (frame.dashPressed) {
-      out.add(DashPressedCommand(tick: tick));
-    }
-    if (frame.strikePressed) {
-      out.add(StrikePressedCommand(tick: tick));
-    }
-    if (frame.projectilePressed) {
-      out.add(ProjectilePressedCommand(tick: tick));
-    }
-    if (frame.secondaryPressed) {
-      out.add(SecondaryPressedCommand(tick: tick));
-    }
-    if (frame.spellPressed) {
-      out.add(SpellPressedCommand(tick: tick));
-    }
-    final changedMask = frame.abilitySlotHeldChangedMask;
-    if (changedMask != 0) {
-      for (final slot in AbilitySlot.values) {
-        final bit = 1 << slot.index;
-        if ((changedMask & bit) == 0) {
-          continue;
-        }
-        final held = (frame.abilitySlotHeldValueMask & bit) != 0;
-        out.add(AbilitySlotHeldCommand(tick: tick, slot: slot, held: held));
-      }
-    }
-    return out;
   }
 
   EquippedLoadoutDef _loadoutFromSnapshot(Map<String, Object?> snapshot) {

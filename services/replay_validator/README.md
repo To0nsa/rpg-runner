@@ -43,9 +43,17 @@ Run from `services/replay_validator`:
 dart analyze
 dart test test
 dart compile exe bin/server.dart -o ../../.tmp/replay_validator_server
+../../.tmp/replay_validator_server benchmark --ticks=36000 --strict
 dart compile exe tool/aot_protocol_probe.dart -o ../../.tmp/aot_protocol_probe
 ../../.tmp/aot_protocol_probe
 ```
+
+The benchmark subcommand uses the validator's production replay loop and
+normal generated Field/Forest terrain streams. It records and replays 36,000
+ticks per level, requires at least 2x real time and less than 300 seconds per
+level, verifies the final deterministic outcome, and emits a JSON report.
+Before compatible issuance, Phase 7 reruns the same compiled command in the
+one-CPU/512 MiB container and records its report.
 
 ## Build Container Image
 
