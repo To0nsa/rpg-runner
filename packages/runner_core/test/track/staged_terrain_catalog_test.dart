@@ -28,8 +28,10 @@ void main() {
     );
 
     expect(catalog.chunksByKey, hasLength(stagedAuthoredTerrain.chunks.length));
-    expect(geometry.polygons, isEmpty);
-    expect(geometry.edges, isEmpty);
+    expect(geometry.polygons, hasLength(1));
+    expect(geometry.polygons.single.identity.chunkKey, 'field_flat');
+    expect(geometry.polygons.single.identity.shapeId, 'solid_001');
+    expect(geometry.edges, hasLength(4));
   });
 
   test(
