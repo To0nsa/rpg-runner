@@ -22,10 +22,8 @@ const List<ChunkPattern> fieldNormalPatterns = <ChunkPattern>[
     chunkKey: 'field_flat',
     assemblyGroupId: 'default',
     solids: <SolidRel>[
-      SolidRel(x: 48.0, aboveGroundTop: 48.0, width: 480.0, height: 48.0, sides: SolidRel.sideAll, oneWayTop: false),
     ],
     groundGaps: <GapRel>[
-      GapRel(gapId: 'collision_cleared', x: 0.0, width: 600.0),
     ],
     visualSprites: <ChunkVisualSpriteRel>[
     ],

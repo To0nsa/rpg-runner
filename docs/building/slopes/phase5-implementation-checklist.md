@@ -13,7 +13,7 @@ must then feed collision, support/navigation, spawn placement, rendering, and
 debug evidence for every active chunk.
 
 Phase 5 now establishes and tests the runtime handoff against reauthored flat
-Forest ground plus the retained `field_flat` direct polygon. It must not switch
+Forest and Field ground polygons. It must not switch
 replay compatibility or remove the legacy authority until Phase 6's broader
 slope-content and direct-cutover gates are satisfied.
 
@@ -100,6 +100,9 @@ workflow except where an already-public Core output needs a read-only consumer.
       the established 224px ground line. Every polygon carries `ground` /
       `grass_dirt` metadata, all scheduler-reachable seams validate, and the
       temporary legacy projection restores the former continuous flat ground.
+- [x] `field_flat` replaces the temporary manual floating rectangle with the
+      same canonical full-width `ground_001` band, so every currently
+      schedulable chunk has continuous baseline support for runtime cutover.
 
 ## 3) Implementation Order
 

@@ -39,9 +39,8 @@ Editor foundations shared across those domains:
 ## Polygon Source And Offline Migration
 
 The checked-in source includes `anvil_00` with one Prefab collision polygon,
-`field_flat` with one direct `solid_001` Chunk polygon, and all seven Forest
-chunks with a continuous `ground_001` polygon carrying `ground` /
-`grass_dirt` metadata. Other collision-reset Prefab owners remain available
+and all eight chunks with a continuous `ground_001` polygon carrying `ground`
+/ `grass_dirt` metadata. Other collision-reset Prefab owners remain available
 for authoring. Missing Prefab collision is therefore a visible, non-blocking
 authoring warning.
 

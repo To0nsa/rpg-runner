@@ -1886,7 +1886,7 @@ post-cutover SHA-256 values:
 | Current artifact | SHA-256 |
 | --- | --- |
 | `assets/authoring/level/prefab_defs.json` | `682FEBC82FCF774D15481A9D583BA4CBD9C1AA6DC8E32CA16C9676B19C3627B5` |
-| `chunks/field/field_flat.json` | `50D55FE900260D9087C4B61223567E12C216E384E696BDDC8601F83EB64B4CA8` |
+| `chunks/field/field_flat.json` | `556A742AA6C163CB40C168FA8FA7F54906F698475DF88EF9519541F5FE1C50D2` |
 | `chunks/forest/forest_early_00.json` | `46177FA9FABCBCEB763B00281D19755BC983383A0D9354A7CF3E54F2164ABF6D` |
 | `chunks/forest/forest_early_01.json` | `F530A452161065774CF1420A9E4800A7712D27F2A46B3625447FCD2A46F55A62` |
 | `chunks/forest/forest_early_02.json` | `230475C8A2EB15417D73A83C296F1CA2EA67FFFA680358817334B2042EF18885` |
@@ -1894,13 +1894,13 @@ post-cutover SHA-256 values:
 | `chunks/forest/forest_early_flat.json` | `BA724A2C3AB008E0EB98DA912B20B262F200D2DFBF022E346581E0D231F649D5` |
 | `chunks/forest/forest_easy_woodcamp_00.json` | `0BBCFCAAF0EAF0923F1537F31E659DE8177664513F503A810AC7F727697DDB35` |
 | `chunks/forest/forest_normal_woodcamp_00.json` | `F1960B694765D86C1B41F4A76FBA34699B5036E4731546568A79F26885CF10B8` |
-| `packages/runner_core/lib/track/staged_authored_terrain.dart` | `2B6084A1BD17CA3C21F5767991D121CB1153F32FE7B155B27187F242EBFD69C1` |
+| `packages/runner_core/lib/track/staged_authored_terrain.dart` | `E7EE71E8E75AD2A8F1F2A7B374C1E0EDB171D0FF80800E4A573BB8575FB1ABC9` |
 
-The staged artifact still binds seam digest `7878b7f1…dbdf3`. `field_flat`
-stages direct `solid_001`; subsequent Phase 5 reauthoring gives every Forest
-Chunk one seam-compatible `ground_001` polygon with `ground` / `grass_dirt`
-metadata. Generator dry-run and the current-source migration check remain
-blocker-free after that content update.
+The staged artifact still binds seam digest `7878b7f1…dbdf3`. Phase 5
+reauthoring gives every Field and Forest Chunk one seam-compatible
+`ground_001` polygon with `ground` / `grass_dirt` metadata. Generator dry-run
+and the current-source migration check remain blocker-free after that content
+update.
 
 Minimum final commands:
 

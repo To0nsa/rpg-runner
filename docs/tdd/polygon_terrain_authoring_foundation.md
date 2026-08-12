@@ -21,11 +21,10 @@ reauthoring is underway:
 - all 99 prefab records retain visuals, kinds, metadata, and identity;
   `anvil_00` has one authored collision polygon while the remaining reset
   owners remain empty for authoring
-- all eight chunks retain their placements and markers; `field_flat` has one
-  direct `solid_001` polygon and every Forest chunk has one continuous
-  `ground_001` polygon at the established 224px ground line
-- every Forest ground polygon carries `surfaceKind: ground` and
-  `materialKey: grass_dirt`; all reachable Forest seam combinations compile
+- all eight chunks retain their placements and markers and each has one
+  continuous `ground_001` polygon at the established 224px ground line
+- every ground polygon carries `surfaceKind: ground` and
+  `materialKey: grass_dirt`; all reachable scheduler seam combinations compile
   with identical boundary coverage
 - staged terrain contains all eight Chunk polygons, while the legacy
   compatibility projection retains the representable flat-ground behavior;

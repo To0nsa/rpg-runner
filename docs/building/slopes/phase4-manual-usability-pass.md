@@ -44,8 +44,8 @@ The chosen Prefab owner below, `barrel_01`, is active, collision-capable, and
 not placed by current Chunks. It intentionally has no authored collision shape,
 while the committed `anvil_00` example does. This keeps the empty-owner checks
 repeatable without deleting the retained authored example or creating unrelated
-placement failures. The committed `field_flat` Chunk likewise retains its
-`solid_001` example; the Chunk steps add a second disposable direct shape.
+placement failures. The committed `field_flat` Chunk retains its production
+`ground_001` band; the Chunk steps add a second disposable direct shape.
 
 ## Tester Record
 

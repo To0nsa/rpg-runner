@@ -38,17 +38,7 @@ void main() {
       stagedAuthoredTerrain.chunks.map((chunk) => chunk.chunkKey).toSet(),
     );
     expect(
-      geometry.polygons
-          .singleWhere((polygon) => polygon.identity.chunkKey == 'field_flat')
-          .identity
-          .shapeId,
-      'solid_001',
-    );
-    final forestPolygons = geometry.polygons.where(
-      (polygon) => polygon.identity.chunkKey != 'field_flat',
-    );
-    expect(
-      forestPolygons.every(
+      geometry.polygons.every(
         (polygon) =>
             polygon.identity.shapeId == 'ground_001' &&
             polygon.surfaceKind == 'ground' &&

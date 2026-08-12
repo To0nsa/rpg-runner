@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "chunkKey": "field_flat",
   "id": "field_flat",
-  "revision": 10,
+  "revision": 11,
   "status": "active",
   "levelId": "field",
   "tileSize": 16,
@@ -16,26 +16,28 @@
   "markers": [],
   "collisionShapes": [
     {
-      "shapeId": "solid_001",
+      "shapeId": "ground_001",
       "collisionMode": "solid",
       "vertices": [
         {
-          "x": 48,
-          "y": 176
-        },
-        {
-          "x": 528,
-          "y": 176
-        },
-        {
-          "x": 528,
+          "x": 0,
           "y": 224
         },
         {
-          "x": 48,
+          "x": 600,
           "y": 224
+        },
+        {
+          "x": 600,
+          "y": 270
+        },
+        {
+          "x": 0,
+          "y": 270
         }
-      ]
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "grass_dirt"
     }
   ]
 }
