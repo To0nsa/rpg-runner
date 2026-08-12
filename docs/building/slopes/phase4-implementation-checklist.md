@@ -1847,7 +1847,7 @@ Validation evidence:
   `GameCore.terrainMotionHarness(...)` test/tool factory selects staged terrain.
   Replay validation constructs normal `GameCore(...)`.
 
-### 28.5 Current Collision-reset State
+### 28.5 Historical Collision-reset State
 
 On August 3, 2026, the user explicitly chose complete collision deletion and
 later polygon reauthoring instead of preserving or unioning the legacy collider
@@ -1874,8 +1874,9 @@ accepted against repository content until polygon terrain is reauthored.
 
 The reset regression closure is recorded under `8aa880a6`; the later source
 cutover is recorded under `e2c06137`. Current readiness is blocker-free and
-zero-pending, and generator dry-run reports no drift. Polygon reauthoring and
-runtime terrain authority remain later work.
+zero-pending, and generator dry-run reports no drift. Polygon reauthoring
+subsequently began from current source; direct runtime terrain authority remains
+later work.
 
 ### 28.6 Current Schema And Generated Identity
 
@@ -1884,8 +1885,8 @@ post-cutover SHA-256 values:
 
 | Current artifact | SHA-256 |
 | --- | --- |
-| `assets/authoring/level/prefab_defs.json` | `F4DE5F4B52479FC14EEFFB7F1D6F8C1965B9FB171AD719CE2F5A707EC7548688` |
-| `chunks/field/field_flat.json` | `1150ED19E3309C4C25410EC224FE8B41A4A31869E1CA741EB83B9F62202E0C9B` |
+| `assets/authoring/level/prefab_defs.json` | `682FEBC82FCF774D15481A9D583BA4CBD9C1AA6DC8E32CA16C9676B19C3627B5` |
+| `chunks/field/field_flat.json` | `50D55FE900260D9087C4B61223567E12C216E384E696BDDC8601F83EB64B4CA8` |
 | `chunks/forest/forest_early_00.json` | `C66914D03785C99737C553EF91337B06C3F3FD51BEC7DBD1FFA0C0DD266012CE` |
 | `chunks/forest/forest_early_01.json` | `110847B7E007F3C97BF5B84300525BF2CD2CFFEA3170F9A813CB4CF55015DEE2` |
 | `chunks/forest/forest_early_02.json` | `14C7C1EB673B94EB1A0E0D6B395AEDD53498303E7851AC34EB0DA8BFEA09B844` |
@@ -1893,12 +1894,13 @@ post-cutover SHA-256 values:
 | `chunks/forest/forest_early_flat.json` | `51BF9488C5D50B69C9F8DEE9A2765FB134B5AA626AD5BFCAF465414DD5B6FEF3` |
 | `chunks/forest/forest_easy_woodcamp_00.json` | `9C103E99662966C483507376A0039A77F8284ED3B7C6B170BA75FE6D1BFABDA5` |
 | `chunks/forest/forest_normal_woodcamp_00.json` | `3ED517F2C347E7CCA293ED29CC25F4EA27B65F315AB357192818560A167381D1` |
-| `packages/runner_core/lib/track/staged_authored_terrain.dart` | `8F8D3B455A66351B6B215140D4C421944F3804AD323AF2558E20891BABD8F87F` |
+| `packages/runner_core/lib/track/staged_authored_terrain.dart` | `3607F6D16DC57AAD3794BE68DBB38B6696CD3B3512656474159342DD2BB52983` |
 
-The staged artifact binds seam digest `7878b7f1…dbdf3`; all per-Chunk terrain
-signatures are the standard empty SHA-256 because collision was intentionally
-cleared. A repository migration rehearsal proved the five pre-existing
-generated outputs byte-identical before committing the real source change.
+The staged artifact binds seam digest `7878b7f1…dbdf3`. `field_flat` now stages
+direct `solid_001` with source signature `3e3582da…0b2d`; the seven forest
+Chunks retain the standard empty terrain signature. A repository migration
+rehearsal proved the five pre-existing generated outputs byte-identical before
+committing the real source change.
 
 Minimum final commands:
 
