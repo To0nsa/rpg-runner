@@ -532,6 +532,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
     PrefabPolygonAuthoringController authoring,
   ) {
     final canEditCollision = prefab.kind != PrefabKind.decoration;
+    final hasCommittedCollisionShapes = authoring.state.shapes.isNotEmpty;
     final projection = PrefabPolygonVisualProjection.fromDocument(
       document: document,
       prefab: prefab,
@@ -596,6 +597,11 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
                                 (tool == TerrainPolygonTool.createPolygon ||
                                     tool ==
                                         TerrainPolygonTool.createRectangle)) ||
+                            (authoring.state.draft == null &&
+                                !hasCommittedCollisionShapes &&
+                                (tool == TerrainPolygonTool.moveVertex ||
+                                    tool == TerrainPolygonTool.translateShape ||
+                                    tool == TerrainPolygonTool.insertVertex)) ||
                             (authoring.state.draft != null &&
                                 tool != TerrainPolygonTool.createPolygon &&
                                 tool != TerrainPolygonTool.moveVertex &&

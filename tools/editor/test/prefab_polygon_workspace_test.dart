@@ -173,6 +173,56 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets(
+    'collider-free editable prefabs disable committed-shape scene tools',
+    (tester) async {
+      tester.view.physicalSize = const Size(1800, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final harness = await _buildHarness(
+        document: _currentDocumentWithColliderFreeObstacle(),
+      );
+      addTearDown(harness.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData.dark(),
+          home: Scaffold(
+            body: PrefabCreatorPage(
+              controller: harness.session,
+              initialPrefabKey: 'obstacle',
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.byKey(const ValueKey<String>('prefab_polygon_new_shape')),
+            )
+            .onPressed,
+        isNotNull,
+      );
+      for (final tool in const <String>[
+        'moveVertex',
+        'translateShape',
+        'insertVertex',
+      ]) {
+        expect(
+          tester
+              .widget<ChoiceChip>(
+                find.byKey(ValueKey<String>('prefab_polygon_tool_$tool')),
+              )
+              .onSelected,
+          isNull,
+        );
+      }
+    },
+  );
+
   testWidgets('current route isolates owners and commits half-pixel polygons', (
     tester,
   ) async {
@@ -960,12 +1010,12 @@ void main() {
   );
 }
 
-Future<_Harness> _buildHarness() async {
+Future<_Harness> _buildHarness({PrefabV3Document? document}) async {
   final root = Directory.systemTemp.createTempSync('prefab_stage_page_');
-  final document = _currentDocument();
+  final loadedDocument = document ?? _currentDocument();
   final session = EditorSessionController(
     pluginRegistry: AuthoringPluginRegistry(
-      plugins: <AuthoringDomainPlugin>[_PrefabPlugin(document)],
+      plugins: <AuthoringDomainPlugin>[_PrefabPlugin(loadedDocument)],
     ),
     initialPluginId: PrefabDomainPlugin.pluginId,
     initialWorkspacePath: root.path,
@@ -1081,6 +1131,21 @@ PrefabV3Document _currentDocument() {
         placementCount: 3,
       ),
     ],
+  );
+}
+
+PrefabV3Document _currentDocumentWithColliderFreeObstacle() {
+  final document = _currentDocument();
+  final data = document.data.copyWith(
+    prefabs: document.data.prefabs.map(
+      (prefab) => prefab.prefabKey == 'obstacle'
+          ? prefab.copyWith(collisionShapes: const <TerrainSourceShapeDef>[])
+          : prefab,
+    ),
+  );
+  return document.copyWith(
+    data: data,
+    prefabBaselineContents: PrefabV3FileCodec.encode(data),
   );
 }
 

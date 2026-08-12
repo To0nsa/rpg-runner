@@ -66,10 +66,12 @@ diagnostic, and can recover without reloading the workspace.
 
 ## B) Complete The Prefab Workflow
 
-1. Choose **New polygon** and place five vertices inside the visible `anvil_00`
-   sprite. Place one vertex badly, Undo it once, and Redo it. Confirm each
-   keyboard command changes exactly that one draft vertex and session/source
-   Undo remains untouched.
+1. On a collider-free obstacle such as `anvil_00`, confirm **Move vertex**,
+   **Move shape**, and **Insert vertex** are disabled while **New polygon** and
+   **New rectangle** remain available. Choose **New polygon** and place five
+   vertices inside the visible sprite. Place one vertex badly, Undo it once,
+   and Redo it. Confirm each keyboard command changes exactly that one draft
+   vertex and session/source Undo remains untouched.
 2. Before saving, confirm **Place vertex**, **Move vertex**, and **Insert vertex**
    are available, while **Select**, **Rectangle**, and **Move shape** are
    disabled. Switch back to **Place vertex** after moving one draft vertex and
