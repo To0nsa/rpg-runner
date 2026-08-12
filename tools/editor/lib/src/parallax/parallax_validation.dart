@@ -102,21 +102,12 @@ List<ValidationIssue> validateParallaxDocument(ParallaxDefsDocument document) {
         ValidationIssue(
           severity: ValidationSeverity.error,
           code: 'invalid_revision',
-          message: 'Theme "${theme.parallaxThemeId}" has invalid revision ${theme.revision}.',
+          message:
+              'Theme "${theme.parallaxThemeId}" has invalid revision ${theme.revision}.',
           sourcePath: sourcePath,
         ),
       );
     }
-
-    _validateAssetPath(
-      issues,
-      workspace: workspace,
-      sourcePath: sourcePath,
-      code: 'invalid_ground_material_asset_path',
-      fieldLabel: 'groundMaterialAssetPath',
-      value: theme.groundMaterialAssetPath,
-      ownerLabel: 'Theme "${theme.parallaxThemeId}"',
-    );
 
     if (!_layerOrderingMatches(theme.layers)) {
       issues.add(
@@ -138,7 +129,8 @@ List<ValidationIssue> validateParallaxDocument(ParallaxDefsDocument document) {
           ValidationIssue(
             severity: ValidationSeverity.error,
             code: 'missing_layer_key',
-            message: 'Theme "${theme.parallaxThemeId}" contains a layer without layerKey.',
+            message:
+                'Theme "${theme.parallaxThemeId}" contains a layer without layerKey.',
             sourcePath: sourcePath,
           ),
         );

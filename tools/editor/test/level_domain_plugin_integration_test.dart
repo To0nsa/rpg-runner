@@ -198,18 +198,16 @@ Future<Directory> _createFixtureWorkspace() async {
 ''');
   _writeFile(root.path, 'assets/authoring/level/parallax_defs.json', '''
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "themes": [
     {
       "parallaxThemeId": "field",
       "revision": 1,
-      "groundMaterialAssetPath": "assets/images/parallax/field/ground.png",
       "layers": []
     },
     {
       "parallaxThemeId": "forest",
       "revision": 1,
-      "groundMaterialAssetPath": "assets/images/parallax/forest/ground.png",
       "layers": []
     }
   ]

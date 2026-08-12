@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-const int parallaxSchemaVersion = 1;
+const int parallaxSchemaVersion = 2;
 
 const String _assetsImagesPrefix = 'assets/images/';
 const String _levelRegistryVisualThemeIdPath =
@@ -193,14 +193,6 @@ ParallaxThemeSource? _parseThemeEntry(
     path: defsPath,
     fieldPrefix: fieldPrefix,
   );
-  final groundMaterialAssetPath = _readRequiredAssetPath(
-    entry,
-    field: 'groundMaterialAssetPath',
-    issues: issues,
-    path: defsPath,
-    fieldPrefix: fieldPrefix,
-  );
-
   final rawLayers = entry['layers'];
   if (rawLayers is! List<Object?>) {
     issues.add(
@@ -249,9 +241,7 @@ ParallaxThemeSource? _parseThemeEntry(
     layers.add(layer);
   }
 
-  if (parallaxThemeId.isEmpty ||
-      revision == null ||
-      groundMaterialAssetPath.isEmpty) {
+  if (parallaxThemeId.isEmpty || revision == null) {
     return null;
   }
 
@@ -259,7 +249,6 @@ ParallaxThemeSource? _parseThemeEntry(
   return ParallaxThemeSource(
     parallaxThemeId: parallaxThemeId,
     revision: revision,
-    groundMaterialAssetPath: groundMaterialAssetPath,
     layers: List<ParallaxLayerSource>.unmodifiable(layers),
   );
 }
@@ -414,10 +403,6 @@ String renderCanonicalParallaxDefsJson(List<ParallaxThemeSource> themes) {
       '      "parallaxThemeId": ${jsonEncode(theme.parallaxThemeId)},',
     );
     buffer.writeln('      "revision": ${theme.revision},');
-    buffer.writeln(
-      '      "groundMaterialAssetPath": '
-      '${jsonEncode(theme.groundMaterialAssetPath)},',
-    );
     buffer.writeln('      "layers": [');
     for (var j = 0; j < theme.layers.length; j += 1) {
       final layer = theme.layers[j];
@@ -475,10 +460,6 @@ String renderParallaxThemeDartOutput(List<ParallaxThemeSource> themes) {
       _writeLayerSpec(buffer, layer, indent: '    ');
     }
     buffer.writeln('  ],');
-    buffer.writeln(
-      "  groundMaterialAssetPath: "
-      "'${_escape(_runtimeAssetPath(theme.groundMaterialAssetPath))}',",
-    );
     buffer.writeln('  foregroundLayers: <PixelParallaxLayerSpec>[');
     for (final layer in theme.layers.where(
       (entry) => entry.group == _foregroundGroup,
@@ -778,13 +759,11 @@ class ParallaxThemeSource {
   const ParallaxThemeSource({
     required this.parallaxThemeId,
     required this.revision,
-    required this.groundMaterialAssetPath,
     required this.layers,
   });
 
   final String parallaxThemeId;
   final int revision;
-  final String groundMaterialAssetPath;
   final List<ParallaxLayerSource> layers;
 }
 

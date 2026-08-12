@@ -234,7 +234,6 @@ class UiAssetLifecycle {
 
     return <AssetImage>[
       for (final layer in theme.backgroundLayers) img(layer.assetPath),
-      img(theme.groundMaterialAssetPath),
       for (final layer in theme.foregroundLayers) img(layer.assetPath),
     ];
   }

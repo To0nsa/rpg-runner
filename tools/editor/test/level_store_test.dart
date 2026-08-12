@@ -37,10 +37,7 @@ void main() {
                   ? level.copyWith(
                       displayName: 'Sunny Field',
                       visualThemeId: 'forest',
-                      chunkThemeGroups: const <String>[
-                        'default',
-                        'forest',
-                      ],
+                      chunkThemeGroups: const <String>['default', 'forest'],
                       assembly: const LevelAssemblyDef(
                         loopSegments: true,
                         segments: <LevelAssemblySegmentDef>[
@@ -163,18 +160,16 @@ Future<Directory> _createFixtureWorkspace() async {
 ''');
   _writeFile(root.path, 'assets/authoring/level/parallax_defs.json', '''
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "themes": [
     {
       "parallaxThemeId": "field",
       "revision": 1,
-      "groundMaterialAssetPath": "assets/images/parallax/field/ground.png",
       "layers": []
     },
     {
       "parallaxThemeId": "forest",
       "revision": 1,
-      "groundMaterialAssetPath": "assets/images/parallax/forest/ground.png",
       "layers": []
     }
   ]

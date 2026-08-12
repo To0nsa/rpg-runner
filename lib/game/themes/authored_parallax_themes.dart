@@ -58,7 +58,6 @@ const ParallaxTheme authoredParallaxThemeField = ParallaxTheme(
       yOffset: 0,
     ),
   ],
-  groundMaterialAssetPath: 'parallax/field/Field Layer 09.png',
   foregroundLayers: <PixelParallaxLayerSpec>[
     PixelParallaxLayerSpec(
       assetPath: 'parallax/field/Field Layer 10.png',
@@ -90,7 +89,6 @@ const ParallaxTheme authoredParallaxThemeForest = ParallaxTheme(
       yOffset: 0,
     ),
   ],
-  groundMaterialAssetPath: 'parallax/forest/Forest Layer 04.png',
   foregroundLayers: <PixelParallaxLayerSpec>[
   ],
 );

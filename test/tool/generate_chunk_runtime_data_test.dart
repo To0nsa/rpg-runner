@@ -475,7 +475,7 @@ void main() {
       expect(parallaxOutputFile.existsSync(), isTrue);
       final parallaxOutput = parallaxOutputFile.readAsStringSync();
       expect(parallaxOutput, contains('authoredParallaxThemesById'));
-      expect(parallaxOutput, contains('groundMaterialAssetPath'));
+      expect(parallaxOutput, isNot(contains('groundMaterialAssetPath')));
       expect(
         parallaxOutput,
         contains("assetPath: 'parallax/field/Field Layer 01.png'"),
@@ -1046,12 +1046,11 @@ void _writeLevelDefsWithAssembly(String rootPath) {
 void _writeParallaxDefs(String rootPath) {
   _writeFile(rootPath, 'assets/authoring/level/parallax_defs.json', '''
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "themes": [
     {
       "parallaxThemeId": "field",
       "revision": 1,
-      "groundMaterialAssetPath": "assets/images/parallax/field/Field Layer 09.png",
       "layers": [
         {
           "layerKey": "field_bg_01",
@@ -1076,7 +1075,6 @@ void _writeParallaxDefs(String rootPath) {
     {
       "parallaxThemeId": "forest",
       "revision": 1,
-      "groundMaterialAssetPath": "assets/images/parallax/forest/Forest Layer 09.png",
       "layers": [
         {
           "layerKey": "forest_bg_01",

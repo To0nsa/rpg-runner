@@ -16,7 +16,6 @@ void main() {
         ParallaxThemeDef(
           parallaxThemeId: 'field',
           revision: 1,
-          groundMaterialAssetPath: 'assets/images/parallax/field/ground.png',
           layers: <ParallaxLayerDef>[
             ParallaxLayerDef(
               layerKey: 'field_bg_10',
@@ -65,7 +64,11 @@ void main() {
     expect(duplicated.themes.single.layers, hasLength(3));
 
     final duplicateKey = duplicated.themes.single.layers
-        .firstWhere((layer) => layer.layerKey != 'field_bg_10' && layer.group == parallaxGroupBackground)
+        .firstWhere(
+          (layer) =>
+              layer.layerKey != 'field_bg_10' &&
+              layer.group == parallaxGroupBackground,
+        )
         .layerKey;
     final updated =
         plugin.applyEdit(
@@ -83,7 +86,9 @@ void main() {
             as ParallaxDefsDocument;
     expect(updated.themes.single.revision, 4);
     expect(
-      updated.themes.single.layers.any((layer) => layer.layerKey == 'field_bg_20'),
+      updated.themes.single.layers.any(
+        (layer) => layer.layerKey == 'field_bg_20',
+      ),
       isTrue,
     );
 
@@ -118,7 +123,9 @@ void main() {
             as ParallaxDefsDocument;
     expect(removed.themes.single.revision, 6);
     expect(
-      removed.themes.single.layers.any((layer) => layer.layerKey == 'field_bg_20'),
+      removed.themes.single.layers.any(
+        (layer) => layer.layerKey == 'field_bg_20',
+      ),
       isFalse,
     );
   });
@@ -134,7 +141,6 @@ void main() {
           ParallaxThemeDef(
             parallaxThemeId: 'field',
             revision: 0,
-            groundMaterialAssetPath: 'assets/images/missing_ground.png',
             layers: <ParallaxLayerDef>[
               ParallaxLayerDef(
                 layerKey: 'dup_layer',
@@ -164,12 +170,11 @@ void main() {
         parallaxThemeIdByLevelId: const <String, String>{'field': 'field'},
       );
 
-      final codes = validateParallaxDocument(document)
-          .map((issue) => issue.code)
-          .toSet();
+      final codes = validateParallaxDocument(
+        document,
+      ).map((issue) => issue.code).toSet();
 
       expect(codes, contains('invalid_revision'));
-      expect(codes, contains('invalid_ground_material_asset_path'));
       expect(codes, contains('duplicate_layer_key'));
       expect(codes, contains('invalid_layer_asset_path'));
       expect(codes, contains('invalid_layer_group'));

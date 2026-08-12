@@ -18,7 +18,6 @@ void main() {
       'assets/images/parallax/forest/Forest Layer 01.png',
       'assets/images/parallax/forest/Forest Layer 02.png',
       'assets/images/parallax/forest/Forest Layer 03.png',
-      'assets/images/parallax/forest/Forest Layer 04.png',
     ]);
   });
 

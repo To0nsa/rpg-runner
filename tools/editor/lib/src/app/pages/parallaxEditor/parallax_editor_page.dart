@@ -28,8 +28,6 @@ class ParallaxEditorPage extends StatefulWidget {
 
 class _ParallaxEditorPageState extends State<ParallaxEditorPage>
     implements EditorPageLocalDraftState {
-  final TextEditingController _groundMaterialController =
-      TextEditingController();
   final TextEditingController _layerKeyController = TextEditingController();
   final TextEditingController _assetPathController = TextEditingController();
   final TextEditingController _parallaxFactorController =
@@ -49,13 +47,7 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
       return false;
     }
     final activeTheme = scene.activeTheme;
-    if (activeTheme == null) {
-      return _groundMaterialController.text.trim().isNotEmpty;
-    }
-    if (_groundMaterialController.text.trim() !=
-        activeTheme.groundMaterialAssetPath) {
-      return true;
-    }
+    if (activeTheme == null) return false;
     final layer = _selectedLayer(activeTheme);
     if (layer == null) {
       return false;
@@ -82,7 +74,6 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
 
   @override
   void dispose() {
-    _groundMaterialController.dispose();
     _layerKeyController.dispose();
     _assetPathController.dispose();
     _parallaxFactorController.dispose();
@@ -246,14 +237,7 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
                   ? null
                   : () {
                       widget.controller.applyCommand(
-                        AuthoringCommand(
-                          kind: 'ensure_active_theme',
-                          payload: <String, Object?>{
-                            'groundMaterialAssetPath': _groundMaterialController
-                                .text
-                                .trim(),
-                          },
-                        ),
+                        AuthoringCommand(kind: 'ensure_active_theme'),
                       );
                     },
               icon: const Icon(Icons.add),
@@ -436,33 +420,6 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
       title: 'Inspector',
       child: ListView(
         children: [
-          TextField(
-            controller: _groundMaterialController,
-            decoration: const InputDecoration(
-              labelText: 'groundMaterialAssetPath',
-              border: OutlineInputBorder(),
-              isDense: true,
-            ),
-          ),
-          const SizedBox(height: 8),
-          FilledButton(
-            onPressed: activeTheme == null
-                ? null
-                : () {
-                    widget.controller.applyCommand(
-                      AuthoringCommand(
-                        kind: 'update_ground_material_asset_path',
-                        payload: <String, Object?>{
-                          'groundMaterialAssetPath': _groundMaterialController
-                              .text
-                              .trim(),
-                        },
-                      ),
-                    );
-                  },
-            child: const Text('Apply Ground'),
-          ),
-          const SizedBox(height: 16),
           Text(
             selectedLayer == null
                 ? 'Layer'
@@ -665,8 +622,6 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
     final nextParallaxThemeId = activeTheme?.parallaxThemeId;
     if (_selectedParallaxThemeId != nextParallaxThemeId) {
       _selectedParallaxThemeId = nextParallaxThemeId;
-      _groundMaterialController.text =
-          activeTheme?.groundMaterialAssetPath ?? '';
       _selectedLayerKey = activeTheme?.layers.isEmpty ?? true
           ? null
           : activeTheme!.layers.first.layerKey;
@@ -682,15 +637,9 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
     }
 
     if (activeTheme == null) {
-      _groundMaterialController.text = '';
       _clearLayerInspector();
       _selectedLayerKey = null;
       return;
-    }
-
-    if (_groundMaterialController.text != activeTheme.groundMaterialAssetPath &&
-        !hasLocalDraftChanges) {
-      _groundMaterialController.text = activeTheme.groundMaterialAssetPath;
     }
 
     if (_selectedLayerKey == null ||
@@ -797,15 +746,8 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
         kind: 'create_layer',
         payload: <String, Object?>{
           'group':
-              _selectedLayer(
-                activeTheme ??
-                    const ParallaxThemeDef(
-                      parallaxThemeId: '',
-                      revision: 1,
-                      groundMaterialAssetPath: '',
-                      layers: <ParallaxLayerDef>[],
-                    ),
-              )?.group ??
+              (activeTheme == null ? null : _selectedLayer(activeTheme))
+                  ?.group ??
               parallaxGroupBackground,
         },
       ),

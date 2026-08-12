@@ -2,8 +2,9 @@ import 'package:flutter/foundation.dart';
 
 import '../domain/authoring_types.dart';
 
-const int parallaxSchemaVersion = 1;
-const String parallaxDefsSourcePath = 'assets/authoring/level/parallax_defs.json';
+const int parallaxSchemaVersion = 2;
+const String parallaxDefsSourcePath =
+    'assets/authoring/level/parallax_defs.json';
 const String parallaxGroupBackground = 'background';
 const String parallaxGroupForeground = 'foreground';
 const double minParallaxFactor = 0.0;
@@ -83,26 +84,21 @@ class ParallaxThemeDef {
   const ParallaxThemeDef({
     required this.parallaxThemeId,
     required this.revision,
-    required this.groundMaterialAssetPath,
     required this.layers,
   });
 
   final String parallaxThemeId;
   final int revision;
-  final String groundMaterialAssetPath;
   final List<ParallaxLayerDef> layers;
 
   ParallaxThemeDef copyWith({
     String? parallaxThemeId,
     int? revision,
-    String? groundMaterialAssetPath,
     List<ParallaxLayerDef>? layers,
   }) {
     return ParallaxThemeDef(
       parallaxThemeId: parallaxThemeId ?? this.parallaxThemeId,
       revision: revision ?? this.revision,
-      groundMaterialAssetPath:
-          groundMaterialAssetPath ?? this.groundMaterialAssetPath,
       layers: layers ?? this.layers,
     );
   }
@@ -114,7 +110,6 @@ class ParallaxThemeDef {
     return ParallaxThemeDef(
       parallaxThemeId: parallaxThemeId.trim(),
       revision: revision,
-      groundMaterialAssetPath: _normalizePath(groundMaterialAssetPath),
       layers: List<ParallaxLayerDef>.unmodifiable(sortedLayers),
     );
   }
@@ -124,7 +119,6 @@ class ParallaxThemeDef {
     return <String, Object?>{
       'parallaxThemeId': normalized.parallaxThemeId,
       'revision': normalized.revision,
-      'groundMaterialAssetPath': normalized.groundMaterialAssetPath,
       'layers': normalized.layers
           .map((layer) => layer.toJson())
           .toList(growable: false),
@@ -189,7 +183,8 @@ class ParallaxDefsDocument extends AuthoringDocument {
           ? null
           : (activeLevelId ?? this.activeLevelId),
       levelOptionSource: levelOptionSource ?? this.levelOptionSource,
-      parallaxThemeIdByLevelId: parallaxThemeIdByLevelId ?? this.parallaxThemeIdByLevelId,
+      parallaxThemeIdByLevelId:
+          parallaxThemeIdByLevelId ?? this.parallaxThemeIdByLevelId,
       loadIssues: loadIssues ?? this.loadIssues,
       operationIssues: clearOperationIssues
           ? const <ValidationIssue>[]
@@ -254,28 +249,23 @@ List<String> levelIdsUsingParallaxThemeId(
   if (parallaxThemeId == null || parallaxThemeId.isEmpty) {
     return const <String>[];
   }
-  final levelIds = parallaxThemeIdByLevelId.entries
-      .where((entry) => entry.value == parallaxThemeId)
-      .map((entry) => entry.key)
-      .toList(growable: false)
-    ..sort();
+  final levelIds =
+      parallaxThemeIdByLevelId.entries
+          .where((entry) => entry.value == parallaxThemeId)
+          .map((entry) => entry.key)
+          .toList(growable: false)
+        ..sort();
   return List<String>.unmodifiable(levelIds);
 }
 
-int compareParallaxThemesDeterministic(
-  ParallaxThemeDef a,
-  ParallaxThemeDef b,
-) {
+int compareParallaxThemesDeterministic(ParallaxThemeDef a, ParallaxThemeDef b) {
   return a.parallaxThemeId.compareTo(b.parallaxThemeId);
 }
 
-int compareParallaxLayersDeterministic(
-  ParallaxLayerDef a,
-  ParallaxLayerDef b,
-) {
-  final groupCompare = parallaxGroupOrder(a.group).compareTo(
-    parallaxGroupOrder(b.group),
-  );
+int compareParallaxLayersDeterministic(ParallaxLayerDef a, ParallaxLayerDef b) {
+  final groupCompare = parallaxGroupOrder(
+    a.group,
+  ).compareTo(parallaxGroupOrder(b.group));
   if (groupCompare != 0) {
     return groupCompare;
   }
@@ -325,12 +315,10 @@ String renderCanonicalParallaxDefsJson(Iterable<ParallaxThemeDef> themes) {
   for (var i = 0; i < sortedThemes.length; i += 1) {
     final theme = sortedThemes[i];
     buffer.writeln('    {');
-    buffer.writeln('      "parallaxThemeId": ${_quoted(theme.parallaxThemeId)},');
-    buffer.writeln('      "revision": ${theme.revision},');
     buffer.writeln(
-      '      "groundMaterialAssetPath": '
-      '${_quoted(theme.groundMaterialAssetPath)},',
+      '      "parallaxThemeId": ${_quoted(theme.parallaxThemeId)},',
     );
+    buffer.writeln('      "revision": ${theme.revision},');
     buffer.writeln('      "layers": [');
     for (var j = 0; j < theme.layers.length; j += 1) {
       final layer = theme.layers[j];
@@ -386,8 +374,7 @@ bool parallaxThemeEquals(
 }) {
   final left = a.normalized();
   final right = b.normalized();
-  if (left.parallaxThemeId != right.parallaxThemeId ||
-      left.groundMaterialAssetPath != right.groundMaterialAssetPath) {
+  if (left.parallaxThemeId != right.parallaxThemeId) {
     return false;
   }
   if (!ignoreRevision && left.revision != right.revision) {
@@ -409,8 +396,6 @@ String _normalizePath(String value) {
 }
 
 String _quoted(String value) {
-  final escaped = value
-      .replaceAll('\\', '\\\\')
-      .replaceAll('"', '\\"');
+  final escaped = value.replaceAll('\\', '\\\\').replaceAll('"', '\\"');
   return '"$escaped"';
 }

@@ -867,7 +867,6 @@ class _FakeParallaxPlugin implements AuthoringDomainPlugin {
         ParallaxThemeDef(
           parallaxThemeId: 'field',
           revision: 1,
-          groundMaterialAssetPath: 'assets/images/parallax/field/ground.png',
           layers: <ParallaxLayerDef>[
             ParallaxLayerDef(
               layerKey: 'field_bg_10',

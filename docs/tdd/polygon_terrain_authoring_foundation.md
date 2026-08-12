@@ -79,6 +79,7 @@ Final Phase 4 acceptance work remains tracked in
 | Strict chunk-v2 file structure, canonical serialization, and ownership planning | editor `ChunkV2FileData` / `ChunkV2FileCodec` / `ChunkStore.buildV2SavePlan` | migration facade delegation plus normal complete-current-tree load, pending plans, rollback-safe apply, and exact reload |
 | Chunk-v2 plugin validation, mutation, and lifecycle policy | editor `ChunkV2Document` / `ChunkV2CollisionCommitPolicy` / `ChunkV2MetadataCommitPolicy` / `ChunkV2CompositionCommitPolicy` / `ChunkV2LifecycleCommitPolicy` / `ChunkDomainPlugin` | normal strict current-source composition; complete Core/editor validation; freshness/order/revision enforcement; typed polygon, metadata, composition, lifecycle commits; transactional export |
 | Chunk polygon route-local projection | editor `ChunkPolygonAuthoringController` / `ChunkPolygonSceneSurface` / `ChunkPolygonWorkspace` | normal complete-v2 routing, active-level owner isolation, tools, snap, bounds, diagnostics, keyboard, rejection, history, compiled-edge inspection, actor-terrain, and marker-placement overlays; legacy/missing source selects no ground/gap workflow |
+| Chunk level visual preview | editor `ChunkV2Document` / `ChunkV2Scene` / `ChunkPolygonLevelVisualSource` | `ChunkDomainPlugin` reads the parallax theme set, resolves the active level's `visualThemeId`, and renders its background/foreground around read-only terrain material art selected by direct polygon `materialKey`; it adds no source mutation or gameplay authority |
 | Chunk actor terrain projection | editor `ChunkV2ActorTerrainProjection` | Core surface extraction; Éloïse/Grojib/Hashash eligibility; published Grojib/Hashash graphs; Unoco solid/local-hover evidence; Derf 15-degree/32-pixel perch evidence; no player/flight graph or source mutation |
 | Chunk marker contract and placement projection | editor `chunk_v2_marker_contract.dart` / `ChunkV2MarkerPlacementProjection` | immutable level ground context, staged marker validation, exact Phase 3 enemy placement evidence, Hashash deferral, authored-order/stable-key retention, and zero RNG/source mutation |
 | Scheduler-aware chunk seam analysis | editor `chunk_v2_seam_analysis.dart` | immutable `LevelDef` snapshot, canonical compiled boundary signatures, runtime-contract adjacency enumeration, global staged validation, and read-only compatible/failing neighbor evidence |
@@ -89,6 +90,14 @@ Final Phase 4 acceptance work remains tracked in
 Core has no dependency on editor models, JSON, widgets, or filesystem state.
 The editor depends on Core through a one-way local package dependency and does
 not reimplement geometric predicates.
+
+The Chunk polygon workspace loads parallax themes only as preview input. Its
+plugin snapshot resolves the active `LevelDef.visualThemeId` to one theme, then
+the route draws ordered background layers, collision-polygon terrain material
+art, and foreground layers in separate read-only z-bands beneath and above the
+editable overlays. Missing preview assets or an unresolved theme leave the
+authoring surface usable; they neither change Chunk validation nor permit an
+editor export to alter parallax or terrain source.
 
 ## Chunk V2 Existing-Owner Metadata Contract
 
@@ -1091,6 +1100,12 @@ chunk seam. `StagedTerrain` is the only terrain renderer: the old
 `GroundSurface`, `GroundBandParallaxForeground`, `TemporaryFloorMask`, and
 static-solid debug rectangle paths are deleted, and their obsolete snapshot
 fields no longer cross the Core/Game boundary.
+
+Parallax themes do not select or render ground materials. They remain visual
+layer metadata only; terrain material selection belongs exclusively to the
+published terrain snapshot and `TerrainMaterialRegistry`. The parallax
+authoring schema is v2 and contains only theme identity/revision plus ordered
+background or foreground layer definitions.
 
 The shared pure-Dart `authoring-polygons-v1` contract hashes source before
 placement expansion. A UTF-8 length-prefixed record contains the owner domain

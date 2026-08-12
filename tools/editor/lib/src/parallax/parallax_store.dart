@@ -243,14 +243,6 @@ class ParallaxStore {
       prefix: prefix,
       issues: issues,
     );
-    final groundMaterialAssetPath = _readRequiredString(
-      raw,
-      field: 'groundMaterialAssetPath',
-      sourcePath: sourcePath,
-      prefix: prefix,
-      issues: issues,
-    );
-
     final rawLayers = raw['layers'];
     if (rawLayers is! List<Object?>) {
       issues.add(
@@ -302,16 +294,13 @@ class ParallaxStore {
       layers.add(layer);
     }
 
-    if (parallaxThemeId.isEmpty ||
-        revision == null ||
-        groundMaterialAssetPath.isEmpty) {
+    if (parallaxThemeId.isEmpty || revision == null) {
       return null;
     }
 
     return ParallaxThemeDef(
       parallaxThemeId: parallaxThemeId,
       revision: revision,
-      groundMaterialAssetPath: groundMaterialAssetPath,
       layers: List<ParallaxLayerDef>.unmodifiable(layers),
     ).normalized();
   }

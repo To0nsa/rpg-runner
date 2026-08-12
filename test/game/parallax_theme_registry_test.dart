@@ -5,7 +5,6 @@ void main() {
   test('resolves generated authored theme content for field', () {
     final theme = ParallaxThemeRegistry.forParallaxThemeId('field');
 
-    expect(theme.groundMaterialAssetPath, 'parallax/field/Field Layer 09.png');
     expect(
       theme.backgroundLayers.map((layer) => layer.assetPath).toList(),
       <String>[
@@ -32,18 +31,13 @@ void main() {
       'missing-theme',
     );
 
-    expect(
-      fallbackTheme.groundMaterialAssetPath,
-      'parallax/field/Field Layer 09.png',
-    );
+    expect(fallbackTheme.backgroundLayers, isNotEmpty);
   });
 
   test('null theme id resolves to default authored theme', () {
     expect(
-      ParallaxThemeRegistry.maybeForParallaxThemeId(
-        null,
-      )?.groundMaterialAssetPath,
-      'parallax/field/Field Layer 09.png',
+      ParallaxThemeRegistry.maybeForParallaxThemeId(null)?.backgroundLayers,
+      isNotEmpty,
     );
   });
 }

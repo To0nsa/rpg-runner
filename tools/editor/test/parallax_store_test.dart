@@ -28,7 +28,6 @@ void main() {
         (theme) => theme.parallaxThemeId == 'field',
       );
       final editedTheme = fieldTheme.copyWith(
-        groundMaterialAssetPath: 'assets/images/parallax/field/ground_alt.png',
         layers: <ParallaxLayerDef>[
           const ParallaxLayerDef(
             layerKey: 'field_fg_20',
@@ -58,16 +57,13 @@ void main() {
       final savedRaw = File(
         p.join(fixtureRoot.path, ParallaxStore.defsPath),
       ).readAsStringSync();
+      expect(savedRaw, isNot(contains('groundMaterialAssetPath')));
       final savedJson = jsonDecode(savedRaw) as Map<String, Object?>;
       expect(savedJson['schemaVersion'], parallaxSchemaVersion);
       final savedThemes = savedJson['themes'] as List<Object?>;
       final savedFieldTheme = savedThemes
           .cast<Map<String, Object?>>()
           .firstWhere((theme) => theme['parallaxThemeId'] == 'field');
-      expect(
-        savedFieldTheme['groundMaterialAssetPath'],
-        'assets/images/parallax/field/ground_alt.png',
-      );
       final savedLayers = savedFieldTheme['layers'] as List<Object?>;
       expect(
         (savedLayers.first as Map<String, Object?>)['layerKey'],
@@ -86,10 +82,6 @@ void main() {
         (theme) => theme.parallaxThemeId == 'field',
       );
       expect(reloadedFieldTheme.layers.last.layerKey, 'field_fg_20');
-      expect(
-        reloadedFieldTheme.groundMaterialAssetPath,
-        'assets/images/parallax/field/ground_alt.png',
-      );
     } finally {
       fixtureRoot.deleteSync(recursive: true);
     }
@@ -170,12 +162,11 @@ Future<Directory> _createFixtureWorkspace() async {
 ''');
   _writeFile(root.path, 'assets/authoring/level/parallax_defs.json', '''
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "themes": [
     {
       "parallaxThemeId": "field",
       "revision": 1,
-      "groundMaterialAssetPath": "assets/images/parallax/field/ground.png",
       "layers": [
         {
           "layerKey": "field_bg_10",
@@ -200,7 +191,6 @@ Future<Directory> _createFixtureWorkspace() async {
     {
       "parallaxThemeId": "forest",
       "revision": 1,
-      "groundMaterialAssetPath": "assets/images/parallax/forest/ground.png",
       "layers": [
         {
           "layerKey": "forest_bg_10",
@@ -217,12 +207,9 @@ Future<Directory> _createFixtureWorkspace() async {
 }
 ''');
   for (final assetPath in <String>[
-    'assets/images/parallax/field/ground.png',
-    'assets/images/parallax/field/ground_alt.png',
     'assets/images/parallax/field/bg_10.png',
     'assets/images/parallax/field/fg_10.png',
     'assets/images/parallax/field/fg_20.png',
-    'assets/images/parallax/forest/ground.png',
     'assets/images/parallax/forest/bg_10.png',
   ]) {
     _writeBinaryFile(root.path, assetPath);

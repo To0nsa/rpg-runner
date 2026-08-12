@@ -130,8 +130,8 @@ Parallax route now exists as a dedicated theme-authoring workflow:
   - theme-scoped parallax layer set authoring reusable across levels
   - deterministic level -> theme resolution via runtime level registry
   - per-layer asset/speed/depth ordering controls
-  - render-side ground material selection only; gameplay ground authority stays
-    in chunk/core systems
+  - terrain materials own ground visuals; gameplay ground authority stays in
+    chunk/core systems
 - Chunk workflow:
   - tile paint
   - ground floor surface authoring

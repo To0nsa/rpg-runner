@@ -208,9 +208,8 @@ maintainability concerns.
 - active level selection resolves the current `parallaxThemeId` via
   `packages/runner_core/lib/levels/level_registry.dart`; multiple levels may
   reuse the same authored theme
-- `groundMaterialAssetPath` belongs to render/theme selection only; gameplay
-  ground geometry, collision, traversal, spawn, and streaming authority remain
-  in chunk/core systems
+- terrain materials own ground visuals, geometry, collision, traversal, spawn,
+  and streaming; parallax themes must not define a ground material
 - keep deterministic theme/layer ordering, canonical numeric formatting, and
   validation/export gating in the plugin/store path instead of page-local logic
 

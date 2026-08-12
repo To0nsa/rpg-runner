@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
@@ -10,7 +9,6 @@ import '../../../../parallax/parallax_domain_models.dart';
 import '../../shared/editor_scene_view_utils.dart';
 import '../../shared/editor_scene_viewport_frame.dart';
 import '../../shared/editor_zoom_controls.dart';
-import '../../shared/ground_material_render_rules.dart';
 import '../../shared/scene_input_utils.dart';
 
 class ParallaxPreviewView extends StatefulWidget {
@@ -35,8 +33,6 @@ class _ParallaxPreviewViewState extends State<ParallaxPreviewView> {
   static const double _maxCameraX = 2048.0;
 
   final EditorUiImageCache _imageCache = EditorUiImageCache();
-  final Map<String, ui.Rect> _groundMaterialSrcRectsByAbsolutePath =
-      <String, ui.Rect>{};
   double _zoom = 1.0;
   double _cameraX = 0.0;
   bool _ctrlPanActive = false;
@@ -142,9 +138,6 @@ class _ParallaxPreviewViewState extends State<ParallaxPreviewView> {
                           theme: theme,
                           zoom: _zoom,
                           cameraX: _cameraX,
-                          groundMaterialSourceRect: _groundMaterialSrcRectFor(
-                            theme,
-                          ),
                         ),
                       ),
                     ),
@@ -157,7 +150,9 @@ class _ParallaxPreviewViewState extends State<ParallaxPreviewView> {
                             decoration: BoxDecoration(
                               color: const Color(0xCC101820),
                               borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: const Color(0x334A6074)),
+                              border: Border.all(
+                                color: const Color(0x334A6074),
+                              ),
                             ),
                             child: const Padding(
                               padding: EdgeInsets.symmetric(
@@ -198,24 +193,13 @@ class _ParallaxPreviewViewState extends State<ParallaxPreviewView> {
     }
     final loadGeneration = ++_loadGeneration;
     final absolutePaths = <String>{
-      _absolutePath(theme.groundMaterialAssetPath),
       ...theme.layers.map((layer) => _absolutePath(layer.assetPath)),
     }.toList(growable: false);
     await Future.wait(
-      absolutePaths.map((absolutePath) => _imageCache.ensureLoaded(absolutePath)),
+      absolutePaths.map(
+        (absolutePath) => _imageCache.ensureLoaded(absolutePath),
+      ),
     );
-    final groundMaterialAbsolutePath = _absolutePath(theme.groundMaterialAssetPath);
-    final groundImage = _imageCache.imageFor(groundMaterialAbsolutePath);
-    if (groundImage != null &&
-        !_groundMaterialSrcRectsByAbsolutePath.containsKey(
-          groundMaterialAbsolutePath,
-        )) {
-      final srcRect = await detectGroundMaterialSourceRectForPreview(groundImage);
-      if (!mounted || loadGeneration != _loadGeneration) {
-        return;
-      }
-      _groundMaterialSrcRectsByAbsolutePath[groundMaterialAbsolutePath] = srcRect;
-    }
     if (!mounted || loadGeneration != _loadGeneration) {
       return;
     }
@@ -282,11 +266,6 @@ class _ParallaxPreviewViewState extends State<ParallaxPreviewView> {
   String _absolutePath(String relativePath) {
     return p.normalize(p.join(widget.workspaceRootPath, relativePath));
   }
-
-  ui.Rect? _groundMaterialSrcRectFor(ParallaxThemeDef theme) {
-    final groundMaterialAbsolutePath = _absolutePath(theme.groundMaterialAssetPath);
-    return _groundMaterialSrcRectsByAbsolutePath[groundMaterialAbsolutePath];
-  }
 }
 
 class _ParallaxPreviewPainter extends CustomPainter {
@@ -297,7 +276,6 @@ class _ParallaxPreviewPainter extends CustomPainter {
     required this.theme,
     required this.zoom,
     required this.cameraX,
-    required this.groundMaterialSourceRect,
   });
 
   final String workspaceRootPath;
@@ -306,27 +284,15 @@ class _ParallaxPreviewPainter extends CustomPainter {
   final ParallaxThemeDef theme;
   final double zoom;
   final double cameraX;
-  final ui.Rect? groundMaterialSourceRect;
 
   @override
   void paint(Canvas canvas, Size size) {
     final backgroundPaint = Paint()
-      ..shader = ui.Gradient.linear(
-        Offset.zero,
-        Offset(0, size.height),
-        const [Color(0xFF17242C), Color(0xFF0D141A)],
-      );
+      ..shader = ui.Gradient.linear(Offset.zero, Offset(0, size.height), const [
+        Color(0xFF17242C),
+        Color(0xFF0D141A),
+      ]);
     canvas.drawRect(Offset.zero & size, backgroundPaint);
-
-    final groundBandHeight = resolveGroundMaterialBandHeight(
-      materialSourceRect: groundMaterialSourceRect,
-      zoom: zoom,
-      maxHeight: size.height,
-    );
-    final groundBandRect = buildViewportBottomGroundBandRect(
-      viewportSize: size,
-      groundBandHeight: groundBandHeight,
-    );
 
     _paintLayers(
       canvas,
@@ -334,11 +300,9 @@ class _ParallaxPreviewPainter extends CustomPainter {
       layers: theme.layers
           .where((layer) => layer.group == parallaxGroupBackground)
           .toList(growable: false),
-      bottomAnchorY: groundBandRect.top,
+      bottomAnchorY: size.height,
       clipRect: Offset.zero & size,
     );
-
-    _paintGround(canvas, groundBandRect: groundBandRect);
 
     _paintLayers(
       canvas,
@@ -346,8 +310,8 @@ class _ParallaxPreviewPainter extends CustomPainter {
       layers: theme.layers
           .where((layer) => layer.group == parallaxGroupForeground)
           .toList(growable: false),
-      bottomAnchorY: groundBandRect.bottom,
-      clipRect: groundBandRect,
+      bottomAnchorY: size.height,
+      clipRect: Offset.zero & size,
     );
 
     final borderPaint = Paint()
@@ -355,50 +319,6 @@ class _ParallaxPreviewPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.0;
     canvas.drawRect(Offset.zero & size, borderPaint);
-  }
-
-  void _paintGround(Canvas canvas, {required Rect groundBandRect}) {
-    final image = _resolveImage(theme.groundMaterialAssetPath);
-    final materialSourceRect = groundMaterialSourceRect;
-    if (image == null || materialSourceRect == null) {
-      canvas.drawRect(
-        groundBandRect,
-        Paint()
-          ..shader = ui.Gradient.linear(
-            groundBandRect.topCenter,
-            groundBandRect.bottomCenter,
-            const [Color(0xFF5D6D3D), Color(0xFF243018)],
-          ),
-      );
-      return;
-    }
-
-    final tileWidth = image.width * zoom;
-    if (tileWidth <= 0 || groundBandRect.height <= 0) {
-      return;
-    }
-    final scroll = cameraX * zoom;
-    final startX = _positiveMod(-scroll, tileWidth);
-    final paint = Paint()..filterQuality = FilterQuality.none;
-    canvas.save();
-    canvas.clipRect(groundBandRect);
-    for (var x = startX - tileWidth;
-        x < groundBandRect.width + tileWidth;
-        x += tileWidth) {
-      final dstRect = Rect.fromLTWH(
-        x,
-        groundBandRect.top,
-        tileWidth,
-        groundBandRect.height,
-      );
-      canvas.drawImageRect(
-        image,
-        materialSourceRect,
-        dstRect,
-        paint,
-      );
-    }
-    canvas.restore();
   }
 
   void _paintLayers(
@@ -429,11 +349,7 @@ class _ParallaxPreviewPainter extends CustomPainter {
       );
       final scroll = cameraX * parallaxFactor * zoom;
       final startX = _positiveMod(-scroll, tileWidth);
-      final topY = resolveBottomAnchoredLayerTopY(
-        bottomAnchorY: bottomAnchorY,
-        layerHeight: tileHeight,
-        yOffset: layer.yOffset * zoom,
-      );
+      final topY = bottomAnchorY - tileHeight + (layer.yOffset * zoom);
       final paint = Paint()
         ..filterQuality = FilterQuality.none
         ..color = Color.fromRGBO(
@@ -442,7 +358,11 @@ class _ParallaxPreviewPainter extends CustomPainter {
           255,
           layer.opacity.clamp(minOpacity, maxOpacity),
         );
-      for (var x = startX - tileWidth; x < size.width + tileWidth; x += tileWidth) {
+      for (
+        var x = startX - tileWidth;
+        x < size.width + tileWidth;
+        x += tileWidth
+      ) {
         final dstRect = Rect.fromLTWH(x, topY, tileWidth, tileHeight);
         canvas.drawImageRect(
           image,
@@ -456,7 +376,9 @@ class _ParallaxPreviewPainter extends CustomPainter {
   }
 
   ui.Image? _resolveImage(String sourceImagePath) {
-    final absolutePath = p.normalize(p.join(workspaceRootPath, sourceImagePath));
+    final absolutePath = p.normalize(
+      p.join(workspaceRootPath, sourceImagePath),
+    );
     return imageCache.imageFor(absolutePath);
   }
 
@@ -465,7 +387,6 @@ class _ParallaxPreviewPainter extends CustomPainter {
     return oldDelegate.theme != theme ||
         oldDelegate.zoom != zoom ||
         oldDelegate.cameraX != cameraX ||
-        oldDelegate.groundMaterialSourceRect != groundMaterialSourceRect ||
         oldDelegate.loadedImageCount != loadedImageCount;
   }
 }

@@ -10,7 +10,9 @@ import 'package:runner_editor/src/session/editor_session_controller.dart';
 import 'package:runner_editor/src/workspace/editor_workspace.dart';
 
 void main() {
-  testWidgets('parallax editor switches levels and edits layers', (tester) async {
+  testWidgets('parallax editor switches levels and edits layers', (
+    tester,
+  ) async {
     await tester.binding.setSurfaceSize(const Size(1800, 1200));
     addTearDown(() async {
       await tester.binding.setSurfaceSize(null);
@@ -83,18 +85,6 @@ void main() {
     scene = controller.scene as ParallaxScene;
     expect(scene.activeTheme?.layers.length, 2);
 
-    await tester.enterText(
-      _textFieldByLabel('groundMaterialAssetPath').first,
-      'assets/images/parallax/forest/ground_alt.png',
-    );
-    await tester.tap(find.text('Apply Ground'));
-    await _flush(tester);
-
-    scene = controller.scene as ParallaxScene;
-    expect(
-      scene.activeTheme?.groundMaterialAssetPath,
-      'assets/images/parallax/forest/ground_alt.png',
-    );
     expect(controller.pendingChanges.hasChanges, isTrue);
   });
 }
@@ -105,7 +95,6 @@ const ParallaxDefsDocument _initialDocument = ParallaxDefsDocument(
     ParallaxThemeDef(
       parallaxThemeId: 'field',
       revision: 1,
-      groundMaterialAssetPath: 'assets/images/parallax/field/ground.png',
       layers: <ParallaxLayerDef>[
         ParallaxLayerDef(
           layerKey: 'field_bg_10',
@@ -121,7 +110,6 @@ const ParallaxDefsDocument _initialDocument = ParallaxDefsDocument(
     ParallaxThemeDef(
       parallaxThemeId: 'forest',
       revision: 1,
-      groundMaterialAssetPath: 'assets/images/parallax/forest/ground.png',
       layers: <ParallaxLayerDef>[
         ParallaxLayerDef(
           layerKey: 'forest_bg_10',
@@ -139,7 +127,10 @@ const ParallaxDefsDocument _initialDocument = ParallaxDefsDocument(
   availableLevelIds: <String>['field', 'forest'],
   activeLevelId: 'field',
   levelOptionSource: 'test',
-  parallaxThemeIdByLevelId: <String, String>{'field': 'field', 'forest': 'forest'},
+  parallaxThemeIdByLevelId: <String, String>{
+    'field': 'field',
+    'forest': 'forest',
+  },
 );
 
 class _InMemoryParallaxPlugin implements AuthoringDomainPlugin {

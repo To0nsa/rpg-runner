@@ -1,10 +1,9 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "themes": [
     {
       "parallaxThemeId": "field",
       "revision": 1,
-      "groundMaterialAssetPath": "assets/images/parallax/field/Field Layer 09.png",
       "layers": [
         {
           "layerKey": "field_bg_01",
@@ -92,7 +91,6 @@
     {
       "parallaxThemeId": "forest",
       "revision": 2,
-      "groundMaterialAssetPath": "assets/images/parallax/forest/Forest Layer 04.png",
       "layers": [
         {
           "layerKey": "forest_bg_01",

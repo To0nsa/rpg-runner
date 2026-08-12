@@ -34,7 +34,9 @@ class ParallaxDomainPlugin implements AuthoringDomainPlugin {
   @override
   EditableScene buildEditableScene(AuthoringDocument document) {
     final parallaxDocument = _asParallaxDocument(document);
-    final activeParallaxThemeId = resolveActiveParallaxThemeId(parallaxDocument);
+    final activeParallaxThemeId = resolveActiveParallaxThemeId(
+      parallaxDocument,
+    );
     final activeTheme = findParallaxThemeById(
       parallaxDocument.themes,
       activeParallaxThemeId,
@@ -67,9 +69,7 @@ class ParallaxDomainPlugin implements AuthoringDomainPlugin {
       case 'set_active_level':
         return _setActiveLevel(parallaxDocument, command.payload);
       case 'ensure_active_theme':
-        return _ensureActiveTheme(parallaxDocument, command.payload);
-      case 'update_ground_material_asset_path':
-        return _updateGroundMaterialAssetPath(parallaxDocument, command.payload);
+        return _ensureActiveTheme(parallaxDocument);
       case 'create_layer':
         return _createLayer(parallaxDocument, command.payload);
       case 'duplicate_layer':
@@ -101,7 +101,10 @@ class ParallaxDomainPlugin implements AuthoringDomainPlugin {
       );
     }
 
-    final savePlan = _store.buildSavePlan(workspace, document: parallaxDocument);
+    final savePlan = _store.buildSavePlan(
+      workspace,
+      document: parallaxDocument,
+    );
     if (!savePlan.hasChanges) {
       return ExportResult(
         applied: false,
@@ -115,7 +118,11 @@ class ParallaxDomainPlugin implements AuthoringDomainPlugin {
       );
     }
 
-    await _store.save(workspace, document: parallaxDocument, savePlan: savePlan);
+    await _store.save(
+      workspace,
+      document: parallaxDocument,
+      savePlan: savePlan,
+    );
     return ExportResult(
       applied: true,
       artifacts: <ExportArtifact>[
@@ -133,7 +140,10 @@ class ParallaxDomainPlugin implements AuthoringDomainPlugin {
     required AuthoringDocument document,
   }) {
     final parallaxDocument = _asParallaxDocument(document);
-    final savePlan = _store.buildSavePlan(workspace, document: parallaxDocument);
+    final savePlan = _store.buildSavePlan(
+      workspace,
+      document: parallaxDocument,
+    );
     if (!savePlan.hasChanges) {
       return PendingChanges.empty;
     }
@@ -173,10 +183,7 @@ class ParallaxDomainPlugin implements AuthoringDomainPlugin {
     return document.copyWith(activeLevelId: levelId);
   }
 
-  ParallaxDefsDocument _ensureActiveTheme(
-    ParallaxDefsDocument document,
-    Map<String, Object?> payload,
-  ) {
+  ParallaxDefsDocument _ensureActiveTheme(ParallaxDefsDocument document) {
     document = _clearOperationIssuesIfNeeded(document);
     final activeParallaxThemeId = resolveActiveParallaxThemeId(document);
     final activeLevelId = document.activeLevelId ?? '';
@@ -192,13 +199,9 @@ class ParallaxDomainPlugin implements AuthoringDomainPlugin {
     if (findParallaxThemeById(document.themes, activeParallaxThemeId) != null) {
       return document;
     }
-    final groundMaterialAssetPath = _normalizedString(
-      payload['groundMaterialAssetPath'],
-    );
     final nextTheme = ParallaxThemeDef(
       parallaxThemeId: activeParallaxThemeId,
       revision: 1,
-      groundMaterialAssetPath: groundMaterialAssetPath,
       layers: const <ParallaxLayerDef>[],
     );
     final nextThemes = List<ParallaxThemeDef>.from(document.themes)
@@ -206,44 +209,6 @@ class ParallaxDomainPlugin implements AuthoringDomainPlugin {
       ..sort(compareParallaxThemesDeterministic);
     return document.copyWith(
       themes: List<ParallaxThemeDef>.unmodifiable(nextThemes),
-    );
-  }
-
-  ParallaxDefsDocument _updateGroundMaterialAssetPath(
-    ParallaxDefsDocument document,
-    Map<String, Object?> payload,
-  ) {
-    document = _clearOperationIssuesIfNeeded(document);
-    final activeParallaxThemeId = resolveActiveParallaxThemeId(document);
-    if (activeParallaxThemeId == null || activeParallaxThemeId.isEmpty) {
-      return _withOperationIssue(
-        document,
-        code: 'missing_active_theme_mapping',
-        message: 'Active level does not resolve to a parallaxThemeId.',
-      );
-    }
-    final theme = findParallaxThemeById(document.themes, activeParallaxThemeId);
-    if (theme == null) {
-      return _withOperationIssue(
-        document,
-        code: 'missing_active_theme',
-        message: 'Resolved parallaxThemeId "$activeParallaxThemeId" is not authored yet.',
-      );
-    }
-    final nextPath = _normalizedString(
-      payload['groundMaterialAssetPath'],
-      fallback: theme.groundMaterialAssetPath,
-    );
-    final nextTheme = theme.copyWith(
-      groundMaterialAssetPath: nextPath,
-    ).normalized();
-    if (parallaxThemeEquals(nextTheme, theme, ignoreRevision: true)) {
-      return document;
-    }
-    return _replaceTheme(
-      document,
-      parallaxThemeId: activeParallaxThemeId,
-      nextTheme: _bumpThemeRevision(nextTheme, fromTheme: theme),
     );
   }
 
@@ -285,9 +250,11 @@ class ParallaxDomainPlugin implements AuthoringDomainPlugin {
       opacity: _doubleOrDefault(payload['opacity'], fallback: 1.0),
       yOffset: _doubleOrDefault(payload['yOffset'], fallback: 0.0),
     ).normalized();
-    final nextTheme = activeTheme.copyWith(
-      layers: List<ParallaxLayerDef>.from(activeTheme.layers)..add(layer),
-    ).normalized();
+    final nextTheme = activeTheme
+        .copyWith(
+          layers: List<ParallaxLayerDef>.from(activeTheme.layers)..add(layer),
+        )
+        .normalized();
     return _replaceTheme(
       document,
       parallaxThemeId: activeTheme.parallaxThemeId,
@@ -306,7 +273,8 @@ class ParallaxDomainPlugin implements AuthoringDomainPlugin {
       return _withOperationIssue(
         document,
         code: 'duplicate_layer_invalid_payload',
-        message: 'Duplicate layer requires an active theme and source layerKey.',
+        message:
+            'Duplicate layer requires an active theme and source layerKey.',
       );
     }
     final sourceLayer = _findLayer(activeTheme, layerKey);
@@ -326,9 +294,12 @@ class ParallaxDomainPlugin implements AuthoringDomainPlugin {
         '${sourceLayer.layerKey}_copy',
       ),
     );
-    final nextTheme = activeTheme.copyWith(
-      layers: List<ParallaxLayerDef>.from(activeTheme.layers)..add(duplicated),
-    ).normalized();
+    final nextTheme = activeTheme
+        .copyWith(
+          layers: List<ParallaxLayerDef>.from(activeTheme.layers)
+            ..add(duplicated),
+        )
+        .normalized();
     return _replaceTheme(
       document,
       parallaxThemeId: activeTheme.parallaxThemeId,
@@ -357,11 +328,13 @@ class ParallaxDomainPlugin implements AuthoringDomainPlugin {
         message: 'Cannot remove unknown layerKey "$layerKey".',
       );
     }
-    final nextTheme = activeTheme.copyWith(
-      layers: activeTheme.layers
-          .where((layer) => layer.layerKey != layerKey)
-          .toList(growable: false),
-    ).normalized();
+    final nextTheme = activeTheme
+        .copyWith(
+          layers: activeTheme.layers
+              .where((layer) => layer.layerKey != layerKey)
+              .toList(growable: false),
+        )
+        .normalized();
     return _replaceTheme(
       document,
       parallaxThemeId: activeTheme.parallaxThemeId,
@@ -391,24 +364,38 @@ class ParallaxDomainPlugin implements AuthoringDomainPlugin {
         message: 'Cannot update unknown layerKey "$layerKey".',
       );
     }
-    final nextLayer = sourceLayer.copyWith(
-      layerKey: _normalizedString(
-        payload['nextLayerKey'],
-        fallback: sourceLayer.layerKey,
-      ),
-      assetPath: _normalizedString(
-        payload['assetPath'],
-        fallback: sourceLayer.assetPath,
-      ),
-      group: _normalizedString(payload['group'], fallback: sourceLayer.group),
-      parallaxFactor: _doubleOrDefault(
-        payload['parallaxFactor'],
-        fallback: sourceLayer.parallaxFactor,
-      ),
-      zOrder: _intOrDefault(payload['zOrder'], fallback: sourceLayer.zOrder),
-      opacity: _doubleOrDefault(payload['opacity'], fallback: sourceLayer.opacity),
-      yOffset: _doubleOrDefault(payload['yOffset'], fallback: sourceLayer.yOffset),
-    ).normalized();
+    final nextLayer = sourceLayer
+        .copyWith(
+          layerKey: _normalizedString(
+            payload['nextLayerKey'],
+            fallback: sourceLayer.layerKey,
+          ),
+          assetPath: _normalizedString(
+            payload['assetPath'],
+            fallback: sourceLayer.assetPath,
+          ),
+          group: _normalizedString(
+            payload['group'],
+            fallback: sourceLayer.group,
+          ),
+          parallaxFactor: _doubleOrDefault(
+            payload['parallaxFactor'],
+            fallback: sourceLayer.parallaxFactor,
+          ),
+          zOrder: _intOrDefault(
+            payload['zOrder'],
+            fallback: sourceLayer.zOrder,
+          ),
+          opacity: _doubleOrDefault(
+            payload['opacity'],
+            fallback: sourceLayer.opacity,
+          ),
+          yOffset: _doubleOrDefault(
+            payload['yOffset'],
+            fallback: sourceLayer.yOffset,
+          ),
+        )
+        .normalized();
     if (parallaxLayerEquals(nextLayer, sourceLayer)) {
       return document;
     }
@@ -447,10 +434,11 @@ class ParallaxDomainPlugin implements AuthoringDomainPlugin {
       );
     }
 
-    final groupLayers = activeTheme.layers
-        .where((layer) => layer.group == sourceLayer.group)
-        .toList(growable: false)
-      ..sort(compareParallaxLayersDeterministic);
+    final groupLayers =
+        activeTheme.layers
+            .where((layer) => layer.group == sourceLayer.group)
+            .toList(growable: false)
+          ..sort(compareParallaxLayersDeterministic);
     final index = groupLayers.indexWhere((layer) => layer.layerKey == layerKey);
     final swapIndex = index + (direction < 0 ? -1 : 1);
     if (index < 0 || swapIndex < 0 || swapIndex >= groupLayers.length) {
@@ -494,10 +482,14 @@ class ParallaxDomainPlugin implements AuthoringDomainPlugin {
     required String parallaxThemeId,
     required ParallaxThemeDef nextTheme,
   }) {
-    final nextThemes = document.themes
-        .map((theme) => theme.parallaxThemeId == parallaxThemeId ? nextTheme : theme)
-        .toList(growable: false)
-      ..sort(compareParallaxThemesDeterministic);
+    final nextThemes =
+        document.themes
+            .map(
+              (theme) =>
+                  theme.parallaxThemeId == parallaxThemeId ? nextTheme : theme,
+            )
+            .toList(growable: false)
+          ..sort(compareParallaxThemesDeterministic);
     return document.copyWith(
       themes: List<ParallaxThemeDef>.unmodifiable(nextThemes),
     );
