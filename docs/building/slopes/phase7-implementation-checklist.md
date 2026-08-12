@@ -1,6 +1,7 @@
 # Slopes Phase 7 - Compatibility Rollout And Production Verification Checklist
 
-- Status: Production rollout active; old-version ticket drain in progress
+- Status: Production rollout active; session drain complete and 24-hour cutoff
+  guard in progress
 - Source plan: [plan.md](plan.md)
 - Prerequisite: accepted
   [Phase 6 direct authority cutover](phase6-implementation-checklist.md)
@@ -167,7 +168,7 @@ existing ticket/board compatibility tuple.
 - [x] old and new same-window boards coexist without lookup ambiguity
 - [x] rewards, leaderboard order, and ghost publication are idempotent and
       partitioned by board/version
-- [ ] old-version active-session count reaches zero after the recorded cutoff
+- [x] old-version active-session count reaches zero after the recorded cutoff
 - [ ] collision/navigation/validator latency and rejection metrics remain
       inside the accepted budgets
 - [x] rollback artifacts and commands are verified before old support removal
@@ -192,4 +193,5 @@ existing ticket/board compatibility tuple.
 | 2026-08-12 16:12 UTC / compatibility drain | First old-session expiry | After the first audited ticket expiry, a manual invocation of the deployed submission-cleanup schedule expired exactly one session and reported no other cleanup/repair mutation or error. The inventory moved from six to five active old uploading sessions, retained zero past-expiry expirable sessions and zero integrity failures, and still observes no `2026.03.0` issuance after the client cutoff. The remaining valid expiries are 16:37:49-16:39:26 UTC; retirement remains blocked by both active sessions and the independent 24-hour interval. |
 | 2026-08-12 16:15 UTC / retirement readiness guard | Fail-closed removal assessment | The optional inventory gate now delegates to a typed pure Functions rule. It requires a positive cutoff, the complete 24-hour interval, zero matching sessions in any non-terminal state, assessable issuance time for every matching session, and zero issuance after the recorded cutoff. Four focused elapsed/active/post-cutoff/malformed/ready tests and the full 192-test Functions emulator suite pass. The production adapter reproduces the five-session inventory and reports `readyForRemoval: false` with exactly `ticket_lifetime_not_elapsed` and `active_sessions_remain`. |
 | 2026-08-12 16:20-16:22 UTC / `532e6dc7` + `5d11aba3` | Current-head collision/navigation budget | The strict 1,280-edge Windows benchmark passed every frozen gate from clean master heads: the normal run measured combined controller p95/p99 31/48 microseconds, candidate p95/p99 10/10, matched flat/slope full-harness p99 259/68 microseconds, -27.91% slope overhead, bounded contact/recovery iterations, and zero warmed buffer growth across 35,000 controller plus 20,000 harness samples. The isolated VM allocation run repeated all gates (controller p95/p99 35/56 microseconds, harness p99 235/74 microseconds) and two paired 10,000-iteration trials attributed zero steady-state hot-loop allocations. This refreshes local runtime evidence at the deployed client/Core head; the production observation interval remains open. |
+| 2026-08-12 16:30-16:40 UTC / final session drain | Zero active old-version sessions | The normal 16:30 reconciliation cycle completed 43/43 with an empty queue and zero errors. After the audited maximum expiry, the deployed cleanup expired exactly the remaining five sessions and made no retention, orphan-repair, or Storage cleanup mutation. Production now has 16 expired and 21 validated sessions, zero active `2026.03.0` sessions, zero validation/projection tasks, no post-cutoff issuance, no malformed compatibility/state/time evidence, and no integrity or fixed-revision error counter. The readiness gate is still false for the sole expected blocker `ticket_lifetime_not_elapsed`; old support and all 37 old board statuses remain unchanged until 2026-08-13 14:32:29 UTC. |
 | 2026-08-12 / pre-removal rollback inventory | Retained rollback points | Pre-rollout rollback artifacts remain available: validator `replay-validator-00030-r4j` at `sha256:47a93735…ff96805`; Functions `runsessioncreate-00014-mob`, `runboardsloadactive-00012-yir`, `leaderboardloadactiveboarddata-00013-nek`, and `leaderboardboardmaintenance-00009-dok`; Hosting version `75f7614e000153f1`; and the 14:15 UTC board/session inventory. Rollback routes traffic/releases to those retained artifacts, stops new-version issuance, and disables rather than deletes new boards while leaving the dual validator available for any already-issued `2026.08.0` ticket. |
