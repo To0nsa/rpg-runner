@@ -109,6 +109,9 @@ resources/
 tools/output/src-bundle-flutter.txt
 tools/output/tree.txt
 
+# Firebase CLI deployment cache
+/.firebase/
+
 # =========================
 # Node / pnpm
 # =========================
