@@ -1771,11 +1771,12 @@ class GameCore {
   void _spawnTrackEnemy(SpawnEnemyRequest request) {
     final enemyId = request.enemyId;
     final x = request.x;
-    final surfaceTopY = request.surfaceTopY;
+    final fallbackSupportY = request.fallbackSupportY;
     final archetype = _enemyCatalog.get(enemyId);
     final legacyBodyY = enemyId == EnemyId.unocoDemon
-        ? surfaceTopY - _unocoDemonTuning.base.unocoDemonHoverOffsetY
-        : surfaceTopY - (archetype.collider.offsetY + archetype.collider.halfY);
+        ? fallbackSupportY - _unocoDemonTuning.base.unocoDemonHoverOffsetY
+        : fallbackSupportY -
+              (archetype.collider.offsetY + archetype.collider.halfY);
     final supportSelection =
         request.source == EnemySpawnRequestSource.deferredHashashEdge
         ? TerrainSpawnSupportSelection.deferredEdge
@@ -1798,14 +1799,13 @@ class GameCore {
           physicsCoordinateToTicks(legacyBodyY, name: 'enemySpawnY'),
         ),
         supportSelection: supportSelection,
-        requestedSupportYTicks: physicsCoordinateToTicks(
-          surfaceTopY,
-          name: 'enemySpawnSupportY',
-        ),
-        intendedSourceAvailable:
-            request.source == EnemySpawnRequestSource.deferredHashashEdge ||
-            request.placement == SpawnPlacementMode.ground ||
-            request.intendedSurfaceResolved,
+        requestedSupportYTicks:
+            request.source == EnemySpawnRequestSource.deferredHashashEdge
+            ? physicsCoordinateToTicks(
+                fallbackSupportY,
+                name: 'enemySpawnSupportY',
+              )
+            : null,
         allowSameSupportClamp:
             enemyId != EnemyId.unocoDemon &&
             request.source != EnemySpawnRequestSource.deferredHashashEdge,
@@ -1815,25 +1815,29 @@ class GameCore {
     final body = placement.bodyCenter!;
     final bodyX = body.xTicks / terrainPhysicsTicksPerWorldUnit;
     final bodyY = body.yTicks / terrainPhysicsTicksPerWorldUnit;
+    final supportPoint = placement.supportPoint;
+    final resolvedSupportY = supportPoint == null
+        ? fallbackSupportY
+        : supportPoint.yTicks / terrainPhysicsTicksPerWorldUnit;
 
     switch (enemyId) {
       case EnemyId.unocoDemon:
         _spawnService.spawnUnocoDemon(
           spawnX: bodyX,
-          groundTopY: surfaceTopY,
+          groundTopY: resolvedSupportY,
           spawnBodyY: bodyY,
         );
       case EnemyId.grojib:
         _spawnService.spawnGroundEnemy(
           spawnX: bodyX,
-          groundTopY: surfaceTopY,
+          groundTopY: resolvedSupportY,
           spawnBodyY: bodyY,
         );
       case EnemyId.hashash:
         _spawnService.spawnGroundEnemy(
           enemyId: EnemyId.hashash,
           spawnX: bodyX,
-          groundTopY: surfaceTopY,
+          groundTopY: resolvedSupportY,
           spawnBodyY: bodyY,
           spawnTick: tick,
         );
@@ -1841,7 +1845,7 @@ class GameCore {
         _spawnService.spawnGroundEnemy(
           enemyId: EnemyId.derf,
           spawnX: bodyX,
-          groundTopY: surfaceTopY,
+          groundTopY: resolvedSupportY,
           spawnBodyY: bodyY,
         );
     }

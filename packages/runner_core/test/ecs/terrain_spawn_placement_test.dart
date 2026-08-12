@@ -91,6 +91,34 @@ void main() {
       expect(exactSlope.supportEdgeId, slope.id);
     });
 
+    test(
+      'selects semantic ground and obstacle support without rectangle Y',
+      () {
+        final fixture = _fixture(<TerrainPolygonInput>[
+          _rectangle('ground', 0, 300, 500, 500, surfaceKind: 'ground'),
+          _rectangle('obstacle', 180, 240, 320, 280, surfaceKind: 'obstacle'),
+        ]);
+
+        final ground = _enemyPlacement(
+          fixture,
+          enemyId: EnemyId.grojib,
+          x: 100,
+          selection: TerrainSpawnSupportSelection.ground,
+        );
+        final obstacle = _enemyPlacement(
+          fixture,
+          enemyId: EnemyId.derf,
+          x: 250,
+          selection: TerrainSpawnSupportSelection.obstacleTop,
+        );
+
+        expect(ground.accepted, isTrue);
+        expect(ground.supportEdgeId!.shapeId, 'ground');
+        expect(obstacle.accepted, isTrue);
+        expect(obstacle.supportEdgeId!.shapeId, 'obstacle');
+      },
+    );
+
     test('applies enemy profile limits and optional same-support clamp', () {
       final slopeFixture = _fixture(<TerrainPolygonInput>[
         _polygon('fifty_degrees', const <(double, double)>[
@@ -377,9 +405,9 @@ void main() {
             final placement = _flyingPlacement(
               fixture,
               x: request.x,
-              y: request.surfaceTopY - 150,
+              y: request.fallbackSupportY - 150,
               selection: TerrainSpawnSupportSelection.ground,
-              requestedSupportY: request.surfaceTopY,
+              requestedSupportY: request.fallbackSupportY,
             );
             if (placement.accepted) accepted.add(placement);
           },
@@ -691,17 +719,24 @@ TerrainPolygonInput _rectangle(
   double right,
   double bottom, {
   TerrainCollisionMode collisionMode = TerrainCollisionMode.solid,
-}) => _polygon(shapeId, <(double, double)>[
-  (left, top),
-  (right, top),
-  (right, bottom),
-  (left, bottom),
-], collisionMode: collisionMode);
+  String? surfaceKind,
+}) => _polygon(
+  shapeId,
+  <(double, double)>[
+    (left, top),
+    (right, top),
+    (right, bottom),
+    (left, bottom),
+  ],
+  collisionMode: collisionMode,
+  surfaceKind: surfaceKind,
+);
 
 TerrainPolygonInput _polygon(
   String shapeId,
   List<(double, double)> vertices, {
   TerrainCollisionMode collisionMode = TerrainCollisionMode.solid,
+  String? surfaceKind,
 }) => TerrainPolygonInput.fromWorld(
   sourcePath: 'test/$shapeId.json',
   identity: TerrainSourceIdentity(
@@ -711,6 +746,7 @@ TerrainPolygonInput _polygon(
   ),
   vertices: vertices,
   collisionMode: collisionMode,
+  surfaceKind: surfaceKind,
 );
 
 int _ticks(double world) => physicsCoordinateToTicks(world);

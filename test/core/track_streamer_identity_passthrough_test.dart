@@ -6,11 +6,10 @@ import 'package:runner_core/track/track_streamer.dart';
 import 'package:runner_core/tuning/track_tuning.dart';
 
 void main() {
-  test('passes chunkKey and gapId through streamed runtime metadata', () {
+  test('passes chunk identity through streamed runtime metadata', () {
     const pattern = ChunkPattern(
       name: 'identity-pattern',
       chunkKey: 'chunk-field-001',
-      groundGaps: <GapRel>[GapRel(x: 128.0, width: 80.0, gapId: 'gap-001')],
     );
     const source = ChunkPatternListSource(
       easyPatterns: <ChunkPattern>[pattern],
@@ -35,7 +34,8 @@ void main() {
     expect(result.spawnedChunks, hasLength(1));
     expect(result.spawnedChunks.single.patternName, 'identity-pattern');
     expect(result.spawnedChunks.single.chunkKey, 'chunk-field-001');
-    expect(streamer.dynamicGroundGaps, hasLength(1));
-    expect(streamer.dynamicGroundGaps.single.gapId, 'gap-001');
+    expect(streamer.activeChunks, hasLength(1));
+    expect(streamer.activeChunks.single.index, 0);
+    expect(streamer.activeChunks.single.chunkKey, 'chunk-field-001');
   });
 }

@@ -41,17 +41,19 @@ void main() {
     );
 
     final spawns =
-        <({
-          EnemyId enemyId,
-          double x,
-          double surfaceTopY,
-          EnemySpawnRequestSource source,
-        })>[];
+        <
+          ({
+            EnemyId enemyId,
+            double x,
+            double fallbackSupportY,
+            EnemySpawnRequestSource source,
+          })
+        >[];
     void onSpawn(SpawnEnemyRequest request) {
       spawns.add((
         enemyId: request.enemyId,
         x: request.x,
-        surfaceTopY: request.surfaceTopY,
+        fallbackSupportY: request.fallbackSupportY,
         source: request.source,
       ));
     }

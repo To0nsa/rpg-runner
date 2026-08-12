@@ -232,15 +232,6 @@ void main() {
     test('spawns a resolved obstacle marker at the same-support clamp', () {
       const pattern = ChunkPattern(
         name: 'derf-valid-obstacle',
-        solids: <SolidRel>[
-          SolidRel(
-            x: 400,
-            aboveGroundTop: 96,
-            width: 96,
-            height: 48,
-            sides: SolidRel.sideAll,
-          ),
-        ],
         spawnMarkers: <SpawnMarker>[
           SpawnMarker(
             enemyId: EnemyId.derf,
@@ -257,7 +248,7 @@ void main() {
         playerCharacter: eloiseCharacter,
         terrainGeometry: _geometry(<TerrainPolygonInput>[
           _platform('ground', 0, 300, 2000, 600),
-          _platform('obstacle', 400, 204, 496, 252),
+          _platform('obstacle', 400, 204, 496, 252, surfaceKind: 'obstacle'),
         ]),
       );
 
@@ -275,19 +266,9 @@ void main() {
       expect(core.lastSpawnPlacementDiagnostic, endsWith('|clamped=1'));
     });
 
-    test('skips a legacy obstacle fallback with a stable diagnostic', () {
+    test('skips a missing polygon obstacle with a stable diagnostic', () {
       const pattern = ChunkPattern(
         name: 'derf-invalid-fallback',
-        solids: <SolidRel>[
-          SolidRel(
-            x: 400,
-            aboveGroundTop: 96,
-            width: 96,
-            height: 16,
-            sides: SolidRel.sideTop,
-            oneWayTop: true,
-          ),
-        ],
         spawnMarkers: <SpawnMarker>[
           SpawnMarker(
             enemyId: EnemyId.derf,
@@ -455,24 +436,29 @@ TerrainPolygonInput _platform(
   double minX,
   double topY,
   double maxX,
-  double bottomY,
-) => _polygon(shapeId, <(double, double)>[
+  double bottomY, {
+  String? surfaceKind,
+}) => _polygon(shapeId, <(double, double)>[
   (minX, topY),
   (maxX, topY),
   (maxX, bottomY),
   (minX, bottomY),
-]);
+], surfaceKind: surfaceKind);
 
-TerrainPolygonInput _polygon(String shapeId, List<(double, double)> vertices) =>
-    TerrainPolygonInput.fromWorld(
-      sourcePath: 'test/$shapeId',
-      identity: TerrainSourceIdentity(
-        chunkIndex: 0,
-        chunkKey: 'test',
-        shapeId: shapeId,
-      ),
-      vertices: vertices,
-    );
+TerrainPolygonInput _polygon(
+  String shapeId,
+  List<(double, double)> vertices, {
+  String? surfaceKind,
+}) => TerrainPolygonInput.fromWorld(
+  sourcePath: 'test/$shapeId',
+  identity: TerrainSourceIdentity(
+    chunkIndex: 0,
+    chunkKey: 'test',
+    shapeId: shapeId,
+  ),
+  vertices: vertices,
+  surfaceKind: surfaceKind,
+);
 
 LevelDefinition _streamedLevel(ChunkPattern pattern) => LevelDefinition(
   id: LevelId.field,

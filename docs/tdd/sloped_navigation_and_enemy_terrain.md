@@ -16,7 +16,7 @@ implemented in `runner_core`:
   uses the same authority for swept contact and bounded clearance steering
 - Derf obstacle-top markers consume the common query as kinematic placement
   with same-support clamp, absolute perch span, and stable diagnostics
-- every terrain-harness enemy marker and procedural item uses one typed
+- every normal enemy marker and procedural item uses one typed
   placement request/result boundary without changing marker or item RNG order
 - one immutable runtime bundle publishes geometry, both spatial indexes, the
   shared surface set, and Grojib/Hashash graph views at a tick boundary
@@ -43,7 +43,7 @@ The implementation baseline was clean revision `9eea5cfd` on Windows
 | Grojib/Hashash pursuit, stand-off, jump, drop, obstruction, locks, and attacks | `test/core/ground_enemy_*`, `enemy_engagement_system_test.dart`, and `hashash_strike_timing_test.dart` |
 | Unoco deterministic hover/steering and combat | `flying_enemy_steering_test.dart` and `enemy_attacks_test.dart` |
 | Hashash deferred spawn and teleport/ambush timing | `track_streamer_hashash_deferred_spawn_test.dart`, `hashash_spawn_intro_test.dart`, and `hashash_teleport_ambush_test.dart` |
-| Derf obstacle-top placement, facing, cast origin, and target | `track_streamer_spawn_placement_test.dart` and `target_point_impact_system_test.dart` |
+| Derf obstacle-top placement, facing, cast origin, and target | `derf_terrain_placement_test.dart` and `target_point_impact_system_test.dart` |
 | Graph ordering, A* tie behavior, and graph-version invalidation | `surface_graph_builder_test.dart`, `surface_pathfinder_test.dart`, and `surface_navigator_graph_version_test.dart` |
 | Normal/replay construction uses streamed terrain | `game_core.dart` installs the admitted candidate before placement; `validator_worker.dart` invokes that same normal constructor |
 
@@ -417,10 +417,11 @@ ticks, candidates, cells, and query-buffer growth for later performance gates.
 
 ## Multi-Body World-Motion Authority
 
-`TerrainMultiBodyWorldMotionAuthority` is the single motion owner in the Phase
-3 harness. Normal `GameCore` and replay construction still select
-`LegacyWorldMotionAuthority`. The terrain selection is immutable at Core
-construction and is not authored content, replay data, or a runtime toggle.
+`TerrainMultiBodyWorldMotionAuthority` is the single motion owner in normal
+streamed `GameCore` and replay construction. The terrain selection is immutable
+at Core construction and is not replay data or a runtime toggle. Synthetic
+track-disabled fixtures retain the isolated legacy adapter only while their
+Phase 6 tests are migrated.
 
 Before mutating tick state, `prepareTick` builds a reusable ascending-entity-ID
 body view and preflights the whole view. Known enemies with no terrain stores
@@ -454,8 +455,8 @@ complete edge set to recover a topology-wide bound during a tick.
 
 Death-animation bodies remain dynamic but normally contribute zero requested
 motion, while `fallingUntilGround` bodies continue through gravity and terrain
-contact. Unsupported bodies never fall back to `CollisionSystem` inside the
-terrain harness.
+contact. Unsupported bodies never fall back to `CollisionSystem` inside terrain
+authority.
 
 ## Atomic Terrain Runtime Publication
 
@@ -552,12 +553,11 @@ dynamic-body controller loop, acquires support, receives gravity, or gains a
 second transform writer. Placement happens only when an authored spawn marker
 is processed.
 
-`SpawnEnemyRequest` now retains both the authored `SpawnPlacementMode` and a
-boolean recording whether legacy geometry found that exact requested surface
-kind. Legacy authority still accepts the historical resolved/fallback Y, so
-normal runs are unchanged. Terrain authority accepts Derf only when an
-`obstacleTop` marker actually resolved its intended obstacle; a legacy
-highest-surface or ordinary-ground fallback is terminally rejected.
+`SpawnEnemyRequest` retains the authored `SpawnPlacementMode` without resolving
+it against a second rectangle model. Terrain authority accepts Derf only when
+an `obstacleTop` marker selects a solid upward polygon surface whose lineage is
+a placed Prefab or whose authored `surfaceKind` is `obstacle`. An ordinary
+ground/highest-surface fallback is terminally rejected.
 
 `resolveSpawnPlacement` receives the Derf enemy profile and first binds
 requested body X/support Y to one canonical upward solid `TerrainEdgeId`. It
@@ -587,7 +587,7 @@ behavior.
 
 ## Grounded Enemy Terrain Locomotion
 
-Grojib and Hashash now consume prepared terrain support in the Phase 3 harness.
+Grojib and Hashash consume prepared terrain support in normal construction.
 `WorldSupportView` is the staged read boundary for navigation, locomotion,
 animation, render snapshots, and ground-impact death: a terrain-owned actor reads
 `TerrainContactStateStore`, while a legacy actor continues to read
@@ -633,8 +633,8 @@ world-space melee/cast origins, and stand-off offsets are unchanged.
 `EnemyDeathStateSystem` now uses the same support facade. A
 `groundImpactThenDeath` enemy killed in the air continues through terrain
 motion until final eligible support is published, or begins its death animation
-at the existing deterministic maximum-fall timeout. Legacy construction and
-replay validation retain their old collision path and outcomes.
+at the existing deterministic maximum-fall timeout. Replay validation uses the
+same terrain path and outcomes.
 
 ## Hashash Teleport And Deferred Spawn Placement
 
@@ -671,8 +671,7 @@ support, complete clearance, no same-surface clamp, and the current geometry
 version. The intended support is terminal: absent, steep, narrow, or blocked
 support rejects the request rather than searching another edge or height.
 Rejection consumes the pending request without relocation or replacement RNG.
-The approved body-center Y is passed to `SpawnService`; legacy authority derives
-the historical flat-surface body Y.
+The approved body-center and selected support Y are passed to `SpawnService`.
 
 ## Shared Enemy And Item Spawn Placement
 
@@ -682,17 +681,22 @@ items. It is mutation-free and consumes no random values. The request carries:
 
 - a catalog-derived facing-aware enemy capsule/profile, or a quantized item
   AABB plus Éloïse's traversal profile
-- the historical body candidate used unchanged by legacy authority
+- a deterministic flat-ground fallback body candidate used only by flying
+  placement and isolated non-terrain fixtures
 - `ground`, `highestSurfaceAtX`, `obstacleTop`, `deferredEdge`, or airborne
   source intent
-- exact intended `TerrainEdgeId` when polygon lineage is available, otherwise
-  a temporary requested-support-Y bridge from the Phase 3 rectangle streamer
-- whether the authored source actually resolved and whether same-edge clamping
-  is permitted
+- exact intended `TerrainEdgeId` when a direct caller has polygon lineage, or
+  semantic terrain selection for streamed `ground` and `obstacleTop` markers
+- an exact requested-support-Y binding only for deferred Hashash edge placement
+- whether same-edge clamping is permitted
 
 Terrain authority selects the intended physical surface before applying the
-actor profile. An invalid highest/intended edge is terminal; placement never
-searches a lower or unrelated fallback. Grounded Grojib and Hashash require a
+actor profile. `ground` selects solid `surfaceKind: ground`; `obstacleTop`
+selects solid placed-Prefab or `surfaceKind: obstacle` provenance; and
+`highestSurfaceAtX` selects the physically highest upward edge. Equal heights
+use canonical edge identity. An invalid highest/intended edge is terminal;
+placement never searches a lower or unrelated fallback. Grounded Grojib and
+Hashash require a
 full capsule-diameter foothold and complete clearance on their own inclusive
 `45°`/`60°` profiles. Ordinary markers may use the nearest valid point on that
 same edge; deferred Hashash remains exact-X. Unoco ignores support after source
@@ -718,11 +722,8 @@ candidate draw, salts, snapping, spacing, attempt limits, chunk schedule, and
 restoration phase/stat selection. Exhaustion creates no entity.
 
 Every result uses canonical integer coordinates and IDs in
-`terrain-spawn-placement-v1`. The normal constructor still accepts the exact
-historical rectangle candidate, so normal gameplay and replay validation do
-not opt into terrain placement during Phase 3. Player initial placement already
-uses the shared actor-neutral query and remains staged for the Phase 5 streamed
-terrain startup cutover.
+`terrain-spawn-placement-v1`. Normal gameplay and replay validation both use
+the shared query against the scheduler's currently published terrain bundle.
 
 ## Phase 3 Acceptance Boundary
 
@@ -869,7 +870,7 @@ Hashash placement tests cover primary and mirrored success, airborne clearance
 without support, wall/ceiling/slope/concave cancellation, retained safe-state
 restoration, normal cooldown, unchanged RNG, input-order parity, eligible
 slope spawning, and terminal rejection of invalid highest support. Existing
-legacy ambush and deferred-stream tests remain unchanged apart from explicit
+ambush and deferred-stream tests retain timing, count, order, and explicit
 spawn-source provenance evidence.
 Unoco terrain-locomotion tests cover flat/uphill/downhill local reference,
 pit retention and explicit-plane fallback, unchanged RNG order, swept

@@ -1,16 +1,13 @@
 /// Infinite-runner track streaming system.
 ///
-/// Procedurally generates level geometry (platforms, obstacles, ground gaps)
-/// and enemy spawn points by selecting from a pool of pre-authored chunk
-/// patterns. Uses deterministic RNG so runs are reproducible given the same
-/// seed.
+/// Selects pre-authored chunks and emits their visual and spawn metadata.
+/// Polygon terrain is published separately from the same selected chunk keys;
+/// this scheduler never constructs a second collision representation.
 library;
 
-import '../collision/static_world_geometry.dart';
 import '../enemies/enemy_id.dart';
 import '../tuning/track_tuning.dart';
 import '../util/deterministic_rng.dart' show mix32;
-import 'chunk_builder.dart';
 import 'chunk_pattern.dart';
 import 'chunk_pattern_source.dart';
 
@@ -25,25 +22,24 @@ class SpawnEnemyRequest {
   const SpawnEnemyRequest({
     required this.enemyId,
     required this.x,
-    required this.surfaceTopY,
+    required this.fallbackSupportY,
     this.source = EnemySpawnRequestSource.authoredMarker,
     this.placement = SpawnPlacementMode.ground,
-    this.intendedSurfaceResolved = true,
   });
 
   final EnemyId enemyId;
   final double x;
-  final double surfaceTopY;
+
+  /// Historical flat-ground Y used only to seed the desired body transform.
+  ///
+  /// Polygon terrain resolves the actual support from [placement]. This value
+  /// remains deterministic input for flying placement and isolated legacy
+  /// fixtures that do not publish terrain.
+  final double fallbackSupportY;
   final EnemySpawnRequestSource source;
 
-  /// Authored marker placement intent, retained across legacy resolution.
+  /// Authored marker placement intent resolved by world terrain authority.
   final SpawnPlacementMode placement;
-
-  /// Whether legacy geometry found the requested placement kind itself.
-  ///
-  /// A fallback Y is still carried for legacy behavior, but terrain placement
-  /// consumers use this bit to reject silent relocation to another surface.
-  final bool intendedSurfaceResolved;
 }
 
 /// Metadata for a newly spawned chunk, returned by [TrackStreamer.step].
@@ -106,7 +102,7 @@ class TrackStreamStepResult {
     required this.spawnedChunks,
   });
 
-  /// True if geometry lists were rebuilt (chunk spawned or culled).
+  /// True if the active chunk selection was rebuilt (spawn or cull).
   final bool changed;
 
   /// Chunks created this step (empty on steady-state frames).
@@ -118,7 +114,7 @@ class TrackStreamStepResult {
 /// Call [step] each frame with the current camera bounds. The streamer:
 /// 1. Spawns new chunks ahead of the camera (within [TrackTuning.spawnAheadMargin]).
 /// 2. Culls old chunks behind the camera (beyond [TrackTuning.cullBehindMargin]).
-/// 3. Rebuilds [dynamicSolids], [dynamicGroundSegments], [dynamicGroundGaps].
+/// 3. Rebuilds the active selection and prefab-visual snapshots.
 ///
 /// Pattern selection is deterministic given [seed] and chunk index.
 class TrackStreamer {
@@ -163,23 +159,10 @@ class TrackStreamer {
   double _nextChunkStartX;
 
   final List<_ActiveChunk> _active = <_ActiveChunk>[];
-  List<StaticSolid> _dynamicSolids = const <StaticSolid>[];
-  List<StaticGroundSegment> _dynamicGroundSegments =
-      const <StaticGroundSegment>[];
-  List<StaticGroundGap> _dynamicGroundGaps = const <StaticGroundGap>[];
   List<ChunkVisualSpriteWorld> _dynamicVisualSprites =
       const <ChunkVisualSpriteWorld>[];
   List<ActiveTrackChunkSnapshot> _activeChunksSnapshot =
       const <ActiveTrackChunkSnapshot>[];
-
-  /// Current streamed solids (excluding any caller-provided base solids).
-  List<StaticSolid> get dynamicSolids => _dynamicSolids;
-
-  /// Current streamed ground segments (excluding any base segments).
-  List<StaticGroundSegment> get dynamicGroundSegments => _dynamicGroundSegments;
-
-  /// Current streamed ground gaps (excluding any base gaps).
-  List<StaticGroundGap> get dynamicGroundGaps => _dynamicGroundGaps;
 
   /// Current streamed visual sprites for chunk prefab rendering.
   List<ChunkVisualSpriteWorld> get dynamicVisualSprites =>
@@ -187,10 +170,9 @@ class TrackStreamer {
 
   /// Current scheduler selections in canonical streamed-index order.
   ///
-  /// The list changes only with the same spawn/cull rebuild that updates the
-  /// legacy dynamic geometry lists. Consumers must treat missing [chunkKey]
-  /// as incompatible with staged-terrain binding rather than selecting a
-  /// fallback record.
+  /// The list changes only with the same spawn/cull rebuild that updates visual
+  /// metadata. Consumers must treat missing [chunkKey] as incompatible with
+  /// staged-terrain binding rather than selecting a fallback record.
   List<ActiveTrackChunkSnapshot> get activeChunks => _activeChunksSnapshot;
 
   /// Advances chunk streaming based on the current camera bounds.
@@ -227,45 +209,10 @@ class TrackStreamer {
       );
       final pattern = selection.pattern;
 
-      late List<StaticSolid> solids;
-      late GroundBuildResult ground;
-      try {
-        // Build geometry from pattern.
-        solids = buildSolids(
-          pattern,
-          chunkStartX: startX,
-          chunkIndex: chunkIndex,
-          groundTopY: groundTopY,
-          chunkWidth: tuning.chunkWidth,
-          gridSnap: tuning.gridSnap,
-        );
-        ground = buildGroundSegments(
-          pattern,
-          chunkStartX: startX,
-          chunkIndex: chunkIndex,
-          groundTopY: groundTopY,
-          chunkWidth: tuning.chunkWidth,
-          gridSnap: tuning.gridSnap,
-        );
-      } on Object catch (error, stackTrace) {
-        final chunkKey = pattern.chunkKey;
-        final chunkKeyPart = (chunkKey == null || chunkKey.isEmpty)
-            ? ''
-            : ', chunkKey=$chunkKey';
-        final wrapped = StateError(
-          'TrackStreamer failed to build chunk '
-          '(index=$chunkIndex, startX=$startX, pattern=${pattern.name}'
-          '$chunkKeyPart): $error',
-        );
-        Error.throwWithStackTrace(wrapped, stackTrace);
-      }
-
       final pendingHashashSpawns = _spawnEnemiesForChunk(
         pattern,
         chunkIndex,
         chunkStartX: startX,
-        solids: solids,
-        groundSegments: ground.segments,
         spawnEnemy: spawnEnemy,
       );
 
@@ -296,9 +243,6 @@ class TrackStreamer {
           endX: endX,
           patternName: pattern.name,
           chunkKey: pattern.chunkKey,
-          solids: solids,
-          groundSegments: ground.segments,
-          groundGaps: ground.gaps,
           visualSprites: visualSprites,
           pendingHashashSpawns: pendingHashashSpawns,
         ),
@@ -330,17 +274,11 @@ class TrackStreamer {
       spawnEnemy: spawnEnemy,
     );
 
-    // ── Rebuild flattened geometry lists if anything changed ──
+    // ── Rebuild flattened selection/visual lists if anything changed ──
     if (changed) {
-      final rebuilt = <StaticSolid>[];
-      final rebuiltGroundSegments = <StaticGroundSegment>[];
-      final rebuiltGroundGaps = <StaticGroundGap>[];
       final rebuiltVisualSprites = <ChunkVisualSpriteWorld>[];
       final rebuiltActiveChunks = <ActiveTrackChunkSnapshot>[];
       for (final c in _active) {
-        rebuilt.addAll(c.solids);
-        rebuiltGroundSegments.addAll(c.groundSegments);
-        rebuiltGroundGaps.addAll(c.groundGaps);
         rebuiltVisualSprites.addAll(c.visualSprites);
         rebuiltActiveChunks.add(
           ActiveTrackChunkSnapshot(
@@ -352,13 +290,6 @@ class TrackStreamer {
           ),
         );
       }
-      _dynamicSolids = List<StaticSolid>.unmodifiable(rebuilt);
-      _dynamicGroundSegments = List<StaticGroundSegment>.unmodifiable(
-        rebuiltGroundSegments,
-      );
-      _dynamicGroundGaps = List<StaticGroundGap>.unmodifiable(
-        rebuiltGroundGaps,
-      );
       _dynamicVisualSprites = List<ChunkVisualSpriteWorld>.unmodifiable(
         rebuiltVisualSprites,
       );
@@ -398,8 +329,6 @@ class TrackStreamer {
     ChunkPattern pattern,
     int chunkIndex, {
     required double chunkStartX,
-    required List<StaticSolid> solids,
-    required List<StaticGroundSegment> groundSegments,
     required SpawnEnemy spawnEnemy,
   }) {
     // Early-game safety: keep first few chunks enemy-free.
@@ -422,19 +351,12 @@ class TrackStreamer {
       }
 
       final x = chunkStartX + m.x;
-      final spawnSurface = _resolveSpawnSurface(
-        marker: m,
-        x: x,
-        solids: solids,
-        groundSegments: groundSegments,
-      );
       spawnEnemy(
         SpawnEnemyRequest(
           enemyId: m.enemyId,
           x: x,
-          surfaceTopY: spawnSurface.topY,
+          fallbackSupportY: groundTopY,
           placement: m.placement,
-          intendedSurfaceResolved: spawnSurface.intendedSurfaceResolved,
         ),
       );
     }
@@ -465,7 +387,7 @@ class TrackStreamer {
         SpawnEnemyRequest(
           enemyId: EnemyId.hashash,
           x: spawnX,
-          surfaceTopY: groundTopY,
+          fallbackSupportY: groundTopY,
           source: EnemySpawnRequestSource.deferredHashashEdge,
         ),
       );
@@ -474,21 +396,8 @@ class TrackStreamer {
   }
 
   double _hashashEdgeSpawnX(_ActiveChunk chunk) {
-    double minX = chunk.startX;
-    double maxX = chunk.endX;
-
-    if (chunk.groundSegments.isNotEmpty) {
-      var leftMost = chunk.groundSegments.first;
-      for (var i = 1; i < chunk.groundSegments.length; i += 1) {
-        final candidate = chunk.groundSegments[i];
-        if (candidate.minX < leftMost.minX) {
-          leftMost = candidate;
-        }
-      }
-      minX = leftMost.minX;
-      maxX = leftMost.maxX;
-    }
-
+    final minX = chunk.startX;
+    final maxX = chunk.endX;
     final preferred = minX + _hashashEdgeSpawnInsetX;
     if (preferred < minX) return minX;
     if (preferred > maxX) return maxX;
@@ -496,114 +405,6 @@ class TrackStreamer {
   }
 
   static const double _hashashEdgeSpawnInsetX = -96.0;
-
-  _SpawnSurfaceResolution _resolveSpawnSurface({
-    required SpawnMarker marker,
-    required double x,
-    required List<StaticSolid> solids,
-    required List<StaticGroundSegment> groundSegments,
-  }) {
-    switch (marker.placement) {
-      case SpawnPlacementMode.ground:
-        return _SpawnSurfaceResolution(
-          topY: groundTopY,
-          intendedSurfaceResolved: true,
-        );
-      case SpawnPlacementMode.highestSurfaceAtX:
-        final highest = _resolveHighestSurfaceTopYAtX(
-          x: x,
-          solids: solids,
-          groundSegments: groundSegments,
-        );
-        return _SpawnSurfaceResolution(
-          topY: highest ?? groundTopY,
-          intendedSurfaceResolved: highest != null,
-        );
-      case SpawnPlacementMode.obstacleTop:
-        final obstacle = _resolveObstacleTopYAtX(x: x, solids: solids);
-        if (obstacle != null) {
-          return _SpawnSurfaceResolution(
-            topY: obstacle,
-            intendedSurfaceResolved: true,
-          );
-        }
-        return _SpawnSurfaceResolution(
-          topY:
-              _resolveHighestSurfaceTopYAtX(
-                x: x,
-                solids: solids,
-                groundSegments: groundSegments,
-              ) ??
-              groundTopY,
-          intendedSurfaceResolved: false,
-        );
-    }
-  }
-
-  double? _resolveObstacleTopYAtX({
-    required double x,
-    required List<StaticSolid> solids,
-  }) {
-    _SurfaceCandidate? best;
-    for (var i = 0; i < solids.length; i += 1) {
-      final solid = solids[i];
-      if (solid.oneWayTop) continue;
-      if ((solid.sides & StaticSolid.sideTop) == 0) continue;
-      if (x < solid.minX || x > solid.maxX) continue;
-      final stableId = solid.localSolidIndex >= 0 ? solid.localSolidIndex : i;
-      final candidate = _SurfaceCandidate(yTop: solid.minY, stableId: stableId);
-      if (best == null || candidate.isHigherPriorityThan(best)) {
-        best = candidate;
-      }
-    }
-    return best?.yTop;
-  }
-
-  double? _resolveHighestSurfaceTopYAtX({
-    required double x,
-    required List<StaticSolid> solids,
-    required List<StaticGroundSegment> groundSegments,
-  }) {
-    _SurfaceCandidate? best;
-
-    for (var i = 0; i < groundSegments.length; i += 1) {
-      final segment = groundSegments[i];
-      if (x < segment.minX || x > segment.maxX) continue;
-      final stableId = segment.localSegmentIndex >= 0
-          ? 1000000 + segment.localSegmentIndex
-          : 1000000 + i;
-      final candidate = _SurfaceCandidate(
-        yTop: segment.topY,
-        stableId: stableId,
-      );
-      if (best == null || candidate.isHigherPriorityThan(best)) {
-        best = candidate;
-      }
-    }
-
-    for (var i = 0; i < solids.length; i += 1) {
-      final solid = solids[i];
-      if ((solid.sides & StaticSolid.sideTop) == 0) continue;
-      if (x < solid.minX || x > solid.maxX) continue;
-      final stableId = solid.localSolidIndex >= 0 ? solid.localSolidIndex : i;
-      final candidate = _SurfaceCandidate(yTop: solid.minY, stableId: stableId);
-      if (best == null || candidate.isHigherPriorityThan(best)) {
-        best = candidate;
-      }
-    }
-
-    return best?.yTop;
-  }
-}
-
-class _SpawnSurfaceResolution {
-  const _SpawnSurfaceResolution({
-    required this.topY,
-    required this.intendedSurfaceResolved,
-  });
-
-  final double topY;
-  final bool intendedSurfaceResolved;
 }
 
 /// Tracks a spawned chunk's geometry while it's within camera culling bounds.
@@ -614,9 +415,6 @@ class _ActiveChunk {
     required this.endX,
     required this.patternName,
     required this.chunkKey,
-    required this.solids,
-    required this.groundSegments,
-    required this.groundGaps,
     required this.visualSprites,
     this.pendingHashashSpawns = 0,
   });
@@ -635,15 +433,6 @@ class _ActiveChunk {
 
   /// Stable authored chunk identity, if the legacy source provides one.
   final String? chunkKey;
-
-  /// Platforms and obstacles in this chunk.
-  final List<StaticSolid> solids;
-
-  /// Walkable ground spans.
-  final List<StaticGroundSegment> groundSegments;
-
-  /// Holes in the ground.
-  final List<StaticGroundGap> groundGaps;
 
   /// Render sprites for authored prefab visuals in this chunk.
   final List<ChunkVisualSpriteWorld> visualSprites;
@@ -681,19 +470,4 @@ class ChunkVisualSpriteWorld {
   final int zIndex;
   final bool flipX;
   final bool flipY;
-}
-
-class _SurfaceCandidate {
-  const _SurfaceCandidate({required this.yTop, required this.stableId});
-
-  final double yTop;
-  final int stableId;
-
-  bool isHigherPriorityThan(_SurfaceCandidate other) {
-    if (yTop < other.yTop - 1e-9) return true;
-    if ((yTop - other.yTop).abs() <= 1e-9 && stableId < other.stableId) {
-      return true;
-    }
-    return false;
-  }
 }

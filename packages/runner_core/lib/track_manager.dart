@@ -8,7 +8,7 @@
 ///
 /// [TrackManager] is owned by [GameCore] and orchestrates:
 /// - **Track streaming**: [TrackStreamer] spawns/culls chunks based on camera.
-/// - **Legacy fixture geometry**: Optionally merges rectangle test data.
+/// - **Legacy fixture geometry**: Optionally retains fixed rectangle test data.
 /// - **Deferred item spawning**: Applies a selected batch only after GameCore's
 ///   terrain-publication barrier.
 ///
@@ -29,7 +29,7 @@
 /// ## Chunk Spawning Flow
 ///
 /// When a new chunk enters the horizon:
-/// 1. [TrackStreamer] generates platforms and enemy spawn points.
+/// 1. [TrackStreamer] selects a chunk and emits enemy spawn intent.
 /// 2. GameCore completes the matching staged terrain candidate.
 /// 3. GameCore publishes terrain, then places enemies and items via
 ///    [SpawnService].
@@ -153,7 +153,6 @@ class TrackManager {
        _trackTuning = trackTuning,
        _collectibleTuning = collectibleTuning,
        _restorationItemTuning = restorationItemTuning,
-       _baseGeometry = baseGeometry,
        _surfaceGraphBuilder = surfaceGraphBuilder,
        _enemyJumpTemplatesById =
            Map<EnemyId, JumpReachabilityTemplate>.unmodifiable(
@@ -198,15 +197,12 @@ class TrackManager {
       );
     }
 
-    // Synthetic fixtures retain the old read models until their Phase 6 test
-    // migration. Normal streamed runs publish no rectangle collision/graph
-    // projection and do not pay its rebuild cost.
+    // Synthetic fixtures retain only their fixed base read models until their
+    // Phase 6 test migration. Streaming never constructs rectangle geometry.
     final streamer = _trackStreamer;
     _staticGeometry = !_legacyReadModelsEnabled
         ? const StaticWorldGeometry()
-        : streamer == null
-        ? baseGeometry
-        : _combinedLegacyGeometry(streamer);
+        : baseGeometry;
     _staticIndex = StaticWorldGeometryIndex.from(_staticGeometry);
     _staticSolidsSnapshot = _buildStaticSolidsSnapshot(_staticGeometry);
     _groundSurfacesSnapshot = _buildGroundSurfacesSnapshot(_staticIndex);
@@ -226,7 +222,6 @@ class TrackManager {
   final TrackTuning _trackTuning;
   final CollectibleTuning _collectibleTuning;
   final RestorationItemTuning _restorationItemTuning;
-  final StaticWorldGeometry _baseGeometry;
   final SurfaceGraphBuilder? _surfaceGraphBuilder;
   final Map<EnemyId, JumpReachabilityTemplate> _enemyJumpTemplatesById;
   final EnemyNavigationSystem? _enemyNavigationSystem;
@@ -347,11 +342,6 @@ class TrackManager {
           streamer.dynamicVisualSprites.map(_toStaticPrefabSpriteSnapshot),
         );
 
-    if (_legacyReadModelsEnabled) {
-      // Synthetic fixture compatibility only.
-      _setStaticGeometry(_combinedLegacyGeometry(streamer));
-    }
-
     return TrackStepResult(
       geometryChanged: true,
       spawnedChunks: result.spawnedChunks,
@@ -403,38 +393,6 @@ class TrackManager {
   // ───────────────────────────────────────────────────────────────────────────
   // Private Helpers
   // ───────────────────────────────────────────────────────────────────────────
-
-  /// Applies new static geometry, rebuilding all derived data structures.
-  ///
-  /// This is the single point of geometry mutation. It ensures that the
-  /// collision index, render snapshots, and navigation graph stay in sync.
-  void _setStaticGeometry(StaticWorldGeometry geometry) {
-    _staticGeometry = geometry;
-    _staticIndex = StaticWorldGeometryIndex.from(geometry);
-    _staticSolidsSnapshot = _buildStaticSolidsSnapshot(geometry);
-    _groundSurfacesSnapshot = _buildGroundSurfacesSnapshot(_staticIndex);
-    _rebuildSurfaceGraph();
-  }
-
-  StaticWorldGeometry _combinedLegacyGeometry(TrackStreamer streamer) {
-    return StaticWorldGeometry(
-      groundPlane: _baseGeometry.groundPlane,
-      groundSegments: List<StaticGroundSegment>.unmodifiable(
-        <StaticGroundSegment>[
-          ..._baseGeometry.groundSegments,
-          ...streamer.dynamicGroundSegments,
-        ],
-      ),
-      solids: List<StaticSolid>.unmodifiable(<StaticSolid>[
-        ..._baseGeometry.solids,
-        ...streamer.dynamicSolids,
-      ]),
-      groundGaps: List<StaticGroundGap>.unmodifiable(<StaticGroundGap>[
-        ..._baseGeometry.groundGaps,
-        ...streamer.dynamicGroundGaps,
-      ]),
-    );
-  }
 
   /// Rebuilds the navigation surface graph and distributes it to consumers.
   ///

@@ -214,11 +214,10 @@ final class TerrainSpawnPlacementRequest {
     }
     final needsBridgeY =
         intendedSupportEdgeId == null &&
-        supportSelection != TerrainSpawnSupportSelection.none &&
-        supportSelection != TerrainSpawnSupportSelection.highestSurfaceAtX;
+        supportSelection == TerrainSpawnSupportSelection.deferredEdge;
     if (needsBridgeY && requestedSupportYTicks == null) {
       throw ArgumentError(
-        'Ground, obstacle, and deferred placement need support Y or exact ID.',
+        'Deferred placement needs support Y or an exact edge ID.',
       );
     }
     if (allowSameSupportClamp &&
@@ -258,7 +257,10 @@ final class TerrainSpawnPlacementRequest {
   /// Authored source-selection intent that terrain authority must preserve.
   final TerrainSpawnSupportSelection supportSelection;
 
-  /// Legacy support-height bridge used only when no exact edge ID is supplied.
+  /// Optional legacy support-height bridge when no exact edge ID is supplied.
+  ///
+  /// Runtime ground and obstacle selection use terrain semantics when this is
+  /// absent. Deferred edge placement remains height-bound.
   final int? requestedSupportYTicks;
 
   /// Exact intended polygon edge; this bypasses legacy height matching.
@@ -371,8 +373,7 @@ final class TerrainSpawnPlacementResult {
 }
 
 /// Derf's independent Core-owned horizontal perch-span requirement.
-const int derfMinimumSupportSpanTicks =
-    32 * terrainPhysicsTicksPerWorldUnit;
+const int derfMinimumSupportSpanTicks = 32 * terrainPhysicsTicksPerWorldUnit;
 
 /// Resolves every Phase 3 enemy/item spawn against one terrain surface set.
 ///
@@ -559,19 +560,28 @@ final class TerrainSpawnPlacementResolver {
             selected = surface;
           }
         case TerrainSpawnSupportSelection.ground:
+          final requestedY = request.requestedSupportYTicks;
           if (surface.collisionMode != TerrainCollisionMode.solid ||
-              supportY != request.requestedSupportYTicks) {
+              (requestedY == null
+                  ? surface.surfaceKind != 'ground'
+                  : supportY != requestedY)) {
             continue;
           }
-          if (selected == null || surface.id.compareTo(selected.id) < 0) {
+          if (_isHigherPrioritySurface(surface, selected, queryX)) {
             selected = surface;
           }
         case TerrainSpawnSupportSelection.obstacleTop:
+          final requestedY = request.requestedSupportYTicks;
+          final isAuthoredObstacle =
+              surface.id.placementKey != null ||
+              surface.surfaceKind == 'obstacle';
           if (surface.collisionMode != TerrainCollisionMode.solid ||
-              supportY != request.requestedSupportYTicks) {
+              (requestedY == null
+                  ? !isAuthoredObstacle
+                  : supportY != requestedY)) {
             continue;
           }
-          if (selected == null || surface.id.compareTo(selected.id) < 0) {
+          if (_isHigherPrioritySurface(surface, selected, queryX)) {
             selected = surface;
           }
         case TerrainSpawnSupportSelection.deferredEdge:
@@ -582,6 +592,18 @@ final class TerrainSpawnPlacementResolver {
       }
     }
     return selected;
+  }
+
+  static bool _isHigherPrioritySurface(
+    TerrainNavigationSurface candidate,
+    TerrainNavigationSurface? current,
+    int queryX,
+  ) {
+    if (current == null) return true;
+    final candidateY = candidate.yAtXTicks(queryX);
+    final currentY = current.yAtXTicks(queryX);
+    return candidateY < currentY ||
+        (candidateY == currentY && candidate.id.compareTo(current.id) < 0);
   }
 
   TerrainEdgeId? _firstAabbBlocker(
