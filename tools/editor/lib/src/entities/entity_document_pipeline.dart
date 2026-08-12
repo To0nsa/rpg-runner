@@ -48,6 +48,23 @@ class EntityDocumentPipeline {
           ),
         );
       }
+      if (entry.entityType != EntityType.projectile &&
+          entry.halfX.isFinite &&
+          entry.halfY.isFinite &&
+          entry.halfX > 0 &&
+          entry.halfY > 0 &&
+          entry.halfY < entry.halfX) {
+        issues.add(
+          ValidationIssue(
+            severity: ValidationSeverity.error,
+            code: 'invalid_actor_capsule_dimensions',
+            message:
+                '${entry.id} requires halfY >= halfX so its upright capsule '
+                'fits the authored bounds.',
+            sourcePath: entry.sourcePath,
+          ),
+        );
+      }
       if (!entry.offsetX.isFinite || !entry.offsetY.isFinite) {
         issues.add(
           ValidationIssue(

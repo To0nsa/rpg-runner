@@ -7,6 +7,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../../../entities/entity_domain_models.dart';
+import '../../../entities/entity_collider_preview.dart';
 import '../../../domain/authoring_types.dart';
 import '../../../session/editor_session_controller.dart';
 import 'inspector/entity_inspector_panel.dart';

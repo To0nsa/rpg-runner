@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runner_editor/src/domain/authoring_types.dart';
+import 'package:runner_editor/src/entities/entity_collider_preview.dart';
 import 'package:runner_editor/src/entities/entity_domain_models.dart';
 
 void main() {
@@ -82,5 +83,54 @@ void main() {
 
     expect(scene.entries, <EntityEntry>[entry]);
     expect(() => scene.entries.add(entry), throwsUnsupportedError);
+  });
+
+  test('actor preview uses the quantized upright runtime capsule', () {
+    final preview = EntityColliderPreview.tryFrom(
+      entry.copyWith(halfX: 10.3, halfY: 23, offsetX: -0.3, offsetY: 1),
+    )!;
+
+    expect(preview.axis, EntityColliderCapsuleAxis.vertical);
+    expect(preview.radius, 10547 / 1024);
+    expect(preview.halfSegment, 13005 / 1024);
+    expect(preview.offsetX, -307 / 1024);
+    expect(preview.offsetY, 1);
+    expect(preview.boundsHalfX, preview.radius);
+    expect(preview.boundsHalfY, 23);
+  });
+
+  test('projectile preview uses a horizontal attack capsule', () {
+    final preview = EntityColliderPreview.tryFrom(
+      EntityEntry(
+        id: entry.id,
+        label: entry.label,
+        entityType: EntityType.projectile,
+        halfX: 9,
+        halfY: 4,
+        offsetX: 2,
+        offsetY: 3,
+        sourcePath: entry.sourcePath,
+        sourceBinding: const EntitySourceBinding(
+          kind: EntitySourceBindingKind.projectileArgs,
+          sourcePath: 'lib/src/projectiles.dart',
+          startOffset: 0,
+          endOffset: 10,
+          sourceSnippet: 'colliderSizeX: 18',
+        ),
+      ),
+    )!;
+
+    expect(preview.axis, EntityColliderCapsuleAxis.horizontal);
+    expect(preview.radius, 4);
+    expect(preview.halfSegment, 9);
+    expect(preview.boundsHalfX, 13);
+    expect(preview.boundsHalfY, 4);
+  });
+
+  test('actor preview rejects bounds that cannot contain its capsule', () {
+    expect(
+      EntityColliderPreview.tryFrom(entry.copyWith(halfX: 15, halfY: 10)),
+      isNull,
+    );
   });
 }

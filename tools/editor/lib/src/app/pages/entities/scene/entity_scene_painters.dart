@@ -184,6 +184,7 @@ class _EntityBoundsPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    final preview = EntityColliderPreview.tryFrom(entry);
     final handles = _ViewportGeometry.entityHandles(
       size: size,
       offsetX: entry.offsetX,
@@ -192,21 +193,52 @@ class _EntityBoundsPainter extends CustomPainter {
       halfY: entry.halfY,
       scale: scale,
     );
-    final entityRect = _ViewportGeometry.entityRect(
-      center: handles.center,
-      halfX: entry.halfX,
-      halfY: entry.halfY,
-      scale: scale,
-    );
+    if (preview == null) {
+      final invalidRect = _ViewportGeometry.entityRect(
+        center: handles.center,
+        halfX: math.max(0, entry.halfX),
+        halfY: math.max(0, entry.halfY),
+        scale: scale,
+      );
+      canvas.drawRect(
+        invalidRect,
+        Paint()
+          ..color = const Color(0xFFFF6B6B)
+          ..strokeWidth = 2
+          ..style = PaintingStyle.stroke,
+      );
+    } else {
+      final capsuleCenter = _ViewportGeometry.entityCenter(
+        size,
+        preview.offsetX,
+        preview.offsetY,
+        scale,
+      );
+      final broadphaseRect = _ViewportGeometry.entityRect(
+        center: capsuleCenter,
+        halfX: preview.boundsHalfX,
+        halfY: preview.boundsHalfY,
+        scale: scale,
+      );
+      canvas.drawRect(
+        broadphaseRect,
+        Paint()
+          ..color = const Color(0x997CE5FF)
+          ..strokeWidth = 1
+          ..style = PaintingStyle.stroke,
+      );
 
-    final fillPaint = Paint()..color = const Color(0x5522D3EE);
-    canvas.drawRect(entityRect, fillPaint);
-
-    final strokePaint = Paint()
-      ..color = const Color(0xFF7CE5FF)
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke;
-    canvas.drawRect(entityRect, strokePaint);
+      final radius = Radius.circular(preview.radius * scale);
+      final capsule = RRect.fromRectAndRadius(broadphaseRect, radius);
+      canvas.drawRRect(capsule, Paint()..color = const Color(0x5522D3EE));
+      canvas.drawRRect(
+        capsule,
+        Paint()
+          ..color = const Color(0xFF7CE5FF)
+          ..strokeWidth = 2
+          ..style = PaintingStyle.stroke,
+      );
+    }
 
     _paintHandle(
       canvas,

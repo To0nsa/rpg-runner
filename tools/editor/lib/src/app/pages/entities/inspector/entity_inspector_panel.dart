@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../entities/entity_domain_models.dart';
+import '../../../../entities/entity_collider_preview.dart';
 
 /// Inspector surface for the selected entity entry.
 ///
@@ -178,6 +179,8 @@ class EntityInspectorPanel extends StatelessWidget {
               'Collider "$shapeType"',
               style: Theme.of(context).textTheme.titleSmall,
             ),
+            const SizedBox(height: 4),
+            Text(_colliderFieldMeaning(selected)),
             const SizedBox(height: 6),
             _InspectorLabeledFieldRow(
               subtitle: 'Size',
@@ -232,22 +235,31 @@ class EntityInspectorPanel extends StatelessWidget {
     );
   }
 
-  /// Resolves a user-facing collider label from the source binding kind.
-  ///
-  /// Only known collider-authoring bindings are labeled as `rectangle`.
-  /// Other binding kinds can appear on the same entry but are not collider
-  /// authorities, so the label intentionally falls back to `unknown`.
   String _resolvedShapeType(EntityEntry entry) {
     switch (entry.sourceBinding.kind) {
       case EntitySourceBindingKind.enemyAabbExpression:
       case EntitySourceBindingKind.playerArgs:
+        return 'upright capsule + enclosing AABB';
       case EntitySourceBindingKind.projectileArgs:
-        return 'rectangle';
+        return 'horizontal capsule + enclosing AABB';
       case EntitySourceBindingKind.castOriginOffsetScalar:
       case EntitySourceBindingKind.referenceAnchorVec2Expression:
       case EntitySourceBindingKind.referenceRenderScaleScalar:
         return 'unknown';
     }
+  }
+
+  String _colliderFieldMeaning(EntityEntry entry) {
+    final preview = EntityColliderPreview.tryFrom(entry);
+    if (preview == null) {
+      return 'Invalid capsule dimensions. Actors require halfY ≥ halfX.';
+    }
+    return switch (preview.axis) {
+      EntityColliderCapsuleAxis.vertical =>
+        'halfX is radius; halfY − halfX is the vertical half-spine.',
+      EntityColliderCapsuleAxis.horizontal =>
+        'halfX is the horizontal half-spine; halfY is radius.',
+    };
   }
 }
 
