@@ -29,7 +29,8 @@ Implemented authoring domains:
   assembly segment sequencing, render-theme run validation, pending diff
   preview, and direct-write export
 - parallax theme authoring scoped by active level, with ordered layer editing,
-  deterministic save output, validation, and preview motion simulation
+  deterministic save output, validation, and preview pan/zoom plus temporary
+  all-layer Y-offset simulation
 
 Editor foundations shared across those domains:
 

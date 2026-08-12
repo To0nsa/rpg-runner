@@ -31,10 +31,12 @@ class _ParallaxPreviewViewState extends State<ParallaxPreviewView> {
   static const double _zoomStep = 0.1;
   static const double _minCameraX = -2048.0;
   static const double _maxCameraX = 2048.0;
+  static const double _previewYOffsetStep = 16.0;
 
   final EditorUiImageCache _imageCache = EditorUiImageCache();
   double _zoom = 1.0;
   double _cameraX = 0.0;
+  double _previewYOffset = 0.0;
   bool _ctrlPanActive = false;
   int? _activePointer;
   int _loadGeneration = 0;
@@ -102,6 +104,25 @@ class _ParallaxPreviewViewState extends State<ParallaxPreviewView> {
                     },
                   ),
                 ),
+                SizedBox(
+                  width: 240,
+                  child: Slider(
+                    key: const ValueKey<String>('parallax_preview_y_offset'),
+                    value: _previewYOffset
+                        .clamp(-maxAbsYOffset, maxAbsYOffset)
+                        .toDouble(),
+                    min: -maxAbsYOffset,
+                    max: maxAbsYOffset,
+                    divisions: ((maxAbsYOffset * 2) / _previewYOffsetStep)
+                        .round(),
+                    label: 'Preview Y offset ${_previewYOffset.round()}',
+                    onChanged: (value) {
+                      setState(() {
+                        _previewYOffset = value;
+                      });
+                    },
+                  ),
+                ),
                 OutlinedButton.icon(
                   onPressed: () {
                     setState(() {
@@ -111,9 +132,22 @@ class _ParallaxPreviewViewState extends State<ParallaxPreviewView> {
                   icon: const Icon(Icons.center_focus_strong),
                   label: const Text('Reset Camera'),
                 ),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _previewYOffset = 0.0;
+                    });
+                  },
+                  icon: const Icon(Icons.vertical_align_center),
+                  label: const Text('Reset Y Offset'),
+                ),
                 Chip(
                   avatar: const Icon(Icons.swap_horiz, size: 16),
                   label: Text('cameraX=${_cameraX.round()}'),
+                ),
+                Chip(
+                  avatar: const Icon(Icons.swap_vert, size: 16),
+                  label: Text('previewYOffset=${_previewYOffset.round()}'),
                 ),
               ],
             ),
@@ -138,6 +172,7 @@ class _ParallaxPreviewViewState extends State<ParallaxPreviewView> {
                           theme: theme,
                           zoom: _zoom,
                           cameraX: _cameraX,
+                          previewYOffset: _previewYOffset,
                         ),
                       ),
                     ),
@@ -276,6 +311,7 @@ class _ParallaxPreviewPainter extends CustomPainter {
     required this.theme,
     required this.zoom,
     required this.cameraX,
+    required this.previewYOffset,
   });
 
   final String workspaceRootPath;
@@ -284,6 +320,7 @@ class _ParallaxPreviewPainter extends CustomPainter {
   final ParallaxThemeDef theme;
   final double zoom;
   final double cameraX;
+  final double previewYOffset;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -349,7 +386,10 @@ class _ParallaxPreviewPainter extends CustomPainter {
       );
       final scroll = cameraX * parallaxFactor * zoom;
       final startX = _positiveMod(-scroll, tileWidth);
-      final topY = bottomAnchorY - tileHeight + (layer.yOffset * zoom);
+      final topY =
+          bottomAnchorY -
+          tileHeight +
+          ((layer.yOffset + previewYOffset) * zoom);
       final paint = Paint()
         ..filterQuality = FilterQuality.none
         ..color = Color.fromRGBO(
@@ -387,6 +427,7 @@ class _ParallaxPreviewPainter extends CustomPainter {
     return oldDelegate.theme != theme ||
         oldDelegate.zoom != zoom ||
         oldDelegate.cameraX != cameraX ||
+        oldDelegate.previewYOffset != previewYOffset ||
         oldDelegate.loadedImageCount != loadedImageCount;
   }
 }
