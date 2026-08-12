@@ -112,7 +112,12 @@ class TerrainSurfaceNavIntent {
     required this.jumpNow,
     required this.hasPlan,
     this.commitDirectionX = 0,
-  });
+    this.hasSafeBodyRange = false,
+    this.safeMinimumBodyXTicks = 0,
+    this.safeMaximumBodyXTicks = 0,
+  }) : assert(
+         !hasSafeBodyRange || safeMinimumBodyXTicks <= safeMaximumBodyXTicks,
+       );
 
   /// World-X body target in authoritative physics ticks.
   final int desiredBodyXTicks;
@@ -125,13 +130,20 @@ class TerrainSurfaceNavIntent {
 
   /// Stable horizontal commitment while approaching or traversing an edge.
   final int commitDirectionX;
+
+  /// Whether no-plan fallback resolved a finite standable body-center range.
+  final bool hasSafeBodyRange;
+
+  /// Inclusive safe body-center bounds for no-plan locomotion.
+  final int safeMinimumBodyXTicks;
+  final int safeMaximumBodyXTicks;
 }
 
 /// Deterministic runtime controller for polygon-terrain surface graphs.
 ///
-/// Normal production levels continue to use the legacy rectangle navigator
-/// until the later integration phase. This controller is the isolated terrain
-/// path used by the Phase 3 harness and future ground-enemy migration.
+/// Terrain world-motion authority selects this controller through the ECS
+/// navigation adapter. Normal production levels continue to use the legacy
+/// rectangle navigator until the Phase 6 authority cutover.
 class TerrainSurfaceNavigator {
   TerrainSurfaceNavigator({
     required this.pathfinder,
@@ -604,6 +616,9 @@ class TerrainSurfaceNavigator {
       desiredBodyXTicks: targetBodyXTicks.clamp(minimumBodyX, maximumBodyX),
       jumpNow: false,
       hasPlan: false,
+      hasSafeBodyRange: true,
+      safeMinimumBodyXTicks: minimumBodyX,
+      safeMaximumBodyXTicks: maximumBodyX,
     );
   }
 

@@ -23,6 +23,13 @@ class NavIntentStore extends SparseSet {
   final List<double> safeSurfaceMaxX = <double>[];
   final List<bool> hasSafeSurface = <bool>[];
 
+  /// Active planned jump data shared with locomotion by either navigator.
+  final List<bool> hasActiveJumpTraversal = <bool>[];
+  final List<double> activeJumpTakeoffX = <double>[];
+  final List<double> activeJumpLandingX = <double>[];
+  final List<int> activeJumpCommitDirX = <int>[];
+  final List<int> activeJumpTravelTicks = <int>[];
+
   void add(EntityId entity) {
     final i = addEntity(entity);
     navTargetX[i] = 0.0;
@@ -33,6 +40,29 @@ class NavIntentStore extends SparseSet {
     safeSurfaceMinX[i] = 0.0;
     safeSurfaceMaxX[i] = 0.0;
     hasSafeSurface[i] = false;
+    clearActiveJumpTraversalAt(i);
+  }
+
+  void setActiveJumpTraversalAt(
+    int index, {
+    required double takeoffX,
+    required double landingX,
+    required int commitDirectionX,
+    required int travelTicks,
+  }) {
+    hasActiveJumpTraversal[index] = true;
+    activeJumpTakeoffX[index] = takeoffX;
+    activeJumpLandingX[index] = landingX;
+    activeJumpCommitDirX[index] = commitDirectionX;
+    activeJumpTravelTicks[index] = travelTicks;
+  }
+
+  void clearActiveJumpTraversalAt(int index) {
+    hasActiveJumpTraversal[index] = false;
+    activeJumpTakeoffX[index] = 0;
+    activeJumpLandingX[index] = 0;
+    activeJumpCommitDirX[index] = 0;
+    activeJumpTravelTicks[index] = 0;
   }
 
   @override
@@ -45,6 +75,11 @@ class NavIntentStore extends SparseSet {
     safeSurfaceMinX.add(0.0);
     safeSurfaceMaxX.add(0.0);
     hasSafeSurface.add(false);
+    hasActiveJumpTraversal.add(false);
+    activeJumpTakeoffX.add(0);
+    activeJumpLandingX.add(0);
+    activeJumpCommitDirX.add(0);
+    activeJumpTravelTicks.add(0);
   }
 
   @override
@@ -57,6 +92,11 @@ class NavIntentStore extends SparseSet {
     safeSurfaceMinX[removeIndex] = safeSurfaceMinX[lastIndex];
     safeSurfaceMaxX[removeIndex] = safeSurfaceMaxX[lastIndex];
     hasSafeSurface[removeIndex] = hasSafeSurface[lastIndex];
+    hasActiveJumpTraversal[removeIndex] = hasActiveJumpTraversal[lastIndex];
+    activeJumpTakeoffX[removeIndex] = activeJumpTakeoffX[lastIndex];
+    activeJumpLandingX[removeIndex] = activeJumpLandingX[lastIndex];
+    activeJumpCommitDirX[removeIndex] = activeJumpCommitDirX[lastIndex];
+    activeJumpTravelTicks[removeIndex] = activeJumpTravelTicks[lastIndex];
 
     navTargetX.removeLast();
     desiredX.removeLast();
@@ -66,5 +106,10 @@ class NavIntentStore extends SparseSet {
     safeSurfaceMinX.removeLast();
     safeSurfaceMaxX.removeLast();
     hasSafeSurface.removeLast();
+    hasActiveJumpTraversal.removeLast();
+    activeJumpTakeoffX.removeLast();
+    activeJumpLandingX.removeLast();
+    activeJumpCommitDirX.removeLast();
+    activeJumpTravelTicks.removeLast();
   }
 }

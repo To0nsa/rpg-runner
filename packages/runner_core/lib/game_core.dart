@@ -45,6 +45,7 @@ import 'ecs/systems/flying_enemy_locomotion_system.dart';
 import 'ecs/systems/flying_enemy_melee_system.dart';
 import 'ecs/systems/ground_enemy_locomotion_system.dart';
 import 'ecs/systems/enemy_navigation_system.dart';
+import 'ecs/systems/terrain_enemy_navigation_system.dart';
 import 'ecs/systems/gravity_system.dart';
 import 'ecs/systems/hashash_teleport_ambush_system.dart';
 import 'ecs/systems/health_despawn_system.dart';
@@ -88,6 +89,8 @@ import 'navigation/surface_navigator.dart';
 import 'navigation/surface_pathfinder.dart';
 import 'navigation/terrain_runtime_bundle.dart';
 import 'navigation/terrain_spawn_placement.dart';
+import 'navigation/terrain_surface_navigator.dart';
+import 'navigation/terrain_surface_pathfinder.dart';
 import 'navigation/types/terrain_surface_graph.dart';
 import 'navigation/utils/jump_template.dart';
 import 'navigation/utils/standability.dart';
@@ -182,8 +185,8 @@ class GameCore {
   /// Creates the isolated Phase 3 multi-body terrain integration harness.
   ///
   /// This is a test/tool construction boundary, not a level or replay option.
-  /// Known player/enemy actors use explicit terrain policies; unsupported
-  /// dynamic bodies and ballistic projectiles fail without a legacy fallback.
+  /// Known player/enemy actors and ballistic projectiles use explicit terrain
+  /// policies; unknown dynamic bodies fail without a legacy fallback.
   factory GameCore.terrainMotionHarness({
     required int seed,
     int runId = 0,
@@ -612,6 +615,32 @@ class GameCore {
       chaseTargetDelayTicks:
           _groundEnemyTuning.navigation.chaseTargetDelayTicks,
     );
+    final terrainAuthority = _worldMotionAuthority;
+    _terrainEnemyNavigationSystem =
+        terrainAuthority is TerrainMultiBodyWorldMotionAuthority
+        ? TerrainEnemyNavigationSystem(
+            runtimeBundle: () => terrainAuthority.terrainRuntimeBundle,
+            navigator: TerrainSurfaceNavigator(
+              pathfinder: TerrainSurfacePathfinder(
+                maxExpandedNodes: _navigationTuning.maxExpandedNodes,
+                edgePenaltyCostUnits:
+                    (_navigationTuning.edgePenaltySeconds *
+                            terrainNavigationCostUnitsPerSecond)
+                        .round(),
+              ),
+              repathCooldownTicks: _navigationTuning.repathCooldownTicks,
+              takeoffToleranceTicks: physicsCoordinateToTicks(
+                max(
+                  _navigationTuning.takeoffEpsMin,
+                  _groundEnemyTuning.locomotion.stopDistanceX,
+                ),
+                name: 'terrainNavigationTakeoffTolerance',
+              ),
+            ),
+            physics: _physicsTuning,
+            dtSeconds: _movement.dtSeconds,
+          )
+        : null;
     _enemyEngagementSystem = EnemyEngagementSystem(
       groundEnemyTuning: _groundEnemyTuning,
       enemyCatalog: _enemyCatalog,
@@ -849,6 +878,7 @@ class GameCore {
   late final EnemyDeathStateSystem _enemyDeathStateSystem;
   late final DeathDespawnSystem _deathDespawnSystem;
   late EnemyNavigationSystem _enemyNavigationSystem;
+  late final TerrainEnemyNavigationSystem? _terrainEnemyNavigationSystem;
   late EnemyEngagementSystem _enemyEngagementSystem;
   late HashashTeleportAmbushSystem _hashashTeleportAmbushSystem;
   late GroundEnemyLocomotionSystem _groundEnemyLocomotionSystem;
@@ -1390,7 +1420,12 @@ class GameCore {
       player: _player,
       currentTick: tick,
     );
-    _enemyNavigationSystem.step(_world, player: _player, currentTick: tick);
+    final terrainNavigation = _terrainEnemyNavigationSystem;
+    if (terrainNavigation == null) {
+      _enemyNavigationSystem.step(_world, player: _player, currentTick: tick);
+    } else {
+      terrainNavigation.step(_world, player: _player, currentTick: tick);
+    }
     _enemyEngagementSystem.step(_world, player: _player, currentTick: tick);
     _flyingEnemyCombatModeSystem.step(_world);
     _groundEnemyLocomotionSystem.step(

@@ -94,6 +94,14 @@ intent into one support-distance solve. Accepted jump launch explicitly clears
 prior support so the same tick remains world-space. Animation and ground-impact
 death read final support only after integration.
 
+The terrain-only enemy navigation adapter obtains its graph and placement
+query from the same published runtime bundle. Bundle-version changes clear all
+per-entity surface/path/active-edge state before AI; airborne player targeting
+uses the terrain capsule trajectory predictor. Its output remains the existing
+navigation-intent contract, including finite fallback bounds and active jump
+timing consumed by the shared ground-enemy locomotion system. Legacy authority
+continues to select the legacy rectangle navigator.
+
 The terrain harness rejects unknown enabled dynamic bodies and never falls
 back to rectangle collision. Catalog-owned actors use their capsule policies;
 physics-driven projectiles use a distinct continuous AABB terrain sweep in the

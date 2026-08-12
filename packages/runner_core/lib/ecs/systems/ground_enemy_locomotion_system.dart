@@ -20,6 +20,7 @@ class GroundEnemyLocomotionSystem {
 
   Map<EnemyId, SurfaceGraph> _surfaceGraphsByEnemy = <EnemyId, SurfaceGraph>{};
   SurfaceGraph? _defaultSurfaceGraph;
+  final _ActiveJumpTraversal _activeJumpScratch = _ActiveJumpTraversal();
 
   void setSurfaceGraph({required SurfaceGraph graph}) {
     setSurfaceGraphs(
@@ -178,6 +179,7 @@ class GroundEnemyLocomotionSystem {
       enemyIndex: enemyIndex,
       enemyTi: enemyTi,
       navIndex: navIndex,
+      navIntentIndex: navIntentIndex,
       ex: ex,
       desiredX: desiredX,
       jumpNow: navIntent.jumpNow[navIntentIndex],
@@ -202,6 +204,7 @@ class GroundEnemyLocomotionSystem {
     required int enemyIndex,
     required int enemyTi,
     required int navIndex,
+    required int navIntentIndex,
     required double ex,
     required double desiredX,
     required bool jumpNow,
@@ -222,9 +225,10 @@ class GroundEnemyLocomotionSystem {
     final tuning = groundEnemyTuning;
     final enemy = world.enemy.denseEntities[enemyIndex];
     final terrainGrounded = grounded && world.terrainContact.has(enemy);
-    final activeJumpEdge = _activeJumpEdge(
+    final activeJumpTraversal = _activeJumpTraversal(
       world,
       navIndex: navIndex,
+      navIntentIndex: navIntentIndex,
       graph: graph,
     );
     final modIndex = world.statModifier.tryIndexOf(enemy);
@@ -245,13 +249,14 @@ class GroundEnemyLocomotionSystem {
     final currentVelX = terrainGrounded
         ? _surfaceSpeedAlongWorldX(world, enemy, enemyTi)
         : currentWorldVelX;
-    final lockAirborneJumpVelX = hasPlan && !grounded && activeJumpEdge != null;
+    final lockAirborneJumpVelX =
+        hasPlan && !grounded && activeJumpTraversal != null;
     final activeJumpEdgeDirX = _resolveEdgeCommitDirX(
-      activeJumpEdge,
+      activeJumpTraversal,
       referenceX: ex,
     );
     final activeJumpCruiseAbs = _edgeCruiseAbsSpeed(
-      edge: activeJumpEdge,
+      edge: activeJumpTraversal,
       dtSeconds: dtSeconds,
       maxSpeedAbs: baseSpeed,
     );
@@ -262,7 +267,7 @@ class GroundEnemyLocomotionSystem {
     final jumpDirX = _resolveJumpForwardDirX(
       commitMoveDirX: commitMoveDirX,
       jumpNow: jumpNow,
-      activeJumpEdge: activeJumpEdge,
+      activeJumpEdge: activeJumpTraversal,
       facingDirX: facingDirX,
     );
 
@@ -311,9 +316,9 @@ class GroundEnemyLocomotionSystem {
     double? jumpSnapVelX;
     if (hasPlan &&
         jumpNow &&
-        activeJumpEdge != null &&
-        activeJumpEdge.travelTicks > 0) {
-      final edge = activeJumpEdge;
+        activeJumpTraversal != null &&
+        activeJumpTraversal.travelTicks > 0) {
+      final edge = activeJumpTraversal;
       final travelSeconds = edge.travelTicks * dtSeconds;
       if (travelSeconds > 0.0) {
         final dxAbs = (edge.landingX - ex).abs();
@@ -464,7 +469,7 @@ class GroundEnemyLocomotionSystem {
   int _resolveJumpForwardDirX({
     required int commitMoveDirX,
     required bool jumpNow,
-    required SurfaceEdge? activeJumpEdge,
+    required _ActiveJumpTraversal? activeJumpEdge,
     required int facingDirX,
   }) {
     if (!jumpNow) return 0;
@@ -475,21 +480,40 @@ class GroundEnemyLocomotionSystem {
     return facingDirX;
   }
 
-  SurfaceEdge? _activeJumpEdge(
+  _ActiveJumpTraversal? _activeJumpTraversal(
     EcsWorld world, {
     required int navIndex,
+    required int navIntentIndex,
     required SurfaceGraph? graph,
   }) {
+    final intents = world.navIntent;
+    if (intents.hasActiveJumpTraversal[navIntentIndex]) {
+      return _activeJumpScratch.set(
+        takeoffX: intents.activeJumpTakeoffX[navIntentIndex],
+        landingX: intents.activeJumpLandingX[navIntentIndex],
+        commitDirX: intents.activeJumpCommitDirX[navIntentIndex],
+        travelTicks: intents.activeJumpTravelTicks[navIntentIndex],
+      );
+    }
     if (graph == null) return null;
     final activeEdgeIndex = world.surfaceNav.activeEdgeIndex[navIndex];
     if (activeEdgeIndex < 0 || activeEdgeIndex >= graph.edges.length) {
       return null;
     }
     final edge = graph.edges[activeEdgeIndex];
-    return edge.kind == SurfaceEdgeKind.jump ? edge : null;
+    if (edge.kind != SurfaceEdgeKind.jump) return null;
+    return _activeJumpScratch.set(
+      takeoffX: edge.takeoffX,
+      landingX: edge.landingX,
+      commitDirX: edge.commitDirX,
+      travelTicks: edge.travelTicks,
+    );
   }
 
-  int _resolveEdgeCommitDirX(SurfaceEdge? edge, {required double referenceX}) {
+  int _resolveEdgeCommitDirX(
+    _ActiveJumpTraversal? edge, {
+    required double referenceX,
+  }) {
     if (edge == null) return 0;
     if (edge.commitDirX != 0) return edge.commitDirX;
     if (edge.landingX > referenceX) return 1;
@@ -498,7 +522,7 @@ class GroundEnemyLocomotionSystem {
   }
 
   double _edgeCruiseAbsSpeed({
-    required SurfaceEdge? edge,
+    required _ActiveJumpTraversal? edge,
     required double dtSeconds,
     required double maxSpeedAbs,
   }) {
@@ -508,5 +532,25 @@ class GroundEnemyLocomotionSystem {
     final edgeDxAbs = (edge.landingX - edge.takeoffX).abs();
     final requiredAbs = edgeDxAbs / travelSeconds;
     return clampDouble(requiredAbs, 0.0, maxSpeedAbs);
+  }
+}
+
+final class _ActiveJumpTraversal {
+  double takeoffX = 0;
+  double landingX = 0;
+  int commitDirX = 0;
+  int travelTicks = 0;
+
+  _ActiveJumpTraversal set({
+    required double takeoffX,
+    required double landingX,
+    required int commitDirX,
+    required int travelTicks,
+  }) {
+    this.takeoffX = takeoffX;
+    this.landingX = landingX;
+    this.commitDirX = commitDirX;
+    this.travelTicks = travelTicks;
+    return this;
   }
 }

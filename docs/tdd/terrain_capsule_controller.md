@@ -256,6 +256,17 @@ items combine Éloïse-eligible support with complete upright-AABB clearance.
 Placement remains outside per-tick motion and consumes no RNG. Atomic streaming
 publication stays on the same `TerrainEdgeId` and geometry-version contracts.
 
+Under terrain authority, `TerrainEnemyNavigationSystem` reads that exact
+runtime bundle after the publication/preparation barrier. Grojib and Hashash
+retain separate graph views over one shared surface set; component-owned
+terrain navigator state invalidates every version-local index, path, and
+active edge when the bundle changes. The adapter resolves prior enemy/player
+support, predicts an airborne player's first valid capsule landing, and writes
+the existing `NavIntentStore`. Finite no-plan ranges and active jump timing are
+carried into `GroundEnemyLocomotionSystem`, so terrain routing does not create
+a second locomotion implementation. Legacy authority continues to select the
+legacy graph system until Phase 6.
+
 Enemy intent and navigation run before the current tick's motion result exists,
 so Phase 3 AI must deliberately read the previous tick's validated support.
 Post-motion animation, snapshots, and other presentation consumers read the

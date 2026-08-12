@@ -135,6 +135,13 @@ workflow except where an already-public Core output needs a read-only consumer.
       resolves the earliest contact by time then canonical edge ID, writes the
       existing directional flags, and preserves same-tick
       `ProjectileWorldCollisionSystem` despawn ownership.
+- [x] Terrain-authority ground-enemy AI reads the exact published Grojib and
+      Hashash graph views through a dedicated ECS adapter. Per-entity terrain
+      state invalidates on bundle version, grounded targets retain exact
+      support, airborne targets use the terrain capsule predictor, safe
+      fallback stays finite, and planned jump timing is forwarded through the
+      existing locomotion intent contract. Normal/replay construction still
+      selects the legacy navigator.
 
 ## 3) Implementation Order
 
@@ -185,7 +192,7 @@ workflow except where an already-public Core output needs a read-only consumer.
       signature, source membership, and reachable-seam evidence all match
 - [ ] streamed chunk spawn/cull/re-add produces the same world-space edge IDs,
       ordering, and bundle signature for identical selected chunks
-- [ ] one atomic publication updates collision, support/navigation, placement,
+- [x] one atomic publication updates collision, support/navigation, placement,
       render snapshots, and debug evidence together at a tick boundary
 - [x] source edge lineage survives world binding and is available in diagnostic
       and debug outputs without per-tick allocation

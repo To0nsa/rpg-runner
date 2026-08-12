@@ -1,4 +1,5 @@
 import '../../../navigation/types/surface_id.dart';
+import '../../../navigation/terrain_surface_navigator.dart';
 import '../../entity_id.dart';
 import '../../sparse_set.dart';
 
@@ -16,6 +17,10 @@ class SurfaceNavStateStore extends SparseSet {
   final List<int> pathCursor = <int>[];
   final List<List<int>> pathEdges = <List<int>>[];
 
+  /// Polygon-terrain navigator state selected only by terrain authority.
+  final List<TerrainSurfaceNavigatorState> terrainState =
+      <TerrainSurfaceNavigatorState>[];
+
   void add(EntityId entity) {
     addEntity(entity);
   }
@@ -30,6 +35,7 @@ class SurfaceNavStateStore extends SparseSet {
     activeEdgeIndex.add(-1);
     pathCursor.add(0);
     pathEdges.add(<int>[]);
+    terrainState.add(TerrainSurfaceNavigatorState());
   }
 
   @override
@@ -42,6 +48,7 @@ class SurfaceNavStateStore extends SparseSet {
     activeEdgeIndex[removeIndex] = activeEdgeIndex[lastIndex];
     pathCursor[removeIndex] = pathCursor[lastIndex];
     pathEdges[removeIndex] = pathEdges[lastIndex];
+    terrainState[removeIndex] = terrainState[lastIndex];
 
     graphVersion.removeLast();
     repathTicksLeft.removeLast();
@@ -51,5 +58,6 @@ class SurfaceNavStateStore extends SparseSet {
     activeEdgeIndex.removeLast();
     pathCursor.removeLast();
     pathEdges.removeLast();
+    terrainState.removeLast();
   }
 }

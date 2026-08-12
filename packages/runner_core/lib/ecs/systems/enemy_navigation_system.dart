@@ -263,6 +263,42 @@ class EnemyNavigationSystem {
       navIntent.hasSafeSurface[intentIndex] = hasSafeSurface;
       navIntent.safeSurfaceMinX[intentIndex] = safeSurfaceMinX;
       navIntent.safeSurfaceMaxX[intentIndex] = safeSurfaceMaxX;
+      _publishActiveJumpTraversal(
+        navIntentIndex: intentIndex,
+        navIndex: navIndex,
+        graph: enemyGraph,
+        world: world,
+      );
     }
+  }
+
+  void _publishActiveJumpTraversal({
+    required int navIntentIndex,
+    required int navIndex,
+    required SurfaceGraph? graph,
+    required EcsWorld world,
+  }) {
+    final intents = world.navIntent;
+    if (graph == null) {
+      intents.clearActiveJumpTraversalAt(navIntentIndex);
+      return;
+    }
+    final edgeIndex = world.surfaceNav.activeEdgeIndex[navIndex];
+    if (edgeIndex < 0 || edgeIndex >= graph.edges.length) {
+      intents.clearActiveJumpTraversalAt(navIntentIndex);
+      return;
+    }
+    final edge = graph.edges[edgeIndex];
+    if (edge.kind != SurfaceEdgeKind.jump) {
+      intents.clearActiveJumpTraversalAt(navIntentIndex);
+      return;
+    }
+    intents.setActiveJumpTraversalAt(
+      navIntentIndex,
+      takeoffX: edge.takeoffX,
+      landingX: edge.landingX,
+      commitDirectionX: edge.commitDirX,
+      travelTicks: edge.travelTicks,
+    );
   }
 }

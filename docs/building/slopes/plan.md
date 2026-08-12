@@ -1637,5 +1637,8 @@ spawn, while later stream changes publish their complete world before captured
 enemy/item placement and motion preparation. Ballistic projectiles now retain
 their AABB shape under terrain authority and continuously sweep the same edge
 index with existing collision-flag and same-tick-despawn semantics. Production
-movement and legacy navigation remain on the rectangle projection until the
-remaining terrain consumers, full-run, and Phase 6 direct-cutover gates pass.
+movement and navigation remain on the rectangle projection, while the explicit
+terrain harness now routes Grojib/Hashash pursuit, fallback, airborne target
+prediction, and planned-jump timing through the exact published terrain graph
+views. Full-run and Phase 6 direct-cutover gates remain before production
+authority selection changes.
