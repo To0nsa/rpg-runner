@@ -81,6 +81,7 @@ final class StagedTerrainRenderSnapshotBuilder {
     return StagedTerrainRenderSnapshot(
       geometryVersion: geometry.version,
       polygons: renderPolygons,
+      edges: geometry.edges,
     );
   }
 }

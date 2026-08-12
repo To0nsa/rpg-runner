@@ -23,13 +23,11 @@ void main() {
           worldOriginXTicks: 4096,
         ),
       ];
-      final render = builder.build(
+      final geometry = const StagedTerrainWorldGeometryBuilder().build(
         bindings: bindings,
-        geometry: const StagedTerrainWorldGeometryBuilder().build(
-          bindings: bindings,
-          geometryVersion: 17,
-        ),
+        geometryVersion: 17,
       );
+      final render = builder.build(bindings: bindings, geometry: geometry);
 
       final polygon = render.polygons.single;
       expect(render.geometryVersion, 17);
@@ -42,6 +40,13 @@ void main() {
       expect(polygon.triangles.single.first, 0);
       expect(polygon.triangles.single.second, 1);
       expect(polygon.triangles.single.third, 2);
+      final edge = render.edges.single;
+      expect(identical(edge, geometry.edges.single), isTrue);
+      expect(edge.id.chunkIndex, 3);
+      expect(edge.id.chunkKey, 'field_flat');
+      expect(edge.id.shapeId, 'ground');
+      expect(edge.start.xTicks, 4096);
+      expect(edge.end.xTicks, 5120);
     },
   );
 
@@ -148,7 +153,26 @@ StagedTerrainChunkData _chunk(
         materialKey: 'earth',
       ),
     ],
-    edges: const <StagedTerrainEdgeData>[],
+    edges: <StagedTerrainEdgeData>[
+      StagedTerrainEdgeData(
+        id: StagedTerrainEdgeId(
+          sourceId: sourceId,
+          localEdgeIndex: 0,
+          subEdgeIndex: 0,
+        ),
+        start: const StagedTerrainPoint(0, 0),
+        end: const StagedTerrainPoint(1024, 0),
+        tangent: const StagedTerrainPoint(1024, 0),
+        outwardNormal: const StagedTerrainPoint(0, -1024),
+        collisionMode: StagedTerrainCollisionMode.solid,
+        surfaceKind: 'ground',
+        materialKey: 'earth',
+        previousId: null,
+        nextId: null,
+        startJoin: StagedTerrainVertexJoin.exposed,
+        endJoin: StagedTerrainVertexJoin.exposed,
+      ),
+    ],
     triangles:
         triangles ??
         <StagedTerrainTriangleData>[

@@ -30,7 +30,9 @@ reauthoring is underway:
 - the normal generator registers the staged Dart artifact as its sixth output,
   while Flame and normal Core/replay construction have no terrain consumer;
   the isolated terrain harness may publish an admitted staged candidate's
-  immutable Core render snapshot alongside its collision/navigation bundle
+  immutable Core render snapshot alongside its collision/navigation bundle;
+  that snapshot retains exact source-lineage collision edges for later render
+  diagnostics without reconstructing them from polygon loops
 
 Final Phase 4 acceptance work remains tracked in
 [the Phase 4 checklist](../building/slopes/phase4-implementation-checklist.md).

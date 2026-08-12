@@ -1,6 +1,7 @@
 /// Immutable render data derived from staged terrain geometry.
 library;
 
+import '../collision/terrain/terrain_edge.dart';
 import '../collision/terrain/terrain_numeric.dart';
 import '../collision/terrain/terrain_polygon.dart';
 
@@ -60,13 +61,23 @@ final class StagedTerrainRenderSnapshot {
   StagedTerrainRenderSnapshot({
     required this.geometryVersion,
     required Iterable<StagedTerrainPolygonRenderSnapshot> polygons,
+    required Iterable<TerrainEdge> edges,
   }) : polygons = List<StagedTerrainPolygonRenderSnapshot>.unmodifiable(
          polygons,
-       );
+       ),
+       edges = List<TerrainEdge>.unmodifiable(edges);
 
   /// Version of the exact terrain geometry that produced [polygons].
   final int geometryVersion;
 
   /// Canonically ordered staged terrain fill polygons.
   final List<StagedTerrainPolygonRenderSnapshot> polygons;
+
+  /// Canonically ordered exposed collision edges for render diagnostics.
+  ///
+  /// These are the exact compiler-owned edge objects used by the matching
+  /// collision/navigation bundle. Their IDs retain full chunk, placement, and
+  /// shape lineage; render consumers must not derive substitute boundaries
+  /// from [polygons].
+  final List<TerrainEdge> edges;
 }

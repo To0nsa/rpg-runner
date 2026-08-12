@@ -91,6 +91,10 @@ workflow except where an already-public Core output needs a read-only consumer.
       next preparation boundary. `GameStateSnapshot` carries that read-only
       data only for the harness; normal game and replay construction still
       publish no staged terrain.
+- [x] The staged render snapshot also retains the exact canonical exposed
+      `TerrainEdge` objects from its collision geometry. Edge IDs preserve
+      chunk, placement, and shape lineage for a future Flame debug overlay;
+      no render consumer may reconstruct boundaries from polygon fills.
 
 ## 3) Implementation Order
 
