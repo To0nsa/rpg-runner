@@ -609,6 +609,7 @@ const List<ChunkPattern> forestEasyPatterns = <ChunkPattern>[
       ),
     ],
     spawnMarkers: <SpawnMarker>[
+      SpawnMarker(enemyId: EnemyId.derf, x: 432.0, chancePercent: 100, salt: 1, placement: SpawnPlacementMode.obstacleTop),
       SpawnMarker(enemyId: EnemyId.grojib, x: 560.0, chancePercent: 50, salt: 0, placement: SpawnPlacementMode.ground),
     ],
   ),

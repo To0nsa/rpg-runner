@@ -44,8 +44,8 @@ void main() {
     // Disable right-side wall collision so the player never gets stuck on a
     // chunk obstacle and can run long enough to exercise spawn/cull.
     //
-    // Also disable gravity so gaps (introduced by track patterns) don't end the
-    // run; this test only cares about deterministic streaming + culling.
+    // Also disable gravity so this test isolates deterministic streaming and
+    // culling from actor locomotion.
     final base = PlayerCharacterRegistry.eloise;
     final playerCharacter = base.copyWith(
       catalog: testPlayerCatalog(
@@ -67,6 +67,12 @@ void main() {
     );
     _expectStagedTerrainEqual(a, b);
     expect(a.buildSnapshot().stagedTerrainRenderSnapshot!.polygons, isNotEmpty);
+    final initialChunkIndices = a
+        .buildSnapshot()
+        .stagedTerrainRenderSnapshot!
+        .polygons
+        .map((polygon) => polygon.sourceId.chunkIndex)
+        .toSet();
 
     // Always move right so the player stays in view and the camera keeps advancing.
     const ticks =
@@ -98,5 +104,18 @@ void main() {
     // Culling keeps the streamed world bounded (does not grow without limit).
     // This threshold is intentionally loose; it only exists to catch “no cull” regressions.
     expect(maxTerrainPolygons, lessThan(120));
+    final finalTerrain = a.buildSnapshot().stagedTerrainRenderSnapshot!;
+    final finalChunkIndices = finalTerrain.polygons
+        .map((polygon) => polygon.sourceId.chunkIndex)
+        .toSet();
+    expect(finalChunkIndices.intersection(initialChunkIndices), isEmpty);
+    expect(
+      finalTerrain.polygons.map((polygon) => polygon.sourceId.chunkKey),
+      everyElement('field_flat'),
+    );
+    expect(
+      finalTerrain.polygons.map((polygon) => polygon.sourceId.shapeId),
+      everyElement('ground_001'),
+    );
   });
 }

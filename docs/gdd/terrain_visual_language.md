@@ -3,9 +3,10 @@
 ## Current Player-Facing Baseline
 
 Field and Forest runs now render their authored polygon ground with the shared
-`grass_dirt` material. The current eight production chunks deliberately keep a
-flat 224px support line so the runtime handoff can be reviewed without changing
-level difficulty or jump timing.
+`grass_dirt` material. All eight production chunks keep a continuous 224px
+ground line. Forest's easy woodcamp also has a grass-and-soil obstacle collider
+under its wood-pile prop, creating the first raised production perch and a
+player-readable jump obstacle.
 
 The material has three visible layers:
 
@@ -32,7 +33,6 @@ remain upright and retain their existing visual priority over the ground.
 ## Runtime Boundary
 
 Normal Field and Forest gameplay now uses the same authored polygons for
-collision, support/navigation, placement, and rendering. The current polygons
-remain deliberately flat, so slope, platform, obstacle, and gap shapes can be
-introduced as reviewed content changes without another terrain-authority
-switch.
+collision, support/navigation, placement, and rendering. Ground remains flat
+apart from the reviewed woodcamp obstacle; slopes, platforms, and gaps can be
+introduced as later content changes without another terrain-authority switch.

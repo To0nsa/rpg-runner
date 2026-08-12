@@ -21,13 +21,14 @@ adapters:
 - all 99 prefab records retain visuals, kinds, metadata, and identity;
   `anvil_00` has one authored collision polygon while the remaining reset
   owners remain empty for authoring
-- all eight chunks retain their placements and markers and each has one
-  continuous `ground_001` polygon at the established 224px ground line
+- all eight chunks retain one continuous `ground_001` polygon at the
+  established 224px ground line; `forest_easy_woodcamp_00` additionally owns
+  the `wood_pile_perch_001` obstacle polygon and a Derf marker
 - every ground polygon carries `surfaceKind: ground` and
   `materialKey: grass_dirt`; all reachable scheduler seam combinations compile
   with identical boundary coverage
-- staged terrain contains all eight Chunk polygons; generated scheduler data
-  contains no rectangle solids or ground gaps
+- staged terrain contains all eight ground polygons plus the woodcamp obstacle;
+  generated scheduler data contains no rectangle solids or ground gaps
 - the normal generator registers the staged Dart artifact as its sixth output;
   normal Core/replay construction admits it and publishes a complete
   collision/navigation/placement/render candidate whenever the existing

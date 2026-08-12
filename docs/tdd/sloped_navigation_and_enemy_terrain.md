@@ -592,6 +592,12 @@ changes neither face-player casting, predicted-player-center targeting,
 world-space impact/origin semantics, upright rendering, nor instant death
 behavior.
 
+The production `forest_easy_woodcamp_00` Chunk exercises this path directly.
+It owns the `wood_pile_perch_001` solid obstacle polygon and a Derf
+`obstacleTop` marker at its center. Generated scheduler markers and the staged
+terrain artifact therefore share the same Chunk key, revision, and source
+lineage before normal `GameCore` applies placement.
+
 ## Grounded Enemy Terrain Locomotion
 
 Grojib and Hashash consume prepared terrain support in normal construction.

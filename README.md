@@ -15,14 +15,14 @@ This is a portfolio-style game project designed to demonstrate production-minded
 ## Current Scope (Implemented)
 
 - 2 authored level layouts: `forest`, `field`
-- Static level collision is temporarily cleared while terrain is reauthored as
-  polygons, so normal runs are not currently gameplay-complete
+- Generated polygon terrain is the collision, navigation, placement, and
+  rendering authority for normal runs and replay validation
 - 2 selectable character definitions
 - 24 authored abilities (mobility, melee, ranged, defense, utility)
-- 2 enemy archetypes (ground + flying)
+- 4 enemy archetypes (ground chaser, ambusher, flying demon, stationary caster)
 - Gear/loadout setup flow before runs
 - In-game HUD, pause, game-over, and scoring
-- Local leaderboard persistence (SharedPreferences)
+- Board-backed leaderboards, replay validation, and ghost publication
 - Backend-authenticated player profile plus ownership/progression persistence via Firebase Functions + Firestore
 - 100+ Dart test files (`*_test.dart`) in `test/`
 - Firebase Auth + callable backend integration

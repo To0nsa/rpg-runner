@@ -31,20 +31,29 @@ void main() {
     );
 
     expect(catalog.chunksByKey, hasLength(stagedAuthoredTerrain.chunks.length));
-    expect(geometry.polygons, hasLength(8));
-    expect(geometry.edges, hasLength(18));
+    expect(geometry.polygons, hasLength(9));
+    expect(geometry.edges, hasLength(22));
     expect(
       geometry.polygons.map((polygon) => polygon.identity.chunkKey).toSet(),
       stagedAuthoredTerrain.chunks.map((chunk) => chunk.chunkKey).toSet(),
     );
     expect(
-      geometry.polygons.every(
+      geometry.polygons.where(
         (polygon) =>
             polygon.identity.shapeId == 'ground_001' &&
             polygon.surfaceKind == 'ground' &&
             polygon.materialKey == 'grass_dirt',
       ),
-      isTrue,
+      hasLength(8),
+    );
+    expect(
+      geometry.polygons.where(
+        (polygon) =>
+            polygon.identity.shapeId == 'wood_pile_perch_001' &&
+            polygon.surfaceKind == 'obstacle' &&
+            polygon.materialKey == 'grass_dirt',
+      ),
+      hasLength(1),
     );
   });
 

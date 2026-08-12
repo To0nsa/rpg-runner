@@ -42,9 +42,10 @@ Also update and validate the owning consumer when a change crosses a boundary:
 Author level/chunk/prefab/parallax data in `assets/authoring/level/**`. Run
 `dart run tool/generate_chunk_runtime_data.dart`; never hand-edit generated
 Core runtime data. Use `--dry-run` to validate source data and generator drift.
-The generator also owns `lib/track/staged_authored_terrain.dart`; it is staged
-polygon data for later runtime cutover and must not be imported by normal Core,
-Flutter, or replay-validation construction until that cutover is implemented.
+The generator also owns `lib/track/staged_authored_terrain.dart`. Despite its
+historical filename, this is the production polygon artifact admitted by
+normal Core and replay-validation construction and projected to Flutter through
+Core snapshots. Do not hand-edit it or introduce another terrain source.
 
 ## Validation
 

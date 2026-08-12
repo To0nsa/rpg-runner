@@ -100,6 +100,11 @@ The support does not rotate Derf, its art, aim, or cast origin. It continues to
 face the player, target the predicted player center, cast from its existing
 world-space origin, and die instantly when killed.
 
+Forest's easy woodcamp is the first production Derf encounter. Its wood-pile
+perch is a 64-by-32-pixel solid obstacle with an exact obstacle-top marker;
+Derf is always requested when that Chunk is selected, while the terrain query
+still skips the spawn if the authored support becomes invalid.
+
 ## Enemy Spawn Rules
 
 Terrain-backed enemy markers keep their authored meaning instead of choosing

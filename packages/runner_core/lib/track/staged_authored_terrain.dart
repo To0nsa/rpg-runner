@@ -1340,7 +1340,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
     StagedTerrainChunkData(
       chunkKey: "forest_easy_woodcamp_00",
       id: "forest_easy_woodcamp_00",
-      revision: 329,
+      revision: 330,
       status: "active",
       levelId: "forest",
       tileSize: 16,
@@ -1348,11 +1348,11 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
       height: 270,
       difficulty: "easy",
       assemblyGroupId: "woodcamp",
-      authoringPolygonSignature: "5aecdc38f4172d177f2ec02254bfb1e63c7cc7ddd2147dbc3dff6d30352eef1d",
-      sourceSignature: "a59b2a9ab237b51dc8ab9abac1edd26b6d9abef65a4fc91369fb7e44ce0fc009",
-      edgeSignature: "593d6d1ba7d39e98e77ad2c2cb6e9681cc705967da0c0e9e26a228db16f949e4",
+      authoringPolygonSignature: "401c566691d2a09b357719da33fe17f6e85c73771079689c2362391799f3db3b",
+      sourceSignature: "a92172a765c1c34d142bfc3c6e32c632afa818c918a57609237fce4ac0439110",
+      edgeSignature: "aebf7f81ac528b060fe3d9a1624a5ec3264604a79ce82b6e312b809d0ad75fa9",
       placementSignature: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      triangleSignature: "628713af05362e492cc8720ecea1c9d13e7a519bedf9dd68d2478d58a75bc116",
+      triangleSignature: "5d265bdc232d59f1cb4feb471ce99f5e2b262fb7620a861a2f8a651029a38f69",
       polygons: <StagedTerrainPolygonData>[
         StagedTerrainPolygonData(
           sourcePath: "assets/authoring/level/chunks/forest/forest_easy_woodcamp_00.json#direct=ground_001",
@@ -1377,6 +1377,29 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           surfaceKind: "ground",
           materialKey: "grass_dirt",
         ),
+        StagedTerrainPolygonData(
+          sourcePath: "assets/authoring/level/chunks/forest/forest_easy_woodcamp_00.json#direct=wood_pile_perch_001",
+          id: StagedTerrainSourceId(
+            chunkKey: "forest_easy_woodcamp_00",
+            placementKey: null,
+            shapeId: "wood_pile_perch_001",
+          ),
+          sourceVertices: <StagedTerrainPoint>[
+            StagedTerrainPoint(800, 384),
+            StagedTerrainPoint(928, 384),
+            StagedTerrainPoint(928, 448),
+            StagedTerrainPoint(800, 448),
+          ],
+          vertices: <StagedTerrainPoint>[
+            StagedTerrainPoint(409600, 196608),
+            StagedTerrainPoint(475136, 196608),
+            StagedTerrainPoint(475136, 229376),
+            StagedTerrainPoint(409600, 229376),
+          ],
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "obstacle",
+          materialKey: "grass_dirt",
+        ),
       ],
       edges: <StagedTerrainEdgeData>[
         StagedTerrainEdgeData(
@@ -1390,7 +1413,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
             subEdgeIndex: 0,
           ),
           start: StagedTerrainPoint(0, 229376),
-          end: StagedTerrainPoint(614400, 229376),
+          end: StagedTerrainPoint(409600, 229376),
           tangent: StagedTerrainPoint(1024, 0),
           outwardNormal: StagedTerrainPoint(0, -1024),
           collisionMode: StagedTerrainCollisionMode.solid,
@@ -1405,6 +1428,28 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
             localEdgeIndex: 3,
             subEdgeIndex: 0,
           ),
+          nextId: null,
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.exposed,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_easy_woodcamp_00",
+              placementKey: null,
+              shapeId: "ground_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 2,
+          ),
+          start: StagedTerrainPoint(475136, 229376),
+          end: StagedTerrainPoint(614400, 229376),
+          tangent: StagedTerrainPoint(1024, 0),
+          outwardNormal: StagedTerrainPoint(0, -1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "ground",
+          materialKey: "grass_dirt",
+          previousId: null,
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
               chunkKey: "forest_easy_woodcamp_00",
@@ -1414,7 +1459,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
             localEdgeIndex: 1,
             subEdgeIndex: 0,
           ),
-          startJoin: StagedTerrainVertexJoin.connected,
+          startJoin: StagedTerrainVertexJoin.exposed,
           endJoin: StagedTerrainVertexJoin.connected,
         ),
         StagedTerrainEdgeData(
@@ -1441,7 +1486,7 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
               shapeId: "ground_001",
             ),
             localEdgeIndex: 0,
-            subEdgeIndex: 0,
+            subEdgeIndex: 2,
           ),
           nextId: StagedTerrainEdgeId(
             sourceId: StagedTerrainSourceId(
@@ -1531,6 +1576,104 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
           startJoin: StagedTerrainVertexJoin.connected,
           endJoin: StagedTerrainVertexJoin.connected,
         ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_easy_woodcamp_00",
+              placementKey: null,
+              shapeId: "wood_pile_perch_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(409600, 196608),
+          end: StagedTerrainPoint(475136, 196608),
+          tangent: StagedTerrainPoint(1024, 0),
+          outwardNormal: StagedTerrainPoint(0, -1024),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "obstacle",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_easy_woodcamp_00",
+              placementKey: null,
+              shapeId: "wood_pile_perch_001",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_easy_woodcamp_00",
+              placementKey: null,
+              shapeId: "wood_pile_perch_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_easy_woodcamp_00",
+              placementKey: null,
+              shapeId: "wood_pile_perch_001",
+            ),
+            localEdgeIndex: 1,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(475136, 196608),
+          end: StagedTerrainPoint(475136, 229376),
+          tangent: StagedTerrainPoint(0, 1024),
+          outwardNormal: StagedTerrainPoint(1024, 0),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "obstacle",
+          materialKey: "grass_dirt",
+          previousId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_easy_woodcamp_00",
+              placementKey: null,
+              shapeId: "wood_pile_perch_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          nextId: null,
+          startJoin: StagedTerrainVertexJoin.connected,
+          endJoin: StagedTerrainVertexJoin.exposed,
+        ),
+        StagedTerrainEdgeData(
+          id: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_easy_woodcamp_00",
+              placementKey: null,
+              shapeId: "wood_pile_perch_001",
+            ),
+            localEdgeIndex: 3,
+            subEdgeIndex: 0,
+          ),
+          start: StagedTerrainPoint(409600, 229376),
+          end: StagedTerrainPoint(409600, 196608),
+          tangent: StagedTerrainPoint(0, -1024),
+          outwardNormal: StagedTerrainPoint(-1024, 0),
+          collisionMode: StagedTerrainCollisionMode.solid,
+          surfaceKind: "obstacle",
+          materialKey: "grass_dirt",
+          previousId: null,
+          nextId: StagedTerrainEdgeId(
+            sourceId: StagedTerrainSourceId(
+              chunkKey: "forest_easy_woodcamp_00",
+              placementKey: null,
+              shapeId: "wood_pile_perch_001",
+            ),
+            localEdgeIndex: 0,
+            subEdgeIndex: 0,
+          ),
+          startJoin: StagedTerrainVertexJoin.exposed,
+          endJoin: StagedTerrainVertexJoin.connected,
+        ),
       ],
       triangles: <StagedTerrainTriangleData>[
         StagedTerrainTriangleData(
@@ -1548,6 +1691,26 @@ final StagedTerrainArtifactData stagedAuthoredTerrain = StagedTerrainArtifactDat
             chunkKey: "forest_easy_woodcamp_00",
             placementKey: null,
             shapeId: "ground_001",
+          ),
+          first: 3,
+          second: 0,
+          third: 1,
+        ),
+        StagedTerrainTriangleData(
+          sourceId: StagedTerrainSourceId(
+            chunkKey: "forest_easy_woodcamp_00",
+            placementKey: null,
+            shapeId: "wood_pile_perch_001",
+          ),
+          first: 1,
+          second: 2,
+          third: 3,
+        ),
+        StagedTerrainTriangleData(
+          sourceId: StagedTerrainSourceId(
+            chunkKey: "forest_easy_woodcamp_00",
+            placementKey: null,
+            shapeId: "wood_pile_perch_001",
           ),
           first: 3,
           second: 0,
