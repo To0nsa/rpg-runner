@@ -38,16 +38,17 @@ Editor foundations shared across those domains:
 
 ## Polygon Source And Offline Migration
 
-The checked-in level content is currently in an intentional collision-reset
-state for polygon reauthoring. All prefab visuals, kinds, metadata, placements,
-and markers are retained, but Prefab-v3 and Chunk-v2 `collisionShapes` lists
-are empty. The generator projects each empty Chunk to one full-width
-`collision_cleared` compatibility gap. Missing Prefab collision is therefore a
-visible, non-blocking authoring warning.
+The checked-in source includes initial reauthored examples: `anvil_00` has one
+Prefab collision polygon and `field_flat` has one direct `solid_001` Chunk
+polygon. Other collision-reset owners remain available for authoring. Missing
+Prefab collision is therefore a visible, non-blocking authoring warning.
 
-Until polygons are reauthored and runtime terrain authority is delivered, the
-repository levels have no static terrain support for players, enemies, marker
-placement, or navigation.
+The generator compiles every source polygon into the staged terrain artifact.
+Until Phase 5/6 direct terrain authority, normal gameplay still selects the
+legacy runtime path: empty Chunks project to a full-width `collision_cleared`
+compatibility gap, while representable orthogonal direct solids such as
+`field_flat` project to legacy static solids. Neither path yet provides direct
+polygon collision, material fill, or foreground-mask rendering in the game.
 
 The normal editor accepts only current Prefab-v3/Chunk-v2 source. Legacy
 Prefab-v1/v2 and Chunk-v1 parsing is isolated to this offline check command:
