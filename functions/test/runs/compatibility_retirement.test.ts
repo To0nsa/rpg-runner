@@ -40,6 +40,7 @@ test("post-cutoff issuance and malformed evidence fail closed", () => {
     sessions: [
       session("expired", cutoffAtMs + 1),
       session("validated", null),
+      session("future_state", cutoffAtMs - 1),
     ],
     observedAtMs: cutoffAtMs + maximumRunTicketLifetimeMs,
     gameCompatVersion: "2026.03.0",
@@ -49,9 +50,11 @@ test("post-cutoff issuance and malformed evidence fail closed", () => {
   assert.equal(result.readyForRemoval, false);
   assert.equal(result.issuedAfterCutoffCount, 1);
   assert.equal(result.invalidIssuedAtCount, 1);
+  assert.equal(result.invalidSessionStateCount, 1);
   assert.deepEqual(result.blockers, [
     "issuance_after_recorded_cutoff",
     "unassessable_issued_at_evidence",
+    "unassessable_session_state_evidence",
   ]);
 });
 

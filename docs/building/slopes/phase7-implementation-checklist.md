@@ -115,7 +115,7 @@ node functions/tool/production_inventory.mjs `
 Its `compatibilityRetirement.readyForRemoval` result becomes true only after
 the full 24-hour lifetime, with zero active sessions and no observed retired
 ticket issued after the recorded cutoff. Any unassessable issuance timestamp
-also blocks removal.
+or unknown session state also blocks removal.
 
 Once that gate is true, retirement remains an ordered deployment rather than
 one combined mutation:

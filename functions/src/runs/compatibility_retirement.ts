@@ -1,11 +1,7 @@
-const activeRunSessionStates = new Set([
-  "issued",
-  "uploading",
-  "uploaded",
-  "pending_validation",
-  "validating",
-  "settlement_pending",
-]);
+import {
+  isRunSessionState,
+  isTerminalRunSessionState,
+} from "./session_state.js";
 
 export const maximumRunTicketLifetimeMs = 24 * 60 * 60 * 1000;
 
@@ -24,6 +20,7 @@ export interface CompatibilityRetirementAssessment {
   observedSessionCount: number;
   activeSessionCount: number;
   activeSessionStateCounts: Readonly<Record<string, number>>;
+  invalidSessionStateCount: number;
   issuedAfterCutoffCount: number;
   invalidIssuedAtCount: number;
   observedLatestIssuedAtMs: number | null;
@@ -57,8 +54,12 @@ export function assessCompatibilityRetirement(args: {
   );
   const activeSessions = matchingSessions.filter(
     (session) =>
-      session.state != null && activeRunSessionStates.has(session.state),
+      isRunSessionState(session.state) &&
+      !isTerminalRunSessionState(session.state),
   );
+  const invalidSessionStateCount = matchingSessions.filter(
+    (session) => !isRunSessionState(session.state),
+  ).length;
   const activeSessionStateCounts: Record<string, number> = {};
   for (const session of activeSessions) {
     const state = session.state!;
@@ -91,6 +92,9 @@ export function assessCompatibilityRetirement(args: {
   if (invalidIssuedAtCount > 0) {
     blockers.push("unassessable_issued_at_evidence");
   }
+  if (invalidSessionStateCount > 0) {
+    blockers.push("unassessable_session_state_evidence");
+  }
 
   return {
     gameCompatVersion,
@@ -105,6 +109,7 @@ export function assessCompatibilityRetirement(args: {
         left.localeCompare(right),
       ),
     ),
+    invalidSessionStateCount,
     issuedAfterCutoffCount,
     invalidIssuedAtCount,
     observedLatestIssuedAtMs:
