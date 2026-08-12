@@ -45,19 +45,28 @@ final class FirestoreAccountDeletionFence {
       for (final uid in uids)
         if (uid.trim().isNotEmpty) uid.trim(),
     };
-    for (final uid in distinctUids) {
-      try {
-        await firestoreApi.projects.databases.documents.get(
-          '$_databaseRoot/documents/account_deletion_requests/$uid',
-          transaction: transaction,
-        );
-      } catch (error) {
-        if (isApiNotFound(error)) {
-          continue;
+    try {
+      for (final uid in distinctUids) {
+        try {
+          await firestoreApi.projects.databases.documents.get(
+            '$_databaseRoot/documents/account_deletion_requests/$uid',
+            transaction: transaction,
+          );
+        } catch (error) {
+          if (isApiNotFound(error)) {
+            continue;
+          }
+          rethrow;
         }
-        rethrow;
+        throw AccountDeletionInProgressException(uid);
       }
-      throw AccountDeletionInProgressException(uid);
+    } catch (_) {
+      await _bestEffortRollback(
+        firestoreApi: firestoreApi,
+        databaseRoot: _databaseRoot,
+        transaction: transaction,
+      );
+      rethrow;
     }
 
     return DeletionFencedFirestoreTransaction._(
@@ -100,5 +109,28 @@ final class DeletionFencedFirestoreTransaction {
       firestore.CommitRequest(transaction: transaction, writes: writes),
       databaseRoot,
     );
+  }
+
+  /// Releases the transaction when a compare-and-replace needs no write.
+  Future<void> rollback() async {
+    await firestoreApi.projects.databases.documents.rollback(
+      firestore.RollbackRequest(transaction: transaction),
+      databaseRoot,
+    );
+  }
+}
+
+Future<void> _bestEffortRollback({
+  required firestore.FirestoreApi firestoreApi,
+  required String databaseRoot,
+  required String transaction,
+}) async {
+  try {
+    await firestoreApi.projects.databases.documents.rollback(
+      firestore.RollbackRequest(transaction: transaction),
+      databaseRoot,
+    );
+  } catch (_) {
+    // Preserve the fence failure that prevented the user-owned write.
   }
 }

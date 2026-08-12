@@ -421,6 +421,7 @@ class FirestoreLeaderboardProjectionStore
             );
       if (existing != null &&
           existing.sortKey.compareTo(candidate.sortKey) <= 0) {
+        await transaction.rollback();
         return PlayerBestWriteResult.unchanged;
       }
       final payload = candidate.toJson();

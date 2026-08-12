@@ -239,12 +239,15 @@ retention policy; an active ghost is instead pinned by its independently durable
 Leaderboard projection uses conditional compare-and-replace for player best
 and an update-time precondition for the top-10 materialized view. A duplicate
 task always resumes top-10 refresh even when the candidate is already the
-stored best. After ghost publication/reconciliation, it refreshes the view
-again so `ghostAvailable` is true only for a current active/exposed manifest
-whose identity and source replay evidence match the leaderboard entry, and is
-cleared on demotion. `runProjectionReconciliation` independently pages
-through boards every 15 minutes and sends board reconciliation tasks, so
-convergence does not depend on a new score.
+stored best; that no-write comparison explicitly rolls back its Firestore
+transaction before refresh so it cannot retain a pessimistic lock. Every
+deletion-fence setup failure likewise rolls back its opened transaction. After
+ghost publication/reconciliation, projection refreshes the view again so
+`ghostAvailable` is true only for a current active/exposed manifest whose
+identity and source replay evidence match the leaderboard entry, and is
+cleared on demotion. `runProjectionReconciliation` independently pages through
+boards every 15 minutes and sends board reconciliation tasks, so convergence
+does not depend on a new score.
 
 Ghost reconciliation derives exposure from the current top 10, including an
 empty top 10, and pages through every prior manifest. Promotion copies the
