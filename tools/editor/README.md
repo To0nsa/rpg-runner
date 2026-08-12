@@ -22,8 +22,9 @@ Implemented authoring domains:
   half-pixel polygon-collision authoring, including tagged atlas/tile slices
   and searchable slice selection
 - chunk authoring with direct terrain polygons, expanded placed-Prefab
-  collision, actor/navigation/marker diagnostics, scene-based composition,
-  shared pan/zoom/grid controls, and Prefab transform editing
+  collision, active-level parallax and terrain-material scene preview,
+  actor/navigation/marker diagnostics, scene-based composition, shared
+  pan/zoom/grid controls, and Prefab transform editing
 - level metadata authoring with list/inspector editing, lifecycle controls,
   assembly segment sequencing, render-theme run validation, pending diff
   preview, and direct-write export

@@ -37,6 +37,7 @@ import 'chunk_compiled_edge_overlay_painter.dart';
 import 'chunk_expanded_collision_overlay_painter.dart';
 import 'chunk_marker_placement_overlay_painter.dart';
 import 'chunk_polygon_authoring_controller.dart';
+import 'chunk_polygon_level_visual_source.dart';
 import 'chunk_polygon_scene_surface.dart';
 import 'chunk_polygon_visual_source.dart';
 import 'chunk_v2_composition_workspace.dart';
@@ -693,10 +694,21 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
                   background: Stack(
                     fit: StackFit.expand,
                     children: <Widget>[
+                      ChunkPolygonLevelVisualSource(
+                        key: const ValueKey<String>(
+                          'chunk_polygon_parallax_background',
+                        ),
+                        workspaceRootPath: widget.controller.workspacePath,
+                        chunk: chunk,
+                        parallaxTheme: scene.activeParallaxTheme,
+                        transform: transform,
+                        layer: ChunkPolygonLevelVisualLayer.background,
+                      ),
                       CustomPaint(
                         painter: _ChunkBoundsPainter(
                           chunk: chunk,
                           transform: transform,
+                          paintFill: false,
                         ),
                       ),
                       if (belowTerrainVisuals.isNotEmpty)
@@ -708,6 +720,26 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
                           placements: belowTerrainVisuals,
                           transform: transform,
                         ),
+                      ChunkPolygonLevelVisualSource(
+                        key: const ValueKey<String>(
+                          'chunk_polygon_terrain_material_preview',
+                        ),
+                        workspaceRootPath: widget.controller.workspacePath,
+                        chunk: chunk,
+                        parallaxTheme: scene.activeParallaxTheme,
+                        transform: transform,
+                        layer: ChunkPolygonLevelVisualLayer.terrain,
+                      ),
+                      ChunkPolygonLevelVisualSource(
+                        key: const ValueKey<String>(
+                          'chunk_polygon_parallax_foreground',
+                        ),
+                        workspaceRootPath: widget.controller.workspacePath,
+                        chunk: chunk,
+                        parallaxTheme: scene.activeParallaxTheme,
+                        transform: transform,
+                        layer: ChunkPolygonLevelVisualLayer.foreground,
+                      ),
                       if (_expansionFor(chunk.chunkKey)?.expansion
                           case final expansion?)
                         IgnorePointer(
@@ -2076,10 +2108,15 @@ class _Panel extends StatelessWidget {
 }
 
 class _ChunkBoundsPainter extends CustomPainter {
-  const _ChunkBoundsPainter({required this.chunk, required this.transform});
+  const _ChunkBoundsPainter({
+    required this.chunk,
+    required this.transform,
+    this.paintFill = true,
+  });
 
   final ChunkV2FileData chunk;
   final TerrainPolygonViewportTransform transform;
+  final bool paintFill;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -2093,7 +2130,9 @@ class _ChunkBoundsPainter extends CustomPainter {
       ),
     );
     final bounds = Rect.fromPoints(topLeft, bottomRight);
-    canvas.drawRect(bounds, Paint()..color = const Color(0xFF16232D));
+    if (paintFill) {
+      canvas.drawRect(bounds, Paint()..color = const Color(0xFF16232D));
+    }
     canvas.drawRect(
       bounds,
       Paint()
@@ -2106,6 +2145,7 @@ class _ChunkBoundsPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _ChunkBoundsPainter oldDelegate) =>
       !identical(chunk, oldDelegate.chunk) ||
+      paintFill != oldDelegate.paintFill ||
       transform.origin != oldDelegate.transform.origin ||
       transform.zoom != oldDelegate.transform.zoom;
 }

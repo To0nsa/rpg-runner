@@ -1,5 +1,8 @@
 import '../domain/authoring_types.dart';
+import '../levels/level_domain_models.dart';
 import '../levels/level_store.dart';
+import '../parallax/parallax_domain_models.dart';
+import '../parallax/parallax_store.dart';
 import '../prefabs/domain/prefab_visual_bounds_resolver.dart';
 import '../prefabs/store/prefab_store.dart';
 import '../terrain_authoring/terrain_polygon_interaction.dart';
@@ -21,9 +24,11 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
     ChunkStore store = const ChunkStore(),
     PrefabStore prefabStore = const PrefabStore(),
     LevelStore levelStore = const LevelStore(),
+    ParallaxStore parallaxStore = const ParallaxStore(),
   }) : _store = store,
        _prefabStore = prefabStore,
-       _levelStore = levelStore;
+       _levelStore = levelStore,
+       _parallaxStore = parallaxStore;
 
   static const String pluginId = 'chunks';
 
@@ -45,6 +50,7 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
   final ChunkStore _store;
   final PrefabStore _prefabStore;
   final LevelStore _levelStore;
+  final ParallaxStore _parallaxStore;
   String? _preferredActiveLevelId;
 
   @override
@@ -76,6 +82,7 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
     final chunkLoad = await _store.loadV2(workspace);
     final prefabLoad = await _prefabStore.loadV3(workspace.rootPath);
     final levelLoad = await _levelStore.load(workspace);
+    final parallaxLoad = await _parallaxStore.load(workspace);
     final chunks = chunkLoad.sources.map((source) => source.data).toList()
       ..sort((left, right) {
         var order = left.levelId.compareTo(right.levelId);
@@ -113,6 +120,7 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
         for (final level in levelLoad.levels) level.levelId: level.groundTopY,
       },
       levels: levelLoad.levels,
+      parallaxThemes: parallaxLoad.themes,
       availableLevelIds: sortedLevelIds,
       activeLevelId: activeLevelId,
     );
@@ -179,9 +187,21 @@ class ChunkDomainPlugin implements AuthoringDomainPlugin {
       groundTopYByLevelId: document.groundTopYByLevelId,
       collisionExpansionByChunkKey: collisionExpansions,
       seamAnalysis: seamAnalysis,
+      activeParallaxTheme: findParallaxThemeById(
+        document.parallaxThemes,
+        _visualThemeIdForLevel(document.levels, document.activeLevelId),
+      ),
       availableLevelIds: document.availableLevelIds,
       activeLevelId: document.activeLevelId,
     );
+  }
+
+  String? _visualThemeIdForLevel(Iterable<LevelDef> levels, String? levelId) {
+    if (levelId == null || levelId.isEmpty) return null;
+    for (final level in levels) {
+      if (level.levelId == levelId) return level.visualThemeId;
+    }
+    return null;
   }
 
   @override

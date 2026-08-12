@@ -17,6 +17,23 @@ import 'package:runner_editor/src/terrain_authoring/terrain_source_models.dart';
 import 'package:runner_editor/src/workspace/editor_workspace.dart';
 
 void main() {
+  test(
+    'current workspace scene resolves the active level visual theme',
+    () async {
+      final plugin = ChunkDomainPlugin();
+      final workspace = EditorWorkspace(
+        rootPath: Directory.current.parent.parent.path,
+      );
+
+      final document = await plugin.loadV2FromRepo(workspace);
+      final scene =
+          plugin.buildEditableScene(document.copyWith(activeLevelId: 'field'))
+              as ChunkV2Scene;
+
+      expect(scene.activeParallaxTheme?.parallaxThemeId, 'field');
+    },
+  );
+
   test('current command commits once and builds one canonical pending diff', () {
     final plugin = ChunkDomainPlugin();
     final before = <TerrainSourceShapeDef>[_rectangle(top: 20)];

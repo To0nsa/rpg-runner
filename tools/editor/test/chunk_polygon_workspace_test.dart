@@ -13,6 +13,7 @@ import 'package:runner_editor/src/chunks/chunk_v2_file_codec.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_data.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_models.dart';
 import 'package:runner_editor/src/levels/level_domain_models.dart';
+import 'package:runner_editor/src/parallax/parallax_domain_models.dart';
 import 'package:runner_editor/src/domain/authoring_plugin_registry.dart';
 import 'package:runner_editor/src/domain/authoring_types.dart';
 import 'package:runner_editor/src/prefabs/domain/prefab_domain_models.dart';
@@ -47,6 +48,12 @@ void main() {
         findsOneWidget,
       );
       expect(harness.plugin.loadCount, 1);
+      final scene = harness.session.scene;
+      expect(scene, isA<ChunkV2Scene>());
+      expect(
+        (scene as ChunkV2Scene).activeParallaxTheme?.parallaxThemeId,
+        'forest',
+      );
       expect(
         find.byKey(const ValueKey<String>('chunk_polygon_owner_forest_chunk')),
         findsOneWidget,
@@ -57,6 +64,20 @@ void main() {
       );
       expect(
         find.byKey(const ValueKey<String>('chunk_expanded_collision_overlay')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('chunk_polygon_parallax_background')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>('chunk_polygon_terrain_material_preview'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('chunk_polygon_parallax_foreground')),
         findsOneWidget,
       );
       expect(
@@ -1202,6 +1223,32 @@ Future<_Harness> _buildHarness() async {
     visualBoundsByPrefabKey: const <String, PrefabV3VisualBounds>{},
     groundTopYByLevelId: const <String, double>{'forest': 10, 'meadow': 10},
     levels: const <LevelDef>[_forestLevel, _meadowLevel],
+    parallaxThemes: const <ParallaxThemeDef>[
+      ParallaxThemeDef(
+        parallaxThemeId: 'forest',
+        revision: 1,
+        layers: <ParallaxLayerDef>[
+          ParallaxLayerDef(
+            layerKey: 'forest_background',
+            assetPath: 'assets/images/parallax/forest/Forest Layer 01.png',
+            group: parallaxGroupBackground,
+            parallaxFactor: 0.1,
+            zOrder: 1,
+            opacity: 1,
+            yOffset: 0,
+          ),
+          ParallaxLayerDef(
+            layerKey: 'forest_foreground',
+            assetPath: 'assets/images/parallax/forest/Forest Layer 04.png',
+            group: parallaxGroupForeground,
+            parallaxFactor: 1,
+            zOrder: 2,
+            opacity: 1,
+            yOffset: 0,
+          ),
+        ],
+      ),
+    ],
     availableLevelIds: const <String>['forest', 'meadow'],
     activeLevelId: 'forest',
   );

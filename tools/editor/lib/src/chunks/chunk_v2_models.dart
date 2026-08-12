@@ -2,6 +2,7 @@ import 'package:meta/meta.dart';
 
 import '../domain/authoring_types.dart';
 import '../levels/level_domain_models.dart';
+import '../parallax/parallax_domain_models.dart';
 import '../prefabs/domain/prefab_domain_models.dart';
 import '../prefabs/models/models.dart';
 import 'chunk_v2_collision_expansion.dart';
@@ -22,6 +23,7 @@ class ChunkV2Document extends AuthoringDocument {
     required Map<String, PrefabV3VisualBounds> visualBoundsByPrefabKey,
     Map<String, double> groundTopYByLevelId = const <String, double>{},
     required Iterable<LevelDef> levels,
+    Iterable<ParallaxThemeDef> parallaxThemes = const <ParallaxThemeDef>[],
     required Iterable<String> availableLevelIds,
     required this.activeLevelId,
     Iterable<String> changedChunkKeys = const <String>[],
@@ -40,6 +42,7 @@ class ChunkV2Document extends AuthoringDocument {
          groundTopYByLevelId,
        ),
        levels = List<LevelDef>.unmodifiable(levels),
+       parallaxThemes = List<ParallaxThemeDef>.unmodifiable(parallaxThemes),
        availableLevelIds = List<String>.unmodifiable(availableLevelIds),
        changedChunkKeys = List<String>.unmodifiable(
          changedChunkKeys.toSet().toList()..sort(),
@@ -56,6 +59,7 @@ class ChunkV2Document extends AuthoringDocument {
   final Map<String, PrefabV3VisualBounds> visualBoundsByPrefabKey;
   final Map<String, double> groundTopYByLevelId;
   final List<LevelDef> levels;
+  final List<ParallaxThemeDef> parallaxThemes;
   final List<String> availableLevelIds;
   final String? activeLevelId;
   final List<String> changedChunkKeys;
@@ -72,6 +76,7 @@ class ChunkV2Document extends AuthoringDocument {
     Map<String, PrefabV3VisualBounds>? visualBoundsByPrefabKey,
     Map<String, double>? groundTopYByLevelId,
     Iterable<LevelDef>? levels,
+    Iterable<ParallaxThemeDef>? parallaxThemes,
     Iterable<String>? availableLevelIds,
     String? activeLevelId,
     bool clearActiveLevelId = false,
@@ -88,6 +93,7 @@ class ChunkV2Document extends AuthoringDocument {
         visualBoundsByPrefabKey ?? this.visualBoundsByPrefabKey,
     groundTopYByLevelId: groundTopYByLevelId ?? this.groundTopYByLevelId,
     levels: levels ?? this.levels,
+    parallaxThemes: parallaxThemes ?? this.parallaxThemes,
     availableLevelIds: availableLevelIds ?? this.availableLevelIds,
     activeLevelId: clearActiveLevelId
         ? null
@@ -110,6 +116,7 @@ class ChunkV2Scene extends EditableScene {
     required Map<String, ChunkV2CollisionExpansionResult>
     collisionExpansionByChunkKey,
     required this.seamAnalysis,
+    this.activeParallaxTheme,
     required Iterable<String> availableLevelIds,
     required this.activeLevelId,
   }) : chunks = List<ChunkV2FileData>.unmodifiable(chunks),
@@ -137,6 +144,12 @@ class ChunkV2Scene extends EditableScene {
   final Map<String, ChunkV2CollisionExpansionResult>
   collisionExpansionByChunkKey;
   final ChunkV2SeamAnalysis seamAnalysis;
+
+  /// Read-only visual theme selected by the active level's [LevelDef].
+  ///
+  /// Chunk source owns collision and prefab composition; this projection only
+  /// lets the scene preview the level-wide backdrop that will surround it.
+  final ParallaxThemeDef? activeParallaxTheme;
   final List<String> availableLevelIds;
   final String? activeLevelId;
 }
