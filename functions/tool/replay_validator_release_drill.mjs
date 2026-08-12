@@ -41,6 +41,10 @@ const storage = new StorageRest({ bucket });
 const { currentGameCompatVersion } = await import(
   new URL("../lib/runs/compatibility.js", import.meta.url)
 );
+const { resolveBoardProvisioningConfig } = await import(
+  new URL("../lib/boards/provisioning.js", import.meta.url)
+);
+const currentBoardConfig = resolveBoardProvisioningConfig();
 
 switch (command) {
   case "prepare":
@@ -307,6 +311,10 @@ async function createAdminTemplates({ auth, drillId }) {
       board.data.boardKey?.mode === "competitive" &&
       board.data.boardKey?.levelId === "field" &&
       board.data.gameCompatVersion === currentGameCompatVersion &&
+      board.data.boardKey?.rulesetVersion ===
+        currentBoardConfig.rulesetVersion &&
+      board.data.boardKey?.scoreVersion === currentBoardConfig.scoreVersion &&
+      board.data.ghostVersion === currentBoardConfig.ghostVersion &&
       board.data.status === "active" &&
       board.data.opensAtMs <= nowMs &&
       board.data.closesAtMs > nowMs,
