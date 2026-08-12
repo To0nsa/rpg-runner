@@ -72,4 +72,25 @@ void main() {
       );
     });
   });
+
+  test('API metric class excludes messages and keeps sorted reasons', () {
+    final classification = apiErrorMetricClass(
+      commons.DetailedApiRequestError(
+        503,
+        'sensitive object and document names',
+        errors: <commons.ApiRequestErrorDetail>[
+          commons.ApiRequestErrorDetail(reason: 'backendError'),
+          commons.ApiRequestErrorDetail(reason: 'rateLimitExceeded'),
+          commons.ApiRequestErrorDetail(reason: 'backendError'),
+        ],
+      ),
+    );
+
+    expect(
+      classification,
+      'DetailedApiRequestError_http_503_backendError_rateLimitExceeded',
+    );
+    expect(classification, isNot(contains('sensitive')));
+    expect(apiErrorMetricClass(StateError('private')), 'StateError');
+  });
 }

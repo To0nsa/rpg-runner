@@ -57,3 +57,25 @@ bool isApiConflict(Object error) {
 bool isApiAlreadyExists(Object error) {
   return error is commons.DetailedApiRequestError && error.status == 409;
 }
+
+/// Returns a bounded, data-free class for operational retry metrics.
+///
+/// Google API messages can contain document or object names, so production
+/// metrics retain only the HTTP status and stable provider reason.
+String apiErrorMetricClass(Object error) {
+  final className = error.runtimeType.toString();
+  if (error is! commons.DetailedApiRequestError) {
+    return className;
+  }
+  final status = error.status?.toString() ?? 'unknown';
+  final reasons =
+      error.errors
+          .map((detail) => detail.reason?.trim())
+          .whereType<String>()
+          .where((reason) => reason.isNotEmpty)
+          .toSet()
+          .toList(growable: false)
+        ..sort();
+  final reasonSuffix = reasons.isEmpty ? '' : '_${reasons.join('_')}';
+  return '${className}_http_$status$reasonSuffix';
+}

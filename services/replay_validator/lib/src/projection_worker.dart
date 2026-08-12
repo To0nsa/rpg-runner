@@ -1,5 +1,6 @@
 import 'account_deletion_fence.dart';
 import 'ghost_publisher.dart';
+import 'google_api_helpers.dart';
 import 'leaderboard_projector.dart';
 import 'metrics.dart';
 
@@ -56,14 +57,17 @@ class DeterministicProjectionWorker implements ProjectionWorker {
       );
     }
     final startedAtMs = DateTime.now().millisecondsSinceEpoch;
+    var step = 'leaderboard';
     try {
       await leaderboardProjector.projectValidatedRun(
         runSessionId: normalizedRunSessionId,
       );
+      step = 'ghost';
       final ghostBoardId = await ghostPublisher.updateGhostArtifacts(
         runSessionId: normalizedRunSessionId,
       );
       if (ghostBoardId != null) {
+        step = 'leaderboard_after_ghost';
         await leaderboardProjector.reconcileBoard(boardId: ghostBoardId);
       }
       await metrics.recordDispatch(
@@ -89,7 +93,7 @@ class DeterministicProjectionWorker implements ProjectionWorker {
         status: ProjectionDispatchStatus.retryScheduled.name,
         phase: 'projection_retry',
         durationMs: DateTime.now().millisecondsSinceEpoch - startedAtMs,
-        errorClass: error.runtimeType.toString(),
+        errorClass: '${step}_${apiErrorMetricClass(error)}',
       );
       return ProjectionDispatchResult.retryScheduled(
         message: 'Optional projection failed: ${error.runtimeType}.',
@@ -108,9 +112,12 @@ class DeterministicProjectionWorker implements ProjectionWorker {
       );
     }
     final startedAtMs = DateTime.now().millisecondsSinceEpoch;
+    var step = 'leaderboard_before_ghost';
     try {
       await leaderboardProjector.reconcileBoard(boardId: normalizedBoardId);
+      step = 'ghost';
       await ghostPublisher.reconcileBoard(boardId: normalizedBoardId);
+      step = 'leaderboard_after_ghost';
       await leaderboardProjector.reconcileBoard(boardId: normalizedBoardId);
       await metrics.recordDispatch(
         runSessionId: 'board:$normalizedBoardId',
@@ -135,7 +142,7 @@ class DeterministicProjectionWorker implements ProjectionWorker {
         status: ProjectionDispatchStatus.retryScheduled.name,
         phase: 'projection_reconciliation_retry',
         durationMs: DateTime.now().millisecondsSinceEpoch - startedAtMs,
-        errorClass: error.runtimeType.toString(),
+        errorClass: '${step}_${apiErrorMetricClass(error)}',
       );
       return const ProjectionDispatchResult.retryScheduled(
         message: 'Board projection reconciliation failed.',

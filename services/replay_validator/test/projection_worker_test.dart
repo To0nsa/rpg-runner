@@ -28,6 +28,7 @@ void main() {
       expect(result.status, ProjectionDispatchStatus.retryScheduled);
       expect(leaderboard.runSessionIds, <String>['run_board_1']);
       expect(metrics.phases, contains('projection_retry'));
+      expect(metrics.errorClasses, contains('leaderboard_StateError'));
     },
   );
 
@@ -143,6 +144,7 @@ class _FakeGhostPublisher implements GhostPublisher {
 
 class _FakeMetrics implements ValidatorMetrics {
   final List<String?> phases = <String?>[];
+  final List<String?> errorClasses = <String?>[];
 
   @override
   Future<void> recordDispatch({
@@ -157,5 +159,6 @@ class _FakeMetrics implements ValidatorMetrics {
     String? errorClass,
   }) async {
     phases.add(phase);
+    errorClasses.add(errorClass);
   }
 }

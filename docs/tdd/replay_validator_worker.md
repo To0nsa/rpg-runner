@@ -405,7 +405,10 @@ service and its two local Dart package dependencies.
 - `phase`
 - optional rejection reason
 - optional duration in milliseconds
-- safe exception class for projection retries
+- safe exception class for projection retries; projection failures prefix the
+  failing step and Google API failures append only HTTP status and stable
+  provider reason. Raw API messages are excluded because they may contain
+  document or object identities.
 
 Accepted runs additionally emit `settlement_dispatch_start`,
 `settlement_dispatch_outcome`, `settlement_dispatch_fallback`, or
