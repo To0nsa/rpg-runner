@@ -103,11 +103,25 @@ void main() {
         ),
         findsOneWidget,
       );
+      expect(
+        find.byKey(const ValueKey<String>('chunk_polygon_shapes_panel')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('chunk_polygon_seams_panel')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('chunk_polygon_diagnostics_panel')),
+        findsOneWidget,
+      );
       final seamInspector = find.byKey(
         const ValueKey<String>('chunk_seam_inspector'),
       );
+      final seamList = find.byKey(const ValueKey<String>('chunk_seam_list'));
+      final shapeList = find.byKey(const ValueKey<String>('chunk_shape_list'));
       final diagnosticsList = find.byKey(
-        const ValueKey<String>('chunk_shape_diagnostics_list'),
+        const ValueKey<String>('chunk_diagnostics_list'),
       );
       await tester.ensureVisible(seamInspector);
       expect(seamInspector, findsOneWidget);
@@ -116,6 +130,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.textContaining('steady-hard:tier=hard>hard'), findsOneWidget);
+      expect(seamList, findsOneWidget);
       await tester.drag(diagnosticsList, const Offset(0, 2000));
       await tester.pump();
       expect(
@@ -270,7 +285,6 @@ void main() {
       final deleteShape = find.byKey(
         const ValueKey<String>('chunk_polygon_delete_shape'),
       );
-      await tester.ensureVisible(deleteShape);
       await tester.tap(deleteShape);
       await tester.pump();
 
@@ -320,7 +334,13 @@ void main() {
       final firstVertex = find.byKey(
         const ValueKey<String>('chunk_polygon_vertex_ground_001_0'),
       );
-      await tester.ensureVisible(firstVertex);
+      await tester.scrollUntilVisible(
+        firstVertex,
+        100,
+        scrollable: find
+            .descendant(of: shapeList, matching: find.byType(Scrollable))
+            .first,
+      );
       await tester.tap(firstVertex);
       await tester.pump();
       final xField = find.byKey(
@@ -381,8 +401,16 @@ void main() {
 
       await tester.drag(diagnosticsList, const Offset(0, 5000));
       await tester.pump();
-      final editMetadata = find.byKey(
-        const ValueKey<String>('chunk_polygon_edit_metadata'),
+      final shapeScrollable = find
+          .descendant(of: shapeList, matching: find.byType(Scrollable))
+          .first;
+      tester.state<ScrollableState>(shapeScrollable).position.jumpTo(0);
+      await tester.pump();
+      final editMetadata = find.descendant(
+        of: shapeList,
+        matching: find.byKey(
+          const ValueKey<String>('chunk_polygon_edit_metadata'),
+        ),
       );
       await Scrollable.ensureVisible(
         tester.element(editMetadata),
@@ -439,10 +467,20 @@ void main() {
       expect(harness.session.pendingChanges.hasChanges, isFalse);
 
       await tester.pumpAndSettle();
-      await tester.drag(find.byType(ListView).last, const Offset(0, 1000));
+      tester
+          .state<ScrollableState>(
+            find
+                .descendant(of: shapeList, matching: find.byType(Scrollable))
+                .first,
+          )
+          .position
+          .jumpTo(0);
       await tester.pump();
-      final duplicateShape = find.byKey(
-        const ValueKey<String>('chunk_polygon_duplicate_shape'),
+      final duplicateShape = find.descendant(
+        of: shapeList,
+        matching: find.byKey(
+          const ValueKey<String>('chunk_polygon_duplicate_shape'),
+        ),
       );
       await tester.ensureVisible(duplicateShape);
       await tester.tap(duplicateShape);
@@ -489,6 +527,52 @@ void main() {
     },
   );
 
+  testWidgets('selected chunk shapes show their metadata subsection', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1800, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final harness = await _buildHarness();
+    addTearDown(harness.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.dark(),
+        home: Scaffold(body: ChunkCreatorPage(controller: harness.session)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final shapeList = find.byKey(const ValueKey<String>('chunk_shape_list'));
+    final groundShape = find.byKey(
+      const ValueKey<String>('chunk_polygon_shape_ground_001'),
+    );
+    await tester.scrollUntilVisible(
+      groundShape,
+      100,
+      scrollable: find.descendant(
+        of: shapeList,
+        matching: find.byType(Scrollable),
+      ),
+    );
+    await tester.tap(groundShape);
+    await tester.pump();
+
+    final metadataSection = find.byKey(
+      const ValueKey<String>('chunk_polygon_metadata_section'),
+    );
+    expect(metadataSection, findsOneWidget);
+    expect(find.text('Collision mode: solid'), findsOneWidget);
+    expect(find.text('Surface: —'), findsOneWidget);
+    expect(find.text('Material: —'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('chunk_polygon_edit_metadata')),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('current chunk workspace remains usable at a narrow width', (
     tester,
   ) async {
@@ -515,7 +599,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.byKey(const ValueKey<String>('chunk_shape_diagnostics_list')),
+      find.byKey(const ValueKey<String>('chunk_shape_list')),
       findsOneWidget,
     );
     final newRectangle = find.byKey(
@@ -610,7 +694,7 @@ void main() {
     await tester.pumpAndSettle();
 
     final diagnosticsList = find.byKey(
-      const ValueKey<String>('chunk_shape_diagnostics_list'),
+      const ValueKey<String>('chunk_diagnostics_list'),
     );
     final openOwner = find.byKey(
       const ValueKey<String>(

@@ -178,11 +178,40 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
                             )
                           : _buildScenePanel(scene, authoring),
                       third: authoring == null
-                          ? _buildEmptyPanel(
-                              title: 'Shapes and diagnostics',
-                              message: 'Select or create a chunk owner first.',
+                          ? _buildAuthoringSidebar(
+                              shapes: _buildEmptyPanel(
+                                key: const ValueKey<String>(
+                                  'chunk_polygon_shapes_panel',
+                                ),
+                                title: 'Shapes',
+                                message:
+                                    'Select or create a chunk owner first.',
+                              ),
+                              seams: _buildEmptyPanel(
+                                key: const ValueKey<String>(
+                                  'chunk_polygon_seams_panel',
+                                ),
+                                title: 'Reachable chunk seams',
+                                message:
+                                    'Select or create a chunk owner first.',
+                              ),
+                              diagnostics: _buildEmptyPanel(
+                                key: const ValueKey<String>(
+                                  'chunk_polygon_diagnostics_panel',
+                                ),
+                                title: 'Diagnostics',
+                                message:
+                                    'Select or create a chunk owner first.',
+                              ),
                             )
-                          : _buildShapePanel(authoring, issues),
+                          : _buildAuthoringSidebar(
+                              shapes: _buildShapePanel(authoring),
+                              seams: _buildSeamPanel(authoring),
+                              diagnostics: _buildDiagnosticsPanel(
+                                authoring,
+                                issues,
+                              ),
+                            ),
                       gap: _gap,
                     )
                   : authoring == null
@@ -473,11 +502,29 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
     );
   }
 
-  Widget _buildEmptyPanel({required String title, required String message}) =>
-      _Panel(
-        title: title,
-        child: Center(child: Text(message)),
-      );
+  Widget _buildEmptyPanel({
+    Key? key,
+    required String title,
+    required String message,
+  }) => _Panel(
+    key: key,
+    title: title,
+    child: Center(child: Text(message)),
+  );
+
+  Widget _buildAuthoringSidebar({
+    required Widget shapes,
+    required Widget seams,
+    required Widget diagnostics,
+  }) => Column(
+    children: <Widget>[
+      Expanded(flex: 3, child: shapes),
+      const SizedBox(height: _gap),
+      Expanded(flex: 2, child: seams),
+      const SizedBox(height: _gap),
+      Expanded(flex: 3, child: diagnostics),
+    ],
+  );
 
   Widget _buildScenePanel(
     ChunkV2Scene scene,
@@ -819,20 +866,23 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
     ),
   );
 
-  Widget _buildShapePanel(
-    ChunkPolygonAuthoringController authoring,
-    List<ValidationIssue> issues,
-  ) {
+  Widget _buildShapePanel(ChunkPolygonAuthoringController authoring) {
     final shapes = List<TerrainSourceShapeDef>.of(authoring.state.visibleShapes)
       ..sort((left, right) => left.shapeId.compareTo(right.shapeId));
     final selection = authoring.state.selection;
     final selectedShape = _findShape(shapes, selection?.shapeId);
     final draft = authoring.state.draft;
     return _Panel(
-      title: 'Shapes and diagnostics',
+      key: const ValueKey<String>('chunk_polygon_shapes_panel'),
+      title: 'Shapes',
       child: ListView(
-        key: const ValueKey<String>('chunk_shape_diagnostics_list'),
+        key: const ValueKey<String>('chunk_shape_list'),
+        primary: false,
         children: <Widget>[
+          if (selectedShape != null) ...<Widget>[
+            _buildSelectedShapeHeader(authoring, selectedShape),
+            const SizedBox(height: 12),
+          ],
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -896,75 +946,101 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
               ),
           if (selectedShape != null) ...<Widget>[
             const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: <Widget>[
-                OutlinedButton.icon(
-                  key: const ValueKey<String>('chunk_polygon_duplicate_shape'),
-                  onPressed: authoring.hasActiveOperation
-                      ? null
-                      : () => _duplicateSelectedShape(authoring, selectedShape),
-                  icon: const Icon(Icons.copy_outlined),
-                  label: const Text('Duplicate'),
-                ),
-                OutlinedButton.icon(
-                  key: const ValueKey<String>('chunk_polygon_normalize_shape'),
-                  onPressed: authoring.normalizeSelectedShape,
-                  icon: const Icon(Icons.auto_fix_high),
-                  label: const Text('Normalize'),
-                ),
-                OutlinedButton.icon(
-                  key: const ValueKey<String>('chunk_polygon_edit_metadata'),
-                  onPressed: () => _editMetadata(authoring, selectedShape),
-                  icon: const Icon(Icons.tune),
-                  label: const Text('Metadata'),
-                ),
-                OutlinedButton.icon(
-                  key: const ValueKey<String>('chunk_polygon_delete_shape'),
-                  onPressed: authoring.deleteSelection,
-                  icon: const Icon(Icons.delete_outline),
-                  label: const Text('Delete'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
             _buildVertexInspector(authoring, selectedShape),
           ],
-          _buildCompiledEdgeInspector(authoring),
-          _buildExpandedPrefabShapes(authoring),
-          _buildSeamInspector(authoring),
-          if (_showMarkerPlacements) _buildMarkerPlacementInspector(),
-          const Divider(height: 28),
-          Text('Diagnostics', style: Theme.of(context).textTheme.titleSmall),
-          if (issues.isEmpty)
-            const Text('No issues for this direct owner.')
-          else
-            for (final issue in issues)
-              ListTile(
-                key: ValueKey<String>(
-                  'chunk_polygon_issue_${issue.code}_${issue.shapeId}_'
-                  '${issue.elementIndex}',
-                ),
-                contentPadding: EdgeInsets.zero,
-                leading: Icon(
-                  issue.severity == ValidationSeverity.error
-                      ? Icons.error_outline
-                      : Icons.warning_amber_outlined,
-                  color: issue.severity == ValidationSeverity.error
-                      ? const Color(0xFFFF7F7F)
-                      : const Color(0xFFFFD166),
-                ),
-                title: Text(issue.code),
-                subtitle: Text(issue.message),
-                onTap: issue.shapeId == null || issue.placementKey != null
-                    ? null
-                    : () => _focusIssue(authoring, issue),
-              ),
         ],
       ),
     );
   }
+
+  Widget _buildSelectedShapeHeader(
+    ChunkPolygonAuthoringController authoring,
+    TerrainSourceShapeDef shape,
+  ) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: <Widget>[
+      Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: <Widget>[
+          OutlinedButton.icon(
+            key: const ValueKey<String>('chunk_polygon_duplicate_shape'),
+            onPressed: authoring.hasActiveOperation
+                ? null
+                : () => _duplicateSelectedShape(authoring, shape),
+            icon: const Icon(Icons.copy_outlined),
+            label: const Text('Duplicate'),
+          ),
+          OutlinedButton.icon(
+            key: const ValueKey<String>('chunk_polygon_normalize_shape'),
+            onPressed: authoring.normalizeSelectedShape,
+            icon: const Icon(Icons.auto_fix_high),
+            label: const Text('Normalize'),
+          ),
+          OutlinedButton.icon(
+            key: const ValueKey<String>('chunk_polygon_delete_shape'),
+            onPressed: authoring.deleteSelection,
+            icon: const Icon(Icons.delete_outline),
+            label: const Text('Delete'),
+          ),
+        ],
+      ),
+      const SizedBox(height: 8),
+      _buildMetadataInspector(authoring, shape),
+    ],
+  );
+
+  Widget _buildDiagnosticsPanel(
+    ChunkPolygonAuthoringController authoring,
+    List<ValidationIssue> issues,
+  ) => _Panel(
+    key: const ValueKey<String>('chunk_polygon_diagnostics_panel'),
+    title: 'Diagnostics',
+    child: ListView(
+      key: const ValueKey<String>('chunk_diagnostics_list'),
+      primary: false,
+      children: <Widget>[
+        _buildCompiledEdgeInspector(authoring),
+        _buildExpandedPrefabShapes(authoring),
+        if (_showMarkerPlacements) _buildMarkerPlacementInspector(),
+        const Divider(height: 28),
+        if (issues.isEmpty)
+          const Text('No issues for this direct owner.')
+        else
+          for (final issue in issues)
+            ListTile(
+              key: ValueKey<String>(
+                'chunk_polygon_issue_${issue.code}_${issue.shapeId}_'
+                '${issue.elementIndex}',
+              ),
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(
+                issue.severity == ValidationSeverity.error
+                    ? Icons.error_outline
+                    : Icons.warning_amber_outlined,
+                color: issue.severity == ValidationSeverity.error
+                    ? const Color(0xFFFF7F7F)
+                    : const Color(0xFFFFD166),
+              ),
+              title: Text(issue.code),
+              subtitle: Text(issue.message),
+              onTap: issue.shapeId == null || issue.placementKey != null
+                  ? null
+                  : () => _focusIssue(authoring, issue),
+            ),
+      ],
+    ),
+  );
+
+  Widget _buildSeamPanel(ChunkPolygonAuthoringController authoring) => _Panel(
+    key: const ValueKey<String>('chunk_polygon_seams_panel'),
+    title: 'Reachable chunk seams',
+    child: ListView(
+      key: const ValueKey<String>('chunk_seam_list'),
+      primary: false,
+      children: <Widget>[_buildSeamInspector(authoring)],
+    ),
+  );
 
   Widget _buildExpansionSummary(ChunkPolygonAuthoringController authoring) {
     final result = _expansionFor(authoring.chunkKey);
@@ -1323,12 +1399,6 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
       key: const ValueKey<String>('chunk_seam_inspector'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        const Divider(height: 28),
-        Text(
-          'Reachable chunk seams',
-          style: Theme.of(context).textTheme.titleSmall,
-        ),
-        const SizedBox(height: 4),
         const Text(
           'Read-only scheduler evidence from exact compiled boundaries. '
           'Material-key differences are retained as advisory evidence and do not block '
@@ -1564,6 +1634,28 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
       ? '—'
       : '(${TerrainPhysicsText.formatTicks(point.xTicks)}, '
             '${TerrainPhysicsText.formatTicks(point.yTicks)}) px';
+
+  Widget _buildMetadataInspector(
+    ChunkPolygonAuthoringController authoring,
+    TerrainSourceShapeDef shape,
+  ) => Column(
+    key: const ValueKey<String>('chunk_polygon_metadata_section'),
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: <Widget>[
+      Text('Metadata', style: Theme.of(context).textTheme.titleSmall),
+      const SizedBox(height: 4),
+      Text('Collision mode: ${shape.collisionMode.name}'),
+      Text('Surface: ${shape.surfaceKind ?? '—'}'),
+      Text('Material: ${shape.materialKey ?? '—'}'),
+      const SizedBox(height: 8),
+      OutlinedButton.icon(
+        key: const ValueKey<String>('chunk_polygon_edit_metadata'),
+        onPressed: () => _editMetadata(authoring, shape),
+        icon: const Icon(Icons.tune),
+        label: const Text('Edit metadata'),
+      ),
+    ],
+  );
 
   Widget _buildVertexInspector(
     ChunkPolygonAuthoringController authoring,
@@ -2085,7 +2177,7 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
 }
 
 class _Panel extends StatelessWidget {
-  const _Panel({required this.title, required this.child});
+  const _Panel({super.key, required this.title, required this.child});
 
   final String title;
   final Widget child;
