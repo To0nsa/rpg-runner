@@ -82,9 +82,16 @@ void main() {
   test('material registry resolves authored grass dirt assets centrally', () {
     final material = TerrainMaterialRegistry.require('grass_dirt');
 
+    expect(material.displayName, 'Grass / Dirt');
     expect(material.fillAssetPath, 'terrain/grass_dirt/fill.png');
-    expect(material.surfaceAssetPath, 'terrain/grass_dirt/surface.png');
-    expect(material.foregroundAssetPath, 'terrain/grass_dirt/foreground.png');
+    expect(material.top.base.assetPath, 'terrain/grass_dirt/surface.png');
+    expect(material.top.base.anchorY, 12);
+    expect(material.top.detail?.assetPath, 'terrain/grass_dirt/foreground.png');
+    expect(material.topStartCap?.assetPath, 'terrain/grass_dirt/cap_left.png');
+    expect(material.topEndCap?.assetPath, 'terrain/grass_dirt/cap_right.png');
+    expect(material.leftWall, isNull);
+    expect(material.rightWall, isNull);
+    expect(material.underside, isNull);
     expect(
       () => TerrainMaterialRegistry.require('missing_material'),
       throwsStateError,

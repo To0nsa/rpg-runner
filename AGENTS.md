@@ -30,6 +30,8 @@ Use the most specific AGENTS file that matches the area you are touching:
   validation rules
 - `packages/runner_core/lib/AGENTS.md`: deterministic simulation layer
 - `packages/run_protocol/AGENTS.md`: shared run/replay/board protocol contracts
+- `packages/terrain_materials/AGENTS.md`: shared terrain-render material source
+  contract
 - `lib/game/AGENTS.md`: Flame renderer and controller bridge
 - `lib/ui/AGENTS.md`: Flutter app shell, pages, state, HUD, and theming
 - `functions/AGENTS.md`: Firebase Functions backend in TypeScript
@@ -46,6 +48,7 @@ Also consult:
 - `lib/`: Flutter package and embeddable runner implementation
 - `packages/runner_core/`: deterministic Dart gameplay package
 - `packages/run_protocol/`: shared replay, board, leaderboard, run ticket, and submission-status contracts
+- `packages/terrain_materials/`: pure-Dart terrain material authoring/render-source contracts
 - `functions/`: Firebase Functions backend in TypeScript
 - `services/replay_validator/`: Dart Cloud Run worker for replay validation and projection side effects
 - `tools/editor/`: standalone Flutter editor for repository-backed content authoring

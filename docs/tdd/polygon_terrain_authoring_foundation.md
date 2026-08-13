@@ -1114,11 +1114,16 @@ the exact upward-facing `TerrainEdge` records retained in the snapshot. A null
 material is collision-only and not drawn; an unknown non-null material fails
 through `TerrainMaterialRegistry` instead of selecting a visual fallback.
 
-The `grass_dirt` registry entry owns `fill.png`, `surface.png`,
-`foreground.png`, and the reserved left/right cap paths under
-`assets/images/terrain/grass_dirt/`. Endpoint cap drawing remains deferred
-until cross-chunk join semantics can distinguish a real cliff from a streamed
-chunk seam. `StagedTerrain` is the only terrain renderer: the old
+`assets/authoring/level/terrain_material_defs.json` is the canonical visual
+material source. The pure-Dart `terrain_materials` package owns its strict
+schema and canonical encoding, and the root content generator verifies every
+referenced image plus every polygon `materialKey` before generating
+`authored_terrain_materials.dart`. This removes the former hand-maintained
+runtime/editor registry duplication. The `grass_dirt` entry declares its fill,
+top base/detail profile, and paired top endpoint caps; wall and underside
+profiles remain explicitly absent. Endpoint and non-top profile drawing remains
+deferred to the material-authoring rollout. `StagedTerrain` is the only terrain
+renderer: the old
 `GroundSurface`, `GroundBandParallaxForeground`, `TemporaryFloorMask`, and
 static-solid debug rectangle paths are deleted, and their obsolete snapshot
 fields no longer cross the Core/Game boundary.

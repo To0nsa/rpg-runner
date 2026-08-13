@@ -1,0 +1,10 @@
+name: terrain_materials
+description: Shared terrain material authoring and render-source contracts.
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ^3.10.4
+
+dev_dependencies:
+  test: ^1.25.8

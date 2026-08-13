@@ -51,16 +51,16 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
   Future<void> onLoad() async {
     await super.onLoad();
     for (final spec in TerrainMaterialRegistry.byKey.values) {
-      final images = await Future.wait<ui.Image>(<Future<ui.Image>>[
-        game.images.load(spec.fillAssetPath),
-        game.images.load(spec.surfaceAssetPath),
-        game.images.load(spec.foregroundAssetPath),
-      ]);
+      final fill = await game.images.load(spec.fillAssetPath);
+      final topBase = await game.images.load(spec.top.base.assetPath);
+      final topDetail = spec.top.detail == null
+          ? null
+          : await game.images.load(spec.top.detail!.assetPath);
       _materials[spec.key] = _LoadedTerrainMaterial(
         spec: spec,
-        fill: images[0],
-        surface: images[1],
-        foreground: images[2],
+        fill: fill,
+        topBase: topBase,
+        topDetail: topDetail,
       );
     }
     _assetsReady = true;
@@ -115,15 +115,17 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
       _drawEdgeImage(
         canvas,
         edge: edge,
-        image: material.surface,
-        anchorY: material.spec.surfaceAnchorY,
+        image: material.topBase,
+        anchorY: material.spec.top.base.anchorY,
       );
-      _drawEdgeImage(
-        canvas,
-        edge: edge,
-        image: material.foreground,
-        anchorY: 0,
-      );
+      if (material.topDetail case final detail?) {
+        _drawEdgeImage(
+          canvas,
+          edge: edge,
+          image: detail,
+          anchorY: material.spec.top.detail!.anchorY,
+        );
+      }
     }
 
     canvas.restore();
@@ -186,8 +188,8 @@ final class _LoadedTerrainMaterial {
   _LoadedTerrainMaterial({
     required this.spec,
     required ui.Image fill,
-    required this.surface,
-    required this.foreground,
+    required this.topBase,
+    required this.topDetail,
   }) : fillPaint = Paint()
          ..filterQuality = FilterQuality.none
          ..shader = ui.ImageShader(
@@ -200,8 +202,8 @@ final class _LoadedTerrainMaterial {
 
   final TerrainMaterialSpec spec;
   final Paint fillPaint;
-  final ui.Image surface;
-  final ui.Image foreground;
+  final ui.Image topBase;
+  final ui.Image? topDetail;
 }
 
 final class _CachedTerrainMesh {

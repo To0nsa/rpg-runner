@@ -74,5 +74,7 @@ void main() {
     expect(paths, contains('terrain/grass_dirt/fill.png'));
     expect(paths, contains('terrain/grass_dirt/surface.png'));
     expect(paths, contains('terrain/grass_dirt/foreground.png'));
+    expect(paths, contains('terrain/grass_dirt/cap_left.png'));
+    expect(paths, contains('terrain/grass_dirt/cap_right.png'));
   });
 }

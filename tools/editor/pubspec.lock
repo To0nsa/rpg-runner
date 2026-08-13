@@ -395,6 +395,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.2.2"
+  terrain_materials:
+    dependency: "direct main"
+    description:
+      path: "../../packages/terrain_materials"
+      relative: true
+    source: path
+    version: "0.1.0"
   test_api:
     dependency: transitive
     description:

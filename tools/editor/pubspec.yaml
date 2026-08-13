@@ -41,6 +41,8 @@ dependencies:
   file_selector: ^1.1.0
   runner_core:
     path: ../../packages/runner_core
+  terrain_materials:
+    path: ../../packages/terrain_materials
 
 dev_dependencies:
   flutter_test:

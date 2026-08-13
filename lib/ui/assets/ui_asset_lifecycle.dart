@@ -334,9 +334,7 @@ class UiAssetLifecycle {
     }
 
     for (final material in TerrainMaterialRegistry.byKey.values) {
-      paths.add(material.fillAssetPath);
-      paths.add(material.surfaceAssetPath);
-      paths.add(material.foregroundAssetPath);
+      paths.addAll(material.assetPaths);
     }
 
     return paths;
