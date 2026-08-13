@@ -179,25 +179,34 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
                           : _buildScenePanel(scene, authoring),
                       third: authoring == null
                           ? _buildAuthoringSidebar(
-                              shapes: _buildEmptyPanel(
+                              shapes: _buildEmptySidebarPanel(
                                 key: const ValueKey<String>(
                                   'chunk_polygon_shapes_panel',
+                                ),
+                                expansionKey: const ValueKey<String>(
+                                  'chunk_polygon_shapes_panel_toggle',
                                 ),
                                 title: 'Shapes',
                                 message:
                                     'Select or create a chunk owner first.',
                               ),
-                              seams: _buildEmptyPanel(
+                              seams: _buildEmptySidebarPanel(
                                 key: const ValueKey<String>(
                                   'chunk_polygon_seams_panel',
+                                ),
+                                expansionKey: const ValueKey<String>(
+                                  'chunk_polygon_seams_panel_toggle',
                                 ),
                                 title: 'Reachable chunk seams',
                                 message:
                                     'Select or create a chunk owner first.',
                               ),
-                              diagnostics: _buildEmptyPanel(
+                              diagnostics: _buildEmptySidebarPanel(
                                 key: const ValueKey<String>(
                                   'chunk_polygon_diagnostics_panel',
+                                ),
+                                expansionKey: const ValueKey<String>(
+                                  'chunk_polygon_diagnostics_panel_toggle',
                                 ),
                                 title: 'Diagnostics',
                                 message:
@@ -512,17 +521,31 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
     child: Center(child: Text(message)),
   );
 
+  Widget _buildEmptySidebarPanel({
+    required Key key,
+    required Key expansionKey,
+    required String title,
+    required String message,
+  }) => _ExpandablePanel(
+    key: key,
+    expansionKey: expansionKey,
+    title: title,
+    child: Text(message),
+  );
+
   Widget _buildAuthoringSidebar({
     required Widget shapes,
     required Widget seams,
     required Widget diagnostics,
-  }) => Column(
+  }) => ListView(
+    key: const ValueKey<String>('chunk_polygon_authoring_sidebar'),
+    primary: false,
     children: <Widget>[
-      Expanded(flex: 3, child: shapes),
+      shapes,
       const SizedBox(height: _gap),
-      Expanded(flex: 2, child: seams),
+      seams,
       const SizedBox(height: _gap),
-      Expanded(flex: 3, child: diagnostics),
+      diagnostics,
     ],
   );
 
@@ -872,12 +895,13 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
     final selection = authoring.state.selection;
     final selectedShape = _findShape(shapes, selection?.shapeId);
     final draft = authoring.state.draft;
-    return _Panel(
+    return _ExpandablePanel(
       key: const ValueKey<String>('chunk_polygon_shapes_panel'),
+      expansionKey: const ValueKey<String>('chunk_polygon_shapes_panel_toggle'),
       title: 'Shapes',
-      child: ListView(
+      child: Column(
         key: const ValueKey<String>('chunk_shape_list'),
-        primary: false,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           if (selectedShape != null) ...<Widget>[
             _buildSelectedShapeHeader(authoring, selectedShape),
@@ -993,12 +1017,15 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
   Widget _buildDiagnosticsPanel(
     ChunkPolygonAuthoringController authoring,
     List<ValidationIssue> issues,
-  ) => _Panel(
+  ) => _ExpandablePanel(
     key: const ValueKey<String>('chunk_polygon_diagnostics_panel'),
+    expansionKey: const ValueKey<String>(
+      'chunk_polygon_diagnostics_panel_toggle',
+    ),
     title: 'Diagnostics',
-    child: ListView(
+    child: Column(
       key: const ValueKey<String>('chunk_diagnostics_list'),
-      primary: false,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         _buildCompiledEdgeInspector(authoring),
         _buildExpandedPrefabShapes(authoring),
@@ -1032,15 +1059,19 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
     ),
   );
 
-  Widget _buildSeamPanel(ChunkPolygonAuthoringController authoring) => _Panel(
-    key: const ValueKey<String>('chunk_polygon_seams_panel'),
-    title: 'Reachable chunk seams',
-    child: ListView(
-      key: const ValueKey<String>('chunk_seam_list'),
-      primary: false,
-      children: <Widget>[_buildSeamInspector(authoring)],
-    ),
-  );
+  Widget _buildSeamPanel(ChunkPolygonAuthoringController authoring) =>
+      _ExpandablePanel(
+        key: const ValueKey<String>('chunk_polygon_seams_panel'),
+        expansionKey: const ValueKey<String>(
+          'chunk_polygon_seams_panel_toggle',
+        ),
+        title: 'Reachable chunk seams',
+        child: Column(
+          key: const ValueKey<String>('chunk_seam_list'),
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[_buildSeamInspector(authoring)],
+        ),
+      );
 
   Widget _buildExpansionSummary(ChunkPolygonAuthoringController authoring) {
     final result = _expansionFor(authoring.chunkKey);
@@ -2196,6 +2227,71 @@ class _Panel extends StatelessWidget {
           Expanded(child: child),
         ],
       ),
+    ),
+  );
+}
+
+class _ExpandablePanel extends StatefulWidget {
+  const _ExpandablePanel({
+    super.key,
+    required this.expansionKey,
+    required this.title,
+    required this.child,
+  });
+
+  final Key expansionKey;
+  final String title;
+  final Widget child;
+
+  @override
+  State<_ExpandablePanel> createState() => _ExpandablePanelState();
+}
+
+class _ExpandablePanelState extends State<_ExpandablePanel> {
+  bool _expanded = true;
+
+  @override
+  Widget build(BuildContext context) => Card.outlined(
+    margin: EdgeInsets.zero,
+    clipBehavior: Clip.antiAlias,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Semantics(
+          button: true,
+          expanded: _expanded,
+          child: InkWell(
+            key: widget.expansionKey,
+            onTap: () => setState(() => _expanded = !_expanded),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Row(
+                children: <Widget>[
+                  Expanded(
+                    child: Text(
+                      widget.title,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                  ),
+                  Tooltip(
+                    message:
+                        '${_expanded ? 'Collapse' : 'Expand'} '
+                        '${widget.title}',
+                    child: Icon(
+                      _expanded ? Icons.expand_less : Icons.expand_more,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        if (_expanded)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+            child: widget.child,
+          ),
+      ],
     ),
   );
 }

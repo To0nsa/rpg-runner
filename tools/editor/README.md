@@ -125,9 +125,9 @@ terrain artifact at runtime.
 
 Prefab and Chunk polygon scenes share the same controls:
 
-- use **New polygon** in Shapes and diagnostics to start a draft, then use
+- use **New polygon** in the Shapes card to start a draft, then use
   **Place vertex** in the scene to append snapped draft vertices
-- use **New rectangle** in Shapes and diagnostics, then drag across opposite
+- use **New rectangle** in the Shapes card, then drag across opposite
   corners to create an editable four-vertex polygon draft
 - while a draft is open, **Place vertex**, **Move vertex**, and **Insert vertex**
   edit that draft; **Select shape** and **Move shape** remain disabled
@@ -156,6 +156,11 @@ applies the visible preview or selecting another tool discards that preview.
 the only normal file-write action; it always requires confirmation.
 
 ## Polygon Workspace Navigation
+
+The Chunk Creator right sidebar is one vertical scroll area. Its **Shapes**,
+**Reachable chunk seams**, and **Diagnostics** cards start expanded and can be
+collapsed independently; card content uses the sidebar scroll instead of being
+clipped into fixed-height sections.
 
 When an all-current workspace loads the Chunk-v2 polygon workflow, each
 read-only expanded prefab collision exposes **Open prefab**.

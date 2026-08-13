@@ -120,8 +120,51 @@ void main() {
       );
       final seamList = find.byKey(const ValueKey<String>('chunk_seam_list'));
       final shapeList = find.byKey(const ValueKey<String>('chunk_shape_list'));
-      final diagnosticsList = find.byKey(
-        const ValueKey<String>('chunk_diagnostics_list'),
+      final authoringSidebar = find.byKey(
+        const ValueKey<String>('chunk_polygon_authoring_sidebar'),
+      );
+      final authoringSidebarScrollable = find
+          .descendant(of: authoringSidebar, matching: find.byType(Scrollable))
+          .first;
+      expect(
+        find.descendant(of: shapeList, matching: find.byType(Scrollable)),
+        findsNothing,
+      );
+      final sidebarBodyKeys = <String>[
+        'chunk_shape_list',
+        'chunk_seam_list',
+        'chunk_diagnostics_list',
+      ];
+      Future<void> expectExpandable({
+        required String panelKey,
+        required String bodyKey,
+      }) async {
+        final toggle = find.byKey(
+          ValueKey<String>('chunk_polygon_${panelKey}_panel_toggle'),
+        );
+        await tester.scrollUntilVisible(
+          toggle,
+          200,
+          scrollable: authoringSidebarScrollable,
+        );
+        await tester.tap(toggle);
+        await tester.pumpAndSettle();
+        expect(find.byKey(ValueKey<String>(bodyKey)), findsNothing);
+        for (final otherBodyKey in sidebarBodyKeys.where(
+          (key) => key != bodyKey,
+        )) {
+          expect(find.byKey(ValueKey<String>(otherBodyKey)), findsOneWidget);
+        }
+        await tester.tap(toggle);
+        await tester.pumpAndSettle();
+        expect(find.byKey(ValueKey<String>(bodyKey)), findsOneWidget);
+      }
+
+      await expectExpandable(panelKey: 'shapes', bodyKey: 'chunk_shape_list');
+      await expectExpandable(panelKey: 'seams', bodyKey: 'chunk_seam_list');
+      await expectExpandable(
+        panelKey: 'diagnostics',
+        bodyKey: 'chunk_diagnostics_list',
       );
       await tester.ensureVisible(seamInspector);
       expect(seamInspector, findsOneWidget);
@@ -131,7 +174,7 @@ void main() {
       );
       expect(find.textContaining('steady-hard:tier=hard>hard'), findsOneWidget);
       expect(seamList, findsOneWidget);
-      await tester.drag(diagnosticsList, const Offset(0, 2000));
+      await tester.drag(authoringSidebar, const Offset(0, 2000));
       await tester.pump();
       expect(
         find.byKey(
@@ -237,11 +280,11 @@ void main() {
       final grojibMarker = find.byKey(
         const ValueKey<String>('chunk_marker_placement_grojib|30|5|0'),
       );
-      await tester.drag(diagnosticsList, const Offset(0, -700));
+      await tester.drag(authoringSidebar, const Offset(0, -700));
       await tester.pump();
-      await tester.drag(diagnosticsList, const Offset(0, -300));
+      await tester.drag(authoringSidebar, const Offset(0, -300));
       await tester.pump();
-      await tester.drag(diagnosticsList, const Offset(0, -500));
+      await tester.drag(authoringSidebar, const Offset(0, -500));
       await tester.pump();
       await tester.ensureVisible(grojibMarker);
       await tester.tap(grojibMarker);
@@ -263,7 +306,7 @@ void main() {
         find.textContaining('runtime ballistic projectiles sweep'),
         findsOneWidget,
       );
-      await tester.drag(diagnosticsList, const Offset(0, 2000));
+      await tester.drag(authoringSidebar, const Offset(0, 2000));
       await tester.pump();
       expect(_chunk(harness.session, 'forest_chunk').revision, 4);
       expect(harness.session.pendingChanges.hasChanges, isFalse);
@@ -325,7 +368,7 @@ void main() {
       expect(harness.session.pendingChanges.hasChanges, isFalse);
       expect(reloadHandler.canReloadEditorPage, isTrue);
 
-      await tester.drag(diagnosticsList, const Offset(0, 2000));
+      await tester.drag(authoringSidebar, const Offset(0, 2000));
       await tester.pump();
       await tester.tap(
         find.byKey(const ValueKey<String>('chunk_polygon_shape_ground_001')),
@@ -337,9 +380,7 @@ void main() {
       await tester.scrollUntilVisible(
         firstVertex,
         100,
-        scrollable: find
-            .descendant(of: shapeList, matching: find.byType(Scrollable))
-            .first,
+        scrollable: authoringSidebarScrollable,
       );
       await tester.tap(firstVertex);
       await tester.pump();
@@ -399,12 +440,12 @@ void main() {
       final outOfBoundsIssue = find.text('chunk_collision_shape_out_of_bounds');
       expect(outOfBoundsIssue, findsNothing);
 
-      await tester.drag(diagnosticsList, const Offset(0, 5000));
+      await tester.drag(authoringSidebar, const Offset(0, 5000));
       await tester.pump();
-      final shapeScrollable = find
-          .descendant(of: shapeList, matching: find.byType(Scrollable))
-          .first;
-      tester.state<ScrollableState>(shapeScrollable).position.jumpTo(0);
+      tester
+          .state<ScrollableState>(authoringSidebarScrollable)
+          .position
+          .jumpTo(0);
       await tester.pump();
       final editMetadata = find.descendant(
         of: shapeList,
@@ -497,11 +538,7 @@ void main() {
 
       await tester.pumpAndSettle();
       tester
-          .state<ScrollableState>(
-            find
-                .descendant(of: shapeList, matching: find.byType(Scrollable))
-                .first,
-          )
+          .state<ScrollableState>(authoringSidebarScrollable)
           .position
           .jumpTo(0);
       await tester.pump();
@@ -574,17 +611,18 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final shapeList = find.byKey(const ValueKey<String>('chunk_shape_list'));
+    final authoringSidebar = find.byKey(
+      const ValueKey<String>('chunk_polygon_authoring_sidebar'),
+    );
     final groundShape = find.byKey(
       const ValueKey<String>('chunk_polygon_shape_ground_001'),
     );
     await tester.scrollUntilVisible(
       groundShape,
       100,
-      scrollable: find.descendant(
-        of: shapeList,
-        matching: find.byType(Scrollable),
-      ),
+      scrollable: find
+          .descendant(of: authoringSidebar, matching: find.byType(Scrollable))
+          .first,
     );
     await tester.tap(groundShape);
     await tester.pump();
@@ -722,22 +760,13 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final diagnosticsList = find.byKey(
-      const ValueKey<String>('chunk_diagnostics_list'),
-    );
     final openOwner = find.byKey(
       const ValueKey<String>(
         'chunk_open_prefab_prefab_rock|95|10|0_collision_001',
       ),
     );
-    await tester.scrollUntilVisible(
-      openOwner,
-      400,
-      scrollable: find.descendant(
-        of: diagnosticsList,
-        matching: find.byType(Scrollable),
-      ),
-    );
+    await Scrollable.ensureVisible(tester.element(openOwner), alignment: 0.5);
+    await tester.pumpAndSettle();
     await tester.tap(openOwner);
     await tester.pump();
 

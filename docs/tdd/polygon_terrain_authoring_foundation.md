@@ -580,6 +580,13 @@ an unfinished preview from leaking across chunks. Legacy or missing plugin
 loads return the shared migration-required state, so v1 ground/gap editing and
 export are not normal source paths.
 
+The Chunk workspace's right authoring column owns one vertical scroll surface.
+Shapes, reachable seam evidence, and diagnostics are independent expansion
+cards that start open. Their bodies take their natural content height and
+delegate overflow to the column scroll, so the Shapes card is not clipped by a
+fixed proportional split; expanding or collapsing a card changes only local
+presentation state and never authoring selection, history, or source.
+
 The Chunk shape inspector uses the same `TerrainPolygonVertexEditor` as Prefab
 staging. Its integer/`.0`/`.5` parser never sends malformed fractions to the
 controller. A valid coordinate override bypasses pointer snap, enters the
