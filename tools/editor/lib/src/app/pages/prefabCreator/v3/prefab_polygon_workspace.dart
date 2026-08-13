@@ -17,6 +17,7 @@ import '../../shared/editor_scene_view_utils.dart';
 import '../../shared/editor_panel_card.dart';
 import '../../shared/editor_scene_viewport_frame.dart';
 import '../../shared/editor_ui_tokens.dart';
+import '../../shared/editor_workspace_card.dart';
 import '../../shared/editor_zoom_controls.dart';
 import '../../shared/terrain_polygon_metadata_dialog.dart';
 import '../../shared/terrain_polygon_scene_painter.dart';
@@ -163,35 +164,32 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
             display: _buildShapePanel(authoring, issues),
           );
 
-    return Card(
+    return EditorWorkspaceCard(
       key: const ValueKey<String>('prefab_polygon_workspace'),
-      child: Padding(
-        padding: EditorUiTokens.workspaceInsets,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            _buildHeader(document, authoring),
-            const SizedBox(height: EditorUiTokens.sectionGap),
-            Expanded(
-              child: IndexedStack(
-                index: _workspaceView.index,
-                children: <Widget>[
-                  ownerWorkspace,
-                  PrefabV3AtlasCatalogWorkspace(
-                    key: _atlasWorkspaceKey,
-                    controller: widget.controller,
-                    document: document,
-                  ),
-                  PrefabV3ModuleCatalogWorkspace(
-                    key: _moduleWorkspaceKey,
-                    controller: widget.controller,
-                    document: document,
-                  ),
-                ],
-              ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          _buildHeader(document, authoring),
+          const SizedBox(height: EditorUiTokens.sectionGap),
+          Expanded(
+            child: IndexedStack(
+              index: _workspaceView.index,
+              children: <Widget>[
+                ownerWorkspace,
+                PrefabV3AtlasCatalogWorkspace(
+                  key: _atlasWorkspaceKey,
+                  controller: widget.controller,
+                  document: document,
+                ),
+                PrefabV3ModuleCatalogWorkspace(
+                  key: _moduleWorkspaceKey,
+                  controller: widget.controller,
+                  document: document,
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

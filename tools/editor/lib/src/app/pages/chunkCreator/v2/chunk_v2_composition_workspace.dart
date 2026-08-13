@@ -9,6 +9,7 @@ import '../../../../chunks/chunk_v2_models.dart';
 import '../../../../domain/authoring_types.dart';
 import '../../../../prefabs/models/models.dart';
 import '../../../../session/editor_session_controller.dart';
+import '../../shared/editor_panel_card.dart';
 import '../../shared/editor_three_panel_layout.dart';
 import 'chunk_v2_composition_dialog.dart';
 
@@ -69,48 +70,35 @@ class ChunkV2CompositionWorkspace extends StatelessWidget {
           tieOrder: index,
         ),
     ]..sort(_compareVisualStackEntries);
-    return Card(
+    return EditorPanelCard(
       key: const ValueKey<String>('chunk_visual_stack_preview'),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text(
-              'Visual stack preview · bottom → top',
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-            const Text(
-              'Preview only: polygon fill and prefab visual order are not '
-              'runtime collision authority.',
-            ),
-            const SizedBox(height: 6),
-            SizedBox(
-              height: 34,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: entries.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 6),
-                itemBuilder: (context, index) {
-                  final entry = entries[index];
-                  return Semantics(
-                    sortKey: OrdinalSortKey(index.toDouble()),
-                    label: entry.semanticLabel,
-                    child: Chip(
-                      key: ValueKey<String>(entry.widgetKey),
-                      avatar: Icon(
-                        entry.isGround
-                            ? Icons.landscape_outlined
-                            : Icons.image_outlined,
-                        size: 17,
-                      ),
-                      label: Text(entry.displayLabel),
-                    ),
-                  );
-                },
+      title: 'Visual stack preview · bottom → top',
+      description:
+          'Preview only: polygon fill and prefab visual order are not '
+          'runtime collision authority.',
+      child: SizedBox(
+        height: 34,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          itemCount: entries.length,
+          separatorBuilder: (_, _) => const SizedBox(width: 6),
+          itemBuilder: (context, index) {
+            final entry = entries[index];
+            return Semantics(
+              sortKey: OrdinalSortKey(index.toDouble()),
+              label: entry.semanticLabel,
+              child: Chip(
+                key: ValueKey<String>(entry.widgetKey),
+                avatar: Icon(
+                  entry.isGround
+                      ? Icons.landscape_outlined
+                      : Icons.image_outlined,
+                  size: 17,
+                ),
+                label: Text(entry.displayLabel),
               ),
-            ),
-          ],
+            );
+          },
         ),
       ),
     );
@@ -444,37 +432,18 @@ final class _CompositionPanel extends StatelessWidget {
   final List<Widget> children;
 
   @override
-  Widget build(BuildContext context) => Card(
-    child: Padding(
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-              ),
-              FilledButton.icon(
-                key: ValueKey<String>(addKey),
-                onPressed: onAdd,
-                icon: const Icon(Icons.add),
-                label: Text(addLabel),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Expanded(
-            child: children.isEmpty
-                ? Center(child: Text(emptyMessage))
-                : ListView(children: children),
-          ),
-        ],
-      ),
+  Widget build(BuildContext context) => EditorPanelCard(
+    title: title,
+    trailing: FilledButton.icon(
+      key: ValueKey<String>(addKey),
+      onPressed: onAdd,
+      icon: const Icon(Icons.add),
+      label: Text(addLabel),
     ),
+    bodyMode: EditorPanelBodyMode.expanded,
+    child: children.isEmpty
+        ? Center(child: Text(emptyMessage))
+        : ListView(children: children),
   );
 }
 

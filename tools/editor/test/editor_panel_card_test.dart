@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_panel_card.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_section_card.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_selectable_card.dart';
+import 'package:runner_editor/src/app/pages/shared/editor_workspace_card.dart';
 
 void main() {
   testWidgets('collapsible panel removes only its body and reports changes', (
@@ -99,5 +100,28 @@ void main() {
     expect(find.text('details'), findsOneWidget);
     await tester.tap(find.text('owner'));
     expect(taps, 1);
+  });
+
+  testWidgets('workspace card preserves the child bounded route surface', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: EditorWorkspaceCard(
+            child: SizedBox.expand(key: ValueKey<String>('workspace_body')),
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      find.byKey(const ValueKey<String>('workspace_body')),
+      findsOneWidget,
+    );
+    expect(
+      tester.getSize(find.byKey(const ValueKey<String>('workspace_body'))),
+      const Size(768, 568),
+    );
   });
 }

@@ -18,6 +18,8 @@ store owners.
   second top-level panel.
 - `EditorSelectableCard` gives owner and catalog rows one selected-state,
   preview, details, and trailing-action structure.
+- `EditorWorkspaceCard` owns the outer outlined route surface and workspace
+  padding without taking over route sizing or scroll state.
 
 `EditorPanelCard` has explicit natural, expanded, and scrollable body modes.
 Expanded and scrollable modes require a bounded parent height. Collapsible
@@ -38,3 +40,9 @@ section, selectable-row, and token primitives. Prefab-specific widgets remain
 only where they encode domain semantics such as create/edit banners, scene
 controls, or fixed three-panel labels; the former prefab-only card shells and
 spacing registry have been removed.
+
+Chunk, Prefab, and Level root workspaces use `EditorWorkspaceCard`. Chunk
+composition uses `EditorPanelCard` for its visual-stack summary and its three
+bounded lists, and explanatory route-intro cards compose the same panel shell.
+The fail-closed polygon-migration route keeps its specialized warning content
+inside the shared workspace surface.

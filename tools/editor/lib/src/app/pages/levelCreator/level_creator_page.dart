@@ -6,6 +6,7 @@ import '../../../domain/authoring_types.dart';
 import '../../../levels/level_domain_models.dart';
 import '../../../session/editor_session_controller.dart';
 import '../shared/editor_page_local_draft_state.dart';
+import '../shared/editor_workspace_card.dart';
 
 class LevelCreatorPage extends StatefulWidget {
   const LevelCreatorPage({super.key, required this.controller});
@@ -146,43 +147,34 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
         final levelScene = scene is LevelScene ? scene : null;
         _syncSelection(levelScene);
 
-        return Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildControls(levelScene),
-                const SizedBox(height: 12),
-                if (widget.controller.loadError != null)
-                  _buildErrorBanner(widget.controller.loadError!),
-                if (widget.controller.exportError != null)
-                  _buildErrorBanner(widget.controller.exportError!),
-                if (levelScene == null)
-                  const Expanded(
-                    child: Center(
-                      child: Text('Level scene is not loaded for this route.'),
-                    ),
-                  )
-                else
-                  Expanded(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          flex: 1,
-                          child: _buildLevelListPane(levelScene),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          flex: 2,
-                          child: _buildInspectorPane(levelScene),
-                        ),
-                      ],
-                    ),
+        return EditorWorkspaceCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildControls(levelScene),
+              const SizedBox(height: 12),
+              if (widget.controller.loadError != null)
+                _buildErrorBanner(widget.controller.loadError!),
+              if (widget.controller.exportError != null)
+                _buildErrorBanner(widget.controller.exportError!),
+              if (levelScene == null)
+                const Expanded(
+                  child: Center(
+                    child: Text('Level scene is not loaded for this route.'),
                   ),
-              ],
-            ),
+                )
+              else
+                Expanded(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(flex: 1, child: _buildLevelListPane(levelScene)),
+                      const SizedBox(width: 12),
+                      Expanded(flex: 2, child: _buildInspectorPane(levelScene)),
+                    ],
+                  ),
+                ),
+            ],
           ),
         );
       },

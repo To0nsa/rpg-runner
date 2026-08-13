@@ -28,6 +28,7 @@ import '../../../../terrain_authoring/terrain_source_models.dart';
 import '../../shared/editor_scene_view_utils.dart';
 import '../../shared/editor_panel_card.dart';
 import '../../shared/editor_three_panel_layout.dart';
+import '../../shared/editor_workspace_card.dart';
 import '../../shared/editor_scene_viewport_frame.dart';
 import '../../shared/editor_zoom_controls.dart';
 import '../../shared/terrain_polygon_metadata_dialog.dart';
@@ -147,96 +148,90 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
     final issues = authoring == null
         ? const <ValidationIssue>[]
         : _ownerIssues(authoring);
-    return Card(
+    return EditorWorkspaceCard(
       key: const ValueKey<String>('chunk_polygon_workspace'),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            _buildHeader(document, scene),
-            const SizedBox(height: _gap),
-            Expanded(
-              child: _workspaceView == _ChunkV2WorkspaceView.terrain
-                  ? EditorThreePanelLayout(
-                      firstLabel: 'Chunks',
-                      secondLabel: 'Terrain',
-                      thirdLabel: 'Shapes',
-                      first: _buildOwnerPanel(
-                        document,
-                        scene,
-                        authoring?.chunk,
-                        controlsEnabled:
-                            !(authoring?.hasActiveOperation ?? false),
-                      ),
-                      second: authoring == null
-                          ? _buildEmptyPanel(
-                              title: 'Terrain collision scene',
-                              message:
-                                  'This level has no chunk owner. Undo the '
-                                  'deletion, or switch to a level that still '
-                                  'has a dimension template.',
-                            )
-                          : _buildScenePanel(scene, authoring),
-                      third: authoring == null
-                          ? _buildAuthoringSidebar(
-                              shapes: _buildEmptySidebarPanel(
-                                key: const ValueKey<String>(
-                                  'chunk_polygon_shapes_panel',
-                                ),
-                                expansionKey: const ValueKey<String>(
-                                  'chunk_polygon_shapes_panel_toggle',
-                                ),
-                                title: 'Shapes',
-                                message:
-                                    'Select or create a chunk owner first.',
-                              ),
-                              seams: _buildEmptySidebarPanel(
-                                key: const ValueKey<String>(
-                                  'chunk_polygon_seams_panel',
-                                ),
-                                expansionKey: const ValueKey<String>(
-                                  'chunk_polygon_seams_panel_toggle',
-                                ),
-                                title: 'Reachable chunk seams',
-                                message:
-                                    'Select or create a chunk owner first.',
-                              ),
-                              diagnostics: _buildEmptySidebarPanel(
-                                key: const ValueKey<String>(
-                                  'chunk_polygon_diagnostics_panel',
-                                ),
-                                expansionKey: const ValueKey<String>(
-                                  'chunk_polygon_diagnostics_panel_toggle',
-                                ),
-                                title: 'Diagnostics',
-                                message:
-                                    'Select or create a chunk owner first.',
-                              ),
-                            )
-                          : _buildAuthoringSidebar(
-                              shapes: _buildShapePanel(authoring),
-                              seams: _buildSeamPanel(authoring),
-                              diagnostics: _buildDiagnosticsPanel(
-                                authoring,
-                                issues,
-                              ),
-                            ),
-                      gap: _gap,
-                    )
-                  : authoring == null
-                  ? _buildEmptyPanel(
-                      title: 'Chunk composition',
-                      message: 'Select or create a chunk owner first.',
-                    )
-                  : ChunkV2CompositionWorkspace(
-                      controller: widget.controller,
-                      document: document,
-                      chunk: authoring.chunk,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          _buildHeader(document, scene),
+          const SizedBox(height: _gap),
+          Expanded(
+            child: _workspaceView == _ChunkV2WorkspaceView.terrain
+                ? EditorThreePanelLayout(
+                    firstLabel: 'Chunks',
+                    secondLabel: 'Terrain',
+                    thirdLabel: 'Shapes',
+                    first: _buildOwnerPanel(
+                      document,
+                      scene,
+                      authoring?.chunk,
+                      controlsEnabled:
+                          !(authoring?.hasActiveOperation ?? false),
                     ),
-            ),
-          ],
-        ),
+                    second: authoring == null
+                        ? _buildEmptyPanel(
+                            title: 'Terrain collision scene',
+                            message:
+                                'This level has no chunk owner. Undo the '
+                                'deletion, or switch to a level that still '
+                                'has a dimension template.',
+                          )
+                        : _buildScenePanel(scene, authoring),
+                    third: authoring == null
+                        ? _buildAuthoringSidebar(
+                            shapes: _buildEmptySidebarPanel(
+                              key: const ValueKey<String>(
+                                'chunk_polygon_shapes_panel',
+                              ),
+                              expansionKey: const ValueKey<String>(
+                                'chunk_polygon_shapes_panel_toggle',
+                              ),
+                              title: 'Shapes',
+                              message: 'Select or create a chunk owner first.',
+                            ),
+                            seams: _buildEmptySidebarPanel(
+                              key: const ValueKey<String>(
+                                'chunk_polygon_seams_panel',
+                              ),
+                              expansionKey: const ValueKey<String>(
+                                'chunk_polygon_seams_panel_toggle',
+                              ),
+                              title: 'Reachable chunk seams',
+                              message: 'Select or create a chunk owner first.',
+                            ),
+                            diagnostics: _buildEmptySidebarPanel(
+                              key: const ValueKey<String>(
+                                'chunk_polygon_diagnostics_panel',
+                              ),
+                              expansionKey: const ValueKey<String>(
+                                'chunk_polygon_diagnostics_panel_toggle',
+                              ),
+                              title: 'Diagnostics',
+                              message: 'Select or create a chunk owner first.',
+                            ),
+                          )
+                        : _buildAuthoringSidebar(
+                            shapes: _buildShapePanel(authoring),
+                            seams: _buildSeamPanel(authoring),
+                            diagnostics: _buildDiagnosticsPanel(
+                              authoring,
+                              issues,
+                            ),
+                          ),
+                    gap: _gap,
+                  )
+                : authoring == null
+                ? _buildEmptyPanel(
+                    title: 'Chunk composition',
+                    message: 'Select or create a chunk owner first.',
+                  )
+                : ChunkV2CompositionWorkspace(
+                    controller: widget.controller,
+                    document: document,
+                    chunk: authoring.chunk,
+                  ),
+          ),
+        ],
       ),
     );
   }
