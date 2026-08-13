@@ -1078,17 +1078,29 @@ void _writePrefabAndTileDefs(String rootPath) {
 void _writeTerrainMaterialDefs(String rootPath) {
   _writeFile(rootPath, 'assets/authoring/level/terrain_material_defs.json', '''
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "materials": [
     {
       "key": "grass_dirt",
       "displayName": "Grass / Dirt",
       "revision": 1,
-      "fillAssetPath": "assets/images/terrain/grass_dirt/fill.png",
+      "fill": {
+        "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
+        "x": 32,
+        "y": 32,
+        "width": 32,
+        "height": 32
+      },
       "top": {
         "base": {
-          "assetPath": "assets/images/terrain/grass_dirt/surface.png",
-          "anchorY": 0
+          "region": {
+            "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
+            "x": 32,
+            "y": 0,
+            "width": 32,
+            "height": 32
+          },
+          "anchorY": 12
         }
       }
     }
@@ -1096,8 +1108,7 @@ void _writeTerrainMaterialDefs(String rootPath) {
 }
 ''');
   for (final path in const <String>[
-    'assets/images/terrain/grass_dirt/fill.png',
-    'assets/images/terrain/grass_dirt/surface.png',
+    'assets/images/terrain/tx_tileset_ground/atlas.png',
   ]) {
     final source = File(
       _joinPath(<String>[Directory.current.path, ...path.split('/')]),

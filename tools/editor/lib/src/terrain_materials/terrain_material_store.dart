@@ -5,14 +5,23 @@ import 'package:terrain_materials/terrain_materials.dart';
 
 import '../domain/authoring_types.dart';
 import '../workspace/editor_workspace.dart';
+import '../workspace/repository_png_catalog.dart';
 import '../workspace/workspace_file_io.dart';
 import 'terrain_material_domain_models.dart';
 
 /// Repository I/O boundary for the canonical terrain material manifest.
 final class TerrainMaterialStore {
-  const TerrainMaterialStore();
+  const TerrainMaterialStore({
+    RepositoryPngCatalog pngCatalog = const RepositoryPngCatalog(),
+  }) : _pngCatalog = pngCatalog;
+
+  final RepositoryPngCatalog _pngCatalog;
 
   Future<TerrainMaterialDocument> load(EditorWorkspace workspace) async {
+    final atlasImages = _pngCatalog
+        .discoverSync(workspace, roots: const <String>['assets/images/terrain'])
+        .where((image) => isValidTerrainMaterialAssetPath(image.relativePath))
+        .toList(growable: false);
     final file = File(workspace.resolve(terrainMaterialDefsSourcePath));
     if (!await file.exists()) {
       return TerrainMaterialDocument(
@@ -20,6 +29,7 @@ final class TerrainMaterialStore {
         materials: const <TerrainMaterialDefinition>[],
         baseline: null,
         referencedMaterialKeys: _scanMaterialReferences(workspace),
+        atlasImages: atlasImages,
         loadIssues: const <ValidationIssue>[
           ValidationIssue(
             severity: ValidationSeverity.error,
@@ -65,6 +75,7 @@ final class TerrainMaterialStore {
         source: source,
       ),
       referencedMaterialKeys: _scanMaterialReferences(workspace),
+      atlasImages: atlasImages,
       loadIssues: List<ValidationIssue>.unmodifiable(issues),
     );
   }

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:terrain_materials/terrain_materials.dart';
 
+import '../../../atlas/atlas_grid_settings_cache.dart';
 import '../../../domain/authoring_types.dart';
 import '../../../session/editor_session_controller.dart';
 import '../../../terrain_materials/terrain_material_domain_models.dart';
@@ -24,11 +25,13 @@ class TerrainMaterialsPage extends StatefulWidget {
 }
 
 class _TerrainMaterialsPageState extends State<TerrainMaterialsPage> {
+  final AtlasGridSettingsCache _gridSettingsCache = AtlasGridSettingsCache();
   String? _selectedKey;
 
   @override
   void initState() {
     super.initState();
+    _gridSettingsCache.ensureWorkspace(widget.controller.workspacePath);
     widget.controller.addListener(_handleControllerChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(widget.controller.loadWorkspace());
@@ -41,6 +44,7 @@ class _TerrainMaterialsPageState extends State<TerrainMaterialsPage> {
     if (identical(oldWidget.controller, widget.controller)) return;
     oldWidget.controller.removeListener(_handleControllerChanged);
     widget.controller.addListener(_handleControllerChanged);
+    _gridSettingsCache.ensureWorkspace(widget.controller.workspacePath);
     _reconcileSelection();
   }
 
@@ -326,7 +330,10 @@ class _TerrainMaterialsPageState extends State<TerrainMaterialsPage> {
       context,
       workspaceRootPath: scene.workspaceRootPath,
       existingKeys: scene.materials.map((material) => material.key).toSet(),
+      atlasImages: scene.atlasImages,
+      gridSettingsCache: _gridSettingsCache,
       suggestedKey: _allocateKey('new_material', scene.materials),
+      isNew: true,
     );
     _upsert(result);
   }
@@ -345,7 +352,10 @@ class _TerrainMaterialsPageState extends State<TerrainMaterialsPage> {
       context,
       workspaceRootPath: scene.workspaceRootPath,
       existingKeys: scene.materials.map((material) => material.key).toSet(),
+      atlasImages: scene.atlasImages,
+      gridSettingsCache: _gridSettingsCache,
       material: duplicate,
+      isNew: true,
     );
     if (result == null) return;
     _upsert(
@@ -361,6 +371,8 @@ class _TerrainMaterialsPageState extends State<TerrainMaterialsPage> {
       context,
       workspaceRootPath: scene.workspaceRootPath,
       existingKeys: scene.materials.map((item) => item.key).toSet(),
+      atlasImages: scene.atlasImages,
+      gridSettingsCache: _gridSettingsCache,
       material: material,
       allowKeyChange: !scene.referencedMaterialKeys.contains(material.key),
     );

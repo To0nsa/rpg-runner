@@ -29,20 +29,26 @@ final class TerrainMaterialDomainPlugin implements AuthoringDomainPlugin {
   List<ValidationIssue> validate(AuthoringDocument document) {
     final materialDocument = _requireDocument(document);
     final issues = <ValidationIssue>[...materialDocument.loadIssues];
+    final structural = decodeTerrainMaterialCatalog(
+      TerrainMaterialCatalog(
+        materials: materialDocument.materials,
+      ).toCanonicalJson(),
+      sourcePath: terrainMaterialDefsSourcePath,
+    );
+    issues.addAll(
+      structural.issues.map(
+        (issue) => ValidationIssue(
+          severity: ValidationSeverity.error,
+          code: issue.code,
+          message: issue.message,
+          sourcePath: issue.path,
+          ownerKey: issue.materialKey,
+        ),
+      ),
+    );
     final byKey = <String, TerrainMaterialDefinition>{};
     final dimensionsByPath = <String, TerrainMaterialImageDimensions>{};
     for (final material in materialDocument.materials) {
-      if (byKey.containsKey(material.key)) {
-        issues.add(
-          ValidationIssue(
-            severity: ValidationSeverity.error,
-            code: 'duplicate_material_key',
-            message: 'Material key "${material.key}" is duplicated.',
-            sourcePath: terrainMaterialDefsSourcePath,
-            ownerKey: material.key,
-          ),
-        );
-      }
       byKey[material.key] = material;
       for (final assetPath in _assetPaths(material)) {
         if (dimensionsByPath.containsKey(assetPath)) continue;
@@ -127,6 +133,7 @@ final class TerrainMaterialDomainPlugin implements AuthoringDomainPlugin {
       workspaceRootPath: materialDocument.workspaceRootPath,
       materials: materialDocument.materials,
       referencedMaterialKeys: materialDocument.referencedMaterialKeys,
+      atlasImages: materialDocument.atlasImages,
     );
   }
 
@@ -244,22 +251,8 @@ TerrainMaterialDocument _requireDocument(AuthoringDocument document) {
   return document;
 }
 
-List<String> _assetPaths(TerrainMaterialDefinition material) {
-  final paths = <String>{material.fillAssetPath};
-  void addProfile(TerrainMaterialEdgeProfile? profile) {
-    if (profile == null) return;
-    paths.add(profile.base.assetPath);
-    if (profile.detail case final detail?) paths.add(detail.assetPath);
-  }
-
-  addProfile(material.top);
-  addProfile(material.leftWall);
-  addProfile(material.rightWall);
-  addProfile(material.underside);
-  if (material.topStartCap case final cap?) paths.add(cap.assetPath);
-  if (material.topEndCap case final cap?) paths.add(cap.assetPath);
-  return paths.toList()..sort();
-}
+List<String> _assetPaths(TerrainMaterialDefinition material) =>
+    terrainMaterialAssetPaths(material);
 
 bool _sameMaterials(
   List<TerrainMaterialDefinition> left,

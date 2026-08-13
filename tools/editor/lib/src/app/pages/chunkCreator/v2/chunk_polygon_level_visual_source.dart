@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -234,12 +233,12 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
         shape.materialKey,
       );
       if (material == null || shape.vertices.length < 3) continue;
-      final fill = imagesBySourcePath[material.fillAssetPath];
+      final fill = imagesBySourcePath[material.fill.assetPath];
       final path = _sourcePath(shape.vertices);
       if (fill == null) {
         canvas.drawPath(path, _fallbackTerrainPaint(shape.materialKey));
       } else {
-        canvas.drawPath(path, _tiledFillPaint(fill));
+        _drawTiledRegionInPath(canvas, path, fill, material.fill);
       }
       final edgeKinds = _edgeKinds(shape.vertices);
       for (var index = 0; index < shape.vertices.length; index += 1) {
@@ -250,27 +249,27 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
         final kind = edgeKinds[index];
         final profile = _profileForKind(material, kind);
         if (profile != null) {
-          final base = imagesBySourcePath[profile.base.assetPath];
+          final base = imagesBySourcePath[profile.base.region.assetPath];
           if (base != null) {
             _drawEdgeImage(
               canvas,
               start: start,
               end: end,
               image: base,
-              anchorY: profile.base.anchorY,
+              layer: profile.base,
             );
           }
           final detailLayer = profile.detail;
           final detail = detailLayer == null
               ? null
-              : imagesBySourcePath[detailLayer.assetPath];
+              : imagesBySourcePath[detailLayer.region.assetPath];
           if (detail != null && detailLayer != null) {
             _drawEdgeImage(
               canvas,
               start: start,
               end: end,
               image: detail,
-              anchorY: detailLayer.anchorY,
+              layer: detailLayer,
             );
           }
         }
@@ -281,7 +280,7 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
         if (previousKind != _TerrainEdgeKind.top) {
           final cap = material.topStartCap;
           if (cap != null) {
-            final image = imagesBySourcePath[cap.assetPath];
+            final image = imagesBySourcePath[cap.region.assetPath];
             if (image != null) {
               _drawEdgeCap(
                 canvas,
@@ -297,7 +296,7 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
         if (nextKind != _TerrainEdgeKind.top) {
           final cap = material.topEndCap;
           if (cap != null) {
-            final image = imagesBySourcePath[cap.assetPath];
+            final image = imagesBySourcePath[cap.region.assetPath];
             if (image != null) {
               _drawEdgeCap(
                 canvas,
@@ -405,23 +404,41 @@ void _drawEdgeImage(
   required Offset start,
   required Offset end,
   required ui.Image image,
-  required double anchorY,
+  required TerrainMaterialEdgeLayer layer,
 }) {
   final dx = end.dx - start.dx;
   final dy = end.dy - start.dy;
   final length = math.sqrt(dx * dx + dy * dy);
   if (length <= 0) return;
-  final imageWidth = image.width.toDouble();
-  final imageHeight = image.height.toDouble();
-  final phase = _positiveModulo(start.dx, imageWidth);
+  final region = layer.region;
+  final repeatWidth = region.width.toDouble();
+  final angle = math.atan2(dy, dx);
+  final phase = _positiveModulo(
+    (start.dx * math.cos(angle)) + (start.dy * math.sin(angle)),
+    repeatWidth,
+  );
+  final source = Rect.fromLTWH(
+    region.x.toDouble(),
+    region.y.toDouble(),
+    region.width.toDouble(),
+    region.height.toDouble(),
+  );
   canvas.save();
   canvas.translate(start.dx, start.dy);
-  canvas.rotate(math.atan2(dy, dx));
-  canvas.clipRect(Rect.fromLTWH(0, -anchorY, length, imageHeight));
-  for (var x = -phase; x < length; x += imageWidth) {
-    canvas.drawImage(
+  canvas.rotate(angle);
+  canvas.clipRect(
+    Rect.fromLTWH(0, -layer.anchorY, length, region.height.toDouble()),
+  );
+  for (var x = -phase; x < length; x += repeatWidth) {
+    canvas.drawImageRect(
       image,
-      Offset(x, -anchorY),
+      source,
+      Rect.fromLTWH(
+        x,
+        -layer.anchorY,
+        region.width.toDouble(),
+        region.height.toDouble(),
+      ),
       Paint()..filterQuality = FilterQuality.none,
     );
   }
@@ -443,39 +460,60 @@ void _drawEdgeCap(
   canvas.save();
   canvas.translate(edgeStart.dx, edgeStart.dy);
   canvas.rotate(math.atan2(dy, dx));
-  canvas.drawImage(
+  canvas.drawImageRect(
     image,
-    Offset((atEnd ? length : 0) - cap.anchorX, -cap.anchorY),
+    Rect.fromLTWH(
+      cap.region.x.toDouble(),
+      cap.region.y.toDouble(),
+      cap.region.width.toDouble(),
+      cap.region.height.toDouble(),
+    ),
+    Rect.fromLTWH(
+      (atEnd ? length : 0) - cap.anchorX,
+      -cap.anchorY,
+      cap.region.width.toDouble(),
+      cap.region.height.toDouble(),
+    ),
     Paint()..filterQuality = FilterQuality.none,
   );
   canvas.restore();
 }
 
-Iterable<String> _materialAssetPaths(TerrainMaterialDefinition material) sync* {
-  yield material.fillAssetPath;
-  for (final profile in <TerrainMaterialEdgeProfile?>[
-    material.top,
-    material.leftWall,
-    material.rightWall,
-    material.underside,
-  ]) {
-    if (profile == null) continue;
-    yield profile.base.assetPath;
-    if (profile.detail case final detail?) yield detail.assetPath;
-  }
-  if (material.topStartCap case final cap?) yield cap.assetPath;
-  if (material.topEndCap case final cap?) yield cap.assetPath;
-}
+Iterable<String> _materialAssetPaths(TerrainMaterialDefinition material) =>
+    terrainMaterialAssetPaths(material);
 
-Paint _tiledFillPaint(ui.Image image) => Paint()
-  ..filterQuality = FilterQuality.none
-  ..shader = ui.ImageShader(
-    image,
-    ui.TileMode.repeated,
-    ui.TileMode.repeated,
-    _identityMatrix,
-    filterQuality: ui.FilterQuality.none,
+void _drawTiledRegionInPath(
+  Canvas canvas,
+  Path path,
+  ui.Image image,
+  TerrainMaterialImageRegion region,
+) {
+  final bounds = path.getBounds();
+  final source = Rect.fromLTWH(
+    region.x.toDouble(),
+    region.y.toDouble(),
+    region.width.toDouble(),
+    region.height.toDouble(),
   );
+  final startX =
+      bounds.left - _positiveModulo(bounds.left, region.width.toDouble());
+  final startY =
+      bounds.top - _positiveModulo(bounds.top, region.height.toDouble());
+  final paint = Paint()..filterQuality = FilterQuality.none;
+  canvas.save();
+  canvas.clipPath(path);
+  for (var y = startY; y < bounds.bottom; y += region.height) {
+    for (var x = startX; x < bounds.right; x += region.width) {
+      canvas.drawImageRect(
+        image,
+        source,
+        Rect.fromLTWH(x, y, region.width.toDouble(), region.height.toDouble()),
+        paint,
+      );
+    }
+  }
+  canvas.restore();
+}
 
 Paint _fallbackTerrainPaint(String? materialKey) =>
     Paint()
@@ -485,10 +523,3 @@ double _positiveModulo(double value, double divisor) {
   final remainder = value % divisor;
   return remainder < 0 ? remainder + divisor : remainder;
 }
-
-final Float64List _identityMatrix = Float64List.fromList(<double>[
-  1, 0, 0, 0, //
-  0, 1, 0, 0, //
-  0, 0, 1, 0, //
-  0, 0, 0, 1,
-]);

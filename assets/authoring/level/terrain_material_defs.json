@@ -1,29 +1,49 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "materials": [
     {
       "key": "grass_dirt",
       "displayName": "Grass / Dirt",
       "revision": 1,
-      "fillAssetPath": "assets/images/terrain/grass_dirt/fill.png",
+      "fill": {
+        "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
+        "x": 32,
+        "y": 32,
+        "width": 32,
+        "height": 32
+      },
       "top": {
         "base": {
-          "assetPath": "assets/images/terrain/grass_dirt/surface.png",
+          "region": {
+            "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
+            "x": 32,
+            "y": 0,
+            "width": 32,
+            "height": 32
+          },
           "anchorY": 12
-        },
-        "detail": {
-          "assetPath": "assets/images/terrain/grass_dirt/foreground.png",
-          "anchorY": 0
         }
       },
       "topStartCap": {
-        "assetPath": "assets/images/terrain/grass_dirt/cap_left.png",
+        "region": {
+          "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
+          "x": 0,
+          "y": 0,
+          "width": 32,
+          "height": 32
+        },
         "anchorX": 0,
         "anchorY": 12
       },
       "topEndCap": {
-        "assetPath": "assets/images/terrain/grass_dirt/cap_right.png",
-        "anchorX": 128,
+        "region": {
+          "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
+          "x": 64,
+          "y": 0,
+          "width": 32,
+          "height": 32
+        },
+        "anchorX": 32,
         "anchorY": 12
       }
     }

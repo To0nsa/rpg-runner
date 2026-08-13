@@ -169,24 +169,6 @@ Future<TerrainMaterialGenerationResult> buildTerrainMaterialRegistry({
   );
 }
 
-/// Returns every image referenced by [material] once in stable path order.
-List<String> terrainMaterialAssetPaths(TerrainMaterialDefinition material) {
-  final paths = <String>{material.fillAssetPath};
-  void addProfile(TerrainMaterialEdgeProfile? profile) {
-    if (profile == null) return;
-    paths.add(profile.base.assetPath);
-    if (profile.detail case final detail?) paths.add(detail.assetPath);
-  }
-
-  addProfile(material.top);
-  addProfile(material.leftWall);
-  addProfile(material.rightWall);
-  addProfile(material.underside);
-  if (material.topStartCap case final cap?) paths.add(cap.assetPath);
-  if (material.topEndCap case final cap?) paths.add(cap.assetPath);
-  return paths.toList()..sort();
-}
-
 /// Renders the Flame registry without reinterpreting the source schema.
 String renderTerrainMaterialRegistry(TerrainMaterialCatalog catalog) {
   final buffer = StringBuffer()
@@ -205,10 +187,9 @@ String renderTerrainMaterialRegistry(TerrainMaterialCatalog catalog) {
       ..writeln('        key: ${_dartString(material.key)},')
       ..writeln('        displayName: ${_dartString(material.displayName)},')
       ..writeln('        revision: ${material.revision},')
-      ..writeln(
-        '        fillAssetPath: '
-        '${_dartString(_runtimePath(material.fillAssetPath))},',
-      );
+      ..writeln('        fill: TerrainMaterialImageRegionSpec(');
+    _writeRegionFields(buffer, material.fill, indent: '          ');
+    buffer.writeln('        ),');
     _writeProfile(buffer, 'top', material.top, indent: '        ');
     if (material.leftWall case final profile?) {
       _writeProfile(buffer, 'leftWall', profile, indent: '        ');
@@ -254,9 +235,10 @@ void _writeLayer(
 }) {
   buffer
     ..writeln('$indent$fieldName: TerrainMaterialEdgeLayerSpec(')
-    ..writeln(
-      '$indent  assetPath: ${_dartString(_runtimePath(layer.assetPath))},',
-    )
+    ..writeln('$indent  region: TerrainMaterialImageRegionSpec(');
+  _writeRegionFields(buffer, layer.region, indent: '$indent    ');
+  buffer
+    ..writeln('$indent  ),')
     ..writeln('$indent  anchorY: ${_dartNumber(layer.anchorY)},')
     ..writeln('$indent),');
 }
@@ -269,12 +251,28 @@ void _writeCap(
 }) {
   buffer
     ..writeln('$indent$fieldName: TerrainMaterialCapSpec(')
-    ..writeln(
-      '$indent  assetPath: ${_dartString(_runtimePath(cap.assetPath))},',
-    )
+    ..writeln('$indent  region: TerrainMaterialImageRegionSpec(');
+  _writeRegionFields(buffer, cap.region, indent: '$indent    ');
+  buffer
+    ..writeln('$indent  ),')
     ..writeln('$indent  anchorX: ${_dartNumber(cap.anchorX)},')
     ..writeln('$indent  anchorY: ${_dartNumber(cap.anchorY)},')
     ..writeln('$indent),');
+}
+
+void _writeRegionFields(
+  StringBuffer buffer,
+  TerrainMaterialImageRegion region, {
+  required String indent,
+}) {
+  buffer
+    ..writeln(
+      '${indent}assetPath: ${_dartString(_runtimePath(region.assetPath))},',
+    )
+    ..writeln('${indent}x: ${region.x},')
+    ..writeln('${indent}y: ${region.y},')
+    ..writeln('${indent}width: ${region.width},')
+    ..writeln('${indent}height: ${region.height},');
 }
 
 String _runtimePath(String path) => path.substring('assets/images/'.length);

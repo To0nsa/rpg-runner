@@ -88,7 +88,7 @@ void main() {
       final fixture = await _TerrainMaterialFixture.create();
       addTearDown(fixture.dispose);
       File(
-        p.join(fixture.root.path, fixture.material.fillAssetPath),
+        p.join(fixture.root.path, fixture.material.fill.assetPath),
       ).deleteSync();
       File(
         p.join(
@@ -126,21 +126,45 @@ final class _TerrainMaterialFixture {
       key: 'grass_dirt',
       displayName: 'Grass / Dirt',
       revision: 1,
-      fillAssetPath: 'assets/images/terrain/grass_dirt/fill.png',
+      fill: TerrainMaterialImageRegion(
+        assetPath: 'assets/images/terrain/tx_tileset_ground/atlas.png',
+        x: 32,
+        y: 32,
+        width: 32,
+        height: 32,
+      ),
       top: TerrainMaterialEdgeProfile(
         base: TerrainMaterialEdgeLayer(
-          assetPath: 'assets/images/terrain/grass_dirt/surface.png',
+          region: TerrainMaterialImageRegion(
+            assetPath: 'assets/images/terrain/tx_tileset_ground/atlas.png',
+            x: 32,
+            y: 0,
+            width: 32,
+            height: 32,
+          ),
           anchorY: 12,
         ),
       ),
       topStartCap: TerrainMaterialCap(
-        assetPath: 'assets/images/terrain/grass_dirt/cap_left.png',
+        region: TerrainMaterialImageRegion(
+          assetPath: 'assets/images/terrain/tx_tileset_ground/atlas.png',
+          x: 0,
+          y: 0,
+          width: 32,
+          height: 32,
+        ),
         anchorX: 0,
         anchorY: 12,
       ),
       topEndCap: TerrainMaterialCap(
-        assetPath: 'assets/images/terrain/grass_dirt/cap_right.png',
-        anchorX: 128,
+        region: TerrainMaterialImageRegion(
+          assetPath: 'assets/images/terrain/tx_tileset_ground/atlas.png',
+          x: 64,
+          y: 0,
+          width: 32,
+          height: 32,
+        ),
+        anchorX: 32,
         anchorY: 12,
       ),
     );
@@ -162,12 +186,7 @@ final class _TerrainMaterialFixture {
       p.join(root.path, 'assets', 'authoring', 'level', 'prefab_defs.json'),
     );
     prefabFile.writeAsStringSync('{"materialKey":"grass_dirt"}');
-    for (final assetPath in <String>[
-      material.fillAssetPath,
-      material.top.base.assetPath,
-      material.topStartCap!.assetPath,
-      material.topEndCap!.assetPath,
-    ]) {
+    for (final assetPath in terrainMaterialAssetPaths(material)) {
       final file = File(p.join(root.path, assetPath));
       file.parent.createSync(recursive: true);
       File(

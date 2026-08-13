@@ -83,12 +83,23 @@ void main() {
     final material = TerrainMaterialRegistry.require('grass_dirt');
 
     expect(material.displayName, 'Grass / Dirt');
-    expect(material.fillAssetPath, 'terrain/grass_dirt/fill.png');
-    expect(material.top.base.assetPath, 'terrain/grass_dirt/surface.png');
+    expect(material.fill.assetPath, 'terrain/tx_tileset_ground/atlas.png');
+    expect((material.fill.x, material.fill.y), (32, 32));
+    expect(
+      material.top.base.region.assetPath,
+      'terrain/tx_tileset_ground/atlas.png',
+    );
+    expect((material.top.base.region.x, material.top.base.region.y), (32, 0));
     expect(material.top.base.anchorY, 12);
-    expect(material.top.detail?.assetPath, 'terrain/grass_dirt/foreground.png');
-    expect(material.topStartCap?.assetPath, 'terrain/grass_dirt/cap_left.png');
-    expect(material.topEndCap?.assetPath, 'terrain/grass_dirt/cap_right.png');
+    expect(material.top.detail, isNull);
+    expect(
+      (material.topStartCap?.region.x, material.topStartCap?.anchorX),
+      (0, 0),
+    );
+    expect(
+      (material.topEndCap?.region.x, material.topEndCap?.anchorX),
+      (64, 32),
+    );
     expect(material.leftWall, isNull);
     expect(material.rightWall, isNull);
     expect(material.underside, isNull);

@@ -45,6 +45,71 @@ void main() {
       find.byKey(const ValueKey<String>('terrain_material_edit')),
       findsOneWidget,
     );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('terrain_material_edit')),
+    );
+    await tester.pumpAndSettle();
+    final save = find.byKey(
+      const ValueKey<String>('terrain_material_dialog_apply'),
+    );
+    await tester.ensureVisible(save);
+    await tester.tap(save);
+    await tester.pumpAndSettle();
+    expect(controller.pendingChanges.hasChanges, isFalse);
+    expect(find.textContaining('grass_dirt · rev 1'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('terrain_material_edit')),
+    );
+    await tester.pumpAndSettle();
+    final fillField = find.byKey(
+      const ValueKey<String>('terrain_material_fill_region'),
+    );
+    final changeRegion = find.descendant(
+      of: fillField,
+      matching: find.widgetWithText(OutlinedButton, 'Change region'),
+    );
+    await tester.ensureVisible(changeRegion);
+    await tester.tap(changeRegion);
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey<String>('terrain_atlas_region_picker')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('terrain_atlas_auto_slice_toggle')),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.byKey(const ValueKey<String>('terrain_atlas_auto_slice_toggle')),
+    );
+    await tester.pump();
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('terrain_atlas_region_x_field')),
+      '33',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('terrain_atlas_region_y_field')),
+      '33',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('terrain_atlas_region_w_field')),
+      '31',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('terrain_atlas_region_h_field')),
+      '31',
+    );
+    await tester.tap(
+      find.byKey(const ValueKey<String>('terrain_atlas_region_assign')),
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(save);
+    await tester.tap(save);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('grass_dirt · rev 2'), findsOneWidget);
+    expect(controller.pendingChanges.hasChanges, isTrue);
     expect(tester.takeException(), isNull);
   });
 }

@@ -4,31 +4,51 @@ import 'package:test/test.dart';
 void main() {
   const source = '''
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "materials": [
     {
       "key": "grass_dirt",
       "displayName": "Grass / Dirt",
       "revision": 1,
-      "fillAssetPath": "assets/images/terrain/grass_dirt/fill.png",
+      "fill": {
+        "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
+        "x": 32,
+        "y": 32,
+        "width": 32,
+        "height": 32
+      },
       "top": {
         "base": {
-          "assetPath": "assets/images/terrain/grass_dirt/surface.png",
+          "region": {
+            "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
+            "x": 32,
+            "y": 0,
+            "width": 32,
+            "height": 32
+          },
           "anchorY": 12
-        },
-        "detail": {
-          "assetPath": "assets/images/terrain/grass_dirt/foreground.png",
-          "anchorY": 0
         }
       },
       "topStartCap": {
-        "assetPath": "assets/images/terrain/grass_dirt/cap_left.png",
+        "region": {
+          "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
+          "x": 0,
+          "y": 0,
+          "width": 32,
+          "height": 32
+        },
         "anchorX": 0,
         "anchorY": 12
       },
       "topEndCap": {
-        "assetPath": "assets/images/terrain/grass_dirt/cap_right.png",
-        "anchorX": 128,
+        "region": {
+          "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
+          "x": 64,
+          "y": 0,
+          "width": 32,
+          "height": 32
+        },
+        "anchorX": 32,
         "anchorY": 12
       }
     }
@@ -36,15 +56,15 @@ void main() {
 }
 ''';
 
-  test('strict decoder round-trips canonical material coverage', () {
+  test('strict v2 decoder round-trips canonical regions', () {
     final result = decodeTerrainMaterialCatalog(source);
 
     expect(result.issues, isEmpty);
     final material = result.catalog!.materials.single;
     expect(material.key, 'grass_dirt');
-    expect(material.top.detail?.anchorY, 0);
-    expect(material.leftWall, isNull);
-    expect(material.topEndCap?.anchorX, 128);
+    expect(material.fill.x, 32);
+    expect(material.top.base.region.y, 0);
+    expect(material.topEndCap?.anchorX, 32);
     expect(
       decodeTerrainMaterialCatalog(result.catalog!.toCanonicalJson()).catalog,
       isNotNull,
@@ -70,50 +90,123 @@ void main() {
     expect(catalog.toCanonicalJson(), isNot(contains('12.0')));
   });
 
-  test('image anchors are checked against consumer-supplied dimensions', () {
-    final catalog = decodeTerrainMaterialCatalog(source).catalog!;
+  test('region traversal deduplicates identities and paths stably', () {
+    final material = decodeTerrainMaterialCatalog(
+      source,
+    ).catalog!.materials.single;
 
-    final issues = validateTerrainMaterialImageDimensions(
-      catalog,
-      dimensionsFor: (assetPath) => assetPath.endsWith('cap_right.png')
-          ? const TerrainMaterialImageDimensions(width: 64, height: 92)
-          : const TerrainMaterialImageDimensions(width: 256, height: 10),
-    );
-
-    expect(
-      issues.map((issue) => issue.code),
-      everyElement('terrain_material_anchor_out_of_bounds'),
-    );
-    expect(issues.map((issue) => issue.path), <String>[
-      'grass_dirt.top.base.anchorY',
-      'grass_dirt.topEndCap',
-      'grass_dirt.topStartCap',
+    expect(terrainMaterialRegions(material), <TerrainMaterialImageRegion>[
+      material.fill,
+      material.top.base.region,
+      material.topStartCap!.region,
+      material.topEndCap!.region,
+    ]);
+    expect(terrainMaterialAssetPaths(material), <String>[
+      'assets/images/terrain/tx_tileset_ground/atlas.png',
     ]);
   });
 
-  test(
-    'invalid keys, paths, unknown fields, and unpaired caps fail closed',
-    () {
-      final result = decodeTerrainMaterialCatalog(
-        source
-            .replaceFirst('"grass_dirt"', '"Grass Dirt"')
-            .replaceFirst(
-              '"assets/images/terrain/grass_dirt/fill.png"',
-              '"../fill.jpg"',
-            )
-            .replaceFirst('"topEndCap": {', '"unknown": true, "removed": {'),
-      );
+  test('consumer dimensions validate exact region bounds', () {
+    final catalog = decodeTerrainMaterialCatalog(source).catalog!;
+    final issues = validateTerrainMaterialImageDimensions(
+      catalog,
+      dimensionsFor: (_) =>
+          const TerrainMaterialImageDimensions(width: 80, height: 48),
+    );
 
-      expect(result.catalog, isNull);
+    expect(issues.map((issue) => issue.path), <String>[
+      'grass_dirt.fill.region',
+      'grass_dirt.topEndCap.region',
+    ]);
+    expect(
+      issues.map((issue) => issue.code),
+      everyElement('terrain_material_region_out_of_bounds'),
+    );
+  });
+
+  test('anchors accept region boundaries and reject values beyond them', () {
+    expect(decodeTerrainMaterialCatalog(source).issues, isEmpty);
+
+    final invalid = decodeTerrainMaterialCatalog(
+      source
+          .replaceFirst('"anchorY": 12', '"anchorY": 33')
+          .replaceFirst('"anchorX": 32', '"anchorX": 33'),
+    );
+
+    expect(invalid.catalog, isNull);
+    expect(
+      invalid.issues.map((issue) => issue.code),
+      everyElement('terrain_material_anchor_out_of_bounds'),
+    );
+  });
+
+  test('v1 and legacy whole-image fields are rejected without conversion', () {
+    final result = decodeTerrainMaterialCatalog('''
+{
+  "schemaVersion": 1,
+  "materials": [
+    {
+      "key": "legacy",
+      "displayName": "Legacy",
+      "revision": 1,
+      "fillAssetPath": "assets/images/terrain/legacy/fill.png",
+      "top": {
+        "base": {
+          "assetPath": "assets/images/terrain/legacy/top.png",
+          "anchorY": 0
+        }
+      }
+    }
+  ]
+}
+''');
+
+    expect(result.catalog, isNull);
+    expect(
+      result.issues.map((issue) => issue.code),
+      containsAll(<String>[
+        'invalid_schema_version',
+        'unknown_field',
+        'invalid_region',
+        'unknown_field',
+      ]),
+    );
+  });
+
+  test('invalid region numbers and non-normalized paths fail closed', () {
+    for (final path in <String>[
+      r'assets\\images\\terrain\\atlas.png',
+      'assets/images/terrain/bad path/atlas.png',
+      'assets/images/terrain//atlas.png',
+      'assets/images/terrain/./atlas.png',
+      'assets/images/terrain/../atlas.png',
+      '/assets/images/terrain/atlas.png',
+      'assets/images/terrain/atlas.PNG',
+    ]) {
+      final result = decodeTerrainMaterialCatalog(
+        source.replaceFirst(
+          'assets/images/terrain/tx_tileset_ground/atlas.png',
+          path,
+        ),
+      );
+      expect(result.catalog, isNull, reason: path);
       expect(
         result.issues.map((issue) => issue.code),
-        containsAll(<String>[
-          'invalid_material_key',
-          'invalid_asset_path',
-          'unknown_field',
-          'unpaired_top_caps',
-        ]),
+        contains('invalid_asset_path'),
+        reason: path,
       );
-    },
-  );
+    }
+
+    final result = decodeTerrainMaterialCatalog(
+      source
+          .replaceFirst('"x": 32', '"x": -1')
+          .replaceFirst('"width": 32', '"width": 0')
+          .replaceFirst('"height": 32', '"height": 32.5'),
+    );
+    expect(result.catalog, isNull);
+    expect(
+      result.issues.map((issue) => issue.code),
+      everyElement('invalid_region_coordinate'),
+    );
+  });
 }

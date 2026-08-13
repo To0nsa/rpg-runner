@@ -56,5 +56,11 @@ void main() {
     expect(component.debugGeometryVersion, 1);
     expect(component.debugMeshCount, greaterThan(0));
     expect(component.debugSurfaceEdgeCount, greaterThan(0));
+    expect(component.debugRegionImageCount, 4);
+
+    component.removeFromParent();
+    await tester.pump();
+    expect(component.debugAssetsReady, isFalse);
+    expect(component.debugRegionImageCount, 0);
   });
 }

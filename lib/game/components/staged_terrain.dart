@@ -29,6 +29,8 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
 
   final Map<String, _LoadedTerrainMaterial> _materials =
       <String, _LoadedTerrainMaterial>{};
+  final Map<TerrainMaterialImageRegionSpec, ui.Image> _regionImages =
+      <TerrainMaterialImageRegionSpec, ui.Image>{};
   List<_CachedTerrainMesh> _meshes = const <_CachedTerrainMesh>[];
   List<_CachedTerrainDecoratedEdge> _surfaceEdges =
       const <_CachedTerrainDecoratedEdge>[];
@@ -47,21 +49,50 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
   @visibleForTesting
   int get debugSurfaceEdgeCount => _surfaceEdges.length;
 
+  @visibleForTesting
+  int get debugRegionImageCount => _regionImages.length;
+
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    for (final spec in TerrainMaterialRegistry.byKey.values) {
-      final imagesByPath = <String, ui.Image>{};
-      for (final assetPath in spec.assetPaths.toSet()) {
-        imagesByPath[assetPath] = await game.images.load(assetPath);
+    final sourceImagesByPath = <String, ui.Image>{};
+    try {
+      final assetPaths =
+          TerrainMaterialRegistry.byKey.values
+              .expand((spec) => spec.assetPaths)
+              .toSet()
+              .toList(growable: false)
+            ..sort();
+      for (final assetPath in assetPaths) {
+        sourceImagesByPath[assetPath] = await game.images.load(assetPath);
       }
-      _materials[spec.key] = _LoadedTerrainMaterial(
-        spec: spec,
-        imagesByPath: imagesByPath,
-      );
+      for (final spec in TerrainMaterialRegistry.byKey.values) {
+        for (final region in spec.regions) {
+          _regionImages[region] ??= await extractTerrainRegionImage(
+            sourceImagesByPath[region.assetPath]!,
+            region,
+          );
+        }
+        _materials[spec.key] = _LoadedTerrainMaterial(
+          spec: spec,
+          imagesByRegion: _regionImages,
+        );
+      }
+    } on Object {
+      _disposeRegionImages();
+      _materials.clear();
+      rethrow;
     }
     _assetsReady = true;
     _syncSnapshot(controller.snapshot.stagedTerrainRenderSnapshot);
+  }
+
+  @override
+  void onRemove() {
+    _assetsReady = false;
+    _materials.clear();
+    _disposeRegionImages();
+    super.onRemove();
   }
 
   @override
@@ -116,14 +147,14 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
       _drawEdgeImage(
         canvas,
         edge: edge,
-        image: material.imageFor(profile.base.assetPath),
+        image: material.imageFor(profile.base.region),
         anchorY: profile.base.anchorY,
       );
       if (profile.detail case final detail?) {
         _drawEdgeImage(
           canvas,
           edge: edge,
-          image: material.imageFor(detail.assetPath),
+          image: material.imageFor(detail.region),
           anchorY: detail.anchorY,
         );
       }
@@ -142,7 +173,7 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
           _drawEdgeCap(
             canvas,
             edge: edge,
-            image: material.imageFor(cap.assetPath),
+            image: material.imageFor(cap.region),
             cap: cap,
             atEnd: false,
           );
@@ -154,7 +185,7 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
           _drawEdgeCap(
             canvas,
             edge: edge,
-            image: material.imageFor(cap.assetPath),
+            image: material.imageFor(cap.region),
             cap: cap,
             atEnd: true,
           );
@@ -202,7 +233,11 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
     if (edge.length <= 0) return;
     final imageWidth = image.width.toDouble();
     final imageHeight = image.height.toDouble();
-    final phase = positiveModDouble(edge.start.dx, imageWidth);
+    final phase = terrainEdgeRepeatPhase(
+      start: edge.start,
+      angle: edge.angle,
+      repeatWidth: imageWidth,
+    );
 
     canvas.save();
     canvas.translate(edge.start.dx, edge.start.dy);
@@ -234,14 +269,21 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
   }
 
   static final Paint _edgePaint = Paint()..filterQuality = FilterQuality.none;
+
+  void _disposeRegionImages() {
+    for (final image in _regionImages.values) {
+      image.dispose();
+    }
+    _regionImages.clear();
+  }
 }
 
 final class _LoadedTerrainMaterial {
-  _LoadedTerrainMaterial({required this.spec, required this.imagesByPath})
+  _LoadedTerrainMaterial({required this.spec, required this.imagesByRegion})
     : fillPaint = Paint()
         ..filterQuality = FilterQuality.none
         ..shader = ui.ImageShader(
-          imagesByPath[spec.fillAssetPath]!,
+          imagesByRegion[spec.fill]!,
           ui.TileMode.repeated,
           ui.TileMode.repeated,
           _identityMatrix,
@@ -250,10 +292,49 @@ final class _LoadedTerrainMaterial {
 
   final TerrainMaterialSpec spec;
   final Paint fillPaint;
-  final Map<String, ui.Image> imagesByPath;
+  final Map<TerrainMaterialImageRegionSpec, ui.Image> imagesByRegion;
 
-  ui.Image imageFor(String assetPath) => imagesByPath[assetPath]!;
+  ui.Image imageFor(TerrainMaterialImageRegionSpec region) =>
+      imagesByRegion[region]!;
 }
+
+/// Copies one exact atlas region into an independently owned image.
+@visibleForTesting
+Future<ui.Image> extractTerrainRegionImage(
+  ui.Image source,
+  TerrainMaterialImageRegionSpec region,
+) async {
+  final recorder = ui.PictureRecorder();
+  final canvas = ui.Canvas(recorder);
+  canvas.drawImageRect(
+    source,
+    ui.Rect.fromLTWH(
+      region.x.toDouble(),
+      region.y.toDouble(),
+      region.width.toDouble(),
+      region.height.toDouble(),
+    ),
+    ui.Rect.fromLTWH(0, 0, region.width.toDouble(), region.height.toDouble()),
+    Paint()..filterQuality = FilterQuality.none,
+  );
+  final picture = recorder.endRecording();
+  try {
+    return await picture.toImage(region.width, region.height);
+  } finally {
+    picture.dispose();
+  }
+}
+
+/// World-stable edge repeat phase based on signed tangent projection.
+@visibleForTesting
+double terrainEdgeRepeatPhase({
+  required ui.Offset start,
+  required double angle,
+  required double repeatWidth,
+}) => positiveModDouble(
+  (start.dx * math.cos(angle)) + (start.dy * math.sin(angle)),
+  repeatWidth,
+);
 
 final class _CachedTerrainMesh {
   _CachedTerrainMesh({

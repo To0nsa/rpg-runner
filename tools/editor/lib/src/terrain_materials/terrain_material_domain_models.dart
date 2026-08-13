@@ -1,6 +1,7 @@
 import 'package:terrain_materials/terrain_materials.dart';
 
 import '../domain/authoring_types.dart';
+import '../workspace/repository_png_catalog.dart';
 
 const String terrainMaterialDefsSourcePath =
     'assets/authoring/level/terrain_material_defs.json';
@@ -23,6 +24,7 @@ final class TerrainMaterialDocument extends AuthoringDocument {
     required this.materials,
     required this.baseline,
     required this.referencedMaterialKeys,
+    required this.atlasImages,
     this.loadIssues = const <ValidationIssue>[],
   });
 
@@ -30,6 +32,7 @@ final class TerrainMaterialDocument extends AuthoringDocument {
   final List<TerrainMaterialDefinition> materials;
   final TerrainMaterialSourceBaseline? baseline;
   final Set<String> referencedMaterialKeys;
+  final List<RepositoryPngImage> atlasImages;
   final List<ValidationIssue> loadIssues;
 
   TerrainMaterialDocument copyWith({
@@ -39,6 +42,7 @@ final class TerrainMaterialDocument extends AuthoringDocument {
     materials: materials ?? this.materials,
     baseline: baseline,
     referencedMaterialKeys: referencedMaterialKeys,
+    atlasImages: atlasImages,
     loadIssues: loadIssues,
   );
 }
@@ -49,9 +53,11 @@ final class TerrainMaterialScene extends EditableScene {
     required this.workspaceRootPath,
     required this.materials,
     required this.referencedMaterialKeys,
+    required this.atlasImages,
   });
 
   final String workspaceRootPath;
   final List<TerrainMaterialDefinition> materials;
   final Set<String> referencedMaterialKeys;
+  final List<RepositoryPngImage> atlasImages;
 }

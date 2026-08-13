@@ -28,16 +28,28 @@ void main() {
     final defs = File('${root.path}/terrain_material_defs.json');
     await defs.writeAsString('''
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "materials": [
     {
       "key": "stone",
       "displayName": "Stone",
       "revision": 1,
-      "fillAssetPath": "assets/images/terrain/stone/fill.png",
+      "fill": {
+        "assetPath": "assets/images/terrain/stone/atlas.png",
+        "x": 0,
+        "y": 0,
+        "width": 16,
+        "height": 16
+      },
       "top": {
         "base": {
-          "assetPath": "assets/images/terrain/stone/top.png",
+          "region": {
+            "assetPath": "assets/images/terrain/stone/atlas.png",
+            "x": 16,
+            "y": 0,
+            "width": 16,
+            "height": 16
+          },
           "anchorY": 0
         }
       }

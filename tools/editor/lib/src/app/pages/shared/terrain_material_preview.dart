@@ -1,11 +1,16 @@
-import 'dart:io';
+import 'dart:async';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 import 'package:terrain_materials/terrain_materials.dart';
 
+import '../../../atlas/atlas_pixel_rect.dart';
+import 'atlas_region_preview_tile.dart';
+import 'editor_scene_view_utils.dart';
+
 /// Shared composed sample and explicit orientation coverage for one material.
-class TerrainMaterialPreview extends StatelessWidget {
+class TerrainMaterialPreview extends StatefulWidget {
   const TerrainMaterialPreview({
     super.key,
     required this.workspaceRootPath,
@@ -20,21 +25,36 @@ class TerrainMaterialPreview extends StatelessWidget {
   final String? keyPrefix;
 
   @override
+  State<TerrainMaterialPreview> createState() => _TerrainMaterialPreviewState();
+}
+
+class _TerrainMaterialPreviewState extends State<TerrainMaterialPreview> {
+  final EditorUiImageCache _imageCache = EditorUiImageCache();
+
+  @override
+  void dispose() {
+    _imageCache.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final material = widget.material;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
+      children: [
         _TerrainComposedSample(
-          workspaceRootPath: workspaceRootPath,
+          workspaceRootPath: widget.workspaceRootPath,
           material: material,
-          height: compact ? 160 : 220,
+          imageCache: _imageCache,
+          height: widget.compact ? 160 : 220,
         ),
         const SizedBox(height: 12),
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: <Widget>[
-            _CoverageChip(label: 'Top / slope', configured: true),
+          children: [
+            const _CoverageChip(label: 'Top / slope', configured: true),
             _CoverageChip(
               label: 'Left wall',
               configured: material.leftWall != null,
@@ -54,78 +74,89 @@ class TerrainMaterialPreview extends StatelessWidget {
             ),
           ],
         ),
-        if (!compact) ...<Widget>[
+        if (!widget.compact) ...[
           const SizedBox(height: 12),
-          Wrap(spacing: 8, runSpacing: 8, children: _assetTiles()),
+          Wrap(spacing: 8, runSpacing: 8, children: _assetTiles(material)),
         ],
       ],
     );
   }
 
-  List<Widget> _assetTiles() => <Widget>[
+  List<Widget> _assetTiles(TerrainMaterialDefinition material) => [
     _TerrainAssetTile(
-      workspaceRootPath: workspaceRootPath,
+      workspaceRootPath: widget.workspaceRootPath,
       label: 'Fill',
-      assetPath: material.fillAssetPath,
+      region: material.fill,
+      imageCache: _imageCache,
       tileKey: _tileKey('fill'),
     ),
     _TerrainAssetTile(
-      workspaceRootPath: workspaceRootPath,
+      workspaceRootPath: widget.workspaceRootPath,
       label: 'Top base',
-      assetPath: material.top.base.assetPath,
+      region: material.top.base.region,
+      imageCache: _imageCache,
       tileKey: _tileKey('surface'),
     ),
     _TerrainAssetTile(
-      workspaceRootPath: workspaceRootPath,
+      workspaceRootPath: widget.workspaceRootPath,
       label: 'Top detail',
-      assetPath: material.top.detail?.assetPath,
+      region: material.top.detail?.region,
+      imageCache: _imageCache,
       tileKey: _tileKey('foreground'),
     ),
     _TerrainAssetTile(
-      workspaceRootPath: workspaceRootPath,
+      workspaceRootPath: widget.workspaceRootPath,
       label: 'Start cap',
-      assetPath: material.topStartCap?.assetPath,
+      region: material.topStartCap?.region,
+      imageCache: _imageCache,
       tileKey: _tileKey('start_cap'),
     ),
     _TerrainAssetTile(
-      workspaceRootPath: workspaceRootPath,
+      workspaceRootPath: widget.workspaceRootPath,
       label: 'End cap',
-      assetPath: material.topEndCap?.assetPath,
+      region: material.topEndCap?.region,
+      imageCache: _imageCache,
       tileKey: _tileKey('end_cap'),
     ),
     _TerrainAssetTile(
-      workspaceRootPath: workspaceRootPath,
+      workspaceRootPath: widget.workspaceRootPath,
       label: 'Left wall',
-      assetPath: material.leftWall?.base.assetPath,
+      region: material.leftWall?.base.region,
+      imageCache: _imageCache,
       tileKey: _tileKey('left_wall'),
     ),
     _TerrainAssetTile(
-      workspaceRootPath: workspaceRootPath,
+      workspaceRootPath: widget.workspaceRootPath,
       label: 'Right wall',
-      assetPath: material.rightWall?.base.assetPath,
+      region: material.rightWall?.base.region,
+      imageCache: _imageCache,
       tileKey: _tileKey('right_wall'),
     ),
     _TerrainAssetTile(
-      workspaceRootPath: workspaceRootPath,
+      workspaceRootPath: widget.workspaceRootPath,
       label: 'Underside',
-      assetPath: material.underside?.base.assetPath,
+      region: material.underside?.base.region,
+      imageCache: _imageCache,
       tileKey: _tileKey('underside'),
     ),
   ];
 
-  String? _tileKey(String suffix) =>
-      keyPrefix == null ? null : '${keyPrefix}_material_preview_$suffix';
+  String? _tileKey(String suffix) => widget.keyPrefix == null
+      ? null
+      : '${widget.keyPrefix}_material_preview_$suffix';
 }
 
 class _TerrainComposedSample extends StatelessWidget {
   const _TerrainComposedSample({
     required this.workspaceRootPath,
     required this.material,
+    required this.imageCache,
     required this.height,
   });
 
   final String workspaceRootPath;
   final TerrainMaterialDefinition material;
+  final EditorUiImageCache imageCache;
   final double height;
 
   @override
@@ -142,19 +173,17 @@ class _TerrainComposedSample extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: LayoutBuilder(
         builder: (context, constraints) => Stack(
-          children: <Widget>[
+          children: [
             Positioned(
               left: 24,
               right: 24,
               top: edgeY,
               bottom: 0,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  image: DecorationImage(
-                    image: FileImage(_file(material.fillAssetPath)),
-                    repeat: ImageRepeat.repeat,
-                  ),
-                ),
+              child: _TerrainRegionImage(
+                workspaceRootPath: workspaceRootPath,
+                region: material.fill,
+                imageCache: imageCache,
+                repeat: _RegionRepeat.both,
               ),
             ),
             _edgeLayer(material.top.base, edgeY: edgeY),
@@ -190,22 +219,19 @@ class _TerrainComposedSample extends StatelessWidget {
     );
   }
 
-  Widget _edgeLayer(TerrainMaterialEdgeLayer layer, {required double edgeY}) {
-    return Positioned(
-      left: 24,
-      right: 24,
-      top: edgeY - layer.anchorY,
-      height: 72,
-      child: Image.file(
-        _file(layer.assetPath),
-        alignment: Alignment.topLeft,
-        fit: BoxFit.none,
-        repeat: ImageRepeat.repeatX,
-        filterQuality: FilterQuality.none,
-        errorBuilder: _imageError,
-      ),
-    );
-  }
+  Widget _edgeLayer(TerrainMaterialEdgeLayer layer, {required double edgeY}) =>
+      Positioned(
+        left: 24,
+        right: 24,
+        top: edgeY - layer.anchorY,
+        height: layer.region.height.toDouble(),
+        child: _TerrainRegionImage(
+          workspaceRootPath: workspaceRootPath,
+          region: layer.region,
+          imageCache: imageCache,
+          repeat: _RegionRepeat.horizontal,
+        ),
+      );
 
   Widget _cap(
     TerrainMaterialCap cap, {
@@ -216,17 +242,138 @@ class _TerrainComposedSample extends StatelessWidget {
     return Positioned(
       left: (isStart ? 24 : sampleWidth - 24) - cap.anchorX,
       top: edgeY - cap.anchorY,
-      child: Image.file(
-        _file(cap.assetPath),
-        filterQuality: FilterQuality.none,
-        errorBuilder: _imageError,
+      width: cap.region.width.toDouble(),
+      height: cap.region.height.toDouble(),
+      child: _TerrainRegionImage(
+        workspaceRootPath: workspaceRootPath,
+        region: cap.region,
+        imageCache: imageCache,
+        repeat: _RegionRepeat.none,
       ),
     );
   }
-
-  File _file(String assetPath) =>
-      File(p.normalize(p.join(workspaceRootPath, p.fromUri(assetPath))));
 }
+
+class _TerrainRegionImage extends StatefulWidget {
+  const _TerrainRegionImage({
+    required this.workspaceRootPath,
+    required this.region,
+    required this.imageCache,
+    required this.repeat,
+  });
+
+  final String workspaceRootPath;
+  final TerrainMaterialImageRegion region;
+  final EditorUiImageCache imageCache;
+  final _RegionRepeat repeat;
+
+  @override
+  State<_TerrainRegionImage> createState() => _TerrainRegionImageState();
+}
+
+class _TerrainRegionImageState extends State<_TerrainRegionImage> {
+  ui.Image? _image;
+  String? _absolutePath;
+
+  @override
+  void initState() {
+    super.initState();
+    _refresh();
+  }
+
+  @override
+  void didUpdateWidget(covariant _TerrainRegionImage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.region.assetPath != widget.region.assetPath ||
+        oldWidget.workspaceRootPath != widget.workspaceRootPath ||
+        oldWidget.imageCache != widget.imageCache) {
+      _refresh();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => _image == null
+      ? const ColoredBox(color: Color(0x22000000))
+      : CustomPaint(
+          painter: _TerrainRegionPainter(
+            image: _image!,
+            region: widget.region,
+            repeat: widget.repeat,
+          ),
+        );
+
+  void _refresh() {
+    final absolutePath = p.normalize(
+      p.join(widget.workspaceRootPath, widget.region.assetPath),
+    );
+    _absolutePath = absolutePath;
+    _image = widget.imageCache.imageFor(absolutePath);
+    if (_image == null) unawaited(_load(absolutePath));
+  }
+
+  Future<void> _load(String absolutePath) async {
+    final image = await widget.imageCache.ensureLoaded(absolutePath);
+    if (!mounted || _absolutePath != absolutePath) return;
+    setState(() => _image = image);
+  }
+}
+
+class _TerrainRegionPainter extends CustomPainter {
+  const _TerrainRegionPainter({
+    required this.image,
+    required this.region,
+    required this.repeat,
+  });
+
+  final ui.Image image;
+  final TerrainMaterialImageRegion region;
+  final _RegionRepeat repeat;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (region.right > image.width || region.bottom > image.height) return;
+    final source = Rect.fromLTWH(
+      region.x.toDouble(),
+      region.y.toDouble(),
+      region.width.toDouble(),
+      region.height.toDouble(),
+    );
+    final paint = Paint()..filterQuality = FilterQuality.none;
+    if (repeat == _RegionRepeat.none) {
+      canvas.drawImageRect(image, source, Offset.zero & source.size, paint);
+      return;
+    }
+    canvas.save();
+    canvas.clipRect(Offset.zero & size);
+    final endY = repeat == _RegionRepeat.horizontal
+        ? region.height.toDouble()
+        : size.height;
+    for (var y = 0.0; y < endY; y += region.height) {
+      for (var x = 0.0; x < size.width; x += region.width) {
+        canvas.drawImageRect(
+          image,
+          source,
+          Rect.fromLTWH(
+            x,
+            y,
+            region.width.toDouble(),
+            region.height.toDouble(),
+          ),
+          paint,
+        );
+      }
+    }
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant _TerrainRegionPainter oldDelegate) =>
+      oldDelegate.image != image ||
+      oldDelegate.region != region ||
+      oldDelegate.repeat != repeat;
+}
+
+enum _RegionRepeat { none, horizontal, both }
 
 class _CoverageChip extends StatelessWidget {
   const _CoverageChip({required this.label, required this.configured});
@@ -251,65 +398,55 @@ class _TerrainAssetTile extends StatelessWidget {
   const _TerrainAssetTile({
     required this.workspaceRootPath,
     required this.label,
-    required this.assetPath,
+    required this.region,
+    required this.imageCache,
     required this.tileKey,
   });
 
   final String workspaceRootPath;
   final String label;
-  final String? assetPath;
+  final TerrainMaterialImageRegion? region;
+  final EditorUiImageCache imageCache;
   final String? tileKey;
 
   @override
-  Widget build(BuildContext context) {
-    final path = assetPath;
-    return SizedBox(
-      width: 150,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          Text(label, textAlign: TextAlign.center),
-          const SizedBox(height: 4),
-          Container(
-            height: 88,
-            decoration: BoxDecoration(
-              border: Border.all(color: Theme.of(context).dividerColor),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: path == null
-                ? const Center(child: Text('Not configured'))
-                : Image.file(
-                    File(
-                      p.normalize(p.join(workspaceRootPath, p.fromUri(path))),
-                    ),
-                    key: tileKey == null ? null : ValueKey<String>(tileKey!),
-                    fit: BoxFit.contain,
-                    filterQuality: FilterQuality.none,
-                    errorBuilder: _imageError,
-                  ),
+  Widget build(BuildContext context) => SizedBox(
+    width: 150,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(label, textAlign: TextAlign.center),
+        const SizedBox(height: 4),
+        AtlasRegionPreviewTile(
+          key: tileKey == null ? null : ValueKey<String>(tileKey!),
+          imageCache: imageCache,
+          workspaceRootPath: workspaceRootPath,
+          sourceImagePath: region?.assetPath,
+          region: region == null
+              ? null
+              : AtlasPixelRect(
+                  x: region!.x,
+                  y: region!.y,
+                  width: region!.width,
+                  height: region!.height,
+                ),
+          width: 150,
+          height: 88,
+        ),
+        const SizedBox(height: 3),
+        Tooltip(
+          message: region?.assetPath ?? 'No region configured',
+          child: Text(
+            region == null
+                ? '—'
+                : '${p.basename(region!.assetPath)} '
+                      '[${region!.x},${region!.y},${region!.width},${region!.height}]',
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall,
           ),
-          const SizedBox(height: 3),
-          Tooltip(
-            message: path ?? 'No asset configured',
-            child: Text(
-              path == null ? '—' : p.basename(path),
-              textAlign: TextAlign.center,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
 }
-
-Widget _imageError(
-  BuildContext context,
-  Object error,
-  StackTrace? stackTrace,
-) => const ColoredBox(
-  color: Color(0x22000000),
-  child: Center(child: Icon(Icons.broken_image_outlined)),
-);

@@ -32,6 +32,7 @@ class AtlasImageViewport extends StatefulWidget {
     required this.onSelectionChanged,
     this.existingRegions = const <AtlasSelectionOverlay>[],
     this.selectedRegionId,
+    this.guides = const <AtlasGuideOverlay>[],
     this.canvasKey = const ValueKey<String>('atlas_scene_canvas'),
   });
 
@@ -48,6 +49,7 @@ class AtlasImageViewport extends StatefulWidget {
   final AtlasPixelRect? selection;
   final List<AtlasSelectionOverlay> existingRegions;
   final String? selectedRegionId;
+  final List<AtlasGuideOverlay> guides;
   final ScrollController horizontalScrollController;
   final ScrollController verticalScrollController;
   final ValueChanged<double> onZoomChanged;
@@ -111,6 +113,7 @@ class _AtlasImageViewportState extends State<AtlasImageViewport> {
                   selection: widget.selection,
                   existingRegions: widget.existingRegions,
                   selectedRegionId: widget.selectedRegionId,
+                  guides: widget.guides,
                 ),
               ),
             ),

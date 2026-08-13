@@ -1,44 +1,81 @@
 import 'dart:convert';
 
-const int terrainMaterialCatalogSchemaVersion = 1;
+const int terrainMaterialCatalogSchemaVersion = 2;
 
 final RegExp _materialKeyPattern = RegExp(r'^[a-z][a-z0-9_]*$');
 final RegExp _assetPathPattern = RegExp(
-  r'^assets/images/terrain/[a-zA-Z0-9_./-]+\.png$',
+  r'^assets/images/terrain/[A-Za-z0-9_-]+(?:/[A-Za-z0-9_-]+)*\.png$',
 );
 
-/// One image repeated along a compiler-owned terrain edge.
-///
-/// [anchorY] is the source-image Y coordinate, in logical pixels, aligned to
-/// the exact edge. Local positive Y points toward the edge's outward normal.
-final class TerrainMaterialEdgeLayer {
-  const TerrainMaterialEdgeLayer({
+/// Whether a path satisfies the canonical terrain-owned PNG policy.
+bool isValidTerrainMaterialAssetPath(String value) =>
+    value == value.trim() && _assetPathPattern.hasMatch(value);
+
+/// Exact integer source rectangle inside one terrain-owned PNG.
+final class TerrainMaterialImageRegion {
+  const TerrainMaterialImageRegion({
     required this.assetPath,
-    required this.anchorY,
+    required this.x,
+    required this.y,
+    required this.width,
+    required this.height,
   });
 
   final String assetPath;
-  final double anchorY;
+  final int x;
+  final int y;
+  final int width;
+  final int height;
+
+  int get right => x + width;
+  int get bottom => y + height;
 
   Map<String, Object?> toJson() => <String, Object?>{
     'assetPath': assetPath,
+    'x': x,
+    'y': y,
+    'width': width,
+    'height': height,
+  };
+
+  @override
+  bool operator ==(Object other) =>
+      other is TerrainMaterialImageRegion &&
+      assetPath == other.assetPath &&
+      x == other.x &&
+      y == other.y &&
+      width == other.width &&
+      height == other.height;
+
+  @override
+  int get hashCode => Object.hash(assetPath, x, y, width, height);
+}
+
+/// One atlas region repeated along a compiler-owned terrain edge.
+final class TerrainMaterialEdgeLayer {
+  const TerrainMaterialEdgeLayer({required this.region, required this.anchorY});
+
+  final TerrainMaterialImageRegion region;
+
+  /// Region-local Y coordinate aligned to the exact terrain edge.
+  final double anchorY;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'region': region.toJson(),
     'anchorY': _canonicalNumber(anchorY),
   };
 
   @override
   bool operator ==(Object other) =>
       other is TerrainMaterialEdgeLayer &&
-      assetPath == other.assetPath &&
+      region == other.region &&
       anchorY == other.anchorY;
 
   @override
-  int get hashCode => Object.hash(assetPath, anchorY);
+  int get hashCode => Object.hash(region, anchorY);
 }
 
 /// Ordered base/detail layers for one exposed-edge orientation.
-///
-/// The base is required whenever a profile exists. The optional detail is
-/// rendered afterward and is typically sparse grass, roots, or overhang art.
 final class TerrainMaterialEdgeProfile {
   const TerrainMaterialEdgeProfile({required this.base, this.detail});
 
@@ -60,20 +97,20 @@ final class TerrainMaterialEdgeProfile {
   int get hashCode => Object.hash(base, detail);
 }
 
-/// One non-repeating image anchored to an endpoint of a top-facing edge.
+/// One non-repeating atlas region anchored to a top-edge endpoint.
 final class TerrainMaterialCap {
   const TerrainMaterialCap({
-    required this.assetPath,
+    required this.region,
     required this.anchorX,
     required this.anchorY,
   });
 
-  final String assetPath;
+  final TerrainMaterialImageRegion region;
   final double anchorX;
   final double anchorY;
 
   Map<String, Object?> toJson() => <String, Object?>{
-    'assetPath': assetPath,
+    'region': region.toJson(),
     'anchorX': _canonicalNumber(anchorX),
     'anchorY': _canonicalNumber(anchorY),
   };
@@ -81,25 +118,21 @@ final class TerrainMaterialCap {
   @override
   bool operator ==(Object other) =>
       other is TerrainMaterialCap &&
-      assetPath == other.assetPath &&
+      region == other.region &&
       anchorX == other.anchorX &&
       anchorY == other.anchorY;
 
   @override
-  int get hashCode => Object.hash(assetPath, anchorX, anchorY);
+  int get hashCode => Object.hash(region, anchorX, anchorY);
 }
 
 /// Complete visual definition referenced by polygon `materialKey` metadata.
-///
-/// Top profiles cover horizontal and sloped upward-facing edges. Wall and
-/// underside profiles are optional, making unsupported orientations explicit
-/// in the editor instead of silently inventing fallback art.
 final class TerrainMaterialDefinition {
   const TerrainMaterialDefinition({
     required this.key,
     required this.displayName,
     required this.revision,
-    required this.fillAssetPath,
+    required this.fill,
     required this.top,
     this.leftWall,
     this.rightWall,
@@ -111,7 +144,7 @@ final class TerrainMaterialDefinition {
   final String key;
   final String displayName;
   final int revision;
-  final String fillAssetPath;
+  final TerrainMaterialImageRegion fill;
   final TerrainMaterialEdgeProfile top;
   final TerrainMaterialEdgeProfile? leftWall;
   final TerrainMaterialEdgeProfile? rightWall;
@@ -123,7 +156,7 @@ final class TerrainMaterialDefinition {
     String? key,
     String? displayName,
     int? revision,
-    String? fillAssetPath,
+    TerrainMaterialImageRegion? fill,
     TerrainMaterialEdgeProfile? top,
     TerrainMaterialEdgeProfile? leftWall,
     bool clearLeftWall = false,
@@ -139,7 +172,7 @@ final class TerrainMaterialDefinition {
     key: key ?? this.key,
     displayName: displayName ?? this.displayName,
     revision: revision ?? this.revision,
-    fillAssetPath: fillAssetPath ?? this.fillAssetPath,
+    fill: fill ?? this.fill,
     top: top ?? this.top,
     leftWall: clearLeftWall ? null : leftWall ?? this.leftWall,
     rightWall: clearRightWall ? null : rightWall ?? this.rightWall,
@@ -152,7 +185,7 @@ final class TerrainMaterialDefinition {
     'key': key,
     'displayName': displayName,
     'revision': revision,
-    'fillAssetPath': fillAssetPath,
+    'fill': fill.toJson(),
     'top': top.toJson(),
     if (leftWall case final leftWall?) 'leftWall': leftWall.toJson(),
     if (rightWall case final rightWall?) 'rightWall': rightWall.toJson(),
@@ -168,7 +201,7 @@ final class TerrainMaterialDefinition {
       key == other.key &&
       displayName == other.displayName &&
       revision == other.revision &&
-      fillAssetPath == other.fillAssetPath &&
+      fill == other.fill &&
       top == other.top &&
       leftWall == other.leftWall &&
       rightWall == other.rightWall &&
@@ -181,7 +214,7 @@ final class TerrainMaterialDefinition {
     key,
     displayName,
     revision,
-    fillAssetPath,
+    fill,
     top,
     leftWall,
     rightWall,
@@ -231,8 +264,7 @@ final class TerrainMaterialCatalogIssue
   @override
   int compareTo(TerrainMaterialCatalogIssue other) {
     final pathOrder = path.compareTo(other.path);
-    if (pathOrder != 0) return pathOrder;
-    return code.compareTo(other.code);
+    return pathOrder != 0 ? pathOrder : code.compareTo(other.code);
   }
 }
 
@@ -258,11 +290,39 @@ final class TerrainMaterialImageDimensions {
   final int height;
 }
 
-/// Validates authored anchors against already-decoded source-image dimensions.
-///
-/// The shared schema remains I/O-free: editor and generator consumers decode
-/// PNG files, then provide dimensions through [dimensionsFor]. Missing or
-/// undecodable files are reported by those consumers and skipped here.
+/// Returns complete region identities once in canonical role order.
+List<TerrainMaterialImageRegion> terrainMaterialRegions(
+  TerrainMaterialDefinition material,
+) {
+  final regions = <TerrainMaterialImageRegion>[];
+  final seen = <TerrainMaterialImageRegion>{};
+  void add(TerrainMaterialImageRegion region) {
+    if (seen.add(region)) regions.add(region);
+  }
+
+  void addProfile(TerrainMaterialEdgeProfile? profile) {
+    if (profile == null) return;
+    add(profile.base.region);
+    if (profile.detail case final detail?) add(detail.region);
+  }
+
+  add(material.fill);
+  addProfile(material.top);
+  addProfile(material.leftWall);
+  addProfile(material.rightWall);
+  addProfile(material.underside);
+  if (material.topStartCap case final cap?) add(cap.region);
+  if (material.topEndCap case final cap?) add(cap.region);
+  return List<TerrainMaterialImageRegion>.unmodifiable(regions);
+}
+
+/// Returns unique source paths in deterministic lexical order.
+List<String> terrainMaterialAssetPaths(TerrainMaterialDefinition material) =>
+    (<String>{
+      for (final region in terrainMaterialRegions(material)) region.assetPath,
+    }.toList()..sort());
+
+/// Validates source rectangles against consumer-supplied PNG dimensions.
 List<TerrainMaterialCatalogIssue> validateTerrainMaterialImageDimensions(
   TerrainMaterialCatalog catalog, {
   required TerrainMaterialImageDimensions? Function(String assetPath)
@@ -270,21 +330,29 @@ List<TerrainMaterialCatalogIssue> validateTerrainMaterialImageDimensions(
 }) {
   final issues = <TerrainMaterialCatalogIssue>[];
   for (final material in catalog.materials) {
-    void validateLayer(String field, TerrainMaterialEdgeLayer layer) {
-      final dimensions = dimensionsFor(layer.assetPath);
-      if (dimensions != null && layer.anchorY > dimensions.height) {
-        issues.add(
-          TerrainMaterialCatalogIssue(
-            code: 'terrain_material_anchor_out_of_bounds',
-            path: '${material.key}.$field.anchorY',
-            materialKey: material.key,
-            message:
-                'Anchor Y ${_canonicalNumber(layer.anchorY)} exceeds image '
-                'height ${dimensions.height} for ${layer.assetPath}.',
-          ),
-        );
+    void validateRegion(String field, TerrainMaterialImageRegion region) {
+      final dimensions = dimensionsFor(region.assetPath);
+      if (dimensions == null) return;
+      if (region.right <= dimensions.width &&
+          region.bottom <= dimensions.height) {
+        return;
       }
+      issues.add(
+        TerrainMaterialCatalogIssue(
+          code: 'terrain_material_region_out_of_bounds',
+          path: '${material.key}.$field.region',
+          materialKey: material.key,
+          message:
+              'Region (${region.x}, ${region.y}, ${region.width}, '
+              '${region.height}) exceeds image dimensions '
+              '${dimensions.width}x${dimensions.height} for '
+              '${region.assetPath}.',
+        ),
+      );
     }
+
+    void validateLayer(String field, TerrainMaterialEdgeLayer layer) =>
+        validateRegion(field, layer.region);
 
     void validateProfile(String field, TerrainMaterialEdgeProfile? profile) {
       if (profile == null) return;
@@ -294,44 +362,23 @@ List<TerrainMaterialCatalogIssue> validateTerrainMaterialImageDimensions(
       }
     }
 
-    void validateCap(String field, TerrainMaterialCap? cap) {
-      if (cap == null) return;
-      final dimensions = dimensionsFor(cap.assetPath);
-      if (dimensions == null ||
-          (cap.anchorX <= dimensions.width &&
-              cap.anchorY <= dimensions.height)) {
-        return;
-      }
-      issues.add(
-        TerrainMaterialCatalogIssue(
-          code: 'terrain_material_anchor_out_of_bounds',
-          path: '${material.key}.$field',
-          materialKey: material.key,
-          message:
-              'Anchor (${_canonicalNumber(cap.anchorX)}, '
-              '${_canonicalNumber(cap.anchorY)}) exceeds image dimensions '
-              '${dimensions.width}x${dimensions.height} for ${cap.assetPath}.',
-        ),
-      );
-    }
-
+    validateRegion('fill', material.fill);
     validateProfile('top', material.top);
     validateProfile('leftWall', material.leftWall);
     validateProfile('rightWall', material.rightWall);
     validateProfile('underside', material.underside);
-    validateCap('topStartCap', material.topStartCap);
-    validateCap('topEndCap', material.topEndCap);
+    if (material.topStartCap case final cap?) {
+      validateRegion('topStartCap', cap.region);
+    }
+    if (material.topEndCap case final cap?) {
+      validateRegion('topEndCap', cap.region);
+    }
   }
   issues.sort();
   return List<TerrainMaterialCatalogIssue>.unmodifiable(issues);
 }
 
-/// Strictly decodes and validates one terrain-material manifest.
-///
-/// Unknown fields, noncanonical identifiers/paths, duplicate keys, unpaired
-/// caps, and invalid numeric anchors fail closed. File existence and image
-/// dimensions remain repository-consumer checks because this package is pure
-/// Dart and performs no I/O.
+/// Strictly decodes the v2 terrain-material manifest.
 TerrainMaterialCatalogDecodeResult decodeTerrainMaterialCatalog(
   String source, {
   String sourcePath = 'terrain_material_defs.json',
@@ -442,7 +489,7 @@ TerrainMaterialDefinition? _decodeMaterial(
       'key',
       'displayName',
       'revision',
-      'fillAssetPath',
+      'fill',
       'top',
       'leftWall',
       'rightWall',
@@ -481,12 +528,7 @@ TerrainMaterialDefinition? _decodeMaterial(
       ),
     );
   }
-  final fillAssetPath = _assetPath(
-    json['fillAssetPath'],
-    '$path.fillAssetPath',
-    key,
-    issues,
-  );
+  final fill = _region(json['fill'], '$path.fill', key, issues);
   final top = _edgeProfile(json['top'], '$path.top', key, issues);
   final leftWall = _optionalEdgeProfile(
     json['leftWall'],
@@ -532,7 +574,7 @@ TerrainMaterialDefinition? _decodeMaterial(
       key == null ||
       displayName == null ||
       revision is! int ||
-      fillAssetPath == null ||
+      fill == null ||
       top == null) {
     return null;
   }
@@ -540,7 +582,7 @@ TerrainMaterialDefinition? _decodeMaterial(
     key: key,
     displayName: displayName,
     revision: revision,
-    fillAssetPath: fillAssetPath,
+    fill: fill,
     top: top,
     leftWall: leftWall,
     rightWall: rightWall,
@@ -555,10 +597,7 @@ TerrainMaterialEdgeProfile? _optionalEdgeProfile(
   String path,
   String? materialKey,
   List<TerrainMaterialCatalogIssue> issues,
-) {
-  if (value == null) return null;
-  return _edgeProfile(value, path, materialKey, issues);
-}
+) => value == null ? null : _edgeProfile(value, path, materialKey, issues);
 
 TerrainMaterialEdgeProfile? _edgeProfile(
   Object? value,
@@ -612,26 +651,31 @@ TerrainMaterialEdgeLayer? _edgeLayer(
   }
   _rejectUnknownKeys(
     value,
-    const <String>{'assetPath', 'anchorY'},
+    const <String>{'region', 'anchorY'},
     path: path,
     materialKey: materialKey,
     issues: issues,
   );
-  final assetPath = _assetPath(
-    value['assetPath'],
-    '$path.assetPath',
-    materialKey,
-    issues,
-  );
+  final region = _region(value['region'], '$path.region', materialKey, issues);
   final anchorY = _nonNegativeFiniteNumber(
     value['anchorY'],
     '$path.anchorY',
     materialKey,
     issues,
   );
-  return assetPath == null || anchorY == null
+  if (region != null && anchorY != null && anchorY > region.height) {
+    issues.add(
+      TerrainMaterialCatalogIssue(
+        code: 'terrain_material_anchor_out_of_bounds',
+        path: '$path.anchorY',
+        materialKey: materialKey,
+        message: 'anchorY must be within [0, ${region.height}].',
+      ),
+    );
+  }
+  return region == null || anchorY == null
       ? null
-      : TerrainMaterialEdgeLayer(assetPath: assetPath, anchorY: anchorY);
+      : TerrainMaterialEdgeLayer(region: region, anchorY: anchorY);
 }
 
 TerrainMaterialCap? _optionalCap(
@@ -654,17 +698,12 @@ TerrainMaterialCap? _optionalCap(
   }
   _rejectUnknownKeys(
     value,
-    const <String>{'assetPath', 'anchorX', 'anchorY'},
+    const <String>{'region', 'anchorX', 'anchorY'},
     path: path,
     materialKey: materialKey,
     issues: issues,
   );
-  final assetPath = _assetPath(
-    value['assetPath'],
-    '$path.assetPath',
-    materialKey,
-    issues,
-  );
+  final region = _region(value['region'], '$path.region', materialKey, issues);
   final anchorX = _nonNegativeFiniteNumber(
     value['anchorX'],
     '$path.anchorX',
@@ -677,12 +716,84 @@ TerrainMaterialCap? _optionalCap(
     materialKey,
     issues,
   );
-  return assetPath == null || anchorX == null || anchorY == null
+  if (region != null &&
+      anchorX != null &&
+      anchorY != null &&
+      (anchorX > region.width || anchorY > region.height)) {
+    issues.add(
+      TerrainMaterialCatalogIssue(
+        code: 'terrain_material_anchor_out_of_bounds',
+        path: path,
+        materialKey: materialKey,
+        message:
+            'Cap anchors must be within [0, ${region.width}] and '
+            '[0, ${region.height}].',
+      ),
+    );
+  }
+  return region == null || anchorX == null || anchorY == null
       ? null
-      : TerrainMaterialCap(
+      : TerrainMaterialCap(region: region, anchorX: anchorX, anchorY: anchorY);
+}
+
+TerrainMaterialImageRegion? _region(
+  Object? value,
+  String path,
+  String? materialKey,
+  List<TerrainMaterialCatalogIssue> issues,
+) {
+  if (value is! Map<String, Object?>) {
+    issues.add(
+      TerrainMaterialCatalogIssue(
+        code: 'invalid_region',
+        path: path,
+        materialKey: materialKey,
+        message: 'Image region must be an object.',
+      ),
+    );
+    return null;
+  }
+  _rejectUnknownKeys(
+    value,
+    const <String>{'assetPath', 'x', 'y', 'width', 'height'},
+    path: path,
+    materialKey: materialKey,
+    issues: issues,
+  );
+  final assetPath = _assetPath(
+    value['assetPath'],
+    '$path.assetPath',
+    materialKey,
+    issues,
+  );
+  final x = _integer(value['x'], '$path.x', materialKey, issues, minimum: 0);
+  final y = _integer(value['y'], '$path.y', materialKey, issues, minimum: 0);
+  final width = _integer(
+    value['width'],
+    '$path.width',
+    materialKey,
+    issues,
+    minimum: 1,
+  );
+  final height = _integer(
+    value['height'],
+    '$path.height',
+    materialKey,
+    issues,
+    minimum: 1,
+  );
+  return assetPath == null ||
+          x == null ||
+          y == null ||
+          width == null ||
+          height == null
+      ? null
+      : TerrainMaterialImageRegion(
           assetPath: assetPath,
-          anchorX: anchorX,
-          anchorY: anchorY,
+          x: x,
+          y: y,
+          width: width,
+          height: height,
         );
 }
 
@@ -691,8 +802,9 @@ String? _requiredString(
   String path,
   List<TerrainMaterialCatalogIssue> issues,
 ) {
-  if (value is String && value.trim() == value && value.isNotEmpty)
+  if (value is String && value.trim() == value && value.isNotEmpty) {
     return value;
+  }
   issues.add(
     TerrainMaterialCatalogIssue(
       code: 'invalid_required_string',
@@ -709,21 +821,34 @@ String? _assetPath(
   String? materialKey,
   List<TerrainMaterialCatalogIssue> issues,
 ) {
-  if (value is String &&
-      value == value.trim() &&
-      !value.contains('..') &&
-      !value.contains('\\') &&
-      _assetPathPattern.hasMatch(value)) {
-    return value;
-  }
+  if (value is String && isValidTerrainMaterialAssetPath(value)) return value;
   issues.add(
     TerrainMaterialCatalogIssue(
       code: 'invalid_asset_path',
       path: path,
       materialKey: materialKey,
       message:
-          'Asset paths must be normalized PNG paths under '
-          'assets/images/terrain/.',
+          'Asset paths must be normalized lowercase-extension PNG paths '
+          'beneath assets/images/terrain/.',
+    ),
+  );
+  return null;
+}
+
+int? _integer(
+  Object? value,
+  String path,
+  String? materialKey,
+  List<TerrainMaterialCatalogIssue> issues, {
+  required int minimum,
+}) {
+  if (value is int && value >= minimum) return value;
+  issues.add(
+    TerrainMaterialCatalogIssue(
+      code: 'invalid_region_coordinate',
+      path: path,
+      materialKey: materialKey,
+      message: 'Value must be an integer greater than or equal to $minimum.',
     ),
   );
   return null;

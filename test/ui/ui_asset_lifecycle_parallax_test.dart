@@ -71,10 +71,6 @@ void main() {
       PlayerCharacterRegistry.eloise.id,
     );
 
-    expect(paths, contains('terrain/grass_dirt/fill.png'));
-    expect(paths, contains('terrain/grass_dirt/surface.png'));
-    expect(paths, contains('terrain/grass_dirt/foreground.png'));
-    expect(paths, contains('terrain/grass_dirt/cap_left.png'));
-    expect(paths, contains('terrain/grass_dirt/cap_right.png'));
+    expect(paths, contains('terrain/tx_tileset_ground/atlas.png'));
   });
 }

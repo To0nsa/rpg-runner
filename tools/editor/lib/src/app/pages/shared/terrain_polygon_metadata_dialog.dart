@@ -1,10 +1,10 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:path/path.dart' as p;
 import 'package:terrain_materials/terrain_materials.dart';
 
+import '../../../atlas/atlas_pixel_rect.dart';
 import '../../../terrain_authoring/terrain_source_models.dart';
+import 'atlas_region_preview_tile.dart';
+import 'editor_scene_view_utils.dart';
 import 'terrain_material_preview.dart';
 import 'terrain_material_preview_catalog.dart';
 
@@ -65,6 +65,7 @@ class _TerrainPolygonMetadataDialogState
   late String _surfaceKind;
   late String _materialKey;
   late final TerrainMaterialCatalogDecodeResult _materialCatalogResult;
+  final EditorUiImageCache _imageCache = EditorUiImageCache();
 
   @override
   void initState() {
@@ -75,6 +76,12 @@ class _TerrainPolygonMetadataDialogState
     _materialCatalogResult = loadTerrainMaterialPreviewCatalog(
       widget.workspaceRootPath,
     );
+  }
+
+  @override
+  void dispose() {
+    _imageCache.dispose();
+    super.dispose();
   }
 
   @override
@@ -168,6 +175,7 @@ class _TerrainPolygonMetadataDialogState
                             catalog,
                             value,
                           ),
+                          imageCache: _imageCache,
                         ),
                       ),
                     )
@@ -226,11 +234,13 @@ class _TerrainMaterialSelectorOption extends StatelessWidget {
     required this.workspaceRootPath,
     required this.value,
     required this.material,
+    required this.imageCache,
   });
 
   final String workspaceRootPath;
   final String value;
   final TerrainMaterialDefinition? material;
+  final EditorUiImageCache imageCache;
 
   @override
   Widget build(BuildContext context) {
@@ -239,21 +249,17 @@ class _TerrainMaterialSelectorOption extends StatelessWidget {
     if (material == null) return Text('$value · undefined');
     return Row(
       children: <Widget>[
-        SizedBox(
+        AtlasRegionPreviewTile(
           width: 52,
           height: 34,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: Image.file(
-              File(
-                p.normalize(p.join(workspaceRootPath, material.fillAssetPath)),
-              ),
-              fit: BoxFit.cover,
-              filterQuality: FilterQuality.none,
-              errorBuilder: (context, error, stackTrace) => const Center(
-                child: Icon(Icons.broken_image_outlined, size: 18),
-              ),
-            ),
+          imageCache: imageCache,
+          workspaceRootPath: workspaceRootPath,
+          sourceImagePath: material.fill.assetPath,
+          region: AtlasPixelRect(
+            x: material.fill.x,
+            y: material.fill.y,
+            width: material.fill.width,
+            height: material.fill.height,
           ),
         ),
         const SizedBox(width: 10),

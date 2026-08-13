@@ -1,12 +1,12 @@
-import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
-import 'package:path/path.dart' as p;
 import 'package:terrain_materials/terrain_materials.dart';
 
-const XTypeGroup _terrainPngTypeGroup = XTypeGroup(
-  label: 'Terrain PNG images',
-  extensions: <String>['png'],
-);
+import '../../../atlas/atlas_grid_settings_cache.dart';
+import '../../../atlas/atlas_pixel_rect.dart';
+import '../../../workspace/repository_png_catalog.dart';
+import '../shared/atlas_region_preview_tile.dart';
+import '../shared/editor_scene_view_utils.dart';
+import 'terrain_atlas_region_picker.dart';
 
 /// Accepted create/edit result, including the stable key being replaced.
 final class TerrainMaterialEditResult {
@@ -24,17 +24,23 @@ Future<TerrainMaterialEditResult?> showTerrainMaterialDialog(
   BuildContext context, {
   required String workspaceRootPath,
   required Set<String> existingKeys,
+  required List<RepositoryPngImage> atlasImages,
+  required AtlasGridSettingsCache gridSettingsCache,
   TerrainMaterialDefinition? material,
   String? suggestedKey,
   bool allowKeyChange = true,
+  bool isNew = false,
 }) => showDialog<TerrainMaterialEditResult>(
   context: context,
   builder: (context) => _TerrainMaterialDialog(
     workspaceRootPath: workspaceRootPath,
     existingKeys: existingKeys,
+    atlasImages: atlasImages,
+    gridSettingsCache: gridSettingsCache,
     material: material,
     suggestedKey: suggestedKey,
     allowKeyChange: allowKeyChange,
+    isNew: isNew || material == null,
   ),
 );
 
@@ -42,16 +48,22 @@ class _TerrainMaterialDialog extends StatefulWidget {
   const _TerrainMaterialDialog({
     required this.workspaceRootPath,
     required this.existingKeys,
+    required this.atlasImages,
+    required this.gridSettingsCache,
     required this.material,
     required this.suggestedKey,
     required this.allowKeyChange,
+    required this.isNew,
   });
 
   final String workspaceRootPath;
   final Set<String> existingKeys;
+  final List<RepositoryPngImage> atlasImages;
+  final AtlasGridSettingsCache gridSettingsCache;
   final TerrainMaterialDefinition? material;
   final String? suggestedKey;
   final bool allowKeyChange;
+  final bool isNew;
 
   @override
   State<_TerrainMaterialDialog> createState() => _TerrainMaterialDialogState();
@@ -59,20 +71,21 @@ class _TerrainMaterialDialog extends StatefulWidget {
 
 class _TerrainMaterialDialogState extends State<_TerrainMaterialDialog> {
   final _formKey = GlobalKey<FormState>();
+  final EditorUiImageCache _previewCache = EditorUiImageCache();
   late final TextEditingController _key;
   late final TextEditingController _displayName;
-  late final TextEditingController _fill;
-  late final _EdgeProfileControllers _top;
-  late final _EdgeProfileControllers _leftWall;
-  late final _EdgeProfileControllers _rightWall;
-  late final _EdgeProfileControllers _underside;
-  late final _CapControllers _startCap;
-  late final _CapControllers _endCap;
+  TerrainMaterialImageRegion? _fill;
+  late final _EdgeProfileDraft _top;
+  late final _EdgeProfileDraft _leftWall;
+  late final _EdgeProfileDraft _rightWall;
+  late final _EdgeProfileDraft _underside;
+  late final _CapDraft _startCap;
+  late final _CapDraft _endCap;
   late bool _hasLeftWall;
   late bool _hasRightWall;
   late bool _hasUnderside;
   late bool _hasCaps;
-  String? _pickerError;
+  String? _formError;
 
   @override
   void initState() {
@@ -80,13 +93,13 @@ class _TerrainMaterialDialogState extends State<_TerrainMaterialDialog> {
     final material = widget.material;
     _key = TextEditingController(text: material?.key ?? widget.suggestedKey);
     _displayName = TextEditingController(text: material?.displayName ?? '');
-    _fill = TextEditingController(text: material?.fillAssetPath ?? '');
-    _top = _EdgeProfileControllers.fromProfile(material?.top);
-    _leftWall = _EdgeProfileControllers.fromProfile(material?.leftWall);
-    _rightWall = _EdgeProfileControllers.fromProfile(material?.rightWall);
-    _underside = _EdgeProfileControllers.fromProfile(material?.underside);
-    _startCap = _CapControllers.fromCap(material?.topStartCap);
-    _endCap = _CapControllers.fromCap(material?.topEndCap);
+    _fill = material?.fill;
+    _top = _EdgeProfileDraft.fromProfile(material?.top);
+    _leftWall = _EdgeProfileDraft.fromProfile(material?.leftWall);
+    _rightWall = _EdgeProfileDraft.fromProfile(material?.rightWall);
+    _underside = _EdgeProfileDraft.fromProfile(material?.underside);
+    _startCap = _CapDraft.fromCap(material?.topStartCap);
+    _endCap = _CapDraft.fromCap(material?.topEndCap);
     _hasLeftWall = material?.leftWall != null;
     _hasRightWall = material?.rightWall != null;
     _hasUnderside = material?.underside != null;
@@ -97,34 +110,34 @@ class _TerrainMaterialDialogState extends State<_TerrainMaterialDialog> {
   void dispose() {
     _key.dispose();
     _displayName.dispose();
-    _fill.dispose();
     _top.dispose();
     _leftWall.dispose();
     _rightWall.dispose();
     _underside.dispose();
     _startCap.dispose();
     _endCap.dispose();
+    _previewCache.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final editing = widget.material != null;
+    final editing = !widget.isNew;
     return AlertDialog(
       key: const ValueKey<String>('terrain_material_dialog'),
       title: Text(editing ? 'Edit terrain material' : 'New terrain material'),
       content: SizedBox(
-        width: 820,
+        width: 900,
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
+              children: [
                 Wrap(
                   spacing: 12,
                   runSpacing: 12,
-                  children: <Widget>[
+                  children: [
                     SizedBox(
                       width: 260,
                       child: TextFormField(
@@ -150,11 +163,11 @@ class _TerrainMaterialDialogState extends State<_TerrainMaterialDialog> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                _AssetPathField(
+                _regionField(
                   label: 'Fill texture',
-                  controller: _fill,
-                  onBrowse: () => _pick(_fill),
-                  validator: _requiredAssetPath,
+                  keySuffix: 'fill',
+                  region: _fill,
+                  onChanged: (region) => setState(() => _fill = region),
                 ),
                 const SizedBox(height: 16),
                 Text('Top / slope edges', style: _sectionStyle(context)),
@@ -162,63 +175,51 @@ class _TerrainMaterialDialogState extends State<_TerrainMaterialDialog> {
                   'Repeated along every upward-facing horizontal or sloped edge.',
                 ),
                 const SizedBox(height: 8),
-                _EdgeProfileFields(
-                  controllers: _top,
-                  onBrowseBase: () => _pick(_top.basePath),
-                  onBrowseDetail: () => _pick(_top.detailPath),
-                  requiredProfile: true,
-                ),
+                _profileFields('top', _top),
                 const Divider(height: 28),
                 _optionalProfile(
                   label: 'Left wall edges',
+                  keyPrefix: 'left_wall',
                   value: _hasLeftWall,
                   onChanged: (value) => setState(() => _hasLeftWall = value),
-                  controllers: _leftWall,
+                  draft: _leftWall,
                 ),
                 const SizedBox(height: 10),
                 _optionalProfile(
                   label: 'Right wall edges',
+                  keyPrefix: 'right_wall',
                   value: _hasRightWall,
                   onChanged: (value) => setState(() => _hasRightWall = value),
-                  controllers: _rightWall,
+                  draft: _rightWall,
                 ),
                 const SizedBox(height: 10),
                 _optionalProfile(
                   label: 'Underside edges',
+                  keyPrefix: 'underside',
                   value: _hasUnderside,
                   onChanged: (value) => setState(() => _hasUnderside = value),
-                  controllers: _underside,
+                  draft: _underside,
                 ),
                 const Divider(height: 28),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
                   title: const Text('Top cliff caps'),
                   subtitle: const Text(
-                    'Paired endpoint images; smooth continuations never use caps.',
+                    'Paired endpoint regions; smooth continuations never use caps.',
                   ),
                   value: _hasCaps,
                   onChanged: (value) => setState(() => _hasCaps = value),
                 ),
-                if (_hasCaps) ...<Widget>[
-                  _CapFields(
-                    label: 'Start / left cap',
-                    controllers: _startCap,
-                    onBrowse: () => _pick(_startCap.assetPath),
-                  ),
+                if (_hasCaps) ...[
+                  _capFields('Start / left cap', 'start_cap', _startCap),
                   const SizedBox(height: 10),
-                  _CapFields(
-                    label: 'End / right cap',
-                    controllers: _endCap,
-                    onBrowse: () => _pick(_endCap.assetPath),
-                  ),
+                  _capFields('End / right cap', 'end_cap', _endCap),
                 ],
-                if (_pickerError case final error?) ...<Widget>[
+                if (_formError case final error?) ...[
                   const SizedBox(height: 12),
                   Text(
                     error,
-                    key: const ValueKey<String>(
-                      'terrain_material_picker_error',
-                    ),
+                    key: const ValueKey<String>('terrain_material_form_error'),
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.error,
                     ),
@@ -229,7 +230,7 @@ class _TerrainMaterialDialogState extends State<_TerrainMaterialDialog> {
           ),
         ),
       ),
-      actions: <Widget>[
+      actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Cancel'),
@@ -245,12 +246,13 @@ class _TerrainMaterialDialogState extends State<_TerrainMaterialDialog> {
 
   Widget _optionalProfile({
     required String label,
+    required String keyPrefix,
     required bool value,
     required ValueChanged<bool> onChanged,
-    required _EdgeProfileControllers controllers,
+    required _EdgeProfileDraft draft,
   }) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: <Widget>[
+    children: [
       SwitchListTile(
         contentPadding: EdgeInsets.zero,
         title: Text(label),
@@ -258,53 +260,159 @@ class _TerrainMaterialDialogState extends State<_TerrainMaterialDialog> {
         value: value,
         onChanged: onChanged,
       ),
-      if (value)
-        _EdgeProfileFields(
-          controllers: controllers,
-          onBrowseBase: () => _pick(controllers.basePath),
-          onBrowseDetail: () => _pick(controllers.detailPath),
-          requiredProfile: true,
-        ),
+      if (value) _profileFields(keyPrefix, draft),
     ],
   );
 
-  Future<void> _pick(TextEditingController controller) async {
-    final terrainRoot = p.normalize(
-      p.join(widget.workspaceRootPath, 'assets', 'images', 'terrain'),
-    );
-    final selected = await openFile(
-      acceptedTypeGroups: const <XTypeGroup>[_terrainPngTypeGroup],
-      initialDirectory: terrainRoot,
-      confirmButtonText: 'Select terrain image',
-    );
-    if (selected == null || !mounted) return;
-    final absolute = p.normalize(p.absolute(selected.path));
-    final workspaceRoot = p.normalize(p.absolute(widget.workspaceRootPath));
-    if (!p.isWithin(terrainRoot, absolute) ||
-        p.extension(absolute).toLowerCase() != '.png') {
+  Widget _profileFields(String keyPrefix, _EdgeProfileDraft draft) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: _regionField(
+              label: 'Base region',
+              keySuffix: '${keyPrefix}_base',
+              region: draft.baseRegion,
+              anchorY: double.tryParse(draft.baseAnchorY.text.trim()),
+              onChanged: (region) => setState(() => draft.baseRegion = region),
+            ),
+          ),
+          const SizedBox(width: 12),
+          SizedBox(
+            width: 130,
+            child: TextFormField(
+              controller: draft.baseAnchorY,
+              decoration: const InputDecoration(labelText: 'Edge anchor Y'),
+              validator: (value) =>
+                  _anchor(value, maximum: draft.baseRegion?.height.toDouble()),
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: 8),
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: _regionField(
+              label: 'Detail region (optional)',
+              keySuffix: '${keyPrefix}_detail',
+              region: draft.detailRegion,
+              anchorY: double.tryParse(draft.detailAnchorY.text.trim()),
+              optional: true,
+              onChanged: (region) =>
+                  setState(() => draft.detailRegion = region),
+            ),
+          ),
+          const SizedBox(width: 12),
+          SizedBox(
+            width: 130,
+            child: TextFormField(
+              controller: draft.detailAnchorY,
+              enabled: draft.detailRegion != null,
+              decoration: const InputDecoration(labelText: 'Edge anchor Y'),
+              validator: (value) => draft.detailRegion == null
+                  ? null
+                  : _anchor(
+                      value,
+                      maximum: draft.detailRegion!.height.toDouble(),
+                    ),
+            ),
+          ),
+        ],
+      ),
+    ],
+  );
+
+  Widget _capFields(String label, String keySuffix, _CapDraft draft) => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Expanded(
+        child: _regionField(
+          label: label,
+          keySuffix: keySuffix,
+          region: draft.region,
+          anchorX: double.tryParse(draft.anchorX.text.trim()),
+          anchorY: double.tryParse(draft.anchorY.text.trim()),
+          onChanged: (region) => setState(() => draft.region = region),
+        ),
+      ),
+      const SizedBox(width: 12),
+      SizedBox(
+        width: 110,
+        child: TextFormField(
+          controller: draft.anchorX,
+          decoration: const InputDecoration(labelText: 'Anchor X'),
+          validator: (value) =>
+              _anchor(value, maximum: draft.region?.width.toDouble()),
+        ),
+      ),
+      const SizedBox(width: 8),
+      SizedBox(
+        width: 110,
+        child: TextFormField(
+          controller: draft.anchorY,
+          decoration: const InputDecoration(labelText: 'Anchor Y'),
+          validator: (value) =>
+              _anchor(value, maximum: draft.region?.height.toDouble()),
+        ),
+      ),
+    ],
+  );
+
+  Widget _regionField({
+    required String label,
+    required String keySuffix,
+    required TerrainMaterialImageRegion? region,
+    required ValueChanged<TerrainMaterialImageRegion?> onChanged,
+    bool optional = false,
+    double? anchorX,
+    double? anchorY,
+  }) => _TerrainRegionField(
+    label: label,
+    fieldKey: ValueKey<String>('terrain_material_${keySuffix}_region'),
+    workspaceRootPath: widget.workspaceRootPath,
+    region: region,
+    optional: optional,
+    imageCache: _previewCache,
+    onSelect: () async {
+      final selected = await showTerrainAtlasRegionPicker(
+        context,
+        workspaceRootPath: widget.workspaceRootPath,
+        atlasImages: widget.atlasImages,
+        gridSettingsCache: widget.gridSettingsCache,
+        initialRegion: region,
+        anchorX: anchorX,
+        anchorY: anchorY,
+      );
+      if (selected != null && mounted) onChanged(selected);
+    },
+    onClear: optional ? () => onChanged(null) : null,
+  );
+
+  void _accept() {
+    final regionsComplete =
+        _fill != null &&
+        _top.baseRegion != null &&
+        (!_hasLeftWall || _leftWall.baseRegion != null) &&
+        (!_hasRightWall || _rightWall.baseRegion != null) &&
+        (!_hasUnderside || _underside.baseRegion != null) &&
+        (!_hasCaps || (_startCap.region != null && _endCap.region != null));
+    if (!regionsComplete) {
       setState(() {
-        _pickerError =
-            'Choose a PNG under assets/images/terrain in this workspace.';
+        _formError = 'Assign every required atlas region before saving.';
       });
       return;
     }
-    final relative = p
-        .relative(absolute, from: workspaceRoot)
-        .replaceAll('\\', '/');
-    setState(() {
-      controller.text = relative;
-      _pickerError = null;
-    });
-  }
-
-  void _accept() {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     final current = widget.material;
     final candidate = TerrainMaterialDefinition(
       key: _key.text.trim(),
       displayName: _displayName.text.trim(),
-      revision: current?.revision ?? 1,
-      fillAssetPath: _fill.text.trim(),
+      revision: widget.isNew ? 1 : current!.revision,
+      fill: _fill!,
       top: _top.build(),
       leftWall: _hasLeftWall ? _leftWall.build() : null,
       rightWall: _hasRightWall ? _rightWall.build() : null,
@@ -312,12 +420,16 @@ class _TerrainMaterialDialogState extends State<_TerrainMaterialDialog> {
       topStartCap: _hasCaps ? _startCap.build() : null,
       topEndCap: _hasCaps ? _endCap.build() : null,
     );
-    final result = current == candidate
+    if (!widget.isNew && candidate == current) {
+      Navigator.of(context).pop();
+      return;
+    }
+    final result = widget.isNew
         ? candidate
-        : candidate.copyWith(revision: (current?.revision ?? 0) + 1);
+        : candidate.copyWith(revision: current!.revision + 1);
     Navigator.of(context).pop(
       TerrainMaterialEditResult(
-        previousKey: current?.key ?? '',
+        previousKey: widget.isNew ? '' : current!.key,
         material: result,
       ),
     );
@@ -331,235 +443,162 @@ class _TerrainMaterialDialogState extends State<_TerrainMaterialDialog> {
     if (!widget.allowKeyChange && key != widget.material?.key) {
       return 'Referenced material keys cannot be renamed.';
     }
-    if (key != widget.material?.key && widget.existingKeys.contains(key)) {
+    if ((widget.isNew || key != widget.material?.key) &&
+        widget.existingKeys.contains(key)) {
       return 'That material key already exists.';
     }
     return null;
   }
 }
 
-class _AssetPathField extends StatelessWidget {
-  const _AssetPathField({
+class _TerrainRegionField extends StatelessWidget {
+  const _TerrainRegionField({
     required this.label,
-    required this.controller,
-    required this.onBrowse,
-    required this.validator,
+    required this.fieldKey,
+    required this.workspaceRootPath,
+    required this.region,
+    required this.optional,
+    required this.imageCache,
+    required this.onSelect,
+    required this.onClear,
   });
 
   final String label;
-  final TextEditingController controller;
-  final VoidCallback onBrowse;
-  final FormFieldValidator<String> validator;
+  final Key fieldKey;
+  final String workspaceRootPath;
+  final TerrainMaterialImageRegion? region;
+  final bool optional;
+  final EditorUiImageCache imageCache;
+  final VoidCallback onSelect;
+  final VoidCallback? onClear;
 
   @override
-  Widget build(BuildContext context) => Row(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: <Widget>[
-      Expanded(
-        child: TextFormField(
-          controller: controller,
-          decoration: InputDecoration(labelText: label),
-          validator: validator,
-        ),
+  Widget build(BuildContext context) {
+    final region = this.region;
+    return Container(
+      key: fieldKey,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        border: Border.all(color: Theme.of(context).dividerColor),
+        borderRadius: BorderRadius.circular(8),
       ),
-      const SizedBox(width: 8),
-      Padding(
-        padding: const EdgeInsets.only(top: 8),
-        child: OutlinedButton.icon(
-          onPressed: onBrowse,
-          icon: const Icon(Icons.folder_open_outlined),
-          label: const Text('Browse'),
-        ),
-      ),
-    ],
-  );
-}
-
-class _EdgeProfileFields extends StatelessWidget {
-  const _EdgeProfileFields({
-    required this.controllers,
-    required this.onBrowseBase,
-    required this.onBrowseDetail,
-    required this.requiredProfile,
-  });
-
-  final _EdgeProfileControllers controllers;
-  final VoidCallback onBrowseBase;
-  final VoidCallback onBrowseDetail;
-  final bool requiredProfile;
-
-  @override
-  Widget build(BuildContext context) => Column(
-    children: <Widget>[
-      Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
+      child: Row(
+        children: [
+          AtlasRegionPreviewTile(
+            imageCache: imageCache,
+            workspaceRootPath: workspaceRootPath,
+            sourceImagePath: region?.assetPath,
+            region: region == null
+                ? null
+                : AtlasPixelRect(
+                    x: region.x,
+                    y: region.y,
+                    width: region.width,
+                    height: region.height,
+                  ),
+            width: 64,
+            height: 52,
+          ),
+          const SizedBox(width: 10),
           Expanded(
-            child: _AssetPathField(
-              label: 'Base image',
-              controller: controllers.basePath,
-              onBrowse: onBrowseBase,
-              validator: requiredProfile ? _requiredAssetPath : (_) => null,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: Theme.of(context).textTheme.labelLarge),
+                const SizedBox(height: 3),
+                Text(
+                  region == null
+                      ? optional
+                            ? 'Not configured'
+                            : 'Required region not assigned'
+                      : '${region.assetPath}\n'
+                            '[${region.x}, ${region.y}, ${region.width}, ${region.height}]',
+                ),
+              ],
             ),
           ),
-          const SizedBox(width: 12),
-          SizedBox(
-            width: 120,
-            child: TextFormField(
-              controller: controllers.baseAnchorY,
-              decoration: const InputDecoration(labelText: 'Edge anchor Y'),
-              validator: _nonNegativeNumber,
+          if (onClear != null && region != null)
+            IconButton(
+              tooltip: 'Clear optional region',
+              onPressed: onClear,
+              icon: const Icon(Icons.clear),
             ),
+          OutlinedButton(
+            onPressed: onSelect,
+            child: Text(region == null ? 'Select region' : 'Change region'),
           ),
         ],
       ),
-      const SizedBox(height: 8),
-      Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Expanded(
-            child: _AssetPathField(
-              label: 'Detail image (optional)',
-              controller: controllers.detailPath,
-              onBrowse: onBrowseDetail,
-              validator: _optionalAssetPath,
-            ),
-          ),
-          const SizedBox(width: 12),
-          SizedBox(
-            width: 120,
-            child: TextFormField(
-              controller: controllers.detailAnchorY,
-              decoration: const InputDecoration(labelText: 'Edge anchor Y'),
-              validator: (value) => controllers.detailPath.text.trim().isEmpty
-                  ? null
-                  : _nonNegativeNumber(value),
-            ),
-          ),
-        ],
-      ),
-    ],
-  );
+    );
+  }
 }
 
-class _CapFields extends StatelessWidget {
-  const _CapFields({
-    required this.label,
-    required this.controllers,
-    required this.onBrowse,
-  });
-
-  final String label;
-  final _CapControllers controllers;
-  final VoidCallback onBrowse;
-
-  @override
-  Widget build(BuildContext context) => Row(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: <Widget>[
-      Expanded(
-        child: _AssetPathField(
-          label: label,
-          controller: controllers.assetPath,
-          onBrowse: onBrowse,
-          validator: _requiredAssetPath,
-        ),
-      ),
-      const SizedBox(width: 12),
-      SizedBox(
-        width: 100,
-        child: TextFormField(
-          controller: controllers.anchorX,
-          decoration: const InputDecoration(labelText: 'Anchor X'),
-          validator: _nonNegativeNumber,
-        ),
-      ),
-      const SizedBox(width: 8),
-      SizedBox(
-        width: 100,
-        child: TextFormField(
-          controller: controllers.anchorY,
-          decoration: const InputDecoration(labelText: 'Anchor Y'),
-          validator: _nonNegativeNumber,
-        ),
-      ),
-    ],
-  );
-}
-
-class _EdgeProfileControllers {
-  _EdgeProfileControllers({
-    required String basePath,
+final class _EdgeProfileDraft {
+  _EdgeProfileDraft({
+    required this.baseRegion,
     required double baseAnchorY,
-    required String detailPath,
+    required this.detailRegion,
     required double detailAnchorY,
-  }) : basePath = TextEditingController(text: basePath),
-       baseAnchorY = TextEditingController(text: _number(baseAnchorY)),
-       detailPath = TextEditingController(text: detailPath),
+  }) : baseAnchorY = TextEditingController(text: _number(baseAnchorY)),
        detailAnchorY = TextEditingController(text: _number(detailAnchorY));
 
-  factory _EdgeProfileControllers.fromProfile(
-    TerrainMaterialEdgeProfile? profile,
-  ) => _EdgeProfileControllers(
-    basePath: profile?.base.assetPath ?? '',
-    baseAnchorY: profile?.base.anchorY ?? 0,
-    detailPath: profile?.detail?.assetPath ?? '',
-    detailAnchorY: profile?.detail?.anchorY ?? 0,
-  );
+  factory _EdgeProfileDraft.fromProfile(TerrainMaterialEdgeProfile? profile) =>
+      _EdgeProfileDraft(
+        baseRegion: profile?.base.region,
+        baseAnchorY: profile?.base.anchorY ?? 0,
+        detailRegion: profile?.detail?.region,
+        detailAnchorY: profile?.detail?.anchorY ?? 0,
+      );
 
-  final TextEditingController basePath;
+  TerrainMaterialImageRegion? baseRegion;
+  TerrainMaterialImageRegion? detailRegion;
   final TextEditingController baseAnchorY;
-  final TextEditingController detailPath;
   final TextEditingController detailAnchorY;
 
   TerrainMaterialEdgeProfile build() => TerrainMaterialEdgeProfile(
     base: TerrainMaterialEdgeLayer(
-      assetPath: basePath.text.trim(),
+      region: baseRegion!,
       anchorY: double.parse(baseAnchorY.text.trim()),
     ),
-    detail: detailPath.text.trim().isEmpty
+    detail: detailRegion == null
         ? null
         : TerrainMaterialEdgeLayer(
-            assetPath: detailPath.text.trim(),
+            region: detailRegion!,
             anchorY: double.parse(detailAnchorY.text.trim()),
           ),
   );
 
   void dispose() {
-    basePath.dispose();
     baseAnchorY.dispose();
-    detailPath.dispose();
     detailAnchorY.dispose();
   }
 }
 
-class _CapControllers {
-  _CapControllers({
-    required String assetPath,
+final class _CapDraft {
+  _CapDraft({
+    required this.region,
     required double anchorX,
     required double anchorY,
-  }) : assetPath = TextEditingController(text: assetPath),
-       anchorX = TextEditingController(text: _number(anchorX)),
+  }) : anchorX = TextEditingController(text: _number(anchorX)),
        anchorY = TextEditingController(text: _number(anchorY));
 
-  factory _CapControllers.fromCap(TerrainMaterialCap? cap) => _CapControllers(
-    assetPath: cap?.assetPath ?? '',
+  factory _CapDraft.fromCap(TerrainMaterialCap? cap) => _CapDraft(
+    region: cap?.region,
     anchorX: cap?.anchorX ?? 0,
     anchorY: cap?.anchorY ?? 0,
   );
 
-  final TextEditingController assetPath;
+  TerrainMaterialImageRegion? region;
   final TextEditingController anchorX;
   final TextEditingController anchorY;
 
   TerrainMaterialCap build() => TerrainMaterialCap(
-    assetPath: assetPath.text.trim(),
+    region: region!,
     anchorX: double.parse(anchorX.text.trim()),
     anchorY: double.parse(anchorY.text.trim()),
   );
 
   void dispose() {
-    assetPath.dispose();
     anchorX.dispose();
     anchorY.dispose();
   }
@@ -571,29 +610,15 @@ TextStyle? _sectionStyle(BuildContext context) =>
 String? _requiredText(String? value) =>
     value == null || value.trim().isEmpty ? 'This field is required.' : null;
 
-String? _requiredAssetPath(String? value) {
-  final required = _requiredText(value);
-  return required ?? _optionalAssetPath(value);
-}
-
-String? _optionalAssetPath(String? value) {
-  final path = value?.trim() ?? '';
-  if (path.isEmpty) return null;
-  if (!RegExp(
-        r'^assets/images/terrain/[a-zA-Z0-9_./-]+\.png$',
-      ).hasMatch(path) ||
-      path.contains('..') ||
-      path.contains('\\')) {
-    return 'Use a PNG under assets/images/terrain/.';
+String? _anchor(String? value, {required double? maximum}) {
+  final parsed = double.tryParse(value?.trim() ?? '');
+  if (parsed == null || !parsed.isFinite || parsed < 0) {
+    return 'Use a non-negative number.';
+  }
+  if (maximum != null && parsed > maximum) {
+    return 'Must be at most ${_number(maximum)}.';
   }
   return null;
-}
-
-String? _nonNegativeNumber(String? value) {
-  final parsed = double.tryParse(value?.trim() ?? '');
-  return parsed == null || !parsed.isFinite || parsed < 0
-      ? 'Use a non-negative number.'
-      : null;
 }
 
 String _number(double value) => value == value.roundToDouble()

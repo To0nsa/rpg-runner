@@ -3,14 +3,43 @@ library;
 
 part 'authored_terrain_materials.dart';
 
-/// One source image repeated along an exact Core terrain edge.
-final class TerrainMaterialEdgeLayerSpec {
-  const TerrainMaterialEdgeLayerSpec({
+/// Complete source-region identity used by terrain rendering caches.
+final class TerrainMaterialImageRegionSpec {
+  const TerrainMaterialImageRegionSpec({
     required this.assetPath,
-    required this.anchorY,
+    required this.x,
+    required this.y,
+    required this.width,
+    required this.height,
   });
 
   final String assetPath;
+  final int x;
+  final int y;
+  final int width;
+  final int height;
+
+  @override
+  bool operator ==(Object other) =>
+      other is TerrainMaterialImageRegionSpec &&
+      assetPath == other.assetPath &&
+      x == other.x &&
+      y == other.y &&
+      width == other.width &&
+      height == other.height;
+
+  @override
+  int get hashCode => Object.hash(assetPath, x, y, width, height);
+}
+
+/// One source region repeated along an exact Core terrain edge.
+final class TerrainMaterialEdgeLayerSpec {
+  const TerrainMaterialEdgeLayerSpec({
+    required this.region,
+    required this.anchorY,
+  });
+
+  final TerrainMaterialImageRegionSpec region;
 
   /// Source-image Y, in logical pixels, aligned to the terrain edge.
   final double anchorY;
@@ -27,12 +56,12 @@ final class TerrainMaterialEdgeProfileSpec {
 /// Endpoint image and the source pixel aligned to an exact top-edge endpoint.
 final class TerrainMaterialCapSpec {
   const TerrainMaterialCapSpec({
-    required this.assetPath,
+    required this.region,
     required this.anchorX,
     required this.anchorY,
   });
 
-  final String assetPath;
+  final TerrainMaterialImageRegionSpec region;
   final double anchorX;
   final double anchorY;
 }
@@ -43,7 +72,7 @@ final class TerrainMaterialSpec {
     required this.key,
     required this.displayName,
     required this.revision,
-    required this.fillAssetPath,
+    required this.fill,
     required this.top,
     this.leftWall,
     this.rightWall,
@@ -55,7 +84,7 @@ final class TerrainMaterialSpec {
   final String key;
   final String displayName;
   final int revision;
-  final String fillAssetPath;
+  final TerrainMaterialImageRegionSpec fill;
   final TerrainMaterialEdgeProfileSpec top;
   final TerrainMaterialEdgeProfileSpec? leftWall;
   final TerrainMaterialEdgeProfileSpec? rightWall;
@@ -65,7 +94,7 @@ final class TerrainMaterialSpec {
 
   /// Every image that must be available before the material can render.
   Iterable<String> get assetPaths sync* {
-    yield fillAssetPath;
+    yield fill.assetPath;
     for (final profile in <TerrainMaterialEdgeProfileSpec?>[
       top,
       leftWall,
@@ -73,11 +102,35 @@ final class TerrainMaterialSpec {
       underside,
     ]) {
       if (profile == null) continue;
-      yield profile.base.assetPath;
-      if (profile.detail case final detail?) yield detail.assetPath;
+      yield profile.base.region.assetPath;
+      if (profile.detail case final detail?) yield detail.region.assetPath;
     }
-    if (topStartCap case final cap?) yield cap.assetPath;
-    if (topEndCap case final cap?) yield cap.assetPath;
+    if (topStartCap case final cap?) yield cap.region.assetPath;
+    if (topEndCap case final cap?) yield cap.region.assetPath;
+  }
+
+  /// Every complete source-region identity once in role order.
+  Iterable<TerrainMaterialImageRegionSpec> get regions sync* {
+    final seen = <TerrainMaterialImageRegionSpec>{};
+    Iterable<TerrainMaterialImageRegionSpec> add(
+      TerrainMaterialImageRegionSpec region,
+    ) sync* {
+      if (seen.add(region)) yield region;
+    }
+
+    yield* add(fill);
+    for (final profile in <TerrainMaterialEdgeProfileSpec?>[
+      top,
+      leftWall,
+      rightWall,
+      underside,
+    ]) {
+      if (profile == null) continue;
+      yield* add(profile.base.region);
+      if (profile.detail case final detail?) yield* add(detail.region);
+    }
+    if (topStartCap case final cap?) yield* add(cap.region);
+    if (topEndCap case final cap?) yield* add(cap.region);
   }
 }
 
