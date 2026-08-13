@@ -1,6 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
+import 'package:terrain_materials/terrain_materials.dart';
 
 import '../../../terrain_authoring/terrain_source_models.dart';
+import 'terrain_material_preview.dart';
 import 'terrain_material_preview_catalog.dart';
 
 /// Result of one accepted polygon metadata dialog edit.
@@ -59,6 +64,7 @@ class _TerrainPolygonMetadataDialogState
   late TerrainSourceCollisionMode _collisionMode;
   late String _surfaceKind;
   late String _materialKey;
+  late final TerrainMaterialCatalogDecodeResult _materialCatalogResult;
 
   @override
   void initState() {
@@ -66,6 +72,9 @@ class _TerrainPolygonMetadataDialogState
     _collisionMode = widget.shape.collisionMode;
     _surfaceKind = widget.shape.surfaceKind ?? '';
     _materialKey = widget.shape.materialKey ?? '';
+    _materialCatalogResult = loadTerrainMaterialPreviewCatalog(
+      widget.workspaceRootPath,
+    );
   }
 
   @override
@@ -75,17 +84,22 @@ class _TerrainPolygonMetadataDialogState
       current: _surfaceKind,
       known: terrainSurfaceKindOptions,
     );
+    final catalog = _materialCatalogResult.catalog;
     final materialOptions = _selectorOptions(
       current: _materialKey,
-      known: terrainMaterialPreviewCatalog.map(
-        (material) => material.materialKey,
-      ),
+      known:
+          catalog?.materials.map((material) => material.key) ??
+          const <String>[],
+    );
+    final selectedMaterial = terrainMaterialPreviewForKey(
+      catalog,
+      _materialKey,
     );
     return AlertDialog(
       key: ValueKey<String>('${keyPrefix}_metadata_dialog'),
       title: Text('Edit ${widget.shape.shapeId} metadata'),
       content: SizedBox(
-        width: 560,
+        width: 680,
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -130,12 +144,31 @@ class _TerrainPolygonMetadataDialogState
                   '${keyPrefix}_metadata_material_selector',
                 ),
                 initialValue: _materialKey,
+                isExpanded: true,
                 decoration: const InputDecoration(labelText: 'Material key'),
+                selectedItemBuilder: (context) => materialOptions
+                    .map(
+                      (value) => Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          _materialSelectedLabel(catalog, value),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    )
+                    .toList(growable: false),
                 items: materialOptions
                     .map(
                       (value) => DropdownMenuItem<String>(
                         value: value,
-                        child: Text(_selectorLabel(value)),
+                        child: _TerrainMaterialSelectorOption(
+                          workspaceRootPath: widget.workspaceRootPath,
+                          value: value,
+                          material: terrainMaterialPreviewForKey(
+                            catalog,
+                            value,
+                          ),
+                        ),
                       ),
                     )
                     .toList(growable: false),
@@ -144,11 +177,31 @@ class _TerrainPolygonMetadataDialogState
                 },
               ),
               const SizedBox(height: 12),
-              TerrainMaterialAssetPreview(
-                workspaceRootPath: widget.workspaceRootPath,
-                materialKey: _nullableSelection(_materialKey),
-                keyPrefix: keyPrefix,
-              ),
+              if (selectedMaterial != null)
+                TerrainMaterialPreview(
+                  key: ValueKey<String>(
+                    '${keyPrefix}_material_preview_${selectedMaterial.key}',
+                  ),
+                  workspaceRootPath: widget.workspaceRootPath,
+                  material: selectedMaterial,
+                  keyPrefix: keyPrefix,
+                )
+              else if (_materialKey.isEmpty)
+                Text(
+                  'No material selected.',
+                  key: ValueKey<String>('${keyPrefix}_material_preview_empty'),
+                )
+              else if (_materialCatalogResult.issues.isNotEmpty)
+                Text(
+                  _materialCatalogResult.issues.first.message,
+                  key: ValueKey<String>('${keyPrefix}_material_preview_error'),
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                )
+              else
+                Text(
+                  'Material "$_materialKey" is not defined in the manifest.',
+                  key: ValueKey<String>('${keyPrefix}_material_preview_empty'),
+                ),
             ],
           ),
         ),
@@ -174,6 +227,61 @@ class _TerrainPolygonMetadataDialogState
   }
 }
 
+class _TerrainMaterialSelectorOption extends StatelessWidget {
+  const _TerrainMaterialSelectorOption({
+    required this.workspaceRootPath,
+    required this.value,
+    required this.material,
+  });
+
+  final String workspaceRootPath;
+  final String value;
+  final TerrainMaterialDefinition? material;
+
+  @override
+  Widget build(BuildContext context) {
+    final material = this.material;
+    if (value.isEmpty) return const Text('None');
+    if (material == null) return Text('$value · undefined');
+    return Row(
+      children: <Widget>[
+        SizedBox(
+          width: 52,
+          height: 34,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: Image.file(
+              File(
+                p.normalize(p.join(workspaceRootPath, material.fillAssetPath)),
+              ),
+              fit: BoxFit.cover,
+              filterQuality: FilterQuality.none,
+              errorBuilder: (context, error, stackTrace) => const Center(
+                child: Icon(Icons.broken_image_outlined, size: 18),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(material.displayName, overflow: TextOverflow.ellipsis),
+              Text(
+                material.key,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 List<String> _selectorOptions({
   required String current,
   required Iterable<String> known,
@@ -186,6 +294,14 @@ List<String> _selectorOptions({
 String _selectorLabel(String value) {
   if (value.isEmpty) return 'None';
   return value;
+}
+
+String _materialSelectedLabel(TerrainMaterialCatalog? catalog, String value) {
+  if (value.isEmpty) return 'None';
+  final material = terrainMaterialPreviewForKey(catalog, value);
+  return material == null
+      ? '$value · undefined'
+      : '${material.displayName} · ${material.key}';
 }
 
 String? _nullableSelection(String value) {

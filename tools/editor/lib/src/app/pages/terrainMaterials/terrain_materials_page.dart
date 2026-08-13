@@ -11,7 +11,7 @@ import '../shared/editor_panel_card.dart';
 import '../shared/editor_three_panel_layout.dart';
 import '../shared/editor_workspace_card.dart';
 import 'terrain_material_dialog.dart';
-import 'terrain_material_preview.dart';
+import '../shared/terrain_material_preview.dart';
 
 /// Repository-backed catalog for terrain fill, edge, and cliff-cap visuals.
 class TerrainMaterialsPage extends StatefulWidget {

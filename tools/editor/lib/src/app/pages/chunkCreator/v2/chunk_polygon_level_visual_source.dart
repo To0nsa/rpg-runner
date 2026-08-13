@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
+import 'package:terrain_materials/terrain_materials.dart';
 
 import '../../../../chunks/chunk_v2_file_data.dart';
 import '../../../../parallax/parallax_domain_models.dart';
@@ -46,11 +47,15 @@ class ChunkPolygonLevelVisualSource extends StatefulWidget {
 class _ChunkPolygonLevelVisualSourceState
     extends State<ChunkPolygonLevelVisualSource> {
   late EditorUiImageCache _imageCache;
+  late TerrainMaterialCatalog? _materialCatalog;
 
   @override
   void initState() {
     super.initState();
     _imageCache = EditorUiImageCache();
+    _materialCatalog = loadTerrainMaterialPreviewCatalog(
+      widget.workspaceRootPath,
+    ).catalog;
     _ensureImagesLoaded();
   }
 
@@ -60,6 +65,9 @@ class _ChunkPolygonLevelVisualSourceState
     if (oldWidget.workspaceRootPath != widget.workspaceRootPath) {
       _imageCache.dispose();
       _imageCache = EditorUiImageCache();
+      _materialCatalog = loadTerrainMaterialPreviewCatalog(
+        widget.workspaceRootPath,
+      ).catalog;
     }
     _ensureImagesLoaded();
   }
@@ -85,6 +93,7 @@ class _ChunkPolygonLevelVisualSourceState
         layer: widget.layer,
         imagesBySourcePath: imagesBySourcePath,
         loadedImageCount: _imageCache.loadedImageCount,
+        materialCatalog: _materialCatalog,
       ),
     );
   }
@@ -112,11 +121,12 @@ class _ChunkPolygonLevelVisualSourceState
     }
     if (widget.layer != ChunkPolygonLevelVisualLayer.terrain) return;
     for (final shape in widget.chunk.collisionShapes) {
-      final material = terrainMaterialPreviewAssetsForKey(shape.materialKey);
+      final material = terrainMaterialPreviewForKey(
+        _materialCatalog,
+        shape.materialKey,
+      );
       if (material == null) continue;
-      yield material.fillAssetPath;
-      yield material.surfaceAssetPath;
-      yield material.foregroundAssetPath;
+      yield* _materialAssetPaths(material);
     }
   }
 
@@ -132,6 +142,7 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
     required this.layer,
     required this.imagesBySourcePath,
     required this.loadedImageCount,
+    required this.materialCatalog,
   });
 
   final ChunkV2FileData chunk;
@@ -140,6 +151,7 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
   final ChunkPolygonLevelVisualLayer layer;
   final Map<String, ui.Image> imagesBySourcePath;
   final int loadedImageCount;
+  final TerrainMaterialCatalog? materialCatalog;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -217,36 +229,86 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
     canvas.translate(transform.origin.dx, transform.origin.dy);
     canvas.scale(transform.zoom);
     for (final shape in chunk.collisionShapes) {
-      final material = terrainMaterialPreviewAssetsForKey(shape.materialKey);
+      final material = terrainMaterialPreviewForKey(
+        materialCatalog,
+        shape.materialKey,
+      );
       if (material == null || shape.vertices.length < 3) continue;
       final fill = imagesBySourcePath[material.fillAssetPath];
-      final surface = imagesBySourcePath[material.surfaceAssetPath];
-      final foreground = imagesBySourcePath[material.foregroundAssetPath];
       final path = _sourcePath(shape.vertices);
       if (fill == null) {
         canvas.drawPath(path, _fallbackTerrainPaint(shape.materialKey));
       } else {
         canvas.drawPath(path, _tiledFillPaint(fill));
       }
-      if (surface == null && foreground == null) continue;
-      for (final edge in _upwardEdges(shape.vertices)) {
-        if (surface != null) {
-          _drawEdgeImage(
-            canvas,
-            start: edge.$1,
-            end: edge.$2,
-            image: surface,
-            anchorY: material.surfaceAnchorY,
-          );
+      final edgeKinds = _edgeKinds(shape.vertices);
+      for (var index = 0; index < shape.vertices.length; index += 1) {
+        final startVertex = shape.vertices[index];
+        final endVertex = shape.vertices[(index + 1) % shape.vertices.length];
+        final start = _vertexOffset(startVertex);
+        final end = _vertexOffset(endVertex);
+        final kind = edgeKinds[index];
+        final profile = _profileForKind(material, kind);
+        if (profile != null) {
+          final base = imagesBySourcePath[profile.base.assetPath];
+          if (base != null) {
+            _drawEdgeImage(
+              canvas,
+              start: start,
+              end: end,
+              image: base,
+              anchorY: profile.base.anchorY,
+            );
+          }
+          final detailLayer = profile.detail;
+          final detail = detailLayer == null
+              ? null
+              : imagesBySourcePath[detailLayer.assetPath];
+          if (detail != null && detailLayer != null) {
+            _drawEdgeImage(
+              canvas,
+              start: start,
+              end: end,
+              image: detail,
+              anchorY: detailLayer.anchorY,
+            );
+          }
         }
-        if (foreground != null) {
-          _drawEdgeImage(
-            canvas,
-            start: edge.$1,
-            end: edge.$2,
-            image: foreground,
-            anchorY: 0,
-          );
+        if (kind != _TerrainEdgeKind.top) continue;
+        final previousKind =
+            edgeKinds[(index - 1 + edgeKinds.length) % edgeKinds.length];
+        final nextKind = edgeKinds[(index + 1) % edgeKinds.length];
+        if (previousKind != _TerrainEdgeKind.top) {
+          final cap = material.topStartCap;
+          if (cap != null) {
+            final image = imagesBySourcePath[cap.assetPath];
+            if (image != null) {
+              _drawEdgeCap(
+                canvas,
+                edgeStart: start,
+                edgeEnd: end,
+                image: image,
+                cap: cap,
+                atEnd: false,
+              );
+            }
+          }
+        }
+        if (nextKind != _TerrainEdgeKind.top) {
+          final cap = material.topEndCap;
+          if (cap != null) {
+            final image = imagesBySourcePath[cap.assetPath];
+            if (image != null) {
+              _drawEdgeCap(
+                canvas,
+                edgeStart: start,
+                edgeEnd: end,
+                image: image,
+                cap: cap,
+                atEnd: true,
+              );
+            }
+          }
         }
       }
     }
@@ -259,6 +321,7 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
       oldDelegate.parallaxTheme != parallaxTheme ||
       oldDelegate.transform != transform ||
       oldDelegate.layer != layer ||
+      oldDelegate.materialCatalog != materialCatalog ||
       oldDelegate.loadedImageCount != loadedImageCount;
 }
 
@@ -287,27 +350,43 @@ Path _sourcePath(List<TerrainSourceVertexDef> vertices) {
   return path..close();
 }
 
-Iterable<(Offset, Offset)> _upwardEdges(
-  List<TerrainSourceVertexDef> vertices,
-) sync* {
+enum _TerrainEdgeKind { top, leftWall, rightWall, underside }
+
+List<_TerrainEdgeKind> _edgeKinds(List<TerrainSourceVertexDef> vertices) {
   final signedArea = _signedArea(vertices);
+  final kinds = <_TerrainEdgeKind>[];
   for (var index = 0; index < vertices.length; index += 1) {
-    final startVertex = vertices[index];
-    final endVertex = vertices[(index + 1) % vertices.length];
-    final start = Offset(
-      startVertex.xHalfPixels * 0.5,
-      startVertex.yHalfPixels * 0.5,
-    );
-    final end = Offset(
-      endVertex.xHalfPixels * 0.5,
-      endVertex.yHalfPixels * 0.5,
-    );
+    final start = _vertexOffset(vertices[index]);
+    final end = _vertexOffset(vertices[(index + 1) % vertices.length]);
     final dx = end.dx - start.dx;
-    if ((signedArea >= 0 && dx > 0) || (signedArea < 0 && dx < 0)) {
-      yield (start, end);
-    }
+    final dy = end.dy - start.dy;
+    final outwardX = signedArea >= 0 ? dy : -dy;
+    final outwardY = signedArea >= 0 ? -dx : dx;
+    kinds.add(
+      outwardY < 0
+          ? _TerrainEdgeKind.top
+          : outwardY > 0
+          ? _TerrainEdgeKind.underside
+          : outwardX < 0
+          ? _TerrainEdgeKind.leftWall
+          : _TerrainEdgeKind.rightWall,
+    );
   }
+  return kinds;
 }
+
+Offset _vertexOffset(TerrainSourceVertexDef vertex) =>
+    Offset(vertex.xHalfPixels * 0.5, vertex.yHalfPixels * 0.5);
+
+TerrainMaterialEdgeProfile? _profileForKind(
+  TerrainMaterialDefinition material,
+  _TerrainEdgeKind kind,
+) => switch (kind) {
+  _TerrainEdgeKind.top => material.top,
+  _TerrainEdgeKind.leftWall => material.leftWall,
+  _TerrainEdgeKind.rightWall => material.rightWall,
+  _TerrainEdgeKind.underside => material.underside,
+};
 
 double _signedArea(List<TerrainSourceVertexDef> vertices) {
   var area = 0.0;
@@ -347,6 +426,45 @@ void _drawEdgeImage(
     );
   }
   canvas.restore();
+}
+
+void _drawEdgeCap(
+  Canvas canvas, {
+  required Offset edgeStart,
+  required Offset edgeEnd,
+  required ui.Image image,
+  required TerrainMaterialCap cap,
+  required bool atEnd,
+}) {
+  final dx = edgeEnd.dx - edgeStart.dx;
+  final dy = edgeEnd.dy - edgeStart.dy;
+  final length = math.sqrt(dx * dx + dy * dy);
+  if (length <= 0) return;
+  canvas.save();
+  canvas.translate(edgeStart.dx, edgeStart.dy);
+  canvas.rotate(math.atan2(dy, dx));
+  canvas.drawImage(
+    image,
+    Offset((atEnd ? length : 0) - cap.anchorX, -cap.anchorY),
+    Paint()..filterQuality = FilterQuality.none,
+  );
+  canvas.restore();
+}
+
+Iterable<String> _materialAssetPaths(TerrainMaterialDefinition material) sync* {
+  yield material.fillAssetPath;
+  for (final profile in <TerrainMaterialEdgeProfile?>[
+    material.top,
+    material.leftWall,
+    material.rightWall,
+    material.underside,
+  ]) {
+    if (profile == null) continue;
+    yield profile.base.assetPath;
+    if (profile.detail case final detail?) yield detail.assetPath;
+  }
+  if (material.topStartCap case final cap?) yield cap.assetPath;
+  if (material.topEndCap case final cap?) yield cap.assetPath;
 }
 
 Paint _tiledFillPaint(ui.Image image) => Paint()

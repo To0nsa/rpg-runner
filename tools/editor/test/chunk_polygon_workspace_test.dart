@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as p;
 import 'package:runner_editor/src/app/pages/chunkCreator/chunk_creator_page.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_actor_terrain_overlay_painter.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_compiled_edge_overlay_painter.dart';
@@ -1292,6 +1293,32 @@ void main() {
 
 Future<_Harness> _buildHarness() async {
   final root = Directory.systemTemp.createTempSync('chunk_stage_page_');
+  final manifest = File(
+    p.join(
+      root.path,
+      'assets',
+      'authoring',
+      'level',
+      'terrain_material_defs.json',
+    ),
+  )..parent.createSync(recursive: true);
+  manifest.writeAsStringSync(
+    File(
+      p.normalize(
+        p.absolute(
+          p.join(
+            Directory.current.path,
+            '..',
+            '..',
+            'assets',
+            'authoring',
+            'level',
+            'terrain_material_defs.json',
+          ),
+        ),
+      ),
+    ).readAsStringSync(),
+  );
   final forestChunk = _chunkData(
     chunkKey: 'forest_chunk',
     levelId: 'forest',

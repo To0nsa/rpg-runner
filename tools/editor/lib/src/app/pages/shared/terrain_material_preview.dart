@@ -4,18 +4,20 @@ import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 import 'package:terrain_materials/terrain_materials.dart';
 
-/// Composed sample and explicit orientation coverage for one material.
+/// Shared composed sample and explicit orientation coverage for one material.
 class TerrainMaterialPreview extends StatelessWidget {
   const TerrainMaterialPreview({
     super.key,
     required this.workspaceRootPath,
     required this.material,
     this.compact = false,
+    this.keyPrefix,
   });
 
   final String workspaceRootPath;
   final TerrainMaterialDefinition material;
   final bool compact;
+  final String? keyPrefix;
 
   @override
   Widget build(BuildContext context) {
@@ -65,43 +67,54 @@ class TerrainMaterialPreview extends StatelessWidget {
       workspaceRootPath: workspaceRootPath,
       label: 'Fill',
       assetPath: material.fillAssetPath,
+      tileKey: _tileKey('fill'),
     ),
     _TerrainAssetTile(
       workspaceRootPath: workspaceRootPath,
       label: 'Top base',
       assetPath: material.top.base.assetPath,
+      tileKey: _tileKey('surface'),
     ),
     _TerrainAssetTile(
       workspaceRootPath: workspaceRootPath,
       label: 'Top detail',
       assetPath: material.top.detail?.assetPath,
+      tileKey: _tileKey('foreground'),
     ),
     _TerrainAssetTile(
       workspaceRootPath: workspaceRootPath,
       label: 'Start cap',
       assetPath: material.topStartCap?.assetPath,
+      tileKey: _tileKey('start_cap'),
     ),
     _TerrainAssetTile(
       workspaceRootPath: workspaceRootPath,
       label: 'End cap',
       assetPath: material.topEndCap?.assetPath,
+      tileKey: _tileKey('end_cap'),
     ),
     _TerrainAssetTile(
       workspaceRootPath: workspaceRootPath,
       label: 'Left wall',
       assetPath: material.leftWall?.base.assetPath,
+      tileKey: _tileKey('left_wall'),
     ),
     _TerrainAssetTile(
       workspaceRootPath: workspaceRootPath,
       label: 'Right wall',
       assetPath: material.rightWall?.base.assetPath,
+      tileKey: _tileKey('right_wall'),
     ),
     _TerrainAssetTile(
       workspaceRootPath: workspaceRootPath,
       label: 'Underside',
       assetPath: material.underside?.base.assetPath,
+      tileKey: _tileKey('underside'),
     ),
   ];
+
+  String? _tileKey(String suffix) =>
+      keyPrefix == null ? null : '${keyPrefix}_material_preview_$suffix';
 }
 
 class _TerrainComposedSample extends StatelessWidget {
@@ -239,11 +252,13 @@ class _TerrainAssetTile extends StatelessWidget {
     required this.workspaceRootPath,
     required this.label,
     required this.assetPath,
+    required this.tileKey,
   });
 
   final String workspaceRootPath;
   final String label;
   final String? assetPath;
+  final String? tileKey;
 
   @override
   Widget build(BuildContext context) {
@@ -268,6 +283,7 @@ class _TerrainAssetTile extends StatelessWidget {
                     File(
                       p.normalize(p.join(workspaceRootPath, p.fromUri(path))),
                     ),
+                    key: tileKey == null ? null : ValueKey<String>(tileKey!),
                     fit: BoxFit.contain,
                     filterQuality: FilterQuality.none,
                     errorBuilder: _imageError,
