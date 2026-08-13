@@ -26,6 +26,7 @@ import '../../../../terrain_authoring/terrain_polygon_interaction.dart';
 import '../../../../terrain_authoring/terrain_physics_text.dart';
 import '../../../../terrain_authoring/terrain_source_models.dart';
 import '../../shared/editor_scene_view_utils.dart';
+import '../../shared/editor_panel_card.dart';
 import '../../shared/editor_three_panel_layout.dart';
 import '../../shared/editor_scene_viewport_frame.dart';
 import '../../shared/editor_zoom_controls.dart';
@@ -401,8 +402,9 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
     required bool controlsEnabled,
   }) {
     final chunks = List<ChunkV2FileData>.of(scene.chunks)..sort(_compareChunks);
-    return _Panel(
+    return EditorPanelCard(
       title: 'Chunk owners',
+      bodyMode: EditorPanelBodyMode.expanded,
       child: ListView(
         children: <Widget>[
           _buildOwnerActions(
@@ -515,9 +517,10 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
     Key? key,
     required String title,
     required String message,
-  }) => _Panel(
+  }) => EditorPanelCard(
     key: key,
     title: title,
+    bodyMode: EditorPanelBodyMode.expanded,
     child: Center(child: Text(message)),
   );
 
@@ -526,10 +529,11 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
     required Key expansionKey,
     required String title,
     required String message,
-  }) => _ExpandablePanel(
+  }) => EditorPanelCard(
     key: key,
     expansionKey: expansionKey,
     title: title,
+    collapsible: true,
     child: Text(message),
   );
 
@@ -552,8 +556,9 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
   Widget _buildScenePanel(
     ChunkV2Scene scene,
     ChunkPolygonAuthoringController authoring,
-  ) => _Panel(
+  ) => EditorPanelCard(
     title: 'Terrain collision scene',
+    bodyMode: EditorPanelBodyMode.expanded,
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -895,10 +900,11 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
     final selection = authoring.state.selection;
     final selectedShape = _findShape(shapes, selection?.shapeId);
     final draft = authoring.state.draft;
-    return _ExpandablePanel(
+    return EditorPanelCard(
       key: const ValueKey<String>('chunk_polygon_shapes_panel'),
       expansionKey: const ValueKey<String>('chunk_polygon_shapes_panel_toggle'),
       title: 'Shapes',
+      collapsible: true,
       child: Column(
         key: const ValueKey<String>('chunk_shape_list'),
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1017,12 +1023,13 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
   Widget _buildDiagnosticsPanel(
     ChunkPolygonAuthoringController authoring,
     List<ValidationIssue> issues,
-  ) => _ExpandablePanel(
+  ) => EditorPanelCard(
     key: const ValueKey<String>('chunk_polygon_diagnostics_panel'),
     expansionKey: const ValueKey<String>(
       'chunk_polygon_diagnostics_panel_toggle',
     ),
     title: 'Diagnostics',
+    collapsible: true,
     child: Column(
       key: const ValueKey<String>('chunk_diagnostics_list'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1060,12 +1067,13 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
   );
 
   Widget _buildSeamPanel(ChunkPolygonAuthoringController authoring) =>
-      _ExpandablePanel(
+      EditorPanelCard(
         key: const ValueKey<String>('chunk_polygon_seams_panel'),
         expansionKey: const ValueKey<String>(
           'chunk_polygon_seams_panel_toggle',
         ),
         title: 'Reachable chunk seams',
+        collapsible: true,
         child: Column(
           key: const ValueKey<String>('chunk_seam_list'),
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -2206,94 +2214,6 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
     _zoom = _initialZoom;
     _pan = Offset.zero;
   }
-}
-
-class _Panel extends StatelessWidget {
-  const _Panel({super.key, required this.title, required this.child});
-
-  final String title;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => Card.outlined(
-    margin: EdgeInsets.zero,
-    child: Padding(
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          Text(title, style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-          Expanded(child: child),
-        ],
-      ),
-    ),
-  );
-}
-
-class _ExpandablePanel extends StatefulWidget {
-  const _ExpandablePanel({
-    super.key,
-    required this.expansionKey,
-    required this.title,
-    required this.child,
-  });
-
-  final Key expansionKey;
-  final String title;
-  final Widget child;
-
-  @override
-  State<_ExpandablePanel> createState() => _ExpandablePanelState();
-}
-
-class _ExpandablePanelState extends State<_ExpandablePanel> {
-  bool _expanded = true;
-
-  @override
-  Widget build(BuildContext context) => Card.outlined(
-    margin: EdgeInsets.zero,
-    clipBehavior: Clip.antiAlias,
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        Semantics(
-          button: true,
-          expanded: _expanded,
-          child: InkWell(
-            key: widget.expansionKey,
-            onTap: () => setState(() => _expanded = !_expanded),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: Row(
-                children: <Widget>[
-                  Expanded(
-                    child: Text(
-                      widget.title,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                  ),
-                  Tooltip(
-                    message:
-                        '${_expanded ? 'Collapse' : 'Expand'} '
-                        '${widget.title}',
-                    child: Icon(
-                      _expanded ? Icons.expand_less : Icons.expand_more,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        if (_expanded)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-            child: widget.child,
-          ),
-      ],
-    ),
-  );
 }
 
 class _ChunkBoundsPainter extends CustomPainter {
