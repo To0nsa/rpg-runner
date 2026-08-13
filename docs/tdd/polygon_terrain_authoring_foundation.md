@@ -1109,21 +1109,28 @@ third, or physically incompatible coincident edges fail the whole candidate.
 Flame's `StagedTerrain` component converts physics ticks to world units once
 per geometry version and creates `ui.Vertices` with the supplied Core triangle
 indices. It never triangulates, normalizes, stitches, or infers polygon edges.
-Fill texture phase is world anchored. Surface and foreground images follow only
-the exact upward-facing `TerrainEdge` records retained in the snapshot. A null
-material is collision-only and not drawn; an unknown non-null material fails
-through `TerrainMaterialRegistry` instead of selecting a visual fallback.
+Fill texture phase is world anchored. The generated material registry maps
+top/slope, left-wall, right-wall, and underside profiles onto exact retained
+`TerrainEdge` outward normals; an absent optional profile intentionally leaves
+that orientation fill-only. Top endpoint caps use exact previous/next edge IDs
+and are suppressed across same-material top-to-top continuations, including
+resolved streaming seams. Caps render in a final foreground pass after all
+repeating edge bands. A null material is collision-only and not drawn; an
+unknown non-null material fails through `TerrainMaterialRegistry` instead of
+selecting a visual fallback.
 
 `assets/authoring/level/terrain_material_defs.json` is the canonical visual
 material source. The pure-Dart `terrain_materials` package owns its strict
 schema and canonical encoding, and the root content generator verifies every
 referenced image plus every polygon `materialKey` before generating
 `authored_terrain_materials.dart`. This removes the former hand-maintained
-runtime/editor registry duplication. The `grass_dirt` entry declares its fill,
-top base/detail profile, and paired top endpoint caps; wall and underside
-profiles remain explicitly absent. Endpoint and non-top profile drawing remains
-deferred to the material-authoring rollout. `StagedTerrain` is the only terrain
-renderer: the old
+runtime/editor registry duplication. The editor's Terrain Materials route owns
+catalog CRUD, workspace-scoped PNG selection, composed previews, explicit
+orientation coverage, reference-safe rename/delete, and manifest validation.
+Polygon metadata selectors and the Chunk scene consume that same manifest. The
+`grass_dirt` entry declares its fill, top base/detail profile, and paired top
+endpoint caps; wall and underside profiles remain explicitly absent and
+therefore render fill-only. `StagedTerrain` is the only terrain renderer: the old
 `GroundSurface`, `GroundBandParallaxForeground`, `TemporaryFloorMask`, and
 static-solid debug rectangle paths are deleted, and their obsolete snapshot
 fields no longer cross the Core/Game boundary.

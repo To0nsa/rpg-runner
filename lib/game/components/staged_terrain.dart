@@ -5,7 +5,6 @@ import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
-import 'package:runner_core/collision/terrain/terrain_edge.dart';
 import 'package:runner_core/collision/terrain/terrain_numeric.dart';
 import 'package:runner_core/snapshots/staged_terrain_render_snapshot.dart';
 
@@ -13,6 +12,7 @@ import '../game_controller.dart';
 import '../spatial/world_view_transform.dart';
 import '../themes/terrain_material_registry.dart';
 import '../util/math_util.dart';
+import 'staged_terrain_edge_layout.dart';
 import 'staged_terrain_mesh_layout.dart';
 
 /// Draws staged terrain using only Core-owned triangles and exposed edges.
@@ -30,8 +30,8 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
   final Map<String, _LoadedTerrainMaterial> _materials =
       <String, _LoadedTerrainMaterial>{};
   List<_CachedTerrainMesh> _meshes = const <_CachedTerrainMesh>[];
-  List<_CachedTerrainSurfaceEdge> _surfaceEdges =
-      const <_CachedTerrainSurfaceEdge>[];
+  List<_CachedTerrainDecoratedEdge> _surfaceEdges =
+      const <_CachedTerrainDecoratedEdge>[];
   int? _geometryVersion;
   bool _assetsReady = false;
 
@@ -51,16 +51,13 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
   Future<void> onLoad() async {
     await super.onLoad();
     for (final spec in TerrainMaterialRegistry.byKey.values) {
-      final fill = await game.images.load(spec.fillAssetPath);
-      final topBase = await game.images.load(spec.top.base.assetPath);
-      final topDetail = spec.top.detail == null
-          ? null
-          : await game.images.load(spec.top.detail!.assetPath);
+      final imagesByPath = <String, ui.Image>{};
+      for (final assetPath in spec.assetPaths.toSet()) {
+        imagesByPath[assetPath] = await game.images.load(assetPath);
+      }
       _materials[spec.key] = _LoadedTerrainMaterial(
         spec: spec,
-        fill: fill,
-        topBase: topBase,
-        topDetail: topDetail,
+        imagesByPath: imagesByPath,
       );
     }
     _assetsReady = true;
@@ -112,19 +109,56 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
     for (final edge in _surfaceEdges) {
       if (!edge.bounds.overlaps(visibleWorldRect)) continue;
       final material = _materials[edge.materialKey]!;
+      final profile = StagedTerrainEdgeLayout.profileFor(
+        material.spec,
+        edge.orientation,
+      )!;
       _drawEdgeImage(
         canvas,
         edge: edge,
-        image: material.topBase,
-        anchorY: material.spec.top.base.anchorY,
+        image: material.imageFor(profile.base.assetPath),
+        anchorY: profile.base.anchorY,
       );
-      if (material.topDetail case final detail?) {
+      if (profile.detail case final detail?) {
         _drawEdgeImage(
           canvas,
           edge: edge,
-          image: detail,
-          anchorY: material.spec.top.detail!.anchorY,
+          image: material.imageFor(detail.assetPath),
+          anchorY: detail.anchorY,
         );
+      }
+    }
+    // Endpoint art is a foreground pass so adjacent wall bands cannot obscure
+    // the cliff silhouette when snapshot edge ordering changes.
+    for (final edge in _surfaceEdges) {
+      if (!edge.bounds.overlaps(visibleWorldRect) ||
+          (!edge.drawStartCap && !edge.drawEndCap)) {
+        continue;
+      }
+      final material = _materials[edge.materialKey]!;
+      if (edge.drawStartCap) {
+        final cap = material.spec.topStartCap;
+        if (cap != null) {
+          _drawEdgeCap(
+            canvas,
+            edge: edge,
+            image: material.imageFor(cap.assetPath),
+            cap: cap,
+            atEnd: false,
+          );
+        }
+      }
+      if (edge.drawEndCap) {
+        final cap = material.spec.topEndCap;
+        if (cap != null) {
+          _drawEdgeCap(
+            canvas,
+            edge: edge,
+            image: material.imageFor(cap.assetPath),
+            cap: cap,
+            atEnd: true,
+          );
+        }
       }
     }
 
@@ -135,7 +169,7 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
     if (snapshot == null) {
       _geometryVersion = null;
       _meshes = const <_CachedTerrainMesh>[];
-      _surfaceEdges = const <_CachedTerrainSurfaceEdge>[];
+      _surfaceEdges = const <_CachedTerrainDecoratedEdge>[];
       return;
     }
     if (_geometryVersion == snapshot.geometryVersion) return;
@@ -147,22 +181,21 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
       meshes.add(_CachedTerrainMesh.fromData(mesh));
     }
 
-    final surfaceEdges = <_CachedTerrainSurfaceEdge>[];
-    for (final edge in snapshot.edges) {
-      final materialKey = edge.materialKey;
-      if (materialKey == null || edge.outwardNormal.yTicks >= 0) continue;
-      TerrainMaterialRegistry.require(materialKey);
-      surfaceEdges.add(_CachedTerrainSurfaceEdge.fromCore(edge, materialKey));
+    final surfaceEdges = <_CachedTerrainDecoratedEdge>[];
+    for (final decoration in StagedTerrainEdgeLayout.build(snapshot)) {
+      surfaceEdges.add(_CachedTerrainDecoratedEdge.fromLayout(decoration));
     }
 
     _meshes = List<_CachedTerrainMesh>.unmodifiable(meshes);
-    _surfaceEdges = List<_CachedTerrainSurfaceEdge>.unmodifiable(surfaceEdges);
+    _surfaceEdges = List<_CachedTerrainDecoratedEdge>.unmodifiable(
+      surfaceEdges,
+    );
     _geometryVersion = snapshot.geometryVersion;
   }
 
   void _drawEdgeImage(
     ui.Canvas canvas, {
-    required _CachedTerrainSurfaceEdge edge,
+    required _CachedTerrainDecoratedEdge edge,
     required ui.Image image,
     required double anchorY,
   }) {
@@ -181,29 +214,45 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
     canvas.restore();
   }
 
+  void _drawEdgeCap(
+    ui.Canvas canvas, {
+    required _CachedTerrainDecoratedEdge edge,
+    required ui.Image image,
+    required TerrainMaterialCapSpec cap,
+    required bool atEnd,
+  }) {
+    if (edge.length <= 0) return;
+    canvas.save();
+    canvas.translate(edge.start.dx, edge.start.dy);
+    canvas.rotate(edge.angle);
+    canvas.drawImage(
+      image,
+      ui.Offset((atEnd ? edge.length : 0) - cap.anchorX, -cap.anchorY),
+      _edgePaint,
+    );
+    canvas.restore();
+  }
+
   static final Paint _edgePaint = Paint()..filterQuality = FilterQuality.none;
 }
 
 final class _LoadedTerrainMaterial {
-  _LoadedTerrainMaterial({
-    required this.spec,
-    required ui.Image fill,
-    required this.topBase,
-    required this.topDetail,
-  }) : fillPaint = Paint()
-         ..filterQuality = FilterQuality.none
-         ..shader = ui.ImageShader(
-           fill,
-           ui.TileMode.repeated,
-           ui.TileMode.repeated,
-           _identityMatrix,
-           filterQuality: ui.FilterQuality.none,
-         );
+  _LoadedTerrainMaterial({required this.spec, required this.imagesByPath})
+    : fillPaint = Paint()
+        ..filterQuality = FilterQuality.none
+        ..shader = ui.ImageShader(
+          imagesByPath[spec.fillAssetPath]!,
+          ui.TileMode.repeated,
+          ui.TileMode.repeated,
+          _identityMatrix,
+          filterQuality: ui.FilterQuality.none,
+        );
 
   final TerrainMaterialSpec spec;
   final Paint fillPaint;
-  final ui.Image topBase;
-  final ui.Image? topDetail;
+  final Map<String, ui.Image> imagesByPath;
+
+  ui.Image imageFor(String assetPath) => imagesByPath[assetPath]!;
 }
 
 final class _CachedTerrainMesh {
@@ -240,19 +289,22 @@ final class _CachedTerrainMesh {
   final ui.Rect bounds;
 }
 
-final class _CachedTerrainSurfaceEdge {
-  const _CachedTerrainSurfaceEdge({
+final class _CachedTerrainDecoratedEdge {
+  const _CachedTerrainDecoratedEdge({
     required this.materialKey,
+    required this.orientation,
+    required this.drawStartCap,
+    required this.drawEndCap,
     required this.start,
     required this.length,
     required this.angle,
     required this.bounds,
   });
 
-  factory _CachedTerrainSurfaceEdge.fromCore(
-    TerrainEdge edge,
-    String materialKey,
+  factory _CachedTerrainDecoratedEdge.fromLayout(
+    StagedTerrainEdgeDecoration decoration,
   ) {
+    final edge = decoration.edge;
     final start = ui.Offset(
       edge.start.xTicks / terrainPhysicsTicksPerWorldUnit,
       edge.start.yTicks / terrainPhysicsTicksPerWorldUnit,
@@ -263,21 +315,27 @@ final class _CachedTerrainSurfaceEdge {
     );
     final dx = end.dx - start.dx;
     final dy = end.dy - start.dy;
-    return _CachedTerrainSurfaceEdge(
-      materialKey: materialKey,
+    return _CachedTerrainDecoratedEdge(
+      materialKey: decoration.materialKey,
+      orientation: decoration.orientation,
+      drawStartCap: decoration.drawStartCap,
+      drawEndCap: decoration.drawEndCap,
       start: start,
       length: math.sqrt(dx * dx + dy * dy),
       angle: math.atan2(dy, dx),
       bounds: ui.Rect.fromLTRB(
-        math.min(start.dx, end.dx),
-        math.min(start.dy, end.dy) - 52,
-        math.max(start.dx, end.dx),
-        math.max(start.dy, end.dy) + 52,
+        math.min(start.dx, end.dx) - 160,
+        math.min(start.dy, end.dy) - 160,
+        math.max(start.dx, end.dx) + 160,
+        math.max(start.dy, end.dy) + 160,
       ),
     );
   }
 
   final String materialKey;
+  final TerrainMaterialEdgeOrientation orientation;
+  final bool drawStartCap;
+  final bool drawEndCap;
   final ui.Offset start;
   final double length;
   final double angle;
