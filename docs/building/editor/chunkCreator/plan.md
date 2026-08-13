@@ -90,7 +90,7 @@ Prefab route exists for Phase 0 foundation:
 
 - `tools/editor/lib/src/app/pages/prefabCreator/prefab_creator_page.dart`
 
-Chunk route is now a functional composition workspace skeleton:
+The Chunk route is now a current-schema polygon and composition workspace:
 
 - `tools/editor/lib/src/app/pages/chunkCreator/chunk_creator_page.dart`
 
@@ -99,7 +99,20 @@ Windows profile benchmark for its real pointer surface. The reviewed benchmark
 fixture renders 16 direct shapes plus expanded Prefab collision at exactly 256
 Core edges and measures vertex/whole-shape drag without reloading or replacing
 repository source. Checked-in Chunk-v2 source now loads and saves through that
-workflow; its collision lists are intentionally empty pending reauthoring.
+workflow. All eight current chunk files contain direct terrain collision; six
+forest chunks also place prefabs, and the two woodcamp chunks contain enemy
+markers.
+
+An active workspace-unification follow-on will replace the route's mutually
+exclusive terrain and composition views with one persistent Chunk creation
+scene and two right-side authoring cards. Layout consolidation lands before
+direct prefab/marker manipulation; operation-scoped gesture targeting and the
+owner-identity/revision stale checks share the existing composition command,
+and the metadata-only tile-layer boundary has an explicit gate. The initiative
+does not change Chunk-v2 source or Core placement lineage:
+
+- [Unified Chunk Scene Strategy](unified-chunk-scene-strategy.md)
+- [Unified Chunk Scene Implementation Checklist](unified-chunk-scene-implementation-checklist.md)
 
 Parallax route now exists as a dedicated theme-authoring workflow:
 
@@ -779,16 +792,20 @@ Asset sync when new level assets are added:
 
 ## 11) Immediate Next Slice
 
-1. Keep completed Phases 3-6 green with regression verification only (do not
+1. Complete the contract-freeze and persistent-layout phases of the
+   [Unified Chunk Scene Implementation Checklist](unified-chunk-scene-implementation-checklist.md)
+   before adding direct prefab or marker manipulation. Keep tile painting in a
+   separate future plan until its source contract and consumer exist.
+2. Keep completed Phases 3-6 green with regression verification only (do not
    reopen completed scope):
    - `cd tools/editor && dart analyze`
    - `cd tools/editor && flutter test`
-2. Keep completed Phase 7 assembly/theme sequencing green while the remaining
+3. Keep completed Phase 7 assembly/theme sequencing green while the remaining
    chunk/runtime phases land.
-3. Start Phase 8 simulation preview + validation hardening.
-4. Start Phase 9 first playable end-to-end chunk pipeline.
-5. Keep Phase 10 parallax parity and determinism coverage green while the
+4. Start Phase 8 simulation preview + validation hardening.
+5. Start Phase 9 first playable end-to-end chunk pipeline.
+6. Keep Phase 10 parallax parity and determinism coverage green while the
    remaining chunk/runtime phases land.
-6. Start Phase 11 CI drift gate + remaining hardening.
+7. Start Phase 11 CI drift gate + remaining hardening.
    Runtime chunk collision adapter removal is complete; the open work is CI
    drift enforcement and future contract cleanup around new content families.
