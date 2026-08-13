@@ -2,16 +2,24 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../domain/authoring_identifiers.dart';
 import '../../../domain/authoring_types.dart';
 import '../../../levels/level_domain_models.dart';
+import '../../../levels/level_domain_plugin.dart';
+import '../../../parallax/parallax_domain_models.dart';
 import '../../../session/editor_session_controller.dart';
 import '../shared/editor_page_local_draft_state.dart';
 import '../shared/editor_workspace_card.dart';
 
 class LevelCreatorPage extends StatefulWidget {
-  const LevelCreatorPage({super.key, required this.controller});
+  const LevelCreatorPage({
+    super.key,
+    required this.controller,
+    this.onOpenInParallax,
+  });
 
   final EditorSessionController controller;
+  final ValueChanged<ParallaxLevelTarget>? onOpenInParallax;
 
   @override
   State<LevelCreatorPage> createState() => _LevelCreatorPageState();
@@ -24,6 +32,8 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
   final TextEditingController _newLevelIdController = TextEditingController(
     text: _defaultNewLevelId,
   );
+  final TextEditingController _newVisualThemeIdController =
+      TextEditingController(text: _defaultNewLevelId);
   final TextEditingController _displayNameController = TextEditingController();
   final TextEditingController _visualThemeIdController =
       TextEditingController();
@@ -58,13 +68,25 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
       const <LevelAssemblySegmentDef>[];
   int? _selectedAssemblySegmentIndex;
   bool _selectedSegmentRequireDistinct = true;
+  _NewLevelThemeMode _newLevelThemeMode = _NewLevelThemeMode.create;
+  String _newLevelFormBaselineId = _defaultNewLevelId;
+  String? _selectedExistingThemeId;
+  bool _newThemeIdWasManuallyEdited = false;
+  String? _createThemeDialogDraftId;
+  bool _createThemeDialogOpen = false;
+  ParallaxLevelTarget? _parallaxHandoffTarget;
+  List<String> _cleanupRequiredPaths = const <String>[];
 
   @override
   bool get hasLocalDraftChanges {
     final scene = widget.controller.scene;
     final levelScene = scene is LevelScene ? scene : null;
     final activeLevel = levelScene?.activeLevel;
-    if (_newLevelIdController.text.trim() != _defaultNewLevelId) {
+    if (_newLevelIdController.text.trim() != _newLevelFormBaselineId ||
+        _newLevelThemeMode != _NewLevelThemeMode.create ||
+        _newVisualThemeIdController.text.trim() != _newLevelFormBaselineId ||
+        _createThemeDialogOpen ||
+        _createThemeDialogDraftId != null) {
       return true;
     }
     if (activeLevel == null) {
@@ -117,6 +139,7 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
   @override
   void dispose() {
     _newLevelIdController.dispose();
+    _newVisualThemeIdController.dispose();
     _displayNameController.dispose();
     _visualThemeIdController.dispose();
     _cameraCenterYController.dispose();
@@ -165,13 +188,41 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
                 )
               else
                 Expanded(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(flex: 1, child: _buildLevelListPane(levelScene)),
-                      const SizedBox(width: 12),
-                      Expanded(flex: 2, child: _buildInspectorPane(levelScene)),
-                    ],
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      if (constraints.maxWidth >= 980) {
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              flex: 1,
+                              child: _buildLevelListPane(levelScene),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              flex: 2,
+                              child: _buildInspectorPane(levelScene),
+                            ),
+                          ],
+                        );
+                      }
+                      return ListView(
+                        key: const ValueKey<String>(
+                          'level_creator_narrow_layout',
+                        ),
+                        children: [
+                          SizedBox(
+                            height: 560,
+                            child: _buildLevelListPane(levelScene),
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            height: 1200,
+                            child: _buildInspectorPane(levelScene),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ),
             ],
@@ -188,21 +239,32 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         OutlinedButton.icon(
-          onPressed: widget.controller.canUndo ? widget.controller.undo : null,
+          onPressed: widget.controller.canUndo
+              ? () {
+                  _invalidateHandoff();
+                  widget.controller.undo();
+                }
+              : null,
           icon: const Icon(Icons.undo),
           label: const Text('Undo'),
         ),
         OutlinedButton.icon(
-          onPressed: widget.controller.canRedo ? widget.controller.redo : null,
+          onPressed: widget.controller.canRedo
+              ? () {
+                  _invalidateHandoff();
+                  widget.controller.redo();
+                }
+              : null,
           icon: const Icon(Icons.redo),
           label: const Text('Redo'),
         ),
         FilledButton.icon(
-          onPressed: widget.controller.isExporting
-              ? null
-              : () {
+          key: const ValueKey<String>('apply_level_files_button'),
+          onPressed: _canApplyToFiles
+              ? () {
                   unawaited(_confirmAndApplyToFiles());
-                },
+                }
+              : null,
           icon: const Icon(Icons.save_outlined),
           label: const Text('Apply To Files'),
         ),
@@ -210,6 +272,7 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
           SizedBox(
             width: 240,
             child: DropdownButtonFormField<String>(
+              isExpanded: true,
               key: ValueKey<String?>('level-active-${scene.activeLevelId}'),
               initialValue: scene.activeLevelId,
               decoration: const InputDecoration(
@@ -259,24 +322,12 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          TextField(
-            controller: _newLevelIdController,
-            decoration: const InputDecoration(
-              labelText: 'New levelId',
-              border: OutlineInputBorder(),
-              isDense: true,
-            ),
-          ),
-          const SizedBox(height: 8),
+          _buildNewLevelForm(scene),
+          const SizedBox(height: 12),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
-              FilledButton.icon(
-                onPressed: _createLevel,
-                icon: const Icon(Icons.add),
-                label: const Text('Create'),
-              ),
               OutlinedButton(
                 onPressed: scene.activeLevel == null
                     ? null
@@ -331,13 +382,151 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
     );
   }
 
+  Widget _buildNewLevelForm(LevelScene scene) {
+    final formError = _newLevelFormError(scene);
+    final themeIds = scene.availableParallaxVisualThemeIds;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.22),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: const Color(0x334A6074)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('New Level', style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: 8),
+            TextField(
+              key: const ValueKey<String>('new_level_id_field'),
+              controller: _newLevelIdController,
+              decoration: const InputDecoration(
+                labelText: 'New levelId',
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+              onChanged: (value) {
+                if (!_newThemeIdWasManuallyEdited) {
+                  _newVisualThemeIdController
+                      .value = _newVisualThemeIdController.value.copyWith(
+                    text: value,
+                    selection: TextSelection.collapsed(offset: value.length),
+                    composing: TextRange.empty,
+                  );
+                }
+                setState(_invalidateHandoff);
+              },
+            ),
+            const SizedBox(height: 8),
+            SegmentedButton<_NewLevelThemeMode>(
+              key: const ValueKey<String>('new_level_theme_mode'),
+              segments: const <ButtonSegment<_NewLevelThemeMode>>[
+                ButtonSegment<_NewLevelThemeMode>(
+                  value: _NewLevelThemeMode.create,
+                  icon: Icon(Icons.add_photo_alternate_outlined),
+                  label: Text('Create new theme'),
+                ),
+                ButtonSegment<_NewLevelThemeMode>(
+                  value: _NewLevelThemeMode.existing,
+                  icon: Icon(Icons.collections_outlined),
+                  label: Text('Use existing theme'),
+                ),
+              ],
+              selected: <_NewLevelThemeMode>{_newLevelThemeMode},
+              showSelectedIcon: false,
+              onSelectionChanged: (selection) {
+                setState(() {
+                  _newLevelThemeMode = selection.single;
+                  _invalidateHandoff();
+                });
+              },
+            ),
+            const SizedBox(height: 8),
+            if (_newLevelThemeMode == _NewLevelThemeMode.create)
+              TextField(
+                key: const ValueKey<String>('new_visual_theme_id_field'),
+                controller: _newVisualThemeIdController,
+                decoration: const InputDecoration(
+                  labelText: 'New visual theme ID',
+                  helperText:
+                      'Creates an empty theme. Add its layers in Parallax after apply.',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+                onChanged: (_) {
+                  setState(() {
+                    _newThemeIdWasManuallyEdited = true;
+                    _invalidateHandoff();
+                  });
+                },
+              )
+            else
+              DropdownButtonFormField<String>(
+                isExpanded: true,
+                key: const ValueKey<String>('new_level_existing_theme'),
+                initialValue: themeIds.contains(_selectedExistingThemeId)
+                    ? _selectedExistingThemeId
+                    : null,
+                decoration: const InputDecoration(
+                  labelText: 'Existing visual theme',
+                  hintText: 'Choose an authored theme',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+                items: [
+                  for (final themeId in themeIds)
+                    DropdownMenuItem<String>(
+                      value: themeId,
+                      child: Text(themeId),
+                    ),
+                ],
+                onChanged: themeIds.isEmpty
+                    ? null
+                    : (value) {
+                        setState(() {
+                          _selectedExistingThemeId = value;
+                          _invalidateHandoff();
+                        });
+                      },
+              ),
+            if (formError != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                formError,
+                key: const ValueKey<String>('new_level_form_error'),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.error,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+            const SizedBox(height: 8),
+            FilledButton.icon(
+              key: const ValueKey<String>('create_level_button'),
+              onPressed: formError == null && !widget.controller.isExporting
+                  ? _createLevel
+                  : null,
+              icon: const Icon(Icons.add),
+              label: const Text('Create Level'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildLevelEntry(
     LevelDef level, {
     required bool isSelected,
     required int chunkCount,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
-    final isDirty = widget.controller.dirtyItemIds.contains(level.levelId);
+    final isDirty = widget.controller.dirtyItemIds.contains(
+      'level:${level.levelId}',
+    );
     return Material(
       color: Colors.transparent,
       child: Ink(
@@ -419,15 +608,10 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
     );
     final showMissingSelectedTheme =
         hasSelectedVisualThemeId && !selectedThemeIsAuthored;
-    final visualThemeDropdownValue = hasSelectedVisualThemeId
+    final visualThemeDropdownValue = selectedThemeIsAuthored
         ? selectedVisualThemeId
         : null;
     final visualThemeItems = <DropdownMenuItem<String>>[
-      if (showMissingSelectedTheme)
-        DropdownMenuItem<String>(
-          value: selectedVisualThemeId,
-          child: Text('$selectedVisualThemeId (missing)'),
-        ),
       for (final visualThemeId in availableVisualThemeIds)
         DropdownMenuItem<String>(
           value: visualThemeId,
@@ -436,6 +620,7 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
     ];
     final canSelectVisualTheme =
         activeLevel != null && availableVisualThemeIds.isNotEmpty;
+    final postApplyPanel = _buildPostApplyPanel(scene);
 
     return _buildPane(
       title: 'Inspector',
@@ -461,12 +646,14 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
           ),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
+            isExpanded: true,
             key: ValueKey<String>(
               'level-visual-theme-${scene.activeLevelId ?? 'none'}-$selectedVisualThemeId',
             ),
             initialValue: visualThemeDropdownValue,
-            decoration: InputDecoration(
-              labelText: 'visualThemeId (parallax + ground)',
+            decoration: const InputDecoration(
+              labelText: 'Visual theme (Parallax)',
+              hintText: 'Select an authored visual theme',
               border: OutlineInputBorder(),
               isDense: true,
             ),
@@ -479,8 +666,67 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
                     }
                     setState(() {
                       _visualThemeIdController.text = value;
+                      _invalidateHandoff();
                     });
                   },
+          ),
+          if (showMissingSelectedTheme) ...[
+            const SizedBox(height: 8),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: Theme.of(
+                  context,
+                ).colorScheme.errorContainer.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: Theme.of(context).colorScheme.error),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Missing visual theme "$selectedVisualThemeId".',
+                      key: const ValueKey<String>(
+                        'missing_visual_theme_repair',
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Create the missing empty theme, or select an authored theme above.',
+                    ),
+                    const SizedBox(height: 8),
+                    FilledButton.tonal(
+                      key: const ValueKey<String>(
+                        'create_missing_visual_theme_button',
+                      ),
+                      onPressed: activeLevel == null
+                          ? null
+                          : () => unawaited(
+                              _showCreateAndAssignThemeDialog(
+                                scene,
+                                initialThemeId: selectedVisualThemeId,
+                              ),
+                            ),
+                      child: const Text('Create missing theme'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            key: const ValueKey<String>('create_assign_visual_theme_button'),
+            onPressed: activeLevel == null
+                ? null
+                : () => unawaited(_showCreateAndAssignThemeDialog(scene)),
+            icon: const Icon(Icons.add_photo_alternate_outlined),
+            label: const Text('Create and assign new theme'),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Parallax owns theme layers. Terrain materials remain authored separately.',
           ),
           const SizedBox(height: 8),
           _buildRuntimeMetricsRow(),
@@ -504,6 +750,10 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
             onPressed: activeLevel == null ? null : _applySelectedLevelChanges,
             child: const Text('Apply Level'),
           ),
+          if (postApplyPanel != null) ...[
+            const SizedBox(height: 12),
+            postApplyPanel,
+          ],
           const SizedBox(height: 16),
           Text(
             'Validation (${widget.controller.errorCount} errors, '
@@ -534,10 +784,13 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Text(diff.relativePath),
               ),
-            SelectableText(
-              pendingChanges.fileDiffs.first.unifiedDiff,
-              style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
-            ),
+            for (final diff in pendingChanges.fileDiffs) ...[
+              SelectableText(
+                diff.unifiedDiff,
+                style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+              ),
+              const SizedBox(height: 8),
+            ],
           ],
         ],
       ),
@@ -626,6 +879,81 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
           suffixIcon: readOnly ? const Icon(Icons.lock_outline) : null,
         ),
         keyboardType: keyboardType,
+      ),
+    );
+  }
+
+  Widget? _buildPostApplyPanel(LevelScene scene) {
+    final target = _parallaxHandoffTarget;
+    if (target == null && _cleanupRequiredPaths.isEmpty) return null;
+    final targetStillResolves =
+        target != null &&
+        scene.levels.any(
+          (level) =>
+              level.levelId == target.levelId &&
+              level.visualThemeId == target.parallaxThemeId,
+        );
+    final canOpen =
+        targetStillResolves &&
+        widget.onOpenInParallax != null &&
+        !widget.controller.pendingChanges.hasChanges &&
+        !hasLocalDraftChanges &&
+        !widget.controller.isLoading &&
+        !widget.controller.isExporting &&
+        _cleanupRequiredPaths.isEmpty;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Theme.of(
+          context,
+        ).colorScheme.primaryContainer.withValues(alpha: 0.24),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: Theme.of(context).colorScheme.primary),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              _cleanupRequiredPaths.isEmpty
+                  ? 'Authoring sources saved'
+                  : 'Sources committed; cleanup required',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Runtime Dart is not generated yet. After finishing Level and Parallax authoring, run:',
+            ),
+            const SizedBox(height: 6),
+            const SelectableText(
+              'dart run tool/generate_chunk_runtime_data.dart\n'
+              'dart run tool/generate_chunk_runtime_data.dart --dry-run',
+              style: TextStyle(fontFamily: 'monospace'),
+            ),
+            if (_cleanupRequiredPaths.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              const Text(
+                'Do not apply again until these transaction files are inspected and removed:',
+              ),
+              for (final path in _cleanupRequiredPaths)
+                SelectableText(
+                  path,
+                  style: const TextStyle(fontFamily: 'monospace'),
+                ),
+            ],
+            if (target != null) ...[
+              const SizedBox(height: 10),
+              FilledButton.icon(
+                key: const ValueKey<String>('open_level_in_parallax_button'),
+                onPressed: canOpen
+                    ? () => widget.onOpenInParallax!(target)
+                    : null,
+                icon: const Icon(Icons.layers_outlined),
+                label: Text('Open ${target.parallaxThemeId} in Parallax'),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -1157,10 +1485,20 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
 
   void _createLevel() {
     final requestedLevelId = _newLevelIdController.text.trim();
+    final requestedThemeId = _newLevelThemeMode == _NewLevelThemeMode.create
+        ? _newVisualThemeIdController.text.trim()
+        : (_selectedExistingThemeId ?? '');
+    _invalidateHandoff();
     widget.controller.applyCommand(
       AuthoringCommand(
         kind: 'create_level',
-        payload: <String, Object?>{'levelId': requestedLevelId},
+        payload: <String, Object?>{
+          'levelId': requestedLevelId,
+          'themeMode': _newLevelThemeMode == _NewLevelThemeMode.create
+              ? levelThemeModeCreate
+              : levelThemeModeExisting,
+          'visualThemeId': requestedThemeId,
+        },
       ),
     );
     final updatedScene = widget.controller.scene;
@@ -1169,7 +1507,7 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
       return;
     }
     setState(() {
-      _newLevelIdController.text = _suggestNewLevelId(updatedScene);
+      _resetNewLevelForm(updatedScene);
     });
   }
 
@@ -1178,6 +1516,7 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
     if (scene is! LevelScene || scene.activeLevel == null) {
       return;
     }
+    _invalidateHandoff();
     widget.controller.applyCommand(
       AuthoringCommand(
         kind: 'duplicate_level',
@@ -1191,6 +1530,7 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
     if (scene is! LevelScene || scene.activeLevel == null) {
       return;
     }
+    _invalidateHandoff();
     widget.controller.applyCommand(
       AuthoringCommand(
         kind: 'deprecate_level',
@@ -1204,6 +1544,7 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
     if (scene is! LevelScene || scene.activeLevel == null) {
       return;
     }
+    _invalidateHandoff();
     widget.controller.applyCommand(
       AuthoringCommand(
         kind: 'reactivate_level',
@@ -1223,6 +1564,7 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
             loopSegments: _assemblyLoopSegments,
             segments: _assemblySegmentsDraft,
           ).toJson();
+    _invalidateHandoff();
     widget.controller.applyCommand(
       AuthoringCommand(
         kind: 'update_level',
@@ -1250,6 +1592,25 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
       _showSnackBar('No pending changes to apply.');
       return;
     }
+    if (widget.controller.errorCount > 0 ||
+        widget.controller.pendingChangesError != null ||
+        _cleanupRequiredPaths.isNotEmpty) {
+      _showSnackBar('Resolve blocking validation or recovery issues first.');
+      return;
+    }
+    final sceneBeforeApply = widget.controller.scene;
+    final activeLevelBeforeApply = sceneBeforeApply is LevelScene
+        ? sceneBeforeApply.activeLevel
+        : null;
+    final handoffTarget = activeLevelBeforeApply == null
+        ? null
+        : ParallaxLevelTarget(
+            levelId: activeLevelBeforeApply.levelId,
+            parallaxThemeId: activeLevelBeforeApply.visualThemeId,
+          );
+    final changedPaths = pendingChanges.fileDiffs
+        .map((diff) => diff.relativePath)
+        .join('\n');
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -1257,8 +1618,9 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
         return AlertDialog(
           title: const Text('Apply Level Changes'),
           content: Text(
-            'Write ${pendingChanges.changedItemIds.length} level change(s) '
-            'across ${pendingChanges.fileDiffs.length} file(s)?',
+            'Write ${pendingChanges.changedItemIds.length} Level/theme '
+            'change(s) across ${pendingChanges.fileDiffs.length} file(s)?\n\n'
+            '$changedPaths',
           ),
           actions: [
             TextButton(
@@ -1286,10 +1648,224 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
       return;
     }
     if (widget.controller.exportError != null) {
+      setState(_invalidateHandoff);
       _showSnackBar('Apply failed: ${widget.controller.exportError}');
       return;
     }
-    _showSnackBar('Level changes applied.');
+    final result = widget.controller.lastExportResult;
+    final reloadedScene = widget.controller.scene;
+    final targetResolved =
+        result?.applied == true &&
+        handoffTarget != null &&
+        reloadedScene is LevelScene &&
+        reloadedScene.levels.any(
+          (level) =>
+              level.levelId == handoffTarget.levelId &&
+              level.visualThemeId == handoffTarget.parallaxThemeId,
+        ) &&
+        !widget.controller.pendingChanges.hasChanges;
+    setState(() {
+      _parallaxHandoffTarget = targetResolved ? handoffTarget : null;
+      _cleanupRequiredPaths = result is LevelThemeExportResult
+          ? result.cleanupRequiredPaths
+          : const <String>[];
+    });
+    if (result?.applied != true) {
+      _showSnackBar('No source files changed.');
+      return;
+    }
+    _showSnackBar(
+      _cleanupRequiredPaths.isEmpty
+          ? 'Authoring sources saved. Runtime generation is still required.'
+          : 'Sources committed, but transaction cleanup is required.',
+    );
+  }
+
+  bool get _canApplyToFiles {
+    return !widget.controller.isExporting &&
+        !widget.controller.isLoading &&
+        widget.controller.pendingChanges.hasChanges &&
+        widget.controller.pendingChangesError == null &&
+        widget.controller.errorCount == 0 &&
+        _cleanupRequiredPaths.isEmpty;
+  }
+
+  String? _newLevelFormError(LevelScene scene) {
+    final levelId = _newLevelIdController.text.trim();
+    if (levelId.isEmpty) return 'Enter a level ID.';
+    if (!stableLevelIdentifierPattern.hasMatch(levelId)) {
+      return 'levelId must match ${stableLevelIdentifierPattern.pattern}.';
+    }
+    if (scene.levels.any((level) => level.levelId == levelId)) {
+      return 'Level "$levelId" already exists.';
+    }
+    if (_newLevelThemeMode == _NewLevelThemeMode.existing) {
+      if (scene.availableParallaxVisualThemeIds.isEmpty) {
+        return 'No authored visual themes are available.';
+      }
+      final existingId = _selectedExistingThemeId;
+      if (existingId == null ||
+          !scene.availableParallaxVisualThemeIds.contains(existingId)) {
+        return 'Choose an existing visual theme explicitly.';
+      }
+      return null;
+    }
+    return _newThemeIdError(scene, _newVisualThemeIdController.text.trim());
+  }
+
+  String? _newThemeIdError(LevelScene scene, String themeId) {
+    final document = widget.controller.document;
+    if (document is! LevelDefsDocument ||
+        !document.parallaxThemeSourceAvailable ||
+        document.parallaxDocument == null) {
+      return 'Parallax source is unavailable. Reload a valid workspace.';
+    }
+    if (themeId.isEmpty) return 'Enter a visual theme ID.';
+    if (!stableAuthoringIdentifierPattern.hasMatch(themeId)) {
+      return 'Theme ID must match ${stableAuthoringIdentifierPattern.pattern}.';
+    }
+    if (scene.availableParallaxVisualThemeIds.contains(themeId)) {
+      return 'Visual theme "$themeId" already exists. Use existing theme instead.';
+    }
+    final symbol = generatedParallaxThemeSymbolSuffix(themeId);
+    for (final existingId in scene.availableParallaxVisualThemeIds) {
+      if (generatedParallaxThemeSymbolSuffix(existingId) == symbol) {
+        return 'Theme ID "$themeId" generates the same Dart symbol as '
+            '"$existingId".';
+      }
+    }
+    return null;
+  }
+
+  Future<void> _showCreateAndAssignThemeDialog(
+    LevelScene scene, {
+    String? initialThemeId,
+  }) async {
+    final activeLevel = scene.activeLevel;
+    if (activeLevel == null) return;
+    final initialDraft =
+        initialThemeId ??
+        _createThemeDialogDraftId ??
+        _suggestThemeId(scene, '${activeLevel.levelId}_theme');
+    var draftText = initialDraft;
+    setState(() {
+      _createThemeDialogDraftId = initialDraft;
+      _createThemeDialogOpen = true;
+      _invalidateHandoff();
+    });
+    final acceptedThemeId = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final draft = draftText.trim();
+            final error = _newThemeIdError(scene, draft);
+            return AlertDialog(
+              title: const Text('Create and assign visual theme'),
+              content: SizedBox(
+                width: 440,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextFormField(
+                      key: const ValueKey<String>(
+                        'create_assign_theme_id_field',
+                      ),
+                      initialValue: initialDraft,
+                      autofocus: true,
+                      decoration: InputDecoration(
+                        labelText: 'New visual theme ID',
+                        border: const OutlineInputBorder(),
+                        errorText: error,
+                      ),
+                      onChanged: (value) {
+                        draftText = value;
+                        _createThemeDialogDraftId = value;
+                        setDialogState(() {});
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'This stages an empty revision-1 theme and assigns it to '
+                      'the level in one undo step. Add layers in Parallax after apply.',
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: error == null
+                      ? () => Navigator.of(dialogContext).pop(draft)
+                      : null,
+                  child: const Text('Create and assign'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+    if (!mounted) return;
+    setState(() {
+      _createThemeDialogOpen = false;
+      if (acceptedThemeId == null) _createThemeDialogDraftId = null;
+    });
+    if (acceptedThemeId == null) return;
+
+    widget.controller.applyCommand(
+      AuthoringCommand(
+        kind: 'create_and_assign_theme',
+        payload: <String, Object?>{
+          'levelId': activeLevel.levelId,
+          'visualThemeId': acceptedThemeId,
+        },
+      ),
+    );
+    final updatedScene = widget.controller.scene;
+    final accepted =
+        updatedScene is LevelScene &&
+        updatedScene.activeLevel?.levelId == activeLevel.levelId &&
+        updatedScene.activeLevel?.visualThemeId == acceptedThemeId &&
+        updatedScene.availableParallaxVisualThemeIds.contains(acceptedThemeId);
+    if (!accepted) {
+      _showSnackBar(
+        'The visual theme command was rejected. Review validation.',
+      );
+      return;
+    }
+    setState(() {
+      _createThemeDialogDraftId = null;
+      _visualThemeIdController.text = acceptedThemeId;
+    });
+  }
+
+  void _resetNewLevelForm(LevelScene scene) {
+    final suggestion = _suggestNewLevelId(scene);
+    _newLevelFormBaselineId = suggestion;
+    _newLevelIdController.text = suggestion;
+    _newVisualThemeIdController.text = suggestion;
+    _newLevelThemeMode = _NewLevelThemeMode.create;
+    _selectedExistingThemeId = null;
+    _newThemeIdWasManuallyEdited = false;
+  }
+
+  String _suggestThemeId(LevelScene scene, String base) {
+    final ids = scene.availableParallaxVisualThemeIds.toSet();
+    if (!ids.contains(base)) return base;
+    var counter = 2;
+    while (ids.contains('${base}_$counter')) {
+      counter += 1;
+    }
+    return '${base}_$counter';
+  }
+
+  void _invalidateHandoff() {
+    _parallaxHandoffTarget = null;
   }
 
   String _suggestNewLevelId(LevelScene scene) {
@@ -1515,3 +2091,5 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
     });
   }
 }
+
+enum _NewLevelThemeMode { create, existing }

@@ -8,6 +8,7 @@ import 'package:runner_editor/src/levels/level_domain_models.dart';
 import 'package:runner_editor/src/levels/level_domain_plugin.dart';
 import 'package:runner_editor/src/levels/level_theme_save_coordinator.dart';
 import 'package:runner_editor/src/parallax/parallax_domain_models.dart';
+import 'package:runner_editor/src/parallax/parallax_domain_plugin.dart';
 import 'package:runner_editor/src/workspace/editor_workspace.dart';
 import 'package:runner_editor/src/workspace/workspace_write_transaction.dart';
 
@@ -375,6 +376,109 @@ void main() {
         expect(
           File(p.join(fixture.path, parallaxDefsSourcePath)).readAsStringSync(),
           contains('"parallaxThemeId": "crystal_caves"'),
+        );
+      } finally {
+        fixture.deleteSync(recursive: true);
+      }
+    },
+  );
+
+  test(
+    'targeted Parallax load rejects stale intent and opens the exact pair',
+    () async {
+      final fixture = await _createFixtureWorkspace();
+      try {
+        final workspace = EditorWorkspace(rootPath: fixture.path);
+        final plugin = ParallaxDomainPlugin();
+
+        final loaded = await plugin.loadForLevel(
+          workspace,
+          target: const ParallaxLevelTarget(
+            levelId: 'field',
+            parallaxThemeId: 'field',
+          ),
+        );
+        expect(loaded.activeLevelId, 'field');
+        expect(resolveActiveParallaxThemeId(loaded), 'field');
+
+        await expectLater(
+          plugin.loadForLevel(
+            workspace,
+            target: const ParallaxLevelTarget(
+              levelId: 'field',
+              parallaxThemeId: 'stale_theme',
+            ),
+          ),
+          throwsA(isA<StateError>()),
+        );
+      } finally {
+        fixture.deleteSync(recursive: true);
+      }
+    },
+  );
+
+  test(
+    'new empty theme accepts its first layer after targeted handoff',
+    () async {
+      final fixture = await _createFixtureWorkspace();
+      try {
+        final workspace = EditorWorkspace(rootPath: fixture.path);
+        final levelPlugin = LevelDomainPlugin();
+        final loaded =
+            await levelPlugin.loadFromRepo(workspace) as LevelDefsDocument;
+        final candidate =
+            levelPlugin.applyEdit(
+                  loaded,
+                  AuthoringCommand(
+                    kind: 'create_level',
+                    payload: const <String, Object?>{
+                      'levelId': 'crystal',
+                      'themeMode': levelThemeModeCreate,
+                      'visualThemeId': 'crystal',
+                    },
+                  ),
+                )
+                as LevelDefsDocument;
+        await levelPlugin.exportToRepo(workspace, document: candidate);
+        _writeFile(
+          fixture.path,
+          'assets/images/parallax/crystal/bg.png',
+          'fixture',
+        );
+
+        final parallaxPlugin = ParallaxDomainPlugin();
+        final parallax = await parallaxPlugin.loadForLevel(
+          workspace,
+          target: const ParallaxLevelTarget(
+            levelId: 'crystal',
+            parallaxThemeId: 'crystal',
+          ),
+        );
+        final edited =
+            parallaxPlugin.applyEdit(
+                  parallax,
+                  AuthoringCommand(
+                    kind: 'create_layer',
+                    payload: const <String, Object?>{
+                      'layerKey': 'crystal_bg',
+                      'assetPath': 'assets/images/parallax/crystal/bg.png',
+                      'group': parallaxGroupBackground,
+                    },
+                  ),
+                )
+                as ParallaxDefsDocument;
+        expect(
+          findParallaxThemeById(
+            edited.themes,
+            'crystal',
+          )!.layers.single.layerKey,
+          'crystal_bg',
+        );
+        expect(
+          parallaxPlugin
+              .validate(edited)
+              .where((issue) => issue.severity == ValidationSeverity.error),
+          isEmpty,
         );
       } finally {
         fixture.deleteSync(recursive: true);

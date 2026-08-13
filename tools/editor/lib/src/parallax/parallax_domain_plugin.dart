@@ -26,6 +26,55 @@ class ParallaxDomainPlugin implements AuthoringDomainPlugin {
     return loaded;
   }
 
+  /// Loads an exact Level/theme target for an atomic cross-plugin handoff.
+  ///
+  /// The target is checked against freshly authored sources before this plugin
+  /// adopts it as its preferred selection. A stale target therefore cannot
+  /// silently open another level or theme.
+  Future<ParallaxDefsDocument> loadForLevel(
+    EditorWorkspace workspace, {
+    required ParallaxLevelTarget target,
+  }) async {
+    final levelId = target.levelId.trim();
+    final themeId = target.parallaxThemeId.trim();
+    if (levelId.isEmpty || themeId.isEmpty) {
+      throw StateError(
+        'Parallax handoff requires a Level and visual theme ID.',
+      );
+    }
+    final loaded = await _store.load(
+      workspace,
+      preferredActiveLevelId: levelId,
+    );
+    if (loaded.activeLevelId != levelId ||
+        !loaded.availableLevelIds.contains(levelId)) {
+      throw StateError('Level "$levelId" is no longer available for Parallax.');
+    }
+    final resolvedThemeId = loaded.parallaxThemeIdByLevelId[levelId];
+    if (resolvedThemeId != themeId) {
+      throw StateError(
+        'Level "$levelId" now resolves to visual theme '
+        '"${resolvedThemeId ?? '(missing)'}", not "$themeId".',
+      );
+    }
+    if (findParallaxThemeById(loaded.themes, themeId) == null) {
+      throw StateError(
+        'Visual theme "$themeId" is no longer authored for Level "$levelId".',
+      );
+    }
+    final blockingIssues = validateParallaxDocument(
+      loaded,
+    ).where((issue) => issue.severity == ValidationSeverity.error).toList();
+    if (blockingIssues.isNotEmpty) {
+      throw StateError(
+        'Parallax handoff target is invalid: '
+        '${blockingIssues.map((issue) => issue.code).join(', ')}.',
+      );
+    }
+    _preferredActiveLevelId = levelId;
+    return loaded;
+  }
+
   @override
   List<ValidationIssue> validate(AuthoringDocument document) {
     return validateParallaxDocument(_asParallaxDocument(document));

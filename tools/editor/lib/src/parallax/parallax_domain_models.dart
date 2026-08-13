@@ -13,6 +13,18 @@ const double minOpacity = 0.0;
 const double maxOpacity = 1.0;
 const double maxAbsYOffset = 4096.0;
 
+/// Transient, non-persisted target for a guarded Level-to-Parallax handoff.
+@immutable
+class ParallaxLevelTarget {
+  const ParallaxLevelTarget({
+    required this.levelId,
+    required this.parallaxThemeId,
+  });
+
+  final String levelId;
+  final String parallaxThemeId;
+}
+
 @immutable
 class ParallaxLayerDef {
   const ParallaxLayerDef({

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../chunks/chunk_domain_plugin.dart';
 import '../../../entities/entity_domain_plugin.dart';
 import '../../../levels/level_domain_plugin.dart';
+import '../../../parallax/parallax_domain_models.dart';
 import '../../../parallax/parallax_domain_plugin.dart';
 import '../../../prefabs/domain/prefab_domain_plugin.dart';
 import '../../../session/editor_session_controller.dart';
@@ -57,6 +58,7 @@ class EditorHomeRouteNavigation {
   const EditorHomeRouteNavigation({
     this.initialPrefabKey,
     this.onOpenOwningPrefab,
+    this.onOpenParallaxForLevel,
   });
 
   /// Stable Prefab-v3 owner to select after a successful guarded transition.
@@ -64,6 +66,9 @@ class EditorHomeRouteNavigation {
 
   /// Requests shell-owned navigation to a placed collision's source owner.
   final ValueChanged<String>? onOpenOwningPrefab;
+
+  /// Requests a guarded transition to one freshly resolved Level/theme pair.
+  final ValueChanged<ParallaxLevelTarget>? onOpenParallaxForLevel;
 }
 
 const String entitiesRouteId = 'entities';
@@ -153,7 +158,11 @@ Widget _buildLevelCreatorPage({
   required EditorSessionController controller,
   required EditorHomeRouteNavigation navigation,
 }) {
-  return LevelCreatorPage(key: key, controller: controller);
+  return LevelCreatorPage(
+    key: key,
+    controller: controller,
+    onOpenInParallax: navigation.onOpenParallaxForLevel,
+  );
 }
 
 Widget _buildParallaxEditorPage({

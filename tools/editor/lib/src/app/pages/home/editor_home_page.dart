@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../prefabs/domain/prefab_domain_plugin.dart';
+import '../../../parallax/parallax_domain_models.dart';
+import '../../../parallax/parallax_domain_plugin.dart';
 import '../../../session/editor_session_controller.dart';
 import '../shared/editor_page_local_draft_state.dart';
 import 'home_routes.dart';
@@ -146,6 +148,9 @@ class _EditorHomePageState extends State<EditorHomePage> {
         onOpenOwningPrefab: (prefabKey) {
           unawaited(_handleOpenOwningPrefabRequested(prefabKey));
         },
+        onOpenParallaxForLevel: (target) {
+          unawaited(_handleOpenParallaxForLevelRequested(target));
+        },
       ),
     );
   }
@@ -239,6 +244,53 @@ class _EditorHomePageState extends State<EditorHomePage> {
     setState(() {
       _initialPrefabKey = targetPrefabKey;
       _selectedRouteId = prefabCreatorRouteId;
+    });
+  }
+
+  Future<void> _handleOpenParallaxForLevelRequested(
+    ParallaxLevelTarget target,
+  ) async {
+    if (target.levelId.trim().isEmpty ||
+        target.parallaxThemeId.trim().isEmpty ||
+        widget.controller.isLoading ||
+        widget.controller.isExporting) {
+      return;
+    }
+    final canLeave = await _confirmDiscardPendingChanges(
+      promptLine: 'Open this saved level in Parallax?',
+      confirmLabel: 'Open Parallax',
+    );
+    if (!mounted || !canLeave) return;
+
+    final loaded = await widget.controller.loadWorkspaceForPlugin(
+      pluginId: ParallaxDomainPlugin.pluginId,
+      loadDocument: (plugin, workspace) {
+        if (plugin is! ParallaxDomainPlugin) {
+          throw StateError(
+            'Level handoff requires ParallaxDomainPlugin, but '
+            '${plugin.runtimeType} is registered.',
+          );
+        }
+        return plugin.loadForLevel(workspace, target: target);
+      },
+    );
+    if (!mounted) return;
+    if (!loaded) {
+      final detail = widget.controller.loadError;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            detail == null
+                ? 'The Level/theme target could not be opened in Parallax.'
+                : 'The Level/theme target could not be opened: $detail',
+          ),
+        ),
+      );
+      return;
+    }
+    setState(() {
+      _selectedRouteId = parallaxEditorRouteId;
+      _initialPrefabKey = null;
     });
   }
 
