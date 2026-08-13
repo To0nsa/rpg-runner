@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 
+import '../../../../../atlas/atlas_pixel_rect.dart';
 import '../../../../../prefabs/models/models.dart';
-import '../../../shared/atlas_slice_preview_tile.dart';
+import '../../../shared/atlas_region_preview_tile.dart';
 import '../../../shared/editor_scene_view_utils.dart';
 import '../../../shared/editor_ui_tokens.dart';
 
@@ -172,13 +173,14 @@ class _PrefabEditorAtlasSliceSelectorState
                           '${widget.optionKeyPrefix}_${slice.id}',
                         ),
                         dense: true,
-                        leading: AtlasSlicePreviewTile(
+                        leading: AtlasRegionPreviewTile(
                           key: ValueKey<String>(
                             '${widget.optionPreviewKeyPrefix}_${slice.id}',
                           ),
                           imageCache: _previewImageCache,
                           workspaceRootPath: widget.workspaceRootPath,
-                          slice: slice,
+                          sourceImagePath: slice.sourceImagePath,
+                          region: _regionFor(slice),
                           width: 56,
                           height: 44,
                         ),
@@ -211,7 +213,7 @@ class _PrefabEditorAtlasSliceSelectorState
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              AtlasSlicePreviewTile(
+              AtlasRegionPreviewTile(
                 key:
                     widget.selectedPreviewKey ??
                     ValueKey<String>(
@@ -219,7 +221,8 @@ class _PrefabEditorAtlasSliceSelectorState
                     ),
                 imageCache: _previewImageCache,
                 workspaceRootPath: widget.workspaceRootPath,
-                slice: selectedSlice,
+                sourceImagePath: selectedSlice.sourceImagePath,
+                region: _regionFor(selectedSlice),
                 width: 72,
                 height: 56,
               ),
@@ -384,4 +387,11 @@ class _PrefabEditorAtlasSliceSelectorState
     }
     setState(() {});
   }
+
+  AtlasPixelRect _regionFor(AtlasSliceDef slice) => AtlasPixelRect(
+    x: slice.x,
+    y: slice.y,
+    width: slice.width,
+    height: slice.height,
+  );
 }

@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui' show Size;
 
 import 'package:path/path.dart' as p;
@@ -9,6 +8,7 @@ import '../../domain/authoring_types.dart';
 import '../../terrain_authoring/polygon_authoring_migration_required.dart';
 import '../../terrain_authoring/terrain_polygon_interaction.dart';
 import '../../workspace/editor_workspace.dart';
+import '../../workspace/repository_png_catalog.dart';
 import '../models/models.dart';
 import 'prefab_domain_models.dart';
 import 'prefab_visual_bounds_resolver.dart';
@@ -52,6 +52,8 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
 
   /// Workspace-relative root scanned for atlas images used by slices.
   static const String _levelAssetsPath = 'assets/images/level';
+
+  static const RepositoryPngCatalog _pngCatalog = RepositoryPngCatalog();
 
   /// Widget tests run load under fake async where some async file I/O can
   /// stall; keep a deterministic sync fallback for that environment only.
@@ -168,11 +170,12 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
       tileBaselineContents = _readIfExistsSync(
         workspace.resolve(tileRelativePath),
       );
-      atlasImagePaths = _discoverAtlasImagesSync(workspace);
-      atlasImageSizes = _readAtlasImageSizesSync(
+      final images = _pngCatalog.discoverSync(
         workspace,
-        atlasImagePaths: atlasImagePaths,
+        roots: const <String>[_levelAssetsPath],
       );
+      atlasImagePaths = _pathsFromImages(images);
+      atlasImageSizes = _sizesFromImages(images);
     } else {
       prefabBaselineContents = await _readIfExistsAsync(
         workspace.resolve(prefabRelativePath),
@@ -180,11 +183,12 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
       tileBaselineContents = await _readIfExistsAsync(
         workspace.resolve(tileRelativePath),
       );
-      atlasImagePaths = await _discoverAtlasImagesAsync(workspace);
-      atlasImageSizes = await _readAtlasImageSizesAsync(
+      final images = await _pngCatalog.discover(
         workspace,
-        atlasImagePaths: atlasImagePaths,
+        roots: const <String>[_levelAssetsPath],
       );
+      atlasImagePaths = _pathsFromImages(images);
+      atlasImageSizes = _sizesFromImages(images);
     }
 
     return _PrefabWorkspaceMetadata(
@@ -557,167 +561,19 @@ class PrefabDomainPlugin implements AuthoringDomainPlugin {
     return lines;
   }
 
-  /// Discovers all PNG atlas files under the level asset tree.
-  Future<List<String>> _discoverAtlasImagesAsync(
-    EditorWorkspace workspace,
-  ) async {
-    final levelAssets = Directory(workspace.resolve(_levelAssetsPath));
-    if (!await levelAssets.exists()) {
-      return const <String>[];
-    }
+  List<String> _pathsFromImages(List<RepositoryPngImage> images) => <String>[
+    for (final image in images) image.relativePath,
+  ];
 
-    final pngPaths = <String>[];
-    await for (final entity in levelAssets.list(
-      recursive: true,
-      followLinks: false,
-    )) {
-      if (entity is! File) {
-        continue;
-      }
-      final ext = p.extension(entity.path).toLowerCase();
-      if (ext != '.png') {
-        continue;
-      }
-      final relative = p.normalize(
-        p.relative(entity.path, from: workspace.rootPath),
-      );
-      pngPaths.add(relative.replaceAll('\\', '/'));
-    }
-    pngPaths.sort();
-    return pngPaths;
-  }
-
-  /// Test-only sync variant used when async file I/O stalls under fake async.
-  List<String> _discoverAtlasImagesSync(EditorWorkspace workspace) {
-    final levelAssets = Directory(workspace.resolve(_levelAssetsPath));
-    if (!levelAssets.existsSync()) {
-      return const <String>[];
-    }
-
-    final pngPaths = <String>[];
-    for (final entity in levelAssets.listSync(
-      recursive: true,
-      followLinks: false,
-    )) {
-      if (entity is! File) {
-        continue;
-      }
-      final ext = p.extension(entity.path).toLowerCase();
-      if (ext != '.png') {
-        continue;
-      }
-      final relative = p.normalize(
-        p.relative(entity.path, from: workspace.rootPath),
-      );
-      pngPaths.add(relative.replaceAll('\\', '/'));
-    }
-    pngPaths.sort();
-    return pngPaths;
-  }
-
-  /// Reads atlas image dimensions keyed by relative image path.
-  Future<Map<String, Size>> _readAtlasImageSizesAsync(
-    EditorWorkspace workspace, {
-    required List<String> atlasImagePaths,
-  }) async {
-    final result = <String, Size>{};
-    for (final relativePath in atlasImagePaths) {
-      final file = File(workspace.resolve(relativePath));
-      if (!await file.exists()) {
-        continue;
-      }
-      final size = await _readPngSizeAsync(file);
-      if (size == null) {
-        continue;
-      }
-      result[relativePath] = size;
-    }
-    return result;
-  }
-
-  /// Test-only sync variant used when async file I/O stalls under fake async.
-  Map<String, Size> _readAtlasImageSizesSync(
-    EditorWorkspace workspace, {
-    required List<String> atlasImagePaths,
-  }) {
-    final result = <String, Size>{};
-    for (final relativePath in atlasImagePaths) {
-      final file = File(workspace.resolve(relativePath));
-      if (!file.existsSync()) {
-        continue;
-      }
-      final size = _readPngSizeSync(file);
-      if (size == null) {
-        continue;
-      }
-      result[relativePath] = size;
-    }
-    return result;
-  }
-
-  /// Reads PNG dimensions from the header only.
-  ///
-  /// Uses the first 24 bytes (signature + IHDR width/height offsets) to avoid
-  /// loading full files for metadata checks.
-  Future<Size?> _readPngSizeAsync(File file) async {
-    final handle = await file.open(mode: FileMode.read);
-    try {
-      final bytes = await handle.read(24);
-      if (bytes.length < 24) {
-        return null;
-      }
-      if (!_hasPngSignature(bytes)) {
-        return null;
-      }
-      final width = _readUint32BigEndian(bytes, 16);
-      final height = _readUint32BigEndian(bytes, 20);
-      if (width <= 0 || height <= 0) {
-        return null;
-      }
-      return Size(width.toDouble(), height.toDouble());
-    } finally {
-      await handle.close();
-    }
-  }
-
-  /// Test-only sync variant used when async file I/O stalls under fake async.
-  Size? _readPngSizeSync(File file) {
-    final handle = file.openSync(mode: FileMode.read);
-    try {
-      final bytes = handle.readSync(24);
-      if (bytes.length < 24) {
-        return null;
-      }
-      if (!_hasPngSignature(bytes)) {
-        return null;
-      }
-      final width = _readUint32BigEndian(bytes, 16);
-      final height = _readUint32BigEndian(bytes, 20);
-      if (width <= 0 || height <= 0) {
-        return null;
-      }
-      return Size(width.toDouble(), height.toDouble());
-    } finally {
-      handle.closeSync();
-    }
-  }
-
-  bool _hasPngSignature(Uint8List bytes) {
-    const signature = <int>[137, 80, 78, 71, 13, 10, 26, 10];
-    for (var i = 0; i < signature.length; i += 1) {
-      if (bytes[i] != signature[i]) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  int _readUint32BigEndian(Uint8List bytes, int offset) {
-    return (bytes[offset] << 24) |
-        (bytes[offset + 1] << 16) |
-        (bytes[offset + 2] << 8) |
-        bytes[offset + 3];
-  }
+  Map<String, Size> _sizesFromImages(List<RepositoryPngImage> images) =>
+      <String, Size>{
+        for (final image in images)
+          if (image.hasValidDimensions)
+            image.relativePath: Size(
+              image.width!.toDouble(),
+              image.height!.toDouble(),
+            ),
+      };
 }
 
 class _PrefabFileWrite {

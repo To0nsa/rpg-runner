@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../../../atlas/atlas_grid.dart';
+import '../../../../atlas/atlas_grid_settings_cache.dart';
+import '../../../../atlas/atlas_pixel_rect.dart';
+import '../../../../atlas/atlas_selection.dart';
 import '../../../../domain/authoring_types.dart';
 import '../../../../prefabs/domain/prefab_domain_models.dart';
 import '../../../../prefabs/domain/prefab_domain_plugin.dart';
@@ -7,7 +11,6 @@ import '../../../../prefabs/domain/prefab_v3_catalog_commit.dart';
 import '../../../../prefabs/models/models.dart';
 import '../../../../prefabs/store/prefab_determinism.dart';
 import '../../../../session/editor_session_controller.dart';
-import '../atlas_slicer/atlas_slicer_controller.dart';
 import '../atlas_slicer/atlas_slicer_tab.dart';
 
 /// Adapts the retained atlas-slicer UI to typed Prefab-v3 commands.
@@ -36,7 +39,7 @@ class PrefabV3AtlasCatalogWorkspaceState
   static const double _zoomMax = 24;
   static const double _zoomStep = 0.2;
 
-  final AtlasSlicerController _slicer = const AtlasSlicerController();
+  final AtlasGridSettingsCache _gridSettingsCache = AtlasGridSettingsCache();
   final TextEditingController _idController = TextEditingController();
   final TextEditingController _tagsController = TextEditingController();
   final TextEditingController _xController = TextEditingController();
@@ -46,7 +49,9 @@ class PrefabV3AtlasCatalogWorkspaceState
   final ScrollController _horizontalScrollController = ScrollController();
   final ScrollController _verticalScrollController = ScrollController();
 
-  AtlasSlicerState _atlasState = const AtlasSlicerState();
+  AtlasSelectionState _atlasState = const AtlasSelectionState();
+  AtlasSliceKind _selectedSliceKind = AtlasSliceKind.prefab;
+  bool _autoSliceEnabled = false;
   String? _selectedPrefabSliceId;
   String? _selectedTileSliceId;
   int _formEpoch = 0;
@@ -93,23 +98,23 @@ class PrefabV3AtlasCatalogWorkspaceState
   @override
   Widget build(BuildContext context) {
     final document = widget.document;
-    final kind = _atlasState.selectedSliceKind;
+    final kind = _selectedSliceKind;
     final allSlices = _slicesForKind(document, kind);
     final selectedId = _selectedId(kind);
     final selectedSlice = _findSlice(allSlices, selectedId);
-    final selectedPath = _atlasState.selectedAtlasPath;
+    final selectedPath = _atlasState.selectedSourcePath;
     final visibleSlices = selectedPath == null
         ? const <AtlasSliceDef>[]
         : allSlices
               .where((slice) => slice.sourceImagePath == selectedPath)
               .toList(growable: false);
-    final selection = _slicer.selectionRectInImagePixels(_atlasState);
+    final selection = _atlasState.selectionRect;
     final selectionLabel = selection == null
         ? 'Selection: none'
-        : 'Selection: x=${selection.left.toInt()} '
-              'y=${selection.top.toInt()} '
-              'w=${selection.width.toInt()} '
-              'h=${selection.height.toInt()}';
+        : 'Selection: x=${selection.x} '
+              'y=${selection.y} '
+              'w=${selection.width} '
+              'h=${selection.height}';
 
     return KeyedSubtree(
       key: ValueKey<String>('prefab_v3_atlas_form_$_formEpoch'),
@@ -137,6 +142,10 @@ class PrefabV3AtlasCatalogWorkspaceState
         selectedSlice: selectedSlice,
         workspaceRootPath: widget.controller.workspacePath,
         selectionRectInImagePixels: selection,
+        autoSliceEnabled: _autoSliceEnabled,
+        gridSettings: selectedPath == null
+            ? const AtlasGridSettings()
+            : _gridSettingsCache.settingsFor(selectedPath),
         horizontalScrollController: _horizontalScrollController,
         verticalScrollController: _verticalScrollController,
         onSelectedAtlasChanged: (path) => _selectAtlas(document, path),
@@ -147,34 +156,19 @@ class PrefabV3AtlasCatalogWorkspaceState
         onAtlasZoomChanged: (zoom) =>
             setState(() => _atlasState = _atlasState.withZoom(zoom)),
         onSelectionInputsChanged: () => _applySelectionInputs(document),
+        onAutoSliceEnabledChanged: (enabled) =>
+            setState(() => _autoSliceEnabled = enabled),
+        onGridSettingsChanged: (settings) {
+          final path = _atlasState.selectedSourcePath;
+          if (path == null) return;
+          setState(() => _gridSettingsCache.setSettings(path, settings));
+        },
         onSaveSlice: () => _saveSlice(document),
         onDeleteSlice: (sliceId) => _deleteSlice(document, kind, sliceId),
-        onSelectionDragStart: (localPosition, imageSize) {
-          final start = _slicer.toImagePosition(
-            state: _atlasState,
-            localPosition: localPosition,
-            imageSize: imageSize,
-          );
+        onSelectionChanged: (rect) {
           setState(() {
-            _atlasState = _atlasState.withSelection(start, start);
-            _syncSelectionInputs(
-              _slicer.selectionRectInImagePixels(_atlasState),
-            );
-            _hasDraftChanges = true;
-          });
-        },
-        onSelectionDragUpdate: (localPosition, imageSize) {
-          final current = _slicer.toImagePosition(
-            state: _atlasState,
-            localPosition: localPosition,
-            imageSize: imageSize,
-          );
-          setState(() {
-            final start = _atlasState.selectionStartImagePx ?? current;
-            _atlasState = _atlasState.withSelection(start, current);
-            _syncSelectionInputs(
-              _slicer.selectionRectInImagePixels(_atlasState),
-            );
+            _atlasState = _atlasState.withRect(rect);
+            _syncSelectionInputs(rect);
             _hasDraftChanges = true;
           });
         },
@@ -192,12 +186,13 @@ class PrefabV3AtlasCatalogWorkspaceState
   ];
 
   void _initialize(PrefabV3Document document) {
+    _gridSettingsCache.ensureWorkspace(widget.controller.workspacePath);
     _selectedPrefabSliceId = document.data.slices.firstOrNull?.id;
     _selectedTileSliceId = document.tileData.tileSlices.firstOrNull?.id;
     final selected = _findSlice(document.data.slices, _selectedPrefabSliceId);
     final path =
         selected?.sourceImagePath ?? document.atlasImagePaths.firstOrNull;
-    _atlasState = AtlasSlicerState(selectedAtlasPath: path);
+    _atlasState = AtlasSelectionState(selectedSourcePath: path);
     _syncSelectedDraft(document);
   }
 
@@ -211,15 +206,15 @@ class PrefabV3AtlasCatalogWorkspaceState
       _selectedTileSliceId,
     );
     final selected = _findSlice(
-      _slicesForKind(document, _atlasState.selectedSliceKind),
-      _selectedId(_atlasState.selectedSliceKind),
+      _slicesForKind(document, _selectedSliceKind),
+      _selectedId(_selectedSliceKind),
     );
     final availablePaths = document.atlasImagePaths.toSet();
     final path = selected?.sourceImagePath;
     if (path != null && availablePaths.contains(path)) {
-      _atlasState = _atlasState.withSelectedAtlasPath(path);
-    } else if (!availablePaths.contains(_atlasState.selectedAtlasPath)) {
-      _atlasState = _atlasState.withSelectedAtlasPath(
+      _atlasState = _atlasState.withSelectedSourcePath(path);
+    } else if (!availablePaths.contains(_atlasState.selectedSourcePath)) {
+      _atlasState = _atlasState.withSelectedSourcePath(
         document.atlasImagePaths.firstOrNull,
       );
     }
@@ -228,13 +223,13 @@ class PrefabV3AtlasCatalogWorkspaceState
 
   void _selectAtlas(PrefabV3Document document, String? path) {
     if (!_canNavigateCatalog()) return;
-    final slices = _slicesForKind(document, _atlasState.selectedSliceKind);
+    final slices = _slicesForKind(document, _selectedSliceKind);
     final selected = slices
         .where((slice) => slice.sourceImagePath == path)
         .firstOrNull;
     setState(() {
-      _atlasState = _atlasState.withSelectedAtlasPath(path);
-      _setSelectedId(_atlasState.selectedSliceKind, selected?.id);
+      _atlasState = _atlasState.withSelectedSourcePath(path);
+      _setSelectedId(_selectedSliceKind, selected?.id);
       _syncDraft(selected);
     });
   }
@@ -246,11 +241,10 @@ class PrefabV3AtlasCatalogWorkspaceState
     selected ??= slices.firstOrNull;
     setState(() {
       _setSelectedId(kind, selected?.id);
-      _atlasState = _atlasState
-          .withSelectedSliceKind(kind)
-          .withSelectedAtlasPath(
-            selected?.sourceImagePath ?? document.atlasImagePaths.firstOrNull,
-          );
+      _selectedSliceKind = kind;
+      _atlasState = _atlasState.withSelectedSourcePath(
+        selected?.sourceImagePath ?? document.atlasImagePaths.firstOrNull,
+      );
       _syncDraft(selected);
     });
   }
@@ -265,25 +259,26 @@ class PrefabV3AtlasCatalogWorkspaceState
     if (slice == null) return;
     setState(() {
       _setSelectedId(kind, sliceId);
-      _atlasState = _atlasState.withSelectedAtlasPath(slice.sourceImagePath);
+      _atlasState = _atlasState.withSelectedSourcePath(slice.sourceImagePath);
       _syncDraft(slice);
     });
   }
 
   void _applySelectionInputs(PrefabV3Document document) {
     _hasDraftChanges = true;
-    final path = _atlasState.selectedAtlasPath;
+    final path = _atlasState.selectedSourcePath;
     final size = path == null ? null : document.atlasImageSizes[path];
     if (size == null) return;
-    final result = _slicer.clampedSelectionFromInputs(
-      atlasSize: size,
+    final result = parseAtlasPixelRect(
       rawX: _xController.text,
       rawY: _yController.text,
-      rawW: _widthController.text,
-      rawH: _heightController.text,
+      rawWidth: _widthController.text,
+      rawHeight: _heightController.text,
+      imageWidth: size.width.toInt(),
+      imageHeight: size.height.toInt(),
     );
     if (result.rect != null) {
-      setState(() => _atlasState = _atlasState.withSelectionRect(result.rect!));
+      setState(() => _atlasState = _atlasState.withRect(result.rect!));
     }
   }
 
@@ -295,7 +290,7 @@ class PrefabV3AtlasCatalogWorkspaceState
       );
       return;
     }
-    final path = _atlasState.selectedAtlasPath;
+    final path = _atlasState.selectedSourcePath;
     if (path == null) {
       _showMessage('Select an atlas/tileset image first.');
       return;
@@ -305,18 +300,19 @@ class PrefabV3AtlasCatalogWorkspaceState
       _showMessage('Atlas metadata is unavailable for $path.');
       return;
     }
-    final parsed = _slicer.strictSelectionFromInputs(
-      atlasSize: size,
+    final parsed = parseAtlasPixelRect(
       rawX: _xController.text,
       rawY: _yController.text,
-      rawW: _widthController.text,
-      rawH: _heightController.text,
+      rawWidth: _widthController.text,
+      rawHeight: _heightController.text,
+      imageWidth: size.width.toInt(),
+      imageHeight: size.height.toInt(),
     );
     if (parsed.error != null) {
       _showMessage(parsed.error!);
       return;
     }
-    final rect = parsed.rect ?? _slicer.selectionRectInImagePixels(_atlasState);
+    final rect = parsed.rect ?? _atlasState.selectionRect;
     if (rect == null) {
       _showMessage('Define a valid selection before saving the slice.');
       return;
@@ -324,14 +320,14 @@ class PrefabV3AtlasCatalogWorkspaceState
     final slice = AtlasSliceDef(
       id: id,
       sourceImagePath: path,
-      x: rect.left.toInt(),
-      y: rect.top.toInt(),
-      width: rect.width.toInt(),
-      height: rect.height.toInt(),
+      x: rect.x,
+      y: rect.y,
+      width: rect.width,
+      height: rect.height,
       tags: PrefabDeterminism.normalizeTags(_tagsController.text.split(',')),
     );
     final current = _findSlice(
-      _slicesForKind(document, _atlasState.selectedSliceKind),
+      _slicesForKind(document, _selectedSliceKind),
       id,
     );
     if (current != null && _slicesEqual(current, slice)) {
@@ -340,15 +336,12 @@ class PrefabV3AtlasCatalogWorkspaceState
     }
     final next = _dispatch(
       document,
-      PrefabV3UpsertSliceOperation(
-        kind: _atlasState.selectedSliceKind,
-        slice: slice,
-      ),
+      PrefabV3UpsertSliceOperation(kind: _selectedSliceKind, slice: slice),
     );
     if (next == null) return;
     setState(() {
-      _setSelectedId(_atlasState.selectedSliceKind, id);
-      _atlasState = _atlasState.withSelectedAtlasPath(path);
+      _setSelectedId(_selectedSliceKind, id);
+      _atlasState = _atlasState.withSelectedSourcePath(path);
       _syncDraft(slice);
     });
   }
@@ -424,7 +417,7 @@ class PrefabV3AtlasCatalogWorkspaceState
       final slices = _slicesForKind(next, kind);
       final selected = slices
           .where(
-            (slice) => slice.sourceImagePath == _atlasState.selectedAtlasPath,
+            (slice) => slice.sourceImagePath == _atlasState.selectedSourcePath,
           )
           .firstOrNull;
       _setSelectedId(kind, selected?.id);
@@ -462,8 +455,8 @@ class PrefabV3AtlasCatalogWorkspaceState
   void _syncSelectedDraft(PrefabV3Document document) {
     _syncDraft(
       _findSlice(
-        _slicesForKind(document, _atlasState.selectedSliceKind),
-        _selectedId(_atlasState.selectedSliceKind),
+        _slicesForKind(document, _selectedSliceKind),
+        _selectedId(_selectedSliceKind),
       ),
     );
   }
@@ -475,15 +468,15 @@ class PrefabV3AtlasCatalogWorkspaceState
       _tagsController.text = slice?.tags.join(', ') ?? '';
       final rect = slice == null
           ? null
-          : Rect.fromLTWH(
-              slice.x.toDouble(),
-              slice.y.toDouble(),
-              slice.width.toDouble(),
-              slice.height.toDouble(),
+          : AtlasPixelRect(
+              x: slice.x,
+              y: slice.y,
+              width: slice.width,
+              height: slice.height,
             );
       _atlasState = rect == null
           ? _atlasState.clearedSelection()
-          : _atlasState.withSelectionRect(rect);
+          : _atlasState.withRect(rect);
       _syncSelectionInputs(rect);
       _hasDraftChanges = false;
     } finally {
@@ -491,13 +484,13 @@ class PrefabV3AtlasCatalogWorkspaceState
     }
   }
 
-  void _syncSelectionInputs(Rect? rect) {
+  void _syncSelectionInputs(AtlasPixelRect? rect) {
     _syncingDraft = true;
     try {
-      _xController.text = rect?.left.toInt().toString() ?? '';
-      _yController.text = rect?.top.toInt().toString() ?? '';
-      _widthController.text = rect?.width.toInt().toString() ?? '';
-      _heightController.text = rect?.height.toInt().toString() ?? '';
+      _xController.text = rect?.x.toString() ?? '';
+      _yController.text = rect?.y.toString() ?? '';
+      _widthController.text = rect?.width.toString() ?? '';
+      _heightController.text = rect?.height.toString() ?? '';
     } finally {
       _syncingDraft = false;
     }

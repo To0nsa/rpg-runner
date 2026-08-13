@@ -1,19 +1,20 @@
-import 'dart:io';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 
+import '../../../../atlas/atlas_grid.dart';
+import '../../../../atlas/atlas_pixel_rect.dart';
 import '../../../../prefabs/models/models.dart';
-import '../../shared/atlas_slice_preview_tile.dart';
+import '../../shared/atlas_grid_controls.dart';
+import '../../shared/atlas_image_viewport.dart';
+import '../../shared/atlas_region_fields.dart';
+import '../../shared/atlas_region_preview_tile.dart';
 import '../../shared/atlas_selection_painter.dart';
 import '../../shared/editor_scene_view_utils.dart';
 import '../../shared/editor_panel_card.dart';
 import '../../shared/editor_section_card.dart';
 import '../../shared/editor_list_card.dart';
 import '../../shared/editor_ui_tokens.dart';
-import '../../shared/editor_viewport_grid_painter.dart';
 import '../../shared/editor_zoom_controls.dart';
-import '../../shared/scene_input_utils.dart';
 import '../shared/ui/prefab_editor_action_row.dart';
 import '../shared/ui/prefab_editor_delete_button.dart';
 import '../shared/ui/prefab_editor_empty_state.dart';
@@ -47,6 +48,8 @@ class AtlasSlicerTab extends StatefulWidget {
     required this.selectedSlice,
     required this.workspaceRootPath,
     required this.selectionRectInImagePixels,
+    required this.autoSliceEnabled,
+    required this.gridSettings,
     required this.horizontalScrollController,
     required this.verticalScrollController,
     required this.onSelectedAtlasChanged,
@@ -54,10 +57,11 @@ class AtlasSlicerTab extends StatefulWidget {
     required this.onSelectedSliceChanged,
     required this.onAtlasZoomChanged,
     required this.onSelectionInputsChanged,
+    required this.onAutoSliceEnabledChanged,
+    required this.onGridSettingsChanged,
     required this.onSaveSlice,
     required this.onDeleteSlice,
-    required this.onSelectionDragStart,
-    required this.onSelectionDragUpdate,
+    required this.onSelectionChanged,
   });
 
   final List<String> atlasImagePaths;
@@ -80,7 +84,9 @@ class AtlasSlicerTab extends StatefulWidget {
   final String? selectedSliceId;
   final AtlasSliceDef? selectedSlice;
   final String workspaceRootPath;
-  final Rect? selectionRectInImagePixels;
+  final AtlasPixelRect? selectionRectInImagePixels;
+  final bool autoSliceEnabled;
+  final AtlasGridSettings gridSettings;
   final ScrollController horizontalScrollController;
   final ScrollController verticalScrollController;
   final ValueChanged<String?> onSelectedAtlasChanged;
@@ -88,12 +94,11 @@ class AtlasSlicerTab extends StatefulWidget {
   final ValueChanged<String> onSelectedSliceChanged;
   final ValueChanged<double> onAtlasZoomChanged;
   final VoidCallback onSelectionInputsChanged;
+  final ValueChanged<bool> onAutoSliceEnabledChanged;
+  final ValueChanged<AtlasGridSettings> onGridSettingsChanged;
   final VoidCallback onSaveSlice;
   final ValueChanged<String> onDeleteSlice;
-  final void Function(Offset localPosition, Size imageSize)
-  onSelectionDragStart;
-  final void Function(Offset localPosition, Size imageSize)
-  onSelectionDragUpdate;
+  final ValueChanged<AtlasPixelRect> onSelectionChanged;
 
   @override
   State<AtlasSlicerTab> createState() => _AtlasSlicerTabState();
@@ -101,7 +106,6 @@ class AtlasSlicerTab extends StatefulWidget {
 
 class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
   final EditorUiImageCache _previewImageCache = EditorUiImageCache();
-  bool _ctrlPanActive = false;
 
   @override
   void dispose() {
@@ -218,77 +222,31 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
                 const SizedBox(height: EditorUiTokens.controlGap),
                 Text(widget.selectionLabel),
                 const SizedBox(height: EditorUiTokens.controlGap),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        key: const ValueKey<String>('atlas_selection_x_field'),
-                        controller: widget.selectionXController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          labelText: 'Selection X',
-                          floatingLabelBehavior: FloatingLabelBehavior.always,
-                          hintText: 'X in px from the left',
-                        ),
-                        onChanged: (_) => widget.onSelectionInputsChanged(),
-                        onSubmitted: (_) => widget.onSelectionInputsChanged(),
-                      ),
-                    ),
-                    const SizedBox(width: EditorUiTokens.controlGap),
-                    Expanded(
-                      child: TextField(
-                        key: const ValueKey<String>('atlas_selection_y_field'),
-                        controller: widget.selectionYController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          labelText: 'Selection Y',
-                          floatingLabelBehavior: FloatingLabelBehavior.always,
-                          hintText: 'Y in px from the top',
-                        ),
-                        onChanged: (_) => widget.onSelectionInputsChanged(),
-                        onSubmitted: (_) => widget.onSelectionInputsChanged(),
-                      ),
-                    ),
-                  ],
+                AtlasRegionFields(
+                  xController: widget.selectionXController,
+                  yController: widget.selectionYController,
+                  widthController: widget.selectionWController,
+                  heightController: widget.selectionHController,
+                  onChanged: widget.onSelectionInputsChanged,
                 ),
                 const SizedBox(height: EditorUiTokens.controlGap),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        key: const ValueKey<String>('atlas_selection_w_field'),
-                        controller: widget.selectionWController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          labelText: 'Selection W',
-                          floatingLabelBehavior: FloatingLabelBehavior.always,
-                          hintText: 'Width in px',
-                        ),
-                        onChanged: (_) => widget.onSelectionInputsChanged(),
-                        onSubmitted: (_) => widget.onSelectionInputsChanged(),
-                      ),
-                    ),
-                    const SizedBox(width: EditorUiTokens.controlGap),
-                    Expanded(
-                      child: TextField(
-                        key: const ValueKey<String>('atlas_selection_h_field'),
-                        controller: widget.selectionHController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          labelText: 'Selection H',
-                          floatingLabelBehavior: FloatingLabelBehavior.always,
-                          hintText: 'Height in px',
-                        ),
-                        onChanged: (_) => widget.onSelectionInputsChanged(),
-                        onSubmitted: (_) => widget.onSelectionInputsChanged(),
-                      ),
-                    ),
-                  ],
+                SwitchListTile.adaptive(
+                  key: const ValueKey<String>('atlas_auto_slice_toggle'),
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Auto-slice grid'),
+                  subtitle: const Text(
+                    'Snap selection to complete cells; drag across cells to combine them.',
+                  ),
+                  value: widget.autoSliceEnabled,
+                  onChanged: widget.onAutoSliceEnabledChanged,
                 ),
+                if (widget.autoSliceEnabled) ...[
+                  const SizedBox(height: EditorUiTokens.controlGap),
+                  AtlasGridControls(
+                    settings: widget.gridSettings,
+                    onChanged: widget.onGridSettingsChanged,
+                  ),
+                ],
                 if (widget.atlasSize != null) ...[
                   const SizedBox(height: EditorUiTokens.controlGap),
                   Text(
@@ -409,11 +367,17 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
       key: ValueKey<String>('atlas_slice_row_${slice.id}'),
       isSelected: isSelected,
       onTap: () => widget.onSelectedSliceChanged(slice.id),
-      preview: AtlasSlicePreviewTile(
+      preview: AtlasRegionPreviewTile(
         key: ValueKey<String>('atlas_slice_preview_${slice.id}'),
         imageCache: _previewImageCache,
         workspaceRootPath: widget.workspaceRootPath,
-        slice: slice,
+        sourceImagePath: slice.sourceImagePath,
+        region: AtlasPixelRect(
+          x: slice.x,
+          y: slice.y,
+          width: slice.width,
+          height: slice.height,
+        ),
       ),
       trailing: PrefabEditorDeleteButton(
         onPressed: () => widget.onDeleteSlice(slice.id),
@@ -444,107 +408,35 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
       );
     }
 
-    final absolutePath = p.normalize(
-      p.join(widget.workspaceRootPath, selectedAtlasPath),
-    );
-    final imageFile = File(absolutePath);
-    if (!imageFile.existsSync()) {
-      return PrefabEditorEmptyState(
-        message: 'Missing image: $selectedAtlasPath',
-      );
-    }
-
-    final scaledWidth = atlasSize.width * widget.atlasZoom;
-    final scaledHeight = atlasSize.height * widget.atlasZoom;
-
-    final stack = SizedBox(
-      width: scaledWidth,
-      height: scaledHeight,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Positioned.fill(
-            child: Image.file(
-              imageFile,
-              width: scaledWidth,
-              height: scaledHeight,
-              fit: BoxFit.fill,
-              filterQuality: FilterQuality.none,
+    return AtlasImageViewport(
+      workspaceRootPath: widget.workspaceRootPath,
+      sourceImagePath: selectedAtlasPath,
+      imageWidth: atlasSize.width.toInt(),
+      imageHeight: atlasSize.height.toInt(),
+      zoom: widget.atlasZoom,
+      zoomMin: widget.zoomMin,
+      zoomMax: widget.zoomMax,
+      zoomStep: widget.zoomStep,
+      autoSliceEnabled: widget.autoSliceEnabled,
+      gridSettings: widget.gridSettings,
+      selection: widget.selectionRectInImagePixels,
+      existingRegions: <AtlasSelectionOverlay>[
+        for (final slice in widget.slices)
+          AtlasSelectionOverlay(
+            id: slice.id,
+            rect: AtlasPixelRect(
+              x: slice.x,
+              y: slice.y,
+              width: slice.width,
+              height: slice.height,
             ),
           ),
-          Positioned.fill(
-            child: IgnorePointer(
-              child: CustomPaint(
-                painter: EditorViewportGridPainter(zoom: widget.atlasZoom),
-              ),
-            ),
-          ),
-          Positioned.fill(
-            child: IgnorePointer(
-              child: CustomPaint(
-                painter: AtlasSelectionPainter(
-                  zoom: widget.atlasZoom,
-                  selectionRectInImagePixels: widget.selectionRectInImagePixels,
-                  existingSlices: widget.slices,
-                  selectedSliceId: widget.selectedSliceId,
-                ),
-              ),
-            ),
-          ),
-          Positioned.fill(
-            child: Listener(
-              key: const ValueKey<String>('atlas_scene_canvas'),
-              onPointerSignal: _onPointerSignal,
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onPanStart: (details) {
-                  if (SceneInputUtils.isCtrlPressed()) {
-                    _ctrlPanActive = true;
-                    return;
-                  }
-                  widget.onSelectionDragStart(details.localPosition, atlasSize);
-                },
-                onPanUpdate: (details) {
-                  if (_ctrlPanActive || SceneInputUtils.isCtrlPressed()) {
-                    SceneInputUtils.panScrollControllers(
-                      horizontal: widget.horizontalScrollController,
-                      vertical: widget.verticalScrollController,
-                      pointerDelta: details.delta,
-                    );
-                    return;
-                  }
-                  widget.onSelectionDragUpdate(
-                    details.localPosition,
-                    atlasSize,
-                  );
-                },
-                onPanEnd: (_) {
-                  _ctrlPanActive = false;
-                },
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFF1B2A36)),
-      ),
-      child: ScrollConfiguration(
-        behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
-        child: SingleChildScrollView(
-          key: const ValueKey<String>('atlas_scene_vertical_scroll'),
-          controller: widget.verticalScrollController,
-          child: SingleChildScrollView(
-            key: const ValueKey<String>('atlas_scene_horizontal_scroll'),
-            controller: widget.horizontalScrollController,
-            scrollDirection: Axis.horizontal,
-            child: stack,
-          ),
-        ),
-      ),
+      ],
+      selectedRegionId: widget.selectedSliceId,
+      horizontalScrollController: widget.horizontalScrollController,
+      verticalScrollController: widget.verticalScrollController,
+      onZoomChanged: widget.onAtlasZoomChanged,
+      onSelectionChanged: widget.onSelectionChanged,
     );
   }
 
@@ -564,16 +456,5 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
       case AtlasSliceKind.tile:
         return 'Selected Tile Slice';
     }
-  }
-
-  void _onPointerSignal(PointerSignalEvent event) {
-    final signedSteps = SceneInputUtils.signedZoomStepsFromCtrlScroll(event);
-    if (signedSteps == 0) {
-      return;
-    }
-    final nextZoom = widget.atlasZoom + (signedSteps * widget.zoomStep);
-    widget.onAtlasZoomChanged(
-      nextZoom.clamp(widget.zoomMin, widget.zoomMax).toDouble(),
-    );
   }
 }
