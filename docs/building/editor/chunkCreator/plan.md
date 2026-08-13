@@ -103,13 +103,13 @@ workflow. All eight current chunk files contain direct terrain collision; six
 forest chunks also place prefabs, and the two woodcamp chunks contain enemy
 markers.
 
-An active workspace-unification follow-on will replace the route's mutually
-exclusive terrain and composition views with one persistent Chunk creation
-scene and two right-side authoring cards. Layout consolidation lands before
-direct prefab/marker manipulation; operation-scoped gesture targeting and the
-owner-identity/revision stale checks share the existing composition command,
-and the metadata-only tile-layer boundary has an explicit gate. The initiative
-does not change Chunk-v2 source or Core placement lineage:
+The active workspace-unification follow-on has consolidated the route's
+mutually exclusive terrain and composition views into one persistent Chunk
+creation scene and two right-side authoring cards. Direct prefab/marker
+manipulation remains the next milestone; operation-scoped gesture targeting and
+owner-identity/revision stale checks will share the existing composition
+command, and the metadata-only tile-layer boundary remains explicit. The
+initiative does not change Chunk-v2 source or Core placement lineage:
 
 - [Unified Chunk Scene Strategy](unified-chunk-scene-strategy.md)
 - [Unified Chunk Scene Implementation Checklist](unified-chunk-scene-implementation-checklist.md)

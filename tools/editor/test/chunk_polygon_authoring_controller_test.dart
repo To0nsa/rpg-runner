@@ -292,7 +292,7 @@ void main() {
     );
   });
 
-  testWidgets('scene surface exposes its collision-editor semantics label', (
+  testWidgets('scene surface exposes its chunk-authoring semantics label', (
     tester,
   ) async {
     final semantics = tester.ensureSemantics();
@@ -307,10 +307,7 @@ void main() {
       ),
     );
 
-    expect(
-      find.bySemanticsLabel('Chunk collision polygon editor'),
-      findsOneWidget,
-    );
+    expect(find.bySemanticsLabel('Chunk authoring scene'), findsOneWidget);
     semantics.dispose();
   });
 

@@ -78,7 +78,7 @@ Final Phase 4 acceptance work remains tracked in
 | Guarded migration write transaction | editor `WorkspaceWriteTransaction` / `PolygonAuthoringMigrationTransaction` | explicit CLI `--write`, rollback/no-op evidence, and the completed nine-file source cutover |
 | Strict chunk-v2 file structure, canonical serialization, and ownership planning | editor `ChunkV2FileData` / `ChunkV2FileCodec` / `ChunkStore.buildV2SavePlan` | migration facade delegation plus normal complete-current-tree load, pending plans, rollback-safe apply, and exact reload |
 | Chunk-v2 plugin validation, mutation, and lifecycle policy | editor `ChunkV2Document` / `ChunkV2CollisionCommitPolicy` / `ChunkV2MetadataCommitPolicy` / `ChunkV2CompositionCommitPolicy` / `ChunkV2LifecycleCommitPolicy` / `ChunkDomainPlugin` | normal strict current-source composition; complete Core/editor validation; freshness/order/revision enforcement; typed polygon, metadata, composition, lifecycle commits; transactional export |
-| Chunk polygon route-local projection | editor `ChunkPolygonAuthoringController` / `ChunkPolygonSceneSurface` / `ChunkPolygonWorkspace` | normal complete-v2 routing, active-level owner isolation, tools, snap, bounds, diagnostics, keyboard, rejection, history, compiled-edge inspection, actor-terrain, and marker-placement overlays; legacy/missing source selects no ground/gap workflow |
+| Chunk route-local projection | editor `ChunkAuthoringWorkspace` / `ChunkPolygonAuthoringController` / `ChunkPolygonSceneSurface` | persistent complete-v2 scene and two-card sidebar, active-level owner isolation, tools, snap, bounds, diagnostics, keyboard, rejection, history, compiled-edge inspection, actor-terrain, and marker-placement overlays; legacy/missing source selects no ground/gap workflow |
 | Chunk level visual preview | editor `ChunkV2Document` / `ChunkV2Scene` / `ChunkPolygonLevelVisualSource` | `ChunkDomainPlugin` reads the parallax theme set, resolves the active level's `visualThemeId`, and renders its background/foreground around read-only terrain material art selected by direct polygon `materialKey`; it adds no source mutation or gameplay authority |
 | Chunk actor terrain projection | editor `ChunkV2ActorTerrainProjection` | Core surface extraction; Éloïse/Grojib/Hashash eligibility; published Grojib/Hashash graphs; Unoco solid/local-hover evidence; Derf 15-degree/32-pixel perch evidence; no player/flight graph or source mutation |
 | Chunk marker contract and placement projection | editor `chunk_v2_marker_contract.dart` / `ChunkV2MarkerPlacementProjection` | immutable level ground context, staged marker validation, exact Phase 3 enemy placement evidence, Hashash deferral, authored-order/stable-key retention, and zero RNG/source mutation |
@@ -91,7 +91,7 @@ Core has no dependency on editor models, JSON, widgets, or filesystem state.
 The editor depends on Core through a one-way local package dependency and does
 not reimplement geometric predicates.
 
-The Chunk polygon workspace loads parallax themes only as preview input. Its
+The Chunk authoring workspace loads parallax themes only as preview input. Its
 plugin snapshot resolves the active `LevelDef.visualThemeId` to one theme, then
 the route draws ordered background layers, collision-polygon terrain material
 art, and foreground layers in separate read-only z-bands beneath and above the
@@ -570,8 +570,15 @@ history, Ctrl-drag pans, and Ctrl-scroll zooms without mutating source. The
 owner bounds painter is display-only; closed-bound validation remains in the
 chunk owner policy.
 
-When a normal strict `ChunkV2Scene` is loaded, `ChunkCreatorPage`
-selects `ChunkPolygonWorkspace`; the v1 coordinator no longer exists.
+When a normal strict `ChunkV2Scene` is loaded, `ChunkCreatorPage` selects
+`ChunkAuthoringWorkspace`; the v1 coordinator and the standalone composition
+workspace no longer exist. `Chunk creation scene` stays mounted while the two
+top-level right-sidebar cards expose owner/terrain and composition workflows.
+On narrow layouts, the same scene and sidebar subtrees are repositioned rather
+than replaced by tabs. The terrain-only `ChunkPolygonSceneSurface` remains the
+input authority during this layout milestone; prefab and marker composition
+continues through the existing dialogs until the typed domain coordinator is
+implemented.
 Reload and confirmed current-source apply route through the normal session and
 transactional store. Active-level changes still use the plugin command and
 rebind to the first canonical owner in the new scene. Owner changes dispose the
@@ -581,11 +588,11 @@ loads return the shared migration-required state, so v1 ground/gap editing and
 export are not normal source paths.
 
 The Chunk workspace's right authoring column owns one vertical scroll surface.
-Shapes, reachable seam evidence, and diagnostics are independent expansion
-cards that start open. Their bodies take their natural content height and
-delegate overflow to the column scroll, so the Shapes card is not clipped by a
-fixed proportional split; expanding or collapsing a card changes only local
-presentation state and never authoring selection, history, or source.
+Its two top-level panels and their owner, Shapes, reachable-seam, diagnostics,
+visual-stack, tile-layer metadata, prefab-placement, and marker sections take
+their natural content height and delegate overflow to that scroll surface.
+Expanding or collapsing any card changes only local presentation state and
+never authoring selection, history, or source.
 
 The Chunk shape inspector uses the same `TerrainPolygonVertexEditor` as Prefab
 staging. Its integer/`.0`/`.5` parser never sends malformed fractions to the

@@ -23,7 +23,7 @@ class ChunkPolygonSceneSurface extends StatefulWidget {
     this.onInspectWorldPoint,
     this.vertexHitRadiusCanvasPx = 10,
     this.edgeHitRadiusCanvasPx = 7,
-    this.semanticLabel = 'Chunk collision polygon editor',
+    this.semanticLabel = 'Chunk authoring scene',
   });
 
   final ChunkPolygonAuthoringController controller;

@@ -11,49 +11,49 @@ import '../../../../prefabs/models/models.dart';
 import '../../../../session/editor_session_controller.dart';
 import '../../shared/editor_list_card.dart';
 import '../../shared/editor_panel_card.dart';
-import '../../shared/editor_three_panel_layout.dart';
+import '../../shared/editor_section_card.dart';
 import 'chunk_v2_composition_dialog.dart';
 
-/// Retained visual-composition forms for one current Chunk-v2 owner.
+/// Sidebar card for one current Chunk-v2 owner's retained composition forms.
 ///
 /// Each accepted action replaces the three canonical composition lists through
 /// one typed plugin command. Identity, metadata, dimensions, and polygons are
 /// never included in the route-owned edit payload.
-class ChunkV2CompositionWorkspace extends StatelessWidget {
-  const ChunkV2CompositionWorkspace({
+class ChunkCompositionCard extends StatelessWidget {
+  const ChunkCompositionCard({
     super.key,
     required this.controller,
     required this.document,
     required this.chunk,
+    required this.controlsEnabled,
   });
 
   final EditorSessionController controller;
   final ChunkV2Document document;
   final ChunkV2FileData chunk;
+  final bool controlsEnabled;
 
   @override
-  Widget build(BuildContext context) => Column(
-    key: const ValueKey<String>('chunk_v2_composition_workspace'),
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: <Widget>[
-      _buildVisualStackPreview(context),
-      const SizedBox(height: 12),
-      Expanded(
-        child: EditorThreePanelLayout(
-          firstLabel: 'Layers',
-          secondLabel: 'Prefabs',
-          thirdLabel: 'Markers',
-          first: _buildTileLayers(context),
-          second: _buildPlacements(context),
-          third: _buildMarkers(context),
-          firstFlex: 1,
-          secondFlex: 1,
-          thirdFlex: 1,
-          initialNarrowIndex: 0,
-          minimumWideWidth: 900,
-        ),
-      ),
-    ],
+  Widget build(BuildContext context) => EditorPanelCard(
+    key: const ValueKey<String>('chunk_composition_card'),
+    title: 'Layers, prefabs & markers',
+    description: controlsEnabled
+        ? 'Layer metadata and placed chunk content.'
+        : 'Finish or cancel the active terrain edit before changing composition.',
+    collapsible: true,
+    expansionKey: const ValueKey<String>('chunk_composition_card_toggle'),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        _buildVisualStackPreview(context),
+        const SizedBox(height: 12),
+        _buildTileLayers(context),
+        const SizedBox(height: 12),
+        _buildPlacements(context),
+        const SizedBox(height: 12),
+        _buildMarkers(context),
+      ],
+    ),
   );
 
   Widget _buildVisualStackPreview(BuildContext context) {
@@ -71,7 +71,7 @@ class ChunkV2CompositionWorkspace extends StatelessWidget {
           tieOrder: index,
         ),
     ]..sort(_compareVisualStackEntries);
-    return EditorPanelCard(
+    return EditorSectionCard(
       key: const ValueKey<String>('chunk_visual_stack_preview'),
       title: 'Visual stack preview · bottom → top',
       description:
@@ -79,38 +79,42 @@ class ChunkV2CompositionWorkspace extends StatelessWidget {
           'runtime collision authority.',
       child: SizedBox(
         height: 34,
-        child: ListView.separated(
+        child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
-          itemCount: entries.length,
-          separatorBuilder: (_, _) => const SizedBox(width: 6),
-          itemBuilder: (context, index) {
-            final entry = entries[index];
-            return Semantics(
-              sortKey: OrdinalSortKey(index.toDouble()),
-              label: entry.semanticLabel,
-              child: Chip(
-                key: ValueKey<String>(entry.widgetKey),
-                avatar: Icon(
-                  entry.isGround
-                      ? Icons.landscape_outlined
-                      : Icons.image_outlined,
-                  size: 17,
+          child: Row(
+            children: <Widget>[
+              for (var index = 0; index < entries.length; index += 1) ...[
+                if (index > 0) const SizedBox(width: 6),
+                Semantics(
+                  sortKey: OrdinalSortKey(index.toDouble()),
+                  label: entries[index].semanticLabel,
+                  child: Chip(
+                    key: ValueKey<String>(entries[index].widgetKey),
+                    avatar: Icon(
+                      entries[index].isGround
+                          ? Icons.landscape_outlined
+                          : Icons.image_outlined,
+                      size: 17,
+                    ),
+                    label: Text(entries[index].displayLabel),
+                  ),
                 ),
-                label: Text(entry.displayLabel),
-              ),
-            );
-          },
+              ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildTileLayers(BuildContext context) => _CompositionPanel(
-    title: 'Tile layers',
+  Widget _buildTileLayers(BuildContext context) => _CompositionSection(
+    sectionKey: 'chunk_layer_metadata_section',
+    expansionKey: 'chunk_layer_metadata_section_toggle',
+    title: 'Tile layer metadata',
     addKey: 'chunk_v2_layer_add',
     addLabel: 'Add layer',
-    onAdd: () => _addTileLayer(context),
-    emptyMessage: 'No visual tile layers.',
+    onAdd: controlsEnabled ? () => _addTileLayer(context) : null,
+    emptyMessage: 'No tile layer metadata.',
     children: <Widget>[
       for (final layer in chunk.tileLayers)
         EditorListCard(
@@ -118,8 +122,12 @@ class ChunkV2CompositionWorkspace extends StatelessWidget {
           trailing: _EditDeleteActions(
             editKey: 'chunk_v2_layer_edit_${layer.id}',
             deleteKey: 'chunk_v2_layer_delete_${layer.id}',
-            onEdit: () => _editTileLayer(context, layer),
-            onDelete: () => _deleteTileLayer(context, layer),
+            onEdit: controlsEnabled
+                ? () => _editTileLayer(context, layer)
+                : null,
+            onDelete: controlsEnabled
+                ? () => _deleteTileLayer(context, layer)
+                : null,
           ),
           child: ListTile(
             contentPadding: EdgeInsets.zero,
@@ -137,11 +145,13 @@ class ChunkV2CompositionWorkspace extends StatelessWidget {
     final canAdd = document.prefabData.prefabs.any(
       (prefab) => prefab.status == PrefabStatus.active,
     );
-    return _CompositionPanel(
+    return _CompositionSection(
+      sectionKey: 'chunk_prefab_placements_section',
+      expansionKey: 'chunk_prefab_placements_section_toggle',
       title: 'Prefab placements',
       addKey: 'chunk_v2_placement_add',
       addLabel: 'Add placement',
-      onAdd: canAdd ? () => _addPlacement(context) : null,
+      onAdd: controlsEnabled && canAdd ? () => _addPlacement(context) : null,
       emptyMessage: 'No prefab placements.',
       children: <Widget>[
         for (final selection in placements)
@@ -152,8 +162,12 @@ class ChunkV2CompositionWorkspace extends StatelessWidget {
             trailing: _EditDeleteActions(
               editKey: 'chunk_v2_placement_edit_${selection.selectionKey}',
               deleteKey: 'chunk_v2_placement_delete_${selection.selectionKey}',
-              onEdit: () => _editPlacement(context, selection),
-              onDelete: () => _deletePlacement(context, selection),
+              onEdit: controlsEnabled
+                  ? () => _editPlacement(context, selection)
+                  : null,
+              onDelete: controlsEnabled
+                  ? () => _deletePlacement(context, selection)
+                  : null,
             ),
             child: ListTile(
               contentPadding: EdgeInsets.zero,
@@ -173,11 +187,13 @@ class ChunkV2CompositionWorkspace extends StatelessWidget {
 
   Widget _buildMarkers(BuildContext context) {
     final markers = buildChunkPlacedMarkerSelections(chunk.markers);
-    return _CompositionPanel(
+    return _CompositionSection(
+      sectionKey: 'chunk_enemy_markers_section',
+      expansionKey: 'chunk_enemy_markers_section_toggle',
       title: 'Enemy markers',
       addKey: 'chunk_v2_marker_add',
       addLabel: 'Add marker',
-      onAdd: () => _addMarker(context),
+      onAdd: controlsEnabled ? () => _addMarker(context) : null,
       emptyMessage: 'No enemy markers.',
       children: <Widget>[
         for (final selection in markers)
@@ -186,8 +202,12 @@ class ChunkV2CompositionWorkspace extends StatelessWidget {
             trailing: _EditDeleteActions(
               editKey: 'chunk_v2_marker_edit_${selection.selectionKey}',
               deleteKey: 'chunk_v2_marker_delete_${selection.selectionKey}',
-              onEdit: () => _editMarker(context, selection),
-              onDelete: () => _deleteMarker(context, selection),
+              onEdit: controlsEnabled
+                  ? () => _editMarker(context, selection)
+                  : null,
+              onDelete: controlsEnabled
+                  ? () => _deleteMarker(context, selection)
+                  : null,
             ),
             child: ListTile(
               contentPadding: EdgeInsets.zero,
@@ -417,8 +437,10 @@ class ChunkV2CompositionWorkspace extends StatelessWidget {
       placement.resolvedPrefabRef;
 }
 
-final class _CompositionPanel extends StatelessWidget {
-  const _CompositionPanel({
+final class _CompositionSection extends StatelessWidget {
+  const _CompositionSection({
+    required this.sectionKey,
+    required this.expansionKey,
     required this.title,
     required this.addKey,
     required this.addLabel,
@@ -427,6 +449,8 @@ final class _CompositionPanel extends StatelessWidget {
     required this.children,
   });
 
+  final String sectionKey;
+  final String expansionKey;
   final String title;
   final String addKey;
   final String addLabel;
@@ -435,18 +459,23 @@ final class _CompositionPanel extends StatelessWidget {
   final List<Widget> children;
 
   @override
-  Widget build(BuildContext context) => EditorPanelCard(
+  Widget build(BuildContext context) => EditorSectionCard(
+    key: ValueKey<String>(sectionKey),
     title: title,
+    collapsible: true,
+    expansionKey: ValueKey<String>(expansionKey),
     trailing: FilledButton.icon(
       key: ValueKey<String>(addKey),
       onPressed: onAdd,
       icon: const Icon(Icons.add),
       label: Text(addLabel),
     ),
-    bodyMode: EditorPanelBodyMode.expanded,
     child: children.isEmpty
-        ? Center(child: Text(emptyMessage))
-        : ListView(children: children),
+        ? Text(emptyMessage)
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: children,
+          ),
   );
 }
 
@@ -460,8 +489,8 @@ final class _EditDeleteActions extends StatelessWidget {
 
   final String editKey;
   final String deleteKey;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) => Wrap(

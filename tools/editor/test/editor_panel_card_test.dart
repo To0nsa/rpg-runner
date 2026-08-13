@@ -66,6 +66,38 @@ void main() {
     );
   });
 
+  testWidgets('collapsible section keeps natural height and trailing action', (
+    tester,
+  ) async {
+    var actions = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: EditorSectionCard(
+            title: 'Markers',
+            collapsible: true,
+            expansionKey: const ValueKey<String>('markers_toggle'),
+            trailing: IconButton(
+              onPressed: () => actions += 1,
+              icon: const Icon(Icons.add),
+            ),
+            child: const Text(
+              'marker rows',
+              key: ValueKey<String>('marker_rows'),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byIcon(Icons.add));
+    expect(actions, 1);
+    expect(find.byKey(const ValueKey<String>('marker_rows')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey<String>('markers_toggle')));
+    await tester.pump();
+    expect(find.byKey(const ValueKey<String>('marker_rows')), findsNothing);
+  });
+
   testWidgets('shared section and selectable cards preserve their slots', (
     tester,
   ) async {

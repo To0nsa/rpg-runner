@@ -1,7 +1,7 @@
 # Unified Chunk Scene Implementation Checklist
 
 Date: August 14, 2026
-Status: Planned
+Status: In progress; Milestone 1 complete, Phase 2 next
 
 Source strategy:
 [Unified Chunk Scene Strategy](unified-chunk-scene-strategy.md)
@@ -77,7 +77,7 @@ implemented or explicitly closed.
       apply a shared coordinate-snapping function.
 - [x] The planning audit found no off-grid `snapToGrid: true` prefab in
       checked-in JSON under `assets/`, `test/`, or `tools/editor/test/`.
-- [ ] Unified workspace implementation has started.
+- [x] Unified workspace implementation has started.
 
 ## Locked Invariants
 
@@ -119,115 +119,115 @@ Objective: remove design ambiguity before reorganizing a stateful workspace.
 
 ### Repository and behavior inventory
 
-- [ ] Re-read `AGENTS.md`, `tools/editor/AGENTS.md`, and
+- [x] Re-read `AGENTS.md`, `tools/editor/AGENTS.md`, and
       `docs/rules/code-documentation-policy.md` before implementation.
-- [ ] Confirm the live behavior and ownership in:
-  - [ ] `tools/editor/lib/src/app/pages/chunkCreator/v2/chunk_polygon_workspace.dart`
-  - [ ] `tools/editor/lib/src/app/pages/chunkCreator/v2/chunk_v2_composition_workspace.dart`
-  - [ ] `tools/editor/lib/src/app/pages/chunkCreator/v2/chunk_polygon_scene_surface.dart`
-  - [ ] `tools/editor/lib/src/app/pages/chunkCreator/v2/chunk_polygon_authoring_controller.dart`
-  - [ ] `tools/editor/lib/src/chunks/chunk_v2_composition_commit.dart`
-  - [ ] `tools/editor/lib/src/chunks/chunk_domain_plugin.dart`
-- [ ] Inventory every action currently reachable in both workspace views so the
+- [x] Confirm the live behavior and ownership in:
+  - [x] `tools/editor/lib/src/app/pages/chunkCreator/v2/chunk_polygon_workspace.dart`
+  - [x] `tools/editor/lib/src/app/pages/chunkCreator/v2/chunk_v2_composition_workspace.dart`
+  - [x] `tools/editor/lib/src/app/pages/chunkCreator/v2/chunk_polygon_scene_surface.dart`
+  - [x] `tools/editor/lib/src/app/pages/chunkCreator/v2/chunk_polygon_authoring_controller.dart`
+  - [x] `tools/editor/lib/src/chunks/chunk_v2_composition_commit.dart`
+  - [x] `tools/editor/lib/src/chunks/chunk_domain_plugin.dart`
+- [x] Inventory every action currently reachable in both workspace views so the
       layout migration cannot drop a control.
-- [ ] Characterize the existing active-operation guards for owner switch,
+- [x] Characterize the existing active-operation guards for owner switch,
       reload, apply, undo/redo, and route switch.
-- [ ] Record a wide and narrow widget-test baseline for scene, owner panel,
+- [x] Record a wide and narrow widget-test baseline for scene, owner panel,
       shapes, seams, diagnostics, visual stack, layers, prefabs, and markers.
-- [ ] Capture the current scene interaction performance fixture result before
+- [x] Capture the current scene interaction performance fixture result before
       adding more projections or listeners.
 
 ### UX decisions
 
-- [ ] Freeze the visible scene title as `Chunk creation scene` and the semantic
+- [x] Freeze the visible scene title as `Chunk creation scene` and the semantic
       label as a chunk-authoring surface rather than a collision-only editor.
-- [ ] Freeze the wide layout: primary scene plus one bounded right sidebar.
-- [ ] Freeze the narrow layout as a bounded scene followed by the same sidebar
+- [x] Freeze the wide layout: primary scene plus one bounded right sidebar.
+- [x] Freeze the narrow layout as a bounded scene followed by the same sidebar
       below it, with neither subtree unmounted.
-- [ ] Freeze exactly two top-level sidebar `EditorPanelCard`s; the scene retains
+- [x] Freeze exactly two top-level sidebar `EditorPanelCard`s; the scene retains
       its own panel shell, and sidebar-internal groups use natural-height
       section/expansion primitives.
-- [ ] Keep the header owner selector and owner-card list synchronized through
+- [x] Keep the header owner selector and owner-card list synchronized through
       the route's one selected chunk key.
-- [ ] Freeze both top-level cards as initially expanded; choose internal-section
+- [x] Freeze both top-level cards as initially expanded; choose internal-section
       defaults during the measured layout pass. Keep all expansion state
       route-local with stable keys and out of document state.
-- [ ] Separate global scene controls from contextual domain tools.
-- [ ] Freeze terrain as the initial source-editing domain when a chunk owner
+- [x] Separate global scene controls from contextual domain tools.
+- [x] Freeze terrain as the initial source-editing domain when a chunk owner
       binds.
-- [ ] Freeze card/section expansion as presentation-only; it cannot change
+- [x] Freeze card/section expansion as presentation-only; it cannot change
       domain, selection, history, or pending changes.
-- [ ] Freeze tile-layer metadata as sidebar-only with no canvas input domain.
-- [ ] Define behavior when the selected owner is deleted and no fallback owner
+- [x] Freeze tile-layer metadata as sidebar-only with no canvas input domain.
+- [x] Define behavior when the selected owner is deleted and no fallback owner
       remains: bind the first canonical remaining owner, or clear owner-scoped
       state and preserve the existing no-template empty state when none remain.
 
 ### Operation identity decision
 
-- [ ] Record that the existing prefab/marker selection key is projection-local
+- [x] Record that the existing prefab/marker selection key is projection-local
       and changes when record values change.
-- [ ] Record that Core's existing derived `placementKey` is runtime lineage used
+- [x] Record that Core's existing derived `placementKey` is runtime lineage used
       by terrain edge IDs, signatures, and parity fixtures; do not repurpose it
       for UI persistence.
-- [ ] Freeze the gesture token as owner key, expected owner revision, complete
+- [x] Freeze the gesture token as owner key, expected owner revision, complete
       `ChunkV2CompositionSnapshot`, target list, operation kind, and, for an
       existing record, canonical source index plus current presentation key.
-- [ ] Freeze append, replacement-at-index, or removal-at-index followed by the
+- [x] Freeze append, replacement-at-index, or removal-at-index followed by the
       existing canonical sorting as the accepted candidate construction; add
       operations have no target index.
-- [ ] Freeze selection recomputation after acceptance: add/move/edit chooses the
+- [x] Freeze selection recomputation after acceptance: add/move/edit chooses the
       unique full-equality match or defensively clears selection, delete clears
       source selection, undo/redo/same-owner reload retains only an exactly
       resolving prior presentation key, and owner switch always clears
       owner-scoped selection.
-- [ ] Record that comparator-equal duplicate records are rejected by strict
+- [x] Record that comparator-equal duplicate records are rejected by strict
       canonical structure; the valid ambiguity to test is colocated records
       with the same selection-key base but different canonical fields.
-- [ ] Do not add authored instance keys or a new Chunk schema for this workflow.
-- [ ] Do not begin Phases 3-5 until stale, same-location, and exact-duplicate
+- [x] Do not add authored instance keys or a new Chunk schema for this workflow.
+- [x] Do not begin Phases 3-5 until stale, same-location, and exact-duplicate
       rejection cases pass through the operation-token contract.
 
 ### Coordinate policy decision
 
-- [ ] Scan every current Chunk-v2 source and relevant fixture for
+- [x] Scan every current Chunk-v2 source and relevant fixture for
       `snapToGrid: true` prefab anchors that are not multiples of that chunk's
       positive `tileSize`.
-- [ ] Freeze one pure coordinate-policy helper used by scene gestures and
+- [x] Freeze one pure coordinate-policy helper used by scene gestures and
       prefab form edits: gestures snap to tile size when enabled and nearest
       integer pixels when disabled, with exact ties away from zero; exact fields
       preserve the entered integer as an explicit override.
-- [ ] Record that `snapToGrid` remains an interaction preference in this
+- [x] Record that `snapToGrid` remains an interaction preference in this
       initiative, not a new codec/generator validity rule; never normalize
       existing data during decode, load, or layout migration.
-- [ ] Freeze marker dragging to nearest integer source pixels with exact ties
+- [x] Freeze marker dragging to nearest integer source pixels with exact ties
       away from zero; do not reuse the terrain half-pixel selector.
-- [ ] Keep the existing complete-document plugin validation authoritative for
+- [x] Keep the existing complete-document plugin validation authoritative for
       bounds and placement acceptance.
 
 ### Tile-layer boundary
 
-- [ ] Record that the current layer UI is metadata-only.
-- [ ] Keep spatial tile content and painting out of this initiative.
-- [ ] Record the trigger for a separate plan: an approved tile-content source
+- [x] Record that the current layer UI is metadata-only.
+- [x] Keep spatial tile content and painting out of this initiative.
+- [x] Record the trigger for a separate plan: an approved tile-content source
       contract and a concrete runtime/render consumer.
-- [ ] Prohibit paint, erase, tile-selection, and spatial layer affordances in
+- [x] Prohibit paint, erase, tile-selection, and spatial layer affordances in
       this workspace workstream.
 
 ### Architecture record
 
-- [ ] Update `docs/tdd/editor_ui_system.md` with the accepted workspace topology
+- [x] Update `docs/tdd/editor_ui_system.md` with the accepted workspace topology
       and scroll ownership before Phase 1 closes.
-- [ ] Update or add the focused Chunk authoring TDD with the accepted domain,
+- [x] Update or add the focused Chunk authoring TDD with the accepted domain,
       selection, operation-token, stale-rejection, and command rules before direct
       manipulation begins.
-- [ ] Reflect any accepted scope change in `docs/building/editor/chunkCreator/plan.md`.
+- [x] Reflect any accepted scope change in `docs/building/editor/chunkCreator/plan.md`.
 
 ### Phase 0 tests
 
-- [ ] Run `cd tools/editor && dart analyze`.
-- [ ] Run `cd tools/editor && flutter test test/chunk_polygon_workspace_test.dart`.
-- [ ] Run `cd tools/editor && flutter test test/chunk_polygon_authoring_controller_test.dart`.
-- [ ] Run `cd tools/editor && flutter test test/polygon_interaction_benchmark_fixture_test.dart`.
+- [x] Run `cd tools/editor && dart analyze`.
+- [x] Run `cd tools/editor && flutter test test/chunk_authoring_workspace_test.dart`.
+- [x] Run `cd tools/editor && flutter test test/chunk_polygon_authoring_controller_test.dart`.
+- [x] Run `cd tools/editor && flutter test test/polygon_interaction_benchmark_fixture_test.dart`.
 
 Phase 0 gate: layout, responsive behavior, active-domain semantics,
 operation-scoped identity, stale rejection, selection invalidation, and the
@@ -241,110 +241,110 @@ adding direct non-terrain manipulation.
 
 ### Modularize existing composition UI
 
-- [ ] Refactor `ChunkV2CompositionWorkspace` into focused presentational
+- [x] Refactor `ChunkV2CompositionWorkspace` into focused presentational
       sections that can be composed in a sidebar.
-- [ ] Remove the standalone `ChunkV2CompositionWorkspace` root and its file in
+- [x] Remove the standalone `ChunkV2CompositionWorkspace` root and its file in
       this phase after the retained sections move; do not keep a legacy page or
       compatibility wrapper.
-- [ ] Keep tile-layer, prefab, and marker actions on the existing typed
+- [x] Keep tile-layer, prefab, and marker actions on the existing typed
       composition commit path.
-- [ ] Keep existing dialogs operational during this phase.
-- [ ] Move the visual-stack preview into the composition card as a compact
+- [x] Keep existing dialogs operational during this phase.
+- [x] Move the visual-stack preview into the composition card as a compact
       section.
-- [ ] Avoid copying layer, prefab, marker, equality, sorting, or dispatch logic
+- [x] Avoid copying layer, prefab, marker, equality, sorting, or dispatch logic
       into the renamed route workspace.
-- [ ] Preserve current deterministic list ordering and stable widget keys where
+- [x] Preserve current deterministic list ordering and stable widget keys where
       they still describe stable concepts.
 
 ### Replace the workspace switch
 
-- [ ] Rename `ChunkPolygonWorkspace` and its file to
+- [x] Rename `ChunkPolygonWorkspace` and its file to
       `ChunkAuthoringWorkspace`, including the `ChunkCreatorPage` global key and
       widget test file; keep no compatibility alias.
-- [ ] Remove `_ChunkV2WorkspaceView`.
-- [ ] Remove `chunk_v2_view_terrain` and `chunk_v2_view_composition` choice
+- [x] Remove `_ChunkV2WorkspaceView`.
+- [x] Remove `chunk_v2_view_terrain` and `chunk_v2_view_composition` choice
       chips.
-- [ ] Remove `_selectWorkspaceView` and its view-switch-only operation guard.
-- [ ] Keep one scene mounted for the lifetime of the selected current-schema
+- [x] Remove `_selectWorkspaceView` and its view-switch-only operation guard.
+- [x] Keep one scene mounted for the lifetime of the selected current-schema
       chunk workspace.
-- [ ] Rename the panel title from `Terrain collision scene` to
+- [x] Rename the panel title from `Terrain collision scene` to
       `Chunk creation scene`.
-- [ ] Rename the route badge from `Chunk v2 polygon authoring` to
+- [x] Rename the route badge from `Chunk v2 polygon authoring` to
       `Chunk v2 authoring`.
-- [ ] Update the scene semantic label to describe chunk authoring.
-- [ ] Preserve scene viewport, focus, overlay toggles, and terrain draft state
+- [x] Update the scene semantic label to describe chunk authoring.
+- [x] Preserve scene viewport, focus, overlay toggles, and terrain draft state
       while cards expand, collapse, or scroll.
 
 ### Compose the right sidebar
 
-- [ ] Build one bounded sidebar with one vertical scroll owner.
-- [ ] Add the `Owners & terrain collision` top-level card.
-- [ ] Move owner list/lifecycle actions into that card without changing their
+- [x] Build one bounded sidebar with one vertical scroll owner.
+- [x] Add the `Owners & terrain collision` top-level card.
+- [x] Move owner list/lifecycle actions into that card without changing their
       command ownership.
-- [ ] Bind the header owner selector and owner-card selected row to the same
+- [x] Bind the header owner selector and owner-card selected row to the same
       route-local selected chunk key.
-- [ ] Compose shapes, expanded-collision summary, reachable seams, and
+- [x] Compose shapes, expanded-collision summary, reachable seams, and
       diagnostics as compact sections within the card.
-- [ ] Add the `Layers, prefabs & markers` top-level card.
-- [ ] Compose visual stack, layer metadata, prefab placements, and enemy markers
+- [x] Add the `Layers, prefabs & markers` top-level card.
+- [x] Compose visual stack, layer metadata, prefab placements, and enemy markers
       within that card.
-- [ ] Label the layer section as metadata management and expose no paint,
+- [x] Label the layer section as metadata management and expose no paint,
       erase, tile selection, cell grid, or other spatial-layer affordance.
-- [ ] Use exactly those two top-level sidebar `EditorPanelCard`s; use
+- [x] Use exactly those two top-level sidebar `EditorPanelCard`s; use
       `EditorSectionCard` or equivalent natural-height expansion sections for
       their internal groups.
-- [ ] Give cards and collapsible sections stable semantics and expansion keys.
-- [ ] Ensure nested cards do not introduce competing vertical scroll views.
-- [ ] Keep active-operation guards visible and actionable when controls are
+- [x] Give cards and collapsible sections stable semantics and expansion keys.
+- [x] Ensure nested cards do not introduce competing vertical scroll views.
+- [x] Keep active-operation guards visible and actionable when controls are
       disabled.
-- [ ] While a terrain draft/gesture is active, disable every composition and
+- [x] While a terrain draft/gesture is active, disable every composition and
       owner mutation while leaving card expansion, viewport, and evidence
       controls usable.
 
 ### Responsive and accessibility work
 
-- [ ] Use a measured wide breakpoint and a bounded sidebar width.
-- [ ] Verify the scene receives usable minimum width and height at the target
+- [x] Use a measured wide breakpoint and a bounded sidebar width.
+- [x] Verify the scene receives usable minimum width and height at the target
       desktop size.
-- [ ] Implement the narrow scene-then-sidebar stack without unmounting either
+- [x] Implement the narrow scene-then-sidebar stack without unmounting either
       subtree.
-- [ ] Give the bounded scene an explicit responsive height and the sidebar the
-      remaining height; keep the sidebar `ListView` as the only vertical scroll
-      owner.
-- [ ] Preserve logical keyboard traversal from header to scene to sidebar.
-- [ ] Verify screen-reader labels distinguish the scene, both top-level cards,
+- [x] Give the bounded scene an explicit responsive height and the sidebar the
+      remaining height; keep the eager sidebar scroll view as the only vertical
+      scroll owner.
+- [x] Preserve logical keyboard traversal from header to scene to sidebar.
+- [x] Verify screen-reader labels distinguish the scene, both top-level cards,
       source selections, and read-only evidence.
-- [ ] Ensure opening a dialog from the sidebar restores focus coherently.
+- [x] Ensure opening a dialog from the sidebar restores focus coherently.
 
 ### Phase 1 tests
 
-- [ ] Replace tests that tap the removed workspace chips with tests that prove
+- [x] Replace tests that tap the removed workspace chips with tests that prove
       both cards and the scene coexist.
-- [ ] Prove the scene remains mounted and retains viewport state while both
+- [x] Prove the scene remains mounted and retains viewport state while both
       cards are used.
-- [ ] Re-run existing owner create/duplicate/rename/delete coverage.
-- [ ] Re-run existing terrain shape, seam, diagnostics, edge inspection, actor
+- [x] Re-run existing owner create/duplicate/rename/delete coverage.
+- [x] Re-run existing terrain shape, seam, diagnostics, edge inspection, actor
       terrain, and marker-evidence coverage.
-- [ ] Re-run existing layer, prefab, and marker add/edit/delete coverage.
-- [ ] Add a coexistence regression proving composition/owner mutations cannot
+- [x] Re-run existing layer, prefab, and marker add/edit/delete coverage.
+- [x] Add a coexistence regression proving composition/owner mutations cannot
       interleave with an active terrain operation.
-- [ ] Add wide-layout assertions for scene/sidebar placement.
-- [ ] Add narrow-layout assertions proving the old workspace tabs do not return.
-- [ ] Assert the removed workspace classes, enum, widget keys, and old root test
+- [x] Add wide-layout assertions for scene/sidebar placement.
+- [x] Add narrow-layout assertions proving the old workspace tabs do not return.
+- [x] Assert the removed workspace classes, enum, widget keys, and old root test
       name have no live references.
-- [ ] Add overflow coverage at representative minimum sizes and text scaling.
+- [x] Add overflow coverage at representative minimum sizes and text scaling.
 
 ### Milestone 1 documentation
 
-- [ ] Update `tools/editor/README.md` for the persistent scene, two-card
+- [x] Update `tools/editor/README.md` for the persistent scene, two-card
       sidebar, responsive behavior, and retained dialog workflow; do not claim
       direct prefab or marker scene manipulation yet.
-- [ ] Update `docs/tdd/editor_ui_system.md` from the old multi-card/split-view
+- [x] Update `docs/tdd/editor_ui_system.md` from the old multi-card/split-view
       adoption text to the delivered scene/sidebar topology.
-- [ ] Update `docs/tdd/polygon_terrain_authoring_foundation.md` for the renamed
+- [x] Update `docs/tdd/polygon_terrain_authoring_foundation.md` for the renamed
       route workspace and persistent layout, while recording that the
       terrain-only scene surface remains until Phase 3.
-- [ ] Mark the layout milestone complete in
+- [x] Mark the layout milestone complete in
       `docs/building/editor/chunkCreator/plan.md` when its gate passes.
 
 Phase 1 gate: the old view selector and separate composition page are gone. All

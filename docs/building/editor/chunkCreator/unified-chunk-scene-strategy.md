@@ -1,7 +1,7 @@
 # Unified Chunk Scene Strategy
 
 Date: August 14, 2026
-Status: Planned; implementation has not started
+Status: In progress; workspace consolidation complete, direct scene authoring next
 
 Related documents:
 
@@ -347,7 +347,8 @@ Wide layout:
 - the scene receives the majority of horizontal space
 - the right sidebar uses a bounded, usable inspector width rather than equal
   flex with the scene
-- both named cards live in one `ListView`
+- both named cards live in one eager, vertical scroll view so their state and
+  semantics remain mounted
 - the scene remains height-bounded and never scrolls with the sidebar
 
 Narrow layout:
@@ -355,7 +356,7 @@ Narrow layout:
 - do not restore the old terrain/composition workspace tabs
 - stack the same sidebar below a bounded scene in the workspace body
 - use a height-bounded column with the sidebar receiving the remaining height;
-  the sidebar `ListView` stays the only vertical scroll owner
+  the sidebar scroll view stays the only vertical scroll owner
 - keep both scene and sidebar mounted while cards expand or collapse
 - preserve keyboard focus, selection, viewport, and draft state when inspector
   sections open or close

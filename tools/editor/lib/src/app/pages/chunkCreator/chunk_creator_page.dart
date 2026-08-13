@@ -5,7 +5,7 @@ import '../../../session/editor_session_controller.dart';
 import '../../../terrain_authoring/polygon_authoring_migration_required.dart';
 import '../shared/editor_page_local_draft_state.dart';
 import '../shared/polygon_authoring_migration_required_workspace.dart';
-import 'v2/chunk_polygon_workspace.dart';
+import 'v2/chunk_authoring_workspace.dart';
 
 /// Current chunk-v2 editor route.
 ///
@@ -33,8 +33,8 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
         EditorPageLocalDraftState,
         EditorPageSessionShortcutHandler,
         EditorPageReloadHandler {
-  final GlobalKey<ChunkPolygonWorkspaceState> _workspaceKey =
-      GlobalKey<ChunkPolygonWorkspaceState>();
+  final GlobalKey<ChunkAuthoringWorkspaceState> _workspaceKey =
+      GlobalKey<ChunkAuthoringWorkspaceState>();
 
   bool get _migrationRequired =>
       widget.controller.scene is PolygonAuthoringMigrationRequiredScene;
@@ -118,7 +118,7 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
       );
     }
     if (scene is ChunkV2Scene) {
-      return ChunkPolygonWorkspace(
+      return ChunkAuthoringWorkspace(
         key: _workspaceKey,
         controller: widget.controller,
         onOpenOwningPrefab: widget.onOpenOwningPrefab,
