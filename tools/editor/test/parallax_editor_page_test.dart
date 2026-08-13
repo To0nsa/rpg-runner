@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as p;
 
 import 'package:runner_editor/src/app/pages/parallaxEditor/parallax_editor_page.dart';
 import 'package:runner_editor/src/domain/authoring_plugin_registry.dart';
@@ -17,6 +20,27 @@ void main() {
     addTearDown(() async {
       await tester.binding.setSurfaceSize(null);
     });
+    final workspaceRootPath = p.normalize(
+      p.absolute(Directory.current.path, '..', '..'),
+    );
+    final outsideDirectory = Directory.systemTemp.createTempSync(
+      'parallax_asset_picker_test_',
+    );
+    final outsideAsset = File(p.join(outsideDirectory.path, 'outside.png'))
+      ..writeAsBytesSync(const <int>[0]);
+    addTearDown(() {
+      outsideDirectory.deleteSync(recursive: true);
+    });
+    final selectedAssetPath = p.join(
+      workspaceRootPath,
+      'assets',
+      'images',
+      'parallax',
+      'forest',
+      'Forest Layer 01.png',
+    );
+    final pickerSelections = <String>[outsideAsset.path, selectedAssetPath];
+    final pickerInitialDirectories = <String>[];
 
     final controller = EditorSessionController(
       pluginRegistry: AuthoringPluginRegistry(
@@ -25,12 +49,20 @@ void main() {
         ],
       ),
       initialPluginId: ParallaxDomainPlugin.pluginId,
-      initialWorkspacePath: '.',
+      initialWorkspacePath: workspaceRootPath,
     );
 
     await tester.pumpWidget(
       MaterialApp(
-        home: Scaffold(body: ParallaxEditorPage(controller: controller)),
+        home: Scaffold(
+          body: ParallaxEditorPage(
+            controller: controller,
+            assetFilePicker: ({required initialDirectory}) async {
+              pickerInitialDirectories.add(initialDirectory);
+              return pickerSelections.removeAt(0);
+            },
+          ),
+        ),
       ),
     );
     await _flush(tester);
@@ -69,9 +101,27 @@ void main() {
       );
     }
 
-    await tester.enterText(
-      _textFieldByLabel('assetPath').first,
-      'assets/images/parallax/forest/fg_20.png',
+    final assetPathField = _textFieldByLabel('assetPath').first;
+    final assetPickerButton = find.byKey(
+      const ValueKey<String>('parallax_asset_path_picker'),
+    );
+    await tester.tap(assetPickerButton);
+    await _flush(tester);
+    expect(
+      find.text('Choose an image inside the current workspace.'),
+      findsOneWidget,
+    );
+    expect(tester.widget<TextField>(assetPathField).controller?.text, isEmpty);
+
+    await tester.tap(assetPickerButton);
+    await _flush(tester);
+    expect(
+      tester.widget<TextField>(assetPathField).controller?.text,
+      'assets/images/parallax/forest/Forest Layer 01.png',
+    );
+    expect(
+      pickerInitialDirectories,
+      everyElement(p.join(workspaceRootPath, 'assets', 'images', 'parallax')),
     );
     await tester.enterText(_textFieldByLabel('parallaxFactor').first, '1.1');
     await tester.enterText(_textFieldByLabel('zOrder').first, '20');
@@ -82,7 +132,8 @@ void main() {
     expect(
       scene.activeTheme?.layers.any(
         (layer) =>
-            layer.assetPath == 'assets/images/parallax/forest/fg_20.png' &&
+            layer.assetPath ==
+                'assets/images/parallax/forest/Forest Layer 01.png' &&
             layer.parallaxFactor == 1.1,
       ),
       isTrue,

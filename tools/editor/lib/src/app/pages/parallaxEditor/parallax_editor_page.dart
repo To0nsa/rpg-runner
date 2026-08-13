@@ -7,7 +7,9 @@ import 'package:path/path.dart' as p;
 import '../../../domain/authoring_types.dart';
 import '../../../parallax/parallax_domain_models.dart';
 import '../../../session/editor_session_controller.dart';
+import '../../../workspace/editor_workspace.dart';
 import '../shared/editor_page_local_draft_state.dart';
+import 'parallax_asset_file_picker.dart';
 import 'widgets/parallax_preview_view.dart';
 
 class ParallaxEditorPage extends StatefulWidget {
@@ -15,6 +17,7 @@ class ParallaxEditorPage extends StatefulWidget {
     super.key,
     required this.controller,
     this.previewBuilder,
+    this.assetFilePicker = pickParallaxAssetFilePath,
   });
 
   final EditorSessionController controller;
@@ -23,6 +26,7 @@ class ParallaxEditorPage extends StatefulWidget {
     required ParallaxThemeDef? theme,
   })?
   previewBuilder;
+  final ParallaxAssetFilePicker assetFilePicker;
 
   @override
   State<ParallaxEditorPage> createState() => _ParallaxEditorPageState();
@@ -495,10 +499,20 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
           const SizedBox(height: 8),
           TextField(
             controller: _assetPathController,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'assetPath',
-              border: OutlineInputBorder(),
+              border: const OutlineInputBorder(),
               isDense: true,
+              suffixIcon: IconButton(
+                key: const ValueKey<String>('parallax_asset_path_picker'),
+                tooltip: 'Select parallax image',
+                onPressed: selectedLayer == null
+                    ? null
+                    : () {
+                        unawaited(_pickAssetPath(scene));
+                      },
+                icon: const Icon(Icons.add),
+              ),
             ),
           ),
           const SizedBox(height: 8),
@@ -735,6 +749,58 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
     _zOrderController.text = '';
     _opacityController.text = '';
     _yOffsetController.text = '';
+  }
+
+  Future<void> _pickAssetPath(ParallaxScene scene) async {
+    String? selectedPath;
+    try {
+      selectedPath = await widget.assetFilePicker(
+        initialDirectory: _assetPickerInitialDirectory(scene),
+      );
+    } catch (_) {
+      if (mounted) {
+        _showSnackBar('Could not open the parallax asset selector.');
+      }
+      return;
+    }
+    if (!mounted || selectedPath == null) {
+      return;
+    }
+
+    final relativePath = _workspaceRelativePath(
+      workspaceRootPath: scene.workspaceRootPath,
+      selectedPath: selectedPath,
+    );
+    if (relativePath == null) {
+      _showSnackBar('Choose an image inside the current workspace.');
+      return;
+    }
+
+    setState(() {
+      _assetPathController.text = relativePath;
+    });
+  }
+
+  String _assetPickerInitialDirectory(ParallaxScene scene) {
+    final workspace = EditorWorkspace(rootPath: scene.workspaceRootPath);
+    final authoredPath = _assetPathController.text.trim();
+    if (authoredPath.isNotEmpty) {
+      try {
+        final authoredParent = File(workspace.resolve(authoredPath)).parent;
+        if (authoredParent.existsSync()) {
+          return authoredParent.path;
+        }
+      } on ArgumentError {
+        // The inspector may contain an invalid draft; use the normal fallback.
+      }
+    }
+
+    final parallaxDirectory = Directory(
+      workspace.resolve('assets/images/parallax'),
+    );
+    return parallaxDirectory.existsSync()
+        ? parallaxDirectory.path
+        : workspace.rootPath;
   }
 
   ParallaxLayerDef? _selectedLayer(ParallaxThemeDef theme) {
@@ -977,4 +1043,28 @@ class _ParallaxLayerAssetThumbnail extends StatelessWidget {
       ),
     );
   }
+}
+
+String? _workspaceRelativePath({
+  required String workspaceRootPath,
+  required String selectedPath,
+}) {
+  final workspace = EditorWorkspace(rootPath: workspaceRootPath);
+  final absoluteSelection = p.normalize(p.absolute(selectedPath));
+  if (!File(absoluteSelection).existsSync()) {
+    return null;
+  }
+
+  final relativeSelection = p.normalize(
+    p.relative(absoluteSelection, from: workspace.rootPath),
+  );
+  try {
+    final resolvedSelection = workspace.resolve(relativeSelection);
+    if (!p.equals(resolvedSelection, absoluteSelection)) {
+      return null;
+    }
+  } on ArgumentError {
+    return null;
+  }
+  return relativeSelection.replaceAll('\\', '/');
 }
