@@ -25,14 +25,14 @@ void main() {
       final capsule = derived.worldContactCapsule;
       final aabb = capsule.derivedAabb;
 
-      expect(capsule.radius, 10.3);
-      expect(capsule.verticalHalfSegment, 12.7);
-      expect(capsule.offsetX, -0.3);
-      expect(capsule.offsetY, 1.0);
-      expect(aabb.halfX, 10.3);
-      expect(aabb.halfY, 23.0);
-      expect(aabb.offsetX, -0.3);
-      expect(aabb.offsetY, 1.0);
+      expect(capsule.radius, 9.65);
+      expect(capsule.verticalHalfSegment, 12.85);
+      expect(capsule.offsetX, 0.35);
+      expect(capsule.offsetY, 1.5);
+      expect(aabb.halfX, 9.65);
+      expect(aabb.halfY, 22.5);
+      expect(aabb.offsetX, 0.35);
+      expect(aabb.offsetY, 1.5);
       expect(derived.collider.halfX, aabb.halfX);
       expect(derived.collider.halfY, aabb.halfY);
       expect(derived.collider.offsetX, aabb.offsetX);

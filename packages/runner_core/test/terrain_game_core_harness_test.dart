@@ -294,8 +294,8 @@ void main() {
       expect(player.grounded, isTrue);
       expect(player.anim, isNot(anyOf(AnimKey.jump, AnimKey.fall)));
       expect(player.rotationRad, 0);
-      expect(player.size!.x, 20.6);
-      expect(player.size!.y, 46);
+      expect(player.size!.x, 19.3);
+      expect(player.size!.y, 45);
     },
   );
 
@@ -387,8 +387,8 @@ void main() {
     expect(debug.geometryVersion, 1);
     expect(debug.grounded, isTrue);
     expect(debug.supportEdgeId, isNotNull);
-    expect(debug.capsuleRadiusTicks, 10547);
-    expect(debug.capsuleVerticalHalfSegmentTicks, 13005);
+    expect(debug.capsuleRadiusTicks, 9882);
+    expect(debug.capsuleVerticalHalfSegmentTicks, 13158);
     expect(debug.finalBodyXTicks, closeTo(terrain.playerPosX * 1024, 1));
     expect(debug.blockingContacts.clear, throwsUnsupportedError);
   });
@@ -1055,11 +1055,11 @@ void main() {
       terrainGeometry: _terrain(),
     );
     final right = supported.buildTerrainPlayerDebugSnapshot()!;
-    expect(right.capsuleCenterXTicks - right.finalBodyXTicks, -307);
+    expect(right.capsuleCenterXTicks - right.finalBodyXTicks, 358);
     supported.playerFacing = Facing.left;
     supported.stepOneTick();
     final left = supported.buildTerrainPlayerDebugSnapshot()!;
-    expect(left.capsuleCenterXTicks - left.finalBodyXTicks, 307);
+    expect(left.capsuleCenterXTicks - left.finalBodyXTicks, -358);
     expect(left.grounded, isTrue);
 
     final wall = GameCore.terrainMotionHarness(
@@ -1091,7 +1091,7 @@ void main() {
     final oneWayDebug = oneWay.buildTerrainPlayerDebugSnapshot()!;
     expect(oneWayDebug.grounded, isTrue);
     expect(oneWayDebug.hitLeft || oneWayDebug.hitRight, isFalse);
-    expect(oneWayDebug.capsuleCenterXTicks - oneWayDebug.finalBodyXTicks, 307);
+    expect(oneWayDebug.capsuleCenterXTicks - oneWayDebug.finalBodyXTicks, -358);
   });
 
   test(

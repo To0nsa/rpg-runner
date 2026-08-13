@@ -71,7 +71,7 @@ void main() {
           ),
       isTrue,
     );
-    expect(WorkspaceFileIo.fingerprint(plan.toCanonicalJson()), 'adec0222');
+    expect(WorkspaceFileIo.fingerprint(plan.toCanonicalJson()), '83345681');
   });
 
   test('input order and host path separators do not affect report', () async {

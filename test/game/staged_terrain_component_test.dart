@@ -44,9 +44,10 @@ void main() {
       ),
     );
     await tester.pump();
-    game.camera.backdrop.add(component);
-    await tester.pump();
-    await tester.runAsync(() => component.loaded);
+    await tester.runAsync(() async {
+      await game.camera.backdrop.add(component);
+      await component.loaded;
+    });
     await tester.pump();
 
     expect(tester.takeException(), isNull);

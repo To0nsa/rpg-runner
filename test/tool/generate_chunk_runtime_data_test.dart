@@ -99,11 +99,11 @@ void main() {
         expect(result.exitCode, 1);
         expect(
           'generated_output_missing'.allMatches(result.stderr as String),
-          hasLength(6),
+          hasLength(7),
         );
         expect(
           result.stderr,
-          contains('Generated output drift found in 6 file(s).'),
+          contains('Generated output drift found in 7 file(s).'),
         );
         expect(
           File(
@@ -410,6 +410,21 @@ void main() {
       expect(stagedOutput, contains('StagedTerrainArtifactData('));
       expect(stagedOutput, contains('authoringSeamSignatureFormat'));
       expect(stagedOutput, contains('chunkKey: "chunk_ok"'));
+
+      final terrainMaterialsOutputFile = File(
+        _joinPath(<String>[
+          fixtureRoot.path,
+          'lib',
+          'game',
+          'themes',
+          'authored_terrain_materials.dart',
+        ]),
+      );
+      expect(terrainMaterialsOutputFile.existsSync(), isTrue);
+      expect(
+        terrainMaterialsOutputFile.readAsStringSync(),
+        contains("'grass_dirt'"),
+      );
 
       final levelIdOutputFile = File(
         _joinPath(<String>[
@@ -951,6 +966,39 @@ void _writePrefabAndTileDefs(String rootPath) {
 ''');
 }
 
+void _writeTerrainMaterialDefs(String rootPath) {
+  _writeFile(rootPath, 'assets/authoring/level/terrain_material_defs.json', '''
+{
+  "schemaVersion": 1,
+  "materials": [
+    {
+      "key": "grass_dirt",
+      "displayName": "Grass / Dirt",
+      "revision": 1,
+      "fillAssetPath": "assets/images/terrain/grass_dirt/fill.png",
+      "top": {
+        "base": {
+          "assetPath": "assets/images/terrain/grass_dirt/surface.png",
+          "anchorY": 0
+        }
+      }
+    }
+  ]
+}
+''');
+  for (final path in const <String>[
+    'assets/images/terrain/grass_dirt/fill.png',
+    'assets/images/terrain/grass_dirt/surface.png',
+  ]) {
+    final source = File(
+      _joinPath(<String>[Directory.current.path, ...path.split('/')]),
+    );
+    final destination = File(_joinPath(<String>[rootPath, ...path.split('/')]))
+      ..parent.createSync(recursive: true);
+    source.copySync(destination.path);
+  }
+}
+
 void _writeLevelDefs(String rootPath) {
   _writeFile(rootPath, 'assets/authoring/level/level_defs.json', '''
 {
@@ -1148,6 +1196,7 @@ void _writeCurrentChunkFixture(
   String relativePath,
   String legacyContent,
 ) {
+  _writeTerrainMaterialDefs(rootPath);
   final decoded = jsonDecode(legacyContent) as Map<String, Object?>;
   decoded['schemaVersion'] = 2;
   decoded.putIfAbsent('revision', () => 1);
