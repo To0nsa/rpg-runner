@@ -10,6 +10,7 @@ import 'package:runner_core/navigation/types/terrain_surface_graph.dart';
 import '../../../../chunks/chunk_v2_actor_terrain_projection.dart';
 import '../../../../chunks/chunk_v2_collision_expansion.dart';
 import '../../../../chunks/chunk_v2_compiled_edge_inspection.dart';
+import '../../../../chunks/chunk_v2_composition_operation.dart';
 import '../../../../chunks/chunk_domain_models.dart';
 import '../../../../chunks/chunk_domain_plugin.dart';
 import '../../../../chunks/chunk_v2_file_data.dart';
@@ -41,8 +42,9 @@ import 'chunk_expanded_collision_overlay_painter.dart';
 import 'chunk_marker_placement_overlay_painter.dart';
 import 'chunk_polygon_authoring_controller.dart';
 import 'chunk_polygon_level_visual_source.dart';
-import 'chunk_polygon_scene_surface.dart';
-import 'chunk_polygon_visual_source.dart';
+import 'chunk_scene_coordinator.dart';
+import 'chunk_scene_surface.dart';
+import 'chunk_scene_visual_source.dart';
 import 'chunk_composition_card.dart';
 import 'chunk_v2_owner_dialog.dart';
 
@@ -82,15 +84,14 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   Offset _pan = Offset.zero;
   bool _showCompiledEdges = true;
   bool _inspectCompiledEdges = false;
-  TerrainEdgeId? _selectedCompiledEdgeId;
   bool _showActorTerrain = false;
   ChunkV2TerrainActor _selectedTerrainActor = ChunkV2TerrainActor.eloise;
   ChunkV2CollisionExpansion? _actorProjectionExpansion;
   ChunkV2ActorTerrainProjection? _actorTerrainProjection;
   bool _showMarkerPlacements = false;
-  String? _selectedMarkerKey;
   ChunkV2MarkerPlacementProjection? _markerPlacementProjection;
   bool _compositionOperationActive = false;
+  final ChunkSceneCoordinator _sceneCoordinator = ChunkSceneCoordinator();
 
   bool get _hasActiveOperation =>
       (_authoring?.hasActiveOperation ?? false) || _compositionOperationActive;
@@ -551,6 +552,14 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
               chunk: authoring.chunk,
               controlsEnabled: controlsEnabled,
               onOperationChanged: _setCompositionOperationActive,
+              selectedPrefabKey: _sceneCoordinator.selectedPrefabKey,
+              selectedMarkerKey: _sceneCoordinator.selectedMarkerKey,
+              onPrefabSelected: (selection) =>
+                  setState(() => _sceneCoordinator.selectPrefab(selection)),
+              onMarkerSelected: (selection) => setState(() {
+                _sceneCoordinator.selectMarker(selection);
+                _refreshMarkerPlacementProjection();
+              }),
             ),
         ],
       ),
@@ -567,113 +576,114 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: <Widget>[
-            EditorZoomControls(
-              value: _zoom,
-              min: _minZoom,
-              max: _maxZoom,
-              step: _zoomStep,
-              sliderWidth: 140,
-              onChanged: _setZoom,
-            ),
-            OutlinedButton.icon(
-              onPressed: _resetViewport,
-              icon: const Icon(Icons.center_focus_strong),
-              label: const Text('Reset view'),
-            ),
-            SegmentedButton<int>(
-              key: const ValueKey<String>('chunk_polygon_snap_selector'),
-              segments: const <ButtonSegment<int>>[
-                ButtonSegment<int>(value: 2, label: Text('1 px grid')),
-                ButtonSegment<int>(value: 1, label: Text('0.5 px')),
-              ],
-              selected: <int>{authoring.snapPolicy.stepHalfPixels},
-              onSelectionChanged: (selection) {
-                authoring.setSnapPolicy(
-                  selection.single == 1
-                      ? const TerrainPolygonSnapPolicy.halfPixel()
-                      : TerrainPolygonSnapPolicy.ownerGridPixels(1),
-                );
-              },
-            ),
-            FilterChip(
-              key: const ValueKey<String>('chunk_compiled_edges_toggle'),
-              label: const Text('Compiled edges'),
-              selected: _showCompiledEdges,
-              onSelected: (selected) {
-                setState(() {
-                  _showCompiledEdges = selected;
-                  if (!selected) {
-                    _inspectCompiledEdges = false;
-                    _selectedCompiledEdgeId = null;
-                  }
-                });
-              },
-            ),
-            FilterChip(
-              key: const ValueKey<String>('chunk_compiled_edge_inspect_toggle'),
-              label: const Text('Inspect edges'),
-              selected: _inspectCompiledEdges,
-              onSelected: (selected) {
-                setState(() {
-                  _inspectCompiledEdges = selected;
-                  if (selected) {
-                    _showCompiledEdges = true;
-                  } else {
-                    _selectedCompiledEdgeId = null;
-                  }
-                });
-              },
-            ),
-            FilterChip(
-              key: const ValueKey<String>('chunk_actor_terrain_toggle'),
-              label: const Text('Actor terrain'),
-              selected: _showActorTerrain,
-              onSelected: (selected) {
-                setState(() {
-                  _showActorTerrain = selected;
-                  if (selected) _refreshActorTerrainProjection();
-                });
-              },
-            ),
-            FilterChip(
-              key: const ValueKey<String>('chunk_marker_placement_toggle'),
-              label: const Text('Marker placement'),
-              selected: _showMarkerPlacements,
-              onSelected: (selected) {
-                setState(() {
-                  _showMarkerPlacements = selected;
-                  if (selected) {
-                    _refreshMarkerPlacementProjection();
-                  } else {
-                    _selectedMarkerKey = null;
-                  }
-                });
-              },
-            ),
-            DropdownButton<ChunkV2TerrainActor>(
-              key: const ValueKey<String>('chunk_actor_terrain_selector'),
-              value: _selectedTerrainActor,
-              items: ChunkV2TerrainActor.values
-                  .map(
-                    (actor) => DropdownMenuItem<ChunkV2TerrainActor>(
-                      value: actor,
-                      child: Text(_terrainActorLabel(actor)),
-                    ),
-                  )
-                  .toList(growable: false),
-              onChanged: _showActorTerrain
-                  ? (actor) {
-                      if (actor == null) return;
-                      setState(() => _selectedTerrainActor = actor);
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Wrap(
+            spacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: <Widget>[
+              FilterChip(
+                key: const ValueKey<String>('chunk_compiled_edges_toggle'),
+                label: const Text('Compiled edges'),
+                selected: _showCompiledEdges,
+                onSelected: (selected) {
+                  setState(() {
+                    _showCompiledEdges = selected;
+                    if (!selected) {
+                      _inspectCompiledEdges = false;
+                      _sceneCoordinator.setCompiledEdgeInspection(false);
                     }
-                  : null,
-            ),
-          ],
+                  });
+                },
+              ),
+              FilterChip(
+                key: const ValueKey<String>(
+                  'chunk_compiled_edge_inspect_toggle',
+                ),
+                label: const Text('Inspect edges'),
+                selected: _inspectCompiledEdges,
+                onSelected: (selected) {
+                  setState(() {
+                    _inspectCompiledEdges = selected;
+                    _sceneCoordinator.setCompiledEdgeInspection(selected);
+                    if (selected) {
+                      _showCompiledEdges = true;
+                    }
+                  });
+                },
+              ),
+              FilterChip(
+                key: const ValueKey<String>('chunk_actor_terrain_toggle'),
+                label: const Text('Actor terrain'),
+                selected: _showActorTerrain,
+                onSelected: (selected) {
+                  setState(() {
+                    _showActorTerrain = selected;
+                    if (selected) _refreshActorTerrainProjection();
+                  });
+                },
+              ),
+              FilterChip(
+                key: const ValueKey<String>('chunk_marker_placement_toggle'),
+                label: const Text('Marker placement'),
+                selected: _showMarkerPlacements,
+                onSelected: (selected) {
+                  setState(() {
+                    _showMarkerPlacements = selected;
+                    if (selected) {
+                      _refreshMarkerPlacementProjection();
+                    }
+                  });
+                },
+              ),
+              DropdownButton<ChunkV2TerrainActor>(
+                key: const ValueKey<String>('chunk_actor_terrain_selector'),
+                value: _selectedTerrainActor,
+                items: ChunkV2TerrainActor.values
+                    .map(
+                      (actor) => DropdownMenuItem<ChunkV2TerrainActor>(
+                        value: actor,
+                        child: Text(_terrainActorLabel(actor)),
+                      ),
+                    )
+                    .toList(growable: false),
+                onChanged: _showActorTerrain
+                    ? (actor) {
+                        if (actor == null) return;
+                        setState(() => _selectedTerrainActor = actor);
+                      }
+                    : null,
+              ),
+              EditorZoomControls(
+                value: _zoom,
+                min: _minZoom,
+                max: _maxZoom,
+                step: _zoomStep,
+                sliderWidth: 140,
+                onChanged: _setZoom,
+              ),
+              OutlinedButton.icon(
+                onPressed: _resetViewport,
+                icon: const Icon(Icons.center_focus_strong),
+                label: const Text('Reset view'),
+              ),
+              SegmentedButton<int>(
+                key: const ValueKey<String>('chunk_polygon_snap_selector'),
+                segments: const <ButtonSegment<int>>[
+                  ButtonSegment<int>(value: 2, label: Text('1 px grid')),
+                  ButtonSegment<int>(value: 1, label: Text('0.5 px')),
+                ],
+                selected: <int>{authoring.snapPolicy.stepHalfPixels},
+                onSelectionChanged: (selection) {
+                  authoring.setSnapPolicy(
+                    selection.single == 1
+                        ? const TerrainPolygonSnapPolicy.halfPixel()
+                        : TerrainPolygonSnapPolicy.ownerGridPixels(1),
+                  );
+                },
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 8),
         SingleChildScrollView(
@@ -681,21 +691,54 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
           child: Wrap(
             spacing: 8,
             children: <Widget>[
-              for (final tool in terrainPolygonSceneToolbarTools)
+              SegmentedButton<ChunkSceneDomain>(
+                key: const ValueKey<String>('chunk_scene_domain_selector'),
+                segments: const <ButtonSegment<ChunkSceneDomain>>[
+                  ButtonSegment<ChunkSceneDomain>(
+                    value: ChunkSceneDomain.terrain,
+                    label: Text('Terrain'),
+                  ),
+                  ButtonSegment<ChunkSceneDomain>(
+                    value: ChunkSceneDomain.prefabs,
+                    label: Text('Prefabs'),
+                  ),
+                  ButtonSegment<ChunkSceneDomain>(
+                    value: ChunkSceneDomain.markers,
+                    label: Text('Markers'),
+                  ),
+                ],
+                selected: <ChunkSceneDomain>{_sceneCoordinator.sourceDomain},
+                onSelectionChanged: _hasActiveOperation
+                    ? null
+                    : (selection) => _selectSceneDomain(selection.single),
+              ),
+              if (_sceneCoordinator.sourceDomain == ChunkSceneDomain.terrain)
+                for (final tool in terrainPolygonSceneToolbarTools)
+                  ChoiceChip(
+                    key: ValueKey<String>('chunk_polygon_tool_${tool.name}'),
+                    label: Text(_toolLabel(tool)),
+                    selected: authoring.state.tool == tool,
+                    onSelected:
+                        _inspectCompiledEdges ||
+                            (authoring.state.draft == null &&
+                                tool == TerrainPolygonTool.createPolygon) ||
+                            (authoring.state.draft != null &&
+                                tool != TerrainPolygonTool.createPolygon &&
+                                tool != TerrainPolygonTool.moveVertex &&
+                                tool != TerrainPolygonTool.insertVertex)
+                        ? null
+                        : (_) => authoring.setTool(tool),
+                  )
+              else
                 ChoiceChip(
-                  key: ValueKey<String>('chunk_polygon_tool_${tool.name}'),
-                  label: Text(_toolLabel(tool)),
-                  selected: authoring.state.tool == tool,
-                  onSelected:
-                      _inspectCompiledEdges ||
-                          (authoring.state.draft == null &&
-                              tool == TerrainPolygonTool.createPolygon) ||
-                          (authoring.state.draft != null &&
-                              tool != TerrainPolygonTool.createPolygon &&
-                              tool != TerrainPolygonTool.moveVertex &&
-                              tool != TerrainPolygonTool.insertVertex)
-                      ? null
-                      : (_) => authoring.setTool(tool),
+                  key: ValueKey<String>(
+                    _sceneCoordinator.sourceDomain == ChunkSceneDomain.prefabs
+                        ? 'chunk_prefab_tool_select'
+                        : 'chunk_marker_tool_select',
+                  ),
+                  label: const Text('Select'),
+                  selected: true,
+                  onSelected: (_) {},
                 ),
             ],
           ),
@@ -723,6 +766,12 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
           _inspectCompiledEdges
               ? 'Primary input selects the nearest Core-compiled edge. '
                     'Ctrl+drag pans and Ctrl+scroll zooms.'
+              : _sceneCoordinator.sourceDomain == ChunkSceneDomain.prefabs
+              ? 'Primary input selects the topmost prefab visual. Ctrl+drag '
+                    'pans and Ctrl+scroll zooms.'
+              : _sceneCoordinator.sourceDomain == ChunkSceneDomain.markers
+              ? 'Primary input selects the topmost authored marker anchor. '
+                    'Ctrl+drag pans and Ctrl+scroll zooms.'
               : authoring.state.tool == TerrainPolygonTool.createRectangle
               ? 'Drag across opposite corners to draw a rectangle draft. '
                     'Enter saves it and Escape cancels.'
@@ -743,10 +792,13 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
               final actorProjection = _showActorTerrain
                   ? _actorTerrainProjection
                   : null;
-              final markerProjection = _showMarkerPlacements
+              final markerProjection =
+                  (_showMarkerPlacements ||
+                      _sceneCoordinator.sourceDomain ==
+                          ChunkSceneDomain.markers)
                   ? _markerPlacementProjection
                   : null;
-              final visualProjection = ChunkPolygonVisualProjection.fromChunk(
+              final visualProjection = ChunkSceneVisualProjection.fromChunk(
                 chunk: chunk,
                 prefabData: scene.prefabData,
                 tileData: scene.tileData,
@@ -768,9 +820,10 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                 zoom: _zoom,
               );
               return EditorSceneViewportFrame(
-                child: ChunkPolygonSceneSurface(
+                child: ChunkSceneSurface(
                   controller: authoring,
                   transform: transform,
+                  activeDomain: _sceneCoordinator.domain,
                   background: Stack(
                     fit: StackFit.expand,
                     children: <Widget>[
@@ -792,7 +845,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                         ),
                       ),
                       if (belowTerrainVisuals.isNotEmpty)
-                        ChunkPolygonVisualSource(
+                        ChunkSceneVisualSource(
                           key: const ValueKey<String>(
                             'chunk_polygon_visual_below_terrain',
                           ),
@@ -839,13 +892,25 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                     fit: StackFit.expand,
                     children: <Widget>[
                       if (atOrAboveTerrainVisuals.isNotEmpty)
-                        ChunkPolygonVisualSource(
+                        ChunkSceneVisualSource(
                           key: const ValueKey<String>(
                             'chunk_polygon_visual_at_or_above_terrain',
                           ),
                           workspaceRootPath: widget.controller.workspacePath,
                           placements: atOrAboveTerrainVisuals,
                           transform: transform,
+                        ),
+                      if (_sceneCoordinator.selectedPrefabKey != null)
+                        CustomPaint(
+                          key: const ValueKey<String>(
+                            'chunk_prefab_selection_overlay',
+                          ),
+                          painter: ChunkScenePrefabSelectionPainter(
+                            projection: visualProjection,
+                            selectedPrefabKey:
+                                _sceneCoordinator.selectedPrefabKey,
+                            transform: transform,
+                          ),
                         ),
                       if (actorProjection != null)
                         CustomPaint(
@@ -866,7 +931,8 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                           painter: ChunkMarkerPlacementOverlayPainter(
                             projection: markerProjection,
                             transform: transform,
-                            selectedMarkerKey: _selectedMarkerKey,
+                            selectedMarkerKey:
+                                _sceneCoordinator.selectedMarkerKey,
                           ),
                         ),
                       if (_showCompiledEdges && expansion != null)
@@ -877,7 +943,8 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                           painter: ChunkCompiledEdgeOverlayPainter(
                             expansion: expansion,
                             transform: transform,
-                            selectedEdgeId: _selectedCompiledEdgeId,
+                            selectedEdgeId:
+                                _sceneCoordinator.selectedCompiledEdgeId,
                           ),
                         ),
                     ],
@@ -886,6 +953,13 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                       ? (point) =>
                             _inspectCompiledEdge(authoring, worldPoint: point)
                       : null,
+                  onSelectWorldPoint: (point) => _selectSceneElement(
+                    visualProjection,
+                    authoring.chunk,
+                    point,
+                  ),
+                  onClearSelection: () =>
+                      setState(_sceneCoordinator.clearSelection),
                   onPanDelta: (delta) => setState(() => _pan += delta),
                   onZoomSteps: (steps) {
                     _setZoom(_zoom + steps * _zoomStep);
@@ -1235,7 +1309,10 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     final expansion = _expansionFor(authoring.chunkKey)?.expansion;
     final inspection = expansion == null
         ? null
-        : inspectChunkV2CompiledEdge(expansion, _selectedCompiledEdgeId);
+        : inspectChunkV2CompiledEdge(
+            expansion,
+            _sceneCoordinator.selectedCompiledEdgeId,
+          );
     if (inspection == null) {
       return _inspectCompiledEdges
           ? const Column(
@@ -1530,7 +1607,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
         ],
       );
     }
-    final selected = projection.outcomeFor(_selectedMarkerKey);
+    final selected = projection.outcomeFor(_sceneCoordinator.selectedMarkerKey);
     return Column(
       key: const ValueKey<String>('chunk_marker_placement_inspector'),
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1562,9 +1639,12 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
               ),
               child: ListTile(
                 dense: true,
-                selected: outcome.selectionKey == _selectedMarkerKey,
-                onTap: () =>
-                    setState(() => _selectedMarkerKey = outcome.selectionKey),
+                selected:
+                    outcome.selectionKey == _sceneCoordinator.selectedMarkerKey,
+                onTap: () => _selectMarkerByKey(
+                  authoringChunk: _authoring?.chunk,
+                  selectionKey: outcome.selectionKey,
+                ),
                 leading: Icon(_markerDispositionIcon(outcome.disposition)),
                 title: Text(
                   '#${outcome.sourceIndex + 1} ${outcome.marker.markerId}',
@@ -2110,8 +2190,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   void _bindOwner(String chunkKey) {
     _disposeAuthoring();
     _selectedChunkKey = chunkKey;
-    _selectedCompiledEdgeId = null;
-    _selectedMarkerKey = null;
+    _sceneCoordinator.bindOwner();
     _actorProjectionExpansion = null;
     _actorTerrainProjection = null;
     _markerPlacementProjection = null;
@@ -2142,10 +2221,18 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   void _handleAuthoringChanged() {
     if (!mounted) return;
     setState(() {
+      final authoring = _authoring;
+      if (authoring != null) {
+        _sceneCoordinator.reconcileComposition(authoring.chunk);
+        _sceneCoordinator.selectTerrain(authoring.state.selection);
+      }
       if (_showActorTerrain || _showMarkerPlacements) {
         _refreshActorTerrainProjection();
       }
-      if (_showMarkerPlacements) _refreshMarkerPlacementProjection();
+      if (_showMarkerPlacements ||
+          _sceneCoordinator.sourceDomain == ChunkSceneDomain.markers) {
+        _refreshMarkerPlacementProjection();
+      }
     });
   }
 
@@ -2181,7 +2268,6 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     final scene = _sceneOrNull;
     if (authoring == null || projection == null || scene == null) {
       _markerPlacementProjection = null;
-      _selectedMarkerKey = null;
       return;
     }
     _markerPlacementProjection = ChunkV2MarkerPlacementProjection.build(
@@ -2189,9 +2275,64 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       actorTerrain: projection,
       levelGroundTopY: scene.groundTopYByLevelId[authoring.chunk.levelId],
     );
-    if (_markerPlacementProjection!.outcomeFor(_selectedMarkerKey) == null) {
-      _selectedMarkerKey = null;
+    final selectedMarkerKey = _sceneCoordinator.selectedMarkerKey;
+    if (selectedMarkerKey != null &&
+        _markerPlacementProjection!.outcomeFor(selectedMarkerKey) == null) {
+      _sceneCoordinator.clearSelection();
     }
+  }
+
+  void _selectSceneDomain(ChunkSceneDomain domain) {
+    if (_hasActiveOperation) {
+      _showOwnerSwitchBlocked();
+      return;
+    }
+    setState(() {
+      _inspectCompiledEdges = false;
+      _sceneCoordinator.setSourceDomain(domain);
+      if (domain == ChunkSceneDomain.terrain) {
+        _sceneCoordinator.selectTerrain(_authoring?.state.selection);
+      } else if (domain == ChunkSceneDomain.markers) {
+        _refreshMarkerPlacementProjection();
+      }
+    });
+  }
+
+  void _selectSceneElement(
+    ChunkSceneVisualProjection visualProjection,
+    ChunkV2FileData chunk,
+    Offset worldPoint,
+  ) {
+    switch (_sceneCoordinator.domain) {
+      case ChunkSceneDomain.prefabs:
+        final hit = visualProjection.hitTestPrefab(worldPoint);
+        final selection = hit == null
+            ? null
+            : resolveChunkPrefabSelection(chunk.prefabs, hit.selectionKey);
+        setState(() => _sceneCoordinator.selectPrefab(selection));
+      case ChunkSceneDomain.markers:
+        final hit = hitTestChunkMarkerSelection(
+          markers: chunk.markers,
+          worldX: worldPoint.dx,
+          worldY: worldPoint.dy,
+          radiusWorld: 8 / _zoom,
+        );
+        setState(() => _sceneCoordinator.selectMarker(hit));
+      case ChunkSceneDomain.terrain || ChunkSceneDomain.compiledEdgeInspection:
+        break;
+    }
+  }
+
+  void _selectMarkerByKey({
+    required ChunkV2FileData? authoringChunk,
+    required String selectionKey,
+  }) {
+    if (authoringChunk == null) return;
+    final selection = resolveChunkMarkerSelection(
+      authoringChunk.markers,
+      selectionKey,
+    );
+    setState(() => _sceneCoordinator.selectMarker(selection));
   }
 
   void _inspectCompiledEdge(
@@ -2206,7 +2347,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       worldY: worldPoint.dy,
       radiusWorld: 8 / _zoom,
     );
-    setState(() => _selectedCompiledEdgeId = edgeId);
+    setState(() => _sceneCoordinator.selectCompiledEdge(edgeId));
   }
 
   void _setZoom(double value) {

@@ -7,6 +7,10 @@ import 'package:runner_editor/src/app/pages/chunkCreator/chunk_creator_page.dart
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_actor_terrain_overlay_painter.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_compiled_edge_overlay_painter.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_marker_placement_overlay_painter.dart';
+import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_scene_coordinator.dart';
+import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_scene_surface.dart';
+import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_scene_visual_source.dart';
+import 'package:runner_editor/src/app/pages/shared/editor_list_card.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_page_local_draft_state.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_plugin.dart';
@@ -610,6 +614,124 @@ void main() {
     },
   );
 
+  testWidgets('scene and composition cards share prefab and marker selection', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1800, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final harness = await _buildHarness();
+    addTearDown(harness.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.dark(),
+        home: Scaffold(body: ChunkCreatorPage(controller: harness.session)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final sidebar = find.byKey(
+      const ValueKey<String>('chunk_authoring_sidebar'),
+    );
+    final sidebarScrollable = find
+        .descendant(of: sidebar, matching: find.byType(Scrollable))
+        .first;
+    final prefabCard = find.byKey(
+      const ValueKey<String>('chunk_v2_placement_prefab_rock|95|10|0'),
+    );
+    await tester.scrollUntilVisible(
+      prefabCard,
+      240,
+      scrollable: sidebarScrollable,
+    );
+    await tester.tap(prefabCard);
+    await tester.pump();
+
+    final domainSelector = find.byKey(
+      const ValueKey<String>('chunk_scene_domain_selector'),
+    );
+    expect(
+      tester.widget<SegmentedButton<ChunkSceneDomain>>(domainSelector).selected,
+      <ChunkSceneDomain>{ChunkSceneDomain.prefabs},
+    );
+    expect(tester.widget<EditorListCard>(prefabCard).isSelected, isTrue);
+    var prefabPainter =
+        tester
+                .widget<CustomPaint>(
+                  find.byKey(
+                    const ValueKey<String>('chunk_prefab_selection_overlay'),
+                  ),
+                )
+                .painter!
+            as ChunkScenePrefabSelectionPainter;
+    expect(prefabPainter.selectedPrefabKey, 'prefab_rock|95|10|0');
+
+    final surfaceFinder = find.byKey(
+      const ValueKey<String>('chunk_scene_surface'),
+    );
+    final sceneSurface = tester.widget<ChunkSceneSurface>(
+      find.ancestor(
+        of: surfaceFinder,
+        matching: find.byType(ChunkSceneSurface),
+      ),
+    );
+    Offset scenePoint(double x, double y) =>
+        tester.getTopLeft(surfaceFinder) +
+        sceneSurface.transform.origin +
+        Offset(
+          x * sceneSurface.transform.zoom,
+          y * sceneSurface.transform.zoom,
+        );
+    await tester.tapAt(scenePoint(200, 100));
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey<String>('chunk_prefab_selection_overlay')),
+      findsNothing,
+    );
+    await tester.tapAt(scenePoint(95, 10));
+    await tester.pump();
+    prefabPainter =
+        tester
+                .widget<CustomPaint>(
+                  find.byKey(
+                    const ValueKey<String>('chunk_prefab_selection_overlay'),
+                  ),
+                )
+                .painter!
+            as ChunkScenePrefabSelectionPainter;
+    expect(prefabPainter.selectedPrefabKey, 'prefab_rock|95|10|0');
+    expect(tester.widget<EditorListCard>(prefabCard).isSelected, isTrue);
+
+    final markerCard = find.byKey(
+      const ValueKey<String>('chunk_v2_marker_hashash|40|5|0'),
+    );
+    await tester.scrollUntilVisible(
+      markerCard,
+      240,
+      scrollable: sidebarScrollable,
+    );
+    await tester.tap(markerCard);
+    await tester.pump();
+    expect(
+      tester.widget<SegmentedButton<ChunkSceneDomain>>(domainSelector).selected,
+      <ChunkSceneDomain>{ChunkSceneDomain.markers},
+    );
+    expect(tester.widget<EditorListCard>(markerCard).isSelected, isTrue);
+    final markerPainter =
+        tester
+                .widget<CustomPaint>(
+                  find.byKey(
+                    const ValueKey<String>('chunk_marker_placement_overlay'),
+                  ),
+                )
+                .painter!
+            as ChunkMarkerPlacementOverlayPainter;
+    expect(markerPainter.selectedMarkerKey, 'hashash|40|5|0');
+    expect(harness.session.pendingChanges.hasChanges, isFalse);
+  });
+
   testWidgets('selected chunk shapes show their metadata subsection', (
     tester,
   ) async {
@@ -1072,7 +1194,7 @@ void main() {
         findsNothing,
       );
       final sceneElement = tester.element(
-        find.byKey(const ValueKey<String>('chunk_polygon_scene_surface')),
+        find.byKey(const ValueKey<String>('chunk_scene_surface')),
       );
       await tester.tap(
         find.byKey(const ValueKey<String>('chunk_owners_terrain_card_toggle')),
@@ -1080,7 +1202,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(
         tester.element(
-          find.byKey(const ValueKey<String>('chunk_polygon_scene_surface')),
+          find.byKey(const ValueKey<String>('chunk_scene_surface')),
         ),
         same(sceneElement),
       );

@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -17,12 +18,12 @@ import '../../shared/terrain_polygon_scene_painter.dart';
 /// Source tiles remain prefab-local so the canvas can apply the placed anchor,
 /// scale, and flips without changing authored prefab data.
 @immutable
-final class ChunkPolygonVisualProjection {
-  ChunkPolygonVisualProjection({
-    required Iterable<ChunkPolygonPlacedVisual> placements,
-  }) : placements = List<ChunkPolygonPlacedVisual>.unmodifiable(placements);
+final class ChunkSceneVisualProjection {
+  ChunkSceneVisualProjection({
+    required Iterable<ChunkScenePlacedVisual> placements,
+  }) : placements = List<ChunkScenePlacedVisual>.unmodifiable(placements);
 
-  factory ChunkPolygonVisualProjection.fromChunk({
+  factory ChunkSceneVisualProjection.fromChunk({
     required ChunkV2FileData chunk,
     required PrefabV3FileData prefabData,
     required PrefabTileFileData tileData,
@@ -41,55 +42,69 @@ final class ChunkPolygonVisualProjection {
               final prefab =
                   prefabsByKey[placement.prefabKey] ??
                   prefabsById[placement.prefabId];
-              return ChunkPolygonPlacedVisual(
+              final visualSource = prefab == null
+                  ? null
+                  : PrefabPolygonVisualProjection.fromData(
+                      prefabData: prefabData,
+                      tileData: tileData,
+                      visualBoundsByPrefabKey: visualBoundsByPrefabKey,
+                      prefab: prefab,
+                    );
+              return ChunkScenePlacedVisual(
                 selectionKey: selection.selectionKey,
+                sourceIndex: selection.sourceIndex,
                 placement: placement,
-                visualSource: prefab == null
-                    ? null
-                    : PrefabPolygonVisualProjection.fromData(
-                        prefabData: prefabData,
-                        tileData: tileData,
-                        visualBoundsByPrefabKey: visualBoundsByPrefabKey,
-                        prefab: prefab,
-                      ),
+                visualSource: visualSource,
+                worldBounds: _worldBounds(placement, visualSource),
               );
             })
             .toList(growable: false)
           ..sort(_comparePlacedVisuals);
-    return ChunkPolygonVisualProjection(placements: placements);
+    return ChunkSceneVisualProjection(placements: placements);
   }
 
-  final List<ChunkPolygonPlacedVisual> placements;
+  final List<ChunkScenePlacedVisual> placements;
 
-  Iterable<ChunkPolygonPlacedVisual> belowTerrain(int terrainZIndex) =>
+  Iterable<ChunkScenePlacedVisual> belowTerrain(int terrainZIndex) =>
       placements.where((placement) => placement.zIndex < terrainZIndex);
 
-  Iterable<ChunkPolygonPlacedVisual> atOrAboveTerrain(int terrainZIndex) =>
+  Iterable<ChunkScenePlacedVisual> atOrAboveTerrain(int terrainZIndex) =>
       placements.where((placement) => placement.zIndex >= terrainZIndex);
+
+  ChunkScenePlacedVisual? hitTestPrefab(Offset worldPoint) {
+    for (final placement in placements.reversed) {
+      if (placement.worldBounds.contains(worldPoint)) return placement;
+    }
+    return null;
+  }
 }
 
 /// One resolved chunk placement and its prefab-local visual source.
 @immutable
-final class ChunkPolygonPlacedVisual {
-  const ChunkPolygonPlacedVisual({
+final class ChunkScenePlacedVisual {
+  const ChunkScenePlacedVisual({
     required this.selectionKey,
+    required this.sourceIndex,
     required this.placement,
     required this.visualSource,
+    required this.worldBounds,
   });
 
   final String selectionKey;
+  final int sourceIndex;
   final PlacedPrefabDef placement;
   final PrefabPolygonVisualProjection? visualSource;
+  final Rect worldBounds;
 
   int get zIndex => placement.zIndex;
 }
 
-/// Paints a z-index partition of [ChunkPolygonVisualProjection] on the canvas.
+/// Paints a z-index partition of [ChunkSceneVisualProjection] on the canvas.
 ///
 /// Missing prefab definitions, slices, or image files render as deterministic
 /// fallback tiles so the author can still locate the broken placement.
-class ChunkPolygonVisualSource extends StatefulWidget {
-  const ChunkPolygonVisualSource({
+class ChunkSceneVisualSource extends StatefulWidget {
+  const ChunkSceneVisualSource({
     super.key,
     required this.workspaceRootPath,
     required this.placements,
@@ -97,15 +112,14 @@ class ChunkPolygonVisualSource extends StatefulWidget {
   });
 
   final String workspaceRootPath;
-  final Iterable<ChunkPolygonPlacedVisual> placements;
+  final Iterable<ChunkScenePlacedVisual> placements;
   final TerrainPolygonViewportTransform transform;
 
   @override
-  State<ChunkPolygonVisualSource> createState() =>
-      _ChunkPolygonVisualSourceState();
+  State<ChunkSceneVisualSource> createState() => _ChunkSceneVisualSourceState();
 }
 
-class _ChunkPolygonVisualSourceState extends State<ChunkPolygonVisualSource> {
+class _ChunkSceneVisualSourceState extends State<ChunkSceneVisualSource> {
   late EditorUiImageCache _imageCache;
 
   @override
@@ -116,7 +130,7 @@ class _ChunkPolygonVisualSourceState extends State<ChunkPolygonVisualSource> {
   }
 
   @override
-  void didUpdateWidget(covariant ChunkPolygonVisualSource oldWidget) {
+  void didUpdateWidget(covariant ChunkSceneVisualSource oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.workspaceRootPath != widget.workspaceRootPath) {
       _imageCache.dispose();
@@ -145,7 +159,7 @@ class _ChunkPolygonVisualSourceState extends State<ChunkPolygonVisualSource> {
       }
     }
     return CustomPaint(
-      painter: _ChunkPolygonVisualSourcePainter(
+      painter: _ChunkSceneVisualSourcePainter(
         placements: widget.placements.toList(growable: false),
         transform: widget.transform,
         imagesBySourcePath: imagesBySourcePath,
@@ -178,15 +192,15 @@ class _ChunkPolygonVisualSourceState extends State<ChunkPolygonVisualSource> {
       p.normalize(p.join(widget.workspaceRootPath, sourcePath));
 }
 
-final class _ChunkPolygonVisualSourcePainter extends CustomPainter {
-  const _ChunkPolygonVisualSourcePainter({
+final class _ChunkSceneVisualSourcePainter extends CustomPainter {
+  const _ChunkSceneVisualSourcePainter({
     required this.placements,
     required this.transform,
     required this.imagesBySourcePath,
     required this.loadedImageCount,
   });
 
-  final List<ChunkPolygonPlacedVisual> placements;
+  final List<ChunkScenePlacedVisual> placements;
   final TerrainPolygonViewportTransform transform;
   final Map<String, ui.Image> imagesBySourcePath;
   final int loadedImageCount;
@@ -198,7 +212,7 @@ final class _ChunkPolygonVisualSourcePainter extends CustomPainter {
     }
   }
 
-  void _paintPlacement(Canvas canvas, ChunkPolygonPlacedVisual placedVisual) {
+  void _paintPlacement(Canvas canvas, ChunkScenePlacedVisual placedVisual) {
     final visualSource = placedVisual.visualSource;
     if (visualSource == null ||
         visualSource.tiles.isEmpty ||
@@ -252,7 +266,7 @@ final class _ChunkPolygonVisualSourcePainter extends CustomPainter {
 
   void _paintWithPlacementFlip(
     Canvas canvas,
-    ChunkPolygonPlacedVisual placedVisual,
+    ChunkScenePlacedVisual placedVisual,
     VoidCallback paint,
   ) {
     final placement = placedVisual.placement;
@@ -293,7 +307,7 @@ final class _ChunkPolygonVisualSourcePainter extends CustomPainter {
         : bounds;
   }
 
-  Color _fallbackColor(ChunkPolygonPlacedVisual placedVisual) {
+  Color _fallbackColor(ChunkScenePlacedVisual placedVisual) {
     var hash = 0;
     for (final code in placedVisual.placement.resolvedPrefabRef.codeUnits) {
       hash = ((hash * 31) + code) & 0x7fffffff;
@@ -307,22 +321,95 @@ final class _ChunkPolygonVisualSourcePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _ChunkPolygonVisualSourcePainter oldDelegate) =>
+  bool shouldRepaint(covariant _ChunkSceneVisualSourcePainter oldDelegate) =>
       oldDelegate.placements != placements ||
       oldDelegate.transform != transform ||
       oldDelegate.loadedImageCount != loadedImageCount;
 }
 
 int _comparePlacedVisuals(
-  ChunkPolygonPlacedVisual left,
-  ChunkPolygonPlacedVisual right,
+  ChunkScenePlacedVisual left,
+  ChunkScenePlacedVisual right,
 ) {
   final zIndexOrder = left.zIndex.compareTo(right.zIndex);
   if (zIndexOrder != 0) return zIndexOrder;
-  return comparePlacedPrefabsDeterministic(left.placement, right.placement);
+  final placementOrder = comparePlacedPrefabsDeterministic(
+    left.placement,
+    right.placement,
+  );
+  return placementOrder != 0
+      ? placementOrder
+      : left.sourceIndex.compareTo(right.sourceIndex);
+}
+
+Rect _worldBounds(
+  PlacedPrefabDef placement,
+  PrefabPolygonVisualProjection? visualSource,
+) {
+  final local = visualSource?.visualBoundsPx.isEmpty ?? true
+      ? const Rect.fromLTWH(-8, -8, 16, 16)
+      : visualSource!.visualBoundsPx;
+  final scale = _placementScale(placement);
+  final left =
+      placement.x + (placement.flipX ? -local.right : local.left) * scale;
+  final right =
+      placement.x + (placement.flipX ? -local.left : local.right) * scale;
+  final top =
+      placement.y + (placement.flipY ? -local.bottom : local.top) * scale;
+  final bottom =
+      placement.y + (placement.flipY ? -local.top : local.bottom) * scale;
+  return Rect.fromLTRB(
+    math.min(left, right),
+    math.min(top, bottom),
+    math.max(left, right),
+    math.max(top, bottom),
+  );
 }
 
 double _placementScale(PlacedPrefabDef placement) =>
     placement.scale.isFinite && placement.scale > 0
     ? placement.scale
     : defaultPrefabPlacementScale;
+
+/// Draws the selected prefab's projected bounds without changing visual order.
+final class ChunkScenePrefabSelectionPainter extends CustomPainter {
+  const ChunkScenePrefabSelectionPainter({
+    required this.projection,
+    required this.selectedPrefabKey,
+    required this.transform,
+  });
+
+  final ChunkSceneVisualProjection projection;
+  final String? selectedPrefabKey;
+  final TerrainPolygonViewportTransform transform;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final key = selectedPrefabKey;
+    if (key == null) return;
+    final placement = projection.placements
+        .where((candidate) => candidate.selectionKey == key)
+        .firstOrNull;
+    if (placement == null) return;
+    final bounds = placement.worldBounds;
+    final canvasBounds = Rect.fromLTRB(
+      transform.origin.dx + bounds.left * transform.zoom,
+      transform.origin.dy + bounds.top * transform.zoom,
+      transform.origin.dx + bounds.right * transform.zoom,
+      transform.origin.dy + bounds.bottom * transform.zoom,
+    );
+    canvas.drawRect(
+      canvasBounds,
+      Paint()
+        ..color = const Color(0xFF81D4FA)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant ChunkScenePrefabSelectionPainter oldDelegate) =>
+      oldDelegate.projection != projection ||
+      oldDelegate.selectedPrefabKey != selectedPrefabKey ||
+      oldDelegate.transform != transform;
+}

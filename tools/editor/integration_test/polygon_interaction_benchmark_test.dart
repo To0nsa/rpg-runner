@@ -6,7 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/chunk_creator_page.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_polygon_authoring_controller.dart';
-import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_polygon_scene_surface.dart';
+import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_scene_surface.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_models.dart';
 import 'package:runner_editor/src/terrain_authoring/terrain_polygon_interaction.dart';
 
@@ -52,14 +52,12 @@ void main() {
     await tester.pumpAndSettle();
 
     final surfaceInputFinder = find.byKey(
-      const ValueKey<String>('chunk_polygon_scene_surface'),
+      const ValueKey<String>('chunk_scene_surface'),
     );
-    final surfaceWidgetFinder = find.byType(ChunkPolygonSceneSurface);
+    final surfaceWidgetFinder = find.byType(ChunkSceneSurface);
     expect(surfaceInputFinder, findsOneWidget);
     expect(surfaceWidgetFinder, findsOneWidget);
-    final surface = tester.widget<ChunkPolygonSceneSurface>(
-      surfaceWidgetFinder,
-    );
+    final surface = tester.widget<ChunkSceneSurface>(surfaceWidgetFinder);
     final controller = surface.controller;
     final selectedShape = controller.state.shapes.firstWhere(
       (shape) =>
@@ -217,7 +215,7 @@ Future<_DragProfile> _profileDrag({
     ..select(selection)
     ..setTool(tool);
   await tester.pump();
-  final surface = tester.widget<ChunkPolygonSceneSurface>(surfaceWidgetFinder);
+  final surface = tester.widget<ChunkSceneSurface>(surfaceWidgetFinder);
   final selectedShape = controller.state.shapes.firstWhere(
     (shape) => shape.shapeId == selection.shapeId,
   );

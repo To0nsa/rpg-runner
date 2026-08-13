@@ -6,21 +6,27 @@ import '../../../../terrain_authoring/terrain_polygon_interaction.dart';
 import '../../shared/scene_input_utils.dart';
 import '../../shared/terrain_polygon_scene_painter.dart';
 import 'chunk_polygon_authoring_controller.dart';
+import 'chunk_scene_coordinator.dart';
 
 /// Focusable Chunk-route surface for shared polygon interaction and painting.
 ///
 /// Viewport pan/zoom remains route-local. Only accepted semantic commits from
 /// [controller] can reach the session document and its undo history.
-class ChunkPolygonSceneSurface extends StatefulWidget {
-  const ChunkPolygonSceneSurface({
+class ChunkSceneSurface extends StatefulWidget {
+  const ChunkSceneSurface({
     super.key,
     required this.controller,
     required this.transform,
+    required this.activeDomain,
     this.background = const SizedBox.expand(),
     this.foreground = const SizedBox.shrink(),
     this.onPanDelta,
     this.onZoomSteps,
     this.onInspectWorldPoint,
+    this.onSelectWorldPoint,
+    this.onClearSelection,
+    this.onDeleteSelection,
+    this.onCompleteOperation,
     this.vertexHitRadiusCanvasPx = 10,
     this.edgeHitRadiusCanvasPx = 7,
     this.semanticLabel = 'Chunk authoring scene',
@@ -28,21 +34,25 @@ class ChunkPolygonSceneSurface extends StatefulWidget {
 
   final ChunkPolygonAuthoringController controller;
   final TerrainPolygonViewportTransform transform;
+  final ChunkSceneDomain activeDomain;
   final Widget background;
   final Widget foreground;
   final ValueChanged<Offset>? onPanDelta;
   final ValueChanged<int>? onZoomSteps;
   final ValueChanged<Offset>? onInspectWorldPoint;
+  final ValueChanged<Offset>? onSelectWorldPoint;
+  final VoidCallback? onClearSelection;
+  final VoidCallback? onDeleteSelection;
+  final VoidCallback? onCompleteOperation;
   final double vertexHitRadiusCanvasPx;
   final double edgeHitRadiusCanvasPx;
   final String semanticLabel;
 
   @override
-  State<ChunkPolygonSceneSurface> createState() =>
-      _ChunkPolygonSceneSurfaceState();
+  State<ChunkSceneSurface> createState() => _ChunkSceneSurfaceState();
 }
 
-class _ChunkPolygonSceneSurfaceState extends State<ChunkPolygonSceneSurface> {
+class _ChunkSceneSurfaceState extends State<ChunkSceneSurface> {
   late final FocusNode _focusNode;
   int? _gesturePointer;
   int? _panPointer;
@@ -50,7 +60,7 @@ class _ChunkPolygonSceneSurfaceState extends State<ChunkPolygonSceneSurface> {
   @override
   void initState() {
     super.initState();
-    _focusNode = FocusNode(debugLabel: 'ChunkPolygonSceneSurface');
+    _focusNode = FocusNode(debugLabel: 'ChunkSceneSurface');
   }
 
   @override
@@ -68,7 +78,7 @@ class _ChunkPolygonSceneSurfaceState extends State<ChunkPolygonSceneSurface> {
         focusNode: _focusNode,
         onKeyEvent: _handleKeyEvent,
         child: Listener(
-          key: const ValueKey<String>('chunk_polygon_scene_surface'),
+          key: const ValueKey<String>('chunk_scene_surface'),
           behavior: HitTestBehavior.opaque,
           onPointerDown: _handlePointerDown,
           onPointerMove: _handlePointerMove,
@@ -107,10 +117,16 @@ class _ChunkPolygonSceneSurfaceState extends State<ChunkPolygonSceneSurface> {
       return;
     }
     final point = widget.transform.canvasToSource(event.localPosition);
-    final inspect = widget.onInspectWorldPoint;
-    if (inspect != null) {
-      inspect(Offset(point.xHalfPixels * 0.5, point.yHalfPixels * 0.5));
-      return;
+    final worldPoint = Offset(point.xHalfPixels * 0.5, point.yHalfPixels * 0.5);
+    switch (widget.activeDomain) {
+      case ChunkSceneDomain.compiledEdgeInspection:
+        widget.onInspectWorldPoint?.call(worldPoint);
+        return;
+      case ChunkSceneDomain.prefabs || ChunkSceneDomain.markers:
+        widget.onSelectWorldPoint?.call(worldPoint);
+        return;
+      case ChunkSceneDomain.terrain:
+        break;
     }
     final controller = widget.controller;
     if (controller.state.tool == TerrainPolygonTool.createRectangle &&
@@ -195,17 +211,31 @@ class _ChunkPolygonSceneSurfaceState extends State<ChunkPolygonSceneSurface> {
     final controller = widget.controller;
     if (event.logicalKey == LogicalKeyboardKey.escape) {
       _gesturePointer = null;
-      controller.cancelActiveOperation();
+      if (widget.activeDomain == ChunkSceneDomain.terrain) {
+        controller.cancelActiveOperation();
+      } else {
+        widget.onClearSelection?.call();
+      }
       return KeyEventResult.handled;
     }
-    if (event.logicalKey == LogicalKeyboardKey.enter &&
-        controller.state.draft != null) {
-      controller.saveDraft();
-      return KeyEventResult.handled;
+    if (event.logicalKey == LogicalKeyboardKey.enter) {
+      if (widget.activeDomain == ChunkSceneDomain.terrain &&
+          controller.state.draft != null) {
+        controller.saveDraft();
+        return KeyEventResult.handled;
+      }
+      if (widget.onCompleteOperation != null) {
+        widget.onCompleteOperation!();
+        return KeyEventResult.handled;
+      }
     }
     if (event.logicalKey == LogicalKeyboardKey.delete ||
         event.logicalKey == LogicalKeyboardKey.backspace) {
-      controller.deleteSelection();
+      if (widget.activeDomain == ChunkSceneDomain.terrain) {
+        controller.deleteSelection();
+      } else {
+        widget.onDeleteSelection?.call();
+      }
       return KeyEventResult.handled;
     }
     return KeyEventResult.ignored;

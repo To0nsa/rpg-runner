@@ -1,7 +1,7 @@
 # Unified Chunk Scene Implementation Checklist
 
 Date: August 14, 2026
-Status: In progress; Milestone 1 complete, Phase 2 next
+Status: In progress; Milestone 1 and Phases 2-3 complete, Phase 4 next
 
 Source strategy:
 [Unified Chunk Scene Strategy](unified-chunk-scene-strategy.md)
@@ -448,91 +448,92 @@ adding new source mutations yet.
 
 ### Coordinator and domain state
 
-- [ ] Introduce a focused route-local active-domain model for terrain, prefab,
+- [x] Introduce a focused route-local active-domain model for terrain, prefab,
       and marker source editing, with compiled-edge inspection modeled as an
       explicit read-only mode.
-- [ ] Introduce typed selection instead of unrelated terrain, marker-evidence,
+- [x] Introduce typed selection instead of unrelated terrain, marker-evidence,
       and future prefab selection fields.
-- [ ] Keep viewport and overlay visibility route-local and mutation-free.
-- [ ] Keep the existing polygon controller as the terrain gesture authority.
-- [ ] Aggregate terrain, prefab, and marker active-operation state through the
+- [x] Keep viewport and overlay visibility route-local and mutation-free.
+- [x] Keep the existing polygon controller as the terrain gesture authority.
+- [x] Aggregate terrain, prefab, and marker active-operation state through the
       route's `EditorPageLocalDraftState`, undo, and redo handlers so reload and
       session shortcuts cannot bypass a non-terrain gesture.
 - [ ] Recompute selection after an accepted command; reconcile by exact key
       after undo, redo, or same-owner reload; clear on rejection/deletion when
       unresolved; and always clear owner-scoped selection on owner switch.
-- [ ] Block domain and owner changes that would discard an active operation.
-- [ ] Keep card/section expansion and layer-metadata actions from implicitly
+- [x] Block domain and owner changes that would discard an active operation.
+- [x] Keep card/section expansion and layer-metadata actions from implicitly
       changing the canvas domain.
-- [ ] While a local operation exists, block session history: route undo to the
+- [x] While a local operation exists, block session history: route undo to the
       domain's local undo/cancel contract and expose redo only when that domain
       has local redo. Delegate to session history only with no active operation.
-- [ ] Do not turn the coordinator into a second document or validation model.
+- [x] Do not turn the coordinator into a second document or validation model.
 
 ### Scene input routing
 
-- [ ] Promote `ChunkPolygonSceneSurface` to one chunk-specific scene surface
+- [x] Promote `ChunkPolygonSceneSurface` to one chunk-specific scene surface
       named `ChunkSceneSurface` that routes primary input to the explicit active
       domain; remove the old terrain-only surface and compatibility alias in the
       same phase after parity coverage passes.
-- [ ] Preserve `SceneInputUtils` as the shared pan/zoom authority.
-- [ ] Keep terrain vertex/edge hit testing unchanged while terrain is active.
-- [ ] Extract deterministic world-space prefab bounds from
+- [x] Preserve `SceneInputUtils` as the shared pan/zoom authority.
+- [x] Keep terrain vertex/edge hit testing unchanged while terrain is active.
+- [x] Extract deterministic world-space prefab bounds from
       `ChunkPolygonVisualProjection`, rename the full-scene projection to
       `ChunkSceneVisualProjection` in `chunk_scene_visual_source.dart`, rename
       the other full-scene `ChunkPolygon*` visual types and their test file, and
       make painter plus hit tester consume the same anchor/scale/flip projection
       without a compatibility alias.
-- [ ] Retain canonical source index in each projected prefab; paint by visual
+- [x] Retain canonical source index in each projected prefab; paint by visual
       canonical comparator (including z-index), then source index, and hit-test
       the exact projected sequence in reverse.
-- [ ] Add deterministic marker-anchor hit testing in reverse canonical source
+- [x] Add deterministic marker-anchor hit testing in reverse canonical source
       order, independent of resolved Core placement evidence.
-- [ ] Ensure compiled-edge inspection remains read-only and explicitly active.
-- [ ] Define and implement domain-aware `Escape`, `Enter`, `Delete`, and
+- [x] Ensure compiled-edge inspection remains read-only and explicitly active.
+- [x] Define and implement domain-aware `Escape`, `Enter`, `Delete`, and
       `Backspace` behavior.
-- [ ] Do not intercept text-field or open-dialog keyboard events with scene
+- [x] Do not intercept text-field or open-dialog keyboard events with scene
       delete/complete shortcuts.
 
 ### Bidirectional selection and overlays
 
-- [ ] Build one per-document selection projection for each composition family;
+- [x] Build one per-document selection projection for each composition family;
       sidebar rows, overlays, and hit testers reuse its canonical source index,
       derived presentation key, and source record rather than sorting
       independently.
-- [ ] Selecting a list record updates the scene selection overlay.
-- [ ] Selecting a scene element updates and reveals the matching card section.
-- [ ] Draw prefab selection bounds without changing saved visual z-order.
-- [ ] Reuse `ChunkMarkerPlacementOverlayPainter` for its already-distinct source
+- [x] Selecting a list record updates the scene selection overlay.
+- [x] Selecting a scene element updates the matching card selection.
+- [x] Draw prefab selection bounds without changing saved visual z-order.
+- [x] Reuse `ChunkMarkerPlacementOverlayPainter` for its already-distinct source
       anchors and resolved placement evidence; add hit testing without creating
       a second marker overlay.
-- [ ] Keep marker anchors visible whenever the marker domain is active, while a
+- [x] Keep marker anchors visible whenever the marker domain is active, while a
       separate view toggle controls resolved body/support evidence.
-- [ ] Preserve terrain source selection separately from read-only expanded
+- [x] Preserve terrain source selection separately from read-only expanded
       prefab collision and compiled-edge evidence.
-- [ ] Keep selection changes free of revision, history, and pending-diff writes.
+- [x] Keep selection changes free of revision, history, and pending-diff writes.
 
 ### Phase 3 tests
 
-- [ ] Add active-domain transition tests, including blocked transitions.
+- [x] Add active-domain transition tests, including blocked transitions.
 - [ ] Add tests proving card expansion and layer-metadata actions do not change
       canvas domain or source selection.
-- [ ] Add overlapping-prefab deterministic hit-test tests.
-- [ ] Add same-location/overlapping-marker deterministic hit-test tests.
-- [ ] Assert prefab hit-test order is exactly the reverse of paint order,
+- [x] Add overlapping-prefab deterministic hit-test tests.
+- [x] Add same-location/overlapping-marker deterministic hit-test tests.
+- [x] Assert prefab hit-test order is exactly the reverse of paint order,
       including equal-comparator source-index ties.
-- [ ] Add list-to-scene and scene-to-list selection tests.
-- [ ] Add selection recomputation/clearing tests for owner change and history.
-- [ ] Add keyboard routing tests for each enabled domain.
-- [ ] Add focused text-entry/dialog tests proving scene shortcuts do not consume
+- [x] Add list-to-scene and scene-to-list selection tests.
+- [x] Add selection reconciliation/clearing tests for owner changes and source
+      replacement.
+- [x] Add keyboard routing tests for terrain and non-terrain domains.
+- [x] Add focused text-entry/dialog tests proving scene shortcuts do not consume
       editing keys.
 - [ ] Add undo/redo precedence tests for local terrain, prefab, and marker
       operations followed by session history.
 - [ ] Re-run `tools/editor/test/polygon_interaction_benchmark_fixture_test.dart`
       and the shared-control cases in the Chunk workspace tests.
-- [ ] Re-run terrain polygon controller and workspace tests unchanged where
+- [x] Re-run terrain polygon controller and workspace tests unchanged where
       behavior is intentionally preserved.
-- [ ] Update the focused Chunk/Terrain TDD names and input-routing contract in
+- [x] Update the focused Chunk/Terrain TDD names and input-routing contract in
       the same change that replaces the terrain-only scene surface.
 
 Phase 3 gate: the active domain makes primary input unambiguous; list and scene

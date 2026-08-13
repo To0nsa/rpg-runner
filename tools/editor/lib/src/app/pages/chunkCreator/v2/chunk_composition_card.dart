@@ -28,6 +28,10 @@ class ChunkCompositionCard extends StatelessWidget {
     required this.chunk,
     required this.controlsEnabled,
     required this.onOperationChanged,
+    required this.selectedPrefabKey,
+    required this.selectedMarkerKey,
+    required this.onPrefabSelected,
+    required this.onMarkerSelected,
   });
 
   final EditorSessionController controller;
@@ -35,6 +39,10 @@ class ChunkCompositionCard extends StatelessWidget {
   final ChunkV2FileData chunk;
   final bool controlsEnabled;
   final ValueChanged<bool> onOperationChanged;
+  final String? selectedPrefabKey;
+  final String? selectedMarkerKey;
+  final ValueChanged<ChunkPlacedPrefabSelection> onPrefabSelected;
+  final ValueChanged<ChunkPlacedMarkerSelection> onMarkerSelected;
 
   @override
   Widget build(BuildContext context) => EditorPanelCard(
@@ -162,6 +170,8 @@ class ChunkCompositionCard extends StatelessWidget {
             key: ValueKey<String>(
               'chunk_v2_placement_${selection.selectionKey}',
             ),
+            isSelected: selection.selectionKey == selectedPrefabKey,
+            onTap: () => onPrefabSelected(selection),
             trailing: _EditDeleteActions(
               editKey: 'chunk_v2_placement_edit_${selection.selectionKey}',
               deleteKey: 'chunk_v2_placement_delete_${selection.selectionKey}',
@@ -202,6 +212,8 @@ class ChunkCompositionCard extends StatelessWidget {
         for (final selection in markers)
           EditorListCard(
             key: ValueKey<String>('chunk_v2_marker_${selection.selectionKey}'),
+            isSelected: selection.selectionKey == selectedMarkerKey,
+            onTap: () => onMarkerSelected(selection),
             trailing: _EditDeleteActions(
               editKey: 'chunk_v2_marker_edit_${selection.selectionKey}',
               deleteKey: 'chunk_v2_marker_delete_${selection.selectionKey}',

@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_polygon_authoring_controller.dart';
-import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_polygon_scene_surface.dart';
+import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_scene_coordinator.dart';
+import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_scene_surface.dart';
 import 'package:runner_editor/src/app/pages/shared/terrain_polygon_scene_painter.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_plugin.dart';
@@ -311,6 +312,44 @@ void main() {
     semantics.dispose();
   });
 
+  testWidgets('non-terrain scene input routes through domain callbacks', (
+    tester,
+  ) async {
+    final harness = await _buildHarness();
+    final selectedPoints = <Offset>[];
+    var clears = 0;
+    var deletes = 0;
+    var completes = 0;
+    await tester.pumpWidget(
+      _surfaceApp(
+        controller: harness.authoring,
+        transform: TerrainPolygonViewportTransform(
+          origin: const Offset(10, 20),
+          zoom: 2,
+        ),
+        activeDomain: ChunkSceneDomain.prefabs,
+        onSelectWorldPoint: selectedPoints.add,
+        onClearSelection: () => clears += 1,
+        onDeleteSelection: () => deletes += 1,
+        onCompleteOperation: () => completes += 1,
+      ),
+    );
+
+    final surface = find.byKey(const ValueKey<String>('chunk_scene_surface'));
+    await tester.tapAt(tester.getTopLeft(surface) + const Offset(50, 80));
+    await tester.pump();
+    expect(selectedPoints.single, const Offset(20, 30));
+    expect(harness.session.canUndo, isFalse);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.sendKeyEvent(LogicalKeyboardKey.delete);
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    expect(clears, 1);
+    expect(deletes, 1);
+    expect(completes, 1);
+    expect(harness.session.canUndo, isFalse);
+  });
+
   testWidgets('scene surface drags a rectangle into a local draft', (
     tester,
   ) async {
@@ -325,7 +364,7 @@ void main() {
       _surfaceApp(controller: controller, transform: transform),
     );
     final topLeft = tester.getTopLeft(
-      find.byKey(const ValueKey<String>('chunk_polygon_scene_surface')),
+      find.byKey(const ValueKey<String>('chunk_scene_surface')),
     );
     final start = transform.sourceVertexToCanvas(
       const TerrainSourceVertexDef(xHalfPixels: 120, yHalfPixels: 20),
@@ -373,7 +412,7 @@ void main() {
         _surfaceApp(controller: controller, transform: transform),
       );
       final topLeft = tester.getTopLeft(
-        find.byKey(const ValueKey<String>('chunk_polygon_scene_surface')),
+        find.byKey(const ValueKey<String>('chunk_scene_surface')),
       );
       final vertexCanvas = transform.sourceVertexToCanvas(
         const TerrainSourceVertexDef(xHalfPixels: 100, yHalfPixels: 20),
@@ -443,7 +482,7 @@ void main() {
       _surfaceApp(controller: controller, transform: transform),
     );
     final topLeft = tester.getTopLeft(
-      find.byKey(const ValueKey<String>('chunk_polygon_scene_surface')),
+      find.byKey(const ValueKey<String>('chunk_scene_surface')),
     );
     final vertexCanvas = transform.sourceVertexToCanvas(
       const TerrainSourceVertexDef(xHalfPixels: 160, yHalfPixels: 20),
@@ -507,7 +546,7 @@ void main() {
       _surfaceApp(controller: controller, transform: transform),
     );
     final topLeft = tester.getTopLeft(
-      find.byKey(const ValueKey<String>('chunk_polygon_scene_surface')),
+      find.byKey(const ValueKey<String>('chunk_scene_surface')),
     );
     await tester.tapAt(
       topLeft +
@@ -607,9 +646,7 @@ void main() {
         onPanDelta: panDeltas.add,
       ),
     );
-    final surface = find.byKey(
-      const ValueKey<String>('chunk_polygon_scene_surface'),
-    );
+    final surface = find.byKey(const ValueKey<String>('chunk_scene_surface'));
     await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
     final pan = await tester.startGesture(tester.getCenter(surface));
     await pan.moveBy(const Offset(12, -7));
@@ -627,17 +664,27 @@ void main() {
 Widget _surfaceApp({
   required ChunkPolygonAuthoringController controller,
   required TerrainPolygonViewportTransform transform,
+  ChunkSceneDomain activeDomain = ChunkSceneDomain.terrain,
   ValueChanged<Offset>? onPanDelta,
+  ValueChanged<Offset>? onSelectWorldPoint,
+  VoidCallback? onClearSelection,
+  VoidCallback? onDeleteSelection,
+  VoidCallback? onCompleteOperation,
 }) => MaterialApp(
   home: Scaffold(
     body: Center(
       child: SizedBox(
         width: 240,
         height: 160,
-        child: ChunkPolygonSceneSurface(
+        child: ChunkSceneSurface(
           controller: controller,
           transform: transform,
+          activeDomain: activeDomain,
           onPanDelta: onPanDelta,
+          onSelectWorldPoint: onSelectWorldPoint,
+          onClearSelection: onClearSelection,
+          onDeleteSelection: onDeleteSelection,
+          onCompleteOperation: onCompleteOperation,
           background: const ColoredBox(color: Color(0xFF111A22)),
         ),
       ),

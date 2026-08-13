@@ -593,22 +593,28 @@ command, and synchronizes only when the immutable session document identity
 changes. An active preview receives first refusal on undo, so cancellation
 cannot consume committed session history.
 
-`ChunkPolygonSceneSurface` reuses the shared painter, projection, hit test, and
-focused keyboard contract. Primary input is tool-driven; Escape cancels,
-Delete acts on the current selection, Ctrl-Z/Ctrl-Shift-Z/Ctrl-Y delegate
-history, Ctrl-drag pans, and Ctrl-scroll zooms without mutating source. The
-owner bounds painter is display-only; closed-bound validation remains in the
-chunk owner policy.
+`ChunkSceneSurface` reuses the shared painter, projection, terrain hit test, and
+focused keyboard contract. `ChunkSceneCoordinator` owns only route-local input
+domain and typed selection: terrain source, prefab source, marker source, or
+read-only compiled-edge inspection. Terrain input still delegates to
+`ChunkPolygonAuthoringController`; prefab bounds and marker anchors resolve
+through deterministic per-document projections. Escape, Enter, Delete, and
+Backspace route to the active domain, while Ctrl-drag pans and Ctrl-scroll
+zooms without mutating source. The owner bounds painter is display-only;
+closed-bound validation remains in the chunk owner policy.
 
 When a normal strict `ChunkV2Scene` is loaded, `ChunkCreatorPage` selects
 `ChunkAuthoringWorkspace`; the v1 coordinator and the standalone composition
 workspace no longer exist. `Chunk creation scene` stays mounted while the two
 top-level right-sidebar cards expose owner/terrain and composition workflows.
 On narrow layouts, the same scene and sidebar subtrees are repositioned rather
-than replaced by tabs. The terrain-only `ChunkPolygonSceneSurface` remains the
-input authority during this layout milestone; prefab and marker composition
-continues through the existing dialogs until the typed domain coordinator is
-implemented.
+than replaced by tabs. The scene domain selector and card rows share typed
+prefab and marker selection. Prefab hit testing reverses the exact canonical
+paint order, including the source-index tie break; marker anchor hit testing
+reverses canonical source order and never targets resolved placement evidence.
+Selection overlays and card expansion are route-local presentation state and
+cannot create revisions, history entries, or pending diffs. Composition still
+uses the existing dialogs until the direct prefab and marker gesture phases.
 Reload and confirmed current-source apply route through the normal session and
 transactional store. Active-level changes still use the plugin command and
 rebind to the first canonical owner in the new scene. Owner changes dispose the

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_polygon_visual_source.dart';
+import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_scene_visual_source.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_data.dart';
 import 'package:runner_editor/src/prefabs/domain/prefab_domain_models.dart';
@@ -8,7 +8,7 @@ import 'package:runner_editor/src/prefabs/models/models.dart';
 
 void main() {
   test('projects placed chunk art in visual stack order', () {
-    final projection = ChunkPolygonVisualProjection.fromChunk(
+    final projection = ChunkSceneVisualProjection.fromChunk(
       chunk: ChunkV2FileData(
         chunkKey: 'forest_preview',
         id: 'forest_preview',
@@ -121,6 +121,39 @@ void main() {
       placedTree.visualSource?.tiles.single.destinationRectPx,
       const Rect.fromLTWH(-12, -50, 40, 60),
     );
+    expect(placedTree.sourceIndex, 2);
+    expect(placedTree.worldBounds, const Rect.fromLTRB(226, 155, 246, 185));
+    expect(projection.hitTestPrefab(const Offset(240, 180)), same(placedTree));
+  });
+
+  test('overlapping prefab hit testing chooses the last painted placement', () {
+    const bounds = Rect.fromLTWH(8, 8, 16, 16);
+    const placement = PlacedPrefabDef(
+      prefabId: 'rock',
+      prefabKey: 'rock',
+      x: 16,
+      y: 16,
+    );
+    const lower = ChunkScenePlacedVisual(
+      selectionKey: 'rock|16|16|0',
+      sourceIndex: 0,
+      placement: placement,
+      visualSource: null,
+      worldBounds: bounds,
+    );
+    const upper = ChunkScenePlacedVisual(
+      selectionKey: 'rock|16|16|1',
+      sourceIndex: 1,
+      placement: placement,
+      visualSource: null,
+      worldBounds: bounds,
+    );
+    final projection = ChunkSceneVisualProjection(
+      placements: const <ChunkScenePlacedVisual>[lower, upper],
+    );
+
+    expect(projection.hitTestPrefab(const Offset(12, 12)), same(upper));
+    expect(projection.hitTestPrefab(const Offset(30, 30)), isNull);
   });
 }
 
