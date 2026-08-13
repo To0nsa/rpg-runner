@@ -61,22 +61,13 @@ void main() {
       await _selectRoute(tester, 'CHUNK CREATOR');
       await tester.pumpAndSettle();
 
-      final diagnosticsList = find.byKey(
-        const ValueKey<String>('chunk_shape_diagnostics_list'),
-      );
       final openOwner = find.byKey(
         const ValueKey<String>(
           'chunk_open_prefab_prefab_target|20|10|0_collision_001',
         ),
       );
-      await tester.scrollUntilVisible(
-        openOwner,
-        400,
-        scrollable: find.descendant(
-          of: diagnosticsList,
-          matching: find.byType(Scrollable),
-        ),
-      );
+      await tester.ensureVisible(openOwner);
+      await tester.pumpAndSettle();
       await tester.tap(openOwner);
       await tester.pumpAndSettle();
 
