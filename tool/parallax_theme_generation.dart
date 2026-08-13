@@ -4,8 +4,7 @@ import 'dart:io';
 const int parallaxSchemaVersion = 2;
 
 const String _assetsImagesPrefix = 'assets/images/';
-const String _levelRegistryVisualThemeIdPath =
-    'packages/runner_core/lib/levels/level_registry.dart';
+final RegExp _stableThemeIdentifierPattern = RegExp(r'^[a-z][a-z0-9_]*$');
 
 const String _backgroundGroup = 'background';
 const String _foregroundGroup = 'foreground';
@@ -18,7 +17,6 @@ const double _maxAbsYOffset = 4096.0;
 
 Future<ParallaxLoadResult> loadParallaxThemes({
   required String defsPath,
-  String levelRegistryPath = _levelRegistryVisualThemeIdPath,
 }) async {
   final issues = <ParallaxValidationIssue>[];
   final file = File(defsPath);
@@ -112,6 +110,7 @@ Future<ParallaxLoadResult> loadParallaxThemes({
 
   final themes = <ParallaxThemeSource>[];
   final seenThemeIds = <String>{};
+  final themeIdByGeneratedSymbol = <String, String>{};
   for (var i = 0; i < rawThemes.length; i += 1) {
     final entry = rawThemes[i];
     if (entry is! Map<String, Object?>) {
@@ -143,16 +142,25 @@ Future<ParallaxLoadResult> loadParallaxThemes({
       );
       continue;
     }
+    final generatedSymbol = _themeVariableName(theme.parallaxThemeId);
+    final previousId = themeIdByGeneratedSymbol[generatedSymbol];
+    if (previousId != null && previousId != theme.parallaxThemeId) {
+      issues.add(
+        ParallaxValidationIssue(
+          path: defsPath,
+          code: 'duplicate_generated_theme_symbol',
+          message:
+              'parallaxThemeId "${theme.parallaxThemeId}" and "$previousId" '
+              'both generate Dart declaration "$generatedSymbol".',
+        ),
+      );
+      continue;
+    }
+    themeIdByGeneratedSymbol[generatedSymbol] = theme.parallaxThemeId;
     themes.add(theme);
   }
 
   themes.sort(_compareThemes);
-  _validateReferencedThemeIds(
-    themes: themes,
-    levelRegistryPath: levelRegistryPath,
-    issues: issues,
-    defsPath: defsPath,
-  );
 
   if (issues.isEmpty) {
     final canonical = renderCanonicalParallaxDefsJson(themes);
@@ -194,6 +202,19 @@ ParallaxThemeSource? _parseThemeEntry(
     fieldPrefix: fieldPrefix,
   );
   final rawLayers = entry['layers'];
+  if (parallaxThemeId.isNotEmpty &&
+      !_stableThemeIdentifierPattern.hasMatch(parallaxThemeId)) {
+    issues.add(
+      ParallaxValidationIssue(
+        path: defsPath,
+        code: 'invalid_parallax_theme_id',
+        message:
+            '$fieldPrefix.parallaxThemeId must match '
+            '${_stableThemeIdentifierPattern.pattern}.',
+      ),
+    );
+    return null;
+  }
   if (rawLayers is! List<Object?>) {
     issues.add(
       ParallaxValidationIssue(
@@ -357,39 +378,6 @@ ParallaxLayerSource? _parseLayerEntry(
     opacity: _normalizeZero(opacity),
     yOffset: _normalizeZero(yOffset),
   );
-}
-
-void _validateReferencedThemeIds({
-  required List<ParallaxThemeSource> themes,
-  required String levelRegistryPath,
-  required List<ParallaxValidationIssue> issues,
-  required String defsPath,
-}) {
-  final file = File(levelRegistryPath);
-  if (!file.existsSync()) {
-    return;
-  }
-  final source = file.readAsStringSync();
-  final referencedThemeIds = RegExp(
-    r"(?:visualThemeId|parallaxThemeId):\s*'([^']+)'",
-  ).allMatches(source).map((match) => match.group(1)!).toSet();
-  if (referencedThemeIds.isEmpty) {
-    return;
-  }
-  final authoredThemeIds = themes.map((theme) => theme.parallaxThemeId).toSet();
-  final missingThemeIds =
-      referencedThemeIds.difference(authoredThemeIds).toList()..sort();
-  for (final missingThemeId in missingThemeIds) {
-    issues.add(
-      ParallaxValidationIssue(
-        path: defsPath,
-        code: 'missing_referenced_theme_id',
-        message:
-            'Level registry references visualThemeId "$missingThemeId" but '
-            'parallax_defs.json does not define it.',
-      ),
-    );
-  }
 }
 
 String renderCanonicalParallaxDefsJson(List<ParallaxThemeSource> themes) {

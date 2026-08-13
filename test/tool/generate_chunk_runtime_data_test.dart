@@ -24,6 +24,115 @@ void main() {
     }
   });
 
+  test('generator rejects invalid parallax theme identities', () async {
+    final fixtureRoot = await Directory.systemTemp.createTemp(
+      'chunk_generator_invalid_theme_id_',
+    );
+    try {
+      _writeValidSmokeFixture(fixtureRoot.path);
+      final path = _joinPath(<String>[
+        fixtureRoot.path,
+        'assets',
+        'authoring',
+        'level',
+        'parallax_defs.json',
+      ]);
+      final file = File(path);
+      file.writeAsStringSync(
+        file.readAsStringSync().replaceFirst(
+          '"parallaxThemeId": "field"',
+          '"parallaxThemeId": "Field"',
+        ),
+      );
+
+      final result = await _runGenerate(workingDirectory: fixtureRoot.path);
+
+      expect(result.exitCode, 1);
+      expect(result.stderr, contains('invalid_parallax_theme_id'));
+    } finally {
+      fixtureRoot.deleteSync(recursive: true);
+    }
+  });
+
+  test('generator rejects colliding generated parallax symbols', () async {
+    final fixtureRoot = await Directory.systemTemp.createTemp(
+      'chunk_generator_theme_symbol_collision_',
+    );
+    try {
+      _writeValidSmokeFixture(fixtureRoot.path);
+      _writeParallaxDefsWithGeneratedSymbolCollision(fixtureRoot.path);
+
+      final result = await _runGenerate(workingDirectory: fixtureRoot.path);
+
+      expect(result.exitCode, 1);
+      expect(result.stderr, contains('duplicate_generated_theme_symbol'));
+    } finally {
+      fixtureRoot.deleteSync(recursive: true);
+    }
+  });
+
+  test('stale generated level registry cannot block regeneration', () async {
+    final fixtureRoot = await Directory.systemTemp.createTemp(
+      'chunk_generator_stale_registry_input_',
+    );
+    try {
+      _writeValidSmokeFixture(fixtureRoot.path);
+      _writeFile(
+        fixtureRoot.path,
+        'packages/runner_core/lib/levels/level_registry.dart',
+        "const stale = 'missing_generated_theme';\n",
+      );
+
+      final result = await _runGenerate(workingDirectory: fixtureRoot.path);
+
+      expect(result.exitCode, 0, reason: result.stderr);
+      final generatedRegistry = File(
+        _joinPath(<String>[
+          fixtureRoot.path,
+          'packages',
+          'runner_core',
+          'lib',
+          'levels',
+          'level_registry.dart',
+        ]),
+      ).readAsStringSync();
+      expect(generatedRegistry, isNot(contains('missing_generated_theme')));
+    } finally {
+      fixtureRoot.deleteSync(recursive: true);
+    }
+  });
+
+  test('authored level theme references remain generation authority', () async {
+    final fixtureRoot = await Directory.systemTemp.createTemp(
+      'chunk_generator_authored_theme_reference_',
+    );
+    try {
+      _writeValidSmokeFixture(fixtureRoot.path);
+      final path = _joinPath(<String>[
+        fixtureRoot.path,
+        'assets',
+        'authoring',
+        'level',
+        'parallax_defs.json',
+      ]);
+      final file = File(path);
+      final raw = file.readAsStringSync();
+      final forestStart = raw.indexOf(
+        '    {\n      "parallaxThemeId": "forest"',
+      );
+      expect(forestStart, greaterThan(0));
+      file.writeAsStringSync('${raw.substring(0, forestStart - 2)}\n  ]\n}\n');
+
+      final result = await _runGenerate(workingDirectory: fixtureRoot.path);
+
+      expect(result.exitCode, 1);
+      expect(result.stderr, contains('missing_level_parallax_theme'));
+      expect(result.stderr, contains('forest'));
+    } finally {
+      fixtureRoot.deleteSync(recursive: true);
+    }
+  });
+
   test(
     'generator preserves visuals while collision authoring is cleared',
     () async {
@@ -1158,6 +1267,31 @@ void _writeParallaxDefs(String rootPath) {
   ]) {
     _writeFile(rootPath, relativePath, '');
   }
+}
+
+void _writeParallaxDefsWithGeneratedSymbolCollision(String rootPath) {
+  _writeFile(rootPath, 'assets/authoring/level/parallax_defs.json', '''
+{
+  "schemaVersion": 2,
+  "themes": [
+    {
+      "parallaxThemeId": "field",
+      "revision": 1,
+      "layers": []
+    },
+    {
+      "parallaxThemeId": "field_",
+      "revision": 1,
+      "layers": []
+    },
+    {
+      "parallaxThemeId": "forest",
+      "revision": 1,
+      "layers": []
+    }
+  ]
+}
+''');
 }
 
 String _resolveDartExecutable() {
