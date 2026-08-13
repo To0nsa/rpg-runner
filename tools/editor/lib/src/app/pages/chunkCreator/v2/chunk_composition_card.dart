@@ -4,6 +4,7 @@ import 'package:flutter/semantics.dart';
 import '../../../../chunks/chunk_domain_models.dart';
 import '../../../../chunks/chunk_domain_plugin.dart';
 import '../../../../chunks/chunk_v2_composition_commit.dart';
+import '../../../../chunks/chunk_v2_composition_operation.dart';
 import '../../../../chunks/chunk_v2_file_data.dart';
 import '../../../../chunks/chunk_v2_models.dart';
 import '../../../../domain/authoring_types.dart';
@@ -26,12 +27,14 @@ class ChunkCompositionCard extends StatelessWidget {
     required this.document,
     required this.chunk,
     required this.controlsEnabled,
+    required this.onOperationChanged,
   });
 
   final EditorSessionController controller;
   final ChunkV2Document document;
   final ChunkV2FileData chunk;
   final bool controlsEnabled;
+  final ValueChanged<bool> onOperationChanged;
 
   @override
   Widget build(BuildContext context) => EditorPanelCard(
@@ -225,145 +228,156 @@ class ChunkCompositionCard extends StatelessWidget {
   }
 
   Future<void> _addTileLayer(BuildContext context) async {
-    final layer = await showChunkV2TileLayerDialog(context, chunk: chunk);
-    if (layer == null || !context.mounted) return;
-    final layers = <TileLayerDef>[...chunk.tileLayers, layer]
-      ..sort((left, right) => left.id.compareTo(right.id));
-    _dispatch(context, tileLayers: layers);
+    final operation = ChunkV2CompositionOperation.add(
+      chunk: chunk,
+      target: ChunkV2CompositionTarget.tileLayers,
+    );
+    await _runOperation(() async {
+      final layer = await showChunkV2TileLayerDialog(context, chunk: chunk);
+      if (layer == null || !context.mounted) return;
+      _dispatch(context, operation.buildTileLayer(candidate: layer));
+    });
   }
 
   Future<void> _editTileLayer(
     BuildContext context,
     TileLayerDef current,
   ) async {
-    final layer = await showChunkV2TileLayerDialog(
-      context,
+    final operation = ChunkV2CompositionOperation.replace(
       chunk: chunk,
-      layer: current,
+      target: ChunkV2CompositionTarget.tileLayers,
+      sourceIndex: chunk.tileLayers.indexOf(current),
+      presentationKey: current.id,
     );
-    if (layer == null || !context.mounted || _layersEqual(layer, current)) {
-      return;
-    }
-    final layers =
-        chunk.tileLayers
-            .map(
-              (candidate) => identical(candidate, current) ? layer : candidate,
-            )
-            .toList(growable: false)
-          ..sort((left, right) => left.id.compareTo(right.id));
-    _dispatch(context, tileLayers: layers);
+    await _runOperation(() async {
+      final layer = await showChunkV2TileLayerDialog(
+        context,
+        chunk: chunk,
+        layer: current,
+      );
+      if (layer == null || !context.mounted) return;
+      _dispatch(context, operation.buildTileLayer(candidate: layer));
+    });
   }
 
   Future<void> _deleteTileLayer(
     BuildContext context,
     TileLayerDef layer,
   ) async {
-    if (!await _confirmDelete(context, 'tile layer ${layer.id}')) return;
-    if (!context.mounted) return;
-    _dispatch(
-      context,
-      tileLayers: chunk.tileLayers
-          .where((candidate) => !identical(candidate, layer))
-          .toList(growable: false),
+    final operation = ChunkV2CompositionOperation.delete(
+      chunk: chunk,
+      target: ChunkV2CompositionTarget.tileLayers,
+      sourceIndex: chunk.tileLayers.indexOf(layer),
+      presentationKey: layer.id,
     );
+    await _runOperation(() async {
+      if (!await _confirmDelete(context, 'tile layer ${layer.id}')) return;
+      if (!context.mounted) return;
+      _dispatch(context, operation.buildTileLayer());
+    });
   }
 
   Future<void> _addPlacement(BuildContext context) async {
-    final placement = await showChunkV2PlacementDialog(
-      context,
-      prefabs: document.prefabData.prefabs,
+    final operation = ChunkV2CompositionOperation.add(
+      chunk: chunk,
+      target: ChunkV2CompositionTarget.prefabs,
     );
-    if (placement == null || !context.mounted) return;
-    final placements = <PlacedPrefabDef>[...chunk.prefabs, placement]
-      ..sort(comparePlacedPrefabsDeterministic);
-    _dispatch(context, prefabs: placements);
+    await _runOperation(() async {
+      final placement = await showChunkV2PlacementDialog(
+        context,
+        prefabs: document.prefabData.prefabs,
+      );
+      if (placement == null || !context.mounted) return;
+      _dispatch(context, operation.buildPrefab(candidate: placement));
+    });
   }
 
   Future<void> _editPlacement(
     BuildContext context,
     ChunkPlacedPrefabSelection selection,
   ) async {
-    final placement = await showChunkV2PlacementDialog(
-      context,
-      prefabs: document.prefabData.prefabs,
-      placement: selection.prefab,
+    final operation = ChunkV2CompositionOperation.replace(
+      chunk: chunk,
+      target: ChunkV2CompositionTarget.prefabs,
+      sourceIndex: selection.sourceIndex,
+      presentationKey: selection.selectionKey,
     );
-    if (placement == null ||
-        !context.mounted ||
-        _placementsEqual(placement, selection.prefab)) {
-      return;
-    }
-    final placements =
-        chunk.prefabs
-            .map(
-              (candidate) => identical(candidate, selection.prefab)
-                  ? placement
-                  : candidate,
-            )
-            .toList(growable: false)
-          ..sort(comparePlacedPrefabsDeterministic);
-    _dispatch(context, prefabs: placements);
+    await _runOperation(() async {
+      final placement = await showChunkV2PlacementDialog(
+        context,
+        prefabs: document.prefabData.prefabs,
+        placement: selection.prefab,
+      );
+      if (placement == null || !context.mounted) return;
+      _dispatch(context, operation.buildPrefab(candidate: placement));
+    });
   }
 
   Future<void> _deletePlacement(
     BuildContext context,
     ChunkPlacedPrefabSelection selection,
   ) async {
-    if (!await _confirmDelete(context, 'prefab placement')) return;
-    if (!context.mounted) return;
-    _dispatch(
-      context,
-      prefabs: chunk.prefabs
-          .where((candidate) => !identical(candidate, selection.prefab))
-          .toList(growable: false),
+    final operation = ChunkV2CompositionOperation.delete(
+      chunk: chunk,
+      target: ChunkV2CompositionTarget.prefabs,
+      sourceIndex: selection.sourceIndex,
+      presentationKey: selection.selectionKey,
     );
+    await _runOperation(() async {
+      if (!await _confirmDelete(context, 'prefab placement')) return;
+      if (!context.mounted) return;
+      _dispatch(context, operation.buildPrefab());
+    });
   }
 
   Future<void> _addMarker(BuildContext context) async {
-    final marker = await showChunkV2MarkerDialog(context, chunk: chunk);
-    if (marker == null || !context.mounted) return;
-    final markers = <PlacedMarkerDef>[...chunk.markers, marker]
-      ..sort(comparePlacedMarkersDeterministic);
-    _dispatch(context, markers: markers);
+    final operation = ChunkV2CompositionOperation.add(
+      chunk: chunk,
+      target: ChunkV2CompositionTarget.markers,
+    );
+    await _runOperation(() async {
+      final marker = await showChunkV2MarkerDialog(context, chunk: chunk);
+      if (marker == null || !context.mounted) return;
+      _dispatch(context, operation.buildMarker(candidate: marker));
+    });
   }
 
   Future<void> _editMarker(
     BuildContext context,
     ChunkPlacedMarkerSelection selection,
   ) async {
-    final marker = await showChunkV2MarkerDialog(
-      context,
+    final operation = ChunkV2CompositionOperation.replace(
       chunk: chunk,
-      marker: selection.marker,
+      target: ChunkV2CompositionTarget.markers,
+      sourceIndex: selection.sourceIndex,
+      presentationKey: selection.selectionKey,
     );
-    if (marker == null ||
-        !context.mounted ||
-        _markersEqual(marker, selection.marker)) {
-      return;
-    }
-    final markers =
-        chunk.markers
-            .map(
-              (candidate) =>
-                  identical(candidate, selection.marker) ? marker : candidate,
-            )
-            .toList(growable: false)
-          ..sort(comparePlacedMarkersDeterministic);
-    _dispatch(context, markers: markers);
+    await _runOperation(() async {
+      final marker = await showChunkV2MarkerDialog(
+        context,
+        chunk: chunk,
+        marker: selection.marker,
+      );
+      if (marker == null || !context.mounted) return;
+      _dispatch(context, operation.buildMarker(candidate: marker));
+    });
   }
 
   Future<void> _deleteMarker(
     BuildContext context,
     ChunkPlacedMarkerSelection selection,
   ) async {
-    if (!await _confirmDelete(context, 'enemy marker')) return;
-    if (!context.mounted) return;
-    _dispatch(
-      context,
-      markers: chunk.markers
-          .where((candidate) => !identical(candidate, selection.marker))
-          .toList(growable: false),
+    final operation = ChunkV2CompositionOperation.delete(
+      chunk: chunk,
+      target: ChunkV2CompositionTarget.markers,
+      sourceIndex: selection.sourceIndex,
+      presentationKey: selection.selectionKey,
     );
+    await _runOperation(() async {
+      if (!await _confirmDelete(context, 'enemy marker')) return;
+      if (!context.mounted) return;
+      _dispatch(context, operation.buildMarker());
+    });
   }
 
   Future<bool> _confirmDelete(BuildContext context, String label) async {
@@ -388,27 +402,24 @@ class ChunkCompositionCard extends StatelessWidget {
     return confirmed ?? false;
   }
 
-  void _dispatch(
-    BuildContext context, {
-    Iterable<TileLayerDef>? tileLayers,
-    Iterable<PlacedPrefabDef>? prefabs,
-    Iterable<PlacedMarkerDef>? markers,
-  }) {
+  Future<void> _runOperation(Future<void> Function() operation) async {
+    onOperationChanged(true);
+    try {
+      await operation();
+    } finally {
+      onOperationChanged(false);
+    }
+  }
+
+  void _dispatch(BuildContext context, ChunkV2CompositionCommit? commit) {
+    if (commit == null) return;
     final beforeDocument = controller.document;
-    final before = ChunkV2CompositionSnapshot.fromChunk(chunk);
     controller.applyCommand(
       AuthoringCommand(
         kind: ChunkDomainPlugin.commitChunkCompositionCommandKind,
         payload: <String, Object?>{
           'chunkKey': chunk.chunkKey,
-          'commit': ChunkV2CompositionCommit(
-            before: before,
-            after: ChunkV2CompositionSnapshot(
-              tileLayers: tileLayers ?? before.tileLayers,
-              prefabs: prefabs ?? before.prefabs,
-              markers: markers ?? before.markers,
-            ),
-          ),
+          'commit': commit,
         },
       ),
     );
@@ -518,30 +529,6 @@ String _flipLabel(PlacedPrefabDef placement) {
   if (placement.flipY) return 'flip Y';
   return 'no flip';
 }
-
-bool _layersEqual(TileLayerDef left, TileLayerDef right) =>
-    left.id == right.id &&
-    left.kind == right.kind &&
-    left.visible == right.visible;
-
-bool _placementsEqual(PlacedPrefabDef left, PlacedPrefabDef right) =>
-    left.prefabId == right.prefabId &&
-    left.prefabKey == right.prefabKey &&
-    left.x == right.x &&
-    left.y == right.y &&
-    left.zIndex == right.zIndex &&
-    left.snapToGrid == right.snapToGrid &&
-    left.scale == right.scale &&
-    left.flipX == right.flipX &&
-    left.flipY == right.flipY;
-
-bool _markersEqual(PlacedMarkerDef left, PlacedMarkerDef right) =>
-    left.markerId == right.markerId &&
-    left.x == right.x &&
-    left.y == right.y &&
-    left.chancePercent == right.chancePercent &&
-    left.salt == right.salt &&
-    left.placement == right.placement;
 
 final class _ChunkVisualStackEntry {
   const _ChunkVisualStackEntry._({

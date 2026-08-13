@@ -57,7 +57,9 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
 
   @override
   bool get canReloadEditorPage =>
-      !widget.controller.isLoading && !widget.controller.isExporting;
+      !(_workspaceKey.currentState?.hasActiveOperation ?? false) &&
+      !widget.controller.isLoading &&
+      !widget.controller.isExporting;
 
   @override
   bool handleUndoSessionShortcut() =>

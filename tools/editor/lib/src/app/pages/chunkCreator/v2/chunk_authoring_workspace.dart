@@ -90,16 +90,26 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   bool _showMarkerPlacements = false;
   String? _selectedMarkerKey;
   ChunkV2MarkerPlacementProjection? _markerPlacementProjection;
+  bool _compositionOperationActive = false;
+
+  bool get _hasActiveOperation =>
+      (_authoring?.hasActiveOperation ?? false) || _compositionOperationActive;
+
+  bool get hasActiveOperation => _hasActiveOperation;
 
   bool get hasLocalDraftChanges =>
-      (_authoring?.hasActiveOperation ?? false) ||
-      widget.controller.pendingChanges.hasChanges;
+      _hasActiveOperation || widget.controller.pendingChanges.hasChanges;
 
-  bool get canUndo => _authoring?.canUndo ?? widget.controller.canUndo;
+  bool get canUndo =>
+      !_compositionOperationActive &&
+      (_authoring?.canUndo ?? widget.controller.canUndo);
 
-  bool get canRedo => _authoring?.canRedo ?? widget.controller.canRedo;
+  bool get canRedo =>
+      !_compositionOperationActive &&
+      (_authoring?.canRedo ?? widget.controller.canRedo);
 
   bool handleUndoShortcut() {
+    if (_compositionOperationActive) return false;
     final authoring = _authoring;
     if (authoring != null) return authoring.undo();
     if (!widget.controller.canUndo) return false;
@@ -108,6 +118,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   }
 
   bool handleRedoShortcut() {
+    if (_compositionOperationActive) return false;
     final authoring = _authoring;
     if (authoring != null) return authoring.redo();
     if (!widget.controller.canRedo) return false;
@@ -228,7 +239,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
             key: const ValueKey<String>('chunk_polygon_apply_source'),
             onPressed:
                 widget.controller.pendingChanges.hasChanges &&
-                    !(_authoring?.hasActiveOperation ?? false) &&
+                    !_hasActiveOperation &&
                     !widget.controller.isLoading &&
                     !widget.controller.isExporting
                 ? _confirmAndApplyToFiles
@@ -455,7 +466,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     ChunkPolygonAuthoringController? authoring,
     List<ValidationIssue> issues,
   ) {
-    final controlsEnabled = !(authoring?.hasActiveOperation ?? false);
+    final controlsEnabled = !_hasActiveOperation;
     return SingleChildScrollView(
       key: const ValueKey<String>('chunk_authoring_sidebar'),
       primary: false,
@@ -539,6 +550,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
               document: document,
               chunk: authoring.chunk,
               controlsEnabled: controlsEnabled,
+              onOperationChanged: _setCompositionOperationActive,
             ),
         ],
       ),
@@ -2059,7 +2071,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
 
   void _selectOwner(String chunkKey) {
     if (chunkKey == _selectedChunkKey) return;
-    if (_authoring?.hasActiveOperation ?? false) {
+    if (_hasActiveOperation) {
       _showOwnerSwitchBlocked();
       return;
     }
@@ -2071,7 +2083,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
 
   void _selectLevel(String? levelId) {
     if (levelId == null || levelId == _sceneOrNull?.activeLevelId) return;
-    if (_authoring?.hasActiveOperation ?? false) {
+    if (_hasActiveOperation) {
       _showOwnerSwitchBlocked();
       return;
     }
@@ -2088,7 +2100,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text(
-          'Finish or cancel the active polygon operation before switching '
+          'Finish or cancel the active authoring operation before switching '
           'owners or levels.',
         ),
       ),
@@ -2120,6 +2132,11 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     authoring.removeListener(_handleAuthoringChanged);
     authoring.dispose();
     _authoring = null;
+  }
+
+  void _setCompositionOperationActive(bool active) {
+    if (!mounted || _compositionOperationActive == active) return;
+    setState(() => _compositionOperationActive = active);
   }
 
   void _handleAuthoringChanged() {

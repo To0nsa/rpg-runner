@@ -12,6 +12,7 @@ import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_plugin.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_codec.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_data.dart';
+import 'package:runner_editor/src/chunks/chunk_v2_metadata_commit.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_models.dart';
 import 'package:runner_editor/src/levels/level_domain_models.dart';
 import 'package:runner_editor/src/parallax/parallax_domain_models.dart';
@@ -1109,7 +1110,37 @@ void main() {
         lessThan(tester.getTopLeft(initialPrefabStackEntry).dx),
       );
 
+      await tapCompositionControl(
+        'chunk_v2_placement_edit_prefab_rock|95|10|0',
+      );
+      final noOpPlacementApply = find.byKey(
+        const ValueKey<String>('chunk_v2_placement_dialog_apply'),
+      );
+      await tester.ensureVisible(noOpPlacementApply);
+      await tester.tap(noOpPlacementApply);
+      await tester.pumpAndSettle();
+      expect(_chunk(harness.session, 'forest_chunk').revision, 4);
+      expect(
+        find.textContaining('Composition change was rejected'),
+        findsNothing,
+      );
+
       await tapCompositionControl('chunk_v2_layer_add');
+      final routeState = tester.state(find.byType(ChunkCreatorPage));
+      final localDraftState = routeState as EditorPageLocalDraftState;
+      final shortcutHandler = routeState as EditorPageSessionShortcutHandler;
+      final reloadHandler = routeState as EditorPageReloadHandler;
+      expect(localDraftState.hasLocalDraftChanges, isTrue);
+      expect(reloadHandler.canReloadEditorPage, isFalse);
+      expect(shortcutHandler.canHandleUndoSessionShortcut, isFalse);
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.byKey(const ValueKey<String>('chunk_polygon_apply_source')),
+            )
+            .onPressed,
+        isNull,
+      );
       await tester.enterText(
         find.byKey(const ValueKey<String>('chunk_v2_layer_id_field')),
         'background',
@@ -1124,6 +1155,8 @@ void main() {
       expect(edited.prefabs, original.prefabs);
       expect(edited.markers, original.markers);
       expect(edited.collisionShapes, original.collisionShapes);
+      expect(reloadHandler.canReloadEditorPage, isTrue);
+      expect(shortcutHandler.canHandleUndoSessionShortcut, isTrue);
 
       await tapCompositionControl('chunk_v2_placement_add');
       await tester.enterText(
@@ -1206,6 +1239,9 @@ void main() {
       );
 
       await tapCompositionControl('chunk_v2_layer_edit_background');
+      expect(shortcutHandler.canHandleUndoSessionShortcut, isFalse);
+      expect(shortcutHandler.handleUndoSessionShortcut(), isFalse);
+      expect(_chunk(harness.session, 'forest_chunk').revision, 7);
       await tester.enterText(
         find.byKey(const ValueKey<String>('chunk_v2_layer_kind_field')),
         'backdrop',
@@ -1335,6 +1371,82 @@ void main() {
         isFalse,
       );
       expect(harness.plugin.loadCount, 1);
+    },
+  );
+
+  testWidgets(
+    'open composition dialog rejects an intervening owner revision once',
+    (tester) async {
+      tester.view.physicalSize = const Size(1800, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final harness = await _buildHarness();
+      addTearDown(harness.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData.dark(),
+          home: Scaffold(body: ChunkCreatorPage(controller: harness.session)),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('chunk_owners_terrain_card_toggle')),
+      );
+      await tester.pumpAndSettle();
+      final addLayer = find.byKey(const ValueKey<String>('chunk_v2_layer_add'));
+      await Scrollable.ensureVisible(tester.element(addLayer), alignment: 0.4);
+      await tester.tap(addLayer);
+      await tester.pumpAndSettle();
+
+      final current = _chunk(harness.session, 'forest_chunk');
+      final beforeMetadata = ChunkV2MetadataSnapshot.fromChunk(current);
+      harness.session.applyCommand(
+        AuthoringCommand(
+          kind: ChunkDomainPlugin.commitChunkMetadataCommandKind,
+          payload: <String, Object?>{
+            'chunkKey': current.chunkKey,
+            'commit': ChunkV2MetadataCommit(
+              before: beforeMetadata,
+              after: ChunkV2MetadataSnapshot(
+                status: beforeMetadata.status,
+                levelId: beforeMetadata.levelId,
+                difficulty: beforeMetadata.difficulty,
+                assemblyGroupId: beforeMetadata.assemblyGroupId,
+                tags: beforeMetadata.tags,
+                groundBandZIndex: beforeMetadata.groundBandZIndex + 1,
+              ),
+            ),
+          },
+        ),
+      );
+      await tester.pump();
+      expect(_chunk(harness.session, 'forest_chunk').revision, 5);
+      expect(harness.session.canUndo, isTrue);
+
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('chunk_v2_layer_id_field')),
+        'background',
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('chunk_v2_layer_dialog_apply')),
+      );
+      await tester.pumpAndSettle();
+
+      final rejected = _chunk(harness.session, 'forest_chunk');
+      expect(rejected.revision, 5);
+      expect(rejected.tileLayers, isEmpty);
+      expect(
+        find.textContaining('Composition change was rejected'),
+        findsOneWidget,
+      );
+      expect(harness.session.canUndo, isTrue);
+      harness.session.undo();
+      await tester.pump();
+      expect(_chunk(harness.session, 'forest_chunk').revision, 4);
+      expect(harness.session.canUndo, isFalse);
+      expect(harness.session.pendingChanges.hasChanges, isFalse);
     },
   );
 

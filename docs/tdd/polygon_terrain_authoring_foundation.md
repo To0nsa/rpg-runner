@@ -77,7 +77,7 @@ Final Phase 4 acceptance work remains tracked in
 | Cross-domain canonical migration report | editor migration domain | read-only checks, explicit externally reported writes, strict in-memory targets, and exact source SHA-256 audit |
 | Guarded migration write transaction | editor `WorkspaceWriteTransaction` / `PolygonAuthoringMigrationTransaction` | explicit CLI `--write`, rollback/no-op evidence, and the completed nine-file source cutover |
 | Strict chunk-v2 file structure, canonical serialization, and ownership planning | editor `ChunkV2FileData` / `ChunkV2FileCodec` / `ChunkStore.buildV2SavePlan` | migration facade delegation plus normal complete-current-tree load, pending plans, rollback-safe apply, and exact reload |
-| Chunk-v2 plugin validation, mutation, and lifecycle policy | editor `ChunkV2Document` / `ChunkV2CollisionCommitPolicy` / `ChunkV2MetadataCommitPolicy` / `ChunkV2CompositionCommitPolicy` / `ChunkV2LifecycleCommitPolicy` / `ChunkDomainPlugin` | normal strict current-source composition; complete Core/editor validation; freshness/order/revision enforcement; typed polygon, metadata, composition, lifecycle commits; transactional export |
+| Chunk-v2 plugin validation, mutation, and lifecycle policy | editor `ChunkV2Document` / `ChunkV2CollisionCommitPolicy` / `ChunkV2MetadataCommitPolicy` / `ChunkV2CompositionCommitPolicy` / `ChunkV2CompositionOperation` / `ChunkV2LifecycleCommitPolicy` / `ChunkDomainPlugin` | normal strict current-source composition; complete Core/editor validation; owner/revision/snapshot freshness, operation-scoped canonical targeting, ordering, typed polygon/metadata/composition/lifecycle commits, and transactional export |
 | Chunk route-local projection | editor `ChunkAuthoringWorkspace` / `ChunkPolygonAuthoringController` / `ChunkPolygonSceneSurface` | persistent complete-v2 scene and two-card sidebar, active-level owner isolation, tools, snap, bounds, diagnostics, keyboard, rejection, history, compiled-edge inspection, actor-terrain, and marker-placement overlays; legacy/missing source selects no ground/gap workflow |
 | Chunk level visual preview | editor `ChunkV2Document` / `ChunkV2Scene` / `ChunkPolygonLevelVisualSource` | `ChunkDomainPlugin` reads the parallax theme set, resolves the active level's `visualThemeId`, and renders its background/foreground around read-only terrain material art selected by direct polygon `materialKey`; it adds no source mutation or gameplay authority |
 | Chunk actor terrain projection | editor `ChunkV2ActorTerrainProjection` | Core surface extraction; Éloïse/Grojib/Hashash eligibility; published Grojib/Hashash graphs; Unoco solid/local-hover evidence; Derf 15-degree/32-pixel perch evidence; no player/flight graph or source mutation |
@@ -219,6 +219,36 @@ its provisional ownership and changed key, returning to a clean plan when no
 other edits exist. Every accepted candidate passes complete current-document
 validation and the ownership plan before plugin dispatch. Confirmed export can
 write only against the strict current-source baselines.
+
+## Chunk V2 Composition Operation Contract
+
+`ChunkV2CompositionCommit` carries the expected `chunkKey`, expected owner
+revision, complete before snapshot, and complete after snapshot. The plugin
+still routes the command by its payload `chunkKey`; the policy compares that
+resolved owner with the commit identity and revision before canonical structure
+or full-document validation. Owner, revision, and composition mismatches share
+the `chunk_v2_composition_commit_stale` diagnostic and preserve document
+identity, history, revision, and pending diffs.
+
+`ChunkV2CompositionOperation` is the immutable UI-operation token used by the
+retained dialogs and future scene gestures. It captures the owner identity and
+revision, all three composition lists, the targeted list, add/replace/delete
+kind, and, for an existing record, its canonical source index and current
+projection key. Candidate construction changes only that captured index or
+appends one record, then runs the shared deterministic canonicalizer. A
+semantic no-op returns no commit and therefore produces neither a command nor a
+rejection message. Comparator-equal duplicates continue to fail the strict
+composition policy.
+
+Tile-layer, prefab, and marker equality and canonicalization live in one pure
+domain seam shared by the operation token and commit policy. Derived placement
+and marker keys remain projection-local: accepted candidates can retain
+selection only through one unique full-record equality match, while undo,
+redo, and reload reconciliation resolves only an exact current key. Dialog-open
+state participates in the route's local-operation guard, disabling apply,
+reload, session history, owner mutation, and other composition mutations until
+the dialog cancels or submits. No Chunk-v2 JSON field or Core placement lineage
+changes in this contract.
 
 ## Source Coordinates And Canonicalization
 

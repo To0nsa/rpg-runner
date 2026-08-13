@@ -216,11 +216,13 @@ int comparePlacedMarkersDeterministic(PlacedMarkerDef a, PlacedMarkerDef b) {
 class ChunkPlacedPrefabSelection {
   const ChunkPlacedPrefabSelection({
     required this.selectionKey,
+    required this.sourceIndex,
     required this.ordinalAtLocation,
     required this.prefab,
   });
 
   final String selectionKey;
+  final int sourceIndex;
   final int ordinalAtLocation;
   final PlacedPrefabDef prefab;
 }
@@ -231,8 +233,9 @@ List<ChunkPlacedPrefabSelection> buildChunkPlacedPrefabSelections(
   final sortedPrefabs = List<PlacedPrefabDef>.from(prefabs)
     ..sort(comparePlacedPrefabsDeterministic);
   final locationOrdinals = <String, int>{};
-  return sortedPrefabs
-      .map((prefab) {
+  return sortedPrefabs.indexed
+      .map((entry) {
+        final (sourceIndex, prefab) = entry;
         final locationKey = _placedPrefabLocationKey(prefab);
         final ordinal = locationOrdinals[locationKey] ?? 0;
         locationOrdinals[locationKey] = ordinal + 1;
@@ -243,6 +246,7 @@ List<ChunkPlacedPrefabSelection> buildChunkPlacedPrefabSelections(
             y: prefab.y,
             ordinalAtLocation: ordinal,
           ),
+          sourceIndex: sourceIndex,
           ordinalAtLocation: ordinal,
           prefab: prefab,
         );
@@ -267,11 +271,13 @@ String _placedPrefabLocationKey(PlacedPrefabDef prefab) {
 class ChunkPlacedMarkerSelection {
   const ChunkPlacedMarkerSelection({
     required this.selectionKey,
+    required this.sourceIndex,
     required this.ordinalAtLocation,
     required this.marker,
   });
 
   final String selectionKey;
+  final int sourceIndex;
   final int ordinalAtLocation;
   final PlacedMarkerDef marker;
 }
@@ -282,8 +288,9 @@ List<ChunkPlacedMarkerSelection> buildChunkPlacedMarkerSelections(
   final sortedMarkers = List<PlacedMarkerDef>.from(markers)
     ..sort(comparePlacedMarkersDeterministic);
   final locationOrdinals = <String, int>{};
-  return sortedMarkers
-      .map((marker) {
+  return sortedMarkers.indexed
+      .map((entry) {
+        final (sourceIndex, marker) = entry;
         final locationKey = _placedMarkerLocationKey(marker);
         final ordinal = locationOrdinals[locationKey] ?? 0;
         locationOrdinals[locationKey] = ordinal + 1;
@@ -294,6 +301,7 @@ List<ChunkPlacedMarkerSelection> buildChunkPlacedMarkerSelections(
             y: marker.y,
             ordinalAtLocation: ordinal,
           ),
+          sourceIndex: sourceIndex,
           ordinalAtLocation: ordinal,
           marker: marker,
         );

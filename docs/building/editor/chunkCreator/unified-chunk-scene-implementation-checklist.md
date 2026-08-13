@@ -359,78 +359,78 @@ reusing the current Chunk-v2 optimistic composition contract.
 
 ### Adapter contract
 
-- [ ] Extract one route-local adapter used by both existing dialogs and future
+- [x] Extract one route-local adapter used by both existing dialogs and future
       prefab/marker gestures to construct `ChunkV2CompositionCommit`.
-- [ ] Extend `ChunkV2CompositionCommit` with expected owner key and revision; do
+- [x] Extend `ChunkV2CompositionCommit` with expected owner key and revision; do
       not add another command kind or source field.
-- [ ] Make `ChunkV2CompositionCommitPolicy` reject owner-key or revision
+- [x] Make `ChunkV2CompositionCommitPolicy` reject owner-key or revision
       mismatch before structure and full-document validation, while retaining
       its existing composition-snapshot stale check.
-- [ ] Preserve `chunk_v2_composition_commit_stale` as the diagnostic family for
+- [x] Preserve `chunk_v2_composition_commit_stale` as the diagnostic family for
       owner, revision, and composition mismatch, with one actionable retry
       message/path.
-- [ ] Capture owner key, expected owner revision, the full current
+- [x] Capture owner key, expected owner revision, the full current
       `ChunkV2CompositionSnapshot`, target list, operation kind, and, when
       targeting an existing record, canonical source index plus presentation
       selection key when an operation begins.
-- [ ] Append, replace, or remove in the captured list according to the operation
+- [x] Append, replace, or remove in the captured list according to the operation
       kind and run the existing deterministic comparator before dispatch.
-- [ ] Promote the needed prefab/marker semantic equality and canonical-list
+- [x] Promote the needed prefab/marker semantic equality and canonical-list
       construction out of private widget/policy helpers into one focused domain
       seam shared by dialogs, the gesture adapter, and commit policy; leave no
       duplicated comparator/equality implementation.
-- [ ] Detect a candidate equal to `before` inside the adapter, close the local
+- [x] Detect a candidate equal to `before` inside the adapter, close the local
       operation without dispatch, and do not show the generic rejection path.
 - [ ] Keep pointer-move preview state outside `EditorSessionController`.
-- [ ] Treat an open composition add/edit dialog as a route-local operation until
+- [x] Treat an open composition add/edit dialog as a route-local operation until
       it cancels or submits, so shell reload/apply/history shortcuts cannot
       replace its captured owner state.
-- [ ] Dispatch through
+- [x] Dispatch through
       `ChunkDomainPlugin.commitChunkCompositionCommandKind`; add no new document
       command or page-level validation path.
-- [ ] Extend the route-level active-operation guard so owner switch, reload,
+- [x] Extend the route-level active-operation guard so owner switch, reload,
       apply, route switch, and domain switch cannot discard a composition
       gesture.
-- [ ] On stale rejection, cancel the preview, project the current document, and
+- [x] On stale rejection, cancel the preview, project the current document, and
       show the existing actionable rejection path without history or revision.
-- [ ] After accepted add/move/edit, recompute the derived key from the accepted
+- [x] After accepted add/move/edit, recompute the derived key from the accepted
       canonical list only when there is exactly one full-equality match; after
       accepted delete, clear source selection.
-- [ ] After undo, redo, or same-owner reload, retain selection only if the
+- [x] After undo, redo, or same-owner reload, retain selection only if the
       current derived key resolves; otherwise clear it. Always clear
       owner-scoped selection on owner switch.
-- [ ] Preserve strict rejection of comparator-equal duplicates; do not add
+- [x] Preserve strict rejection of comparator-equal duplicates; do not add
       persistent identity solely for colocated records that the canonical index
       already distinguishes during one operation.
-- [ ] Leave `PlacedPrefabDef`, `PlacedMarkerDef`, Chunk-v2 JSON, generated
+- [x] Leave `PlacedPrefabDef`, `PlacedMarkerDef`, Chunk-v2 JSON, generated
       runtime data, and Core `placementKey` lineage unchanged.
 
 ### Phase 2 tests
 
-- [ ] Add focused adapter tests for prefab and marker replacement at a captured
+- [x] Add focused adapter tests for prefab and marker replacement at a captured
       canonical index.
-- [ ] Add focused adapter tests for add-without-index and delete-at-index for
+- [x] Add focused adapter tests for add-without-index and delete-at-index for
       both lists.
-- [ ] Add stale-snapshot rejection after an intervening composition command.
-- [ ] Add dialog-open guard tests for owner switch, reload, apply, session undo,
+- [x] Add stale-snapshot rejection after an intervening composition command.
+- [x] Add dialog-open guard tests for owner switch, reload, apply, session undo,
       and route switch.
-- [ ] Add a command-payload/commit owner-key mismatch test proving an owner with
+- [x] Add a command-payload/commit owner-key mismatch test proving an owner with
       equal composition cannot be edited accidentally.
-- [ ] Add expected-revision rejection after intervening terrain, metadata, and
+- [x] Add expected-revision rejection after intervening terrain, metadata, and
       lifecycle revisions whose composition lists are unchanged.
-- [ ] Assert revision-stale rejection does not change document, history,
+- [x] Assert revision-stale rejection does not change document, history,
       pending diff, or revision.
-- [ ] Add colocated same-key-base record move/delete tests and exact-duplicate
+- [x] Add colocated same-key-base record move/delete tests and exact-duplicate
       candidate rejection tests.
-- [ ] Add accepted-move selection recomputation tests.
-- [ ] Add unique full-equality selection, defensive non-unique clearing, and
+- [x] Add accepted-move selection recomputation tests.
+- [x] Add unique full-equality selection, defensive non-unique clearing, and
       delete-clears-selection tests.
-- [ ] Add undo/redo/reload selection-clearing tests when a derived key no longer
+- [x] Add undo/redo/reload selection-clearing tests when a derived key no longer
       resolves.
 - [ ] Assert pointer preview creates no session document, revision, history, or
       pending-diff change.
-- [ ] Assert acceptance produces one revision and one undo entry.
-- [ ] Assert a zero-distance or otherwise semantic no-op gesture creates no
+- [x] Assert acceptance produces one revision and one undo entry.
+- [x] Assert a zero-distance or otherwise semantic no-op gesture creates no
       command dispatch, rejection message, revision, history entry, or
       pending-diff change.
 - [ ] Run `dart run tool/generate_chunk_runtime_data.dart --dry-run` and verify

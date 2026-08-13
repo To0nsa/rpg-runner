@@ -4,6 +4,7 @@ import '../domain/authoring_types.dart';
 import '../domain/strict_authoring_json.dart';
 import '../domain/strict_authoring_metadata_codec.dart';
 import 'chunk_domain_models.dart';
+import 'chunk_v2_composition_semantics.dart';
 import 'chunk_v2_file_data.dart';
 import 'chunk_v2_models.dart';
 import 'chunk_v2_validation.dart';
@@ -37,8 +38,15 @@ final class ChunkV2CompositionSnapshot {
 /// One optimistic-concurrency composition edit for an existing chunk owner.
 @immutable
 final class ChunkV2CompositionCommit {
-  const ChunkV2CompositionCommit({required this.before, required this.after});
+  const ChunkV2CompositionCommit({
+    required this.expectedChunkKey,
+    required this.expectedRevision,
+    required this.before,
+    required this.after,
+  });
 
+  final String expectedChunkKey;
+  final int expectedRevision;
   final ChunkV2CompositionSnapshot before;
   final ChunkV2CompositionSnapshot after;
 }
@@ -79,20 +87,14 @@ final class ChunkV2CompositionCommitPolicy {
     final current = ChunkV2CompositionSnapshot.fromChunk(chunk);
     final sourcePath =
         document.sourcePathByChunkKey[chunk.chunkKey] ?? chunk.chunkKey;
-    if (!_snapshotsEqual(current, commit.before)) {
-      return _rejected(
-        chunk,
-        ValidationIssue(
-          severity: ValidationSeverity.error,
-          code: 'chunk_v2_composition_commit_stale',
-          message:
-              'Chunk ${chunk.chunkKey} changed after this composition edit '
-              'began; reload its current source before committing.',
-          sourcePath: sourcePath,
-        ),
-      );
+    if (chunk.chunkKey != commit.expectedChunkKey ||
+        chunk.revision != commit.expectedRevision) {
+      return _stale(chunk, sourcePath);
     }
-    if (_snapshotsEqual(commit.before, commit.after)) {
+    if (!chunkCompositionSnapshotsEqual(current, commit.before)) {
+      return _stale(chunk, sourcePath);
+    }
+    if (chunkCompositionSnapshotsEqual(commit.before, commit.after)) {
       return ChunkV2CompositionCommitResult(
         chunk: chunk,
         accepted: true,
@@ -149,7 +151,7 @@ ValidationIssue? _strictStructureIssue({
         current.toJson(),
         sourcePath: '$sourcePath.tileLayers[$index]',
       );
-      if (!_tileLayersEqual(current, decoded)) {
+      if (!chunkTileLayersEqual(current, decoded)) {
         throw FormatException(
           '$sourcePath.tileLayers[$index] is not canonical.',
         );
@@ -167,7 +169,7 @@ ValidationIssue? _strictStructureIssue({
         current.toJson(),
         sourcePath: '$sourcePath.prefabs[$index]',
       );
-      if (!_prefabsEqual(current, decoded)) {
+      if (!chunkPrefabsEqual(current, decoded)) {
         throw FormatException('$sourcePath.prefabs[$index] is not canonical.');
       }
     }
@@ -183,7 +185,7 @@ ValidationIssue? _strictStructureIssue({
         current.toJson(),
         sourcePath: '$sourcePath.markers[$index]',
       );
-      if (!_markersEqual(current, decoded)) {
+      if (!chunkMarkersEqual(current, decoded)) {
         throw FormatException('$sourcePath.markers[$index] is not canonical.');
       }
     }
@@ -208,46 +210,34 @@ ChunkV2CompositionCommitResult _rejected(
   issues: <ValidationIssue>[issue],
 );
 
-bool _snapshotsEqual(
+ChunkV2CompositionCommitResult _stale(
+  ChunkV2FileData chunk,
+  String sourcePath,
+) => _rejected(
+  chunk,
+  ValidationIssue(
+    severity: ValidationSeverity.error,
+    code: 'chunk_v2_composition_commit_stale',
+    message:
+        'Chunk ${chunk.chunkKey} changed after this composition edit began; '
+        'reload its current source and retry.',
+    sourcePath: sourcePath,
+  ),
+);
+
+/// Returns whether every retained composition list is semantically equal.
+bool chunkCompositionSnapshotsEqual(
   ChunkV2CompositionSnapshot left,
   ChunkV2CompositionSnapshot right,
 ) =>
-    _listsEqual(left.tileLayers, right.tileLayers, _tileLayersEqual) &&
-    _listsEqual(left.prefabs, right.prefabs, _prefabsEqual) &&
-    _listsEqual(left.markers, right.markers, _markersEqual);
-
-bool _listsEqual<T>(
-  List<T> left,
-  List<T> right,
-  bool Function(T left, T right) equals,
-) {
-  if (left.length != right.length) return false;
-  for (var index = 0; index < left.length; index += 1) {
-    if (!equals(left[index], right[index])) return false;
-  }
-  return true;
-}
-
-bool _tileLayersEqual(TileLayerDef left, TileLayerDef right) =>
-    left.id == right.id &&
-    left.kind == right.kind &&
-    left.visible == right.visible;
-
-bool _prefabsEqual(PlacedPrefabDef left, PlacedPrefabDef right) =>
-    left.prefabId == right.prefabId &&
-    left.prefabKey == right.prefabKey &&
-    left.x == right.x &&
-    left.y == right.y &&
-    left.zIndex == right.zIndex &&
-    left.snapToGrid == right.snapToGrid &&
-    left.scale == right.scale &&
-    left.flipX == right.flipX &&
-    left.flipY == right.flipY;
-
-bool _markersEqual(PlacedMarkerDef left, PlacedMarkerDef right) =>
-    left.markerId == right.markerId &&
-    left.x == right.x &&
-    left.y == right.y &&
-    left.chancePercent == right.chancePercent &&
-    left.salt == right.salt &&
-    left.placement == right.placement;
+    chunkCompositionListsEqual(
+      left.tileLayers,
+      right.tileLayers,
+      chunkTileLayersEqual,
+    ) &&
+    chunkCompositionListsEqual(
+      left.prefabs,
+      right.prefabs,
+      chunkPrefabsEqual,
+    ) &&
+    chunkCompositionListsEqual(left.markers, right.markers, chunkMarkersEqual);

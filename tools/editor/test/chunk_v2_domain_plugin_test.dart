@@ -34,42 +34,48 @@ void main() {
     },
   );
 
-  test('current command commits once and builds one canonical pending diff', () {
-    final plugin = ChunkDomainPlugin();
-    final before = <TerrainSourceShapeDef>[_rectangle(top: 20)];
-    final after = <TerrainSourceShapeDef>[_rectangle(top: 18)];
-    final document = _document(before);
+  test(
+    'current command commits once and builds one canonical pending diff',
+    () {
+      final plugin = ChunkDomainPlugin();
+      final before = <TerrainSourceShapeDef>[_rectangle(top: 20)];
+      final after = <TerrainSourceShapeDef>[_rectangle(top: 18)];
+      final document = _document(before);
 
-    expect(plugin.validate(document), isEmpty);
-    final edited = plugin.applyEdit(
-      document,
-      AuthoringCommand(
-        kind: ChunkDomainPlugin.commitChunkPolygonCommandKind,
-        payload: <String, Object?>{
-          'chunkKey': 'forest_target',
-          'commit': _commit(before: before, after: after),
-        },
-      ),
-    );
+      expect(plugin.validate(document), isEmpty);
+      final edited = plugin.applyEdit(
+        document,
+        AuthoringCommand(
+          kind: ChunkDomainPlugin.commitChunkPolygonCommandKind,
+          payload: <String, Object?>{
+            'chunkKey': 'forest_target',
+            'commit': _commit(before: before, after: after),
+          },
+        ),
+      );
 
-    expect(edited, isA<ChunkV2Document>());
-    final next = edited as ChunkV2Document;
-    expect(next, isNot(same(document)));
-    expect(document.chunks.single.revision, 4);
-    expect(next.chunks.single.revision, 5);
-    expect(next.chunks.single.collisionShapes, after);
-    expect(next.changedChunkKeys, <String>['forest_target']);
+      expect(edited, isA<ChunkV2Document>());
+      final next = edited as ChunkV2Document;
+      expect(next, isNot(same(document)));
+      expect(document.chunks.single.revision, 4);
+      expect(next.chunks.single.revision, 5);
+      expect(next.chunks.single.collisionShapes, after);
+      expect(next.changedChunkKeys, <String>['forest_target']);
 
-    final pending = plugin.describePendingChanges(
-      EditorWorkspace(rootPath: Directory.current.path),
-      document: next,
-    );
-    expect(pending.changedItemIds, <String>['forest_target']);
-    expect(pending.fileDiffs, hasLength(1));
-    expect(pending.fileDiffs.single.relativePath, 'chunks/forest_target.json');
-    expect(pending.fileDiffs.single.unifiedDiff, contains('"revision": 5'));
-    expect(pending.fileDiffs.single.unifiedDiff, contains('collisionShapes'));
-  });
+      final pending = plugin.describePendingChanges(
+        EditorWorkspace(rootPath: Directory.current.path),
+        document: next,
+      );
+      expect(pending.changedItemIds, <String>['forest_target']);
+      expect(pending.fileDiffs, hasLength(1));
+      expect(
+        pending.fileDiffs.single.relativePath,
+        'chunks/forest_target.json',
+      );
+      expect(pending.fileDiffs.single.unifiedDiff, contains('"revision": 5'));
+      expect(pending.fileDiffs.single.unifiedDiff, contains('collisionShapes'));
+    },
+  );
 
   test(
     'invalid stale malformed missing-owner and no-op commands keep identity',
@@ -392,6 +398,8 @@ void main() {
       final document = _document(<TerrainSourceShapeDef>[_rectangle(top: 20)]);
       final before = document.chunks.single;
       final commit = ChunkV2CompositionCommit(
+        expectedChunkKey: before.chunkKey,
+        expectedRevision: before.revision,
         before: ChunkV2CompositionSnapshot.fromChunk(before),
         after: ChunkV2CompositionSnapshot(
           tileLayers: const <TileLayerDef>[TileLayerDef(id: 'foreground')],
@@ -502,20 +510,60 @@ void main() {
       ],
       markers: current.markers,
     );
+    const duplicatePlacement = PlacedPrefabDef(
+      prefabId: 'shrub',
+      prefabKey: 'prefab_shrub',
+      x: 40,
+      y: 20,
+    );
+    final exactDuplicate = ChunkV2CompositionSnapshot(
+      tileLayers: current.tileLayers,
+      prefabs: const <PlacedPrefabDef>[duplicatePlacement, duplicatePlacement],
+      markers: current.markers,
+    );
 
     expect(
-      apply(ChunkV2CompositionCommit(before: stale, after: noncanonical)),
+      apply(
+        ChunkV2CompositionCommit(
+          expectedChunkKey: current.chunkKey,
+          expectedRevision: current.revision,
+          before: stale,
+          after: noncanonical,
+        ),
+      ),
       same(document),
+    );
+    final duplicateResult = const ChunkV2CompositionCommitPolicy().apply(
+      document: document,
+      chunkIndex: 0,
+      commit: ChunkV2CompositionCommit(
+        expectedChunkKey: current.chunkKey,
+        expectedRevision: current.revision,
+        before: currentSnapshot,
+        after: exactDuplicate,
+      ),
+    );
+    expect(duplicateResult.accepted, isFalse);
+    expect(
+      duplicateResult.issues.single.code,
+      'chunk_v2_composition_noncanonical',
     );
     expect(
       apply(
-        ChunkV2CompositionCommit(before: currentSnapshot, after: noncanonical),
+        ChunkV2CompositionCommit(
+          expectedChunkKey: current.chunkKey,
+          expectedRevision: current.revision,
+          before: currentSnapshot,
+          after: noncanonical,
+        ),
       ),
       same(document),
     );
     expect(
       apply(
         ChunkV2CompositionCommit(
+          expectedChunkKey: current.chunkKey,
+          expectedRevision: current.revision,
           before: currentSnapshot,
           after: invalidPlacement,
         ),
@@ -524,19 +572,88 @@ void main() {
     );
     expect(
       apply(
-        ChunkV2CompositionCommit(before: currentSnapshot, after: invalidMarker),
+        ChunkV2CompositionCommit(
+          expectedChunkKey: current.chunkKey,
+          expectedRevision: current.revision,
+          before: currentSnapshot,
+          after: invalidMarker,
+        ),
       ),
       same(document),
     );
     expect(
       apply(
         ChunkV2CompositionCommit(
+          expectedChunkKey: current.chunkKey,
+          expectedRevision: current.revision,
           before: currentSnapshot,
           after: currentSnapshot,
         ),
       ),
       same(document),
     );
+  });
+
+  test('composition commit rejects misrouted owner and stale revision', () {
+    final plugin = ChunkDomainPlugin();
+    final document = _document(<TerrainSourceShapeDef>[_rectangle(top: 20)]);
+    final current = document.chunks.single;
+    final before = ChunkV2CompositionSnapshot.fromChunk(current);
+    final after = ChunkV2CompositionSnapshot(
+      tileLayers: const <TileLayerDef>[TileLayerDef(id: 'foreground')],
+      prefabs: current.prefabs,
+      markers: current.markers,
+    );
+
+    ChunkV2CompositionCommit commit({
+      required String expectedChunkKey,
+      required int expectedRevision,
+    }) => ChunkV2CompositionCommit(
+      expectedChunkKey: expectedChunkKey,
+      expectedRevision: expectedRevision,
+      before: before,
+      after: after,
+    );
+
+    final wrongOwner = const ChunkV2CompositionCommitPolicy().apply(
+      document: document,
+      chunkIndex: 0,
+      commit: commit(
+        expectedChunkKey: 'another_owner',
+        expectedRevision: current.revision,
+      ),
+    );
+    expect(wrongOwner.accepted, isFalse);
+    expect(wrongOwner.issues.single.code, 'chunk_v2_composition_commit_stale');
+
+    final wrongRevision = const ChunkV2CompositionCommitPolicy().apply(
+      document: document,
+      chunkIndex: 0,
+      commit: commit(
+        expectedChunkKey: current.chunkKey,
+        expectedRevision: current.revision - 1,
+      ),
+    );
+    expect(wrongRevision.accepted, isFalse);
+    expect(
+      wrongRevision.issues.single.code,
+      'chunk_v2_composition_commit_stale',
+    );
+
+    final misrouted = plugin.applyEdit(
+      document,
+      AuthoringCommand(
+        kind: ChunkDomainPlugin.commitChunkCompositionCommandKind,
+        payload: <String, Object?>{
+          'chunkKey': current.chunkKey,
+          'commit': commit(
+            expectedChunkKey: 'another_owner',
+            expectedRevision: current.revision,
+          ),
+        },
+      ),
+    );
+    expect(misrouted, same(document));
   });
 }
 
