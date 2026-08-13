@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:image/image.dart' as image;
 import 'package:terrain_materials/terrain_materials.dart';
 
 import '../domain/authoring_types.dart';
@@ -29,6 +30,7 @@ final class TerrainMaterialDomainPlugin implements AuthoringDomainPlugin {
     final materialDocument = _requireDocument(document);
     final issues = <ValidationIssue>[...materialDocument.loadIssues];
     final byKey = <String, TerrainMaterialDefinition>{};
+    final dimensionsByPath = <String, TerrainMaterialImageDimensions>{};
     for (final material in materialDocument.materials) {
       if (byKey.containsKey(material.key)) {
         issues.add(
@@ -43,10 +45,12 @@ final class TerrainMaterialDomainPlugin implements AuthoringDomainPlugin {
       }
       byKey[material.key] = material;
       for (final assetPath in _assetPaths(material)) {
-        if (!File(
+        if (dimensionsByPath.containsKey(assetPath)) continue;
+        final assetFile = File(
           '${materialDocument.workspaceRootPath}${Platform.pathSeparator}'
           '${assetPath.replaceAll('/', Platform.pathSeparator)}',
-        ).existsSync()) {
+        );
+        if (!assetFile.existsSync()) {
           issues.add(
             ValidationIssue(
               severity: ValidationSeverity.error,
@@ -56,9 +60,44 @@ final class TerrainMaterialDomainPlugin implements AuthoringDomainPlugin {
               ownerKey: material.key,
             ),
           );
+          continue;
+        }
+        try {
+          final decodedImage = image.decodePng(assetFile.readAsBytesSync());
+          if (decodedImage == null) {
+            throw const FormatException('PNG decoder returned no image.');
+          }
+          dimensionsByPath[assetPath] = TerrainMaterialImageDimensions(
+            width: decodedImage.width,
+            height: decodedImage.height,
+          );
+        } on Object catch (error) {
+          issues.add(
+            ValidationIssue(
+              severity: ValidationSeverity.error,
+              code: 'terrain_material_asset_invalid',
+              message: 'Terrain material image is not a valid PNG: $error',
+              sourcePath: assetPath,
+              ownerKey: material.key,
+            ),
+          );
         }
       }
     }
+    issues.addAll(
+      validateTerrainMaterialImageDimensions(
+        TerrainMaterialCatalog(materials: materialDocument.materials),
+        dimensionsFor: (assetPath) => dimensionsByPath[assetPath],
+      ).map(
+        (issue) => ValidationIssue(
+          severity: ValidationSeverity.error,
+          code: issue.code,
+          message: issue.message,
+          sourcePath: issue.path,
+          ownerKey: issue.materialKey,
+        ),
+      ),
+    );
     for (final key in materialDocument.referencedMaterialKeys) {
       if (!byKey.containsKey(key)) {
         issues.add(

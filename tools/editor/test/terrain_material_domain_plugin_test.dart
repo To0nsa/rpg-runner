@@ -170,7 +170,11 @@ final class _TerrainMaterialFixture {
     ]) {
       final file = File(p.join(root.path, assetPath));
       file.parent.createSync(recursive: true);
-      file.writeAsBytesSync(const <int>[0]);
+      File(
+        p.normalize(
+          p.absolute(p.join(Directory.current.path, '..', '..', assetPath)),
+        ),
+      ).copySync(file.path);
     }
     return _TerrainMaterialFixture(root: root, material: material);
   }

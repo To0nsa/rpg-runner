@@ -247,6 +247,85 @@ final class TerrainMaterialCatalogDecodeResult {
   final List<TerrainMaterialCatalogIssue> issues;
 }
 
+/// Pixel dimensions supplied by an I/O-owning catalog consumer.
+final class TerrainMaterialImageDimensions {
+  const TerrainMaterialImageDimensions({
+    required this.width,
+    required this.height,
+  });
+
+  final int width;
+  final int height;
+}
+
+/// Validates authored anchors against already-decoded source-image dimensions.
+///
+/// The shared schema remains I/O-free: editor and generator consumers decode
+/// PNG files, then provide dimensions through [dimensionsFor]. Missing or
+/// undecodable files are reported by those consumers and skipped here.
+List<TerrainMaterialCatalogIssue> validateTerrainMaterialImageDimensions(
+  TerrainMaterialCatalog catalog, {
+  required TerrainMaterialImageDimensions? Function(String assetPath)
+  dimensionsFor,
+}) {
+  final issues = <TerrainMaterialCatalogIssue>[];
+  for (final material in catalog.materials) {
+    void validateLayer(String field, TerrainMaterialEdgeLayer layer) {
+      final dimensions = dimensionsFor(layer.assetPath);
+      if (dimensions != null && layer.anchorY > dimensions.height) {
+        issues.add(
+          TerrainMaterialCatalogIssue(
+            code: 'terrain_material_anchor_out_of_bounds',
+            path: '${material.key}.$field.anchorY',
+            materialKey: material.key,
+            message:
+                'Anchor Y ${_canonicalNumber(layer.anchorY)} exceeds image '
+                'height ${dimensions.height} for ${layer.assetPath}.',
+          ),
+        );
+      }
+    }
+
+    void validateProfile(String field, TerrainMaterialEdgeProfile? profile) {
+      if (profile == null) return;
+      validateLayer('$field.base', profile.base);
+      if (profile.detail case final detail?) {
+        validateLayer('$field.detail', detail);
+      }
+    }
+
+    void validateCap(String field, TerrainMaterialCap? cap) {
+      if (cap == null) return;
+      final dimensions = dimensionsFor(cap.assetPath);
+      if (dimensions == null ||
+          (cap.anchorX <= dimensions.width &&
+              cap.anchorY <= dimensions.height)) {
+        return;
+      }
+      issues.add(
+        TerrainMaterialCatalogIssue(
+          code: 'terrain_material_anchor_out_of_bounds',
+          path: '${material.key}.$field',
+          materialKey: material.key,
+          message:
+              'Anchor (${_canonicalNumber(cap.anchorX)}, '
+              '${_canonicalNumber(cap.anchorY)}) exceeds image dimensions '
+              '${dimensions.width}x${dimensions.height} for ${cap.assetPath}.',
+        ),
+      );
+    }
+
+    validateProfile('top', material.top);
+    validateProfile('leftWall', material.leftWall);
+    validateProfile('rightWall', material.rightWall);
+    validateProfile('underside', material.underside);
+    validateCap('topStartCap', material.topStartCap);
+    validateCap('topEndCap', material.topEndCap);
+  }
+  issues.sort();
+  return List<TerrainMaterialCatalogIssue>.unmodifiable(issues);
+}
+
 /// Strictly decodes and validates one terrain-material manifest.
 ///
 /// Unknown fields, noncanonical identifiers/paths, duplicate keys, unpaired

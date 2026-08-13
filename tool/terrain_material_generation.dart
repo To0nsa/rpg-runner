@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:image/image.dart' as image;
 import 'package:terrain_materials/terrain_materials.dart';
 
 import 'generated_artifact_plan.dart';
@@ -108,9 +109,12 @@ Future<TerrainMaterialGenerationResult> buildTerrainMaterialRegistry({
       ),
     );
   }
+  final dimensionsByPath = <String, TerrainMaterialImageDimensions>{};
   for (final material in catalog.materials) {
     for (final assetPath in terrainMaterialAssetPaths(material)) {
-      if (!await File(assetPath).exists()) {
+      if (dimensionsByPath.containsKey(assetPath)) continue;
+      final assetFile = File(assetPath);
+      if (!await assetFile.exists()) {
         issues.add(
           TerrainMaterialGenerationIssue(
             path: assetPath,
@@ -118,9 +122,40 @@ Future<TerrainMaterialGenerationResult> buildTerrainMaterialRegistry({
             message: 'Material "${material.key}" references a missing image.',
           ),
         );
+        continue;
+      }
+      try {
+        final decodedImage = image.decodePng(await assetFile.readAsBytes());
+        if (decodedImage == null) {
+          throw const FormatException('PNG decoder returned no image.');
+        }
+        dimensionsByPath[assetPath] = TerrainMaterialImageDimensions(
+          width: decodedImage.width,
+          height: decodedImage.height,
+        );
+      } on Object catch (error) {
+        issues.add(
+          TerrainMaterialGenerationIssue(
+            path: assetPath,
+            code: 'terrain_material_asset_invalid',
+            message: 'Terrain material image is not a valid PNG: $error',
+          ),
+        );
       }
     }
   }
+  issues.addAll(
+    validateTerrainMaterialImageDimensions(
+      catalog,
+      dimensionsFor: (assetPath) => dimensionsByPath[assetPath],
+    ).map(
+      (issue) => TerrainMaterialGenerationIssue(
+        path: issue.path,
+        code: issue.code,
+        message: issue.message,
+      ),
+    ),
+  );
   issues.sort();
   return TerrainMaterialGenerationResult(
     catalog: catalog,

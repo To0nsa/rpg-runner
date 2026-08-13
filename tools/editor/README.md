@@ -68,8 +68,18 @@ for authoring. Missing Prefab collision is therefore a visible, non-blocking
 authoring warning.
 
 Polygon metadata uses selectors for supported surface semantics and terrain
-materials. Selecting a material previews its fill, surface, and foreground
-textures from the active workspace before the edit is applied.
+materials loaded from the canonical terrain-material manifest. Selector rows
+show material thumbnails, and the selected material previews its composed fill,
+top/detail bands, endpoint caps, source assets, and explicit wall/underside
+coverage before the polygon edit is applied.
+
+The **Terrain Materials** route creates, duplicates, edits, validates, and
+reference-safely deletes those definitions. Each material owns a stable key,
+fill texture, required top/slope profile, optional left/right wall and underside
+profiles, and optional paired cliff caps. PNG selection stays under
+`assets/images/terrain/`; applying writes only
+`assets/authoring/level/terrain_material_defs.json`. Run the root content
+generator afterward to refresh the generated runtime registry.
 
 The generator compiles every source polygon into the staged terrain artifact.
 Normal gameplay and replay validation consume that admitted polygon artifact

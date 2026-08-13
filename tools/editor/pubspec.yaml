@@ -43,6 +43,7 @@ dependencies:
     path: ../../packages/runner_core
   terrain_materials:
     path: ../../packages/terrain_materials
+  image: 4.8.0
 
 dev_dependencies:
   flutter_test:

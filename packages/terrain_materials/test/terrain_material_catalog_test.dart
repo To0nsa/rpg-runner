@@ -70,6 +70,27 @@ void main() {
     expect(catalog.toCanonicalJson(), isNot(contains('12.0')));
   });
 
+  test('image anchors are checked against consumer-supplied dimensions', () {
+    final catalog = decodeTerrainMaterialCatalog(source).catalog!;
+
+    final issues = validateTerrainMaterialImageDimensions(
+      catalog,
+      dimensionsFor: (assetPath) => assetPath.endsWith('cap_right.png')
+          ? const TerrainMaterialImageDimensions(width: 64, height: 92)
+          : const TerrainMaterialImageDimensions(width: 256, height: 10),
+    );
+
+    expect(
+      issues.map((issue) => issue.code),
+      everyElement('terrain_material_anchor_out_of_bounds'),
+    );
+    expect(issues.map((issue) => issue.path), <String>[
+      'grass_dirt.top.base.anchorY',
+      'grass_dirt.topEndCap',
+      'grass_dirt.topStartCap',
+    ]);
+  });
+
   test(
     'invalid keys, paths, unknown fields, and unpaired caps fail closed',
     () {
