@@ -57,7 +57,7 @@ Final Phase 4 acceptance work remains tracked in
 | Editor-to-Core conversion | editor `TerrainSourceCoreAdapter` | migration checks, shared interaction reducer, and normal current-schema Prefab/Chunk routes |
 | Shared polygon interaction state | editor `TerrainPolygonInteractionReducer` | pure-Dart selection/draft/gesture/semantic-edit tests plus normal current-schema Prefab and Chunk routes |
 | Exact half-pixel inspector text | editor `TerrainHalfPixelText` / `TerrainPolygonVertexEditor` / `TerrainPolygonInteractionReducer.editSelectedVertex` | one shared exact field widget and semantic commit path used by both current-schema routes |
-| Polygon collision metadata dialog | editor `TerrainPolygonMetadataDialog` / `TerrainPolygonInteractionReducer.editSelectedShapeMetadata` | one owner-neutral collision-mode/surface/material dialog used by both current-schema routes; owner controllers retain commit authority |
+| Polygon collision metadata dialog | editor `TerrainPolygonMetadataDialog` / `TerrainMaterialPreviewCatalog` / `TerrainPolygonInteractionReducer.editSelectedShapeMetadata` | one owner-neutral collision-mode/surface/material selector used by both current-schema routes; material choices preview their fill/surface/foreground workspace assets, unknown retained values remain selectable, and owner controllers retain commit authority |
 | Polygon duplicate placement default | editor `findTerrainPolygonDuplicateOffset` | deterministic nearest conservative AABB-free, snap-aligned candidate on both current-schema routes; exact owner validation remains final authority |
 | Render projection and source-space hit testing | editor `TerrainPolygonSceneProjection` / `TerrainPolygonSceneHitTest` | framework-neutral scene tests and both current polygon surfaces |
 | Canvas projection and source-loop overlay | editor `TerrainPolygonViewportTransform` / `TerrainPolygonScenePainter` | shared Flutter painter tests and both current polygon surfaces; the Chunk route layers Core edge, actor-terrain, and marker-placement diagnostics above it |
@@ -98,6 +98,14 @@ art, and foreground layers in separate read-only z-bands beneath and above the
 editable overlays. Missing preview assets or an unresolved theme leave the
 authoring surface usable; they neither change Chunk validation nor permit an
 editor export to alter parallax or terrain source.
+
+The shared polygon metadata dialog draws its material selector and three-part
+asset preview from the same editor material projection as the Chunk scene.
+Surface semantics are selected from `ground` and `obstacle`, with an explicit
+empty option. Existing unregistered surface or material values remain available
+as the current selection so merely opening and applying the dialog is
+non-destructive; missing preview files display a broken-image placeholder and
+do not change validation or commit policy.
 
 Chunk-local pointer and typed-vertex input clamp to the closed source bounds
 `0..width × 0..height` before it reaches shared polygon interaction. During a

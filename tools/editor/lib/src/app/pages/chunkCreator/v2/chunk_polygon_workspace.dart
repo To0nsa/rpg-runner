@@ -1722,6 +1722,7 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
       context,
       keyPrefix: 'chunk_polygon',
       shape: shape,
+      workspaceRootPath: widget.controller.workspacePath,
     );
     if (edit != null && mounted) {
       authoring.editSelectedShapeMetadata(

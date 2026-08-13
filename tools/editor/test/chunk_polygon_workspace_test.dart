@@ -428,17 +428,46 @@ void main() {
       );
       await tester.pumpAndSettle();
       await tester.tap(find.text('oneWay').last);
-      await tester.enterText(
+      await tester.pumpAndSettle();
+      expect(
         find.byKey(
-          const ValueKey<String>('chunk_polygon_metadata_surface_field'),
+          const ValueKey<String>('chunk_polygon_material_preview_empty'),
         ),
-        ' moss ',
+        findsOneWidget,
       );
-      await tester.enterText(
+      await tester.tap(
         find.byKey(
-          const ValueKey<String>('chunk_polygon_metadata_material_field'),
+          const ValueKey<String>('chunk_polygon_metadata_surface_selector'),
         ),
-        ' ground_01 ',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('ground').last);
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('chunk_polygon_metadata_material_selector'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('grass_dirt').last);
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(
+          const ValueKey<String>('chunk_polygon_material_preview_fill'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>('chunk_polygon_material_preview_surface'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>('chunk_polygon_material_preview_foreground'),
+        ),
+        findsOneWidget,
       );
       await tester.tap(
         find.byKey(const ValueKey<String>('chunk_polygon_metadata_apply')),
@@ -449,8 +478,8 @@ void main() {
       final editedShape = forestChunk.collisionShapes.single;
       expect(forestChunk.revision, 5);
       expect(editedShape.collisionMode, TerrainSourceCollisionMode.oneWay);
-      expect(editedShape.surfaceKind, 'moss');
-      expect(editedShape.materialKey, 'ground_01');
+      expect(editedShape.surfaceKind, 'ground');
+      expect(editedShape.materialKey, 'grass_dirt');
       expect(harness.session.pendingChanges.changedItemIds, <String>[
         'forest_chunk',
       ]);

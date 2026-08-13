@@ -1,7 +1,7 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 
@@ -9,6 +9,7 @@ import '../../../../chunks/chunk_v2_file_data.dart';
 import '../../../../parallax/parallax_domain_models.dart';
 import '../../../../terrain_authoring/terrain_source_models.dart';
 import '../../shared/editor_scene_view_utils.dart';
+import '../../shared/terrain_material_preview_catalog.dart';
 import '../../shared/terrain_polygon_scene_painter.dart';
 
 /// Selects the z-band for level and terrain art in the chunk scene.
@@ -260,46 +261,6 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
       oldDelegate.layer != layer ||
       oldDelegate.loadedImageCount != loadedImageCount;
 }
-
-@immutable
-final class TerrainMaterialPreviewAssets {
-  const TerrainMaterialPreviewAssets({
-    required this.materialKey,
-    required this.fillAssetPath,
-    required this.surfaceAssetPath,
-    required this.foregroundAssetPath,
-    required this.surfaceAnchorY,
-  });
-
-  final String materialKey;
-  final String fillAssetPath;
-  final String surfaceAssetPath;
-  final String foregroundAssetPath;
-  final double surfaceAnchorY;
-}
-
-/// Visual asset projection for the renderable terrain material keys.
-///
-/// The editor is a standalone package, so it cannot import the app's runtime
-/// registry. Keep this read-only projection aligned when a new runtime terrain
-/// material is introduced; its source polygons remain the gameplay authority.
-/// TODO(rpg_runner): replace this projection with an authored material manifest
-/// when terrain-material authoring becomes a supported editor domain.
-@visibleForTesting
-TerrainMaterialPreviewAssets? terrainMaterialPreviewAssetsForKey(
-  String? materialKey,
-) => _terrainMaterialPreviewAssetsByKey[materialKey?.trim()];
-
-const Map<String, TerrainMaterialPreviewAssets>
-_terrainMaterialPreviewAssetsByKey = <String, TerrainMaterialPreviewAssets>{
-  'grass_dirt': TerrainMaterialPreviewAssets(
-    materialKey: 'grass_dirt',
-    fillAssetPath: 'assets/images/terrain/grass_dirt/fill.png',
-    surfaceAssetPath: 'assets/images/terrain/grass_dirt/surface.png',
-    foregroundAssetPath: 'assets/images/terrain/grass_dirt/foreground.png',
-    surfaceAnchorY: 12,
-  ),
-};
 
 Rect _chunkBounds(
   TerrainPolygonViewportTransform transform,

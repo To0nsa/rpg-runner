@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_polygon_level_visual_source.dart';
+import 'package:runner_editor/src/app/pages/shared/terrain_material_preview_catalog.dart';
 
 void main() {
   test(
@@ -20,6 +20,11 @@ void main() {
         'assets/images/terrain/grass_dirt/foreground.png',
       );
       expect(material?.surfaceAnchorY, 12);
+      expect(
+        terrainMaterialPreviewCatalog.map((entry) => entry.materialKey),
+        <String>['grass_dirt'],
+      );
+      expect(terrainSurfaceKindOptions, <String>['ground', 'obstacle']);
       expect(terrainMaterialPreviewAssetsForKey('missing'), isNull);
     },
   );

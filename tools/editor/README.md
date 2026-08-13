@@ -65,6 +65,10 @@ and all eight chunks with a continuous `ground_001` polygon carrying `ground`
 for authoring. Missing Prefab collision is therefore a visible, non-blocking
 authoring warning.
 
+Polygon metadata uses selectors for supported surface semantics and terrain
+materials. Selecting a material previews its fill, surface, and foreground
+textures from the active workspace before the edit is applied.
+
 The generator compiles every source polygon into the staged terrain artifact.
 Normal gameplay and replay validation consume that admitted polygon artifact
 through the direct terrain authority. Collision, navigation, placement, and

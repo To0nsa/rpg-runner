@@ -881,6 +881,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
       context,
       keyPrefix: 'prefab_polygon',
       shape: shape,
+      workspaceRootPath: widget.controller.workspacePath,
     );
     if (edit != null && mounted) {
       authoring.editSelectedShapeMetadata(
