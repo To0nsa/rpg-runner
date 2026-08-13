@@ -224,13 +224,19 @@ command on release; Escape cancels without changing source. Grid-enabled
 placements snap to the chunk tile size, while exact placement fields remain
 integer-pixel overrides in the existing dialog.
 
+The Markers domain likewise provides Select, Place, and Move tools. These edit
+only the authored query anchor at integer-pixel precision. Core-resolved spawn
+positions and support are read-only evidence: they can be toggled independently
+and are hidden for the record being moved until its accepted source is
+reprojected. Marker ID, chance, salt, placement mode, and exact coordinates stay
+available in the typed dialog.
+
 Owner lifecycle and direct terrain collision remain in the first card. The
 second card retains the visual-stack summary and validated dialog workflows for
 tile-layer metadata, prefab placements, and enemy markers. `TileLayerDef` is
 metadata-only, so this workspace exposes no tile painting or cell editing.
-Direct prefab and marker manipulation in the shared scene remains follow-on
-work; their current add/edit/delete dialogs still dispatch the canonical Chunk
-composition command.
+Direct scene gestures and the retained add/edit/delete dialogs both dispatch
+the canonical Chunk composition command.
 
 When an all-current workspace loads the Chunk-v2 polygon workflow, each
 read-only expanded prefab collision exposes **Open prefab**.

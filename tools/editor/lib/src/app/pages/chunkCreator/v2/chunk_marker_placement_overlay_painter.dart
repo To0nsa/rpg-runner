@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:runner_core/collision/terrain/terrain_numeric.dart';
 
 import '../../../../chunks/chunk_v2_marker_placement_projection.dart';
+import '../../../../chunks/chunk_domain_models.dart';
 import '../../shared/terrain_polygon_scene_painter.dart';
 
 /// Read-only marker anchors and exact Core placement evidence.
@@ -10,19 +11,25 @@ class ChunkMarkerPlacementOverlayPainter extends CustomPainter {
     required this.projection,
     required this.transform,
     this.selectedMarkerKey,
+    this.suppressedMarkerKey,
+    this.showResolvedEvidence = true,
   });
 
   final ChunkV2MarkerPlacementProjection projection;
   final TerrainPolygonViewportTransform transform;
   final String? selectedMarkerKey;
+  final String? suppressedMarkerKey;
+  final bool showResolvedEvidence;
 
   @override
   void paint(Canvas canvas, Size size) {
     for (final outcome in projection.outcomes) {
+      if (outcome.selectionKey == suppressedMarkerKey) continue;
       _paintOutcome(
         canvas,
         outcome,
         selected: outcome.selectionKey == selectedMarkerKey,
+        showResolvedEvidence: showResolvedEvidence,
       );
     }
   }
@@ -31,6 +38,7 @@ class ChunkMarkerPlacementOverlayPainter extends CustomPainter {
     Canvas canvas,
     ChunkV2MarkerPlacementOutcome outcome, {
     required bool selected,
+    required bool showResolvedEvidence,
   }) {
     final color = _dispositionColor(outcome.disposition);
     final anchor = _worldToCanvas(
@@ -38,7 +46,7 @@ class ChunkMarkerPlacementOverlayPainter extends CustomPainter {
       outcome.marker.y.toDouble(),
     );
     final intendedSurface = outcome.intendedSurface;
-    if (intendedSurface != null) {
+    if (showResolvedEvidence && intendedSurface != null) {
       canvas.drawLine(
         _toCanvas(intendedSurface.start),
         _toCanvas(intendedSurface.end),
@@ -52,7 +60,7 @@ class ChunkMarkerPlacementOverlayPainter extends CustomPainter {
     final result = outcome.result;
     final profile = outcome.profile;
     final body = result?.bodyCenter ?? result?.requestedBodyCenter;
-    if (body != null && profile != null) {
+    if (showResolvedEvidence && body != null && profile != null) {
       final bodyCanvas = _toCanvas(body);
       canvas.drawLine(
         anchor,
@@ -192,5 +200,45 @@ class ChunkMarkerPlacementOverlayPainter extends CustomPainter {
   ) =>
       !identical(projection, oldDelegate.projection) ||
       selectedMarkerKey != oldDelegate.selectedMarkerKey ||
+      suppressedMarkerKey != oldDelegate.suppressedMarkerKey ||
+      showResolvedEvidence != oldDelegate.showResolvedEvidence ||
       transform != oldDelegate.transform;
+}
+
+/// Draws one route-local authored marker anchor without accepted Core evidence.
+final class ChunkMarkerAnchorPreviewPainter extends CustomPainter {
+  const ChunkMarkerAnchorPreviewPainter({
+    required this.marker,
+    required this.transform,
+  });
+
+  final PlacedMarkerDef marker;
+  final TerrainPolygonViewportTransform transform;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final anchor = Offset(
+      transform.origin.dx + marker.x * transform.zoom,
+      transform.origin.dy + marker.y * transform.zoom,
+    );
+    final paint = Paint()
+      ..color = const Color(0xFF81D4FA)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3;
+    canvas.drawCircle(anchor, 8, paint);
+    canvas.drawLine(
+      anchor - const Offset(12, 0),
+      anchor + const Offset(12, 0),
+      paint,
+    );
+    canvas.drawLine(
+      anchor - const Offset(0, 12),
+      anchor + const Offset(0, 12),
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant ChunkMarkerAnchorPreviewPainter oldDelegate) =>
+      oldDelegate.marker != marker || oldDelegate.transform != transform;
 }

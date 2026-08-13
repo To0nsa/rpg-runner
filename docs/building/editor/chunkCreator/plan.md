@@ -792,10 +792,11 @@ Asset sync when new level assets are added:
 
 ## 11) Immediate Next Slice
 
-1. Complete the contract-freeze and persistent-layout phases of the
-   [Unified Chunk Scene Implementation Checklist](unified-chunk-scene-implementation-checklist.md)
-   before adding direct prefab or marker manipulation. Keep tile painting in a
-   separate future plan until its source contract and consumer exist.
+1. Complete the hardening and closure gates of the
+   [Unified Chunk Scene Implementation Checklist](unified-chunk-scene-implementation-checklist.md).
+   The persistent layout and direct prefab/marker manipulation are implemented;
+   tile painting remains a separate future plan until its source contract and
+   consumer exist.
 2. Keep completed Phases 3-6 green with regression verification only (do not
    reopen completed scope):
    - `cd tools/editor && dart analyze`

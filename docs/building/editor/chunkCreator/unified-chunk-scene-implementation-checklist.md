@@ -1,7 +1,7 @@
 # Unified Chunk Scene Implementation Checklist
 
 Date: August 14, 2026
-Status: In progress; Milestone 1 and Phases 2-4 complete, Phase 5 next
+Status: In progress; Milestone 1 and Phases 2-5 complete, hardening next
 
 Source strategy:
 [Unified Chunk Scene Strategy](unified-chunk-scene-strategy.md)
@@ -381,7 +381,7 @@ reusing the current Chunk-v2 optimistic composition contract.
       duplicated comparator/equality implementation.
 - [x] Detect a candidate equal to `before` inside the adapter, close the local
       operation without dispatch, and do not show the generic rejection path.
-- [ ] Keep pointer-move preview state outside `EditorSessionController`.
+- [x] Keep pointer-move preview state outside `EditorSessionController`.
 - [x] Treat an open composition add/edit dialog as a route-local operation until
       it cancels or submits, so shell reload/apply/history shortcuts cannot
       replace its captured owner state.
@@ -427,7 +427,7 @@ reusing the current Chunk-v2 optimistic composition contract.
       delete-clears-selection tests.
 - [x] Add undo/redo/reload selection-clearing tests when a derived key no longer
       resolves.
-- [ ] Assert pointer preview creates no session document, revision, history, or
+- [x] Assert pointer preview creates no session document, revision, history, or
       pending-diff change.
 - [x] Assert acceptance produces one revision and one undo entry.
 - [x] Assert a zero-distance or otherwise semantic no-op gesture creates no
@@ -458,7 +458,7 @@ adding new source mutations yet.
 - [x] Aggregate terrain, prefab, and marker active-operation state through the
       route's `EditorPageLocalDraftState`, undo, and redo handlers so reload and
       session shortcuts cannot bypass a non-terrain gesture.
-- [ ] Recompute selection after an accepted command; reconcile by exact key
+- [x] Recompute selection after an accepted command; reconcile by exact key
       after undo, redo, or same-owner reload; clear on rejection/deletion when
       unresolved; and always clear owner-scoped selection on owner switch.
 - [x] Block domain and owner changes that would discard an active operation.
@@ -613,54 +613,55 @@ Core-resolved spawn locations.
 
 ### Marker presentation and tools
 
-- [ ] Reuse the existing marker projection and overlay for every authored anchor
+- [x] Reuse the existing marker projection and overlay for every authored anchor
       and its placement mode.
-- [ ] Preserve the existing visually distinct resolved placement evidence and
+- [x] Preserve the existing visually distinct resolved placement evidence and
       anchor-to-outcome connection.
-- [ ] Use the projection's current derived selection key only within the current
+- [x] Use the projection's current derived selection key only within the current
       document projection.
-- [ ] Add explicit marker select/place/move tools.
-- [ ] Start marker placement with deterministic defaults for marker ID, chance,
+- [x] Add explicit marker select/place/move tools.
+- [x] Start marker placement with deterministic defaults for marker ID, chance,
       salt, and placement mode.
-- [ ] Preserve the current dialog defaults for a new marker: first canonical
+- [x] Preserve the current dialog defaults for a new marker: first canonical
       supported enemy ID, `100` percent chance, salt `0`, and ground placement,
       unless the author changes them before placement.
-- [ ] Keep chance, salt, marker ID, placement mode, and exact coordinates
+- [x] Keep chance, salt, marker ID, placement mode, and exact coordinates
       editable through a typed inspector/dialog.
-- [ ] Drag only the authored source anchor; never write the resolved evidence
+- [x] Drag only the authored source anchor; never write the resolved evidence
       coordinate back into source.
-- [ ] Quantize a dragged anchor to nearest integer source pixels with exact ties
+- [x] Quantize a dragged anchor to nearest integer source pixels with exact ties
       away from zero; do not expose the prefab or terrain snap policies here.
-- [ ] During add/move preview, draw the candidate anchor and suppress the
+- [x] During add/move preview, draw the candidate anchor and suppress the
       targeted marker's old connection and resolved body/support evidence;
       never combine candidate source with accepted evidence.
 
 ### Commit and validation
 
-- [ ] Keep pointer movement in route-local preview state.
-- [ ] Dispatch one existing `ChunkV2CompositionCommit` on accepted placement or
+- [x] Keep pointer movement in route-local preview state.
+- [x] Dispatch one existing `ChunkV2CompositionCommit` on accepted placement or
       movement.
-- [ ] Refresh Core marker-placement projection after acceptance.
-- [ ] If live resolved-evidence preview is retained, compute it from the same
+- [x] Refresh Core marker-placement projection after acceptance.
+- [x] If live resolved-evidence preview is retained, compute it from the same
       local candidate and keep it out of session state; otherwise restore
       accepted evidence only after commit or rejection.
-- [ ] Preserve disabled, malformed, unsupported, and no-support outcomes as
+- [x] Preserve disabled, malformed, unsupported, and no-support outcomes as
       visible diagnostics.
-- [ ] Recompute marker selection after acceptance and clear it after rejection,
+- [x] Recompute marker selection after acceptance and clear it after rejection,
       undo, redo, or reload when its derived key no longer resolves.
-- [ ] Preserve deterministic marker ordering and generator output.
+- [x] Preserve deterministic marker ordering and the existing generator
+      contract; the final dry-run remains a Phase 7 gate.
 
 ### Phase 5 tests
 
-- [ ] Extend existing authored-anchor versus resolved-outcome rendering tests.
-- [ ] Add ground, highest-surface, and obstacle-top move tests.
-- [ ] Add integer-pixel and positive/negative half-tie marker drag tests.
-- [ ] Assert drag commits authored coordinates rather than projected spawn
+- [x] Extend existing authored-anchor versus resolved-outcome rendering tests.
+- [x] Add ground, highest-surface, and obstacle-top move tests.
+- [x] Add integer-pixel and positive/negative half-tie marker drag tests.
+- [x] Assert drag commits authored coordinates rather than projected spawn
       coordinates.
-- [ ] Assert a moving candidate anchor is never connected to evidence from its
+- [x] Assert a moving candidate anchor is never connected to evidence from its
       pre-drag coordinate.
-- [ ] Add unsupported/no-support diagnostic tests.
-- [ ] Add exactly-once revision/history/pending-diff tests.
+- [x] Add unsupported/no-support diagnostic tests.
+- [x] Add exactly-once revision/history/pending-diff tests.
 - [ ] Add generator parity tests for scene-edited marker source.
 - [ ] Extend the performance fixture with representative marker counts and
       placement evidence enabled.
@@ -674,15 +675,15 @@ invalidated selection is cleared rather than guessed.
 Objective: keep the second card honest about the layer capability that exists
 today and prevent this workspace change from becoming an unplanned map editor.
 
-- [ ] Re-audit the Phase 1 section and help text after the direct-interaction
+- [x] Re-audit the Phase 1 section and help text after the direct-interaction
       work; it must still say tile-layer metadata management.
-- [ ] Verify only the current `id`, `kind`, and `visible` add/edit/delete flow
+- [x] Verify only the current `id`, `kind`, and `visible` add/edit/delete flow
       remains.
-- [ ] Verify no paint, erase, tile selection, cell grid, or spatial layer
+- [x] Verify no paint, erase, tile selection, cell grid, or spatial layer
       affordance was introduced.
-- [ ] Add a widget assertion that no unsupported tile-painting control is
+- [x] Add a widget assertion that no unsupported tile-painting control is
       present.
-- [ ] Record in the Chunk roadmap that tile content needs its own strategy after
+- [x] Record in the Chunk roadmap that tile content needs its own strategy after
       an authored representation and concrete runtime/render consumer are
       approved.
 

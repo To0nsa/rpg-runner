@@ -622,8 +622,17 @@ candidate, and pointer-up returns at most one existing
 chunk's tile size; free anchors quantize to integer pixels; exact form fields
 preserve entered integer pixels. Both policies use deterministic half ties away
 from zero. Rejection restores the accepted projection without revision,
-history, or pending-diff changes. Marker source manipulation remains dialog-only
-until its direct gesture phase.
+history, or pending-diff changes.
+
+Marker Select, Place, and Move tools follow the same operation-token and
+exactly-once command boundary through `ChunkMarkerSceneGesture`, but quantize
+only to integer source pixels. A marker preview is always the authored query
+anchor. During a move, the prior record's accepted connection, resolved body,
+and support evidence are suppressed so candidate source is never paired with
+stale Core evidence. The marker-evidence toggle controls those resolved facts;
+authored anchors remain visible whenever the marker domain is active. Accepted
+commands rebuild the Core placement projection, while unsupported, deferred,
+disabled, malformed, and rejected outcomes remain read-only diagnostics.
 Reload and confirmed current-source apply route through the normal session and
 transactional store. Active-level changes still use the plugin command and
 rebind to the first canonical owner in the new scene. Owner changes dispose the

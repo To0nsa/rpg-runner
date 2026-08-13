@@ -12,6 +12,7 @@ import '../../../../chunks/chunk_v2_collision_expansion.dart';
 import '../../../../chunks/chunk_v2_compiled_edge_inspection.dart';
 import '../../../../chunks/chunk_v2_composition_operation.dart';
 import '../../../../chunks/chunk_domain_models.dart';
+import '../../../../chunks/chunk_marker_authoring_catalog.dart';
 import '../../../../chunks/chunk_domain_plugin.dart';
 import '../../../../chunks/chunk_v2_file_data.dart';
 import '../../../../chunks/chunk_v2_lifecycle_commit.dart';
@@ -41,6 +42,7 @@ import 'chunk_actor_terrain_overlay_painter.dart';
 import 'chunk_compiled_edge_overlay_painter.dart';
 import 'chunk_expanded_collision_overlay_painter.dart';
 import 'chunk_marker_placement_overlay_painter.dart';
+import 'chunk_marker_scene_gesture.dart';
 import 'chunk_polygon_authoring_controller.dart';
 import 'chunk_polygon_level_visual_source.dart';
 import 'chunk_prefab_scene_gesture.dart';
@@ -95,12 +97,15 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   bool _compositionOperationActive = false;
   final ChunkSceneCoordinator _sceneCoordinator = ChunkSceneCoordinator();
   final ChunkPrefabSceneGesture _prefabGesture = ChunkPrefabSceneGesture();
+  final ChunkMarkerSceneGesture _markerGesture = ChunkMarkerSceneGesture();
   String? _selectedPrefabCatalogKey;
+  String? _selectedMarkerCatalogId;
 
   bool get _hasActiveOperation =>
       (_authoring?.hasActiveOperation ?? false) ||
       _compositionOperationActive ||
-      _prefabGesture.hasActiveOperation;
+      _prefabGesture.hasActiveOperation ||
+      _markerGesture.hasActiveOperation;
 
   bool get hasActiveOperation => _hasActiveOperation;
 
@@ -109,17 +114,23 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
 
   bool get canUndo =>
       _prefabGesture.hasActiveOperation ||
+      _markerGesture.hasActiveOperation ||
       (!_compositionOperationActive &&
           (_authoring?.canUndo ?? widget.controller.canUndo));
 
   bool get canRedo =>
       !_prefabGesture.hasActiveOperation &&
+      !_markerGesture.hasActiveOperation &&
       !_compositionOperationActive &&
       (_authoring?.canRedo ?? widget.controller.canRedo);
 
   bool handleUndoShortcut() {
     if (_prefabGesture.hasActiveOperation) {
       setState(_prefabGesture.cancel);
+      return true;
+    }
+    if (_markerGesture.hasActiveOperation) {
+      setState(_markerGesture.cancel);
       return true;
     }
     if (_compositionOperationActive) return false;
@@ -131,7 +142,10 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   }
 
   bool handleRedoShortcut() {
-    if (_prefabGesture.hasActiveOperation) return false;
+    if (_prefabGesture.hasActiveOperation ||
+        _markerGesture.hasActiveOperation) {
+      return false;
+    }
     if (_compositionOperationActive) return false;
     final authoring = _authoring;
     if (authoring != null) return authoring.redo();
@@ -572,6 +586,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                 _sceneCoordinator.selectPrefab(selection);
               }),
               onMarkerSelected: (selection) => setState(() {
+                _markerGesture.setTool(ChunkMarkerSceneTool.select);
                 _sceneCoordinator.selectMarker(selection);
                 _refreshMarkerPlacementProjection();
               }),
@@ -776,13 +791,33 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                           () => _selectedPrefabCatalogKey = prefabKey,
                         ),
                 ),
-              ] else
-                ChoiceChip(
-                  key: const ValueKey<String>('chunk_marker_tool_select'),
-                  label: const Text('Select'),
-                  selected: true,
-                  onSelected: (_) {},
+              ] else ...<Widget>[
+                for (final tool in ChunkMarkerSceneTool.values)
+                  ChoiceChip(
+                    key: ValueKey<String>('chunk_marker_tool_${tool.name}'),
+                    label: Text(_markerToolLabel(tool)),
+                    selected: _markerGesture.tool == tool,
+                    onSelected: _markerGesture.hasActiveOperation
+                        ? null
+                        : (_) => setState(() => _markerGesture.setTool(tool)),
+                  ),
+                DropdownButton<String>(
+                  key: const ValueKey<String>('chunk_marker_catalog_selector'),
+                  value: _selectedMarkerCatalogId ?? chunkMarkerEnemyIds.first,
+                  items: chunkMarkerEnemyIds
+                      .map(
+                        (markerId) => DropdownMenuItem<String>(
+                          value: markerId,
+                          child: Text(markerId),
+                        ),
+                      )
+                      .toList(growable: false),
+                  onChanged: _markerGesture.hasActiveOperation
+                      ? null
+                      : (markerId) =>
+                            setState(() => _selectedMarkerCatalogId = markerId),
                 ),
+              ],
             ],
           ),
         ),
@@ -1010,6 +1045,24 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                             transform: transform,
                             selectedMarkerKey:
                                 _sceneCoordinator.selectedMarkerKey,
+                            suppressedMarkerKey:
+                                _markerGesture.hiddenSourceIndex == null
+                                ? null
+                                : buildChunkPlacedMarkerSelections(
+                                        chunk.markers,
+                                      )[_markerGesture.hiddenSourceIndex!]
+                                      .selectionKey,
+                            showResolvedEvidence: _showMarkerPlacements,
+                          ),
+                        ),
+                      if (_markerGesture.candidate case final marker?)
+                        CustomPaint(
+                          key: const ValueKey<String>(
+                            'chunk_marker_gesture_preview',
+                          ),
+                          painter: ChunkMarkerAnchorPreviewPainter(
+                            marker: marker,
+                            transform: transform,
                           ),
                         ),
                       if (_showCompiledEdges && expansion != null)
@@ -2274,6 +2327,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   void _bindOwner(String chunkKey) {
     _disposeAuthoring();
     _prefabGesture.cancel();
+    _markerGesture.cancel();
     _selectedChunkKey = chunkKey;
     _sceneCoordinator.bindOwner();
     _actorProjectionExpansion = null;
@@ -2455,61 +2509,198 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
             return began;
         }
       case ChunkSceneDomain.markers:
-        _selectSceneElement(visualProjection, chunk, worldPoint);
-        return false;
+        switch (_markerGesture.tool) {
+          case ChunkMarkerSceneTool.select:
+            _selectSceneElement(visualProjection, chunk, worldPoint);
+            return false;
+          case ChunkMarkerSceneTool.place:
+            var began = false;
+            setState(() {
+              began = _markerGesture.beginPlace(
+                pointer: pointer,
+                worldPoint: worldPoint,
+                chunk: chunk,
+                markerId: _selectedMarkerCatalogId ?? chunkMarkerEnemyIds.first,
+              );
+              if (began) _sceneCoordinator.clearSelection();
+            });
+            return began;
+          case ChunkMarkerSceneTool.move:
+            final selection = hitTestChunkMarkerSelection(
+              markers: chunk.markers,
+              worldX: worldPoint.dx,
+              worldY: worldPoint.dy,
+              radiusWorld: 8 / _zoom,
+            );
+            var began = false;
+            setState(() {
+              _sceneCoordinator.selectMarker(selection);
+              if (selection != null) {
+                began = _markerGesture.beginMove(
+                  pointer: pointer,
+                  worldPoint: worldPoint,
+                  chunk: chunk,
+                  selection: selection,
+                );
+              }
+            });
+            return began;
+        }
       case ChunkSceneDomain.terrain || ChunkSceneDomain.compiledEdgeInspection:
         return false;
     }
   }
 
   void _updateDomainGesture(int pointer, Offset worldPoint) {
-    if (!_prefabGesture.hasActiveOperation) return;
-    setState(
-      () => _prefabGesture.update(pointer: pointer, worldPoint: worldPoint),
-    );
+    if (_prefabGesture.hasActiveOperation) {
+      setState(
+        () => _prefabGesture.update(pointer: pointer, worldPoint: worldPoint),
+      );
+    } else if (_markerGesture.hasActiveOperation) {
+      setState(
+        () => _markerGesture.update(pointer: pointer, worldPoint: worldPoint),
+      );
+    }
   }
 
   void _endDomainGesture(int pointer, Offset worldPoint) {
-    if (!_prefabGesture.hasActiveOperation) return;
-    late final ChunkPrefabGestureResult? result;
-    setState(() {
-      result = _prefabGesture.finish(pointer: pointer, worldPoint: worldPoint);
-    });
-    if (result != null) _dispatchPrefabGestureResult(result!);
+    if (_prefabGesture.hasActiveOperation) {
+      late final ChunkPrefabGestureResult? result;
+      setState(() {
+        result = _prefabGesture.finish(
+          pointer: pointer,
+          worldPoint: worldPoint,
+        );
+      });
+      if (result != null) _dispatchPrefabGestureResult(result!);
+    } else if (_markerGesture.hasActiveOperation) {
+      late final ChunkMarkerGestureResult? result;
+      setState(() {
+        result = _markerGesture.finish(
+          pointer: pointer,
+          worldPoint: worldPoint,
+        );
+      });
+      if (result != null) _dispatchMarkerGestureResult(result!);
+    }
   }
 
   void _cancelDomainGesture(int pointer) {
-    if (!_prefabGesture.hasActiveOperation) return;
-    setState(_prefabGesture.cancel);
+    if (!_prefabGesture.hasActiveOperation &&
+        !_markerGesture.hasActiveOperation) {
+      return;
+    }
+    setState(() {
+      _prefabGesture.cancel();
+      _markerGesture.cancel();
+    });
   }
 
   void _cancelGestureOrClearSelection() {
     setState(() {
-      if (!_prefabGesture.cancel()) _sceneCoordinator.clearSelection();
+      final cancelled = _prefabGesture.cancel() || _markerGesture.cancel();
+      if (!cancelled) _sceneCoordinator.clearSelection();
     });
   }
 
   void _deleteSceneSelection() {
-    if (_sceneCoordinator.domain != ChunkSceneDomain.prefabs ||
-        _prefabGesture.hasActiveOperation) {
+    if (_prefabGesture.hasActiveOperation ||
+        _markerGesture.hasActiveOperation) {
       return;
     }
     final authoring = _authoring;
-    final key = _sceneCoordinator.selectedPrefabKey;
-    if (authoring == null || key == null) return;
-    final selection = resolveChunkPrefabSelection(authoring.chunk.prefabs, key);
-    if (selection == null) return;
-    final operation = ChunkV2CompositionOperation.delete(
-      chunk: authoring.chunk,
-      target: ChunkV2CompositionTarget.prefabs,
-      sourceIndex: selection.sourceIndex,
-      presentationKey: selection.selectionKey,
-    );
-    final commit = operation.buildPrefab();
+    if (authoring == null) return;
+    switch (_sceneCoordinator.domain) {
+      case ChunkSceneDomain.prefabs:
+        final key = _sceneCoordinator.selectedPrefabKey;
+        if (key == null) return;
+        final selection = resolveChunkPrefabSelection(
+          authoring.chunk.prefabs,
+          key,
+        );
+        if (selection == null) return;
+        final operation = ChunkV2CompositionOperation.delete(
+          chunk: authoring.chunk,
+          target: ChunkV2CompositionTarget.prefabs,
+          sourceIndex: selection.sourceIndex,
+          presentationKey: selection.selectionKey,
+        );
+        final commit = operation.buildPrefab();
+        if (commit == null) return;
+        _dispatchPrefabGestureResult(
+          ChunkPrefabGestureResult(candidate: selection.prefab, commit: commit),
+          deleted: true,
+        );
+      case ChunkSceneDomain.markers:
+        final key = _sceneCoordinator.selectedMarkerKey;
+        if (key == null) return;
+        final selection = resolveChunkMarkerSelection(
+          authoring.chunk.markers,
+          key,
+        );
+        if (selection == null) return;
+        final operation = ChunkV2CompositionOperation.delete(
+          chunk: authoring.chunk,
+          target: ChunkV2CompositionTarget.markers,
+          sourceIndex: selection.sourceIndex,
+          presentationKey: selection.selectionKey,
+        );
+        final commit = operation.buildMarker();
+        if (commit == null) return;
+        _dispatchMarkerGestureResult(
+          ChunkMarkerGestureResult(candidate: selection.marker, commit: commit),
+          deleted: true,
+        );
+      case ChunkSceneDomain.terrain || ChunkSceneDomain.compiledEdgeInspection:
+        return;
+    }
+  }
+
+  void _dispatchMarkerGestureResult(
+    ChunkMarkerGestureResult result, {
+    bool deleted = false,
+  }) {
+    final commit = result.commit;
     if (commit == null) return;
-    _dispatchPrefabGestureResult(
-      ChunkPrefabGestureResult(candidate: selection.prefab, commit: commit),
-      deleted: true,
+    final beforeDocument = widget.controller.document;
+    widget.controller.applyCommand(
+      AuthoringCommand(
+        kind: ChunkDomainPlugin.commitChunkCompositionCommandKind,
+        payload: <String, Object?>{
+          'chunkKey': commit.expectedChunkKey,
+          'commit': commit,
+        },
+      ),
+    );
+    final accepted = !identical(widget.controller.document, beforeDocument);
+    final authoring = _authoring;
+    if (accepted && authoring != null) {
+      setState(() {
+        if (deleted) {
+          _sceneCoordinator.clearSelection();
+          return;
+        }
+        final key = uniqueChunkMarkerSelectionKey(
+          authoring.chunk.markers,
+          result.candidate,
+        );
+        _sceneCoordinator.selectMarker(
+          key == null
+              ? null
+              : resolveChunkMarkerSelection(authoring.chunk.markers, key),
+        );
+        _refreshMarkerPlacementProjection();
+      });
+      return;
+    }
+    setState(_sceneCoordinator.clearSelection);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Marker scene change was rejected. Review validation diagnostics '
+          'and retry from the current chunk state.',
+        ),
+      ),
     );
   }
 
@@ -2756,6 +2947,12 @@ String _prefabToolLabel(ChunkPrefabSceneTool tool) => switch (tool) {
   ChunkPrefabSceneTool.select => 'Select',
   ChunkPrefabSceneTool.place => 'Place',
   ChunkPrefabSceneTool.move => 'Move',
+};
+
+String _markerToolLabel(ChunkMarkerSceneTool tool) => switch (tool) {
+  ChunkMarkerSceneTool.select => 'Select',
+  ChunkMarkerSceneTool.place => 'Place',
+  ChunkMarkerSceneTool.move => 'Move',
 };
 
 String _terrainActorLabel(ChunkV2TerrainActor actor) => switch (actor) {

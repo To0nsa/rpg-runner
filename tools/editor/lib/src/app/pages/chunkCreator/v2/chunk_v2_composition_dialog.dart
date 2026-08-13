@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:runner_core/enemies/enemy_id.dart';
 
 import '../../../../chunks/chunk_domain_models.dart';
+import '../../../../chunks/chunk_marker_authoring_catalog.dart';
 import '../../../../chunks/chunk_scene_coordinate_policy.dart';
 import '../../../../chunks/chunk_v2_file_data.dart';
 import '../../../../prefabs/models/models.dart';
@@ -377,7 +377,7 @@ final class _ChunkV2MarkerDialogState extends State<_ChunkV2MarkerDialog> {
   void initState() {
     super.initState();
     final marker = widget.marker;
-    _markerId = marker?.markerId ?? _enemyIds.first;
+    _markerId = marker?.markerId ?? chunkMarkerEnemyIds.first;
     _placement = marker?.placement ?? markerPlacementGround;
     _xController = TextEditingController(text: '${marker?.x ?? 0}');
     _yController = TextEditingController(text: '${marker?.y ?? 0}');
@@ -411,7 +411,7 @@ final class _ChunkV2MarkerDialogState extends State<_ChunkV2MarkerDialog> {
                 key: ValueKey<String>('chunk_v2_marker_enemy_$_markerId'),
                 initialValue: _markerId,
                 decoration: const InputDecoration(labelText: 'Enemy ID'),
-                items: _enemyIds
+                items: chunkMarkerEnemyIds
                     .map(
                       (id) =>
                           DropdownMenuItem<String>(value: id, child: Text(id)),
@@ -474,7 +474,7 @@ final class _ChunkV2MarkerDialogState extends State<_ChunkV2MarkerDialog> {
                 initialValue: _placement,
                 isExpanded: true,
                 decoration: const InputDecoration(labelText: 'Placement'),
-                items: _markerPlacements
+                items: chunkMarkerPlacementModes
                     .map(
                       (placement) => DropdownMenuItem<String>(
                         value: placement,
@@ -509,8 +509,12 @@ final class _ChunkV2MarkerDialogState extends State<_ChunkV2MarkerDialog> {
     Navigator.of(context).pop(
       PlacedMarkerDef(
         markerId: _markerId,
-        x: int.parse(_xController.text.trim()),
-        y: int.parse(_yController.text.trim()),
+        x: preserveChunkExactPixelCoordinate(
+          int.parse(_xController.text.trim()),
+        ),
+        y: preserveChunkExactPixelCoordinate(
+          int.parse(_yController.text.trim()),
+        ),
         chancePercent: int.parse(_chanceController.text.trim()),
         salt: int.parse(_saltController.text.trim()),
         placement: _placement,
@@ -586,13 +590,3 @@ final List<double> _placementScales = List<double>.unmodifiable(
     ),
   ),
 );
-
-final List<String> _enemyIds = List<String>.unmodifiable(
-  EnemyId.values.map((id) => id.name).toList(growable: false)..sort(),
-);
-
-const List<String> _markerPlacements = <String>[
-  markerPlacementGround,
-  markerPlacementHighestSurfaceAtX,
-  markerPlacementObstacleTop,
-];

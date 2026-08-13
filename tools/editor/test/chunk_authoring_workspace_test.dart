@@ -913,6 +913,240 @@ void main() {
     expect(expanded.placementY, 16);
   });
 
+  testWidgets('direct marker placement keeps anchors separate from evidence', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1800, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final harness = await _buildHarness();
+    addTearDown(harness.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.dark(),
+        home: Scaffold(body: ChunkCreatorPage(controller: harness.session)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    tester
+        .widget<SegmentedButton<ChunkSceneDomain>>(
+          find.byKey(const ValueKey<String>('chunk_scene_domain_selector')),
+        )
+        .onSelectionChanged!(<ChunkSceneDomain>{ChunkSceneDomain.markers});
+    await tester.pump();
+    tester
+        .widget<ChoiceChip>(
+          find.byKey(const ValueKey<String>('chunk_marker_tool_place')),
+        )
+        .onSelected!(true);
+    await tester.pump();
+
+    final surfaceFinder = find.byKey(
+      const ValueKey<String>('chunk_scene_surface'),
+    );
+    final surface = tester.widget<ChunkSceneSurface>(
+      find.ancestor(
+        of: surfaceFinder,
+        matching: find.byType(ChunkSceneSurface),
+      ),
+    );
+    Offset point(double x, double y) =>
+        tester.getTopLeft(surfaceFinder) +
+        surface.transform.origin +
+        Offset(x * surface.transform.zoom, y * surface.transform.zoom);
+
+    final gesture = await tester.startGesture(point(60.5, 5.5));
+    await gesture.moveTo(point(70.5, 5.5));
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey<String>('chunk_marker_gesture_preview')),
+      findsOneWidget,
+    );
+    expect(_chunk(harness.session, 'forest_chunk').revision, 4);
+    expect(_chunk(harness.session, 'forest_chunk').markers, hasLength(2));
+    var painter =
+        tester
+                .widget<CustomPaint>(
+                  find.byKey(
+                    const ValueKey<String>('chunk_marker_placement_overlay'),
+                  ),
+                )
+                .painter!
+            as ChunkMarkerPlacementOverlayPainter;
+    expect(painter.showResolvedEvidence, isFalse);
+
+    await gesture.up();
+    await tester.pump();
+    final accepted = _chunk(harness.session, 'forest_chunk');
+    expect(accepted.revision, 5);
+    expect(accepted.markers, hasLength(3));
+    expect(accepted.markers.where((marker) => marker.x == 71).single.y, 6);
+    expect(
+      (harness.session.scene as ChunkV2Scene)
+          .collisionExpansionByChunkKey['forest_chunk'],
+      isNotNull,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('chunk_marker_gesture_preview')),
+      findsNothing,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('chunk_marker_placement_toggle')),
+    );
+    await tester.pump();
+    painter =
+        tester
+                .widget<CustomPaint>(
+                  find.byKey(
+                    const ValueKey<String>('chunk_marker_placement_overlay'),
+                  ),
+                )
+                .painter!
+            as ChunkMarkerPlacementOverlayPainter;
+    expect(painter.showResolvedEvidence, isTrue);
+
+    tester
+        .widget<ChoiceChip>(
+          find.byKey(const ValueKey<String>('chunk_marker_tool_select')),
+        )
+        .onSelected!(true);
+    await tester.pump();
+    final currentSurface = tester.widget<ChunkSceneSurface>(
+      find.ancestor(
+        of: surfaceFinder,
+        matching: find.byType(ChunkSceneSurface),
+      ),
+    );
+    await tester.tapAt(
+      tester.getTopLeft(surfaceFinder) +
+          currentSurface.transform.origin +
+          Offset(
+            71 * currentSurface.transform.zoom,
+            6 * currentSurface.transform.zoom,
+          ),
+    );
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.delete);
+    await tester.pump();
+    expect(_chunk(harness.session, 'forest_chunk').revision, 6);
+    expect(_chunk(harness.session, 'forest_chunk').markers, hasLength(2));
+
+    tester
+        .widget<ChoiceChip>(
+          find.byKey(const ValueKey<String>('chunk_marker_tool_place')),
+        )
+        .onSelected!(true);
+    await tester.pump();
+    final rejectedSurface = tester.widget<ChunkSceneSurface>(
+      find.ancestor(
+        of: surfaceFinder,
+        matching: find.byType(ChunkSceneSurface),
+      ),
+    );
+    final rejected = await tester.startGesture(
+      tester.getTopLeft(surfaceFinder) +
+          rejectedSurface.transform.origin +
+          Offset(
+            112 * rejectedSurface.transform.zoom,
+            60 * rejectedSurface.transform.zoom,
+          ),
+    );
+    await rejected.up();
+    await tester.pump();
+    expect(_chunk(harness.session, 'forest_chunk').revision, 6);
+    expect(_chunk(harness.session, 'forest_chunk').markers, hasLength(2));
+    expect(find.textContaining('Marker scene change was rejected'), findsOne);
+  });
+
+  testWidgets(
+    'direct marker move suppresses stale evidence and cancels safely',
+    (tester) async {
+      tester.view.physicalSize = const Size(1800, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final harness = await _buildHarness();
+      addTearDown(harness.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData.dark(),
+          home: Scaffold(body: ChunkCreatorPage(controller: harness.session)),
+        ),
+      );
+      await tester.pumpAndSettle();
+      tester
+          .widget<SegmentedButton<ChunkSceneDomain>>(
+            find.byKey(const ValueKey<String>('chunk_scene_domain_selector')),
+          )
+          .onSelectionChanged!(<ChunkSceneDomain>{ChunkSceneDomain.markers});
+      await tester.pump();
+      tester
+          .widget<ChoiceChip>(
+            find.byKey(const ValueKey<String>('chunk_marker_tool_move')),
+          )
+          .onSelected!(true);
+      await tester.pump();
+
+      final surfaceFinder = find.byKey(
+        const ValueKey<String>('chunk_scene_surface'),
+      );
+      final surface = tester.widget<ChunkSceneSurface>(
+        find.ancestor(
+          of: surfaceFinder,
+          matching: find.byType(ChunkSceneSurface),
+        ),
+      );
+      Offset point(double x, double y) =>
+          tester.getTopLeft(surfaceFinder) +
+          surface.transform.origin +
+          Offset(x * surface.transform.zoom, y * surface.transform.zoom);
+
+      final cancelled = await tester.startGesture(point(40, 5));
+      await cancelled.moveTo(point(60.5, 5.5));
+      await tester.pump();
+      final previewPainter =
+          tester
+                  .widget<CustomPaint>(
+                    find.byKey(
+                      const ValueKey<String>('chunk_marker_placement_overlay'),
+                    ),
+                  )
+                  .painter!
+              as ChunkMarkerPlacementOverlayPainter;
+      expect(previewPainter.suppressedMarkerKey, 'hashash|40|5|0');
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await cancelled.up();
+      await tester.pump();
+      expect(_chunk(harness.session, 'forest_chunk').revision, 4);
+      expect(
+        _chunk(
+          harness.session,
+          'forest_chunk',
+        ).markers.singleWhere((marker) => marker.markerId == 'hashash').x,
+        40,
+      );
+
+      final accepted = await tester.startGesture(point(40, 5));
+      await accepted.moveTo(point(60.5, 5.5));
+      await accepted.up();
+      await tester.pump();
+      final moved = _chunk(harness.session, 'forest_chunk');
+      expect(moved.revision, 5);
+      final hashash = moved.markers.singleWhere(
+        (marker) => marker.markerId == 'hashash',
+      );
+      expect(hashash.x, 61);
+      expect(hashash.y, 6);
+      expect(hashash.placement, markerPlacementGround);
+      expect(harness.session.pendingChanges.hasChanges, isTrue);
+    },
+  );
+
   testWidgets('selected chunk shapes show their metadata subsection', (
     tester,
   ) async {
@@ -1146,6 +1380,34 @@ void main() {
       findsOneWidget,
     );
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('tile layers remain metadata-only in the unified workspace', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1800, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final harness = await _buildHarness();
+    addTearDown(harness.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.dark(),
+        home: Scaffold(body: ChunkCreatorPage(controller: harness.session)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Tile layer metadata'), findsOneWidget);
+    expect(find.text('Add layer'), findsOneWidget);
+    expect(find.text('Paint tiles'), findsNothing);
+    expect(find.text('Erase tiles'), findsNothing);
+    expect(
+      find.byKey(const ValueKey<String>('chunk_tile_paint_tool')),
+      findsNothing,
+    );
   });
 
   testWidgets('expanded collision opens its exact owning prefab', (
