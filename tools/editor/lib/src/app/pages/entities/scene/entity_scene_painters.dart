@@ -167,6 +167,8 @@ class _EntityBoundsPainter extends CustomPainter {
   const _EntityBoundsPainter({
     required this.entry,
     required this.scale,
+    required this.castOriginAngleRadians,
+    required this.overlayFrontLayer,
     required this.handleRadius,
     required this.anchorHandleRadius,
     required this.anchorSelected,
@@ -176,6 +178,8 @@ class _EntityBoundsPainter extends CustomPainter {
 
   final EntityEntry entry;
   final double scale;
+  final double castOriginAngleRadians;
+  final _SceneOverlayFrontLayer overlayFrontLayer;
   final double handleRadius;
   final double anchorHandleRadius;
   final bool anchorSelected;
@@ -240,6 +244,18 @@ class _EntityBoundsPainter extends CustomPainter {
       );
     }
 
+    _paintCastOriginCue(canvas, size);
+    final anchorCenter = anchorHandleCenter;
+    final colliderIsFront =
+        overlayFrontLayer == _SceneOverlayFrontLayer.collider;
+    if (anchorCenter != null && colliderIsFront) {
+      _paintAnchorHandle(
+        canvas,
+        center: anchorCenter,
+        selected: anchorSelected,
+      );
+    }
+
     _paintHandle(
       canvas,
       center: handles.center,
@@ -255,8 +271,7 @@ class _EntityBoundsPainter extends CustomPainter {
       center: handles.right,
       selected: activeHandle == _SceneColliderHandle.right,
     );
-    final anchorCenter = anchorHandleCenter;
-    if (anchorCenter != null) {
+    if (anchorCenter != null && !colliderIsFront) {
       _paintAnchorHandle(
         canvas,
         center: anchorCenter,
@@ -295,13 +310,46 @@ class _EntityBoundsPainter extends CustomPainter {
     canvas.drawCircle(center, anchorHandleRadius, strokePaint);
   }
 
+  void _paintCastOriginCue(Canvas canvas, Size size) {
+    final offset = entry.castOriginOffset;
+    if (!entry.isCaster ||
+        offset == null ||
+        !offset.isFinite ||
+        !scale.isFinite ||
+        scale <= 0) {
+      return;
+    }
+
+    // Projectile launch offsets start at the caster transform, whereas the
+    // collider may be authored around a different local center.
+    final transformOrigin = _ViewportGeometry.canvasCenter(size);
+    final castOrigin = Offset(
+      transformOrigin.dx + math.cos(castOriginAngleRadians) * offset * scale,
+      transformOrigin.dy + math.sin(castOriginAngleRadians) * offset * scale,
+    );
+    const cueColor = Color(0xFFFFB341);
+    const outlineColor = Color(0xFF2A1C08);
+    final markerPaint = Paint()..color = cueColor;
+    final markerOutlinePaint = Paint()
+      ..color = outlineColor
+      ..strokeWidth = 1.4
+      ..style = PaintingStyle.stroke;
+
+    canvas.drawCircle(castOrigin, 6.0, markerPaint);
+    canvas.drawCircle(castOrigin, 6.0, markerOutlinePaint);
+  }
+
   @override
   bool shouldRepaint(covariant _EntityBoundsPainter oldDelegate) {
     return oldDelegate.entry.halfX != entry.halfX ||
         oldDelegate.entry.halfY != entry.halfY ||
         oldDelegate.entry.offsetX != entry.offsetX ||
         oldDelegate.entry.offsetY != entry.offsetY ||
+        oldDelegate.entry.isCaster != entry.isCaster ||
+        oldDelegate.entry.castOriginOffset != entry.castOriginOffset ||
         oldDelegate.scale != scale ||
+        oldDelegate.castOriginAngleRadians != castOriginAngleRadians ||
+        oldDelegate.overlayFrontLayer != overlayFrontLayer ||
         oldDelegate.handleRadius != handleRadius ||
         oldDelegate.anchorHandleRadius != anchorHandleRadius ||
         oldDelegate.anchorSelected != anchorSelected ||

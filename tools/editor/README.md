@@ -52,6 +52,12 @@ The entity scene presents combat geometry using the runtime field meanings:
 - projectiles show a canonical horizontal preview of their runtime
   direction-oriented capsule, where `halfX` is half-spine and `halfY` is
   radius;
+- casters with an authored `castOriginOffset` show an amber dot at the
+  selected preview angle. The inspector's 0–360° preview slider rotates that
+  dot without changing authored data; at runtime, the projectile launches that
+  many world units from the caster transform along its resolved aim direction;
+- the **Origin point** and **Collider** checkboxes beside animation controls
+  choose which overlapping scene handle renders in front;
 - actor `halfY < halfX`, non-positive dimensions, and non-finite values are
   invalid and block export rather than previewing a different runtime shape.
 

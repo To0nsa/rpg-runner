@@ -57,7 +57,7 @@ class ProjectileCatalog {
           weaponType: WeaponType.spell,
           speedUnitsPerSecond: 500.0,
           lifetimeSeconds: 1.3,
-          colliderSizeX: 2.0,
+          colliderSizeX: 16.0,
           colliderSizeY: 12.0,
           damageType: DamageType.acid,
           procs: <WeaponProc>[

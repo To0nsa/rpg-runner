@@ -3,7 +3,7 @@
   "themes": [
     {
       "parallaxThemeId": "field",
-      "revision": 1,
+      "revision": 6,
       "layers": [
         {
           "layerKey": "field_bg_01",
@@ -12,7 +12,7 @@
           "parallaxFactor": 0.1,
           "zOrder": 10,
           "opacity": 1,
-          "yOffset": 0
+          "yOffset": -44
         },
         {
           "layerKey": "field_bg_02",
@@ -21,7 +21,7 @@
           "parallaxFactor": 0.15,
           "zOrder": 20,
           "opacity": 1,
-          "yOffset": 0
+          "yOffset": -44
         },
         {
           "layerKey": "field_bg_03",
@@ -30,7 +30,7 @@
           "parallaxFactor": 0.2,
           "zOrder": 30,
           "opacity": 1,
-          "yOffset": 0
+          "yOffset": -44
         },
         {
           "layerKey": "field_bg_04",
@@ -39,7 +39,7 @@
           "parallaxFactor": 0.3,
           "zOrder": 40,
           "opacity": 1,
-          "yOffset": 0
+          "yOffset": -44
         },
         {
           "layerKey": "field_bg_05",
@@ -48,7 +48,7 @@
           "parallaxFactor": 0.4,
           "zOrder": 50,
           "opacity": 1,
-          "yOffset": 0
+          "yOffset": -44
         },
         {
           "layerKey": "field_bg_06",
@@ -57,7 +57,7 @@
           "parallaxFactor": 0.5,
           "zOrder": 60,
           "opacity": 1,
-          "yOffset": 0
+          "yOffset": -44
         },
         {
           "layerKey": "field_bg_07",
@@ -66,7 +66,7 @@
           "parallaxFactor": 0.6,
           "zOrder": 70,
           "opacity": 1,
-          "yOffset": 0
+          "yOffset": -44
         },
         {
           "layerKey": "field_bg_08",
@@ -75,7 +75,7 @@
           "parallaxFactor": 0.7,
           "zOrder": 80,
           "opacity": 1,
-          "yOffset": 0
+          "yOffset": -44
         },
         {
           "layerKey": "field_fg_10",
@@ -84,7 +84,7 @@
           "parallaxFactor": 1,
           "zOrder": 10,
           "opacity": 1,
-          "yOffset": 0
+          "yOffset": -44
         }
       ]
     },

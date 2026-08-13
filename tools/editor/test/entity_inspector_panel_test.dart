@@ -74,6 +74,8 @@ Widget _inspector(EntityEntry entry) {
           frameHeightController: controller(''),
           renderScaleController: controller(''),
           castOriginOffsetController: controller(''),
+          castOriginPreviewAngleDegrees: 0,
+          onCastOriginPreviewAngleChanged: (_) {},
           onApply: null,
         ),
       ),

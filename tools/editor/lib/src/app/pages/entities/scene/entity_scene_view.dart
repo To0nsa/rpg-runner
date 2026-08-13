@@ -74,21 +74,27 @@ extension _EntitySceneView on _EntitiesEditorPageState {
                           ),
                         ],
                       ),
-                      if (animKeys.isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: _buildSceneAnimControls(
-                              animKeys: animKeys,
-                              activeAnimKey: activeAnimKey,
-                              frameIndex: frameIndex,
-                              frameCount: frameCount,
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          _buildSceneOverlayFrontLayerControls(),
+                          if (animKeys.isNotEmpty)
+                            Expanded(
+                              child: Align(
+                                alignment: Alignment.centerRight,
+                                child: SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: _buildSceneAnimControls(
+                                    animKeys: animKeys,
+                                    activeAnimKey: activeAnimKey,
+                                    frameIndex: frameIndex,
+                                    frameCount: frameCount,
+                                  ),
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -220,6 +226,21 @@ extension _EntitySceneView on _EntitiesEditorPageState {
             reference: resolvedReference,
           );
     final activeHandle = _activeSceneHandle(selectedEntry.id);
+    final castOriginCueSemantics = _castOriginCueSemanticsLabel(
+      selectedEntry,
+      angleDegrees: _castOriginPreviewAngleDegrees,
+    );
+    final entityBoundsPainter = _EntityBoundsPainter(
+      entry: selectedEntry,
+      scale: scale,
+      castOriginAngleRadians: _castOriginPreviewAngleDegrees * math.pi / 180.0,
+      overlayFrontLayer: _sceneOverlayFrontLayer,
+      handleRadius: _entityColliderHandleRadius,
+      activeHandle: _activeColliderHandle(activeHandle),
+      anchorHandleCenter: anchorHandleCenter,
+      anchorHandleRadius: _entityAnchorHandleRadius,
+      anchorSelected: activeHandle == _SceneHandleType.anchor,
+    );
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -249,17 +270,13 @@ extension _EntitySceneView on _EntitiesEditorPageState {
                   drawMarkerLabels: false,
                 ),
               ),
-            CustomPaint(
-              painter: _EntityBoundsPainter(
-                entry: selectedEntry,
-                scale: scale,
-                handleRadius: _entityColliderHandleRadius,
-                activeHandle: _activeColliderHandle(activeHandle),
-                anchorHandleCenter: anchorHandleCenter,
-                anchorHandleRadius: _entityAnchorHandleRadius,
-                anchorSelected: activeHandle == _SceneHandleType.anchor,
+            if (castOriginCueSemantics == null)
+              CustomPaint(painter: entityBoundsPainter)
+            else
+              Semantics(
+                label: castOriginCueSemantics,
+                child: CustomPaint(painter: entityBoundsPainter),
               ),
-            ),
           ],
         ),
       ),
@@ -279,6 +296,15 @@ extension _EntitySceneView on _EntitiesEditorPageState {
         selectedEntry.offsetX.abs() * scale + selectedEntry.halfX * scale;
     var halfSpanY =
         selectedEntry.offsetY.abs() * scale + selectedEntry.halfY * scale;
+
+    final castOriginOffset = selectedEntry.castOriginOffset;
+    if (selectedEntry.isCaster &&
+        castOriginOffset != null &&
+        castOriginOffset.isFinite) {
+      final castOriginExtent = castOriginOffset.abs() * scale;
+      halfSpanX = math.max(halfSpanX, castOriginExtent);
+      halfSpanY = math.max(halfSpanY, castOriginExtent);
+    }
 
     if (reference != null) {
       final frameWidth = reference.frameWidth * reference.renderScale * scale;
@@ -311,5 +337,59 @@ extension _EntitySceneView on _EntitiesEditorPageState {
     final width = math.max(minViewportWidth, (halfSpanX + panPadding) * 2);
     final height = math.max(minViewportHeight, (halfSpanY + panPadding) * 2);
     return Size(width.ceilToDouble(), height.ceilToDouble());
+  }
+
+  String? _castOriginCueSemanticsLabel(
+    EntityEntry entry, {
+    required double angleDegrees,
+  }) {
+    final offset = entry.castOriginOffset;
+    if (!entry.isCaster || offset == null || !offset.isFinite) {
+      return null;
+    }
+    final normalizedAngleDegrees = angleDegrees.round() % 360;
+    return 'Cast origin cue: ${offset.toStringAsFixed(3)} world units '
+        'at $normalizedAngleDegrees degrees from the entity transform.';
+  }
+
+  Widget _buildSceneOverlayFrontLayerControls() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildSceneOverlayFrontLayerCheckbox(
+          key: const ValueKey('entity_scene_front_origin_point'),
+          label: 'Origin point',
+          layer: _SceneOverlayFrontLayer.originPoint,
+        ),
+        const SizedBox(width: 8),
+        _buildSceneOverlayFrontLayerCheckbox(
+          key: const ValueKey('entity_scene_front_collider'),
+          label: 'Collider',
+          layer: _SceneOverlayFrontLayer.collider,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSceneOverlayFrontLayerCheckbox({
+    required Key key,
+    required String label,
+    required _SceneOverlayFrontLayer layer,
+  }) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Checkbox(
+          key: key,
+          value: _sceneOverlayFrontLayer == layer,
+          onChanged: (_) {
+            _updateState(() {
+              _sceneOverlayFrontLayer = layer;
+            });
+          },
+        ),
+        Text(label),
+      ],
+    );
   }
 }

@@ -22,6 +22,10 @@ enum _SceneColliderHandle { center, top, right }
 
 enum _SceneHandleType { colliderCenter, colliderTop, colliderRight, anchor }
 
+/// Scene overlay that remains visible when collider and reference controls
+/// overlap in the entity viewport.
+enum _SceneOverlayFrontLayer { collider, originPoint }
+
 extension _SceneHandleTypeMapping on _SceneHandleType {
   static _SceneHandleType fromColliderHandle(_SceneColliderHandle handle) {
     switch (handle) {

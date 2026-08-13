@@ -71,6 +71,9 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
   EntityType? _entityTypeFilter;
   bool _showDirtyOnly = false;
   double _sceneZoom = 1.0;
+  double _castOriginPreviewAngleDegrees = 0.0;
+  _SceneOverlayFrontLayer _sceneOverlayFrontLayer =
+      _SceneOverlayFrontLayer.collider;
   String? _sceneAnimKey;
   int _sceneAnimFrameIndex = 0;
   bool _sceneCtrlPanActive = false;
@@ -437,6 +440,12 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
       frameHeightController: _frameHeightController,
       renderScaleController: _renderScaleController,
       castOriginOffsetController: _castOriginOffsetController,
+      castOriginPreviewAngleDegrees: _castOriginPreviewAngleDegrees,
+      onCastOriginPreviewAngleChanged: (angleDegrees) {
+        _updateState(() {
+          _castOriginPreviewAngleDegrees = angleDegrees;
+        });
+      },
       onApply: selectedEntry == null
           ? null
           : () => _applyInspectorEdits(selectedEntry),

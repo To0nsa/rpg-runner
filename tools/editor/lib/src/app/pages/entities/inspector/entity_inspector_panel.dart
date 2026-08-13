@@ -24,6 +24,8 @@ class EntityInspectorPanel extends StatelessWidget {
     required this.frameHeightController,
     required this.renderScaleController,
     required this.castOriginOffsetController,
+    required this.castOriginPreviewAngleDegrees,
+    required this.onCastOriginPreviewAngleChanged,
     required this.onApply,
   });
 
@@ -39,6 +41,8 @@ class EntityInspectorPanel extends StatelessWidget {
   final TextEditingController frameHeightController;
   final TextEditingController renderScaleController;
   final TextEditingController castOriginOffsetController;
+  final double castOriginPreviewAngleDegrees;
+  final ValueChanged<double> onCastOriginPreviewAngleChanged;
   final VoidCallback? onApply;
 
   @override
@@ -174,6 +178,18 @@ class EntityInspectorPanel extends StatelessWidget {
                     ),
                   ],
                 ),
+                if (selected.castOriginOffset?.isFinite == true) ...[
+                  const SizedBox(height: 8),
+                  _InspectorLabeledFieldRow(
+                    subtitle: 'Cast preview angle',
+                    fields: [
+                      _CastOriginPreviewAngleControl(
+                        angleDegrees: castOriginPreviewAngleDegrees,
+                        onChanged: onCastOriginPreviewAngleChanged,
+                      ),
+                    ],
+                  ),
+                ],
               ],
               const SizedBox(height: 8),
               Text(
@@ -342,6 +358,48 @@ class _InspectorLabeledFieldRow extends StatelessWidget {
               ],
             ],
           ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CastOriginPreviewAngleControl extends StatelessWidget {
+  const _CastOriginPreviewAngleControl({
+    required this.angleDegrees,
+    required this.onChanged,
+  });
+
+  final double angleDegrees;
+  final ValueChanged<double> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final roundedAngle = angleDegrees.round();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Slider(
+                value: angleDegrees,
+                min: 0,
+                max: 360,
+                divisions: 360,
+                label: '$roundedAngle°',
+                onChanged: onChanged,
+              ),
+            ),
+            SizedBox(
+              width: 44,
+              child: Text(
+                '$roundedAngle°',
+                textAlign: TextAlign.end,
+                style: Theme.of(context).textTheme.labelLarge,
+              ),
+            ),
+          ],
         ),
       ],
     );
