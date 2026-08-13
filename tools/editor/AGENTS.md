@@ -206,8 +206,9 @@ maintainability concerns.
 - source-of-truth file: `assets/authoring/level/parallax_defs.json`
 - parallax themes are visual-only render data keyed by stable `parallaxThemeId`
 - active level selection resolves the current `parallaxThemeId` via
-  `packages/runner_core/lib/levels/level_registry.dart`; multiple levels may
-  reuse the same authored theme
+  authored `assets/authoring/level/level_defs.json`; generated runtime
+  registries are output and must not become editor validation authority;
+  multiple levels may reuse the same authored theme
 - terrain materials own ground visuals, geometry, collision, traversal, spawn,
   and streaming; parallax themes must not define a ground material
 - keep deterministic theme/layer ordering, canonical numeric formatting, and
@@ -220,9 +221,16 @@ maintainability concerns.
 - plugin: `LevelDomainPlugin`
 - source-of-truth file: `assets/authoring/level/level_defs.json`
 - current scope includes the Level Creator route, list/inspector UI, store,
-  validation, plugin, pending diff, and safe write flow
+  validation, plugin, explicit create/reuse visual-theme workflow, compound
+  pending diff, rollback-safe two-source write, and guarded Parallax handoff
 - `levelId` remains stable identity, `visualThemeId` ownership belongs here, and
   gameplay authority stays in core/chunk systems
+- create/use-existing intent must remain explicit; new themes are empty
+  revision-1 Parallax records and must be staged in the same session command as
+  their Level reference
+- Level Creator export must compose `LevelStore` and `ParallaxStore` plans and
+  verify both baselines through one `WorkspaceWriteTransaction`; never sequence
+  independent store saves for this workflow
 - keep canonical file ordering by `levelId`, stable `enumOrdinal`, source-drift
   checks, and export gating in the plugin/store path
 
@@ -323,6 +331,7 @@ Run focused tests for touched slices, for example:
   - `tools/editor/test/level_domain_plugin_test.dart`
   - `tools/editor/test/level_domain_plugin_integration_test.dart`
   - `tools/editor/test/level_creator_page_test.dart`
+  - `tools/editor/test/level_visual_theme_workflow_test.dart`
   - `tools/editor/test/level_context_resolver_test.dart`
 
 When authoring-runtime contract seams are touched, also run repo-level

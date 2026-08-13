@@ -26,8 +26,9 @@ Implemented authoring domains:
   actor/navigation/marker diagnostics, scene-based composition, shared
   pan/zoom/grid controls, and Prefab transform editing
 - level metadata authoring with list/inspector editing, lifecycle controls,
-  assembly segment sequencing, render-theme run validation, pending diff
-  preview, and direct-write export
+  assembly segment sequencing, explicit new/existing visual-theme assignment,
+  atomic Level-plus-theme pending/apply, repair of unresolved references, and
+  guarded handoff to Parallax
 - parallax theme authoring scoped by active level, with ordered layer editing,
   deterministic save output, validation, preview pan/zoom, and an absolute
   numeric all-layer Y-offset preview/save control (`0` is the viewport bottom)
@@ -40,6 +41,32 @@ Editor foundations shared across those domains:
 - shared outlined workspace, panel, subsection, and list-row cards with one
   spacing system; cards in the Chunk right sidebar expand independently
 - shared pan/zoom scene controls, inspector forms, and deterministic export summaries
+
+## Level And Visual Theme Workflow
+
+Level Creator no longer requires an invalid two-step Level-then-Parallax save.
+For a new Level, choose **Create new theme** (the default) or **Use existing
+theme**. Create-new stages a revision-1 empty Parallax theme and assigns its ID
+to the Level as one undoable command. Reuse changes only Level source. Existing
+Levels can also use **Create and assign new theme**, and a loaded missing
+reference opens a repair state instead of a fake dropdown entry.
+
+Applying a new Level/theme previews and commits
+`assets/authoring/level/level_defs.json` and
+`assets/authoring/level/parallax_defs.json` through one rollback-safe
+transaction. After a successful canonical reload, **Open in Parallax** selects
+the exact saved Level/theme so its first layer can be added normally.
+
+Authoring apply does not regenerate runtime Dart. When Level and layer work is
+complete, run from repository root:
+
+```bash
+dart run tool/generate_chunk_runtime_data.dart
+dart run tool/generate_chunk_runtime_data.dart --dry-run
+```
+
+The first command publishes generated registries; the second verifies that no
+generated drift remains.
 
 ## Entity Collider Preview
 
@@ -173,12 +200,23 @@ applies the visible preview or selecting another tool discards that preview.
 **Apply current source** remains disabled until local work is resolved and is
 the only normal file-write action; it always requires confirmation.
 
-## Polygon Workspace Navigation
+## Chunk Authoring Workspace Navigation
 
-The Chunk Creator right sidebar is one vertical scroll area. Its **Shapes**,
-**Reachable chunk seams**, and **Diagnostics** cards start expanded and can be
-collapsed independently; card content uses the sidebar scroll instead of being
-clipped into fixed-height sections.
+The Chunk Creator keeps one **Chunk creation scene** mounted beside a single
+right-sidebar scroll area. On wide windows, the sidebar contains exactly two
+top-level cards: **Owners & terrain collision** and **Layers, prefabs &
+markers**. On narrow windows, the same mounted sidebar sits below a bounded
+scene; the old terrain/composition tabs do not return. Expanding or collapsing
+cards and their natural-height sections changes presentation only, not the
+selected owner, terrain draft, viewport, history, or pending source state.
+
+Owner lifecycle and direct terrain collision remain in the first card. The
+second card retains the visual-stack summary and validated dialog workflows for
+tile-layer metadata, prefab placements, and enemy markers. `TileLayerDef` is
+metadata-only, so this workspace exposes no tile painting or cell editing.
+Direct prefab and marker manipulation in the shared scene remains follow-on
+work; their current add/edit/delete dialogs still dispatch the canonical Chunk
+composition command.
 
 When an all-current workspace loads the Chunk-v2 polygon workflow, each
 read-only expanded prefab collision exposes **Open prefab**.
