@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
 
 import '../../../domain/authoring_types.dart';
 import '../../../parallax/parallax_domain_models.dart';
@@ -327,7 +329,11 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
                               ? 0
                               : 8,
                         ),
-                        child: _buildLayerEntry(layer, isSelected: isSelected),
+                        child: _buildLayerEntry(
+                          layer,
+                          workspaceRootPath: scene.workspaceRootPath,
+                          isSelected: isSelected,
+                        ),
                       );
                     },
                   ),
@@ -337,7 +343,11 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
     );
   }
 
-  Widget _buildLayerEntry(ParallaxLayerDef layer, {required bool isSelected}) {
+  Widget _buildLayerEntry(
+    ParallaxLayerDef layer, {
+    required String workspaceRootPath,
+    required bool isSelected,
+  }) {
     final colorScheme = Theme.of(context).colorScheme;
     return Material(
       color: Colors.transparent,
@@ -364,26 +374,38 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
           },
           child: Padding(
             padding: const EdgeInsets.all(10),
-            child: Column(
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  layer.layerKey,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                _ParallaxLayerAssetThumbnail(
+                  workspaceRootPath: workspaceRootPath,
+                  layer: layer,
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  '${layer.group}  z=${layer.zOrder}  factor=${formatCanonicalParallaxNumber(layer.parallaxFactor)}',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  layer.assetPath,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall,
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        layer.layerKey,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${layer.group}  z=${layer.zOrder}  factor=${formatCanonicalParallaxNumber(layer.parallaxFactor)}',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        layer.assetPath,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -900,5 +922,59 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+}
+
+/// Read-only, workspace-relative asset preview shown alongside each layer.
+///
+/// The thumbnail helps authors match a layer key to its art without making the
+/// layer list another asset-management surface. Invalid or missing paths stay
+/// selectable and are represented by the fallback icon.
+class _ParallaxLayerAssetThumbnail extends StatelessWidget {
+  const _ParallaxLayerAssetThumbnail({
+    required this.workspaceRootPath,
+    required this.layer,
+  });
+
+  static const double _width = 112;
+  static const double _height = 64;
+
+  final String workspaceRootPath;
+  final ParallaxLayerDef layer;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return SizedBox(
+      width: _width,
+      height: _height,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: colorScheme.outlineVariant),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(3),
+          child: Image.file(
+            File(p.normalize(p.join(workspaceRootPath, layer.assetPath))),
+            key: ValueKey<String>(
+              'parallax_layer_asset_preview_${layer.layerKey}',
+            ),
+            fit: BoxFit.contain,
+            filterQuality: FilterQuality.none,
+            errorBuilder: (context, error, stackTrace) => Center(
+              child: Icon(
+                Icons.broken_image_outlined,
+                key: ValueKey<String>(
+                  'parallax_layer_asset_preview_missing_${layer.layerKey}',
+                ),
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

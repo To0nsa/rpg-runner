@@ -37,17 +37,37 @@ void main() {
 
     expect(controller.scene, isA<ParallaxScene>());
     expect((controller.scene as ParallaxScene).activeLevelId, 'field');
+    expect(
+      find.byKey(
+        const ValueKey<String>('parallax_layer_asset_preview_field_bg_10'),
+      ),
+      findsOneWidget,
+    );
 
     await tester.tap(find.byType(DropdownButtonFormField<String>).first);
     await _flush(tester);
     await tester.tap(find.text('forest').last);
     await _flush(tester);
     expect((controller.scene as ParallaxScene).activeLevelId, 'forest');
+    expect(
+      find.byKey(
+        const ValueKey<String>('parallax_layer_asset_preview_forest_bg_10'),
+      ),
+      findsOneWidget,
+    );
 
     await tester.tap(find.text('Create'));
     await _flush(tester);
     var scene = controller.scene as ParallaxScene;
     expect(scene.activeTheme?.layers.length, 2);
+    for (final layer in scene.activeTheme!.layers) {
+      expect(
+        find.byKey(
+          ValueKey<String>('parallax_layer_asset_preview_${layer.layerKey}'),
+        ),
+        findsOneWidget,
+      );
+    }
 
     await tester.enterText(
       _textFieldByLabel('assetPath').first,
