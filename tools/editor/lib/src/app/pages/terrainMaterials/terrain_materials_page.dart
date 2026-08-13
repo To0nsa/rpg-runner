@@ -304,6 +304,7 @@ class _TerrainMaterialsPageState extends State<TerrainMaterialsPage> {
 
   void _handleControllerChanged() {
     if (!mounted) return;
+    if (widget.controller.isLoading) _gridSettingsCache.clear();
     setState(_reconcileSelection);
   }
 

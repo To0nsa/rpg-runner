@@ -7,11 +7,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 import 'package:runner_core/collision/terrain/terrain_numeric.dart';
 import 'package:runner_core/snapshots/staged_terrain_render_snapshot.dart';
+import 'package:terrain_materials/terrain_materials.dart';
 
 import '../game_controller.dart';
 import '../spatial/world_view_transform.dart';
 import '../themes/terrain_material_registry.dart';
-import '../util/math_util.dart';
 import 'staged_terrain_edge_layout.dart';
 import 'staged_terrain_mesh_layout.dart';
 
@@ -233,9 +233,11 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
     if (edge.length <= 0) return;
     final imageWidth = image.width.toDouble();
     final imageHeight = image.height.toDouble();
-    final phase = terrainEdgeRepeatPhase(
-      start: edge.start,
-      angle: edge.angle,
+    final phase = terrainMaterialEdgeRepeatPhase(
+      startX: edge.start.dx,
+      startY: edge.start.dy,
+      tangentX: math.cos(edge.angle),
+      tangentY: math.sin(edge.angle),
       repeatWidth: imageWidth,
     );
 
@@ -324,17 +326,6 @@ Future<ui.Image> extractTerrainRegionImage(
     picture.dispose();
   }
 }
-
-/// World-stable edge repeat phase based on signed tangent projection.
-@visibleForTesting
-double terrainEdgeRepeatPhase({
-  required ui.Offset start,
-  required double angle,
-  required double repeatWidth,
-}) => positiveModDouble(
-  (start.dx * math.cos(angle)) + (start.dy * math.sin(angle)),
-  repeatWidth,
-);
 
 final class _CachedTerrainMesh {
   _CachedTerrainMesh({

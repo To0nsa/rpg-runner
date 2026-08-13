@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rpg_runner/game/components/staged_terrain.dart';
 import 'package:rpg_runner/game/themes/terrain_material_registry.dart';
+import 'package:terrain_materials/terrain_materials.dart';
 
 void main() {
   test('region extraction excludes neighboring atlas pixels', () async {
@@ -51,9 +52,11 @@ void main() {
 
   test('sloped edge phase uses signed tangent projection', () {
     final angle = math.pi / 4;
-    final phase = terrainEdgeRepeatPhase(
-      start: const ui.Offset(16, 16),
-      angle: angle,
+    final phase = terrainMaterialEdgeRepeatPhase(
+      startX: 16,
+      startY: 16,
+      tangentX: math.cos(angle),
+      tangentY: math.sin(angle),
       repeatWidth: 32,
     );
 

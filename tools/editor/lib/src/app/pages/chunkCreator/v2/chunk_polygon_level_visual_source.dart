@@ -194,7 +194,7 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
     final imageWidth = image.width * transform.zoom;
     final imageHeight = image.height * transform.zoom;
     if (imageWidth <= 0 || imageHeight <= 0) return;
-    final xPhase = _positiveModulo(
+    final xPhase = terrainMaterialPositiveModulo(
       transform.origin.dx * (1 - layer.parallaxFactor),
       imageWidth,
     );
@@ -413,9 +413,12 @@ void _drawEdgeImage(
   final region = layer.region;
   final repeatWidth = region.width.toDouble();
   final angle = math.atan2(dy, dx);
-  final phase = _positiveModulo(
-    (start.dx * math.cos(angle)) + (start.dy * math.sin(angle)),
-    repeatWidth,
+  final phase = terrainMaterialEdgeRepeatPhase(
+    startX: start.dx,
+    startY: start.dy,
+    tangentX: math.cos(angle),
+    tangentY: math.sin(angle),
+    repeatWidth: repeatWidth,
   );
   final source = Rect.fromLTWH(
     region.x.toDouble(),
@@ -495,10 +498,8 @@ void _drawTiledRegionInPath(
     region.width.toDouble(),
     region.height.toDouble(),
   );
-  final startX =
-      bounds.left - _positiveModulo(bounds.left, region.width.toDouble());
-  final startY =
-      bounds.top - _positiveModulo(bounds.top, region.height.toDouble());
+  final startX = terrainMaterialTileStart(bounds.left, region.width.toDouble());
+  final startY = terrainMaterialTileStart(bounds.top, region.height.toDouble());
   final paint = Paint()..filterQuality = FilterQuality.none;
   canvas.save();
   canvas.clipPath(path);
@@ -518,8 +519,3 @@ void _drawTiledRegionInPath(
 Paint _fallbackTerrainPaint(String? materialKey) =>
     Paint()
       ..color = Color(0xFF304C34 + ((materialKey?.hashCode ?? 0) & 0x000B0B0B));
-
-double _positiveModulo(double value, double divisor) {
-  final remainder = value % divisor;
-  return remainder < 0 ? remainder + divisor : remainder;
-}

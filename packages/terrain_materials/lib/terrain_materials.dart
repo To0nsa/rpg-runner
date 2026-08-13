@@ -2,3 +2,4 @@
 library;
 
 export 'src/terrain_material_catalog.dart';
+export 'src/terrain_material_render_math.dart';

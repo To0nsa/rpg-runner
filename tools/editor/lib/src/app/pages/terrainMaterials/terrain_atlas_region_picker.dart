@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:terrain_materials/terrain_materials.dart';
 
 import '../../../atlas/atlas_grid_settings_cache.dart';
+import '../../../atlas/atlas_grid.dart';
 import '../../../atlas/atlas_pixel_rect.dart';
 import '../../../workspace/repository_png_catalog.dart';
 import '../shared/atlas_grid_controls.dart';
@@ -175,6 +176,20 @@ class _TerrainAtlasRegionPickerState extends State<_TerrainAtlasRegionPicker> {
                           ),
                         ),
                       ),
+                      if (dimensionsValid && _gridHasNoCompleteCells(image!))
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            'This grid has no complete cells. Manual X/Y/W/H '
+                            'selection remains available.',
+                            key: const ValueKey<String>(
+                              'terrain_atlas_empty_grid',
+                            ),
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                          ),
+                        ),
                     ],
                     const SizedBox(height: 12),
                     AtlasRegionFields(
@@ -287,6 +302,20 @@ class _TerrainAtlasRegionPickerState extends State<_TerrainAtlasRegionPicker> {
     ];
   }
 
+  bool _gridHasNoCompleteCells(RepositoryPngImage image) {
+    final settings = widget.gridSettingsCache.settingsFor(image.relativePath);
+    return AtlasGridGeometry.completeColumnCount(
+              settings: settings,
+              imageWidth: image.width!,
+            ) ==
+            0 ||
+        AtlasGridGeometry.completeRowCount(
+              settings: settings,
+              imageHeight: image.height!,
+            ) ==
+            0;
+  }
+
   void _selectSource(String? path) {
     setState(() {
       _selectedPath = path;
@@ -309,7 +338,7 @@ class _TerrainAtlasRegionPickerState extends State<_TerrainAtlasRegionPicker> {
     );
     setState(() {
       _manualError = result.error;
-      if (result.rect != null) _selection = result.rect;
+      _selection = result.rect;
     });
   }
 

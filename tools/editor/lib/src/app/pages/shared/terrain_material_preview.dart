@@ -184,6 +184,7 @@ class _TerrainComposedSample extends StatelessWidget {
                 region: material.fill,
                 imageCache: imageCache,
                 repeat: _RegionRepeat.both,
+                worldOrigin: Offset(24, edgeY),
               ),
             ),
             _edgeLayer(material.top.base, edgeY: edgeY),
@@ -230,6 +231,7 @@ class _TerrainComposedSample extends StatelessWidget {
           region: layer.region,
           imageCache: imageCache,
           repeat: _RegionRepeat.horizontal,
+          worldOrigin: Offset(24, edgeY - layer.anchorY),
         ),
       );
 
@@ -249,6 +251,7 @@ class _TerrainComposedSample extends StatelessWidget {
         region: cap.region,
         imageCache: imageCache,
         repeat: _RegionRepeat.none,
+        worldOrigin: Offset.zero,
       ),
     );
   }
@@ -260,12 +263,14 @@ class _TerrainRegionImage extends StatefulWidget {
     required this.region,
     required this.imageCache,
     required this.repeat,
+    required this.worldOrigin,
   });
 
   final String workspaceRootPath;
   final TerrainMaterialImageRegion region;
   final EditorUiImageCache imageCache;
   final _RegionRepeat repeat;
+  final Offset worldOrigin;
 
   @override
   State<_TerrainRegionImage> createState() => _TerrainRegionImageState();
@@ -299,6 +304,7 @@ class _TerrainRegionImageState extends State<_TerrainRegionImage> {
             image: _image!,
             region: widget.region,
             repeat: widget.repeat,
+            worldOrigin: widget.worldOrigin,
           ),
         );
 
@@ -323,11 +329,13 @@ class _TerrainRegionPainter extends CustomPainter {
     required this.image,
     required this.region,
     required this.repeat,
+    required this.worldOrigin,
   });
 
   final ui.Image image;
   final TerrainMaterialImageRegion region;
   final _RegionRepeat repeat;
+  final Offset worldOrigin;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -348,8 +356,18 @@ class _TerrainRegionPainter extends CustomPainter {
     final endY = repeat == _RegionRepeat.horizontal
         ? region.height.toDouble()
         : size.height;
-    for (var y = 0.0; y < endY; y += region.height) {
-      for (var x = 0.0; x < size.width; x += region.width) {
+    final startX = -terrainMaterialPositiveModulo(
+      worldOrigin.dx,
+      region.width.toDouble(),
+    );
+    final startY = repeat == _RegionRepeat.horizontal
+        ? 0.0
+        : -terrainMaterialPositiveModulo(
+            worldOrigin.dy,
+            region.height.toDouble(),
+          );
+    for (var y = startY; y < endY; y += region.height) {
+      for (var x = startX; x < size.width; x += region.width) {
         canvas.drawImageRect(
           image,
           source,
@@ -370,7 +388,8 @@ class _TerrainRegionPainter extends CustomPainter {
   bool shouldRepaint(covariant _TerrainRegionPainter oldDelegate) =>
       oldDelegate.image != image ||
       oldDelegate.region != region ||
-      oldDelegate.repeat != repeat;
+      oldDelegate.repeat != repeat ||
+      oldDelegate.worldOrigin != worldOrigin;
 }
 
 enum _RegionRepeat { none, horizontal, both }
