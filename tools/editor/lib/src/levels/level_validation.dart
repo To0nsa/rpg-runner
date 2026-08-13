@@ -1,10 +1,13 @@
 import '../domain/authoring_types.dart';
+import '../parallax/parallax_validation.dart';
 import 'level_domain_models.dart';
 
 List<ValidationIssue> validateLevelDocument(LevelDefsDocument document) {
   final issues = <ValidationIssue>[
     ...document.loadIssues,
     ...document.operationIssues,
+    if (document.parallaxDocument case final parallaxDocument?)
+      ...validateParallaxDocument(parallaxDocument),
   ];
   final sourcePath = document.baseline?.sourcePath ?? levelDefsSourcePath;
   final canonicalLevels = List<LevelDef>.from(document.levels)
@@ -148,7 +151,7 @@ List<ValidationIssue> validateLevelDocument(LevelDefsDocument document) {
         )) {
       issues.add(
         ValidationIssue(
-          severity: ValidationSeverity.warning,
+          severity: ValidationSeverity.error,
           code: 'missing_parallax_theme',
           message:
               'Level "${level.levelId}" references unauthored visualThemeId '

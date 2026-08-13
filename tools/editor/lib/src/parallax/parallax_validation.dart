@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 
 import '../domain/authoring_types.dart';
+import '../domain/authoring_identifiers.dart';
 import '../workspace/editor_workspace.dart';
 import 'parallax_domain_models.dart';
 
@@ -75,6 +76,7 @@ List<ValidationIssue> validateParallaxDocument(ParallaxDefsDocument document) {
   }
 
   final themeIds = <String>{};
+  final themeIdByGeneratedSymbol = <String, String>{};
   final workspace = EditorWorkspace(rootPath: document.workspaceRootPath);
   for (final theme in sortedThemes) {
     if (theme.parallaxThemeId.isEmpty) {
@@ -83,6 +85,19 @@ List<ValidationIssue> validateParallaxDocument(ParallaxDefsDocument document) {
           severity: ValidationSeverity.error,
           code: 'missing_theme_id',
           message: 'A parallax theme is missing parallaxThemeId.',
+          sourcePath: sourcePath,
+        ),
+      );
+    } else if (!stableAuthoringIdentifierPattern.hasMatch(
+      theme.parallaxThemeId,
+    )) {
+      issues.add(
+        ValidationIssue(
+          severity: ValidationSeverity.error,
+          code: 'invalid_parallax_theme_id',
+          message:
+              'parallaxThemeId "${theme.parallaxThemeId}" must match '
+              '${stableAuthoringIdentifierPattern.pattern}.',
           sourcePath: sourcePath,
         ),
       );
@@ -95,6 +110,23 @@ List<ValidationIssue> validateParallaxDocument(ParallaxDefsDocument document) {
           sourcePath: sourcePath,
         ),
       );
+    } else {
+      final symbol = generatedParallaxThemeSymbolSuffix(theme.parallaxThemeId);
+      final previousId = themeIdByGeneratedSymbol[symbol];
+      if (previousId != null && previousId != theme.parallaxThemeId) {
+        issues.add(
+          ValidationIssue(
+            severity: ValidationSeverity.error,
+            code: 'duplicate_generated_theme_symbol',
+            message:
+                'parallaxThemeId "${theme.parallaxThemeId}" and "$previousId" '
+                'both generate Dart symbol suffix "$symbol".',
+            sourcePath: sourcePath,
+          ),
+        );
+      } else {
+        themeIdByGeneratedSymbol[symbol] = theme.parallaxThemeId;
+      }
     }
 
     if (theme.revision <= 0) {

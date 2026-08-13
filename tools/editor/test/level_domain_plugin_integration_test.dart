@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 import 'package:runner_editor/src/domain/authoring_types.dart';
 import 'package:runner_editor/src/levels/level_domain_models.dart';
 import 'package:runner_editor/src/levels/level_domain_plugin.dart';
+import 'package:runner_editor/src/levels/level_theme_save_coordinator.dart';
 import 'package:runner_editor/src/workspace/editor_workspace.dart';
 
 void main() {
@@ -31,7 +32,14 @@ void main() {
           scene.authoredChunkAssemblyGroupCountsByLevelId['forest'],
           <String, int>{'forest': 1},
         );
-        expect(plugin.validate(loaded), isEmpty);
+        final validationIssues = plugin.validate(loaded);
+        expect(
+          validationIssues,
+          isEmpty,
+          reason: validationIssues
+              .map((issue) => '${issue.code}: ${issue.message}')
+              .join('\n'),
+        );
 
         final switched =
             plugin.applyEdit(
@@ -89,7 +97,7 @@ void main() {
           document: edited,
         );
         expect(pending.hasChanges, isTrue);
-        expect(pending.changedItemIds, contains('field'));
+        expect(pending.changedItemIds, contains('level:field'));
         expect(pending.fileDiffs.single.relativePath, levelDefsSourcePath);
 
         final issueCodes = plugin
@@ -149,7 +157,7 @@ void main() {
 
       await expectLater(
         plugin.exportToRepo(workspace, document: edited),
-        throwsA(isA<StateError>()),
+        throwsA(isA<LevelThemeSaveException>()),
       );
     } finally {
       fixtureRoot.deleteSync(recursive: true);
@@ -203,12 +211,14 @@ Future<Directory> _createFixtureWorkspace() async {
     {
       "parallaxThemeId": "field",
       "revision": 1,
-      "layers": []
+      "layers": [
+      ]
     },
     {
       "parallaxThemeId": "forest",
       "revision": 1,
-      "layers": []
+      "layers": [
+      ]
     }
   ]
 }

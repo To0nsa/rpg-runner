@@ -1,15 +1,40 @@
+import '../domain/authoring_identifiers.dart';
 import '../domain/authoring_types.dart';
+import '../parallax/parallax_domain_models.dart';
 import '../workspace/editor_workspace.dart';
 import 'level_domain_models.dart';
 import 'level_store.dart';
+import 'level_theme_save_coordinator.dart';
 import 'level_validation.dart';
 
+const String levelThemeModeCreate = 'create';
+const String levelThemeModeExisting = 'existing';
+
+/// Level export result with structured post-commit cleanup state.
+final class LevelThemeExportResult extends ExportResult {
+  LevelThemeExportResult({
+    required super.applied,
+    super.artifacts,
+    this.cleanupRequiredPaths = const <String>[],
+  });
+
+  final List<String> cleanupRequiredPaths;
+
+  bool get cleanupRequired => cleanupRequiredPaths.isNotEmpty;
+}
+
 class LevelDomainPlugin implements AuthoringDomainPlugin {
-  LevelDomainPlugin({LevelStore store = const LevelStore()}) : _store = store;
+  LevelDomainPlugin({
+    LevelStore store = const LevelStore(),
+    LevelThemeSaveCoordinator? saveCoordinator,
+  }) : _store = store,
+       _saveCoordinator =
+           saveCoordinator ?? LevelThemeSaveCoordinator(levelStore: store);
 
   static const String pluginId = 'levels';
 
   final LevelStore _store;
+  final LevelThemeSaveCoordinator _saveCoordinator;
   String? _preferredActiveLevelId;
 
   @override
@@ -68,6 +93,8 @@ class LevelDomainPlugin implements AuthoringDomainPlugin {
         return _duplicateLevel(levelDocument, command.payload);
       case 'update_level':
         return _updateLevel(levelDocument, command.payload);
+      case 'create_and_assign_theme':
+        return _createAndAssignTheme(levelDocument, command.payload);
       case 'deprecate_level':
         return _setLevelStatus(
           levelDocument,
@@ -101,9 +128,12 @@ class LevelDomainPlugin implements AuthoringDomainPlugin {
       );
     }
 
-    final savePlan = _store.buildSavePlan(workspace, document: levelDocument);
+    final savePlan = _saveCoordinator.buildSavePlan(
+      workspace,
+      document: levelDocument,
+    );
     if (!savePlan.hasChanges) {
-      return ExportResult(
+      return LevelThemeExportResult(
         applied: false,
         artifacts: const <ExportArtifact>[
           ExportArtifact(
@@ -115,9 +145,14 @@ class LevelDomainPlugin implements AuthoringDomainPlugin {
       );
     }
 
-    await _store.save(workspace, document: levelDocument, savePlan: savePlan);
-    return ExportResult(
+    final applyResult = _saveCoordinator.apply(
+      workspace,
+      document: levelDocument,
+      savePlan: savePlan,
+    );
+    return LevelThemeExportResult(
       applied: true,
+      cleanupRequiredPaths: applyResult.cleanupRequiredPaths,
       artifacts: <ExportArtifact>[
         ExportArtifact(
           title: 'level_summary.md',
@@ -133,12 +168,15 @@ class LevelDomainPlugin implements AuthoringDomainPlugin {
     required AuthoringDocument document,
   }) {
     final levelDocument = _asLevelDocument(document);
-    final savePlan = _store.buildSavePlan(workspace, document: levelDocument);
+    final savePlan = _saveCoordinator.buildSavePlan(
+      workspace,
+      document: levelDocument,
+    );
     if (!savePlan.hasChanges) {
       return PendingChanges.empty;
     }
     return PendingChanges(
-      changedItemIds: savePlan.changedLevelIds,
+      changedItemIds: savePlan.changedItemIds,
       fileDiffs: savePlan.writes
           .map(
             (write) => PendingFileDiff(
@@ -169,7 +207,7 @@ class LevelDomainPlugin implements AuthoringDomainPlugin {
       return document;
     }
     _preferredActiveLevelId = levelId;
-    return document.copyWith(activeLevelId: levelId);
+    return _withCandidateState(document, activeLevelId: levelId);
   }
 
   LevelDefsDocument _createLevel(
@@ -200,6 +238,48 @@ class LevelDomainPlugin implements AuthoringDomainPlugin {
         message: 'Cannot create level. levelId "$levelId" already exists.',
       );
     }
+    final themeMode = _normalizedString(payload['themeMode']);
+    if (themeMode != levelThemeModeCreate &&
+        themeMode != levelThemeModeExisting) {
+      return _withOperationIssue(
+        document,
+        code: 'create_level_missing_theme_mode',
+        message:
+            'Choose whether the new level creates a visual theme or reuses an '
+            'existing theme.',
+      );
+    }
+    final visualThemeId = _normalizedString(payload['visualThemeId']);
+    if (visualThemeId.isEmpty) {
+      return _withOperationIssue(
+        document,
+        code: 'create_level_missing_theme_id',
+        message: 'Create level requires a non-empty visual theme ID.',
+      );
+    }
+    if (!stableLevelIdentifierPattern.hasMatch(visualThemeId)) {
+      return _withOperationIssue(
+        document,
+        code: 'create_level_invalid_theme_id',
+        message:
+            'visualThemeId "$visualThemeId" must match '
+            '${stableLevelIdentifierPattern.pattern}.',
+      );
+    }
+    if (themeMode == levelThemeModeExisting &&
+        !_themeExists(document, visualThemeId)) {
+      return _withOperationIssue(
+        document,
+        code: 'create_level_unknown_existing_theme',
+        message:
+            'Cannot reuse unknown visual theme "$visualThemeId". Choose an '
+            'authored theme or create a new one.',
+      );
+    }
+    if (themeMode == levelThemeModeCreate) {
+      final issue = _newThemeIssue(document, visualThemeId);
+      if (issue != null) return issue;
+    }
 
     final nextLevel = LevelDef(
       levelId: levelId,
@@ -208,10 +288,7 @@ class LevelDomainPlugin implements AuthoringDomainPlugin {
         payload['displayName'],
         fallback: titleCaseLevelId(levelId),
       ),
-      visualThemeId: _normalizedString(
-        payload['visualThemeId'],
-        fallback: levelId,
-      ),
+      visualThemeId: visualThemeId,
       chunkThemeGroups: const <String>[defaultLevelChunkThemeGroupId],
       cameraCenterY: _doubleOrDefault(
         payload['cameraCenterY'],
@@ -257,10 +334,29 @@ class LevelDomainPlugin implements AuthoringDomainPlugin {
     final nextLevels = List<LevelDef>.from(document.levels)
       ..add(nextLevel)
       ..sort(compareLevelDefsCanonical);
+    var nextThemes = document.parallaxDocument?.themes;
+    var nextCreatedThemeIds = document.sessionCreatedParallaxThemeIds;
+    if (themeMode == levelThemeModeCreate) {
+      nextThemes = <ParallaxThemeDef>[
+        ...document.parallaxDocument!.themes,
+        ParallaxThemeDef(
+          parallaxThemeId: visualThemeId,
+          revision: 1,
+          layers: const <ParallaxLayerDef>[],
+        ),
+      ]..sort(compareParallaxThemesDeterministic);
+      nextCreatedThemeIds = <String>{
+        ...document.sessionCreatedParallaxThemeIds,
+        visualThemeId,
+      };
+    }
     _preferredActiveLevelId = levelId;
-    return document.copyWith(
+    return _withCandidateState(
+      document,
       levels: List<LevelDef>.unmodifiable(nextLevels),
       activeLevelId: levelId,
+      themes: nextThemes,
+      sessionCreatedThemeIds: nextCreatedThemeIds,
     );
   }
 
@@ -320,7 +416,8 @@ class LevelDomainPlugin implements AuthoringDomainPlugin {
       ..add(duplicate)
       ..sort(compareLevelDefsCanonical);
     _preferredActiveLevelId = requestedLevelId;
-    return document.copyWith(
+    return _withCandidateState(
+      document,
       levels: List<LevelDef>.unmodifiable(nextLevels),
       activeLevelId: requestedLevelId,
     );
@@ -341,16 +438,27 @@ class LevelDomainPlugin implements AuthoringDomainPlugin {
       );
     }
 
+    final requestedVisualThemeId = _normalizedString(
+      payload['visualThemeId'],
+      fallback: source.visualThemeId,
+    );
+    if (!_themeExists(document, requestedVisualThemeId)) {
+      return _withOperationIssue(
+        document,
+        code: 'update_level_unknown_theme',
+        message:
+            'Cannot assign unknown visual theme "$requestedVisualThemeId". '
+            'Choose an authored theme or create and assign a new one.',
+      );
+    }
+
     final nextLevel = source
         .copyWith(
           displayName: _normalizedString(
             payload['displayName'],
             fallback: source.displayName,
           ),
-          visualThemeId: _normalizedString(
-            payload['visualThemeId'],
-            fallback: source.visualThemeId,
-          ),
+          visualThemeId: requestedVisualThemeId,
           chunkThemeGroups: payload.containsKey('chunkThemeGroups')
               ? _parseChunkThemeGroups(
                   payload['chunkThemeGroups'],
@@ -416,6 +524,60 @@ class LevelDomainPlugin implements AuthoringDomainPlugin {
     return _replaceLevel(document, levelId: levelId, nextLevel: bumped);
   }
 
+  LevelDefsDocument _createAndAssignTheme(
+    LevelDefsDocument document,
+    Map<String, Object?> payload,
+  ) {
+    document = _clearOperationIssuesIfNeeded(document);
+    final levelId = _normalizedString(payload['levelId']);
+    final source = findLevelDefById(document.levels, levelId);
+    if (source == null) {
+      return _withOperationIssue(
+        document,
+        code: 'create_assign_theme_missing_level',
+        message: 'Cannot assign a theme to unknown levelId "$levelId".',
+      );
+    }
+    final visualThemeId = _normalizedString(payload['visualThemeId']);
+    if (visualThemeId.isEmpty ||
+        !stableLevelIdentifierPattern.hasMatch(visualThemeId)) {
+      return _withOperationIssue(
+        document,
+        code: 'create_assign_theme_invalid_id',
+        message:
+            'New visual theme ID must match '
+            '${stableLevelIdentifierPattern.pattern}.',
+      );
+    }
+    final issue = _newThemeIssue(document, visualThemeId);
+    if (issue != null) return issue;
+
+    final nextLevel = _bumpRevision(
+      source.copyWith(visualThemeId: visualThemeId),
+      fromLevel: source,
+    );
+    final nextLevels = document.levels
+        .map((level) => level.levelId == levelId ? nextLevel : level)
+        .toList(growable: false);
+    final nextThemes = <ParallaxThemeDef>[
+      ...document.parallaxDocument!.themes,
+      ParallaxThemeDef(
+        parallaxThemeId: visualThemeId,
+        revision: 1,
+        layers: const <ParallaxLayerDef>[],
+      ),
+    ]..sort(compareParallaxThemesDeterministic);
+    return _withCandidateState(
+      document,
+      levels: nextLevels,
+      themes: nextThemes,
+      sessionCreatedThemeIds: <String>{
+        ...document.sessionCreatedParallaxThemeIds,
+        visualThemeId,
+      },
+    );
+  }
+
   LevelDefsDocument _setLevelStatus(
     LevelDefsDocument document,
     Map<String, Object?> payload, {
@@ -451,7 +613,131 @@ class LevelDomainPlugin implements AuthoringDomainPlugin {
             .map((level) => level.levelId == levelId ? nextLevel : level)
             .toList(growable: false)
           ..sort(compareLevelDefsCanonical);
-    return document.copyWith(levels: List<LevelDef>.unmodifiable(nextLevels));
+    return _withCandidateState(
+      document,
+      levels: List<LevelDef>.unmodifiable(nextLevels),
+    );
+  }
+
+  LevelDefsDocument? _newThemeIssue(
+    LevelDefsDocument document,
+    String visualThemeId,
+  ) {
+    final parallaxDocument = document.parallaxDocument;
+    if (parallaxDocument == null) {
+      return _withOperationIssue(
+        document,
+        code: 'create_theme_source_unavailable',
+        message:
+            'Parallax source is unavailable. Reload a valid workspace before '
+            'creating a visual theme.',
+      );
+    }
+    if (parallaxDocument.loadIssues.any(
+      (issue) => issue.severity == ValidationSeverity.error,
+    )) {
+      return _withOperationIssue(
+        document,
+        code: 'create_theme_source_invalid',
+        message:
+            'Parallax source has blocking validation issues. Resolve them '
+            'before creating a visual theme.',
+      );
+    }
+    if (findParallaxThemeById(parallaxDocument.themes, visualThemeId) != null) {
+      return _withOperationIssue(
+        document,
+        code: 'create_theme_id_collision',
+        message:
+            'Visual theme "$visualThemeId" already exists. Choose Use existing '
+            'theme to reuse it.',
+      );
+    }
+    final symbol = generatedParallaxThemeSymbolSuffix(visualThemeId);
+    for (final theme in parallaxDocument.themes) {
+      if (generatedParallaxThemeSymbolSuffix(theme.parallaxThemeId) == symbol) {
+        return _withOperationIssue(
+          document,
+          code: 'create_theme_generated_symbol_collision',
+          message:
+              'Visual theme "$visualThemeId" would generate the same Dart '
+              'symbol as "${theme.parallaxThemeId}".',
+        );
+      }
+    }
+    return null;
+  }
+
+  bool _themeExists(LevelDefsDocument document, String visualThemeId) {
+    final parallaxDocument = document.parallaxDocument;
+    if (parallaxDocument != null) {
+      return findParallaxThemeById(parallaxDocument.themes, visualThemeId) !=
+          null;
+    }
+    return document.availableParallaxVisualThemeIds.contains(visualThemeId);
+  }
+
+  LevelDefsDocument _withCandidateState(
+    LevelDefsDocument document, {
+    List<LevelDef>? levels,
+    String? activeLevelId,
+    List<ParallaxThemeDef>? themes,
+    Set<String>? sessionCreatedThemeIds,
+  }) {
+    final nextLevels = List<LevelDef>.from(levels ?? document.levels)
+      ..sort(compareLevelDefsCanonical);
+    final nextActiveLevelId = activeLevelId ?? document.activeLevelId;
+    final parallaxDocument = document.parallaxDocument;
+    if (parallaxDocument == null) {
+      return document.copyWith(
+        levels: List<LevelDef>.unmodifiable(nextLevels),
+        activeLevelId: nextActiveLevelId,
+      );
+    }
+
+    final usedThemeIds = nextLevels.map((level) => level.visualThemeId).toSet();
+    final requestedCreatedIds = Set<String>.from(
+      sessionCreatedThemeIds ?? document.sessionCreatedParallaxThemeIds,
+    );
+    final retainedCreatedIds = requestedCreatedIds.intersection(usedThemeIds);
+    final nextThemes =
+        List<ParallaxThemeDef>.from(themes ?? parallaxDocument.themes)
+          ..removeWhere(
+            (theme) =>
+                requestedCreatedIds.contains(theme.parallaxThemeId) &&
+                !retainedCreatedIds.contains(theme.parallaxThemeId),
+          );
+    nextThemes.sort(compareParallaxThemesDeterministic);
+    final availableThemeIds =
+        nextThemes.map((theme) => theme.parallaxThemeId).toList(growable: false)
+          ..sort();
+    final levelIds =
+        nextLevels.map((level) => level.levelId).toList(growable: false)
+          ..sort();
+    final themeIdByLevelId = <String, String>{
+      for (final level in nextLevels) level.levelId: level.visualThemeId,
+    };
+    final nextParallaxDocument = parallaxDocument.copyWith(
+      themes: List<ParallaxThemeDef>.unmodifiable(nextThemes),
+      availableLevelIds: List<String>.unmodifiable(levelIds),
+      activeLevelId: nextActiveLevelId,
+      levelOptionSource: 'level_workflow_candidate',
+      parallaxThemeIdByLevelId: Map<String, String>.unmodifiable(
+        themeIdByLevelId,
+      ),
+    );
+    return document.copyWith(
+      levels: List<LevelDef>.unmodifiable(nextLevels),
+      activeLevelId: nextActiveLevelId,
+      availableParallaxVisualThemeIds: List<String>.unmodifiable(
+        availableThemeIds,
+      ),
+      parallaxThemeSourceAvailable: parallaxDocument.baseline != null,
+      parallaxDocument: nextParallaxDocument,
+      sessionCreatedParallaxThemeIds: Set<String>.unmodifiable(
+        retainedCreatedIds,
+      ),
+    );
   }
 
   LevelDef? _referenceLevel(LevelDefsDocument document) {
@@ -467,15 +753,15 @@ class LevelDomainPlugin implements AuthoringDomainPlugin {
     return ordered.first;
   }
 
-  String _buildSummary(LevelSavePlan savePlan) {
+  String _buildSummary(LevelThemeSavePlan savePlan) {
     final lines = <String>[
-      '# Level Export',
+      '# Level And Visual Theme Export',
       '',
-      'changedLevels: ${savePlan.changedLevelIds.length}',
+      'changedItems: ${savePlan.changedItemIds.length}',
       'changedFiles: ${savePlan.writes.length}',
       '',
-      '## Levels',
-      ...savePlan.changedLevelIds.map((levelId) => '- $levelId'),
+      '## Items',
+      ...savePlan.changedItemIds.map((itemId) => '- $itemId'),
       '',
       '## Files',
       ...savePlan.writes.map((write) => '- ${write.relativePath}'),
@@ -483,7 +769,7 @@ class LevelDomainPlugin implements AuthoringDomainPlugin {
     return lines.join('\n');
   }
 
-  String _buildUnifiedDiff(LevelFileWrite write) {
+  String _buildUnifiedDiff(LevelThemeFileWrite write) {
     final path = write.relativePath.replaceAll('\\', '/');
     final beforeLines = _splitLines(write.beforeContent ?? '');
     final afterLines = _splitLines(write.afterContent);
@@ -628,7 +914,10 @@ double _doubleOrDefault(Object? raw, {required double fallback}) {
   return fallback;
 }
 
-List<String> _parseChunkThemeGroups(Object? raw, {required List<String> fallback}) {
+List<String> _parseChunkThemeGroups(
+  Object? raw, {
+  required List<String> fallback,
+}) {
   if (raw is List) {
     final parsed = <String>[];
     for (final entry in raw) {

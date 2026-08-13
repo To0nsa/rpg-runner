@@ -131,10 +131,12 @@ class ParallaxSourceBaseline {
   const ParallaxSourceBaseline({
     required this.sourcePath,
     required this.fingerprint,
+    required this.sourceContent,
   });
 
   final String sourcePath;
   final String fingerprint;
+  final String sourceContent;
 }
 
 class ParallaxDefsDocument extends AuthoringDocument {
@@ -146,6 +148,7 @@ class ParallaxDefsDocument extends AuthoringDocument {
     required this.activeLevelId,
     required this.levelOptionSource,
     required this.parallaxThemeIdByLevelId,
+    this.baselineThemes = const <ParallaxThemeDef>[],
     this.loadIssues = const <ValidationIssue>[],
     this.operationIssues = const <ValidationIssue>[],
   });
@@ -157,6 +160,7 @@ class ParallaxDefsDocument extends AuthoringDocument {
   final String? activeLevelId;
   final String levelOptionSource;
   final Map<String, String> parallaxThemeIdByLevelId;
+  final List<ParallaxThemeDef> baselineThemes;
   final List<ValidationIssue> loadIssues;
   final List<ValidationIssue> operationIssues;
 
@@ -170,6 +174,7 @@ class ParallaxDefsDocument extends AuthoringDocument {
     bool clearActiveLevelId = false,
     String? levelOptionSource,
     Map<String, String>? parallaxThemeIdByLevelId,
+    List<ParallaxThemeDef>? baselineThemes,
     List<ValidationIssue>? loadIssues,
     List<ValidationIssue>? operationIssues,
     bool clearOperationIssues = false,
@@ -185,6 +190,7 @@ class ParallaxDefsDocument extends AuthoringDocument {
       levelOptionSource: levelOptionSource ?? this.levelOptionSource,
       parallaxThemeIdByLevelId:
           parallaxThemeIdByLevelId ?? this.parallaxThemeIdByLevelId,
+      baselineThemes: baselineThemes ?? this.baselineThemes,
       loadIssues: loadIssues ?? this.loadIssues,
       operationIssues: clearOperationIssues
           ? const <ValidationIssue>[]

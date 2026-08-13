@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 
+import '../domain/authoring_identifiers.dart';
 import '../domain/authoring_types.dart';
+import '../parallax/parallax_domain_models.dart';
 
 const int levelDefsSchemaVersion = 1;
 const String levelDefsSourcePath = 'assets/authoring/level/level_defs.json';
@@ -18,7 +20,7 @@ const int defaultEasyPatternChunks = 0;
 const int defaultNormalPatternChunks = 0;
 const int defaultNoEnemyChunks = 3;
 
-final RegExp stableLevelIdentifierPattern = RegExp(r'^[a-z][a-z0-9_]*$');
+final RegExp stableLevelIdentifierPattern = stableAuthoringIdentifierPattern;
 
 @immutable
 class LevelAssemblySegmentDef {
@@ -213,10 +215,12 @@ class LevelSourceBaseline {
   const LevelSourceBaseline({
     required this.sourcePath,
     required this.fingerprint,
+    required this.sourceContent,
   });
 
   final String sourcePath;
   final String fingerprint;
+  final String sourceContent;
 }
 
 class LevelDefsDocument extends AuthoringDocument {
@@ -231,6 +235,8 @@ class LevelDefsDocument extends AuthoringDocument {
     required this.authoredChunkCountsByLevelId,
     required this.authoredChunkAssemblyGroupCountsByLevelId,
     required this.chunkCountSourceAvailable,
+    this.parallaxDocument,
+    this.sessionCreatedParallaxThemeIds = const <String>{},
     this.loadIssues = const <ValidationIssue>[],
     this.operationIssues = const <ValidationIssue>[],
   });
@@ -245,6 +251,8 @@ class LevelDefsDocument extends AuthoringDocument {
   final Map<String, int> authoredChunkCountsByLevelId;
   final Map<String, Map<String, int>> authoredChunkAssemblyGroupCountsByLevelId;
   final bool chunkCountSourceAvailable;
+  final ParallaxDefsDocument? parallaxDocument;
+  final Set<String> sessionCreatedParallaxThemeIds;
   final List<ValidationIssue> loadIssues;
   final List<ValidationIssue> operationIssues;
 
@@ -261,6 +269,9 @@ class LevelDefsDocument extends AuthoringDocument {
     Map<String, int>? authoredChunkCountsByLevelId,
     Map<String, Map<String, int>>? authoredChunkAssemblyGroupCountsByLevelId,
     bool? chunkCountSourceAvailable,
+    ParallaxDefsDocument? parallaxDocument,
+    bool clearParallaxDocument = false,
+    Set<String>? sessionCreatedParallaxThemeIds,
     List<ValidationIssue>? loadIssues,
     List<ValidationIssue>? operationIssues,
     bool clearOperationIssues = false,
@@ -285,6 +296,11 @@ class LevelDefsDocument extends AuthoringDocument {
           this.authoredChunkAssemblyGroupCountsByLevelId,
       chunkCountSourceAvailable:
           chunkCountSourceAvailable ?? this.chunkCountSourceAvailable,
+      parallaxDocument: clearParallaxDocument
+          ? null
+          : (parallaxDocument ?? this.parallaxDocument),
+      sessionCreatedParallaxThemeIds:
+          sessionCreatedParallaxThemeIds ?? this.sessionCreatedParallaxThemeIds,
       loadIssues: loadIssues ?? this.loadIssues,
       operationIssues: clearOperationIssues
           ? const <ValidationIssue>[]
@@ -531,13 +547,15 @@ List<String> normalizeLevelChunkThemeGroups(Iterable<String> rawGroups) {
     final withoutDefault = sorted
         .where((groupId) => groupId != defaultLevelChunkThemeGroupId)
         .toList(growable: false);
-    return List<String>.unmodifiable(
-      <String>[defaultLevelChunkThemeGroupId, ...withoutDefault],
-    );
+    return List<String>.unmodifiable(<String>[
+      defaultLevelChunkThemeGroupId,
+      ...withoutDefault,
+    ]);
   }
-  return List<String>.unmodifiable(
-    <String>[defaultLevelChunkThemeGroupId, ...sorted],
-  );
+  return List<String>.unmodifiable(<String>[
+    defaultLevelChunkThemeGroupId,
+    ...sorted,
+  ]);
 }
 
 LevelAssemblySegmentDef buildSuggestedLevelAssemblySegment({

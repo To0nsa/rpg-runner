@@ -11,7 +11,10 @@ class LevelStore {
   static const String defsPath = levelDefsSourcePath;
   static const String chunksDirectoryPath = 'assets/authoring/level/chunks';
 
-  const LevelStore();
+  const LevelStore({ParallaxStore parallaxStore = const ParallaxStore()})
+    : _parallaxStore = parallaxStore;
+
+  final ParallaxStore _parallaxStore;
 
   Future<LevelDefsDocument> load(
     EditorWorkspace workspace, {
@@ -28,6 +31,7 @@ class LevelStore {
         baseline = LevelSourceBaseline(
           sourcePath: defsPath,
           fingerprint: WorkspaceFileIo.fingerprint(raw),
+          sourceContent: raw,
         );
       } on Object catch (error) {
         loadIssues.add(
@@ -76,7 +80,15 @@ class LevelStore {
       sceneOrderedLevels,
       preferredActiveLevelId,
     );
-    final parallaxThemeSnapshot = _loadParallaxVisualThemeIds(workspace);
+    final parallaxDocument = await _parallaxStore.load(
+      workspace,
+      preferredActiveLevelId: activeLevelId,
+    );
+    final availableParallaxVisualThemeIds =
+        parallaxDocument.themes
+            .map((theme) => theme.parallaxThemeId)
+            .toList(growable: false)
+          ..sort();
     final chunkCountSnapshot = _loadAuthoredChunkCounts(workspace);
 
     return LevelDefsDocument(
@@ -86,9 +98,9 @@ class LevelStore {
       baselineLevels: List<LevelDef>.unmodifiable(canonicalLevels),
       activeLevelId: activeLevelId,
       availableParallaxVisualThemeIds: List<String>.unmodifiable(
-        parallaxThemeSnapshot.visualThemeIds,
+        availableParallaxVisualThemeIds,
       ),
-      parallaxThemeSourceAvailable: parallaxThemeSnapshot.sourceAvailable,
+      parallaxThemeSourceAvailable: parallaxDocument.baseline != null,
       authoredChunkCountsByLevelId: Map<String, int>.unmodifiable(
         chunkCountSnapshot.countsByLevelId,
       ),
@@ -100,6 +112,7 @@ class LevelStore {
             ),
           ),
       chunkCountSourceAvailable: chunkCountSnapshot.sourceAvailable,
+      parallaxDocument: parallaxDocument,
       loadIssues: List<ValidationIssue>.unmodifiable(loadIssues),
     );
   }
@@ -108,8 +121,7 @@ class LevelStore {
     EditorWorkspace workspace, {
     required LevelDefsDocument document,
   }) {
-    final file = File(workspace.resolve(defsPath));
-    final beforeContent = file.existsSync() ? file.readAsStringSync() : null;
+    final beforeContent = document.baseline?.sourceContent;
     final afterContent = renderCanonicalLevelDefsJson(document.levels);
     if (_normalizeNewlines(beforeContent ?? '') == afterContent) {
       return const LevelSavePlan(
@@ -138,11 +150,43 @@ class LevelStore {
     if (savePlan.writes.isEmpty) {
       return;
     }
-    _verifyNoSourceDrift(workspace, document: document);
+    verifySourceBaseline(workspace, document: document);
     for (final write in savePlan.writes) {
       final file = File(workspace.resolve(write.relativePath));
       WorkspaceFileIo.atomicWrite(file, write.afterContent);
     }
+  }
+
+  /// Reparses an installed source and rejects parse or canonical-form drift.
+  ///
+  /// Compound transactions use this while their backups still exist so a
+  /// malformed replacement can be rolled back without duplicating this
+  /// store's codec in the transaction coordinator.
+  List<LevelDef> parseCanonicalSource(
+    String raw, {
+    String sourcePath = defsPath,
+  }) {
+    final issues = <ValidationIssue>[];
+    final levels = _parseRoot(raw, sourcePath: sourcePath, issues: issues);
+    if (_normalizeNewlines(raw) != renderCanonicalLevelDefsJson(levels)) {
+      issues.add(
+        ValidationIssue(
+          severity: ValidationSeverity.error,
+          code: 'non_canonical_level_defs',
+          message: '$sourcePath is not canonical.',
+          sourcePath: sourcePath,
+        ),
+      );
+    }
+    if (issues.any((issue) => issue.severity == ValidationSeverity.error)) {
+      throw StateError(
+        'Installed Level source failed validation: '
+        '${issues.map((issue) => issue.code).join(', ')}.',
+      );
+    }
+    final canonical = List<LevelDef>.from(levels)
+      ..sort(compareLevelDefsCanonical);
+    return List<LevelDef>.unmodifiable(canonical);
   }
 
   List<LevelDef> _parseRoot(
@@ -382,47 +426,6 @@ class LevelStore {
     ).normalized();
   }
 
-  _ParallaxThemeSnapshot _loadParallaxVisualThemeIds(
-    EditorWorkspace workspace,
-  ) {
-    final file = File(workspace.resolve(ParallaxStore.defsPath));
-    if (!file.existsSync()) {
-      return const _ParallaxThemeSnapshot(
-        visualThemeIds: <String>[],
-        sourceAvailable: false,
-      );
-    }
-    final map = _parseJsonMap(file.readAsStringSync());
-    if (map == null) {
-      return const _ParallaxThemeSnapshot(
-        visualThemeIds: <String>[],
-        sourceAvailable: false,
-      );
-    }
-    final rawThemes = map['themes'];
-    if (rawThemes is! List<Object?>) {
-      return const _ParallaxThemeSnapshot(
-        visualThemeIds: <String>[],
-        sourceAvailable: false,
-      );
-    }
-    final visualThemeIds = <String>{};
-    for (final rawTheme in rawThemes) {
-      if (rawTheme is! Map<String, Object?>) {
-        continue;
-      }
-      final visualThemeId = _normalizedString(rawTheme['parallaxThemeId']);
-      if (visualThemeId.isNotEmpty) {
-        visualThemeIds.add(visualThemeId);
-      }
-    }
-    final sortedVisualThemeIds = visualThemeIds.toList(growable: false)..sort();
-    return _ParallaxThemeSnapshot(
-      visualThemeIds: List<String>.unmodifiable(sortedVisualThemeIds),
-      sourceAvailable: true,
-    );
-  }
-
   _ChunkCountSnapshot _loadAuthoredChunkCounts(EditorWorkspace workspace) {
     final chunkDirectory = Directory(workspace.resolve(chunksDirectoryPath));
     if (!chunkDirectory.existsSync()) {
@@ -490,7 +493,8 @@ class LevelStore {
     );
   }
 
-  void _verifyNoSourceDrift(
+  /// Rejects export when the loaded Level source is no longer installed.
+  void verifySourceBaseline(
     EditorWorkspace workspace, {
     required LevelDefsDocument document,
   }) {
@@ -536,16 +540,6 @@ class LevelFileWrite {
   final String relativePath;
   final String? beforeContent;
   final String afterContent;
-}
-
-class _ParallaxThemeSnapshot {
-  const _ParallaxThemeSnapshot({
-    required this.visualThemeIds,
-    required this.sourceAvailable,
-  });
-
-  final List<String> visualThemeIds;
-  final bool sourceAvailable;
 }
 
 class _ChunkCountSnapshot {

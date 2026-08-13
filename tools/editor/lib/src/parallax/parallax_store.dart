@@ -27,6 +27,7 @@ class ParallaxStore {
         baseline = ParallaxSourceBaseline(
           sourcePath: defsPath,
           fingerprint: WorkspaceFileIo.fingerprint(raw),
+          sourceContent: raw,
         );
       } on Object catch (error) {
         loadIssues.add(
@@ -87,6 +88,7 @@ class ParallaxStore {
       activeLevelId: activeLevelId,
       levelOptionSource: levelOptions.source,
       parallaxThemeIdByLevelId: parallaxThemeIdByLevelId,
+      baselineThemes: List<ParallaxThemeDef>.unmodifiable(sortedThemes),
       loadIssues: List<ValidationIssue>.unmodifiable(loadIssues),
     );
   }
@@ -95,8 +97,7 @@ class ParallaxStore {
     EditorWorkspace workspace, {
     required ParallaxDefsDocument document,
   }) {
-    final file = File(workspace.resolve(defsPath));
-    final beforeContent = file.existsSync() ? file.readAsStringSync() : null;
+    final beforeContent = document.baseline?.sourceContent;
     final afterContent = renderCanonicalParallaxDefsJson(document.themes);
     if (_normalizeNewlines(beforeContent ?? '') == afterContent) {
       return const ParallaxSavePlan(
@@ -106,10 +107,7 @@ class ParallaxStore {
     }
 
     return ParallaxSavePlan(
-      changedParallaxThemeIds: document.themes
-          .map((theme) => theme.parallaxThemeId)
-          .where((parallaxThemeId) => parallaxThemeId.isNotEmpty)
-          .toList(growable: false),
+      changedParallaxThemeIds: _computeChangedParallaxThemeIds(document),
       writes: <ParallaxFileWrite>[
         ParallaxFileWrite(
           relativePath: defsPath,
@@ -128,11 +126,43 @@ class ParallaxStore {
     if (savePlan.writes.isEmpty) {
       return;
     }
-    _verifyNoSourceDrift(workspace, document: document);
+    verifySourceBaseline(workspace, document: document);
     for (final write in savePlan.writes) {
       final file = File(workspace.resolve(write.relativePath));
       WorkspaceFileIo.atomicWrite(file, write.afterContent);
     }
+  }
+
+  /// Reparses an installed source and rejects parse or canonical-form drift.
+  ///
+  /// Compound transactions use this while their backups still exist so a
+  /// malformed replacement can be rolled back without duplicating this
+  /// store's codec in the transaction coordinator.
+  List<ParallaxThemeDef> parseCanonicalSource(
+    String raw, {
+    String sourcePath = defsPath,
+  }) {
+    final issues = <ValidationIssue>[];
+    final themes = _parseRoot(raw, sourcePath: sourcePath, issues: issues);
+    if (_normalizeNewlines(raw) != renderCanonicalParallaxDefsJson(themes)) {
+      issues.add(
+        ValidationIssue(
+          severity: ValidationSeverity.error,
+          code: 'non_canonical_parallax_defs',
+          message: '$sourcePath is not canonical.',
+          sourcePath: sourcePath,
+        ),
+      );
+    }
+    if (issues.any((issue) => issue.severity == ValidationSeverity.error)) {
+      throw StateError(
+        'Installed Parallax source failed validation: '
+        '${issues.map((issue) => issue.code).join(', ')}.',
+      );
+    }
+    final canonical = List<ParallaxThemeDef>.from(themes)
+      ..sort(compareParallaxThemesDeterministic);
+    return List<ParallaxThemeDef>.unmodifiable(canonical);
   }
 
   List<ParallaxThemeDef> _parseRoot(
@@ -466,7 +496,8 @@ class ParallaxStore {
     return null;
   }
 
-  void _verifyNoSourceDrift(
+  /// Rejects export when the loaded Parallax source is no longer installed.
+  void verifySourceBaseline(
     EditorWorkspace workspace, {
     required ParallaxDefsDocument document,
   }) {
@@ -519,4 +550,24 @@ class ParallaxFileWrite {
 
 String _normalizeNewlines(String raw) {
   return raw.replaceAll('\r\n', '\n');
+}
+
+List<String> _computeChangedParallaxThemeIds(ParallaxDefsDocument document) {
+  final baselineById = <String, ParallaxThemeDef>{
+    for (final theme in document.baselineThemes) theme.parallaxThemeId: theme,
+  };
+  final candidateById = <String, ParallaxThemeDef>{
+    for (final theme in document.themes) theme.parallaxThemeId: theme,
+  };
+  final ids = <String>{...baselineById.keys, ...candidateById.keys}.toList()
+    ..sort();
+  return List<String>.unmodifiable(
+    ids.where((id) {
+      final before = baselineById[id];
+      final after = candidateById[id];
+      return before == null ||
+          after == null ||
+          !parallaxThemeEquals(before, after);
+    }),
+  );
 }

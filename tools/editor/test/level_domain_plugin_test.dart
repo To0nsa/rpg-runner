@@ -60,7 +60,11 @@ void main() {
                 document,
                 AuthoringCommand(
                   kind: 'create_level',
-                  payload: const <String, Object?>{'levelId': 'cave'},
+                  payload: const <String, Object?>{
+                    'levelId': 'cave',
+                    'themeMode': levelThemeModeExisting,
+                    'visualThemeId': 'forest',
+                  },
                 ),
               )
               as LevelDefsDocument;

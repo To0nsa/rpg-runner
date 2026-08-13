@@ -29,6 +29,7 @@ final class WorkspaceWriteTransactionException implements Exception {
     required this.cause,
     required this.rollbackFailures,
     required this.outputsCommitted,
+    required this.recoveryPaths,
   });
 
   final Object cause;
@@ -36,6 +37,9 @@ final class WorkspaceWriteTransactionException implements Exception {
 
   /// Whether every replacement passed byte verification before cleanup failed.
   final bool outputsCommitted;
+
+  /// Exact transaction-owned temp/backup paths that still exist.
+  final List<String> recoveryPaths;
 
   /// True only when no replacement remains after a failed write.
   bool get rollbackComplete => !outputsCommitted && rollbackFailures.isEmpty;
@@ -174,6 +178,7 @@ final class WorkspaceWriteTransaction {
           cause: error,
           rollbackFailures: List<String>.unmodifiable(failures),
           outputsCommitted: false,
+          recoveryPaths: _remainingRecoveryPaths(entries),
         ),
         stackTrace,
       );
@@ -185,6 +190,7 @@ final class WorkspaceWriteTransaction {
         cause: StateError('Could not remove every transaction backup.'),
         rollbackFailures: List<String>.unmodifiable(cleanupFailures),
         outputsCommitted: true,
+        recoveryPaths: _remainingRecoveryPaths(entries),
       );
     }
   }
@@ -276,6 +282,19 @@ List<String> _cleanup(List<_WorkspaceWriteTransactionEntry> entries) {
     }
   }
   return failures;
+}
+
+List<String> _remainingRecoveryPaths(
+  List<_WorkspaceWriteTransactionEntry> entries,
+) {
+  final paths = <String>[];
+  for (final entry in entries) {
+    for (final file in <File>[entry.staged, entry.backup]) {
+      if (file.existsSync()) paths.add(file.path);
+    }
+  }
+  paths.sort();
+  return List<String>.unmodifiable(paths);
 }
 
 bool _bytesEqual(List<int> left, List<int> right) {
