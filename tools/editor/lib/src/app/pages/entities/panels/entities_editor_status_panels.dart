@@ -6,38 +6,28 @@ part of '../entities_editor_page.dart';
 /// panel selections (`_selectedDiffPath`, `_selectedArtifactTitle`).
 extension _EntitiesEditorStatusPanels on _EntitiesEditorPageState {
   Widget _buildValidationPanel() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Validation', style: Theme.of(context).textTheme.titleSmall),
-            const SizedBox(height: 8),
-            Expanded(
-              child: widget.controller.issues.isEmpty
-                  ? const Text('No validation issues.')
-                  : ListView.builder(
-                      itemCount: widget.controller.issues.length,
-                      itemBuilder: (context, index) {
-                        final issue = widget.controller.issues[index];
-                        return ListTile(
-                          dense: true,
-                          leading: Icon(
-                            _iconForSeverity(issue.severity),
-                            color: _colorForSeverity(issue.severity),
-                          ),
-                          title: Text(issue.message),
-                          subtitle: issue.sourcePath == null
-                              ? null
-                              : Text(issue.sourcePath!),
-                        );
-                      },
-                    ),
+    return EditorPanelCard(
+      title: 'Validation',
+      bodyMode: EditorPanelBodyMode.expanded,
+      child: widget.controller.issues.isEmpty
+          ? const Text('No validation issues.')
+          : ListView.builder(
+              itemCount: widget.controller.issues.length,
+              itemBuilder: (context, index) {
+                final issue = widget.controller.issues[index];
+                return ListTile(
+                  dense: true,
+                  leading: Icon(
+                    _iconForSeverity(issue.severity),
+                    color: _colorForSeverity(issue.severity),
+                  ),
+                  title: Text(issue.message),
+                  subtitle: issue.sourcePath == null
+                      ? null
+                      : Text(issue.sourcePath!),
+                );
+              },
             ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -46,61 +36,55 @@ extension _EntitiesEditorStatusPanels on _EntitiesEditorPageState {
     final diffError = widget.controller.pendingChangesError;
     final selectedDiff = _selectedDiff(pendingChanges);
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Pending File Diff',
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
+    return EditorPanelCard(
+      title: 'Pending File Diff',
+      bodyMode: EditorPanelBodyMode.expanded,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'entries: ${pendingChanges.changedItemIds.length} '
+            'files: ${pendingChanges.fileDiffs.length}',
+          ),
+          if (pendingChanges.fileDiffs.length > 1) ...[
             const SizedBox(height: 8),
-            Text(
-              'entries: ${pendingChanges.changedItemIds.length} '
-              'files: ${pendingChanges.fileDiffs.length}',
-            ),
-            if (pendingChanges.fileDiffs.length > 1) ...[
-              const SizedBox(height: 8),
-              DropdownButton<String>(
-                value: selectedDiff?.relativePath,
-                items: [
-                  for (final fileDiff in pendingChanges.fileDiffs)
-                    DropdownMenuItem<String>(
-                      value: fileDiff.relativePath,
-                      child: Text(
-                        '${fileDiff.relativePath} (${fileDiff.editCount})',
-                      ),
+            DropdownButton<String>(
+              value: selectedDiff?.relativePath,
+              items: [
+                for (final fileDiff in pendingChanges.fileDiffs)
+                  DropdownMenuItem<String>(
+                    value: fileDiff.relativePath,
+                    child: Text(
+                      '${fileDiff.relativePath} (${fileDiff.editCount})',
                     ),
-                ],
-                onChanged: (value) {
-                  if (value == null) {
-                    return;
-                  }
-                  _updateState(() {
-                    _selectedDiffPath = value;
-                  });
-                },
-              ),
-            ],
-            const SizedBox(height: 8),
-            Expanded(
-              child: diffError != null
-                  ? SelectableText(diffError)
-                  : selectedDiff == null
-                  ? const Text('No pending file changes.')
-                  : SingleChildScrollView(
-                      child: SelectableText(
-                        selectedDiff.unifiedDiff,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          fontFamily: 'monospace',
-                        ),
-                      ),
-                    ),
+                  ),
+              ],
+              onChanged: (value) {
+                if (value == null) {
+                  return;
+                }
+                _updateState(() {
+                  _selectedDiffPath = value;
+                });
+              },
             ),
           ],
-        ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: diffError != null
+                ? SelectableText(diffError)
+                : selectedDiff == null
+                ? const Text('No pending file changes.')
+                : SingleChildScrollView(
+                    child: SelectableText(
+                      selectedDiff.unifiedDiff,
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(fontFamily: 'monospace'),
+                    ),
+                  ),
+          ),
+        ],
       ),
     );
   }
@@ -110,57 +94,54 @@ extension _EntitiesEditorStatusPanels on _EntitiesEditorPageState {
     final exportError = widget.controller.exportError;
     final artifact = _selectedArtifact(exportResult);
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Apply Result', style: Theme.of(context).textTheme.titleSmall),
-            const SizedBox(height: 8),
-            if (exportError != null) ...[
-              SelectableText(
-                exportError,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: Colors.redAccent),
-              ),
-              const SizedBox(height: 8),
-            ],
-            if (exportResult != null) ...[
-              Text('files written: ${exportResult.applied ? 'yes' : 'no'}'),
-              if (exportResult.artifacts.length > 1) ...[
-                const SizedBox(height: 8),
-                DropdownButton<String>(
-                  value: artifact?.title,
-                  items: [
-                    for (final item in exportResult.artifacts)
-                      DropdownMenuItem<String>(
-                        value: item.title,
-                        child: Text(item.title),
-                      ),
-                  ],
-                  onChanged: (value) {
-                    if (value == null) {
-                      return;
-                    }
-                    _updateState(() {
-                      _selectedArtifactTitle = value;
-                    });
-                  },
-                ),
-              ],
-              const SizedBox(height: 8),
-            ],
-            Expanded(
-              child: artifact == null
-                  ? const Text('No apply result yet.')
-                  : SingleChildScrollView(
-                      child: SelectableText(artifact.content),
-                    ),
+    return EditorPanelCard(
+      title: 'Apply Result',
+      bodyMode: EditorPanelBodyMode.expanded,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (exportError != null) ...[
+            SelectableText(
+              exportError,
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: Colors.redAccent),
             ),
+            const SizedBox(height: 8),
           ],
-        ),
+          if (exportResult != null) ...[
+            Text('files written: ${exportResult.applied ? 'yes' : 'no'}'),
+            if (exportResult.artifacts.length > 1) ...[
+              const SizedBox(height: 8),
+              DropdownButton<String>(
+                value: artifact?.title,
+                items: [
+                  for (final item in exportResult.artifacts)
+                    DropdownMenuItem<String>(
+                      value: item.title,
+                      child: Text(item.title),
+                    ),
+                ],
+                onChanged: (value) {
+                  if (value == null) {
+                    return;
+                  }
+                  _updateState(() {
+                    _selectedArtifactTitle = value;
+                  });
+                },
+              ),
+            ],
+            const SizedBox(height: 8),
+          ],
+          Expanded(
+            child: artifact == null
+                ? const Text('No apply result yet.')
+                : SingleChildScrollView(
+                    child: SelectableText(artifact.content),
+                  ),
+          ),
+        ],
       ),
     );
   }

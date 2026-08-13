@@ -12,11 +12,13 @@ import '../../../domain/authoring_types.dart';
 import '../../../session/editor_session_controller.dart';
 import 'inspector/entity_inspector_panel.dart';
 import '../shared/editor_page_local_draft_state.dart';
+import '../shared/editor_panel_card.dart';
 import '../shared/editor_scene_viewport_frame.dart';
 import '../shared/editor_scene_view_utils.dart';
 import '../shared/editor_viewport_grid_painter.dart';
 import '../shared/scene_input_utils.dart';
 import '../shared/editor_zoom_controls.dart';
+import '../shared/editor_workspace_card.dart';
 
 // Entities page library root.
 //
@@ -173,13 +175,15 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
         final visibleEntries = entityScene == null
             ? const <EntityEntry>[]
             : _filteredEntries(entityScene.entries);
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildControls(),
-            const SizedBox(height: 16),
-            Expanded(child: _buildEntitiesPage(entityScene, visibleEntries)),
-          ],
+        return EditorWorkspaceCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildControls(),
+              const SizedBox(height: 16),
+              Expanded(child: _buildEntitiesPage(entityScene, visibleEntries)),
+            ],
+          ),
         );
       },
     );
@@ -329,81 +333,75 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
     required EntityScene scene,
     required List<EntityEntry> visibleEntries,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    SizedBox(
-                      width: 340,
-                      child: TextField(
-                        controller: _searchController,
-                        decoration: const InputDecoration(
-                          labelText: 'Search Entries',
-                          hintText: 'id, label, source path',
-                          floatingLabelBehavior: FloatingLabelBehavior.always,
-                          border: OutlineInputBorder(),
-                          isDense: true,
-                        ),
-                        onChanged: (value) {
-                          setState(() {
-                            _searchQuery = value.trim().toLowerCase();
-                            _reconcileSelectionsFromCurrentState();
-                          });
-                        },
-                      ),
-                    ),
-                  ],
+    return EditorPanelCard(
+      title: 'Entries',
+      bodyMode: EditorPanelBodyMode.expanded,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              SizedBox(
+                width: 340,
+                child: TextField(
+                  controller: _searchController,
+                  decoration: const InputDecoration(
+                    labelText: 'Search Entries',
+                    hintText: 'id, label, source path',
+                    floatingLabelBehavior: FloatingLabelBehavior.always,
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  onChanged: (value) {
+                    setState(() {
+                      _searchQuery = value.trim().toLowerCase();
+                      _reconcileSelectionsFromCurrentState();
+                    });
+                  },
                 ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: [
-                    _typeFilterChip(label: 'All', type: null),
-                    _typeFilterChip(label: 'Players', type: EntityType.player),
-                    _typeFilterChip(label: 'Enemies', type: EntityType.enemy),
-                    _typeFilterChip(
-                      label: 'Projectiles',
-                      type: EntityType.projectile,
-                    ),
-                    FilterChip(
-                      selected: _showDirtyOnly,
-                      label: const Text('Dirty only'),
-                      onSelected: (selected) {
-                        setState(() {
-                          _showDirtyOnly = selected;
-                          _reconcileSelectionsFromCurrentState();
-                        });
-                      },
-                    ),
-                  ],
-                ),
-              ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              _typeFilterChip(label: 'All', type: null),
+              _typeFilterChip(label: 'Players', type: EntityType.player),
+              _typeFilterChip(label: 'Enemies', type: EntityType.enemy),
+              _typeFilterChip(
+                label: 'Projectiles',
+                type: EntityType.projectile,
+              ),
+              FilterChip(
+                selected: _showDirtyOnly,
+                label: const Text('Dirty only'),
+                onSelected: (selected) {
+                  setState(() {
+                    _showDirtyOnly = selected;
+                    _reconcileSelectionsFromCurrentState();
+                  });
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: _EntityTable(
+              entries: visibleEntries,
+              selectedId: _selectedEntryId,
+              dirtyItemIds: widget.controller.dirtyItemIds,
+              onSelect: (id) {
+                _selectEntryById(scene, id);
+              },
             ),
           ),
-        ),
-        const SizedBox(height: 8),
-        Expanded(
-          child: _EntityTable(
-            entries: visibleEntries,
-            selectedId: _selectedEntryId,
-            dirtyItemIds: widget.controller.dirtyItemIds,
-            onSelect: (id) {
-              _selectEntryById(scene, id);
-            },
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -466,28 +464,23 @@ class _EntityTable extends StatelessWidget {
   final ValueChanged<String> onSelect;
 
   @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(12),
-        child: DataTable(
-          showCheckboxColumn: false,
-          headingRowHeight: 0,
-          columns: const [DataColumn(label: SizedBox.shrink())],
-          rows: entries
-              .map((entry) {
-                final isDirty = dirtyItemIds.contains(entry.id);
-                return DataRow(
-                  selected: entry.id == selectedId,
-                  onSelectChanged: (_) => onSelect(entry.id),
-                  cells: [DataCell(Text(isDirty ? '* ${entry.id}' : entry.id))],
-                );
-              })
-              .toList(growable: false),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => SingleChildScrollView(
+    child: DataTable(
+      showCheckboxColumn: false,
+      headingRowHeight: 0,
+      columns: const [DataColumn(label: SizedBox.shrink())],
+      rows: entries
+          .map((entry) {
+            final isDirty = dirtyItemIds.contains(entry.id);
+            return DataRow(
+              selected: entry.id == selectedId,
+              onSelectChanged: (_) => onSelect(entry.id),
+              cells: [DataCell(Text(isDirty ? '* ${entry.id}' : entry.id))],
+            );
+          })
+          .toList(growable: false),
+    ),
+  );
 }
 
 class _ErrorPanel extends StatelessWidget {
@@ -496,23 +489,9 @@ class _ErrorPanel extends StatelessWidget {
   final String message;
 
   @override
-  Widget build(BuildContext context) {
-    return Card(
-      color: const Color(0xFF3F1F1F),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Workspace Load Failed',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(message),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => EditorPanelCard(
+    title: 'Workspace Load Failed',
+    color: const Color(0xFF3F1F1F),
+    child: Text(message),
+  );
 }

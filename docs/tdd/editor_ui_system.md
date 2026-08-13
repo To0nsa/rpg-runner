@@ -51,3 +51,9 @@ Parallax uses the shared workspace and bounded panel cards for Layers, Preview,
 and Inspector. Layer rows use `EditorSelectableCard` with their asset thumbnail
 in the leading slot, preserving selection and edit ownership in the page while
 removing its custom border, fill, and padding implementation.
+
+Entities uses the shared outer workspace, Entries panel, load-error panel, and
+bounded Validation, Pending File Diff, and Apply Result panels. The scene and
+inspector remain domain widgets because they own specialized interactive
+viewport and field composition; their authoring state still belongs to the
+Entities page and plugin paths.
