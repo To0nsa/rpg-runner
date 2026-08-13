@@ -41,7 +41,8 @@ Implementation commits:
 - `5dc6867d` — generator identity validation and authored-source authority;
 - `2ed8ee2a` — compound candidate, validation, planning, and transaction;
 - `54487682` — Level Creator UX and guarded Parallax handoff;
-- `7b3602b5` — installed-pair and recovery-path transaction hardening.
+- `7b3602b5` — installed-pair and recovery-path transaction hardening;
+- `3ac7c1cc` — fail-closed compound-candidate admission and UI gating.
 
 Focused evidence completed on August 14, 2026:
 
