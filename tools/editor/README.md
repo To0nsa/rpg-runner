@@ -20,7 +20,8 @@ Implemented authoring domains:
   with runtime-faithful capsule and broad-phase previews
 - prefab (obstacle/platform/decoration), tile-slice, platform-module, and exact
   half-pixel polygon-collision authoring, including tagged atlas/tile slices
-  and searchable slice selection
+  and searchable slice selection; Prefab atlas slicing supports configurable
+  cell dimensions, origins, gutters, and arbitrary manual pixel rectangles
 - chunk authoring with direct terrain polygons, expanded placed-Prefab
   collision, active-level parallax and terrain-material scene preview,
   actor/navigation/marker diagnostics, scene-based composition, shared
@@ -41,6 +42,8 @@ Editor foundations shared across those domains:
 - shared outlined workspace, panel, subsection, and list-row cards with one
   spacing system; cards in the Chunk right sidebar expand independently
 - shared pan/zoom scene controls, inspector forms, and deterministic export summaries
+- shared atlas PNG discovery, integer region/grid math, grid/manual selection,
+  image viewport controls, selection painters, and exact-region thumbnails
 
 ## Level And Visual Theme Workflow
 
@@ -108,11 +111,15 @@ coverage before the polygon edit is applied.
 
 The **Terrain Materials** route creates, duplicates, edits, validates, and
 reference-safely deletes those definitions. Each material owns a stable key,
-fill texture, required top/slope profile, optional left/right wall and underside
-profiles, and optional paired cliff caps. PNG selection stays under
-`assets/images/terrain/`; applying writes only
-`assets/authoring/level/terrain_material_defs.json`. Run the root content
-generator afterward to refresh the generated runtime registry.
+fill region, required top/slope profile, optional left/right wall and underside
+profiles, and optional paired cliff caps. Each visual role selects an exact
+`X/Y/W/H` rectangle from a PNG below `assets/images/terrain/`. The picker offers
+a configurable cell grid (32x32 is only its default) and arbitrary manual pixel
+rectangles; selecting a region never creates a cropped asset. Applying writes
+only `assets/authoring/level/terrain_material_defs.json`. Run the root content
+generator afterward to refresh the generated runtime registry. The manifest
+is strict schema v2; the editor and runtime do not contain a schema-v1
+compatibility or migration path.
 
 The generator compiles every source polygon into the staged terrain artifact.
 Normal gameplay and replay validation consume that admitted polygon artifact

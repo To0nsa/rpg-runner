@@ -8,11 +8,12 @@ ground line. Forest's easy woodcamp also has a grass-and-soil obstacle collider
 under its wood-pile prop, creating the first raised production perch and a
 player-readable jump obstacle.
 
-The material has three visible layers:
+The material has three visible roles:
 
 - a repeating dirt fill inside the exact terrain polygon
 - a grass-and-soil surface strip following walkable upward-facing edges
-- sparse roots and overhang details following the same edge
+- start/end caps at exposed top-edge endpoints, suppressed where a
+  same-material top edge continues
 
 The terrain art stays aligned with collision-source geometry and scrolls in
 world space, so seams do not appear to swim under the player. Actors and props
@@ -26,9 +27,10 @@ remain upright and retain their existing visual priority over the ground.
 - Surface detail must not obscure enemies, pickups, hit effects, or the player.
 - Material changes may alter biome appearance but must not imply different
   collision unless the authored polygon actually changes.
-- Terrain endpoint caps are not drawn yet because a streamed chunk boundary
-  must never look like a cliff. They will be enabled only with reliable
-  cross-chunk join evidence.
+- Atlas packing is an image-storage and authoring concern only. Selecting a
+  different cell or rectangle changes the visual role, never collision shape.
+- Endpoint caps appear only at compiler-exposed top-edge endpoints. A continued
+  same-material top edge must not acquire a false cliff cue.
 
 ## Runtime Boundary
 

@@ -187,6 +187,41 @@ maintainability concerns.
 - validation is structural and contract-oriented; keep obstacle/platform
   contracts typed and deterministic
 
+### Shared Atlas Authoring Foundation
+
+- owner: `tools/editor/lib/src/atlas/**`,
+  `tools/editor/lib/src/workspace/repository_png_catalog.dart`, and the neutral
+  `tools/editor/lib/src/app/pages/shared/atlas_*.dart` widgets
+- shared code owns integer pixel rectangles, configurable grid math, temporary
+  selection state, per-workspace grid-setting caches, repository PNG discovery,
+  view transforms, painters, manual fields, and exact-region previews
+- shared code must remain independent of Prefab IDs, terrain roles, revisions,
+  persistence commands, and domain-specific root policies
+- Prefab and terrain callers translate between their domain values and the
+  shared pixel rectangle; do not restore domain-specific copies of grid,
+  coordinate, PNG-header, or thumbnail logic
+- grid settings are editor-session state only and must not leak into source JSON
+  or generated runtime contracts
+
+### Terrain Material Domain
+
+- owner: `tools/editor/lib/src/terrain_materials/**` and
+  `tools/editor/lib/src/app/pages/terrainMaterials/**`
+- plugin: `TerrainMaterialDomainPlugin`
+- source-of-truth file:
+  `assets/authoring/level/terrain_material_defs.json`
+- source-image root: `assets/images/terrain/**`
+- the manifest uses strict schema v2 explicit image regions; normal editor code
+  must not accept schema v1 whole-image fields or add a migration fallback
+- source models, canonical validation, traversal, and repeat math come from
+  `packages/terrain_materials`; do not duplicate those rules in the editor
+- discover image metadata through `RepositoryPngCatalog`, then fully decode and
+  bounds-check referenced images again during apply
+- persist through `TerrainMaterialStore` so canonical ordering, drift guards,
+  revision semantics, and atomic writes remain authoritative
+- atlas grid state is not material content; same-region assignment and grid-only
+  changes must remain revision-neutral
+
 ### Chunk Domain
 
 - owner: `tools/editor/lib/src/chunks/**` and
