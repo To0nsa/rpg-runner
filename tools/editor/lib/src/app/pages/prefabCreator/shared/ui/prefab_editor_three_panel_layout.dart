@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import '../../../shared/editor_three_panel_layout.dart';
-import 'prefab_editor_ui_tokens.dart';
+import '../../../shared/editor_ui_tokens.dart';
 
 /// Shared `1:2:1` shell used by prefab-editor tabs.
 class PrefabEditorThreePanelLayout extends StatelessWidget {
@@ -24,6 +24,6 @@ class PrefabEditorThreePanelLayout extends StatelessWidget {
     first: inspector,
     second: scene,
     third: display,
-    gap: PrefabEditorUiTokens.panelGap,
+    gap: EditorUiTokens.panelGap,
   );
 }

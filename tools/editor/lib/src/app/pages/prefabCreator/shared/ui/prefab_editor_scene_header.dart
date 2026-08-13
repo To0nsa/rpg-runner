@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'prefab_editor_ui_tokens.dart';
+import '../../../shared/editor_ui_tokens.dart';
 
 /// Shared compact header used at the top of prefab-editor scene panels.
 class PrefabEditorSceneHeader extends StatelessWidget {
@@ -33,20 +33,20 @@ class PrefabEditorSceneHeader extends StatelessWidget {
                 children: [
                   Text(title, style: theme.textTheme.titleSmall),
                   if (subtitle != null) ...[
-                    const SizedBox(height: PrefabEditorUiTokens.rowTitleGap),
+                    const SizedBox(height: EditorUiTokens.rowTitleGap),
                     Text(subtitle!),
                   ],
                 ],
               ),
             ),
             if (trailing != null) ...[
-              const SizedBox(width: PrefabEditorUiTokens.controlGap),
+              const SizedBox(width: EditorUiTokens.controlGap),
               Flexible(child: trailing!),
             ],
           ],
         ),
         if (bottom != null) ...[
-          const SizedBox(height: PrefabEditorUiTokens.controlGap),
+          const SizedBox(height: EditorUiTokens.controlGap),
           bottom!,
         ],
       ],

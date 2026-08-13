@@ -7,20 +7,20 @@ import '../../../../prefabs/models/models.dart';
 import '../../shared/atlas_slice_preview_tile.dart';
 import '../../shared/atlas_selection_painter.dart';
 import '../../shared/editor_scene_view_utils.dart';
+import '../../shared/editor_panel_card.dart';
+import '../../shared/editor_section_card.dart';
+import '../../shared/editor_selectable_card.dart';
+import '../../shared/editor_ui_tokens.dart';
 import '../../shared/editor_viewport_grid_painter.dart';
 import '../../shared/editor_zoom_controls.dart';
 import '../../shared/scene_input_utils.dart';
 import '../shared/ui/prefab_editor_action_row.dart';
 import '../shared/ui/prefab_editor_delete_button.dart';
 import '../shared/ui/prefab_editor_empty_state.dart';
-import '../shared/ui/prefab_editor_panel_card.dart';
 import '../shared/ui/prefab_editor_panel_summary.dart';
 import '../shared/ui/prefab_editor_row_metadata.dart';
 import '../shared/ui/prefab_editor_scene_header.dart';
-import '../shared/ui/prefab_editor_section_card.dart';
-import '../shared/ui/prefab_editor_selectable_row_card.dart';
 import '../shared/ui/prefab_editor_three_panel_layout.dart';
-import '../shared/ui/prefab_editor_ui_tokens.dart';
 
 /// Atlas slicing view for prefab and tile source rectangles.
 class AtlasSlicerTab extends StatefulWidget {
@@ -119,13 +119,13 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
   }
 
   Widget _buildInspectorCard(BuildContext context) {
-    return PrefabEditorPanelCard(
+    return EditorPanelCard(
       title: 'Atlas Slicer Controls',
-      scrollable: true,
+      bodyMode: EditorPanelBodyMode.scrollable,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          PrefabEditorSectionCard(
+          EditorSectionCard(
             title: 'Source & Slice Setup',
             description:
                 'Choose the atlas image, slice kind, target slice id, and tags.',
@@ -148,7 +148,7 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
                   ],
                   onChanged: widget.onSelectedAtlasChanged,
                 ),
-                const SizedBox(height: PrefabEditorUiTokens.controlGap),
+                const SizedBox(height: EditorUiTokens.controlGap),
                 DropdownButtonFormField<AtlasSliceKind>(
                   key: ValueKey<String>(
                     'slice_kind_${widget.selectedSliceKind.name}',
@@ -175,7 +175,7 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
                     widget.onSelectedSliceKindChanged(value);
                   },
                 ),
-                const SizedBox(height: PrefabEditorUiTokens.controlGap),
+                const SizedBox(height: EditorUiTokens.controlGap),
                 TextField(
                   key: const ValueKey<String>('atlas_slice_id_field'),
                   controller: widget.sliceIdController,
@@ -186,7 +186,7 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
                     hintText: 'village_crate_01 or grass_dirt_32x32',
                   ),
                 ),
-                const SizedBox(height: PrefabEditorUiTokens.controlGap),
+                const SizedBox(height: EditorUiTokens.controlGap),
                 TextField(
                   key: const ValueKey<String>('atlas_slice_tags_field'),
                   controller: widget.sliceTagsController,
@@ -200,8 +200,8 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
               ],
             ),
           ),
-          const SizedBox(height: PrefabEditorUiTokens.controlGap),
-          PrefabEditorSectionCard(
+          const SizedBox(height: EditorUiTokens.controlGap),
+          EditorSectionCard(
             title: 'Selection & Actions',
             description:
                 'Adjust the selection rectangle numerically and save it back to the slice list.',
@@ -215,9 +215,9 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
                   step: widget.zoomStep,
                   onChanged: widget.onAtlasZoomChanged,
                 ),
-                const SizedBox(height: PrefabEditorUiTokens.controlGap),
+                const SizedBox(height: EditorUiTokens.controlGap),
                 Text(widget.selectionLabel),
-                const SizedBox(height: PrefabEditorUiTokens.controlGap),
+                const SizedBox(height: EditorUiTokens.controlGap),
                 Row(
                   children: [
                     Expanded(
@@ -235,7 +235,7 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
                         onSubmitted: (_) => widget.onSelectionInputsChanged(),
                       ),
                     ),
-                    const SizedBox(width: PrefabEditorUiTokens.controlGap),
+                    const SizedBox(width: EditorUiTokens.controlGap),
                     Expanded(
                       child: TextField(
                         key: const ValueKey<String>('atlas_selection_y_field'),
@@ -253,7 +253,7 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
                     ),
                   ],
                 ),
-                const SizedBox(height: PrefabEditorUiTokens.controlGap),
+                const SizedBox(height: EditorUiTokens.controlGap),
                 Row(
                   children: [
                     Expanded(
@@ -271,7 +271,7 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
                         onSubmitted: (_) => widget.onSelectionInputsChanged(),
                       ),
                     ),
-                    const SizedBox(width: PrefabEditorUiTokens.controlGap),
+                    const SizedBox(width: EditorUiTokens.controlGap),
                     Expanded(
                       child: TextField(
                         key: const ValueKey<String>('atlas_selection_h_field'),
@@ -290,14 +290,14 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
                   ],
                 ),
                 if (widget.atlasSize != null) ...[
-                  const SizedBox(height: PrefabEditorUiTokens.controlGap),
+                  const SizedBox(height: EditorUiTokens.controlGap),
                   Text(
                     'Atlas size: '
                     '${widget.atlasSize!.width.toInt()}x'
                     '${widget.atlasSize!.height.toInt()} px',
                   ),
                 ],
-                const SizedBox(height: PrefabEditorUiTokens.sectionGap),
+                const SizedBox(height: EditorUiTokens.sectionGap),
                 PrefabEditorActionRow(
                   children: [
                     FilledButton.icon(
@@ -335,9 +335,9 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
         : 'Showing ${_sliceKindDisplayName.toLowerCase()} slices '
               '(${widget.slices.length} visible).';
 
-    return PrefabEditorPanelCard(
+    return EditorPanelCard(
       title: 'Atlas Slicer View',
-      expandBody: true,
+      bodyMode: EditorPanelBodyMode.expanded,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -345,7 +345,7 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
             title: sceneHeaderTitle,
             subtitle: sceneHeaderSubtitle,
           ),
-          const SizedBox(height: PrefabEditorUiTokens.sectionGap),
+          const SizedBox(height: EditorUiTokens.sectionGap),
           Expanded(child: _buildAtlasCanvas()),
         ],
       ),
@@ -360,10 +360,10 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
         selectedSlice.sourceImagePath.trim() ==
             widget.selectedAtlasPath!.trim();
 
-    return PrefabEditorPanelCard(
-      cardKey: const ValueKey<String>('atlas_slice_display_card'),
+    return EditorPanelCard(
+      key: const ValueKey<String>('atlas_slice_display_card'),
       title: '$_sliceKindDisplayName Slices',
-      expandBody: true,
+      bodyMode: EditorPanelBodyMode.expanded,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -380,7 +380,7 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
                 ? 'The current selection belongs to another source.'
                 : null,
           ),
-          const SizedBox(height: PrefabEditorUiTokens.sectionGap),
+          const SizedBox(height: EditorUiTokens.sectionGap),
           Expanded(
             child: widget.slices.isEmpty
                 ? PrefabEditorEmptyState(
@@ -405,7 +405,7 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
   Widget _buildSliceRow(BuildContext context, AtlasSliceDef slice) {
     final isSelected = widget.selectedSliceId == slice.id;
 
-    return PrefabEditorSelectableRowCard(
+    return EditorSelectableCard(
       key: ValueKey<String>('atlas_slice_row_${slice.id}'),
       isSelected: isSelected,
       onTap: () => widget.onSelectedSliceChanged(slice.id),

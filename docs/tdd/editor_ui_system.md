@@ -32,3 +32,9 @@ The Chunk polygon workspace uses `EditorPanelCard` for owners, scene, empty
 states, Shapes, reachable seams, and Diagnostics. Its right sidebar remains the
 single scroll owner, while the three authoring cards retain their stable widget
 and expansion keys for tests and automation.
+
+Prefab polygon, atlas-slice, and platform-module workspaces use the same panel,
+section, selectable-row, and token primitives. Prefab-specific widgets remain
+only where they encode domain semantics such as create/edit banners, scene
+controls, or fixed three-panel labels; the former prefab-only card shells and
+spacing registry have been removed.

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'prefab_editor_ui_tokens.dart';
+import '../../../shared/editor_ui_tokens.dart';
 
 enum PrefabEditorModeTone { create, edit }
 
@@ -34,7 +34,7 @@ class PrefabEditorModeBanner extends StatelessWidget {
       decoration: BoxDecoration(
         color: color,
         border: Border.all(color: theme.colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(PrefabEditorUiTokens.panelRadius),
+        borderRadius: BorderRadius.circular(EditorUiTokens.panelRadius),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

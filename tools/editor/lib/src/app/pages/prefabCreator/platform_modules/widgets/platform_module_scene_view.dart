@@ -8,12 +8,12 @@ import 'package:path/path.dart' as p;
 import '../../../../../prefabs/models/models.dart';
 import '../../../shared/editor_scene_view_utils.dart';
 import '../../../shared/editor_scene_viewport_frame.dart';
+import '../../../shared/editor_ui_tokens.dart';
 import '../../../shared/editor_viewport_grid_painter.dart';
 import '../../../shared/editor_zoom_controls.dart';
 import '../../../shared/scene_input_utils.dart';
 import '../../shared/ui/prefab_editor_choice_chip_group.dart';
 import '../../shared/ui/prefab_editor_scene_controls.dart';
-import '../../shared/ui/prefab_editor_ui_tokens.dart';
 
 part 'platform_module_scene_models.dart';
 
@@ -165,7 +165,7 @@ class _PlatformModuleSceneViewState extends State<PlatformModuleSceneView> {
                           ),
                     ),
             ),
-            const SizedBox(height: PrefabEditorUiTokens.controlGap),
+            const SizedBox(height: EditorUiTokens.controlGap),
             Expanded(
               child: EditorSceneViewportFrame(
                 width: viewportSize.width,

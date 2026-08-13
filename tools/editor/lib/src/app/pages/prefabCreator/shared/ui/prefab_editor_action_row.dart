@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-import 'prefab_editor_ui_tokens.dart';
+import '../../../shared/editor_ui_tokens.dart';
 
 /// Shared wrapped action row for inspector controls.
 class PrefabEditorActionRow extends StatelessWidget {
@@ -11,8 +11,8 @@ class PrefabEditorActionRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Wrap(
-      spacing: PrefabEditorUiTokens.controlGap,
-      runSpacing: PrefabEditorUiTokens.controlGap,
+      spacing: EditorUiTokens.controlGap,
+      runSpacing: EditorUiTokens.controlGap,
       children: children,
     );
   }

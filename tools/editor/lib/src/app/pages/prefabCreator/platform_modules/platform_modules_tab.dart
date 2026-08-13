@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
 
 import '../../../../prefabs/models/models.dart';
+import '../../shared/editor_panel_card.dart';
 import '../../shared/editor_scene_view_utils.dart';
+import '../../shared/editor_section_card.dart';
+import '../../shared/editor_selectable_card.dart';
+import '../../shared/editor_ui_tokens.dart';
 import '../../shared/platform_module_preview_tile.dart';
 import '../shared/ui/prefab_editor_action_row.dart';
 import '../shared/ui/prefab_editor_atlas_slice_selector.dart';
 import '../shared/ui/prefab_editor_delete_button.dart';
 import '../shared/ui/prefab_editor_empty_state.dart';
 import '../shared/ui/prefab_editor_mode_banner.dart';
-import '../shared/ui/prefab_editor_panel_card.dart';
 import '../shared/ui/prefab_editor_panel_summary.dart';
 import '../shared/ui/prefab_editor_row_metadata.dart';
 import '../shared/ui/prefab_editor_scene_header.dart';
-import '../shared/ui/prefab_editor_selectable_row_card.dart';
-import '../shared/ui/prefab_editor_section_card.dart';
 import '../shared/ui/prefab_editor_three_panel_layout.dart';
-import '../shared/ui/prefab_editor_ui_tokens.dart';
 import 'widgets/platform_module_scene_view.dart';
 
 /// Platform-module editing view.
@@ -147,10 +147,10 @@ class PlatformModulesTab extends StatelessWidget {
               'tool=${selectedModuleSceneTool.label} '
               'slice=${selectedTileSliceId ?? 'none'}';
 
-    return PrefabEditorPanelCard(
-      cardKey: const ValueKey<String>('platform_module_scene_card'),
+    return EditorPanelCard(
+      key: const ValueKey<String>('platform_module_scene_card'),
       title: 'Platform Module View',
-      expandBody: true,
+      bodyMode: EditorPanelBodyMode.expanded,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -158,7 +158,7 @@ class PlatformModulesTab extends StatelessWidget {
             title: sceneHeaderTitle,
             subtitle: sceneHeaderSubtitle,
           ),
-          const SizedBox(height: PrefabEditorUiTokens.sectionGap),
+          const SizedBox(height: EditorUiTokens.sectionGap),
           Expanded(
             child: _PlatformModuleScenePanel(
               selectedModule: selectedModule,
@@ -226,10 +226,10 @@ class _PlatformModuleInspectorPanel extends StatelessWidget {
       return null;
     }
 
-    return PrefabEditorPanelCard(
-      cardKey: const ValueKey<String>('platform_module_inspector_card'),
+    return EditorPanelCard(
+      key: const ValueKey<String>('platform_module_inspector_card'),
       title: 'Platform Module Controls',
-      scrollable: true,
+      bodyMode: EditorPanelBodyMode.scrollable,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -260,11 +260,9 @@ class _PlatformModuleInspectorPanel extends StatelessWidget {
               );
             },
           ),
-          const SizedBox(height: PrefabEditorUiTokens.controlGap),
-          PrefabEditorSectionCard(
-            sectionKey: const ValueKey<String>(
-              'platform_module_advanced_controls',
-            ),
+          const SizedBox(height: EditorUiTokens.controlGap),
+          EditorSectionCard(
+            key: const ValueKey<String>('platform_module_advanced_controls'),
             title: 'ID, Tile Size & Actions',
             description:
                 'Create, rename, duplicate, deprecate, and select modules.',
@@ -279,7 +277,7 @@ class _PlatformModuleInspectorPanel extends StatelessWidget {
                     labelText: 'Platform Module ID',
                   ),
                 ),
-                const SizedBox(height: PrefabEditorUiTokens.controlGap),
+                const SizedBox(height: EditorUiTokens.controlGap),
                 TextField(
                   key: const ValueKey<String>(
                     'platform_module_tile_size_field',
@@ -291,7 +289,7 @@ class _PlatformModuleInspectorPanel extends StatelessWidget {
                     labelText: 'Tile Size (px)',
                   ),
                 ),
-                const SizedBox(height: PrefabEditorUiTokens.controlGap),
+                const SizedBox(height: EditorUiTokens.controlGap),
                 ListenableBuilder(
                   listenable: moduleIdController,
                   builder: (context, _) {
@@ -357,7 +355,7 @@ class _PlatformModuleInspectorPanel extends StatelessWidget {
                     );
                   },
                 ),
-                const SizedBox(height: PrefabEditorUiTokens.sectionGap),
+                const SizedBox(height: EditorUiTokens.sectionGap),
                 Text(
                   selectedModule == null
                       ? 'Select a module from the list to edit it.'
@@ -368,8 +366,8 @@ class _PlatformModuleInspectorPanel extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: PrefabEditorUiTokens.sectionGap),
-          PrefabEditorSectionCard(
+          const SizedBox(height: EditorUiTokens.sectionGap),
+          EditorSectionCard(
             title: 'Tile Slice Palette',
             child: tileSlices.isEmpty
                 ? const Text(
@@ -492,10 +490,10 @@ class _PlatformModuleDisplayPanelState
       for (final slice in widget.tileSlices) slice.id: slice,
     };
 
-    return PrefabEditorPanelCard(
-      cardKey: const ValueKey<String>('platform_module_display_card'),
+    return EditorPanelCard(
+      key: const ValueKey<String>('platform_module_display_card'),
       title: 'Platform Modules List',
-      expandBody: true,
+      bodyMode: EditorPanelBodyMode.expanded,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -503,7 +501,7 @@ class _PlatformModuleDisplayPanelState
             secondaryText:
                 'Selected Module: ${widget.selectedModuleId ?? 'none'}',
           ),
-          const SizedBox(height: PrefabEditorUiTokens.sectionGap),
+          const SizedBox(height: EditorUiTokens.sectionGap),
           Expanded(
             child: widget.modules.isEmpty
                 ? const PrefabEditorEmptyState(
@@ -514,7 +512,7 @@ class _PlatformModuleDisplayPanelState
                     itemBuilder: (context, index) {
                       final module = widget.modules[index];
                       final isSelected = widget.selectedModuleId == module.id;
-                      return PrefabEditorSelectableRowCard(
+                      return EditorSelectableCard(
                         key: ValueKey<String>(
                           'platform_module_row_${module.id}',
                         ),

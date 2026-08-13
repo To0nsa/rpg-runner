@@ -4,7 +4,7 @@ import 'package:path/path.dart' as p;
 import '../../../../../prefabs/models/models.dart';
 import '../../../shared/atlas_slice_preview_tile.dart';
 import '../../../shared/editor_scene_view_utils.dart';
-import 'prefab_editor_ui_tokens.dart';
+import '../../../shared/editor_ui_tokens.dart';
 
 /// Shared searchable atlas-slice selector for prefab and module authoring.
 ///
@@ -64,12 +64,16 @@ class _PrefabEditorAtlasSliceSelectorState
   @override
   void didUpdateWidget(covariant PrefabEditorAtlasSliceSelector oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final selectionChanged = oldWidget.selectedSliceId != widget.selectedSliceId;
+    final selectionChanged =
+        oldWidget.selectedSliceId != widget.selectedSliceId;
     final oldHasSelected = _containsSliceId(
       oldWidget.slices,
       widget.selectedSliceId,
     );
-    final newHasSelected = _containsSliceId(widget.slices, widget.selectedSliceId);
+    final newHasSelected = _containsSliceId(
+      widget.slices,
+      widget.selectedSliceId,
+    );
     final selectedVisibilityChanged = oldHasSelected != newHasSelected;
     if (selectionChanged || selectedVisibilityChanged) {
       _syncTextFromSelection();
@@ -130,8 +134,7 @@ class _PrefabEditorAtlasSliceSelectorState
                     suffixIcon:
                         !hasSelectableSlices ||
                             (textEditingController.text.trim().isEmpty &&
-                            widget.selectedSliceId == null
-                        )
+                                widget.selectedSliceId == null)
                         ? null
                         : IconButton(
                             tooltip: 'Clear slice selection',
@@ -157,9 +160,7 @@ class _PrefabEditorAtlasSliceSelectorState
                     maxHeight: 280,
                   ),
                   child: ListView.builder(
-                    key: ValueKey<String>(
-                      '${widget.optionKeyPrefix}_list',
-                    ),
+                    key: ValueKey<String>('${widget.optionKeyPrefix}_list'),
                     padding: EdgeInsets.zero,
                     shrinkWrap: true,
                     itemCount: optionList.length,
@@ -201,7 +202,7 @@ class _PrefabEditorAtlasSliceSelectorState
             );
           },
         ),
-        const SizedBox(height: PrefabEditorUiTokens.controlGap),
+        const SizedBox(height: EditorUiTokens.controlGap),
         if (!hasSelectableSlices)
           Text(widget.emptyStateMessage)
         else if (selectedSlice == null)
@@ -222,7 +223,7 @@ class _PrefabEditorAtlasSliceSelectorState
                 width: 72,
                 height: 56,
               ),
-              const SizedBox(width: PrefabEditorUiTokens.rowPreviewGap),
+              const SizedBox(width: EditorUiTokens.rowPreviewGap),
               Expanded(
                 child: Text(
                   'Selected: ${selectedSlice.id} · '

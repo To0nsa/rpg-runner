@@ -14,7 +14,9 @@ import '../../../../terrain_authoring/terrain_polygon_duplicate_offset.dart';
 import '../../../../terrain_authoring/terrain_polygon_interaction.dart';
 import '../../../../terrain_authoring/terrain_source_models.dart';
 import '../../shared/editor_scene_view_utils.dart';
+import '../../shared/editor_panel_card.dart';
 import '../../shared/editor_scene_viewport_frame.dart';
+import '../../shared/editor_ui_tokens.dart';
 import '../../shared/editor_zoom_controls.dart';
 import '../../shared/terrain_polygon_metadata_dialog.dart';
 import '../../shared/terrain_polygon_scene_painter.dart';
@@ -22,9 +24,7 @@ import '../../shared/terrain_polygon_vertex_editor.dart';
 import '../shared/prefab_polygon_authoring_controller.dart';
 import '../shared/prefab_polygon_scene_surface.dart';
 import '../shared/prefab_polygon_visual_source.dart';
-import '../shared/ui/prefab_editor_panel_card.dart';
 import '../shared/ui/prefab_editor_three_panel_layout.dart';
-import '../shared/ui/prefab_editor_ui_tokens.dart';
 import 'prefab_v3_atlas_catalog_workspace.dart';
 import 'prefab_v3_module_catalog_workspace.dart';
 import 'prefab_v3_owner_dialog.dart';
@@ -166,12 +166,12 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
     return Card(
       key: const ValueKey<String>('prefab_polygon_workspace'),
       child: Padding(
-        padding: PrefabEditorUiTokens.panelInsets,
+        padding: EditorUiTokens.workspaceInsets,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             _buildHeader(document, authoring),
-            const SizedBox(height: PrefabEditorUiTokens.sectionGap),
+            const SizedBox(height: EditorUiTokens.sectionGap),
             Expanded(
               child: IndexedStack(
                 index: _workspaceView.index,
@@ -217,8 +217,8 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         Wrap(
-          spacing: PrefabEditorUiTokens.controlGap,
-          runSpacing: PrefabEditorUiTokens.controlGap,
+          spacing: EditorUiTokens.controlGap,
+          runSpacing: EditorUiTokens.controlGap,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: <Widget>[
             const Chip(
@@ -277,17 +277,17 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
               ),
           ],
         ),
-        const SizedBox(height: PrefabEditorUiTokens.controlGap),
+        const SizedBox(height: EditorUiTokens.controlGap),
         const Text(
           'Current-schema workspace: apply rechecks both source baselines and '
           'commits the prefab/tile pair atomically. Legacy migration stays '
           'read-only; runtime terrain updates after generated outputs refresh.',
           style: TextStyle(color: Color(0xFFFFD166)),
         ),
-        const SizedBox(height: PrefabEditorUiTokens.controlGap),
+        const SizedBox(height: EditorUiTokens.controlGap),
         Wrap(
-          spacing: PrefabEditorUiTokens.controlGap,
-          runSpacing: PrefabEditorUiTokens.controlGap,
+          spacing: EditorUiTokens.controlGap,
+          runSpacing: EditorUiTokens.controlGap,
           children: <Widget>[
             ChoiceChip(
               key: const ValueKey<String>('prefab_v3_view_owners'),
@@ -393,9 +393,9 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
   ) {
     final prefabs = List<PrefabV3Def>.of(document.data.prefabs)
       ..sort(_comparePrefabs);
-    return PrefabEditorPanelCard(
+    return EditorPanelCard(
       title: 'Prefab owners',
-      scrollable: true,
+      bodyMode: EditorPanelBodyMode.scrollable,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -416,7 +416,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
                     'prefab_polygon_owner_${prefab.prefabKey}',
                   ),
                   margin: const EdgeInsets.only(
-                    bottom: PrefabEditorUiTokens.controlGap,
+                    bottom: EditorUiTokens.controlGap,
                   ),
                   clipBehavior: Clip.antiAlias,
                   child: ListTile(
@@ -450,7 +450,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
   }
 
   Widget _buildEmptyOwnerState(PrefabV3Document document) {
-    return PrefabEditorPanelCard(
+    return EditorPanelCard(
       title: 'Prefab owners',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -460,7 +460,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
             selectedPrefab: null,
             controlsEnabled: true,
           ),
-          const SizedBox(height: PrefabEditorUiTokens.sectionGap),
+          const SizedBox(height: EditorUiTokens.sectionGap),
           const Text(
             'No prefab owners remain. Create one from a retained atlas slice '
             'or platform module.',
@@ -479,8 +479,8 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
         document.data.slices.isNotEmpty ||
         document.tileData.platformModules.isNotEmpty;
     return Wrap(
-      spacing: PrefabEditorUiTokens.controlGap,
-      runSpacing: PrefabEditorUiTokens.controlGap,
+      spacing: EditorUiTokens.controlGap,
+      runSpacing: EditorUiTokens.controlGap,
       children: <Widget>[
         FilledButton.icon(
           key: const ValueKey<String>('prefab_v3_owner_create'),
@@ -537,15 +537,15 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
       document: document,
       prefab: prefab,
     );
-    return PrefabEditorPanelCard(
+    return EditorPanelCard(
       title: 'Collision scene',
-      expandBody: true,
+      bodyMode: EditorPanelBodyMode.expanded,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Wrap(
-            spacing: PrefabEditorUiTokens.controlGap,
-            runSpacing: PrefabEditorUiTokens.controlGap,
+            spacing: EditorUiTokens.controlGap,
+            runSpacing: EditorUiTokens.controlGap,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: <Widget>[
               EditorZoomControls(
@@ -579,11 +579,11 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
               ),
             ],
           ),
-          const SizedBox(height: PrefabEditorUiTokens.controlGap),
+          const SizedBox(height: EditorUiTokens.controlGap),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Wrap(
-              spacing: PrefabEditorUiTokens.controlGap,
+              spacing: EditorUiTokens.controlGap,
               children: <Widget>[
                 for (final tool in terrainPolygonSceneToolbarTools)
                   ChoiceChip(
@@ -610,7 +610,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
               ],
             ),
           ),
-          const SizedBox(height: PrefabEditorUiTokens.controlGap),
+          const SizedBox(height: EditorUiTokens.controlGap),
           if (!canEditCollision)
             const Text(
               'Decoration prefabs remain collider-free; their visual source '
@@ -625,7 +625,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
                         'Ctrl+scroll zooms, Enter saves a draft, and Escape '
                         'cancels.',
             ),
-          const SizedBox(height: PrefabEditorUiTokens.controlGap),
+          const SizedBox(height: EditorUiTokens.controlGap),
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -674,15 +674,15 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
     final selectedShapeId = authoring.state.selection?.shapeId;
     final selectedShape = _findShape(shapes, selectedShapeId);
     final draft = authoring.state.draft;
-    return PrefabEditorPanelCard(
+    return EditorPanelCard(
       title: 'Shapes and diagnostics',
-      scrollable: true,
+      bodyMode: EditorPanelBodyMode.scrollable,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Wrap(
-            spacing: PrefabEditorUiTokens.controlGap,
-            runSpacing: PrefabEditorUiTokens.controlGap,
+            spacing: EditorUiTokens.controlGap,
+            runSpacing: EditorUiTokens.controlGap,
             children: <Widget>[
               FilledButton.icon(
                 key: const ValueKey<String>('prefab_polygon_new_shape'),
@@ -726,7 +726,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
               ),
             ],
           ),
-          const SizedBox(height: PrefabEditorUiTokens.sectionGap),
+          const SizedBox(height: EditorUiTokens.sectionGap),
           if (shapes.isEmpty)
             const Text('No committed collision shapes.')
           else
@@ -734,7 +734,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
               Card(
                 key: ValueKey<String>('prefab_polygon_shape_${shape.shapeId}'),
                 margin: const EdgeInsets.only(
-                  bottom: PrefabEditorUiTokens.controlGap,
+                  bottom: EditorUiTokens.controlGap,
                 ),
                 child: ListTile(
                   selected: selectedShapeId == shape.shapeId,
@@ -750,10 +750,10 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
                 ),
               ),
           if (selectedShape != null) ...<Widget>[
-            const SizedBox(height: PrefabEditorUiTokens.controlGap),
+            const SizedBox(height: EditorUiTokens.controlGap),
             Wrap(
-              spacing: PrefabEditorUiTokens.controlGap,
-              runSpacing: PrefabEditorUiTokens.controlGap,
+              spacing: EditorUiTokens.controlGap,
+              runSpacing: EditorUiTokens.controlGap,
               children: <Widget>[
                 OutlinedButton.icon(
                   onPressed: authoring.hasActiveOperation
@@ -779,12 +779,12 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
                 ),
               ],
             ),
-            const SizedBox(height: PrefabEditorUiTokens.controlGap),
+            const SizedBox(height: EditorUiTokens.controlGap),
             _buildVertexInspector(authoring, selectedShape),
           ],
           const Divider(height: 32),
           Text('Diagnostics', style: Theme.of(context).textTheme.titleSmall),
-          const SizedBox(height: PrefabEditorUiTokens.controlGap),
+          const SizedBox(height: EditorUiTokens.controlGap),
           if (issues.isEmpty)
             const Text('No issues for this owner.')
           else
@@ -827,7 +827,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         Text('Vertices', style: Theme.of(context).textTheme.titleSmall),
-        const SizedBox(height: PrefabEditorUiTokens.controlGap),
+        const SizedBox(height: EditorUiTokens.controlGap),
         for (final entry in shape.vertices.asMap().entries)
           ListTile(
             key: ValueKey<String>(
@@ -846,7 +846,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
             ),
           ),
         if (selectedVertexIndex != null) ...<Widget>[
-          const SizedBox(height: PrefabEditorUiTokens.controlGap),
+          const SizedBox(height: EditorUiTokens.controlGap),
           TerrainPolygonVertexEditor(
             key: ValueKey<String>(
               'prefab_polygon_vertex_editor_${shape.shapeId}_'
@@ -866,7 +866,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
                 ),
               );
             },
-            controlGap: PrefabEditorUiTokens.controlGap,
+            controlGap: EditorUiTokens.controlGap,
           ),
         ],
       ],
