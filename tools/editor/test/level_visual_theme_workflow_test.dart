@@ -219,6 +219,56 @@ void main() {
     }
   });
 
+  test(
+    'new-theme commands reject a structurally invalid compound candidate',
+    () async {
+      final fixture = await _createFixtureWorkspace();
+      try {
+        final workspace = EditorWorkspace(rootPath: fixture.path);
+        final plugin = LevelDomainPlugin();
+        final loaded =
+            await plugin.loadFromRepo(workspace) as LevelDefsDocument;
+        final invalidSource = loaded.copyWith(
+          parallaxDocument: loaded.parallaxDocument!.copyWith(
+            themes: <ParallaxThemeDef>[
+              loaded.parallaxDocument!.themes.single.copyWith(revision: 0),
+            ],
+          ),
+        );
+
+        final rejected =
+            plugin.applyEdit(
+                  invalidSource,
+                  AuthoringCommand(
+                    kind: 'create_level',
+                    payload: const <String, Object?>{
+                      'levelId': 'crystal',
+                      'themeMode': levelThemeModeCreate,
+                      'visualThemeId': 'crystal',
+                    },
+                  ),
+                )
+                as LevelDefsDocument;
+
+        expect(rejected.levels, same(invalidSource.levels));
+        expect(
+          findParallaxThemeById(rejected.parallaxDocument!.themes, 'crystal'),
+          isNull,
+        );
+        expect(
+          rejected.operationIssues.single.code,
+          'create_level_invalid_candidate',
+        );
+        expect(
+          rejected.operationIssues.single.message,
+          contains('invalid_revision'),
+        );
+      } finally {
+        fixture.deleteSync(recursive: true);
+      }
+    },
+  );
+
   test('two-file apply installs a cross-file-valid authored pair', () async {
     final fixture = await _createFixtureWorkspace();
     try {

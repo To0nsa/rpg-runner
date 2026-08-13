@@ -1691,6 +1691,9 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
   }
 
   String? _newLevelFormError(LevelScene scene) {
+    if (widget.controller.errorCount > 0) {
+      return 'Resolve blocking document issues before creating another Level.';
+    }
     final levelId = _newLevelIdController.text.trim();
     if (levelId.isEmpty) return 'Enter a level ID.';
     if (!stableLevelIdentifierPattern.hasMatch(levelId)) {

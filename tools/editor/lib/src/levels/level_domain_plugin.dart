@@ -350,14 +350,22 @@ class LevelDomainPlugin implements AuthoringDomainPlugin {
         visualThemeId,
       };
     }
-    _preferredActiveLevelId = levelId;
-    return _withCandidateState(
+    final candidate = _withCandidateState(
       document,
       levels: List<LevelDef>.unmodifiable(nextLevels),
       activeLevelId: levelId,
       themes: nextThemes,
       sessionCreatedThemeIds: nextCreatedThemeIds,
     );
+    final rejected = _rejectInvalidCompoundCandidate(
+      document,
+      candidate,
+      code: 'create_level_invalid_candidate',
+      action: 'create Level "$levelId"',
+    );
+    if (rejected != null) return rejected;
+    _preferredActiveLevelId = levelId;
+    return candidate;
   }
 
   LevelDefsDocument _duplicateLevel(
@@ -567,7 +575,7 @@ class LevelDomainPlugin implements AuthoringDomainPlugin {
         layers: const <ParallaxLayerDef>[],
       ),
     ]..sort(compareParallaxThemesDeterministic);
-    return _withCandidateState(
+    final candidate = _withCandidateState(
       document,
       levels: nextLevels,
       themes: nextThemes,
@@ -576,6 +584,13 @@ class LevelDomainPlugin implements AuthoringDomainPlugin {
         visualThemeId,
       },
     );
+    return _rejectInvalidCompoundCandidate(
+          document,
+          candidate,
+          code: 'create_assign_theme_invalid_candidate',
+          action: 'create and assign visual theme "$visualThemeId"',
+        ) ??
+        candidate;
   }
 
   LevelDefsDocument _setLevelStatus(
@@ -675,6 +690,29 @@ class LevelDomainPlugin implements AuthoringDomainPlugin {
           null;
     }
     return document.availableParallaxVisualThemeIds.contains(visualThemeId);
+  }
+
+  LevelDefsDocument? _rejectInvalidCompoundCandidate(
+    LevelDefsDocument source,
+    LevelDefsDocument candidate, {
+    required String code,
+    required String action,
+  }) {
+    final blockingCodes =
+        validateLevelDocument(candidate)
+            .where((issue) => issue.severity == ValidationSeverity.error)
+            .map((issue) => issue.code)
+            .toSet()
+            .toList()
+          ..sort();
+    if (blockingCodes.isEmpty) return null;
+    return _withOperationIssue(
+      source,
+      code: code,
+      message:
+          'Cannot $action because the complete Level/theme candidate has '
+          'blocking issue(s): ${blockingCodes.join(', ')}.',
+    );
   }
 
   LevelDefsDocument _withCandidateState(
