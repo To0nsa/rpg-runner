@@ -20,6 +20,7 @@ import '../../../../chunks/chunk_v2_metadata_commit.dart';
 import '../../../../chunks/chunk_v2_seam_analysis.dart';
 import '../../../../chunks/chunk_v2_models.dart';
 import '../../../../domain/authoring_types.dart';
+import '../../../../prefabs/models/models.dart';
 import '../../../../session/editor_session_controller.dart';
 import '../../../../terrain_authoring/terrain_half_pixel_text.dart';
 import '../../../../terrain_authoring/terrain_polygon_duplicate_offset.dart';
@@ -42,6 +43,7 @@ import 'chunk_expanded_collision_overlay_painter.dart';
 import 'chunk_marker_placement_overlay_painter.dart';
 import 'chunk_polygon_authoring_controller.dart';
 import 'chunk_polygon_level_visual_source.dart';
+import 'chunk_prefab_scene_gesture.dart';
 import 'chunk_scene_coordinator.dart';
 import 'chunk_scene_surface.dart';
 import 'chunk_scene_visual_source.dart';
@@ -92,9 +94,13 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   ChunkV2MarkerPlacementProjection? _markerPlacementProjection;
   bool _compositionOperationActive = false;
   final ChunkSceneCoordinator _sceneCoordinator = ChunkSceneCoordinator();
+  final ChunkPrefabSceneGesture _prefabGesture = ChunkPrefabSceneGesture();
+  String? _selectedPrefabCatalogKey;
 
   bool get _hasActiveOperation =>
-      (_authoring?.hasActiveOperation ?? false) || _compositionOperationActive;
+      (_authoring?.hasActiveOperation ?? false) ||
+      _compositionOperationActive ||
+      _prefabGesture.hasActiveOperation;
 
   bool get hasActiveOperation => _hasActiveOperation;
 
@@ -102,14 +108,20 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       _hasActiveOperation || widget.controller.pendingChanges.hasChanges;
 
   bool get canUndo =>
-      !_compositionOperationActive &&
-      (_authoring?.canUndo ?? widget.controller.canUndo);
+      _prefabGesture.hasActiveOperation ||
+      (!_compositionOperationActive &&
+          (_authoring?.canUndo ?? widget.controller.canUndo));
 
   bool get canRedo =>
+      !_prefabGesture.hasActiveOperation &&
       !_compositionOperationActive &&
       (_authoring?.canRedo ?? widget.controller.canRedo);
 
   bool handleUndoShortcut() {
+    if (_prefabGesture.hasActiveOperation) {
+      setState(_prefabGesture.cancel);
+      return true;
+    }
     if (_compositionOperationActive) return false;
     final authoring = _authoring;
     if (authoring != null) return authoring.undo();
@@ -119,6 +131,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   }
 
   bool handleRedoShortcut() {
+    if (_prefabGesture.hasActiveOperation) return false;
     if (_compositionOperationActive) return false;
     final authoring = _authoring;
     if (authoring != null) return authoring.redo();
@@ -554,8 +567,10 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
               onOperationChanged: _setCompositionOperationActive,
               selectedPrefabKey: _sceneCoordinator.selectedPrefabKey,
               selectedMarkerKey: _sceneCoordinator.selectedMarkerKey,
-              onPrefabSelected: (selection) =>
-                  setState(() => _sceneCoordinator.selectPrefab(selection)),
+              onPrefabSelected: (selection) => setState(() {
+                _prefabGesture.setTool(ChunkPrefabSceneTool.select);
+                _sceneCoordinator.selectPrefab(selection);
+              }),
               onMarkerSelected: (selection) => setState(() {
                 _sceneCoordinator.selectMarker(selection);
                 _refreshMarkerPlacementProjection();
@@ -729,13 +744,41 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                         ? null
                         : (_) => authoring.setTool(tool),
                   )
-              else
-                ChoiceChip(
-                  key: ValueKey<String>(
-                    _sceneCoordinator.sourceDomain == ChunkSceneDomain.prefabs
-                        ? 'chunk_prefab_tool_select'
-                        : 'chunk_marker_tool_select',
+              else if (_sceneCoordinator.sourceDomain ==
+                  ChunkSceneDomain.prefabs) ...<Widget>[
+                for (final tool in ChunkPrefabSceneTool.values)
+                  ChoiceChip(
+                    key: ValueKey<String>('chunk_prefab_tool_${tool.name}'),
+                    label: Text(_prefabToolLabel(tool)),
+                    selected: _prefabGesture.tool == tool,
+                    onSelected:
+                        _prefabGesture.hasActiveOperation ||
+                            (tool == ChunkPrefabSceneTool.place &&
+                                _selectedCatalogPrefab(scene) == null)
+                        ? null
+                        : (_) => setState(() => _prefabGesture.setTool(tool)),
                   ),
+                DropdownButton<String>(
+                  key: const ValueKey<String>('chunk_prefab_catalog_selector'),
+                  value: _selectedCatalogPrefab(scene)?.prefabKey,
+                  hint: const Text('No active prefab'),
+                  items: _activePrefabCatalog(scene)
+                      .map(
+                        (prefab) => DropdownMenuItem<String>(
+                          value: prefab.prefabKey,
+                          child: Text(prefab.id),
+                        ),
+                      )
+                      .toList(growable: false),
+                  onChanged: _prefabGesture.hasActiveOperation
+                      ? null
+                      : (prefabKey) => setState(
+                          () => _selectedPrefabCatalogKey = prefabKey,
+                        ),
+                ),
+              ] else
+                ChoiceChip(
+                  key: const ValueKey<String>('chunk_marker_tool_select'),
                   label: const Text('Select'),
                   selected: true,
                   onSelected: (_) {},
@@ -804,12 +847,32 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                 tileData: scene.tileData,
                 visualBoundsByPrefabKey: scene.visualBoundsByPrefabKey,
               );
+              final hiddenPrefabSourceIndex = _prefabGesture.hiddenSourceIndex;
               final belowTerrainVisuals = visualProjection
                   .belowTerrain(chunk.groundBandZIndex)
+                  .where(
+                    (placement) =>
+                        placement.sourceIndex != hiddenPrefabSourceIndex,
+                  )
                   .toList(growable: false);
               final atOrAboveTerrainVisuals = visualProjection
                   .atOrAboveTerrain(chunk.groundBandZIndex)
+                  .where(
+                    (placement) =>
+                        placement.sourceIndex != hiddenPrefabSourceIndex,
+                  )
                   .toList(growable: false);
+              final prefabCandidate = _prefabGesture.candidate;
+              final prefabCandidateVisual = prefabCandidate == null
+                  ? null
+                  : ChunkSceneVisualProjection.fromChunk(
+                      chunk: chunk.copyWith(
+                        prefabs: <PlacedPrefabDef>[prefabCandidate],
+                      ),
+                      prefabData: scene.prefabData,
+                      tileData: scene.tileData,
+                      visualBoundsByPrefabKey: scene.visualBoundsByPrefabKey,
+                    ).placements.single;
               final transform = TerrainPolygonViewportTransform(
                 origin:
                     Offset(
@@ -912,6 +975,20 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                             transform: transform,
                           ),
                         ),
+                      if (prefabCandidateVisual != null)
+                        Opacity(
+                          key: const ValueKey<String>(
+                            'chunk_prefab_gesture_preview',
+                          ),
+                          opacity: 0.6,
+                          child: ChunkSceneVisualSource(
+                            workspaceRootPath: widget.controller.workspacePath,
+                            placements: <ChunkScenePlacedVisual>[
+                              prefabCandidateVisual,
+                            ],
+                            transform: transform,
+                          ),
+                        ),
                       if (actorProjection != null)
                         CustomPaint(
                           key: const ValueKey<String>(
@@ -953,13 +1030,20 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                       ? (point) =>
                             _inspectCompiledEdge(authoring, worldPoint: point)
                       : null,
-                  onSelectWorldPoint: (point) => _selectSceneElement(
-                    visualProjection,
-                    authoring.chunk,
-                    point,
+                  onBeginDomainGesture: (pointer, point) => _beginDomainGesture(
+                    scene: scene,
+                    visualProjection: visualProjection,
+                    chunk: authoring.chunk,
+                    pointer: pointer,
+                    worldPoint: point,
                   ),
-                  onClearSelection: () =>
-                      setState(_sceneCoordinator.clearSelection),
+                  onUpdateDomainGesture: (pointer, point) =>
+                      _updateDomainGesture(pointer, point),
+                  onEndDomainGesture: (pointer, point) =>
+                      _endDomainGesture(pointer, point),
+                  onCancelDomainGesture: _cancelDomainGesture,
+                  onClearSelection: _cancelGestureOrClearSelection,
+                  onDeleteSelection: _deleteSceneSelection,
                   onPanDelta: (delta) => setState(() => _pan += delta),
                   onZoomSteps: (steps) {
                     _setZoom(_zoom + steps * _zoomStep);
@@ -2189,6 +2273,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
 
   void _bindOwner(String chunkKey) {
     _disposeAuthoring();
+    _prefabGesture.cancel();
     _selectedChunkKey = chunkKey;
     _sceneCoordinator.bindOwner();
     _actorProjectionExpansion = null;
@@ -2321,6 +2406,173 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       case ChunkSceneDomain.terrain || ChunkSceneDomain.compiledEdgeInspection:
         break;
     }
+  }
+
+  bool _beginDomainGesture({
+    required ChunkV2Scene scene,
+    required ChunkSceneVisualProjection visualProjection,
+    required ChunkV2FileData chunk,
+    required int pointer,
+    required Offset worldPoint,
+  }) {
+    switch (_sceneCoordinator.domain) {
+      case ChunkSceneDomain.prefabs:
+        switch (_prefabGesture.tool) {
+          case ChunkPrefabSceneTool.select:
+            _selectSceneElement(visualProjection, chunk, worldPoint);
+            return false;
+          case ChunkPrefabSceneTool.place:
+            final prefab = _selectedCatalogPrefab(scene);
+            if (prefab == null) return false;
+            var began = false;
+            setState(() {
+              began = _prefabGesture.beginPlace(
+                pointer: pointer,
+                worldPoint: worldPoint,
+                chunk: chunk,
+                prefab: prefab,
+              );
+              if (began) _sceneCoordinator.clearSelection();
+            });
+            return began;
+          case ChunkPrefabSceneTool.move:
+            final hit = visualProjection.hitTestPrefab(worldPoint);
+            final selection = hit == null
+                ? null
+                : resolveChunkPrefabSelection(chunk.prefabs, hit.selectionKey);
+            var began = false;
+            setState(() {
+              _sceneCoordinator.selectPrefab(selection);
+              if (selection != null) {
+                began = _prefabGesture.beginMove(
+                  pointer: pointer,
+                  worldPoint: worldPoint,
+                  chunk: chunk,
+                  selection: selection,
+                );
+              }
+            });
+            return began;
+        }
+      case ChunkSceneDomain.markers:
+        _selectSceneElement(visualProjection, chunk, worldPoint);
+        return false;
+      case ChunkSceneDomain.terrain || ChunkSceneDomain.compiledEdgeInspection:
+        return false;
+    }
+  }
+
+  void _updateDomainGesture(int pointer, Offset worldPoint) {
+    if (!_prefabGesture.hasActiveOperation) return;
+    setState(
+      () => _prefabGesture.update(pointer: pointer, worldPoint: worldPoint),
+    );
+  }
+
+  void _endDomainGesture(int pointer, Offset worldPoint) {
+    if (!_prefabGesture.hasActiveOperation) return;
+    late final ChunkPrefabGestureResult? result;
+    setState(() {
+      result = _prefabGesture.finish(pointer: pointer, worldPoint: worldPoint);
+    });
+    if (result != null) _dispatchPrefabGestureResult(result!);
+  }
+
+  void _cancelDomainGesture(int pointer) {
+    if (!_prefabGesture.hasActiveOperation) return;
+    setState(_prefabGesture.cancel);
+  }
+
+  void _cancelGestureOrClearSelection() {
+    setState(() {
+      if (!_prefabGesture.cancel()) _sceneCoordinator.clearSelection();
+    });
+  }
+
+  void _deleteSceneSelection() {
+    if (_sceneCoordinator.domain != ChunkSceneDomain.prefabs ||
+        _prefabGesture.hasActiveOperation) {
+      return;
+    }
+    final authoring = _authoring;
+    final key = _sceneCoordinator.selectedPrefabKey;
+    if (authoring == null || key == null) return;
+    final selection = resolveChunkPrefabSelection(authoring.chunk.prefabs, key);
+    if (selection == null) return;
+    final operation = ChunkV2CompositionOperation.delete(
+      chunk: authoring.chunk,
+      target: ChunkV2CompositionTarget.prefabs,
+      sourceIndex: selection.sourceIndex,
+      presentationKey: selection.selectionKey,
+    );
+    final commit = operation.buildPrefab();
+    if (commit == null) return;
+    _dispatchPrefabGestureResult(
+      ChunkPrefabGestureResult(candidate: selection.prefab, commit: commit),
+      deleted: true,
+    );
+  }
+
+  void _dispatchPrefabGestureResult(
+    ChunkPrefabGestureResult result, {
+    bool deleted = false,
+  }) {
+    final commit = result.commit;
+    if (commit == null) return;
+    final beforeDocument = widget.controller.document;
+    widget.controller.applyCommand(
+      AuthoringCommand(
+        kind: ChunkDomainPlugin.commitChunkCompositionCommandKind,
+        payload: <String, Object?>{
+          'chunkKey': commit.expectedChunkKey,
+          'commit': commit,
+        },
+      ),
+    );
+    final accepted = !identical(widget.controller.document, beforeDocument);
+    final authoring = _authoring;
+    if (accepted && authoring != null) {
+      setState(() {
+        if (deleted) {
+          _sceneCoordinator.clearSelection();
+          return;
+        }
+        final key = uniqueChunkPrefabSelectionKey(
+          authoring.chunk.prefabs,
+          result.candidate,
+        );
+        _sceneCoordinator.selectPrefab(
+          key == null
+              ? null
+              : resolveChunkPrefabSelection(authoring.chunk.prefabs, key),
+        );
+      });
+      return;
+    }
+    setState(_sceneCoordinator.clearSelection);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Prefab scene change was rejected. Review validation diagnostics '
+          'and retry from the current chunk state.',
+        ),
+      ),
+    );
+  }
+
+  List<PrefabV3Def> _activePrefabCatalog(ChunkV2Scene scene) =>
+      scene.prefabData.prefabs
+          .where((prefab) => prefab.status == PrefabStatus.active)
+          .toList(growable: false)
+        ..sort((left, right) => left.id.compareTo(right.id));
+
+  PrefabV3Def? _selectedCatalogPrefab(ChunkV2Scene scene) {
+    final prefabs = _activePrefabCatalog(scene);
+    if (prefabs.isEmpty) return null;
+    return prefabs
+            .where((prefab) => prefab.prefabKey == _selectedPrefabCatalogKey)
+            .firstOrNull ??
+        prefabs.first;
   }
 
   void _selectMarkerByKey({
@@ -2498,6 +2750,12 @@ String _toolLabel(TerrainPolygonTool tool) => switch (tool) {
   TerrainPolygonTool.moveVertex => 'Move vertex',
   TerrainPolygonTool.insertVertex => 'Insert vertex',
   TerrainPolygonTool.translateShape => 'Move shape',
+};
+
+String _prefabToolLabel(ChunkPrefabSceneTool tool) => switch (tool) {
+  ChunkPrefabSceneTool.select => 'Select',
+  ChunkPrefabSceneTool.place => 'Place',
+  ChunkPrefabSceneTool.move => 'Move',
 };
 
 String _terrainActorLabel(ChunkV2TerrainActor actor) => switch (actor) {

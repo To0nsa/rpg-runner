@@ -614,7 +614,16 @@ paint order, including the source-index tie break; marker anchor hit testing
 reverses canonical source order and never targets resolved placement evidence.
 Selection overlays and card expansion are route-local presentation state and
 cannot create revisions, history entries, or pending diffs. Composition still
-uses the existing dialogs until the direct prefab and marker gesture phases.
+uses the existing dialogs for exact and non-spatial fields. Prefab select,
+place, and move tools use `ChunkPrefabSceneGesture`: pointer-down captures the
+current composition operation token, pointer movement changes only a local
+candidate, and pointer-up returns at most one existing
+`ChunkV2CompositionCommit`. Grid-enabled anchors quantize to the current
+chunk's tile size; free anchors quantize to integer pixels; exact form fields
+preserve entered integer pixels. Both policies use deterministic half ties away
+from zero. Rejection restores the accepted projection without revision,
+history, or pending-diff changes. Marker source manipulation remains dialog-only
+until its direct gesture phase.
 Reload and confirmed current-source apply route through the normal session and
 transactional store. Active-level changes still use the plugin command and
 rebind to the first canonical owner in the new scene. Owner changes dispose the

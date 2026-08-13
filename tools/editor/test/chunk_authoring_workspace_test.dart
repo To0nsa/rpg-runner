@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:runner_editor/src/app/pages/chunkCreator/chunk_creator_page.dart';
@@ -730,6 +731,186 @@ void main() {
             as ChunkMarkerPlacementOverlayPainter;
     expect(markerPainter.selectedMarkerKey, 'hashash|40|5|0');
     expect(harness.session.pendingChanges.hasChanges, isFalse);
+  });
+
+  testWidgets('direct prefab placement previews locally and commits once', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1800, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final harness = await _buildHarness();
+    addTearDown(harness.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.dark(),
+        home: Scaffold(body: ChunkCreatorPage(controller: harness.session)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final domainSelector = tester.widget<SegmentedButton<ChunkSceneDomain>>(
+      find.byKey(const ValueKey<String>('chunk_scene_domain_selector')),
+    );
+    domainSelector.onSelectionChanged!(<ChunkSceneDomain>{
+      ChunkSceneDomain.prefabs,
+    });
+    await tester.pump();
+    final placeTool = find.byKey(
+      const ValueKey<String>('chunk_prefab_tool_place'),
+    );
+    tester.widget<ChoiceChip>(placeTool).onSelected!(true);
+    await tester.pump();
+
+    final surfaceFinder = find.byKey(
+      const ValueKey<String>('chunk_scene_surface'),
+    );
+    final sceneSurface = tester.widget<ChunkSceneSurface>(
+      find.ancestor(
+        of: surfaceFinder,
+        matching: find.byType(ChunkSceneSurface),
+      ),
+    );
+    Offset scenePoint(double x, double y) =>
+        tester.getTopLeft(surfaceFinder) +
+        sceneSurface.transform.origin +
+        Offset(
+          x * sceneSurface.transform.zoom,
+          y * sceneSurface.transform.zoom,
+        );
+    final gesture = await tester.startGesture(scenePoint(64, 32));
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey<String>('chunk_prefab_gesture_preview')),
+      findsOneWidget,
+    );
+    expect(_chunk(harness.session, 'forest_chunk').revision, 4);
+    expect(_chunk(harness.session, 'forest_chunk').prefabs, hasLength(1));
+    expect(harness.session.pendingChanges.hasChanges, isFalse);
+    expect(
+      tester
+          .widget<OutlinedButton>(
+            find.byKey(const ValueKey<String>('chunk_polygon_undo_button')),
+          )
+          .onPressed,
+      isNotNull,
+    );
+
+    await gesture.moveTo(scenePoint(80, 32));
+    await tester.pump();
+    expect(_chunk(harness.session, 'forest_chunk').revision, 4);
+    expect(_chunk(harness.session, 'forest_chunk').prefabs, hasLength(1));
+
+    await gesture.up();
+    await tester.pump();
+    final accepted = _chunk(harness.session, 'forest_chunk');
+    expect(accepted.revision, 5);
+    expect(accepted.prefabs, hasLength(2));
+    expect(
+      accepted.prefabs.where((placement) => placement.x == 80).single.y,
+      32,
+    );
+    expect(harness.session.pendingChanges.hasChanges, isTrue);
+    expect(
+      find.byKey(const ValueKey<String>('chunk_prefab_gesture_preview')),
+      findsNothing,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('chunk_polygon_undo_button')),
+    );
+    await tester.pump();
+    expect(_chunk(harness.session, 'forest_chunk').revision, 4);
+    expect(_chunk(harness.session, 'forest_chunk').prefabs, hasLength(1));
+    expect(harness.session.pendingChanges.hasChanges, isFalse);
+
+    final rejected = await tester.startGesture(scenePoint(112, 64));
+    await rejected.up();
+    await tester.pump();
+    expect(_chunk(harness.session, 'forest_chunk').revision, 4);
+    expect(_chunk(harness.session, 'forest_chunk').prefabs, hasLength(1));
+    expect(harness.session.pendingChanges.hasChanges, isFalse);
+    expect(find.textContaining('Prefab scene change was rejected'), findsOne);
+  });
+
+  testWidgets('direct prefab move cancels cleanly then accepts one drag', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1800, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final harness = await _buildHarness();
+    addTearDown(harness.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.dark(),
+        home: Scaffold(body: ChunkCreatorPage(controller: harness.session)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    tester
+        .widget<SegmentedButton<ChunkSceneDomain>>(
+          find.byKey(const ValueKey<String>('chunk_scene_domain_selector')),
+        )
+        .onSelectionChanged!(<ChunkSceneDomain>{ChunkSceneDomain.prefabs});
+    await tester.pump();
+    tester
+        .widget<ChoiceChip>(
+          find.byKey(const ValueKey<String>('chunk_prefab_tool_move')),
+        )
+        .onSelected!(true);
+    await tester.pump();
+
+    final surfaceFinder = find.byKey(
+      const ValueKey<String>('chunk_scene_surface'),
+    );
+    final surface = tester.widget<ChunkSceneSurface>(
+      find.ancestor(
+        of: surfaceFinder,
+        matching: find.byType(ChunkSceneSurface),
+      ),
+    );
+    Offset point(double x, double y) =>
+        tester.getTopLeft(surfaceFinder) +
+        surface.transform.origin +
+        Offset(x * surface.transform.zoom, y * surface.transform.zoom);
+
+    final cancelled = await tester.startGesture(point(95, 10));
+    await cancelled.moveTo(point(80, 16));
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey<String>('chunk_prefab_gesture_preview')),
+      findsOneWidget,
+    );
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pump();
+    await cancelled.up();
+    await tester.pump();
+    expect(_chunk(harness.session, 'forest_chunk').revision, 4);
+    expect(_chunk(harness.session, 'forest_chunk').prefabs.single.x, 95);
+    expect(harness.session.pendingChanges.hasChanges, isFalse);
+
+    final accepted = await tester.startGesture(point(95, 10));
+    await accepted.moveTo(point(80, 16));
+    await accepted.up();
+    await tester.pump();
+    final moved = _chunk(harness.session, 'forest_chunk');
+    expect(moved.revision, 5);
+    expect(moved.prefabs.single.x, 80);
+    expect(moved.prefabs.single.y, 16);
+    expect(harness.session.pendingChanges.hasChanges, isTrue);
+    final expanded = (harness.session.scene as ChunkV2Scene)
+        .collisionExpansionByChunkKey['forest_chunk']!
+        .expansion!
+        .expandedPrefabShapes
+        .single;
+    expect(expanded.placementX, 80);
+    expect(expanded.placementY, 16);
   });
 
   testWidgets('selected chunk shapes show their metadata subsection', (

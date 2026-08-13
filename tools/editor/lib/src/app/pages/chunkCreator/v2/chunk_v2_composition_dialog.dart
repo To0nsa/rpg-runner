@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:runner_core/enemies/enemy_id.dart';
 
 import '../../../../chunks/chunk_domain_models.dart';
+import '../../../../chunks/chunk_scene_coordinate_policy.dart';
 import '../../../../chunks/chunk_v2_file_data.dart';
 import '../../../../prefabs/models/models.dart';
 
@@ -337,8 +338,12 @@ final class _ChunkV2PlacementDialogState
       PlacedPrefabDef(
         prefabId: prefab.id,
         prefabKey: prefab.prefabKey,
-        x: int.parse(_xController.text.trim()),
-        y: int.parse(_yController.text.trim()),
+        x: preserveChunkExactPixelCoordinate(
+          int.parse(_xController.text.trim()),
+        ),
+        y: preserveChunkExactPixelCoordinate(
+          int.parse(_yController.text.trim()),
+        ),
         zIndex: int.parse(_zIndexController.text.trim()),
         snapToGrid: _snapToGrid,
         scale: _scale,

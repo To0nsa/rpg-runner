@@ -1,7 +1,7 @@
 # Unified Chunk Scene Implementation Checklist
 
 Date: August 14, 2026
-Status: In progress; Milestone 1 and Phases 2-3 complete, Phase 4 next
+Status: In progress; Milestone 1 and Phases 2-4 complete, Phase 5 next
 
 Source strategy:
 [Unified Chunk Scene Strategy](unified-chunk-scene-strategy.md)
@@ -548,56 +548,56 @@ the plugin-owned command and validation path.
 
 ### Prefab tools and draft state
 
-- [ ] Add explicit prefab select/place/move tools as accepted in Phase 0.
-- [ ] Start placement from a valid active prefab catalog selection.
-- [ ] Preserve the current new-placement defaults unless the author changes
+- [x] Add explicit prefab select/place/move tools as accepted in Phase 0.
+- [x] Start placement from a valid active prefab catalog selection.
+- [x] Preserve the current new-placement defaults unless the author changes
       them before placement: z-index `0`, snap enabled, default scale, and no
       flips.
-- [ ] Render a local placement ghost before commit.
-- [ ] Capture the Phase 2 composition snapshot, canonical source index, and
+- [x] Render a local placement ghost before commit.
+- [x] Capture the Phase 2 composition snapshot, canonical source index, and
       presentation key on pointer-down when moving an existing placement; both
       move and add also capture owner key and expected revision, while a new
       placement has no target index.
-- [ ] Apply the Phase 0 coordinate helper: snap the authored anchor to
+- [x] Apply the Phase 0 coordinate helper: snap the authored anchor to
       `chunk.tileSize` when `snapToGrid` is true and to integer source pixels
       otherwise, with ties away from zero.
-- [ ] Keep bounds, scale, flip, anchor, and complete-candidate acceptance on the
+- [x] Keep bounds, scale, flip, anchor, and complete-candidate acceptance on the
       existing projection and Chunk plugin validation path.
-- [ ] Keep pointer-move updates local to the gesture draft.
-- [ ] Cancel cleanly on `Escape`, pointer cancellation, or stale rejection.
-- [ ] Block owner switch, reload, apply, and route-switch attempts without
+- [x] Keep pointer-move updates local to the gesture draft.
+- [x] Cancel cleanly on `Escape`, pointer cancellation, or stale rejection.
+- [x] Block owner switch, reload, apply, and route-switch attempts without
       discarding the active preview; require an explicit commit or cancel.
 
 ### Commit and projection parity
 
-- [ ] Build one existing `ChunkV2CompositionCommit` on pointer-up.
-- [ ] Validate the complete candidate through the Chunk plugin.
-- [ ] Increment revision/history/pending diff exactly once on acceptance.
-- [ ] Restore the current document projection and clear invalid selection on
+- [x] Build one existing `ChunkV2CompositionCommit` on pointer-up.
+- [x] Validate the complete candidate through the Chunk plugin.
+- [x] Increment revision/history/pending diff exactly once on acceptance.
+- [x] Restore the current document projection and clear invalid selection on
       rejection.
-- [ ] Refresh placed visuals and expanded prefab collision from the same
+- [x] Refresh placed visuals and expanded prefab collision from the same
       accepted candidate.
-- [ ] Keep existing dialog/inspector edits on the same canonical result.
-- [ ] Make exact coordinate entry use the shared policy's validation branch;
+- [x] Keep existing dialog/inspector edits on the same canonical result.
+- [x] Make exact coordinate entry use the shared policy's validation branch;
       preserve explicit integer pixels without silent rounding. Preserve
       z-index, scale, flips, and the `snapToGrid` control, which affects the next
       direct gesture.
-- [ ] Use the Phase 3 z-index/canonical-order hit-test rule when visuals overlap.
+- [x] Use the Phase 3 z-index/canonical-order hit-test rule when visuals overlap.
 
 ### Phase 4 tests
 
-- [ ] Add place-preview-cancel and place-preview-accept tests.
-- [ ] Add move-preview-cancel and move-preview-accept tests.
-- [ ] Assert no session command occurs during pointer movement.
-- [ ] Assert one accepted drag creates one revision and one undo entry.
-- [ ] Add rejection tests for bounds, missing prefab, stale snapshot, and invalid
+- [x] Add place-preview-cancel and place-preview-accept tests.
+- [x] Add move-preview-cancel and move-preview-accept tests.
+- [x] Assert no session command occurs during pointer movement.
+- [x] Assert one accepted drag creates one revision and one undo entry.
+- [x] Add rejection tests for bounds, missing prefab, stale snapshot, and invalid
       transform.
-- [ ] Add scale/flip/anchor projection parity tests.
-- [ ] Add tile-size-snap, integer-pixel, negative half-tie, and positive
+- [x] Add scale/flip/anchor projection parity tests.
+- [x] Add tile-size-snap, integer-pixel, negative half-tie, and positive
       half-tie gesture tests, plus exact off-grid inspector override coverage.
-- [ ] Add a regression proving load/layout migration never rewrites existing
+- [x] Add a regression proving load/layout migration never rewrites existing
       placement coordinates.
-- [ ] Add expanded-collision refresh tests.
+- [x] Add expanded-collision refresh tests.
 - [ ] Add dialog versus scene canonical-output parity tests.
 - [ ] Extend the realistic scene performance fixture with representative prefab
       placement counts.

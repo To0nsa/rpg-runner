@@ -171,7 +171,7 @@ class ChunkCompositionCard extends StatelessWidget {
               'chunk_v2_placement_${selection.selectionKey}',
             ),
             isSelected: selection.selectionKey == selectedPrefabKey,
-            onTap: () => onPrefabSelected(selection),
+            onTap: controlsEnabled ? () => onPrefabSelected(selection) : null,
             trailing: _EditDeleteActions(
               editKey: 'chunk_v2_placement_edit_${selection.selectionKey}',
               deleteKey: 'chunk_v2_placement_delete_${selection.selectionKey}',
@@ -213,7 +213,7 @@ class ChunkCompositionCard extends StatelessWidget {
           EditorListCard(
             key: ValueKey<String>('chunk_v2_marker_${selection.selectionKey}'),
             isSelected: selection.selectionKey == selectedMarkerKey,
-            onTap: () => onMarkerSelected(selection),
+            onTap: controlsEnabled ? () => onMarkerSelected(selection) : null,
             trailing: _EditDeleteActions(
               editKey: 'chunk_v2_marker_edit_${selection.selectionKey}',
               deleteKey: 'chunk_v2_marker_delete_${selection.selectionKey}',

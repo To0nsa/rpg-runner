@@ -24,6 +24,10 @@ class ChunkSceneSurface extends StatefulWidget {
     this.onZoomSteps,
     this.onInspectWorldPoint,
     this.onSelectWorldPoint,
+    this.onBeginDomainGesture,
+    this.onUpdateDomainGesture,
+    this.onEndDomainGesture,
+    this.onCancelDomainGesture,
     this.onClearSelection,
     this.onDeleteSelection,
     this.onCompleteOperation,
@@ -41,6 +45,10 @@ class ChunkSceneSurface extends StatefulWidget {
   final ValueChanged<int>? onZoomSteps;
   final ValueChanged<Offset>? onInspectWorldPoint;
   final ValueChanged<Offset>? onSelectWorldPoint;
+  final bool Function(int pointer, Offset worldPoint)? onBeginDomainGesture;
+  final void Function(int pointer, Offset worldPoint)? onUpdateDomainGesture;
+  final void Function(int pointer, Offset worldPoint)? onEndDomainGesture;
+  final ValueChanged<int>? onCancelDomainGesture;
   final VoidCallback? onClearSelection;
   final VoidCallback? onDeleteSelection;
   final VoidCallback? onCompleteOperation;
@@ -56,6 +64,7 @@ class _ChunkSceneSurfaceState extends State<ChunkSceneSurface> {
   late final FocusNode _focusNode;
   int? _gesturePointer;
   int? _panPointer;
+  int? _domainGesturePointer;
 
   @override
   void initState() {
@@ -114,6 +123,7 @@ class _ChunkSceneSurfaceState extends State<ChunkSceneSurface> {
     if (SceneInputUtils.shouldPanWithPrimaryDrag(event.buttons)) {
       _panPointer = event.pointer;
       _gesturePointer = null;
+      _domainGesturePointer = null;
       return;
     }
     final point = widget.transform.canvasToSource(event.localPosition);
@@ -123,7 +133,14 @@ class _ChunkSceneSurfaceState extends State<ChunkSceneSurface> {
         widget.onInspectWorldPoint?.call(worldPoint);
         return;
       case ChunkSceneDomain.prefabs || ChunkSceneDomain.markers:
-        widget.onSelectWorldPoint?.call(worldPoint);
+        final began =
+            widget.onBeginDomainGesture?.call(event.pointer, worldPoint) ??
+            false;
+        if (began) {
+          _domainGesturePointer = event.pointer;
+        } else {
+          widget.onSelectWorldPoint?.call(worldPoint);
+        }
         return;
       case ChunkSceneDomain.terrain:
         break;
@@ -177,6 +194,13 @@ class _ChunkSceneSurfaceState extends State<ChunkSceneSurface> {
       widget.onPanDelta?.call(event.delta);
       return;
     }
+    if (_domainGesturePointer == event.pointer) {
+      widget.onUpdateDomainGesture?.call(
+        event.pointer,
+        _worldPoint(event.localPosition),
+      );
+      return;
+    }
     if (_gesturePointer != event.pointer) return;
     widget.controller.updateGesture(
       pointer: event.pointer,
@@ -189,6 +213,14 @@ class _ChunkSceneSurfaceState extends State<ChunkSceneSurface> {
       _panPointer = null;
       return;
     }
+    if (_domainGesturePointer == event.pointer) {
+      _domainGesturePointer = null;
+      widget.onEndDomainGesture?.call(
+        event.pointer,
+        _worldPoint(event.localPosition),
+      );
+      return;
+    }
     if (_gesturePointer != event.pointer) return;
     _gesturePointer = null;
     widget.controller.commitGesture(event.pointer);
@@ -196,6 +228,10 @@ class _ChunkSceneSurfaceState extends State<ChunkSceneSurface> {
 
   void _handlePointerCancel(PointerCancelEvent event) {
     if (_panPointer == event.pointer) _panPointer = null;
+    if (_domainGesturePointer == event.pointer) {
+      _domainGesturePointer = null;
+      widget.onCancelDomainGesture?.call(event.pointer);
+    }
     if (_gesturePointer != event.pointer) return;
     _gesturePointer = null;
     widget.controller.cancelActiveOperation();
@@ -211,6 +247,7 @@ class _ChunkSceneSurfaceState extends State<ChunkSceneSurface> {
     final controller = widget.controller;
     if (event.logicalKey == LogicalKeyboardKey.escape) {
       _gesturePointer = null;
+      _domainGesturePointer = null;
       if (widget.activeDomain == ChunkSceneDomain.terrain) {
         controller.cancelActiveOperation();
       } else {
@@ -239,5 +276,10 @@ class _ChunkSceneSurfaceState extends State<ChunkSceneSurface> {
       return KeyEventResult.handled;
     }
     return KeyEventResult.ignored;
+  }
+
+  Offset _worldPoint(Offset localPosition) {
+    final point = widget.transform.canvasToSource(localPosition);
+    return Offset(point.xHalfPixels * 0.5, point.yHalfPixels * 0.5);
   }
 }

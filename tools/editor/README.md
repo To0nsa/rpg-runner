@@ -217,6 +217,13 @@ scene; the old terrain/composition tabs do not return. Expanding or collapsing
 cards and their natural-height sections changes presentation only, not the
 selected owner, terrain draft, viewport, history, or pending source state.
 
+The scene domain selector makes primary input explicit. The Prefabs domain has
+Select, Place, and Move tools backed by the active prefab catalog. Place and
+move drags show a local ghost, then submit one normal validated composition
+command on release; Escape cancels without changing source. Grid-enabled
+placements snap to the chunk tile size, while exact placement fields remain
+integer-pixel overrides in the existing dialog.
+
 Owner lifecycle and direct terrain collision remain in the first card. The
 second card retains the visual-stack summary and validated dialog workflows for
 tile-layer metadata, prefab placements, and enemy markers. `TileLayerDef` is
