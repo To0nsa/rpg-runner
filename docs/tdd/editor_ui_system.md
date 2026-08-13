@@ -50,9 +50,12 @@ or fixed three-panel labels; the former prefab-only card shells and spacing
 registry have been removed.
 
 Chunk, Prefab, and Level root workspaces use `EditorWorkspaceCard`. Chunk
-composition is embedded in the second Chunk sidebar card and retains its
-validated dialog actions. Chunk and Prefab owner and shape rows, plus Chunk
-composition records, use `EditorListCard`; evidence and diagnostic cards remain
+composition is embedded in the second Chunk sidebar card. Its rows and retained
+dialogs share typed selection and the same validated composition command with
+the scene's direct prefab and marker gestures. The scene owns the explicit
+Terrain, Prefabs, or Markers input domain; compiled-edge inspection is a
+read-only mode. Chunk and Prefab owner and shape rows, plus Chunk composition
+records, use `EditorListCard`; evidence and diagnostic cards remain
 route-specific because they communicate status instead of list ownership.
 Explanatory route-intro cards compose the same panel shell. The fail-closed
 polygon-migration route keeps its specialized warning content inside the shared

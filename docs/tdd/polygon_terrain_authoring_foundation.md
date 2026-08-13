@@ -78,7 +78,7 @@ Final Phase 4 acceptance work remains tracked in
 | Guarded migration write transaction | editor `WorkspaceWriteTransaction` / `PolygonAuthoringMigrationTransaction` | explicit CLI `--write`, rollback/no-op evidence, and the completed nine-file source cutover |
 | Strict chunk-v2 file structure, canonical serialization, and ownership planning | editor `ChunkV2FileData` / `ChunkV2FileCodec` / `ChunkStore.buildV2SavePlan` | migration facade delegation plus normal complete-current-tree load, pending plans, rollback-safe apply, and exact reload |
 | Chunk-v2 plugin validation, mutation, and lifecycle policy | editor `ChunkV2Document` / `ChunkV2CollisionCommitPolicy` / `ChunkV2MetadataCommitPolicy` / `ChunkV2CompositionCommitPolicy` / `ChunkV2CompositionOperation` / `ChunkV2LifecycleCommitPolicy` / `ChunkDomainPlugin` | normal strict current-source composition; complete Core/editor validation; owner/revision/snapshot freshness, operation-scoped canonical targeting, ordering, typed polygon/metadata/composition/lifecycle commits, and transactional export |
-| Chunk route-local projection | editor `ChunkAuthoringWorkspace` / `ChunkPolygonAuthoringController` / `ChunkPolygonSceneSurface` | persistent complete-v2 scene and two-card sidebar, active-level owner isolation, tools, snap, bounds, diagnostics, keyboard, rejection, history, compiled-edge inspection, actor-terrain, and marker-placement overlays; legacy/missing source selects no ground/gap workflow |
+| Chunk route-local projection | editor `ChunkAuthoringWorkspace` / `ChunkSceneCoordinator` / `ChunkSceneSurface` / `ChunkPolygonAuthoringController` | persistent complete-v2 scene and two-card sidebar, typed domain routing, direct terrain/prefab/marker tools, snap, bounds, diagnostics, keyboard, rejection, history, compiled-edge inspection, actor-terrain, and marker-placement overlays; legacy/missing source selects no ground/gap workflow |
 | Chunk level visual preview | editor `ChunkV2Document` / `ChunkV2Scene` / `ChunkPolygonLevelVisualSource` | `ChunkDomainPlugin` reads the parallax theme set, resolves the active level's `visualThemeId`, and renders its background/foreground around read-only terrain material art selected by direct polygon `materialKey`; it adds no source mutation or gameplay authority |
 | Chunk actor terrain projection | editor `ChunkV2ActorTerrainProjection` | Core surface extraction; Éloïse/Grojib/Hashash eligibility; published Grojib/Hashash graphs; Unoco solid/local-hover evidence; Derf 15-degree/32-pixel perch evidence; no player/flight graph or source mutation |
 | Chunk marker contract and placement projection | editor `chunk_v2_marker_contract.dart` / `ChunkV2MarkerPlacementProjection` | immutable level ground context, staged marker validation, exact Phase 3 enemy placement evidence, Hashash deferral, authored-order/stable-key retention, and zero RNG/source mutation |
@@ -633,6 +633,15 @@ stale Core evidence. The marker-evidence toggle controls those resolved facts;
 authored anchors remain visible whenever the marker domain is active. Accepted
 commands rebuild the Core placement projection, while unsupported, deferred,
 disabled, malformed, and rejected outcomes remain read-only diagnostics.
+
+The realistic Windows profile fixture renders 16 direct shapes, 43 placed
+prefabs, 256 compiled edges, and 24 marker outcomes while dragging terrain.
+The unified workspace fingerprints only sidebar-relevant controller state, so
+pointer-only terrain previews repaint through `ChunkSceneSurface` without
+rebuilding the owner/composition sidebar. Marker placement evidence is also
+cached by accepted chunk, actor-terrain projection, and ground-top input. The
+August 14, 2026 profile run reports vertex/shape update p95 of `239/242 us`,
+build p99 of `1.866/1.854 ms`, and no missed input, build, or raster budget.
 Reload and confirmed current-source apply route through the normal session and
 transactional store. Active-level changes still use the plugin command and
 rebind to the first canonical owner in the new scene. Owner changes dispose the

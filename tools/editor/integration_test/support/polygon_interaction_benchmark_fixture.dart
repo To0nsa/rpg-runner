@@ -36,6 +36,7 @@ final class PolygonInteractionBenchmarkFixture {
   static const int directShapeCount = 16;
   static const int selectedShapeVertexCount = 24;
   static const int placedPrefabCount = 43;
+  static const int markerCount = 24;
   static const int compiledEdgeCount = 256;
 
   final ChunkV2Document document;
@@ -246,7 +247,19 @@ ChunkV2FileData _benchmarkMainChunk() => ChunkV2FileData(
         y: 80 + (index ~/ 15) * 36,
       ),
   ],
-  markers: const <PlacedMarkerDef>[],
+  markers: <PlacedMarkerDef>[
+    for (
+      var index = 0;
+      index < PolygonInteractionBenchmarkFixture.markerCount;
+      index += 1
+    )
+      PlacedMarkerDef(
+        markerId: index.isEven ? 'grojib' : 'hashash',
+        x: 20 + index * 24,
+        y: 200,
+        salt: index,
+      ),
+  ],
   groundBandZIndex: 0,
   collisionShapes: <TerrainSourceShapeDef>[
     _selectedDetailShape(),

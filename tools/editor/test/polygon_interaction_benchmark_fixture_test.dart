@@ -20,6 +20,10 @@ void main() {
       fixture.mainChunk.prefabs,
       hasLength(PolygonInteractionBenchmarkFixture.placedPrefabCount),
     );
+    expect(
+      fixture.mainChunk.markers,
+      hasLength(PolygonInteractionBenchmarkFixture.markerCount),
+    );
     expect(fixture.mainExpansion.expandedPrefabShapes, hasLength(43));
     expect(
       fixture.mainExpansion.geometry.edges,

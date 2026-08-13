@@ -51,6 +51,16 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    final markerEvidenceToggle = tester.widget<FilterChip>(
+      find.byKey(const ValueKey<String>('chunk_marker_placement_toggle')),
+    );
+    markerEvidenceToggle.onSelected!(true);
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey<String>('chunk_marker_placement_overlay')),
+      findsOneWidget,
+    );
+
     final surfaceInputFinder = find.byKey(
       const ValueKey<String>('chunk_scene_surface'),
     );
@@ -141,6 +151,7 @@ void main() {
         'directShapeCount': fixture.mainChunk.collisionShapes.length,
         'selectedShapeVertexCount': selectedShape.vertices.length,
         'placedPrefabCount': fixture.mainChunk.prefabs.length,
+        'markerCount': fixture.mainChunk.markers.length,
         'expandedPrefabShapeCount':
             fixture.mainExpansion.expandedPrefabShapes.length,
         'compiledEdgeCount': fixture.mainExpansion.geometry.edges.length,
@@ -148,6 +159,7 @@ void main() {
         'groundPreviewEnabled': true,
         'expandedCollisionOverlayEnabled': true,
         'compiledEdgeOverlayEnabled': true,
+        'markerPlacementEvidenceEnabled': true,
         'signatures': <String, String>{
           'authoringPolygons': fixture.authoringPolygonSignature,
           'source': fixture.sourceSignature,

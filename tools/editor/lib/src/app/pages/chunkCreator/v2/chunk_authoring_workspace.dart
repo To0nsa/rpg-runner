@@ -94,12 +94,16 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   ChunkV2ActorTerrainProjection? _actorTerrainProjection;
   bool _showMarkerPlacements = false;
   ChunkV2MarkerPlacementProjection? _markerPlacementProjection;
+  ChunkV2FileData? _markerProjectionChunk;
+  ChunkV2ActorTerrainProjection? _markerProjectionTerrain;
+  double? _markerProjectionGroundTopY;
   bool _compositionOperationActive = false;
   final ChunkSceneCoordinator _sceneCoordinator = ChunkSceneCoordinator();
   final ChunkPrefabSceneGesture _prefabGesture = ChunkPrefabSceneGesture();
   final ChunkMarkerSceneGesture _markerGesture = ChunkMarkerSceneGesture();
   String? _selectedPrefabCatalogKey;
   String? _selectedMarkerCatalogId;
+  Object? _authoringUiFingerprint;
 
   bool get _hasActiveOperation =>
       (_authoring?.hasActiveOperation ?? false) ||
@@ -998,7 +1002,8 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                           placements: atOrAboveTerrainVisuals,
                           transform: transform,
                         ),
-                      if (_sceneCoordinator.selectedPrefabKey != null)
+                      if (_sceneCoordinator.selectedPrefabKey != null &&
+                          !_prefabGesture.hasActiveOperation)
                         CustomPaint(
                           key: const ValueKey<String>(
                             'chunk_prefab_selection_overlay',
@@ -2333,11 +2338,15 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     _actorProjectionExpansion = null;
     _actorTerrainProjection = null;
     _markerPlacementProjection = null;
+    _markerProjectionChunk = null;
+    _markerProjectionTerrain = null;
+    _markerProjectionGroundTopY = null;
     _authoring = ChunkPolygonAuthoringController(
       session: widget.controller,
       chunkKey: chunkKey,
       snapPolicy: TerrainPolygonSnapPolicy.ownerGridPixels(1),
     )..addListener(_handleAuthoringChanged);
+    _authoringUiFingerprint = _buildAuthoringUiFingerprint(_authoring!);
     if (_showActorTerrain || _showMarkerPlacements) {
       _refreshActorTerrainProjection();
     }
@@ -2350,6 +2359,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     authoring.removeListener(_handleAuthoringChanged);
     authoring.dispose();
     _authoring = null;
+    _authoringUiFingerprint = null;
   }
 
   void _setCompositionOperationActive(bool active) {
@@ -2359,12 +2369,14 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
 
   void _handleAuthoringChanged() {
     if (!mounted) return;
+    final authoring = _authoring;
+    if (authoring == null) return;
+    final fingerprint = _buildAuthoringUiFingerprint(authoring);
+    if (fingerprint == _authoringUiFingerprint) return;
+    _authoringUiFingerprint = fingerprint;
     setState(() {
-      final authoring = _authoring;
-      if (authoring != null) {
-        _sceneCoordinator.reconcileComposition(authoring.chunk);
-        _sceneCoordinator.selectTerrain(authoring.state.selection);
-      }
+      _sceneCoordinator.reconcileComposition(authoring.chunk);
+      _sceneCoordinator.selectTerrain(authoring.state.selection);
       if (_showActorTerrain || _showMarkerPlacements) {
         _refreshActorTerrainProjection();
       }
@@ -2374,6 +2386,20 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       }
     });
   }
+
+  Object _buildAuthoringUiFingerprint(
+    ChunkPolygonAuthoringController authoring,
+  ) => (
+    chunk: authoring.chunk,
+    tool: authoring.state.tool,
+    selection: authoring.state.selection,
+    draft: authoring.state.draft,
+    gestureActive: authoring.state.gesture != null,
+    issues: authoring.issues,
+    snapStep: authoring.snapPolicy.stepHalfPixels,
+    canUndo: authoring.canUndo,
+    canRedo: authoring.canRedo,
+  );
 
   ChunkV2Document? get _documentOrNull {
     final document = widget.controller.document;
@@ -2407,13 +2433,25 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     final scene = _sceneOrNull;
     if (authoring == null || projection == null || scene == null) {
       _markerPlacementProjection = null;
+      _markerProjectionChunk = null;
+      _markerProjectionTerrain = null;
+      _markerProjectionGroundTopY = null;
+      return;
+    }
+    final groundTopY = scene.groundTopYByLevelId[authoring.chunk.levelId];
+    if (identical(authoring.chunk, _markerProjectionChunk) &&
+        identical(projection, _markerProjectionTerrain) &&
+        groundTopY == _markerProjectionGroundTopY) {
       return;
     }
     _markerPlacementProjection = ChunkV2MarkerPlacementProjection.build(
       chunk: authoring.chunk,
       actorTerrain: projection,
-      levelGroundTopY: scene.groundTopYByLevelId[authoring.chunk.levelId],
+      levelGroundTopY: groundTopY,
     );
+    _markerProjectionChunk = authoring.chunk;
+    _markerProjectionTerrain = projection;
+    _markerProjectionGroundTopY = groundTopY;
     final selectedMarkerKey = _sceneCoordinator.selectedMarkerKey;
     if (selectedMarkerKey != null &&
         _markerPlacementProjection!.outcomeFor(selectedMarkerKey) == null) {

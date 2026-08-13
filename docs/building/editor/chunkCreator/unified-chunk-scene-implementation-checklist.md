@@ -1,7 +1,8 @@
 # Unified Chunk Scene Implementation Checklist
 
 Date: August 14, 2026
-Status: In progress; Milestone 1 and Phases 2-5 complete, hardening next
+Status: Implementation complete; manual UX/accessibility acceptance remains and
+generator closure is blocked by unrelated authored/generated drift recorded below
 
 Source strategy:
 [Unified Chunk Scene Strategy](unified-chunk-scene-strategy.md)
@@ -529,7 +530,7 @@ adding new source mutations yet.
       editing keys.
 - [ ] Add undo/redo precedence tests for local terrain, prefab, and marker
       operations followed by session history.
-- [ ] Re-run `tools/editor/test/polygon_interaction_benchmark_fixture_test.dart`
+- [x] Re-run `tools/editor/test/polygon_interaction_benchmark_fixture_test.dart`
       and the shared-control cases in the Chunk workspace tests.
 - [x] Re-run terrain polygon controller and workspace tests unchanged where
       behavior is intentionally preserved.
@@ -599,7 +600,7 @@ the plugin-owned command and validation path.
       placement coordinates.
 - [x] Add expanded-collision refresh tests.
 - [ ] Add dialog versus scene canonical-output parity tests.
-- [ ] Extend the realistic scene performance fixture with representative prefab
+- [x] Extend the realistic scene performance fixture with representative prefab
       placement counts.
 
 Phase 4 gate: prefab placement through the scene and through existing forms
@@ -663,7 +664,7 @@ Core-resolved spawn locations.
 - [x] Add unsupported/no-support diagnostic tests.
 - [x] Add exactly-once revision/history/pending-diff tests.
 - [ ] Add generator parity tests for scene-edited marker source.
-- [ ] Extend the performance fixture with representative marker counts and
+- [x] Extend the performance fixture with representative marker counts and
       placement evidence enabled.
 
 Phase 5 gate: marker placement is spatially authorable, source and evidence are
@@ -697,18 +698,18 @@ coherent production authoring surface.
 
 ### Cleanup
 
-- [ ] Verify the workspace-view enum, old chip keys, legacy root classes, and
+- [x] Verify the workspace-view enum, old chip keys, legacy root classes, and
       replaced tests remain absent after the later interaction phases.
-- [ ] Remove shadowed selection fields and duplicate domain-routing branches.
-- [ ] Confirm dialogs and direct gestures share one composition-commit adapter
+- [x] Remove shadowed selection fields and duplicate domain-routing branches.
+- [x] Confirm dialogs and direct gestures share one composition-commit adapter
       and no persistent UI-only identity was added to source.
-- [ ] Consolidate repeated list actions, deterministic comparators, and command
+- [x] Consolidate repeated list actions, deterministic comparators, and command
       construction without creating speculative generic abstractions.
-- [ ] Confirm card widgets are presentation-only and do not retain stale copies
+- [x] Confirm card widgets are presentation-only and do not retain stale copies
       of the Chunk document.
-- [ ] Confirm the route coordinator does not duplicate plugin validation or
+- [x] Confirm the route coordinator does not duplicate plugin validation or
       persistence.
-- [ ] Review all touched public APIs and reasoning-hotspot comments against the
+- [x] Review all touched public APIs and reasoning-hotspot comments against the
       documentation policy.
 
 ### UX and performance verification
@@ -722,24 +723,28 @@ coherent production authoring surface.
   - [ ] inspect seams, compiled edges, actor terrain, and marker evidence
   - [ ] undo/redo across domains
   - [ ] preview and apply the source change
-- [ ] Verify wide and narrow layouts at supported text scale.
+- [x] Verify wide and narrow layouts at supported text scale.
 - [ ] Verify keyboard-only reachability for scene, cards, lists, dialogs, and
       destructive actions.
-- [ ] Compare scene gesture performance against the Phase 0 baseline.
-- [ ] Investigate unexpected rebuilds or image reloads before accepting a
+- [x] Compare scene gesture performance against the Phase 0 baseline. The
+      Windows profile fixture includes 43 prefabs and 24 marker outcomes;
+      vertex/shape update p95 is `239/242 us`, build p99 is `1.866/1.854 ms`,
+      and no input, build, or raster budget is missed.
+- [x] Investigate unexpected rebuilds or image reloads before accepting a
       regression.
 
 ### Documentation closure
 
-- [ ] Update `tools/editor/README.md` with the unified Chunk scene workflow and
+- [x] Update `tools/editor/README.md` with the unified Chunk scene workflow and
       controls.
-- [ ] Update `docs/tdd/editor_ui_system.md` with final topology and responsive
+- [x] Update `docs/tdd/editor_ui_system.md` with final topology and responsive
       behavior.
-- [ ] Update `docs/tdd/polygon_terrain_authoring_foundation.md` if scene,
+- [x] Update `docs/tdd/polygon_terrain_authoring_foundation.md` for the scene,
       selection, operation-token, or evidence contracts changed.
-- [ ] Update `tools/editor/AGENTS.md` only if ownership or working rules changed.
-- [ ] Update `docs/building/editor/chunkCreator/plan.md` status and next slice.
-- [ ] Record that Chunk-v2 source shape, generated output, and Core placement
+- [x] Confirm `tools/editor/AGENTS.md` needs no change because command,
+      validation, and persistence ownership did not move.
+- [x] Update `docs/building/editor/chunkCreator/plan.md` status and next slice.
+- [x] Record that Chunk-v2 source shape, generated output, and Core placement
       lineage remained unchanged.
 - [ ] Move this strategy and checklist to
       `docs/building/archived/editor/chunkCreator/` only when all accepted scope
@@ -753,23 +758,23 @@ performance regression remains.
 
 Minimum editor validation for every implementation phase:
 
-- [ ] `cd tools/editor && dart analyze`
-- [ ] focused tests for the touched phase
-- [ ] `cd tools/editor && flutter test`
+- [x] `cd tools/editor && dart analyze`
+- [x] focused tests for the touched phase
+- [x] `cd tools/editor && flutter test` (456 tests)
 
 Required focused coverage across the initiative:
 
-- [ ] `cd tools/editor && flutter test test/chunk_authoring_workspace_test.dart`
-- [ ] `cd tools/editor && flutter test test/chunk_polygon_authoring_controller_test.dart`
-- [ ] `cd tools/editor && flutter test test/chunk_scene_visual_source_test.dart`
-- [ ] `cd tools/editor && flutter test test/chunk_v2_collision_expansion_test.dart`
-- [ ] `cd tools/editor && flutter test test/chunk_v2_marker_placement_projection_test.dart`
-- [ ] `cd tools/editor && flutter test test/chunk_v2_domain_plugin_test.dart`
-- [ ] `cd tools/editor && flutter test test/chunk_v2_composition_commit_test.dart`
-- [ ] `cd tools/editor && flutter test test/chunk_v2_file_codec_test.dart`
-- [ ] `cd tools/editor && flutter test test/chunk_v2_save_plan_test.dart`
-- [ ] `cd tools/editor && flutter test test/polygon_terrain_generator_parity_test.dart`
-- [ ] `cd tools/editor && flutter test test/polygon_interaction_benchmark_fixture_test.dart`
+- [x] `cd tools/editor && flutter test test/chunk_authoring_workspace_test.dart`
+- [x] `cd tools/editor && flutter test test/chunk_polygon_authoring_controller_test.dart`
+- [x] `cd tools/editor && flutter test test/chunk_scene_visual_source_test.dart`
+- [x] `cd tools/editor && flutter test test/chunk_v2_collision_expansion_test.dart`
+- [x] `cd tools/editor && flutter test test/chunk_v2_marker_placement_projection_test.dart`
+- [x] `cd tools/editor && flutter test test/chunk_v2_domain_plugin_test.dart`
+- [x] `cd tools/editor && flutter test test/chunk_v2_composition_commit_test.dart`
+- [x] `cd tools/editor && flutter test test/chunk_v2_file_codec_test.dart`
+- [x] `cd tools/editor && flutter test test/chunk_v2_save_plan_test.dart`
+- [x] `cd tools/editor && flutter test test/polygon_terrain_generator_parity_test.dart`
+- [x] `cd tools/editor && flutter test test/polygon_interaction_benchmark_fixture_test.dart`
 
 Unchanged source/runtime seam gate:
 
@@ -779,26 +784,37 @@ Unchanged source/runtime seam gate:
 - [ ] if an editor projection refactor touches shared terrain adapters, run
       `flutter test test/tool/polygon_terrain_compilation_test.dart test/tool/polygon_terrain_signature_probe_test.dart`
 
+Validation blocker recorded August 14, 2026:
+
+- the normal generator dry-run stops first on an unrelated uncommitted
+  `levels[2].visualThemeId = "new_level"` reference with no authored theme
+- a temporary detached worktree at committed `9f5a6d36` validates all eight
+  chunks, two levels, two parallax themes, and one terrain material, then reports
+  seven already-stale generated outputs; this initiative edits none of those
+  source or generated files
+- keep the generator items unchecked and keep these planning documents active
+  until that external drift is repaired and the dry-run passes
+
 ## Final Acceptance Checklist
 
-- [ ] One persistent Chunk creation scene replaces the two old workspace views.
-- [ ] Both required right-side cards coexist with the scene on wide layouts.
-- [ ] Narrow layouts preserve scene, viewport, focus, selection, and draft state.
-- [ ] Existing terrain and composition features remain complete.
-- [ ] Active-domain and typed-selection behavior is deterministic and tested.
-- [ ] Prefab and marker gestures safely use a full stale-checked snapshot and a
+- [x] One persistent Chunk creation scene replaces the two old workspace views.
+- [x] Both required right-side cards coexist with the scene on wide layouts.
+- [x] Narrow layouts preserve scene, viewport, focus, selection, and draft state.
+- [x] Existing terrain and composition features remain complete.
+- [x] Active-domain and typed-selection behavior is deterministic and tested.
+- [x] Prefab and marker gestures safely use a full stale-checked snapshot and a
       captured owner key/revision, plus a canonical index whenever an existing
       record is targeted.
-- [ ] Direct gestures use local previews and exactly one accepted semantic
+- [x] Direct gestures use local previews and exactly one accepted semantic
       commit.
-- [ ] Marker authored anchors remain distinct from resolved placement evidence.
-- [ ] Layer capability remains explicitly metadata-only and no tile-painting
+- [x] Marker authored anchors remain distinct from resolved placement evidence.
+- [x] Layer capability remains explicitly metadata-only and no tile-painting
       affordance is present.
-- [ ] Plugin/store/session authority, Chunk-v2 source shape, Core placement
+- [x] Plugin/store/session authority, Chunk-v2 source shape, Core placement
       lineage, canonical ordering, source-drift checks, and atomic apply remain
       intact.
-- [ ] Full editor analysis and tests pass.
+- [x] Full editor analysis and tests pass.
 - [ ] Generator dry-run and runtime-lineage parity checks prove those contracts
       are unchanged.
-- [ ] Performance, accessibility, documentation, and redundancy reviews are
-      complete.
+- [x] Performance, documentation, and redundancy reviews are complete.
+- [ ] Manual accessibility review is complete.
