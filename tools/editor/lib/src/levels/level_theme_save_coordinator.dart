@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:path/path.dart' as p;
+
 import '../domain/authoring_types.dart';
 import '../parallax/parallax_domain_models.dart';
 import '../parallax/parallax_store.dart';
@@ -182,7 +184,13 @@ final class LevelThemeSaveCoordinator {
           levelStore: _levelStore,
           parallaxStore: _parallaxStore,
         );
-        return LevelThemeApplyResult(cleanupRequiredPaths: error.recoveryPaths);
+        return LevelThemeApplyResult(
+          cleanupRequiredPaths: _validateRecoveryPaths(
+            workspace,
+            savePlan: savePlan,
+            recoveryPaths: error.recoveryPaths,
+          ),
+        );
       }
       Error.throwWithStackTrace(
         LevelThemeSaveException(
@@ -240,17 +248,79 @@ void _requireInstalledCandidate(
       'Installed Level/theme sources do not match the validated candidate.',
     );
   }
-  final installedThemeIds = installedThemes
+  final installedThemeIdSet = installedThemes
       .map((theme) => theme.parallaxThemeId)
       .toSet();
   for (final level in installedLevels) {
-    if (!installedThemeIds.contains(level.visualThemeId)) {
+    if (!installedThemeIdSet.contains(level.visualThemeId)) {
       throw StateError(
         'Installed level "${level.levelId}" references missing visual theme '
         '"${level.visualThemeId}".',
       );
     }
   }
+  final installedThemeIds =
+      installedThemes
+          .map((theme) => theme.parallaxThemeId)
+          .toList(growable: false)
+        ..sort();
+  final levelIds =
+      installedLevels.map((level) => level.levelId).toList(growable: false)
+        ..sort();
+  final installedDocument = document.copyWith(
+    levels: installedLevels,
+    availableParallaxVisualThemeIds: installedThemeIds,
+    parallaxDocument: document.parallaxDocument!.copyWith(
+      themes: installedThemes,
+      availableLevelIds: levelIds,
+      parallaxThemeIdByLevelId: <String, String>{
+        for (final level in installedLevels) level.levelId: level.visualThemeId,
+      },
+    ),
+  );
+  final installedIssues = validateLevelDocument(
+    installedDocument,
+  ).where((issue) => issue.severity == ValidationSeverity.error).toList();
+  if (installedIssues.isNotEmpty) {
+    throw StateError(
+      'Installed Level/theme source failed validation: '
+      '${installedIssues.map((issue) => issue.code).join(', ')}.',
+    );
+  }
+}
+
+List<String> _validateRecoveryPaths(
+  EditorWorkspace workspace, {
+  required LevelThemeSavePlan savePlan,
+  required List<String> recoveryPaths,
+}) {
+  final targetPrefixes = <String>[
+    for (final write in savePlan.writes)
+      '${_canonicalPath(workspace.resolve(write.relativePath))}.authoring-',
+  ];
+  final validated = <String>[];
+  for (final path in recoveryPaths) {
+    final canonical = _canonicalPath(path);
+    final hasExpectedSuffix =
+        canonical.endsWith('.tmp') || canonical.endsWith('.bak');
+    if (!hasExpectedSuffix ||
+        !targetPrefixes.any((prefix) => canonical.startsWith(prefix))) {
+      throw StateError(
+        'Transaction reported an unsafe recovery path outside its planned '
+        'Level/theme siblings: $path',
+      );
+    }
+    validated.add(p.normalize(File(path).absolute.path));
+  }
+  validated.sort();
+  return List<String>.unmodifiable(validated);
+}
+
+String _canonicalPath(String path) {
+  final normalized = p
+      .normalize(File(path).absolute.path)
+      .replaceAll('\\', '/');
+  return Platform.isWindows ? normalized.toLowerCase() : normalized;
 }
 
 bool _levelListsEqual(List<LevelDef> left, List<LevelDef> right) {

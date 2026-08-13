@@ -266,6 +266,42 @@ void main() {
     }
   });
 
+  test('one-file reuse apply leaves Parallax source byte-identical', () async {
+    final fixture = await _createFixtureWorkspace();
+    try {
+      final workspace = EditorWorkspace(rootPath: fixture.path);
+      final plugin = LevelDomainPlugin();
+      final loaded = await plugin.loadFromRepo(workspace) as LevelDefsDocument;
+      final parallaxFile = File(p.join(fixture.path, parallaxDefsSourcePath));
+      final originalParallax = parallaxFile.readAsBytesSync();
+      final candidate =
+          plugin.applyEdit(
+                loaded,
+                AuthoringCommand(
+                  kind: 'create_level',
+                  payload: const <String, Object?>{
+                    'levelId': 'shared_field',
+                    'themeMode': levelThemeModeExisting,
+                    'visualThemeId': 'field',
+                  },
+                ),
+              )
+              as LevelDefsDocument;
+
+      final result = await plugin.exportToRepo(workspace, document: candidate);
+      expect(result.applied, isTrue);
+      expect(parallaxFile.readAsBytesSync(), originalParallax);
+      final reloaded =
+          await plugin.loadFromRepo(workspace) as LevelDefsDocument;
+      expect(
+        findLevelDefById(reloaded.levels, 'shared_field')!.visualThemeId,
+        'field',
+      );
+    } finally {
+      fixture.deleteSync(recursive: true);
+    }
+  });
+
   test('Parallax drift aborts before either source is replaced', () async {
     final fixture = await _createFixtureWorkspace();
     try {
