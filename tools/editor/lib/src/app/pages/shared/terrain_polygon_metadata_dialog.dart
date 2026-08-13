@@ -191,15 +191,9 @@ class _TerrainPolygonMetadataDialogState
                   'No material selected.',
                   key: ValueKey<String>('${keyPrefix}_material_preview_empty'),
                 )
-              else if (_materialCatalogResult.issues.isNotEmpty)
-                Text(
-                  _materialCatalogResult.issues.first.message,
-                  key: ValueKey<String>('${keyPrefix}_material_preview_error'),
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                )
               else
                 Text(
-                  'Material "$_materialKey" is not defined in the manifest.',
+                  'No preview assets are registered for $_materialKey.',
                   key: ValueKey<String>('${keyPrefix}_material_preview_empty'),
                 ),
             ],
@@ -299,9 +293,7 @@ String _selectorLabel(String value) {
 String _materialSelectedLabel(TerrainMaterialCatalog? catalog, String value) {
   if (value.isEmpty) return 'None';
   final material = terrainMaterialPreviewForKey(catalog, value);
-  return material == null
-      ? '$value · undefined'
-      : '${material.displayName} · ${material.key}';
+  return material == null ? value : '${material.displayName} · ${material.key}';
 }
 
 String? _nullableSelection(String value) {
