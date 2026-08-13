@@ -9,6 +9,9 @@ import '../../../parallax/parallax_domain_models.dart';
 import '../../../session/editor_session_controller.dart';
 import '../../../workspace/editor_workspace.dart';
 import '../shared/editor_page_local_draft_state.dart';
+import '../shared/editor_panel_card.dart';
+import '../shared/editor_selectable_card.dart';
+import '../shared/editor_workspace_card.dart';
 import 'parallax_asset_file_picker.dart';
 import 'widgets/parallax_preview_view.dart';
 
@@ -102,50 +105,42 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
         final parallaxScene = scene is ParallaxScene ? scene : null;
         _syncSelection(parallaxScene);
 
-        return Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildControls(parallaxScene),
-                const SizedBox(height: 12),
-                if (widget.controller.loadError != null)
-                  _buildErrorBanner(widget.controller.loadError!),
-                if (widget.controller.exportError != null)
-                  _buildErrorBanner(widget.controller.exportError!),
-                if (parallaxScene == null)
-                  const Expanded(
-                    child: Center(
-                      child: Text(
-                        'Parallax scene is not loaded for this route.',
-                      ),
-                    ),
-                  )
-                else
-                  Expanded(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          flex: 1,
-                          child: _buildLayerPane(parallaxScene),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          flex: 2,
-                          child: _buildPreviewPane(parallaxScene),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          flex: 1,
-                          child: _buildInspectorPane(parallaxScene),
-                        ),
-                      ],
-                    ),
+        return EditorWorkspaceCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildControls(parallaxScene),
+              const SizedBox(height: 12),
+              if (widget.controller.loadError != null)
+                _buildErrorBanner(widget.controller.loadError!),
+              if (widget.controller.exportError != null)
+                _buildErrorBanner(widget.controller.exportError!),
+              if (parallaxScene == null)
+                const Expanded(
+                  child: Center(
+                    child: Text('Parallax scene is not loaded for this route.'),
                   ),
-              ],
-            ),
+                )
+              else
+                Expanded(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(flex: 1, child: _buildLayerPane(parallaxScene)),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 2,
+                        child: _buildPreviewPane(parallaxScene),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 1,
+                        child: _buildInspectorPane(parallaxScene),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
           ),
         );
       },
@@ -352,69 +347,41 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
     required String workspaceRootPath,
     required bool isSelected,
   }) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Material(
-      color: Colors.transparent,
-      child: Ink(
-        decoration: BoxDecoration(
-          color: isSelected
-              ? colorScheme.primaryContainer.withValues(alpha: 0.24)
-              : colorScheme.surface,
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(
-            color: isSelected
-                ? colorScheme.primary
-                : colorScheme.outlineVariant.withValues(alpha: 0.7),
+    return EditorSelectableCard(
+      key: ValueKey<String>('parallax_layer_entry_${layer.layerKey}'),
+      isSelected: isSelected,
+      onTap: () {
+        setState(() {
+          _selectedLayerKey = layer.layerKey;
+          _syncLayerInspector(layer);
+        });
+      },
+      leading: _ParallaxLayerAssetThumbnail(
+        workspaceRootPath: workspaceRootPath,
+        layer: layer,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            layer.layerKey,
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
           ),
-        ),
-        child: InkWell(
-          key: ValueKey<String>('parallax_layer_entry_${layer.layerKey}'),
-          borderRadius: BorderRadius.circular(6),
-          onTap: () {
-            setState(() {
-              _selectedLayerKey = layer.layerKey;
-              _syncLayerInspector(layer);
-            });
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(10),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _ParallaxLayerAssetThumbnail(
-                  workspaceRootPath: workspaceRootPath,
-                  layer: layer,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        layer.layerKey,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${layer.group}  z=${layer.zOrder}  factor=${formatCanonicalParallaxNumber(layer.parallaxFactor)}',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        layer.assetPath,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+          const SizedBox(height: 4),
+          Text(
+            '${layer.group}  z=${layer.zOrder}  factor=${formatCanonicalParallaxNumber(layer.parallaxFactor)}',
+            style: Theme.of(context).textTheme.bodySmall,
           ),
-        ),
+          const SizedBox(height: 4),
+          Text(
+            layer.assetPath,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
       ),
     );
   }
@@ -658,23 +625,10 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
   }
 
   Widget _buildPane({required String title, required Widget child}) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: const Color(0x22101820),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0x334A6074)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 12),
-            Expanded(child: child),
-          ],
-        ),
-      ),
+    return EditorPanelCard(
+      title: title,
+      bodyMode: EditorPanelBodyMode.expanded,
+      child: child,
     );
   }
 

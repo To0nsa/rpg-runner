@@ -83,6 +83,7 @@ void main() {
               EditorSelectableCard(
                 isSelected: true,
                 onTap: () => taps += 1,
+                leading: const Text('leading'),
                 preview: const Text('preview'),
                 trailing: const Text('trailing'),
                 details: const Text('details'),
@@ -95,6 +96,7 @@ void main() {
     );
 
     expect(find.text('Metadata'), findsOneWidget);
+    expect(find.text('leading'), findsOneWidget);
     expect(find.text('preview'), findsOneWidget);
     expect(find.text('trailing'), findsOneWidget);
     expect(find.text('details'), findsOneWidget);

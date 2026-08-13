@@ -13,6 +13,7 @@ class EditorSelectableCard extends StatelessWidget {
     required this.child,
     required this.isSelected,
     this.onTap,
+    this.leading,
     this.preview,
     this.details,
     this.trailing,
@@ -22,6 +23,7 @@ class EditorSelectableCard extends StatelessWidget {
   final Widget child;
   final bool isSelected;
   final VoidCallback? onTap;
+  final Widget? leading;
   final Widget? preview;
   final Widget? details;
   final Widget? trailing;
@@ -45,6 +47,10 @@ class EditorSelectableCard extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
+                  if (leading case final leading?) ...<Widget>[
+                    leading,
+                    const SizedBox(width: EditorUiTokens.rowPreviewGap),
+                  ],
                   Expanded(child: child),
                   if (preview case final preview?) ...<Widget>[
                     const SizedBox(width: EditorUiTokens.rowPreviewGap),

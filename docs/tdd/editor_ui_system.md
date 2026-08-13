@@ -46,3 +46,8 @@ composition uses `EditorPanelCard` for its visual-stack summary and its three
 bounded lists, and explanatory route-intro cards compose the same panel shell.
 The fail-closed polygon-migration route keeps its specialized warning content
 inside the shared workspace surface.
+
+Parallax uses the shared workspace and bounded panel cards for Layers, Preview,
+and Inspector. Layer rows use `EditorSelectableCard` with their asset thumbnail
+in the leading slot, preserving selection and edit ownership in the page while
+removing its custom border, fill, and padding implementation.
