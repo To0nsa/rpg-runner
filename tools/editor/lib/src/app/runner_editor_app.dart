@@ -7,6 +7,7 @@ import '../levels/level_domain_plugin.dart';
 import '../parallax/parallax_domain_plugin.dart';
 import '../prefabs/domain/prefab_domain_plugin.dart';
 import '../session/editor_session_controller.dart';
+import '../terrain_materials/terrain_material_domain_plugin.dart';
 import 'pages/home/editor_home_page.dart';
 
 /// Boots the standalone editor with the current bounded set of authoring
@@ -24,6 +25,7 @@ void runEditorApp({required String initialWorkspacePath}) {
       ChunkDomainPlugin(),
       LevelDomainPlugin(),
       ParallaxDomainPlugin(),
+      TerrainMaterialDomainPlugin(),
     ],
   );
 

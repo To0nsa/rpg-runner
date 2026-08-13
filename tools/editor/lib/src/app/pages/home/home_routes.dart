@@ -6,11 +6,13 @@ import '../../../levels/level_domain_plugin.dart';
 import '../../../parallax/parallax_domain_plugin.dart';
 import '../../../prefabs/domain/prefab_domain_plugin.dart';
 import '../../../session/editor_session_controller.dart';
+import '../../../terrain_materials/terrain_material_domain_plugin.dart';
 import '../chunkCreator/chunk_creator_page.dart';
 import '../entities/entities_editor_page.dart';
 import '../levelCreator/level_creator_page.dart';
 import '../parallaxEditor/parallax_editor_page.dart';
 import '../prefabCreator/prefab_creator_page.dart';
+import '../terrainMaterials/terrain_materials_page.dart';
 
 /// Defines one top-level page shown in the editor home shell.
 ///
@@ -69,6 +71,7 @@ const String prefabCreatorRouteId = 'prefab_creator';
 const String chunkCreatorRouteId = 'chunk_creator';
 const String levelCreatorRouteId = 'level_creator';
 const String parallaxEditorRouteId = 'parallax_editor';
+const String terrainMaterialsRouteId = 'terrain_materials';
 
 /// Ordered top-level routes shown by the home page selector.
 ///
@@ -104,6 +107,12 @@ final List<EditorHomeRoute> homeRoutes = <EditorHomeRoute>[
     label: 'Parallax',
     pluginId: ParallaxDomainPlugin.pluginId,
     buildPage: _buildParallaxEditorPage,
+  ),
+  EditorHomeRoute(
+    id: terrainMaterialsRouteId,
+    label: 'Terrain Materials',
+    pluginId: TerrainMaterialDomainPlugin.pluginId,
+    buildPage: _buildTerrainMaterialsPage,
   ),
 ];
 
@@ -153,4 +162,12 @@ Widget _buildParallaxEditorPage({
   required EditorHomeRouteNavigation navigation,
 }) {
   return ParallaxEditorPage(key: key, controller: controller);
+}
+
+Widget _buildTerrainMaterialsPage({
+  required GlobalKey key,
+  required EditorSessionController controller,
+  required EditorHomeRouteNavigation navigation,
+}) {
+  return TerrainMaterialsPage(key: key, controller: controller);
 }
