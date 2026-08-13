@@ -37,6 +37,8 @@ Editor foundations shared across those domains:
 - workspace path binding and plugin-backed route selection
 - session-managed load, validation, pending-change previews, and direct-write export
 - undo/redo history for entity edits, chunk edits, and committed prefab/module edits
+- shared outlined workspace, panel, subsection, and list-row cards with one
+  spacing system; cards in the Chunk right sidebar expand independently
 - shared pan/zoom scene controls, inspector forms, and deterministic export summaries
 
 ## Entity Collider Preview

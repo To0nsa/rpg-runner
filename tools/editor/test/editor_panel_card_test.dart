@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_panel_card.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_section_card.dart';
-import 'package:runner_editor/src/app/pages/shared/editor_selectable_card.dart';
+import 'package:runner_editor/src/app/pages/shared/editor_list_card.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_workspace_card.dart';
 
 void main() {
@@ -80,7 +80,7 @@ void main() {
                 description: 'Shape semantics.',
                 child: Text('fields'),
               ),
-              EditorSelectableCard(
+              EditorListCard(
                 isSelected: true,
                 onTap: () => taps += 1,
                 leading: const Text('leading'),

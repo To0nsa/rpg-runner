@@ -10,7 +10,7 @@ import '../../../session/editor_session_controller.dart';
 import '../../../workspace/editor_workspace.dart';
 import '../shared/editor_page_local_draft_state.dart';
 import '../shared/editor_panel_card.dart';
-import '../shared/editor_selectable_card.dart';
+import '../shared/editor_list_card.dart';
 import '../shared/editor_workspace_card.dart';
 import 'parallax_asset_file_picker.dart';
 import 'widgets/parallax_preview_view.dart';
@@ -347,7 +347,7 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
     required String workspaceRootPath,
     required bool isSelected,
   }) {
-    return EditorSelectableCard(
+    return EditorListCard(
       key: ValueKey<String>('parallax_layer_entry_${layer.layerKey}'),
       isSelected: isSelected,
       onTap: () {

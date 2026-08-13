@@ -25,8 +25,9 @@ import '../../../../terrain_authoring/terrain_polygon_duplicate_offset.dart';
 import '../../../../terrain_authoring/terrain_polygon_interaction.dart';
 import '../../../../terrain_authoring/terrain_physics_text.dart';
 import '../../../../terrain_authoring/terrain_source_models.dart';
-import '../../shared/editor_scene_view_utils.dart';
+import '../../shared/editor_list_card.dart';
 import '../../shared/editor_panel_card.dart';
+import '../../shared/editor_scene_view_utils.dart';
 import '../../shared/editor_three_panel_layout.dart';
 import '../../shared/editor_workspace_card.dart';
 import '../../shared/editor_scene_viewport_frame.dart';
@@ -418,14 +419,21 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
             Builder(
               builder: (context) {
                 final expansion = _expansionFor(chunk.chunkKey)?.expansion;
-                return Card(
+                return EditorListCard(
                   key: ValueKey<String>(
                     'chunk_polygon_owner_${chunk.chunkKey}',
                   ),
-                  clipBehavior: Clip.antiAlias,
+                  isSelected: chunk.chunkKey == selectedChunk?.chunkKey,
+                  onTap: () => _selectOwner(chunk.chunkKey),
+                  trailing: document.changedChunkKeys.contains(chunk.chunkKey)
+                      ? const Tooltip(
+                          message: 'Pending geometry changed',
+                          child: Icon(Icons.circle, size: 12),
+                        )
+                      : null,
                   child: ListTile(
+                    contentPadding: EdgeInsets.zero,
                     selected: chunk.chunkKey == selectedChunk?.chunkKey,
-                    onTap: () => _selectOwner(chunk.chunkKey),
                     title: Text(chunk.id),
                     subtitle: Text(
                       '${chunk.difficulty} · ${chunk.width}×${chunk.height} px · '
@@ -434,12 +442,6 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
                       '${expansion?.expandedPrefabShapeCount ?? 0} expanded',
                     ),
                     isThreeLine: true,
-                    trailing: document.changedChunkKeys.contains(chunk.chunkKey)
-                        ? const Tooltip(
-                            message: 'Pending geometry changed',
-                            child: Icon(Icons.circle, size: 12),
-                          )
-                        : null,
                   ),
                 );
               },
@@ -955,13 +957,15 @@ class ChunkPolygonWorkspaceState extends State<ChunkPolygonWorkspace> {
             const Text('No committed direct collision shapes.')
           else
             for (final shape in shapes)
-              Card(
+              EditorListCard(
                 key: ValueKey<String>('chunk_polygon_shape_${shape.shapeId}'),
+                isSelected: selection?.shapeId == shape.shapeId,
+                onTap: () => authoring.select(
+                  TerrainPolygonSelection.shape(shape.shapeId),
+                ),
                 child: ListTile(
+                  contentPadding: EdgeInsets.zero,
                   selected: selection?.shapeId == shape.shapeId,
-                  onTap: () => authoring.select(
-                    TerrainPolygonSelection.shape(shape.shapeId),
-                  ),
                   title: Text(shape.shapeId),
                   subtitle: Text(
                     '${shape.collisionMode.name} · '

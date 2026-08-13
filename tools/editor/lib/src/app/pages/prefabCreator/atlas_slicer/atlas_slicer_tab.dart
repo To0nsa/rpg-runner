@@ -9,7 +9,7 @@ import '../../shared/atlas_selection_painter.dart';
 import '../../shared/editor_scene_view_utils.dart';
 import '../../shared/editor_panel_card.dart';
 import '../../shared/editor_section_card.dart';
-import '../../shared/editor_selectable_card.dart';
+import '../../shared/editor_list_card.dart';
 import '../../shared/editor_ui_tokens.dart';
 import '../../shared/editor_viewport_grid_painter.dart';
 import '../../shared/editor_zoom_controls.dart';
@@ -405,7 +405,7 @@ class _AtlasSlicerTabState extends State<AtlasSlicerTab> {
   Widget _buildSliceRow(BuildContext context, AtlasSliceDef slice) {
     final isSelected = widget.selectedSliceId == slice.id;
 
-    return EditorSelectableCard(
+    return EditorListCard(
       key: ValueKey<String>('atlas_slice_row_${slice.id}'),
       isSelected: isSelected,
       onTap: () => widget.onSelectedSliceChanged(slice.id),

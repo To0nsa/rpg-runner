@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 
 import 'editor_ui_tokens.dart';
 
-/// Canonical selectable row card for editor owner and catalog lists.
+/// Canonical row card for editor owner, catalog, and composition lists.
 ///
 /// Selection is visual only; callers retain navigation and mutation authority
-/// through [onTap]. Optional preview, trailing, and detail slots keep list rows
-/// structurally consistent without route-specific card shells.
-class EditorSelectableCard extends StatelessWidget {
-  const EditorSelectableCard({
+/// through [onTap]. Optional leading, preview, trailing, and detail slots keep
+/// list rows structurally consistent without route-specific card shells.
+class EditorListCard extends StatelessWidget {
+  const EditorListCard({
     super.key,
     required this.child,
-    required this.isSelected,
+    this.isSelected = false,
     this.onTap,
     this.leading,
     this.preview,

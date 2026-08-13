@@ -39,6 +39,10 @@ class EditorPanelCard extends StatefulWidget {
   }) : assert(
          !collapsible || bodyMode == EditorPanelBodyMode.natural,
          'Collapsible panel bodies must use natural height.',
+       ),
+       assert(
+         collapsible || initiallyExpanded,
+         'Non-collapsible panels must start expanded.',
        );
 
   final String title;

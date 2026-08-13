@@ -16,8 +16,8 @@ store owners.
   body padding, optional vertical scrolling, and optional collapse semantics.
 - `EditorSectionCard` groups related inspector controls without creating a
   second top-level panel.
-- `EditorSelectableCard` gives owner and catalog rows one selected-state,
-  preview, details, and trailing-action structure.
+- `EditorListCard` gives owner, catalog, and composition rows one optional
+  selected-state, leading/preview, details, and trailing-action structure.
 - `EditorWorkspaceCard` owns the outer outlined route surface and workspace
   padding without taking over route sizing or scroll state.
 
@@ -36,19 +36,22 @@ single scroll owner, while the three authoring cards retain their stable widget
 and expansion keys for tests and automation.
 
 Prefab polygon, atlas-slice, and platform-module workspaces use the same panel,
-section, selectable-row, and token primitives. Prefab-specific widgets remain
-only where they encode domain semantics such as create/edit banners, scene
-controls, or fixed three-panel labels; the former prefab-only card shells and
-spacing registry have been removed.
+section, list-row, and token primitives. Prefab-specific widgets remain only
+where they encode domain semantics such as create/edit banners, scene controls,
+or fixed three-panel labels; the former prefab-only card shells and spacing
+registry have been removed.
 
 Chunk, Prefab, and Level root workspaces use `EditorWorkspaceCard`. Chunk
 composition uses `EditorPanelCard` for its visual-stack summary and its three
-bounded lists, and explanatory route-intro cards compose the same panel shell.
-The fail-closed polygon-migration route keeps its specialized warning content
-inside the shared workspace surface.
+bounded lists. Chunk and Prefab owner and shape rows, plus Chunk composition
+records, use `EditorListCard`; evidence and diagnostic cards remain
+route-specific because they communicate status instead of list ownership.
+Explanatory route-intro cards compose the same panel shell. The fail-closed
+polygon-migration route keeps its specialized warning content inside the shared
+workspace surface.
 
 Parallax uses the shared workspace and bounded panel cards for Layers, Preview,
-and Inspector. Layer rows use `EditorSelectableCard` with their asset thumbnail
+and Inspector. Layer rows use `EditorListCard` with their asset thumbnail
 in the leading slot, preserving selection and edit ownership in the page while
 removing its custom border, fill, and padding implementation.
 

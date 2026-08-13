@@ -9,6 +9,7 @@ import '../../../../chunks/chunk_v2_models.dart';
 import '../../../../domain/authoring_types.dart';
 import '../../../../prefabs/models/models.dart';
 import '../../../../session/editor_session_controller.dart';
+import '../../shared/editor_list_card.dart';
 import '../../shared/editor_panel_card.dart';
 import '../../shared/editor_three_panel_layout.dart';
 import 'chunk_v2_composition_dialog.dart';
@@ -112,18 +113,19 @@ class ChunkV2CompositionWorkspace extends StatelessWidget {
     emptyMessage: 'No visual tile layers.',
     children: <Widget>[
       for (final layer in chunk.tileLayers)
-        Card(
+        EditorListCard(
           key: ValueKey<String>('chunk_v2_layer_${layer.id}'),
+          trailing: _EditDeleteActions(
+            editKey: 'chunk_v2_layer_edit_${layer.id}',
+            deleteKey: 'chunk_v2_layer_delete_${layer.id}',
+            onEdit: () => _editTileLayer(context, layer),
+            onDelete: () => _deleteTileLayer(context, layer),
+          ),
           child: ListTile(
+            contentPadding: EdgeInsets.zero,
             title: Text(layer.id),
             subtitle: Text(
               '${layer.kind} · ${layer.visible ? 'visible' : 'hidden'}',
-            ),
-            trailing: _EditDeleteActions(
-              editKey: 'chunk_v2_layer_edit_${layer.id}',
-              deleteKey: 'chunk_v2_layer_delete_${layer.id}',
-              onEdit: () => _editTileLayer(context, layer),
-              onDelete: () => _deleteTileLayer(context, layer),
             ),
           ),
         ),
@@ -143,11 +145,18 @@ class ChunkV2CompositionWorkspace extends StatelessWidget {
       emptyMessage: 'No prefab placements.',
       children: <Widget>[
         for (final selection in placements)
-          Card(
+          EditorListCard(
             key: ValueKey<String>(
               'chunk_v2_placement_${selection.selectionKey}',
             ),
+            trailing: _EditDeleteActions(
+              editKey: 'chunk_v2_placement_edit_${selection.selectionKey}',
+              deleteKey: 'chunk_v2_placement_delete_${selection.selectionKey}',
+              onEdit: () => _editPlacement(context, selection),
+              onDelete: () => _deletePlacement(context, selection),
+            ),
             child: ListTile(
+              contentPadding: EdgeInsets.zero,
               title: Text(_prefabLabel(selection.prefab)),
               subtitle: Text(
                 'x=${selection.prefab.x}, y=${selection.prefab.y} · '
@@ -155,13 +164,6 @@ class ChunkV2CompositionWorkspace extends StatelessWidget {
                 'scale=${selection.prefab.scale.toStringAsFixed(1)} · '
                 '${selection.prefab.snapToGrid ? 'snap' : 'free'} · '
                 '${_flipLabel(selection.prefab)}',
-              ),
-              trailing: _EditDeleteActions(
-                editKey: 'chunk_v2_placement_edit_${selection.selectionKey}',
-                deleteKey:
-                    'chunk_v2_placement_delete_${selection.selectionKey}',
-                onEdit: () => _editPlacement(context, selection),
-                onDelete: () => _deletePlacement(context, selection),
               ),
             ),
           ),
@@ -179,21 +181,22 @@ class ChunkV2CompositionWorkspace extends StatelessWidget {
       emptyMessage: 'No enemy markers.',
       children: <Widget>[
         for (final selection in markers)
-          Card(
+          EditorListCard(
             key: ValueKey<String>('chunk_v2_marker_${selection.selectionKey}'),
+            trailing: _EditDeleteActions(
+              editKey: 'chunk_v2_marker_edit_${selection.selectionKey}',
+              deleteKey: 'chunk_v2_marker_delete_${selection.selectionKey}',
+              onEdit: () => _editMarker(context, selection),
+              onDelete: () => _deleteMarker(context, selection),
+            ),
             child: ListTile(
+              contentPadding: EdgeInsets.zero,
               title: Text(selection.marker.markerId),
               subtitle: Text(
                 'x=${selection.marker.x}, y=${selection.marker.y} · '
                 '${selection.marker.chancePercent}% · '
                 'salt=${selection.marker.salt} · '
                 '${selection.marker.placement}',
-              ),
-              trailing: _EditDeleteActions(
-                editKey: 'chunk_v2_marker_edit_${selection.selectionKey}',
-                deleteKey: 'chunk_v2_marker_delete_${selection.selectionKey}',
-                onEdit: () => _editMarker(context, selection),
-                onDelete: () => _deleteMarker(context, selection),
               ),
             ),
           ),

@@ -13,8 +13,9 @@ import '../../../../session/editor_session_controller.dart';
 import '../../../../terrain_authoring/terrain_polygon_duplicate_offset.dart';
 import '../../../../terrain_authoring/terrain_polygon_interaction.dart';
 import '../../../../terrain_authoring/terrain_source_models.dart';
-import '../../shared/editor_scene_view_utils.dart';
+import '../../shared/editor_list_card.dart';
 import '../../shared/editor_panel_card.dart';
+import '../../shared/editor_scene_view_utils.dart';
 import '../../shared/editor_scene_viewport_frame.dart';
 import '../../shared/editor_ui_tokens.dart';
 import '../../shared/editor_workspace_card.dart';
@@ -409,17 +410,22 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
                 final impact = document.downstreamImpacts
                     .where((entry) => entry.prefabKey == prefab.prefabKey)
                     .firstOrNull;
-                return Card(
+                return EditorListCard(
                   key: ValueKey<String>(
                     'prefab_polygon_owner_${prefab.prefabKey}',
                   ),
-                  margin: const EdgeInsets.only(
-                    bottom: EditorUiTokens.controlGap,
-                  ),
-                  clipBehavior: Clip.antiAlias,
+                  isSelected: prefab.prefabKey == selectedPrefab.prefabKey,
+                  onTap: () => _selectOwner(prefab.prefabKey),
+                  trailing:
+                      document.changedPrefabKeys.contains(prefab.prefabKey)
+                      ? const Tooltip(
+                          message: 'Pending prefab changed',
+                          child: Icon(Icons.circle, size: 12),
+                        )
+                      : null,
                   child: ListTile(
+                    contentPadding: EdgeInsets.zero,
                     selected: prefab.prefabKey == selectedPrefab.prefabKey,
-                    onTap: () => _selectOwner(prefab.prefabKey),
                     title: Text(prefab.id),
                     subtitle: Text(
                       '${prefab.kind.jsonValue} · rev ${prefab.revision} · '
@@ -431,13 +437,6 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
                       '${impact?.referencingChunkKeys.length ?? 0} chunk(s)',
                     ),
                     isThreeLine: true,
-                    trailing:
-                        document.changedPrefabKeys.contains(prefab.prefabKey)
-                        ? const Tooltip(
-                            message: 'Pending prefab changed',
-                            child: Icon(Icons.circle, size: 12),
-                          )
-                        : null,
                   ),
                 );
               },
@@ -729,16 +728,15 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
             const Text('No committed collision shapes.')
           else
             for (final shape in shapes)
-              Card(
+              EditorListCard(
                 key: ValueKey<String>('prefab_polygon_shape_${shape.shapeId}'),
-                margin: const EdgeInsets.only(
-                  bottom: EditorUiTokens.controlGap,
+                isSelected: selectedShapeId == shape.shapeId,
+                onTap: () => authoring.select(
+                  TerrainPolygonSelection.shape(shape.shapeId),
                 ),
                 child: ListTile(
+                  contentPadding: EdgeInsets.zero,
                   selected: selectedShapeId == shape.shapeId,
-                  onTap: () => authoring.select(
-                    TerrainPolygonSelection.shape(shape.shapeId),
-                  ),
                   title: Text(shape.shapeId),
                   subtitle: Text(
                     '${shape.collisionMode.name} · '

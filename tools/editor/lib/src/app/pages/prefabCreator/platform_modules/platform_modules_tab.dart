@@ -4,7 +4,7 @@ import '../../../../prefabs/models/models.dart';
 import '../../shared/editor_panel_card.dart';
 import '../../shared/editor_scene_view_utils.dart';
 import '../../shared/editor_section_card.dart';
-import '../../shared/editor_selectable_card.dart';
+import '../../shared/editor_list_card.dart';
 import '../../shared/editor_ui_tokens.dart';
 import '../../shared/platform_module_preview_tile.dart';
 import '../shared/ui/prefab_editor_action_row.dart';
@@ -512,7 +512,7 @@ class _PlatformModuleDisplayPanelState
                     itemBuilder: (context, index) {
                       final module = widget.modules[index];
                       final isSelected = widget.selectedModuleId == module.id;
-                      return EditorSelectableCard(
+                      return EditorListCard(
                         key: ValueKey<String>(
                           'platform_module_row_${module.id}',
                         ),
