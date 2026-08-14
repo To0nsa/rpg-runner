@@ -140,6 +140,43 @@ void main() {
     );
   });
 
+  test('wall anchors use normalized source width', () {
+    final withNarrowWall = source.replaceFirst(
+      '"topStartCap": {',
+      '''"leftWall": {
+        "base": {
+          "region": {
+            "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 24
+          },
+          "anchorY": 12
+        }
+      },
+      "topStartCap": {''',
+    );
+
+    expect(decodeTerrainMaterialCatalog(withNarrowWall).issues, isEmpty);
+    final invalid = decodeTerrainMaterialCatalog(
+      withNarrowWall.replaceFirst(
+        '''"anchorY": 12
+        }
+      },
+      "topStartCap"''',
+        '''"anchorY": 13
+        }
+      },
+      "topStartCap"''',
+      ),
+    );
+    expect(
+      invalid.issues.map((issue) => issue.code),
+      contains('terrain_material_anchor_out_of_bounds'),
+    );
+  });
+
   test('v1 and legacy whole-image fields are rejected without conversion', () {
     final result = decodeTerrainMaterialCatalog('''
 {

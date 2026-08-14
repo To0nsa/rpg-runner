@@ -149,6 +149,7 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
         edge: edge,
         image: material.imageFor(profile.base.region),
         anchorY: profile.base.anchorY,
+        orientation: edge.orientation,
       );
       if (profile.detail case final detail?) {
         _drawEdgeImage(
@@ -156,6 +157,7 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
           edge: edge,
           image: material.imageFor(detail.region),
           anchorY: detail.anchorY,
+          orientation: edge.orientation,
         );
       }
     }
@@ -229,27 +231,16 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
     required _CachedTerrainDecoratedEdge edge,
     required ui.Image image,
     required double anchorY,
-  }) {
-    if (edge.length <= 0) return;
-    final imageWidth = image.width.toDouble();
-    final imageHeight = image.height.toDouble();
-    final phase = terrainMaterialEdgeRepeatPhase(
-      startX: edge.start.dx,
-      startY: edge.start.dy,
-      tangentX: math.cos(edge.angle),
-      tangentY: math.sin(edge.angle),
-      repeatWidth: imageWidth,
-    );
-
-    canvas.save();
-    canvas.translate(edge.start.dx, edge.start.dy);
-    canvas.rotate(edge.angle);
-    canvas.clipRect(ui.Rect.fromLTWH(0, -anchorY, edge.length, imageHeight));
-    for (var x = -phase; x < edge.length; x += imageWidth) {
-      canvas.drawImage(image, ui.Offset(x, -anchorY), _edgePaint);
-    }
-    canvas.restore();
-  }
+    required TerrainMaterialEdgeOrientation orientation,
+  }) => paintTerrainMaterialEdgeImage(
+    canvas,
+    start: edge.start,
+    length: edge.length,
+    angle: edge.angle,
+    image: image,
+    anchorY: anchorY,
+    orientation: orientation,
+  );
 
   void _drawEdgeCap(
     ui.Canvas canvas, {
@@ -265,12 +256,10 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
     canvas.drawImage(
       image,
       ui.Offset((atEnd ? edge.length : 0) - cap.anchorX, -cap.anchorY),
-      _edgePaint,
+      _terrainEdgePaint,
     );
     canvas.restore();
   }
-
-  static final Paint _edgePaint = Paint()..filterQuality = FilterQuality.none;
 
   void _disposeRegionImages() {
     for (final image in _regionImages.values) {
@@ -279,6 +268,93 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
     _regionImages.clear();
   }
 }
+
+/// Paints one isolated, world-facing edge image along a terrain tangent.
+///
+/// Exposed for renderer tests. Source art is normalized for its named role
+/// before tangent placement, so axis-aligned walls and undersides retain their
+/// authored atlas orientation.
+@visibleForTesting
+void paintTerrainMaterialEdgeImage(
+  ui.Canvas canvas, {
+  required ui.Offset start,
+  required double length,
+  required double angle,
+  required ui.Image image,
+  required double anchorY,
+  required TerrainMaterialEdgeOrientation orientation,
+}) {
+  if (length <= 0) return;
+  final tileWidth = terrainMaterialEdgeTileWidth(
+    orientation: orientation,
+    sourceWidth: image.width,
+    sourceHeight: image.height,
+  ).toDouble();
+  final tileHeight = terrainMaterialEdgeTileHeight(
+    orientation: orientation,
+    sourceWidth: image.width,
+    sourceHeight: image.height,
+  ).toDouble();
+  final phase = terrainMaterialEdgeRepeatPhase(
+    startX: start.dx,
+    startY: start.dy,
+    tangentX: math.cos(angle),
+    tangentY: math.sin(angle),
+    repeatWidth: tileWidth,
+  );
+  final quarterTurns = terrainMaterialEdgeNormalizationQuarterTurns(
+    orientation,
+  );
+
+  canvas.save();
+  canvas.translate(start.dx, start.dy);
+  canvas.rotate(angle);
+  canvas.clipRect(ui.Rect.fromLTWH(0, -anchorY, length, tileHeight));
+  for (var x = -phase; x < length; x += tileWidth) {
+    _drawNormalizedEdgeImage(
+      canvas,
+      image: image,
+      destination: ui.Offset(x, -anchorY),
+      quarterTurns: quarterTurns,
+    );
+  }
+  canvas.restore();
+}
+
+void _drawNormalizedEdgeImage(
+  ui.Canvas canvas, {
+  required ui.Image image,
+  required ui.Offset destination,
+  required int quarterTurns,
+}) {
+  canvas.save();
+  switch (quarterTurns) {
+    case 0:
+      canvas.translate(destination.dx, destination.dy);
+    case 1:
+      canvas.translate(destination.dx + image.height, destination.dy);
+      canvas.rotate(math.pi / 2);
+    case 2:
+      canvas.translate(
+        destination.dx + image.width,
+        destination.dy + image.height,
+      );
+      canvas.rotate(math.pi);
+    case 3:
+      canvas.translate(destination.dx, destination.dy + image.width);
+      canvas.rotate(-math.pi / 2);
+    default:
+      throw ArgumentError.value(
+        quarterTurns,
+        'quarterTurns',
+        'Must be within [0, 3].',
+      );
+  }
+  canvas.drawImage(image, ui.Offset.zero, _terrainEdgePaint);
+  canvas.restore();
+}
+
+final Paint _terrainEdgePaint = Paint()..filterQuality = FilterQuality.none;
 
 final class _LoadedTerrainMaterial {
   _LoadedTerrainMaterial({required this.spec, required this.imagesByRegion})

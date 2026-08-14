@@ -45,12 +45,22 @@ Material roles use regions as follows:
 | Role | Stored value | Render behavior |
 | --- | --- | --- |
 | Fill | region | repeats in world X/Y and clips to terrain fill geometry |
-| Edge base/detail | region plus `anchorY` | repeats along the edge tangent |
+| Edge base/detail | world-facing region plus normalized `anchorY` | normalizes for its role, then repeats along the edge tangent |
 | Start/end cap | region plus `anchorX` and `anchorY` | draws once at an endpoint |
 
-Anchors use region-local coordinates. Zero and the region width/height boundary
-are valid; negative values and values beyond the boundary are invalid. They are
-not coordinates in the complete atlas.
+Edge source art is selected in its natural world-facing orientation: top art
+faces up, left/right wall art faces its named side, and underside art faces
+down. Before tangent placement, renderers normalize left-wall art clockwise by
+one quarter-turn, right-wall art by three quarter-turns, and underside art by
+two quarter-turns; top art is already normalized. This prevents already
+oriented atlas cells from receiving an extra 90° or 180° rotation on
+axis-aligned polygons while preserving edge-relative rotation for slopes.
+
+Cap anchors use raw region-local coordinates. Edge `anchorY` uses the
+tangent-normalized tile: its valid range is the source height for top/underside
+regions and the source width for wall regions. Zero and the relevant boundary
+are valid; negative values and values beyond the boundary are invalid. Anchors
+are never coordinates in the complete atlas.
 
 ## Catalog Rules
 
@@ -156,11 +166,12 @@ Fill and edge repeat calculations use shared pure-Dart functions from
 - positive modulo normalizes negative and positive world coordinates
 - fill tile origin is the first repeat boundary at or before a world coordinate
 - edge phase is the signed projection of the edge start onto its unit tangent,
-  modulo the selected region width
+  modulo the tangent-normalized tile width (source height for wall art, source
+  width for top/underside art)
 
 Consequently, chunk boundaries and camera movement do not reset texture phase.
-Material and chunk previews call the same math so authored results match runtime
-orientation and spacing.
+Material and chunk previews call the same orientation, dimension, and repeat
+math so authored results match runtime orientation and spacing.
 
 ## Image Ownership and Failure Handling
 

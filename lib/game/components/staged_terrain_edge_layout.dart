@@ -1,11 +1,12 @@
+export 'package:terrain_materials/terrain_materials.dart'
+    show TerrainMaterialEdgeOrientation;
+
 import 'package:runner_core/collision/terrain/terrain_edge.dart';
 import 'package:runner_core/collision/terrain/terrain_edge_id.dart';
 import 'package:runner_core/snapshots/staged_terrain_render_snapshot.dart';
+import 'package:terrain_materials/terrain_materials.dart';
 
 import '../themes/terrain_material_registry.dart';
-
-/// Material profile selected by an exact compiler-owned outward normal.
-enum TerrainMaterialEdgeOrientation { top, leftWall, rightWall, underside }
 
 /// Render decoration resolved for one exact exposed Core edge.
 final class StagedTerrainEdgeDecoration {

@@ -1,3 +1,48 @@
+/// World-facing role of one authored terrain edge region.
+enum TerrainMaterialEdgeOrientation { top, leftWall, rightWall, underside }
+
+/// Clockwise quarter-turns that normalize a world-facing region so its edge
+/// tangent runs left-to-right and its material interior faces down.
+///
+/// Runtime and editor painters apply this normalization before rotating the
+/// result onto the actual edge. Consequently, axis-aligned source art keeps
+/// the same visual orientation it has in its atlas.
+int terrainMaterialEdgeNormalizationQuarterTurns(
+  TerrainMaterialEdgeOrientation orientation,
+) => switch (orientation) {
+  TerrainMaterialEdgeOrientation.top => 0,
+  TerrainMaterialEdgeOrientation.leftWall => 1,
+  TerrainMaterialEdgeOrientation.rightWall => 3,
+  TerrainMaterialEdgeOrientation.underside => 2,
+};
+
+/// Width of a world-facing edge region after tangent-space normalization.
+int terrainMaterialEdgeTileWidth({
+  required TerrainMaterialEdgeOrientation orientation,
+  required int sourceWidth,
+  required int sourceHeight,
+}) => switch (orientation) {
+  TerrainMaterialEdgeOrientation.leftWall ||
+  TerrainMaterialEdgeOrientation.rightWall => sourceHeight,
+  TerrainMaterialEdgeOrientation.top ||
+  TerrainMaterialEdgeOrientation.underside => sourceWidth,
+};
+
+/// Height of a world-facing edge region after tangent-space normalization.
+///
+/// `anchorY` is measured against this normalized height. For wall art this is
+/// the source region width; for top and underside art it is its source height.
+int terrainMaterialEdgeTileHeight({
+  required TerrainMaterialEdgeOrientation orientation,
+  required int sourceWidth,
+  required int sourceHeight,
+}) => switch (orientation) {
+  TerrainMaterialEdgeOrientation.leftWall ||
+  TerrainMaterialEdgeOrientation.rightWall => sourceWidth,
+  TerrainMaterialEdgeOrientation.top ||
+  TerrainMaterialEdgeOrientation.underside => sourceHeight,
+};
+
 /// Positive repeat remainder shared by runtime and editor previews.
 double terrainMaterialPositiveModulo(double value, double repeatSize) {
   if (!value.isFinite || !repeatSize.isFinite || repeatSize <= 0) {

@@ -28,4 +28,47 @@ void main() {
       throwsArgumentError,
     );
   });
+
+  test('world-facing roles normalize to the edge tangent', () {
+    expect(
+      terrainMaterialEdgeNormalizationQuarterTurns(
+        TerrainMaterialEdgeOrientation.top,
+      ),
+      0,
+    );
+    expect(
+      terrainMaterialEdgeNormalizationQuarterTurns(
+        TerrainMaterialEdgeOrientation.leftWall,
+      ),
+      1,
+    );
+    expect(
+      terrainMaterialEdgeNormalizationQuarterTurns(
+        TerrainMaterialEdgeOrientation.rightWall,
+      ),
+      3,
+    );
+    expect(
+      terrainMaterialEdgeNormalizationQuarterTurns(
+        TerrainMaterialEdgeOrientation.underside,
+      ),
+      2,
+    );
+    expect(
+      terrainMaterialEdgeTileWidth(
+        orientation: TerrainMaterialEdgeOrientation.leftWall,
+        sourceWidth: 12,
+        sourceHeight: 24,
+      ),
+      24,
+    );
+    expect(
+      terrainMaterialEdgeTileHeight(
+        orientation: TerrainMaterialEdgeOrientation.leftWall,
+        sourceWidth: 12,
+        sourceHeight: 24,
+      ),
+      12,
+    );
+  });
 }

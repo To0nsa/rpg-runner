@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'terrain_material_render_math.dart';
+
 const int terrainMaterialCatalogSchemaVersion = 2;
 
 final RegExp _materialKeyPattern = RegExp(r'^[a-z][a-z0-9_]*$');
@@ -51,13 +53,16 @@ final class TerrainMaterialImageRegion {
   int get hashCode => Object.hash(assetPath, x, y, width, height);
 }
 
-/// One atlas region repeated along a compiler-owned terrain edge.
+/// One world-facing atlas region repeated along a compiler-owned terrain edge.
 final class TerrainMaterialEdgeLayer {
   const TerrainMaterialEdgeLayer({required this.region, required this.anchorY});
 
   final TerrainMaterialImageRegion region;
 
-  /// Region-local Y coordinate aligned to the exact terrain edge.
+  /// Tangent-normalized Y coordinate aligned to the exact terrain edge.
+  ///
+  /// Wall regions swap source axes during normalization, so their valid range
+  /// is the source width rather than its height.
   final double anchorY;
 
   Map<String, Object?> toJson() => <String, Object?>{
@@ -529,23 +534,32 @@ TerrainMaterialDefinition? _decodeMaterial(
     );
   }
   final fill = _region(json['fill'], '$path.fill', key, issues);
-  final top = _edgeProfile(json['top'], '$path.top', key, issues);
+  final top = _edgeProfile(
+    json['top'],
+    '$path.top',
+    key,
+    TerrainMaterialEdgeOrientation.top,
+    issues,
+  );
   final leftWall = _optionalEdgeProfile(
     json['leftWall'],
     '$path.leftWall',
     key,
+    TerrainMaterialEdgeOrientation.leftWall,
     issues,
   );
   final rightWall = _optionalEdgeProfile(
     json['rightWall'],
     '$path.rightWall',
     key,
+    TerrainMaterialEdgeOrientation.rightWall,
     issues,
   );
   final underside = _optionalEdgeProfile(
     json['underside'],
     '$path.underside',
     key,
+    TerrainMaterialEdgeOrientation.underside,
     issues,
   );
   final topStartCap = _optionalCap(
@@ -596,13 +610,17 @@ TerrainMaterialEdgeProfile? _optionalEdgeProfile(
   Object? value,
   String path,
   String? materialKey,
+  TerrainMaterialEdgeOrientation orientation,
   List<TerrainMaterialCatalogIssue> issues,
-) => value == null ? null : _edgeProfile(value, path, materialKey, issues);
+) => value == null
+    ? null
+    : _edgeProfile(value, path, materialKey, orientation, issues);
 
 TerrainMaterialEdgeProfile? _edgeProfile(
   Object? value,
   String path,
   String? materialKey,
+  TerrainMaterialEdgeOrientation orientation,
   List<TerrainMaterialCatalogIssue> issues,
 ) {
   if (value is! Map<String, Object?>) {
@@ -623,10 +641,22 @@ TerrainMaterialEdgeProfile? _edgeProfile(
     materialKey: materialKey,
     issues: issues,
   );
-  final base = _edgeLayer(value['base'], '$path.base', materialKey, issues);
+  final base = _edgeLayer(
+    value['base'],
+    '$path.base',
+    materialKey,
+    orientation,
+    issues,
+  );
   final detail = value['detail'] == null
       ? null
-      : _edgeLayer(value['detail'], '$path.detail', materialKey, issues);
+      : _edgeLayer(
+          value['detail'],
+          '$path.detail',
+          materialKey,
+          orientation,
+          issues,
+        );
   return base == null
       ? null
       : TerrainMaterialEdgeProfile(base: base, detail: detail);
@@ -636,6 +666,7 @@ TerrainMaterialEdgeLayer? _edgeLayer(
   Object? value,
   String path,
   String? materialKey,
+  TerrainMaterialEdgeOrientation orientation,
   List<TerrainMaterialCatalogIssue> issues,
 ) {
   if (value is! Map<String, Object?>) {
@@ -663,13 +694,20 @@ TerrainMaterialEdgeLayer? _edgeLayer(
     materialKey,
     issues,
   );
-  if (region != null && anchorY != null && anchorY > region.height) {
+  final anchorLimit = region == null
+      ? null
+      : terrainMaterialEdgeTileHeight(
+          orientation: orientation,
+          sourceWidth: region.width,
+          sourceHeight: region.height,
+        );
+  if (anchorLimit != null && anchorY != null && anchorY > anchorLimit) {
     issues.add(
       TerrainMaterialCatalogIssue(
         code: 'terrain_material_anchor_out_of_bounds',
         path: '$path.anchorY',
         materialKey: materialKey,
-        message: 'anchorY must be within [0, ${region.height}].',
+        message: 'anchorY must be within [0, $anchorLimit].',
       ),
     );
   }
