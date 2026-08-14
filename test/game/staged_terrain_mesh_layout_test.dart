@@ -83,6 +83,7 @@ void main() {
     final material = TerrainMaterialRegistry.require('grass_dirt');
 
     expect(material.displayName, 'Grass / Dirt');
+    expect(material.revision, 7);
     expect(material.fill.assetPath, 'terrain/tx_tileset_ground/atlas.png');
     expect((material.fill.x, material.fill.y), (224, 192));
     expect(
@@ -111,6 +112,22 @@ void main() {
     expect(
       (material.underside?.base.region.x, material.underside?.base.region.y),
       (32, 64),
+    );
+    expect(
+      (
+        material.undersideStartCap?.region.x,
+        material.undersideStartCap?.region.y,
+        material.undersideStartCap?.anchorX,
+      ),
+      (64, 64, 0),
+    );
+    expect(
+      (
+        material.undersideEndCap?.region.x,
+        material.undersideEndCap?.region.y,
+        material.undersideEndCap?.anchorX,
+      ),
+      (0, 64, 32),
     );
     expect(
       () => TerrainMaterialRegistry.require('missing_material'),

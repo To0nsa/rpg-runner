@@ -112,7 +112,8 @@ coverage before the polygon edit is applied.
 The **Terrain Materials** route creates, duplicates, edits, validates, and
 reference-safely deletes those definitions. Each material owns a stable key,
 fill region, required top/slope profile, optional left/right wall and underside
-profiles, and optional paired cliff caps. Each visual role selects an exact
+profiles, and independent optional pairs of top cliff and underside corner
+caps. Each visual role selects an exact
 `X/Y/W/H` rectangle from a PNG below `assets/images/terrain/`. The picker offers
 a configurable cell grid (32x32 is only its default) and arbitrary manual pixel
 rectangles; selecting a region never creates a cropped asset. Edge regions use

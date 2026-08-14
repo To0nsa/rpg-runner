@@ -66,15 +66,38 @@ void main() {
       ],
     );
 
+    final decorations = StagedTerrainEdgeLayout.build(snapshot);
+
     expect(
-      StagedTerrainEdgeLayout.build(
-        snapshot,
-      ).map((decoration) => decoration.orientation),
+      decorations.map((decoration) => decoration.orientation),
       <TerrainMaterialEdgeOrientation>[
         TerrainMaterialEdgeOrientation.rightWall,
         TerrainMaterialEdgeOrientation.underside,
       ],
     );
+    expect(decorations.last.drawStartCap, isTrue);
+    expect(decorations.last.drawEndCap, isTrue);
+  });
+
+  test('underside caps appear only at the ends of one material run', () {
+    final firstId = _id(0);
+    final secondId = _id(1);
+    final snapshot = StagedTerrainRenderSnapshot(
+      geometryVersion: 1,
+      polygons: const <StagedTerrainPolygonRenderSnapshot>[],
+      edges: <TerrainEdge>[
+        _edge(index: 0, start: (100, 10), end: (50, 10), nextId: secondId),
+        _edge(index: 1, start: (50, 10), end: (0, 10), previousId: firstId),
+      ],
+    );
+
+    final decorations = StagedTerrainEdgeLayout.build(snapshot);
+
+    expect(decorations, hasLength(2));
+    expect(decorations.first.drawStartCap, isTrue);
+    expect(decorations.first.drawEndCap, isFalse);
+    expect(decorations.last.drawStartCap, isFalse);
+    expect(decorations.last.drawEndCap, isTrue);
   });
 }
 

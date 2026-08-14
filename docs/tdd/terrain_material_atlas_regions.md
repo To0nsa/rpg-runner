@@ -56,11 +56,13 @@ two quarter-turns; top art is already normalized. This prevents already
 oriented atlas cells from receiving an extra 90° or 180° rotation on
 axis-aligned polygons while preserving edge-relative rotation for slopes.
 
-Cap anchors use raw region-local coordinates. Edge `anchorY` uses the
-tangent-normalized tile: its valid range is the source height for top/underside
-regions and the source width for wall regions. Zero and the relevant boundary
-are valid; negative values and values beyond the boundary are invalid. Anchors
-are never coordinates in the complete atlas.
+Cap `anchorX` and `anchorY` use tangent-normalized region coordinates, matching
+the destination space in which the cap is placed. Edge `anchorY` uses that same
+normalized tile: its valid range is the source height for top/underside regions
+and the source width for wall regions. The atlas picker maps these normalized
+anchors back onto the raw world-facing cell when it draws its guide. Zero and
+the relevant boundary are valid; negative values and values beyond the boundary
+are invalid. Anchors are never coordinates in the complete atlas.
 
 ## Catalog Rules
 

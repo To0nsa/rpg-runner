@@ -28,6 +28,8 @@ void main() {
     expect(material?.top.base.anchorY, 12);
     expect(material?.topStartCap?.region.x, 0);
     expect(material?.topEndCap?.region.x, 64);
+    expect(material?.undersideStartCap?.region.x, 64);
+    expect(material?.undersideEndCap?.region.x, 0);
     expect(decoded.catalog?.materials.map((entry) => entry.key), <String>[
       'grass_dirt',
     ]);
