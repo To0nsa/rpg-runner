@@ -240,6 +240,11 @@ class _TerrainMaterialsPageState extends State<TerrainMaterialsPage> {
               'Cliff caps',
               material.topStartCap != null && material.topEndCap != null,
             ),
+            _coverageRow(
+              'Bottom corners',
+              material.undersideStartCap != null &&
+                  material.undersideEndCap != null,
+            ),
             const Divider(height: 28),
           ],
           Text(

@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -276,12 +275,22 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
             );
           }
         }
-        if (kind != TerrainMaterialEdgeOrientation.top) continue;
+      }
+      // Endpoint art is a foreground pass so adjacent edge bands cannot cover
+      // corners that intentionally bridge two orientations.
+      for (var index = 0; index < shape.vertices.length; index += 1) {
+        final kind = edgeKinds[index];
+        final caps = _capsForKind(material, kind);
+        if (caps.start == null && caps.end == null) continue;
+        final start = _vertexOffset(shape.vertices[index]);
+        final end = _vertexOffset(
+          shape.vertices[(index + 1) % shape.vertices.length],
+        );
         final previousKind =
             edgeKinds[(index - 1 + edgeKinds.length) % edgeKinds.length];
         final nextKind = edgeKinds[(index + 1) % edgeKinds.length];
-        if (previousKind != TerrainMaterialEdgeOrientation.top) {
-          final cap = material.topStartCap;
+        if (previousKind != kind) {
+          final cap = caps.start;
           if (cap != null) {
             final image = imagesBySourcePath[cap.region.assetPath];
             if (image != null) {
@@ -291,13 +300,14 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
                 edgeEnd: end,
                 image: image,
                 cap: cap,
+                orientation: kind,
                 atEnd: false,
               );
             }
           }
         }
-        if (nextKind != TerrainMaterialEdgeOrientation.top) {
-          final cap = material.topEndCap;
+        if (nextKind != kind) {
+          final cap = caps.end;
           if (cap != null) {
             final image = imagesBySourcePath[cap.region.assetPath];
             if (image != null) {
@@ -307,6 +317,7 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
                 edgeEnd: end,
                 image: image,
                 cap: cap,
+                orientation: kind,
                 atEnd: true,
               );
             }
@@ -390,6 +401,22 @@ TerrainMaterialEdgeProfile? _profileForKind(
   TerrainMaterialEdgeOrientation.underside => material.underside,
 };
 
+({TerrainMaterialCap? start, TerrainMaterialCap? end}) _capsForKind(
+  TerrainMaterialDefinition material,
+  TerrainMaterialEdgeOrientation kind,
+) => switch (kind) {
+  TerrainMaterialEdgeOrientation.top => (
+    start: material.topStartCap,
+    end: material.topEndCap,
+  ),
+  TerrainMaterialEdgeOrientation.underside => (
+    start: material.undersideStartCap,
+    end: material.undersideEndCap,
+  ),
+  TerrainMaterialEdgeOrientation.leftWall ||
+  TerrainMaterialEdgeOrientation.rightWall => (start: null, end: null),
+};
+
 double _signedArea(List<TerrainSourceVertexDef> vertices) {
   var area = 0.0;
   for (var index = 0; index < vertices.length; index += 1) {
@@ -425,33 +452,19 @@ void _drawEdgeCap(
   required Offset edgeEnd,
   required ui.Image image,
   required TerrainMaterialCap cap,
+  required TerrainMaterialEdgeOrientation orientation,
   required bool atEnd,
-}) {
-  final dx = edgeEnd.dx - edgeStart.dx;
-  final dy = edgeEnd.dy - edgeStart.dy;
-  final length = math.sqrt(dx * dx + dy * dy);
-  if (length <= 0) return;
-  canvas.save();
-  canvas.translate(edgeStart.dx, edgeStart.dy);
-  canvas.rotate(math.atan2(dy, dx));
-  canvas.drawImageRect(
-    image,
-    Rect.fromLTWH(
-      cap.region.x.toDouble(),
-      cap.region.y.toDouble(),
-      cap.region.width.toDouble(),
-      cap.region.height.toDouble(),
-    ),
-    Rect.fromLTWH(
-      (atEnd ? length : 0) - cap.anchorX,
-      -cap.anchorY,
-      cap.region.width.toDouble(),
-      cap.region.height.toDouble(),
-    ),
-    Paint()..filterQuality = FilterQuality.none,
-  );
-  canvas.restore();
-}
+}) => paintTerrainMaterialCapRegion(
+  canvas,
+  image: image,
+  region: cap.region,
+  orientation: orientation,
+  start: edgeStart,
+  end: edgeEnd,
+  anchorX: cap.anchorX,
+  anchorY: cap.anchorY,
+  atEnd: atEnd,
+);
 
 Iterable<String> _materialAssetPaths(TerrainMaterialDefinition material) =>
     terrainMaterialAssetPaths(material);

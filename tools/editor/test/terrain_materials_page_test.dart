@@ -63,6 +63,13 @@ void main() {
       findsOneWidget,
     );
     expect(
+      find.text(
+        'Bottom corners · '
+        '${loadedMaterial.undersideStartCap != null && loadedMaterial.undersideEndCap != null ? 'configured' : 'fill only'}',
+      ),
+      findsOneWidget,
+    );
+    expect(
       find.byKey(const ValueKey<String>('terrain_material_edit')),
       findsOneWidget,
     );

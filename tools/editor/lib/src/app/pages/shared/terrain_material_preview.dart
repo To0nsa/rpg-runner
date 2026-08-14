@@ -75,6 +75,12 @@ class _TerrainMaterialPreviewState extends State<TerrainMaterialPreview> {
               configured:
                   material.topStartCap != null && material.topEndCap != null,
             ),
+            _CoverageChip(
+              label: 'Bottom corners',
+              configured:
+                  material.undersideStartCap != null &&
+                  material.undersideEndCap != null,
+            ),
           ],
         ),
         if (!widget.compact) ...[
@@ -141,6 +147,20 @@ class _TerrainMaterialPreviewState extends State<TerrainMaterialPreview> {
       region: material.underside?.base.region,
       imageCache: _imageCache,
       tileKey: _tileKey('underside'),
+    ),
+    _TerrainAssetTile(
+      workspaceRootPath: widget.workspaceRootPath,
+      label: 'Bottom right cap',
+      region: material.undersideStartCap?.region,
+      imageCache: _imageCache,
+      tileKey: _tileKey('underside_start_cap'),
+    ),
+    _TerrainAssetTile(
+      workspaceRootPath: widget.workspaceRootPath,
+      label: 'Bottom left cap',
+      region: material.undersideEndCap?.region,
+      imageCache: _imageCache,
+      tileKey: _tileKey('underside_end_cap'),
     ),
   ];
 
@@ -233,15 +253,37 @@ class _TerrainComposedSample extends StatelessWidget {
                 _cap(
                   cap,
                   role: 'start_cap',
-                  edgeY: platform.top,
-                  edgeX: platform.left,
+                  orientation: TerrainMaterialEdgeOrientation.top,
+                  start: platform.topLeft,
+                  end: platform.topRight,
+                  atEnd: false,
                 ),
               if (material.topEndCap case final cap?)
                 _cap(
                   cap,
                   role: 'end_cap',
-                  edgeY: platform.top,
-                  edgeX: platform.right,
+                  orientation: TerrainMaterialEdgeOrientation.top,
+                  start: platform.topLeft,
+                  end: platform.topRight,
+                  atEnd: true,
+                ),
+              if (material.undersideStartCap case final cap?)
+                _cap(
+                  cap,
+                  role: 'underside_start_cap',
+                  orientation: TerrainMaterialEdgeOrientation.underside,
+                  start: platform.bottomRight,
+                  end: platform.bottomLeft,
+                  atEnd: false,
+                ),
+              if (material.undersideEndCap case final cap?)
+                _cap(
+                  cap,
+                  role: 'underside_end_cap',
+                  orientation: TerrainMaterialEdgeOrientation.underside,
+                  start: platform.bottomRight,
+                  end: platform.bottomLeft,
+                  atEnd: true,
                 ),
               Positioned(
                 left: 8,
@@ -316,24 +358,24 @@ class _TerrainComposedSample extends StatelessWidget {
   Widget _cap(
     TerrainMaterialCap cap, {
     required String role,
-    required double edgeY,
-    required double edgeX,
-  }) {
-    return Positioned(
-      left: edgeX - cap.anchorX,
-      top: edgeY - cap.anchorY,
-      width: cap.region.width.toDouble(),
-      height: cap.region.height.toDouble(),
-      child: _TerrainRegionImage.repeated(
-        key: _previewKey(role),
-        workspaceRootPath: workspaceRootPath,
-        region: cap.region,
-        imageCache: imageCache,
-        repeat: _RegionRepeat.none,
-        worldOrigin: Offset.zero,
-      ),
-    );
-  }
+    required TerrainMaterialEdgeOrientation orientation,
+    required Offset start,
+    required Offset end,
+    required bool atEnd,
+  }) => Positioned.fill(
+    child: _TerrainRegionImage.cap(
+      key: _previewKey(role),
+      workspaceRootPath: workspaceRootPath,
+      region: cap.region,
+      imageCache: imageCache,
+      edgeStart: start,
+      edgeEnd: end,
+      anchorX: cap.anchorX,
+      anchorY: cap.anchorY,
+      orientation: orientation,
+      atEnd: atEnd,
+    ),
+  );
 
   ValueKey<String> _previewKey(String role) => ValueKey<String>(
     '${keyPrefix ?? material.key}_material_preview_composed_$role',
@@ -350,8 +392,10 @@ class _TerrainRegionImage extends StatefulWidget {
     required this.worldOrigin,
   }) : edgeStart = null,
        edgeEnd = null,
+       anchorX = null,
        anchorY = null,
-       orientation = null;
+       orientation = null,
+       atEnd = null;
 
   const _TerrainRegionImage.edge({
     super.key,
@@ -363,6 +407,22 @@ class _TerrainRegionImage extends StatefulWidget {
     required this.anchorY,
     required this.orientation,
   }) : repeat = null,
+       worldOrigin = null,
+       anchorX = null,
+       atEnd = null;
+
+  const _TerrainRegionImage.cap({
+    super.key,
+    required this.workspaceRootPath,
+    required this.region,
+    required this.imageCache,
+    required this.edgeStart,
+    required this.edgeEnd,
+    required this.anchorX,
+    required this.anchorY,
+    required this.orientation,
+    required this.atEnd,
+  }) : repeat = null,
        worldOrigin = null;
 
   final String workspaceRootPath;
@@ -372,8 +432,10 @@ class _TerrainRegionImage extends StatefulWidget {
   final Offset? worldOrigin;
   final Offset? edgeStart;
   final Offset? edgeEnd;
+  final double? anchorX;
   final double? anchorY;
   final TerrainMaterialEdgeOrientation? orientation;
+  final bool? atEnd;
 
   @override
   State<_TerrainRegionImage> createState() => _TerrainRegionImageState();
@@ -403,21 +465,32 @@ class _TerrainRegionImageState extends State<_TerrainRegionImage> {
   Widget build(BuildContext context) => _image == null
       ? const ColoredBox(color: Color(0x22000000))
       : CustomPaint(
-          painter: widget.edgeStart == null
-              ? _TerrainRegionPainter(
-                  image: _image!,
-                  region: widget.region,
-                  repeat: widget.repeat!,
-                  worldOrigin: widget.worldOrigin!,
-                )
-              : _TerrainEdgePainter(
-                  image: _image!,
-                  region: widget.region,
-                  start: widget.edgeStart!,
-                  end: widget.edgeEnd!,
-                  anchorY: widget.anchorY!,
-                  orientation: widget.orientation!,
-                ),
+          painter: switch ((widget.edgeStart, widget.anchorX)) {
+            (null, _) => _TerrainRegionPainter(
+              image: _image!,
+              region: widget.region,
+              repeat: widget.repeat!,
+              worldOrigin: widget.worldOrigin!,
+            ),
+            (_, final anchorX?) => _TerrainCapPainter(
+              image: _image!,
+              region: widget.region,
+              start: widget.edgeStart!,
+              end: widget.edgeEnd!,
+              anchorX: anchorX,
+              anchorY: widget.anchorY!,
+              orientation: widget.orientation!,
+              atEnd: widget.atEnd!,
+            ),
+            _ => _TerrainEdgePainter(
+              image: _image!,
+              region: widget.region,
+              start: widget.edgeStart!,
+              end: widget.edgeEnd!,
+              anchorY: widget.anchorY!,
+              orientation: widget.orientation!,
+            ),
+          },
         );
 
   void _refresh() {
@@ -474,6 +547,52 @@ class _TerrainEdgePainter extends CustomPainter {
       oldDelegate.orientation != orientation;
 }
 
+class _TerrainCapPainter extends CustomPainter {
+  const _TerrainCapPainter({
+    required this.image,
+    required this.region,
+    required this.start,
+    required this.end,
+    required this.anchorX,
+    required this.anchorY,
+    required this.orientation,
+    required this.atEnd,
+  });
+
+  final ui.Image image;
+  final TerrainMaterialImageRegion region;
+  final Offset start;
+  final Offset end;
+  final double anchorX;
+  final double anchorY;
+  final TerrainMaterialEdgeOrientation orientation;
+  final bool atEnd;
+
+  @override
+  void paint(Canvas canvas, Size size) => paintTerrainMaterialCapRegion(
+    canvas,
+    image: image,
+    region: region,
+    orientation: orientation,
+    start: start,
+    end: end,
+    anchorX: anchorX,
+    anchorY: anchorY,
+    atEnd: atEnd,
+  );
+
+  @override
+  bool shouldRepaint(covariant _TerrainCapPainter oldDelegate) =>
+      oldDelegate.image != image ||
+      oldDelegate.region != region ||
+      oldDelegate.start != start ||
+      oldDelegate.end != end ||
+      oldDelegate.anchorX != anchorX ||
+      oldDelegate.anchorY != anchorY ||
+      oldDelegate.orientation != orientation ||
+      oldDelegate.atEnd != atEnd;
+}
+
 class _TerrainRegionPainter extends CustomPainter {
   const _TerrainRegionPainter({
     required this.image,
@@ -497,26 +616,17 @@ class _TerrainRegionPainter extends CustomPainter {
       region.height.toDouble(),
     );
     final paint = Paint()..filterQuality = FilterQuality.none;
-    if (repeat == _RegionRepeat.none) {
-      canvas.drawImageRect(image, source, Offset.zero & source.size, paint);
-      return;
-    }
     canvas.save();
     canvas.clipRect(Offset.zero & size);
-    final endY = repeat == _RegionRepeat.horizontal
-        ? region.height.toDouble()
-        : size.height;
     final startX = -terrainMaterialPositiveModulo(
       worldOrigin.dx,
       region.width.toDouble(),
     );
-    final startY = repeat == _RegionRepeat.horizontal
-        ? 0.0
-        : -terrainMaterialPositiveModulo(
-            worldOrigin.dy,
-            region.height.toDouble(),
-          );
-    for (var y = startY; y < endY; y += region.height) {
+    final startY = -terrainMaterialPositiveModulo(
+      worldOrigin.dy,
+      region.height.toDouble(),
+    );
+    for (var y = startY; y < size.height; y += region.height) {
       for (var x = startX; x < size.width; x += region.width) {
         canvas.drawImageRect(
           image,
@@ -542,7 +652,7 @@ class _TerrainRegionPainter extends CustomPainter {
       oldDelegate.worldOrigin != worldOrigin;
 }
 
-enum _RegionRepeat { none, horizontal, both }
+enum _RegionRepeat { both }
 
 class _CoverageChip extends StatelessWidget {
   const _CoverageChip({required this.label, required this.configured});

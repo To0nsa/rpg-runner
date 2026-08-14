@@ -25,11 +25,18 @@ void main() {
     expect(_composedRole('left_wall_base'), findsNothing);
 
     final profile = _profile(assetPath);
+    final cap = TerrainMaterialCap(
+      region: _region(assetPath),
+      anchorX: 0,
+      anchorY: 0,
+    );
     final configured = topOnly.copyWith(
       revision: 2,
       leftWall: profile,
       rightWall: profile,
       underside: profile,
+      undersideStartCap: cap,
+      undersideEndCap: cap,
     );
     await tester.pumpWidget(_preview(workspaceRoot, configured));
     await tester.pumpAndSettle();
@@ -38,6 +45,8 @@ void main() {
     expect(_composedRole('right_wall_base'), findsOneWidget);
     expect(_composedRole('underside_base'), findsOneWidget);
     expect(_composedRole('left_wall_base'), findsOneWidget);
+    expect(_composedRole('underside_start_cap'), findsOneWidget);
+    expect(_composedRole('underside_end_cap'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

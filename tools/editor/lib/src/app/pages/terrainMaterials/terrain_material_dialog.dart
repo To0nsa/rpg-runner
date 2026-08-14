@@ -79,12 +79,15 @@ class _TerrainMaterialDialogState extends State<_TerrainMaterialDialog> {
   late final _EdgeProfileDraft _leftWall;
   late final _EdgeProfileDraft _rightWall;
   late final _EdgeProfileDraft _underside;
-  late final _CapDraft _startCap;
-  late final _CapDraft _endCap;
+  late final _CapDraft _topStartCap;
+  late final _CapDraft _topEndCap;
+  late final _CapDraft _undersideStartCap;
+  late final _CapDraft _undersideEndCap;
   late bool _hasLeftWall;
   late bool _hasRightWall;
   late bool _hasUnderside;
-  late bool _hasCaps;
+  late bool _hasTopCaps;
+  late bool _hasUndersideCaps;
   String? _formError;
 
   @override
@@ -98,12 +101,17 @@ class _TerrainMaterialDialogState extends State<_TerrainMaterialDialog> {
     _leftWall = _EdgeProfileDraft.fromProfile(material?.leftWall);
     _rightWall = _EdgeProfileDraft.fromProfile(material?.rightWall);
     _underside = _EdgeProfileDraft.fromProfile(material?.underside);
-    _startCap = _CapDraft.fromCap(material?.topStartCap);
-    _endCap = _CapDraft.fromCap(material?.topEndCap);
+    _topStartCap = _CapDraft.fromCap(material?.topStartCap);
+    _topEndCap = _CapDraft.fromCap(material?.topEndCap);
+    _undersideStartCap = _CapDraft.fromCap(material?.undersideStartCap);
+    _undersideEndCap = _CapDraft.fromCap(material?.undersideEndCap);
     _hasLeftWall = material?.leftWall != null;
     _hasRightWall = material?.rightWall != null;
     _hasUnderside = material?.underside != null;
-    _hasCaps = material?.topStartCap != null || material?.topEndCap != null;
+    _hasTopCaps = material?.topStartCap != null || material?.topEndCap != null;
+    _hasUndersideCaps =
+        material?.undersideStartCap != null ||
+        material?.undersideEndCap != null;
   }
 
   @override
@@ -114,8 +122,10 @@ class _TerrainMaterialDialogState extends State<_TerrainMaterialDialog> {
     _leftWall.dispose();
     _rightWall.dispose();
     _underside.dispose();
-    _startCap.dispose();
-    _endCap.dispose();
+    _topStartCap.dispose();
+    _topEndCap.dispose();
+    _undersideStartCap.dispose();
+    _undersideEndCap.dispose();
     _previewCache.dispose();
     super.dispose();
   }
@@ -203,7 +213,10 @@ class _TerrainMaterialDialogState extends State<_TerrainMaterialDialog> {
                   label: 'Underside edges',
                   keyPrefix: 'underside',
                   value: _hasUnderside,
-                  onChanged: (value) => setState(() => _hasUnderside = value),
+                  onChanged: (value) => setState(() {
+                    _hasUnderside = value;
+                    if (!value) _hasUndersideCaps = false;
+                  }),
                   draft: _underside,
                   orientation: TerrainMaterialEdgeOrientation.underside,
                 ),
@@ -214,13 +227,51 @@ class _TerrainMaterialDialogState extends State<_TerrainMaterialDialog> {
                   subtitle: const Text(
                     'Paired endpoint regions; smooth continuations never use caps.',
                   ),
-                  value: _hasCaps,
-                  onChanged: (value) => setState(() => _hasCaps = value),
+                  value: _hasTopCaps,
+                  onChanged: (value) => setState(() => _hasTopCaps = value),
                 ),
-                if (_hasCaps) ...[
-                  _capFields('Start / left cap', 'start_cap', _startCap),
+                if (_hasTopCaps) ...[
+                  _capFields(
+                    'Start / left cap',
+                    'start_cap',
+                    _topStartCap,
+                    orientation: TerrainMaterialEdgeOrientation.top,
+                  ),
                   const SizedBox(height: 10),
-                  _capFields('End / right cap', 'end_cap', _endCap),
+                  _capFields(
+                    'End / right cap',
+                    'end_cap',
+                    _topEndCap,
+                    orientation: TerrainMaterialEdgeOrientation.top,
+                  ),
+                ],
+                const SizedBox(height: 10),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Underside corner caps'),
+                  subtitle: const Text(
+                    'Paired bottom-right/start and bottom-left/end regions; '
+                    'rendered after every edge band.',
+                  ),
+                  value: _hasUndersideCaps,
+                  onChanged: _hasUnderside
+                      ? (value) => setState(() => _hasUndersideCaps = value)
+                      : null,
+                ),
+                if (_hasUndersideCaps) ...[
+                  _capFields(
+                    'Bottom right / underside start',
+                    'underside_start_cap',
+                    _undersideStartCap,
+                    orientation: TerrainMaterialEdgeOrientation.underside,
+                  ),
+                  const SizedBox(height: 10),
+                  _capFields(
+                    'Bottom left / underside end',
+                    'underside_end_cap',
+                    _undersideEndCap,
+                    orientation: TerrainMaterialEdgeOrientation.underside,
+                  ),
                 ],
                 if (_formError case final error?) ...[
                   const SizedBox(height: 12),
@@ -351,7 +402,12 @@ class _TerrainMaterialDialogState extends State<_TerrainMaterialDialog> {
     ],
   );
 
-  Widget _capFields(String label, String keySuffix, _CapDraft draft) => Row(
+  Widget _capFields(
+    String label,
+    String keySuffix,
+    _CapDraft draft, {
+    required TerrainMaterialEdgeOrientation orientation,
+  }) => Row(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Expanded(
@@ -361,6 +417,7 @@ class _TerrainMaterialDialogState extends State<_TerrainMaterialDialog> {
           region: draft.region,
           anchorX: double.tryParse(draft.anchorX.text.trim()),
           anchorY: double.tryParse(draft.anchorY.text.trim()),
+          edgeOrientation: orientation,
           onChanged: (region) => setState(() => draft.region = region),
         ),
       ),
@@ -370,8 +427,14 @@ class _TerrainMaterialDialogState extends State<_TerrainMaterialDialog> {
         child: TextFormField(
           controller: draft.anchorX,
           decoration: const InputDecoration(labelText: 'Anchor X'),
-          validator: (value) =>
-              _anchor(value, maximum: draft.region?.width.toDouble()),
+          validator: (value) => _anchor(
+            value,
+            maximum: _capAnchorMaximum(
+              draft.region,
+              orientation,
+              horizontal: true,
+            ),
+          ),
         ),
       ),
       const SizedBox(width: 8),
@@ -380,8 +443,14 @@ class _TerrainMaterialDialogState extends State<_TerrainMaterialDialog> {
         child: TextFormField(
           controller: draft.anchorY,
           decoration: const InputDecoration(labelText: 'Anchor Y'),
-          validator: (value) =>
-              _anchor(value, maximum: draft.region?.height.toDouble()),
+          validator: (value) => _anchor(
+            value,
+            maximum: _capAnchorMaximum(
+              draft.region,
+              orientation,
+              horizontal: false,
+            ),
+          ),
         ),
       ),
     ],
@@ -426,7 +495,11 @@ class _TerrainMaterialDialogState extends State<_TerrainMaterialDialog> {
         (!_hasLeftWall || _leftWall.baseRegion != null) &&
         (!_hasRightWall || _rightWall.baseRegion != null) &&
         (!_hasUnderside || _underside.baseRegion != null) &&
-        (!_hasCaps || (_startCap.region != null && _endCap.region != null));
+        (!_hasTopCaps ||
+            (_topStartCap.region != null && _topEndCap.region != null)) &&
+        (!_hasUndersideCaps ||
+            (_undersideStartCap.region != null &&
+                _undersideEndCap.region != null));
     if (!regionsComplete) {
       setState(() {
         _formError = 'Assign every required atlas region before saving.';
@@ -444,8 +517,10 @@ class _TerrainMaterialDialogState extends State<_TerrainMaterialDialog> {
       leftWall: _hasLeftWall ? _leftWall.build() : null,
       rightWall: _hasRightWall ? _rightWall.build() : null,
       underside: _hasUnderside ? _underside.build() : null,
-      topStartCap: _hasCaps ? _startCap.build() : null,
-      topEndCap: _hasCaps ? _endCap.build() : null,
+      topStartCap: _hasTopCaps ? _topStartCap.build() : null,
+      topEndCap: _hasTopCaps ? _topEndCap.build() : null,
+      undersideStartCap: _hasUndersideCaps ? _undersideStartCap.build() : null,
+      undersideEndCap: _hasUndersideCaps ? _undersideEndCap.build() : null,
     );
     if (!widget.isNew && candidate == current) {
       Navigator.of(context).pop();
@@ -658,6 +733,25 @@ double? _edgeAnchorMaximum(
         sourceWidth: region.width,
         sourceHeight: region.height,
       ).toDouble();
+
+double? _capAnchorMaximum(
+  TerrainMaterialImageRegion? region,
+  TerrainMaterialEdgeOrientation orientation, {
+  required bool horizontal,
+}) => region == null
+    ? null
+    : (horizontal
+              ? terrainMaterialEdgeTileWidth(
+                  orientation: orientation,
+                  sourceWidth: region.width,
+                  sourceHeight: region.height,
+                )
+              : terrainMaterialEdgeTileHeight(
+                  orientation: orientation,
+                  sourceWidth: region.width,
+                  sourceHeight: region.height,
+                ))
+          .toDouble();
 
 String _number(double value) => value == value.roundToDouble()
     ? value.toInt().toString()

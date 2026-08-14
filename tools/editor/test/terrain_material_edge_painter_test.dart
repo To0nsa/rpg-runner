@@ -71,6 +71,38 @@ void main() {
       expected.dispose();
     }
   });
+
+  test('underside cap is normalized into its world-facing corner', () async {
+    final source = await _sourceImage();
+    addTearDown(source.dispose);
+    const region = TerrainMaterialImageRegion(
+      assetPath: 'assets/images/terrain/test/atlas.png',
+      x: 0,
+      y: 0,
+      width: 2,
+      height: 3,
+    );
+    final recorder = ui.PictureRecorder();
+    paintTerrainMaterialCapRegion(
+      ui.Canvas(recorder),
+      image: source,
+      region: region,
+      orientation: TerrainMaterialEdgeOrientation.underside,
+      start: const ui.Offset(4, 5),
+      end: const ui.Offset(2, 5),
+      anchorX: 0,
+      anchorY: 0,
+      atEnd: false,
+    );
+    final picture = recorder.endRecording();
+    final actual = await picture.toImage(8, 8);
+    picture.dispose();
+    addTearDown(actual.dispose);
+    final expected = await _renderSourceAt(source, const ui.Offset(2, 2));
+    addTearDown(expected.dispose);
+
+    expect(await _rgbaBytes(actual), await _rgbaBytes(expected));
+  });
 }
 
 Future<ui.Image> _sourceImage() async {

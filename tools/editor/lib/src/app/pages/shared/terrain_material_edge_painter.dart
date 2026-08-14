@@ -59,6 +59,35 @@ void paintTerrainMaterialEdgeRegion(
   canvas.restore();
 }
 
+/// Paints one world-facing endpoint cap after repeating edge bands.
+void paintTerrainMaterialCapRegion(
+  Canvas canvas, {
+  required ui.Image image,
+  required TerrainMaterialImageRegion region,
+  required TerrainMaterialEdgeOrientation orientation,
+  required Offset start,
+  required Offset end,
+  required double anchorX,
+  required double anchorY,
+  required bool atEnd,
+}) {
+  if (region.right > image.width || region.bottom > image.height) return;
+  final delta = end - start;
+  final length = delta.distance;
+  if (length <= 0) return;
+  canvas.save();
+  canvas.translate(start.dx, start.dy);
+  canvas.rotate(math.atan2(delta.dy, delta.dx));
+  _drawNormalizedRegion(
+    canvas,
+    image: image,
+    region: region,
+    destination: Offset((atEnd ? length : 0) - anchorX, -anchorY),
+    quarterTurns: terrainMaterialEdgeNormalizationQuarterTurns(orientation),
+  );
+  canvas.restore();
+}
+
 void _drawNormalizedRegion(
   Canvas canvas, {
   required ui.Image image,
