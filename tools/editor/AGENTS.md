@@ -211,8 +211,9 @@ maintainability concerns.
 - source-of-truth file:
   `assets/authoring/level/terrain_material_defs.json`
 - source-image root: `assets/images/terrain/**`
-- the manifest uses strict schema v2 explicit image regions; normal editor code
-  must not accept schema v1 whole-image fields or add a migration fallback
+- the manifest uses strict schema v3 explicit image regions and paired top and
+  underside endpoint caps; normal editor code must not accept older schemas or
+  add a migration fallback
 - source models, canonical validation, traversal, and repeat math come from
   `packages/terrain_materials`; do not duplicate those rules in the editor
 - discover image metadata through `RepositoryPngCatalog`, then fully decode and

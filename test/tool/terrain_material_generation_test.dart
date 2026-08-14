@@ -28,7 +28,7 @@ void main() {
     final defs = File('${root.path}/terrain_material_defs.json');
     await defs.writeAsString('''
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "materials": [
     {
       "key": "stone",

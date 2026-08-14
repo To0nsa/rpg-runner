@@ -18,7 +18,7 @@ and lifecycle rules. It does not define terrain geometry or collision meaning.
 - `packages/terrain_materials` owns pure-Dart source types, strict decoding,
   canonical encoding, structural validation, traversal, and repeat math.
 - `assets/authoring/level/terrain_material_defs.json` is the repository source
-  of truth and uses schema v2 only.
+  of truth and uses schema v3 only.
 - `tools/editor` discovers terrain PNGs, edits material regions, validates
   current image dimensions, and writes through its terrain plugin/store.
 - the root terrain generator compiles source definitions into
@@ -46,7 +46,7 @@ Material roles use regions as follows:
 | --- | --- | --- |
 | Fill | region | repeats in world X/Y and clips to terrain fill geometry |
 | Edge base/detail | world-facing region plus normalized `anchorY` | normalizes for its role, then repeats along the edge tangent |
-| Start/end cap | region plus `anchorX` and `anchorY` | draws once at an endpoint |
+| Top or underside start/end cap | region plus `anchorX` and `anchorY` | draws once at an endpoint in a final corner pass |
 
 Edge source art is selected in its natural world-facing orientation: top art
 faces up, left/right wall art faces its named side, and underside art faces
@@ -64,8 +64,10 @@ are never coordinates in the complete atlas.
 
 ## Catalog Rules
 
-The decoder accepts exactly `schemaVersion: 2`. Schema v1 whole-image fields are
-invalid normal input; there is no runtime fallback or editor migration path.
+The decoder accepts exactly `schemaVersion: 3`. Older schemas are invalid
+normal input; there is no runtime fallback or editor migration path. Top caps
+and underside caps are independently optional pairs. Underside caps require an
+underside profile so a corner cannot exist without its repeating edge band.
 
 Validation is split deliberately:
 
@@ -96,7 +98,7 @@ Terrain material dialog ──► atlas picker ──► local material draft
 apply-time PNG decode + bounds validation
         │
         ▼
-TerrainMaterialStore ──► canonical schema v2 JSON
+TerrainMaterialStore ──► canonical schema v3 JSON
 ```
 
 Repository discovery and PNG metadata reading are non-UI infrastructure shared
@@ -192,7 +194,7 @@ cache.
 ## Invariants
 
 - Terrain material paths never escape `assets/images/terrain/**`.
-- No normal consumer accepts or emits schema v1.
+- No normal consumer accepts or emits terrain material schemas older than v3.
 - Persisted material data never contains grid settings or cell IDs.
 - No terrain shader repeats over a complete packed atlas.
 - Shared atlas infrastructure has no dependency on Prefab or terrain domain

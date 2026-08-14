@@ -4,7 +4,7 @@ import 'package:test/test.dart';
 void main() {
   const source = '''
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "materials": [
     {
       "key": "grass_dirt",
@@ -56,7 +56,7 @@ void main() {
 }
 ''';
 
-  test('strict v2 decoder round-trips canonical regions', () {
+  test('strict v3 decoder round-trips canonical regions', () {
     final result = decodeTerrainMaterialCatalog(source);
 
     expect(result.issues, isEmpty);
@@ -177,7 +177,92 @@ void main() {
     );
   });
 
-  test('v1 and legacy whole-image fields are rejected without conversion', () {
+  test('underside endpoint caps are paired and require a profile', () {
+    final withUndersideCaps = source.replaceFirst(
+      '"topStartCap": {',
+      '''"underside": {
+        "base": {
+          "region": {
+            "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
+            "x": 32,
+            "y": 64,
+            "width": 32,
+            "height": 32
+          },
+          "anchorY": 0
+        }
+      },
+      "undersideStartCap": {
+        "region": {
+          "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
+          "x": 64,
+          "y": 64,
+          "width": 32,
+          "height": 32
+        },
+        "anchorX": 0,
+        "anchorY": 0
+      },
+      "undersideEndCap": {
+        "region": {
+          "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
+          "x": 0,
+          "y": 64,
+          "width": 32,
+          "height": 32
+        },
+        "anchorX": 32,
+        "anchorY": 0
+      },
+      "topStartCap": {''',
+    );
+
+    final decoded = decodeTerrainMaterialCatalog(withUndersideCaps);
+    expect(decoded.issues, isEmpty);
+    expect(decoded.catalog!.materials.single.undersideStartCap, isNotNull);
+    expect(decoded.catalog!.materials.single.undersideEndCap, isNotNull);
+
+    final unpaired = decodeTerrainMaterialCatalog(
+      withUndersideCaps.replaceFirst(
+        '"undersideEndCap"',
+        '"unexpectedUndersideEndCap"',
+      ),
+    );
+    expect(
+      unpaired.issues.map((issue) => issue.code),
+      containsAll(<String>['unknown_field', 'unpaired_underside_caps']),
+    );
+
+    final withoutProfile = decodeTerrainMaterialCatalog(
+      source.replaceFirst('"topStartCap": {', '''"undersideStartCap": {
+        "region": {
+          "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
+          "x": 64, "y": 64, "width": 32, "height": 32
+        },
+        "anchorX": 0, "anchorY": 0
+      },
+      "undersideEndCap": {
+        "region": {
+          "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
+          "x": 0, "y": 64, "width": 32, "height": 32
+        },
+        "anchorX": 32, "anchorY": 0
+      },
+      "topStartCap": {'''),
+    );
+    expect(
+      withoutProfile.issues.map((issue) => issue.code),
+      contains('underside_caps_without_profile'),
+    );
+  });
+
+  test('older schemas and legacy fields are rejected without conversion', () {
+    expect(
+      decodeTerrainMaterialCatalog(
+        source.replaceFirst('"schemaVersion": 3', '"schemaVersion": 2'),
+      ).issues.map((issue) => issue.code),
+      contains('invalid_schema_version'),
+    );
     final result = decodeTerrainMaterialCatalog('''
 {
   "schemaVersion": 1,

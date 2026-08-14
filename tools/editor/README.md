@@ -121,8 +121,8 @@ vertical and undersides stay downward-facing—while previews and runtime apply
 only the additional rotation needed for the actual polygon edge. Applying
 writes only `assets/authoring/level/terrain_material_defs.json`. Run the root
 content generator afterward to refresh the generated runtime registry. The
-manifest is strict schema v2; the editor and runtime do not contain a schema-v1
-compatibility or migration path.
+manifest is strict schema v3; the editor and runtime do not contain
+older-schema compatibility or migration paths.
 
 The generator compiles every source polygon into the staged terrain artifact.
 Normal gameplay and replay validation consume that admitted polygon artifact

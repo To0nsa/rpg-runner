@@ -206,6 +206,12 @@ String renderTerrainMaterialRegistry(TerrainMaterialCatalog catalog) {
     if (material.topEndCap case final cap?) {
       _writeCap(buffer, 'topEndCap', cap, indent: '        ');
     }
+    if (material.undersideStartCap case final cap?) {
+      _writeCap(buffer, 'undersideStartCap', cap, indent: '        ');
+    }
+    if (material.undersideEndCap case final cap?) {
+      _writeCap(buffer, 'undersideEndCap', cap, indent: '        ');
+    }
     buffer.writeln('      ),');
   }
   buffer.writeln('    };');

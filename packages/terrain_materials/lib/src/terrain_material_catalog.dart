@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'terrain_material_render_math.dart';
 
-const int terrainMaterialCatalogSchemaVersion = 2;
+const int terrainMaterialCatalogSchemaVersion = 3;
 
 final RegExp _materialKeyPattern = RegExp(r'^[a-z][a-z0-9_]*$');
 final RegExp _assetPathPattern = RegExp(
@@ -102,7 +102,7 @@ final class TerrainMaterialEdgeProfile {
   int get hashCode => Object.hash(base, detail);
 }
 
-/// One non-repeating atlas region anchored to a top-edge endpoint.
+/// One non-repeating atlas region anchored to an edge endpoint.
 final class TerrainMaterialCap {
   const TerrainMaterialCap({
     required this.region,
@@ -144,6 +144,8 @@ final class TerrainMaterialDefinition {
     this.underside,
     this.topStartCap,
     this.topEndCap,
+    this.undersideStartCap,
+    this.undersideEndCap,
   });
 
   final String key;
@@ -156,6 +158,8 @@ final class TerrainMaterialDefinition {
   final TerrainMaterialEdgeProfile? underside;
   final TerrainMaterialCap? topStartCap;
   final TerrainMaterialCap? topEndCap;
+  final TerrainMaterialCap? undersideStartCap;
+  final TerrainMaterialCap? undersideEndCap;
 
   TerrainMaterialDefinition copyWith({
     String? key,
@@ -173,6 +177,10 @@ final class TerrainMaterialDefinition {
     bool clearTopStartCap = false,
     TerrainMaterialCap? topEndCap,
     bool clearTopEndCap = false,
+    TerrainMaterialCap? undersideStartCap,
+    bool clearUndersideStartCap = false,
+    TerrainMaterialCap? undersideEndCap,
+    bool clearUndersideEndCap = false,
   }) => TerrainMaterialDefinition(
     key: key ?? this.key,
     displayName: displayName ?? this.displayName,
@@ -184,6 +192,12 @@ final class TerrainMaterialDefinition {
     underside: clearUnderside ? null : underside ?? this.underside,
     topStartCap: clearTopStartCap ? null : topStartCap ?? this.topStartCap,
     topEndCap: clearTopEndCap ? null : topEndCap ?? this.topEndCap,
+    undersideStartCap: clearUndersideStartCap
+        ? null
+        : undersideStartCap ?? this.undersideStartCap,
+    undersideEndCap: clearUndersideEndCap
+        ? null
+        : undersideEndCap ?? this.undersideEndCap,
   );
 
   Map<String, Object?> toJson() => <String, Object?>{
@@ -198,6 +212,10 @@ final class TerrainMaterialDefinition {
     if (topStartCap case final topStartCap?)
       'topStartCap': topStartCap.toJson(),
     if (topEndCap case final topEndCap?) 'topEndCap': topEndCap.toJson(),
+    if (undersideStartCap case final undersideStartCap?)
+      'undersideStartCap': undersideStartCap.toJson(),
+    if (undersideEndCap case final undersideEndCap?)
+      'undersideEndCap': undersideEndCap.toJson(),
   };
 
   @override
@@ -212,7 +230,9 @@ final class TerrainMaterialDefinition {
       rightWall == other.rightWall &&
       underside == other.underside &&
       topStartCap == other.topStartCap &&
-      topEndCap == other.topEndCap;
+      topEndCap == other.topEndCap &&
+      undersideStartCap == other.undersideStartCap &&
+      undersideEndCap == other.undersideEndCap;
 
   @override
   int get hashCode => Object.hash(
@@ -226,6 +246,8 @@ final class TerrainMaterialDefinition {
     underside,
     topStartCap,
     topEndCap,
+    undersideStartCap,
+    undersideEndCap,
   );
 }
 
@@ -318,6 +340,8 @@ List<TerrainMaterialImageRegion> terrainMaterialRegions(
   addProfile(material.underside);
   if (material.topStartCap case final cap?) add(cap.region);
   if (material.topEndCap case final cap?) add(cap.region);
+  if (material.undersideStartCap case final cap?) add(cap.region);
+  if (material.undersideEndCap case final cap?) add(cap.region);
   return List<TerrainMaterialImageRegion>.unmodifiable(regions);
 }
 
@@ -378,12 +402,18 @@ List<TerrainMaterialCatalogIssue> validateTerrainMaterialImageDimensions(
     if (material.topEndCap case final cap?) {
       validateRegion('topEndCap', cap.region);
     }
+    if (material.undersideStartCap case final cap?) {
+      validateRegion('undersideStartCap', cap.region);
+    }
+    if (material.undersideEndCap case final cap?) {
+      validateRegion('undersideEndCap', cap.region);
+    }
   }
   issues.sort();
   return List<TerrainMaterialCatalogIssue>.unmodifiable(issues);
 }
 
-/// Strictly decodes the v2 terrain-material manifest.
+/// Strictly decodes the v3 terrain-material manifest.
 TerrainMaterialCatalogDecodeResult decodeTerrainMaterialCatalog(
   String source, {
   String sourcePath = 'terrain_material_defs.json',
@@ -501,6 +531,8 @@ TerrainMaterialDefinition? _decodeMaterial(
       'underside',
       'topStartCap',
       'topEndCap',
+      'undersideStartCap',
+      'undersideEndCap',
     },
     path: path,
     issues: issues,
@@ -574,6 +606,18 @@ TerrainMaterialDefinition? _decodeMaterial(
     key,
     issues,
   );
+  final undersideStartCap = _optionalCap(
+    json['undersideStartCap'],
+    '$path.undersideStartCap',
+    key,
+    issues,
+  );
+  final undersideEndCap = _optionalCap(
+    json['undersideEndCap'],
+    '$path.undersideEndCap',
+    key,
+    issues,
+  );
   if ((topStartCap == null) != (topEndCap == null)) {
     issues.add(
       TerrainMaterialCatalogIssue(
@@ -581,6 +625,28 @@ TerrainMaterialDefinition? _decodeMaterial(
         path: path,
         materialKey: key,
         message: 'topStartCap and topEndCap must be configured together.',
+      ),
+    );
+  }
+  if ((undersideStartCap == null) != (undersideEndCap == null)) {
+    issues.add(
+      TerrainMaterialCatalogIssue(
+        code: 'unpaired_underside_caps',
+        path: path,
+        materialKey: key,
+        message:
+            'undersideStartCap and undersideEndCap must be configured together.',
+      ),
+    );
+  }
+  if (underside == null &&
+      (undersideStartCap != null || undersideEndCap != null)) {
+    issues.add(
+      TerrainMaterialCatalogIssue(
+        code: 'underside_caps_without_profile',
+        path: path,
+        materialKey: key,
+        message: 'Underside caps require an underside edge profile.',
       ),
     );
   }
@@ -603,6 +669,8 @@ TerrainMaterialDefinition? _decodeMaterial(
     underside: underside,
     topStartCap: topStartCap,
     topEndCap: topEndCap,
+    undersideStartCap: undersideStartCap,
+    undersideEndCap: undersideEndCap,
   );
 }
 
