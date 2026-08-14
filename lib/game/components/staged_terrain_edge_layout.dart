@@ -40,26 +40,26 @@ abstract final class StagedTerrainEdgeLayout {
       final material = TerrainMaterialRegistry.require(materialKey);
       final orientation = orientationFor(edge);
       if (_profileFor(material, orientation) == null) continue;
-      final isTop = orientation == TerrainMaterialEdgeOrientation.top;
+      final caps = _capsFor(material, orientation);
       decorations.add(
         StagedTerrainEdgeDecoration(
           edge: edge,
           materialKey: materialKey,
           orientation: orientation,
           drawStartCap:
-              isTop &&
-              material.topStartCap != null &&
-              !_continuesTop(
+              caps.$1 != null &&
+              !_continuesOrientation(
                 edge: edge,
                 adjacentId: edge.previousId,
+                orientation: orientation,
                 edgesById: edgesById,
               ),
           drawEndCap:
-              isTop &&
-              material.topEndCap != null &&
-              !_continuesTop(
+              caps.$2 != null &&
+              !_continuesOrientation(
                 edge: edge,
                 adjacentId: edge.nextId,
+                orientation: orientation,
                 edgesById: edgesById,
               ),
         ),
@@ -82,15 +82,16 @@ abstract final class StagedTerrainEdgeLayout {
     TerrainMaterialEdgeOrientation orientation,
   ) => _profileFor(material, orientation);
 
-  static bool _continuesTop({
+  static bool _continuesOrientation({
     required TerrainEdge edge,
     required TerrainEdgeId? adjacentId,
+    required TerrainMaterialEdgeOrientation orientation,
     required Map<TerrainEdgeId, TerrainEdge> edgesById,
   }) {
     final adjacent = adjacentId == null ? null : edgesById[adjacentId];
     return adjacent != null &&
         adjacent.materialKey == edge.materialKey &&
-        orientationFor(adjacent) == TerrainMaterialEdgeOrientation.top;
+        orientationFor(adjacent) == orientation;
   }
 }
 
@@ -102,4 +103,20 @@ TerrainMaterialEdgeProfileSpec? _profileFor(
   TerrainMaterialEdgeOrientation.leftWall => material.leftWall,
   TerrainMaterialEdgeOrientation.rightWall => material.rightWall,
   TerrainMaterialEdgeOrientation.underside => material.underside,
+};
+
+(TerrainMaterialCapSpec?, TerrainMaterialCapSpec?) _capsFor(
+  TerrainMaterialSpec material,
+  TerrainMaterialEdgeOrientation orientation,
+) => switch (orientation) {
+  TerrainMaterialEdgeOrientation.top => (
+    material.topStartCap,
+    material.topEndCap,
+  ),
+  TerrainMaterialEdgeOrientation.underside => (
+    material.undersideStartCap,
+    material.undersideEndCap,
+  ),
+  TerrainMaterialEdgeOrientation.leftWall ||
+  TerrainMaterialEdgeOrientation.rightWall => (null, null),
 };

@@ -53,7 +53,7 @@ final class TerrainMaterialEdgeProfileSpec {
   final TerrainMaterialEdgeLayerSpec? detail;
 }
 
-/// Endpoint image and the source pixel aligned to an exact top-edge endpoint.
+/// Endpoint image and normalized source pixel aligned to an exact edge endpoint.
 final class TerrainMaterialCapSpec {
   const TerrainMaterialCapSpec({
     required this.region,
@@ -79,6 +79,8 @@ final class TerrainMaterialSpec {
     this.underside,
     this.topStartCap,
     this.topEndCap,
+    this.undersideStartCap,
+    this.undersideEndCap,
   });
 
   final String key;
@@ -91,6 +93,8 @@ final class TerrainMaterialSpec {
   final TerrainMaterialEdgeProfileSpec? underside;
   final TerrainMaterialCapSpec? topStartCap;
   final TerrainMaterialCapSpec? topEndCap;
+  final TerrainMaterialCapSpec? undersideStartCap;
+  final TerrainMaterialCapSpec? undersideEndCap;
 
   /// Every image that must be available before the material can render.
   Iterable<String> get assetPaths sync* {
@@ -107,6 +111,8 @@ final class TerrainMaterialSpec {
     }
     if (topStartCap case final cap?) yield cap.region.assetPath;
     if (topEndCap case final cap?) yield cap.region.assetPath;
+    if (undersideStartCap case final cap?) yield cap.region.assetPath;
+    if (undersideEndCap case final cap?) yield cap.region.assetPath;
   }
 
   /// Every complete source-region identity once in role order.
@@ -131,6 +137,8 @@ final class TerrainMaterialSpec {
     }
     if (topStartCap case final cap?) yield* add(cap.region);
     if (topEndCap case final cap?) yield* add(cap.region);
+    if (undersideStartCap case final cap?) yield* add(cap.region);
+    if (undersideEndCap case final cap?) yield* add(cap.region);
   }
 }
 

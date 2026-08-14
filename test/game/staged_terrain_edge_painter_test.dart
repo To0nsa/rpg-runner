@@ -71,6 +71,31 @@ void main() {
       expected.dispose();
     }
   });
+
+  test('underside cap preserves its world-facing source pixels', () async {
+    final source = await _sourceImage();
+    addTearDown(source.dispose);
+    final recorder = ui.PictureRecorder();
+    paintTerrainMaterialCapImage(
+      ui.Canvas(recorder),
+      start: const ui.Offset(4, 5),
+      length: 2,
+      angle: math.pi,
+      image: source,
+      anchorX: 0,
+      anchorY: 0,
+      atEnd: false,
+      orientation: TerrainMaterialEdgeOrientation.underside,
+    );
+    final picture = recorder.endRecording();
+    final actual = await picture.toImage(8, 8);
+    picture.dispose();
+    final expected = await _renderSourceAt(source, const ui.Offset(2, 2));
+    addTearDown(actual.dispose);
+    addTearDown(expected.dispose);
+
+    expect(await _rgbaBytes(actual), await _rgbaBytes(expected));
+  });
 }
 
 Future<ui.Image> _sourceImage() async {

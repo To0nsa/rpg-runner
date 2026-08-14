@@ -169,8 +169,20 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
         continue;
       }
       final material = _materials[edge.materialKey]!;
+      final caps = switch (edge.orientation) {
+        TerrainMaterialEdgeOrientation.top => (
+          material.spec.topStartCap,
+          material.spec.topEndCap,
+        ),
+        TerrainMaterialEdgeOrientation.underside => (
+          material.spec.undersideStartCap,
+          material.spec.undersideEndCap,
+        ),
+        TerrainMaterialEdgeOrientation.leftWall ||
+        TerrainMaterialEdgeOrientation.rightWall => (null, null),
+      };
       if (edge.drawStartCap) {
-        final cap = material.spec.topStartCap;
+        final cap = caps.$1;
         if (cap != null) {
           _drawEdgeCap(
             canvas,
@@ -178,11 +190,12 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
             image: material.imageFor(cap.region),
             cap: cap,
             atEnd: false,
+            orientation: edge.orientation,
           );
         }
       }
       if (edge.drawEndCap) {
-        final cap = material.spec.topEndCap;
+        final cap = caps.$2;
         if (cap != null) {
           _drawEdgeCap(
             canvas,
@@ -190,6 +203,7 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
             image: material.imageFor(cap.region),
             cap: cap,
             atEnd: true,
+            orientation: edge.orientation,
           );
         }
       }
@@ -248,18 +262,18 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
     required ui.Image image,
     required TerrainMaterialCapSpec cap,
     required bool atEnd,
-  }) {
-    if (edge.length <= 0) return;
-    canvas.save();
-    canvas.translate(edge.start.dx, edge.start.dy);
-    canvas.rotate(edge.angle);
-    canvas.drawImage(
-      image,
-      ui.Offset((atEnd ? edge.length : 0) - cap.anchorX, -cap.anchorY),
-      _terrainEdgePaint,
-    );
-    canvas.restore();
-  }
+    required TerrainMaterialEdgeOrientation orientation,
+  }) => paintTerrainMaterialCapImage(
+    canvas,
+    start: edge.start,
+    length: edge.length,
+    angle: edge.angle,
+    image: image,
+    anchorX: cap.anchorX,
+    anchorY: cap.anchorY,
+    atEnd: atEnd,
+    orientation: orientation,
+  );
 
   void _disposeRegionImages() {
     for (final image in _regionImages.values) {
@@ -318,6 +332,32 @@ void paintTerrainMaterialEdgeImage(
       quarterTurns: quarterTurns,
     );
   }
+  canvas.restore();
+}
+
+/// Paints one world-facing endpoint cap after all repeating edge bands.
+@visibleForTesting
+void paintTerrainMaterialCapImage(
+  ui.Canvas canvas, {
+  required ui.Offset start,
+  required double length,
+  required double angle,
+  required ui.Image image,
+  required double anchorX,
+  required double anchorY,
+  required bool atEnd,
+  required TerrainMaterialEdgeOrientation orientation,
+}) {
+  if (length <= 0) return;
+  canvas.save();
+  canvas.translate(start.dx, start.dy);
+  canvas.rotate(angle);
+  _drawNormalizedEdgeImage(
+    canvas,
+    image: image,
+    destination: ui.Offset((atEnd ? length : 0) - anchorX, -anchorY),
+    quarterTurns: terrainMaterialEdgeNormalizationQuarterTurns(orientation),
+  );
   canvas.restore();
 }
 
