@@ -4,11 +4,11 @@
     {
       "key": "grass_dirt",
       "displayName": "Grass / Dirt",
-      "revision": 1,
+      "revision": 6,
       "fill": {
         "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
-        "x": 32,
-        "y": 32,
+        "x": 224,
+        "y": 192,
         "width": 32,
         "height": 32
       },
@@ -22,6 +22,42 @@
             "height": 32
           },
           "anchorY": 12
+        }
+      },
+      "leftWall": {
+        "base": {
+          "region": {
+            "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
+            "x": 192,
+            "y": 192,
+            "width": 32,
+            "height": 32
+          },
+          "anchorY": 0
+        }
+      },
+      "rightWall": {
+        "base": {
+          "region": {
+            "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
+            "x": 256,
+            "y": 192,
+            "width": 32,
+            "height": 32
+          },
+          "anchorY": 0
+        }
+      },
+      "underside": {
+        "base": {
+          "region": {
+            "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
+            "x": 32,
+            "y": 64,
+            "width": 32,
+            "height": 32
+          },
+          "anchorY": 0
         }
       },
       "topStartCap": {

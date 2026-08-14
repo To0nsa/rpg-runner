@@ -84,7 +84,7 @@ void main() {
 
     expect(material.displayName, 'Grass / Dirt');
     expect(material.fill.assetPath, 'terrain/tx_tileset_ground/atlas.png');
-    expect((material.fill.x, material.fill.y), (32, 32));
+    expect((material.fill.x, material.fill.y), (224, 192));
     expect(
       material.top.base.region.assetPath,
       'terrain/tx_tileset_ground/atlas.png',
@@ -100,9 +100,18 @@ void main() {
       (material.topEndCap?.region.x, material.topEndCap?.anchorX),
       (64, 32),
     );
-    expect(material.leftWall, isNull);
-    expect(material.rightWall, isNull);
-    expect(material.underside, isNull);
+    expect(
+      (material.leftWall?.base.region.x, material.leftWall?.base.region.y),
+      (192, 192),
+    );
+    expect(
+      (material.rightWall?.base.region.x, material.rightWall?.base.region.y),
+      (256, 192),
+    );
+    expect(
+      (material.underside?.base.region.x, material.underside?.base.region.y),
+      (32, 64),
+    );
     expect(
       () => TerrainMaterialRegistry.require('missing_material'),
       throwsStateError,

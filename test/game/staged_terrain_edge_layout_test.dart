@@ -56,7 +56,7 @@ void main() {
     expect(decorations.last.drawEndCap, isTrue);
   });
 
-  test('unconfigured wall and underside profiles remain fill only', () {
+  test('configured wall and underside profiles decorate exact normals', () {
     final snapshot = StagedTerrainRenderSnapshot(
       geometryVersion: 1,
       polygons: const <StagedTerrainPolygonRenderSnapshot>[],
@@ -66,7 +66,15 @@ void main() {
       ],
     );
 
-    expect(StagedTerrainEdgeLayout.build(snapshot), isEmpty);
+    expect(
+      StagedTerrainEdgeLayout.build(
+        snapshot,
+      ).map((decoration) => decoration.orientation),
+      <TerrainMaterialEdgeOrientation>[
+        TerrainMaterialEdgeOrientation.rightWall,
+        TerrainMaterialEdgeOrientation.underside,
+      ],
+    );
   });
 }
 
