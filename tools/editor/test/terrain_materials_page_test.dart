@@ -7,6 +7,7 @@ import 'package:runner_editor/src/app/pages/terrainMaterials/terrain_materials_p
 import 'package:runner_editor/src/domain/authoring_plugin_registry.dart';
 import 'package:runner_editor/src/domain/authoring_types.dart';
 import 'package:runner_editor/src/session/editor_session_controller.dart';
+import 'package:runner_editor/src/terrain_materials/terrain_material_domain_models.dart';
 import 'package:runner_editor/src/terrain_materials/terrain_material_domain_plugin.dart';
 
 void main() {
@@ -27,6 +28,11 @@ void main() {
       initialWorkspacePath: workspaceRoot,
     );
     await tester.runAsync(controller.loadWorkspace);
+    final scene = controller.scene! as TerrainMaterialScene;
+    final loadedMaterial = scene.materials.singleWhere(
+      (material) => material.key == 'grass_dirt',
+    );
+    final initialRevision = loadedMaterial.revision;
 
     await tester.pumpWidget(
       MaterialApp(
@@ -37,10 +43,25 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
 
     expect(find.text('Grass / Dirt'), findsWidgets);
-    expect(find.textContaining('grass_dirt · rev 1'), findsOneWidget);
+    expect(
+      find.textContaining('grass_dirt · rev $initialRevision'),
+      findsOneWidget,
+    );
     expect(find.text('Top / slope · configured'), findsOneWidget);
-    expect(find.text('Left wall · fill only'), findsOneWidget);
-    expect(find.text('Cliff caps · configured'), findsOneWidget);
+    expect(
+      find.text(
+        'Left wall · '
+        '${loadedMaterial.leftWall == null ? 'fill only' : 'configured'}',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.text(
+        'Cliff caps · '
+        '${loadedMaterial.topStartCap != null && loadedMaterial.topEndCap != null ? 'configured' : 'fill only'}',
+      ),
+      findsOneWidget,
+    );
     expect(
       find.byKey(const ValueKey<String>('terrain_material_edit')),
       findsOneWidget,
@@ -57,7 +78,10 @@ void main() {
     await tester.tap(save);
     await tester.pumpAndSettle();
     expect(controller.pendingChanges.hasChanges, isFalse);
-    expect(find.textContaining('grass_dirt · rev 1'), findsOneWidget);
+    expect(
+      find.textContaining('grass_dirt · rev $initialRevision'),
+      findsOneWidget,
+    );
 
     await tester.tap(
       find.byKey(const ValueKey<String>('terrain_material_edit')),
@@ -108,7 +132,10 @@ void main() {
     await tester.ensureVisible(save);
     await tester.tap(save);
     await tester.pumpAndSettle();
-    expect(find.textContaining('grass_dirt · rev 2'), findsOneWidget);
+    expect(
+      find.textContaining('grass_dirt · rev ${initialRevision + 1}'),
+      findsOneWidget,
+    );
     expect(controller.pendingChanges.hasChanges, isTrue);
     expect(tester.takeException(), isNull);
   });
