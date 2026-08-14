@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -48,6 +49,7 @@ class _TerrainMaterialPreviewState extends State<TerrainMaterialPreview> {
           material: material,
           imageCache: _imageCache,
           height: widget.compact ? 160 : 220,
+          keyPrefix: widget.keyPrefix,
         ),
         const SizedBox(height: 12),
         Wrap(
@@ -152,16 +154,17 @@ class _TerrainComposedSample extends StatelessWidget {
     required this.material,
     required this.imageCache,
     required this.height,
+    required this.keyPrefix,
   });
 
   final String workspaceRootPath;
   final TerrainMaterialDefinition material;
   final EditorUiImageCache imageCache;
   final double height;
+  final String? keyPrefix;
 
   @override
   Widget build(BuildContext context) {
-    final edgeY = height * 0.34;
     return Container(
       key: ValueKey<String>('terrain_material_sample_${material.key}'),
       height: height,
@@ -172,81 +175,137 @@ class _TerrainComposedSample extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: LayoutBuilder(
-        builder: (context, constraints) => Stack(
-          children: [
-            Positioned(
-              left: 24,
-              right: 24,
-              top: edgeY,
-              bottom: 0,
-              child: _TerrainRegionImage(
-                workspaceRootPath: workspaceRootPath,
-                region: material.fill,
-                imageCache: imageCache,
-                repeat: _RegionRepeat.both,
-                worldOrigin: Offset(24, edgeY),
-              ),
-            ),
-            _edgeLayer(material.top.base, edgeY: edgeY),
-            if (material.top.detail case final detail?)
-              _edgeLayer(detail, edgeY: edgeY),
-            if (material.topStartCap case final cap?)
-              _cap(cap, edgeY: edgeY, sampleWidth: constraints.maxWidth),
-            if (material.topEndCap case final cap?)
-              _cap(cap, edgeY: edgeY, sampleWidth: constraints.maxWidth),
-            Positioned(
-              left: 8,
-              bottom: 8,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.68),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 7,
-                    vertical: 4,
-                  ),
-                  child: Text(
-                    '${material.displayName} · ${material.key}',
-                    style: const TextStyle(color: Colors.white),
-                  ),
+        builder: (context, constraints) {
+          final horizontalInset = math.min(48.0, constraints.maxWidth * 0.18);
+          final verticalInset = math.min(48.0, height * 0.27);
+          final platform = Rect.fromLTRB(
+            horizontalInset,
+            verticalInset,
+            constraints.maxWidth - horizontalInset,
+            height - verticalInset,
+          );
+          return Stack(
+            children: [
+              Positioned.fromRect(
+                rect: platform,
+                child: _TerrainRegionImage.repeated(
+                  key: _previewKey('fill'),
+                  workspaceRootPath: workspaceRootPath,
+                  region: material.fill,
+                  imageCache: imageCache,
+                  repeat: _RegionRepeat.both,
+                  worldOrigin: platform.topLeft,
                 ),
               ),
-            ),
-          ],
-        ),
+              ..._edgeProfile(
+                material.top,
+                role: 'top',
+                start: platform.topLeft,
+                end: platform.topRight,
+              ),
+              if (material.rightWall case final profile?)
+                ..._edgeProfile(
+                  profile,
+                  role: 'right_wall',
+                  start: platform.topRight,
+                  end: platform.bottomRight,
+                ),
+              if (material.underside case final profile?)
+                ..._edgeProfile(
+                  profile,
+                  role: 'underside',
+                  start: platform.bottomRight,
+                  end: platform.bottomLeft,
+                ),
+              if (material.leftWall case final profile?)
+                ..._edgeProfile(
+                  profile,
+                  role: 'left_wall',
+                  start: platform.bottomLeft,
+                  end: platform.topLeft,
+                ),
+              if (material.topStartCap case final cap?)
+                _cap(
+                  cap,
+                  role: 'start_cap',
+                  edgeY: platform.top,
+                  edgeX: platform.left,
+                ),
+              if (material.topEndCap case final cap?)
+                _cap(
+                  cap,
+                  role: 'end_cap',
+                  edgeY: platform.top,
+                  edgeX: platform.right,
+                ),
+              Positioned(
+                left: 8,
+                top: 8,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.68),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 7,
+                      vertical: 4,
+                    ),
+                    child: Text(
+                      '${material.displayName} · ${material.key}',
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 
-  Widget _edgeLayer(TerrainMaterialEdgeLayer layer, {required double edgeY}) =>
-      Positioned(
-        left: 24,
-        right: 24,
-        top: edgeY - layer.anchorY,
-        height: layer.region.height.toDouble(),
-        child: _TerrainRegionImage(
-          workspaceRootPath: workspaceRootPath,
-          region: layer.region,
-          imageCache: imageCache,
-          repeat: _RegionRepeat.horizontal,
-          worldOrigin: Offset(24, edgeY - layer.anchorY),
-        ),
-      );
+  List<Widget> _edgeProfile(
+    TerrainMaterialEdgeProfile profile, {
+    required String role,
+    required Offset start,
+    required Offset end,
+  }) => <Widget>[
+    _edgeLayer(profile.base, role: '${role}_base', start: start, end: end),
+    if (profile.detail case final detail?)
+      _edgeLayer(detail, role: '${role}_detail', start: start, end: end),
+  ];
+
+  Widget _edgeLayer(
+    TerrainMaterialEdgeLayer layer, {
+    required String role,
+    required Offset start,
+    required Offset end,
+  }) => Positioned.fill(
+    child: _TerrainRegionImage.edge(
+      key: _previewKey(role),
+      workspaceRootPath: workspaceRootPath,
+      region: layer.region,
+      imageCache: imageCache,
+      edgeStart: start,
+      edgeEnd: end,
+      anchorY: layer.anchorY,
+    ),
+  );
 
   Widget _cap(
     TerrainMaterialCap cap, {
+    required String role,
     required double edgeY,
-    required double sampleWidth,
+    required double edgeX,
   }) {
-    final isStart = identical(cap, material.topStartCap);
     return Positioned(
-      left: (isStart ? 24 : sampleWidth - 24) - cap.anchorX,
+      left: edgeX - cap.anchorX,
       top: edgeY - cap.anchorY,
       width: cap.region.width.toDouble(),
       height: cap.region.height.toDouble(),
-      child: _TerrainRegionImage(
+      child: _TerrainRegionImage.repeated(
+        key: _previewKey(role),
         workspaceRootPath: workspaceRootPath,
         region: cap.region,
         imageCache: imageCache,
@@ -255,22 +314,43 @@ class _TerrainComposedSample extends StatelessWidget {
       ),
     );
   }
+
+  ValueKey<String> _previewKey(String role) => ValueKey<String>(
+    '${keyPrefix ?? material.key}_material_preview_composed_$role',
+  );
 }
 
 class _TerrainRegionImage extends StatefulWidget {
-  const _TerrainRegionImage({
+  const _TerrainRegionImage.repeated({
+    super.key,
     required this.workspaceRootPath,
     required this.region,
     required this.imageCache,
     required this.repeat,
     required this.worldOrigin,
-  });
+  }) : edgeStart = null,
+       edgeEnd = null,
+       anchorY = null;
+
+  const _TerrainRegionImage.edge({
+    super.key,
+    required this.workspaceRootPath,
+    required this.region,
+    required this.imageCache,
+    required this.edgeStart,
+    required this.edgeEnd,
+    required this.anchorY,
+  }) : repeat = null,
+       worldOrigin = null;
 
   final String workspaceRootPath;
   final TerrainMaterialImageRegion region;
   final EditorUiImageCache imageCache;
-  final _RegionRepeat repeat;
-  final Offset worldOrigin;
+  final _RegionRepeat? repeat;
+  final Offset? worldOrigin;
+  final Offset? edgeStart;
+  final Offset? edgeEnd;
+  final double? anchorY;
 
   @override
   State<_TerrainRegionImage> createState() => _TerrainRegionImageState();
@@ -300,12 +380,20 @@ class _TerrainRegionImageState extends State<_TerrainRegionImage> {
   Widget build(BuildContext context) => _image == null
       ? const ColoredBox(color: Color(0x22000000))
       : CustomPaint(
-          painter: _TerrainRegionPainter(
-            image: _image!,
-            region: widget.region,
-            repeat: widget.repeat,
-            worldOrigin: widget.worldOrigin,
-          ),
+          painter: widget.edgeStart == null
+              ? _TerrainRegionPainter(
+                  image: _image!,
+                  region: widget.region,
+                  repeat: widget.repeat!,
+                  worldOrigin: widget.worldOrigin!,
+                )
+              : _TerrainEdgePainter(
+                  image: _image!,
+                  region: widget.region,
+                  start: widget.edgeStart!,
+                  end: widget.edgeEnd!,
+                  anchorY: widget.anchorY!,
+                ),
         );
 
   void _refresh() {
@@ -322,6 +410,76 @@ class _TerrainRegionImageState extends State<_TerrainRegionImage> {
     if (!mounted || _absolutePath != absolutePath) return;
     setState(() => _image = image);
   }
+}
+
+class _TerrainEdgePainter extends CustomPainter {
+  const _TerrainEdgePainter({
+    required this.image,
+    required this.region,
+    required this.start,
+    required this.end,
+    required this.anchorY,
+  });
+
+  final ui.Image image;
+  final TerrainMaterialImageRegion region;
+  final Offset start;
+  final Offset end;
+  final double anchorY;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (region.right > image.width || region.bottom > image.height) return;
+    final delta = end - start;
+    final length = delta.distance;
+    if (length <= 0) return;
+    final angle = math.atan2(delta.dy, delta.dx);
+    final tangentX = delta.dx / length;
+    final tangentY = delta.dy / length;
+    final phase = terrainMaterialEdgeRepeatPhase(
+      startX: start.dx,
+      startY: start.dy,
+      tangentX: tangentX,
+      tangentY: tangentY,
+      repeatWidth: region.width.toDouble(),
+    );
+    final source = Rect.fromLTWH(
+      region.x.toDouble(),
+      region.y.toDouble(),
+      region.width.toDouble(),
+      region.height.toDouble(),
+    );
+    final paint = Paint()..filterQuality = FilterQuality.none;
+
+    canvas.save();
+    canvas.translate(start.dx, start.dy);
+    canvas.rotate(angle);
+    canvas.clipRect(
+      Rect.fromLTWH(0, -anchorY, length, region.height.toDouble()),
+    );
+    for (var x = -phase; x < length; x += region.width) {
+      canvas.drawImageRect(
+        image,
+        source,
+        Rect.fromLTWH(
+          x,
+          -anchorY,
+          region.width.toDouble(),
+          region.height.toDouble(),
+        ),
+        paint,
+      );
+    }
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant _TerrainEdgePainter oldDelegate) =>
+      oldDelegate.image != image ||
+      oldDelegate.region != region ||
+      oldDelegate.start != start ||
+      oldDelegate.end != end ||
+      oldDelegate.anchorY != anchorY;
 }
 
 class _TerrainRegionPainter extends CustomPainter {
