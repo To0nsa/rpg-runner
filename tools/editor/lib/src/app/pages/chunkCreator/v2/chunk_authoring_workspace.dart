@@ -36,6 +36,7 @@ import '../../shared/editor_workspace_card.dart';
 import '../../shared/editor_scene_viewport_frame.dart';
 import '../../shared/editor_zoom_controls.dart';
 import '../../shared/terrain_polygon_metadata_dialog.dart';
+import '../../shared/terrain_material_preview_catalog.dart';
 import '../../shared/terrain_polygon_scene_painter.dart';
 import '../../shared/terrain_polygon_vertex_editor.dart';
 import 'chunk_actor_terrain_overlay_painter.dart';
@@ -955,15 +956,19 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                           placements: belowTerrainVisuals,
                           transform: transform,
                         ),
-                      ChunkPolygonLevelVisualSource(
-                        key: const ValueKey<String>(
-                          'chunk_polygon_terrain_material_preview',
+                      ListenableBuilder(
+                        listenable: authoring,
+                        builder: (context, _) => ChunkPolygonLevelVisualSource(
+                          key: const ValueKey<String>(
+                            'chunk_polygon_terrain_material_preview',
+                          ),
+                          workspaceRootPath: widget.controller.workspacePath,
+                          chunk: chunk,
+                          parallaxTheme: scene.activeParallaxTheme,
+                          transform: transform,
+                          layer: ChunkPolygonLevelVisualLayer.terrain,
+                          terrainShapes: authoring.terrainPreviewShapes,
                         ),
-                        workspaceRootPath: widget.controller.workspacePath,
-                        chunk: chunk,
-                        parallaxTheme: scene.activeParallaxTheme,
-                        transform: transform,
-                        layer: ChunkPolygonLevelVisualLayer.terrain,
                       ),
                       ChunkPolygonLevelVisualSource(
                         key: const ValueKey<String>(
@@ -2341,9 +2346,17 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     _markerProjectionChunk = null;
     _markerProjectionTerrain = null;
     _markerProjectionGroundTopY = null;
+    final materialCatalog = loadTerrainMaterialPreviewCatalog(
+      widget.controller.workspacePath,
+    ).catalog;
+    final materials = materialCatalog?.materials;
     _authoring = ChunkPolygonAuthoringController(
       session: widget.controller,
       chunkKey: chunkKey,
+      newShapeSurfaceKind: terrainSurfaceKindOptions.first,
+      newShapeMaterialKey: materials == null || materials.isEmpty
+          ? null
+          : materials.first.key,
       snapPolicy: TerrainPolygonSnapPolicy.ownerGridPixels(1),
     )..addListener(_handleAuthoringChanged);
     _authoringUiFingerprint = _buildAuthoringUiFingerprint(_authoring!);

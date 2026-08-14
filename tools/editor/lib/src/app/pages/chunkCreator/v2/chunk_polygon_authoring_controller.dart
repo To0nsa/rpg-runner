@@ -20,6 +20,8 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
   ChunkPolygonAuthoringController({
     required EditorSessionController session,
     required String chunkKey,
+    this.newShapeSurfaceKind,
+    this.newShapeMaterialKey,
     TerrainPolygonSnapPolicy snapPolicy =
         const TerrainPolygonSnapPolicy.halfPixel(),
     ChunkV2CollisionCommitPolicy commitPolicy =
@@ -44,6 +46,8 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
 
   final EditorSessionController _session;
   final String _chunkKey;
+  final String? newShapeSurfaceKind;
+  final String? newShapeMaterialKey;
   TerrainPolygonSnapPolicy _snapPolicy;
   final ChunkV2CollisionCommitPolicy _commitPolicy;
   final TerrainPolygonInteractionReducer _reducer;
@@ -57,6 +61,28 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
   TerrainPolygonInteractionState get state => _state;
   TerrainPolygonSceneProjection get sceneProjection =>
       TerrainPolygonSceneProjection.fromInteraction(_state);
+
+  /// Material-renderable committed, gesture-preview, and creation-draft loops.
+  ///
+  /// Drafts remain outside the session document. Once they have three points,
+  /// this projection closes them visually so the scene can preview the same
+  /// material result that Save would produce.
+  List<TerrainSourceShapeDef> get terrainPreviewShapes {
+    final projection = sceneProjection;
+    final draft = projection.draft;
+    return List<TerrainSourceShapeDef>.unmodifiable(<TerrainSourceShapeDef>[
+      for (final shape in projection.shapes) shape.shape,
+      if (draft != null && draft.vertices.length >= 3)
+        TerrainSourceShapeDef(
+          shapeId: draft.shapeId,
+          vertices: draft.vertices,
+          collisionMode: draft.collisionMode,
+          surfaceKind: draft.surfaceKind,
+          materialKey: draft.materialKey,
+        ),
+    ]);
+  }
+
   List<ValidationIssue> get issues => _issues;
   TerrainPolygonSnapPolicy get snapPolicy => _snapPolicy;
   bool get hasActiveOperation => _state.hasActiveOperation;
@@ -118,8 +144,8 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
       _reducer.beginCreatePolygon(
         _state,
         collisionMode: collisionMode,
-        surfaceKind: surfaceKind,
-        materialKey: materialKey,
+        surfaceKind: surfaceKind ?? newShapeSurfaceKind,
+        materialKey: materialKey ?? newShapeMaterialKey,
       ),
     );
   }
@@ -132,6 +158,8 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
       _state,
       pointer: pointer,
       startPointer: _snapPoint(point),
+      surfaceKind: newShapeSurfaceKind,
+      materialKey: newShapeMaterialKey,
     );
     final started = !identical(next, _state);
     _replaceLocalState(next);

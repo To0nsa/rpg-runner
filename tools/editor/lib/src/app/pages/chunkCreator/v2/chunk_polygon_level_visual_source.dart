@@ -30,6 +30,7 @@ class ChunkPolygonLevelVisualSource extends StatefulWidget {
     required this.parallaxTheme,
     required this.transform,
     required this.layer,
+    this.terrainShapes,
   });
 
   final String workspaceRootPath;
@@ -37,6 +38,12 @@ class ChunkPolygonLevelVisualSource extends StatefulWidget {
   final ParallaxThemeDef? parallaxTheme;
   final TerrainPolygonViewportTransform transform;
   final ChunkPolygonLevelVisualLayer layer;
+
+  /// Optional local authoring projection used by the terrain layer only.
+  ///
+  /// The committed [chunk] remains the bounds and persistence owner; this list
+  /// may additionally contain uncommitted draft or gesture-preview geometry.
+  final List<TerrainSourceShapeDef>? terrainShapes;
 
   @override
   State<ChunkPolygonLevelVisualSource> createState() =>
@@ -93,6 +100,7 @@ class _ChunkPolygonLevelVisualSourceState
         imagesBySourcePath: imagesBySourcePath,
         loadedImageCount: _imageCache.loadedImageCount,
         materialCatalog: _materialCatalog,
+        terrainShapes: _terrainShapes,
       ),
     );
   }
@@ -119,7 +127,7 @@ class _ChunkPolygonLevelVisualSourceState
       }
     }
     if (widget.layer != ChunkPolygonLevelVisualLayer.terrain) return;
-    for (final shape in widget.chunk.collisionShapes) {
+    for (final shape in _terrainShapes) {
       final material = terrainMaterialPreviewForKey(
         _materialCatalog,
         shape.materialKey,
@@ -131,6 +139,9 @@ class _ChunkPolygonLevelVisualSourceState
 
   String _absolutePath(String sourcePath) =>
       p.normalize(p.join(widget.workspaceRootPath, sourcePath));
+
+  List<TerrainSourceShapeDef> get _terrainShapes =>
+      widget.terrainShapes ?? widget.chunk.collisionShapes;
 }
 
 final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
@@ -142,6 +153,7 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
     required this.imagesBySourcePath,
     required this.loadedImageCount,
     required this.materialCatalog,
+    required this.terrainShapes,
   });
 
   final ChunkV2FileData chunk;
@@ -151,6 +163,7 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
   final Map<String, ui.Image> imagesBySourcePath;
   final int loadedImageCount;
   final TerrainMaterialCatalog? materialCatalog;
+  final List<TerrainSourceShapeDef> terrainShapes;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -227,7 +240,7 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
     canvas.save();
     canvas.translate(transform.origin.dx, transform.origin.dy);
     canvas.scale(transform.zoom);
-    for (final shape in chunk.collisionShapes) {
+    for (final shape in terrainShapes) {
       final material = terrainMaterialPreviewForKey(
         materialCatalog,
         shape.materialKey,
@@ -335,6 +348,7 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
       oldDelegate.transform != transform ||
       oldDelegate.layer != layer ||
       oldDelegate.materialCatalog != materialCatalog ||
+      oldDelegate.terrainShapes != terrainShapes ||
       oldDelegate.loadedImageCount != loadedImageCount;
 }
 
