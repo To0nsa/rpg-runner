@@ -115,10 +115,13 @@ fill region, required top/slope profile, optional left/right wall and underside
 profiles, and optional paired cliff caps. Each visual role selects an exact
 `X/Y/W/H` rectangle from a PNG below `assets/images/terrain/`. The picker offers
 a configurable cell grid (32x32 is only its default) and arbitrary manual pixel
-rectangles; selecting a region never creates a cropped asset. Applying writes
-only `assets/authoring/level/terrain_material_defs.json`. Run the root content
-generator afterward to refresh the generated runtime registry. The manifest
-is strict schema v2; the editor and runtime do not contain a schema-v1
+rectangles; selecting a region never creates a cropped asset. Edge regions use
+their natural world-facing orientation in the atlas—left/right walls stay
+vertical and undersides stay downward-facing—while previews and runtime apply
+only the additional rotation needed for the actual polygon edge. Applying
+writes only `assets/authoring/level/terrain_material_defs.json`. Run the root
+content generator afterward to refresh the generated runtime registry. The
+manifest is strict schema v2; the editor and runtime do not contain a schema-v1
 compatibility or migration path.
 
 The generator compiles every source polygon into the staged terrain artifact.

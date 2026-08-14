@@ -20,6 +20,7 @@ Future<TerrainMaterialImageRegion?> showTerrainAtlasRegionPicker(
   TerrainMaterialImageRegion? initialRegion,
   double? anchorX,
   double? anchorY,
+  TerrainMaterialEdgeOrientation? edgeOrientation,
 }) => showDialog<TerrainMaterialImageRegion>(
   context: context,
   builder: (context) => _TerrainAtlasRegionPicker(
@@ -29,6 +30,7 @@ Future<TerrainMaterialImageRegion?> showTerrainAtlasRegionPicker(
     initialRegion: initialRegion,
     anchorX: anchorX,
     anchorY: anchorY,
+    edgeOrientation: edgeOrientation,
   ),
 );
 
@@ -40,6 +42,7 @@ class _TerrainAtlasRegionPicker extends StatefulWidget {
     required this.initialRegion,
     required this.anchorX,
     required this.anchorY,
+    required this.edgeOrientation,
   });
 
   final String workspaceRootPath;
@@ -48,6 +51,7 @@ class _TerrainAtlasRegionPicker extends StatefulWidget {
   final TerrainMaterialImageRegion? initialRegion;
   final double? anchorX;
   final double? anchorY;
+  final TerrainMaterialEdgeOrientation? edgeOrientation;
 
   @override
   State<_TerrainAtlasRegionPicker> createState() =>
@@ -284,8 +288,8 @@ class _TerrainAtlasRegionPickerState extends State<_TerrainAtlasRegionPicker> {
     final anchorY = widget.anchorY;
     if (rect == null || anchorY == null) return const <AtlasGuideOverlay>[];
     final anchorX = widget.anchorX;
-    final validY = anchorY >= 0 && anchorY <= rect.height;
     if (anchorX != null) {
+      final validY = anchorY >= 0 && anchorY <= rect.height;
       return <AtlasGuideOverlay>[
         AtlasGuideOverlay.point(
           position: Offset(rect.x + anchorX, rect.y + anchorY),
@@ -293,6 +297,41 @@ class _TerrainAtlasRegionPickerState extends State<_TerrainAtlasRegionPicker> {
         ),
       ];
     }
+    final orientation = widget.edgeOrientation;
+    if (orientation != null) {
+      final maximum = terrainMaterialEdgeTileHeight(
+        orientation: orientation,
+        sourceWidth: rect.width,
+        sourceHeight: rect.height,
+      );
+      final isValid = anchorY >= 0 && anchorY <= maximum;
+      final guide = switch (orientation) {
+        TerrainMaterialEdgeOrientation.top => (
+          start: Offset(rect.x.toDouble(), rect.y + anchorY),
+          end: Offset(rect.right.toDouble(), rect.y + anchorY),
+        ),
+        TerrainMaterialEdgeOrientation.leftWall => (
+          start: Offset(rect.x + anchorY, rect.y.toDouble()),
+          end: Offset(rect.x + anchorY, rect.bottom.toDouble()),
+        ),
+        TerrainMaterialEdgeOrientation.rightWall => (
+          start: Offset(rect.right - anchorY, rect.y.toDouble()),
+          end: Offset(rect.right - anchorY, rect.bottom.toDouble()),
+        ),
+        TerrainMaterialEdgeOrientation.underside => (
+          start: Offset(rect.x.toDouble(), rect.bottom - anchorY),
+          end: Offset(rect.right.toDouble(), rect.bottom - anchorY),
+        ),
+      };
+      return <AtlasGuideOverlay>[
+        AtlasGuideOverlay.line(
+          start: guide.start,
+          end: guide.end,
+          isValid: isValid,
+        ),
+      ];
+    }
+    final validY = anchorY >= 0 && anchorY <= rect.height;
     return <AtlasGuideOverlay>[
       AtlasGuideOverlay.line(
         start: Offset(rect.x.toDouble(), rect.y + anchorY),

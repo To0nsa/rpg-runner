@@ -175,7 +175,11 @@ class _TerrainMaterialDialogState extends State<_TerrainMaterialDialog> {
                   'Repeated along every upward-facing horizontal or sloped edge.',
                 ),
                 const SizedBox(height: 8),
-                _profileFields('top', _top),
+                _profileFields(
+                  'top',
+                  _top,
+                  orientation: TerrainMaterialEdgeOrientation.top,
+                ),
                 const Divider(height: 28),
                 _optionalProfile(
                   label: 'Left wall edges',
@@ -183,6 +187,7 @@ class _TerrainMaterialDialogState extends State<_TerrainMaterialDialog> {
                   value: _hasLeftWall,
                   onChanged: (value) => setState(() => _hasLeftWall = value),
                   draft: _leftWall,
+                  orientation: TerrainMaterialEdgeOrientation.leftWall,
                 ),
                 const SizedBox(height: 10),
                 _optionalProfile(
@@ -191,6 +196,7 @@ class _TerrainMaterialDialogState extends State<_TerrainMaterialDialog> {
                   value: _hasRightWall,
                   onChanged: (value) => setState(() => _hasRightWall = value),
                   draft: _rightWall,
+                  orientation: TerrainMaterialEdgeOrientation.rightWall,
                 ),
                 const SizedBox(height: 10),
                 _optionalProfile(
@@ -199,6 +205,7 @@ class _TerrainMaterialDialogState extends State<_TerrainMaterialDialog> {
                   value: _hasUnderside,
                   onChanged: (value) => setState(() => _hasUnderside = value),
                   draft: _underside,
+                  orientation: TerrainMaterialEdgeOrientation.underside,
                 ),
                 const Divider(height: 28),
                 SwitchListTile(
@@ -250,6 +257,7 @@ class _TerrainMaterialDialogState extends State<_TerrainMaterialDialog> {
     required bool value,
     required ValueChanged<bool> onChanged,
     required _EdgeProfileDraft draft,
+    required TerrainMaterialEdgeOrientation orientation,
   }) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
@@ -260,11 +268,15 @@ class _TerrainMaterialDialogState extends State<_TerrainMaterialDialog> {
         value: value,
         onChanged: onChanged,
       ),
-      if (value) _profileFields(keyPrefix, draft),
+      if (value) _profileFields(keyPrefix, draft, orientation: orientation),
     ],
   );
 
-  Widget _profileFields(String keyPrefix, _EdgeProfileDraft draft) => Column(
+  Widget _profileFields(
+    String keyPrefix,
+    _EdgeProfileDraft draft, {
+    required TerrainMaterialEdgeOrientation orientation,
+  }) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       Row(
@@ -276,6 +288,7 @@ class _TerrainMaterialDialogState extends State<_TerrainMaterialDialog> {
               keySuffix: '${keyPrefix}_base',
               region: draft.baseRegion,
               anchorY: double.tryParse(draft.baseAnchorY.text.trim()),
+              edgeOrientation: orientation,
               onChanged: (region) => setState(() => draft.baseRegion = region),
             ),
           ),
@@ -284,9 +297,14 @@ class _TerrainMaterialDialogState extends State<_TerrainMaterialDialog> {
             width: 130,
             child: TextFormField(
               controller: draft.baseAnchorY,
-              decoration: const InputDecoration(labelText: 'Edge anchor Y'),
-              validator: (value) =>
-                  _anchor(value, maximum: draft.baseRegion?.height.toDouble()),
+              decoration: const InputDecoration(
+                labelText: 'Edge anchor',
+                helperText: 'After role orientation',
+              ),
+              validator: (value) => _anchor(
+                value,
+                maximum: _edgeAnchorMaximum(draft.baseRegion, orientation),
+              ),
             ),
           ),
         ],
@@ -301,6 +319,7 @@ class _TerrainMaterialDialogState extends State<_TerrainMaterialDialog> {
               keySuffix: '${keyPrefix}_detail',
               region: draft.detailRegion,
               anchorY: double.tryParse(draft.detailAnchorY.text.trim()),
+              edgeOrientation: orientation,
               optional: true,
               onChanged: (region) =>
                   setState(() => draft.detailRegion = region),
@@ -312,12 +331,18 @@ class _TerrainMaterialDialogState extends State<_TerrainMaterialDialog> {
             child: TextFormField(
               controller: draft.detailAnchorY,
               enabled: draft.detailRegion != null,
-              decoration: const InputDecoration(labelText: 'Edge anchor Y'),
+              decoration: const InputDecoration(
+                labelText: 'Edge anchor',
+                helperText: 'After role orientation',
+              ),
               validator: (value) => draft.detailRegion == null
                   ? null
                   : _anchor(
                       value,
-                      maximum: draft.detailRegion!.height.toDouble(),
+                      maximum: _edgeAnchorMaximum(
+                        draft.detailRegion,
+                        orientation,
+                      ),
                     ),
             ),
           ),
@@ -370,6 +395,7 @@ class _TerrainMaterialDialogState extends State<_TerrainMaterialDialog> {
     bool optional = false,
     double? anchorX,
     double? anchorY,
+    TerrainMaterialEdgeOrientation? edgeOrientation,
   }) => _TerrainRegionField(
     label: label,
     fieldKey: ValueKey<String>('terrain_material_${keySuffix}_region'),
@@ -386,6 +412,7 @@ class _TerrainMaterialDialogState extends State<_TerrainMaterialDialog> {
         initialRegion: region,
         anchorX: anchorX,
         anchorY: anchorY,
+        edgeOrientation: edgeOrientation,
       );
       if (selected != null && mounted) onChanged(selected);
     },
@@ -620,6 +647,17 @@ String? _anchor(String? value, {required double? maximum}) {
   }
   return null;
 }
+
+double? _edgeAnchorMaximum(
+  TerrainMaterialImageRegion? region,
+  TerrainMaterialEdgeOrientation orientation,
+) => region == null
+    ? null
+    : terrainMaterialEdgeTileHeight(
+        orientation: orientation,
+        sourceWidth: region.width,
+        sourceHeight: region.height,
+      ).toDouble();
 
 String _number(double value) => value == value.roundToDouble()
     ? value.toInt().toString()

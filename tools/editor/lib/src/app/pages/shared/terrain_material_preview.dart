@@ -9,6 +9,7 @@ import 'package:terrain_materials/terrain_materials.dart';
 import '../../../atlas/atlas_pixel_rect.dart';
 import 'atlas_region_preview_tile.dart';
 import 'editor_scene_view_utils.dart';
+import 'terrain_material_edge_painter.dart';
 
 /// Shared composed sample and explicit orientation coverage for one material.
 class TerrainMaterialPreview extends StatefulWidget {
@@ -200,6 +201,7 @@ class _TerrainComposedSample extends StatelessWidget {
               ..._edgeProfile(
                 material.top,
                 role: 'top',
+                orientation: TerrainMaterialEdgeOrientation.top,
                 start: platform.topLeft,
                 end: platform.topRight,
               ),
@@ -207,6 +209,7 @@ class _TerrainComposedSample extends StatelessWidget {
                 ..._edgeProfile(
                   profile,
                   role: 'right_wall',
+                  orientation: TerrainMaterialEdgeOrientation.rightWall,
                   start: platform.topRight,
                   end: platform.bottomRight,
                 ),
@@ -214,6 +217,7 @@ class _TerrainComposedSample extends StatelessWidget {
                 ..._edgeProfile(
                   profile,
                   role: 'underside',
+                  orientation: TerrainMaterialEdgeOrientation.underside,
                   start: platform.bottomRight,
                   end: platform.bottomLeft,
                 ),
@@ -221,6 +225,7 @@ class _TerrainComposedSample extends StatelessWidget {
                 ..._edgeProfile(
                   profile,
                   role: 'left_wall',
+                  orientation: TerrainMaterialEdgeOrientation.leftWall,
                   start: platform.bottomLeft,
                   end: platform.topLeft,
                 ),
@@ -268,17 +273,31 @@ class _TerrainComposedSample extends StatelessWidget {
   List<Widget> _edgeProfile(
     TerrainMaterialEdgeProfile profile, {
     required String role,
+    required TerrainMaterialEdgeOrientation orientation,
     required Offset start,
     required Offset end,
   }) => <Widget>[
-    _edgeLayer(profile.base, role: '${role}_base', start: start, end: end),
+    _edgeLayer(
+      profile.base,
+      role: '${role}_base',
+      orientation: orientation,
+      start: start,
+      end: end,
+    ),
     if (profile.detail case final detail?)
-      _edgeLayer(detail, role: '${role}_detail', start: start, end: end),
+      _edgeLayer(
+        detail,
+        role: '${role}_detail',
+        orientation: orientation,
+        start: start,
+        end: end,
+      ),
   ];
 
   Widget _edgeLayer(
     TerrainMaterialEdgeLayer layer, {
     required String role,
+    required TerrainMaterialEdgeOrientation orientation,
     required Offset start,
     required Offset end,
   }) => Positioned.fill(
@@ -290,6 +309,7 @@ class _TerrainComposedSample extends StatelessWidget {
       edgeStart: start,
       edgeEnd: end,
       anchorY: layer.anchorY,
+      orientation: orientation,
     ),
   );
 
@@ -330,7 +350,8 @@ class _TerrainRegionImage extends StatefulWidget {
     required this.worldOrigin,
   }) : edgeStart = null,
        edgeEnd = null,
-       anchorY = null;
+       anchorY = null,
+       orientation = null;
 
   const _TerrainRegionImage.edge({
     super.key,
@@ -340,6 +361,7 @@ class _TerrainRegionImage extends StatefulWidget {
     required this.edgeStart,
     required this.edgeEnd,
     required this.anchorY,
+    required this.orientation,
   }) : repeat = null,
        worldOrigin = null;
 
@@ -351,6 +373,7 @@ class _TerrainRegionImage extends StatefulWidget {
   final Offset? edgeStart;
   final Offset? edgeEnd;
   final double? anchorY;
+  final TerrainMaterialEdgeOrientation? orientation;
 
   @override
   State<_TerrainRegionImage> createState() => _TerrainRegionImageState();
@@ -393,6 +416,7 @@ class _TerrainRegionImageState extends State<_TerrainRegionImage> {
                   start: widget.edgeStart!,
                   end: widget.edgeEnd!,
                   anchorY: widget.anchorY!,
+                  orientation: widget.orientation!,
                 ),
         );
 
@@ -419,6 +443,7 @@ class _TerrainEdgePainter extends CustomPainter {
     required this.start,
     required this.end,
     required this.anchorY,
+    required this.orientation,
   });
 
   final ui.Image image;
@@ -426,52 +451,18 @@ class _TerrainEdgePainter extends CustomPainter {
   final Offset start;
   final Offset end;
   final double anchorY;
+  final TerrainMaterialEdgeOrientation orientation;
 
   @override
-  void paint(Canvas canvas, Size size) {
-    if (region.right > image.width || region.bottom > image.height) return;
-    final delta = end - start;
-    final length = delta.distance;
-    if (length <= 0) return;
-    final angle = math.atan2(delta.dy, delta.dx);
-    final tangentX = delta.dx / length;
-    final tangentY = delta.dy / length;
-    final phase = terrainMaterialEdgeRepeatPhase(
-      startX: start.dx,
-      startY: start.dy,
-      tangentX: tangentX,
-      tangentY: tangentY,
-      repeatWidth: region.width.toDouble(),
-    );
-    final source = Rect.fromLTWH(
-      region.x.toDouble(),
-      region.y.toDouble(),
-      region.width.toDouble(),
-      region.height.toDouble(),
-    );
-    final paint = Paint()..filterQuality = FilterQuality.none;
-
-    canvas.save();
-    canvas.translate(start.dx, start.dy);
-    canvas.rotate(angle);
-    canvas.clipRect(
-      Rect.fromLTWH(0, -anchorY, length, region.height.toDouble()),
-    );
-    for (var x = -phase; x < length; x += region.width) {
-      canvas.drawImageRect(
-        image,
-        source,
-        Rect.fromLTWH(
-          x,
-          -anchorY,
-          region.width.toDouble(),
-          region.height.toDouble(),
-        ),
-        paint,
-      );
-    }
-    canvas.restore();
-  }
+  void paint(Canvas canvas, Size size) => paintTerrainMaterialEdgeRegion(
+    canvas,
+    image: image,
+    region: region,
+    orientation: orientation,
+    start: start,
+    end: end,
+    anchorY: anchorY,
+  );
 
   @override
   bool shouldRepaint(covariant _TerrainEdgePainter oldDelegate) =>
@@ -479,7 +470,8 @@ class _TerrainEdgePainter extends CustomPainter {
       oldDelegate.region != region ||
       oldDelegate.start != start ||
       oldDelegate.end != end ||
-      oldDelegate.anchorY != anchorY;
+      oldDelegate.anchorY != anchorY ||
+      oldDelegate.orientation != orientation;
 }
 
 class _TerrainRegionPainter extends CustomPainter {

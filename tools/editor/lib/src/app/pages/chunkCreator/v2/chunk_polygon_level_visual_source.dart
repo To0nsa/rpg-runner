@@ -9,6 +9,7 @@ import '../../../../chunks/chunk_v2_file_data.dart';
 import '../../../../parallax/parallax_domain_models.dart';
 import '../../../../terrain_authoring/terrain_source_models.dart';
 import '../../shared/editor_scene_view_utils.dart';
+import '../../shared/terrain_material_edge_painter.dart';
 import '../../shared/terrain_material_preview_catalog.dart';
 import '../../shared/terrain_polygon_scene_painter.dart';
 
@@ -257,6 +258,7 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
               end: end,
               image: base,
               layer: profile.base,
+              orientation: kind,
             );
           }
           final detailLayer = profile.detail;
@@ -270,14 +272,15 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
               end: end,
               image: detail,
               layer: detailLayer,
+              orientation: kind,
             );
           }
         }
-        if (kind != _TerrainEdgeKind.top) continue;
+        if (kind != TerrainMaterialEdgeOrientation.top) continue;
         final previousKind =
             edgeKinds[(index - 1 + edgeKinds.length) % edgeKinds.length];
         final nextKind = edgeKinds[(index + 1) % edgeKinds.length];
-        if (previousKind != _TerrainEdgeKind.top) {
+        if (previousKind != TerrainMaterialEdgeOrientation.top) {
           final cap = material.topStartCap;
           if (cap != null) {
             final image = imagesBySourcePath[cap.region.assetPath];
@@ -293,7 +296,7 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
             }
           }
         }
-        if (nextKind != _TerrainEdgeKind.top) {
+        if (nextKind != TerrainMaterialEdgeOrientation.top) {
           final cap = material.topEndCap;
           if (cap != null) {
             final image = imagesBySourcePath[cap.region.assetPath];
@@ -349,11 +352,11 @@ Path _sourcePath(List<TerrainSourceVertexDef> vertices) {
   return path..close();
 }
 
-enum _TerrainEdgeKind { top, leftWall, rightWall, underside }
-
-List<_TerrainEdgeKind> _edgeKinds(List<TerrainSourceVertexDef> vertices) {
+List<TerrainMaterialEdgeOrientation> _edgeKinds(
+  List<TerrainSourceVertexDef> vertices,
+) {
   final signedArea = _signedArea(vertices);
-  final kinds = <_TerrainEdgeKind>[];
+  final kinds = <TerrainMaterialEdgeOrientation>[];
   for (var index = 0; index < vertices.length; index += 1) {
     final start = _vertexOffset(vertices[index]);
     final end = _vertexOffset(vertices[(index + 1) % vertices.length]);
@@ -363,12 +366,12 @@ List<_TerrainEdgeKind> _edgeKinds(List<TerrainSourceVertexDef> vertices) {
     final outwardY = signedArea >= 0 ? -dx : dx;
     kinds.add(
       outwardY < 0
-          ? _TerrainEdgeKind.top
+          ? TerrainMaterialEdgeOrientation.top
           : outwardY > 0
-          ? _TerrainEdgeKind.underside
+          ? TerrainMaterialEdgeOrientation.underside
           : outwardX < 0
-          ? _TerrainEdgeKind.leftWall
-          : _TerrainEdgeKind.rightWall,
+          ? TerrainMaterialEdgeOrientation.leftWall
+          : TerrainMaterialEdgeOrientation.rightWall,
     );
   }
   return kinds;
@@ -379,12 +382,12 @@ Offset _vertexOffset(TerrainSourceVertexDef vertex) =>
 
 TerrainMaterialEdgeProfile? _profileForKind(
   TerrainMaterialDefinition material,
-  _TerrainEdgeKind kind,
+  TerrainMaterialEdgeOrientation kind,
 ) => switch (kind) {
-  _TerrainEdgeKind.top => material.top,
-  _TerrainEdgeKind.leftWall => material.leftWall,
-  _TerrainEdgeKind.rightWall => material.rightWall,
-  _TerrainEdgeKind.underside => material.underside,
+  TerrainMaterialEdgeOrientation.top => material.top,
+  TerrainMaterialEdgeOrientation.leftWall => material.leftWall,
+  TerrainMaterialEdgeOrientation.rightWall => material.rightWall,
+  TerrainMaterialEdgeOrientation.underside => material.underside,
 };
 
 double _signedArea(List<TerrainSourceVertexDef> vertices) {
@@ -405,48 +408,16 @@ void _drawEdgeImage(
   required Offset end,
   required ui.Image image,
   required TerrainMaterialEdgeLayer layer,
-}) {
-  final dx = end.dx - start.dx;
-  final dy = end.dy - start.dy;
-  final length = math.sqrt(dx * dx + dy * dy);
-  if (length <= 0) return;
-  final region = layer.region;
-  final repeatWidth = region.width.toDouble();
-  final angle = math.atan2(dy, dx);
-  final phase = terrainMaterialEdgeRepeatPhase(
-    startX: start.dx,
-    startY: start.dy,
-    tangentX: math.cos(angle),
-    tangentY: math.sin(angle),
-    repeatWidth: repeatWidth,
-  );
-  final source = Rect.fromLTWH(
-    region.x.toDouble(),
-    region.y.toDouble(),
-    region.width.toDouble(),
-    region.height.toDouble(),
-  );
-  canvas.save();
-  canvas.translate(start.dx, start.dy);
-  canvas.rotate(angle);
-  canvas.clipRect(
-    Rect.fromLTWH(0, -layer.anchorY, length, region.height.toDouble()),
-  );
-  for (var x = -phase; x < length; x += repeatWidth) {
-    canvas.drawImageRect(
-      image,
-      source,
-      Rect.fromLTWH(
-        x,
-        -layer.anchorY,
-        region.width.toDouble(),
-        region.height.toDouble(),
-      ),
-      Paint()..filterQuality = FilterQuality.none,
-    );
-  }
-  canvas.restore();
-}
+  required TerrainMaterialEdgeOrientation orientation,
+}) => paintTerrainMaterialEdgeRegion(
+  canvas,
+  image: image,
+  region: layer.region,
+  orientation: orientation,
+  start: start,
+  end: end,
+  anchorY: layer.anchorY,
+);
 
 void _drawEdgeCap(
   Canvas canvas, {
