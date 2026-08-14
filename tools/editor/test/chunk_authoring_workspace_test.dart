@@ -8,6 +8,7 @@ import 'package:runner_editor/src/app/pages/chunkCreator/chunk_creator_page.dart
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_actor_terrain_overlay_painter.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_compiled_edge_overlay_painter.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_marker_placement_overlay_painter.dart';
+import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_polygon_level_visual_source.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_scene_coordinator.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_scene_surface.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_scene_visual_source.dart';
@@ -30,6 +31,82 @@ import 'package:runner_editor/src/terrain_authoring/terrain_source_models.dart';
 import 'package:runner_editor/src/workspace/editor_workspace.dart';
 
 void main() {
+  testWidgets(
+    'new terrain drafts use the authored material and preview every gesture',
+    (tester) async {
+      tester.view.physicalSize = const Size(1800, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final harness = await _buildHarness();
+      addTearDown(harness.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData.dark(),
+          home: Scaffold(body: ChunkCreatorPage(controller: harness.session)),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      ChunkPolygonLevelVisualSource materialPreview() => tester.widget(
+        find.byKey(
+          const ValueKey<String>('chunk_polygon_terrain_material_preview'),
+        ),
+      );
+
+      expect(materialPreview().terrainShapes, hasLength(1));
+      await tester.tap(
+        find.byKey(const ValueKey<String>('chunk_polygon_new_shape')),
+      );
+      await tester.pump();
+
+      final surfaceFinder = find.byKey(
+        const ValueKey<String>('chunk_scene_surface'),
+      );
+      final surface = tester.widget<ChunkSceneSurface>(
+        find.ancestor(
+          of: surfaceFinder,
+          matching: find.byType(ChunkSceneSurface),
+        ),
+      );
+      Offset scenePoint(double x, double y) =>
+          tester.getTopLeft(surfaceFinder) +
+          surface.transform.origin +
+          Offset(x * surface.transform.zoom, y * surface.transform.zoom);
+
+      await tester.tapAt(scenePoint(20, 15));
+      await tester.tapAt(scenePoint(40, 15));
+      await tester.pump();
+      expect(materialPreview().terrainShapes, hasLength(1));
+
+      await tester.tapAt(scenePoint(40, 30));
+      await tester.pump();
+      var draft = materialPreview().terrainShapes!.last;
+      expect(materialPreview().terrainShapes, hasLength(2));
+      expect(draft.surfaceKind, 'ground');
+      expect(draft.materialKey, 'grass_dirt');
+      expect(_chunk(harness.session, 'forest_chunk').revision, 4);
+      expect(harness.session.pendingChanges.hasChanges, isFalse);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('chunk_polygon_tool_moveVertex')),
+      );
+      await tester.pump();
+      final gesture = await tester.startGesture(scenePoint(20, 15));
+      await gesture.moveTo(scenePoint(24, 18));
+      await tester.pump();
+      draft = materialPreview().terrainShapes!.last;
+      expect(
+        draft.vertices.first,
+        const TerrainSourceVertexDef(xHalfPixels: 48, yHalfPixels: 36),
+      );
+      expect(_chunk(harness.session, 'forest_chunk').revision, 4);
+      expect(harness.session.pendingChanges.hasChanges, isFalse);
+      await gesture.up();
+    },
+  );
+
   testWidgets(
     'explicit chunk-v2 route edits active-level owners without reloading source',
     (tester) async {

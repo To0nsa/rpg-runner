@@ -204,6 +204,12 @@ Prefab and Chunk polygon scenes share the same controls:
 - use **Normalize** explicitly to apply canonical winding/start and remove
   diagnosed collinear middle vertices
 
+In the Chunk Creator, new direct shapes start as solid `ground` terrain using
+the first canonical material in the authored terrain-material catalog. A
+freeform draft begins rendering that material after its third vertex; rectangle,
+vertex, and whole-shape gestures update the material preview continuously. This
+projection is visual only and does not enter source history until **Save**.
+
 Rejected edits retain their draft/gesture and show diagnostics; they do not
 enter source history. Draft **Save** removes redundant aligned middle vertices
 before the single commit. For a rejected committed-shape gesture, **Normalize**

@@ -45,6 +45,83 @@ void main() {
   });
 
   test(
+    'terrain creation defaults and local gestures feed the material preview',
+    () async {
+      final harness = await _buildHarness(
+        newShapeSurfaceKind: 'ground',
+        newShapeMaterialKey: 'grass_dirt',
+      );
+      final controller = harness.authoring;
+      final document = harness.session.document;
+
+      controller.beginCreatePolygon();
+      expect(controller.state.draft!.surfaceKind, 'ground');
+      expect(controller.state.draft!.materialKey, 'grass_dirt');
+      controller.addDraftVertex(const TerrainPolygonScenePoint(120, 20));
+      controller.addDraftVertex(const TerrainPolygonScenePoint(140, 20));
+      expect(controller.terrainPreviewShapes, hasLength(1));
+
+      controller.addDraftVertex(const TerrainPolygonScenePoint(140, 40));
+      var preview = controller.terrainPreviewShapes.last;
+      expect(controller.terrainPreviewShapes, hasLength(2));
+      expect(preview.shapeId, 'solid_001');
+      expect(preview.surfaceKind, 'ground');
+      expect(preview.materialKey, 'grass_dirt');
+
+      controller.setTool(TerrainPolygonTool.moveVertex);
+      expect(
+        controller.beginDraftGesture(
+          pointer: 7,
+          point: const TerrainPolygonScenePoint(120, 20),
+          vertexRadiusHalfPixels: 2,
+          edgeRadiusHalfPixels: 2,
+        ),
+        isTrue,
+      );
+      controller.updateGesture(
+        pointer: 7,
+        point: const TerrainPolygonScenePoint(124, 24),
+      );
+      preview = controller.terrainPreviewShapes.last;
+      expect(
+        preview.vertices.first,
+        const TerrainSourceVertexDef(xHalfPixels: 124, yHalfPixels: 24),
+      );
+      expect(harness.session.document, same(document));
+      expect(harness.session.pendingChanges.hasChanges, isFalse);
+
+      controller.cancelActiveOperation();
+      controller.cancelActiveOperation();
+      controller.setTool(TerrainPolygonTool.createRectangle);
+      expect(
+        controller.beginCreateRectangle(
+          pointer: 8,
+          point: const TerrainPolygonScenePoint(120, 20),
+        ),
+        isTrue,
+      );
+      controller.updateGesture(
+        pointer: 8,
+        point: const TerrainPolygonScenePoint(180, 60),
+      );
+      preview = controller.terrainPreviewShapes.last;
+      expect(preview.vertices, hasLength(4));
+      expect(preview.surfaceKind, 'ground');
+      expect(preview.materialKey, 'grass_dirt');
+      expect(harness.session.document, same(document));
+
+      expect(controller.commitGesture(8), isTrue);
+      expect(harness.session.document, same(document));
+      expect(controller.saveDraft(), isTrue);
+      final committed = controller.chunk.collisionShapes.singleWhere(
+        (shape) => shape.shapeId == 'solid_001',
+      );
+      expect(committed.surfaceKind, 'ground');
+      expect(committed.materialKey, 'grass_dirt');
+    },
+  );
+
+  test(
     'preview stays local and one accepted gesture creates one session edit',
     () async {
       final harness = await _buildHarness();
@@ -71,6 +148,10 @@ void main() {
       expect(session.canUndo, isFalse);
       expect(
         controller.state.visibleShapes.single.vertices[1].xHalfPixels,
+        104,
+      );
+      expect(
+        controller.terrainPreviewShapes.single.vertices[1].xHalfPixels,
         104,
       );
 
@@ -733,7 +814,11 @@ Future<void> _pressCtrlShiftShortcut(
   await tester.pump();
 }
 
-Future<_Harness> _buildHarness({TerrainSourceShapeDef? shape}) async {
+Future<_Harness> _buildHarness({
+  TerrainSourceShapeDef? shape,
+  String? newShapeSurfaceKind,
+  String? newShapeMaterialKey,
+}) async {
   final root = Directory.systemTemp.createTempSync('chunk_polygon_route_');
   final chunk = _chunk(shape: shape);
   final document = ChunkV2Document(
@@ -768,6 +853,8 @@ Future<_Harness> _buildHarness({TerrainSourceShapeDef? shape}) async {
   final authoring = ChunkPolygonAuthoringController(
     session: session,
     chunkKey: 'forest_target',
+    newShapeSurfaceKind: newShapeSurfaceKind,
+    newShapeMaterialKey: newShapeMaterialKey,
   );
   addTearDown(() {
     authoring.dispose();

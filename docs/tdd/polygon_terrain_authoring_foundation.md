@@ -79,7 +79,7 @@ Final Phase 4 acceptance work remains tracked in
 | Strict chunk-v2 file structure, canonical serialization, and ownership planning | editor `ChunkV2FileData` / `ChunkV2FileCodec` / `ChunkStore.buildV2SavePlan` | migration facade delegation plus normal complete-current-tree load, pending plans, rollback-safe apply, and exact reload |
 | Chunk-v2 plugin validation, mutation, and lifecycle policy | editor `ChunkV2Document` / `ChunkV2CollisionCommitPolicy` / `ChunkV2MetadataCommitPolicy` / `ChunkV2CompositionCommitPolicy` / `ChunkV2CompositionOperation` / `ChunkV2LifecycleCommitPolicy` / `ChunkDomainPlugin` | normal strict current-source composition; complete Core/editor validation; owner/revision/snapshot freshness, operation-scoped canonical targeting, ordering, typed polygon/metadata/composition/lifecycle commits, and transactional export |
 | Chunk route-local projection | editor `ChunkAuthoringWorkspace` / `ChunkSceneCoordinator` / `ChunkSceneSurface` / `ChunkPolygonAuthoringController` | persistent complete-v2 scene and two-card sidebar, typed domain routing, direct terrain/prefab/marker tools, snap, bounds, diagnostics, keyboard, rejection, history, compiled-edge inspection, actor-terrain, and marker-placement overlays; legacy/missing source selects no ground/gap workflow |
-| Chunk level visual preview | editor `ChunkV2Document` / `ChunkV2Scene` / `ChunkPolygonLevelVisualSource` | `ChunkDomainPlugin` reads the parallax theme set, resolves the active level's `visualThemeId`, and renders its background/foreground around read-only terrain material art selected by direct polygon `materialKey`; it adds no source mutation or gameplay authority |
+| Chunk level visual preview | editor `ChunkV2Document` / `ChunkV2Scene` / `ChunkPolygonLevelVisualSource` | `ChunkDomainPlugin` reads the parallax theme set, resolves the active level's `visualThemeId`, and renders its background/foreground around persisted or local-preview terrain material art selected by direct polygon `materialKey`; it adds no source mutation or gameplay authority |
 | Chunk actor terrain projection | editor `ChunkV2ActorTerrainProjection` | Core surface extraction; Éloïse/Grojib/Hashash eligibility; published Grojib/Hashash graphs; Unoco solid/local-hover evidence; Derf 15-degree/32-pixel perch evidence; no player/flight graph or source mutation |
 | Chunk marker contract and placement projection | editor `chunk_v2_marker_contract.dart` / `ChunkV2MarkerPlacementProjection` | immutable level ground context, staged marker validation, exact Phase 3 enemy placement evidence, Hashash deferral, authored-order/stable-key retention, and zero RNG/source mutation |
 | Scheduler-aware chunk seam analysis | editor `chunk_v2_seam_analysis.dart` | immutable `LevelDef` snapshot, canonical compiled boundary signatures, runtime-contract adjacency enumeration, global staged validation, and read-only compatible/failing neighbor evidence |
@@ -1464,6 +1464,15 @@ priority. It chooses the closest feature first and resolves equal distances by
 selected shape, visually topmost canonical shape, local element index, then
 shape ID. These are UI selection rules only; collision geometry remains Core-
 owned.
+
+Chunk authoring derives one material-preview shape list from that projection.
+It substitutes committed-shape gesture candidates and appends a creation draft
+once the draft has at least three vertices, while leaving the session document
+unchanged. The material layer listens directly to authoring state so pointer
+updates repaint without forcing unrelated Chunk workspace projections to
+reconcile. New direct Chunk shapes default to `ground` and the first canonical
+authored material key; a missing material catalog fails visibly back to
+collision-only metadata instead of inventing a key.
 
 `TerrainPolygonViewportTransform` maps exact source half-pixel ticks into
 display-only canvas doubles. Its inverse deliberately returns fractional
