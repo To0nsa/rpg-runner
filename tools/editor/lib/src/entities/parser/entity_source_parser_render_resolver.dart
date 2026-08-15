@@ -188,7 +188,7 @@ class _ConstValueResolver {
             rightLiteral == null &&
             rightValue != null &&
             rightValue.isFinite &&
-            rightValue.abs() > 0.000001) {
+            !EntityNumericPolicy.isEffectivelyZero(rightValue)) {
           final scalarBinding = _resolveExpressionBinding(
             left,
             EntitySourceBindingKind.referenceAnchorVec2Expression,
@@ -206,7 +206,7 @@ class _ConstValueResolver {
             leftLiteral == null &&
             leftValue != null &&
             leftValue.isFinite &&
-            leftValue.abs() > 0.000001) {
+            !EntityNumericPolicy.isEffectivelyZero(leftValue)) {
           final scalarBinding = _resolveExpressionBinding(
             right,
             EntitySourceBindingKind.referenceAnchorVec2Expression,
@@ -224,7 +224,7 @@ class _ConstValueResolver {
         if (rightLiteral != null &&
             leftValue != null &&
             leftValue.isFinite &&
-            leftValue.abs() > 0.000001) {
+            !EntityNumericPolicy.isEffectivelyZero(leftValue)) {
           final scalarBinding = _resolveExpressionBinding(
             right,
             EntitySourceBindingKind.referenceAnchorVec2Expression,
@@ -241,7 +241,7 @@ class _ConstValueResolver {
         if (leftLiteral != null &&
             rightValue != null &&
             rightValue.isFinite &&
-            rightValue.abs() > 0.000001) {
+            !EntityNumericPolicy.isEffectivelyZero(rightValue)) {
           final scalarBinding = _resolveExpressionBinding(
             left,
             EntitySourceBindingKind.referenceAnchorVec2Expression,

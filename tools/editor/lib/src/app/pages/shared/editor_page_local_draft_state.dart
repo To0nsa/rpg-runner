@@ -37,3 +37,15 @@ abstract interface class EditorPageReloadHandler {
 
   Future<void> reloadEditorPage();
 }
+
+/// Implemented by routes whose Apply To Files action needs page-owned guards,
+/// confirmation, or post-export state reconciliation.
+///
+/// The home shell renders the common control, while this contract keeps
+/// domain-specific safety checks and user feedback with the page that owns
+/// them. Repository writes still flow through [EditorSessionController].
+abstract interface class EditorPageApplyHandler {
+  bool get canApplyEditorPage;
+
+  Future<void> applyEditorPage();
+}

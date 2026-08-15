@@ -85,6 +85,15 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
       !(_moduleWorkspaceKey.currentState?.hasLocalDraftChanges ?? false) &&
       (_authoring?.canRedo ?? widget.controller.canRedo);
 
+  /// True when the shell may apply the current prefab source atomically.
+  bool get canApplyToFiles =>
+      widget.controller.pendingChanges.hasChanges &&
+      !(_authoring?.hasActiveOperation ?? false) &&
+      !(_atlasWorkspaceKey.currentState?.hasLocalDraftChanges ?? false) &&
+      !(_moduleWorkspaceKey.currentState?.hasLocalDraftChanges ?? false) &&
+      !widget.controller.isLoading &&
+      !widget.controller.isExporting;
+
   bool handleUndoShortcut() {
     if (_workspaceView == _PrefabV3WorkspaceView.atlasSlices &&
         (_atlasWorkspaceKey.currentState?.cancelLocalDraft() ?? false)) {
@@ -170,7 +179,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          _buildHeader(document, authoring),
+          _buildHeader(document),
           const SizedBox(height: EditorUiTokens.sectionGap),
           Expanded(
             child: IndexedStack(
@@ -195,10 +204,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
     );
   }
 
-  Widget _buildHeader(
-    PrefabV3Document document,
-    PrefabPolygonAuthoringController? authoring,
-  ) {
+  Widget _buildHeader(PrefabV3Document document) {
     final changedCount = document.changedPrefabKeys.length;
     final changedKeys = document.changedPrefabKeys.toSet();
     final affectedImpacts = document.downstreamImpacts
@@ -223,44 +229,6 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
             const Chip(
               avatar: Icon(Icons.science_outlined, size: 18),
               label: Text('Prefab v3 polygon authoring'),
-            ),
-            FilledButton.icon(
-              key: const ValueKey<String>('prefab_polygon_apply_source'),
-              onPressed:
-                  widget.controller.pendingChanges.hasChanges &&
-                      !(authoring?.hasActiveOperation ?? false) &&
-                      !(_atlasWorkspaceKey.currentState?.hasLocalDraftChanges ??
-                          false) &&
-                      !(_moduleWorkspaceKey
-                              .currentState
-                              ?.hasLocalDraftChanges ??
-                          false) &&
-                      !widget.controller.isLoading &&
-                      !widget.controller.isExporting
-                  ? _confirmAndApplyToFiles
-                  : null,
-              icon: const Icon(Icons.save_outlined),
-              label: const Text('Apply current source'),
-            ),
-            OutlinedButton.icon(
-              key: const ValueKey<String>('prefab_polygon_undo_button'),
-              onPressed:
-                  (authoring?.hasActiveOperation ?? false) ||
-                      widget.controller.canUndo
-                  ? handleUndoShortcut
-                  : null,
-              icon: const Icon(Icons.undo),
-              label: const Text('Undo'),
-            ),
-            OutlinedButton.icon(
-              key: const ValueKey<String>('prefab_polygon_redo_button'),
-              onPressed:
-                  (authoring?.hasActiveOperation ?? false) ||
-                      !widget.controller.canRedo
-                  ? null
-                  : handleRedoShortcut,
-              icon: const Icon(Icons.redo),
-              label: const Text('Redo'),
             ),
             Text(
               changedCount == 0
@@ -347,7 +315,9 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  Future<void> _confirmAndApplyToFiles() async {
+  /// Confirms and applies the current source through the shared session.
+  Future<void> applyToFiles() async {
+    if (!canApplyToFiles) return;
     final pendingChanges = widget.controller.pendingChanges;
     if (!pendingChanges.hasChanges) return;
     final confirmed = await showDialog<bool>(

@@ -51,6 +51,24 @@ void main() {
     );
   });
 
+  test('typed export failures require messages and classify consistently', () {
+    for (final outcome in <ExportOutcome>[
+      ExportOutcome.validationFailed,
+      ExportOutcome.sourceDrift,
+      ExportOutcome.failed,
+      ExportOutcome.rollbackIncomplete,
+    ]) {
+      expect(outcome.isFailure, isTrue);
+      expect(
+        () => ExportResult(applied: false, outcome: outcome),
+        throwsArgumentError,
+      );
+    }
+    expect(ExportOutcome.noChanges.isFailure, isFalse);
+    expect(ExportOutcome.applied.isFailure, isFalse);
+    expect(ExportOutcome.appliedWithCleanupRequired.isFailure, isFalse);
+  });
+
   test('pending changes snapshots changed items and file diffs', () {
     final changedItemIds = <String>['chunk_field_001'];
     final fileDiffs = <PendingFileDiff>[

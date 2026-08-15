@@ -88,7 +88,7 @@ extension _EntitiesEditorApply on _EntitiesEditorPageState {
     double? anchorYPx,
     double? castOriginOffset,
   }) {
-    final payload = _buildUpdateEntryPayload(
+    final update = _buildEntityUpdate(
       entryId: entryId,
       halfX: halfX,
       halfY: halfY,
@@ -99,9 +99,8 @@ extension _EntitiesEditorApply on _EntitiesEditorPageState {
       anchorYPx: anchorYPx,
       castOriginOffset: castOriginOffset,
     );
-    widget.controller.applyCommand(
-      AuthoringCommand(kind: 'update_entry', payload: payload),
-    );
+    widget.controller.applyCommand(update.toCommand());
+    _rebaseInspectorFromCurrentEntry(entryId);
   }
 
   void _applyEntryValuesCoalesced(
@@ -115,7 +114,7 @@ extension _EntitiesEditorApply on _EntitiesEditorPageState {
     double? anchorYPx,
     double? castOriginOffset,
   }) {
-    final payload = _buildUpdateEntryPayload(
+    final update = _buildEntityUpdate(
       entryId: entryId,
       halfX: halfX,
       halfY: halfY,
@@ -126,12 +125,22 @@ extension _EntitiesEditorApply on _EntitiesEditorPageState {
       anchorYPx: anchorYPx,
       castOriginOffset: castOriginOffset,
     );
-    widget.controller.applyCoalescedCommand(
-      AuthoringCommand(kind: 'update_entry', payload: payload),
-    );
+    widget.controller.applyCoalescedCommand(update.toCommand());
+    _rebaseInspectorFromCurrentEntry(entryId);
   }
 
-  Map<String, Object?> _buildUpdateEntryPayload({
+  void _rebaseInspectorFromCurrentEntry(String entryId) {
+    final scene = widget.controller.scene;
+    if (scene is! EntityScene) return;
+    for (final entry in scene.entries) {
+      if (entry.id == entryId) {
+        _syncInspectorFromEntry(entry);
+        return;
+      }
+    }
+  }
+
+  EntityUpdate _buildEntityUpdate({
     required String entryId,
     required double halfX,
     required double halfY,
@@ -142,26 +151,17 @@ extension _EntitiesEditorApply on _EntitiesEditorPageState {
     double? anchorYPx,
     double? castOriginOffset,
   }) {
-    // Keep payload shape consistent between normal and coalesced paths.
-    final payload = <String, Object?>{
-      'id': entryId,
-      'halfX': halfX,
-      'halfY': halfY,
-      'offsetX': offsetX,
-      'offsetY': offsetY,
-    };
-    if (renderScale != null) {
-      payload['renderScale'] = renderScale;
-    }
-    if (anchorXPx != null) {
-      payload['anchorXPx'] = anchorXPx;
-    }
-    if (anchorYPx != null) {
-      payload['anchorYPx'] = anchorYPx;
-    }
-    if (castOriginOffset != null) {
-      payload['castOriginOffset'] = castOriginOffset;
-    }
-    return payload;
+    // Both normal and coalesced paths carry the same immutable domain value.
+    return EntityUpdate(
+      entryId: entryId,
+      halfX: halfX,
+      halfY: halfY,
+      offsetX: offsetX,
+      offsetY: offsetY,
+      renderScale: renderScale,
+      anchorXPx: anchorXPx,
+      anchorYPx: anchorYPx,
+      castOriginOffset: castOriginOffset,
+    );
   }
 }

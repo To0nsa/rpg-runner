@@ -152,6 +152,7 @@ extension _EntitySceneView on _EntitiesEditorPageState {
     required int referenceFrame,
   }) {
     final canvas = Listener(
+      key: const ValueKey<String>('entity_scene_canvas'),
       onPointerDown: (event) {
         _onSceneCanvasPointerDown(
           event,

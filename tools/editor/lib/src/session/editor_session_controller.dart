@@ -8,8 +8,8 @@ import '../workspace/editor_workspace.dart';
 ///
 /// Keeps the loaded document snapshot, derived scene, validation issues,
 /// pending changes, and undo/redo history in sync so routes can treat the
-/// controller as a coherent session boundary. Changing the workspace or plugin
-/// invalidates the loaded snapshot instead of reusing potentially stale state.
+/// controller as a coherent session boundary. Changing the plugin invalidates
+/// the loaded snapshot instead of reusing potentially stale state.
 ///
 /// This controller owns committed authoring state only. Pages may still keep
 /// transient local draft state such as text fields, viewport state, or tool
@@ -31,7 +31,7 @@ class EditorSessionController extends ChangeNotifier {
 
   final AuthoringPluginRegistry _pluginRegistry;
   String _selectedPluginId;
-  String _workspacePath;
+  final String _workspacePath;
 
   bool _isLoading = false;
   bool _isExporting = false;
@@ -54,7 +54,7 @@ class EditorSessionController extends ChangeNotifier {
   /// Active plugin id whose document/scene contract this session currently uses.
   String get selectedPluginId => _selectedPluginId;
 
-  /// Current workspace root path used for the next load/export.
+  /// Workspace root path set when this editor session starts.
   String get workspacePath => _workspacePath;
 
   /// True while a normal reload or guarded plugin transition is resolving a
@@ -122,20 +122,6 @@ class EditorSessionController extends ChangeNotifier {
   int get warningCount => _issues
       .where((issue) => issue.severity == ValidationSeverity.warning)
       .length;
-
-  /// Changes the workspace root path and invalidates any loaded session state.
-  ///
-  /// This is intentionally destructive to the current document/scene because
-  /// pending diffs, validation, and export targets are all workspace-relative.
-  void setWorkspacePath(String workspacePath) {
-    final nextPath = workspacePath.trim();
-    if (nextPath == _workspacePath) {
-      return;
-    }
-    _workspacePath = nextPath;
-    _resetForContextChange(clearWorkspace: true);
-    notifyListeners();
-  }
 
   /// Switches the active plugin contract and invalidates the loaded document.
   ///
@@ -344,6 +330,9 @@ class EditorSessionController extends ChangeNotifier {
     try {
       final result = await plugin.exportToRepo(workspace, document: document);
       _lastExportResult = result;
+      if (result.outcome.isFailure) {
+        _exportError = result.message ?? 'The export was rejected.';
+      }
       if (result.applied) {
         // Reload from disk so the session reflects the plugin's persisted
         // output instead of assuming the in-memory document is authoritative.

@@ -9,59 +9,44 @@ import 'package:runner_editor/src/session/editor_session_controller.dart';
 import 'package:runner_editor/src/workspace/editor_workspace.dart';
 
 void main() {
-  test(
-    'workspace path changes invalidate loaded session and export uses reloaded path',
-    () async {
-      final fixtureRoot = await Directory.systemTemp.createTemp(
-        'editor_session_controller_',
-      );
-      addTearDown(() {
-        if (fixtureRoot.existsSync()) {
-          fixtureRoot.deleteSync(recursive: true);
-        }
-      });
+  test('export uses the startup workspace path', () async {
+    final fixtureRoot = await Directory.systemTemp.createTemp(
+      'editor_session_controller_',
+    );
+    addTearDown(() {
+      if (fixtureRoot.existsSync()) {
+        fixtureRoot.deleteSync(recursive: true);
+      }
+    });
 
-      final workspaceA = Directory('${fixtureRoot.path}/workspace_a')
-        ..createSync(recursive: true);
-      final workspaceB = Directory('${fixtureRoot.path}/workspace_b')
-        ..createSync(recursive: true);
+    final workspaceA = Directory('${fixtureRoot.path}/workspace_a')
+      ..createSync(recursive: true);
 
-      final plugin = _RecordingPlugin();
-      final controller = EditorSessionController(
-        pluginRegistry: AuthoringPluginRegistry(
-          plugins: <AuthoringDomainPlugin>[plugin],
-        ),
-        initialPluginId: plugin.id,
-        initialWorkspacePath: workspaceA.path,
-      );
+    final plugin = _RecordingPlugin();
+    final controller = EditorSessionController(
+      pluginRegistry: AuthoringPluginRegistry(
+        plugins: <AuthoringDomainPlugin>[plugin],
+      ),
+      initialPluginId: plugin.id,
+      initialWorkspacePath: workspaceA.path,
+    );
 
-      await controller.loadWorkspace();
-      expect(controller.loadError, isNull);
+    await controller.loadWorkspace();
+    expect(controller.loadError, isNull);
 
-      await controller.exportDirectWrite();
-      expect(plugin.exportWorkspaceRoots, <String>[
-        EditorWorkspace(rootPath: workspaceA.path).rootPath,
-      ]);
+    await controller.exportDirectWrite();
+    expect(plugin.exportWorkspaceRoots, <String>[
+      EditorWorkspace(rootPath: workspaceA.path).rootPath,
+    ]);
 
-      controller.setWorkspacePath(workspaceB.path);
-      expect(controller.workspace, isNull);
-      expect(controller.document, isNull);
-      expect(controller.scene, isNull);
-
-      await controller.exportDirectWrite();
-      expect(plugin.exportWorkspaceRoots, <String>[
-        EditorWorkspace(rootPath: workspaceA.path).rootPath,
-      ]);
-
-      await controller.loadWorkspace();
-      expect(controller.loadError, isNull);
-      await controller.exportDirectWrite();
-      expect(plugin.exportWorkspaceRoots, <String>[
-        EditorWorkspace(rootPath: workspaceA.path).rootPath,
-        EditorWorkspace(rootPath: workspaceB.path).rootPath,
-      ]);
-    },
-  );
+    await controller.loadWorkspace();
+    expect(controller.loadError, isNull);
+    await controller.exportDirectWrite();
+    expect(plugin.exportWorkspaceRoots, <String>[
+      EditorWorkspace(rootPath: workspaceA.path).rootPath,
+      EditorWorkspace(rootPath: workspaceA.path).rootPath,
+    ]);
+  });
 
   test('failed reload clears previously loaded session state', () async {
     final fixtureRoot = await Directory.systemTemp.createTemp(

@@ -26,7 +26,10 @@ class LevelCreatorPage extends StatefulWidget {
 }
 
 class _LevelCreatorPageState extends State<LevelCreatorPage>
-    implements EditorPageLocalDraftState {
+    implements
+        EditorPageLocalDraftState,
+        EditorPageSessionShortcutHandler,
+        EditorPageApplyHandler {
   static const String _defaultNewLevelId = 'new_level';
 
   final TextEditingController _newLevelIdController = TextEditingController(
@@ -129,6 +132,37 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
   }
 
   @override
+  bool get canHandleUndoSessionShortcut => widget.controller.canUndo;
+
+  @override
+  bool get canHandleRedoSessionShortcut => widget.controller.canRedo;
+
+  @override
+  bool handleUndoSessionShortcut() {
+    if (!widget.controller.canUndo) return false;
+    _invalidateHandoff();
+    widget.controller.undo();
+    return true;
+  }
+
+  @override
+  bool handleRedoSessionShortcut() {
+    if (!widget.controller.canRedo) return false;
+    _invalidateHandoff();
+    widget.controller.redo();
+    return true;
+  }
+
+  @override
+  bool get canApplyEditorPage => _canApplyToFiles;
+
+  @override
+  Future<void> applyEditorPage() async {
+    if (!canApplyEditorPage) return;
+    await _confirmAndApplyToFiles();
+  }
+
+  @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -174,7 +208,7 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildControls(levelScene),
+              _buildRouteControls(levelScene),
               const SizedBox(height: 12),
               if (widget.controller.loadError != null)
                 _buildErrorBanner(widget.controller.loadError!),
@@ -232,42 +266,12 @@ class _LevelCreatorPageState extends State<LevelCreatorPage>
     );
   }
 
-  Widget _buildControls(LevelScene? scene) {
+  Widget _buildRouteControls(LevelScene? scene) {
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        OutlinedButton.icon(
-          onPressed: widget.controller.canUndo
-              ? () {
-                  _invalidateHandoff();
-                  widget.controller.undo();
-                }
-              : null,
-          icon: const Icon(Icons.undo),
-          label: const Text('Undo'),
-        ),
-        OutlinedButton.icon(
-          onPressed: widget.controller.canRedo
-              ? () {
-                  _invalidateHandoff();
-                  widget.controller.redo();
-                }
-              : null,
-          icon: const Icon(Icons.redo),
-          label: const Text('Redo'),
-        ),
-        FilledButton.icon(
-          key: const ValueKey<String>('apply_level_files_button'),
-          onPressed: _canApplyToFiles
-              ? () {
-                  unawaited(_confirmAndApplyToFiles());
-                }
-              : null,
-          icon: const Icon(Icons.save_outlined),
-          label: const Text('Apply To Files'),
-        ),
         if (scene != null)
           SizedBox(
             width: 240,

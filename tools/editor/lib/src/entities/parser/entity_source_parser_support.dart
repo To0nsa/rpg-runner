@@ -237,14 +237,6 @@ _ResolvedColliderAabbExpression? _resolveColliderAabbExpression(
   return null;
 }
 
-double? _doubleNamedArg(NodeList<Expression> arguments, String name) {
-  final expression = _namedArgumentExpression(arguments, name);
-  if (expression == null) {
-    return null;
-  }
-  return _doubleFromExpression(expression);
-}
-
 bool _hasNonNullNamedArgument(NodeList<Expression> arguments, String name) {
   final expression = _namedArgumentExpression(arguments, name);
   if (expression == null) {
@@ -289,37 +281,63 @@ EntitySourceBinding? _scalarBindingFromNamedArg({
   );
 }
 
-EntitySourceBinding? _bindingFromNodes({
+EntityColliderScalarBinding? _colliderScalarBindingFromNamedArg({
   required String sourcePath,
   required String source,
-  required EntitySourceBindingKind kind,
-  required Iterable<AstNode> nodes,
+  required NamedExpression? namedArg,
+  double sourceUnitsPerEditorUnit = 1.0,
 }) {
-  // Bind from the concrete AST nodes we found rather than assuming those named
-  // arguments appear in a fixed textual order inside the source file.
-  var hasNode = false;
-  var start = source.length;
-  var end = -1;
-  for (final node in nodes) {
-    hasNode = true;
-    if (node.offset < start) {
-      start = node.offset;
-    }
-    if (node.end > end) {
-      end = node.end;
-    }
-  }
-  if (!hasNode || start < 0 || end <= start || end > source.length) {
-    return null;
-  }
-  return EntitySourceBinding(
-    kind: kind,
+  final sourceBinding = _scalarBindingFromNamedArg(
     sourcePath: sourcePath,
-    startOffset: start,
-    endOffset: end,
-    sourceSnippet: source.substring(start, end),
+    source: source,
+    kind: EntitySourceBindingKind.colliderScalar,
+    namedArg: namedArg,
+  );
+  if (sourceBinding == null) return null;
+  return EntityColliderScalarBinding(
+    sourceBinding: sourceBinding,
+    sourceUnitsPerEditorUnit: sourceUnitsPerEditorUnit,
   );
 }
+
+EntityColliderScalarBinding _requiredColliderScalarBinding({
+  required String sourcePath,
+  required String source,
+  required NamedExpression namedArg,
+  double sourceUnitsPerEditorUnit = 1.0,
+}) => _colliderScalarBindingFromNamedArg(
+  sourcePath: sourcePath,
+  source: source,
+  namedArg: namedArg,
+  sourceUnitsPerEditorUnit: sourceUnitsPerEditorUnit,
+)!;
+
+Set<String> _resolveAvailableAssetPaths(
+  EditorWorkspace workspace,
+  Iterable<EntityEntry> entries,
+) {
+  final candidatePaths = <String>{};
+  for (final entry in entries) {
+    final reference = entry.referenceVisual;
+    if (reference == null) continue;
+    candidatePaths.add(_canonicalEntityAssetPath(reference.assetPath));
+    for (final view in reference.animViewsByKey.values) {
+      candidatePaths.add(_canonicalEntityAssetPath(view.assetPath));
+    }
+  }
+
+  final available = <String>{};
+  final sortedCandidates = candidatePaths.toList(growable: false)..sort();
+  for (final relativePath in sortedCandidates) {
+    if (File(workspace.resolve(relativePath)).existsSync()) {
+      available.add(relativePath);
+    }
+  }
+  return Set<String>.unmodifiable(available);
+}
+
+String _canonicalEntityAssetPath(String runtimeAssetPath) =>
+    'assets/images/${runtimeAssetPath.replaceAll('\\', '/')}';
 
 double? _doubleFromExpression(Expression expression) {
   if (expression is DoubleLiteral) {

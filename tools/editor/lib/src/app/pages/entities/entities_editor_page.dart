@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
@@ -8,6 +7,8 @@ import 'package:flutter/material.dart';
 
 import '../../../entities/entity_domain_models.dart';
 import '../../../entities/entity_collider_preview.dart';
+import '../../../entities/entity_change_policy.dart';
+import '../../../entities/entity_update.dart';
 import '../../../domain/authoring_types.dart';
 import '../../../session/editor_session_controller.dart';
 import 'inspector/entity_inspector_panel.dart';
@@ -47,7 +48,7 @@ class EntitiesEditorPage extends StatefulWidget {
 }
 
 class _EntitiesEditorPageState extends State<EntitiesEditorPage>
-    implements EditorPageLocalDraftState {
+    implements EditorPageLocalDraftState, EditorPageApplyHandler {
   // Controllers are page-owned draft state. We only persist through
   // plugin/controller command paths, never directly from widget fields.
   late final TextEditingController _halfXController;
@@ -78,6 +79,7 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
   int _sceneAnimFrameIndex = 0;
   bool _sceneCtrlPanActive = false;
   _SceneHandleDrag? _sceneHandleDrag;
+  EntityEntry? _inspectorDraftBaseline;
   final EditorUiImageCache _referenceImageCache = EditorUiImageCache();
 
   @override
@@ -92,15 +94,15 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
     if (selectedEntry == null) {
       return false;
     }
-    final reference = selectedEntry.referenceVisual;
-    return _halfXController.text.trim() !=
-            selectedEntry.halfX.toStringAsFixed(2) ||
-        _halfYController.text.trim() !=
-            selectedEntry.halfY.toStringAsFixed(2) ||
-        _offsetXController.text.trim() !=
-            selectedEntry.offsetX.toStringAsFixed(2) ||
-        _offsetYController.text.trim() !=
-            selectedEntry.offsetY.toStringAsFixed(2) ||
+    final baseline = _inspectorDraftBaseline;
+    if (baseline == null || baseline.id != selectedEntry.id) {
+      return false;
+    }
+    final reference = baseline.referenceVisual;
+    return _halfXController.text.trim() != baseline.halfX.toStringAsFixed(2) ||
+        _halfYController.text.trim() != baseline.halfY.toStringAsFixed(2) ||
+        _offsetXController.text.trim() != baseline.offsetX.toStringAsFixed(2) ||
+        _offsetYController.text.trim() != baseline.offsetY.toStringAsFixed(2) ||
         _renderScaleController.text.trim() !=
             _formatOptionalDouble(reference?.renderScale) ||
         _anchorXPxController.text.trim() !=
@@ -112,7 +114,21 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
         _frameHeightController.text.trim() !=
             _formatOptionalDouble(reference?.frameHeight) ||
         _castOriginOffsetController.text.trim() !=
-            _formatOptionalDouble(selectedEntry.castOriginOffset);
+            _formatOptionalDouble(baseline.castOriginOffset);
+  }
+
+  @override
+  bool get canApplyEditorPage =>
+      widget.controller.scene != null &&
+      !widget.controller.isLoading &&
+      !widget.controller.isExporting &&
+      widget.controller.errorCount == 0 &&
+      widget.controller.pendingChanges.hasChanges;
+
+  @override
+  Future<void> applyEditorPage() async {
+    if (!canApplyEditorPage) return;
+    await _confirmAndApplyToFiles();
   }
 
   @override
@@ -133,7 +149,11 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
     _sceneVerticalScrollController = ScrollController();
     widget.controller.addListener(_handleControllerChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      widget.controller.loadWorkspace();
+      if (widget.controller.document == null) {
+        widget.controller.loadWorkspace();
+      } else if (_reconcileSelectionsFromCurrentState()) {
+        _updateState(() {});
+      }
     });
   }
 
@@ -182,56 +202,11 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildControls(),
-              const SizedBox(height: 16),
               Expanded(child: _buildEntitiesPage(entityScene, visibleEntries)),
             ],
           ),
         );
       },
-    );
-  }
-
-  Widget _buildControls() {
-    return Wrap(
-      spacing: 12,
-      runSpacing: 12,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        OutlinedButton.icon(
-          onPressed:
-              widget.controller.isLoading ||
-                  widget.controller.isExporting ||
-                  !widget.controller.canUndo
-              ? null
-              : widget.controller.undo,
-          icon: const Icon(Icons.undo),
-          label: const Text('Undo'),
-        ),
-        OutlinedButton.icon(
-          onPressed:
-              widget.controller.isLoading ||
-                  widget.controller.isExporting ||
-                  !widget.controller.canRedo
-              ? null
-              : widget.controller.redo,
-          icon: const Icon(Icons.redo),
-          label: const Text('Redo'),
-        ),
-        FilledButton.icon(
-          onPressed:
-              widget.controller.scene == null ||
-                  widget.controller.isLoading ||
-                  widget.controller.isExporting ||
-                  widget.controller.errorCount > 0
-              ? null
-              : () {
-                  unawaited(_confirmAndApplyToFiles());
-                },
-          icon: const Icon(Icons.save_alt_outlined),
-          label: const Text('Apply To Files'),
-        ),
-      ],
     );
   }
 
@@ -304,6 +279,17 @@ class _EntitiesEditorPageState extends State<EntitiesEditorPage>
 
     final exportResult = widget.controller.lastExportResult;
     if (exportResult == null || !exportResult.applied) {
+      return;
+    }
+    if (exportResult.outcome == ExportOutcome.appliedWithCleanupRequired) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            exportResult.message ??
+                'Applied changes, but transaction cleanup requires review.',
+          ),
+        ),
+      );
       return;
     }
     final backupCount = _backupCount(exportResult);

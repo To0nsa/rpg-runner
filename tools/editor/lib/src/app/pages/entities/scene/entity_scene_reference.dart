@@ -9,7 +9,8 @@ extension _EntitySceneReference on _EntitiesEditorPageState {
   _ResolvedReferenceVisual? _resolveReferenceVisual(EntityEntry entry) {
     final reference = entry.referenceVisual;
     final workspace = widget.controller.workspace;
-    if (reference == null || workspace == null) {
+    final scene = widget.controller.scene;
+    if (reference == null || workspace == null || scene is! EntityScene) {
       return null;
     }
 
@@ -46,11 +47,10 @@ extension _EntitySceneReference on _EntitiesEditorPageState {
       // with what can actually be previewed in this workspace.
       final normalizedAssetPath = assetPath.replaceAll('\\', '/');
       final relativeImagePath = 'assets/images/$normalizedAssetPath';
-      final absoluteImagePath = workspace.resolve(relativeImagePath);
-      final file = File(absoluteImagePath);
-      if (!file.existsSync()) {
+      if (!scene.availableAssetPaths.contains(relativeImagePath)) {
         return null;
       }
+      final absoluteImagePath = workspace.resolve(relativeImagePath);
       return _ResolvedReferenceAnimView(
         key: key,
         absolutePath: absoluteImagePath,
@@ -165,6 +165,9 @@ extension _EntitySceneReference on _EntitiesEditorPageState {
   }
 
   Future<void> _ensureReferenceImageLoaded(String absolutePath) async {
+    if (_referenceImageCache.imageFor(absolutePath) != null) {
+      return;
+    }
     final image = await _referenceImageCache.ensureLoaded(absolutePath);
     if (!mounted || image == null) {
       return;

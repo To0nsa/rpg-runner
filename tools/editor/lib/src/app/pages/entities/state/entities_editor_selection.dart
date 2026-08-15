@@ -207,6 +207,7 @@ extension _EntitiesEditorSelection on _EntitiesEditorPageState {
   }
 
   void _syncInspectorFromEntry(EntityEntry? entry) {
+    _inspectorDraftBaseline = entry;
     if (entry == null) {
       _halfXController.text = '';
       _halfYController.text = '';

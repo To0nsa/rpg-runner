@@ -7,6 +7,7 @@ import '../../../atlas/atlas_grid_settings_cache.dart';
 import '../../../domain/authoring_types.dart';
 import '../../../session/editor_session_controller.dart';
 import '../../../terrain_materials/terrain_material_domain_models.dart';
+import '../shared/editor_page_local_draft_state.dart';
 import '../shared/editor_list_card.dart';
 import '../shared/editor_panel_card.dart';
 import '../shared/editor_three_panel_layout.dart';
@@ -24,9 +25,23 @@ class TerrainMaterialsPage extends StatefulWidget {
   State<TerrainMaterialsPage> createState() => _TerrainMaterialsPageState();
 }
 
-class _TerrainMaterialsPageState extends State<TerrainMaterialsPage> {
+class _TerrainMaterialsPageState extends State<TerrainMaterialsPage>
+    implements EditorPageApplyHandler {
   final AtlasGridSettingsCache _gridSettingsCache = AtlasGridSettingsCache();
   String? _selectedKey;
+
+  @override
+  bool get canApplyEditorPage =>
+      !widget.controller.isLoading &&
+      !widget.controller.isExporting &&
+      widget.controller.errorCount == 0 &&
+      widget.controller.pendingChanges.hasChanges;
+
+  @override
+  Future<void> applyEditorPage() async {
+    if (!canApplyEditorPage) return;
+    await _applyChanges();
+  }
 
   @override
   void initState() {
@@ -261,23 +276,6 @@ class _TerrainMaterialsPageState extends State<TerrainMaterialsPage> {
             widget.controller.pendingChanges.hasChanges
                 ? 'One manifest has pending changes.'
                 : 'No pending material changes.',
-          ),
-          const SizedBox(height: 8),
-          FilledButton.icon(
-            key: const ValueKey<String>('terrain_material_apply'),
-            onPressed:
-                !widget.controller.pendingChanges.hasChanges ||
-                    widget.controller.errorCount > 0 ||
-                    widget.controller.isExporting
-                ? null
-                : () => unawaited(_applyChanges()),
-            icon: widget.controller.isExporting
-                ? const SizedBox.square(
-                    dimension: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.save_outlined),
-            label: const Text('Apply manifest'),
           ),
         ],
       ),

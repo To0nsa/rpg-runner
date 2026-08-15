@@ -4,7 +4,9 @@
 // validation, scene ordering, edit application, and dirty detection against
 // the loaded baseline snapshot.
 import '../domain/authoring_types.dart';
+import 'entity_change_policy.dart';
 import 'entity_domain_models.dart';
+import 'entity_update.dart';
 
 /// Owns immutable in-memory entity document behavior.
 ///
@@ -12,13 +14,6 @@ import 'entity_domain_models.dart';
 /// application together so the plugin can remain a thin orchestrator over the
 /// entities workflow.
 class EntityDocumentPipeline {
-  /// Numeric tolerance used when comparing editor-authored doubles.
-  ///
-  /// Text fields, round-tripped literals, and simple derived values should not
-  /// cause noisy dirty-state churn when they differ only by formatting-scale
-  /// precision.
-  static const double changeEpsilon = 0.000001;
-
   /// Validates one loaded entity document without mutating it.
   ///
   /// Parser/load issues are preserved and returned alongside editor-side
@@ -143,6 +138,7 @@ class EntityDocumentPipeline {
     return EntityScene(
       entries: sorted,
       runtimeGridCellSize: document.runtimeGridCellSize,
+      availableAssetPaths: document.availableAssetPaths,
     );
   }
 
@@ -151,87 +147,55 @@ class EntityDocumentPipeline {
   /// Unknown commands or no-op payloads return the original document so the
   /// session controller does not accumulate fake undo history.
   EntityDocument applyEdit(EntityDocument document, AuthoringCommand command) {
-    if (command.kind != 'update_entry') {
-      return document;
-    }
-
-    final targetId = command.payload['id'];
-    if (targetId is! String) {
-      return document;
-    }
+    final update = EntityUpdate.decode(command);
+    if (update == null) return document;
 
     EntityEntry? currentEntry;
     for (final entry in document.entries) {
-      if (entry.id == targetId) {
+      if (entry.id == update.entryId) {
         currentEntry = entry;
         break;
       }
     }
     if (currentEntry == null) {
-      return document;
+      throw ArgumentError.value(
+        update.entryId,
+        'update.entryId',
+        'Entity update target does not exist in the loaded document.',
+      );
     }
+    update.validateFor(currentEntry);
 
-    final halfX = command.payload['halfX'];
-    final halfY = command.payload['halfY'];
-    final offsetX = command.payload['offsetX'];
-    final offsetY = command.payload['offsetY'];
-    final anchorXPx = command.payload['anchorXPx'];
-    final anchorYPx = command.payload['anchorYPx'];
-    final renderScale = command.payload['renderScale'];
-    final castOriginOffset = command.payload['castOriginOffset'];
-
-    final nextHalfX = halfX is num ? halfX.toDouble() : currentEntry.halfX;
-    final nextHalfY = halfY is num ? halfY.toDouble() : currentEntry.halfY;
-    final nextOffsetX = offsetX is num
-        ? offsetX.toDouble()
-        : currentEntry.offsetX;
-    final nextOffsetY = offsetY is num
-        ? offsetY.toDouble()
-        : currentEntry.offsetY;
     final currentReference = currentEntry.referenceVisual;
-    final nextAnchorXPx = anchorXPx is num
-        ? anchorXPx.toDouble()
-        : currentReference?.anchorXPx;
-    final nextAnchorYPx = anchorYPx is num
-        ? anchorYPx.toDouble()
-        : currentReference?.anchorYPx;
-    final nextRenderScale = renderScale is num
-        ? renderScale.toDouble()
-        : currentReference?.renderScale;
-    final nextCastOriginOffset = castOriginOffset is num
-        ? castOriginOffset.toDouble()
-        : currentEntry.castOriginOffset;
+    final nextAnchorXPx = update.anchorXPx ?? currentReference?.anchorXPx;
+    final nextAnchorYPx = update.anchorYPx ?? currentReference?.anchorYPx;
+    final nextRenderScale = update.renderScale ?? currentReference?.renderScale;
+    final nextCastOriginOffset =
+        update.castOriginOffset ?? currentEntry.castOriginOffset;
     final nextReference = currentReference?.copyWith(
       anchorXPx: nextAnchorXPx,
       anchorYPx: nextAnchorYPx,
       renderScale: nextRenderScale,
     );
+    final updatedEntry = currentEntry.copyWith(
+      halfX: update.halfX,
+      halfY: update.halfY,
+      offsetX: update.offsetX,
+      offsetY: update.offsetY,
+      castOriginOffset: nextCastOriginOffset,
+      referenceVisual: nextReference,
+    );
 
-    if (_almostEqual(nextHalfX, currentEntry.halfX) &&
-        _almostEqual(nextHalfY, currentEntry.halfY) &&
-        _almostEqual(nextOffsetX, currentEntry.offsetX) &&
-        _almostEqual(nextOffsetY, currentEntry.offsetY) &&
-        _nullableAlmostEqual(
-          nextCastOriginOffset,
-          currentEntry.castOriginOffset,
-        ) &&
-        !_referenceChanged(nextReference, currentReference)) {
+    if (!changeSet(updatedEntry, currentEntry).hasChanges) {
       return document;
     }
 
     final updatedEntries = document.entries
         .map((entry) {
-          if (entry.id != targetId) {
+          if (entry.id != update.entryId) {
             return entry;
           }
-          return entry.copyWith(
-            halfX: nextHalfX,
-            halfY: nextHalfY,
-            offsetX: nextOffsetX,
-            offsetY: nextOffsetY,
-            castOriginOffset: nextCastOriginOffset,
-            referenceVisual: nextReference,
-          );
+          return updatedEntry;
         })
         .toList(growable: false);
 
@@ -239,6 +203,7 @@ class EntityDocumentPipeline {
       entries: updatedEntries,
       baselineById: document.baselineById,
       runtimeGridCellSize: document.runtimeGridCellSize,
+      availableAssetPaths: document.availableAssetPaths,
       loadIssues: document.loadIssues,
     );
   }
@@ -251,7 +216,7 @@ class EntityDocumentPipeline {
     final changed = <EntityEntry>[];
     for (final entry in document.entries) {
       final baseline = document.baselineById[entry.id];
-      if (baseline == null || _isChanged(entry, baseline)) {
+      if (baseline == null || changeSet(entry, baseline).hasChanges) {
         changed.add(entry);
       }
     }
@@ -265,43 +230,7 @@ class EntityDocumentPipeline {
     return changed;
   }
 
-  bool _entityBoundsChanged(EntityEntry current, EntityEntry baseline) {
-    return !_almostEqual(current.halfX, baseline.halfX) ||
-        !_almostEqual(current.halfY, baseline.halfY) ||
-        !_almostEqual(current.offsetX, baseline.offsetX) ||
-        !_almostEqual(current.offsetY, baseline.offsetY);
-  }
-
-  bool _isChanged(EntityEntry current, EntityEntry baseline) {
-    return _entityBoundsChanged(current, baseline) ||
-        !_nullableAlmostEqual(
-          current.castOriginOffset,
-          baseline.castOriginOffset,
-        ) ||
-        _referenceChanged(current.referenceVisual, baseline.referenceVisual);
-  }
-
-  bool _referenceChanged(
-    EntityReferenceVisual? current,
-    EntityReferenceVisual? baseline,
-  ) {
-    if (current == null && baseline == null) {
-      return false;
-    }
-    if (current == null || baseline == null) {
-      return true;
-    }
-    return !_nullableAlmostEqual(current.anchorXPx, baseline.anchorXPx) ||
-        !_nullableAlmostEqual(current.anchorYPx, baseline.anchorYPx) ||
-        !_nullableAlmostEqual(current.renderScale, baseline.renderScale);
-  }
-
-  bool _nullableAlmostEqual(double? a, double? b) {
-    if (a == null || b == null) {
-      return a == b;
-    }
-    return _almostEqual(a, b);
-  }
-
-  bool _almostEqual(double a, double b) => (a - b).abs() <= changeEpsilon;
+  /// Returns the canonical editable-field delta for two matching entries.
+  EntityChangeSet changeSet(EntityEntry current, EntityEntry baseline) =>
+      EntityChangePolicy.between(current, baseline);
 }

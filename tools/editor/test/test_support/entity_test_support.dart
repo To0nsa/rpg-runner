@@ -3,7 +3,10 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 
 import 'package:runner_editor/src/domain/authoring_plugin_registry.dart';
+import 'package:runner_editor/src/domain/authoring_types.dart';
+import 'package:runner_editor/src/entities/entity_domain_models.dart';
 import 'package:runner_editor/src/entities/entity_domain_plugin.dart';
+import 'package:runner_editor/src/entities/entity_update.dart';
 import 'package:runner_editor/src/session/editor_session_controller.dart';
 
 String resolveEntitiesWorkspacePath() {
@@ -17,12 +20,38 @@ String resolveEntitiesWorkspacePath() {
 }
 
 EditorSessionController buildEntitiesController() {
+  return buildEntitiesControllerForPath(resolveEntitiesWorkspacePath());
+}
+
+EditorSessionController buildEntitiesControllerForPath(String workspacePath) {
   return EditorSessionController(
     pluginRegistry: AuthoringPluginRegistry(plugins: [EntityDomainPlugin()]),
     initialPluginId: EntityDomainPlugin.pluginId,
-    initialWorkspacePath: resolveEntitiesWorkspacePath(),
+    initialWorkspacePath: workspacePath,
   );
 }
+
+AuthoringCommand buildEntityUpdateCommand(
+  EntityEntry entry, {
+  double? halfX,
+  double? halfY,
+  double? offsetX,
+  double? offsetY,
+  double? renderScale,
+  double? anchorXPx,
+  double? anchorYPx,
+  double? castOriginOffset,
+}) => EntityUpdate(
+  entryId: entry.id,
+  halfX: halfX ?? entry.halfX,
+  halfY: halfY ?? entry.halfY,
+  offsetX: offsetX ?? entry.offsetX,
+  offsetY: offsetY ?? entry.offsetY,
+  renderScale: renderScale,
+  anchorXPx: anchorXPx,
+  anchorYPx: anchorYPx,
+  castOriginOffset: castOriginOffset,
+).toCommand();
 
 void writeEntityColliderFixture(
   String rootPath, {
@@ -31,6 +60,7 @@ void writeEntityColliderFixture(
   bool useExpressionBackedAnchor = false,
   bool reorderPlayerColliderArgs = false,
   bool reorderProjectileColliderArgs = false,
+  bool interleaveColliderContent = false,
   bool includeSecondPlayerCatalog = false,
   bool useTopLevelEnemyCollider = false,
 }) {
@@ -84,7 +114,7 @@ void writeEntityColliderFixture(
     final colliderArgs = reorderPlayerColliderArgs
         ? '''
   colliderOffsetY: ${colliderOffsetY.toStringAsFixed(1)},
-  colliderWidth: ${colliderWidth.toStringAsFixed(1)},
+${interleaveColliderContent ? '  // This unrelated argument must survive collider edits.\n  movementSpeed: 99.0,\n' : ''}  colliderWidth: ${colliderWidth.toStringAsFixed(1)},
   colliderOffsetX: ${colliderOffsetX.toStringAsFixed(1)},
   colliderHeight: ${colliderHeight.toStringAsFixed(1)},
 '''
@@ -208,7 +238,7 @@ class ProjectileCatalog {
     switch (id) {
       case ProjectileId.fireBolt:
         return const ProjectileItemDef(
-          ${reorderProjectileColliderArgs ? 'colliderSizeY: 8.0,\n          colliderSizeX: 18.0,' : 'colliderSizeX: 18.0,\n          colliderSizeY: 8.0,'}
+          ${reorderProjectileColliderArgs ? 'colliderSizeY: 8.0,\n          ${interleaveColliderContent ? '// Preserve projectile behavior metadata.\n          ballistic: true,\n          ' : ''}colliderSizeX: 18.0,' : 'colliderSizeX: 18.0,\n          colliderSizeY: 8.0,'}
         );
     }
   }

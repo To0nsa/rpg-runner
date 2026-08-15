@@ -326,10 +326,10 @@ extension _EntitySceneInteraction on _EntitiesEditorPageState {
     required double offsetY,
     required _SceneHandleDrag baseline,
   }) {
-    return (halfX - baseline.startHalfX).abs() > 0.000001 ||
-        (halfY - baseline.startHalfY).abs() > 0.000001 ||
-        (offsetX - baseline.startOffsetX).abs() > 0.000001 ||
-        (offsetY - baseline.startOffsetY).abs() > 0.000001;
+    return !EntityNumericPolicy.equal(halfX, baseline.startHalfX) ||
+        !EntityNumericPolicy.equal(halfY, baseline.startHalfY) ||
+        !EntityNumericPolicy.equal(offsetX, baseline.startOffsetX) ||
+        !EntityNumericPolicy.equal(offsetY, baseline.startOffsetY);
   }
 
   bool _anchorValuesChanged({
@@ -337,8 +337,8 @@ extension _EntitySceneInteraction on _EntitiesEditorPageState {
     required double anchorYPx,
     required _SceneHandleDrag baseline,
   }) {
-    return (anchorXPx - baseline.startAnchorXPx).abs() > 0.000001 ||
-        (anchorYPx - baseline.startAnchorYPx).abs() > 0.000001;
+    return !EntityNumericPolicy.equal(anchorXPx, baseline.startAnchorXPx) ||
+        !EntityNumericPolicy.equal(anchorYPx, baseline.startAnchorYPx);
   }
 
   void _scheduleSceneViewportCentering() {

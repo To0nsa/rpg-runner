@@ -11,6 +11,7 @@ import 'package:path/path.dart' as p;
 
 import '../domain/authoring_types.dart';
 import '../workspace/editor_workspace.dart';
+import 'entity_change_policy.dart';
 import 'entity_domain_models.dart';
 
 part 'parser/entity_source_parser_domain_loaders.dart';
@@ -27,11 +28,13 @@ class EntityParseResult {
     required this.entries,
     required this.issues,
     required this.runtimeGridCellSize,
+    required this.availableAssetPaths,
   });
 
   final List<EntityEntry> entries;
   final List<ValidationIssue> issues;
   final double runtimeGridCellSize;
+  final Set<String> availableAssetPaths;
 }
 
 /// Parses authoritative runtime Dart sources into immutable entity editor data.
@@ -100,10 +103,12 @@ class EntitySourceParser {
     );
 
     _validateUniqueIds(entries, issues);
+    final availableAssetPaths = _resolveAvailableAssetPaths(workspace, entries);
     return EntityParseResult(
       entries: entries,
       issues: issues,
       runtimeGridCellSize: runtimeGridCellSize,
+      availableAssetPaths: availableAssetPaths,
     );
   }
 }

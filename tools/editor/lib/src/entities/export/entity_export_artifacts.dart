@@ -44,6 +44,7 @@ class _EntityExportPlan {
   ExportResult buildNoChangesResult() {
     return ExportResult(
       applied: false,
+      outcome: ExportOutcome.noChanges,
       artifacts: const <ExportArtifact>[
         ExportArtifact(
           title: 'entity_summary.md',
@@ -54,7 +55,11 @@ class _EntityExportPlan {
     );
   }
 
-  ExportResult buildAppliedResult({required List<String> backupPaths}) {
+  ExportResult buildAppliedResult({
+    required List<String> backupPaths,
+    ExportOutcome outcome = ExportOutcome.applied,
+    List<String> recoveryPaths = const <String>[],
+  }) {
     final unifiedPatch = _buildUnifiedDiffArtifact(filePatches);
     final artifacts = <ExportArtifact>[
       ExportArtifact(
@@ -70,6 +75,11 @@ class _EntityExportPlan {
           title: 'entity_backups.md',
           content: _buildBackupsArtifact(backupPaths),
         ),
+      if (recoveryPaths.isNotEmpty)
+        ExportArtifact(
+          title: 'entity_transaction_recovery.md',
+          content: _buildRecoveryArtifact(recoveryPaths),
+        ),
       for (final patch in filePatches)
         ExportArtifact(
           title: 'patch_${_sanitizeTitle(patch.relativePath)}.md',
@@ -77,7 +87,15 @@ class _EntityExportPlan {
         ),
     ];
 
-    return ExportResult(applied: true, artifacts: artifacts);
+    return ExportResult(
+      applied: true,
+      outcome: outcome,
+      message: outcome == ExportOutcome.appliedWithCleanupRequired
+          ? 'Entity files were committed, but transaction cleanup requires '
+                'manual review.'
+          : null,
+      artifacts: artifacts,
+    );
   }
 
   String _buildSummary({
@@ -105,9 +123,21 @@ class _EntityExportPlan {
     final lines = <String>[
       '# Entity Backup Files',
       '',
-      'Backup files were written before direct write apply.',
+      'Backup files contain the exact pre-apply source content.',
       '',
       ...backupPaths.map((path) => '- $path'),
+    ];
+    return lines.join('\n');
+  }
+
+  String _buildRecoveryArtifact(List<String> recoveryPaths) {
+    final lines = <String>[
+      '# Entity Transaction Recovery',
+      '',
+      'Entity outputs were committed and verified, but transaction-owned '
+          'cleanup did not finish.',
+      '',
+      ...recoveryPaths.map((path) => '- $path'),
     ];
     return lines.join('\n');
   }
@@ -336,16 +366,6 @@ class _EntityFilePatch {
   final String originalContent;
   final String patchedContent;
   final List<_EntitySourceEdit> edits;
-}
-
-class _WrittenSourceRestore {
-  const _WrittenSourceRestore({
-    required this.relativePath,
-    required this.originalContent,
-  });
-
-  final String relativePath;
-  final String originalContent;
 }
 
 enum _DiffLineOpKind { equal, added, removed }

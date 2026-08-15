@@ -4,6 +4,7 @@ import 'package:runner_core/collision/terrain/terrain_polygon_overlap.dart';
 import 'package:runner_core/collision/terrain/terrain_source_canonicalizer.dart';
 
 import 'terrain_source_core_adapter.dart';
+import 'terrain_axis_aligned_rectangle.dart';
 import 'terrain_source_models.dart';
 
 /// Kind of owner-local polygon element selected by an editor route.
@@ -904,6 +905,55 @@ final class TerrainPolygonInteractionReducer {
               canonicalVertexIndex,
             ),
       diagnostics: validation.diagnostics,
+    );
+  }
+
+  /// Replaces a selected axis-aligned rectangle's four vertices as one edit.
+  ///
+  /// This preserves rectangle constraints in the inspector while retaining the
+  /// canonical polygon representation and normal owner-validation path.
+  TerrainPolygonInteractionResult editSelectedAxisAlignedRectangle(
+    TerrainPolygonInteractionState state, {
+    required int xHalfPixels,
+    required int yHalfPixels,
+    required int widthHalfPixels,
+    required int heightHalfPixels,
+  }) {
+    final selection = state.selection;
+    if (state.hasActiveOperation || selection == null) {
+      return _acceptedNoOp(state);
+    }
+    final shape = _requireShape(state.shapes, selection.shapeId);
+    if (TerrainAxisAlignedRectangle.tryFromShape(shape) == null) {
+      return _rejected(state, <TerrainDiagnostic>[
+        _diagnostic(
+          shape,
+          0,
+          'rectangle_edit_requires_axis_aligned_shape',
+          'Rectangle dimensions are available only for an axis-aligned '
+              'four-vertex shape.',
+        ),
+      ]);
+    }
+    final rectangle = TerrainAxisAlignedRectangle.tryCreate(
+      xHalfPixels: xHalfPixels,
+      yHalfPixels: yHalfPixels,
+      widthHalfPixels: widthHalfPixels,
+      heightHalfPixels: heightHalfPixels,
+    );
+    if (rectangle == null) {
+      return _rejected(state, <TerrainDiagnostic>[
+        _diagnostic(
+          shape,
+          0,
+          'rectangle_dimensions_invalid',
+          'Rectangle width and height must be greater than zero.',
+        ),
+      ]);
+    }
+    return _commitValidatedReplacement(
+      state,
+      _shapeWithVertices(shape, rectangle.vertices),
     );
   }
 

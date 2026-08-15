@@ -87,12 +87,12 @@ class _TerrainPolygonMetadataDialogState
   @override
   Widget build(BuildContext context) {
     final keyPrefix = widget.keyPrefix;
-    final surfaceOptions = _selectorOptions(
+    final surfaceOptions = terrainMetadataSelectorOptions(
       current: _surfaceKind,
       known: terrainSurfaceKindOptions,
     );
     final catalog = _materialCatalogResult.catalog;
-    final materialOptions = _selectorOptions(
+    final materialOptions = terrainMetadataSelectorOptions(
       current: _materialKey,
       known:
           catalog?.materials.map((material) => material.key) ??
@@ -137,7 +137,7 @@ class _TerrainPolygonMetadataDialogState
                     .map(
                       (value) => DropdownMenuItem<String>(
                         value: value,
-                        child: Text(_selectorLabel(value)),
+                        child: Text(terrainMetadataSelectorLabel(value)),
                       ),
                     )
                     .toList(growable: false),
@@ -158,7 +158,7 @@ class _TerrainPolygonMetadataDialogState
                       (value) => Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
-                          _materialSelectedLabel(catalog, value),
+                          terrainMaterialSelectorLabel(catalog, value),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -218,8 +218,8 @@ class _TerrainPolygonMetadataDialogState
           onPressed: () => Navigator.of(context).pop(
             TerrainPolygonMetadataEdit(
               collisionMode: _collisionMode,
-              surfaceKind: _nullableSelection(_surfaceKind),
-              materialKey: _nullableSelection(_materialKey),
+              surfaceKind: nullableTerrainMetadataSelection(_surfaceKind),
+              materialKey: nullableTerrainMetadataSelection(_materialKey),
             ),
           ),
           child: const Text('Apply'),
@@ -280,29 +280,4 @@ class _TerrainMaterialSelectorOption extends StatelessWidget {
       ],
     );
   }
-}
-
-List<String> _selectorOptions({
-  required String current,
-  required Iterable<String> known,
-}) => <String>{
-  '',
-  ...known,
-  if (current.isNotEmpty) current,
-}.toList(growable: false);
-
-String _selectorLabel(String value) {
-  if (value.isEmpty) return 'None';
-  return value;
-}
-
-String _materialSelectedLabel(TerrainMaterialCatalog? catalog, String value) {
-  if (value.isEmpty) return 'None';
-  final material = terrainMaterialPreviewForKey(catalog, value);
-  return material == null ? value : '${material.displayName} · ${material.key}';
-}
-
-String? _nullableSelection(String value) {
-  final normalized = value.trim();
-  return normalized.isEmpty ? null : normalized;
 }

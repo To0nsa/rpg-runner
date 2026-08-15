@@ -6,11 +6,17 @@ import 'package:runner_editor/src/entities/entity_domain_models.dart';
 
 void main() {
   const binding = EntitySourceBinding(
-    kind: EntitySourceBindingKind.enemyAabbExpression,
+    kind: EntitySourceBindingKind.colliderScalar,
     sourcePath: 'lib/src/enemies.dart',
     startOffset: 0,
-    endOffset: 10,
-    sourceSnippet: 'ColliderAabbDef(...)',
+    endOffset: 4,
+    sourceSnippet: '12.0',
+  );
+  const colliderBindings = EntityColliderSourceBindings(
+    halfX: EntityColliderScalarBinding(sourceBinding: binding),
+    halfY: EntityColliderScalarBinding(sourceBinding: binding),
+    offsetX: EntityColliderScalarBinding(sourceBinding: binding),
+    offsetY: EntityColliderScalarBinding(sourceBinding: binding),
   );
   const entry = EntityEntry(
     id: 'enemy.test',
@@ -21,7 +27,7 @@ void main() {
     offsetX: 0,
     offsetY: 0,
     sourcePath: 'lib/src/enemies.dart',
-    sourceBinding: binding,
+    colliderBindings: colliderBindings,
   );
   const loadIssue = ValidationIssue(
     severity: ValidationSeverity.warning,
@@ -110,12 +116,27 @@ void main() {
         offsetX: 2,
         offsetY: 3,
         sourcePath: entry.sourcePath,
-        sourceBinding: const EntitySourceBinding(
-          kind: EntitySourceBindingKind.projectileArgs,
-          sourcePath: 'lib/src/projectiles.dart',
-          startOffset: 0,
-          endOffset: 10,
-          sourceSnippet: 'colliderSizeX: 18',
+        colliderBindings: const EntityColliderSourceBindings(
+          halfX: EntityColliderScalarBinding(
+            sourceBinding: EntitySourceBinding(
+              kind: EntitySourceBindingKind.colliderScalar,
+              sourcePath: 'lib/src/projectiles.dart',
+              startOffset: 0,
+              endOffset: 4,
+              sourceSnippet: '18.0',
+            ),
+            sourceUnitsPerEditorUnit: 2,
+          ),
+          halfY: EntityColliderScalarBinding(
+            sourceBinding: EntitySourceBinding(
+              kind: EntitySourceBindingKind.colliderScalar,
+              sourcePath: 'lib/src/projectiles.dart',
+              startOffset: 5,
+              endOffset: 8,
+              sourceSnippet: '8.0',
+            ),
+            sourceUnitsPerEditorUnit: 2,
+          ),
         ),
       ),
     )!;

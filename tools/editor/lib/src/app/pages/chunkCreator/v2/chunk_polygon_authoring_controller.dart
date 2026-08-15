@@ -327,6 +327,27 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
     );
   }
 
+  /// Replaces all corners of the selected axis-aligned rectangle in one
+  /// owner-reviewed source commit. Values use exact half-pixel ticks.
+  bool editSelectedAxisAlignedRectangle({
+    required int xHalfPixels,
+    required int yHalfPixels,
+    required int widthHalfPixels,
+    required int heightHalfPixels,
+  }) {
+    final attemptedState = _state;
+    return _applyInteractionResult(
+      _reducer.editSelectedAxisAlignedRectangle(
+        attemptedState,
+        xHalfPixels: xHalfPixels,
+        yHalfPixels: yHalfPixels,
+        widthHalfPixels: widthHalfPixels,
+        heightHalfPixels: heightHalfPixels,
+      ),
+      attemptedState: attemptedState,
+    );
+  }
+
   bool duplicateSelectedShape({
     required int deltaXHalfPixels,
     required int deltaYHalfPixels,

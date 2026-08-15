@@ -32,7 +32,8 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
     implements
         EditorPageLocalDraftState,
         EditorPageSessionShortcutHandler,
-        EditorPageReloadHandler {
+        EditorPageReloadHandler,
+        EditorPageApplyHandler {
   final GlobalKey<PrefabPolygonWorkspaceState> _workspaceKey =
       GlobalKey<PrefabPolygonWorkspaceState>();
 
@@ -78,6 +79,17 @@ class _PrefabCreatorPageState extends State<PrefabCreatorPage>
       return;
     }
     await widget.controller.loadWorkspace();
+  }
+
+  @override
+  bool get canApplyEditorPage =>
+      !_migrationRequired &&
+      (_workspaceKey.currentState?.canApplyToFiles ?? false);
+
+  @override
+  Future<void> applyEditorPage() async {
+    if (_migrationRequired) return;
+    await _workspaceKey.currentState?.applyToFiles();
   }
 
   @override

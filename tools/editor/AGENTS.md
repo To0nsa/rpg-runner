@@ -88,6 +88,7 @@ reading five other files first.
   - `Chunk Creator` route -> `ChunkDomainPlugin`
   - `Level Creator` route -> `LevelDomainPlugin`
   - `Parallax` route -> `ParallaxDomainPlugin`
+  - `Terrain Materials` route -> `TerrainMaterialDomainPlugin`
 - route/plugin mapping and session-coherent route switching:
   - `tools/editor/lib/src/app/pages/home/home_routes.dart`
   - `tools/editor/lib/src/app/pages/home/editor_home_page.dart`
@@ -99,12 +100,15 @@ state, viewport state, and form drafts. Repository load/validate/export
 authority belongs in plugins and stores, not in alternate page-level write
 paths.
 
-## Modularization, Reuse, And Redundancy Bar
+## Consistent UX, Modularization, Reuse, And Redundancy Bar
 
 Treat editor changes as maintainability work, not just feature delivery.
 
+- the editor is one product: keep equivalent layouts, selection behavior,
+  toolbars, dialogs, validation feedback, scene controls, and visual treatment
+  consistent across authoring routes
 - reuse-first: before adding new helpers/widgets/state flows, search existing
-  code (`rg`) for equivalent behavior and extend what already exists when
+  code (`rg`) for equivalent behavior and extend the established pattern when
   possible
 - no copy/paste feature logic across routes: if the same behavior appears in
   two places, consolidate into shared code in the same change unless there is a
@@ -129,10 +133,12 @@ Treat editor changes as maintainability work, not just feature delivery.
 
 Before finalizing non-trivial edits, do a redundancy pass:
 
-1. check for duplicate helpers/constants introduced in the touched scope
-2. check for repeated branching/validation logic that can be extracted
-3. check for similar widget sections that should be parameterized/composed
-4. verify refactor did not weaken determinism or export/write safety
+1. compare the changed UX with its nearest existing editor workflow and reuse
+   established controls or shared primitives where they fit
+2. check for duplicate helpers/constants introduced in the touched scope
+3. check for repeated branching/validation logic that can be extracted
+4. check for similar widget sections that should be parameterized/composed
+5. verify refactor did not weaken determinism or export/write safety
 
 ## Review Expectations
 
@@ -341,23 +347,29 @@ Run focused tests for touched slices, for example:
 - workspace/path safety:
   - `tools/editor/test/editor_workspace_test.dart`
 - entities/source editing:
-  - `tools/editor/test/widget_test.dart`
+  - `tools/editor/test/entity_document_pipeline_test.dart`
+  - `tools/editor/test/entity_parser_export_test.dart`
+  - `tools/editor/test/entity_inspector_panel_test.dart`
 - prefab/module workflows:
-  - `tools/editor/test/prefab_store_test.dart`
-  - `tools/editor/test/prefab_validation_test.dart`
-  - `tools/editor/test/prefab_creator_page_test.dart`
-  - `tools/editor/test/prefab_overlay_interaction_test.dart`
+  - `tools/editor/test/prefab_v3_file_codec_test.dart`
+  - `tools/editor/test/prefab_v3_save_plan_test.dart`
+  - `tools/editor/test/prefab_v3_domain_plugin_test.dart`
+  - `tools/editor/test/prefab_v3_collision_commit_test.dart`
+  - `tools/editor/test/prefab_polygon_validation_test.dart`
+  - `tools/editor/test/prefab_polygon_authoring_controller_test.dart`
   - `tools/editor/test/platform_module_scene_view_test.dart`
-  - `tools/editor/test/workspace_scoped_size_cache_test.dart`
-  - `tools/editor/test/scene_control_parity_test.dart`
 - chunk workflows:
-  - `tools/editor/test/chunk_store_test.dart`
-  - `tools/editor/test/chunk_validation_test.dart`
-  - `tools/editor/test/chunk_domain_plugin_test.dart`
-  - `tools/editor/test/chunk_domain_plugin_integration_test.dart`
-  - `tools/editor/test/chunk_creator_page_test.dart`
-- runtime authoring adapters when touched:
-  - `tools/editor/test/prefab_runtime_adapter_test.dart`
+  - `tools/editor/test/chunk_v2_file_codec_test.dart`
+  - `tools/editor/test/chunk_v2_save_plan_test.dart`
+  - `tools/editor/test/chunk_v2_domain_plugin_test.dart`
+  - `tools/editor/test/chunk_v2_collision_commit_test.dart`
+  - `tools/editor/test/chunk_scene_coordinator_test.dart`
+  - `tools/editor/test/chunk_polygon_authoring_controller_test.dart`
+  - `tools/editor/test/chunk_prefab_scene_gesture_test.dart`
+- terrain material workflows:
+  - `tools/editor/test/terrain_material_domain_plugin_test.dart`
+  - `tools/editor/test/terrain_materials_page_test.dart`
+  - `tools/editor/test/terrain_material_preview_test.dart`
 - parallax workflows:
   - `tools/editor/test/parallax_store_test.dart`
   - `tools/editor/test/parallax_domain_plugin_test.dart`
@@ -391,9 +403,15 @@ generator validation:
 
 When editor contracts or workflows change:
 
+- follow the repo-root documentation policy: update or create `docs/tdd/**`
+  for technical architecture, ownership, persistence, data-flow, or
+  determinism changes; update `docs/gdd/**` for implemented player-facing
+  workflow or UX changes; update both when both are affected
 - update this file if boundaries/rules drift
 - update `tools/editor/README.md` for user-visible capability changes
 - update `docs/building/editor/chunkCreator/plan.md` and relevant phase
   checklist/closure docs for chunk/prefab milestone changes
+- use `docs/building/**` for proposed or in-progress work; it does not replace
+  TDD/GDD documentation for delivered behavior
 - for newly added authoring domains, add focused documentation only for the
   implemented workflow; keep future ideas separate from current behavior

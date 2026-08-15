@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runner_editor/src/app/pages/home/editor_home_page.dart';
+import 'package:runner_editor/src/session/editor_session_controller.dart';
 
 import 'test_support/entity_test_support.dart';
 
@@ -15,12 +16,13 @@ void main() {
     });
 
     final controller = buildEntitiesController();
+    await _preloadController(tester, controller);
 
     await tester.pumpWidget(
       MaterialApp(home: EditorHomePage(controller: controller)),
     );
 
-    await tester.pumpAndSettle();
+    await tester.pump();
 
     expect(find.text('No scene loaded.'), findsNothing);
     expect(find.text('Search Entries'), findsOneWidget);
@@ -38,12 +40,13 @@ void main() {
     });
 
     final controller = buildEntitiesController();
+    await _preloadController(tester, controller);
 
     await tester.pumpWidget(
       MaterialApp(home: EditorHomePage(controller: controller)),
     );
 
-    await tester.pumpAndSettle();
+    await tester.pump();
 
     expect(
       find.bySemanticsLabel(
@@ -62,4 +65,13 @@ void main() {
     expect(tester.widget<Checkbox>(originPointCheckbox).value, isTrue);
     semantics.dispose();
   });
+}
+
+Future<void> _preloadController(
+  WidgetTester tester,
+  EditorSessionController controller,
+) async {
+  await tester.runAsync(controller.loadWorkspace);
+  expect(controller.isLoading, isFalse);
+  expect(controller.loadError, isNull);
 }

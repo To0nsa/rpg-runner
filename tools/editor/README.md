@@ -36,11 +36,13 @@ Implemented authoring domains:
 
 Editor foundations shared across those domains:
 
-- workspace path binding and plugin-backed route selection
+- one shared top toolbar for page selection, reload, apply, undo, redo, pending
+  file state, validation counts, and operation progress
+- startup workspace binding and plugin-backed route selection
 - session-managed load, validation, pending-change previews, and direct-write export
 - undo/redo history for entity edits, chunk edits, and committed prefab/module edits
 - shared outlined workspace, panel, subsection, and list-row cards with one
-  spacing system; cards in the Chunk right sidebar expand independently
+  spacing system; Chunk owner, terrain, and composition cards expand independently
 - shared pan/zoom scene controls, inspector forms, and deterministic export summaries
 - shared atlas PNG discovery, integer region/grid math, grid/manual selection,
   image viewport controls, selection painters, and exact-region thumbnails
@@ -95,6 +97,18 @@ Actor previews call Core's quantized AABB-to-capsule derivation. The editor
 still writes the existing catalog-bound size and offset fields; it does not
 introduce an independent combat-hurtbox schema.
 
+Entity Apply edits only the bound numeric expressions, preserving surrounding
+argument order, comments, formatting, and unrelated source. Patched sources
+and their persistent `.bak` files are committed as one verified transaction
+with a final source-drift check. A rejected Apply is rolled back and reported
+immediately; if verified outputs commit but transaction cleanup cannot finish,
+the result is reported as applied with exact recovery paths for review.
+
+Entity source parsing runs outside the UI isolate, and referenced image
+availability is cached in the loaded document. The collider editor therefore
+does not perform repository parsing or repeated file-existence checks during
+scene builds and handle drags.
+
 ## Polygon Source And Offline Migration
 
 The checked-in source includes `anvil_00` with one Prefab collision polygon,
@@ -104,10 +118,12 @@ for authoring. Missing Prefab collision is therefore a visible, non-blocking
 authoring warning.
 
 Polygon metadata uses selectors for supported surface semantics and terrain
-materials loaded from the canonical terrain-material manifest. Selector rows
-show material thumbnails, and the selected material previews its composed fill,
-top/detail bands, endpoint caps, source assets, and explicit wall/underside
-coverage before the polygon edit is applied.
+materials loaded from the canonical terrain-material manifest. Prefab polygon
+dialogs retain thumbnail selectors and an editable preview. Chunk Creator puts
+the three selectors directly in the Shapes card; each selection is one
+validated history edit, and its Material **Preview** button opens the composed
+fill, top/detail bands, endpoint caps, source assets, and explicit
+wall/underside coverage in a read-only dialog.
 
 The **Terrain Materials** route creates, duplicates, edits, validates, and
 reference-safely deletes those definitions. Each material owns a stable key,
@@ -185,6 +201,9 @@ Prefab and Chunk polygon scenes share the same controls:
   **Place vertex** in the scene to append snapped draft vertices
 - use **New rectangle** in the Shapes card, then drag across opposite
   corners to create an editable four-vertex polygon draft
+- committed axis-aligned four-vertex shapes are labelled **rectangle** and
+  expose exact X, bottom, width, and height fields; height keeps the bottom
+  edge fixed and moves both top corners in one source-history edit
 - while a draft is open, **Place vertex**, **Move vertex**, and **Insert vertex**
   edit that draft; **Select shape** and **Move shape** remain disabled
 - with no saved collision shape and no open draft, **Move vertex**, **Move
@@ -219,13 +238,14 @@ the only normal file-write action; it always requires confirmation.
 
 ## Chunk Authoring Workspace Navigation
 
-The Chunk Creator keeps one **Chunk creation scene** mounted beside a single
-right-sidebar scroll area. On wide windows, the sidebar contains exactly two
-top-level cards: **Owners & terrain collision** and **Layers, prefabs &
-markers**. On narrow windows, the same mounted sidebar sits below a bounded
-scene; the old terrain/composition tabs do not return. Expanding or collapsing
-cards and their natural-height sections changes presentation only, not the
-selected owner, terrain draft, viewport, history, or pending source state.
+The Chunk Creator keeps one **Chunk creation scene** between an owner rail and
+an authoring sidebar. On wide windows, **Chunk owners** sits to the scene's
+left, while **Terrain collision** and **Layers, prefabs & markers** share the
+right-side scroll area. On narrow windows, both scroll areas sit below a
+bounded scene, with owners on the left. The old terrain/composition tabs do not
+return. Expanding or collapsing cards and their natural-height sections changes
+presentation only, not the selected owner, terrain draft, viewport, history,
+or pending source state.
 
 The scene domain selector makes primary input explicit. The Prefabs domain has
 Select, Place, and Move tools backed by the active prefab catalog. Place and

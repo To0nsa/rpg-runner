@@ -10,30 +10,19 @@ import '../../../parallax/parallax_domain_plugin.dart';
 import '../../../session/editor_session_controller.dart';
 import '../shared/editor_page_local_draft_state.dart';
 import 'home_routes.dart';
-import 'workspace_directory_picker.dart';
 
 /// Top-level editor shell that coordinates route selection around one shared
 /// [EditorSessionController].
 ///
 /// This page owns shell concerns only: selecting the active top-level route,
-/// applying workspace changes, guarding destructive transitions, and routing
-/// shell-level undo/redo shortcuts. Domain load/edit/export behavior still
-/// flows through the selected plugin and page.
+/// guarding destructive transitions, and routing shell-level undo/redo
+/// shortcuts. Domain load/edit/export behavior still flows through the
+/// selected plugin and page.
 class EditorHomePage extends StatefulWidget {
-  const EditorHomePage({
-    super.key,
-    required this.controller,
-    this.workspaceDirectoryPicker = pickWorkspaceDirectoryPath,
-  });
+  const EditorHomePage({super.key, required this.controller});
 
   /// Shared authoring session used by every top-level route.
   final EditorSessionController controller;
-
-  /// Platform directory picker used by the shell's `Browse...` action.
-  ///
-  /// Kept injectable so widget tests can drive workspace selection without
-  /// opening native dialogs.
-  final Future<String?> Function() workspaceDirectoryPicker;
 
   @override
   State<EditorHomePage> createState() => _EditorHomePageState();
@@ -41,33 +30,27 @@ class EditorHomePage extends StatefulWidget {
 
 class _EditorHomePageState extends State<EditorHomePage> {
   late final AppLifecycleListener _appLifecycleListener;
-  late final TextEditingController _workspaceController;
   // The shell owns stable page keys so it can query the active route for local
   // draft state, shortcut handling, and reload delegation without reintroducing
   // route-id switches elsewhere in the file.
   late final Map<String, _EditorHomeRouteBinding> _routeBindings;
-  late String _lastSyncedWorkspacePath;
-  // Route/workspace/app-exit requests can all ask for discard confirmation;
+  // Route/app-exit requests can all ask for discard confirmation;
   // keep them serialized so the shell never stacks competing dialogs.
   bool _isShowingDiscardDialog = false;
+  bool _isApplyingCurrentPage = false;
   String _selectedRouteId = entitiesRouteId;
   String? _initialPrefabKey;
 
   @override
   void initState() {
     super.initState();
-    _workspaceController = TextEditingController(
-      text: widget.controller.workspacePath,
-    );
     _routeBindings = <String, _EditorHomeRouteBinding>{
       for (final route in homeRoutes)
         route.id: _EditorHomeRouteBinding(route: route, pageKey: GlobalKey()),
     };
-    _lastSyncedWorkspacePath = widget.controller.workspacePath;
     _appLifecycleListener = AppLifecycleListener(
       onExitRequested: _handleAppExitRequested,
     );
-    widget.controller.addListener(_syncWorkspaceDraftFromController);
     // The shell handles cross-route undo/redo shortcuts globally, then routes
     // them back into the active page/session when appropriate.
     HardwareKeyboard.instance.addHandler(_handleGlobalKeyEvent);
@@ -80,23 +63,9 @@ class _EditorHomePageState extends State<EditorHomePage> {
   }
 
   @override
-  void didUpdateWidget(EditorHomePage oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (identical(oldWidget.controller, widget.controller)) {
-      return;
-    }
-    oldWidget.controller.removeListener(_syncWorkspaceDraftFromController);
-    _lastSyncedWorkspacePath = widget.controller.workspacePath;
-    _setWorkspaceDraftText(_lastSyncedWorkspacePath);
-    widget.controller.addListener(_syncWorkspaceDraftFromController);
-  }
-
-  @override
   void dispose() {
     _appLifecycleListener.dispose();
-    widget.controller.removeListener(_syncWorkspaceDraftFromController);
     HardwareKeyboard.instance.removeHandler(_handleGlobalKeyEvent);
-    _workspaceController.dispose();
     super.dispose();
   }
 
@@ -115,17 +84,25 @@ class _EditorHomePageState extends State<EditorHomePage> {
                 children: [
                   _EditorHomeShellControls(
                     selectedRouteId: _selectedRouteId,
-                    workspaceController: _workspaceController,
                     canReloadCurrentPage: _canReloadCurrentPage,
-                    canApplyWorkspacePathDraft: _canApplyWorkspacePathDraft,
-                    canBrowseWorkspace: _canBrowseWorkspace,
+                    canApplyCurrentPage: _canApplyCurrentPage,
+                    canUndoCurrentPage: _canUndoCurrentPage,
+                    canRedoCurrentPage: _canRedoCurrentPage,
+                    isLoading: widget.controller.isLoading,
+                    isExporting: widget.controller.isExporting,
+                    hasPendingChanges:
+                        widget.controller.pendingChanges.hasChanges,
+                    pendingItemCount:
+                        widget.controller.pendingChanges.changedItemIds.length,
+                    pendingFileCount:
+                        widget.controller.pendingChanges.fileDiffs.length,
+                    pendingChangesError: widget.controller.pendingChangesError,
+                    errorCount: widget.controller.errorCount,
+                    warningCount: widget.controller.warningCount,
                     onReloadPressed: _handleReloadRequested,
-                    onWorkspaceDraftChanged: () {
-                      setState(() {});
-                    },
-                    onWorkspaceSubmitted: _handleWorkspacePathApplyRequested,
-                    onApplyWorkspacePressed: _handleWorkspacePathApplyRequested,
-                    onBrowseWorkspacePressed: _handleBrowseWorkspaceRequested,
+                    onApplyPressed: _handleApplyRequested,
+                    onUndoPressed: _handleUndoShortcut,
+                    onRedoPressed: _handleRedoShortcut,
                     onRouteSelected: _handleRouteSelectionRequested,
                   ),
                   const SizedBox(height: 16),
@@ -294,16 +271,11 @@ class _EditorHomePageState extends State<EditorHomePage> {
     });
   }
 
-  bool get _canApplyWorkspacePathDraft {
-    return _workspaceController.text != widget.controller.workspacePath &&
-        _canReloadCurrentPage;
-  }
-
-  // The shell exposes one visible reload/apply surface, but some pages need to
+  // The shell exposes one visible reload surface, but some pages need to
   // coordinate extra local state during reload. When the active page implements
   // [EditorPageReloadHandler], its availability becomes the source of truth.
   bool get _canReloadCurrentPage {
-    if (_isShowingDiscardDialog) {
+    if (_isShowingDiscardDialog || _isApplyingCurrentPage) {
       return false;
     }
     final pageReloadHandler = _currentPageReloadHandler();
@@ -313,24 +285,38 @@ class _EditorHomePageState extends State<EditorHomePage> {
     return !widget.controller.isLoading && !widget.controller.isExporting;
   }
 
-  bool get _canBrowseWorkspace {
-    return _canReloadCurrentPage;
+  bool get _canApplyCurrentPage {
+    if (_isShowingDiscardDialog ||
+        _isApplyingCurrentPage ||
+        widget.controller.isLoading ||
+        widget.controller.isExporting) {
+      return false;
+    }
+    return _currentPageApplyHandler?.canApplyEditorPage ?? false;
   }
 
-  Future<void> _handleBrowseWorkspaceRequested() async {
-    if (!_canBrowseWorkspace) {
-      return;
+  bool get _canUndoCurrentPage {
+    if (_isShowingDiscardDialog ||
+        _isApplyingCurrentPage ||
+        widget.controller.isLoading ||
+        widget.controller.isExporting) {
+      return false;
     }
-    final selectedWorkspacePath = await widget.workspaceDirectoryPicker();
-    if (!mounted || selectedWorkspacePath == null) {
-      return;
+    final pageShortcutHandler = _currentPageSessionShortcutHandler();
+    return pageShortcutHandler?.canHandleUndoSessionShortcut ??
+        widget.controller.canUndo;
+  }
+
+  bool get _canRedoCurrentPage {
+    if (_isShowingDiscardDialog ||
+        _isApplyingCurrentPage ||
+        widget.controller.isLoading ||
+        widget.controller.isExporting) {
+      return false;
     }
-    if (_workspaceController.text != selectedWorkspacePath) {
-      setState(() {
-        _setWorkspaceDraftText(selectedWorkspacePath);
-      });
-    }
-    await _handleWorkspacePathApplyRequested();
+    final pageShortcutHandler = _currentPageSessionShortcutHandler();
+    return pageShortcutHandler?.canHandleRedoSessionShortcut ??
+        widget.controller.canRedo;
   }
 
   Future<void> _handleReloadRequested() async {
@@ -338,7 +324,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
       return;
     }
     // Reload is destructive to any unsaved session/page-local draft state, so
-    // it goes through the same discard guard as route/workspace changes.
+    // it goes through the same discard guard as route changes.
     final canLeave = await _confirmDiscardPendingChanges(
       promptLine: 'Reload from disk without saving?',
       confirmLabel: 'Discard and reload',
@@ -349,31 +335,23 @@ class _EditorHomePageState extends State<EditorHomePage> {
     await _reloadCurrentRoute();
   }
 
-  // Workspace changes invalidate the loaded session snapshot, so typing stays
-  // local until the user explicitly applies the draft and confirms discard.
-  Future<void> _handleWorkspacePathApplyRequested() async {
-    final currentWorkspacePath = widget.controller.workspacePath;
-    final nextWorkspacePath = _workspaceController.text.trim();
-    if (nextWorkspacePath == currentWorkspacePath) {
-      if (_workspaceController.text != currentWorkspacePath) {
+  Future<void> _handleApplyRequested() async {
+    final pageApplyHandler = _currentPageApplyHandler;
+    if (!_canApplyCurrentPage || pageApplyHandler == null) {
+      return;
+    }
+    setState(() {
+      _isApplyingCurrentPage = true;
+    });
+    try {
+      await pageApplyHandler.applyEditorPage();
+    } finally {
+      if (mounted) {
         setState(() {
-          _setWorkspaceDraftText(currentWorkspacePath);
+          _isApplyingCurrentPage = false;
         });
       }
-      return;
     }
-
-    final canLeave = await _confirmDiscardPendingChanges(
-      promptLine: 'Change workspace without saving?',
-      confirmLabel: 'Discard and switch',
-    );
-    if (!mounted || !canLeave) {
-      return;
-    }
-    widget.controller.setWorkspacePath(nextWorkspacePath);
-    // Applying a new workspace should leave the active route ready to use, not
-    // in a "path changed but nothing loaded yet" state.
-    await _reloadCurrentRoute();
   }
 
   Future<AppExitResponse> _handleAppExitRequested() async {
@@ -381,7 +359,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
       return AppExitResponse.exit;
     }
     // App-close requests should respect the same unsaved-work guard as route
-    // and workspace changes instead of bypassing the shell.
+    // changes instead of bypassing the shell.
     final canExit = await _confirmDiscardPendingChanges(
       promptLine: 'Close the editor without saving?',
       confirmLabel: 'Discard and exit',
@@ -553,6 +531,14 @@ class _EditorHomePageState extends State<EditorHomePage> {
     return pageState;
   }
 
+  EditorPageApplyHandler? get _currentPageApplyHandler {
+    final pageState = _currentPageState;
+    if (pageState is! EditorPageApplyHandler) {
+      return null;
+    }
+    return pageState;
+  }
+
   BuildContext? _currentPageContext() {
     return _selectedRouteBinding.currentContext;
   }
@@ -568,25 +554,6 @@ class _EditorHomePageState extends State<EditorHomePage> {
       throw StateError('Unknown editor home route id: $routeId');
     }
     return routeBinding;
-  }
-
-  void _syncWorkspaceDraftFromController() {
-    final workspacePath = widget.controller.workspacePath;
-    if (workspacePath == _lastSyncedWorkspacePath) {
-      return;
-    }
-    // Only committed controller changes should rewrite the field; local typing
-    // remains intact until the user applies or resets it.
-    _lastSyncedWorkspacePath = workspacePath;
-    _setWorkspaceDraftText(workspacePath);
-  }
-
-  void _setWorkspaceDraftText(String workspacePath) {
-    _workspaceController.value = _workspaceController.value.copyWith(
-      text: workspacePath,
-      selection: TextSelection.collapsed(offset: workspacePath.length),
-      composing: TextRange.empty,
-    );
   }
 
   // Most routes reload by asking the shared session to reread the current
@@ -663,56 +630,53 @@ class _EditorHomeRouteBinding {
 
 /// Presentation-only controls row for the editor shell.
 ///
-/// This widget renders the route selector and workspace draft controls, while
-/// [EditorHomePage] keeps the actual coordination logic for route switching,
-/// discard guards, and session updates.
+/// This widget renders the actions shared by every top-level editor route.
+///
+/// [EditorHomePage] keeps route switching, discard guards, and page-action
+/// delegation centralized so route widgets only own domain-specific behavior.
 class _EditorHomeShellControls extends StatelessWidget {
   const _EditorHomeShellControls({
     required this.selectedRouteId,
-    required this.workspaceController,
     required this.canReloadCurrentPage,
-    required this.canApplyWorkspacePathDraft,
-    required this.canBrowseWorkspace,
+    required this.canApplyCurrentPage,
+    required this.canUndoCurrentPage,
+    required this.canRedoCurrentPage,
+    required this.isLoading,
+    required this.isExporting,
+    required this.hasPendingChanges,
+    required this.pendingItemCount,
+    required this.pendingFileCount,
+    required this.pendingChangesError,
+    required this.errorCount,
+    required this.warningCount,
     required this.onReloadPressed,
-    required this.onWorkspaceDraftChanged,
-    required this.onWorkspaceSubmitted,
-    required this.onApplyWorkspacePressed,
-    required this.onBrowseWorkspacePressed,
+    required this.onApplyPressed,
+    required this.onUndoPressed,
+    required this.onRedoPressed,
     required this.onRouteSelected,
   });
 
   final String selectedRouteId;
-  final TextEditingController workspaceController;
   final bool canReloadCurrentPage;
-  final bool canApplyWorkspacePathDraft;
-  final bool canBrowseWorkspace;
+  final bool canApplyCurrentPage;
+  final bool canUndoCurrentPage;
+  final bool canRedoCurrentPage;
+  final bool isLoading;
+  final bool isExporting;
+  final bool hasPendingChanges;
+  final int pendingItemCount;
+  final int pendingFileCount;
+  final String? pendingChangesError;
+  final int errorCount;
+  final int warningCount;
   final Future<void> Function() onReloadPressed;
-  final VoidCallback onWorkspaceDraftChanged;
-  final Future<void> Function() onWorkspaceSubmitted;
-  final Future<void> Function() onApplyWorkspacePressed;
-  final Future<void> Function() onBrowseWorkspacePressed;
+  final Future<void> Function() onApplyPressed;
+  final bool Function() onUndoPressed;
+  final bool Function() onRedoPressed;
   final Future<void> Function(String routeId) onRouteSelected;
 
   @override
   Widget build(BuildContext context) {
-    final title = Text(
-      'RPG Runner Editor - Pages ->',
-      style: Theme.of(context).textTheme.headlineSmall,
-    );
-    final workspaceField = TextField(
-      controller: workspaceController,
-      decoration: const InputDecoration(
-        labelText: 'Workspace Path',
-        hintText: r'C:\dev\rpg_runner',
-        border: OutlineInputBorder(),
-      ),
-      onChanged: (_) {
-        onWorkspaceDraftChanged();
-      },
-      onSubmitted: (_) {
-        onWorkspaceSubmitted();
-      },
-    );
     final reloadButton = FilledButton.icon(
       key: const ValueKey<String>('reload_editor_page_button'),
       onPressed: canReloadCurrentPage
@@ -723,23 +687,27 @@ class _EditorHomeShellControls extends StatelessWidget {
       icon: const Icon(Icons.sync),
       label: const Text('Reload'),
     );
-    final applyWorkspaceButton = FilledButton(
-      key: const ValueKey<String>('apply_workspace_path_button'),
-      onPressed: canApplyWorkspacePathDraft
+    final applyButton = FilledButton.icon(
+      key: const ValueKey<String>('apply_editor_page_button'),
+      onPressed: canApplyCurrentPage
           ? () {
-              onApplyWorkspacePressed();
+              unawaited(onApplyPressed());
             }
           : null,
-      child: const Text('Apply'),
+      icon: const Icon(Icons.save_outlined),
+      label: const Text('Apply To Files'),
     );
-    final browseWorkspaceButton = OutlinedButton(
-      key: const ValueKey<String>('browse_workspace_path_button'),
-      onPressed: canBrowseWorkspace
-          ? () {
-              onBrowseWorkspacePressed();
-            }
-          : null,
-      child: const Text('Browse...'),
+    final undoButton = OutlinedButton.icon(
+      key: const ValueKey<String>('undo_editor_page_button'),
+      onPressed: canUndoCurrentPage ? onUndoPressed : null,
+      icon: const Icon(Icons.undo),
+      label: const Text('Undo'),
+    );
+    final redoButton = OutlinedButton.icon(
+      key: const ValueKey<String>('redo_editor_page_button'),
+      onPressed: canRedoCurrentPage ? onRedoPressed : null,
+      icon: const Icon(Icons.redo),
+      label: const Text('Redo'),
     );
     final routeSelector = DecoratedBox(
       decoration: BoxDecoration(
@@ -773,44 +741,164 @@ class _EditorHomeShellControls extends StatelessWidget {
       ),
     );
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          flex: 2,
-          child: Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: DefaultTextStyle.merge(
-              overflow: TextOverflow.ellipsis,
-              child: title,
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Padding(
-          padding: const EdgeInsets.only(top: 7),
-          child: SizedBox(width: 160, child: routeSelector),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          flex: 5,
-          // This row only renders the shell controls. It does not own any of
-          // the destructive behavior behind reload/apply/browse; that stays in
-          // [EditorHomePage] so route/workspace/discard rules remain single-
-          // sourced in one coordinator.
-          child: Row(
-            children: [
-              reloadButton,
-              const SizedBox(width: 12),
-              Expanded(child: workspaceField),
-              const SizedBox(width: 12),
-              browseWorkspaceButton,
-              const SizedBox(width: 12),
-              applyWorkspaceButton,
+    final routeAndActions = <Widget>[
+      SizedBox(width: 160, child: routeSelector),
+      reloadButton,
+      applyButton,
+      undoButton,
+      redoButton,
+    ];
+    final status = _EditorHomeShellStatus(
+      isLoading: isLoading,
+      isExporting: isExporting,
+      hasPendingChanges: hasPendingChanges,
+      pendingItemCount: pendingItemCount,
+      pendingFileCount: pendingFileCount,
+      pendingChangesError: pendingChangesError,
+      errorCount: errorCount,
+      warningCount: warningCount,
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 1040) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              Wrap(
+                spacing: 12,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: routeAndActions,
+              ),
+              const SizedBox(height: 8),
+              Align(alignment: Alignment.centerRight, child: status),
             ],
+          );
+        }
+
+        return Row(
+          children: <Widget>[
+            ...routeAndActions.expand(
+              (action) => <Widget>[action, const SizedBox(width: 12)],
+            ),
+            Expanded(
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: status,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// Compact session status rendered at the trailing edge of the shared toolbar.
+class _EditorHomeShellStatus extends StatelessWidget {
+  const _EditorHomeShellStatus({
+    required this.isLoading,
+    required this.isExporting,
+    required this.hasPendingChanges,
+    required this.pendingItemCount,
+    required this.pendingFileCount,
+    required this.pendingChangesError,
+    required this.errorCount,
+    required this.warningCount,
+  });
+
+  final bool isLoading;
+  final bool isExporting;
+  final bool hasPendingChanges;
+  final int pendingItemCount;
+  final int pendingFileCount;
+  final String? pendingChangesError;
+  final int errorCount;
+  final int warningCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final pendingError = pendingChangesError;
+    late final String pendingLabel;
+    late final IconData pendingIcon;
+    late final Color pendingBackgroundColor;
+    if (pendingError != null) {
+      pendingLabel = 'Pending status unavailable';
+      pendingIcon = Icons.error_outline;
+      pendingBackgroundColor = colorScheme.errorContainer;
+    } else if (hasPendingChanges) {
+      pendingLabel =
+          '${_countLabel(pendingItemCount, 'pending item')} · '
+          '${_countLabel(pendingFileCount, 'file')}';
+      pendingIcon = Icons.pending_actions_outlined;
+      pendingBackgroundColor = colorScheme.secondaryContainer;
+    } else {
+      pendingLabel = 'Saved';
+      pendingIcon = Icons.check_circle_outline;
+      pendingBackgroundColor = colorScheme.primaryContainer;
+    }
+
+    late final IconData validationIcon;
+    late final Color validationBackgroundColor;
+    if (errorCount > 0) {
+      validationIcon = Icons.error_outline;
+      validationBackgroundColor = colorScheme.errorContainer;
+    } else if (warningCount > 0) {
+      validationIcon = Icons.warning_amber_outlined;
+      validationBackgroundColor = colorScheme.tertiaryContainer;
+    } else {
+      validationIcon = Icons.verified_outlined;
+      validationBackgroundColor = colorScheme.surfaceContainerHighest;
+    }
+
+    final pendingStatus = Chip(
+      key: const ValueKey<String>('editor_toolbar_pending_status'),
+      avatar: Icon(pendingIcon, size: 18),
+      label: Text(pendingLabel),
+      backgroundColor: pendingBackgroundColor,
+      visualDensity: VisualDensity.compact,
+    );
+    final validationStatus = Chip(
+      key: const ValueKey<String>('editor_toolbar_validation_status'),
+      avatar: Icon(validationIcon, size: 18),
+      label: Text(
+        '${_countLabel(errorCount, 'error')} · '
+        '${_countLabel(warningCount, 'warning')}',
+      ),
+      backgroundColor: validationBackgroundColor,
+      visualDensity: VisualDensity.compact,
+    );
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        if (isLoading || isExporting) ...<Widget>[
+          const SizedBox.square(
+            key: ValueKey<String>('editor_toolbar_progress'),
+            dimension: 16,
+            child: CircularProgressIndicator(strokeWidth: 2),
           ),
-        ),
+          const SizedBox(width: 8),
+          Text(isExporting ? 'Applying…' : 'Reloading…'),
+          const SizedBox(width: 12),
+        ],
+        if (pendingError == null)
+          pendingStatus
+        else
+          Tooltip(message: pendingError, child: pendingStatus),
+        const SizedBox(width: 8),
+        validationStatus,
       ],
     );
   }
+}
+
+String _countLabel(int count, String singular) {
+  return '$count ${count == 1 ? singular : '${singular}s'}';
 }

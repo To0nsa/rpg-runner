@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -244,10 +245,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Save Definitions'), findsNothing);
-    final applySource = tester.widget<FilledButton>(
-      find.byKey(const ValueKey<String>('prefab_polygon_apply_source')),
-    );
-    expect(applySource.onPressed, isNull);
+    expect(_prefabApplyHandler(tester).canApplyEditorPage, isFalse);
 
     final saveDraftFinder = find.byKey(
       const ValueKey<String>('prefab_polygon_save_draft'),
@@ -330,17 +328,13 @@ void main() {
     expect(impactText.data, contains('3 placement(s) in 2 chunk(s)'));
     expect(impactText.data, contains('chunk revisions stay unchanged'));
 
-    await tester.tap(
-      find.byKey(const ValueKey<String>('prefab_polygon_undo_button')),
-    );
+    expect(_prefabShortcutHandler(tester).handleUndoSessionShortcut(), isTrue);
     await tester.pump();
     obstacle = _prefab(harness.session, 'obstacle');
     expect(obstacle.revision, 1);
     expect(obstacle.collisionShapes, hasLength(1));
 
-    await tester.tap(
-      find.byKey(const ValueKey<String>('prefab_polygon_redo_button')),
-    );
+    expect(_prefabShortcutHandler(tester).handleRedoSessionShortcut(), isTrue);
     await tester.pump();
     obstacle = _prefab(harness.session, 'obstacle');
     expect(obstacle.revision, 2);
@@ -450,16 +444,18 @@ void main() {
       expect(obstacle.tags, <String>['boss', 'test']);
       expect(obstacle.collisionShapes, originalShapes);
 
-      await tester.tap(
-        find.byKey(const ValueKey<String>('prefab_polygon_undo_button')),
+      expect(
+        _prefabShortcutHandler(tester).handleUndoSessionShortcut(),
+        isTrue,
       );
       await tester.pump();
       obstacle = _prefab(harness.session, 'obstacle');
       expect(obstacle.revision, 1);
       expect(obstacle.status, PrefabStatus.active);
       expect(obstacle.collisionShapes, originalShapes);
-      await tester.tap(
-        find.byKey(const ValueKey<String>('prefab_polygon_redo_button')),
+      expect(
+        _prefabShortcutHandler(tester).handleRedoSessionShortcut(),
+        isTrue,
       );
       await tester.pump();
       expect(_prefab(harness.session, 'obstacle').revision, 2);
@@ -538,17 +534,8 @@ void main() {
       expect(flower.tags, <String>['art', 'flora']);
       expect(flower.collisionShapes, isEmpty);
       expect(find.text('Save Definitions'), findsNothing);
-      expect(
-        tester
-            .widget<FilledButton>(
-              find.byKey(const ValueKey<String>('prefab_polygon_apply_source')),
-            )
-            .onPressed,
-        isNotNull,
-      );
-      await tester.tap(
-        find.byKey(const ValueKey<String>('prefab_polygon_apply_source')),
-      );
+      expect(_prefabApplyHandler(tester).canApplyEditorPage, isTrue);
+      unawaited(_prefabApplyHandler(tester).applyEditorPage());
       await tester.pumpAndSettle();
       expect(find.text('Apply Prefab-v3 Changes'), findsOneWidget);
       await tester.tap(find.widgetWithText(TextButton, 'Cancel').last);
@@ -618,8 +605,9 @@ void main() {
       expect((bonus.x, bonus.y, bonus.width, bonus.height), (1, 1, 6, 6));
       expect(bonus.tags, <String>['art', 'bonus']);
 
-      await tester.tap(
-        find.byKey(const ValueKey<String>('prefab_polygon_undo_button')),
+      expect(
+        _prefabShortcutHandler(tester).handleUndoSessionShortcut(),
+        isTrue,
       );
       await tester.pumpAndSettle();
       expect(
@@ -628,8 +616,9 @@ void main() {
         ),
         isFalse,
       );
-      await tester.tap(
-        find.byKey(const ValueKey<String>('prefab_polygon_redo_button')),
+      expect(
+        _prefabShortcutHandler(tester).handleRedoSessionShortcut(),
+        isTrue,
       );
       await tester.pumpAndSettle();
       expect(_slice(harness.session, 'bonus_slice').width, 6);
@@ -755,8 +744,9 @@ void main() {
         find.byKey(const ValueKey<String>('atlas_slice_save')),
         findsOneWidget,
       );
-      await tester.tap(
-        find.byKey(const ValueKey<String>('prefab_polygon_undo_button')),
+      expect(
+        _prefabShortcutHandler(tester).handleUndoSessionShortcut(),
+        isTrue,
       );
       await tester.pump();
       expect(localDraftState.hasLocalDraftChanges, isFalse);
@@ -777,14 +767,7 @@ void main() {
         find.byKey(const ValueKey<String>('prefab_v3_owner_edit')),
         findsOneWidget,
       );
-      expect(
-        tester
-            .widget<FilledButton>(
-              find.byKey(const ValueKey<String>('prefab_polygon_apply_source')),
-            )
-            .onPressed,
-        isNull,
-      );
+      expect(_prefabApplyHandler(tester).canApplyEditorPage, isFalse);
     },
   );
 
@@ -844,14 +827,16 @@ void main() {
       expect(_module(harness.session, 'module_a').revision, 2);
       expect(_module(harness.session, 'module_a').tileSize, 20);
 
-      await tester.tap(
-        find.byKey(const ValueKey<String>('prefab_polygon_undo_button')),
+      expect(
+        _prefabShortcutHandler(tester).handleUndoSessionShortcut(),
+        isTrue,
       );
       await tester.pumpAndSettle();
       expect(_module(harness.session, 'module_a').revision, 1);
       expect(_module(harness.session, 'module_a').tileSize, 16);
-      await tester.tap(
-        find.byKey(const ValueKey<String>('prefab_polygon_redo_button')),
+      expect(
+        _prefabShortcutHandler(tester).handleRedoSessionShortcut(),
+        isTrue,
       );
       await tester.pumpAndSettle();
       expect(_module(harness.session, 'module_a').revision, 2);
@@ -973,8 +958,9 @@ void main() {
       );
       await tester.pump();
       expect(sceneCanvas, findsOneWidget);
-      await tester.tap(
-        find.byKey(const ValueKey<String>('prefab_polygon_undo_button')),
+      expect(
+        _prefabShortcutHandler(tester).handleUndoSessionShortcut(),
+        isTrue,
       );
       await tester.pump();
       expect(
@@ -996,17 +982,17 @@ void main() {
         find.byKey(const ValueKey<String>('prefab_v3_owner_edit')),
         findsOneWidget,
       );
-      expect(
-        tester
-            .widget<FilledButton>(
-              find.byKey(const ValueKey<String>('prefab_polygon_apply_source')),
-            )
-            .onPressed,
-        isNotNull,
-      );
+      expect(_prefabApplyHandler(tester).canApplyEditorPage, isTrue);
     },
   );
 }
+
+EditorPageSessionShortcutHandler _prefabShortcutHandler(WidgetTester tester) =>
+    tester.state(find.byType(PrefabCreatorPage))
+        as EditorPageSessionShortcutHandler;
+
+EditorPageApplyHandler _prefabApplyHandler(WidgetTester tester) =>
+    tester.state(find.byType(PrefabCreatorPage)) as EditorPageApplyHandler;
 
 Future<_Harness> _buildHarness({PrefabV3Document? document}) async {
   final root = Directory.systemTemp.createTempSync('prefab_stage_page_');

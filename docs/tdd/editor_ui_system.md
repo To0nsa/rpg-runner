@@ -23,6 +23,21 @@ store owners.
 - `EditorWorkspaceCard` owns the outer outlined route surface and workspace
   padding without taking over route sizing or scroll state.
 
+## Shared action toolbar
+
+`EditorHomePage` owns the single toolbar rendered above every top-level route:
+page selector, Reload, Apply To Files, Undo, and Redo. Route pages do not
+render duplicate copies of those actions. A trailing status area projects the
+session's loading/exporting state, pending item/file counts, pending-summary
+failure, and validation counts without introducing route-specific meaning.
+
+The shell delegates Reload through `EditorPageReloadHandler`, Undo/Redo through
+`EditorPageSessionShortcutHandler`, and Apply To Files through
+`EditorPageApplyHandler`. This preserves route-local safeguards and result
+handling—for example, active polygon-operation guards and Level-to-Parallax
+handoff reconciliation—without coupling the shell to individual route ids.
+Plugins and `EditorSessionController` remain the only repository write path.
+
 `EditorPanelCard` has explicit natural, expanded, and scrollable body modes.
 Expanded and scrollable modes require a bounded parent height. Collapsible
 cards require natural-height bodies and delegate overflow to their containing

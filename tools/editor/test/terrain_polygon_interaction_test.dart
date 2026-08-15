@@ -643,6 +643,51 @@ void main() {
       },
     );
 
+    test('rectangle dimensions replace all four corners in one commit', () {
+      final reducer = _reducer();
+      final initial = TerrainPolygonInteractionState(
+        shapes: <TerrainSourceShapeDef>[_rectangle('collision_001')],
+        selection: TerrainPolygonSelection.vertex('collision_001', 3),
+      );
+
+      final accepted = reducer.editSelectedAxisAlignedRectangle(
+        initial,
+        xHalfPixels: 4,
+        yHalfPixels: 6,
+        widthHalfPixels: 40,
+        heightHalfPixels: 30,
+      );
+
+      expect(accepted.accepted, isTrue);
+      expect(accepted.commit, isNotNull);
+      expect(
+        accepted.state.selection,
+        TerrainPolygonSelection.shape('collision_001'),
+      );
+      expect(
+        accepted.state.shapes.single.vertices,
+        const <TerrainSourceVertexDef>[
+          TerrainSourceVertexDef(xHalfPixels: 4, yHalfPixels: 6),
+          TerrainSourceVertexDef(xHalfPixels: 44, yHalfPixels: 6),
+          TerrainSourceVertexDef(xHalfPixels: 44, yHalfPixels: 36),
+          TerrainSourceVertexDef(xHalfPixels: 4, yHalfPixels: 36),
+        ],
+      );
+
+      final invalidDimensions = reducer.editSelectedAxisAlignedRectangle(
+        initial,
+        xHalfPixels: 4,
+        yHalfPixels: 6,
+        widthHalfPixels: 0,
+        heightHalfPixels: 30,
+      );
+      expect(invalidDimensions.accepted, isFalse);
+      expect(
+        invalidDimensions.diagnostics.single.code,
+        'rectangle_dimensions_invalid',
+      );
+    });
+
     test('duplicate uses the lowest free ID and permits shared edges', () {
       final reducer = _reducer();
       final initial = TerrainPolygonInteractionState(

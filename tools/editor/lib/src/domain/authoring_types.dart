@@ -104,18 +104,79 @@ class ExportArtifact {
   final String content;
 }
 
+/// Typed outcome of a plugin export attempt.
+enum ExportOutcome {
+  /// Repository outputs were written and verified normally.
+  applied,
+
+  /// The candidate required no repository writes.
+  noChanges,
+
+  /// Candidate validation rejected the write before persistence began.
+  validationFailed,
+
+  /// Optimistic concurrency rejected changed source bytes.
+  sourceDrift,
+
+  /// Planning or persistence rejected the write and rollback completed.
+  failed,
+
+  /// Persistence failed and transaction recovery could not restore everything.
+  rollbackIncomplete,
+
+  /// Outputs were committed, but transaction-owned recovery cleanup remains.
+  appliedWithCleanupRequired,
+}
+
+extension ExportOutcomeClassification on ExportOutcome {
+  /// Whether the outcome requires immediate failure feedback to the author.
+  bool get isFailure => switch (this) {
+    ExportOutcome.validationFailed ||
+    ExportOutcome.sourceDrift ||
+    ExportOutcome.failed ||
+    ExportOutcome.rollbackIncomplete => true,
+    ExportOutcome.applied ||
+    ExportOutcome.noChanges ||
+    ExportOutcome.appliedWithCleanupRequired => false,
+  };
+}
+
 /// Result of a plugin export operation.
 ///
-/// [applied] indicates whether repository files were actually written.
-/// Session orchestration uses this to decide whether to reload workspace state.
+/// Legacy plugins may continue to provide only [applied]; [outcome] then
+/// resolves to [ExportOutcome.applied] or [ExportOutcome.noChanges]. Plugins
+/// that convert expected failures into results must set a failure-classified
+/// outcome and provide [message] so session/UI code can surface failure without
+/// parsing artifact names.
 @immutable
 class ExportResult {
   ExportResult({
     required this.applied,
+    ExportOutcome? outcome,
+    this.message,
     List<ExportArtifact> artifacts = const <ExportArtifact>[],
-  }) : artifacts = List<ExportArtifact>.unmodifiable(artifacts);
+  }) : outcome =
+           outcome ??
+           (applied ? ExportOutcome.applied : ExportOutcome.noChanges),
+       artifacts = List<ExportArtifact>.unmodifiable(artifacts) {
+    if (applied !=
+        (this.outcome == ExportOutcome.applied ||
+            this.outcome == ExportOutcome.appliedWithCleanupRequired)) {
+      throw ArgumentError(
+        'ExportResult.applied must agree with the typed export outcome.',
+      );
+    }
+    if (this.outcome.isFailure &&
+        (message == null || message!.trim().isEmpty)) {
+      throw ArgumentError(
+        'Failed export results require an actionable message.',
+      );
+    }
+  }
 
   final bool applied;
+  final ExportOutcome outcome;
+  final String? message;
   final List<ExportArtifact> artifacts;
 }
 

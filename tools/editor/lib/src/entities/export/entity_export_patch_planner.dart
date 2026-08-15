@@ -18,6 +18,7 @@ _EntityExportPlan _buildPlan(
   }
 
   final filePatches = _resolveFilePatches(
+    documentPipeline,
     workspace,
     document: document,
     changedEntries: changedEntries,
@@ -29,6 +30,7 @@ _EntityExportPlan _buildPlan(
 }
 
 List<_EntityFilePatch> _resolveFilePatches(
+  EntityDocumentPipeline documentPipeline,
   EditorWorkspace workspace, {
   required EntityDocument document,
   required List<EntityEntry> changedEntries,
@@ -40,7 +42,7 @@ List<_EntityFilePatch> _resolveFilePatches(
     if (baseline == null) {
       throw StateError('Missing baseline entry for ${entry.id}.');
     }
-    final entryEdits = _buildEditsForEntry(entry, baseline);
+    final entryEdits = _buildEditsForEntry(documentPipeline, entry, baseline);
     if (entryEdits.isEmpty) {
       throw StateError(
         'Entry ${entry.id} is marked dirty but no source edits were produced.',
@@ -60,7 +62,10 @@ List<_EntityFilePatch> _resolveFilePatches(
     final relativePath = p.normalize(entry.key);
     final file = File(workspace.resolve(relativePath));
     if (!file.existsSync()) {
-      throw StateError('Cannot export; source file missing: $relativePath');
+      throw _EntitySourceDriftException(
+        'Source drift detected; source file is missing: $relativePath. '
+        'Reload workspace and review pending changes.',
+      );
     }
 
     final original = file.readAsStringSync();
@@ -137,8 +142,10 @@ void _validateEditsAgainstSource(
       );
     }
     if (edit.endOffset > content.length) {
-      throw StateError(
-        'Replacement range out of bounds in $relativePath for ${edit.entryId}.',
+      throw _EntitySourceDriftException(
+        'Source drift detected for ${edit.entryId} in $relativePath; the '
+        'loaded replacement range is now out of bounds. Reload workspace and '
+        'review pending changes.',
       );
     }
     if (previousEnd > edit.startOffset) {
@@ -151,7 +158,7 @@ void _validateEditsAgainstSource(
     if (actual != edit.beforeSnippet) {
       final expectedPreview = _previewForError(edit.beforeSnippet);
       final actualPreview = _previewForError(actual);
-      throw StateError(
+      throw _EntitySourceDriftException(
         'Source drift detected for ${edit.entryId} in $relativePath at '
         '${edit.startOffset}-${edit.endOffset}. Expected snippet no longer '
         'matches current file content. Reload workspace, review diff, and '
@@ -175,27 +182,65 @@ String _previewForError(String value) {
 }
 
 List<_EntitySourceEdit> _buildEditsForEntry(
+  EntityDocumentPipeline documentPipeline,
   EntityEntry current,
   EntityEntry baseline,
 ) {
   final edits = <_EntitySourceEdit>[];
-  if (_entityBoundsChanged(current, baseline)) {
+  final changes = documentPipeline.changeSet(current, baseline);
+  final colliderBindings = baseline.colliderBindings;
+  if (changes.halfXChanged) {
     edits.add(
-      _EntitySourceEdit(
+      _buildColliderScalarEdit(
         entryId: current.id,
-        sourcePath: baseline.sourceBinding.sourcePath,
-        startOffset: baseline.sourceBinding.startOffset,
-        endOffset: baseline.sourceBinding.endOffset,
-        beforeSnippet: baseline.sourceBinding.sourceSnippet,
-        afterSnippet: _buildReplacementSnippet(current),
+        fieldLabel: 'halfX',
+        binding: colliderBindings.halfX,
+        editorValue: current.halfX,
+      ),
+    );
+  }
+  if (changes.halfYChanged) {
+    edits.add(
+      _buildColliderScalarEdit(
+        entryId: current.id,
+        fieldLabel: 'halfY',
+        binding: colliderBindings.halfY,
+        editorValue: current.halfY,
+      ),
+    );
+  }
+  if (changes.offsetXChanged) {
+    edits.add(
+      _buildColliderScalarEdit(
+        entryId: current.id,
+        fieldLabel: 'offsetX',
+        binding:
+            colliderBindings.offsetX ??
+            (throw StateError(
+              'Entry ${current.id} offsetX changed but no writable source '
+              'binding exists.',
+            )),
+        editorValue: current.offsetX,
+      ),
+    );
+  }
+  if (changes.offsetYChanged) {
+    edits.add(
+      _buildColliderScalarEdit(
+        entryId: current.id,
+        fieldLabel: 'offsetY',
+        binding:
+            colliderBindings.offsetY ??
+            (throw StateError(
+              'Entry ${current.id} offsetY changed but no writable source '
+              'binding exists.',
+            )),
+        editorValue: current.offsetY,
       ),
     );
   }
 
-  if (!_nullableAlmostEqual(
-    current.castOriginOffset,
-    baseline.castOriginOffset,
-  )) {
+  if (changes.castOriginOffsetChanged) {
     final binding = baseline.castOriginOffsetBinding;
     final value = current.castOriginOffset;
     if (binding == null || value == null) {
@@ -222,10 +267,7 @@ List<_EntitySourceEdit> _buildEditsForEntry(
     return edits;
   }
 
-  if (!_nullableAlmostEqual(
-    currentReference.renderScale,
-    baselineReference.renderScale,
-  )) {
+  if (changes.renderScaleChanged) {
     final binding = baselineReference.renderScaleBinding;
     final value = currentReference.renderScale;
     if (binding == null || value == null) {
@@ -246,14 +288,7 @@ List<_EntitySourceEdit> _buildEditsForEntry(
     );
   }
 
-  if (!_nullableAlmostEqual(
-        currentReference.anchorXPx,
-        baselineReference.anchorXPx,
-      ) ||
-      !_nullableAlmostEqual(
-        currentReference.anchorYPx,
-        baselineReference.anchorYPx,
-      )) {
+  if (changes.anchorChanged) {
     final anchorX = currentReference.anchorXPx;
     final anchorY = currentReference.anchorYPx;
     final anchorXBinding = baselineReference.anchorXWriteBinding;
@@ -286,6 +321,29 @@ List<_EntitySourceEdit> _buildEditsForEntry(
   }
 
   return edits;
+}
+
+_EntitySourceEdit _buildColliderScalarEdit({
+  required String entryId,
+  required String fieldLabel,
+  required EntityColliderScalarBinding binding,
+  required double editorValue,
+}) {
+  final sourceBinding = binding.sourceBinding;
+  final sourceValue = binding.sourceValueFor(editorValue);
+  if (!sourceValue.isFinite) {
+    throw StateError(
+      'Entry $entryId $fieldLabel resolves to a non-finite source value.',
+    );
+  }
+  return _EntitySourceEdit(
+    entryId: entryId,
+    sourcePath: sourceBinding.sourcePath,
+    startOffset: sourceBinding.startOffset,
+    endOffset: sourceBinding.endOffset,
+    beforeSnippet: sourceBinding.sourceSnippet,
+    afterSnippet: _formatDoubleLiteral(sourceValue),
+  );
 }
 
 _EntitySourceEdit _buildExpressionRewriteEdit({
@@ -352,7 +410,7 @@ String _rewriteMultiplierScalar({
     fieldLabel: fieldLabel,
     binding: binding,
   );
-  if (basisValue.abs() <= EntityDocumentPipeline.changeEpsilon) {
+  if (EntityNumericPolicy.isEffectivelyZero(basisValue)) {
     throw StateError(
       'Entry $entryId $fieldLabel cannot preserve its expression because the '
       'multiplicative basis resolves to zero.',
@@ -372,7 +430,7 @@ String _rewriteDivisorScalar({
     fieldLabel: fieldLabel,
     binding: binding,
   );
-  if (nextValue.abs() <= EntityDocumentPipeline.changeEpsilon) {
+  if (EntityNumericPolicy.isEffectivelyZero(nextValue)) {
     throw StateError(
       'Entry $entryId $fieldLabel cannot preserve a division-based '
       'expression when the edited value is zero.',
@@ -409,66 +467,10 @@ double _requireRewriteBasis({
   return basisValue;
 }
 
-bool _entityBoundsChanged(EntityEntry current, EntityEntry baseline) {
-  return !_almostEqual(current.halfX, baseline.halfX) ||
-      !_almostEqual(current.halfY, baseline.halfY) ||
-      !_almostEqual(current.offsetX, baseline.offsetX) ||
-      !_almostEqual(current.offsetY, baseline.offsetY);
-}
-
-bool _nullableAlmostEqual(double? a, double? b) {
-  if (a == null || b == null) {
-    return a == b;
-  }
-  return _almostEqual(a, b);
-}
-
-bool _almostEqual(double a, double b) =>
-    (a - b).abs() <= EntityDocumentPipeline.changeEpsilon;
-
-String _buildReplacementSnippet(EntityEntry entry) {
-  switch (entry.sourceBinding.kind) {
-    case EntitySourceBindingKind.enemyAabbExpression:
-      return _enemyEntitySnippet(entry);
-    case EntitySourceBindingKind.playerArgs:
-      return _playerEntitySnippet(entry);
-    case EntitySourceBindingKind.projectileArgs:
-      return _projectileEntitySnippet(entry);
-    case EntitySourceBindingKind.castOriginOffsetScalar:
-    case EntitySourceBindingKind.referenceAnchorVec2Expression:
-    case EntitySourceBindingKind.referenceRenderScaleScalar:
-      throw StateError(
-        'Unsupported entity snippet binding kind: ${entry.sourceBinding.kind}',
-      );
-  }
-}
-
-String _enemyEntitySnippet(EntityEntry entry) {
-  return 'ColliderAabbDef('
-      'halfX: ${_formatDoubleLiteral(entry.halfX)}, '
-      'halfY: ${_formatDoubleLiteral(entry.halfY)}, '
-      'offsetX: ${_formatDoubleLiteral(entry.offsetX)}, '
-      'offsetY: ${_formatDoubleLiteral(entry.offsetY)})';
-}
-
-String _playerEntitySnippet(EntityEntry entry) {
-  final width = entry.halfX * 2;
-  final height = entry.halfY * 2;
-  return 'colliderWidth: ${_formatDoubleLiteral(width)},\n'
-      '  colliderHeight: ${_formatDoubleLiteral(height)},\n'
-      '  colliderOffsetX: ${_formatDoubleLiteral(entry.offsetX)},\n'
-      '  colliderOffsetY: ${_formatDoubleLiteral(entry.offsetY)}';
-}
-
-String _projectileEntitySnippet(EntityEntry entry) {
-  final sizeX = entry.halfX * 2;
-  final sizeY = entry.halfY * 2;
-  return 'colliderSizeX: ${_formatDoubleLiteral(sizeX)},\n'
-      '          colliderSizeY: ${_formatDoubleLiteral(sizeY)}';
-}
-
 String _formatDoubleLiteral(double value) {
-  final fixed = value.toStringAsFixed(4);
+  // Eight fractional digits keep expression-backed values within the shared
+  // entity comparison tolerance after a write/reparse round trip.
+  final fixed = value.toStringAsFixed(8);
   var trimmed = fixed.replaceFirst(RegExp(r'0+$'), '');
   trimmed = trimmed.replaceFirst(RegExp(r'\.$'), '');
   if (!trimmed.contains('.')) {

@@ -6,7 +6,9 @@ import 'package:path/path.dart' as p;
 import 'package:runner_editor/src/domain/authoring_types.dart';
 import 'package:runner_editor/src/entities/entity_domain_models.dart';
 import 'package:runner_editor/src/entities/entity_domain_plugin.dart';
+import 'package:runner_editor/src/entities/entity_export_pipeline.dart';
 import 'package:runner_editor/src/workspace/editor_workspace.dart';
+import 'package:runner_editor/src/workspace/workspace_write_transaction.dart';
 
 import 'test_support/entity_test_support.dart';
 
@@ -27,16 +29,7 @@ void main() {
       );
       final edited = plugin.applyEdit(
         document,
-        AuthoringCommand(
-          kind: 'update_entry',
-          payload: {
-            'id': enemy.id,
-            'halfX': enemy.halfX + 1.0,
-            'halfY': enemy.halfY,
-            'offsetX': enemy.offsetX,
-            'offsetY': enemy.offsetY,
-          },
-        ),
+        buildEntityUpdateCommand(enemy, halfX: enemy.halfX + 1.0),
       );
 
       final export = await plugin.exportToRepo(workspace, document: edited);
@@ -90,8 +83,8 @@ void main() {
         );
 
         expect(
-          enemy.sourceBinding.sourceSnippet,
-          startsWith('ColliderAabbDef('),
+          enemy.colliderBindings.halfX.sourceBinding.sourceSnippet,
+          '12.0',
         );
         expect(
           document.loadIssues.map((issue) => issue.code),
@@ -100,16 +93,7 @@ void main() {
 
         final edited = plugin.applyEdit(
           document,
-          AuthoringCommand(
-            kind: 'update_entry',
-            payload: <String, Object?>{
-              'id': enemy.id,
-              'halfX': 13.0,
-              'halfY': enemy.halfY,
-              'offsetX': enemy.offsetX,
-              'offsetY': enemy.offsetY,
-            },
-          ),
+          buildEntityUpdateCommand(enemy, halfX: 13.0),
         );
         await plugin.exportToRepo(workspace, document: edited);
 
@@ -165,6 +149,39 @@ void main() {
   });
 
   test(
+    'asset availability is cached in the loaded document and scene',
+    () async {
+      final fixtureRoot = Directory.systemTemp.createTempSync(
+        'runner_editor_fixture_',
+      );
+      try {
+        writeEntityColliderFixture(fixtureRoot.path);
+        final asset = File(
+          p.join(
+            fixtureRoot.path,
+            'assets/images/entities/spells/fire/bolt/spriteSheet.png',
+          ),
+        );
+        asset.parent.createSync(recursive: true);
+        asset.writeAsBytesSync(const <int>[0]);
+        final workspace = EditorWorkspace(rootPath: fixtureRoot.path);
+        final plugin = EntityDomainPlugin();
+
+        final document = await plugin.loadFromRepo(workspace) as EntityDocument;
+        asset.deleteSync();
+        final scene = plugin.buildEditableScene(document) as EntityScene;
+
+        const canonicalPath =
+            'assets/images/entities/spells/fire/bolt/spriteSheet.png';
+        expect(document.availableAssetPaths, contains(canonicalPath));
+        expect(scene.availableAssetPaths, contains(canonicalPath));
+      } finally {
+        fixtureRoot.deleteSync(recursive: true);
+      }
+    },
+  );
+
+  test(
     'fixture parser reads runtime grid cell size from spatial tuning',
     () async {
       final fixtureRoot = Directory.systemTemp.createTempSync(
@@ -214,18 +231,11 @@ void main() {
 
         final edited = plugin.applyEdit(
           document,
-          AuthoringCommand(
-            kind: 'update_entry',
-            payload: {
-              'id': projectile.id,
-              'halfX': projectile.halfX,
-              'halfY': projectile.halfY,
-              'offsetX': projectile.offsetX,
-              'offsetY': projectile.offsetY,
-              'anchorXPx': 30.0,
-              'anchorYPx': 20.0,
-              'renderScale': 1.25,
-            },
+          buildEntityUpdateCommand(
+            projectile,
+            anchorXPx: 30.0,
+            anchorYPx: 20.0,
+            renderScale: 1.25,
           ),
         );
 
@@ -269,16 +279,7 @@ void main() {
       );
       final edited = plugin.applyEdit(
         document,
-        AuthoringCommand(
-          kind: 'update_entry',
-          payload: {
-            'id': enemy.id,
-            'halfX': -1.0,
-            'halfY': enemy.halfY,
-            'offsetX': enemy.offsetX,
-            'offsetY': enemy.offsetY,
-          },
-        ),
+        buildEntityUpdateCommand(enemy, halfX: -1.0),
       );
 
       final enemyPath = p.join(
@@ -288,6 +289,7 @@ void main() {
       final export = await plugin.exportToRepo(workspace, document: edited);
 
       expect(export.applied, isFalse);
+      expect(export.outcome, ExportOutcome.validationFailed);
       final errorArtifact = export.artifacts.firstWhere(
         (artifact) => artifact.title == 'entity_export_error.md',
       );
@@ -324,30 +326,11 @@ void main() {
       );
       final editedEnemy = plugin.applyEdit(
         document,
-        AuthoringCommand(
-          kind: 'update_entry',
-          payload: {
-            'id': enemy.id,
-            'halfX': enemy.halfX + 1.0,
-            'halfY': enemy.halfY,
-            'offsetX': enemy.offsetX,
-            'offsetY': enemy.offsetY,
-          },
-        ),
+        buildEntityUpdateCommand(enemy, halfX: enemy.halfX + 1.0),
       );
       final edited = plugin.applyEdit(
         editedEnemy,
-        AuthoringCommand(
-          kind: 'update_entry',
-          payload: {
-            'id': projectile.id,
-            'halfX': projectile.halfX,
-            'halfY': projectile.halfY,
-            'offsetX': projectile.offsetX,
-            'offsetY': projectile.offsetY,
-            'renderScale': 1.25,
-          },
-        ),
+        buildEntityUpdateCommand(projectile, renderScale: 1.25),
       );
 
       final enemyPath = p.join(
@@ -380,83 +363,421 @@ void main() {
     }
   });
 
-  test('export handles reordered player and projectile collider args', () async {
+  test(
+    'export handles reordered player and projectile collider args',
+    () async {
+      final fixtureRoot = Directory.systemTemp.createTempSync(
+        'runner_editor_fixture_',
+      );
+      try {
+        writeEntityColliderFixture(
+          fixtureRoot.path,
+          reorderPlayerColliderArgs: true,
+          reorderProjectileColliderArgs: true,
+        );
+        final workspace = EditorWorkspace(rootPath: fixtureRoot.path);
+        final plugin = EntityDomainPlugin();
+        final loaded = await plugin.loadFromRepo(workspace);
+        final document = loaded as EntityDocument;
+
+        final player = document.entries.firstWhere(
+          (entry) => entry.id == 'player.eloise',
+        );
+        final projectile = document.entries.firstWhere(
+          (entry) => entry.id == 'projectile.fireBolt',
+        );
+        final editedPlayer = plugin.applyEdit(
+          document,
+          buildEntityUpdateCommand(player, halfX: player.halfX + 1.0),
+        );
+        final edited = plugin.applyEdit(
+          editedPlayer,
+          buildEntityUpdateCommand(projectile, halfY: projectile.halfY + 1.0),
+        );
+
+        final export = await plugin.exportToRepo(workspace, document: edited);
+
+        expect(export.applied, isTrue);
+        final playerFile = File(
+          p.join(
+            fixtureRoot.path,
+            'packages/runner_core/lib/players/characters/eloise.dart',
+          ),
+        ).readAsStringSync();
+        final projectileFile = File(
+          p.join(
+            fixtureRoot.path,
+            'packages/runner_core/lib/projectiles/projectile_catalog.dart',
+          ),
+        ).readAsStringSync();
+        expect(
+          playerFile,
+          contains(
+            'colliderOffsetY: 0.0,\n'
+            '  colliderWidth: 24.0,\n'
+            '  colliderOffsetX: 0.0,\n'
+            '  colliderHeight: 46.0',
+          ),
+        );
+        expect(
+          projectileFile,
+          contains('colliderSizeY: 10.0,\n          colliderSizeX: 18.0'),
+        );
+      } finally {
+        fixtureRoot.deleteSync(recursive: true);
+      }
+    },
+  );
+
+  test(
+    'scalar collider edits preserve interleaved arguments and comments',
+    () async {
+      final fixtureRoot = Directory.systemTemp.createTempSync(
+        'runner_editor_fixture_',
+      );
+      try {
+        writeEntityColliderFixture(
+          fixtureRoot.path,
+          reorderPlayerColliderArgs: true,
+          reorderProjectileColliderArgs: true,
+          interleaveColliderContent: true,
+        );
+        final workspace = EditorWorkspace(rootPath: fixtureRoot.path);
+        final plugin = EntityDomainPlugin();
+        final document = await plugin.loadFromRepo(workspace) as EntityDocument;
+        final player = document.entries.singleWhere(
+          (entry) => entry.id == 'player.eloise',
+        );
+        final projectile = document.entries.singleWhere(
+          (entry) => entry.id == 'projectile.fireBolt',
+        );
+        final editedPlayer = plugin.applyEdit(
+          document,
+          buildEntityUpdateCommand(player, halfX: player.halfX + 1.0),
+        );
+        final edited = plugin.applyEdit(
+          editedPlayer,
+          buildEntityUpdateCommand(projectile, halfY: projectile.halfY + 1.0),
+        );
+
+        final result = await plugin.exportToRepo(workspace, document: edited);
+
+        expect(result.outcome, ExportOutcome.applied);
+        final playerSource = File(
+          p.join(
+            fixtureRoot.path,
+            'packages/runner_core/lib/players/characters/eloise.dart',
+          ),
+        ).readAsStringSync();
+        final projectileSource = File(
+          p.join(
+            fixtureRoot.path,
+            'packages/runner_core/lib/projectiles/projectile_catalog.dart',
+          ),
+        ).readAsStringSync();
+        expect(
+          playerSource,
+          contains(
+            '// This unrelated argument must survive collider edits.\n'
+            '  movementSpeed: 99.0,',
+          ),
+        );
+        expect(playerSource, contains('colliderWidth: 24.0'));
+        expect(
+          projectileSource,
+          contains(
+            '// Preserve projectile behavior metadata.\n'
+            '          ballistic: true,',
+          ),
+        );
+        expect(projectileSource, contains('colliderSizeY: 10.0'));
+      } finally {
+        fixtureRoot.deleteSync(recursive: true);
+      }
+    },
+  );
+
+  test(
+    'final pre-replace drift aborts without overwriting external edits',
+    () async {
+      final fixtureRoot = Directory.systemTemp.createTempSync(
+        'runner_editor_fixture_',
+      );
+      try {
+        writeEntityColliderFixture(fixtureRoot.path);
+        final workspace = EditorWorkspace(rootPath: fixtureRoot.path);
+        final enemyPath = p.join(
+          fixtureRoot.path,
+          'packages/runner_core/lib/enemies/enemy_catalog.dart',
+        );
+        final plugin = EntityDomainPlugin(
+          exportPipeline: EntityExportPipeline(
+            hooks: EntityExportHooks(
+              beforeReplace: (_) {
+                final source = File(enemyPath).readAsStringSync();
+                File(enemyPath).writeAsStringSync(
+                  source.replaceFirst('halfX: 12.0', 'halfX: 99.0'),
+                );
+              },
+            ),
+          ),
+        );
+        final document = await plugin.loadFromRepo(workspace) as EntityDocument;
+        final enemy = document.entries.singleWhere(
+          (entry) => entry.id == 'enemy.unocoDemon',
+        );
+        final edited = plugin.applyEdit(
+          document,
+          buildEntityUpdateCommand(enemy, halfX: 13.0),
+        );
+
+        final result = await plugin.exportToRepo(workspace, document: edited);
+
+        expect(result.outcome, ExportOutcome.sourceDrift);
+        expect(result.message, contains('Final source drift detected'));
+        expect(File(enemyPath).readAsStringSync(), contains('halfX: 99.0'));
+        expect(File('$enemyPath.bak').existsSync(), isFalse);
+      } finally {
+        fixtureRoot.deleteSync(recursive: true);
+      }
+    },
+  );
+
+  for (final failurePoint in <String>['first', 'middle', 'last']) {
+    test(
+      '$failurePoint replacement failure rolls back the whole artifact set',
+      () async {
+        final fixtureRoot = Directory.systemTemp.createTempSync(
+          'runner_editor_fixture_',
+        );
+        try {
+          writeEntityColliderFixture(
+            fixtureRoot.path,
+            includeReferenceBindings: true,
+          );
+          final workspace = EditorWorkspace(rootPath: fixtureRoot.path);
+          final pipeline = EntityExportPipeline(
+            transactionApply: (transaction, beforeReplace, verifyReplacements) {
+              transaction.apply(
+                beforeReplace: () {
+                  beforeReplace();
+                  final staged =
+                      fixtureRoot
+                          .listSync(recursive: true)
+                          .whereType<File>()
+                          .where((file) => file.path.endsWith('.tmp'))
+                          .toList()
+                        ..sort(
+                          (left, right) => left.path.compareTo(right.path),
+                        );
+                  final index = switch (failurePoint) {
+                    'first' => 0,
+                    'middle' => staged.length ~/ 2,
+                    'last' => staged.length - 1,
+                    _ => throw StateError('Unknown failure point.'),
+                  };
+                  staged[index].deleteSync();
+                },
+                verifyReplacements: verifyReplacements,
+              );
+            },
+          );
+          final plugin = EntityDomainPlugin(exportPipeline: pipeline);
+          final document =
+              await plugin.loadFromRepo(workspace) as EntityDocument;
+          final enemy = document.entries.singleWhere(
+            (entry) => entry.id == 'enemy.unocoDemon',
+          );
+          final projectile = document.entries.singleWhere(
+            (entry) => entry.id == 'projectile.fireBolt',
+          );
+          final enemyPath = workspace.resolve(enemy.sourcePath);
+          final registryPath = workspace.resolve(
+            projectile.referenceVisual!.renderScaleBinding!.sourcePath,
+          );
+          final enemyBefore = File(enemyPath).readAsStringSync();
+          final registryBefore = File(registryPath).readAsStringSync();
+          final editedEnemy = plugin.applyEdit(
+            document,
+            buildEntityUpdateCommand(enemy, halfX: 13.0),
+          );
+          final edited = plugin.applyEdit(
+            editedEnemy,
+            buildEntityUpdateCommand(projectile, renderScale: 1.25),
+          );
+
+          final result = await plugin.exportToRepo(workspace, document: edited);
+
+          expect(result.outcome, ExportOutcome.failed);
+          expect(File(enemyPath).readAsStringSync(), enemyBefore);
+          expect(File(registryPath).readAsStringSync(), registryBefore);
+          expect(File('$enemyPath.bak').existsSync(), isFalse);
+          expect(File('$registryPath.bak').existsSync(), isFalse);
+        } finally {
+          fixtureRoot.deleteSync(recursive: true);
+        }
+      },
+    );
+  }
+
+  test(
+    'verification failure restores source and an existing persistent backup',
+    () async {
+      final fixtureRoot = Directory.systemTemp.createTempSync(
+        'runner_editor_fixture_',
+      );
+      try {
+        writeEntityColliderFixture(fixtureRoot.path);
+        final workspace = EditorWorkspace(rootPath: fixtureRoot.path);
+        final plugin = EntityDomainPlugin(
+          exportPipeline: EntityExportPipeline(
+            hooks: EntityExportHooks(
+              verifyReplacements: (_) =>
+                  throw StateError('forced verify failure'),
+            ),
+          ),
+        );
+        final document = await plugin.loadFromRepo(workspace) as EntityDocument;
+        final enemy = document.entries.singleWhere(
+          (entry) => entry.id == 'enemy.unocoDemon',
+        );
+        final sourcePath = workspace.resolve(enemy.sourcePath);
+        final sourceBefore = File(sourcePath).readAsStringSync();
+        final persistentBackup = File('$sourcePath.bak')
+          ..writeAsStringSync('pre-existing backup evidence');
+        final edited = plugin.applyEdit(
+          document,
+          buildEntityUpdateCommand(enemy, halfX: 13.0),
+        );
+
+        final result = await plugin.exportToRepo(workspace, document: edited);
+
+        expect(result.outcome, ExportOutcome.failed);
+        expect(result.message, contains('forced verify failure'));
+        expect(File(sourcePath).readAsStringSync(), sourceBefore);
+        expect(
+          persistentBackup.readAsStringSync(),
+          'pre-existing backup evidence',
+        );
+      } finally {
+        fixtureRoot.deleteSync(recursive: true);
+      }
+    },
+  );
+
+  test('incomplete rollback reports recovery state distinctly', () async {
     final fixtureRoot = Directory.systemTemp.createTempSync(
       'runner_editor_fixture_',
     );
     try {
-      writeEntityColliderFixture(
-        fixtureRoot.path,
-        reorderPlayerColliderArgs: true,
-        reorderProjectileColliderArgs: true,
-      );
+      writeEntityColliderFixture(fixtureRoot.path);
+      final recoveryPath = p.join(fixtureRoot.path, 'retained-recovery.bak');
       final workspace = EditorWorkspace(rootPath: fixtureRoot.path);
-      final plugin = EntityDomainPlugin();
-      final loaded = await plugin.loadFromRepo(workspace);
-      final document = loaded as EntityDocument;
-
-      final player = document.entries.firstWhere(
-        (entry) => entry.id == 'player.eloise',
-      );
-      final projectile = document.entries.firstWhere(
-        (entry) => entry.id == 'projectile.fireBolt',
-      );
-      final editedPlayer = plugin.applyEdit(
-        document,
-        AuthoringCommand(
-          kind: 'update_entry',
-          payload: {
-            'id': player.id,
-            'halfX': player.halfX + 1.0,
-            'halfY': player.halfY,
-            'offsetX': player.offsetX,
-            'offsetY': player.offsetY,
+      final plugin = EntityDomainPlugin(
+        exportPipeline: EntityExportPipeline(
+          transactionApply: (_, _, _) {
+            File(recoveryPath).writeAsStringSync('recovery evidence');
+            throw WorkspaceWriteTransactionException(
+              cause: StateError('forced install failure'),
+              rollbackFailures: const <String>['forced restore failure'],
+              outputsCommitted: false,
+              recoveryPaths: <String>[recoveryPath],
+            );
           },
         ),
       );
+      final document = await plugin.loadFromRepo(workspace) as EntityDocument;
+      final enemy = document.entries.singleWhere(
+        (entry) => entry.id == 'enemy.unocoDemon',
+      );
+      final sourcePath = workspace.resolve(enemy.sourcePath);
+      final sourceBefore = File(sourcePath).readAsStringSync();
       final edited = plugin.applyEdit(
-        editedPlayer,
-        AuthoringCommand(
-          kind: 'update_entry',
-          payload: {
-            'id': projectile.id,
-            'halfX': projectile.halfX,
-            'halfY': projectile.halfY + 1.0,
-            'offsetX': projectile.offsetX,
-            'offsetY': projectile.offsetY,
-          },
-        ),
+        document,
+        buildEntityUpdateCommand(enemy, halfX: 13.0),
       );
 
-      final export = await plugin.exportToRepo(workspace, document: edited);
+      final result = await plugin.exportToRepo(workspace, document: edited);
 
-      expect(export.applied, isTrue);
-      final playerFile = File(
-        p.join(
-          fixtureRoot.path,
-          'packages/runner_core/lib/players/characters/eloise.dart',
-        ),
-      ).readAsStringSync();
-      final projectileFile = File(
-        p.join(
-          fixtureRoot.path,
-          'packages/runner_core/lib/projectiles/projectile_catalog.dart',
-        ),
-      ).readAsStringSync();
+      expect(result.applied, isFalse);
+      expect(result.outcome, ExportOutcome.rollbackIncomplete);
+      expect(File(sourcePath).readAsStringSync(), sourceBefore);
       expect(
-        playerFile,
-        contains(
-          'colliderWidth: 24.0,\n  colliderHeight: 46.0,\n  colliderOffsetX: 0.0,\n  colliderOffsetY: 0.0',
-        ),
-      );
-      expect(
-        projectileFile,
-        contains('colliderSizeX: 18.0,\n          colliderSizeY: 10.0'),
+        result.artifacts
+            .singleWhere(
+              (artifact) => artifact.title == 'entity_transaction_recovery.md',
+            )
+            .content,
+        contains(recoveryPath),
       );
     } finally {
       fixtureRoot.deleteSync(recursive: true);
     }
   });
+
+  test(
+    'committed output with cleanup failure is reported as applied',
+    () async {
+      final fixtureRoot = Directory.systemTemp.createTempSync(
+        'runner_editor_fixture_',
+      );
+      try {
+        writeEntityColliderFixture(fixtureRoot.path);
+        final recoveryPath = p.join(
+          fixtureRoot.path,
+          'packages/runner_core/lib/enemies/simulated-recovery.bak',
+        );
+        final workspace = EditorWorkspace(rootPath: fixtureRoot.path);
+        final plugin = EntityDomainPlugin(
+          exportPipeline: EntityExportPipeline(
+            transactionApply: (transaction, beforeReplace, verifyReplacements) {
+              transaction.apply(
+                beforeReplace: beforeReplace,
+                verifyReplacements: verifyReplacements,
+              );
+              File(
+                recoveryPath,
+              ).writeAsStringSync('simulated cleanup evidence');
+              throw WorkspaceWriteTransactionException(
+                cause: StateError('forced cleanup failure'),
+                rollbackFailures: const <String>['forced cleanup failure'],
+                outputsCommitted: true,
+                recoveryPaths: <String>[recoveryPath],
+              );
+            },
+          ),
+        );
+        final document = await plugin.loadFromRepo(workspace) as EntityDocument;
+        final enemy = document.entries.singleWhere(
+          (entry) => entry.id == 'enemy.unocoDemon',
+        );
+        final edited = plugin.applyEdit(
+          document,
+          buildEntityUpdateCommand(enemy, halfX: 13.0),
+        );
+
+        final result = await plugin.exportToRepo(workspace, document: edited);
+
+        expect(result.applied, isTrue);
+        expect(result.outcome, ExportOutcome.appliedWithCleanupRequired);
+        expect(
+          File(workspace.resolve(enemy.sourcePath)).readAsStringSync(),
+          contains('halfX: 13.0'),
+        );
+        expect(
+          result.artifacts
+              .singleWhere(
+                (artifact) =>
+                    artifact.title == 'entity_transaction_recovery.md',
+              )
+              .content,
+          contains(recoveryPath),
+        );
+      } finally {
+        fixtureRoot.deleteSync(recursive: true);
+      }
+    },
+  );
 
   test('player discovery order is stable across multiple files', () async {
     final fixtureRoot = Directory.systemTemp.createTempSync(
@@ -506,18 +827,7 @@ void main() {
 
       final edited = plugin.applyEdit(
         document,
-        AuthoringCommand(
-          kind: 'update_entry',
-          payload: {
-            'id': projectile.id,
-            'halfX': projectile.halfX,
-            'halfY': projectile.halfY,
-            'offsetX': projectile.offsetX,
-            'offsetY': projectile.offsetY,
-            'anchorXPx': 30.0,
-            'anchorYPx': 20.0,
-          },
-        ),
+        buildEntityUpdateCommand(projectile, anchorXPx: 30.0, anchorYPx: 20.0),
       );
 
       final export = await plugin.exportToRepo(workspace, document: edited);
@@ -530,7 +840,10 @@ void main() {
         ),
       ).readAsStringSync();
       expect(projectileRenderFile, contains('_fireBoltFrameWidth * 0.625'));
-      expect(projectileRenderFile, contains('_fireBoltFrameHeight * 0.4167'));
+      expect(
+        projectileRenderFile,
+        contains('_fireBoltFrameHeight * 0.41666667'),
+      );
       expect(projectileRenderFile, isNot(contains('Vec2(30.0, 20.0)')));
     } finally {
       fixtureRoot.deleteSync(recursive: true);
@@ -553,16 +866,7 @@ void main() {
       );
       final edited = plugin.applyEdit(
         document,
-        AuthoringCommand(
-          kind: 'update_entry',
-          payload: {
-            'id': enemy.id,
-            'halfX': enemy.halfX + 1.0,
-            'halfY': enemy.halfY,
-            'offsetX': enemy.offsetX,
-            'offsetY': enemy.offsetY,
-          },
-        ),
+        buildEntityUpdateCommand(enemy, halfX: enemy.halfX + 1.0),
       );
 
       final enemyPath = p.join(
@@ -577,6 +881,7 @@ void main() {
       final export = await plugin.exportToRepo(workspace, document: edited);
 
       expect(export.applied, isFalse);
+      expect(export.outcome, ExportOutcome.sourceDrift);
       final errorArtifact = export.artifacts.firstWhere(
         (artifact) => artifact.title == 'entity_export_error.md',
       );

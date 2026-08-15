@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as p;
 
 import 'package:runner_editor/src/domain/authoring_types.dart';
 import 'package:runner_editor/src/entities/entity_domain_models.dart';
@@ -91,16 +94,9 @@ void main() {
     expect(baselineCastOriginOffset, isNotNull);
 
     controller.applyCommand(
-      AuthoringCommand(
-        kind: 'update_entry',
-        payload: {
-          'id': player.id,
-          'halfX': player.halfX,
-          'halfY': player.halfY,
-          'offsetX': player.offsetX,
-          'offsetY': player.offsetY,
-          'castOriginOffset': baselineCastOriginOffset! + 5.0,
-        },
+      buildEntityUpdateCommand(
+        player,
+        castOriginOffset: baselineCastOriginOffset! + 5.0,
       ),
     );
 
@@ -119,16 +115,7 @@ void main() {
 
     final entry = (controller.scene! as EntityScene).entries.first;
     controller.applyCommand(
-      AuthoringCommand(
-        kind: 'update_entry',
-        payload: {
-          'id': entry.id,
-          'halfX': entry.halfX + 1.0,
-          'halfY': entry.halfY,
-          'offsetX': entry.offsetX,
-          'offsetY': entry.offsetY,
-        },
-      ),
+      buildEntityUpdateCommand(entry, halfX: entry.halfX + 1.0),
     );
 
     final pending = controller.pendingChanges;
@@ -154,16 +141,7 @@ void main() {
       final originalHalfX = enemy.halfX;
 
       controller.applyCommand(
-        AuthoringCommand(
-          kind: 'update_entry',
-          payload: {
-            'id': enemy.id,
-            'halfX': originalHalfX + 2.0,
-            'halfY': enemy.halfY,
-            'offsetX': enemy.offsetX,
-            'offsetY': enemy.offsetY,
-          },
-        ),
+        buildEntityUpdateCommand(enemy, halfX: originalHalfX + 2.0),
       );
 
       final edited = (controller.scene! as EntityScene).entries.firstWhere(
@@ -193,4 +171,36 @@ void main() {
       expect(controller.dirtyItemIds, contains(enemy.id));
     },
   );
+
+  test('session surfaces typed source drift through exportError', () async {
+    final fixtureRoot = Directory.systemTemp.createTempSync(
+      'runner_editor_session_fixture_',
+    );
+    try {
+      writeEntityColliderFixture(fixtureRoot.path);
+      final controller = buildEntitiesControllerForPath(fixtureRoot.path);
+      await controller.loadWorkspace();
+      final enemy = (controller.scene! as EntityScene).entries.singleWhere(
+        (entry) => entry.id == 'enemy.unocoDemon',
+      );
+      controller.applyCommand(
+        buildEntityUpdateCommand(enemy, halfX: enemy.halfX + 1.0),
+      );
+      final enemyPath = p.join(
+        fixtureRoot.path,
+        'packages/runner_core/lib/enemies/enemy_catalog.dart',
+      );
+      final drifted = File(
+        enemyPath,
+      ).readAsStringSync().replaceFirst('halfX: 12.0', 'halfX: 99.0');
+      File(enemyPath).writeAsStringSync(drifted);
+
+      await controller.exportDirectWrite();
+
+      expect(controller.lastExportResult?.outcome, ExportOutcome.sourceDrift);
+      expect(controller.exportError, contains('Source drift detected'));
+    } finally {
+      fixtureRoot.deleteSync(recursive: true);
+    }
+  });
 }

@@ -4,6 +4,8 @@
 // in-memory document rules, and source-backed export live in separate
 // collaborators so route wiring stays small and new contributors can find the
 // real ownership boundaries quickly.
+import 'dart:isolate';
+
 import '../domain/authoring_types.dart';
 import '../workspace/editor_workspace.dart';
 import 'entity_document_pipeline.dart';
@@ -57,7 +59,9 @@ class EntityDomainPlugin implements AuthoringDomainPlugin {
 
   @override
   Future<AuthoringDocument> loadFromRepo(EditorWorkspace workspace) async {
-    final parseResult = _parser.parse(workspace);
+    // Dart source discovery and analyzer parsing are blocking work. Keep them
+    // off the Flutter UI isolate so Reload remains responsive as catalogs grow.
+    final parseResult = await Isolate.run(() => _parser.parse(workspace));
     final baseline = <String, EntityEntry>{
       for (final entry in parseResult.entries) entry.id: entry,
     };
@@ -65,6 +69,7 @@ class EntityDomainPlugin implements AuthoringDomainPlugin {
       entries: parseResult.entries,
       baselineById: baseline,
       runtimeGridCellSize: parseResult.runtimeGridCellSize,
+      availableAssetPaths: parseResult.availableAssetPaths,
       loadIssues: parseResult.issues,
     );
   }

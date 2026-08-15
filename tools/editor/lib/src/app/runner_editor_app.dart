@@ -15,8 +15,8 @@ import 'pages/home/editor_home_page.dart';
 ///
 /// Creates one plugin registry and one long-lived session controller for the
 /// whole app so route switching stays inside a single coherent session model.
-/// The initial workspace path only seeds controller context; each route still
-/// loads its document explicitly through the active plugin.
+/// The initial workspace path bounds every route's repository reads and writes;
+/// each route still loads its document explicitly through the active plugin.
 void runEditorApp({required String initialWorkspacePath}) {
   final registry = AuthoringPluginRegistry(
     plugins: [
@@ -41,8 +41,8 @@ void runEditorApp({required String initialWorkspacePath}) {
 /// Root Flutter shell for the editor tool.
 ///
 /// Keeps theming and top-level navigation separate from domain plugins. The
-/// injected [controller] is shared across all routes so workspace selection,
-/// undo/redo, pending changes, and export state remain session-coherent.
+/// injected [controller] is shared across all routes so undo/redo, pending
+/// changes, and export state remain session-coherent.
 class RunnerEditorApp extends StatelessWidget {
   const RunnerEditorApp({super.key, required this.controller});
 

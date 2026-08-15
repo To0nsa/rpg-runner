@@ -163,6 +163,45 @@ class EntityReferenceAnimView {
   final int? gridColumns;
 }
 
+/// One writable collider scalar and its runtime-to-source unit conversion.
+///
+/// Player and projectile source stores full dimensions while the editor stores
+/// half extents, so their half-axis bindings use a factor of two. Enemy source
+/// already stores half extents and uses a factor of one.
+@immutable
+class EntityColliderScalarBinding {
+  const EntityColliderScalarBinding({
+    required this.sourceBinding,
+    this.sourceUnitsPerEditorUnit = 1.0,
+  });
+
+  final EntitySourceBinding sourceBinding;
+  final double sourceUnitsPerEditorUnit;
+
+  double sourceValueFor(double editorValue) =>
+      editorValue * sourceUnitsPerEditorUnit;
+}
+
+/// Exact scalar bindings for the collider fields one entity may edit.
+///
+/// A null offset binding means the runtime source does not expose a writable
+/// scalar for that axis. Callers must keep that value unchanged rather than
+/// inventing a broader source replacement.
+@immutable
+class EntityColliderSourceBindings {
+  const EntityColliderSourceBindings({
+    required this.halfX,
+    required this.halfY,
+    this.offsetX,
+    this.offsetY,
+  });
+
+  final EntityColliderScalarBinding halfX;
+  final EntityColliderScalarBinding halfY;
+  final EntityColliderScalarBinding? offsetX;
+  final EntityColliderScalarBinding? offsetY;
+}
+
 /// One authorable entity record in the entities domain.
 ///
 /// This combines editable collider data with optional render preview metadata
@@ -179,7 +218,7 @@ class EntityEntry {
     required this.offsetX,
     required this.offsetY,
     required this.sourcePath,
-    required this.sourceBinding,
+    required this.colliderBindings,
     this.referenceVisual,
     this.artFacingDirection,
     this.isCaster = false,
@@ -195,7 +234,7 @@ class EntityEntry {
   final double offsetX;
   final double offsetY;
   final String sourcePath;
-  final EntitySourceBinding sourceBinding;
+  final EntityColliderSourceBindings colliderBindings;
   final EntityReferenceVisual? referenceVisual;
   final EntityArtFacingDirection? artFacingDirection;
   final bool isCaster;
@@ -224,7 +263,7 @@ class EntityEntry {
       offsetX: offsetX ?? this.offsetX,
       offsetY: offsetY ?? this.offsetY,
       sourcePath: sourcePath,
-      sourceBinding: sourceBinding,
+      colliderBindings: colliderBindings,
       referenceVisual: referenceVisual ?? this.referenceVisual,
       artFacingDirection: artFacingDirection ?? this.artFacingDirection,
       isCaster: isCaster ?? this.isCaster,
@@ -247,9 +286,11 @@ class EntityDocument extends AuthoringDocument {
     required List<EntityEntry> entries,
     required Map<String, EntityEntry> baselineById,
     required this.runtimeGridCellSize,
+    Set<String> availableAssetPaths = const <String>{},
     List<ValidationIssue> loadIssues = const <ValidationIssue>[],
   }) : entries = List<EntityEntry>.unmodifiable(entries),
        baselineById = Map<String, EntityEntry>.unmodifiable(baselineById),
+       availableAssetPaths = Set<String>.unmodifiable(availableAssetPaths),
        loadIssues = List<ValidationIssue>.unmodifiable(loadIssues);
 
   // Collections are snapped on construction so the document behaves like a
@@ -261,6 +302,9 @@ class EntityDocument extends AuthoringDocument {
   ///
   /// The entities scene uses this for consistent grid overlay/debug context.
   final double runtimeGridCellSize;
+
+  /// Canonical workspace-relative image paths resolved once during load.
+  final Set<String> availableAssetPaths;
   final List<ValidationIssue> loadIssues;
 }
 
@@ -273,12 +317,17 @@ class EntityScene extends EditableScene {
   EntityScene({
     required List<EntityEntry> entries,
     required this.runtimeGridCellSize,
-  }) : entries = List<EntityEntry>.unmodifiable(entries);
+    Set<String> availableAssetPaths = const <String>{},
+  }) : entries = List<EntityEntry>.unmodifiable(entries),
+       availableAssetPaths = Set<String>.unmodifiable(availableAssetPaths);
 
   final List<EntityEntry> entries;
 
   /// Runtime broadphase grid size in world pixels mirrored from the document.
   final double runtimeGridCellSize;
+
+  /// Canonical workspace-relative images known to exist for this scene.
+  final Set<String> availableAssetPaths;
 }
 
 /// Shape of source range the entity exporter knows how to replace.
@@ -287,9 +336,7 @@ class EntityScene extends EditableScene {
 /// a handful of specific runtime source patterns rather than a generic file
 /// format.
 enum EntitySourceBindingKind {
-  enemyAabbExpression,
-  playerArgs,
-  projectileArgs,
+  colliderScalar,
   castOriginOffsetScalar,
   referenceAnchorVec2Expression,
   referenceRenderScaleScalar,

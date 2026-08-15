@@ -32,7 +32,8 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
     implements
         EditorPageLocalDraftState,
         EditorPageSessionShortcutHandler,
-        EditorPageReloadHandler {
+        EditorPageReloadHandler,
+        EditorPageApplyHandler {
   final GlobalKey<ChunkAuthoringWorkspaceState> _workspaceKey =
       GlobalKey<ChunkAuthoringWorkspaceState>();
 
@@ -80,6 +81,17 @@ class _ChunkCreatorPageState extends State<ChunkCreatorPage>
       return;
     }
     await widget.controller.loadWorkspace();
+  }
+
+  @override
+  bool get canApplyEditorPage =>
+      !_migrationRequired &&
+      (_workspaceKey.currentState?.canApplyToFiles ?? false);
+
+  @override
+  Future<void> applyEditorPage() async {
+    if (_migrationRequired) return;
+    await _workspaceKey.currentState?.applyToFiles();
   }
 
   @override

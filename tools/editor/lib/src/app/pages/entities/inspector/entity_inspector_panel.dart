@@ -224,6 +224,7 @@ class EntityInspectorPanel extends StatelessWidget {
                 fields: [
                   TextField(
                     controller: offsetXController,
+                    enabled: selected.colliderBindings.offsetX != null,
                     decoration: const InputDecoration(
                       labelText: 'offsetX',
                       border: OutlineInputBorder(),
@@ -231,6 +232,7 @@ class EntityInspectorPanel extends StatelessWidget {
                   ),
                   TextField(
                     controller: offsetYController,
+                    enabled: selected.colliderBindings.offsetY != null,
                     decoration: const InputDecoration(
                       labelText: 'offsetY',
                       border: OutlineInputBorder(),
@@ -254,16 +256,12 @@ class EntityInspectorPanel extends StatelessWidget {
   }
 
   String _resolvedShapeType(EntityEntry entry) {
-    switch (entry.sourceBinding.kind) {
-      case EntitySourceBindingKind.enemyAabbExpression:
-      case EntitySourceBindingKind.playerArgs:
+    switch (entry.entityType) {
+      case EntityType.enemy:
+      case EntityType.player:
         return 'upright capsule + enclosing AABB';
-      case EntitySourceBindingKind.projectileArgs:
+      case EntityType.projectile:
         return 'horizontal capsule + enclosing AABB';
-      case EntitySourceBindingKind.castOriginOffsetScalar:
-      case EntitySourceBindingKind.referenceAnchorVec2Expression:
-      case EntitySourceBindingKind.referenceRenderScaleScalar:
-        return 'unknown';
     }
   }
 

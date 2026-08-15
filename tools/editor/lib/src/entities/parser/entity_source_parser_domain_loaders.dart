@@ -83,12 +83,22 @@ List<EntityEntry> _parseEnemies(
       );
       continue;
     }
-    final colliderValueExpr = resolvedCollider.expression;
     final colliderArgs = resolvedCollider.arguments;
 
-    final halfX = _doubleNamedArg(colliderArgs, 'halfX');
-    final halfY = _doubleNamedArg(colliderArgs, 'halfY');
-    if (halfX == null || halfY == null) {
+    final halfXArg = _namedArgument(colliderArgs, 'halfX');
+    final halfYArg = _namedArgument(colliderArgs, 'halfY');
+    final offsetXArg = _namedArgument(colliderArgs, 'offsetX');
+    final offsetYArg = _namedArgument(colliderArgs, 'offsetY');
+    final halfX = halfXArg == null
+        ? null
+        : _doubleFromExpression(halfXArg.expression);
+    final halfY = halfYArg == null
+        ? null
+        : _doubleFromExpression(halfYArg.expression);
+    if (halfX == null ||
+        halfY == null ||
+        halfXArg == null ||
+        halfYArg == null) {
       issues.add(
         ValidationIssue(
           severity: ValidationSeverity.error,
@@ -100,8 +110,12 @@ List<EntityEntry> _parseEnemies(
       );
       continue;
     }
-    final offsetX = _doubleNamedArg(colliderArgs, 'offsetX') ?? 0.0;
-    final offsetY = _doubleNamedArg(colliderArgs, 'offsetY') ?? 0.0;
+    final offsetX = offsetXArg == null
+        ? 0.0
+        : _doubleFromExpression(offsetXArg.expression) ?? 0.0;
+    final offsetY = offsetYArg == null
+        ? 0.0
+        : _doubleFromExpression(offsetYArg.expression) ?? 0.0;
     final artFacingDirection =
         _facingFromExpression(
           _namedArgumentExpression(
@@ -130,8 +144,28 @@ List<EntityEntry> _parseEnemies(
         ) ||
         castOriginOffset != null;
 
-    final start = colliderValueExpr.offset;
-    final end = colliderValueExpr.end;
+    final colliderBindings = EntityColliderSourceBindings(
+      halfX: _requiredColliderScalarBinding(
+        sourcePath: EntitySourceParser.enemyCatalogPath,
+        source: source,
+        namedArg: halfXArg,
+      ),
+      halfY: _requiredColliderScalarBinding(
+        sourcePath: EntitySourceParser.enemyCatalogPath,
+        source: source,
+        namedArg: halfYArg,
+      ),
+      offsetX: _colliderScalarBindingFromNamedArg(
+        sourcePath: EntitySourceParser.enemyCatalogPath,
+        source: source,
+        namedArg: offsetXArg,
+      ),
+      offsetY: _colliderScalarBindingFromNamedArg(
+        sourcePath: EntitySourceParser.enemyCatalogPath,
+        source: source,
+        namedArg: offsetYArg,
+      ),
+    );
     final renderAnimExpression = _namedArgumentExpression(
       returnExpr.argumentList.arguments,
       'renderAnim',
@@ -153,13 +187,7 @@ List<EntityEntry> _parseEnemies(
         offsetX: offsetX,
         offsetY: offsetY,
         sourcePath: EntitySourceParser.enemyCatalogPath,
-        sourceBinding: EntitySourceBinding(
-          kind: EntitySourceBindingKind.enemyAabbExpression,
-          sourcePath: EntitySourceParser.enemyCatalogPath,
-          startOffset: start,
-          endOffset: end,
-          sourceSnippet: source.substring(start, end),
-        ),
+        colliderBindings: colliderBindings,
         referenceVisual: referenceVisual,
         artFacingDirection: artFacingDirection,
         isCaster: isCaster,
@@ -309,25 +337,30 @@ List<EntityEntry> _parsePlayers(
           parsedReferenceVisual,
           playerRenderScale,
         );
-        final colliderBinding = _bindingFromNodes(
-          sourcePath: relativePath,
-          source: source,
-          kind: EntitySourceBindingKind.playerArgs,
-          nodes: <AstNode>[widthArg, heightArg, offsetXArg, offsetYArg],
+        final colliderBindings = EntityColliderSourceBindings(
+          halfX: _requiredColliderScalarBinding(
+            sourcePath: relativePath,
+            source: source,
+            namedArg: widthArg,
+            sourceUnitsPerEditorUnit: 2.0,
+          ),
+          halfY: _requiredColliderScalarBinding(
+            sourcePath: relativePath,
+            source: source,
+            namedArg: heightArg,
+            sourceUnitsPerEditorUnit: 2.0,
+          ),
+          offsetX: _requiredColliderScalarBinding(
+            sourcePath: relativePath,
+            source: source,
+            namedArg: offsetXArg,
+          ),
+          offsetY: _requiredColliderScalarBinding(
+            sourcePath: relativePath,
+            source: source,
+            namedArg: offsetYArg,
+          ),
         );
-        if (colliderBinding == null) {
-          issues.add(
-            ValidationIssue(
-              severity: ValidationSeverity.error,
-              code: 'player_collider_binding_invalid',
-              message:
-                  'Player catalog ${variable.name.lexeme} collider source range '
-                  'could not be resolved.',
-              sourcePath: relativePath,
-            ),
-          );
-          continue;
-        }
         entries.add(
           EntityEntry(
             id: 'player.$idBase',
@@ -338,7 +371,7 @@ List<EntityEntry> _parsePlayers(
             offsetX: offsetX,
             offsetY: offsetY,
             sourcePath: relativePath,
-            sourceBinding: colliderBinding,
+            colliderBindings: colliderBindings,
             referenceVisual: referenceVisual,
             artFacingDirection: artFacingDirection,
             isCaster: isCaster,
@@ -449,25 +482,20 @@ List<EntityEntry> _parseProjectiles(
       continue;
     }
 
-    final colliderBinding = _bindingFromNodes(
-      sourcePath: EntitySourceParser.projectileCatalogPath,
-      source: source,
-      kind: EntitySourceBindingKind.projectileArgs,
-      nodes: <AstNode>[sizeXArg, sizeYArg],
+    final colliderBindings = EntityColliderSourceBindings(
+      halfX: _requiredColliderScalarBinding(
+        sourcePath: EntitySourceParser.projectileCatalogPath,
+        source: source,
+        namedArg: sizeXArg,
+        sourceUnitsPerEditorUnit: 2.0,
+      ),
+      halfY: _requiredColliderScalarBinding(
+        sourcePath: EntitySourceParser.projectileCatalogPath,
+        source: source,
+        namedArg: sizeYArg,
+        sourceUnitsPerEditorUnit: 2.0,
+      ),
     );
-    if (colliderBinding == null) {
-      issues.add(
-        ValidationIssue(
-          severity: ValidationSeverity.error,
-          code: 'projectile_collider_binding_invalid',
-          message:
-              'Projectile $projectileName collider source range could not be '
-              'resolved.',
-          sourcePath: EntitySourceParser.projectileCatalogPath,
-        ),
-      );
-      continue;
-    }
     final parsedReferenceVisual = projectileReferenceVisualById[projectileName];
     final referenceVisual = _withRenderScale(
       parsedReferenceVisual,
@@ -483,7 +511,7 @@ List<EntityEntry> _parseProjectiles(
         offsetX: 0.0,
         offsetY: 0.0,
         sourcePath: EntitySourceParser.projectileCatalogPath,
-        sourceBinding: colliderBinding,
+        colliderBindings: colliderBindings,
         referenceVisual: referenceVisual,
       ),
     );

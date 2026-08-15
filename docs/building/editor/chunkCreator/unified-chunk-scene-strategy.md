@@ -12,27 +12,27 @@ Related documents:
 
 ## Decision Summary
 
-Replace the Chunk-v2 route's mutually exclusive `Owners & terrain collision`
-and `Layers, prefabs & markers` views with one persistent chunk-authoring
-workspace:
+Keep Chunk-v2 in one persistent chunk-authoring workspace, with chunk ownership
+separate from terrain and composition inspection:
 
 ```text
-+----------------------- Chunk creation scene -----------------------+----------------------+
-|                                                                    | Owners & terrain   |
-|  One viewport for terrain, prefab visuals, markers, and previews   | collision          |
-|                                                                    |                    |
-|  The active authoring domain determines primary-pointer behavior   +--------------------+
-|                                                                    | Layers, prefabs & |
-|                                                                    | markers            |
-+--------------------------------------------------------------------+----------------------+
++---------------+---------------- Chunk creation scene ----------------+----------------------+
+| Chunk owners  |                                                       | Terrain collision    |
+|               |  One viewport for terrain, prefab visuals, markers,  |                      |
+|               |  and previews                                        +----------------------+
+|               |                                                       | Layers, prefabs &    |
+|               |  The active authoring domain determines primary-     | markers               |
+|               |  pointer behavior                                    |                      |
++---------------+-------------------------------------------------------+----------------------+
 ```
 
-On a wide window, the scene is the primary surface and the two cards share one
-scrollable sidebar on its right. Both cards remain present; they are not tabs
-that replace the scene. On a narrow window, the same sidebar stacks below a
-bounded scene inside the workspace body. The scene remains mounted, and
-selecting or expanding a card never replaces it with a composition page.
-Both top-level cards start expanded; their collapse state is route-local
+On a wide window, the scene is the primary surface between a scrollable owner
+rail on its left and the terrain/composition sidebar on its right. The terrain
+and composition cards remain present; they are not tabs that replace the
+scene. On a narrow window, the owner rail and authoring sidebar sit beside each
+other below a bounded scene. The scene remains mounted, and selecting or
+expanding a card never replaces it with a composition page. Both top-level
+authoring cards start expanded; their collapse state is route-local
 presentation state with stable expansion keys.
 
 This is a workflow redesign, not a label-only or layout-only change. The
@@ -45,8 +45,8 @@ separate future contract, not hidden scope in this migration.
 The work has two independently gated delivery milestones:
 
 1. **Workspace consolidation** (Phases 0-1) delivers the requested persistent
-   scene and two cards without changing source schema or runtime output. It is
-   independently shippable.
+   scene, owner rail, and authoring cards without changing source schema or
+   runtime output. It is independently shippable.
 2. **Direct scene authoring** (Phases 2-5) adds operation-scoped identity,
    typed selection, prefab manipulation, and marker manipulation without
    changing Chunk source schema or runtime lineage. These phases may follow
@@ -301,24 +301,28 @@ selection, history, or pending changes. Tile-layer metadata never owns canvas
 input. Compiled-edge inspection remains an explicit read-only inspection mode,
 not a source-editing domain.
 
-### `Owners & terrain collision` card
+### `Chunk owners` rail
 
-This card composes the existing owner and collision workflow into compact,
-collapsible sections:
+The left rail contains the existing compact, collapsible owner workflow:
 
 - chunk owner list and lifecycle actions
 - selected-owner metadata and status
+
+### `Terrain collision` card
+
+The right-side terrain card contains the direct-collision workflow:
+
 - terrain tool selection and direct-shape actions
-- selected shape details and metadata
+- exact rectangle dimensions for axis-aligned four-vertex shapes
+- selected shape details, inline metadata selectors, and a read-only material
+  preview dialog
 - expanded prefab-collision summary
 - reachable seam evidence
 - diagnostics
 
-The card must not become a second long vertical page. One containing sidebar is
-the scroll owner, following the existing `EditorPanelCard` rule. There are
-exactly two top-level `EditorPanelCard`s inside the sidebar; the scene keeps its
-own panel shell. Sidebar-internal groups use natural-height `EditorSectionCard`
-or equivalent expansion sections with stable keys rather than nested expanded
+Neither rail may become a second long vertical page. Each is independently
+scrollable; sidebar-internal groups use natural-height `EditorSectionCard` or
+equivalent expansion sections with stable keys rather than nested expanded
 panel cards.
 
 ### `Layers, prefabs & markers` card
@@ -345,19 +349,20 @@ reconstruct equivalent selection rows in the sidebar and hit tester.
 Wide layout:
 
 - the scene receives the majority of horizontal space
-- the right sidebar uses a bounded, usable inspector width rather than equal
-  flex with the scene
-- both named cards live in one eager, vertical scroll view so their state and
-  semantics remain mounted
+- the left owner rail and right authoring sidebar use bounded, usable widths
+  rather than equal flex with the scene
+- the owner rail and the terrain/composition sidebar each keep their own
+  vertical scroll view so their state and semantics remain mounted
 - the scene remains height-bounded and never scrolls with the sidebar
 
 Narrow layout:
 
 - do not restore the old terrain/composition workspace tabs
-- stack the same sidebar below a bounded scene in the workspace body
-- use a height-bounded column with the sidebar receiving the remaining height;
-  the sidebar scroll view stays the only vertical scroll owner
-- keep both scene and sidebar mounted while cards expand or collapse
+- place the owner rail and authoring sidebar beside each other below a bounded
+  scene in the workspace body
+- use a height-bounded column with the two scroll areas receiving the remaining
+  height
+- keep the scene and both scroll areas mounted while cards expand or collapse
 - preserve keyboard focus, selection, viewport, and draft state when inspector
   sections open or close
 
@@ -522,8 +527,8 @@ source identity or depends on an undefined tile-content model.
 - rename the route root from the polygon-specific `ChunkPolygonWorkspace` to
   `ChunkAuthoringWorkspace`, updating its page key and tests in the same phase
 - keep one scene mounted
-- compose existing owner/collision and composition controls into the two right
-  sidebar cards
+- compose the existing owner controls into the left rail and collision and
+  composition controls into the right sidebar cards
 - extract the retained composition sections and remove the standalone
   `ChunkV2CompositionWorkspace` root rather than leaving a parallel page
 - retain existing dialogs and semantic commands
@@ -716,9 +721,9 @@ Performance coverage:
 
 - The Chunk route has one persistent `Chunk creation scene` and no mutually
   exclusive terrain/composition workspace selector.
-- `Owners & terrain collision` and `Layers, prefabs & markers` are right-side
-  cards on wide layouts and remain accessible without replacing the scene on
-  narrow layouts.
+- `Chunk owners` occupies the left rail on wide layouts; `Terrain collision`
+  and `Layers, prefabs & markers` occupy the right authoring sidebar and remain
+  accessible without replacing the scene on narrow layouts.
 - All currently implemented owner, terrain, composition, evidence, validation,
   history, and source-apply behavior remains available.
 - The scene has one explicit active authoring domain and deterministic typed

@@ -1,130 +1,146 @@
-// Direct-write application and rollback for entity export.
+// Transactional repository application for entity export.
 //
-// This file is the only place that mutates workspace files for the entities
-// domain. It writes backups first, then applies patches, and restores both
-// sources and temporary backup artifacts if any later step fails.
+// Persistent user-visible `.bak` files and patched Dart sources are installed
+// as one verified artifact set. Transaction-owned sibling backups are separate
+// recovery state and are removed only after source reparse succeeds.
 part of '../entity_export_pipeline.dart';
 
-// Backups are created for every touched file before source content changes so a
-// mid-export failure can restore the pre-export workspace state.
-List<String> _applyDirectWriteWithBackups(
+List<String> _applyTransactionalWriteWithBackups(
+  EditorWorkspace workspace,
+  _EntityExportPlan plan, {
+  required EntityDocumentPipeline documentPipeline,
+  required EntityExportHooks hooks,
+  required EntityTransactionApply transactionApply,
+}) {
+  final backupPaths = _backupPathsFor(plan.filePatches);
+  final artifacts = <WorkspaceWriteArtifact>[];
+  for (var index = 0; index < plan.filePatches.length; index += 1) {
+    final patch = plan.filePatches[index];
+    final sourceRelativePath = p.normalize(patch.relativePath);
+    artifacts.add(
+      WorkspaceWriteArtifact(
+        path: workspace.resolve(sourceRelativePath),
+        contents: patch.patchedContent,
+      ),
+    );
+    artifacts.add(
+      WorkspaceWriteArtifact(
+        path: workspace.resolve(backupPaths[index]),
+        contents: patch.originalContent,
+      ),
+    );
+  }
+
+  final transaction = WorkspaceWriteTransaction(artifacts);
+  transactionApply(
+    transaction,
+    () {
+      hooks.beforeReplace?.call(workspace);
+      _verifyEntitySourceBaselines(workspace, plan.filePatches);
+    },
+    () {
+      _verifyInstalledEntitySources(
+        workspace,
+        plan,
+        documentPipeline: documentPipeline,
+      );
+      hooks.verifyReplacements?.call(workspace);
+    },
+  );
+  return backupPaths;
+}
+
+List<String> _backupPathsFor(List<_EntityFilePatch> filePatches) =>
+    List<String>.unmodifiable(<String>[
+      for (final patch in filePatches)
+        p.normalize('${p.normalize(patch.relativePath)}.bak'),
+    ]);
+
+void _verifyEntitySourceBaselines(
   EditorWorkspace workspace,
   List<_EntityFilePatch> filePatches,
 ) {
-  final backupPaths = <String>[];
-  final writtenBackups = <_BackupRestoreState>[];
-  final writtenSources = <_WrittenSourceRestore>[];
-  try {
-    for (final patch in filePatches) {
-      final sourceRelativePath = p.normalize(patch.relativePath);
-      final backupRelativePath = p.normalize('$sourceRelativePath.bak');
-      final backupFile = File(workspace.resolve(backupRelativePath));
-      writtenBackups.add(
-        _captureBackupRestoreState(workspace, backupRelativePath),
-      );
-      final backupParentDir = backupFile.parent;
-      if (!backupParentDir.existsSync()) {
-        backupParentDir.createSync(recursive: true);
-      }
-      backupFile.writeAsStringSync(patch.originalContent);
-      backupPaths.add(backupRelativePath);
-    }
-
-    for (final patch in filePatches) {
-      final sourceRelativePath = p.normalize(patch.relativePath);
-      final sourceFile = File(workspace.resolve(sourceRelativePath));
-      sourceFile.writeAsStringSync(patch.patchedContent);
-      writtenSources.add(
-        _WrittenSourceRestore(
-          relativePath: sourceRelativePath,
-          originalContent: patch.originalContent,
-        ),
+  for (final patch in filePatches) {
+    final relativePath = p.normalize(patch.relativePath);
+    final file = File(workspace.resolve(relativePath));
+    if (!file.existsSync()) {
+      throw _EntitySourceDriftException(
+        'Final source drift check failed; source file is missing: '
+        '$relativePath. Reload workspace and review pending changes.',
       );
     }
-    return backupPaths;
-  } catch (error) {
-    final rollbackFailures = <String>[];
-    for (final write in writtenSources.reversed) {
-      try {
-        final sourceFile = File(workspace.resolve(write.relativePath));
-        sourceFile.writeAsStringSync(write.originalContent);
-      } catch (restoreError) {
-        rollbackFailures.add('${write.relativePath}: $restoreError');
-      }
+    final installed = file.readAsStringSync();
+    if (installed != patch.originalContent) {
+      throw _EntitySourceDriftException(
+        'Final source drift detected in $relativePath immediately before '
+        'replacement. No entity files were committed. Reload workspace, '
+        'review the external edit, and apply again.',
+      );
     }
-    for (final backup in writtenBackups.reversed) {
-      try {
-        _restoreBackupState(workspace, backup);
-      } catch (restoreError) {
-        rollbackFailures.add('${backup.relativePath}: $restoreError');
-      }
-    }
-
-    final rollbackMessage = rollbackFailures.isEmpty
-        ? 'Any files written before the failure were rolled back to their '
-              'original content, including temporary backup artifacts.'
-        : 'Rollback also failed for: ${rollbackFailures.join('; ')}';
-    throw StateError('$error\n$rollbackMessage');
   }
 }
 
-_BackupRestoreState _captureBackupRestoreState(
+void _verifyInstalledEntitySources(
   EditorWorkspace workspace,
-  String relativePath,
-) {
-  final absolutePath = workspace.resolve(relativePath);
-  final entityType = FileSystemEntity.typeSync(
-    absolutePath,
-    followLinks: false,
-  );
-  return switch (entityType) {
-    FileSystemEntityType.file => _BackupRestoreState(
-      relativePath: relativePath,
-      existedAsFile: true,
-      originalContent: File(absolutePath).readAsStringSync(),
-    ),
-    _ => _BackupRestoreState(relativePath: relativePath),
+  _EntityExportPlan plan, {
+  required EntityDocumentPipeline documentPipeline,
+}) {
+  final reparsed = EntitySourceParser().parse(workspace);
+  final blockingIssues = reparsed.issues
+      .where((issue) => issue.severity == ValidationSeverity.error)
+      .toList(growable: false);
+  if (blockingIssues.isNotEmpty) {
+    throw StateError(
+      'Installed entity sources failed reparse validation: '
+      '${blockingIssues.map((issue) => issue.code).join(', ')}.',
+    );
+  }
+
+  final reparsedById = <String, EntityEntry>{
+    for (final entry in reparsed.entries) entry.id: entry,
   };
+  for (final expected in plan.changedEntries) {
+    final actual = reparsedById[expected.id];
+    if (actual == null) {
+      throw StateError(
+        'Installed entity sources no longer resolve ${expected.id}.',
+      );
+    }
+    if (documentPipeline.changeSet(actual, expected).hasChanges) {
+      throw StateError(
+        'Installed entity source verification does not match the confirmed '
+        'values for ${expected.id}.',
+      );
+    }
+  }
 }
 
-void _restoreBackupState(
-  EditorWorkspace workspace,
-  _BackupRestoreState backupState,
-) {
-  final backupFile = File(workspace.resolve(backupState.relativePath));
-  if (backupState.existedAsFile) {
-    backupFile.writeAsStringSync(backupState.originalContent!);
-    return;
-  }
-  if (backupFile.existsSync()) {
-    backupFile.deleteSync();
-  }
-}
-
-ExportResult _buildExportErrorResult(String message) {
+ExportResult _buildExportErrorResult(
+  String message, {
+  ExportOutcome outcome = ExportOutcome.failed,
+  List<String> recoveryPaths = const <String>[],
+}) {
   return ExportResult(
     applied: false,
-    artifacts: [
+    outcome: outcome,
+    message: message,
+    artifacts: <ExportArtifact>[
       ExportArtifact(
         title: 'entity_export_error.md',
         content: '# Entity Export Error\n\n$message',
       ),
+      if (recoveryPaths.isNotEmpty)
+        ExportArtifact(
+          title: 'entity_transaction_recovery.md',
+          content: <String>[
+            '# Entity Transaction Recovery',
+            '',
+            'Rollback did not restore every target. Preserve these paths and '
+                'review the repository before another Apply:',
+            '',
+            ...recoveryPaths.map((path) => '- $path'),
+          ].join('\n'),
+        ),
     ],
   );
-}
-
-/// Snapshot of the pre-export state for one `.bak` path.
-///
-/// Backup paths may already exist in user workspaces, so rollback must know
-/// whether to restore prior content or delete the temporary file entirely.
-class _BackupRestoreState {
-  const _BackupRestoreState({
-    required this.relativePath,
-    this.existedAsFile = false,
-    this.originalContent,
-  });
-
-  final String relativePath;
-  final bool existedAsFile;
-  final String? originalContent;
 }

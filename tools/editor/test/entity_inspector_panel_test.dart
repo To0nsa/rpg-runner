@@ -92,13 +92,46 @@ EntityEntry _entry(EntityType type) => EntityEntry(
   offsetX: 0,
   offsetY: 0,
   sourcePath: 'source.dart',
-  sourceBinding: EntitySourceBinding(
-    kind: type == EntityType.projectile
-        ? EntitySourceBindingKind.projectileArgs
-        : EntitySourceBindingKind.playerArgs,
-    sourcePath: 'source.dart',
-    startOffset: 0,
-    endOffset: 10,
-    sourceSnippet: 'collider',
+  colliderBindings: EntityColliderSourceBindings(
+    halfX: const EntityColliderScalarBinding(
+      sourceBinding: EntitySourceBinding(
+        kind: EntitySourceBindingKind.colliderScalar,
+        sourcePath: 'source.dart',
+        startOffset: 0,
+        endOffset: 3,
+        sourceSnippet: '1.0',
+      ),
+    ),
+    halfY: const EntityColliderScalarBinding(
+      sourceBinding: EntitySourceBinding(
+        kind: EntitySourceBindingKind.colliderScalar,
+        sourcePath: 'source.dart',
+        startOffset: 4,
+        endOffset: 7,
+        sourceSnippet: '2.0',
+      ),
+    ),
+    offsetX: type == EntityType.projectile
+        ? null
+        : const EntityColliderScalarBinding(
+            sourceBinding: EntitySourceBinding(
+              kind: EntitySourceBindingKind.colliderScalar,
+              sourcePath: 'source.dart',
+              startOffset: 8,
+              endOffset: 11,
+              sourceSnippet: '0.0',
+            ),
+          ),
+    offsetY: type == EntityType.projectile
+        ? null
+        : const EntityColliderScalarBinding(
+            sourceBinding: EntitySourceBinding(
+              kind: EntitySourceBindingKind.colliderScalar,
+              sourcePath: 'source.dart',
+              startOffset: 12,
+              endOffset: 15,
+              sourceSnippet: '0.0',
+            ),
+          ),
   ),
 );

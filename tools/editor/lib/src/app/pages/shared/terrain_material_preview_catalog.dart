@@ -56,3 +56,37 @@ TerrainMaterialDefinition? terrainMaterialPreviewForKey(
   TerrainMaterialCatalog? catalog,
   String? materialKey,
 ) => catalog?.byKey[materialKey?.trim()];
+
+/// Builds a deterministic selector list with None first and an unknown current
+/// value retained so opening an existing source record is non-destructive.
+List<String> terrainMetadataSelectorOptions({
+  required String? current,
+  required Iterable<String> known,
+}) {
+  final normalizedCurrent = current?.trim() ?? '';
+  return <String>{
+    '',
+    ...known,
+    if (normalizedCurrent.isNotEmpty) normalizedCurrent,
+  }.toList(growable: false);
+}
+
+/// User-facing label for an optional metadata selector value.
+String terrainMetadataSelectorLabel(String value) =>
+    value.isEmpty ? 'None' : value;
+
+/// Selected material label that preserves both its display name and source key.
+String terrainMaterialSelectorLabel(
+  TerrainMaterialCatalog? catalog,
+  String value,
+) {
+  if (value.isEmpty) return 'None';
+  final material = terrainMaterialPreviewForKey(catalog, value);
+  return material == null ? value : '${material.displayName} · ${material.key}';
+}
+
+/// Converts the inline None value back to nullable source metadata.
+String? nullableTerrainMetadataSelection(String value) {
+  final normalized = value.trim();
+  return normalized.isEmpty ? null : normalized;
+}

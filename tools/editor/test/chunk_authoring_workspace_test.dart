@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -136,11 +137,19 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Chunk creation scene'), findsOneWidget);
-      expect(find.text('Owners & terrain collision'), findsOneWidget);
+      expect(find.text('Chunk owners'), findsOneWidget);
+      expect(find.text('Terrain collision'), findsOneWidget);
       expect(find.text('Layers, prefabs & markers'), findsOneWidget);
+      final ownerSidebarSlot = find.byKey(
+        const ValueKey<String>('chunk_owner_sidebar_slot'),
+      );
       final sceneSlot = find.byKey(const ValueKey<String>('chunk_scene_slot'));
       final sidebarSlot = find.byKey(
         const ValueKey<String>('chunk_sidebar_slot'),
+      );
+      expect(
+        tester.getTopRight(ownerSidebarSlot).dx,
+        lessThan(tester.getTopLeft(sceneSlot).dx),
       );
       expect(
         tester.getTopRight(sceneSlot).dx,
@@ -415,10 +424,9 @@ void main() {
         ),
       );
       await tester.pump();
-      final applySource = tester.widget<FilledButton>(
-        find.byKey(const ValueKey<String>('chunk_polygon_apply_source')),
-      );
-      expect(applySource.onPressed, isNull);
+      final routeState = tester.state(find.byType(ChunkCreatorPage));
+      final applyHandler = routeState as EditorPageApplyHandler;
+      expect(applyHandler.canApplyEditorPage, isFalse);
 
       await tester.tap(
         find.byKey(const ValueKey<String>('chunk_polygon_shape_ground_001')),
@@ -436,23 +444,14 @@ void main() {
       expect(harness.session.pendingChanges.changedItemIds, <String>[
         'forest_chunk',
       ]);
-      expect(
-        tester
-            .widget<FilledButton>(
-              find.byKey(const ValueKey<String>('chunk_polygon_apply_source')),
-            )
-            .onPressed,
-        isNotNull,
-      );
-      await tester.tap(
-        find.byKey(const ValueKey<String>('chunk_polygon_apply_source')),
-      );
+      expect(applyHandler.canApplyEditorPage, isTrue);
+      unawaited(applyHandler.applyEditorPage());
+      await tester.pumpAndSettle();
       await tester.pumpAndSettle();
       expect(find.text('Apply Chunk-v2 Changes'), findsOneWidget);
       await tester.tap(find.widgetWithText(TextButton, 'Cancel').last);
       await tester.pumpAndSettle();
 
-      final routeState = tester.state(find.byType(ChunkCreatorPage));
       final localDraftState = routeState as EditorPageLocalDraftState;
       final shortcutHandler = routeState as EditorPageSessionShortcutHandler;
       final reloadHandler = routeState as EditorPageReloadHandler;
@@ -546,35 +545,21 @@ void main() {
           .position
           .jumpTo(0);
       await tester.pump();
-      final editMetadata = find.descendant(
+      final modeSelector = find.descendant(
         of: shapeList,
         matching: find.byKey(
-          const ValueKey<String>('chunk_polygon_edit_metadata'),
+          const ValueKey<String>('chunk_polygon_metadata_mode'),
         ),
       );
       await Scrollable.ensureVisible(
-        tester.element(editMetadata),
+        tester.element(modeSelector),
         alignment: 0.5,
       );
       await tester.pump();
-      await tester.tap(editMetadata);
-      await tester.pumpAndSettle();
-      expect(
-        find.byKey(const ValueKey<String>('chunk_polygon_metadata_dialog')),
-        findsOneWidget,
-      );
-      await tester.tap(
-        find.byKey(const ValueKey<String>('chunk_polygon_metadata_mode')),
-      );
+      await tester.tap(modeSelector);
       await tester.pumpAndSettle();
       await tester.tap(find.text('oneWay').last);
       await tester.pumpAndSettle();
-      expect(
-        find.byKey(
-          const ValueKey<String>('chunk_polygon_material_preview_empty'),
-        ),
-        findsOneWidget,
-      );
       await tester.tap(
         find.byKey(
           const ValueKey<String>('chunk_polygon_metadata_surface_selector'),
@@ -589,42 +574,22 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('grass_dirt').last);
-      await tester.pumpAndSettle();
-      expect(
-        find.byKey(
-          const ValueKey<String>('chunk_polygon_material_preview_fill'),
-        ),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(
-          const ValueKey<String>('chunk_polygon_material_preview_surface'),
-        ),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(
-          const ValueKey<String>('chunk_polygon_material_preview_foreground'),
-        ),
-        findsOneWidget,
-      );
-      await tester.tap(
-        find.byKey(const ValueKey<String>('chunk_polygon_metadata_apply')),
-      );
+      await tester.tap(find.text('Grass / Dirt · grass_dirt').last);
       await tester.pumpAndSettle();
 
       forestChunk = _chunk(harness.session, 'forest_chunk');
       final editedShape = forestChunk.collisionShapes.single;
-      expect(forestChunk.revision, 5);
+      expect(forestChunk.revision, 7);
       expect(editedShape.collisionMode, TerrainSourceCollisionMode.oneWay);
       expect(editedShape.surfaceKind, 'ground');
       expect(editedShape.materialKey, 'grass_dirt');
       expect(harness.session.pendingChanges.changedItemIds, <String>[
         'forest_chunk',
       ]);
-      expect(shortcutHandler.handleUndoSessionShortcut(), isTrue);
-      await tester.pump();
+      for (var index = 0; index < 3; index += 1) {
+        expect(shortcutHandler.handleUndoSessionShortcut(), isTrue);
+        await tester.pump();
+      }
       forestChunk = _chunk(harness.session, 'forest_chunk');
       expect(forestChunk.revision, 4);
       expect(
@@ -866,14 +831,9 @@ void main() {
     expect(_chunk(harness.session, 'forest_chunk').revision, 4);
     expect(_chunk(harness.session, 'forest_chunk').prefabs, hasLength(1));
     expect(harness.session.pendingChanges.hasChanges, isFalse);
-    expect(
-      tester
-          .widget<OutlinedButton>(
-            find.byKey(const ValueKey<String>('chunk_polygon_undo_button')),
-          )
-          .onPressed,
-      isNotNull,
-    );
+    final routeState = tester.state(find.byType(ChunkCreatorPage));
+    final shortcutHandler = routeState as EditorPageSessionShortcutHandler;
+    expect(shortcutHandler.canHandleUndoSessionShortcut, isTrue);
 
     await gesture.moveTo(scenePoint(80, 32));
     await tester.pump();
@@ -895,9 +855,7 @@ void main() {
       findsNothing,
     );
 
-    await tester.tap(
-      find.byKey(const ValueKey<String>('chunk_polygon_undo_button')),
-    );
+    expect(shortcutHandler.handleUndoSessionShortcut(), isTrue);
     await tester.pump();
     expect(_chunk(harness.session, 'forest_chunk').revision, 4);
     expect(_chunk(harness.session, 'forest_chunk').prefabs, hasLength(1));
@@ -1224,7 +1182,114 @@ void main() {
     },
   );
 
-  testWidgets('selected chunk shapes show their metadata subsection', (
+  testWidgets(
+    'selected chunk shapes edit metadata inline and preview material',
+    (tester) async {
+      tester.view.physicalSize = const Size(1800, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final harness = await _buildHarness();
+      addTearDown(harness.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData.dark(),
+          home: Scaffold(body: ChunkCreatorPage(controller: harness.session)),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final authoringSidebar = find.byKey(
+        const ValueKey<String>('chunk_authoring_sidebar'),
+      );
+      final groundShape = find.byKey(
+        const ValueKey<String>('chunk_polygon_shape_ground_001'),
+      );
+      await tester.scrollUntilVisible(
+        groundShape,
+        100,
+        scrollable: find
+            .descendant(of: authoringSidebar, matching: find.byType(Scrollable))
+            .first,
+      );
+      await tester.tap(groundShape);
+      await tester.pump();
+
+      final metadataSection = find.byKey(
+        const ValueKey<String>('chunk_polygon_metadata_section'),
+      );
+      expect(metadataSection, findsOneWidget);
+      final modeSelector = find.byKey(
+        const ValueKey<String>('chunk_polygon_metadata_mode'),
+      );
+      final surfaceSelector = find.byKey(
+        const ValueKey<String>('chunk_polygon_metadata_surface_selector'),
+      );
+      final materialSelector = find.byKey(
+        const ValueKey<String>('chunk_polygon_metadata_material_selector'),
+      );
+      final previewButton = find.byKey(
+        const ValueKey<String>('chunk_polygon_material_preview_button'),
+      );
+      expect(modeSelector, findsOneWidget);
+      expect(surfaceSelector, findsOneWidget);
+      expect(materialSelector, findsOneWidget);
+      expect(tester.widget<OutlinedButton>(previewButton).onPressed, isNull);
+
+      await tester.tap(surfaceSelector);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('ground').last);
+      await tester.pumpAndSettle();
+      await tester.tap(materialSelector);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Grass / Dirt · grass_dirt').last);
+      await tester.pumpAndSettle();
+      await tester.tap(modeSelector);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('oneWay').last);
+      await tester.pumpAndSettle();
+
+      final edited = _chunk(harness.session, 'forest_chunk');
+      expect(edited.revision, 7);
+      expect(
+        edited.collisionShapes.single.collisionMode,
+        TerrainSourceCollisionMode.oneWay,
+      );
+      expect(edited.collisionShapes.single.surfaceKind, 'ground');
+      expect(edited.collisionShapes.single.materialKey, 'grass_dirt');
+      expect(tester.widget<OutlinedButton>(previewButton).onPressed, isNotNull);
+
+      await tester.tap(previewButton);
+      await tester.pumpAndSettle();
+      final previewDialog = find.byKey(
+        const ValueKey<String>('chunk_polygon_read_only_material_dialog'),
+      );
+      expect(previewDialog, findsOneWidget);
+      expect(
+        find.byKey(
+          const ValueKey<String>('chunk_polygon_read_only_material_preview'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: previewDialog,
+          matching: find.byType(DropdownButton),
+        ),
+        findsNothing,
+      );
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('chunk_polygon_material_preview_close'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(previewDialog, findsNothing);
+    },
+  );
+
+  testWidgets('axis-aligned rectangles expose one exact dimension editor', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(1800, 1000);
@@ -1245,29 +1310,63 @@ void main() {
     final authoringSidebar = find.byKey(
       const ValueKey<String>('chunk_authoring_sidebar'),
     );
-    final groundShape = find.byKey(
+    final authoringSidebarScrollable = find
+        .descendant(of: authoringSidebar, matching: find.byType(Scrollable))
+        .first;
+    final shape = find.byKey(
       const ValueKey<String>('chunk_polygon_shape_ground_001'),
     );
     await tester.scrollUntilVisible(
-      groundShape,
+      shape,
       100,
-      scrollable: find
-          .descendant(of: authoringSidebar, matching: find.byType(Scrollable))
-          .first,
+      scrollable: authoringSidebarScrollable,
     );
-    await tester.tap(groundShape);
+    expect(find.text('solid · rectangle · 4 vertices'), findsOneWidget);
+    await tester.tap(shape);
     await tester.pump();
 
-    final metadataSection = find.byKey(
-      const ValueKey<String>('chunk_polygon_metadata_section'),
+    final xField = find.byKey(
+      const ValueKey<String>('chunk_polygon_rectangle_x_field'),
     );
-    expect(metadataSection, findsOneWidget);
-    expect(find.text('Collision mode: solid'), findsOneWidget);
-    expect(find.text('Surface: —'), findsOneWidget);
-    expect(find.text('Material: —'), findsOneWidget);
+    final bottomField = find.byKey(
+      const ValueKey<String>('chunk_polygon_rectangle_bottom_field'),
+    );
+    final widthField = find.byKey(
+      const ValueKey<String>('chunk_polygon_rectangle_width_field'),
+    );
+    final heightField = find.byKey(
+      const ValueKey<String>('chunk_polygon_rectangle_height_field'),
+    );
+    final apply = find.byKey(
+      const ValueKey<String>('chunk_polygon_apply_rectangle'),
+    );
+    await tester.scrollUntilVisible(
+      xField,
+      100,
+      scrollable: authoringSidebarScrollable,
+    );
+    await tester.enterText(xField, '10');
+    await tester.enterText(bottomField, '50');
+    await tester.enterText(widthField, '40');
+    await tester.enterText(heightField, '35');
+    await tester.scrollUntilVisible(
+      apply,
+      100,
+      scrollable: authoringSidebarScrollable,
+    );
+    await tester.tap(apply);
+    await tester.pump();
+
+    final updated = _chunk(harness.session, 'forest_chunk');
+    expect(updated.revision, 5);
     expect(
-      find.byKey(const ValueKey<String>('chunk_polygon_edit_metadata')),
-      findsOneWidget,
+      updated.collisionShapes.single.vertices,
+      const <TerrainSourceVertexDef>[
+        TerrainSourceVertexDef(xHalfPixels: 20, yHalfPixels: 30),
+        TerrainSourceVertexDef(xHalfPixels: 100, yHalfPixels: 30),
+        TerrainSourceVertexDef(xHalfPixels: 100, yHalfPixels: 100),
+        TerrainSourceVertexDef(xHalfPixels: 20, yHalfPixels: 100),
+      ],
     );
   });
 
@@ -1299,7 +1398,11 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.byKey(const ValueKey<String>('chunk_owners_terrain_card')),
+        find.byKey(const ValueKey<String>('chunk_owner_sidebar')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('chunk_terrain_collision_card')),
         findsOneWidget,
       );
       expect(
@@ -1307,8 +1410,15 @@ void main() {
         findsOneWidget,
       );
       final sceneSlot = find.byKey(const ValueKey<String>('chunk_scene_slot'));
+      final ownerSidebarSlot = find.byKey(
+        const ValueKey<String>('chunk_owner_sidebar_slot'),
+      );
       final sidebarSlot = find.byKey(
         const ValueKey<String>('chunk_sidebar_slot'),
+      );
+      expect(
+        tester.getBottomLeft(sceneSlot).dy,
+        lessThan(tester.getTopLeft(ownerSidebarSlot).dy),
       );
       expect(
         tester.getBottomLeft(sceneSlot).dy,
@@ -1594,14 +1704,12 @@ void main() {
       expect(edited.markers, original.markers);
       expect(edited.collisionShapes, original.collisionShapes);
 
-      await tester.tap(
-        find.byKey(const ValueKey<String>('chunk_polygon_undo_button')),
-      );
+      final routeState = tester.state(find.byType(ChunkCreatorPage));
+      final shortcutHandler = routeState as EditorPageSessionShortcutHandler;
+      expect(shortcutHandler.handleUndoSessionShortcut(), isTrue);
       await tester.pump();
       expect(_chunk(harness.session, 'forest_chunk').revision, 4);
-      await tester.tap(
-        find.byKey(const ValueKey<String>('chunk_polygon_redo_button')),
-      );
+      expect(shortcutHandler.handleRedoSessionShortcut(), isTrue);
       await tester.pump();
       expect(_chunk(harness.session, 'forest_chunk').revision, 5);
 
@@ -1702,7 +1810,7 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.byKey(const ValueKey<String>('chunk_owners_terrain_card')),
+        find.byKey(const ValueKey<String>('chunk_terrain_collision_card')),
         findsOneWidget,
       );
       expect(
@@ -1717,7 +1825,9 @@ void main() {
         find.byKey(const ValueKey<String>('chunk_scene_surface')),
       );
       await tester.tap(
-        find.byKey(const ValueKey<String>('chunk_owners_terrain_card_toggle')),
+        find.byKey(
+          const ValueKey<String>('chunk_terrain_collision_card_toggle'),
+        ),
       );
       await tester.pumpAndSettle();
       expect(
@@ -1775,14 +1885,8 @@ void main() {
       expect(localDraftState.hasLocalDraftChanges, isTrue);
       expect(reloadHandler.canReloadEditorPage, isFalse);
       expect(shortcutHandler.canHandleUndoSessionShortcut, isFalse);
-      expect(
-        tester
-            .widget<FilledButton>(
-              find.byKey(const ValueKey<String>('chunk_polygon_apply_source')),
-            )
-            .onPressed,
-        isNull,
-      );
+      final applyHandler = routeState as EditorPageApplyHandler;
+      expect(applyHandler.canApplyEditorPage, isFalse);
       await tester.enterText(
         find.byKey(const ValueKey<String>('chunk_v2_layer_id_field')),
         'background',
@@ -1990,9 +2094,7 @@ void main() {
       expect(edited.markers, original.markers);
       expect(edited.collisionShapes, original.collisionShapes);
       expect(edited.revision, 13);
-      await tester.tap(
-        find.byKey(const ValueKey<String>('chunk_polygon_undo_button')),
-      );
+      expect(shortcutHandler.handleUndoSessionShortcut(), isTrue);
       await tester.pump();
       expect(
         _chunk(
@@ -2001,9 +2103,7 @@ void main() {
         ).markers.any((marker) => marker.markerId == 'derf'),
         isTrue,
       );
-      await tester.tap(
-        find.byKey(const ValueKey<String>('chunk_polygon_redo_button')),
-      );
+      expect(shortcutHandler.handleRedoSessionShortcut(), isTrue);
       await tester.pump();
       expect(
         _chunk(
@@ -2034,7 +2134,9 @@ void main() {
       );
       await tester.pumpAndSettle();
       await tester.tap(
-        find.byKey(const ValueKey<String>('chunk_owners_terrain_card_toggle')),
+        find.byKey(
+          const ValueKey<String>('chunk_terrain_collision_card_toggle'),
+        ),
       );
       await tester.pumpAndSettle();
       final addLayer = find.byKey(const ValueKey<String>('chunk_v2_layer_add'));
@@ -2128,18 +2230,11 @@ void main() {
       find.byKey(const ValueKey<String>('chunk_v2_owner_create')),
     );
     expect(createButton.onPressed, isNull);
-    expect(
-      tester
-          .widget<OutlinedButton>(
-            find.byKey(const ValueKey<String>('chunk_polygon_undo_button')),
-          )
-          .onPressed,
-      isNotNull,
-    );
+    final routeState = tester.state(find.byType(ChunkCreatorPage));
+    final shortcutHandler = routeState as EditorPageSessionShortcutHandler;
+    expect(shortcutHandler.canHandleUndoSessionShortcut, isTrue);
 
-    await tester.tap(
-      find.byKey(const ValueKey<String>('chunk_polygon_undo_button')),
-    );
+    expect(shortcutHandler.handleUndoSessionShortcut(), isTrue);
     await tester.pump();
     expect(
       find.byKey(const ValueKey<String>('chunk_polygon_owner_forest_chunk')),

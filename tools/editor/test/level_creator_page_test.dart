@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:runner_editor/src/app/pages/levelCreator/level_creator_page.dart';
+import 'package:runner_editor/src/app/pages/shared/editor_page_local_draft_state.dart';
 import 'package:runner_editor/src/domain/authoring_plugin_registry.dart';
 import 'package:runner_editor/src/domain/authoring_types.dart';
 import 'package:runner_editor/src/levels/level_domain_models.dart';
@@ -376,9 +379,10 @@ void main() {
       await tester.enterText(_textFieldByLabel('New levelId'), 'crystal');
       await tester.tap(find.text('Create Level'));
       await _flush(tester);
-      await tester.tap(
-        find.byKey(const ValueKey<String>('apply_level_files_button')),
-      );
+      final routeState = tester.state(find.byType(LevelCreatorPage));
+      final applyHandler = routeState as EditorPageApplyHandler;
+      expect(applyHandler.canApplyEditorPage, isTrue);
+      unawaited(applyHandler.applyEditorPage());
       await _flush(tester);
       expect(find.textContaining(parallaxDefsSourcePath), findsOneWidget);
       await tester.tap(find.text('Apply').last);

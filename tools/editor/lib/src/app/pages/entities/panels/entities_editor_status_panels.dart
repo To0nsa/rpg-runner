@@ -111,6 +111,7 @@ extension _EntitiesEditorStatusPanels on _EntitiesEditorPageState {
           ],
           if (exportResult != null) ...[
             Text('files written: ${exportResult.applied ? 'yes' : 'no'}'),
+            Text('outcome: ${exportResult.outcome.name}'),
             if (exportResult.artifacts.length > 1) ...[
               const SizedBox(height: 8),
               DropdownButton<String>(

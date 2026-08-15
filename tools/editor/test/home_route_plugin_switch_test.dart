@@ -79,6 +79,37 @@ void main() {
     expect(controller.selectedPluginId, EntityDomainPlugin.pluginId);
   });
 
+  testWidgets('shell keeps the startup workspace fixed', (tester) async {
+    final controller = EditorSessionController(
+      pluginRegistry: AuthoringPluginRegistry(
+        plugins: <AuthoringDomainPlugin>[
+          _FakeEntitiesPlugin(),
+          _FakePrefabPlugin(),
+          _FakeChunkPlugin(),
+        ],
+      ),
+      initialPluginId: EntityDomainPlugin.pluginId,
+      initialWorkspacePath: '.',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: EditorHomePage(controller: controller)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(controller.workspacePath, '.');
+    expect(find.text('RPG Runner Editor - Pages ->'), findsNothing);
+    expect(find.text('Workspace Path'), findsNothing);
+    expect(
+      find.byKey(const ValueKey<String>('browse_workspace_path_button')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('apply_workspace_path_button')),
+      findsNothing,
+    );
+  });
+
   testWidgets('route switching with pending changes can be cancelled', (
     tester,
   ) async {
@@ -159,133 +190,6 @@ void main() {
     expect(find.text('Discard unsaved changes?'), findsNothing);
   });
 
-  testWidgets('typing in workspace field does not change session context', (
-    tester,
-  ) async {
-    await tester.binding.setSurfaceSize(const Size(1800, 1200));
-    addTearDown(() async {
-      await tester.binding.setSurfaceSize(null);
-    });
-
-    final controller = EditorSessionController(
-      pluginRegistry: AuthoringPluginRegistry(
-        plugins: <AuthoringDomainPlugin>[
-          _FakeDirtyEntitiesPlugin(),
-          _FakePrefabPlugin(),
-          _FakeChunkPlugin(),
-        ],
-      ),
-      initialPluginId: EntityDomainPlugin.pluginId,
-      initialWorkspacePath: '.',
-    );
-
-    await tester.pumpWidget(
-      MaterialApp(home: EditorHomePage(controller: controller)),
-    );
-    await tester.pumpAndSettle();
-
-    expect(controller.pendingChanges.hasChanges, isTrue);
-    expect(controller.workspacePath, '.');
-
-    await tester.enterText(
-      _textFieldByLabel('Workspace Path'),
-      'C:\\temp\\next',
-    );
-    await tester.pumpAndSettle();
-
-    expect(controller.workspacePath, '.');
-    expect(controller.pendingChanges.hasChanges, isTrue);
-    expect(find.text('Discard unsaved changes?'), findsNothing);
-  });
-
-  testWidgets('workspace apply with pending changes can be cancelled', (
-    tester,
-  ) async {
-    await tester.binding.setSurfaceSize(const Size(1800, 1200));
-    addTearDown(() async {
-      await tester.binding.setSurfaceSize(null);
-    });
-
-    final controller = EditorSessionController(
-      pluginRegistry: AuthoringPluginRegistry(
-        plugins: <AuthoringDomainPlugin>[
-          _FakeDirtyEntitiesPlugin(),
-          _FakePrefabPlugin(),
-          _FakeChunkPlugin(),
-        ],
-      ),
-      initialPluginId: EntityDomainPlugin.pluginId,
-      initialWorkspacePath: '.',
-    );
-
-    await tester.pumpWidget(
-      MaterialApp(home: EditorHomePage(controller: controller)),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.enterText(
-      _textFieldByLabel('Workspace Path'),
-      'C:\\temp\\next',
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(_workspaceApplyButton());
-    await tester.pumpAndSettle();
-
-    expect(find.text('Discard unsaved changes?'), findsOneWidget);
-
-    await tester.tap(find.text('Stay'));
-    await tester.pumpAndSettle();
-
-    expect(controller.workspacePath, '.');
-    expect(controller.pendingChanges.hasChanges, isTrue);
-    expect(_workspaceTextField(tester).controller?.text, 'C:\\temp\\next');
-  });
-
-  testWidgets('workspace apply with pending changes can be confirmed', (
-    tester,
-  ) async {
-    await tester.binding.setSurfaceSize(const Size(1800, 1200));
-    addTearDown(() async {
-      await tester.binding.setSurfaceSize(null);
-    });
-
-    final entitiesPlugin = _FakeDirtyEntitiesPlugin();
-    final controller = EditorSessionController(
-      pluginRegistry: AuthoringPluginRegistry(
-        plugins: <AuthoringDomainPlugin>[
-          entitiesPlugin,
-          _FakePrefabPlugin(),
-          _FakeChunkPlugin(),
-        ],
-      ),
-      initialPluginId: EntityDomainPlugin.pluginId,
-      initialWorkspacePath: '.',
-    );
-
-    await tester.pumpWidget(
-      MaterialApp(home: EditorHomePage(controller: controller)),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.enterText(
-      _textFieldByLabel('Workspace Path'),
-      '  C:\\temp\\next  ',
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(_workspaceApplyButton());
-    await tester.pumpAndSettle();
-
-    expect(find.text('Discard unsaved changes?'), findsOneWidget);
-
-    await tester.tap(find.text('Discard and switch'));
-    await tester.pumpAndSettle();
-
-    expect(controller.workspacePath, 'C:\\temp\\next');
-    expect(entitiesPlugin.loadCallCount, 2);
-    expect(find.text('Discard unsaved changes?'), findsNothing);
-    expect(_workspaceTextField(tester).controller?.text, 'C:\\temp\\next');
-  });
-
   testWidgets('shell reload uses discard guard and reloads current route', (
     tester,
   ) async {
@@ -324,52 +228,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(entitiesPlugin.loadCallCount, 2);
-    expect(find.text('Discard unsaved changes?'), findsNothing);
-  });
-
-  testWidgets('workspace browse uses picker result and guarded apply flow', (
-    tester,
-  ) async {
-    await tester.binding.setSurfaceSize(const Size(1800, 1200));
-    addTearDown(() async {
-      await tester.binding.setSurfaceSize(null);
-    });
-
-    final controller = EditorSessionController(
-      pluginRegistry: AuthoringPluginRegistry(
-        plugins: <AuthoringDomainPlugin>[
-          _FakeDirtyEntitiesPlugin(),
-          _FakePrefabPlugin(),
-          _FakeChunkPlugin(),
-        ],
-      ),
-      initialPluginId: EntityDomainPlugin.pluginId,
-      initialWorkspacePath: '.',
-    );
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: EditorHomePage(
-          controller: controller,
-          workspaceDirectoryPicker: () async => 'C:\\picked\\workspace',
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(_workspaceBrowseButton());
-    await tester.pumpAndSettle();
-
-    expect(find.text('Discard unsaved changes?'), findsOneWidget);
-    expect(
-      _workspaceTextField(tester).controller?.text,
-      'C:\\picked\\workspace',
-    );
-
-    await tester.tap(find.text('Discard and switch'));
-    await tester.pumpAndSettle();
-
-    expect(controller.workspacePath, 'C:\\picked\\workspace');
     expect(find.text('Discard unsaved changes?'), findsNothing);
   });
 
@@ -588,44 +446,6 @@ void main() {
     expect(controller.pendingChanges.hasChanges, isTrue);
     expect(controller.canUndo, isTrue);
   });
-
-  testWidgets(
-    'ctrl+z does not trigger session undo while typing in a text field',
-    (tester) async {
-      await tester.binding.setSurfaceSize(const Size(1800, 1200));
-      addTearDown(() async {
-        await tester.binding.setSurfaceSize(null);
-      });
-
-      final controller = EditorSessionController(
-        pluginRegistry: AuthoringPluginRegistry(
-          plugins: <AuthoringDomainPlugin>[
-            _FakeDirtyEntitiesPlugin(initialDirty: false),
-            _FakePrefabPlugin(),
-            _FakeChunkPlugin(),
-          ],
-        ),
-        initialPluginId: EntityDomainPlugin.pluginId,
-        initialWorkspacePath: '.',
-      );
-
-      await tester.pumpWidget(
-        MaterialApp(home: EditorHomePage(controller: controller)),
-      );
-      await tester.pumpAndSettle();
-
-      controller.applyCommand(AuthoringCommand(kind: 'mark_dirty'));
-      await tester.pumpAndSettle();
-
-      await tester.tap(_textFieldByLabel('Workspace Path'));
-      await tester.pumpAndSettle();
-
-      await _pressCtrlShortcut(tester, LogicalKeyboardKey.keyZ);
-
-      expect(controller.pendingChanges.hasChanges, isTrue);
-      expect(controller.canUndo, isTrue);
-    },
-  );
 }
 
 class _FakeEntitiesPlugin implements AuthoringDomainPlugin {
@@ -1027,24 +847,6 @@ Future<void> _pressCtrlShiftShortcut(
   await tester.pumpAndSettle();
 }
 
-Finder _textFieldByLabel(String label) {
-  return find.byWidgetPredicate(
-    (widget) => widget is TextField && widget.decoration?.labelText == label,
-  );
-}
-
-Finder _workspaceApplyButton() {
-  return find.byKey(const ValueKey<String>('apply_workspace_path_button'));
-}
-
 Finder _workspaceReloadButton() {
   return find.byKey(const ValueKey<String>('reload_editor_page_button'));
-}
-
-Finder _workspaceBrowseButton() {
-  return find.byKey(const ValueKey<String>('browse_workspace_path_button'));
-}
-
-TextField _workspaceTextField(WidgetTester tester) {
-  return tester.widget<TextField>(_textFieldByLabel('Workspace Path'));
 }

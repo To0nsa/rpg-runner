@@ -36,7 +36,7 @@ class ParallaxEditorPage extends StatefulWidget {
 }
 
 class _ParallaxEditorPageState extends State<ParallaxEditorPage>
-    implements EditorPageLocalDraftState {
+    implements EditorPageLocalDraftState, EditorPageApplyHandler {
   final TextEditingController _layerKeyController = TextEditingController();
   final TextEditingController _assetPathController = TextEditingController();
   final TextEditingController _parallaxFactorController =
@@ -71,6 +71,20 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
             formatCanonicalParallaxNumber(layer.opacity) ||
         _yOffsetController.text.trim() !=
             formatCanonicalParallaxNumber(layer.yOffset);
+  }
+
+  @override
+  bool get canApplyEditorPage =>
+      !widget.controller.isLoading &&
+      !widget.controller.isExporting &&
+      widget.controller.errorCount == 0 &&
+      widget.controller.pendingChanges.hasChanges &&
+      !hasLocalDraftChanges;
+
+  @override
+  Future<void> applyEditorPage() async {
+    if (!canApplyEditorPage) return;
+    await _confirmAndApplyToFiles();
   }
 
   @override
@@ -109,7 +123,7 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildControls(parallaxScene),
+              _buildRouteControls(parallaxScene),
               const SizedBox(height: 12),
               if (widget.controller.loadError != null)
                 _buildErrorBanner(widget.controller.loadError!),
@@ -147,31 +161,12 @@ class _ParallaxEditorPageState extends State<ParallaxEditorPage>
     );
   }
 
-  Widget _buildControls(ParallaxScene? scene) {
+  Widget _buildRouteControls(ParallaxScene? scene) {
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        OutlinedButton.icon(
-          onPressed: widget.controller.canUndo ? widget.controller.undo : null,
-          icon: const Icon(Icons.undo),
-          label: const Text('Undo'),
-        ),
-        OutlinedButton.icon(
-          onPressed: widget.controller.canRedo ? widget.controller.redo : null,
-          icon: const Icon(Icons.redo),
-          label: const Text('Redo'),
-        ),
-        FilledButton.icon(
-          onPressed: widget.controller.isExporting
-              ? null
-              : () {
-                  unawaited(_confirmAndApplyToFiles());
-                },
-          icon: const Icon(Icons.save_outlined),
-          label: const Text('Apply To Files'),
-        ),
         if (scene != null)
           SizedBox(
             width: 240,
