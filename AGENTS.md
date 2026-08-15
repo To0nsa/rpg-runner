@@ -121,6 +121,16 @@ Run the smallest relevant checks for the slice you touched:
 
 If you cannot run a relevant check, state that clearly in the final handoff.
 
+## Commit Hygiene
+
+For multi-step implementation work, make small, coherent commits after each
+independently validated milestone.
+
+- keep each commit focused on one logical change and its required tests/docs
+- do not bundle unrelated worktree changes into a commit
+- do not commit known failures, incomplete migrations, or generated output that
+  is not meant to be tracked
+
 ## Documentation Upkeep
 
 Documentation is part of the implementation. For every change, assess its
