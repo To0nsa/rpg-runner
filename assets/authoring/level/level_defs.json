@@ -3,12 +3,12 @@
   "levels": [
     {
       "levelId": "field",
-      "revision": 4,
+      "revision": 5,
       "displayName": "Field",
       "visualThemeId": "field",
       "chunkThemeGroups": ["default"],
       "cameraCenterY": 135,
-      "groundTopY": 224,
+      "groundTopY": 222,
       "earlyPatternChunks": 3,
       "easyPatternChunks": 0,
       "normalPatternChunks": 0,
@@ -29,6 +29,21 @@
       "normalPatternChunks": 15,
       "noEnemyChunks": 3,
       "enumOrdinal": 10,
+      "status": "active"
+    },
+    {
+      "levelId": "new_level",
+      "revision": 1,
+      "displayName": "New Level",
+      "visualThemeId": "new_level",
+      "chunkThemeGroups": ["default"],
+      "cameraCenterY": 135,
+      "groundTopY": 224,
+      "earlyPatternChunks": 3,
+      "easyPatternChunks": 10,
+      "normalPatternChunks": 15,
+      "noEnemyChunks": 3,
+      "enumOrdinal": 30,
       "status": "active"
     }
   ]

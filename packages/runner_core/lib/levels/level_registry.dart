@@ -43,12 +43,26 @@ class LevelRegistry {
             LevelId.field.name,
           ),
           cameraCenterY: 135.0,
-          groundTopY: 224.0,
+          groundTopY: 222.0,
           earlyPatternChunks: 3,
           easyPatternChunks: 0,
           normalPatternChunks: 0,
           noEnemyChunks: 3,
           visualThemeId: 'field',
+        );
+      case LevelId.new_level:
+        return LevelDefinition(
+          id: LevelId.new_level,
+          chunkPatternSource: authoredChunkPatternSourceForLevel(
+            LevelId.new_level.name,
+          ),
+          cameraCenterY: 135.0,
+          groundTopY: 224.0,
+          earlyPatternChunks: 3,
+          easyPatternChunks: 10,
+          normalPatternChunks: 15,
+          noEnemyChunks: 3,
+          visualThemeId: 'new_level',
         );
     }
   }

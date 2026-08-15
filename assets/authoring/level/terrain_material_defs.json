@@ -4,7 +4,7 @@
     {
       "key": "grass_dirt",
       "displayName": "Grass / Dirt",
-      "revision": 7,
+      "revision": 8,
       "fill": {
         "assetPath": "assets/images/terrain/tx_tileset_ground/atlas.png",
         "x": 224,
@@ -21,7 +21,7 @@
             "width": 32,
             "height": 32
           },
-          "anchorY": 12
+          "anchorY": 0
         }
       },
       "leftWall": {
@@ -69,7 +69,7 @@
           "height": 32
         },
         "anchorX": 0,
-        "anchorY": 12
+        "anchorY": 0
       },
       "topEndCap": {
         "region": {
@@ -80,7 +80,7 @@
           "height": 32
         },
         "anchorX": 32,
-        "anchorY": 12
+        "anchorY": 0
       },
       "undersideStartCap": {
         "region": {

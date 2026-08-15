@@ -31,11 +31,16 @@ const Map<LevelId, GeneratedLevelUiMetadata> generatedLevelUiMetadataById =
     displayName: 'Field',
     status: LevelUiStatus.active,
   ),
+  LevelId.new_level: GeneratedLevelUiMetadata(
+    displayName: 'New Level',
+    status: LevelUiStatus.active,
+  ),
 };
 
 const List<LevelId> generatedSelectableLevelIds = <LevelId>[
   LevelId.forest,
   LevelId.field,
+  LevelId.new_level,
 ];
 
 GeneratedLevelUiMetadata generatedLevelUiMetadataFor(LevelId levelId) {

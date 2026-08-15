@@ -26,17 +26,17 @@ void main() {
       'multiColliderPrefabCount': 0,
       'reauthoredPrefabCount': 0,
       'prefabShapeCount': 0,
-      'chunkCount': 8,
-      'legacyGapCount': 8,
+      'chunkCount': 9,
+      'legacyGapCount': 9,
       'groundShapeCount': 0,
       'blockerCount': 0,
     });
     final decoded = jsonDecode(plan.toCanonicalJson()) as Map<String, Object?>;
     expect(decoded['reportVersion'], 2);
     expect(decoded['mode'], 'check');
-    expect((decoded['sourceFiles']! as List<Object?>), hasLength(9));
+    expect((decoded['sourceFiles']! as List<Object?>), hasLength(10));
     expect((decoded['prefabs']! as List<Object?>), hasLength(99));
-    expect((decoded['chunks']! as List<Object?>), hasLength(8));
+    expect((decoded['chunks']! as List<Object?>), hasLength(9));
     expect((decoded['blockers']! as List<Object?>), isEmpty);
     final legacyByKey = <String, LegacyPrefabDef>{
       for (final prefab in fixture.prefabData.prefabs) prefab.prefabKey: prefab,
@@ -71,7 +71,7 @@ void main() {
           ),
       isTrue,
     );
-    expect(WorkspaceFileIo.fingerprint(plan.toCanonicalJson()), '83345681');
+    expect(WorkspaceFileIo.fingerprint(plan.toCanonicalJson()), '860ddde2');
   });
 
   test('input order and host path separators do not affect report', () async {

@@ -13,58 +13,52 @@ const ParallaxTheme authoredParallaxThemeField = ParallaxTheme(
       assetPath: 'parallax/field/Field Layer 01.png',
       parallaxFactor: 0.1,
       opacity: 1,
-      yOffset: 0,
+      yOffset: -44,
     ),
     PixelParallaxLayerSpec(
       assetPath: 'parallax/field/Field Layer 02.png',
       parallaxFactor: 0.15,
       opacity: 1,
-      yOffset: 0,
+      yOffset: -44,
     ),
     PixelParallaxLayerSpec(
       assetPath: 'parallax/field/Field Layer 03.png',
       parallaxFactor: 0.2,
       opacity: 1,
-      yOffset: 0,
+      yOffset: -44,
     ),
     PixelParallaxLayerSpec(
       assetPath: 'parallax/field/Field Layer 04.png',
       parallaxFactor: 0.3,
       opacity: 1,
-      yOffset: 0,
+      yOffset: -44,
     ),
     PixelParallaxLayerSpec(
       assetPath: 'parallax/field/Field Layer 05.png',
       parallaxFactor: 0.4,
       opacity: 1,
-      yOffset: 0,
+      yOffset: -44,
     ),
     PixelParallaxLayerSpec(
       assetPath: 'parallax/field/Field Layer 06.png',
       parallaxFactor: 0.5,
       opacity: 1,
-      yOffset: 0,
+      yOffset: -44,
     ),
     PixelParallaxLayerSpec(
       assetPath: 'parallax/field/Field Layer 07.png',
       parallaxFactor: 0.6,
       opacity: 1,
-      yOffset: 0,
+      yOffset: -44,
     ),
     PixelParallaxLayerSpec(
       assetPath: 'parallax/field/Field Layer 08.png',
       parallaxFactor: 0.7,
       opacity: 1,
-      yOffset: 0,
+      yOffset: -44,
     ),
   ],
   foregroundLayers: <PixelParallaxLayerSpec>[
-    PixelParallaxLayerSpec(
-      assetPath: 'parallax/field/Field Layer 10.png',
-      parallaxFactor: 1,
-      opacity: 1,
-      yOffset: 0,
-    ),
   ],
 );
 
@@ -74,20 +68,27 @@ const ParallaxTheme authoredParallaxThemeForest = ParallaxTheme(
       assetPath: 'parallax/forest/Forest Layer 01.png',
       parallaxFactor: 0.1,
       opacity: 1,
-      yOffset: 0,
+      yOffset: -44,
     ),
     PixelParallaxLayerSpec(
       assetPath: 'parallax/forest/Forest Layer 02.png',
       parallaxFactor: 0.2,
       opacity: 1,
-      yOffset: 0,
+      yOffset: -44,
     ),
     PixelParallaxLayerSpec(
       assetPath: 'parallax/forest/Forest Layer 03.png',
       parallaxFactor: 0.3,
       opacity: 1,
-      yOffset: 0,
+      yOffset: -44,
     ),
+  ],
+  foregroundLayers: <PixelParallaxLayerSpec>[
+  ],
+);
+
+const ParallaxTheme authoredParallaxThemeNewLevel = ParallaxTheme(
+  backgroundLayers: <PixelParallaxLayerSpec>[
   ],
   foregroundLayers: <PixelParallaxLayerSpec>[
   ],
@@ -96,4 +97,5 @@ const ParallaxTheme authoredParallaxThemeForest = ParallaxTheme(
 const Map<String, ParallaxTheme> authoredParallaxThemesById = <String, ParallaxTheme>{
   'field': authoredParallaxThemeField,
   'forest': authoredParallaxThemeForest,
+  'new_level': authoredParallaxThemeNewLevel,
 };

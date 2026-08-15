@@ -716,6 +716,27 @@ const List<ChunkPattern> forestNormalPatterns = <ChunkPattern>[
 const List<ChunkPattern> forestHardPatterns = <ChunkPattern>[
 ];
 
+const List<ChunkPattern> newLevelEarlyPatterns = <ChunkPattern>[
+];
+
+const List<ChunkPattern> newLevelEasyPatterns = <ChunkPattern>[
+];
+
+const List<ChunkPattern> newLevelNormalPatterns = <ChunkPattern>[
+  ChunkPattern(
+    name: 'new_level_flat',
+    chunkKey: 'new_level_flat',
+    assemblyGroupId: 'default',
+    visualSprites: <ChunkVisualSpriteRel>[
+    ],
+    spawnMarkers: <SpawnMarker>[
+    ],
+  ),
+];
+
+const List<ChunkPattern> newLevelHardPatterns = <ChunkPattern>[
+];
+
 const Map<String, ChunkPatternListSource> authoredChunkPatternSourcesByLevel = <String, ChunkPatternListSource>{
   'field': ChunkPatternListSource(
     earlyPatterns: fieldEarlyPatterns,
@@ -728,6 +749,12 @@ const Map<String, ChunkPatternListSource> authoredChunkPatternSourcesByLevel = <
     easyPatterns: forestEasyPatterns,
     normalPatterns: forestNormalPatterns,
     hardPatterns: forestHardPatterns,
+  ),
+  'new_level': ChunkPatternListSource(
+    earlyPatterns: newLevelEarlyPatterns,
+    easyPatterns: newLevelEasyPatterns,
+    normalPatterns: newLevelNormalPatterns,
+    hardPatterns: newLevelHardPatterns,
   ),
 };
 

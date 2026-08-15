@@ -1,10 +1,10 @@
 {
   "schemaVersion": 2,
-  "chunkKey": "field_flat",
-  "id": "field_flat",
-  "revision": 25,
+  "chunkKey": "new_level_flat",
+  "id": "new_level_flat",
+  "revision": 1,
   "status": "active",
-  "levelId": "field",
+  "levelId": "new_level",
   "tileSize": 16,
   "width": 600,
   "height": 270,
@@ -21,11 +21,11 @@
       "vertices": [
         {
           "x": 0,
-          "y": 222
+          "y": 224
         },
         {
           "x": 600,
-          "y": 222
+          "y": 224
         },
         {
           "x": 600,

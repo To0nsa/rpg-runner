@@ -24,7 +24,7 @@ void main() {
 
     expect(result, PolygonAuthoringMigrationCommand.successExitCode);
     expect(errors.toString(), isEmpty);
-    expect(output.toString(), contains('9 validated target file(s)'));
+    expect(output.toString(), contains('10 validated target file(s)'));
     expect(output.toString(), contains('No authored source was written.'));
     expect(_sourceDigests(root), before);
   });
@@ -53,7 +53,7 @@ void main() {
           jsonDecode(reportFile.readAsStringSync()) as Map<String, Object?>;
       expect(report['mode'], 'check');
       expect(report['status'], 'ready');
-      expect((report['targetFiles']! as List<Object?>), hasLength(9));
+      expect((report['targetFiles']! as List<Object?>), hasLength(10));
       expect(output.toString(), contains('.tmp${p.separator}migration-check'));
       expect(_sourceDigests(fixture.path), before);
     } finally {
@@ -113,7 +113,7 @@ void main() {
       expect(committed['status'], 'committed');
       expect(
         (committed['summary']! as Map<String, Object?>)['changedFileCount'],
-        9,
+        10,
       );
       final current = PolygonAuthoringMigrationCheck.fromRepository(
         fixture.path,
@@ -403,7 +403,7 @@ void main() {
       ]);
       expect(
         WorkspaceFileIo.sha256Digest(record),
-        '2aade3db13f0438e3c32d67089892709c5e01f2c8d3b6f518b3e53e90f1693b6',
+        '06a4f60df715ed8d4d1cf3e9b6c9b1104456aeb943998ae3eb8c6c5ec696b1d8',
       );
       expect(_sourceDigests(fixture.path), before);
     } finally {

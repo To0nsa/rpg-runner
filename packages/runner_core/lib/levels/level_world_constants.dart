@@ -4,7 +4,7 @@ library;
 import '../contracts/spatial_contract.dart';
 
 /// Default gameplay ground top for runner levels.
-const int defaultLevelGroundTopYInt = 224;
+const int defaultLevelGroundTopYInt = 222;
 
 /// Default gameplay ground top in world units.
 const double defaultLevelGroundTopY = defaultLevelGroundTopYInt * 1.0;

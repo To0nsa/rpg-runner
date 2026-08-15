@@ -3,7 +3,7 @@
   "themes": [
     {
       "parallaxThemeId": "field",
-      "revision": 6,
+      "revision": 7,
       "layers": [
         {
           "layerKey": "field_bg_01",
@@ -76,21 +76,12 @@
           "zOrder": 80,
           "opacity": 1,
           "yOffset": -44
-        },
-        {
-          "layerKey": "field_fg_10",
-          "assetPath": "assets/images/parallax/field/Field Layer 10.png",
-          "group": "foreground",
-          "parallaxFactor": 1,
-          "zOrder": 10,
-          "opacity": 1,
-          "yOffset": -44
         }
       ]
     },
     {
       "parallaxThemeId": "forest",
-      "revision": 2,
+      "revision": 3,
       "layers": [
         {
           "layerKey": "forest_bg_01",
@@ -99,7 +90,7 @@
           "parallaxFactor": 0.1,
           "zOrder": 10,
           "opacity": 1,
-          "yOffset": 0
+          "yOffset": -44
         },
         {
           "layerKey": "forest_bg_02",
@@ -108,7 +99,7 @@
           "parallaxFactor": 0.2,
           "zOrder": 20,
           "opacity": 1,
-          "yOffset": 0
+          "yOffset": -44
         },
         {
           "layerKey": "forest_bg_03",
@@ -117,8 +108,14 @@
           "parallaxFactor": 0.3,
           "zOrder": 30,
           "opacity": 1,
-          "yOffset": 0
+          "yOffset": -44
         }
+      ]
+    },
+    {
+      "parallaxThemeId": "new_level",
+      "revision": 1,
+      "layers": [
       ]
     }
   ]

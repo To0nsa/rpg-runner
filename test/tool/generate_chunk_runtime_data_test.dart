@@ -675,7 +675,7 @@ void main() {
           'assets/authoring/level/tile_defs.json',
           '''
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "tileSlices": [],
   "platformModules": []
 }
@@ -1078,7 +1078,7 @@ void _writePrefabAndTileDefs(String rootPath) {
 void _writeTerrainMaterialDefs(String rootPath) {
   _writeFile(rootPath, 'assets/authoring/level/terrain_material_defs.json', '''
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "materials": [
     {
       "key": "grass_dirt",

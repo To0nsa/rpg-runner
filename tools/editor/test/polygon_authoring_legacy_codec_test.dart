@@ -45,7 +45,7 @@ void main() {
         throwsA(_formatMessage(contains('unknown field collisionShapes'))),
       );
     }
-    expect(chunkFiles, hasLength(8));
+    expect(chunkFiles, hasLength(9));
   });
 
   test('prefab-v1 promotion is explicit and deterministic', () {

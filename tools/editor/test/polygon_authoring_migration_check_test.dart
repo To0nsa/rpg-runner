@@ -23,8 +23,8 @@ void main() {
         expect(check.sourceState, PolygonAuthoringMigrationSourceState.legacy);
         expect(check.legacyPlan, isNotNull);
         expect(check.hasBlockers, isFalse);
-        expect(check.targetFiles, hasLength(9));
-        expect(check.revisionRecords, hasLength(107));
+        expect(check.targetFiles, hasLength(10));
+        expect(check.revisionRecords, hasLength(108));
         expect(
           check.revisionRecords.where((record) => record.changed),
           isEmpty,
@@ -37,7 +37,7 @@ void main() {
           ),
           50,
         );
-        expect(check.generatedArtifactImpactRecords, hasLength(8));
+        expect(check.generatedArtifactImpactRecords, hasLength(9));
         expect(
           check.generatedArtifactImpactRecords.fold<int>(
             0,
@@ -97,15 +97,15 @@ void main() {
         expect(decoded['mode'], 'check');
         expect(decoded['sourceState'], 'legacy');
         expect(decoded['status'], 'ready');
-        expect(summary['sourceFileCount'], 9);
-        expect(summary['targetFileCount'], 9);
-        expect(summary['pendingMigrationFileCount'], 9);
+        expect(summary['sourceFileCount'], 10);
+        expect(summary['targetFileCount'], 10);
+        expect(summary['pendingMigrationFileCount'], 10);
         expect(summary['revisionChangedCount'], 0);
         expect(summary['downstreamPlacementCount'], 50);
-        expect(summary['generatedArtifactImpactRecordCount'], 8);
+        expect(summary['generatedArtifactImpactRecordCount'], 9);
         expect(
           decoded['generatedArtifactImpactRecords']! as List<Object?>,
-          hasLength(8),
+          hasLength(9),
         );
         expect((decoded['blockers']! as List<Object?>), isEmpty);
         expect(WorkspaceFileIo.fingerprint(report), hasLength(8));
@@ -135,13 +135,13 @@ void main() {
       expect(check.sourceState, PolygonAuthoringMigrationSourceState.current);
       expect(check.legacyPlan, isNull);
       expect(check.hasBlockers, isFalse);
-      expect(check.sourceFiles, hasLength(9));
-      expect(check.targetFiles, hasLength(9));
+      expect(check.sourceFiles, hasLength(10));
+      expect(check.targetFiles, hasLength(10));
       expect(
         check.targetFiles.where((target) => target.hasPendingChange),
         isEmpty,
       );
-      expect(check.revisionRecords, hasLength(107));
+      expect(check.revisionRecords, hasLength(108));
       expect(check.impactRecords, hasLength(99));
       expect(
         check.impactRecords.fold<int>(
@@ -165,7 +165,7 @@ void main() {
 
       final decoded =
           jsonDecode(check.toCanonicalJson()) as Map<String, Object?>;
-      expect(WorkspaceFileIo.fingerprint(check.toCanonicalJson()), 'd30ae0e2');
+      expect(WorkspaceFileIo.fingerprint(check.toCanonicalJson()), 'cd0f7421');
       final summary = decoded['summary']! as Map<String, Object?>;
       expect(decoded['reportVersion'], 3);
       expect(decoded['sourceState'], 'current');
@@ -175,7 +175,7 @@ void main() {
       expect((decoded['chunks']! as List<Object?>), isEmpty);
       expect(
         check.authoringMigrationSignature(),
-        '13008f227548d16cacf4a06d5ff5dcac380900b3051bf07e44c6dae3199fa6b3',
+        '74dd400fbcaff8b4c0de600e468b27f174823f5419d972837a94b086d60cbe43',
       );
     } finally {
       fixture.deleteSync(recursive: true);
@@ -396,7 +396,7 @@ void main() {
       final check = PolygonAuthoringMigrationCheck.fromRepository(fixture.path);
 
       expect(check.hasBlockers, isTrue);
-      expect(check.targetFiles, hasLength(8));
+      expect(check.targetFiles, hasLength(9));
       expect(
         check.issues.map((issue) => issue.code),
         contains('migration_prefab_target_invalid'),

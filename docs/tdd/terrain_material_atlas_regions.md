@@ -56,6 +56,11 @@ two quarter-turns; top art is already normalized. This prevents already
 oriented atlas cells from receiving an extra 90° or 180° rotation on
 axis-aligned polygons while preserving edge-relative rotation for slopes.
 
+The production `grass_dirt` top band and its endpoint caps use `anchorY: 0`.
+Their raster therefore starts on the polygon's upper boundary and remains
+inside its filled collision region; terrain art does not visually extend above
+the authored ground surface.
+
 Cap `anchorX` and `anchorY` use tangent-normalized region coordinates, matching
 the destination space in which the cap is placed. Edge `anchorY` uses that same
 normalized tile: its valid range is the source height for top/underside regions

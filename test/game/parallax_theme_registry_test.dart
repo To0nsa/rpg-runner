@@ -18,12 +18,9 @@ void main() {
         'parallax/field/Field Layer 08.png',
       ],
     );
-    expect(
-      theme.foregroundLayers.single.assetPath,
-      'parallax/field/Field Layer 10.png',
-    );
+    expect(theme.foregroundLayers, isEmpty);
     expect(theme.backgroundLayers.first.opacity, 1.0);
-    expect(theme.backgroundLayers.first.yOffset, 0.0);
+    expect(theme.backgroundLayers.first.yOffset, -44.0);
   });
 
   test('falls back to default authored theme for unknown theme id', () {

@@ -299,7 +299,7 @@ void main() {
         reason: sourcePath,
       );
     }
-    expect(chunkFiles, hasLength(8));
+    expect(chunkFiles, hasLength(9));
   });
 }
 

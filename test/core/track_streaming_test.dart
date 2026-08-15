@@ -115,7 +115,7 @@ void main() {
     );
     expect(
       finalTerrain.polygons.map((polygon) => polygon.sourceId.shapeId),
-      everyElement('ground_001'),
+      everyElement('solid_001'),
     );
   });
 }
