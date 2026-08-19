@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 import 'package:run_protocol/board_key.dart';
 import 'package:run_protocol/replay_blob.dart';
 
-import 'package:runner_core/abilities/ability_def.dart';
 import 'package:runner_core/contracts/render_contract.dart';
 import 'package:runner_core/events/game_event.dart';
 import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
@@ -15,9 +14,12 @@ import 'package:runner_core/levels/level_id.dart';
 import 'package:runner_core/levels/level_registry.dart';
 import 'package:runner_core/players/player_character_definition.dart';
 import 'package:runner_core/players/player_character_registry.dart';
+import 'package:runner_core/snapshots/enums.dart';
 import 'package:runner_core/snapshots/game_state_snapshot.dart';
 import '../game/game_controller.dart';
 import '../game/input/aim_preview.dart';
+import '../game/input/runner_gameplay_action.dart';
+import '../game/input/runner_semantic_action_dispatcher.dart';
 import '../game/replay/run_recorder.dart';
 import '../game/replay/ghost_playback_runner.dart';
 import '../game/input/runner_input_router.dart';
@@ -159,6 +161,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
 
   late GameController _controller;
   late RunnerInputRouter _input;
+  late RunnerSemanticActionDispatcher _actions;
   late AimPreviewModel _projectileAimPreview;
   late AimPreviewModel _meleeAimPreview;
   late ValueNotifier<Rect?> _aimCancelHitboxRect;
@@ -217,23 +220,17 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
   }
 
   void _clearInputs() {
-    _input.setMoveAxis(0);
-    _input.clearAimDir();
-    _input.endPrimaryHold();
-    _input.endSecondaryHold();
-    _input.endMobilityHold();
-    _input.endAbilitySlotHold(AbilitySlot.projectile);
+    _actions.cancelAll();
     _projectileAimPreview.end();
     _meleeAimPreview.end();
-    _input.pumpHeldInputs();
   }
 
   void _cancelHeldChargedAim() {
-    _input.clearAimDir();
+    _actions.clearAimDir();
     _projectileAimPreview.end();
     _meleeAimPreview.end();
     _forceAimCancelSignal.value = _forceAimCancelSignal.value + 1;
-    _input.pumpHeldInputs();
+    _actions.pumpHeldInputs();
   }
 
   void _onControllerTick() {
@@ -879,6 +876,20 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     _controller.setPaused(!paused);
   }
 
+  AbilityInputMode _resolveInputMode(RunnerGameplayAction action) {
+    final hud = _controller.snapshot.hud;
+    return switch (action) {
+      RunnerGameplayAction.primary => hud.meleeInputMode,
+      RunnerGameplayAction.secondary => hud.secondaryInputMode,
+      RunnerGameplayAction.projectile => hud.projectileInputMode,
+      RunnerGameplayAction.mobility => hud.mobilityInputMode,
+      RunnerGameplayAction.jump ||
+      RunnerGameplayAction.spell ||
+      RunnerGameplayAction.moveLeft ||
+      RunnerGameplayAction.moveRight => AbilityInputMode.tap,
+    };
+  }
+
   void _initGame() {
     final playerCharacter = PlayerCharacterRegistry.resolve(_playerCharacterId);
     _controller = GameController(
@@ -896,6 +907,10 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
     _controller.addListener(_onControllerTick);
     _controller.addAppliedCommandFrameListener(_onAppliedCommandFrame);
     _input = RunnerInputRouter(controller: _controller);
+    _actions = RunnerSemanticActionDispatcher(
+      input: _input,
+      resolveInputMode: _resolveInputMode,
+    );
     _projectileAimPreview = AimPreviewModel();
     _meleeAimPreview = AimPreviewModel();
     _aimCancelHitboxRect = ValueNotifier<Rect?>(null);
@@ -922,6 +937,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
 
   void _disposeGame() {
     _stopSubmissionStatusPolling();
+    _clearInputs();
     _controller.removeEventListener(_handleGameEvent);
     _controller.removeListener(_onControllerTick);
     _controller.removeAppliedCommandFrameListener(_onAppliedCommandFrame);
@@ -1023,7 +1039,7 @@ class _RunnerGameWidgetState extends State<RunnerGameWidget>
                 }
                 return GameOverlay(
                   controller: _controller,
-                  input: _input,
+                  input: _actions,
                   projectileAimPreview: _projectileAimPreview,
                   meleeAimPreview: _meleeAimPreview,
                   aimCancelHitboxRect: _aimCancelHitboxRect,

@@ -3,8 +3,8 @@ import 'package:flutter/widgets.dart';
 
 import '../../../game/game_controller.dart';
 import '../../../game/input/aim_preview.dart';
-import '../../../game/input/runner_input_router.dart';
-import 'package:runner_core/snapshots/enums.dart';
+import '../../../game/input/runner_gameplay_action.dart';
+import '../../../game/input/runner_semantic_action_dispatcher.dart';
 import '../../controls/runner_controls_overlay_radial.dart';
 import 'package:runner_core/abilities/ability_def.dart';
 import '../../runner_game_ui_state.dart';
@@ -37,7 +37,7 @@ class GameOverlay extends StatelessWidget {
   });
 
   final GameController controller;
-  final RunnerInputRouter input;
+  final RunnerSemanticActionDispatcher input;
   final AimPreviewModel projectileAimPreview;
   final AimPreviewModel meleeAimPreview;
   final ValueNotifier<Rect?> aimCancelHitboxRect;
@@ -65,12 +65,6 @@ class GameOverlay extends StatelessWidget {
     final spellAffordable = hud.canAffordSpell && hud.spellSlotValid;
     final hasSecondarySlot = hud.hasSecondarySlot;
     final hasProjectileSlot = hud.hasProjectileSlot;
-    final secondaryUsesSlotHold =
-        hud.secondaryInputMode == AbilityInputMode.holdAimRelease ||
-        hud.secondaryInputMode == AbilityInputMode.holdRelease;
-    final mobilityUsesSlotHold =
-        hud.mobilityInputMode == AbilityInputMode.holdAimRelease ||
-        hud.mobilityInputMode == AbilityInputMode.holdRelease;
     final chargeBarVisible = hud.chargeEnabled && hud.chargeActive;
     final chargeBarProgress01 = hud.chargeFullTicks > 0
         ? (hud.chargeTicks / hud.chargeFullTicks).clamp(0.0, 1.0)
@@ -91,32 +85,33 @@ class GameOverlay extends StatelessWidget {
           ignoring: !uiState.isRunning,
           child: RunnerControlsOverlay(
             onMoveAxis: input.setMoveAxis,
-            onJumpPressed: input.pressJump,
-            onMobilityPressed: input.pressDash,
+            onJumpPressed: () => input.triggerAction(RunnerGameplayAction.jump),
+            onMobilityPressed: () =>
+                input.triggerAction(RunnerGameplayAction.mobility),
             onMobilityCommitted: () =>
-                input.commitMobilityWithAim(clearAim: true),
-            onMobilityHoldStart: mobilityUsesSlotHold
-                ? () => input.startAbilitySlotHold(AbilitySlot.mobility)
-                : input.startMobilityHold,
-            onMobilityHoldEnd: mobilityUsesSlotHold
-                ? () => input.endAbilitySlotHold(AbilitySlot.mobility)
-                : input.endMobilityHold,
-            onSecondaryPressed: input.pressSecondary,
-            onSecondaryCommitted: input.commitSecondaryStrike,
-            onSecondaryHoldStart: secondaryUsesSlotHold
-                ? () => input.startAbilitySlotHold(AbilitySlot.secondary)
-                : input.startSecondaryHold,
-            onSecondaryHoldEnd: secondaryUsesSlotHold
-                ? () => input.endAbilitySlotHold(AbilitySlot.secondary)
-                : input.endSecondaryHold,
-            onSpellPressed: input.pressSpell,
+                input.commitAction(RunnerGameplayAction.mobility),
+            onMobilityHoldStart: () =>
+                input.beginAction(RunnerGameplayAction.mobility),
+            onMobilityHoldEnd: () =>
+                input.endAction(RunnerGameplayAction.mobility),
+            onSecondaryPressed: () =>
+                input.triggerAction(RunnerGameplayAction.secondary),
+            onSecondaryCommitted: () =>
+                input.commitAction(RunnerGameplayAction.secondary),
+            onSecondaryHoldStart: () =>
+                input.beginAction(RunnerGameplayAction.secondary),
+            onSecondaryHoldEnd: () =>
+                input.endAction(RunnerGameplayAction.secondary),
+            onSpellPressed: () =>
+                input.triggerAction(RunnerGameplayAction.spell),
             onProjectileCommitted: () =>
-                input.commitProjectileWithAim(clearAim: true),
-            onProjectilePressed: input.pressProjectile,
+                input.commitAction(RunnerGameplayAction.projectile),
+            onProjectilePressed: () =>
+                input.triggerAction(RunnerGameplayAction.projectile),
             onProjectileHoldStart: () =>
-                input.startAbilitySlotHold(AbilitySlot.projectile),
+                input.beginAction(RunnerGameplayAction.projectile),
             onProjectileHoldEnd: () =>
-                input.endAbilitySlotHold(AbilitySlot.projectile),
+                input.endAction(RunnerGameplayAction.projectile),
             onAimDir: input.setAimDir,
             onAimClear: input.clearAimDir,
             projectileAimPreview: projectileAimPreview,
@@ -128,14 +123,17 @@ class GameOverlay extends StatelessWidget {
                 hud.cooldownTicksLeft[CooldownGroup.projectile],
             projectileCooldownTicksTotal:
                 hud.cooldownTicksTotal[CooldownGroup.projectile],
-            onMeleeCommitted: input.commitMeleeStrike,
-            onMeleePressed: input.pressStrike,
-            onMeleeHoldStart: input.startPrimaryHold,
-            onMeleeHoldEnd: input.endPrimaryHold,
+            onMeleeCommitted: () =>
+                input.commitAction(RunnerGameplayAction.primary),
+            onMeleePressed: () =>
+                input.triggerAction(RunnerGameplayAction.primary),
+            onMeleeHoldStart: () =>
+                input.beginAction(RunnerGameplayAction.primary),
+            onMeleeHoldEnd: () => input.endAction(RunnerGameplayAction.primary),
             onMeleeChargeHoldStart: () =>
-                input.startAbilitySlotHold(AbilitySlot.primary),
+                input.beginAction(RunnerGameplayAction.primary),
             onMeleeChargeHoldEnd: () =>
-                input.endAbilitySlotHold(AbilitySlot.primary),
+                input.endAction(RunnerGameplayAction.primary),
             equippedAbilityIdsBySlot: equippedAbilityIdsBySlot,
             meleeAimPreview: meleeAimPreview,
             aimCancelHitboxRect: aimCancelHitboxRect,
@@ -182,9 +180,7 @@ class GameOverlay extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TopLeftHudOverlay(controller: controller),
-              ],
+              children: [TopLeftHudOverlay(controller: controller)],
             ),
           ),
         ),
