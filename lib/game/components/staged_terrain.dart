@@ -148,7 +148,7 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
         material.spec,
         edge.orientation,
       )!;
-      _drawEdgeSeamBacking(canvas, edge: edge, fillPaint: material.fillPaint);
+      _drawEdgeFillBacking(canvas, edge: edge, fillPaint: material.fillPaint);
       _drawEdgeImage(
         canvas,
         edge: edge,
@@ -267,6 +267,23 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
         material,
         edge.orientation,
       )!;
+      final normalizedLayerFootprints = <TerrainMaterialEdgeFootprint>[
+        terrainMaterialEdgeFootprint(
+          edgeLength: edge.length,
+          anchorY: profile.base.anchorY,
+          orientation: edge.orientation,
+          sourceWidth: profile.base.region.width,
+          sourceHeight: profile.base.region.height,
+        ),
+        if (profile.detail case final detail?)
+          terrainMaterialEdgeFootprint(
+            edgeLength: edge.length,
+            anchorY: detail.anchorY,
+            orientation: edge.orientation,
+            sourceWidth: detail.region.width,
+            sourceHeight: detail.region.height,
+          ),
+      ];
       final layerFootprints = <ui.Path>[
         terrainMaterialEdgeFootprintPath(
           start: edge.start,
@@ -296,21 +313,32 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
           layerFootprint,
         );
       }
+      final fillBackingPath =
+          ui.Path.from(
+            terrainMaterialEdgeSeamBackingPath(
+              start: edge.start,
+              length: edge.length,
+              angle: edge.angle,
+              sourceWidth: profile.base.region.width,
+              sourceHeight: profile.base.region.height,
+              anchorY: profile.base.anchorY,
+              orientation: edge.orientation,
+            ),
+          )..addPath(
+            terrainMaterialEdgeFillJoinBackingPath(
+              start: edge.start,
+              angle: edge.angle,
+              layerFootprints: normalizedLayerFootprints,
+            ),
+            ui.Offset.zero,
+          );
       edgePlacementsByMesh
           .putIfAbsent(edge.ownerMesh, () => <_CachedTerrainEdgePlacement>[])
           .add(
             _CachedTerrainEdgePlacement(
               edge: edge,
               footprint: edgeFootprint,
-              seamBackingPath: terrainMaterialEdgeSeamBackingPath(
-                start: edge.start,
-                length: edge.length,
-                angle: edge.angle,
-                sourceWidth: profile.base.region.width,
-                sourceHeight: profile.base.region.height,
-                anchorY: profile.base.anchorY,
-                orientation: edge.orientation,
-              ),
+              fillBackingPath: fillBackingPath,
             ),
           );
       final caps = StagedTerrainEdgeLayout.capsFor(material, edge.orientation);
@@ -360,10 +388,19 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
         orderedEdgeFootprints: edgeFootprints,
         capFootprints: capFootprints,
       );
+      final fillBackingClipPaths =
+          terrainMaterialExclusiveEdgeFillBackingClipPaths(
+            ownerPath: mesh.clipPath,
+            orderedBackingPaths: edgePlacements.map(
+              (placement) => placement.fillBackingPath,
+            ),
+            orderedEdgeFootprints: edgeFootprints,
+            capFootprints: capFootprints,
+          );
       for (var index = 0; index < edgePlacements.length; index += 1) {
         edgePlacements[index].edge.setEdgeCompositionPaths(
           clipPath: edgeClipPaths[index],
-          seamBackingPath: edgePlacements[index].seamBackingPath,
+          fillBackingClipPath: fillBackingClipPaths[index],
         );
       }
       final capClipPaths = terrainMaterialExclusiveCapClipPaths(
@@ -400,15 +437,14 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
     clipPath: edge.edgeClipPath,
   );
 
-  void _drawEdgeSeamBacking(
+  void _drawEdgeFillBacking(
     ui.Canvas canvas, {
     required _CachedTerrainDecoratedEdge edge,
     required ui.Paint fillPaint,
   }) {
-    if (edge.seamBackingPath.getBounds().isEmpty) return;
+    if (edge.fillBackingClipPath.getBounds().isEmpty) return;
     canvas.save();
-    canvas.clipPath(edge.edgeClipPath);
-    canvas.clipPath(edge.seamBackingPath);
+    canvas.clipPath(edge.fillBackingClipPath);
     canvas.drawRect(edge.ownerMesh.bounds, fillPaint);
     canvas.restore();
   }
@@ -661,6 +697,30 @@ ui.Path terrainMaterialEdgeSeamBackingPath({
   return result;
 }
 
+/// Returns the material-fill corridor straddling an edge profile's inner side.
+///
+/// Consumers clip this against the owner and higher-priority regions without
+/// clipping it back to the current edge footprint. That deliberate overlap
+/// closes the complementary raster seam between edge and fill.
+@visibleForTesting
+ui.Path terrainMaterialEdgeFillJoinBackingPath({
+  required ui.Offset start,
+  required double angle,
+  required Iterable<TerrainMaterialEdgeFootprint> layerFootprints,
+}) {
+  final footprint = terrainMaterialEdgeFillJoinBackingFootprint(
+    layerFootprints,
+  );
+  return _terrainMaterialFootprintPath(
+    start: start,
+    angle: angle,
+    left: footprint.left,
+    top: footprint.top,
+    width: footprint.width,
+    height: footprint.height,
+  );
+}
+
 ui.Path _terrainMaterialFootprintPath({
   required ui.Offset start,
   required double angle,
@@ -718,7 +778,7 @@ List<ui.Path> terrainMaterialExclusiveCapClipPaths({
   final footprints = orderedCapFootprints.toList(growable: false);
   return List<ui.Path>.unmodifiable(<ui.Path>[
     for (var index = 0; index < footprints.length; index += 1)
-      _exclusiveCapClipPath(
+      _exclusiveRegionClipPath(
         ownerPath: ownerPath,
         footprint: footprints[index],
         higherPriorityFootprints: footprints.skip(index + 1),
@@ -740,7 +800,7 @@ List<ui.Path> terrainMaterialExclusiveEdgeClipPaths({
   final caps = capFootprints.toList(growable: false);
   return List<ui.Path>.unmodifiable(<ui.Path>[
     for (var index = 0; index < edges.length; index += 1)
-      _exclusiveCapClipPath(
+      _exclusiveRegionClipPath(
         ownerPath: ownerPath,
         footprint: edges[index],
         higherPriorityFootprints: <ui.Path>[...edges.skip(index + 1), ...caps],
@@ -748,7 +808,36 @@ List<ui.Path> terrainMaterialExclusiveEdgeClipPaths({
   ]);
 }
 
-ui.Path _exclusiveCapClipPath({
+/// Clips edge-local fill backing while retaining its edge-to-fill overlap.
+///
+/// Higher-priority edge profiles and caps still remove their complete
+/// footprints from every lower backing path.
+@visibleForTesting
+List<ui.Path> terrainMaterialExclusiveEdgeFillBackingClipPaths({
+  required ui.Path ownerPath,
+  required Iterable<ui.Path> orderedBackingPaths,
+  required Iterable<ui.Path> orderedEdgeFootprints,
+  required Iterable<ui.Path> capFootprints,
+}) {
+  final backings = orderedBackingPaths.toList(growable: false);
+  final edges = orderedEdgeFootprints.toList(growable: false);
+  final caps = capFootprints.toList(growable: false);
+  if (backings.length != edges.length) {
+    throw ArgumentError(
+      'Terrain edge backing and footprint counts must match.',
+    );
+  }
+  return List<ui.Path>.unmodifiable(<ui.Path>[
+    for (var index = 0; index < backings.length; index += 1)
+      _exclusiveRegionClipPath(
+        ownerPath: ownerPath,
+        footprint: backings[index],
+        higherPriorityFootprints: <ui.Path>[...edges.skip(index + 1), ...caps],
+      ),
+  ]);
+}
+
+ui.Path _exclusiveRegionClipPath({
   required ui.Path ownerPath,
   required ui.Path footprint,
   required Iterable<ui.Path> higherPriorityFootprints,
@@ -957,7 +1046,7 @@ final class _CachedTerrainDecoratedEdge {
   final _CachedTerrainMesh ownerMesh;
   final ui.Rect bounds;
   ui.Path? _edgeClipPath;
-  ui.Path? _seamBackingPath;
+  ui.Path? _fillBackingClipPath;
   ui.Path? _startCapClipPath;
   ui.Path? _endCapClipPath;
 
@@ -969,20 +1058,20 @@ final class _CachedTerrainDecoratedEdge {
     return result;
   }
 
-  ui.Path get seamBackingPath {
-    final result = _seamBackingPath;
+  ui.Path get fillBackingClipPath {
+    final result = _fillBackingClipPath;
     if (result == null) {
-      throw StateError('Terrain edge is missing its seam-backing path.');
+      throw StateError('Terrain edge is missing its fill-backing clip.');
     }
     return result;
   }
 
   void setEdgeCompositionPaths({
     required ui.Path clipPath,
-    required ui.Path seamBackingPath,
+    required ui.Path fillBackingClipPath,
   }) {
     _edgeClipPath = clipPath;
-    _seamBackingPath = seamBackingPath;
+    _fillBackingClipPath = fillBackingClipPath;
   }
 
   void setCapClipPath({required bool atEnd, required ui.Path clipPath}) {
@@ -1018,12 +1107,12 @@ final class _CachedTerrainEdgePlacement {
   const _CachedTerrainEdgePlacement({
     required this.edge,
     required this.footprint,
-    required this.seamBackingPath,
+    required this.fillBackingPath,
   });
 
   final _CachedTerrainDecoratedEdge edge;
   final ui.Path footprint;
-  final ui.Path seamBackingPath;
+  final ui.Path fillBackingPath;
 }
 
 final Float64List _identityMatrix = Float64List.fromList(<double>[

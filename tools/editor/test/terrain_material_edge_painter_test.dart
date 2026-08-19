@@ -321,6 +321,43 @@ void main() {
     expect(await _alphaAt(rendered, 3, 2), greaterThan(0));
   });
 
+  test('fill backing overlaps only the edge-to-fill join', () {
+    const region = TerrainMaterialImageRegion(
+      assetPath: 'assets/images/terrain/test/atlas.png',
+      x: 0,
+      y: 0,
+      width: 4,
+      height: 2,
+    );
+    final ownerPath = ui.Path()..addRect(const ui.Rect.fromLTWH(0, 0, 8, 8));
+    final edgeFootprint = terrainMaterialEdgeFootprintPath(
+      region: region,
+      orientation: TerrainMaterialEdgeOrientation.top,
+      start: const ui.Offset(2, 2),
+      end: const ui.Offset(6, 2),
+      anchorY: 0,
+    );
+    final backingPath = terrainMaterialEdgeFillJoinBackingPath(
+      layerFootprints: const <TerrainMaterialEdgeFootprint>[
+        (left: 0, top: 0, width: 4, height: 2),
+      ],
+      start: const ui.Offset(2, 2),
+      end: const ui.Offset(6, 2),
+    );
+    final capFootprint = ui.Path()..addRect(const ui.Rect.fromLTWH(2, 3, 1, 2));
+    final backingClip = terrainMaterialExclusiveEdgeFillBackingClipPaths(
+      ownerPath: ownerPath,
+      orderedBackingPaths: <ui.Path>[backingPath],
+      orderedEdgeFootprints: <ui.Path>[edgeFootprint],
+      capFootprints: <ui.Path>[capFootprint],
+    ).single;
+
+    expect(backingClip.contains(const ui.Offset(4, 3.5)), isTrue);
+    expect(backingClip.contains(const ui.Offset(4, 4.5)), isTrue);
+    expect(backingClip.contains(const ui.Offset(4, 2.5)), isFalse);
+    expect(backingClip.contains(const ui.Offset(2.5, 3.5)), isFalse);
+  });
+
   test('later top edge footprint excludes an overlapping wall edge', () {
     final ownerPath = ui.Path()..addRect(const ui.Rect.fromLTWH(0, 0, 8, 8));
     final wallFootprint = ui.Path()

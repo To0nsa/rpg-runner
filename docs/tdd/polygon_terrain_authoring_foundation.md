@@ -1234,6 +1234,9 @@ then fill.
 Internal edge repeats alone receive material-fill backing for one source pixel
 on each side of their world-phased tile boundary. Endpoints and all other
 transparent edge pixels remain unbacked; higher edge and cap clips still win.
+The fill-facing boundary of each complete base/detail edge profile also gets a
+one-pixel overlap on both sides. This avoids complementary clip raster seams
+without restoring fill beneath the rest of the edge footprint.
 Repeating bands stop at their exact Core edge endpoints; runtime and editor
 rendering do not stretch one band beneath another to hide join wedges. A null
 material is collision-only and not drawn; an

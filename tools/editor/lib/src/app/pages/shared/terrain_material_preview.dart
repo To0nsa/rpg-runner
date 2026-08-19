@@ -344,14 +344,13 @@ class _TerrainComposedSample extends StatelessWidget {
                 end: edge.end,
               ),
           ];
-          final edgeSeamBackingPaths = <Path>[
+          final edgeFillBackingPaths = <Path>[
             for (final edge in orderedEdges)
-              terrainMaterialEdgeSeamBackingPath(
-                region: edge.profile.base.region,
+              _edgeProfileFillBackingPath(
+                edge.profile,
                 orientation: edge.orientation,
                 start: edge.start,
                 end: edge.end,
-                anchorY: edge.profile.base.anchorY,
               ),
           ];
           final capFootprints = capPlacements
@@ -366,6 +365,13 @@ class _TerrainComposedSample extends StatelessWidget {
             orderedEdgeFootprints: edgeFootprints,
             capFootprints: capFootprints,
           );
+          final edgeFillBackingClipPaths =
+              terrainMaterialExclusiveEdgeFillBackingClipPaths(
+                ownerPath: ownerPath,
+                orderedBackingPaths: edgeFillBackingPaths,
+                orderedEdgeFootprints: edgeFootprints,
+                capFootprints: capFootprints,
+              );
           final capClipPaths = terrainMaterialExclusiveCapClipPaths(
             ownerPath: ownerPath,
             orderedCapFootprints: capFootprints,
@@ -394,36 +400,42 @@ class _TerrainComposedSample extends StatelessWidget {
               ),
               for (var index = 0; index < orderedEdges.length; index += 1)
                 Positioned.fill(
-                  child: ClipPath(
-                    clipper: _TerrainMaterialPathClipper(edgeClipPaths[index]),
-                    child: Stack(
-                      children: [
-                        Positioned.fill(
-                          child: ClipPath(
-                            clipper: _TerrainMaterialPathClipper(
-                              edgeSeamBackingPaths[index],
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: ClipPath(
+                          clipper: _TerrainMaterialPathClipper(
+                            edgeFillBackingClipPaths[index],
+                          ),
+                          child: _TerrainRegionImage.repeated(
+                            key: _previewKey(
+                              '${orderedEdges[index].role}_fill_backing',
                             ),
-                            child: _TerrainRegionImage.repeated(
-                              key: _previewKey(
-                                '${orderedEdges[index].role}_seam_backing',
-                              ),
-                              workspaceRootPath: workspaceRootPath,
-                              region: material.fill,
-                              imageCache: imageCache,
-                              repeat: _RegionRepeat.both,
-                              worldOrigin: Offset.zero,
+                            workspaceRootPath: workspaceRootPath,
+                            region: material.fill,
+                            imageCache: imageCache,
+                            repeat: _RegionRepeat.both,
+                            worldOrigin: Offset.zero,
+                          ),
+                        ),
+                      ),
+                      Positioned.fill(
+                        child: ClipPath(
+                          clipper: _TerrainMaterialPathClipper(
+                            edgeClipPaths[index],
+                          ),
+                          child: Stack(
+                            children: _edgeProfile(
+                              orderedEdges[index].profile,
+                              role: orderedEdges[index].role,
+                              orientation: orderedEdges[index].orientation,
+                              start: orderedEdges[index].start,
+                              end: orderedEdges[index].end,
                             ),
                           ),
                         ),
-                        ..._edgeProfile(
-                          orderedEdges[index].profile,
-                          role: orderedEdges[index].role,
-                          orientation: orderedEdges[index].orientation,
-                          start: orderedEdges[index].start,
-                          end: orderedEdges[index].end,
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               Positioned.fill(
@@ -528,6 +540,48 @@ class _TerrainComposedSample extends StatelessWidget {
       result = Path.combine(PathOperation.union, result, footprint);
     }
     return result;
+  }
+
+  Path _edgeProfileFillBackingPath(
+    TerrainMaterialEdgeProfile profile, {
+    required TerrainMaterialEdgeOrientation orientation,
+    required Offset start,
+    required Offset end,
+  }) {
+    final edgeLength = (end - start).distance;
+    final normalizedLayerFootprints = <TerrainMaterialEdgeFootprint>[
+      terrainMaterialEdgeFootprint(
+        edgeLength: edgeLength,
+        anchorY: profile.base.anchorY,
+        orientation: orientation,
+        sourceWidth: profile.base.region.width,
+        sourceHeight: profile.base.region.height,
+      ),
+      if (profile.detail case final detail?)
+        terrainMaterialEdgeFootprint(
+          edgeLength: edgeLength,
+          anchorY: detail.anchorY,
+          orientation: orientation,
+          sourceWidth: detail.region.width,
+          sourceHeight: detail.region.height,
+        ),
+    ];
+    return Path.from(
+      terrainMaterialEdgeSeamBackingPath(
+        region: profile.base.region,
+        orientation: orientation,
+        start: start,
+        end: end,
+        anchorY: profile.base.anchorY,
+      ),
+    )..addPath(
+      terrainMaterialEdgeFillJoinBackingPath(
+        layerFootprints: normalizedLayerFootprints,
+        start: start,
+        end: end,
+      ),
+      Offset.zero,
+    );
   }
 
   Widget _edgeLayer(
