@@ -13,6 +13,10 @@ import '../../../../terrain_authoring/terrain_polygon_interaction.dart';
 import '../../../../terrain_authoring/terrain_polygon_scene_projection.dart';
 import '../../../../terrain_authoring/terrain_source_models.dart';
 
+// Direct Chunk terrain must remain on whole pixels even when collision contact
+// refines an optional tile-grid gesture. Two half-pixel ticks equal one pixel.
+const int _chunkTerrainContactStepHalfPixels = 2;
+
 /// Chunk-route state for one direct chunk-local polygon owner.
 ///
 /// Drafts, gestures, selection, tools, and rejection diagnostics remain local.
@@ -475,6 +479,7 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
             : null,
       ),
       snapStepHalfPixels: snapPolicy.stepHalfPixels,
+      pointContactStepHalfPixels: _chunkTerrainContactStepHalfPixels,
       snapRadiusHalfPixels: snapRadiusHalfPixels,
       buildPreview: previewFor,
       isCandidateInBounds: _shapeIsInBounds,
@@ -523,7 +528,10 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
     return _applyInteractionResult(
       _reducer.editSelectedVertex(
         attemptedState,
-        vertex: _boundVertex(_editSnapPolicy.snapVertex(vertex)),
+        vertex: _boundVertex(
+          _editSnapPolicy.snapVertex(vertex),
+          _editSnapPolicy,
+        ),
         shapeId: shapeId,
       ),
       attemptedState: attemptedState,
@@ -653,6 +661,7 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
       xHalfPixels: point.xHalfPixels,
       yHalfPixels: point.yHalfPixels,
     ),
+    snapPolicy,
   );
 
   /// Keeps all chunk-local authoring input within the closed owner rectangle.
@@ -660,8 +669,10 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
   /// Shared polygon interaction deliberately has no owner bounds because it
   /// also serves Prefabs. Chunk input clamps before entering that reducer, so
   /// drafts stay editable at the edge instead of producing a later rejected
-  /// commit. Whole-shape translation additionally constrains its delta because
-  /// a pointer inside the chunk can still shift an entire polygon outside it.
+  /// commit. A tile-grid policy uses the final complete grid intersection when
+  /// the raw right or bottom edge is off-grid. Whole-shape translation
+  /// additionally constrains its delta because a pointer inside the chunk can
+  /// still shift an entire polygon outside it.
   TerrainSourceVertexDef _boundedGesturePoint(
     TerrainPolygonScenePoint point,
     TerrainPolygonSnapPolicy snapPolicy,
@@ -694,11 +705,21 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
     );
   }
 
-  TerrainSourceVertexDef _boundVertex(TerrainSourceVertexDef vertex) =>
-      TerrainSourceVertexDef(
-        xHalfPixels: _clampInt(vertex.xHalfPixels, 0, chunk.width * 2),
-        yHalfPixels: _clampInt(vertex.yHalfPixels, 0, chunk.height * 2),
-      );
+  TerrainSourceVertexDef _boundVertex(
+    TerrainSourceVertexDef vertex,
+    TerrainPolygonSnapPolicy snapPolicy,
+  ) => TerrainSourceVertexDef(
+    xHalfPixels: _clampInt(
+      vertex.xHalfPixels,
+      0,
+      _lastGridCoordinateWithin(chunk.width * 2, snapPolicy.stepHalfPixels),
+    ),
+    yHalfPixels: _clampInt(
+      vertex.yHalfPixels,
+      0,
+      _lastGridCoordinateWithin(chunk.height * 2, snapPolicy.stepHalfPixels),
+    ),
+  );
 
   bool _pointIsInBounds(TerrainSourceVertexDef point) =>
       point.xHalfPixels >= 0 &&
@@ -979,6 +1000,9 @@ int _clampInt(int value, int minimum, int maximum) {
   }
   return value.clamp(minimum, maximum).toInt();
 }
+
+int _lastGridCoordinateWithin(int maximum, int step) =>
+    (maximum ~/ step) * step;
 
 String? _normalizeOptionalKey(String? value) {
   final normalized = value?.trim() ?? '';

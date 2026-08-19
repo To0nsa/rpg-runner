@@ -147,6 +147,38 @@ void main() {
     },
   );
 
+  test(
+    'rectangle tile snapping stays on-grid at non-aligned chunk bounds',
+    () async {
+      final harness = await _buildHarness(width: 600, height: 270);
+      final controller = harness.authoring;
+      controller.setCreationSnapToGrid(true);
+      controller.setTool(TerrainPolygonTool.createRectangle);
+
+      expect(
+        controller.beginCreateRectangle(
+          pointer: 7,
+          point: const TerrainPolygonScenePoint(1200, 540),
+        ),
+        isTrue,
+      );
+      controller.updateGesture(
+        pointer: 7,
+        point: const TerrainPolygonScenePoint(1120, 480),
+      );
+
+      expect(
+        controller.state.gesture!.previewShape.vertices,
+        const <TerrainSourceVertexDef>[
+          TerrainSourceVertexDef(xHalfPixels: 1184, yHalfPixels: 512),
+          TerrainSourceVertexDef(xHalfPixels: 1120, yHalfPixels: 512),
+          TerrainSourceVertexDef(xHalfPixels: 1120, yHalfPixels: 480),
+          TerrainSourceVertexDef(xHalfPixels: 1184, yHalfPixels: 480),
+        ],
+      );
+    },
+  );
+
   test('selected creation settings apply to polygons and rectangles', () async {
     final harness = await _buildHarness(newShapeMaterialKey: 'grass_dirt');
     final controller = harness.authoring;
@@ -606,6 +638,47 @@ void main() {
     expect(controller.issues, isEmpty);
   });
 
+  test('vertex movement can stop on a neighboring terrain boundary', () async {
+    final harness = await _buildHarness(
+      width: 600,
+      height: 270,
+      collisionShapes: <TerrainSourceShapeDef>[
+        _neighboringGround(),
+        _neighboringSlope(),
+      ],
+    );
+    final controller = harness.authoring;
+    controller.setEditSnapToGrid(true);
+    controller.select(TerrainPolygonSelection.vertex('solid_002', 0));
+    controller.setTool(TerrainPolygonTool.moveVertex);
+
+    expect(
+      controller.beginGesture(
+        pointer: 33,
+        point: const TerrainPolygonScenePoint(160, 416),
+      ),
+      isTrue,
+    );
+    controller.updateGesture(
+      pointer: 33,
+      point: const TerrainPolygonScenePoint(128, 444),
+      snapRadiusHalfPixels: 8,
+    );
+
+    expect(
+      controller.state.gesture!.previewShape.vertices.first,
+      const TerrainSourceVertexDef(xHalfPixels: 128, yHalfPixels: 444),
+    );
+    expect(controller.commitGesture(33), isTrue);
+    expect(
+      controller.chunk.collisionShapes
+          .singleWhere((shape) => shape.shapeId == 'solid_002')
+          .vertices
+          .first,
+      const TerrainSourceVertexDef(xHalfPixels: 128, yHalfPixels: 444),
+    );
+  });
+
   test(
     'expanded prefab collision blocks and attracts draft vertices',
     () async {
@@ -898,6 +971,101 @@ void main() {
 
     await drag.up();
     await tester.pump();
+  });
+
+  testWidgets(
+    'scene surface keeps grid-snapped rectangle bounds on intersections',
+    (tester) async {
+      final harness = await _buildHarness(width: 600, height: 270);
+      final controller = harness.authoring;
+      final transform = TerrainPolygonViewportTransform(
+        origin: const Offset(10, 10),
+        zoom: 0.25,
+      );
+      controller.setCreationSnapToGrid(true);
+      controller.setTool(TerrainPolygonTool.createRectangle);
+      await tester.pumpWidget(
+        _surfaceApp(controller: controller, transform: transform),
+      );
+      final topLeft = tester.getTopLeft(
+        find.byKey(const ValueKey<String>('chunk_scene_surface')),
+      );
+      final start = transform.sourceVertexToCanvas(
+        const TerrainSourceVertexDef(xHalfPixels: 1200, yHalfPixels: 540),
+      );
+      final end = transform.sourceVertexToCanvas(
+        const TerrainSourceVertexDef(xHalfPixels: 1120, yHalfPixels: 480),
+      );
+
+      final drag = await tester.startGesture(topLeft + start);
+      await drag.moveTo(topLeft + end);
+      await tester.pump();
+
+      expect(
+        controller.sceneProjection.draft!.vertices,
+        const <TerrainSourceVertexDef>[
+          TerrainSourceVertexDef(xHalfPixels: 1184, yHalfPixels: 512),
+          TerrainSourceVertexDef(xHalfPixels: 1120, yHalfPixels: 512),
+          TerrainSourceVertexDef(xHalfPixels: 1120, yHalfPixels: 480),
+          TerrainSourceVertexDef(xHalfPixels: 1184, yHalfPixels: 480),
+        ],
+      );
+
+      await drag.up();
+      await tester.pump();
+    },
+  );
+
+  testWidgets('scene surface moves a vertex onto neighboring terrain', (
+    tester,
+  ) async {
+    final harness = await _buildHarness(
+      width: 600,
+      height: 270,
+      collisionShapes: <TerrainSourceShapeDef>[
+        _neighboringGround(),
+        _neighboringSlope(),
+      ],
+    );
+    final controller = harness.authoring;
+    final transform = TerrainPolygonViewportTransform(
+      origin: const Offset(-40, -340),
+      zoom: 2,
+    );
+    controller.setEditSnapToGrid(true);
+    controller.select(TerrainPolygonSelection.vertex('solid_002', 0));
+    controller.setTool(TerrainPolygonTool.moveVertex);
+    await tester.pumpWidget(
+      _surfaceApp(controller: controller, transform: transform),
+    );
+    final topLeft = tester.getTopLeft(
+      find.byKey(const ValueKey<String>('chunk_scene_surface')),
+    );
+    final start = transform.sourceVertexToCanvas(
+      const TerrainSourceVertexDef(xHalfPixels: 160, yHalfPixels: 416),
+    );
+    final end = transform.sourceVertexToCanvas(
+      const TerrainSourceVertexDef(xHalfPixels: 128, yHalfPixels: 444),
+    );
+
+    final drag = await tester.startGesture(topLeft + start);
+    await drag.moveTo(topLeft + end);
+    await tester.pump();
+
+    expect(
+      controller.state.gesture!.previewShape.vertices.first,
+      const TerrainSourceVertexDef(xHalfPixels: 128, yHalfPixels: 444),
+    );
+
+    await drag.up();
+    await tester.pump();
+    expect(
+      controller.chunk.collisionShapes
+          .singleWhere((shape) => shape.shapeId == 'solid_002')
+          .vertices
+          .first,
+      const TerrainSourceVertexDef(xHalfPixels: 128, yHalfPixels: 444),
+    );
   });
 
   testWidgets(
@@ -1243,12 +1411,16 @@ Future<_Harness> _buildHarness({
   Iterable<PlacedPrefabDef> placements = const <PlacedPrefabDef>[],
   String? newShapeSurfaceKind,
   String? newShapeMaterialKey,
+  int width = 100,
+  int height = 50,
 }) async {
   final root = Directory.systemTemp.createTempSync('chunk_polygon_route_');
   final chunk = _chunk(
     shape: shape,
     collisionShapes: collisionShapes,
     placements: placements,
+    width: width,
+    height: height,
   );
   final document = ChunkV2Document(
     chunks: <ChunkV2FileData>[chunk],
@@ -1297,6 +1469,8 @@ ChunkV2FileData _chunk({
   TerrainSourceShapeDef? shape,
   Iterable<TerrainSourceShapeDef>? collisionShapes,
   Iterable<PlacedPrefabDef> placements = const <PlacedPrefabDef>[],
+  int width = 100,
+  int height = 50,
 }) => ChunkV2FileData(
   chunkKey: 'forest_target',
   id: 'forest_target',
@@ -1304,8 +1478,8 @@ ChunkV2FileData _chunk({
   status: chunkStatusActive,
   levelId: 'forest',
   tileSize: 16,
-  width: 100,
-  height: 50,
+  width: width,
+  height: height,
   difficulty: chunkDifficultyNormal,
   assemblyGroupId: defaultChunkAssemblyGroupId,
   tags: const <String>['forest'],
@@ -1324,6 +1498,28 @@ TerrainSourceShapeDef _chunkGround() => TerrainSourceShapeDef(
     TerrainSourceVertexDef(xHalfPixels: 100, yHalfPixels: 20),
     TerrainSourceVertexDef(xHalfPixels: 100, yHalfPixels: 80),
     TerrainSourceVertexDef(xHalfPixels: 20, yHalfPixels: 80),
+  ],
+);
+
+TerrainSourceShapeDef _neighboringGround() => TerrainSourceShapeDef(
+  shapeId: 'ground_001',
+  vertices: const <TerrainSourceVertexDef>[
+    TerrainSourceVertexDef(xHalfPixels: 0, yHalfPixels: 444),
+    TerrainSourceVertexDef(xHalfPixels: 1200, yHalfPixels: 444),
+    TerrainSourceVertexDef(xHalfPixels: 1200, yHalfPixels: 540),
+    TerrainSourceVertexDef(xHalfPixels: 0, yHalfPixels: 540),
+  ],
+);
+
+TerrainSourceShapeDef _neighboringSlope() => TerrainSourceShapeDef(
+  shapeId: 'solid_002',
+  vertices: const <TerrainSourceVertexDef>[
+    TerrainSourceVertexDef(xHalfPixels: 160, yHalfPixels: 416),
+    TerrainSourceVertexDef(xHalfPixels: 224, yHalfPixels: 352),
+    TerrainSourceVertexDef(xHalfPixels: 384, yHalfPixels: 352),
+    TerrainSourceVertexDef(xHalfPixels: 446, yHalfPixels: 316),
+    TerrainSourceVertexDef(xHalfPixels: 768, yHalfPixels: 320),
+    TerrainSourceVertexDef(xHalfPixels: 768, yHalfPixels: 444),
   ],
 );
 

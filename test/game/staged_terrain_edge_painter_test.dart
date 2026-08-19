@@ -96,6 +96,73 @@ void main() {
 
     expect(await _rgbaBytes(actual), await _rgbaBytes(expected));
   });
+
+  test('polygon clip contains edge bands and caps at sloped corners', () async {
+    final source = await _sourceImage();
+    addTearDown(source.dispose);
+    final ownerPath = ui.Path()
+      ..moveTo(2, 2)
+      ..lineTo(6, 2)
+      ..lineTo(6, 5)
+      ..lineTo(4, 5)
+      ..close();
+    final unclippedEdge = await _renderEdge(
+      source,
+      orientation: TerrainMaterialEdgeOrientation.top,
+      start: const ui.Offset(2, 2),
+      length: 4,
+      angle: 0,
+    );
+    final clippedEdge = await _renderEdge(
+      source,
+      orientation: TerrainMaterialEdgeOrientation.top,
+      start: const ui.Offset(2, 2),
+      length: 4,
+      angle: 0,
+      clipPath: ownerPath,
+    );
+    final clippedCap = await _renderCap(
+      source,
+      start: const ui.Offset(2, 2),
+      length: 4,
+      angle: 0,
+      clipPath: ownerPath,
+    );
+    addTearDown(unclippedEdge.dispose);
+    addTearDown(clippedEdge.dispose);
+    addTearDown(clippedCap.dispose);
+
+    expect(await _alphaAt(unclippedEdge, 2, 4), greaterThan(0));
+    expect(await _alphaAt(clippedEdge, 2, 4), 0);
+    expect(await _alphaAt(clippedCap, 2, 4), 0);
+    expect(await _alphaAt(clippedEdge, 5, 3), greaterThan(0));
+    expect(await _alphaAt(clippedCap, 3, 3), greaterThan(0));
+  });
+
+  test('end underlap extends the repeated edge strip', () async {
+    final source = await _sourceImage();
+    addTearDown(source.dispose);
+    final regular = await _renderEdge(
+      source,
+      orientation: TerrainMaterialEdgeOrientation.top,
+      start: const ui.Offset(2, 2),
+      length: 2,
+      angle: 0,
+    );
+    final underlapped = await _renderEdge(
+      source,
+      orientation: TerrainMaterialEdgeOrientation.top,
+      start: const ui.Offset(2, 2),
+      length: 2,
+      angle: 0,
+      endUnderlapFactor: 2 / 3,
+    );
+    addTearDown(regular.dispose);
+    addTearDown(underlapped.dispose);
+
+    expect(await _alphaAt(regular, 5, 2), 0);
+    expect(await _alphaAt(underlapped, 5, 2), greaterThan(0));
+  });
 }
 
 Future<ui.Image> _sourceImage() async {
@@ -129,6 +196,9 @@ Future<ui.Image> _renderEdge(
   required ui.Offset start,
   required double length,
   required double angle,
+  double startUnderlapFactor = 0,
+  double endUnderlapFactor = 0,
+  ui.Path? clipPath,
 }) async {
   final recorder = ui.PictureRecorder();
   final canvas = ui.Canvas(recorder);
@@ -140,6 +210,37 @@ Future<ui.Image> _renderEdge(
     image: source,
     anchorY: 0,
     orientation: orientation,
+    startUnderlapFactor: startUnderlapFactor,
+    endUnderlapFactor: endUnderlapFactor,
+    clipPath: clipPath,
+  );
+  final picture = recorder.endRecording();
+  try {
+    return await picture.toImage(8, 8);
+  } finally {
+    picture.dispose();
+  }
+}
+
+Future<ui.Image> _renderCap(
+  ui.Image source, {
+  required ui.Offset start,
+  required double length,
+  required double angle,
+  ui.Path? clipPath,
+}) async {
+  final recorder = ui.PictureRecorder();
+  paintTerrainMaterialCapImage(
+    ui.Canvas(recorder),
+    start: start,
+    length: length,
+    angle: angle,
+    image: source,
+    anchorX: 0,
+    anchorY: 0,
+    atEnd: false,
+    orientation: TerrainMaterialEdgeOrientation.top,
+    clipPath: clipPath,
   );
   final picture = recorder.endRecording();
   try {
@@ -163,4 +264,9 @@ Future<ui.Image> _renderSourceAt(ui.Image source, ui.Offset offset) async {
 Future<Uint8List> _rgbaBytes(ui.Image image) async {
   final data = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
   return data!.buffer.asUint8List();
+}
+
+Future<int> _alphaAt(ui.Image image, int x, int y) async {
+  final data = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+  return data!.getUint8(((y * image.width) + x) * 4 + 3);
 }

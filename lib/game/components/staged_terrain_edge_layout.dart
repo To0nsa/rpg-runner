@@ -16,6 +16,8 @@ final class StagedTerrainEdgeDecoration {
     required this.orientation,
     required this.drawStartCap,
     required this.drawEndCap,
+    required this.startUnderlapFactor,
+    required this.endUnderlapFactor,
   });
 
   final TerrainEdge edge;
@@ -23,6 +25,8 @@ final class StagedTerrainEdgeDecoration {
   final TerrainMaterialEdgeOrientation orientation;
   final bool drawStartCap;
   final bool drawEndCap;
+  final double startUnderlapFactor;
+  final double endUnderlapFactor;
 }
 
 /// Maps Core edges to authored render profiles without changing geometry.
@@ -62,10 +66,12 @@ abstract final class StagedTerrainEdgeLayout {
                 orientation: orientation,
                 edgesById: edgesById,
               ),
+          startUnderlapFactor: 0,
+          endUnderlapFactor: 0,
         ),
       );
     }
-    return List<StagedTerrainEdgeDecoration>.unmodifiable(decorations);
+    return _withJoinUnderlaps(decorations);
   }
 
   static TerrainMaterialEdgeOrientation orientationFor(TerrainEdge edge) {
@@ -92,6 +98,77 @@ abstract final class StagedTerrainEdgeLayout {
     return adjacent != null &&
         adjacent.materialKey == edge.materialKey &&
         orientationFor(adjacent) == orientation;
+  }
+
+  static List<StagedTerrainEdgeDecoration> _withJoinUnderlaps(
+    List<StagedTerrainEdgeDecoration> decorations,
+  ) {
+    final indicesById = <TerrainEdgeId, int>{
+      for (var index = 0; index < decorations.length; index += 1)
+        decorations[index].edge.id: index,
+    };
+    final ranks = List<int>.filled(decorations.length, 0);
+    final paintOrder = terrainMaterialEdgePaintOrder(
+      decorations.map((decoration) => decoration.orientation),
+    );
+    for (var rank = 0; rank < paintOrder.length; rank += 1) {
+      ranks[paintOrder[rank]] = rank;
+    }
+    final startFactors = List<double>.filled(decorations.length, 0);
+    final endFactors = List<double>.filled(decorations.length, 0);
+
+    for (
+      var previousIndex = 0;
+      previousIndex < decorations.length;
+      previousIndex += 1
+    ) {
+      final previous = decorations[previousIndex];
+      final nextId = previous.edge.nextId;
+      final nextIndex = nextId == null ? null : indicesById[nextId];
+      if (nextIndex == null) continue;
+      final next = decorations[nextIndex];
+      if (previous.materialKey != next.materialKey ||
+          previous.orientation != next.orientation) {
+        continue;
+      }
+
+      if (ranks[previousIndex] < ranks[nextIndex]) {
+        endFactors[previousIndex] = terrainMaterialJoinUnderlapFactor(
+          endpoint: TerrainMaterialJoinEndpoint.end,
+          lowerTangentX: previous.edge.tangent.x,
+          lowerTangentY: previous.edge.tangent.y,
+          lowerInwardNormalX: -previous.edge.outwardNormal.x,
+          lowerInwardNormalY: -previous.edge.outwardNormal.y,
+          upperTangentX: next.edge.tangent.x,
+          upperTangentY: next.edge.tangent.y,
+        );
+      } else {
+        startFactors[nextIndex] = terrainMaterialJoinUnderlapFactor(
+          endpoint: TerrainMaterialJoinEndpoint.start,
+          lowerTangentX: next.edge.tangent.x,
+          lowerTangentY: next.edge.tangent.y,
+          lowerInwardNormalX: -next.edge.outwardNormal.x,
+          lowerInwardNormalY: -next.edge.outwardNormal.y,
+          upperTangentX: previous.edge.tangent.x,
+          upperTangentY: previous.edge.tangent.y,
+        );
+      }
+    }
+
+    return List<StagedTerrainEdgeDecoration>.unmodifiable(
+      <StagedTerrainEdgeDecoration>[
+        for (var index = 0; index < decorations.length; index += 1)
+          StagedTerrainEdgeDecoration(
+            edge: decorations[index].edge,
+            materialKey: decorations[index].materialKey,
+            orientation: decorations[index].orientation,
+            drawStartCap: decorations[index].drawStartCap,
+            drawEndCap: decorations[index].drawEndCap,
+            startUnderlapFactor: startFactors[index],
+            endUnderlapFactor: endFactors[index],
+          ),
+      ],
+    );
   }
 }
 

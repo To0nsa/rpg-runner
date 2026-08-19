@@ -99,6 +99,44 @@ void main() {
     expect(decorations.last.drawStartCap, isFalse);
     expect(decorations.last.drawEndCap, isTrue);
   });
+
+  test('only a diverging same-profile join receives an underlap', () {
+    final firstId = _id(0);
+    final secondId = _id(1);
+    final snapshot = StagedTerrainRenderSnapshot(
+      geometryVersion: 1,
+      polygons: const <StagedTerrainPolygonRenderSnapshot>[],
+      edges: <TerrainEdge>[
+        _edge(index: 0, start: (0, 0), end: (100, 0), nextId: secondId),
+        _edge(index: 1, start: (100, 0), end: (200, -25), previousId: firstId),
+      ],
+    );
+
+    final decorations = StagedTerrainEdgeLayout.build(snapshot);
+
+    expect(decorations.first.endUnderlapFactor, closeTo(0.25, 0.001));
+    expect(decorations.first.startUnderlapFactor, 0);
+    expect(decorations.last.startUnderlapFactor, 0);
+    expect(decorations.last.endUnderlapFactor, 0);
+  });
+
+  test('a converging same-profile join does not receive an underlap', () {
+    final firstId = _id(0);
+    final secondId = _id(1);
+    final snapshot = StagedTerrainRenderSnapshot(
+      geometryVersion: 1,
+      polygons: const <StagedTerrainPolygonRenderSnapshot>[],
+      edges: <TerrainEdge>[
+        _edge(index: 0, start: (0, 25), end: (100, 0), nextId: secondId),
+        _edge(index: 1, start: (100, 0), end: (200, 0), previousId: firstId),
+      ],
+    );
+
+    final decorations = StagedTerrainEdgeLayout.build(snapshot);
+
+    expect(decorations.first.endUnderlapFactor, 0);
+    expect(decorations.last.startUnderlapFactor, 0);
+  });
 }
 
 TerrainEdge _edge({

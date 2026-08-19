@@ -1221,7 +1221,11 @@ that orientation fill-only. Paired top and underside endpoint caps use exact
 previous/next edge IDs and are suppressed across same-material continuations of
 their own orientation, including resolved streaming seams. Caps render in a
 final foreground pass after all repeating edge bands so a neighboring wall or
-underside band cannot cover a corner. A null material is collision-only and not
+underside band cannot cover a corner. At same-orientation flat/slope joins,
+shared render math detects only the diverging endpoint wedges that the clipped
+rectangular bands would leave uncovered. The earlier-painted band extends
+under the later band by a layer-depth-scaled turn factor; straight and
+converging joins remain unextended. A null material is collision-only and not
 drawn; an unknown non-null material fails through `TerrainMaterialRegistry`
 instead of selecting a visual fallback.
 
@@ -1497,7 +1501,10 @@ gesture so one operation cannot mix steps. Scene hit testing accepts fractional
 source-space pointer coordinates produced by inverse viewport transforms, and
 the shared snap policy divides those fractional values by the final grid step
 before rounding once. This avoids selecting a different owner-grid cell by
-prematurely rounding to the half-pixel grid.
+prematurely rounding to the half-pixel grid. When a Chunk's right or bottom
+bound is not tile-aligned, snapped pointer input clamps to the final complete
+tile-grid intersection inside that bound rather than creating an off-grid
+vertex at the raw owner edge.
 
 Chunk terrain input adds a route-local contact constraint before the shared
 reducer receives each pointer update. Its immutable target set contains current
@@ -1515,11 +1522,15 @@ an allowed axis along that boundary.
 Only solid target boundaries participate in contact attraction. One-way and
 render-only loops still reject occupied-area overlap, but are not weld targets
 because they do not form removable solid seams. Direct boundaries that are representable on
-the active source grid snap exactly. A transformed prefab boundary between
-source-grid coordinates selects the nearest deterministic authorable point
-that remains outside every collision loop. These checks improve the preview;
-the normal Core canonicalization, owner bounds, capacity, transformed overlap,
-and seam validation remain final commit authority.
+the active source grid snap exactly. Move/insert vertex contact may refine an
+optional tile-grid gesture to the mandatory whole-pixel direct-terrain lattice,
+so a legal neighboring boundary between tile intersections remains reachable;
+unconstrained movement continues to use the selected tile grid. A transformed
+prefab boundary between whole-pixel source coordinates selects the nearest
+deterministic authorable point that remains outside every collision loop. These
+checks improve the preview; the normal Core canonicalization, owner bounds,
+capacity, transformed overlap, and seam validation remain final commit
+authority.
 
 Exact opposing solid boundary segments are split and canceled by the Core
 compiler, so two solids snapped into edge contact do not emit an internal

@@ -136,6 +136,49 @@ void main() {
     expect((resolved.xHalfPixels, resolved.yHalfPixels), (20, 0));
   });
 
+  test('vertex contact refines a coarse grid onto a legal boundary', () {
+    final moving = TerrainSourceShapeDef(
+      shapeId: 'moving',
+      vertices: <TerrainSourceVertexDef>[
+        _vertex(160, 416),
+        _vertex(224, 352),
+        _vertex(384, 352),
+        _vertex(384, 444),
+      ],
+    );
+    final target = TerrainAuthoringCollisionLoop.fromSourceShape(
+      stableKey: 'direct:target',
+      shape: _rectangle('target', left: 0, top: 444, right: 1200, bottom: 540),
+    );
+    final gesture = TerrainPolygonGesture(
+      pointer: 2,
+      kind: TerrainPolygonGestureKind.moveVertex,
+      originalShape: moving,
+      previewShape: moving,
+      startPointer: _vertex(160, 416),
+      activeVertexIndex: 0,
+    );
+
+    TerrainSourceShapeDef preview(TerrainSourceVertexDef pointer) {
+      final vertices = moving.vertices.toList(growable: false);
+      vertices[0] = pointer;
+      return TerrainSourceShapeDef(shapeId: moving.shapeId, vertices: vertices);
+    }
+
+    final resolved = TerrainPolygonContactConstraint.resolveGesturePointer(
+      gesture: gesture,
+      desired: _vertex(128, 448),
+      targets: <TerrainAuthoringCollisionLoop>[target],
+      snapStepHalfPixels: 32,
+      pointContactStepHalfPixels: 2,
+      snapRadiusHalfPixels: 8,
+      buildPreview: preview,
+      isCandidateInBounds: (_) => true,
+    );
+
+    expect(resolved, _vertex(128, 444));
+  });
+
   test('non-solid loops block interiors without attracting seams', () {
     for (final mode in <TerrainSourceCollisionMode>[
       TerrainSourceCollisionMode.oneWay,

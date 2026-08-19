@@ -103,6 +103,87 @@ void main() {
 
     expect(await _rgbaBytes(actual), await _rgbaBytes(expected));
   });
+
+  test('polygon clip contains edge bands and caps at sloped corners', () async {
+    final source = await _sourceImage();
+    addTearDown(source.dispose);
+    const region = TerrainMaterialImageRegion(
+      assetPath: 'assets/images/terrain/test/atlas.png',
+      x: 0,
+      y: 0,
+      width: 2,
+      height: 3,
+    );
+    final ownerPath = ui.Path()
+      ..moveTo(2, 2)
+      ..lineTo(6, 2)
+      ..lineTo(6, 5)
+      ..lineTo(4, 5)
+      ..close();
+    final unclippedEdge = await _renderEdge(
+      source,
+      region: region,
+      orientation: TerrainMaterialEdgeOrientation.top,
+      start: const ui.Offset(2, 2),
+      end: const ui.Offset(6, 2),
+    );
+    final clippedEdge = await _renderEdge(
+      source,
+      region: region,
+      orientation: TerrainMaterialEdgeOrientation.top,
+      start: const ui.Offset(2, 2),
+      end: const ui.Offset(6, 2),
+      clipPath: ownerPath,
+    );
+    final clippedCap = await _renderCap(
+      source,
+      region: region,
+      start: const ui.Offset(2, 2),
+      end: const ui.Offset(6, 2),
+      clipPath: ownerPath,
+    );
+    addTearDown(unclippedEdge.dispose);
+    addTearDown(clippedEdge.dispose);
+    addTearDown(clippedCap.dispose);
+
+    expect(await _alphaAt(unclippedEdge, 2, 4), greaterThan(0));
+    expect(await _alphaAt(clippedEdge, 2, 4), 0);
+    expect(await _alphaAt(clippedCap, 2, 4), 0);
+    expect(await _alphaAt(clippedEdge, 5, 3), greaterThan(0));
+    expect(await _alphaAt(clippedCap, 3, 3), greaterThan(0));
+  });
+
+  test('end underlap extends the repeated edge strip', () async {
+    final source = await _sourceImage();
+    addTearDown(source.dispose);
+    const region = TerrainMaterialImageRegion(
+      assetPath: 'assets/images/terrain/test/atlas.png',
+      x: 0,
+      y: 0,
+      width: 2,
+      height: 3,
+    );
+    final regular = await _renderEdge(
+      source,
+      region: region,
+      orientation: TerrainMaterialEdgeOrientation.top,
+      start: const ui.Offset(2, 2),
+      end: const ui.Offset(4, 2),
+    );
+    final underlapped = await _renderEdge(
+      source,
+      region: region,
+      orientation: TerrainMaterialEdgeOrientation.top,
+      start: const ui.Offset(2, 2),
+      end: const ui.Offset(4, 2),
+      endUnderlap: 2,
+    );
+    addTearDown(regular.dispose);
+    addTearDown(underlapped.dispose);
+
+    expect(await _alphaAt(regular, 5, 2), 0);
+    expect(await _alphaAt(underlapped, 5, 2), greaterThan(0));
+  });
 }
 
 Future<ui.Image> _sourceImage() async {
@@ -136,6 +217,9 @@ Future<ui.Image> _renderEdge(
   required TerrainMaterialEdgeOrientation orientation,
   required ui.Offset start,
   required ui.Offset end,
+  double startUnderlap = 0,
+  double endUnderlap = 0,
+  ui.Path? clipPath,
 }) async {
   final recorder = ui.PictureRecorder();
   paintTerrainMaterialEdgeRegion(
@@ -146,6 +230,37 @@ Future<ui.Image> _renderEdge(
     start: start,
     end: end,
     anchorY: 0,
+    startUnderlap: startUnderlap,
+    endUnderlap: endUnderlap,
+    clipPath: clipPath,
+  );
+  final picture = recorder.endRecording();
+  try {
+    return await picture.toImage(8, 8);
+  } finally {
+    picture.dispose();
+  }
+}
+
+Future<ui.Image> _renderCap(
+  ui.Image source, {
+  required TerrainMaterialImageRegion region,
+  required ui.Offset start,
+  required ui.Offset end,
+  ui.Path? clipPath,
+}) async {
+  final recorder = ui.PictureRecorder();
+  paintTerrainMaterialCapRegion(
+    ui.Canvas(recorder),
+    image: source,
+    region: region,
+    orientation: TerrainMaterialEdgeOrientation.top,
+    start: start,
+    end: end,
+    anchorX: 0,
+    anchorY: 0,
+    atEnd: false,
+    clipPath: clipPath,
   );
   final picture = recorder.endRecording();
   try {
@@ -169,4 +284,9 @@ Future<ui.Image> _renderSourceAt(ui.Image source, ui.Offset offset) async {
 Future<Uint8List> _rgbaBytes(ui.Image image) async {
   final data = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
   return data!.buffer.asUint8List();
+}
+
+Future<int> _alphaAt(ui.Image image, int x, int y) async {
+  final data = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+  return data!.getUint8(((y * image.width) + x) * 4 + 3);
 }

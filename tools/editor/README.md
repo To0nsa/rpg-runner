@@ -135,11 +135,14 @@ a configurable cell grid (32x32 is only its default) and arbitrary manual pixel
 rectangles; selecting a region never creates a cropped asset. Edge regions use
 their natural world-facing orientation in the atlas—left/right walls stay
 vertical and undersides stay downward-facing—while previews and runtime apply
-only the additional rotation needed for the actual polygon edge. Applying
-writes only `assets/authoring/level/terrain_material_defs.json`. Run the root
-content generator afterward to refresh the generated runtime registry. The
-manifest is strict schema v3; the editor and runtime do not contain
-older-schema compatibility or migration paths.
+only the additional rotation needed for the actual polygon edge. At a
+flat-to-slope join, the preview and runtime extend the earlier band underneath
+the next one only when their clipped rectangles would otherwise expose a fill
+wedge; straight and already-covered joins receive no overlap. Applying writes
+only `assets/authoring/level/terrain_material_defs.json`. Run the root content
+generator afterward to refresh the generated runtime registry. The manifest is
+strict schema v3; the editor and runtime do not contain older-schema
+compatibility or migration paths.
 
 The generator reviews and triangulates every source polygon into the staged
 terrain artifact. Before collision compilation it partitions direct Chunk
@@ -322,8 +325,11 @@ creation or editing operations to the selected Chunk's tile-size grid. The
 independent switches live inside **Create terrain shape**
 and the expanded editor for the selected existing terrain shape: the first
 affects only new drafts, while the second affects only saved-shape edits. Each
-route-local choice is locked during an active operation. Prefab-local collision
-authoring retains its existing `1 px` and `0.5 px` choices.
+route-local choice is locked during an active operation. Moving or inserting a
+vertex may refine exact collision contact to the mandatory whole-pixel terrain
+lattice when a neighboring boundary falls between tile intersections; free
+movement remains tile-snapped. Prefab-local collision authoring retains its
+existing `1 px` and `0.5 px` choices.
 
 Core-compiled collision edges are hidden by default. The **Shape edges** chip
 shows their read-only overlay, with solid edges in pink and one-way edges in

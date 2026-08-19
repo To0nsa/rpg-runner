@@ -6,6 +6,7 @@ import 'package:flame/game.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 import 'package:runner_core/collision/terrain/terrain_numeric.dart';
+import 'package:runner_core/collision/terrain/terrain_polygon.dart';
 import 'package:runner_core/snapshots/staged_terrain_render_snapshot.dart';
 import 'package:terrain_materials/terrain_materials.dart';
 
@@ -222,20 +223,45 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
     if (_geometryVersion == snapshot.geometryVersion) return;
 
     final meshes = <_CachedTerrainMesh>[];
+    final meshesBySourceId = <TerrainSourceIdentity, _CachedTerrainMesh>{};
     for (final mesh in StagedTerrainMeshLayout.build(snapshot)) {
       TerrainMaterialRegistry.require(mesh.materialKey);
       if (mesh.positions.isEmpty || mesh.triangleIndices.isEmpty) continue;
-      meshes.add(_CachedTerrainMesh.fromData(mesh));
+      final cachedMesh = _CachedTerrainMesh.fromData(mesh);
+      if (meshesBySourceId.containsKey(mesh.sourceId)) {
+        throw StateError('Duplicate terrain render mesh for ${mesh.sourceId}.');
+      }
+      meshesBySourceId[mesh.sourceId] = cachedMesh;
+      meshes.add(cachedMesh);
     }
 
     final surfaceEdges = <_CachedTerrainDecoratedEdge>[];
     for (final decoration in StagedTerrainEdgeLayout.build(snapshot)) {
-      surfaceEdges.add(_CachedTerrainDecoratedEdge.fromLayout(decoration));
+      final edgeId = decoration.edge.id;
+      final sourceId = TerrainSourceIdentity(
+        chunkIndex: edgeId.chunkIndex,
+        chunkKey: edgeId.chunkKey,
+        placementKey: edgeId.placementKey,
+        shapeId: edgeId.shapeId,
+      );
+      final ownerMesh = meshesBySourceId[sourceId];
+      if (ownerMesh == null) {
+        throw StateError('Terrain render edge $edgeId has no owner mesh.');
+      }
+      surfaceEdges.add(
+        _CachedTerrainDecoratedEdge.fromLayout(
+          decoration,
+          clipPath: ownerMesh.clipPath,
+        ),
+      );
     }
 
     _meshes = List<_CachedTerrainMesh>.unmodifiable(meshes);
+    final edgePaintOrder = terrainMaterialEdgePaintOrder(
+      surfaceEdges.map((edge) => edge.orientation),
+    );
     _surfaceEdges = List<_CachedTerrainDecoratedEdge>.unmodifiable(
-      surfaceEdges,
+      edgePaintOrder.map((index) => surfaceEdges[index]),
     );
     _geometryVersion = snapshot.geometryVersion;
   }
@@ -254,6 +280,9 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
     image: image,
     anchorY: anchorY,
     orientation: orientation,
+    startUnderlapFactor: edge.startUnderlapFactor,
+    endUnderlapFactor: edge.endUnderlapFactor,
+    clipPath: edge.clipPath,
   );
 
   void _drawEdgeCap(
@@ -273,6 +302,7 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
     anchorY: cap.anchorY,
     atEnd: atEnd,
     orientation: orientation,
+    clipPath: edge.clipPath,
   );
 
   void _disposeRegionImages() {
@@ -287,7 +317,9 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
 ///
 /// Exposed for renderer tests. Source art is normalized for its named role
 /// before tangent placement, so axis-aligned walls and undersides retain their
-/// authored atlas orientation.
+/// authored atlas orientation. When supplied, [clipPath] is in world space and
+/// confines the complete edge band to its owning polygon. Underlap factors
+/// extend only an earlier-painted strip beneath its adjacent foreground strip.
 @visibleForTesting
 void paintTerrainMaterialEdgeImage(
   ui.Canvas canvas, {
@@ -297,6 +329,9 @@ void paintTerrainMaterialEdgeImage(
   required ui.Image image,
   required double anchorY,
   required TerrainMaterialEdgeOrientation orientation,
+  double startUnderlapFactor = 0,
+  double endUnderlapFactor = 0,
+  ui.Path? clipPath,
 }) {
   if (length <= 0) return;
   final tileWidth = terrainMaterialEdgeTileWidth(
@@ -319,12 +354,20 @@ void paintTerrainMaterialEdgeImage(
   final quarterTurns = terrainMaterialEdgeNormalizationQuarterTurns(
     orientation,
   );
+  final interiorDepth = math.max(0, tileHeight - anchorY);
+  final paintStart = -startUnderlapFactor * interiorDepth;
+  final paintEnd = length + endUnderlapFactor * interiorDepth;
+  final firstTileX =
+      terrainMaterialTileStart(paintStart + phase, tileWidth) - phase;
 
   canvas.save();
+  if (clipPath != null) canvas.clipPath(clipPath);
   canvas.translate(start.dx, start.dy);
   canvas.rotate(angle);
-  canvas.clipRect(ui.Rect.fromLTWH(0, -anchorY, length, tileHeight));
-  for (var x = -phase; x < length; x += tileWidth) {
+  canvas.clipRect(
+    ui.Rect.fromLTWH(paintStart, -anchorY, paintEnd - paintStart, tileHeight),
+  );
+  for (var x = firstTileX; x < paintEnd; x += tileWidth) {
     _drawNormalizedEdgeImage(
       canvas,
       image: image,
@@ -336,6 +379,9 @@ void paintTerrainMaterialEdgeImage(
 }
 
 /// Paints one world-facing endpoint cap after all repeating edge bands.
+///
+/// When supplied, [clipPath] is in world space and prevents the rectangular
+/// cap image from crossing another boundary of its owning polygon.
 @visibleForTesting
 void paintTerrainMaterialCapImage(
   ui.Canvas canvas, {
@@ -347,9 +393,11 @@ void paintTerrainMaterialCapImage(
   required double anchorY,
   required bool atEnd,
   required TerrainMaterialEdgeOrientation orientation,
+  ui.Path? clipPath,
 }) {
   if (length <= 0) return;
   canvas.save();
+  if (clipPath != null) canvas.clipPath(clipPath);
   canvas.translate(start.dx, start.dy);
   canvas.rotate(angle);
   _drawNormalizedEdgeImage(
@@ -447,6 +495,7 @@ final class _CachedTerrainMesh {
   _CachedTerrainMesh({
     required this.materialKey,
     required this.vertices,
+    required this.clipPath,
     required this.bounds,
   });
 
@@ -461,6 +510,12 @@ final class _CachedTerrainMesh {
       maxX = math.max(maxX, position.dx);
       maxY = math.max(maxY, position.dy);
     }
+    final clipPath = ui.Path()
+      ..moveTo(data.positions.first.dx, data.positions.first.dy);
+    for (final position in data.positions.skip(1)) {
+      clipPath.lineTo(position.dx, position.dy);
+    }
+    clipPath.close();
     return _CachedTerrainMesh(
       materialKey: data.materialKey,
       vertices: ui.Vertices(
@@ -468,12 +523,14 @@ final class _CachedTerrainMesh {
         data.positions,
         indices: data.triangleIndices,
       ),
+      clipPath: clipPath,
       bounds: ui.Rect.fromLTRB(minX, minY, maxX, maxY),
     );
   }
 
   final String materialKey;
   final ui.Vertices vertices;
+  final ui.Path clipPath;
   final ui.Rect bounds;
 }
 
@@ -483,15 +540,19 @@ final class _CachedTerrainDecoratedEdge {
     required this.orientation,
     required this.drawStartCap,
     required this.drawEndCap,
+    required this.startUnderlapFactor,
+    required this.endUnderlapFactor,
     required this.start,
     required this.length,
     required this.angle,
+    required this.clipPath,
     required this.bounds,
   });
 
   factory _CachedTerrainDecoratedEdge.fromLayout(
-    StagedTerrainEdgeDecoration decoration,
-  ) {
+    StagedTerrainEdgeDecoration decoration, {
+    required ui.Path clipPath,
+  }) {
     final edge = decoration.edge;
     final start = ui.Offset(
       edge.start.xTicks / terrainPhysicsTicksPerWorldUnit,
@@ -508,9 +569,12 @@ final class _CachedTerrainDecoratedEdge {
       orientation: decoration.orientation,
       drawStartCap: decoration.drawStartCap,
       drawEndCap: decoration.drawEndCap,
+      startUnderlapFactor: decoration.startUnderlapFactor,
+      endUnderlapFactor: decoration.endUnderlapFactor,
       start: start,
       length: math.sqrt(dx * dx + dy * dy),
       angle: math.atan2(dy, dx),
+      clipPath: clipPath,
       bounds: ui.Rect.fromLTRB(
         math.min(start.dx, end.dx) - 160,
         math.min(start.dy, end.dy) - 160,
@@ -524,9 +588,12 @@ final class _CachedTerrainDecoratedEdge {
   final TerrainMaterialEdgeOrientation orientation;
   final bool drawStartCap;
   final bool drawEndCap;
+  final double startUnderlapFactor;
+  final double endUnderlapFactor;
   final ui.Offset start;
   final double length;
   final double angle;
+  final ui.Path clipPath;
   final ui.Rect bounds;
 }
 

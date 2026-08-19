@@ -69,9 +69,10 @@ typedef TerrainGesturePreviewBuilder =
 
 /// Resolves Chunk/Prefab polygon input against immutable collision loops.
 ///
-/// Contact snapping is editor-only ergonomics. Every returned source point is
-/// still on the caller's authoring grid, and accepted commits must continue to
-/// pass Core's complete topology and occupied-area validation.
+/// Contact snapping is editor-only ergonomics. Free movement stays on the
+/// caller's active grid; point gestures may refine boundary contact to a finer
+/// caller-supplied source lattice. Accepted commits must continue to pass
+/// Core's complete topology and occupied-area validation.
 abstract final class TerrainPolygonContactConstraint {
   /// Whether [shape] occupies positive area inside any immutable [target].
   ///
@@ -125,11 +126,16 @@ abstract final class TerrainPolygonContactConstraint {
   /// last accepted preview. Whole-shape translation snaps the moving boundary;
   /// rectangle and vertex gestures snap their active point. One-way loops block
   /// occupied overlap but are never used as removable solid seam targets.
+  /// [pointContactStepHalfPixels] lets move/insert gestures reach a legal solid
+  /// boundary between optional coarse-grid intersections without changing the
+  /// coarse grid used for unconstrained movement. When supplied, it must be a
+  /// positive divisor of [snapStepHalfPixels].
   static TerrainSourceVertexDef resolveGesturePointer({
     required TerrainPolygonGesture gesture,
     required TerrainSourceVertexDef desired,
     required Iterable<TerrainAuthoringCollisionLoop> targets,
     required int snapStepHalfPixels,
+    int? pointContactStepHalfPixels,
     required double snapRadiusHalfPixels,
     required TerrainGesturePreviewBuilder buildPreview,
     required bool Function(TerrainSourceShapeDef shape) isCandidateInBounds,
@@ -138,6 +144,20 @@ abstract final class TerrainPolygonContactConstraint {
       snapStepHalfPixels: snapStepHalfPixels,
       snapRadiusHalfPixels: snapRadiusHalfPixels,
     );
+    final pointContactStep = pointContactStepHalfPixels ?? snapStepHalfPixels;
+    if (pointContactStep <= 0 || snapStepHalfPixels % pointContactStep != 0) {
+      throw ArgumentError.value(
+        pointContactStepHalfPixels,
+        'pointContactStepHalfPixels',
+        'Must be a positive divisor of snapStepHalfPixels when supplied.',
+      );
+    }
+    final gestureStep = switch (gesture.kind) {
+      TerrainPolygonGestureKind.moveVertex ||
+      TerrainPolygonGestureKind.insertVertex => pointContactStep,
+      TerrainPolygonGestureKind.createRectangle ||
+      TerrainPolygonGestureKind.translateShape => snapStepHalfPixels,
+    };
     final orderedTargets = _orderedTargets(targets);
     bool allowed(TerrainSourceVertexDef pointer) {
       final candidate = buildPreview(pointer);
@@ -159,7 +179,7 @@ abstract final class TerrainPolygonContactConstraint {
         : resolvePoint(
             desired: pointer,
             targets: orderedTargets,
-            snapStepHalfPixels: snapStepHalfPixels,
+            snapStepHalfPixels: gestureStep,
             snapRadiusHalfPixels: snapRadiusHalfPixels,
             isCandidateAllowed: allowed,
           );
@@ -171,7 +191,7 @@ abstract final class TerrainPolygonContactConstraint {
     lastAllowed = _lastAllowedOnGrid(
       start: lastAllowed,
       end: requested,
-      stepHalfPixels: snapStepHalfPixels,
+      stepHalfPixels: gestureStep,
       isAllowed: allowed,
     );
     if (desiredSnap != null && lastAllowed == requested) return desiredSnap;
@@ -191,7 +211,7 @@ abstract final class TerrainPolygonContactConstraint {
               (candidate) => _lastAllowedOnGrid(
                 start: lastAllowed,
                 end: candidate,
-                stepHalfPixels: snapStepHalfPixels,
+                stepHalfPixels: gestureStep,
                 isAllowed: allowed,
               ),
             )

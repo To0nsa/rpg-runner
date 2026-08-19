@@ -254,7 +254,13 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
         _drawTiledRegionInPath(canvas, path, fill, material.fill);
       }
       final edgeKinds = _edgeKinds(shape.vertices);
-      for (var index = 0; index < shape.vertices.length; index += 1) {
+      final edgePaintOrder = terrainMaterialEdgePaintOrder(edgeKinds);
+      final edgeUnderlaps = _edgeUnderlaps(
+        vertices: shape.vertices,
+        edgeKinds: edgeKinds,
+        edgePaintOrder: edgePaintOrder,
+      );
+      for (final index in edgePaintOrder) {
         final startVertex = shape.vertices[index];
         final endVertex = shape.vertices[(index + 1) % shape.vertices.length];
         final start = _vertexOffset(startVertex);
@@ -266,11 +272,13 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
           if (base != null) {
             _drawEdgeImage(
               canvas,
+              clipPath: path,
               start: start,
               end: end,
               image: base,
               layer: profile.base,
               orientation: kind,
+              underlap: edgeUnderlaps[index],
             );
           }
           final detailLayer = profile.detail;
@@ -280,18 +288,20 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
           if (detail != null && detailLayer != null) {
             _drawEdgeImage(
               canvas,
+              clipPath: path,
               start: start,
               end: end,
               image: detail,
               layer: detailLayer,
               orientation: kind,
+              underlap: edgeUnderlaps[index],
             );
           }
         }
       }
       // Endpoint art is a foreground pass so adjacent edge bands cannot cover
       // corners that intentionally bridge two orientations.
-      for (var index = 0; index < shape.vertices.length; index += 1) {
+      for (final index in edgePaintOrder) {
         final kind = edgeKinds[index];
         final caps = _capsForKind(material, kind);
         if (caps.start == null && caps.end == null) continue;
@@ -309,6 +319,7 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
             if (image != null) {
               _drawEdgeCap(
                 canvas,
+                clipPath: path,
                 edgeStart: start,
                 edgeEnd: end,
                 image: image,
@@ -326,6 +337,7 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
             if (image != null) {
               _drawEdgeCap(
                 canvas,
+                clipPath: path,
                 edgeStart: start,
                 edgeEnd: end,
                 image: image,
@@ -443,13 +455,76 @@ double _signedArea(List<TerrainSourceVertexDef> vertices) {
   return area;
 }
 
+List<({double startFactor, double endFactor})> _edgeUnderlaps({
+  required List<TerrainSourceVertexDef> vertices,
+  required List<TerrainMaterialEdgeOrientation> edgeKinds,
+  required List<int> edgePaintOrder,
+}) {
+  final ranks = List<int>.filled(vertices.length, 0);
+  for (var rank = 0; rank < edgePaintOrder.length; rank += 1) {
+    ranks[edgePaintOrder[rank]] = rank;
+  }
+  final startFactors = List<double>.filled(vertices.length, 0);
+  final endFactors = List<double>.filled(vertices.length, 0);
+  final clockwise = _signedArea(vertices) >= 0;
+
+  for (
+    var previousIndex = 0;
+    previousIndex < vertices.length;
+    previousIndex += 1
+  ) {
+    final nextIndex = (previousIndex + 1) % vertices.length;
+    if (edgeKinds[previousIndex] != edgeKinds[nextIndex]) continue;
+    final previousStart = _vertexOffset(vertices[previousIndex]);
+    final join = _vertexOffset(vertices[nextIndex]);
+    final nextEnd = _vertexOffset(vertices[(nextIndex + 1) % vertices.length]);
+    final previousTangent = join - previousStart;
+    final nextTangent = nextEnd - join;
+
+    if (ranks[previousIndex] < ranks[nextIndex]) {
+      final inward = clockwise
+          ? Offset(-previousTangent.dy, previousTangent.dx)
+          : Offset(previousTangent.dy, -previousTangent.dx);
+      endFactors[previousIndex] = terrainMaterialJoinUnderlapFactor(
+        endpoint: TerrainMaterialJoinEndpoint.end,
+        lowerTangentX: previousTangent.dx,
+        lowerTangentY: previousTangent.dy,
+        lowerInwardNormalX: inward.dx,
+        lowerInwardNormalY: inward.dy,
+        upperTangentX: nextTangent.dx,
+        upperTangentY: nextTangent.dy,
+      );
+    } else {
+      final inward = clockwise
+          ? Offset(-nextTangent.dy, nextTangent.dx)
+          : Offset(nextTangent.dy, -nextTangent.dx);
+      startFactors[nextIndex] = terrainMaterialJoinUnderlapFactor(
+        endpoint: TerrainMaterialJoinEndpoint.start,
+        lowerTangentX: nextTangent.dx,
+        lowerTangentY: nextTangent.dy,
+        lowerInwardNormalX: inward.dx,
+        lowerInwardNormalY: inward.dy,
+        upperTangentX: previousTangent.dx,
+        upperTangentY: previousTangent.dy,
+      );
+    }
+  }
+
+  return <({double startFactor, double endFactor})>[
+    for (var index = 0; index < vertices.length; index += 1)
+      (startFactor: startFactors[index], endFactor: endFactors[index]),
+  ];
+}
+
 void _drawEdgeImage(
   Canvas canvas, {
+  required Path clipPath,
   required Offset start,
   required Offset end,
   required ui.Image image,
   required TerrainMaterialEdgeLayer layer,
   required TerrainMaterialEdgeOrientation orientation,
+  required ({double startFactor, double endFactor}) underlap,
 }) => paintTerrainMaterialEdgeRegion(
   canvas,
   image: image,
@@ -458,10 +533,28 @@ void _drawEdgeImage(
   start: start,
   end: end,
   anchorY: layer.anchorY,
+  startUnderlap:
+      underlap.startFactor *
+      (terrainMaterialEdgeTileHeight(
+            orientation: orientation,
+            sourceWidth: layer.region.width,
+            sourceHeight: layer.region.height,
+          ) -
+          layer.anchorY),
+  endUnderlap:
+      underlap.endFactor *
+      (terrainMaterialEdgeTileHeight(
+            orientation: orientation,
+            sourceWidth: layer.region.width,
+            sourceHeight: layer.region.height,
+          ) -
+          layer.anchorY),
+  clipPath: clipPath,
 );
 
 void _drawEdgeCap(
   Canvas canvas, {
+  required Path clipPath,
   required Offset edgeStart,
   required Offset edgeEnd,
   required ui.Image image,
@@ -478,6 +571,7 @@ void _drawEdgeCap(
   anchorX: cap.anchorX,
   anchorY: cap.anchorY,
   atEnd: atEnd,
+  clipPath: clipPath,
 );
 
 Iterable<String> _materialAssetPaths(TerrainMaterialDefinition material) =>
