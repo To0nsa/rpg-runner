@@ -46,7 +46,7 @@ Material roles use regions as follows:
 | --- | --- | --- |
 | Fill | region | repeats in world X/Y and clips to terrain fill geometry |
 | Edge base/detail | world-facing region plus normalized `anchorY` | normalizes for its role, repeats along the edge tangent, and clips to the owning polygon |
-| Top or underside start/end cap | region plus `anchorX` and `anchorY` | draws once at an endpoint in a final corner pass and clips to the owning polygon |
+| Top or underside start/end cap | region plus `anchorX` and `anchorY` | draws once at an exposed endpoint or selected convex connected corner in a final pass and clips to the owning polygon |
 
 Edge source art is selected in its natural world-facing orientation: top art
 faces up, left/right wall art faces its named side, and underside art faces
@@ -56,7 +56,8 @@ two quarter-turns; top art is already normalized. This prevents already
 oriented atlas cells from receiving an extra 90° or 180° rotation on
 axis-aligned polygons while preserving edge-relative rotation for slopes.
 
-The production `grass_dirt` top band and its endpoint caps use `anchorY: 0`.
+The production `grass_dirt` top band and its endpoint/corner caps use
+`anchorY: 0`.
 Their raster therefore starts on the polygon's upper boundary and remains
 inside its filled collision region; terrain art does not visually extend above
 the authored ground surface.
@@ -71,6 +72,16 @@ Within both the repeating-band pass and final endpoint-cap pass, wall and
 underside decorations retain their source order and top-facing decorations
 render last. Slopes with an upward-facing outward normal count as top-facing,
 so the playable grass/surface silhouette remains visible at every corner.
+
+Core join semantics drive non-repeating art. `exposed` endpoints retain their
+configured start/end caps. For a `connected` join, shared pure-Dart math takes
+the dot product of the incoming inward normal and outgoing tangent: positive is
+a convex turn eligible for a corner patch, while zero/negative straight or
+concave turns remain band-only. The resolver chooses exactly one available cap;
+top-facing art wins across different paint priorities and the incoming end wins
+ties. `smooth` joins never draw caps. The Chunk Creator applies the same rule to
+closed source loops and treats only top-facing runs as active for one-way
+terrain.
 
 Every edge band is clipped to its exact authored edge endpoints. Runtime and
 editor painters do not stretch or underlap adjacent bands to hide join wedges;
@@ -195,8 +206,9 @@ Fill and edge repeat calculations use shared pure-Dart functions from
 
 Consequently, chunk boundaries and camera movement do not reset texture phase.
 Material and chunk previews call the same orientation, dimension, and repeat
-math so authored results match runtime orientation and spacing. Edge repeats
-stop at their exact endpoints in both renderers.
+math so authored results match runtime orientation and spacing. They also call
+the same convex-corner owner resolver. Edge repeats stop at their exact
+endpoints in both renderers; no corner decision extends a repeating band.
 
 ## Image Ownership and Failure Handling
 

@@ -122,7 +122,7 @@ materials loaded from the canonical terrain-material manifest. Prefab polygon
 dialogs retain thumbnail selectors and an editable preview. Chunk Creator puts
 the three selectors directly in the Shapes card; each selection is one
 validated history edit, and its Material **Preview** button opens the composed
-fill, top/detail bands, endpoint caps, source assets, and explicit
+fill, top/detail bands, convex corner/endpoint caps, source assets, and explicit
 wall/underside coverage in a read-only dialog.
 
 The **Terrain Materials** route creates, duplicates, edits, validates, and

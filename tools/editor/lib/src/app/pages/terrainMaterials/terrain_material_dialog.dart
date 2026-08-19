@@ -223,9 +223,10 @@ class _TerrainMaterialDialogState extends State<_TerrainMaterialDialog> {
                 const Divider(height: 28),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Top cliff caps'),
+                  title: const Text('Top endpoint / corner caps'),
                   subtitle: const Text(
-                    'Paired endpoint regions; smooth continuations never use caps.',
+                    'Paired regions for exposed endpoints and convex turns; '
+                    'smooth and concave joins remain band-only.',
                   ),
                   value: _hasTopCaps,
                   onChanged: (value) => setState(() => _hasTopCaps = value),
@@ -251,7 +252,7 @@ class _TerrainMaterialDialogState extends State<_TerrainMaterialDialog> {
                   title: const Text('Underside corner caps'),
                   subtitle: const Text(
                     'Paired bottom-right/start and bottom-left/end regions; '
-                    'rendered after every edge band.',
+                    'used at exposed endpoints and convex turns.',
                   ),
                   value: _hasUndersideCaps,
                   onChanged: _hasUnderside

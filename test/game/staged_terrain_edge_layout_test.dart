@@ -35,7 +35,7 @@ void main() {
     );
   });
 
-  test('top caps appear only at compiler-exposed endpoints', () {
+  test('smooth top continuation keeps caps only at exposed endpoints', () {
     final firstId = _id(0);
     final secondId = _id(1);
     final snapshot = StagedTerrainRenderSnapshot(
@@ -56,7 +56,7 @@ void main() {
     expect(decorations.last.drawEndCap, isTrue);
   });
 
-  test('connected wall-to-top corner does not receive a top cap', () {
+  test('connected convex wall-to-top corner receives one top cap', () {
     final wallId = _id(0);
     final topId = _id(1);
     final snapshot = StagedTerrainRenderSnapshot(
@@ -83,8 +83,132 @@ void main() {
     final decorations = StagedTerrainEdgeLayout.build(snapshot);
 
     expect(decorations.last.orientation, TerrainMaterialEdgeOrientation.top);
-    expect(decorations.last.drawStartCap, isFalse);
+    expect(decorations.first.drawEndCap, isFalse);
+    expect(decorations.last.drawStartCap, isTrue);
     expect(decorations.last.drawEndCap, isTrue);
+  });
+
+  test('closed rectangle resolves all four convex corners exactly once', () {
+    final topId = _id(0);
+    final rightId = _id(1);
+    final undersideId = _id(2);
+    final leftId = _id(3);
+    final snapshot = StagedTerrainRenderSnapshot(
+      geometryVersion: 1,
+      polygons: const <StagedTerrainPolygonRenderSnapshot>[],
+      edges: <TerrainEdge>[
+        _edge(
+          index: 0,
+          start: (0, 0),
+          end: (100, 0),
+          previousId: leftId,
+          nextId: rightId,
+          startJoin: TerrainVertexJoin.connected,
+          endJoin: TerrainVertexJoin.connected,
+        ),
+        _edge(
+          index: 1,
+          start: (100, 0),
+          end: (100, 50),
+          previousId: topId,
+          nextId: undersideId,
+          startJoin: TerrainVertexJoin.connected,
+          endJoin: TerrainVertexJoin.connected,
+        ),
+        _edge(
+          index: 2,
+          start: (100, 50),
+          end: (0, 50),
+          previousId: rightId,
+          nextId: leftId,
+          startJoin: TerrainVertexJoin.connected,
+          endJoin: TerrainVertexJoin.connected,
+        ),
+        _edge(
+          index: 3,
+          start: (0, 50),
+          end: (0, 0),
+          previousId: undersideId,
+          nextId: topId,
+          startJoin: TerrainVertexJoin.connected,
+          endJoin: TerrainVertexJoin.connected,
+        ),
+      ],
+    );
+
+    final decorations = StagedTerrainEdgeLayout.build(snapshot);
+
+    expect(
+      decorations.map(
+        (decoration) => (decoration.drawStartCap, decoration.drawEndCap),
+      ),
+      <(bool, bool)>[
+        (true, true),
+        (false, false),
+        (true, true),
+        (false, false),
+      ],
+    );
+  });
+
+  test('same-orientation convex bend selects only the incoming end cap', () {
+    final firstId = _id(0);
+    final secondId = _id(1);
+    final snapshot = StagedTerrainRenderSnapshot(
+      geometryVersion: 1,
+      polygons: const <StagedTerrainPolygonRenderSnapshot>[],
+      edges: <TerrainEdge>[
+        _edge(
+          index: 0,
+          start: (0, 10),
+          end: (10, 10),
+          nextId: secondId,
+          endJoin: TerrainVertexJoin.connected,
+        ),
+        _edge(
+          index: 1,
+          start: (10, 10),
+          end: (20, 20),
+          previousId: firstId,
+          startJoin: TerrainVertexJoin.connected,
+        ),
+      ],
+    );
+
+    final decorations = StagedTerrainEdgeLayout.build(snapshot);
+
+    expect(decorations.first.drawEndCap, isTrue);
+    expect(decorations.last.drawStartCap, isFalse);
+  });
+
+  test('concave connected bend does not receive an outer cap', () {
+    final firstId = _id(0);
+    final secondId = _id(1);
+    final snapshot = StagedTerrainRenderSnapshot(
+      geometryVersion: 1,
+      polygons: const <StagedTerrainPolygonRenderSnapshot>[],
+      edges: <TerrainEdge>[
+        _edge(
+          index: 0,
+          start: (0, 10),
+          end: (10, 10),
+          nextId: secondId,
+          endJoin: TerrainVertexJoin.connected,
+        ),
+        _edge(
+          index: 1,
+          start: (10, 10),
+          end: (20, 0),
+          previousId: firstId,
+          startJoin: TerrainVertexJoin.connected,
+        ),
+      ],
+    );
+
+    final decorations = StagedTerrainEdgeLayout.build(snapshot);
+
+    expect(decorations.first.drawEndCap, isFalse);
+    expect(decorations.last.drawStartCap, isFalse);
   });
 
   test('configured wall and underside profiles decorate exact normals', () {
@@ -110,7 +234,7 @@ void main() {
     expect(decorations.last.drawEndCap, isTrue);
   });
 
-  test('underside caps appear only at compiler-exposed endpoints', () {
+  test('smooth underside continuation keeps caps at exposed endpoints', () {
     final firstId = _id(0);
     final secondId = _id(1);
     final snapshot = StagedTerrainRenderSnapshot(

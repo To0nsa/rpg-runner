@@ -64,7 +64,7 @@ void paintTerrainMaterialEdgeRegion(
   canvas.restore();
 }
 
-/// Paints one world-facing endpoint cap after repeating edge bands.
+/// Paints one world-facing endpoint/corner cap after repeating edge bands.
 ///
 /// When supplied, [clipPath] prevents the rectangular cap image from crossing
 /// another boundary of its owning polygon.

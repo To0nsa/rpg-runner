@@ -15,6 +15,111 @@ void main() {
     );
   });
 
+  group('connected corner ownership', () {
+    test('selects the only available cap at a convex corner', () {
+      expect(
+        terrainMaterialConnectedCornerOwner(
+          incomingInwardNormalX: 0,
+          incomingInwardNormalY: 1,
+          outgoingTangentX: 0,
+          outgoingTangentY: 1,
+          incomingOrientation: TerrainMaterialEdgeOrientation.top,
+          outgoingOrientation: TerrainMaterialEdgeOrientation.rightWall,
+          incomingEndCapAvailable: true,
+          outgoingStartCapAvailable: false,
+        ),
+        TerrainMaterialCornerOwner.incomingEnd,
+      );
+      expect(
+        terrainMaterialConnectedCornerOwner(
+          incomingInwardNormalX: 1,
+          incomingInwardNormalY: 0,
+          outgoingTangentX: 1,
+          outgoingTangentY: 0,
+          incomingOrientation: TerrainMaterialEdgeOrientation.leftWall,
+          outgoingOrientation: TerrainMaterialEdgeOrientation.top,
+          incomingEndCapAvailable: false,
+          outgoingStartCapAvailable: true,
+        ),
+        TerrainMaterialCornerOwner.outgoingStart,
+      );
+    });
+
+    test('top-facing cap wins and equal-priority ties use incoming end', () {
+      expect(
+        terrainMaterialConnectedCornerOwner(
+          incomingInwardNormalX: 0,
+          incomingInwardNormalY: 1,
+          outgoingTangentX: 1,
+          outgoingTangentY: 1,
+          incomingOrientation: TerrainMaterialEdgeOrientation.underside,
+          outgoingOrientation: TerrainMaterialEdgeOrientation.top,
+          incomingEndCapAvailable: true,
+          outgoingStartCapAvailable: true,
+        ),
+        TerrainMaterialCornerOwner.outgoingStart,
+      );
+      expect(
+        terrainMaterialConnectedCornerOwner(
+          incomingInwardNormalX: 0,
+          incomingInwardNormalY: 1,
+          outgoingTangentX: 1,
+          outgoingTangentY: 1,
+          incomingOrientation: TerrainMaterialEdgeOrientation.top,
+          outgoingOrientation: TerrainMaterialEdgeOrientation.top,
+          incomingEndCapAvailable: true,
+          outgoingStartCapAvailable: true,
+        ),
+        TerrainMaterialCornerOwner.incomingEnd,
+      );
+    });
+
+    test('straight and concave joins do not receive outer corners', () {
+      expect(
+        terrainMaterialConnectedCornerOwner(
+          incomingInwardNormalX: 0,
+          incomingInwardNormalY: 1,
+          outgoingTangentX: 1,
+          outgoingTangentY: 0,
+          incomingOrientation: TerrainMaterialEdgeOrientation.top,
+          outgoingOrientation: TerrainMaterialEdgeOrientation.top,
+          incomingEndCapAvailable: true,
+          outgoingStartCapAvailable: true,
+        ),
+        isNull,
+      );
+      expect(
+        terrainMaterialConnectedCornerOwner(
+          incomingInwardNormalX: 0,
+          incomingInwardNormalY: 1,
+          outgoingTangentX: 1,
+          outgoingTangentY: -1,
+          incomingOrientation: TerrainMaterialEdgeOrientation.top,
+          outgoingOrientation: TerrainMaterialEdgeOrientation.top,
+          incomingEndCapAvailable: true,
+          outgoingStartCapAvailable: true,
+        ),
+        isNull,
+      );
+    });
+
+    test('invalid corner vectors fail closed', () {
+      expect(
+        () => terrainMaterialConnectedCornerOwner(
+          incomingInwardNormalX: 0,
+          incomingInwardNormalY: 0,
+          outgoingTangentX: 1,
+          outgoingTangentY: 0,
+          incomingOrientation: TerrainMaterialEdgeOrientation.top,
+          outgoingOrientation: TerrainMaterialEdgeOrientation.top,
+          incomingEndCapAvailable: true,
+          outgoingStartCapAvailable: true,
+        ),
+        throwsArgumentError,
+      );
+    });
+  });
+
   test(
     'repeat helpers preserve world phase for positive and negative space',
     () {

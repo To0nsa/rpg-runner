@@ -1,6 +1,9 @@
 /// World-facing role of one authored terrain edge region.
 enum TerrainMaterialEdgeOrientation { top, leftWall, rightWall, underside }
 
+/// Endpoint whose authored cap owns one convex connected terrain corner.
+enum TerrainMaterialCornerOwner { incomingEnd, outgoingStart }
+
 /// Returns stable back-to-front indices for terrain edge decoration.
 ///
 /// Source order is retained within each group, while top-facing edges are
@@ -15,6 +18,58 @@ List<int> terrainMaterialEdgePaintOrder(
     for (var index = 0; index < values.length; index += 1)
       if (values[index] == TerrainMaterialEdgeOrientation.top) index,
   ]);
+}
+
+/// Selects the single authored cap that covers a connected convex corner.
+///
+/// The incoming inward normal and outgoing tangent may use any positive scale,
+/// but must be finite and non-zero. A positive dot product means the boundary
+/// turns into the owning polygon and therefore forms a convex visual corner.
+/// Straight and concave joins return `null` because their clipped bands already
+/// meet without an outer-corner patch.
+///
+/// When both endpoint caps exist, the top-facing edge wins so the playable
+/// surface remains readable. Equal-priority ties select the incoming end,
+/// guaranteeing one deterministic patch rather than two overlapping caps.
+TerrainMaterialCornerOwner? terrainMaterialConnectedCornerOwner({
+  required double incomingInwardNormalX,
+  required double incomingInwardNormalY,
+  required double outgoingTangentX,
+  required double outgoingTangentY,
+  required TerrainMaterialEdgeOrientation incomingOrientation,
+  required TerrainMaterialEdgeOrientation outgoingOrientation,
+  required bool incomingEndCapAvailable,
+  required bool outgoingStartCapAvailable,
+}) {
+  final values = <double>[
+    incomingInwardNormalX,
+    incomingInwardNormalY,
+    outgoingTangentX,
+    outgoingTangentY,
+  ];
+  if (values.any((value) => !value.isFinite) ||
+      (incomingInwardNormalX == 0 && incomingInwardNormalY == 0) ||
+      (outgoingTangentX == 0 && outgoingTangentY == 0)) {
+    throw ArgumentError('Terrain corner vectors must be finite and non-zero.');
+  }
+  final interiorTurn =
+      incomingInwardNormalX * outgoingTangentX +
+      incomingInwardNormalY * outgoingTangentY;
+  if (interiorTurn <= 0 ||
+      (!incomingEndCapAvailable && !outgoingStartCapAvailable)) {
+    return null;
+  }
+  if (!incomingEndCapAvailable) {
+    return TerrainMaterialCornerOwner.outgoingStart;
+  }
+  if (!outgoingStartCapAvailable) {
+    return TerrainMaterialCornerOwner.incomingEnd;
+  }
+  if (incomingOrientation != TerrainMaterialEdgeOrientation.top &&
+      outgoingOrientation == TerrainMaterialEdgeOrientation.top) {
+    return TerrainMaterialCornerOwner.outgoingStart;
+  }
+  return TerrainMaterialCornerOwner.incomingEnd;
 }
 
 /// Clockwise quarter-turns that normalize a world-facing region so its edge

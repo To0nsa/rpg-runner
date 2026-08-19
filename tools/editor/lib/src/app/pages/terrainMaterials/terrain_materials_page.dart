@@ -191,8 +191,7 @@ class _TerrainMaterialsPageState extends State<TerrainMaterialsPage>
     TerrainMaterialDefinition? selected,
   ) => EditorPanelCard(
     title: 'Composed preview',
-    description:
-        'Fill, edge bands, details, and endpoint caps at authored anchors.',
+    description: 'Fill, edge bands, details, and convex corner/endpoint caps.',
     bodyMode: EditorPanelBodyMode.scrollable,
     trailing: OutlinedButton.icon(
       key: const ValueKey<String>('terrain_material_edit'),

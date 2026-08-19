@@ -1217,13 +1217,16 @@ snapshot; staged edges can never reference it.
 Fill texture phase is world anchored. The generated material registry maps
 top/slope, left-wall, right-wall, and underside profiles onto exact retained
 `TerrainEdge` outward normals; an absent optional profile intentionally leaves
-that orientation fill-only. Paired top and underside endpoint caps render only
-where Core marks the corresponding `TerrainVertexJoin` as `exposed`;
-`connected` polygon corners and `smooth` continuations use their meeting edge
-bands without extra corner art. Caps render in a final foreground pass after
-all repeating edge bands. Repeating bands stop at their exact Core edge
-endpoints; runtime and editor rendering do not stretch one band beneath another
-to hide join wedges. A null material is collision-only and not drawn; an
+that orientation fill-only. Paired top and underside caps render at Core
+`exposed` endpoints. At a `connected` join, shared pure-Dart corner math uses
+the incoming inward normal and outgoing tangent to distinguish convex from
+concave turns. A convex turn receives exactly one available adjacent cap, with
+top-facing art winning and the incoming end breaking equal-priority ties;
+concave turns and `smooth` continuations remain band-only. Caps and corner
+patches render in a final foreground pass after all repeating edge bands.
+Repeating bands stop at their exact Core edge endpoints; runtime and editor
+rendering do not stretch one band beneath another to hide join wedges. A null
+material is collision-only and not drawn; an
 unknown non-null material fails through `TerrainMaterialRegistry` instead of
 selecting a visual fallback.
 
@@ -1237,9 +1240,9 @@ catalog CRUD, workspace-scoped PNG selection, composed previews, explicit
 orientation coverage, reference-safe rename/delete, and manifest validation.
 Polygon metadata selectors and the Chunk scene consume that same manifest. The
 `grass_dirt` entry declares its fill, all four world-facing edge profiles, and
-paired top and underside endpoint caps. Its underside start/end roles use the
-atlas bottom-right/bottom-left cells respectively. `StagedTerrain` is the only
-terrain renderer: the old
+paired top and underside endpoint/corner caps. Its underside start/end roles
+use the atlas bottom-right/bottom-left cells respectively. `StagedTerrain` is
+the only terrain renderer: the old
 `GroundSurface`, `GroundBandParallaxForeground`, `TemporaryFloorMask`, and
 static-solid debug rectangle paths are deleted, and their obsolete snapshot
 fields no longer cross the Core/Game boundary.

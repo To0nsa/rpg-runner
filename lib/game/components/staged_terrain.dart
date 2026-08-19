@@ -162,8 +162,8 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
         );
       }
     }
-    // Endpoint art is a foreground pass so adjacent wall bands cannot obscure
-    // the cliff silhouette when snapshot edge ordering changes.
+    // Endpoint and convex-corner art is a foreground pass so adjacent bands
+    // cannot obscure the authored join selected by the shared resolver.
     for (final edge in _surfaceEdges) {
       if (!edge.bounds.overlaps(visibleWorldRect) ||
           (!edge.drawStartCap && !edge.drawEndCap)) {
@@ -367,7 +367,7 @@ void paintTerrainMaterialEdgeImage(
   canvas.restore();
 }
 
-/// Paints one world-facing endpoint cap after all repeating edge bands.
+/// Paints one world-facing endpoint/corner cap after all repeating edge bands.
 ///
 /// When supplied, [clipPath] is in world space and prevents the rectangular
 /// cap image from crossing another boundary of its owning polygon.

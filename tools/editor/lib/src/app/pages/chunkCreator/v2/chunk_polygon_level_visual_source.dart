@@ -8,6 +8,7 @@ import '../../../../chunks/chunk_v2_file_data.dart';
 import '../../../../parallax/parallax_domain_models.dart';
 import '../../../../terrain_authoring/terrain_source_models.dart';
 import '../../shared/editor_scene_view_utils.dart';
+import '../../shared/terrain_material_corner_layout.dart';
 import '../../shared/terrain_material_edge_painter.dart';
 import '../../shared/terrain_material_preview_catalog.dart';
 import '../../shared/terrain_polygon_scene_painter.dart';
@@ -292,53 +293,51 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
           }
         }
       }
-      // Core exposes only the upward-facing runs of one-way polygons. Closed
-      // solid loops have connected corners and therefore receive no cap art.
-      if (shape.collisionMode == TerrainSourceCollisionMode.oneWay) {
-        for (final index in edgePaintOrder) {
-          final kind = edgeKinds[index];
-          if (kind != TerrainMaterialEdgeOrientation.top) continue;
-          final start = _vertexOffset(shape.vertices[index]);
-          final end = _vertexOffset(
-            shape.vertices[(index + 1) % shape.vertices.length],
-          );
-          final previousKind =
-              edgeKinds[(index - 1 + edgeKinds.length) % edgeKinds.length];
-          final nextKind = edgeKinds[(index + 1) % edgeKinds.length];
-          if (previousKind != kind) {
-            final cap = material.topStartCap;
-            if (cap != null) {
-              final image = imagesBySourcePath[cap.region.assetPath];
-              if (image != null) {
-                _drawEdgeCap(
-                  canvas,
-                  clipPath: path,
-                  edgeStart: start,
-                  edgeEnd: end,
-                  image: image,
-                  cap: cap,
-                  orientation: kind,
-                  atEnd: false,
-                );
-              }
+      final cornerCaps = resolveTerrainMaterialEdgeCornerCaps(
+        shape: shape,
+        material: material,
+        edgeOrientations: edgeKinds,
+      );
+      // Corner patches are a foreground pass so a single authored endpoint
+      // owns each convex turn without extending either repeating edge band.
+      for (final index in edgePaintOrder) {
+        final kind = edgeKinds[index];
+        final start = _vertexOffset(shape.vertices[index]);
+        final end = _vertexOffset(
+          shape.vertices[(index + 1) % shape.vertices.length],
+        );
+        final caps = terrainMaterialCapsForOrientation(material, kind);
+        if (cornerCaps[index].start) {
+          if (caps.start case final cap?) {
+            final image = imagesBySourcePath[cap.region.assetPath];
+            if (image != null) {
+              _drawEdgeCap(
+                canvas,
+                clipPath: path,
+                edgeStart: start,
+                edgeEnd: end,
+                image: image,
+                cap: cap,
+                orientation: kind,
+                atEnd: false,
+              );
             }
           }
-          if (nextKind != kind) {
-            final cap = material.topEndCap;
-            if (cap != null) {
-              final image = imagesBySourcePath[cap.region.assetPath];
-              if (image != null) {
-                _drawEdgeCap(
-                  canvas,
-                  clipPath: path,
-                  edgeStart: start,
-                  edgeEnd: end,
-                  image: image,
-                  cap: cap,
-                  orientation: kind,
-                  atEnd: true,
-                );
-              }
+        }
+        if (cornerCaps[index].end) {
+          if (caps.end case final cap?) {
+            final image = imagesBySourcePath[cap.region.assetPath];
+            if (image != null) {
+              _drawEdgeCap(
+                canvas,
+                clipPath: path,
+                edgeStart: start,
+                edgeEnd: end,
+                image: image,
+                cap: cap,
+                orientation: kind,
+                atEnd: true,
+              );
             }
           }
         }
