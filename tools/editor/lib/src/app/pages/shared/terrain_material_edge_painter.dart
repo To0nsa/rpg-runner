@@ -9,8 +9,7 @@ import 'package:terrain_materials/terrain_materials.dart';
 /// Role normalization is shared with runtime math, so axis-aligned art retains
 /// its atlas orientation while sloped art follows the actual edge tangent.
 /// When supplied, [clipPath] is in scene/world coordinates and confines the
-/// complete edge band to its owning polygon. [startUnderlap] and [endUnderlap]
-/// extend an earlier-painted band beneath an adjacent band at a known gap.
+/// complete edge band to its owning polygon.
 void paintTerrainMaterialEdgeRegion(
   Canvas canvas, {
   required ui.Image image,
@@ -19,8 +18,6 @@ void paintTerrainMaterialEdgeRegion(
   required Offset start,
   required Offset end,
   required double anchorY,
-  double startUnderlap = 0,
-  double endUnderlap = 0,
   Path? clipPath,
 }) {
   if (region.right > image.width || region.bottom > image.height) return;
@@ -48,19 +45,14 @@ void paintTerrainMaterialEdgeRegion(
   final quarterTurns = terrainMaterialEdgeNormalizationQuarterTurns(
     orientation,
   );
-  final paintStart = -startUnderlap;
-  final paintEnd = length + endUnderlap;
-  final firstTileX =
-      terrainMaterialTileStart(paintStart + phase, tileWidth) - phase;
+  final firstTileX = terrainMaterialTileStart(phase, tileWidth) - phase;
 
   canvas.save();
   if (clipPath != null) canvas.clipPath(clipPath);
   canvas.translate(start.dx, start.dy);
   canvas.rotate(angle);
-  canvas.clipRect(
-    Rect.fromLTWH(paintStart, -anchorY, paintEnd - paintStart, tileHeight),
-  );
-  for (var x = firstTileX; x < paintEnd; x += tileWidth) {
+  canvas.clipRect(Rect.fromLTWH(0, -anchorY, length, tileHeight));
+  for (var x = firstTileX; x < length; x += tileWidth) {
     _drawNormalizedRegion(
       canvas,
       image: image,

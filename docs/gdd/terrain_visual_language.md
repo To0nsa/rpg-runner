@@ -12,8 +12,8 @@ The material has three visible roles:
 
 - a repeating dirt fill inside the exact terrain polygon
 - a grass-and-soil surface strip following walkable upward-facing edges
-- start/end caps at exposed top-edge endpoints, suppressed where a
-  same-material top edge continues
+- start/end caps at compiler-exposed top-edge endpoints; connected polygon
+  corners use the meeting edge bands without added corner art
 
 The terrain art stays aligned with collision-source geometry and scrolls in
 world space, so seams do not appear to swim under the player. Actors and props
@@ -31,8 +31,10 @@ remain upright and retain their existing visual priority over the ground.
   behavior explicitly.
 - Atlas packing is an image-storage and authoring concern only. Selecting a
   different cell or rectangle changes the visual role, never collision shape.
-- Endpoint caps appear only at compiler-exposed top-edge endpoints. A continued
-  same-material top edge must not acquire a false cliff cue.
+- Endpoint caps appear only at compiler-exposed top-edge endpoints. Connected
+  corners and continued top edges must not acquire a false cliff cue.
+- Edge strips stop at authored endpoints. Joins may show the polygon fill; the
+  renderer does not stretch neighboring strips to conceal those spaces.
 
 ## Runtime Boundary
 

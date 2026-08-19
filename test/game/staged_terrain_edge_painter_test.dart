@@ -139,29 +139,20 @@ void main() {
     expect(await _alphaAt(clippedCap, 3, 3), greaterThan(0));
   });
 
-  test('end underlap extends the repeated edge strip', () async {
+  test('edge strip stops at the exact endpoint', () async {
     final source = await _sourceImage();
     addTearDown(source.dispose);
-    final regular = await _renderEdge(
+    final rendered = await _renderEdge(
       source,
       orientation: TerrainMaterialEdgeOrientation.top,
       start: const ui.Offset(2, 2),
       length: 2,
       angle: 0,
     );
-    final underlapped = await _renderEdge(
-      source,
-      orientation: TerrainMaterialEdgeOrientation.top,
-      start: const ui.Offset(2, 2),
-      length: 2,
-      angle: 0,
-      endUnderlapFactor: 2 / 3,
-    );
-    addTearDown(regular.dispose);
-    addTearDown(underlapped.dispose);
+    addTearDown(rendered.dispose);
 
-    expect(await _alphaAt(regular, 5, 2), 0);
-    expect(await _alphaAt(underlapped, 5, 2), greaterThan(0));
+    expect(await _alphaAt(rendered, 3, 2), greaterThan(0));
+    expect(await _alphaAt(rendered, 5, 2), 0);
   });
 }
 
@@ -196,8 +187,6 @@ Future<ui.Image> _renderEdge(
   required ui.Offset start,
   required double length,
   required double angle,
-  double startUnderlapFactor = 0,
-  double endUnderlapFactor = 0,
   ui.Path? clipPath,
 }) async {
   final recorder = ui.PictureRecorder();
@@ -210,8 +199,6 @@ Future<ui.Image> _renderEdge(
     image: source,
     anchorY: 0,
     orientation: orientation,
-    startUnderlapFactor: startUnderlapFactor,
-    endUnderlapFactor: endUnderlapFactor,
     clipPath: clipPath,
   );
   final picture = recorder.endRecording();

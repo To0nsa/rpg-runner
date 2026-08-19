@@ -1217,17 +1217,15 @@ snapshot; staged edges can never reference it.
 Fill texture phase is world anchored. The generated material registry maps
 top/slope, left-wall, right-wall, and underside profiles onto exact retained
 `TerrainEdge` outward normals; an absent optional profile intentionally leaves
-that orientation fill-only. Paired top and underside endpoint caps use exact
-previous/next edge IDs and are suppressed across same-material continuations of
-their own orientation, including resolved streaming seams. Caps render in a
-final foreground pass after all repeating edge bands so a neighboring wall or
-underside band cannot cover a corner. At same-orientation flat/slope joins,
-shared render math detects only the diverging endpoint wedges that the clipped
-rectangular bands would leave uncovered. The earlier-painted band extends
-under the later band by a layer-depth-scaled turn factor; straight and
-converging joins remain unextended. A null material is collision-only and not
-drawn; an unknown non-null material fails through `TerrainMaterialRegistry`
-instead of selecting a visual fallback.
+that orientation fill-only. Paired top and underside endpoint caps render only
+where Core marks the corresponding `TerrainVertexJoin` as `exposed`;
+`connected` polygon corners and `smooth` continuations use their meeting edge
+bands without extra corner art. Caps render in a final foreground pass after
+all repeating edge bands. Repeating bands stop at their exact Core edge
+endpoints; runtime and editor rendering do not stretch one band beneath another
+to hide join wedges. A null material is collision-only and not drawn; an
+unknown non-null material fails through `TerrainMaterialRegistry` instead of
+selecting a visual fallback.
 
 `assets/authoring/level/terrain_material_defs.json` is the canonical visual
 material source. The pure-Dart `terrain_materials` package owns its strict

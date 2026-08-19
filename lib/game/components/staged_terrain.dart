@@ -280,8 +280,6 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
     image: image,
     anchorY: anchorY,
     orientation: orientation,
-    startUnderlapFactor: edge.startUnderlapFactor,
-    endUnderlapFactor: edge.endUnderlapFactor,
     clipPath: edge.clipPath,
   );
 
@@ -318,8 +316,7 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
 /// Exposed for renderer tests. Source art is normalized for its named role
 /// before tangent placement, so axis-aligned walls and undersides retain their
 /// authored atlas orientation. When supplied, [clipPath] is in world space and
-/// confines the complete edge band to its owning polygon. Underlap factors
-/// extend only an earlier-painted strip beneath its adjacent foreground strip.
+/// confines the complete edge band to its owning polygon.
 @visibleForTesting
 void paintTerrainMaterialEdgeImage(
   ui.Canvas canvas, {
@@ -329,8 +326,6 @@ void paintTerrainMaterialEdgeImage(
   required ui.Image image,
   required double anchorY,
   required TerrainMaterialEdgeOrientation orientation,
-  double startUnderlapFactor = 0,
-  double endUnderlapFactor = 0,
   ui.Path? clipPath,
 }) {
   if (length <= 0) return;
@@ -354,20 +349,14 @@ void paintTerrainMaterialEdgeImage(
   final quarterTurns = terrainMaterialEdgeNormalizationQuarterTurns(
     orientation,
   );
-  final interiorDepth = math.max(0, tileHeight - anchorY);
-  final paintStart = -startUnderlapFactor * interiorDepth;
-  final paintEnd = length + endUnderlapFactor * interiorDepth;
-  final firstTileX =
-      terrainMaterialTileStart(paintStart + phase, tileWidth) - phase;
+  final firstTileX = terrainMaterialTileStart(phase, tileWidth) - phase;
 
   canvas.save();
   if (clipPath != null) canvas.clipPath(clipPath);
   canvas.translate(start.dx, start.dy);
   canvas.rotate(angle);
-  canvas.clipRect(
-    ui.Rect.fromLTWH(paintStart, -anchorY, paintEnd - paintStart, tileHeight),
-  );
-  for (var x = firstTileX; x < paintEnd; x += tileWidth) {
+  canvas.clipRect(ui.Rect.fromLTWH(0, -anchorY, length, tileHeight));
+  for (var x = firstTileX; x < length; x += tileWidth) {
     _drawNormalizedEdgeImage(
       canvas,
       image: image,
@@ -540,8 +529,6 @@ final class _CachedTerrainDecoratedEdge {
     required this.orientation,
     required this.drawStartCap,
     required this.drawEndCap,
-    required this.startUnderlapFactor,
-    required this.endUnderlapFactor,
     required this.start,
     required this.length,
     required this.angle,
@@ -569,8 +556,6 @@ final class _CachedTerrainDecoratedEdge {
       orientation: decoration.orientation,
       drawStartCap: decoration.drawStartCap,
       drawEndCap: decoration.drawEndCap,
-      startUnderlapFactor: decoration.startUnderlapFactor,
-      endUnderlapFactor: decoration.endUnderlapFactor,
       start: start,
       length: math.sqrt(dx * dx + dy * dy),
       angle: math.atan2(dy, dx),
@@ -588,8 +573,6 @@ final class _CachedTerrainDecoratedEdge {
   final TerrainMaterialEdgeOrientation orientation;
   final bool drawStartCap;
   final bool drawEndCap;
-  final double startUnderlapFactor;
-  final double endUnderlapFactor;
   final ui.Offset start;
   final double length;
   final double angle;

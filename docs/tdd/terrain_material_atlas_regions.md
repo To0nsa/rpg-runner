@@ -72,15 +72,9 @@ underside decorations retain their source order and top-facing decorations
 render last. Slopes with an upward-facing outward normal count as top-facing,
 so the playable grass/surface silhouette remains visible at every corner.
 
-Two adjacent bands of the same material and orientation can leave an interior
-wedge when their endpoint rectangles diverge, such as a flat top followed by a
-rising top slope. Shared join math detects that turn before painting. It returns
-zero for straight, converging, profile-changing, and right-angle-or-sharper
-joins. For a positive gap, the lower paint-priority band extends by the exact
-turn factor times that layer's interior depth and remains clipped to the owner
-polygon; the higher-priority band then paints over it. This closes only the
-otherwise exposed fill wedge without changing the authored surface silhouette
-or adding unconditional corner decoration.
+Every edge band is clipped to its exact authored edge endpoints. Runtime and
+editor painters do not stretch or underlap adjacent bands to hide join wedges;
+the meeting source regions and polygon fill remain visible as authored.
 
 Cap `anchorX` and `anchorY` use tangent-normalized region coordinates, matching
 the destination space in which the cap is placed. Edge `anchorY` uses that same
@@ -198,13 +192,11 @@ Fill and edge repeat calculations use shared pure-Dart functions from
 - edge phase is the signed projection of the edge start onto its unit tangent,
   modulo the tangent-normalized tile width (source height for wall art, source
   width for top/underside art)
-- join underlap is a positive tangent/inward-normal turn ratio, evaluated only
-  for adjacent equal-orientation bands and scaled independently by each layer's
-  interior depth
 
 Consequently, chunk boundaries and camera movement do not reset texture phase.
 Material and chunk previews call the same orientation, dimension, and repeat
-math so authored results match runtime orientation and spacing.
+math so authored results match runtime orientation and spacing. Edge repeats
+stop at their exact endpoints in both renderers.
 
 ## Image Ownership and Failure Handling
 

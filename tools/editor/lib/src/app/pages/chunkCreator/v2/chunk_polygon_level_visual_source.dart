@@ -255,11 +255,6 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
       }
       final edgeKinds = _edgeKinds(shape.vertices);
       final edgePaintOrder = terrainMaterialEdgePaintOrder(edgeKinds);
-      final edgeUnderlaps = _edgeUnderlaps(
-        vertices: shape.vertices,
-        edgeKinds: edgeKinds,
-        edgePaintOrder: edgePaintOrder,
-      );
       for (final index in edgePaintOrder) {
         final startVertex = shape.vertices[index];
         final endVertex = shape.vertices[(index + 1) % shape.vertices.length];
@@ -278,7 +273,6 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
               image: base,
               layer: profile.base,
               orientation: kind,
-              underlap: edgeUnderlaps[index],
             );
           }
           final detailLayer = profile.detail;
@@ -294,57 +288,57 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
               image: detail,
               layer: detailLayer,
               orientation: kind,
-              underlap: edgeUnderlaps[index],
             );
           }
         }
       }
-      // Endpoint art is a foreground pass so adjacent edge bands cannot cover
-      // corners that intentionally bridge two orientations.
-      for (final index in edgePaintOrder) {
-        final kind = edgeKinds[index];
-        final caps = _capsForKind(material, kind);
-        if (caps.start == null && caps.end == null) continue;
-        final start = _vertexOffset(shape.vertices[index]);
-        final end = _vertexOffset(
-          shape.vertices[(index + 1) % shape.vertices.length],
-        );
-        final previousKind =
-            edgeKinds[(index - 1 + edgeKinds.length) % edgeKinds.length];
-        final nextKind = edgeKinds[(index + 1) % edgeKinds.length];
-        if (previousKind != kind) {
-          final cap = caps.start;
-          if (cap != null) {
-            final image = imagesBySourcePath[cap.region.assetPath];
-            if (image != null) {
-              _drawEdgeCap(
-                canvas,
-                clipPath: path,
-                edgeStart: start,
-                edgeEnd: end,
-                image: image,
-                cap: cap,
-                orientation: kind,
-                atEnd: false,
-              );
+      // Core exposes only the upward-facing runs of one-way polygons. Closed
+      // solid loops have connected corners and therefore receive no cap art.
+      if (shape.collisionMode == TerrainSourceCollisionMode.oneWay) {
+        for (final index in edgePaintOrder) {
+          final kind = edgeKinds[index];
+          if (kind != TerrainMaterialEdgeOrientation.top) continue;
+          final start = _vertexOffset(shape.vertices[index]);
+          final end = _vertexOffset(
+            shape.vertices[(index + 1) % shape.vertices.length],
+          );
+          final previousKind =
+              edgeKinds[(index - 1 + edgeKinds.length) % edgeKinds.length];
+          final nextKind = edgeKinds[(index + 1) % edgeKinds.length];
+          if (previousKind != kind) {
+            final cap = material.topStartCap;
+            if (cap != null) {
+              final image = imagesBySourcePath[cap.region.assetPath];
+              if (image != null) {
+                _drawEdgeCap(
+                  canvas,
+                  clipPath: path,
+                  edgeStart: start,
+                  edgeEnd: end,
+                  image: image,
+                  cap: cap,
+                  orientation: kind,
+                  atEnd: false,
+                );
+              }
             }
           }
-        }
-        if (nextKind != kind) {
-          final cap = caps.end;
-          if (cap != null) {
-            final image = imagesBySourcePath[cap.region.assetPath];
-            if (image != null) {
-              _drawEdgeCap(
-                canvas,
-                clipPath: path,
-                edgeStart: start,
-                edgeEnd: end,
-                image: image,
-                cap: cap,
-                orientation: kind,
-                atEnd: true,
-              );
+          if (nextKind != kind) {
+            final cap = material.topEndCap;
+            if (cap != null) {
+              final image = imagesBySourcePath[cap.region.assetPath];
+              if (image != null) {
+                _drawEdgeCap(
+                  canvas,
+                  clipPath: path,
+                  edgeStart: start,
+                  edgeEnd: end,
+                  image: image,
+                  cap: cap,
+                  orientation: kind,
+                  atEnd: true,
+                );
+              }
             }
           }
         }
@@ -427,22 +421,6 @@ TerrainMaterialEdgeProfile? _profileForKind(
   TerrainMaterialEdgeOrientation.underside => material.underside,
 };
 
-({TerrainMaterialCap? start, TerrainMaterialCap? end}) _capsForKind(
-  TerrainMaterialDefinition material,
-  TerrainMaterialEdgeOrientation kind,
-) => switch (kind) {
-  TerrainMaterialEdgeOrientation.top => (
-    start: material.topStartCap,
-    end: material.topEndCap,
-  ),
-  TerrainMaterialEdgeOrientation.underside => (
-    start: material.undersideStartCap,
-    end: material.undersideEndCap,
-  ),
-  TerrainMaterialEdgeOrientation.leftWall ||
-  TerrainMaterialEdgeOrientation.rightWall => (start: null, end: null),
-};
-
 double _signedArea(List<TerrainSourceVertexDef> vertices) {
   var area = 0.0;
   for (var index = 0; index < vertices.length; index += 1) {
@@ -455,67 +433,6 @@ double _signedArea(List<TerrainSourceVertexDef> vertices) {
   return area;
 }
 
-List<({double startFactor, double endFactor})> _edgeUnderlaps({
-  required List<TerrainSourceVertexDef> vertices,
-  required List<TerrainMaterialEdgeOrientation> edgeKinds,
-  required List<int> edgePaintOrder,
-}) {
-  final ranks = List<int>.filled(vertices.length, 0);
-  for (var rank = 0; rank < edgePaintOrder.length; rank += 1) {
-    ranks[edgePaintOrder[rank]] = rank;
-  }
-  final startFactors = List<double>.filled(vertices.length, 0);
-  final endFactors = List<double>.filled(vertices.length, 0);
-  final clockwise = _signedArea(vertices) >= 0;
-
-  for (
-    var previousIndex = 0;
-    previousIndex < vertices.length;
-    previousIndex += 1
-  ) {
-    final nextIndex = (previousIndex + 1) % vertices.length;
-    if (edgeKinds[previousIndex] != edgeKinds[nextIndex]) continue;
-    final previousStart = _vertexOffset(vertices[previousIndex]);
-    final join = _vertexOffset(vertices[nextIndex]);
-    final nextEnd = _vertexOffset(vertices[(nextIndex + 1) % vertices.length]);
-    final previousTangent = join - previousStart;
-    final nextTangent = nextEnd - join;
-
-    if (ranks[previousIndex] < ranks[nextIndex]) {
-      final inward = clockwise
-          ? Offset(-previousTangent.dy, previousTangent.dx)
-          : Offset(previousTangent.dy, -previousTangent.dx);
-      endFactors[previousIndex] = terrainMaterialJoinUnderlapFactor(
-        endpoint: TerrainMaterialJoinEndpoint.end,
-        lowerTangentX: previousTangent.dx,
-        lowerTangentY: previousTangent.dy,
-        lowerInwardNormalX: inward.dx,
-        lowerInwardNormalY: inward.dy,
-        upperTangentX: nextTangent.dx,
-        upperTangentY: nextTangent.dy,
-      );
-    } else {
-      final inward = clockwise
-          ? Offset(-nextTangent.dy, nextTangent.dx)
-          : Offset(nextTangent.dy, -nextTangent.dx);
-      startFactors[nextIndex] = terrainMaterialJoinUnderlapFactor(
-        endpoint: TerrainMaterialJoinEndpoint.start,
-        lowerTangentX: nextTangent.dx,
-        lowerTangentY: nextTangent.dy,
-        lowerInwardNormalX: inward.dx,
-        lowerInwardNormalY: inward.dy,
-        upperTangentX: previousTangent.dx,
-        upperTangentY: previousTangent.dy,
-      );
-    }
-  }
-
-  return <({double startFactor, double endFactor})>[
-    for (var index = 0; index < vertices.length; index += 1)
-      (startFactor: startFactors[index], endFactor: endFactors[index]),
-  ];
-}
-
 void _drawEdgeImage(
   Canvas canvas, {
   required Path clipPath,
@@ -524,7 +441,6 @@ void _drawEdgeImage(
   required ui.Image image,
   required TerrainMaterialEdgeLayer layer,
   required TerrainMaterialEdgeOrientation orientation,
-  required ({double startFactor, double endFactor}) underlap,
 }) => paintTerrainMaterialEdgeRegion(
   canvas,
   image: image,
@@ -533,22 +449,6 @@ void _drawEdgeImage(
   start: start,
   end: end,
   anchorY: layer.anchorY,
-  startUnderlap:
-      underlap.startFactor *
-      (terrainMaterialEdgeTileHeight(
-            orientation: orientation,
-            sourceWidth: layer.region.width,
-            sourceHeight: layer.region.height,
-          ) -
-          layer.anchorY),
-  endUnderlap:
-      underlap.endFactor *
-      (terrainMaterialEdgeTileHeight(
-            orientation: orientation,
-            sourceWidth: layer.region.width,
-            sourceHeight: layer.region.height,
-          ) -
-          layer.anchorY),
   clipPath: clipPath,
 );
 

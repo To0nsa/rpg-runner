@@ -35,7 +35,7 @@ void main() {
     );
   });
 
-  test('top caps appear only at the ends of one material run', () {
+  test('top caps appear only at compiler-exposed endpoints', () {
     final firstId = _id(0);
     final secondId = _id(1);
     final snapshot = StagedTerrainRenderSnapshot(
@@ -52,6 +52,37 @@ void main() {
     expect(decorations, hasLength(2));
     expect(decorations.first.drawStartCap, isTrue);
     expect(decorations.first.drawEndCap, isFalse);
+    expect(decorations.last.drawStartCap, isFalse);
+    expect(decorations.last.drawEndCap, isTrue);
+  });
+
+  test('connected wall-to-top corner does not receive a top cap', () {
+    final wallId = _id(0);
+    final topId = _id(1);
+    final snapshot = StagedTerrainRenderSnapshot(
+      geometryVersion: 1,
+      polygons: const <StagedTerrainPolygonRenderSnapshot>[],
+      edges: <TerrainEdge>[
+        _edge(
+          index: 0,
+          start: (0, 50),
+          end: (0, 0),
+          nextId: topId,
+          endJoin: TerrainVertexJoin.connected,
+        ),
+        _edge(
+          index: 1,
+          start: (0, 0),
+          end: (100, 0),
+          previousId: wallId,
+          startJoin: TerrainVertexJoin.connected,
+        ),
+      ],
+    );
+
+    final decorations = StagedTerrainEdgeLayout.build(snapshot);
+
+    expect(decorations.last.orientation, TerrainMaterialEdgeOrientation.top);
     expect(decorations.last.drawStartCap, isFalse);
     expect(decorations.last.drawEndCap, isTrue);
   });
@@ -79,7 +110,7 @@ void main() {
     expect(decorations.last.drawEndCap, isTrue);
   });
 
-  test('underside caps appear only at the ends of one material run', () {
+  test('underside caps appear only at compiler-exposed endpoints', () {
     final firstId = _id(0);
     final secondId = _id(1);
     final snapshot = StagedTerrainRenderSnapshot(
@@ -99,44 +130,6 @@ void main() {
     expect(decorations.last.drawStartCap, isFalse);
     expect(decorations.last.drawEndCap, isTrue);
   });
-
-  test('only a diverging same-profile join receives an underlap', () {
-    final firstId = _id(0);
-    final secondId = _id(1);
-    final snapshot = StagedTerrainRenderSnapshot(
-      geometryVersion: 1,
-      polygons: const <StagedTerrainPolygonRenderSnapshot>[],
-      edges: <TerrainEdge>[
-        _edge(index: 0, start: (0, 0), end: (100, 0), nextId: secondId),
-        _edge(index: 1, start: (100, 0), end: (200, -25), previousId: firstId),
-      ],
-    );
-
-    final decorations = StagedTerrainEdgeLayout.build(snapshot);
-
-    expect(decorations.first.endUnderlapFactor, closeTo(0.25, 0.001));
-    expect(decorations.first.startUnderlapFactor, 0);
-    expect(decorations.last.startUnderlapFactor, 0);
-    expect(decorations.last.endUnderlapFactor, 0);
-  });
-
-  test('a converging same-profile join does not receive an underlap', () {
-    final firstId = _id(0);
-    final secondId = _id(1);
-    final snapshot = StagedTerrainRenderSnapshot(
-      geometryVersion: 1,
-      polygons: const <StagedTerrainPolygonRenderSnapshot>[],
-      edges: <TerrainEdge>[
-        _edge(index: 0, start: (0, 25), end: (100, 0), nextId: secondId),
-        _edge(index: 1, start: (100, 0), end: (200, 0), previousId: firstId),
-      ],
-    );
-
-    final decorations = StagedTerrainEdgeLayout.build(snapshot);
-
-    expect(decorations.first.endUnderlapFactor, 0);
-    expect(decorations.last.startUnderlapFactor, 0);
-  });
 }
 
 TerrainEdge _edge({
@@ -145,6 +138,8 @@ TerrainEdge _edge({
   required (int, int) end,
   TerrainEdgeId? previousId,
   TerrainEdgeId? nextId,
+  TerrainVertexJoin? startJoin,
+  TerrainVertexJoin? endJoin,
 }) {
   final startPoint = TerrainPoint(start.$1, start.$2);
   final endPoint = TerrainPoint(end.$1, end.$2);
@@ -161,12 +156,14 @@ TerrainEdge _edge({
     materialKey: 'grass_dirt',
     previousId: previousId,
     nextId: nextId,
-    startJoin: previousId == null
-        ? TerrainVertexJoin.exposed
-        : TerrainVertexJoin.smooth,
-    endJoin: nextId == null
-        ? TerrainVertexJoin.exposed
-        : TerrainVertexJoin.smooth,
+    startJoin:
+        startJoin ??
+        (previousId == null
+            ? TerrainVertexJoin.exposed
+            : TerrainVertexJoin.smooth),
+    endJoin:
+        endJoin ??
+        (nextId == null ? TerrainVertexJoin.exposed : TerrainVertexJoin.smooth),
     bounds: TerrainAabb(
       minX: start.$1 < end.$1 ? start.$1 : end.$1,
       minY: start.$2 < end.$2 ? start.$2 : end.$2,
