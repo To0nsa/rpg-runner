@@ -4,7 +4,8 @@ Date: August 19, 2026
 
 Status: Active (Phase 0 completed with accepted baseline exceptions on August
 19, 2026; Phase 1 completed in `25ae1a6e` on August 19, 2026; Phase 2
-completed in `77af803f` on August 19, 2026; Phase 3 in progress)
+completed in `77af803f` on August 19, 2026; Phase 3 completed in `03bd98d5` and
+`99ac7a8b` on August 19, 2026; Phase 4 not started)
 
 Related documents:
 
@@ -13,6 +14,7 @@ Related documents:
 - [Phase 1 implementation checklist](phase1-implementation-checklist.md)
 - [Phase 2 implementation checklist](phase2-implementation-checklist.md)
 - [Phase 3 implementation checklist](phase3-implementation-checklist.md)
+- [Gameplay input architecture](../../../tdd/gameplay_input_architecture.md)
 - [Chunk Creator high-level plan](../chunkCreator/plan.md)
 - [Unified Chunk Scene strategy](../chunkCreator/unified-chunk-scene-strategy.md)
 - [Editor UI system](../../../tdd/editor_ui_system.md)

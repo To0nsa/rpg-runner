@@ -91,6 +91,23 @@ void main() {
     expect(release.abilitySlotHeldValueMask, 0);
   });
 
+  test('editor host keys are ignored by the gameplay adapter', () {
+    final harness = _DesktopHarness();
+
+    for (final key in const <PhysicalKeyboardKey>[
+      PhysicalKeyboardKey.f5,
+      PhysicalKeyboardKey.f6,
+      PhysicalKeyboardKey.escape,
+      PhysicalKeyboardKey.keyP,
+      PhysicalKeyboardKey.enter,
+    ]) {
+      expect(harness.keyDown(key), KeyEventResult.ignored);
+      expect(harness.keyUp(key), KeyEventResult.ignored);
+    }
+
+    expect(harness.advance().pressedMask, 0);
+  });
+
   test('mouse and keyboard references share one action lifecycle', () {
     final harness = _DesktopHarness(
       modes: const <RunnerGameplayAction, AbilityInputMode>{
@@ -202,6 +219,24 @@ void main() {
     expect(defaultAim.projectilePressed, isTrue);
     expect(defaultAim.aimDirX, isNull);
     expect(defaultAim.aimDirY, isNull);
+
+    harness.adapter.handlePointerPosition(const Offset(100, 100));
+    harness.keyDown(PhysicalKeyboardKey.keyK);
+    harness.advance();
+    harness.keyUp(PhysicalKeyboardKey.keyK);
+    final reentered = harness.advance();
+    expect(reentered.projectilePressed, isTrue);
+    expect(reentered.aimDirX, -1);
+    expect(reentered.aimDirY, 0);
+
+    harness.adapter.handlePointerExit();
+    harness.keyDown(PhysicalKeyboardKey.keyK);
+    harness.advance();
+    harness.keyUp(PhysicalKeyboardKey.keyK);
+    final exited = harness.advance();
+    expect(exited.projectilePressed, isTrue);
+    expect(exited.aimDirX, isNull);
+    expect(exited.aimDirY, isNull);
   });
 
   testWidgets('focus loss cancels held input before notifying the host', (

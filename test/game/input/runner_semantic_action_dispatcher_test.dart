@@ -53,34 +53,37 @@ void main() {
     RunnerGameplayAction.projectile,
     RunnerGameplayAction.mobility,
   ]) {
-    test('${action.name} aimed release commits and releases in one frame', () {
-      final harness = _InputHarness(
-        modes: <RunnerGameplayAction, AbilityInputMode>{
-          action: AbilityInputMode.holdAimRelease,
-        },
-      );
-      final bit = 1 << _slotFor(action).index;
+    for (final mode in const <AbilityInputMode>[
+      AbilityInputMode.holdAimRelease,
+      AbilityInputMode.holdRelease,
+    ]) {
+      test('${action.name} ${mode.name} commits and releases in one frame', () {
+        final harness = _InputHarness(
+          modes: <RunnerGameplayAction, AbilityInputMode>{action: mode},
+        );
+        final bit = 1 << _slotFor(action).index;
 
-      harness.dispatcher.beginAction(action);
-      expect(
-        harness.advance().abilitySlotHeldValueMask,
-        bit,
-        reason: '${action.name} begins held',
-      );
+        harness.dispatcher.beginAction(action);
+        expect(
+          harness.advance().abilitySlotHeldValueMask,
+          bit,
+          reason: '${action.name} begins held',
+        );
 
-      harness.dispatcher.setAimDir(0, -1);
-      harness.dispatcher.releaseAction(action);
-      final release = harness.advance();
+        harness.dispatcher.setAimDir(0, -1);
+        harness.dispatcher.releaseAction(action);
+        final release = harness.advance();
 
-      expect(release.abilitySlotHeldChangedMask & bit, bit);
-      expect(release.abilitySlotHeldValueMask & bit, 0);
-      expect(release.aimDirX, 0);
-      expect(release.aimDirY, -1);
-      expect(
-        release.pressedMask & _pressedBitFor(action),
-        _pressedBitFor(action),
-      );
-    });
+        expect(release.abilitySlotHeldChangedMask & bit, bit);
+        expect(release.abilitySlotHeldValueMask & bit, 0);
+        expect(release.aimDirX, 0);
+        expect(release.aimDirY, -1);
+        expect(
+          release.pressedMask & _pressedBitFor(action),
+          _pressedBitFor(action),
+        );
+      });
+    }
   }
 
   for (final action in const <RunnerGameplayAction>[
@@ -260,6 +263,16 @@ void main() {
     );
     expect(
       () => spell.dispatcher.beginAction(RunnerGameplayAction.spell),
+      throwsA(isA<UnsupportedError>()),
+    );
+
+    final jump = _InputHarness(
+      modes: const <RunnerGameplayAction, AbilityInputMode>{
+        RunnerGameplayAction.jump: AbilityInputMode.holdMaintain,
+      },
+    );
+    expect(
+      () => jump.dispatcher.beginAction(RunnerGameplayAction.jump),
       throwsA(isA<UnsupportedError>()),
     );
   });

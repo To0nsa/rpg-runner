@@ -2,7 +2,7 @@
 
 Date: August 19, 2026
 
-Status: In progress
+Status: Complete (August 19, 2026)
 
 Source plan: [Windows Chunk Playtest and Reusable Desktop Input Plan](plan.md)
 
@@ -86,99 +86,100 @@ commits.
 
 ## Step 1 — Add the semantic dispatcher
 
-- [ ] Add a Flutter/device-free dispatcher beside `RunnerInputRouter`.
-- [ ] Resolve each ability mode from the current HUD snapshot when its press
+- [x] Add a Flutter/device-free dispatcher beside `RunnerInputRouter`.
+- [x] Resolve each ability mode from the current HUD snapshot when its press
       lifecycle begins and retain that mode through release/cancel.
-- [ ] Support one-shot tap, held begin, explicit commit, non-committing end,
+- [x] Support one-shot tap, held begin, explicit commit, non-committing end,
       desktop release, movement directions/axis, aim, and held-input pumping.
-- [ ] Preserve router-owned latest-hold-wins and same-tick aimed commit
+- [x] Preserve router-owned latest-hold-wins and same-tick aimed commit
       behavior; do not enqueue commands from the dispatcher itself.
-- [ ] Make repeated begin/end/cancel calls idempotent.
-- [ ] Make `cancelAll` neutralize movement, clear aim, release every hold, and
+- [x] Make repeated begin/end/cancel calls idempotent.
+- [x] Make `cancelAll` neutralize movement, clear aim, release every hold, and
       pump the neutral state.
-- [ ] Reject unsupported action/mode pairs with stable diagnostics.
+- [x] Reject unsupported action/mode pairs with stable diagnostics.
 
 ## Step 2 — Prove semantic action behavior
 
-- [ ] Test tap actions for primary, secondary, projectile, mobility, spell, and
+- [x] Test tap actions for primary, secondary, projectile, mobility, spell, and
       jump.
-- [ ] Test `holdAimRelease`, `holdMaintain`, and `holdRelease` for every
+- [x] Test `holdAimRelease`, `holdMaintain`, and `holdRelease` for every
       supported ability slot.
-- [ ] Test commit/end ordering, cancel-without-commit, and mode retention when
+- [x] Test commit/end ordering, cancel-without-commit, and mode retention when
       the HUD mode changes mid-hold.
-- [ ] Test opposing directions and alternate-source reference behavior.
-- [ ] Test duplicate edges and repeated idempotent `cancelAll` calls.
-- [ ] Test explicit rejection of projectile `holdMaintain` and non-tap
+- [x] Test opposing directions and alternate-source reference behavior.
+- [x] Test duplicate edges and repeated idempotent `cancelAll` calls.
+- [x] Test explicit rejection of projectile `holdMaintain` and non-tap
       spell/jump modes.
 
 ## Step 3 — Migrate the existing touch host
 
-- [ ] Make `RunnerGameWidget` own one semantic dispatcher per controller.
-- [ ] Pass semantic actions, not `RunnerInputRouter`, into `GameOverlay`.
-- [ ] Translate current touch callbacks without changing leaf widgets,
+- [x] Make `RunnerGameWidget` own one semantic dispatcher per controller.
+- [x] Pass semantic actions, not `RunnerInputRouter`, into `GameOverlay`.
+- [x] Translate current touch callbacks without changing leaf widgets,
       affordability, cooldowns, previews, or release/cancel order.
-- [ ] Replace the run widget's manual router clear sequence with dispatcher
+- [x] Replace the run widget's manual router clear sequence with dispatcher
       cancellation plus preview cleanup.
-- [ ] Cancel before controller/preview disposal without changing shipping
+- [x] Cancel before controller/preview disposal without changing shipping
       lifecycle resume policy.
-- [ ] Keep `RunnerFlameGame` wired to the low-level router for frame pumping.
+- [x] Keep `RunnerFlameGame` wired to the low-level router for frame pumping.
 
 ## Step 4 — Add viewport-aware desktop aim
 
-- [ ] Add immutable aim geometry that accepts fitted viewport metrics, virtual
+- [x] Add immutable aim geometry that accepts fitted viewport metrics, virtual
       dimensions, authoritative camera center, and rendered player position.
-- [ ] Exclude letterbox/editor-chrome positions before producing an aim vector.
-- [ ] Convert world player position through the shared world/view transform,
+- [x] Exclude letterbox/editor-chrome positions before producing an aim vector.
+- [x] Convert world player position through the shared world/view transform,
       scale it through the fitted viewport, normalize cursor delta, and let the
       existing router quantize it.
-- [ ] Clear aim for zero-length vectors and pointer exit.
-- [ ] Test centered and aligned viewports, scaling, letterbox exclusion,
+- [x] Clear aim for zero-length vectors and pointer exit.
+- [x] Test centered and aligned viewports, scaling, letterbox exclusion,
       camera offsets, non-zero player positions, and zero-length aim.
 
 ## Step 5 — Add the Windows keyboard/mouse adapter
 
-- [ ] Keep Flutter key, pointer, and focus types under
+- [x] Keep Flutter key, pointer, and focus types under
       `lib/ui/input/desktop/**` only.
-- [ ] Own exactly one `FocusNode` and expose explicit `requestFocus`,
+- [x] Own exactly one `FocusNode` and expose explicit `requestFocus`,
       `releaseFocus`, `cancelAll`, pause, and disposal operations.
-- [ ] Track physical keys so OS repeats emit no duplicate gameplay edge.
-- [ ] Reference-count alternate keys for the same action so releasing one does
+- [x] Track physical keys so OS repeats emit no duplicate gameplay edge.
+- [x] Reference-count alternate keys for the same action so releasing one does
       not release another still-held binding.
-- [ ] Resolve left+right to neutral and recompute immediately on either release.
-- [ ] Track mouse-button transitions from button masks, including chords,
+- [x] Resolve left+right to neutral and recompute immediately on either release.
+- [x] Track mouse-button transitions from button masks, including chords,
       cancel, and lost-focus cleanup.
-- [ ] Update aim only inside the current fitted viewport; leaving it clears
+- [x] Update aim only inside the current fitted viewport; leaving it clears
       pointer-derived aim without changing keyboard movement.
-- [ ] Invoke a host callback after focus-loss cancellation so Phase 4 can pause
+- [x] Invoke a host callback after focus-loss cancellation so Phase 4 can pause
       without putting pause into gameplay actions.
-- [ ] Confirm the module imports no editor or touch-control implementation.
+- [x] Confirm the module imports no editor or touch-control implementation.
 
 ## Step 6 — Desktop focus and event tests
 
-- [ ] Test every fixed key and mouse mapping through the adapter.
-- [ ] Test alternate key rollover, opposing movement, key repeat, and release
+- [x] Test every fixed key and mouse mapping through the adapter.
+- [x] Test alternate key rollover, opposing movement, key repeat, and release
       after another binding remains pressed.
-- [ ] Test mouse chords, secondary-button release, pointer cancel, pointer exit,
+- [x] Test mouse chords, secondary-button release, pointer cancel, pointer exit,
       and cursor re-entry.
-- [ ] Test keyboard ability use with and without a current mouse aim vector.
-- [ ] Test focus acquisition, focus loss, explicit pause cancellation,
+- [x] Test keyboard ability use with and without a current mouse aim vector.
+- [x] Test focus acquisition, focus loss, explicit pause cancellation,
       `releaseFocus`, disposal, and repeated cancellation.
-- [ ] Prove no command edge survives focus loss or adapter disposal.
+- [x] Prove no command edge survives focus loss or adapter disposal.
 
 ## Step 7 — Documentation, validation, and commits
 
-- [ ] Add/update the input-boundary TDD with semantic, device, focus, viewport,
+- [x] Add/update the input-boundary TDD with semantic, device, focus, viewport,
       cancellation, and host-lifecycle ownership.
-- [ ] Update this source plan with factual Phase 3 delivery status only.
-- [ ] Confirm no GDD or public embedding documentation change is needed because
+- [x] Update this source plan with factual Phase 3 delivery status only.
+- [x] Confirm no GDD or public embedding documentation change is needed because
       desktop input is not mounted in the product host yet.
-- [ ] Run `dart format` on changed Dart files.
-- [ ] Run root `dart analyze`.
-- [ ] Run focused semantic dispatcher, router, desktop adapter, viewport, touch
+- [x] Run `dart format` on changed Dart files.
+- [x] Run root `dart analyze`; accept only the external Firebase CLI template
+      errors under `functions/node_modules` and validate `lib test` directly.
+- [x] Run focused semantic dispatcher, router, desktop adapter, viewport, touch
       controls, and run-widget tests.
-- [ ] Run the broader relevant Flutter test slice if focused gates are green.
-- [ ] Run `git diff --check` and an import-boundary search.
-- [ ] Commit the checklist, semantic/touch milestone, desktop milestone, and
+- [x] Run the broader relevant Flutter test slice if focused gates are green.
+- [x] Run `git diff --check` and an import-boundary search.
+- [x] Commit the checklist, semantic/touch milestone, desktop milestone, and
       factual closeout as coherent validated commits.
 
 ## Evidence record
@@ -187,20 +188,36 @@ commits.
 
 | Date | Command/test | Result | Notes |
 | --- | --- | --- | --- |
-| Pending | Root analysis | Pending | — |
-| Pending | Semantic/touch tests | Pending | — |
-| Pending | Desktop/focus/viewport tests | Pending | — |
-| Pending | Import and whitespace checks | Pending | — |
+| August 19, 2026 | `dart analyze lib test` | Pass | No issues in the application/test workspace. Root `dart analyze` additionally enters Firebase CLI templates under `functions/node_modules` and reports six missing-template-package errors outside this Dart package. |
+| August 19, 2026 | Focused Phase 3 plus existing router/touch suites | Pass (76 tests) | Semantic modes/order/cancel, router release behavior, fixed desktop bindings, geometry, adapter focus/events, and existing touch widgets. |
+| August 19, 2026 | Full root `flutter test` | External baseline exception | 784 tests passed; the pre-existing malformed-record expectation in `packages/runner_core/test/track/staged_terrain_world_geometry_test.dart` remains the only failure. |
+| August 19, 2026 | Desktop import boundary and `git diff --check` | Pass | Desktop code imports no touch controls or editor code; no whitespace errors. |
 
 ### Delivered contracts
 
-Pending implementation.
+- `RunnerSemanticActionDispatcher` snapshots HUD input mode per press, supports
+  both existing touch release orders, and owns idempotent semantic cancellation
+  without scheduling commands outside `RunnerInputRouter`.
+- `RunnerGameWidget` and `GameOverlay` route touch through the dispatcher while
+  `RunnerFlameGame` continues to pump the low-level router.
+- `RunnerDesktopInputController` owns one focus node and aggregates fixed
+  physical key/mouse sources before emitting semantic transitions.
+- `RunnerDesktopAimGeometry` maps camera/player world data through the fitted
+  logical viewport, excludes letterbox space, and normalizes pointer aim.
+- Desktop aim is retained and reapplied across release commits while the cursor
+  stays valid; focus loss, pause, pointer cancel, and disposal cannot leave a
+  held action latched.
+
+Planning commit: `d501db7e` (`docs(editor): plan phase three desktop input`).
+Semantic/touch implementation commit: `03bd98d5` (`refactor(input): centralize
+gameplay action semantics`). Desktop implementation commit: `99ac7a8b`
+(`feat(input): add reusable Windows desktop adapter`).
 
 ## Closeout
 
-- [ ] Every Phase 3 checkbox is complete or explicitly accepted with evidence.
-- [ ] Update status to `Complete` with date and commit references.
-- [ ] Do not begin Phase 4 host work until touch parity and desktop stuck-input
+- [x] Every Phase 3 checkbox is complete or explicitly accepted with evidence.
+- [x] Update status to `Complete` with date and commit references.
+- [x] Do not begin Phase 4 host work until touch parity and desktop stuck-input
       gates are green.
 
 Phase 3 completion means a future playtest or product host can mount the same
