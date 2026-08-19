@@ -14,8 +14,12 @@ import '../../shared/editor_list_card.dart';
 import '../../shared/editor_panel_card.dart';
 import '../../shared/editor_section_card.dart';
 import 'chunk_v2_composition_dialog.dart';
+import 'chunk_v2_composition_forms.dart';
 
-/// Sidebar card for one current Chunk-v2 owner's retained composition forms.
+/// User-facing composition section shown by one Chunk workspace tab.
+enum ChunkCompositionSection { prefabs, markers, layers }
+
+/// Sidebar card for one current Chunk-v2 composition section.
 ///
 /// Each accepted action replaces the three canonical composition lists through
 /// one typed plugin command. Identity, metadata, dimensions, and polygons are
@@ -23,6 +27,7 @@ import 'chunk_v2_composition_dialog.dart';
 class ChunkCompositionCard extends StatelessWidget {
   const ChunkCompositionCard({
     super.key,
+    required this.section,
     required this.controller,
     required this.document,
     required this.chunk,
@@ -30,10 +35,12 @@ class ChunkCompositionCard extends StatelessWidget {
     required this.onOperationChanged,
     required this.selectedPrefabKey,
     required this.selectedMarkerKey,
+    this.onOpenOwningPrefab,
     required this.onPrefabSelected,
     required this.onMarkerSelected,
   });
 
+  final ChunkCompositionSection section;
   final EditorSessionController controller;
   final ChunkV2Document document;
   final ChunkV2FileData chunk;
@@ -41,31 +48,56 @@ class ChunkCompositionCard extends StatelessWidget {
   final ValueChanged<bool> onOperationChanged;
   final String? selectedPrefabKey;
   final String? selectedMarkerKey;
+  final ValueChanged<String>? onOpenOwningPrefab;
   final ValueChanged<ChunkPlacedPrefabSelection> onPrefabSelected;
   final ValueChanged<ChunkPlacedMarkerSelection> onMarkerSelected;
 
   @override
-  Widget build(BuildContext context) => EditorPanelCard(
-    key: const ValueKey<String>('chunk_composition_card'),
-    title: 'Layers, prefabs & markers',
-    description: controlsEnabled
-        ? 'Layer metadata and placed chunk content.'
-        : 'Finish or cancel the active terrain edit before changing composition.',
-    collapsible: true,
-    expansionKey: const ValueKey<String>('chunk_composition_card_toggle'),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        _buildVisualStackPreview(context),
-        const SizedBox(height: 12),
-        _buildTileLayers(context),
-        const SizedBox(height: 12),
-        _buildPlacements(context),
-        const SizedBox(height: 12),
-        _buildMarkers(context),
-      ],
-    ),
-  );
+  Widget build(BuildContext context) {
+    final (cardKey, expansionKey, title, description) = switch (section) {
+      ChunkCompositionSection.prefabs => (
+        'chunk_prefabs_card',
+        'chunk_prefabs_card_toggle',
+        'Prefabs',
+        'Place and manage reusable visuals and collision owners.',
+      ),
+      ChunkCompositionSection.markers => (
+        'chunk_markers_card',
+        'chunk_markers_card_toggle',
+        'Markers',
+        'Place and manage authored enemy marker anchors.',
+      ),
+      ChunkCompositionSection.layers => (
+        'chunk_layers_card',
+        'chunk_layers_card_toggle',
+        'Layers',
+        'Review visual order and edit tile-layer metadata.',
+      ),
+    };
+    return EditorPanelCard(
+      key: ValueKey<String>(cardKey),
+      title: title,
+      description: controlsEnabled
+          ? description
+          : 'Finish or cancel the active operation before editing $title.',
+      collapsible: true,
+      expansionKey: ValueKey<String>(expansionKey),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: switch (section) {
+          ChunkCompositionSection.prefabs => <Widget>[
+            _buildPlacements(context),
+          ],
+          ChunkCompositionSection.markers => <Widget>[_buildMarkers(context)],
+          ChunkCompositionSection.layers => <Widget>[
+            _buildVisualStackPreview(context),
+            const SizedBox(height: 12),
+            _buildTileLayers(context),
+          ],
+        },
+      ),
+    );
+  }
 
   Widget _buildVisualStackPreview(BuildContext context) {
     final placements = buildChunkPlacedPrefabSelections(chunk.prefabs);
@@ -153,88 +185,188 @@ class ChunkCompositionCard extends StatelessWidget {
 
   Widget _buildPlacements(BuildContext context) {
     final placements = buildChunkPlacedPrefabSelections(chunk.prefabs);
-    final canAdd = document.prefabData.prefabs.any(
-      (prefab) => prefab.status == PrefabStatus.active,
-    );
-    return _CompositionSection(
-      sectionKey: 'chunk_prefab_placements_section',
-      expansionKey: 'chunk_prefab_placements_section_toggle',
-      title: 'Prefab placements',
-      addKey: 'chunk_v2_placement_add',
-      addLabel: 'Add placement',
-      onAdd: controlsEnabled && canAdd ? () => _addPlacement(context) : null,
-      emptyMessage: 'No prefab placements.',
+    final activePrefabs = document.prefabData.prefabs
+        .where((prefab) => prefab.status == PrefabStatus.active)
+        .toList(growable: false);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        for (final selection in placements)
-          EditorListCard(
-            key: ValueKey<String>(
-              'chunk_v2_placement_${selection.selectionKey}',
-            ),
-            isSelected: selection.selectionKey == selectedPrefabKey,
-            onTap: controlsEnabled ? () => onPrefabSelected(selection) : null,
-            trailing: _EditDeleteActions(
-              editKey: 'chunk_v2_placement_edit_${selection.selectionKey}',
-              deleteKey: 'chunk_v2_placement_delete_${selection.selectionKey}',
-              onEdit: controlsEnabled
-                  ? () => _editPlacement(context, selection)
-                  : null,
-              onDelete: controlsEnabled
-                  ? () => _deletePlacement(context, selection)
-                  : null,
-            ),
-            child: ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: Text(_prefabLabel(selection.prefab)),
-              subtitle: Text(
-                'x=${selection.prefab.x}, y=${selection.prefab.y} · '
-                'z=${selection.prefab.zIndex} · '
-                'scale=${selection.prefab.scale.toStringAsFixed(1)} · '
-                '${selection.prefab.snapToGrid ? 'snap' : 'free'} · '
-                '${_flipLabel(selection.prefab)}',
-              ),
-            ),
+        EditorSectionCard(
+          key: const ValueKey<String>('chunk_prefab_creation_panel'),
+          title: 'Create prefab placement',
+          description:
+              'Choose the prefab and placement values, then add it directly '
+              'to this chunk.',
+          collapsible: true,
+          expansionKey: const ValueKey<String>(
+            'chunk_prefab_creation_panel_toggle',
           ),
+          child: activePrefabs.isEmpty
+              ? const Text('No active prefab owners are available.')
+              : ChunkV2PlacementForm(
+                  key: ValueKey<String>(
+                    'chunk_prefab_creation_form_${chunk.chunkKey}',
+                  ),
+                  prefabs: activePrefabs,
+                  fieldKeyPrefix: 'chunk_v2_placement_creation',
+                  submitKey: 'chunk_v2_placement_add',
+                  submitLabel: 'Add placement',
+                  enabled: controlsEnabled,
+                  onSubmit: (candidate) => _addPlacement(context, candidate),
+                ),
+        ),
+        const SizedBox(height: 12),
+        EditorSectionCard(
+          key: const ValueKey<String>('chunk_prefab_placements_section'),
+          title: 'Existing prefab placements',
+          description: placements.isEmpty
+              ? 'Saved prefab placements will appear here.'
+              : 'Select a placement in the list or scene to manage it.',
+          trailing: Text('${placements.length} total'),
+          collapsible: true,
+          expansionKey: const ValueKey<String>(
+            'chunk_prefab_placements_section_toggle',
+          ),
+          child: placements.isEmpty
+              ? const Text(
+                  'No existing prefab placements. Use the creation card '
+                  'above to add the first one.',
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    for (final selection in placements)
+                      EditorListCard(
+                        key: ValueKey<String>(
+                          'chunk_v2_placement_${selection.selectionKey}',
+                        ),
+                        isSelected: selection.selectionKey == selectedPrefabKey,
+                        onTap: controlsEnabled
+                            ? () => onPrefabSelected(selection)
+                            : null,
+                        trailing: _EditDeleteActions(
+                          openKey: onOpenOwningPrefab == null
+                              ? null
+                              : 'chunk_v2_placement_open_${selection.selectionKey}',
+                          editKey:
+                              'chunk_v2_placement_edit_${selection.selectionKey}',
+                          deleteKey:
+                              'chunk_v2_placement_delete_${selection.selectionKey}',
+                          onOpen: onOpenOwningPrefab == null
+                              ? null
+                              : () => onOpenOwningPrefab!(
+                                  selection.prefab.resolvedPrefabRef,
+                                ),
+                          onEdit: controlsEnabled
+                              ? () => _editPlacement(context, selection)
+                              : null,
+                          onDelete: controlsEnabled
+                              ? () => _deletePlacement(context, selection)
+                              : null,
+                        ),
+                        child: ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(_prefabLabel(selection.prefab)),
+                          subtitle: Text(
+                            'x=${selection.prefab.x}, '
+                            'y=${selection.prefab.y} · '
+                            'z=${selection.prefab.zIndex} · '
+                            'scale=${selection.prefab.scale.toStringAsFixed(1)} · '
+                            '${selection.prefab.snapToGrid ? 'snap' : 'free'} · '
+                            '${_flipLabel(selection.prefab)}',
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+        ),
       ],
     );
   }
 
   Widget _buildMarkers(BuildContext context) {
     final markers = buildChunkPlacedMarkerSelections(chunk.markers);
-    return _CompositionSection(
-      sectionKey: 'chunk_enemy_markers_section',
-      expansionKey: 'chunk_enemy_markers_section_toggle',
-      title: 'Enemy markers',
-      addKey: 'chunk_v2_marker_add',
-      addLabel: 'Add marker',
-      onAdd: controlsEnabled ? () => _addMarker(context) : null,
-      emptyMessage: 'No enemy markers.',
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        for (final selection in markers)
-          EditorListCard(
-            key: ValueKey<String>('chunk_v2_marker_${selection.selectionKey}'),
-            isSelected: selection.selectionKey == selectedMarkerKey,
-            onTap: controlsEnabled ? () => onMarkerSelected(selection) : null,
-            trailing: _EditDeleteActions(
-              editKey: 'chunk_v2_marker_edit_${selection.selectionKey}',
-              deleteKey: 'chunk_v2_marker_delete_${selection.selectionKey}',
-              onEdit: controlsEnabled
-                  ? () => _editMarker(context, selection)
-                  : null,
-              onDelete: controlsEnabled
-                  ? () => _deleteMarker(context, selection)
-                  : null,
-            ),
-            child: ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: Text(selection.marker.markerId),
-              subtitle: Text(
-                'x=${selection.marker.x}, y=${selection.marker.y} · '
-                '${selection.marker.chancePercent}% · '
-                'salt=${selection.marker.salt} · '
-                '${selection.marker.placement}',
-              ),
-            ),
+        EditorSectionCard(
+          key: const ValueKey<String>('chunk_marker_creation_panel'),
+          title: 'Create enemy marker',
+          description:
+              'Choose the enemy and spawn values, then add the marker '
+              'directly to this chunk.',
+          collapsible: true,
+          expansionKey: const ValueKey<String>(
+            'chunk_marker_creation_panel_toggle',
           ),
+          child: ChunkV2MarkerForm(
+            key: ValueKey<String>(
+              'chunk_marker_creation_form_${chunk.chunkKey}',
+            ),
+            chunk: chunk,
+            fieldKeyPrefix: 'chunk_v2_marker_creation',
+            submitKey: 'chunk_v2_marker_add',
+            submitLabel: 'Add marker',
+            enabled: controlsEnabled,
+            onSubmit: (candidate) => _addMarker(context, candidate),
+          ),
+        ),
+        const SizedBox(height: 12),
+        EditorSectionCard(
+          key: const ValueKey<String>('chunk_enemy_markers_section'),
+          title: 'Existing enemy markers',
+          description: markers.isEmpty
+              ? 'Saved enemy markers will appear here.'
+              : 'Select a marker in the list or scene to manage it.',
+          trailing: Text('${markers.length} total'),
+          collapsible: true,
+          expansionKey: const ValueKey<String>(
+            'chunk_enemy_markers_section_toggle',
+          ),
+          child: markers.isEmpty
+              ? const Text(
+                  'No existing enemy markers. Use the creation card above '
+                  'to add the first one.',
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    for (final selection in markers)
+                      EditorListCard(
+                        key: ValueKey<String>(
+                          'chunk_v2_marker_${selection.selectionKey}',
+                        ),
+                        isSelected: selection.selectionKey == selectedMarkerKey,
+                        onTap: controlsEnabled
+                            ? () => onMarkerSelected(selection)
+                            : null,
+                        trailing: _EditDeleteActions(
+                          editKey:
+                              'chunk_v2_marker_edit_${selection.selectionKey}',
+                          deleteKey:
+                              'chunk_v2_marker_delete_${selection.selectionKey}',
+                          onEdit: controlsEnabled
+                              ? () => _editMarker(context, selection)
+                              : null,
+                          onDelete: controlsEnabled
+                              ? () => _deleteMarker(context, selection)
+                              : null,
+                        ),
+                        child: ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(selection.marker.markerId),
+                          subtitle: Text(
+                            'x=${selection.marker.x}, '
+                            'y=${selection.marker.y} · '
+                            '${selection.marker.chancePercent}% · '
+                            'salt=${selection.marker.salt} · '
+                            '${selection.marker.placement}',
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+        ),
       ],
     );
   }
@@ -289,19 +421,12 @@ class ChunkCompositionCard extends StatelessWidget {
     });
   }
 
-  Future<void> _addPlacement(BuildContext context) async {
+  void _addPlacement(BuildContext context, PlacedPrefabDef candidate) {
     final operation = ChunkV2CompositionOperation.add(
       chunk: chunk,
       target: ChunkV2CompositionTarget.prefabs,
     );
-    await _runOperation(() async {
-      final placement = await showChunkV2PlacementDialog(
-        context,
-        prefabs: document.prefabData.prefabs,
-      );
-      if (placement == null || !context.mounted) return;
-      _dispatch(context, operation.buildPrefab(candidate: placement));
-    });
+    _dispatch(context, operation.buildPrefab(candidate: candidate));
   }
 
   Future<void> _editPlacement(
@@ -315,7 +440,7 @@ class ChunkCompositionCard extends StatelessWidget {
       presentationKey: selection.selectionKey,
     );
     await _runOperation(() async {
-      final placement = await showChunkV2PlacementDialog(
+      final placement = await showChunkV2PlacementEditDialog(
         context,
         prefabs: document.prefabData.prefabs,
         placement: selection.prefab,
@@ -342,16 +467,12 @@ class ChunkCompositionCard extends StatelessWidget {
     });
   }
 
-  Future<void> _addMarker(BuildContext context) async {
+  void _addMarker(BuildContext context, PlacedMarkerDef candidate) {
     final operation = ChunkV2CompositionOperation.add(
       chunk: chunk,
       target: ChunkV2CompositionTarget.markers,
     );
-    await _runOperation(() async {
-      final marker = await showChunkV2MarkerDialog(context, chunk: chunk);
-      if (marker == null || !context.mounted) return;
-      _dispatch(context, operation.buildMarker(candidate: marker));
-    });
+    _dispatch(context, operation.buildMarker(candidate: candidate));
   }
 
   Future<void> _editMarker(
@@ -365,7 +486,7 @@ class ChunkCompositionCard extends StatelessWidget {
       presentationKey: selection.selectionKey,
     );
     await _runOperation(() async {
-      final marker = await showChunkV2MarkerDialog(
+      final marker = await showChunkV2MarkerEditDialog(
         context,
         chunk: chunk,
         marker: selection.marker,
@@ -448,15 +569,10 @@ class ChunkCompositionCard extends StatelessWidget {
   }
 
   String _prefabLabel(PlacedPrefabDef placement) =>
-      document.prefabData.prefabs
-          .where(
-            (prefab) =>
-                (placement.prefabKey.isNotEmpty &&
-                    prefab.prefabKey == placement.prefabKey) ||
-                prefab.id == placement.prefabId,
-          )
-          .firstOrNull
-          ?.id ??
+      resolveChunkV2PlacementPrefab(
+        document.prefabData.prefabs,
+        placement,
+      )?.id ??
       placement.resolvedPrefabRef;
 }
 
@@ -504,14 +620,18 @@ final class _CompositionSection extends StatelessWidget {
 
 final class _EditDeleteActions extends StatelessWidget {
   const _EditDeleteActions({
+    this.openKey,
     required this.editKey,
     required this.deleteKey,
+    this.onOpen,
     required this.onEdit,
     required this.onDelete,
   });
 
+  final String? openKey;
   final String editKey;
   final String deleteKey;
+  final VoidCallback? onOpen;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
 
@@ -519,6 +639,13 @@ final class _EditDeleteActions extends StatelessWidget {
   Widget build(BuildContext context) => Wrap(
     spacing: 4,
     children: <Widget>[
+      if (openKey case final openKey?)
+        IconButton(
+          key: ValueKey<String>(openKey),
+          tooltip: 'Open prefab',
+          onPressed: onOpen,
+          icon: const Icon(Icons.open_in_new),
+        ),
       IconButton(
         key: ValueKey<String>(editKey),
         tooltip: 'Edit',

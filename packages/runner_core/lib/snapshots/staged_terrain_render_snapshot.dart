@@ -27,7 +27,8 @@ final class StagedTerrainRenderTriangleSnapshot {
 ///
 /// The renderer must use [vertices] and [triangles] exactly as supplied. It
 /// may select a material from [materialKey], but must not normalize, split, or
-/// triangulate the collision loop independently.
+/// triangulate the terrain loop independently. Render-only loops deliberately
+/// have no matching collision polygon.
 final class StagedTerrainPolygonRenderSnapshot {
   StagedTerrainPolygonRenderSnapshot({
     required this.sourceId,
@@ -39,7 +40,7 @@ final class StagedTerrainPolygonRenderSnapshot {
          triangles,
        );
 
-  /// Streamed source lineage matching the collision polygon instance.
+  /// Streamed source lineage matching the staged terrain polygon instance.
   final TerrainSourceIdentity sourceId;
 
   /// World-space vertices in `1/1024`-world-unit physics ticks.
@@ -56,7 +57,8 @@ final class StagedTerrainPolygonRenderSnapshot {
 ///
 /// [GameStateSnapshot] exposes this whole object for normal rendering and
 /// terrain-harness publication. Its [geometryVersion] matches the exact
-/// collision/support/navigation bundle used by normal gameplay.
+/// collision/support/navigation bundle used by normal gameplay; [polygons]
+/// may additionally contain render-only fills omitted from that bundle.
 final class StagedTerrainRenderSnapshot {
   StagedTerrainRenderSnapshot({
     required this.geometryVersion,
@@ -67,7 +69,7 @@ final class StagedTerrainRenderSnapshot {
        ),
        edges = List<TerrainEdge>.unmodifiable(edges);
 
-  /// Version of the exact terrain geometry that produced [polygons].
+  /// Version of the collision geometry published with these terrain fills.
   final int geometryVersion;
 
   /// Canonically ordered terrain fill polygons.

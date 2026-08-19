@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart';
 
 import '../../../../chunks/chunk_domain_plugin.dart';
@@ -6,6 +8,7 @@ import '../../../../chunks/chunk_v2_file_data.dart';
 import '../../../../chunks/chunk_v2_models.dart';
 import '../../../../domain/authoring_types.dart';
 import '../../../../session/editor_session_controller.dart';
+import '../../../../terrain_authoring/terrain_polygon_contact_constraint.dart';
 import '../../../../terrain_authoring/terrain_polygon_interaction.dart';
 import '../../../../terrain_authoring/terrain_polygon_scene_projection.dart';
 import '../../../../terrain_authoring/terrain_source_models.dart';
@@ -21,14 +24,25 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
     required EditorSessionController session,
     required String chunkKey,
     this.newShapeSurfaceKind,
-    this.newShapeMaterialKey,
-    TerrainPolygonSnapPolicy snapPolicy =
-        const TerrainPolygonSnapPolicy.halfPixel(),
+    String? newShapeMaterialKey,
+    TerrainSourceCollisionMode newShapeCollisionMode =
+        TerrainSourceCollisionMode.solid,
+    bool creationSnapToGrid = false,
+    bool editSnapToGrid = false,
     ChunkV2CollisionCommitPolicy commitPolicy =
         const ChunkV2CollisionCommitPolicy(),
   }) : _session = session,
        _chunkKey = chunkKey,
-       _snapPolicy = snapPolicy,
+       _newShapeMaterialKey = _normalizeOptionalKey(newShapeMaterialKey),
+       _newShapeCollisionMode = newShapeCollisionMode,
+       _creationSnapToGrid = creationSnapToGrid,
+       _editSnapToGrid = editSnapToGrid,
+       _creationSnapPolicy = TerrainPolygonSnapPolicy.ownerGridPixels(
+         creationSnapToGrid ? _requireChunk(session, chunkKey).tileSize : 1,
+       ),
+       _editSnapPolicy = TerrainPolygonSnapPolicy.ownerGridPixels(
+         editSnapToGrid ? _requireChunk(session, chunkKey).tileSize : 1,
+       ),
        _commitPolicy = commitPolicy,
        // Keep newly drawn general-purpose solids distinct from the explicit
        // `ground_` identities used by authored terrain bands.
@@ -47,8 +61,14 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
   final EditorSessionController _session;
   final String _chunkKey;
   final String? newShapeSurfaceKind;
-  final String? newShapeMaterialKey;
-  TerrainPolygonSnapPolicy _snapPolicy;
+  String? _newShapeMaterialKey;
+  TerrainSourceCollisionMode _newShapeCollisionMode;
+  bool _creationSnapToGrid;
+  bool _editSnapToGrid;
+  String _newShapeNameInput = '';
+  int _newShapeNameGeneration = 0;
+  TerrainPolygonSnapPolicy _creationSnapPolicy;
+  TerrainPolygonSnapPolicy _editSnapPolicy;
   final ChunkV2CollisionCommitPolicy _commitPolicy;
   final TerrainPolygonInteractionReducer _reducer;
 
@@ -84,7 +104,22 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
   }
 
   List<ValidationIssue> get issues => _issues;
-  TerrainPolygonSnapPolicy get snapPolicy => _snapPolicy;
+  String? get newShapeMaterialKey => _newShapeMaterialKey;
+  TerrainSourceCollisionMode get newShapeCollisionMode =>
+      _newShapeCollisionMode;
+  String get newShapeNameInput => _newShapeNameInput;
+  int get newShapeNameGeneration => _newShapeNameGeneration;
+  String get resolvedNewShapeName => _newShapeNameInput.trim().isEmpty
+      ? _reducer.allocateShapeId(_state)
+      : _newShapeNameInput.trim();
+  String? get newShapeNameError => _newShapeNameInput.trim().isEmpty
+      ? null
+      : validateShapeName(_newShapeNameInput);
+  bool get canBeginNewShape => newShapeNameError == null;
+  bool get creationSnapToGrid => _creationSnapToGrid;
+  bool get editSnapToGrid => _editSnapToGrid;
+  TerrainPolygonSnapPolicy get creationSnapPolicy => _creationSnapPolicy;
+  TerrainPolygonSnapPolicy get editSnapPolicy => _editSnapPolicy;
   bool get hasActiveOperation => _state.hasActiveOperation;
   bool get canUndo {
     if (_state.gesture != null) return true;
@@ -104,14 +139,71 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
     _replaceLocalState(_reducer.setTool(_state, tool));
   }
 
-  void setSnapPolicy(TerrainPolygonSnapPolicy snapPolicy) {
-    if (snapPolicy.stepHalfPixels == _snapPolicy.stepHalfPixels) return;
-    if (_state.hasActiveOperation) {
-      _state = _reducer.cancelActiveOperation(_state);
-    }
-    _snapPolicy = snapPolicy;
+  /// Selects whole-pixel or owner tile-grid snapping for new terrain drafts.
+  ///
+  /// An active draft or gesture keeps the policy it started with so one local
+  /// operation cannot mix grid intervals.
+  void setCreationSnapToGrid(bool value) {
+    if (_state.hasActiveOperation || value == _creationSnapToGrid) return;
+    _creationSnapToGrid = value;
+    _creationSnapPolicy = TerrainPolygonSnapPolicy.ownerGridPixels(
+      value ? chunk.tileSize : 1,
+    );
+    notifyListeners();
+  }
+
+  /// Selects whole-pixel or owner tile-grid snapping for saved-shape edits.
+  void setEditSnapToGrid(bool value) {
+    if (_state.hasActiveOperation || value == _editSnapToGrid) return;
+    _editSnapToGrid = value;
+    _editSnapPolicy = TerrainPolygonSnapPolicy.ownerGridPixels(
+      value ? chunk.tileSize : 1,
+    );
+    notifyListeners();
+  }
+
+  /// Selects the collision mode assigned to subsequently created shapes.
+  ///
+  /// An active draft or rectangle gesture retains the mode it started with.
+  void setNewShapeCollisionMode(TerrainSourceCollisionMode collisionMode) {
+    if (collisionMode == _newShapeCollisionMode) return;
+    _newShapeCollisionMode = collisionMode;
+    notifyListeners();
+  }
+
+  /// Selects the material key assigned to subsequently created shapes.
+  ///
+  /// An active draft or rectangle gesture retains the material it started
+  /// with.
+  void setNewShapeMaterialKey(String? materialKey) {
+    final normalized = _normalizeOptionalKey(materialKey);
+    if (normalized == _newShapeMaterialKey) return;
+    _newShapeMaterialKey = normalized;
+    notifyListeners();
+  }
+
+  /// Sets the optional custom ID used by the next polygon or rectangle.
+  ///
+  /// Blank input keeps deterministic automatic allocation. Invalid text stays
+  /// route-local so the UI can explain it without starting an invalid draft.
+  void setNewShapeNameInput(String value) {
+    if (value == _newShapeNameInput) return;
+    _newShapeNameInput = value;
     _issues = const <ValidationIssue>[];
     notifyListeners();
+  }
+
+  /// Validates one owner-local shape name, optionally excluding its source ID.
+  String? validateShapeName(String value, {String? excludingShapeId}) {
+    final shapeId = value.trim();
+    final syntaxError = terrainSourceShapeIdValidationError(shapeId);
+    if (syntaxError != null) return syntaxError;
+    final duplicate = _state.shapes.any(
+      (shape) =>
+          shape.shapeId != excludingShapeId &&
+          shape.shapeId.toLowerCase() == shapeId.toLowerCase(),
+    );
+    return duplicate ? 'Another terrain shape already uses this name.' : null;
   }
 
   void select(TerrainPolygonSelection? selection) {
@@ -135,53 +227,128 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
     );
   }
 
-  void beginCreatePolygon({
-    TerrainSourceCollisionMode collisionMode = TerrainSourceCollisionMode.solid,
+  bool beginCreatePolygon({
+    TerrainSourceCollisionMode? collisionMode,
     String? surfaceKind,
     String? materialKey,
   }) {
+    if (!canBeginNewShape) {
+      _reportInvalidShapeName(newShapeNameError!);
+      return false;
+    }
+    final before = _state;
     _replaceLocalState(
       _reducer.beginCreatePolygon(
         _state,
-        collisionMode: collisionMode,
+        shapeId: resolvedNewShapeName,
+        collisionMode: collisionMode ?? _newShapeCollisionMode,
         surfaceKind: surfaceKind ?? newShapeSurfaceKind,
-        materialKey: materialKey ?? newShapeMaterialKey,
+        materialKey: materialKey ?? _newShapeMaterialKey,
       ),
     );
+    return !identical(before, _state);
   }
 
+  /// Starts a rectangle outside occupied collision, snapping near solid edges.
   bool beginCreateRectangle({
     required int pointer,
     required TerrainPolygonScenePoint point,
+    double snapRadiusHalfPixels = 0,
   }) {
+    if (!canBeginNewShape) {
+      _reportInvalidShapeName(newShapeNameError!);
+      return false;
+    }
+    final startPointer = TerrainPolygonContactConstraint.resolvePoint(
+      desired: _snapPoint(point, _creationSnapPolicy),
+      targets: _collisionTargets(),
+      snapStepHalfPixels: _creationSnapPolicy.stepHalfPixels,
+      snapRadiusHalfPixels: snapRadiusHalfPixels,
+      isCandidateAllowed: _pointIsInBounds,
+    );
+    if (startPointer == null) {
+      _reportBlockedPoint(
+        'Start the rectangle outside existing collision or near an edge to '
+        'snap onto it.',
+      );
+      return false;
+    }
     final next = _reducer.beginCreateRectangle(
       _state,
       pointer: pointer,
-      startPointer: _snapPoint(point),
+      startPointer: startPointer,
+      shapeId: resolvedNewShapeName,
+      collisionMode: _newShapeCollisionMode,
       surfaceKind: newShapeSurfaceKind,
-      materialKey: newShapeMaterialKey,
+      materialKey: _newShapeMaterialKey,
     );
     final started = !identical(next, _state);
     _replaceLocalState(next);
     return started;
   }
 
-  void addDraftVertex(TerrainPolygonScenePoint point) {
+  /// Appends one legal draft vertex and reports whether the draft changed.
+  ///
+  /// A point inside collision, or a point that would make the provisional
+  /// closed draft occupy existing collision, is rejected without changing the
+  /// draft. Nearby solid boundaries may provide a legal snapped point.
+  bool addDraftVertex(
+    TerrainPolygonScenePoint point, {
+    double snapRadiusHalfPixels = 0,
+  }) {
+    final draft = _state.draft;
+    if (draft == null || _state.gesture != null) return false;
+    final targets = _collisionTargets();
+    final vertex = TerrainPolygonContactConstraint.resolvePoint(
+      desired: _snapPoint(point, _creationSnapPolicy),
+      targets: targets,
+      snapStepHalfPixels: _creationSnapPolicy.stepHalfPixels,
+      snapRadiusHalfPixels: snapRadiusHalfPixels,
+      isCandidateAllowed: (candidate) {
+        if (!_pointIsInBounds(candidate)) return false;
+        final shape = TerrainSourceShapeDef(
+          shapeId: draft.shapeId,
+          vertices: <TerrainSourceVertexDef>[...draft.vertices, candidate],
+          collisionMode: draft.collisionMode,
+          surfaceKind: draft.surfaceKind,
+          materialKey: draft.materialKey,
+        );
+        return !TerrainPolygonContactConstraint.hasOccupiedAreaOverlap(
+          shape: shape,
+          targets: targets,
+        );
+      },
+    );
+    if (vertex == null) {
+      _reportBlockedPoint(
+        'Place the vertex outside existing collision or near an edge to snap '
+        'onto it.',
+      );
+      return false;
+    }
+    final before = _state;
     _replaceLocalState(
       _reducer.addDraftVertex(
         _state,
-        rawVertex: _snapPoint(point),
+        rawVertex: vertex,
         snap: const TerrainPolygonSnapPolicy.halfPixel(),
       ),
     );
+    return !identical(_state, before);
   }
 
   bool saveDraft() {
     final attemptedState = _state;
-    return _applyInteractionResult(
+    final saved = _applyInteractionResult(
       _reducer.saveDraft(attemptedState),
       attemptedState: attemptedState,
     );
+    if (saved) {
+      _newShapeNameInput = '';
+      _newShapeNameGeneration += 1;
+      notifyListeners();
+    }
+    return saved;
   }
 
   bool beginDraftGesture({
@@ -191,7 +358,7 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
     required double edgeRadiusHalfPixels,
   }) {
     if (_state.draft == null || _state.gesture != null) return false;
-    final sourcePoint = _snapPoint(point);
+    final sourcePoint = _snapPoint(point, _creationSnapPolicy);
     var next = _state;
     switch (_state.tool) {
       case TerrainPolygonTool.moveVertex:
@@ -242,7 +409,7 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
   }) {
     final selection = _state.selection;
     if (selection == null || _state.hasActiveOperation) return false;
-    final sourcePoint = _snapPoint(point);
+    final sourcePoint = _snapPoint(point, _editSnapPolicy);
     final next = switch (_state.tool) {
       TerrainPolygonTool.moveVertex
           when selection.kind == TerrainPolygonSelectionKind.vertex =>
@@ -276,15 +443,47 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
     return started;
   }
 
+  /// Updates the active preview without allowing occupied-area overlap.
+  ///
+  /// When the requested pointer is invalid, the preview stops at the last
+  /// legal authoring-grid point and may slide along the contacted boundary.
   void updateGesture({
     required int pointer,
     required TerrainPolygonScenePoint point,
+    double snapRadiusHalfPixels = 0,
   }) {
+    final gesture = _state.gesture;
+    if (gesture == null || gesture.pointer != pointer) return;
+    final snapPolicy = _gestureSnapPolicy;
+    final desired = _boundedGesturePoint(point, snapPolicy);
+    TerrainSourceShapeDef previewFor(TerrainSourceVertexDef candidatePointer) =>
+        _reducer
+            .updateGesture(
+              _state,
+              pointer: pointer,
+              currentPointer: candidatePointer,
+              snap: const TerrainPolygonSnapPolicy.halfPixel(),
+            )
+            .gesture!
+            .previewShape;
+    final constrained = TerrainPolygonContactConstraint.resolveGesturePointer(
+      gesture: gesture,
+      desired: desired,
+      targets: _collisionTargets(
+        excludedDirectShapeId: _state.draft == null
+            ? gesture.originalShape.shapeId
+            : null,
+      ),
+      snapStepHalfPixels: snapPolicy.stepHalfPixels,
+      snapRadiusHalfPixels: snapRadiusHalfPixels,
+      buildPreview: previewFor,
+      isCandidateInBounds: _shapeIsInBounds,
+    );
     _replaceLocalState(
       _reducer.updateGesture(
         _state,
         pointer: pointer,
-        currentPointer: _boundedGesturePoint(point),
+        currentPointer: constrained,
         snap: const TerrainPolygonSnapPolicy.halfPixel(),
       ),
     );
@@ -319,10 +518,14 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
     return _applyInteractionResult(result, attemptedState: attemptedState);
   }
 
-  bool editSelectedVertex(TerrainSourceVertexDef vertex) {
+  bool editSelectedVertex(TerrainSourceVertexDef vertex, {String? shapeId}) {
     final attemptedState = _state;
     return _applyInteractionResult(
-      _reducer.editSelectedVertex(attemptedState, vertex: _boundVertex(vertex)),
+      _reducer.editSelectedVertex(
+        attemptedState,
+        vertex: _boundVertex(_editSnapPolicy.snapVertex(vertex)),
+        shapeId: shapeId,
+      ),
       attemptedState: attemptedState,
     );
   }
@@ -334,15 +537,24 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
     required int yHalfPixels,
     required int widthHalfPixels,
     required int heightHalfPixels,
+    String? shapeId,
   }) {
     final attemptedState = _state;
+    final left = _editSnapPolicy.snapCoordinate(xHalfPixels);
+    final top = _editSnapPolicy.snapCoordinate(yHalfPixels);
+    final right = _editSnapPolicy.snapCoordinate(xHalfPixels + widthHalfPixels);
+    final bottom = _editSnapPolicy.snapCoordinate(
+      yHalfPixels + heightHalfPixels,
+    );
+    final minimumSize = _editSnapPolicy.stepHalfPixels;
     return _applyInteractionResult(
       _reducer.editSelectedAxisAlignedRectangle(
         attemptedState,
-        xHalfPixels: xHalfPixels,
-        yHalfPixels: yHalfPixels,
-        widthHalfPixels: widthHalfPixels,
-        heightHalfPixels: heightHalfPixels,
+        xHalfPixels: left,
+        yHalfPixels: top,
+        widthHalfPixels: math.max(minimumSize, right - left),
+        heightHalfPixels: math.max(minimumSize, bottom - top),
+        shapeId: shapeId,
       ),
       attemptedState: attemptedState,
     );
@@ -367,6 +579,14 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
     final attemptedState = _state;
     return _applyInteractionResult(
       _reducer.normalizeSelectedShape(attemptedState),
+      attemptedState: attemptedState,
+    );
+  }
+
+  bool renameSelectedShape(String shapeId) {
+    final attemptedState = _state;
+    return _applyInteractionResult(
+      _reducer.renameSelectedShape(attemptedState, shapeId: shapeId.trim()),
       attemptedState: attemptedState,
     );
   }
@@ -417,13 +637,23 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
     return true;
   }
 
-  TerrainSourceVertexDef _snapPoint(TerrainPolygonScenePoint point) =>
-      _boundVertex(
-        _snapPolicy.snapFractionalVertex(
-          xHalfPixels: point.xHalfPixels,
-          yHalfPixels: point.yHalfPixels,
-        ),
-      );
+  TerrainPolygonSnapPolicy get _gestureSnapPolicy {
+    final gesture = _state.gesture;
+    return gesture?.kind == TerrainPolygonGestureKind.createRectangle ||
+            _state.draft != null
+        ? _creationSnapPolicy
+        : _editSnapPolicy;
+  }
+
+  TerrainSourceVertexDef _snapPoint(
+    TerrainPolygonScenePoint point,
+    TerrainPolygonSnapPolicy snapPolicy,
+  ) => _boundVertex(
+    snapPolicy.snapFractionalVertex(
+      xHalfPixels: point.xHalfPixels,
+      yHalfPixels: point.yHalfPixels,
+    ),
+  );
 
   /// Keeps all chunk-local authoring input within the closed owner rectangle.
   ///
@@ -432,8 +662,11 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
   /// drafts stay editable at the edge instead of producing a later rejected
   /// commit. Whole-shape translation additionally constrains its delta because
   /// a pointer inside the chunk can still shift an entire polygon outside it.
-  TerrainSourceVertexDef _boundedGesturePoint(TerrainPolygonScenePoint point) {
-    final bounded = _snapPoint(point);
+  TerrainSourceVertexDef _boundedGesturePoint(
+    TerrainPolygonScenePoint point,
+    TerrainPolygonSnapPolicy snapPolicy,
+  ) {
+    final bounded = _snapPoint(point, snapPolicy);
     final gesture = _state.gesture;
     if (gesture?.kind != TerrainPolygonGestureKind.translateShape) {
       return bounded;
@@ -466,6 +699,75 @@ final class ChunkPolygonAuthoringController extends ChangeNotifier {
         xHalfPixels: _clampInt(vertex.xHalfPixels, 0, chunk.width * 2),
         yHalfPixels: _clampInt(vertex.yHalfPixels, 0, chunk.height * 2),
       );
+
+  bool _pointIsInBounds(TerrainSourceVertexDef point) =>
+      point.xHalfPixels >= 0 &&
+      point.xHalfPixels <= chunk.width * 2 &&
+      point.yHalfPixels >= 0 &&
+      point.yHalfPixels <= chunk.height * 2;
+
+  bool _shapeIsInBounds(TerrainSourceShapeDef shape) =>
+      shape.vertices.every(_pointIsInBounds);
+
+  List<TerrainAuthoringCollisionLoop> _collisionTargets({
+    String? excludedDirectShapeId,
+  }) {
+    final targets = <TerrainAuthoringCollisionLoop>[
+      for (final shape in _state.shapes)
+        if (shape.shapeId != excludedDirectShapeId)
+          TerrainAuthoringCollisionLoop.fromSourceShape(
+            stableKey: 'direct:${shape.shapeId}',
+            shape: shape,
+          ),
+    ];
+    final scene = _session.scene;
+    if (scene is ChunkV2Scene) {
+      final expansion =
+          scene.collisionExpansionByChunkKey[_chunkKey]?.expansion;
+      if (expansion != null) {
+        for (final shape in expansion.expandedPrefabShapes) {
+          targets.add(
+            TerrainAuthoringCollisionLoop(
+              stableKey: 'expanded:${shape.placementKey}:${shape.shapeId}',
+              vertices: shape.vertices,
+              collisionMode: shape.collisionMode,
+            ),
+          );
+        }
+      }
+    }
+    return targets;
+  }
+
+  void _reportBlockedPoint(String message) {
+    final document = _session.document;
+    _issues = List<ValidationIssue>.unmodifiable(<ValidationIssue>[
+      ValidationIssue(
+        severity: ValidationSeverity.error,
+        code: 'chunk_polygon_point_inside_collision',
+        message: message,
+        sourcePath: document is ChunkV2Document
+            ? document.sourcePathByChunkKey[_chunkKey]
+            : null,
+      ),
+    ]);
+    notifyListeners();
+  }
+
+  void _reportInvalidShapeName(String message) {
+    final document = _session.document;
+    _issues = List<ValidationIssue>.unmodifiable(<ValidationIssue>[
+      ValidationIssue(
+        severity: ValidationSeverity.error,
+        code: 'chunk_polygon_shape_name_invalid',
+        message: message,
+        sourcePath: document is ChunkV2Document
+            ? document.sourcePathByChunkKey[_chunkKey]
+            : null,
+      ),
+    ]);
+    notifyListeners();
+  }
 
   bool _applyInteractionResult(
     TerrainPolygonInteractionResult result, {
@@ -676,6 +978,11 @@ int _clampInt(int value, int minimum, int maximum) {
     );
   }
   return value.clamp(minimum, maximum).toInt();
+}
+
+String? _normalizeOptionalKey(String? value) {
+  final normalized = value?.trim() ?? '';
+  return normalized.isEmpty ? null : normalized;
 }
 
 ChunkV2FileData _requireChunk(

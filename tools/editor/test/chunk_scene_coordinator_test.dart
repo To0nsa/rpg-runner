@@ -39,7 +39,15 @@ void main() {
 
     coordinator.setCompiledEdgeInspection(false);
     expect(coordinator.domain, ChunkSceneDomain.markers);
+    expect(coordinator.selection, isA<ChunkMarkerSceneSelection>());
+    expect(coordinator.selectedMarkerKey, marker.selectionKey);
+
+    coordinator.setSourceDomain(ChunkSceneDomain.layers);
+    expect(coordinator.domain, ChunkSceneDomain.layers);
     expect(coordinator.selection, isNull);
+    expect(coordinator.selectedMarkerKey, isNull);
+    coordinator.setSourceDomain(ChunkSceneDomain.markers);
+    expect(coordinator.selectedMarkerKey, marker.selectionKey);
   });
 
   test('owner binding and source reconciliation cannot retain stale keys', () {

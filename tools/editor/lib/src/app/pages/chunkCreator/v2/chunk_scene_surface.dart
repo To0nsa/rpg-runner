@@ -33,7 +33,10 @@ class ChunkSceneSurface extends StatefulWidget {
     this.onCompleteOperation,
     this.vertexHitRadiusCanvasPx = 10,
     this.edgeHitRadiusCanvasPx = 7,
+    this.collisionSnapRadiusCanvasPx = 8,
     this.semanticLabel = 'Chunk authoring scene',
+    this.showAuthoringOverlay = true,
+    this.interactionEnabled = true,
   });
 
   final ChunkPolygonAuthoringController controller;
@@ -54,7 +57,12 @@ class ChunkSceneSurface extends StatefulWidget {
   final VoidCallback? onCompleteOperation;
   final double vertexHitRadiusCanvasPx;
   final double edgeHitRadiusCanvasPx;
+
+  /// Visual-radius threshold for exact collision-boundary snapping.
+  final double collisionSnapRadiusCanvasPx;
   final String semanticLabel;
+  final bool showAuthoringOverlay;
+  final bool interactionEnabled;
 
   @override
   State<ChunkSceneSurface> createState() => _ChunkSceneSurfaceState();
@@ -100,14 +108,16 @@ class _ChunkSceneSurfaceState extends State<ChunkSceneSurface> {
               fit: StackFit.expand,
               children: <Widget>[
                 widget.background,
-                IgnorePointer(
-                  child: CustomPaint(
-                    painter: TerrainPolygonScenePainter(
-                      projection: widget.controller.sceneProjection,
-                      transform: widget.transform,
+                if (widget.showAuthoringOverlay)
+                  IgnorePointer(
+                    child: CustomPaint(
+                      key: const ValueKey<String>('chunk_authoring_overlay'),
+                      painter: TerrainPolygonScenePainter(
+                        projection: widget.controller.sceneProjection,
+                        transform: widget.transform,
+                      ),
                     ),
                   ),
-                ),
                 IgnorePointer(child: widget.foreground),
               ],
             ),
@@ -126,9 +136,12 @@ class _ChunkSceneSurfaceState extends State<ChunkSceneSurface> {
       _domainGesturePointer = null;
       return;
     }
+    if (!widget.interactionEnabled) return;
     final point = widget.transform.canvasToSource(event.localPosition);
     final worldPoint = Offset(point.xHalfPixels * 0.5, point.yHalfPixels * 0.5);
     switch (widget.activeDomain) {
+      case ChunkSceneDomain.layers:
+        return;
       case ChunkSceneDomain.compiledEdgeInspection:
         widget.onInspectWorldPoint?.call(worldPoint);
         return;
@@ -147,13 +160,20 @@ class _ChunkSceneSurfaceState extends State<ChunkSceneSurface> {
     }
     final controller = widget.controller;
     if (controller.state.tool == TerrainPolygonTool.createRectangle &&
-        controller.beginCreateRectangle(pointer: event.pointer, point: point)) {
+        controller.beginCreateRectangle(
+          pointer: event.pointer,
+          point: point,
+          snapRadiusHalfPixels: _collisionSnapRadiusHalfPixels,
+        )) {
       _gesturePointer = event.pointer;
       return;
     }
     if (controller.state.draft != null) {
       if (controller.state.tool == TerrainPolygonTool.createPolygon) {
-        controller.addDraftVertex(point);
+        controller.addDraftVertex(
+          point,
+          snapRadiusHalfPixels: _collisionSnapRadiusHalfPixels,
+        );
       } else if (controller.beginDraftGesture(
         pointer: event.pointer,
         point: point,
@@ -170,7 +190,10 @@ class _ChunkSceneSurfaceState extends State<ChunkSceneSurface> {
     }
     if (controller.state.tool == TerrainPolygonTool.createPolygon) {
       controller.beginCreatePolygon();
-      controller.addDraftVertex(point);
+      controller.addDraftVertex(
+        point,
+        snapRadiusHalfPixels: _collisionSnapRadiusHalfPixels,
+      );
       return;
     }
     controller.selectAt(
@@ -205,8 +228,12 @@ class _ChunkSceneSurfaceState extends State<ChunkSceneSurface> {
     widget.controller.updateGesture(
       pointer: event.pointer,
       point: widget.transform.canvasToSource(event.localPosition),
+      snapRadiusHalfPixels: _collisionSnapRadiusHalfPixels,
     );
   }
+
+  double get _collisionSnapRadiusHalfPixels => widget.transform
+      .canvasRadiusToSourceHalfPixels(widget.collisionSnapRadiusCanvasPx);
 
   void _handlePointerUp(PointerUpEvent event) {
     if (_panPointer == event.pointer) {
@@ -244,6 +271,7 @@ class _ChunkSceneSurfaceState extends State<ChunkSceneSurface> {
 
   KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (!widget.interactionEnabled) return KeyEventResult.ignored;
     final controller = widget.controller;
     if (event.logicalKey == LogicalKeyboardKey.escape) {
       _gesturePointer = null;

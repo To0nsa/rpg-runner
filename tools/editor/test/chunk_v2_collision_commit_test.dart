@@ -94,6 +94,28 @@ void main() {
     );
   });
 
+  test('half-pixel direct terrain rejects without changing owner', () {
+    final before = <TerrainSourceShapeDef>[
+      _rectangle('ground', left: 0, top: 20, right: 200, bottom: 100),
+    ];
+    final offGrid = <TerrainSourceShapeDef>[
+      _rectangle('ground', left: 1, top: 20, right: 200, bottom: 100),
+    ];
+    final chunk = _chunk(before);
+
+    final result = policy.apply(
+      chunk: chunk,
+      commit: _commit(before: before, after: offGrid),
+    );
+
+    expect(result.accepted, isFalse);
+    expect(result.chunk, same(chunk));
+    expect(
+      result.issues.map((issue) => issue.code),
+      contains('chunk_collision_shape_not_whole_pixel'),
+    );
+  });
+
   test('Core occupied-area overlap rejects without changing owner', () {
     final before = <TerrainSourceShapeDef>[
       _rectangle('ground', left: 0, top: 20, right: 200, bottom: 100),

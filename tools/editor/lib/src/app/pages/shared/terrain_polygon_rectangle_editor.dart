@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../terrain_authoring/terrain_axis_aligned_rectangle.dart';
 import '../../../terrain_authoring/terrain_half_pixel_text.dart';
+import 'terrain_polygon_exact_edit_controller.dart';
 
 /// Exact dimension editor for an axis-aligned polygon rectangle.
 ///
@@ -14,18 +15,30 @@ class TerrainPolygonRectangleEditor extends StatefulWidget {
     required this.keyPrefix,
     required this.rectangle,
     required this.onApply,
+    this.onBeforeApply,
+    this.editController,
+    this.applyButtonKey,
+    this.applyLabel = 'Apply rectangle dimensions',
+    this.applyEnabled = true,
+    this.coordinateStepHalfPixels = 1,
     this.controlGap = 8,
-  });
+  }) : assert(coordinateStepHalfPixels > 0);
 
   final String keyPrefix;
   final TerrainAxisAlignedRectangle rectangle;
-  final void Function({
+  final bool Function({
     required int xHalfPixels,
     required int bottomYHalfPixels,
     required int widthHalfPixels,
     required int heightHalfPixels,
   })
   onApply;
+  final bool Function()? onBeforeApply;
+  final TerrainPolygonExactEditController? editController;
+  final Key? applyButtonKey;
+  final String applyLabel;
+  final bool applyEnabled;
+  final int coordinateStepHalfPixels;
   final double controlGap;
 
   @override
@@ -53,10 +66,20 @@ class _TerrainPolygonRectangleEditorState
     );
     _widthController = _controllerFor(widget.rectangle.widthHalfPixels);
     _heightController = _controllerFor(widget.rectangle.heightHalfPixels);
+    _attachEditController();
+  }
+
+  @override
+  void didUpdateWidget(covariant TerrainPolygonRectangleEditor oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.editController == widget.editController) return;
+    oldWidget.editController?.detach(this);
+    _attachEditController();
   }
 
   @override
   void dispose() {
+    widget.editController?.detach(this);
     _xController.dispose();
     _yController.dispose();
     _widthController.dispose();
@@ -119,10 +142,12 @@ class _TerrainPolygonRectangleEditorState
         ),
         SizedBox(height: widget.controlGap),
         FilledButton.icon(
-          key: ValueKey<String>('${widget.keyPrefix}_apply_rectangle'),
-          onPressed: _apply,
+          key:
+              widget.applyButtonKey ??
+              ValueKey<String>('${widget.keyPrefix}_apply_rectangle'),
+          onPressed: widget.applyEnabled ? _apply : null,
           icon: const Icon(Icons.check),
-          label: const Text('Apply rectangle dimensions'),
+          label: Text(widget.applyLabel),
         ),
       ],
     );
@@ -136,19 +161,20 @@ class _TerrainPolygonRectangleEditorState
   }) => TextField(
     key: ValueKey<String>(key),
     controller: controller,
-    keyboardType: const TextInputType.numberWithOptions(
+    keyboardType: TextInputType.numberWithOptions(
       signed: true,
-      decimal: true,
+      decimal: widget.coordinateStepHalfPixels == 1,
     ),
     decoration: InputDecoration(
       labelText: label,
       errorText: error,
       border: const OutlineInputBorder(),
     ),
+    onChanged: (_) => widget.editController?.markChanged(),
     onSubmitted: (_) => _apply(),
   );
 
-  void _apply() {
+  bool _apply() {
     final xHalfPixels = TerrainHalfPixelText.tryParseTicks(_xController.text);
     final bottomYHalfPixels = TerrainHalfPixelText.tryParseTicks(
       _yController.text,
@@ -159,36 +185,82 @@ class _TerrainPolygonRectangleEditorState
     final heightHalfPixels = TerrainHalfPixelText.tryParseTicks(
       _heightController.text,
     );
+    final coordinateError = widget.coordinateStepHalfPixels == 1
+        ? 'Use an integer or .5 value.'
+        : 'Use a whole-pixel value.';
     setState(() {
-      _xError = xHalfPixels == null ? 'Use an integer or .5 value.' : null;
-      _yError = bottomYHalfPixels == null
-          ? 'Use an integer or .5 value.'
-          : null;
-      _widthError = widthHalfPixels == null
-          ? 'Use an integer or .5 value.'
-          : widthHalfPixels <= 0
+      _xError = _isOnAuthoringGrid(xHalfPixels) ? null : coordinateError;
+      _yError = _isOnAuthoringGrid(bottomYHalfPixels) ? null : coordinateError;
+      _widthError = !_isOnAuthoringGrid(widthHalfPixels)
+          ? coordinateError
+          : widthHalfPixels! <= 0
           ? 'Must be greater than 0.'
           : null;
-      _heightError = heightHalfPixels == null
-          ? 'Use an integer or .5 value.'
-          : heightHalfPixels <= 0
+      _heightError = !_isOnAuthoringGrid(heightHalfPixels)
+          ? coordinateError
+          : heightHalfPixels! <= 0
           ? 'Must be greater than 0.'
           : null;
     });
-    if (xHalfPixels == null ||
-        bottomYHalfPixels == null ||
-        widthHalfPixels == null ||
-        heightHalfPixels == null ||
-        widthHalfPixels <= 0 ||
-        heightHalfPixels <= 0) {
-      return;
+    if (!_isOnAuthoringGrid(xHalfPixels) ||
+        !_isOnAuthoringGrid(bottomYHalfPixels) ||
+        !_isOnAuthoringGrid(widthHalfPixels) ||
+        !_isOnAuthoringGrid(heightHalfPixels) ||
+        widthHalfPixels! <= 0 ||
+        heightHalfPixels! <= 0) {
+      return false;
     }
-    widget.onApply(
-      xHalfPixels: xHalfPixels,
-      bottomYHalfPixels: bottomYHalfPixels,
+    if (widget.onBeforeApply?.call() == false) return false;
+    return widget.onApply(
+      xHalfPixels: xHalfPixels!,
+      bottomYHalfPixels: bottomYHalfPixels!,
       widthHalfPixels: widthHalfPixels,
       heightHalfPixels: heightHalfPixels,
     );
+  }
+
+  bool _isOnAuthoringGrid(int? halfPixels) =>
+      halfPixels != null && halfPixels % widget.coordinateStepHalfPixels == 0;
+
+  bool get _hasChanges =>
+      TerrainHalfPixelText.tryParseTicks(_xController.text) !=
+          widget.rectangle.xHalfPixels ||
+      TerrainHalfPixelText.tryParseTicks(_yController.text) !=
+          widget.rectangle.yHalfPixels + widget.rectangle.heightHalfPixels ||
+      TerrainHalfPixelText.tryParseTicks(_widthController.text) !=
+          widget.rectangle.widthHalfPixels ||
+      TerrainHalfPixelText.tryParseTicks(_heightController.text) !=
+          widget.rectangle.heightHalfPixels;
+
+  void _attachEditController() {
+    widget.editController?.attach(
+      this,
+      hasChanges: () => _hasChanges,
+      save: _apply,
+      discard: _restoreSourceValues,
+    );
+  }
+
+  void _restoreSourceValues() {
+    _xController.text = TerrainHalfPixelText.formatTicks(
+      widget.rectangle.xHalfPixels,
+    );
+    _yController.text = TerrainHalfPixelText.formatTicks(
+      widget.rectangle.yHalfPixels + widget.rectangle.heightHalfPixels,
+    );
+    _widthController.text = TerrainHalfPixelText.formatTicks(
+      widget.rectangle.widthHalfPixels,
+    );
+    _heightController.text = TerrainHalfPixelText.formatTicks(
+      widget.rectangle.heightHalfPixels,
+    );
+    if (!mounted) return;
+    setState(() {
+      _xError = null;
+      _yError = null;
+      _widthError = null;
+      _heightError = null;
+    });
   }
 
   TextEditingController _controllerFor(int halfPixels) =>

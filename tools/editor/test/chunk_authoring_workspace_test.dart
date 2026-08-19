@@ -6,8 +6,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:runner_editor/src/app/pages/chunkCreator/chunk_creator_page.dart';
-import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_actor_terrain_overlay_painter.dart';
-import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_compiled_edge_overlay_painter.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_marker_placement_overlay_painter.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_polygon_level_visual_source.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_scene_coordinator.dart';
@@ -15,6 +13,7 @@ import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_scene_surface.
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_scene_visual_source.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_list_card.dart';
 import 'package:runner_editor/src/app/pages/shared/editor_page_local_draft_state.dart';
+import 'package:runner_editor/src/app/pages/shared/editor_scene_viewport_frame.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_plugin.dart';
 import 'package:runner_editor/src/chunks/chunk_v2_file_codec.dart';
@@ -76,12 +75,12 @@ void main() {
           surface.transform.origin +
           Offset(x * surface.transform.zoom, y * surface.transform.zoom);
 
-      await tester.tapAt(scenePoint(20, 15));
-      await tester.tapAt(scenePoint(40, 15));
+      await tester.tapAt(scenePoint(60, 15));
+      await tester.tapAt(scenePoint(80, 15));
       await tester.pump();
       expect(materialPreview().terrainShapes, hasLength(1));
 
-      await tester.tapAt(scenePoint(40, 30));
+      await tester.tapAt(scenePoint(80, 30));
       await tester.pump();
       var draft = materialPreview().terrainShapes!.last;
       expect(materialPreview().terrainShapes, hasLength(2));
@@ -94,17 +93,220 @@ void main() {
         find.byKey(const ValueKey<String>('chunk_polygon_tool_moveVertex')),
       );
       await tester.pump();
-      final gesture = await tester.startGesture(scenePoint(20, 15));
-      await gesture.moveTo(scenePoint(24, 18));
+      final gesture = await tester.startGesture(scenePoint(60, 15));
+      await gesture.moveTo(scenePoint(64, 18));
       await tester.pump();
       draft = materialPreview().terrainShapes!.last;
       expect(
         draft.vertices.first,
-        const TerrainSourceVertexDef(xHalfPixels: 48, yHalfPixels: 36),
+        const TerrainSourceVertexDef(xHalfPixels: 128, yHalfPixels: 36),
       );
       expect(_chunk(harness.session, 'forest_chunk').revision, 4);
       expect(harness.session.pendingChanges.hasChanges, isFalse);
       await gesture.up();
+    },
+  );
+
+  testWidgets(
+    'creation selectors configure rectangles and retain their choices',
+    (tester) async {
+      tester.view.physicalSize = const Size(1800, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final harness = await _buildHarness();
+      addTearDown(harness.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData.dark(),
+          home: Scaffold(body: ChunkCreatorPage(controller: harness.session)),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey<String>('chunk_polygon_creation_panel')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('chunk_polygon_shapes_panel')),
+        findsOneWidget,
+      );
+      expect(find.text('Create terrain shape'), findsOneWidget);
+      expect(find.text('Existing terrain shapes'), findsOneWidget);
+      final creationPanelToggle = find.byKey(
+        const ValueKey<String>('chunk_polygon_creation_panel_toggle'),
+      );
+      expect(creationPanelToggle, findsOneWidget);
+      await tester.tap(creationPanelToggle);
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey<String>('chunk_polygon_creation_section')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('chunk_polygon_shapes_panel')),
+        findsOneWidget,
+      );
+      await tester.tap(creationPanelToggle);
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey<String>('chunk_polygon_creation_section')),
+        findsOneWidget,
+      );
+
+      final modeSelector = find.byKey(
+        const ValueKey<String>('chunk_polygon_creation_mode_selector'),
+      );
+      final materialSelector = find.byKey(
+        const ValueKey<String>('chunk_polygon_creation_material_selector'),
+      );
+      final newRectangle = find.byKey(
+        const ValueKey<String>('chunk_polygon_new_rectangle'),
+      );
+      final shapeName = find.byKey(
+        const ValueKey<String>('chunk_polygon_creation_name_0'),
+      );
+      final legacyCreationPreviewButton = find.byKey(
+        const ValueKey<String>(
+          'chunk_polygon_creation_material_preview_button',
+        ),
+      );
+      final grassDirtPreviewButton = find.byKey(
+        const ValueKey<String>(
+          'chunk_polygon_creation_material_preview_grass_dirt',
+        ),
+      );
+      await tester.ensureVisible(modeSelector);
+
+      expect(
+        tester
+            .widget<DropdownButton<TerrainSourceCollisionMode>>(modeSelector)
+            .value,
+        TerrainSourceCollisionMode.solid,
+      );
+      expect(
+        tester
+            .widget<DropdownButton<TerrainSourceCollisionMode>>(modeSelector)
+            .items!
+            .map((item) => item.value),
+        contains(TerrainSourceCollisionMode.none),
+      );
+      expect(
+        tester.widget<DropdownButton<String>>(materialSelector).value,
+        'grass_dirt',
+      );
+      expect(legacyCreationPreviewButton, findsNothing);
+      expect(grassDirtPreviewButton, findsNothing);
+
+      await tester.tap(materialSelector);
+      await tester.pumpAndSettle();
+      expect(grassDirtPreviewButton, findsOneWidget);
+      await tester.tap(grassDirtPreviewButton);
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(
+          const ValueKey<String>('chunk_polygon_read_only_material_dialog'),
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(find.widgetWithText(TextButton, 'Close'));
+      await tester.pumpAndSettle();
+
+      tester
+          .widget<DropdownButton<TerrainSourceCollisionMode>>(modeSelector)
+          .onChanged!(TerrainSourceCollisionMode.oneWay);
+      tester.widget<DropdownButton<String>>(materialSelector).onChanged!('');
+      await tester.pump();
+      await tester.ensureVisible(shapeName);
+      await tester.enterText(shapeName, 'one_way_ledge');
+      await tester.ensureVisible(newRectangle);
+      await tester.tap(newRectangle);
+      await tester.pump();
+      expect(find.text('Rectangle tool ready'), findsOneWidget);
+
+      final surfaceFinder = find.byKey(
+        const ValueKey<String>('chunk_scene_surface'),
+      );
+      final surface = tester.widget<ChunkSceneSurface>(
+        find.ancestor(
+          of: surfaceFinder,
+          matching: find.byType(ChunkSceneSurface),
+        ),
+      );
+      Offset scenePoint(double x, double y) =>
+          tester.getTopLeft(surfaceFinder) +
+          surface.transform.origin +
+          Offset(x * surface.transform.zoom, y * surface.transform.zoom);
+      final gesture = await tester.startGesture(scenePoint(60, 15));
+      await gesture.moveTo(scenePoint(80, 30));
+      await tester.pump();
+      expect(find.text('Drawing rectangle'), findsOneWidget);
+
+      expect(
+        tester
+            .widget<DropdownButton<TerrainSourceCollisionMode>>(modeSelector)
+            .onChanged,
+        isNull,
+      );
+      expect(
+        tester.widget<DropdownButton<String>>(materialSelector).onChanged,
+        isNull,
+      );
+
+      final materialPreview = tester.widget<ChunkPolygonLevelVisualSource>(
+        find.byKey(
+          const ValueKey<String>('chunk_polygon_terrain_material_preview'),
+        ),
+      );
+      final preview = materialPreview.terrainShapes!.last;
+      expect(preview.collisionMode, TerrainSourceCollisionMode.oneWay);
+      expect(preview.materialKey, isNull);
+
+      await gesture.up();
+      await tester.pump();
+      expect(find.text('Rectangle draft ready'), findsOneWidget);
+      expect(
+        tester
+            .widget<DropdownButton<TerrainSourceCollisionMode>>(modeSelector)
+            .onChanged,
+        isNull,
+      );
+      expect(
+        tester.widget<DropdownButton<String>>(materialSelector).onChanged,
+        isNull,
+      );
+
+      final saveDraft = find.byKey(
+        const ValueKey<String>('chunk_polygon_save_draft'),
+      );
+      await tester.ensureVisible(saveDraft);
+      await tester.tap(saveDraft);
+      await tester.pump();
+
+      final created = _chunk(harness.session, 'forest_chunk').collisionShapes
+          .singleWhere((shape) => shape.shapeId == 'one_way_ledge');
+      expect(created.collisionMode, TerrainSourceCollisionMode.oneWay);
+      expect(created.materialKey, isNull);
+      expect(
+        tester
+            .widget<DropdownButton<TerrainSourceCollisionMode>>(modeSelector)
+            .value,
+        TerrainSourceCollisionMode.oneWay,
+      );
+      expect(tester.widget<DropdownButton<String>>(materialSelector).value, '');
+      expect(find.text('2 total'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('chunk_polygon_creation_name_1')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>('chunk_polygon_selected_shape_editor'),
+        ),
+        findsOneWidget,
+      );
     },
   );
 
@@ -138,8 +340,36 @@ void main() {
       );
       expect(find.text('Chunk creation scene'), findsOneWidget);
       expect(find.text('Chunk owners'), findsOneWidget);
-      expect(find.text('Terrain collision'), findsOneWidget);
-      expect(find.text('Layers, prefabs & markers'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('chunk_terrain_card')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('chunk_prefabs_card')),
+        findsNothing,
+      );
+      final domainSelectorFinder = find.byKey(
+        const ValueKey<String>('chunk_scene_domain_selector'),
+      );
+      final domainSelector = tester.widget<SegmentedButton<ChunkSceneDomain>>(
+        domainSelectorFinder,
+      );
+      expect(
+        domainSelector.segments.map((segment) => segment.value),
+        <ChunkSceneDomain>[
+          ChunkSceneDomain.terrain,
+          ChunkSceneDomain.prefabs,
+          ChunkSceneDomain.markers,
+          ChunkSceneDomain.layers,
+        ],
+      );
+      final globalControls = find.byKey(
+        const ValueKey<String>('chunk_scene_global_controls'),
+      );
+      expect(
+        tester.getBottomLeft(globalControls).dy,
+        lessThan(tester.getTopLeft(domainSelectorFinder).dy),
+      );
       final ownerSidebarSlot = find.byKey(
         const ValueKey<String>('chunk_owner_sidebar_slot'),
       );
@@ -167,12 +397,53 @@ void main() {
         findsOneWidget,
       );
       expect(
+        find.byKey(const ValueKey<String>('chunk_owner_preview_forest_chunk')),
+        findsOneWidget,
+      );
+      expect(
         find.byKey(const ValueKey<String>('chunk_polygon_owner_meadow_chunk')),
         findsNothing,
       );
       expect(
         find.byKey(const ValueKey<String>('chunk_expanded_collision_overlay')),
         findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('chunk_compiled_edges_toggle')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('chunk_polygon_snap_selector')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('chunk_compiled_edge_overlay')),
+        findsNothing,
+      );
+      final shapeEdgesToggle = find.byKey(
+        const ValueKey<String>('chunk_shape_edges_toggle'),
+      );
+      expect(shapeEdgesToggle, findsOneWidget);
+      expect(tester.widget<FilterChip>(shapeEdgesToggle).selected, isFalse);
+      await tester.tap(shapeEdgesToggle);
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey<String>('chunk_compiled_edge_overlay')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>('chunk_polygon_terrain_material_preview'),
+        ),
+        findsOneWidget,
+      );
+      expect(_chunk(harness.session, 'forest_chunk').revision, 4);
+      expect(harness.session.pendingChanges.hasChanges, isFalse);
+      await tester.tap(shapeEdgesToggle);
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey<String>('chunk_compiled_edge_overlay')),
+        findsNothing,
       );
       expect(
         find.byKey(const ValueKey<String>('chunk_polygon_parallax_background')),
@@ -195,21 +466,107 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.byKey(const ValueKey<String>('chunk_polygon_source_fill_notice')),
+        find.byKey(const ValueKey<String>('chunk_authoring_overlay')),
         findsOneWidget,
       );
       expect(
-        find.text(
-          '1 direct + 1 expanded = 2/512 shapes · 8/4096 exposed edges',
+        find.byKey(const ValueKey<String>('chunk_bounds_overlay')),
+        findsOneWidget,
+      );
+      final viewportFrame = find.descendant(
+        of: find.byKey(const ValueKey<String>('chunk_creation_scene')),
+        matching: find.byType(EditorSceneViewportFrame),
+      );
+      expect(viewportFrame, findsOneWidget);
+      expect(
+        tester.widget<EditorSceneViewportFrame>(viewportFrame).showBorder,
+        isTrue,
+      );
+      final visualPreviewToggle = find.byKey(
+        const ValueKey<String>('chunk_visual_preview_toggle'),
+      );
+      expect(visualPreviewToggle, findsOneWidget);
+      expect(tester.widget<FilterChip>(visualPreviewToggle).selected, isFalse);
+      await tester.tap(visualPreviewToggle);
+      await tester.pump();
+
+      expect(tester.widget<FilterChip>(visualPreviewToggle).selected, isTrue);
+      expect(tester.widget<FilterChip>(shapeEdgesToggle).onSelected, isNull);
+      expect(
+        tester.widget<EditorSceneViewportFrame>(viewportFrame).showBorder,
+        isFalse,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('chunk_authoring_overlay')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('chunk_bounds_overlay')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('chunk_expanded_collision_overlay')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('chunk_compiled_edge_overlay')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>('chunk_polygon_terrain_material_preview'),
         ),
         findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>('chunk_polygon_visual_at_or_above_terrain'),
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('chunk_scene_surface')),
+      );
+      await tester.pump();
+      expect(_chunk(harness.session, 'forest_chunk').revision, 4);
+      expect(harness.session.pendingChanges.hasChanges, isFalse);
+
+      await tester.tap(visualPreviewToggle);
+      await tester.pump();
+      expect(tester.widget<FilterChip>(visualPreviewToggle).selected, isFalse);
+      expect(
+        tester.widget<EditorSceneViewportFrame>(viewportFrame).showBorder,
+        isTrue,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('chunk_authoring_overlay')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('chunk_bounds_overlay')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('chunk_expanded_collision_overlay')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('chunk_polygon_source_fill_notice')),
+        findsNothing,
+      );
+      expect(
+        find.text(
+          '1 direct + 1 expanded = 2/512 collidable shapes · 0 render-only · '
+          '8/4096 exposed edges',
+        ),
+        findsNothing,
       );
       expect(
         find.text(
           '1 reachable neighbor(s) · 1 directed scheduler seam(s) · '
           '1 compatible · 0 failing',
         ),
-        findsOneWidget,
+        findsNothing,
       );
       expect(
         find.byKey(const ValueKey<String>('chunk_polygon_shapes_panel')),
@@ -217,16 +574,26 @@ void main() {
       );
       expect(
         find.byKey(const ValueKey<String>('chunk_polygon_seams_panel')),
-        findsOneWidget,
+        findsNothing,
       );
       expect(
         find.byKey(const ValueKey<String>('chunk_polygon_diagnostics_panel')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('chunk_diagnostics_card')),
         findsOneWidget,
       );
-      final seamInspector = find.byKey(
-        const ValueKey<String>('chunk_seam_inspector'),
+      expect(
+        find.byKey(
+          const ValueKey<String>('chunk_compiled_edge_inspect_toggle'),
+        ),
+        findsNothing,
       );
-      final seamList = find.byKey(const ValueKey<String>('chunk_seam_list'));
+      expect(
+        find.byKey(const ValueKey<String>('chunk_compiled_edge_overlay')),
+        findsNothing,
+      );
       final shapeList = find.byKey(const ValueKey<String>('chunk_shape_list'));
       final authoringSidebar = find.byKey(
         const ValueKey<String>('chunk_authoring_sidebar'),
@@ -238,139 +605,33 @@ void main() {
         find.descendant(of: shapeList, matching: find.byType(Scrollable)),
         findsNothing,
       );
-      final sidebarBodyKeys = <String>[
-        'chunk_shape_list',
-        'chunk_seam_list',
-        'chunk_diagnostics_list',
-      ];
-      Future<void> expectExpandable({
-        required String panelKey,
-        required String bodyKey,
-      }) async {
-        final toggle = find.byKey(
-          ValueKey<String>('chunk_polygon_${panelKey}_panel_toggle'),
-        );
-        await tester.scrollUntilVisible(
-          toggle,
-          200,
-          scrollable: authoringSidebarScrollable,
-        );
-        await tester.tap(toggle);
-        await tester.pumpAndSettle();
-        expect(find.byKey(ValueKey<String>(bodyKey)), findsNothing);
-        for (final otherBodyKey in sidebarBodyKeys.where(
-          (key) => key != bodyKey,
-        )) {
-          expect(find.byKey(ValueKey<String>(otherBodyKey)), findsOneWidget);
-        }
-        await tester.tap(toggle);
-        await tester.pumpAndSettle();
-        expect(find.byKey(ValueKey<String>(bodyKey)), findsOneWidget);
-      }
-
-      await expectExpandable(panelKey: 'shapes', bodyKey: 'chunk_shape_list');
-      await expectExpandable(panelKey: 'seams', bodyKey: 'chunk_seam_list');
-      await expectExpandable(
-        panelKey: 'diagnostics',
-        bodyKey: 'chunk_diagnostics_list',
+      final shapePanelToggle = find.byKey(
+        const ValueKey<String>('chunk_polygon_shapes_panel_toggle'),
       );
-      await tester.ensureVisible(seamInspector);
-      expect(seamInspector, findsOneWidget);
-      expect(
-        find.textContaining('right → forest_chunk · compatible'),
-        findsOneWidget,
+      await tester.scrollUntilVisible(
+        shapePanelToggle,
+        200,
+        scrollable: authoringSidebarScrollable,
       );
-      expect(find.textContaining('steady-hard:tier=hard>hard'), findsOneWidget);
-      expect(seamList, findsOneWidget);
-      await tester.drag(authoringSidebar, const Offset(0, 2000));
-      await tester.pump();
-      expect(
-        find.byKey(
-          const ValueKey<String>(
-            'chunk_expanded_shape_prefab_rock|95|10|0_collision_001',
-          ),
-        ),
-        findsOneWidget,
-      );
-      expect(find.textContaining('prefab prefab_rock rev 3'), findsOneWidget);
-      expect(
-        find.byKey(const ValueKey<String>('chunk_compiled_edge_overlay')),
-        findsOneWidget,
-      );
-      await tester.tap(
-        find.byKey(
-          const ValueKey<String>('chunk_compiled_edge_inspect_toggle'),
-        ),
-      );
-      await tester.pump();
-      final edgeOverlay = find.byKey(
-        const ValueKey<String>('chunk_compiled_edge_overlay'),
-      );
-      final edgePainter =
-          tester.widget<CustomPaint>(edgeOverlay).painter!
-              as ChunkCompiledEdgeOverlayPainter;
-      await tester.tapAt(
-        tester.getTopLeft(edgeOverlay) +
-            edgePainter.transform.origin +
-            Offset(
-              30 * edgePainter.transform.zoom,
-              10 * edgePainter.transform.zoom,
-            ),
-      );
-      await tester.pump();
-      expect(
-        find.byKey(const ValueKey<String>('chunk_compiled_edge_inspector')),
-        findsOneWidget,
-      );
-      final selectedEdgePainter =
-          tester.widget<CustomPaint>(edgeOverlay).painter!
-              as ChunkCompiledEdgeOverlayPainter;
-      expect(
-        selectedEdgePainter.selectedEdgeId?.canonicalKey,
-        '0/12:forest_chunk/-/10:ground_001/0/0',
-      );
-      expect(
-        find.text('0/12:forest_chunk/-/10:ground_001/0/0'),
-        findsOneWidget,
-      );
-      expect(find.text('absolute slope 0° (0 units)'), findsOneWidget);
-      expect(find.textContaining('tangent (1024, 0)'), findsOneWidget);
-      expect(find.text('diagnostics none'), findsOneWidget);
+      await tester.tap(shapePanelToggle);
+      await tester.pumpAndSettle();
+      expect(shapeList, findsNothing);
+      await tester.tap(shapePanelToggle);
+      await tester.pumpAndSettle();
+      expect(shapeList, findsOneWidget);
       expect(_chunk(harness.session, 'forest_chunk').revision, 4);
       expect(harness.session.pendingChanges.hasChanges, isFalse);
-      await tester.tap(
+      expect(
         find.byKey(const ValueKey<String>('chunk_actor_terrain_toggle')),
-      );
-      await tester.pump();
-      final actorOverlay = find.byKey(
-        const ValueKey<String>('chunk_actor_terrain_overlay'),
-      );
-      expect(actorOverlay, findsOneWidget);
-      expect(
-        tester.widget<CustomPaint>(actorOverlay).painter,
-        isA<ChunkActorTerrainOverlayPainter>(),
+        findsNothing,
       );
       expect(
-        find.textContaining('player pathfinding graph is not defined'),
-        findsOneWidget,
-      );
-      expect(
-        find.textContaining('Éloïse: navigation surface yes · eligible yes'),
-        findsOneWidget,
-      );
-      await tester.tap(
         find.byKey(const ValueKey<String>('chunk_actor_terrain_selector')),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Derf').last);
-      await tester.pumpAndSettle();
-      expect(
-        find.textContaining('perch-eligible surfaces · 32 px minimum'),
-        findsOneWidget,
+        findsNothing,
       );
       expect(
-        find.textContaining('horizontal span 40 px / 32 px pass'),
-        findsOneWidget,
+        find.byKey(const ValueKey<String>('chunk_actor_terrain_overlay')),
+        findsNothing,
       );
       await tester.tap(
         find.byKey(const ValueKey<String>('chunk_marker_placement_toggle')),
@@ -384,56 +645,30 @@ void main() {
         tester.widget<CustomPaint>(markerOverlay).painter,
         isA<ChunkMarkerPlacementOverlayPainter>(),
       );
-      expect(find.textContaining('0 RNG draws'), findsOneWidget);
-      final grojibMarker = find.byKey(
-        const ValueKey<String>('chunk_marker_placement_grojib|30|5|0'),
-      );
-      await tester.drag(authoringSidebar, const Offset(0, -700));
-      await tester.pump();
-      await tester.drag(authoringSidebar, const Offset(0, -300));
-      await tester.pump();
-      await tester.drag(authoringSidebar, const Offset(0, -500));
-      await tester.pump();
-      await tester.ensureVisible(grojibMarker);
-      await tester.tap(grojibMarker);
-      await tester.pump();
-      expect(
-        find.byKey(const ValueKey<String>('chunk_selected_marker_evidence')),
-        findsOneWidget,
-      );
-      expect(
-        find.textContaining('Core valid · requested body'),
-        findsOneWidget,
-      );
-      expect(find.textContaining('salt 2'), findsOneWidget);
-      expect(
-        find.textContaining('Hashash placement is deferred by runtime'),
-        findsOneWidget,
-      );
-      expect(
-        find.textContaining('runtime ballistic projectiles sweep'),
-        findsOneWidget,
-      );
-      await tester.drag(authoringSidebar, const Offset(0, 2000));
-      await tester.pump();
+      expect(find.textContaining('0 RNG draws'), findsNothing);
       expect(_chunk(harness.session, 'forest_chunk').revision, 4);
       expect(harness.session.pendingChanges.hasChanges, isFalse);
-      await tester.tap(
-        find.byKey(
-          const ValueKey<String>('chunk_compiled_edge_inspect_toggle'),
-        ),
-      );
-      await tester.pump();
       final routeState = tester.state(find.byType(ChunkCreatorPage));
       final applyHandler = routeState as EditorPageApplyHandler;
       expect(applyHandler.canApplyEditorPage, isFalse);
 
-      await tester.tap(
-        find.byKey(const ValueKey<String>('chunk_polygon_shape_ground_001')),
+      final groundShape = find.byKey(
+        const ValueKey<String>('chunk_polygon_shape_ground_001'),
       );
+      await tester.scrollUntilVisible(
+        groundShape,
+        200,
+        scrollable: authoringSidebarScrollable,
+      );
+      await tester.tap(groundShape);
       await tester.pump();
       final deleteShape = find.byKey(
         const ValueKey<String>('chunk_polygon_delete_shape'),
+      );
+      await tester.scrollUntilVisible(
+        deleteShape,
+        160,
+        scrollable: authoringSidebarScrollable,
       );
       await tester.tap(deleteShape);
       await tester.pump();
@@ -468,9 +703,12 @@ void main() {
 
       await tester.drag(authoringSidebar, const Offset(0, 2000));
       await tester.pump();
-      await tester.tap(
-        find.byKey(const ValueKey<String>('chunk_polygon_shape_ground_001')),
+      await tester.scrollUntilVisible(
+        groundShape,
+        100,
+        scrollable: authoringSidebarScrollable,
       );
+      await tester.tap(groundShape);
       await tester.pump();
       final firstVertex = find.byKey(
         const ValueKey<String>('chunk_polygon_vertex_ground_001_0'),
@@ -489,11 +727,13 @@ void main() {
         const ValueKey<String>('chunk_polygon_vertex_y_field'),
       );
       final applyVertex = find.byKey(
-        const ValueKey<String>('chunk_polygon_apply_vertex'),
+        const ValueKey<String>('chunk_polygon_save_edit'),
       );
+      expect(find.text('Apply exact vertex'), findsNothing);
+      expect(find.text('Save edit'), findsOneWidget);
       await tester.ensureVisible(xField);
-      await tester.enterText(xField, '12.25');
-      await tester.enterText(yField, '10.5');
+      await tester.enterText(xField, '12.5');
+      await tester.enterText(yField, '10');
       await Scrollable.ensureVisible(
         tester.element(applyVertex),
         alignment: 0.5,
@@ -502,12 +742,12 @@ void main() {
       await tester.tap(applyVertex);
       await tester.pump();
 
-      expect(find.text('Use an integer or .5 value.'), findsOneWidget);
+      expect(find.text('Use a whole-pixel value.'), findsOneWidget);
       forestChunk = _chunk(harness.session, 'forest_chunk');
       expect(forestChunk.revision, 4);
       expect(harness.session.pendingChanges.hasChanges, isFalse);
 
-      await tester.enterText(xField, '12.5');
+      await tester.enterText(xField, '12');
       await tester.tap(applyVertex);
       await tester.pump();
 
@@ -516,7 +756,7 @@ void main() {
       expect(
         forestChunk.collisionShapes.single.vertices,
         contains(
-          const TerrainSourceVertexDef(xHalfPixels: 25, yHalfPixels: 21),
+          const TerrainSourceVertexDef(xHalfPixels: 24, yHalfPixels: 20),
         ),
       );
       expect(harness.session.pendingChanges.changedItemIds, <String>[
@@ -681,6 +921,37 @@ void main() {
     final sidebarScrollable = find
         .descendant(of: sidebar, matching: find.byType(Scrollable))
         .first;
+    final domainSelector = find.byKey(
+      const ValueKey<String>('chunk_scene_domain_selector'),
+    );
+    tester
+        .widget<SegmentedButton<ChunkSceneDomain>>(domainSelector)
+        .onSelectionChanged!(<ChunkSceneDomain>{ChunkSceneDomain.prefabs});
+    await tester.pump();
+    expect(find.text('Create prefab placement'), findsOneWidget);
+    expect(find.text('Existing prefab placements'), findsOneWidget);
+    final prefabCreationToggle = find.byKey(
+      const ValueKey<String>('chunk_prefab_creation_panel_toggle'),
+    );
+    await tester.scrollUntilVisible(
+      prefabCreationToggle,
+      200,
+      scrollable: sidebarScrollable,
+    );
+    await tester.tap(prefabCreationToggle);
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(
+        const ValueKey<String>('chunk_prefab_creation_form_forest_chunk'),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('chunk_prefab_placements_section')),
+      findsOneWidget,
+    );
+    await tester.tap(prefabCreationToggle);
+    await tester.pumpAndSettle();
     final prefabCard = find.byKey(
       const ValueKey<String>('chunk_v2_placement_prefab_rock|95|10|0'),
     );
@@ -692,9 +963,6 @@ void main() {
     await tester.tap(prefabCard);
     await tester.pump();
 
-    final domainSelector = find.byKey(
-      const ValueKey<String>('chunk_scene_domain_selector'),
-    );
     expect(
       tester.widget<SegmentedButton<ChunkSceneDomain>>(domainSelector).selected,
       <ChunkSceneDomain>{ChunkSceneDomain.prefabs},
@@ -747,6 +1015,34 @@ void main() {
     expect(prefabPainter.selectedPrefabKey, 'prefab_rock|95|10|0');
     expect(tester.widget<EditorListCard>(prefabCard).isSelected, isTrue);
 
+    tester
+        .widget<SegmentedButton<ChunkSceneDomain>>(domainSelector)
+        .onSelectionChanged!(<ChunkSceneDomain>{ChunkSceneDomain.markers});
+    await tester.pump();
+    expect(find.text('Create enemy marker'), findsOneWidget);
+    expect(find.text('Existing enemy markers'), findsOneWidget);
+    final markerCreationToggle = find.byKey(
+      const ValueKey<String>('chunk_marker_creation_panel_toggle'),
+    );
+    await tester.scrollUntilVisible(
+      markerCreationToggle,
+      200,
+      scrollable: sidebarScrollable,
+    );
+    await tester.tap(markerCreationToggle);
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(
+        const ValueKey<String>('chunk_marker_creation_form_forest_chunk'),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('chunk_enemy_markers_section')),
+      findsOneWidget,
+    );
+    await tester.tap(markerCreationToggle);
+    await tester.pumpAndSettle();
     final markerCard = find.byKey(
       const ValueKey<String>('chunk_v2_marker_hashash|40|5|0'),
     );
@@ -1206,12 +1502,13 @@ void main() {
       final groundShape = find.byKey(
         const ValueKey<String>('chunk_polygon_shape_ground_001'),
       );
+      final sidebarScrollable = find
+          .descendant(of: authoringSidebar, matching: find.byType(Scrollable))
+          .first;
       await tester.scrollUntilVisible(
         groundShape,
         100,
-        scrollable: find
-            .descendant(of: authoringSidebar, matching: find.byType(Scrollable))
-            .first,
+        scrollable: sidebarScrollable,
       );
       await tester.tap(groundShape);
       await tester.pump();
@@ -1229,22 +1526,43 @@ void main() {
       final materialSelector = find.byKey(
         const ValueKey<String>('chunk_polygon_metadata_material_selector'),
       );
-      final previewButton = find.byKey(
+      final legacyPreviewButton = find.byKey(
         const ValueKey<String>('chunk_polygon_material_preview_button'),
+      );
+      final grassDirtPreviewButton = find.byKey(
+        const ValueKey<String>(
+          'chunk_polygon_metadata_material_preview_grass_dirt',
+        ),
       );
       expect(modeSelector, findsOneWidget);
       expect(surfaceSelector, findsOneWidget);
       expect(materialSelector, findsOneWidget);
-      expect(tester.widget<OutlinedButton>(previewButton).onPressed, isNull);
+      expect(legacyPreviewButton, findsNothing);
+      expect(grassDirtPreviewButton, findsNothing);
 
+      await tester.scrollUntilVisible(
+        surfaceSelector,
+        100,
+        scrollable: sidebarScrollable,
+      );
       await tester.tap(surfaceSelector);
       await tester.pumpAndSettle();
       await tester.tap(find.text('ground').last);
       await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        materialSelector,
+        100,
+        scrollable: sidebarScrollable,
+      );
       await tester.tap(materialSelector);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Grass / Dirt · grass_dirt').last);
       await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        modeSelector,
+        100,
+        scrollable: sidebarScrollable,
+      );
       await tester.tap(modeSelector);
       await tester.pumpAndSettle();
       await tester.tap(find.text('oneWay').last);
@@ -1258,9 +1576,16 @@ void main() {
       );
       expect(edited.collisionShapes.single.surfaceKind, 'ground');
       expect(edited.collisionShapes.single.materialKey, 'grass_dirt');
-      expect(tester.widget<OutlinedButton>(previewButton).onPressed, isNotNull);
 
-      await tester.tap(previewButton);
+      await tester.scrollUntilVisible(
+        materialSelector,
+        100,
+        scrollable: sidebarScrollable,
+      );
+      await tester.tap(materialSelector);
+      await tester.pumpAndSettle();
+      expect(grassDirtPreviewButton, findsOneWidget);
+      await tester.tap(grassDirtPreviewButton);
       await tester.pumpAndSettle();
       final previewDialog = find.byKey(
         const ValueKey<String>('chunk_polygon_read_only_material_dialog'),
@@ -1321,7 +1646,8 @@ void main() {
       100,
       scrollable: authoringSidebarScrollable,
     );
-    expect(find.text('solid · rectangle · 4 vertices'), findsOneWidget);
+    expect(find.text('Solid · Rectangle'), findsOneWidget);
+    expect(find.text('4 vertices'), findsOneWidget);
     await tester.tap(shape);
     await tester.pump();
 
@@ -1337,9 +1663,9 @@ void main() {
     final heightField = find.byKey(
       const ValueKey<String>('chunk_polygon_rectangle_height_field'),
     );
-    final apply = find.byKey(
-      const ValueKey<String>('chunk_polygon_apply_rectangle'),
-    );
+    final apply = find.byKey(const ValueKey<String>('chunk_polygon_save_edit'));
+    expect(find.text('Apply rectangle dimensions'), findsNothing);
+    expect(find.text('Save edit'), findsOneWidget);
     await tester.scrollUntilVisible(
       xField,
       100,
@@ -1367,6 +1693,122 @@ void main() {
         TerrainSourceVertexDef(xHalfPixels: 100, yHalfPixels: 100),
         TerrainSourceVertexDef(xHalfPixels: 20, yHalfPixels: 100),
       ],
+    );
+  });
+
+  testWidgets('reclicking an edited shape offers save discard and cancel', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1800, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final harness = await _buildHarness();
+    addTearDown(harness.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.dark(),
+        home: Scaffold(body: ChunkCreatorPage(controller: harness.session)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final sidebar = find.byKey(
+      const ValueKey<String>('chunk_authoring_sidebar'),
+    );
+    final scrollable = find
+        .descendant(of: sidebar, matching: find.byType(Scrollable))
+        .first;
+    final shape = find.byKey(
+      const ValueKey<String>('chunk_polygon_shape_ground_001'),
+    );
+    await tester.scrollUntilVisible(shape, 100, scrollable: scrollable);
+    await tester.tap(shape);
+    await tester.pump();
+    await tester.tap(shape);
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey<String>('chunk_polygon_selected_shape_editor')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('chunk_polygon_unsaved_edit_dialog')),
+      findsNothing,
+    );
+    await tester.tap(shape);
+    await tester.pump();
+
+    final nameField = find.byKey(
+      const ValueKey<String>('chunk_polygon_shape_name_ground_001'),
+    );
+    final xField = find.byKey(
+      const ValueKey<String>('chunk_polygon_rectangle_x_field'),
+    );
+    await tester.scrollUntilVisible(nameField, 100, scrollable: scrollable);
+    await tester.enterText(nameField, 'main_floor');
+    await tester.scrollUntilVisible(xField, 100, scrollable: scrollable);
+    await tester.enterText(xField, '12');
+
+    Future<void> reclickShape() async {
+      await tester.scrollUntilVisible(shape, 100, scrollable: scrollable);
+      await tester.tap(shape);
+      await tester.pumpAndSettle();
+    }
+
+    await reclickShape();
+    expect(
+      find.byKey(const ValueKey<String>('chunk_polygon_unsaved_edit_dialog')),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.byKey(const ValueKey<String>('chunk_polygon_unsaved_edit_cancel')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey<String>('chunk_polygon_selected_shape_editor')),
+      findsOneWidget,
+    );
+    expect(_chunk(harness.session, 'forest_chunk').revision, 4);
+
+    await reclickShape();
+    await tester.tap(
+      find.byKey(const ValueKey<String>('chunk_polygon_unsaved_edit_discard')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey<String>('chunk_polygon_selected_shape_editor')),
+      findsNothing,
+    );
+    expect(_chunk(harness.session, 'forest_chunk').revision, 4);
+    expect(
+      _chunk(harness.session, 'forest_chunk').collisionShapes.single.shapeId,
+      'ground_001',
+    );
+
+    await tester.tap(shape);
+    await tester.pump();
+    await tester.scrollUntilVisible(nameField, 100, scrollable: scrollable);
+    await tester.enterText(nameField, 'main_floor');
+    await tester.scrollUntilVisible(xField, 100, scrollable: scrollable);
+    await tester.enterText(xField, '12');
+    await reclickShape();
+    await tester.tap(
+      find.byKey(const ValueKey<String>('chunk_polygon_unsaved_edit_save')),
+    );
+    await tester.pumpAndSettle();
+
+    final saved = _chunk(harness.session, 'forest_chunk');
+    expect(saved.revision, 5);
+    expect(saved.collisionShapes.single.shapeId, 'main_floor');
+    expect(saved.collisionShapes.single.vertices.first.xHalfPixels, 24);
+    expect(
+      find.byKey(const ValueKey<String>('chunk_polygon_selected_shape_editor')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('chunk_polygon_shape_main_floor')),
+      findsOneWidget,
     );
   });
 
@@ -1402,12 +1844,12 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.byKey(const ValueKey<String>('chunk_terrain_collision_card')),
+        find.byKey(const ValueKey<String>('chunk_terrain_card')),
         findsOneWidget,
       );
       expect(
-        find.byKey(const ValueKey<String>('chunk_composition_card')),
-        findsOneWidget,
+        find.byKey(const ValueKey<String>('chunk_prefabs_card')),
+        findsNothing,
       );
       final sceneSlot = find.byKey(const ValueKey<String>('chunk_scene_slot'));
       final ownerSidebarSlot = find.byKey(
@@ -1444,7 +1886,7 @@ void main() {
         scrollable: sidebarScrollable,
       );
       expect(newRectangle, findsOneWidget);
-      expect(tester.widget<OutlinedButton>(newRectangle).onPressed, isNotNull);
+      expect(tester.widget<FilledButton>(newRectangle).onPressed, isNotNull);
       final saveDraft = find.byKey(
         const ValueKey<String>('chunk_polygon_save_draft'),
       );
@@ -1455,25 +1897,28 @@ void main() {
         ),
         findsNothing,
       );
-      for (final tool in const <String>['createPolygon']) {
-        expect(
-          tester
-              .widget<ChoiceChip>(
-                find.byKey(ValueKey<String>('chunk_polygon_tool_$tool')),
-              )
-              .onSelected,
-          isNull,
-        );
-      }
+      expect(
+        find.byKey(const ValueKey<String>('chunk_polygon_tool_createPolygon')),
+        findsNothing,
+      );
       await tester.tap(
         find.byKey(const ValueKey<String>('chunk_polygon_new_shape')),
       );
       await tester.pump();
-      expect(tester.widget<OutlinedButton>(saveDraft).onPressed, isNotNull);
-      expect(tester.widget<OutlinedButton>(newRectangle).onPressed, isNull);
+      expect(tester.widget<OutlinedButton>(saveDraft).onPressed, isNull);
+      expect(tester.widget<FilledButton>(newRectangle).onPressed, isNull);
+      expect(find.textContaining('Add at least 3 vertices.'), findsOneWidget);
       expect(
         find.textContaining('Finish or cancel the active terrain edit'),
-        findsNWidgets(2),
+        findsOneWidget,
+      );
+      expect(
+        tester
+            .widget<SegmentedButton<ChunkSceneDomain>>(
+              find.byKey(const ValueKey<String>('chunk_scene_domain_selector')),
+            )
+            .onSelectionChanged,
+        isNull,
       );
       expect(
         tester
@@ -1483,18 +1928,10 @@ void main() {
             .onPressed,
         isNull,
       );
-      for (final key in const <String>[
-        'chunk_v2_layer_add',
-        'chunk_v2_placement_add',
-        'chunk_v2_marker_add',
-      ]) {
-        expect(
-          tester
-              .widget<FilledButton>(find.byKey(ValueKey<String>(key)))
-              .onPressed,
-          isNull,
-        );
-      }
+      expect(
+        find.byKey(const ValueKey<String>('chunk_v2_layer_add')),
+        findsNothing,
+      );
       for (final tool in const <String>['select', 'translateShape']) {
         expect(
           tester
@@ -1511,11 +1948,11 @@ void main() {
         ),
         findsNothing,
       );
-      for (final tool in const <String>[
-        'createPolygon',
-        'moveVertex',
-        'insertVertex',
-      ]) {
+      expect(
+        find.byKey(const ValueKey<String>('chunk_polygon_tool_createPolygon')),
+        findsNothing,
+      );
+      for (final tool in const <String>['moveVertex', 'insertVertex']) {
         expect(
           tester
               .widget<ChoiceChip>(
@@ -1525,10 +1962,261 @@ void main() {
           isNotNull,
         );
       }
-      expect(find.text('Place vertex'), findsOneWidget);
+      expect(find.text('Place vertex'), findsNothing);
+      expect(find.text('Continue drawing'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets('every right-side tab shares all document diagnostics', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1800, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final harness = await _buildHarness(
+      additionalIssues: const <ValidationIssue>[
+        ValidationIssue(
+          severity: ValidationSeverity.warning,
+          code: 'test_forest_warning',
+          message: 'Forest owner warning.',
+          sourcePath: 'chunks/forest_chunk.json',
+          ownerKey: 'forest_chunk',
+        ),
+        ValidationIssue(
+          severity: ValidationSeverity.info,
+          code: 'test_meadow_info',
+          message: 'Meadow owner information.',
+          sourcePath: 'chunks/meadow_chunk.json',
+          ownerKey: 'meadow_chunk',
+        ),
+      ],
+    );
+    addTearDown(harness.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.dark(),
+        home: Scaffold(body: ChunkCreatorPage(controller: harness.session)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final expectedIssues = harness.session.issues;
+    final ownerPreview = find.byKey(
+      const ValueKey<String>('chunk_owner_preview_forest_chunk'),
+    );
+    expect(ownerPreview, findsOneWidget);
+    expect(
+      find.descendant(
+        of: ownerPreview,
+        matching: find.byType(ChunkPolygonLevelVisualSource),
+      ),
+      findsNWidgets(3),
+    );
+    expect(
+      find.descendant(
+        of: ownerPreview,
+        matching: find.byType(ChunkSceneVisualSource),
+      ),
+      findsOneWidget,
+    );
+    for (final key in const <String>[
+      'chunk_collision_expansion_summary',
+      'chunk_polygon_source_fill_notice',
+      'chunk_seam_summary',
+      'chunk_marker_placement_summary',
+    ]) {
+      expect(find.byKey(ValueKey<String>(key)), findsNothing);
+    }
+    expect(
+      find.byKey(const ValueKey<String>('chunk_polygon_tool_createPolygon')),
+      findsNothing,
+    );
+    expect(find.text('Place vertex'), findsNothing);
+    await tester.tap(
+      find.byKey(const ValueKey<String>('chunk_marker_placement_toggle')),
+    );
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey<String>('chunk_marker_placement_overlay')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('chunk_marker_placement_summary')),
+      findsNothing,
+    );
+    final panelKeys = <ChunkSceneDomain, String>{
+      ChunkSceneDomain.terrain: 'chunk_terrain_card',
+      ChunkSceneDomain.prefabs: 'chunk_prefabs_card',
+      ChunkSceneDomain.markers: 'chunk_markers_card',
+      ChunkSceneDomain.layers: 'chunk_layers_card',
+    };
+    for (final entry in panelKeys.entries) {
+      tester
+          .widget<SegmentedButton<ChunkSceneDomain>>(
+            find.byKey(const ValueKey<String>('chunk_scene_domain_selector')),
+          )
+          .onSelectionChanged!(<ChunkSceneDomain>{entry.key});
+      await tester.pump();
+
+      final activePanel = find.byKey(ValueKey<String>(entry.value));
+      final diagnostics = find.byKey(
+        const ValueKey<String>('chunk_diagnostics_card'),
+      );
+      expect(activePanel, findsOneWidget);
+      expect(diagnostics, findsOneWidget);
+      expect(
+        tester.getBottomLeft(activePanel).dy,
+        lessThan(tester.getTopLeft(diagnostics).dy),
+      );
+      for (final (index, issue) in expectedIssues.indexed) {
+        expect(
+          find.byKey(
+            ValueKey<String>('chunk_diagnostic_${index}_${issue.code}'),
+          ),
+          findsOneWidget,
+        );
+      }
+      if (expectedIssues.isEmpty) {
+        expect(find.text('No validation issues.'), findsOneWidget);
+      }
+    }
+  });
+
+  testWidgets('chunk scene shows its tile grid and retains terrain snapping', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1800, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final harness = await _buildHarness();
+    addTearDown(harness.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.dark(),
+        home: Scaffold(body: ChunkCreatorPage(controller: harness.session)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final visualPreview = find.byKey(
+      const ValueKey<String>('chunk_visual_preview_toggle'),
+    );
+    final showGrid = find.byKey(
+      const ValueKey<String>('chunk_show_grid_toggle'),
+    );
+    final creationSnapToGrid = find.byKey(
+      const ValueKey<String>('chunk_polygon_creation_snap_to_grid'),
+    );
+    final editSnapToGrid = find.byKey(
+      const ValueKey<String>('chunk_polygon_edit_snap_to_grid'),
+    );
+    final gridOverlay = find.byKey(
+      const ValueKey<String>('chunk_tile_grid_overlay'),
+    );
+    expect(showGrid, findsOneWidget);
+    expect(creationSnapToGrid, findsOneWidget);
+    expect(editSnapToGrid, findsNothing);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey<String>('chunk_scene_global_controls')),
+        matching: find.text('Snap to grid'),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey<String>('chunk_polygon_creation_panel')),
+        matching: creationSnapToGrid,
+      ),
+      findsOneWidget,
+    );
+    expect(
+      tester.getTopRight(visualPreview).dx,
+      lessThan(tester.getTopLeft(showGrid).dx),
+    );
+    expect(tester.widget<FilterChip>(showGrid).selected, isFalse);
+    expect(tester.widget<SwitchListTile>(creationSnapToGrid).value, isFalse);
+    expect(gridOverlay, findsNothing);
+
+    await tester.tap(showGrid);
+    await tester.pump();
+    expect(tester.widget<FilterChip>(showGrid).selected, isTrue);
+    expect(gridOverlay, findsOneWidget);
+
+    await tester.tap(visualPreview);
+    await tester.pump();
+    expect(gridOverlay, findsNothing);
+    expect(tester.widget<FilterChip>(showGrid).onSelected, isNull);
+    expect(tester.widget<SwitchListTile>(creationSnapToGrid).onChanged, isNull);
+    await tester.tap(visualPreview);
+    await tester.pump();
+    expect(gridOverlay, findsOneWidget);
+
+    tester.widget<SwitchListTile>(creationSnapToGrid).onChanged!(true);
+    await tester.pump();
+    expect(tester.widget<SwitchListTile>(creationSnapToGrid).value, isTrue);
+
+    final authoringSidebar = find.byKey(
+      const ValueKey<String>('chunk_authoring_sidebar'),
+    );
+    final sidebarScrollable = find
+        .descendant(of: authoringSidebar, matching: find.byType(Scrollable))
+        .first;
+    final groundShape = find.byKey(
+      const ValueKey<String>('chunk_polygon_shape_ground_001'),
+    );
+    await tester.scrollUntilVisible(
+      groundShape,
+      160,
+      scrollable: sidebarScrollable,
+    );
+    await tester.tap(groundShape);
+    await tester.pump();
+    expect(editSnapToGrid, findsOneWidget);
+    expect(tester.widget<SwitchListTile>(editSnapToGrid).value, isFalse);
+    expect(
+      find.descendant(
+        of: find.byKey(
+          const ValueKey<String>('chunk_polygon_selected_shape_editor'),
+        ),
+        matching: editSnapToGrid,
+      ),
+      findsOneWidget,
+    );
+    tester.widget<SwitchListTile>(editSnapToGrid).onChanged!(true);
+    await tester.pump();
+    expect(tester.widget<SwitchListTile>(editSnapToGrid).value, isTrue);
+    expect(tester.widget<SwitchListTile>(creationSnapToGrid).value, isTrue);
+    tester.widget<SwitchListTile>(creationSnapToGrid).onChanged!(false);
+    await tester.pump();
+    expect(tester.widget<SwitchListTile>(creationSnapToGrid).value, isFalse);
+    expect(tester.widget<SwitchListTile>(editSnapToGrid).value, isTrue);
+
+    tester
+        .widget<SegmentedButton<ChunkSceneDomain>>(
+          find.byKey(const ValueKey<String>('chunk_scene_domain_selector')),
+        )
+        .onSelectionChanged!(<ChunkSceneDomain>{ChunkSceneDomain.prefabs});
+    await tester.pump();
+    expect(creationSnapToGrid, findsNothing);
+    expect(editSnapToGrid, findsNothing);
+    expect(showGrid, findsOneWidget);
+    expect(gridOverlay, findsOneWidget);
+
+    tester
+        .widget<SegmentedButton<ChunkSceneDomain>>(
+          find.byKey(const ValueKey<String>('chunk_scene_domain_selector')),
+        )
+        .onSelectionChanged!(<ChunkSceneDomain>{ChunkSceneDomain.terrain});
+    await tester.pump();
+    expect(tester.widget<SwitchListTile>(creationSnapToGrid).value, isFalse);
+    expect(tester.widget<SwitchListTile>(editSnapToGrid).value, isTrue);
+  });
 
   testWidgets('wide chunk workspace supports enlarged text without overflow', (
     tester,
@@ -1563,7 +2251,7 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.byKey(const ValueKey<String>('chunk_composition_card')),
+      find.byKey(const ValueKey<String>('chunk_terrain_card')),
       findsOneWidget,
     );
     expect(tester.takeException(), isNull);
@@ -1587,6 +2275,16 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    tester
+        .widget<SegmentedButton<ChunkSceneDomain>>(
+          find.byKey(const ValueKey<String>('chunk_scene_domain_selector')),
+        )
+        .onSelectionChanged!(<ChunkSceneDomain>{ChunkSceneDomain.layers});
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey<String>('chunk_layers_card')),
+      findsOneWidget,
+    );
     expect(find.text('Tile layer metadata'), findsOneWidget);
     expect(find.text('Add layer'), findsOneWidget);
     expect(find.text('Paint tiles'), findsNothing);
@@ -1597,9 +2295,7 @@ void main() {
     );
   });
 
-  testWidgets('expanded collision opens its exact owning prefab', (
-    tester,
-  ) async {
+  testWidgets('placed prefab opens its exact source owner', (tester) async {
     tester.view.physicalSize = const Size(1800, 1000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -1621,10 +2317,14 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    tester
+        .widget<SegmentedButton<ChunkSceneDomain>>(
+          find.byKey(const ValueKey<String>('chunk_scene_domain_selector')),
+        )
+        .onSelectionChanged!(<ChunkSceneDomain>{ChunkSceneDomain.prefabs});
+    await tester.pump();
     final openOwner = find.byKey(
-      const ValueKey<String>(
-        'chunk_open_prefab_prefab_rock|95|10|0_collision_001',
-      ),
+      const ValueKey<String>('chunk_v2_placement_open_prefab_rock|95|10|0'),
     );
     await Scrollable.ensureVisible(tester.element(openOwner), alignment: 0.5);
     await tester.pumpAndSettle();
@@ -1810,12 +2510,12 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.byKey(const ValueKey<String>('chunk_terrain_collision_card')),
+        find.byKey(const ValueKey<String>('chunk_terrain_card')),
         findsOneWidget,
       );
       expect(
-        find.byKey(const ValueKey<String>('chunk_composition_card')),
-        findsOneWidget,
+        find.byKey(const ValueKey<String>('chunk_layers_card')),
+        findsNothing,
       );
       expect(
         find.byKey(const ValueKey<String>('chunk_v2_view_composition')),
@@ -1825,9 +2525,7 @@ void main() {
         find.byKey(const ValueKey<String>('chunk_scene_surface')),
       );
       await tester.tap(
-        find.byKey(
-          const ValueKey<String>('chunk_terrain_collision_card_toggle'),
-        ),
+        find.byKey(const ValueKey<String>('chunk_terrain_card_toggle')),
       );
       await tester.pumpAndSettle();
       expect(
@@ -1836,7 +2534,20 @@ void main() {
         ),
         same(sceneElement),
       );
-      Future<void> tapCompositionControl(String key) async {
+      Future<void> selectDomain(ChunkSceneDomain domain) async {
+        tester
+            .widget<SegmentedButton<ChunkSceneDomain>>(
+              find.byKey(const ValueKey<String>('chunk_scene_domain_selector')),
+            )
+            .onSelectionChanged!(<ChunkSceneDomain>{domain});
+        await tester.pump();
+      }
+
+      Future<void> tapCompositionControl(
+        ChunkSceneDomain domain,
+        String key,
+      ) async {
+        await selectDomain(domain);
         final control = find.byKey(ValueKey<String>(key));
         await Scrollable.ensureVisible(tester.element(control), alignment: 0.4);
         await tester.pumpAndSettle();
@@ -1844,6 +2555,7 @@ void main() {
         await tester.pumpAndSettle();
       }
 
+      await selectDomain(ChunkSceneDomain.layers);
       final groundStackEntry = find.byKey(
         const ValueKey<String>('chunk_visual_stack_ground'),
       );
@@ -1863,6 +2575,7 @@ void main() {
       );
 
       await tapCompositionControl(
+        ChunkSceneDomain.prefabs,
         'chunk_v2_placement_edit_prefab_rock|95|10|0',
       );
       final noOpPlacementApply = find.byKey(
@@ -1877,7 +2590,10 @@ void main() {
         findsNothing,
       );
 
-      await tapCompositionControl('chunk_v2_layer_add');
+      await tapCompositionControl(
+        ChunkSceneDomain.layers,
+        'chunk_v2_layer_add',
+      );
       final routeState = tester.state(find.byType(ChunkCreatorPage));
       final localDraftState = routeState as EditorPageLocalDraftState;
       final shortcutHandler = routeState as EditorPageSessionShortcutHandler;
@@ -1904,30 +2620,38 @@ void main() {
       expect(reloadHandler.canReloadEditorPage, isTrue);
       expect(shortcutHandler.canHandleUndoSessionShortcut, isTrue);
 
-      await tapCompositionControl('chunk_v2_placement_add');
+      await selectDomain(ChunkSceneDomain.prefabs);
+      expect(find.text('Create prefab placement'), findsOneWidget);
+      expect(find.text('Existing prefab placements'), findsOneWidget);
       await tester.enterText(
-        find.byKey(const ValueKey<String>('chunk_v2_placement_x_field')),
+        find.byKey(
+          const ValueKey<String>('chunk_v2_placement_creation_x_field'),
+        ),
         '80',
       );
       await tester.enterText(
-        find.byKey(const ValueKey<String>('chunk_v2_placement_y_field')),
+        find.byKey(
+          const ValueKey<String>('chunk_v2_placement_creation_y_field'),
+        ),
         '10',
       );
       await tester.enterText(
-        find.byKey(const ValueKey<String>('chunk_v2_placement_z_field')),
+        find.byKey(
+          const ValueKey<String>('chunk_v2_placement_creation_z_field'),
+        ),
         '2',
       );
       tester.testTextInput.hide();
       await tester.pumpAndSettle();
       final scaleField = find.byKey(
-        const ValueKey<String>('chunk_v2_placement_scale_1.0'),
+        const ValueKey<String>('chunk_v2_placement_creation_scale_1.0'),
       );
       await tester.ensureVisible(scaleField);
       await tester.tap(scaleField);
       await tester.pumpAndSettle();
       await tester.tap(find.text('×0.6').last);
       final flipYField = find.byKey(
-        const ValueKey<String>('chunk_v2_placement_flip_y_field'),
+        const ValueKey<String>('chunk_v2_placement_creation_flip_y_field'),
       );
       await Scrollable.ensureVisible(
         tester.element(flipYField),
@@ -1935,12 +2659,18 @@ void main() {
       );
       await tester.pump();
       await tester.tap(flipYField);
-      final applyPlacement = find.byKey(
-        const ValueKey<String>('chunk_v2_placement_dialog_apply'),
+      final addPlacement = find.byKey(
+        const ValueKey<String>('chunk_v2_placement_add'),
+      );
+      await Scrollable.ensureVisible(
+        tester.element(addPlacement),
+        alignment: 0.5,
       );
       await tester.pump();
-      await tester.tap(applyPlacement);
+      expect(find.byType(AlertDialog), findsNothing);
+      await tester.tap(addPlacement);
       await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsNothing);
       edited = _chunk(harness.session, 'forest_chunk');
       expect(edited.revision, 6);
       final addedPlacement = edited.prefabs.singleWhere(
@@ -1950,6 +2680,7 @@ void main() {
       expect(addedPlacement.zIndex, 2);
       expect(addedPlacement.scale, 0.6);
       expect(addedPlacement.flipY, isTrue);
+      await selectDomain(ChunkSceneDomain.layers);
       final addedPrefabStackEntry = find.byKey(
         const ValueKey<String>('chunk_visual_stack_prefab_prefab_rock|80|10|0'),
       );
@@ -1959,21 +2690,25 @@ void main() {
         lessThan(tester.getTopLeft(addedPrefabStackEntry).dx),
       );
 
-      await tapCompositionControl('chunk_v2_marker_add');
+      await selectDomain(ChunkSceneDomain.markers);
+      expect(find.text('Create enemy marker'), findsOneWidget);
+      expect(find.text('Existing enemy markers'), findsOneWidget);
       await tester.enterText(
-        find.byKey(const ValueKey<String>('chunk_v2_marker_x_field')),
+        find.byKey(const ValueKey<String>('chunk_v2_marker_creation_x_field')),
         '60',
       );
       await tester.enterText(
-        find.byKey(const ValueKey<String>('chunk_v2_marker_y_field')),
+        find.byKey(const ValueKey<String>('chunk_v2_marker_creation_y_field')),
         '5',
       );
-      final applyMarker = find.byKey(
-        const ValueKey<String>('chunk_v2_marker_dialog_apply'),
+      final addMarker = find.byKey(
+        const ValueKey<String>('chunk_v2_marker_add'),
       );
-      await tester.ensureVisible(applyMarker);
-      await tester.tap(applyMarker);
+      await Scrollable.ensureVisible(tester.element(addMarker), alignment: 0.5);
+      expect(find.byType(AlertDialog), findsNothing);
+      await tester.tap(addMarker);
       await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsNothing);
       edited = _chunk(harness.session, 'forest_chunk');
       expect(edited.revision, 7);
       expect(
@@ -1984,7 +2719,10 @@ void main() {
         isTrue,
       );
 
-      await tapCompositionControl('chunk_v2_layer_edit_background');
+      await tapCompositionControl(
+        ChunkSceneDomain.layers,
+        'chunk_v2_layer_edit_background',
+      );
       expect(shortcutHandler.canHandleUndoSessionShortcut, isFalse);
       expect(shortcutHandler.handleUndoSessionShortcut(), isFalse);
       expect(_chunk(harness.session, 'forest_chunk').revision, 7);
@@ -2005,6 +2743,7 @@ void main() {
       expect(edited.tileLayers.single.visible, isFalse);
 
       await tapCompositionControl(
+        ChunkSceneDomain.prefabs,
         'chunk_v2_placement_edit_prefab_rock|80|10|0',
       );
       await tester.enterText(
@@ -2021,7 +2760,10 @@ void main() {
       expect(edited.revision, 9);
       expect(edited.prefabs.any((placement) => placement.x == 85), isTrue);
 
-      await tapCompositionControl('chunk_v2_marker_edit_derf|60|5|0');
+      await tapCompositionControl(
+        ChunkSceneDomain.markers,
+        'chunk_v2_marker_edit_derf|60|5|0',
+      );
       await tester.enterText(
         find.byKey(const ValueKey<String>('chunk_v2_marker_chance_field')),
         '75',
@@ -2052,7 +2794,10 @@ void main() {
       expect(edited.groundBandZIndex, original.groundBandZIndex);
       expect(edited.collisionShapes, original.collisionShapes);
 
-      await tapCompositionControl('chunk_v2_layer_delete_background');
+      await tapCompositionControl(
+        ChunkSceneDomain.layers,
+        'chunk_v2_layer_delete_background',
+      );
       await tester.tap(
         find.byKey(
           const ValueKey<String>('chunk_v2_composition_delete_confirm'),
@@ -2062,6 +2807,7 @@ void main() {
       expect(_chunk(harness.session, 'forest_chunk').tileLayers, isEmpty);
 
       await tapCompositionControl(
+        ChunkSceneDomain.prefabs,
         'chunk_v2_placement_delete_prefab_rock|85|10|0',
       );
       await tester.tap(
@@ -2078,7 +2824,10 @@ void main() {
         isEmpty,
       );
 
-      await tapCompositionControl('chunk_v2_marker_delete_derf|60|5|0');
+      await tapCompositionControl(
+        ChunkSceneDomain.markers,
+        'chunk_v2_marker_delete_derf|60|5|0',
+      );
       await tester.tap(
         find.byKey(
           const ValueKey<String>('chunk_v2_composition_delete_confirm'),
@@ -2133,12 +2882,12 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(
-          const ValueKey<String>('chunk_terrain_collision_card_toggle'),
-        ),
-      );
-      await tester.pumpAndSettle();
+      tester
+          .widget<SegmentedButton<ChunkSceneDomain>>(
+            find.byKey(const ValueKey<String>('chunk_scene_domain_selector')),
+          )
+          .onSelectionChanged!(<ChunkSceneDomain>{ChunkSceneDomain.layers});
+      await tester.pump();
       final addLayer = find.byKey(const ValueKey<String>('chunk_v2_layer_add'));
       await Scrollable.ensureVisible(tester.element(addLayer), alignment: 0.4);
       await tester.tap(addLayer);
@@ -2245,7 +2994,9 @@ void main() {
   });
 }
 
-Future<_Harness> _buildHarness() async {
+Future<_Harness> _buildHarness({
+  List<ValidationIssue> additionalIssues = const <ValidationIssue>[],
+}) async {
   final root = Directory.systemTemp.createTempSync('chunk_stage_page_');
   final manifest = File(
     p.join(
@@ -2370,7 +3121,7 @@ Future<_Harness> _buildHarness() async {
     availableLevelIds: const <String>['forest', 'meadow'],
     activeLevelId: 'forest',
   );
-  final plugin = _ChunkPlugin(document);
+  final plugin = _ChunkPlugin(document, additionalIssues: additionalIssues);
   final session = EditorSessionController(
     pluginRegistry: AuthoringPluginRegistry(
       plugins: <AuthoringDomainPlugin>[plugin],
@@ -2470,9 +3221,13 @@ final class _Harness {
 }
 
 final class _ChunkPlugin implements AuthoringDomainPlugin {
-  _ChunkPlugin(this.document);
+  _ChunkPlugin(
+    this.document, {
+    this.additionalIssues = const <ValidationIssue>[],
+  });
 
   final ChunkV2Document document;
+  final List<ValidationIssue> additionalIssues;
   final ChunkDomainPlugin _delegate = ChunkDomainPlugin();
   int loadCount = 0;
 
@@ -2487,7 +3242,7 @@ final class _ChunkPlugin implements AuthoringDomainPlugin {
 
   @override
   List<ValidationIssue> validate(AuthoringDocument document) =>
-      _delegate.validate(document);
+      <ValidationIssue>[..._delegate.validate(document), ...additionalIssues];
 
   @override
   EditableScene buildEditableScene(AuthoringDocument document) =>

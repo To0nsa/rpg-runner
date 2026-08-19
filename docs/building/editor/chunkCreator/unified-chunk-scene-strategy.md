@@ -1,7 +1,8 @@
 # Unified Chunk Scene Strategy
 
 Date: August 14, 2026
-Status: In progress; workspace consolidation complete, direct scene authoring next
+Updated: August 18, 2026
+Status: Implemented; manual UX/accessibility acceptance remains
 
 Related documents:
 
@@ -16,24 +17,24 @@ Keep Chunk-v2 in one persistent chunk-authoring workspace, with chunk ownership
 separate from terrain and composition inspection:
 
 ```text
-+---------------+---------------- Chunk creation scene ----------------+----------------------+
-| Chunk owners  |                                                       | Terrain collision    |
-|               |  One viewport for terrain, prefab visuals, markers,  |                      |
-|               |  and previews                                        +----------------------+
-|               |                                                       | Layers, prefabs &    |
-|               |  The active authoring domain determines primary-     | markers               |
-|               |  pointer behavior                                    |                      |
++---------------+-- Terrain | Prefabs | Markers | Layers ---------------+----------------------+
+| Chunk owners  |              Chunk creation scene                    | Active tab card      |
+|               |  One persistent viewport for terrain, prefab         |                      |
+|               |  visuals, markers, and previews                      | One of Terrain,      |
+|               |                                                       | Prefabs, Markers,    |
+|               |  The active tab determines primary-pointer behavior | or Layers            |
 +---------------+-------------------------------------------------------+----------------------+
 ```
 
 On a wide window, the scene is the primary surface between a scrollable owner
-rail on its left and the terrain/composition sidebar on its right. The terrain
-and composition cards remain present; they are not tabs that replace the
-scene. On a narrow window, the owner rail and authoring sidebar sit beside each
-other below a bounded scene. The scene remains mounted, and selecting or
-expanding a card never replaces it with a composition page. Both top-level
-authoring cards start expanded; their collapse state is route-local
-presentation state with stable expansion keys.
+rail on its left and a tab-filtered authoring sidebar on its right. Persistent
+visual/viewport controls sit above the Terrain, Prefabs, Markers, and Layers
+tabs. The tabs mount only their matching right-side card and never replace the
+scene. On a narrow
+window, the owner rail and authoring sidebar sit beside each other below a
+bounded scene. The scene remains mounted across tab and expansion changes.
+Viewport state and per-domain selection are retained, while active operations
+lock tab changes.
 
 This is a workflow redesign, not a label-only or layout-only change. The
 existing scene already previews most chunk visuals, but its input path authors
@@ -81,7 +82,7 @@ though the scene already renders:
 - expanded prefab collision
 - direct terrain polygon previews
 - Core-compiled edges
-- optional actor-terrain and resolved marker-placement evidence
+- optional resolved marker-placement evidence
 
 The viewport is therefore already the natural shared chunk preview. What is
 missing is a coordinated selection and interaction model for the non-terrain
@@ -253,18 +254,18 @@ the requested `Chunk creation scene` title. The header continues to own:
 Owner switching, reload, apply, and route switching remain blocked while any
 domain has an active gesture or unsaved route-local draft.
 
-Because both cards are now visible at once, the guard is route-wide: while one
-domain has an active operation, mutating actions in every other domain are
-disabled. Read-only expansion, evidence toggles, and viewport controls remain
-available. While a local operation exists, session undo and redo are blocked:
+Because the scene and active card share one operation boundary, the guard is
+route-wide: while one domain has an active operation, tab changes and mutating
+actions in every other domain are disabled. Read-only evidence toggles and
+viewport controls remain available. While a local operation exists, session
+undo and redo are blocked:
 undo invokes that domain's defined local undo/cancel behavior, and redo is
 available only when that domain has a local redo. Only when no local operation
 exists may either action delegate to session history.
 
-The header owner selector remains the fast switcher. The owner list inside the
-right card remains the lifecycle surface for create, duplicate, rename, and
-delete. Both project one `_selectedChunkKey`; neither keeps independent owner
-selection.
+The header owner selector remains the fast switcher. The owner list in the left
+rail remains the lifecycle surface for create, duplicate, rename, and delete.
+Both project one `_selectedChunkKey`; neither keeps independent owner selection.
 
 Deleting the selected owner preserves the current lifecycle behavior: bind the
 first remaining owner in canonical order and reset owner-scoped scene state. If
@@ -282,12 +283,14 @@ Global scene controls remain visible regardless of the active domain:
 
 - zoom and reset
 - pan behavior
-- grid/snap display where applicable
+- a default-off owner tile-grid overlay, clipped to Chunk bounds
 - view-only overlay visibility
 
 Domain tools are contextual:
 
 - terrain shape selection and polygon tools
+- independent tile-snap switches inside terrain creation and selected-shape
+  editing
 - prefab selection, placement, and movement tools
 - marker selection, placement, and movement tools
 
@@ -307,8 +310,9 @@ The left rail contains the existing compact, collapsible owner workflow:
 
 - chunk owner list and lifecycle actions
 - selected-owner metadata and status
+- fit-to-chunk visual thumbnails using the normal scene render projections
 
-### `Terrain collision` card
+### `Terrain` card
 
 The right-side terrain card contains the direct-collision workflow:
 
@@ -316,23 +320,25 @@ The right-side terrain card contains the direct-collision workflow:
 - exact rectangle dimensions for axis-aligned four-vertex shapes
 - selected shape details, inline metadata selectors, and a read-only material
   preview dialog
-- expanded prefab-collision summary
-- reachable seam evidence
-- diagnostics
+
+The scene keeps tool guidance only; collision-count, seam-count, source-fill,
+and marker-count summary rows do not compete with the canvas. A shared,
+document-wide diagnostics card appears below the active Terrain, Prefabs,
+Markers, or Layers card and does not filter findings by the selected tab.
 
 Neither rail may become a second long vertical page. Each is independently
 scrollable; sidebar-internal groups use natural-height `EditorSectionCard` or
 equivalent expansion sections with stable keys rather than nested expanded
 panel cards.
 
-### `Layers, prefabs & markers` card
+### `Prefabs`, `Markers`, and `Layers` cards
 
-This card composes the existing visual stack and composition forms:
+The composition workflow is partitioned into three tab-specific cards:
 
-- visual stack summary
-- tile-layer metadata list and actions
-- prefab placement list, catalog/add action, selection, and inspector actions
-- enemy marker list, add action, selection, and inspector actions
+- Layers: visual-stack summary plus tile-layer metadata list and actions
+- Prefabs: prefab placement list, catalog/add action, selection, and inspector
+  actions
+- Markers: enemy marker list, add action, selection, and inspector actions
 
 Initially, add/edit operations may retain their existing dialogs. Later phases
 may promote coordinates and common transforms into an inline inspector once the
@@ -357,12 +363,12 @@ Wide layout:
 
 Narrow layout:
 
-- do not restore the old terrain/composition workspace tabs
+- do not replace the scene with mutually exclusive terrain/composition pages
 - place the owner rail and authoring sidebar beside each other below a bounded
   scene in the workspace body
 - use a height-bounded column with the two scroll areas receiving the remaining
   height
-- keep the scene and both scroll areas mounted while cards expand or collapse
+- keep the scene mounted while the tab-specific sidebar card changes
 - preserve keyboard focus, selection, viewport, and draft state when inspector
   sections open or close
 
@@ -531,7 +537,8 @@ source identity or depends on an undefined tile-content model.
   composition controls into the right sidebar cards
 - extract the retained composition sections and remove the standalone
   `ChunkV2CompositionWorkspace` root rather than leaving a parallel page
-- retain existing dialogs and semantic commands
+- retain tile-layer and existing-record edit dialogs and semantic commands;
+  prefab/marker creation may move inline without adding a second write path
 - rename the visible panel to `Chunk creation scene`
 - rename the route badge to `Chunk v2 authoring`
 - label layers as metadata and expose no spatial tile controls
@@ -673,7 +680,7 @@ placeholder names in a plan.
 
 Characterization and widget coverage:
 
-- persistent scene presence while using both right-side cards
+- persistent scene presence while switching all four authoring tabs
 - owner lifecycle, collision tools, composition dialogs, history, and apply
 - wide and narrow layout behavior
 - keyboard focus and shared scene-control parity
@@ -713,7 +720,7 @@ Performance coverage:
 | Marker drag edits resolved evidence instead of source | Render and label authored anchors separately from Core placement evidence. |
 | Marker preview connects a new anchor to stale evidence | Suppress the targeted record's accepted connection/evidence until acceptance or recompute it from the same candidate. |
 | Tile painting expands into a speculative map editor | Keep it out of this initiative and require a separate plan with a concrete consumer. |
-| Narrow layouts recreate the same hidden-context problem | Keep the scene mounted and prohibit terrain/composition workspace tabs. |
+| Narrow layouts recreate the same hidden-context problem | Keep the scene mounted and let tabs filter only the right sidebar. |
 | Refactoring creates a second write path | Require every mutation to pass through typed Chunk plugin commands. |
 | A command is routed to the wrong owner with equal composition | Bind expected owner key and revision inside the composition commit and check both before candidate validation. |
 
@@ -721,9 +728,18 @@ Performance coverage:
 
 - The Chunk route has one persistent `Chunk creation scene` and no mutually
   exclusive terrain/composition workspace selector.
-- `Chunk owners` occupies the left rail on wide layouts; `Terrain collision`
-  and `Layers, prefabs & markers` occupy the right authoring sidebar and remain
-  accessible without replacing the scene on narrow layouts.
+- `Chunk owners` occupies the left rail on wide layouts; Terrain, Prefabs,
+  Markers, and Layers tabs mount one matching right-side card plus the shared
+  all-issues Diagnostics card without replacing the scene on either wide or
+  narrow layouts.
+- Every owner row includes a read-only visual thumbnail, and the scene toolbar
+  does not expose a redundant `Place vertex` chip.
+- **Show grid** exposes the owner tile grid on every domain tab, while the
+  **Snap to grid** switches inside terrain creation and existing-shape editing
+  independently control and quantize their affected vertices to those
+  intersections.
+- Prefabs and Markers split foldable inline creation from existing records;
+  submitting a new record does not open a modal dialog.
 - All currently implemented owner, terrain, composition, evidence, validation,
   history, and source-apply behavior remains available.
 - The scene has one explicit active authoring domain and deterministic typed

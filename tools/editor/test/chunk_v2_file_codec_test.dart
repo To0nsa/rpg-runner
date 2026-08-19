@@ -163,6 +163,17 @@ void main() {
       ),
       throwsA(_formatMessage(contains('divisible exactly by 0.5'))),
     );
+    expect(
+      () => ChunkV2FileCodec.decode(
+        _mutated(canonical, (root) {
+          final shape = _firstObject(root, 'collisionShapes');
+          final vertices = shape['vertices']! as List<Object?>;
+          final vertex = vertices.first! as Map<String, Object?>;
+          vertex['x'] = 0.5;
+        }),
+      ),
+      throwsA(_formatMessage(contains('must be a whole-pixel value'))),
+    );
   });
 
   test('encode rejects invalid model values and duplicate canonical IDs', () {

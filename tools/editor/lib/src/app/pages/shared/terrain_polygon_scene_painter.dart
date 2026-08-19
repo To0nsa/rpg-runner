@@ -82,6 +82,8 @@ final class TerrainPolygonSceneStyle {
     this.solidStroke = const Color(0xFF4BB5CF),
     this.oneWayFill = const Color(0x44FFC857),
     this.oneWayStroke = const Color(0xFFE4A72C),
+    this.renderOnlyFill = const Color(0x442F3440),
+    this.renderOnlyStroke = const Color(0xFF8993A4),
     this.selectedStroke = const Color(0xFF7CE5FF),
     this.previewStroke = const Color(0xFFFF78D1),
     this.selectedEdgeStroke = const Color(0xFFFFD166),
@@ -99,6 +101,8 @@ final class TerrainPolygonSceneStyle {
   final Color solidStroke;
   final Color oneWayFill;
   final Color oneWayStroke;
+  final Color renderOnlyFill;
+  final Color renderOnlyStroke;
   final Color selectedStroke;
   final Color previewStroke;
   final Color selectedEdgeStroke;
@@ -118,6 +122,8 @@ final class TerrainPolygonSceneStyle {
       solidStroke == other.solidStroke &&
       oneWayFill == other.oneWayFill &&
       oneWayStroke == other.oneWayStroke &&
+      renderOnlyFill == other.renderOnlyFill &&
+      renderOnlyStroke == other.renderOnlyStroke &&
       selectedStroke == other.selectedStroke &&
       previewStroke == other.previewStroke &&
       selectedEdgeStroke == other.selectedEdgeStroke &&
@@ -136,6 +142,8 @@ final class TerrainPolygonSceneStyle {
     solidStroke,
     oneWayFill,
     oneWayStroke,
+    renderOnlyFill,
+    renderOnlyStroke,
     selectedStroke,
     previewStroke,
     selectedEdgeStroke,
@@ -182,13 +190,16 @@ final class TerrainPolygonScenePainter extends CustomPainter {
         .map(transform.sourceVertexToCanvas)
         .toList(growable: false);
     final path = _path(points, close: vertices.length >= 3);
-    final oneWay =
-        sceneShape.shape.collisionMode == TerrainSourceCollisionMode.oneWay;
+    final mode = sceneShape.shape.collisionMode;
     if (vertices.length >= 3) {
       canvas.drawPath(
         path,
         Paint()
-          ..color = oneWay ? style.oneWayFill : style.solidFill
+          ..color = switch (mode) {
+            TerrainSourceCollisionMode.solid => style.solidFill,
+            TerrainSourceCollisionMode.oneWay => style.oneWayFill,
+            TerrainSourceCollisionMode.none => style.renderOnlyFill,
+          }
           ..style = PaintingStyle.fill,
       );
     }
@@ -196,9 +207,11 @@ final class TerrainPolygonScenePainter extends CustomPainter {
         ? style.previewStroke
         : sceneShape.isSelected
         ? style.selectedStroke
-        : oneWay
-        ? style.oneWayStroke
-        : style.solidStroke;
+        : switch (mode) {
+            TerrainSourceCollisionMode.solid => style.solidStroke,
+            TerrainSourceCollisionMode.oneWay => style.oneWayStroke,
+            TerrainSourceCollisionMode.none => style.renderOnlyStroke,
+          };
     canvas.drawPath(
       path,
       Paint()

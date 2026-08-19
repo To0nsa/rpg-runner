@@ -50,6 +50,87 @@ void main() {
     },
   );
 
+  test('renders none polygons without publishing collision or edges', () {
+    final base = _chunk('pit_room');
+    final pitId = StagedTerrainSourceId(
+      chunkKey: 'pit_room',
+      shapeId: 'dark_pit',
+    );
+    final chunk = StagedTerrainChunkData(
+      chunkKey: base.chunkKey,
+      id: base.id,
+      revision: base.revision,
+      status: base.status,
+      levelId: base.levelId,
+      tileSize: base.tileSize,
+      width: base.width,
+      height: base.height,
+      difficulty: base.difficulty,
+      assemblyGroupId: base.assemblyGroupId,
+      authoringPolygonSignature: base.authoringPolygonSignature,
+      sourceSignature: base.sourceSignature,
+      edgeSignature: base.edgeSignature,
+      placementSignature: base.placementSignature,
+      triangleSignature: base.triangleSignature,
+      polygons: <StagedTerrainPolygonData>[
+        ...base.polygons,
+        StagedTerrainPolygonData(
+          sourcePath:
+              'assets/authoring/level/chunks/pit_room.json#direct=dark_pit',
+          id: pitId,
+          sourceVertices: const <StagedTerrainPoint>[
+            StagedTerrainPoint(4, 0),
+            StagedTerrainPoint(6, 0),
+            StagedTerrainPoint(6, 2),
+          ],
+          vertices: const <StagedTerrainPoint>[
+            StagedTerrainPoint(2048, 0),
+            StagedTerrainPoint(3072, 0),
+            StagedTerrainPoint(3072, 1024),
+          ],
+          collisionMode: StagedTerrainCollisionMode.none,
+          surfaceKind: null,
+          materialKey: 'dark_pit',
+        ),
+      ],
+      edges: base.edges,
+      triangles: <StagedTerrainTriangleData>[
+        ...base.triangles,
+        StagedTerrainTriangleData(
+          sourceId: pitId,
+          first: 0,
+          second: 1,
+          third: 2,
+        ),
+      ],
+      placementLineage: base.placementLineage,
+    );
+    final catalog = StagedTerrainArtifactCatalog(artifact: _artifact(chunk));
+    final binding = catalog.bind(
+      chunkKey: 'pit_room',
+      chunkIndex: 2,
+      worldOriginXTicks: 4096,
+    );
+    final geometry = const StagedTerrainWorldGeometryBuilder().build(
+      bindings: <StagedTerrainChunkBinding>[binding],
+      geometryVersion: 9,
+    );
+    final render = builder.build(
+      bindings: <StagedTerrainChunkBinding>[binding],
+      geometry: geometry,
+    );
+
+    expect(geometry.polygons, hasLength(1));
+    expect(geometry.edges, hasLength(1));
+    expect(render.polygons, hasLength(2));
+    final pit = render.polygons.singleWhere(
+      (polygon) => polygon.sourceId.shapeId == 'dark_pit',
+    );
+    expect(pit.materialKey, 'dark_pit');
+    expect(pit.vertices.first.xTicks, 6144);
+    expect(render.edges, hasLength(1));
+  });
+
   test('fails closed when generated triangles are missing or invalid', () {
     final missing = StagedTerrainArtifactCatalog(
       artifact: _artifact(

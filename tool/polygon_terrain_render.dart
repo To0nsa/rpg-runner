@@ -124,7 +124,7 @@ void _validateChunkKeys(List<PolygonTerrainCompiledChunk> chunks) {
 
 void _validateCompiledChunk(PolygonTerrainCompiledChunk compiled) {
   final chunkKey = compiled.chunk.chunkKey;
-  final polygons = compiled.geometry.polygons;
+  final polygons = compiled.renderGeometry.polygons;
   final polygonById = <(String?, String), int>{};
   for (final polygon in polygons) {
     _requireLocalIdentity(
@@ -137,6 +137,24 @@ void _validateCompiledChunk(PolygonTerrainCompiledChunk compiled) {
       throw StateError('Duplicate staged polygon identity in $chunkKey: $key.');
     }
     polygonById[key] = polygon.vertices.length;
+    if (!compiled.modeBySourceIdentity.containsKey(polygon.identity)) {
+      throw StateError(
+        'Staged polygon in $chunkKey has no authored role: $key.',
+      );
+    }
+  }
+  final collisionIds = compiled.geometry.polygons
+      .map((polygon) => polygon.identity)
+      .toSet();
+  for (final polygon in polygons) {
+    final mode = compiled.modeBySourceIdentity[polygon.identity]!;
+    final collides = collisionIds.contains(polygon.identity);
+    if ((mode == TerrainAuthoringPolygonMode.none) == collides) {
+      throw StateError(
+        'Staged polygon role was not partitioned in $chunkKey: '
+        '${polygon.identity.shapeId}.',
+      );
+    }
   }
   for (final edge in compiled.geometry.edges) {
     _requireEdgeLocal(chunkKey, edge.id);
@@ -205,7 +223,7 @@ void _writeChunk(
   int indent,
 ) {
   final chunk = compiled.chunk;
-  final polygons = compiled.geometry.polygons.toList()
+  final polygons = compiled.renderGeometry.polygons.toList()
     ..sort((left, right) {
       final order = left.identity.compareTo(right.identity);
       return order != 0 ? order : left.sourcePath.compareTo(right.sourcePath);
@@ -249,7 +267,12 @@ void _writeChunk(
     )
     ..line('$prefix  polygons: <StagedTerrainPolygonData>[');
   for (final polygon in polygons) {
-    _writePolygon(writer, polygon, indent + 4);
+    _writePolygon(
+      writer,
+      polygon,
+      compiled.modeBySourceIdentity[polygon.identity]!,
+      indent + 4,
+    );
   }
   writer.line('$prefix  ],');
   writer.line('$prefix  edges: <StagedTerrainEdgeData>[');
@@ -273,7 +296,12 @@ void _writeChunk(
     ..line('$prefix),');
 }
 
-void _writePolygon(_DartWriter writer, TerrainPolygon polygon, int indent) {
+void _writePolygon(
+  _DartWriter writer,
+  TerrainPolygon polygon,
+  TerrainAuthoringPolygonMode mode,
+  int indent,
+) {
   final prefix = ' ' * indent;
   writer
     ..line('${prefix}StagedTerrainPolygonData(')
@@ -292,7 +320,7 @@ void _writePolygon(_DartWriter writer, TerrainPolygon polygon, int indent) {
     ..line('$prefix  ],')
     ..line(
       '$prefix  collisionMode: '
-      '${_collisionMode(polygon.collisionMode)},',
+      '${_authoringMode(mode)},',
     )
     ..line('$prefix  surfaceKind: ${_nullableString(polygon.surfaceKind)},')
     ..line('$prefix  materialKey: ${_nullableString(polygon.materialKey)},')
@@ -445,6 +473,12 @@ void _writeNullableEdgeId(
 String _collisionMode(TerrainCollisionMode mode) => switch (mode) {
   TerrainCollisionMode.solid => 'StagedTerrainCollisionMode.solid',
   TerrainCollisionMode.oneWay => 'StagedTerrainCollisionMode.oneWay',
+};
+
+String _authoringMode(TerrainAuthoringPolygonMode mode) => switch (mode) {
+  TerrainAuthoringPolygonMode.solid => 'StagedTerrainCollisionMode.solid',
+  TerrainAuthoringPolygonMode.oneWay => 'StagedTerrainCollisionMode.oneWay',
+  TerrainAuthoringPolygonMode.none => 'StagedTerrainCollisionMode.none',
 };
 
 String _vertexJoin(TerrainVertexJoin join) => switch (join) {

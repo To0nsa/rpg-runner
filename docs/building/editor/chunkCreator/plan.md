@@ -103,13 +103,40 @@ workflow. All eight current chunk files contain direct terrain collision; six
 forest chunks also place prefabs, and the two woodcamp chunks contain enemy
 markers.
 
-The active workspace-unification follow-on has consolidated the route's
-mutually exclusive terrain and composition views into one persistent Chunk
-creation scene and two right-side authoring cards. Direct prefab/marker
-manipulation remains the next milestone; operation-scoped gesture targeting and
-owner-identity/revision stale checks will share the existing composition
-command, and the metadata-only tile-layer boundary remains explicit. The
-initiative does not change Chunk-v2 source or Core placement lineage:
+The workspace-unification follow-on has consolidated the route into one
+persistent Chunk creation scene, a left owner rail, and a tab-filtered right
+sidebar. Persistent visual/viewport controls sit above the Terrain, Prefabs,
+Markers, and Layers tabs. Only the matching authoring card is mounted, while viewport and per-domain selection
+state survive tab changes. Direct prefab/marker gestures and retained dialogs
+share the same composition command and stale-snapshot checks. Prefab and marker
+cards now split foldable inline creation from existing records, so add commits
+need no dialog while edits keep the validated modal form. Layers remains a
+passive metadata-only domain. The initiative does not change Chunk-v2 source
+or Core placement lineage:
+
+Direct Chunk terrain now uses one hardcoded whole-pixel minimum authoring grid.
+The former `1 px` / `0.5 px` selector is removed, pointer and exact-field edits
+share the whole-pixel rule, and both the Chunk codec and staged generator reject
+odd half-pixel ticks. Two default-off route-local **Snap to grid** settings can
+use the selected owner's tile size for terrain creation and editing without
+weakening that source invariant. Independent settings live in the terrain
+creation section and selected-existing-shape editor, so authors can snap one
+workflow without changing the other. Existing repository Chunk source was
+already whole-pixel; the transform compiler fixture was normalized to the
+nearest whole pixels. Prefab-local polygon authoring retains half-pixel support.
+
+The standalone Actor terrain inspection feature is retired from Chunk Creator.
+Its chip, actor selector, summary, and overlay painter are removed. The existing
+Core terrain-policy projection remains private to marker-placement evidence and
+is built only when that evidence is requested.
+
+Core-compiled pink/yellow shape edges are hidden by default and can be enabled
+with a route-local **Shape edges** chip. A separate **Visual preview** mode
+removes every editor-only canvas painter and both Chunk/viewport borders,
+leaving parallax, terrain materials, and placed Prefab art. It disables canvas
+and sidebar authoring while preserving pan/zoom and all route/source state.
+The adjacent default-off **Show grid** chip renders the selected owner's tile
+grid across every domain tab and is suppressed by Visual preview.
 
 - [Unified Chunk Scene Strategy](unified-chunk-scene-strategy.md)
 - [Unified Chunk Scene Implementation Checklist](unified-chunk-scene-implementation-checklist.md)
@@ -597,11 +624,23 @@ Deferred from Phase 5:
 - level-specific fairness constraints such as min/max widths or clearance rules
 
 Current slopes handoff status (August 12, 2026): the Chunk-v2 polygon workspace
-edits direct shapes, expands placed Prefab-v3 collision through Core, inspects
-compiled edges and actor/marker evidence, and blocks scheduler-reachable seam
+edits direct shapes, expands placed Prefab-v3 collision through Core, displays
+compiled edges and marker-placement evidence, and blocks scheduler-reachable seam
 mismatches. Prefab owner navigation, unsaved-work guards, transactional source
 application, current-schema reload, read-only legacy migration, and centralized
-polygon undo/redo are all active normal workflows.
+polygon undo/redo are all active normal workflows. Owner cards now include
+fit-to-chunk visual previews, while one document-wide Diagnostics card remains
+visible below every domain tab; aggregate collision, seam, source-fill, and
+marker-count summaries no longer occupy the scene toolbar area.
+
+Render-only terrain follow-on (August 18, 2026): direct Chunk terrain now
+accepts `collisionMode: none` through the same creation and edit controls. The
+generator canonicalizes, bounds-checks, material-validates, and triangulates
+these polygons, then partitions them before collision compilation. They remain
+in the staged render snapshot and are absent from collision edges, seams,
+support, navigation, placement, and blocker counts. This supports visual gap
+dressing such as dark pits without introducing hazard semantics or a second
+terrain authority. Prefab collision owners remain solid/one-way only.
 
 The root generator consumes the same strict Prefab-v3/Chunk-v2 source and emits
 the admitted polygon artifact with exact source, edge, triangle, placement, and

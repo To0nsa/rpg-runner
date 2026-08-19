@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_core/collision/terrain/terrain_authoring_issue.dart';
+import 'package:runner_core/collision/terrain/terrain_authoring_polygon_signature.dart';
 
 import '../../tool/polygon_terrain_compilation.dart';
 import '../../tool/polygon_terrain_source.dart';
@@ -129,7 +130,7 @@ void main() {
               <int>{
                 edge.start.yTicks,
                 edge.end.yTicks,
-              }.containsAll(const <int>{82432, 133120}),
+              }.containsAll(const <int>{82944, 133120}),
         ),
         isFalse,
         reason:
@@ -140,8 +141,8 @@ void main() {
           (edge) =>
               edge.start.xTicks == 20480 &&
               edge.start.yTicks == 102400 &&
-              edge.end.xTicks == 61952 &&
-              edge.end.yTicks == 82432,
+              edge.end.xTicks == 62464 &&
+              edge.end.yTicks == 82944,
         ),
         isTrue,
         reason: 'The reviewed flat-to-slope edge must survive compilation.',
@@ -289,7 +290,7 @@ void main() {
       );
       expect(
         invalid.issues.first.message,
-        contains('collisionMode must be one of oneWay, solid'),
+        contains('collisionMode must be one of none, oneWay, solid'),
       );
       expect(invalid.issues.last.message, contains('is malformed JSON'));
     },
@@ -300,6 +301,8 @@ void main() {
     final permuted = PolygonTerrainCompiledChunk(
       chunk: compiled.chunk,
       geometry: compiled.geometry,
+      renderGeometry: compiled.renderGeometry,
+      modeBySourceIdentity: compiled.modeBySourceIdentity,
       authoringPolygons: compiled.authoringPolygons.reversed,
       placementLineage: compiled.placementLineage.reversed,
       triangles: compiled.triangles.reversed,
@@ -319,12 +322,55 @@ void main() {
     expect(permuted.triangleSignature(), compiled.triangleSignature());
   });
 
+  test('render-only direct shapes are triangulated but not compiled', () {
+    final ground = _shapeJson('ground', <(num, num)>[
+      (0, 10),
+      (10, 10),
+      (10, 20),
+      (0, 20),
+    ]);
+    final pit =
+        _shapeJson('dark_pit', <(num, num)>[(0, 0), (10, 0), (10, 10), (0, 10)])
+          ..['collisionMode'] = 'none'
+          ..['materialKey'] = 'dark_pit';
+
+    final result = _compileCapacityFixture(
+      directShapes: <Map<String, Object?>>[pit, ground],
+      width: 20,
+      height: 20,
+    );
+
+    expect(result.issues, isEmpty);
+    final compiled = result.compiled!;
+    expect(compiled.geometry.polygons, hasLength(1));
+    expect(compiled.geometry.polygons.single.identity.shapeId, 'ground');
+    expect(compiled.geometry.edges, hasLength(4));
+    expect(compiled.renderGeometry.polygons, hasLength(2));
+    final pitPolygon = compiled.renderGeometry.polygons.singleWhere(
+      (polygon) => polygon.identity.shapeId == 'dark_pit',
+    );
+    expect(
+      compiled.modeBySourceIdentity[pitPolygon.identity],
+      TerrainAuthoringPolygonMode.none,
+    );
+    expect(
+      compiled.triangles.where((triangle) => triangle.shapeId == 'dark_pit'),
+      hasLength(2),
+    );
+    expect(
+      compiled.geometry.edges.any((edge) => edge.id.shapeId == 'dark_pit'),
+      isFalse,
+    );
+  });
+
   test('compiled product rejects duplicate derived identities', () {
     final compiled = _compileFixture();
     expect(
       () => PolygonTerrainCompiledChunk(
         chunk: compiled.chunk,
         geometry: compiled.geometry,
+        renderGeometry: compiled.renderGeometry,
+        modeBySourceIdentity: compiled.modeBySourceIdentity,
         authoringPolygons: compiled.authoringPolygons,
         placementLineage: <PolygonTerrainPlacementLineage>[
           compiled.placementLineage.single,
@@ -338,6 +384,8 @@ void main() {
       () => PolygonTerrainCompiledChunk(
         chunk: compiled.chunk,
         geometry: compiled.geometry,
+        renderGeometry: compiled.renderGeometry,
+        modeBySourceIdentity: compiled.modeBySourceIdentity,
         authoringPolygons: compiled.authoringPolygons,
         placementLineage: compiled.placementLineage,
         triangles: <PolygonTerrainTriangle>[
@@ -479,6 +527,20 @@ void main() {
       ),
       throwsA(_formatMessage(contains('divisible exactly by 0.5'))),
     );
+    expect(
+      () => decodePolygonTerrainChunk(
+        _mutated(chunk, (root) {
+          final shape =
+              (root['collisionShapes']! as List<Object?>).first!
+                  as Map<String, Object?>;
+          final vertex =
+              (shape['vertices']! as List<Object?>).first!
+                  as Map<String, Object?>;
+          vertex['x'] = 0.5;
+        }),
+      ),
+      throwsA(_formatMessage(contains('whole-pixel coordinate'))),
+    );
   });
 
   test('strict chunk parser rejects the structural diagnostic matrix', () {
@@ -510,13 +572,13 @@ void main() {
       (root) {
         _firstCollisionShape(root)['collisionMode'] = 'ghost';
       },
-      '$_chunkSourcePath.collisionShapes[0].collisionMode must be one of oneWay, solid.',
+      '$_chunkSourcePath.collisionShapes[0].collisionMode must be one of none, oneWay, solid.',
     );
     expectChunkFailure(
       (root) {
-        _firstVertex(root)['x'] = 0.25;
+        _firstVertex(root)['x'] = 0.5;
       },
-      '$_chunkSourcePath.collisionShapes[0].vertices[0].x must be divisible exactly by 0.5.',
+      '$_chunkSourcePath.collisionShapes[0].vertices[0].x must be a whole-pixel coordinate.',
     );
     expectChunkFailure((root) {
       _firstCollisionShape(root).remove('shapeId');
@@ -651,10 +713,6 @@ void main() {
               ('self_intersection', 0),
               ('collinear_middle_vertex', 9),
             ],
-          ),
-          'short_edge': (
-            vertices: const <(num, num)>[(0, 0), (0.5, 0), (2, 5), (0, 5)],
-            issues: const <(String, int)>[('minimum_edge_length', 0)],
           ),
           'too_few_vertices': (
             vertices: const <(num, num)>[(0, 0), (5, 0)],
@@ -1471,6 +1529,8 @@ String _placementSignatureWith(
 ) => PolygonTerrainCompiledChunk(
   chunk: source.chunk,
   geometry: source.geometry,
+  renderGeometry: source.renderGeometry,
+  modeBySourceIdentity: source.modeBySourceIdentity,
   authoringPolygons: source.authoringPolygons,
   placementLineage: <PolygonTerrainPlacementLineage>[lineage],
   triangles: source.triangles,
@@ -1482,6 +1542,8 @@ String _triangleSignatureWith(
 ) => PolygonTerrainCompiledChunk(
   chunk: source.chunk,
   geometry: source.geometry,
+  renderGeometry: source.renderGeometry,
+  modeBySourceIdentity: source.modeBySourceIdentity,
   authoringPolygons: source.authoringPolygons,
   placementLineage: source.placementLineage,
   triangles: <PolygonTerrainTriangle>[triangle],

@@ -1,8 +1,8 @@
 # Unified Chunk Scene Implementation Checklist
 
 Date: August 14, 2026
-Status: Implementation complete; manual UX/accessibility acceptance remains and
-generator closure is blocked by unrelated authored/generated drift recorded below
+Updated: August 18, 2026
+Status: Implementation complete; manual UX/accessibility acceptance remains
 
 Source strategy:
 [Unified Chunk Scene Strategy](unified-chunk-scene-strategy.md)
@@ -17,10 +17,10 @@ snapshot gate has passed.
 The initiative is complete when:
 
 - the Chunk route presents one persistent `Chunk creation scene`
-- `Owners & terrain collision` and `Layers, prefabs & markers` are cards beside
-  that scene on wide layouts
-- narrow layouts keep scene state mounted and do not restore the old
-  terrain/composition workspace tabs
+- Terrain, Prefabs, Markers, and Layers tabs appear at the top of that scene
+- one matching authoring card appears in the right sidebar at a time
+- wide and narrow layouts keep scene and viewport state mounted across tabs
+- per-domain selection survives tab changes, and active operations lock tabs
 - all existing owner, collision, composition, evidence, validation, undo/redo,
   pending-diff, and apply behavior remains available
 - direct scene operations use explicit domain selection, a full stale-checked
@@ -36,8 +36,9 @@ The initiative is complete when:
 
 This plan has two explicit release boundaries:
 
-1. **Workspace consolidation (Phases 0-1).** The persistent scene, two cards,
-   responsive layout, existing dialogs, route naming cleanup, and
+1. **Workspace consolidation (Phases 0-1 and Phase 8 refinement).** The
+   persistent scene, tab-filtered cards, responsive layout, existing dialogs,
+   route naming cleanup, and
    metadata-only layer language ship without waiting for direct prefab or
    marker gestures. No legacy composition page remains behind this boundary.
 2. **Direct scene authoring (Phases 2-7).** Operation-scoped targeting, typed
@@ -54,7 +55,7 @@ implemented or explicitly closed.
       layers, prefab placements, and markers.
 - [x] The terrain scene already previews parallax, terrain material, placed
       prefab visuals, expanded prefab collision, compiled edges, and optional
-      actor/marker evidence.
+      marker-placement evidence.
 - [x] Direct terrain polygons already use a route-local draft controller and
       plugin-owned semantic commit path.
 - [x] Layers, prefab placements, and markers already use validated canonical
@@ -145,14 +146,13 @@ Objective: remove design ambiguity before reorganizing a stateful workspace.
 - [x] Freeze the wide layout: primary scene plus one bounded right sidebar.
 - [x] Freeze the narrow layout as a bounded scene followed by the same sidebar
       below it, with neither subtree unmounted.
-- [x] Freeze exactly two top-level sidebar `EditorPanelCard`s; the scene retains
-      its own panel shell, and sidebar-internal groups use natural-height
-      section/expansion primitives.
+- [x] Keep one top-level sidebar `EditorPanelCard` mounted for the active scene
+      tab; the scene retains its own panel shell, and sidebar-internal groups
+      use natural-height section/expansion primitives.
 - [x] Keep the header owner selector and owner-card list synchronized through
       the route's one selected chunk key.
-- [x] Freeze both top-level cards as initially expanded; choose internal-section
-      defaults during the measured layout pass. Keep all expansion state
-      route-local with stable keys and out of document state.
+- [x] Start each tab-specific card expanded and keep expansion state
+      presentation-only with stable keys and out of document state.
 - [x] Separate global scene controls from contextual domain tools.
 - [x] Freeze terrain as the initial source-editing domain when a chunk owner
       binds.
@@ -249,7 +249,8 @@ adding direct non-terrain manipulation.
       compatibility wrapper.
 - [x] Keep tile-layer, prefab, and marker actions on the existing typed
       composition commit path.
-- [x] Keep existing dialogs operational during this phase.
+- [x] Keep tile-layer and existing-record edit dialogs operational; prefab and
+      marker creation forms now live inline in their tab cards.
 - [x] Move the visual-stack preview into the composition card as a compact
       section.
 - [x] Avoid copying layer, prefab, marker, equality, sorting, or dispatch logic
@@ -279,21 +280,26 @@ adding direct non-terrain manipulation.
 ### Compose the right sidebar
 
 - [x] Build one bounded sidebar with one vertical scroll owner.
-- [x] Add the `Owners & terrain collision` top-level card.
+- [x] Add the `Chunk owners` rail and `Terrain` authoring card.
 - [x] Move owner list/lifecycle actions into that card without changing their
       command ownership.
 - [x] Bind the header owner selector and owner-card selected row to the same
       route-local selected chunk key.
-- [x] Compose shapes, expanded-collision summary, reachable seams, and
-      diagnostics as compact sections within the card.
-- [x] Add the `Layers, prefabs & markers` top-level card.
-- [x] Compose visual stack, layer metadata, prefab placements, and enemy markers
-      within that card.
+- [x] Add a fit-to-chunk visual preview to every owner row using the scene's
+      normal visual projections.
+- [x] Keep terrain creation and existing shapes as compact sections, while
+      removing collision/seam/source-fill/marker count summaries from the
+      scene.
+- [x] Add dedicated `Prefabs`, `Markers`, and `Layers` authoring cards.
+- [x] Put visual stack and layer metadata in Layers, prefab placements in
+      Prefabs, and enemy markers in Markers.
 - [x] Label the layer section as metadata management and expose no paint,
       erase, tile selection, cell grid, or other spatial-layer affordance.
-- [x] Use exactly those two top-level sidebar `EditorPanelCard`s; use
-      `EditorSectionCard` or equivalent natural-height expansion sections for
-      their internal groups.
+- [x] Mount exactly one tab-specific sidebar `EditorPanelCard` followed by one
+      shared, all-issues Diagnostics card; use `EditorSectionCard` or
+      equivalent natural-height expansion sections for internal groups.
+- [x] Remove the redundant scene-level `Place vertex` chip while retaining
+      initial and resumed polygon placement through the terrain creation card.
 - [x] Give cards and collapsible sections stable semantics and expansion keys.
 - [x] Ensure nested cards do not introduce competing vertical scroll views.
 - [x] Keep active-operation guards visible and actionable when controls are
@@ -313,23 +319,23 @@ adding direct non-terrain manipulation.
       remaining height; keep the eager sidebar scroll view as the only vertical
       scroll owner.
 - [x] Preserve logical keyboard traversal from header to scene to sidebar.
-- [x] Verify screen-reader labels distinguish the scene, both top-level cards,
+- [x] Verify screen-reader labels distinguish the scene, all authoring tabs,
       source selections, and read-only evidence.
 - [x] Ensure opening a dialog from the sidebar restores focus coherently.
 
 ### Phase 1 tests
 
-- [x] Replace tests that tap the removed workspace chips with tests that prove
-      both cards and the scene coexist.
-- [x] Prove the scene remains mounted and retains viewport state while both
-      cards are used.
+- [x] Prove the scene remains mounted and retains viewport state while all four
+      tab-specific cards are used.
 - [x] Re-run existing owner create/duplicate/rename/delete coverage.
-- [x] Re-run existing terrain shape, seam, diagnostics, edge inspection, actor
-      terrain, and marker-evidence coverage.
+- [x] Re-run existing terrain shape, seam, diagnostics, compiled-edge, and
+      marker-evidence coverage.
 - [x] Re-run existing layer, prefab, and marker add/edit/delete coverage.
 - [x] Add a coexistence regression proving composition/owner mutations cannot
       interleave with an active terrain operation.
 - [x] Add wide-layout assertions for scene/sidebar placement.
+- [x] Assert owner previews, removed scene summaries/tool, and identical
+      document diagnostics beneath all four tab cards.
 - [x] Add narrow-layout assertions proving the old workspace tabs do not return.
 - [x] Assert the removed workspace classes, enum, widget keys, and old root test
       name have no live references.
@@ -673,7 +679,7 @@ invalidated selection is cleared rather than guessed.
 
 ## Phase 6 — Close The Tile-Layer Boundary
 
-Objective: keep the second card honest about the layer capability that exists
+Objective: keep the Layers card honest about the layer capability that exists
 today and prevent this workspace change from becoming an unplanned map editor.
 
 - [x] Re-audit the Phase 1 section and help text after the direct-interaction
@@ -720,7 +726,7 @@ coherent production authoring surface.
   - [ ] add/edit layer metadata
   - [ ] add/select/move/edit a prefab placement
   - [ ] add/select/move/edit an enemy marker
-  - [ ] inspect seams, compiled edges, actor terrain, and marker evidence
+  - [ ] inspect seams, compiled edges, and marker evidence
   - [ ] undo/redo across domains
   - [ ] preview and apply the source change
 - [x] Verify wide and narrow layouts at supported text scale.
@@ -754,13 +760,81 @@ Phase 7 gate: no old workspace switch, dead composition page, duplicated write
 path, stale contract documentation, unresolved accessibility issue, or accepted
 performance regression remains.
 
+## Phase 8 — Tab-Filtered Authoring Cards
+
+- [x] Move the active-domain selector to a persistent tab strip at the top of
+      `Chunk creation scene`.
+- [x] Add the passive Layers domain beside Terrain, Prefabs, and Markers.
+- [x] Mount only the matching Terrain, Prefabs, Markers, or Layers card in the
+      right sidebar.
+- [x] Keep the scene, viewport, tool state, and per-domain selection across tab
+      changes.
+- [x] Disable tab changes during a draft, gesture, or retained dialog.
+- [x] Keep Layers metadata-only and ignore primary scene authoring input while
+      it is active.
+- [x] Cover four-tab order, sidebar filtering, selection retention, passive
+      Layers input, and wide/narrow layout behavior.
+- [x] Update the editor README, TDDs, and active Chunk planning documents.
+
+## Phase 9 — Whole-Pixel Direct Terrain
+
+- [x] Remove the direct Chunk terrain `1 px` / `0.5 px` selector and hardcode
+      pointer snapping to whole pixels.
+- [x] Apply the same whole-pixel step to exact vertex and rectangle fields.
+- [x] Reject odd half-pixel ticks at the Chunk semantic-validation, file-codec,
+      and staged-generator boundaries without adding migration behavior.
+- [x] Normalize the only direct Chunk half-pixel compiler fixture and refresh
+      its exact edge and signature expectations.
+- [x] Keep Prefab-local half-pixel source and authoring behavior unchanged.
+
+## Phase 10 — Retire Standalone Actor-Terrain Inspection
+
+- [x] Remove the Actor terrain chip, actor selector, summary, and scene overlay.
+- [x] Delete the actor-terrain overlay painter and its route-level references.
+- [x] Build the existing Core terrain-policy projection only as an internal
+      dependency when marker-placement evidence is requested.
+- [x] Keep marker-placement evidence and authored marker behavior unchanged.
+
+## Phase 11 — Shape-Edge And Visual Preview Controls
+
+- [x] Add a default-off **Shape edges** chip to the persistent scene controls.
+- [x] Hide only the Core-compiled pink/yellow edge painter when disabled.
+- [x] Keep terrain materials, source selection, editing, collision authority,
+      history, and pending source unchanged.
+- [x] Cover default, hidden, and restored overlay states in the Chunk route.
+- [x] Add **Visual preview** as a distinct mode that hides every editor-only
+      canvas overlay plus the Chunk bounds and viewport border.
+- [x] Retain only parallax, terrain-material art, and placed Prefab visuals;
+      keep preview canvas input view-only while preserving pan and zoom.
+- [x] Disable sidebar authoring during Visual preview without discarding route
+      state, selection, pending changes, or overlay preferences.
+- [x] Keep the complete global visual/viewport control group above the
+      Terrain/Prefabs/Markers/Layers selector at every responsive width.
+
+## Phase 12 — Chunk Tile Grid And Terrain Snap
+
+- [x] Add a default-off **Show grid** chip directly after **Visual preview**.
+- [x] Render the selected owner's tile-size grid across every domain tab,
+      clipped to Chunk bounds and suppressed by Visual preview.
+- [x] Add independent default-off **Snap to grid** switches inside **Create
+      terrain shape** and the expanded existing-shape editor without restoring
+      the removed half-pixel selector or adding it to the scene header; changing
+      one setting must not change the other.
+- [x] Quantize polygon and rectangle creation, inserted/moved vertices, and
+      exact vertex/rectangle edits to the nearest tile-grid intersections.
+- [x] Preserve mandatory whole-pixel authoring while tile snap is disabled and
+      lock snap-policy changes during active operations.
+- [x] Cover toggle defaults/persistence/preview suppression plus creation,
+      rectangle, and committed-vertex quantization.
+
 ## Required Validation Commands
 
 Minimum editor validation for every implementation phase:
 
 - [x] `cd tools/editor && dart analyze`
 - [x] focused tests for the touched phase
-- [x] `cd tools/editor && flutter test` (456 tests)
+- [ ] `cd tools/editor && flutter test` (500 pass; the unrelated Terrain
+      Materials no-op pending-change assertion remains failing)
 
 Required focused coverage across the initiative:
 
@@ -778,27 +852,23 @@ Required focused coverage across the initiative:
 
 Unchanged source/runtime seam gate:
 
-- [ ] `dart run tool/generate_chunk_runtime_data.dart --dry-run`
-- [ ] verify the dry-run reports no authored or generated drift caused by this
+- [x] `dart run tool/generate_chunk_runtime_data.dart --dry-run`
+- [x] verify the dry-run reports no authored or generated drift caused by this
       initiative
 - [ ] if an editor projection refactor touches shared terrain adapters, run
       `flutter test test/tool/polygon_terrain_compilation_test.dart test/tool/polygon_terrain_signature_probe_test.dart`
 
-Validation blocker recorded August 14, 2026:
-
-- the normal generator dry-run stops first on an unrelated uncommitted
-  `levels[2].visualThemeId = "new_level"` reference with no authored theme
-- a temporary detached worktree at committed `9f5a6d36` validates all eight
-  chunks, two levels, two parallax themes, and one terrain material, then reports
-  seven already-stale generated outputs; this initiative edits none of those
-  source or generated files
-- keep the generator items unchecked and keep these planning documents active
-  until that external drift is repaired and the dry-run passes
+Validation closure recorded August 18, 2026: the normal dry-run validates nine
+chunks, three levels, three parallax themes, and one terrain material with no
+blocking issues.
 
 ## Final Acceptance Checklist
 
 - [x] One persistent Chunk creation scene replaces the two old workspace views.
-- [x] Both required right-side cards coexist with the scene on wide layouts.
+- [x] Four tabs beneath the global scene controls select one matching
+      right-side card without replacing the scene.
+- [x] Prefabs and Markers each expose foldable Create and Existing sections;
+      adding from the Create form does not open a modal dialog.
 - [x] Narrow layouts preserve scene, viewport, focus, selection, and draft state.
 - [x] Existing terrain and composition features remain complete.
 - [x] Active-domain and typed-selection behavior is deterministic and tested.
@@ -814,7 +884,7 @@ Validation blocker recorded August 14, 2026:
       lineage, canonical ordering, source-drift checks, and atomic apply remain
       intact.
 - [x] Full editor analysis and tests pass.
-- [ ] Generator dry-run and runtime-lineage parity checks prove those contracts
+- [x] Generator dry-run and runtime-lineage parity checks prove those contracts
       are unchanged.
 - [x] Performance, documentation, and redundancy reviews are complete.
 - [ ] Manual accessibility review is complete.

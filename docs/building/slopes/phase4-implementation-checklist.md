@@ -1463,7 +1463,8 @@ UI/interactions:
 - [x] diagnostics focus the exact shape/vertex/edge
 - [x] shared scene control parity on explicit Prefab and Chunk staging routes
 - [x] read-only expanded prefab overlay in Chunk Creator
-- [x] Core-owned actor eligibility/navigation and marker-placement overlays
+- [x] Core-owned marker-placement overlay; the former standalone actor-terrain
+      overlay was later retired from Chunk Creator
 - [x] preview consumes no marker RNG and preserves source ordering
 - [x] accessibility labels, keyboard controls, and narrow-window behavior
 

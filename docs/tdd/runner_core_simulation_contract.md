@@ -173,7 +173,10 @@ events through `GameCore.drainEvents`.
 
 Streaming-enabled normal and replay construction expose the selected staged
 candidate's `StagedTerrainRenderSnapshot` and use its matching collision,
-support, placement, and graph bundle. Track-disabled fixtures use direct
+support, placement, and graph bundle. The snapshot may additionally contain
+staged `none` polygons: their generated vertices, triangles, and material are
+rendered, but the world-geometry builder omits them before every simulation
+consumer and they cannot own exposed edges. Track-disabled fixtures use direct
 polygon geometry and therefore leave the staged render artifact null. The
 isolated terrain harness may queue a fully constructed staged candidate;
 its exact collision/navigation bundle and render snapshot become visible

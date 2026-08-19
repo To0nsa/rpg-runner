@@ -101,6 +101,37 @@ void main() {
     },
   );
 
+  test('partitions direct render-only shapes before collision compilation', () {
+    final result = expandChunkV2Collision(
+      chunk: _chunk(
+        directShapes: <TerrainSourceShapeDef>[
+          _rectangle('ground', left: 0, top: 20, right: 40, bottom: 40),
+          _rectangle(
+            'dark_pit',
+            left: 0,
+            top: 0,
+            right: 40,
+            bottom: 20,
+            collisionMode: TerrainSourceCollisionMode.none,
+          ),
+        ],
+      ),
+      prefabs: const <PrefabV3Def>[],
+      sourcePath: 'chunks/forest/test.json',
+    );
+
+    expect(result.issues, isEmpty);
+    final expansion = result.expansion!;
+    expect(expansion.directShapeCount, 1);
+    expect(expansion.renderOnlyDirectShapeCount, 1);
+    expect(expansion.geometry.polygons.single.identity.shapeId, 'ground');
+    expect(expansion.geometry.edges, hasLength(4));
+    expect(
+      expansion.geometry.edges.every((edge) => edge.id.shapeId != 'dark_pit'),
+      isTrue,
+    );
+  });
+
   test('rejects unsupported single-loop topology with chunk ownership', () {
     final cases = <String, List<(int, int)>>{
       'self_touch': const <(int, int)>[
@@ -649,8 +680,10 @@ TerrainSourceShapeDef _rectangle(
   required int top,
   required int right,
   required int bottom,
+  TerrainSourceCollisionMode collisionMode = TerrainSourceCollisionMode.solid,
 }) => TerrainSourceShapeDef(
   shapeId: shapeId,
+  collisionMode: collisionMode,
   vertices: <TerrainSourceVertexDef>[
     TerrainSourceVertexDef(xHalfPixels: left, yHalfPixels: top),
     TerrainSourceVertexDef(xHalfPixels: right, yHalfPixels: top),

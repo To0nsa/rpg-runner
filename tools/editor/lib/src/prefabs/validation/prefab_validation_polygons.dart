@@ -19,6 +19,23 @@ List<PrefabValidationIssue> validatePrefabCollisionShapes({
   final shapes = List<TerrainSourceShapeDef>.unmodifiable(collisionShapes);
   final issues = <PrefabValidationIssue>[];
 
+  for (final shape in shapes.where(
+    (shape) => shape.collisionMode == TerrainSourceCollisionMode.none,
+  )) {
+    issues.add(
+      PrefabValidationIssue(
+        code: 'prefab_render_only_shape_forbidden',
+        message:
+            'Prefab $prefabId shape ${shape.shapeId} cannot use no collision; '
+            'author render-only terrain directly in a chunk.',
+        sourcePath: sourcePath,
+        ownerKey: prefabKey,
+        shapeId: shape.shapeId,
+      ),
+    );
+  }
+  if (issues.isNotEmpty) return _sortedPolygonIssues(issues);
+
   if (kind == PrefabKind.decoration) {
     if (shapes.isNotEmpty) {
       issues.add(

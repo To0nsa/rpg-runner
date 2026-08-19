@@ -95,6 +95,22 @@ void main() {
     );
   });
 
+  test('staged Dart retains render-only polygons without collision edges', () {
+    final compiled = _compileFixture(includeRenderOnly: true);
+    final output = renderStagedPolygonTerrainDart(
+      _validated(<PolygonTerrainCompiledChunk>[compiled]),
+    );
+
+    expect(compiled.renderGeometry.polygons, hasLength(4));
+    expect(compiled.geometry.polygons, hasLength(3));
+    expect(output, contains('shapeId: "dark_pit"'));
+    expect(output, contains('collisionMode: StagedTerrainCollisionMode.none'));
+    expect(
+      compiled.geometry.edges.any((edge) => edge.id.shapeId == 'dark_pit'),
+      isFalse,
+    );
+  });
+
   test(
     'staged output gate accepts matching signatures and exact bytes',
     () async {
@@ -412,7 +428,10 @@ PolygonTerrainSeamManifest _emptySeamManifest() => PolygonTerrainSeamManifest(
   sourcePath: 'fixture:isolated-compiler',
 );
 
-PolygonTerrainCompiledChunk _compileFixture({String? chunkKey}) {
+PolygonTerrainCompiledChunk _compileFixture({
+  String? chunkKey,
+  bool includeRenderOnly = false,
+}) {
   final prefabs = decodePolygonTerrainPrefabs(
     File('$_fixtureDirectory/prefab_defs.json').readAsStringSync(),
     sourcePath: 'prefab_defs.json',
@@ -422,6 +441,24 @@ PolygonTerrainCompiledChunk _compileFixture({String? chunkKey}) {
   final chunkJson = jsonDecode(rawChunk) as Map<String, Object?>;
   chunkJson['chunkKey'] = resolvedChunkKey;
   chunkJson['id'] = resolvedChunkKey;
+  if (includeRenderOnly) {
+    (chunkJson['collisionShapes']! as List<Object?>).add(<String, Object?>{
+      'shapeId': 'dark_pit',
+      'collisionMode': 'none',
+      'vertices': <Object?>[
+        <String, Object?>{'x': 0, 'y': 0},
+        <String, Object?>{'x': 10, 'y': 0},
+        <String, Object?>{'x': 10, 'y': 10},
+        <String, Object?>{'x': 0, 'y': 10},
+      ],
+      'materialKey': 'dark_pit',
+    });
+    (chunkJson['collisionShapes']! as List<Object?>).sort((left, right) {
+      final leftId = (left! as Map<String, Object?>)['shapeId']! as String;
+      final rightId = (right! as Map<String, Object?>)['shapeId']! as String;
+      return leftId.compareTo(rightId);
+    });
+  }
   final sourcePath = chunkKey == null
       ? _chunkSourcePath
       : 'chunks/forest/$resolvedChunkKey.json';

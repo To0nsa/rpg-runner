@@ -83,6 +83,23 @@ void main() {
       expect(shape.toJson()['collisionMode'], 'oneWay');
     });
 
+    test('round-trips render-only terrain as collisionMode none', () {
+      final shape = TerrainSourceShapeDef.fromJson(<String, Object?>{
+        'shapeId': 'dark_pit',
+        'collisionMode': 'none',
+        'materialKey': 'dark_pit',
+        'vertices': <Object?>[
+          <String, Object?>{'x': 0, 'y': 0},
+          <String, Object?>{'x': 8, 'y': 0},
+          <String, Object?>{'x': 8, 'y': 4},
+        ],
+      });
+
+      expect(shape.collisionMode, TerrainSourceCollisionMode.none);
+      expect(shape.toJson()['collisionMode'], 'none');
+      expect(shape.materialKey, 'dark_pit');
+    });
+
     test('rejects unstable IDs, collision modes, and empty metadata', () {
       expect(
         () => TerrainSourceShapeDef(

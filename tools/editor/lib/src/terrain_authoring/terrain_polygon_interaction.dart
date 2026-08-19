@@ -378,16 +378,23 @@ final class TerrainPolygonInteractionReducer {
     );
   }
 
-  /// Starts an ordered vertex-click draft with a deterministic shape ID.
+  /// Returns the lowest free deterministic shape ID for this owner snapshot.
+  String allocateShapeId(TerrainPolygonInteractionState state) =>
+      _allocateShapeId(state.shapes);
+
+  /// Starts an ordered vertex-click draft with a deterministic or supplied ID.
   TerrainPolygonInteractionState beginCreatePolygon(
     TerrainPolygonInteractionState state, {
+    String? shapeId,
     TerrainSourceCollisionMode collisionMode = TerrainSourceCollisionMode.solid,
     String? surfaceKind,
     String? materialKey,
   }) {
     if (state.hasActiveOperation) return state;
+    final resolvedShapeId = shapeId ?? _allocateShapeId(state.shapes);
+    _requireAvailableShapeId(state.shapes, resolvedShapeId);
     final draft = TerrainPolygonDraft(
-      shapeId: _allocateShapeId(state.shapes),
+      shapeId: resolvedShapeId,
       collisionMode: collisionMode,
       surfaceKind: surfaceKind,
       materialKey: materialKey,
@@ -411,13 +418,16 @@ final class TerrainPolygonInteractionReducer {
     TerrainPolygonInteractionState state, {
     required int pointer,
     required TerrainSourceVertexDef startPointer,
+    String? shapeId,
     TerrainSourceCollisionMode collisionMode = TerrainSourceCollisionMode.solid,
     String? surfaceKind,
     String? materialKey,
   }) {
     if (state.hasActiveOperation) return state;
+    final resolvedShapeId = shapeId ?? _allocateShapeId(state.shapes);
+    _requireAvailableShapeId(state.shapes, resolvedShapeId);
     final draft = TerrainPolygonDraft(
-      shapeId: _allocateShapeId(state.shapes),
+      shapeId: resolvedShapeId,
       collisionMode: collisionMode,
       surfaceKind: surfaceKind,
       materialKey: materialKey,
@@ -870,6 +880,7 @@ final class TerrainPolygonInteractionReducer {
   TerrainPolygonInteractionResult editSelectedVertex(
     TerrainPolygonInteractionState state, {
     required TerrainSourceVertexDef vertex,
+    String? shapeId,
   }) {
     final selection = state.selection;
     if (state.hasActiveOperation ||
@@ -878,16 +889,31 @@ final class TerrainPolygonInteractionReducer {
       return _acceptedNoOp(state);
     }
     final shape = _requireShape(state.shapes, selection.shapeId);
+    final resolvedShapeId = shapeId ?? shape.shapeId;
+    final identityDiagnostics = _shapeIdDiagnostics(
+      state.shapes,
+      sourceShape: shape,
+      desiredShapeId: resolvedShapeId,
+    );
+    if (identityDiagnostics.isNotEmpty) {
+      return _rejected(state, identityDiagnostics);
+    }
     final vertexIndex = selection.elementIndex!;
     _requireVertexIndex(shape, vertexIndex);
     final vertices = shape.vertices.toList();
-    if (vertices[vertexIndex] == vertex) return _acceptedNoOp(state);
+    if (vertices[vertexIndex] == vertex && resolvedShapeId == shape.shapeId) {
+      return _acceptedNoOp(state);
+    }
     vertices[vertexIndex] = vertex;
-    final candidate = _shapeWithVertices(shape, vertices);
+    final candidate = _shapeWithIdentityAndVertices(
+      shape,
+      shapeId: resolvedShapeId,
+      vertices: vertices,
+    );
     final validation = _validateAndCanonicalize(
       candidate,
       otherShapes: state.shapes.where(
-        (other) => other.shapeId != candidate.shapeId,
+        (other) => other.shapeId != shape.shapeId,
       ),
     );
     final canonical = validation.shape;
@@ -897,7 +923,7 @@ final class TerrainPolygonInteractionReducer {
     final canonicalVertexIndex = canonical.vertices.indexOf(vertex);
     return _commitShapes(
       state,
-      _replaceShape(state.shapes, canonical),
+      _replaceShapeById(state.shapes, shape.shapeId, canonical),
       canonicalVertexIndex < 0
           ? TerrainPolygonSelection.shape(canonical.shapeId)
           : TerrainPolygonSelection.vertex(
@@ -918,12 +944,22 @@ final class TerrainPolygonInteractionReducer {
     required int yHalfPixels,
     required int widthHalfPixels,
     required int heightHalfPixels,
+    String? shapeId,
   }) {
     final selection = state.selection;
     if (state.hasActiveOperation || selection == null) {
       return _acceptedNoOp(state);
     }
     final shape = _requireShape(state.shapes, selection.shapeId);
+    final resolvedShapeId = shapeId ?? shape.shapeId;
+    final identityDiagnostics = _shapeIdDiagnostics(
+      state.shapes,
+      sourceShape: shape,
+      desiredShapeId: resolvedShapeId,
+    );
+    if (identityDiagnostics.isNotEmpty) {
+      return _rejected(state, identityDiagnostics);
+    }
     if (TerrainAxisAlignedRectangle.tryFromShape(shape) == null) {
       return _rejected(state, <TerrainDiagnostic>[
         _diagnostic(
@@ -953,7 +989,12 @@ final class TerrainPolygonInteractionReducer {
     }
     return _commitValidatedReplacement(
       state,
-      _shapeWithVertices(shape, rectangle.vertices),
+      _shapeWithIdentityAndVertices(
+        shape,
+        shapeId: resolvedShapeId,
+        vertices: rectangle.vertices,
+      ),
+      replacedShapeId: shape.shapeId,
     );
   }
 
@@ -984,6 +1025,35 @@ final class TerrainPolygonInteractionReducer {
     return _commitValidatedReplacement(
       state,
       _shapeWithVertices(shape, vertices),
+    );
+  }
+
+  /// Renames the selected shape as one canonical owner-local commit.
+  TerrainPolygonInteractionResult renameSelectedShape(
+    TerrainPolygonInteractionState state, {
+    required String shapeId,
+  }) {
+    final selection = state.selection;
+    if (state.hasActiveOperation || selection == null) {
+      return _acceptedNoOp(state);
+    }
+    final source = _requireShape(state.shapes, selection.shapeId);
+    final diagnostics = _shapeIdDiagnostics(
+      state.shapes,
+      sourceShape: source,
+      desiredShapeId: shapeId,
+    );
+    if (diagnostics.isNotEmpty) return _rejected(state, diagnostics);
+    if (shapeId == source.shapeId) return _acceptedNoOp(state);
+    final replacement = _shapeWithIdentityAndVertices(
+      source,
+      shapeId: shapeId,
+      vertices: source.vertices,
+    );
+    return _commitValidatedReplacement(
+      state,
+      replacement,
+      replacedShapeId: source.shapeId,
     );
   }
 
@@ -1140,12 +1210,14 @@ final class TerrainPolygonInteractionReducer {
 
   TerrainPolygonInteractionResult _commitValidatedReplacement(
     TerrainPolygonInteractionState state,
-    TerrainSourceShapeDef candidate,
-  ) {
+    TerrainSourceShapeDef candidate, {
+    String? replacedShapeId,
+  }) {
+    final sourceShapeId = replacedShapeId ?? candidate.shapeId;
     final validation = _validateAndCanonicalize(
       candidate,
       otherShapes: state.shapes.where(
-        (shape) => shape.shapeId != candidate.shapeId,
+        (shape) => shape.shapeId != sourceShapeId,
       ),
     );
     if (validation.shape == null) {
@@ -1153,10 +1225,39 @@ final class TerrainPolygonInteractionReducer {
     }
     return _commitShapes(
       state,
-      _replaceShape(state.shapes, validation.shape!),
+      _replaceShapeById(state.shapes, sourceShapeId, validation.shape!),
       TerrainPolygonSelection.shape(validation.shape!.shapeId),
       diagnostics: validation.diagnostics,
     );
+  }
+
+  List<TerrainDiagnostic> _shapeIdDiagnostics(
+    Iterable<TerrainSourceShapeDef> shapes, {
+    required TerrainSourceShapeDef sourceShape,
+    required String desiredShapeId,
+  }) {
+    final validationError = terrainSourceShapeIdValidationError(desiredShapeId);
+    if (validationError != null) {
+      return <TerrainDiagnostic>[
+        _diagnostic(sourceShape, 0, 'shape_id_invalid', validationError),
+      ];
+    }
+    final duplicate = shapes.any(
+      (shape) =>
+          shape.shapeId != sourceShape.shapeId &&
+          shape.shapeId.toLowerCase() == desiredShapeId.toLowerCase(),
+    );
+    if (duplicate) {
+      return <TerrainDiagnostic>[
+        _diagnostic(
+          sourceShape,
+          0,
+          'shape_id_duplicate',
+          'Another terrain shape already uses this name.',
+        ),
+      ];
+    }
+    return const <TerrainDiagnostic>[];
   }
 
   ({TerrainSourceShapeDef? shape, List<TerrainDiagnostic> diagnostics})
@@ -1269,6 +1370,25 @@ final class TerrainPolygonInteractionReducer {
     commit: null,
     diagnostics: diagnostics,
   );
+
+  void _requireAvailableShapeId(
+    Iterable<TerrainSourceShapeDef> shapes,
+    String shapeId,
+  ) {
+    final error = terrainSourceShapeIdValidationError(shapeId);
+    if (error != null) {
+      throw ArgumentError.value(shapeId, 'shapeId', error);
+    }
+    if (shapes.any(
+      (shape) => shape.shapeId.toLowerCase() == shapeId.toLowerCase(),
+    )) {
+      throw ArgumentError.value(
+        shapeId,
+        'shapeId',
+        'Another terrain shape already uses this name.',
+      );
+    }
+  }
 
   String _allocateShapeId(
     Iterable<TerrainSourceShapeDef> shapes, {
@@ -1446,8 +1566,18 @@ bool _selectionExists(
 TerrainSourceShapeDef _shapeWithVertices(
   TerrainSourceShapeDef source,
   Iterable<TerrainSourceVertexDef> vertices,
-) => TerrainSourceShapeDef(
+) => _shapeWithIdentityAndVertices(
+  source,
   shapeId: source.shapeId,
+  vertices: vertices,
+);
+
+TerrainSourceShapeDef _shapeWithIdentityAndVertices(
+  TerrainSourceShapeDef source, {
+  required String shapeId,
+  required Iterable<TerrainSourceVertexDef> vertices,
+}) => TerrainSourceShapeDef(
+  shapeId: shapeId,
   vertices: vertices,
   collisionMode: source.collisionMode,
   surfaceKind: source.surfaceKind,
@@ -1457,9 +1587,15 @@ TerrainSourceShapeDef _shapeWithVertices(
 List<TerrainSourceShapeDef> _replaceShape(
   Iterable<TerrainSourceShapeDef> shapes,
   TerrainSourceShapeDef replacement,
+) => _replaceShapeById(shapes, replacement.shapeId, replacement);
+
+List<TerrainSourceShapeDef> _replaceShapeById(
+  Iterable<TerrainSourceShapeDef> shapes,
+  String replacedShapeId,
+  TerrainSourceShapeDef replacement,
 ) => canonicalTerrainSourceShapes(<TerrainSourceShapeDef>[
   for (final shape in shapes)
-    if (shape.shapeId == replacement.shapeId) replacement else shape,
+    if (shape.shapeId == replacedShapeId) replacement else shape,
 ]);
 
 TerrainPolygonSelection _selectionForCanonicalVertex(

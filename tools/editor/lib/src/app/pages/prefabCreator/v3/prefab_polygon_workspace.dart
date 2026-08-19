@@ -825,7 +825,7 @@ class PrefabPolygonWorkspaceState extends State<PrefabPolygonWorkspace> {
             vertexIndex: selectedVertexIndex,
             vertex: shape.vertices[selectedVertexIndex],
             onApply: (xHalfPixels, yHalfPixels) {
-              authoring.editSelectedVertex(
+              return authoring.editSelectedVertex(
                 TerrainSourceVertexDef(
                   xHalfPixels: xHalfPixels,
                   yHalfPixels: yHalfPixels,

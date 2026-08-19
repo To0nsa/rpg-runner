@@ -1,16 +1,10 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:runner_core/collision/terrain/terrain_compiler.dart';
-import 'package:runner_core/collision/terrain/terrain_edge_id.dart';
-import 'package:runner_core/collision/terrain/terrain_numeric.dart';
-import 'package:runner_core/navigation/terrain_spawn_placement.dart';
-import 'package:runner_core/navigation/types/terrain_surface_graph.dart';
 import 'package:terrain_materials/terrain_materials.dart';
 
 import '../../../../chunks/chunk_v2_actor_terrain_projection.dart';
 import '../../../../chunks/chunk_v2_collision_expansion.dart';
-import '../../../../chunks/chunk_v2_compiled_edge_inspection.dart';
 import '../../../../chunks/chunk_v2_composition_operation.dart';
 import '../../../../chunks/chunk_domain_models.dart';
 import '../../../../chunks/chunk_marker_authoring_catalog.dart';
@@ -19,7 +13,6 @@ import '../../../../chunks/chunk_v2_file_data.dart';
 import '../../../../chunks/chunk_v2_lifecycle_commit.dart';
 import '../../../../chunks/chunk_v2_marker_placement_projection.dart';
 import '../../../../chunks/chunk_v2_metadata_commit.dart';
-import '../../../../chunks/chunk_v2_seam_analysis.dart';
 import '../../../../chunks/chunk_v2_models.dart';
 import '../../../../domain/authoring_types.dart';
 import '../../../../prefabs/models/models.dart';
@@ -28,7 +21,6 @@ import '../../../../terrain_authoring/terrain_axis_aligned_rectangle.dart';
 import '../../../../terrain_authoring/terrain_half_pixel_text.dart';
 import '../../../../terrain_authoring/terrain_polygon_duplicate_offset.dart';
 import '../../../../terrain_authoring/terrain_polygon_interaction.dart';
-import '../../../../terrain_authoring/terrain_physics_text.dart';
 import '../../../../terrain_authoring/terrain_source_models.dart';
 import '../../shared/editor_list_card.dart';
 import '../../shared/editor_panel_card.dart';
@@ -36,13 +28,14 @@ import '../../shared/editor_section_card.dart';
 import '../../shared/editor_scene_view_utils.dart';
 import '../../shared/editor_workspace_card.dart';
 import '../../shared/editor_scene_viewport_frame.dart';
+import '../../shared/editor_viewport_grid_painter.dart';
 import '../../shared/editor_zoom_controls.dart';
 import '../../shared/terrain_material_preview.dart';
 import '../../shared/terrain_polygon_rectangle_editor.dart';
+import '../../shared/terrain_polygon_exact_edit_controller.dart';
 import '../../shared/terrain_material_preview_catalog.dart';
 import '../../shared/terrain_polygon_scene_painter.dart';
 import '../../shared/terrain_polygon_vertex_editor.dart';
-import 'chunk_actor_terrain_overlay_painter.dart';
 import 'chunk_compiled_edge_overlay_painter.dart';
 import 'chunk_expanded_collision_overlay_painter.dart';
 import 'chunk_marker_placement_overlay_painter.dart';
@@ -55,6 +48,8 @@ import 'chunk_scene_surface.dart';
 import 'chunk_scene_visual_source.dart';
 import 'chunk_composition_card.dart';
 import 'chunk_v2_owner_dialog.dart';
+
+enum _PendingShapeEditAction { save, discard, cancel }
 
 /// Normal current-schema workspace for complete Chunk-v2 authoring.
 ///
@@ -90,13 +85,14 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   String? _selectedChunkKey;
   double _zoom = _initialZoom;
   Offset _pan = Offset.zero;
-  bool _showCompiledEdges = true;
-  bool _inspectCompiledEdges = false;
-  bool _showActorTerrain = false;
-  ChunkV2TerrainActor _selectedTerrainActor = ChunkV2TerrainActor.eloise;
-  ChunkV2CollisionExpansion? _actorProjectionExpansion;
-  ChunkV2ActorTerrainProjection? _actorTerrainProjection;
+  bool _showGrid = false;
+  bool _showShapeEdges = false;
+  bool _visualPreview = false;
   bool _showMarkerPlacements = false;
+  bool _terrainCreationSnapToGrid = false;
+  bool _terrainEditSnapToGrid = false;
+  ChunkV2CollisionExpansion? _markerTerrainExpansion;
+  ChunkV2ActorTerrainProjection? _markerTerrainProjection;
   ChunkV2MarkerPlacementProjection? _markerPlacementProjection;
   ChunkV2FileData? _markerProjectionChunk;
   ChunkV2ActorTerrainProjection? _markerProjectionTerrain;
@@ -109,6 +105,9 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   String? _selectedMarkerCatalogId;
   Object? _authoringUiFingerprint;
   TerrainMaterialCatalog? _materialCatalog;
+  final Map<String, String> _shapeNameDrafts = <String, String>{};
+  final TerrainPolygonExactEditController _exactEditController =
+      TerrainPolygonExactEditController();
 
   bool get _hasActiveOperation =>
       (_authoring?.hasActiveOperation ?? false) ||
@@ -119,7 +118,9 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   bool get hasActiveOperation => _hasActiveOperation;
 
   bool get hasLocalDraftChanges =>
-      _hasActiveOperation || widget.controller.pendingChanges.hasChanges;
+      _hasActiveOperation ||
+      _hasPendingSelectedShapeEdit ||
+      widget.controller.pendingChanges.hasChanges;
 
   bool get canUndo =>
       _prefabGesture.hasActiveOperation ||
@@ -137,8 +138,18 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   bool get canApplyToFiles =>
       widget.controller.pendingChanges.hasChanges &&
       !_hasActiveOperation &&
+      !_hasPendingSelectedShapeEdit &&
       !widget.controller.isLoading &&
       !widget.controller.isExporting;
+
+  bool get _hasPendingSelectedShapeEdit {
+    final authoring = _authoring;
+    final selection = authoring?.state.selection;
+    if (authoring == null || selection == null) return false;
+    final shape = _findShape(authoring.state.shapes, selection.shapeId);
+    return shape != null &&
+        (_hasPendingShapeName(shape) || _exactEditController.hasChanges);
+  }
 
   bool handleUndoShortcut() {
     if (_prefabGesture.hasActiveOperation) {
@@ -173,6 +184,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   @override
   void initState() {
     super.initState();
+    _exactEditController.addListener(_handleExactEditChanged);
     _reloadMaterialCatalog();
     _selectInitialOwner();
   }
@@ -190,7 +202,14 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   @override
   void dispose() {
     _disposeAuthoring();
+    _exactEditController
+      ..removeListener(_handleExactEditChanged)
+      ..dispose();
     super.dispose();
+  }
+
+  void _handleExactEditChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
@@ -204,9 +223,6 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     }
     _reconcileReloadedOwner(scene);
     final authoring = _authoring;
-    final issues = authoring == null
-        ? const <ValidationIssue>[]
-        : _ownerIssues(authoring);
     return EditorWorkspaceCard(
       key: const ValueKey<String>('chunk_authoring_workspace'),
       child: Column(
@@ -233,7 +249,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                           'template.',
                     )
                   : _buildScenePanel(scene, authoring),
-              sidebar: _buildChunkSidebar(document, scene, authoring, issues),
+              sidebar: _buildChunkSidebar(document, authoring),
             ),
           ),
         ],
@@ -380,6 +396,14 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                   ),
                   isSelected: chunk.chunkKey == selectedChunk?.chunkKey,
                   onTap: () => _selectOwner(chunk.chunkKey),
+                  preview: _ChunkOwnerPreview(
+                    key: ValueKey<String>(
+                      'chunk_owner_preview_${chunk.chunkKey}',
+                    ),
+                    workspaceRootPath: widget.controller.workspacePath,
+                    chunk: chunk,
+                    scene: scene,
+                  ),
                   trailing: document.changedChunkKeys.contains(chunk.chunkKey)
                       ? const Tooltip(
                           message: 'Pending geometry changed',
@@ -491,102 +515,162 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
 
   Widget _buildChunkSidebar(
     ChunkV2Document document,
-    ChunkV2Scene scene,
     ChunkPolygonAuthoringController? authoring,
-    List<ValidationIssue> issues,
   ) {
-    final controlsEnabled = !_hasActiveOperation;
-    return SingleChildScrollView(
+    final controlsEnabled = !_hasActiveOperation && !_visualPreview;
+    final activePanel = switch (_sceneCoordinator.sourceDomain) {
+      ChunkSceneDomain.terrain ||
+      ChunkSceneDomain.compiledEdgeInspection => EditorPanelCard(
+        key: const ValueKey<String>('chunk_terrain_card'),
+        title: 'Terrain',
+        description: _visualPreview
+            ? 'Exit Visual preview to edit direct terrain shapes.'
+            : controlsEnabled
+            ? 'Create and edit direct terrain shapes.'
+            : 'Finish or cancel the active terrain edit before changing tabs.',
+        collapsible: true,
+        expansionKey: const ValueKey<String>('chunk_terrain_card_toggle'),
+        child: authoring == null
+            ? _buildEmptySidebarPanel(
+                key: const ValueKey<String>('chunk_polygon_shapes_panel'),
+                expansionKey: const ValueKey<String>(
+                  'chunk_polygon_shapes_panel_toggle',
+                ),
+                title: 'Terrain shapes',
+                message: 'Select or create a chunk owner first.',
+              )
+            : _buildShapePanel(authoring),
+      ),
+      ChunkSceneDomain.prefabs => _buildCompositionSidebarCard(
+        document,
+        authoring,
+        section: ChunkCompositionSection.prefabs,
+      ),
+      ChunkSceneDomain.markers => _buildCompositionSidebarCard(
+        document,
+        authoring,
+        section: ChunkCompositionSection.markers,
+      ),
+      ChunkSceneDomain.layers => _buildCompositionSidebarCard(
+        document,
+        authoring,
+        section: ChunkCompositionSection.layers,
+      ),
+    };
+    final sidebar = SingleChildScrollView(
       key: const ValueKey<String>('chunk_authoring_sidebar'),
       primary: false,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          EditorPanelCard(
-            key: const ValueKey<String>('chunk_terrain_collision_card'),
-            title: 'Terrain collision',
-            description: controlsEnabled
-                ? 'Direct terrain, reachable seams, and diagnostics.'
-                : 'Finish or cancel the active terrain edit to change terrain or composition.',
-            collapsible: true,
-            expansionKey: const ValueKey<String>(
-              'chunk_terrain_collision_card_toggle',
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                if (authoring == null) ...<Widget>[
-                  _buildEmptySidebarPanel(
-                    key: const ValueKey<String>('chunk_polygon_shapes_panel'),
-                    expansionKey: const ValueKey<String>(
-                      'chunk_polygon_shapes_panel_toggle',
-                    ),
-                    title: 'Shapes',
-                    message: 'Select or create a chunk owner first.',
-                  ),
-                  const SizedBox(height: _gap),
-                  _buildEmptySidebarPanel(
-                    key: const ValueKey<String>('chunk_polygon_seams_panel'),
-                    expansionKey: const ValueKey<String>(
-                      'chunk_polygon_seams_panel_toggle',
-                    ),
-                    title: 'Reachable chunk seams',
-                    message: 'Select or create a chunk owner first.',
-                  ),
-                  const SizedBox(height: _gap),
-                  _buildEmptySidebarPanel(
-                    key: const ValueKey<String>(
-                      'chunk_polygon_diagnostics_panel',
-                    ),
-                    expansionKey: const ValueKey<String>(
-                      'chunk_polygon_diagnostics_panel_toggle',
-                    ),
-                    title: 'Diagnostics',
-                    message: 'Select or create a chunk owner first.',
-                  ),
-                ] else ...<Widget>[
-                  _buildShapePanel(authoring),
-                  const SizedBox(height: _gap),
-                  _buildSeamPanel(authoring),
-                  const SizedBox(height: _gap),
-                  _buildDiagnosticsPanel(authoring, issues),
-                ],
-              ],
-            ),
-          ),
+          activePanel,
           const SizedBox(height: _gap),
-          if (authoring == null)
-            EditorPanelCard(
-              key: const ValueKey<String>('chunk_composition_card'),
-              title: 'Layers, prefabs & markers',
-              description: 'Layer metadata and placed chunk content.',
-              collapsible: true,
-              expansionKey: const ValueKey<String>(
-                'chunk_composition_card_toggle',
-              ),
-              child: const Text('Select or create a chunk owner first.'),
-            )
-          else
-            ChunkCompositionCard(
-              controller: widget.controller,
-              document: document,
-              chunk: authoring.chunk,
-              controlsEnabled: controlsEnabled,
-              onOperationChanged: _setCompositionOperationActive,
-              selectedPrefabKey: _sceneCoordinator.selectedPrefabKey,
-              selectedMarkerKey: _sceneCoordinator.selectedMarkerKey,
-              onPrefabSelected: (selection) => setState(() {
-                _prefabGesture.setTool(ChunkPrefabSceneTool.select);
-                _sceneCoordinator.selectPrefab(selection);
-              }),
-              onMarkerSelected: (selection) => setState(() {
-                _markerGesture.setTool(ChunkMarkerSceneTool.select);
-                _sceneCoordinator.selectMarker(selection);
-                _refreshMarkerPlacementProjection();
-              }),
-            ),
+          _buildDiagnosticsCard(),
         ],
       ),
+    );
+    return IgnorePointer(
+      ignoring: _visualPreview,
+      child: Opacity(opacity: _visualPreview ? 0.45 : 1, child: sidebar),
+    );
+  }
+
+  Widget _buildDiagnosticsCard() {
+    final issues = widget.controller.issues;
+    final errorCount = issues
+        .where((issue) => issue.severity == ValidationSeverity.error)
+        .length;
+    final warningCount = issues
+        .where((issue) => issue.severity == ValidationSeverity.warning)
+        .length;
+    final infoCount = issues.length - errorCount - warningCount;
+    final description = issues.isEmpty
+        ? 'No issues in the current chunk document.'
+        : '${issues.length} total · $errorCount error(s) · '
+              '$warningCount warning(s) · $infoCount info';
+    return EditorPanelCard(
+      key: const ValueKey<String>('chunk_diagnostics_card'),
+      title: 'Diagnostics',
+      description: description,
+      collapsible: true,
+      expansionKey: const ValueKey<String>('chunk_diagnostics_card_toggle'),
+      child: Column(
+        key: const ValueKey<String>('chunk_diagnostics_list'),
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          if (issues.isEmpty)
+            const Text('No validation issues.')
+          else
+            for (final (index, issue) in issues.indexed)
+              ListTile(
+                key: ValueKey<String>(
+                  'chunk_diagnostic_${index}_${issue.code}',
+                ),
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(
+                  _diagnosticIcon(issue.severity),
+                  color: _diagnosticColor(issue.severity),
+                ),
+                title: Text(issue.code),
+                subtitle: Text(
+                  [issue.message, ?_diagnosticContext(issue)].join('\n'),
+                ),
+              ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompositionSidebarCard(
+    ChunkV2Document document,
+    ChunkPolygonAuthoringController? authoring, {
+    required ChunkCompositionSection section,
+  }) {
+    if (authoring == null) {
+      final (cardKey, expansionKey, title) = switch (section) {
+        ChunkCompositionSection.prefabs => (
+          'chunk_prefabs_card',
+          'chunk_prefabs_card_toggle',
+          'Prefabs',
+        ),
+        ChunkCompositionSection.markers => (
+          'chunk_markers_card',
+          'chunk_markers_card_toggle',
+          'Markers',
+        ),
+        ChunkCompositionSection.layers => (
+          'chunk_layers_card',
+          'chunk_layers_card_toggle',
+          'Layers',
+        ),
+      };
+      return EditorPanelCard(
+        key: ValueKey<String>(cardKey),
+        title: title,
+        collapsible: true,
+        expansionKey: ValueKey<String>(expansionKey),
+        child: const Text('Select or create a chunk owner first.'),
+      );
+    }
+    return ChunkCompositionCard(
+      section: section,
+      controller: widget.controller,
+      document: document,
+      chunk: authoring.chunk,
+      controlsEnabled: !_hasActiveOperation && !_visualPreview,
+      onOperationChanged: _setCompositionOperationActive,
+      selectedPrefabKey: _sceneCoordinator.selectedPrefabKey,
+      selectedMarkerKey: _sceneCoordinator.selectedMarkerKey,
+      onOpenOwningPrefab: widget.onOpenOwningPrefab,
+      onPrefabSelected: (selection) => setState(() {
+        _prefabGesture.setTool(ChunkPrefabSceneTool.select);
+        _sceneCoordinator.selectPrefab(selection);
+      }),
+      onMarkerSelected: (selection) => setState(() {
+        _markerGesture.setTool(ChunkMarkerSceneTool.select);
+        _sceneCoordinator.selectMarker(selection);
+        _refreshMarkerPlacementProjection();
+      }),
     );
   }
 
@@ -594,14 +678,20 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     ChunkV2Document document,
     ChunkV2Scene scene,
     ChunkV2FileData? selectedChunk,
-  ) => SingleChildScrollView(
-    key: const ValueKey<String>('chunk_owner_sidebar'),
-    primary: false,
-    child: _buildOwnerPanel(
-      document,
-      scene,
-      selectedChunk,
-      controlsEnabled: !_hasActiveOperation,
+  ) => IgnorePointer(
+    ignoring: _visualPreview,
+    child: Opacity(
+      opacity: _visualPreview ? 0.45 : 1,
+      child: SingleChildScrollView(
+        key: const ValueKey<String>('chunk_owner_sidebar'),
+        primary: false,
+        child: _buildOwnerPanel(
+          document,
+          scene,
+          selectedChunk,
+          controlsEnabled: !_hasActiveOperation && !_visualPreview,
+        ),
+      ),
     ),
   );
 
@@ -616,79 +706,55 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         Wrap(
+          key: const ValueKey<String>('chunk_scene_global_controls'),
           spacing: 8,
           runSpacing: 8,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: <Widget>[
             FilterChip(
-              key: const ValueKey<String>('chunk_compiled_edges_toggle'),
-              label: const Text('Compiled edges'),
-              selected: _showCompiledEdges,
-              onSelected: (selected) {
-                setState(() {
-                  _showCompiledEdges = selected;
-                  if (!selected) {
-                    _inspectCompiledEdges = false;
-                    _sceneCoordinator.setCompiledEdgeInspection(false);
-                  }
-                });
-              },
+              key: const ValueKey<String>('chunk_visual_preview_toggle'),
+              label: const Text('Visual preview'),
+              selected: _visualPreview,
+              onSelected: _hasActiveOperation
+                  ? null
+                  : (selected) {
+                      setState(() => _visualPreview = selected);
+                    },
             ),
             FilterChip(
-              key: const ValueKey<String>('chunk_compiled_edge_inspect_toggle'),
-              label: const Text('Inspect edges'),
-              selected: _inspectCompiledEdges,
-              onSelected: (selected) {
-                setState(() {
-                  _inspectCompiledEdges = selected;
-                  _sceneCoordinator.setCompiledEdgeInspection(selected);
-                  if (selected) {
-                    _showCompiledEdges = true;
-                  }
-                });
-              },
+              key: const ValueKey<String>('chunk_show_grid_toggle'),
+              label: const Text('Show grid'),
+              selected: _showGrid,
+              onSelected: _visualPreview
+                  ? null
+                  : (selected) {
+                      setState(() => _showGrid = selected);
+                    },
             ),
             FilterChip(
-              key: const ValueKey<String>('chunk_actor_terrain_toggle'),
-              label: const Text('Actor terrain'),
-              selected: _showActorTerrain,
-              onSelected: (selected) {
-                setState(() {
-                  _showActorTerrain = selected;
-                  if (selected) _refreshActorTerrainProjection();
-                });
-              },
+              key: const ValueKey<String>('chunk_shape_edges_toggle'),
+              label: const Text('Shape edges'),
+              selected: _showShapeEdges,
+              onSelected: _visualPreview
+                  ? null
+                  : (selected) {
+                      setState(() => _showShapeEdges = selected);
+                    },
             ),
             FilterChip(
               key: const ValueKey<String>('chunk_marker_placement_toggle'),
               label: const Text('Marker placement'),
               selected: _showMarkerPlacements,
-              onSelected: (selected) {
-                setState(() {
-                  _showMarkerPlacements = selected;
-                  if (selected) {
-                    _refreshMarkerPlacementProjection();
-                  }
-                });
-              },
-            ),
-            DropdownButton<ChunkV2TerrainActor>(
-              key: const ValueKey<String>('chunk_actor_terrain_selector'),
-              value: _selectedTerrainActor,
-              items: ChunkV2TerrainActor.values
-                  .map(
-                    (actor) => DropdownMenuItem<ChunkV2TerrainActor>(
-                      value: actor,
-                      child: Text(_terrainActorLabel(actor)),
-                    ),
-                  )
-                  .toList(growable: false),
-              onChanged: _showActorTerrain
-                  ? (actor) {
-                      if (actor == null) return;
-                      setState(() => _selectedTerrainActor = actor);
-                    }
-                  : null,
+              onSelected: _visualPreview
+                  ? null
+                  : (selected) {
+                      setState(() {
+                        _showMarkerPlacements = selected;
+                        if (selected) {
+                          _refreshMarkerPlacementProjection();
+                        }
+                      });
+                    },
             ),
             EditorZoomControls(
               value: _zoom,
@@ -703,155 +769,150 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
               icon: const Icon(Icons.center_focus_strong),
               label: const Text('Reset view'),
             ),
-            SegmentedButton<int>(
-              key: const ValueKey<String>('chunk_polygon_snap_selector'),
-              segments: const <ButtonSegment<int>>[
-                ButtonSegment<int>(value: 2, label: Text('1 px grid')),
-                ButtonSegment<int>(value: 1, label: Text('0.5 px')),
-              ],
-              selected: <int>{authoring.snapPolicy.stepHalfPixels},
-              onSelectionChanged: (selection) {
-                authoring.setSnapPolicy(
-                  selection.single == 1
-                      ? const TerrainPolygonSnapPolicy.halfPixel()
-                      : TerrainPolygonSnapPolicy.ownerGridPixels(1),
-                );
-              },
-            ),
           ],
         ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: <Widget>[
-            SegmentedButton<ChunkSceneDomain>(
-              key: const ValueKey<String>('chunk_scene_domain_selector'),
-              segments: const <ButtonSegment<ChunkSceneDomain>>[
-                ButtonSegment<ChunkSceneDomain>(
-                  value: ChunkSceneDomain.terrain,
-                  label: Text('Terrain'),
-                ),
-                ButtonSegment<ChunkSceneDomain>(
-                  value: ChunkSceneDomain.prefabs,
-                  label: Text('Prefabs'),
-                ),
-                ButtonSegment<ChunkSceneDomain>(
-                  value: ChunkSceneDomain.markers,
-                  label: Text('Markers'),
-                ),
-              ],
-              selected: <ChunkSceneDomain>{_sceneCoordinator.sourceDomain},
-              onSelectionChanged: _hasActiveOperation
-                  ? null
-                  : (selection) => _selectSceneDomain(selection.single),
-            ),
-            if (_sceneCoordinator.sourceDomain == ChunkSceneDomain.terrain)
-              for (final tool in terrainPolygonSceneToolbarTools)
-                ChoiceChip(
-                  key: ValueKey<String>('chunk_polygon_tool_${tool.name}'),
-                  label: Text(_toolLabel(tool)),
-                  selected: authoring.state.tool == tool,
-                  onSelected:
-                      _inspectCompiledEdges ||
-                          (authoring.state.draft == null &&
-                              tool == TerrainPolygonTool.createPolygon) ||
-                          (authoring.state.draft != null &&
-                              tool != TerrainPolygonTool.createPolygon &&
-                              tool != TerrainPolygonTool.moveVertex &&
-                              tool != TerrainPolygonTool.insertVertex)
-                      ? null
-                      : (_) => authoring.setTool(tool),
-                )
-            else if (_sceneCoordinator.sourceDomain ==
-                ChunkSceneDomain.prefabs) ...<Widget>[
-              for (final tool in ChunkPrefabSceneTool.values)
-                ChoiceChip(
-                  key: ValueKey<String>('chunk_prefab_tool_${tool.name}'),
-                  label: Text(_prefabToolLabel(tool)),
-                  selected: _prefabGesture.tool == tool,
-                  onSelected:
-                      _prefabGesture.hasActiveOperation ||
-                          (tool == ChunkPrefabSceneTool.place &&
-                              _selectedCatalogPrefab(scene) == null)
-                      ? null
-                      : (_) => setState(() => _prefabGesture.setTool(tool)),
-                ),
-              DropdownButton<String>(
-                key: const ValueKey<String>('chunk_prefab_catalog_selector'),
-                value: _selectedCatalogPrefab(scene)?.prefabKey,
-                hint: const Text('No active prefab'),
-                items: _activePrefabCatalog(scene)
-                    .map(
-                      (prefab) => DropdownMenuItem<String>(
-                        value: prefab.prefabKey,
-                        child: Text(prefab.id),
-                      ),
-                    )
-                    .toList(growable: false),
-                onChanged: _prefabGesture.hasActiveOperation
-                    ? null
-                    : (prefabKey) =>
-                          setState(() => _selectedPrefabCatalogKey = prefabKey),
+        const SizedBox(height: 4),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: SegmentedButton<ChunkSceneDomain>(
+            key: const ValueKey<String>('chunk_scene_domain_selector'),
+            segments: const <ButtonSegment<ChunkSceneDomain>>[
+              ButtonSegment<ChunkSceneDomain>(
+                value: ChunkSceneDomain.terrain,
+                label: Text('Terrain'),
               ),
-            ] else ...<Widget>[
-              for (final tool in ChunkMarkerSceneTool.values)
-                ChoiceChip(
-                  key: ValueKey<String>('chunk_marker_tool_${tool.name}'),
-                  label: Text(_markerToolLabel(tool)),
-                  selected: _markerGesture.tool == tool,
-                  onSelected: _markerGesture.hasActiveOperation
-                      ? null
-                      : (_) => setState(() => _markerGesture.setTool(tool)),
-                ),
-              DropdownButton<String>(
-                key: const ValueKey<String>('chunk_marker_catalog_selector'),
-                value: _selectedMarkerCatalogId ?? chunkMarkerEnemyIds.first,
-                items: chunkMarkerEnemyIds
-                    .map(
-                      (markerId) => DropdownMenuItem<String>(
-                        value: markerId,
-                        child: Text(markerId),
-                      ),
-                    )
-                    .toList(growable: false),
-                onChanged: _markerGesture.hasActiveOperation
-                    ? null
-                    : (markerId) =>
-                          setState(() => _selectedMarkerCatalogId = markerId),
+              ButtonSegment<ChunkSceneDomain>(
+                value: ChunkSceneDomain.prefabs,
+                label: Text('Prefabs'),
+              ),
+              ButtonSegment<ChunkSceneDomain>(
+                value: ChunkSceneDomain.markers,
+                label: Text('Markers'),
+              ),
+              ButtonSegment<ChunkSceneDomain>(
+                value: ChunkSceneDomain.layers,
+                label: Text('Layers'),
               ),
             ],
-          ],
-        ),
-        const SizedBox(height: 8),
-        _buildExpansionSummary(authoring),
-        const SizedBox(height: 4),
-        const Text(
-          'Direct terrain polygons are filled as an authoring preview only; '
-          'Core-compiled edges remain collision and navigation evidence.',
-          key: ValueKey<String>('chunk_polygon_source_fill_notice'),
+            selected: <ChunkSceneDomain>{_sceneCoordinator.sourceDomain},
+            onSelectionChanged: _hasActiveOperation || _visualPreview
+                ? null
+                : (selection) => _selectSceneDomain(selection.single),
+          ),
         ),
         const SizedBox(height: 4),
-        _buildSeamSummary(authoring),
-        if (_showActorTerrain) ...<Widget>[
-          const SizedBox(height: 4),
-          _buildActorTerrainSummary(),
-        ],
-        if (_showMarkerPlacements) ...<Widget>[
-          const SizedBox(height: 4),
-          _buildMarkerPlacementSummary(),
-        ],
+        IgnorePointer(
+          ignoring: _visualPreview,
+          child: Opacity(
+            opacity: _visualPreview ? 0.45 : 1,
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: <Widget>[
+                if (_sceneCoordinator.sourceDomain == ChunkSceneDomain.terrain)
+                  for (final tool in terrainPolygonSceneToolbarTools.where(
+                    (tool) => tool != TerrainPolygonTool.createPolygon,
+                  ))
+                    ChoiceChip(
+                      key: ValueKey<String>('chunk_polygon_tool_${tool.name}'),
+                      label: Text(_toolLabel(tool)),
+                      selected: authoring.state.tool == tool,
+                      onSelected:
+                          (authoring.state.draft == null &&
+                                  tool == TerrainPolygonTool.createPolygon) ||
+                              (authoring.state.draft != null &&
+                                  tool != TerrainPolygonTool.createPolygon &&
+                                  tool != TerrainPolygonTool.moveVertex &&
+                                  tool != TerrainPolygonTool.insertVertex)
+                          ? null
+                          : (_) => authoring.setTool(tool),
+                    )
+                else if (_sceneCoordinator.sourceDomain ==
+                    ChunkSceneDomain.prefabs) ...<Widget>[
+                  for (final tool in ChunkPrefabSceneTool.values)
+                    ChoiceChip(
+                      key: ValueKey<String>('chunk_prefab_tool_${tool.name}'),
+                      label: Text(_prefabToolLabel(tool)),
+                      selected: _prefabGesture.tool == tool,
+                      onSelected:
+                          _prefabGesture.hasActiveOperation ||
+                              (tool == ChunkPrefabSceneTool.place &&
+                                  _selectedCatalogPrefab(scene) == null)
+                          ? null
+                          : (_) => setState(() => _prefabGesture.setTool(tool)),
+                    ),
+                  DropdownButton<String>(
+                    key: const ValueKey<String>(
+                      'chunk_prefab_catalog_selector',
+                    ),
+                    value: _selectedCatalogPrefab(scene)?.prefabKey,
+                    hint: const Text('No active prefab'),
+                    items: _activePrefabCatalog(scene)
+                        .map(
+                          (prefab) => DropdownMenuItem<String>(
+                            value: prefab.prefabKey,
+                            child: Text(prefab.id),
+                          ),
+                        )
+                        .toList(growable: false),
+                    onChanged: _prefabGesture.hasActiveOperation
+                        ? null
+                        : (prefabKey) => setState(
+                            () => _selectedPrefabCatalogKey = prefabKey,
+                          ),
+                  ),
+                ] else if (_sceneCoordinator.sourceDomain ==
+                    ChunkSceneDomain.markers) ...<Widget>[
+                  for (final tool in ChunkMarkerSceneTool.values)
+                    ChoiceChip(
+                      key: ValueKey<String>('chunk_marker_tool_${tool.name}'),
+                      label: Text(_markerToolLabel(tool)),
+                      selected: _markerGesture.tool == tool,
+                      onSelected: _markerGesture.hasActiveOperation
+                          ? null
+                          : (_) => setState(() => _markerGesture.setTool(tool)),
+                    ),
+                  DropdownButton<String>(
+                    key: const ValueKey<String>(
+                      'chunk_marker_catalog_selector',
+                    ),
+                    value:
+                        _selectedMarkerCatalogId ?? chunkMarkerEnemyIds.first,
+                    items: chunkMarkerEnemyIds
+                        .map(
+                          (markerId) => DropdownMenuItem<String>(
+                            value: markerId,
+                            child: Text(markerId),
+                          ),
+                        )
+                        .toList(growable: false),
+                    onChanged: _markerGesture.hasActiveOperation
+                        ? null
+                        : (markerId) => setState(
+                            () => _selectedMarkerCatalogId = markerId,
+                          ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
         const SizedBox(height: 8),
         Text(
-          _inspectCompiledEdges
-              ? 'Primary input selects the nearest Core-compiled edge. '
-                    'Ctrl+drag pans and Ctrl+scroll zooms.'
+          _visualPreview
+              ? 'Visual preview shows runtime-facing chunk art only. Exit it '
+                    'to resume authoring; Ctrl+drag still pans and Ctrl+scroll '
+                    'zooms.'
               : _sceneCoordinator.sourceDomain == ChunkSceneDomain.prefabs
               ? 'Primary input selects the topmost prefab visual. Ctrl+drag '
                     'pans and Ctrl+scroll zooms.'
               : _sceneCoordinator.sourceDomain == ChunkSceneDomain.markers
               ? 'Primary input selects the topmost authored marker anchor. '
                     'Ctrl+drag pans and Ctrl+scroll zooms.'
+              : _sceneCoordinator.sourceDomain == ChunkSceneDomain.layers
+              ? 'Layer metadata is edited in the sidebar. Scene authoring '
+                    'input is paused; Ctrl+drag still pans and Ctrl+scroll '
+                    'zooms.'
               : authoring.state.tool == TerrainPolygonTool.createRectangle
               ? 'Drag across opposite corners to draw a rectangle draft. '
                     'Enter saves it and Escape cancels.'
@@ -869,13 +930,11 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
               );
               final chunk = authoring.chunk;
               final expansion = _expansionFor(chunk.chunkKey)?.expansion;
-              final actorProjection = _showActorTerrain
-                  ? _actorTerrainProjection
-                  : null;
               final markerProjection =
-                  (_showMarkerPlacements ||
-                      _sceneCoordinator.sourceDomain ==
-                          ChunkSceneDomain.markers)
+                  (!_visualPreview &&
+                      (_showMarkerPlacements ||
+                          _sceneCoordinator.sourceDomain ==
+                              ChunkSceneDomain.markers))
                   ? _markerPlacementProjection
                   : null;
               final visualProjection = ChunkSceneVisualProjection.fromChunk(
@@ -920,10 +979,16 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                 zoom: _zoom,
               );
               return EditorSceneViewportFrame(
+                showBorder: !_visualPreview,
                 child: ChunkSceneSurface(
                   controller: authoring,
                   transform: transform,
                   activeDomain: _sceneCoordinator.domain,
+                  semanticLabel: _visualPreview
+                      ? 'Chunk visual preview'
+                      : 'Chunk authoring scene',
+                  showAuthoringOverlay: !_visualPreview,
+                  interactionEnabled: !_visualPreview,
                   background: Stack(
                     fit: StackFit.expand,
                     children: <Widget>[
@@ -937,13 +1002,15 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                         transform: transform,
                         layer: ChunkPolygonLevelVisualLayer.background,
                       ),
-                      CustomPaint(
-                        painter: _ChunkBoundsPainter(
-                          chunk: chunk,
-                          transform: transform,
-                          paintFill: false,
+                      if (!_visualPreview)
+                        CustomPaint(
+                          key: const ValueKey<String>('chunk_bounds_overlay'),
+                          painter: _ChunkBoundsPainter(
+                            chunk: chunk,
+                            transform: transform,
+                            paintFill: false,
+                          ),
                         ),
-                      ),
                       if (belowTerrainVisuals.isNotEmpty)
                         ChunkSceneVisualSource(
                           key: const ValueKey<String>(
@@ -977,19 +1044,20 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                         transform: transform,
                         layer: ChunkPolygonLevelVisualLayer.foreground,
                       ),
-                      if (_expansionFor(chunk.chunkKey)?.expansion
-                          case final expansion?)
-                        IgnorePointer(
-                          child: CustomPaint(
-                            key: const ValueKey<String>(
-                              'chunk_expanded_collision_overlay',
-                            ),
-                            painter: ChunkExpandedCollisionOverlayPainter(
-                              expansion: expansion,
-                              transform: transform,
+                      if (!_visualPreview)
+                        if (_expansionFor(chunk.chunkKey)?.expansion
+                            case final expansion?)
+                          IgnorePointer(
+                            child: CustomPaint(
+                              key: const ValueKey<String>(
+                                'chunk_expanded_collision_overlay',
+                              ),
+                              painter: ChunkExpandedCollisionOverlayPainter(
+                                expansion: expansion,
+                                transform: transform,
+                              ),
                             ),
                           ),
-                        ),
                     ],
                   ),
                   foreground: Stack(
@@ -1004,7 +1072,20 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                           placements: atOrAboveTerrainVisuals,
                           transform: transform,
                         ),
-                      if (_sceneCoordinator.selectedPrefabKey != null &&
+                      if (!_visualPreview && _showGrid)
+                        IgnorePointer(
+                          child: CustomPaint(
+                            key: const ValueKey<String>(
+                              'chunk_tile_grid_overlay',
+                            ),
+                            painter: _ChunkTileGridPainter(
+                              chunk: chunk,
+                              transform: transform,
+                            ),
+                          ),
+                        ),
+                      if (!_visualPreview &&
+                          _sceneCoordinator.selectedPrefabKey != null &&
                           !_prefabGesture.hasActiveOperation)
                         CustomPaint(
                           key: const ValueKey<String>(
@@ -1017,7 +1098,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                             transform: transform,
                           ),
                         ),
-                      if (prefabCandidateVisual != null)
+                      if (!_visualPreview && prefabCandidateVisual != null)
                         Opacity(
                           key: const ValueKey<String>(
                             'chunk_prefab_gesture_preview',
@@ -1028,17 +1109,6 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                             placements: <ChunkScenePlacedVisual>[
                               prefabCandidateVisual,
                             ],
-                            transform: transform,
-                          ),
-                        ),
-                      if (actorProjection != null)
-                        CustomPaint(
-                          key: const ValueKey<String>(
-                            'chunk_actor_terrain_overlay',
-                          ),
-                          painter: ChunkActorTerrainOverlayPainter(
-                            projection: actorProjection,
-                            actor: _selectedTerrainActor,
                             transform: transform,
                           ),
                         ),
@@ -1062,17 +1132,20 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                             showResolvedEvidence: _showMarkerPlacements,
                           ),
                         ),
-                      if (_markerGesture.candidate case final marker?)
-                        CustomPaint(
-                          key: const ValueKey<String>(
-                            'chunk_marker_gesture_preview',
+                      if (!_visualPreview)
+                        if (_markerGesture.candidate case final marker?)
+                          CustomPaint(
+                            key: const ValueKey<String>(
+                              'chunk_marker_gesture_preview',
+                            ),
+                            painter: ChunkMarkerAnchorPreviewPainter(
+                              marker: marker,
+                              transform: transform,
+                            ),
                           ),
-                          painter: ChunkMarkerAnchorPreviewPainter(
-                            marker: marker,
-                            transform: transform,
-                          ),
-                        ),
-                      if (_showCompiledEdges && expansion != null)
+                      if (!_visualPreview &&
+                          _showShapeEdges &&
+                          expansion != null)
                         CustomPaint(
                           key: const ValueKey<String>(
                             'chunk_compiled_edge_overlay',
@@ -1086,10 +1159,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
                         ),
                     ],
                   ),
-                  onInspectWorldPoint: _inspectCompiledEdges
-                      ? (point) =>
-                            _inspectCompiledEdge(authoring, worldPoint: point)
-                      : null,
+                  onInspectWorldPoint: null,
                   onBeginDomainGesture: (pointer, point) => _beginDomainGesture(
                     scene: scene,
                     visualProjection: visualProjection,
@@ -1122,51 +1192,223 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       ..sort((left, right) => left.shapeId.compareTo(right.shapeId));
     final selection = authoring.state.selection;
     final selectedShape = _findShape(shapes, selection?.shapeId);
+    final creationMaterialValue = authoring.newShapeMaterialKey?.trim() ?? '';
+    final creationMaterialOptions = terrainMetadataSelectorOptions(
+      current: creationMaterialValue,
+      known:
+          _materialCatalog?.materials.map((material) => material.key) ??
+          const <String>[],
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        _buildShapeCreationPanel(
+          authoring,
+          creationMaterialValue: creationMaterialValue,
+          creationMaterialOptions: creationMaterialOptions,
+        ),
+        const SizedBox(height: _gap),
+        EditorSectionCard(
+          key: const ValueKey<String>('chunk_polygon_shapes_panel'),
+          expansionKey: const ValueKey<String>(
+            'chunk_polygon_shapes_panel_toggle',
+          ),
+          title: 'Existing terrain shapes',
+          description: shapes.isEmpty
+              ? 'Saved direct collision shapes will appear here.'
+              : 'Select a shape to edit its metadata, geometry, or lifecycle.',
+          trailing: Text('${shapes.length} total'),
+          collapsible: true,
+          child: Column(
+            key: const ValueKey<String>('chunk_shape_list'),
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              if (shapes.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Text(
+                    'No existing terrain shapes. Use the creation card above '
+                    'to draw the first one.',
+                  ),
+                )
+              else
+                for (final shape in shapes) ...<Widget>[
+                  _buildExistingShapeCard(
+                    authoring,
+                    shape,
+                    selected: selection?.shapeId == shape.shapeId,
+                  ),
+                  if (selectedShape?.shapeId == shape.shapeId)
+                    Padding(
+                      key: const ValueKey<String>(
+                        'chunk_polygon_selected_shape_editor',
+                      ),
+                      padding: const EdgeInsets.fromLTRB(8, 4, 8, 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: <Widget>[
+                          Text(
+                            'Edit ${shape.shapeId}',
+                            style: Theme.of(context).textTheme.titleSmall,
+                          ),
+                          const SizedBox(height: 8),
+                          _buildTerrainSnapSwitch(
+                            authoring,
+                            keyName: 'chunk_polygon_edit_snap_to_grid',
+                            forCreation: false,
+                          ),
+                          const SizedBox(height: 8),
+                          _buildSelectedShapeHeader(authoring, shape),
+                          const SizedBox(height: 8),
+                          _buildVertexInspector(authoring, shape),
+                        ],
+                      ),
+                    ),
+                ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildShapeCreationPanel(
+    ChunkPolygonAuthoringController authoring, {
+    required String creationMaterialValue,
+    required List<String> creationMaterialOptions,
+  }) {
     final draft = authoring.state.draft;
+    final gesture = authoring.state.gesture;
+    final rectangleGesture =
+        gesture?.kind == TerrainPolygonGestureKind.createRectangle;
+    final rectangleReady =
+        draft == null &&
+        gesture == null &&
+        authoring.state.tool == TerrainPolygonTool.createRectangle;
+    final polygonDraftActive = draft != null && !draft.isClosed;
     return EditorSectionCard(
-      key: const ValueKey<String>('chunk_polygon_shapes_panel'),
-      expansionKey: const ValueKey<String>('chunk_polygon_shapes_panel_toggle'),
-      title: 'Shapes',
+      key: const ValueKey<String>('chunk_polygon_creation_panel'),
+      expansionKey: const ValueKey<String>(
+        'chunk_polygon_creation_panel_toggle',
+      ),
+      title: 'Create terrain shape',
+      description:
+          'Choose collision and material first, then draw in the terrain scene.',
       collapsible: true,
       child: Column(
-        key: const ValueKey<String>('chunk_shape_list'),
+        key: const ValueKey<String>('chunk_polygon_creation_section'),
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          if (selectedShape != null) ...<Widget>[
-            _buildSelectedShapeHeader(authoring, selectedShape),
-            const SizedBox(height: 12),
+          TextFormField(
+            key: ValueKey<String>(
+              'chunk_polygon_creation_name_${authoring.newShapeNameGeneration}',
+            ),
+            initialValue: authoring.newShapeNameInput,
+            enabled: !authoring.hasActiveOperation,
+            decoration: InputDecoration(
+              labelText: 'Shape name (optional)',
+              hintText: 'Automatic: ${authoring.resolvedNewShapeName}',
+              helperText:
+                  'Lowercase letters, numbers, and underscores. Blank uses '
+                  'the automatic name.',
+              errorText: authoring.newShapeNameError,
+              border: const OutlineInputBorder(),
+            ),
+            onChanged: authoring.setNewShapeNameInput,
+          ),
+          const SizedBox(height: 8),
+          _buildMetadataDropdown<TerrainSourceCollisionMode>(
+            keyName: 'chunk_polygon_creation_mode_selector',
+            label: 'Collision',
+            value: authoring.newShapeCollisionMode,
+            items: TerrainSourceCollisionMode.values
+                .map(
+                  (mode) => DropdownMenuItem<TerrainSourceCollisionMode>(
+                    value: mode,
+                    child: Text(_collisionModeLabel(mode)),
+                  ),
+                )
+                .toList(growable: false),
+            onChanged: authoring.hasActiveOperation
+                ? null
+                : (mode) {
+                    if (mode == null) return;
+                    authoring.setNewShapeCollisionMode(mode);
+                  },
+          ),
+          const SizedBox(height: 8),
+          _buildMaterialDropdown(
+            keyName: 'chunk_polygon_creation_material_selector',
+            label: 'Material',
+            previewKeyPrefix: 'chunk_polygon_creation_material_preview',
+            value: creationMaterialValue,
+            options: creationMaterialOptions,
+            enabled: !authoring.hasActiveOperation,
+            onChanged: (next) {
+              authoring.setNewShapeMaterialKey(
+                nullableTerrainMetadataSelection(next),
+              );
+            },
+          ),
+          const SizedBox(height: 4),
+          _buildTerrainSnapSwitch(
+            authoring,
+            keyName: 'chunk_polygon_creation_snap_to_grid',
+            forCreation: true,
+          ),
+          if (draft != null || rectangleGesture || rectangleReady) ...<Widget>[
+            const SizedBox(height: 10),
+            _buildCreationStatus(
+              authoring,
+              draft: draft,
+              rectangleGesture: rectangleGesture,
+              rectangleReady: rectangleReady,
+            ),
           ],
+          const SizedBox(height: 10),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: <Widget>[
               FilledButton.icon(
                 key: const ValueKey<String>('chunk_polygon_new_shape'),
-                onPressed: draft != null
+                onPressed: polygonDraftActive
+                    ? authoring.state.tool == TerrainPolygonTool.createPolygon
+                          ? null
+                          : () => authoring.setTool(
+                              TerrainPolygonTool.createPolygon,
+                            )
+                    : authoring.hasActiveOperation ||
+                          !authoring.canBeginNewShape
                     ? null
                     : () {
                         authoring.setTool(TerrainPolygonTool.createPolygon);
                         authoring.beginCreatePolygon();
                       },
-                icon: const Icon(Icons.add),
-                label: const Text('New polygon'),
+                icon: const Icon(Icons.polyline),
+                label: Text(
+                  polygonDraftActive ? 'Continue drawing' : 'Draw polygon',
+                ),
               ),
-              OutlinedButton.icon(
+              FilledButton.tonalIcon(
                 key: const ValueKey<String>('chunk_polygon_new_rectangle'),
-                onPressed: draft != null
+                onPressed:
+                    authoring.hasActiveOperation || !authoring.canBeginNewShape
                     ? null
                     : () =>
                           authoring.setTool(TerrainPolygonTool.createRectangle),
                 icon: const Icon(Icons.crop_square),
-                label: const Text('New rectangle'),
+                label: const Text('Draw rectangle'),
               ),
               OutlinedButton.icon(
                 key: const ValueKey<String>('chunk_polygon_save_draft'),
-                onPressed: draft == null ? null : authoring.saveDraft,
+                onPressed: draft == null || draft.vertices.length < 3
+                    ? null
+                    : authoring.saveDraft,
                 icon: const Icon(Icons.save_outlined),
-                label: const Text('Save'),
+                label: const Text('Save shape'),
               ),
-              OutlinedButton(
+              TextButton(
                 key: const ValueKey<String>('chunk_polygon_cancel_draft'),
                 onPressed:
                     authoring.hasActiveOperation ||
@@ -1178,45 +1420,216 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          if (shapes.isEmpty)
-            const Text('No committed direct collision shapes.')
-          else
-            for (final shape in shapes)
-              Builder(
-                builder: (context) {
-                  final rectangle = TerrainAxisAlignedRectangle.tryFromShape(
-                    shape,
-                  );
-                  return EditorListCard(
-                    key: ValueKey<String>(
-                      'chunk_polygon_shape_${shape.shapeId}',
-                    ),
-                    isSelected: selection?.shapeId == shape.shapeId,
-                    onTap: () => authoring.select(
-                      TerrainPolygonSelection.shape(shape.shapeId),
-                    ),
-                    child: ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      selected: selection?.shapeId == shape.shapeId,
-                      title: Text(shape.shapeId),
-                      subtitle: Text(
-                        '${shape.collisionMode.name} · '
-                        '${rectangle == null ? '' : 'rectangle · '}'
-                        '${shape.vertices.length} vertices',
-                      ),
-                    ),
-                  );
-                },
-              ),
-          if (selectedShape != null) ...<Widget>[
-            const SizedBox(height: 8),
-            _buildVertexInspector(authoring, selectedShape),
-          ],
         ],
       ),
     );
   }
+
+  Widget _buildTerrainSnapSwitch(
+    ChunkPolygonAuthoringController authoring, {
+    required String keyName,
+    required bool forCreation,
+  }) {
+    final enabled = !authoring.hasActiveOperation && !_visualPreview;
+    return SwitchListTile(
+      key: ValueKey<String>(keyName),
+      contentPadding: EdgeInsets.zero,
+      title: const Text('Snap to grid'),
+      subtitle: Text(
+        'Snap vertices to the nearest ${authoring.chunk.tileSize} px tile '
+        'intersection.',
+      ),
+      value: forCreation
+          ? authoring.creationSnapToGrid
+          : authoring.editSnapToGrid,
+      onChanged: enabled
+          ? (selected) {
+              if (forCreation) {
+                _terrainCreationSnapToGrid = selected;
+                authoring.setCreationSnapToGrid(selected);
+              } else {
+                _terrainEditSnapToGrid = selected;
+                authoring.setEditSnapToGrid(selected);
+              }
+            }
+          : null,
+    );
+  }
+
+  Widget _buildMaterialDropdown({
+    required String keyName,
+    required String label,
+    required String previewKeyPrefix,
+    required String value,
+    required List<String> options,
+    required bool enabled,
+    required ValueChanged<String> onChanged,
+  }) {
+    return InputDecorator(
+      decoration: InputDecoration(labelText: label),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          key: ValueKey<String>(keyName),
+          value: value,
+          isDense: true,
+          isExpanded: true,
+          selectedItemBuilder: (context) => options
+              .map(
+                (option) => Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: Text(
+                    terrainMaterialSelectorLabel(_materialCatalog, option),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              )
+              .toList(growable: false),
+          items: options
+              .map(
+                (option) => DropdownMenuItem<String>(
+                  value: option,
+                  child: Row(
+                    children: <Widget>[
+                      Expanded(
+                        child: Text(
+                          terrainMaterialSelectorLabel(
+                            _materialCatalog,
+                            option,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (option.isNotEmpty) ...<Widget>[
+                        const SizedBox(width: 8),
+                        IconButton(
+                          key: ValueKey<String>('${previewKeyPrefix}_$option'),
+                          tooltip: 'Preview $option',
+                          visualDensity: VisualDensity.compact,
+                          onPressed: !enabled
+                              ? null
+                              : () {
+                                  Navigator.of(context).pop();
+                                  _showReadOnlyMaterialPreview(option);
+                                },
+                          icon: const Icon(Icons.visibility_outlined),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              )
+              .toList(growable: false),
+          onChanged: enabled && options.length > 1
+              ? (next) {
+                  if (next == null || next == value) return;
+                  onChanged(next);
+                }
+              : null,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCreationStatus(
+    ChunkPolygonAuthoringController authoring, {
+    required TerrainPolygonDraft? draft,
+    required bool rectangleGesture,
+    required bool rectangleReady,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final (title, message) = switch ((
+      draft,
+      rectangleGesture,
+      rectangleReady,
+    )) {
+      (_, true, _) => (
+        'Drawing rectangle',
+        '${_collisionModeLabel(authoring.newShapeCollisionMode)} · '
+            '${_creationMaterialLabel(authoring.newShapeMaterialKey)}. '
+            'Release when the preview reaches the intended corner.',
+      ),
+      (final draft?, _, _) => (
+        draft.isClosed ? 'Rectangle draft ready' : 'Polygon draft in progress',
+        '${_collisionModeLabel(draft.collisionMode)} · '
+            '${_creationMaterialLabel(draft.materialKey)} · '
+            '${draft.vertices.length} vertices. '
+            '${draft.vertices.length < 3 ? 'Add at least 3 vertices.' : 'Ready to save or keep editing.'}',
+      ),
+      _ => (
+        'Rectangle tool ready',
+        'Drag between opposite corners in the terrain scene.',
+      ),
+    };
+    return Container(
+      key: const ValueKey<String>('chunk_polygon_creation_status'),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Icon(Icons.edit_outlined, color: colorScheme.primary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(title, style: Theme.of(context).textTheme.labelLarge),
+                const SizedBox(height: 2),
+                Text(message),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExistingShapeCard(
+    ChunkPolygonAuthoringController authoring,
+    TerrainSourceShapeDef shape, {
+    required bool selected,
+  }) {
+    final rectangle = TerrainAxisAlignedRectangle.tryFromShape(shape);
+    return EditorListCard(
+      key: ValueKey<String>('chunk_polygon_shape_${shape.shapeId}'),
+      isSelected: selected,
+      onTap: () => _selectOrCloseShape(authoring, shape),
+      child: ListTile(
+        contentPadding: EdgeInsets.zero,
+        selected: selected,
+        leading: Icon(switch (shape.collisionMode) {
+          TerrainSourceCollisionMode.solid => Icons.square_outlined,
+          TerrainSourceCollisionMode.oneWay => Icons.horizontal_rule,
+          TerrainSourceCollisionMode.none => Icons.layers_clear_outlined,
+        }),
+        title: Text(shape.shapeId),
+        subtitle: Text(
+          '${_collisionModeLabel(shape.collisionMode)}'
+          '${rectangle == null ? '' : ' · Rectangle'}'
+          '${shape.materialKey == null ? '' : ' · ${shape.materialKey}'}',
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: Text('${shape.vertices.length} vertices'),
+      ),
+    );
+  }
+
+  String _creationMaterialLabel(String? materialKey) {
+    final value = materialKey?.trim() ?? '';
+    return value.isEmpty
+        ? 'No material'
+        : terrainMaterialSelectorLabel(_materialCatalog, value);
+  }
+
+  String _collisionModeLabel(TerrainSourceCollisionMode collisionMode) =>
+      switch (collisionMode) {
+        TerrainSourceCollisionMode.solid => 'Solid',
+        TerrainSourceCollisionMode.oneWay => 'One-way',
+        TerrainSourceCollisionMode.none => 'No collision (visual only)',
+      };
 
   Widget _buildSelectedShapeHeader(
     ChunkPolygonAuthoringController authoring,
@@ -1255,666 +1668,6 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     ],
   );
 
-  Widget _buildDiagnosticsPanel(
-    ChunkPolygonAuthoringController authoring,
-    List<ValidationIssue> issues,
-  ) => EditorSectionCard(
-    key: const ValueKey<String>('chunk_polygon_diagnostics_panel'),
-    expansionKey: const ValueKey<String>(
-      'chunk_polygon_diagnostics_panel_toggle',
-    ),
-    title: 'Diagnostics',
-    collapsible: true,
-    child: Column(
-      key: const ValueKey<String>('chunk_diagnostics_list'),
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        _buildCompiledEdgeInspector(authoring),
-        _buildExpandedPrefabShapes(authoring),
-        if (_showMarkerPlacements) _buildMarkerPlacementInspector(),
-        const Divider(height: 28),
-        if (issues.isEmpty)
-          const Text('No issues for this direct owner.')
-        else
-          for (final issue in issues)
-            ListTile(
-              key: ValueKey<String>(
-                'chunk_polygon_issue_${issue.code}_${issue.shapeId}_'
-                '${issue.elementIndex}',
-              ),
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(
-                issue.severity == ValidationSeverity.error
-                    ? Icons.error_outline
-                    : Icons.warning_amber_outlined,
-                color: issue.severity == ValidationSeverity.error
-                    ? const Color(0xFFFF7F7F)
-                    : const Color(0xFFFFD166),
-              ),
-              title: Text(issue.code),
-              subtitle: Text(issue.message),
-              onTap: issue.shapeId == null || issue.placementKey != null
-                  ? null
-                  : () => _focusIssue(authoring, issue),
-            ),
-      ],
-    ),
-  );
-
-  Widget _buildSeamPanel(ChunkPolygonAuthoringController authoring) =>
-      EditorSectionCard(
-        key: const ValueKey<String>('chunk_polygon_seams_panel'),
-        expansionKey: const ValueKey<String>(
-          'chunk_polygon_seams_panel_toggle',
-        ),
-        title: 'Reachable chunk seams',
-        collapsible: true,
-        child: Column(
-          key: const ValueKey<String>('chunk_seam_list'),
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[_buildSeamInspector(authoring)],
-        ),
-      );
-
-  Widget _buildExpansionSummary(ChunkPolygonAuthoringController authoring) {
-    final result = _expansionFor(authoring.chunkKey);
-    final expansion = result?.expansion;
-    if (expansion == null) {
-      return const Text(
-        'Expanded prefab collision unavailable while expansion has blocking '
-        'source or compiler issues.',
-        key: ValueKey<String>('chunk_collision_expansion_unavailable'),
-        style: TextStyle(color: Color(0xFFFFD166)),
-      );
-    }
-    return Text(
-      '${expansion.directShapeCount} direct + '
-      '${expansion.expandedPrefabShapeCount} expanded = '
-      '${expansion.totalShapeCount}/${TerrainGeometryLimits.maxShapesPerChunk} '
-      'shapes · ${expansion.exposedEdgeCount}/'
-      '${TerrainGeometryLimits.maxExposedEdgesPerChunk} exposed edges',
-      key: const ValueKey<String>('chunk_collision_expansion_summary'),
-    );
-  }
-
-  Widget _buildSeamSummary(ChunkPolygonAuthoringController authoring) {
-    final scene = _sceneOrNull;
-    if (scene == null) return const SizedBox.shrink();
-    final seams = scene.seamAnalysis.seamsForChunk(authoring.chunkKey);
-    if (authoring.chunk.status == chunkStatusDeprecated) {
-      return const Text(
-        'Deprecated chunk · excluded from scheduler seam candidates',
-        key: ValueKey<String>('chunk_seam_summary'),
-      );
-    }
-    if (seams.isEmpty) {
-      return const Text(
-        'No resolved scheduler seam candidates',
-        key: ValueKey<String>('chunk_seam_summary'),
-        style: TextStyle(color: Color(0xFFFFD166)),
-      );
-    }
-    final failing = seams.where((seam) => !seam.comparison.isCompatible).length;
-    final neighbors = <String>{
-      for (final seam in seams)
-        seam.transition.leftChunkKey == authoring.chunkKey
-            ? seam.transition.rightChunkKey
-            : seam.transition.leftChunkKey,
-    };
-    return Text(
-      '${neighbors.length} reachable neighbor(s) · ${seams.length} directed '
-      'scheduler seam(s) · ${seams.length - failing} compatible · '
-      '$failing failing',
-      key: const ValueKey<String>('chunk_seam_summary'),
-      style: failing == 0 ? null : const TextStyle(color: Color(0xFFFF7F7F)),
-    );
-  }
-
-  Widget _buildActorTerrainSummary() {
-    final projection = _actorTerrainProjection;
-    if (projection == null) {
-      return const Text(
-        'Actor terrain evidence is unavailable while accepted compiled '
-        'geometry is unavailable.',
-        key: ValueKey<String>('chunk_actor_terrain_unavailable'),
-        style: TextStyle(color: Color(0xFFFFD166)),
-      );
-    }
-    final text = switch (_selectedTerrainActor) {
-      ChunkV2TerrainActor.eloise =>
-        '${projection.groundedView(_selectedTerrainActor)!.eligibleSurfaces.length} '
-            'eligible surfaces · player pathfinding graph is not defined',
-      ChunkV2TerrainActor.grojib || ChunkV2TerrainActor.hashash =>
-        _groundedGraphSummary(projection.groundedView(_selectedTerrainActor)!),
-      ChunkV2TerrainActor.unoco =>
-        '${projection.unocoSolidBlockerIds.length} solid blockers · '
-            '${projection.unocoLocalHoverCandidateIds.length} local-hover '
-            'surface candidates · no flight graph',
-      ChunkV2TerrainActor.derf =>
-        '${projection.derfPerches.where((item) => item.perchEligible).length} '
-            'perch-eligible surfaces · 32 px minimum horizontal support span',
-    };
-    return Text(
-      text,
-      key: const ValueKey<String>('chunk_actor_terrain_summary'),
-    );
-  }
-
-  Widget _buildMarkerPlacementSummary() {
-    final projection = _markerPlacementProjection;
-    if (projection == null) {
-      return const Text(
-        'Marker placement evidence is unavailable while accepted compiled '
-        'geometry or level ground context is unavailable.',
-        key: ValueKey<String>('chunk_marker_placement_unavailable'),
-        style: TextStyle(color: Color(0xFFFFD166)),
-      );
-    }
-    var accepted = 0;
-    var rejected = 0;
-    var deferred = 0;
-    var inactive = 0;
-    for (final outcome in projection.outcomes) {
-      switch (outcome.disposition) {
-        case ChunkV2MarkerPlacementDisposition.guaranteedAccepted:
-        case ChunkV2MarkerPlacementDisposition.conditionalAccepted:
-          accepted += 1;
-        case ChunkV2MarkerPlacementDisposition.guaranteedRejected:
-        case ChunkV2MarkerPlacementDisposition.conditionalRejected:
-          rejected += 1;
-        case ChunkV2MarkerPlacementDisposition.deferredGuaranteed:
-        case ChunkV2MarkerPlacementDisposition.deferredConditional:
-          deferred += 1;
-        case ChunkV2MarkerPlacementDisposition.disabled:
-        case ChunkV2MarkerPlacementDisposition.malformed:
-          inactive += 1;
-      }
-    }
-    return Text(
-      '${projection.outcomes.length} authored marker(s) · $accepted accepted · '
-      '$rejected rejected · $deferred deferred · $inactive inactive/malformed '
-      '· 0 RNG draws',
-      key: const ValueKey<String>('chunk_marker_placement_summary'),
-    );
-  }
-
-  String _groundedGraphSummary(ChunkV2GroundedTerrainView view) {
-    final graph = view.graph!;
-    var walk = 0;
-    var jump = 0;
-    var drop = 0;
-    for (final edge in graph.edges) {
-      switch (edge.kind) {
-        case TerrainSurfaceEdgeKind.walk:
-          walk += 1;
-        case TerrainSurfaceEdgeKind.jump:
-          jump += 1;
-        case TerrainSurfaceEdgeKind.drop:
-          drop += 1;
-      }
-    }
-    return '${view.eligibleSurfaces.length} eligible surfaces · '
-        '$walk walk / $jump jump / $drop drop directed graph edges';
-  }
-
-  Widget _buildCompiledEdgeInspector(
-    ChunkPolygonAuthoringController authoring,
-  ) {
-    final expansion = _expansionFor(authoring.chunkKey)?.expansion;
-    final inspection = expansion == null
-        ? null
-        : inspectChunkV2CompiledEdge(
-            expansion,
-            _sceneCoordinator.selectedCompiledEdgeId,
-          );
-    if (inspection == null) {
-      return _inspectCompiledEdges
-          ? const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Divider(height: 28),
-                Text(
-                  'Select a compiled edge in the scene to inspect exact Core '
-                  'facts.',
-                  key: ValueKey<String>('chunk_compiled_edge_empty_inspector'),
-                ),
-              ],
-            )
-          : const SizedBox.shrink();
-    }
-    final edge = inspection.edge;
-    final placementKey = edge.id.placementKey;
-    ChunkV2ExpandedPrefabShape? placedShape;
-    if (placementKey != null) {
-      for (final shape in expansion!.expandedPrefabShapes) {
-        if (shape.placementKey == placementKey &&
-            shape.shapeId == edge.id.shapeId) {
-          placedShape = shape;
-          break;
-        }
-      }
-    }
-    final lineage = placedShape == null
-        ? 'direct chunk shape ${edge.id.shapeId}'
-        : 'prefab ${placedShape.prefabKey} rev ${placedShape.prefabRevision} · '
-              'placement $placementKey · shape ${edge.id.shapeId}';
-    final relatedIssues = _ownerIssues(authoring)
-        .where(
-          (issue) =>
-              issue.shapeId == edge.id.shapeId &&
-              issue.placementKey == placementKey,
-        )
-        .toList(growable: false);
-    return Column(
-      key: const ValueKey<String>('chunk_compiled_edge_inspector'),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        const Divider(height: 28),
-        Text('Compiled edge', style: Theme.of(context).textTheme.titleSmall),
-        const SizedBox(height: 4),
-        SelectableText(edge.id.canonicalKey),
-        Text(lineage),
-        Text(
-          'start (${TerrainPhysicsText.formatTicks(edge.start.xTicks)}, '
-          '${TerrainPhysicsText.formatTicks(edge.start.yTicks)}) px → '
-          'end (${TerrainPhysicsText.formatTicks(edge.end.xTicks)}, '
-          '${TerrainPhysicsText.formatTicks(edge.end.yTicks)}) px',
-        ),
-        Text(
-          'tangent (${edge.tangent.xTicks}, ${edge.tangent.yTicks}) / '
-          '1024 · outward normal (${edge.outwardNormal.xTicks}, '
-          '${edge.outwardNormal.yTicks}) / 1024',
-        ),
-        Text(
-          'absolute slope '
-          '${TerrainPhysicsText.formatSlopeAngleUnits(inspection.absoluteSlopeAngleUnits)}° '
-          '(${inspection.absoluteSlopeAngleUnits} units)',
-        ),
-        Text(
-          'mode ${edge.collisionMode.name} · '
-          'surface ${edge.surfaceKind ?? '—'} · '
-          'material ${edge.materialKey ?? '—'}',
-        ),
-        Text(
-          'joins ${edge.startJoin.name} → ${edge.endJoin.name} · '
-          'previous ${edge.previousId?.canonicalKey ?? '—'} · '
-          'next ${edge.nextId?.canonicalKey ?? '—'}',
-        ),
-        if (_showActorTerrain && _actorTerrainProjection != null)
-          _buildActorEdgeEvidence(edge.id),
-        if (relatedIssues.isEmpty)
-          const Text('diagnostics none')
-        else
-          for (final issue in relatedIssues)
-            Text('diagnostic ${issue.code}: ${issue.message}'),
-      ],
-    );
-  }
-
-  Widget _buildActorEdgeEvidence(TerrainEdgeId edgeId) {
-    final projection = _actorTerrainProjection!;
-    final actorLabel = _terrainActorLabel(_selectedTerrainActor);
-    switch (_selectedTerrainActor) {
-      case ChunkV2TerrainActor.eloise:
-      case ChunkV2TerrainActor.grojib:
-      case ChunkV2TerrainActor.hashash:
-        final view = projection.groundedView(_selectedTerrainActor)!;
-        final surfaceIndex = projection.surfaceSet.indexOfId(edgeId);
-        final graph = view.graph;
-        final outgoing = surfaceIndex == null || graph == null
-            ? const <TerrainSurfaceGraphEdge>[]
-            : graph.edgesFor(surfaceIndex).toList(growable: false);
-        final walk = outgoing
-            .where((edge) => edge.kind == TerrainSurfaceEdgeKind.walk)
-            .length;
-        final jump = outgoing
-            .where((edge) => edge.kind == TerrainSurfaceEdgeKind.jump)
-            .length;
-        final drop = outgoing
-            .where((edge) => edge.kind == TerrainSurfaceEdgeKind.drop)
-            .length;
-        return Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: Text(
-            '$actorLabel: navigation surface '
-            '${surfaceIndex == null ? 'no' : 'yes'} · eligible '
-            '${view.isEligible(edgeId) ? 'yes' : 'no'} · max slope '
-            '${TerrainPhysicsText.formatSlopeAngleUnits(view.traversalProfile.maxWalkableSlopeAngleUnits)}°'
-            '${graph == null ? ' · no player graph' : ' · outgoing $walk walk / $jump jump / $drop drop'}',
-            key: const ValueKey<String>('chunk_actor_edge_evidence'),
-          ),
-        );
-      case ChunkV2TerrainActor.unoco:
-        return Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: Text(
-            '$actorLabel: solid blocker '
-            '${projection.isUnocoSolidBlocker(edgeId) ? 'yes' : 'no'} · '
-            'local-hover surface candidate '
-            '${projection.isUnocoLocalHoverCandidate(edgeId) ? 'yes' : 'no'} '
-            '· one-way terrain ignored · no flight graph',
-            key: const ValueKey<String>('chunk_actor_edge_evidence'),
-          ),
-        );
-      case ChunkV2TerrainActor.derf:
-        final evidence = projection.derfPerchEvidence(edgeId);
-        return Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: Text(
-            '$actorLabel: upward surface ${evidence == null ? 'no' : 'yes'} · '
-            'solid/≤15° ${evidence?.slopeAndModeEligible == true ? 'yes' : 'no'} · '
-            'horizontal span '
-            '${evidence == null ? '—' : '${TerrainPhysicsText.formatTicks(evidence.surface.dxTicks)} px'} '
-            '/ ${TerrainPhysicsText.formatTicks(derfMinimumSupportSpanTicks)} px '
-            '${evidence?.supportSpanEligible == true ? 'pass' : 'fail'} · '
-            'perch ${evidence?.perchEligible == true ? 'eligible' : 'ineligible'}',
-            key: const ValueKey<String>('chunk_actor_edge_evidence'),
-          ),
-        );
-    }
-  }
-
-  Widget _buildExpandedPrefabShapes(ChunkPolygonAuthoringController authoring) {
-    final expansion = _expansionFor(authoring.chunkKey)?.expansion;
-    if (expansion == null || expansion.expandedPrefabShapes.isEmpty) {
-      return const SizedBox.shrink();
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        const Divider(height: 28),
-        Text(
-          'Read-only prefab collision',
-          style: Theme.of(context).textTheme.titleSmall,
-        ),
-        const SizedBox(height: 4),
-        const Text(
-          'Edit these source shapes in Prefab Creator; chunk placements own '
-          'only their transform.',
-        ),
-        for (final shape in expansion.expandedPrefabShapes)
-          ListTile(
-            key: ValueKey<String>(
-              'chunk_expanded_shape_${shape.placementKey}_${shape.shapeId}',
-            ),
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.lock_outline, size: 18),
-            title: Text('${shape.prefabId} · ${shape.shapeId}'),
-            subtitle: Text(
-              'prefab ${shape.prefabKey} rev ${shape.prefabRevision}\n'
-              'placement ${shape.placementKey} · '
-              '@ (${shape.placementX}, ${shape.placementY}) · '
-              'scale ${(shape.scaleTenths / 10).toStringAsFixed(1)}',
-            ),
-            isThreeLine: true,
-            trailing: widget.onOpenOwningPrefab == null
-                ? null
-                : OutlinedButton.icon(
-                    key: ValueKey<String>(
-                      'chunk_open_prefab_${shape.placementKey}_${shape.shapeId}',
-                    ),
-                    onPressed:
-                        widget.controller.isLoading ||
-                            widget.controller.isExporting
-                        ? null
-                        : () => widget.onOpenOwningPrefab!(shape.prefabKey),
-                    icon: const Icon(Icons.open_in_new, size: 18),
-                    label: const Text('Open prefab'),
-                  ),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildSeamInspector(ChunkPolygonAuthoringController authoring) {
-    final scene = _sceneOrNull;
-    final seams =
-        scene?.seamAnalysis.seamsForChunk(authoring.chunkKey) ??
-        const <ChunkV2ReachableSeam>[];
-    return Column(
-      key: const ValueKey<String>('chunk_seam_inspector'),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        const Text(
-          'Read-only scheduler evidence from exact compiled boundaries. '
-          'Material-key differences are retained as advisory evidence and do not block '
-          'this physical seam gate.',
-        ),
-        if (authoring.chunk.status == chunkStatusDeprecated)
-          const Padding(
-            padding: EdgeInsets.only(top: 8),
-            child: Text(
-              'This deprecated chunk is not eligible for runtime selection.',
-            ),
-          )
-        else if (seams.isEmpty)
-          const Padding(
-            padding: EdgeInsets.only(top: 8),
-            child: Text(
-              'No seam comparison is available. Check scheduler pool and '
-              'compiled-geometry diagnostics.',
-            ),
-          )
-        else
-          for (final seam in seams)
-            _buildSeamEvidenceCard(authoring.chunkKey, seam),
-      ],
-    );
-  }
-
-  Widget _buildSeamEvidenceCard(
-    String selectedChunkKey,
-    ChunkV2ReachableSeam seam,
-  ) {
-    final transition = seam.transition;
-    final comparison = seam.comparison;
-    final selectedIsLeft = transition.leftChunkKey == selectedChunkKey;
-    final neighborKey = selectedIsLeft
-        ? transition.rightChunkKey
-        : transition.leftChunkKey;
-    final direction = selectedIsLeft
-        ? 'right → $neighborKey'
-        : '$neighborKey → left';
-    final mismatchCoordinates = comparison.mismatchYTicks
-        .map(TerrainPhysicsText.formatTicks)
-        .join(', ');
-    return Card(
-      key: ValueKey<String>(
-        'chunk_seam_${transition.transitionId}_'
-        '${transition.leftChunkKey}_${transition.rightChunkKey}',
-      ),
-      child: ListTile(
-        dense: true,
-        leading: Icon(
-          comparison.isCompatible
-              ? Icons.link_outlined
-              : Icons.link_off_outlined,
-          color: comparison.isCompatible
-              ? const Color(0xFF8BD3A8)
-              : const Color(0xFFFF7F7F),
-        ),
-        title: Text(
-          '$direction · ${comparison.isCompatible ? 'compatible' : 'failing'}',
-        ),
-        subtitle: Text(
-          '${transition.transitionId}\n${transition.description}'
-          '${comparison.isCompatible ? '' : '\nmismatch y=[$mismatchCoordinates] px'}'
-          '${comparison.materialMismatchVertices.isEmpty ? '' : '\nmaterial evidence at ${comparison.materialMismatchVertices.length} endpoint(s)'}',
-        ),
-        isThreeLine: true,
-      ),
-    );
-  }
-
-  Widget _buildMarkerPlacementInspector() {
-    final projection = _markerPlacementProjection;
-    if (projection == null) {
-      return const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Divider(height: 28),
-          Text(
-            'Marker placement diagnostics require accepted compiled geometry '
-            'and a resolved level ground plane.',
-          ),
-        ],
-      );
-    }
-    final selected = projection.outcomeFor(_sceneCoordinator.selectedMarkerKey);
-    return Column(
-      key: const ValueKey<String>('chunk_marker_placement_inspector'),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        const Divider(height: 28),
-        Text(
-          'Authored marker placement',
-          style: Theme.of(context).textTheme.titleSmall,
-        ),
-        const SizedBox(height: 4),
-        const Text(
-          'Advisory only: source order, chance, and salt are preserved; no '
-          'random roll or source mutation occurs. Hashash placement is '
-          'deferred by runtime. Procedural collectible/restoration candidates '
-          'have no authored marker records and are not fabricated here. '
-          'Projectile motion is outside this marker preview; runtime ballistic '
-          'projectiles sweep the admitted terrain.',
-        ),
-        if (projection.outcomes.isEmpty)
-          const Padding(
-            padding: EdgeInsets.only(top: 8),
-            child: Text('This chunk has no authored enemy markers.'),
-          )
-        else
-          for (final outcome in projection.outcomes)
-            Card(
-              key: ValueKey<String>(
-                'chunk_marker_placement_${outcome.selectionKey}',
-              ),
-              child: ListTile(
-                dense: true,
-                selected:
-                    outcome.selectionKey == _sceneCoordinator.selectedMarkerKey,
-                onTap: () => _selectMarkerByKey(
-                  authoringChunk: _authoring?.chunk,
-                  selectionKey: outcome.selectionKey,
-                ),
-                leading: Icon(_markerDispositionIcon(outcome.disposition)),
-                title: Text(
-                  '#${outcome.sourceIndex + 1} ${outcome.marker.markerId}',
-                ),
-                subtitle: Text(
-                  '${outcome.marker.chancePercent}% · '
-                  '${outcome.marker.placement} · ${outcome.code}',
-                ),
-              ),
-            ),
-        if (selected != null) _buildSelectedMarkerEvidence(selected),
-      ],
-    );
-  }
-
-  Widget _buildSelectedMarkerEvidence(ChunkV2MarkerPlacementOutcome outcome) {
-    final marker = outcome.marker;
-    final profile = outcome.profile;
-    final result = outcome.result;
-    return Column(
-      key: const ValueKey<String>('chunk_selected_marker_evidence'),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        const SizedBox(height: 8),
-        Text('Selected marker', style: Theme.of(context).textTheme.titleSmall),
-        SelectableText(outcome.selectionKey),
-        Text(
-          'source order ${outcome.sourceIndex + 1} · authored anchor '
-          '(${marker.x}, ${marker.y}) px · chance ${marker.chancePercent}% · '
-          'salt ${marker.salt}',
-        ),
-        Text(
-          'intent ${marker.placement} · disposition '
-          '${_markerDispositionLabel(outcome.disposition)}',
-        ),
-        Text(outcome.message),
-        if (outcome.malformedCodes.isNotEmpty)
-          Text('contract errors ${outcome.malformedCodes.join(', ')}'),
-        Text(
-          'intended edge '
-          '${outcome.intendedSurface?.id.canonicalKey ?? '—'}',
-        ),
-        if (profile != null)
-          Text(
-            'profile ${profile.diagnosticKey} · capsule radius '
-            '${TerrainPhysicsText.formatTicks(profile.capsule.radiusTicks)} px '
-            '· half-spine '
-            '${TerrainPhysicsText.formatTicks(profile.capsule.verticalHalfSegmentTicks)} px '
-            '· offset '
-            '(${TerrainPhysicsText.formatTicks(profile.capsule.resolvedOffsetXTicks)}, '
-            '${TerrainPhysicsText.formatTicks(profile.capsule.offsetYTicks)}) px',
-          ),
-        if (result != null) ...<Widget>[
-          Text(
-            'Core ${result.validity.name} · requested body '
-            '${_formatPhysicsPoint(result.requestedBodyCenter)} · accepted '
-            'body ${_formatPhysicsPoint(result.bodyCenter)}',
-          ),
-          Text(
-            'support ${result.supportEdgeId?.canonicalKey ?? '—'} · point '
-            '${_formatPhysicsPoint(result.supportPoint)} · blocker '
-            '${result.blockingEdgeId?.canonicalKey ?? '—'}',
-          ),
-          Text(
-            'slope '
-            '${result.absoluteSlopeAngleUnits == null ? '—' : '${TerrainPhysicsText.formatSlopeAngleUnits(result.absoluteSlopeAngleUnits!)}°'} '
-            '· same-support clamp ${result.sameSupportClamped ? 'yes' : 'no'}',
-          ),
-          const SizedBox(height: 4),
-          SelectableText(result.diagnostic),
-        ],
-      ],
-    );
-  }
-
-  IconData _markerDispositionIcon(
-    ChunkV2MarkerPlacementDisposition disposition,
-  ) => switch (disposition) {
-    ChunkV2MarkerPlacementDisposition.guaranteedAccepted =>
-      Icons.check_circle_outline,
-    ChunkV2MarkerPlacementDisposition.conditionalAccepted => Icons.help_outline,
-    ChunkV2MarkerPlacementDisposition.guaranteedRejected =>
-      Icons.cancel_outlined,
-    ChunkV2MarkerPlacementDisposition.conditionalRejected =>
-      Icons.warning_amber_outlined,
-    ChunkV2MarkerPlacementDisposition.disabled => Icons.pause_circle_outline,
-    ChunkV2MarkerPlacementDisposition.deferredGuaranteed ||
-    ChunkV2MarkerPlacementDisposition.deferredConditional =>
-      Icons.schedule_outlined,
-    ChunkV2MarkerPlacementDisposition.malformed => Icons.error_outline,
-  };
-
-  String _markerDispositionLabel(
-    ChunkV2MarkerPlacementDisposition disposition,
-  ) => switch (disposition) {
-    ChunkV2MarkerPlacementDisposition.guaranteedAccepted =>
-      'guaranteed accepted',
-    ChunkV2MarkerPlacementDisposition.conditionalAccepted =>
-      'conditional accepted',
-    ChunkV2MarkerPlacementDisposition.guaranteedRejected =>
-      'required placement rejected',
-    ChunkV2MarkerPlacementDisposition.conditionalRejected =>
-      'conditional placement rejected',
-    ChunkV2MarkerPlacementDisposition.disabled => 'disabled',
-    ChunkV2MarkerPlacementDisposition.deferredGuaranteed =>
-      'guaranteed deferred',
-    ChunkV2MarkerPlacementDisposition.deferredConditional =>
-      'conditional deferred',
-    ChunkV2MarkerPlacementDisposition.malformed => 'malformed',
-  };
-
-  String _formatPhysicsPoint(TerrainPoint? point) => point == null
-      ? '—'
-      : '(${TerrainPhysicsText.formatTicks(point.xTicks)}, '
-            '${TerrainPhysicsText.formatTicks(point.yTicks)}) px';
-
   Widget _buildMetadataInspector(
     ChunkPolygonAuthoringController authoring,
     TerrainSourceShapeDef shape,
@@ -1932,11 +1685,33 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
           _materialCatalog?.materials.map((material) => material.key) ??
           const <String>[],
     );
+    final shapeNameInput = _shapeNameDrafts[shape.shapeId] ?? shape.shapeId;
+    final shapeNameError = authoring.validateShapeName(
+      shapeNameInput,
+      excludingShapeId: shape.shapeId,
+    );
     return Column(
       key: const ValueKey<String>('chunk_polygon_metadata_section'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         Text('Metadata', style: Theme.of(context).textTheme.titleSmall),
+        const SizedBox(height: 8),
+        TextFormField(
+          key: ValueKey<String>('chunk_polygon_shape_name_${shape.shapeId}'),
+          initialValue: shapeNameInput,
+          enabled: controlsEnabled,
+          decoration: InputDecoration(
+            labelText: 'Shape name',
+            helperText:
+                'Lowercase letters, numbers, and underscores; unique in '
+                'this chunk.',
+            errorText: shapeNameError,
+            border: const OutlineInputBorder(),
+          ),
+          onChanged: (value) {
+            setState(() => _shapeNameDrafts[shape.shapeId] = value);
+          },
+        ),
         const SizedBox(height: 8),
         _buildMetadataDropdown<TerrainSourceCollisionMode>(
           keyName: 'chunk_polygon_metadata_mode',
@@ -1986,49 +1761,20 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
               : null,
         ),
         const SizedBox(height: 8),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: <Widget>[
-            Expanded(
-              child: _buildMetadataDropdown<String>(
-                keyName: 'chunk_polygon_metadata_material_selector',
-                label: 'Material key',
-                value: materialValue,
-                items: materialOptions
-                    .map(
-                      (value) => DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(
-                          terrainMaterialSelectorLabel(_materialCatalog, value),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    )
-                    .toList(growable: false),
-                onChanged: controlsEnabled
-                    ? (value) {
-                        if (value == null || value == materialValue) return;
-                        authoring.editSelectedShapeMetadata(
-                          collisionMode: shape.collisionMode,
-                          surfaceKind: shape.surfaceKind,
-                          materialKey: nullableTerrainMetadataSelection(value),
-                        );
-                      }
-                    : null,
-              ),
-            ),
-            const SizedBox(width: 8),
-            OutlinedButton.icon(
-              key: const ValueKey<String>(
-                'chunk_polygon_material_preview_button',
-              ),
-              onPressed: materialValue.isEmpty
-                  ? null
-                  : () => _showReadOnlyMaterialPreview(materialValue),
-              icon: const Icon(Icons.visibility_outlined),
-              label: const Text('Preview'),
-            ),
-          ],
+        _buildMaterialDropdown(
+          keyName: 'chunk_polygon_metadata_material_selector',
+          label: 'Material key',
+          previewKeyPrefix: 'chunk_polygon_metadata_material_preview',
+          value: materialValue,
+          options: materialOptions,
+          enabled: controlsEnabled,
+          onChanged: (value) {
+            authoring.editSelectedShapeMetadata(
+              collisionMode: shape.collisionMode,
+              surfaceKind: shape.surfaceKind,
+              materialKey: nullableTerrainMetadataSelection(value),
+            );
+          },
         ),
       ],
     );
@@ -2105,35 +1851,13 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
             selection?.kind == TerrainPolygonSelectionKind.vertex
         ? selection?.elementIndex
         : null;
+    final shapeNameError = authoring.validateShapeName(
+      _pendingShapeName(shape),
+      excludingShapeId: shape.shapeId,
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        if (rectangle != null) ...<Widget>[
-          TerrainPolygonRectangleEditor(
-            key: ValueKey<String>(
-              'chunk_polygon_rectangle_editor_${shape.shapeId}_'
-              '${rectangle.xHalfPixels}_${rectangle.yHalfPixels}_'
-              '${rectangle.widthHalfPixels}_${rectangle.heightHalfPixels}',
-            ),
-            keyPrefix: 'chunk_polygon',
-            rectangle: rectangle,
-            onApply:
-                ({
-                  required xHalfPixels,
-                  required bottomYHalfPixels,
-                  required widthHalfPixels,
-                  required heightHalfPixels,
-                }) {
-                  authoring.editSelectedAxisAlignedRectangle(
-                    xHalfPixels: xHalfPixels,
-                    yHalfPixels: bottomYHalfPixels - heightHalfPixels,
-                    widthHalfPixels: widthHalfPixels,
-                    heightHalfPixels: heightHalfPixels,
-                  );
-                },
-          ),
-          const SizedBox(height: 12),
-        ],
         Text('Vertices', style: Theme.of(context).textTheme.titleSmall),
         for (final entry in shape.vertices.asMap().entries)
           ListTile(
@@ -2164,18 +1888,176 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
             shapeId: shape.shapeId,
             vertexIndex: selectedVertexIndex,
             vertex: shape.vertices[selectedVertexIndex],
+            applyButtonKey: const ValueKey<String>('chunk_polygon_save_edit'),
+            applyLabel: 'Save edit',
+            applyEnabled: shapeNameError == null,
+            coordinateStepHalfPixels: 2,
+            editController: _exactEditController,
+            onBeforeApply: () => _pendingShapeNameIsValid(authoring, shape),
             onApply: (xHalfPixels, yHalfPixels) {
-              authoring.editSelectedVertex(
+              final saved = authoring.editSelectedVertex(
                 TerrainSourceVertexDef(
                   xHalfPixels: xHalfPixels,
                   yHalfPixels: yHalfPixels,
                 ),
+                shapeId: _pendingShapeName(shape),
               );
+              if (saved) _shapeNameDrafts.remove(shape.shapeId);
+              return saved;
             },
+          ),
+        ] else if (rectangle != null) ...<Widget>[
+          const SizedBox(height: 8),
+          TerrainPolygonRectangleEditor(
+            key: ValueKey<String>(
+              'chunk_polygon_rectangle_editor_${shape.shapeId}_'
+              '${rectangle.xHalfPixels}_${rectangle.yHalfPixels}_'
+              '${rectangle.widthHalfPixels}_${rectangle.heightHalfPixels}',
+            ),
+            keyPrefix: 'chunk_polygon',
+            rectangle: rectangle,
+            applyButtonKey: const ValueKey<String>('chunk_polygon_save_edit'),
+            applyLabel: 'Save edit',
+            applyEnabled: shapeNameError == null,
+            coordinateStepHalfPixels: 2,
+            editController: _exactEditController,
+            onBeforeApply: () => _pendingShapeNameIsValid(authoring, shape),
+            onApply:
+                ({
+                  required xHalfPixels,
+                  required bottomYHalfPixels,
+                  required widthHalfPixels,
+                  required heightHalfPixels,
+                }) {
+                  final saved = authoring.editSelectedAxisAlignedRectangle(
+                    xHalfPixels: xHalfPixels,
+                    yHalfPixels: bottomYHalfPixels - heightHalfPixels,
+                    widthHalfPixels: widthHalfPixels,
+                    heightHalfPixels: heightHalfPixels,
+                    shapeId: _pendingShapeName(shape),
+                  );
+                  if (saved) _shapeNameDrafts.remove(shape.shapeId);
+                  return saved;
+                },
+          ),
+        ] else ...<Widget>[
+          const SizedBox(height: 8),
+          FilledButton.icon(
+            key: const ValueKey<String>('chunk_polygon_save_edit'),
+            onPressed: shapeNameError == null && _hasPendingShapeName(shape)
+                ? () => _saveShapeName(authoring, shape)
+                : null,
+            icon: const Icon(Icons.check),
+            label: const Text('Save edit'),
           ),
         ],
       ],
     );
+  }
+
+  String _pendingShapeName(TerrainSourceShapeDef shape) =>
+      (_shapeNameDrafts[shape.shapeId] ?? shape.shapeId).trim();
+
+  bool _hasPendingShapeName(TerrainSourceShapeDef shape) =>
+      _pendingShapeName(shape) != shape.shapeId;
+
+  bool _pendingShapeNameIsValid(
+    ChunkPolygonAuthoringController authoring,
+    TerrainSourceShapeDef shape,
+  ) =>
+      authoring.validateShapeName(
+        _pendingShapeName(shape),
+        excludingShapeId: shape.shapeId,
+      ) ==
+      null;
+
+  bool _saveShapeName(
+    ChunkPolygonAuthoringController authoring,
+    TerrainSourceShapeDef shape,
+  ) {
+    if (!_pendingShapeNameIsValid(authoring, shape)) {
+      setState(() {});
+      return false;
+    }
+    if (!_hasPendingShapeName(shape)) return true;
+    final saved = authoring.renameSelectedShape(_pendingShapeName(shape));
+    if (saved) _shapeNameDrafts.remove(shape.shapeId);
+    return saved;
+  }
+
+  Future<void> _selectOrCloseShape(
+    ChunkPolygonAuthoringController authoring,
+    TerrainSourceShapeDef target,
+  ) async {
+    if (authoring.hasActiveOperation) return;
+    final currentSelection = authoring.state.selection;
+    final closingCurrent = currentSelection?.shapeId == target.shapeId;
+    if (currentSelection != null) {
+      final canLeave = await _resolvePendingShapeEdit(authoring);
+      if (!canLeave || !mounted || !identical(authoring, _authoring)) return;
+    }
+    authoring.select(
+      closingCurrent ? null : TerrainPolygonSelection.shape(target.shapeId),
+    );
+  }
+
+  Future<bool> _resolvePendingShapeEdit(
+    ChunkPolygonAuthoringController authoring,
+  ) async {
+    final selection = authoring.state.selection;
+    if (selection == null) return true;
+    final shape = _findShape(authoring.state.shapes, selection.shapeId);
+    if (shape == null) return true;
+    if (!_hasPendingShapeName(shape) && !_exactEditController.hasChanges) {
+      _shapeNameDrafts.remove(shape.shapeId);
+      return true;
+    }
+    final action = await showDialog<_PendingShapeEditAction>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        key: const ValueKey<String>('chunk_polygon_unsaved_edit_dialog'),
+        title: const Text('Save terrain shape changes?'),
+        content: Text(
+          'Save the pending changes to ${shape.shapeId} before closing its '
+          'editor?',
+        ),
+        actions: <Widget>[
+          TextButton(
+            key: const ValueKey<String>('chunk_polygon_unsaved_edit_cancel'),
+            onPressed: () =>
+                Navigator.of(context).pop(_PendingShapeEditAction.cancel),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            key: const ValueKey<String>('chunk_polygon_unsaved_edit_discard'),
+            onPressed: () =>
+                Navigator.of(context).pop(_PendingShapeEditAction.discard),
+            child: const Text('Discard'),
+          ),
+          FilledButton(
+            key: const ValueKey<String>('chunk_polygon_unsaved_edit_save'),
+            onPressed: () =>
+                Navigator.of(context).pop(_PendingShapeEditAction.save),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || !identical(authoring, _authoring)) return false;
+    switch (action) {
+      case _PendingShapeEditAction.save:
+        return _exactEditController.hasEditor
+            ? _exactEditController.save()
+            : _saveShapeName(authoring, shape);
+      case _PendingShapeEditAction.discard:
+        _exactEditController.discard();
+        setState(() => _shapeNameDrafts.remove(shape.shapeId));
+        return true;
+      case _PendingShapeEditAction.cancel:
+      case null:
+        return false;
+    }
   }
 
   void _duplicateSelectedShape(
@@ -2186,7 +2068,7 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     final offset = findTerrainPolygonDuplicateOffset(
       selectedShape: shape,
       ownerShapes: authoring.state.shapes,
-      snapStepHalfPixels: authoring.snapPolicy.stepHalfPixels,
+      snapStepHalfPixels: authoring.editSnapPolicy.stepHalfPixels,
       minXHalfPixels: 0,
       minYHalfPixels: 0,
       maxXHalfPixels: chunk.width * 2,
@@ -2204,59 +2086,6 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       deltaXHalfPixels: offset.deltaXHalfPixels,
       deltaYHalfPixels: offset.deltaYHalfPixels,
     );
-  }
-
-  List<ValidationIssue> _ownerIssues(
-    ChunkPolygonAuthoringController authoring,
-  ) {
-    final sourcePath =
-        _documentOrNull?.sourcePathByChunkKey[authoring.chunkKey];
-    final combined = <ValidationIssue>[
-      ...authoring.issues,
-      ...widget.controller.issues.where(
-        (issue) =>
-            issue.sourcePath == sourcePath ||
-            (sourcePath != null &&
-                (issue.sourcePath?.startsWith('$sourcePath:') ?? false)),
-      ),
-    ];
-    final seen = <String>{};
-    final unique =
-        combined
-            .where(
-              (issue) => seen.add(
-                '${issue.code}|${issue.sourcePath}|${issue.shapeId}|'
-                '${issue.elementIndex}|${issue.message}',
-              ),
-            )
-            .toList(growable: false)
-          ..sort((left, right) {
-            var order = (left.shapeId ?? '').compareTo(right.shapeId ?? '');
-            if (order != 0) return order;
-            order = (left.elementIndex ?? -1).compareTo(
-              right.elementIndex ?? -1,
-            );
-            if (order != 0) return order;
-            return left.code.compareTo(right.code);
-          });
-    return unique;
-  }
-
-  void _focusIssue(
-    ChunkPolygonAuthoringController authoring,
-    ValidationIssue issue,
-  ) {
-    final shapeId = issue.shapeId;
-    final shape = _findShape(authoring.state.visibleShapes, shapeId);
-    if (shape == null || shapeId == null) return;
-    final index = issue.elementIndex ?? 0;
-    if (issue.code.contains('vertex') && index < shape.vertices.length) {
-      authoring.select(TerrainPolygonSelection.vertex(shapeId, index));
-    } else if (issue.code.contains('edge') && index < shape.vertices.length) {
-      authoring.select(TerrainPolygonSelection.edge(shapeId, index));
-    } else {
-      authoring.select(TerrainPolygonSelection.shape(shapeId));
-    }
   }
 
   Future<void> _createOwner(ChunkV2Document document) async {
@@ -2508,12 +2337,13 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
 
   void _bindOwner(String chunkKey) {
     _disposeAuthoring();
+    _shapeNameDrafts.clear();
     _prefabGesture.cancel();
     _markerGesture.cancel();
     _selectedChunkKey = chunkKey;
     _sceneCoordinator.bindOwner();
-    _actorProjectionExpansion = null;
-    _actorTerrainProjection = null;
+    _markerTerrainExpansion = null;
+    _markerTerrainProjection = null;
     _markerPlacementProjection = null;
     _markerProjectionChunk = null;
     _markerProjectionTerrain = null;
@@ -2526,12 +2356,10 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       newShapeMaterialKey: materials == null || materials.isEmpty
           ? null
           : materials.first.key,
-      snapPolicy: TerrainPolygonSnapPolicy.ownerGridPixels(1),
+      creationSnapToGrid: _terrainCreationSnapToGrid,
+      editSnapToGrid: _terrainEditSnapToGrid,
     )..addListener(_handleAuthoringChanged);
     _authoringUiFingerprint = _buildAuthoringUiFingerprint(_authoring!);
-    if (_showActorTerrain || _showMarkerPlacements) {
-      _refreshActorTerrainProjection();
-    }
     if (_showMarkerPlacements) _refreshMarkerPlacementProjection();
   }
 
@@ -2565,9 +2393,6 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     setState(() {
       _sceneCoordinator.reconcileComposition(authoring.chunk);
       _sceneCoordinator.selectTerrain(authoring.state.selection);
-      if (_showActorTerrain || _showMarkerPlacements) {
-        _refreshActorTerrainProjection();
-      }
       if (_showMarkerPlacements ||
           _sceneCoordinator.sourceDomain == ChunkSceneDomain.markers) {
         _refreshMarkerPlacementProjection();
@@ -2584,7 +2409,14 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     draft: authoring.state.draft,
     gestureActive: authoring.state.gesture != null,
     issues: authoring.issues,
-    snapStep: authoring.snapPolicy.stepHalfPixels,
+    newShapeCollisionMode: authoring.newShapeCollisionMode,
+    newShapeMaterialKey: authoring.newShapeMaterialKey,
+    newShapeNameInput: authoring.newShapeNameInput,
+    newShapeNameGeneration: authoring.newShapeNameGeneration,
+    creationSnapToGrid: authoring.creationSnapToGrid,
+    creationSnapStep: authoring.creationSnapPolicy.stepHalfPixels,
+    editSnapToGrid: authoring.editSnapToGrid,
+    editSnapStep: authoring.editSnapPolicy.stepHalfPixels,
     canUndo: authoring.canUndo,
     canRedo: authoring.canRedo,
   );
@@ -2602,22 +2434,22 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
   ChunkV2CollisionExpansionResult? _expansionFor(String chunkKey) =>
       _sceneOrNull?.collisionExpansionByChunkKey[chunkKey];
 
-  void _refreshActorTerrainProjection() {
+  void _refreshMarkerTerrainProjection() {
     final chunkKey = _authoring?.chunkKey;
     final expansion = chunkKey == null
         ? null
         : _expansionFor(chunkKey)?.expansion;
-    if (identical(expansion, _actorProjectionExpansion)) return;
-    _actorProjectionExpansion = expansion;
-    _actorTerrainProjection = expansion == null
+    if (identical(expansion, _markerTerrainExpansion)) return;
+    _markerTerrainExpansion = expansion;
+    _markerTerrainProjection = expansion == null
         ? null
         : ChunkV2ActorTerrainProjection.build(expansion);
   }
 
   void _refreshMarkerPlacementProjection() {
-    _refreshActorTerrainProjection();
+    _refreshMarkerTerrainProjection();
     final authoring = _authoring;
-    final projection = _actorTerrainProjection;
+    final projection = _markerTerrainProjection;
     final scene = _sceneOrNull;
     if (authoring == null || projection == null || scene == null) {
       _markerPlacementProjection = null;
@@ -2653,7 +2485,6 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       return;
     }
     setState(() {
-      _inspectCompiledEdges = false;
       _sceneCoordinator.setSourceDomain(domain);
       if (domain == ChunkSceneDomain.terrain) {
         _sceneCoordinator.selectTerrain(_authoring?.state.selection);
@@ -2683,7 +2514,9 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
           radiusWorld: 8 / _zoom,
         );
         setState(() => _sceneCoordinator.selectMarker(hit));
-      case ChunkSceneDomain.terrain || ChunkSceneDomain.compiledEdgeInspection:
+      case ChunkSceneDomain.terrain ||
+          ChunkSceneDomain.layers ||
+          ChunkSceneDomain.compiledEdgeInspection:
         break;
     }
   }
@@ -2772,7 +2605,9 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
             });
             return began;
         }
-      case ChunkSceneDomain.terrain || ChunkSceneDomain.compiledEdgeInspection:
+      case ChunkSceneDomain.terrain ||
+          ChunkSceneDomain.layers ||
+          ChunkSceneDomain.compiledEdgeInspection:
         return false;
     }
   }
@@ -2877,7 +2712,9 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
           ChunkMarkerGestureResult(candidate: selection.marker, commit: commit),
           deleted: true,
         );
-      case ChunkSceneDomain.terrain || ChunkSceneDomain.compiledEdgeInspection:
+      case ChunkSceneDomain.terrain ||
+          ChunkSceneDomain.layers ||
+          ChunkSceneDomain.compiledEdgeInspection:
         return;
     }
   }
@@ -2992,33 +2829,6 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
         prefabs.first;
   }
 
-  void _selectMarkerByKey({
-    required ChunkV2FileData? authoringChunk,
-    required String selectionKey,
-  }) {
-    if (authoringChunk == null) return;
-    final selection = resolveChunkMarkerSelection(
-      authoringChunk.markers,
-      selectionKey,
-    );
-    setState(() => _sceneCoordinator.selectMarker(selection));
-  }
-
-  void _inspectCompiledEdge(
-    ChunkPolygonAuthoringController authoring, {
-    required Offset worldPoint,
-  }) {
-    final expansion = _expansionFor(authoring.chunkKey)?.expansion;
-    if (expansion == null) return;
-    final edgeId = hitTestChunkV2CompiledEdge(
-      expansion: expansion,
-      worldX: worldPoint.dx,
-      worldY: worldPoint.dy,
-      radiusWorld: 8 / _zoom,
-    );
-    setState(() => _sceneCoordinator.selectCompiledEdge(edgeId));
-  }
-
   void _setZoom(double value) {
     final next = EditorSceneViewUtils.snapZoom(
       value: value,
@@ -3116,6 +2926,151 @@ class _ChunkWorkspaceLayout extends StatelessWidget {
   );
 }
 
+/// Compact, read-only composition preview for one owner-row card.
+class _ChunkOwnerPreview extends StatelessWidget {
+  const _ChunkOwnerPreview({
+    super.key,
+    required this.workspaceRootPath,
+    required this.chunk,
+    required this.scene,
+  });
+
+  final String workspaceRootPath;
+  final ChunkV2FileData chunk;
+  final ChunkV2Scene scene;
+
+  @override
+  Widget build(BuildContext context) {
+    final visualProjection = ChunkSceneVisualProjection.fromChunk(
+      chunk: chunk,
+      prefabData: scene.prefabData,
+      tileData: scene.tileData,
+      visualBoundsByPrefabKey: scene.visualBoundsByPrefabKey,
+    );
+    final belowTerrain = visualProjection
+        .belowTerrain(chunk.groundBandZIndex)
+        .toList(growable: false);
+    final atOrAboveTerrain = visualProjection
+        .atOrAboveTerrain(chunk.groundBandZIndex)
+        .toList(growable: false);
+    final colorScheme = Theme.of(context).colorScheme;
+    return Semantics(
+      image: true,
+      label: 'Preview of ${chunk.id}',
+      child: RepaintBoundary(
+        child: Container(
+          width: 104,
+          height: 68,
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            color: colorScheme.surfaceContainerLowest,
+            border: Border.all(color: colorScheme.outlineVariant),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(2),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final chunkWidth = math.max(1, chunk.width).toDouble();
+                final chunkHeight = math.max(1, chunk.height).toDouble();
+                final zoom = math.min(
+                  constraints.maxWidth / chunkWidth,
+                  constraints.maxHeight / chunkHeight,
+                );
+                final transform = TerrainPolygonViewportTransform(
+                  origin: Offset(
+                    (constraints.maxWidth - chunkWidth * zoom) * 0.5,
+                    (constraints.maxHeight - chunkHeight * zoom) * 0.5,
+                  ),
+                  zoom: zoom,
+                );
+                return Stack(
+                  fit: StackFit.expand,
+                  children: <Widget>[
+                    ChunkPolygonLevelVisualSource(
+                      workspaceRootPath: workspaceRootPath,
+                      chunk: chunk,
+                      parallaxTheme: scene.activeParallaxTheme,
+                      transform: transform,
+                      layer: ChunkPolygonLevelVisualLayer.background,
+                    ),
+                    if (belowTerrain.isNotEmpty)
+                      ChunkSceneVisualSource(
+                        workspaceRootPath: workspaceRootPath,
+                        placements: belowTerrain,
+                        transform: transform,
+                      ),
+                    ChunkPolygonLevelVisualSource(
+                      workspaceRootPath: workspaceRootPath,
+                      chunk: chunk,
+                      parallaxTheme: scene.activeParallaxTheme,
+                      transform: transform,
+                      layer: ChunkPolygonLevelVisualLayer.terrain,
+                    ),
+                    ChunkPolygonLevelVisualSource(
+                      workspaceRootPath: workspaceRootPath,
+                      chunk: chunk,
+                      parallaxTheme: scene.activeParallaxTheme,
+                      transform: transform,
+                      layer: ChunkPolygonLevelVisualLayer.foreground,
+                    ),
+                    if (atOrAboveTerrain.isNotEmpty)
+                      ChunkSceneVisualSource(
+                        workspaceRootPath: workspaceRootPath,
+                        placements: atOrAboveTerrain,
+                        transform: transform,
+                      ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ChunkTileGridPainter extends CustomPainter {
+  const _ChunkTileGridPainter({required this.chunk, required this.transform});
+
+  final ChunkV2FileData chunk;
+  final TerrainPolygonViewportTransform transform;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final bounds = Rect.fromLTWH(
+      transform.origin.dx,
+      transform.origin.dy,
+      chunk.width * transform.zoom,
+      chunk.height * transform.zoom,
+    );
+    canvas.save();
+    canvas.clipRect(bounds);
+    EditorViewportGridPainter.world(
+      zoom: transform.zoom,
+      worldRect: Rect.fromLTWH(
+        0,
+        0,
+        chunk.width.toDouble(),
+        chunk.height.toDouble(),
+      ),
+      worldOrigin: transform.origin,
+      worldSpacingPx: chunk.tileSize.toDouble(),
+      majorWorldSpacingPx: chunk.tileSize * 4.0,
+    ).paint(canvas, size);
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant _ChunkTileGridPainter oldDelegate) =>
+      oldDelegate.chunk.width != chunk.width ||
+      oldDelegate.chunk.height != chunk.height ||
+      oldDelegate.chunk.tileSize != chunk.tileSize ||
+      oldDelegate.transform.origin != transform.origin ||
+      oldDelegate.transform.zoom != transform.zoom;
+}
+
 class _ChunkBoundsPainter extends CustomPainter {
   const _ChunkBoundsPainter({
     required this.chunk,
@@ -3175,6 +3130,34 @@ int _compareChunks(ChunkV2FileData left, ChunkV2FileData right) {
   return idOrder != 0 ? idOrder : left.chunkKey.compareTo(right.chunkKey);
 }
 
+IconData _diagnosticIcon(ValidationSeverity severity) => switch (severity) {
+  ValidationSeverity.error => Icons.error_outline,
+  ValidationSeverity.warning => Icons.warning_amber_outlined,
+  ValidationSeverity.info => Icons.info_outline,
+};
+
+Color _diagnosticColor(ValidationSeverity severity) => switch (severity) {
+  ValidationSeverity.error => const Color(0xFFFF7F7F),
+  ValidationSeverity.warning => const Color(0xFFFFD166),
+  ValidationSeverity.info => const Color(0xFF7DD3FC),
+};
+
+String? _diagnosticContext(ValidationIssue issue) {
+  final sourcePath = issue.sourcePath?.trim();
+  final ownerKey = issue.ownerKey?.trim();
+  final placementKey = issue.placementKey?.trim();
+  final shapeId = issue.shapeId?.trim();
+  final parts = <String>[
+    if (sourcePath != null && sourcePath.isNotEmpty) sourcePath,
+    if (ownerKey != null && ownerKey.isNotEmpty) 'owner $ownerKey',
+    if (placementKey != null && placementKey.isNotEmpty)
+      'placement $placementKey',
+    if (shapeId != null && shapeId.isNotEmpty) 'shape $shapeId',
+    if (issue.elementIndex case final elementIndex?) 'element $elementIndex',
+  ];
+  return parts.isEmpty ? null : parts.join(' · ');
+}
+
 String _toolLabel(TerrainPolygonTool tool) => switch (tool) {
   TerrainPolygonTool.select => 'Select shape',
   TerrainPolygonTool.createPolygon => 'Place vertex',
@@ -3194,12 +3177,4 @@ String _markerToolLabel(ChunkMarkerSceneTool tool) => switch (tool) {
   ChunkMarkerSceneTool.select => 'Select',
   ChunkMarkerSceneTool.place => 'Place',
   ChunkMarkerSceneTool.move => 'Move',
-};
-
-String _terrainActorLabel(ChunkV2TerrainActor actor) => switch (actor) {
-  ChunkV2TerrainActor.eloise => 'Éloïse',
-  ChunkV2TerrainActor.grojib => 'Grojib',
-  ChunkV2TerrainActor.hashash => 'Hashash',
-  ChunkV2TerrainActor.unoco => 'Unoco',
-  ChunkV2TerrainActor.derf => 'Derf',
 };

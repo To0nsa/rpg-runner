@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:runner_core/collision/terrain/terrain_numeric.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_polygon_authoring_controller.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_scene_coordinator.dart';
 import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_scene_surface.dart';
@@ -42,6 +43,214 @@ void main() {
       controller.chunk.collisionShapes.map((shape) => shape.shapeId),
       containsAll(<String>['ground_001', 'solid_001']),
     );
+  });
+
+  test('direct chunk pointers always snap to whole pixels', () async {
+    final harness = await _buildHarness();
+    final controller = harness.authoring;
+
+    expect(controller.creationSnapPolicy.stepHalfPixels, 2);
+    expect(controller.editSnapPolicy.stepHalfPixels, 2);
+    expect(controller.beginCreatePolygon(), isTrue);
+    expect(
+      controller.addDraftVertex(const TerrainPolygonScenePoint(121, 21)),
+      isTrue,
+    );
+    expect(
+      controller.state.draft!.vertices.single,
+      const TerrainSourceVertexDef(xHalfPixels: 122, yHalfPixels: 22),
+    );
+  });
+
+  test(
+    'terrain tile grid keeps creation and edit snapping independent',
+    () async {
+      final harness = await _buildHarness();
+      final controller = harness.authoring;
+
+      expect(controller.creationSnapToGrid, isFalse);
+      expect(controller.editSnapToGrid, isFalse);
+      expect(controller.creationSnapPolicy.stepHalfPixels, 2);
+      expect(controller.editSnapPolicy.stepHalfPixels, 2);
+      controller.setCreationSnapToGrid(true);
+      expect(controller.creationSnapToGrid, isTrue);
+      expect(controller.editSnapToGrid, isFalse);
+      expect(controller.creationSnapPolicy.stepHalfPixels, 32);
+      expect(controller.editSnapPolicy.stepHalfPixels, 2);
+
+      expect(controller.beginCreatePolygon(), isTrue);
+      expect(
+        controller.addDraftVertex(const TerrainPolygonScenePoint(121, 21)),
+        isTrue,
+      );
+      expect(
+        controller.state.draft!.vertices.single,
+        const TerrainSourceVertexDef(xHalfPixels: 128, yHalfPixels: 32),
+      );
+      controller.setCreationSnapToGrid(false);
+      expect(controller.creationSnapToGrid, isTrue);
+      controller.cancelActiveOperation();
+
+      controller.select(TerrainPolygonSelection.vertex('ground_001', 1));
+      expect(
+        controller.editSelectedVertex(
+          const TerrainSourceVertexDef(xHalfPixels: 124, yHalfPixels: 30),
+        ),
+        isTrue,
+      );
+      expect(
+        controller.chunk.collisionShapes.single.vertices[1],
+        const TerrainSourceVertexDef(xHalfPixels: 124, yHalfPixels: 30),
+      );
+
+      controller.setEditSnapToGrid(true);
+      expect(controller.creationSnapToGrid, isTrue);
+      expect(controller.editSnapToGrid, isTrue);
+      expect(
+        controller.editSelectedVertex(
+          const TerrainSourceVertexDef(xHalfPixels: 123, yHalfPixels: 29),
+        ),
+        isTrue,
+      );
+      expect(
+        controller.chunk.collisionShapes.single.vertices[1],
+        const TerrainSourceVertexDef(xHalfPixels: 128, yHalfPixels: 32),
+      );
+
+      controller.setTool(TerrainPolygonTool.createRectangle);
+      expect(
+        controller.beginCreateRectangle(
+          pointer: 3,
+          point: const TerrainPolygonScenePoint(139, 5),
+        ),
+        isTrue,
+      );
+      controller.updateGesture(
+        pointer: 3,
+        point: const TerrainPolygonScenePoint(181, 27),
+      );
+      expect(
+        controller.state.gesture!.previewShape.vertices.expand(
+          (vertex) => <int>[vertex.xHalfPixels, vertex.yHalfPixels],
+        ),
+        everyElement(
+          isA<int>().having((coordinate) => coordinate % 32, 'remainder', 0),
+        ),
+      );
+      controller.cancelActiveOperation();
+
+      controller.setCreationSnapToGrid(false);
+      expect(controller.creationSnapToGrid, isFalse);
+      expect(controller.editSnapToGrid, isTrue);
+      expect(controller.creationSnapPolicy.stepHalfPixels, 2);
+      expect(controller.editSnapPolicy.stepHalfPixels, 32);
+    },
+  );
+
+  test('selected creation settings apply to polygons and rectangles', () async {
+    final harness = await _buildHarness(newShapeMaterialKey: 'grass_dirt');
+    final controller = harness.authoring;
+
+    expect(controller.newShapeCollisionMode, TerrainSourceCollisionMode.solid);
+    controller.setNewShapeCollisionMode(TerrainSourceCollisionMode.oneWay);
+    controller.setNewShapeMaterialKey('stone');
+
+    controller.beginCreatePolygon();
+    expect(
+      controller.state.draft!.collisionMode,
+      TerrainSourceCollisionMode.oneWay,
+    );
+    expect(controller.state.draft!.materialKey, 'stone');
+    controller.cancelActiveOperation();
+
+    controller.setTool(TerrainPolygonTool.createRectangle);
+    expect(
+      controller.beginCreateRectangle(
+        pointer: 1,
+        point: const TerrainPolygonScenePoint(120, 20),
+      ),
+      isTrue,
+    );
+    controller.updateGesture(
+      pointer: 1,
+      point: const TerrainPolygonScenePoint(160, 60),
+    );
+    expect(
+      controller.state.gesture!.previewShape.collisionMode,
+      TerrainSourceCollisionMode.oneWay,
+    );
+    expect(controller.state.gesture!.previewShape.materialKey, 'stone');
+    expect(controller.commitGesture(1), isTrue);
+    expect(
+      controller.state.draft!.collisionMode,
+      TerrainSourceCollisionMode.oneWay,
+    );
+    expect(controller.newShapeCollisionMode, TerrainSourceCollisionMode.oneWay);
+    expect(controller.newShapeMaterialKey, 'stone');
+  });
+
+  test(
+    'custom shape names validate, commit, and reset after creation',
+    () async {
+      final harness = await _buildHarness();
+      final controller = harness.authoring;
+
+      controller.setNewShapeNameInput('secret_ledge');
+      expect(controller.newShapeNameError, isNull);
+      expect(controller.resolvedNewShapeName, 'secret_ledge');
+      expect(controller.beginCreatePolygon(), isTrue);
+      for (final point in const <TerrainPolygonScenePoint>[
+        TerrainPolygonScenePoint(120, 20),
+        TerrainPolygonScenePoint(140, 20),
+        TerrainPolygonScenePoint(140, 40),
+      ]) {
+        controller.addDraftVertex(point);
+      }
+      expect(controller.saveDraft(), isTrue);
+      expect(controller.newShapeNameInput, isEmpty);
+      expect(controller.newShapeNameGeneration, 1);
+      expect(
+        controller.chunk.collisionShapes.map((shape) => shape.shapeId),
+        contains('secret_ledge'),
+      );
+
+      controller.setNewShapeNameInput('Bad name');
+      expect(controller.canBeginNewShape, isFalse);
+      expect(controller.beginCreatePolygon(), isFalse);
+      expect(controller.state.draft, isNull);
+
+      controller.setNewShapeNameInput('ground_001');
+      expect(controller.newShapeNameError, contains('already uses'));
+      expect(controller.beginCreatePolygon(), isFalse);
+      expect(controller.state.draft, isNull);
+    },
+  );
+
+  test('exact geometry and a custom name commit as one edit', () async {
+    final harness = await _buildHarness();
+    final controller = harness.authoring;
+
+    controller.select(TerrainPolygonSelection.vertex('ground_001', 1));
+    expect(
+      controller.editSelectedVertex(
+        const TerrainSourceVertexDef(xHalfPixels: 104, yHalfPixels: 20),
+        shapeId: 'main_floor',
+      ),
+      isTrue,
+    );
+
+    expect(controller.chunk.revision, 5);
+    final renamed = controller.chunk.collisionShapes.single;
+    expect(renamed.shapeId, 'main_floor');
+    expect(
+      renamed.vertices,
+      contains(const TerrainSourceVertexDef(xHalfPixels: 104, yHalfPixels: 20)),
+    );
+    expect(controller.state.selection?.shapeId, 'main_floor');
+
+    expect(controller.undo(), isTrue);
+    expect(controller.chunk.revision, 4);
+    expect(controller.chunk.collisionShapes.single.shapeId, 'ground_001');
   });
 
   test(
@@ -200,13 +409,13 @@ void main() {
       final session = harness.session;
 
       controller.beginCreatePolygon();
-      controller.addDraftVertex(const TerrainPolygonScenePoint(-20, -10));
-      controller.addDraftVertex(const TerrainPolygonScenePoint(240, -10));
+      controller.addDraftVertex(const TerrainPolygonScenePoint(-20, 120));
       controller.addDraftVertex(const TerrainPolygonScenePoint(240, 120));
+      controller.addDraftVertex(const TerrainPolygonScenePoint(240, 90));
       expect(controller.state.draft!.vertices, const <TerrainSourceVertexDef>[
-        TerrainSourceVertexDef(xHalfPixels: 0, yHalfPixels: 0),
-        TerrainSourceVertexDef(xHalfPixels: 200, yHalfPixels: 0),
+        TerrainSourceVertexDef(xHalfPixels: 0, yHalfPixels: 100),
         TerrainSourceVertexDef(xHalfPixels: 200, yHalfPixels: 100),
+        TerrainSourceVertexDef(xHalfPixels: 200, yHalfPixels: 90),
       ]);
       controller.cancelActiveOperation();
 
@@ -214,7 +423,7 @@ void main() {
       expect(
         controller.beginCreateRectangle(
           pointer: 1,
-          point: const TerrainPolygonScenePoint(-20, -10),
+          point: const TerrainPolygonScenePoint(120, -10),
         ),
         isTrue,
       );
@@ -224,10 +433,10 @@ void main() {
       );
       expect(controller.commitGesture(1), isTrue);
       expect(controller.state.draft!.vertices, const <TerrainSourceVertexDef>[
-        TerrainSourceVertexDef(xHalfPixels: 0, yHalfPixels: 0),
+        TerrainSourceVertexDef(xHalfPixels: 120, yHalfPixels: 0),
         TerrainSourceVertexDef(xHalfPixels: 200, yHalfPixels: 0),
         TerrainSourceVertexDef(xHalfPixels: 200, yHalfPixels: 100),
-        TerrainSourceVertexDef(xHalfPixels: 0, yHalfPixels: 100),
+        TerrainSourceVertexDef(xHalfPixels: 120, yHalfPixels: 100),
       ]);
       controller.cancelActiveOperation();
 
@@ -308,6 +517,152 @@ void main() {
     expect(controller.hasActiveOperation, isFalse);
     expect(controller.issues, isEmpty);
   });
+
+  test(
+    'rectangle drag stops at direct solid contact without an internal edge',
+    () async {
+      final harness = await _buildHarness();
+      final controller = harness.authoring;
+
+      controller.setTool(TerrainPolygonTool.createRectangle);
+      expect(
+        controller.beginCreateRectangle(
+          pointer: 31,
+          point: const TerrainPolygonScenePoint(120, 20),
+        ),
+        isTrue,
+      );
+      controller.updateGesture(
+        pointer: 31,
+        point: const TerrainPolygonScenePoint(80, 60),
+        snapRadiusHalfPixels: 12,
+      );
+      expect(
+        controller.state.gesture!.previewShape.vertices,
+        const <TerrainSourceVertexDef>[
+          TerrainSourceVertexDef(xHalfPixels: 120, yHalfPixels: 20),
+          TerrainSourceVertexDef(xHalfPixels: 100, yHalfPixels: 20),
+          TerrainSourceVertexDef(xHalfPixels: 100, yHalfPixels: 60),
+          TerrainSourceVertexDef(xHalfPixels: 120, yHalfPixels: 60),
+        ],
+      );
+
+      expect(controller.commitGesture(31), isTrue);
+      expect(controller.saveDraft(), isTrue);
+      final scene = harness.session.scene as ChunkV2Scene;
+      final expansion =
+          scene.collisionExpansionByChunkKey['forest_target']!.expansion!;
+      const factor =
+          terrainPhysicsTicksPerWorldUnit ~/ terrainSourceTicksPerWorldUnit;
+      final sharedStart = TerrainPoint(100 * factor, 20 * factor);
+      final sharedEnd = TerrainPoint(100 * factor, 60 * factor);
+      expect(
+        expansion.geometry.edges.where(
+          (edge) =>
+              (edge.start == sharedStart && edge.end == sharedEnd) ||
+              (edge.start == sharedEnd && edge.end == sharedStart),
+        ),
+        isEmpty,
+      );
+    },
+  );
+
+  test('vertex movement cannot cross another direct solid', () async {
+    final harness = await _buildHarness(
+      collisionShapes: <TerrainSourceShapeDef>[
+        _chunkGround(),
+        TerrainSourceShapeDef(
+          shapeId: 'solid_002',
+          vertices: const <TerrainSourceVertexDef>[
+            TerrainSourceVertexDef(xHalfPixels: 120, yHalfPixels: 20),
+            TerrainSourceVertexDef(xHalfPixels: 160, yHalfPixels: 20),
+            TerrainSourceVertexDef(xHalfPixels: 160, yHalfPixels: 80),
+            TerrainSourceVertexDef(xHalfPixels: 120, yHalfPixels: 80),
+          ],
+        ),
+      ],
+    );
+    final controller = harness.authoring;
+
+    controller.select(TerrainPolygonSelection.vertex('ground_001', 1));
+    controller.setTool(TerrainPolygonTool.moveVertex);
+    expect(
+      controller.beginGesture(
+        pointer: 32,
+        point: const TerrainPolygonScenePoint(100, 20),
+      ),
+      isTrue,
+    );
+    controller.updateGesture(
+      pointer: 32,
+      point: const TerrainPolygonScenePoint(180, 20),
+    );
+
+    expect(
+      controller.state.gesture!.previewShape.vertices[1],
+      const TerrainSourceVertexDef(xHalfPixels: 120, yHalfPixels: 20),
+    );
+    expect(controller.commitGesture(32), isTrue);
+    expect(controller.issues, isEmpty);
+  });
+
+  test(
+    'expanded prefab collision blocks and attracts draft vertices',
+    () async {
+      final prefab = _solidPrefab();
+      final harness = await _buildHarness(
+        prefabs: <PrefabV3Def>[prefab],
+        placements: const <PlacedPrefabDef>[
+          PlacedPrefabDef(
+            prefabId: 'rock',
+            prefabKey: 'prefab_rock',
+            x: 70,
+            y: 10,
+          ),
+        ],
+      );
+      final controller = harness.authoring;
+      controller.beginCreatePolygon();
+
+      expect(
+        controller.addDraftVertex(const TerrainPolygonScenePoint(150, 30)),
+        isFalse,
+      );
+      expect(controller.state.draft!.vertices, isEmpty);
+      expect(
+        controller.issues.map((issue) => issue.code),
+        contains('chunk_polygon_point_inside_collision'),
+      );
+
+      expect(
+        controller.addDraftVertex(
+          const TerrainPolygonScenePoint(132, 30),
+          snapRadiusHalfPixels: 10,
+        ),
+        isTrue,
+      );
+      expect(
+        controller.state.draft!.vertices.single,
+        const TerrainSourceVertexDef(xHalfPixels: 140, yHalfPixels: 30),
+      );
+
+      controller.cancelActiveOperation();
+      controller.beginCreatePolygon();
+      expect(
+        controller.addDraftVertex(const TerrainPolygonScenePoint(130, 10)),
+        isTrue,
+      );
+      expect(
+        controller.addDraftVertex(const TerrainPolygonScenePoint(170, 10)),
+        isTrue,
+      );
+      expect(
+        controller.addDraftVertex(const TerrainPolygonScenePoint(170, 50)),
+        isFalse,
+      );
+      expect(controller.state.draft!.vertices, hasLength(2));
+    },
+  );
 
   test('rejected collinear preview normalizes as one source commit', () async {
     final harness = await _buildHarness(shape: _pentagon());
@@ -431,6 +786,32 @@ void main() {
     expect(harness.session.canUndo, isFalse);
   });
 
+  testWidgets('layers tab keeps primary scene authoring passive', (
+    tester,
+  ) async {
+    final harness = await _buildHarness();
+    final selectedPoints = <Offset>[];
+    harness.authoring.setTool(TerrainPolygonTool.createPolygon);
+    await tester.pumpWidget(
+      _surfaceApp(
+        controller: harness.authoring,
+        transform: TerrainPolygonViewportTransform(
+          origin: Offset.zero,
+          zoom: 1,
+        ),
+        activeDomain: ChunkSceneDomain.layers,
+        onSelectWorldPoint: selectedPoints.add,
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey<String>('chunk_scene_surface')));
+    await tester.pump();
+
+    expect(selectedPoints, isEmpty);
+    expect(harness.authoring.state.draft, isNull);
+    expect(harness.session.canUndo, isFalse);
+  });
+
   testWidgets('scene surface drags a rectangle into a local draft', (
     tester,
   ) async {
@@ -476,6 +857,47 @@ void main() {
     expect(controller.state.draft, isNotNull);
     expect(controller.state.tool, TerrainPolygonTool.moveVertex);
     expect(harness.session.canUndo, isFalse);
+  });
+
+  testWidgets('scene surface snaps rectangle starts in canvas space', (
+    tester,
+  ) async {
+    final harness = await _buildHarness();
+    final controller = harness.authoring;
+    final transform = TerrainPolygonViewportTransform(
+      origin: const Offset(10, 10),
+      zoom: 2,
+    );
+    controller.setTool(TerrainPolygonTool.createRectangle);
+    await tester.pumpWidget(
+      _surfaceApp(controller: controller, transform: transform),
+    );
+    final topLeft = tester.getTopLeft(
+      find.byKey(const ValueKey<String>('chunk_scene_surface')),
+    );
+    final start = transform.sourceVertexToCanvas(
+      const TerrainSourceVertexDef(xHalfPixels: 106, yHalfPixels: 40),
+    );
+    final end = transform.sourceVertexToCanvas(
+      const TerrainSourceVertexDef(xHalfPixels: 140, yHalfPixels: 60),
+    );
+
+    final drag = await tester.startGesture(topLeft + start);
+    await drag.moveTo(topLeft + end);
+    await tester.pump();
+
+    expect(
+      controller.sceneProjection.draft!.vertices,
+      const <TerrainSourceVertexDef>[
+        TerrainSourceVertexDef(xHalfPixels: 100, yHalfPixels: 40),
+        TerrainSourceVertexDef(xHalfPixels: 140, yHalfPixels: 40),
+        TerrainSourceVertexDef(xHalfPixels: 140, yHalfPixels: 60),
+        TerrainSourceVertexDef(xHalfPixels: 100, yHalfPixels: 60),
+      ],
+    );
+
+    await drag.up();
+    await tester.pump();
   });
 
   testWidgets(
@@ -816,11 +1238,18 @@ Future<void> _pressCtrlShiftShortcut(
 
 Future<_Harness> _buildHarness({
   TerrainSourceShapeDef? shape,
+  Iterable<TerrainSourceShapeDef>? collisionShapes,
+  Iterable<PrefabV3Def> prefabs = const <PrefabV3Def>[],
+  Iterable<PlacedPrefabDef> placements = const <PlacedPrefabDef>[],
   String? newShapeSurfaceKind,
   String? newShapeMaterialKey,
 }) async {
   final root = Directory.systemTemp.createTempSync('chunk_polygon_route_');
-  final chunk = _chunk(shape: shape);
+  final chunk = _chunk(
+    shape: shape,
+    collisionShapes: collisionShapes,
+    placements: placements,
+  );
   final document = ChunkV2Document(
     chunks: <ChunkV2FileData>[chunk],
     sourcePathByChunkKey: const <String, String>{
@@ -831,7 +1260,7 @@ Future<_Harness> _buildHarness({
     },
     prefabData: PrefabV3FileData(
       slices: const <AtlasSliceDef>[],
-      prefabs: const <PrefabV3Def>[],
+      prefabs: prefabs,
     ),
     tileData: PrefabTileFileData(
       tileSlices: const <AtlasSliceDef>[],
@@ -864,7 +1293,11 @@ Future<_Harness> _buildHarness({
   return _Harness(session: session, authoring: authoring);
 }
 
-ChunkV2FileData _chunk({TerrainSourceShapeDef? shape}) => ChunkV2FileData(
+ChunkV2FileData _chunk({
+  TerrainSourceShapeDef? shape,
+  Iterable<TerrainSourceShapeDef>? collisionShapes,
+  Iterable<PlacedPrefabDef> placements = const <PlacedPrefabDef>[],
+}) => ChunkV2FileData(
   chunkKey: 'forest_target',
   id: 'forest_target',
   revision: 4,
@@ -877,21 +1310,44 @@ ChunkV2FileData _chunk({TerrainSourceShapeDef? shape}) => ChunkV2FileData(
   assemblyGroupId: defaultChunkAssemblyGroupId,
   tags: const <String>['forest'],
   tileLayers: const <TileLayerDef>[],
-  prefabs: const <PlacedPrefabDef>[],
+  prefabs: placements,
   markers: const <PlacedMarkerDef>[],
   groundBandZIndex: 0,
-  collisionShapes: <TerrainSourceShapeDef>[
-    shape ??
-        TerrainSourceShapeDef(
-          shapeId: 'ground_001',
-          vertices: const <TerrainSourceVertexDef>[
-            TerrainSourceVertexDef(xHalfPixels: 20, yHalfPixels: 20),
-            TerrainSourceVertexDef(xHalfPixels: 100, yHalfPixels: 20),
-            TerrainSourceVertexDef(xHalfPixels: 100, yHalfPixels: 80),
-            TerrainSourceVertexDef(xHalfPixels: 20, yHalfPixels: 80),
-          ],
-        ),
+  collisionShapes:
+      collisionShapes ?? <TerrainSourceShapeDef>[shape ?? _chunkGround()],
+);
+
+TerrainSourceShapeDef _chunkGround() => TerrainSourceShapeDef(
+  shapeId: 'ground_001',
+  vertices: const <TerrainSourceVertexDef>[
+    TerrainSourceVertexDef(xHalfPixels: 20, yHalfPixels: 20),
+    TerrainSourceVertexDef(xHalfPixels: 100, yHalfPixels: 20),
+    TerrainSourceVertexDef(xHalfPixels: 100, yHalfPixels: 80),
+    TerrainSourceVertexDef(xHalfPixels: 20, yHalfPixels: 80),
   ],
+);
+
+PrefabV3Def _solidPrefab() => PrefabV3Def(
+  prefabKey: 'prefab_rock',
+  id: 'rock',
+  revision: 1,
+  status: PrefabStatus.active,
+  kind: PrefabKind.obstacle,
+  visualSource: const PrefabVisualSource.atlasSlice('rock_slice'),
+  anchorXPx: 0,
+  anchorYPx: 0,
+  collisionShapes: <TerrainSourceShapeDef>[
+    TerrainSourceShapeDef(
+      shapeId: 'collision_001',
+      vertices: const <TerrainSourceVertexDef>[
+        TerrainSourceVertexDef(xHalfPixels: 0, yHalfPixels: 0),
+        TerrainSourceVertexDef(xHalfPixels: 20, yHalfPixels: 0),
+        TerrainSourceVertexDef(xHalfPixels: 20, yHalfPixels: 20),
+        TerrainSourceVertexDef(xHalfPixels: 0, yHalfPixels: 20),
+      ],
+    ),
+  ],
+  tags: const <String>[],
 );
 
 TerrainSourceShapeDef _pentagon() => TerrainSourceShapeDef(

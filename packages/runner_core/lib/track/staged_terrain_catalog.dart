@@ -170,27 +170,37 @@ final class StagedTerrainArtifactCatalog {
       );
     }
     final sourceIds = <StagedTerrainSourceId>{};
+    final modeBySourceId =
+        <StagedTerrainSourceId, StagedTerrainCollisionMode>{};
     for (final polygon in chunk.polygons) {
       if (polygon.sourcePath.isEmpty ||
           polygon.id.chunkKey != chunk.chunkKey ||
+          polygon.sourceVertices.length < 3 ||
+          polygon.vertices.length != polygon.sourceVertices.length ||
           !sourceIds.add(polygon.id)) {
         throw ArgumentError.value(
           polygon,
           'artifact.chunks',
-          'Staged polygons require a source path and unique identities that '
-              'belong to chunk ${chunk.chunkKey}.',
+          'Staged polygons require matching source/physics loops, a source '
+              'path, and unique identities in chunk ${chunk.chunkKey}.',
         );
       }
+      modeBySourceId[polygon.id] = polygon.collisionMode;
     }
 
     final edgeIds = <StagedTerrainEdgeId>{};
     for (final edge in chunk.edges) {
-      if (!sourceIds.contains(edge.id.sourceId) || !edgeIds.add(edge.id)) {
+      final sourceMode = modeBySourceId[edge.id.sourceId];
+      if (sourceMode == null ||
+          sourceMode == StagedTerrainCollisionMode.none ||
+          edge.collisionMode == StagedTerrainCollisionMode.none ||
+          edge.collisionMode != sourceMode ||
+          !edgeIds.add(edge.id)) {
         throw ArgumentError.value(
           edge,
           'artifact.chunks',
-          'Staged edges must have unique IDs owned by a polygon in '
-              'chunk ${chunk.chunkKey}.',
+          'Staged edges must have unique IDs and matching collidable polygon '
+              'roles in chunk ${chunk.chunkKey}.',
         );
       }
     }

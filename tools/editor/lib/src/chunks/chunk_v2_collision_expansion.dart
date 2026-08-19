@@ -10,6 +10,7 @@ import '../domain/authoring_types.dart';
 import '../prefabs/models/models.dart';
 import '../terrain_authoring/terrain_authoring_capacity_issues.dart';
 import '../terrain_authoring/terrain_source_core_adapter.dart';
+import '../terrain_authoring/terrain_source_models.dart';
 import '../terrain_authoring/terrain_physics_text.dart';
 import 'chunk_domain_models.dart';
 import 'chunk_v2_file_data.dart';
@@ -65,6 +66,7 @@ final class ChunkV2CollisionExpansion {
     required this.chunkKey,
     required this.geometry,
     required this.directShapeCount,
+    this.renderOnlyDirectShapeCount = 0,
     required Iterable<ChunkV2ExpandedPrefabShape> expandedPrefabShapes,
   }) : expandedPrefabShapes = List<ChunkV2ExpandedPrefabShape>.unmodifiable(
          expandedPrefabShapes,
@@ -73,7 +75,12 @@ final class ChunkV2CollisionExpansion {
 
   final String chunkKey;
   final TerrainGeometry geometry;
+
+  /// Direct shapes that enter [geometry].
   final int directShapeCount;
+
+  /// Direct shapes retained for rendering and omitted from [geometry].
+  final int renderOnlyDirectShapeCount;
   final List<ChunkV2ExpandedPrefabShape> expandedPrefabShapes;
   final TerrainTraversalCache traversalCache;
 
@@ -112,7 +119,8 @@ ChunkV2CollisionExpansionResult expandChunkV2Collision({
   int chunkIndex = 0,
 }) {
   final issues = <ValidationIssue>[];
-  final inputs = <TerrainPolygonInput>[];
+  final reviewInputs = <TerrainPolygonInput>[];
+  final collisionInputs = <TerrainPolygonInput>[];
   final ownerBySourcePath = <String, String>{};
   final placementBySourcePath = <String, String>{};
   final prefabByPlacementKey = <String, PrefabV3Def>{};
@@ -135,14 +143,23 @@ ChunkV2CollisionExpansionResult expandChunkV2Collision({
       issues.add(_validationIssueFromTerrain(capacityIssue));
     }
     try {
-      inputs.add(
-        TerrainSourceCoreAdapter.toPolygonInput(
-          shape: shape,
-          sourcePath: shapePath,
-          chunkIndex: chunkIndex,
-          chunkKey: chunk.chunkKey,
-        ),
+      final input = TerrainSourceCoreAdapter.toReviewPolygonInput(
+        shape: shape,
+        sourcePath: shapePath,
+        chunkIndex: chunkIndex,
+        chunkKey: chunk.chunkKey,
       );
+      reviewInputs.add(input);
+      if (shape.collisionMode != TerrainSourceCollisionMode.none) {
+        collisionInputs.add(
+          TerrainSourceCoreAdapter.toPolygonInput(
+            shape: shape,
+            sourcePath: shapePath,
+            chunkIndex: chunkIndex,
+            chunkKey: chunk.chunkKey,
+          ),
+        );
+      }
     } on ArgumentError catch (error) {
       sourceComplete = false;
       issues.add(
@@ -253,17 +270,33 @@ ChunkV2CollisionExpansionResult expandChunkV2Collision({
           '$placementPath#prefab=${prefab.prefabKey}#shape=${shape.shapeId}';
       ownerBySourcePath[shapePath] = prefab.prefabKey;
       placementBySourcePath[shapePath] = placementKey;
-      try {
-        inputs.add(
-          TerrainSourceCoreAdapter.toPolygonInput(
-            shape: shape,
+      if (shape.collisionMode == TerrainSourceCollisionMode.none) {
+        sourceComplete = false;
+        issues.add(
+          _errorIssue(
+            code: 'prefab_render_only_shape_forbidden',
+            message:
+                'Prefab ${prefab.prefabKey} shape ${shape.shapeId} uses no '
+                'collision; render-only terrain is owned directly by chunks.',
             sourcePath: shapePath,
-            chunkIndex: chunkIndex,
-            chunkKey: chunk.chunkKey,
+            ownerKey: prefab.prefabKey,
             placementKey: placementKey,
-            transform: transform,
+            shapeId: shape.shapeId,
           ),
         );
+        continue;
+      }
+      try {
+        final input = TerrainSourceCoreAdapter.toPolygonInput(
+          shape: shape,
+          sourcePath: shapePath,
+          chunkIndex: chunkIndex,
+          chunkKey: chunk.chunkKey,
+          placementKey: placementKey,
+          transform: transform,
+        );
+        reviewInputs.add(input);
+        collisionInputs.add(input);
       } on ArgumentError catch (error) {
         sourceComplete = false;
         issues.add(
@@ -281,9 +314,17 @@ ChunkV2CollisionExpansionResult expandChunkV2Collision({
     }
   }
 
+  TerrainGeometry? reviewGeometry;
   TerrainGeometry? geometry;
   try {
-    geometry = const TerrainCompiler().compile(inputs, geometryVersion: 1);
+    reviewGeometry = const TerrainCompiler().compile(
+      reviewInputs,
+      geometryVersion: 1,
+    );
+    geometry = const TerrainCompiler().compile(
+      collisionInputs,
+      geometryVersion: 1,
+    );
   } on TerrainValidationException catch (error) {
     issues.addAll(
       error.diagnostics.map(
@@ -306,10 +347,13 @@ ChunkV2CollisionExpansionResult expandChunkV2Collision({
   }
 
   final expandedShapes = <ChunkV2ExpandedPrefabShape>[];
-  if (geometry != null) {
+  if (reviewGeometry != null && geometry != null) {
     final maxX = chunk.width * terrainPhysicsTicksPerWorldUnit;
     final maxY = chunk.height * terrainPhysicsTicksPerWorldUnit;
-    for (final polygon in geometry.polygons) {
+    final collisionPolygonById = <TerrainSourceIdentity, TerrainPolygon>{
+      for (final polygon in geometry.polygons) polygon.identity: polygon,
+    };
+    for (final polygon in reviewGeometry.polygons) {
       final placementKey = polygon.identity.placementKey;
       for (final vertex in polygon.vertices.asMap().entries) {
         final point = vertex.value;
@@ -347,6 +391,8 @@ ChunkV2CollisionExpansionResult expandChunkV2Collision({
         );
       }
       if (placementKey == null) continue;
+      final collisionPolygon = collisionPolygonById[polygon.identity];
+      if (collisionPolygon == null) continue;
       final prefab = prefabByPlacementKey[placementKey];
       final placement = placementByKey[placementKey];
       if (prefab == null || placement == null) continue;
@@ -365,15 +411,15 @@ ChunkV2CollisionExpansionResult expandChunkV2Collision({
               .round(),
           flipX: placement.flipX,
           flipY: placement.flipY,
-          vertices: polygon.vertices,
-          collisionMode: polygon.collisionMode,
-          surfaceKind: polygon.surfaceKind,
-          materialKey: polygon.materialKey,
+          vertices: collisionPolygon.vertices,
+          collisionMode: collisionPolygon.collisionMode,
+          surfaceKind: collisionPolygon.surfaceKind,
+          materialKey: collisionPolygon.materialKey,
         ),
       );
     }
     issues.addAll(
-      geometry.diagnostics.map(
+      reviewGeometry.diagnostics.map(
         (diagnostic) => _issueFromCore(
           diagnostic,
           ownerKey: ownerBySourcePath[diagnostic.sourcePath] ?? chunk.chunkKey,
@@ -394,12 +440,23 @@ ChunkV2CollisionExpansionResult expandChunkV2Collision({
   }
 
   return ChunkV2CollisionExpansionResult(
-    expansion: geometry == null || !sourceComplete
+    expansion: geometry == null || reviewGeometry == null || !sourceComplete
         ? null
         : ChunkV2CollisionExpansion(
             chunkKey: chunk.chunkKey,
             geometry: geometry,
-            directShapeCount: chunk.collisionShapes.length,
+            directShapeCount: chunk.collisionShapes
+                .where(
+                  (shape) =>
+                      shape.collisionMode != TerrainSourceCollisionMode.none,
+                )
+                .length,
+            renderOnlyDirectShapeCount: chunk.collisionShapes
+                .where(
+                  (shape) =>
+                      shape.collisionMode == TerrainSourceCollisionMode.none,
+                )
+                .length,
             expandedPrefabShapes: expandedShapes,
           ),
     issues: issues,

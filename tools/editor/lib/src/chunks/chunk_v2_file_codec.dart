@@ -104,6 +104,14 @@ abstract final class ChunkV2FileCodec {
       comparePlacedMarkersDeterministic,
       sourcePath: '$sourcePath.markers',
     );
+    final collisionShapes = StrictTerrainSourceCodec.decodeShapes(
+      root['collisionShapes'],
+      sourcePath: '$sourcePath.collisionShapes',
+    );
+    _requireWholePixelCoordinates(
+      collisionShapes,
+      sourcePath: '$sourcePath.collisionShapes',
+    );
     return ChunkV2FileData(
       chunkKey: StrictAuthoringJson.nonEmptyString(
         root['chunkKey'],
@@ -152,10 +160,7 @@ abstract final class ChunkV2FileCodec {
               sourcePath: '$sourcePath.groundBandZIndex',
             )
           : 0,
-      collisionShapes: StrictTerrainSourceCodec.decodeShapes(
-        root['collisionShapes'],
-        sourcePath: '$sourcePath.collisionShapes',
-      ),
+      collisionShapes: collisionShapes,
     );
   }
 
@@ -180,6 +185,23 @@ abstract final class ChunkV2FileCodec {
     final encoded = StrictAuthoringJson.encode(canonical.toJson());
     decode(encoded);
     return encoded;
+  }
+}
+
+void _requireWholePixelCoordinates(
+  Iterable<TerrainSourceShapeDef> shapes, {
+  required String sourcePath,
+}) {
+  for (final (shapeIndex, shape) in shapes.indexed) {
+    for (final (vertexIndex, vertex) in shape.vertices.indexed) {
+      final vertexPath = '$sourcePath[$shapeIndex].vertices[$vertexIndex]';
+      if (vertex.xHalfPixels.isOdd) {
+        throw FormatException('$vertexPath.x must be a whole-pixel value.');
+      }
+      if (vertex.yHalfPixels.isOdd) {
+        throw FormatException('$vertexPath.y must be a whole-pixel value.');
+      }
+    }
   }
 }
 

@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_core/collision/terrain/terrain_authoring_issue.dart';
+import 'package:runner_core/collision/terrain/terrain_authoring_polygon_signature.dart';
 import 'package:runner_core/collision/terrain/terrain_authoring_seam_signature.dart';
-import 'package:runner_core/collision/terrain/terrain_polygon.dart';
 
 import '../../tool/polygon_terrain_compilation.dart';
 import '../../tool/polygon_terrain_seam_manifest.dart';
@@ -179,7 +179,7 @@ PolygonTerrainCompiledChunk _compiled(
           const PolygonTerrainSourcePoint(xHalfPixels: 200, yHalfPixels: 200),
           const PolygonTerrainSourcePoint(xHalfPixels: 0, yHalfPixels: 200),
         ],
-        collisionMode: TerrainCollisionMode.solid,
+        collisionMode: TerrainAuthoringPolygonMode.solid,
         surfaceKind: 'ground',
         materialKey: 'earth',
       ),

@@ -2,21 +2,22 @@
 library;
 
 import '../collision/terrain/terrain_geometry.dart';
+import '../collision/terrain/terrain_numeric.dart';
 import '../collision/terrain/terrain_polygon.dart';
 import '../snapshots/staged_terrain_render_snapshot.dart';
 import 'staged_terrain_catalog.dart';
 import 'staged_terrain_data.dart';
 
-/// Converts generated triangle records into an immutable render candidate.
+/// Converts generated terrain records into an immutable render candidate.
 ///
-/// World-space vertices are read from a caller-supplied [TerrainGeometry], so
-/// rendering cannot drift from collision through an independent transform or
-/// polygon normalization. The only generator-specific facts consumed here are
-/// its already-validated triangle indices and material metadata.
+/// Collidable polygons must exactly match caller-supplied [TerrainGeometry].
+/// Render-only polygons are translated directly from their generated canonical
+/// vertices and must be absent from that geometry. Edges always come from the
+/// collision geometry, keeping visual-only fills out of every physics surface.
 final class StagedTerrainRenderSnapshotBuilder {
   const StagedTerrainRenderSnapshotBuilder();
 
-  /// Creates render polygons from [geometry].
+  /// Creates render polygons from staged records and collision [geometry].
   ///
   /// Every polygon must have exactly `vertexCount - 2` non-degenerate indexed
   /// triangles. A malformed generated triangle record blocks the complete
@@ -29,21 +30,37 @@ final class StagedTerrainRenderSnapshotBuilder {
     final polygonsById = <TerrainSourceIdentity, TerrainPolygon>{
       for (final polygon in geometry.polygons) polygon.identity: polygon,
     };
+    final stagedPolygonsById =
+        <
+          TerrainSourceIdentity,
+          (StagedTerrainChunkBinding, StagedTerrainPolygonData)
+        >{};
     final trianglesById =
         <TerrainSourceIdentity, List<StagedTerrainTriangleData>>{};
 
     for (final binding in bindingList) {
+      for (final polygon in binding.chunk.polygons) {
+        final sourceId = binding.sourceIdentity(polygon.id);
+        if (stagedPolygonsById.containsKey(sourceId)) {
+          throw ArgumentError.value(
+            bindings,
+            'bindings',
+            'Staged render polygon identities must be unique.',
+          );
+        }
+        stagedPolygonsById[sourceId] = (binding, polygon);
+      }
       for (final triangle in binding.chunk.triangles) {
         final sourceId = binding.sourceIdentity(triangle.sourceId);
-        final polygon = polygonsById[sourceId];
-        if (polygon == null) {
+        final staged = stagedPolygonsById[sourceId];
+        if (staged == null) {
           throw ArgumentError.value(
             triangle,
             'triangle',
-            'Must reference a polygon in the same staged chunk binding.',
+            'Must reference a staged polygon in the same chunk binding.',
           );
         }
-        _validateTriangle(triangle, polygon);
+        _validateTriangle(triangle, staged.$2.vertices.length);
         (trianglesById[sourceId] ??= <StagedTerrainTriangleData>[]).add(
           triangle,
         );
@@ -51,22 +68,51 @@ final class StagedTerrainRenderSnapshotBuilder {
     }
 
     final renderPolygons = <StagedTerrainPolygonRenderSnapshot>[];
-    for (final polygon in geometry.polygons) {
+    final orderedIds = stagedPolygonsById.keys.toList()..sort();
+    final consumedCollisionIds = <TerrainSourceIdentity>{};
+    for (final sourceId in orderedIds) {
+      final staged = stagedPolygonsById[sourceId]!;
+      final binding = staged.$1;
+      final record = staged.$2;
+      final collisionPolygon = polygonsById[sourceId];
+      final vertices = record.vertices
+          .map(
+            (point) => TerrainPoint(
+              point.xTicks + binding.worldOriginXTicks,
+              point.yTicks,
+            ),
+          )
+          .toList(growable: false);
+      if (record.collisionMode == StagedTerrainCollisionMode.none) {
+        if (collisionPolygon != null) {
+          throw StateError(
+            'Render-only staged polygon ${sourceId.chunkKey}/'
+            '${sourceId.shapeId} entered collision geometry.',
+          );
+        }
+      } else {
+        if (collisionPolygon == null) {
+          throw StateError(
+            'Collidable staged polygon ${sourceId.chunkKey}/'
+            '${sourceId.shapeId} is missing from collision geometry.',
+          );
+        }
+        _validateCollisionPolygon(record, collisionPolygon, vertices);
+        consumedCollisionIds.add(sourceId);
+      }
       final triangles =
-          trianglesById[polygon.identity] ??
-          const <StagedTerrainTriangleData>[];
-      if (triangles.length != polygon.vertices.length - 2) {
+          trianglesById[sourceId] ?? const <StagedTerrainTriangleData>[];
+      if (triangles.length != vertices.length - 2) {
         throw StateError(
-          'Staged polygon ${polygon.identity.chunkKey}/'
-          '${polygon.identity.shapeId} has ${triangles.length} triangles for '
-          '${polygon.vertices.length} vertices.',
+          'Staged polygon ${sourceId.chunkKey}/${sourceId.shapeId} has '
+          '${triangles.length} triangles for ${vertices.length} vertices.',
         );
       }
       triangles.sort(_compareTriangles);
       renderPolygons.add(
         StagedTerrainPolygonRenderSnapshot(
-          sourceId: polygon.identity,
-          vertices: polygon.vertices,
+          sourceId: sourceId,
+          vertices: vertices,
           triangles: triangles.map(
             (triangle) => StagedTerrainRenderTriangleSnapshot(
               first: triangle.first,
@@ -74,8 +120,17 @@ final class StagedTerrainRenderSnapshotBuilder {
               third: triangle.third,
             ),
           ),
-          materialKey: polygon.materialKey,
+          materialKey: record.materialKey,
         ),
+      );
+    }
+    if (consumedCollisionIds.length != polygonsById.length) {
+      final unmatched = polygonsById.keys
+          .where((sourceId) => !consumedCollisionIds.contains(sourceId))
+          .first;
+      throw StateError(
+        'Collision polygon ${unmatched.chunkKey}/${unmatched.shapeId} has no '
+        'matching staged render record.',
       );
     }
     return StagedTerrainRenderSnapshot(
@@ -86,11 +141,7 @@ final class StagedTerrainRenderSnapshotBuilder {
   }
 }
 
-void _validateTriangle(
-  StagedTerrainTriangleData triangle,
-  TerrainPolygon polygon,
-) {
-  final vertexCount = polygon.vertices.length;
+void _validateTriangle(StagedTerrainTriangleData triangle, int vertexCount) {
   if (triangle.first >= vertexCount ||
       triangle.second >= vertexCount ||
       triangle.third >= vertexCount ||
@@ -102,6 +153,50 @@ void _validateTriangle(
       'triangle',
       'Must contain three distinct indices within the polygon vertex loop.',
     );
+  }
+}
+
+void _validateCollisionPolygon(
+  StagedTerrainPolygonData record,
+  TerrainPolygon polygon,
+  List<TerrainPoint> vertices,
+) {
+  final expectedMode = switch (record.collisionMode) {
+    StagedTerrainCollisionMode.solid => TerrainCollisionMode.solid,
+    StagedTerrainCollisionMode.oneWay => TerrainCollisionMode.oneWay,
+    StagedTerrainCollisionMode.none => throw StateError(
+      'Render-only staged polygon reached collision validation.',
+    ),
+  };
+  if (polygon.sourcePath != record.sourcePath ||
+      polygon.collisionMode != expectedMode ||
+      polygon.surfaceKind != record.surfaceKind ||
+      polygon.materialKey != record.materialKey ||
+      polygon.sourceVertices.length != record.sourceVertices.length ||
+      polygon.vertices.length != vertices.length) {
+    throw StateError(
+      'Staged polygon ${polygon.identity.chunkKey}/'
+      '${polygon.identity.shapeId} does not match collision geometry.',
+    );
+  }
+  for (var index = 0; index < record.sourceVertices.length; index += 1) {
+    final staged = record.sourceVertices[index];
+    final compiled = polygon.sourceVertices[index];
+    if (compiled.xTicks != staged.xTicks || compiled.yTicks != staged.yTicks) {
+      throw StateError(
+        'Staged polygon ${polygon.identity.chunkKey}/'
+        '${polygon.identity.shapeId} source vertex $index drifted from '
+        'collision.',
+      );
+    }
+  }
+  for (var index = 0; index < vertices.length; index += 1) {
+    if (polygon.vertices[index] != vertices[index]) {
+      throw StateError(
+        'Staged polygon ${polygon.identity.chunkKey}/'
+        '${polygon.identity.shapeId} vertex $index drifted from collision.',
+      );
+    }
   }
 }
 

@@ -236,6 +236,9 @@ maintainability concerns.
 - plugin: `ChunkDomainPlugin`
 - source-of-truth directory: `assets/authoring/level/chunks/*.json`
 - checked-in chunks use strict schema v2 direct polygon `collisionShapes`;
+  direct shapes may use `collisionMode: none` for render-only terrain, which
+  must be partitioned before Core collision expansion while remaining in the
+  generated render snapshot; Prefab collision shapes remain solid/one-way;
   legacy flat-profile/gap parsing belongs to offline migration only
 - keep one-chunk-per-file semantics, stable `chunkKey`, deterministic save-plan
   output, source-drift checks, and case-insensitive path-collision protection

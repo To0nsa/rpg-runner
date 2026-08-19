@@ -117,6 +117,11 @@ class _TerrainPolygonMetadataDialogState
                 initialValue: _collisionMode,
                 decoration: const InputDecoration(labelText: 'Collision mode'),
                 items: TerrainSourceCollisionMode.values
+                    .where(
+                      (mode) =>
+                          mode != TerrainSourceCollisionMode.none ||
+                          mode == _collisionMode,
+                    )
                     .map(
                       (mode) => DropdownMenuItem<TerrainSourceCollisionMode>(
                         value: mode,

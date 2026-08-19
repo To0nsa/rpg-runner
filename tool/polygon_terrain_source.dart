@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:runner_core/collision/terrain/terrain_polygon.dart';
+import 'package:runner_core/collision/terrain/terrain_authoring_polygon_signature.dart';
 
 const int polygonPrefabSchemaVersion = 3;
 const int polygonChunkSchemaVersion = 2;
@@ -68,7 +68,7 @@ final class PolygonTerrainPrefabSource {
   final List<PolygonTerrainShapeSource> collisionShapes;
 }
 
-/// One exact current-schema polygon loop before Core compilation.
+/// One exact current-schema terrain loop before render/collision partitioning.
 final class PolygonTerrainShapeSource {
   PolygonTerrainShapeSource({
     required this.shapeId,
@@ -80,7 +80,7 @@ final class PolygonTerrainShapeSource {
 
   final String shapeId;
   final List<PolygonTerrainSourcePoint> vertices;
-  final TerrainCollisionMode collisionMode;
+  final TerrainAuthoringPolygonMode collisionMode;
   final String? surfaceKind;
   final String? materialKey;
 }
@@ -298,6 +298,8 @@ PolygonTerrainPrefabSourceSet decodePolygonTerrainPrefabs(
         collisionShapes: _shapes(
           json['collisionShapes'],
           '$path.collisionShapes',
+          allowRenderOnly: false,
+          requireWholePixels: false,
         ),
       ),
     );
@@ -528,11 +530,18 @@ PolygonTerrainChunkSource decodePolygonTerrainChunk(
     collisionShapes: _shapes(
       root['collisionShapes'],
       '$sourcePath.collisionShapes',
+      allowRenderOnly: true,
+      requireWholePixels: true,
     ),
   );
 }
 
-List<PolygonTerrainShapeSource> _shapes(Object? raw, String sourcePath) {
+List<PolygonTerrainShapeSource> _shapes(
+  Object? raw,
+  String sourcePath, {
+  required bool allowRenderOnly,
+  required bool requireWholePixels,
+}) {
   final objects = _objectList(raw, sourcePath);
   final shapes = <PolygonTerrainShapeSource>[];
   for (var index = 0; index < objects.length; index += 1) {
@@ -574,10 +583,22 @@ List<PolygonTerrainShapeSource> _shapes(Object? raw, String sourcePath) {
         allowed: const {'x', 'y'},
         required: const {'x', 'y'},
       );
+      final xHalfPixels = _halfPixelTicks(vertex['x'], '$vertexPath.x');
+      final yHalfPixels = _halfPixelTicks(vertex['y'], '$vertexPath.y');
+      if (requireWholePixels && xHalfPixels.isOdd) {
+        throw FormatException(
+          '$vertexPath.x must be a whole-pixel coordinate.',
+        );
+      }
+      if (requireWholePixels && yHalfPixels.isOdd) {
+        throw FormatException(
+          '$vertexPath.y must be a whole-pixel coordinate.',
+        );
+      }
       vertices.add(
         PolygonTerrainSourcePoint(
-          xHalfPixels: _halfPixelTicks(vertex['x'], '$vertexPath.x'),
-          yHalfPixels: _halfPixelTicks(vertex['y'], '$vertexPath.y'),
+          xHalfPixels: xHalfPixels,
+          yHalfPixels: yHalfPixels,
         ),
       );
     }
@@ -585,12 +606,16 @@ List<PolygonTerrainShapeSource> _shapes(Object? raw, String sourcePath) {
       PolygonTerrainShapeSource(
         shapeId: shapeId,
         vertices: vertices,
-        collisionMode: switch (_enum(json['collisionMode'], const {
-          'solid',
-          'oneWay',
-        }, '$path.collisionMode')) {
-          'solid' => TerrainCollisionMode.solid,
-          'oneWay' => TerrainCollisionMode.oneWay,
+        collisionMode: switch (_enum(
+          json['collisionMode'],
+          allowRenderOnly
+              ? const {'none', 'solid', 'oneWay'}
+              : const {'solid', 'oneWay'},
+          '$path.collisionMode',
+        )) {
+          'solid' => TerrainAuthoringPolygonMode.solid,
+          'oneWay' => TerrainAuthoringPolygonMode.oneWay,
+          'none' => TerrainAuthoringPolygonMode.none,
           _ => throw StateError('Unreachable collision mode.'),
         },
         surfaceKind: json.containsKey('surfaceKind')

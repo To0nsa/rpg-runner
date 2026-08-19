@@ -77,10 +77,14 @@ final class PolygonTerrainCompiledChunk {
   PolygonTerrainCompiledChunk({
     required this.chunk,
     required this.geometry,
+    required this.renderGeometry,
+    required Map<TerrainSourceIdentity, TerrainAuthoringPolygonMode>
+    modeBySourceIdentity,
     required Iterable<TerrainAuthoringPolygonRecord> authoringPolygons,
     required Iterable<PolygonTerrainPlacementLineage> placementLineage,
     required Iterable<PolygonTerrainTriangle> triangles,
-  }) : authoringPolygons = List<TerrainAuthoringPolygonRecord>.unmodifiable(
+  }) : modeBySourceIdentity = Map.unmodifiable(modeBySourceIdentity),
+       authoringPolygons = List<TerrainAuthoringPolygonRecord>.unmodifiable(
          List<TerrainAuthoringPolygonRecord>.of(authoringPolygons)..sort(),
        ),
        placementLineage = List<PolygonTerrainPlacementLineage>.unmodifiable(
@@ -97,7 +101,14 @@ final class PolygonTerrainCompiledChunk {
   }
 
   final PolygonTerrainChunkSource chunk;
+
+  /// Gameplay collision geometry. Render-only polygons are absent.
   final TerrainGeometry geometry;
+
+  /// Canonical geometry used for fills. Includes every authored terrain role.
+  final TerrainGeometry renderGeometry;
+  final Map<TerrainSourceIdentity, TerrainAuthoringPolygonMode>
+  modeBySourceIdentity;
   final List<TerrainAuthoringPolygonRecord> authoringPolygons;
   final List<PolygonTerrainPlacementLineage> placementLineage;
   final List<PolygonTerrainTriangle> triangles;
@@ -184,7 +195,7 @@ PolygonTerrainCompilationResult compilePolygonTerrainSourceText({
   );
 }
 
-/// Expands current-schema collision and delegates all geometry to Core.
+/// Expands terrain source, then partitions render-only polygons from physics.
 PolygonTerrainCompilationResult compilePolygonTerrainChunk({
   required PolygonTerrainChunkSource chunk,
   required PolygonTerrainPrefabSourceSet prefabSources,
@@ -192,7 +203,10 @@ PolygonTerrainCompilationResult compilePolygonTerrainChunk({
 }) {
   sourcePath = canonicalPolygonTerrainSourcePath(sourcePath);
   final issues = <PolygonTerrainGenerationIssue>[];
-  final inputs = <TerrainPolygonInput>[];
+  final renderInputs = <TerrainPolygonInput>[];
+  final collisionInputs = <TerrainPolygonInput>[];
+  final modeBySourceIdentity =
+      <TerrainSourceIdentity, TerrainAuthoringPolygonMode>{};
   final placementByPath = <String, String>{};
   final ownerByPath = <String, String>{};
   final placementLineage = <PolygonTerrainPlacementLineage>[];
@@ -203,13 +217,16 @@ PolygonTerrainCompilationResult compilePolygonTerrainChunk({
     final shapePath = '$sourcePath#direct=${shape.shapeId}';
     ownerByPath[shapePath] = chunk.chunkKey;
     try {
-      inputs.add(
-        _polygonInput(
-          chunkKey: chunk.chunkKey,
-          shape: shape,
-          sourcePath: shapePath,
-        ),
+      final input = _polygonInput(
+        chunkKey: chunk.chunkKey,
+        shape: shape,
+        sourcePath: shapePath,
       );
+      renderInputs.add(input);
+      modeBySourceIdentity[input.identity] = shape.collisionMode;
+      if (shape.collisionMode != TerrainAuthoringPolygonMode.none) {
+        collisionInputs.add(input);
+      }
     } on ArgumentError catch (error) {
       issues.add(
         _errorIssue(
@@ -271,16 +288,32 @@ PolygonTerrainCompilationResult compilePolygonTerrainChunk({
           '$placementPath#prefab=${prefab.prefabKey}#shape=${shape.shapeId}';
       placementByPath[shapePath] = placementKey;
       ownerByPath[shapePath] = prefab.prefabKey;
-      try {
-        inputs.add(
-          _polygonInput(
-            chunkKey: chunk.chunkKey,
-            placementKey: placementKey,
-            shape: shape,
+      if (shape.collisionMode == TerrainAuthoringPolygonMode.none) {
+        issues.add(
+          _errorIssue(
+            code: 'prefab_render_only_shape_forbidden',
+            message:
+                'Prefab ${prefab.prefabKey} shape ${shape.shapeId} uses none; '
+                'render-only terrain is owned directly by chunks.',
             sourcePath: shapePath,
-            transform: transform,
+            ownerKey: prefab.prefabKey,
+            placementKey: placementKey,
+            shapeId: shape.shapeId,
           ),
         );
+        continue;
+      }
+      try {
+        final input = _polygonInput(
+          chunkKey: chunk.chunkKey,
+          placementKey: placementKey,
+          shape: shape,
+          sourcePath: shapePath,
+          transform: transform,
+        );
+        renderInputs.add(input);
+        collisionInputs.add(input);
+        modeBySourceIdentity[input.identity] = shape.collisionMode;
         placementLineage.add(
           PolygonTerrainPlacementLineage(
             chunkKey: chunk.chunkKey,
@@ -311,9 +344,10 @@ PolygonTerrainCompilationResult compilePolygonTerrainChunk({
     }
   }
 
+  TerrainGeometry? renderGeometry;
   TerrainGeometry? geometry;
   var coreSourcesAccepted = true;
-  for (final input in inputs) {
+  for (final input in renderInputs) {
     final review = const TerrainSourceCanonicalizer().review(
       input,
       requireCanonical: true,
@@ -333,7 +367,14 @@ PolygonTerrainCompilationResult compilePolygonTerrainChunk({
   }
   if (coreSourcesAccepted) {
     try {
-      geometry = const TerrainCompiler().compile(inputs, geometryVersion: 1);
+      renderGeometry = const TerrainCompiler().compile(
+        renderInputs,
+        geometryVersion: 1,
+      );
+      geometry = const TerrainCompiler().compile(
+        collisionInputs,
+        geometryVersion: 1,
+      );
     } on TerrainValidationException catch (error) {
       issues.addAll(
         error.diagnostics.map(
@@ -356,10 +397,10 @@ PolygonTerrainCompilationResult compilePolygonTerrainChunk({
     }
   }
 
-  if (geometry != null) {
+  if (renderGeometry != null) {
     final maxX = chunk.width * terrainPhysicsTicksPerWorldUnit;
     final maxY = chunk.height * terrainPhysicsTicksPerWorldUnit;
-    for (final polygon in geometry.polygons) {
+    for (final polygon in renderGeometry.polygons) {
       for (final vertex in polygon.vertices.asMap().entries) {
         final point = vertex.value;
         if (point.xTicks >= 0 &&
@@ -387,7 +428,7 @@ PolygonTerrainCompilationResult compilePolygonTerrainChunk({
     }
   }
 
-  if (geometry == null || issues.isNotEmpty) {
+  if (geometry == null || renderGeometry == null || issues.isNotEmpty) {
     return PolygonTerrainCompilationResult(compiled: null, issues: issues);
   }
 
@@ -396,7 +437,7 @@ PolygonTerrainCompilationResult compilePolygonTerrainChunk({
     return order != 0 ? order : left.shapeId.compareTo(right.shapeId);
   });
   final triangles = <PolygonTerrainTriangle>[];
-  for (final polygon in geometry.polygons) {
+  for (final polygon in renderGeometry.polygons) {
     triangles.addAll(
       const TerrainTriangulator()
           .triangulate(polygon)
@@ -447,6 +488,8 @@ PolygonTerrainCompilationResult compilePolygonTerrainChunk({
     compiled: PolygonTerrainCompiledChunk(
       chunk: chunk,
       geometry: geometry,
+      renderGeometry: renderGeometry,
+      modeBySourceIdentity: modeBySourceIdentity,
       authoringPolygons: authoringPolygons,
       placementLineage: placementLineage,
       triangles: triangles,
@@ -470,7 +513,7 @@ TerrainAuthoringPolygonRecord _authoringPolygonRecord({
   vertices: shape.vertices.map(
     (vertex) => SourceTerrainPoint(vertex.xHalfPixels, vertex.yHalfPixels),
   ),
-  collisionMode: shape.collisionMode,
+  mode: shape.collisionMode,
   surfaceKind: shape.surfaceKind,
   materialKey: shape.materialKey,
 );
@@ -492,7 +535,11 @@ TerrainPolygonInput _polygonInput({
   vertices: shape.vertices.map(
     (vertex) => SourceTerrainPoint(vertex.xHalfPixels, vertex.yHalfPixels),
   ),
-  collisionMode: shape.collisionMode,
+  collisionMode: switch (shape.collisionMode) {
+    TerrainAuthoringPolygonMode.solid ||
+    TerrainAuthoringPolygonMode.none => TerrainCollisionMode.solid,
+    TerrainAuthoringPolygonMode.oneWay => TerrainCollisionMode.oneWay,
+  },
   surfaceKind: shape.surfaceKind,
   materialKey: shape.materialKey,
   transform: transform,

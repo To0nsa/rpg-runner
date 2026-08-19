@@ -12,7 +12,8 @@ projection, rectangle runtime authority, and migration-only adapters are
 deleted:
 
 - prefab authoring persists schema v3 `collisionShapes`
-- chunk authoring persists schema v2 direct `collisionShapes`
+- chunk authoring persists schema v2 direct `collisionShapes`; the compatible
+  `collisionMode: none` value marks a direct polygon as render-only
 - normal Prefab/Chunk plugin loads expose no legacy editable data, commands,
   pending diffs, or export; the shared migration route provides only a
   read-only readiness command and atomic source recheck
@@ -49,18 +50,19 @@ Final Phase 4 acceptance work remains tracked in
 
 | Contract | Owner | Implemented consumer |
 | --- | --- | --- |
-| Exact half-pixel source vertex and shape values | `tools/editor/lib/src/terrain_authoring/terrain_source_models.dart` | editor model/codec tests and the Core adapter |
+| Exact half-pixel source vertex and shape values | `tools/editor/lib/src/terrain_authoring/terrain_source_models.dart` | Prefab authoring, shared editor geometry, model/codec tests, and the Core adapter; direct Chunk codecs admit only even ticks |
 | Source validation and canonicalization | `runner_core` `TerrainSourceCanonicalizer` | `TerrainCompiler` and editor adapter |
 | Portable terrain-authoring issue envelope | `runner_core` `TerrainAuthoringIssue` | staged generator raw-source/compile, seam validation, typed artifact/output-drift verification, migration plan/check/write adapters, editor Prefab/Chunk polygon validation, and Chunk-v2 collision expansion |
 | Positive-area polygon overlap | `runner_core` `TerrainPolygonOverlap` | `TerrainCompiler` and editor owner validation |
 | Exact placement and physics-grid quantization | `runner_core` `TerrainSourceTransform` | `TerrainCompiler`, Core fixtures, and editor adapter |
 | Editor-to-Core conversion | editor `TerrainSourceCoreAdapter` | migration checks, shared interaction reducer, and normal current-schema Prefab/Chunk routes |
 | Shared polygon interaction state | editor `TerrainPolygonInteractionReducer` | pure-Dart selection/draft/gesture/semantic-edit tests plus normal current-schema Prefab and Chunk routes |
-| Exact half-pixel inspector text | editor `TerrainHalfPixelText` / `TerrainPolygonVertexEditor` / `TerrainPolygonInteractionReducer.editSelectedVertex` | one shared exact field widget and semantic commit path used by both current-schema routes |
+| Chunk contact-constrained terrain input | editor `TerrainPolygonContactConstraint` / `ChunkPolygonAuthoringController` | direct rectangle, vertex, insertion, and whole-shape previews against direct and expanded prefab collision |
+| Exact grid-aware inspector text | editor `TerrainHalfPixelText` / `TerrainPolygonVertexEditor` / `TerrainPolygonInteractionReducer.editSelectedVertex` | one shared exact field widget and semantic commit path; Prefab accepts half pixels while direct Chunk editing requires whole pixels |
 | Polygon collision metadata dialog | editor `TerrainPolygonMetadataDialog` / `TerrainMaterialPreviewCatalog` / `TerrainPolygonInteractionReducer.editSelectedShapeMetadata` | one owner-neutral collision-mode/surface/material selector used by both current-schema routes; material choices preview their fill/surface/foreground workspace assets, unknown retained values remain selectable, and owner controllers retain commit authority |
 | Polygon duplicate placement default | editor `findTerrainPolygonDuplicateOffset` | deterministic nearest conservative AABB-free, snap-aligned candidate on both current-schema routes; exact owner validation remains final authority |
 | Render projection and source-space hit testing | editor `TerrainPolygonSceneProjection` / `TerrainPolygonSceneHitTest` | framework-neutral scene tests and both current polygon surfaces |
-| Canvas projection and source-loop overlay | editor `TerrainPolygonViewportTransform` / `TerrainPolygonScenePainter` | shared Flutter painter tests and both current polygon surfaces; the Chunk route layers Core edge, actor-terrain, and marker-placement diagnostics above it |
+| Canvas projection and source-loop overlay | editor `TerrainPolygonViewportTransform` / `TerrainPolygonScenePainter` | shared Flutter painter tests and both current polygon surfaces; the Chunk route layers Core edges and marker-placement diagnostics above it |
 | Prefab polygon owner validation | editor `validatePrefabCollisionShapes` | Core compiler, exact visual-bounds tests, and normal current-schema Prefab commits/export |
 | Immutable prefab-v3 polygon record | editor `PrefabV3Def` | migration target, normal current-schema store/plugin/UI, and model-contract tests |
 | Strict prefab-v3 file structure and canonical serialization | editor `PrefabV3FileData` / `PrefabV3FileCodec` | delegated migration checks plus normal current-source load, transactional save, and exact reload |
@@ -78,18 +80,43 @@ Final Phase 4 acceptance work remains tracked in
 | Guarded migration write transaction | editor `WorkspaceWriteTransaction` / `PolygonAuthoringMigrationTransaction` | explicit CLI `--write`, rollback/no-op evidence, and the completed nine-file source cutover |
 | Strict chunk-v2 file structure, canonical serialization, and ownership planning | editor `ChunkV2FileData` / `ChunkV2FileCodec` / `ChunkStore.buildV2SavePlan` | migration facade delegation plus normal complete-current-tree load, pending plans, rollback-safe apply, and exact reload |
 | Chunk-v2 plugin validation, mutation, and lifecycle policy | editor `ChunkV2Document` / `ChunkV2CollisionCommitPolicy` / `ChunkV2MetadataCommitPolicy` / `ChunkV2CompositionCommitPolicy` / `ChunkV2CompositionOperation` / `ChunkV2LifecycleCommitPolicy` / `ChunkDomainPlugin` | normal strict current-source composition; complete Core/editor validation; owner/revision/snapshot freshness, operation-scoped canonical targeting, ordering, typed polygon/metadata/composition/lifecycle commits, and transactional export |
-| Chunk route-local projection | editor `ChunkAuthoringWorkspace` / `ChunkSceneCoordinator` / `ChunkSceneSurface` / `ChunkPolygonAuthoringController` | persistent complete-v2 scene and two-card sidebar, typed domain routing, direct terrain/prefab/marker tools, snap, bounds, diagnostics, keyboard, rejection, history, compiled-edge inspection, actor-terrain, and marker-placement overlays; legacy/missing source selects no ground/gap workflow |
+| Chunk route-local projection | editor `ChunkAuthoringWorkspace` / `ChunkSceneCoordinator` / `ChunkSceneSurface` / `ChunkPolygonAuthoringController` | persistent complete-v2 scene and four tab-filtered cards, typed domain routing, direct terrain/prefab/marker tools, mandatory whole-pixel terrain coordinates with optional tile-grid snap, bounds, keyboard, rejection, history, default-off tile-grid/compiled-edge overlays, and an editor-overlay-free visual preview; legacy/missing source selects no ground/gap workflow |
 | Chunk level visual preview | editor `ChunkV2Document` / `ChunkV2Scene` / `ChunkPolygonLevelVisualSource` | `ChunkDomainPlugin` reads the parallax theme set, resolves the active level's `visualThemeId`, and renders its background/foreground around persisted or local-preview terrain material art selected by direct polygon `materialKey`; it adds no source mutation or gameplay authority |
-| Chunk actor terrain projection | editor `ChunkV2ActorTerrainProjection` | Core surface extraction; Éloïse/Grojib/Hashash eligibility; published Grojib/Hashash graphs; Unoco solid/local-hover evidence; Derf 15-degree/32-pixel perch evidence; no player/flight graph or source mutation |
+| Chunk marker terrain input | editor `ChunkV2ActorTerrainProjection` | internal Core surface/graph and enemy-policy input for marker placement only; the Chunk scene exposes no standalone actor-terrain control, summary, or overlay |
 | Chunk marker contract and placement projection | editor `chunk_v2_marker_contract.dart` / `ChunkV2MarkerPlacementProjection` | immutable level ground context, staged marker validation, exact Phase 3 enemy placement evidence, Hashash deferral, authored-order/stable-key retention, and zero RNG/source mutation |
 | Scheduler-aware chunk seam analysis | editor `chunk_v2_seam_analysis.dart` | immutable `LevelDef` snapshot, canonical compiled boundary signatures, runtime-contract adjacency enumeration, global staged validation, and read-only compatible/failing neighbor evidence |
-| Strict staged generator source and compilation | root `polygon_terrain_source.dart` / `polygon_terrain_compilation.dart` | live Prefab-v3/Chunk-v2 parsing, Core compilation, placement lineage, and exact triangulation |
+| Strict staged generator source and compilation | root `polygon_terrain_source.dart` / `polygon_terrain_compilation.dart` | live Prefab-v3/Chunk-v2 parsing, render/collision partitioning, Core compilation, placement lineage, and exact triangulation |
 | Staged local generated-record contract | `runner_core` `staged_terrain_data.dart` | live generated artifact consumed by normal/replay Core through strict catalog/binding; Flame consumes only its Core snapshot projection |
 | Staged Dart terrain rendering and signature verification | root `polygon_terrain_render.dart` / `polygon_terrain_artifact_validation.dart` | registered sixth output, artifact-plan byte drift, and owner-aware typed artifact/fresh-compile signature checks |
 
 Core has no dependency on editor models, JSON, widgets, or filesystem state.
 The editor depends on Core through a one-way local package dependency and does
 not reimplement geometric predicates.
+
+### Render-only terrain partition
+
+`collisionMode: none` is an authoring and staged-render role, not a third Core
+physics mode. `TerrainCollisionMode` therefore remains `solid`/`oneWay` and no
+collision, navigation, support, placement, seam, or blocker consumer needs a
+special-case non-collider.
+
+Chunk validation and generation first map every direct shape into an
+authoring-only review geometry. That pass owns canonical topology, bounds,
+positive-area no-overlap, material references, and normalized loops. The
+pipeline then removes direct `none` shapes before compiling the gameplay
+`TerrainGeometry`; placed Prefab collision remains solid/one-way and rejects
+`none`. Triangulation and staged polygon serialization use the all-shape review
+geometry, while staged edges, Core `source-v1`/`edges-v1` signatures, seam
+evidence, traversal caches, and actor projections use only gameplay geometry.
+`authoring-polygons-v1` still hashes every direct source shape, including its
+`none` role, and `authoring-triangles-v1` covers every rendered fill.
+
+At runtime the staged catalog rejects an edge owned by a `none` polygon. World
+binding omits those polygons entirely, then the render-snapshot builder proves
+all collidable staged loops match that world geometry and all `none` loops are
+absent from it before adding their generated fills. Candidate publication
+remains atomic: simulation receives the filtered geometry while Flame receives
+that geometry's fills plus the render-only fills at the same geometry version.
 
 The Chunk authoring workspace loads parallax themes only as preview input. Its
 plugin snapshot resolves the active `LevelDef.visualThemeId` to one theme, then
@@ -252,9 +279,11 @@ changes in this contract.
 
 ## Source Coordinates And Canonicalization
 
-Editor source coordinates are stored as integer half-pixel ticks: two source
-ticks equal one world unit. JSON accepts only finite integer or `.5` values and
-emits canonical integer/one-decimal representations.
+Editor terrain coordinates are stored as integer half-pixel ticks: two source
+ticks equal one world unit. Prefab JSON accepts finite integer or `.5` values.
+Direct Chunk terrain accepts only whole-pixel coordinates, represented by even
+source ticks. Serialization emits canonical integer/one-decimal values for the
+domain being written.
 
 Core reviews each source loop without mutating it. The exact review:
 
@@ -516,10 +545,11 @@ source record or allowing an invalid enum/source model to escape.
 structural authorities in their normal domain layers.
 `PolygonAuthoringTargetCodec` delegates both formats to them and adds no
 compatibility behavior. Both require exact target versions and field sets,
-canonical list/ID/tag ordering, exact integer fields, half-pixel coordinates,
-known enums, and accepted placement-scale steps. Unknown and legacy fields
-reject rather than default. Geometry/topology acceptance remains Core-owned and
-is not duplicated in structural codecs.
+canonical list/ID/tag ordering, exact integer fields, known enums, and accepted
+placement-scale steps. Prefab coordinates may use exact half pixels; direct
+Chunk coordinates must be whole pixels. Unknown and legacy fields reject
+rather than default. Geometry/topology acceptance remains Core-owned and is not
+duplicated in structural codecs.
 
 All planned current repository output—99 prefab records and 8 chunk files—has
 been encoded, decoded strictly, and re-encoded byte-for-byte in tests. The
@@ -561,10 +591,11 @@ and exact reload. The temporary `Staging` type name is removed at cutover.
 
 `validateChunkV2Document` requires stable unique chunk identities,
 complete source baselines, a known active level, and known prefab references.
-Each direct polygon vertex must remain inside the closed chunk rectangle in
-exact half-pixel ticks. Core reviews every loop under the canonical source
-policy and compiles each accepted direct-owner set for exact overlap and hard
-limits. Exact placement expansion, transform, post-quantization bounds,
+Each direct polygon vertex must use even half-pixel ticks, corresponding to a
+whole-pixel coordinate, and remain inside the closed chunk rectangle. Core
+reviews every loop under the canonical source policy and compiles each accepted
+direct-owner set for exact overlap and hard limits. Exact placement expansion,
+transform, post-quantization bounds,
 expanded-owner limits, preview parity, marker rules, and scheduler-reachable
 seams are part of the same blocking document validation.
 
@@ -594,9 +625,10 @@ changes. An active preview receives first refusal on undo, so cancellation
 cannot consume committed session history.
 
 `ChunkSceneSurface` reuses the shared painter, projection, terrain hit test, and
-focused keyboard contract. `ChunkSceneCoordinator` owns only route-local input
-domain and typed selection: terrain source, prefab source, marker source, or
-read-only compiled-edge inspection. Terrain input still delegates to
+focused keyboard contract. `ChunkSceneCoordinator` owns route-local input
+domain and typed selection. The current workspace exposes terrain, prefab, and
+marker source domains and never activates the coordinator's read-only
+compiled-edge inspection branch. Terrain input delegates to
 `ChunkPolygonAuthoringController`; prefab bounds and marker anchors resolve
 through deterministic per-document projections. Escape, Enter, Delete, and
 Backspace route to the active domain, while Ctrl-drag pans and Ctrl-scroll
@@ -605,19 +637,22 @@ closed-bound validation remains in the chunk owner policy.
 
 When a normal strict `ChunkV2Scene` is loaded, `ChunkCreatorPage` selects
 `ChunkAuthoringWorkspace`; the v1 coordinator and the standalone composition
-workspace no longer exist. `Chunk creation scene` stays mounted while the two
-top-level right-sidebar cards expose owner/terrain and composition workflows.
-On narrow layouts, the same scene and sidebar subtrees are repositioned rather
-than replaced by tabs. The scene domain selector and card rows share typed
-prefab and marker selection. Prefab hit testing reverses the exact canonical
+workspace no longer exist. `Chunk creation scene` stays mounted beside the
+owner rail while persistent visual/viewport controls sit above the
+Terrain/Prefabs/Markers/Layers selector. That selector filters the right sidebar
+to one matching authoring card. On narrow layouts, the same
+scene and sidebar subtrees are repositioned; tab changes replace only the
+sidebar card. The tabs and card rows share typed per-domain prefab and marker
+selection. Prefab hit testing reverses the exact canonical
 paint order, including the source-index tie break; marker anchor hit testing
 reverses canonical source order and never targets resolved placement evidence.
 Selection overlays and card expansion are route-local presentation state and
 cannot create revisions, history entries, or pending diffs. Composition still
-uses the existing dialogs for exact and non-spatial fields. Prefab select,
-place, and move tools use `ChunkPrefabSceneGesture`: pointer-down captures the
-current composition operation token, pointer movement changes only a local
-candidate, and pointer-up returns at most one existing
+uses the shared validated forms for exact and non-spatial fields: creation is
+inline in the sidebar, while existing-record edits use those forms in dialogs.
+Prefab select, place, and move tools use `ChunkPrefabSceneGesture`:
+pointer-down captures the current composition operation token, pointer movement
+changes only a local candidate, and pointer-up returns at most one existing
 `ChunkV2CompositionCommit`. Grid-enabled anchors quantize to the current
 chunk's tile size; free anchors quantize to integer pixels; exact form fields
 preserve entered integer pixels. Both policies use deterministic half ties away
@@ -639,7 +674,7 @@ prefabs, 256 compiled edges, and 24 marker outcomes while dragging terrain.
 The unified workspace fingerprints only sidebar-relevant controller state, so
 pointer-only terrain previews repaint through `ChunkSceneSurface` without
 rebuilding the owner/composition sidebar. Marker placement evidence is also
-cached by accepted chunk, actor-terrain projection, and ground-top input. The
+cached by accepted chunk, its internal terrain projection, and ground-top input. The
 August 14, 2026 profile run reports vertex/shape update p95 of `239/242 us`,
 build p99 of `1.866/1.854 ms`, and no missed input, build, or raster budget.
 Reload and confirmed current-source apply route through the normal session and
@@ -651,16 +686,29 @@ loads return the shared migration-required state, so v1 ground/gap editing and
 export are not normal source paths.
 
 The Chunk workspace's right authoring column owns one vertical scroll surface.
-Its two top-level panels and their owner, Shapes, reachable-seam, diagnostics,
-visual-stack, tile-layer metadata, prefab-placement, and marker sections take
-their natural content height and delegate overflow to that scroll surface.
-Expanding or collapsing any card changes only local presentation state and
-never authoring selection, history, or source.
+The `Terrain`, `Prefabs`, `Markers`, and `Layers` tabs sit below the persistent
+visual/viewport controls and mount only the matching right-side card while
+leaving the scene and viewport mounted. Terrain
+contains creation and existing-shape authoring. Prefabs and Markers mirror that
+sidebar structure with foldable inline creation forms above separate existing
+placement lists; add commits no longer require modal navigation, while existing
+record edits retain the shared validated form in a dialog. Layers contains the
+visual stack and tile-layer metadata. One shared Diagnostics card follows the
+active domain card and presents the complete session issue projection on every
+tab without owner or domain filtering. Per-domain selection survives tab
+changes, and an active operation locks the tabs. Layers is a passive scene-input
+domain because tile layers remain metadata-only. Compact owner-row previews
+reuse the scene's background, terrain-material, placed-prefab, and foreground
+visual projections with a fit-to-chunk transform; they remain read-only and do
+not introduce a second authoring or persistence path.
 
 The Chunk shape inspector uses the same `TerrainPolygonVertexEditor` as Prefab
 staging. Its integer/`.0`/`.5` parser never sends malformed fractions to the
-controller. A valid coordinate override bypasses pointer snap, enters the
-shared reducer, and then passes through chunk bounds/Core owner validation.
+controller. A valid whole-pixel coordinate override enters the active direct
+terrain snap policy, then the shared reducer and chunk bounds/Core owner
+validation. With tile snap enabled, vertex values and both opposing rectangle
+corners round to the nearest owner tile-grid intersections before the semantic
+commit.
 Rejected out-of-bounds text remains visible with its exact diagnostic and does
 not change revision, pending diffs, or history; an accepted replacement creates
 one owner revision/history entry.
@@ -756,7 +804,7 @@ and draws deterministic fallback cells for unavailable files. It paints only
 visual evidence, bounds, grid, and anchor beneath the shared collision painter;
 it never derives or mutates collision authority.
 
-The staging page shows `1 px` owner-grid and exact `0.5 px` snap choices. A
+The Prefab staging page shows `1 px` owner-grid and exact `0.5 px` snap choices. A
 snap-policy change cancels any active preview locally, and the selected policy
 performs the only pointer-to-source rounding. Shape rows sort by stable shape
 ID. Diagnostics retain shape/edge/vertex identity where available and focus the
@@ -769,7 +817,8 @@ Numeric vertex fields use `TerrainHalfPixelText`, which converts signed
 integer, `.0`, or `.5` pixel strings directly to integer source ticks without a
 floating-point intermediate. Comma decimal input is normalized for editor
 ergonomics; other fractions, malformed text, and values beyond Core's authored
-coordinate range remain field-local errors. A parsed coordinate is an explicit
+coordinate range remain field-local errors. The Chunk route additionally
+rejects parsed odd ticks with a whole-pixel field error. A parsed coordinate is an explicit
 numeric override, so it does not pass through the pointer snap selector. The
 shared reducer replaces the selected vertex, re-runs Core canonicalization and
 cross-shape overlap checks, preserves the selected vertex by exact value after
@@ -852,51 +901,31 @@ preserve accepted source, commits, compiled geometry, and overlays. There is
 deliberately no soft combined-shapes-per-Chunk warning because Phase 0 accepted
 no such target.
 
-The optional compiled-edge layer renders `TerrainGeometry.edges` above the
-source-loop painters. It therefore shows Core's actual exposed result after
-collinear splitting, internal-solid cancellation, and one-way filtering; it
-never reconstructs edges from polygon fill. A separate inspection mode routes
-ordinary primary taps to a read-only nearest-segment query while preserving
-Ctrl-drag pan and Ctrl-scroll zoom. Distance ties use canonical
-`TerrainEdgeId` order, and disabling inspection clears only route-local edge
-selection.
+The default-off compiled-edge layer renders `TerrainGeometry.edges` above
+the source-loop painters whenever compilation succeeds. It therefore shows
+Core's actual exposed result after collinear splitting, internal-solid
+cancellation, and one-way filtering; it never reconstructs edges from polygon
+fill. Solid edges render pink and one-way edges yellow. The route-local
+**Shape edges** chip changes only this painter's visibility.
 
-Selected edges are highlighted and resolved back through the immutable Core
-geometry and `TerrainTraversalCache`. The inspector shows the canonical edge
-ID, direct or prefab/placement/shape lineage, exact `1/1024 px` endpoints,
-integer tangent and outward-normal components, exact `1/1024 degree` absolute
-slope, collision mode, surface/material, endpoint joins, previous/next IDs, and
-related diagnostics. `TerrainPhysicsText` formats both fixed-point scales as
-terminating decimals with integer arithmetic; display never feeds authority.
-Normal-vector drawing remains pending.
+**Visual preview** is a separate route-local presentation mode. It suppresses
+the source polygon painter, Chunk bounds, viewport border, expanded collision,
+compiled edges, Prefab selection, gesture previews, marker anchors, and marker
+placement evidence. The remaining canvas is the runtime-facing composition of
+parallax, terrain-material art, and placed Prefab visuals. Primary canvas and
+sidebar authoring are disabled in this mode, while pan, zoom, and reset remain
+available. Entering or leaving it cannot change selection, source, history,
+pending diffs, or collision authority. The Chunk scene exposes no compiled-edge
+inspection mode.
 
-The opt-in actor-terrain layer builds one immutable
-`ChunkV2ActorTerrainProjection` only for the active staged chunk. It constructs
-Core's `TerrainRuntimeBundle` with the accepted default Phase 3 grounded-enemy
-profiles, so Grojib and Hashash reuse the exact shared `TerrainSurfaceSet`,
-eligibility arrays, and walk/jump/drop graph publications. Éloïse uses the
-accepted 60-degree `TerrainTraversalProfile` against that same surface set but
-has no graph: Core does not own a player pathfinding profile, and the editor
-must not manufacture one.
+The Chunk scene exposes no standalone actor-terrain chip, actor selector,
+summary, or overlay. `ChunkV2ActorTerrainProjection` remains an internal marker
+placement dependency because Core placement policies require the version-coherent
+surface set, graphs, solid blockers, local-hover candidates, and Derf perch
+eligibility. The route builds and caches it only when marker evidence is
+requested; it is never painted or exposed as a separate inspection mode.
 
-Unoco's view marks every compiled solid edge as a blocker and every upward
-solid navigation surface as a possible local-hover reference. It ignores
-one-way terrain and constructs no flight graph. Derf's view applies the
-catalog-owned solid/15-degree traversal rule and Core's public
-`derfMinimumSupportSpanTicks` requirement independently. Each qualifying perch
-draws an exact centered 32-pixel horizontal support bracket; the inspector
-reports actual horizontal span, rule outcome, and final perch eligibility.
-
-Grounded actor overlays draw only eligible Core surfaces. Grojib/Hashash graph
-links connect the exact Core-published body-center takeoff and landing points
-and retain walk/jump/drop type; the display line is not a reconstructed motion
-trajectory. Selecting a compiled edge adds actor-specific eligibility,
-outgoing-link counts, blocker/local-hover state, or perch evidence beneath the
-same canonical lineage. Overlay selection, actor changes, and inspection are
-route-local, consume no RNG, and cannot change a chunk revision, pending diff,
-authored marker, source file, or runtime authority.
-
-The opt-in marker layer reuses that exact actor projection and constructs a
+The opt-in marker layer uses that internal terrain projection and constructs a
 `TerrainSpawnPlacementResolver` over its version-coherent Core geometry, edge
 index, surface index, and surface-set identity. Explicit chunk-v2 staging also
 loads each referenced level's `groundTopY` through `LevelStore` and snapshots
@@ -1000,9 +1029,9 @@ Phase 5 rendering and do not block the Phase 4 physical gate.
 The global staged validator expands all chunks once and applies every
 scheduler-reachable comparison, so an individually valid owner cannot pass
 while breaking another reachable transition. The active-level scene consumes
-the same immutable result: Chunk Creator summarizes unique neighbors and
-directed seam counts and lists compatible/failing transition cards. These
-views expose no edit, revision, pending-diff, RNG, or scheduling authority.
+the same immutable result only for its compact neighbor/directed-seam summary;
+the Terrain collision sidebar does not list transition cards. This summary
+exposes no edit, revision, pending-diff, RNG, or scheduling authority.
 
 Sorted reachable transitions form `authoring-seams-v1`. The pure-Dart Core
 boundary owns both finite scheduler reachability and the immutable transition
@@ -1069,12 +1098,13 @@ compiler or runtime-selection flag:
 
 - `polygon_terrain_source.dart` strictly parses prefab-v3 and chunk-v2
   structures as written, including field sets, exact types, canonical list
-  order, half-pixel coordinates, exact scale tenths, collision metadata, and
-  retained placement fields;
+  order, Prefab half-pixel coordinates, direct Chunk whole-pixel coordinates,
+  exact scale tenths, collision metadata, and retained placement fields;
 - `polygon_terrain_compilation.dart` resolves stable prefab references and
   placement ordinals, applies the accepted anchor-relative Core transform,
-  pre-reviews canonical source, compiles direct and expanded shapes together,
-  enforces closed chunk bounds, and retains prefab key/id/revision lineage;
+  pre-reviews canonical source, compiles an all-shape render geometry and a
+  collidable-only gameplay geometry, enforces closed chunk bounds, and retains
+  prefab key/id/revision lineage;
 - `polygon_terrain_seam_manifest.dart` strictly decodes the shared scheduler
   adjacency golden and recalculates its Core-owned record/digest;
 - `polygon_terrain_seam_validation.dart` resolves every directed transition to
@@ -1109,7 +1139,8 @@ Core's `TerrainTriangulator` derives render triangles only from normalized
 select the first valid ear in surviving canonical-index order. Every result
 must contain exactly `vertexCount - 2` positive triangles whose exact
 doubled-area sum equals the Core polygon. Triangle indices reference that same
-normalized loop; collision edges continue to come exclusively from
+normalized loop. The generator triangulates its all-shape render geometry,
+while collision edges continue to come exclusively from the filtered gameplay
 `TerrainGeometry.edges`. Malformed or noncanonical compiled input fails rather
 than producing partial triangles.
 
@@ -1179,6 +1210,10 @@ third, or physically incompatible coincident edges fail the whole candidate.
 Flame's `StagedTerrain` component converts physics ticks to world units once
 per geometry version and creates `ui.Vertices` with the supplied Core triangle
 indices. It never triangulates, normalizes, stitches, or infers polygon edges.
+`StagedTerrainRenderSnapshotBuilder` requires every solid/one-way staged loop
+to match the published collision polygon exactly. A staged `none` loop must be
+absent from collision geometry and is translated directly into the same render
+snapshot; staged edges can never reference it.
 Fill texture phase is world anchored. The generated material registry maps
 top/slope, left-wall, right-wall, and underside profiles onto exact retained
 `TerrainEdge` outward normals; an absent optional profile intentionally leaves
@@ -1224,7 +1259,7 @@ viewport anchored rather than terrain anchored.
 The shared pure-Dart `authoring-polygons-v1` contract hashes source before
 placement expansion. A UTF-8 length-prefixed record contains the owner domain
 (`chunk` or `prefab`), stable owner key and human ID, positive owner revision,
-stable shape ID, collision mode, optional surface/material metadata, vertex
+stable shape ID, authoring mode (`solid`, `oneWay`, or `none`), optional surface/material metadata, vertex
 count, and every ordered half-pixel integer coordinate. Records sort by owner
 domain, owner key, then shape ID; duplicate owner-local shape identities fail
 closed. One chunk digest includes all direct shapes and every referenced prefab
@@ -1281,10 +1316,10 @@ single Core quantization step, while editor strict codecs reproduce the source
 bytes exactly and the editor expansion reports the same placement lineage.
 Direct terrain contains a flat-to-slope boundary, finite solid ground on both
 sides of an open pit, and two shapes sharing the exact `x = 100`,
-`y = 80.5..130` boundary. Core retains the slope edge and cancels that shared
+`y = 81..130` boundary. Core retains the slope edge and cancels that shared
 internal solid edge. Both consumers agree on six polygons, 21 exposed edges,
-14 triangles, and signatures `6e5e8bbf…fe8` (source), `ed707fc7…d31`
-(edges), `60ca88ca…c3f` (authored polygons), `4f07473d…1c2` (placements),
+14 triangles, and signatures `39e9349f…220` (source), `b561d136…6b7`
+(edges), `cb55cc53…ecd` (authored polygons), `4f07473d…1c2` (placements),
 and `41ee501d…f36` (triangles). The original staged artifact and its reviewed
 SHA-256 remain byte-identical.
 
@@ -1450,12 +1485,47 @@ the shared reducer and exact Prefab/Chunk owner policy still validate the
 actual translated polygon and allocate its lowest-free stable shape ID.
 
 All stored and preview edit coordinates remain integer half-pixel ticks. The
-half-pixel snap preserves each tick; owner-grid snap uses an integer pixel step
-with exact ties away from zero. Scene hit testing accepts fractional
+Prefab half-pixel snap preserves each tick, while its owner-grid snap uses an
+integer pixel step with exact ties away from zero. Direct Chunk terrain
+hardcodes a whole-pixel minimum and exposes no half-pixel selector. Independent
+default-off route-local creation and saved-shape tile-snap settings change their
+respective steps to the current owner's positive `tileSize`. Creation owns
+polygon/rectangle drafts and draft vertex insertion/movement; saved-shape
+editing owns committed gestures, duplication spacing, and exact
+vertex/rectangle commits. Both settings are locked during an active draft or
+gesture so one operation cannot mix steps. Scene hit testing accepts fractional
 source-space pointer coordinates produced by inverse viewport transforms, and
 the shared snap policy divides those fractional values by the final grid step
 before rounding once. This avoids selecting a different owner-grid cell by
 prematurely rounding to the half-pixel grid.
+
+Chunk terrain input adds a route-local contact constraint before the shared
+reducer receives each pointer update. Its immutable target set contains current
+direct source loops converted exactly to Core physics ticks and read-only
+expanded prefab loops at their already-quantized transformed coordinates. An
+eight-canvas-pixel radius is converted through the viewport so zoom does not
+change the visual snap affordance. Point placement rejects strict interiors;
+rectangle, vertex, insertion, and whole-shape candidates reject exact
+positive-area overlap. Direct render-only loops participate in this authoring
+constraint as occupied visual area, although they are later removed from
+gameplay geometry. An invalid drag walks the authoring grid from the last
+accepted preview to the requested point, stops at contact, and can continue on
+an allowed axis along that boundary.
+
+Only solid target boundaries participate in contact attraction. One-way and
+render-only loops still reject occupied-area overlap, but are not weld targets
+because they do not form removable solid seams. Direct boundaries that are representable on
+the active source grid snap exactly. A transformed prefab boundary between
+source-grid coordinates selects the nearest deterministic authorable point
+that remains outside every collision loop. These checks improve the preview;
+the normal Core canonicalization, owner bounds, capacity, transformed overlap,
+and seam validation remain final commit authority.
+
+Exact opposing solid boundary segments are split and canceled by the Core
+compiler, so two solids snapped into edge contact do not emit an internal
+collision or navigation edge. Crossing edges and positive-area intersections
+are never hidden as a repair strategy: authoring prevents those candidates and
+the final owner validation rejects any alternate edit path that creates them.
 
 `TerrainPolygonSceneProjection` exposes stable shape order, selected
 edge/vertex indices, gesture-preview identity, and an open draft without
@@ -1470,15 +1540,49 @@ It substitutes committed-shape gesture candidates and appends a creation draft
 once the draft has at least three vertices, while leaving the session document
 unchanged. The material layer listens directly to authoring state so pointer
 updates repaint without forcing unrelated Chunk workspace projections to
-reconcile. New direct Chunk shapes default to `ground` and the first canonical
-authored material key; a missing material catalog fails visibly back to
-collision-only metadata instead of inventing a key.
+reconcile. Route-local creation settings select solid, one-way, or the
+render-only `none` role, an optional key from the loaded authored material
+catalog, and an optional custom
+shape name before either a polygon or rectangle starts. Shape names are the
+stable source IDs used by deterministic selection and compiled-edge lineage.
+They must start with a lowercase letter, contain only lowercase letters,
+numbers, and underscores, and be unique within the direct owner. Blank
+creation input uses the reducer's deterministic `solid_###` allocation. Each
+new draft captures those values, so changing future defaults cannot mutate an
+active operation. The controls are disabled while that operation exists;
+collision and material selections remain for consecutive shapes while the
+custom name clears after a successful Save. New direct Chunk shapes initially
+default to solid `ground` and the first canonical authored material key; a
+missing material catalog fails visibly back to collision-only metadata instead
+of inventing a key.
+
+The Chunk sidebar renders creation and saved-shape management as sibling
+sections. The creation section owns defaults, a collision dropdown, per-option
+pre-draw material previews inside the material dropdown, polygon/rectangle
+entry points, contextual operation status, and Save/Cancel. It is independently
+collapsible without replacing or resetting the route-local authoring state;
+Save remains unavailable until a draft contains the minimum three vertices.
+The existing-shapes section owns the committed-shape count and list. Selecting
+a list row expands that shape's metadata, lifecycle actions, and exact geometry
+editor immediately below the row, so creation defaults cannot be mistaken for
+selected-source metadata. Its material selector reuses the creation menu's
+per-option preview action. Its editable name follows the same source-ID syntax
+and owner-unique rules as creation. Rectangle dimensions or the selected exact
+vertex render as one contextual editor below the vertex list and commit through
+one bottom `Save edit` action. A simultaneous name and exact-geometry edit is
+validated and committed as one owner replacement and one revision. Re-selecting
+the active shape row closes a clean editor; pending name or geometry text opens
+a Save/Discard/Cancel decision. Save uses that combined semantic commit,
+Discard restores the accepted source values, and Cancel leaves the editor and
+its local input untouched. This split changes presentation only; both sections
+still use the same route-local controller and commit boundary.
 
 `TerrainPolygonViewportTransform` maps exact source half-pixel ticks into
 display-only canvas doubles. Its inverse deliberately returns fractional
 source-space pointer coordinates; a semantic edit must still pass those values
 through the reducer's integer snap policy. `TerrainPolygonScenePainter` renders
-solid/one-way source fills and boundaries, vertices, selected edges, gesture
+solid/one-way/render-only source fills and boundaries, vertices, selected
+edges, gesture
 previews, and open drafts from the shared projection. Projection, transform,
 and style have structural equality so equivalent frames do not repaint.
 
@@ -1486,9 +1590,16 @@ This painter does not compile geometry and its fills are never collision or
 navigation authority. Collision-edge/normal/lineage diagnostics must come from
 the Core compiler preview adapter. Both current routes install the painter and
 plugin/session wiring. The normal Prefab/Chunk source cutover is complete;
-Core normal-vector drawing remains pending. Core-compiled edge selection,
-placed-polygon lineage, and actor-terrain eligibility/navigation evidence are
-already available in the Chunk workspace.
+Core normal-vector drawing remains pending. Core-compiled edges are hidden by
+default and may be shown independently of the clean Visual preview; the Chunk
+workspace has no compiled-edge selection or actor-terrain inspection mode.
+The default-off Chunk tile grid is a route-local `EditorViewportGridPainter`
+projection clipped to owner bounds. It remains visible across all four domain
+tabs and is suppressed with every other editor overlay in Visual preview; it
+does not affect snapping unless the applicable Terrain **Snap to grid** switch
+is enabled. Separate settings are exposed in the terrain creation section and
+selected-existing-shape editor, not by the global scene control strip; changing
+one never changes the other.
 
 The Phase 4 interaction acceptance harness is test-only and drives that real
 Chunk authoring surface on Windows in Flutter profile mode. Its stable
@@ -1531,6 +1642,9 @@ The foundation is covered by:
 - anchor-relative atlas and negative-cell platform-module visual projection
 - deterministic shape IDs, exact snapping, explicit normalization, and
   positive-area duplicate rejection
+- strict point-interior checks, zoom-stable solid contact snapping,
+  transformed-prefab lattice fallback, no-tunneling gesture clamps, one-way
+  non-attraction, and exact internal-solid seam cancellation
 - shared render projection plus vertex/edge/fill hit-test priority and
   deterministic tie-breaks
 - exact canvas/source transform, structural repaint, and widget-level source
@@ -1566,8 +1680,9 @@ The foundation is covered by:
   isolation, guarded reload/apply, visible snap/tools, one direct-owner edit,
   route-level undo restoration, and fail-closed legacy route tests
 - shared Prefab/Chunk exact-coordinate fields, malformed-fraction rejection,
-  accepted odd half-pixel chunk edits, retained out-of-bounds text/diagnostics,
-  and no history or pending diff for either rejection class
+  accepted Prefab half-pixel edits, rejected odd-tick Chunk edits, retained
+  out-of-bounds text/diagnostics, and no history or pending diff for either
+  rejection class
 - shared collision metadata dialog lifecycle, trimmed optional fields, one-way
   mode commit, exactly-once revision/pending projection, and undo restoration
 - deterministic duplicate placement across owner-order permutations, outward

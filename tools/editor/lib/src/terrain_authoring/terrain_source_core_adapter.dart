@@ -19,6 +19,13 @@ abstract final class TerrainSourceCoreAdapter {
     String? placementKey,
     TerrainSourceTransform transform = const TerrainSourceTransform(),
   }) {
+    if (shape.collisionMode == TerrainSourceCollisionMode.none) {
+      throw ArgumentError.value(
+        shape.collisionMode,
+        'shape.collisionMode',
+        'Render-only terrain must be partitioned before collision compilation.',
+      );
+    }
     return TerrainPolygonInput(
       sourcePath: sourcePath,
       identity: TerrainSourceIdentity(
@@ -33,12 +40,48 @@ abstract final class TerrainSourceCoreAdapter {
       collisionMode: switch (shape.collisionMode) {
         TerrainSourceCollisionMode.solid => TerrainCollisionMode.solid,
         TerrainSourceCollisionMode.oneWay => TerrainCollisionMode.oneWay,
+        TerrainSourceCollisionMode.none => throw StateError(
+          'Render-only terrain reached collision input conversion.',
+        ),
       },
       surfaceKind: shape.surfaceKind,
       materialKey: shape.materialKey,
       transform: transform,
     );
   }
+
+  /// Converts any authored terrain role for geometry review and rendering.
+  ///
+  /// Core geometry review has no render-only mode. [TerrainSourceCollisionMode.none]
+  /// is deliberately represented as solid only inside this authoring-only
+  /// geometry pass; callers must use [toPolygonInput] for gameplay collision.
+  static TerrainPolygonInput toReviewPolygonInput({
+    required TerrainSourceShapeDef shape,
+    required String sourcePath,
+    required int chunkIndex,
+    required String chunkKey,
+    String? placementKey,
+    TerrainSourceTransform transform = const TerrainSourceTransform(),
+  }) => TerrainPolygonInput(
+    sourcePath: sourcePath,
+    identity: TerrainSourceIdentity(
+      chunkIndex: chunkIndex,
+      chunkKey: chunkKey,
+      placementKey: placementKey,
+      shapeId: shape.shapeId,
+    ),
+    vertices: shape.vertices.map(
+      (vertex) => SourceTerrainPoint(vertex.xHalfPixels, vertex.yHalfPixels),
+    ),
+    collisionMode: switch (shape.collisionMode) {
+      TerrainSourceCollisionMode.solid ||
+      TerrainSourceCollisionMode.none => TerrainCollisionMode.solid,
+      TerrainSourceCollisionMode.oneWay => TerrainCollisionMode.oneWay,
+    },
+    surfaceKind: shape.surfaceKind,
+    materialKey: shape.materialKey,
+    transform: transform,
+  );
 
   /// Builds the one exact Core placement transform from editor integer values.
   ///
@@ -79,7 +122,7 @@ abstract final class TerrainSourceCoreAdapter {
     bool requireCanonical = false,
   }) {
     return const TerrainSourceCanonicalizer().review(
-      toPolygonInput(
+      toReviewPolygonInput(
         shape: shape,
         sourcePath: sourcePath,
         chunkIndex: chunkIndex,

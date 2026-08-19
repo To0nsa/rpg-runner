@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:runner_editor/src/app/pages/chunkCreator/v2/chunk_scene_coordinator.dart';
 import 'package:runner_editor/src/app/pages/home/editor_home_page.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_models.dart';
 import 'package:runner_editor/src/chunks/chunk_domain_plugin.dart';
@@ -23,7 +24,7 @@ import 'package:runner_editor/src/workspace/editor_workspace.dart';
 
 void main() {
   testWidgets(
-    'expanded collision opens its v3 owner without using the legacy loader',
+    'placed prefab opens its v3 owner without using the legacy loader',
     (tester) async {
       tester.view.physicalSize = const Size(1800, 1000);
       tester.view.devicePixelRatio = 1;
@@ -60,11 +61,15 @@ void main() {
       await tester.pumpAndSettle();
       await _selectRoute(tester, 'CHUNK CREATOR');
       await tester.pumpAndSettle();
+      tester
+          .widget<SegmentedButton<ChunkSceneDomain>>(
+            find.byKey(const ValueKey<String>('chunk_scene_domain_selector')),
+          )
+          .onSelectionChanged!(<ChunkSceneDomain>{ChunkSceneDomain.prefabs});
+      await tester.pump();
 
       final openOwner = find.byKey(
-        const ValueKey<String>(
-          'chunk_open_prefab_prefab_target|20|10|0_collision_001',
-        ),
+        const ValueKey<String>('chunk_v2_placement_open_prefab_target|20|10|0'),
       );
       await tester.ensureVisible(openOwner);
       await tester.pumpAndSettle();

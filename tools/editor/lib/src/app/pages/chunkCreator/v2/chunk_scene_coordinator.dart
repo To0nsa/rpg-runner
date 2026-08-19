@@ -6,8 +6,18 @@ import '../../../../chunks/chunk_v2_composition_operation.dart';
 import '../../../../chunks/chunk_v2_file_data.dart';
 import '../../../../terrain_authoring/terrain_polygon_interaction.dart';
 
-/// Explicit owner of primary input in the shared Chunk scene.
-enum ChunkSceneDomain { terrain, prefabs, markers, compiledEdgeInspection }
+/// Explicit authoring tab and primary-input owner in the shared Chunk scene.
+///
+/// [layers] is intentionally passive because tile layers are metadata-only in
+/// the current editor. [compiledEdgeInspection] remains an internal scene mode
+/// rather than a user-facing workspace tab.
+enum ChunkSceneDomain {
+  terrain,
+  prefabs,
+  markers,
+  layers,
+  compiledEdgeInspection,
+}
 
 /// Typed route-local selection for the shared Chunk scene.
 sealed class ChunkSceneSelection {
@@ -48,41 +58,48 @@ final class ChunkCompiledEdgeSceneSelection extends ChunkSceneSelection {
 final class ChunkSceneCoordinator {
   ChunkSceneDomain _domain = ChunkSceneDomain.terrain;
   ChunkSceneDomain _sourceDomainBeforeInspection = ChunkSceneDomain.terrain;
-  ChunkSceneSelection? _selection;
+  final Map<ChunkSceneDomain, ChunkSceneSelection?> _selections =
+      <ChunkSceneDomain, ChunkSceneSelection?>{};
 
   ChunkSceneDomain get domain => _domain;
   ChunkSceneDomain get sourceDomain =>
       _domain == ChunkSceneDomain.compiledEdgeInspection
       ? _sourceDomainBeforeInspection
       : _domain;
-  ChunkSceneSelection? get selection => _selection;
+  ChunkSceneSelection? get selection => _selections[_domain];
 
-  String? get selectedPrefabKey => switch (_selection) {
-    ChunkPrefabSceneSelection(:final selection) => selection.selectionKey,
-    _ => null,
-  };
+  String? get selectedPrefabKey =>
+      switch (sourceDomain == ChunkSceneDomain.prefabs
+      ? _selections[ChunkSceneDomain.prefabs]
+      : null) {
+        ChunkPrefabSceneSelection(:final selection) => selection.selectionKey,
+        _ => null,
+      };
 
-  String? get selectedMarkerKey => switch (_selection) {
-    ChunkMarkerSceneSelection(:final selection) => selection.selectionKey,
-    _ => null,
-  };
+  String? get selectedMarkerKey =>
+      switch (sourceDomain == ChunkSceneDomain.markers
+      ? _selections[ChunkSceneDomain.markers]
+      : null) {
+        ChunkMarkerSceneSelection(:final selection) => selection.selectionKey,
+        _ => null,
+      };
 
-  TerrainEdgeId? get selectedCompiledEdgeId => switch (_selection) {
-    ChunkCompiledEdgeSceneSelection(:final edgeId) => edgeId,
-    _ => null,
-  };
+  TerrainEdgeId? get selectedCompiledEdgeId =>
+      switch (_selections[ChunkSceneDomain.compiledEdgeInspection]) {
+        ChunkCompiledEdgeSceneSelection(:final edgeId) => edgeId,
+        _ => null,
+      };
 
   void bindOwner() {
     _domain = ChunkSceneDomain.terrain;
     _sourceDomainBeforeInspection = ChunkSceneDomain.terrain;
-    _selection = null;
+    _selections.clear();
   }
 
   void setSourceDomain(ChunkSceneDomain domain) {
     assert(domain != ChunkSceneDomain.compiledEdgeInspection);
     _domain = domain;
     _sourceDomainBeforeInspection = domain;
-    _selection = null;
   }
 
   void setCompiledEdgeInspection(bool enabled) {
@@ -94,63 +111,85 @@ final class ChunkSceneCoordinator {
     } else {
       _domain = _sourceDomainBeforeInspection;
     }
-    _selection = null;
+    _selections.remove(ChunkSceneDomain.compiledEdgeInspection);
   }
 
   void selectTerrain(TerrainPolygonSelection? selection) {
     if (_domain != ChunkSceneDomain.terrain) return;
-    _selection = selection == null
-        ? null
-        : ChunkTerrainSceneSelection(selection);
+    _setSelection(
+      ChunkSceneDomain.terrain,
+      selection == null ? null : ChunkTerrainSceneSelection(selection),
+    );
   }
 
   void selectPrefab(ChunkPlacedPrefabSelection? selection) {
     _domain = ChunkSceneDomain.prefabs;
     _sourceDomainBeforeInspection = _domain;
-    _selection = selection == null
-        ? null
-        : ChunkPrefabSceneSelection(selection);
+    _setSelection(
+      ChunkSceneDomain.prefabs,
+      selection == null ? null : ChunkPrefabSceneSelection(selection),
+    );
   }
 
   void selectMarker(ChunkPlacedMarkerSelection? selection) {
     _domain = ChunkSceneDomain.markers;
     _sourceDomainBeforeInspection = _domain;
-    _selection = selection == null
-        ? null
-        : ChunkMarkerSceneSelection(selection);
+    _setSelection(
+      ChunkSceneDomain.markers,
+      selection == null ? null : ChunkMarkerSceneSelection(selection),
+    );
   }
 
   void selectCompiledEdge(TerrainEdgeId? edgeId) {
     if (_domain != ChunkSceneDomain.compiledEdgeInspection) return;
-    _selection = edgeId == null
-        ? null
-        : ChunkCompiledEdgeSceneSelection(edgeId);
+    _setSelection(
+      ChunkSceneDomain.compiledEdgeInspection,
+      edgeId == null ? null : ChunkCompiledEdgeSceneSelection(edgeId),
+    );
   }
 
-  void clearSelection() => _selection = null;
+  void clearSelection() => _selections.remove(_domain);
 
   void reconcileComposition(ChunkV2FileData chunk) {
-    switch (_selection) {
+    switch (_selections[ChunkSceneDomain.prefabs]) {
       case ChunkPrefabSceneSelection(:final selection):
         final resolved = resolveChunkPrefabSelection(
           chunk.prefabs,
           selection.selectionKey,
         );
-        _selection = resolved == null
-            ? null
-            : ChunkPrefabSceneSelection(resolved);
+        _setSelection(
+          ChunkSceneDomain.prefabs,
+          resolved == null ? null : ChunkPrefabSceneSelection(resolved),
+        );
+      case ChunkTerrainSceneSelection() ||
+          ChunkMarkerSceneSelection() ||
+          ChunkCompiledEdgeSceneSelection() ||
+          null:
+        break;
+    }
+    switch (_selections[ChunkSceneDomain.markers]) {
       case ChunkMarkerSceneSelection(:final selection):
         final resolved = resolveChunkMarkerSelection(
           chunk.markers,
           selection.selectionKey,
         );
-        _selection = resolved == null
-            ? null
-            : ChunkMarkerSceneSelection(resolved);
+        _setSelection(
+          ChunkSceneDomain.markers,
+          resolved == null ? null : ChunkMarkerSceneSelection(resolved),
+        );
       case ChunkTerrainSceneSelection() ||
+          ChunkPrefabSceneSelection() ||
           ChunkCompiledEdgeSceneSelection() ||
           null:
         break;
+    }
+  }
+
+  void _setSelection(ChunkSceneDomain domain, ChunkSceneSelection? selection) {
+    if (selection == null) {
+      _selections.remove(domain);
+    } else {
+      _selections[domain] = selection;
     }
   }
 }

@@ -52,6 +52,7 @@ final class StagedTerrainWorldGeometryBuilder {
     final localEdges = <TerrainEdge>[];
     for (final binding in orderedBindings) {
       for (final polygon in binding.chunk.polygons) {
+        if (polygon.collisionMode == StagedTerrainCollisionMode.none) continue;
         polygons.add(_buildPolygon(binding, polygon));
       }
       for (final edge in binding.chunk.edges) {
@@ -253,6 +254,9 @@ final class StagedTerrainWorldGeometryBuilder {
       switch (mode) {
         StagedTerrainCollisionMode.solid => TerrainCollisionMode.solid,
         StagedTerrainCollisionMode.oneWay => TerrainCollisionMode.oneWay,
+        StagedTerrainCollisionMode.none => throw StateError(
+          'Render-only staged terrain cannot enter collision geometry.',
+        ),
       };
 
   TerrainVertexJoin _vertexJoin(StagedTerrainVertexJoin join) => switch (join) {

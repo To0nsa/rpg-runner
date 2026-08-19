@@ -22,9 +22,9 @@ Implemented authoring domains:
   half-pixel polygon-collision authoring, including tagged atlas/tile slices
   and searchable slice selection; Prefab atlas slicing supports configurable
   cell dimensions, origins, gutters, and arbitrary manual pixel rectangles
-- chunk authoring with direct terrain polygons, expanded placed-Prefab
+- chunk authoring with whole-pixel direct terrain polygons, expanded placed-Prefab
   collision, active-level parallax and terrain-material scene preview,
-  actor/navigation/marker diagnostics, scene-based composition, shared
+  marker-placement previews, scene-based composition, shared
   pan/zoom/grid controls, and Prefab transform editing
 - level metadata authoring with list/inspector editing, lifecycle controls,
   assembly segment sequencing, explicit new/existing visual-theme assignment,
@@ -141,11 +141,13 @@ content generator afterward to refresh the generated runtime registry. The
 manifest is strict schema v3; the editor and runtime do not contain
 older-schema compatibility or migration paths.
 
-The generator compiles every source polygon into the staged terrain artifact.
-Normal gameplay and replay validation consume that admitted polygon artifact
-through the direct terrain authority. Collision, navigation, placement, and
-render publication share the same streamed candidate; there is no selectable
-legacy rectangle-terrain runtime path.
+The generator reviews and triangulates every source polygon into the staged
+terrain artifact. Before collision compilation it partitions direct Chunk
+shapes whose `collisionMode` is `none`: those shapes remain material-backed
+render fills but never enter collision, navigation, placement, seam, support,
+or exposed-edge geometry. Normal gameplay and replay validation consume the
+same admitted candidate; there is no selectable legacy rectangle-terrain
+runtime path. Prefab collision shapes remain `solid` or `oneWay` only.
 
 The normal editor accepts only current Prefab-v3/Chunk-v2 source. Legacy
 Prefab-v1/v2 and Chunk-v1 parsing is isolated to this offline check command:
@@ -195,17 +197,19 @@ terrain artifact at runtime.
 
 ## Polygon Controls
 
-Prefab and Chunk polygon scenes share the same controls:
+Prefab and Chunk polygon scenes share the same geometry controls:
 
-- use **New polygon** in the Shapes card to start a draft, then use
-  **Place vertex** in the scene to append snapped draft vertices
+- use **New polygon** in Prefab authoring or **Draw polygon** in Chunk
+  authoring to start a draft, then primary-click the scene to append snapped
+  draft vertices
 - use **New rectangle** in the Shapes card, then drag across opposite
   corners to create an editable four-vertex polygon draft
 - committed axis-aligned four-vertex shapes are labelled **rectangle** and
   expose exact X, bottom, width, and height fields; height keeps the bottom
   edge fixed and moves both top corners in one source-history edit
-- while a draft is open, **Place vertex**, **Move vertex**, and **Insert vertex**
-  edit that draft; **Select shape** and **Move shape** remain disabled
+- while a draft is open, **Move vertex** and **Insert vertex** edit that draft;
+  in Chunk authoring, **Continue drawing** returns to vertex placement, while
+  **Select shape** and **Move shape** remain disabled
 - with no saved collision shape and no open draft, **Move vertex**, **Move
   shape**, and **Insert vertex** are disabled
 - Undo and Redo traverse draft vertex placement, movement, and insertion locally
@@ -223,14 +227,39 @@ Prefab and Chunk polygon scenes share the same controls:
 - use **Normalize** explicitly to apply canonical winding/start and remove
   diagnosed collinear middle vertices
 
-In the Chunk Creator, new direct shapes start as solid `ground` terrain using
-the first canonical material in the authored terrain-material catalog. A
-freeform draft begins rendering that material after its third vertex; rectangle,
-vertex, and whole-shape gestures update the material preview continuously. This
-projection is visual only and does not enter source history until **Save**.
+In the Chunk Creator, terrain creation and existing-shape editing are separate
+sidebar cards. **Create terrain shape** keeps persistent **Collision** and
+**Material** dropdowns above **Draw polygon** and **Draw rectangle**. Collision
+offers **Solid**, **One-way**, and **No collision (visual only)**. An optional
+**Shape name** accepts a unique lowercase source ID; leaving it blank uses the
+next deterministic `solid_###` name. Each named material row includes an eye
+action for its read-only preview. The section folds independently without
+discarding its selections or active draft. Initial values are solid `ground`
+terrain and the first canonical material in the authored terrain-material
+catalog. Polygon and rectangle drafts capture the current name and choices when
+creation begins; the settings lock for that active operation and the collision
+and material choices remain selected for the next shape after Save or Cancel.
+Contextual status explains when the rectangle tool is ready, a rectangle is
+being dragged, or a draft is ready. **Save shape** stays disabled until the
+draft has at least three vertices.
 
-Rejected edits retain their draft/gesture and show diagnostics; they do not
-enter source history. Draft **Save** removes redundant aligned middle vertices
+**Existing terrain shapes** shows the saved-shape count and separates each
+shape's collision mode, geometry type, material key, and vertex count. Selecting
+a row expands its metadata, lifecycle actions, and geometry editor directly
+below that row. Its material dropdown uses the same per-option eye previews as
+creation. The shape name is editable under the same lowercase, owner-unique
+rules. Rectangle dimensions and selected-vertex coordinates share one
+contextual editor ending in **Save edit**; a name and exact geometry change are
+committed together as one revision. Clicking the active shape row again closes
+a clean editor. If the name or exact geometry fields have changed, the editor
+instead offers **Save**, **Discard**, and **Cancel** before closing. A freeform
+draft begins rendering its material after its third vertex; rectangle, vertex,
+and whole-shape gestures update the material preview continuously. This
+projection is visual only and does not enter source history until **Save
+shape**.
+
+Rejected edits retain their draft/gesture and do not enter source history.
+Draft **Save** removes redundant aligned middle vertices
 before the single commit. For a rejected committed-shape gesture, **Normalize**
 applies the visible preview or selecting another tool discards that preview.
 **Apply current source** remains disabled until local work is resolved and is
@@ -240,40 +269,79 @@ the only normal file-write action; it always requires confirmation.
 
 The Chunk Creator keeps one **Chunk creation scene** between an owner rail and
 an authoring sidebar. On wide windows, **Chunk owners** sits to the scene's
-left, while **Terrain collision** and **Layers, prefabs & markers** share the
-right-side scroll area. On narrow windows, both scroll areas sit below a
-bounded scene, with owners on the left. The old terrain/composition tabs do not
-return. Expanding or collapsing cards and their natural-height sections changes
-presentation only, not the selected owner, terrain draft, viewport, history,
-or pending source state.
+left, while one tab-specific authoring card occupies the right-side scroll
+area above a shared, document-wide **Diagnostics** card. Owner rows include a
+read-only thumbnail built from the same background, terrain-material, prefab,
+and foreground projections as the scene. On narrow windows, both scroll areas
+sit below a bounded scene, with owners on the left. Persistent
+visual/viewport controls sit above the **Terrain / Prefabs / Markers / Layers**
+selector, which swaps only the domain card; it never replaces or rebuilds the
+scene or filters Diagnostics. Tab changes preserve the viewport and each
+domain's last selection. Active drafts, gestures, and retained dialogs lock the
+tabs until that operation is finished or cancelled.
 
-The scene domain selector makes primary input explicit. The Prefabs domain has
+The scene tabs make primary input explicit. The Prefabs domain has
 Select, Place, and Move tools backed by the active prefab catalog. Place and
 move drags show a local ghost, then submit one normal validated composition
 command on release; Escape cancels without changing source. Grid-enabled
 placements snap to the chunk tile size, while exact placement fields remain
-integer-pixel overrides in the existing dialog.
+integer-pixel overrides in the sidebar creation form and existing-record edit
+dialog.
 
 The Markers domain likewise provides Select, Place, and Move tools. These edit
 only the authored query anchor at integer-pixel precision. Core-resolved spawn
 positions and support are read-only evidence: they can be toggled independently
 and are hidden for the record being moved until its accepted source is
 reprojected. Marker ID, chance, salt, placement mode, and exact coordinates stay
-available in the typed dialog.
+available in the sidebar creation form and existing-record edit dialog.
 
-Owner lifecycle and direct terrain collision remain in the first card. The
-second card retains the visual-stack summary and validated dialog workflows for
-tile-layer metadata, prefab placements, and enemy markers. `TileLayerDef` is
-metadata-only, so this workspace exposes no tile painting or cell editing.
-Direct scene gestures and the retained add/edit/delete dialogs both dispatch
-the canonical Chunk composition command.
+Direct terrain creation and existing shapes live in the **Terrain** card.
+The **Prefabs** and **Markers** cards use the same split: a foldable inline
+creation form above a separate foldable existing-record list. Adding a prefab
+or marker submits directly from the card without opening a dialog; existing
+records retain their selection, edit, and delete actions. The **Layers** card
+retains the visual-stack summary and validated tile-layer metadata workflow.
+`TileLayerDef` is metadata-only, so Layers pauses primary scene authoring and
+exposes no tile painting or cell editing. Direct scene gestures, inline adds,
+and retained edit/delete dialogs all dispatch the canonical Chunk composition
+command.
 
-When an all-current workspace loads the Chunk-v2 polygon workflow, each
-read-only expanded prefab collision exposes **Open prefab**.
-The action goes through the editor shell's unsaved-work guard, loads the
-current Prefab-v3 document, and selects the exact stable source owner for shape
-editing. Chunk placements continue to own transforms only; the editor does not
-create per-instance polygon overrides.
+Direct-terrain rectangle, vertex, insertion, and whole-shape gestures cannot
+enter another direct terrain shape or expanded prefab collision. This
+authoring-only occupied-area rule also covers render-only shapes, preventing
+ambiguous stacked fills even though they are removed before collision compile.
+Within eight canvas pixels, vertices and solid shapes snap to a solid boundary;
+the visual radius remains stable while zooming. Contact is allowed, including
+exact shared solid edges. One-way shapes block overlap but do not attract seam
+snapping; render-only shapes follow the same non-attracting rule. If a
+transformed prefab boundary falls between whole-pixel direct-terrain
+coordinates, snapping chooses the nearest authorable whole-pixel point that
+stays outside it. Direct Chunk terrain always keeps the mandatory whole-pixel
+source rule. Its two default-off **Snap to grid** switches raise their affected
+creation or editing operations to the selected Chunk's tile-size grid. The
+independent switches live inside **Create terrain shape**
+and the expanded editor for the selected existing terrain shape: the first
+affects only new drafts, while the second affects only saved-shape edits. Each
+route-local choice is locked during an active operation. Prefab-local collision
+authoring retains its existing `1 px` and `0.5 px` choices.
+
+Core-compiled collision edges are hidden by default. The **Shape edges** chip
+shows their read-only overlay, with solid edges in pink and one-way edges in
+yellow. The default-off **Show grid** chip beside **Visual preview** displays a
+tile-size grid clipped to the Chunk bounds on every domain tab. **Visual
+preview** goes further: it hides that grid, authoring polygons and
+handles, expanded collision, compiled edges, selection/marker previews, Chunk
+bounds, and the viewport border. Only parallax, terrain-material rendering, and
+placed Prefab art remain. Preview canvas input is view-only, while pan and zoom
+remain available. These presentation controls do not change source, selection,
+collision, or history. Render-only shapes have no compiled-edge overlay by
+definition.
+
+When an all-current workspace loads the Chunk-v2 polygon workflow, each placed
+prefab row exposes **Open prefab**. The action goes through the editor shell's
+unsaved-work guard, loads the current Prefab-v3 document, and selects the exact
+stable source owner for shape editing. Chunk placements continue to own
+transforms only; the editor does not create per-instance polygon overrides.
 
 Normal loading now detects strict Prefab-v3 and complete Chunk-v2 source and
 selects these polygon workflows. Changed current documents can be applied only

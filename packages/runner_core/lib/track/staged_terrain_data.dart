@@ -30,9 +30,11 @@ const String stagedTerrainPlacementSignatureFormat = 'authoring-placement-v1';
 const String stagedTerrainArtifactRepositoryPath =
     'packages/runner_core/lib/track/staged_authored_terrain.dart';
 
-/// Collision behavior retained without depending on compiler implementation
-/// enums in generated data.
-enum StagedTerrainCollisionMode { solid, oneWay }
+/// Authored terrain role retained without depending on compiler enums.
+///
+/// [none] polygons are render-only records. They must never have staged edges
+/// and are excluded when world collision geometry is rehydrated.
+enum StagedTerrainCollisionMode { solid, oneWay, none }
 
 /// Endpoint context retained for runtime ghost-vertex filtering.
 enum StagedTerrainVertexJoin { exposed, connected, smooth }

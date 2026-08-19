@@ -1,6 +1,5 @@
 import 'package:runner_core/collision/terrain/terrain_authoring_polygon_signature.dart';
 import 'package:runner_core/collision/terrain/terrain_numeric.dart';
-import 'package:runner_core/collision/terrain/terrain_polygon.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -39,7 +38,7 @@ void main() {
     );
   });
 
-  test('every collision-authoring fact participates in the digest', () {
+  test('every terrain-authoring fact participates in the digest', () {
     final baseline = terrainAuthoringPolygonSignature([_record()]);
     final mutations = <TerrainAuthoringPolygonRecord>[
       _record(ownerKind: TerrainAuthoringPolygonOwnerKind.prefab),
@@ -47,7 +46,8 @@ void main() {
       _record(ownerId: 'other'),
       _record(ownerRevision: 8),
       _record(shapeId: 'other_shape'),
-      _record(collisionMode: TerrainCollisionMode.oneWay),
+      _record(mode: TerrainAuthoringPolygonMode.oneWay),
+      _record(mode: TerrainAuthoringPolygonMode.none),
       _record(surfaceKind: 'ice'),
       _record(materialKey: 'stone'),
       _record(
@@ -84,7 +84,7 @@ TerrainAuthoringPolygonRecord _record({
   String ownerId = 'fixture',
   int ownerRevision = 7,
   String shapeId = 'ground',
-  TerrainCollisionMode collisionMode = TerrainCollisionMode.solid,
+  TerrainAuthoringPolygonMode mode = TerrainAuthoringPolygonMode.solid,
   String? surfaceKind,
   String? materialKey,
   List<SourceTerrainPoint>? vertices,
@@ -101,7 +101,7 @@ TerrainAuthoringPolygonRecord _record({
         SourceTerrainPoint(8, 0),
         SourceTerrainPoint(8, 8),
       ],
-  collisionMode: collisionMode,
+  mode: mode,
   surfaceKind: surfaceKind,
   materialKey: materialKey,
 );

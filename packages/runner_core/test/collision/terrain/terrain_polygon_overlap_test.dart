@@ -3,6 +3,39 @@ import 'package:runner_core/collision/terrain/terrain_polygon_overlap.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('strict point containment excludes every boundary feature', () {
+    final loop = _points(const <(int, int)>[
+      (0, 0),
+      (10, 0),
+      (10, 10),
+      (0, 10),
+    ]);
+
+    expect(
+      TerrainPolygonOverlap.physicsLoopContainsPointStrictly(
+        loop.map((point) => point.toPhysicsPoint()).toList(),
+        SourceTerrainPoint(5, 5).toPhysicsPoint(),
+      ),
+      isTrue,
+    );
+    for (final point in const <(int, int)>[(0, 0), (5, 0), (10, 5)]) {
+      expect(
+        TerrainPolygonOverlap.physicsLoopContainsPointStrictly(
+          loop.map((point) => point.toPhysicsPoint()).toList(),
+          SourceTerrainPoint(point.$1, point.$2).toPhysicsPoint(),
+        ),
+        isFalse,
+      );
+    }
+    expect(
+      TerrainPolygonOverlap.physicsLoopContainsPointStrictly(
+        loop.map((point) => point.toPhysicsPoint()).toList(),
+        SourceTerrainPoint(12, 5).toPhysicsPoint(),
+      ),
+      isFalse,
+    );
+  });
+
   test('permits a shared full boundary and point-only contact', () {
     final left = _points(const <(int, int)>[
       (0, 0),

@@ -1,5 +1,8 @@
-/// Physical sidedness authored independently from surface and material tags.
-enum TerrainSourceCollisionMode { solid, oneWay }
+/// Runtime role authored independently from surface and material tags.
+///
+/// [none] keeps the polygon in render data while excluding it from collision,
+/// traversal, navigation, seam, and support geometry.
+enum TerrainSourceCollisionMode { solid, oneWay, none }
 
 /// Exact vertex on the authoring half-pixel grid.
 ///
@@ -51,7 +54,7 @@ final class TerrainSourceVertexDef {
   int get hashCode => Object.hash(xHalfPixels, yHalfPixels);
 }
 
-/// Immutable authored collision loop with stable owner-local identity.
+/// Immutable authored terrain loop with stable owner-local identity.
 ///
 /// Vertex order is geometry order and is preserved exactly. Cross-shape
 /// ordering and owner-local ID uniqueness are enforced by
@@ -90,7 +93,7 @@ final class TerrainSourceShapeDef {
   /// Ordered polygon loop in exact half-pixel coordinates.
   final List<TerrainSourceVertexDef> vertices;
 
-  /// Whether the compiled boundary is solid or one-way.
+  /// Whether the polygon is solid, one-way, or render-only.
   final TerrainSourceCollisionMode collisionMode;
 
   /// Optional gameplay surface classifier preserved without interpretation.
@@ -269,6 +272,19 @@ List<Map<String, Object>> terrainSourceShapesToJson(
 const int _maxExactHalfPixelTicks = (1 << 52) - 1;
 final RegExp _stableShapeIdPattern = RegExp(r'^[a-z][a-z0-9_]*$');
 
+/// Returns a designer-facing validation error for an owner-local shape name.
+///
+/// Shape names are stable source IDs, so they remain lowercase and safe for
+/// deterministic records, selection, and compiled-edge lineage.
+String? terrainSourceShapeIdValidationError(String shapeId) {
+  if (shapeId.isEmpty) return 'Enter a name or leave the creation field blank.';
+  if (!_stableShapeIdPattern.hasMatch(shapeId)) {
+    return 'Start with a lowercase letter; use lowercase letters, numbers, '
+        'and underscores only.';
+  }
+  return null;
+}
+
 int _halfPixelTicksFromJson(Object? raw, {required String sourcePath}) {
   int halfPixelTicks;
   if (raw is int) {
@@ -305,11 +321,12 @@ Object _halfPixelTicksToJson(int halfPixelTicks) {
 }
 
 void _requireStableShapeId(String shapeId) {
-  if (!_stableShapeIdPattern.hasMatch(shapeId)) {
+  final error = terrainSourceShapeIdValidationError(shapeId);
+  if (error != null) {
     throw ArgumentError.value(
       shapeId,
       'shapeId',
-      'Must match ${_stableShapeIdPattern.pattern}.',
+      '$error Must match ${_stableShapeIdPattern.pattern}.',
     );
   }
 }
@@ -336,11 +353,13 @@ TerrainSourceCollisionMode _collisionModeFromJson(
 }) => switch (raw) {
   'solid' => TerrainSourceCollisionMode.solid,
   'oneWay' => TerrainSourceCollisionMode.oneWay,
-  _ => throw FormatException('$sourcePath must be solid or oneWay.'),
+  'none' => TerrainSourceCollisionMode.none,
+  _ => throw FormatException('$sourcePath must be solid, oneWay, or none.'),
 };
 
 String _collisionModeToJson(TerrainSourceCollisionMode collisionMode) =>
     switch (collisionMode) {
       TerrainSourceCollisionMode.solid => 'solid',
       TerrainSourceCollisionMode.oneWay => 'oneWay',
+      TerrainSourceCollisionMode.none => 'none',
     };

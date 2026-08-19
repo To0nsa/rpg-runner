@@ -27,6 +27,32 @@ abstract final class TerrainPolygonOverlap {
         xTicks: (point) => point.xTicks,
         yTicks: (point) => point.yTicks,
       );
+
+  /// Whether [point] lies strictly inside one validated physics-grid [loop].
+  ///
+  /// Boundary points return false so authoring and compiler callers can place
+  /// adjacent shapes at exact point or edge contact without treating that
+  /// contact as occupied-area overlap.
+  static bool physicsLoopContainsPointStrictly(
+    List<TerrainPoint> loop,
+    TerrainPoint point,
+  ) {
+    if (loop.length < 3 ||
+        _signedDoubledArea(
+              loop,
+              (point) => point.xTicks,
+              (point) => point.yTicks,
+            ) ==
+            BigInt.zero) {
+      throw ArgumentError('Point containment requires a validated loop.');
+    }
+    return _pointStrictlyInside(
+      point,
+      loop,
+      (point) => point.xTicks,
+      (point) => point.yTicks,
+    );
+  }
 }
 
 bool _loops<T>(

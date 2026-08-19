@@ -37,7 +37,7 @@ final class StagedTerrainStreamCandidate {
   /// Collision index, support query, and ground-enemy graph views.
   final TerrainRuntimeBundle runtimeBundle;
 
-  /// Generated fill triangles over [geometry]'s exact world-space polygons.
+  /// Generated fills for [geometry] plus any staged render-only polygons.
   final StagedTerrainRenderSnapshot renderSnapshot;
 }
 

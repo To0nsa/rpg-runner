@@ -47,16 +47,30 @@ selection, source history, validation, or pending diffs.
 
 ## Current adoption
 
-The current-schema Chunk route uses one persistent `Chunk creation scene` and
-one right sidebar. Wide layouts place the bounded sidebar to the scene's right;
-narrow layouts keep both subtrees mounted while placing the scene above the
-sidebar. The sidebar is the sole vertical scroll owner and contains exactly two
-top-level `EditorPanelCard`s: `Owners & terrain collision` and `Layers, prefabs
-& markers`. Owner, Shapes, reachable-seam, Diagnostics, visual-stack,
-tile-layer metadata, prefab-placement, and enemy-marker groups use
-natural-height `EditorSectionCard`s with stable expansion keys. Expansion state
-is local presentation state and does not replace the scene or affect authoring
-state.
+The current-schema Chunk route uses a persistent `Chunk creation scene`, owner
+rail, and right sidebar. Wide layouts place the rail and bounded sidebar around
+the scene; narrow layouts keep all subtrees mounted while placing them below
+the scene. A four-way `Terrain`, `Prefabs`, `Markers`, and `Layers` segmented
+tab strip stays at the top of the scene. The sidebar is the sole vertical
+scroll owner and mounts only the `EditorPanelCard` for the active tab. Terrain
+contains the creation and existing-shape authoring sections, Prefabs and
+Markers contain their retained placement forms, and Layers contains the visual
+stack plus tile-layer metadata. Seam evidence and route diagnostics are not
+separate sidebar sections. Tab changes preserve the scene subtree, viewport,
+and per-domain selection; an active draft or gesture disables tab changes.
+
+Chunk terrain creation may reserve an optional designer-supplied shape name
+before drawing; blank input delegates to deterministic ID allocation. Creation
+also chooses `solid`, `oneWay`, or **No collision (visual only)**; the last role
+remains visible in source/material preview but has no compiled-edge overlay.
+Existing shape rows expose the stable source ID as an editable name. Exact
+geometry fields retain their text inside the mounted editor, while a shared edit
+controller reports pending state and routes save/discard requests from the
+workspace. Re-selecting the active row closes it immediately when clean or
+opens a non-dismissible Save/Discard/Cancel decision when its name or geometry
+has changed. Save dispatches the pending identity and geometry as one semantic
+owner edit; Discard clears both local drafts; Cancel preserves the open editor.
+Pending inspector text prevents source apply until it is resolved.
 
 Prefab polygon, atlas-slice, and platform-module workspaces use the same panel,
 section, list-row, and token primitives. Prefab-specific widgets remain only
@@ -65,11 +79,12 @@ or fixed three-panel labels; the former prefab-only card shells and spacing
 registry have been removed.
 
 Chunk, Prefab, and Level root workspaces use `EditorWorkspaceCard`. Chunk
-composition is embedded in the second Chunk sidebar card. Its rows and retained
-dialogs share typed selection and the same validated composition command with
-the scene's direct prefab and marker gestures. The scene owns the explicit
-Terrain, Prefabs, or Markers input domain; compiled-edge inspection is a
-read-only mode. Chunk and Prefab owner and shape rows, plus Chunk composition
+composition is partitioned by the active Chunk workspace tab. Its rows and
+retained dialogs share typed selection and the same validated composition
+command with the scene's direct prefab and marker gestures. Terrain, Prefabs,
+and Markers own explicit primary-input domains. Layers is deliberately passive
+because `TileLayerDef` is metadata-only; compiled edges remain a non-interactive
+visual reference. Chunk and Prefab owner and shape rows, plus Chunk composition
 records, use `EditorListCard`; evidence and diagnostic cards remain
 route-specific because they communicate status instead of list ownership.
 Explanatory route-intro cards compose the same panel shell. The fail-closed

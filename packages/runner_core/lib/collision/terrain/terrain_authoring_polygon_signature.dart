@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 
 import 'terrain_numeric.dart';
-import 'terrain_polygon.dart';
 
 /// Canonical record label for exact authored polygon source.
 const String terrainAuthoringPolygonSignatureFormat = 'authoring-polygons-v1';
@@ -12,12 +11,14 @@ const String terrainAuthoringPolygonSignatureFormat = 'authoring-polygons-v1';
 /// Source owner domains covered by [terrainAuthoringPolygonSignature].
 enum TerrainAuthoringPolygonOwnerKind { chunk, prefab }
 
+/// Authoring role retained in source signatures without entering Core physics.
+enum TerrainAuthoringPolygonMode { solid, oneWay, none }
+
 /// One exact, owner-local polygon before placement expansion or compilation.
 ///
-/// The record intentionally includes only collision-authoring facts: stable
-/// owner identity/revision, stable shape identity, collision metadata, and
-/// ordered half-world-unit source ticks. Placement transforms have their own
-/// signature contract.
+/// The record includes stable owner identity/revision, stable shape identity,
+/// terrain role and metadata, and ordered half-world-unit source ticks.
+/// Placement transforms have their own signature contract.
 final class TerrainAuthoringPolygonRecord
     implements Comparable<TerrainAuthoringPolygonRecord> {
   TerrainAuthoringPolygonRecord({
@@ -27,7 +28,7 @@ final class TerrainAuthoringPolygonRecord
     required this.ownerRevision,
     required this.shapeId,
     required Iterable<SourceTerrainPoint> vertices,
-    required this.collisionMode,
+    required this.mode,
     required this.surfaceKind,
     required this.materialKey,
   }) : vertices = UnmodifiableListView<SourceTerrainPoint>(
@@ -74,7 +75,7 @@ final class TerrainAuthoringPolygonRecord
   final int ownerRevision;
   final String shapeId;
   final List<SourceTerrainPoint> vertices;
-  final TerrainCollisionMode collisionMode;
+  final TerrainAuthoringPolygonMode mode;
   final String? surfaceKind;
   final String? materialKey;
 
@@ -87,7 +88,7 @@ final class TerrainAuthoringPolygonRecord
       ownerId,
       ownerRevision.toString(),
       shapeId,
-      collisionMode.name,
+      mode.name,
       surfaceKind ?? '',
       materialKey ?? '',
       vertices.length.toString(),

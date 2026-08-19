@@ -29,6 +29,24 @@ List<ValidationIssue> validateChunkV2CollisionShapes({
   var coreGeometryAccepted = true;
   for (final shape in shapes) {
     final shapePath = '$sourcePath:${shape.shapeId}';
+    final offGrid = shape.vertices.where(
+      (vertex) => vertex.xHalfPixels.isOdd || vertex.yHalfPixels.isOdd,
+    );
+    if (offGrid.isNotEmpty) {
+      issues.add(
+        ValidationIssue(
+          severity: ValidationSeverity.error,
+          code: 'chunk_collision_shape_not_whole_pixel',
+          message:
+              'Chunk ${chunk.chunkKey} shape ${shape.shapeId} has '
+              '${offGrid.length} vertex/vertices outside the whole-pixel '
+              'direct-terrain grid.',
+          sourcePath: sourcePath,
+          ownerKey: chunk.chunkKey,
+          shapeId: shape.shapeId,
+        ),
+      );
+    }
     final capacityIssue = polygonVertexSoftTargetIssue(
       ownerLabel: 'Chunk ${chunk.chunkKey}',
       shapeId: shape.shapeId,
@@ -79,7 +97,7 @@ List<ValidationIssue> validateChunkV2CollisionShapes({
     try {
       const TerrainCompiler().compile(
         shapes.map(
-          (shape) => TerrainSourceCoreAdapter.toPolygonInput(
+          (shape) => TerrainSourceCoreAdapter.toReviewPolygonInput(
             shape: shape,
             sourcePath: '$sourcePath:${shape.shapeId}',
             chunkIndex: chunkIndex,

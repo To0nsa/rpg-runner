@@ -1209,7 +1209,7 @@ void _validateTerrainMaterialReferences(
 }) {
   final reported = <String>{};
   for (final chunk in terrain.chunks) {
-    for (final polygon in chunk.compiled.geometry.polygons) {
+    for (final polygon in chunk.compiled.renderGeometry.polygons) {
       final materialKey = polygon.materialKey;
       if (materialKey == null || materialKeys.contains(materialKey)) continue;
       final identity = polygon.identity;

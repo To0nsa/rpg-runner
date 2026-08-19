@@ -1,6 +1,5 @@
 import 'package:runner_core/collision/terrain/terrain_authoring_polygon_signature.dart';
 import 'package:runner_core/collision/terrain/terrain_numeric.dart';
-import 'package:runner_core/collision/terrain/terrain_polygon.dart';
 
 import '../prefabs/models/models.dart';
 import '../terrain_authoring/terrain_source_models.dart';
@@ -18,7 +17,13 @@ List<TerrainAuthoringPolygonRecord> chunkV2AuthoringPolygonRecords({
   required ChunkV2CollisionExpansion expansion,
 }) {
   if (expansion.chunkKey != chunk.chunkKey ||
-      expansion.directShapeCount != chunk.collisionShapes.length) {
+      expansion.directShapeCount !=
+          chunk.collisionShapes
+              .where(
+                (shape) =>
+                    shape.collisionMode != TerrainSourceCollisionMode.none,
+              )
+              .length) {
     throw StateError(
       'Accepted collision expansion does not match chunk ${chunk.chunkKey}.',
     );
@@ -99,9 +104,10 @@ TerrainAuthoringPolygonRecord _record({
   vertices: shape.vertices.map(
     (vertex) => SourceTerrainPoint(vertex.xHalfPixels, vertex.yHalfPixels),
   ),
-  collisionMode: switch (shape.collisionMode) {
-    TerrainSourceCollisionMode.solid => TerrainCollisionMode.solid,
-    TerrainSourceCollisionMode.oneWay => TerrainCollisionMode.oneWay,
+  mode: switch (shape.collisionMode) {
+    TerrainSourceCollisionMode.solid => TerrainAuthoringPolygonMode.solid,
+    TerrainSourceCollisionMode.oneWay => TerrainAuthoringPolygonMode.oneWay,
+    TerrainSourceCollisionMode.none => TerrainAuthoringPolygonMode.none,
   },
   surfaceKind: shape.surfaceKind,
   materialKey: shape.materialKey,

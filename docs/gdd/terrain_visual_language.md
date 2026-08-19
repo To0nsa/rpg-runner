@@ -21,12 +21,14 @@ remain upright and retain their existing visual priority over the ground.
 
 ## Readability Rules
 
-- Filled terrain means solid authored terrain; empty space remains visually
-  open and may become a gap once polygon collision is authoritative.
+- A filled polygon may be solid, one-way, or explicitly visual-only. Designers
+  use **No collision (visual only)** for dressing such as a dark pit while the
+  absence of collision/support remains what makes that space a gap.
 - The bright grass edge is the primary support/readability cue at runner speed.
 - Surface detail must not obscure enemies, pickups, hit effects, or the player.
-- Material changes may alter biome appearance but must not imply different
-  collision unless the authored polygon actually changes.
+- Material changes may alter biome appearance but never change collision. The
+  polygon's authored collision role (`solid`, `oneWay`, or `none`) owns that
+  behavior explicitly.
 - Atlas packing is an image-storage and authoring concern only. Selecting a
   different cell or rectangle changes the visual role, never collision shape.
 - Endpoint caps appear only at compiler-exposed top-edge endpoints. A continued
@@ -34,7 +36,13 @@ remain upright and retain their existing visual priority over the ground.
 
 ## Runtime Boundary
 
-Normal Field and Forest gameplay now uses the same authored polygons for
-collision, support/navigation, placement, and rendering. Ground remains flat
-apart from the reviewed woodcamp obstacle; slopes, platforms, and gaps can be
-introduced as later content changes without another terrain-authority switch.
+Normal Field and Forest gameplay now uses one authored terrain set and one
+atomic streamed candidate. Solid and one-way polygons feed collision,
+support/navigation, placement, and rendering. `none` polygons feed only the
+render snapshot: they create no support, blocker, seam, or collision edge.
+Ground remains flat apart from the reviewed woodcamp obstacle; slopes,
+platforms, and visually dressed gaps can be introduced as ordinary content.
+
+`none` is not a hazard type. A dark-pit material can communicate a fall, while
+the existing absence of support and level kill-plane rules determine the
+gameplay outcome.

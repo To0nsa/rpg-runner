@@ -82,6 +82,38 @@ void main() {
     ]);
   });
 
+  test('reviews none shapes but rejects collision conversion', () {
+    final shape = TerrainSourceShapeDef(
+      shapeId: 'dark_pit',
+      vertices: const <TerrainSourceVertexDef>[
+        TerrainSourceVertexDef(xHalfPixels: 0, yHalfPixels: 0),
+        TerrainSourceVertexDef(xHalfPixels: 8, yHalfPixels: 0),
+        TerrainSourceVertexDef(xHalfPixels: 8, yHalfPixels: 8),
+        TerrainSourceVertexDef(xHalfPixels: 0, yHalfPixels: 8),
+      ],
+      collisionMode: TerrainSourceCollisionMode.none,
+      materialKey: 'dark_pit',
+    );
+
+    final review = TerrainSourceCoreAdapter.toReviewPolygonInput(
+      shape: shape,
+      sourcePath: 'chunks/pit.json#direct=dark_pit',
+      chunkIndex: 0,
+      chunkKey: 'pit',
+    );
+    expect(review.collisionMode, TerrainCollisionMode.solid);
+    expect(review.materialKey, 'dark_pit');
+    expect(
+      () => TerrainSourceCoreAdapter.toPolygonInput(
+        shape: shape,
+        sourcePath: 'chunks/pit.json#direct=dark_pit',
+        chunkIndex: 0,
+        chunkKey: 'pit',
+      ),
+      throwsArgumentError,
+    );
+  });
+
   test('explicit collinear normalization preserves exact half-unit ticks', () {
     final shape = TerrainSourceShapeDef(
       shapeId: 'slope_001',
