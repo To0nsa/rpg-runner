@@ -191,9 +191,7 @@ art underneath. Each semantic edge profile similarly reserves the union of its
 base/detail strip footprints; transparent edge pixels reveal the scene, while
 detail can still reveal its own base. Edge bands stop at their exact authored
 endpoints. Only internal repeat joins receive a narrow material-fill backing,
-and the edge-to-fill boundary receives the same narrow overlap. This prevents
-small atlas-cell and complementary-clip gaps without flattening the rocky
-silhouette.
+preventing small atlas-cell gaps without flattening the rocky silhouette.
 Applying writes
 only `assets/authoring/level/terrain_material_defs.json`. Run the root content
 generator afterward to refresh the generated runtime registry. The manifest is

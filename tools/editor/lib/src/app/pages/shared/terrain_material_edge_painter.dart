@@ -235,31 +235,6 @@ Path terrainMaterialEdgeSeamBackingPath({
   return result;
 }
 
-/// Returns the narrow material-fill corridor at an edge profile's inner side.
-///
-/// The path straddles the edge-to-fill boundary. Consumers clip it against
-/// the polygon and higher-priority edge/cap footprints, but not against the
-/// current edge footprint, so the two complementary clips overlap cleanly.
-Path terrainMaterialEdgeFillJoinBackingPath({
-  required Iterable<TerrainMaterialEdgeFootprint> layerFootprints,
-  required Offset start,
-  required Offset end,
-}) {
-  final delta = end - start;
-  if (delta.distance <= 0) return Path();
-  final footprint = terrainMaterialEdgeFillJoinBackingFootprint(
-    layerFootprints,
-  );
-  return _terrainMaterialFootprintPath(
-    start: start,
-    end: end,
-    left: footprint.left,
-    top: footprint.top,
-    width: footprint.width,
-    height: footprint.height,
-  );
-}
-
 Path _terrainMaterialFootprintPath({
   required Offset start,
   required Offset end,
@@ -317,7 +292,7 @@ List<Path> terrainMaterialExclusiveCapClipPaths({
   final footprints = orderedCapFootprints.toList(growable: false);
   return List<Path>.unmodifiable(<Path>[
     for (var index = 0; index < footprints.length; index += 1)
-      _exclusiveRegionClipPath(
+      _exclusiveCapClipPath(
         ownerPath: ownerPath,
         footprint: footprints[index],
         higherPriorityFootprints: footprints.skip(index + 1),
@@ -338,7 +313,7 @@ List<Path> terrainMaterialExclusiveEdgeClipPaths({
   final caps = capFootprints.toList(growable: false);
   return List<Path>.unmodifiable(<Path>[
     for (var index = 0; index < edges.length; index += 1)
-      _exclusiveRegionClipPath(
+      _exclusiveCapClipPath(
         ownerPath: ownerPath,
         footprint: edges[index],
         higherPriorityFootprints: <Path>[...edges.skip(index + 1), ...caps],
@@ -346,35 +321,7 @@ List<Path> terrainMaterialExclusiveEdgeClipPaths({
   ]);
 }
 
-/// Clips edge-local fill backing without reintroducing a complementary seam.
-///
-/// Each backing path may straddle its edge footprint's inner boundary. Higher
-/// edge profiles and caps retain exclusive ownership over that overlap.
-List<Path> terrainMaterialExclusiveEdgeFillBackingClipPaths({
-  required Path ownerPath,
-  required Iterable<Path> orderedBackingPaths,
-  required Iterable<Path> orderedEdgeFootprints,
-  required Iterable<Path> capFootprints,
-}) {
-  final backings = orderedBackingPaths.toList(growable: false);
-  final edges = orderedEdgeFootprints.toList(growable: false);
-  final caps = capFootprints.toList(growable: false);
-  if (backings.length != edges.length) {
-    throw ArgumentError(
-      'Terrain edge backing and footprint counts must match.',
-    );
-  }
-  return List<Path>.unmodifiable(<Path>[
-    for (var index = 0; index < backings.length; index += 1)
-      _exclusiveRegionClipPath(
-        ownerPath: ownerPath,
-        footprint: backings[index],
-        higherPriorityFootprints: <Path>[...edges.skip(index + 1), ...caps],
-      ),
-  ]);
-}
-
-Path _exclusiveRegionClipPath({
+Path _exclusiveCapClipPath({
   required Path ownerPath,
   required Path footprint,
   required Iterable<Path> higherPriorityFootprints,

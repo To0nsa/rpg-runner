@@ -186,15 +186,6 @@ void main() {
         ),
         (left: 0, top: -5, width: 40, height: 12),
       );
-      expect(
-        terrainMaterialEdgeFillJoinBackingFootprint(
-          <TerrainMaterialEdgeFootprint>[
-            (left: 0, top: -3, width: 80, height: 20),
-            (left: 0, top: -4, width: 80, height: 24),
-          ],
-        ),
-        (left: 0, top: 19, width: 80, height: 2),
-      );
     });
 
     test('rejects invalid strip inputs', () {
@@ -205,12 +196,6 @@ void main() {
           orientation: TerrainMaterialEdgeOrientation.top,
           sourceWidth: 32,
           sourceHeight: 32,
-        ),
-        throwsArgumentError,
-      );
-      expect(
-        () => terrainMaterialEdgeFillJoinBackingFootprint(
-          const <TerrainMaterialEdgeFootprint>[],
         ),
         throwsArgumentError,
       );

@@ -301,7 +301,7 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
         if (cornerCaps[index].end) reserve(caps.end, atEnd: true);
       }
       final edgePlacements =
-          <({int edgeIndex, Path fillBackingPath, Path footprint})>[];
+          <({int edgeIndex, Path footprint, Path seamBackingPath})>[];
       for (final edgeIndex in edgePaintOrder) {
         final orientation = edgeKinds[edgeIndex];
         final profile = _profileForKind(material, orientation);
@@ -311,7 +311,6 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
           shape.vertices[(edgeIndex + 1) % shape.vertices.length],
         );
         final layerFootprints = <Path>[];
-        final normalizedLayerFootprints = <TerrainMaterialEdgeFootprint>[];
         bool reserveLayer(TerrainMaterialEdgeLayer? layer) {
           if (layer == null) return false;
           final image = imagesBySourcePath[layer.region.assetPath];
@@ -320,15 +319,6 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
               layer.region.bottom > image.height) {
             return false;
           }
-          normalizedLayerFootprints.add(
-            terrainMaterialEdgeFootprint(
-              edgeLength: (end - start).distance,
-              anchorY: layer.anchorY,
-              orientation: orientation,
-              sourceWidth: layer.region.width,
-              sourceHeight: layer.region.height,
-            ),
-          );
           layerFootprints.add(
             terrainMaterialEdgeFootprintPath(
               region: layer.region,
@@ -352,31 +342,18 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
             layerFootprint,
           );
         }
-        final fillBackingPath = Path();
-        if (baseReserved) {
-          fillBackingPath.addPath(
-            terrainMaterialEdgeSeamBackingPath(
-              region: profile.base.region,
-              orientation: orientation,
-              start: start,
-              end: end,
-              anchorY: profile.base.anchorY,
-            ),
-            Offset.zero,
-          );
-        }
-        fillBackingPath.addPath(
-          terrainMaterialEdgeFillJoinBackingPath(
-            layerFootprints: normalizedLayerFootprints,
-            start: start,
-            end: end,
-          ),
-          Offset.zero,
-        );
         edgePlacements.add((
           edgeIndex: edgeIndex,
           footprint: footprint,
-          fillBackingPath: fillBackingPath,
+          seamBackingPath: baseReserved
+              ? terrainMaterialEdgeSeamBackingPath(
+                  region: profile.base.region,
+                  orientation: orientation,
+                  start: start,
+                  end: end,
+                  anchorY: profile.base.anchorY,
+                )
+              : Path(),
         ));
       }
       final capFootprints = capPlacements
@@ -398,15 +375,6 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
         orderedEdgeFootprints: edgeFootprints,
         capFootprints: capFootprints,
       );
-      final fillBackingClipPaths =
-          terrainMaterialExclusiveEdgeFillBackingClipPaths(
-            ownerPath: path,
-            orderedBackingPaths: edgePlacements.map(
-              (placement) => placement.fillBackingPath,
-            ),
-            orderedEdgeFootprints: edgeFootprints,
-            capFootprints: capFootprints,
-          );
       final fill = imagesBySourcePath[material.fill.assetPath];
       if (fill == null) {
         canvas.drawPath(
@@ -417,17 +385,21 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
         _drawTiledRegionInPath(canvas, lowerPriorityPath, fill, material.fill);
       }
       for (var index = 0; index < edgePlacements.length; index += 1) {
-        final fillBackingClip = fillBackingClipPaths[index];
-        if (!fillBackingClip.getBounds().isEmpty) {
+        final seamBackingClip = Path.combine(
+          PathOperation.intersect,
+          edgeClipPaths[index],
+          edgePlacements[index].seamBackingPath,
+        );
+        if (!seamBackingClip.getBounds().isEmpty) {
           if (fill == null) {
             canvas.drawPath(
-              fillBackingClip,
+              seamBackingClip,
               _fallbackTerrainPaint(shape.materialKey),
             );
           } else {
             _drawTiledRegionInPath(
               canvas,
-              fillBackingClip,
+              seamBackingClip,
               fill,
               material.fill,
             );

@@ -43,9 +43,6 @@ remain upright and retain their existing visual priority over the ground.
 - Internal edge-tile joins receive a one-pixel material-fill backing on each
   side of the repeat boundary. This closes tiny atlas/raster seams without
   filling the rest of the transparent rocky silhouette or exposed endpoints.
-- The inner join between an edge band and the main fill uses the same narrow
-  overlap. It straddles only that fill-facing boundary, so side walls meet the
-  terrain body cleanly without backing their scene-facing silhouette.
 - Edge strips stop at authored endpoints. Joins may show the polygon fill; the
   renderer does not stretch neighboring strips to conceal those spaces.
 - Thin polygons use that same ownership order: top-facing corners and bands own

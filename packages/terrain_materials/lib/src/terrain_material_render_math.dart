@@ -10,12 +10,6 @@ enum TerrainMaterialCornerOwner { incomingEnd, outgoingStart }
 /// cells without backing the rest of the authored edge silhouette.
 const double terrainMaterialRepeatSeamBackingHalfWidth = 1;
 
-/// World-space half-width of the backing at an edge-to-fill join.
-///
-/// The corridor straddles the fill-facing boundary so complementary raster
-/// clips overlap instead of exposing the scene between them.
-const double terrainMaterialFillJoinBackingHalfWidth = 1;
-
 /// Tangent-normalized rectangle reserved for one endpoint or corner cap.
 ///
 /// Coordinates are in world units relative to the edge start after the edge
@@ -186,53 +180,6 @@ TerrainMaterialEdgeFootprint terrainMaterialEdgeFootprint({
       sourceWidth: sourceWidth,
       sourceHeight: sourceHeight,
     ).toDouble(),
-  );
-}
-
-/// Returns a narrow corridor centered on an edge profile's fill-facing side.
-///
-/// Canonical clockwise Y-down terrain keeps its interior on positive local Y,
-/// so the greatest layer bottom is the boundary shared with material fill.
-/// The complete semantic profile participates because base and detail layers
-/// may have different normalized depths.
-TerrainMaterialEdgeFootprint terrainMaterialEdgeFillJoinBackingFootprint(
-  Iterable<TerrainMaterialEdgeFootprint> layerFootprints,
-) {
-  final footprints = layerFootprints.toList(growable: false);
-  if (footprints.isEmpty) {
-    throw ArgumentError('Terrain fill-join backing requires an edge layer.');
-  }
-  final first = footprints.first;
-  var left = first.left;
-  var right = first.left + first.width;
-  var interiorBoundaryY = first.top + first.height;
-  for (final footprint in footprints) {
-    final values = <double>[
-      footprint.left,
-      footprint.top,
-      footprint.width,
-      footprint.height,
-    ];
-    if (values.any((value) => !value.isFinite) ||
-        footprint.width <= 0 ||
-        footprint.height <= 0) {
-      throw ArgumentError(
-        'Terrain fill-join footprints must be finite and positive.',
-      );
-    }
-    left = left < footprint.left ? left : footprint.left;
-    final footprintRight = footprint.left + footprint.width;
-    right = right > footprintRight ? right : footprintRight;
-    final footprintBottom = footprint.top + footprint.height;
-    interiorBoundaryY = interiorBoundaryY > footprintBottom
-        ? interiorBoundaryY
-        : footprintBottom;
-  }
-  return (
-    left: left,
-    top: interiorBoundaryY - terrainMaterialFillJoinBackingHalfWidth,
-    width: right - left,
-    height: terrainMaterialFillJoinBackingHalfWidth * 2,
   );
 }
 

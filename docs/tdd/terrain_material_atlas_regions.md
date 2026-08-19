@@ -90,14 +90,6 @@ backing is intersected with that edge's exclusive clip, so higher edges and
 caps retain ownership. This addresses transparent boundary texels and raster
 cracks without backing the complete edge footprint.
 
-The edge-to-fill join is backed separately. The renderer finds the greatest
-interior-local bottom across the semantic profile's base/detail footprints and
-straddles that boundary by one world/source pixel. This backing is clipped to
-the owner and has higher edge/cap footprints subtracted, but it is deliberately
-not clipped back to the current edge footprint. The overlap prevents a raster
-gap between complementary edge and fill clips while leaving the outward-facing
-edge silhouette unbacked.
-
 Core join semantics drive non-repeating art. `exposed` endpoints retain their
 configured start/end caps. For a `connected` join, shared pure-Dart math takes
 the dot product of the incoming inward normal and outgoing tangent: positive is
