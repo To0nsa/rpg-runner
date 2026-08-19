@@ -4,6 +4,12 @@ enum TerrainMaterialEdgeOrientation { top, leftWall, rightWall, underside }
 /// Endpoint whose authored cap owns one convex connected terrain corner.
 enum TerrainMaterialCornerOwner { incomingEnd, outgoingStart }
 
+/// World-space half-width of the fill backing at an internal repeat seam.
+///
+/// One source pixel on each side covers the boundary texel of both neighboring
+/// cells without backing the rest of the authored edge silhouette.
+const double terrainMaterialRepeatSeamBackingHalfWidth = 1;
+
 /// Tangent-normalized rectangle reserved for one endpoint or corner cap.
 ///
 /// Coordinates are in world units relative to the edge start after the edge
@@ -239,6 +245,48 @@ double terrainMaterialEdgeRepeatPhase({
   (startX * tangentX) + (startY * tangentY),
   repeatWidth,
 );
+
+/// Returns internal repeat boundaries measured from an edge's start.
+///
+/// The result uses the same world-anchored phase as edge painting and excludes
+/// the authored edge endpoints, which remain governed by cap ownership.
+List<double> terrainMaterialEdgeRepeatSeamOffsets({
+  required double startX,
+  required double startY,
+  required double tangentX,
+  required double tangentY,
+  required double edgeLength,
+  required double repeatWidth,
+}) {
+  final values = <double>[
+    startX,
+    startY,
+    tangentX,
+    tangentY,
+    edgeLength,
+    repeatWidth,
+  ];
+  if (values.any((value) => !value.isFinite) || edgeLength <= 0) {
+    throw ArgumentError('Terrain repeat seam inputs must be finite and valid.');
+  }
+  final phase = terrainMaterialEdgeRepeatPhase(
+    startX: startX,
+    startY: startY,
+    tangentX: tangentX,
+    tangentY: tangentY,
+    repeatWidth: repeatWidth,
+  );
+  var seam = terrainMaterialTileStart(phase, repeatWidth) - phase;
+  while (seam <= 0) {
+    seam += repeatWidth;
+  }
+  final result = <double>[];
+  while (seam < edgeLength) {
+    result.add(seam);
+    seam += repeatWidth;
+  }
+  return List<double>.unmodifiable(result);
+}
 
 /// First world-space tile origin at or before [coordinate].
 double terrainMaterialTileStart(double coordinate, double repeatSize) =>

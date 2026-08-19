@@ -174,6 +174,67 @@ Path terrainMaterialEdgeFootprintPath({
   );
 }
 
+/// Returns narrow edge-local corridors backing internal repeat boundaries.
+///
+/// The corridors cover one source pixel from each neighboring cell. They do
+/// not include authored edge endpoints or the rest of the transparent
+/// silhouette.
+Path terrainMaterialEdgeSeamBackingPath({
+  required TerrainMaterialImageRegion region,
+  required TerrainMaterialEdgeOrientation orientation,
+  required Offset start,
+  required Offset end,
+  required double anchorY,
+}) {
+  final delta = end - start;
+  final length = delta.distance;
+  if (length <= 0) return Path();
+  final tangent = delta / length;
+  final footprint = terrainMaterialEdgeFootprint(
+    edgeLength: length,
+    anchorY: anchorY,
+    orientation: orientation,
+    sourceWidth: region.width,
+    sourceHeight: region.height,
+  );
+  final repeatWidth = terrainMaterialEdgeTileWidth(
+    orientation: orientation,
+    sourceWidth: region.width,
+    sourceHeight: region.height,
+  ).toDouble();
+  final seams = terrainMaterialEdgeRepeatSeamOffsets(
+    startX: start.dx,
+    startY: start.dy,
+    tangentX: tangent.dx,
+    tangentY: tangent.dy,
+    edgeLength: length,
+    repeatWidth: repeatWidth,
+  );
+  final result = Path();
+  for (final seam in seams) {
+    final left = math.max(
+      0.0,
+      seam - terrainMaterialRepeatSeamBackingHalfWidth,
+    );
+    final right = math.min(
+      length,
+      seam + terrainMaterialRepeatSeamBackingHalfWidth,
+    );
+    result.addPath(
+      _terrainMaterialFootprintPath(
+        start: start,
+        end: end,
+        left: left,
+        top: footprint.top,
+        width: right - left,
+        height: footprint.height,
+      ),
+      Offset.zero,
+    );
+  }
+  return result;
+}
+
 Path _terrainMaterialFootprintPath({
   required Offset start,
   required Offset end,

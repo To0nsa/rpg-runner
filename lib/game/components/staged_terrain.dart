@@ -148,6 +148,7 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
         material.spec,
         edge.orientation,
       )!;
+      _drawEdgeSeamBacking(canvas, edge: edge, fillPaint: material.fillPaint);
       _drawEdgeImage(
         canvas,
         edge: edge,
@@ -298,7 +299,19 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
       edgePlacementsByMesh
           .putIfAbsent(edge.ownerMesh, () => <_CachedTerrainEdgePlacement>[])
           .add(
-            _CachedTerrainEdgePlacement(edge: edge, footprint: edgeFootprint),
+            _CachedTerrainEdgePlacement(
+              edge: edge,
+              footprint: edgeFootprint,
+              seamBackingPath: terrainMaterialEdgeSeamBackingPath(
+                start: edge.start,
+                length: edge.length,
+                angle: edge.angle,
+                sourceWidth: profile.base.region.width,
+                sourceHeight: profile.base.region.height,
+                anchorY: profile.base.anchorY,
+                orientation: edge.orientation,
+              ),
+            ),
           );
       final caps = StagedTerrainEdgeLayout.capsFor(material, edge.orientation);
       void reserve(TerrainMaterialCapSpec? cap, {required bool atEnd}) {
@@ -348,7 +361,10 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
         capFootprints: capFootprints,
       );
       for (var index = 0; index < edgePlacements.length; index += 1) {
-        edgePlacements[index].edge.setEdgeClipPath(edgeClipPaths[index]);
+        edgePlacements[index].edge.setEdgeCompositionPaths(
+          clipPath: edgeClipPaths[index],
+          seamBackingPath: edgePlacements[index].seamBackingPath,
+        );
       }
       final capClipPaths = terrainMaterialExclusiveCapClipPaths(
         ownerPath: mesh.clipPath,
@@ -383,6 +399,19 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
     orientation: orientation,
     clipPath: edge.edgeClipPath,
   );
+
+  void _drawEdgeSeamBacking(
+    ui.Canvas canvas, {
+    required _CachedTerrainDecoratedEdge edge,
+    required ui.Paint fillPaint,
+  }) {
+    if (edge.seamBackingPath.getBounds().isEmpty) return;
+    canvas.save();
+    canvas.clipPath(edge.edgeClipPath);
+    canvas.clipPath(edge.seamBackingPath);
+    canvas.drawRect(edge.ownerMesh.bounds, fillPaint);
+    canvas.restore();
+  }
 
   void _drawEdgeCap(
     ui.Canvas canvas, {
@@ -569,6 +598,67 @@ ui.Path terrainMaterialEdgeFootprintPath({
     width: footprint.width,
     height: footprint.height,
   );
+}
+
+/// Returns fill-backed corridors at internal repeat boundaries for one edge.
+///
+/// Only one source pixel on either side of each seam is included; endpoints
+/// and the remaining transparent silhouette stay unbacked.
+@visibleForTesting
+ui.Path terrainMaterialEdgeSeamBackingPath({
+  required ui.Offset start,
+  required double length,
+  required double angle,
+  required int sourceWidth,
+  required int sourceHeight,
+  required double anchorY,
+  required TerrainMaterialEdgeOrientation orientation,
+}) {
+  final footprint = terrainMaterialEdgeFootprint(
+    edgeLength: length,
+    anchorY: anchorY,
+    orientation: orientation,
+    sourceWidth: sourceWidth,
+    sourceHeight: sourceHeight,
+  );
+  final tangentX = math.cos(angle);
+  final tangentY = math.sin(angle);
+  final repeatWidth = terrainMaterialEdgeTileWidth(
+    orientation: orientation,
+    sourceWidth: sourceWidth,
+    sourceHeight: sourceHeight,
+  ).toDouble();
+  final seams = terrainMaterialEdgeRepeatSeamOffsets(
+    startX: start.dx,
+    startY: start.dy,
+    tangentX: tangentX,
+    tangentY: tangentY,
+    edgeLength: length,
+    repeatWidth: repeatWidth,
+  );
+  final result = ui.Path();
+  for (final seam in seams) {
+    final left = math.max(
+      0.0,
+      seam - terrainMaterialRepeatSeamBackingHalfWidth,
+    );
+    final right = math.min(
+      length,
+      seam + terrainMaterialRepeatSeamBackingHalfWidth,
+    );
+    result.addPath(
+      _terrainMaterialFootprintPath(
+        start: start,
+        angle: angle,
+        left: left,
+        top: footprint.top,
+        width: right - left,
+        height: footprint.height,
+      ),
+      ui.Offset.zero,
+    );
+  }
+  return result;
 }
 
 ui.Path _terrainMaterialFootprintPath({
@@ -867,6 +957,7 @@ final class _CachedTerrainDecoratedEdge {
   final _CachedTerrainMesh ownerMesh;
   final ui.Rect bounds;
   ui.Path? _edgeClipPath;
+  ui.Path? _seamBackingPath;
   ui.Path? _startCapClipPath;
   ui.Path? _endCapClipPath;
 
@@ -878,7 +969,21 @@ final class _CachedTerrainDecoratedEdge {
     return result;
   }
 
-  void setEdgeClipPath(ui.Path clipPath) => _edgeClipPath = clipPath;
+  ui.Path get seamBackingPath {
+    final result = _seamBackingPath;
+    if (result == null) {
+      throw StateError('Terrain edge is missing its seam-backing path.');
+    }
+    return result;
+  }
+
+  void setEdgeCompositionPaths({
+    required ui.Path clipPath,
+    required ui.Path seamBackingPath,
+  }) {
+    _edgeClipPath = clipPath;
+    _seamBackingPath = seamBackingPath;
+  }
 
   void setCapClipPath({required bool atEnd, required ui.Path clipPath}) {
     if (atEnd) {
@@ -913,10 +1018,12 @@ final class _CachedTerrainEdgePlacement {
   const _CachedTerrainEdgePlacement({
     required this.edge,
     required this.footprint,
+    required this.seamBackingPath,
   });
 
   final _CachedTerrainDecoratedEdge edge;
   final ui.Path footprint;
+  final ui.Path seamBackingPath;
 }
 
 final Float64List _identityMatrix = Float64List.fromList(<double>[

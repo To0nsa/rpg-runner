@@ -190,7 +190,8 @@ rectangle, so transparent cap pixels reveal the scene rather than fill or edge
 art underneath. Each semantic edge profile similarly reserves the union of its
 base/detail strip footprints; transparent edge pixels reveal the scene, while
 detail can still reveal its own base. Edge bands stop at their exact authored
-endpoints.
+endpoints. Only internal repeat joins receive a narrow material-fill backing,
+preventing small atlas-cell gaps without flattening the rocky silhouette.
 Applying writes
 only `assets/authoring/level/terrain_material_defs.json`. Run the root content
 generator afterward to refresh the generated runtime registry. The manifest is

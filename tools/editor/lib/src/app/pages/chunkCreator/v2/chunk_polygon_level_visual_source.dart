@@ -300,7 +300,8 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
         if (cornerCaps[index].start) reserve(caps.start, atEnd: false);
         if (cornerCaps[index].end) reserve(caps.end, atEnd: true);
       }
-      final edgePlacements = <({int edgeIndex, Path footprint})>[];
+      final edgePlacements =
+          <({int edgeIndex, Path footprint, Path seamBackingPath})>[];
       for (final edgeIndex in edgePaintOrder) {
         final orientation = edgeKinds[edgeIndex];
         final profile = _profileForKind(material, orientation);
@@ -310,13 +311,13 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
           shape.vertices[(edgeIndex + 1) % shape.vertices.length],
         );
         final layerFootprints = <Path>[];
-        void reserveLayer(TerrainMaterialEdgeLayer? layer) {
-          if (layer == null) return;
+        bool reserveLayer(TerrainMaterialEdgeLayer? layer) {
+          if (layer == null) return false;
           final image = imagesBySourcePath[layer.region.assetPath];
           if (image == null ||
               layer.region.right > image.width ||
               layer.region.bottom > image.height) {
-            return;
+            return false;
           }
           layerFootprints.add(
             terrainMaterialEdgeFootprintPath(
@@ -327,9 +328,10 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
               anchorY: layer.anchorY,
             ),
           );
+          return true;
         }
 
-        reserveLayer(profile.base);
+        final baseReserved = reserveLayer(profile.base);
         reserveLayer(profile.detail);
         if (layerFootprints.isEmpty) continue;
         var footprint = layerFootprints.first;
@@ -340,7 +342,19 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
             layerFootprint,
           );
         }
-        edgePlacements.add((edgeIndex: edgeIndex, footprint: footprint));
+        edgePlacements.add((
+          edgeIndex: edgeIndex,
+          footprint: footprint,
+          seamBackingPath: baseReserved
+              ? terrainMaterialEdgeSeamBackingPath(
+                  region: profile.base.region,
+                  orientation: orientation,
+                  start: start,
+                  end: end,
+                  anchorY: profile.base.anchorY,
+                )
+              : Path(),
+        ));
       }
       final capFootprints = capPlacements
           .map((placement) => placement.footprint)
@@ -371,6 +385,26 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
         _drawTiledRegionInPath(canvas, lowerPriorityPath, fill, material.fill);
       }
       for (var index = 0; index < edgePlacements.length; index += 1) {
+        final seamBackingClip = Path.combine(
+          PathOperation.intersect,
+          edgeClipPaths[index],
+          edgePlacements[index].seamBackingPath,
+        );
+        if (!seamBackingClip.getBounds().isEmpty) {
+          if (fill == null) {
+            canvas.drawPath(
+              seamBackingClip,
+              _fallbackTerrainPaint(shape.materialKey),
+            );
+          } else {
+            _drawTiledRegionInPath(
+              canvas,
+              seamBackingClip,
+              fill,
+              material.fill,
+            );
+          }
+        }
         final edgeIndex = edgePlacements[index].edgeIndex;
         final startVertex = shape.vertices[edgeIndex];
         final endVertex =

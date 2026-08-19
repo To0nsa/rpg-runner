@@ -40,6 +40,9 @@ remain upright and retain their existing visual priority over the ground.
   the scene rather than a lower terrain role. Detail remains an overlay within
   its own base profile. Visible ownership resolves as corner, top-facing edge,
   wall/underside edge, then fill.
+- Internal edge-tile joins receive a one-pixel material-fill backing on each
+  side of the repeat boundary. This closes tiny atlas/raster seams without
+  filling the rest of the transparent rocky silhouette or exposed endpoints.
 - Edge strips stop at authored endpoints. Joins may show the polygon fill; the
   renderer does not stretch neighboring strips to conceal those spaces.
 - Thin polygons use that same ownership order: top-facing corners and bands own

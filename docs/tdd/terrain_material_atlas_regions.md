@@ -82,6 +82,14 @@ other. Transparent region pixels therefore reveal the scene rather than a
 lower terrain role. The visible priority is cap, top band, wall/underside band,
 then fill.
 
+Repeating edge bases add a seam-only backing derived from the material fill.
+The shared world-phase math identifies internal repeat boundaries and excludes
+the authored edge endpoints. At each internal boundary, the backing covers one
+world/source pixel on either side and the base/detail art renders above it. The
+backing is intersected with that edge's exclusive clip, so higher edges and
+caps retain ownership. This addresses transparent boundary texels and raster
+cracks without backing the complete edge footprint.
+
 Core join semantics drive non-repeating art. `exposed` endpoints retain their
 configured start/end caps. For a `connected` join, shared pure-Dart math takes
 the dot product of the incoming inward normal and outgoing tangent: positive is

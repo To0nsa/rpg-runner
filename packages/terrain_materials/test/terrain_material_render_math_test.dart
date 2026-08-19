@@ -218,6 +218,28 @@ void main() {
         ),
         16,
       );
+      expect(
+        terrainMaterialEdgeRepeatSeamOffsets(
+          startX: 0,
+          startY: 0,
+          tangentX: 1,
+          tangentY: 0,
+          edgeLength: 96,
+          repeatWidth: 32,
+        ),
+        <double>[32, 64],
+      );
+      expect(
+        terrainMaterialEdgeRepeatSeamOffsets(
+          startX: 16,
+          startY: 0,
+          tangentX: 1,
+          tangentY: 0,
+          edgeLength: 80,
+          repeatWidth: 32,
+        ),
+        <double>[16, 48],
+      );
     },
   );
 
@@ -225,6 +247,17 @@ void main() {
     expect(() => terrainMaterialPositiveModulo(0, 0), throwsArgumentError);
     expect(
       () => terrainMaterialPositiveModulo(double.nan, 32),
+      throwsArgumentError,
+    );
+    expect(
+      () => terrainMaterialEdgeRepeatSeamOffsets(
+        startX: 0,
+        startY: 0,
+        tangentX: 1,
+        tangentY: 0,
+        edgeLength: 0,
+        repeatWidth: 32,
+      ),
       throwsArgumentError,
     );
   });

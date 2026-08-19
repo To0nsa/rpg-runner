@@ -3,7 +3,7 @@
 This pure-Dart package owns the repository contract for terrain render
 materials. It is shared by the editor and runtime generator so schema parsing,
 validation, ordering, canonical JSON encoding, region/asset traversal, and
-atlas repeat/corner-selection/region-footprint math remain single-sourced.
+atlas repeat/seam/corner-selection/region-footprint math remain single-sourced.
 
 The live contract is strict schema v3. Every fill, edge layer, and cap uses an
 explicit terrain-owned PNG region. Edge regions are authored in their natural

@@ -344,6 +344,16 @@ class _TerrainComposedSample extends StatelessWidget {
                 end: edge.end,
               ),
           ];
+          final edgeSeamBackingPaths = <Path>[
+            for (final edge in orderedEdges)
+              terrainMaterialEdgeSeamBackingPath(
+                region: edge.profile.base.region,
+                orientation: edge.orientation,
+                start: edge.start,
+                end: edge.end,
+                anchorY: edge.profile.base.anchorY,
+              ),
+          ];
           final capFootprints = capPlacements
               .map((placement) => placement.footprint)
               .toList(growable: false);
@@ -387,13 +397,32 @@ class _TerrainComposedSample extends StatelessWidget {
                   child: ClipPath(
                     clipper: _TerrainMaterialPathClipper(edgeClipPaths[index]),
                     child: Stack(
-                      children: _edgeProfile(
-                        orderedEdges[index].profile,
-                        role: orderedEdges[index].role,
-                        orientation: orderedEdges[index].orientation,
-                        start: orderedEdges[index].start,
-                        end: orderedEdges[index].end,
-                      ),
+                      children: [
+                        Positioned.fill(
+                          child: ClipPath(
+                            clipper: _TerrainMaterialPathClipper(
+                              edgeSeamBackingPaths[index],
+                            ),
+                            child: _TerrainRegionImage.repeated(
+                              key: _previewKey(
+                                '${orderedEdges[index].role}_seam_backing',
+                              ),
+                              workspaceRootPath: workspaceRootPath,
+                              region: material.fill,
+                              imageCache: imageCache,
+                              repeat: _RegionRepeat.both,
+                              worldOrigin: Offset.zero,
+                            ),
+                          ),
+                        ),
+                        ..._edgeProfile(
+                          orderedEdges[index].profile,
+                          role: orderedEdges[index].role,
+                          orientation: orderedEdges[index].orientation,
+                          start: orderedEdges[index].start,
+                          end: orderedEdges[index].end,
+                        ),
+                      ],
                     ),
                   ),
                 ),

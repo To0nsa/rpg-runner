@@ -222,7 +222,7 @@ void main() {
     expect(clips[1].contains(const ui.Offset(2.5, 3.5)), isTrue);
   });
 
-  test('edge footprint prevents fill leaking through transparency', () async {
+  test('edge footprint backs only internal repeat seams', () async {
     final source = await _sourceImageWithTransparentTopLeft();
     addTearDown(source.dispose);
     final ownerPath = ui.Path()..addRect(const ui.Rect.fromLTWH(0, 0, 8, 8));
@@ -244,6 +244,15 @@ void main() {
       orderedEdgeFootprints: <ui.Path>[footprint],
       capFootprints: const <ui.Path>[],
     ).single;
+    final seamBacking = terrainMaterialEdgeSeamBackingPath(
+      start: const ui.Offset(2, 2),
+      length: 4,
+      angle: 0,
+      sourceWidth: 2,
+      sourceHeight: 2,
+      anchorY: 0,
+      orientation: TerrainMaterialEdgeOrientation.top,
+    );
     final recorder = ui.PictureRecorder();
     final canvas = ui.Canvas(recorder);
     canvas.drawPath(
@@ -252,6 +261,16 @@ void main() {
         ..color = const ui.Color(0xFFFF0000)
         ..isAntiAlias = false,
     );
+    canvas.save();
+    canvas.clipPath(edgeClip);
+    canvas.clipPath(seamBacking);
+    canvas.drawRect(
+      const ui.Rect.fromLTWH(0, 0, 8, 8),
+      ui.Paint()
+        ..color = const ui.Color(0xFFFF0000)
+        ..isAntiAlias = false,
+    );
+    canvas.restore();
     paintTerrainMaterialEdgeImage(
       canvas,
       start: const ui.Offset(2, 2),
@@ -269,6 +288,7 @@ void main() {
 
     expect(await _alphaAt(rendered, 0, 0), greaterThan(0));
     expect(await _alphaAt(rendered, 2, 2), 0);
+    expect(await _alphaAt(rendered, 4, 2), greaterThan(0));
     expect(await _alphaAt(rendered, 3, 2), greaterThan(0));
   });
 
