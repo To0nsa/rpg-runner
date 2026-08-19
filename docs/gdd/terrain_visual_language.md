@@ -35,17 +35,16 @@ remain upright and retain their existing visual priority over the ground.
   exactly one adjacent start/end cap as its corner patch; top-facing art wins
   when both sides supply one. Concave turns remain band-only, and smooth
   continuations never acquire a false cliff cue.
-- A selected cap owns its complete rectangular footprint, including transparent
-  pixels. Those cutouts reveal the scene rather than fill or edge art beneath
-  them. Outside cap footprints, visible ownership falls back in the order
-  top-facing edge, wall/underside edge, then fill. If a thin polygon makes two
-  different corner footprints overlap, top-facing corner art owns the overlap.
+- Every selected cap and semantic edge profile owns its complete strip or
+  rectangular footprint, including transparent pixels. Those cutouts reveal
+  the scene rather than a lower terrain role. Detail remains an overlay within
+  its own base profile. Visible ownership resolves as corner, top-facing edge,
+  wall/underside edge, then fill.
 - Edge strips stop at authored endpoints. Joins may show the polygon fill; the
   renderer does not stretch neighboring strips to conceal those spaces.
-- Corner selection does not solve insufficient terrain depth. When opposite
-  edge bands overlap inside a thin polygon, their normal paint priority still
-  applies; content thickness or material regions must provide the desired
-  interior clearance.
+- Thin polygons use that same ownership order: top-facing corners and bands own
+  overlaps above underside art. Content thickness or material regions must
+  still provide the desired interior clearance.
 
 ## Runtime Boundary
 

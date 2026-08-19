@@ -278,18 +278,6 @@ class _TerrainComposedSample extends StatelessWidget {
             end: platform.topRight,
             atEnd: true,
           );
-          final lowerPriorityPath = terrainMaterialLowerPriorityClipPath(
-            ownerPath: ownerPath,
-            capFootprints: capPlacements.map(
-              (placement) => placement.footprint,
-            ),
-          );
-          final capClipPaths = terrainMaterialExclusiveCapClipPaths(
-            ownerPath: ownerPath,
-            orderedCapFootprints: capPlacements.map(
-              (placement) => placement.footprint,
-            ),
-          );
           final edges =
               <
                 ({
@@ -332,18 +320,46 @@ class _TerrainComposedSample extends StatelessWidget {
                     end: platform.topLeft,
                   ),
               ];
-          final edgeLayers = <Widget>[
-            for (final index in terrainMaterialEdgePaintOrder(
-              edges.map((edge) => edge.orientation),
-            ))
-              ..._edgeProfile(
-                edges[index].profile,
-                role: edges[index].role,
-                orientation: edges[index].orientation,
-                start: edges[index].start,
-                end: edges[index].end,
+          final orderedEdges =
+              <
+                ({
+                  TerrainMaterialEdgeProfile profile,
+                  String role,
+                  TerrainMaterialEdgeOrientation orientation,
+                  Offset start,
+                  Offset end,
+                })
+              >[
+                for (final index in terrainMaterialEdgePaintOrder(
+                  edges.map((edge) => edge.orientation),
+                ))
+                  edges[index],
+              ];
+          final edgeFootprints = <Path>[
+            for (final edge in orderedEdges)
+              _edgeProfileFootprint(
+                edge.profile,
+                orientation: edge.orientation,
+                start: edge.start,
+                end: edge.end,
               ),
           ];
+          final capFootprints = capPlacements
+              .map((placement) => placement.footprint)
+              .toList(growable: false);
+          final lowerPriorityPath = terrainMaterialLowerPriorityClipPath(
+            ownerPath: ownerPath,
+            reservedFootprints: <Path>[...edgeFootprints, ...capFootprints],
+          );
+          final edgeClipPaths = terrainMaterialExclusiveEdgeClipPaths(
+            ownerPath: ownerPath,
+            orderedEdgeFootprints: edgeFootprints,
+            capFootprints: capFootprints,
+          );
+          final capClipPaths = terrainMaterialExclusiveCapClipPaths(
+            ownerPath: ownerPath,
+            orderedCapFootprints: capFootprints,
+          );
           return Stack(
             children: [
               Positioned.fill(
@@ -362,11 +378,25 @@ class _TerrainComposedSample extends StatelessWidget {
                           worldOrigin: platform.topLeft,
                         ),
                       ),
-                      ...edgeLayers,
                     ],
                   ),
                 ),
               ),
+              for (var index = 0; index < orderedEdges.length; index += 1)
+                Positioned.fill(
+                  child: ClipPath(
+                    clipper: _TerrainMaterialPathClipper(edgeClipPaths[index]),
+                    child: Stack(
+                      children: _edgeProfile(
+                        orderedEdges[index].profile,
+                        role: orderedEdges[index].role,
+                        orientation: orderedEdges[index].orientation,
+                        start: orderedEdges[index].start,
+                        end: orderedEdges[index].end,
+                      ),
+                    ),
+                  ),
+                ),
               Positioned.fill(
                 child: ClipPath(
                   clipper: _TerrainMaterialPathClipper(ownerPath),
@@ -440,6 +470,36 @@ class _TerrainComposedSample extends StatelessWidget {
         end: end,
       ),
   ];
+
+  Path _edgeProfileFootprint(
+    TerrainMaterialEdgeProfile profile, {
+    required TerrainMaterialEdgeOrientation orientation,
+    required Offset start,
+    required Offset end,
+  }) {
+    final footprints = <Path>[
+      terrainMaterialEdgeFootprintPath(
+        region: profile.base.region,
+        orientation: orientation,
+        start: start,
+        end: end,
+        anchorY: profile.base.anchorY,
+      ),
+      if (profile.detail case final detail?)
+        terrainMaterialEdgeFootprintPath(
+          region: detail.region,
+          orientation: orientation,
+          start: start,
+          end: end,
+          anchorY: detail.anchorY,
+        ),
+    ];
+    var result = footprints.first;
+    for (final footprint in footprints.skip(1)) {
+      result = Path.combine(PathOperation.union, result, footprint);
+    }
+    return result;
+  }
 
   Widget _edgeLayer(
     TerrainMaterialEdgeLayer layer, {

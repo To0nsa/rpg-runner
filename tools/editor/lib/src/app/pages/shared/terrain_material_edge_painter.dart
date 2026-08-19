@@ -133,15 +133,65 @@ Path terrainMaterialCapFootprintPath({
     sourceWidth: region.width,
     sourceHeight: region.height,
   );
+  return _terrainMaterialFootprintPath(
+    start: start,
+    end: end,
+    left: footprint.left,
+    top: footprint.top,
+    width: footprint.width,
+    height: footprint.height,
+  );
+}
+
+/// Returns the world-space strip exclusively owned by one edge layer.
+///
+/// Consumers union base/detail footprints for a semantic edge before resolving
+/// priority against adjacent edges and caps.
+Path terrainMaterialEdgeFootprintPath({
+  required TerrainMaterialImageRegion region,
+  required TerrainMaterialEdgeOrientation orientation,
+  required Offset start,
+  required Offset end,
+  required double anchorY,
+}) {
+  final delta = end - start;
+  final length = delta.distance;
+  if (length <= 0) return Path();
+  final footprint = terrainMaterialEdgeFootprint(
+    edgeLength: length,
+    anchorY: anchorY,
+    orientation: orientation,
+    sourceWidth: region.width,
+    sourceHeight: region.height,
+  );
+  return _terrainMaterialFootprintPath(
+    start: start,
+    end: end,
+    left: footprint.left,
+    top: footprint.top,
+    width: footprint.width,
+    height: footprint.height,
+  );
+}
+
+Path _terrainMaterialFootprintPath({
+  required Offset start,
+  required Offset end,
+  required double left,
+  required double top,
+  required double width,
+  required double height,
+}) {
+  final delta = end - start;
+  final length = delta.distance;
+  if (length <= 0) return Path();
   final tangent = delta / length;
   Offset toWorld(double x, double y) => Offset(
     start.dx + x * tangent.dx - y * tangent.dy,
     start.dy + x * tangent.dy + y * tangent.dx,
   );
-  final left = footprint.left;
-  final top = footprint.top;
-  final right = left + footprint.width;
-  final bottom = top + footprint.height;
+  final right = left + width;
+  final bottom = top + height;
   final topLeft = toWorld(left, top);
   final path = Path()..moveTo(topLeft.dx, topLeft.dy);
   for (final point in <Offset>[
@@ -154,16 +204,15 @@ Path terrainMaterialCapFootprintPath({
   return path..close();
 }
 
-/// Removes cap-owned rectangles from a polygon's lower-priority paint area.
+/// Removes reserved region footprints from a polygon's lower-priority area.
 ///
-/// This establishes `cap > edge band > fill` ownership independently of
-/// source alpha. [ownerPath] is not mutated.
+/// Ownership is independent of source alpha. [ownerPath] is not mutated.
 Path terrainMaterialLowerPriorityClipPath({
   required Path ownerPath,
-  required Iterable<Path> capFootprints,
+  required Iterable<Path> reservedFootprints,
 }) {
   var result = Path.from(ownerPath);
-  for (final footprint in capFootprints) {
+  for (final footprint in reservedFootprints) {
     if (footprint.getBounds().isEmpty) continue;
     result = Path.combine(PathOperation.difference, result, footprint);
   }
@@ -186,6 +235,27 @@ List<Path> terrainMaterialExclusiveCapClipPaths({
         ownerPath: ownerPath,
         footprint: footprints[index],
         higherPriorityFootprints: footprints.skip(index + 1),
+      ),
+  ]);
+}
+
+/// Resolves exclusive edge clips in back-to-front paint order.
+///
+/// Later edges own overlaps, and every cap owns its footprint above every
+/// edge. Complete footprints participate regardless of source alpha.
+List<Path> terrainMaterialExclusiveEdgeClipPaths({
+  required Path ownerPath,
+  required Iterable<Path> orderedEdgeFootprints,
+  required Iterable<Path> capFootprints,
+}) {
+  final edges = orderedEdgeFootprints.toList(growable: false);
+  final caps = capFootprints.toList(growable: false);
+  return List<Path>.unmodifiable(<Path>[
+    for (var index = 0; index < edges.length; index += 1)
+      _exclusiveCapClipPath(
+        ownerPath: ownerPath,
+        footprint: edges[index],
+        higherPriorityFootprints: <Path>[...edges.skip(index + 1), ...caps],
       ),
   ]);
 }

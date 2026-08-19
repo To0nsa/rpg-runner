@@ -17,6 +17,18 @@ typedef TerrainMaterialCapFootprint = ({
   double height,
 });
 
+/// Tangent-normalized rectangle owned by one repeating edge layer.
+///
+/// Coordinates use the same edge-local world space as
+/// [TerrainMaterialCapFootprint]. Transparent pixels inside this rectangle
+/// retain edge ownership instead of falling through to another terrain role.
+typedef TerrainMaterialEdgeFootprint = ({
+  double left,
+  double top,
+  double width,
+  double height,
+});
+
 /// Returns stable back-to-front indices for terrain edge decoration.
 ///
 /// Source order is retained within each group, while top-facing edges are
@@ -120,6 +132,43 @@ TerrainMaterialCapFootprint terrainMaterialCapFootprint({
       sourceWidth: sourceWidth,
       sourceHeight: sourceHeight,
     ).toDouble(),
+    height: terrainMaterialEdgeTileHeight(
+      orientation: orientation,
+      sourceWidth: sourceWidth,
+      sourceHeight: sourceHeight,
+    ).toDouble(),
+  );
+}
+
+/// Returns the exclusive destination footprint of one repeating edge layer.
+///
+/// [edgeLength] and [anchorY] are world units in normalized edge space. Source
+/// dimensions must be positive pixels. The footprint matches the exact strip
+/// bounds used by edge painting.
+TerrainMaterialEdgeFootprint terrainMaterialEdgeFootprint({
+  required double edgeLength,
+  required double anchorY,
+  required TerrainMaterialEdgeOrientation orientation,
+  required int sourceWidth,
+  required int sourceHeight,
+}) {
+  if (!edgeLength.isFinite || edgeLength <= 0) {
+    throw ArgumentError.value(
+      edgeLength,
+      'edgeLength',
+      'Must be finite and positive.',
+    );
+  }
+  if (!anchorY.isFinite) {
+    throw ArgumentError.value(anchorY, 'anchorY', 'Must be finite.');
+  }
+  if (sourceWidth <= 0 || sourceHeight <= 0) {
+    throw ArgumentError('Terrain edge source dimensions must be positive.');
+  }
+  return (
+    left: 0,
+    top: -anchorY,
+    width: edgeLength,
     height: terrainMaterialEdgeTileHeight(
       orientation: orientation,
       sourceWidth: sourceWidth,

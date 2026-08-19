@@ -174,7 +174,7 @@ void main() {
       );
       final lowerPriorityClip = terrainMaterialLowerPriorityClipPath(
         ownerPath: ownerPath,
-        capFootprints: <ui.Path>[footprint],
+        reservedFootprints: <ui.Path>[footprint],
       );
       final recorder = ui.PictureRecorder();
       final canvas = ui.Canvas(recorder);
@@ -215,6 +215,72 @@ void main() {
     final clips = terrainMaterialExclusiveCapClipPaths(
       ownerPath: ownerPath,
       orderedCapFootprints: <ui.Path>[undersideFootprint, topFootprint],
+    );
+
+    expect(clips[0].contains(const ui.Offset(2.5, 3.5)), isFalse);
+    expect(clips[0].contains(const ui.Offset(2.5, 4.5)), isTrue);
+    expect(clips[1].contains(const ui.Offset(2.5, 3.5)), isTrue);
+  });
+
+  test('edge footprint prevents fill leaking through transparency', () async {
+    final source = await _sourceImageWithTransparentTopLeft();
+    addTearDown(source.dispose);
+    final ownerPath = ui.Path()..addRect(const ui.Rect.fromLTWH(0, 0, 8, 8));
+    final footprint = terrainMaterialEdgeFootprintPath(
+      start: const ui.Offset(2, 2),
+      length: 4,
+      angle: 0,
+      sourceWidth: 2,
+      sourceHeight: 2,
+      anchorY: 0,
+      orientation: TerrainMaterialEdgeOrientation.top,
+    );
+    final fillClip = terrainMaterialLowerPriorityClipPath(
+      ownerPath: ownerPath,
+      reservedFootprints: <ui.Path>[footprint],
+    );
+    final edgeClip = terrainMaterialExclusiveEdgeClipPaths(
+      ownerPath: ownerPath,
+      orderedEdgeFootprints: <ui.Path>[footprint],
+      capFootprints: const <ui.Path>[],
+    ).single;
+    final recorder = ui.PictureRecorder();
+    final canvas = ui.Canvas(recorder);
+    canvas.drawPath(
+      fillClip,
+      ui.Paint()
+        ..color = const ui.Color(0xFFFF0000)
+        ..isAntiAlias = false,
+    );
+    paintTerrainMaterialEdgeImage(
+      canvas,
+      start: const ui.Offset(2, 2),
+      length: 4,
+      angle: 0,
+      image: source,
+      anchorY: 0,
+      orientation: TerrainMaterialEdgeOrientation.top,
+      clipPath: edgeClip,
+    );
+    final picture = recorder.endRecording();
+    final rendered = await picture.toImage(8, 8);
+    picture.dispose();
+    addTearDown(rendered.dispose);
+
+    expect(await _alphaAt(rendered, 0, 0), greaterThan(0));
+    expect(await _alphaAt(rendered, 2, 2), 0);
+    expect(await _alphaAt(rendered, 3, 2), greaterThan(0));
+  });
+
+  test('later top edge footprint excludes an overlapping wall edge', () {
+    final ownerPath = ui.Path()..addRect(const ui.Rect.fromLTWH(0, 0, 8, 8));
+    final wallFootprint = ui.Path()
+      ..addRect(const ui.Rect.fromLTWH(2, 3, 2, 2));
+    final topFootprint = ui.Path()..addRect(const ui.Rect.fromLTWH(2, 2, 2, 2));
+    final clips = terrainMaterialExclusiveEdgeClipPaths(
+      ownerPath: ownerPath,
+      orderedEdgeFootprints: <ui.Path>[wallFootprint, topFootprint],
+      capFootprints: const <ui.Path>[],
     );
 
     expect(clips[0].contains(const ui.Offset(2.5, 3.5)), isFalse);

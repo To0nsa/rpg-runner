@@ -258,8 +258,48 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
     );
     final capPlacementsByMesh =
         <_CachedTerrainMesh, List<_CachedTerrainCapPlacement>>{};
+    final edgePlacementsByMesh =
+        <_CachedTerrainMesh, List<_CachedTerrainEdgePlacement>>{};
     for (final edge in orderedSurfaceEdges) {
       final material = TerrainMaterialRegistry.require(edge.materialKey);
+      final profile = StagedTerrainEdgeLayout.profileFor(
+        material,
+        edge.orientation,
+      )!;
+      final layerFootprints = <ui.Path>[
+        terrainMaterialEdgeFootprintPath(
+          start: edge.start,
+          length: edge.length,
+          angle: edge.angle,
+          sourceWidth: profile.base.region.width,
+          sourceHeight: profile.base.region.height,
+          anchorY: profile.base.anchorY,
+          orientation: edge.orientation,
+        ),
+        if (profile.detail case final detail?)
+          terrainMaterialEdgeFootprintPath(
+            start: edge.start,
+            length: edge.length,
+            angle: edge.angle,
+            sourceWidth: detail.region.width,
+            sourceHeight: detail.region.height,
+            anchorY: detail.anchorY,
+            orientation: edge.orientation,
+          ),
+      ];
+      var edgeFootprint = layerFootprints.first;
+      for (final layerFootprint in layerFootprints.skip(1)) {
+        edgeFootprint = ui.Path.combine(
+          ui.PathOperation.union,
+          edgeFootprint,
+          layerFootprint,
+        );
+      }
+      edgePlacementsByMesh
+          .putIfAbsent(edge.ownerMesh, () => <_CachedTerrainEdgePlacement>[])
+          .add(
+            _CachedTerrainEdgePlacement(edge: edge, footprint: edgeFootprint),
+          );
       final caps = StagedTerrainEdgeLayout.capsFor(material, edge.orientation);
       void reserve(TerrainMaterialCapSpec? cap, {required bool atEnd}) {
         if (cap == null) return;
@@ -288,19 +328,35 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
       if (edge.drawEndCap) reserve(caps.$2, atEnd: true);
     }
     for (final mesh in meshes) {
-      final placements =
+      final capPlacements =
           capPlacementsByMesh[mesh] ?? const <_CachedTerrainCapPlacement>[];
-      final footprints = placements
+      final capFootprints = capPlacements
           .map((placement) => placement.footprint)
           .toList(growable: false);
-      mesh.reserveCornerFootprints(footprints);
+      final edgePlacements =
+          edgePlacementsByMesh[mesh] ?? const <_CachedTerrainEdgePlacement>[];
+      final edgeFootprints = edgePlacements
+          .map((placement) => placement.footprint)
+          .toList(growable: false);
+      mesh.reserveRegionFootprints(<ui.Path>[
+        ...edgeFootprints,
+        ...capFootprints,
+      ]);
+      final edgeClipPaths = terrainMaterialExclusiveEdgeClipPaths(
+        ownerPath: mesh.clipPath,
+        orderedEdgeFootprints: edgeFootprints,
+        capFootprints: capFootprints,
+      );
+      for (var index = 0; index < edgePlacements.length; index += 1) {
+        edgePlacements[index].edge.setEdgeClipPath(edgeClipPaths[index]);
+      }
       final capClipPaths = terrainMaterialExclusiveCapClipPaths(
         ownerPath: mesh.clipPath,
-        orderedCapFootprints: footprints,
+        orderedCapFootprints: capFootprints,
       );
-      for (var index = 0; index < placements.length; index += 1) {
-        placements[index].edge.setCapClipPath(
-          atEnd: placements[index].atEnd,
+      for (var index = 0; index < capPlacements.length; index += 1) {
+        capPlacements[index].edge.setCapClipPath(
+          atEnd: capPlacements[index].atEnd,
           clipPath: capClipPaths[index],
         );
       }
@@ -325,7 +381,7 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
     image: image,
     anchorY: anchorY,
     orientation: orientation,
-    clipPath: edge.ownerMesh.lowerPriorityClipPath,
+    clipPath: edge.edgeClipPath,
   );
 
   void _drawEdgeCap(
@@ -477,16 +533,60 @@ ui.Path terrainMaterialCapFootprintPath({
     sourceWidth: sourceWidth,
     sourceHeight: sourceHeight,
   );
+  return _terrainMaterialFootprintPath(
+    start: start,
+    angle: angle,
+    left: footprint.left,
+    top: footprint.top,
+    width: footprint.width,
+    height: footprint.height,
+  );
+}
+
+/// Returns the world-space strip exclusively owned by one edge layer.
+@visibleForTesting
+ui.Path terrainMaterialEdgeFootprintPath({
+  required ui.Offset start,
+  required double length,
+  required double angle,
+  required int sourceWidth,
+  required int sourceHeight,
+  required double anchorY,
+  required TerrainMaterialEdgeOrientation orientation,
+}) {
+  final footprint = terrainMaterialEdgeFootprint(
+    edgeLength: length,
+    anchorY: anchorY,
+    orientation: orientation,
+    sourceWidth: sourceWidth,
+    sourceHeight: sourceHeight,
+  );
+  return _terrainMaterialFootprintPath(
+    start: start,
+    angle: angle,
+    left: footprint.left,
+    top: footprint.top,
+    width: footprint.width,
+    height: footprint.height,
+  );
+}
+
+ui.Path _terrainMaterialFootprintPath({
+  required ui.Offset start,
+  required double angle,
+  required double left,
+  required double top,
+  required double width,
+  required double height,
+}) {
   final tangentX = math.cos(angle);
   final tangentY = math.sin(angle);
   ui.Offset toWorld(double x, double y) => ui.Offset(
     start.dx + x * tangentX - y * tangentY,
     start.dy + x * tangentY + y * tangentX,
   );
-  final left = footprint.left;
-  final top = footprint.top;
-  final right = left + footprint.width;
-  final bottom = top + footprint.height;
+  final right = left + width;
+  final bottom = top + height;
   final topLeft = toWorld(left, top);
   final path = ui.Path()..moveTo(topLeft.dx, topLeft.dy);
   for (final point in <ui.Offset>[
@@ -499,17 +599,16 @@ ui.Path terrainMaterialCapFootprintPath({
   return path..close();
 }
 
-/// Removes cap-owned rectangles from a polygon's lower-priority paint area.
+/// Removes reserved region footprints from a polygon's lower-priority area.
 ///
-/// [ownerPath] is not mutated. The result enforces cap ownership independently
-/// of the source image's alpha values.
+/// [ownerPath] is not mutated. Ownership is independent of source alpha.
 @visibleForTesting
 ui.Path terrainMaterialLowerPriorityClipPath({
   required ui.Path ownerPath,
-  required Iterable<ui.Path> capFootprints,
+  required Iterable<ui.Path> reservedFootprints,
 }) {
   var result = ui.Path.from(ownerPath);
-  for (final footprint in capFootprints) {
+  for (final footprint in reservedFootprints) {
     if (footprint.getBounds().isEmpty) continue;
     result = ui.Path.combine(ui.PathOperation.difference, result, footprint);
   }
@@ -533,6 +632,28 @@ List<ui.Path> terrainMaterialExclusiveCapClipPaths({
         ownerPath: ownerPath,
         footprint: footprints[index],
         higherPriorityFootprints: footprints.skip(index + 1),
+      ),
+  ]);
+}
+
+/// Resolves exclusive edge clips in back-to-front paint order.
+///
+/// Later edges own overlaps, and cap footprints own their pixels above every
+/// edge even when the corresponding source pixels are transparent.
+@visibleForTesting
+List<ui.Path> terrainMaterialExclusiveEdgeClipPaths({
+  required ui.Path ownerPath,
+  required Iterable<ui.Path> orderedEdgeFootprints,
+  required Iterable<ui.Path> capFootprints,
+}) {
+  final edges = orderedEdgeFootprints.toList(growable: false);
+  final caps = capFootprints.toList(growable: false);
+  return List<ui.Path>.unmodifiable(<ui.Path>[
+    for (var index = 0; index < edges.length; index += 1)
+      _exclusiveCapClipPath(
+        ownerPath: ownerPath,
+        footprint: edges[index],
+        higherPriorityFootprints: <ui.Path>[...edges.skip(index + 1), ...caps],
       ),
   ]);
 }
@@ -683,10 +804,10 @@ final class _CachedTerrainMesh {
   final ui.Rect bounds;
   late final ui.Path lowerPriorityClipPath;
 
-  void reserveCornerFootprints(Iterable<ui.Path> footprints) =>
+  void reserveRegionFootprints(Iterable<ui.Path> footprints) =>
       lowerPriorityClipPath = terrainMaterialLowerPriorityClipPath(
         ownerPath: clipPath,
-        capFootprints: footprints,
+        reservedFootprints: footprints,
       );
 }
 
@@ -745,8 +866,19 @@ final class _CachedTerrainDecoratedEdge {
   final double angle;
   final _CachedTerrainMesh ownerMesh;
   final ui.Rect bounds;
+  ui.Path? _edgeClipPath;
   ui.Path? _startCapClipPath;
   ui.Path? _endCapClipPath;
+
+  ui.Path get edgeClipPath {
+    final result = _edgeClipPath;
+    if (result == null) {
+      throw StateError('Terrain edge is missing its ownership clip.');
+    }
+    return result;
+  }
+
+  void setEdgeClipPath(ui.Path clipPath) => _edgeClipPath = clipPath;
 
   void setCapClipPath({required bool atEnd, required ui.Path clipPath}) {
     if (atEnd) {
@@ -774,6 +906,16 @@ final class _CachedTerrainCapPlacement {
 
   final _CachedTerrainDecoratedEdge edge;
   final bool atEnd;
+  final ui.Path footprint;
+}
+
+final class _CachedTerrainEdgePlacement {
+  const _CachedTerrainEdgePlacement({
+    required this.edge,
+    required this.footprint,
+  });
+
+  final _CachedTerrainDecoratedEdge edge;
   final ui.Path footprint;
 }
 

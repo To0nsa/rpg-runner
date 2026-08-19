@@ -164,6 +164,44 @@ void main() {
     });
   });
 
+  group('edge footprint', () {
+    test('matches the normalized repeating-strip bounds', () {
+      expect(
+        terrainMaterialEdgeFootprint(
+          edgeLength: 80,
+          anchorY: 3,
+          orientation: TerrainMaterialEdgeOrientation.top,
+          sourceWidth: 32,
+          sourceHeight: 20,
+        ),
+        (left: 0, top: -3, width: 80, height: 20),
+      );
+      expect(
+        terrainMaterialEdgeFootprint(
+          edgeLength: 40,
+          anchorY: 5,
+          orientation: TerrainMaterialEdgeOrientation.leftWall,
+          sourceWidth: 12,
+          sourceHeight: 24,
+        ),
+        (left: 0, top: -5, width: 40, height: 12),
+      );
+    });
+
+    test('rejects invalid strip inputs', () {
+      expect(
+        () => terrainMaterialEdgeFootprint(
+          edgeLength: double.nan,
+          anchorY: 0,
+          orientation: TerrainMaterialEdgeOrientation.top,
+          sourceWidth: 32,
+          sourceHeight: 32,
+        ),
+        throwsArgumentError,
+      );
+    });
+  });
+
   test(
     'repeat helpers preserve world phase for positive and negative space',
     () {

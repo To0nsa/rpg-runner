@@ -300,15 +300,66 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
         if (cornerCaps[index].start) reserve(caps.start, atEnd: false);
         if (cornerCaps[index].end) reserve(caps.end, atEnd: true);
       }
+      final edgePlacements = <({int edgeIndex, Path footprint})>[];
+      for (final edgeIndex in edgePaintOrder) {
+        final orientation = edgeKinds[edgeIndex];
+        final profile = _profileForKind(material, orientation);
+        if (profile == null) continue;
+        final start = _vertexOffset(shape.vertices[edgeIndex]);
+        final end = _vertexOffset(
+          shape.vertices[(edgeIndex + 1) % shape.vertices.length],
+        );
+        final layerFootprints = <Path>[];
+        void reserveLayer(TerrainMaterialEdgeLayer? layer) {
+          if (layer == null) return;
+          final image = imagesBySourcePath[layer.region.assetPath];
+          if (image == null ||
+              layer.region.right > image.width ||
+              layer.region.bottom > image.height) {
+            return;
+          }
+          layerFootprints.add(
+            terrainMaterialEdgeFootprintPath(
+              region: layer.region,
+              orientation: orientation,
+              start: start,
+              end: end,
+              anchorY: layer.anchorY,
+            ),
+          );
+        }
+
+        reserveLayer(profile.base);
+        reserveLayer(profile.detail);
+        if (layerFootprints.isEmpty) continue;
+        var footprint = layerFootprints.first;
+        for (final layerFootprint in layerFootprints.skip(1)) {
+          footprint = Path.combine(
+            PathOperation.union,
+            footprint,
+            layerFootprint,
+          );
+        }
+        edgePlacements.add((edgeIndex: edgeIndex, footprint: footprint));
+      }
+      final capFootprints = capPlacements
+          .map((placement) => placement.footprint)
+          .toList(growable: false);
+      final edgeFootprints = edgePlacements
+          .map((placement) => placement.footprint)
+          .toList(growable: false);
       final lowerPriorityPath = terrainMaterialLowerPriorityClipPath(
         ownerPath: path,
-        capFootprints: capPlacements.map((placement) => placement.footprint),
+        reservedFootprints: <Path>[...edgeFootprints, ...capFootprints],
       );
       final capClipPaths = terrainMaterialExclusiveCapClipPaths(
         ownerPath: path,
-        orderedCapFootprints: capPlacements.map(
-          (placement) => placement.footprint,
-        ),
+        orderedCapFootprints: capFootprints,
+      );
+      final edgeClipPaths = terrainMaterialExclusiveEdgeClipPaths(
+        ownerPath: path,
+        orderedEdgeFootprints: edgeFootprints,
+        capFootprints: capFootprints,
       );
       final fill = imagesBySourcePath[material.fill.assetPath];
       if (fill == null) {
@@ -319,19 +370,21 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
       } else {
         _drawTiledRegionInPath(canvas, lowerPriorityPath, fill, material.fill);
       }
-      for (final index in edgePaintOrder) {
-        final startVertex = shape.vertices[index];
-        final endVertex = shape.vertices[(index + 1) % shape.vertices.length];
+      for (var index = 0; index < edgePlacements.length; index += 1) {
+        final edgeIndex = edgePlacements[index].edgeIndex;
+        final startVertex = shape.vertices[edgeIndex];
+        final endVertex =
+            shape.vertices[(edgeIndex + 1) % shape.vertices.length];
         final start = _vertexOffset(startVertex);
         final end = _vertexOffset(endVertex);
-        final kind = edgeKinds[index];
+        final kind = edgeKinds[edgeIndex];
         final profile = _profileForKind(material, kind);
         if (profile != null) {
           final base = imagesBySourcePath[profile.base.region.assetPath];
           if (base != null) {
             _drawEdgeImage(
               canvas,
-              clipPath: lowerPriorityPath,
+              clipPath: edgeClipPaths[index],
               start: start,
               end: end,
               image: base,
@@ -346,7 +399,7 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
           if (detail != null && detailLayer != null) {
             _drawEdgeImage(
               canvas,
-              clipPath: lowerPriorityPath,
+              clipPath: edgeClipPaths[index],
               start: start,
               end: end,
               image: detail,
