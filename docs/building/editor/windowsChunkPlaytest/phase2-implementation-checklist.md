@@ -2,7 +2,7 @@
 
 Date: August 19, 2026
 
-Status: In progress
+Status: Complete (August 19, 2026)
 
 Source plan: [Windows Chunk Playtest and Reusable Desktop Input Plan](plan.md)
 
@@ -89,101 +89,136 @@ production run sequence.
 
 ## Step 1 — Generalize staged-terrain lookup safely
 
-- [ ] Introduce a narrow read-only catalog interface used by binding/candidate
+- [x] Introduce a narrow read-only catalog interface used by binding/candidate
       builders.
-- [ ] Keep `StagedTerrainArtifactCatalog` as the normal generated-artifact
+- [x] Keep `StagedTerrainArtifactCatalog` as the normal generated-artifact
       implementation with unchanged validation and lookup behavior.
-- [ ] Add a validated overlay that requires the selected key in the admitted
+- [x] Add a validated overlay that requires the selected key in the admitted
       base catalog and substitutes exactly one structurally valid draft record.
-- [ ] Reject replacement key, level, dimensions, and format incompatibilities
+- [x] Reject replacement key, level, dimensions, and format incompatibilities
       before stream binding.
-- [ ] Test base fallback, repeated selected-key binding, invalid replacement,
+- [x] Test base fallback, repeated selected-key binding, invalid replacement,
       and no mutation of the base catalog.
 
 ## Step 2 — Add immutable playtest scenario and path
 
-- [ ] Add an immutable scenario containing level, visual theme, seed, tick
+- [x] Add an immutable scenario containing level, visual theme, seed, tick
       rate, draft pattern/terrain, player, loadout, and canonical path.
-- [ ] Require the draft pattern/staged keys and assembly metadata to agree.
-- [ ] Require active status, matching level, finite positive chunk dimensions,
+- [x] Require the draft pattern/staged keys and assembly metadata to agree.
+- [x] Require active status, matching level, finite positive chunk dimensions,
       and an admitted generated record for the same stable key.
-- [ ] Derive scheduler metadata from the admitted artifact, replacing only the
+- [x] Derive scheduler metadata from the admitted artifact, replacing only the
       selected record's current status/tier/group facts.
-- [ ] Surface existing scheduler diagnostics if reachability enumeration fails.
-- [ ] Select the earliest real incoming transition when available, then follow
+- [x] Surface existing scheduler diagnostics if reachability enumeration fails.
+- [x] Select the earliest real incoming transition when available, then follow
       canonical outgoing transition order until a deterministic loop exists.
-- [ ] Preserve the transition canonical records as inspectable path evidence.
-- [ ] Fail if the selected chunk is not scheduler-reachable or the path cannot
+- [x] Preserve the transition canonical records as inspectable path evidence.
+- [x] Fail if the selected chunk is not scheduler-reachable or the path cannot
       continue beyond it.
 
 ## Step 3 — Validate exact draft seams
 
-- [ ] Rehydrate each path record through the overlay catalog at local origin.
-- [ ] Build left/right Core boundary signatures for every prefix and loop edge.
-- [ ] Reject incompatible coverage/continuation with the established
+- [x] Rehydrate each path record through the overlay catalog at local origin.
+- [x] Build left/right Core boundary signatures for every prefix and loop edge.
+- [x] Reject incompatible coverage/continuation with the established
       `staged_reachable_seam_mismatch` diagnostic shape.
-- [ ] Prove a deliberately malformed draft boundary cannot enter Core.
-- [ ] Prove no synthetic terrain record or collision pad is added.
+- [x] Prove a deliberately malformed draft boundary cannot enter Core.
+- [x] Prove no synthetic terrain record or collision pad is added.
 
 ## Step 4 — Add the explicit Core factory
 
-- [ ] Add `GameCore.chunkPlaytest` with scenario-only construction inputs.
-- [ ] Route it through the same scheduler prewarm, terrain authority, spawn,
+- [x] Add `GameCore.chunkPlaytest` with scenario-only construction inputs.
+- [x] Route it through the same scheduler prewarm, terrain authority, spawn,
       system, tick, and snapshot initialization used by normal Core.
-- [ ] Pass the overlay catalog only through the private shared constructor;
+- [x] Pass the overlay catalog only through the private shared constructor;
       expose no optional preview flag on normal construction.
-- [ ] Force tooling run identity behavior without adding replay/run-ticket
+- [x] Force tooling run identity behavior without adding replay/run-ticket
       configuration.
-- [ ] Ensure every factory call creates fresh path-source/Core runtime state.
+- [x] Ensure every factory call creates fresh path-source/Core runtime state.
 
 ## Step 5 — Determinism and parity tests
 
-- [ ] Headlessly construct a scenario whose draft terrain/render facts are
+- [x] Headlessly construct a scenario whose draft terrain/render facts are
       visible at the selected streamed occurrence.
-- [ ] Run identical tick-stamped commands through two fresh factory calls and
+- [x] Run identical tick-stamped commands through two fresh factory calls and
       compare snapshots, terrain identities, events, and terminal state.
-- [ ] Rebuild from the same scenario after advancing one Core and prove the
+- [x] Rebuild from the same scenario after advancing one Core and prove the
       restart begins from the original tick-zero snapshot.
-- [ ] Prove selected occurrences use draft pattern markers/visuals and draft
+- [x] Prove selected occurrences use draft pattern markers/visuals and draft
       terrain while neighboring records use generated content.
-- [ ] Characterize the normal constructor before/after with an identical seed,
+- [x] Characterize the normal constructor before/after with an identical seed,
       level, player, loadout, command stream, and snapshot output.
-- [ ] Prove normal construction still rejects terrain-harness mutation and has
+- [x] Prove normal construction still rejects terrain-harness mutation and has
       no access to the playtest overlay.
 
 ## Step 6 — Documentation and boundary review
 
-- [ ] Update the Core simulation TDD with the implemented playtest-only
+- [x] Update the Core simulation TDD with the implemented playtest-only
       construction, overlay, path, restart, and replay-isolation invariants.
-- [ ] Update this source plan with factual Phase 2 delivery status only.
-- [ ] Confirm no GDD update is needed because player-facing game behavior did
+- [x] Update this source plan with factual Phase 2 delivery status only.
+- [x] Confirm no GDD update is needed because player-facing game behavior did
       not change.
-- [ ] Confirm no public embed API, run protocol, backend, validator, generated
+- [x] Confirm no public embed API, run protocol, backend, validator, generated
       content, or authoring source changed.
 
 ## Step 7 — Verification and milestone commit
 
-- [ ] Run `dart format` on changed Dart files.
-- [ ] Run `dart analyze packages/runner_core`.
-- [ ] Run focused scenario, overlay, staged binding, scheduler, determinism,
+- [x] Run `dart format` on changed Dart files.
+- [x] Run `dart analyze packages/runner_core`.
+- [x] Run focused scenario, overlay, staged binding, scheduler, determinism,
       and production stream tests.
-- [ ] Run the complete `runner_core` suite and record any pre-existing external
+- [x] Run the complete `runner_core` suite and record any pre-existing external
       failure separately.
-- [ ] Run focused root Core determinism/streaming tests.
-- [ ] Run `dart run tool/generate_chunk_runtime_data.dart --dry-run` and prove
+- [x] Run focused root Core determinism/streaming tests.
+- [x] Run `dart run tool/generate_chunk_runtime_data.dart --dry-run` and prove
       generated outputs remain clean.
-- [ ] Run `git diff --check`.
-- [ ] Confirm all unrelated terrain-render/editor changes remain outside the
+- [x] Run `git diff --check`.
+- [x] Confirm all unrelated terrain-render/editor changes remain outside the
       Phase 2 commit.
-- [ ] Commit the independently validated Phase 2 milestone.
+- [x] Commit the independently validated Phase 2 milestone.
 
 ## Evidence record
 
-To be completed during implementation.
+### Validation
+
+| Date | Command/test | Result | Notes |
+| --- | --- | --- | --- |
+| August 19, 2026 | `dart analyze packages/runner_core` | Pass | No issues. |
+| August 19, 2026 | Focused Phase 2 Core suites | Pass (27 tests) | Scenario, overlay, binding, scheduler, production streaming, and deterministic contracts. |
+| August 19, 2026 | `dart test` in `packages/runner_core` | External baseline exception | 379 tests passed; the pre-existing malformed-record expectation in `staged_terrain_world_geometry_test.dart` remains the only failure. |
+| August 19, 2026 | Focused root Core suites | Pass (10 tests) | Determinism, streaming, level selection, and command scheduling. |
+| August 19, 2026 | `dart analyze lib` | Pass | Existing Flutter/Flame consumers compile against the additive Core API. |
+| August 19, 2026 | Replay validator analysis and replay simulation | Pass (2 tests) | Validator continues to construct normal Core; no playtest payload or replay option exists. |
+| August 19, 2026 | Content-pipeline analysis | Pass | Core retains no reverse dependency. |
+| August 19, 2026 | Generator `--dry-run` | Pass | 9 chunks, 3 levels, 3 parallax themes, and 1 terrain material validate with no generated drift. |
+| August 19, 2026 | `git diff --check` | Pass | No whitespace errors. |
+
+### Delivered contracts
+
+- `StagedTerrainCatalog` is the read-only stream-binding boundary;
+  `StagedTerrainArtifactCatalog` remains the production implementation.
+- `StagedTerrainOverlayCatalog` replaces one structurally valid admitted key
+  and delegates every other lookup to the generated base catalog.
+- `ChunkPlaytestScenario` snapshots draft pattern collections, validates the
+  draft and every reachable seam touching it, and exposes canonical path
+  evidence with a deterministic loop.
+- `GameCore.chunkPlaytest` forces tooling run ID zero and otherwise shares the
+  normal prewarm, terrain, spawn, system, tick, and snapshot pipeline.
+- Rebuilding the same scenario is the restart contract; no Core state, input
+  state, or wall-clock seed survives between factory calls.
+
+Planning commit: `72d8543d` (`docs(editor): plan phase two chunk playtest
+core`). Implementation commit: `77af803f` (`feat(core): add deterministic
+chunk playtest scenarios`).
 
 ## Closeout
 
-- [ ] Every Phase 2 checkbox is complete or explicitly accepted with evidence.
-- [ ] Update status to `Complete` with date and commit reference.
-- [ ] Do not begin Phase 3 input work until the headless scenario, restart, and
+- [x] Every Phase 2 checkbox is complete or explicitly accepted with evidence.
+- [x] Update status to `Complete` with date and commit reference.
+- [x] Do not begin Phase 3 input work until the headless scenario, restart, and
       normal-constructor parity gates are green.
+
+Phase 2 completion means Core can deterministically run one validated draft
+chunk through the production simulation boundary. It does not yet provide the
+shared semantic dispatcher, keyboard/mouse adapter, Flame playtest host, or
+Chunk Creator Play/Edit UI.

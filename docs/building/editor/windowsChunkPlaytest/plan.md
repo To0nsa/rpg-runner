@@ -3,8 +3,8 @@
 Date: August 19, 2026
 
 Status: Active (Phase 0 completed with accepted baseline exceptions on August
-19, 2026; Phase 1 completed in `25ae1a6e` on August 19, 2026; Phase 2 in
-progress)
+19, 2026; Phase 1 completed in `25ae1a6e` on August 19, 2026; Phase 2
+completed in `77af803f` on August 19, 2026; Phase 3 not started)
 
 Related documents:
 
