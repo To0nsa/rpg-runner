@@ -6,7 +6,8 @@ Status: Active (Phase 0 completed with accepted baseline exceptions on August
 19, 2026; Phase 1 completed in `25ae1a6e` on August 19, 2026; Phase 2
 completed in `77af803f` on August 19, 2026; Phase 3 completed in `03bd98d5` and
 `99ac7a8b` on August 19, 2026; Phase 4 completed in `490b78ca` and `00239a22`
-on August 19, 2026; Phase 5 in progress)
+on August 19, 2026; Phase 5 completed in `16f10252` and `b485b0bd` on August
+19, 2026; Phase 6 not started)
 
 Related documents:
 
@@ -451,7 +452,7 @@ scenario without app state or backend initialization.
 
 ### Phase 5: Windows Chunk Creator integration
 
-Status: In progress (August 19, 2026).
+Status: Complete (August 19, 2026; `16f10252`, `b485b0bd`).
 
 - Add Play/Edit state to the current-schema Chunk workspace.
 - Add the Play action and keyboard shortcuts without intercepting text entry or
