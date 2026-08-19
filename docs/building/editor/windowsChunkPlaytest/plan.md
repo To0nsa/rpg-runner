@@ -3,14 +3,15 @@
 Date: August 19, 2026
 
 Status: Active (Phase 0 completed with accepted baseline exceptions on August
-19, 2026; Phase 1 completed in `25ae1a6e` on August 19, 2026; Phase 2 not
-started)
+19, 2026; Phase 1 completed in `25ae1a6e` on August 19, 2026; Phase 2 in
+progress)
 
 Related documents:
 
 - [Phase 0 implementation checklist](phase0-implementation-checklist.md)
 - [Phase 0 characterization record](phase0-characterization.md)
 - [Phase 1 implementation checklist](phase1-implementation-checklist.md)
+- [Phase 2 implementation checklist](phase2-implementation-checklist.md)
 - [Chunk Creator high-level plan](../chunkCreator/plan.md)
 - [Unified Chunk Scene strategy](../chunkCreator/unified-chunk-scene-strategy.md)
 - [Editor UI system](../../../tdd/editor_ui_system.md)
