@@ -20,6 +20,7 @@ Related documents:
 - [Phase 4 implementation checklist](phase4-implementation-checklist.md)
 - [Editor chunk playtest host](../../../tdd/editor_chunk_playtest_host.md)
 - [Phase 5 implementation checklist](phase5-implementation-checklist.md)
+- [Phase 6 implementation checklist](phase6-implementation-checklist.md)
 - [Chunk Creator high-level plan](../chunkCreator/plan.md)
 - [Unified Chunk Scene strategy](../chunkCreator/unified-chunk-scene-strategy.md)
 - [Editor UI system](../../../tdd/editor_ui_system.md)
