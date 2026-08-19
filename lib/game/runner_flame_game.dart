@@ -1,4 +1,5 @@
 import 'package:flame/components.dart';
+import 'package:flame/cache.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
@@ -48,6 +49,7 @@ class RunnerFlameGame extends FlameGame {
     required this.projectileAimPreview,
     required this.meleeAimPreview,
     required this.playerCharacter,
+    Images? imageCache,
     this.ghostSnapshotListenable,
     this.ghostEventsListenable,
     this.ghostReplayBlobListenable,
@@ -65,6 +67,9 @@ class RunnerFlameGame extends FlameGame {
            height: virtualHeight.toDouble(),
          ),
        ) {
+    if (imageCache != null) {
+      images = imageCache;
+    }
     _liveWorldSync = LiveWorldSyncSystem(
       controller: controller,
       world: world,
