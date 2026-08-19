@@ -255,6 +255,44 @@ void main() {
     expect(exited.aimDirY, isNull);
   });
 
+  test('resized viewport boundaries clear aim without releasing movement', () {
+    final harness = _DesktopHarness();
+
+    harness.keyDown(PhysicalKeyboardKey.keyD);
+    harness.adapter.handlePointerPosition(const Offset(300, 100));
+    var frame = harness.advance();
+    expect(frame.moveAxis, 1);
+    expect(frame.aimDirX, 1);
+
+    harness.aimGeometry = const RunnerDesktopAimGeometry(
+      viewportRect: Rect.fromLTWH(50, 25, 200, 100),
+      playerPosition: Offset(150, 75),
+    );
+    harness.adapter.handlePointerPosition(const Offset(49, 75));
+    frame = harness.advance();
+    expect(frame.moveAxis, 1);
+    expect(frame.aimDirX, isNull);
+
+    harness.adapter.handlePointerPosition(const Offset(50, 75));
+    frame = harness.advance();
+    expect(frame.moveAxis, 1);
+    expect(frame.aimDirX, -1);
+
+    harness.adapter.handlePointerPosition(const Offset(250, 75));
+    frame = harness.advance();
+    expect(frame.moveAxis, 1);
+    expect(frame.aimDirX, isNull);
+
+    harness.adapter.handlePointerPosition(const Offset(249, 75));
+    frame = harness.advance();
+    expect(frame.moveAxis, 1);
+    expect(frame.aimDirX, 1);
+
+    harness.keyUp(PhysicalKeyboardKey.keyD);
+    expect(harness.advance().moveAxis, isNull);
+    harness.adapter.dispose();
+  });
+
   testWidgets('focus loss cancels held input before notifying the host', (
     tester,
   ) async {
@@ -398,10 +436,7 @@ final class _DesktopHarness {
     );
     adapter = RunnerDesktopInputController(
       dispatcher: dispatcher,
-      resolveAimGeometry: () => const RunnerDesktopAimGeometry(
-        viewportRect: Rect.fromLTWH(0, 0, 400, 200),
-        playerPosition: Offset(200, 100),
-      ),
+      resolveAimGeometry: () => aimGeometry,
       onFocusLost: onFocusLost,
       onCancelPresentation: onCancelPresentation,
     );
@@ -412,6 +447,10 @@ final class _DesktopHarness {
   late final GameController controller;
   late final RunnerSemanticActionDispatcher dispatcher;
   late final RunnerDesktopInputController adapter;
+  RunnerDesktopAimGeometry aimGeometry = const RunnerDesktopAimGeometry(
+    viewportRect: Rect.fromLTWH(0, 0, 400, 200),
+    playerPosition: Offset(200, 100),
+  );
   final List<ReplayCommandFrameV1> frames = <ReplayCommandFrameV1>[];
 
   KeyEventResult keyDown(PhysicalKeyboardKey key) {

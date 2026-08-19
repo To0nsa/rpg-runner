@@ -53,4 +53,52 @@ void main() {
     expect(geometry.contains(const Offset(100, 50)), isTrue);
     expect(geometry.contains(const Offset(420, 230)), isFalse);
   });
+
+  test('resize and device-pixel ratio preserve physical aim direction', () {
+    const camera = CameraSnapshot(
+      centerX: 100,
+      centerY: 50,
+      viewWidth: 320,
+      viewHeight: 180,
+    );
+    const player = Offset(116, 42);
+    final normalMetrics = computeViewportMetrics(
+      const BoxConstraints.tightFor(width: 1280, height: 800),
+      1,
+      640,
+      360,
+      ViewportScaleMode.pixelPerfectContain,
+      alignment: Alignment.bottomRight,
+    );
+    final scaledMetrics = computeViewportMetrics(
+      const BoxConstraints.tightFor(width: 1280, height: 800),
+      1.5,
+      640,
+      360,
+      ViewportScaleMode.pixelPerfectContain,
+      alignment: Alignment.bottomRight,
+    );
+    final normal = RunnerDesktopAimGeometry.fromWorld(
+      metrics: normalMetrics,
+      camera: camera,
+      playerWorldPosition: player,
+    );
+    final scaled = RunnerDesktopAimGeometry.fromWorld(
+      metrics: scaledMetrics,
+      camera: camera,
+      playerWorldPosition: player,
+    );
+    final normalTarget = normal.playerPosition + const Offset(90, -30);
+    final scaledTarget = scaled.playerPosition + const Offset(60, -20);
+
+    final normalDirection = normal.directionFor(normalTarget)!;
+    final scaledDirection = scaled.directionFor(scaledTarget)!;
+
+    expect(normalDirection.dx, closeTo(scaledDirection.dx, 1e-12));
+    expect(normalDirection.dy, closeTo(scaledDirection.dy, 1e-12));
+    expect(normal.viewportRect.right, 1280);
+    expect(scaled.viewportRect.right, 1280);
+    expect(normal.viewportRect.bottom, 800);
+    expect(scaled.viewportRect.bottom, 800);
+  });
 }

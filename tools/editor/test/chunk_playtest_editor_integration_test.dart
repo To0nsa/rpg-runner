@@ -238,6 +238,83 @@ void main() {
     );
   });
 
+  testWidgets(
+    'repeated lifecycle pauses dispose each host and retain one Edit state',
+    (tester) async {
+      final session = await _loadedSession(workspaceRoot);
+      addTearDown(session.dispose);
+      final documentBefore = session.document;
+      await _mountPage(
+        tester,
+        session: session,
+        fixtureImage: fixtureImage,
+        preparationRunner: (_) async =>
+            ChunkPlaytestPreparationResult.success(repositoryScenario),
+      );
+      final workspaceFinder = find.byType(
+        ChunkAuthoringWorkspace,
+        skipOffstage: false,
+      );
+      final workspaceBefore = tester.state<ChunkAuthoringWorkspaceState>(
+        workspaceFinder,
+      );
+
+      for (final lifecycleState in const <AppLifecycleState>[
+        AppLifecycleState.inactive,
+        AppLifecycleState.paused,
+        AppLifecycleState.hidden,
+        AppLifecycleState.detached,
+      ]) {
+        await tester.tap(
+          find.byKey(const ValueKey<String>('chunk_playtest_button')),
+        );
+        await tester.pump();
+        await _pumpUntilHostPhase(tester, RunnerChunkPlaytestPhase.ready);
+        final controller = tester
+            .widget<RunnerChunkPlaytestHost>(
+              find.byType(RunnerChunkPlaytestHost),
+            )
+            .controller;
+        expect(
+          _pageHandler(tester).handlePlaytestShortcut(LogicalKeyboardKey.enter),
+          isTrue,
+        );
+        await tester.pump(const Duration(milliseconds: 100));
+        expect(controller.status.phase, RunnerChunkPlaytestPhase.running);
+
+        _pageHandler(tester).handlePlaytestAppLifecycleState(lifecycleState);
+        await tester.pump();
+        expect(controller.status.phase, RunnerChunkPlaytestPhase.paused);
+        expect(
+          _pageHandler(tester).handlePlaytestShortcut(LogicalKeyboardKey.keyP),
+          isTrue,
+        );
+        await tester.pump();
+        expect(controller.status.phase, RunnerChunkPlaytestPhase.running);
+        expect(
+          _pageHandler(
+            tester,
+          ).handlePlaytestShortcut(LogicalKeyboardKey.escape),
+          isTrue,
+        );
+        await _pumpUntilHostRemoved(tester);
+        expect(controller.status.phase, RunnerChunkPlaytestPhase.stopped);
+        expect(
+          () => controller.addListener(_unusedListener),
+          throwsFlutterError,
+        );
+        expect(tester.takeException(), isNull);
+      }
+
+      expect(session.document, same(documentBefore));
+      expect(
+        tester.state<ChunkAuthoringWorkspaceState>(workspaceFinder),
+        same(workspaceBefore),
+      );
+      expect(_pageHandler(tester).locksEditorShell, isFalse);
+    },
+  );
+
   testWidgets('preparation failure is retryable with the same captured input', (
     tester,
   ) async {
@@ -499,6 +576,21 @@ Future<void> _pumpUntilHostPhase(
   }
   fail('Timed out waiting for editor host phase ${phase.name}.');
 }
+
+Future<void> _pumpUntilHostRemoved(WidgetTester tester) async {
+  for (var attempt = 0; attempt < 120; attempt += 1) {
+    await tester.pump(const Duration(milliseconds: 25));
+    await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+    if (find.byType(RunnerChunkPlaytestHost).evaluate().isEmpty) {
+      await tester.pump();
+      await tester.pump();
+      return;
+    }
+  }
+  fail('Timed out waiting for the editor playtest host to unmount.');
+}
+
+void _unusedListener() {}
 
 Map<String, String> _sourceHashes(String workspaceRoot) {
   const paths = <String>[

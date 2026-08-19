@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flame/cache.dart';
 import 'package:flame/flame.dart';
 import 'package:flame/game.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -16,6 +17,7 @@ import 'package:runner_core/track/chunk_pattern_source.dart';
 import 'package:runner_core/track/staged_authored_terrain.dart';
 import 'package:rpg_runner/game/runner_flame_game.dart';
 import 'package:rpg_runner/playtest.dart';
+import 'package:rpg_runner/ui/input/desktop/runner_desktop_input_adapter.dart';
 
 void main() {
   late ui.Image fixtureImage;
@@ -262,6 +264,69 @@ void main() {
     expect(stopCount, 1);
     expect(tester.takeException(), isNull);
 
+    await tester.pumpWidget(const SizedBox.shrink());
+    controller.dispose();
+  });
+
+  testWidgets('resize and DPI changes preserve every host lifecycle command', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final controller = RunnerChunkPlaytestController();
+    var stopCount = 0;
+    await _mountHost(
+      tester,
+      scenario: _scenario(),
+      controller: controller,
+      imagesFactory: (_) => _FixtureImages(fixtureImage),
+      onStop: () => stopCount += 1,
+    );
+    await _pumpUntilPhase(tester, controller, RunnerChunkPlaytestPhase.ready);
+    expect(controller.start(), isTrue);
+    await tester.pump(const Duration(milliseconds: 100));
+    final tickBeforeResize = controller.snapshot!.tick;
+
+    final adapter = find.byType(RunnerDesktopInputAdapter);
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.addPointer(location: tester.getCenter(adapter));
+    await mouse.moveTo(tester.getCenter(adapter));
+    await tester.sendKeyDownEvent(
+      LogicalKeyboardKey.keyD,
+      physicalKey: PhysicalKeyboardKey.keyD,
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+
+    tester.view.physicalSize = const Size(1920, 1200);
+    tester.view.devicePixelRatio = 1.5;
+    await tester.pump(const Duration(milliseconds: 100));
+    await mouse.moveTo(tester.getCenter(adapter) + const Offset(80, -40));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(controller.status.phase, RunnerChunkPlaytestPhase.running);
+    expect(controller.snapshot!.tick, greaterThan(tickBeforeResize));
+
+    await tester.sendKeyUpEvent(
+      LogicalKeyboardKey.keyD,
+      physicalKey: PhysicalKeyboardKey.keyD,
+    );
+    expect(controller.pause(), isTrue);
+    await tester.pump();
+    tester.view.physicalSize = const Size(1440, 900);
+    tester.view.devicePixelRatio = 1.25;
+    await tester.pump();
+    expect(controller.status.phase, RunnerChunkPlaytestPhase.paused);
+    expect(controller.restart(), isTrue);
+    await _pumpUntilPhase(tester, controller, RunnerChunkPlaytestPhase.ready);
+    expect(controller.snapshot!.tick, 0);
+
+    expect(controller.stop(), isTrue);
+    await tester.pump();
+    await tester.pump();
+    expect(stopCount, 1);
+    expect(tester.takeException(), isNull);
+    await mouse.removePointer();
     await tester.pumpWidget(const SizedBox.shrink());
     controller.dispose();
   });
