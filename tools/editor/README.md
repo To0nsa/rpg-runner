@@ -135,10 +135,11 @@ a configurable cell grid (32x32 is only its default) and arbitrary manual pixel
 rectangles; selecting a region never creates a cropped asset. Edge regions use
 their natural world-facing orientation in the atlas—left/right walls stay
 vertical and undersides stay downward-facing—while previews and runtime apply
-only the additional rotation needed for the actual polygon edge. At a
-flat-to-slope join, the preview and runtime extend the earlier band underneath
-the next one only when their clipped rectangles would otherwise expose a fill
-wedge; straight and already-covered joins receive no overlap. Applying writes
+only the additional rotation needed for the actual polygon edge. Each selected
+endpoint or convex-corner cap exclusively reserves its full destination
+rectangle, so transparent cap pixels reveal the scene rather than fill or edge
+art underneath. Edge bands still stop at their exact authored endpoints.
+Applying writes
 only `assets/authoring/level/terrain_material_defs.json`. Run the root content
 generator afterward to refresh the generated runtime registry. The manifest is
 strict schema v3; the editor and runtime do not contain older-schema

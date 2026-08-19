@@ -40,7 +40,7 @@ abstract final class StagedTerrainEdgeLayout {
       final material = TerrainMaterialRegistry.require(materialKey);
       final orientation = orientationFor(edge);
       if (_profileFor(material, orientation) == null) continue;
-      final caps = _capsFor(material, orientation);
+      final caps = capsFor(material, orientation);
       decorations.add(
         StagedTerrainEdgeDecoration(
           edge: edge,
@@ -81,6 +81,12 @@ abstract final class StagedTerrainEdgeLayout {
     TerrainMaterialSpec material,
     TerrainMaterialEdgeOrientation orientation,
   ) => _profileFor(material, orientation);
+
+  /// Returns the normalized start/end cap pair for one edge role.
+  static (TerrainMaterialCapSpec?, TerrainMaterialCapSpec?) capsFor(
+    TerrainMaterialSpec material,
+    TerrainMaterialEdgeOrientation orientation,
+  ) => _capsFor(material, orientation);
 }
 
 TerrainMaterialEdgeProfileSpec? _profileFor(

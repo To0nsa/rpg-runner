@@ -35,6 +35,11 @@ remain upright and retain their existing visual priority over the ground.
   exactly one adjacent start/end cap as its corner patch; top-facing art wins
   when both sides supply one. Concave turns remain band-only, and smooth
   continuations never acquire a false cliff cue.
+- A selected cap owns its complete rectangular footprint, including transparent
+  pixels. Those cutouts reveal the scene rather than fill or edge art beneath
+  them. Outside cap footprints, visible ownership falls back in the order
+  top-facing edge, wall/underside edge, then fill. If a thin polygon makes two
+  different corner footprints overlap, top-facing corner art owns the overlap.
 - Edge strips stop at authored endpoints. Joins may show the polygon fill; the
   renderer does not stretch neighboring strips to conceal those spaces.
 - Corner selection does not solve insufficient terrain depth. When opposite

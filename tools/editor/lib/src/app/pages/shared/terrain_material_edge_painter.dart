@@ -84,6 +84,15 @@ void paintTerrainMaterialCapRegion(
   final delta = end - start;
   final length = delta.distance;
   if (length <= 0) return;
+  final footprint = terrainMaterialCapFootprint(
+    edgeLength: length,
+    anchorX: anchorX,
+    anchorY: anchorY,
+    atEnd: atEnd,
+    orientation: orientation,
+    sourceWidth: region.width,
+    sourceHeight: region.height,
+  );
   canvas.save();
   if (clipPath != null) canvas.clipPath(clipPath);
   canvas.translate(start.dx, start.dy);
@@ -92,10 +101,110 @@ void paintTerrainMaterialCapRegion(
     canvas,
     image: image,
     region: region,
-    destination: Offset((atEnd ? length : 0) - anchorX, -anchorY),
+    destination: Offset(footprint.left, footprint.top),
     quarterTurns: terrainMaterialEdgeNormalizationQuarterTurns(orientation),
   );
   canvas.restore();
+}
+
+/// Returns the world-space rectangle exclusively owned by one cap.
+///
+/// The footprint includes transparent pixels. Consumers subtract it from fill
+/// and edge-band clips before painting the cap so authored silhouette cutouts
+/// reveal the scene instead of lower-priority terrain art.
+Path terrainMaterialCapFootprintPath({
+  required TerrainMaterialImageRegion region,
+  required TerrainMaterialEdgeOrientation orientation,
+  required Offset start,
+  required Offset end,
+  required double anchorX,
+  required double anchorY,
+  required bool atEnd,
+}) {
+  final delta = end - start;
+  final length = delta.distance;
+  if (length <= 0) return Path();
+  final footprint = terrainMaterialCapFootprint(
+    edgeLength: length,
+    anchorX: anchorX,
+    anchorY: anchorY,
+    atEnd: atEnd,
+    orientation: orientation,
+    sourceWidth: region.width,
+    sourceHeight: region.height,
+  );
+  final tangent = delta / length;
+  Offset toWorld(double x, double y) => Offset(
+    start.dx + x * tangent.dx - y * tangent.dy,
+    start.dy + x * tangent.dy + y * tangent.dx,
+  );
+  final left = footprint.left;
+  final top = footprint.top;
+  final right = left + footprint.width;
+  final bottom = top + footprint.height;
+  final topLeft = toWorld(left, top);
+  final path = Path()..moveTo(topLeft.dx, topLeft.dy);
+  for (final point in <Offset>[
+    toWorld(right, top),
+    toWorld(right, bottom),
+    toWorld(left, bottom),
+  ]) {
+    path.lineTo(point.dx, point.dy);
+  }
+  return path..close();
+}
+
+/// Removes cap-owned rectangles from a polygon's lower-priority paint area.
+///
+/// This establishes `cap > edge band > fill` ownership independently of
+/// source alpha. [ownerPath] is not mutated.
+Path terrainMaterialLowerPriorityClipPath({
+  required Path ownerPath,
+  required Iterable<Path> capFootprints,
+}) {
+  var result = Path.from(ownerPath);
+  for (final footprint in capFootprints) {
+    if (footprint.getBounds().isEmpty) continue;
+    result = Path.combine(PathOperation.difference, result, footprint);
+  }
+  return result;
+}
+
+/// Resolves non-overlapping clips for caps in back-to-front paint order.
+///
+/// A later cap owns its full footprint, including transparent pixels. Earlier
+/// caps are removed from that area so thin polygons cannot expose an underside
+/// corner through a higher-priority top corner.
+List<Path> terrainMaterialExclusiveCapClipPaths({
+  required Path ownerPath,
+  required Iterable<Path> orderedCapFootprints,
+}) {
+  final footprints = orderedCapFootprints.toList(growable: false);
+  return List<Path>.unmodifiable(<Path>[
+    for (var index = 0; index < footprints.length; index += 1)
+      _exclusiveCapClipPath(
+        ownerPath: ownerPath,
+        footprint: footprints[index],
+        higherPriorityFootprints: footprints.skip(index + 1),
+      ),
+  ]);
+}
+
+Path _exclusiveCapClipPath({
+  required Path ownerPath,
+  required Path footprint,
+  required Iterable<Path> higherPriorityFootprints,
+}) {
+  var result = Path.combine(PathOperation.intersect, ownerPath, footprint);
+  for (final higherPriorityFootprint in higherPriorityFootprints) {
+    if (higherPriorityFootprint.getBounds().isEmpty) continue;
+    result = Path.combine(
+      PathOperation.difference,
+      result,
+      higherPriorityFootprint,
+    );
+  }
+  return result;
 }
 
 void _drawNormalizedRegion(

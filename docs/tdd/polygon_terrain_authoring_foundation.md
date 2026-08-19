@@ -1223,7 +1223,13 @@ the incoming inward normal and outgoing tangent to distinguish convex from
 concave turns. A convex turn receives exactly one available adjacent cap, with
 top-facing art winning and the incoming end breaking equal-priority ties;
 concave turns and `smooth` continuations remain band-only. Caps and corner
-patches render in a final foreground pass after all repeating edge bands.
+patches render in a final foreground pass after all repeating edge bands. A
+selected cap reserves its complete tangent-normalized rectangle in the owning
+polygon before fill and bands render, so transparent cap pixels reveal the
+scene rather than lower terrain art. The resulting visual priority is cap,
+top-facing band, wall/underside band, then fill. Overlapping cap footprints use
+the same deterministic back-to-front edge order, preventing a lower-priority
+corner from showing through transparent pixels of a top-facing corner.
 Repeating bands stop at their exact Core edge endpoints; runtime and editor
 rendering do not stretch one band beneath another to hide join wedges. A null
 material is collision-only and not drawn; an

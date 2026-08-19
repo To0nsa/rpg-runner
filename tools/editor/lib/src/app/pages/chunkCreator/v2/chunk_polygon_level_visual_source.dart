@@ -247,15 +247,78 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
         shape.materialKey,
       );
       if (material == null || shape.vertices.length < 3) continue;
-      final fill = imagesBySourcePath[material.fill.assetPath];
       final path = _sourcePath(shape.vertices);
-      if (fill == null) {
-        canvas.drawPath(path, _fallbackTerrainPaint(shape.materialKey));
-      } else {
-        _drawTiledRegionInPath(canvas, path, fill, material.fill);
-      }
       final edgeKinds = _edgeKinds(shape.vertices);
       final edgePaintOrder = terrainMaterialEdgePaintOrder(edgeKinds);
+      final cornerCaps = resolveTerrainMaterialEdgeCornerCaps(
+        shape: shape,
+        material: material,
+        edgeOrientations: edgeKinds,
+      );
+      final capPlacements =
+          <
+            ({
+              int edgeIndex,
+              bool atEnd,
+              TerrainMaterialCap cap,
+              ui.Image image,
+              Path footprint,
+            })
+          >[];
+      for (final index in edgePaintOrder) {
+        final orientation = edgeKinds[index];
+        final caps = terrainMaterialCapsForOrientation(material, orientation);
+        final start = _vertexOffset(shape.vertices[index]);
+        final end = _vertexOffset(
+          shape.vertices[(index + 1) % shape.vertices.length],
+        );
+        void reserve(TerrainMaterialCap? cap, {required bool atEnd}) {
+          if (cap == null) return;
+          final image = imagesBySourcePath[cap.region.assetPath];
+          if (image == null ||
+              cap.region.right > image.width ||
+              cap.region.bottom > image.height) {
+            return;
+          }
+          capPlacements.add((
+            edgeIndex: index,
+            atEnd: atEnd,
+            cap: cap,
+            image: image,
+            footprint: terrainMaterialCapFootprintPath(
+              region: cap.region,
+              orientation: orientation,
+              start: start,
+              end: end,
+              anchorX: cap.anchorX,
+              anchorY: cap.anchorY,
+              atEnd: atEnd,
+            ),
+          ));
+        }
+
+        if (cornerCaps[index].start) reserve(caps.start, atEnd: false);
+        if (cornerCaps[index].end) reserve(caps.end, atEnd: true);
+      }
+      final lowerPriorityPath = terrainMaterialLowerPriorityClipPath(
+        ownerPath: path,
+        capFootprints: capPlacements.map((placement) => placement.footprint),
+      );
+      final capClipPaths = terrainMaterialExclusiveCapClipPaths(
+        ownerPath: path,
+        orderedCapFootprints: capPlacements.map(
+          (placement) => placement.footprint,
+        ),
+      );
+      final fill = imagesBySourcePath[material.fill.assetPath];
+      if (fill == null) {
+        canvas.drawPath(
+          lowerPriorityPath,
+          _fallbackTerrainPaint(shape.materialKey),
+        );
+      } else {
+        _drawTiledRegionInPath(canvas, lowerPriorityPath, fill, material.fill);
+      }
       for (final index in edgePaintOrder) {
         final startVertex = shape.vertices[index];
         final endVertex = shape.vertices[(index + 1) % shape.vertices.length];
@@ -268,7 +331,7 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
           if (base != null) {
             _drawEdgeImage(
               canvas,
-              clipPath: path,
+              clipPath: lowerPriorityPath,
               start: start,
               end: end,
               image: base,
@@ -283,7 +346,7 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
           if (detail != null && detailLayer != null) {
             _drawEdgeImage(
               canvas,
-              clipPath: path,
+              clipPath: lowerPriorityPath,
               start: start,
               end: end,
               image: detail,
@@ -293,54 +356,24 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
           }
         }
       }
-      final cornerCaps = resolveTerrainMaterialEdgeCornerCaps(
-        shape: shape,
-        material: material,
-        edgeOrientations: edgeKinds,
-      );
-      // Corner patches are a foreground pass so a single authored endpoint
-      // owns each convex turn without extending either repeating edge band.
-      for (final index in edgePaintOrder) {
-        final kind = edgeKinds[index];
-        final start = _vertexOffset(shape.vertices[index]);
+      for (var index = 0; index < capPlacements.length; index += 1) {
+        final placement = capPlacements[index];
+        final edgeIndex = placement.edgeIndex;
+        final kind = edgeKinds[edgeIndex];
+        final start = _vertexOffset(shape.vertices[edgeIndex]);
         final end = _vertexOffset(
-          shape.vertices[(index + 1) % shape.vertices.length],
+          shape.vertices[(edgeIndex + 1) % shape.vertices.length],
         );
-        final caps = terrainMaterialCapsForOrientation(material, kind);
-        if (cornerCaps[index].start) {
-          if (caps.start case final cap?) {
-            final image = imagesBySourcePath[cap.region.assetPath];
-            if (image != null) {
-              _drawEdgeCap(
-                canvas,
-                clipPath: path,
-                edgeStart: start,
-                edgeEnd: end,
-                image: image,
-                cap: cap,
-                orientation: kind,
-                atEnd: false,
-              );
-            }
-          }
-        }
-        if (cornerCaps[index].end) {
-          if (caps.end case final cap?) {
-            final image = imagesBySourcePath[cap.region.assetPath];
-            if (image != null) {
-              _drawEdgeCap(
-                canvas,
-                clipPath: path,
-                edgeStart: start,
-                edgeEnd: end,
-                image: image,
-                cap: cap,
-                orientation: kind,
-                atEnd: true,
-              );
-            }
-          }
-        }
+        _drawEdgeCap(
+          canvas,
+          clipPath: capClipPaths[index],
+          edgeStart: start,
+          edgeEnd: end,
+          image: placement.image,
+          cap: placement.cap,
+          orientation: kind,
+          atEnd: placement.atEnd,
+        );
       }
     }
     canvas.restore();

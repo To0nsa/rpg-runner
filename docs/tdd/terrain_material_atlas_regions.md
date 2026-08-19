@@ -72,6 +72,14 @@ Within both the repeating-band pass and final endpoint-cap pass, wall and
 underside decorations retain their source order and top-facing decorations
 render last. Slopes with an upward-facing outward normal count as top-facing,
 so the playable grass/surface silhouette remains visible at every corner.
+Before fill or bands render, each selected cap's tangent-normalized rectangular
+footprint is subtracted from their owning polygon clip. The cap then renders
+against the original owner clip. Its transparent pixels therefore remain
+transparent to the scene instead of exposing lower terrain layers. The visible
+priority is cap, top band, wall/underside band, then fill.
+Cap footprints are also resolved back-to-front against each other. Later
+top-facing caps subtract their complete rectangles from earlier underside caps,
+so transparent pixels cannot expose another corner on thin polygons.
 
 Core join semantics drive non-repeating art. `exposed` endpoints retain their
 configured start/end caps. For a `connected` join, shared pure-Dart math takes
@@ -85,7 +93,8 @@ terrain.
 
 Every edge band is clipped to its exact authored edge endpoints. Runtime and
 editor painters do not stretch or underlap adjacent bands to hide join wedges;
-the meeting source regions and polygon fill remain visible as authored.
+the meeting source regions and polygon fill remain visible as authored outside
+an exclusively reserved cap footprint.
 
 Cap `anchorX` and `anchorY` use tangent-normalized region coordinates, matching
 the destination space in which the cap is placed. Edge `anchorY` uses that same

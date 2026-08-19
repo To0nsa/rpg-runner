@@ -120,6 +120,50 @@ void main() {
     });
   });
 
+  group('cap footprint', () {
+    test('uses the same normalized bounds as cap painting', () {
+      expect(
+        terrainMaterialCapFootprint(
+          edgeLength: 80,
+          anchorX: 7,
+          anchorY: 3,
+          atEnd: false,
+          orientation: TerrainMaterialEdgeOrientation.top,
+          sourceWidth: 32,
+          sourceHeight: 20,
+        ),
+        (left: -7, top: -3, width: 32, height: 20),
+      );
+      expect(
+        terrainMaterialCapFootprint(
+          edgeLength: 80,
+          anchorX: 12,
+          anchorY: 5,
+          atEnd: true,
+          orientation: TerrainMaterialEdgeOrientation.leftWall,
+          sourceWidth: 12,
+          sourceHeight: 24,
+        ),
+        (left: 68, top: -5, width: 24, height: 12),
+      );
+    });
+
+    test('rejects invalid placement inputs', () {
+      expect(
+        () => terrainMaterialCapFootprint(
+          edgeLength: 0,
+          anchorX: 0,
+          anchorY: 0,
+          atEnd: false,
+          orientation: TerrainMaterialEdgeOrientation.top,
+          sourceWidth: 32,
+          sourceHeight: 32,
+        ),
+        throwsArgumentError,
+      );
+    });
+  });
+
   test(
     'repeat helpers preserve world phase for positive and negative space',
     () {

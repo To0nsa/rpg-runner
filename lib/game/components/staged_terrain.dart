@@ -132,11 +132,14 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
     for (final mesh in _meshes) {
       if (!mesh.bounds.overlaps(visibleWorldRect)) continue;
       final material = _materials[mesh.materialKey]!;
+      canvas.save();
+      canvas.clipPath(mesh.lowerPriorityClipPath);
       canvas.drawVertices(
         mesh.vertices,
         ui.BlendMode.srcOver,
         material.fillPaint,
       );
+      canvas.restore();
     }
     for (final edge in _surfaceEdges) {
       if (!edge.bounds.overlaps(visibleWorldRect)) continue;
@@ -170,18 +173,10 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
         continue;
       }
       final material = _materials[edge.materialKey]!;
-      final caps = switch (edge.orientation) {
-        TerrainMaterialEdgeOrientation.top => (
-          material.spec.topStartCap,
-          material.spec.topEndCap,
-        ),
-        TerrainMaterialEdgeOrientation.underside => (
-          material.spec.undersideStartCap,
-          material.spec.undersideEndCap,
-        ),
-        TerrainMaterialEdgeOrientation.leftWall ||
-        TerrainMaterialEdgeOrientation.rightWall => (null, null),
-      };
+      final caps = StagedTerrainEdgeLayout.capsFor(
+        material.spec,
+        edge.orientation,
+      );
       if (edge.drawStartCap) {
         final cap = caps.$1;
         if (cap != null) {
@@ -248,21 +243,71 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
       if (ownerMesh == null) {
         throw StateError('Terrain render edge $edgeId has no owner mesh.');
       }
-      surfaceEdges.add(
-        _CachedTerrainDecoratedEdge.fromLayout(
-          decoration,
-          clipPath: ownerMesh.clipPath,
-        ),
+      final cachedEdge = _CachedTerrainDecoratedEdge.fromLayout(
+        decoration,
+        ownerMesh: ownerMesh,
       );
+      surfaceEdges.add(cachedEdge);
     }
 
-    _meshes = List<_CachedTerrainMesh>.unmodifiable(meshes);
     final edgePaintOrder = terrainMaterialEdgePaintOrder(
       surfaceEdges.map((edge) => edge.orientation),
     );
-    _surfaceEdges = List<_CachedTerrainDecoratedEdge>.unmodifiable(
+    final orderedSurfaceEdges = List<_CachedTerrainDecoratedEdge>.unmodifiable(
       edgePaintOrder.map((index) => surfaceEdges[index]),
     );
+    final capPlacementsByMesh =
+        <_CachedTerrainMesh, List<_CachedTerrainCapPlacement>>{};
+    for (final edge in orderedSurfaceEdges) {
+      final material = TerrainMaterialRegistry.require(edge.materialKey);
+      final caps = StagedTerrainEdgeLayout.capsFor(material, edge.orientation);
+      void reserve(TerrainMaterialCapSpec? cap, {required bool atEnd}) {
+        if (cap == null) return;
+        capPlacementsByMesh
+            .putIfAbsent(edge.ownerMesh, () => <_CachedTerrainCapPlacement>[])
+            .add(
+              _CachedTerrainCapPlacement(
+                edge: edge,
+                atEnd: atEnd,
+                footprint: terrainMaterialCapFootprintPath(
+                  start: edge.start,
+                  length: edge.length,
+                  angle: edge.angle,
+                  sourceWidth: cap.region.width,
+                  sourceHeight: cap.region.height,
+                  anchorX: cap.anchorX,
+                  anchorY: cap.anchorY,
+                  orientation: edge.orientation,
+                  atEnd: atEnd,
+                ),
+              ),
+            );
+      }
+
+      if (edge.drawStartCap) reserve(caps.$1, atEnd: false);
+      if (edge.drawEndCap) reserve(caps.$2, atEnd: true);
+    }
+    for (final mesh in meshes) {
+      final placements =
+          capPlacementsByMesh[mesh] ?? const <_CachedTerrainCapPlacement>[];
+      final footprints = placements
+          .map((placement) => placement.footprint)
+          .toList(growable: false);
+      mesh.reserveCornerFootprints(footprints);
+      final capClipPaths = terrainMaterialExclusiveCapClipPaths(
+        ownerPath: mesh.clipPath,
+        orderedCapFootprints: footprints,
+      );
+      for (var index = 0; index < placements.length; index += 1) {
+        placements[index].edge.setCapClipPath(
+          atEnd: placements[index].atEnd,
+          clipPath: capClipPaths[index],
+        );
+      }
+    }
+
+    _meshes = List<_CachedTerrainMesh>.unmodifiable(meshes);
+    _surfaceEdges = orderedSurfaceEdges;
     _geometryVersion = snapshot.geometryVersion;
   }
 
@@ -280,7 +325,7 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
     image: image,
     anchorY: anchorY,
     orientation: orientation,
-    clipPath: edge.clipPath,
+    clipPath: edge.ownerMesh.lowerPriorityClipPath,
   );
 
   void _drawEdgeCap(
@@ -300,7 +345,7 @@ class StagedTerrain extends Component with HasGameReference<FlameGame> {
     anchorY: cap.anchorY,
     atEnd: atEnd,
     orientation: orientation,
-    clipPath: edge.clipPath,
+    clipPath: edge.capClipPath(atEnd: atEnd),
   );
 
   void _disposeRegionImages() {
@@ -385,6 +430,15 @@ void paintTerrainMaterialCapImage(
   ui.Path? clipPath,
 }) {
   if (length <= 0) return;
+  final footprint = terrainMaterialCapFootprint(
+    edgeLength: length,
+    anchorX: anchorX,
+    anchorY: anchorY,
+    atEnd: atEnd,
+    orientation: orientation,
+    sourceWidth: image.width,
+    sourceHeight: image.height,
+  );
   canvas.save();
   if (clipPath != null) canvas.clipPath(clipPath);
   canvas.translate(start.dx, start.dy);
@@ -392,10 +446,116 @@ void paintTerrainMaterialCapImage(
   _drawNormalizedEdgeImage(
     canvas,
     image: image,
-    destination: ui.Offset((atEnd ? length : 0) - anchorX, -anchorY),
+    destination: ui.Offset(footprint.left, footprint.top),
     quarterTurns: terrainMaterialEdgeNormalizationQuarterTurns(orientation),
   );
   canvas.restore();
+}
+
+/// Returns the world-space rectangle exclusively owned by one cap.
+///
+/// The footprint includes transparent pixels so lower-priority terrain art can
+/// be removed before the cap establishes the final authored silhouette.
+@visibleForTesting
+ui.Path terrainMaterialCapFootprintPath({
+  required ui.Offset start,
+  required double length,
+  required double angle,
+  required int sourceWidth,
+  required int sourceHeight,
+  required double anchorX,
+  required double anchorY,
+  required TerrainMaterialEdgeOrientation orientation,
+  required bool atEnd,
+}) {
+  final footprint = terrainMaterialCapFootprint(
+    edgeLength: length,
+    anchorX: anchorX,
+    anchorY: anchorY,
+    atEnd: atEnd,
+    orientation: orientation,
+    sourceWidth: sourceWidth,
+    sourceHeight: sourceHeight,
+  );
+  final tangentX = math.cos(angle);
+  final tangentY = math.sin(angle);
+  ui.Offset toWorld(double x, double y) => ui.Offset(
+    start.dx + x * tangentX - y * tangentY,
+    start.dy + x * tangentY + y * tangentX,
+  );
+  final left = footprint.left;
+  final top = footprint.top;
+  final right = left + footprint.width;
+  final bottom = top + footprint.height;
+  final topLeft = toWorld(left, top);
+  final path = ui.Path()..moveTo(topLeft.dx, topLeft.dy);
+  for (final point in <ui.Offset>[
+    toWorld(right, top),
+    toWorld(right, bottom),
+    toWorld(left, bottom),
+  ]) {
+    path.lineTo(point.dx, point.dy);
+  }
+  return path..close();
+}
+
+/// Removes cap-owned rectangles from a polygon's lower-priority paint area.
+///
+/// [ownerPath] is not mutated. The result enforces cap ownership independently
+/// of the source image's alpha values.
+@visibleForTesting
+ui.Path terrainMaterialLowerPriorityClipPath({
+  required ui.Path ownerPath,
+  required Iterable<ui.Path> capFootprints,
+}) {
+  var result = ui.Path.from(ownerPath);
+  for (final footprint in capFootprints) {
+    if (footprint.getBounds().isEmpty) continue;
+    result = ui.Path.combine(ui.PathOperation.difference, result, footprint);
+  }
+  return result;
+}
+
+/// Resolves non-overlapping cap clips in back-to-front paint order.
+///
+/// Later caps reserve their complete footprints from earlier caps. This keeps
+/// transparent top-corner pixels from exposing an overlapping underside corner
+/// when a polygon is thinner than the combined cap heights.
+@visibleForTesting
+List<ui.Path> terrainMaterialExclusiveCapClipPaths({
+  required ui.Path ownerPath,
+  required Iterable<ui.Path> orderedCapFootprints,
+}) {
+  final footprints = orderedCapFootprints.toList(growable: false);
+  return List<ui.Path>.unmodifiable(<ui.Path>[
+    for (var index = 0; index < footprints.length; index += 1)
+      _exclusiveCapClipPath(
+        ownerPath: ownerPath,
+        footprint: footprints[index],
+        higherPriorityFootprints: footprints.skip(index + 1),
+      ),
+  ]);
+}
+
+ui.Path _exclusiveCapClipPath({
+  required ui.Path ownerPath,
+  required ui.Path footprint,
+  required Iterable<ui.Path> higherPriorityFootprints,
+}) {
+  var result = ui.Path.combine(
+    ui.PathOperation.intersect,
+    ownerPath,
+    footprint,
+  );
+  for (final higherPriorityFootprint in higherPriorityFootprints) {
+    if (higherPriorityFootprint.getBounds().isEmpty) continue;
+    result = ui.Path.combine(
+      ui.PathOperation.difference,
+      result,
+      higherPriorityFootprint,
+    );
+  }
+  return result;
 }
 
 void _drawNormalizedEdgeImage(
@@ -521,10 +681,17 @@ final class _CachedTerrainMesh {
   final ui.Vertices vertices;
   final ui.Path clipPath;
   final ui.Rect bounds;
+  late final ui.Path lowerPriorityClipPath;
+
+  void reserveCornerFootprints(Iterable<ui.Path> footprints) =>
+      lowerPriorityClipPath = terrainMaterialLowerPriorityClipPath(
+        ownerPath: clipPath,
+        capFootprints: footprints,
+      );
 }
 
 final class _CachedTerrainDecoratedEdge {
-  const _CachedTerrainDecoratedEdge({
+  _CachedTerrainDecoratedEdge({
     required this.materialKey,
     required this.orientation,
     required this.drawStartCap,
@@ -532,13 +699,13 @@ final class _CachedTerrainDecoratedEdge {
     required this.start,
     required this.length,
     required this.angle,
-    required this.clipPath,
+    required this.ownerMesh,
     required this.bounds,
   });
 
   factory _CachedTerrainDecoratedEdge.fromLayout(
     StagedTerrainEdgeDecoration decoration, {
-    required ui.Path clipPath,
+    required _CachedTerrainMesh ownerMesh,
   }) {
     final edge = decoration.edge;
     final start = ui.Offset(
@@ -559,7 +726,7 @@ final class _CachedTerrainDecoratedEdge {
       start: start,
       length: math.sqrt(dx * dx + dy * dy),
       angle: math.atan2(dy, dx),
-      clipPath: clipPath,
+      ownerMesh: ownerMesh,
       bounds: ui.Rect.fromLTRB(
         math.min(start.dx, end.dx) - 160,
         math.min(start.dy, end.dy) - 160,
@@ -576,8 +743,38 @@ final class _CachedTerrainDecoratedEdge {
   final ui.Offset start;
   final double length;
   final double angle;
-  final ui.Path clipPath;
+  final _CachedTerrainMesh ownerMesh;
   final ui.Rect bounds;
+  ui.Path? _startCapClipPath;
+  ui.Path? _endCapClipPath;
+
+  void setCapClipPath({required bool atEnd, required ui.Path clipPath}) {
+    if (atEnd) {
+      _endCapClipPath = clipPath;
+    } else {
+      _startCapClipPath = clipPath;
+    }
+  }
+
+  ui.Path capClipPath({required bool atEnd}) {
+    final result = atEnd ? _endCapClipPath : _startCapClipPath;
+    if (result == null) {
+      throw StateError('Selected terrain cap is missing its ownership clip.');
+    }
+    return result;
+  }
+}
+
+final class _CachedTerrainCapPlacement {
+  const _CachedTerrainCapPlacement({
+    required this.edge,
+    required this.atEnd,
+    required this.footprint,
+  });
+
+  final _CachedTerrainDecoratedEdge edge;
+  final bool atEnd;
+  final ui.Path footprint;
 }
 
 final Float64List _identityMatrix = Float64List.fromList(<double>[

@@ -4,6 +4,19 @@ enum TerrainMaterialEdgeOrientation { top, leftWall, rightWall, underside }
 /// Endpoint whose authored cap owns one convex connected terrain corner.
 enum TerrainMaterialCornerOwner { incomingEnd, outgoingStart }
 
+/// Tangent-normalized rectangle reserved for one endpoint or corner cap.
+///
+/// Coordinates are in world units relative to the edge start after the edge
+/// has been rotated onto the positive X axis. The complete rectangle belongs
+/// to the cap, including transparent source pixels, so lower-priority terrain
+/// layers cannot leak through an authored cutout.
+typedef TerrainMaterialCapFootprint = ({
+  double left,
+  double top,
+  double width,
+  double height,
+});
+
 /// Returns stable back-to-front indices for terrain edge decoration.
 ///
 /// Source order is retained within each group, while top-facing edges are
@@ -70,6 +83,49 @@ TerrainMaterialCornerOwner? terrainMaterialConnectedCornerOwner({
     return TerrainMaterialCornerOwner.outgoingStart;
   }
   return TerrainMaterialCornerOwner.incomingEnd;
+}
+
+/// Returns the exclusive destination footprint of one terrain cap.
+///
+/// [edgeLength], [anchorX], and [anchorY] are world units in normalized edge
+/// space. Source dimensions must be positive pixels. The returned rectangle
+/// matches the bounds used by role-normalized cap painting.
+TerrainMaterialCapFootprint terrainMaterialCapFootprint({
+  required double edgeLength,
+  required double anchorX,
+  required double anchorY,
+  required bool atEnd,
+  required TerrainMaterialEdgeOrientation orientation,
+  required int sourceWidth,
+  required int sourceHeight,
+}) {
+  if (!edgeLength.isFinite || edgeLength <= 0) {
+    throw ArgumentError.value(
+      edgeLength,
+      'edgeLength',
+      'Must be finite and positive.',
+    );
+  }
+  if (!anchorX.isFinite || !anchorY.isFinite) {
+    throw ArgumentError('Terrain cap anchors must be finite.');
+  }
+  if (sourceWidth <= 0 || sourceHeight <= 0) {
+    throw ArgumentError('Terrain cap source dimensions must be positive.');
+  }
+  return (
+    left: (atEnd ? edgeLength : 0) - anchorX,
+    top: -anchorY,
+    width: terrainMaterialEdgeTileWidth(
+      orientation: orientation,
+      sourceWidth: sourceWidth,
+      sourceHeight: sourceHeight,
+    ).toDouble(),
+    height: terrainMaterialEdgeTileHeight(
+      orientation: orientation,
+      sourceWidth: sourceWidth,
+      sourceHeight: sourceHeight,
+    ).toDouble(),
+  );
 }
 
 /// Clockwise quarter-turns that normalize a world-facing region so its edge
