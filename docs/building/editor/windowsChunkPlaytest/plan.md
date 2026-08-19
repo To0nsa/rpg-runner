@@ -6,7 +6,7 @@ Status: Active (Phase 0 completed with accepted baseline exceptions on August
 19, 2026; Phase 1 completed in `25ae1a6e` on August 19, 2026; Phase 2
 completed in `77af803f` on August 19, 2026; Phase 3 completed in `03bd98d5` and
 `99ac7a8b` on August 19, 2026; Phase 4 completed in `490b78ca` and `00239a22`
-on August 19, 2026; Phase 5 not started)
+on August 19, 2026; Phase 5 in progress)
 
 Related documents:
 
@@ -18,6 +18,7 @@ Related documents:
 - [Gameplay input architecture](../../../tdd/gameplay_input_architecture.md)
 - [Phase 4 implementation checklist](phase4-implementation-checklist.md)
 - [Editor chunk playtest host](../../../tdd/editor_chunk_playtest_host.md)
+- [Phase 5 implementation checklist](phase5-implementation-checklist.md)
 - [Chunk Creator high-level plan](../chunkCreator/plan.md)
 - [Unified Chunk Scene strategy](../chunkCreator/unified-chunk-scene-strategy.md)
 - [Editor UI system](../../../tdd/editor_ui_system.md)
@@ -449,6 +450,8 @@ Gate: a widget test can start, control, restart, and dispose a deterministic
 scenario without app state or backend initialization.
 
 ### Phase 5: Windows Chunk Creator integration
+
+Status: In progress (August 19, 2026).
 
 - Add Play/Edit state to the current-schema Chunk workspace.
 - Add the Play action and keyboard shortcuts without intercepting text entry or
