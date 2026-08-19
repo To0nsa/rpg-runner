@@ -322,7 +322,7 @@ packages:
     source: hosted
     version: "3.10.0"
   flame:
-    dependency: transitive
+    dependency: "direct dev"
     description:
       name: flame
       sha256: c918f8d0e340cbc5e3b20603bd5dc0bac6d939133fed4044366180081a63561d

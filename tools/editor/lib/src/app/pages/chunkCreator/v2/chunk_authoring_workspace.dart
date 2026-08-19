@@ -51,6 +51,31 @@ import 'chunk_v2_owner_dialog.dart';
 
 enum _PendingShapeEditAction { save, discard, cancel }
 
+/// Snapshot readiness exposed to the Chunk Creator Play/Edit orchestrator.
+///
+/// Accepted session changes are intentionally absent from the blockers. Only
+/// state that is not yet represented by the immutable plugin document, or a
+/// blocking document/session condition, prevents scenario capture.
+@immutable
+final class ChunkPlaytestWorkspaceReadiness {
+  const ChunkPlaytestWorkspaceReadiness({
+    required this.code,
+    required this.message,
+    required this.selectedChunkKey,
+  });
+
+  /// Stable readiness code used by tests and editor presentation.
+  final String code;
+
+  /// Concise author-facing explanation or ready-state description.
+  final String message;
+
+  /// Selected accepted owner, absent when owner/level context is incomplete.
+  final String? selectedChunkKey;
+
+  bool get isReady => code == 'ready';
+}
+
 /// Normal current-schema workspace for complete Chunk-v2 authoring.
 ///
 /// A complete current v2 tree selects this workspace through the normal plugin
@@ -61,12 +86,21 @@ class ChunkAuthoringWorkspace extends StatefulWidget {
     super.key,
     required this.controller,
     this.onOpenOwningPrefab,
+    this.onPlayRequested,
+    this.playtestPlatformSupported = false,
   });
 
   final EditorSessionController controller;
 
   /// Opens a read-only expanded shape's stable owner outside this workspace.
   final ValueChanged<String>? onOpenOwningPrefab;
+
+  /// Requests a snapshot playtest after [ChunkPlaytestWorkspaceReadiness]
+  /// reports ready; lifecycle ownership remains with the route page.
+  final VoidCallback? onPlayRequested;
+
+  /// Whether this host supports the Windows-only Phase 5 Play surface.
+  final bool playtestPlatformSupported;
 
   @override
   State<ChunkAuthoringWorkspace> createState() =>
@@ -116,6 +150,64 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
       _markerGesture.hasActiveOperation;
 
   bool get hasActiveOperation => _hasActiveOperation;
+
+  /// Stable selected owner used when the route captures a playtest snapshot.
+  String? get selectedChunkKey => _selectedChunkKey;
+
+  /// Current fail-closed readiness for Play button and F5 entry.
+  ChunkPlaytestWorkspaceReadiness get playtestReadiness {
+    if (!widget.playtestPlatformSupported) {
+      return const ChunkPlaytestWorkspaceReadiness(
+        code: 'unsupportedPlatformOrSourceGeneration',
+        message: 'Play mode is available only in the Windows Chunk-v2 editor.',
+        selectedChunkKey: null,
+      );
+    }
+    if (widget.controller.isLoading || widget.controller.isExporting) {
+      return ChunkPlaytestWorkspaceReadiness(
+        code: 'activeLocalOperationOrDraft',
+        message: widget.controller.isLoading
+            ? 'Wait for the workspace to finish loading.'
+            : 'Wait for Apply To Files to finish.',
+        selectedChunkKey: _selectedChunkKey,
+      );
+    }
+    final selectedChunkKey = _selectedChunkKey;
+    final scene = _sceneOrNull;
+    if (selectedChunkKey == null ||
+        scene == null ||
+        scene.activeLevelId == null ||
+        !scene.chunks.any((chunk) => chunk.chunkKey == selectedChunkKey)) {
+      return const ChunkPlaytestWorkspaceReadiness(
+        code: 'missingOwnerOrLevelContext',
+        message: 'Select a current chunk owner and level before Play.',
+        selectedChunkKey: null,
+      );
+    }
+    if (_hasActiveOperation || _hasPendingSelectedShapeEdit) {
+      return ChunkPlaytestWorkspaceReadiness(
+        code: 'activeLocalOperationOrDraft',
+        message:
+            'Finish, save, or cancel the active gesture or inspector draft '
+            'before Play.',
+        selectedChunkKey: selectedChunkKey,
+      );
+    }
+    if (widget.controller.issues.any(
+      (issue) => issue.severity == ValidationSeverity.error,
+    )) {
+      return ChunkPlaytestWorkspaceReadiness(
+        code: 'blockingValidationIssue',
+        message: 'Resolve the blocking Chunk diagnostics before Play.',
+        selectedChunkKey: selectedChunkKey,
+      );
+    }
+    return ChunkPlaytestWorkspaceReadiness(
+      code: 'ready',
+      message: 'Play the accepted in-memory chunk snapshot.',
+      selectedChunkKey: selectedChunkKey,
+    );
+  }
 
   bool get hasLocalDraftChanges =>
       _hasActiveOperation ||
@@ -257,67 +349,93 @@ class ChunkAuthoringWorkspaceState extends State<ChunkAuthoringWorkspace> {
     );
   }
 
-  Widget _buildHeader(ChunkV2Document document, ChunkV2Scene scene) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: <Widget>[
-      Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: <Widget>[
-          const Chip(
-            avatar: Icon(Icons.science_outlined, size: 18),
-            label: Text('Chunk v2 authoring'),
+  Widget _buildHeader(ChunkV2Document document, ChunkV2Scene scene) {
+    final readiness = playtestReadiness;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: <Widget>[
+            const Chip(
+              avatar: Icon(Icons.science_outlined, size: 18),
+              label: Text('Chunk v2 authoring'),
+            ),
+            DropdownButton<String>(
+              key: const ValueKey<String>('chunk_polygon_level_selector'),
+              value: scene.activeLevelId,
+              items: scene.availableLevelIds
+                  .map(
+                    (levelId) => DropdownMenuItem<String>(
+                      value: levelId,
+                      child: Text(levelId),
+                    ),
+                  )
+                  .toList(growable: false),
+              onChanged: _selectLevel,
+            ),
+            DropdownButton<String>(
+              key: const ValueKey<String>('chunk_polygon_owner_selector'),
+              value:
+                  scene.chunks.any(
+                    (chunk) => chunk.chunkKey == _selectedChunkKey,
+                  )
+                  ? _selectedChunkKey
+                  : null,
+              hint: const Text('No chunk owner'),
+              items:
+                  (List<ChunkV2FileData>.of(scene.chunks)..sort(_compareChunks))
+                      .map(
+                        (chunk) => DropdownMenuItem<String>(
+                          value: chunk.chunkKey,
+                          child: Text(chunk.id),
+                        ),
+                      )
+                      .toList(growable: false),
+              onChanged: (chunkKey) {
+                if (chunkKey != null) _selectOwner(chunkKey);
+              },
+            ),
+            Text(
+              document.changedChunkKeys.isEmpty
+                  ? 'No pending chunk changes'
+                  : '${document.changedChunkKeys.length} pending chunk change(s)',
+            ),
+            Tooltip(
+              message: readiness.message,
+              child: FilledButton.icon(
+                key: const ValueKey<String>('chunk_playtest_button'),
+                onPressed: readiness.isReady ? widget.onPlayRequested : null,
+                icon: const Icon(Icons.play_arrow),
+                label: const Text('Play (F5)'),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Text(
+          readiness.isReady
+              ? 'Play ready: ${readiness.message}'
+              : 'Play unavailable: ${readiness.message}',
+          key: const ValueKey<String>('chunk_playtest_readiness'),
+          style: TextStyle(
+            color: readiness.isReady
+                ? const Color(0xFF7DD3FC)
+                : const Color(0xFFFFD166),
           ),
-          DropdownButton<String>(
-            key: const ValueKey<String>('chunk_polygon_level_selector'),
-            value: scene.activeLevelId,
-            items: scene.availableLevelIds
-                .map(
-                  (levelId) => DropdownMenuItem<String>(
-                    value: levelId,
-                    child: Text(levelId),
-                  ),
-                )
-                .toList(growable: false),
-            onChanged: _selectLevel,
-          ),
-          DropdownButton<String>(
-            key: const ValueKey<String>('chunk_polygon_owner_selector'),
-            value:
-                scene.chunks.any((chunk) => chunk.chunkKey == _selectedChunkKey)
-                ? _selectedChunkKey
-                : null,
-            hint: const Text('No chunk owner'),
-            items:
-                (List<ChunkV2FileData>.of(scene.chunks)..sort(_compareChunks))
-                    .map(
-                      (chunk) => DropdownMenuItem<String>(
-                        value: chunk.chunkKey,
-                        child: Text(chunk.id),
-                      ),
-                    )
-                    .toList(growable: false),
-            onChanged: (chunkKey) {
-              if (chunkKey != null) _selectOwner(chunkKey);
-            },
-          ),
-          Text(
-            document.changedChunkKeys.isEmpty
-                ? 'No pending chunk changes'
-                : '${document.changedChunkKeys.length} pending chunk change(s)',
-          ),
-        ],
-      ),
-      const SizedBox(height: 8),
-      const Text(
-        'Current-schema workspace: apply rechecks the complete chunk source '
-        'set and commits it atomically. Legacy migration stays read-only; '
-        'runtime terrain updates after the generated outputs are refreshed.',
-        style: TextStyle(color: Color(0xFFFFD166)),
-      ),
-    ],
-  );
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Current-schema workspace: apply rechecks the complete chunk source '
+          'set and commits it atomically. Legacy migration stays read-only; '
+          'runtime terrain updates after the generated outputs are refreshed.',
+          style: TextStyle(color: Color(0xFFFFD166)),
+        ),
+      ],
+    );
+  }
 
   /// Confirms and applies the complete Chunk-v2 source set through the session.
   Future<void> applyToFiles() async {

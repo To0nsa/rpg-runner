@@ -50,6 +50,7 @@ dependencies:
   image: 4.8.0
 
 dev_dependencies:
+  flame: ^1.35.1
   flutter_test:
     sdk: flutter
   integration_test:

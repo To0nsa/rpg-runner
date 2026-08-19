@@ -57,12 +57,16 @@ class EditorHomeRoute {
 class EditorHomeRouteNavigation {
   const EditorHomeRouteNavigation({
     this.initialPrefabKey,
+    this.onShellStateChanged,
     this.onOpenOwningPrefab,
     this.onOpenParallaxForLevel,
   });
 
   /// Stable Prefab-v3 owner to select after a successful guarded transition.
   final String? initialPrefabKey;
+
+  /// Requests a shell-control rebuild after page-owned lock state changes.
+  final VoidCallback? onShellStateChanged;
 
   /// Requests shell-owned navigation to a placed collision's source owner.
   final ValueChanged<String>? onOpenOwningPrefab;
@@ -149,6 +153,7 @@ Widget _buildChunkCreatorPage({
   return ChunkCreatorPage(
     key: key,
     controller: controller,
+    onShellStateChanged: navigation.onShellStateChanged,
     onOpenOwningPrefab: navigation.onOpenOwningPrefab,
   );
 }

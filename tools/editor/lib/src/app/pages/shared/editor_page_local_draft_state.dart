@@ -1,3 +1,6 @@
+import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
+
 /// Implemented by route pages that keep authoring drafts outside the shared
 /// [EditorSessionController].
 ///
@@ -48,4 +51,20 @@ abstract interface class EditorPageApplyHandler {
   bool get canApplyEditorPage;
 
   Future<void> applyEditorPage();
+}
+
+/// Implemented by a route that temporarily owns shell shortcuts and locking.
+///
+/// The home shell remains the sole global keyboard/app-lifecycle listener. A
+/// page receives commands only while its route is current and no modal or
+/// editable text field owns the event.
+abstract interface class EditorPagePlaytestHandler {
+  /// Prevents route, reload, apply, undo, and redo transitions while true.
+  bool get locksEditorShell;
+
+  /// Handles one unmodified host key-down admitted by the home shell.
+  bool handlePlaytestShortcut(LogicalKeyboardKey key);
+
+  /// Cancels gameplay focus/input on app deactivation without auto-resume.
+  void handlePlaytestAppLifecycleState(AppLifecycleState state);
 }

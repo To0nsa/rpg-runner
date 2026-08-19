@@ -50,6 +50,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
     };
     _appLifecycleListener = AppLifecycleListener(
       onExitRequested: _handleAppExitRequested,
+      onStateChange: _handleAppLifecycleState,
     );
     // The shell handles cross-route undo/redo shortcuts globally, then routes
     // them back into the active page/session when appropriate.
@@ -84,6 +85,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
                 children: [
                   _EditorHomeShellControls(
                     selectedRouteId: _selectedRouteId,
+                    shellLocked: _isCurrentPageShellLocked,
                     canReloadCurrentPage: _canReloadCurrentPage,
                     canApplyCurrentPage: _canApplyCurrentPage,
                     canUndoCurrentPage: _canUndoCurrentPage,
@@ -122,6 +124,9 @@ class _EditorHomePageState extends State<EditorHomePage> {
       widget.controller,
       navigation: EditorHomeRouteNavigation(
         initialPrefabKey: _initialPrefabKey,
+        onShellStateChanged: () {
+          if (mounted) setState(() {});
+        },
         onOpenOwningPrefab: (prefabKey) {
           unawaited(_handleOpenOwningPrefabRequested(prefabKey));
         },
@@ -154,6 +159,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
   }
 
   Future<void> _handleRouteSelectionRequested(String routeId) async {
+    if (_isCurrentPageShellLocked) return;
     final canLeave = await _confirmDiscardPendingChanges(
       promptLine: 'Leave this page without saving?',
       confirmLabel: 'Discard and leave',
@@ -275,7 +281,9 @@ class _EditorHomePageState extends State<EditorHomePage> {
   // coordinate extra local state during reload. When the active page implements
   // [EditorPageReloadHandler], its availability becomes the source of truth.
   bool get _canReloadCurrentPage {
-    if (_isShowingDiscardDialog || _isApplyingCurrentPage) {
+    if (_isShowingDiscardDialog ||
+        _isApplyingCurrentPage ||
+        _isCurrentPageShellLocked) {
       return false;
     }
     final pageReloadHandler = _currentPageReloadHandler();
@@ -288,6 +296,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
   bool get _canApplyCurrentPage {
     if (_isShowingDiscardDialog ||
         _isApplyingCurrentPage ||
+        _isCurrentPageShellLocked ||
         widget.controller.isLoading ||
         widget.controller.isExporting) {
       return false;
@@ -298,6 +307,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
   bool get _canUndoCurrentPage {
     if (_isShowingDiscardDialog ||
         _isApplyingCurrentPage ||
+        _isCurrentPageShellLocked ||
         widget.controller.isLoading ||
         widget.controller.isExporting) {
       return false;
@@ -310,6 +320,7 @@ class _EditorHomePageState extends State<EditorHomePage> {
   bool get _canRedoCurrentPage {
     if (_isShowingDiscardDialog ||
         _isApplyingCurrentPage ||
+        _isCurrentPageShellLocked ||
         widget.controller.isLoading ||
         widget.controller.isExporting) {
       return false;
@@ -470,11 +481,17 @@ class _EditorHomePageState extends State<EditorHomePage> {
   }
 
   bool _handleGlobalKeyEvent(KeyEvent event) {
-    if (!_shellRouteCanHandleGlobalShortcuts() ||
-        event is! KeyDownEvent ||
-        !HardwareKeyboard.instance.isControlPressed) {
+    if (!_shellRouteCanHandleGlobalShortcuts() || event is! KeyDownEvent) {
       return false;
     }
+    final playtestHandler = _currentPagePlaytestHandler();
+    if (playtestHandler != null &&
+        !_isModifiedShortcut() &&
+        !_focusedEditableTextOwnsInput() &&
+        playtestHandler.handlePlaytestShortcut(event.logicalKey)) {
+      return true;
+    }
+    if (!HardwareKeyboard.instance.isControlPressed) return false;
     if (event.logicalKey == LogicalKeyboardKey.keyZ) {
       return HardwareKeyboard.instance.isShiftPressed
           ? _handleRedoShortcut()
@@ -484,6 +501,24 @@ class _EditorHomePageState extends State<EditorHomePage> {
       return _handleRedoShortcut();
     }
     return false;
+  }
+
+  void _handleAppLifecycleState(AppLifecycleState state) {
+    _currentPagePlaytestHandler()?.handlePlaytestAppLifecycleState(state);
+  }
+
+  bool _isModifiedShortcut() {
+    final keyboard = HardwareKeyboard.instance;
+    return keyboard.isControlPressed ||
+        keyboard.isAltPressed ||
+        keyboard.isMetaPressed ||
+        keyboard.isShiftPressed;
+  }
+
+  bool _focusedEditableTextOwnsInput() {
+    final focusContext = FocusManager.instance.primaryFocus?.context;
+    return focusContext != null &&
+        _focusedEditableTextContext(focusContext) != null;
   }
 
   bool _shellRouteCanHandleGlobalShortcuts() {
@@ -522,6 +557,14 @@ class _EditorHomePageState extends State<EditorHomePage> {
     }
     return pageState;
   }
+
+  EditorPagePlaytestHandler? _currentPagePlaytestHandler() {
+    final pageState = _currentPageState;
+    return pageState is EditorPagePlaytestHandler ? pageState : null;
+  }
+
+  bool get _isCurrentPageShellLocked =>
+      _currentPagePlaytestHandler()?.locksEditorShell ?? false;
 
   EditorPageReloadHandler? _currentPageReloadHandler() {
     final pageState = _currentPageState;
@@ -637,6 +680,7 @@ class _EditorHomeRouteBinding {
 class _EditorHomeShellControls extends StatelessWidget {
   const _EditorHomeShellControls({
     required this.selectedRouteId,
+    required this.shellLocked,
     required this.canReloadCurrentPage,
     required this.canApplyCurrentPage,
     required this.canUndoCurrentPage,
@@ -657,6 +701,7 @@ class _EditorHomeShellControls extends StatelessWidget {
   });
 
   final String selectedRouteId;
+  final bool shellLocked;
   final bool canReloadCurrentPage;
   final bool canApplyCurrentPage;
   final bool canUndoCurrentPage;
@@ -730,12 +775,12 @@ class _EditorHomeShellControls extends StatelessWidget {
                   ),
                 ),
             ],
-            onChanged: (value) {
-              if (value == null || value == selectedRouteId) {
-                return;
-              }
-              onRouteSelected(value);
-            },
+            onChanged: shellLocked
+                ? null
+                : (value) {
+                    if (value == null || value == selectedRouteId) return;
+                    onRouteSelected(value);
+                  },
           ),
         ),
       ),
