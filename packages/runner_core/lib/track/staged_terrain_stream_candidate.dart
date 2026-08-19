@@ -68,7 +68,7 @@ final class StagedTerrainStreamCandidateBuilder {
   /// prevent creation of the entire candidate before `GameCore` can publish
   /// its render snapshot or a terrain authority can consume its bundle.
   StagedTerrainStreamCandidate build({
-    required StagedTerrainArtifactCatalog catalog,
+    required StagedTerrainCatalog catalog,
     required Iterable<ActiveTrackChunkSnapshot> activeChunks,
     required int geometryVersion,
     required Iterable<TerrainSurfaceGraphBuildProfile> groundEnemyProfiles,

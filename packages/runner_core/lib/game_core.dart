@@ -94,6 +94,7 @@ import 'navigation/utils/standability.dart';
 import 'players/player_catalog.dart';
 import 'players/player_archetype.dart';
 import 'players/player_character_definition.dart';
+import 'playtest/chunk_playtest_scenario.dart';
 import 'projectiles/projectile_catalog.dart';
 import 'spellBook/spell_book_catalog.dart';
 import 'snapshots/enums.dart';
@@ -176,7 +177,38 @@ class GameCore {
          accessoryCatalog: accessoryCatalog,
          equippedLoadoutOverride: equippedLoadoutOverride,
          terrainHarnessGeometry: null,
+         stagedTerrainCatalogOverride: null,
        );
+
+  /// Creates a backend-free Core runtime for one validated authored scenario.
+  ///
+  /// This explicit tool/test boundary is not a run-ticket or replay option.
+  /// Calling it again with the same immutable [scenario] creates the fresh
+  /// deterministic Core state used by playtest restart.
+  factory GameCore.chunkPlaytest({
+    required ChunkPlaytestScenario scenario,
+    ProjectileCatalog projectileCatalog = const ProjectileCatalog(),
+    SpellBookCatalog spellBookCatalog = const SpellBookCatalog(),
+    EnemyCatalog enemyCatalog = const EnemyCatalog(),
+    WeaponCatalog weaponCatalog = const WeaponCatalog(),
+    AccessoryCatalog accessoryCatalog = const AccessoryCatalog(),
+  }) {
+    return GameCore._fromLevel(
+      seed: scenario.seed,
+      runId: 0,
+      tickHz: scenario.tickHz,
+      levelDefinition: scenario.buildRuntimeLevelDefinition(),
+      projectileCatalog: projectileCatalog,
+      spellBookCatalog: spellBookCatalog,
+      enemyCatalog: enemyCatalog,
+      playerCharacter: scenario.playerCharacter,
+      weaponCatalog: weaponCatalog,
+      accessoryCatalog: accessoryCatalog,
+      equippedLoadoutOverride: scenario.equippedLoadout,
+      terrainHarnessGeometry: null,
+      stagedTerrainCatalogOverride: scenario.terrainCatalog,
+    );
+  }
 
   /// Creates the explicit multi-body terrain integration harness.
   ///
@@ -210,6 +242,7 @@ class GameCore {
       accessoryCatalog: accessoryCatalog,
       equippedLoadoutOverride: equippedLoadoutOverride,
       terrainHarnessGeometry: terrainGeometry,
+      stagedTerrainCatalogOverride: null,
     );
   }
 
@@ -226,6 +259,7 @@ class GameCore {
     required AccessoryCatalog accessoryCatalog,
     required EquippedLoadoutDef? equippedLoadoutOverride,
     required TerrainGeometry? terrainHarnessGeometry,
+    required StagedTerrainCatalog? stagedTerrainCatalogOverride,
   }) : _levelDefinition = levelDefinition,
        _movement = MovementTuningDerived.from(
          playerCharacter.tuning.movement,
@@ -271,6 +305,7 @@ class GameCore {
        ),
        _equippedLoadoutOverride = equippedLoadoutOverride,
        _terrainHarnessGeometry = terrainHarnessGeometry,
+       _stagedTerrainCatalogOverride = stagedTerrainCatalogOverride,
        _scoreTuning = levelDefinition.tuning.score,
        _trackTuning = levelDefinition.tuning.track,
        _collectibleTuning = levelDefinition.tuning.collectible,
@@ -321,7 +356,8 @@ class GameCore {
 
     final terrainGeometry = _terrainHarnessGeometry;
     _stagedTerrainCatalog = terrainGeometry == null && _trackTuning.enabled
-        ? StagedTerrainArtifactCatalog(artifact: stagedAuthoredTerrain)
+        ? _stagedTerrainCatalogOverride ??
+              StagedTerrainArtifactCatalog(artifact: stagedAuthoredTerrain)
         : null;
     TrackStreamer? prewarmedTrackStreamer;
     var initialEnemySpawns = const <SpawnEnemyRequest>[];
@@ -890,7 +926,8 @@ class GameCore {
   late final TrackManager _trackManager;
 
   /// Admitted generated terrain selected by the deterministic scheduler.
-  late final StagedTerrainArtifactCatalog? _stagedTerrainCatalog;
+  final StagedTerrainCatalog? _stagedTerrainCatalogOverride;
+  late final StagedTerrainCatalog? _stagedTerrainCatalog;
   StagedTerrainStreamCandidate? _stagedTerrainCandidate;
   int _nextStagedTerrainGeometryVersion = 1;
 

@@ -21,7 +21,7 @@ final class StagedTerrainStreamBindingBuilder {
   /// active interval, preventing a stale artifact from shifting downstream
   /// chunks while still looking locally valid.
   List<StagedTerrainChunkBinding> build({
-    required StagedTerrainArtifactCatalog catalog,
+    required StagedTerrainCatalog catalog,
     required Iterable<ActiveTrackChunkSnapshot> activeChunks,
   }) {
     final ordered = List<ActiveTrackChunkSnapshot>.of(activeChunks)

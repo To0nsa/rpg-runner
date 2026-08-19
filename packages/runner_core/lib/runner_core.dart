@@ -5,3 +5,4 @@
 library;
 
 export 'game_core.dart';
+export 'playtest/chunk_playtest_scenario.dart';

@@ -7,6 +7,21 @@ import '../collision/terrain/terrain_authoring_triangle_signature.dart';
 import '../collision/terrain/terrain_polygon.dart';
 import 'staged_terrain_data.dart';
 
+/// Read-only staged-terrain lookup used by deterministic stream binding.
+///
+/// Normal runs use [StagedTerrainArtifactCatalog]. Tooling may layer a
+/// validated catalog on top, but consumers cannot mutate or enumerate lookup
+/// state through this boundary.
+abstract interface class StagedTerrainCatalog {
+  StagedTerrainChunkData requireChunk(String chunkKey);
+
+  StagedTerrainChunkBinding bind({
+    required String chunkKey,
+    required int chunkIndex,
+    required int worldOriginXTicks,
+  });
+}
+
 /// Validates generated staged-terrain structure before runtime selection.
 ///
 /// The generator remains responsible for fresh-source compilation and semantic
@@ -14,7 +29,7 @@ import 'staged_terrain_data.dart';
 /// malformed generated record by requiring the expected artifact format and a
 /// canonical, unique chunk-key sequence. Constructing it has no gameplay or
 /// streaming side effect.
-final class StagedTerrainArtifactCatalog {
+final class StagedTerrainArtifactCatalog implements StagedTerrainCatalog {
   factory StagedTerrainArtifactCatalog({
     required StagedTerrainArtifactData artifact,
   }) {
@@ -108,6 +123,7 @@ final class StagedTerrainArtifactCatalog {
   ///
   /// A missing key is a construction error: a selected runtime chunk cannot
   /// silently fall back to different geometry or an empty record.
+  @override
   StagedTerrainChunkData requireChunk(String chunkKey) {
     if (chunkKey.isEmpty) {
       throw ArgumentError.value(chunkKey, 'chunkKey', 'Must not be empty.');
@@ -124,6 +140,7 @@ final class StagedTerrainArtifactCatalog {
   /// written into generated data, allowing the same local chunk record to be
   /// selected repeatedly while every compiled edge retains unique world
   /// lineage through [StagedTerrainChunkBinding.sourceIdentity].
+  @override
   StagedTerrainChunkBinding bind({
     required String chunkKey,
     required int chunkIndex,
@@ -136,14 +153,10 @@ final class StagedTerrainArtifactCatalog {
         'Must be non-negative for a streamed chunk.',
       );
     }
-    final chunk = requireChunk(chunkKey);
-    return StagedTerrainChunkBinding._(
-      chunk: chunk,
+    return _bindChunk(
+      chunk: requireChunk(chunkKey),
       chunkIndex: chunkIndex,
       worldOriginXTicks: worldOriginXTicks,
-      sourceIds: Set<StagedTerrainSourceId>.unmodifiable(
-        chunk.polygons.map((polygon) => polygon.id),
-      ),
     );
   }
 
@@ -269,6 +282,82 @@ final class StagedTerrainArtifactCatalog {
     _requireDigest(chunk.triangleSignature, 'chunk.triangleSignature');
   }
 }
+
+/// One-record authoring overlay on an admitted generated artifact.
+///
+/// The replacement must retain the generated record's stable key and chunk
+/// dimensions. Every other lookup delegates to [base], so tooling cannot
+/// accidentally replace or synthesize neighboring runtime terrain.
+final class StagedTerrainOverlayCatalog implements StagedTerrainCatalog {
+  factory StagedTerrainOverlayCatalog({
+    required StagedTerrainArtifactCatalog base,
+    required StagedTerrainChunkData replacement,
+  }) {
+    final admitted = base.requireChunk(replacement.chunkKey);
+    StagedTerrainArtifactCatalog._validateChunk(replacement);
+    if (replacement.tileSize != admitted.tileSize ||
+        replacement.width != admitted.width ||
+        replacement.height != admitted.height) {
+      throw ArgumentError.value(
+        replacement,
+        'replacement',
+        'A staged terrain overlay must retain admitted tileSize, width, and '
+            'height for chunk ${replacement.chunkKey}.',
+      );
+    }
+    return StagedTerrainOverlayCatalog._(base: base, replacement: replacement);
+  }
+
+  const StagedTerrainOverlayCatalog._({
+    required this.base,
+    required this.replacement,
+  });
+
+  /// Generated catalog used for every non-selected record.
+  final StagedTerrainArtifactCatalog base;
+
+  /// Structurally admitted draft replacing one stable generated key.
+  final StagedTerrainChunkData replacement;
+
+  @override
+  StagedTerrainChunkData requireChunk(String chunkKey) {
+    if (chunkKey == replacement.chunkKey) return replacement;
+    return base.requireChunk(chunkKey);
+  }
+
+  @override
+  StagedTerrainChunkBinding bind({
+    required String chunkKey,
+    required int chunkIndex,
+    required int worldOriginXTicks,
+  }) {
+    if (chunkIndex < 0) {
+      throw ArgumentError.value(
+        chunkIndex,
+        'chunkIndex',
+        'Must be non-negative for a streamed chunk.',
+      );
+    }
+    return _bindChunk(
+      chunk: requireChunk(chunkKey),
+      chunkIndex: chunkIndex,
+      worldOriginXTicks: worldOriginXTicks,
+    );
+  }
+}
+
+StagedTerrainChunkBinding _bindChunk({
+  required StagedTerrainChunkData chunk,
+  required int chunkIndex,
+  required int worldOriginXTicks,
+}) => StagedTerrainChunkBinding._(
+  chunk: chunk,
+  chunkIndex: chunkIndex,
+  worldOriginXTicks: worldOriginXTicks,
+  sourceIds: Set<StagedTerrainSourceId>.unmodifiable(
+    chunk.polygons.map((polygon) => polygon.id),
+  ),
+);
 
 void _requireFormat(String actual, String expected, String name) {
   if (actual == expected) return;

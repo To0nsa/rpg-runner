@@ -212,6 +212,66 @@ void main() {
       throwsArgumentError,
     );
   });
+
+  test(
+    'overlay replaces exactly one admitted key and preserves base lookup',
+    () {
+      final alpha = _chunk('alpha');
+      final beta = _chunk('beta');
+      final base = StagedTerrainArtifactCatalog(
+        artifact: _artifact(chunks: <StagedTerrainChunkData>[alpha, beta]),
+      );
+      final draft = _chunk('alpha', revision: 2);
+      final overlay = StagedTerrainOverlayCatalog(
+        base: base,
+        replacement: draft,
+      );
+
+      expect(overlay.requireChunk('alpha'), same(draft));
+      expect(overlay.requireChunk('beta'), same(beta));
+      expect(base.requireChunk('alpha'), same(alpha));
+      expect(
+        overlay
+            .bind(chunkKey: 'alpha', chunkIndex: 3, worldOriginXTicks: 1843200)
+            .chunk,
+        same(draft),
+      );
+      expect(
+        overlay
+            .bind(chunkKey: 'alpha', chunkIndex: 8, worldOriginXTicks: 4915200)
+            .chunk,
+        same(draft),
+      );
+    },
+  );
+
+  test('overlay rejects missing, malformed, or dimension-changing drafts', () {
+    final base = StagedTerrainArtifactCatalog(
+      artifact: _artifact(chunks: <StagedTerrainChunkData>[_chunk('alpha')]),
+    );
+
+    expect(
+      () => StagedTerrainOverlayCatalog(
+        base: base,
+        replacement: _chunk('missing'),
+      ),
+      throwsStateError,
+    );
+    expect(
+      () => StagedTerrainOverlayCatalog(
+        base: base,
+        replacement: _chunk('alpha', revision: 0),
+      ),
+      throwsArgumentError,
+    );
+    expect(
+      () => StagedTerrainOverlayCatalog(
+        base: base,
+        replacement: _chunk('alpha', width: 601),
+      ),
+      throwsArgumentError,
+    );
+  });
 }
 
 StagedTerrainArtifactData _artifact({
@@ -236,6 +296,7 @@ StagedTerrainArtifactData _artifact({
 StagedTerrainChunkData _chunk(
   String chunkKey, {
   int revision = 1,
+  int width = 600,
   List<StagedTerrainTriangleData> triangles =
       const <StagedTerrainTriangleData>[],
 }) => StagedTerrainChunkData(
@@ -245,7 +306,7 @@ StagedTerrainChunkData _chunk(
   status: 'active',
   levelId: 'field',
   tileSize: 16,
-  width: 600,
+  width: width,
   height: 270,
   difficulty: 'normal',
   assemblyGroupId: 'default',

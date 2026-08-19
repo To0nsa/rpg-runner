@@ -90,6 +90,40 @@ fixtures compile one deterministic flat polygon at the level's authored ground
 reference. The test/tool-only `GameCore.terrainMotionHarness` factory remains
 available only to inject focused polygon geometry.
 
+`GameCore.chunkPlaytest` is a second explicit tool-only construction boundary.
+It accepts one already validated, immutable `ChunkPlaytestScenario`; it is not
+an optional flag on the production constructor and is not represented in a run
+ticket, replay blob, or validator payload. Scenario preparation:
+
+1. requires the draft `ChunkPattern` and staged-terrain record to share one
+   admitted generated chunk key, level, assembly group, active status, and
+   streamed dimensions;
+2. replaces that record in a read-only `StagedTerrainOverlayCatalog`, while all
+   other keys still resolve from `stagedAuthoredTerrain`;
+3. re-runs the existing authoring scheduler reachability analysis using the
+   draft's current tier/group/status metadata;
+4. chooses a real incoming transition when available, then follows canonical
+   transition-record order until the finite path has a deterministic loop; and
+5. checks every reachable seam touching the draft, plus every path/loop seam,
+   with Core's exact terrain-boundary signatures before construction.
+
+The resulting path-backed pattern source relocates the selected chunk near the
+start for authoring feedback. It is therefore a scheduler-reachable playtest
+sequence, not a claim that the same finite sequence is a normal production
+schedule. It adds no flat pad or substitute collision. The selected draft
+pattern and terrain replace every occurrence of that key; non-selected path
+records remain generated products. The opening no-enemy suppression is cleared
+because the authored path has been deliberately relocated and its markers are
+part of the content under test.
+
+Each `GameCore.chunkPlaytest` call creates a fresh level and path source, then
+uses the same scheduler prewarm, terrain authority, player/loadout setup,
+systems, tick ordering, and snapshots as a normal Core. Restart is therefore a
+new factory call with the same scenario, seed, player, loadout, and tick rate;
+neither wall-clock time nor retained Core/input state participates. The tooling
+run ID is always zero. Normal, ghost, and replay-validator callers continue to
+use `GameCore(...)`, which always admits the checked-in artifact directly.
+
 All construction paths follow the same ordering seam:
 
 1. after world generation, atomically publish any fully built terrain bundle
