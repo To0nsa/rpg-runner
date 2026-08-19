@@ -305,6 +305,90 @@ void main() {
 
     expect(find.text('SHIELD'), findsNothing);
   });
+
+  testWidgets('production slot modes emit the expected callback edges', (
+    tester,
+  ) async {
+    final harness = _OverlayHarness();
+    addTearDown(harness.dispose);
+
+    Future<void> pumpOverlay() => tester.pumpWidget(
+      _testHost(child: harness.buildOverlay(tuning: ControlsTuning.fixed)),
+    );
+
+    Future<void> pressAndRelease(String label) async {
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.text(label)),
+      );
+      await tester.pump();
+      await gesture.up();
+      await tester.pump();
+    }
+
+    harness.meleeInputMode = AbilityInputMode.tap;
+    harness.projectileInputMode = AbilityInputMode.tap;
+    harness.secondaryInputMode = AbilityInputMode.holdMaintain;
+    harness.mobilityInputMode = AbilityInputMode.tap;
+    await pumpOverlay();
+
+    await pressAndRelease('SWORD');
+    await pressAndRelease('PROJECTILE');
+    await pressAndRelease('SHIELD');
+    await pressAndRelease('MOBILITY');
+    await pressAndRelease('SPELL');
+    await pressAndRelease('JUMP');
+
+    expect(harness.gameplayEdges, <String>[
+      'primary.press',
+      'projectile.press',
+      'secondary.hold.start',
+      'secondary.hold.end',
+      'mobility.press',
+      'spell.press',
+      'jump.press',
+    ]);
+
+    harness.gameplayEdges.clear();
+    harness.meleeInputMode = AbilityInputMode.holdAimRelease;
+    harness.projectileInputMode = AbilityInputMode.holdAimRelease;
+    await pumpOverlay();
+
+    await pressAndRelease('SWORD');
+    await pressAndRelease('PROJECTILE');
+
+    expect(
+      harness.gameplayEdges.where((edge) => !edge.startsWith('aim.')),
+      <String>[
+        'primary.charge.start',
+        'primary.commit',
+        'primary.charge.end',
+        'projectile.hold.start',
+        'projectile.commit',
+        'projectile.hold.end',
+      ],
+    );
+  });
+
+  testWidgets('blocked tap controls emit no gameplay callbacks', (
+    tester,
+  ) async {
+    final harness = _OverlayHarness()
+      ..meleeInputMode = AbilityInputMode.tap
+      ..projectileInputMode = AbilityInputMode.tap
+      ..meleeAffordable = false
+      ..projectileCooldownTicksLeft = 1;
+    addTearDown(harness.dispose);
+
+    await tester.pumpWidget(
+      _testHost(child: harness.buildOverlay(tuning: ControlsTuning.fixed)),
+    );
+
+    await tester.tap(find.text('SWORD'), warnIfMissed: false);
+    await tester.tap(find.text('PROJECTILE'), warnIfMissed: false);
+    await tester.pump();
+
+    expect(harness.gameplayEdges, isEmpty);
+  });
 }
 
 Widget _testHost({required Widget child}) {
@@ -350,47 +434,52 @@ class _OverlayHarness {
   int chargeBarTier = 0;
   AbilityInputMode secondaryInputMode = AbilityInputMode.tap;
   AbilityInputMode mobilityInputMode = AbilityInputMode.tap;
+  AbilityInputMode meleeInputMode = AbilityInputMode.holdAimRelease;
+  AbilityInputMode projectileInputMode = AbilityInputMode.holdAimRelease;
   bool hasSecondarySlot = true;
   bool hasProjectileSlot = true;
+  bool meleeAffordable = true;
+  int projectileCooldownTicksLeft = 0;
+  final List<String> gameplayEdges = <String>[];
 
   RunnerControlsOverlay buildOverlay({required ControlsTuning tuning}) {
     return RunnerControlsOverlay(
       tuning: tuning,
       onMoveAxis: (_) {},
-      onJumpPressed: () {},
-      onMobilityPressed: () {},
-      onMobilityCommitted: () {},
-      onMobilityHoldStart: () {},
-      onMobilityHoldEnd: () {},
-      onSecondaryPressed: () {},
-      onSecondaryCommitted: () {},
-      onSecondaryHoldStart: () {},
-      onSecondaryHoldEnd: () {},
-      onSpellPressed: () {},
-      onProjectileCommitted: () {},
-      onProjectilePressed: () {},
-      onProjectileHoldStart: () {},
-      onProjectileHoldEnd: () {},
-      onAimDir: (_, _) {},
-      onAimClear: () {},
+      onJumpPressed: () => gameplayEdges.add('jump.press'),
+      onMobilityPressed: () => gameplayEdges.add('mobility.press'),
+      onMobilityCommitted: () => gameplayEdges.add('mobility.commit'),
+      onMobilityHoldStart: () => gameplayEdges.add('mobility.hold.start'),
+      onMobilityHoldEnd: () => gameplayEdges.add('mobility.hold.end'),
+      onSecondaryPressed: () => gameplayEdges.add('secondary.press'),
+      onSecondaryCommitted: () => gameplayEdges.add('secondary.commit'),
+      onSecondaryHoldStart: () => gameplayEdges.add('secondary.hold.start'),
+      onSecondaryHoldEnd: () => gameplayEdges.add('secondary.hold.end'),
+      onSpellPressed: () => gameplayEdges.add('spell.press'),
+      onProjectileCommitted: () => gameplayEdges.add('projectile.commit'),
+      onProjectilePressed: () => gameplayEdges.add('projectile.press'),
+      onProjectileHoldStart: () => gameplayEdges.add('projectile.hold.start'),
+      onProjectileHoldEnd: () => gameplayEdges.add('projectile.hold.end'),
+      onAimDir: (_, _) => gameplayEdges.add('aim.update'),
+      onAimClear: () => gameplayEdges.add('aim.clear'),
       projectileAimPreview: projectileAimPreview,
       projectileAffordable: true,
-      projectileCooldownTicksLeft: 0,
+      projectileCooldownTicksLeft: projectileCooldownTicksLeft,
       projectileCooldownTicksTotal: 0,
-      onMeleeCommitted: () {},
-      onMeleePressed: () {},
-      onMeleeHoldStart: () {},
-      onMeleeHoldEnd: () {},
-      onMeleeChargeHoldStart: () {},
-      onMeleeChargeHoldEnd: () {},
+      onMeleeCommitted: () => gameplayEdges.add('primary.commit'),
+      onMeleePressed: () => gameplayEdges.add('primary.press'),
+      onMeleeHoldStart: () => gameplayEdges.add('primary.hold.start'),
+      onMeleeHoldEnd: () => gameplayEdges.add('primary.hold.end'),
+      onMeleeChargeHoldStart: () => gameplayEdges.add('primary.charge.start'),
+      onMeleeChargeHoldEnd: () => gameplayEdges.add('primary.charge.end'),
       meleeAimPreview: meleeAimPreview,
       aimCancelHitboxRect: cancelHitboxRect,
-      meleeAffordable: true,
+      meleeAffordable: meleeAffordable,
       meleeCooldownTicksLeft: 0,
       meleeCooldownTicksTotal: 0,
-      meleeInputMode: AbilityInputMode.holdAimRelease,
+      meleeInputMode: meleeInputMode,
       secondaryInputMode: secondaryInputMode,
-      projectileInputMode: AbilityInputMode.holdAimRelease,
+      projectileInputMode: projectileInputMode,
       mobilityInputMode: mobilityInputMode,
       chargeBarVisible: chargeBarVisible,
       chargeBarProgress01: chargeBarProgress01,

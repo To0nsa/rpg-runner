@@ -13,6 +13,7 @@ import 'package:runner_core/abilities/ability_catalog.dart';
 import 'package:runner_core/ecs/stores/combat/equipped_loadout_store.dart';
 import 'package:runner_core/util/tick_math.dart';
 import 'package:runner_core/projectiles/projectile_id.dart';
+import 'package:run_protocol/replay_blob.dart';
 import 'package:rpg_runner/game/game_controller.dart';
 import 'package:rpg_runner/game/input/runner_input_router.dart';
 
@@ -785,4 +786,142 @@ void main() {
       );
     },
   );
+
+  test('held-slot start and end edges are idempotent', () {
+    for (final slot in <AbilitySlot>[
+      AbilitySlot.primary,
+      AbilitySlot.secondary,
+      AbilitySlot.projectile,
+      AbilitySlot.mobility,
+    ]) {
+      final (:controller, :input) = _buildInputHarness();
+      final frames = <ReplayCommandFrameV1>[];
+      controller.addAppliedCommandFrameListener(frames.add);
+
+      _startSlot(input, slot);
+      _startSlot(input, slot);
+      controller.advanceFrame(1 / controller.tickHz);
+
+      final slotBit = 1 << slot.index;
+      expect(frames, hasLength(1), reason: '$slot start frame');
+      expect(
+        frames.single.abilitySlotHeldChangedMask,
+        slotBit,
+        reason: '$slot start edge',
+      );
+      expect(
+        frames.single.abilitySlotHeldValueMask,
+        slotBit,
+        reason: '$slot starts held',
+      );
+
+      frames.clear();
+      _endSlot(input, slot);
+      _endSlot(input, slot);
+      controller.advanceFrame(1 / controller.tickHz);
+
+      expect(frames, hasLength(1), reason: '$slot release frame');
+      expect(
+        frames.single.abilitySlotHeldChangedMask,
+        slotBit,
+        reason: '$slot release edge',
+      );
+      expect(
+        frames.single.abilitySlotHeldValueMask,
+        0,
+        reason: '$slot ends released',
+      );
+    }
+  });
+
+  test('complete neutralization clears every supported held-slot source', () {
+    for (final slot in <AbilitySlot>[
+      AbilitySlot.primary,
+      AbilitySlot.secondary,
+      AbilitySlot.projectile,
+      AbilitySlot.mobility,
+    ]) {
+      final (:controller, :input) = _buildInputHarness();
+      final frames = <ReplayCommandFrameV1>[];
+      controller.addAppliedCommandFrameListener(frames.add);
+
+      input.setMoveAxis(1);
+      input.setAimDir(0, -1);
+      _startSlot(input, slot);
+      input.pumpHeldInputs();
+      controller.advanceFrame(1 / controller.tickHz);
+
+      frames.clear();
+      input.setMoveAxis(0);
+      input.clearAimDir();
+      for (final candidate in <AbilitySlot>[
+        AbilitySlot.primary,
+        AbilitySlot.secondary,
+        AbilitySlot.projectile,
+        AbilitySlot.mobility,
+      ]) {
+        _endSlot(input, candidate);
+      }
+      input.pumpHeldInputs();
+      controller.advanceFrame(1 / controller.tickHz);
+
+      expect(frames, hasLength(1), reason: '$slot neutral frame');
+      final neutral = frames.single;
+      expect(neutral.moveAxis, isNull, reason: '$slot movement cleared');
+      expect(neutral.aimDirX, isNull, reason: '$slot aim X cleared');
+      expect(neutral.aimDirY, isNull, reason: '$slot aim Y cleared');
+      expect(
+        neutral.abilitySlotHeldChangedMask,
+        1 << slot.index,
+        reason: '$slot release is the only held-state change',
+      );
+      expect(neutral.abilitySlotHeldValueMask, 0);
+    }
+  });
+}
+
+({GameController controller, RunnerInputRouter input}) _buildInputHarness() {
+  final core = GameCore(
+    levelDefinition: testFieldLevel(tuning: noAutoscrollTuning),
+    playerCharacter: testPlayerCharacter,
+    seed: 1,
+    tickHz: 60,
+  );
+  final controller = GameController(core: core);
+  return (
+    controller: controller,
+    input: RunnerInputRouter(controller: controller),
+  );
+}
+
+void _startSlot(RunnerInputRouter input, AbilitySlot slot) {
+  switch (slot) {
+    case AbilitySlot.primary:
+      input.startPrimaryHold();
+    case AbilitySlot.secondary:
+      input.startSecondaryHold();
+    case AbilitySlot.projectile:
+      input.startAbilitySlotHold(slot);
+    case AbilitySlot.mobility:
+      input.startMobilityHold();
+    case AbilitySlot.spell:
+    case AbilitySlot.jump:
+      throw ArgumentError.value(slot, 'slot', 'is not a supported held slot');
+  }
+}
+
+void _endSlot(RunnerInputRouter input, AbilitySlot slot) {
+  switch (slot) {
+    case AbilitySlot.primary:
+      input.endPrimaryHold();
+    case AbilitySlot.secondary:
+      input.endSecondaryHold();
+    case AbilitySlot.projectile:
+      input.endAbilitySlotHold(slot);
+    case AbilitySlot.mobility:
+      input.endMobilityHold();
+    case AbilitySlot.spell:
+    case AbilitySlot.jump:
+      throw ArgumentError.value(slot, 'slot', 'is not a supported held slot');
+  }
 }

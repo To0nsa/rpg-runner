@@ -92,4 +92,52 @@ void main() {
     aimPreview.dispose();
     forceCancelSignal.dispose();
   });
+
+  testWidgets('pointer cancel ends hold and aim without commit', (
+    tester,
+  ) async {
+    final aimPreview = AimPreviewModel();
+    final forceCancelSignal = ValueNotifier<int>(0);
+    addTearDown(aimPreview.dispose);
+    addTearDown(forceCancelSignal.dispose);
+    const controls = ControlsTuning.fixed;
+    final edges = <String>[];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: DirectionalActionButton(
+              label: 'Proj',
+              icon: Icons.auto_awesome,
+              onAimDir: (_, _) => edges.add('aim'),
+              onAimClear: () => edges.add('clear'),
+              onCommit: () => edges.add('commit'),
+              onHoldStart: () => edges.add('start'),
+              onHoldEnd: () => edges.add('end'),
+              projectileAimPreview: aimPreview,
+              tuning: controls.style.directionalActionButton,
+              size: controls.style.directionalActionButton.size,
+              deadzoneRadius:
+                  controls.style.directionalActionButton.deadzoneRadius,
+              cooldownRing: controls.style.cooldownRing,
+              forceCancelSignal: forceCancelSignal,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.byType(DirectionalActionButton)),
+    );
+    await tester.pump();
+    await gesture.cancel();
+    await tester.pump();
+
+    expect(edges.first, 'start');
+    expect(edges, contains('end'));
+    expect(edges, isNot(contains('commit')));
+    expect(aimPreview.value.active, isFalse);
+  });
 }

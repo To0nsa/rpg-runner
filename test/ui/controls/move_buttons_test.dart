@@ -40,4 +40,36 @@ void main() {
 
     expect(emittedAxis, equals(<double>[-1.0, 1.0, 0.0]));
   });
+
+  testWidgets('pointer cancel restores neutral movement', (tester) async {
+    final emittedAxis = <double>[];
+    const moveButtons = MoveButtonsTuning(
+      buttonWidth: 64,
+      buttonHeight: 48,
+      gap: 8,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: MoveButtons(
+              onAxisChanged: emittedAxis.add,
+              tuning: moveButtons,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final rect = tester.getRect(find.byType(MoveButtons));
+    final gesture = await tester.startGesture(
+      Offset(rect.left + 4, rect.center.dy),
+    );
+    await tester.pump();
+    await gesture.cancel();
+    await tester.pump();
+
+    expect(emittedAxis, <double>[-1.0, 0.0]);
+  });
 }
