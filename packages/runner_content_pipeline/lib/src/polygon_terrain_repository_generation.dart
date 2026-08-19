@@ -2,7 +2,6 @@ import 'package:runner_core/collision/terrain/terrain_authoring_issue.dart';
 import 'package:runner_core/collision/terrain/terrain_authoring_scheduler.dart';
 import 'package:runner_core/track/chunk_pattern_source.dart';
 
-import 'level_definition_generation.dart';
 import 'polygon_terrain_compilation.dart';
 import 'polygon_terrain_seam_manifest.dart';
 import 'polygon_terrain_seam_validation.dart';
@@ -17,6 +16,53 @@ final class PolygonTerrainRepositoryChunkInput {
 
   final String sourcePath;
   final String contents;
+}
+
+/// Level reachability fields required by repository terrain generation.
+final class PolygonTerrainSchedulerLevelSource {
+  const PolygonTerrainSchedulerLevelSource({
+    required this.levelId,
+    required this.earlyPatternChunks,
+    required this.easyPatternChunks,
+    required this.normalPatternChunks,
+    this.assembly,
+  });
+
+  final String levelId;
+  final int earlyPatternChunks;
+  final int easyPatternChunks;
+  final int normalPatternChunks;
+  final PolygonTerrainSchedulerAssemblySource? assembly;
+}
+
+/// Optional ordered assembly rules used for one level's reachability.
+final class PolygonTerrainSchedulerAssemblySource {
+  PolygonTerrainSchedulerAssemblySource({
+    required this.loopSegments,
+    required Iterable<PolygonTerrainSchedulerSegmentSource> segments,
+  }) : segments = List<PolygonTerrainSchedulerSegmentSource>.unmodifiable(
+         segments,
+       );
+
+  final bool loopSegments;
+  final List<PolygonTerrainSchedulerSegmentSource> segments;
+}
+
+/// One scheduler assembly segment used for terrain reachability.
+final class PolygonTerrainSchedulerSegmentSource {
+  const PolygonTerrainSchedulerSegmentSource({
+    required this.segmentId,
+    required this.groupId,
+    required this.minChunkCount,
+    required this.maxChunkCount,
+    required this.requireDistinctChunks,
+  });
+
+  final String segmentId;
+  final String groupId;
+  final int minChunkCount;
+  final int maxChunkCount;
+  final bool requireDistinctChunks;
 }
 
 /// One fully accepted Chunk and its compiled polygon terrain.
@@ -56,7 +102,7 @@ PolygonTerrainRepositoryGenerationResult buildPolygonTerrainRepository({
   required String prefabSourcePath,
   required String prefabContents,
   required Iterable<PolygonTerrainRepositoryChunkInput> chunkInputs,
-  required Iterable<LevelDefinitionSource> levels,
+  required Iterable<PolygonTerrainSchedulerLevelSource> levels,
   required String schedulerSourcePath,
 }) {
   prefabSourcePath = canonicalPolygonTerrainSourcePath(prefabSourcePath);
@@ -178,27 +224,28 @@ PolygonTerrainRepositoryGenerationResult _failure(
   issues: issues,
 );
 
-TerrainAuthoringSchedulerLevel _schedulerLevel(LevelDefinitionSource level) =>
-    TerrainAuthoringSchedulerLevel(
-      levelId: level.levelId,
-      earlyPatternChunks: level.earlyPatternChunks,
-      easyPatternChunks: level.easyPatternChunks,
-      normalPatternChunks: level.normalPatternChunks,
-      assembly: level.assembly == null
-          ? null
-          : TerrainAuthoringSchedulerAssembly(
-              loopSegments: level.assembly!.loopSegments,
-              segments: level.assembly!.segments.map(
-                (segment) => TerrainAuthoringSchedulerSegment(
-                  segmentId: segment.segmentId,
-                  groupId: segment.groupId,
-                  minChunkCount: segment.minChunkCount,
-                  maxChunkCount: segment.maxChunkCount,
-                  requireDistinctChunks: segment.requireDistinctChunks,
-                ),
-              ),
+TerrainAuthoringSchedulerLevel _schedulerLevel(
+  PolygonTerrainSchedulerLevelSource level,
+) => TerrainAuthoringSchedulerLevel(
+  levelId: level.levelId,
+  earlyPatternChunks: level.earlyPatternChunks,
+  easyPatternChunks: level.easyPatternChunks,
+  normalPatternChunks: level.normalPatternChunks,
+  assembly: level.assembly == null
+      ? null
+      : TerrainAuthoringSchedulerAssembly(
+          loopSegments: level.assembly!.loopSegments,
+          segments: level.assembly!.segments.map(
+            (segment) => TerrainAuthoringSchedulerSegment(
+              segmentId: segment.segmentId,
+              groupId: segment.groupId,
+              minChunkCount: segment.minChunkCount,
+              maxChunkCount: segment.maxChunkCount,
+              requireDistinctChunks: segment.requireDistinctChunks,
             ),
-    );
+          ),
+        ),
+);
 
 ChunkPatternTier _tier(String difficulty) => switch (difficulty) {
   'early' => ChunkPatternTier.early,

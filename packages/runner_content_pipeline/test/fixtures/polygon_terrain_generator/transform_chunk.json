@@ -1,0 +1,148 @@
+{
+  "schemaVersion": 2,
+  "chunkKey": "transform_chunk",
+  "id": "transform_chunk",
+  "revision": 1,
+  "status": "active",
+  "levelId": "forest",
+  "tileSize": 16,
+  "width": 200,
+  "height": 150,
+  "difficulty": "normal",
+  "assemblyGroupId": "default",
+  "tags": [
+    "fixture",
+    "transform"
+  ],
+  "tileLayers": [],
+  "prefabs": [
+    {
+      "prefabId": "asymmetric",
+      "prefabKey": "prefab_asymmetric",
+      "x": 30,
+      "y": 30,
+      "zIndex": 1,
+      "snapToGrid": false,
+      "scale": 0.3,
+      "flipX": true
+    },
+    {
+      "prefabId": "asymmetric",
+      "prefabKey": "prefab_asymmetric",
+      "x": 80,
+      "y": 50,
+      "zIndex": 1,
+      "snapToGrid": false,
+      "scale": 3.0,
+      "flipY": true
+    }
+  ],
+  "markers": [],
+  "collisionShapes": [
+    {
+      "shapeId": "ground_left",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 0,
+          "y": 100
+        },
+        {
+          "x": 20,
+          "y": 100
+        },
+        {
+          "x": 61,
+          "y": 81
+        },
+        {
+          "x": 100,
+          "y": 81
+        },
+        {
+          "x": 100,
+          "y": 130
+        },
+        {
+          "x": 0,
+          "y": 130
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "earth"
+    },
+    {
+      "shapeId": "ground_pit_right",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 170,
+          "y": 100
+        },
+        {
+          "x": 200,
+          "y": 100
+        },
+        {
+          "x": 200,
+          "y": 130
+        },
+        {
+          "x": 170,
+          "y": 130
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "earth"
+    },
+    {
+      "shapeId": "ground_right",
+      "collisionMode": "solid",
+      "vertices": [
+        {
+          "x": 100,
+          "y": 81
+        },
+        {
+          "x": 150,
+          "y": 81
+        },
+        {
+          "x": 150,
+          "y": 130
+        },
+        {
+          "x": 100,
+          "y": 130
+        }
+      ],
+      "surfaceKind": "ground",
+      "materialKey": "earth"
+    },
+    {
+      "shapeId": "platform",
+      "collisionMode": "oneWay",
+      "vertices": [
+        {
+          "x": 110,
+          "y": 50
+        },
+        {
+          "x": 140,
+          "y": 50
+        },
+        {
+          "x": 140,
+          "y": 52
+        },
+        {
+          "x": 110,
+          "y": 52
+        }
+      ],
+      "surfaceKind": "platform",
+      "materialKey": "wood"
+    }
+  ]
+}
+

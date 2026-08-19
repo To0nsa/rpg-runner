@@ -34,6 +34,8 @@ dependencies:
     sdk: flutter
   runner_core:
     path: packages/runner_core
+  runner_content_pipeline:
+    path: packages/runner_content_pipeline
   run_protocol:
     path: packages/run_protocol
   terrain_materials:

@@ -10,11 +10,8 @@ import '../fixtures/polygon_terrain_generator/staged_authored_terrain.g.dart'
     as golden;
 import '../../tool/generated_artifact_plan.dart';
 import '../../tool/polygon_terrain_artifact_validation.dart';
-import '../../tool/polygon_terrain_compilation.dart';
+import 'package:runner_content_pipeline/runner_content_pipeline.dart';
 import '../../tool/polygon_terrain_render.dart';
-import '../../tool/polygon_terrain_seam_manifest.dart';
-import '../../tool/polygon_terrain_seam_validation.dart';
-import '../../tool/polygon_terrain_source.dart';
 
 const String _fixtureDirectory = 'test/fixtures/polygon_terrain_generator';
 const String _goldenPath = '$_fixtureDirectory/staged_authored_terrain.g.dart';

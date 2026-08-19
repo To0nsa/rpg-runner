@@ -4,11 +4,7 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:runner_core/collision/terrain/terrain_authoring_seam_signature.dart';
 
-import 'polygon_terrain_compilation.dart';
-import 'polygon_terrain_render.dart';
-import 'polygon_terrain_seam_manifest.dart';
-import 'polygon_terrain_seam_validation.dart';
-import 'polygon_terrain_source.dart';
+import 'package:runner_content_pipeline/runner_content_pipeline.dart';
 
 const String polygonTerrainSignatureProbeFormat =
     'polygon-terrain-signature-probe-v1';

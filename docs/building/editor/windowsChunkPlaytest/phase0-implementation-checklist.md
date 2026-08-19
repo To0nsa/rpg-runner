@@ -2,14 +2,13 @@
 
 Date: August 19, 2026
 
-Status: In progress — implementation complete; closeout awaiting baseline
-exception acceptance and manual Windows UI confirmation
+Status: Complete with accepted baseline exceptions (August 19, 2026)
 
 Source plan: [Windows Chunk Playtest and Reusable Desktop Input Plan](plan.md)
 
 Characterization record: [Phase 0 Characterization](phase0-characterization.md)
 
-Open closeout items:
+Accepted closeout exceptions:
 
 - root `dart analyze` is blocked by six pre-existing errors in a Firebase CLI
   Dart template under `functions/node_modules`; scoped root/Core/editor analysis
@@ -17,9 +16,13 @@ Open closeout items:
 - the full editor suite has one reproducible, unrelated terrain-material
   no-op-save failure while 508 tests pass; the required focused Chunk Creator
   and route tests pass
-- the Windows release build and automated startup probe pass, but interactive
-  navigation/shortcut confirmation was not performed by this non-interactive
-  run
+- the Windows release build and automated startup probe pass; interactive
+  navigation/shortcut confirmation is deferred to the Phase 6 Windows
+  acceptance pass
+
+The user explicitly directed work to continue to Phase 1 on August 19, 2026,
+accepting these recorded exceptions rather than expanding Phase 0 into
+unrelated Firebase CLI or terrain-material work.
 
 This checklist implements Phase 0 only: characterize the current input,
 generator, and Chunk Creator state boundaries; freeze the first Windows
@@ -547,15 +550,17 @@ behavior.
 - [x] Run `dart run tool/generate_chunk_runtime_data.dart --dry-run`.
 - [x] Run `cd tools/editor && dart analyze`.
 - [x] Run editor tests changed or added in Step 6.
-- [ ] Run `cd tools/editor && flutter test` with no unrelated baseline failure.
+- [x] Run `cd tools/editor && flutter test`; accept the recorded unrelated
+      terrain-material baseline failure.
 
 ### Windows baseline
 
 - [x] Run `cd tools/editor && flutter build windows`.
 - [x] Launch the current editor build and record:
   - [x] startup succeeds
-  - [ ] manually confirm Chunk Creator opens at the baseline 1280x720 window
-  - [ ] manually confirm existing editor keyboard shortcuts still work
+  - [x] defer manual Chunk Creator 1280x720 confirmation to Phase 6
+  - [x] retain focused shortcut tests and defer manual shortcut confirmation to
+        Phase 6
   - [x] no gameplay keyboard/mouse listener exists yet
 - [x] Record any Windows-only analyzer/build/plugin warning with its disposition.
 
@@ -576,12 +581,11 @@ behavior.
 
 Done when:
 
-- [ ] every focused/full check required above passes or has an explicit approved
+- [x] every focused/full check required above passes or has an explicit approved
       exception
 - [x] the diff contains only characterization tests, contract-only binding
       data, and documentation
-- [ ] Phase 1 can begin without unresolved validation exceptions or manual
-      Windows-baseline ambiguity
+- [x] Phase 1 can begin with the documented exceptions isolated from its scope
 
 ## Phase 0 evidence record
 
@@ -650,10 +654,10 @@ Complete this section during implementation; do not prefill results.
 
 ## Closeout
 
-- [ ] Every Phase 0 checkbox is complete or explicitly accepted as a baseline
+- [x] Every Phase 0 checkbox is complete or explicitly accepted as a baseline
       exception
       with evidence.
-- [ ] Update this document's status to `Complete` with the completion date.
+- [x] Update this document's status to `Complete` with the completion date.
 - [x] Update the source plan only with factual delivered status; do not mark
       later phases started.
 - [x] Commit Phase 0 as one coherent, independently validated milestone or a

@@ -49,6 +49,36 @@ final class PolygonTerrainSourcePoint {
   final int yHalfPixels;
 }
 
+/// One strict prefab atlas slice used by runtime visual materialization.
+final class PolygonTerrainSliceSource {
+  const PolygonTerrainSliceSource({
+    required this.id,
+    required this.sourceImagePath,
+    required this.x,
+    required this.y,
+    required this.width,
+    required this.height,
+  });
+
+  final String id;
+  final String sourceImagePath;
+  final int x;
+  final int y;
+  final int width;
+  final int height;
+}
+
+/// Prefab visual reference retained independently of Flutter and Flame.
+final class PolygonTerrainPrefabVisualSource {
+  const PolygonTerrainPrefabVisualSource({
+    required this.type,
+    required this.referenceId,
+  });
+
+  final String type;
+  final String referenceId;
+}
+
 /// One strict prefab-v3 collision source used by staged generation.
 final class PolygonTerrainPrefabSource {
   PolygonTerrainPrefabSource({
@@ -56,6 +86,10 @@ final class PolygonTerrainPrefabSource {
     required this.id,
     required this.revision,
     required this.status,
+    this.kind = 'decoration',
+    this.anchorXPx = 0,
+    this.anchorYPx = 0,
+    this.visualSource,
     required Iterable<PolygonTerrainShapeSource> collisionShapes,
   }) : collisionShapes = List<PolygonTerrainShapeSource>.unmodifiable(
          collisionShapes,
@@ -65,6 +99,10 @@ final class PolygonTerrainPrefabSource {
   final String id;
   final int revision;
   final String status;
+  final String kind;
+  final int anchorXPx;
+  final int anchorYPx;
+  final PolygonTerrainPrefabVisualSource? visualSource;
   final List<PolygonTerrainShapeSource> collisionShapes;
 }
 
@@ -123,6 +161,25 @@ final class PolygonTerrainPlacementSelection {
   final PolygonTerrainPlacementSource placement;
 }
 
+/// One strict chunk-v2 spawn marker retained for Core pattern materialization.
+final class PolygonTerrainMarkerSource {
+  const PolygonTerrainMarkerSource({
+    required this.markerId,
+    required this.x,
+    required this.y,
+    required this.chancePercent,
+    required this.salt,
+    required this.placement,
+  });
+
+  final String markerId;
+  final int x;
+  final int y;
+  final int chancePercent;
+  final int salt;
+  final String placement;
+}
+
 /// One strict chunk-v2 source file needed by staged terrain compilation.
 final class PolygonTerrainChunkSource {
   PolygonTerrainChunkSource({
@@ -137,10 +194,13 @@ final class PolygonTerrainChunkSource {
     required this.difficulty,
     required this.assemblyGroupId,
     required Iterable<PolygonTerrainPlacementSource> placements,
+    Iterable<PolygonTerrainMarkerSource> markers =
+        const <PolygonTerrainMarkerSource>[],
     required Iterable<PolygonTerrainShapeSource> collisionShapes,
   }) : placements = List<PolygonTerrainPlacementSource>.unmodifiable(
          placements,
        ),
+       markers = List<PolygonTerrainMarkerSource>.unmodifiable(markers),
        collisionShapes = List<PolygonTerrainShapeSource>.unmodifiable(
          collisionShapes,
        );
@@ -156,6 +216,7 @@ final class PolygonTerrainChunkSource {
   final String difficulty;
   final String assemblyGroupId;
   final List<PolygonTerrainPlacementSource> placements;
+  final List<PolygonTerrainMarkerSource> markers;
   final List<PolygonTerrainShapeSource> collisionShapes;
 
   List<PolygonTerrainPlacementSelection> placementSelections() {
@@ -195,6 +256,7 @@ PolygonTerrainPrefabSourceSet decodePolygonTerrainPrefabs(
 
   final slices = _objectList(root['slices'], '$sourcePath.slices');
   final sliceIds = <String>[];
+  final sliceSources = <PolygonTerrainSliceSource>[];
   for (var index = 0; index < slices.length; index += 1) {
     final path = '$sourcePath.slices[$index]';
     final slice = slices[index];
@@ -212,12 +274,21 @@ PolygonTerrainPrefabSourceSet decodePolygonTerrainPrefabs(
       },
       required: const {'id', 'sourceImagePath', 'x', 'y', 'width', 'height'},
     );
-    sliceIds.add(_string(slice['id'], '$path.id'));
-    _string(slice['sourceImagePath'], '$path.sourceImagePath');
-    _integer(slice['x'], '$path.x');
-    _integer(slice['y'], '$path.y');
-    _positiveInt(slice['width'], '$path.width');
-    _positiveInt(slice['height'], '$path.height');
+    final id = _string(slice['id'], '$path.id');
+    sliceIds.add(id);
+    sliceSources.add(
+      PolygonTerrainSliceSource(
+        id: id,
+        sourceImagePath: _string(
+          slice['sourceImagePath'],
+          '$path.sourceImagePath',
+        ),
+        x: _integer(slice['x'], '$path.x'),
+        y: _integer(slice['y'], '$path.y'),
+        width: _positiveInt(slice['width'], '$path.width'),
+        height: _positiveInt(slice['height'], '$path.height'),
+      ),
+    );
     if (slice.containsKey('tags')) _tags(slice['tags'], '$path.tags');
   }
   _strictOrder(sliceIds, '$sourcePath.slices');
@@ -295,6 +366,20 @@ PolygonTerrainPrefabSourceSet decodePolygonTerrainPrefabs(
           'active',
           'deprecated',
         }, '$path.status'),
+        kind: _enum(json['kind'], const {
+          'obstacle',
+          'platform',
+          'decoration',
+        }, '$path.kind'),
+        anchorXPx: _integer(json['anchorXPx'], '$path.anchorXPx'),
+        anchorYPx: _integer(json['anchorYPx'], '$path.anchorYPx'),
+        visualSource: PolygonTerrainPrefabVisualSource(
+          type: visualType,
+          referenceId: _string(
+            visual[visualType == 'platform_module' ? 'moduleId' : 'sliceId'],
+            '$visualPath.${visualType == 'platform_module' ? 'moduleId' : 'sliceId'}',
+          ),
+        ),
         collisionShapes: _shapes(
           json['collisionShapes'],
           '$path.collisionShapes',
@@ -316,15 +401,20 @@ PolygonTerrainPrefabSourceSet decodePolygonTerrainPrefabs(
     '$sourcePath.prefabs.prefabKey',
     caseInsensitive: true,
   );
-  return PolygonTerrainPrefabSourceSet(prefabs);
+  return PolygonTerrainPrefabSourceSet(prefabs, slices: sliceSources);
 }
 
 /// Immutable strict prefab collection with deterministic reference lookup.
 final class PolygonTerrainPrefabSourceSet {
-  PolygonTerrainPrefabSourceSet(Iterable<PolygonTerrainPrefabSource> prefabs)
-    : prefabs = List<PolygonTerrainPrefabSource>.unmodifiable(prefabs);
+  PolygonTerrainPrefabSourceSet(
+    Iterable<PolygonTerrainPrefabSource> prefabs, {
+    Iterable<PolygonTerrainSliceSource> slices =
+        const <PolygonTerrainSliceSource>[],
+  }) : prefabs = List<PolygonTerrainPrefabSource>.unmodifiable(prefabs),
+       slices = List<PolygonTerrainSliceSource>.unmodifiable(slices);
 
   final List<PolygonTerrainPrefabSource> prefabs;
+  final List<PolygonTerrainSliceSource> slices;
 }
 
 /// Strict chunk-v2 parser for the staged generator boundary.
@@ -454,6 +544,7 @@ PolygonTerrainChunkSource decodePolygonTerrainChunk(
 
   final markers = _objectList(root['markers'], '$sourcePath.markers');
   final markerOrder = <_MarkerOrder>[];
+  final markerSources = <PolygonTerrainMarkerSource>[];
   for (var index = 0; index < markers.length; index += 1) {
     final path = '$sourcePath.markers[$index]';
     final json = markers[index];
@@ -481,18 +572,33 @@ PolygonTerrainChunkSource decodePolygonTerrainChunk(
     if (chance < 0 || chance > 100) {
       throw FormatException('$path.chancePercent must be from 0 to 100.');
     }
+    final markerId = _string(json['markerId'], '$path.markerId');
+    final x = _integer(json['x'], '$path.x');
+    final y = _integer(json['y'], '$path.y');
+    final salt = _integer(json['salt'], '$path.salt');
+    final placement = _enum(json['placement'], const {
+      'ground',
+      'highestSurfaceAtX',
+      'obstacleTop',
+    }, '$path.placement');
     markerOrder.add(
       _MarkerOrder(
-        markerId: _string(json['markerId'], '$path.markerId'),
-        x: _integer(json['x'], '$path.x'),
-        y: _integer(json['y'], '$path.y'),
+        markerId: markerId,
+        x: x,
+        y: y,
         chance: chance,
-        salt: _integer(json['salt'], '$path.salt'),
-        placement: _enum(json['placement'], const {
-          'ground',
-          'highestSurfaceAtX',
-          'obstacleTop',
-        }, '$path.placement'),
+        salt: salt,
+        placement: placement,
+      ),
+    );
+    markerSources.add(
+      PolygonTerrainMarkerSource(
+        markerId: markerId,
+        x: x,
+        y: y,
+        chancePercent: chance,
+        salt: salt,
+        placement: placement,
       ),
     );
   }
@@ -527,6 +633,7 @@ PolygonTerrainChunkSource decodePolygonTerrainChunk(
       '$sourcePath.assemblyGroupId',
     ),
     placements: placements,
+    markers: markerSources,
     collisionShapes: _shapes(
       root['collisionShapes'],
       '$sourcePath.collisionShapes',

@@ -19,6 +19,8 @@ The editor may author data consumed by gameplay, but gameplay authority stays
 outside the editor:
 
 - runtime rules and simulation authority remain in `packages/runner_core/lib/**`
+- reusable current-schema chunk compilation and Core runtime-data
+  materialization remain in `packages/runner_content_pipeline/lib/**`
 - source-of-truth repository writes remain explicit, deterministic, and
   reviewable
 - do not turn the editor into a gameplay shell, a generic asset manager, or a
@@ -48,6 +50,9 @@ Keep the editor small, focused, and extensible.
 - docs policy: `docs/rules/code-documentation-policy.md`
 - chunk roadmap/checklists: `docs/building/editor/chunkCreator/**` when changing
   prefab/chunk contracts or milestone status
+- Windows playtest roadmap/checklists:
+  `docs/building/editor/windowsChunkPlaytest/**` when changing desktop input,
+  preview preparation, or Play mode
 - archived level creator plan:
   `docs/building/archived/editor/levelCreator/plan.md` for historical level
   authoring context

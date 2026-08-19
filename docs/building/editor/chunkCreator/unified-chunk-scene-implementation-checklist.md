@@ -856,7 +856,10 @@ Unchanged source/runtime seam gate:
 - [x] verify the dry-run reports no authored or generated drift caused by this
       initiative
 - [ ] if an editor projection refactor touches shared terrain adapters, run
-      `flutter test test/tool/polygon_terrain_compilation_test.dart test/tool/polygon_terrain_signature_probe_test.dart`
+      `cd packages/runner_content_pipeline && dart test
+      test/polygon_terrain_compilation_test.dart`, then run
+      `flutter test test/tool/polygon_terrain_signature_probe_test.dart` from
+      the repository root
 
 Validation closure recorded August 18, 2026: the normal dry-run validates nine
 chunks, three levels, three parallax themes, and one terrain material with no

@@ -1,0 +1,16 @@
+name: runner_content_pipeline
+description: Pure-Dart authored chunk decoding and runtime materialization.
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ^3.10.4
+
+dependencies:
+  crypto: ^3.0.6
+  runner_core:
+    path: ../runner_core
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.25.8

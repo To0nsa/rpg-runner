@@ -1,12 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_core/collision/terrain/terrain_authoring_issue.dart';
 import 'package:runner_core/collision/terrain/terrain_authoring_polygon_signature.dart';
 
-import '../../tool/polygon_terrain_compilation.dart';
-import '../../tool/polygon_terrain_source.dart';
+import 'package:runner_content_pipeline/runner_content_pipeline.dart';
+import 'package:test/test.dart';
 
 const String _fixtureDirectory = 'test/fixtures/polygon_terrain_generator';
 const String _chunkSourcePath = 'chunks/forest/fixture_chunk.json';

@@ -1,12 +1,9 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:runner_core/collision/terrain/terrain_authoring_issue.dart';
 import 'package:runner_core/collision/terrain/terrain_authoring_polygon_signature.dart';
 import 'package:runner_core/collision/terrain/terrain_authoring_seam_signature.dart';
 
-import '../../tool/polygon_terrain_compilation.dart';
-import '../../tool/polygon_terrain_seam_manifest.dart';
-import '../../tool/polygon_terrain_seam_validation.dart';
-import '../../tool/polygon_terrain_source.dart';
+import 'package:runner_content_pipeline/runner_content_pipeline.dart';
+import 'package:test/test.dart';
 
 void main() {
   test(

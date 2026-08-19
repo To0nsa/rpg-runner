@@ -1,11 +1,13 @@
-import 'dart:convert';
 import 'dart:io';
+
+import 'package:runner_content_pipeline/runner_content_pipeline.dart';
+import 'package:runner_core/enemies/enemy_id.dart';
+import 'package:runner_core/track/chunk_pattern.dart';
 
 import 'generated_artifact_plan.dart';
 import 'level_definition_generation.dart';
 import 'parallax_theme_generation.dart';
 import 'polygon_terrain_render.dart';
-import 'polygon_terrain_repository_generation.dart';
 import 'terrain_material_generation.dart';
 
 const String _chunksDirectoryPath = 'assets/authoring/level/chunks';
@@ -23,11 +25,6 @@ const String _levelUiMetadataOutputPath =
     'lib/ui/levels/generated_level_ui_metadata.dart';
 const String _parallaxOutputPath =
     'lib/game/themes/authored_parallax_themes.dart';
-const int _gridSnap = 16;
-const double _defaultPrefabScale = 1.0;
-const double _minPrefabScale = 0.3;
-const double _maxPrefabScale = 3.0;
-const double _prefabScaleStep = 0.1;
 const List<String> _difficultyOrder = <String>[
   'early',
   'easy',
@@ -62,8 +59,36 @@ Future<void> main(List<String> args) async {
       defsPath: _parallaxDefsPath,
     );
     final terrainMaterialResult = await buildTerrainMaterialRegistry();
-    final prefabRegistry = await _loadPrefabRegistry(issues);
     final prefabContents = await _readRequiredText(_prefabDefsPath, issues);
+    final tileContents = await _readRequiredText(_tileDefsPath, issues);
+    PolygonTerrainPrefabSourceSet? runtimePrefabs;
+    PolygonTileSourceSet? runtimeTiles;
+    if (prefabContents != null) {
+      try {
+        runtimePrefabs = decodePolygonTerrainPrefabs(
+          prefabContents,
+          sourcePath: _prefabDefsPath,
+        );
+      } on FormatException {
+        // Repository terrain generation reports the canonical prefab issue.
+      }
+    }
+    if (tileContents != null) {
+      try {
+        runtimeTiles = decodePolygonTileSources(
+          tileContents,
+          sourcePath: _tileDefsPath,
+        );
+      } on FormatException catch (error) {
+        issues.add(
+          _ValidationIssue(
+            path: _tileDefsPath,
+            code: 'tile_source_invalid',
+            message: error.message.toString(),
+          ),
+        );
+      }
+    }
     final chunkContentsByPath = <String, String>{};
     for (final file in files) {
       final path = _toRepoRelativePath(file.path);
@@ -114,7 +139,7 @@ Future<void> main(List<String> args) async {
             contents: entry.value,
           ),
         ),
-        levels: levelResult.levels,
+        levels: levelResult.levels.map(_terrainSchedulerLevel),
         schedulerSourcePath: _levelDefsPath,
       );
       issues.addAll(
@@ -127,14 +152,45 @@ Future<void> main(List<String> args) async {
         ),
       );
       for (final chunk in terrainResult.chunks) {
-        final parsed = _parseCurrentChunkExport(
-          chunk,
-          chunkContentsByPath[chunk.sourcePath]!,
-          issues,
-          prefabRegistry: prefabRegistry,
+        identities.add(
+          _ChunkIdentity(
+            path: chunk.sourcePath,
+            levelId: chunk.source.levelId,
+            chunkKey: chunk.source.chunkKey,
+            id: chunk.source.id,
+          ),
         );
-        identities.add(parsed.identity);
-        authoredChunks.add(parsed.exportData);
+        _validateLevelOwnershipPath(
+          path: chunk.sourcePath,
+          levelId: chunk.source.levelId,
+          issues: issues,
+        );
+        if (runtimePrefabs == null || runtimeTiles == null) continue;
+        final materialized = materializePolygonTerrainRuntimeChunk(
+          sourcePath: chunk.sourcePath,
+          compiled: chunk.compiled,
+          prefabSources: runtimePrefabs,
+          tileSources: runtimeTiles,
+        );
+        issues.addAll(
+          materialized.issues.map(
+            (issue) => _ValidationIssue(
+              path: issue.sourcePath,
+              code: issue.code,
+              message: issue.message,
+            ),
+          ),
+        );
+        if (materialized.chunk case final runtimeChunk?) {
+          authoredChunks.add(
+            _ChunkExportData(
+              path: chunk.sourcePath,
+              levelId: chunk.source.levelId,
+              difficulty: chunk.source.difficulty,
+              pattern: runtimeChunk.pattern,
+            ),
+          );
+        }
       }
       if (terrainMaterialResult.catalog case final materialCatalog?) {
         _validateTerrainMaterialReferences(
@@ -281,6 +337,30 @@ Future<void> main(List<String> args) async {
   }
 }
 
+PolygonTerrainSchedulerLevelSource _terrainSchedulerLevel(
+  LevelDefinitionSource level,
+) => PolygonTerrainSchedulerLevelSource(
+  levelId: level.levelId,
+  earlyPatternChunks: level.earlyPatternChunks,
+  easyPatternChunks: level.easyPatternChunks,
+  normalPatternChunks: level.normalPatternChunks,
+  assembly: level.assembly == null
+      ? null
+      : PolygonTerrainSchedulerAssemblySource(
+          loopSegments: level.assembly!.loopSegments,
+          segments: <PolygonTerrainSchedulerSegmentSource>[
+            for (final segment in level.assembly!.segments)
+              PolygonTerrainSchedulerSegmentSource(
+                segmentId: segment.segmentId,
+                groupId: segment.groupId,
+                minChunkCount: segment.minChunkCount,
+                maxChunkCount: segment.maxChunkCount,
+                requireDistinctChunks: segment.requireDistinctChunks,
+              ),
+          ],
+        ),
+);
+
 Future<List<File>> _listChunkJsonFiles() async {
   final directory = Directory(_chunksDirectoryPath);
   if (!await directory.exists()) {
@@ -303,48 +383,6 @@ Future<List<File>> _listChunkJsonFiles() async {
         _toRepoRelativePath(a.path).compareTo(_toRepoRelativePath(b.path)),
   );
   return files;
-}
-
-_ChunkParseResult _parseCurrentChunkExport(
-  PolygonTerrainRepositoryChunk terrain,
-  String raw,
-  List<_ValidationIssue> issues, {
-  required _PrefabRegistry prefabRegistry,
-}) {
-  final path = terrain.sourcePath;
-  final decoded = jsonDecode(raw)! as Map<String, Object?>;
-  final source = terrain.source;
-  _validateLevelOwnershipPath(
-    path: path,
-    levelId: source.levelId,
-    issues: issues,
-  );
-
-  final chunk = _ChunkJson(
-    path: path,
-    chunkKey: source.chunkKey,
-    id: source.id,
-    levelId: source.levelId,
-    difficulty: source.difficulty,
-    assemblyGroupId: source.assemblyGroupId,
-    prefabs: _readListOfMaps(decoded['prefabs']),
-    markers: _readListOfMaps(decoded['markers']),
-  );
-
-  final exportData = _buildChunkExportData(
-    chunk,
-    issues,
-    prefabRegistry: prefabRegistry,
-  );
-  return _ChunkParseResult(
-    identity: _ChunkIdentity(
-      path: path,
-      levelId: source.levelId,
-      chunkKey: source.chunkKey,
-      id: source.id,
-    ),
-    exportData: exportData,
-  );
 }
 
 void _validateLevelOwnershipPath({
@@ -393,103 +431,6 @@ String? _levelIdFromChunkPath(String path) {
   return segments.first;
 }
 
-List<Map<String, Object?>> _readListOfMaps(Object? raw) {
-  if (raw is! List<Object?>) {
-    return const <Map<String, Object?>>[];
-  }
-  final out = <Map<String, Object?>>[];
-  for (final item in raw) {
-    if (item is Map<String, Object?>) {
-      out.add(item);
-    }
-  }
-  return out;
-}
-
-Future<_PrefabRegistry> _loadPrefabRegistry(
-  List<_ValidationIssue> issues,
-) async {
-  final prefabDefs = await _readJsonObjectFile(_prefabDefsPath, issues);
-  final tileDefs = await _readJsonObjectFile(_tileDefsPath, issues);
-
-  final slicesById = <String, _SliceDef>{};
-  for (final json in _readListOfMaps(prefabDefs['slices'])) {
-    final id = _normalizedString(json['id']);
-    if (id.isEmpty) continue;
-    slicesById[id] = _SliceDef(
-      id: id,
-      assetPath: _normalizedString(json['sourceImagePath']),
-      x: _intOrZero(json['x']),
-      y: _intOrZero(json['y']),
-      width: _intOrZero(json['width']),
-      height: _intOrZero(json['height']),
-    );
-  }
-  for (final json in _readListOfMaps(tileDefs['tileSlices'])) {
-    final id = _normalizedString(json['id']);
-    if (id.isEmpty) continue;
-    slicesById[id] = _SliceDef(
-      id: id,
-      assetPath: _normalizedString(json['sourceImagePath']),
-      x: _intOrZero(json['x']),
-      y: _intOrZero(json['y']),
-      width: _intOrZero(json['width']),
-      height: _intOrZero(json['height']),
-    );
-  }
-
-  final modulesById = <String, _ModuleDef>{};
-  for (final json in _readListOfMaps(tileDefs['platformModules'])) {
-    final id = _normalizedString(json['id']);
-    if (id.isEmpty) continue;
-    final cells = <_ModuleCell>[];
-    for (final cell in _readListOfMaps(json['cells'])) {
-      final sliceId = _normalizedString(cell['sliceId']);
-      if (sliceId.isEmpty) continue;
-      cells.add(
-        _ModuleCell(
-          sliceId: sliceId,
-          gridX: _intOrZero(cell['gridX']),
-          gridY: _intOrZero(cell['gridY']),
-        ),
-      );
-    }
-    modulesById[id] = _ModuleDef(id: id, cells: cells);
-  }
-
-  final prefabsByKey = <String, _PrefabDef>{};
-  for (final json in _readListOfMaps(prefabDefs['prefabs'])) {
-    final key = _normalizedString(json['prefabKey']);
-    if (key.isEmpty) continue;
-    final visual = json['visualSource'];
-    String visualType = '';
-    String visualRefId = '';
-    if (visual is Map<String, Object?>) {
-      visualType = _normalizedString(visual['type']);
-      visualRefId = _normalizedString(
-        visualType == 'platform_module'
-            ? visual['moduleId']
-            : visual['sliceId'],
-      );
-    }
-
-    prefabsByKey[key] = _PrefabDef(
-      prefabKey: key,
-      kind: _normalizedString(json['kind']),
-      anchorX: _intOrZero(json['anchorXPx']).toDouble(),
-      anchorY: _intOrZero(json['anchorYPx']).toDouble(),
-      visualType: visualType,
-      visualRefId: visualRefId,
-    );
-  }
-
-  return _PrefabRegistry(
-    prefabsByKey: prefabsByKey,
-    slicesById: slicesById,
-    modulesById: modulesById,
-  );
-}
-
 Future<String?> _readRequiredText(
   String relativePath,
   List<_ValidationIssue> issues,
@@ -517,359 +458,6 @@ Future<String?> _readRequiredText(
     );
     return null;
   }
-}
-
-Future<Map<String, Object?>> _readJsonObjectFile(
-  String relativePath,
-  List<_ValidationIssue> issues,
-) async {
-  final file = File(relativePath);
-  if (!await file.exists()) {
-    issues.add(
-      _ValidationIssue(
-        path: relativePath,
-        code: 'missing_file',
-        message: 'Required file is missing.',
-      ),
-    );
-    return <String, Object?>{};
-  }
-  try {
-    final raw = await file.readAsString();
-    final decoded = jsonDecode(raw);
-    if (decoded is Map<String, Object?>) {
-      return decoded;
-    }
-    issues.add(
-      _ValidationIssue(
-        path: relativePath,
-        code: 'invalid_root_type',
-        message: 'Top-level JSON value must be an object.',
-      ),
-    );
-  } on Object catch (error) {
-    issues.add(
-      _ValidationIssue(
-        path: relativePath,
-        code: 'read_failed',
-        message: 'Unable to read/parse file: $error',
-      ),
-    );
-  }
-  return <String, Object?>{};
-}
-
-_ChunkExportData _buildChunkExportData(
-  _ChunkJson chunk,
-  List<_ValidationIssue> issues, {
-  required _PrefabRegistry prefabRegistry,
-}) {
-  final visualSprites = <_VisualSpriteExport>[];
-  final markers = <_MarkerExport>[];
-
-  for (final marker in chunk.markers) {
-    final markerId = _normalizedString(marker['markerId']);
-    final enemyId = _enemyEnumFor(markerId);
-    if (enemyId == null) {
-      issues.add(
-        _ValidationIssue(
-          path: chunk.path,
-          code: 'unknown_enemy_marker_id',
-          message: 'Unknown markerId "$markerId".',
-        ),
-      );
-      continue;
-    }
-    markers.add(
-      _MarkerExport(
-        enemyEnum: enemyId,
-        x: _intOrZero(marker['x']),
-        chancePercent: _intOrDefault(marker['chancePercent'], 100),
-        salt: _intOrDefault(marker['salt'], 0),
-        placementEnum: _placementEnumFor(
-          _normalizedString(marker['placement']),
-        ),
-      ),
-    );
-  }
-
-  for (final placed in chunk.prefabs) {
-    final prefabKey = _normalizedString(placed['prefabKey']);
-    final prefab = prefabRegistry.prefabsByKey[prefabKey];
-    if (prefab == null) {
-      issues.add(
-        _ValidationIssue(
-          path: chunk.path,
-          code: 'missing_prefab_key',
-          message: 'Placed prefab references unknown prefabKey "$prefabKey".',
-        ),
-      );
-      continue;
-    }
-
-    final placementX = _intOrZero(placed['x']).toDouble();
-    final placementY = _intOrZero(placed['y']).toDouble();
-    final scale = _doubleOrDefault(placed['scale'], _defaultPrefabScale);
-    final flipX = _boolOrDefault(placed['flipX'], false);
-    final flipY = _boolOrDefault(placed['flipY'], false);
-    final validScaleRange =
-        scale >= _minPrefabScale && scale <= _maxPrefabScale;
-    final validScaleStep = _isStepAligned(scale, _prefabScaleStep);
-    if (!validScaleRange) {
-      issues.add(
-        _ValidationIssue(
-          path: chunk.path,
-          code: 'prefab_scale_out_of_range',
-          message:
-              'Placed prefab "$prefabKey" scale $scale must be between '
-              '$_minPrefabScale and $_maxPrefabScale.',
-        ),
-      );
-      continue;
-    }
-    if (!validScaleStep) {
-      issues.add(
-        _ValidationIssue(
-          path: chunk.path,
-          code: 'prefab_scale_step_violation',
-          message:
-              'Placed prefab "$prefabKey" scale $scale must use step '
-              '$_prefabScaleStep.',
-        ),
-      );
-      continue;
-    }
-
-    final spriteEntries = _buildVisualSprites(
-      prefab: prefab,
-      placementX: placementX,
-      placementY: placementY,
-      scale: scale,
-      flipX: flipX,
-      flipY: flipY,
-      registry: prefabRegistry,
-      chunkPath: chunk.path,
-      issues: issues,
-      zIndex: _intOrDefault(placed['zIndex'], 0),
-    );
-    visualSprites.addAll(spriteEntries);
-  }
-
-  return _ChunkExportData(
-    path: chunk.path,
-    levelId: chunk.levelId,
-    difficulty: chunk.difficulty,
-    chunkKey: chunk.chunkKey,
-    name: chunk.id,
-    assemblyGroupId: chunk.assemblyGroupId,
-    visualSprites: visualSprites,
-    spawnMarkers: markers,
-  );
-}
-
-List<_VisualSpriteExport> _buildVisualSprites({
-  required _PrefabDef prefab,
-  required double placementX,
-  required double placementY,
-  required double scale,
-  required bool flipX,
-  required bool flipY,
-  required _PrefabRegistry registry,
-  required String chunkPath,
-  required List<_ValidationIssue> issues,
-  required int zIndex,
-}) {
-  if (prefab.visualType == 'atlas_slice') {
-    final slice = registry.slicesById[prefab.visualRefId];
-    if (slice == null) {
-      issues.add(
-        _ValidationIssue(
-          path: chunkPath,
-          code: 'missing_slice',
-          message: 'Missing atlas slice "${prefab.visualRefId}".',
-        ),
-      );
-      return const <_VisualSpriteExport>[];
-    }
-    return <_VisualSpriteExport>[
-      _VisualSpriteExport(
-        assetPath: _runtimeAssetPath(slice.assetPath),
-        srcX: slice.x,
-        srcY: slice.y,
-        srcWidth: slice.width,
-        srcHeight: slice.height,
-        x:
-            placementX +
-            _transformLocalAxisStart(
-              start: -(prefab.anchorX * scale),
-              extent: slice.width.toDouble() * scale,
-              flip: flipX,
-            ),
-        y:
-            placementY +
-            _transformLocalAxisStart(
-              start: -(prefab.anchorY * scale),
-              extent: slice.height.toDouble() * scale,
-              flip: flipY,
-            ),
-        width: slice.width.toDouble() * scale,
-        height: slice.height.toDouble() * scale,
-        zIndex: zIndex,
-        flipX: flipX,
-        flipY: flipY,
-      ),
-    ];
-  }
-
-  if (prefab.visualType == 'platform_module') {
-    final module = registry.modulesById[prefab.visualRefId];
-    if (module == null) {
-      issues.add(
-        _ValidationIssue(
-          path: chunkPath,
-          code: 'missing_module',
-          message: 'Missing platform module "${prefab.visualRefId}".',
-        ),
-      );
-      return const <_VisualSpriteExport>[];
-    }
-    final sprites = <_VisualSpriteExport>[];
-    for (final cell in module.cells) {
-      final slice = registry.slicesById[cell.sliceId];
-      if (slice == null) {
-        issues.add(
-          _ValidationIssue(
-            path: chunkPath,
-            code: 'missing_tile_slice',
-            message:
-                'Missing tile slice "${cell.sliceId}" for module "${module.id}".',
-          ),
-        );
-        continue;
-      }
-      sprites.add(
-        _VisualSpriteExport(
-          assetPath: _runtimeAssetPath(slice.assetPath),
-          srcX: slice.x,
-          srcY: slice.y,
-          srcWidth: slice.width,
-          srcHeight: slice.height,
-          x:
-              placementX +
-              _transformLocalAxisStart(
-                start:
-                    -(prefab.anchorX * scale) +
-                    (cell.gridX * _gridSnap * scale),
-                extent: slice.width.toDouble() * scale,
-                flip: flipX,
-              ),
-          y:
-              placementY +
-              _transformLocalAxisStart(
-                start:
-                    -(prefab.anchorY * scale) +
-                    (cell.gridY * _gridSnap * scale),
-                extent: slice.height.toDouble() * scale,
-                flip: flipY,
-              ),
-          width: slice.width.toDouble() * scale,
-          height: slice.height.toDouble() * scale,
-          zIndex: zIndex,
-          flipX: flipX,
-          flipY: flipY,
-        ),
-      );
-    }
-    return sprites;
-  }
-
-  return const <_VisualSpriteExport>[];
-}
-
-String _runtimeAssetPath(String authoredPath) {
-  const prefix = 'assets/images/';
-  if (authoredPath.startsWith(prefix)) {
-    return authoredPath.substring(prefix.length);
-  }
-  return authoredPath;
-}
-
-double _transformLocalAxisStart({
-  required double start,
-  required double extent,
-  required bool flip,
-}) {
-  if (!flip) {
-    return start;
-  }
-  return -(start + extent);
-}
-
-String? _enemyEnumFor(String markerId) {
-  switch (markerId) {
-    case 'derf':
-      return 'EnemyId.derf';
-    case 'grojib':
-      return 'EnemyId.grojib';
-    case 'hashash':
-      return 'EnemyId.hashash';
-    case 'unocoDemon':
-      return 'EnemyId.unocoDemon';
-    default:
-      return null;
-  }
-}
-
-String _placementEnumFor(String raw) {
-  switch (raw) {
-    case 'highestSurfaceAtX':
-      return 'SpawnPlacementMode.highestSurfaceAtX';
-    case 'obstacleTop':
-      return 'SpawnPlacementMode.obstacleTop';
-    case 'ground':
-    default:
-      return 'SpawnPlacementMode.ground';
-  }
-}
-
-int _intOrZero(Object? value) {
-  if (value is int) return value;
-  if (value is num) return value.toInt();
-  return 0;
-}
-
-int _intOrDefault(Object? value, int fallback) {
-  if (value is int) return value;
-  if (value is num) return value.toInt();
-  return fallback;
-}
-
-double _doubleOrDefault(Object? value, double fallback) {
-  if (value is num) return value.toDouble();
-  return fallback;
-}
-
-bool _boolOrDefault(Object? value, bool fallback) {
-  if (value is bool) return value;
-  return fallback;
-}
-
-bool _isStepAligned(double value, double step) {
-  if (!value.isFinite || step <= 0) {
-    return false;
-  }
-  final aligned = (value / step).roundToDouble() * step;
-  return (value - aligned).abs() < 1e-9;
-}
-
-String _normalizedString(Object? raw, {String fallback = ''}) {
-  if (raw is String) {
-    final trimmed = raw.trim();
-    if (trimmed.isNotEmpty) {
-      return trimmed;
-    }
-  }
-  return fallback;
 }
 
 int _compareChunkExportData(_ChunkExportData a, _ChunkExportData b) {
@@ -1012,7 +600,7 @@ void _writePatternList(
     buffer.writeln('    spawnMarkers: <SpawnMarker>[');
     for (final marker in chunk.spawnMarkers) {
       buffer.writeln(
-        '      SpawnMarker(enemyId: ${marker.enemyEnum}, x: ${marker.x.toDouble()}, chancePercent: ${marker.chancePercent}, salt: ${marker.salt}, placement: ${marker.placementEnum}),',
+        '      SpawnMarker(enemyId: ${_enemyEnum(marker.enemyId)}, x: ${marker.x}, chancePercent: ${marker.chancePercent}, salt: ${marker.salt}, placement: ${_placementEnum(marker.placement)}),',
       );
     }
     buffer
@@ -1021,6 +609,11 @@ void _writePatternList(
   }
   buffer.writeln('];');
 }
+
+String _enemyEnum(EnemyId enemyId) => 'EnemyId.${enemyId.name}';
+
+String _placementEnum(SpawnPlacementMode placement) =>
+    'SpawnPlacementMode.${placement.name}';
 
 String _patternsVariableName(String levelId, String difficulty) {
   return '${_toLowerCamelIdentifier(levelId)}${_toUpperCamelIdentifier(difficulty)}Patterns';
@@ -1284,168 +877,24 @@ class _ChunkIdentity {
   final String id;
 }
 
-class _ChunkParseResult {
-  const _ChunkParseResult({required this.identity, required this.exportData});
-
-  final _ChunkIdentity identity;
-  final _ChunkExportData exportData;
-}
-
-class _ChunkJson {
-  const _ChunkJson({
-    required this.path,
-    required this.chunkKey,
-    required this.id,
-    required this.levelId,
-    required this.difficulty,
-    required this.assemblyGroupId,
-    required this.prefabs,
-    required this.markers,
-  });
-
-  final String path;
-  final String chunkKey;
-  final String id;
-  final String levelId;
-  final String difficulty;
-  final String assemblyGroupId;
-  final List<Map<String, Object?>> prefabs;
-  final List<Map<String, Object?>> markers;
-}
-
-class _PrefabRegistry {
-  const _PrefabRegistry({
-    required this.prefabsByKey,
-    required this.slicesById,
-    required this.modulesById,
-  });
-
-  final Map<String, _PrefabDef> prefabsByKey;
-  final Map<String, _SliceDef> slicesById;
-  final Map<String, _ModuleDef> modulesById;
-}
-
-class _PrefabDef {
-  const _PrefabDef({
-    required this.prefabKey,
-    required this.kind,
-    required this.anchorX,
-    required this.anchorY,
-    required this.visualType,
-    required this.visualRefId,
-  });
-
-  final String prefabKey;
-  final String kind;
-  final double anchorX;
-  final double anchorY;
-  final String visualType;
-  final String visualRefId;
-}
-
-class _SliceDef {
-  const _SliceDef({
-    required this.id,
-    required this.assetPath,
-    required this.x,
-    required this.y,
-    required this.width,
-    required this.height,
-  });
-
-  final String id;
-  final String assetPath;
-  final int x;
-  final int y;
-  final int width;
-  final int height;
-}
-
-class _ModuleDef {
-  const _ModuleDef({required this.id, required this.cells});
-
-  final String id;
-  final List<_ModuleCell> cells;
-}
-
-class _ModuleCell {
-  const _ModuleCell({
-    required this.sliceId,
-    required this.gridX,
-    required this.gridY,
-  });
-
-  final String sliceId;
-  final int gridX;
-  final int gridY;
-}
-
 class _ChunkExportData {
   const _ChunkExportData({
     required this.path,
     required this.levelId,
     required this.difficulty,
-    required this.chunkKey,
-    required this.name,
-    required this.assemblyGroupId,
-    required this.visualSprites,
-    required this.spawnMarkers,
+    required this.pattern,
   });
 
   final String path;
   final String levelId;
   final String difficulty;
-  final String chunkKey;
-  final String name;
-  final String assemblyGroupId;
-  final List<_VisualSpriteExport> visualSprites;
-  final List<_MarkerExport> spawnMarkers;
-}
+  final ChunkPattern pattern;
 
-class _VisualSpriteExport {
-  const _VisualSpriteExport({
-    required this.assetPath,
-    required this.srcX,
-    required this.srcY,
-    required this.srcWidth,
-    required this.srcHeight,
-    required this.x,
-    required this.y,
-    required this.width,
-    required this.height,
-    required this.zIndex,
-    required this.flipX,
-    required this.flipY,
-  });
-
-  final String assetPath;
-  final int srcX;
-  final int srcY;
-  final int srcWidth;
-  final int srcHeight;
-  final double x;
-  final double y;
-  final double width;
-  final double height;
-  final int zIndex;
-  final bool flipX;
-  final bool flipY;
-}
-
-class _MarkerExport {
-  const _MarkerExport({
-    required this.enemyEnum,
-    required this.x,
-    required this.chancePercent,
-    required this.salt,
-    required this.placementEnum,
-  });
-
-  final String enemyEnum;
-  final int x;
-  final int chancePercent;
-  final int salt;
-  final String placementEnum;
+  String get chunkKey => pattern.chunkKey!;
+  String get name => pattern.name;
+  String get assemblyGroupId => pattern.assemblyGroupId;
+  List<ChunkVisualSpriteRel> get visualSprites => pattern.visualSprites;
+  List<SpawnMarker> get spawnMarkers => pattern.spawnMarkers;
 }
 
 class _ValidationIssue implements Comparable<_ValidationIssue> {

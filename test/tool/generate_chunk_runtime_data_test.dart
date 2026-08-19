@@ -675,7 +675,7 @@ void main() {
           'assets/authoring/level/tile_defs.json',
           '''
 {
-  "schemaVersion": 3,
+  "schemaVersion": 2,
   "tileSlices": [],
   "platformModules": []
 }

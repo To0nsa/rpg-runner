@@ -1,7 +1,5 @@
-import 'package:flutter_test/flutter_test.dart';
-
-import '../../tool/level_definition_generation.dart';
-import '../../tool/polygon_terrain_repository_generation.dart';
+import 'package:runner_content_pipeline/runner_content_pipeline.dart';
+import 'package:test/test.dart';
 
 void main() {
   test('builds one seam-validated polygon batch', () {
@@ -14,7 +12,7 @@ void main() {
           contents: _emptyChunk,
         ),
       ],
-      levels: <LevelDefinitionSource>[_level()],
+      levels: <PolygonTerrainSchedulerLevelSource>[_level()],
       schedulerSourcePath: 'assets/authoring/level/level_defs.json',
     );
 
@@ -42,7 +40,9 @@ void main() {
           contents: _emptyEasyChunk,
         ),
       ],
-      levels: <LevelDefinitionSource>[_level(earlyPatternChunks: 1)],
+      levels: <PolygonTerrainSchedulerLevelSource>[
+        _level(earlyPatternChunks: 1),
+      ],
       schedulerSourcePath: 'assets/authoring/level/level_defs.json',
     );
 
@@ -64,7 +64,7 @@ void main() {
           contents: _internalSlopeChunk,
         ),
       ],
-      levels: <LevelDefinitionSource>[_level()],
+      levels: <PolygonTerrainSchedulerLevelSource>[_level()],
       schedulerSourcePath: 'assets/authoring/level/level_defs.json',
     );
 
@@ -75,21 +75,12 @@ void main() {
   });
 }
 
-LevelDefinitionSource _level({int earlyPatternChunks = 0}) =>
-    LevelDefinitionSource(
+PolygonTerrainSchedulerLevelSource _level({int earlyPatternChunks = 0}) =>
+    PolygonTerrainSchedulerLevelSource(
       levelId: 'forest',
-      revision: 1,
-      displayName: 'Forest',
-      visualThemeId: 'forest',
-      chunkThemeGroups: const <String>['default'],
-      cameraCenterY: 50,
-      groundTopY: 80,
       earlyPatternChunks: earlyPatternChunks,
       easyPatternChunks: 0,
       normalPatternChunks: 0,
-      noEnemyChunks: 0,
-      enumOrdinal: 0,
-      status: activeLevelStatus,
     );
 
 const String _emptyPrefabs = '''

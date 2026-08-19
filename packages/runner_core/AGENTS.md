@@ -20,6 +20,8 @@ implementation-specific deterministic, ECS, and system-ordering rules.
 - `lib/`: production simulation and contracts
 - `test/`: portable package tests run without Flutter
 - root `test/core/`: wider gameplay/integration coverage for this package
+- `packages/runner_content_pipeline/`: repository-independent authored source
+  compilation and typed Core runtime-data materialization
 - root `tool/generate_chunk_runtime_data.dart`: generator for authored level
   runtime data; its Core outputs are generated files
 
@@ -42,6 +44,9 @@ Also update and validate the owning consumer when a change crosses a boundary:
 Author level/chunk/prefab/parallax data in `assets/authoring/level/**`. Run
 `dart run tool/generate_chunk_runtime_data.dart`; never hand-edit generated
 Core runtime data. Use `--dry-run` to validate source data and generator drift.
+The root generator delegates current-schema decoding, terrain compilation,
+seam validation, and typed chunk materialization to
+`packages/runner_content_pipeline`; Core must not depend back on that package.
 The generator also owns `lib/track/staged_authored_terrain.dart`. Despite its
 historical filename, this is the production polygon artifact admitted by
 normal Core and replay-validation construction and projected to Flutter through

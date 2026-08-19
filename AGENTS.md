@@ -28,6 +28,8 @@ Use the most specific AGENTS file that matches the area you are touching:
 - `lib/AGENTS.md`: app-level architecture and layer boundaries
 - `packages/runner_core/AGENTS.md`: Core package scope, generated-content, and
   validation rules
+- `packages/runner_content_pipeline/AGENTS.md`: shared authored-chunk
+  compilation and runtime materialization boundary
 - `packages/runner_core/lib/AGENTS.md`: deterministic simulation layer
 - `packages/run_protocol/AGENTS.md`: shared run/replay/board protocol contracts
 - `packages/terrain_materials/AGENTS.md`: shared terrain-render material source
@@ -47,6 +49,8 @@ Also consult:
 
 - `lib/`: Flutter package and embeddable runner implementation
 - `packages/runner_core/`: deterministic Dart gameplay package
+- `packages/runner_content_pipeline/`: pure-Dart authored chunk decoding,
+  compilation, seam validation, and Core runtime-data materialization
 - `packages/run_protocol/`: shared replay, board, leaderboard, run ticket, and submission-status contracts
 - `packages/terrain_materials/`: pure-Dart terrain material authoring/render-source contracts
 - `functions/`: Firebase Functions backend in TypeScript
@@ -63,6 +67,8 @@ Also consult:
 ## Current Architectural Split
 
 - `packages/runner_core/lib/` is the authoritative deterministic gameplay layer
+- `packages/runner_content_pipeline/lib/` converts explicit current-schema
+  authored source strings into typed Core runtime data without repository I/O
 - `packages/run_protocol/lib/` is the shared wire-contract layer for run tickets, replay blobs, validation results, boards, leaderboards, and ghosts
 - `lib/game/` is the Flame rendering and input bridge layer
 - `lib/ui/` is the Flutter app shell, menu/meta UI, HUD, state orchestration, and backend client layer
@@ -113,6 +119,8 @@ Treat every change as production-minded cleanup, not a quick patch:
 Run the smallest relevant checks for the slice you touched:
 
 - Flutter/Dart changes: `dart analyze` and relevant `flutter test` targets
+- Shared content-pipeline changes: `dart analyze packages/runner_content_pipeline`
+  and `dart test packages/runner_content_pipeline/test`
 - Shared protocol changes: `dart analyze packages/run_protocol` and `dart test packages/run_protocol/test`
 - Backend changes: `corepack pnpm --dir functions build` and `corepack pnpm --dir functions test`
 - Replay validator changes: `dart analyze services/replay_validator` and `dart test services/replay_validator/test`

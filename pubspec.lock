@@ -486,6 +486,13 @@ packages:
       relative: true
     source: path
     version: "0.1.0"
+  runner_content_pipeline:
+    dependency: "direct main"
+    description:
+      path: "packages/runner_content_pipeline"
+      relative: true
+    source: path
+    version: "0.1.0"
   runner_core:
     dependency: "direct main"
     description:

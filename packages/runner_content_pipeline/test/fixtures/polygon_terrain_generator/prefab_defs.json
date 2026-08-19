@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 3,
+  "slices": [
+    {
+      "id": "ramp_slice",
+      "sourceImagePath": "assets/images/level/props/ramp.png",
+      "x": 0,
+      "y": 0,
+      "width": 16,
+      "height": 16
+    }
+  ],
+  "prefabs": [
+    {
+      "prefabKey": "prefab_ramp",
+      "id": "ramp",
+      "revision": 3,
+      "status": "active",
+      "kind": "obstacle",
+      "visualSource": {
+        "type": "atlas_slice",
+        "sliceId": "ramp_slice"
+      },
+      "anchorXPx": 8,
+      "anchorYPx": 12,
+      "collisionShapes": [
+        {
+          "shapeId": "collision_001",
+          "collisionMode": "solid",
+          "vertices": [
+            {
+              "x": -2,
+              "y": -2
+            },
+            {
+              "x": 4,
+              "y": -2
+            },
+            {
+              "x": 4,
+              "y": 2
+            },
+            {
+              "x": -2,
+              "y": 2
+            }
+          ],
+          "surfaceKind": "stone",
+          "materialKey": "ramp_stone"
+        }
+      ],
+      "tags": [
+        "terrain"
+      ]
+    }
+  ]
+}
+

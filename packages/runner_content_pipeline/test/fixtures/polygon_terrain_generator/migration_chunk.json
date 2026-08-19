@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 2,
+  "chunkKey": "migration_chunk",
+  "id": "migration_chunk",
+  "revision": 1,
+  "status": "active",
+  "levelId": "forest",
+  "tileSize": 16,
+  "width": 300,
+  "height": 120,
+  "difficulty": "normal",
+  "assemblyGroupId": "default",
+  "tags": [
+    "fixture",
+    "migration"
+  ],
+  "tileLayers": [],
+  "prefabs": [
+    {
+      "prefabId": "migration_concave",
+      "prefabKey": "prefab_migration_concave",
+      "x": 100,
+      "y": 20,
+      "zIndex": 1,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "migration_rectangle",
+      "prefabKey": "prefab_migration_rectangle",
+      "x": 30,
+      "y": 30,
+      "zIndex": 1,
+      "snapToGrid": false
+    },
+    {
+      "prefabId": "migration_disconnected",
+      "prefabKey": "prefab_migration_disconnected",
+      "x": 220,
+      "y": 40,
+      "zIndex": 1,
+      "snapToGrid": false
+    }
+  ],
+  "markers": [],
+  "collisionShapes": []
+}
+
