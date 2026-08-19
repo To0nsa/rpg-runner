@@ -108,6 +108,22 @@ void main() {
     expect(harness.advance().pressedMask, 0);
   });
 
+  test('disabled translation keeps focus-capable adapter input neutral', () {
+    final harness = _DesktopHarness();
+
+    harness.adapter.setEnabled(false);
+    expect(harness.keyDown(PhysicalKeyboardKey.keyJ), KeyEventResult.ignored);
+    harness.adapter.handlePointerDown(
+      const Offset(300, 100),
+      kPrimaryMouseButton,
+    );
+    expect(harness.advance().pressedMask, 0);
+
+    harness.adapter.setEnabled(true);
+    expect(harness.keyDown(PhysicalKeyboardKey.keyJ), KeyEventResult.handled);
+    expect(harness.advance().strikePressed, isTrue);
+  });
+
   test('mouse and keyboard references share one action lifecycle', () {
     final harness = _DesktopHarness(
       modes: const <RunnerGameplayAction, AbilityInputMode>{

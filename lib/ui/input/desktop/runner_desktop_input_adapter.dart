@@ -53,7 +53,19 @@ final class RunnerDesktopInputController {
   Offset? _pointerAimDirection;
   bool _hadFocus = false;
   bool _focusRequestPending = false;
+  bool _enabled = true;
   bool _disposed = false;
+
+  /// Enables or disables gameplay translation without changing focus ownership.
+  ///
+  /// Disabling immediately cancels every local and semantic input. This lets a
+  /// host retain focus for pause/ready shortcuts without queuing gameplay under
+  /// an overlay.
+  void setEnabled(bool enabled) {
+    if (_disposed || _enabled == enabled) return;
+    _enabled = enabled;
+    if (!enabled) cancelAll();
+  }
 
   /// Requests gameplay focus after first clearing stale device state.
   void requestFocus() {
@@ -91,7 +103,7 @@ final class RunnerDesktopInputController {
 
   /// Translates a focused physical key event into source-state transitions.
   KeyEventResult handleKeyEvent(KeyEvent event) {
-    if (_disposed) return KeyEventResult.ignored;
+    if (_disposed || !_enabled) return KeyEventResult.ignored;
     final action = _keyActions[event.physicalKey];
     if (action == null) return KeyEventResult.ignored;
 
@@ -139,26 +151,27 @@ final class RunnerDesktopInputController {
       return;
     }
     requestFocus();
+    if (!_enabled) return;
     _updateAim(localPosition, geometry: geometry);
     _updateMouseButtons(buttons, cancelReleased: false);
   }
 
   /// Releases mouse actions, preserving other keys/buttons for the same action.
   void handlePointerUp(Offset localPosition, int buttons) {
-    if (_disposed) return;
+    if (_disposed || !_enabled) return;
     _updateAim(localPosition);
     _updateMouseButtons(buttons, cancelReleased: false);
   }
 
   /// Updates pointer-derived aim without changing held mouse actions.
   void handlePointerPosition(Offset localPosition) {
-    if (_disposed) return;
+    if (_disposed || !_enabled) return;
     _updateAim(localPosition);
   }
 
   /// Cancels mouse-owned actions without producing release commits.
   void handlePointerCancel() {
-    if (_disposed) return;
+    if (_disposed || !_enabled) return;
     _clearPointerAim();
     _updateMouseButtons(0, cancelReleased: true);
   }
