@@ -136,15 +136,11 @@ void main() {
       throwsArgumentError,
     );
 
-    final broken = StagedTerrainArtifactCatalog(
-      artifact: _artifact(<StagedTerrainChunkData>[
-        _chunk('broken', polygonVertices: const <StagedTerrainPoint>[]),
-      ]),
-    ).bind(chunkKey: 'broken', chunkIndex: 0, worldOriginXTicks: 0);
     expect(
-      () => builder.build(
-        bindings: <StagedTerrainChunkBinding>[broken],
-        geometryVersion: 1,
+      () => StagedTerrainArtifactCatalog(
+        artifact: _artifact(<StagedTerrainChunkData>[
+          _chunk('broken', polygonVertices: const <StagedTerrainPoint>[]),
+        ]),
       ),
       throwsArgumentError,
     );
