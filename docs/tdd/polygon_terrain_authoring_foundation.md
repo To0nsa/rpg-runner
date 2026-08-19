@@ -1223,17 +1223,17 @@ the incoming inward normal and outgoing tangent to distinguish convex from
 concave turns. A convex turn receives exactly one available adjacent cap, with
 top-facing art winning and the incoming end breaking equal-priority ties;
 concave turns and `smooth` continuations remain band-only. Caps and corner
-patches render in a final foreground pass after all repeating edge bands. A
-selected cap reserves its complete tangent-normalized rectangle, and each
-semantic edge profile reserves the union of its base/detail strip footprints.
-Fill excludes all such regions. Edge and cap clips then resolve deterministic
-back-to-front ownership, so transparent pixels reveal the scene rather than a
-lower terrain role. Detail may still reveal its base within the same profile.
-The resulting visual priority is cap, top-facing band, wall/underside band,
-then fill.
-Internal edge repeats alone receive material-fill backing for one source pixel
-on each side of their world-phased tile boundary. Endpoints and all other
-transparent edge pixels remain unbacked; higher edge and cap clips still win.
+patches render in a final foreground pass after all repeating edge bands.
+Terrain is composed in an isolated layer: fill covers the complete polygon,
+ordered edge bases replace fill including source alpha, detail overlays its own
+base, and ordered caps replace every lower terrain role. Transparent pixels
+therefore reveal the scene without complementary clip-path boundaries. The
+resulting visual priority is cap, top-facing band, wall/underside band, then
+fill.
+Internal edge repeats alone receive destination-over material-fill backing for
+one source pixel on each side of their world-phased tile boundary. Endpoints
+and all other transparent edge pixels remain unbacked; later edges and caps
+still win by paint order.
 Repeating bands stop at their exact Core edge endpoints; runtime and editor
 rendering do not stretch one band beneath another to hide join wedges. A null
 material is collision-only and not drawn; an

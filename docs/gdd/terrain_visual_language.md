@@ -35,11 +35,11 @@ remain upright and retain their existing visual priority over the ground.
   exactly one adjacent start/end cap as its corner patch; top-facing art wins
   when both sides supply one. Concave turns remain band-only, and smooth
   continuations never acquire a false cliff cue.
-- Every selected cap and semantic edge profile owns its complete strip or
-  rectangular footprint, including transparent pixels. Those cutouts reveal
-  the scene rather than a lower terrain role. Detail remains an overlay within
-  its own base profile. Visible ownership resolves as corner, top-facing edge,
-  wall/underside edge, then fill.
+- Every selected cap and semantic edge base replaces lower terrain art with
+  both its color and alpha. Transparent cutouts reveal the scene rather than a
+  lower terrain role. Detail remains an overlay within its own base profile.
+  Visible ownership resolves as corner, top-facing edge, wall/underside edge,
+  then fill.
 - Internal edge-tile joins receive a one-pixel material-fill backing on each
   side of the repeat boundary. This closes tiny atlas/raster seams without
   filling the rest of the transparent rocky silhouette or exposed endpoints.

@@ -184,14 +184,14 @@ a configurable cell grid (32x32 is only its default) and arbitrary manual pixel
 rectangles; selecting a region never creates a cropped asset. Edge regions use
 their natural world-facing orientation in the atlas—left/right walls stay
 vertical and undersides stay downward-facing—while previews and runtime apply
-only the additional rotation needed for the actual polygon edge. Each selected
-endpoint or convex-corner cap exclusively reserves its full destination
-rectangle, so transparent cap pixels reveal the scene rather than fill or edge
-art underneath. Each semantic edge profile similarly reserves the union of its
-base/detail strip footprints; transparent edge pixels reveal the scene, while
-detail can still reveal its own base. Edge bands stop at their exact authored
-endpoints. Only internal repeat joins receive a narrow material-fill backing,
-preventing small atlas-cell gaps without flattening the rocky silhouette.
+only the additional rotation needed for the actual polygon edge. The Chunk
+Creator and composed preview share one canvas compositor. It extracts selected
+atlas regions, paints full polygon fill, then applies ordered edge bases and
+caps with source-alpha replacement. Transparent cap and edge pixels therefore
+reveal the scene rather than lower terrain art, while detail can still reveal
+its own base. Edge bands stop at their exact authored endpoints. Only internal
+repeat joins receive destination-over material-fill backing, preventing small
+atlas-cell gaps without flattening the rocky silhouette.
 Applying writes
 only `assets/authoring/level/terrain_material_defs.json`. Run the root content
 generator afterward to refresh the generated runtime registry. The manifest is

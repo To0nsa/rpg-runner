@@ -226,8 +226,8 @@ maintainability concerns.
   underside endpoint/corner caps; normal editor code must not accept older
   schemas or add a migration fallback
 - source models, canonical validation, traversal, repeat/seam math, and
-  normalized region-footprint math come from `packages/terrain_materials`; do
-  not duplicate those rules in the editor
+  normalized edge/cap placement math come from `packages/terrain_materials`;
+  do not duplicate those rules in the editor
 - discover image metadata through `RepositoryPngCatalog`, then fully decode and
   bounds-check referenced images again during apply
 - persist through `TerrainMaterialStore` so canonical ordering, drift guards,

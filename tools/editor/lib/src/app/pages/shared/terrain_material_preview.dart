@@ -9,7 +9,7 @@ import 'package:terrain_materials/terrain_materials.dart';
 import '../../../atlas/atlas_pixel_rect.dart';
 import 'atlas_region_preview_tile.dart';
 import 'editor_scene_view_utils.dart';
-import 'terrain_material_edge_painter.dart';
+import 'terrain_material_compositor.dart';
 
 /// Shared composed sample and explicit orientation coverage for one material.
 class TerrainMaterialPreview extends StatefulWidget {
@@ -31,7 +31,27 @@ class TerrainMaterialPreview extends StatefulWidget {
 }
 
 class _TerrainMaterialPreviewState extends State<TerrainMaterialPreview> {
-  final EditorUiImageCache _imageCache = EditorUiImageCache();
+  late EditorUiImageCache _imageCache;
+
+  @override
+  void initState() {
+    super.initState();
+    _imageCache = EditorUiImageCache();
+    _ensureRegionsLoaded();
+  }
+
+  @override
+  void didUpdateWidget(covariant TerrainMaterialPreview oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.workspaceRootPath != widget.workspaceRootPath) {
+      _imageCache.dispose();
+      _imageCache = EditorUiImageCache();
+    }
+    if (oldWidget.workspaceRootPath != widget.workspaceRootPath ||
+        oldWidget.material != widget.material) {
+      _ensureRegionsLoaded();
+    }
+  }
 
   @override
   void dispose() {
@@ -42,13 +62,23 @@ class _TerrainMaterialPreviewState extends State<TerrainMaterialPreview> {
   @override
   Widget build(BuildContext context) {
     final material = widget.material;
+    final imagesByRegion = <TerrainMaterialImageRegion, ui.Image>{};
+    for (final region in terrainMaterialRegions(material)) {
+      final image = _imageCache.regionImageFor(
+        _absolutePath(region.assetPath),
+        x: region.x,
+        y: region.y,
+        width: region.width,
+        height: region.height,
+      );
+      if (image != null) imagesByRegion[region] = image;
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _TerrainComposedSample(
-          workspaceRootPath: widget.workspaceRootPath,
           material: material,
-          imageCache: _imageCache,
+          imagesByRegion: imagesByRegion,
           height: widget.compact ? 160 : 220,
           keyPrefix: widget.keyPrefix,
         ),
@@ -92,486 +122,164 @@ class _TerrainMaterialPreviewState extends State<TerrainMaterialPreview> {
   }
 
   List<Widget> _assetTiles(TerrainMaterialDefinition material) => [
-    _TerrainAssetTile(
-      workspaceRootPath: widget.workspaceRootPath,
-      label: 'Fill',
-      region: material.fill,
-      imageCache: _imageCache,
-      tileKey: _tileKey('fill'),
+    _assetTile('Fill', material.fill, 'fill'),
+    _assetTile('Top base', material.top.base.region, 'surface'),
+    _assetTile('Top detail', material.top.detail?.region, 'foreground'),
+    _assetTile('Start cap', material.topStartCap?.region, 'start_cap'),
+    _assetTile('End cap', material.topEndCap?.region, 'end_cap'),
+    _assetTile('Left wall', material.leftWall?.base.region, 'left_wall'),
+    _assetTile('Right wall', material.rightWall?.base.region, 'right_wall'),
+    _assetTile('Underside', material.underside?.base.region, 'underside'),
+    _assetTile(
+      'Bottom right cap',
+      material.undersideStartCap?.region,
+      'underside_start_cap',
     ),
-    _TerrainAssetTile(
-      workspaceRootPath: widget.workspaceRootPath,
-      label: 'Top base',
-      region: material.top.base.region,
-      imageCache: _imageCache,
-      tileKey: _tileKey('surface'),
-    ),
-    _TerrainAssetTile(
-      workspaceRootPath: widget.workspaceRootPath,
-      label: 'Top detail',
-      region: material.top.detail?.region,
-      imageCache: _imageCache,
-      tileKey: _tileKey('foreground'),
-    ),
-    _TerrainAssetTile(
-      workspaceRootPath: widget.workspaceRootPath,
-      label: 'Start cap',
-      region: material.topStartCap?.region,
-      imageCache: _imageCache,
-      tileKey: _tileKey('start_cap'),
-    ),
-    _TerrainAssetTile(
-      workspaceRootPath: widget.workspaceRootPath,
-      label: 'End cap',
-      region: material.topEndCap?.region,
-      imageCache: _imageCache,
-      tileKey: _tileKey('end_cap'),
-    ),
-    _TerrainAssetTile(
-      workspaceRootPath: widget.workspaceRootPath,
-      label: 'Left wall',
-      region: material.leftWall?.base.region,
-      imageCache: _imageCache,
-      tileKey: _tileKey('left_wall'),
-    ),
-    _TerrainAssetTile(
-      workspaceRootPath: widget.workspaceRootPath,
-      label: 'Right wall',
-      region: material.rightWall?.base.region,
-      imageCache: _imageCache,
-      tileKey: _tileKey('right_wall'),
-    ),
-    _TerrainAssetTile(
-      workspaceRootPath: widget.workspaceRootPath,
-      label: 'Underside',
-      region: material.underside?.base.region,
-      imageCache: _imageCache,
-      tileKey: _tileKey('underside'),
-    ),
-    _TerrainAssetTile(
-      workspaceRootPath: widget.workspaceRootPath,
-      label: 'Bottom right cap',
-      region: material.undersideStartCap?.region,
-      imageCache: _imageCache,
-      tileKey: _tileKey('underside_start_cap'),
-    ),
-    _TerrainAssetTile(
-      workspaceRootPath: widget.workspaceRootPath,
-      label: 'Bottom left cap',
-      region: material.undersideEndCap?.region,
-      imageCache: _imageCache,
-      tileKey: _tileKey('underside_end_cap'),
+    _assetTile(
+      'Bottom left cap',
+      material.undersideEndCap?.region,
+      'underside_end_cap',
     ),
   ];
 
-  String? _tileKey(String suffix) => widget.keyPrefix == null
-      ? null
-      : '${widget.keyPrefix}_material_preview_$suffix';
+  Widget _assetTile(
+    String label,
+    TerrainMaterialImageRegion? region,
+    String suffix,
+  ) => _TerrainAssetTile(
+    workspaceRootPath: widget.workspaceRootPath,
+    label: label,
+    region: region,
+    imageCache: _imageCache,
+    tileKey: widget.keyPrefix == null
+        ? null
+        : '${widget.keyPrefix}_material_preview_$suffix',
+  );
+
+  String _absolutePath(String sourcePath) =>
+      p.normalize(p.join(widget.workspaceRootPath, sourcePath));
+
+  void _ensureRegionsLoaded() {
+    for (final region in terrainMaterialRegions(widget.material)) {
+      unawaited(() async {
+        final image = await _imageCache.ensureRegionLoaded(
+          _absolutePath(region.assetPath),
+          x: region.x,
+          y: region.y,
+          width: region.width,
+          height: region.height,
+        );
+        if (mounted && image != null) setState(() {});
+      }());
+    }
+  }
 }
 
 class _TerrainComposedSample extends StatelessWidget {
   const _TerrainComposedSample({
-    required this.workspaceRootPath,
     required this.material,
-    required this.imageCache,
+    required this.imagesByRegion,
     required this.height,
     required this.keyPrefix,
   });
 
-  final String workspaceRootPath;
   final TerrainMaterialDefinition material;
-  final EditorUiImageCache imageCache;
+  final Map<TerrainMaterialImageRegion, ui.Image> imagesByRegion;
   final double height;
   final String? keyPrefix;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      key: ValueKey<String>('terrain_material_sample_${material.key}'),
-      height: height,
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerLowest,
-        border: Border.all(color: Theme.of(context).dividerColor),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final horizontalInset = math.min(48.0, constraints.maxWidth * 0.18);
-          final verticalInset = math.min(48.0, height * 0.27);
-          final platform = Rect.fromLTRB(
-            horizontalInset,
-            verticalInset,
-            constraints.maxWidth - horizontalInset,
-            height - verticalInset,
-          );
-          final ownerPath = Path()..addRect(platform);
-          final capPlacements =
-              <
-                ({
-                  TerrainMaterialCap cap,
-                  String role,
-                  TerrainMaterialEdgeOrientation orientation,
-                  Offset start,
-                  Offset end,
-                  bool atEnd,
-                  Path footprint,
-                })
-              >[];
-          void reserveCap(
-            TerrainMaterialCap? cap, {
-            required String role,
-            required TerrainMaterialEdgeOrientation orientation,
-            required Offset start,
-            required Offset end,
-            required bool atEnd,
-          }) {
-            if (cap == null) return;
-            capPlacements.add((
-              cap: cap,
-              role: role,
-              orientation: orientation,
-              start: start,
-              end: end,
-              atEnd: atEnd,
-              footprint: terrainMaterialCapFootprintPath(
-                region: cap.region,
-                orientation: orientation,
-                start: start,
-                end: end,
-                anchorX: cap.anchorX,
-                anchorY: cap.anchorY,
-                atEnd: atEnd,
-              ),
-            ));
-          }
-
-          reserveCap(
-            material.undersideStartCap,
-            role: 'underside_start_cap',
-            orientation: TerrainMaterialEdgeOrientation.underside,
-            start: platform.bottomRight,
-            end: platform.bottomLeft,
-            atEnd: false,
-          );
-          reserveCap(
-            material.undersideEndCap,
-            role: 'underside_end_cap',
-            orientation: TerrainMaterialEdgeOrientation.underside,
-            start: platform.bottomRight,
-            end: platform.bottomLeft,
-            atEnd: true,
-          );
-          reserveCap(
-            material.topStartCap,
-            role: 'start_cap',
+  Widget build(BuildContext context) => Container(
+    key: ValueKey<String>('terrain_material_sample_${material.key}'),
+    height: height,
+    decoration: BoxDecoration(
+      color: Theme.of(context).colorScheme.surfaceContainerLowest,
+      border: Border.all(color: Theme.of(context).dividerColor),
+      borderRadius: BorderRadius.circular(8),
+    ),
+    clipBehavior: Clip.antiAlias,
+    child: LayoutBuilder(
+      builder: (context, constraints) {
+        final horizontalInset = math.min(48.0, constraints.maxWidth * 0.18);
+        final verticalInset = math.min(48.0, height * 0.27);
+        final platform = Rect.fromLTRB(
+          horizontalInset,
+          verticalInset,
+          constraints.maxWidth - horizontalInset,
+          height - verticalInset,
+        );
+        final ownerPath = Path()..addRect(platform);
+        final edges = <TerrainMaterialCompositorEdge>[
+          TerrainMaterialCompositorEdge(
+            profile: material.top,
             orientation: TerrainMaterialEdgeOrientation.top,
             start: platform.topLeft,
             end: platform.topRight,
-            atEnd: false,
-          );
-          reserveCap(
-            material.topEndCap,
-            role: 'end_cap',
-            orientation: TerrainMaterialEdgeOrientation.top,
-            start: platform.topLeft,
-            end: platform.topRight,
-            atEnd: true,
-          );
-          final edges =
-              <
-                ({
-                  TerrainMaterialEdgeProfile profile,
-                  String role,
-                  TerrainMaterialEdgeOrientation orientation,
-                  Offset start,
-                  Offset end,
-                })
-              >[
-                (
-                  profile: material.top,
-                  role: 'top',
-                  orientation: TerrainMaterialEdgeOrientation.top,
-                  start: platform.topLeft,
-                  end: platform.topRight,
+            startCap: material.topStartCap,
+            endCap: material.topEndCap,
+          ),
+          if (material.rightWall case final profile?)
+            TerrainMaterialCompositorEdge(
+              profile: profile,
+              orientation: TerrainMaterialEdgeOrientation.rightWall,
+              start: platform.topRight,
+              end: platform.bottomRight,
+            ),
+          if (material.underside case final profile?)
+            TerrainMaterialCompositorEdge(
+              profile: profile,
+              orientation: TerrainMaterialEdgeOrientation.underside,
+              start: platform.bottomRight,
+              end: platform.bottomLeft,
+              startCap: material.undersideStartCap,
+              endCap: material.undersideEndCap,
+            ),
+          if (material.leftWall case final profile?)
+            TerrainMaterialCompositorEdge(
+              profile: profile,
+              orientation: TerrainMaterialEdgeOrientation.leftWall,
+              start: platform.bottomLeft,
+              end: platform.topLeft,
+            ),
+        ];
+        return Stack(
+          children: [
+            Positioned.fill(
+              child: CustomPaint(
+                key: _previewKey('canvas'),
+                painter: _TerrainCompositionPainter(
+                  ownerPath: ownerPath,
+                  material: material,
+                  imagesByRegion: imagesByRegion,
+                  edges: edges,
                 ),
-                if (material.rightWall case final profile?)
-                  (
-                    profile: profile,
-                    role: 'right_wall',
-                    orientation: TerrainMaterialEdgeOrientation.rightWall,
-                    start: platform.topRight,
-                    end: platform.bottomRight,
-                  ),
-                if (material.underside case final profile?)
-                  (
-                    profile: profile,
-                    role: 'underside',
-                    orientation: TerrainMaterialEdgeOrientation.underside,
-                    start: platform.bottomRight,
-                    end: platform.bottomLeft,
-                  ),
-                if (material.leftWall case final profile?)
-                  (
-                    profile: profile,
-                    role: 'left_wall',
-                    orientation: TerrainMaterialEdgeOrientation.leftWall,
-                    start: platform.bottomLeft,
-                    end: platform.topLeft,
-                  ),
-              ];
-          final orderedEdges =
-              <
-                ({
-                  TerrainMaterialEdgeProfile profile,
-                  String role,
-                  TerrainMaterialEdgeOrientation orientation,
-                  Offset start,
-                  Offset end,
-                })
-              >[
-                for (final index in terrainMaterialEdgePaintOrder(
-                  edges.map((edge) => edge.orientation),
-                ))
-                  edges[index],
-              ];
-          final edgeFootprints = <Path>[
-            for (final edge in orderedEdges)
-              _edgeProfileFootprint(
-                edge.profile,
-                orientation: edge.orientation,
-                start: edge.start,
-                end: edge.end,
               ),
-          ];
-          final edgeSeamBackingPaths = <Path>[
-            for (final edge in orderedEdges)
-              terrainMaterialEdgeSeamBackingPath(
-                region: edge.profile.base.region,
-                orientation: edge.orientation,
-                start: edge.start,
-                end: edge.end,
-                anchorY: edge.profile.base.anchorY,
-              ),
-          ];
-          final capFootprints = capPlacements
-              .map((placement) => placement.footprint)
-              .toList(growable: false);
-          final lowerPriorityPath = terrainMaterialLowerPriorityClipPath(
-            ownerPath: ownerPath,
-            reservedFootprints: <Path>[...edgeFootprints, ...capFootprints],
-          );
-          final edgeClipPaths = terrainMaterialExclusiveEdgeClipPaths(
-            ownerPath: ownerPath,
-            orderedEdgeFootprints: edgeFootprints,
-            capFootprints: capFootprints,
-          );
-          final capClipPaths = terrainMaterialExclusiveCapClipPaths(
-            ownerPath: ownerPath,
-            orderedCapFootprints: capFootprints,
-          );
-          return Stack(
-            children: [
-              Positioned.fill(
-                child: ClipPath(
-                  clipper: _TerrainMaterialPathClipper(lowerPriorityPath),
-                  child: Stack(
-                    children: [
-                      Positioned.fromRect(
-                        rect: platform,
-                        child: _TerrainRegionImage.repeated(
-                          key: _previewKey('fill'),
-                          workspaceRootPath: workspaceRootPath,
-                          region: material.fill,
-                          imageCache: imageCache,
-                          repeat: _RegionRepeat.both,
-                          worldOrigin: platform.topLeft,
-                        ),
-                      ),
-                    ],
+            ),
+            for (final role in _configuredRoles(material))
+              SizedBox.shrink(key: _previewKey(role)),
+            Positioned(
+              left: 8,
+              top: 8,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.68),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 7,
+                    vertical: 4,
+                  ),
+                  child: Text(
+                    '${material.displayName} · ${material.key}',
+                    style: const TextStyle(color: Colors.white),
                   ),
                 ),
               ),
-              for (var index = 0; index < orderedEdges.length; index += 1)
-                Positioned.fill(
-                  child: ClipPath(
-                    clipper: _TerrainMaterialPathClipper(edgeClipPaths[index]),
-                    child: Stack(
-                      children: [
-                        Positioned.fill(
-                          child: ClipPath(
-                            clipper: _TerrainMaterialPathClipper(
-                              edgeSeamBackingPaths[index],
-                            ),
-                            child: _TerrainRegionImage.repeated(
-                              key: _previewKey(
-                                '${orderedEdges[index].role}_seam_backing',
-                              ),
-                              workspaceRootPath: workspaceRootPath,
-                              region: material.fill,
-                              imageCache: imageCache,
-                              repeat: _RegionRepeat.both,
-                              worldOrigin: Offset.zero,
-                            ),
-                          ),
-                        ),
-                        ..._edgeProfile(
-                          orderedEdges[index].profile,
-                          role: orderedEdges[index].role,
-                          orientation: orderedEdges[index].orientation,
-                          start: orderedEdges[index].start,
-                          end: orderedEdges[index].end,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              Positioned.fill(
-                child: ClipPath(
-                  clipper: _TerrainMaterialPathClipper(ownerPath),
-                  child: Stack(
-                    children: [
-                      for (
-                        var index = 0;
-                        index < capPlacements.length;
-                        index += 1
-                      )
-                        _cap(
-                          capPlacements[index].cap,
-                          role: capPlacements[index].role,
-                          orientation: capPlacements[index].orientation,
-                          start: capPlacements[index].start,
-                          end: capPlacements[index].end,
-                          atEnd: capPlacements[index].atEnd,
-                          clipPath: capClipPaths[index],
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 8,
-                top: 8,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.68),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 7,
-                      vertical: 4,
-                    ),
-                    child: Text(
-                      '${material.displayName} · ${material.key}',
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-  List<Widget> _edgeProfile(
-    TerrainMaterialEdgeProfile profile, {
-    required String role,
-    required TerrainMaterialEdgeOrientation orientation,
-    required Offset start,
-    required Offset end,
-  }) => <Widget>[
-    _edgeLayer(
-      profile.base,
-      role: '${role}_base',
-      orientation: orientation,
-      start: start,
-      end: end,
-    ),
-    if (profile.detail case final detail?)
-      _edgeLayer(
-        detail,
-        role: '${role}_detail',
-        orientation: orientation,
-        start: start,
-        end: end,
-      ),
-  ];
-
-  Path _edgeProfileFootprint(
-    TerrainMaterialEdgeProfile profile, {
-    required TerrainMaterialEdgeOrientation orientation,
-    required Offset start,
-    required Offset end,
-  }) {
-    final footprints = <Path>[
-      terrainMaterialEdgeFootprintPath(
-        region: profile.base.region,
-        orientation: orientation,
-        start: start,
-        end: end,
-        anchorY: profile.base.anchorY,
-      ),
-      if (profile.detail case final detail?)
-        terrainMaterialEdgeFootprintPath(
-          region: detail.region,
-          orientation: orientation,
-          start: start,
-          end: end,
-          anchorY: detail.anchorY,
-        ),
-    ];
-    var result = footprints.first;
-    for (final footprint in footprints.skip(1)) {
-      result = Path.combine(PathOperation.union, result, footprint);
-    }
-    return result;
-  }
-
-  Widget _edgeLayer(
-    TerrainMaterialEdgeLayer layer, {
-    required String role,
-    required TerrainMaterialEdgeOrientation orientation,
-    required Offset start,
-    required Offset end,
-  }) => Positioned.fill(
-    child: _TerrainRegionImage.edge(
-      key: _previewKey(role),
-      workspaceRootPath: workspaceRootPath,
-      region: layer.region,
-      imageCache: imageCache,
-      edgeStart: start,
-      edgeEnd: end,
-      anchorY: layer.anchorY,
-      orientation: orientation,
-    ),
-  );
-
-  Widget _cap(
-    TerrainMaterialCap cap, {
-    required String role,
-    required TerrainMaterialEdgeOrientation orientation,
-    required Offset start,
-    required Offset end,
-    required bool atEnd,
-    required Path clipPath,
-  }) => Positioned.fill(
-    child: ClipPath(
-      clipper: _TerrainMaterialPathClipper(clipPath),
-      child: _TerrainRegionImage.cap(
-        key: _previewKey(role),
-        workspaceRootPath: workspaceRootPath,
-        region: cap.region,
-        imageCache: imageCache,
-        edgeStart: start,
-        edgeEnd: end,
-        anchorX: cap.anchorX,
-        anchorY: cap.anchorY,
-        orientation: orientation,
-        atEnd: atEnd,
-      ),
+            ),
+          ],
+        );
+      },
     ),
   );
 
@@ -580,290 +288,55 @@ class _TerrainComposedSample extends StatelessWidget {
   );
 }
 
-final class _TerrainMaterialPathClipper extends CustomClipper<Path> {
-  const _TerrainMaterialPathClipper(this.path);
-
-  final Path path;
-
-  @override
-  Path getClip(Size size) => path;
-
-  @override
-  bool shouldReclip(covariant _TerrainMaterialPathClipper oldClipper) =>
-      oldClipper.path != path;
-}
-
-class _TerrainRegionImage extends StatefulWidget {
-  const _TerrainRegionImage.repeated({
-    super.key,
-    required this.workspaceRootPath,
-    required this.region,
-    required this.imageCache,
-    required this.repeat,
-    required this.worldOrigin,
-  }) : edgeStart = null,
-       edgeEnd = null,
-       anchorX = null,
-       anchorY = null,
-       orientation = null,
-       atEnd = null;
-
-  const _TerrainRegionImage.edge({
-    super.key,
-    required this.workspaceRootPath,
-    required this.region,
-    required this.imageCache,
-    required this.edgeStart,
-    required this.edgeEnd,
-    required this.anchorY,
-    required this.orientation,
-  }) : repeat = null,
-       worldOrigin = null,
-       anchorX = null,
-       atEnd = null;
-
-  const _TerrainRegionImage.cap({
-    super.key,
-    required this.workspaceRootPath,
-    required this.region,
-    required this.imageCache,
-    required this.edgeStart,
-    required this.edgeEnd,
-    required this.anchorX,
-    required this.anchorY,
-    required this.orientation,
-    required this.atEnd,
-  }) : repeat = null,
-       worldOrigin = null;
-
-  final String workspaceRootPath;
-  final TerrainMaterialImageRegion region;
-  final EditorUiImageCache imageCache;
-  final _RegionRepeat? repeat;
-  final Offset? worldOrigin;
-  final Offset? edgeStart;
-  final Offset? edgeEnd;
-  final double? anchorX;
-  final double? anchorY;
-  final TerrainMaterialEdgeOrientation? orientation;
-  final bool? atEnd;
-
-  @override
-  State<_TerrainRegionImage> createState() => _TerrainRegionImageState();
-}
-
-class _TerrainRegionImageState extends State<_TerrainRegionImage> {
-  ui.Image? _image;
-  String? _absolutePath;
-
-  @override
-  void initState() {
-    super.initState();
-    _refresh();
+Iterable<String> _configuredRoles(TerrainMaterialDefinition material) sync* {
+  yield 'top_base';
+  if (material.top.detail != null) yield 'top_detail';
+  if (material.topStartCap != null) yield 'start_cap';
+  if (material.topEndCap != null) yield 'end_cap';
+  if (material.rightWall case final profile?) {
+    yield 'right_wall_base';
+    if (profile.detail != null) yield 'right_wall_detail';
   }
-
-  @override
-  void didUpdateWidget(covariant _TerrainRegionImage oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.region.assetPath != widget.region.assetPath ||
-        oldWidget.workspaceRootPath != widget.workspaceRootPath ||
-        oldWidget.imageCache != widget.imageCache) {
-      _refresh();
-    }
+  if (material.underside case final profile?) {
+    yield 'underside_base';
+    if (profile.detail != null) yield 'underside_detail';
   }
-
-  @override
-  Widget build(BuildContext context) => _image == null
-      ? const ColoredBox(color: Color(0x22000000))
-      : CustomPaint(
-          painter: switch ((widget.edgeStart, widget.anchorX)) {
-            (null, _) => _TerrainRegionPainter(
-              image: _image!,
-              region: widget.region,
-              repeat: widget.repeat!,
-              worldOrigin: widget.worldOrigin!,
-            ),
-            (_, final anchorX?) => _TerrainCapPainter(
-              image: _image!,
-              region: widget.region,
-              start: widget.edgeStart!,
-              end: widget.edgeEnd!,
-              anchorX: anchorX,
-              anchorY: widget.anchorY!,
-              orientation: widget.orientation!,
-              atEnd: widget.atEnd!,
-            ),
-            _ => _TerrainEdgePainter(
-              image: _image!,
-              region: widget.region,
-              start: widget.edgeStart!,
-              end: widget.edgeEnd!,
-              anchorY: widget.anchorY!,
-              orientation: widget.orientation!,
-            ),
-          },
-        );
-
-  void _refresh() {
-    final absolutePath = p.normalize(
-      p.join(widget.workspaceRootPath, widget.region.assetPath),
-    );
-    _absolutePath = absolutePath;
-    _image = widget.imageCache.imageFor(absolutePath);
-    if (_image == null) unawaited(_load(absolutePath));
-  }
-
-  Future<void> _load(String absolutePath) async {
-    final image = await widget.imageCache.ensureLoaded(absolutePath);
-    if (!mounted || _absolutePath != absolutePath) return;
-    setState(() => _image = image);
+  if (material.undersideStartCap != null) yield 'underside_start_cap';
+  if (material.undersideEndCap != null) yield 'underside_end_cap';
+  if (material.leftWall case final profile?) {
+    yield 'left_wall_base';
+    if (profile.detail != null) yield 'left_wall_detail';
   }
 }
 
-class _TerrainEdgePainter extends CustomPainter {
-  const _TerrainEdgePainter({
-    required this.image,
-    required this.region,
-    required this.start,
-    required this.end,
-    required this.anchorY,
-    required this.orientation,
+final class _TerrainCompositionPainter extends CustomPainter {
+  const _TerrainCompositionPainter({
+    required this.ownerPath,
+    required this.material,
+    required this.imagesByRegion,
+    required this.edges,
   });
 
-  final ui.Image image;
-  final TerrainMaterialImageRegion region;
-  final Offset start;
-  final Offset end;
-  final double anchorY;
-  final TerrainMaterialEdgeOrientation orientation;
+  final Path ownerPath;
+  final TerrainMaterialDefinition material;
+  final Map<TerrainMaterialImageRegion, ui.Image> imagesByRegion;
+  final List<TerrainMaterialCompositorEdge> edges;
 
   @override
-  void paint(Canvas canvas, Size size) => paintTerrainMaterialEdgeRegion(
+  void paint(Canvas canvas, Size size) => paintTerrainMaterialComposition(
     canvas,
-    image: image,
-    region: region,
-    orientation: orientation,
-    start: start,
-    end: end,
-    anchorY: anchorY,
+    ownerPath: ownerPath,
+    material: material,
+    imagesByRegion: imagesByRegion,
+    edges: edges,
   );
 
   @override
-  bool shouldRepaint(covariant _TerrainEdgePainter oldDelegate) =>
-      oldDelegate.image != image ||
-      oldDelegate.region != region ||
-      oldDelegate.start != start ||
-      oldDelegate.end != end ||
-      oldDelegate.anchorY != anchorY ||
-      oldDelegate.orientation != orientation;
+  bool shouldRepaint(covariant _TerrainCompositionPainter oldDelegate) =>
+      oldDelegate.material != material ||
+      oldDelegate.ownerPath != ownerPath ||
+      oldDelegate.imagesByRegion.length != imagesByRegion.length;
 }
-
-class _TerrainCapPainter extends CustomPainter {
-  const _TerrainCapPainter({
-    required this.image,
-    required this.region,
-    required this.start,
-    required this.end,
-    required this.anchorX,
-    required this.anchorY,
-    required this.orientation,
-    required this.atEnd,
-  });
-
-  final ui.Image image;
-  final TerrainMaterialImageRegion region;
-  final Offset start;
-  final Offset end;
-  final double anchorX;
-  final double anchorY;
-  final TerrainMaterialEdgeOrientation orientation;
-  final bool atEnd;
-
-  @override
-  void paint(Canvas canvas, Size size) => paintTerrainMaterialCapRegion(
-    canvas,
-    image: image,
-    region: region,
-    orientation: orientation,
-    start: start,
-    end: end,
-    anchorX: anchorX,
-    anchorY: anchorY,
-    atEnd: atEnd,
-  );
-
-  @override
-  bool shouldRepaint(covariant _TerrainCapPainter oldDelegate) =>
-      oldDelegate.image != image ||
-      oldDelegate.region != region ||
-      oldDelegate.start != start ||
-      oldDelegate.end != end ||
-      oldDelegate.anchorX != anchorX ||
-      oldDelegate.anchorY != anchorY ||
-      oldDelegate.orientation != orientation ||
-      oldDelegate.atEnd != atEnd;
-}
-
-class _TerrainRegionPainter extends CustomPainter {
-  const _TerrainRegionPainter({
-    required this.image,
-    required this.region,
-    required this.repeat,
-    required this.worldOrigin,
-  });
-
-  final ui.Image image;
-  final TerrainMaterialImageRegion region;
-  final _RegionRepeat repeat;
-  final Offset worldOrigin;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (region.right > image.width || region.bottom > image.height) return;
-    final source = Rect.fromLTWH(
-      region.x.toDouble(),
-      region.y.toDouble(),
-      region.width.toDouble(),
-      region.height.toDouble(),
-    );
-    final paint = Paint()..filterQuality = FilterQuality.none;
-    canvas.save();
-    canvas.clipRect(Offset.zero & size);
-    final startX = -terrainMaterialPositiveModulo(
-      worldOrigin.dx,
-      region.width.toDouble(),
-    );
-    final startY = -terrainMaterialPositiveModulo(
-      worldOrigin.dy,
-      region.height.toDouble(),
-    );
-    for (var y = startY; y < size.height; y += region.height) {
-      for (var x = startX; x < size.width; x += region.width) {
-        canvas.drawImageRect(
-          image,
-          source,
-          Rect.fromLTWH(
-            x,
-            y,
-            region.width.toDouble(),
-            region.height.toDouble(),
-          ),
-          paint,
-        );
-      }
-    }
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(covariant _TerrainRegionPainter oldDelegate) =>
-      oldDelegate.image != image ||
-      oldDelegate.region != region ||
-      oldDelegate.repeat != repeat ||
-      oldDelegate.worldOrigin != worldOrigin;
-}
-
-enum _RegionRepeat { both }
 
 class _CoverageChip extends StatelessWidget {
   const _CoverageChip({required this.label, required this.configured});

@@ -9,7 +9,7 @@ import '../../../../parallax/parallax_domain_models.dart';
 import '../../../../terrain_authoring/terrain_source_models.dart';
 import '../../shared/editor_scene_view_utils.dart';
 import '../../shared/terrain_material_corner_layout.dart';
-import '../../shared/terrain_material_edge_painter.dart';
+import '../../shared/terrain_material_compositor.dart';
 import '../../shared/terrain_material_preview_catalog.dart';
 import '../../shared/terrain_polygon_scene_painter.dart';
 
@@ -92,6 +92,17 @@ class _ChunkPolygonLevelVisualSourceState
       final image = _imageCache.imageFor(_absolutePath(sourcePath));
       if (image != null) imagesBySourcePath[sourcePath] = image;
     }
+    final imagesByRegion = <TerrainMaterialImageRegion, ui.Image>{};
+    for (final region in _requiredMaterialRegions()) {
+      final image = _imageCache.regionImageFor(
+        _absolutePath(region.assetPath),
+        x: region.x,
+        y: region.y,
+        width: region.width,
+        height: region.height,
+      );
+      if (image != null) imagesByRegion[region] = image;
+    }
     return CustomPaint(
       painter: _ChunkPolygonLevelVisualPainter(
         chunk: widget.chunk,
@@ -99,7 +110,9 @@ class _ChunkPolygonLevelVisualSourceState
         transform: widget.transform,
         layer: widget.layer,
         imagesBySourcePath: imagesBySourcePath,
-        loadedImageCount: _imageCache.loadedImageCount,
+        imagesByRegion: imagesByRegion,
+        loadedImageCount:
+            _imageCache.loadedImageCount + _imageCache.loadedRegionImageCount,
         materialCatalog: _materialCatalog,
         terrainShapes: _terrainShapes,
       ),
@@ -112,6 +125,29 @@ class _ChunkPolygonLevelVisualSourceState
         final image = await _imageCache.ensureLoaded(_absolutePath(sourcePath));
         if (mounted && image != null) setState(() {});
       }();
+    }
+    for (final region in _requiredMaterialRegions()) {
+      () async {
+        final image = await _imageCache.ensureRegionLoaded(
+          _absolutePath(region.assetPath),
+          x: region.x,
+          y: region.y,
+          width: region.width,
+          height: region.height,
+        );
+        if (mounted && image != null) setState(() {});
+      }();
+    }
+  }
+
+  Iterable<TerrainMaterialImageRegion> _requiredMaterialRegions() sync* {
+    if (widget.layer != ChunkPolygonLevelVisualLayer.terrain) return;
+    for (final shape in _terrainShapes) {
+      final material = terrainMaterialPreviewForKey(
+        _materialCatalog,
+        shape.materialKey,
+      );
+      if (material != null) yield* terrainMaterialRegions(material);
     }
   }
 
@@ -126,15 +162,6 @@ class _ChunkPolygonLevelVisualSourceState
       for (final layer in layers) {
         if (layer.group == expectedGroup) yield layer.assetPath;
       }
-    }
-    if (widget.layer != ChunkPolygonLevelVisualLayer.terrain) return;
-    for (final shape in _terrainShapes) {
-      final material = terrainMaterialPreviewForKey(
-        _materialCatalog,
-        shape.materialKey,
-      );
-      if (material == null) continue;
-      yield* _materialAssetPaths(material);
     }
   }
 
@@ -152,6 +179,7 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
     required this.transform,
     required this.layer,
     required this.imagesBySourcePath,
+    required this.imagesByRegion,
     required this.loadedImageCount,
     required this.materialCatalog,
     required this.terrainShapes,
@@ -162,6 +190,7 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
   final TerrainPolygonViewportTransform transform;
   final ChunkPolygonLevelVisualLayer layer;
   final Map<String, ui.Image> imagesBySourcePath;
+  final Map<TerrainMaterialImageRegion, ui.Image> imagesByRegion;
   final int loadedImageCount;
   final TerrainMaterialCatalog? materialCatalog;
   final List<TerrainSourceShapeDef> terrainShapes;
@@ -249,60 +278,13 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
       if (material == null || shape.vertices.length < 3) continue;
       final path = _sourcePath(shape.vertices);
       final edgeKinds = _edgeKinds(shape.vertices);
-      final edgePaintOrder = terrainMaterialEdgePaintOrder(edgeKinds);
       final cornerCaps = resolveTerrainMaterialEdgeCornerCaps(
         shape: shape,
         material: material,
         edgeOrientations: edgeKinds,
       );
-      final capPlacements =
-          <
-            ({
-              int edgeIndex,
-              bool atEnd,
-              TerrainMaterialCap cap,
-              ui.Image image,
-              Path footprint,
-            })
-          >[];
-      for (final index in edgePaintOrder) {
-        final orientation = edgeKinds[index];
-        final caps = terrainMaterialCapsForOrientation(material, orientation);
-        final start = _vertexOffset(shape.vertices[index]);
-        final end = _vertexOffset(
-          shape.vertices[(index + 1) % shape.vertices.length],
-        );
-        void reserve(TerrainMaterialCap? cap, {required bool atEnd}) {
-          if (cap == null) return;
-          final image = imagesBySourcePath[cap.region.assetPath];
-          if (image == null ||
-              cap.region.right > image.width ||
-              cap.region.bottom > image.height) {
-            return;
-          }
-          capPlacements.add((
-            edgeIndex: index,
-            atEnd: atEnd,
-            cap: cap,
-            image: image,
-            footprint: terrainMaterialCapFootprintPath(
-              region: cap.region,
-              orientation: orientation,
-              start: start,
-              end: end,
-              anchorX: cap.anchorX,
-              anchorY: cap.anchorY,
-              atEnd: atEnd,
-            ),
-          ));
-        }
-
-        if (cornerCaps[index].start) reserve(caps.start, atEnd: false);
-        if (cornerCaps[index].end) reserve(caps.end, atEnd: true);
-      }
-      final edgePlacements =
-          <({int edgeIndex, Path footprint, Path seamBackingPath})>[];
-      for (final edgeIndex in edgePaintOrder) {
+      final edges = <TerrainMaterialCompositorEdge>[];
+      for (var edgeIndex = 0; edgeIndex < edgeKinds.length; edgeIndex += 1) {
         final orientation = edgeKinds[edgeIndex];
         final profile = _profileForKind(material, orientation);
         if (profile == null) continue;
@@ -310,158 +292,26 @@ final class _ChunkPolygonLevelVisualPainter extends CustomPainter {
         final end = _vertexOffset(
           shape.vertices[(edgeIndex + 1) % shape.vertices.length],
         );
-        final layerFootprints = <Path>[];
-        bool reserveLayer(TerrainMaterialEdgeLayer? layer) {
-          if (layer == null) return false;
-          final image = imagesBySourcePath[layer.region.assetPath];
-          if (image == null ||
-              layer.region.right > image.width ||
-              layer.region.bottom > image.height) {
-            return false;
-          }
-          layerFootprints.add(
-            terrainMaterialEdgeFootprintPath(
-              region: layer.region,
-              orientation: orientation,
-              start: start,
-              end: end,
-              anchorY: layer.anchorY,
-            ),
-          );
-          return true;
-        }
-
-        final baseReserved = reserveLayer(profile.base);
-        reserveLayer(profile.detail);
-        if (layerFootprints.isEmpty) continue;
-        var footprint = layerFootprints.first;
-        for (final layerFootprint in layerFootprints.skip(1)) {
-          footprint = Path.combine(
-            PathOperation.union,
-            footprint,
-            layerFootprint,
-          );
-        }
-        edgePlacements.add((
-          edgeIndex: edgeIndex,
-          footprint: footprint,
-          seamBackingPath: baseReserved
-              ? terrainMaterialEdgeSeamBackingPath(
-                  region: profile.base.region,
-                  orientation: orientation,
-                  start: start,
-                  end: end,
-                  anchorY: profile.base.anchorY,
-                )
-              : Path(),
-        ));
+        final caps = terrainMaterialCapsForOrientation(material, orientation);
+        edges.add(
+          TerrainMaterialCompositorEdge(
+            profile: profile,
+            orientation: orientation,
+            start: start,
+            end: end,
+            startCap: cornerCaps[edgeIndex].start ? caps.start : null,
+            endCap: cornerCaps[edgeIndex].end ? caps.end : null,
+          ),
+        );
       }
-      final capFootprints = capPlacements
-          .map((placement) => placement.footprint)
-          .toList(growable: false);
-      final edgeFootprints = edgePlacements
-          .map((placement) => placement.footprint)
-          .toList(growable: false);
-      final lowerPriorityPath = terrainMaterialLowerPriorityClipPath(
+      paintTerrainMaterialComposition(
+        canvas,
         ownerPath: path,
-        reservedFootprints: <Path>[...edgeFootprints, ...capFootprints],
+        material: material,
+        imagesByRegion: imagesByRegion,
+        edges: edges,
+        fallbackFillPaint: _fallbackTerrainPaint(shape.materialKey),
       );
-      final capClipPaths = terrainMaterialExclusiveCapClipPaths(
-        ownerPath: path,
-        orderedCapFootprints: capFootprints,
-      );
-      final edgeClipPaths = terrainMaterialExclusiveEdgeClipPaths(
-        ownerPath: path,
-        orderedEdgeFootprints: edgeFootprints,
-        capFootprints: capFootprints,
-      );
-      final fill = imagesBySourcePath[material.fill.assetPath];
-      if (fill == null) {
-        canvas.drawPath(
-          lowerPriorityPath,
-          _fallbackTerrainPaint(shape.materialKey),
-        );
-      } else {
-        _drawTiledRegionInPath(canvas, lowerPriorityPath, fill, material.fill);
-      }
-      for (var index = 0; index < edgePlacements.length; index += 1) {
-        final seamBackingClip = Path.combine(
-          PathOperation.intersect,
-          edgeClipPaths[index],
-          edgePlacements[index].seamBackingPath,
-        );
-        if (!seamBackingClip.getBounds().isEmpty) {
-          if (fill == null) {
-            canvas.drawPath(
-              seamBackingClip,
-              _fallbackTerrainPaint(shape.materialKey),
-            );
-          } else {
-            _drawTiledRegionInPath(
-              canvas,
-              seamBackingClip,
-              fill,
-              material.fill,
-            );
-          }
-        }
-        final edgeIndex = edgePlacements[index].edgeIndex;
-        final startVertex = shape.vertices[edgeIndex];
-        final endVertex =
-            shape.vertices[(edgeIndex + 1) % shape.vertices.length];
-        final start = _vertexOffset(startVertex);
-        final end = _vertexOffset(endVertex);
-        final kind = edgeKinds[edgeIndex];
-        final profile = _profileForKind(material, kind);
-        if (profile != null) {
-          final base = imagesBySourcePath[profile.base.region.assetPath];
-          if (base != null) {
-            _drawEdgeImage(
-              canvas,
-              clipPath: edgeClipPaths[index],
-              start: start,
-              end: end,
-              image: base,
-              layer: profile.base,
-              orientation: kind,
-            );
-          }
-          final detailLayer = profile.detail;
-          final detail = detailLayer == null
-              ? null
-              : imagesBySourcePath[detailLayer.region.assetPath];
-          if (detail != null && detailLayer != null) {
-            _drawEdgeImage(
-              canvas,
-              clipPath: edgeClipPaths[index],
-              start: start,
-              end: end,
-              image: detail,
-              layer: detailLayer,
-              orientation: kind,
-            );
-          }
-        }
-      }
-      for (var index = 0; index < capPlacements.length; index += 1) {
-        final placement = capPlacements[index];
-        final edgeIndex = placement.edgeIndex;
-        final kind = edgeKinds[edgeIndex];
-        final start = _vertexOffset(shape.vertices[edgeIndex]);
-        final end = _vertexOffset(
-          shape.vertices[(edgeIndex + 1) % shape.vertices.length],
-        );
-        _drawEdgeCap(
-          canvas,
-          clipPath: capClipPaths[index],
-          edgeStart: start,
-          edgeEnd: end,
-          image: placement.image,
-          cap: placement.cap,
-          orientation: kind,
-          atEnd: placement.atEnd,
-        );
-      }
     }
     canvas.restore();
   }
@@ -550,81 +400,6 @@ double _signedArea(List<TerrainSourceVertexDef> vertices) {
         right.xHalfPixels * left.yHalfPixels;
   }
   return area;
-}
-
-void _drawEdgeImage(
-  Canvas canvas, {
-  required Path clipPath,
-  required Offset start,
-  required Offset end,
-  required ui.Image image,
-  required TerrainMaterialEdgeLayer layer,
-  required TerrainMaterialEdgeOrientation orientation,
-}) => paintTerrainMaterialEdgeRegion(
-  canvas,
-  image: image,
-  region: layer.region,
-  orientation: orientation,
-  start: start,
-  end: end,
-  anchorY: layer.anchorY,
-  clipPath: clipPath,
-);
-
-void _drawEdgeCap(
-  Canvas canvas, {
-  required Path clipPath,
-  required Offset edgeStart,
-  required Offset edgeEnd,
-  required ui.Image image,
-  required TerrainMaterialCap cap,
-  required TerrainMaterialEdgeOrientation orientation,
-  required bool atEnd,
-}) => paintTerrainMaterialCapRegion(
-  canvas,
-  image: image,
-  region: cap.region,
-  orientation: orientation,
-  start: edgeStart,
-  end: edgeEnd,
-  anchorX: cap.anchorX,
-  anchorY: cap.anchorY,
-  atEnd: atEnd,
-  clipPath: clipPath,
-);
-
-Iterable<String> _materialAssetPaths(TerrainMaterialDefinition material) =>
-    terrainMaterialAssetPaths(material);
-
-void _drawTiledRegionInPath(
-  Canvas canvas,
-  Path path,
-  ui.Image image,
-  TerrainMaterialImageRegion region,
-) {
-  final bounds = path.getBounds();
-  final source = Rect.fromLTWH(
-    region.x.toDouble(),
-    region.y.toDouble(),
-    region.width.toDouble(),
-    region.height.toDouble(),
-  );
-  final startX = terrainMaterialTileStart(bounds.left, region.width.toDouble());
-  final startY = terrainMaterialTileStart(bounds.top, region.height.toDouble());
-  final paint = Paint()..filterQuality = FilterQuality.none;
-  canvas.save();
-  canvas.clipPath(path);
-  for (var y = startY; y < bounds.bottom; y += region.height) {
-    for (var x = startX; x < bounds.right; x += region.width) {
-      canvas.drawImageRect(
-        image,
-        source,
-        Rect.fromLTWH(x, y, region.width.toDouble(), region.height.toDouble()),
-        paint,
-      );
-    }
-  }
-  canvas.restore();
 }
 
 Paint _fallbackTerrainPaint(String? materialKey) =>

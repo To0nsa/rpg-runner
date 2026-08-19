@@ -4,36 +4,35 @@ import 'dart:ui' as ui;
 import 'package:flutter/painting.dart';
 import 'package:terrain_materials/terrain_materials.dart';
 
-/// Paints one world-facing atlas region along an authored terrain edge.
+/// Paints one isolated, world-facing image along an authored terrain edge.
 ///
 /// Role normalization is shared with runtime math, so axis-aligned art retains
 /// its atlas orientation while sloped art follows the actual edge tangent.
 /// When supplied, [clipPath] is in scene/world coordinates and confines the
 /// complete edge band to its owning polygon.
-void paintTerrainMaterialEdgeRegion(
+void paintTerrainMaterialEdgeImage(
   Canvas canvas, {
   required ui.Image image,
-  required TerrainMaterialImageRegion region,
   required TerrainMaterialEdgeOrientation orientation,
   required Offset start,
   required Offset end,
   required double anchorY,
   Path? clipPath,
+  BlendMode blendMode = BlendMode.srcOver,
 }) {
-  if (region.right > image.width || region.bottom > image.height) return;
   final delta = end - start;
   final length = delta.distance;
   if (length <= 0) return;
   final angle = math.atan2(delta.dy, delta.dx);
   final tileWidth = terrainMaterialEdgeTileWidth(
     orientation: orientation,
-    sourceWidth: region.width,
-    sourceHeight: region.height,
+    sourceWidth: image.width,
+    sourceHeight: image.height,
   ).toDouble();
   final tileHeight = terrainMaterialEdgeTileHeight(
     orientation: orientation,
-    sourceWidth: region.width,
-    sourceHeight: region.height,
+    sourceWidth: image.width,
+    sourceHeight: image.height,
   ).toDouble();
   final phase = terrainMaterialEdgeRepeatPhase(
     startX: start.dx,
@@ -56,9 +55,9 @@ void paintTerrainMaterialEdgeRegion(
     _drawNormalizedRegion(
       canvas,
       image: image,
-      region: region,
       destination: Offset(x, -anchorY),
       quarterTurns: quarterTurns,
+      blendMode: blendMode,
     );
   }
   canvas.restore();
@@ -68,10 +67,9 @@ void paintTerrainMaterialEdgeRegion(
 ///
 /// When supplied, [clipPath] prevents the rectangular cap image from crossing
 /// another boundary of its owning polygon.
-void paintTerrainMaterialCapRegion(
+void paintTerrainMaterialCapImage(
   Canvas canvas, {
   required ui.Image image,
-  required TerrainMaterialImageRegion region,
   required TerrainMaterialEdgeOrientation orientation,
   required Offset start,
   required Offset end,
@@ -79,8 +77,8 @@ void paintTerrainMaterialCapRegion(
   required double anchorY,
   required bool atEnd,
   Path? clipPath,
+  BlendMode blendMode = BlendMode.srcOver,
 }) {
-  if (region.right > image.width || region.bottom > image.height) return;
   final delta = end - start;
   final length = delta.distance;
   if (length <= 0) return;
@@ -90,8 +88,8 @@ void paintTerrainMaterialCapRegion(
     anchorY: anchorY,
     atEnd: atEnd,
     orientation: orientation,
-    sourceWidth: region.width,
-    sourceHeight: region.height,
+    sourceWidth: image.width,
+    sourceHeight: image.height,
   );
   canvas.save();
   if (clipPath != null) canvas.clipPath(clipPath);
@@ -100,78 +98,11 @@ void paintTerrainMaterialCapRegion(
   _drawNormalizedRegion(
     canvas,
     image: image,
-    region: region,
     destination: Offset(footprint.left, footprint.top),
     quarterTurns: terrainMaterialEdgeNormalizationQuarterTurns(orientation),
+    blendMode: blendMode,
   );
   canvas.restore();
-}
-
-/// Returns the world-space rectangle exclusively owned by one cap.
-///
-/// The footprint includes transparent pixels. Consumers subtract it from fill
-/// and edge-band clips before painting the cap so authored silhouette cutouts
-/// reveal the scene instead of lower-priority terrain art.
-Path terrainMaterialCapFootprintPath({
-  required TerrainMaterialImageRegion region,
-  required TerrainMaterialEdgeOrientation orientation,
-  required Offset start,
-  required Offset end,
-  required double anchorX,
-  required double anchorY,
-  required bool atEnd,
-}) {
-  final delta = end - start;
-  final length = delta.distance;
-  if (length <= 0) return Path();
-  final footprint = terrainMaterialCapFootprint(
-    edgeLength: length,
-    anchorX: anchorX,
-    anchorY: anchorY,
-    atEnd: atEnd,
-    orientation: orientation,
-    sourceWidth: region.width,
-    sourceHeight: region.height,
-  );
-  return _terrainMaterialFootprintPath(
-    start: start,
-    end: end,
-    left: footprint.left,
-    top: footprint.top,
-    width: footprint.width,
-    height: footprint.height,
-  );
-}
-
-/// Returns the world-space strip exclusively owned by one edge layer.
-///
-/// Consumers union base/detail footprints for a semantic edge before resolving
-/// priority against adjacent edges and caps.
-Path terrainMaterialEdgeFootprintPath({
-  required TerrainMaterialImageRegion region,
-  required TerrainMaterialEdgeOrientation orientation,
-  required Offset start,
-  required Offset end,
-  required double anchorY,
-}) {
-  final delta = end - start;
-  final length = delta.distance;
-  if (length <= 0) return Path();
-  final footprint = terrainMaterialEdgeFootprint(
-    edgeLength: length,
-    anchorY: anchorY,
-    orientation: orientation,
-    sourceWidth: region.width,
-    sourceHeight: region.height,
-  );
-  return _terrainMaterialFootprintPath(
-    start: start,
-    end: end,
-    left: footprint.left,
-    top: footprint.top,
-    width: footprint.width,
-    height: footprint.height,
-  );
 }
 
 /// Returns narrow edge-local corridors backing internal repeat boundaries.
@@ -265,101 +196,28 @@ Path _terrainMaterialFootprintPath({
   return path..close();
 }
 
-/// Removes reserved region footprints from a polygon's lower-priority area.
-///
-/// Ownership is independent of source alpha. [ownerPath] is not mutated.
-Path terrainMaterialLowerPriorityClipPath({
-  required Path ownerPath,
-  required Iterable<Path> reservedFootprints,
-}) {
-  var result = Path.from(ownerPath);
-  for (final footprint in reservedFootprints) {
-    if (footprint.getBounds().isEmpty) continue;
-    result = Path.combine(PathOperation.difference, result, footprint);
-  }
-  return result;
-}
-
-/// Resolves non-overlapping clips for caps in back-to-front paint order.
-///
-/// A later cap owns its full footprint, including transparent pixels. Earlier
-/// caps are removed from that area so thin polygons cannot expose an underside
-/// corner through a higher-priority top corner.
-List<Path> terrainMaterialExclusiveCapClipPaths({
-  required Path ownerPath,
-  required Iterable<Path> orderedCapFootprints,
-}) {
-  final footprints = orderedCapFootprints.toList(growable: false);
-  return List<Path>.unmodifiable(<Path>[
-    for (var index = 0; index < footprints.length; index += 1)
-      _exclusiveCapClipPath(
-        ownerPath: ownerPath,
-        footprint: footprints[index],
-        higherPriorityFootprints: footprints.skip(index + 1),
-      ),
-  ]);
-}
-
-/// Resolves exclusive edge clips in back-to-front paint order.
-///
-/// Later edges own overlaps, and every cap owns its footprint above every
-/// edge. Complete footprints participate regardless of source alpha.
-List<Path> terrainMaterialExclusiveEdgeClipPaths({
-  required Path ownerPath,
-  required Iterable<Path> orderedEdgeFootprints,
-  required Iterable<Path> capFootprints,
-}) {
-  final edges = orderedEdgeFootprints.toList(growable: false);
-  final caps = capFootprints.toList(growable: false);
-  return List<Path>.unmodifiable(<Path>[
-    for (var index = 0; index < edges.length; index += 1)
-      _exclusiveCapClipPath(
-        ownerPath: ownerPath,
-        footprint: edges[index],
-        higherPriorityFootprints: <Path>[...edges.skip(index + 1), ...caps],
-      ),
-  ]);
-}
-
-Path _exclusiveCapClipPath({
-  required Path ownerPath,
-  required Path footprint,
-  required Iterable<Path> higherPriorityFootprints,
-}) {
-  var result = Path.combine(PathOperation.intersect, ownerPath, footprint);
-  for (final higherPriorityFootprint in higherPriorityFootprints) {
-    if (higherPriorityFootprint.getBounds().isEmpty) continue;
-    result = Path.combine(
-      PathOperation.difference,
-      result,
-      higherPriorityFootprint,
-    );
-  }
-  return result;
-}
-
 void _drawNormalizedRegion(
   Canvas canvas, {
   required ui.Image image,
-  required TerrainMaterialImageRegion region,
   required Offset destination,
   required int quarterTurns,
+  required BlendMode blendMode,
 }) {
   canvas.save();
   switch (quarterTurns) {
     case 0:
       canvas.translate(destination.dx, destination.dy);
     case 1:
-      canvas.translate(destination.dx + region.height, destination.dy);
+      canvas.translate(destination.dx + image.height, destination.dy);
       canvas.rotate(math.pi / 2);
     case 2:
       canvas.translate(
-        destination.dx + region.width,
-        destination.dy + region.height,
+        destination.dx + image.width,
+        destination.dy + image.height,
       );
       canvas.rotate(math.pi);
     case 3:
-      canvas.translate(destination.dx, destination.dy + region.width);
+      canvas.translate(destination.dx, destination.dy + image.width);
       canvas.rotate(-math.pi / 2);
     default:
       throw ArgumentError.value(
@@ -368,18 +226,15 @@ void _drawNormalizedRegion(
         'Must be within [0, 3].',
       );
   }
-  canvas.drawImageRect(
+  canvas.drawImage(
     image,
-    Rect.fromLTWH(
-      region.x.toDouble(),
-      region.y.toDouble(),
-      region.width.toDouble(),
-      region.height.toDouble(),
-    ),
-    Rect.fromLTWH(0, 0, region.width.toDouble(), region.height.toDouble()),
-    _edgePaint,
+    Offset.zero,
+    blendMode == BlendMode.src ? _sourcePaint : _edgePaint,
   );
   canvas.restore();
 }
 
 final Paint _edgePaint = Paint()..filterQuality = FilterQuality.none;
+final Paint _sourcePaint = Paint()
+  ..filterQuality = FilterQuality.none
+  ..blendMode = BlendMode.src;

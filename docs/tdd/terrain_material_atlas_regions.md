@@ -72,23 +72,21 @@ Within both the repeating-band pass and final endpoint-cap pass, wall and
 underside decorations retain their source order and top-facing decorations
 render last. Slopes with an upward-facing outward normal count as top-facing,
 so the playable grass/surface silhouette remains visible at every corner.
-Before rendering, each configured semantic edge unions its base/detail strip
-footprints. Fill excludes every edge and selected-cap footprint. Edge clips are
-then resolved back-to-front: later top-facing strips subtract their complete
-footprints from earlier wall/underside strips, and every cap footprint is
-subtracted from every edge. Base and detail still composite within their shared
-semantic edge clip. Finally, cap footprints resolve back-to-front against each
-other. Transparent region pixels therefore reveal the scene rather than a
-lower terrain role. The visible priority is cap, top band, wall/underside band,
-then fill.
+Terrain composition uses one isolated layer per render pass. Fill first covers
+the complete owner polygon. Ordered base edges then use source replacement,
+detail overlays its own base, and caps use source replacement in the final
+pass. Because replacement copies source alpha as well as color, transparent
+pixels clear lower terrain roles while the isolated layer preserves the scene
+behind terrain. Back-to-front order gives the visible priority cap, top band,
+wall/underside band, then fill without complementary path subtraction.
 
 Repeating edge bases add a seam-only backing derived from the material fill.
 The shared world-phase math identifies internal repeat boundaries and excludes
-the authored edge endpoints. At each internal boundary, the backing covers one
-world/source pixel on either side and the base/detail art renders above it. The
-backing is intersected with that edge's exclusive clip, so higher edges and
-caps retain ownership. This addresses transparent boundary texels and raster
-cracks without backing the complete edge footprint.
+the authored edge endpoints. The base renders first; a fill-shader pass then
+uses destination-over inside the seam corridor. It can therefore occupy only
+transparent base pixels and cannot cover authored edge color. Later detail,
+higher-priority edges, and caps retain ownership. This addresses transparent
+boundary texels and raster cracks without backing the complete edge strip.
 
 Core join semantics drive non-repeating art. `exposed` endpoints retain their
 configured start/end caps. For a `connected` join, shared pure-Dart math takes
@@ -100,10 +98,14 @@ ties. `smooth` joins never draw caps. The Chunk Creator applies the same rule to
 closed source loops and treats only top-facing runs as active for one-way
 terrain.
 
-Every edge band is clipped to its exact authored edge endpoints. Runtime and
-editor painters do not stretch or underlap adjacent bands to hide join wedges;
-the meeting source regions and polygon fill remain visible as authored outside
-exclusively reserved edge and cap footprints.
+Every edge band is clipped to its exact authored edge endpoints and owner
+polygon. Runtime and editor painters do not stretch or underlap adjacent bands
+to hide join wedges; ordered source replacement determines overlaps directly.
+
+Runtime extracts every atlas region into an isolated image before rendering.
+The Chunk Creator and composed material preview use the same extraction model
+and one shared canvas compositor, so atlas-neighbor sampling and independently
+anti-aliased widget clips cannot make the three views disagree.
 
 Cap `anchorX` and `anchorY` use tangent-normalized region coordinates, matching
 the destination space in which the cap is placed. Edge `anchorY` uses that same

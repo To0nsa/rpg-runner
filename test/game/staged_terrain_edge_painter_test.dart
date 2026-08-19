@@ -3,9 +3,8 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:terrain_materials/terrain_materials.dart';
-
 import 'package:rpg_runner/game/components/staged_terrain.dart';
+import 'package:terrain_materials/terrain_materials.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -72,32 +71,7 @@ void main() {
     }
   });
 
-  test('underside cap preserves its world-facing source pixels', () async {
-    final source = await _sourceImage();
-    addTearDown(source.dispose);
-    final recorder = ui.PictureRecorder();
-    paintTerrainMaterialCapImage(
-      ui.Canvas(recorder),
-      start: const ui.Offset(4, 5),
-      length: 2,
-      angle: math.pi,
-      image: source,
-      anchorX: 0,
-      anchorY: 0,
-      atEnd: false,
-      orientation: TerrainMaterialEdgeOrientation.underside,
-    );
-    final picture = recorder.endRecording();
-    final actual = await picture.toImage(8, 8);
-    picture.dispose();
-    final expected = await _renderSourceAt(source, const ui.Offset(2, 2));
-    addTearDown(actual.dispose);
-    addTearDown(expected.dispose);
-
-    expect(await _rgbaBytes(actual), await _rgbaBytes(expected));
-  });
-
-  test('polygon clip contains edge bands and caps at sloped corners', () async {
+  test('polygon clip contains edge bands at sloped corners', () async {
     final source = await _sourceImage();
     addTearDown(source.dispose);
     final ownerPath = ui.Path()
@@ -106,145 +80,93 @@ void main() {
       ..lineTo(6, 5)
       ..lineTo(4, 5)
       ..close();
-    final unclippedEdge = await _renderEdge(
-      source,
-      orientation: TerrainMaterialEdgeOrientation.top,
-      start: const ui.Offset(2, 2),
-      length: 4,
-      angle: 0,
-    );
-    final clippedEdge = await _renderEdge(
-      source,
-      orientation: TerrainMaterialEdgeOrientation.top,
-      start: const ui.Offset(2, 2),
-      length: 4,
-      angle: 0,
-      clipPath: ownerPath,
-    );
-    final clippedCap = await _renderCap(
-      source,
-      start: const ui.Offset(2, 2),
-      length: 4,
-      angle: 0,
-      clipPath: ownerPath,
-    );
-    addTearDown(unclippedEdge.dispose);
-    addTearDown(clippedEdge.dispose);
-    addTearDown(clippedCap.dispose);
-
-    expect(await _alphaAt(unclippedEdge, 2, 4), greaterThan(0));
-    expect(await _alphaAt(clippedEdge, 2, 4), 0);
-    expect(await _alphaAt(clippedCap, 2, 4), 0);
-    expect(await _alphaAt(clippedEdge, 5, 3), greaterThan(0));
-    expect(await _alphaAt(clippedCap, 3, 3), greaterThan(0));
-  });
-
-  test('edge strip stops at the exact endpoint', () async {
-    final source = await _sourceImage();
-    addTearDown(source.dispose);
     final rendered = await _renderEdge(
       source,
       orientation: TerrainMaterialEdgeOrientation.top,
       start: const ui.Offset(2, 2),
-      length: 2,
+      length: 4,
       angle: 0,
+      clipPath: ownerPath,
     );
     addTearDown(rendered.dispose);
 
-    expect(await _alphaAt(rendered, 3, 2), greaterThan(0));
-    expect(await _alphaAt(rendered, 5, 2), 0);
+    expect(await _alphaAt(rendered, 2, 4), 0);
+    expect(await _alphaAt(rendered, 5, 3), greaterThan(0));
   });
 
-  test(
-    'cap footprint prevents lower art leaking through transparency',
-    () async {
-      final source = await _sourceImageWithTransparentTopLeft();
-      addTearDown(source.dispose);
-      final ownerPath = ui.Path()..addRect(const ui.Rect.fromLTWH(0, 0, 8, 8));
-      final footprint = terrainMaterialCapFootprintPath(
-        start: const ui.Offset(2, 2),
-        length: 4,
-        angle: 0,
-        sourceWidth: 2,
-        sourceHeight: 2,
-        anchorX: 0,
-        anchorY: 0,
-        orientation: TerrainMaterialEdgeOrientation.top,
-        atEnd: false,
-      );
-      final lowerPriorityClip = terrainMaterialLowerPriorityClipPath(
-        ownerPath: ownerPath,
-        reservedFootprints: <ui.Path>[footprint],
-      );
-      final recorder = ui.PictureRecorder();
-      final canvas = ui.Canvas(recorder);
-      canvas.drawPath(
-        lowerPriorityClip,
-        ui.Paint()
-          ..color = const ui.Color(0xFFFF0000)
-          ..isAntiAlias = false,
-      );
+  test('source cap ownership clears lower terrain but not the scene', () async {
+    final source = await _sourceImageWithTransparentTopLeft();
+    addTearDown(source.dispose);
+    final ownerPath = ui.Path()..addRect(const ui.Rect.fromLTWH(0, 0, 8, 8));
+    final recorder = ui.PictureRecorder();
+    final canvas = ui.Canvas(recorder)
+      ..drawColor(const ui.Color(0xFF0000FF), ui.BlendMode.src)
+      ..saveLayer(const ui.Rect.fromLTWH(0, 0, 8, 8), ui.Paint())
+      ..drawPath(ownerPath, ui.Paint()..color = const ui.Color(0xFFFF0000));
+    paintTerrainMaterialCapImage(
+      canvas,
+      start: const ui.Offset(2, 2),
+      length: 4,
+      angle: 0,
+      image: source,
+      anchorX: 0,
+      anchorY: 0,
+      atEnd: false,
+      orientation: TerrainMaterialEdgeOrientation.top,
+      clipPath: ownerPath,
+      blendMode: ui.BlendMode.src,
+    );
+    canvas.restore();
+    final picture = recorder.endRecording();
+    final rendered = await picture.toImage(8, 8);
+    picture.dispose();
+    addTearDown(rendered.dispose);
+
+    expect(await _colorAt(rendered, 2, 2), const ui.Color(0xFF0000FF));
+    expect(await _colorAt(rendered, 3, 2), const ui.Color(0xFF00FF00));
+    expect(await _colorAt(rendered, 1, 1), const ui.Color(0xFFFF0000));
+  });
+
+  test('later cap alpha replaces an overlapping earlier cap', () async {
+    final lower = await _solidImage(const ui.Color(0xFFFF0000), 2, 2);
+    final higher = await _sourceImageWithTransparentTopLeft();
+    addTearDown(lower.dispose);
+    addTearDown(higher.dispose);
+    final ownerPath = ui.Path()..addRect(const ui.Rect.fromLTWH(0, 0, 8, 8));
+    final recorder = ui.PictureRecorder();
+    final canvas = ui.Canvas(recorder)
+      ..drawColor(const ui.Color(0xFF0000FF), ui.BlendMode.src)
+      ..saveLayer(const ui.Rect.fromLTWH(0, 0, 8, 8), ui.Paint());
+    for (final image in <ui.Image>[lower, higher]) {
       paintTerrainMaterialCapImage(
         canvas,
         start: const ui.Offset(2, 2),
         length: 4,
         angle: 0,
-        image: source,
+        image: image,
         anchorX: 0,
         anchorY: 0,
         atEnd: false,
         orientation: TerrainMaterialEdgeOrientation.top,
         clipPath: ownerPath,
+        blendMode: ui.BlendMode.src,
       );
-      final picture = recorder.endRecording();
-      final rendered = await picture.toImage(8, 8);
-      picture.dispose();
-      addTearDown(rendered.dispose);
+    }
+    canvas.restore();
+    final picture = recorder.endRecording();
+    final rendered = await picture.toImage(8, 8);
+    picture.dispose();
+    addTearDown(rendered.dispose);
 
-      expect(await _alphaAt(rendered, 0, 0), greaterThan(0));
-      expect(await _alphaAt(rendered, 2, 2), 0);
-      expect(await _alphaAt(rendered, 3, 2), greaterThan(0));
-    },
-  );
-
-  test('later cap footprint excludes an overlapping earlier cap', () {
-    final ownerPath = ui.Path()..addRect(const ui.Rect.fromLTWH(0, 0, 8, 8));
-    final undersideFootprint = ui.Path()
-      ..addRect(const ui.Rect.fromLTWH(2, 3, 2, 2));
-    final topFootprint = ui.Path()..addRect(const ui.Rect.fromLTWH(2, 2, 2, 2));
-    final clips = terrainMaterialExclusiveCapClipPaths(
-      ownerPath: ownerPath,
-      orderedCapFootprints: <ui.Path>[undersideFootprint, topFootprint],
-    );
-
-    expect(clips[0].contains(const ui.Offset(2.5, 3.5)), isFalse);
-    expect(clips[0].contains(const ui.Offset(2.5, 4.5)), isTrue);
-    expect(clips[1].contains(const ui.Offset(2.5, 3.5)), isTrue);
+    expect(await _colorAt(rendered, 2, 2), const ui.Color(0xFF0000FF));
+    expect(await _colorAt(rendered, 3, 2), const ui.Color(0xFF00FF00));
   });
 
-  test('edge footprint backs only internal repeat seams', () async {
+  test('dstOver backing fills internal repeat joins only', () async {
     final source = await _sourceImageWithTransparentTopLeft();
     addTearDown(source.dispose);
     final ownerPath = ui.Path()..addRect(const ui.Rect.fromLTWH(0, 0, 8, 8));
-    final footprint = terrainMaterialEdgeFootprintPath(
-      start: const ui.Offset(2, 2),
-      length: 4,
-      angle: 0,
-      sourceWidth: 2,
-      sourceHeight: 2,
-      anchorY: 0,
-      orientation: TerrainMaterialEdgeOrientation.top,
-    );
-    final fillClip = terrainMaterialLowerPriorityClipPath(
-      ownerPath: ownerPath,
-      reservedFootprints: <ui.Path>[footprint],
-    );
-    final edgeClip = terrainMaterialExclusiveEdgeClipPaths(
-      ownerPath: ownerPath,
-      orderedEdgeFootprints: <ui.Path>[footprint],
-      capFootprints: const <ui.Path>[],
-    ).single;
-    final seamBacking = terrainMaterialEdgeSeamBackingPath(
+    final seamPath = terrainMaterialEdgeSeamBackingPath(
       start: const ui.Offset(2, 2),
       length: 4,
       angle: 0,
@@ -254,23 +176,10 @@ void main() {
       orientation: TerrainMaterialEdgeOrientation.top,
     );
     final recorder = ui.PictureRecorder();
-    final canvas = ui.Canvas(recorder);
-    canvas.drawPath(
-      fillClip,
-      ui.Paint()
-        ..color = const ui.Color(0xFFFF0000)
-        ..isAntiAlias = false,
-    );
-    canvas.save();
-    canvas.clipPath(edgeClip);
-    canvas.clipPath(seamBacking);
-    canvas.drawRect(
-      const ui.Rect.fromLTWH(0, 0, 8, 8),
-      ui.Paint()
-        ..color = const ui.Color(0xFFFF0000)
-        ..isAntiAlias = false,
-    );
-    canvas.restore();
+    final canvas = ui.Canvas(recorder)
+      ..drawColor(const ui.Color(0xFF0000FF), ui.BlendMode.src)
+      ..saveLayer(const ui.Rect.fromLTWH(0, 0, 8, 8), ui.Paint())
+      ..drawPath(ownerPath, ui.Paint()..color = const ui.Color(0xFFFF0000));
     paintTerrainMaterialEdgeImage(
       canvas,
       start: const ui.Offset(2, 2),
@@ -279,33 +188,61 @@ void main() {
       image: source,
       anchorY: 0,
       orientation: TerrainMaterialEdgeOrientation.top,
-      clipPath: edgeClip,
+      clipPath: ownerPath,
+      blendMode: ui.BlendMode.src,
     );
+    canvas.save();
+    canvas.clipPath(ownerPath);
+    canvas.clipPath(seamPath);
+    canvas.drawRect(
+      ownerPath.getBounds(),
+      ui.Paint()
+        ..color = const ui.Color(0xFFFF0000)
+        ..blendMode = ui.BlendMode.dstOver,
+    );
+    canvas.restore();
+    canvas.restore();
     final picture = recorder.endRecording();
     final rendered = await picture.toImage(8, 8);
     picture.dispose();
     addTearDown(rendered.dispose);
 
-    expect(await _alphaAt(rendered, 0, 0), greaterThan(0));
-    expect(await _alphaAt(rendered, 2, 2), 0);
-    expect(await _alphaAt(rendered, 4, 2), greaterThan(0));
-    expect(await _alphaAt(rendered, 3, 2), greaterThan(0));
+    expect(await _colorAt(rendered, 2, 2), const ui.Color(0xFF0000FF));
+    expect(await _colorAt(rendered, 4, 2), const ui.Color(0xFFFF0000));
+    expect(await _colorAt(rendered, 3, 2), const ui.Color(0xFF00FF00));
   });
 
-  test('later top edge footprint excludes an overlapping wall edge', () {
-    final ownerPath = ui.Path()..addRect(const ui.Rect.fromLTWH(0, 0, 8, 8));
-    final wallFootprint = ui.Path()
-      ..addRect(const ui.Rect.fromLTWH(2, 3, 2, 2));
-    final topFootprint = ui.Path()..addRect(const ui.Rect.fromLTWH(2, 2, 2, 2));
-    final clips = terrainMaterialExclusiveEdgeClipPaths(
-      ownerPath: ownerPath,
-      orderedEdgeFootprints: <ui.Path>[wallFootprint, topFootprint],
-      capFootprints: const <ui.Path>[],
+  test('fractional edge-to-fill join does not expose the scene', () async {
+    final source = await _solidImage(const ui.Color(0xFF00FF00), 2, 2);
+    addTearDown(source.dispose);
+    final ownerPath = ui.Path()..addRect(const ui.Rect.fromLTRB(2, 2.25, 8, 8));
+    final recorder = ui.PictureRecorder();
+    final canvas = ui.Canvas(recorder)
+      ..drawColor(const ui.Color(0xFF0000FF), ui.BlendMode.src)
+      ..saveLayer(const ui.Rect.fromLTRB(2, 2.25, 8, 8), ui.Paint())
+      ..drawPath(ownerPath, ui.Paint()..color = const ui.Color(0xFFFF0000));
+    paintTerrainMaterialEdgeImage(
+      canvas,
+      start: const ui.Offset(2, 2.25),
+      length: 6,
+      angle: 0,
+      image: source,
+      anchorY: 0,
+      orientation: TerrainMaterialEdgeOrientation.top,
+      clipPath: ownerPath,
+      blendMode: ui.BlendMode.src,
     );
+    canvas.restore();
+    final picture = recorder.endRecording();
+    final rendered = await picture.toImage(10, 10);
+    picture.dispose();
+    addTearDown(rendered.dispose);
 
-    expect(clips[0].contains(const ui.Offset(2.5, 3.5)), isFalse);
-    expect(clips[0].contains(const ui.Offset(2.5, 4.5)), isTrue);
-    expect(clips[1].contains(const ui.Offset(2.5, 3.5)), isTrue);
+    expect(await _colorAt(rendered, 3, 3), const ui.Color(0xFF00FF00));
+    final join = await _colorAt(rendered, 3, 4);
+    expect(join.a, 1);
+    expect(join.b, 0);
+    expect(await _colorAt(rendered, 3, 5), const ui.Color(0xFFFF0000));
   });
 }
 
@@ -353,6 +290,20 @@ Future<ui.Image> _sourceImageWithTransparentTopLeft() async {
   }
 }
 
+Future<ui.Image> _solidImage(ui.Color color, int width, int height) async {
+  final recorder = ui.PictureRecorder();
+  ui.Canvas(recorder).drawRect(
+    ui.Rect.fromLTWH(0, 0, width.toDouble(), height.toDouble()),
+    ui.Paint()..color = color,
+  );
+  final picture = recorder.endRecording();
+  try {
+    return await picture.toImage(width, height);
+  } finally {
+    picture.dispose();
+  }
+}
+
 Future<ui.Image> _renderEdge(
   ui.Image source, {
   required TerrainMaterialEdgeOrientation orientation,
@@ -362,43 +313,14 @@ Future<ui.Image> _renderEdge(
   ui.Path? clipPath,
 }) async {
   final recorder = ui.PictureRecorder();
-  final canvas = ui.Canvas(recorder);
   paintTerrainMaterialEdgeImage(
-    canvas,
+    ui.Canvas(recorder),
     start: start,
     length: length,
     angle: angle,
     image: source,
     anchorY: 0,
     orientation: orientation,
-    clipPath: clipPath,
-  );
-  final picture = recorder.endRecording();
-  try {
-    return await picture.toImage(8, 8);
-  } finally {
-    picture.dispose();
-  }
-}
-
-Future<ui.Image> _renderCap(
-  ui.Image source, {
-  required ui.Offset start,
-  required double length,
-  required double angle,
-  ui.Path? clipPath,
-}) async {
-  final recorder = ui.PictureRecorder();
-  paintTerrainMaterialCapImage(
-    ui.Canvas(recorder),
-    start: start,
-    length: length,
-    angle: angle,
-    image: source,
-    anchorX: 0,
-    anchorY: 0,
-    atEnd: false,
-    orientation: TerrainMaterialEdgeOrientation.top,
     clipPath: clipPath,
   );
   final picture = recorder.endRecording();
@@ -428,4 +350,15 @@ Future<Uint8List> _rgbaBytes(ui.Image image) async {
 Future<int> _alphaAt(ui.Image image, int x, int y) async {
   final data = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
   return data!.getUint8(((y * image.width) + x) * 4 + 3);
+}
+
+Future<ui.Color> _colorAt(ui.Image image, int x, int y) async {
+  final data = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+  final offset = ((y * image.width) + x) * 4;
+  return ui.Color.fromARGB(
+    data!.getUint8(offset + 3),
+    data.getUint8(offset),
+    data.getUint8(offset + 1),
+    data.getUint8(offset + 2),
+  );
 }
