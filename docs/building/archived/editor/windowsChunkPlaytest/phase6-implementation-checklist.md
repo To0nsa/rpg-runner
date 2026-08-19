@@ -2,7 +2,7 @@
 
 Date: August 19, 2026
 
-Status: In progress
+Status: Complete
 
 Source plan: [Windows Chunk Playtest and Reusable Desktop Input Plan](plan.md)
 
@@ -70,77 +70,77 @@ Phase 6 is complete only when:
 
 ## Step 1 — Add missing automated hardening coverage
 
-- [ ] Add explicit logical-coordinate invariance tests across resize and
+- [x] Add explicit logical-coordinate invariance tests across resize and
       non-unit device-pixel ratios.
-- [ ] Exercise mouse entry/exit at every fitted-viewport boundary after resize
+- [x] Exercise mouse entry/exit at every fitted-viewport boundary after resize
       without disturbing held keyboard movement.
-- [ ] Exercise app inactive/paused/hidden/detached handling while keyboard and
+- [x] Exercise app inactive/paused/hidden/detached handling while keyboard and
       mouse inputs are held, proving neutralization and explicit resume.
-- [ ] Exercise repeated editor Play/Stop and failed Retry/Return cycles with
+- [x] Exercise repeated editor Play/Stop and failed Retry/Return cycles with
       stale completions and no post-disposal notifications/exceptions.
-- [ ] Exercise runtime resize while ready/running/paused and prove restart/stop
+- [x] Exercise runtime resize while ready/running/paused and prove restart/stop
       remain deterministic.
-- [ ] Keep all hardening in existing semantic/adapter/host boundaries; do not
+- [x] Keep all hardening in existing semantic/adapter/host boundaries; do not
       add editor-aware behavior to gameplay input.
 
 ## Step 2 — Measure preparation and runtime behavior
 
-- [ ] Add a focused Windows profile/benchmark path for accepted-document
+- [x] Add a focused Windows profile/benchmark path for accepted-document
       capture, background preparation, host-ready startup, and repeated cycles.
-- [ ] Use the canonical repository fixture and fixed scenario defaults.
-- [ ] Record warmup, sample count, median, p95, maximum, environment, revision,
+- [x] Use the canonical repository fixture and fixed scenario defaults.
+- [x] Record warmup, sample count, median, p95, maximum, environment, revision,
       and dirty-state caveat without writing authoring/generated files.
-- [ ] Treat correctness/no-long-frame ownership as the gate; do not add a
+- [x] Treat correctness/no-long-frame ownership as the gate; do not add a
       brittle cross-machine millisecond threshold without reference evidence.
-- [ ] Fix any measured synchronous work that occurs from widget `build` or
+- [x] Fix any measured synchronous work that occurs from widget `build` or
       causes a reproducible visible long frame.
 
 ## Step 3 — Complete Windows controls and limitation documentation
 
-- [ ] Add a Chunk Play Mode section to `tools/editor/README.md`.
-- [ ] Document Play button/F5 entry, Enter start, P pause/resume, F6 restart,
+- [x] Add a Chunk Play Mode section to `tools/editor/README.md`.
+- [x] Document Play button/F5 entry, Enter start, P pause/resume, F6 restart,
       F5/Escape stop, keyboard/mouse gameplay bindings, and focus acquisition.
-- [ ] Document app deactivation pause with explicit resume and the
+- [x] Document app deactivation pause with explicit resume and the
       `PLAYTEST - NO REWARDS/REPLAY` boundary.
-- [ ] Document valid accepted pending changes, local draft/validation blockers,
+- [x] Document valid accepted pending changes, local draft/validation blockers,
       Windows-only support, fixed seed/character/loadout, and no remapping or
       gamepad support.
-- [ ] Update gameplay-input and editor-host TDD status/evidence.
-- [ ] Confirm root README/public embedding docs remain unchanged because the
+- [x] Update gameplay-input and editor-host TDD status/evidence.
+- [x] Confirm root README/public embedding docs remain unchanged because the
       product host still does not mount desktop input.
 
 ## Step 4 — Native Windows acceptance
 
-- [ ] Build the release editor executable from `tools/editor`.
-- [ ] Run a native Windows-engine integration/smoke pass at normal and scaled
+- [x] Build the release editor executable from `tools/editor`.
+- [x] Run a native Windows-engine integration/smoke pass at normal and scaled
       logical view sizes.
-- [ ] Confirm keyboard rollover and left/right mouse actions reach the real
+- [x] Confirm keyboard rollover and left/right mouse actions reach the real
       host while gameplay focus is owned.
-- [ ] Confirm app deactivation/Alt+Tab equivalent cancels held input and pauses
+- [x] Confirm app deactivation/Alt+Tab equivalent cancels held input and pauses
       without automatic resume.
-- [ ] Confirm resize, high-DPI logical coordinates, letterbox boundaries, and
+- [x] Confirm resize, high-DPI logical coordinates, letterbox boundaries, and
       non-default alignment preserve mouse aim.
-- [ ] Confirm pause/resume, restart, stop, game over, and return to Edit.
-- [ ] Record tester/environment/revision, exact automated versus manual
+- [x] Confirm pause/resume, restart, stop, game over, and return to Edit.
+- [x] Record tester/environment/revision, exact automated versus manual
       evidence, failures, and final decision in a Phase 6 acceptance record.
 
 ## Step 5 — Final validation and closeout
 
-- [ ] Run `dart format` on changed Dart files.
-- [ ] Run root `dart analyze lib test` and relevant input/host tests.
-- [ ] Analyze and test `packages/runner_core` and
+- [x] Run `dart format` on changed Dart files.
+- [x] Run root `dart analyze lib test` and relevant input/host tests.
+- [x] Analyze and test `packages/runner_core` and
       `packages/runner_content_pipeline` relevant slices.
-- [ ] Run `cd tools/editor && dart analyze` and focused Phase 6 tests.
-- [ ] Run `cd tools/editor && flutter test`, recording only verified unrelated
+- [x] Run `cd tools/editor && dart analyze` and focused Phase 6 tests.
+- [x] Run `cd tools/editor && flutter test`, recording only verified unrelated
       working-tree exceptions.
-- [ ] Run `dart run tool/generate_chunk_runtime_data.dart --dry-run`.
-- [ ] Run `cd tools/editor && flutter build windows`.
-- [ ] Run `git diff --check`, package-boundary, forbidden-import, backend, and
+- [x] Run `dart run tool/generate_chunk_runtime_data.dart --dry-run`.
+- [x] Run `cd tools/editor && flutter build windows`.
+- [x] Run `git diff --check`, package-boundary, forbidden-import, backend, and
       repository-write searches.
-- [ ] Update this checklist and the source plan with factual evidence.
-- [ ] Move the completed plan/checklists into `docs/building/archived/` and
+- [x] Update this checklist and the source plan with factual evidence.
+- [x] Move the completed plan/checklists into `docs/building/archived/` and
       update active links.
-- [ ] Commit hardening, documentation, acceptance evidence, and archive
+- [x] Commit hardening, documentation, acceptance evidence, and archive
       closeout as coherent validated milestones.
 
 ## Evidence record
@@ -149,20 +149,29 @@ Phase 6 is complete only when:
 
 | Date | Command/test | Result | Notes |
 | --- | --- | --- | --- |
-| Pending | Hardening tests | Pending | — |
-| Pending | Preparation/runtime profile | Pending | — |
-| Pending | Full validation | Pending | — |
-| Pending | Windows build/acceptance | Pending | — |
+| August 19, 2026 | Hardening and focused lifecycle tests | Pass | 68 focused root input/host tests and 12 focused editor preparation/integration/shortcut tests passed. |
+| August 19, 2026 | Preparation/runtime profile | Pass | 2 warmups, 12 foreground samples, and 4 background samples; capture median/p95 5.021/6.934 ms, synchronous preparation 10.057/13.735 ms, background preparation 9.761/14.546 ms. |
+| August 19, 2026 | Full validation | Accepted with one unrelated working-tree exception | Full root suite passed 802 tests; Core/pipeline analysis and tests, editor analysis/focused tests, and generator dry-run passed. Full editor suite completed 526 passing tests plus the known terrain-material line-ending exception. |
+| August 19, 2026 | Windows build/acceptance | Pass | Release build succeeded; native profile Windows-engine test passed at revision `c3d93f9b` and persisted source-hash, input, resize/DPI, lifecycle, restart, and Edit-restoration evidence. |
 
 ### Delivered contracts
 
-Pending implementation.
+- `94cb6d3d` added resize/DPI, boundary, app-lifecycle, repeated-cycle,
+  disposal, and preparation-profile coverage without changing runtime code.
+- `0b90c171` added the native Windows-engine acceptance target and report
+  driver over the real repository-backed Chunk Creator.
+- The Phase 6 acceptance record explicitly distinguishes native automation,
+  deterministic supporting tests, and the absence of a human visual pass.
+- `tools/editor/README.md` and the input/host TDDs now document the implemented
+  controls, focus rules, isolation, limitations, and evidence.
+- The root product README and public embedding API remain unchanged because
+  `RunnerGameWidget` still does not mount desktop input.
 
 ## Closeout
 
-- [ ] Every Phase 6 checkbox is complete or explicitly accepted with evidence.
-- [ ] Mark the source plan complete and archive the dedicated plan folder.
-- [ ] Do not implement the product-game desktop follow-on as part of Phase 6.
+- [x] Every Phase 6 checkbox is complete or explicitly accepted with evidence.
+- [x] Mark the source plan complete and archive the dedicated plan folder.
+- [x] Do not implement the product-game desktop follow-on as part of Phase 6.
 
 Phase 6 completion means the Windows editor playtest plan is closed with
 hardening, measured evidence, documented controls, and a native Windows

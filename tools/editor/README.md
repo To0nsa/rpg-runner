@@ -47,6 +47,55 @@ Editor foundations shared across those domains:
 - shared atlas PNG discovery, integer region/grid math, grid/manual selection,
   image viewport controls, selection painters, and exact-region thumbnails
 
+## Windows Chunk Play Mode
+
+Chunk Creator can run the selected current-schema chunk through the real Core
+simulation and Flame renderer without leaving the editor. On Windows, use the
+**Play** button or press `F5`. Valid accepted pending changes are included in
+the in-memory snapshot; entering, restarting, and stopping Play mode do not
+apply source files, regenerate Dart, create a replay, or contact the backend.
+
+Play is unavailable until the current chunk validates and every route-local
+draft, gesture, dialog, or unsaved inspector edit has been saved or discarded.
+Preparation uses fixed scenario seed `4401`, Eloise, and an empty loadout.
+Other platforms, custom seeds/characters/loadouts, remapping, and gamepads are
+not supported by this editor mode.
+
+Gameplay controls:
+
+| Action | Keyboard/mouse |
+| --- | --- |
+| Move left | `A` or Left Arrow |
+| Move right | `D` or Right Arrow |
+| Jump | Space, `W`, or Up Arrow |
+| Mobility | Left or Right Shift |
+| Primary | Left Mouse Button or `J` |
+| Projectile | Right Mouse Button or `K` |
+| Secondary | `Q` |
+| Spell | `E` or `L` |
+
+Playtest lifecycle controls:
+
+| Action | Key |
+| --- | --- |
+| Enter Play / stop and return to Edit | `F5` |
+| Start from Ready | Enter |
+| Pause or explicitly resume | `P` |
+| Restart the same immutable scenario | `F6` |
+| Stop and return to Edit | Escape |
+
+Start/Resume actions give gameplay focus to the keyboard and mouse; clicking
+the active game surface reacquires it if needed. Mouse aim is active only
+inside the fitted game viewport; editor chrome and letterbox bars are excluded.
+Losing focus or deactivating the app cancels every held input and pauses the
+run. Returning to the app does not resume automatically: click **Resume** or
+press `P` explicitly.
+
+The host is always labelled **PLAYTEST - NO REWARDS/REPLAY**. It creates no
+run ticket, score submission, reward, leaderboard entry, ghost, replay spool,
+or player-state mutation. Stopping restores the same Chunk Editor selection,
+tab, viewport, undo/redo history, and pending diff.
+
 ## Level And Visual Theme Workflow
 
 Level Creator no longer requires an invalid two-step Level-then-Parallax save.

@@ -288,6 +288,26 @@ void main() {
     expect(frame.moveAxis, 1);
     expect(frame.aimDirX, 1);
 
+    harness.adapter.handlePointerPosition(const Offset(150, 24));
+    frame = harness.advance();
+    expect(frame.moveAxis, 1);
+    expect(frame.aimDirY, isNull);
+
+    harness.adapter.handlePointerPosition(const Offset(150, 25));
+    frame = harness.advance();
+    expect(frame.moveAxis, 1);
+    expect(frame.aimDirY, -1);
+
+    harness.adapter.handlePointerPosition(const Offset(150, 125));
+    frame = harness.advance();
+    expect(frame.moveAxis, 1);
+    expect(frame.aimDirY, isNull);
+
+    harness.adapter.handlePointerPosition(const Offset(150, 124));
+    frame = harness.advance();
+    expect(frame.moveAxis, 1);
+    expect(frame.aimDirY, 1);
+
     harness.keyUp(PhysicalKeyboardKey.keyD);
     expect(harness.advance().moveAxis, isNull);
     harness.adapter.dispose();

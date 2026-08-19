@@ -2,12 +2,13 @@
 
 Date: August 19, 2026
 
-Status: Active (Phase 0 completed with accepted baseline exceptions on August
+Status: Complete (Phase 0 completed with accepted baseline exceptions on August
 19, 2026; Phase 1 completed in `25ae1a6e` on August 19, 2026; Phase 2
 completed in `77af803f` on August 19, 2026; Phase 3 completed in `03bd98d5` and
 `99ac7a8b` on August 19, 2026; Phase 4 completed in `490b78ca` and `00239a22`
 on August 19, 2026; Phase 5 completed in `16f10252` and `b485b0bd` on August
-19, 2026; Phase 6 not started)
+19, 2026; Phase 6 completed on August 19, 2026 with native automated Windows
+acceptance recorded in `phase6-windows-acceptance.md`)
 
 Related documents:
 
@@ -16,15 +17,16 @@ Related documents:
 - [Phase 1 implementation checklist](phase1-implementation-checklist.md)
 - [Phase 2 implementation checklist](phase2-implementation-checklist.md)
 - [Phase 3 implementation checklist](phase3-implementation-checklist.md)
-- [Gameplay input architecture](../../../tdd/gameplay_input_architecture.md)
+- [Gameplay input architecture](../../../../tdd/gameplay_input_architecture.md)
 - [Phase 4 implementation checklist](phase4-implementation-checklist.md)
-- [Editor chunk playtest host](../../../tdd/editor_chunk_playtest_host.md)
+- [Editor chunk playtest host](../../../../tdd/editor_chunk_playtest_host.md)
 - [Phase 5 implementation checklist](phase5-implementation-checklist.md)
 - [Phase 6 implementation checklist](phase6-implementation-checklist.md)
-- [Chunk Creator high-level plan](../chunkCreator/plan.md)
-- [Unified Chunk Scene strategy](../chunkCreator/unified-chunk-scene-strategy.md)
-- [Editor UI system](../../../tdd/editor_ui_system.md)
-- [Polygon terrain authoring foundation](../../../tdd/polygon_terrain_authoring_foundation.md)
+- [Phase 6 Windows acceptance](phase6-windows-acceptance.md)
+- [Chunk Creator high-level plan](../../../editor/chunkCreator/plan.md)
+- [Unified Chunk Scene strategy](../../../editor/chunkCreator/unified-chunk-scene-strategy.md)
+- [Editor UI system](../../../../tdd/editor_ui_system.md)
+- [Polygon terrain authoring foundation](../../../../tdd/polygon_terrain_authoring_foundation.md)
 
 ## Decision summary
 
@@ -468,6 +470,9 @@ changes and no loss of editor state.
 
 ### Phase 6: Hardening, documentation, and Windows acceptance
 
+Status: Complete (August 19, 2026; `94cb6d3d`, `0b90c171`, with final
+documentation/archive closeout recorded in repository history).
+
 - Complete focus, Alt+Tab, resize, DPI scaling, mouse-boundary, and repeated
   start/stop testing on Windows.
 - Measure preparation and runtime behavior on the existing editor reference
@@ -478,8 +483,9 @@ changes and no loss of editor state.
 - Update relevant AGENTS files only if delivered ownership rules change.
 - Archive this building plan when every required gate is complete.
 
-Gate: automated validation is green and the manual Windows checklist is signed
-off.
+Gate: automated validation is green. Native Windows automation and exact
+manual-versus-automated evidence are signed off in the Phase 6 acceptance
+record; no human visual pass is claimed.
 
 ### Follow-on: actual desktop game adoption
 
@@ -659,5 +665,6 @@ phase:
   input
 - AGENTS files only when ownership or contributor rules materially change
 
-This building plan records proposed work. It must not be cited as proof that
-Play mode or desktop input is already implemented.
+This archived building plan records the completed delivery sequence. The
+implemented contracts and verification evidence live in the linked TDDs,
+Phase 6 checklist, acceptance record, and editor README.

@@ -285,6 +285,10 @@ void main() {
       onStop: () => stopCount += 1,
     );
     await _pumpUntilPhase(tester, controller, RunnerChunkPlaytestPhase.ready);
+    tester.view.physicalSize = const Size(1600, 1000);
+    tester.view.devicePixelRatio = 1.25;
+    await tester.pump();
+    expect(controller.status.phase, RunnerChunkPlaytestPhase.ready);
     expect(controller.start(), isTrue);
     await tester.pump(const Duration(milliseconds: 100));
     final tickBeforeResize = controller.snapshot!.tick;

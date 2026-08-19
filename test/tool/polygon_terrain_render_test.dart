@@ -399,7 +399,10 @@ void main() {
       }
     }
 
-    expect(imports, <String>['packages/runner_core/lib/game_core.dart']);
+    expect(imports, <String>[
+      'packages/runner_core/lib/game_core.dart',
+      'packages/runner_core/lib/playtest/chunk_playtest_scenario.dart',
+    ]);
     final liveGenerator = File(
       'tool/generate_chunk_runtime_data.dart',
     ).readAsStringSync();

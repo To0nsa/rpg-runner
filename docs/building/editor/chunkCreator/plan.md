@@ -192,7 +192,7 @@ Parallax route now exists as a dedicated theme-authoring workflow:
   - jump/dash reachability and unfair-transition diagnostics
   - Windows Chunk Creator Play mode and reusable keyboard/mouse input are
     specified in the dedicated
-    [Windows Chunk Playtest plan](../windowsChunkPlaytest/plan.md)
+    [archived Windows Chunk Playtest plan](../../archived/editor/windowsChunkPlaytest/plan.md)
 - Runtime workflow:
   - generated Dart bridge into `runner_core` target contracts
 

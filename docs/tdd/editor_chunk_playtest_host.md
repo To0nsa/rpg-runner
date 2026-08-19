@@ -192,7 +192,9 @@ The executable boundary is covered by:
 - `test/ui/input/desktop/runner_desktop_input_adapter_test.dart`
 - `tools/editor/test/chunk_playtest_preparation_test.dart`
 - `tools/editor/test/chunk_playtest_editor_integration_test.dart`
+- `tools/editor/test/chunk_playtest_performance_test.dart`
 - `tools/editor/test/editor_home_playtest_shortcut_test.dart`
+- `tools/editor/integration_test/chunk_playtest_windows_acceptance_test.dart`
 
 Coverage includes real Core/Flame readiness, physical keyboard translation,
 pause/resume and focus-loss neutralization, exact tick-zero restart, stale
@@ -201,4 +203,6 @@ restart/stop, isolated cache cleanup, one-shot explicit stop, non-stop widget
 disposal, canonical asset containment, symlink escape rejection where the host
 supports it, accepted pending-document capture, preparation cancellation and
 retry, Edit-state restoration, shell/text/modal shortcut guards, app lifecycle
-pause, file-hash stability, and proof that workspace reads do not write files.
+pause, resize and non-unit-DPI aim geometry, repeated lifecycle cycles with
+disposed-controller checks, preparation timing, native Windows keyboard/mouse
+input, file-hash stability, and proof that workspace reads do not write files.

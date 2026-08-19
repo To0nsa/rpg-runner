@@ -1,7 +1,7 @@
 # Gameplay Input Architecture
 
-Status: Implemented shared input boundary; desktop adapter is mounted by the
-tooling-only chunk playtest host, but not yet by the editor or product host.
+Status: Implemented shared input boundary; the Windows Chunk Creator mounts
+the tooling-only desktop host, while the product game does not yet mount it.
 
 Last updated: August 19, 2026
 
@@ -39,8 +39,9 @@ Windows keyboard/mouse adapter -----------------+--> semantic dispatcher
 
 `RunnerGameWidget` routes its existing touch controls through the semantic
 dispatcher, but it deliberately does not mount `RunnerDesktopInputAdapter`.
-`RunnerChunkPlaytestHost` is the first desktop consumer; Phase 5 will mount
-that host in the editor.
+`RunnerChunkPlaytestHost` is the first desktop consumer, mounted by the
+standalone editor's Windows Chunk Creator through the narrow
+`package:rpg_runner/playtest.dart` tooling entrypoint.
 
 ## Semantic action contract
 
@@ -206,9 +207,14 @@ The executable contract is covered by:
 - `test/ui/input/desktop/runner_desktop_aim_geometry_test.dart`
 - `test/ui/input/desktop/runner_desktop_input_adapter_test.dart`
 - `test/playtest/runner_chunk_playtest_host_test.dart`
+- `tools/editor/test/chunk_playtest_editor_integration_test.dart`
+- `tools/editor/integration_test/chunk_playtest_windows_acceptance_test.dart`
 - existing touch control tests under `test/ui/controls/**`
 
 Coverage includes all admitted slot modes, unsupported modes, both touch
 release orders, opposing directions, alternate sources, OS repeat, mouse
 chords/cancel, letterbox/zero aim, repeated unchanged cursor aim, focus loss,
-pause, disposal, and touch-pointer exclusion from the desktop widget.
+pause, disposal, touch-pointer exclusion, resize and non-unit device-pixel
+ratios, every app deactivation state, repeated Play/Stop cycles, and a native
+Windows-engine lifecycle pass. Product desktop composition remains a separate
+follow-on.
