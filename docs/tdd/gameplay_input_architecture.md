@@ -1,7 +1,7 @@
 # Gameplay Input Architecture
 
-Status: Implemented shared input boundary; desktop adapter is available but is
-not yet mounted by a product or editor host.
+Status: Implemented shared input boundary; desktop adapter is mounted by the
+tooling-only chunk playtest host, but not yet by the editor or product host.
 
 Last updated: August 19, 2026
 
@@ -37,9 +37,10 @@ Windows keyboard/mouse adapter -----------------+--> semantic dispatcher
 - `GameController` coalesces scheduled commands into deterministic input
   frames. Neither UI adapter constructs a Core command.
 
-`RunnerGameWidget` now routes its existing touch controls through the semantic
+`RunnerGameWidget` routes its existing touch controls through the semantic
 dispatcher, but it deliberately does not mount `RunnerDesktopInputAdapter`.
-The editor playtest host will become the first desktop consumer in Phase 4.
+`RunnerChunkPlaytestHost` is the first desktop consumer; Phase 5 will mount
+that host in the editor.
 
 ## Semantic action contract
 
@@ -115,6 +116,8 @@ The controller exposes:
 
 - `requestFocus`: clear stale state, then acquire gameplay focus
 - `releaseFocus`: cancel and release gameplay focus
+- `setEnabled`: cancel on disable and ignore gameplay translation while a host
+  overlay owns interaction, without surrendering host focus
 - `cancelForPause`: cancel while retaining focus for host shortcuts
 - `cancelAll`: clear key/button/pointer state and neutralize the dispatcher
 - `dispose`: cancel before disposing the owned focus node
@@ -202,6 +205,7 @@ The executable contract is covered by:
 - `test/ui/input/desktop/runner_desktop_bindings_test.dart`
 - `test/ui/input/desktop/runner_desktop_aim_geometry_test.dart`
 - `test/ui/input/desktop/runner_desktop_input_adapter_test.dart`
+- `test/playtest/runner_chunk_playtest_host_test.dart`
 - existing touch control tests under `test/ui/controls/**`
 
 Coverage includes all admitted slot modes, unsupported modes, both touch

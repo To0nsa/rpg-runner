@@ -5,7 +5,8 @@ Date: August 19, 2026
 Status: Active (Phase 0 completed with accepted baseline exceptions on August
 19, 2026; Phase 1 completed in `25ae1a6e` on August 19, 2026; Phase 2
 completed in `77af803f` on August 19, 2026; Phase 3 completed in `03bd98d5` and
-`99ac7a8b` on August 19, 2026; Phase 4 in progress)
+`99ac7a8b` on August 19, 2026; Phase 4 completed in `490b78ca` and `00239a22`
+on August 19, 2026; Phase 5 not started)
 
 Related documents:
 
@@ -16,6 +17,7 @@ Related documents:
 - [Phase 3 implementation checklist](phase3-implementation-checklist.md)
 - [Gameplay input architecture](../../../tdd/gameplay_input_architecture.md)
 - [Phase 4 implementation checklist](phase4-implementation-checklist.md)
+- [Editor chunk playtest host](../../../tdd/editor_chunk_playtest_host.md)
 - [Chunk Creator high-level plan](../chunkCreator/plan.md)
 - [Unified Chunk Scene strategy](../chunkCreator/unified-chunk-scene-strategy.md)
 - [Editor UI system](../../../tdd/editor_ui_system.md)
@@ -434,6 +436,8 @@ Gate: touch parity tests remain green; desktop tests prove no duplicate edges
 or stuck held input; desktop code has no touch imports.
 
 ### Phase 4: Backend-free playtest host
+
+Status: Complete (August 19, 2026; `490b78ca`, `00239a22`).
 
 - Add the tooling-only playtest barrel and widget.
 - Reuse Core/controller/Flame and mount only the desktop adapter.

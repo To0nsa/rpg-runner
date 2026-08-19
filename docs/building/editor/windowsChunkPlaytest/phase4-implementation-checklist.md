@@ -2,7 +2,7 @@
 
 Date: August 19, 2026
 
-Status: In progress
+Status: Complete with accepted external baseline exception (August 19, 2026)
 
 Source plan: [Windows Chunk Playtest and Reusable Desktop Input Plan](plan.md)
 
@@ -89,100 +89,100 @@ validation authority.
 
 ## Step 1 — Add the tooling-only public surface
 
-- [ ] Add `lib/playtest.dart` and export only the scenario-facing host,
+- [x] Add `lib/playtest.dart` and export only the scenario-facing host,
       lifecycle values, workspace asset bundle, and required stable types.
-- [ ] Keep all implementation under `lib/playtest/**` or existing shared
+- [x] Keep all implementation under `lib/playtest/**` or existing shared
       game/input/viewport modules.
-- [ ] Do not export playtest APIs from `lib/runner.dart`.
-- [ ] Document public construction, ownership, disposal, asset, and callback
+- [x] Do not export playtest APIs from `lib/runner.dart`.
+- [x] Document public construction, ownership, disposal, asset, and callback
       requirements so the editor does not depend on internal paths.
 
 ## Step 2 — Make Flame image loading host-configurable
 
-- [ ] Allow `RunnerFlameGame` to receive an optional per-game `Images` cache
+- [x] Allow `RunnerFlameGame` to receive an optional per-game `Images` cache
       while preserving the normal game's current default behavior.
-- [ ] Give each playtest runtime a fresh isolated image cache.
-- [ ] Use the host-supplied bundle for all player/enemy/projectile/terrain/
+- [x] Give each playtest runtime a fresh isolated image cache.
+- [x] Use the host-supplied bundle for all player/enemy/projectile/terrain/
       parallax loads without copying assets into the editor package.
-- [ ] Surface load failures through stable playtest failure state/presentation.
-- [ ] Prove image caches are cleared with the old runtime on restart/disposal.
+- [x] Surface load failures through stable playtest failure state/presentation.
+- [x] Prove image caches are cleared with the old runtime on restart/disposal.
 
 ## Step 3 — Add the read-only workspace bundle
 
-- [ ] Accept one existing repository workspace root and expose only bundle
+- [x] Accept one existing repository workspace root and expose only bundle
       reads beneath its `assets/` directory.
-- [ ] Normalize bundle keys deterministically and reject empty, absolute,
+- [x] Normalize bundle keys deterministically and reject empty, absolute,
       drive-qualified, URI-like, backslash, dot, and `..` paths.
-- [ ] Resolve the real file path before reading and require canonical
+- [x] Resolve the real file path before reading and require canonical
       containment beneath the canonical asset root, including symlink escapes.
-- [ ] Return immutable byte data and perform no create/write/delete operation.
-- [ ] Distinguish invalid key, missing asset, escaped path, and I/O failures in
+- [x] Return immutable byte data and perform no create/write/delete operation.
+- [x] Distinguish invalid key, missing asset, escaped path, and I/O failures in
       stable diagnostics.
-- [ ] Test valid nested reads, traversal/absolute/drive/URI paths, missing
+- [x] Test valid nested reads, traversal/absolute/drive/URI paths, missing
       files, symlink escape where supported, and proof of no workspace writes.
 
 ## Step 4 — Compose the backend-free runtime
 
-- [ ] Construct a fresh Core/controller/router/dispatcher/preview/Flame graph
+- [x] Construct a fresh Core/controller/router/dispatcher/preview/Flame graph
       from the scenario for initial load and every restart.
-- [ ] Resolve dispatcher modes from the current runtime HUD snapshot.
-- [ ] Mount `RunnerDesktopInputAdapter` around the fitted game surface and
+- [x] Resolve dispatcher modes from the current runtime HUD snapshot.
+- [x] Mount `RunnerDesktopInputAdapter` around the fitted game surface and
       provide current viewport/camera/player aim geometry.
-- [ ] Keep gameplay input disabled while loading, ready, paused, failed,
+- [x] Keep gameplay input disabled while loading, ready, paused, failed,
       game-over, or stopped so overlay clicks cannot queue gameplay commands.
-- [ ] Keep `GameWidget.autofocus` disabled; request only adapter-local focus
+- [x] Keep `GameWidget.autofocus` disabled; request only adapter-local focus
       once ready/start/resume makes it appropriate.
-- [ ] Add no touch overlay, Provider lookup, app state, replay recorder, ghost,
+- [x] Add no touch overlay, Provider lookup, app state, replay recorder, ghost,
       haptics, submission, or backend client.
 
 ## Step 5 — Implement lifecycle and presentation
 
-- [ ] Publish immutable status for loading progress, ready, running, paused,
+- [x] Publish immutable status for loading progress, ready, running, paused,
       game-over, failed, and stopped states.
-- [ ] Expose start, pause, resume/toggle, deterministic restart, focus request,
+- [x] Expose start, pause, resume/toggle, deterministic restart, focus request,
       and stop operations through a host controller suitable for Phase 5.
-- [ ] Start only from ready; pause only from running; resume only from paused;
+- [x] Start only from ready; pause only from running; resume only from paused;
       make invalid/repeated commands safe no-ops.
-- [ ] On focus loss, cancel desktop/semantic input before entering paused.
-- [ ] Restart by canceling the old adapter, replacing the complete runtime with
+- [x] On focus loss, cancel desktop/semantic input before entering paused.
+- [x] Restart by canceling the old adapter, replacing the complete runtime with
       a fresh graph from the same scenario/seed, and disposing the old graph.
-- [ ] Stop by canceling/disposing runtime state, publishing stopped, and then
+- [x] Stop by canceling/disposing runtime state, publishing stopped, and then
       invoking the host callback exactly once.
-- [ ] Detect Core game-over, neutralize input, and offer restart/stop without
+- [x] Detect Core game-over, neutralize input, and offer restart/stop without
       reward, score submission, or replay language.
-- [ ] Present a persistent `PLAYTEST - NO REWARDS/REPLAY` label and compact
+- [x] Present a persistent `PLAYTEST - NO REWARDS/REPLAY` label and compact
       fixed Windows control legend.
-- [ ] Present explicit load/asset/runtime errors with retry and stop actions.
+- [x] Present explicit load/asset/runtime errors with retry and stop actions.
 
 ## Step 6 — Prove host isolation and lifecycle
 
-- [ ] Widget-test real ready -> start -> running and semantic keyboard input.
-- [ ] Test pause/focus-loss cancellation and explicit resume.
-- [ ] Test restart creates a distinct runtime at the exact original tick-zero
+- [x] Widget-test real ready -> start -> running and semantic keyboard input.
+- [x] Test pause/focus-loss cancellation and explicit resume.
+- [x] Test restart creates a distinct runtime at the exact original tick-zero
       snapshot and stale load callbacks cannot change the replacement state.
-- [ ] Test game-over, failed load/retry, stop callback once, widget disposal,
+- [x] Test game-over, failed load/retry, stop callback once, widget disposal,
       and rapid repeated restart/stop safety.
-- [ ] Assert touch controls, Provider, Firebase, replay, submission, ghost, and
+- [x] Assert touch controls, Provider, Firebase, replay, submission, ghost, and
       reward types are absent from the playtest implementation import graph.
-- [ ] Prove no replay spool, repository source, generated output, or backend
+- [x] Prove no replay spool, repository source, generated output, or backend
       state is written during host lifecycle tests.
 
 ## Step 7 — Documentation, validation, and commits
 
-- [ ] Update TDD documentation with implemented playtest construction, state,
+- [x] Update TDD documentation with implemented playtest construction, state,
       focus, asset, error, and cleanup ownership.
-- [ ] Update the source plan and this checklist with factual Phase 4 delivery
+- [x] Update the source plan and this checklist with factual Phase 4 delivery
       status only.
-- [ ] Confirm no GDD, root README, editor README, or public embedding update is
+- [x] Confirm no GDD, root README, editor README, or public embedding update is
       needed before Phase 5 mounts the feature.
-- [ ] Run `dart format` on changed Dart files.
-- [ ] Run `dart analyze lib test` and focused host/asset/input tests.
-- [ ] Run relevant existing Flame/run-widget/input tests.
-- [ ] Run the broader root Flutter suite and record only established external
+- [x] Run `dart format` on changed Dart files.
+- [x] Run `dart analyze lib test` and focused host/asset/input tests.
+- [x] Run relevant existing Flame/run-widget/input tests.
+- [x] Run the broader root Flutter suite and record only established external
       baseline exceptions separately.
-- [ ] Run `git diff --check`, public-export, import-boundary, and write-safety
+- [x] Run `git diff --check`, public-export, import-boundary, and write-safety
       searches.
-- [ ] Commit planning, asset/runtime, host, and factual closeout milestones as
+- [x] Commit planning, asset/runtime, host, and factual closeout milestones as
       coherent validated commits.
 
 ## Evidence record
@@ -191,19 +191,37 @@ validation authority.
 
 | Date | Command/test | Result | Notes |
 | --- | --- | --- | --- |
-| Pending | Host and asset tests | Pending | — |
-| Pending | Analysis and relevant regression tests | Pending | — |
-| Pending | Isolation/import/write checks | Pending | — |
+| August 19, 2026 | Focused host, workspace bundle, and desktop adapter tests | Pass (21 tests) | Covers real Core/Flame lifecycle, physical input, failure/retry, rapid generations, disposal, asset containment, and no-write reads. |
+| August 19, 2026 | `dart analyze lib test` | Pass | No issues in the application/test workspace. |
+| August 19, 2026 | Existing Flame/router/viewport/desktop/touch regression slice | Pass (92 tests) | No shared renderer, input, or touch regressions. |
+| August 19, 2026 | Full root `flutter test` | External baseline exception | 798 tests passed; the pre-existing malformed-record expectation in `packages/runner_core/test/track/staged_terrain_world_geometry_test.dart` remains the only failure. |
+| August 19, 2026 | Export/import/write boundary searches and scoped `git diff --check` | Pass | Tooling API remains out of `runner.dart`; playtest source has no product/backend/replay imports or repository write calls. |
 
 ### Delivered contracts
 
-Pending implementation.
+- `package:rpg_runner/playtest.dart` is the deliberate tooling API and remains
+  separate from the product `runner.dart` embedding surface.
+- `RunnerChunkPlaytestHost` owns a backend-free per-generation
+  Core/controller/router/dispatcher/Flame/desktop-input graph.
+- `RunnerChunkPlaytestController` publishes lifecycle state and admits only
+  phase-valid start, pause, resume, restart, focus, and stop commands.
+- Disabled desktop translation cancels gameplay state while retaining the
+  focus boundary needed by host overlays.
+- Every restart begins from the exact scenario tick-zero snapshot, isolates
+  its image cache, and ignores callbacks from retired generations.
+- `RunnerWorkspaceAssetBundle` canonically confines read-only bundle access to
+  repository `assets/` and emits stable diagnostics.
+
+Planning commit: `6ba356d7` (`docs(editor): plan phase four playtest host`).
+Asset/loading commit: `490b78ca` (`feat(playtest): add isolated workspace asset
+loading`). Host implementation commit: `00239a22` (`feat(playtest): add
+backend-free chunk host`).
 
 ## Closeout
 
-- [ ] Every Phase 4 checkbox is complete or explicitly accepted with evidence.
-- [ ] Update status to `Complete` with date and commit references.
-- [ ] Do not begin Phase 5 editor integration until host restart, cleanup,
+- [x] Every Phase 4 checkbox is complete or explicitly accepted with evidence.
+- [x] Update status to `Complete` with date and commit references.
+- [x] Do not begin Phase 5 editor integration until host restart, cleanup,
       asset containment, and backend-isolation gates are green.
 
 Phase 4 completion means the editor can later mount one already prepared
